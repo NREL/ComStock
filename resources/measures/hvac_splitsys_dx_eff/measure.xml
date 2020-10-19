@@ -1,0 +1,85 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <name>hvac_split_system_dx_efficiency</name>
+  <uid>fb0ca3be-013f-4d6e-b236-d8de25988a37</uid>
+  <version_id>50460ac2-a0ae-4b86-8956-dbf229d1956f</version_id>
+  <version_modified>20200424T235204Z</version_modified>
+  <xml_checksum>C49A7DAB</xml_checksum>
+  <class_name>HVACSplitSystemDXEfficiency</class_name>
+  <display_name>HVAC Split System DX Efficiency</display_name>
+  <description>Adjusts the efficiency of split system DX units.</description>
+  <modeler_description>Adjusts the efficiency of split system DX units.</modeler_description>
+  <arguments>
+    <argument>
+      <name>target_efficiency_level</name>
+      <display_name>Target Efficiency Level</display_name>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <choices>
+        <choice>
+          <value>SEER 14</value>
+          <display_name>SEER 14</display_name>
+        </choice>
+        <choice>
+          <value>SEER 16</value>
+          <display_name>SEER 16</display_name>
+        </choice>
+        <choice>
+          <value>SEER 18</value>
+          <display_name>SEER 18</display_name>
+        </choice>
+        <choice>
+          <value>SEER 20</value>
+          <display_name>SEER 20</display_name>
+        </choice>
+      </choices>
+    </argument>
+  </arguments>
+  <outputs/>
+  <provenances/>
+  <tags>
+    <tag>HVAC.Whole System</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>hvac_splitsys_dx_eff_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>AB0BC17E</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.8.0</identifier>
+        <min_compatible>2.8.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>A7E17BBD</checksum>
+    </file>
+  </files>
+</measure>

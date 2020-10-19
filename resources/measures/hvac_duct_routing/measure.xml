@@ -1,0 +1,69 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <name>hvac_duct_routing</name>
+  <uid>f8d15ef5-1a47-4472-b7db-c0ead9142a9a</uid>
+  <version_id>b2694d8f-b9a0-4b4d-8688-eb9c1272f0b6</version_id>
+  <version_modified>20200429T002448Z</version_modified>
+  <xml_checksum>D4024775</xml_checksum>
+  <class_name>HVACDuctRouting</class_name>
+  <display_name>Improved Duct Routing</display_name>
+  <description>The more restrictions and bends in the ductwork that air must move through to reach a space, the greater the fan energy required to move the air.  Using larger ducts or routing them to avoid restrictions and bends can decrease fan energy.</description>
+  <modeler_description>For each AirLoop in the model, reduce the fan pressure drop by the user-specified amount (default 10%).  This default is a conservative estimate; further reductions may be achieved, but may not be practical based on size and cost constraints.</modeler_description>
+  <arguments>
+    <argument>
+      <name>pressure_drop_reduction_pct</name>
+      <display_name>Pressure Drop Reduction Percent</display_name>
+      <type>Double</type>
+      <units>%</units>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>10</default_value>
+    </argument>
+  </arguments>
+  <outputs/>
+  <provenances/>
+  <tags>
+    <tag>Electric Lighting.Electric Lighting Controls</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Analysis Spreadsheet</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>New Construction EE</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Retrofit EE</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>hvac_duct_routing_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>0CA22EC4</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>1.5.0</identifier>
+        <min_compatible>1.5.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>478A4CD6</checksum>
+    </file>
+  </files>
+</measure>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Simulation Settings Check</title>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+<style type="text/css">
+    .slice text {
+        font-size: 10pt;
+        font-family: Arial;
+    }
+</style>
+<style>
+<!--
+.tab { margin-left: 50px; }
+-->
+</style>
+</head>
+<body>
+<div class="container">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th>Input</th>
+        <th>Output</th>
+        <th>Warning</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Hours Simulated</td>
+        <td><%= hrs_simulated_input_status %></td>
+        <td><%= hrs_simulated_output_status %></td>
+        <td><%= hrs_simulated_warning %></td>
+      </tr>
+      <tr>
+        <td>Daylight Savings</td>
+        <td><%= daylt_svgs_input_status %></td>
+        <td><%= daylt_svgs_output_status %></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td>Timestep</td>
+        <td><%= timestep_input_status %></td>
+        <td><%= timestep_output_status %></td>
+        <td><%= timestep_warning %></td>
+      </tr>
+      <tr>
+        <td>Start Day</td>
+        <td><%= start_day_input_status %></td>
+        <td><%= start_day_output_status %></td>
+        <td><%= start_day_warning %></td>
+      </tr>
+      <tr>
+        <td>Leap Year</td>
+        <td><%= leap_year_input_status %></td>
+        <td><%= leap_year_output_status %></td>
+        <td><%= leap_year_warning %></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+</body>
+</html>

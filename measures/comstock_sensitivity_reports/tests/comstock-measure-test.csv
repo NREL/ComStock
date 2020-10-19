@@ -1,0 +1,7 @@
+sample_building_id,climate_zone,county_id,building_type,rotation,aspect_ratio,rentable_area,number_stories,built_code,hvac_system_type,weekday_start_time,weekday_duration,weekend_start_time,weekend_duration,swh_src,mfm_tstat_code,envelope_code,ext_lgt_code,hvac_code,int_lgt_code,int_equip_code,swh_code,year
+25,5A,G2600990,retail,180,1,25001_50000,1,2010_2014,Residential forced air,5:15,17:30,5:45,16:15,HeatPump,3,pre_1978,2014_2017,2014_2017,2006_2010,2014_2017,2014_2017,12
+31,5A,G3900950,quick_service_restaurant,180,1,1001_5000,1,1993_2002,PTHP,8:30,13:15,5:45,16:30,NaturalGas,3,1978_1993,2010_2014,2002_2006,2006_2010,2010_2014,2010_2014,12
+43,3B,G3200030,warehouse,270,2,50001_100000,1,1978_1993,Baseboard electric heat,6:45,10:45,NA,NA,HeatPump,5,1993_2002,2014_2017,1993_2002,2010_2014,2014_2017,2014_2017,12
+45,2A,G4802090,strip_mall,225,1,10001_25000,1,pre_1978,Window AC with hot water baseboard heat,6:45,14:45,7:15,13:30,HeatPump,1,1993_2002,2010_2014,2017_2019,2010_2014,2010_2014,2010_2014,12
+53,6A,G2600190,small_hotel,0,1,10001_25000,1,pre_1978,PSZ-AC with gas coil heat,9:15,12:15,9:15,9:00,NaturalGas,2,1993_2002,2010_2014,2014_2017,2006_2010,2010_2014,2010_2014,12
+82,4A,G2101110,hospital,180,1,500001_1mil,7,pre_1978,VAV with reheat,7:30,13:15,8:30,13:30,HeatPump,1,1978_1993,2010_2014,2002_2006,2006_2010,2010_2014,2010_2014,12

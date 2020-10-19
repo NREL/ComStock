@@ -1,0 +1,291 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <name>la_100_qaqc</name>
+  <uid>2a80fe59-a292-48af-8598-ca8f85538902</uid>
+  <version_id>ae1eefe7-63be-4b89-9a64-2e6bb2a13b16</version_id>
+  <version_modified>20181106T171849Z</version_modified>
+  <xml_checksum>AE80F94A</xml_checksum>
+  <class_name>LA100QAQC</class_name>
+  <display_name>LA100QAQC</display_name>
+  <description>This measure extracts key simulation results and performs basic model QAQC checks necessary for the LA100 Project.</description>
+  <modeler_description>Reads the model and sql file to pull out the necessary information and run the model checks.  The check results show up as Warning messages in the measure's output on the PAT run tab.</modeler_description>
+  <arguments>
+    <argument>
+      <name>run_qaqc</name>
+      <display_name>Run QAQC?:</display_name>
+      <description>If set to true, will run this QAQC measure, adding in many substantial output variables.</description>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+  </arguments>
+  <outputs/>
+  <provenances/>
+  <tags>
+    <tag>Reporting.QAQC</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Uses SketchUp API</name>
+      <value>false</value>
+      <datatype>boolean</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Automatic Report Generation</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Automatic Report Generation</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Automatic Report Generation</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ReportingMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Automatic Report Generation</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>report.html.erb</filename>
+      <filetype>erb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>6AD259AE</checksum>
+    </file>
+    <file>
+      <filename>USA_CA_Los.Angeles.Intl.AP.722950_TMY3.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>2E4F946B</checksum>
+    </file>
+    <file>
+      <filename>school.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>F0991360</checksum>
+    </file>
+    <file>
+      <filename>CreateResults.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>DFA8C9DE</checksum>
+    </file>
+    <file>
+      <filename>check_la_weather_files.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>45B3C984</checksum>
+    </file>
+    <file>
+      <filename>os_lib_helper_methods.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>9CFC43FB</checksum>
+    </file>
+    <file>
+      <filename>os_lib_reporting_qaqc.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>A7C4AAA2</checksum>
+    </file>
+    <file>
+      <filename>check_calibration.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>59E0D2C8</checksum>
+    </file>
+    <file>
+      <filename>deer_vintages.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>D0DB3AF7</checksum>
+    </file>
+    <file>
+      <filename>check_simultaneous_heating_and_cooling.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>60A3E489</checksum>
+    </file>
+    <file>
+      <filename>check_part_loads.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>F195FB71</checksum>
+    </file>
+    <file>
+      <filename>check_plant_cap.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>CE64B2DC</checksum>
+    </file>
+    <file>
+      <filename>check_plant_temps.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>F46A2BD3</checksum>
+    </file>
+    <file>
+      <filename>check_plenum_loads.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>F6C9AA8D</checksum>
+    </file>
+    <file>
+      <filename>check_mech_sys_capacity.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>B56CF574</checksum>
+    </file>
+    <file>
+      <filename>check_envelope_conductance.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>90DFEE94</checksum>
+    </file>
+    <file>
+      <filename>check_internal_loads.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>29608500</checksum>
+    </file>
+    <file>
+      <filename>check_supply_air_and_thermostat_temp_difference.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>F4BA3006</checksum>
+    </file>
+    <file>
+      <filename>check_mech_sys_efficiency.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>C55B2F42</checksum>
+    </file>
+    <file>
+      <filename>check_mech_sys_part_load_eff.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>2149B0A3</checksum>
+    </file>
+    <file>
+      <filename>measure_Test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>502B4AF1</checksum>
+    </file>
+    <file>
+      <filename>check_air_loop_temps.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>7935B286</checksum>
+    </file>
+    <file>
+      <filename>check_fan_power.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>253CC0FB</checksum>
+    </file>
+    <file>
+      <filename>check_internal_loads_schedules.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>56FE2302</checksum>
+    </file>
+    <file>
+      <filename>check_occ_zones_conditioned.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>F1D7FE80</checksum>
+    </file>
+    <file>
+      <filename>check_pump_power.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>3F2D0702</checksum>
+    </file>
+    <file>
+      <filename>check_unmet_hours.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>3C89B8B3</checksum>
+    </file>
+    <file>
+      <filename>check_sch_coord.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>0EC24562</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.0.0</identifier>
+        <min_compatible>2.0.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>081CB4AE</checksum>
+    </file>
+  </files>
+</measure>

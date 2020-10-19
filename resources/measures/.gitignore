@@ -1,0 +1,6 @@
+# ignore a bunch of files that are created during testing.
+/*/tests/output
+*/*/tests/*_output.osm
+*/*/run
+*/*/tests/run
+**/test_arguments.csv

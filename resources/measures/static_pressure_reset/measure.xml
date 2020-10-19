@@ -1,0 +1,59 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <name>static_pressure_reset</name>
+  <uid>fad4dd96-f6a9-4a15-a6fc-046adc76b717</uid>
+  <version_id>5422b749-f893-4080-877c-5cfffeeb4c49</version_id>
+  <version_modified>20200309T181828Z</version_modified>
+  <xml_checksum>56434E32</xml_checksum>
+  <class_name>StaticPressureReset</class_name>
+  <display_name>Static Pressure Reset</display_name>
+  <description>When a building's supply fan(s) system is operational, the supply fan's static pressure set point can be automatically adjusted to load conditions that will allow the supply fan to operate more efficiently. The variable frequency drive (VFD) of the supply fan is modulated to maintain a dynamically reset static pressure set point. This can be done by sorting all variable-air-volume (VAV) box dampers by position; if the average of the highest (most open) 10% of VAV boxes are open less that 70%, the reset control will decrease the static pressure set point in 0.1 W.C. (inches of water column) increments until the set point achieves the low operation limit (30% of the original value). If the average of the highest 10% of VAV boxes is greater than 90% open, the reset control will increase the static pressure set point in 0.1 W.C. increments until the set point achieves the original set point.</description>
+  <modeler_description>At each simulation time step, check the damper position for each VAV terminal on the airloop.  Reset the fan pressure rise to the max damper position divided by 0.95, down to a minimum of 50% of the design pressure rise.</modeler_description>
+  <arguments/>
+  <outputs/>
+  <provenances/>
+  <tags>
+    <tag>HVAC.Distribution</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>EnergyPlusMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Analysis Spreadsheet</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>static_pressure_rest_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>880AEB99</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>1.7.2</identifier>
+        <min_compatible>1.7.2</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>EB431772</checksum>
+    </file>
+  </files>
+</measure>

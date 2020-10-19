@@ -1,0 +1,97 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <name>mels_power_strips</name>
+  <uid>3517b0f3-db26-4d30-896c-c4908ecac8cc</uid>
+  <version_id>fbf259d4-2740-449a-a160-c080ed1f4189</version_id>
+  <version_modified>20200428T202110Z</version_modified>
+  <xml_checksum>B2EAAD67</xml_checksum>
+  <class_name>MelsPowerStrips</class_name>
+  <display_name>Advanced Power Strips</display_name>
+  <description>Advanced power strips can be used to turn off electric equipment when no one is in the building, saving energy without impacting the users of the equipment.</description>
+  <modeler_description>Find all of the electric equipment schedules for office/classroom space types, and reduce their fractional values to a user-specified level (default 10%) between user specified times (default 6pm-9am).</modeler_description>
+  <arguments>
+    <argument>
+      <name>run_measure</name>
+      <display_name>Run Measure</display_name>
+      <description>Argument to run measure.</description>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>true</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>choice</name>
+      <display_name>Power Saving Measure</display_name>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>PowerStrips</default_value>
+      <choices>
+        <choice>
+          <value>PowerStrips</value>
+          <display_name>PowerStrips</display_name>
+        </choice>
+        <choice>
+          <value>ControllablePowerOutlets</value>
+          <display_name>ControllablePowerOutlets</display_name>
+        </choice>
+      </choices>
+    </argument>
+  </arguments>
+  <outputs/>
+  <provenances/>
+  <tags>
+    <tag>Equipment.Equipment Controls</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Analysis Spreadsheet</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>New Construction EE</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Retrofit EE</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>1.5.0</identifier>
+        <min_compatible>1.5.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>138CBFC9</checksum>
+    </file>
+    <file>
+      <filename>mels_pwr_strip_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>BCD5F030</checksum>
+    </file>
+  </files>
+</measure>

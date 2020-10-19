@@ -1,0 +1,59 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <name>hvac_pump_vfd</name>
+  <uid>107bf4c7-fe51-4ff4-a114-d9f471441d47</uid>
+  <version_id>018e2813-9f33-414b-8371-c19e49c91d65</version_id>
+  <version_modified>20200430T183315Z</version_modified>
+  <xml_checksum>772B7164</xml_checksum>
+  <class_name>HVACPumpVFD</class_name>
+  <display_name>HVAC Pump VFD</display_name>
+  <description>Add variable frequency drive to existing pumps.</description>
+  <modeler_description>Change existing constant volume pumps to variable volume pumps on non service hot water plant loops.</modeler_description>
+  <arguments/>
+  <outputs/>
+  <provenances/>
+  <tags>
+    <tag>HVAC.Distribution</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.8.0</identifier>
+        <min_compatible>2.8.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>07B3F54E</checksum>
+    </file>
+    <file>
+      <filename>hvac_pump_vfd_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>A4867A08</checksum>
+    </file>
+  </files>
+</measure>

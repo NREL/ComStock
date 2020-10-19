@@ -1,0 +1,97 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <name>mels_pc_virtualization</name>
+  <uid>c787ae31-643b-4542-a8ec-cb253d2c50f8</uid>
+  <version_id>4e62f19f-f8d9-4c23-857c-fd3f07b237c1</version_id>
+  <version_modified>20200428T202102Z</version_modified>
+  <xml_checksum>9A202986</xml_checksum>
+  <class_name>MelsPcVirtualization</class_name>
+  <display_name>Desktops To Thin Clients</display_name>
+  <description>Laptop computers and thin clients are typically much more efficient than desktop computers, providing the same (or better) performance while using less energy.  As a result, switching from desktops to laptops or thin clients can save energy.  Typically, laptops use about 80% less electricity than desktops (1) and thin clients use (77%) less, assuming that servers and server cooling are handled on-site (2).</description>
+  <modeler_description>Assume that each occupant in the building has a computer.  Assume that 53% of these are desktops, and 47% are laptops (https://ieer.org/wp/wp-content/uploads/2012/03/DOE-2011-Buildings-Energy-DataBook-BEDB.pdf).  Assume that desktops draw 175W at peak, whereas laptops draw 40W and thin clients draw 45W (including data center cooling load).  Calculate the overall building installed electric equipment power in W, then calculate the reduction in W from switching from desktops.  Determine the percent power reduction for the overall building, and apply this percentage to all electric equipment in the building, because electric equipment is not typically identified in a granular fashion.</modeler_description>
+  <arguments>
+    <argument>
+      <name>run_measure</name>
+      <display_name>Run Measure</display_name>
+      <description>Argument to run measure.</description>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>true</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>pc_type</name>
+      <display_name>PC Type</display_name>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>ThinClient</default_value>
+      <choices>
+        <choice>
+          <value>Laptop</value>
+          <display_name>Laptop</display_name>
+        </choice>
+        <choice>
+          <value>ThinClient</value>
+          <display_name>ThinClient</display_name>
+        </choice>
+      </choices>
+    </argument>
+  </arguments>
+  <outputs/>
+  <provenances/>
+  <tags>
+    <tag>Equipment.Electric Equipment</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>1.8.5</identifier>
+        <min_compatible>1.8.5</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>184CD3E1</checksum>
+    </file>
+    <file>
+      <filename>mels_pc_virtual_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>FBBAB0B0</checksum>
+    </file>
+  </files>
+</measure>

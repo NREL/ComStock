@@ -1,0 +1,81 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <name>lighting_specialty</name>
+  <uid>4f0fb1c6-30d8-4ed5-8db4-4ea59633f211</uid>
+  <version_id>35e01ac6-9f77-43ea-a0d7-743e4959e755</version_id>
+  <version_modified>20200428T202048Z</version_modified>
+  <xml_checksum>9A585DCE</xml_checksum>
+  <class_name>LightingSpecialty</class_name>
+  <display_name>Upgrade all specialty lights.</display_name>
+  <description>Upgrade all specialty lights to user-specified efficiency level (low, medium, high, very high).</description>
+  <modeler_description>Find the interior lighting template for the building, and assume the existing efficiency level in the model (low, medium, high, very high). Find the LPD and LPD fractions for each space type. Apply the lighting upgrades by reducing the LPD associated with specialty lighting by a percent (depends on starting and target efficiency levels).</modeler_description>
+  <arguments>
+    <argument>
+      <name>target_efficiency_level</name>
+      <display_name>Target Efficiency Level</display_name>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <choices>
+        <choice>
+          <value>Medium</value>
+          <display_name>Medium</display_name>
+        </choice>
+        <choice>
+          <value>High</value>
+          <display_name>High</display_name>
+        </choice>
+        <choice>
+          <value>Very High</value>
+          <display_name>Very High</display_name>
+        </choice>
+      </choices>
+    </argument>
+  </arguments>
+  <outputs/>
+  <provenances/>
+  <tags>
+    <tag>Electric Lighting.Lighting Equipment</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>1.8.5</identifier>
+        <min_compatible>1.8.5</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>B5DAAF12</checksum>
+    </file>
+    <file>
+      <filename>light_specialty_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>E4F04D98</checksum>
+    </file>
+  </files>
+</measure>

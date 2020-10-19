@@ -1,0 +1,15 @@
+.temp
+.idea
+.DS_Store
+clusters
+data
+local_configuration.*
+AFDD-experiments.*
+localResults
+workflow
+time_series_csv_files
+logs
+server.pid
+temp_data
+*~
+*_cluster.json

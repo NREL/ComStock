@@ -1,0 +1,81 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <name>hvacpthp_efficiency</name>
+  <uid>f67d5a87-07d9-4136-aa36-2b4c702d6d5a</uid>
+  <version_id>e1b010e9-9646-44d4-8a18-a2d4468e97ab</version_id>
+  <version_modified>20200430T185505Z</version_modified>
+  <xml_checksum>C49A7DAB</xml_checksum>
+  <class_name>HVACPTHPEfficiency</class_name>
+  <display_name>HVAC PTHP Efficiency</display_name>
+  <description>Adjusts the efficiency of packaged terminal heat pump (PTHP) units.</description>
+  <modeler_description>Adjusts the efficiency of packaged terminal heat pump (PTHP) units.</modeler_description>
+  <arguments>
+    <argument>
+      <name>target_efficiency_level</name>
+      <display_name>Target Efficiency Level</display_name>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <choices>
+        <choice>
+          <value>Code</value>
+          <display_name>Code</display_name>
+        </choice>
+        <choice>
+          <value>Efficient</value>
+          <display_name>Efficient</display_name>
+        </choice>
+        <choice>
+          <value>Highly Efficient</value>
+          <display_name>Highly Efficient</display_name>
+        </choice>
+      </choices>
+    </argument>
+  </arguments>
+  <outputs/>
+  <provenances/>
+  <tags>
+    <tag>HVAC.Whole System</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.8.0</identifier>
+        <min_compatible>2.8.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>48AECAFC</checksum>
+    </file>
+    <file>
+      <filename>hvac_pthp_eff_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>3B14F398</checksum>
+    </file>
+  </files>
+</measure>

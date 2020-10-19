@@ -1,0 +1,114 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <name>refrig_case_upgrades</name>
+  <uid>85bdaee4-a6ae-468a-84de-6e01aa428e40</uid>
+  <version_id>bf3e2d77-4b85-4ae8-978f-9df46b0363de</version_id>
+  <version_modified>20200429T181435Z</version_modified>
+  <xml_checksum>1432B39C</xml_checksum>
+  <class_name>RefrigCaseUpgrades</class_name>
+  <display_name>refrig_case_upgrades</display_name>
+  <description>This measure swaps old cases with 2017 code compliant cases and more efficient ones.</description>
+  <modeler_description>This measure swaps old cases with 2017 code compliant cases and more efficient ones.</modeler_description>
+  <arguments>
+    <argument>
+      <name>efficiency_level</name>
+      <display_name>elect the level of efficiency</display_name>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>2017 Code Compliant</default_value>
+      <choices>
+        <choice>
+          <value>2017 Code Compliant</value>
+          <display_name>2017 Code Compliant</display_name>
+        </choice>
+        <choice>
+          <value>State of the Art Efficiency</value>
+          <display_name>State of the Art Efficiency</display_name>
+        </choice>
+      </choices>
+    </argument>
+  </arguments>
+  <outputs/>
+  <provenances/>
+  <tags>
+    <tag>Refrigeration.Cases and Walkins</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.7.0</identifier>
+        <min_compatible>2.7.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>9690E7EF</checksum>
+    </file>
+    <file>
+      <filename>cases.json</filename>
+      <filetype>json</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>29E612AB</checksum>
+    </file>
+    <file>
+      <filename>refrig_case_upgrades_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>52DAACCD</checksum>
+    </file>
+  </files>
+</measure>

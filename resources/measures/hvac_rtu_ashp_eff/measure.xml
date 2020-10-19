@@ -1,0 +1,81 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <name>hvacrtuashp_efficiency</name>
+  <uid>259c51e6-02da-4c50-a112-e4ba87b43559</uid>
+  <version_id>0384d731-05cc-40a1-9ecb-e325d3c31680</version_id>
+  <version_modified>20200425T005459Z</version_modified>
+  <xml_checksum>C49A7DAB</xml_checksum>
+  <class_name>HVACRTUASHPEfficiency</class_name>
+  <display_name>HVAC RTU ASHP Efficiency</display_name>
+  <description>Adjusts the efficiency of rooftop air-source heat pumps.</description>
+  <modeler_description>Adjusts the efficiency of rooftop air-source heat pumps.</modeler_description>
+  <arguments>
+    <argument>
+      <name>target_efficiency_level</name>
+      <display_name>Target Efficiency Level</display_name>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <choices>
+        <choice>
+          <value>IEER 13.3</value>
+          <display_name>IEER 13.3</display_name>
+        </choice>
+        <choice>
+          <value>IEER 15.0</value>
+          <display_name>IEER 15.0</display_name>
+        </choice>
+        <choice>
+          <value>IEER 16.5</value>
+          <display_name>IEER 16.5</display_name>
+        </choice>
+      </choices>
+    </argument>
+  </arguments>
+  <outputs/>
+  <provenances/>
+  <tags>
+    <tag>HVAC.Whole System</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.8.0</identifier>
+        <min_compatible>2.8.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>20F486F0</checksum>
+    </file>
+    <file>
+      <filename>hvac_rtu_ashp_eff_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>F4435934</checksum>
+    </file>
+  </files>
+</measure>

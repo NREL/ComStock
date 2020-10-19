@@ -1,0 +1,59 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <name>refrig_add_case_doors</name>
+  <uid>5603203f-8fc6-4769-b6a5-27fb5532fef6</uid>
+  <version_id>b620e051-ce13-42a1-acf5-c2b838a39f62</version_id>
+  <version_modified>20200429T181407Z</version_modified>
+  <xml_checksum>2AF3A68E</xml_checksum>
+  <class_name>RefrigAddCaseDoors</class_name>
+  <display_name>refrig_add_case_doors</display_name>
+  <description>This measure swaps Hussman D5L cases (no door) with Hussman DD5X-LP cases (with door)</description>
+  <modeler_description>This measure swaps Hussman D5L cases with Hussman DD5X-LP cases</modeler_description>
+  <arguments/>
+  <outputs/>
+  <provenances/>
+  <tags>
+    <tag>Envelope.Form</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.7.1</identifier>
+        <min_compatible>2.7.1</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>45CA7111</checksum>
+    </file>
+    <file>
+      <filename>refrig_add_case_door_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>93E6D340</checksum>
+    </file>
+  </files>
+</measure>

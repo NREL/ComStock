@@ -1,0 +1,62 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <error>Unable to extract OpenStudio::Measure::OSMeasure object from C:/Users/mdahlhau/Documents/GitHub/NREL/comstock/resources/measures/hvac_dcv/measure.rb. The script should contain a class that derives from OpenStudio::Measure::OSMeasure and should close with a line stating the class name followed by .new.registerWithApplication.</error>
+  <name>hvacdcv</name>
+  <uid>f77d12b1-3a4f-417b-9d80-d53025f7e56b</uid>
+  <version_id>9ea0fc7a-f960-4d02-8946-c1b2789979df</version_id>
+  <version_modified>20200429T002510Z</version_modified>
+  <xml_checksum>356BE47F</xml_checksum>
+  <class_name>HVACDCV</class_name>
+  <display_name>HVAC DCV</display_name>
+  <description>Add demand control ventilation to an HVAC system.</description>
+  <modeler_description>Add demand control ventilation to variable volume HVAC systems.
+Requires that the design specification outdoor air objects have some part of the ventilation be specified as per person.
+Also requires that if zone hvac equipment is present, it takes load priority over the venilation system.</modeler_description>
+  <arguments/>
+  <outputs/>
+  <provenances/>
+  <tags>
+    <tag>HVAC.HVAC Controls</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.8.0</identifier>
+        <min_compatible>2.8.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>FC48B56E</checksum>
+    </file>
+    <file>
+      <filename>hvac_dcv_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>E479DDCA</checksum>
+    </file>
+  </files>
+</measure>

@@ -1,0 +1,116 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <name>add_blinds_to_selected_windows</name>
+  <uid>307d2b26-734a-4571-ab0c-a4e68c8e811e</uid>
+  <version_id>21a92586-37cb-41e1-9de5-aef8b341a8d3</version_id>
+  <version_modified>20190415T232551Z</version_modified>
+  <xml_checksum>997AAE6E</xml_checksum>
+  <class_name>AddBlindsToSelectedWindows</class_name>
+  <display_name>Add Blinds to Selected Windows</display_name>
+  <description>Add blinds to a fraction of windows in target space types</description>
+  <modeler_description>It goes through each window in specific space types, it add blinds, it prioritize south-east-west-north sides, top-down on each side</modeler_description>
+  <arguments>
+    <argument>
+      <name>add_blinds</name>
+      <display_name>Add blinds to the model?:</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>true</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+  </arguments>
+  <outputs/>
+  <provenances/>
+  <tags>
+    <tag>Envelope.Fenestration</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Function</name>
+      <value>Measure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Requires EnergyPlus Results</name>
+      <value>false</value>
+      <datatype>boolean</datatype>
+    </attribute>
+    <attribute>
+      <name>Uses SketchUp API</name>
+      <value>false</value>
+      <datatype>boolean</datatype>
+    </attribute>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Analysis Spreadsheet</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>weather_test.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>E3652693</checksum>
+    </file>
+    <file>
+      <filename>space_type_blinds_ratio.json</filename>
+      <filetype>json</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>B3222660</checksum>
+    </file>
+    <file>
+      <filename>add_blinds_to_selected_windows_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>A5EA92AA</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>0.10.2</identifier>
+        <min_compatible>1.8.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>63E6B2A0</checksum>
+    </file>
+    <file>
+      <filename>example_OfL_model.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>1C838467</checksum>
+    </file>
+  </files>
+</measure>

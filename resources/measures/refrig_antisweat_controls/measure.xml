@@ -1,0 +1,117 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <name>refrig_antisweat_controls</name>
+  <uid>ad891c6a-53a9-4bc1-b3fd-425226714a5f</uid>
+  <version_id>70cb2901-304f-488f-8655-ba5c832dbe74</version_id>
+  <version_modified>20200429T181417Z</version_modified>
+  <xml_checksum>6F9A90D8</xml_checksum>
+  <class_name>RefrigAntisweatControls</class_name>
+  <display_name>refrig_antisweat_controls</display_name>
+  <description>This measures checks if the model contains refrigeration cases and changes the AntiSweat heater Control.</description>
+  <modeler_description>This measure receives the AntiSweat heater Control from the user. Then it looks for refrigerated display cases; it loops through them; it checks the current AntiSweat heater Control of each case and it substitute it with the one chosen by the user.</modeler_description>
+  <arguments>
+    <argument>
+      <name>as_heater_control_type</name>
+      <display_name>Anti-Sweat Heater Control Type:</display_name>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>None</default_value>
+      <choices>
+        <choice>
+          <value>None</value>
+          <display_name>None</display_name>
+        </choice>
+        <choice>
+          <value>Constant</value>
+          <display_name>Constant</display_name>
+        </choice>
+        <choice>
+          <value>Linear</value>
+          <display_name>Linear</display_name>
+        </choice>
+        <choice>
+          <value>DewpointMethod</value>
+          <display_name>DewpointMethod</display_name>
+        </choice>
+        <choice>
+          <value>HeatBalanceMethod</value>
+          <display_name>HeatBalanceMethod</display_name>
+        </choice>
+      </choices>
+    </argument>
+  </arguments>
+  <outputs/>
+  <provenances/>
+  <tags>
+    <tag>Refrigeration.Cases and Walkins</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>README.md.erb</filename>
+      <filetype>erb</filetype>
+      <usage_type>readmeerb</usage_type>
+      <checksum>703C9964</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>1D9B5B1C</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.7.0</identifier>
+        <min_compatible>2.7.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>30015BBF</checksum>
+    </file>
+    <file>
+      <filename>refrig_antisweat_controls_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>7EF651F4</checksum>
+    </file>
+  </files>
+</measure>

@@ -1,0 +1,77 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <name>lighting_controls</name>
+  <uid>6fe0642d-1c09-42e1-85ad-8bc84e4fd634</uid>
+  <version_id>4dfafcfc-ddf4-4406-a12a-aaca17077a04</version_id>
+  <version_modified>20200428T202003Z</version_modified>
+  <xml_checksum>81C5D8E7</xml_checksum>
+  <class_name>LightingControls</class_name>
+  <display_name>Occupancy and Daylighting Controls</display_name>
+  <description>Choose from occupancy or daylighting controls.</description>
+  <modeler_description>Daylighting controls will physically add in daylighting controls to spaces in the building, while occupancy control will reduce lighting schedules by 10%.</modeler_description>
+  <arguments>
+    <argument>
+      <name>control_strategy</name>
+      <display_name>Daylighting and Occupancy Control Strategy.</display_name>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <choices>
+        <choice>
+          <value>Daylighting Controls</value>
+          <display_name>Daylighting Controls</display_name>
+        </choice>
+        <choice>
+          <value>Occupancy Controls</value>
+          <display_name>Occupancy Controls</display_name>
+        </choice>
+      </choices>
+    </argument>
+  </arguments>
+  <outputs/>
+  <provenances/>
+  <tags>
+    <tag>Electric Lighting.Electric Lighting Controls</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>light_controls_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>18FF75F0</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>1.8.5</identifier>
+        <min_compatible>1.8.5</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>903976C3</checksum>
+    </file>
+  </files>
+</measure>

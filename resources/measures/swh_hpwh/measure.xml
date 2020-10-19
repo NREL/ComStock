@@ -1,0 +1,92 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <name>swh_hpwh</name>
+  <uid>782280cd-497c-444f-b577-6f5579104ea3</uid>
+  <version_id>dadc007c-e9de-4875-8c79-6caef0d3e5f5</version_id>
+  <version_modified>20200429T181615Z</version_modified>
+  <xml_checksum>A05EBCA5</xml_checksum>
+  <class_name>SwhHpwh</class_name>
+  <display_name>swh_hpwh</display_name>
+  <description>This measure swaps electric water heaters with HeatPump water heaters.</description>
+  <modeler_description>This measure goes each water heater, if it finds a small (&lt;50gal, as defined on the MICS database), electric non-heatpump water heater, it calculates the COP corresponding to a EF=3.5
+
+            The equations for calculating EF and UA are listed here:
+            http://www.energycodes.gov/sites/default/files/documents/PrototypeModelEnhancements_2014_0.pdf (Appendix A: Service Water Heating).
+            https://github.com/NREL/openstudio-standards/blob/master/lib/openstudio-standards/standards/Standards.WaterHeaterMixed.rb#L90-L102
+            First a UA corresponding to a high EF for a standard electric SWH is calculated.
+            With that UA value and a EF=3.5 (as listed in common commercially available HP water heaters), the water heater thermal efficiency (corresponding to the COP in this case) is calculated,
+            through eq. on line 102 in the github page.
+            This number is used for the COP in the partial-load curve assigned to the new HP water heater.
+            https://www.energystar.gov/productfinder/product/certified-water-heaters/?formId=0d5ff0a5-d583-4bb4-a6d5-76436de5b169&amp;scrollTo=9&amp;search_text=&amp;fuel_filter=&amp;type_filter=Heat+Pump&amp;brand_name_isopen=&amp;input_rate_thousand_btu_per_hour_isopen=&amp;markets_filter=United+States&amp;zip_code_filter=&amp;product_types=Select+a+Product+Category&amp;sort_by=uniform_energy_factor_uef&amp;sort_direction=DESC&amp;currentZipCode=80401&amp;page_number=0&amp;lastpage=0</modeler_description>
+  <arguments/>
+  <outputs/>
+  <provenances/>
+  <tags>
+    <tag>Service Water Heating.Water Heating</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>LICENSE.md</filename>
+      <filetype>md</filetype>
+      <usage_type>license</usage_type>
+      <checksum>CD7F5672</checksum>
+    </file>
+    <file>
+      <filename>README.md.erb</filename>
+      <filetype>erb</filetype>
+      <usage_type>readmeerb</usage_type>
+      <checksum>703C9964</checksum>
+    </file>
+    <file>
+      <filename>.gitkeep</filename>
+      <filetype>gitkeep</filetype>
+      <usage_type>doc</usage_type>
+      <checksum>00000000</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>AC481D6A</checksum>
+    </file>
+    <file>
+      <filename>swh_hpwh_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>5A13549C</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.7.1</identifier>
+        <min_compatible>2.7.1</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>FB96E811</checksum>
+    </file>
+  </files>
+</measure>

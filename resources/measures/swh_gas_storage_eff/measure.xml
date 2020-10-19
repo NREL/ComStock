@@ -1,0 +1,124 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <name>swh_gas_storage_eff</name>
+  <uid>230b4aa7-6def-4824-bfae-d2f21f6bfc1e</uid>
+  <version_id>018ae1a8-749c-4bc5-84b2-b4ad266cf1fd</version_id>
+  <version_modified>20200429T181554Z</version_modified>
+  <xml_checksum>7A863940</xml_checksum>
+  <class_name>SwhGasStorageEff</class_name>
+  <display_name>swh_gas_storage_eff</display_name>
+  <description>This measure improves the Energy Factor of small gas water heaters with a value defined by the user.</description>
+  <modeler_description>This measure goes each water heater, if it finds a small (&lt;75BTU/h, &lt;50gal, as defined on the MICS database), natural gas water heater it checks its Energy Factor (using calculate_ef(ua_btu_h_per_F, q_btu_h)).
+            The equations for calculating EF through UA and vice-versa are listed here:
+            http://www.energycodes.gov/sites/default/files/documents/PrototypeModelEnhancements_2014_0.pdf (Appendix A: Service Water Heating).
+            If the current EF is lower than the chosen one, UA is changed accordingly to increase the EF of the water heater (using calculate_ua(ef, q_btu_h)).
+            The RE formula has been taken from here:
+            https://github.com/NREL/openstudio-standards/blob/95fe2261b63e5b3db2a230c9712f1dac224e1b67/lib/openstudio-standards/standards/necb/NECB2011/service_water_heating.rb </modeler_description>
+  <arguments>
+    <argument>
+      <name>ef_choice</name>
+      <display_name>Energy Factor Choice:</display_name>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>0.82</default_value>
+      <choices>
+        <choice>
+          <value>0.57</value>
+          <display_name>0.57</display_name>
+        </choice>
+        <choice>
+          <value>0.67</value>
+          <display_name>0.67</display_name>
+        </choice>
+        <choice>
+          <value>0.70</value>
+          <display_name>0.70</display_name>
+        </choice>
+        <choice>
+          <value>0.82</value>
+          <display_name>0.82</display_name>
+        </choice>
+      </choices>
+    </argument>
+  </arguments>
+  <outputs/>
+  <provenances/>
+  <tags>
+    <tag>Service Water Heating.Water Heating</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>LICENSE.md</filename>
+      <filetype>md</filetype>
+      <usage_type>license</usage_type>
+      <checksum>CD7F5672</checksum>
+    </file>
+    <file>
+      <filename>README.md.erb</filename>
+      <filetype>erb</filetype>
+      <usage_type>readmeerb</usage_type>
+      <checksum>703C9964</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>C0FB8C74</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.7.1</identifier>
+        <min_compatible>2.7.1</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>191F0405</checksum>
+    </file>
+    <file>
+      <filename>swh_gas_storage_eff_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>859BC3F7</checksum>
+    </file>
+  </files>
+</measure>

@@ -1,0 +1,59 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <name>hvachw_supply_temperature_reset</name>
+  <uid>57b81ed8-d8ae-466a-af92-03da97f802db</uid>
+  <version_id>322ae46b-1cde-4be6-932c-775bb53e6724</version_id>
+  <version_modified>20200429T224142Z</version_modified>
+  <xml_checksum>356BE47F</xml_checksum>
+  <class_name>HVACHWSupplyTemperatureReset</class_name>
+  <display_name>Hot Water Supply Temp Reset</display_name>
+  <description>This energy efficiency measure (EEM) adds a set point reset to all hot water loops present in the OpenStudio model. The hot water supply temperature reset will be based on outdoor-air temperature (OAT). The specific sequence is that as outdoor-air temperature (OAT) lowers from 60F (15.6C) down to 20F (-6.67C), the hot water supply temperature set point will increase from 160F (71.1C) up to 180F (82.2C).  This sequence provides a 20F (11.1C) change in the Hot Water Set Point, over a 40F (22.2C) temperature change in the OAT. This sequence assumes all boilers serving the hot water plant loops are non-condensing and should not receive return water below 140F (60.0C).</description>
+  <modeler_description>This EEM applies an OS:SetpointManager:OutdoorAirReset controller to the supply outlet node of all PlantLoop objects where OS:Sizing:Plant.LoopType = Heating.</modeler_description>
+  <arguments/>
+  <outputs/>
+  <provenances/>
+  <tags>
+    <tag>HVAC.HVAC Controls</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>1.8.5</identifier>
+        <min_compatible>1.8.5</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>219CEE30</checksum>
+    </file>
+    <file>
+      <filename>hvac_hw_temp_reset_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>624FC699</checksum>
+    </file>
+  </files>
+</measure>

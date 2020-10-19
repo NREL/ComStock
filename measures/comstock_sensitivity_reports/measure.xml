@@ -1,0 +1,177 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <name>com_stock_sensitivity_reports</name>
+  <uid>aeb81242-de7e-4613-af47-c1faf19d286a</uid>
+  <version_id>af8e6d9f-aa6d-479b-bae5-3e664cb1ac47</version_id>
+  <version_modified>20200319T184359Z</version_modified>
+  <xml_checksum>A0069B90</xml_checksum>
+  <class_name>ComStockSensitivityReports</class_name>
+  <display_name>ComStock_Sensitivity_Reports</display_name>
+  <description>In order to train the surrogate model for ComStock, we need to have more summary information about the
+            building in the output csv.  Characteristics like whole-bldg avg. U-value for walls, roofs, windows, etc,
+            whole-bldg LPD and EPD, avg. htg. eff/clg COP.  Mainly things that are not direct inputs to the model, but
+            that are a byproduct of the other inputs.  Also, the focus should be on things that are common across
+            building types, as opposed to very building-type-specific characteristics.</description>
+  <modeler_description>WARNING: This measure puts in output variables with reporting frequency 'RunPeriod'.
+            Make sure 'Run Simulation for Sizing Periods' is set to 'false' in 'OS:SimulationControl'.</modeler_description>
+  <arguments/>
+  <outputs/>
+  <provenances/>
+  <tags>
+    <tag>Reporting.QAQC</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ReportingMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Calibration</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Sensitivity Analysis</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>LICENSE.md</filename>
+      <filetype>md</filetype>
+      <usage_type>license</usage_type>
+      <checksum>CD7F5672</checksum>
+    </file>
+    <file>
+      <filename>README.md.erb</filename>
+      <filetype>erb</filetype>
+      <usage_type>readmeerb</usage_type>
+      <checksum>703C9964</checksum>
+    </file>
+    <file>
+      <filename>.gitkeep</filename>
+      <filetype>gitkeep</filetype>
+      <usage_type>doc</usage_type>
+      <checksum>00000000</checksum>
+    </file>
+    <file>
+      <filename>bldg0000025.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>25F2C0A6</checksum>
+    </file>
+    <file>
+      <filename>bldg0000043.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>C7374FBD</checksum>
+    </file>
+    <file>
+      <filename>bldg0000045.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>C6912F55</checksum>
+    </file>
+    <file>
+      <filename>bldg0000053.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>B160EBF4</checksum>
+    </file>
+    <file>
+      <filename>bldg0000082.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>761CC6B3</checksum>
+    </file>
+    <file>
+      <filename>USA_KY_Bowman.Fld.724235_2012.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>63B193A5</checksum>
+    </file>
+    <file>
+      <filename>USA_MI_Cherry.Capital.726387_2012.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>4CCCB0C1</checksum>
+    </file>
+    <file>
+      <filename>USA_MI_Detroit.City.725375_2012.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>FEBD2B68</checksum>
+    </file>
+    <file>
+      <filename>USA_NV_Nellis.Afb.723865_2012.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>877412BC</checksum>
+    </file>
+    <file>
+      <filename>USA_TX_San.Marcos.Muni.722539_2012.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>DA20B795</checksum>
+    </file>
+    <file>
+      <filename>comstock_sensitivity_reports_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>32F34B71</checksum>
+    </file>
+    <file>
+      <filename>comstock-measure-test.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>test</usage_type>
+      <checksum>120CF92E</checksum>
+    </file>
+    <file>
+      <filename>bldg0000031.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>0F4FB0CF</checksum>
+    </file>
+    <file>
+      <filename>USA_OH_Toledo.Express.725360_2012.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>32B030A2</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.9.0</identifier>
+        <min_compatible>2.9.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>049E661A</checksum>
+    </file>
+    <file>
+      <filename>Variable List.xlsx</filename>
+      <filetype>xlsx</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>434205B2</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>16CEB2D0</checksum>
+    </file>
+  </files>
+</measure>

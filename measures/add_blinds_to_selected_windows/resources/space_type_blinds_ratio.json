@@ -1,0 +1,34 @@
+{
+  "EPr":{
+    "Classroom": 0.3
+},
+  "ESe":{
+    "Classroom": 0.3,
+    "CompRoomClassRm":0.3
+},
+  "Hsp":{
+    "PatientRoom": 0.8
+},
+  "Htl":{
+    "GuestRmOcc": 0.8,
+    "GuestRmUnOcc": 1.0
+},
+  "MFm":{
+    "ResBedroom": 0.8,
+    "ResLiving": 0.3
+},
+  "Mtl":{
+    "GuestRmOcc": 0.8,
+    "GuestRmUnOcc": 1.0
+},
+  "Nrs":{
+    "PatientRoom": 0.8
+},
+  "OfL":{
+    "OfficeSmall": 0.3,
+    "OfficeOpen": 0.3
+},
+  "OfS":{
+    "OfficeSmall": 0.3
+}
+}

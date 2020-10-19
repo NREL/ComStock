@@ -1,0 +1,64 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <name>hvac_plant_shutdown</name>
+  <uid>58a5819c-7394-4052-a352-419114042759</uid>
+  <version_id>4eee16ce-fa1b-4d58-96d5-06f23b7a98a5</version_id>
+  <version_modified>20200430T203023Z</version_modified>
+  <xml_checksum>48FEEDDD</xml_checksum>
+  <class_name>HVACPlantShutdown</class_name>
+  <display_name>PlantShutdown</display_name>
+  <description>This energy efficiency measure (EEM) controls chilled-water loop, hot-water loop, and condenser loop pumps such that when there is no load on the plant, the pumps shut off.</description>
+  <modeler_description>This EEM changes the pump control type for all chilled-water loop, hot-water loop, and condenser loop pumps (both primary and secondary) to �Intermittent�. This measure does not check for any AvailabilityManagerAssignmentList objects, or otherwise use custom logic to force the pumps off when there is no load on the plant. Thus, based on the types of availability managers that are used in the model, it is technically possible for the pumps to operate when there is no load.</modeler_description>
+  <arguments/>
+  <outputs/>
+  <provenances/>
+  <tags>
+    <tag>Whole Building.Space Types</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Analysis Spreadsheet</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>hvac_plant_shutdown_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>AAE5A4B5</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>1.7.2</identifier>
+        <min_compatible>1.7.2</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>C8E7FBE3</checksum>
+    </file>
+  </files>
+</measure>

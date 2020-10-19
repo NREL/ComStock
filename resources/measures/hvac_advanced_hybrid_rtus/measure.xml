@@ -1,0 +1,59 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <name>hvac_advanced_hybrid_rt_us</name>
+  <uid>7b08b843-f8da-43c5-beb4-a7b1570ec3dd</uid>
+  <version_id>da58f90e-87f0-4f2d-b52c-d57531d38523</version_id>
+  <version_modified>20200430T191340Z</version_modified>
+  <xml_checksum>D48F381B</xml_checksum>
+  <class_name>HVACAdvancedHybridRTUs</class_name>
+  <display_name>Advanced Hybrid RTUs</display_name>
+  <description>Advanced hybrid RTUs combine traditional DX cooling with indirect evaporative cooling and variable-speed drive fans to achieve energy and peak demand savings, particularly in hot dry climates.  The increased fan power due to the indirect evaporative cooler may increase energy consumption in humid or heating-dominated climates.  However, this penalty is often outweighed by the benefit of the reduced flow rate possible because of the variable speed drive.</description>
+  <modeler_description>Each packaged single zone system (PSZ-AC, not heat pumps) in the model will be replaced with an advanced hybrid RTU consisting of a 100% effective indirect evaporative cooler, a two speed DX cooling coil, the existing heating coil, and a variable speed fan.  Fan power will be increased by 0.5 inches of water column above the current fan pressure rise to represent the addition of the indirect evaporative cooler.</modeler_description>
+  <arguments/>
+  <outputs/>
+  <provenances/>
+  <tags>
+    <tag>HVAC.Cooling</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>hvac_advanced_hybrid_rtus_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>7DE3EF81</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>1.8.5</identifier>
+        <min_compatible>1.8.5</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>19B523D4</checksum>
+    </file>
+  </files>
+</measure>

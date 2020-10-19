@@ -1,0 +1,87 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <name>electrochromic_windows</name>
+  <uid>88f7bf8f-35a0-4baf-9347-9e2ffb10102c</uid>
+  <version_id>53f9675f-4470-46ff-ab86-e74fe3927846</version_id>
+  <version_modified>20200428T201908Z</version_modified>
+  <xml_checksum>BC9625C9</xml_checksum>
+  <class_name>ElectrochromicWindows</class_name>
+  <display_name>Electrochromic Windows</display_name>
+  <description>Electrochromic windows are windows whose light transmittance can be changed from clear to very dark at will.  These windows may save energy and reduce peak demand by decreasing unwanted solar gains.</description>
+  <modeler_description>Each window in the building is assigned a thermochromic window construction and a shading control.  The shading control is set to increase the window tint to meet the daylighting setpoint in the zone.  If the zone already has daylighting controls, the setpoints from those controls are used.  If the zone does not have controls, new controls are added at the center of the zone with a setpoint of 500 lux.  These controls are only used for changing the window tint; they are not used to control the interior lighting.</modeler_description>
+  <arguments>
+    <argument>
+      <name>run_measure</name>
+      <display_name>Run Measure</display_name>
+      <description>integer argument to run measure [1 is run, 0 is no run]</description>
+      <type>Integer</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>1</default_value>
+    </argument>
+    <argument>
+      <name>choice</name>
+      <display_name>Glass Type</display_name>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>BleachedGlass</default_value>
+      <choices>
+        <choice>
+          <value>BleachedGlass</value>
+          <display_name>BleachedGlass</display_name>
+        </choice>
+        <choice>
+          <value>TintedGlass</value>
+          <display_name>TintedGlass</display_name>
+        </choice>
+      </choices>
+    </argument>
+  </arguments>
+  <outputs/>
+  <provenances/>
+  <tags>
+    <tag>Envelope.Fenestration</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>EnergyPlusMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Analysis Spreadsheet</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>1.7.0</identifier>
+        <min_compatible>1.7.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>89D49471</checksum>
+    </file>
+    <file>
+      <filename>env_window_electrochromic_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>FC884F7F</checksum>
+    </file>
+  </files>
+</measure>

@@ -1,0 +1,79 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <name>correct_refrigerant_undercharge</name>
+  <uid>6cdf2104-04d3-4a8a-88bf-d5e1136a27fd</uid>
+  <version_id>694a5f94-5639-4bd8-a08d-d92f1f1cd9d0</version_id>
+  <version_modified>20200309T181819Z</version_modified>
+  <xml_checksum>BB559B79</xml_checksum>
+  <class_name>CorrectRefrigerantUndercharge</class_name>
+  <display_name>Model 30% Refrigerant UnderCharge Scenario</display_name>
+  <description>This energy efficiency degradation measure applies a performance degradation factor to all existing DX heating and cooling coils in a model, representing the estimated impact of a 30 percent refrigerant undercharge scenario. An estimated degradation of the coil's rated COP equal to 11.02 percent for cooling and 8.24 percent for heating is applied. The values for the degradation factors are based on research work recently performed by NIST in collaboration with ACCA and published under IEA Annex 36 in 2015. NOTE: This measure WILL NOT CONSERVE ENERGY, but will rather the modified objects will use MORE ENERGY then the base systems.</description>
+  <modeler_description>This energy efficiency measure (EEM) loops through all DX Coil objects of these types: 1) OS:CoilCoolingDXMultiSpeed, 2) OS:CoilCoolingDXSingleSpeed, 3) OS:CoilCoolingDXTwoSpeed, 4) OS:CoilCoolingDXTwoStageWithHumidityControlMode and 5) OS:CoilHeatingDXSingleSpeed. For each DX Cooling Coil object type, the initial Rated COP is modified (reduced) by 11.02%, representing a 30% refrigerant undercharge scenario. For each DX Heating Coil object type, the initial Rated COP is modified (reduced) by 8.24%, representing a 30% refrigerant undercharge scenario.</modeler_description>
+  <arguments>
+    <argument>
+      <name>run_measure</name>
+      <display_name>Run Measure</display_name>
+      <description>integer argument to run measure [1 is run, 0 is no run]</description>
+      <type>Integer</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>1</default_value>
+    </argument>
+  </arguments>
+  <outputs/>
+  <provenances/>
+  <tags>
+    <tag>HVAC.Cooling</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Analysis Spreadsheet</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Retrofit EE</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>1.8.0</identifier>
+        <min_compatible>1.8.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>2B52D74B</checksum>
+    </file>
+    <file>
+      <filename>correct_refrigerant_undercharge_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>F2C206CD</checksum>
+    </file>
+  </files>
+</measure>

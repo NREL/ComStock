@@ -1,0 +1,85 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <name>lighting_high_bay</name>
+  <uid>e59c7665-b63c-4358-8e00-a4c9de934f2d</uid>
+  <version_id>5a0242a7-98b0-46d5-9d6c-f3c94de5b6a8</version_id>
+  <version_modified>20200428T202020Z</version_modified>
+  <xml_checksum>9A585DCE</xml_checksum>
+  <class_name>LightingHighBay</class_name>
+  <display_name>Upgrade all high bay lights.</display_name>
+  <description>Upgrade all high bay lights to user-specified efficiency level (low, medium, high, very high).</description>
+  <modeler_description>Find the interior lighting template for the building, and assume the existing efficiency level in the model (very low, low, medium, high, very high). Find the LPD and LPD fractions for each space type. Apply the lighting upgrades by reducing the LPD associated with high bay lighting by a percent (depends on starting and target efficiency levels).</modeler_description>
+  <arguments>
+    <argument>
+      <name>target_efficiency_level</name>
+      <display_name>Target Efficiency Level</display_name>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <choices>
+        <choice>
+          <value>Low</value>
+          <display_name>Low</display_name>
+        </choice>
+        <choice>
+          <value>Medium</value>
+          <display_name>Medium</display_name>
+        </choice>
+        <choice>
+          <value>High</value>
+          <display_name>High</display_name>
+        </choice>
+        <choice>
+          <value>Very High</value>
+          <display_name>Very High</display_name>
+        </choice>
+      </choices>
+    </argument>
+  </arguments>
+  <outputs/>
+  <provenances/>
+  <tags>
+    <tag>Electric Lighting.Lighting Equipment</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>light_highbay_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>9C5DA224</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>1.8.5</identifier>
+        <min_compatible>1.8.5</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>33A0A19C</checksum>
+    </file>
+  </files>
+</measure>
