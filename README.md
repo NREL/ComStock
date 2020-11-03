@@ -11,7 +11,7 @@ the ComStock model is under active calibration and development, and as such this
 
 Execution of this repo is managed through the buildstockbatch repository, a shared asset of ResStock and ComStock,
 specifically developed to scale to execution of tens of millions of simulations through multiple infrastructure
-providers.This software is a pre-release beta and under active development. APIs and input schemas are subject to change
+providers. This software is a pre-release beta and under active development. APIs and input schemas are subject to change
 without notice. While good faith efforts are made to document use of the software, technical support is unavailable at this
 time.
 
