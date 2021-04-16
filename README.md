@@ -9,7 +9,8 @@ This repository contains the source code used to build and execute ComStock mode
 addition, the sampling of buildings characteristics used for the initial ComStock (V1.0) release is provided.  At present
 the ComStock model is under active calibration and development, and as such this repository is not yet supported.
 
-Execution of this repo is managed through the buildstockbatch repository, a shared asset of ResStock and ComStock,
+Creating the building energy models and running simulations that make up ComStock is performed using the
+[buildstockbatch](https://github.com/NREL/buildstockbatch) software, a shared asset of ResStock and ComStock,
 specifically developed to scale to execution of tens of millions of simulations through multiple infrastructure
 providers. This software is a pre-release beta and under active development. APIs and input schemas are subject to change
 without notice. While good faith efforts are made to document use of the software, technical support is unavailable at this
@@ -21,11 +22,11 @@ The results of the initial ComStock (V1.0) release can be found at the accompany
 please consult the [End Use Load Profiles](https://www.nrel.gov/buildings/end-use-load-profiles.html) website.
 
 ComStock is a direct result of the NREL residential stock modeling tool
-[ResStock](https://www.nrel.gov/buildings/resstock.html) (recipient of a 
+[ResStock](https://www.nrel.gov/buildings/resstock.html) (recipient of a
 [R&D100 award](https://www.rdworldonline.com/rd100/resstock-a-21st-century-tool-for-energy-efficiency-modeling-with-unparalleled-granularity/))
 and was inspired by the high-fidelity solar & storage adoption model [dGen](https://www.nrel.gov/analysis/dgen/).
 Additionally, this tool would not be possible without the decades of work undertaken by the
 [OpenStudio](https://www.openstudio.net/) and [EnergyPlus](https://energyplus.net/) visionaries and contributors,
 significant funding, feedback and support from the [Los Angeles Department of Water and Power](https://www.ladwp.com/),
 and the [Department of Energy's Building Technology Office](https://www.energy.gov/eere/buildings/building-technologies-office)
-ongoing support of and investment in building energy modeling software. 
+ongoing support of and investment in building energy modeling software.
