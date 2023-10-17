@@ -1,15 +1,16 @@
+<?xml version="1.0"?>
 <measure>
-  <schema_version>3.0</schema_version>
+  <schema_version>3.1</schema_version>
   <name>simulation_output_report</name>
   <uid>fc337100-8634-404e-8966-01243d292a79</uid>
-  <version_id>0fa79c42-4df6-4e61-81ef-3aecd91a57ea</version_id>
-  <version_modified>20170928T202959Z</version_modified>
+  <version_id>1a2eb5fe-3c0c-4148-84a9-085cf52aaf99</version_id>
+  <version_modified>2023-10-16T20:22:24Z</version_modified>
   <xml_checksum>2C8A3EEF</xml_checksum>
   <class_name>SimulationOutputReport</class_name>
   <display_name>Simulation Output Report</display_name>
   <description>Reports simulation outputs of interest.</description>
   <modeler_description>Change me</modeler_description>
-  <arguments/>
+  <arguments />
   <outputs>
     <output>
       <name>total_site_energy_mbtu</name>
@@ -29,6 +30,20 @@
       <name>total_site_natural_gas_therm</name>
       <display_name>total_site_natural_gas_therm</display_name>
       <short_name>total_site_natural_gas_therm</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>total_site_district_cooling_therm</name>
+      <display_name>total_site_district_cooling_therm</display_name>
+      <short_name>total_site_district_cooling_therm</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>total_site_district_heating_therm</name>
+      <display_name>total_site_district_heating_therm</display_name>
+      <short_name>total_site_district_heating_therm</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
@@ -103,9 +118,44 @@
       <model_dependent>false</model_dependent>
     </output>
     <output>
+      <name>electricity_heat_rejection_kwh</name>
+      <display_name>electricity_heat_rejection_kwh</display_name>
+      <short_name>electricity_heat_rejection_kwh</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>electricity_humidification_kwh</name>
+      <display_name>electricity_humidification_kwh</display_name>
+      <short_name>electricity_humidification_kwh</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>electricity_heat_recovery_kwh</name>
+      <display_name>electricity_heat_recovery_kwh</display_name>
+      <short_name>electricity_heat_recovery_kwh</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
       <name>electricity_water_systems_kwh</name>
       <display_name>electricity_water_systems_kwh</display_name>
       <short_name>electricity_water_systems_kwh</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>electricity_refrigeration_kwh</name>
+      <display_name>electricity_refrigeration_kwh</display_name>
+      <short_name>electricity_refrigeration_kwh</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>electricity_generators_kwh</name>
+      <display_name>electricity_generators_kwh</display_name>
+      <short_name>electricity_generators_kwh</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
@@ -124,6 +174,13 @@
       <model_dependent>false</model_dependent>
     </output>
     <output>
+      <name>natural_gas_cooling_therm</name>
+      <display_name>natural_gas_cooling_therm</display_name>
+      <short_name>natural_gas_cooling_therm</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
       <name>natural_gas_interior_equipment_therm</name>
       <display_name>natural_gas_interior_equipment_therm</display_name>
       <short_name>natural_gas_interior_equipment_therm</short_name>
@@ -134,6 +191,34 @@
       <name>natural_gas_water_systems_therm</name>
       <display_name>natural_gas_water_systems_therm</display_name>
       <short_name>natural_gas_water_systems_therm</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>natural_gas_generators_therm</name>
+      <display_name>natural_gas_generators_therm</display_name>
+      <short_name>natural_gas_generators_therm</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>district_cooling_cooling_therm</name>
+      <display_name>district_cooling_cooling_therm</display_name>
+      <short_name>district_cooling_cooling_therm</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>district_heating_heating_therm</name>
+      <display_name>district_heating_heating_therm</display_name>
+      <short_name>district_heating_heating_therm</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>district_heating_water_systems_therm</name>
+      <display_name>district_heating_water_systems_therm</display_name>
+      <short_name>district_heating_water_systems_therm</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
@@ -208,7 +293,7 @@
       <model_dependent>false</model_dependent>
     </output>
   </outputs>
-  <provenances/>
+  <provenances />
   <tags>
     <tag>Reporting.QAQC</tag>
   </tags>
@@ -234,7 +319,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>616F3601</checksum>
+      <checksum>52BF06E5</checksum>
     </file>
   </files>
 </measure>

@@ -1,9 +1,10 @@
+<?xml version="1.0"?>
 <measure>
-  <schema_version>3.0</schema_version>
+  <schema_version>3.1</schema_version>
   <name>create_bar_from_building_type_ratios</name>
   <uid>6e3a14f8-c3c7-4e03-bc51-bef8a52e1a05</uid>
-  <version_id>dba71ff8-59b4-4333-a33b-db336129fe4f</version_id>
-  <version_modified>20200429T212105Z</version_modified>
+  <version_id>6979ba1b-b955-40ce-b3d5-3a005a8d1644</version_id>
+  <version_modified>2023-10-16T20:24:52Z</version_modified>
   <xml_checksum>2AF3A68E</xml_checksum>
   <class_name>CreateBarFromBuildingTypeRatios</class_name>
   <display_name>Create Bar From Building Type Ratios</display_name>
@@ -85,6 +86,26 @@
         <choice>
           <value>SuperMarket</value>
           <display_name>SuperMarket</display_name>
+        </choice>
+        <choice>
+          <value>Laboratory</value>
+          <display_name>Laboratory</display_name>
+        </choice>
+        <choice>
+          <value>LargeDataCenterLowITE</value>
+          <display_name>LargeDataCenterLowITE</display_name>
+        </choice>
+        <choice>
+          <value>LargeDataCenterHighITE</value>
+          <display_name>LargeDataCenterHighITE</display_name>
+        </choice>
+        <choice>
+          <value>SmallDataCenterLowITE</value>
+          <display_name>SmallDataCenterLowITE</display_name>
+        </choice>
+        <choice>
+          <value>SmallDataCenterHighITE</value>
+          <display_name>SmallDataCenterHighITE</display_name>
         </choice>
         <choice>
           <value>Asm</value>
@@ -197,6 +218,64 @@
       </choices>
     </argument>
     <argument>
+      <name>bldg_subtype_a</name>
+      <display_name>Primary Building Subtype</display_name>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>NA</default_value>
+      <choices>
+        <choice>
+          <value></value>
+          <display_name></display_name>
+        </choice>
+        <choice>
+          <value>NA</value>
+          <display_name>NA</display_name>
+        </choice>
+        <choice>
+          <value>largeoffice_default</value>
+          <display_name>largeoffice_default</display_name>
+        </choice>
+        <choice>
+          <value>largeoffice_nodatacenter</value>
+          <display_name>largeoffice_nodatacenter</display_name>
+        </choice>
+        <choice>
+          <value>largeoffice_datacenter</value>
+          <display_name>largeoffice_datacenter</display_name>
+        </choice>
+        <choice>
+          <value>largeoffice_datacenteronly</value>
+          <display_name>largeoffice_datacenteronly</display_name>
+        </choice>
+        <choice>
+          <value>warehouse_default</value>
+          <display_name>warehouse_default</display_name>
+        </choice>
+        <choice>
+          <value>warehouse_bulk100</value>
+          <display_name>warehouse_bulk100</display_name>
+        </choice>
+        <choice>
+          <value>warehouse_fine100</value>
+          <display_name>warehouse_fine100</display_name>
+        </choice>
+        <choice>
+          <value>warehouse_bulk80</value>
+          <display_name>warehouse_bulk80</display_name>
+        </choice>
+        <choice>
+          <value>warehouse_bulk40</value>
+          <display_name>warehouse_bulk40</display_name>
+        </choice>
+        <choice>
+          <value>warehouse_bulk20</value>
+          <display_name>warehouse_bulk20</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
       <name>bldg_type_a_num_units</name>
       <display_name>Primary Building Type Number of Units</display_name>
       <description>Number of units argument not currently used by this measure</description>
@@ -280,6 +359,26 @@
         <choice>
           <value>SuperMarket</value>
           <display_name>SuperMarket</display_name>
+        </choice>
+        <choice>
+          <value>Laboratory</value>
+          <display_name>Laboratory</display_name>
+        </choice>
+        <choice>
+          <value>LargeDataCenterLowITE</value>
+          <display_name>LargeDataCenterLowITE</display_name>
+        </choice>
+        <choice>
+          <value>LargeDataCenterHighITE</value>
+          <display_name>LargeDataCenterHighITE</display_name>
+        </choice>
+        <choice>
+          <value>SmallDataCenterLowITE</value>
+          <display_name>SmallDataCenterLowITE</display_name>
+        </choice>
+        <choice>
+          <value>SmallDataCenterHighITE</value>
+          <display_name>SmallDataCenterHighITE</display_name>
         </choice>
         <choice>
           <value>Asm</value>
@@ -388,6 +487,64 @@
         <choice>
           <value>WRf</value>
           <display_name>WRf</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>bldg_subtype_b</name>
+      <display_name>Building Subtype B</display_name>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>NA</default_value>
+      <choices>
+        <choice>
+          <value></value>
+          <display_name></display_name>
+        </choice>
+        <choice>
+          <value>NA</value>
+          <display_name>NA</display_name>
+        </choice>
+        <choice>
+          <value>largeoffice_default</value>
+          <display_name>largeoffice_default</display_name>
+        </choice>
+        <choice>
+          <value>largeoffice_nodatacenter</value>
+          <display_name>largeoffice_nodatacenter</display_name>
+        </choice>
+        <choice>
+          <value>largeoffice_datacenter</value>
+          <display_name>largeoffice_datacenter</display_name>
+        </choice>
+        <choice>
+          <value>largeoffice_datacenteronly</value>
+          <display_name>largeoffice_datacenteronly</display_name>
+        </choice>
+        <choice>
+          <value>warehouse_default</value>
+          <display_name>warehouse_default</display_name>
+        </choice>
+        <choice>
+          <value>warehouse_bulk100</value>
+          <display_name>warehouse_bulk100</display_name>
+        </choice>
+        <choice>
+          <value>warehouse_fine100</value>
+          <display_name>warehouse_fine100</display_name>
+        </choice>
+        <choice>
+          <value>warehouse_bulk80</value>
+          <display_name>warehouse_bulk80</display_name>
+        </choice>
+        <choice>
+          <value>warehouse_bulk40</value>
+          <display_name>warehouse_bulk40</display_name>
+        </choice>
+        <choice>
+          <value>warehouse_bulk20</value>
+          <display_name>warehouse_bulk20</display_name>
         </choice>
       </choices>
     </argument>
@@ -485,6 +642,26 @@
           <display_name>SuperMarket</display_name>
         </choice>
         <choice>
+          <value>Laboratory</value>
+          <display_name>Laboratory</display_name>
+        </choice>
+        <choice>
+          <value>LargeDataCenterLowITE</value>
+          <display_name>LargeDataCenterLowITE</display_name>
+        </choice>
+        <choice>
+          <value>LargeDataCenterHighITE</value>
+          <display_name>LargeDataCenterHighITE</display_name>
+        </choice>
+        <choice>
+          <value>SmallDataCenterLowITE</value>
+          <display_name>SmallDataCenterLowITE</display_name>
+        </choice>
+        <choice>
+          <value>SmallDataCenterHighITE</value>
+          <display_name>SmallDataCenterHighITE</display_name>
+        </choice>
+        <choice>
           <value>Asm</value>
           <display_name>Asm</display_name>
         </choice>
@@ -591,6 +768,64 @@
         <choice>
           <value>WRf</value>
           <display_name>WRf</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>bldg_subtype_c</name>
+      <display_name>Building Subtype C</display_name>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>NA</default_value>
+      <choices>
+        <choice>
+          <value></value>
+          <display_name></display_name>
+        </choice>
+        <choice>
+          <value>NA</value>
+          <display_name>NA</display_name>
+        </choice>
+        <choice>
+          <value>largeoffice_default</value>
+          <display_name>largeoffice_default</display_name>
+        </choice>
+        <choice>
+          <value>largeoffice_nodatacenter</value>
+          <display_name>largeoffice_nodatacenter</display_name>
+        </choice>
+        <choice>
+          <value>largeoffice_datacenter</value>
+          <display_name>largeoffice_datacenter</display_name>
+        </choice>
+        <choice>
+          <value>largeoffice_datacenteronly</value>
+          <display_name>largeoffice_datacenteronly</display_name>
+        </choice>
+        <choice>
+          <value>warehouse_default</value>
+          <display_name>warehouse_default</display_name>
+        </choice>
+        <choice>
+          <value>warehouse_bulk100</value>
+          <display_name>warehouse_bulk100</display_name>
+        </choice>
+        <choice>
+          <value>warehouse_fine100</value>
+          <display_name>warehouse_fine100</display_name>
+        </choice>
+        <choice>
+          <value>warehouse_bulk80</value>
+          <display_name>warehouse_bulk80</display_name>
+        </choice>
+        <choice>
+          <value>warehouse_bulk40</value>
+          <display_name>warehouse_bulk40</display_name>
+        </choice>
+        <choice>
+          <value>warehouse_bulk20</value>
+          <display_name>warehouse_bulk20</display_name>
         </choice>
       </choices>
     </argument>
@@ -688,6 +923,26 @@
           <display_name>SuperMarket</display_name>
         </choice>
         <choice>
+          <value>Laboratory</value>
+          <display_name>Laboratory</display_name>
+        </choice>
+        <choice>
+          <value>LargeDataCenterLowITE</value>
+          <display_name>LargeDataCenterLowITE</display_name>
+        </choice>
+        <choice>
+          <value>LargeDataCenterHighITE</value>
+          <display_name>LargeDataCenterHighITE</display_name>
+        </choice>
+        <choice>
+          <value>SmallDataCenterLowITE</value>
+          <display_name>SmallDataCenterLowITE</display_name>
+        </choice>
+        <choice>
+          <value>SmallDataCenterHighITE</value>
+          <display_name>SmallDataCenterHighITE</display_name>
+        </choice>
+        <choice>
           <value>Asm</value>
           <display_name>Asm</display_name>
         </choice>
@@ -798,6 +1053,64 @@
       </choices>
     </argument>
     <argument>
+      <name>bldg_subtype_d</name>
+      <display_name>Building Subtype D</display_name>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>NA</default_value>
+      <choices>
+        <choice>
+          <value></value>
+          <display_name></display_name>
+        </choice>
+        <choice>
+          <value>NA</value>
+          <display_name>NA</display_name>
+        </choice>
+        <choice>
+          <value>largeoffice_default</value>
+          <display_name>largeoffice_default</display_name>
+        </choice>
+        <choice>
+          <value>largeoffice_nodatacenter</value>
+          <display_name>largeoffice_nodatacenter</display_name>
+        </choice>
+        <choice>
+          <value>largeoffice_datacenter</value>
+          <display_name>largeoffice_datacenter</display_name>
+        </choice>
+        <choice>
+          <value>largeoffice_datacenteronly</value>
+          <display_name>largeoffice_datacenteronly</display_name>
+        </choice>
+        <choice>
+          <value>warehouse_default</value>
+          <display_name>warehouse_default</display_name>
+        </choice>
+        <choice>
+          <value>warehouse_bulk100</value>
+          <display_name>warehouse_bulk100</display_name>
+        </choice>
+        <choice>
+          <value>warehouse_fine100</value>
+          <display_name>warehouse_fine100</display_name>
+        </choice>
+        <choice>
+          <value>warehouse_bulk80</value>
+          <display_name>warehouse_bulk80</display_name>
+        </choice>
+        <choice>
+          <value>warehouse_bulk40</value>
+          <display_name>warehouse_bulk40</display_name>
+        </choice>
+        <choice>
+          <value>warehouse_bulk20</value>
+          <display_name>warehouse_bulk20</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
       <name>bldg_type_d_fract_bldg_area</name>
       <display_name>Building Type D Fraction of Building Floor Area</display_name>
       <type>Double</type>
@@ -835,7 +1148,7 @@
     </argument>
     <argument>
       <name>floor_height</name>
-      <display_name>Typical Floor to FLoor Height</display_name>
+      <display_name>Typical Floor to Floor Height</display_name>
       <description>Selecting a typical floor height of 0 will trigger a smart building type default.</description>
       <type>Double</type>
       <units>ft</units>
@@ -921,6 +1234,46 @@
           <display_name>90.1-2013</display_name>
         </choice>
         <choice>
+          <value>90.1-2016</value>
+          <display_name>90.1-2016</display_name>
+        </choice>
+        <choice>
+          <value>90.1-2019</value>
+          <display_name>90.1-2019</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DOE Ref Pre-1980</value>
+          <display_name>ComStock DOE Ref Pre-1980</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DOE Ref 1980-2004</value>
+          <display_name>ComStock DOE Ref 1980-2004</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2004</value>
+          <display_name>ComStock 90.1-2004</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2007</value>
+          <display_name>ComStock 90.1-2007</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2010</value>
+          <display_name>ComStock 90.1-2010</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2013</value>
+          <display_name>ComStock 90.1-2013</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2016</value>
+          <display_name>ComStock 90.1-2016</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2019</value>
+          <display_name>ComStock 90.1-2019</display_name>
+        </choice>
+        <choice>
           <value>NREL ZNE Ready 2017</value>
           <display_name>NREL ZNE Ready 2017</display_name>
         </choice>
@@ -959,6 +1312,94 @@
         <choice>
           <value>DEER 2017</value>
           <display_name>DEER 2017</display_name>
+        </choice>
+        <choice>
+          <value>DEER 2020</value>
+          <display_name>DEER 2020</display_name>
+        </choice>
+        <choice>
+          <value>DEER 2025</value>
+          <display_name>DEER 2025</display_name>
+        </choice>
+        <choice>
+          <value>DEER 2030</value>
+          <display_name>DEER 2030</display_name>
+        </choice>
+        <choice>
+          <value>DEER 2035</value>
+          <display_name>DEER 2035</display_name>
+        </choice>
+        <choice>
+          <value>DEER 2040</value>
+          <display_name>DEER 2040</display_name>
+        </choice>
+        <choice>
+          <value>DEER 2045</value>
+          <display_name>DEER 2045</display_name>
+        </choice>
+        <choice>
+          <value>DEER 2050</value>
+          <display_name>DEER 2050</display_name>
+        </choice>
+        <choice>
+          <value>DEER 2055</value>
+          <display_name>DEER 2055</display_name>
+        </choice>
+        <choice>
+          <value>DEER 2060</value>
+          <display_name>DEER 2060</display_name>
+        </choice>
+        <choice>
+          <value>DEER 2065</value>
+          <display_name>DEER 2065</display_name>
+        </choice>
+        <choice>
+          <value>DEER 2070</value>
+          <display_name>DEER 2070</display_name>
+        </choice>
+        <choice>
+          <value>DEER 2075</value>
+          <display_name>DEER 2075</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER Pre-1975</value>
+          <display_name>ComStock DEER Pre-1975</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 1985</value>
+          <display_name>ComStock DEER 1985</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 1996</value>
+          <display_name>ComStock DEER 1996</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2003</value>
+          <display_name>ComStock DEER 2003</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2007</value>
+          <display_name>ComStock DEER 2007</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2011</value>
+          <display_name>ComStock DEER 2011</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2014</value>
+          <display_name>ComStock DEER 2014</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2015</value>
+          <display_name>ComStock DEER 2015</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2017</value>
+          <display_name>ComStock DEER 2017</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2020</value>
+          <display_name>ComStock DEER 2020</display_name>
         </choice>
       </choices>
     </argument>
@@ -1285,15 +1726,15 @@
       <type>Choice</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
-      <default_value>Building Type > Size</default_value>
+      <default_value>Building Type &gt; Size</default_value>
       <choices>
         <choice>
           <value>Size</value>
           <display_name>Size</display_name>
         </choice>
         <choice>
-          <value>Building Type > Size</value>
-          <display_name>Building Type > Size</display_name>
+          <value>Building Type &gt; Size</value>
+          <display_name>Building Type &gt; Size</display_name>
         </choice>
       </choices>
     </argument>
@@ -1463,8 +1904,8 @@
       </choices>
     </argument>
   </arguments>
-  <outputs/>
-  <provenances/>
+  <outputs />
+  <provenances />
   <tags>
     <tag>Envelope.Form</tag>
   </tags>
@@ -1492,48 +1933,6 @@
   </attributes>
   <files>
     <file>
-      <filename>example_model.osm</filename>
-      <filetype>osm</filetype>
-      <usage_type>test</usage_type>
-      <checksum>032BCDC9</checksum>
-    </file>
-    <file>
-      <filename>create_bar_from_building_type_ratios_test.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>test</usage_type>
-      <checksum>ADDB94D8</checksum>
-    </file>
-    <file>
-      <filename>os_lib_helper_methods.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>C0B6306C</checksum>
-    </file>
-    <file>
-      <filename>os_lib_model_simplification.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>3925C332</checksum>
-    </file>
-    <file>
-      <filename>os_lib_geometry.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>E7A84277</checksum>
-    </file>
-    <file>
-      <filename>create_bar_from_building_type_ratios_test.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>test</usage_type>
-      <checksum>ADDB94D8</checksum>
-    </file>
-    <file>
-      <filename>os_lib_model_generation.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>40396D51</checksum>
-    </file>
-    <file>
       <version>
         <software_program>OpenStudio</software_program>
         <identifier>2.0.0</identifier>
@@ -1542,7 +1941,43 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>51FA36A9</checksum>
+      <checksum>3337F652</checksum>
+    </file>
+    <file>
+      <filename>os_lib_geometry.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>AB364C18</checksum>
+    </file>
+    <file>
+      <filename>os_lib_helper_methods.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>5E061809</checksum>
+    </file>
+    <file>
+      <filename>os_lib_model_generation.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>2499BB8C</checksum>
+    </file>
+    <file>
+      <filename>os_lib_model_simplification.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>76A7902F</checksum>
+    </file>
+    <file>
+      <filename>create_bar_from_building_type_ratios_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>F568B1AB</checksum>
+    </file>
+    <file>
+      <filename>example_model.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>5343410C</checksum>
     </file>
   </files>
 </measure>

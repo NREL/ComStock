@@ -1,0 +1,45 @@
+\begin{table}
+\scriptsize
+\centering
+\caption{Air-Cooled Chiller Efficiency and Performance Curve Assignment}
+\label{tab:acc_efficiencies}
+\begin{tabular}{|p{0.6in}|p{0.4in}|p{0.4in}|p{0.4in}|p{0.4in}|p{0.6in}|p{0.6in}|p{0.6in}|p{0.6in}|}
+\hline
+\textbf{Model Template} &
+  \textbf{Minimum Capacity (Tons)} &
+  \textbf{Maximum Capacity (Tons)} &
+  \textbf{Minimum Full   Load Efficiency (kW/ton)} &
+  \textbf{Minimum   Integrated Part Load Value (kW/ton)} &
+  \textbf{Capacity Function of Temperature (Schedule Name)} &
+  \textbf{EIR Function of Temperature  (Schedule Name)} &
+  \textbf{EIR Function of PLR (Schedule Name)} &
+  \textbf{Notes} \\ \hline
+Pre-1980 & 0 & 149.99 & 1.303 & - &
+  \multirow{4}{*}{\parbox{0.6in}{ChlrAir\_RecipQRatio\_fTchwsToadbSI}} &
+  \multirow{4}{*}{\parbox{0.6in}{ChlrAir\_RecipEIRRatio\_fTchwsToadbSI}} &
+  \multirow{4}{*}{\parbox{0.6in}{ChlrAir\_RecipEIRRatio\_fQRatio}} & From   90.1-1989 \\ \cline{1-5} \cline{9-9} 
+Pre-1980  & 150 & 299.99   & 1.332 & -     &  &  &  & \multirow{3}{*}{\parbox{0.6in}{From DOE Reference Buildings}} \\ \cline{1-5}
+Pre-1980  & 300 & no max   & 1.332 & -     &  &  &  &                                               \\ \cline{1-5}
+1980-2004 & 150 & no max   & 1.407 & 1.407 &  &  &  &                                               \\ \hline
+90.1-2004 &  0 & no max    & 1.256 & 1.153 &
+  \multirow{4}{*}{\parbox{0.6in}{AirCooled\_Chiller\_2010\_PathA\_CAPFT}} &
+  \multirow{4}{*}{\parbox{0.6in}{AirCooled\_Chiller\_2010\_PathA\_EIRFT}} &
+  \multirow{4}{*}{\parbox{0.6in}{AirCooled\_Chiller\_AllCapacities\_2004\_2010\_EIRFPLR}} &
+  \multirow{4}{*}{\parbox{0.6in}{From 90.1-2004 Table 6.8.1A}} \\ \cline{1-5}
+90.1-2007         & 0   & no max   & 1.29  & 1.164 &  &  &  &                                               \\ \cline{1-5}
+90.1-2010         & 0   & 149.99   & 1.255 & 0.941 &  &  &  &                                               \\ \cline{1-5}
+90.1-2010         & 150 & no max   & 1.255 & 0.941 &  &  &  &                                               \\ \hline
+90.1-2013         & 0   & 149.99   & 1.25  & 0.96 &
+  \multirow{8}{*}{\parbox{0.6in}{ChlrAir\_ScrollQRatio\_fTchwsToadbSI}} &
+  \multirow{8}{*}{\parbox{0.6in}{ChlrAir\_ScrollEIRRatio\_fTchwsToadbSI}} &
+  \multirow{8}{*}{\parbox{0.6in}{ChlrAir\_ScrollEIRRatio\_fQRatio}} &
+  \multirow{8}{*}{\parbox{0.6in}{Path A Efficiencies}} \\ \cline{1-5}
+90.1-2013         & 150 & no max   & 1.25  & 0.94  &  &  &  &                                               \\ \cline{1-5}
+90.1-2013         & 0   & 149.99 & 1.188 & 0.876 &  &  &  &                                               \\ \cline{1-5}
+90.1-2013         & 150 & no max   & 1.188 & 0.857 &  &  &  &                                               \\ \cline{1-5}
+90.1-2016         & 0   & 149.99 & 1.188 & 0.876 &  &  &  &                                               \\ \cline{1-5}
+90.1-2016         & 150 & no max   & 1.188 & 0.857 &  &  &  &                                               \\ \cline{1-5}
+90.1-2019         & 0   & 149.99 & 1.188 & 0.876 &  &  &  &                                               \\ \cline{1-5}
+90.1-2019         & 150 & no max   & 1.188 & 0.857 &  &  &  &                                               \\ \hline
+\end{tabular}
+\end{table}

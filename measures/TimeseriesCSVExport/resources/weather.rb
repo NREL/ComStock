@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2020 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 require "#{File.dirname(__FILE__)}/psychrometrics"

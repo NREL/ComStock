@@ -1,0 +1,127 @@
+\begin{table}
+\scriptsize
+\centering
+\caption{Unitary DX Cooling Efficiency and Performance Curve Assignment}
+\label{tab:unitary_dx_efficiencies}
+\begin{tabular}{|p{0.4in}|p{0.4in}|p{0.4in}|p{0.4in}|p{0.4in}|p{0.4in}|p{0.4in}|p{0.4in}|p{0.4in}|p{0.4in}|p{0.4in}|p{0.4in}|}
+\hline
+\textbf{Template} &
+  \textbf{Minimum Capacity   (Btu/hr)} &
+  \textbf{Maximum Capacity   (Btu/hr)} &
+  \textbf{Minimum Seasonal   Energy Efficiency Ratio (SEER)} &
+  \textbf{Minimum Energy   Efficiency Ratio (EER)*} &
+  \textbf{Minimum   Integrated Part Load Value (kW/ton)*} &
+  \textbf{Capacity Function of Temperature} &
+  \textbf{Capacity Function of Airflow} &
+  \textbf{EIR Function of Temperature} &
+  \textbf{EIR Function of Airflow} &
+  \textbf{EIR Function of PLR} \\ \hline
+\textbf{Pre-1980} &   - & 64,999 & 11.06 & - & - &
+  \multirow{9}{*}{\parbox{0.4in}{DX Clg Coil Cool-Cap-fT}} &
+  \multirow{9}{*}{\parbox{0.4in}{DX Clg Coil Cool-CAP-fFlow}} &
+  \multirow{9}{*}{\parbox{0.4in}{DX Clg Coil Cool-EIR-fT}} &
+  \multirow{9}{*}{\parbox{0.4in}{DX Clg Coil Cool-EIR-fFlow}} &
+  \multirow{9}{*}{\parbox{0.4in}{DX Clg Coil Cool-PLF-fPLR}} \\ \cline{1-6}
+\textbf{Pre-1980}  & 65,000  & 134,999   & -   & 9.63 & -   &  &  &  &  &  \\ \cline{1-6}
+\textbf{Pre-1980}  & 135,000 & 239,999   & -   & 9.28 & -   &  &  &  &  &  \\ \cline{1-6}
+\textbf{Pre-1980}  & 240,000 & 759,999   & -   & 8.92 & -   &  &  &  &  &  \\ \cline{1-6}
+\textbf{Pre-1980}  & 760,000 & no max    & -   & 8.63 & -   &  &  &  &  &  \\ \cline{1-6}
+\textbf{1980--2004} & -       & 64,999    & 9.7 &      & -   &  &  &  &  &  \\ \cline{1-6}
+\textbf{1980--2004} & 65,000  & 134,999   & -   & 8.9  & 8.3 &  &  &  &  &  \\ \cline{1-6}
+\textbf{1980--2004} & 135,000 & 759,999   & -   & 8.5  & 7.5 &  &  &  &  &  \\ \cline{1-6}
+\textbf{1980--2004} & 760,000 & no max    & -   & 8.2  & 7.5 &  &  &  &  &  \\ \hline
+\textbf{90.1-2004} & -       & 64,999    & 9.7 &      &   - &
+  \multirow{10}{*}{\parbox{0.4in}{CoilClg\_DXQRatio\_fTwbToadbSI}} &
+  \multirow{10}{*}{\parbox{0.4in}{CoilClg\_DXSngl\_QRatio\_fCFMRatio}} &
+  \multirow{10}{*}{\parbox{0.4in}{CoilClg\_DXEIRRatio\_fTwbToadbSI}} &
+  \multirow{10}{*}{\parbox{0.4in}{CoilClg\_DXSnglEIRRatio\_fCFMRatio}} &
+  \multirow{10}{*}{\parbox{0.4in}{CoilClg\_DXEIRRatio\_fQFrac}} \\ \cline{1-6}
+\textbf{90.1-2004}         & 65,000  & 134,999   & -   & 10.1 & -   &  &  &  &  &  \\ \cline{1-6}
+\textbf{90.1-2004}         & 135,000 & 239,999   & -   & 9.5  & -   &  &  &  &  &  \\ \cline{1-6}
+\textbf{90.1-2004}         & 240,000 & 759,999   & -   & 9.3  & 9.5 &  &  &  &  &  \\ \cline{1-6}
+\textbf{90.1-2004}         & 760,000 & no max    & -   & 9    & 9.2 &  &  &  &  &  \\ \cline{1-6}
+\textbf{90.1-2007}         & -       & 64,999    & 13  & -    & -   &  &  &  &  &  \\ \cline{1-6}
+\textbf{90.1-2007}         & 65,000  & 134,999   & -   & 10.1 & -   &  &  &  &  &  \\ \cline{1-6}
+\textbf{90.1-2007}         & 135,000 & 239,999   & -   & 9.5  & -   &  &  &  &  &  \\ \cline{1-6}
+\textbf{90.1-2007}         & 240,000 & 759,999   & -   & 9.3  & 9.5 &  &  &  &  &  \\ \cline{1-6}
+\textbf{90.1-2007}         & 760,000 & no max    & -   & 9    & 9.2 &  &  &  &  &  \\ \hline
+\multirow{3}{*}{\textbf{90.1-2010}} &
+\multirow{3}{*}{-} &
+\multirow{3}{*}{64,999} &
+\multirow{3}{*}{13} &
+\multirow{3}{*}{-} &
+\multirow{3}{*}{-} &
+\multirow{5}{*}{\parbox{0.4in}{PSZ-Fine Storage DX Coil Cap-FT}} &
+\multirow{5}{*}{\parbox{0.4in}{DX Coil Cap-FF}} &
+\multirow{5}{*}{\parbox{0.4in}{PSZ-AC DX Coil EIR-FT}} &
+\multirow{5}{*}{\parbox{0.4in}{Split DX Coil EIR-FF}} &
+\multirow{5}{*}{\parbox{0.4in}{HPA\-CCOOL\-PLFFPLR}} \\
+& & & & & & & & & & \\
+& & & & & & & & & & \\ \cline{1-6}
+\multirow{2}{*}{\textbf{90.1-2010}} &
+  \multirow{2}{*}{65,000} &
+  \multirow{2}{*}{134,999} &
+  \multirow{2}{*}{-} &
+  \multirow{2}{*}{11} &
+  \multirow{2}{*}{-} &
+ & & & & \\
+ & & & & & & & & & & \\ \hline
+\multirow{3}{*}{\textbf{90.1-2010}} &
+  \multirow{3}{*}{135,000} &
+  \multirow{3}{*}{239,999} &
+  \multirow{3}{*}{-} &
+  \multirow{3}{*}{10.8} &
+  \multirow{3}{*}{-} &
+  \multirow{9}{*}{\parbox{0.4in}{PSZ-AC\-Cool\-CLennox\-Standard\-10Ton\-TGA12\-0S2B\-CapFT}} &
+  \multirow{9}{*}{\parbox{0.4in}{AHU-1\-CoolC\-Standard\-10Ton\-CapFF}} &
+  \multirow{9}{*}{\parbox{0.4in}{PSZ-AC\-CoolC\-Standard\-10Ton\-EIRFT}} &
+  \multirow{9}{*}{\parbox{0.4in}{CoolC\-Lennox\-Standard10\-Ton\-TGA12\-0S2B\-EIRFFF}} &
+  \multirow{9}{*}{\parbox{0.4in}{PSZ-AC\-CoolC\-Lennox\-Standard\-10Ton\-TGA12\-0S2B\-PLR}} \\
+ & & & & & & & & & & \\
+ & & & & & & & & & & \\ \cline{1-6}
+\multirow{3}{*}{\textbf{90.1-2010}} &
+  \multirow{3}{*}{240,000} &
+  \multirow{3}{*}{759,999} &
+  \multirow{3}{*}{-} &
+  \multirow{3}{*}{9.8} &
+  \multirow{3}{*}{-} &
+   & & & & \\
+ & & & & & & & & & & \\
+ & & & & & & & & & & \\ \cline{1-6}
+\multirow{3}{*}{\textbf{90.1-2010}} &
+  \multirow{3}{*}{760,000} &
+  \multirow{3}{*}{no max} &
+  \multirow{3}{*}{-} &
+  \multirow{3}{*}{9.5} &
+  \multirow{3}{*}{9.2} &
+   & & & & \\
+ & & & & & & & & & & \\
+ & & & & & & & & & & \\ \hline
+\textbf{90.1-2013} & - & 64,999 & 13 & & - &
+  \multirow{20}{*}{\parbox{0.4in}{PSZ-AC\_Unitary\_Package\-coolCapFT}} &
+  \multirow{20}{*}{\parbox{0.4in}{PSZ-AC\_Unitary\_Package\-coolFFF}} &
+  \multirow{20}{*}{\parbox{0.4in}{PSZ-AC   DX Unitary Package EIRFT}} &
+  \multirow{20}{*}{\parbox{0.4in}{PSZ-AC\_Unitary\_Package\-cool\-EIRFFF}} &
+  \multirow{20}{*}{\parbox{0.4in}{PSZ-AC\_Unitary\_Package\-coolPLR}} \\ \cline{1-6}
+\textbf{90.1-2013} & - & 64,999 & 14 & & - & & & & & \\ \cline{1-6}
+\textbf{90.1-2013} & 65,000 & 134,999 & - & 11 & 11.2 & & & & & \\ \cline{1-6}
+\textbf{90.1-2013} & 135,000 & 239,999 & - & 10.8 & 11 & & & & & \\ \cline{1-6}
+\textbf{90.1-2013} & 240,000 & 759,999 & - & 9.8 & 9.9 & & & & & \\ \cline{1-6}
+\textbf{90.1-2013} & 760,000 & no max & - & 9.5 & 9.6 & & & & & \\ \cline{1-6}
+\textbf{90.1-2013} & 65,000 & 134,999 & - & 11 & 12.7 & & & & & \\ \cline{1-6}
+\textbf{90.1-2013} & 135,000 & 239,999 & - & 10.8 & 12.2 & & & & & \\ \cline{1-6}
+\textbf{90.1-2013} & 240,000 & 759,999 & - & 9.8 & 11.4 & & & & & \\ \cline{1-6}
+\textbf{90.1-2013} & 760,000 & no max & - & 9.5 & 11 & & & & & \\ \cline{1-6}
+\textbf{90.1-2016} & - & 64,999 & 14 & & - & & & & & \\ \cline{1-6}
+\textbf{90.1-2016} & 65,000 & 134,999 & - & 11 & 11.2 & & & & & \\ \cline{1-6}
+\textbf{90.1-2016} & 135,000 & 239,999 & - & 10.8 & 11 & & & & & \\ \cline{1-6}
+\textbf{90.1-2016} & 240,000 & 759,999 & - & 9.8 & 9.9 & & & & & \\ \cline{1-6}
+\textbf{90.1-2016} & 760,000 & no max & - & 9.5 & 9.6 & & & & & \\ \cline{1-6}
+\textbf{90.1-2019} & - & 64,999 & 14 & - & - & & & & & \\ \cline{1-6}
+\textbf{90.1-2019} & 65,000 & 134,999 & - & 11 & 12.7 & & & & & \\ \cline{1-6}
+\textbf{90.1-2019} & 135,000 & 239,999 & - & 10.8 & 12.2 & & & & & \\ \cline{1-6}
+\textbf{90.1-2019} & 240,000 & 759,999 & - & 9.8 & 11.4 & & & &  & \\ \cline{1-6}
+\textbf{90.1-2019} & 760,000 & no max & - & 9.5 & 11 & & & &  & \\ \hline
+\multicolumn{11}{l}{*EER and kW/ton are 0.2 higher when electric resistance heating is used.} \\
+\end{tabular}
+\end{table}

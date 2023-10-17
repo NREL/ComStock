@@ -1,0 +1,147 @@
+<?xml version="1.0"?>
+<measure>
+  <schema_version>3.1</schema_version>
+  <name>hvac_doas_hp_minisplits</name>
+  <uid>6d59de63-d1c6-4237-9f94-f05f268e08dd</uid>
+  <version_id>74fd13e3-bdec-4674-860f-cc02fb071aa5</version_id>
+  <version_modified>2023-10-16T20:24:53Z</version_modified>
+  <xml_checksum>CAA033D3</xml_checksum>
+  <class_name>HvacDoasHpMinisplits</class_name>
+  <display_name>hvac_doas_hp_minisplits</display_name>
+  <description>TODO</description>
+  <modeler_description>TODO</modeler_description>
+  <arguments>
+    <argument>
+      <name>area_limit_sf</name>
+      <display_name>Building Maximum Area for Applicability, SF</display_name>
+      <description>Maximum building size for applicability of measure. Mini-split heat pumps are often only appropriate for small commerical applications, so it is recommended to keep this value under 20,000sf.</description>
+      <type>Double</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>20000</default_value>
+    </argument>
+    <argument>
+      <name>doas_htg_fuel</name>
+      <display_name>DOAS Heating Fuel Source</display_name>
+      <description>Heating fuel source for DOAS, either gas furnace or electric resistance. DOAS will provide minimal preheating to provide reasonable nuetral air supplied to zone. The ERV/HRV will first try to accomodate this, with the heating coil addressing any additional load. Note that the zone heat pumps are still responsible for maintaining thermostat setpoints.</description>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>electric_resistance</default_value>
+      <choices>
+        <choice>
+          <value>gas_furnace</value>
+          <display_name>gas_furnace</display_name>
+        </choice>
+        <choice>
+          <value>electric_resistance</value>
+          <display_name>electric_resistance</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>performance_oversizing_factor</name>
+      <display_name>Maximum Performance Oversizing Factor</display_name>
+      <description>When heating design load exceeds cooling design load, the design cooling capacity of the unit will only be allowed to increase up to this factor to accomodate additional heating capacity. Oversizing the compressor beyond 25% can cause cooling cycling issues, even with variable speed compressors. Set this value to 10 if you do not want a limit placed on oversizing, noting that backup heat may still occur if the design temperature is below the compressor cutoff temperature of -15F.</description>
+      <type>Double</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>0.35</default_value>
+    </argument>
+  </arguments>
+  <outputs />
+  <provenances />
+  <tags>
+    <tag>HVAC.Whole System</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Model Articulation</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Model Articulation</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>LICENSE.md</filename>
+      <filetype>md</filetype>
+      <usage_type>license</usage_type>
+      <checksum>CD7F5672</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>4EDA1CFB</checksum>
+    </file>
+    <file>
+      <filename>README.md.erb</filename>
+      <filetype>erb</filetype>
+      <usage_type>readmeerb</usage_type>
+      <checksum>F1C26127</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>3.2.1</identifier>
+        <min_compatible>3.2.1</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>497CDE52</checksum>
+    </file>
+    <file>
+      <filename>example_model.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>53D14E69</checksum>
+    </file>
+    <file>
+      <filename>hvac_doas_hp_minisplits_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>00DD776A</checksum>
+    </file>
+  </files>
+</measure>

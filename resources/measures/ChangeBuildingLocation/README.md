@@ -43,6 +43,14 @@ Year of the weather file to use.
 **Required:** true,
 **Model Dependent:** false
 
+### Grid Region
+Cambium electric grid region, or eGrid region for Alaska and Hawaii
+**Name:** grid_region,
+**Type:** Choice,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
 
 
 

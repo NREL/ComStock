@@ -1,0 +1,52 @@
+\begin{table}
+\scriptsize
+\centering
+\caption{Air-Cooled Chiller Performance Curves}
+\label{tab:acc_perf_curves}
+\begin{tabular}{|p{0.6in}|p{0.4in}|p{0.25in}|p{0.25in}|p{0.25in}|p{0.4in}|p{0.4in}|p{0.4in}|p{0.4in}|p{0.4in}|p{0.4in}|p{0.4in}|}
+\hline
+\textbf{Schedule Name} &
+  \textbf{Form} &
+  \textbf{Dep. Var} &
+  \textbf{Ind. Var 1} &
+  \textbf{Ind. Var 2} &
+  \textbf{coeff\_1} &
+  \textbf{coeff\_2} &
+  \textbf{coeff\_3} &
+  \textbf{coeff\_4} &
+  \textbf{coeff\_5} &
+  \textbf{coeff\_6} &
+  \textbf{Notes} \\ \hline
+AirCooled\_Chiller\_2010\_PathA\_CAPFT &
+  Biquadratic &
+  QRatio &
+  Tchws &
+  Toadb &
+  1.0433825 &
+  0.0407073 &
+  0.0004506 &
+  -0.00415 &
+  -8.9E-05 &
+  -0.00035 &
+  \multirow{3}{*}{\parbox{0.4in}{Based on Dick Lord's study dated January 17, 2010.}} \\ \cline{1-11}
+AirCooled\_Chiller\_2010\_PathA\_EIRFT                 & Biquadratic & EIR\_Ratio & Tchws & Toadb & 0.5961915 & -0.00995  & 0.0007888 & 0.000451 & 0.000488 & -0.00076 &  \\ \cline{1-11}
+AirCooled\_Chiller\_AllCapacities\_2004\_2010\_EIRFPLR & Quadratic   & EIR\_Ratio & PLR   & -     & 1.41E-01  & 6.55E-01  & 2.03E-01  & -        & -        & -        &  \\ \hline
+ChlrAir\_RecipQRatio\_fTchwsToadbSI &
+  Biquadratic &
+  QRatio &
+  Tchws &
+  Toadb &
+  1.12603 &
+  0.041571 &
+  0.000253 &
+  -0.01053 &
+  0.00001 &
+  -0.00026 &
+  \multirow{6}{*}{\parbox{0.4in}{From CBECC Appendix\_3.7\_Performance\_Curves-S901G\_.xlsx}} \\ \cline{1-11}
+ChlrAir\_RecipEIRRatio\_fTchwsToadbSI                    & Biquadratic & EIR\_Ratio & Tchws & Toadb & 0.542784  & -0.013907 & 0.000476  & 0.012197 & 0.000149 & -0.00033 &  \\ \cline{1-11}
+ChlrAir\_RecipEIRRatio\_fQRatio                          & Quadratic   & EIR\_Ratio & PLR   & -     & 0.114437  & 0.545933  & 0.342299  & -        & -        & -        &  \\ \cline{1-11}
+ChlrAir\_ScrollEIRRatio\_fTchwsToadbSI                   & Biquadratic & EIR\_Ratio & Tchws & Toadb & 0.702194  & -0.004466 & 0.000535  & -0.00551 & 0.000544 & -0.00073 &  \\ \cline{1-11}
+ChlrAir\_ScrollQRatio\_fTchwsToadbSI                     & Biquadratic & QRatio   & Tchws & Toadb & 1.02138   & 0.037021  & 0.000233  & -0.00389 & -6.5E-05 & -0.00027 &  \\ \cline{1-11}
+ChlrAir\_ScrollEIRRatio\_fQRatio                         & Quadratic   & EIR\_Ratio & PLR   & -     & 0.063691  & 0.584888  & 0.352803  & -        & -        & -        &  \\ \hline
+\end{tabular}
+\end{table}

@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2020 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # *******************************************************************************
@@ -63,7 +63,7 @@ class OpenStudio::Model::Model
       standard.model_add_hvac_system(self, 'Baseboards', ht = 'NaturalGas', znht = nil, cl = nil, heated_zones)
 
     when 'Baseboard central air source heat pump'
-      standard.model_add_hvac_system(self, 'Baseboards', ht = 'AirSourceHeatPump', znht = nil, cl = nil, heated_only_zones)
+      standard.model_add_hvac_system(self, 'Baseboards', ht = 'AirSourceHeatPump', znht = nil, cl = nil, heated_zones)
 
     when 'Baseboard district hot water'
       standard.model_add_hvac_system(self, 'Baseboards', ht = 'DistrictHeating', znht = nil, cl = nil, heated_zones)
@@ -199,7 +199,7 @@ class OpenStudio::Model::Model
                                      zone_equipment_ventilation: false)
       standard.model_add_hvac_system(self, 'Unit Heaters', ht = 'NaturalGas', znht = nil, cl = nil, heated_zones)
 
-    when 'DOAS with fan coil district chilled water with no heat '
+    when 'DOAS with fan coil district chilled water with no heat'
       standard.model_add_hvac_system(self, 'DOAS', ht = nil, znht = nil, cl = 'DistrictCooling', zones)
       standard.model_add_hvac_system(self, 'Fan Coil', ht = nil, znht = nil, cl = 'DistrictCooling', zones,
                                      zone_equipment_ventilation: false)
@@ -298,7 +298,7 @@ class OpenStudio::Model::Model
       standard.model_add_hvac_system(self, 'Fan Coil', ht = nil, znht = nil, cl = 'DistrictCooling', zones)
       standard.model_add_hvac_system(self, 'Unit Heaters', ht = 'NaturalGas', znht = nil, cl = nil, heated_zones)
 
-    when 'Fan coil district chilled water with no heat '
+    when 'Fan coil district chilled water with no heat'
       standard.model_add_hvac_system(self, 'Fan Coil', ht = nil, znht = nil, cl = 'DistrictCooling', zones)
 
     when 'Forced air furnace'
@@ -409,6 +409,10 @@ class OpenStudio::Model::Model
       standard.model_add_hvac_system(self, 'PSZ-AC', ht = nil, znht = nil, cl = 'DistrictCooling', system_zones)
       standard.model_add_hvac_system(self, 'Baseboards', ht = 'NaturalGas', znht = nil, cl = nil, heated_zones)
 
+    when 'PSZ-AC district chilled water with baseboard district hot water'
+      standard.model_add_hvac_system(self, 'PSZ-AC', ht = nil, znht = nil, cl = 'DistrictCooling', system_zones)
+      standard.model_add_hvac_system(self, 'Baseboards', ht = 'DistrictHeating', znht = nil, cl = nil, heated_zones)
+
     when 'PSZ-AC district chilled water with gas unit heaters'
       standard.model_add_hvac_system(self, 'PSZ-AC', ht = nil, znht = nil, cl = 'DistrictCooling', system_zones)
       standard.model_add_hvac_system(self, 'Unit Heaters', ht = 'NaturalGas', znht = nil, cl = nil, heated_zones)
@@ -497,7 +501,7 @@ class OpenStudio::Model::Model
     when 'VAV chiller with gas boiler reheat'
       standard.model_add_hvac_system(self, 'VAV Reheat', ht = 'NaturalGas', znht = 'NaturalGas', cl = 'Electricity', zones)
 
-    when 'VAV chiller with central air source heat pump reheat '
+    when 'VAV chiller with central air source heat pump reheat'
       standard.model_add_hvac_system(self, 'VAV Reheat', ht = 'AirSourceHeatPump', znht = 'AirSourceHeatPump', cl = 'Electricity', zones)
 
     when 'VAV chiller with district hot water reheat'
@@ -526,7 +530,7 @@ class OpenStudio::Model::Model
       standard.model_add_hvac_system(self, 'VAV Reheat', ht = 'NaturalGas', znht = 'NaturalGas', cl = 'Electricity', zones,
                                      chilled_water_loop_cooling_type: 'AirCooled')
 
-    when 'VAV air-cooled chiller with central air source heat pump reheat '
+    when 'VAV air-cooled chiller with central air source heat pump reheat'
       standard.model_add_hvac_system(self, 'VAV Reheat', ht = 'AirSourceHeatPump', znht = 'AirSourceHeatPump', cl = 'Electricity', zones,
                                      chilled_water_loop_cooling_type: 'AirCooled')
 
@@ -631,7 +635,6 @@ class OpenStudio::Model::Model
       standard.model_add_hvac_system(self, 'Window AC', ht = nil, znht = nil, cl = 'Electricity', cooled_zones)
 
     else
-      puts "HVAC system type '#{system_type}' not recognized"
       return false
     end
     return true

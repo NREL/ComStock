@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2020 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # *******************************************************************************
@@ -75,18 +75,32 @@ class SetHVACTemplate < OpenStudio::Measure::ModelMeasure
         'DEER 2014',
         'DEER 2015',
         'DEER 2017',
+        'ComStock DEER Pre-1975',
+        'ComStock DEER 1985',
+        'ComStock DEER 1996',
+        'ComStock DEER 2003',
+        'ComStock DEER 2007',
+        'ComStock DEER 2011',
+        'ComStock DEER 2014',
+        'ComStock DEER 2015',
+        'ComStock DEER 2017',
+        'ComStock DEER 2020',
         'DOE Ref Pre-1980',
         'DOE Ref 1980-2004',
         '90.1-2004',
         '90.1-2007',
         '90.1-2010',
         '90.1-2013',
+        '90.1-2016',
+        '90.1-2019',
         'ComStock DOE Ref Pre-1980',
         'ComStock DOE Ref 1980-2004',
         'ComStock 90.1-2004',
         'ComStock 90.1-2007',
         'ComStock 90.1-2010',
-        'ComStock 90.1-2013'
+        'ComStock 90.1-2013',
+        'ComStock 90.1-2016',
+        'ComStock 90.1-2019'
     ]
 
     # Climate Zones
@@ -170,7 +184,7 @@ class SetHVACTemplate < OpenStudio::Measure::ModelMeasure
     as_constructed_template = runner.getStringArgumentValue('as_constructed_template', user_arguments)
     template = runner.getStringArgumentValue('template', user_arguments)
     climate_zone = runner.getStringArgumentValue('climate_zone', user_arguments)
-    
+
     # set additional properties for building
     props = model.getBuilding.additionalProperties
     props.setFeature('hvac_as_constructed_template',"#{as_constructed_template}")
@@ -192,7 +206,16 @@ class SetHVACTemplate < OpenStudio::Measure::ModelMeasure
       return false
     end
 
+    # disable HVAC Sizing Simulation for Sizing Periods, not used for the type of PlantLoop sizing used in ComStock
+    if model.version >= OpenStudio::VersionString.new('3.0.0')
+      sim_control = model.getSimulationControl
+      sim_control.setDoHVACSizingSimulationforSizingPeriodsNoFail(false)
+    end
+
     empty_hash = {}
+
+    # Economizers
+    standard.apply_economizers(climate_zone, model)
 
     # Air Loop Controls
     model.getAirLoopHVACs.sort.each { |obj| standard.air_loop_hvac_apply_standard_controls(obj, climate_zone) }
@@ -237,7 +260,14 @@ class SetHVACTemplate < OpenStudio::Measure::ModelMeasure
     model.getCoolingTowerVariableSpeeds.sort.each { |obj| standard.cooling_tower_variable_speed_apply_efficiency_and_curves(obj) }
 
     # ERVs
-    model.getHeatExchangerAirToAirSensibleAndLatents.each { |obj| standard.heat_exchanger_air_to_air_sensible_and_latent_apply_efficiency(obj) }
+    model.getHeatExchangerAirToAirSensibleAndLatents.each do |obj|
+      # Method was renamed in openstudio-standards 0.2.15
+      if standard.class.method_defined?('heat_exchanger_air_to_air_sensible_and_latent_apply_efficiency')
+        standard.heat_exchanger_air_to_air_sensible_and_latent_apply_efficiency(obj)
+      else
+        standard.heat_exchanger_air_to_air_sensible_and_latent_apply_effectiveness(obj)
+      end
+    end
 
     log_messages_to_runner(runner, debug = false)
     reset_log

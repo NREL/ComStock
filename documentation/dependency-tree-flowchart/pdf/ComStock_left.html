@@ -1,0 +1,86 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <title>PDFkit version of ComStock Workflow</title>
+  <script type="text/javascript" src="../pdfkitsamples.js"></script>
+  <script type="text/javascript" src="../primitives.js"></script>
+  <script type="text/javascript" src="../data/comstock_levels.js"></script>
+  <link href="../css/styles.css" media="screen" rel="stylesheet" type="text/css">
+
+  <script type="text/javascript">
+    var control;
+    var timer = null;
+    var PDFDocument = pdfkitsamples.PDFDocument;
+    var blobStream = pdfkitsamples.blobStream;
+
+    document.addEventListener('DOMContentLoaded', function () {
+      var sample3 = primitives.FamDiagramPdfkit({
+        items: famdata,
+        cursorItem: null,
+        hasSelectorCheckbox: primitives.Enabled.False,
+        groupByType: primitives.GroupByType.Children,
+        alignBylevels: true,
+        hideGrandParentsConnectors: true,
+        enableMatrixLayout: false,
+        minimumMatrixSize: 0,
+
+        pageFitMode: primitives.PageFitMode.FitToPage,
+        orientationType: primitives.OrientationType.Left,
+        verticalAlignment: primitives.VerticalAlignmentType.Middle,
+        horizontalAlignment: primitives.HorizontalAlignmentType.Center,
+        childrenPlacementType: primitives.ChildrenPlacementType.Vertical,
+
+        itemTitleFirstFontColor: primitives.Colors.Black,
+        itemTitleSecondFontColor: primitives.Colors.Black,
+
+        arrowsDirection: primitives.GroupByType.Children,
+        showExtraArrows: false,
+        extraArrowsMinimumSpace: 30,
+        connectorType: primitives.ConnectorType.Squared,
+        elbowType: primitives.ElbowType.Round,
+        bevelSize: 4,
+        elbowDotSize: 4,
+        linesType: primitives.LineType.Solid,
+        linesColor: primitives.Colors.Gray,
+        linesWidth: 1,
+
+        itemSize: primitives.Size(350, 60)
+      });
+
+      var sample3size = sample3.getSize();
+
+      var doc = new PDFDocument({size: [sample3size.width + 100, sample3size.height + 150]});
+      var stream = doc.pipe(blobStream());
+
+      doc.save();
+
+      // draw some text
+      doc.fontSize(25)
+        .text('ComStock Workflow', 50, 50);
+
+      sample3.draw(doc, 50, 100);
+
+      doc.restore();
+
+      doc.end();
+
+      stream.on('finish', function () {
+        var string = stream.toBlobURL('application/pdf');
+        document.getElementById('previewpanel').setAttribute('src', string);
+      });
+    });
+
+  </script>
+</head>
+
+<body style="height: 100%">
+  <div id="basicdiagram" style="width: 100%; height: 100%; border-style: none; border-width: 0px;">
+    <iframe id="previewpanel" type="application/pdf" width="100%" height="100%" frameborder="0"
+      style="position:relative;z-index:999">
+    </iframe>
+  </div>
+</body>
+
+</html>

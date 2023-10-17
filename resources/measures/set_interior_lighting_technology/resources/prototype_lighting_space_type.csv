@@ -1,0 +1,175 @@
+﻿90_1_space_or_building_category,90_1_building_type,90_1_space_type_description,prototype_lighting_space_type,total_horizontal_illuminance_lumens_per_ft2,room_surface_dirt_depreciation,current_room_cavity_ratio,general_lighting_fraction,general_lighting_coefficient_of_utilization,task_lighting_fraction,task_lighting_coefficient_of_utilization,supplemental_lighting_fraction,supplemental_lighting_coefficient_of_utilization,wall_wash_lighting_fraction,wall_wash_lighting_coefficient_of_utilization,notes,source
+Atrium,NA (typical all bldgs),Atrium - first three floors,atrium_first_three_floors,16.5,0.96,4,1,0.8,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Atrium,NA (typical all bldgs),Atrium - each additional floor,atrium_each_additional_floor,16.5,0.96,2,1,0.92,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Atrium,NA (typical all bldgs),<20 ft in height,atrium_less_than_20ft,16.5,0.96,4,1,0.82,0,0,0,0,0,0.58,,pnnl_90_1_lighting_subcommittee_model
+Atrium,NA (typical all bldgs),>20 ft and <40 ft in height,atrium_20ft_to_40ft,16.5,0.96,8,1,0.67,0,0,0,0,0,0.39,,pnnl_90_1_lighting_subcommittee_model
+Atrium,NA (typical all bldgs),>40 ft in height,atrium_greater_than_40ft,19.5,0.96,10,1,0.62,0,0,0,0,0,0.34,,pnnl_90_1_lighting_subcommittee_model
+Audience Seating Area,Convention Center,Audience/Seating Area,audience_seating_area_convention_center,11,0.96,2,1,0.97,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Audience Seating Area,Fitness Center,Audience/Seating Area,audience_seating_area_fitness_center,11,0.96,2,1,0.92,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Audience Seating Area,Auditorium,Audience/Seating Area,audience_seating_area_auditorium_auditorium,11,0.96,4,0.6,0.91,0,0,0.1,0.85,0.3,0.83,,pnnl_90_1_lighting_subcommittee_model
+Audience Seating Area,Auditorium,Audience/Seating Area,audience_seating_area_education_auditorium,11,0.96,4,0.9,0.91,0,0,0,0,0.1,0.73,"changed wall wash fraction from 0.5 to 0.1, general fraction from 0.5 to 0.9",pnnl_90_1_lighting_subcommittee_model
+Audience Seating Area,Gymnasium,Audience Seating/Permanent Seating,audience_seating_area_gymnasium,11,0.96,4,1,0.59,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Audience Seating Area,Motion Picture Theatre,Audience/Seating Area,audience_seating_area_motion_theatre,11,0.96,2,1,0.91,0,0,0,0.11,0,0,,pnnl_90_1_lighting_subcommittee_model
+Audience Seating Area,Performing Arts Theatre,Audience/Seating Area,audience_seating_area_performing_theatre,36.3,0.96,6,0.791666667,0.69,0,0,0,0,0.208333333,0.58,,pnnl_90_1_lighting_subcommittee_model
+Audience Seating Area,Sports Arena,Audience/Seating Area,audience_seating_area_sports_arena,11,0.96,2,0.5,0.46,0.5,0.97,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Audience Seating Area,NA (typical all bldgs),All other audience seating areas,audience_seating_area_all_others,11,0.96,2,1,1.02,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Banking Activity Area,WHOLE BULDING ANALYSIS ONLY,Bank Customer Area,whole_building_bank_activity_area,11,0.96,4,0.6875,0.71,0,0,0,0,0.3125,0.73,,pnnl_90_1_lighting_subcommittee_model
+Banking Activity Area,Office,Banking Activity Area,banking_activity_area_office,33,0.96,4,0.857142857,0.71,0,0,0,0,0.142857143,0.73,,pnnl_90_1_lighting_subcommittee_model
+Workshop,Workshop,Workshop,classroom_workshop,55,0.96,4,1,0.61,0,0.92,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Classroom/Lecture/Training,NA (typical all bldgs),Classroom/Lecture/Training,classroom,43.75,0.96,2,1,0.8,0,0.92,0,0,0,0.83,changed general fraction to 1.0,pnnl_90_1_lighting_subcommittee_model
+Computer Room,NA (typical all bldgs),Computer Room,computer_room,55,0.96,2,1,0.92,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Conference/Meeting/Multipurpose Room,NA (typical all bldgs),Conference Meeting/Multipurpose,conference_meeting_multipurpose,33,0.96,4,0.85,0.59,0.075,0.89,0,0,0.075,0.69,"changed general fraction to 0.85, task and wall wash to 0.075",pnnl_90_1_lighting_subcommittee_model
+Conference/Meeting/Multipurpose Room,WHOLE BULDING ANALYSIS ONLY,Hotel/Conference Center - Conference/Meeting,whole_building_conference_center,33,0.96,2,0.444444444,0.45,0.444444444,0.92,0,0,0.111111111,0.87,,pnnl_90_1_lighting_subcommittee_model
+Control Room,Manufacturing Facility,Equipment Room,control_room_manufacturing_facility,22,0.96,4,0.769230769,0.49,0.230769231,0.38,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Copy/Print Room,NA (typical all bldgs),Copy/Print Room,copy_print_room,33,0.96,4,1,0.74,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Corridor,NA (typical all bldgs),Corridor/Transition,corridor_all_other,16.5,0.96,8,1,0.64,0,0,0,0,0,0.6,changed general fraction to 1.0,pnnl_90_1_lighting_subcommittee_model
+Corridor,Manufacturing Facility,Corridor/Transition,corridor_manufacturing_facility,15.4,0.96,6,1,0.48,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Courtroom,Court House,Courtroom,courtroom,44,0.96,4,0.4,0.51,0.5,0.84,0,0,0.1,0.83,,pnnl_90_1_lighting_subcommittee_model
+Dining Areas,NA (typical all bldgs),Dining Area,dining_areas_all_other,28.6,0.96,2,0.85,0.79,0.05,0.92,0,0,0.1,0.83,"changed general fraction to 0.85, task to 0.05, wall wash to 0.1",pnnl_90_1_lighting_subcommittee_model
+Dining Areas,Cafeteria or fast food,Dining Area,dining_areas_cafeteria_or_fast_food,22,0.96,2,0.85,0.79,0.05,0.92,0,0,0.1,0.83,"changed general fraction to 0.85, task to 0.05, wall wash to 0.1",pnnl_90_1_lighting_subcommittee_model
+Dining Areas,Civil Services,Dining Area,dining_areas_civil_services,16.5,0.96,4,1,0.71,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Dining Areas,Transportation,Dining Area,dining_areas_transportation,16.5,0.96,4,0.625,0.85,0.375,0.34,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Dining Areas,Hotel,Dining Area,dining_areas_hotel,11,0.96,2,0.333333333,0.45,0.333333333,0.97,0,0,0.333333333,0.23,,pnnl_90_1_lighting_subcommittee_model
+Dining Areas,Motel,Dining Area,dining_areas_motel,11,0.96,2,0.769230769,0.97,0.230769231,0.9,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Dining Areas,Lounge/Leisure Dining,Dining Area,dining_areas_lounge_dining,11,0.96,2,0.594059406,1,0.247524752,0.45,0.158415842,0.9,0,0,,pnnl_90_1_lighting_subcommittee_model
+Dining Areas,Family Dining,Dining Area,dining_areas_family_dining,22,0.96,2,0.695652174,0.92,0.086956522,0.45,0,0,0.217391304,0.9,,pnnl_90_1_lighting_subcommittee_model
+Electrical / Mechanical,NA (typical all bldgs),Electrical/Mechanical,electrical_mechanical,18.7,0.96,4,0.9,0.49,0.1,0.38,0,0,0,0,"changed general fraction to 0.9, task fraction to 0.1",pnnl_90_1_lighting_subcommittee_model
+Emergency Vehicle Garage,Police/Fire Station,Fire Station Engine room,emergency vehicle garage_fire_station_engine,33,0.96,2,1,0.8,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Emergency Vehicle Garage,NA (typical all bldgs),Emergency Vehicle Garage,emergency vehicle garage,33,0.96,2,1,0.79,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Food Preparartion,NA (typical all bldgs),Food Preparation,food_preparation,50,0.96,4,0.816326531,0.65,0.183673469,0.65,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Guest Room,NA (typical all bldgs),Guest Room,guest_room,16.5,0.96,4,0,0.64,1,0.83,0,0,0,0,adjusted general fraction to force A19-style use,pnnl_90_1_lighting_subcommittee_model
+Laboratory,NA (All buildings),Medical/Industrial Research Laboratory,laboratory_medical_industrial_research,55,0.96,4,0.79338843,0.59,0.20661157,0.77,0,0,0,0.64,,pnnl_90_1_lighting_subcommittee_model
+Laboratory,NA (All buildings),Education Laboratory,laboratory_education,50,0.96,4,0.843117409,0.59,0.015182186,0.48,0.04048583,0.73,0.101214575,0.64,,pnnl_90_1_lighting_subcommittee_model
+Laundry / Washing Area,WHOLE BULDING ANALYSIS ONLY,Laundry-Ironing & Sorting,whole_building_laundry,33,0.96,2,1,0.81,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Laundry / Washing Area,NA (typical all bldgs),Laundry/Washing Area,laundry_washing_area,33,0.96,2,1,0.81,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+"Loading Dock, Interior",NA (typical all bldgs),"Loading Dock, Interior",loading_dock_interior,33,0.96,4,1,0.46,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Lobby,NA (typical all bldgs),Lobby,lobby_all_other,11,0.96,2,0.689655172,0.45,0.137931034,0.92,0,0,0.172413793,0.75,,pnnl_90_1_lighting_subcommittee_model
+Lobby,WHOLE BULDING ANALYSIS ONLY,Elevator Lobbies,whole_building_elevator_lobby,16.5,0.96,4,0.618556701,0.77,0.12371134,0.76,0,0,0.257731959,0.56,,pnnl_90_1_lighting_subcommittee_model
+Lobby,Hotel,Lobby,lobby_hotel,16.5,0.96,3,0.666666667,0.93,0,0,0,0.96,0.333333333,0.91,,pnnl_90_1_lighting_subcommittee_model
+Lobby,Performing Arts theatre,Lobby,lobby_performing_theatre,27.5,0.96,7,0.863013699,0.72,0,0,0.136986301,0.29,0,0.76,,pnnl_90_1_lighting_subcommittee_model
+Lobby,Auditorium,Lobby,lobby_auditorium,25.3,0.96,2,0.434782609,0.97,0.130434783,0.45,0,0,0.434782609,0.75,,pnnl_90_1_lighting_subcommittee_model
+Lobby,Motion Picture Theatre,Lobby,lobby_motion_picture_theatre,11,0.96,2,1,0.92,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Lobby,Religious Buildings,Lobby,lobby_religious_buildings,16.5,0.96,4,0.666666667,0.77,0,0,0,0,0.333333333,0.76,,pnnl_90_1_lighting_subcommittee_model
+Lobby,Post Office,Lobby,lobby_post_office,22,0.96,4,1,0.44,0,0,0,0,0,0.56,changed general fraction to 1 and supplemental fraction to 0,pnnl_90_1_lighting_subcommittee_model
+Locker Room,Gymnasium/Fitness Center,Locker Room,locker_room,22,0.96,4,0.875,0.65,0.125,0.77,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Lounge / Breakroom,NA (typical all bldgs),Mother's or Wellness Room,lounge_mother_wellness,16.5,0.96,6,0.6,0.39,0.4,0.82,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Lounge / Breakroom,NA (typical all bldgs),Lounge/Recreation,lounge_breakroom_all_other,22,0.96,2,0.9,0.92,0,0,0,0,0.1,0.82,"changed general fraction to 0.9, wall wash to 0.1",pnnl_90_1_lighting_subcommittee_model
+Lounge / Breakroom,Hotel,Reception/Waiting,lounge_breakroom_hotel,16.5,0.96,2,0.411764706,1,0,0,0.294117647,0.4,0.294117647,0.88,,pnnl_90_1_lighting_subcommittee_model
+Lounge / Breakroom,Motel,Reception/Waiting,lounge_breakroom_motel,16.5,0.96,2,0.411764706,0.92,0,0,0.294117647,0.4,0.294117647,0.88,,pnnl_90_1_lighting_subcommittee_model
+Office,NA (typical all bldgs),Office - enclosed ≤250 ft2,office_enclosed_less_than_250ft2,33,0.96,6,1,0.5597,0,0.47,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Office,NA (typical all bldgs),Office - enclosed and >250 ft2,office_enclosed_greater_than_250ft2,33,0.96,5,1,0.62,0,0.52,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Office,NA (typical all bldgs),Office - open plan ,office_open,38.5,0.96,2,0.88,0.76,0,0.74,0,0,0.12,0.91,,pnnl_90_1_lighting_subcommittee_model
+Parking Garage,Parking Garage,Garage Daylight Transition,parking_garage_daylight_transition,50,0.96,2,1,0.67,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Parking Garage,Parking Garage,Parking ,parking_garage,5,0.96,2,1,0.67,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Pharmacy,Hospital/Healthcare,Pharmacy,pharmacy,82.5,0.96,4,0.882352941,0.65,0.117647059,0.65,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Restroom,NA (typical all bldgs),Restrooms (small / single),restroom,16.5,0.96,10,0.9,0.51,0,0.69,0,0,0.1,0.57,"changed general fraction to 0.9, wall wash to 0.1",pnnl_90_1_lighting_subcommittee_model
+Sales Area,Retail,Sales Area4,retail_sales_area,44,0.96,4,0.9,0.6,0,0,0.06,0.83,0.04,0.56,"changed general fraction to 0.9, supplemental to 0.06, wall wash to 0.04",pnnl_90_1_lighting_subcommittee_model
+Seating Area,NA (typical all bldgs),"Seating Area, General",seating_area,11,0.96,2,1,1.02,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Security Screening,Security Screening,Airport / Transportation,security_screening_airport,50,0.96,4,1,0.59,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Security Screening,Security Screening,Airport / Transportation Que,security screening_line_airport,30,0.96,4,1,0.59,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Security Screening,Security Screening,General Security Screening,security_screening,30,0.96,4,1,0.9,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Stairway / Stairwell,NA (typical all bldgs),Stairway,stairway,16.5,0.96,8,0.9,0.42,0.05,0.27,0,0,0.05,0,"changed general fraction to 0.9, task to 0.05, wall wash to 0.05",pnnl_90_1_lighting_subcommittee_model
+Stairway / Stairwell,Assisted Living,Stairways,stairway_assisted_living,100,0.96,8,0.666666667,0.36,0.333333333,0.27,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Stairway / Stairwell,NA (typical all bldgs),Stairs - Inactive,stairway_inactive,16.5,0.96,8,1,0.42,0,0.27,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Stairway / Stairwell,NA (typical all bldgs),Stairs - Inactive,stairway_incative2,11,0.96,8,0.5,0.36,0.5,0.27,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Stairway / Stairwell,NA (typical all bldgs),Stairwell,stairwell,11,0.96,8,0.9,0.36,0.05,0.27,0,0,0.05,0,"changed general fraction to 0.9, task to 0.05, wall wash to 0.05",pnnl_90_1_lighting_subcommittee_model
+Storage,WHOLE BULDING ANALYSIS ONLY,Office Common Activity Areas - Inactive Storage,whole_building_storage,5.5,0.96,4,1,0.65,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Storage,NA (typical all bldgs),Inactive storage,storage_inactive,5.5,0.96,4,1,0.65,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Storage,NA (typical all bldgs),Active storage (<50 ft2),storage_active_less_than_50ft2,11,0.96,8,1,0.42,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Storage,NA (typical all bldgs),Active storage (>50 ft2 and <1000 ft2),storage_active_50ft2_to_1000ft2,11,0.96,4,1,0.61,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Storage,NA (typical all bldgs),All other storage rooms,storage_all_other,11,0.96,4,1,0.65,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Vehicular Maintenance Area,Automotive Facility,Garage Service/Repair,vehicular_maintenance_area_automotive_facility,33,0.96,2,0.833333333,0.7,0.166666667,0.56,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Vehicular Maintenance Area,NA (typical all bldgs),Vehicular Maintenance Area,vehicular_maintenance_area,33,0.96,2,1,0.68,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Conference/Meeting/Multipurpose Room,NA (typical all bldgs),Conference Meeting/Multipurpose,video_conference,33,0.96,4,0.666666667,0.59,0.166666667,0.89,0,0,0.166666667,0.69,reduced wall wash from 0.5 to 0.17 to sum to 1,pnnl_90_1_lighting_subcommittee_model
+Workshop,Workshop,Workshop,workshop,55,0.96,4,1,0.61,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Casino - Gaming Area,Casino,Slot Machine / Digital Gaming Area,casino_gaming_area_slot_machine,22,0.96,3,0.8,0.91,0.1,0.34,0.1,0.42,0,0,,pnnl_90_1_lighting_subcommittee_model
+Casino - Gaming Area,Casino,Table Games Area,casino_gaming_area_table_games,44,0.96,3,0.8,0.91,0.1,0.34,0.1,0.42,0,0,,pnnl_90_1_lighting_subcommittee_model
+Casino - Gaming Area,Casino,High Limit Game Area,casino_gaming area_high_limit,55,0.96,2,0.7,0.98,0.2,0.4,0.1,0.5,0,0,,pnnl_90_1_lighting_subcommittee_model
+Casino - Gaming Area,Casino,Betting / Sports Book / Keno / Bingo Area,casino_gaming_area_betting,33,0.96,3,0.8,0.91,0.1,0.34,0.1,0.42,0,0,,pnnl_90_1_lighting_subcommittee_model
+Convention Center,Convention Center,Exhibit space,convention_center_exhibit_space,33,0.96,2,1,0.81,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Correctional Facilities,Court House,Audience/Seating Area,correctional_facilities_courthouse_seating_area,11,0.96,4,0.666666667,0.84,0,0,0,0,0.333333333,0.49,,pnnl_90_1_lighting_subcommittee_model
+Correctional Facilities,Police/Fire Stations,Audience/Seating Area,correctional_facilities_police_fire_stations_seating_area,11,0.96,2,0.666666667,0.92,0,0,0,0,0.333333333,0.62,,pnnl_90_1_lighting_subcommittee_model
+Correctional Facilities,Penitentiary,Audience/Seating Area,correctional_facilities_penitentiary_seating_area,33,0.96,2,1,0.91,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Correctional Facilities,Penitentiary,Classroom/Lecture/Training,correctional_facilities_penitentiary_classroom,43.75,0.96,2,1,0.82,0,0,0,0,0,0,changed general fraction to 1 and supplemental fraction to 0,pnnl_90_1_lighting_subcommittee_model
+Correctional Facilities,Penitentiary,Confinement Cells,correctional_facilities_penitentiary_confinement_cells,27.5,0.96,4,0.909090909,0.73,0.090909091,0.68,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Correctional Facilities,Court House,Confinement Cells,correctional_facilities_court_house_confinement_cells,22,0.96,4,0.909090909,0.73,0.090909091,0.68,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Correctional Facilities,Court House,Judges Chambers,correctional_facilities_court_house_judges_chambers,33,0.96,6,0.857142857,0.57,0,0,0,0,0.142857143,0.72,,pnnl_90_1_lighting_subcommittee_model
+Correctional Facilities,Penitentiary,Dining Area,correctional_facilities_penitentiary_dining_area,16.5,0.96,4,1,0.73,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Dormitory - Living Quarters,WHOLE BULDING ANALYSIS ONLY,Dormitory Study Hall,whole_building_dormitory_study_hall,33,0.96,4,0.87804878,0.74,0,0,0,0,0.12195122,0.73,,pnnl_90_1_lighting_subcommittee_model
+Dormitory - Living Quarters,WHOLE BULDING ANALYSIS ONLY,Dormitory Bedroom,whole_building_dormitory_bedroom,16.5,0.96,6,0.85,0.52,0.15,0.38,0,0.33,0,0,,pnnl_90_1_lighting_subcommittee_model
+Dormitory - Living Quarters,Dormitory,Living quarters,dormitory_living_quarters,16.5,0.96,6,0.85,0.52,0.15,0.38,0,0.33,0,0,,pnnl_90_1_lighting_subcommittee_model
+Dormitory - Living Quarters,Hotel,Living quarters,dormitory_hotel_living_quarters,16.5,0.96,4,0.769230769,0.44,0.230769231,0.73,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Dormitory - Living Quarters,Motel,Living quarters,dormitory_motel_living_quarters,16.5,0.96,4,0.769230769,0.44,0.230769231,0.73,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Facility for the Visually Impaired,Assisted Living,Chapel,facility_for_the_visually_impaired_chapel,35,0.96,2,0.857142857,0.92,0,0,0,0,0.142857143,0.9,,pnnl_90_1_lighting_subcommittee_model
+Facility for the Visually Impaired,Assisted Living,Corridor/Transition,facility_for_the_visually_impaired_corridor,30,0.96,8,0.9,0.31,0,0,0,0,0.1,0.56,,pnnl_90_1_lighting_subcommittee_model
+Dining Areas,Assisted Living,Dining Area,facility_for_the_visually_impaired_dining_areas,35,0.96,4,0.32,0.85,0.54,0.51,0.004864865,0.33,0.135135135,0.73,changed supplemental coefficient to 0.33,pnnl_90_1_lighting_subcommittee_model
+Dining Areas,Assisted Living,Dining Area,facility_for_the_visually_impaired_dining_areas_senior,40,0.96,4,0.4,0.48,0.5,0.51,0,0,0.1,0.73,,pnnl_90_1_lighting_subcommittee_model
+Facility for the Visually Impaired,Visually Impaired Facility,Lobby,facility_for_the_visually_impaired_lobby,50,0.96,4,0.618556701,0.49,0.146341463,0.85,0.113150616,0.33,0.12195122,0.56,changed supplemental coefficient to 0.33,pnnl_90_1_lighting_subcommittee_model
+Facility for the Visually Impaired,Assisted living,Restrooms,facility_for_the_visually_impaired_restrooms,35,0.96,6,0.816326531,0.46,0,0.69,0.183673469,0.33,0,0.57,changed supplemental coefficient to 0.33,pnnl_90_1_lighting_subcommittee_model
+Fire Station - Sleeping Quarters,Police/Fire Station,Sleeping Quarters,police_fire_station_sleeping_quarters,5.5,0.96,4,0.5,0.65,0.5,0.43,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Gymnasium / Fitness Center,Fitness Center,Exercise Area,fitness_center_exercise_area,44,0.96,2,1,0.59,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Gymnasium / Fitness Center,Gymnasium,Fitness Area,fitness_center_fitness_area,44,0.96,2,1,0.59,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Gymnasium / Fitness Center,Gymnasium,Playing Area,fitness_center_playing_area,55,0.96,2,1,0.8,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Healthcare Facility,Hospital/Healthcare,Control Room (MRI / CT / Radiology / PET),healthcare_imaging_equipment_control_room,35,0.96,6,1,0.56,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Healthcare Facility,Hospital/Healthcare,Exam/Treatment,healthcare_exam,55,0.96,6,1,0.58,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Healthcare Facility,Hospital/Healthcare,Emergency,healthcare_emergency_room,82.5,0.96,4,0.9,0.7,0.1,374,0,0,0,0,"changed general fraction to 0.9, task fraction to 0.1",pnnl_90_1_lighting_subcommittee_model
+Healthcare Facility,Hospital/Healthcare,Public & Staff Lounge,healthcare_lounge_breakroom,22,0.96,4,0.9,0.77,0,0.77,0,0,0.1,0.64,"changed general fraction to 0.9, task fraction to 0, wall wash to 0.1",pnnl_90_1_lighting_subcommittee_model
+Healthcare Facility,Hospital/Healthcare,Hospital Corridor,healthcare_corridor,33,0.96,4,0.9,0.71,0,0,0,0,0.1,0.83,"changed general fraction to 0.9, wall wash to 0.1",pnnl_90_1_lighting_subcommittee_model
+Healthcare Facility,Hospital/Healthcare,Radiology/Imaging,healthcare_imaging,33,0.96,4,1,0.74,0,0.73,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Healthcare Facility,Hospital/Healthcare,Hospital/Medical supplies,healthcare_medical_supplies,33,0.96,4,1,0.74,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Healthcare Facility,Hospital/Healthcare,Hospital - Nursery,healthcare_nursery,33,0.96,4,1,0.59,0,0.84,0,0,0,0.73,,pnnl_90_1_lighting_subcommittee_model
+Healthcare Facility,Hospital/Healthcare,Laundry-Washing,heatlhcare_laundry,33,0.96,1,1,0.81,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Healthcare Facility,Hospital/Healthcare,Nurse station,healthcare_nurse_station,33,0.96,4,0.8,0.59,0.2,0.58,0,0,0,0.73,"changed general fraction to 0.8, task fraction to 0.2",pnnl_90_1_lighting_subcommittee_model
+Healthcare Facility,Hospital/Healthcare,Physical therapy,healthcare_physical_therapy,44,0.96,4,0.8,0.59,0.2,0.59,0,0,0,0,"changed general fraction to 0.8, task fraction to 0.2",pnnl_90_1_lighting_subcommittee_model
+Healthcare Facility,Hospital/Healthcare,Patient Room,healthcare_patient_room,33,0.96,4,0.457,0.73,0.543,0.7,0,0,0,0,changed general fraction from 0.435 to 0.457 and supplemental fraction to 0,pnnl_90_1_lighting_subcommittee_model
+Healthcare Facility,Hospital/Healthcare,Operating Room,healthcare_operating_room,110,0.96,4,1,0.71,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Healthcare Facility,Hospital/Healthcare,Recovery,healthcare_recovery,55,0.96,4,0.886363636,0.73,0,0,0,0,0.113636364,0.73,,pnnl_90_1_lighting_subcommittee_model
+Healthcare Facility,Hospital/Healthcare,Active storage,healthcare_pharmacy_storage,33,0.96,4,1,0.61,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Healthcare Facility,Hospital/Healthcare,Active storage,healthcare_storage,22,0.96,4,1,0.61,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Healthcare Facility,Hospital/Healthcare,Telehealth,healthcare_telehealth,33,0.96,6,1,0.4,0,0,0,0,0,0.57,reduced wall wash to zero to sum to 1,pnnl_90_1_lighting_subcommittee_model
+Library,Library,Library-Audio Visual,library_library_audio_visual,11,0.96,2,0.909090909,0.79,0.090909091,0.65,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Library,Library,Stacks,library_stacks,33,0.96,2,0.384615385,0.68,0.615384615,0.82,0,0,0,0.66,,pnnl_90_1_lighting_subcommittee_model
+Library,Library,Card File & Cataloguing,library_card_file,33,0.96,2,0.833333333,0.9,0,0,0,0,0.166666667,0.66,,pnnl_90_1_lighting_subcommittee_model
+Library,Library,Reading Area,library_reading_area,55,0.96,2,0.681818182,0.76,0.318181818,0.97,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Manufacturing Facility,Manufacturing Facility,Detailed manufacturing area,manufacturing_facility_detailed,55,0.96,1,1,0.94,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Manufacturing Facility,Manufacturing Facility,Equipment Room,manufacturing_facility_equipment_room,22,0.96,4,0.769230769,0.49,0.230769231,0.38,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Manufacturing Facility,Manufacturing Facility,General Low Bay,manufacturing_facility_low_bay,55,0.96,2,1,0.79,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Manufacturing Facility,Manufacturing Facility,General High Bay,manufacturing_facility_high_bay,55,0.96,5,1,0.54,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Manufacturing Facility,Manufacturing Facility,Extra High Bay,manufacturing_facility_extra_high_bay,55,0.96,7,1,0.47,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Museum,Museum,Active Storage,museum_active_storage,22,0.96,4,1,0.61,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Museum,Museum,General exhibition,museum_exhibition,11,0.96,4,1,0.89,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Museum,Museum,Restoration,museum_restoration,55,0.96,4,0.727272727,0.7,0.272727273,0.74,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Performing Arts Theater - Dressing Room,Auditorium,Dressing/Fitting Room,performing_arts_theater_auditorium,22,0.96,4,0.677419355,0.74,0.322580645,0.81,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Performing Arts Theater - Dressing Room,Performing Arts theatre,Dressing/Fitting Room,performing_arts_theater_dressing_room,22,0.96,4,1,0.7,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Post Office - Sorting Area,Post Office,Sorting Area,post_office_sorting_area,44,0.96,2,1,0.8,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Religious Facility,Religious,Audience/Seating Area,religious_facility_audience_seating_area,33,0.96,2,0.625,0.97,0.166666667,0.4,0,0,0.208333333,0.45,,pnnl_90_1_lighting_subcommittee_model
+Religious Facility,Religious Buildings,Fellowship Hall,religious_facility_fellowship_hall,33,0.96,2,0.8,0.92,0.2,1.03,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Religious Facility,Religious,"Worship - pulpit, choir",religious facility_pulpit,33,0.96,2,0.625,0.97,0.166666667,0.4,0,0,0.208333333,0.91,,pnnl_90_1_lighting_subcommittee_model
+Retail Facilities,Retail,Dressing/Fitting Room,retail_dressing_room,22,0.96,6,0.434782609,0.6,0.565217391,0.6,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Retail Facilities,WHOLE BULDING ANALYSIS ONLY,Barber & Beauty Parlor,whole_building_barber_salon,33,0.96,4,0.727272727,0.74,0.272727273,0.82,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Retail Facilities,WHOLE BULDING ANALYSIS ONLY,Manicure,whole_building_nail_salon,38.5,0.96,4,0.727272727,0.74,0.272727273,0.82,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Retail Facilities,Retail,Mall Concourse,retail_mall_concourse,22,0.96,2,0.705882353,0.97,0,0,0.294117647,0.4,0,0.75,,pnnl_90_1_lighting_subcommittee_model
+Retail Facilities,WHOLE BULDING ANALYSIS ONLY,Massage,whole_building_massage,33,0.96,6,0.727272727,0.89,0.272727273,0.82,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Retail Facilities,Retail,Personal Services Sales Area,retail_personal_services_sales_area,25.3,0.96,4,0.9,0.59,0.06,0.85,0,0,0.04,0.56,"changed general fraction to 0.9, task fraction to 0.06, wall wash fraction to 0.04",pnnl_90_1_lighting_subcommittee_model
+Retail Facilities,Retail,Mass Merchandising Sales Area,retail_mass_merchandising_sales_area,45.1,0.96,2,0.9,0.81,0.1,0.81,0,0,0,0,"changed general fraction to 0.9, task fraction to 0.1",pnnl_90_1_lighting_subcommittee_model
+Retail Facilities,Retail,Retail 1 / Supermarket Sales Area,retail_supermarket_sales_area,72.6,0.96,2,0.9,0.59,0.06,0.83,0,0,0.04,0.83,"changed general fraction to 0.9, task fraction to 0.06, wall wash fraction to 0.04",pnnl_90_1_lighting_subcommittee_model
+Retail Facilities,Retail,Retail 2 / Specialty Store Sales Area,retail_specialty_store_sales_area,39.6,0.96,4,0.9,0.44,0.06,0.76,0,0,0.04,0.76,"changed general fraction to 0.9, task fraction to 0.06, wall wash fraction to 0.04",pnnl_90_1_lighting_subcommittee_model
+Retail Facilities,Retail,Retail 3 / Department Store Sales Area,retail_department_store_sales_area,55,0.96,2,0.9,0.79,0.06,0.97,0,0,0.04,0.75,"changed general fraction to 0.9, task fraction to 0.06, wall wash fraction to 0.04",pnnl_90_1_lighting_subcommittee_model
+Retail Facilities,Retail,Retail 4 / Fine Merchandise Sales Area,retail_fine_merchandise_sales_area,31.9,0.96,4,0.9,0.91,0.06,0.76,0,0,0.04,0.76,"changed general fraction to 0.9, task fraction to 0.06, wall wash fraction to 0.04",pnnl_90_1_lighting_subcommittee_model
+Sports Arena,Sports Arena,Ring Sports Area,sports_arena_ring_sports,110,0.96,2,1,0.82,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Sports Arena,Sports Arena,Class 1 -Court Sports Area,sports_arena_class1,165,0.96,2,1,0.71,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Sports Arena,Sports Arena,Class 2 - Court Sports Area,sports arena_class2,110,0.96,2,1,0.68,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Sports Arena,Sports Arena,Class 3 - Court Sports Area,sports arena_class3,82.5,0.96,2,1,0.79,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Sports Arena,Sports Arena,Class 4 - Court Sports Area,sports arena_class4,55,0.96,2,1,0.79,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Sports Arena,Sports Arena,Class 1 - Natatorium,sports arena_natatorium_class1,93.75,0.96,2,1,0.47,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Sports Arena,Sports Arena,Class 2 - Natatorium,sports arena_natatorium_class2,62.5,0.96,2,1,0.47,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Sports Arena,Sports Arena,Class 3 - Natatorium,sports arena_natatorium_class3,55,0.96,2,1,0.68,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Sports Arena,Sports Arena,Class 4 - Natatorium,sports arena_natatorium_class4,33,0.96,2,1,0.68,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Transportation Facility,Transportation,Airport Hanger,transportation_facility_airport_hanger,55,0.96,7,1,0.47,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Transportation Facility,Transportation,Air/Train/Bus - Baggage Area,transportation facility_baggage_area,22,0.96,2,0.45,0.92,0.3,0.76,0,0,0.25,0.87,,pnnl_90_1_lighting_subcommittee_model
+Transportation Facility,Transportation,Airport - Concourse,transportation facility_airport_concourse,33,0.96,2,0.5,0.92,0.3,0.79,0,0,0.2,0.75,,pnnl_90_1_lighting_subcommittee_model
+Transportation Facility,Transportation,Passenger Loading,transportation_facility_passenger_loading,27.5,0.96,4,0.35,0.77,0.65,0.46,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Transportation Facility,Transportation,Terminal - Ticket counter,transportation facility_ticket_counter,27.5,0.96,2,0.4,0.79,0.4,0.92,0,0,0.2,0.83,,pnnl_90_1_lighting_subcommittee_model
+Transportation Facility,Transportation,Reception/Waiting,transportation_facility_reception,22,0.96,2,0.545454545,0.59,0,0,0,0,0.454545455,0.83,,pnnl_90_1_lighting_subcommittee_model
+Warehouse - Storage Area,Warehouse,Fine Material,warehouse_fine_material,33,0.96,4,1,0.59,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model
+Warehouse - Storage Area,Warehouse,Medium/Bulky Material,warehouse_bulk_material,22,0.96,2,1,0.81,0,0,0,0,0,0,,pnnl_90_1_lighting_subcommittee_model

@@ -1,0 +1,66 @@
+<?xml version="1.0"?>
+<measure>
+  <schema_version>3.1</schema_version>
+  <name>exterior_wall_insulation</name>
+  <uid>7eecb48f-34ea-4cf7-af27-8568580dead6</uid>
+  <version_id>8a2e823f-cb9b-447e-8899-7d257895d8e3</version_id>
+  <version_modified>2023-10-16T20:24:53Z</version_modified>
+  <xml_checksum>4E797983</xml_checksum>
+  <class_name>ExteriorWallInsulation</class_name>
+  <display_name>Exterior Wall Insulation</display_name>
+  <description>Exterior wall insulation is, as the name suggests, attached to the exterior of the structural elements in the existing wall and covered by a cladding system. For purposes of this document, it refers to rigid or semi-rigid board insulation, not to spray-applied insulation.</description>
+  <modeler_description>Determine the thickness of extruded polystyrene insulation required to meet the specified R-value, determined from the AEDG target assembly performance for each climate zone.  Find all the constructions used by exterior walls in the model, clone them, add a layer of insulation to the cloned constructions, and then assign the construction back to the wall.</modeler_description>
+  <arguments />
+  <outputs />
+  <provenances />
+  <tags>
+    <tag>Envelope.Opaque</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Analysis Spreadsheet</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>New Construction EE</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Retrofit EE</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>LICENSE.md</filename>
+      <filetype>md</filetype>
+      <usage_type>license</usage_type>
+      <checksum>CD7F5672</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>1.5.0</identifier>
+        <min_compatible>1.5.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>30276AE5</checksum>
+    </file>
+    <file>
+      <filename>measure_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>CA0BE3F7</checksum>
+    </file>
+  </files>
+</measure>

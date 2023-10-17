@@ -1,0 +1,26 @@
+% Please add the following required packages to your document preamble:
+% \usepackage{multirow}
+\begin{table}
+\scriptsize
+\centering
+\caption{Boiler Performance Curves}
+\label{tab:boiler_plr_curve_table}
+\begin{tabular}{|p{0.5in}|p{0.5in}|p{0.5in}|p{0.5in}|p{0.4in}|p{0.4in}|p{0.4in}|p{0.4in}|p{1in}|}
+\hline
+\textbf{Name} &
+  \textbf{Form} &
+  \textbf{Dependent Variable} &
+  \textbf{Independent Variable 1} &
+  \textbf{coefficient\ 1} &
+  \textbf{coefficient\ 2} &
+  \textbf{coefficient\ 3} &
+  \textbf{coefficient\ 4} &
+  \textbf{Notes} \\ \hline
+Boiler Constant Efficiency Curve &
+  \multirow{3}{*}{\parbox{1.5cm}{Cubic}} &
+  \multirow{3}{*}{\parbox{1.5cm}{Efficiency Multiplier}} &
+  \multirow{3}{*}{\parbox{1.5cm}{Part Load Ratio}} & 1 & 0 & 0 & 0 & From DOE Reference Building \\ \cline{1-1} \cline{5-9} 
+Boiler With Minimum Turndown &  &  &  & 0.7791 & 1.4745 & -2.5795 & 1.3467 & From Regression of Prototype Building EMS \\ \cline{1-1} \cline{5-9} 
+Boiler With No Minimum Turndown &  &  &  & 0.7463 & 1.3196 & -2.2154 & 1.1674 & From Regression of Prototype Building EMS \\ \hline
+\end{tabular}
+\end{table}

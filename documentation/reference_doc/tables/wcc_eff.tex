@@ -1,0 +1,67 @@
+\begin{table}
+\scriptsize
+\centering
+\caption{Water-Cooled Chiller Efficiency and Performance Curve Assignment}
+\label{tab:wcc_eff}
+\begin{tabular}{|p{0.5in}|p{0.5in}|p{0.4in}|p{0.4in}|p{0.4in}|p{0.4in}|p{0.5in}|p{0.5in}|p{0.5in}|p{0.4in}|}
+\hline
+\textbf{Model Template} &
+  \textbf{Compressor Type} &
+  \textbf{Minimum Capacity (Tons)} &
+  \textbf{Maximum Capacity (Tons)} &
+  \textbf{Minimum Full Load Efficiency (kW/ton)} &
+  \textbf{Minimum Integrated Part Load Value (kW/ton)} &
+  \textbf{Capacity Function of Temperature (Schedule Name)} &
+  \textbf{EIR Function of Temperature (Schedule Name)} &
+  \textbf{EIR Function of PLR (Schedule Name)} &
+  \textbf{Notes} \\ \hline
+Pre-1980 &
+  \multirow{32}{*}{\parbox{0.5in}{Rotary   Screw}} &
+  0 & 149.99 & 0.852 & - &
+  \multirow{9}{*}{\parbox{0.5in}{ChlrWtr\-PosDispPath\-AAll\-QRatio\-fTchws\-TcwsSI}} &
+  \multirow{9}{*}{\parbox{0.5in}{ChlrWtr\-PosDispPath\-AAll\-EIRRatio\_fTchwsTcwsSI}} &
+  \multirow{32}{*}{\parbox{0.5in}{ChlrWtr\-PosDispPath\-AAll\-EIRRatio\_fQRatio}} &
+  \multirow{3}{*}{\parbox{0.5in}{From   DOE Reference Buildings}} \\ \cline{1-1} \cline{3-6}
+Pre-1980  &  & 150 & 299.99 & 0.782 & -     &  &  &  &                                        \\ \cline{1-1} \cline{3-6}
+Pre-1980  &  & 300 & no max   & 0.688 & -     &  &  &  &                                        \\ \cline{1-1} \cline{3-6} \cline{10-10} 
+1980--2004 &  & 0   & 149.99 & 0.926 & 0.902 &  &  &  & \multirow{3}{*}{\parbox{0.5in}{From   90.1-1989}}      \\ \cline{1-1} \cline{3-6}
+1980--2004 &  & 150 & 299.99 & 0.837 & 0.782 &  &  &  &                                        \\ \cline{1-1} \cline{3-6}
+1980--2004 &  & 300 & no max   & 0.676 & 0.664 &  &  &  &                                        \\ \cline{1-1} \cline{3-6} \cline{10-10} 
+90.1-2004 &  & 0   & 149.99 & 0.79  & 0.676 &  &  &  & \multirow{3}{*}{\parbox{0.5in}{Path   A Efficiencies}} \\ \cline{1-1} \cline{3-6}
+90.1-2004 &  & 150 & 299.99 & 0.718 & 0.628 &  &  &  &                                        \\ \cline{1-1} \cline{3-6}
+90.1-2004 &  & 300 & no max   & 0.639 & 0.572 &  &  &  &                                        \\ \cline{1-1} \cline{3-8} \cline{10-10} 
+90.1-2007 &  & 0 & 74.99 & 0.78 & 0.63 &
+  \multirow{8}{*}{\parbox{0.5in}{WaterCooled\_PositiveDisplacement\_Chiller\_LT150\_2010\_PathA\_CAPFT}} &
+  \multirow{8}{*}{\parbox{0.5in}{WaterCooled\_PositiveDisplacement\_Chiller\_LT150\_2010\_PathA\_EIRFT}} &
+   &
+  \multirow{8}{*}{\parbox{0.5in}{Path   A Minimum Efficiencies}} \\ \cline{1-1} \cline{3-6}
+90.1-2007           &  & 75  & 149.99 & 0.775 & 0.615 &  &  &  &                                        \\ \cline{1-1} \cline{3-6}
+90.1-2007           &  & 150 & 299.99 & 0.68  & 0.58  &  &  &  &                                        \\ \cline{1-1} \cline{3-6}
+90.1-2007           &  & 300 & no max   & 0.62  & 0.54  &  &  &  &                                        \\ \cline{1-1} \cline{3-6}
+90.1-2010           &  & 0   & 74.99  & 0.78  & 0.63  &  &  &  &                                        \\ \cline{1-1} \cline{3-6}
+90.1-2010           &  & 75  & 149.99 & 0.775 & 0.615 &  &  &  &                                        \\ \cline{1-1} \cline{3-6}
+90.1-2010           &  & 150 & 299.99 & 0.68  & 0.58  &  &  &  &                                        \\ \cline{1-1} \cline{3-6}
+90.1-2010           &  & 300 & no max   & 0.62  & 0.54  &  &  &  &                                        \\ \cline{1-1} \cline{3-8} \cline{10-10}
+90.1-2013 & &
+  0 & 74.99 & 0.75 & 0.6 &
+  \multirow{15}{*}{\parbox{0.5in}{ChlrWtr\-PosDisp\-PathAAll\-QRatio\-fTchws\-TcwsSI}} &
+  \multirow{15}{*}{\parbox{0.5in}{ChlrWtr\-PosDisp\-PathAAll\-EIRRatio\-fTchws\-TcwsSI}} & &
+  \multirow{15}{*}{\parbox{0.5in}{Path   A Efficiencies}} \\ \cline{1-1} \cline{3-6}
+90.1-2013 &  & 75  & 149.99 & 0.72 & 0.56 &  &  &  &  \\ \cline{1-1} \cline{3-6}
+90.1-2013 &  & 150 & 299.99 & 0.66 & 0.54 &  &  &  &  \\ \cline{1-1} \cline{3-6}
+90.1-2013 &  & 300 & 599.99 & 0.61 & 0.52 &  &  &  &  \\ \cline{1-1} \cline{3-6}
+90.1-2013 &  & 600 & no max   & 0.56 & 0.5  &  &  &  &  \\ \cline{1-1} \cline{3-6}
+90.1-2016 &  & 0   & 74.99  & 0.75 & 0.6  &  &  &  &  \\ \cline{1-1} \cline{3-6}
+90.1-2016 &  & 75  & 149.99 & 0.72 & 0.56 &  &  &  &  \\ \cline{1-1} \cline{3-6}
+90.1-2016 &  & 150 & 299.99 & 0.66 & 0.54 &  &  &  &  \\ \cline{1-1} \cline{3-6}
+90.1-2016 &  & 300 & 599.99 & 0.61 & 0.52 &  &  &  &  \\ \cline{1-1} \cline{3-6}
+90.1-2016 &  & 600 & no max   & 0.56 & 0.5  &  &  &  &  \\ \cline{1-1} \cline{3-6}
+90.1-2019 &  & 0   & 74.99  & 0.75 & 0.6  &  &  &  &  \\ \cline{1-1} \cline{3-6}
+90.1-2019 &  & 75  & 149.99 & 0.72 & 0.56 &  &  &  &  \\ \cline{1-1} \cline{3-6}
+90.1-2019 &  & 150 & 299.99 & 0.66 & 0.54 &  &  &  &  \\ \cline{1-1} \cline{3-6}
+90.1-2019 &  & 300 & 599.99 & 0.61 & 0.52 &  &  &  &  \\ \cline{1-1} \cline{3-6}
+90.1-2019 &  & 600 & no max   & 0.56 & 0.5  &  &  &  &  \\ \hline
+
+
+\end{tabular}
+\end{table}

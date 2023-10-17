@@ -1,0 +1,8 @@
+import comstockpostproc as cspp
+
+yml_path = '/lustre/eaglefs/projects/enduse/comstock/ymls/euss_fy23/euss_full_350k_short_3of3-116402.yml'
+s3_output_dir = 's3://oedi-data-lake/nrel-pds-building-stock/end-use-load-profiles-for-us-building-stock/2023/comstock_amy2018_release_1/building_energy_models/'
+oedi_metadata_dir = 's3://oedi-data-lake/nrel-pds-building-stock/end-use-load-profiles-for-us-building-stock/2023/comstock_amy2018_release_1/metadata/'
+
+# Extract model files from run and transfer to S3
+cspp.utils.hpc.transfer_model_files_to_s3(yml_path, output_dir, oedi_metadata_dir)

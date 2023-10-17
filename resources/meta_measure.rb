@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2020 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # Helper methods related to having a meta-measure
@@ -50,7 +50,7 @@ def apply_measures(measures_dir, measures, runner, model, workflow_json=nil, osw
   end
 
   # Call each measure in the specified order
-  res = true
+  all_measure_results = []
   workflow_order.each do |measure_subdir|
     # Gather measure arguments and call measure
     full_measure_path = File.join(measures_dir, measure_subdir, "measure.rb")
@@ -62,18 +62,26 @@ def apply_measures(measures_dir, measures, runner, model, workflow_json=nil, osw
         print_measure_call(args, measure_subdir, runner)
       end
 
-      measure_result = run_measure(model, measure_instance, argument_map, runner)
+      measure_result = run_measure(model, measure_instance, argument_map, runner) # true, false, 'NA'
       if not measure_result
         return false
       end
-      if measure_result == 'NA'
-        res = 'NA'
-      end
+      all_measure_results << measure_result # true, 'NA'
     end
   end
 
-  return res
+  # Determine how many measures were applicable or not applicable
+  num_not_applicable = all_measure_results.count('NA')
+  num_applicable = all_measure_results.count - num_not_applicable
+  runner.registerInfo("#{num_applicable} measures were applicable, #{num_not_applicable} were not applicable")
 
+  # Return true if one or more are applicable
+  # Only return NA if ALL measures are NA
+  if num_applicable > 0
+    return true
+  else
+    return 'NA'
+  end
 end
 
 def print_measure_call(measure_args, measure_dir, runner)
@@ -177,8 +185,10 @@ def run_measure(model, measure, argument_map, runner)
     if model.instance_of? OpenStudio::Workspace
       runner_child.setLastOpenStudioModel(runner.lastOpenStudioModel.get)
     end
+    start_time = Time.new
     measure.run(model, runner_child, argument_map)
     result_child = runner_child.result
+    end_time = Time.new
 
     # get initial and final condition
     if result_child.initialCondition.is_initialized
@@ -208,16 +218,19 @@ def run_measure(model, measure, argument_map, runner)
       runner.registerValue("#{measure_name}_#{arg.name}", "#{arg.valueAsString}" )
     end
 
+    # log runtime for detecting measure hotspots within meta-measure
+    runner.registerInfo("#{measure_name} runtime: #{(end_time - start_time).round(1)} seconds")
+
     # convert a return false in the measure to a return false and error here.
     if result_child.value.valueName == "Fail"
       runner.registerError("The measure was not successful")
       return false
     elsif result_child.value.valueName == "NA"
-      runner.registerInfo("The measure was not applicable")
-      runner.registerAsNotApplicable("The measure was not applicable")
+      runner.registerValue("#{measure_name}_applicable", false) # For understanding multi-measure upgrades in results_csv
       return 'NA'
     else
-      runner.registerInfo("The measure was successful - value.valueName return was `#{result_child.value.valueName}")
+      runner.registerValue("#{measure_name}_applicable", true) # For understanding multi-measure upgrades in results_csv
+      runner.registerInfo("The measure was successful - value.valueName return was `#{result_child.value.valueName}`")
     end
   rescue ScriptError, StandardError, NoMemoryError => e
     runner.registerError("Measure Failed with Error: #{e.backtrace.join("\n")}")

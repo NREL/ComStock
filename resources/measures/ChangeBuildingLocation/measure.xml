@@ -1,9 +1,10 @@
+<?xml version="1.0"?>
 <measure>
-  <schema_version>3.0</schema_version>
+  <schema_version>3.1</schema_version>
   <name>change_building_location</name>
   <uid>d4db4971-f5ba-11e3-a3ac-0800200c9a66</uid>
-  <version_id>9d1885a6-8382-48b5-80d9-25686ce0c6a3</version_id>
-  <version_modified>20200309T181819Z</version_modified>
+  <version_id>81b41fed-19de-40d3-a3ab-7dd83a493d31</version_id>
+  <version_modified>2023-10-16T20:24:55Z</version_modified>
   <xml_checksum>057E8D9D</xml_checksum>
   <class_name>ChangeBuildingLocation</class_name>
   <display_name>ChangeBuildingLocation</display_name>
@@ -172,9 +173,116 @@
         </choice>
       </choices>
     </argument>
+    <argument>
+      <name>grid_region</name>
+      <display_name>Grid Region</display_name>
+      <description>Cambium electric grid region, or eGrid region for Alaska and Hawaii</description>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>RMPAc</default_value>
+      <choices>
+        <choice>
+          <value>AZNMc</value>
+          <display_name>AZNMc</display_name>
+        </choice>
+        <choice>
+          <value>AKGD</value>
+          <display_name>AKGD</display_name>
+        </choice>
+        <choice>
+          <value>AKMS</value>
+          <display_name>AKMS</display_name>
+        </choice>
+        <choice>
+          <value>CAMXc</value>
+          <display_name>CAMXc</display_name>
+        </choice>
+        <choice>
+          <value>ERCTc</value>
+          <display_name>ERCTc</display_name>
+        </choice>
+        <choice>
+          <value>FRCCc</value>
+          <display_name>FRCCc</display_name>
+        </choice>
+        <choice>
+          <value>HIMS</value>
+          <display_name>HIMS</display_name>
+        </choice>
+        <choice>
+          <value>HIOA</value>
+          <display_name>HIOA</display_name>
+        </choice>
+        <choice>
+          <value>MROEc</value>
+          <display_name>MROEc</display_name>
+        </choice>
+        <choice>
+          <value>MROWc</value>
+          <display_name>MROWc</display_name>
+        </choice>
+        <choice>
+          <value>NEWEc</value>
+          <display_name>NEWEc</display_name>
+        </choice>
+        <choice>
+          <value>NWPPc</value>
+          <display_name>NWPPc</display_name>
+        </choice>
+        <choice>
+          <value>NYSTc</value>
+          <display_name>NYSTc</display_name>
+        </choice>
+        <choice>
+          <value>RFCEc</value>
+          <display_name>RFCEc</display_name>
+        </choice>
+        <choice>
+          <value>RFCMc</value>
+          <display_name>RFCMc</display_name>
+        </choice>
+        <choice>
+          <value>RFCWc</value>
+          <display_name>RFCWc</display_name>
+        </choice>
+        <choice>
+          <value>RMPAc</value>
+          <display_name>RMPAc</display_name>
+        </choice>
+        <choice>
+          <value>SPNOc</value>
+          <display_name>SPNOc</display_name>
+        </choice>
+        <choice>
+          <value>SPSOc</value>
+          <display_name>SPSOc</display_name>
+        </choice>
+        <choice>
+          <value>SRMVc</value>
+          <display_name>SRMVc</display_name>
+        </choice>
+        <choice>
+          <value>SRMWc</value>
+          <display_name>SRMWc</display_name>
+        </choice>
+        <choice>
+          <value>SRSOc</value>
+          <display_name>SRSOc</display_name>
+        </choice>
+        <choice>
+          <value>SRTVc</value>
+          <display_name>SRTVc</display_name>
+        </choice>
+        <choice>
+          <value>SRVCc</value>
+          <display_name>SRVCc</display_name>
+        </choice>
+      </choices>
+    </argument>
   </arguments>
-  <outputs/>
-  <provenances/>
+  <outputs />
+  <provenances />
   <tags>
     <tag>Whole Building.Space Types</tag>
   </tags>
@@ -192,100 +300,16 @@
   </attributes>
   <files>
     <file>
-      <filename>another_weather_file.ddy</filename>
-      <filetype>ddy</filetype>
-      <usage_type>test</usage_type>
-      <checksum>D6178C51</checksum>
-    </file>
-    <file>
-      <filename>another_weather_file.epw</filename>
-      <filetype>epw</filetype>
-      <usage_type>test</usage_type>
-      <checksum>D3B7E25B</checksum>
-    </file>
-    <file>
-      <filename>another_weather_file.stat</filename>
-      <filetype>stat</filetype>
-      <usage_type>test</usage_type>
-      <checksum>E8C83421</checksum>
-    </file>
-    <file>
-      <filename>test.osm</filename>
-      <filetype>osm</filetype>
-      <usage_type>test</usage_type>
-      <checksum>0B8479BC</checksum>
-    </file>
-    <file>
-      <filename>USA_MA_Boston-Logan.Intl.AP.725090_TMY3.ddy</filename>
-      <filetype>ddy</filetype>
-      <usage_type>test</usage_type>
-      <checksum>E4CBEAF0</checksum>
-    </file>
-    <file>
-      <filename>USA_MA_Boston-Logan.Intl.AP.725090_TMY3.epw</filename>
-      <filetype>epw</filetype>
-      <usage_type>test</usage_type>
-      <checksum>B65824C3</checksum>
-    </file>
-    <file>
-      <filename>USA_MA_Boston-Logan.Intl.AP.725090_TMY3.stat</filename>
-      <filetype>stat</filetype>
-      <usage_type>test</usage_type>
-      <checksum>8657DDB9</checksum>
-    </file>
-    <file>
-      <filename>multiyear.ddy</filename>
-      <filetype>ddy</filetype>
-      <usage_type>test</usage_type>
-      <checksum>D6178C51</checksum>
-    </file>
-    <file>
-      <filename>multiyear.epw</filename>
-      <filetype>epw</filetype>
-      <usage_type>test</usage_type>
-      <checksum>F0A18702</checksum>
-    </file>
-    <file>
-      <filename>multiyear.stat</filename>
-      <filetype>stat</filetype>
-      <usage_type>test</usage_type>
-      <checksum>E715E1B9</checksum>
-    </file>
-    <file>
-      <filename>USA_WA_Renton.Muni.AP.727934_TMY3.ddy</filename>
-      <filetype>ddy</filetype>
-      <usage_type>test</usage_type>
-      <checksum>D2D8CDAB</checksum>
-    </file>
-    <file>
-      <filename>USA_WA_Renton.Muni.AP.727934_TMY3.epw</filename>
-      <filetype>epw</filetype>
-      <usage_type>test</usage_type>
-      <checksum>F6F36230</checksum>
-    </file>
-    <file>
-      <filename>USA_WA_Renton.Muni.AP.727934_TMY3.stat</filename>
-      <filetype>stat</filetype>
-      <usage_type>test</usage_type>
-      <checksum>7C51425E</checksum>
-    </file>
-    <file>
-      <filename>test.osw</filename>
-      <filetype>osw</filetype>
-      <usage_type>test</usage_type>
-      <checksum>F5FABCCF</checksum>
-    </file>
-    <file>
-      <filename>os_lib_helper_methods.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>9CFC43FB</checksum>
-    </file>
-    <file>
       <filename>LICENSE.md</filename>
       <filetype>md</filetype>
       <usage_type>license</usage_type>
       <checksum>9640B6CB</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>147734E2</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -294,16 +318,33 @@
       <checksum>703C9964</checksum>
     </file>
     <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.0.0</identifier>
+        <min_compatible>2.0.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>6A21FC70</checksum>
+    </file>
+    <file>
       <filename>epw.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>C146EEBC</checksum>
+      <checksum>46A9A425</checksum>
     </file>
     <file>
-      <filename>change_building_location_test.rb</filename>
+      <filename>os_lib_helper_methods.rb</filename>
       <filetype>rb</filetype>
-      <usage_type>test</usage_type>
-      <checksum>4E4E9E08</checksum>
+      <usage_type>resource</usage_type>
+      <checksum>D3E1CB2F</checksum>
+    </file>
+    <file>
+      <filename>stat_file.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>1F6AC00B</checksum>
     </file>
     <file>
       <filename>CA_LOS-ANGELES-IAP_722950S_12.ddy</filename>
@@ -324,27 +365,94 @@
       <checksum>12BCA842</checksum>
     </file>
     <file>
-      <filename>stat_file.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>9ABC7794</checksum>
+      <filename>USA_MA_Boston-Logan.Intl.AP.725090_TMY3.ddy</filename>
+      <filetype>ddy</filetype>
+      <usage_type>test</usage_type>
+      <checksum>E4CBEAF0</checksum>
     </file>
     <file>
-      <version>
-        <software_program>OpenStudio</software_program>
-        <identifier>2.0.0</identifier>
-        <min_compatible>2.0.0</min_compatible>
-      </version>
-      <filename>measure.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>script</usage_type>
-      <checksum>DB129184</checksum>
+      <filename>USA_MA_Boston-Logan.Intl.AP.725090_TMY3.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>B65824C3</checksum>
     </file>
     <file>
-      <filename>README.md</filename>
-      <filetype>md</filetype>
-      <usage_type>readme</usage_type>
-      <checksum>57BD40C9</checksum>
+      <filename>USA_MA_Boston-Logan.Intl.AP.725090_TMY3.stat</filename>
+      <filetype>stat</filetype>
+      <usage_type>test</usage_type>
+      <checksum>8657DDB9</checksum>
+    </file>
+    <file>
+      <filename>USA_WA_Renton.Muni.AP.727934_TMY3.ddy</filename>
+      <filetype>ddy</filetype>
+      <usage_type>test</usage_type>
+      <checksum>D2D8CDAB</checksum>
+    </file>
+    <file>
+      <filename>USA_WA_Renton.Muni.AP.727934_TMY3.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>F6F36230</checksum>
+    </file>
+    <file>
+      <filename>USA_WA_Renton.Muni.AP.727934_TMY3.stat</filename>
+      <filetype>stat</filetype>
+      <usage_type>test</usage_type>
+      <checksum>7C51425E</checksum>
+    </file>
+    <file>
+      <filename>another_weather_file.ddy</filename>
+      <filetype>ddy</filetype>
+      <usage_type>test</usage_type>
+      <checksum>D6178C51</checksum>
+    </file>
+    <file>
+      <filename>another_weather_file.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>D3B7E25B</checksum>
+    </file>
+    <file>
+      <filename>another_weather_file.stat</filename>
+      <filetype>stat</filetype>
+      <usage_type>test</usage_type>
+      <checksum>E8C83421</checksum>
+    </file>
+    <file>
+      <filename>change_building_location_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>38A17E21</checksum>
+    </file>
+    <file>
+      <filename>multiyear.ddy</filename>
+      <filetype>ddy</filetype>
+      <usage_type>test</usage_type>
+      <checksum>D6178C51</checksum>
+    </file>
+    <file>
+      <filename>multiyear.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>F0A18702</checksum>
+    </file>
+    <file>
+      <filename>multiyear.stat</filename>
+      <filetype>stat</filetype>
+      <usage_type>test</usage_type>
+      <checksum>E715E1B9</checksum>
+    </file>
+    <file>
+      <filename>test.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>0B8479BC</checksum>
+    </file>
+    <file>
+      <filename>test.osw</filename>
+      <filetype>osw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>F5FABCCF</checksum>
     </file>
   </files>
 </measure>

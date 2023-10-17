@@ -1,0 +1,10 @@
+.pytest_cache
+ComStock_Postprocessing.egg-info
+comstock_data
+resstock_data
+output
+truth_data
+comstockpostproc/__pycache__
+comstockpostproc/utils/__pycache__
+__pycache__
+test/__pycache__

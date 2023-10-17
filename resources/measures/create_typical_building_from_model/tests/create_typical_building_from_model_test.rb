@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2020 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 require 'openstudio'
@@ -102,6 +102,8 @@ class CreateTypicalBuildingFromModel_Test < Minitest::Test
     # standard = Standard.build('90.1-2004')
     # success = standard.model_run_simulation_and_log_errors(model, File.dirname(__FILE__) + "/output/#{test_name}")
     # assert(success, "")
+
+    return model
   end
 
   def test_midrise_apartment
@@ -114,6 +116,38 @@ class CreateTypicalBuildingFromModel_Test < Minitest::Test
 
   def test_quick_service_restaurant_no_attic
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), {}, 'QuickServiceRestaurantNoAttic.osm', nil, nil)
+  end
+
+  def test_quick_service_restaurant_walls_unchanged
+    args = {}
+    args['wall_construction_type'] = 'WoodFramed'
+    model = apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'QuickServiceRestaurantNoAttic.osm', nil, nil)
+
+    # Check that the walls are still the default type, WoodFramed
+    model.getSurfaces.sort.each do |surf|
+      next unless surf.outsideBoundaryCondition == 'Outdoors'
+      next unless surf.surfaceType == 'Wall'
+      construction = surf.construction.get
+      standards_info = construction.standardsInformation
+      const_type = standards_info.standardsConstructionType.get
+      assert(const_type == 'WoodFramed', "Expected WoodFramed, got #{const_type}")
+    end
+  end
+
+  def test_quick_service_restaurant_walls_to_mass
+    args = {}
+    args['wall_construction_type'] = 'Mass'
+    model = apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'QuickServiceRestaurantNoAttic.osm', nil, nil)
+
+    # Check that the walls are the modified type, Mass
+    model.getSurfaces.sort.each do |surf|
+      next unless surf.outsideBoundaryCondition == 'Outdoors'
+      next unless surf.surfaceType == 'Wall'
+      construction = surf.construction.get
+      standards_info = construction.standardsInformation
+      const_type = standards_info.standardsConstructionType.get
+      assert(const_type == 'Mass', "Expected Mass, got #{const_type}")
+    end
   end
 
   # might be cleaner to update standards to not make ext light object with multipler of 0, but for now it does seem to run through E+ fine.
@@ -145,7 +179,14 @@ class CreateTypicalBuildingFromModel_Test < Minitest::Test
   # made this test for temp work around for night cycle mode
   def test_pfp_boxes
     args = {}
-    args['system_type'] = 'VAV with PFP boxes'
+    args['system_type'] = 'VAV chiller with PFP boxes'
+    puts args
+    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'SmallOffice.osm', nil, nil)
+  end
+
+  def test_wshp_fluid_cooler
+    args = {}
+    args['system_type'] = 'Water source heat pumps fluid cooler with boiler'
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'SmallOffice.osm', nil, nil)
   end
 
@@ -522,11 +563,11 @@ class CreateTypicalBuildingFromModel_Test < Minitest::Test
     args['template'] = 'DEER Pre-1975'
     args['use_upstream_args'] = false
     args['modify_wkdy_op_hrs'] = true
-    args['wkdy_op_hrs_start_time'] = '09:15'
-    args['wkdy_op_hrs_duration'] = '10:00'
+    args['wkdy_op_hrs_start_time'] = '9.25'
+    args['wkdy_op_hrs_duration'] = '10.00'
     args['modify_wknd_op_hrs'] = true
-    args['wknd_op_hrs_start_time'] = '08:00'
-    args['wknd_op_hrs_duration'] = '10:00'
+    args['wknd_op_hrs_start_time'] = '8.00'
+    args['wknd_op_hrs_duration'] = '10.00'
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'asm.osm', nil, nil)
   end
 
@@ -535,11 +576,11 @@ class CreateTypicalBuildingFromModel_Test < Minitest::Test
     args['template'] = 'DEER Pre-1975'
     args['use_upstream_args'] = false
     args['modify_wkdy_op_hrs'] = true
-    args['wkdy_op_hrs_start_time'] = '09:15'
-    args['wkdy_op_hrs_duration'] = '10:00'
+    args['wkdy_op_hrs_start_time'] = '9.25'
+    args['wkdy_op_hrs_duration'] = '10.0'
     args['modify_wknd_op_hrs'] = true
-    args['wknd_op_hrs_start_time'] = '08:00'
-    args['wknd_op_hrs_duration'] = '10:00'
+    args['wknd_op_hrs_start_time'] = '8.00'
+    args['wknd_op_hrs_duration'] = '10.0'
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'ese.osm', nil, nil)
   end
 
@@ -548,11 +589,11 @@ class CreateTypicalBuildingFromModel_Test < Minitest::Test
     args['template'] = 'DEER Pre-1975'
     args['use_upstream_args'] = false
     args['modify_wkdy_op_hrs'] = true
-    args['wkdy_op_hrs_start_time'] = '12:30'
-    args['wkdy_op_hrs_duration'] = '13:00'
+    args['wkdy_op_hrs_start_time'] = '12.50'
+    args['wkdy_op_hrs_duration'] = '13.00'
     args['modify_wknd_op_hrs'] = true
-    args['wknd_op_hrs_start_time'] = '08:00'
-    args['wknd_op_hrs_duration'] = '06:00'
+    args['wknd_op_hrs_start_time'] = '8.00'
+    args['wknd_op_hrs_duration'] = '6.00'
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'ese.osm', nil, nil)
   end
 
@@ -561,11 +602,11 @@ class CreateTypicalBuildingFromModel_Test < Minitest::Test
     args['template'] = 'DEER Pre-1975'
     args['use_upstream_args'] = false
     args['modify_wkdy_op_hrs'] = true
-    args['wkdy_op_hrs_start_time'] = '09:15'
-    args['wkdy_op_hrs_duration'] = '10:00'
+    args['wkdy_op_hrs_start_time'] = '9.25'
+    args['wkdy_op_hrs_duration'] = '10.00'
     args['modify_wknd_op_hrs'] = true
-    args['wknd_op_hrs_start_time'] = '08:00'
-    args['wknd_op_hrs_duration'] = '10:00'
+    args['wknd_op_hrs_start_time'] = '8.00'
+    args['wknd_op_hrs_duration'] = '10.00'
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'eun.osm', nil, nil)
   end
 
@@ -574,11 +615,11 @@ class CreateTypicalBuildingFromModel_Test < Minitest::Test
     args['template'] = 'DEER Pre-1975'
     args['use_upstream_args'] = false
     args['modify_wkdy_op_hrs'] = true
-    args['wkdy_op_hrs_start_time'] = '09:15'
-    args['wkdy_op_hrs_duration'] = '10:00'
+    args['wkdy_op_hrs_start_time'] = '9.25'
+    args['wkdy_op_hrs_duration'] = '10.00'
     args['modify_wknd_op_hrs'] = true
-    args['wknd_op_hrs_start_time'] = '08:00'
-    args['wknd_op_hrs_duration'] = '10:00'
+    args['wknd_op_hrs_start_time'] = '8.00'
+    args['wknd_op_hrs_duration'] = '10.00'
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'ofl.osm', nil, nil)
   end
 

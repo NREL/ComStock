@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2020 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # *******************************************************************************
@@ -82,6 +82,13 @@ class ComStockSensitivityReportsTest < Minitest::Test
     # create an instance of a runner
     runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
 
+    # Load the input model to set up runner, this will happen automatically when measure is run in PAT or OpenStudio
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    model = translator.loadModel(osm_path)
+    assert(model.is_initialized)
+    model = model.get
+    runner.setLastOpenStudioModel(model)
+
     # get arguments
     arguments = measure.arguments()
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
@@ -136,6 +143,14 @@ class ComStockSensitivityReportsTest < Minitest::Test
     measure.run(runner, argument_map)
     result = runner.result
     show_output(result)
+
+    # log result to file for comparisons
+    values = []
+    result.stepValues.each do |value|
+      values << value.string
+    end
+    File.write(run_dir(test_name)+"/output.txt", "[\n#{values.join(',').strip}\n]")
+    
     assert_equal('Success', result.value.valueName)
 
     # change back directory
@@ -203,5 +218,108 @@ class ComStockSensitivityReportsTest < Minitest::Test
     epw_path = File.dirname(__FILE__) + '/USA_KY_Bowman.Fld.724235_2012.epw'
     assert(run_test(test_name, osm_path, epw_path))
   end
-end
 
+  def test_bldg03
+    test_name = 'test_bldg03_smalloffice_pszac'
+    puts "\n######\nTEST:#{test_name}\n######\n"
+    osm_path = File.dirname(__FILE__) + '/bldg0000003.osm'
+    epw_path = File.dirname(__FILE__) + '/FortCollins2016.epw'
+    assert(run_test(test_name, osm_path, epw_path))
+  end
+
+   def test_bldg04
+    test_name = 'test_bldg04_retail_pszacnoheat'
+    puts "\n######\nTEST:#{test_name}\n######\n"
+    osm_path = File.dirname(__FILE__) + '/bldg0000004.osm'
+    epw_path = File.dirname(__FILE__) + '/FortCollins2016.epw'
+    assert(run_test(test_name, osm_path, epw_path))
+  end
+
+  def test_fuel_oil_boiler
+    test_name = 'test_fuel_oil_boiler'
+    puts "\n######\nTEST:#{test_name}\n######\n"
+    osm_path = File.dirname(__FILE__) + '/bldg0000034.osm'
+    epw_path = File.dirname(__FILE__) + '/USA_MD_Baltimore-Washington.Intl.AP.724060_TMY3.epw'
+    assert(run_test(test_name, osm_path, epw_path))
+  end
+
+  def test_propane_boiler
+    test_name = 'test_propane_boiler'
+    puts "\n######\nTEST:#{test_name}\n######\n"
+    osm_path = File.dirname(__FILE__) + '/bldg0000090.osm'
+    epw_path = File.dirname(__FILE__) + '/USA_NV_Nellis.Afb.723865_2012.epw'
+    assert(run_test(test_name, osm_path, epw_path))
+  end
+
+  def test_vrf
+    test_name = 'test_vrf'
+    puts "\n######\nTEST:#{test_name}\n######\n"
+    osm_path = File.dirname(__FILE__) + '/bldg0146294.osm'
+    epw_path = File.dirname(__FILE__) + '/USA_MD_Baltimore-Washington.Intl.AP.724060_TMY3.epw'
+    assert(run_test(test_name, osm_path, epw_path))
+  end
+
+  def test_heat_pump
+    test_name = 'test_heat_pump'
+    puts "\n######\nTEST:#{test_name}\n######\n"
+    osm_path = File.dirname(__FILE__) + '/office_heat_pump.osm'
+    epw_path = File.dirname(__FILE__) + '/USA_MN_Duluth.Intl.AP.727450_TMY.epw'
+    assert(run_test(test_name, osm_path, epw_path))
+  end
+
+  def test_multispeed_heat_pump
+    test_name = 'test_multispeed_heat_pump'
+    puts "\n######\nTEST:#{test_name}\n######\n"
+    osm_path = File.dirname(__FILE__) + '/multispeed_hps.osm'
+    epw_path = File.dirname(__FILE__) + '/USA_MI_Detroit.City.725375_2012.epw'
+    assert(run_test(test_name, osm_path, epw_path))
+  end
+
+  def test_heat_pump_boiler_1
+    test_name = 'test_heat_pump_boiler_1'
+    puts "\n######\nTEST:#{test_name}\n######\n"
+    osm_path = File.dirname(__FILE__) + '/heat_pump_boiler_1.osm'
+    epw_path = File.dirname(__FILE__) + '/USA_MN_Duluth.Intl.AP.727450_TMY.epw'
+    assert(run_test(test_name, osm_path, epw_path))
+  end
+
+  def test_heat_pump_boiler_2
+    test_name = 'test_heat_pump_boiler_2'
+    puts "\n######\nTEST:#{test_name}\n######\n"
+    osm_path = File.dirname(__FILE__) + '/heat_pump_boiler_2.osm'
+    epw_path = File.dirname(__FILE__) + '/USA_KY_Bowman.Fld.724235_2012.epw'
+    assert(run_test(test_name, osm_path, epw_path))
+  end
+
+  def test_shw_hpwh
+    test_name = 'test_shw_hpwh'
+    puts "\n######\nTEST:#{test_name}\n######\n"
+    osm_path = File.dirname(__FILE__) + '/hpwh002.osm'
+    epw_path = File.dirname(__FILE__) + '/USA_NV_Nellis.Afb.723865_2012.epw'
+    assert(run_test(test_name, osm_path, epw_path))
+  end
+
+  def test_ghx_outputs
+    test_name = 'test_ground_heat_exchanger_outputs'
+    puts "\n######\nTEST:#{test_name}\n######\n"
+    osm_path = File.dirname(__FILE__) + '/ground_heat_exchanger.osm'
+    epw_path = File.dirname(__FILE__) + '/USA_MI_Detroit.City.725375_2012.epw'
+    assert(run_test(test_name, osm_path, epw_path))
+  end
+
+  def test_hp_rtu_gas_backup
+    test_name = 'test_hp_rtu_gas_backup'
+    puts "\n######\nTEST:#{test_name}\n######\n"
+    osm_path = File.dirname(__FILE__) + '/hp_rtu_gas_backup.osm'
+    epw_path = File.dirname(__FILE__) + '/USA_AL_Mobile-Downtown.AP.722235_TMY3.epw'
+    assert(run_test(test_name, osm_path, epw_path))
+  end
+
+  def test_vrf_cold_climate
+    test_name = 'test_vrf_cold_climate'
+    puts "\n######\nTEST:#{test_name}\n######\n"
+    osm_path = File.dirname(__FILE__) + '/vrf_cold_climate.osm'
+    epw_path = File.dirname(__FILE__) + '/USA_MN_Duluth.Intl.AP.727450_TMY.epw'
+    assert(run_test(test_name, osm_path, epw_path))
+  end
+end

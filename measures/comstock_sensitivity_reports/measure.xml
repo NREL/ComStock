@@ -1,9 +1,10 @@
+<?xml version="1.0"?>
 <measure>
-  <schema_version>3.0</schema_version>
+  <schema_version>3.1</schema_version>
   <name>com_stock_sensitivity_reports</name>
   <uid>aeb81242-de7e-4613-af47-c1faf19d286a</uid>
-  <version_id>af8e6d9f-aa6d-479b-bae5-3e664cb1ac47</version_id>
-  <version_modified>20200319T184359Z</version_modified>
+  <version_id>3f2ca28d-1ba6-4cc1-a06a-e06e2415bd82</version_id>
+  <version_modified>2023-10-16T20:22:18Z</version_modified>
   <xml_checksum>A0069B90</xml_checksum>
   <class_name>ComStockSensitivityReports</class_name>
   <display_name>ComStock_Sensitivity_Reports</display_name>
@@ -14,9 +15,9 @@
             building types, as opposed to very building-type-specific characteristics.</description>
   <modeler_description>WARNING: This measure puts in output variables with reporting frequency 'RunPeriod'.
             Make sure 'Run Simulation for Sizing Periods' is set to 'false' in 'OS:SimulationControl'.</modeler_description>
-  <arguments/>
-  <outputs/>
-  <provenances/>
+  <arguments />
+  <outputs />
+  <provenances />
   <tags>
     <tag>Reporting.QAQC</tag>
   </tags>
@@ -55,22 +56,123 @@
       <checksum>CD7F5672</checksum>
     </file>
     <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>16CEB2D0</checksum>
+    </file>
+    <file>
       <filename>README.md.erb</filename>
       <filetype>erb</filetype>
       <usage_type>readmeerb</usage_type>
-      <checksum>703C9964</checksum>
+      <checksum>19E915FD</checksum>
     </file>
     <file>
-      <filename>.gitkeep</filename>
-      <filetype>gitkeep</filetype>
-      <usage_type>doc</usage_type>
-      <checksum>00000000</checksum>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.9.0</identifier>
+        <min_compatible>2.9.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>2114388B</checksum>
+    </file>
+    <file>
+      <filename>Variable List.xlsx</filename>
+      <filetype>xlsx</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>FD301959</checksum>
+    </file>
+    <file>
+      <filename>FortCollins2016.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>25EF7C9B</checksum>
+    </file>
+    <file>
+      <filename>USA_AL_Mobile-Downtown.AP.722235_TMY3.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>B7C92952</checksum>
+    </file>
+    <file>
+      <filename>USA_KY_Bowman.Fld.724235_2012.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>63B193A5</checksum>
+    </file>
+    <file>
+      <filename>USA_MD_Baltimore-Washington.Intl.AP.724060_TMY3.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>A76C8897</checksum>
+    </file>
+    <file>
+      <filename>USA_MI_Cherry.Capital.726387_2012.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>4CCCB0C1</checksum>
+    </file>
+    <file>
+      <filename>USA_MI_Detroit.City.725375_2012.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>FEBD2B68</checksum>
+    </file>
+    <file>
+      <filename>USA_MN_Duluth.Intl.AP.727450_TMY.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>17EAF57D</checksum>
+    </file>
+    <file>
+      <filename>USA_NV_Nellis.Afb.723865_2012.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>877412BC</checksum>
+    </file>
+    <file>
+      <filename>USA_OH_Toledo.Express.725360_2012.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>32B030A2</checksum>
+    </file>
+    <file>
+      <filename>USA_TX_San.Marcos.Muni.722539_2012.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>DA20B795</checksum>
+    </file>
+    <file>
+      <filename>bldg0000003.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>5ADBE6F3</checksum>
+    </file>
+    <file>
+      <filename>bldg0000004.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>6274AD32</checksum>
     </file>
     <file>
       <filename>bldg0000025.osm</filename>
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
       <checksum>25F2C0A6</checksum>
+    </file>
+    <file>
+      <filename>bldg0000031.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>0F4FB0CF</checksum>
+    </file>
+    <file>
+      <filename>bldg0000034.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>48EBAF7F</checksum>
     </file>
     <file>
       <filename>bldg0000043.osm</filename>
@@ -97,40 +199,16 @@
       <checksum>761CC6B3</checksum>
     </file>
     <file>
-      <filename>USA_KY_Bowman.Fld.724235_2012.epw</filename>
-      <filetype>epw</filetype>
+      <filename>bldg0000090.osm</filename>
+      <filetype>osm</filetype>
       <usage_type>test</usage_type>
-      <checksum>63B193A5</checksum>
+      <checksum>2747EBA8</checksum>
     </file>
     <file>
-      <filename>USA_MI_Cherry.Capital.726387_2012.epw</filename>
-      <filetype>epw</filetype>
+      <filename>bldg0146294.osm</filename>
+      <filetype>osm</filetype>
       <usage_type>test</usage_type>
-      <checksum>4CCCB0C1</checksum>
-    </file>
-    <file>
-      <filename>USA_MI_Detroit.City.725375_2012.epw</filename>
-      <filetype>epw</filetype>
-      <usage_type>test</usage_type>
-      <checksum>FEBD2B68</checksum>
-    </file>
-    <file>
-      <filename>USA_NV_Nellis.Afb.723865_2012.epw</filename>
-      <filetype>epw</filetype>
-      <usage_type>test</usage_type>
-      <checksum>877412BC</checksum>
-    </file>
-    <file>
-      <filename>USA_TX_San.Marcos.Muni.722539_2012.epw</filename>
-      <filetype>epw</filetype>
-      <usage_type>test</usage_type>
-      <checksum>DA20B795</checksum>
-    </file>
-    <file>
-      <filename>comstock_sensitivity_reports_test.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>test</usage_type>
-      <checksum>32F34B71</checksum>
+      <checksum>55F16216</checksum>
     </file>
     <file>
       <filename>comstock-measure-test.csv</filename>
@@ -139,39 +217,58 @@
       <checksum>120CF92E</checksum>
     </file>
     <file>
-      <filename>bldg0000031.osm</filename>
+      <filename>comstock_sensitivity_reports_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>EE9495BD</checksum>
+    </file>
+    <file>
+      <filename>ground_heat_exchanger.osm</filename>
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
-      <checksum>0F4FB0CF</checksum>
+      <checksum>69E0D599</checksum>
     </file>
     <file>
-      <filename>USA_OH_Toledo.Express.725360_2012.epw</filename>
-      <filetype>epw</filetype>
+      <filename>heat_pump_boiler_1.osm</filename>
+      <filetype>osm</filetype>
       <usage_type>test</usage_type>
-      <checksum>32B030A2</checksum>
+      <checksum>A95E6942</checksum>
     </file>
     <file>
-      <version>
-        <software_program>OpenStudio</software_program>
-        <identifier>2.9.0</identifier>
-        <min_compatible>2.9.0</min_compatible>
-      </version>
-      <filename>measure.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>script</usage_type>
-      <checksum>049E661A</checksum>
+      <filename>heat_pump_boiler_2.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>C12531B6</checksum>
     </file>
     <file>
-      <filename>Variable List.xlsx</filename>
-      <filetype>xlsx</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>434205B2</checksum>
+      <filename>hp_rtu_gas_backup.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>DBBDDC98</checksum>
     </file>
     <file>
-      <filename>README.md</filename>
-      <filetype>md</filetype>
-      <usage_type>readme</usage_type>
-      <checksum>16CEB2D0</checksum>
+      <filename>hpwh002.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>65C2EFFF</checksum>
+    </file>
+    <file>
+      <filename>multispeed_hps.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>F704D7FA</checksum>
+    </file>
+    <file>
+      <filename>office_heat_pump.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>140D2BD1</checksum>
+    </file>
+    <file>
+      <filename>vrf_cold_climate.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>19BCB03C</checksum>
     </file>
   </files>
 </measure>

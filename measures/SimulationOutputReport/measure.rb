@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2020 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 require 'openstudio'
@@ -17,7 +17,7 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
   end
 
   # define the arguments that the user will input
-  def arguments()
+  def arguments(model=nil)
     args = OpenStudio::Ruleset::OSArgumentVector.new
 
     return args
@@ -27,6 +27,8 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
     buildstock_outputs = ['total_site_energy_mbtu',
                           'total_site_electricity_kwh',
                           'total_site_natural_gas_therm',
+                          'total_site_district_cooling_therm',
+                          'total_site_district_heating_therm',
                           'total_site_other_fuel_mbtu',
                           'net_site_energy_mbtu', # Incorporates PV
                           'net_site_electricity_kwh', # Incorporates PV
@@ -49,6 +51,9 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
                           'natural_gas_interior_equipment_therm',
                           'natural_gas_water_systems_therm',
                           'natural_gas_generators_therm',
+                          'district_cooling_cooling_therm',
+                          'district_heating_heating_therm',
+                          'district_heating_water_systems_therm',
                           'other_fuel_heating_mbtu',
                           'other_fuel_interior_equipment_mbtu',
                           'other_fuel_water_systems_mbtu',
@@ -91,18 +96,16 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
     sql_file = sql_file.get
     model.setSqlFile(sql_file)
 
-    # Load geometry.rb resource
-    resources_dir = File.absolute_path(File.join(File.dirname(__FILE__), '..', '..', 'lib', 'resources')) # Should have been uploaded per 'Other Library Files' in analysis spreadsheet
-    geometry_file = File.join(resources_dir, 'geometry.rb')
-    require File.join(File.dirname(geometry_file), File.basename(geometry_file, File.extname(geometry_file)))
-
     # Load buildstock_file
+    resources_dir = File.absolute_path(File.join(File.dirname(__FILE__), '..', '..', 'lib', 'resources'))
     buildstock_file = File.join(resources_dir, 'buildstock.rb')
     require File.join(File.dirname(buildstock_file), File.basename(buildstock_file, File.extname(buildstock_file)))
 
     total_site_units = 'MBtu'
     elec_site_units = 'kWh'
     gas_site_units = 'therm'
+    district_cooling_site_units = 'therm'
+    district_heating_site_units = 'therm'
     other_fuel_site_units = 'MBtu'
 
     # Get PV electricity produced
@@ -144,58 +147,83 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
     report_sim_output(runner, 'natural_gas_water_systems_therm', [sql_file.naturalGasWaterSystems], 'GJ', gas_site_units)
     report_sim_output(runner, 'natural_gas_generators_therm', [sql_file.naturalGasGenerators], 'GJ', gas_site_units)
 
-    # OTHER FUEL
-    report_sim_output(runner, 'total_site_other_fuel_mbtu', [sql_file.otherFuelTotalEndUses], 'GJ', other_fuel_site_units)
-    report_sim_output(runner, 'other_fuel_heating_mbtu', [sql_file.otherFuelHeating], 'GJ', other_fuel_site_units)
-    report_sim_output(runner, 'other_fuel_interior_equipment_mbtu', [sql_file.otherFuelInteriorEquipment], 'GJ', other_fuel_site_units)
-    report_sim_output(runner, 'other_fuel_water_systems_mbtu', [sql_file.otherFuelWaterSystems], 'GJ', other_fuel_site_units)
+    # DISTRICT COOLING
+    report_sim_output(runner, 'total_site_district_cooling_therm', [sql_file.districtCoolingTotalEndUses], 'GJ', district_cooling_site_units)
+    report_sim_output(runner, 'district_cooling_cooling_therm', [sql_file.districtCoolingCooling], 'GJ', district_cooling_site_units)
+
+    # DISTRICT HEATING
+    report_sim_output(runner, 'total_site_district_heating_therm', [sql_file.districtHeatingTotalEndUses], 'GJ', district_heating_site_units)
+    report_sim_output(runner, 'district_heating_heating_therm', [sql_file.districtHeatingHeating], 'GJ', district_heating_site_units)
+    report_sim_output(runner, 'district_heating_water_systems_therm', [sql_file.districtHeatingWaterSystems], 'GJ', district_heating_site_units)
+
+    # OTHER FUEL (Propane and FuelOil#2 fall into this category)
+    # Sum all other fuels for each end use
+    end_uses = {
+      'Total End Uses'=> [],
+      'Heating'=> [],
+      'Interior Equipment'=> [],
+      'Water Systems'=> []
+    }
+    other_fuels = ['Gasoline', 'Diesel', 'Coal', 'Fuel Oil No 1', 'Fuel Oil No 2', 'Propane', 'Other Fuel 1', 'Other Fuel 2']
+    end_uses.keys.each do |end_use|
+      other_fuels.each do |fuel|
+        # TODO replace with built-in OS queries once https://github.com/NREL/OpenStudio/issues/4705 is fixed
+        q = "SELECT Value
+          FROM TabularDataWithStrings WHERE (reportname = 'AnnualBuildingUtilityPerformanceSummary')
+          AND (ReportForString = 'Entire Facility')
+          AND (TableName = 'End Uses'  )
+          AND (ColumnName ='#{fuel}')
+          AND (RowName ='#{end_use}')
+          AND (Units = 'GJ')"
+        end_uses[end_use] << sql_file.execAndReturnFirstDouble(q)
+      end
+    end
+    report_sim_output(runner, 'total_site_other_fuel_mbtu', end_uses['Total End Uses'], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'other_fuel_heating_mbtu', end_uses['Heating'], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'other_fuel_interior_equipment_mbtu', end_uses['Interior Equipment'], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'other_fuel_water_systems_mbtu', end_uses['Water Systems'], 'GJ', other_fuel_site_units)
 
     # LOADS NOT MET
     report_sim_output(runner, 'hours_heating_setpoint_not_met', [sql_file.hoursHeatingSetpointNotMet], nil, nil)
     report_sim_output(runner, 'hours_cooling_setpoint_not_met', [sql_file.hoursCoolingSetpointNotMet], nil, nil)
 
     # HVAC CAPACITIES
-    cooling_coils = ['coil:cooling:dx:singlespeed',
-                     'coil:cooling:dx:twospeed',
-                     'coil:cooling:dx:multispeed',
-                     'coil:cooling:dx:variablespeed',
-                     'coil:cooling:dx:variablerefrigerantflow']
-    cooling_capacity_fields = ['user-specified gross rated total cooling capacity',
-                               'speed 4 user-specified total cooling capacity',
-                               'speed 2 user-specified total cooling capacity']
-    cooling_capacity_w = nil
-    cooling_coils.each do |cooling_coil|
-      cooling_capacity_query = "SELECT SUM(Value) FROM ComponentSizes WHERE lower(CompType) == '#{cooling_coil}' AND lower(Description) IN ('#{cooling_capacity_fields.join("','")}')"
-      cooling_capacity_w = sql_file.execAndReturnFirstDouble(cooling_capacity_query)
-      break if cooling_capacity_w.is_initialized && cooling_capacity_w.get > 0
-    end
-    report_sim_output(runner, 'hvac_cooling_capacity_w', [cooling_capacity_w], 'W', 'W')
+    cooling_capacity_lkup = {
+      'AirLoopHVAC:UnitarySystem': 'Design Size Nominal Cooling Capacity',
+      'Coil:Cooling:DX:SingleSpeed': 'Design Size Gross Rated Total Cooling Capacity',
+      'Coil:Cooling:DX:TwoSpeed': 'Design Size High Speed Gross Rated Total Cooling Capacity',
+      'Coil:Cooling:Water': 'Design Size Design Coil Load'
+    }
+    # 'Chiller:Electric:EIR': 'Design Size Reference Capacity' <- this would double count VAVs but include fan coil
+    # systems which are currently missing.
 
-    heating_coils = ['coil:heating:fuel',
-                     'coil:heating:dx:singlespeed',
-                     'coil:heating:dx:multispeed',
-                     'coil:heating:dx:variablespeed',
-                     'coil:heating:dx:variablerefrigerantflow',
-                     #'boiler:hotwater', # TEMPORARY: See https://github.com/NREL/OpenStudio-BuildStock/issues/57
-                     'coil:heating:electric',
-                     'zonehvac:baseboard:convective:electric',
-                     'zonehvac:baseboard:convective:water'] # TEMPORARY: See https://github.com/NREL/OpenStudio-BuildStock/issues/57
-    heating_capacity_fields = ['user-specified nominal capacity',
-                               'user-specified heating design capacity',
-                               'user-specified gross rated heating capacity',
-                               'speed 2 user-specified total cooling capacity',
-                               'speed 4 user-specified total cooling capacity',
-                               'user-specified maximum water flow rate'] # TEMPORARY: See https://github.com/NREL/OpenStudio-BuildStock/issues/57
-    heating_capacity_w = nil
-    heating_coils.each do |heating_coil|
-      heating_capacity_query = "SELECT SUM(Value) FROM ComponentSizes WHERE lower(CompType) == '#{heating_coil}' AND lower(Description) IN ('#{heating_capacity_fields.join("','")}')"
-      if heating_coil == 'zonehvac:baseboard:convective:water' # TEMPORARY: See https://github.com/NREL/OpenStudio-BuildStock/issues/57
-        heating_capacity_query = "SELECT SUM(Value*23213695.555555556) FROM ComponentSizes WHERE lower(CompType) == '#{heating_coil}' AND lower(Description) IN ('#{heating_capacity_fields.join("','")}')"
-      end
-      heating_capacity_w = sql_file.execAndReturnFirstDouble(heating_capacity_query)
-      break if heating_capacity_w.is_initialized && heating_capacity_w.get > 0
+    cooling_capacity_w = 0.0
+    cooling_capacity_lkup.each do |cooling_coil_type, capacity_field|
+      cooling_capacity_query = "SELECT SUM(Value) FROM ComponentSizes WHERE CompType LIKE '#{cooling_coil_type}' AND Description LIKE '#{capacity_field}'"
+      cooling_component_cap_w = sql_file.execAndReturnFirstDouble(cooling_capacity_query)
+      cooling_capacity_w += cooling_component_cap_w.get if cooling_component_cap_w.is_initialized
     end
-    report_sim_output(runner, 'hvac_heating_capacity_w', [heating_capacity_w], 'W', 'W')
+    runner.registerValue('hvac_cooling_capacity_w', cooling_capacity_w)
+    runner.registerInfo("Registering #{cooling_capacity_w.round(2)} for hvac_cooling_capacity_w.")
+
+    heating_capacity_lkup = {
+        'Coil:Heating:DX:SingleSpeed': 'Design Size Gross Rated Heating Capacity',
+        'AirLoopHVAC:UnitarySystem': 'Design Size Nominal Heating Capacity',
+        'Coil:Heating:Electric': 'Design Size Nominal Capacity',
+        'Coil:Heating:Fuel': 'Design Size Nominal Capacity',
+        'Coil:Heating:Water': 'Design Size Rated Capacity',
+        'ZONEHVAC:BASEBOARD:CONVECTIVE:ELECTRIC': 'Design Size Heating Design Capacity',
+    }
+    # 'Boiler:HotWater': 'Design Size Nominal Capacity' <- this would double count boiler how water systems with boxes
+    #  but would include baseboard gas boiler radiators
+    heating_capacity_w = 0.0
+    heating_capacity_lkup.each do |heating_coil_type, capacity_field|
+      heating_capacity_query = "SELECT SUM(Value) FROM ComponentSizes WHERE CompType LIKE '#{heating_coil_type}' AND Description LIKE '#{capacity_field}'"
+      heating_component_cap_w = sql_file.execAndReturnFirstDouble(heating_capacity_query)
+      heating_capacity_w += heating_component_cap_w.get if heating_component_cap_w.is_initialized
+    end
+    runner.registerValue('hvac_heating_capacity_w', heating_capacity_w)
+    runner.registerInfo("Registering #{heating_capacity_w.round(2)} for hvac_heating_capacity_w.")
 
     # WEIGHT
 
@@ -211,13 +239,19 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
     runner.registerValue('upgrade_name', upgrade_name)
     runner.registerInfo("Registering #{upgrade_name} for upgrade_name.")
 
+    # MULTI-MEASURE UPGRADES
+    measures_in_upgrade = get_multi_measure_upgrade_applicability_from_runner_past_results(runner)
+    measures_in_upgrade.each do |measure_in_upgrade|
+      runner.registerValue("apply_upgrade_#{measure_in_upgrade['name']}", measure_in_upgrade['applicable'])
+    end
+
     # UPGRADE COSTS
 
     upgrade_cost_name = 'upgrade_cost_usd'
 
     # Get upgrade cost value/multiplier pairs from the upgrade measure
     cost_pairs = []
-    for option_num in 1..10 # Sync with ApplyUpgrade measure
+    for option_num in 1..200 # Sync with ApplyUpgrade measure
       for cost_num in 1..2 # Sync with ApplyUpgrade measure
         cost_value = get_value_from_runner_past_results(runner, "option_#{option_num}_cost_#{cost_num}_value_to_apply", 'apply_upgrade', false)
         next if cost_value.nil?

@@ -1,0 +1,51 @@
+\begin{table}[h!]
+\centering
+\small
+\caption{Pump Configuration and Pressure Rise for Hydronic Loops}
+\label{tab:pumps}
+\begin{tabular}{|p{2.5cm}|p{2.5cm}|p{2.5cm}|p{2.5cm}|p{2.5cm}|}
+\hline
+\textbf{Loop Type} &
+  \textbf{Pump Configuration} &
+  \textbf{Primary Pump Head (ft w.c.)} &
+  \textbf{Secondary Pump Head (ft w.c.)} &
+  \textbf{VFD Pump?} \\ \hline
+\textbf{Hot Water Loop} &
+  \multirow{2}{*}{Primary-only} &
+  \multirow{2}{*}{60} &
+  \multirow{2}{*}{-} &
+%   \multirow{2}{*}{Variable speed when building area \textgreater{}120,000sf} \\ \cline{1-1}
+  \multirow{2}{*}{\parbox{2.5cm}{Variable speed when building area \textgreater{}120,000 ft$^2$}} \\
+\textbf{District   Heating Loop} &
+   &
+   &
+   &
+   \\ \hline
+\textbf{Water-Cooled   Chiller Loop} &
+  Constant-primary,   variable-secondary &
+  15 &
+  45 &
+  Secondary pump always variable speed \\ \hline
+\textbf{Air-Cooled   Chiller Loop} &
+  \multirow{2}{*}{Primary-only} &
+  \multirow{2}{*}{60} &
+  \multirow{2}{*}{-} &
+%   \multirow{2}{*}{Variable speed when cooling capacity \textgreater{}300   tons} \\ \cline{1-1}
+  \multirow{2}{*}{\parbox{2.5cm}{Variable speed when cooling capacity \textgreater{}300 tons}} \\
+\textbf{District   Cooling Loop} &
+   &
+   &
+   &
+   \\ \hline
+\textbf{Condenser   Water Loop} &
+  Primary-only &
+  50 &
+  - &
+  Always constant speed \\ \hline
+\textbf{GSHP Condenser   Water Loop} &
+  Primary-only &
+  60 &
+  - &
+  Always constant speed \\ \hline
+\end{tabular}
+\end{table}

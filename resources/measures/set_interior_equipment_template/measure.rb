@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2020 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # *******************************************************************************
@@ -75,18 +75,32 @@ class SetInteriorEquipmentTemplate < OpenStudio::Measure::ModelMeasure
         'DEER 2014',
         'DEER 2015',
         'DEER 2017',
+        'ComStock DEER Pre-1975',
+        'ComStock DEER 1985',
+        'ComStock DEER 1996',
+        'ComStock DEER 2003',
+        'ComStock DEER 2007',
+        'ComStock DEER 2011',
+        'ComStock DEER 2014',
+        'ComStock DEER 2015',
+        'ComStock DEER 2017',
+        'ComStock DEER 2020',
         'DOE Ref Pre-1980',
         'DOE Ref 1980-2004',
         '90.1-2004',
         '90.1-2007',
         '90.1-2010',
         '90.1-2013',
+        '90.1-2016',
+        '90.1-2019',
         'ComStock DOE Ref Pre-1980',
         'ComStock DOE Ref 1980-2004',
         'ComStock 90.1-2004',
         'ComStock 90.1-2007',
         'ComStock 90.1-2010',
-        'ComStock 90.1-2013'
+        'ComStock 90.1-2013',
+        'ComStock 90.1-2016',
+        'ComStock 90.1-2019'
     ]
 
     # Climate Zones

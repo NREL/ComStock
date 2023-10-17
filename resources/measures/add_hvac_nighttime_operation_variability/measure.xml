@@ -1,0 +1,118 @@
+<?xml version="1.0"?>
+<measure>
+  <schema_version>3.1</schema_version>
+  <name>add_hvac_nighttime_operation_variability</name>
+  <uid>d3f16ec3-96d1-4379-ba46-04c78dc04342</uid>
+  <version_id>03ff22e7-f9ce-4fb0-aa1d-2e1e40a8cef6</version_id>
+  <version_modified>2023-10-16T20:24:56Z</version_modified>
+  <xml_checksum>356BE47F</xml_checksum>
+  <class_name>AddHvacNighttimeOperationVariability</class_name>
+  <display_name>add_hvac_nighttime_operation_variability</display_name>
+  <description>Measure will set nighttime hvac operation behavior for fans and ventilation for PSZ and VAV systems. Fans can cycle  or run continuosly at night, and can do so with or without outdoor air ventilation.</description>
+  <modeler_description>Measure will modify the fan and outdoor air behavior of PSZ and VAV systems during their nighttime operations through schedule changes. Options are 1) RTUs runs continuosly through the night, both fans and ventialtion, 2) RTUs shut off at night but cycle fans when needed to maintain zone thermostat loads with ventilation or 3)  RTUs shut off at night but cycle fans when needed to maintain zone thermostat loads without ventilation. A fourth option is possible where RTUs run continuously at night but ventilation shuts off during unoccupied hours, but this is unlikely in building operation and not recommended. </modeler_description>
+  <arguments>
+    <argument>
+      <name>rtu_night_mode</name>
+      <display_name>RTU Unoccupied Fan Behavior</display_name>
+      <description>This option will determine if the RTU fans run continuously through the night, or if they cycle at night only to meet thermostat requirements.</description>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>default_nochange</default_value>
+      <choices>
+        <choice>
+          <value>night_fanon_vent</value>
+          <display_name>night_fanon_vent</display_name>
+        </choice>
+        <choice>
+          <value>night_fancycle_vent</value>
+          <display_name>night_fancycle_vent</display_name>
+        </choice>
+        <choice>
+          <value>night_fancycle_novent</value>
+          <display_name>night_fancycle_novent</display_name>
+        </choice>
+        <choice>
+          <value>default_nochange</value>
+          <display_name>default_nochange</display_name>
+        </choice>
+      </choices>
+    </argument>
+  </arguments>
+  <outputs />
+  <provenances />
+  <tags>
+    <tag>HVAC.HVAC Controls</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>LICENSE.md</filename>
+      <filetype>md</filetype>
+      <usage_type>license</usage_type>
+      <checksum>CD7F5672</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>7589005C</checksum>
+    </file>
+    <file>
+      <filename>README.md.erb</filename>
+      <filetype>erb</filetype>
+      <usage_type>readmeerb</usage_type>
+      <checksum>703C9964</checksum>
+    </file>
+    <file>
+      <filename>.gitkeep</filename>
+      <filetype>gitkeep</filetype>
+      <usage_type>doc</usage_type>
+      <checksum>00000000</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.9.1</identifier>
+        <min_compatible>2.9.1</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>2510603E</checksum>
+    </file>
+    <file>
+      <filename>add_hvac_nighttime_operation_variability_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>00F5DA20</checksum>
+    </file>
+    <file>
+      <filename>example_model.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>53D14E69</checksum>
+    </file>
+  </files>
+</measure>

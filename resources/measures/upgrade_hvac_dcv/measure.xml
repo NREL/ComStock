@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<measure>
+  <schema_version>3.1</schema_version>
+  <name>hvacdcv</name>
+  <uid>680178e8-0356-45d1-94ff-89260586f36b</uid>
+  <version_id>f1070f7a-5e48-406d-ad1f-d20b374b972f</version_id>
+  <version_modified>2023-10-16T20:24:57Z</version_modified>
+  <xml_checksum>356BE47F</xml_checksum>
+  <class_name>HVACDCV</class_name>
+  <display_name>HVAC DCV</display_name>
+  <description>Add demand control ventilation to an HVAC system.</description>
+  <modeler_description>Add demand control ventilation to variable volume HVAC systems. Requires that the design specification outdoor air objects have some part of the ventilation be specified as per person. Also requires that if zone hvac equipment is present, it takes load priority over the venilation system.</modeler_description>
+  <arguments />
+  <outputs />
+  <provenances />
+  <tags>
+    <tag>HVAC.HVAC Controls</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.4.0</identifier>
+        <min_compatible>2.4.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>DB411930</checksum>
+    </file>
+    <file>
+      <filename>hvac_dcv_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>46491DE7</checksum>
+    </file>
+  </files>
+</measure>

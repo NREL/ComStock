@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2020 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # see the URL below for information on how to write OpenStudio measures
@@ -13,16 +13,19 @@ class SimulationSettingsCheck < OpenStudio::Measure::ReportingMeasure
   def name
     return "Simulation Settings Check"
   end
+
   # human readable description
   def description
     return "Checks year, start day of week, daylight savings, leap year, and timestep inputs and outputs"
   end
+
   # human readable description of modeling approach
   def modeler_description
     return "Checks year, start day of week, daylight savings, leap year, and timestep inputs and outputs"
   end
+
   # define the arguments that the user will input
-  def arguments()
+  def arguments(model = nil)
     args = OpenStudio::Measure::OSArgumentVector.new
 
     # make an argument to toggle QAQC
@@ -146,7 +149,11 @@ class SimulationSettingsCheck < OpenStudio::Measure::ReportingMeasure
     end
 
     # Get the year from the sql file directly
-    yr_query = 'SELECT year FROM time WHERE TimeIndex == 1'
+    if model.version < OpenStudio::VersionString.new('3.0.0')
+      yr_query = 'SELECT year FROM time WHERE TimeIndex == 1'
+    else
+      yr_query = 'SELECT year FROM time LIMIT 1'
+    end
     sql_yr = sql.execAndReturnFirstInt(yr_query)
     if sql_yr.empty?
       runner.registerError('Could not determine simulation year from sql file times, cannot perform checks.')

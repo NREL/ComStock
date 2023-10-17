@@ -1,0 +1,373 @@
+<?xml version="1.0"?>
+<measure>
+  <schema_version>3.1</schema_version>
+  <name>set_nist_infiltration_correlations</name>
+  <uid>b74a4a45-8553-4e94-860f-35b217a04879</uid>
+  <version_id>7a0e3477-d8f0-43f5-bbd1-3d4e16535ae8</version_id>
+  <version_modified>2023-10-16T20:24:54Z</version_modified>
+  <xml_checksum>A54BB41C</xml_checksum>
+  <class_name>SetNISTInfiltrationCorrelations</class_name>
+  <display_name>Set NIST Infiltration Correlations</display_name>
+  <description>This measure incorporates infiltration that varies with weather and HVAC operation, and takes into account building geometry (height, above-ground exterior surface area, and volume). It is based on work published by Ng et al. (2018) &lt;a href='https://doi.org/10.1016/j.buildenv.2017.10.029'&gt;'Weather correlations to calculate infiltration rates for U.S. commercial building energy models'&lt;/a&gt; and Ng et al. (2021) &lt;a href='https://doi.org/10.1016/j.buildenv.2021.107783'&gt;'Evaluating potential benefits of air barriers in commercial buildings using NIST infiltration correlations in EnergyPlus'&lt;/a&gt;. This method of calculating infiltration was developed using eleven of the DOE commercial prototype building models (&lt;a href='https://www.energycodes.gov/development/commercial/prototype_models'&gt;Goel et al. 2014&lt;/a&gt;) and TMY3 weather files for eight climate zones (CZ). Guidance on implementing the infiltration correlations are explained in the NIST technical report &lt;a href='https://doi.org/10.6028/NIST.TN.2221'&gt;'Implementing NIST Infiltration Correlations'&lt;/a&gt;. Ng et al. (2018) shows that when analyzing the benefits of building envelope airtightening, greater HVAC energy savings were predicted using the infiltration inputs included in this Measure compared with using the default inputs that are included in the prototype building models. Brian Polidoro (NIST) first developed this Measure in 2015 and updated it in 2018 and 2019. Matthew Dahlhausen (NREL) updated the 2019 Measure and published this current version in 2023. To provide feedback on the NIST infiltration correlations, please email infiltration@list.nist.gov or lisa.ng@nist.gov. For measure implementation questions or issues, contact matthew.dahlhausen@nrel.gov.</description>
+  <modeler_description>This measure will remove any existing infiltration objects (OS:SpaceInfiltration:DesignFlowRate and OS:SpaceInfiltration:EffectiveLeakageArea). Every zone will then get two OS:SpaceInfiltration:DesignFlowRate objects that add infiltration using the 'Flow per Exterior Surface Area' input option, one infiltration object when the HVAC system is on and one object when the HVAC system is off. The method assumes that HVAC operation is set by a schedule, though it may not reflect actual simulation/operation when fan operation may depend on internal loads and temperature setpoints. By default, interior zones will receive no infiltration. The user may enter a design building envelope airtightness at a specific design pressure, and whether the design value represents a 4-sided, 5-sided, or 6-sided normalization.  By default, the measure assumes an airtightness design value of 13.8 (m^3/h-m^2) at 75 Pa. The measure assumes that infiltration is evenly distributed across the entire building envelope, including the roof. The user may select the HVAC system operating schedule in the model, or infer it based on the availability schedule of the air loop that serves the largest amount of floor area. The measure will make a copy of the HVAC operating schedule, 'Infiltration HVAC On Schedule', which is used with the HVAC on infiltration correlations.  The measure will also make an 'Infiltration HVAC Off Schedule' with inverse operation, used with the HVAC off infiltration correlations. OS:SpaceInfiltration:DesignFlowRate object coefficients (A, B, C, and D) come from Ng et al. (2018). The user may select the Building Type and Climate Zone, or the measure will infer them from the model.</modeler_description>
+  <arguments>
+    <argument>
+      <name>airtightness_value</name>
+      <display_name>Airtightness design value (m^3/h-m^2)</display_name>
+      <description>The airtightness design value from a building pressurization test. Use 5.0 (m^3/h-m^2) as a default for buildings with air barriers. Convert (cfm/ft^2) to (m^3/h-m^2) by multiplying by 18.288 (m-min/ft-hr). (0.3048 m/ft)*(60 min/hr) = 18.288 (m-min/ft-hr).</description>
+      <type>Double</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>13.8</default_value>
+    </argument>
+    <argument>
+      <name>airtightness_pressure</name>
+      <display_name>Airtightness design pressure (Pa)</display_name>
+      <description>The corresponding pressure for the airtightness design value, typically 75 Pa for commercial buildings and 50 Pa for residential buildings.</description>
+      <type>Double</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>75</default_value>
+    </argument>
+    <argument>
+      <name>airtightness_area</name>
+      <display_name>Airtightness exterior surface area scope</display_name>
+      <description>Airtightness measurements are weighted by exterior surface area. 4-sided values divide infiltration by exterior wall area.  5-sided values additionally include roof area. 6-sided values additionally include floor and ground area.</description>
+      <type>Choice</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>5-sided</default_value>
+      <choices>
+        <choice>
+          <value>4-sided</value>
+          <display_name>4-sided</display_name>
+        </choice>
+        <choice>
+          <value>5-sided</value>
+          <display_name>5-sided</display_name>
+        </choice>
+        <choice>
+          <value>6-sided</value>
+          <display_name>6-sided</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>air_barrier</name>
+      <display_name>Does the building have an air barrier?</display_name>
+      <description>Buildings with air barriers use a different set of coefficients.</description>
+      <type>Boolean</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>hvac_schedule</name>
+      <display_name>HVAC Operating Schedule</display_name>
+      <description>Choose the HVAC Operating Schedule for the building. The schedule must be a Schedule Constant or Schedule Ruleset object. Lookup From Model will use the operating schedule from the largest airloop by floor area served. If the largest airloop serves less than 5% of the building, the measure will attempt to use the Building Hours of Operation schedule instead.</description>
+      <type>Choice</type>
+      <required>false</required>
+      <model_dependent>true</model_dependent>
+      <default_value>Lookup From Model</default_value>
+      <choices>
+        <choice>
+          <value>Lookup From Model</value>
+          <display_name>Lookup From Model</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>climate_zone</name>
+      <display_name>Climate Zone</display_name>
+      <description>Specify the ASHRAE climate zone. CEC climate zones are not supported.</description>
+      <type>Choice</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>Lookup From Model</default_value>
+      <choices>
+        <choice>
+          <value>1A</value>
+          <display_name>1A</display_name>
+        </choice>
+        <choice>
+          <value>1B</value>
+          <display_name>1B</display_name>
+        </choice>
+        <choice>
+          <value>2A</value>
+          <display_name>2A</display_name>
+        </choice>
+        <choice>
+          <value>2B</value>
+          <display_name>2B</display_name>
+        </choice>
+        <choice>
+          <value>3A</value>
+          <display_name>3A</display_name>
+        </choice>
+        <choice>
+          <value>3B</value>
+          <display_name>3B</display_name>
+        </choice>
+        <choice>
+          <value>3C</value>
+          <display_name>3C</display_name>
+        </choice>
+        <choice>
+          <value>4A</value>
+          <display_name>4A</display_name>
+        </choice>
+        <choice>
+          <value>4B</value>
+          <display_name>4B</display_name>
+        </choice>
+        <choice>
+          <value>4C</value>
+          <display_name>4C</display_name>
+        </choice>
+        <choice>
+          <value>5A</value>
+          <display_name>5A</display_name>
+        </choice>
+        <choice>
+          <value>5B</value>
+          <display_name>5B</display_name>
+        </choice>
+        <choice>
+          <value>5C</value>
+          <display_name>5C</display_name>
+        </choice>
+        <choice>
+          <value>6A</value>
+          <display_name>6A</display_name>
+        </choice>
+        <choice>
+          <value>6B</value>
+          <display_name>6B</display_name>
+        </choice>
+        <choice>
+          <value>7A</value>
+          <display_name>7A</display_name>
+        </choice>
+        <choice>
+          <value>8A</value>
+          <display_name>8A</display_name>
+        </choice>
+        <choice>
+          <value>Lookup From Model</value>
+          <display_name>Lookup From Model</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>building_type</name>
+      <display_name>Building Type</display_name>
+      <description>If the building type is not available, pick the one with the most similar geometry and exhaust fan flow rates.</description>
+      <type>Choice</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>Lookup From Model</default_value>
+      <choices>
+        <choice>
+          <value>SecondarySchool</value>
+          <display_name>SecondarySchool</display_name>
+        </choice>
+        <choice>
+          <value>PrimarySchool</value>
+          <display_name>PrimarySchool</display_name>
+        </choice>
+        <choice>
+          <value>SmallOffice</value>
+          <display_name>SmallOffice</display_name>
+        </choice>
+        <choice>
+          <value>MediumOffice</value>
+          <display_name>MediumOffice</display_name>
+        </choice>
+        <choice>
+          <value>SmallHotel</value>
+          <display_name>SmallHotel</display_name>
+        </choice>
+        <choice>
+          <value>LargeHotel</value>
+          <display_name>LargeHotel</display_name>
+        </choice>
+        <choice>
+          <value>RetailStandalone</value>
+          <display_name>RetailStandalone</display_name>
+        </choice>
+        <choice>
+          <value>RetailStripmall</value>
+          <display_name>RetailStripmall</display_name>
+        </choice>
+        <choice>
+          <value>Hospital</value>
+          <display_name>Hospital</display_name>
+        </choice>
+        <choice>
+          <value>MidriseApartment</value>
+          <display_name>MidriseApartment</display_name>
+        </choice>
+        <choice>
+          <value>HighriseApartment</value>
+          <display_name>HighriseApartment</display_name>
+        </choice>
+        <choice>
+          <value>Lookup From Model</value>
+          <display_name>Lookup From Model</display_name>
+        </choice>
+      </choices>
+    </argument>
+  </arguments>
+  <outputs />
+  <provenances />
+  <tags>
+    <tag>Envelope.Infiltration</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Model Articulation</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>LICENSE.md</filename>
+      <filetype>md</filetype>
+      <usage_type>license</usage_type>
+      <checksum>26A358DA</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>971CF238</checksum>
+    </file>
+    <file>
+      <filename>README.md.erb</filename>
+      <filetype>erb</filetype>
+      <usage_type>readmeerb</usage_type>
+      <checksum>F1C26127</checksum>
+    </file>
+    <file>
+      <filename>Data-NISTInfiltrationCorrelations.xlsx</filename>
+      <filetype>xlsx</filetype>
+      <usage_type>doc</usage_type>
+      <checksum>417502C7</checksum>
+    </file>
+    <file>
+      <filename>NIST.TN.2221.pdf</filename>
+      <filetype>pdf</filetype>
+      <usage_type>doc</usage_type>
+      <checksum>0B901E1A</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>3.4.0</identifier>
+        <min_compatible>3.4.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>E90A6F99</checksum>
+    </file>
+    <file>
+      <filename>Data-NISTInfiltrationCorrelations.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>FC1FA7E1</checksum>
+    </file>
+    <file>
+      <filename>bldg0000003.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>5ADBE6F3</checksum>
+    </file>
+    <file>
+      <filename>bldg0000004.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>6274AD32</checksum>
+    </file>
+    <file>
+      <filename>bldg0000005.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>2174B2C9</checksum>
+    </file>
+    <file>
+      <filename>bldg0000025.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>25F2C0A6</checksum>
+    </file>
+    <file>
+      <filename>bldg0000031.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>0F4FB0CF</checksum>
+    </file>
+    <file>
+      <filename>bldg0000043.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>C7374FBD</checksum>
+    </file>
+    <file>
+      <filename>bldg0000045.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>C6912F55</checksum>
+    </file>
+    <file>
+      <filename>bldg0000053.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>B160EBF4</checksum>
+    </file>
+    <file>
+      <filename>bldg0000082.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>761CC6B3</checksum>
+    </file>
+    <file>
+      <filename>nist_infiltration_correlations_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>ED73158C</checksum>
+    </file>
+  </files>
+</measure>

@@ -1,0 +1,27 @@
+\begin{table}
+\small
+\caption[Effective Useful Life of Major Commercial Building Systems]{Effective Useful Life of Major Commercial Building Systems}
+\label{tab:effective_useful_life}
+\centering
+\begin{tabular}{|p{3cm}|p{1cm}|p{11cm}|}
+\hline
+\textbf{Major Building System}                       & \textbf{EUL (Years}) & \textbf{Notes} \\
+\hline
+Envelope---Wall Insulation                  & 200         & This value was based on engineering judgment. DEER EULs are capped at 20 years, per CPUC policy. NEMS does not appear to model wall turnover separate from whole-building replacement.\\
+\hline
+Envelope---Roof Insulation                  & 200         & This value was based on engineering judgment. DEER EULs are capped at 20 years, per CPUC policy. NEMS does not appear to model roof turnover separate from whole-building replacement.\\
+\hline
+Envelope---Windows                          & 70          & Based on a reliability analysis of windows from the 2014 Commercial Building Stock Assessment from the Pacific Northwest. DEER uses an EUL of 20 years for window replacement, as the DEER EULs are capped at 20 years, per CPUC policy.\\
+\hline
+Exterior Lighting                           & 15          & This closely matches the highest EUL in DEER for outdoor lighting (16 years). NEMS does not break out exterior lighting, but all NEMS commercial lighting technology types have a 10-year EUL.\\
+\hline
+Interior Lighting                           & 10          & This is in line with the EULs in DEER for interior lighting, and matches the 10-year EUL for all commercial lighting technologies in NEMS.\\
+\hline
+HVAC                                        & 20          & The highest EUL in DEER for HVAC is 20 years. For rooftop air conditioners, which serve by far the largest portion of the building stock, NEMS uses a 21-year EUL. NEMS HVAC EULs range from 9.5 years for window AC units up to 30 years for some boilers. \citet{ashrae_reliability_db} includes 33 packaged DX rooftop units with a mean lifetime of 21 years, and appears to be the source of some NEMS HVAC lifetimes.\\
+\hline
+Service Water Heating (SWH)                 & 15          & The highest SWH EUL in DEER is 20 years for a tankless water heater. Most tank-based SWH equipment in DEER has an EUL of 15 years or less. NEMS non-solar SWH equipment EULs range from 10 to 15 years. \citet{ashrae_reliability_db} includes 5 gas-fired water heaters with a mean lifetime of 15 years, and 36 electric water heaters with a mean lifetime of 10 years.\\
+\hline
+Interior Equipment (Plug and Process Loads) & 15          & This value was based on engineering judgment and is meant to represent an average over all types of plug and process loads. If plug and process loads are addressed in future iterations, splitting the plug and process loads into information technology (IT) equipment and other equipment will be investigated, as IT equipment typically has a higher turnover rate than other process loads, such as hospital equipment or commercial kitchen equipment. NEMS includes commercial kitchen equipment with an EUL of 12 years, commercial ice machines with an EUL of 8 years, commercial vending machines with an EUL of 13.5 years, and commercial refrigeration equipment with an EUL of 10 years. \\
+\hline
+\end{tabular}
+\end{table}
