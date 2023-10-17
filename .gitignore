@@ -13,3 +13,14 @@ server.pid
 temp_data
 *~
 *_cluster.json
+*/*/tests/output
+.custom_gems
+.aws_docker_image
+weather
+__pycache__/
+*.simg
+baseline_test_output/
+lib/
+/sampling/output-buildstocks
+/sampling/truth_data
+*.pyc
