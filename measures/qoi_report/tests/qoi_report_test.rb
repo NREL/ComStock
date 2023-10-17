@@ -41,8 +41,10 @@ require 'minitest/autorun'
 require_relative '../measure.rb'
 require 'fileutils'
 require 'openstudio-standards'
+require "minitest/reporters"
 
-class QOIReportTest < MiniTest::Test
+Minitest::Reporters.use!
+class QOIReportTest < Minitest::Test
   def run_dir(test_name)
     # always generate test output in specially named 'output' directory so result files are not made part of the measure
     return "#{File.dirname(__FILE__)}/output/#{test_name}"
