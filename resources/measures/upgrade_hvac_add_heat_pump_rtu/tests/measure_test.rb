@@ -42,6 +42,8 @@ require 'openstudio/measure/ShowRunnerOutput'
 require 'fileutils'
 require 'minitest/autorun'
 require_relative '../measure.rb'
+require_relative '../../../../test/helpers/minitest_helper'
+
 
 class AddHeatPumpRtuTest < Minitest::Test
 
@@ -187,7 +189,7 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   def test_361_Small_Office_PSZ_Gas
-  
+
 	# this makes sure measure works for applicable model
     osm_name = '361_Small_Office_PSZ_Gas_3a.osm'
     epw_name = 'CO_FortCollins_16.epw'
@@ -202,7 +204,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     model = load_model(osm_path)
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure::OSArgumentMap.new
-	
+
 	# set arguments
 	backup_ht_fuel_scheme = arguments[0].clone
     assert(backup_ht_fuel_scheme.setValue('match_original_primary_heating_fuel'))
@@ -212,7 +214,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert(performance_oversizing_factor.setValue(0))
     argument_map['performance_oversizing_factor'] = performance_oversizing_factor
 	# how to size heating
-	htg_sizing_option = arguments[2].clone	
+	htg_sizing_option = arguments[2].clone
     assert(htg_sizing_option.setValue('0F'))
     argument_map['htg_sizing_option'] = htg_sizing_option
 	# cooling oversizing estimate
@@ -243,7 +245,7 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
    def test_361_warehouse_pvav_na
-   
+
    # this makes sure measure registers an na for non applicable model
     osm_name = '361_Warehouse_PVAV_2a.osm'
     epw_name = 'CO_FortCollins_16.epw'
@@ -258,7 +260,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     model = load_model(osm_path)
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure::OSArgumentMap.new
-	
+
 	# set arguments
 	backup_ht_fuel_scheme = arguments[0].clone
     assert(backup_ht_fuel_scheme.setValue('match_original_primary_heating_fuel'))
@@ -268,7 +270,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert(performance_oversizing_factor.setValue(0))
     argument_map['performance_oversizing_factor'] = performance_oversizing_factor
 	# how to size heating
-	htg_sizing_option = arguments[2].clone	
+	htg_sizing_option = arguments[2].clone
     assert(htg_sizing_option.setValue('0F'))
     argument_map['htg_sizing_option'] = htg_sizing_option
 	# cooling oversizing estimate
@@ -295,9 +297,9 @@ class AddHeatPumpRtuTest < Minitest::Test
     # Apply the measure to the model and optionally run the model
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
     assert_equal('NA', result.value.valueName)
-   
+
    end
-  
+
 
   # def test_r_value_cz_5a
   #   osm_name = 'SecondarySchool_Pre1980_5A.osm'
