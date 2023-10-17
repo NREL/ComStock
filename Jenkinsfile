@@ -72,8 +72,8 @@ def buildNumber = env.BUILD_NUMBER as int
           }
           finally {
           try {
-            archiveArtifacts artifacts: 'test/reports/', fingerprint: true
-            junit 'test/reports/**/*.xml'
+            archiveArtifacts artifacts: 'test/report/', fingerprint: true
+            junit 'test/report/*.xml'
           }
             catch (Exception e) {
             buildResult = 'FAILURE'
