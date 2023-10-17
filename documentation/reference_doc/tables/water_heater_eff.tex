@@ -1,0 +1,41 @@
+\begin{table}
+\centering
+\scriptsize
+\caption[Water Heater Efficiency]{Water Heating Efficiency by HVAC Template, Heater Capacity, and Fuel Type}
+\label{tab:water_heater_eff}
+\begin{tabular}{|p{0.5in}|p{0.5in}|p{0.3in}|p{0.3in}|p{0.3in}|p{0.3in}|p{0.3in}|p{0.3in}|p{0.3in}|p{0.3in}|p{0.3in}|p{0.3in}|p{1in}|}
+\hline
+\textbf{Template} &
+  \textbf{Fuel Type} &
+  \textbf{Minimum Capacity (Btu/hr)} &
+  \textbf{Maximum Capacity (Btu/hr)} &
+  \textbf{Energy Factor Base (\%)} &
+  \textbf{Energy Factor Volume Derate (\%/gal)} &
+  \textbf{Standby Loss Base (Btu/hr)} &
+  \textbf{Standby Loss Capacity Allowance} &
+  \textbf{Standby Loss Volume Allowance (Btu/hr*gal)} &
+  \textbf{Hourly Loss Base (\%)} &
+  \textbf{Hourly Loss Volume Allowance (\%/gal)} &
+  \textbf{Thermal Efficiency (\%)} &
+  \textbf{Notes} \\ \hline
+\multirow{3}{*}{\parbox{0.5in}{\textbf{Pre-1980 Through 1980--2004}}} &
+Electricity & 0 & 40945.99 & 0.93 & 0.00132 & & & & & & & \multirow{3}{*}{From DOE Reference Buildings} \\ \cline{2-12} &
+Electricity & 40946 & No max & & & 20 & & 35 & & & & \\ \cline{2-12} &
+Natural gas & 0 & No max & & & & & & & & 0.78 & \\ \hline
+\multirow{4}{*}{\parbox{0.5in}{\textbf{90.1-2004 Through 2010}}} &
+Electricity & 0 & 40945.99 & 0.93 & 0.00132 & & & & & & & \multirow{4}{*}{From 90.1 Table 7.8} \\ \cline{2-12} &
+Electricity & 40946 & No max & & & 20 & & 35 & & & & \\ \cline{2-12} &
+Natural gas & 0 & 74999.99 & 0.62 & 0.0019 & & & & & & & \\ \cline{2-12} &
+Natural gas & 75000 & No max & & & & 800 & 110 & & & 0.8 & \\ \hline
+\multirow{4}{*}{\textbf{90.1-2013}} &
+Electricity & 0 & 40945.99 & 0.97 & 0.00132 & & & & & & & \multirow{4}{*}{From 90.1-2013 Table 7.8} \\ \cline{2-12} &
+Electricity & 40946 & No max & & & & & & 0.3 & 27 & & \\ \cline{2-12} &
+Natural gas & 0 & 74999.99 & 0.67 & 0.0019 & & & & & & & \\ \cline{2-12} &
+Natural gas & 75000 & No max & & & & 800 & 110 & & & 0.8 & \\ \hline
+\multirow{4}{*}{\parbox{0.5in}{\textbf{90.1-2016 Through 2019}}} &
+Electricity & 0 & 40945.99 & 0.96 & 0.0003 & & & & & & & From 90.1 Table F-2, Rated Storage Volume \textless{}= 55 gal \\ \cline{2-13} &
+Electricity & 40946 & No max & & & & & & 0.3 & 27 & & \\ \cline{2-13} &
+Natural gas & 0 & 74999.99 & 0.675 & 0.0015 & & & & & & & From 90.1 Table F-2, Rated Storage Volume \textless{}= 55 gal \\ \cline{2-13} &
+Natural gas & 75000 & No max & & & & 800 & 110 & & & 0.8 & \\ \hline
+\end{tabular}
+\end{table}

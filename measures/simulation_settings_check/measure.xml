@@ -1,9 +1,10 @@
+<?xml version="1.0"?>
 <measure>
-  <schema_version>3.0</schema_version>
+  <schema_version>3.1</schema_version>
   <name>simulation_settings_check</name>
   <uid>a99c4877-cc7e-44a7-bf37-90bc367974d9</uid>
-  <version_id>7f86ed40-1e1b-4fbf-a1e4-2c0ae9fb1313</version_id>
-  <version_modified>20181122T070011Z</version_modified>
+  <version_id>e9931409-2dd6-45f4-9ccd-b7d395b8a6fd</version_id>
+  <version_modified>2023-10-17T11:28:50Z</version_modified>
   <xml_checksum>DBF01422</xml_checksum>
   <class_name>SimulationSettingsCheck</class_name>
   <display_name>Simulation Settings Check</display_name>
@@ -30,8 +31,8 @@
       </choices>
     </argument>
   </arguments>
-  <outputs/>
-  <provenances/>
+  <outputs />
+  <provenances />
   <tags>
     <tag>Reporting.QAQC</tag>
   </tags>
@@ -124,36 +125,6 @@
   </attributes>
   <files>
     <file>
-      <filename>USA_CO_Golden-NREL.724666_TMY3.epw</filename>
-      <filetype>epw</filetype>
-      <usage_type>test</usage_type>
-      <checksum>BDF687C1</checksum>
-    </file>
-    <file>
-      <filename>MediumOffice.osm</filename>
-      <filetype>osm</filetype>
-      <usage_type>test</usage_type>
-      <checksum>9591050C</checksum>
-    </file>
-    <file>
-      <filename>LargeHotel.osm</filename>
-      <filetype>osm</filetype>
-      <usage_type>test</usage_type>
-      <checksum>E2729241</checksum>
-    </file>
-    <file>
-      <filename>report.html.erb</filename>
-      <filetype>erb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>4BE58FB3</checksum>
-    </file>
-    <file>
-      <filename>measure_test.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>test</usage_type>
-      <checksum>4F1C5840</checksum>
-    </file>
-    <file>
       <version>
         <software_program>OpenStudio</software_program>
         <identifier>2.4.0</identifier>
@@ -162,7 +133,37 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>0598939A</checksum>
+      <checksum>212DA46F</checksum>
+    </file>
+    <file>
+      <filename>report.html.erb</filename>
+      <filetype>erb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>4BE58FB3</checksum>
+    </file>
+    <file>
+      <filename>LargeHotel.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>E2729241</checksum>
+    </file>
+    <file>
+      <filename>MediumOffice.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>9591050C</checksum>
+    </file>
+    <file>
+      <filename>USA_CO_Golden-NREL.724666_TMY3.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>BDF687C1</checksum>
+    </file>
+    <file>
+      <filename>measure_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>D9202DE1</checksum>
     </file>
   </files>
 </measure>

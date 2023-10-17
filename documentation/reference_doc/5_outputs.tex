@@ -1,0 +1,68 @@
+\chapter{ComStock Outputs}
+ComStock creates a wide array of data that can be analyzed and aggregated to draw conclusions. While it is common to look at how results vary by building type and climate zone, ComStock provides a wide range of outputs not traditionally provided in large-scale analyses, with the hope of providing maximum utility.
+
+Sections \ref{rawsimulationresults} and \ref{dataviewer} describe how to access ComStock outputs. Additionally, the sample building energy models are available at \url{https://data.openei.org/} in the nrel-pds-building-stock data lake. See the README.md file for details.
+
+\section{Energy Consumption by Fuel and End Use}
+ComStock provides energy consumption by fuel and end use at both an annual and time-series (typically 15-minute time steps for one year) resolution. Not all combinations of fuels and end uses are found in ComStock. The definitions below describe the fuels and end uses in detail.
+
+ComStock provides modeled energy consumption for the following \textbf{fuels}:
+
+\begin{itemize}
+  \item \textbf{Electricity}: This represents the electricity that is delivered to the building through the power grid and consumed on-site. How this electricity is generated depends on the generation mix found on the power grid in the region serving the building. This does not include electricity that is generated through a backup generator.
+  \item \textbf{Natural Gas}: This represents the natural gas that is delivered to the building through the natural gas pipeline system and consumed on-site.
+  \item \textbf{Propane}: This represents the propane that is delivered to the building in tanks and consumed on-site.
+  \item \textbf{Fuel Oil}: This represents the liquid fuel oil that is delivered to the building, stored in tanks, and consumed on-site.
+  \item \textbf{Other Fuel}: In some ComStock outputs, propane and fuel oil are combined and reported together as ``other fuel'' due to reporting limitations in the simulation engine. Where this is the case, propane and fuel oil are not reported separately to avoid double-counting.
+  \item \textbf{District Heating}: This represents the hot water or steam that is delivered to the building through a district heating piping system and consumed on-site. The quantity of energy consumed represents only the energy extracted from the district heating system by the building; it does not represent the consumption of electricity or natural gas at the district heating plant required to provide heat to the building. In order to capture the energy consumption of the district heating plant, assumptions about distribution heat losses, pumping power, and district heating plant equipment efficiency and controls may be made.
+  \item \textbf{District Cooling}: This represents the chilled water that is delivered to the building through a district cooling piping system and consumed on-site. The quantity of energy consumed represents only the energy extracted from the district cooling system by the building; it does not represent the consumption of electricity or natural gas at the district cooling plant required to provide chilled water to the building. In order to capture the energy consumption of the district cooling plant, assumptions about distribution heat gains, pumping power, and district cooling plant equipment efficiency and controls may be made.
+\end{itemize}
+
+ComStock provides modeled energy consumption for the following \textbf{end uses} for each applicable fuel:
+
+\begin{itemize}
+\item \textbf{Cooling}: This includes all energy consumed by primary cooling equipment such as chillers, direct expansion air conditioners (includes condenser fan energy), and direct expansion heat pumps in cooling mode (includes condenser fan energy). This also includes parasitic energy consumption of the equipment, such as pan heaters, defrost energy, and any energy needed to overcome modeled pipe losses.
+\item \textbf{Heating}: This represents all energy consumed by primary heating equipment such as boilers, furnaces, natural gas heating coils, electric resistance strip heating coils, and direct expansion heat pumps in heating mode (includes evaporator fan energy). This also includes parasitic energy consumption of the equipment, such as pilot lights, standby losses, defrost energy, and any energy needed to overcome modeled pipe losses.
+\item \textbf{Fans}: This includes all energy consumed by supply fans, return fans, exhaust fans, and kitchen hoods in the building. It excludes the condenser fan energy from direct expansion coils, which is captured in cooling and heating, as described above.
+\item \textbf{Pumps}: This includes all energy consumed by pumps for the purpose of moving hot water for heating and service water heating, chilled water for cooling, and condenser water for heat rejection.
+\item \textbf{Heat Recovery}: This includes the energy used to turn heat or enthalpy wheels, plus the increased fan energy associated with the increased pressure rise caused by the heat recovery wheels.
+\item \textbf{Heat Rejection}: This includes the energy used to run cooling towers and fluid coolers to reject heat from the condenser water loop to the air. As previously noted, condenser fans on direct expansion cooling and heating coils are included in heating and cooling.
+\item \textbf{Humidification}: This includes all energy used to purposely increase humidity in the building. Most buildings are assumed not to use humidification.
+\item \textbf{Water Systems}: This includes all energy consumed by the primary service hot water supply equipment, such as boilers and water heaters. This also includes parasitic energy consumption of the equipment, such as pilot lights, standby losses, and any energy needed to overcome modeled pipe losses.
+\item \textbf{Refrigeration}: This includes all energy used by large refrigeration cases and walk-ins such as those commonly found in grocery stores and large commercial kitchens. Plug-in refrigerators, such as those commonly found in the checkout areas of retail stores, are included in interior equipment.
+\item \textbf{Interior Lighting}: This includes all energy used to light the interior of the building, including general lighting, task lighting, accent lighting, and exit lighting.
+\item \textbf{Exterior Lighting}: This includes all energy used to light the exterior of the building and the surrounding area, including parking lot lighting, entryway illumination, and wall washing.
+\item \textbf{Interior Equipment}: This includes all energy used in the building that was not included in one of the other categories. This covers miscellaneous electric loads such as computers and monitors, large equipment such as elevators, and special-purpose equipment such as data center and IT-closet servers. This is a large and coarse bin, largely because the variety of energy-consuming devices found in buildings is large and little comprehensive data are available.
+\end{itemize}
+
+\begin{figure}
+    \centering
+    \includegraphics
+    [width=\textwidth]{figures/Segments_typology.png}
+    \caption[Example of ComStock Results]{Example ComStock Results}
+    \label{fig:segments_typology}
+\end{figure}
+
+\section{Building Characteristics}
+In addition to energy consumption data, ComStock outputs include a variety of building input characteristics. Most of these are either direct or indirect inputs to the building model generation workflow. Units for these characteristics are described in the files that accompany the ComStock data sets. Names and descriptions for these characteristics are included in Table \ref{tab:building_input_characteristics}.
+
+\input{tables/building_input_characteristics}
+\pagebreak
+\section{Building Summary Statistics}
+In addition to the building input characteristics, ComStock outputs include a variety of summary statistic information about the building.  These statistics captures building characteristics that result from the complex rules that are applied to HVAC systems after sizing routines and are therefore not easy to discern from the building input characteristics. Units for these outputs are described in the files that accompany the ComStock data sets. Names and descriptions for these summary statistics are included in Table \ref{tab:building_summary_stats}
+
+\section{Greenhouse Gas Emissions Reporting}
+ComStock calculates the greenhouse gas emissions from the building stock and savings from measures using both historical and projected emissions data.
+
+\subsection{Electricity Emissions}
+\subsubsection{eGRID Historical Emissions}
+Historical emissions use the CO\textsubscript{2}-equivalent total output emission rate from EPA's Emissions and Generation Resource Integrated Database (eGRID)\citep{egrid2020}. ComStock results include the historical emissions for 2018, 2019, 2020, and 2021 using eGRID U.S. state and eGRID subregion emissions factors. eGRID regions are similar to Cambium grid regions but not identical. Notably, eGrid separates out New York into upstate, New York City, and Long Island. Cambium uses a whole-state average, and historical emissions use the New York state average instead of the grid region for New York buildings. Historical eGrid emissions rates are an \textit{annual} average multiplied by the total annual electricity use.
+
+\subsubsection{Cambium Projected Emissions}
+Projected emissions use data from NREL's Cambium 2022 data set \citep{cambium2022}. Projected emissions consider both the average emissions rate (AER) and the long-run marginal emission rate (LRMER).  LRMER, described in \cite{GAGNON2022103915}, is an estimate of the rate of emissions that would be either induced or avoided by a long-term (i.e., more than several years) change in electrical demand.  LRMER data is levelized over 15 and 30 years\citep{cambium2022}. ComStock results including End Use Savings Shapes round 1 results and earlier projects used emissions factors from the Cambium 2021 data \citep{cambium2021},\citep{lrmer_data2022}.
+
+\subsection{On Site Fossil Fuel Emissions}
+Natural gas, propane, and fuel oil emissions use the emission factors in \textit{Table 5.1.2(1) National Average Emission Factors for Household Fuels} defined in \textit{ANSI/RESNET/ICCC 301 Standard for the Calculation and Labeling of the Energy Performance of Dwelling and Sleeping Units using an Energy Rating Index}. Natural gas emissions include both combustion and pre-combustion emissions (e.g., methane leakage for natural gas).
+
+\subsection{District Energy Emissions}
+ComStock currently does not model emissions from district energy systems, as there is considerable variation by location and type of district system.

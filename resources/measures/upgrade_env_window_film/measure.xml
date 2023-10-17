@@ -1,0 +1,73 @@
+<?xml version="1.0"?>
+<measure>
+  <schema_version>3.1</schema_version>
+  <name>env_window_film</name>
+  <uid>7fd79905-cfe7-4e22-b4c0-11b5da8cc5cc</uid>
+  <version_id>0fdd5dd7-5e4a-46fb-a5df-1b062caf0f0d</version_id>
+  <version_modified>2023-10-16T20:24:56Z</version_modified>
+  <xml_checksum>1D437E7C</xml_checksum>
+  <class_name>EnvWindowFilm</class_name>
+  <display_name>env_window_film</display_name>
+  <description>Adds window film to ComStock's existing baseline windows. Applicability is coded inside of the measure for selecting appropriate windows for an window film upgrade.</description>
+  <modeler_description>First gets all building detailed fenestration surfaces. Loops over all detailed fenestration surfaces and checks to see if the surface type is a window. If the surface type is a window then it gets the corresponding construction objects. A hard-coded map is used to update the window performances (U-factor, SHGC, VLT) in relevant construction objects by leveraging ComStock's glazing system name and climate zone number as keys.</modeler_description>
+  <arguments />
+  <outputs />
+  <provenances />
+  <tags>
+    <tag>Envelope.Fenestration</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Retrofit EE</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>LICENSE.md</filename>
+      <filetype>md</filetype>
+      <usage_type>license</usage_type>
+      <checksum>CD7F5672</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>B14422A0</checksum>
+    </file>
+    <file>
+      <filename>README.md.erb</filename>
+      <filetype>erb</filetype>
+      <usage_type>readmeerb</usage_type>
+      <checksum>703C9964</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.7.0</identifier>
+        <min_compatible>2.7.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>5A9405D7</checksum>
+    </file>
+    <file>
+      <filename>env_window_film_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>27856491</checksum>
+    </file>
+  </files>
+</measure>

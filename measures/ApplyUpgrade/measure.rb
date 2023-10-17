@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2020 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 
@@ -13,7 +13,6 @@ require 'openstudio'
 
 require 'openstudio'
 resources_dir = File.absolute_path(File.join(File.dirname(__FILE__), "..", "..", "lib", "resources"))
-require File.join(resources_dir, "constants")
 
 # start the measure
 class ApplyUpgrade < OpenStudio::Ruleset::ModelUserScript
@@ -33,11 +32,11 @@ class ApplyUpgrade < OpenStudio::Ruleset::ModelUserScript
   end
 
   def num_options
-    return Constants.NumApplyUpgradeOptions # Synced with SimulationOutputReport measure
+    return 200 # Synced with SimulationOutputReport measure
   end
 
   def num_costs_per_option
-    return Constants.NumApplyUpgradesCostsPerOption # Synced with SimulationOutputReport measure
+    return 2 # Synced with SimulationOutputReport measure
   end
 
   # define the arguments that the user will input
@@ -279,14 +278,12 @@ class ApplyUpgrade < OpenStudio::Ruleset::ModelUserScript
         end
       end
 
-      # TODO remove this section if it is in fact superfluous to what we need - HRH
-      # Add measure arguments from existing building if needed
-=begin
+      # Add measure arguments from existing building; mainly used to apply fault measures after upgrade measures
       parameters = get_parameters_ordered_from_options_lookup_tsv(resources_dir, nil)
       measures.keys.each do |measure_subdir|
         parameters.each do |parameter_name|
-          existing_option_name = get_value_from_runner_past_results(runner, parameter_name, "build_existing_model")
-
+          existing_option_name = get_value_from_runner_past_results(runner, parameter_name, "build_existing_model", false)
+          next if existing_option_name.nil? # Don't look for measure args for measures missing in build_existing_model
           options_measure_args = get_measure_args_from_option_names(lookup_file, [existing_option_name], parameter_name, runner)
           options_measure_args[existing_option_name].each do |measure_subdir2, args_hash|
             next if measure_subdir != measure_subdir2
@@ -302,7 +299,6 @@ class ApplyUpgrade < OpenStudio::Ruleset::ModelUserScript
           end
         end
       end
-=end
 
       measures_result =  apply_measures(measures_dir, measures, runner, model, workflow_json, "measures-upgrade.osw", true)
       if not measures_result

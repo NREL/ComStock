@@ -1,0 +1,41 @@
+\begin{table}[]
+\scriptsize
+\centering
+\caption{Air-Source Heat Pump Performance Curves}
+\label{tab:ashp_curves}
+\begin{tabular}{|p{0.4in}|p{0.5in}|p{0.4in}|p{0.4in}|p{0.5in}|p{0.5in}|p{0.5in}|p{0.5in}|p{0.5in}|}
+\hline
+\textbf{Template} &
+  \textbf{Subcategory} &
+  \textbf{Minimum   Capacity (Btu/hr)} &
+  \textbf{Maximum   Capacity (Btu/hr)} &
+  \textbf{Capacity Function of Temperature} &
+  \textbf{Capacity Function of Airflow} &
+  \textbf{EIR Function of Temperature} &
+  \textbf{EIR Function of Airflow} &
+  \textbf{EIR Function of PLR} \\ \hline
+Pre-1980 Through 90.1-2010 &
+  All &
+  All &
+  All &
+  \multirow{3}{*}{\parbox{0.4in}{DXHEAT-NECB2011-REF-CAPFT}} &
+  \multirow{3}{*}{\parbox{0.4in}{DXHEAT-NECB2011-REF-CAPFFLOW}} &
+  \multirow{3}{*}{\parbox{0.4in}{DXHEAT-NECB2011-REF-EIRFT}} &
+  \multirow{3}{*}{\parbox{0.4in}{DXHEAT-NECB2011-REF-EIRFFLOW}} &
+  \multirow{3}{*}{\parbox{0.4in}{DXHEAT-NECB2011-REF-PLFFPLR}} \\ \cline{1-4}
+\multirow{6}{*}{\parbox{0.4in}{90.1-2013 Through 90.1-2019}} & PTHP                           & 0       & no max    &  &  &  &  &  \\ \cline{2-4}
+                                                            & Split   System, Single Package & 0       & 29,999    &  &  &  &  &  \\ \cline{2-9} 
+ &
+  Split   System &
+  0 &
+  64,999 &
+  \multirow{4}{*}{\parbox{0.4in}{HPACHeat\-CapFT}} &
+  \multirow{4}{*}{\parbox{0.4in}{HPACHeat\-CapFFF}} &
+  \multirow{4}{*}{\parbox{0.4in}{HPACHeat\-EIRFT}} &
+  \multirow{4}{*}{\parbox{0.4in}{HPACHeat\-EIRFFF}} &
+  \multirow{4}{*}{\parbox{0.4in}{HPACCOOL\-PLFFPLR}} \\ \cline{2-4}
+                                                            & Single   Package               & 0       & 64,999    &  &  &  &  &  \\ \cline{2-4}
+                                                            & Single   Package               & 65,000  & 134,999   &  &  &  &  &  \\ \cline{2-4}
+                                                            & Single   Package               & 135,000 & no max    &  &  &  &  &  \\ \hline
+\end{tabular}
+\end{table}

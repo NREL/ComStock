@@ -957,14 +957,14 @@ OS:Rendering:Color,
 
 OS:SpaceType,
   {29eef9c5-7ef0-4200-9ed9-4c43c18fe511}, !- Handle
-  Outpatient DresingRoom - ComStock DOE Ref 1980-2004, !- Name
+  Outpatient DressingRoom - ComStock DOE Ref 1980-2004, !- Name
   ,                                       !- Default Construction Set Name
   {bba7a215-1dc5-40e3-9d48-7c1aae4c4ce4}, !- Default Schedule Set Name
   ,                                       !- Group Rendering Name
   {5a9de7eb-4af4-44ed-963e-681b4e67002b}, !- Design Specification Outdoor Air Object Name
   ,                                       !- Standards Template
   Outpatient,                             !- Standards Building Type
-  DresingRoom;                            !- Standards Space Type
+  DressingRoom;                           !- Standards Space Type
 
 OS:SpaceType,
   {2d721a2a-5c60-4e90-b9f5-de058eb5186e}, !- Handle
@@ -2689,7 +2689,7 @@ OS:ZoneHVAC:EquipmentList,
 
 OS:Space,
   {37b156dd-14be-4e06-9589-f3e249cbac5c}, !- Handle
-  Outpatient DresingRoom A  - Story Ground, !- Name
+  Outpatient DressingRoom A  - Story Ground, !- Name
   {29eef9c5-7ef0-4200-9ed9-4c43c18fe511}, !- Space Type Name
   ,                                       !- Default Construction Set Name
   ,                                       !- Default Schedule Set Name
@@ -2804,7 +2804,7 @@ OS:Surface,
 
 OS:ThermalZone,
   {135108e6-37a9-4171-8892-9f61c4421a6e}, !- Handle
-  Zone Outpatient DresingRoom A  - Story Ground, !- Name
+  Zone Outpatient DressingRoom A  - Story Ground, !- Name
   1,                                      !- Multiplier
   ,                                       !- Ceiling Height {m}
   ,                                       !- Volume {m3}
@@ -2827,7 +2827,7 @@ OS:ThermalZone,
 
 OS:Node,
   {f4b3f88a-7fb8-42c8-b4ed-9e55e01d6b87}, !- Handle
-  Zone Outpatient DresingRoom A  - Story Ground Zone Air Node, !- Name
+  Zone Outpatient DressingRoom A  - Story Ground Zone Air Node, !- Name
   {8ab41319-736b-45d9-b099-52b76247870a}, !- Inlet Port
   ;                                       !- Outlet Port
 
@@ -2886,12 +2886,12 @@ OS:Sizing:Zone,
 
 OS:ZoneHVAC:EquipmentList,
   {b127925d-cd51-41e5-9739-0caaeeb2c3ce}, !- Handle
-  Zone Outpatient DresingRoom A  - Story Ground Zone HVAC Equipment List, !- Name
+  Zone Outpatient DressingRoom A  - Story Ground Zone HVAC Equipment List, !- Name
   {135108e6-37a9-4171-8892-9f61c4421a6e}; !- Thermal Zone
 
 OS:Space,
   {341dcc9c-0234-4b5e-9de0-0dc53dbd6c69}, !- Handle
-  Outpatient DresingRoom B  - Story Ground, !- Name
+  Outpatient DressingRoom B  - Story Ground, !- Name
   {29eef9c5-7ef0-4200-9ed9-4c43c18fe511}, !- Space Type Name
   ,                                       !- Default Construction Set Name
   ,                                       !- Default Schedule Set Name
@@ -3006,7 +3006,7 @@ OS:Surface,
 
 OS:ThermalZone,
   {9111ce20-7ca9-4bf7-825b-7b418dfe8551}, !- Handle
-  Zone Outpatient DresingRoom B  - Story Ground, !- Name
+  Zone Outpatient DressingRoom B  - Story Ground, !- Name
   1,                                      !- Multiplier
   ,                                       !- Ceiling Height {m}
   ,                                       !- Volume {m3}
@@ -3029,7 +3029,7 @@ OS:ThermalZone,
 
 OS:Node,
   {e54a2c33-61b1-42fc-baa0-b50f737bd456}, !- Handle
-  Zone Outpatient DresingRoom B  - Story Ground Zone Air Node, !- Name
+  Zone Outpatient DressingRoom B  - Story Ground Zone Air Node, !- Name
   {29f7b9ff-64aa-4892-bf4c-7fd3cc1a42ab}, !- Inlet Port
   ;                                       !- Outlet Port
 
@@ -3088,12 +3088,12 @@ OS:Sizing:Zone,
 
 OS:ZoneHVAC:EquipmentList,
   {e8e3d217-25a4-485f-9b79-b16287f59dd9}, !- Handle
-  Zone Outpatient DresingRoom B  - Story Ground Zone HVAC Equipment List, !- Name
+  Zone Outpatient DressingRoom B  - Story Ground Zone HVAC Equipment List, !- Name
   {9111ce20-7ca9-4bf7-825b-7b418dfe8551}; !- Thermal Zone
 
 OS:Space,
   {2d5a8c68-a8aa-4757-bb43-b6de7fb6d858}, !- Handle
-  Outpatient DresingRoom C  - Story Ground, !- Name
+  Outpatient DressingRoom C  - Story Ground, !- Name
   {29eef9c5-7ef0-4200-9ed9-4c43c18fe511}, !- Space Type Name
   ,                                       !- Default Construction Set Name
   ,                                       !- Default Schedule Set Name
@@ -3208,7 +3208,7 @@ OS:Surface,
 
 OS:ThermalZone,
   {e2a3add0-e0c8-449d-976b-31f7622cd17d}, !- Handle
-  Zone Outpatient DresingRoom C  - Story Ground, !- Name
+  Zone Outpatient DressingRoom C  - Story Ground, !- Name
   1,                                      !- Multiplier
   ,                                       !- Ceiling Height {m}
   ,                                       !- Volume {m3}
@@ -3231,7 +3231,7 @@ OS:ThermalZone,
 
 OS:Node,
   {ccfb0684-3646-4b3b-8054-aef69824b700}, !- Handle
-  Zone Outpatient DresingRoom C  - Story Ground Zone Air Node, !- Name
+  Zone Outpatient DressingRoom C  - Story Ground Zone Air Node, !- Name
   {5e79b591-6646-454c-8a16-6374957c2754}, !- Inlet Port
   ;                                       !- Outlet Port
 
@@ -3290,7 +3290,7 @@ OS:Sizing:Zone,
 
 OS:ZoneHVAC:EquipmentList,
   {25995e76-3002-4279-afa2-0d6caffba1c1}, !- Handle
-  Zone Outpatient DresingRoom C  - Story Ground Zone HVAC Equipment List, !- Name
+  Zone Outpatient DressingRoom C  - Story Ground Zone HVAC Equipment List, !- Name
   {e2a3add0-e0c8-449d-976b-31f7622cd17d}; !- Thermal Zone
 
 OS:Space,
@@ -27525,7 +27525,7 @@ OS:DefaultScheduleSet,
 
 OS:DesignSpecification:OutdoorAir,
   {5a9de7eb-4af4-44ed-963e-681b4e67002b}, !- Handle
-  Outpatient DresingRoom Ventilation,     !- Name
+  Outpatient DressingRoom Ventilation,    !- Name
   ,                                       !- Outdoor Air Method
   0,                                      !- Outdoor Air Flow per Person {m3/s-person}
   0,                                      !- Outdoor Air Flow per Floor Area {m3/s-m2}
@@ -27535,7 +27535,7 @@ OS:DesignSpecification:OutdoorAir,
 
 OS:DefaultScheduleSet,
   {bba7a215-1dc5-40e3-9d48-7c1aae4c4ce4}, !- Handle
-  Outpatient DresingRoom Schedule Set,    !- Name
+  Outpatient DressingRoom Schedule Set,   !- Name
   ,                                       !- Hours of Operation Schedule Name
   ,                                       !- Number of People Schedule Name
   ,                                       !- People Activity Level Schedule Name
@@ -30183,7 +30183,7 @@ OS:SpaceInfiltration:DesignFlowRate,
 
 OS:SpaceInfiltration:DesignFlowRate,
   {f5262925-6e71-4de4-9610-162a34e1d937}, !- Handle
-  Outpatient DresingRoom A  - Story Ground Infiltration, !- Name
+  Outpatient DressingRoom A  - Story Ground Infiltration, !- Name
   {37b156dd-14be-4e06-9589-f3e249cbac5c}, !- Space or SpaceType Name
   {560291a7-daf8-4394-ad9b-5ba774d9ff9e}, !- Schedule Name
   Flow/ExteriorArea,                      !- Design Flow Rate Calculation Method
@@ -30198,7 +30198,7 @@ OS:SpaceInfiltration:DesignFlowRate,
 
 OS:SpaceInfiltration:DesignFlowRate,
   {76872485-1464-46a3-ada4-c652eb939fc7}, !- Handle
-  Outpatient DresingRoom C  - Story Ground Infiltration, !- Name
+  Outpatient DressingRoom C  - Story Ground Infiltration, !- Name
   {2d5a8c68-a8aa-4757-bb43-b6de7fb6d858}, !- Space or SpaceType Name
   {560291a7-daf8-4394-ad9b-5ba774d9ff9e}, !- Schedule Name
   Flow/ExteriorArea,                      !- Design Flow Rate Calculation Method
@@ -34964,15 +34964,15 @@ OS:ThermostatSetpoint:DualSetpoint,
 
 OS:ThermostatSetpoint:DualSetpoint,
   {81386765-047f-4bed-902d-d99f3225e756}, !- Handle
-  Outpatient DresingRoom - ComStock DOE Ref 1980-2004 Thermostat; !- Name
+  Outpatient DressingRoom - ComStock DOE Ref 1980-2004 Thermostat; !- Name
 
 OS:ThermostatSetpoint:DualSetpoint,
   {fcd6627e-4768-4cb0-91e2-90323cdb939e}, !- Handle
-  Outpatient DresingRoom - ComStock DOE Ref 1980-2004 Thermostat 1; !- Name
+  Outpatient DressingRoom - ComStock DOE Ref 1980-2004 Thermostat 1; !- Name
 
 OS:ThermostatSetpoint:DualSetpoint,
   {d0a2d991-0ade-40f9-a21a-7e8343541884}, !- Handle
-  Outpatient DresingRoom - ComStock DOE Ref 1980-2004 Thermostat 2; !- Name
+  Outpatient DressingRoom - ComStock DOE Ref 1980-2004 Thermostat 2; !- Name
 
 OS:ThermostatSetpoint:DualSetpoint,
   {c12c74df-132a-49d0-acde-e2a25c7cb63e}, !- Handle

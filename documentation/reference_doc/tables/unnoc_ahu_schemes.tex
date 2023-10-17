@@ -1,0 +1,17 @@
+\begin{table}[h!]
+\centering
+\caption{AHU Operating Mode Schemes Used During Scheduled Unoccupied Times}
+\label{tab:unnoc_ahu_schemes}
+\begin{tabular}{|p{2.2cm}|p{4cm}|p{2cm}|p{2cm}|p{2cm}|p{2cm}|}
+\hline
+\textbf{Scheme Name} &
+  \textbf{Unoccupied Control Scheme Description} &
+  \textbf{Expected Efficiency} &
+  \textbf{Occupied Status} &
+  \textbf{Fan Status} &
+  \textbf{Ventilation Status} \\ \hline
+\textbf{Scheme 1} & Scheduled on, running                                                            & Least Efficient & Active   & Active & Active   \\ \hline
+\textbf{Scheme 2} & Scheduled off, fan cycles with ventilation to maintain thermostat   setpoints    & More Efficient  & Inactive & Active & Active   \\ \hline
+\textbf{Scheme 3} & Scheduled off, fan cycles without ventilation to maintain thermostat   setpoints & Most Efficient  & Inactive & Active & Inactive \\ \hline
+\end{tabular}
+\end{table}

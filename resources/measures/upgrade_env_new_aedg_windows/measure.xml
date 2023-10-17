@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+<measure>
+  <schema_version>3.1</schema_version>
+  <name>env_new_aedg_windows</name>
+  <uid>b0167804-5cb4-4641-b9de-961c640f02ea</uid>
+  <version_id>ef420e4f-52d6-44ea-a526-174efcc1712b</version_id>
+  <version_modified>2023-10-16T20:24:51Z</version_modified>
+  <xml_checksum>4A8A93C6</xml_checksum>
+  <class_name>EnvNewAedgWindows</class_name>
+  <display_name>env_new_aedg_windows</display_name>
+  <description>Adds new window with properites (SHGC, U-value, and VLT) aligning with AEDG guidlines, varying by climate zone. Does not impact triple pan windows as their performance is already high.</description>
+  <modeler_description>Adds new window with properites (SHGC, U-value, and VLT) aligning with AEDG guidlines, varying by climate zone. Does not impact triple pan windows as their performance is already high.</modeler_description>
+  <arguments />
+  <outputs />
+  <provenances />
+  <tags>
+    <tag>Envelope.Fenestration</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Retrofit EE</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Retrofit EE</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.7.0</identifier>
+        <min_compatible>2.7.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>55EF9A96</checksum>
+    </file>
+    <file>
+      <filename>env_new_aedg_windows_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>DA1FD041</checksum>
+    </file>
+    <file>
+      <filename>measure_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>910C8B8F</checksum>
+    </file>
+  </files>
+</measure>

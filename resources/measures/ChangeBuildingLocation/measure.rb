@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2020 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # *******************************************************************************
@@ -50,6 +50,36 @@ class ChangeBuildingLocation < OpenStudio::Measure::ModelMeasure
   # the display name in PAT comes from the name field in measure.xml
   def name
     'ChangeBuildingLocation'
+  end
+
+  def grid_regions
+    grid_regions = [
+      'AZNMc',
+      'AKGD',
+      'AKMS',
+      'CAMXc',
+      'ERCTc',
+      'FRCCc',
+      'HIMS',
+      'HIOA',
+      'MROEc',
+      'MROWc',
+      'NEWEc',
+      'NWPPc',
+      'NYSTc',
+      'RFCEc',
+      'RFCMc',
+      'RFCWc',
+      'RMPAc',
+      'SPNOc',
+      'SPSOc',
+      'SRMVc',
+      'SRMWc',
+      'SRSOc',
+      'SRTVc',
+      'SRVCc'
+    ]
+    return grid_regions
   end
 
   # define the arguments that the user will input
@@ -107,7 +137,16 @@ class ChangeBuildingLocation < OpenStudio::Measure::ModelMeasure
     climate_zone.setDefaultValue('Lookup From Stat File')
     args << climate_zone
 
-    args
+    # make an argument for the grid region
+    grid_region_chs = OpenStudio::StringVector.new
+    grid_regions.each { |grid_region| grid_region_chs << grid_region }
+    grid_region = OpenStudio::Measure::OSArgument.makeChoiceArgument('grid_region', grid_region_chs, true)
+    grid_region.setDisplayName('Grid Region')
+    grid_region.setDescription('Cambium electric grid region, or eGrid region for Alaska and Hawaii')
+    grid_region.setDefaultValue('RMPAc')
+    args << grid_region
+
+    return args
   end
 
   # Define what happens when the measure is run
@@ -124,6 +163,10 @@ class ChangeBuildingLocation < OpenStudio::Measure::ModelMeasure
     else
       runner.registerInitialCondition("No weather file is set. The model has #{model.getDesignDays.size} design day objects")
     end
+
+    # set grid region
+    model.getBuilding.additionalProperties.setFeature('grid_region', args['grid_region'])
+    runner.registerInfo("Set '#{args['grid_region']}' as the grid_region in the building additional properties.")
 
     # find weather file, checking both the location specified in the osw
     # and the path used by ComStock meta-measure
@@ -152,8 +195,11 @@ class ChangeBuildingLocation < OpenStudio::Measure::ModelMeasure
     weather_file.setLongitude(epw_file.lon)
     weather_file.setTimeZone(epw_file.gmt)
     weather_file.setElevation(epw_file.elevation)
-    weather_file.setString(10, "file:///#{epw_file.filename}")
-
+    if model.version < OpenStudio::VersionString.new('3.0.0')
+      weather_file.setString(10, "file:///#{epw_file.filename}")
+    else
+      weather_file.setString(10, "#{epw_file.filename}")
+    end
     weather_name = "#{epw_file.city}_#{epw_file.state}_#{epw_file.country}"
     weather_lat = epw_file.lat
     weather_lon = epw_file.lon

@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2020 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # *******************************************************************************
@@ -253,6 +253,196 @@ class TimeseriesCSVExport_Test < Minitest::Test
       end
       argument_map[arg.name] = temp_arg_var
     end
+
+    # get the energyplus output requests, this will be done automatically by OS App and PAT
+    idf_output_requests = measure.energyPlusOutputRequests(OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new), argument_map)
+    assert(idf_output_requests.size > 0, 'Expected IDF output requests, but none were found')
+
+    # mimic the process of running this measure in OS App or PAT
+    epw_path = epw_path_default
+    setup_test(test_name, idf_output_requests, model_in_path)
+
+    assert(File.exist?(model_out_path(test_name)))
+    assert(File.exist?(sql_path(test_name)), "Could not find sql file at #{sql_path(test_name)}")
+    # assert(File.exist?(''))
+
+    # set up runner, this will happen automatically when measure is run in PAT or OpenStudio
+    runner.setLastOpenStudioModelPath(OpenStudio::Path.new(model_out_path(test_name)))
+    runner.setLastEnergyPlusWorkspacePath(OpenStudio::Path.new(workspace_path(test_name)))
+    runner.setLastEpwFilePath('')
+    runner.setLastEnergyPlusSqlFilePath(OpenStudio::Path.new(sql_path(test_name)))
+
+    # delete the output if it exists
+    if File.exist?(report_path(test_name))
+      FileUtils.rm(report_path(test_name))
+    end
+    assert(!File.exist?(report_path(test_name)))
+
+    # temporarily change directory to the run directory and run the measure
+    start_dir = Dir.pwd
+    begin
+      Dir.chdir(run_dir(test_name))
+
+      # run the measure
+      start_time = Time.new
+      measure.run(runner, argument_map)
+      end_time = Time.new
+      puts "*********Timing: measure elapsed time = #{end_time - start_time}"
+      result = runner.result
+      show_output(result)
+      assert_equal('Success', result.value.valueName)
+
+      # look for section_errors
+      assert(section_errors(runner).empty?)
+    ensure
+      Dir.chdir(start_dir)
+    end
+
+    # make sure the report file exists
+    assert(File.exist?(report_path(test_name)))
+  end
+
+  def test_restaurant
+
+    test_name = 'restaurant'
+    model_in_path = "#{File.dirname(__FILE__)}/FullServiceRestaurant.osm"
+
+    # create an instance of the measure
+    measure = TimeseriesCSVExport.new
+
+    # create an instance of a runner
+    runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
+
+    # get arguments
+    arguments = measure.arguments
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+
+    # create hash of argument values
+    args_hash = {
+      'reporting_frequency' => 'Timestep',
+      'inc_output_variables' => true
+    }
+
+    # populate argument with specified hash value if specified
+    arguments.each do |arg|
+      temp_arg_var = arg.clone
+      if args_hash[arg.name]
+        assert(temp_arg_var.setValue(args_hash[arg.name]))
+      end
+      argument_map[arg.name] = temp_arg_var
+    end
+
+    # get the energyplus output requests, this will be done automatically by OS App and PAT
+    idf_output_requests = measure.energyPlusOutputRequests(OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new), argument_map)
+    assert(idf_output_requests.size > 0, 'Expected IDF output requests, but none were found')
+
+    # mimic the process of running this measure in OS App or PAT
+    epw_path = epw_path_default
+    setup_test(test_name, idf_output_requests, model_in_path)
+
+    assert(File.exist?(model_out_path(test_name)))
+    assert(File.exist?(sql_path(test_name)), "Could not find sql file at #{sql_path(test_name)}")
+    # assert(File.exist?(''))
+
+    # set up runner, this will happen automatically when measure is run in PAT or OpenStudio
+    runner.setLastOpenStudioModelPath(OpenStudio::Path.new(model_out_path(test_name)))
+    runner.setLastEnergyPlusWorkspacePath(OpenStudio::Path.new(workspace_path(test_name)))
+    runner.setLastEpwFilePath('')
+    runner.setLastEnergyPlusSqlFilePath(OpenStudio::Path.new(sql_path(test_name)))
+
+    # delete the output if it exists
+    if File.exist?(report_path(test_name))
+      FileUtils.rm(report_path(test_name))
+    end
+    assert(!File.exist?(report_path(test_name)))
+
+    # temporarily change directory to the run directory and run the measure
+    start_dir = Dir.pwd
+    begin
+      Dir.chdir(run_dir(test_name))
+
+      # run the measure
+      start_time = Time.new
+      measure.run(runner, argument_map)
+      end_time = Time.new
+      puts "*********Timing: measure elapsed time = #{end_time - start_time}"
+      result = runner.result
+      show_output(result)
+      assert_equal('Success', result.value.valueName)
+
+      # look for section_errors
+      assert(section_errors(runner).empty?)
+    ensure
+      Dir.chdir(start_dir)
+    end
+
+    # make sure the report file exists
+    assert(File.exist?(report_path(test_name)))
+
+    # make sure that the expected columns are in the file
+    f = File.open(report_path(test_name), 'r').each_with_index do |line, i|
+      if i == 0
+        cols = line.split(',')
+        # Electricity
+        assert(cols.include?('total_site_electricity_kwh'))
+        assert(cols.include?('electricity_heating_kwh'))
+        assert(cols.include?('electricity_cooling_kwh'))
+        assert(cols.include?('electricity_interior_lighting_kwh'))
+        assert(cols.include?('electricity_interior_equipment_kwh'))
+        assert(cols.include?('electricity_exterior_lighting_kwh'))
+        assert(cols.include?('electricity_fans_kwh'))
+        assert(cols.include?('electricity_pumps_kwh'))
+        assert(cols.include?('electricity_refrigeration_kwh'))
+        assert(cols.include?('electricity_water_systems_kwh'))
+        assert(!cols.include?('electricity_exterior_equipment_kwh'))
+        assert(!cols.include?('electricity_heat_rejection_kwh'))
+        assert(!cols.include?('electricity_humidification_kwh'))
+        assert(!cols.include?('electricity_heat_recovery_kwh'))
+        assert(!cols.include?('electricity_generators_kwh'))
+        # Natural Gas
+        assert(cols.include?('total_site_gas_kbtu'))
+        assert(cols.include?('gas_interior_equipment_kbtu'))
+        assert(cols.include?('gas_water_systems_kbtu'))
+        assert(!cols.include?('gas_heating_kbtu'))
+        assert(!cols.include?('gas_exterior_equipment_kbtu'))
+        # Fuel Oil No 2
+        assert(cols.include?('total_site_fueloil_kbtu'))
+        assert(cols.include?('fueloil_water_systems_kbtu'))
+        assert(!cols.include?('fueloil_heating_kbtu'))
+        # Propane
+        assert(cols.include?('total_site_propane_kbtu'))
+        assert(cols.include?('propane_water_systems_kbtu'))
+        assert(!cols.include?('propane_heating_kbtu'))
+        # District Heating
+        assert(!cols.include?('total_site_districtheating_kbtu'))
+        assert(!cols.include?('districtheating_water_systems_kbtu'))
+        assert(!cols.include?('districtheating_heating_kbtu'))
+        # District Cooling
+        assert(!cols.include?('total_site_districtcooling_kbtu'))
+        assert(!cols.include?('districtcooling_cooling_kbtu'))
+        # Water
+        assert(cols.include?('total_site_water_gal'))
+        assert(!cols.include?('cooling_gal'))
+        assert(cols.include?('water_systems_gal'))
+        assert(!cols.include?('heat_rejection_gal'))
+      end
+    end
+  end
+
+  def test_retail
+
+    test_name = 'retail'
+    model_in_path = "#{File.dirname(__FILE__)}/Retail.osm"
+
+    # create an instance of the measure
+    measure = TimeseriesCSVExport.new
+
+    # create an instance of a runner
+    runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
+
+    # get arguments
+    arguments = measure.arguments
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
     # get the energyplus output requests, this will be done automatically by OS App and PAT
     idf_output_requests = measure.energyPlusOutputRequests(OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new), argument_map)

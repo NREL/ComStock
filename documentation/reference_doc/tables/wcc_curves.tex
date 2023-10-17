@@ -1,0 +1,81 @@
+\begin{table}
+\scriptsize
+\centering
+\caption{Water-Cooled Chiller Performance Curves}
+\label{tab:wcc_perf_curves}
+\begin{tabular}{|p{0.5in}|p{0.4in}|p{0.4in}|p{0.3in}|p{0.35in}|p{0.35in}|p{0.4in}|p{0.35in}|p{0.35in}|p{0.35in}|p{0.35in}|p{0.4in}|}
+\hline
+\textbf{Schedule Name} &
+  \textbf{Form} &
+  \textbf{Dependent   Var} &
+  \textbf{Ind. Var 1} &
+  \textbf{Ind. Var 2} &
+  \textbf{coeff\_1} &
+  \textbf{coeff\_2} &
+  \textbf{coeff\_3} &
+  \textbf{coeff\_4} &
+  \textbf{coeff\_5} &
+  \textbf{coeff\_6} &
+  \textbf{Notes} \\ \hline
+ChlrWtr\-PosDisp\-PathA\-All\-EIRRatio\_fQRatio &
+  Quadratic &
+  EIRPLR &
+  QRatio &
+   &
+  0.310965 &
+  0.322519 &
+  0.372745 &
+   &
+   &
+   &
+  \multirow{3}{*}{\parbox{0.4in}{From CBECC Appendix\_3.7\_Performance\_Curves-S901G.xlsx}} \\ \cline{1-11}
+ChlrWtr\-PosDisp\-PathA\-All\-QRatio\_fTchwsTcwsSI &
+  Biquadratic &
+  CapFT &
+  Tchws &
+  Tcws &
+  0.96744 &
+  0.037082 &
+  0.000434 &
+  -0.00584 &
+  -4.9E-05 &
+  -0.00027 &
+   \\ \cline{1-11}
+ChlrWtr\-PosDisp\-PathA\-All\-EIRRatio\_fTchwsTcwsSI &
+  Biquadratic &
+  EIRFT &
+  Tchws &
+  Tcws &
+  0.665307 &
+  -0.009339 &
+  0.000483 &
+  0.009492 &
+  0.000544 &
+  -0.00086 &
+   \\ \hline
+WaterCooled\_PositiveDisplacement\_Chiller\_LT150\_2010\_PathA\_CAPFT &
+  Biquadratic &
+  CapFT &
+  Tchws &
+  Toadb &
+  0.906115 &
+  0.029228 &
+  -0.00036 &
+  -0.00097 &
+  -9.1E-05 &
+  0.000253 &
+  \multirow{2}{*}{\parbox{0.5in}{Based on Dick Lord's study dated January 17, 2010.}} \\ \cline{1-11}
+WaterCooled\_PositiveDisplacement\_Chiller\_LT150\_2010\_PathA\_EIRFT &
+  Biquadratic &
+  EIRFT &
+  Tchws &
+  Toadb &
+  0.361711 &
+  -0.022983 &
+  0.000952 &
+  0.013189 &
+  0.000375 &
+  -0.00071 &
+   \\ \hline
+\end{tabular}
+\end{table}

@@ -1,0 +1,561 @@
+﻿<!doctype html>
+<html lang="en">
+
+<head>
+  <title>ComStock Workflow</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <link href="../css/bootstrap.min.css" rel="stylesheet">
+  <script type="text/javascript" src="../primitives.js"></script>
+  <script type="text/javascript" src="../javascriptsamples.js"></script>
+  <script type="text/javascript" src="../data/comstock_levels.js"></script>
+  <link href="../css/styles.css" media="screen" rel="stylesheet" type="text/css">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400&display=swap" rel="stylesheet">
+  <link href="../css/primitives.css" media="screen" rel="stylesheet" type="text/css">
+
+  <script type="text/javascript">
+    var control = null;
+    var timer;
+
+    var optionsRender = javascriptsamples.getFamDiagramOptionsRender([], {
+        /* Family Diagram Specific Options */
+        neighboursSelectionMode: primitives.NeighboursSelectionMode.ParentsChildren,
+        groupByType: primitives.GroupByType.Children,
+        alignBylevels: true,
+        hideGrandParentsConnectors: true,
+        enableMatrixLayout: false,
+        minimumMatrixSize: 0,
+
+        /* On-screen annotations specific options */
+        AnnotationOptions: {
+          connectorPlacementType: primitives.ConnectorPlacementType.Offbeat,
+          connectorShapeType: primitives.ConnectorShapeType.OneWay,
+          labelPlacementType: primitives.ConnectorLabelPlacementType.Between,
+          lineWidth: 2,
+          lineType: primitives.LineType.Dashed,
+          color: primitives.Colors.Red,
+          offset: 5,
+          zOrderType: primitives.ZOrderType.Auto
+        },
+        /* Layout */
+        pageFitMode: primitives.PageFitMode.FitToPage,
+        orientationType: primitives.OrientationType.Top,
+        verticalAlignment: primitives.VerticalAlignmentType.Middle,
+        horizontalAlignment: primitives.HorizontalAlignmentType.Center,
+        childrenPlacementType: primitives.ChildrenPlacementType.Horizontal,
+        leavesPlacementType: primitives.ChildrenPlacementType.Horizontal,
+        maximumColumnsInMatrix: 10,
+        minimalVisibility: primitives.Visibility.Dot,
+        minimumVisibleLevels: 0,
+        selectionPathMode: primitives.SelectionPathMode.FullStack,
+
+        hasButtons: primitives.Enabled.True,
+        hasSelectorCheckbox: primitives.Enabled.False,
+        selectCheckBoxLabel: 'Pinned',
+        itemTitleFirstFontColor: primitives.Colors.Black,
+        itemTitleSecondFontColor: primitives.Colors.Black,
+        buttonsPanelSize: 32,
+        groupTitlePanelSize: 24,
+        checkBoxPanelSize: 24,
+
+        /* group title options */
+        groupTitlePlacementType: primitives.AdviserPlacementType.Left,
+        groupTitleOrientation: primitives.TextOrientationType.RotateRight,
+        groupTitleVerticalAlignment: primitives.VerticalAlignmentType.Middle,
+        groupTitleHorizontalAlignment: primitives.HorizontalAlignmentType.Center,
+        groupTitleFontSize: '13px',
+        groupTitleFontFamily: 'Roboto',
+        groupTitleColor: primitives.Colors.Gray,
+        groupTitleFontWeight: 'normal',
+        groupTitleFontStyle: 'normal',
+
+        /* level title options */
+        addLevelAnnotations: false,
+        levelTitlePlacementType: primitives.AdviserPlacementType.Left,
+        levelTitlePanelSize: 24,
+        levelTitlePlaceInside: false,
+        levelTitleOrientation: primitives.TextOrientationType.Auto,
+        levelTitleVerticalAlignment: primitives.VerticalAlignmentType.Middle,
+        levelTitleHorizontalAlignment: primitives.HorizontalAlignmentType.Center,
+        levelTitleFontSize: '12px',
+        levelTitleFontFamily: 'Roboto',
+        levelTitleFontColor: primitives.Colors.White,
+        levelTitleColor: primitives.Colors.Gray,
+        levelTitleFontWeight: 'normal',
+        levelTitleFontStyle: 'normal',
+
+        /* Template */
+        DefaultTemplateOptions: {
+          minimizedItemCornerRadius: 12,
+          minimizedItemSize: new primitives.Size(6, 6),
+          highlightPadding: 3,
+          minimizedItemShapeType: primitives.ShapeType.None,
+          minimizedItemLineWidth: 0,
+          minimizedItemLineType: primitives.LineType.Solid,
+          minimizedItemBorderColor: null,
+          minimizedItemFillColor: null,
+          minimizedItemOpacity: 1.0
+        },
+
+        /* Intervals */
+        normalLevelShift: 8,
+        dotLevelShift: 8,
+        lineLevelShift: 10,
+        normalItemsInterval: 8,
+        dotItemsInterval: 8,
+        lineItemsInterval: 8,
+        cousinsIntervalMultiplier: 2,
+
+        /* Connectors */
+        arrowsDirection: primitives.GroupByType.Children,
+        showExtraArrows: false,
+        extraArrowsMinimumSpace: 30,
+        connectorType: primitives.ConnectorType.Squared,
+        elbowType: primitives.ElbowType.Round,
+        bevelSize: 4,
+        elbowDotSize: 4,
+        linesType: primitives.LineType.Solid,
+        linesColor: primitives.Colors.Gray,
+        linesWidth: 1,
+
+        /* Labels */
+        showLabels: primitives.Enabled.Auto,
+        labelSize: new primitives.Size(60, 40),
+        labelOrientation: primitives.TextOrientationType.Horizontal,
+        labelPlacement: primitives.PlacementType.Top,
+        labelOffset: 1,
+        labelFontSize: '10px',
+        labelFontFamily: 'Roboto',
+        labelColor: primitives.Colors.Black,
+        labelFontWeight: 'normal',
+        labelFontStyle: 'normal',
+
+        /* Callout */
+        calloutMaximumVisibility: primitives.Visibility.Dot,
+        showCallout: true,
+        calloutPlacementOffset: 50,
+        calloutfillColor: '#eee',
+        calloutBorderColor: null,
+        calloutOffset: 4,
+        calloutCornerRadius: 4,
+        calloutPointerWidth: '20%',
+        calloutLineWidth: 1,
+        calloutOpacity: 0.5
+        ,
+
+        /* Interactivity */
+        navigationMode: primitives.NavigationMode.Default,
+        highlightGravityRadius: 40,
+        enablePanning: true,
+        scale: 1.0,
+
+        /* Frame */
+        showFrame: false,
+        frameInnerPadding: 2,
+        frameOuterPadding: 2,
+        padding: new primitives.Thickness(10, 10, 10, 10)
+      },
+      /* On property change event handler */
+      function () {
+        control.setOptions(GetDiagramConfig());
+        control.update(primitives.UpdateMode.Refresh);
+      });
+
+    document.addEventListener('DOMContentLoaded', function () {
+      optionsRender.render(document.getElementById('westpanel'));
+      control = primitives.FamDiagram(document.getElementById('centerpanel'),
+        GetDiagramConfig()
+      );
+
+      window.addEventListener('resize', function (event) {
+        onWindowResize();
+      });
+    });
+
+    function GetDiagramConfig() {
+      var options = optionsRender.getValues();
+
+      primitives.mergeObjects(options, {
+        templates: [getUnitTemplate(), getCalloutUnitTemplate(), getDotTemplate()],
+        defaultTemplateName: 'UnitTemplate',
+        defaultCalloutTemplateName: 'CalloutUnitTemplate',
+        onItemRender: onTemplateRender,
+        arrowsDirection: primitives.GroupByType.Children
+      });
+
+      primitives.mergeObjects(options, {
+        onCursorChanging: onCursorChanging,
+        onCursorChanged: onCursorChanged,
+        onHighlightChanging: onHighlightChanging,
+        onHighlightChanged: onHighlightChanged,
+        onSelectionChanged: onSelectionChanged
+      });
+
+      var annotations = [];
+      // Populate annotations to visualize family ordering references
+      for (var index = 0; index < famdata.length; index += 1) {
+        var item = famdata[index];
+        if (item.relativeItem != null) {
+          annotations.push({
+            annotationType: primitives.AnnotationType.Connector,
+            fromItem: item.id,
+            toItem: item.relativeItem,
+            label: null,
+            connectorShapeType: primitives.ConnectorShapeType.OneWay,
+            color: primitives.Colors.Gray,
+            offset: -5,
+            lineWidth: 3,
+            lineType: primitives.LineType.Dotted,
+            connectorPlacementType: primitives.ConnectorPlacementType.Straight,
+            selectItems: false
+          });
+        }
+        if (item.primaryParent != null) {
+          annotations.push({
+            annotationType: primitives.AnnotationType.Connector,
+            fromItem: item.id,
+            toItem: item.primaryParent,
+            label: null,
+            connectorShapeType: primitives.ConnectorShapeType.OneWay,
+            color: primitives.Colors.Red,
+            offset: -5,
+            lineWidth: 3,
+            lineType: primitives.LineType.Dotted,
+            connectorPlacementType: primitives.ConnectorPlacementType.Offbeat,
+            selectItems: false
+          });
+        }
+      }
+
+      if (options.addLevelAnnotations) {
+        for (index = 0; index < 20; index += 1) {
+          annotations.push({
+            annotationType: primitives.AnnotationType.Level,
+            levels: [index],
+            title: 'Level ' + index,
+            offset: new primitives.Thickness(0, -1, 0, -1),
+            opacity: (index % 2 > 0 ? 0.2 : 0)
+          });
+        }
+      }
+
+      primitives.mergeObjects(options, {
+        items: famdata,
+        cursorItem: 1,
+        annotations: annotations
+      }); // See dependencies.js
+
+      return options;
+    }
+
+    function getDefaultTemplate(options) {
+      var result = new primitives.TemplateConfig();
+      result.name = 'defaultTemplate';
+
+      // If we don't change anything in template then all its properties stays default
+      // So we change only minimized item properties
+      primitives.mergeObjects(result, options.DefaultTemplateOptions);
+
+      return result;
+    }
+
+    function getParentsList(data) {
+      var message = '',
+        index, len;
+
+      if (data.parentItems.length > 0) {
+        message += ' Parent item <b>';
+        for (index = 0, len = data.parentItems.length; index < len; index += 1) {
+          if (index > 0) {
+            message += ', ';
+          }
+          message += '\'' + data.parentItems[index].title + '\'';
+        }
+        message += '</b>';
+      }
+
+      return message;
+    }
+
+    function onSelectionChanged(e, data) {
+      var selectedItems = control.getOption('selectedItems');
+      var message = '';
+      for (var index = 0; index < selectedItems.length; index += 1) {
+        var itemConfig = selectedItems[index];
+        if (message != '') {
+          message += ', ';
+        }
+        message += '<b>\'' + itemConfig.title + '\'</b>';
+      }
+      message += getParentsList(data);
+      document.getElementById('southpanel').innerHTML = 'User selected following items: ' + message;
+    }
+
+    function onHighlightChanging(e, data) {
+      var message = (data.context != null) ? 'User is hovering mouse over item <b>\'' + data.context.title + '\'</b>.' : '';
+      message += getParentsList(data);
+      document.getElementById('southpanel').innerHTML = message;
+    }
+
+    function onHighlightChanged(e, data) {
+      var message = (data.context != null) ? 'User hovers mouse over item <b>\'' + data.context.title + '\'</b>.' : '';
+      message += getParentsList(data);
+      document.getElementById('southpanel').innerHTML = message;
+    }
+
+    function onCursorChanging(e, data) {
+      var message = 'User is clicking on item \'' + data.context.title + '\'.';
+      message += getParentsList(data);
+      updateHighlightPathAnnotations(data);
+      document.getElementById('southpanel').innerHTML = message;
+    }
+
+    function onCursorChanged(e, data) {
+      var message = 'User clicked on item \'' + data.context.title + '\'.';
+      message += getParentsList(data);
+      document.getElementById('southpanel').innerHTML = message;
+    }
+
+    function updateHighlightPathAnnotations(data) {
+      var annotations = control.getOption('annotations');
+
+      var newAnnotations = [];
+      for (var index = 0, len = annotations.length; index < len; index += 1) {
+        var annotation = annotations[index];
+        if (annotation.annotationType != primitives.AnnotationType.HighlightPath) {
+          newAnnotations.push(annotation);
+        }
+      }
+
+      var items = [];
+      items = items.concat(data.parentItems);
+      items = items.concat(data.childrenItems);
+      for (index = 0, len = items.length; index < len; index += 1) {
+        var parent = items[index];
+        var highlightid = data.context.id;
+        var annotation = new primitives.HighlightPathAnnotationConfig({
+          items: [highlightid, parent.id],
+          color: primitives.Colors.Navy,
+          opacity: 0.4,
+          lineWidth: 4,
+          zOrderType: primitives.ZOrderType.Background,
+          showArrows: false
+        });
+        newAnnotations.push(annotation);
+      }
+      control.setOptions({annotations: newAnnotations});
+    }
+
+    function onWindowResize() {
+      if (timer == null) {
+        timer = window.setTimeout(function () {
+          control.update(primitives.UpdateMode.Refresh);
+          window.clearTimeout(timer);
+          timer = null;
+        }, 300);
+      }
+    }
+
+    function onTemplateRender(event, data) {
+      var itemConfig = data.context,
+        element = data.element;
+
+      if (data.templateName == 'dot') {
+        var titleBackground = element;
+        titleBackground.style.backgroundColor = itemConfig.itemTitleColor || primitives.Colors.RoyalBlue;
+      }
+
+      if (data.templateName == 'UnitTemplate') {
+        var titleBackground = element.firstChild;
+        titleBackground.style.backgroundColor = itemConfig.itemTitleColor || primitives.Colors.RoyalBlue;
+
+        var title = titleBackground.firstChild;
+        title.textContent = itemConfig.title;
+      }
+
+      if (data.templateName == 'CalloutUnitTemplate') {
+        var titleBackground = element.firstChild;
+        titleBackground.style.backgroundColor = itemConfig.itemTitleColor || primitives.Colors.DarkGray;
+
+        var title = element.childNodes[1];
+        title.textContent = itemConfig.title;
+
+        var description = element.childNodes[2];
+        description.textContent = itemConfig.description;
+      }
+    }
+
+    function getDotTemplate() {
+      var result = new primitives.TemplateConfig();
+      result.name = 'dot';
+
+      result.isActive = true;
+      result.itemSize = new primitives.Size(12, 12);
+      result.minimizedItemSize = new primitives.Size(8, 8);
+      result.minimizedItemCornerRadius = 4;
+      result.minimizedItemLineWidth = 1;
+      result.minimizedItemLineType = primitives.LineType.Solid;
+      result.minimizedItemBorderColor = null; // Shape border line has the same color as item title background color
+      result.minimizedItemFillColor = null; // Shape background has the same color as item title background color
+      result.minimizedItemOpacity = 0.7; // Shape background opacity
+
+      result.itemTemplate = ['div', {
+        'style': {
+          top: '2px',
+          left: '2px',
+          width: result.itemSize.width + 'px',
+          height: result.itemSize.height + 'px'
+        },
+        'class': ['bp-corner-all']
+      }];
+
+      return result;
+    }
+
+    function getUnitTemplate() {
+      var result = new primitives.TemplateConfig();
+      result.name = 'UnitTemplate';
+
+      result.itemSize = new primitives.Size(350, 60);
+      result.minimizedItemSize = new primitives.Size(8, 8);
+      result.minimizedItemCornerRadius = 4;
+      result.minimizedItemLineWidth = 1;
+      result.minimizedItemLineType = primitives.LineType.Solid;
+      result.minimizedItemBorderColor = null; // Shape border line has the same color as item title background color
+      result.minimizedItemFillColor = null; // Shape background has the same color as item title background color
+      result.minimizedItemOpacity = 0.7; // Shape background opacity
+
+      result.itemTemplate = ['div',
+        {
+          'style': {
+            width: result.itemSize.width + 'px',
+            height: result.itemSize.height + 'px'
+          },
+          'class': ['bp-item', 'bp-corner-all', 'bt-item-frame']
+        },
+        ['div',
+          {
+            'name': 'titleBackground',
+            'class': ['bp-item', 'bp-corner-all', 'bp-title-frame'],
+            'style': {
+              top: '2px',
+              left: '2px',
+              width: '350px',
+              height: '100%'
+            }
+          },
+          ['div',
+            {
+              'name': 'title',
+              'class': 'bp-item',
+              'style': {
+                top: '2px',
+                left: '2px',
+                width: '350px',
+                height: '20px',
+                fontSize: '16px',
+                Font: 'Roboto',
+                color: '#222'
+              }
+            }
+          ]
+        ]
+      ];
+
+      return result;
+    }
+
+    function getCalloutUnitTemplate() {
+      var result = new primitives.TemplateConfig();
+      result.name = 'CalloutUnitTemplate';
+
+      result.itemSize = new primitives.Size(320, 60);
+      result.minimizedItemSize = new primitives.Size(8, 8);
+      result.minimizedItemCornerRadius = 4;
+      result.minimizedItemLineWidth = 1;
+      result.minimizedItemLineType = primitives.LineType.Solid;
+      result.minimizedItemBorderColor = null; // Shape border line has the same color as item title background color
+      result.minimizedItemFillColor = null; // Shape background has the same color as item title background color
+      result.minimizedItemOpacity = 0.7; // Shape background opacity
+
+      result.itemTemplate = ['div',
+        {
+          'style': {
+            top: '2px',
+            left: '2px',
+            width: result.itemSize.width + 'px',
+            height: result.itemSize.height + 'px'
+          },
+          'class': ['bp-item', 'bp-corner-all', 'bt-item-frame']
+        },
+        ['div',
+          {
+            'name': 'titleBackground',
+            'style': {
+              top: '0px',
+              left: '0px',
+              width: '320px',
+              height: '56px'
+            },
+            'class': ['bp-item', 'bp-corner-all', 'bp-title-frame']
+          }
+        ],
+        ['div',
+          {
+            name: 'title',
+            'class': 'bp-item',
+            'style': {
+              top: '2px',
+              left: '2px',
+              width: '316px',
+              height: '56px',
+              fontSize: '18px',
+              FontFace: 'Roboto'
+            }
+          }
+        ],
+        ['div',
+          {
+            name: 'description',
+            'class': 'bp-item',
+            'style': {
+              top: '0px',
+              left: '0px',
+              width: '0px',
+              height: '0px',
+              fontSize: '0px'
+            }
+          }
+        ]
+      ];
+
+      return result;
+    }
+  </script>
+
+</head>
+
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <nav id="sidebarMenu" class="col-md-4 col-lg-2 d-md-block bg-light sidebar collapse" style="position: fixed; top: 0; bottom: 0px; overflow-y: auto; float: none;">
+        <div class="position-sticky pt-3">
+          <div id="westpanel" class="flex-column"></div>
+        </div>
+      </nav>
+
+      <main class="ms-sm-auto px-md-4">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+          <h1 class="h2">ComStock Workflow: Node Version</h1>
+        </div>
+        <div id="centerpanel" class="mediaPlaceholder my-2 w-100"></div>
+        <div id="southpanel" class="alert alert-primary" style="min-height: 60px;" role="alert">
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+
+</html>

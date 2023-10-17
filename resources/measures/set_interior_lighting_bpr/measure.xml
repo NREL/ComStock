@@ -1,0 +1,113 @@
+<?xml version="1.0"?>
+<measure>
+  <schema_version>3.1</schema_version>
+  <name>set_interior_lighting_bpr</name>
+  <uid>e7e45275-091b-4231-b0a7-3bff1fee48c1</uid>
+  <version_id>88d84fcc-826c-4501-80ba-02389048f7e8</version_id>
+  <version_modified>2023-10-16T20:24:54Z</version_modified>
+  <xml_checksum>B2EAAD67</xml_checksum>
+  <class_name>SetInteriorLightingBPR</class_name>
+  <display_name>Set Interior Lighting BPR</display_name>
+  <description>Screen savers were necessary to prevent image burn-in in older CRT monitors.  However, screen savers are not necessary on modern LCD monitors. Disabling screen savers on these monitors drastically reduces their energy consumption when not in use.</description>
+  <modeler_description>Find all of the interior lighting schedules in the building, and adjust to a user-specified base-to-peak ratio (BPR).  Set the default BPR to 0.5</modeler_description>
+  <arguments>
+    <argument>
+      <name>modify_wkdy_bpr</name>
+      <display_name>modify_wkdy_bpr</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>wkdy_bpr</name>
+      <display_name>wkdy_bpr</display_name>
+      <type>Double</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>0.5</default_value>
+    </argument>
+    <argument>
+      <name>modify_wknd_bpr</name>
+      <display_name>modify_wknd_bpr</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>wknd_bpr</name>
+      <display_name>wknd_bpr</display_name>
+      <type>Double</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>0.5</default_value>
+    </argument>
+  </arguments>
+  <outputs />
+  <provenances />
+  <tags>
+    <tag>Equipment.Equipment Controls</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Analysis Spreadsheet</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>New Construction EE</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Retrofit EE</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>1.5.0</identifier>
+        <min_compatible>1.5.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>A6D2CCD2</checksum>
+    </file>
+    <file>
+      <filename>set_interior_lighting_bpr_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>1F24B77F</checksum>
+    </file>
+  </files>
+</measure>

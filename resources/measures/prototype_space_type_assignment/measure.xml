@@ -1,0 +1,107 @@
+<?xml version="1.0"?>
+<measure>
+  <schema_version>3.1</schema_version>
+  <name>prototype_space_type_assignment</name>
+  <uid>8369efbb-e4c7-4171-b817-d7bbc860b085</uid>
+  <version_id>a964e3df-c90b-4f27-8a65-3d07aec1f501</version_id>
+  <version_modified>2023-10-16T20:24:57Z</version_modified>
+  <xml_checksum>FB7988E1</xml_checksum>
+  <class_name>PrototypeSpaceTypeAssignment</class_name>
+  <display_name>Prototype Space Type Assignment</display_name>
+  <description>This measure adds prototype space type information to space types based on the original standards building type and standards space type fields.</description>
+  <modeler_description>This measure adds a 'prototype_space_type' additional properties to the OS:SpaceType object for each space type based on a lookup by the 'standardsBuildingType' and 'standardsSpaceType' fields.</modeler_description>
+  <arguments />
+  <outputs />
+  <provenances />
+  <tags>
+    <tag>Whole Building.Space Types</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Model Articulation</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>New Construction EE</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>1.9.4</identifier>
+        <min_compatible>1.8.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>9E259D0E</checksum>
+    </file>
+    <file>
+      <filename>prototype_space_type_lookup.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>8AABD0D0</checksum>
+    </file>
+    <file>
+      <filename>prototype_space_type_properties_lookup.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>F6AF497E</checksum>
+    </file>
+    <file>
+      <filename>Hospital.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>F2EDABDA</checksum>
+    </file>
+    <file>
+      <filename>Outpatient.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>8C6486CA</checksum>
+    </file>
+    <file>
+      <filename>RtL.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>1B86612F</checksum>
+    </file>
+    <file>
+      <filename>SecondarySchool.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>FA4383F7</checksum>
+    </file>
+    <file>
+      <filename>SmallOffice.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>9E9F8D77</checksum>
+    </file>
+    <file>
+      <filename>prototype_space_type_assignment_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>E6AD7DEB</checksum>
+    </file>
+  </files>
+</measure>

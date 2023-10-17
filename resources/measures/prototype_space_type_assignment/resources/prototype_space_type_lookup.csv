@@ -1,0 +1,286 @@
+﻿building_type,space_type,prototype_space_type
+FullServiceRestaurant,Attic,attic
+FullServiceRestaurant,Dining,dining_area_family_dining
+FullServiceRestaurant,Kitchen,kitchen_with_dishwashing
+HighriseApartment,Apartment,apartment
+HighriseApartment,Apartment_topfloor_NS,apartment
+HighriseApartment,Apartment_topfloor_WE,apartment
+HighriseApartment,Corridor,corridor_all_other
+HighriseApartment,Corridor_topfloor,corridor_all_other
+HighriseApartment,Office,office_enclosed_less_than_250ft2
+Hospital,Kitchen,kitchen_with_dishwashing
+Hospital,Basement,whole_building_office
+Hospital,Corridor,healthcare_corridor
+Hospital,Dining,dining_area_all_other
+Hospital,ER_Exam,emergency_room
+Hospital,ER_NurseStn,nurse_station
+Hospital,ER_Trauma,emergency_room
+Hospital,ER_Triage,emergency_room
+Hospital,ICU_NurseStn,nurse_station
+Hospital,ICU_Open,recovery
+Hospital,Lab,laboratory
+Hospital,Lobby,lobby_all_other
+Hospital,NurseStn,nurse_station
+Hospital,OR,operating_room
+Hospital,PatCorridor,healthcare_corridor
+Hospital,PatRoom,patient_room
+Hospital,PhysTherapy,physical_therapy
+Hospital,Radiology,imaging
+Hospital,ICU_PatRm,patient_room
+Hospital,Office,office_enclosed_less_than_250ft2
+Hospital,HospitalOfficeFlr1,office_open
+Hospital,HospitalOfficeFlr5,office_open
+LargeHotel,Kitchen,kitchen_with_dishwashing
+LargeHotel,Banquet,dining_area_lounge_dining
+LargeHotel,Basement,whole_building_office
+LargeHotel,Cafe,dining_area_lounge_dining
+LargeHotel,Corridor,corridor_all_other
+LargeHotel,Corridor2,corridor_all_other
+LargeHotel,GuestRoom,guest_room
+LargeHotel,GuestRoom2,guest_room
+LargeHotel,GuestRoom3,guest_room
+LargeHotel,GuestRoom4,guest_room
+LargeHotel,Laundry,laundry
+LargeHotel,Lobby,lobby_hotel
+LargeHotel,Mechanical,electrical_mechanical
+LargeHotel,Retail,retail
+LargeHotel,Retail2,retail
+LargeHotel,Storage,storage_active_50ft2_to_1000ft2
+LargeHotel,GuestRoom8,guest_room
+MidriseApartment,Apartment,apartment
+MidriseApartment,Apartment_topfloor_NS,apartment
+MidriseApartment,Apartment_topfloor_WE,apartment
+MidriseApartment,Corridor,corridor_all_other
+MidriseApartment,Corridor_topfloor,corridor_all_other
+MidriseApartment,Office,office_enclosed_less_than_250ft2
+Office,OfficeLarge Data Center,server_room
+Office,OfficeLarge Main Data Center,server_room
+Office,WholeBuilding - Sm Office,whole_building_office
+Office,WholeBuilding - Md Office,whole_building_office
+Office,WholeBuilding - Lg Office,whole_building_office
+Office,WholeBuilding - Lg Office-basement,whole_building_office
+Office,Attic,attic
+Office,Vending,lounge_breakroom
+Office,Storage,storage_active_50ft2_to_1000ft2
+Office,Stair,stairway
+Office,Restroom,restroom
+Office,PrintRoom,copy_print_room
+Office,OpenOffice,office_open
+Office,Lobby,lobby_all_other
+Office,IT_Room,server_room
+Office,Corridor,corridor_all_other
+Office,Conference,conference_meeting_multipurpose
+Office,ClosedOffice,office_enclosed_less_than_250ft2
+Office,BreakRoom,lounge_breakroom
+Office,Dining,dining_area_all_other
+Office,Classroom,classroom
+Office,MediumOffice - Storage,storage_active_50ft2_to_1000ft2
+Office,MediumOffice - Stair,stairway
+Office,MediumOffice - Restroom,restroom
+Office,MediumOffice - OpenOffice,office_open
+Office,MediumOffice - Lobby,lobby_all_other
+Office,MediumOffice - Corridor,corridor_all_other
+Office,MediumOffice - Conference,conference_meeting_multipurpose
+Office,MediumOffice - Breakroom,lounge_breakroom
+Office,MediumOffice - Dining,dining_area_all_other
+Office,MediumOffice - Classroom,classroom
+Office,SmallOffice - Storage,storage_active_50ft2_to_1000ft2
+Office,SmallOffice - Stair,stairway
+Office,SmallOffice - Restroom,restroom
+Office,SmallOffice - OpenOffice,office_open
+Office,SmallOffice - Lobby,lobby_all_other
+Office,SmallOffice - Corridor,corridor_all_other
+Office,SmallOffice - Conference,conference_meeting_multipurpose
+Office,SmallOffice - Breakroom,lounge_breakroom
+Office,SmallOffice - Dining,dining_area_all_other
+Office,SmallOffice - Classroom,classroom
+Office,WholeBuilding - Lg Office-others,whole_building_office
+Office,Elec/MechRoom,electrical_mechanical
+Office,MediumOffice - Elec/MechRoom,electrical_mechanical
+Office,MediumOffice - ClosedOffice,office_enclosed_less_than_250ft2
+Office,SmallOffice - Elec/MechRoom,electrical_mechanical
+Office,SmallOffice - ClosedOffice,office_enclosed_less_than_250ft2
+Outpatient,Anesthesia,patient_exam
+Outpatient,BioHazard,healthcare_storage_active_50ft2_to_1000ft2
+Outpatient,Cafe,dining_area_all_other
+Outpatient,CleanWork,patient_exam
+Outpatient,Conference,conference_meeting_multipurpose
+Outpatient,DressingRoom,office_enclosed_less_than_250ft2
+Outpatient,Elec/MechRoom,electrical_mechanical
+Outpatient,ElevatorPumpRoom,electrical_mechanical
+Outpatient,Exam,patient_exam
+Outpatient,IT_Room,server_room
+Outpatient,Janitor,healthcare_storage_active_50ft2_to_1000ft2
+Outpatient,Lobby,lobby_all_other
+Outpatient,LockerRoom,healthcare_lounge_breakroom
+Outpatient,Lounge,healthcare_lounge_breakroom
+Outpatient,MedGas,healthcare_storage_active_50ft2_to_1000ft2
+Outpatient,MRI,mri
+Outpatient,MRI_Control,imaging_control
+Outpatient,NurseStation,nurse_station
+Outpatient,OutpatientFloor2Work,patient_exam
+Outpatient,Office,office_enclosed_less_than_250ft2
+Outpatient,OR,operating_room
+Outpatient,PACU,recovery
+Outpatient,PhysicalTherapy,physical_therapy
+Outpatient,PreOp,patient_room
+Outpatient,ProcedureRoom,emergency_room
+Outpatient,Reception,lobby_all_other
+Outpatient,Soil Work,patient_exam
+Outpatient,Toilet,restroom
+Outpatient,Undeveloped,healthcare_storage_active_50ft2_to_1000ft2
+Outpatient,Xray,imaging
+Outpatient,Hall,healthcare_corridor
+Outpatient,Hall_infil,healthcare_corridor
+Outpatient,Stair,healthcare_corridor
+PrimarySchool,Restroom,restroom
+PrimarySchool,Office,office_enclosed_less_than_250ft2
+PrimarySchool,Mechanical,electrical_mechanical
+PrimarySchool,Lobby,lobby_all_other
+PrimarySchool,Library,whole_building_library
+PrimarySchool,Gym,gymnasium
+PrimarySchool,Corridor,corridor_all_other
+PrimarySchool,Classroom,classroom
+PrimarySchool,ComputerRoom,computer_room
+PrimarySchool,Cafeteria,dining_area_cafeteria
+PrimarySchool,Kitchen,kitchen_with_dishwashing
+QuickServiceRestaurant,Attic,attic
+QuickServiceRestaurant,Dining,dining_area_family_dining
+QuickServiceRestaurant,Kitchen,kitchen_without_dishwashing
+Retail,Back_Space,storage_active_50ft2_to_1000ft2
+Retail,Entry,lobby_all_other
+Retail,Point_of_Sale,retail
+Retail,Retail,retail
+Retail,Core_Retail,retail
+Retail,Front_Retail,retail
+SecondarySchool,Auditorium,audience_seating_auditorium
+SecondarySchool,Cafeteria,dining_area_cafeteria
+SecondarySchool,Classroom,classroom
+SecondarySchool,ComputerRoom,computer_room
+SecondarySchool,Corridor,corridor_all_other
+SecondarySchool,Gym,gymnasium
+SecondarySchool,Gym - audience,gymnasium
+SecondarySchool,Library,whole_building_library
+SecondarySchool,Lobby,lobby_all_other
+SecondarySchool,Mechanical,electrical_mechanical
+SecondarySchool,Office,office_enclosed_less_than_250ft2
+SecondarySchool,Restroom,restroom
+SecondarySchool,Kitchen,kitchen_with_dishwashing
+SmallHotel,Lobby,lobby_hotel
+SmallHotel,Elec/MechRoom,electrical_mechanical
+SmallHotel,ElevatorCore,elevator
+SmallHotel,ElevatorCore4,elevator
+SmallHotel,GuestRoom,guest_room
+SmallHotel,GuestRoom123Occ,guest_room
+SmallHotel,GuestRoom123Vac,guest_room
+SmallHotel,GuestRoom4Occ,guest_room
+SmallHotel,GuestRoom4Vac,guest_room
+SmallHotel,Laundry,laundry
+SmallHotel,Meeting,conference_meeting_multipurpose
+SmallHotel,Office,office_enclosed_less_than_250ft2
+SmallHotel,PublicRestroom,restroom
+SmallHotel,StaffLounge,lounge_breakroom
+SmallHotel,Stair,stairwell
+SmallHotel,Stair4,stairwell
+SmallHotel,Storage,storage_active_50ft2_to_1000ft2
+SmallHotel,Storage4Front,storage_active_50ft2_to_1000ft2
+SmallHotel,Storage4Rear,storage_active_50ft2_to_1000ft2
+SmallHotel,Corridor,corridor_all_other
+SmallHotel,Corridor4,corridor_all_other
+SmallHotel,Exercise,exercise_room
+SmallHotel,GuestLounge,lounge_breakroom
+SmallHotel,Mechanical,electrical_mechanical
+StripMall,Strip mall - type 0A,whole_building_retail
+StripMall,Strip mall - type 0B,whole_building_retail
+StripMall,Strip mall - type 1,whole_building_retail
+StripMall,Strip mall - type 2,whole_building_retail
+StripMall,Strip mall - type 3,whole_building_retail
+Warehouse,Fine,warehouse_fine_storage
+Warehouse,Bulk,warehouse_bulk_storage
+Warehouse,Office,office_enclosed_less_than_250ft2
+Asm,Auditorium,audience_seating_auditorium
+ASm,OfficeGeneral,office_open
+ECC,Classroom,classroom
+ECC,CompRoomClassRm,computer_room
+ECC,Shop,classroom_workshop
+ECC,Dining,dining_area_cafeteria
+ECC,Kitchen,kitchen_with_dishwashing
+ECC,OfficeGeneral,office_open
+EPr,Classroom,classroom
+EPr,CorridorStairway,corridor_all_other
+EPr,Dining,dining_area_cafeteria
+EPr,Gymnasium,gymnasium
+EPr,Kitchen,kitchen_with_dishwashing
+ERC,Classroom,classroom
+ESe,Classroom,classroom
+ESe,CompRoomClassRm,computer_room
+ESe,CorridorStairway,corridor_all_other
+ESe,Dining,dining_area_cafeteria
+ESe,Gymnasium,gymnasium
+ESe,Kitchen,kitchen_with_dishwashing
+ESe,OfficeGeneral,office_open
+EUn,Dining,dining_area_cafeteria
+EUn,Classroom,classroom
+EUn,OfficeGeneral,office_open
+EUn,CompRoomClassRm,computer_room
+EUn,Kitchen,kitchen_with_dishwashing
+EUn,CorridorStairway,corridor_all_other
+EUn,FacMaint,warehouse_bulk_storage
+EUn,DormitoryRoom,guest_room
+Hsp,HspSurgOutptLab,operating_room
+Hsp,Dining,dining_area_cafeteria
+Hsp,Kitchen,kitchen_with_dishwashing
+Hsp,OfficeGeneral,office_open
+Hsp,PatientRoom,patient_room
+Htl,Dining,dining_area_family_dining
+Htl,BarCasino,lounge_breakroom
+Htl,HotelLobby,lobby_hotel
+Htl,OfficeGeneral,office_open
+Htl,GuestRmCorrid,corridor_all_other
+Htl,Laundry,laundry
+Htl,GuestRmOcc,guest_room
+Htl,GuestRmUnOcc,guest_room
+Htl,Kitchen,kitchen_with_dishwashing
+MBT,CompRoomData,server_room
+MBT,Laboratory,laboratory
+MBT,CorridorStairway,corridor_all_other
+MBT,Conference,conference_meeting_multipurpose
+MBT,Dining,dining_area_cafeteria
+MBT,OfficeOpen,office_open
+MBT,Kitchen,kitchen_with_dishwashing
+MLI,StockRoom,warehouse_fine_storage
+MLI,Work,classroom_workshop
+Mtl,OfficeGeneral,office_open
+Mtl,GuestRmCorrid,corridor_all_other
+Mtl,Laundry,laundry
+Mtl,GuestRmOcc,guest_room
+Mtl,GuestRmUnOcc,guest_room
+Nrs,CorridorStairway,corridor_all_other
+Nrs,Dining,dining_area_cafeteria
+Nrs,Kitchen,kitchen_with_dishwashing
+Nrs,OfficeGeneral,office_open
+Nrs,PatientRoom,patient_room
+OfL,LobbyWaiting,lobby_all_other
+OfL,OfficeSmall,office_enclosed_less_than_250ft2
+OfL,OfficeOpen,office_open
+OfL,MechElecRoom,electrical_mechanical
+OfS,Hall,corridor_all_other
+OfS,OfficeSmall,office_enclosed_less_than_250ft2
+RFF,Dining,dining_area_family_dining
+RFF,Kitchen,kitchen_without_dishwashing
+RFF,LobbyWaiting,lobby_all_other
+RFF,Restroom,restroom
+RSD,Restroom,restroom
+RSD,Dining,dining_area_family_dining
+RSD,LobbyWaiting,lobby_all_other
+RSD,Kitchen,kitchen_without_dishwashing
+Rt3,RetailSales,retail
+RtL,OfficeGeneral,office_open
+RtL,Work,warehouse_fine_storage
+RtL,StockRoom,warehouse_fine_storage
+RtL,RetailSales,retail
+RtL,Kitchen,kitchen_without_dishwashing
+RtS,RetailSales,retail
+RtS,StockRoom,warehouse_fine_storage
+SCn,WarehouseCond,warehouse_bulk_storage
+SUn,WarehouseUnCond,warehouse_bulk_storage

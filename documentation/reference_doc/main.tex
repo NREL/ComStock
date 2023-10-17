@@ -1,0 +1,75 @@
+\documentclass[]{nrel}
+\usepackage{multirow}
+\usepackage{longtable}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{cleveref}
+\usepackage{multirow}
+\usepackage[section]{placeins}
+\usepackage{pdflscape}
+\hypersetup{colorlinks=true}
+
+% -----------------------------------
+% DOCUMENT PROPERTIES
+% -----------------------------------
+\title{ComStock Reference Documentation: Version 1}
+
+\author{Andrew Parker}
+\author{Henry Horsey}
+\author{Matthew Dahlhausen}
+\author{Marlena Praprost}
+\author{Christopher CaraDonna}
+\author{Amy LeBar}
+\author{Lauren Klun}
+\affil{National Renewable Energy Laboratory}
+
+\fancypagestyle{plain}{}
+\addbibresource{bibliography.bib}
+\setcounter{tocdepth}{2}
+
+% -------------------------------------
+% DOCUMENT STARTS HERE
+% -------------------------------------
+\begin{document}
+\frontmatter
+
+\include{0_1_exec_summary}
+\include{0_2_acknowledgements}
+\include{0_3_acronyms}
+
+\mainmatter
+\tableofcontents
+
+\listoffigures
+
+\listoftables
+
+% Chapters and large sections are broken out in separate .tex files to make edits easier
+\include{1_introduction}
+\include{2_workflow}
+\include{3_sampling}
+\label{chap:3_sampling}
+\include{4_1_introduction}
+\include{4_2_meta}
+\include{4_3_occupancy}
+\include{4_4_geometry}
+\include{4_5_envelope}
+\include{4_6_lighting}
+\include{4_7_plug_and_process}
+\include{4_8_service_water_heating}
+\include{4_9_hvac}
+\include{4_10_simulation_settings}
+\include{5_outputs}
+
+\cleardoublepage
+\label{sec:Bib}
+\printbibliography[title={\LARGE References}]
+\addcontentsline{toc}{chapter}{References}
+\begin{appendices} %<--------- All chapters after this will be labeled as appendices
+
+\include{6_AppendixA}
+\include{7_AppendixB}
+
+\end{appendices}
+
+\end{document}

@@ -1,0 +1,33 @@
+% Please add the following required packages to your document preamble:
+% \usepackage{multirow}
+\begin{table}[h!]
+\centering
+\small
+\caption{Fan Pressure Rise and Efficiency}
+\label{tab:fan_power}
+\begin{tabular}{|p{1.8cm}|p{1.8cm}|p{1.8cm}|p{1.8cm}|p{1.8cm}|p{1.8cm}|p{1.8cm}|}
+\hline
+\textbf{Fan Type} &
+  \textbf{Max Airflow (cfm)} &
+  \textbf{Pressure Rise (in. H$_2$O)} &
+  \textbf{Fan Power Minimum Flow Fraction} &
+  \textbf{Fan Impeller Efficiency} &
+  \textbf{Motor Efficiency} &
+  \textbf{Total Fan Efficiency} \\ \hline
+\multirow{3}{*}{\parbox{1.8cm}{\textbf{Constant Volume and DOAS}}} &
+  \textless 7,437 &
+  2.5 &
+  \multirow{3}{*}{1} &
+  \multirow{6}{*}{0.65} &
+  \multirow{9}{*}{\parbox{1.4cm}{See motor efficiency lookup table}} &
+  \multirow{9}{*}{\parbox{1.4cm}{(Fan Impeller Eff.) X (Motor Eff.)}} \\ \cline{2-3}
+                                                & $\ge$7,537 and \textless{}20,000 & 4.46 &                       &                       &  &  \\ \cline{2-3}
+                                                & $\ge$20,000                      & 4.09 &                       &                       &  &  \\ \cline{1-4}
+\multirow{3}{*}{\parbox{1.4cm}{\textbf{Variable   Air Volume}}} & \textless 4,648                            & 4    & \multirow{3}{*}{0.25} &                       &  &  \\ \cline{2-3}
+                                                & $\ge$4,648 and \textless 20,000  & 6.32 &                       &                       &  &  \\ \cline{2-3}
+                                                & $\ge$20,000                     & 5.58 &                       &                       &  &  \\ \cline{1-5}
+\textbf{PTAC/PTHP, WSHP, VRF}                   & \textgreater{}0                            & 1.33 & 1                     & \multirow{3}{*}{0.55} &  &  \\ \cline{1-4}
+\textbf{Four Pipe Fan   Coil}                   & \textgreater{}0                            & 1.09 & 1                     &                       &  &  \\ \cline{1-4}
+\textbf{Unit Heater}                            & \textgreater{}0                            & 0.2  & 1                     &                       &  &  \\ \hline
+\end{tabular}
+\end{table}

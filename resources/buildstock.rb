@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2020 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 require 'csv'
@@ -12,13 +12,13 @@ class TsvFile
         @runner = runner
         @rows, @option_cols, @dependency_cols, @full_header, @header = get_file_data()
     end
-    
+
     attr_accessor :dependency_cols, :rows, :option_cols, :header, :filename
 
     def get_file_data()
         option_key = "Option="
         dep_key = "Dependency="
-    
+
         full_header = nil
         rows = []
         CSV.foreach(@full_path, { :col_sep => "\t" }) do |row|
@@ -33,14 +33,14 @@ class TsvFile
 
             rows << row
         end
-        
+
         if full_header.nil?
             register_error("Could not find header row in #{@filename.to_s}.", @runner)
         end
-        
+
         # Strip out everything but options and dependencies from header
         header = full_header.select { |el| el.start_with?(option_key) or el.start_with?(dep_key) }
-        
+
         # Get all option names/dependencies and corresponding column numbers on header row
         option_cols = {}
         dependency_cols = {}
@@ -57,24 +57,24 @@ class TsvFile
         if option_cols.size == 0
             register_error("No options found in #{@filename.to_s}.", @runner)
         end
-        
+
         return rows, option_cols, dependency_cols, full_header, header
     end
 
     def get_option_name_from_sample_number(sample_value, dependency_values)
         # Retrieve option name from probability file based on sample value
-        
+
         matched_option_name = nil
         matched_row_num = nil
-        
+
         if dependency_values.nil?
           dependency_values = []
         end
-        
+
         deps_s = hash_to_string(dependency_values)
-        
+
         @rows.each_with_index do |row, rownum|
-        
+
             # Find appropriate row by matching dependency values
             found_row = false
             if dependency_values.size == 0
@@ -93,7 +93,7 @@ class TsvFile
                 end
             end
             next if not found_row
-        
+
             # Is this our second match?
             if not matched_row_num.nil?
                 if deps_s.size > 0
@@ -111,20 +111,20 @@ class TsvFile
                 end
                 rowvals[option_name] = row[option_col].to_f
             end
-            
+
             # Sum of values within 2% of 100%?
             sum_rowvals = rowvals.values.reduce(:+)
             if sum_rowvals < 0.98 or sum_rowvals > 1.02
                 register_error("Values in #{@filename.to_s} incorrectly sum to #{sum_rowvals.to_s}.", @runner)
             end
-            
+
             # If values don't exactly sum to 1, normalize them
             if sum_rowvals != 1.0
                 rowvals.each do |option_name, rowval|
                     rowvals[option_name] = rowval / sum_rowvals
                 end
             end
-            
+
             # Find appropriate value
             rowsum = 0
             @option_cols.each_with_index do |(option_name, option_col), index|
@@ -135,9 +135,9 @@ class TsvFile
                     break
                 end
             end
-            
+
         end
-        
+
         if matched_option_name.nil? or matched_option_name.size == 0
             if deps_s.size > 0
                 register_error("Could not determine appropriate option in #{@filename.to_s} for sample value #{sample_value.to_s} with dependencies: #{deps_s.to_s}.", @runner)
@@ -146,10 +146,10 @@ class TsvFile
             end
             return matched_option_name
         end
-        
+
         return matched_option_name, matched_row_num
     end
-    
+
 end
 
 def get_parameters_ordered_from_options_lookup_tsv(resources_dir, characteristics_dir=nil)
@@ -169,7 +169,7 @@ def get_parameters_ordered_from_options_lookup_tsv(resources_dir, characteristic
         end
         params << row[0]
     end
-    
+
     return params
 end
 
@@ -185,12 +185,12 @@ def get_options_for_parameter_from_options_lookup_tsv(resources_dir, parameter_n
         next if row[0].downcase != parameter_name.downcase
         options << row[1]
     end
-    
+
     return options
 end
-  
+
 def get_combination_hashes(tsvfiles, dependencies)
-    # Returns an array with hashes that include each combination of 
+    # Returns an array with hashes that include each combination of
     # dependency values for the given dependencies.
     combos_hashes = []
 
@@ -199,14 +199,14 @@ def get_combination_hashes(tsvfiles, dependencies)
     dependencies.each do |dep|
         depval_array << tsvfiles[dep].option_cols.keys
     end
-    
+
     if depval_array.size == 0
         return combos_hashes
     end
-    
+
     # Create combinations
     combos = depval_array.first.product(*depval_array[1..-1])
-    
+
     # Convert to combinations of hashes
     combos.each do |combo|
         # Convert to hash
@@ -222,7 +222,7 @@ def get_combination_hashes(tsvfiles, dependencies)
     end
     return combos_hashes
 end
-  
+
 def get_value_from_runner_past_results(runner, key_lookup, measure_name, error_if_missing=true)
     require 'openstudio'
     key_lookup = OpenStudio::toUnderscoreCase(key_lookup)
@@ -243,7 +243,26 @@ def get_value_from_runner_past_results(runner, key_lookup, measure_name, error_i
     end
     return nil
 end
-  
+
+def get_multi_measure_upgrade_applicability_from_runner_past_results(runner)
+    require 'openstudio'
+    applics = []
+    success_value = OpenStudio::StepResult.new("Success")
+    runner.workflow.workflowSteps.each do |step|
+        next if not step.result.is_initialized
+        step_result = step.result.get
+        next if not step_result.measureName.is_initialized
+        next if step_result.measureName.get != 'apply_upgrade'
+        next if step_result.value != success_value
+        step_result.stepValues.each do |step_value|
+            next unless step_value.name.include?('_applicable')
+            applics << {'name' => step_value.name, 'applicable' => step_value.valueAsBoolean}
+        end
+    end
+
+    return applics
+end
+
 def get_measure_args_from_option_names(lookup_file, option_names, parameter_name, runner=nil)
     found_options = {}
     options_measure_args = {}
@@ -252,7 +271,7 @@ def get_measure_args_from_option_names(lookup_file, option_names, parameter_name
       options_measure_args[option_name] = {}
     end
     current_option = nil
-    
+
     CSV.foreach(lookup_file, { :col_sep => "\t" }) do |row|
         next if row.size < 2
         # Found option row?
@@ -305,12 +324,12 @@ def evaluate_logic(option_apply_logic, runner)
         runner.registerError("Inconsistent number of open and close parentheses in logic.")
         return nil
     end
-    
+
     ruby_eval_str = ""
     option_apply_logic.split("||").each do |or_segment|
         or_segment.split("&&").each do |segment|
             segment.strip!
-            
+
             # Handle presence of open parentheses
             rindex = segment.rindex("(")
             if rindex.nil?
@@ -319,26 +338,26 @@ def evaluate_logic(option_apply_logic, runner)
                 rindex += 1
             end
             segment_open = segment[0,rindex].gsub(" ","")
-            
+
             # Handle presence of exclamation point
             segment_equality = "'=='"
             if segment[rindex] == '!'
                 segment_equality = "'!='"
                 rindex += 1
             end
-            
+
             # Handle presence of close parentheses
             lindex = segment.index(")")
             if lindex.nil?
                 lindex = segment.size
             end
             segment_close = segment[lindex,segment.size-lindex].gsub(" ","")
-            
+
             segment_parameter, segment_option = segment[rindex,lindex-rindex].strip.split("|")
-            
+
             # Get existing building option name for the same parameter
             segment_existing_option = get_value_from_runner_past_results(runner, segment_parameter, "build_existing_model")
-            
+
             ruby_eval_str += segment_open + "'" + segment_existing_option + segment_equality + segment_option + "'" + segment_close + " and "
         end
         ruby_eval_str.chomp!(" and ")
@@ -352,6 +371,11 @@ def evaluate_logic(option_apply_logic, runner)
     if not [true, false].include?(result)
         runner.registerError("Logic was not successfully evaluated: #{ruby_eval_str}")
         return nil
-    end 
+    end
     return result
+end
+
+class Version
+    ComStock_Version = '0.0.1' # Version of ComStock
+    BuildStockBatch_Version = '0.22' # Minimum required version of BuildStockBatch
 end

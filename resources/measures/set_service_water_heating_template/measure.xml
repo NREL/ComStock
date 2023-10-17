@@ -1,9 +1,10 @@
+<?xml version="1.0"?>
 <measure>
-  <schema_version>3.0</schema_version>
+  <schema_version>3.1</schema_version>
   <name>set_service_water_heating_template</name>
   <uid>8c402a06-45ca-4501-b7d7-a174077b1f6e</uid>
-  <version_id>0832c11d-cf60-42b9-93c8-2ef048e81954</version_id>
-  <version_modified>20200309T181828Z</version_modified>
+  <version_id>a191551c-41c0-4385-8be0-0d6b7ee76da5</version_id>
+  <version_modified>2023-10-16T20:24:53Z</version_modified>
   <xml_checksum>F5F290C6</xml_checksum>
   <class_name>SetServiceWaterHeatingTemplate</class_name>
   <display_name>Set Service Water Heating Template</display_name>
@@ -17,7 +18,7 @@
       <type>Choice</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
-      <default_value>DEER 1985</default_value>
+      <default_value>ComStock DOE Ref 1980-2004</default_value>
       <choices>
         <choice>
           <value>DEER Pre-1975</value>
@@ -56,6 +57,46 @@
           <display_name>DEER 2017</display_name>
         </choice>
         <choice>
+          <value>ComStock DEER Pre-1975</value>
+          <display_name>ComStock DEER Pre-1975</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 1985</value>
+          <display_name>ComStock DEER 1985</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 1996</value>
+          <display_name>ComStock DEER 1996</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2003</value>
+          <display_name>ComStock DEER 2003</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2007</value>
+          <display_name>ComStock DEER 2007</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2011</value>
+          <display_name>ComStock DEER 2011</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2014</value>
+          <display_name>ComStock DEER 2014</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2015</value>
+          <display_name>ComStock DEER 2015</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2017</value>
+          <display_name>ComStock DEER 2017</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2020</value>
+          <display_name>ComStock DEER 2020</display_name>
+        </choice>
+        <choice>
           <value>DOE Ref Pre-1980</value>
           <display_name>DOE Ref Pre-1980</display_name>
         </choice>
@@ -78,6 +119,46 @@
         <choice>
           <value>90.1-2013</value>
           <display_name>90.1-2013</display_name>
+        </choice>
+        <choice>
+          <value>90.1-2016</value>
+          <display_name>90.1-2016</display_name>
+        </choice>
+        <choice>
+          <value>90.1-2019</value>
+          <display_name>90.1-2019</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DOE Ref Pre-1980</value>
+          <display_name>ComStock DOE Ref Pre-1980</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DOE Ref 1980-2004</value>
+          <display_name>ComStock DOE Ref 1980-2004</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2004</value>
+          <display_name>ComStock 90.1-2004</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2007</value>
+          <display_name>ComStock 90.1-2007</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2010</value>
+          <display_name>ComStock 90.1-2010</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2013</value>
+          <display_name>ComStock 90.1-2013</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2016</value>
+          <display_name>ComStock 90.1-2016</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2019</value>
+          <display_name>ComStock 90.1-2019</display_name>
         </choice>
       </choices>
     </argument>
@@ -87,7 +168,7 @@
       <type>Choice</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
-      <default_value>DEER 1985</default_value>
+      <default_value>ComStock DOE Ref 1980-2004</default_value>
       <choices>
         <choice>
           <value>DEER Pre-1975</value>
@@ -126,6 +207,46 @@
           <display_name>DEER 2017</display_name>
         </choice>
         <choice>
+          <value>ComStock DEER Pre-1975</value>
+          <display_name>ComStock DEER Pre-1975</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 1985</value>
+          <display_name>ComStock DEER 1985</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 1996</value>
+          <display_name>ComStock DEER 1996</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2003</value>
+          <display_name>ComStock DEER 2003</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2007</value>
+          <display_name>ComStock DEER 2007</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2011</value>
+          <display_name>ComStock DEER 2011</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2014</value>
+          <display_name>ComStock DEER 2014</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2015</value>
+          <display_name>ComStock DEER 2015</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2017</value>
+          <display_name>ComStock DEER 2017</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2020</value>
+          <display_name>ComStock DEER 2020</display_name>
+        </choice>
+        <choice>
           <value>DOE Ref Pre-1980</value>
           <display_name>DOE Ref Pre-1980</display_name>
         </choice>
@@ -149,6 +270,46 @@
           <value>90.1-2013</value>
           <display_name>90.1-2013</display_name>
         </choice>
+        <choice>
+          <value>90.1-2016</value>
+          <display_name>90.1-2016</display_name>
+        </choice>
+        <choice>
+          <value>90.1-2019</value>
+          <display_name>90.1-2019</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DOE Ref Pre-1980</value>
+          <display_name>ComStock DOE Ref Pre-1980</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DOE Ref 1980-2004</value>
+          <display_name>ComStock DOE Ref 1980-2004</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2004</value>
+          <display_name>ComStock 90.1-2004</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2007</value>
+          <display_name>ComStock 90.1-2007</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2010</value>
+          <display_name>ComStock 90.1-2010</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2013</value>
+          <display_name>ComStock 90.1-2013</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2016</value>
+          <display_name>ComStock 90.1-2016</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2019</value>
+          <display_name>ComStock 90.1-2019</display_name>
+        </choice>
       </choices>
     </argument>
     <argument>
@@ -157,7 +318,7 @@
       <type>Choice</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
-      <default_value>CEC T24-CEC1</default_value>
+      <default_value>ASHRAE 169-2013-2B</default_value>
       <choices>
         <choice>
           <value>ASHRAE 169-2013-1A</value>
@@ -294,8 +455,8 @@
       </choices>
     </argument>
   </arguments>
-  <outputs/>
-  <provenances/>
+  <outputs />
+  <provenances />
   <tags>
     <tag>Service Water Heating.Water Heating</tag>
   </tags>
@@ -353,18 +514,6 @@
   </attributes>
   <files>
     <file>
-      <filename>README.md.erb</filename>
-      <filetype>erb</filetype>
-      <usage_type>readmeerb</usage_type>
-      <checksum>703C9964</checksum>
-    </file>
-    <file>
-      <filename>deer_building_types.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>A69C9A27</checksum>
-    </file>
-    <file>
       <filename>LICENSE.md</filename>
       <filetype>md</filetype>
       <usage_type>license</usage_type>
@@ -377,16 +526,10 @@
       <checksum>5848355B</checksum>
     </file>
     <file>
-      <filename>Rt3-DEER Pre-1975-DXEH-CEC T24-CEC1.osm</filename>
-      <filetype>osm</filetype>
-      <usage_type>test</usage_type>
-      <checksum>D0AEC51B</checksum>
-    </file>
-    <file>
-      <filename>measure_test.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>test</usage_type>
-      <checksum>8CE384D0</checksum>
+      <filename>README.md.erb</filename>
+      <filetype>erb</filetype>
+      <usage_type>readmeerb</usage_type>
+      <checksum>703C9964</checksum>
     </file>
     <file>
       <version>
@@ -397,7 +540,25 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>AD32A398</checksum>
+      <checksum>66453CFE</checksum>
+    </file>
+    <file>
+      <filename>deer_building_types.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>2D01794A</checksum>
+    </file>
+    <file>
+      <filename>Rt3-DEER Pre-1975-DXEH-CEC T24-CEC1.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>D0AEC51B</checksum>
+    </file>
+    <file>
+      <filename>measure_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>E32AB082</checksum>
     </file>
   </files>
 </measure>

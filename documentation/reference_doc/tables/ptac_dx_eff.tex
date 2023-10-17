@@ -1,0 +1,40 @@
+\begin{table}[ht!]
+\scriptsize
+\centering
+\caption{PTAC DX Cooling Efficiency and Performance Curve Assignment}
+\label{tab:ptac_efficiencies}
+\begin{tabular}{|p{0.4in}|p{0.4in}|p{0.4in}|p{0.4in}|p{0.4in}|p{0.4in}|p{0.4in}|p{0.4in}|p{0.4in}|p{0.4in}|p{0.4in}|}
+\hline
+\textbf{Template} &
+  \textbf{Minimum Capacity   (Btu/hr)} &
+  \textbf{Maximum Capacity   (Btu/hr)} &
+  \textbf{Minimum Energy   Efficiency Ratio (EER)} &
+  \textbf{PTAC\_EER\_Coefficient\_1} &
+  \textbf{PTAC\_EER\_Coefficient\_2} &
+  \textbf{Capacity Function of Temperature} &
+  \textbf{Capacity Function of Airflow} &
+  \textbf{EIR Function of Temperature} &
+  \textbf{EIR Function of Airflow} &
+  \textbf{EIR Function of PLR} \\ \hline
+Pre-1980 & - & no max & & 10 & 0.16 &
+  \multirow{2}{*}{\parbox{0.4in}{DOE Ref DX Clg Coil Cool-Cap-fT}} &
+  \multirow{2}{*}{\parbox{0.4in}{DOE Ref DX Clg Coil Cool-CAP-fFlow}} &
+  \multirow{2}{*}{\parbox{0.4in}{DOE Ref DX Clg Coil Cool-EIR-fT}} &
+  \multirow{2}{*}{\parbox{0.4in}{DOE Ref DX Clg Coil Cool-EIR-fFlow}} &
+  \multirow{2}{*}{\parbox{0.4in}{DOE Ref DX Clg Coil Cool-PLF-fPLR}} \\ \cline{1-6} 
+1980--2004         & -      & no max &      & 10   & 0.16  &  &  &  &  &  \\ \hline
+90.1-2004         & -      & no max &      & 12.5 & 0.213 &
+  \multirow{8}{*}{\parbox{0.4in}{PSZ-Fine Storage DX Coil Cap-FT}} &
+  \multirow{8}{*}{\parbox{0.4in}{DX Coil Cap-FF}} &
+  \multirow{8}{*}{\parbox{0.4in}{PSZ-AC DX Coil EIR-FT}} &
+  \multirow{8}{*}{\parbox{0.4in}{Split DX Coil EIR-FF}} &
+  \multirow{8}{*}{\parbox{0.4in}{HPAC\-COOLPL\-FFPLR}} \\ \cline{1-6} 
+90.1-2007         & -      & no max &      & 12.5 & 0.213 &  &  &  &  & \\ \cline{1-6} 
+90.1-2010         & -      & no max &      & 13.8 & 0.3   &  &  &  &  & \\ \cline{1-6} 
+90.1-2013         & -      & no max &      & 14   & 0.3   &  &  &  &  & \\ \cline{1-6} 
+90.1-2016         & -      & no max &      & 14   & 0.3   &  &  &  &  & \\ \cline{1-6} 
+90.1-2019         & -      & 6,999  & 11.9 &      &       &  &  &  &  & \\ \cline{1-6}
+90.1-2019         & 6,999  & 14,999 &      & 14   & 0.3   &  &  &  &  & \\ \cline{1-6}
+90.1-2019         & 14,999 & no max & 9.5  &      &       &  &  &  &  & \\ \hline
+\end{tabular}
+\end{table}

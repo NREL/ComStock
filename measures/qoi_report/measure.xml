@@ -1,15 +1,16 @@
+<?xml version="1.0"?>
 <measure>
-  <schema_version>3.0</schema_version>
+  <schema_version>3.1</schema_version>
   <name>qoi_report</name>
   <uid>be0bfc7f-25c6-435a-9acd-2f5fa8ac817d</uid>
-  <version_id>16781227-7ac7-4d25-b238-c8242814c1a0</version_id>
-  <version_modified>20200402T022653Z</version_modified>
+  <version_id>927544b0-9ad1-47d3-bad3-8b18ef8759c1</version_id>
+  <version_modified>2023-10-16T20:22:24Z</version_modified>
   <xml_checksum>15BF4E57</xml_checksum>
   <class_name>QOIReport</class_name>
   <display_name>QOI Report</display_name>
   <description>Reports uncertainty quantification quantities of interest.</description>
   <modeler_description>TODO</modeler_description>
-  <arguments/>
+  <arguments />
   <outputs>
     <output>
       <name>average_minimum_daily_use_winter_kw</name>
@@ -117,7 +118,7 @@
       <model_dependent>false</model_dependent>
     </output>
   </outputs>
-  <provenances/>
+  <provenances />
   <tags>
     <tag>Reporting.QAQC</tag>
   </tags>
@@ -130,18 +131,6 @@
   </attributes>
   <files>
     <file>
-      <filename>USA_MI_Detroit.City.725375_2012.epw</filename>
-      <filetype>epw</filetype>
-      <usage_type>test</usage_type>
-      <checksum>FEBD2B68</checksum>
-    </file>
-    <file>
-      <filename>qoi_report_test.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>test</usage_type>
-      <checksum>E8C3112C</checksum>
-    </file>
-    <file>
       <version>
         <software_program>OpenStudio</software_program>
         <identifier>2.9.0</identifier>
@@ -150,7 +139,19 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>70381C7F</checksum>
+      <checksum>41602088</checksum>
+    </file>
+    <file>
+      <filename>USA_MI_Detroit.City.725375_2012.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>FEBD2B68</checksum>
+    </file>
+    <file>
+      <filename>bldg0000025.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>25F2C0A6</checksum>
     </file>
     <file>
       <filename>cold_climate.epw</filename>
@@ -163,6 +164,12 @@
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
       <checksum>C7F46119</checksum>
+    </file>
+    <file>
+      <filename>qoi_report_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>F226FE3E</checksum>
     </file>
     <file>
       <filename>retail_2010.osm</filename>

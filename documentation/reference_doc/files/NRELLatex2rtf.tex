@@ -1,0 +1,40 @@
+% File NRELLatex2rtf.tex
+
+% set margins
+\usepackage[margin=1 in,letterpaper]{geometry}
+
+% use citations
+\usepackage[sort]{natbib}
+
+% change the heading of the bibliography
+\renewcommand{\bibsection}{\section{References}}
+
+% redefine \pdftooltip so that it behaves differently with and without latextortf
+\newcommand{\pdftooltip}[3][]{#2}
+
+%redefine the checkmark
+\newcommand{\checkmark}{y\relax}
+
+% redefine booktabs commands
+\newcommand{\toprule}{\hline}
+\newcommand{\midrule}{\hline}
+\newcommand{\bottomrule}{\hline}
+
+% redefine \href
+\newcommand{\href}[2]{#1~ (\url{#2})}
+
+% redefine \subfloat to match the \subfigure environment
+\usepackage{subfigure}
+\makeatletter
+\newcommand{\subfloat}[2][]{\subfigure{\textit{Subcaption: \protect{#1}}}{#2}}
+%\newcommand{\subfloat}[3][]{\subfigure{#1}{#2}{#3}}
+% note that we can only have one '\label' in a figure environment
+\makeatother
+
+\newcommand{\subref}[1][]{\ref{#1}}
+
+% redefine \todo so that it gives something useful
+\newcommand{\todo}[2][]{\textbf{To Do:}~#2}
+
+% deal with index entries:
+\newcommand{\index}[1]{}

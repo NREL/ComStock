@@ -1,9 +1,10 @@
+<?xml version="1.0"?>
 <measure>
-  <schema_version>3.0</schema_version>
+  <schema_version>3.1</schema_version>
   <name>set_exterior_lighting_template</name>
   <uid>7d3e15d7-3749-4baa-b7b3-960dc3bd12fc</uid>
-  <version_id>79619846-cb83-4d09-9d63-33f958643b61</version_id>
-  <version_modified>20200309T181827Z</version_modified>
+  <version_id>d8503dd5-dc11-4abb-a76e-7c62559fef51</version_id>
+  <version_modified>2023-10-16T20:24:51Z</version_modified>
   <xml_checksum>4EB6C100</xml_checksum>
   <class_name>SetExteriorLightingTemplate</class_name>
   <display_name>Set Exterior Lighting Template</display_name>
@@ -56,6 +57,46 @@
           <display_name>DEER 2017</display_name>
         </choice>
         <choice>
+          <value>ComStock DEER Pre-1975</value>
+          <display_name>ComStock DEER Pre-1975</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 1985</value>
+          <display_name>ComStock DEER 1985</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 1996</value>
+          <display_name>ComStock DEER 1996</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2003</value>
+          <display_name>ComStock DEER 2003</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2007</value>
+          <display_name>ComStock DEER 2007</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2011</value>
+          <display_name>ComStock DEER 2011</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2014</value>
+          <display_name>ComStock DEER 2014</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2015</value>
+          <display_name>ComStock DEER 2015</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2017</value>
+          <display_name>ComStock DEER 2017</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2020</value>
+          <display_name>ComStock DEER 2020</display_name>
+        </choice>
+        <choice>
           <value>DOE Ref Pre-1980</value>
           <display_name>DOE Ref Pre-1980</display_name>
         </choice>
@@ -78,6 +119,46 @@
         <choice>
           <value>90.1-2013</value>
           <display_name>90.1-2013</display_name>
+        </choice>
+        <choice>
+          <value>90.1-2016</value>
+          <display_name>90.1-2016</display_name>
+        </choice>
+        <choice>
+          <value>90.1-2019</value>
+          <display_name>90.1-2019</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DOE Ref Pre-1980</value>
+          <display_name>ComStock DOE Ref Pre-1980</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DOE Ref 1980-2004</value>
+          <display_name>ComStock DOE Ref 1980-2004</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2004</value>
+          <display_name>ComStock 90.1-2004</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2007</value>
+          <display_name>ComStock 90.1-2007</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2010</value>
+          <display_name>ComStock 90.1-2010</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2013</value>
+          <display_name>ComStock 90.1-2013</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2016</value>
+          <display_name>ComStock 90.1-2016</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2019</value>
+          <display_name>ComStock 90.1-2019</display_name>
         </choice>
       </choices>
     </argument>
@@ -126,6 +207,46 @@
           <display_name>DEER 2017</display_name>
         </choice>
         <choice>
+          <value>ComStock DEER Pre-1975</value>
+          <display_name>ComStock DEER Pre-1975</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 1985</value>
+          <display_name>ComStock DEER 1985</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 1996</value>
+          <display_name>ComStock DEER 1996</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2003</value>
+          <display_name>ComStock DEER 2003</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2007</value>
+          <display_name>ComStock DEER 2007</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2011</value>
+          <display_name>ComStock DEER 2011</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2014</value>
+          <display_name>ComStock DEER 2014</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2015</value>
+          <display_name>ComStock DEER 2015</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2017</value>
+          <display_name>ComStock DEER 2017</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DEER 2020</value>
+          <display_name>ComStock DEER 2020</display_name>
+        </choice>
+        <choice>
           <value>DOE Ref Pre-1980</value>
           <display_name>DOE Ref Pre-1980</display_name>
         </choice>
@@ -148,6 +269,46 @@
         <choice>
           <value>90.1-2013</value>
           <display_name>90.1-2013</display_name>
+        </choice>
+        <choice>
+          <value>90.1-2016</value>
+          <display_name>90.1-2016</display_name>
+        </choice>
+        <choice>
+          <value>90.1-2019</value>
+          <display_name>90.1-2019</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DOE Ref Pre-1980</value>
+          <display_name>ComStock DOE Ref Pre-1980</display_name>
+        </choice>
+        <choice>
+          <value>ComStock DOE Ref 1980-2004</value>
+          <display_name>ComStock DOE Ref 1980-2004</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2004</value>
+          <display_name>ComStock 90.1-2004</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2007</value>
+          <display_name>ComStock 90.1-2007</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2010</value>
+          <display_name>ComStock 90.1-2010</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2013</value>
+          <display_name>ComStock 90.1-2013</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2016</value>
+          <display_name>ComStock 90.1-2016</display_name>
+        </choice>
+        <choice>
+          <value>ComStock 90.1-2019</value>
+          <display_name>ComStock 90.1-2019</display_name>
         </choice>
       </choices>
     </argument>
@@ -294,8 +455,8 @@
       </choices>
     </argument>
   </arguments>
-  <outputs/>
-  <provenances/>
+  <outputs />
+  <provenances />
   <tags>
     <tag>Electric Lighting.Lighting Equipment</tag>
   </tags>
@@ -353,18 +514,6 @@
   </attributes>
   <files>
     <file>
-      <filename>README.md.erb</filename>
-      <filetype>erb</filetype>
-      <usage_type>readmeerb</usage_type>
-      <checksum>703C9964</checksum>
-    </file>
-    <file>
-      <filename>deer_building_types.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>A69C9A27</checksum>
-    </file>
-    <file>
       <filename>LICENSE.md</filename>
       <filetype>md</filetype>
       <usage_type>license</usage_type>
@@ -377,16 +526,33 @@
       <checksum>42A8E548</checksum>
     </file>
     <file>
+      <filename>README.md.erb</filename>
+      <filetype>erb</filetype>
+      <usage_type>readmeerb</usage_type>
+      <checksum>703C9964</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.6.0</identifier>
+        <min_compatible>2.6.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>0F434A5B</checksum>
+    </file>
+    <file>
+      <filename>deer_building_types.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>2D01794A</checksum>
+    </file>
+    <file>
       <filename>Rt3-DEER Pre-1975-DXEH-CEC T24-CEC1.osm</filename>
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
       <checksum>D0AEC51B</checksum>
-    </file>
-    <file>
-      <filename>measure_test.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>test</usage_type>
-      <checksum>971E7313</checksum>
     </file>
     <file>
       <filename>hsp_test_output.osm</filename>
@@ -401,21 +567,16 @@
       <checksum>DB539D52</checksum>
     </file>
     <file>
+      <filename>measure_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>B54F5D9B</checksum>
+    </file>
+    <file>
       <filename>rff_test_output.osm</filename>
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
       <checksum>5F50B37D</checksum>
-    </file>
-    <file>
-      <version>
-        <software_program>OpenStudio</software_program>
-        <identifier>2.6.0</identifier>
-        <min_compatible>2.6.0</min_compatible>
-      </version>
-      <filename>measure.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>script</usage_type>
-      <checksum>D7FFAEF2</checksum>
     </file>
   </files>
 </measure>

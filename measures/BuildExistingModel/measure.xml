@@ -1,9 +1,10 @@
+<?xml version="1.0"?>
 <measure>
-  <schema_version>3.0</schema_version>
+  <schema_version>3.1</schema_version>
   <name>build_existing_model</name>
   <uid>943cde68-f4bf-4e2e-a984-ab70cba2669c</uid>
-  <version_id>87cecb98-5430-4e61-a27e-f688d77d19c4</version_id>
-  <version_modified>20190309T163127Z</version_modified>
+  <version_id>714ecd93-87d7-42dc-b9a9-5c34dbdcbfd0</version_id>
+  <version_modified>2023-10-16T20:22:18Z</version_modified>
   <xml_checksum>9339BE01</xml_checksum>
   <class_name>BuildExistingModel</class_name>
   <display_name>Build Existing Model</display_name>
@@ -26,9 +27,17 @@
       <required>false</required>
       <model_dependent>false</model_dependent>
     </argument>
+    <argument>
+      <name>workflow_json</name>
+      <display_name>Workflow JSON</display_name>
+      <description>The name of the JSON file (in the resources dir) that dictates the order in which measures are to be run. If not provided, the order specified in resources/options_lookup.tsv will be used.</description>
+      <type>String</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+    </argument>
   </arguments>
-  <outputs/>
-  <provenances/>
+  <outputs />
+  <provenances />
   <tags>
     <tag>Whole Building.Space Types</tag>
   </tags>
@@ -94,7 +103,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>CAA5AD0F</checksum>
+      <checksum>150B971C</checksum>
     </file>
   </files>
 </measure>

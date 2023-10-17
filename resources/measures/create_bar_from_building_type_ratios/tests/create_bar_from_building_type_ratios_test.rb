@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2020 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 require 'openstudio'
@@ -146,6 +146,24 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['bldg_type_a'] = 'LargeHotel'
     args['bldg_type_b'] = 'FullServiceRestaurant'
     args['bldg_type_b_fract_bldg_area'] = 0.1
+
+    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args)
+  end
+
+  def test_warehouse_subtype
+    args = {}
+    args['total_bldg_floor_area'] = 20000.0
+    args['bldg_type_a'] = 'Warehouse'
+    args['bldg_subtype_a'] = 'warehouse_bulk100'
+
+    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args)
+  end
+
+  def test_largeoffice_subtype
+    args = {}
+    args['total_bldg_floor_area'] = 20000.0
+    args['bldg_type_a'] = 'LargeOffice'
+    args['bldg_subtype_a'] = 'largeoffice_nodatacenter'
 
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args)
   end
@@ -312,7 +330,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['bar_division_method'] = 'Single Space Type - Core and Perimeter'
 
     # 11 warning messages because using single space type division method with multi-space type building type
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, 11)
+    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, 14)
   end
 
   def test_fixed_single_floor_area
@@ -760,5 +778,22 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
 
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
   end
-  
+
+  def test_preserve_bldg_addl_props
+    args = {}
+    args['total_bldg_floor_area'] = 50000.0
+    args['num_stories_above_grade'] = 5
+    args['story_multiplier'] = 'None'
+
+    model = apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'example_model.osm')
+
+    # Ensure that building additional properties are preserved
+    props = model.getBuilding.additionalProperties
+    assert(props.featureNames.size == 4)
+    assert_equal(props.getFeatureAsString('string').get, 'some_string')
+    assert_equal(props.getFeatureAsDouble('double').get, 99.99)
+    assert_equal(props.getFeatureAsInteger('int').get, 99)
+    assert(props.getFeatureAsBoolean('bool').get)
+  end
+
 end

@@ -1,0 +1,218 @@
+<?xml version="1.0"?>
+<measure>
+  <schema_version>3.1</schema_version>
+  <name>set_primary_kitchen_equipment</name>
+  <uid>645121be-dec7-4e80-bec3-238d1aa69ac7</uid>
+  <version_id>319e8571-f4ee-4e63-bc97-9242c4f85c49</version_id>
+  <version_modified>2023-10-16T20:24:56Z</version_modified>
+  <xml_checksum>0C204E3D</xml_checksum>
+  <class_name>SetPrimaryKitchenEquipment</class_name>
+  <display_name>set_primary_kitchen_equipment</display_name>
+  <description>Measure adds specific primary kitchen equipment to kitchen space type based on user inputs. Primary kitchen equipment includes griddles, ovens, fryers, steamers, ranges, and stoves. Equipment can be either gas or electric based on user-specified inputs. Exisiting kitchen equipment will be removed, but new equipment will follow the same schedule as the equipment originally in the model.</description>
+  <modeler_description>Measure adds specific primary kitchen equipment to kitchen space type based on user inputs. Primary kitchen equipment includes griddles, ovens, fryers, steamers, ranges, and stoves. Equipment can be either gas or electric based on user-specified inputs. Exisiting kitchen equipment will be removed, but new equipment will follow the same schedule as the equipment originally in the model.</modeler_description>
+  <arguments>
+    <argument>
+      <name>cook_dining_type</name>
+      <display_name>cook_dining_type</display_name>
+      <description>Food service type in building; this will determine major cooking equipment distribution.</description>
+      <type>String</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>None</default_value>
+    </argument>
+    <argument>
+      <name>cook_fuel_broiler</name>
+      <display_name>cook_fuel_broiler</display_name>
+      <description>Fuel type of broilers in building. All broilers will be the same fuel type.</description>
+      <type>String</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>Gas</default_value>
+    </argument>
+    <argument>
+      <name>cook_broilers_counts</name>
+      <display_name>cook_broilers_counts</display_name>
+      <description>Quantity of broilers in building.</description>
+      <type>Double</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>0</default_value>
+    </argument>
+    <argument>
+      <name>cook_fuel_griddle</name>
+      <display_name>cook_fuel_griddle</display_name>
+      <description>Fuel type of griddles in building. All griddles will be the same fuel type.</description>
+      <type>String</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>Gas</default_value>
+    </argument>
+    <argument>
+      <name>cook_griddles_counts</name>
+      <display_name>cook_griddles_counts</display_name>
+      <description>Quantity of griddles in building.</description>
+      <type>Double</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>0</default_value>
+    </argument>
+    <argument>
+      <name>cook_fuel_fryer</name>
+      <display_name>cook_fuel_fryer</display_name>
+      <description>Fuel type of fryers in building. All fryer will be the same fuel type.</description>
+      <type>String</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>Gas</default_value>
+    </argument>
+    <argument>
+      <name>cook_fryers_counts</name>
+      <display_name>cook_fryers_counts</display_name>
+      <description>Quantity of fryer in building.</description>
+      <type>Double</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>0</default_value>
+    </argument>
+    <argument>
+      <name>cook_fuel_oven</name>
+      <display_name>cook_fuel_oven</display_name>
+      <description>Fuel type of oven in building. All oven will be the same fuel type.</description>
+      <type>String</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>Gas</default_value>
+    </argument>
+    <argument>
+      <name>cook_ovens_counts</name>
+      <display_name>cook_ovens_counts</display_name>
+      <description>Quantity of oven in building.</description>
+      <type>Double</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>0</default_value>
+    </argument>
+    <argument>
+      <name>cook_fuel_range</name>
+      <display_name>cook_fuel_range</display_name>
+      <description>Fuel type of range in building. All range will be the same fuel type.</description>
+      <type>String</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>Gas</default_value>
+    </argument>
+    <argument>
+      <name>cook_ranges_counts</name>
+      <display_name>cook_ranges_counts</display_name>
+      <description>Quantity of range in building.</description>
+      <type>Double</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>0</default_value>
+    </argument>
+    <argument>
+      <name>cook_fuel_steamer</name>
+      <display_name>cook_fuel_steamer</display_name>
+      <description>Fuel type of steamer in building. All steamer will be the same fuel type.</description>
+      <type>String</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>Gas</default_value>
+    </argument>
+    <argument>
+      <name>cook_steamers_counts</name>
+      <display_name>cook_steamers_counts</display_name>
+      <description>Quantity of steamer in building.</description>
+      <type>Double</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>0</default_value>
+    </argument>
+  </arguments>
+  <outputs />
+  <provenances />
+  <tags>
+    <tag>Equipment.Equipment Controls</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Model Articulation</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Calibration</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>LICENSE.md</filename>
+      <filetype>md</filetype>
+      <usage_type>license</usage_type>
+      <checksum>CD7F5672</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>C471A3A7</checksum>
+    </file>
+    <file>
+      <filename>README.md.erb</filename>
+      <filetype>erb</filetype>
+      <usage_type>readmeerb</usage_type>
+      <checksum>703C9964</checksum>
+    </file>
+    <file>
+      <filename>.gitkeep</filename>
+      <filetype>gitkeep</filetype>
+      <usage_type>doc</usage_type>
+      <checksum>00000000</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.9.1</identifier>
+        <min_compatible>2.9.1</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>91304ED8</checksum>
+    </file>
+    <file>
+      <filename>example_model.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>53D14E69</checksum>
+    </file>
+    <file>
+      <filename>set_primary_kitchen_equipment_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>501D21BE</checksum>
+    </file>
+  </files>
+</measure>

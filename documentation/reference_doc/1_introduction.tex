@@ -1,0 +1,19 @@
+\chapter{Introduction}
+The commercial building sector stock model, or ComStock, is a highly granular, bottom-up model that uses multiple data sources, statistical sampling methods, and advanced building energy simulations to estimate the annual subhourly energy consumption of the commercial building stock across the United States.
+
+This document serves as a guide to and resource for the methodology and assumptions behind ComStock.
+
+\section{Overview and Primary Use Applications}
+ComStock answers two questions: \textbf{(1) How is energy used in the U.S. commercial building stock?} and \textbf{(2) What is the impact of energy-saving technologies?} Specifically, ComStock quantifies energy use across geographical locations, building types and end uses, and time of day. Additionally, it identifies the impact of efficiency measures: how much energy different efficiency measures save; where or in what use cases efficiency measures save energy; when or at what times of day savings occur; and which building stock segments have the biggest savings potential.
+
+This type of analysis can be conducted using simple representation and fast execution or complex representation and slow execution modeling methods. Each methodology has benefits and trade-offs. The National Energy Modeling System (NEMS) used by the U.S. Energy Information Administration (EIA) is an example of a simple, fast method. NEMS models the entire U.S. energy system on the census region level, and its results for the building stock have very low granularity. Modeling each individual building within the building stock is an example of a complex, slow method. This approach offers a high granularity of results, but gives more detail than is needed and is highly impractical.
+
+The ComStock methodology is positioned between these two extremes. It strikes a balance by presenting just enough information to answer its two driving questions. ComStock provides highly granular building stock data to capture the diversity within the building stock while maintaining a reasonable execution speed. Three advantages of this granular approach are: (1) hourly or subhourly detail; (2) modeling of controls, demand response, and measure interaction; and (3) the ability to post-process the data to extract as many insights as possible from the simulations.
+
+Professionals and researchers have several pathways for using ComStock. They can use a web-based visualization platform to interact with the data set of annual and time series results, or they can use a simple spreadsheet-type analysis to interact with annual energy consumption results and aggregated time series load profiles. If users want to go deeper, they can even utilize the raw simulation results data set, which may require big-data skills and cloud or high-performance computing assets.
+
+\section{ComStock Calibration and Validation}
+As part of a three-year project, we compared the ComStock results to data from a wide range of sources. These data sources, as well as the comparison plots and accompanying discussion, are described in detail in that project's \href{https://www.nrel.gov/docs/fy22osti/80889.pdf}{final report} \citep{eulp_final_report}. Since the publication of that report, a few changes have been made to the ComStock modeling assumptions. The new assumptions are documented in this report, but an updated version of the detailed comparison has not yet been completed.
+
+\section{ComStock Data Access}
+Access to ComStock data sets is provided in multiple formats. The current state of data access changes periodically and is maintained at the National Renewable Energy Laboratory (NREL) \href{https://www.nrel.gov/buildings/end-use-load-profiles.html}{End-Use Load Profiles for the U.S. Building Stock website}.

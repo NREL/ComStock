@@ -1,0 +1,113 @@
+<?xml version="1.0"?>
+<measure>
+  <schema_version>3.1</schema_version>
+  <name>set_electric_equipment_bpr</name>
+  <uid>bcfa4b28-104e-45e6-89bf-e6ff1e054935</uid>
+  <version_id>2635f362-59ff-4aa8-8ec1-4c37aa942ee7</version_id>
+  <version_modified>2023-10-16T20:24:55Z</version_modified>
+  <xml_checksum>B2EAAD67</xml_checksum>
+  <class_name>SetElectricEquipmentBPR</class_name>
+  <display_name>Set Electric Equipment BPR</display_name>
+  <description></description>
+  <modeler_description>Find all of the electronic equipment schedules in the building, and adjust to a user-specified base-to-peak ratio (BPR).</modeler_description>
+  <arguments>
+    <argument>
+      <name>modify_wkdy_bpr</name>
+      <display_name>modify_wkdy_bpr</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>wkdy_bpr</name>
+      <display_name>wkdy_bpr</display_name>
+      <type>Double</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>0.5</default_value>
+    </argument>
+    <argument>
+      <name>modify_wknd_bpr</name>
+      <display_name>modify_wknd_bpr</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>wknd_bpr</name>
+      <display_name>wknd_bpr</display_name>
+      <type>Double</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>0.5</default_value>
+    </argument>
+  </arguments>
+  <outputs />
+  <provenances />
+  <tags>
+    <tag>Equipment.Equipment Controls</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Analysis Spreadsheet</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>New Construction EE</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Retrofit EE</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>1.5.0</identifier>
+        <min_compatible>1.5.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>80BE13A2</checksum>
+    </file>
+    <file>
+      <filename>set_electric_equipment_bpr_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>75EB4B24</checksum>
+    </file>
+  </files>
+</measure>

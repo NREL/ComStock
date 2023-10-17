@@ -1,0 +1,9 @@
+﻿Name,Form,Dependent Variable,Independent Variable 1,Independent Variable 2,coeff_1,coeff_2,coeff_3,coeff_4,coeff_5,coeff_6,coeff_7,coeff_8,coeff_9,coeff_10,Minimum Independent Variable 1,Maximum Independent Variable 1,Minimum Independent Variable 2,Maximum Independent Variable 2,notes
+MT_compressor_power_smallandold,BiCubic,Power,Suction T,Discharge T,483.6,-53.2,-1.384,56.19,0.003688,1.439,-0.008268,-0.00281,0.007222,0.006025,-17.8,4.4,10,48.9,From EP DataSets
+LT_compressor_power_smallandold,BiCubic,Power,Suction T,Discharge T,4018,95,1.507,5.705,1.247,-1.381,0.01277,-0.007518,-0.02424,0.02917,-40,-17.8,10,48.9,From EP DataSets
+LT_compressor_power,BiCubic,Power,Suction T,Discharge T,29669.2711,1027.63205,18.1066262,-442.19971,11.1335288,-20.380452,0.13998065,-0.0588669,-0.2184515,0.203858467,-40,-17.8,4.4,54.4,From AEDG
+MT_compressor_power,BiCubic,Power,Suction T,Discharge T,7438.92229,-269.59756,-9.8561045,553.57326,-3.3858896,14.8657878,-0.1007963,0.00982279,0.09736236,-0.039675217,-23.3,7.2,10,60,From AEDG
+MT_compressor_capacity_smallandold,BiCubic,Capacity,Suction T,Discharge T,15000,541.8,7.285,-118,-0.3645,-3.05,0.0344,0.00225,-0.03927,-0.007307,-17.8,4.4,10,48.9,From EP DataSets
+LT_compressor_capacity_smallandold,BiCubic,Capacity,Suction T,Discharge T,23500,816.7,10.7,-28.24,0.1131,-0.4553,0.05604,-0.00412,-0.006728,0.006782,-40,-17.8,10,48.9,From EP DataSets
+MT_compressor_capacity,BiCubic,Capacity,Suction T,Discharge T,151166.436,5266.34789,60.6727151,-1851.5594,5.73132755,-46.927717,0.1364012,-0.0356979,-0.403054,-0.039290478,-23.3,-7.2,10,60,From AEDG
+LT_compressor_capacity,BiCubic,Capacity,Suction T,Discharge T,170751.834,6102.9037,78.2619862,-2959.4326,19.7876589,-90.958101,0.43596477,-0.0411577,-0.608846,0.459133262,-40,17.8,4.4,54.4,From AEDG

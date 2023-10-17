@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2020 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # *******************************************************************************
@@ -37,6 +37,7 @@
 # *******************************************************************************
 
 require 'openstudio-standards'
+require 'erb'
 
 # start the measure
 class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
@@ -62,7 +63,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
   end
 
   # define the arguments that the user will input
-  def arguments
+  def arguments(model=nil)
     args = OpenStudio::Measure::OSArgumentVector.new
     # this measure does not require any user arguments, return an empty list
     return args
@@ -73,6 +74,25 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     outs = OpenStudio::Measure::OSOutputVector.new
     # this measure does not produce machine readable outputs with registerValue, return an empty list
     return outs
+  end
+
+  # helper method to access report variable data
+  def sql_get_report_variable_data_double(runner, sql, object, variable_name)
+    value = 0.0
+    var_data_id_query = "SELECT ReportVariableDataDictionaryIndex FROM ReportVariableDataDictionary WHERE VariableName = '#{variable_name}' AND ReportingFrequency = 'Run Period' AND KeyValue = '#{object.name.get.to_s.upcase}'"
+    var_data_id = sql.execAndReturnFirstDouble(var_data_id_query)
+    if var_data_id.is_initialized
+      var_val_query = "SELECT VariableValue FROM ReportVariableData WHERE ReportVariableDataDictionaryIndex = '#{var_data_id.get}'"
+      val = sql.execAndReturnFirstDouble(var_val_query)
+      if val.is_initialized
+        value = val.get
+      else
+        runner.registerWarning("'#{variable_name}' not available for #{object.iddObjectType} '#{object.name}'.")
+      end
+    else
+      runner.registerWarning("'#{variable_name}' not available for #{object.iddObjectType} '#{object.name}'.")
+    end
+    return value
   end
 
   # return a vector of IdfObject's to request EnergyPlus objects needed by the run method
@@ -86,9 +106,28 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     end
 
     result = OpenStudio::IdfObjectVector.new
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Site Outdoor Air Drybulb Temperature,Hourly;').get
+
+    # Get model
+    model = runner.lastOpenStudioModel
+    if model.empty?
+      runner.registerError('Cannot find last model in energyPlusOutputRequests, cannot request outputs for HVAC equipment.')
+      return result
+    end
+    model = model.get
+
+    # Handle fuel output variables that changed in EnergyPlus version 9.4 (Openstudio version >= 3.1)
+    elec = 'Electric'
+    gas = 'Gas'
+    fuel_oil = 'FuelOil#2'
+    if model.version > OpenStudio::VersionString.new('3.0.1')
+      elec = 'Electricity'
+      gas = 'NaturalGas'
+      fuel_oil = 'FuelOilNo2'
+    end
 
     # request zone variables for the run period
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Zone Electric Equipment Electric Energy,RunPeriod;').get
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Zone Electric Equipment #{elec} Energy,RunPeriod;").get
     result << OpenStudio::IdfObject.load('Output:Variable,*,Zone People Occupant Count,RunPeriod;').get
 
     # request service water heating use
@@ -96,21 +135,87 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
     # request coil and fan energy use for HVAC equipment
     result << OpenStudio::IdfObject.load('Output:Variable,*,Chiller COP,RunPeriod;').get
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Chiller Evaporator Cooling Energy,RunPeriod;').get
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Heating Coil Electric Energy,RunPeriod;').get # J
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Cooling Coil Electric Energy,RunPeriod;').get # J
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Chiller Evaporator Cooling Energy,RunPeriod;').get #J
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Boiler Heating Energy,RunPeriod;').get #J
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Boiler #{elec} Energy,RunPeriod;").get #J
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Boiler #{gas} Energy,RunPeriod;").get #J
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Boiler #{fuel_oil} Energy,RunPeriod;").get #J
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Boiler Propane Energy,RunPeriod;").get #J
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Heat Pump #{elec} Energy,RunPeriod;").get #J
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Heat Pump Load Side Heat Transfer Energy,RunPeriod;').get #J
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Heat Pump Source Side Inlet Temperature,RunPeriod;').get #C
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Fluid Heat Exchanger Loop Supply Side Inlet Temperature,RunPeriod;').get #C
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Fluid Heat Exchanger Loop Supply Side Outlet Temperature,RunPeriod;').get #C
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Fluid Heat Exchanger Loop Demand Side Inlet Temperature,RunPeriod;').get #C
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Fluid Heat Exchanger Loop Demand Side Outlet Temperature,RunPeriod;').get #C
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Fluid Heat Exchanger Heat Transfer Energy,RunPeriod;").get # J
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Cooling Coil #{elec} Energy,RunPeriod;").get # J
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Heating Coil #{elec} Energy,RunPeriod;").get # J
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Heating Coil #{gas} Energy,RunPeriod;").get # J
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Heating Coil Defrost #{elec} Energy,RunPeriod;").get # J
     result << OpenStudio::IdfObject.load('Output:Variable,*,Heating Coil Heating Energy,RunPeriod;').get # J
     result << OpenStudio::IdfObject.load('Output:Variable,*,Cooling Coil Total Cooling Energy,RunPeriod;').get # J
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Air System Outdoor Air Flow Fraction,RunPeriod;').get
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Zone VRF Air Terminal Total Heating Energy,RunPeriod;').get # J
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Zone VRF Air Terminal Total Cooling Energy,RunPeriod;').get # J
+    result << OpenStudio::IdfObject.load('Output:Variable,*,VRF Heat Pump Cooling Electricity Energy,RunPeriod;').get # J
+    result << OpenStudio::IdfObject.load('Output:Variable,*,VRF Heat Pump Heating Electricity Energy,RunPeriod;').get # J
+    result << OpenStudio::IdfObject.load('Output:Variable,*,VRF Heat Pump Defrost Electricity Energy,RunPeriod;').get # J
+    result << OpenStudio::IdfObject.load('Output:Variable,*,VRF Heat Pump Crankcase Heater Electricity Energy,RunPeriod;').get # J
+    result << OpenStudio::IdfObject.load('Output:Variable,*,VRF Heat Pump Heat Recovery Energy,RunPeriod;').get # J
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Air System Outdoor Air Mass Flow Rate,RunPeriod;').get
     result << OpenStudio::IdfObject.load('Output:Variable,*,Air System Mixed Air Mass Flow Rate,RunPeriod;').get # kg/s
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Water Heater #{elec} Energy,RunPeriod;").get # J
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Water Heater #{gas} Energy,RunPeriod;").get # J
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Water Heater #{fuel_oil} Energy,RunPeriod;").get # J
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Water Heater Propane Energy,RunPeriod;").get # J
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Water Heater Heating Energy,RunPeriod;').get # J
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Water Heater Unmet Demand Heat Transfer Energy,RunPeriod;').get # J
+    if model.version > OpenStudio::VersionString.new('3.3.0')
+      result << OpenStudio::IdfObject.load('Output:Variable,*,Cooling Coil Total Water Heating Energy,RunPeriod;').get # J
+      result << OpenStudio::IdfObject.load('Output:Variable,*,Cooling Coil Water Heating Electricity Energy,RunPeriod;').get # J
+    else
+      result << OpenStudio::IdfObject.load('Output:Variable,*,Heating Coil Total Water Heating Energy,RunPeriod;').get # J
+      result << OpenStudio::IdfObject.load('Output:Variable,*,Heating Coil Water Heating Electricity Energy,RunPeriod;').get # J
+    end
 
-    #result << OpenStudio::IdfObject.load('Output:Variable,*,Fan Electric Energy,RunPeriod;').get # J
-    #result << OpenStudio::IdfObject.load('Output:Variable,*,Humidifier Electric Energy,RunPeriod;').get # J
-    #result << OpenStudio::IdfObject.load('Output:Variable,*,Evaporative Cooler Electric Energy,RunPeriod;').get # J
+    #result << OpenStudio::IdfObject.load("Output:Variable,*,Fan #{elec} Energy,RunPeriod;").get # J
+    #result << OpenStudio::IdfObject.load("Output:Variable,*,Humidifier #{elec} Energy,RunPeriod;").get # J
+    #result << OpenStudio::IdfObject.load("Output:Variable,*,Evaporative Cooler #{elec} Energy,RunPeriod;").get # J
     #result << OpenStudio::IdfObject.load('Output:Variable,*,Baseboard Hot Water Energy,RunPeriod;').get # J
-    #result << OpenStudio::IdfObject.load('Output:Variable,*,Baseboard Electric Energy,RunPeriod;').get # J
+    #result << OpenStudio::IdfObject.load("Output:Variable,*,Baseboard #{elec} Energy,RunPeriod;").get # J
 
     return result
+  end
+
+  # return dependent varible based on two independent variables from TableMultiVariableLookup
+  # @param model [OpenStudio::Model::TableMultiVariableLookup] OpenStudio TableMultiVariableLookup object
+  # @param ind_var_1 [Double] independent variable 1
+  # @param ind_var_2 [Double] independent variable 2
+  # @return [Double] dependent variable value
+  def get_dep_var_from_lookup_table_with_two_ind_var(lookup_table, ind_var_1, ind_var_2)
+    unless lookup_table.to_TableMultiVariableLookup.is_initialized
+      runner.registerError("#{lookup_table.name} is not a OpenStudio::Model::TableMultiVariableLookup object.")
+      return false
+    end
+
+    # check if the lookup only has two independent variables
+    if lookup_table.numberofIndependentVariables == 2
+
+      # get independent variable 1 and 2 from table
+      array_ind_var_1 = lookup_table.xValues(0)
+      array_ind_var_2 = lookup_table.xValues(1)
+
+      # find the closest independent variable 1 and 2 from table based on method inputs
+      closest_ind_var_1 = array_ind_var_1.min_by{|x| (ind_var_1-x).abs}
+      closest_ind_var_2 = array_ind_var_2.min_by{|x| (ind_var_2-x).abs}
+
+      # grab dependent variable from the closest independent variables
+      dependent_var_val = lookup_table.yValue([closest_ind_var_1, closest_ind_var_2]).get
+    else
+      runner.registerError('This TableMultiVariableLookup is not based on two independent variables.')
+      return false
+    end
+    return dependent_var_val
   end
 
   # define what happens when the measure is run
@@ -154,18 +259,42 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       return false
     end
 
+    # Handle output variables that changed from 'Electric' to 'Electricity' in EnergyPlus version 9.4 (Openstudio version 3.1)
+    elec = 'Electric'
+    gas = 'Gas'
+    if model.version > OpenStudio::VersionString.new('3.0.1')
+      elec = 'Electricity'
+      gas = 'NaturalGas'
+    end
+
     # build standard to access methods
     std = Standard.build('ComStock 90.1-2013')
 
+    # get building floor area properties
+    total_building_area_m2 = 0.0
+    var_val_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName = 'AnnualBuildingUtilityPerformanceSummary' AND ReportForString = 'Entire Facility' AND TableName = 'Building Area' AND RowName = 'Total Building Area' AND ColumnName = 'Area' AND Units = 'm2'"
+    val = sql.execAndReturnFirstDouble(var_val_query)
+    if val.is_initialized
+      total_building_area_m2 = val.get
+    else
+      runner.registerWarning('Building floor area not available.')
+    end
+
     # calculate exterior surface properties
     # TODO may need to adjust for zone multipliers
+    smallest_space_m2 = 9999.0
+    num_surfaces = 0
     roof_absorptance_times_area = 0
     roof_ua_si = 0.0
     roof_area_m2 = 0.0
     exterior_wall_ua_si = 0.0
     exterior_wall_area_m2 = 0.0
-    model.getSpaces.sort.each do |space|
-      space.surfaces.each do |surface|
+    spaces = model.getSpaces
+    spaces.sort.each do |space|
+      floor_area_m2 = space.floorArea
+      smallest_space_m2 = floor_area_m2 if floor_area_m2 < smallest_space_m2
+      space.surfaces.sort.each do |surface|
+        num_surfaces += 1
         next if surface.outsideBoundaryCondition != 'Outdoors'
         if surface.surfaceType.to_s == 'RoofCeiling'
           surface_absorptance = surface.exteriorVisibleAbsorptance.is_initialized ? surface.exteriorVisibleAbsorptance.get : 0.0
@@ -185,6 +314,20 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       end
     end
 
+    # total number of zones
+    num_zones = model.getThermalZones.size
+    runner.registerValue('com_report_number_of_zones', num_zones)
+
+    # total number of spaces
+    num_spaces = spaces.size
+    runner.registerValue('com_report_number_of_spaces', num_spaces)
+
+    # smallest space size
+    runner.registerValue('com_report_smallest_space_m2', smallest_space_m2, 'm^2')
+
+    # total number of surfaces
+    runner.registerValue('com_report_number_of_surfaces', num_surfaces)
+
     # Average roof absorptance
     if roof_area_m2 > 0
       average_roof_absorptance = roof_absorptance_times_area / roof_area_m2
@@ -196,6 +339,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     # Average roof U-value
     if roof_area_m2 > 0
       average_roof_u_value_si = roof_ua_si / roof_area_m2
+      runner.registerValue('com_report_roof_area_m2', roof_area_m2, 'm^2')
       runner.registerValue('com_report_average_roof_u_value_si', average_roof_u_value_si)
     else
       runner.registerWarning('Roof area is zero. Cannot calculate average U-value.')
@@ -204,7 +348,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     # Average wall U-value
     if exterior_wall_area_m2 > 0
       average_exterior_wall_u_value_si = exterior_wall_ua_si / exterior_wall_area_m2
-      runner.registerValue('com_report_average_exterior_wall_u_value_si', average_exterior_wall_u_value_si)
+      runner.registerValue('com_report_exterior_wall_area_m2', exterior_wall_area_m2, 'm^2')
+      runner.registerValue('com_report_average_exterior_wall_u_value_si', average_exterior_wall_u_value_si, 'W/m^2*K')
     else
       runner.registerWarning('Exterior wall area is zero. Cannot calculate average U-value.')
     end
@@ -215,7 +360,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     val = sql.execAndReturnFirstDouble(var_val_query)
     if val.is_initialized
       window_area_m2 = val.get
-      # runner.registerValue('com_report_window_area_m2', window_area_m2, 'm^2')
+      runner.registerValue('com_report_window_area_m2', window_area_m2, 'm^2')
     else
       runner.registerWarning('Overall window area not available.')
     end
@@ -240,6 +385,16 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       runner.registerWarning('Overall average window SHGC not available.')
     end
 
+    # Average window VLT
+    var_val_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName = 'EnvelopeSummary' AND ReportForString = 'Entire Facility' AND TableName = 'Exterior Fenestration' AND RowName = 'Total or Average' AND ColumnName = 'Glass Visible Transmittance'"
+    val = sql.execAndReturnFirstDouble(var_val_query)
+    if val.is_initialized
+      window_vlt = val.get
+      runner.registerValue('com_report_window_vlt', window_vlt)
+    else
+      runner.registerWarning('Overall average window VLT not available.')
+    end
+
     # Building window to wall ratio
     var_val_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName = 'InputVerificationandResultsSummary' AND ReportForString = 'Entire Facility' AND TableName = 'Window-Wall Ratio' AND RowName = 'Gross Window-Wall Ratio' AND ColumnName = 'Total'"
     val = sql.execAndReturnFirstDouble(var_val_query)
@@ -253,7 +408,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     # Interior mass surface area
     internal_mass_area_m2 = 0.0
     total_space_area_m2 = 0.0
-    model.getInternalMasss.each do |mass|
+    model.getInternalMasss.sort.each do |mass|
       space = mass.space.get
       space_area_m2 = space.floorArea
       num_people = space.numberOfPeople
@@ -269,7 +424,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     # Daylight control space fraction
     weighted_daylight_control_area_m2 = 0.0
     total_zone_area_m2 = 0.0
-    model.getThermalZones.each do |zone|
+    model.getThermalZones.sort.each do |zone|
       zone_area_m2 = zone.floorArea
       primary_fraction = zone.primaryDaylightingControl.is_initialized ? zone.fractionofZoneControlledbyPrimaryDaylightingControl : 0.0
       secondary_fraction = zone.secondaryDaylightingControl.is_initialized ? zone.fractionofZoneControlledbySecondaryDaylightingControl : 0.0
@@ -301,16 +456,6 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     end
     runner.registerValue('com_report_elevator_energy_use_gj', elevator_energy_use_gj, 'GJ')
 
-    # Average interior lighting power density
-    var_val_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName = 'LightingSummary' AND ReportForString = 'Entire Facility' AND TableName = 'Interior Lighting' AND RowName = 'Interior Lighting Total' AND ColumnName = 'Lighting Power Density' AND Units = 'W/m2'"
-    val = sql.execAndReturnFirstDouble(var_val_query)
-    if val.is_initialized
-      interior_lighting_power_density_w_per_m2 = val.get
-      runner.registerValue('com_report_interior_lighting_power_density_w_per_m2', interior_lighting_power_density_w_per_m2, 'W/m^2')
-    else
-      runner.registerWarning('Average interior lighting power density not available.')
-    end
-
     # Average interior lighting equivalent full load hours
     interior_lighting_total_power_w = 0
     var_val_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName = 'LightingSummary' AND ReportForString = 'Entire Facility' AND TableName = 'Interior Lighting' AND RowName = 'Interior Lighting Total' AND ColumnName = 'Total Power' AND Units = 'W'"
@@ -339,6 +484,14 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       runner.registerWarning('Interior lighting power is not available; cannot calculate equivalent full load hours.')
     end
 
+    # Average interior lighting power density
+    if total_building_area_m2 > 0 && interior_lighting_total_power_w > 0
+      interior_lighting_power_density_w_per_m2 = interior_lighting_total_power_w / total_building_area_m2
+      runner.registerValue('com_report_interior_lighting_power_density_w_per_m2', interior_lighting_power_density_w_per_m2, 'W/m^2')
+    else
+      runner.registerWarning('Average interior lighting power density not available.')
+    end
+
     # Interior electric equipment calculations
     total_zone_electric_equipment_area_m2 = 0.0
     total_zone_electric_equipment_power_w = 0.0
@@ -353,9 +506,10 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         floor_area_m2 = zone.floorArea
         num_people = zone.numberOfPeople
         equip_w = space_type.getElectricEquipmentDesignLevel(floor_area_m2, num_people)
-        equip_per_area_w = space_type.getElectricEquipmentPowerPerFloorArea(floor_area_m2, num_people) * floor_area_m2
-        equip_per_person_w = num_people > 0.0 ? space_type.getElectricEquipmentPowerPerPerson(floor_area_m2, num_people) * num_people : 0.0
-        zone_electric_equipment_power_w = equip_w + equip_per_area_w + equip_per_person_w
+        # equip_per_area_w and equip_per_person_w are not included in equip_w call
+        # equip_per_area_w = space_type.getElectricEquipmentPowerPerFloorArea(floor_area_m2, num_people) * floor_area_m2
+        # equip_per_person_w = num_people > 0.0 ? space_type.getElectricEquipmentPowerPerPerson(floor_area_m2, num_people) * num_people : 0.0
+        zone_electric_equipment_power_w = equip_w # + equip_per_area_w + equip_per_person_w
       else
         runner.registerWarning("Unable to determine majority space type for zone '#{zone.name}'.")
       end
@@ -367,7 +521,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
       # get zone electric equipment energy (may include kitchen or elevator equipment)
       zone_electric_equipment_energy_gj = 0.0
-      var_data_id_query = "SELECT ReportVariableDataDictionaryIndex FROM ReportVariableDataDictionary WHERE VariableName = 'Zone Electric Equipment Electric Energy' AND ReportingFrequency = 'Run Period' AND KeyValue = '#{zone.name.get.to_s.upcase}'"
+      var_data_id_query = "SELECT ReportVariableDataDictionaryIndex FROM ReportVariableDataDictionary WHERE VariableName = 'Zone Electric Equipment #{elec} Energy' AND ReportingFrequency = 'Run Period' AND KeyValue = '#{zone.name.get.to_s.upcase}'"
       var_data_id = sql.execAndReturnFirstDouble(var_data_id_query)
       if var_data_id.is_initialized
         var_val_query = "SELECT VariableValue FROM ReportVariableData WHERE ReportVariableDataDictionaryIndex = '#{var_data_id.get}'"
@@ -375,12 +529,29 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         if val.is_initialized
           zone_electric_equipment_energy_gj = val.get
         else
-          runner.registerWarning("'Zone Electric Equipment Electric Energy' not available for zone '#{zone.name}'.")
+          runner.registerWarning("'Zone Electric Equipment #{elec} Energy' value not available for zone '#{zone.name}'.")
         end
       else
-        runner.registerWarning("'Zone Electric Equipment Electric Energy' not available for zone '#{zone.name}'.")
+        runner.registerWarning("'Zone Electric Equipment #{elec} Energy' data index not available for zone '#{zone.name}'.  Trying to use meter data instead.")
+        var_val_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName = 'EnergyMeters' AND RowName = 'InteriorEquipment:Electricity:Zone:#{zone.name.to_s.upcase}' AND ColumnName = 'Electricity Annual Value' AND Units = 'GJ'"
+        val = sql.execAndReturnFirstDouble(var_val_query)
+        if val.is_initialized
+          zone_electric_equipment_energy_gj = val.get
+        else
+          runner.registerWarning("'Zone Electric Equipment #{elec} Energy' value not available for zone '#{zone.name}'.")
+        end
       end
       total_zone_electric_equipment_energy_gj += zone_electric_equipment_energy_gj
+    end
+
+    # Whole building level plug load, minus elevators
+    total_bldg_electric_equipment_energy_gj = 0
+    var_val_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName = 'EnergyMeters' AND RowName = 'General:InteriorEquipment:Electricity' AND ColumnName = 'Electricity Annual Value' AND Units = 'GJ'"
+    val = sql.execAndReturnFirstDouble(var_val_query)
+    if val.is_initialized
+      total_bldg_electric_equipment_energy_gj = val.get
+    else
+      runner.registerWarning("'General:InteriorEquipment:Electricity' value not available.")
     end
 
     # Average plug load power density
@@ -389,8 +560,11 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
     # Average plug load equivalent full load hours (EPD*area*8760 / annual energy use)
     if total_zone_electric_equipment_power_w > 0
-      interior_electric_equipment_eflh = (total_zone_electric_equipment_energy_gj * 1e9) / (total_zone_electric_equipment_power_w * 3600.0)
+      interior_electric_equipment_eflh = (total_bldg_electric_equipment_energy_gj * 1e9) / (total_zone_electric_equipment_power_w * 3600.0)
       runner.registerValue('com_report_interior_electric_equipment_eflh', interior_electric_equipment_eflh, 'hr')
+      # runner.registerInfo("total_bldg_electric_equipment_energy_gj: #{total_bldg_electric_equipment_energy_gj}")
+      # runner.registerInfo("total_zone_electric_equipment_energy_gj: #{total_zone_electric_equipment_energy_gj}")
+      # runner.registerInfo("total_zone_electric_equipment_power_w: #{total_zone_electric_equipment_power_w}")
     else
       runner.registerWarning('Interior electric equipment power is not available; cannot calculate equivalent full load hours.')
     end
@@ -402,20 +576,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     model.getThermalZones.sort.each do |zone|
       total_zone_occupant_area_m2 += zone.floorArea
       total_zone_design_ppl += zone.numberOfPeople
-      zone_ppl_count = 0.0
-      var_data_id_query = "SELECT ReportVariableDataDictionaryIndex FROM ReportVariableDataDictionary WHERE VariableName = 'Zone People Occupant Count' AND ReportingFrequency = 'Run Period' AND KeyValue = '#{zone.name.get.to_s.upcase}'"
-      var_data_id = sql.execAndReturnFirstDouble(var_data_id_query)
-      if var_data_id.is_initialized
-        var_val_query = "SELECT VariableValue FROM ReportVariableData WHERE ReportVariableDataDictionaryIndex = '#{var_data_id.get}'"
-        val = sql.execAndReturnFirstDouble(var_val_query)
-        if val.is_initialized
-          zone_ppl_count = val.get
-        else
-          runner.registerWarning("'Zone People Occupant Count' not available for zone '#{zone.name}'.")
-        end
-      else
-        runner.registerWarning("'Zone People Occupant Count' not available for zone '#{zone.name}'.")
-      end
+      zone_ppl_count = sql_get_report_variable_data_double(runner, sql, zone, 'Zone People Occupant Count')
       total_zone_ppl_count += zone_ppl_count
     end
 
@@ -434,8 +595,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     # Design outdoor air flow rate
     total_design_outdoor_air_flow_rate_m3_per_s = 0.0
     design_outdoor_air_flow_rate_area_m2 = 0.0
-    model.getThermalZones.each do |zone|
-      zone.spaces.each do |space|
+    model.getThermalZones.sort.each do |zone|
+      zone.spaces.sort.each do |space|
         next unless space.designSpecificationOutdoorAir.is_initialized
         dsn_oa = space.designSpecificationOutdoorAir.get
 
@@ -466,43 +627,26 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
     # Air system outdoor air flow fraction
     # Air system fan properties
-    air_system_weighted_oa_frac = 0.0
+    air_system_total_oa_mass_flow_kg_s = 0.0
     air_system_total_mass_flow_kg_s = 0.0
     air_system_weighted_fan_power_minimum_flow_fraction = 0.0
     air_system_weighted_fan_static_pressure = 0.0
     air_system_weighted_fan_efficiency = 0.0
+    economizer_statistics = []
     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
-      # get Air System Outdoor Air Flow Fraction
-      air_loop_oa_fraction = 0.0
-      var_data_id_query = "SELECT ReportVariableDataDictionaryIndex FROM ReportVariableDataDictionary WHERE VariableName = 'Air System Outdoor Air Flow Fraction' AND ReportingFrequency = 'Run Period' AND KeyValue = '#{air_loop_hvac.name.get.to_s.upcase}'"
-      var_data_id = sql.execAndReturnFirstDouble(var_data_id_query)
-      if var_data_id.is_initialized
-        var_val_query = "SELECT VariableValue FROM ReportVariableData WHERE ReportVariableDataDictionaryIndex = '#{var_data_id.get}'"
-        val = sql.execAndReturnFirstDouble(var_val_query)
-        if val.is_initialized
-          air_loop_oa_fraction = val.get
-        else
-          runner.registerWarning("'Air System Outdoor Air Flow Fraction' not available for air loop hvac '#{air_loop_hvac.name}'.")
-        end
-      else
-        runner.registerWarning("'Air System Outdoor Air Flow Fraction' not available for air loop hvac '#{air_loop_hvac.name}'.")
+      # check if unitary system
+      if std.air_loop_hvac_unitary_system?(air_loop_hvac)
+        runner.registerWarning("Air loop hvac '#{air_loop_hvac.name}' is a unitary system; fan properties recorded under zone hvac.")
       end
 
+      # get Air System Outdoor Air Mass Flow Rate
+      air_loop_oa_mass_flow_rate_kg_s = sql_get_report_variable_data_double(runner, sql, air_loop_hvac, 'Air System Outdoor Air Mass Flow Rate')
+
+      # get Air System Outdoor Air Economizer Status
+      air_loop_econ_status = sql_get_report_variable_data_double(runner, sql, air_loop_hvac, 'Air System Outdoor Air Economizer Status')
+
       # get Air System Mixed Air Mass Flow Rate
-      air_loop_mass_flow_rate_kg_s = 0.0
-      var_data_id_query = "SELECT ReportVariableDataDictionaryIndex FROM ReportVariableDataDictionary WHERE VariableName = 'Air System Mixed Air Mass Flow Rate' AND ReportingFrequency = 'Run Period' AND KeyValue = '#{air_loop_hvac.name.get.to_s.upcase}'"
-      var_data_id = sql.execAndReturnFirstDouble(var_data_id_query)
-      if var_data_id.is_initialized
-        var_val_query = "SELECT VariableValue FROM ReportVariableData WHERE ReportVariableDataDictionaryIndex = '#{var_data_id.get}'"
-        val = sql.execAndReturnFirstDouble(var_val_query)
-        if val.is_initialized
-          air_loop_mass_flow_rate_kg_s = val.get
-        else
-          runner.registerWarning("'Air System Mixed Air Mass Flow Rate' not available for air loop hvac '#{air_loop_hvac.name}'.")
-        end
-      else
-        runner.registerWarning("'Air System Mixed Air Mass Flow Rate' not available for air loop hvac '#{air_loop_hvac.name}'.")
-      end
+      air_loop_mass_flow_rate_kg_s = sql_get_report_variable_data_double(runner, sql, air_loop_hvac, 'Air System Mixed Air Mass Flow Rate')
 
       fan_minimum_flow_frac = 0.0
       fan_static_pressure = 0.0
@@ -529,17 +673,50 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
            runner.registerWarning("Supply Fan type not recognized for air loop hvac '#{air_loop_hvac.name}'.")
         end
       else
-        runner.registerWarning("Supply Fan not available for air loop hvac '#{air_loop_hvac.name}'.")
+        runner.registerWarning("Supply Fan not available for air loop hvac '#{air_loop_hvac.name}'.") unless std.air_loop_hvac_unitary_system?(air_loop_hvac)
+      end
+
+      # record economizer details
+      if air_loop_hvac.airLoopHVACOutdoorAirSystem.is_initialized
+        oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+        controller_oa = oa_system.getControllerOutdoorAir
+        economizer_type = controller_oa.getEconomizerControlType
+      else
+        economizer_type = 'NoEconomizer'
+      end
+      economizer_high_limit_temperature_c = nil
+      economizer_high_limit_enthalpy_j_per_kg = nil
+      case economizer_type
+      when 'NoEconomizer'
+      when 'FixedDryBulb', 'FixedEnthalpy', 'DifferentialDryBulb', 'DifferentialEnthalpy'
+        if controller_oa.getEconomizerMaximumLimitDryBulbTemperature.is_initialized
+          economizer_high_limit_temperature_c = controller_oa.getEconomizerMaximumLimitDryBulbTemperature.get
+        end
+        if controller_oa.getEconomizerMaximumLimitEnthalpy.is_initialized
+          economizer_high_limit_enthalpy_j_per_kg = controller_oa.getEconomizerMaximumLimitEnthalpy.get
+        end
+      else
+        runner.registerWarning("Economizer type '#{economizer_type}' not supported by output measure.")
+      end
+
+      # record economizer statistics
+      unless economizer_type == 'NoEconomizer'
+        economizer_statistics << {
+          :air_loop_mass_flow_rate_kg_s => air_loop_mass_flow_rate_kg_s,
+          :economizer_type => economizer_type,
+          :economizer_high_limit_temperature_c => economizer_high_limit_temperature_c,
+          :economizer_high_limit_enthalpy_j_per_kg => economizer_high_limit_enthalpy_j_per_kg
+        }
       end
 
       # add to weighted
       air_system_total_mass_flow_kg_s += air_loop_mass_flow_rate_kg_s
-      air_system_weighted_oa_frac += air_loop_oa_fraction * air_loop_mass_flow_rate_kg_s
+      air_system_total_oa_mass_flow_kg_s += air_loop_oa_mass_flow_rate_kg_s
       air_system_weighted_fan_power_minimum_flow_fraction += fan_minimum_flow_frac * air_loop_mass_flow_rate_kg_s
       air_system_weighted_fan_static_pressure += fan_static_pressure * air_loop_mass_flow_rate_kg_s
       air_system_weighted_fan_efficiency += fan_efficiency * air_loop_mass_flow_rate_kg_s
     end
-    average_outdoor_air_fraction = air_system_total_mass_flow_kg_s > 0.0 ? air_system_weighted_oa_frac / air_system_total_mass_flow_kg_s : 0.0
+    average_outdoor_air_fraction = air_system_total_mass_flow_kg_s > 0.0 ? air_system_total_oa_mass_flow_kg_s / air_system_total_mass_flow_kg_s : 0.0
     runner.registerValue('com_report_average_outdoor_air_fraction', average_outdoor_air_fraction)
     air_system_fan_power_minimum_flow_fraction = air_system_total_mass_flow_kg_s > 0.0 ? air_system_weighted_fan_power_minimum_flow_fraction / air_system_total_mass_flow_kg_s : 0.0
     runner.registerValue('com_report_air_system_fan_power_minimum_flow_fraction', air_system_fan_power_minimum_flow_fraction)
@@ -548,15 +725,58 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     air_system_fan_total_efficiency = air_system_total_mass_flow_kg_s > 0.0 ? air_system_weighted_fan_efficiency / air_system_total_mass_flow_kg_s : 0.0
     runner.registerValue('com_report_air_system_fan_total_efficiency', air_system_fan_total_efficiency)
 
+    # calculate economizer variables
+    if economizer_statistics.empty?
+      runner.registerValue('com_report_hvac_economizer_control_type', 'NoEconomizer')
+    else
+      economizer_type_hash = economizer_statistics.group_by { |e| e[:economizer_type] }
+      economizer_area_m2 = economizer_statistics.sum{ |e| e[:air_loop_mass_flow_rate_kg_s] }
+      economizer_type_areas = economizer_type_hash.map{ |x, y| [x, y.inject(0){ |sum, i| sum + i[:air_loop_mass_flow_rate_kg_s] }] }
+      largest_economizer_type = economizer_type_areas.max_by { |k,v| v }
+      runner.registerInfo("'#{largest_economizer_type[0]}' serves #{largest_economizer_type[1].round(0)} m^2, the most floor area of any economizer type, out of #{economizer_area_m2.round(0)} m^2 served by economizers and #{total_building_area_m2.round(0)} m^2 total building area.")
+      runner.registerValue('com_report_hvac_economizer_control_type', largest_economizer_type[0])
+    end
+
+    temperature_limited_hash = economizer_statistics.select { |e| !e[:economizer_high_limit_temperature_c].nil? }
+    enthalpy_limited_hash = economizer_statistics.select { |e| !e[:economizer_high_limit_enthalpy_j_per_kg].nil? }
+    if temperature_limited_hash.empty?
+      weighted_economizer_high_limit_temperature_c = -999
+    else
+      weighted_economizer_high_limit_temperature_c = 0.0
+      weighted_economizer_high_limit_temperature_c_flow_rate_kg_s = 0.0
+      temperature_limited_hash.each do |e|
+        weighted_economizer_high_limit_temperature_c_flow_rate_kg_s += e[:air_loop_mass_flow_rate_kg_s]
+        weighted_economizer_high_limit_temperature_c += e[:economizer_high_limit_temperature_c] * e[:air_loop_mass_flow_rate_kg_s]
+      end
+      weighted_economizer_high_limit_temperature_c = weighted_economizer_high_limit_temperature_c / weighted_economizer_high_limit_temperature_c_flow_rate_kg_s
+    end
+    if enthalpy_limited_hash.empty?
+      weighted_economizer_high_limit_enthalpy_j_per_kg = -999
+    else
+      weighted_economizer_high_limit_enthalpy_j_per_kg = 0.0
+      weighted_economizer_high_limit_enthalpy_j_per_flow_rate_kg_s = 0.0
+      enthalpy_limited_hash.each do |e|
+        weighted_economizer_high_limit_enthalpy_j_per_flow_rate_kg_s += e[:air_loop_mass_flow_rate_kg_s]
+        weighted_economizer_high_limit_enthalpy_j_per_kg += e[:economizer_high_limit_enthalpy_j_per_kg] * e[:air_loop_mass_flow_rate_kg_s]
+      end
+      weighted_economizer_high_limit_enthalpy_j_per_kg = weighted_economizer_high_limit_enthalpy_j_per_kg / weighted_economizer_high_limit_enthalpy_j_per_flow_rate_kg_s
+    end
+    runner.registerValue('com_report_hvac_economizer_high_limit_temperature_c', weighted_economizer_high_limit_temperature_c)
+    runner.registerValue('com_report_hvac_economizer_high_limit_enthalpy_j_per_kg', weighted_economizer_high_limit_enthalpy_j_per_kg)
+
     # Zone HVAC properties
     zone_hvac_fan_total_air_flow_m3_per_s = 0.0
     zone_hvac_weighted_fan_power_minimum_flow_fraction = 0.0
     zone_hvac_weighted_fan_static_pressure = 0.0
     zone_hvac_weighted_fan_efficiency = 0.0
-    model.getZoneHVACComponents.each do |zone_hvac_component|
+    model.getZoneHVACComponents.sort.each do |zone_hvac_component|
       # Convert this to the actual class type
       has_fan = true
-      if zone_hvac_component.to_ZoneHVACFourPipeFanCoil.is_initialized
+      is_unitary = false
+      if zone_hvac_component.to_AirLoopHVACUnitarySystem.is_initialized
+        zone_hvac =  zone_hvac_component.to_AirLoopHVACUnitarySystem.get
+        is_unitary = true
+      elsif zone_hvac_component.to_ZoneHVACFourPipeFanCoil.is_initialized
         zone_hvac =  zone_hvac_component.to_ZoneHVACFourPipeFanCoil.get
       elsif zone_hvac_component.to_ZoneHVACUnitHeater.is_initialized
         zone_hvac =  zone_hvac_component.to_ZoneHVACUnitHeater.get
@@ -591,21 +811,40 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
       # Get fan properties
       if has_fan
-        if zone_hvac.supplyAirFan.to_FanOnOff.is_initialized
-          supply_fan = zone_hvac.supplyAirFan.to_FanOnOff.get
-          fan_minimum_flow_frac = 1.0
-          fan_static_pressure = supply_fan.pressureRise
-          fan_efficiency = supply_fan.fanTotalEfficiency
-        elsif zone_hvac.supplyAirFan.to_FanConstantVolume.is_initialized
-          supply_fan = zone_hvac.supplyAirFan.to_FanConstantVolume.get
-          fan_minimum_flow_frac = 1.0
-          fan_static_pressure = supply_fan.pressureRise
-          fan_efficiency = supply_fan.fanTotalEfficiency
-        elsif zone_hvac.supplyAirFan.to_FanVariableVolume.is_initialized
-          supply_fan = zone_hvac.supplyAirFan.to_FanVariableVolume.get
-          fan_minimum_flow_frac = supply_fan.fanPowerMinimumFlowFraction
-          fan_static_pressure = supply_fan.pressureRise
-          fan_efficiency = supply_fan.fanTotalEfficiency
+        if is_unitary
+          if zone_hvac.supplyFan.get.to_FanOnOff.is_initialized
+            supply_fan = zone_hvac.supplyFan.get.to_FanOnOff.get
+            fan_minimum_flow_frac = 1.0
+            fan_static_pressure = supply_fan.pressureRise
+            fan_efficiency = supply_fan.fanTotalEfficiency
+          elsif zone_hvac.supplyFan.get.to_FanConstantVolume.is_initialized
+            supply_fan = zone_hvac.supplyFan.get.to_FanConstantVolume.get
+            fan_minimum_flow_frac = 1.0
+            fan_static_pressure = supply_fan.pressureRise
+            fan_efficiency = supply_fan.fanTotalEfficiency
+          elsif zone_hvac.supplyFan.get.to_FanVariableVolume.is_initialized
+            supply_fan = zone_hvac.supplyFan.get.to_FanVariableVolume.get
+            fan_minimum_flow_frac = supply_fan.fanPowerMinimumFlowFraction
+            fan_static_pressure = supply_fan.pressureRise
+            fan_efficiency = supply_fan.fanTotalEfficiency
+          end
+        else
+          if zone_hvac.supplyAirFan.to_FanOnOff.is_initialized
+            supply_fan = zone_hvac.supplyAirFan.to_FanOnOff.get
+            fan_minimum_flow_frac = 1.0
+            fan_static_pressure = supply_fan.pressureRise
+            fan_efficiency = supply_fan.fanTotalEfficiency
+          elsif zone_hvac.supplyAirFan.to_FanConstantVolume.is_initialized
+            supply_fan = zone_hvac.supplyAirFan.to_FanConstantVolume.get
+            fan_minimum_flow_frac = 1.0
+            fan_static_pressure = supply_fan.pressureRise
+            fan_efficiency = supply_fan.fanTotalEfficiency
+          elsif zone_hvac.supplyAirFan.to_FanVariableVolume.is_initialized
+            supply_fan = zone_hvac.supplyAirFan.to_FanVariableVolume.get
+            fan_minimum_flow_frac = supply_fan.fanPowerMinimumFlowFraction
+            fan_static_pressure = supply_fan.pressureRise
+            fan_efficiency = supply_fan.fanTotalEfficiency
+          end
         end
 
         # Get the maximum flow rate through the fan
@@ -656,7 +895,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     weighted_thermostat_cooling_min_c = 0.0
     weighted_thermostat_cooling_max_c = 0.0
     weighted_thermostat_cooling_area_m2 = 0.0
-    model.getThermalZones.each do |zone|
+    model.getThermalZones.sort.each do |zone|
       next unless zone.thermostatSetpointDualSetpoint.is_initialized
       floor_area_m2 = zone.floorArea
       thermostat = zone.thermostatSetpointDualSetpoint.get
@@ -696,42 +935,605 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       runner.registerValue('com_report_average_cooling_setpoint_max_c', average_cooling_setpoint_max_c, 'C')
     end
 
+    # calculate fraction of building area with different air loop features
+    number_of_air_loops = 0.0
+    number_of_air_loops_with_dcv = 0.0
+    number_of_air_loops_with_economizer = 0.0
+    number_of_air_loops_with_heat_recovery = 0.0
+    building_area_with_dcv_m2 = 0.0
+    building_area_with_economizer_m2 = 0.0
+    building_area_with_heat_recovery_m2 = 0.0
+    building_area_with_motorized_oa_damper_m2 = 0.0
+    building_area_with_mz_vav_optimization_m2 = 0.0
+    building_area_with_supply_air_temperature_reset_m2 = 0.0
+    building_area_with_unoccupied_shutdown_m2 = 0.0
+    model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+      has_economizer = false
+      has_dcv = false
+      has_mz_vav_optimization = false
+      has_supply_air_temp_reset = false
+      has_unoccupied_shutdown = false
+      has_motorized_oa_damper = false
+
+      # fraction with heat recovery
+      has_heat_recovery = std.air_loop_hvac_energy_recovery?(air_loop_hvac)
+
+      # fraction with DCV and economizer
+      if air_loop_hvac.airLoopHVACOutdoorAirSystem.is_initialized
+        oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+        controller_oa = oa_system.getControllerOutdoorAir
+        economizer_type = controller_oa.getEconomizerControlType
+        controller_oa = oa_system.getControllerOutdoorAir
+        controller_mv = controller_oa.controllerMechanicalVentilation
+        has_economizer = true unless economizer_type == 'NoEconomizer'
+        has_dcv = true if controller_mv.demandControlledVentilation == true
+        if controller_oa.minimumOutdoorAirSchedule.is_initialized
+          min_oa_sch = controller_oa.minimumOutdoorAirSchedule.get
+          has_motorized_oa_damper = true unless min_oa_sch == model.alwaysOnDiscreteSchedule
+        end
+        if std.air_loop_hvac_multizone_vav_system?(air_loop_hvac)
+          oa_method = controller_mv.systemOutdoorAirMethod
+          has_mz_vav_optimization = true if oa_method.include?('VentilationRateProcedure')
+        end
+      end
+
+      # SAT reset
+      oa_node = air_loop_hvac.supplyOutletNode
+      oa_node.setpointManagers.each do |spm|
+        if spm.to_SetpointManagerWarmest.is_initialized
+          has_supply_air_temp_reset = true
+        end
+      end
+
+      # unoccupied shutdown
+      has_unoccupied_shutdown = true unless air_loop_hvac.availabilitySchedule == model.alwaysOnDiscreteSchedule
+
+      # air loop area
+      air_loop_area_m2 = 0.0
+      air_loop_hvac.thermalZones.sort.each do |zone|
+        air_loop_area_m2 += zone.floorArea
+      end
+
+      number_of_air_loops += 1.0
+      number_of_air_loops_with_dcv += 1.0 if has_dcv
+      number_of_air_loops_with_economizer += 1.0 if has_economizer
+      number_of_air_loops_with_heat_recovery += 1.0 if has_heat_recovery
+      building_area_with_dcv_m2 += air_loop_area_m2 if has_dcv
+      building_area_with_economizer_m2 += air_loop_area_m2 if has_economizer
+      building_area_with_heat_recovery_m2 += air_loop_area_m2 if has_heat_recovery
+      building_area_with_motorized_oa_damper_m2 += air_loop_area_m2 if has_motorized_oa_damper
+      building_area_with_mz_vav_optimization_m2 += air_loop_area_m2 if has_mz_vav_optimization
+      building_area_with_supply_air_temperature_reset_m2 += air_loop_area_m2 if has_supply_air_temp_reset
+      building_area_with_unoccupied_shutdown_m2 += air_loop_area_m2 if has_unoccupied_shutdown
+    end
+    building_area_fraction_with_dcv = building_area_with_dcv_m2 / building_zone_area_m2
+    building_area_fraction_with_economizer = building_area_with_economizer_m2 / building_zone_area_m2
+    building_area_fraction_with_heat_recovery = building_area_with_heat_recovery_m2 / building_zone_area_m2
+    building_area_fraction_with_motorized_oa_damper = building_area_with_motorized_oa_damper_m2 / building_zone_area_m2
+    building_area_fraction_with_mz_vav_optimization = building_area_with_mz_vav_optimization_m2 / building_zone_area_m2
+    building_area_fraction_with_supply_air_temperature_reset = building_area_with_supply_air_temperature_reset_m2 / building_zone_area_m2
+    building_area_fraction_with_unoccupied_shutdown = building_area_with_unoccupied_shutdown_m2 / building_zone_area_m2
+    runner.registerValue('com_report_hvac_number_of_air_loops', number_of_air_loops)
+    runner.registerValue('com_report_hvac_number_of_air_loops_with_dcv', number_of_air_loops_with_dcv)
+    runner.registerValue('com_report_hvac_number_of_air_loops_with_economizer', number_of_air_loops_with_economizer)
+    runner.registerValue('com_report_hvac_number_of_air_loops_with_heat_recovery', number_of_air_loops_with_heat_recovery)
+    runner.registerValue('com_report_hvac_area_fraction_with_dcv', building_area_fraction_with_dcv)
+    runner.registerValue('com_report_hvac_area_fraction_with_economizer', building_area_fraction_with_economizer)
+    runner.registerValue('com_report_hvac_area_fraction_with_heat_recovery', building_area_fraction_with_heat_recovery)
+    runner.registerValue('com_report_hvac_area_fraction_with_motorized_oa_damper', building_area_fraction_with_motorized_oa_damper)
+    runner.registerValue('com_report_hvac_area_fraction_with_mz_vav_optimization', building_area_fraction_with_mz_vav_optimization)
+    runner.registerValue('com_report_hvac_area_fraction_with_supply_air_temperature_reset', building_area_fraction_with_supply_air_temperature_reset)
+    runner.registerValue('com_report_hvac_area_fraction_with_unoccupied_shutdown', building_area_fraction_with_unoccupied_shutdown)
+
+    # VRF variables
+    vrf_indoor_unit_count = 0.0
+    vrf_outdoor_unit_count = 0.0
+    total_vrf_area_m2 = 0.0
+    weighted_vrf_num_compressors = 0.0
+    weighted_vrf_length_m = 0.0
+    weighted_vrf_height_m = 0.0
+    vrf_total_indoor_unit_cooling_capacity_w = 0.0
+    vrf_total_indoor_unit_heating_capacity_w = 0.0
+    vrf_area_weighted_indoor_unit_cooling_capacity_w = 0.0
+    vrf_area_weighted_indoor_unit_heating_capacity_w = 0.0
+    vrf_total_outdoor_unit_cooling_capacity_w = 0.0
+    vrf_total_outdoor_unit_heating_capacity_w = 0.0
+    vrf_area_weighted_outdoor_unit_cooling_capacity_w = 0.0
+    vrf_area_weighted_outdoor_unit_heating_capacity_w = 0.0
+    vrf_total_cooling_load_j = 0.0
+    vrf_total_heating_load_j = 0.0
+    vrf_total_heat_recovery_j = 0.0
+    vrf_total_cooling_electric_j = 0.0
+    vrf_total_heating_electric_j = 0.0
+    vrf_total_heating_total_input_energy_j = 0.0
+    vrf_total_heating_defrost_energy_j = 0.0
+    vrf_total_heating_supplemental_load_j = 0.0
+    vrf_total_heating_supplemental_load_electric_j = 0.0
+    vrf_total_heating_supplemental_load_gas_j = 0.0
+    vrf_total_heating_supplemental_electric_j = 0.0
+    vrf_total_heating_supplemental_gas_j = 0.0
+    vrf_cooling_load_weighted_cop = 0.0
+    vrf_heating_load_weighted_cop = 0.0
+    vrf_heating_load_weighted_total_cop = 0.0
+    vrf_cooling_load_weighted_design_cop = 0.0
+    vrf_heating_load_weighted_design_cop = 0.0
+    vrf_cooling_load_weighted_design_cop_35F = 0.0
+    vrf_cooling_load_weighted_design_cop_60F = 0.0
+    vrf_cooling_load_weighted_design_cop_85F = 0.0
+    vrf_cooling_load_weighted_design_cop_110F = 0.0
+    vrf_heating_load_weighted_design_cop_minus22F = 0.0
+    vrf_heating_load_weighted_design_cop_0F = 0.0
+    vrf_heating_load_weighted_design_cop_20F = 0.0
+    vrf_heating_load_weighted_design_cop_40F = 0.0
+    vrf_heating_largest_load_performance_curve_temperature_type = ''
+    vrf_largest_heating_load_served_j = 0.0
+    model.getAirConditionerVariableRefrigerantFlows.sort.each do |vrf|
+      # area served
+      vrf_area_m2 = 0.0
+      vrf_cooling_load_j = 0.0
+      vrf_heating_load_j = 0.0
+      indoor_unit_cooling_capacity_w = 0.0
+      indoor_unit_heating_capacity_w = 0.0
+      vrf.terminals.each do |terminal|
+        if terminal.thermalZone.is_initialized
+          zone = terminal.thermalZone.get
+          vrf_area_m2 += zone.floorArea
+        end
+
+        # get terminal cooling capacity
+        cooling_coil = terminal.coolingCoil
+        if cooling_coil.is_initialized
+          cooling_coil = cooling_coil.get
+          if cooling_coil.to_CoilCoolingDXVariableRefrigerantFlow.is_initialized
+            cooling_coil = cooling_coil.to_CoilCoolingDXVariableRefrigerantFlow.get
+            if cooling_coil.ratedTotalCoolingCapacity.is_initialized
+              indoor_unit_cooling_capacity_w += cooling_coil.ratedTotalCoolingCapacity.get
+            elsif cooling_coil.autosizedRatedTotalCoolingCapacity.is_initialized
+              indoor_unit_cooling_capacity_w += cooling_coil.autosizedRatedTotalCoolingCapacity.get
+            else
+              runner.registerWarning("VRF terminal cooling capacity not available for vrf terminal '#{terminal.name}'.")
+            end
+          elsif cooling_coil.to_CoilCoolingDXVariableRefrigerantFlowFluidTemperatureControl.is_initialized
+            cooling_coil = cooling_coil.to_CoilCoolingDXVariableRefrigerantFlowFluidTemperatureControl.get
+            if cooling_coil.ratedTotalCoolingCapacity.is_initialized
+              indoor_unit_cooling_capacity_w += cooling_coil.ratedTotalCoolingCapacity.get
+            elsif cooling_coil.autosizedRatedTotalCoolingCapacity.is_initialized
+              indoor_unit_cooling_capacity_w += cooling_coil.autosizedRatedTotalCoolingCapacity.get
+            else
+              runner.registerWarning("VRF terminal cooling capacity not available for vrf terminal '#{terminal.name}'.")
+            end
+          else
+            runner.registerWarning("Zone VRF terminal '#{terminal.name}' cooling coil '#{cooling_coil.name}' type not recognized.")
+          end
+        end
+
+        # get terminal heating capacity
+        heating_coil = terminal.heatingCoil
+        if heating_coil.is_initialized
+          heating_coil = heating_coil.get
+          if heating_coil.to_CoilHeatingDXVariableRefrigerantFlow.is_initialized
+            heating_coil = heating_coil.to_CoilHeatingDXVariableRefrigerantFlow.get
+            if heating_coil.ratedTotalHeatingCapacity.is_initialized
+              indoor_unit_heating_capacity_w += heating_coil.ratedTotalHeatingCapacity.get
+            elsif heating_coil.autosizedRatedTotalHeatingCapacity.is_initialized
+              indoor_unit_heating_capacity_w += heating_coil.autosizedRatedTotalHeatingCapacity.get
+            else
+              runner.registerWarning("VRF terminal heating capacity not available for vrf terminal '#{terminal.name}'.")
+            end
+          elsif heating_coil.to_CoilHeatingDXVariableRefrigerantFlowFluidTemperatureControl.is_initialized
+            heating_coil = heating_coil.to_CoilHeatingDXVariableRefrigerantFlowFluidTemperatureControl.get
+            if heating_coil.ratedTotalHeatingCapacity.is_initialized
+              indoor_unit_heating_capacity_w += heating_coil.ratedTotalHeatingCapacity.get
+            elsif heating_coil.autosizedRatedTotalHeatingCapacity.is_initialized
+              indoor_unit_heating_capacity_w += heating_coil.autosizedRatedTotalHeatingCapacity.get
+            else
+              runner.registerWarning("VRF terminal heating capacity not available for vrf terminal '#{terminal.name}'.")
+            end
+          else
+            runner.registerWarning("Zone VRF terminal '#{terminal.name}' heating coil '#{heating_coil.name}' type not recognized.")
+          end
+        end
+
+        # get terminal supplemental heating coil energy
+        supplemental_coil_heating_energy_j = 0.0
+        supplemental_electric_j = 0.0
+        supplemental_gas_j = 0.0
+        if terminal.supplementalHeatingCoil.is_initialized
+          supplemental_coil = terminal.supplementalHeatingCoil.get
+
+          # supplemental heating coil heating energy
+          supplemental_coil_heating_energy_j = sql_get_report_variable_data_double(runner, sql, supplemental_coil, 'Heating Coil Heating Energy')
+
+          # supplemental heating coil electric or gas energy
+          if supplemental_coil.to_CoilHeatingElectric.is_initialized
+            # supplemental load is sourced from electric
+            vrf_total_heating_supplemental_load_electric_j += supplemental_coil_heating_energy_j
+
+            supplemental_coil = supplemental_coil.to_CoilHeatingElectric.get
+            supplemental_electric_j = sql_get_report_variable_data_double(runner, sql, supplemental_coil, "Heating Coil #{elec} Energy")
+            
+          elsif supplemental_coil.to_CoilHeatingGas.is_initialized
+            # supplemental load is sourced from gas
+            vrf_total_heating_supplemental_load_gas_j += supplemental_coil_heating_energy_j
+            
+            supplemental_coil = supplemental_coil.to_CoilHeatingGas.get
+            supplemental_gas_j = sql_get_report_variable_data_double(runner, sql, supplemental_coil, "Heating Coil #{gas} Energy")
+          else
+            runner.registerWarning("Unrecognized coil type for vrf indoor unit supplemntal heating coil #{supplemental_coil.name}.")
+          end
+
+          vrf_total_heating_supplemental_load_j += supplemental_coil_heating_energy_j
+          vrf_total_heating_supplemental_electric_j += supplemental_electric_j
+          vrf_total_heating_supplemental_gas_j += supplemental_gas_j
+        end
+
+        # get Zone VRF Air Terminal Total Cooling Energy
+        terminal_cooling_load_j = sql_get_report_variable_data_double(runner, sql, terminal, 'Zone VRF Air Terminal Total Cooling Energy')
+        vrf_cooling_load_j += terminal_cooling_load_j
+
+        # get Zone VRF Air Terminal Total Heating Energy
+        terminal_heating_load_j = sql_get_report_variable_data_double(runner, sql, terminal, 'Zone VRF Air Terminal Total Heating Energy')
+        vrf_heating_load_j += terminal_heating_load_j
+      end
+      total_vrf_area_m2 += vrf_area_m2
+      vrf_total_indoor_unit_cooling_capacity_w += indoor_unit_cooling_capacity_w
+      vrf_area_weighted_indoor_unit_cooling_capacity_w += indoor_unit_cooling_capacity_w * total_vrf_area_m2
+      vrf_total_indoor_unit_heating_capacity_w += indoor_unit_heating_capacity_w
+      vrf_area_weighted_indoor_unit_heating_capacity_w += indoor_unit_heating_capacity_w * total_vrf_area_m2
+
+      # record equipment counts
+      vrf_outdoor_unit_count += 1.0
+      vrf_indoor_unit_count += vrf.terminals.size
+
+      # record number of compressors and pipe lengths
+      vrf_num_compressors = vrf.numberofCompressors
+      vrf_length_m = vrf.equivalentPipingLengthusedforPipingCorrectionFactorinCoolingMode
+      vrf_height_m = vrf.verticalHeightusedforPipingCorrectionFactor
+      weighted_vrf_num_compressors += vrf_num_compressors * vrf_area_m2
+      weighted_vrf_length_m += vrf_length_m * vrf_area_m2
+      weighted_vrf_height_m += vrf_height_m * vrf_area_m2
+
+      # get rated heating and cooling capacity
+      outdoor_unit_cooling_capacity_w = 0.0
+      if vrf.grossRatedTotalCoolingCapacity.is_initialized
+        outdoor_unit_cooling_capacity_w = vrf.grossRatedTotalCoolingCapacity.get
+      elsif vrf.autosizedGrossRatedTotalCoolingCapacity.is_initialized
+        outdoor_unit_cooling_capacity_w = vrf.autosizedGrossRatedTotalCoolingCapacity.get
+      else
+        runner.registerWarning("VRF cooling capacity not available for vrf '#{vrf.name}'.")
+      end
+      vrf_total_outdoor_unit_cooling_capacity_w += outdoor_unit_cooling_capacity_w
+      vrf_area_weighted_outdoor_unit_cooling_capacity_w += outdoor_unit_cooling_capacity_w * total_vrf_area_m2
+
+      outdoor_unit_heating_capacity_w = 0.0
+      if vrf.grossRatedHeatingCapacity.is_initialized
+        outdoor_unit_heating_capacity_w = vrf.grossRatedHeatingCapacity.get
+      elsif vrf.autosizedGrossRatedHeatingCapacity.is_initialized
+        outdoor_unit_heating_capacity_w = vrf.autosizedGrossRatedHeatingCapacity.get
+      else
+        runner.registerWarning("VRF heating capacity not available for vrf '#{vrf.name}'.")
+      end
+      vrf_total_outdoor_unit_heating_capacity_w += outdoor_unit_heating_capacity_w
+      vrf_area_weighted_outdoor_unit_heating_capacity_w += outdoor_unit_heating_capacity_w * total_vrf_area_m2
+
+      # get VRF Heat Pump Cooling Electricity Energy
+      vrf_cooling_electric_j = sql_get_report_variable_data_double(runner, sql, vrf, 'VRF Heat Pump Cooling Electricity Energy')
+  
+      # get VRF Heat Pump Heating Electricity Energy
+      vrf_heating_electric_j = sql_get_report_variable_data_double(runner, sql, vrf, 'VRF Heat Pump Heating Electricity Energy')
+
+      # get VRF Heat Pump Defrost Electricity Energy
+      vrf_defrost_electric_j = sql_get_report_variable_data_double(runner, sql, vrf, 'VRF Heat Pump Defrost Electricity Energy')
+
+      # get VRF Heat Pump Crankcase Heater Electricity Energy
+      vrf_crankcase_electric_j = sql_get_report_variable_data_double(runner, sql, vrf, 'VRF Heat Pump Crankcase Heater Electricity Energy')
+
+      # get VRF Heat Pump Heat Recovery Energy
+      vrf_heat_recovery_j = sql_get_report_variable_data_double(runner, sql, vrf, 'VRF Heat Pump Heat Recovery Energy')
+      
+      # VRF design cops
+      vrf_cooling_design_cop = vrf.grossRatedCoolingCOP
+      vrf_heating_design_cop = vrf.ratedHeatingCOP
+
+      # AHRI Standard 1230
+      # Performance Rating of Variable Refrigerant Flow (VRF) Multi-split Air-conditioning and Heat Pump Equipment
+      # Heating Indoor 70F DB / 60F WB, Outdoor 47F DB / 43F WB
+      # Cooling Indoor 80F DB / 67F WB, Outdoor 95F DB / 75F WB
+      heating_indoor_rating_drybulb_temperature_c = OpenStudio.convert(70.0, 'F', 'C').get
+      cooling_indoor_rating_wetbulb_temperature_c = OpenStudio.convert(67.0, 'F', 'C').get
+
+      # determine which cooling EIR curve to use
+      cooling_boundary_temperature_c = 20.0
+      if vrf.coolingEnergyInputRatioBoundaryCurve.is_initialized
+        cooling_boundary_curve = vrf.coolingEnergyInputRatioBoundaryCurve.get
+        cooling_boundary_temperature_c = cooling_boundary_curve.evaluate(cooling_boundary_temperature_c)
+      elsif vrf.coolingEnergyInputRatioModifierFunctionofHighTemperatureCurve.is_initialized
+        # high temperature curve exists, but boundary curve doesn't
+        runner.registerWarning("Unable to find Cooling Energy Input Ratio Boundary Curve for VRF system '#{vrf.name}'. Defaulting to 20.0 degC.")
+      else
+        cooling_boundary_temperature_c = nil
+      end
+
+      cooling_eir_low_temp_curve = nil
+      cooling_eir_high_temp_curve = nil
+      if vrf.coolingEnergyInputRatioModifierFunctionofLowTemperatureCurve.is_initialized
+        cooling_eir_low_temp_curve = vrf.coolingEnergyInputRatioModifierFunctionofLowTemperatureCurve.get 
+      end   
+      if vrf.coolingEnergyInputRatioModifierFunctionofHighTemperatureCurve.is_initialized
+        cooling_eir_high_temp_curve = vrf.coolingEnergyInputRatioModifierFunctionofHighTemperatureCurve.get
+      end
+
+      vrf_cooling_design_cop_35F = 0.0
+      vrf_cooling_design_cop_60F = 0.0
+      vrf_cooling_design_cop_85F = 0.0
+      vrf_cooling_design_cop_110F = 0.0
+      # record design COPs at different cooling temperatures
+      if cooling_eir_low_temp_curve.nil?
+        runner.registerWarning("Unable to find Cooling Energy Input Ratio Low Temperature curve for VRF system '#{vrf.name}'. Unable to report design COPs at non-rated temperatures.")
+      else
+        if cooling_boundary_temperature_c.nil?
+          runner.registerWarning("No boundary temperature defined for VRF system '#{vrf.name}', using Cooling Energy Input Ratio Low Temperature curve for VRF system for all temperatures.")
+          # use low temperature curve
+          cooling_eir_35F_curve = cooling_eir_low_temp_curve
+          cooling_eir_60F_curve = cooling_eir_low_temp_curve
+          cooling_eir_85F_curve = cooling_eir_low_temp_curve
+          cooling_eir_110F_curve = cooling_eir_low_temp_curve
+        else
+          # use boundary curve to determine whether to use high or low temperature
+          cooling_eir_35F_curve = OpenStudio.convert(35.0,'F','C').get > cooling_boundary_temperature_c ? cooling_eir_high_temp_curve : cooling_eir_low_temp_curve
+          cooling_eir_60F_curve = OpenStudio.convert(60.0,'F','C').get > cooling_boundary_temperature_c ? cooling_eir_high_temp_curve : cooling_eir_low_temp_curve
+          cooling_eir_85F_curve = OpenStudio.convert(85.0,'F','C').get > cooling_boundary_temperature_c ? cooling_eir_high_temp_curve : cooling_eir_low_temp_curve
+          cooling_eir_110F_curve = OpenStudio.convert(110.0,'F','C').get > cooling_boundary_temperature_c ? cooling_eir_high_temp_curve : cooling_eir_low_temp_curve
+        end
+        if cooling_eir_35F_curve.to_TableMultiVariableLookup.is_initialized
+          cooling_eir_35F_curve = cooling_eir_35F_curve.to_TableMultiVariableLookup.get
+          eir_35F = get_dep_var_from_lookup_table_with_two_ind_var(cooling_eir_35F_curve, cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(35.0,'F','C').get)
+          vrf_cooling_design_cop_35F = vrf_cooling_design_cop / eir_35F
+        else
+          vrf_cooling_design_cop_35F = vrf_cooling_design_cop / cooling_eir_35F_curve.evaluate(cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(35.0,'F','C').get)
+        end
+        if cooling_eir_60F_curve.to_TableMultiVariableLookup.is_initialized
+          cooling_eir_60F_curve = cooling_eir_60F_curve.to_TableMultiVariableLookup.get
+          eir_60F = get_dep_var_from_lookup_table_with_two_ind_var(cooling_eir_60F_curve, cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(60.0,'F','C').get)
+          vrf_cooling_design_cop_60F = vrf_cooling_design_cop / eir_60F
+        else
+          vrf_cooling_design_cop_60F = vrf_cooling_design_cop / cooling_eir_60F_curve.evaluate(cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(60.0,'F','C').get)
+        end
+        if cooling_eir_85F_curve.to_TableMultiVariableLookup.is_initialized
+          cooling_eir_85F_curve = cooling_eir_85F_curve.to_TableMultiVariableLookup.get
+          eir_85F = get_dep_var_from_lookup_table_with_two_ind_var(cooling_eir_85F_curve, cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(85.0,'F','C').get)
+          vrf_cooling_design_cop_85F = vrf_cooling_design_cop / eir_85F
+        else
+          vrf_cooling_design_cop_85F = vrf_cooling_design_cop / cooling_eir_85F_curve.evaluate(cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(85.0,'F','C').get)
+        end
+        if cooling_eir_110F_curve.to_TableMultiVariableLookup.is_initialized
+          cooling_eir_110F_curve = cooling_eir_110F_curve.to_TableMultiVariableLookup.get
+          eir_110F = get_dep_var_from_lookup_table_with_two_ind_var(cooling_eir_110F_curve, cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(110.0,'F','C').get)
+          vrf_cooling_design_cop_110F = vrf_cooling_design_cop / eir_110F
+        else
+          vrf_cooling_design_cop_110F = vrf_cooling_design_cop / cooling_eir_110F_curve.evaluate(cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(110.0,'F','C').get)
+        end
+      end
+
+      # determine which heating EIR curve to use
+      heating_boundary_temperature_c = -10.0
+      if vrf.heatingEnergyInputRatioBoundaryCurve.is_initialized
+        heating_boundary_curve = vrf.heatingEnergyInputRatioBoundaryCurve.get
+        heating_boundary_temperature_c = heating_boundary_curve.evaluate(heating_indoor_rating_drybulb_temperature_c)
+      elsif vrf.heatingEnergyInputRatioModifierFunctionofHighTemperatureCurve.is_initialized
+        # high temperature curve exists, but boundary curve doesn't
+        runner.registerWarning("Unable to find Heating Energy Input Ratio Boundary Curve for VRF system '#{vrf.name}'. Defaulting to -10.0 degC.")
+      else
+        heating_boundary_temperature_c = nil
+      end
+
+      heating_eir_low_temp_curve = nil
+      heating_eir_high_temp_curve = nil
+      if vrf.heatingEnergyInputRatioModifierFunctionofLowTemperatureCurve.is_initialized
+        heating_eir_low_temp_curve = vrf.heatingEnergyInputRatioModifierFunctionofLowTemperatureCurve.get 
+      end   
+      if vrf.heatingEnergyInputRatioModifierFunctionofHighTemperatureCurve.is_initialized
+        heating_eir_high_temp_curve = vrf.heatingEnergyInputRatioModifierFunctionofHighTemperatureCurve.get
+      end
+
+      vrf_heating_design_cop_minus22F = 0.0
+      vrf_heating_design_cop_0F = 0.0
+      vrf_heating_design_cop_20F = 0.0
+      vrf_heating_design_cop_40F = 0.0
+      # record design COPs at different heating temperatures
+      if heating_eir_low_temp_curve.nil?
+        runner.registerWarning("Unable to find Heating Energy Input Ratio Low Temperature curve for VRF system '#{vrf.name}'. Unable to report design COPs at non-rated temperatures.")
+      else
+        if heating_boundary_temperature_c.nil?
+          runner.registerWarning("No boundary temperature defined for VRF system '#{vrf.name}', using Heating Energy Input Ratio Low Temperature curve for VRF system for all temperatures.")
+          # use low temperature curve
+          heating_eir_minus22F_curve = heating_eir_low_temp_curve
+          heating_eir_0F_curve = heating_eir_low_temp_curve
+          heating_eir_20F_curve = heating_eir_low_temp_curve
+          heating_eir_40F_curve = heating_eir_low_temp_curve
+        else
+          # use boundary curve to determine whether to use high or low temperature
+          heating_eir_minus22F_curve = OpenStudio.convert(-22.0,'F','C').get > heating_boundary_temperature_c ? heating_eir_high_temp_curve : heating_eir_low_temp_curve
+          heating_eir_0F_curve = OpenStudio.convert(0.0,'F','C').get > heating_boundary_temperature_c ? heating_eir_high_temp_curve : heating_eir_low_temp_curve
+          heating_eir_20F_curve = OpenStudio.convert(20.0,'F','C').get > heating_boundary_temperature_c ? heating_eir_high_temp_curve : heating_eir_low_temp_curve
+          heating_eir_40F_curve = OpenStudio.convert(40.0,'F','C').get > heating_boundary_temperature_c ? heating_eir_high_temp_curve : heating_eir_low_temp_curve
+        end
+        if heating_eir_minus22F_curve.to_TableMultiVariableLookup.is_initialized
+          heating_eir_minus22F_curve = heating_eir_minus22F_curve.to_TableMultiVariableLookup.get
+          eir_minus22F = get_dep_var_from_lookup_table_with_two_ind_var(heating_eir_minus22F_curve, heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(-22.0,'F','C').get)
+          vrf_heating_design_cop_minus22F = vrf_heating_design_cop / eir_minus22F
+        else
+          vrf_heating_design_cop_minus22F = vrf_heating_design_cop / heating_eir_minus22F_curve.evaluate(heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(-22.0,'F','C').get)
+        end
+        if heating_eir_0F_curve.to_TableMultiVariableLookup.is_initialized
+          heating_eir_0F_curve = heating_eir_0F_curve.to_TableMultiVariableLookup.get
+          eir_0F = get_dep_var_from_lookup_table_with_two_ind_var(heating_eir_0F_curve, heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(0.0,'F','C').get)
+          vrf_heating_design_cop_0F = vrf_heating_design_cop / eir_0F
+        else
+          vrf_heating_design_cop_0F = vrf_heating_design_cop / heating_eir_0F_curve.evaluate(heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(0.0,'F','C').get)
+        end
+        if heating_eir_20F_curve.to_TableMultiVariableLookup.is_initialized
+          heating_eir_20F_curve = heating_eir_20F_curve.to_TableMultiVariableLookup.get
+          eir_20F = get_dep_var_from_lookup_table_with_two_ind_var(heating_eir_20F_curve, heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(20.0,'F','C').get)
+          vrf_heating_design_cop_20F = vrf_heating_design_cop / eir_20F
+        else
+          vrf_heating_design_cop_20F = vrf_heating_design_cop / heating_eir_20F_curve.evaluate(heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(20.0,'F','C').get)
+        end
+        if heating_eir_40F_curve.to_TableMultiVariableLookup.is_initialized
+          heating_eir_40F_curve = heating_eir_40F_curve.to_TableMultiVariableLookup.get
+          eir_40F = get_dep_var_from_lookup_table_with_two_ind_var(heating_eir_40F_curve, heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(40.0,'F','C').get)
+          vrf_heating_design_cop_40F = vrf_heating_design_cop / eir_40F
+        else
+          vrf_heating_design_cop_40F = vrf_heating_design_cop / heating_eir_40F_curve.evaluate(heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(40.0,'F','C').get)
+        end
+      end
+      vrf_heating_performance_curve_temperature_type = vrf.heatingPerformanceCurveOutdoorTemperatureType
+
+      # calculate annual cops
+      vrf_cooling_cop = vrf_cooling_electric_j > 0.0 ? vrf_cooling_load_j / vrf_cooling_electric_j : 0.0
+      vrf_heating_cop = vrf_heating_electric_j > 0.0 ? vrf_heating_load_j / vrf_heating_electric_j : 0.0
+      vrf_heating_total_input_energy_j = vrf_heating_electric_j + vrf_defrost_electric_j + vrf_crankcase_electric_j + vrf_total_heating_supplemental_electric_j + vrf_total_heating_supplemental_gas_j
+      vrf_heating_total_cop = vrf_heating_total_input_energy_j > 0.0 ? vrf_heating_load_j / vrf_heating_total_input_energy_j : 0.0
+
+      # record data
+      vrf_total_cooling_load_j += vrf_cooling_load_j
+      vrf_total_heating_load_j += vrf_heating_load_j
+      vrf_total_heat_recovery_j += vrf_heat_recovery_j
+      vrf_total_cooling_electric_j += vrf_cooling_electric_j
+      vrf_total_heating_electric_j += vrf_heating_electric_j
+      vrf_total_heating_defrost_energy_j += vrf_defrost_electric_j
+      vrf_total_heating_total_input_energy_j += vrf_heating_total_input_energy_j
+      vrf_cooling_load_weighted_cop += vrf_cooling_load_j * vrf_cooling_cop
+      vrf_heating_load_weighted_cop += vrf_heating_load_j * vrf_heating_cop
+      vrf_heating_load_weighted_total_cop += vrf_heating_load_j * vrf_heating_total_cop
+      vrf_cooling_load_weighted_design_cop += vrf_cooling_load_j * vrf_cooling_design_cop
+      vrf_heating_load_weighted_design_cop += vrf_heating_load_j * vrf_heating_design_cop
+      vrf_cooling_load_weighted_design_cop_35F += vrf_cooling_load_j * vrf_cooling_design_cop_35F
+      vrf_cooling_load_weighted_design_cop_60F += vrf_cooling_load_j * vrf_cooling_design_cop_60F
+      vrf_cooling_load_weighted_design_cop_85F += vrf_cooling_load_j * vrf_cooling_design_cop_85F
+      vrf_cooling_load_weighted_design_cop_110F += vrf_cooling_load_j * vrf_cooling_design_cop_110F
+      vrf_heating_load_weighted_design_cop_minus22F += vrf_heating_load_j * vrf_heating_design_cop_minus22F
+      vrf_heating_load_weighted_design_cop_0F += vrf_heating_load_j * vrf_heating_design_cop_0F
+      vrf_heating_load_weighted_design_cop_20F += vrf_heating_load_j * vrf_heating_design_cop_20F
+      vrf_heating_load_weighted_design_cop_40F += vrf_heating_load_j * vrf_heating_design_cop_40F
+      if vrf_heating_load_j > vrf_largest_heating_load_served_j
+        vrf_heating_largest_load_performance_curve_temperature_type = vrf_heating_performance_curve_temperature_type
+        vrf_largest_heating_load_served_j = vrf_heating_load_j
+      end
+    end
+    # report counts and line length statistics
+    runner.registerValue('com_report_hvac_vrf_indoor_unit_count', vrf_indoor_unit_count)
+    runner.registerValue('com_report_hvac_vrf_outdoor_unit_count', vrf_outdoor_unit_count)
+    average_num_compressors = total_vrf_area_m2 > 0.0 ? weighted_vrf_num_compressors / total_vrf_area_m2 : 0.0
+    runner.registerValue('com_report_hvac_vrf_area_average_num_compressors', average_num_compressors)
+    average_line_length_m = total_vrf_area_m2 > 0.0 ? weighted_vrf_length_m / total_vrf_area_m2 : 0.0
+    runner.registerValue('com_report_hvac_vrf_area_average_line_length_m', average_line_length_m)
+    average_line_height_m = total_vrf_area_m2 > 0.0 ? weighted_vrf_height_m / total_vrf_area_m2 : 0.0
+    runner.registerValue('com_report_hvac_vrf_area_average_line_height_m', average_line_height_m)
+
+    # report indoor and outdoor unit equipment capacities
+    runner.registerValue('com_report_hvac_vrf_total_indoor_unit_cooling_capacity_w', vrf_total_indoor_unit_cooling_capacity_w)
+    runner.registerValue('com_report_hvac_vrf_total_indoor_unit_heating_capacity_w', vrf_total_indoor_unit_heating_capacity_w)
+    average_indoor_unit_cooling_capacity_w = total_vrf_area_m2 > 0.0 ? vrf_area_weighted_indoor_unit_cooling_capacity_w / total_vrf_area_m2 : 0.0
+    runner.registerValue('com_report_hvac_vrf_area_average_indoor_unit_cooling_capacity_w', average_indoor_unit_cooling_capacity_w)
+    average_indoor_unit_heating_capacity_w = total_vrf_area_m2 > 0.0 ? vrf_area_weighted_indoor_unit_heating_capacity_w / total_vrf_area_m2 : 0.0
+    runner.registerValue('com_report_hvac_vrf_area_average_indoor_unit_heating_capacity_w', average_indoor_unit_heating_capacity_w)
+    runner.registerValue('com_report_hvac_vrf_total_outdoor_unit_cooling_capacity_w', vrf_total_outdoor_unit_cooling_capacity_w)
+    runner.registerValue('com_report_hvac_vrf_total_outdoor_unit_heating_capacity_w', vrf_total_outdoor_unit_heating_capacity_w)
+    average_outdoor_unit_cooling_capacity_w = total_vrf_area_m2 > 0.0 ? vrf_area_weighted_outdoor_unit_cooling_capacity_w / total_vrf_area_m2 : 0.0
+    runner.registerValue('com_report_hvac_vrf_area_average_outdoor_unit_cooling_capacity_w', average_outdoor_unit_cooling_capacity_w)
+    average_outdoor_unit_heating_capacity_w = total_vrf_area_m2 > 0.0 ? vrf_area_weighted_outdoor_unit_heating_capacity_w / total_vrf_area_m2 : 0.0
+    runner.registerValue('com_report_hvac_vrf_area_average_outdoor_unit_heating_capacity_w', average_outdoor_unit_heating_capacity_w)
+
+    # report out VRF loads
+    runner.registerValue('com_report_hvac_vrf_total_cooling_load_j', vrf_total_cooling_load_j)
+    runner.registerValue('com_report_hvac_vrf_total_heating_load_j', vrf_total_heating_load_j)
+    runner.registerValue('com_report_hvac_vrf_total_heat_recovery_j', vrf_total_heat_recovery_j)
+
+    # report out VRF COPs
+    average_vrf_cooling_load_weighted_cop = vrf_total_cooling_load_j > 0.0 ? vrf_cooling_load_weighted_cop / vrf_total_cooling_load_j : 0.0
+    runner.registerValue('com_report_hvac_vrf_cooling_average_cop', average_vrf_cooling_load_weighted_cop)
+    average_vrf_heating_load_weighted_cop = vrf_total_heating_load_j > 0.0 ? vrf_heating_load_weighted_cop / vrf_total_heating_load_j : 0.0
+    runner.registerValue('com_report_hvac_vrf_heating_average_cop', average_vrf_heating_load_weighted_cop)
+    average_vrf_heating_load_weighted_total_cop = vrf_total_heating_load_j > 0.0 ? vrf_heating_load_weighted_total_cop / vrf_total_heating_load_j : 0.0
+    runner.registerValue('com_report_hvac_vrf_heating_average_total_cop', average_vrf_heating_load_weighted_total_cop)
+    average_vrf_cooling_load_weighted_design_cop = vrf_total_cooling_load_j > 0.0 ? vrf_cooling_load_weighted_design_cop / vrf_total_cooling_load_j : 0.0
+    runner.registerValue('com_report_hvac_vrf_cooling_design_cop', average_vrf_cooling_load_weighted_design_cop)
+    average_vrf_cooling_load_weighted_design_cop_35F = vrf_total_cooling_load_j > 0.0 ? vrf_cooling_load_weighted_design_cop_35F / vrf_total_cooling_load_j : 0.0
+    runner.registerValue('com_report_hvac_vrf_cooling_design_cop_35_f', average_vrf_cooling_load_weighted_design_cop_35F)
+    average_vrf_cooling_load_weighted_design_cop_60F = vrf_total_cooling_load_j > 0.0 ? vrf_cooling_load_weighted_design_cop_60F / vrf_total_cooling_load_j : 0.0
+    runner.registerValue('com_report_hvac_vrf_cooling_design_cop_60_f', average_vrf_cooling_load_weighted_design_cop_60F)
+    average_vrf_cooling_load_weighted_design_cop_85F = vrf_total_cooling_load_j > 0.0 ? vrf_cooling_load_weighted_design_cop_85F / vrf_total_cooling_load_j : 0.0
+    runner.registerValue('com_report_hvac_vrf_cooling_design_cop_85_f', average_vrf_cooling_load_weighted_design_cop_85F)
+    average_vrf_cooling_load_weighted_design_cop_110F = vrf_total_cooling_load_j > 0.0 ? vrf_cooling_load_weighted_design_cop_110F / vrf_total_cooling_load_j : 0.0
+    runner.registerValue('com_report_hvac_vrf_cooling_design_cop_110_f', average_vrf_cooling_load_weighted_design_cop_110F)
+    average_vrf_heating_load_weighted_design_cop = vrf_total_heating_load_j > 0.0 ? vrf_heating_load_weighted_design_cop / vrf_total_heating_load_j : 0.0
+    runner.registerValue('com_report_hvac_vrf_heating_design_cop', average_vrf_heating_load_weighted_design_cop)
+    average_vrf_heating_load_weighted_design_cop_minus22F = vrf_total_heating_load_j > 0.0 ? vrf_heating_load_weighted_design_cop_minus22F / vrf_total_heating_load_j : 0.0
+    runner.registerValue('com_report_hvac_vrf_heating_design_cop_minus22_f', average_vrf_heating_load_weighted_design_cop_minus22F)
+    average_vrf_heating_load_weighted_design_cop_0F = vrf_total_heating_load_j > 0.0 ? vrf_heating_load_weighted_design_cop_0F / vrf_total_heating_load_j : 0.0
+    runner.registerValue('com_report_hvac_vrf_heating_design_cop_0_f', average_vrf_heating_load_weighted_design_cop_0F)
+    average_vrf_heating_load_weighted_design_cop_20F = vrf_total_heating_load_j > 0.0 ? vrf_heating_load_weighted_design_cop_20F / vrf_total_heating_load_j : 0.0
+    runner.registerValue('com_report_hvac_vrf_heating_design_cop_20_f', average_vrf_heating_load_weighted_design_cop_20F)
+    average_vrf_heating_load_weighted_design_cop_40F = vrf_total_heating_load_j > 0.0 ? vrf_heating_load_weighted_design_cop_40F / vrf_total_heating_load_j : 0.0
+    runner.registerValue('com_report_hvac_vrf_heating_design_cop_40_f', average_vrf_heating_load_weighted_design_cop_40F)
+    runner.registerValue('com_report_hvac_vrf_heating_performance_curve_temperature_type', vrf_heating_largest_load_performance_curve_temperature_type)
+
+    # report out VRF fraction of heating load met by supplemental equipment
+    vrf_fraction_heating_load_supplemental = 0.0
+    if vrf_total_heating_load_j > 0.0
+      vrf_fraction_heating_load_supplemental = (vrf_total_heating_supplemental_load_j / vrf_total_heating_load_j)
+    end
+    runner.registerValue('com_report_hvac_vrf_fraction_heating_load_supplemental', vrf_fraction_heating_load_supplemental)
+
+    # report out DX supplemental heating load and electric
+    runner.registerValue('com_report_hvac_vrf_total_heating_supplemental_load_j', vrf_total_heating_supplemental_load_j)
+    runner.registerValue('com_report_hvac_vrf_total_heating_supplemental_load_electric_j', vrf_total_heating_supplemental_load_electric_j)
+    runner.registerValue('com_report_hvac_vrf_total_heating_supplemental_load_gas_j', vrf_total_heating_supplemental_load_gas_j)
+    runner.registerValue('com_report_hvac_vrf_total_heating_supplemental_electric_j', vrf_total_heating_supplemental_electric_j)
+    runner.registerValue('com_report_hvac_vrf_total_heating_supplemental_gas_j', vrf_total_heating_supplemental_gas_j)
+
     # Design and annual average chiller efficiency
     chiller_total_load_j = 0.0
     chiller_load_weighted_cop = 0.0
     chiller_load_weighted_design_cop = 0.0
-    model.getChillerElectricEIRs.each do |chiller|
-      # get Chiller Evaporator Cooling Energy
-      chiller_load_j = 0.0
-      var_data_id_query = "SELECT ReportVariableDataDictionaryIndex FROM ReportVariableDataDictionary WHERE VariableName = 'Chiller Evaporator Cooling Energy' AND ReportingFrequency = 'Run Period' AND KeyValue = '#{chiller.name.get.to_s.upcase}'"
-      var_data_id = sql.execAndReturnFirstDouble(var_data_id_query)
-      if var_data_id.is_initialized
-        var_val_query = "SELECT VariableValue FROM ReportVariableData WHERE ReportVariableDataDictionaryIndex = '#{var_data_id.get}'"
-        val = sql.execAndReturnFirstDouble(var_val_query)
-        if val.is_initialized
-          chiller_load_j = val.get
-        else
-          runner.registerWarning("'Chiller Evaporator Cooling Energy' not available for chiller '#{chiller.name}'.")
-        end
+    chiller_total_capacity_w = 0.0
+    chiller_count_0_to_75_tons = 0.0
+    chiller_count_75_to_150_tons = 0.0
+    chiller_count_150_to_300_tons = 0.0
+    chiller_count_300_to_600_tons = 0.0
+    chiller_count_600_plus_tons = 0.0
+    model.getChillerElectricEIRs.sort.each do |chiller|
+      # get chiller capacity
+      if chiller.referenceCapacity.is_initialized
+        capacity_w = chiller.referenceCapacity.get
+      elsif chiller.autosizedReferenceCapacity.is_initialized
+        capacity_w = chiller.autosizedReferenceCapacity.get
       else
-        runner.registerWarning("'Chiller Evaporator Cooling Energy' not available for chiller '#{chiller.name}'.")
+        runner.registerWarning("Chiller capacity not available for chiller '#{chiller.name}'.")
+        capacity_w = 0.0
+      end
+      chiller_total_capacity_w += capacity_w
+
+      # log count of sizes
+      capacity_tons = OpenStudio.convert(capacity_w, 'W', 'ton').get
+      if capacity_tons < 75
+        chiller_count_0_to_75_tons += 1
+      elsif capacity_tons < 150
+        chiller_count_75_to_150_tons += 1
+      elsif capacity_tons < 300
+        chiller_count_150_to_300_tons += 1
+      elsif capacity_tons < 600
+        chiller_count_300_to_600_tons += 1
+      else # capacity is over 600 tons
+        chiller_count_600_plus_tons += 1
       end
 
+      # get Chiller Evaporator Cooling Energy
+      chiller_load_j = sql_get_report_variable_data_double(runner, sql, chiller, 'Chiller Evaporator Cooling Energy')
+
       # get chiller annual cop
-      chiller_annual_cop = 0.0
-      var_data_id_query = "SELECT ReportVariableDataDictionaryIndex FROM ReportVariableDataDictionary WHERE VariableName = 'Chiller COP' AND ReportingFrequency = 'Run Period' AND KeyValue = '#{chiller.name.get.to_s.upcase}'"
-      var_data_id = sql.execAndReturnFirstDouble(var_data_id_query)
-      if var_data_id.is_initialized
-        var_val_query = "SELECT VariableValue FROM ReportVariableData WHERE ReportVariableDataDictionaryIndex = '#{var_data_id.get}'"
-        val = sql.execAndReturnFirstDouble(var_val_query)
-        if val.is_initialized
-          chiller_annual_cop = val.get
-        else
-          runner.registerWarning("'Annual Chiller COP' not available for chiller '#{chiller.name}'.")
-        end
-      else
-        runner.registerWarning("'Annual Chiller COP' not available for chiller '#{chiller.name}'.")
-      end
+      chiller_annual_cop = sql_get_report_variable_data_double(runner, sql, chiller, 'Chiller COP')
 
       # get chiller design cop
       chiller_design_cop = chiller.referenceCOP
@@ -742,135 +1544,871 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       chiller_load_weighted_design_cop += chiller_load_j * chiller_design_cop
     end
     average_chiller_cop = chiller_total_load_j > 0.0 ? chiller_load_weighted_cop / chiller_total_load_j : 0.0
-    runner.registerValue('com_report_average_chiller_cop', average_chiller_cop)
+    runner.registerValue('com_report_hvac_average_chiller_cop', average_chiller_cop)
     design_chiller_cop = chiller_total_load_j > 0.0 ? chiller_load_weighted_design_cop / chiller_total_load_j : 0.0
-    runner.registerValue('com_report_design_chiller_cop', design_chiller_cop)
+    runner.registerValue('com_report_hvac_design_chiller_cop', design_chiller_cop)
+    chiller_total_capacity_tons = OpenStudio.convert(chiller_total_capacity_w, 'W', 'ton').get
+    runner.registerValue('com_report_hvac_chiller_capacity_tons', chiller_total_capacity_tons)
+    runner.registerValue('com_report_hvac_count_chillers_0_to_75_tons', chiller_count_0_to_75_tons)
+    runner.registerValue('com_report_hvac_count_chillers_75_to_150_tons', chiller_count_75_to_150_tons)
+    runner.registerValue('com_report_hvac_count_chillers_150_to_300_tons', chiller_count_150_to_300_tons)
+    runner.registerValue('com_report_hvac_count_chillers_300_to_600_tons', chiller_count_300_to_600_tons)
+    runner.registerValue('com_report_hvac_count_chillers_600_plus_tons', chiller_count_600_plus_tons)
 
-    # Design and annual average DX cooling efficiency
-    dx_cooling_total_load_j = 0.0
-    dx_cooling_load_weighted_cop = 0.0
-    dx_cooling_load_weighted_design_cop = 0.0
-    dx_cooling_coils = []
-    model.getCoilCoolingDXSingleSpeeds.each { |c| dx_cooling_coils << c }
-    model.getCoilCoolingDXTwoSpeeds.each { |c| dx_cooling_coils << c }
-    dx_cooling_coils.each do |coil|
-      # get Cooling Coil Total Cooling Energy
-      coil_cooling_energy_j = 0.0
-      var_data_id_query = "SELECT ReportVariableDataDictionaryIndex FROM ReportVariableDataDictionary WHERE VariableName = 'Cooling Coil Total Cooling Energy' AND ReportingFrequency = 'Run Period' AND KeyValue = '#{coil.name.get.to_s.upcase}'"
-      var_data_id = sql.execAndReturnFirstDouble(var_data_id_query)
-      if var_data_id.is_initialized
-        var_val_query = "SELECT VariableValue FROM ReportVariableData WHERE ReportVariableDataDictionaryIndex = '#{var_data_id.get}'"
-        val = sql.execAndReturnFirstDouble(var_val_query)
-        if val.is_initialized
-          coil_cooling_energy_j = val.get
-        else
-          runner.registerWarning("'Coil Cooling Total Cooling Energy' not available for DX coil '#{coil.name}'.")
-        end
+    # water to air heat pump cooling capacity, load, and efficiencies
+    wa_hp_cooling_total_electric_j = 0.0
+    wa_hp_cooling_total_load_j = 0.0
+    wa_hp_cooling_load_weighted_cop = 0.0
+    wa_hp_cooling_load_weighted_design_cop = 0.0
+    wa_hp_cooling_total_capacity_w = 0.0
+    model.getCoilCoolingWaterToAirHeatPumpEquationFits.sort.each do |coil|
+      # get water to air heat pump cooling capacity and cop
+      capacity_w = 0.0
+      # capacity
+      if coil.ratedTotalCoolingCapacity.is_initialized
+        capacity_w = coil.ratedTotalCoolingCapacity.get
+      elsif coil.autosizedRatedTotalCoolingCapacity.is_initialized
+        capacity_w = coil.autosizedRatedTotalCoolingCapacity.get
       else
-        runner.registerWarning("'Coil Cooling Total Cooling Energy' not available for DX coil '#{coil.name}'.")
+        runner.registerWarning("Cooling coil capacity not available for coil '#{coil.name}'.")
       end
+      wa_hp_cooling_total_capacity_w += capacity_w
+
+      coil_design_cop = coil.ratedCoolingCoefficientofPerformance 
+
+      # get Cooling Coil Total Cooling Energy
+      coil_cooling_energy_j = sql_get_report_variable_data_double(runner, sql, coil, 'Cooling Coil Total Cooling Energy')
 
       # get Cooling Coil Electric Energy
-      coil_electric_energy_j = 0.0
-      var_data_id_query = "SELECT ReportVariableDataDictionaryIndex FROM ReportVariableDataDictionary WHERE VariableName = 'Cooling Coil Electric Energy' AND ReportingFrequency = 'Run Period' AND KeyValue = '#{coil.name.get.to_s.upcase}'"
-      var_data_id = sql.execAndReturnFirstDouble(var_data_id_query)
-      if var_data_id.is_initialized
-        var_val_query = "SELECT VariableValue FROM ReportVariableData WHERE ReportVariableDataDictionaryIndex = '#{var_data_id.get}'"
-        val = sql.execAndReturnFirstDouble(var_val_query)
-        if val.is_initialized
-          coil_electric_energy_j = val.get
-        else
-          runner.registerWarning("'Cooling Coil Electric Energy' not available for DX coil '#{coil.name}'.")
-        end
-      else
-        runner.registerWarning("'Cooling Coil Electric Energy' not available for DX coil '#{coil.name}'.")
-      end
-
-      # get coil rated cop, or rated high speed cop if two speed
-      if coil.to_CoilCoolingDXSingleSpeed.is_initialized
-        coil = coil.to_CoilCoolingDXSingleSpeed.get
-        if coil.ratedCOP.is_initialized
-          coil_design_cop = coil.ratedCOP.get
-        else
-          coil_design_cop = 0.0
-          runner.registerWarning("'Rated COP' not available for DX coil '#{coil.name}'.")
-        end
-      elsif coil.to_CoilCoolingDXTwoSpeed.is_initialized
-        coil = coil.to_CoilCoolingDXTwoSpeed.get
-        if coil.ratedHighSpeedCOP.is_initialized
-          coil_design_cop = coil.ratedHighSpeedCOP.get
-        else
-          coil_design_cop = 0.0
-          runner.registerWarning("'Rated High Speed COP' not available for DX coil '#{coil.name}'.")
-        end
-      end
+      coil_electric_energy_j = sql_get_report_variable_data_double(runner, sql, coil, "Cooling Coil #{elec} Energy")
 
       # add to weighted load cop
       coil_annual_cop = coil_cooling_energy_j > 0.0 ? coil_cooling_energy_j / coil_electric_energy_j : 0
-      dx_cooling_total_load_j += coil_cooling_energy_j
-      dx_cooling_load_weighted_cop += coil_cooling_energy_j * coil_annual_cop
-      dx_cooling_load_weighted_design_cop += coil_cooling_energy_j * coil_design_cop
+      wa_hp_cooling_total_electric_j += coil_electric_energy_j
+      wa_hp_cooling_total_load_j += coil_cooling_energy_j
+      wa_hp_cooling_load_weighted_cop += coil_cooling_energy_j * coil_annual_cop
+      wa_hp_cooling_load_weighted_design_cop += coil_cooling_energy_j * coil_design_cop
     end
-    average_dx_cooling_cop = dx_cooling_total_load_j > 0.0 ? dx_cooling_load_weighted_cop / dx_cooling_total_load_j : 0.0
-    runner.registerValue('com_report_average_dx_cooling_cop', average_dx_cooling_cop)
-    design_dx_cooling_cop = dx_cooling_total_load_j > 0.0 ? dx_cooling_load_weighted_design_cop / dx_cooling_total_load_j : 0.0
-    runner.registerValue('com_report_design_dx_cooling_cop', design_dx_cooling_cop)
+    runner.registerValue('com_report_hvac_water_air_heat_pump_cooling_total_capacity_w', wa_hp_cooling_total_capacity_w)
+    average_water_air_hp_cooling_cop = wa_hp_cooling_total_load_j > 0.0 ? wa_hp_cooling_load_weighted_cop / wa_hp_cooling_total_load_j : 0.0
+    runner.registerValue('com_report_hvac_water_air_heat_pump_cooling_average_cop', average_water_air_hp_cooling_cop)
+    design_water_air_hp_cooling_cop = wa_hp_cooling_total_load_j > 0.0 ? wa_hp_cooling_load_weighted_design_cop / wa_hp_cooling_total_load_j : 0.0
+    runner.registerValue('com_report_hvac_water_air_heat_pump_cooling_design_cop', design_water_air_hp_cooling_cop)
 
-    # Design and annual average DX heating efficiency
-    dx_heating_total_load_j = 0.0
-    dx_heating_load_weighted_cop = 0.0
-    dx_heating_load_weighted_design_cop = 0.0
-    model.getCoilHeatingDXSingleSpeeds.each do |coil|
-      # get Heating Coil Heating Energy
-      coil_heating_energy_j = 0.0
-      var_data_id_query = "SELECT ReportVariableDataDictionaryIndex FROM ReportVariableDataDictionary WHERE VariableName = 'Heating Coil Heating Energy' AND ReportingFrequency = 'Run Period' AND KeyValue = '#{coil.name.get.to_s.upcase}'"
-      var_data_id = sql.execAndReturnFirstDouble(var_data_id_query)
-      if var_data_id.is_initialized
-        var_val_query = "SELECT VariableValue FROM ReportVariableData WHERE ReportVariableDataDictionaryIndex = '#{var_data_id.get}'"
-        val = sql.execAndReturnFirstDouble(var_val_query)
-        if val.is_initialized
-          coil_heating_energy_j = val.get
-        else
-          runner.registerWarning("'Heating Coil Heating Energy' not available for DX coil '#{coil.name}'.")
-        end
+    # report out water to air heat pump cooling load and electricity
+    runner.registerValue('com_report_hvac_water_air_heat_pump_cooling_total_electric_j', wa_hp_cooling_total_electric_j)
+    runner.registerValue('com_report_hvac_water_air_heat_pump_cooling_total_load_j', wa_hp_cooling_total_load_j)
+
+    # water to air heat pump heating capacity, load, and efficiencies
+    wa_hp_heating_total_electric_j = 0.0
+    wa_hp_heating_total_load_j = 0.0
+    wa_hp_heating_load_weighted_cop = 0.0
+    wa_hp_heating_load_weighted_design_cop = 0.0
+    wa_hp_heating_total_capacity_w = 0.0
+    model.getCoilHeatingWaterToAirHeatPumpEquationFits.sort.each do |coil|
+      # get water to air heat pump heating capacity and cop
+      capacity_w = 0.0
+      # capacity
+      if coil.ratedHeatingCapacity.is_initialized
+        capacity_w = coil.ratedHeatingCapacity.get
+      elsif coil.autosizedRatedHeatingCapacity.is_initialized
+        capacity_w = coil.autosizedRatedHeatingCapacity.get
       else
-        runner.registerWarning("'Heating Coil Heating Energy' not available for DX coil '#{coil.name}'.")
+        runner.registerWarning("Heating coil capacity not available for coil '#{coil.name}'.")
       end
+      wa_hp_heating_total_capacity_w += capacity_w
+
+      coil_design_cop = coil.ratedHeatingCoefficientofPerformance 
+
+      # get Heating Coil Heating Energy
+      coil_heating_energy_j = sql_get_report_variable_data_double(runner, sql, coil, 'Heating Coil Heating Energy')
 
       # get Heating Coil Electric Energy
-      coil_electric_energy_j = 0.0
-      var_data_id_query = "SELECT ReportVariableDataDictionaryIndex FROM ReportVariableDataDictionary WHERE VariableName = 'Heating Coil Electric Energy' AND ReportingFrequency = 'Run Period' AND KeyValue = '#{coil.name.get.to_s.upcase}'"
-      var_data_id = sql.execAndReturnFirstDouble(var_data_id_query)
-      if var_data_id.is_initialized
-        var_val_query = "SELECT VariableValue FROM ReportVariableData WHERE ReportVariableDataDictionaryIndex = '#{var_data_id.get}'"
-        val = sql.execAndReturnFirstDouble(var_val_query)
-        if val.is_initialized
-          coil_electric_energy_j = val.get
-        else
-          runner.registerWarning("'Heating Coil Electric Energy' not available for DX coil '#{coil.name}'.")
-        end
-      else
-        runner.registerWarning("'Heating Coil Electric Energy' not available for DX coil '#{coil.name}'.")
-      end
-
-      # get coil rated cop
-      coil_design_cop = coil.ratedCOP
+      coil_electric_energy_j = sql_get_report_variable_data_double(runner, sql, coil, "Heating Coil #{elec} Energy")
 
       # add to weighted load cop
       coil_annual_cop = coil_heating_energy_j > 0.0 ? coil_heating_energy_j / coil_electric_energy_j : 0
-      dx_heating_total_load_j += coil_heating_energy_j
-      dx_heating_load_weighted_cop += coil_heating_energy_j * coil_annual_cop
-      dx_heating_load_weighted_design_cop += coil_heating_energy_j * coil_design_cop
+      wa_hp_heating_total_electric_j += coil_electric_energy_j
+      wa_hp_heating_total_load_j += coil_heating_energy_j
+      wa_hp_heating_load_weighted_cop += coil_heating_energy_j * coil_annual_cop
+      wa_hp_heating_load_weighted_design_cop += coil_heating_energy_j * coil_design_cop
     end
-    average_dx_heating_cop = dx_heating_total_load_j > 0.0 ? dx_heating_load_weighted_cop / dx_heating_total_load_j : 0.0
-    runner.registerValue('com_report_average_dx_heating_cop', average_dx_heating_cop)
-    design_dx_heating_cop = dx_heating_total_load_j > 0.0 ? dx_heating_load_weighted_design_cop / dx_heating_total_load_j : 0.0
-    runner.registerValue('com_report_design_dx_heating_cop', design_dx_heating_cop)
+    runner.registerValue('com_report_hvac_water_air_heat_pump_heating_total_capacity_w', wa_hp_heating_total_capacity_w)
+    average_water_air_hp_heating_cop = wa_hp_heating_total_load_j > 0.0 ? wa_hp_heating_load_weighted_cop / wa_hp_heating_total_load_j : 0.0
+    runner.registerValue('com_report_hvac_water_air_heat_pump_heating_average_cop', average_water_air_hp_heating_cop)
+    design_water_air_hp_heating_cop = wa_hp_heating_total_load_j > 0.0 ? wa_hp_heating_load_weighted_design_cop / wa_hp_heating_total_load_j : 0.0
+    runner.registerValue('com_report_hvac_water_air_heat_pump_heating_design_cop', design_water_air_hp_heating_cop)
 
-    # Average boiler efficiency
-    boiler_capacity_weighted_efficiency = 0.0
+    # report out water to air heat pump heating load and electricity
+    runner.registerValue('com_report_hvac_water_air_heat_pump_heating_total_electric_j', wa_hp_heating_total_electric_j)
+    runner.registerValue('com_report_hvac_water_air_heat_pump_heating_total_load_j', wa_hp_heating_total_load_j)
+
+    # DX cooling coils capacity, load, and efficiencies
+    dx_cooling_total_electric_j = 0.0
+    dx_cooling_total_load_j = 0.0
+    dx_cooling_0_to_30_kbtuh_total_load_j = 0.0
+    dx_cooling_30_to_65_kbtuh_total_load_j = 0.0
+    dx_cooling_65_to_135_kbtuh_total_load_j = 0.0
+    dx_cooling_135_to_240_kbtuh_total_load_j = 0.0
+    dx_cooling_240_to_760_kbtuh_total_load_j = 0.0
+    dx_cooling_760_plus_kbtuh_total_load_j = 0.0
+    dx_cooling_load_weighted_cop = 0.0
+    dx_cooling_load_weighted_design_cop = 0.0
+    dx_cooling_total_capacity_w = 0.0
+    dx_cooling_count_0_to_30_kbtuh = 0.0
+    dx_cooling_count_30_to_65_kbtuh = 0.0
+    dx_cooling_count_65_to_135_kbtuh = 0.0
+    dx_cooling_count_135_to_240_kbtuh = 0.0
+    dx_cooling_count_240_to_760_kbtuh = 0.0
+    dx_cooling_count_760_plus_kbtuh = 0.0
+    dx_cooling_load_weighted_design_seer_0_to_30_kbtuh = 0.0
+    dx_cooling_load_weighted_design_seer_30_to_65_kbtuh = 0.0
+    dx_cooling_load_weighted_design_eer_65_to_135_kbtuh = 0.0
+    dx_cooling_load_weighted_design_ieer_65_to_135_kbtuh = 0.0
+    dx_cooling_load_weighted_design_eer_135_to_240_kbtuh = 0.0
+    dx_cooling_load_weighted_design_ieer_135_to_240_kbtuh = 0.0
+    dx_cooling_load_weighted_design_eer_240_to_760_kbtuh = 0.0
+    dx_cooling_load_weighted_design_ieer_240_to_760_kbtuh = 0.0
+    dx_cooling_load_weighted_design_eer_760_plus_kbtuh = 0.0
+    dx_cooling_load_weighted_design_ieer_760_plus_kbtuh = 0.0
+    dx_cooling_coils = []
+    model.getCoilCoolingDXSingleSpeeds.each { |c| dx_cooling_coils << c }
+    model.getCoilCoolingDXTwoSpeeds.each { |c| dx_cooling_coils << c }
+    model.getCoilCoolingDXMultiSpeeds.each { |c| dx_cooling_coils << c }
+    model.getCoilCoolingDXVariableSpeeds.each { |c| dx_cooling_coils << c }
+    dx_cooling_coils.sort.each do |coil|
+      # get dx cooling capacity and cop
+      capacity_w = 0.0
+      coil_design_cop = 0.0
+      if coil.to_CoilCoolingDXSingleSpeed.is_initialized
+        coil = coil.to_CoilCoolingDXSingleSpeed.get
+
+        # capacity
+        if coil.ratedTotalCoolingCapacity.is_initialized
+          capacity_w = coil.ratedTotalCoolingCapacity.get
+        elsif coil.autosizedRatedTotalCoolingCapacity.is_initialized
+          capacity_w = coil.autosizedRatedTotalCoolingCapacity.get
+        else
+          runner.registerWarning("Cooling coil capacity not available for coil '#{coil.name}'.")
+        end
+
+        # cop
+        if model.version > OpenStudio::VersionString.new('3.4.0')
+          coil_design_cop = coil.ratedCOP
+        else
+          if coil.ratedCOP.is_initialized
+            coil_design_cop = coil.ratedCOP.get
+          else
+            runner.registerWarning("'Rated COP' not available for DX coil '#{coil.name}'.")
+          end
+        end
+      elsif coil.to_CoilCoolingDXTwoSpeed.is_initialized
+        coil = coil.to_CoilCoolingDXTwoSpeed.get
+        
+        # capacity
+        if coil.ratedHighSpeedTotalCoolingCapacity.is_initialized
+          capacity_w = coil.ratedHighSpeedTotalCoolingCapacity.get
+        elsif coil.autosizedRatedHighSpeedTotalCoolingCapacity.is_initialized
+          capacity_w = coil.autosizedRatedHighSpeedTotalCoolingCapacity.get
+        else
+          runner.registerWarning("Cooling coil capacity not available for coil '#{coil.name}'.")
+        end
+
+        # cop, use high speed cop
+        if model.version > OpenStudio::VersionString.new('3.4.0')
+          coil_design_cop = coil.ratedHighSpeedCOP
+        else
+          if coil.ratedHighSpeedCOP.is_initialized
+            coil_design_cop = coil.ratedHighSpeedCOP.get
+          else
+            runner.registerWarning("'Rated High Speed COP' not available for DX coil '#{coil.name}'.")
+          end
+        end
+      elsif coil.to_CoilCoolingDXMultiSpeed.is_initialized
+        coil = coil.to_CoilCoolingDXMultiSpeed.get
+        
+        # capacity and cop, use cop at highest capacity
+        temp_capacity_w = 0.0
+        coil.stages.each do |stage|
+          if stage.grossRatedTotalCoolingCapacity.is_initialized
+            temp_capacity_w = stage.grossRatedTotalCoolingCapacity.get
+          elsif stage.autosizedGrossRatedTotalCoolingCapacity.is_initialized
+            temp_capacity_w = stage.autosizedGrossRatedTotalCoolingCapacity.get
+          else
+            runner.registerWarning("Cooling coil capacity not available for coil stage '#{stage.name}'.")
+          end
+
+          # update cop if highest capacity
+          temp_coil_design_cop = stage.grossRatedCoolingCOP
+          coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
+
+          # update if highest capacity
+          capacity_w = temp_capacity_w if temp_capacity_w > capacity_w
+        end
+      elsif coil.to_CoilCoolingDXVariableSpeed.is_initialized
+        coil = coil.to_CoilCoolingDXVariableSpeed.get
+
+        # capacity and cop, use cop at highest capacity
+        temp_capacity_w = 0.0
+        coil.speeds.each do |speed|
+          temp_capacity_w = speed.referenceUnitGrossRatedTotalCoolingCapacity
+
+          # update cop if highest capacity
+          temp_coil_design_cop = speed.referenceUnitGrossRatedCoolingCOP
+          coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
+
+          # update if highest capacity
+          capacity_w = temp_capacity_w if temp_capacity_w > capacity_w
+        end
+      else
+        runner.registerWarning('Design capacity is only available for DX cooling coil types CoilCoolingDXSingleSpeed, CoilCoolingDXTwoSpeed, CoilCoolingDXMultiSpeed, CoilCoolingDXVariableSpeed.')
+      end
+      dx_cooling_total_capacity_w += capacity_w
+
+      # get DX Cooling Coil efficiency ratings
+      coil_eer = 0.0
+      var_val_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName = 'EquipmentSummary' AND ReportForString = 'Entire Facility' AND TableName = 'DX Cooling Coils' AND RowName = '#{coil.name.get.to_s.upcase}' AND ColumnName = 'EER'"
+      val = sql.execAndReturnFirstDouble(var_val_query)
+      if val.is_initialized
+        coil_eer = val.get
+      else
+        runner.registerWarning("Coil 'EER' not available for DX cooling coil '#{coil.name}'.")
+      end
+
+      coil_seer_std = 0.0
+      var_val_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName = 'EquipmentSummary' AND ReportForString = 'Entire Facility' AND TableName = 'DX Cooling Coils' AND RowName = '#{coil.name.get.to_s.upcase}' AND ColumnName = 'SEER Standard'"
+      val = sql.execAndReturnFirstDouble(var_val_query)
+      if val.is_initialized
+        coil_seer_std = val.get
+      else
+        runner.registerWarning("Coil 'SEER Standard' not available for DX cooling coil '#{coil.name}'.")
+      end
+
+      coil_ieer = 0.0
+      var_val_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName = 'EquipmentSummary' AND ReportForString = 'Entire Facility' AND TableName = 'DX Cooling Coils' AND RowName = '#{coil.name.get.to_s.upcase}' AND ColumnName = 'IEER'"
+      val = sql.execAndReturnFirstDouble(var_val_query)
+      if val.is_initialized
+        coil_ieer = val.get
+      else
+        runner.registerWarning("Coil 'IEER' not available for DX cooling coil '#{coil.name}'.")
+      end
+
+      # get Cooling Coil Total Cooling Energy
+      coil_cooling_energy_j = sql_get_report_variable_data_double(runner, sql, coil, 'Cooling Coil Total Cooling Energy')
+
+      # get Cooling Coil Electric Energy
+      coil_electric_energy_j = sql_get_report_variable_data_double(runner, sql, coil, "Cooling Coil #{elec} Energy")
+
+      # add to weighted load cop
+      coil_annual_cop = coil_cooling_energy_j > 0.0 ? coil_cooling_energy_j / coil_electric_energy_j : 0
+      dx_cooling_total_electric_j += coil_electric_energy_j
+      dx_cooling_total_load_j += coil_cooling_energy_j
+      dx_cooling_load_weighted_cop += coil_cooling_energy_j * coil_annual_cop
+      dx_cooling_load_weighted_design_cop += coil_cooling_energy_j * coil_design_cop
+
+      # log count of sizes, load, and COPs by equipment size
+      capacity_kbtuh = OpenStudio.convert(capacity_w, 'W', 'kBtu/h').get
+      if capacity_kbtuh < 30
+        dx_cooling_count_0_to_30_kbtuh += 1
+        dx_cooling_0_to_30_kbtuh_total_load_j += coil_cooling_energy_j
+        dx_cooling_load_weighted_design_seer_0_to_30_kbtuh += coil_cooling_energy_j * coil_seer_std
+      elsif capacity_kbtuh < 65
+        dx_cooling_count_30_to_65_kbtuh += 1
+        dx_cooling_30_to_65_kbtuh_total_load_j += coil_cooling_energy_j
+        dx_cooling_load_weighted_design_seer_30_to_65_kbtuh += coil_cooling_energy_j * coil_seer_std
+      elsif capacity_kbtuh < 135
+        dx_cooling_count_65_to_135_kbtuh += 1
+        dx_cooling_65_to_135_kbtuh_total_load_j += coil_cooling_energy_j
+        dx_cooling_load_weighted_design_eer_65_to_135_kbtuh += coil_cooling_energy_j * coil_eer
+        dx_cooling_load_weighted_design_ieer_65_to_135_kbtuh += coil_cooling_energy_j * coil_ieer
+      elsif capacity_kbtuh < 240
+        dx_cooling_count_135_to_240_kbtuh += 1
+        dx_cooling_135_to_240_kbtuh_total_load_j += coil_cooling_energy_j
+        dx_cooling_load_weighted_design_eer_135_to_240_kbtuh += coil_cooling_energy_j * coil_eer
+        dx_cooling_load_weighted_design_ieer_135_to_240_kbtuh += coil_cooling_energy_j * coil_ieer
+      elsif capacity_kbtuh < 760
+        dx_cooling_count_240_to_760_kbtuh += 1
+        dx_cooling_240_to_760_kbtuh_total_load_j += coil_cooling_energy_j
+        dx_cooling_load_weighted_design_eer_240_to_760_kbtuh += coil_cooling_energy_j * coil_eer
+        dx_cooling_load_weighted_design_ieer_240_to_760_kbtuh += coil_cooling_energy_j * coil_ieer
+      else # capacity is over 760 kbtuh
+        dx_cooling_count_760_plus_kbtuh += 1
+        dx_cooling_760_plus_kbtuh_total_load_j += coil_cooling_energy_j
+        dx_cooling_load_weighted_design_eer_760_plus_kbtuh += coil_cooling_energy_j * coil_eer
+        dx_cooling_load_weighted_design_ieer_760_plus_kbtuh += coil_cooling_energy_j * coil_ieer
+      end
+
+      # cooling coil info logging
+      runner.registerInfo("Cooling coil '#{coil.name}' has design capacity #{capacity_w.round(2)} W, design cop #{coil_design_cop.round(2)}, and annual weighted cop #{coil_annual_cop.round(2)}.")
+    end
+    average_dx_cooling_cop = dx_cooling_total_load_j > 0.0 ? dx_cooling_load_weighted_cop / dx_cooling_total_load_j : 0.0
+    runner.registerValue('com_report_hvac_dx_cooling_average_cop', average_dx_cooling_cop)
+    design_dx_cooling_cop = dx_cooling_total_load_j > 0.0 ? dx_cooling_load_weighted_design_cop / dx_cooling_total_load_j : 0.0
+    runner.registerValue('com_report_hvac_dx_cooling_design_cop', design_dx_cooling_cop)
+
+    # report out DX cooling load and electricity
+    runner.registerValue('com_report_hvac_dx_cooling_total_electric_j', dx_cooling_total_electric_j)
+    runner.registerValue('com_report_hvac_dx_cooling_total_load_j', dx_cooling_total_load_j)
+
+    # report out DX cooling SEERs, EERs, IEERs at each size category
+    dx_cooling_design_seer_0_to_30_kbtuh = dx_cooling_0_to_30_kbtuh_total_load_j > 0.0 ? dx_cooling_load_weighted_design_seer_0_to_30_kbtuh / dx_cooling_0_to_30_kbtuh_total_load_j : 0
+    runner.registerValue('com_report_hvac_dx_cooling_design_seer_0_to_30_kbtuh', dx_cooling_design_seer_0_to_30_kbtuh)
+    dx_cooling_design_seer_30_to_65_kbtuh = dx_cooling_30_to_65_kbtuh_total_load_j > 0.0 ? dx_cooling_load_weighted_design_seer_30_to_65_kbtuh / dx_cooling_30_to_65_kbtuh_total_load_j : 0
+    runner.registerValue('com_report_hvac_dx_cooling_design_seer_30_to_65_kbtuh', dx_cooling_design_seer_30_to_65_kbtuh)
+    dx_cooling_design_eer_65_to_135_kbtuh = dx_cooling_65_to_135_kbtuh_total_load_j > 0.0 ? dx_cooling_load_weighted_design_eer_65_to_135_kbtuh / dx_cooling_65_to_135_kbtuh_total_load_j : 0
+    runner.registerValue('com_report_hvac_dx_cooling_design_eer_65_to_135_kbtuh', dx_cooling_design_eer_65_to_135_kbtuh)
+    dx_cooling_design_ieer_65_to_135_kbtuh = dx_cooling_65_to_135_kbtuh_total_load_j > 0.0 ? dx_cooling_load_weighted_design_ieer_65_to_135_kbtuh / dx_cooling_65_to_135_kbtuh_total_load_j : 0
+    runner.registerValue('com_report_hvac_dx_cooling_design_ieer_65_to_135_kbtuh', dx_cooling_design_ieer_65_to_135_kbtuh)
+    dx_cooling_design_eer_135_to_240_kbtuh = dx_cooling_135_to_240_kbtuh_total_load_j > 0.0 ? dx_cooling_load_weighted_design_eer_135_to_240_kbtuh / dx_cooling_135_to_240_kbtuh_total_load_j : 0
+    runner.registerValue('com_report_hvac_dx_cooling_design_eer_135_to_240_kbtuh', dx_cooling_design_eer_135_to_240_kbtuh)
+    dx_cooling_design_ieer_135_to_240_kbtuh = dx_cooling_135_to_240_kbtuh_total_load_j > 0.0 ? dx_cooling_load_weighted_design_ieer_135_to_240_kbtuh / dx_cooling_135_to_240_kbtuh_total_load_j : 0
+    runner.registerValue('com_report_hvac_dx_cooling_design_ieer_135_to_240_kbtuh', dx_cooling_design_ieer_135_to_240_kbtuh)
+    dx_cooling_design_eer_240_to_760_kbtuh = dx_cooling_240_to_760_kbtuh_total_load_j > 0.0 ? dx_cooling_load_weighted_design_eer_240_to_760_kbtuh / dx_cooling_240_to_760_kbtuh_total_load_j : 0
+    runner.registerValue('com_report_hvac_dx_cooling_design_eer_240_to_760_kbtuh', dx_cooling_design_eer_240_to_760_kbtuh)
+    dx_cooling_design_ieer_240_to_760_kbtuh = dx_cooling_240_to_760_kbtuh_total_load_j > 0.0 ? dx_cooling_load_weighted_design_ieer_240_to_760_kbtuh / dx_cooling_240_to_760_kbtuh_total_load_j : 0
+    runner.registerValue('com_report_hvac_dx_cooling_design_ieer_240_to_760_kbtuh', dx_cooling_design_ieer_240_to_760_kbtuh)
+    dx_cooling_design_eer_760_plus_kbtuh = dx_cooling_760_plus_kbtuh_total_load_j > 0.0 ? dx_cooling_load_weighted_design_eer_760_plus_kbtuh / dx_cooling_760_plus_kbtuh_total_load_j : 0
+    runner.registerValue('com_report_hvac_dx_cooling_design_eer_760_plus_kbtuh', dx_cooling_design_eer_760_plus_kbtuh)
+    dx_cooling_design_ieer_760_plus_kbtuh = dx_cooling_760_plus_kbtuh_total_load_j > 0.0 ? dx_cooling_load_weighted_design_ieer_760_plus_kbtuh / dx_cooling_760_plus_kbtuh_total_load_j : 0
+    runner.registerValue('com_report_hvac_dx_cooling_design_ieer_760_plus_kbtuh', dx_cooling_design_ieer_760_plus_kbtuh)
+
+    # report counts
+    dx_cooling_total_capacity_tons = OpenStudio.convert(dx_cooling_total_capacity_w, 'W', 'ton').get
+    runner.registerValue('com_report_hvac_dx_cooling_capacity_tons', dx_cooling_total_capacity_tons)
+    runner.registerValue('com_report_hvac_count_dx_cooling_0_to_30_kbtuh', dx_cooling_count_0_to_30_kbtuh)
+    runner.registerValue('com_report_hvac_count_dx_cooling_30_to_65_kbtuh', dx_cooling_count_30_to_65_kbtuh)
+    runner.registerValue('com_report_hvac_count_dx_cooling_65_to_135_kbtuh', dx_cooling_count_65_to_135_kbtuh)
+    runner.registerValue('com_report_hvac_count_dx_cooling_135_to_240_kbtuh', dx_cooling_count_135_to_240_kbtuh)
+    runner.registerValue('com_report_hvac_count_dx_cooling_240_to_760_kbtuh', dx_cooling_count_240_to_760_kbtuh)
+    runner.registerValue('com_report_hvac_count_dx_cooling_760_plus_kbtuh', dx_cooling_count_760_plus_kbtuh)
+
+    # DX heating coil capacity, load, and efficiences, including supplemental coils
+    dx_heating_total_load_j = 0.0
+    dx_heating_total_dx_load_j = 0.0
+    dx_heating_total_dx_electric_j = 0.0
+    dx_heating_total_supplemental_load_j = 0.0
+    dx_heating_total_supplemental_load_electric_j = 0.0
+    dx_heating_total_supplemental_load_gas_j = 0.0
+    dx_heating_total_supplemental_electric_j = 0.0
+    dx_heating_total_supplemental_gas_j = 0.0
+    dx_heating_defrost_energy_j = 0.0
+    dx_heating_0_to_30_kbtuh_total_load_j = 0.0
+    dx_heating_30_to_65_kbtuh_total_load_j = 0.0
+    dx_heating_65_to_135_kbtuh_total_load_j = 0.0
+    dx_heating_135_to_240_kbtuh_total_load_j = 0.0
+    dx_heating_240_plus_kbtuh_total_load_j = 0.0
+    dx_heating_load_weighted_cop = 0.0
+    dx_heating_load_weighted_total_cop = 0.0
+    dx_heating_load_weighted_design_cop = 0.0
+    dx_heating_load_weighted_design_cop_17F = 0.0
+    dx_heating_load_weighted_design_cop_5F = 0.0
+    dx_heating_load_weighted_design_cop_0F = 0.0
+    dx_heating_total_capacity_w = 0.0
+    dx_heating_total_capacity_17F_w = 0.0
+    dx_heating_total_capacity_5F_w = 0.0
+    dx_heating_total_capacity_0F_w = 0.0
+    dx_heating_total_supplemental_capacity_w = 0.0
+    dx_heating_total_supplemental_capacity_electric_w = 0.0
+    dx_heating_total_supplemental_capacity_gas_w = 0.0
+    dx_heating_capacity_weighted_min_temp_w_c = 0.0
+    dx_heating_count_0_to_30_kbtuh = 0.0
+    dx_heating_count_30_to_65_kbtuh = 0.0
+    dx_heating_count_65_to_135_kbtuh = 0.0
+    dx_heating_count_135_to_240_kbtuh = 0.0
+    dx_heating_count_240_plus_kbtuh = 0.0
+    dx_heating_load_weighted_design_hspf_0_to_30_kbtuh = 0.0
+    dx_heating_load_weighted_design_hspf_30_to_65_kbtuh = 0.0
+    dx_heating_load_weighted_design_cop_65_to_135_kbtuh = 0.0
+    dx_heating_load_weighted_design_cop_135_to_240_kbtuh = 0.0
+    dx_heating_load_weighted_design_cop_240_plus_kbtuh = 0.0
+    dx_heating_coils = []
+    model.getCoilHeatingDXSingleSpeeds.each { |c| dx_heating_coils << c }
+    model.getCoilHeatingDXMultiSpeeds.each { |c| dx_heating_coils << c }
+    model.getCoilHeatingDXVariableSpeeds.each { |c| dx_heating_coils << c }
+    dx_heating_coils.sort.each do |coil|
+      # get coil rated capacity and cop
+      capacity_w = 0.0
+      capacity_17F_w = 0.0
+      capacity_5F_w = 0.0
+      capacity_0F_w = 0.0
+      coil_design_cop = 0.0
+      coil_design_cop_17F = 0.0
+      coil_design_cop_5F = 0.0
+      coil_design_cop_0F = 0.0
+      if coil.to_CoilHeatingDXSingleSpeed.is_initialized
+        coil = coil.to_CoilHeatingDXSingleSpeed.get
+        if coil.ratedTotalHeatingCapacity.is_initialized
+          capacity_w = coil.ratedTotalHeatingCapacity.get
+        elsif coil.autosizedRatedTotalHeatingCapacity.is_initialized
+          capacity_w = coil.autosizedRatedTotalHeatingCapacity.get
+        else
+          runner.registerWarning("Heating coil capacity not available for coil '#{coil.name}'.")
+        end
+
+        # get rated capacity and capacity at lower temperatures
+        cap_curve = coil.totalHeatingCapacityFunctionofTemperatureCurve
+        if cap_curve.to_CurveCubic.is_initialized
+          coil_cap_17F = cap_curve.evaluate(OpenStudio.convert(17.0,'F','C').get)
+          capacity_17F_w = capacity_w * coil_cap_17F
+          coil_cap_5F =  cap_curve.evaluate(OpenStudio.convert(5.0,'F','C').get)
+          capacity_5F_w = capacity_w * coil_cap_5F
+          coil_cap_0F =  cap_curve.evaluate(OpenStudio.convert(0.0,'F','C').get)
+          capacity_0F_w = capacity_w * coil_cap_0F
+        else
+          runner.registerWarning("Heating coil capacity at lower temperatures not available for coil '#{coil.name}' with given curve.")
+        end
+
+        # get rated cop and cop at lower temperatures
+        coil_design_cop = coil.ratedCOP
+        eir_curve = coil.energyInputRatioFunctionofTemperatureCurve
+        if eir_curve.to_CurveCubic.is_initialized
+          coil_eir_17F = eir_curve.evaluate(OpenStudio.convert(17.0,'F','C').get)
+          coil_design_cop_17F = coil_design_cop / coil_eir_17F
+          coil_eir_5F =  eir_curve.evaluate(OpenStudio.convert(5.0,'F','C').get)
+          coil_design_cop_5F = coil_design_cop / coil_eir_5F
+          coil_eir_0F =  eir_curve.evaluate(OpenStudio.convert(0.0,'F','C').get)
+          coil_design_cop_0F = coil_design_cop / coil_eir_0F
+        else
+          runner.registerWarning("Coil COP at non-design temperatures not available for coil '#{coil.name}'.")
+        end
+      elsif coil.to_CoilHeatingDXMultiSpeed.is_initialized
+        coil = coil.to_CoilHeatingDXMultiSpeed.get
+        temp_capacity_w = 0.0
+        coil.stages.each do |stage|
+          if stage.grossRatedHeatingCapacity.is_initialized
+            temp_capacity_w = stage.grossRatedHeatingCapacity.get
+          elsif stage.autosizedGrossRatedHeatingCapacity.is_initialized
+            temp_capacity_w = stage.autosizedGrossRatedHeatingCapacity.get
+          else
+            runner.registerWarning("Heating coil capacity not available for coil stage '#{stage.name}'.")
+          end
+
+          # get capacity and capacity at lower temperatures
+          cap_curve = stage.heatingCapacityFunctionofTemperatureCurve
+          if cap_curve.to_CurveCubic.is_initialized
+            coil_cap_17F = cap_curve.evaluate(OpenStudio.convert(17.0,'F','C').get)
+            capacity_17F_w = capacity_w * coil_cap_17F if temp_capacity_w >= capacity_w
+            coil_cap_5F =  cap_curve.evaluate(OpenStudio.convert(5.0,'F','C').get)
+            capacity_5F_w = capacity_w * coil_cap_5F if temp_capacity_w >= capacity_w
+            coil_cap_0F =  cap_curve.evaluate(OpenStudio.convert(0.0,'F','C').get)
+            capacity_0F_w = capacity_w * coil_cap_0F if temp_capacity_w >= capacity_w
+          elsif cap_curve.to_CurveBiquadratic.is_initialized
+            coil_cap_17F = cap_curve.evaluate(OpenStudio.convert(70.0,'F','C').get, OpenStudio.convert(17.0,'F','C').get)
+            capacity_17F_w = capacity_w * coil_cap_17F if temp_capacity_w >= capacity_w
+            coil_cap_5F =  cap_curve.evaluate(OpenStudio.convert(70.0,'F','C').get, OpenStudio.convert(5.0,'F','C').get)
+            capacity_5F_w = capacity_w * coil_cap_5F if temp_capacity_w >= capacity_w
+            coil_cap_0F =  cap_curve.evaluate(OpenStudio.convert(70.0,'F','C').get, OpenStudio.convert(0.0,'F','C').get)
+            capacity_0F_w = capacity_w * coil_cap_0F if temp_capacity_w >= capacity_w
+          else
+            runner.registerWarning("Heating coil capacity at lower temperatures not available for coil '#{coil.name}' with given curve.")
+          end
+
+          # get cop and cop at lower temperatures
+          # pick cop at highest capacity
+          temp_coil_design_cop = stage.grossRatedHeatingCOP
+          coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
+          eir_curve = stage.energyInputRatioFunctionofTemperatureCurve
+          if eir_curve.to_CurveCubic.is_initialized
+            coil_eir_17F = eir_curve.evaluate(OpenStudio.convert(17.0,'F','C').get)
+            coil_design_cop_17F = coil_design_cop / coil_eir_17F if temp_capacity_w >= capacity_w
+            coil_eir_5F =  eir_curve.evaluate(OpenStudio.convert(5.0,'F','C').get)
+            coil_design_cop_5F = coil_design_cop / coil_eir_5F if temp_capacity_w >= capacity_w
+            coil_eir_0F =  eir_curve.evaluate(OpenStudio.convert(0.0,'F','C').get)
+            coil_design_cop_0F = coil_design_cop / coil_eir_0F if temp_capacity_w >= capacity_w
+          elsif cap_curve.to_CurveBiquadratic.is_initialized
+            coil_eir_17F = eir_curve.evaluate(OpenStudio.convert(70.0,'F','C').get, OpenStudio.convert(17.0,'F','C').get)
+            coil_design_cop_17F = coil_design_cop / coil_eir_17F if temp_capacity_w >= capacity_w
+            coil_eir_5F =  eir_curve.evaluate(OpenStudio.convert(70.0,'F','C').get, OpenStudio.convert(5.0,'F','C').get)
+            coil_design_cop_5F = coil_design_cop / coil_eir_5F if temp_capacity_w >= capacity_w
+            coil_eir_0F =  eir_curve.evaluate(OpenStudio.convert(70.0,'F','C').get, OpenStudio.convert(0.0,'F','C').get)
+            coil_design_cop_0F = coil_design_cop / coil_eir_0F if temp_capacity_w >= capacity_w
+          else
+            runner.registerWarning("Coil COP at non-design temperatures not available for coil '#{coil.name}'.")
+          end
+
+          # update if highest capacity
+          capacity_w = temp_capacity_w if temp_capacity_w > capacity_w
+        end
+      elsif coil.to_CoilHeatingDXVariableSpeed.is_initialized
+        coil = coil.to_CoilHeatingDXVariableSpeed.get
+        coil.speeds.each do |speed|
+          temp_capacity_w = speed.referenceUnitGrossRatedHeatingCapacity
+
+          # get capacity and capacity at lower temperatures
+          cap_curve = stage.heatingCapacityFunctionofTemperatureCurve
+          if cap_curve.to_CurveCubic.is_initialized
+            coil_cap_17F = cap_curve.evaluate(OpenStudio.convert(17.0,'F','C').get)
+            capacity_17F_w = capacity_w * coil_cap_17F if temp_capacity_w >= capacity_w
+            coil_cap_5F =  cap_curve.evaluate(OpenStudio.convert(5.0,'F','C').get)
+            capacity_5F_w = capacity_w * coil_cap_5F if temp_capacity_w >= capacity_w
+            coil_cap_0F =  cap_curve.evaluate(OpenStudio.convert(0.0,'F','C').get)
+            capacity_0F_w = capacity_w * coil_cap_0F if temp_capacity_w >= capacity_w
+          else
+            runner.registerWarning("Heating coil capacity at lower temperatures not available for coil '#{coil.name}' with given curve.")
+          end
+
+          # get cop and cop at lower temperatures
+          # pick cop at highest capacity
+          temp_coil_design_cop = speed.referenceUnitGrossRatedHeatingCOP
+          coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
+          eir_curve = speed.energyInputRatioFunctionofTemperatureCurve
+          if eir_curve.to_CurveCubic.is_initialized
+            coil_eir_17F = eir_curve.evaluate(OpenStudio.convert(17.0,'F','C').get)
+            coil_design_cop_17F = coil_design_cop / coil_eir_17F if temp_capacity_w >= capacity_w
+            coil_eir_5F =  eir_curve.evaluate(OpenStudio.convert(5.0,'F','C').get)
+            coil_design_cop_5F = coil_design_cop / coil_eir_5F if temp_capacity_w >= capacity_w
+            coil_eir_0F =  eir_curve.evaluate(OpenStudio.convert(0.0,'F','C').get)
+            coil_design_cop_0F = coil_design_cop / coil_eir_0F if temp_capacity_w >= capacity_w
+          else
+            runner.registerWarning("Coil COP at non-design temperatures not available for coil '#{coil.name}'.")
+          end
+
+          # update if highest capacity
+          capacity_w = temp_capacity_w if temp_capacity_w > capacity_w
+        end
+      else
+        runner.registerWarning('Design COP and capacity for DX heating coil unavailable because of unrecognized coil type.')
+      end
+      dx_heating_total_capacity_w += capacity_w
+      dx_heating_total_capacity_17F_w += capacity_17F_w
+      dx_heating_total_capacity_5F_w += capacity_5F_w
+      dx_heating_total_capacity_0F_w += capacity_0F_w
+
+      # get minimum temperature
+      minimum_temp_c = coil.minimumOutdoorDryBulbTemperatureforCompressorOperation
+      dx_heating_capacity_weighted_min_temp_w_c += capacity_w * minimum_temp_c
+
+      # get supplemental heating coil
+      supplemental_coil = nil
+      if coil.airLoopHVAC.is_initialized
+        air_loop_hvac = coil.airLoopHVAC.get
+        # assume first electric or gas coil on supply loop is supplemental
+        air_loop_hvac.supplyComponents.each do |component|
+          if component.to_CoilHeatingElectric.is_initialized
+            supplemental_coil = component.to_CoilHeatingElectric.get
+          elsif component.to_CoilHeatingGas.is_initialized
+            supplemental_coil = component.to_CoilHeatingGas.get
+          end
+        end
+      elsif coil.containingHVACComponent.is_initialized
+        containing_component = coil.containingHVACComponent.get
+        if containing_component.to_AirLoopHVACUnitaryHeatPumpAirToAir.is_initialized
+          ashp = containing_component.to_AirLoopHVACUnitaryHeatPumpAirToAir.get
+          supplemental_coil = ashp.supplementalHeatingCoil
+        elsif containing_component.to_AirLoopHVACUnitaryHeatPumpAirToAirMultiSpeed.is_initialized
+          ashpm = containing_component.to_AirLoopHVACUnitaryHeatPumpAirToAirMultiSpeed.get
+          supplemental_coil = ashpm.supplementalHeatingCoil
+        elsif containing_component.to_AirLoopHVACUnitarySystem.is_initialized
+          ashp = containing_component.to_AirLoopHVACUnitarySystem.get
+          if ashp.supplementalHeatingCoil.is_initialized
+            supplemental_coil = ashp.supplementalHeatingCoil.get
+          end
+        end
+      elsif coil.containingZoneHVACComponent.is_initialized
+        containing_component = coil.containingZoneHVACComponent.get
+        if containing_component.to_ZoneHVACPackagedTerminalHeatPump.is_initialized
+          pthp = containing_component.to_ZoneHVACPackagedTerminalHeatPump.get
+          supplemental_coil = pthp.supplementalHeatingCoil
+        end
+      end
+
+      # There is an OS issue preventing getting the AirLoopHVACUnitarySystem object from a CoilHeatingDXMultiSpeedMultispeed
+      # For ComStock, if supplemental coil is still nil, look for it through the AirLoopHVACUnitarySystem object
+      if supplemental_coil.nil?
+        model.getAirLoopHVACUnitarySystems.each do |system|
+          system_heating_coil = system.heatingCoil
+          next unless system_heating_coil.is_initialized
+
+          system_heating_coil = system_heating_coil.get
+          next unless system_heating_coil.name.to_s == coil.name.to_s
+
+          system_supplemental_coil = system.supplementalHeatingCoil
+          next unless system_supplemental_coil.is_initialized
+
+          supplemental_coil = system_supplemental_coil.get
+        end
+      end
+
+      # get supplemental heating coil capacity
+      supplemental_coil_type = nil
+      supplemental_capacity_electric_w = 0.0
+      supplemental_capacity_gas_w = 0.0
+      if supplemental_coil.nil?
+        runner.registerWarning("Unable to find supplemental coil paired with DX heating coil #{coil.name}.")
+      elsif supplemental_coil.to_CoilHeatingElectric.is_initialized
+        supplemental_coil_type = 'electric'
+        elec_coil = supplemental_coil.to_CoilHeatingElectric.get
+        if elec_coil.nominalCapacity.is_initialized
+          supplemental_capacity_electric_w = elec_coil.nominalCapacity.get
+        elsif elec_coil.autosizedNominalCapacity.is_initialized
+          supplemental_capacity_electric_w = elec_coil.autosizedNominalCapacity.get
+        else
+          runner.registerWarning("Electric heating coil capacity not available for supplemental heating coil '#{elec_coil.name}'.")
+        end
+      elsif supplemental_coil.to_CoilHeatingGas.is_initialized
+        supplemental_coil_type = 'gas'
+        gas_coil = supplemental_coil.to_CoilHeatingGas.get
+        if gas_coil.nominalCapacity.is_initialized
+          supplemental_capacity_gas_w = gas_coil.nominalCapacity.get
+        elsif gas_coil.autosizedNominalCapacity.is_initialized
+          supplemental_capacity_gas_w = gas_coil.autosizedNominalCapacity.get
+        else
+          runner.registerWarning("Gas heating coil capacity not available for supplemental heating coil '#{gas_coil.name}'.")
+        end
+      else
+        runner.registerWarning("Unsupported supplemental heating coil type for heating coil #{supplemental_coil.name}.")
+      end
+      dx_heating_total_supplemental_capacity_w += supplemental_capacity_electric_w + supplemental_capacity_gas_w
+      dx_heating_total_supplemental_capacity_electric_w += supplemental_capacity_electric_w
+      dx_heating_total_supplemental_capacity_gas_w += supplemental_capacity_gas_w
+
+      # get supplemental heating coil energy
+      supplemental_coil_heating_energy_j = 0.0
+      supplemental_electric_j = 0.0
+      supplemental_gas_j = 0.0
+      unless supplemental_coil.nil?
+        runner.registerInfo("'#{supplemental_coil.name}' is the supplemental heating coil for DX heating coil '#{coil.name}'")
+        
+        # supplemental heating coil heating energy
+        supplemental_coil_heating_energy_j = sql_get_report_variable_data_double(runner, sql, supplemental_coil, 'Heating Coil Heating Energy')
+
+        # supplemental heating coil electric or gas energy
+        fuel = supplemental_coil_type == 'gas' ? gas : elec
+        if supplemental_coil_type == 'electric'
+          supplemental_electric_j = sql_get_report_variable_data_double(runner, sql, supplemental_coil, "Heating Coil #{fuel} Energy")
+        elsif supplemental_coil_type == 'gas'
+          supplemental_gas_j = sql_get_report_variable_data_double(runner, sql, supplemental_coil, "Heating Coil #{fuel} Energy")
+        end
+      end
+      dx_heating_total_supplemental_load_j += supplemental_coil_heating_energy_j
+      dx_heating_total_supplemental_load_electric_j += supplemental_coil_heating_energy_j if supplemental_coil_type == 'electric'
+      dx_heating_total_supplemental_load_gas_j += supplemental_coil_heating_energy_j if supplemental_coil_type == 'gas'
+      dx_heating_total_supplemental_electric_j += supplemental_electric_j
+      dx_heating_total_supplemental_gas_j += supplemental_gas_j
+
+      # get DX Heating Coil efficiency rating
+      coil_hspf = 0.0
+      var_val_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName = 'EquipmentSummary' AND ReportForString = 'Entire Facility' AND TableName = 'DX Heating Coils' AND RowName = '#{coil.name.get.to_s.upcase}' AND ColumnName = 'HSPF'"
+      val = sql.execAndReturnFirstDouble(var_val_query)
+      if val.is_initialized
+        coil_hspf = val.get
+      else
+        runner.registerWarning("Coil 'HSPF' not available for DX heating coil '#{coil.name}'.")
+      end
+
+      # get Heating Coil Heating Energy
+      coil_heating_energy_j = sql_get_report_variable_data_double(runner, sql, coil, 'Heating Coil Heating Energy')
+
+      # get Heating Coil Electric Energy
+      coil_electric_energy_j = sql_get_report_variable_data_double(runner, sql, coil, "Heating Coil #{elec} Energy")
+
+      # get Heating Coil Defrost Electric Energy
+      coil_defrost_electric_energy_j = sql_get_report_variable_data_double(runner, sql, coil, "Heating Coil Defrost #{elec} Energy")
+
+      # add to weighted load cop
+      total_heating_j = coil_heating_energy_j + supplemental_coil_heating_energy_j
+      total_energy_input_j = coil_electric_energy_j + supplemental_electric_j + supplemental_gas_j + coil_defrost_electric_energy_j
+      coil_annual_cop = coil_heating_energy_j > 0.0 ? coil_heating_energy_j / coil_electric_energy_j : 0.0
+      annual_total_cop = total_heating_j > 0.0 ? total_heating_j / total_energy_input_j : 0.0
+      dx_heating_total_dx_electric_j += coil_electric_energy_j
+      dx_heating_total_dx_load_j += coil_heating_energy_j
+      dx_heating_total_load_j += total_heating_j
+      dx_heating_defrost_energy_j += coil_defrost_electric_energy_j
+      dx_heating_load_weighted_cop += coil_heating_energy_j * coil_annual_cop
+      dx_heating_load_weighted_total_cop += total_heating_j * annual_total_cop
+      dx_heating_load_weighted_design_cop += coil_heating_energy_j * coil_design_cop
+      dx_heating_load_weighted_design_cop_17F += coil_heating_energy_j * coil_design_cop_17F
+      dx_heating_load_weighted_design_cop_5F += coil_heating_energy_j * coil_design_cop_5F
+      dx_heating_load_weighted_design_cop_0F += coil_heating_energy_j * coil_design_cop_0F
+
+      # log count of sizes, load, and COPs by equipment size
+      capacity_kbtuh = OpenStudio.convert(capacity_w, 'W', 'kBtu/h').get
+      if capacity_kbtuh < 30
+        dx_heating_count_0_to_30_kbtuh += 1
+        dx_heating_0_to_30_kbtuh_total_load_j += coil_heating_energy_j
+        dx_heating_load_weighted_design_hspf_0_to_30_kbtuh += coil_heating_energy_j * coil_hspf
+      elsif capacity_kbtuh < 65
+        dx_heating_count_30_to_65_kbtuh += 1
+        dx_heating_30_to_65_kbtuh_total_load_j += coil_heating_energy_j
+        dx_heating_load_weighted_design_hspf_30_to_65_kbtuh += coil_heating_energy_j * coil_hspf
+      elsif capacity_kbtuh < 135
+        dx_heating_count_65_to_135_kbtuh += 1
+        dx_heating_65_to_135_kbtuh_total_load_j += coil_heating_energy_j
+        dx_heating_load_weighted_design_cop_65_to_135_kbtuh += coil_heating_energy_j * coil_design_cop
+      elsif capacity_kbtuh < 240
+        dx_heating_count_135_to_240_kbtuh += 1
+        dx_heating_135_to_240_kbtuh_total_load_j += coil_heating_energy_j
+        dx_heating_load_weighted_design_cop_135_to_240_kbtuh += coil_heating_energy_j * coil_design_cop
+      else # capacity is over 240 kbtuh
+        dx_heating_count_240_plus_kbtuh += 1
+        dx_heating_240_plus_kbtuh_total_load_j += coil_heating_energy_j
+        dx_heating_load_weighted_design_cop_240_plus_kbtuh += coil_heating_energy_j * coil_design_cop
+      end
+
+      # heating coil info logging
+      runner.registerInfo("Heating coil '#{coil.name}' has design capacity #{capacity_w.round(2)} W, design cop #{coil_design_cop.round(2)}, annual weighted cop #{coil_annual_cop.round(2)}, and minimum operating temperature is #{minimum_temp_c} C.")
+    end
+    # report out DX heating COPs
+    average_dx_heating_total_cop = dx_heating_total_load_j > 0.0 ? dx_heating_load_weighted_total_cop / dx_heating_total_load_j : 0.0
+    runner.registerValue('com_report_hvac_dx_heating_average_total_cop', average_dx_heating_total_cop)
+    average_dx_heating_cop = dx_heating_total_dx_load_j > 0.0 ? dx_heating_load_weighted_cop / dx_heating_total_dx_load_j : 0.0
+    runner.registerValue('com_report_hvac_dx_heating_average_cop', average_dx_heating_cop)
+    dx_heating_design_cop = dx_heating_total_dx_load_j > 0.0 ? dx_heating_load_weighted_design_cop / dx_heating_total_dx_load_j : 0.0
+    runner.registerValue('com_report_hvac_dx_heating_design_cop', dx_heating_design_cop)
+    dx_heating_design_cop_17F = dx_heating_total_dx_load_j > 0.0 ? dx_heating_load_weighted_design_cop_17F / dx_heating_total_dx_load_j : 0.0
+    runner.registerValue('com_report_hvac_dx_heating_design_cop_17f', dx_heating_design_cop_17F)
+    dx_heating_design_cop_5F = dx_heating_total_dx_load_j > 0.0 ? dx_heating_load_weighted_design_cop_5F / dx_heating_total_dx_load_j : 0.0
+    runner.registerValue('com_report_hvac_dx_heating_design_cop_5f', dx_heating_design_cop_5F)
+    dx_heating_design_cop_0F = dx_heating_total_dx_load_j > 0.0 ? dx_heating_load_weighted_design_cop_0F / dx_heating_total_dx_load_j : 0.0
+    runner.registerValue('com_report_hvac_dx_heating_design_cop_0f', dx_heating_design_cop_0F)
+
+    # report out DX heating HSPFs and COPs at each size category
+    dx_heating_design_hspf_0_to_30_kbtuh = dx_heating_0_to_30_kbtuh_total_load_j > 0.0 ? dx_heating_load_weighted_design_hspf_0_to_30_kbtuh / dx_heating_0_to_30_kbtuh_total_load_j : 0
+    runner.registerValue('com_report_hvac_dx_heating_design_hspf_0_to_30_kbtuh', dx_heating_design_hspf_0_to_30_kbtuh)
+    dx_heating_design_hspf_30_to_65_kbtuh = dx_heating_30_to_65_kbtuh_total_load_j > 0.0 ? dx_heating_load_weighted_design_hspf_30_to_65_kbtuh / dx_heating_30_to_65_kbtuh_total_load_j : 0
+    runner.registerValue('com_report_hvac_dx_heating_design_hspf_30_to_65_kbtuh', dx_heating_design_hspf_30_to_65_kbtuh)
+    dx_heating_design_cop_65_to_135_kbtuh = dx_heating_65_to_135_kbtuh_total_load_j > 0.0 ? dx_heating_load_weighted_design_cop_65_to_135_kbtuh / dx_heating_65_to_135_kbtuh_total_load_j : 0
+    runner.registerValue('com_report_hvac_dx_heating_design_cop_65_to_135_kbtuh', dx_heating_design_cop_65_to_135_kbtuh)
+    dx_heating_design_cop_135_to_240_kbtuh = dx_heating_135_to_240_kbtuh_total_load_j > 0.0 ? dx_heating_load_weighted_design_cop_135_to_240_kbtuh / dx_heating_135_to_240_kbtuh_total_load_j : 0
+    runner.registerValue('com_report_hvac_dx_heating_design_cop_135_to_240_kbtuh', dx_heating_design_cop_135_to_240_kbtuh)
+    dx_heating_design_cop_240_plus_kbtuh = dx_heating_240_plus_kbtuh_total_load_j > 0.0 ? dx_heating_load_weighted_design_cop_240_plus_kbtuh / dx_heating_240_plus_kbtuh_total_load_j : 0
+    runner.registerValue('com_report_hvac_dx_heating_design_cop_240_plus_kbtuh', dx_heating_design_cop_240_plus_kbtuh)
+
+    # report out minimum operating temperatures
+    weighted_min_temp_c = dx_heating_total_capacity_w > 0.0 ? dx_heating_capacity_weighted_min_temp_w_c / dx_heating_total_capacity_w : 0.0
+    # weighted_min_temp_c = OpenStudio.convert(weighted_min_temp_k, 'K', 'C').get
+    runner.registerValue('com_report_hvac_dx_heating_average_minimum_operating_temperature_c', weighted_min_temp_c)
+
+    # report out DX heating capacities
+    dx_heating_total_capacity_kbtuh = OpenStudio.convert(dx_heating_total_capacity_w, 'W', 'kBtu/h').get
+    runner.registerValue('com_report_hvac_dx_heating_capacity_kbtuh', dx_heating_total_capacity_kbtuh)
+    dx_heating_total_capacity_17F_kbtuh = OpenStudio.convert(dx_heating_total_capacity_17F_w, 'W', 'kBtu/h').get
+    runner.registerValue('com_report_hvac_dx_heating_capacity_17f_kbtuh', dx_heating_total_capacity_17F_kbtuh)
+    dx_heating_total_capacity_5F_kbtuh = OpenStudio.convert(dx_heating_total_capacity_5F_w, 'W', 'kBtu/h').get
+    runner.registerValue('com_report_hvac_dx_heating_capacity_5f_kbtuh', dx_heating_total_capacity_5F_kbtuh)
+    dx_heating_total_capacity_0F_kbtuh = OpenStudio.convert(dx_heating_total_capacity_0F_w, 'W', 'kBtu/h').get
+    runner.registerValue('com_report_hvac_dx_heating_capacity_0f_kbtuh', dx_heating_total_capacity_0F_kbtuh)
+    runner.registerValue('com_report_hvac_count_dx_heating_0_to_30_kbtuh', dx_heating_count_0_to_30_kbtuh)
+    runner.registerValue('com_report_hvac_count_dx_heating_30_to_65_kbtuh', dx_heating_count_30_to_65_kbtuh)
+    runner.registerValue('com_report_hvac_count_dx_heating_65_to_135_kbtuh', dx_heating_count_65_to_135_kbtuh)
+    runner.registerValue('com_report_hvac_count_dx_heating_135_to_240_kbtuh', dx_heating_count_135_to_240_kbtuh)
+    runner.registerValue('com_report_hvac_count_dx_heating_240_plus_kbtuh', dx_heating_count_240_plus_kbtuh)
+
+    # report out DX heating load and electric
+    runner.registerValue('com_report_hvac_dx_heating_total_dx_electric_j', dx_heating_total_dx_electric_j)
+    runner.registerValue('com_report_hvac_dx_heating_total_dx_load_j', dx_heating_total_dx_load_j)
+    runner.registerValue('com_report_hvac_dx_heating_total_load_j', dx_heating_total_load_j)
+
+    # report out supplemental heating capacity
+    dx_heating_total_supplemental_capacity_kbtuh = OpenStudio.convert(dx_heating_total_supplemental_capacity_w, 'W', 'kBtu/h').get
+    runner.registerValue('com_report_hvac_dx_heating_supplemental_capacity_kbtuh', dx_heating_total_supplemental_capacity_kbtuh)
+    dx_heating_total_supplemental_capacity_electric_kbtuh = OpenStudio.convert(dx_heating_total_supplemental_capacity_electric_w, 'W', 'kBtu/h').get
+    runner.registerValue('com_report_hvac_dx_heating_supplemental_capacity_electric_kbtuh', dx_heating_total_supplemental_capacity_electric_kbtuh)
+    dx_heating_total_supplemental_capacity_gas_kbtuh = OpenStudio.convert(dx_heating_total_supplemental_capacity_gas_w, 'W', 'kBtu/h').get
+    runner.registerValue('com_report_hvac_dx_heating_supplemental_capacity_gas_kbtuh', dx_heating_total_supplemental_capacity_gas_kbtuh)
+
+    # report out fraction of dx heating equipment load met by supplemental equipment
+    dx_heating_fraction_heating_load_supplemental = 0.0
+    if dx_heating_total_supplemental_load_j > 0.0
+      dx_heating_fraction_heating_load_supplemental = (dx_heating_total_supplemental_load_j / (dx_heating_total_supplemental_load_j + dx_heating_total_dx_load_j))
+    end
+    runner.registerValue('com_report_hvac_dx_heating_fraction_heating_load_supplemental', dx_heating_fraction_heating_load_supplemental)
+
+    # report out DX supplemental heating load and electric
+    runner.registerValue('com_report_hvac_dx_heating_total_supplemental_load_j', dx_heating_total_supplemental_load_j)
+    runner.registerValue('com_report_hvac_dx_heating_total_supplemental_load_electric_j', dx_heating_total_supplemental_load_electric_j)
+    runner.registerValue('com_report_hvac_dx_heating_total_supplemental_load_gas_j', dx_heating_total_supplemental_load_gas_j)
+    runner.registerValue('com_report_hvac_dx_heating_total_supplemental_electric_j', dx_heating_total_supplemental_electric_j)
+    runner.registerValue('com_report_hvac_dx_heating_total_supplemental_gas_j', dx_heating_total_supplemental_gas_j)
+
+    # fraction of DX heating associated electric that is supplemental
+    dx_heating_fraction_electric_supplemental = 0.0
+    if dx_heating_total_supplemental_load_electric_j > 0.0
+      dx_heating_fraction_electric_supplemental = dx_heating_total_supplemental_load_electric_j / (dx_heating_total_supplemental_load_electric_j + dx_heating_defrost_energy_j + dx_heating_total_dx_electric_j)
+    end
+    runner.registerValue('com_report_hvac_dx_heating_fraction_electric_supplemental', dx_heating_fraction_electric_supplemental)
+
+    # report out DX heating defrost energy and fraction of heating energy
+    dx_heating_defrost_energy_kwh = OpenStudio.convert(dx_heating_defrost_energy_j, 'J', 'kWh').get
+    runner.registerValue('com_report_hvac_dx_heating_defrost_energy_kwh', dx_heating_defrost_energy_kwh)
+    dx_heating_ratio_defrost_to_heating_load = 0.0
+    if dx_heating_defrost_energy_j > 0.0
+      dx_heating_ratio_defrost_to_heating_load = (dx_heating_defrost_energy_j / (dx_heating_total_supplemental_load_j + dx_heating_total_dx_load_j))
+    end
+    runner.registerValue('com_report_hvac_dx_heating_ratio_defrost_to_heating_load', dx_heating_ratio_defrost_to_heating_load)
+
+    # fraction of DX heating associated electric that is defrost
+    dx_heating_fraction_electric_defrost = 0.0
+    if dx_heating_defrost_energy_j > 0.0
+      dx_heating_fraction_electric_defrost = dx_heating_defrost_energy_j / (dx_heating_total_supplemental_load_electric_j + dx_heating_defrost_energy_j + dx_heating_total_dx_electric_j)
+    end
+    runner.registerValue('com_report_hvac_dx_heating_fraction_electric_defrost', dx_heating_fraction_electric_defrost)
+
+    # Get the outdoor air temp timeseries
+    hours_below_minus_20_F = -999
+    hours_below_0_F = -999
+    hours_below_5_F = -999
+    hours_below_17_F = -999
+    hours_below_50_F = -999
+    hours_above_65_F = -999
+    hdd50f = -999
+    hdd65f = -999
+    cdd50f = -999
+    cdd65f = -999
+    oa_temps_f = nil
+    oa_temps_ts = sql.timeSeries(ann_env_pd, 'Hourly', 'Site Outdoor Air Drybulb Temperature', 'Environment')
+    if oa_temps_ts.is_initialized
+      # Put values into array
+      oa_temps_f = []
+      vals = oa_temps_ts.get.values
+      for i in 0..(vals.size - 1)
+        oa_temps_f << OpenStudio.convert(vals[i], 'C', 'F').get
+      end
+      hours_below_minus_20_F = oa_temps_f.count { |val| val < -20.0 }
+      hours_below_0_F = oa_temps_f.count { |val| val < 0.0 }
+      hours_below_5_F = oa_temps_f.count { |val| val < 5.0 }
+      hours_below_17_F = oa_temps_f.count { |val| val < 17.0 }
+      hours_below_50_F = oa_temps_f.count { |val| val < 50.0 }
+      hours_above_65_F = oa_temps_f.count { |val| val > 65.0 }
+      hdd50f = oa_temps_f.sum { |val| val < 50.0 ? 50.0 - val : 0.0 }
+      hdd50f = hdd50f / 24.0
+      hdd65f = oa_temps_f.sum { |val| val < 65.0 ? 65.0 - val : 0.0 }
+      hdd65f = hdd65f / 24.0
+      cdd50f = oa_temps_f.sum { |val| val > 50.0 ? val - 50.0 : 0.0 }
+      cdd50f = cdd50f / 24.0
+      cdd65f = oa_temps_f.sum { |val| val > 65.0 ? val - 65.0: 0.0 }
+      cdd65f = cdd65f / 24.0
+    else
+      runner.registerWarning('Site Outdoor Air Drybulb Temperature could not be found, cannot calculate hours below x degF.')
+    end
+    runner.registerValue('com_report_hours_below_minus_20_f', hours_below_minus_20_F)
+    runner.registerValue('com_report_hours_below_0_f', hours_below_0_F)
+    runner.registerValue('com_report_hours_below_5_f', hours_below_5_F)
+    runner.registerValue('com_report_hours_below_17_f', hours_below_17_F)
+    runner.registerValue('com_report_hours_below_50_f', hours_below_50_F)
+    runner.registerValue('com_report_hours_above_65_f', hours_above_65_F)
+    runner.registerValue('com_report_hdd50f', hdd50f)
+    runner.registerValue('com_report_hdd65f', hdd65f)
+    runner.registerValue('com_report_cdd50f', cdd50f)
+    runner.registerValue('com_report_cdd65f', cdd65f)
+
+    # Boiler capacity, load, and efficiencies
+    boiler_total_load_j = 0.0
+    boiler_total_electric_j = 0.0
+    boiler_total_gas_j = 0.0
+    boiler_total_other_fuel_j = 0.0
+    boiler_capacity_weighted_design_efficiency = 0.0
+    boiler_load_weighted_design_efficiency = 0.0
+    boiler_load_weighted_efficiency = 0.0
     boiler_total_capacity_w = 0.0
-    model.getBoilerHotWaters.each do |boiler|
+    boiler_count = 0.0
+    boiler_count_0_to_300_kbtuh = 0.0
+    boiler_count_300_to_2500_kbtuh = 0.0
+    boiler_count_2500_plus_kbtuh = 0.0
+    model.getBoilerHotWaters.sort.each do |boiler|
+      boiler_fuel_type = boiler.fuelType
+
+      # get boiler capacity
       capacity_w = 0.0
       if boiler.nominalCapacity.is_initialized
         capacity_w = boiler.nominalCapacity.get
@@ -879,16 +2417,288 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       else
         runner.registerWarning("Boiler capacity not available for boiler '#{boiler.name}'.")
       end
+      boiler_design_efficiency = boiler.nominalThermalEfficiency
       boiler_total_capacity_w += capacity_w
-      boiler_capacity_weighted_efficiency += capacity_w * boiler.nominalThermalEfficiency
+      boiler_capacity_weighted_design_efficiency += capacity_w * boiler_design_efficiency
+
+      # get Boiler Heating Energy
+      boiler_heating_energy_j = sql_get_report_variable_data_double(runner, sql, boiler, 'Boiler Heating Energy')
+
+      # boiler electric or gas energy
+      boiler_gas_energy_j = 0.0
+      boiler_electric_energy_j = 0.0
+      boiler_other_fuel_energy_j = 0.0
+      case boiler_fuel_type
+      when 'Electricity', 'Electric'
+        fuel = elec
+        boiler_electric_energy_j = sql_get_report_variable_data_double(runner, sql, boiler, "Boiler #{fuel} Energy")
+      when 'NaturalGas', 'Gas'
+        fuel = gas
+        boiler_gas_energy_j = sql_get_report_variable_data_double(runner, sql, boiler, "Boiler #{fuel} Energy")
+      else
+        fuel = boiler_fuel_type
+        boiler_other_fuel_energy_j = sql_get_report_variable_data_double(runner, sql, boiler, "Boiler #{fuel} Energy")
+      end
+
+      # add to weighted load efficiency
+      boiler_input_energy_j = boiler_gas_energy_j + boiler_electric_energy_j + boiler_other_fuel_energy_j
+      boiler_annual_efficiency = boiler_input_energy_j > 0.0 ? boiler_heating_energy_j / boiler_input_energy_j : 0.0
+      boiler_total_load_j += boiler_heating_energy_j
+      boiler_total_electric_j += boiler_electric_energy_j
+      boiler_total_gas_j += boiler_gas_energy_j
+      boiler_total_other_fuel_j += boiler_other_fuel_energy_j
+      boiler_load_weighted_efficiency += boiler_heating_energy_j * boiler_annual_efficiency
+      boiler_load_weighted_design_efficiency += boiler_heating_energy_j * boiler_design_efficiency
+
+      # log count of sizes
+      boiler_count += 1
+      capacity_kbtuh = OpenStudio.convert(capacity_w, 'W', 'kBtu/h').get
+      if capacity_kbtuh < 300
+        boiler_count_0_to_300_kbtuh += 1
+      elsif capacity_kbtuh < 2500
+        boiler_count_300_to_2500_kbtuh += 1
+      else # capacity is over 2500 kbtuh
+        boiler_count_2500_plus_kbtuh += 1
+      end
     end
-    average_boiler_efficiency = boiler_total_capacity_w > 0.0 ? boiler_capacity_weighted_efficiency / boiler_total_capacity_w : 0.0
-    runner.registerValue('com_report_average_boiler_efficiency', average_boiler_efficiency)
+    average_boiler_capacity_weighted_design_efficiency = boiler_total_capacity_w > 0.0 ? boiler_capacity_weighted_design_efficiency / boiler_total_capacity_w : 0.0
+    runner.registerValue('com_report_hvac_boiler_capacity_weighted_design_efficiency', average_boiler_capacity_weighted_design_efficiency)
+    average_boiler_load_weighted_design_efficiency = boiler_total_load_j > 0.0 ? boiler_load_weighted_design_efficiency / boiler_total_load_j : 0.0
+    runner.registerValue('com_report_hvac_boiler_load_weighted_design_efficiency', average_boiler_load_weighted_design_efficiency)
+    average_boiler_efficiency = boiler_total_load_j > 0.0 ? boiler_load_weighted_efficiency / boiler_total_load_j : 0.0
+    runner.registerValue('com_report_hvac_boiler_average_efficiency', average_boiler_efficiency)
+    runner.registerValue('com_report_hvac_boiler_total_load_j', boiler_total_load_j)
+    runner.registerValue('com_report_hvac_boiler_total_electric_j', boiler_total_electric_j)
+    runner.registerValue('com_report_hvac_boiler_total_gas_j', boiler_total_gas_j)
+    runner.registerValue('com_report_hvac_boiler_total_other_fuel_j', boiler_total_other_fuel_j)
+    boiler_total_capacity_kbtuh = OpenStudio.convert(boiler_total_capacity_w, 'W', 'kBtu/h').get
+    runner.registerValue('com_report_hvac_boiler_capacity_kbtuh', boiler_total_capacity_kbtuh)
+    runner.registerValue('com_report_hvac_count_boilers', boiler_count)
+    runner.registerValue('com_report_hvac_count_boilers_0_to_300_kbtuh', boiler_count_0_to_300_kbtuh)
+    runner.registerValue('com_report_hvac_count_boilers_300_to_2500_kbtuh', boiler_count_300_to_2500_kbtuh)
+    runner.registerValue('com_report_hvac_count_boilers_2500_plus_kbtuh', boiler_count_2500_plus_kbtuh)
+
+    # Heat pump cooling capacity, load, and efficiencies
+    heat_pump_cooling_total_load_j = 0.0
+    heat_pump_cooling_total_electric_j = 0.0
+    heat_pump_cooling_capacity_weighted_design_cop = 0.0
+    heat_pump_cooling_load_weighted_design_cop = 0.0
+    heat_pump_cooling_load_weighted_cop = 0.0
+    heat_pump_cooling_total_capacity_w = 0.0
+    heat_pump_cooling_count = 0.0
+    heat_pump_cooling_load_weighted_source_inlet_temperature_c = 0.0
+    model.getHeatPumpPlantLoopEIRCoolings.sort.each do |heat_pump|
+      # get heat pump cooling capacity
+      capacity_w = 0.0
+      if heat_pump.referenceCapacity.is_initialized
+        capacity_w = heat_pump.referenceCapacity.get
+      elsif boiler.autosizedReferenceCapacity.is_initialized
+        capacity_w = heat_pump.autosizedReferenceCapacity.get
+      else
+        runner.registerWarning("Capacity not available for HeatPumpPlantLoopEIRCooling '#{heat_pump.name}'.")
+      end
+      heat_pump_cooling_design_cop = heat_pump.referenceCoefficientofPerformance
+      heat_pump_cooling_total_capacity_w += capacity_w
+      heat_pump_cooling_capacity_weighted_design_cop += capacity_w * heat_pump_cooling_design_cop
+
+      # get Heat Pump Load Side Heat Transfer Energy
+      heat_pump_cooling_energy_j = sql_get_report_variable_data_double(runner, sql, heat_pump, 'Heat Pump Load Side Heat Transfer Energy')
+
+      # get Heat Pump Electric Energy
+      heat_pump_cooling_electric_energy_j = sql_get_report_variable_data_double(runner, sql, heat_pump, "Heat Pump #{elec} Energy")
+
+      # get Heat Pump Source Side Inlet Temperature
+      heat_pump_cooling_source_inlet_temperature_c = sql_get_report_variable_data_double(runner, sql, heat_pump, 'Heat Pump Source Side Inlet Temperature')
+
+      # add to weighted load cop
+      heat_pump_cooling_cooling_annual_cop = heat_pump_cooling_energy_j > 0.0 ? heat_pump_cooling_energy_j / heat_pump_cooling_electric_energy_j : 0
+      heat_pump_cooling_total_load_j += heat_pump_cooling_energy_j
+      heat_pump_cooling_total_electric_j += heat_pump_cooling_electric_energy_j
+      heat_pump_cooling_load_weighted_cop += heat_pump_cooling_energy_j * heat_pump_cooling_cooling_annual_cop
+      heat_pump_cooling_load_weighted_design_cop += heat_pump_cooling_energy_j * heat_pump_cooling_design_cop
+
+      # add to weighted load temperature
+      heat_pump_cooling_load_weighted_source_inlet_temperature_c += heat_pump_cooling_energy_j * heat_pump_cooling_source_inlet_temperature_c
+
+      # log count of sizes
+      heat_pump_cooling_count += 1
+    end
+    average_heat_pump_cooling_capacity_weighted_design_cop = heat_pump_cooling_total_capacity_w > 0.0 ? heat_pump_cooling_capacity_weighted_design_cop / heat_pump_cooling_total_capacity_w : 0.0
+    runner.registerValue('com_report_hvac_heat_pump_cooling_capacity_weighted_design_cop', average_heat_pump_cooling_capacity_weighted_design_cop)
+    average_heat_pump_cooling_load_weighted_design_cop = heat_pump_cooling_total_load_j > 0.0 ? heat_pump_cooling_load_weighted_design_cop / heat_pump_cooling_total_load_j : 0.0
+    runner.registerValue('com_report_hvac_heat_pump_cooling_load_weighted_design_cop', average_heat_pump_cooling_load_weighted_design_cop)
+    average_heat_pump_cooling_cop = heat_pump_cooling_total_load_j > 0.0 ? heat_pump_cooling_load_weighted_cop / heat_pump_cooling_total_load_j : 0.0
+    runner.registerValue('com_report_hvac_heat_pump_cooling_average_cop', average_heat_pump_cooling_cop)
+    runner.registerValue('com_report_hvac_heat_pump_cooling_total_load_j', heat_pump_cooling_total_load_j)
+    runner.registerValue('com_report_hvac_heat_pump_cooling_total_electric_j', heat_pump_cooling_total_electric_j)
+    heat_pump_cooling_total_capacity_kbtuh = OpenStudio.convert(heat_pump_cooling_total_capacity_w, 'W', 'kBtu/h').get
+    runner.registerValue('com_report_hvac_heat_pump_cooling_capacity_kbtuh', heat_pump_cooling_total_capacity_kbtuh)
+    runner.registerValue('com_report_hvac_count_heat_pumps_cooling', heat_pump_cooling_count)
+    average_heat_pump_cooling_load_weighted_source_inlet_temperature_c = heat_pump_cooling_total_load_j > 0.0 ? heat_pump_cooling_load_weighted_source_inlet_temperature_c / heat_pump_cooling_total_load_j : -999
+    runner.registerValue('com_report_hvac_heat_pump_cooling_load_weighted_source_inlet_temperature_c', average_heat_pump_cooling_load_weighted_source_inlet_temperature_c)
+
+    # Heat pump heating capacity, load, and efficiencies
+    heat_pump_heating_total_load_j = 0.0
+    heat_pump_heating_total_electric_j = 0.0
+    heat_pump_heating_capacity_weighted_design_cop = 0.0
+    heat_pump_heating_load_weighted_design_cop = 0.0
+    heat_pump_heating_load_weighted_cop = 0.0
+    heat_pump_heating_total_capacity_w = 0.0
+    heat_pump_heating_count = 0.0
+    heat_pump_heating_count_0_to_300_kbtuh = 0.0
+    heat_pump_heating_count_300_to_2500_kbtuh = 0.0
+    heat_pump_heating_count_2500_plus_kbtuh = 0.0
+    heat_pump_heating_load_weighted_source_inlet_temperature_c = 0.0
+    model.getHeatPumpPlantLoopEIRHeatings.sort.each do |heat_pump|
+      # get heat pump boiler capacity
+      capacity_w = 0.0
+      if heat_pump.referenceCapacity.is_initialized
+        capacity_w = heat_pump.referenceCapacity.get
+      elsif boiler.autosizedReferenceCapacity.is_initialized
+        capacity_w = heat_pump.autosizedReferenceCapacity.get
+      else
+        runner.registerWarning("Capacity not available for HeatPumpPlantLoopEIRHeating '#{heat_pump.name}'.")
+      end
+      heat_pump_design_cop = heat_pump.referenceCoefficientofPerformance
+      heat_pump_heating_total_capacity_w += capacity_w
+      heat_pump_heating_capacity_weighted_design_cop += capacity_w * heat_pump_design_cop
+
+      # get Heat Pump Load Side Heat Transfer Energy
+      heat_pump_heating_energy_j = sql_get_report_variable_data_double(runner, sql, heat_pump, 'Heat Pump Load Side Heat Transfer Energy')
+
+      # get Heat Pump Electric Energy
+      heat_pump_electric_energy_j = sql_get_report_variable_data_double(runner, sql, heat_pump, "Heat Pump #{elec} Energy")
+
+      # get Heat Pump Source Side Inlet Temperature
+      heat_pump_heating_source_inlet_temperature_c = sql_get_report_variable_data_double(runner, sql, heat_pump, 'Heat Pump Source Side Inlet Temperature')
+
+      # add to weighted load cop
+      heat_pump_heating_annual_cop = heat_pump_heating_energy_j > 0.0 ? heat_pump_heating_energy_j / heat_pump_electric_energy_j : 0
+      heat_pump_heating_total_load_j += heat_pump_heating_energy_j
+      heat_pump_heating_total_electric_j += heat_pump_electric_energy_j
+      heat_pump_heating_load_weighted_cop += heat_pump_heating_energy_j * heat_pump_heating_annual_cop
+      heat_pump_heating_load_weighted_design_cop += heat_pump_heating_energy_j * heat_pump_design_cop
+
+      # add to weighted load temperature
+      heat_pump_heating_load_weighted_source_inlet_temperature_c += heat_pump_heating_energy_j * heat_pump_heating_source_inlet_temperature_c
+
+      # log count of sizes
+      heat_pump_heating_count += 1
+      capacity_kbtuh = OpenStudio.convert(capacity_w, 'W', 'kBtu/h').get
+      if capacity_kbtuh < 300
+        heat_pump_heating_count_0_to_300_kbtuh += 1
+      elsif capacity_kbtuh < 2500
+        heat_pump_heating_count_300_to_2500_kbtuh += 1
+      else # capacity is over 2500 kbtuh
+        heat_pump_heating_count_2500_plus_kbtuh += 1
+      end
+    end
+    average_heat_pump_heating_capacity_weighted_design_cop = heat_pump_heating_total_capacity_w > 0.0 ? heat_pump_heating_capacity_weighted_design_cop / heat_pump_heating_total_capacity_w : 0.0
+    runner.registerValue('com_report_hvac_heat_pump_heating_capacity_weighted_design_cop', average_heat_pump_heating_capacity_weighted_design_cop)
+    average_heat_pump_heating_load_weighted_design_cop = heat_pump_heating_total_load_j > 0.0 ? heat_pump_heating_load_weighted_design_cop / heat_pump_heating_total_load_j : 0.0
+    runner.registerValue('com_report_hvac_heat_pump_heating_load_weighted_design_cop', average_heat_pump_heating_load_weighted_design_cop)
+    average_heat_pump_cop = heat_pump_heating_total_load_j > 0.0 ? heat_pump_heating_load_weighted_cop / heat_pump_heating_total_load_j : 0.0
+    runner.registerValue('com_report_hvac_heat_pump_heating_average_cop', average_heat_pump_cop)
+    runner.registerValue('com_report_hvac_heat_pump_heating_total_load_j', heat_pump_heating_total_load_j)
+    runner.registerValue('com_report_hvac_heat_pump_heating_total_electric_j', heat_pump_heating_total_electric_j)
+    heat_pump_heating_total_capacity_kbtuh = OpenStudio.convert(heat_pump_heating_total_capacity_w, 'W', 'kBtu/h').get
+    runner.registerValue('com_report_hvac_heat_pump_heating_capacity_kbtuh', heat_pump_heating_total_capacity_kbtuh)
+    runner.registerValue('com_report_hvac_count_heat_pumps_heating', heat_pump_heating_count)
+    runner.registerValue('com_report_hvac_count_heat_pumps_heating_0_to_300_kbtuh', heat_pump_heating_count_0_to_300_kbtuh)
+    runner.registerValue('com_report_hvac_count_heat_pumps_heating_300_to_2500_kbtuh', heat_pump_heating_count_300_to_2500_kbtuh)
+    runner.registerValue('com_report_hvac_count_heat_pumps_heating_2500_plus_kbtuh', heat_pump_heating_count_2500_plus_kbtuh)
+    average_heat_pump_heating_load_weighted_source_inlet_temperature_c = heat_pump_heating_total_load_j > 0.0 ? heat_pump_heating_load_weighted_source_inlet_temperature_c / heat_pump_heating_total_load_j : -999
+    runner.registerValue('com_report_hvac_heat_pump_heating_load_weighted_source_inlet_temperature_c', average_heat_pump_heating_load_weighted_source_inlet_temperature_c)
+
+    # export temperature data for ground loop heat exchangers if present
+    num_boreholes = 0.0
+    total_borehole_depth_ft = 0.0
+    total_ghx_design_flow_rate_ft3_per_min = 0.0
+    heat_exchanger_total_energy_j = 0.0
+    heat_exchanger_weighted_supply_inlet_temperature_c = 0.0
+    heat_exchanger_weighted_supply_outlet_temperature_c = 0.0
+    heat_exchanger_weighted_demand_inlet_temperature_c = 0.0
+    heat_exchanger_weighted_demand_outlet_temperature_c = 0.0
+    model.getPlantLoops.each do |plant_loop|
+      is_ground_loop = false
+      plant_loop.supplyComponents.each do |component|
+        if component.to_GroundHeatExchangerVertical.is_initialized
+          is_ground_loop = true
+          ghx = component.to_GroundHeatExchangerVertical.get
+          num_boreholes += ghx.numberofBoreHoles.is_initialized ? ghx.numberofBoreHoles.get : 0.0
+          borehole_depth_m = ghx.boreHoleLength.is_initialized ? ghx.boreHoleLength.get : 0.0
+          borehole_depth_ft = OpenStudio.convert(borehole_depth_m, 'm', 'ft').get
+          total_borehole_depth_ft += borehole_depth_ft
+          ghx_design_flow_rate_m3_per_s = ghx.designFlowRate.is_initialized ? ghx.designFlowRate.get : 0.0
+          ghx_design_flow_rate_ft3_per_min = OpenStudio.convert(ghx_design_flow_rate_m3_per_s, 'm^3/s', 'ft^3/min').get
+          total_ghx_design_flow_rate_ft3_per_min += ghx_design_flow_rate_ft3_per_min
+        end
+      end
+      next unless is_ground_loop
+
+      # get heat exchanger object
+      heat_exchanger = nil
+      plant_loop.demandComponents.each do |component|
+        if component.to_HeatExchangerFluidToFluid.is_initialized
+          heat_exchanger = component.to_HeatExchangerFluidToFluid.get
+        end
+      end
+      next if heat_exchanger.nil?
+
+      # get Fluid Heat Exchanger Heat Transfer Energy
+      heat_exchanger_energy_j = sql_get_report_variable_data_double(runner, sql, heat_exchanger, 'Fluid Heat Exchanger Heat Transfer Energy')
+
+      # get Fluid Heat Exchanger Loop Supply Side Inlet Temperature
+      heat_exchanger_supply_inlet_temperature_c = sql_get_report_variable_data_double(runner, sql, heat_exchanger, 'Fluid Heat Exchanger Loop Supply Side Inlet Temperature')
+
+      # get Fluid Heat Exchanger Loop Supply Side Outlet Temperature
+      heat_exchanger_supply_outlet_temperature_c = sql_get_report_variable_data_double(runner, sql, heat_exchanger, 'Fluid Heat Exchanger Loop Supply Side Outlet Temperature')
+
+      # get Fluid Heat Exchanger Loop Demand Side Inlet Temperature
+      heat_exchanger_demand_inlet_temperature_c = sql_get_report_variable_data_double(runner, sql, heat_exchanger, 'Fluid Heat Exchanger Loop Demand Side Inlet Temperature')
+
+      # get Fluid Heat Exchanger Loop Demand Side Outlet Temperature
+      heat_exchanger_demand_outlet_temperature_c = sql_get_report_variable_data_double(runner, sql, heat_exchanger, 'Fluid Heat Exchanger Loop Demand Side Outlet Temperature')
+
+      heat_exchanger_total_energy_j += heat_exchanger_energy_j
+      heat_exchanger_weighted_supply_inlet_temperature_c += heat_exchanger_energy_j * heat_exchanger_supply_inlet_temperature_c
+      heat_exchanger_weighted_supply_outlet_temperature_c += heat_exchanger_energy_j * heat_exchanger_supply_outlet_temperature_c
+      heat_exchanger_weighted_demand_inlet_temperature_c += heat_exchanger_energy_j * heat_exchanger_demand_inlet_temperature_c
+      heat_exchanger_weighted_demand_outlet_temperature_c += heat_exchanger_energy_j * heat_exchanger_demand_outlet_temperature_c
+    end
+    runner.registerValue('com_report_hvac_ghx_num_boreholes', num_boreholes)
+    average_borehole_depth_ft = num_boreholes > 0.0 ? total_borehole_depth_ft / num_boreholes.to_f : 0.0
+    runner.registerValue('com_report_hvac_ghx_average_borehole_depth_ft', average_borehole_depth_ft)
+    average_ghx_design_flow_rate_ft3_per_min = num_boreholes > 0.0 ? total_ghx_design_flow_rate_ft3_per_min / num_boreholes.to_f : 0.0
+    runner.registerValue('com_report_hvac_average_ghx_design_flow_rate_ft3_per_min', average_ghx_design_flow_rate_ft3_per_min)
+    runner.registerValue('com_report_hvac_fluid_heat_exchanger_total_transfer_energy_j', heat_exchanger_total_energy_j)
+    average_heat_exchanger_weighted_supply_inlet_temperature_c = heat_exchanger_total_energy_j.zero? ? -999 : heat_exchanger_weighted_supply_inlet_temperature_c / heat_exchanger_total_energy_j
+    runner.registerValue('com_report_hvac_fluid_heat_exchanger_weighted_supply_inlet_temperature_c', average_heat_exchanger_weighted_supply_inlet_temperature_c)
+    average_heat_exchanger_weighted_supply_outlet_temperature_c = heat_exchanger_total_energy_j.zero? ? -999 : heat_exchanger_weighted_supply_outlet_temperature_c / heat_exchanger_total_energy_j
+    runner.registerValue('com_report_hvac_fluid_heat_exchanger_weighted_supply_outlet_temperature_c', average_heat_exchanger_weighted_supply_outlet_temperature_c)
+    average_heat_exchanger_weighted_demand_inlet_temperature_c = heat_exchanger_total_energy_j.zero? ? -999 : heat_exchanger_weighted_demand_inlet_temperature_c / heat_exchanger_total_energy_j
+    runner.registerValue('com_report_hvac_fluid_heat_exchanger_weighted_demand_inlet_temperature_c', average_heat_exchanger_weighted_demand_inlet_temperature_c)
+    average_heat_exchanger_weighted_demand_outlet_temperature_c = heat_exchanger_total_energy_j.zero? ? -999 : heat_exchanger_weighted_demand_outlet_temperature_c / heat_exchanger_total_energy_j
+    runner.registerValue('com_report_hvac_fluid_heat_exchanger_weighted_demand_outlet_temperature_c', average_heat_exchanger_weighted_demand_outlet_temperature_c)
+
+    # Hot water loop equipment proportion from different heating sources
+    hot_water_loop_total_heating_j = boiler_total_load_j + heat_pump_heating_total_load_j
+    hot_water_loop_boiler_fraction = hot_water_loop_total_heating_j > 0.0 ? boiler_total_load_j / hot_water_loop_total_heating_j : 0.0
+    hot_water_loop_heat_pump_fraction = hot_water_loop_total_heating_j > 0.0 ? heat_pump_heating_total_load_j / hot_water_loop_total_heating_j : 0.0
+    runner.registerValue('com_report_hvac_hot_water_loop_total_load_j', hot_water_loop_total_heating_j)
+    runner.registerValue('com_report_hvac_hot_water_loop_boiler_fraction', hot_water_loop_boiler_fraction)
+    runner.registerValue('com_report_hvac_hot_water_loop_heat_pump_fraction', hot_water_loop_heat_pump_fraction)
 
     # Average gas coil efficiency
     gas_coil_capacity_weighted_efficiency = 0.0
     gas_coil_total_capacity_w = 0.0
-    model.getCoilHeatingGass.each do |coil|
+    gas_count_0_to_30_kbtuh = 0.0
+    gas_count_30_to_65_kbtuh = 0.0
+    gas_count_65_to_135_kbtuh = 0.0
+    gas_count_135_to_240_kbtuh = 0.0
+    gas_count_240_plus_kbtuh = 0.0
+    model.getCoilHeatingGass.sort.each do |coil|
+      # get gas coil capacity
       capacity_w = 0.0
       if coil.nominalCapacity.is_initialized
         capacity_w = coil.nominalCapacity.get
@@ -899,23 +2709,381 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       end
       gas_coil_total_capacity_w += capacity_w
       gas_coil_capacity_weighted_efficiency += capacity_w * coil.gasBurnerEfficiency
-    end
-    average_gas_coil_efficiency = gas_coil_total_capacity_w > 0.0 ? gas_coil_capacity_weighted_efficiency / gas_coil_total_capacity_w : 0.0
-    runner.registerValue('com_report_average_gas_coil_efficiency', average_gas_coil_efficiency)
 
-    # Service water heating hot water use
-    hot_water_volume_m3 = 0
-    model.getWaterUseConnectionss.each do |water_use_connection|
-      var_data_id_query = "SELECT ReportVariableDataDictionaryIndex FROM ReportVariableDataDictionary WHERE VariableName = 'Water Use Connections Hot Water Volume' AND ReportingFrequency = 'Run Period' AND KeyValue = '#{water_use_connection.name.get.to_s.upcase}'"
-      var_data_id = sql.execAndReturnFirstDouble(var_data_id_query)
-      if var_data_id.is_initialized
-        var_val_query = "SELECT VariableValue FROM ReportVariableData WHERE ReportVariableDataDictionaryIndex = '#{var_data_id.get}'"
-        hot_water_volume_m3 += sql.execAndReturnFirstDouble(var_val_query).get
-      else
-        runner.registerWarning("'Water Use Connections Hot Water Volume' not available for water use connection '#{water_use_connection.name}'.")
+      # log count of sizes
+      capacity_kbtuh = OpenStudio.convert(capacity_w, 'W', 'kBtu/h').get
+      if capacity_kbtuh < 30
+        gas_count_0_to_30_kbtuh += 1
+      elsif capacity_kbtuh < 65
+        gas_count_30_to_65_kbtuh += 1
+      elsif capacity_kbtuh < 135
+        gas_count_65_to_135_kbtuh += 1
+      elsif capacity_kbtuh < 240
+        gas_count_135_to_240_kbtuh += 1
+      else # capacity is over 240 kbtuh
+        gas_count_240_plus_kbtuh += 1
       end
     end
-    runner.registerValue('com_report_hot_water_volume_m3', hot_water_volume_m3, 'm^3')
+    capacity_weighted_gas_coil_efficiency = gas_coil_total_capacity_w > 0.0 ? gas_coil_capacity_weighted_efficiency / gas_coil_total_capacity_w : 0.0
+    gas_coil_total_capacity_kbuth = OpenStudio.convert(gas_coil_total_capacity_w, 'W', 'kBtu/h').get
+    runner.registerValue('com_report_hvac_capacity_weighted_gas_coil_efficiency', capacity_weighted_gas_coil_efficiency)
+    runner.registerValue('com_report_hvac_furnace_capacity_kbtuh', gas_coil_total_capacity_kbuth)
+    runner.registerValue('com_report_hvac_count_furnace_0_to_30_kbtuh', gas_count_0_to_30_kbtuh)
+    runner.registerValue('com_report_hvac_count_furnace_30_to_65_kbtuh', gas_count_30_to_65_kbtuh)
+    runner.registerValue('com_report_hvac_count_furnace_65_to_135_kbtuh', gas_count_65_to_135_kbtuh)
+    runner.registerValue('com_report_hvac_count_furnace_135_to_240_kbtuh', gas_count_135_to_240_kbtuh)
+    runner.registerValue('com_report_hvac_count_furnace_240_plus_kbtuh', gas_count_240_plus_kbtuh)
+
+    # Sum of heating and cooling equipment capacity
+    cooling_equipment_capacity_tons = chiller_total_capacity_tons + dx_cooling_total_capacity_tons
+    runner.registerValue('com_report_hvac_cooling_equipment_tons', cooling_equipment_capacity_tons)
+    heating_equipment_capacity_kbtuh = dx_heating_total_capacity_kbtuh + boiler_total_capacity_kbtuh + heat_pump_heating_total_capacity_kbtuh + gas_coil_total_capacity_kbuth
+    runner.registerValue('com_report_hvac_heating_equipment_kbtuh', heating_equipment_capacity_kbtuh)
+
+    # Service water heating hot water use
+    total_annual_hot_water_m3 = 0
+    model.getWaterUseConnectionss.sort.each do |water_use_connection|
+      annual_hot_water_m3 = sql_get_report_variable_data_double(runner, sql, water_use_connection, 'Water Use Connections Hot Water Volume')
+      total_annual_hot_water_m3 += annual_hot_water_m3
+    end
+    runner.registerValue('com_report_annual_hot_water_m3', total_annual_hot_water_m3, 'm^3')
+
+    # Service water heating equipment
+    heat_pump_water_heater_count = 0.0
+    heat_pump_water_heater_0_to_40_gal_count = 0.0
+    heat_pump_water_heater_40_to_65_gal_count = 0.0
+    heat_pump_water_heater_65_to_90_gal_count = 0.0
+    heat_pump_water_heater_90_plus_gal_count  = 0.0
+    heat_pump_water_heater_total_volume_gal = 0.0
+    heat_pump_water_heater_0_to_40_gal_total_volume_gal = 0.0
+    heat_pump_water_heater_40_to_65_gal_total_volume_gal = 0.0
+    heat_pump_water_heater_65_to_90_gal_total_volume_gal = 0.0
+    heat_pump_water_heater_90_plus_gal_total_volume_gal = 0.0
+    heat_pump_water_heater_capacity_w = 0.0
+    heat_pump_water_heater_0_to_40_gal_capacity_w = 0.0
+    heat_pump_water_heater_40_to_65_gal_capacity_w = 0.0
+    heat_pump_water_heater_65_to_90_gal_capacity_w = 0.0
+    heat_pump_water_heater_90_plus_capacity_w  = 0.0
+    heat_pump_water_heater_cop = 0.0
+    heat_pump_water_heater_0_to_40_gal_cop = 0.0
+    heat_pump_water_heater_40_to_65_gal_cop = 0.0
+    heat_pump_water_heater_65_to_90_gal_cop = 0.0
+    heat_pump_water_heater_90_plus_gal_cop  = 0.0
+    water_heater_count = 0.0
+    water_heater_0_to_40_gal_count = 0.0
+    water_heater_40_to_65_gal_count = 0.0
+    water_heater_65_to_90_gal_count = 0.0
+    water_heater_90_plus_gal_count = 0.0
+    water_heater_total_volume_gal = 0.0
+    water_heater_0_to_40_gal_total_volume_gal = 0.0
+    water_heater_40_to_65_gal_total_volume_gal = 0.0
+    water_heater_65_to_90_gal_total_volume_gal = 0.0
+    water_heater_90_plus_gal_total_volume_gal = 0.0
+    heat_pump_water_heater_total_input_j = 0.0
+    heat_pump_water_heater_0_to_40_gal_input_j = 0.0
+    heat_pump_water_heater_40_to_65_gal_input_j = 0.0
+    heat_pump_water_heater_65_to_90_gal_input_j = 0.0
+    heat_pump_water_heater_90_plus_input_j = 0.0
+    heat_pump_water_heater_heat_pump_output_j = 0.0
+    heat_pump_water_heater_tank_output_j = 0.0
+    heat_pump_water_heater_total_output_j = 0.0
+    heat_pump_water_heater_0_to_40_gal_output_j = 0.0
+    heat_pump_water_heater_40_to_65_gal_output_j = 0.0
+    heat_pump_water_heater_65_to_90_gal_output_j = 0.0
+    heat_pump_water_heater_90_plus_output_j = 0.0
+    heat_pump_water_heater_total_electric_j = 0.0
+    heat_pump_water_heater_heat_pump_electric_j = 0.0
+    heat_pump_water_heater_backup_electric_j = 0.0
+    heat_pump_water_heater_unmet_heat_transfer_demand_j = 0.0
+    water_heater_electric_j = 0.0
+    water_heater_gas_j = 0.0
+    water_heater_other_fuel_j = 0.0
+    booster_water_heater_electric_j = 0.0
+    booster_water_heater_gas_j = 0.0
+    water_heater_unmet_heat_transfer_demand_j = 0.0
+    heat_pump_water_heaters = []
+    heat_pump_water_heater_tanks = []
+    model.getWaterHeaterHeatPumps.each { |wh| heat_pump_water_heaters << wh }
+    model.getWaterHeaterHeatPumpWrappedCondensers.each { |wh| heat_pump_water_heaters << wh }
+    # loop through heat pump water heaters and report out variables
+    heat_pump_water_heaters.sort.each do |hpwh|
+      tank = hpwh.tank
+      if tank.to_WaterHeaterMixed.is_initialized
+        tank = tank.to_WaterHeaterMixed.get
+      elsif tank.to_WaterHeaterStratified.is_initialized
+        tank = tank.to_WaterHeaterStratified.get
+      end
+      heat_pump_water_heater_tanks << tank.name.to_s
+      volume_m3 = tank.tankVolume.is_initialized ? tank.tankVolume.get : 0.0
+      volume_gal = OpenStudio.convert(volume_m3, 'm^3','gal').get.round(3)
+
+      # log heat pump water heater tank size
+      heat_pump_water_heater_total_volume_gal += volume_gal
+      heat_pump_water_heater_count += 1.0
+      if volume_gal == 0.0
+        runner.registerWarning("Heat pump water heater #{hpwh} has a zero gallon tank.")      
+      elsif  volume_gal < 40.0
+        heat_pump_water_heater_0_to_40_gal_total_volume_gal += volume_gal
+        heat_pump_water_heater_0_to_40_gal_count += 1.0
+      elsif  volume_gal < 65.0
+        heat_pump_water_heater_40_to_65_gal_total_volume_gal += volume_gal
+        heat_pump_water_heater_40_to_65_gal_count += 1.0
+      elsif volume_gal < 90.0
+        heat_pump_water_heater_65_to_90_gal_total_volume_gal += volume_gal
+        heat_pump_water_heater_65_to_90_gal_count += 1.0
+      else # over 90 gallons
+        heat_pump_water_heater_90_plus_gal_total_volume_gal += volume_gal
+        heat_pump_water_heater_90_plus_gal_count += 1.0
+      end
+
+      # get backup element capacity
+      backup_capacity_w = 0.0
+      if tank.to_WaterHeaterMixed.is_initialized
+        backup_capacity_w = tank.heaterMaximumCapacity.is_initialized ? tank.heaterMaximumCapacity.get : 0.0
+      elsif tank.to_WaterHeaterStratified.is_initialized
+        if tank.heaterPriorityControl.to_s.downcase == 'simultaneous'
+          backup_capacity_w = tank.heater1Capacity.is_initialized ? tank.heater1Capacity.get : 0.0
+          backup_capacity_w += tank.heater2Capacity
+        else
+          backup_capacity_w = tank.heater1Capacity.is_initialized ? tank.heater1Capacity.get : 0.0
+        end
+      end
+
+      # get heat pump capacity
+      heating_capacity_w = 0.0
+      dx_coil = hpwh.dXCoil
+      if dx_coil.to_CoilWaterHeatingAirToWaterHeatPump.is_initialized
+        dx_coil = dx_coil.to_CoilWaterHeatingAirToWaterHeatPump.get
+        heating_capacity_w = dx_coil.ratedHeatingCapacity
+      elsif dx_coil.to_CoilWaterHeatingAirToWaterHeatPumpWrapped.is_initialized
+        dx_coil = dx_coil.to_CoilWaterHeatingAirToWaterHeatPumpWrapped.get
+        heating_capacity_w = dx_coil.ratedHeatingCapacity
+      else
+        runner.registerWarning("Unsupported coil type for coil #{dx_coil.name} for heat pump water heater #{hpwh.name}.")
+      end
+
+      # get backup Water Heater Heating Energy
+      tank_heating_energy_j = sql_get_report_variable_data_double(runner, sql, tank, 'Water Heater Heating Energy')
+
+      # get backup Water Heater Unmet Demand Heat Transfer Energy 
+      tank_unmet_demand_energy_j = sql_get_report_variable_data_double(runner, sql, tank, 'Water Heater Unmet Demand Heat Transfer Energy')
+
+      # get Water Heater <Fuel Type> Energy
+      tank_gas_energy_j = 0.0
+      tank_electric_energy_j = 0.0
+      tank_other_fuel_energy_j = 0.0
+      tank_fuel_type = tank.heaterFuelType
+      case tank_fuel_type
+      when 'Electricity', 'Electric'
+        fuel = elec
+        tank_electric_energy_j = sql_get_report_variable_data_double(runner, sql, tank, "Water Heater #{fuel} Energy")
+      when 'NaturalGas', 'Gas'
+        fuel = gas
+        tank_gas_energy_j = sql_get_report_variable_data_double(runner, sql, tank, "Water Heater #{fuel} Energy")
+      else
+        fuel = tank_fuel_type
+        tank_other_fuel_energy_j = sql_get_report_variable_data_double(runner, sql, tank, "Water Heater #{fuel} Energy")
+      end
+
+      # get Heating/Cooling Coil Total Water Heating Energy
+      if model.version > OpenStudio::VersionString.new('3.3.0')
+        var_name = 'Cooling Coil Total Water Heating Energy'
+      else
+        var_name = 'Heating Coil Total Water Heating Energy'
+      end
+      hpwh_heating_energy_j = sql_get_report_variable_data_double(runner, sql, dx_coil, var_name)
+
+      # get Heating/Cooling Coil Water Heating Electricity Energy
+      if model.version > OpenStudio::VersionString.new('3.3.0')
+        var_name = "Cooling Coil Water Heating #{elec} Energy"
+      else
+        var_name = "Heating Coil Water Heating #{elec} Energy"
+      end
+      hpwh_electric_energy_j = sql_get_report_variable_data_double(runner, sql, dx_coil, var_name)
+
+      # calculate heat pump cop
+      hpwh_total_output_energy_j = hpwh_heating_energy_j + tank_heating_energy_j
+      hpwh_total_input_energy_j = hpwh_electric_energy_j + tank_electric_energy_j
+      hpwh_cop = hpwh_total_input_energy_j > 0.0 ? hpwh_total_output_energy_j / hpwh_total_input_energy_j : 0.0
+
+      # log heat pump water heater capacity and annual cop, weighted by tank size
+      heat_pump_water_heater_capacity_w += heating_capacity_w * volume_gal
+      heat_pump_water_heater_cop += hpwh_cop * hpwh_total_output_energy_j
+      heat_pump_water_heater_total_output_j += hpwh_total_output_energy_j
+      heat_pump_water_heater_total_input_j += hpwh_total_input_energy_j
+      if volume_gal == 0.0
+        runner.registerWarning("Heat pump water heater #{hpwh} has a zero gallon tank.")      
+      elsif  volume_gal < 40.0
+        heat_pump_water_heater_0_to_40_gal_capacity_w = heating_capacity_w * volume_gal
+        heat_pump_water_heater_0_to_40_gal_cop += hpwh_cop * hpwh_total_output_energy_j
+        heat_pump_water_heater_0_to_40_gal_output_j += hpwh_total_output_energy_j
+        heat_pump_water_heater_0_to_40_gal_input_j += hpwh_total_input_energy_j
+      elsif  volume_gal < 65.0
+        heat_pump_water_heater_40_to_65_gal_capacity_w += heating_capacity_w * volume_gal
+        heat_pump_water_heater_40_to_65_gal_cop += hpwh_cop * hpwh_total_output_energy_j
+        heat_pump_water_heater_40_to_65_gal_output_j += hpwh_total_output_energy_j
+        heat_pump_water_heater_40_to_65_gal_input_j += hpwh_total_input_energy_j
+      elsif volume_gal < 90.0
+        heat_pump_water_heater_65_to_90_gal_capacity_w += heating_capacity_w * volume_gal
+        heat_pump_water_heater_65_to_90_gal_cop += hpwh_cop * hpwh_total_output_energy_j
+        heat_pump_water_heater_65_to_90_gal_output_j += hpwh_total_output_energy_j
+        heat_pump_water_heater_65_to_90_gal_input_j += hpwh_total_input_energy_j
+      else # over 90 gallons
+        heat_pump_water_heater_90_plus_capacity_w += heating_capacity_w * volume_gal
+        heat_pump_water_heater_90_plus_gal_cop += hpwh_cop * hpwh_total_output_energy_j
+        heat_pump_water_heater_90_plus_output_j += hpwh_total_output_energy_j
+        heat_pump_water_heater_90_plus_input_j += hpwh_total_input_energy_j
+      end
+
+      heat_pump_water_heater_heat_pump_output_j += hpwh_heating_energy_j
+      heat_pump_water_heater_tank_output_j += tank_heating_energy_j
+      heat_pump_water_heater_total_electric_j += hpwh_electric_energy_j + tank_electric_energy_j
+      heat_pump_water_heater_heat_pump_electric_j += hpwh_electric_energy_j
+      heat_pump_water_heater_backup_electric_j += tank_electric_energy_j
+      heat_pump_water_heater_unmet_heat_transfer_demand_j += tank_unmet_demand_energy_j
+    end
+
+    # loop through non-heat pump water heaters, omitting those that are tanks for hpwh objects
+    water_heaters = []
+    model.getWaterHeaterMixeds.each { |wh| water_heaters << wh }
+    model.getWaterHeaterStratifieds.each { |wh| water_heaters << wh }
+    water_heaters.sort.each do |wh|
+      # skip tanks that are associated with heat pump water heaters
+      next if heat_pump_water_heater_tanks.include? wh.name.to_s
+
+      volume_m3 = wh.tankVolume.is_initialized ? wh.tankVolume.get : 0.0
+      volume_gal = OpenStudio.convert(volume_m3, 'm^3','gal').get.round(3)
+
+      # log water heater tank size
+      water_heater_total_volume_gal += volume_gal
+      water_heater_count += 1.0
+      if volume_gal == 0.0
+        runner.registerWarning("Water heater #{wh} has a zero gallon tank.")      
+      elsif  volume_gal < 40.0
+        water_heater_0_to_40_gal_total_volume_gal += volume_gal
+        water_heater_0_to_40_gal_count += 1.0
+      elsif volume_gal < 65.0
+        water_heater_40_to_65_gal_total_volume_gal += volume_gal
+        water_heater_40_to_65_gal_count += 1.0
+      elsif volume_gal < 90.0
+        water_heater_65_to_90_gal_total_volume_gal += volume_gal
+        water_heater_65_to_90_gal_count += 1.0
+      else # over 90 gallons
+        water_heater_90_plus_gal_total_volume_gal += volume_gal
+        water_heater_90_plus_gal_count += 1.0
+      end
+
+      # get Water Heater Unmet Demand Heat Transfer Energy 
+      wh_unmet_demand_energy_j = sql_get_report_variable_data_double(runner, sql, wh, 'Water Heater Unmet Demand Heat Transfer Energy')
+
+      # get Water Heater <Fuel Type> Energy
+      wh_gas_energy_j = 0.0
+      wh_electric_energy_j = 0.0
+      wh_other_fuel_energy_j = 0.0
+      wh_fuel_type = wh.heaterFuelType
+      case wh_fuel_type
+      when 'Electricity', 'Electric'
+        fuel = elec
+        wh_electric_energy_j = sql_get_report_variable_data_double(runner, sql, wh, "Water Heater #{fuel} Energy")
+      when 'NaturalGas', 'Gas'
+        fuel = gas
+        wh_gas_energy_j = sql_get_report_variable_data_double(runner, sql, wh, "Water Heater #{fuel} Energy")
+      else
+        fuel = wh_fuel_type
+        wh_other_fuel_energy_j = sql_get_report_variable_data_double(runner, sql, wh, "Water Heater #{fuel} Energy")
+      end
+
+      is_booster = wh.name.get.to_s.downcase.include?('booster') ? true : false
+
+      water_heater_electric_j += wh_electric_energy_j
+      water_heater_gas_j += wh_gas_energy_j
+      water_heater_other_fuel_j += wh_other_fuel_energy_j
+      booster_water_heater_electric_j += wh_electric_energy_j if is_booster
+      booster_water_heater_gas_j += wh_gas_energy_j if is_booster
+      water_heater_unmet_heat_transfer_demand_j += wh_unmet_demand_energy_j
+    end
+    # report out counts and volumes for heat pump water heaters
+    runner.registerValue('com_report_shw_hp_water_heater_count', heat_pump_water_heater_count)
+    runner.registerValue('com_report_shw_hp_water_heater_0_to_40_gal_count', heat_pump_water_heater_0_to_40_gal_count)
+    runner.registerValue('com_report_shw_hp_water_heater_40_to_65_gal_count', heat_pump_water_heater_40_to_65_gal_count)
+    runner.registerValue('com_report_shw_hp_water_heater_65_to_90_gal_count', heat_pump_water_heater_65_to_90_gal_count)
+    runner.registerValue('com_report_shw_hp_water_heater_90_plus_gal_count', heat_pump_water_heater_90_plus_gal_count)
+    runner.registerValue('com_report_shw_hp_water_heater_total_volume_gal', heat_pump_water_heater_total_volume_gal)
+    runner.registerValue('com_report_shw_hp_water_heater_0_to_40_gal_total_volume_gal', heat_pump_water_heater_0_to_40_gal_total_volume_gal)
+    runner.registerValue('com_report_shw_hp_water_heater_40_to_65_gal_total_volume_gal', heat_pump_water_heater_40_to_65_gal_total_volume_gal)
+    runner.registerValue('com_report_shw_hp_water_heater_65_to_90_gal_total_volume_gal', heat_pump_water_heater_65_to_90_gal_total_volume_gal)
+    runner.registerValue('com_report_shw_hp_water_heater_90_plus_gal_total_volume_gal', heat_pump_water_heater_90_plus_gal_total_volume_gal)
+
+    # report out counts and volumes for non-heat pump water heaters
+    runner.registerValue('com_report_shw_non_hp_water_heater_count', water_heater_count)
+    runner.registerValue('com_report_shw_non_hp_water_heater_0_to_40_gal_count', water_heater_0_to_40_gal_count)
+    runner.registerValue('com_report_shw_non_hp_water_heater_40_to_65_gal_count', water_heater_40_to_65_gal_count)
+    runner.registerValue('com_report_shw_non_hp_water_heater_65_to_90_gal_count', water_heater_65_to_90_gal_count)
+    runner.registerValue('com_report_shw_non_hp_water_heater_90_plus_gal_count', water_heater_90_plus_gal_count)
+    runner.registerValue('com_report_shw_non_hp_water_heater_total_volume_gal', water_heater_total_volume_gal)
+    runner.registerValue('com_report_shw_non_hp_water_heater_0_to_40_gal_total_volume_gal', water_heater_0_to_40_gal_total_volume_gal)
+    runner.registerValue('com_report_shw_non_hp_water_heater_40_to_65_gal_total_volume_gal', water_heater_40_to_65_gal_total_volume_gal)
+    runner.registerValue('com_report_shw_non_hp_water_heater_65_to_90_gal_total_volume_gal', water_heater_65_to_90_gal_total_volume_gal)
+    runner.registerValue('com_report_shw_non_hp_water_heater_90_plus_gal_total_volume_gal', water_heater_90_plus_gal_total_volume_gal)
+
+    # report out capacities for heat pump water heaters
+    heat_pump_water_heater_capacity_w = heat_pump_water_heater_total_volume_gal > 0.0 ? heat_pump_water_heater_capacity_w / heat_pump_water_heater_total_volume_gal : 0.0
+    heat_pump_water_heater_0_to_40_gal_capacity_w = heat_pump_water_heater_0_to_40_gal_total_volume_gal > 0.0 ? heat_pump_water_heater_0_to_40_gal_capacity_w / heat_pump_water_heater_0_to_40_gal_total_volume_gal : 0.0
+    heat_pump_water_heater_40_to_65_gal_capacity_w = heat_pump_water_heater_40_to_65_gal_total_volume_gal > 0.0 ? heat_pump_water_heater_40_to_65_gal_capacity_w / heat_pump_water_heater_40_to_65_gal_total_volume_gal : 0.0
+    heat_pump_water_heater_65_to_90_gal_capacity_w = heat_pump_water_heater_65_to_90_gal_total_volume_gal > 0.0 ? heat_pump_water_heater_65_to_90_gal_capacity_w / heat_pump_water_heater_65_to_90_gal_total_volume_gal : 0.0
+    heat_pump_water_heater_90_plus_capacity_w = heat_pump_water_heater_90_plus_gal_total_volume_gal > 0.0 ? heat_pump_water_heater_90_plus_capacity_w / heat_pump_water_heater_90_plus_gal_total_volume_gal : 0.0
+    runner.registerValue('com_report_shw_hp_water_heater_capacity_w', heat_pump_water_heater_capacity_w)
+    runner.registerValue('com_report_shw_hp_water_heater_0_to_40_gal_capacity_w', heat_pump_water_heater_0_to_40_gal_capacity_w)
+    runner.registerValue('com_report_shw_hp_water_heater_40_to_65_gal_capacity_w', heat_pump_water_heater_40_to_65_gal_capacity_w)
+    runner.registerValue('com_report_shw_hp_water_heater_65_to_90_gal_capacity_w', heat_pump_water_heater_65_to_90_gal_capacity_w)
+    runner.registerValue('com_report_shw_hp_water_heater_90_plus_capacity_w', heat_pump_water_heater_90_plus_capacity_w)
+
+    # report out annual average cops for heat pump water heaters
+    heat_pump_water_heater_cop = heat_pump_water_heater_total_input_j > 0.0 ? heat_pump_water_heater_total_output_j / heat_pump_water_heater_total_input_j : 0.0
+    heat_pump_water_heater_0_to_40_gal_cop = heat_pump_water_heater_0_to_40_gal_input_j > 0.0 ? heat_pump_water_heater_0_to_40_gal_output_j / heat_pump_water_heater_0_to_40_gal_input_j : 0.0
+    heat_pump_water_heater_40_to_65_gal_cop = heat_pump_water_heater_40_to_65_gal_input_j > 0.0 ? heat_pump_water_heater_40_to_65_gal_output_j / heat_pump_water_heater_40_to_65_gal_input_j : 0.0
+    heat_pump_water_heater_65_to_90_gal_cop = heat_pump_water_heater_65_to_90_gal_input_j > 0.0 ? heat_pump_water_heater_65_to_90_gal_output_j / heat_pump_water_heater_65_to_90_gal_input_j : 0.0
+    heat_pump_water_heater_90_plus_gal_cop = heat_pump_water_heater_90_plus_input_j > 0.0 ? heat_pump_water_heater_90_plus_output_j / heat_pump_water_heater_90_plus_input_j : 0.0
+    runner.registerValue('com_report_shw_hp_water_heater_cop', heat_pump_water_heater_cop)
+    runner.registerValue('com_report_shw_hp_water_heater_0_to_40_gal_cop', heat_pump_water_heater_0_to_40_gal_cop)
+    runner.registerValue('com_report_shw_hp_water_heater_40_to_65_gal_cop', heat_pump_water_heater_40_to_65_gal_cop)
+    runner.registerValue('com_report_shw_hp_water_heater_65_to_90_gal_cop', heat_pump_water_heater_65_to_90_gal_cop)
+    runner.registerValue('com_report_shw_hp_water_heater_90_plus_gal_cop', heat_pump_water_heater_90_plus_gal_cop)
+
+    # report out electric use for heat pump water heaters
+    runner.registerValue('com_report_shw_hp_water_heater_total_output_j', heat_pump_water_heater_total_output_j)
+    runner.registerValue('com_report_shw_hp_water_heater_heat_pump_output_j', heat_pump_water_heater_heat_pump_output_j)
+    runner.registerValue('com_report_shw_hp_water_heater_tank_output_j', heat_pump_water_heater_tank_output_j)
+    runner.registerValue('com_report_shw_hp_water_heater_total_electric_j', heat_pump_water_heater_total_electric_j)
+    runner.registerValue('com_report_shw_hp_water_heater_heat_pump_electric_j', heat_pump_water_heater_heat_pump_electric_j)
+    runner.registerValue('com_report_shw_hp_water_heater_backup_electric_j', heat_pump_water_heater_backup_electric_j)
+
+    # report out electric and gas use for non-heat pump water heaters
+    runner.registerValue('com_report_shw_non_hp_water_heater_electric_j', water_heater_electric_j)
+    runner.registerValue('com_report_shw_non_hp_water_heater_gas_j', water_heater_gas_j)
+    runner.registerValue('com_report_shw_non_hp_water_heater_other_fuel_j', water_heater_other_fuel_j)
+
+    # report out electric and gas use for booster water heaters
+    runner.registerValue('com_report_shw_booster_water_heater_electric_j', booster_water_heater_electric_j)
+    runner.registerValue('com_report_shw_booster_water_heater_gas_j', booster_water_heater_gas_j)
+
+    # report out weater heater unmet demand heat transfer
+    runner.registerValue('com_report_shw_hp_water_heater_unmet_heat_transfer_demand_j', heat_pump_water_heater_unmet_heat_transfer_demand_j)
+    runner.registerValue('com_report_shw_non_hp_water_heater_unmet_heat_transfer_demand_j', water_heater_unmet_heat_transfer_demand_j)
+
+    # Error and Warning count from eplusout.err file (sql does not have data)
+    err_path = File.join(File.dirname(sql.path.to_s), 'eplusout.err')
+    File.foreach(err_path).each do |line|
+      next unless line.include?('EnergyPlus Completed Successfully')
+      m = line.match /.*EnergyPlus Completed Successfully-- (\d+) Warning; (\d+) Severe Errors/
+      if m
+        runner.registerValue('com_report_num_warnings', m[1].to_i)
+        runner.registerValue('com_report_num_errors', m[2].to_i)
+      else
+        runner.registerWarning("Could not determine number of warnings or errors from error file")
+      end
+      break
+    end
 
     # close the sql file
     sql.close

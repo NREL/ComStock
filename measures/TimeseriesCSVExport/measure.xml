@@ -1,9 +1,10 @@
+<?xml version="1.0"?>
 <measure>
-  <schema_version>3.0</schema_version>
+  <schema_version>3.1</schema_version>
   <name>timeseries_csv_export</name>
   <uid>2a3442c1-944d-4e91-9e11-11e0cf368c64</uid>
-  <version_id>7c9b113d-f614-45a9-80e5-7fd31b12134f</version_id>
-  <version_modified>20171020T102539Z</version_modified>
+  <version_id>5f1a0e5d-c215-48cb-8b01-7edc46eb468d</version_id>
+  <version_modified>2023-10-17T11:28:50Z</version_modified>
   <xml_checksum>15BF4E57</xml_checksum>
   <class_name>TimeseriesCSVExport</class_name>
   <display_name>Timeseries CSV Export</display_name>
@@ -18,10 +19,6 @@
       <model_dependent>false</model_dependent>
       <default_value>Hourly</default_value>
       <choices>
-        <choice>
-          <value>Detailed</value>
-          <display_name>Detailed</display_name>
-        </choice>
         <choice>
           <value>Timestep</value>
           <display_name>Timestep</display_name>
@@ -39,8 +36,8 @@
           <display_name>Monthly</display_name>
         </choice>
         <choice>
-          <value>Runperiod</value>
-          <display_name>Runperiod</display_name>
+          <value>RunPeriod</value>
+          <display_name>RunPeriod</display_name>
         </choice>
       </choices>
     </argument>
@@ -63,8 +60,8 @@
       </choices>
     </argument>
   </arguments>
-  <outputs/>
-  <provenances/>
+  <outputs />
+  <provenances />
   <tags>
     <tag>Reporting.QAQC</tag>
   </tags>
@@ -77,36 +74,6 @@
   </attributes>
   <files>
     <file>
-      <filename>constants.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>B34275B6</checksum>
-    </file>
-    <file>
-      <filename>psychrometrics.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>3C131B97</checksum>
-    </file>
-    <file>
-      <filename>unit_conversions.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>6BA22437</checksum>
-    </file>
-    <file>
-      <filename>util.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>64BC6389</checksum>
-    </file>
-    <file>
-      <filename>weather.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>03F09690</checksum>
-    </file>
-    <file>
       <version>
         <software_program>OpenStudio</software_program>
         <identifier>2.0.5</identifier>
@@ -115,7 +82,133 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>4B17843A</checksum>
+      <checksum>C2E61D02</checksum>
+    </file>
+    <file>
+      <filename>ReadVarsESO</filename>
+      <filetype></filetype>
+      <usage_type>resource</usage_type>
+      <checksum>9C999B6A</checksum>
+    </file>
+    <file>
+      <filename>ReadVarsESO.exe</filename>
+      <filetype>exe</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>23549EDD</checksum>
+    </file>
+    <file>
+      <filename>ReadVarsESO.osx</filename>
+      <filetype>osx</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>01852C1F</checksum>
+    </file>
+    <file>
+      <filename>constants.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>7709E8EB</checksum>
+    </file>
+    <file>
+      <filename>convertESOMTR</filename>
+      <filetype></filetype>
+      <usage_type>resource</usage_type>
+      <checksum>C0321BC5</checksum>
+    </file>
+    <file>
+      <filename>convertESOMTR.exe</filename>
+      <filetype>exe</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>26D19FFE</checksum>
+    </file>
+    <file>
+      <filename>convertESOMTR.osx</filename>
+      <filetype>osx</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>256793AA</checksum>
+    </file>
+    <file>
+      <filename>libgcc_s.1.dylib</filename>
+      <filetype>dylib</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>6BB97941</checksum>
+    </file>
+    <file>
+      <filename>libgfortran.5.dylib</filename>
+      <filetype>dylib</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>3CDB62CC</checksum>
+    </file>
+    <file>
+      <filename>libquadmath.0.dylib</filename>
+      <filetype>dylib</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>1CFD34FF</checksum>
+    </file>
+    <file>
+      <filename>psychrometrics.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>ED356FFA</checksum>
+    </file>
+    <file>
+      <filename>unit_conversions.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>A38FF090</checksum>
+    </file>
+    <file>
+      <filename>util.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>BF6B439C</checksum>
+    </file>
+    <file>
+      <filename>weather.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>13F4EA8C</checksum>
+    </file>
+    <file>
+      <filename>1004_SmallHotel_a.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>3F796846</checksum>
+    </file>
+    <file>
+      <filename>FullServiceRestaurant.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>2CBFE9B4</checksum>
+    </file>
+    <file>
+      <filename>Measure_Test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>5148A41E</checksum>
+    </file>
+    <file>
+      <filename>Retail.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>542128D2</checksum>
+    </file>
+    <file>
+      <filename>USA_CO_Golden-NREL.724666_TMY3.ddy</filename>
+      <filetype>ddy</filetype>
+      <usage_type>test</usage_type>
+      <checksum>07B1B228</checksum>
+    </file>
+    <file>
+      <filename>USA_CO_Golden-NREL.724666_TMY3.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>BDF687C1</checksum>
+    </file>
+    <file>
+      <filename>USA_CO_Golden-NREL.724666_TMY3.stat</filename>
+      <filetype>stat</filetype>
+      <usage_type>test</usage_type>
+      <checksum>E2C3F063</checksum>
     </file>
   </files>
 </measure>

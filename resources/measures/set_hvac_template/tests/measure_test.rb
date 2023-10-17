@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2020 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # *******************************************************************************
@@ -110,6 +110,22 @@ class SetHVACTemplateTest < Minitest::Test
     model = translator.loadModel(path)
     assert(!model.empty?)
     model = model.get
+
+    # Set the weather file
+    epw_path = File.dirname(__FILE__) + '/USA_CA_Arcata.AP.725945_TMY3.epw'
+
+    # Set model weather file
+    assert(File.exist?(epw_path))
+    epw_file = OpenStudio::EpwFile.new(OpenStudio::Path.new(epw_path))
+    OpenStudio::Model::WeatherFile.setWeatherFile(model, epw_file)
+    assert(model.weatherFile.is_initialized)
+
+    # Add ERV to test updates to ERV method name in openstudio-standards 0.2.15
+    model.getAirLoopHVACs.each do |air_loop|
+      oa_system = air_loop.airLoopHVACOutdoorAirSystem.get
+      erv = OpenStudio::Model::HeatExchangerAirToAirSensibleAndLatent.new(model)
+      erv.addToNode(oa_system.outboardOANode.get)
+    end
 
     # get arguments
     arguments = measure.arguments(model)
