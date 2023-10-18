@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2020 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # OpenStudio base image (https://hub.docker.com/r/nrel/openstudio/tags)
@@ -41,7 +41,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
             libpng-dev \
             libgdbm-dev \
             libgomp1 \
+            libgl-dev \
+            libglib2.0-dev \
+            wget \
+            build-essential \
     && rm -rf /var/lib/apt/lists/*
+
+RUN wget https://www.python.org/ftp/python/3.8.8/Python-3.8.8.tgz --no-check-certificate && \
+    tar xzf Python-3.8.8.tgz && \
+    cd Python-3.8.8 && \
+    ./configure --enable-optimizations && \
+    make altinstall && \
+    rm -rf Python-3.8.8 && \
+    rm -rf Python-3.8.8.tgz
+
+RUN python3.8 -m pip install GHEDesigner==1.0
+
+RUN ghedesigner --help
 
 # link executable from /usr/local/bin
 RUN ln -s /usr/local/openstudio-${OPENSTUDIO_VERSION}${OPENSTUDIO_VERSION_EXT}/bin/openstudio /usr/local/bin/openstudio
