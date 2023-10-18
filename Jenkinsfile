@@ -61,6 +61,7 @@ def buildNumber = env.BUILD_NUMBER as int
           timeout(time: 600, unit: 'MINUTES') {
               sh '''
               bundle config set without 'native_ext'
+              cd ./resources/
               bundle exec rake unit_tests:measure_tests
                  '''
           }
@@ -72,8 +73,8 @@ def buildNumber = env.BUILD_NUMBER as int
           }
           finally {
           try {
-            archiveArtifacts artifacts: 'test/report/', fingerprint: true
-            junit 'test/report/*.xml'
+            archiveArtifacts artifacts: '../test/report/', fingerprint: true
+            junit '../test/report/*.xml'
           }
             catch (Exception e) {
             buildResult = 'FAILURE'
