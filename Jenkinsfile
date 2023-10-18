@@ -77,8 +77,9 @@ def buildNumber = env.BUILD_NUMBER as int
           }
           finally {
           try {
-            archiveArtifacts artifacts: '../test/report/', fingerprint: true
-            junit '../test/report/*.xml'
+
+            archiveArtifacts artifacts: 'test/report/', fingerprint: true
+            junit 'test/report/*.xml'
           }
             catch (Exception e) {
             buildResult = 'FAILURE'
@@ -89,17 +90,17 @@ def buildNumber = env.BUILD_NUMBER as int
         }
 
         // docker user is root so all file permissions need to be changed for jenkins to cleanup
-        // sh "chmod -R 777 ${linux_base}/${env.JOB_NAME}/${env.BUILD_NUMBER}"
+        sh "chmod -R 777 ${linux_base}/${env.JOB_NAME}/${env.BUILD_NUMBER}"
       }
       // cleanup workspace
-      // deleteDir()
+      deleteDir()
 
       // Notify github of result
-      // if ((buildResult != 'FAILURE') && (buildResult != 'ERROR')) {
-      // buildResult = 'SUCCESS'
-      // }
-      // githubNotify description: "${description}",  context: "${context}", status: "${buildResult}" , credentialsId: 'ci-commercialbuildings-test'
-      // currentBuild.result = "${buildResult}"
+      if ((buildResult != 'FAILURE') && (buildResult != 'ERROR')) {
+      buildResult = 'SUCCESS'
+      }
+      githubNotify description: "${description}",  context: "${context}", status: "${buildResult}" , credentialsId: 'ci-commercialbuildings-test'
+      currentBuild.result = "${buildResult}"
     }
   }
 // }
