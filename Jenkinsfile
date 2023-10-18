@@ -44,9 +44,13 @@ def buildNumber = env.BUILD_NUMBER as int
           try {
           sh("gem install bundler -v '2.1.4'")
           sh("pwd") 
+          sh '''
+          export GEM_PATH="/var/oscli/gems/ruby/2.7.0"
+          unset BUNDLE_WITHOUT
+          bundle config set git.allow_insecure true
+          bundle config set path /var/oscli/gems
+          '''
           sh('bundle install --gemfile ./resources/Gemfile')
-          sh('gem install minitest-reporters')
-          sh('gem install minitest-junit')
           }
           catch (Exception e) {
           e.printStackTrace()
@@ -63,7 +67,7 @@ def buildNumber = env.BUILD_NUMBER as int
               bundle config set without 'native_ext'
               cd ./resources/
               bundle exec rake unit_tests:measure_tests
-                 '''
+              '''
           }
           }
           catch (Exception e) {
