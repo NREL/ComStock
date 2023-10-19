@@ -156,7 +156,7 @@
 \RequirePackage[babel]{csquotes}
 \RequirePackage[
 	style=chicago-authordate,
-	strict,backend=bibtex,
+	strict,backend=biber,
 	natbib=true,
 	bibencoding=inputenc,
 	sorting=nyt,

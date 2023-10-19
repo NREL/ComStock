@@ -11,7 +11,7 @@ LPD = General Lighting + Task Lighting + Supplemental Lighting + Wall Wash Light
 
 \begin{align}
 \label{lsm_lpd_eqn}
-LPD = {\% LS_{1} * fc \over RSDD * TF_{1}} + {\% LS_{2} * fc \over RSDD * TF_{2}} + {\% LS_{3} * fc \over RSDD * TF_{3}} + {\% LS_{4} * fc \over RSDD * TF_{4}}
+LPD = \frac{\% LS_{1} \cdot fc}{RSDD \cdot TF_{1}} + \frac{\% LS_{2} \cdot fc}{RSDD \cdot TF_{2}} + \frac{\% LS_{3} \cdot fc}{RSDD \cdot TF_{3}} + \frac{\% LS_{4} \cdot fc}{RSDD \cdot TF_{4}}
 \end{align}
 where:\\
 \begin{itemize}
@@ -43,7 +43,7 @@ Lastly, the LSM offers a generous allowance for lighting power density to accoun
 With these changes, the LPD calculation simplifies to:
 \begin{align}
 \label{comstock_lpd_eqn}
-LPD = {\% LS_{1} * fc \over efficacy * CU_{1}} + {\% LS_{2} * fc \over efficacy * CU_{2}} + {\% LS_{3} * fc \over efficacy * CU_{3}} + {\% LS_{4} * fc \over efficacy * CU_{4}}
+LPD = \frac{\% LS_{1} \cdot fc}{\text{efficacy} \cdot CU_{1}} + \frac{\% LS_{2} \cdot fc}{\text{efficacy} \cdot CU_{2}} + \frac{\% LS_{3} \cdot fc}{\text{efficacy} \cdot CU_{3}} + \frac{\% LS_{4} \cdot fc}{\text{efficacy} \cdot CU_{4}}
 \end{align}
 
 where:\\
@@ -158,7 +158,7 @@ Lighting power for a given parking area is determined from the 2015 U.S. Lightin
 
 \begin{align}
 \label{ext_light_eqn}
-LPD = ({216\ W \over \text{lighting system}}) * ({1\ \text{lighting system} \over 13\ \text{parking spots}}) * ({1\ \text{parking spot} \over 405\ ft\textsuperscript{2}}) = 0.0410\ W/ft\textsuperscript{2}
+LPD = \left(\frac{216\,W}{\text{lighting system}}\right) \cdot \left(\frac{1\,\text{lighting system}}{13\,\text{parking spots}}\right) \cdot \left(\frac{1\,\text{parking spot}}{405\,\text{ft}^2}\right) = 0.0410\,W/\text{ft}^2
 \end{align}
 
 %\input{tables/exterior_lighting_power}
