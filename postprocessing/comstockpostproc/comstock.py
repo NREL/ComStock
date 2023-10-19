@@ -17,6 +17,7 @@ from comstockpostproc.units_mixin import UnitsMixin
 from comstockpostproc.cbecs import CBECS
 from comstockpostproc.gas_correction_model import GasCorrectionModelMixin
 from comstockpostproc.s3_utilities_mixin import S3UtilitiesMixin
+from buildstock_query import BuildStockQuery
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +57,7 @@ def basic_metadata_columns():
 
 # ComStock in a constructor class for processing ComStock results
 class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixin):
-    def __init__(self, s3_base_dir, comstock_run_name, comstock_run_version, comstock_year,
+    def __init__(self, s3_base_dir, comstock_run_name, comstock_run_version, comstock_year, athena_table_name,
         truth_data_version, buildstock_csv_name = 'buildstock.csv', acceptable_failure_percentage=0.01, drop_failed_runs=True,
         color_hex=NamingMixin.COLOR_COMSTOCK_BEFORE, weighted_energy_units='tbtu', weighted_ghg_units='co2e_mmt', skip_missing_columns=False,
         reload_from_csv=False, make_comparison_plots=True, include_upgrades=True, upgrade_ids_to_skip=[], rename_upgrades=False):
@@ -90,7 +91,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.hvac_metadata_file_name = 'hvac_metadata.csv'
         self.rename_upgrades = rename_upgrades
         self.rename_upgrades_file_name = 'rename_upgrades.json'
+        self.athena_table_name = athena_table_name
         self.data = None
+        self.monthly_data = None
+        self.monthly_data_gap = None
         self.color = color_hex
         self.weighted_energy_units = weighted_energy_units
         self.weighted_ghg_units = weighted_ghg_units
@@ -98,6 +102,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.include_upgrades = include_upgrades
         self.upgrade_ids_to_skip = upgrade_ids_to_skip
         self.s3_client = boto3.client('s3')
+        self.athena_client = BuildStockQuery('eulp','enduse', self.athena_table_name)
         self.make_comparison_plots = make_comparison_plots
         logger.info(f'Creating {self.dataset_name}')
 
@@ -154,6 +159,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.add_addressable_segments_columns()
             self.combine_emissions_cols()
             self.add_metadata_index_col()
+            self.get_comstock_unscaled_monthly_energy_consumption()
 
             # logger.debug('\nComStock columns after adding all data:')
             # for c in self.data.columns:
@@ -1393,6 +1399,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             else:
                 self.add_weighted_energy_savings_columns()
 
+        #Adding weighting factors to the monthly data
+        self.get_scaled_comstock_monthly_consumption_by_state()
+
         return bldg_type_scale_factors
 
     def add_weighted_area_and_energy_columns(self):
@@ -1627,6 +1636,119 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             logger.debug(f'{old} -> {new}')
 
         self.data = self.data.rename(crnms)
+
+    def get_comstock_unscaled_monthly_energy_consumption(self):
+        """
+        From the ComStock run, get the monthly timeseries data into monthly natural gas and electricity energy consumption for each state.
+        Scale the monthly consumption to national scale.
+        First, scale each building type up to match CBECS sqft for that building type.
+        Second, scale the total energy for that total sqft up to match the total of CBECS for ALL building types.
+        Return:
+            comstock_monthly_consumption (pd.DataFrame): Table of natural gas and electricity consumption by state and month.
+        """
+
+        # Load or query timeseries ComStock results by state and building type
+        file_name = f'comstock_monthly_natural_gas_and_electricity_by_state_and_bldg_type.csv'
+        file_path = os.path.join(self.data_dir, file_name)
+        if not os.path.exists(file_path):
+            # Query Athena for ComStock results
+            print('Querying Athena for ComStock monthly energy data by state and building type, this will take several minutes.')
+            query = f"""
+                SELECT
+                "month",
+                "state_id",
+                "building_type",
+                sum("total_site_gas_kbtu") AS "total_site_gas_kbtu",
+                sum("total_site_electricity_kwh") AS "total_site_electricity_kwh"
+                FROM
+                (
+                    SELECT
+                    EXTRACT(MONTH from "time") as "month",
+                    SUBSTRING("build_existing_model.county_id", 2, 2) AS "state_id",
+                    "build_existing_model.building_type" as "building_type",
+                    "total_site_gas_kbtu",
+                    "total_site_electricity_kwh"
+                    FROM
+                    "{self.athena_table_name}_timeseries"
+                    JOIN "{self.athena_table_name}_baseline"
+                    ON "{self.athena_table_name}_timeseries"."building_id" = "{self.athena_table_name}_baseline"."building_id"
+                )
+                GROUP BY
+                "month",
+                "state_id",
+                "building_type"
+            """
+            #print(query)
+            comstock_unscaled = self.athena_client.execute(query) #TODO fix this
+            comstock_unscaled.to_csv(file_path, index=False)
+        else:
+            comstock_unscaled = pd.read_csv(file_path)
+
+        # Rename columns
+        comstock_unscaled.rename(columns={'month': 'Month', 'state_id': 'FIPS Code'}, inplace=True)
+
+        #Rename Building_Types
+        def rename_buildingtypes(building_type):
+            building_type = building_type.replace('_',' ').title().replace(' ', '')
+            return building_type
+
+        comstock_unscaled['building_type'] = comstock_unscaled.apply(lambda row: rename_buildingtypes(row['building_type']), axis=1)
+
+        self.monthly_data = comstock_unscaled
+
+        return comstock_unscaled
+
+    def get_scaled_comstock_monthly_consumption_by_state(self):
+
+        # Load or query monthly ComStock energy consumption by state and building type
+        comstock = self.monthly_data
+
+        # Get the scaling factors to take the results of this ComStock run to the national scale
+        comstock_scaling_factors = self.data[[self.BLDG_TYPE, self.BLDG_WEIGHT]].groupby(self.BLDG_TYPE).mean().to_dict()['weight']
+        # Assign the correct per-building-type scaling factor to ComStock monthly data
+        comstock['Scaling Factor'] = comstock['building_type'].map(comstock_scaling_factors)
+
+        # Scale the ComStock energy consumption
+        comstock['Electricity consumption (kWh)'] = comstock['total_site_electricity_kwh'] * comstock['Scaling Factor']
+        comstock['Natural gas consumption (thous Btu)'] = comstock['total_site_gas_kbtu'] * comstock['Scaling Factor']
+
+        # Aggregate ComStock by state and month, combining all building types
+        vals = ['Electricity consumption (kWh)', 'Natural gas consumption (thous Btu)']
+        ags = [np.sum]
+        idx = ['FIPS Code', 'Month']
+        comstock = comstock.pivot_table(values=vals, index=idx, aggfunc=ags)
+        comstock = comstock.droplevel(level=[0], axis=1)
+
+        # Add a dataset label column
+        comstock['Dataset'] = f'ComStock {self.comstock_run_version} {self.year}'
+
+        # load the state id table
+        state_table = self.get_state_metadata('state_region_division_table.csv')
+
+        # Append the state metadata
+        comstock = pd.merge(comstock.reset_index(), state_table[['FIPS Code', 'State', 'Division']], left_on='FIPS Code', right_on='FIPS Code')
+        comstock = comstock[['Month', 'FIPS Code', 'State', 'Division', 'Dataset', 'Electricity consumption (kWh)', 'Natural gas consumption (thous Btu)']]
+
+        # # Get the energy consumption of the buildings NOT covered by ComStock from CBECS
+        # cbecs_gap_elec_tbtu, cbecs_gap_gas_tbtu = self.get_comstock_to_whole_stock_energy_gaps()
+
+        # Using ComStock's existing distribution of energy consumption by state and month,
+        # add the energy consumption of the buildings NOT covered by ComStock.
+        # This will be called the ComStock Gap Model.
+        # Because of the way the stacked bar plots are created, ComStock Gap = ComStock + ComStock Gap
+        # comstock_elec_tbtu = comstock['Electricity consumption (kWh)'].sum() * self.kWh_to_kBtu * self.kBtu_to_TBtu
+        # comstock_gas_tbtu = comstock['Natural gas consumption (thous Btu)'].sum() * self.kBtu_to_TBtu
+        # elec_scale = (cbecs_gap_elec_tbtu + comstock_elec_tbtu) / comstock_elec_tbtu
+        # gas_scale = (cbecs_gap_gas_tbtu + comstock_gas_tbtu) / comstock_gas_tbtu
+        # comstock_gap = comstock.copy()
+        # comstock_gap['Dataset'] = 'ComStock Gap Model'
+        # comstock_gap['Electricity consumption (kWh)'] = comstock_gap['Electricity consumption (kWh)'] * elec_scale
+        # comstock_gap['Natural gas consumption (thous Btu)'] = comstock_gap['Natural gas consumption (thous Btu)'] * gas_scale
+
+
+        # self.monthly_data_gap = comstock_gap
+        self.monthly_data = comstock
+        return comstock
 
     def export_to_csv_wide(self):
         # Exports comstock data to CSV in wide format
