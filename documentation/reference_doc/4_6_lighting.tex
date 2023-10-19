@@ -30,8 +30,6 @@ First, ComStock generalizes lighting technology (e.g., T8 linear fluorescent lum
 
 Second, lighting technologies are broken out into lighting generations depending on the most common space lighting technology in that generation, as general lighting accounts for most ($\sim$80\%--90\%) of total lighting. High bay is treated as general lighting, and the lighting measure uses the general high bay technology for rooms with height $\ge$20 ft. Lighting generations 4--8 are all LED, with improving efficacy over time. Lighting generations and their technologies are detailed in Table \ref{tab:int_light_gens}, and lighting technology properties are detailed in Table~\ref{tab:int_light_techs_all}.
 
-%\input{tables/interior_lighting_technologies_all}
-
 Third, the coefficient of utilization depends on both the luminaire properties and the room geometry, which complicates the calculation in the LSM. The ComStock model associates the coefficient of utilization entirely with room propertiesthat are independent of lighting technology.  ComStock further assumes that rooms of the same space type have similar enough properties that they can use the same coefficient of utilization. To retain some of the variation from the luminaire properties, each kind of lighting system has a different coefficient of utilization for each space type. 
 
 Table~\ref{tab:int_light_space_types} in Appendix~\ref{appendix:a} details the target horizontal illuminance value, the fraction of the target illuminance met by the kind of lighting system, and the lighting system coefficient of utilization for each lighting space type. Lighting space types are defined in 90.1 and are determined based on a mapping of openstudio-standards space types to prototype lighting space types.
@@ -69,8 +67,6 @@ The resulting LPDs are shown in Figure~\ref{fig:interior_lighting_lpd}.
 
 Lighting generations were assigned to each building model during sampling based on the year of, and energy code in force during, the last interior lighting replacement.  Probability distributions were generated first by using an approximate start and end year for when each technology generation was being installed in commercial buildings (Table \ref{tab:ltg_gen_year}). A Gaussian distribution was generated for each lighting generation using these start and end years, and the resulting distribution for each year of last interior lighting replacement was normalized to create 0--1 probabilities. The probability distributions were duplicated for each energy code in force and were further modified to ensure they were realistic (i.e., generation 1 was not installed in a ComStock 90.1-2013 building). This was done using a cutoff generation for each energy code in force (Table \ref{tab:ltg_cutoff_gen}). Each of the lighting generations were also assigned an arbitrary weight to scale the distributions. This was done to represent realistic installation trends. For example, although the installation years of generation 2 (T8s) and generation 3 (T5s) overlapped, generation 2 (T8s) was more popular. T5s were not that much more efficient than T8s compared to the difference between T8s and T12s, and T5s cost more. Furthermore, T5s have different bi-pin geometry compared to T8s and T12s, meaning replacing T8s or T12s with T5s requires changing fixtures in addition to lamp costs. For those reasons, generation 2 (T8s) are a greater portion of the stock than generation 3 (T5s).
 
-%\input{tables/lighting_gen_years}
-
 \input{tables/lighting_cutoff_gen}
 
 Finally, an additional level of diversity was added to the process.  Small commercial buildings (<50,000 ft$^2$) tend to retrofit their lighting technology less frequently than large commercial buildings (>50,000 ft$^2$) \citep{neea2019cbsa}.  To capture this, we changed the interior lighting lifespan values so that large buildings updated their lighting every seven years on average and small buildings updated their lighting every 13 years. These time spans average to 10 years, which matches the median EUL interior lighting used previously.
@@ -86,8 +82,6 @@ The distributions were validated against data from the 2015 Lighting Market Char
 Simulation years 2017 and 2020 were the focus of validation because they represent the range of simulation years typically run for ComStock. Additionally, for a given iteration of the lighting generation distributions, the comparison results were inconsistent across simulation years. For example, for a set of lighting generation distributions that showed close comparisons for 2017 and 2020, years 2025--2035 were significantly different compared to the other future projections.  With improvements to the script that produces the distributions, close comparisons across all simulation years should be feasible.
 
 Table \ref{tab:ltg_gen_tsv} provides a snapshot of the final probability distributions, which show a gradual shift to higher generations as the year of the last interior lighting replacement increases. For this code year (ComStock 90.1-2013), generation 1 lighting technologies would likely not be installed. This is reflected in the distributions, as the minimum lighting generation installed is at least generation 2.  The relative popularity of each generation is also apparent in the distributions: generation 2 has a much higher probability of being installed in any year than generation 3, a less popular technology set.
-
-%\input{tables/lighting_gen_tsv}
 
 \pagebreak
 
@@ -152,8 +146,6 @@ Exterior lighting is all outdoor lighting at the building site, including lighti
 \subsubsection{Parking Area Lighting}
 Parking area lighting accounts for the majority of exterior lighting in the stock \citep{doe2015lmc}. Parking lighting is calculated as the parking area times the installed lighting power per unit of parking area. Parking area is based on the estimated number of parking spots per student for schools, per unit for hotels, per bed for hospitals, and per building floor area for all other building types.  Parking spots are assumed to be 405 ft$^2$. Table \ref{tab:parking} details these assumptions.
 
-%\input{tables/parking}
-
 Lighting power for a given parking area is determined from the 2015 U.S. Lighting Market Characterization report, which assumes an average of 216 Watts (W) per parking lighting system, or 0.0410 W/ft\textsuperscript{2} (per equation \ref{ext_light_eqn}). Base parking lighting power allowance values for each vintage were reduced by a calculated factor such that the building-count weighted parking lighting power density came out to the 0.0410 W/ft\textsuperscript{2} target.  Note that this calculation is from 2015, so it overestimates the amount of exterior lighting in the stock, which has been changing over to use LEDs. The values for each vintage are shown in Table~\ref{tab:exterior_lighting_power}.
 
 \begin{align}
@@ -161,9 +153,6 @@ Lighting power for a given parking area is determined from the 2015 U.S. Lightin
 LPD = \left(\frac{216\,W}{\text{lighting system}}\right) \cdot \left(\frac{1\,\text{lighting system}}{13\,\text{parking spots}}\right) \cdot \left(\frac{1\,\text{parking spot}}{405\,\text{ft}^2}\right) = 0.0410\,W/\text{ft}^2
 \end{align}
 
-%\input{tables/exterior_lighting_power}
 
 \subsubsection{Other Exterior Lighting}
 Non-parking exterior lighting is determined by the exterior lighting allowance specified in ASHRAE 90.1 for exterior lighting zone 3 (All Other Areas). Length and area estimates are determined from the values in Table \ref{tab:entryways}. The building facade area is calculated from the model as the ground floor exterior wall area. The lighting power allowance is matched to the 90.1 code for each vintage. The exterior lighting power allowances are shown in Table~\ref{tab:exterior_lighting_power}. Note that although 90.1 includes exterior lighting, the only forms of exterior lighting included in ComStock are parking areas, building facades, main entry doors, other doors, drive through windows, entry canopies, and emergency canopies. Notably, ComStock does not include lighting for exterior signage.
-
-%\input{tables/entryways}

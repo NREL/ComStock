@@ -12,13 +12,9 @@ First, we selected the general types of wall construction methods to be represen
 
 To determine the prevalence of each wall construction type, we queried a database, \cite{lightbox_smartparcels_2021}, containing  building type, number of stories, location, and wall construction. The database did not use the same wall construction types selected for ComStock, so we created a mapping between the database entries and the wall construction types listed above, as shown in Table~\ref{tab:wall_construction_mapping}. Some construction types in the database were excluded from the mapping, either because the meaning was ambiguous or because they represented an insignificant fraction of the entries in the database. The excluded constructions represent only 5\% of the total samples, with 4.5\% labeled “OTHER” (which there was no clear way to map).
 
-%\input{tables/lightbox_wall_construction_types.tex}
-
 Upon reviewing the data, we identified two instances that were likely misclassifications. The first was buildings higher than five stories with the wall construction type``WoodFramed''. Historically, it was not possible to use WoodFramed construction for buildings over five stories, and even today, this practice is uncommon. Buildings with this combination were reassigned to ``Mass'' walls, based on the assumption that people were observing large wood internal structural members in old buildings and classifying them as WoodFramed. The second was buildings higher than two stories with ``MetalBuilding'' walls. Based on experience, this construction technique is commonly reserved for 1--2 story buildings only. Buildings with this combination were reassigned to ``SteelFramed,'' based on the assumption that this would be the most likely alternative classification if a person observed steel structural elements.
 
 After mapping each entry in the database to one of the ComStock construction types, we analyzed the data to determine other building characteristics in the database were correlated with construction type. Older buildings were slightly more likely to use mass constructions, but the change over time was minor. Construction type varied significantly as a function of the number of stories. Shorter buildings were much more likely to be wood-framed, whereas taller buildings were more likely to be mass, and very tall buildings were likely to be steel-framed (steel studs or curtain wall). Based on a spot-checking of the database, we found the building type classification to be less reliable than other building characteristics. Although there was some correlation between building type and wall construction, there was also a correlation between building type and number of stories. Because of the joint correlation, we selected number of stories instead of building type. There was a clear correlation between climate zone and construction type---most notably, there was a much lower incidence of mass walls in cold climate zones. There was some correlation between construction type and building floor area. However, there was also a correlation between the number of stories and the building area. Because the construction type is physically limited by a building's height, it was more logical to use the number of stories as a driving characteristic for construction type. Following this analysis, we concluded that the number of stories and climate zone should be used as drivers of wall construction type. The probabilities for each combination of number of stories and climate zone were calculated  and then used as the input distribution for wall construction type in ComStock. This distribution is summarized in Table~\ref{tab:wall_constuction_types}.
-
-%\input{tables/wall_construction_types.tex}
 
 \paragraph{Wall System Turnover Rate}
 As described in Section~\ref{sec:system_turnover_and_eul}, we assume that some building systems, including exterior walls, are replaced over the lifespan of the building. Typically, for exterior walls, the structural elements of the wall are maintained, while the cladding, insulation, sheathing, etc. are be replaced. As noted in Section~\ref{sec:system_turnover_and_eul}, the EUL for exterior walls is assumed to be 200 years, which means that most buildings are modeled with the walls they were built with. Once the wall construction type probabilities and distributions of building types, sizes, and vintages are carried through the sampling process and simulations are created, the distribution of construction types and energy code levels can be reviewed. As shown in Figure~\ref{fig:weighted_floor_area_by_energy_code_and_wall_type}, because the majority of the building stock is older, and wall systems are replaced at a low rate, most of the building floor area is assumed to have walls that follow the oldest energy codes.
@@ -37,10 +33,6 @@ We did not find any data sources that contained the thermal performance (U-Value
 
 As previously described, most of the building stock's walls are assumed to be older. Therefore, the thermal performance assumptions for older vintages have a much higher impact on the overall heating and cooling demand than those for newer vintages. The ComStock DOE Ref Pre-1980 assumptions, taken from \cite{doe_reference_buildings}, are originally from a study of only offices \citep{old_vintage_office_study}. Unfortunately, this study no longer appears to be available. Following the methodology in \cite{doe_reference_buildings}, these values are used for all wall construction types and all building types. Figure~\ref{fig:weighted_floor_area_by_building_type_and_wall_type} shows the final prevalence of each wall construction type by building type. Most notable is the low prevalence of metal building walls across the stock, even in warehouses. This might be surprising, but it is supported by the available data. Table \ref{tab:wall_r_value_averages} shows the average wall thermal performance by ASHRAE Standard 169--2006 climate zone.
 
-%\input{tables/wall_r_values.tex}
-
-%\input{tables/wall_r_values_deer.tex}
-
 \begin{figure}[ht!] \centering
     \includegraphics[
         page={2},
@@ -49,8 +41,6 @@ As previously described, most of the building stock's walls are assumed to be ol
     \caption[Weighted floor area by wall type and building type]{Weighted floor area by wall type and building type.}
     \label{fig:weighted_floor_area_by_building_type_and_wall_type}
 \end{figure}
-
-%\input{tables/wall_r_value_averages.tex}
 
 \vspace{2mm}
 
@@ -68,7 +58,6 @@ Four window properties---number of panes, glazing type, frame material, and low-
     \label{fig:window_configurations}
 \end{figure}
 \vspace{5mm}
-%\input{tables/window_data_sources}
 
 Modeling every combination of these four properties would result in 36 different window configurations, which would add significant complexity to the sampling process. Instead, we selected 12 combinations to be modeled, based on which combinations are most common and most realistic. There are four single-pane, six double-pane, and two triple-pane configurations. The unrealistic/uncommon combinations that were eliminated include: 
 \begin{itemize}
@@ -106,8 +95,6 @@ Once the 12 new window constructions were determined, a team from Lawrence Berke
 The U-factors originally ranged from U-1.18 Btu/h·ft\textsuperscript{2}·F for the worst-performing single-pane window to U-0.30 Btu/h·ft\textsuperscript{2}·F for the best-performing triple-pane window. As mentioned earlier in this section, the maximum U-Factor that EnergyPlus can model with a simple glazing object is U-1.02 Btu/h·ft\textsuperscript{2}·F, which is governed by the limitations of a 2D heat transfer model when interior and exterior air films are included. Therefore, we adjusted the U-factor for the first two single-pane windows to be U-1.02 Btu/h·ft\textsuperscript{2}·F rather than U-1.18 Btu/h·ft\textsuperscript{2}·F. This allowed these windows to be modeled in ComStock. This results in a slight overestimate of the thermal performance of single-pane windows.
 
 
-%\input{tables/window_thermal_performance}
-
 \subsection{Roof} % Andrew
 \paragraph{Roof Construction Type}
 First, we reviewed the general types of roof construction methods that could be represented. The three general roof types commonly used in commercial building energy codes were chosen because they cover the most common roof construction types and can be linked to nominal thermal characteristics. The definitions of these types from \cite{ashrae_901_2010} are as follows:
@@ -132,8 +119,6 @@ The analysis of roof properties in \cite{eia2012cbecs}, shown in Figure~\ref{fig
 \vspace{5mm}
 No data sources for roof construction type were found. For buildings outside of California, a single roof construction type was chosen for each building type. As shown in Table~\ref{tab:roof_construction_types}, most buildings are assumed to use IEAD roofs, which is consistent with the assumption of flat roofs. For buildings in California, the construction types from the DEER prototype buildings were used \citep{cpuc_deer}.
 
-%\input{tables/roof_construction_types.tex}
-
 \paragraph{Roof System Turnover Rate}
 As described in Section \ref{sec:system_turnover_and_eul}, some building systems, including roofs, are assumed to be replaced over the lifespan of the building. Typically, for roofs, the structural elements are maintained, while the roof membrane and insulation are replaced. As noted in Section \ref{sec:system_turnover_and_eul}, the EUL for roofs was assumed to be 200 years, which means that most buildings are modeled with the roof insulation they were built with. Once the roof type probabilities and distribution of building types, sizes, and vintages are carried through the sampling process and simulations are created, the distribution of energy code levels can be reviewed. As shown in Figure~\ref{fig:weighted_floor_area_by_energy_code_roofs}, because the majority of the building stock is older, and roof systems are replaced at a low rate, most of the building floor area is assumed to have roofs that follow the oldest energy codes.
 
@@ -151,9 +136,6 @@ We did not find any data sources that contained the thermal performance (U-Value
 
 As previously described, most of the building stock's roofs are assumed to be older. Therefore, the thermal performance assumptions for older vintages have a much higher impact on the overall heating and cooling demand than the assumptions for newer vintages. The ComStock DOE Ref Pre-1980 assumptions, taken from \cite{doe_reference_buildings}, are originally from a study of only offices \citep{old_vintage_office_study}. Unfortunately, this study no longer appears to be available. Following the methodology in \cite{doe_reference_buildings}, these values are used for all roof construction types and all building types.
 
-%\input{tables/roof_r_values.tex}
-
-%\input{tables/roof_r_values_deer.tex}
 
 \subsection{Floor}
 In ComStock, all buildings are assumed to be built using slab-on-grade construction and to have no cantilevered thermal zones. Thus, the only heat transfer into the building through floors is assumed to happen through the floor in contact with the ground. All floors between stories are internal surfaces, and any heat transfer through these surfaces occurs between zones within the building, not between the building and the outside environment.
@@ -161,7 +143,6 @@ In ComStock, all buildings are assumed to be built using slab-on-grade construct
 \paragraph{Floor Thermal Performance}
 We did not find any data sources that contained the thermal performance of floors in the commercial building stock. This is likely because surveys would need to either find building plans, which can be difficult or impossible for older buildings, or excavate under a slab edge, which is impractical. To account for the lack of data, we estimated floor thermal performance based on an estimate of the energy code followed when building was first constructed. Section~\ref{sec:energy_code} describes how the energy code was determined. The thermal performance of floors for each energy code varies based on climate zone, as shown in Table~\ref{tab:floor_f_factors}. It is notable that only buildings built to the newest energy codes in the coldest climates assume any sort of slab insulation.
 
-%\input{tables/floor_f_factors.tex}
 
 \subsection{Infiltration and Natural Ventilation}
 
