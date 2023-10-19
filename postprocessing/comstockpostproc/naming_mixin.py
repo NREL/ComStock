@@ -433,6 +433,7 @@ class NamingMixin():
     COLOR_COMSTOCK_AFTER = '#56B4E9'
     COLOR_CBECS_2012 = '#009E73'
     COLOR_CBECS_2018 = '#16f0b4'
+    COLOR_EIA = '#D55E00'
 
     # Define ordering for some categorical variables to make plots easier to interpret
     ORDERED_CATEGORIES = {
