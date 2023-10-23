@@ -12,6 +12,6 @@ namespace :unit_tests do
     t.test_files = FileList['measures/qoi_report/tests/*.rb', 'measures/la_100_qaqc/tests/*.rb']
     t.verbose = false
     t.warning = false
-    t.options = '--junit --junit-jenkins --junit-filename=./test/report.xml'
+    t.options = '--junit --junit-jenkins --junit-filename=./test/report/report.xml'
   end
 end

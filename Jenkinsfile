@@ -94,14 +94,14 @@ def buildNumber = env.BUILD_NUMBER as int
         sh "chmod -R 777 ${linux_base}/${env.JOB_NAME}/${env.BUILD_NUMBER}"
       }
       // cleanup workspace
-      deleteDir()
+      // deleteDir()
 
       // Notify github of result
-      if ((buildResult != 'FAILURE') && (buildResult != 'ERROR')) {
-      buildResult = 'SUCCESS'
-      }
-      githubNotify description: "${description}",  context: "${context}", status: "${buildResult}" , credentialsId: 'ci-commercialbuildings-test'
-      currentBuild.result = "${buildResult}"
+      // if ((buildResult != 'FAILURE') && (buildResult != 'ERROR')) {
+      // buildResult = 'SUCCESS'
+      // }
+      // githubNotify description: "${description}",  context: "${context}", status: "${buildResult}" , credentialsId: 'ci-commercialbuildings-test'
+      // currentBuild.result = "${buildResult}"
     }
   }
 // }
