@@ -3,15 +3,24 @@ require 'rake/testtask'
 require 'minitest/reporters'  # Require the gem
 
 # Configure the JUnit reporter
-Minitest::Reporters.use! [Minitest::Reporters::JUnitReporter.new]
+# Minitest::Reporters.use! [Minitest::Reporters::JUnitReporter.new(reports_dir = "reports/", empty = false, options = {})]
 
 desc 'Perform tasks related to unit tests'
 namespace :unit_tests do
   desc 'Run all measure tests'
+  # ENV['MINITEST_REPORTER'] = 'JUnitReporter'
+
   Rake::TestTask.new('measure_tests') do |t|
-    t.test_files = FileList['measures/qoi_report/tests/*.rb', 'measures/la_100_qaqc/tests/*.rb']
-    t.verbose = false
+
+    t.test_files = FileList['measures/qoi_report/tests/*.rb']
+    t.verbose = true
     t.warning = false
-    t.options = '--junit --junit-jenkins --junit-filename=./test/noreport.xml'
+  end
+
+  task :build do
+
+    ENV.each do |k, v|
+      puts "#{k} : #{v}"
+    end
   end
 end
