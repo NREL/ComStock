@@ -24,6 +24,7 @@ import boto3
 import logging
 import numpy as np
 import pandas as pd
+import polars as pl
 
 from comstockpostproc.naming_mixin import NamingMixin
 from comstockpostproc.units_mixin import UnitsMixin
@@ -92,7 +93,7 @@ class EIA(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             if not os.path.exists(p):
                 os.makedirs(p)
 
-       # Load and transform data, preserving all columns
+        # Load and transform data, preserving all columns
         self.download_truth_data()
         if reload_from_csv:
             file_name = f'EIA wide.csv'
@@ -180,10 +181,10 @@ class EIA(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         if not os.path.exists(file_path):
             raise AssertionError('State metadata not found, download truth data')
         else:
-            state_table = pd.read_csv(file_path)
+            state_table = pl.read_csv(file_path)
 
         # Rename columns
-        state_table.rename(columns={'State': 'State Name', 'State Code':'State'}, inplace=True)
+        state_table = state_table.rename({'State': self.STATE_NAME, 'State Code': self.STATE_ABBRV})
 
         return state_table
 
@@ -196,13 +197,13 @@ class EIA(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             eia_gas = pd.read_csv(file_path)
 
         # Rename columns
-        eia_gas.rename(columns={'State': 'State Name'}, inplace=True)
+        eia_gas.rename(columns={'State': self.STATE_NAME}, inplace=True)
 
         # Downselect to the year of interest
         eia_gas = eia_gas[eia_gas['Year']==self.year]
 
         # Remove U.S. total row, leaving only States
-        eia_gas = eia_gas[~(eia_gas['State Name'] == 'U.S.')]
+        eia_gas = eia_gas[~(eia_gas[self.STATE_NAME] == 'U.S.')]
 
         # Convert to kBtu
         eia_gas['Natural gas consumption (thous Btu)'] = pd.to_numeric(eia_gas['BTU']) * self.Btu_to_kBtu
@@ -217,6 +218,9 @@ class EIA(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         else:
             eia_electricity = pd.read_csv(file_path)
 
+        # Rename columns
+        eia_electricity.rename(columns={'State': self.STATE_ABBRV}, inplace=True)
+
         # Downselect to the year of interest
         eia_electricity[['Year']] = eia_electricity[['Year']].apply(pd.to_numeric, errors='coerce')
         eia_electricity = eia_electricity[eia_electricity['Year']==self.year]
@@ -229,25 +233,25 @@ class EIA(NamingMixin, UnitsMixin, S3UtilitiesMixin):
     def get_eia_monthly_consumption_by_state(self):
 
         # load the state id table
-        state_table = self.get_state_metadata('state_region_division_table.csv')
+        state_table = self.get_state_metadata('state_region_division_table.csv').to_pandas()
 
         # load the EIA natural gas data
         file_name = f'calculated_eia_monthly_natural_gas_energy_by_state.csv'
         eia_gas = self.get_eia_monthly_gas_consumption(file_name)
-        eia_gas = pd.merge(eia_gas, state_table, how='left', on='State Name')
-        eia_gas['Dataset'] = f'EIA Gas Data {self.year}'
-        eia_gas = eia_gas[['Month', 'FIPS Code', 'State', 'Division', 'Dataset', 'Natural gas consumption (thous Btu)']]
+        eia_gas = pd.merge(eia_gas, state_table, how='left', on=self.STATE_NAME)
+        eia_gas[self.DATASET] = f'EIA Gas Data {self.year}'
+        eia_gas = eia_gas[['Month', 'FIPS Code', self.STATE_ABBRV, 'Division', self.DATASET, 'Natural gas consumption (thous Btu)']]
 
         # load the EIA electricity data
         file_name = f'eia_form_861M_monthly_electricity_sales_to_commercial_customers_by_state.csv'
         eia_electricity = self.get_eia_monthly_electricity_consumption(file_name)
-        eia_electricity = pd.merge(eia_electricity, state_table, how='left', on='State')
-        eia_electricity['Dataset'] = f'EIA 861M Electricity Data {self.year}'
-        eia_electricity = eia_electricity[['Month', 'FIPS Code', 'State', 'Division', 'Dataset', 'Electricity consumption (kWh)']]
+        eia_electricity = pd.merge(eia_electricity, state_table, how='left', on=self.STATE_ABBRV)
+        eia_electricity[self.DATASET] = f'EIA 861M Electricity Data {self.year}'
+        eia_electricity = eia_electricity[['Month', 'FIPS Code', self.STATE_ABBRV, 'Division', self.DATASET, 'Electricity consumption (kWh)']]
 
         # Merge EIA gas and electricity datasets
-        eia = pd.merge(eia_gas, eia_electricity[['Month' , 'State', 'Electricity consumption (kWh)']], left_on=['Month' , 'State'], right_on=['Month' , 'State'])
-        eia['Dataset'] = f'EIA {self.year}'
+        eia = pd.merge(eia_gas, eia_electricity[['Month' , self.STATE_ABBRV, 'Electricity consumption (kWh)']], on=['Month' , self.STATE_ABBRV])
+        eia[self.DATASET] = f'EIA {self.year}'
         self.monthly_data = eia
 
         # Exports EIA dataset to CSV in wide format
@@ -256,4 +260,3 @@ class EIA(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         eia.to_csv(file_path, index=False)
 
         return eia
-
