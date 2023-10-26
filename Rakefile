@@ -9,18 +9,20 @@ desc 'Perform tasks related to unit tests'
 namespace :unit_tests do
   desc 'Run all measure tests'
   # ENV['MINITEST_REPORTER'] = 'JUnitReporter'
-
   Rake::TestTask.new('measure_tests') do |t|
+    MEASURETESTS_PATH = "test/measure_tests.txt"
+    # p File.exist?(MEASURETESTS_PATH)
+    if File.exist?(MEASURETESTS_PATH)
+      # load test files from file.
+      full_file_list = FileList.new(File.readlines(MEASURETESTS_PATH))
+      # Select only .rb files that exist
+      p full_file_list
 
-    t.test_files = FileList['measures/qoi_report/tests/*.rb']
-    t.verbose = true
-    t.warning = false
-  end
-
-  task :build do
-
-    ENV.each do |k, v|
-      puts "#{k} : #{v}"
     end
+    t.test_files = full_file_list
+    p(full_file_list)
+
+    t.verbose = false
+    t.warning = false
   end
 end

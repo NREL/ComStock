@@ -25,12 +25,12 @@ def buildNumber = env.BUILD_NUMBER as int
       checkout scm
 
       echo 'running in docker image nrel/openstudio:3.6.1'
-      docker.image('nrel/openstudio:3.6.1').inside('-u root -e "LANG=en_US.UTF-8"') {
+      docker.image('nrel/openstudio:3.6.1').inside('-e "JENKINS_HOME=true" -u root -e "LANG=en_US.UTF-8"') {
         sh('locale-gen en_US.UTF-8')
-
         stage('show enviroment') {
           try {
           sh('ruby -v')
+          sh('echo "$JENKINS_HOME"')
           sh('openstudio openstudio_version')
           }
           catch (Exception e) {
@@ -79,8 +79,8 @@ def buildNumber = env.BUILD_NUMBER as int
           try {
             sh("cd ..")
             sh("pwd")
-            archiveArtifacts artifacts: 'test/*.xml', fingerprint: true
-            junit testResults: 'test/*.xml', skipPublishingChecks: true
+            archiveArtifacts artifacts: 'tests/*/*.xml', fingerprint: true
+            junit testResults: 'tests/*/*.xml', skipPublishingChecks: true
           }
             catch (Exception e) {
             buildResult = 'FAILURE'
@@ -93,15 +93,15 @@ def buildNumber = env.BUILD_NUMBER as int
         // docker user is root so all file permissions need to be changed for jenkins to cleanup
         sh "chmod -R 777 ${linux_base}/${env.JOB_NAME}/${env.BUILD_NUMBER}"
       }
-      // cleanup workspace
-      // deleteDir()
+      cleanup workspace
+      deleteDir()
 
-      // Notify github of result
-      // if ((buildResult != 'FAILURE') && (buildResult != 'ERROR')) {
-      // buildResult = 'SUCCESS'
-      // }
-      // githubNotify description: "${description}",  context: "${context}", status: "${buildResult}" , credentialsId: 'ci-commercialbuildings-test'
-      // currentBuild.result = "${buildResult}"
+      Notify github of result
+      if ((buildResult != 'FAILURE') && (buildResult != 'ERROR')) {
+      buildResult = 'SUCCESS'
+      }
+      githubNotify description: "${description}",  context: "${context}", status: "${buildResult}" , credentialsId: 'ci-commercialbuildings-test'
+      currentBuild.result = "${buildResult}"
     }
   }
 // }
