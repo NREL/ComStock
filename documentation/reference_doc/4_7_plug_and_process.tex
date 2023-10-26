@@ -7,14 +7,12 @@ Plug and process loads (PPLs) are all electrical or gas building loads that do n
 
 Electric equipment is a broad category that encompasses any type of load that is powered by an AC outlet. This can include computers, monitors, printers, kitchen or bathroom appliances, laundry equipment, phone chargers, and more. Because there are so many types of electric equipment, ComStock does not model each technology separately, but instead uses an equipment power density (EPD) value for each space type, in watts per square foot. 
 
-% TODO check if we can actually name Enertiv and Powerhouse Dynamics
 The EPDs are derived from the DOE prototype buildings; however, some of the values were adjusted during the end-use load profiles calibration process. Using end-use-level data provided by two industry sources for a variety of building types, we increased or decreased some EPD assumptions to better reflect the actual building data. Building types that were affected by the EPD adjustments included Full Services Restaurant (FullServiceRestaurant), Primary School (PrimarySchool), Quick Service Restaurant (QuickServiceRestaurant), Retail (Retail), Secondary School (SecondarySchool), and Strip Mall (StripMall). 
 
 The EPDs are dependent on building type, space type, and DOE Reference Building template. The interior equipment template is a function of the vintage of the building, as well as equipment turnover assumptions. In most cases, the EPD remains constant for all templates; however, some values increase or decrease in newer templates. An increase in the EPD in newer templates for a particular space type most likely indicates that new types of plug loads or technologies are assumed to be in the space. By comparison, a decrease in EPD indicates that plug loads in that space have become more efficient as buildings upgrade to newer equipment. For example, EPDs in the ``MediumOffice - Conference'' space type decrease beginning with the 90.1-2004 template, reflecting an assumption that conference equipment such as projectors and monitors have become more efficient. On the other hand, EPDs in ``MediumOffice - Breakroom'' increase drastically, likely due to the addition of new kitchen appliances and accessories. 
 
 The EPDs in the ComStock model for each combination of building type, space type, and template are shown in Table ~\ref{tab:epds}.
 
-%\input{tables/epds}
 
 \subsection{Gas Equipment}
 
@@ -42,10 +40,6 @@ Hydraulic elevators are assumed to be installed in buildings with two to six sto
 Elevators are modeled as a zone load in EnergyPlus, meaning the elevator equipment load and associated heat gain are attributed to a thermal zone. Elevator load is reported out as part of the electric equipment end use. With hydraulic elevators, the elevator room is typically located in the basement, so the equipment load and heat gain are added to the first floor core zone. With traction elevators, the elevator equipment is located on the roof, so the equipment load and heat gain are added to the top floor core zone.
 
 The number of elevators installed in a ComStock building depends on the building type. For most building types, the number of elevators is based on the floor area. The exceptions are hospitals and hospitality buildings, for which assumptions are based on the number of hospital beds or hotel rooms, respectively. ComStock differentiates between passenger elevators and freight elevators in order to properly capture the elevator load in certain building types with industrial or service elevators. Passenger elevators are modeled in all building types, whereas freight elevators are only modeled in hospital, large hotel, large office, and warehouse buildings. The assumptions for the number of passenger and freight elevators modeled by building type are shown in Tables ~\ref{tab:passenger_elevators} and ~\ref{tab:freight_elevators}.
-
-%\input{tables/passenger_elevators}
-
-%\input{tables/freight_elevators}
 
 The equipment schedule for elevators is irregular and unpredictable. Therefore, this load does not follow the typical plug load schedule for its associated space type. We decided to approximate an elevator's schedule by relating it to the number of people who are entering or exiting the building at each time step---in other words, the derivative of the occupancy schedule of the building. We also made assumptions regarding the number of people per elevator ride (five), the amount of time per ride (calculated from the elevator speed and number of stories), and the amount of inter-floor traffic that is not captured by the change in building occupancy (added a factor of 1.2x). Elevator data and metrics like this are not commonly measured or available, so these assumptions are based primarily on engineering judgment. 
 

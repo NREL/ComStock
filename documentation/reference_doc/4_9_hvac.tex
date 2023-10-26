@@ -109,7 +109,6 @@ The addition of energy recovery ventilators (ERVs) in HVAC air loops can add add
 %TODO: VAV fan curves used
 
 \input{tables/fan_power}
-%\input{tables/motors}
 
 \subsubsection{Fan Controls}
 
@@ -337,11 +336,6 @@ Table~\ref{tab:boiler_eff_table} shows the older DOE reference building template
 
 %NOTE (From Chris): Currently, the boiler curve assignments result in the oldest boilers having the least efficiency degradation at lower part load ratios. This is probably the opposite of what we want. Recommend finding bad performance curves for older boilers.
 
-%\begin{figure}
-%    \centering \includegraphics[width=1.0\textwidth]{figures/boiler_performance_curves.png}
-%    \caption{Boiler part load performance curves.}
-%    \label{fig:blr_plr_curves}
-%\end{figure}
 
 \subsubsection{Boiler Controls}
 
@@ -357,42 +351,11 @@ Standard air-cooled direct expansion (DX) cooling is the most prevalent cooling 
 
 DX cooling systems are assigned full load and part load efficiencies based on the HVAC code template for the model and the capacity. These assignments are summarized in Table\ref{tab:unitary_dx_efficiencies} (unitary DX) and Table\ref{tab:ptac_efficiencies} (PTAC). These values mirror those found in ASHRAE-90.1 (or those used in the DOE reference buildings for the pre-1980 template).
 
-%\input{tables/unitary_dx_eff}
-%\input{tables/ptac_dx_eff}
 
 \subsubsection{DX Cooling Performance Modifiers}
 
 The performance of DX cooling equipment changes based on operating conditions. ComStock DX cooling equipment uses five performance modifier curves to model this behavior. Energy input ratio (EIR) as a function of part load ratio (PLR) describes how the equipment efficiency varies at different load fractions, accounting for equipment cycling (Figure  \ref{fig:dx_eirfplr}). EIR as a function of temperature describes how the equipment efficiency varies based on both the outdoor air dry bulb temperature and the wet bulb temperature of the air entering the cooling coil (Figure \ref{fig:dx_eirft}). EIR as a function of airflow describes how the equipment efficiency varies as a function of the supply airflow fraction (Figure \ref{fig:dx_eirff}). Capacity as a function of temperature describes how the equipment available capacity varies as a function of both the outdoor air dry bulb temperature and the wet bulb temperature of the air entering the cooling coil (Figure \ref{fig:dx_capft}). Lastly, capacity as a function of airflow describes how the equipment available capacity varies as a function of the supply airflow fraction (Figure \ref{fig:dx_capff}). The outputs of the EIR modifiers are multiplied against the nominal EIR at every time step (except for the PLR modifier, which is divided), which provides the effective EIR at each time step. Meanwhile, the outputs of the two capacity modifiers are multiplied against the nominal capacity at every time step, yielding the effective available capacity for the time step.
 
-%\begin{figure}
-%    \centering \includegraphics[width=1.0\textwidth]{figures/EIRFPLR.png}
-%    \caption[DX cooling energy input ratio as a function of part load ratio performance curves]{DX cooling energy input ratio as a function of part load ratio performance curves.}
-%    \label{fig:dx_eirfplr}
-%\end{figure}
-
-%\begin{figure}
-%    \centering \includegraphics[width=1.0\textwidth]{figures/CAPFF.png}
-%    \caption[DX cooling capacity as a function of airflow performance curves]{DX cooling capacity as a function of airflow performance curves.}
-%    \label{fig:dx_capff}
-%\end{figure}
-
-%\begin{figure}
-%    \centering \includegraphics[width=1.0\textwidth]{figures/EIRFF.png}
- %   \caption[DX cooling energy input ratio as a function of airflow performance curves]{DX cooling energy input ratio as a function of airflow performance curves.}
- %   \label{fig:dx_eirff}
-%\end{figure}
-
-%\begin{figure}
-%    \centering \includegraphics[width=1.0\textwidth]{figures/EIRFT.png}
-%    \caption[DX cooling energy input ratio as a function of temperature performance curves]{DX cooling energy input ratio as a function of temperature performance curves. Independent variables are outdoor air dry bulb temperature (y-axis, degrees Celsius) and wet bulb temperature entering the cooling coil (x-axis, degrees Celsius).}
-%    \label{fig:dx_eirft}
-%\end{figure}
-
-%\begin{figure}
-%    \centering \includegraphics[width=1.0\textwidth]{figures/CAPFT.png}
-%    \caption[DX cooling capacity as a function of temperature performance curves]{DX cooling capacity as a function of temperature performance curves. Independent variables are outdoor air dry bulb temperature (y-axis, degrees Celsius) and wet bulb temperature entering the cooling coil (x-axis, degrees Celsius).}
-%    \label{fig:dx_capft}
-%\end{figure}
 
 \subsection{Air-Source Heat Pumps}
 
@@ -409,37 +372,6 @@ ASHPs in ComStock are assigned efficiencies based on ASHRAE-90.1. The assigned e
 
 Similar to DX cooling equipment, the performance of ASHP equipment changes based on different operating conditions. The curve assignments are shown in Table~\ref{tab:ashp_curves}. ComStock ASHP equipment uses five performance modifier curves to model this behavior. Energy input ratio (EIR) as a function of part load ratio (PLR) describes how the equipment efficiency varies at different load fractions, where the nominal EIR is divided by the output of this curve to account for equipment cycling losses (Figure~\ref{fig:ashp_eirfplr}). EIR as a function of temperature describes how the equipment efficiency varies based on outdoor air dry bulb temperature (Figure~\ref{fig:ashp_eirft}). Figure~\ref{fig:ashp_eirft} illustrates the capacity loss of ASHPs at lower outdoor air temperatures. EIR as a function of airflow describes how the equipment efficiency varies as a function of the supply airflow fraction (Figure~\ref{fig:ashp_eirff}). Capacity as a function of temperature describes how the equipment available capacity varies as a function of outdoor air dry bulb temperature (Figure~\ref{fig:ashp_capff}). Lastly, capacity as a function of airflow describes how the equipment EIR ratio varies as a function of the supply airflow fraction (Figure~\ref{fig:ashp_capff}). The outputs of the EIR modifiers are multiplied against the nominal EIR at every time step (except for the PLR curve output, which is divided), which provides the effective EIR at each time step. Meanwhile, the outputs of the two capacity modifiers are multiplied against the nominal capacity at every time step, yielding the effective available capacity for the time step. The curves described here are primarily derived from the DOE prototype/reference building models.
 
-
-
-%\begin{figure}
-%    \centering \includegraphics[width=1.0\textwidth]{figures/ashp_eirft.png}
-%    \caption[Air-source heat pump COP ratio as a function of outdoor air dry bulb temperature]{Air-source heat pump COP ratio as a function of outdoor air dry bulb temperature.}
-%    \label{fig:ashp_eirft}
-%\end{figure}
-
-%\begin{figure}
-%    \centering \includegraphics[width=1.0\textwidth]{figures/ashp_eirfplr.png}
-%    \caption[Air-source heat pump EIR ratio as a function of part load ratio]{Air-source heat pump EIR ratio as a function of part load ratio.}
-%    \label{fig:ashp_eirfplr}
-%\end{figure}
-
-%\begin{figure}
-%    \centering \includegraphics[width=1.0\textwidth]{figures/ashp_eirff.png}
-%    \caption[Air-source heat pump EIR ratio as a function of airflow fraction]{Air-source heat pump EIR ratio as a function of airflow fraction.}
-%    \label{fig:ashp_eirff}
-%\end{figure}
-
-%\begin{figure}
-   % \centering \includegraphics[width=1.0\textwidth]{figures/ashp_capft.png}
-  %  \caption[Air-source heat pump capacity as a function of outdoor air dry bulb temperature]{Air-source heat pump capacity as a function of outdoor air dry bulb temperature.}
- %   \label{fig:ashp_capft}
-%\end{figure}
-
-%\begin{figure}
-   % \centering \includegraphics[width=1.0\textwidth]{figures/ashp_capff.png}
-  %  \caption[Air-source heat pump capacity as a function of airflow ratio]{Air-source heat pump capacity as a function of airflow ratio.}
- %   \label{fig:ashp_capff}
-%\end{figure}
 
 \subsection{Air-Cooled Chillers}
 
@@ -458,26 +390,6 @@ ACCs are assigned full load and part load efficiencies based on the HVAC code te
 
 ACCs vary in capacity and efficiency under different operating conditions. ComStock uses three curve types to model the variation in performance: capacity as a function of temperature (CAPFT) modifier, EIR as a function of temperature (EIRFT) modifier, and EIR as a function of part load ratio (EIRFPLR) modifier. For each time step, the EIR modifier function outputs are multiplied by the ACC's rated EIR (except for the PLR curve output, which is divided). This provides the realized EIR for the time step. Similarly, the CAPFT modifier function output is multiplied by the ACC's nominal capacity every time step to get the actual available capacity for that time step. The curve assignments are summarized in Table \ref{tab:acc_efficiencies}, and the curve parameters are specified in Table \ref{tab:acc_perf_curves}. The curves are also illustrated in Figure \ref{fig:acc_eir_curves}, Figure \ref{fig:AirCooledChiller2010PathA_funct_curves}, and Figure \ref{fig:ChlrAirRecipQRatio_curves}.
 
-%\begin{figure}
-%    \centering \includegraphics[width=1.0\textwidth]{figures/ac_chiller_eir_curves.png}
-%    \caption[Air-cooled chiller EIR as a function of part load ratio performance curves]{Air-cooled chiller EIR as a function of part load ratio performance curves. Independent variables beyond the curve limits will use the bound of the curve limit during simulation.}
-%    \label{fig:acc_eir_curves}
-%\end{figure}
-
-%\begin{figure}
-%    \centering \includegraphics[width=1.0\textwidth]{figures/AirCooled_Chiller_2010_PathA_Modifiers.png}
- %   \caption["AirCooledChiller2010PathA" modifier performance curves]{``AirCooledChiller2010PathA'' modifier performance curves; capacity as a function of temperature and EIR as a function of temperature. Independent variables beyond the curve limits will use the bound of the curve limit during simulation.}
-%    \label{fig:AirCooledChiller2010PathA_funct_curves}
-%\end{figure}
-
-%\begin{figure}
-%    \centering \includegraphics[width=1.0\textwidth]{figures/ChlrAirRecipQRatio_Modifiers.png}
-%    \caption["ChlrAirRecip" modifier performance curves]{``ChlrAirRecip'' modifier performance curves; capacity as a function of temperature and EIR as a function of temperature. Independent variables beyond the curve limits will use the bound of the curve limit during simulation.}
-%    \label{fig:ChlrAirRecipQRatio_curves}
-%\end{figure}
-
-%\input{tables/air_cooled_chiller_performance_curves_table}
-
 %TODO, BUG: Standards does not specify the "condenser_type" field, so the model chooses the first in the list for the template call. This is why 2013 and beyond models use different performance curves.
 
 \subsection{Water-Cooled Chillers}
@@ -494,7 +406,6 @@ WCCs are assigned full load and part load efficiencies based on the HVAC code te
 
 WCCs have been shown to vary capacity and efficiency at different operating conditions. ComStock uses three curve types to model the variation in performance: capacity as a function of temperature (CAPFT) modifier, EIR as a function of temperature (EIRFT) modifier, and EIR as a function of part load ratio (EIRFPLR) modifier. For each time step, the EIR modifier function outputs are multiplied by the WCC's rated EIR (except for the PLR curve output, which is divided). This provides the realized EIR for the time step. Similarly, the CAPFT modifier function output is multiplied by the WCC's nominal capacity every time step to get the actual available capacity for that time step. The curve assignments are summarized in Table\ref{tab:wcc_eff}, and the coefficients are shown in Table~\ref{tab:wcc_perf_curves}. Furthermore, the performance curves are illustrated in Figure~\ref{fig:wcc_plr} (EIRFPLR for all chillers), Figure\ref{fig:wcc_WaterCooled_PositiveDisplacement_Chiller_LT150_2010_Modifiers}, and Figure\ref{fig:ChlrAirRecipQRatio_curves}.
 
-%\input{tables/wcc_curves}
 
 \subsection{Cooling Towers}
 
