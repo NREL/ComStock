@@ -33,7 +33,7 @@ class PlottingMixin():
         for applicable_scenario in ['stock', 'applicable_only']:
 
             df_scen = df.copy()
-            
+
 
             if applicable_scenario == 'applicable_only':
                 applic_bldgs = df_scen.loc[(df_scen[self.UPGRADE_NAME]!='Baseline') & (df_scen['applicability']==True), self.BLDG_ID]
@@ -1340,14 +1340,14 @@ class PlottingMixin():
 
        # Columns to summarize
         cols_to_summarize = {
-            'Electricity consumption (kWh)': np.sum,
-            'Natural gas consumption (thous Btu)': np.sum
+            'Electricity consumption (kWh)': 'sum',
+            'Natural gas consumption (thous Btu)': 'sum'
         }
 
         # Disaggregate to these levels
         group_bys = [
             None,
-            'State',
+            self.STATE_ABBRV,
             'Division'
         ]
 
@@ -1356,7 +1356,7 @@ class PlottingMixin():
                 # Summarize the data
                 vals = [col]  # Values in Excel pivot table
                 ags = [agg_method]  # How each of the values will be aggregated, like Value Field Settings in Excel, but applied to all values
-                cols = ['Dataset'] # Columns in Excel pivot table
+                cols = [self.DATASET] # Columns in Excel pivot table
 
                 first_ax = None
 
@@ -1387,13 +1387,13 @@ class PlottingMixin():
                 # Formatting
                 if group_by is None:
                     # No group-by]
-                    title = f"{agg_method.__name__} {col.replace(f' {units}', '')}".title()
+                    title = f"{agg_method} {col.replace(f' {units}', '')}".title()
                     ax.tick_params(axis='x', labelrotation = 0)
                     for container in ax.containers:
                         ax.bar_label(container, fmt='%.2e')
                 else:
                     # With group-by
-                    title = f"{agg_method.__name__} {col.replace(f' {units}', '')}\n by {group_by}".title()
+                    title = f"{agg_method} {col.replace(f' {units}', '')}\n by {group_by}".title()
 
                 # Remove 'Sum' from title
                 title = title.replace('Sum', '').strip()
@@ -1407,10 +1407,10 @@ class PlottingMixin():
                 new_labels = []
                 new_handles = []
                 for l, h in zip(labels, handles):
-                    if not l in new_labels:                   
+                    if not l in new_labels:
                         new_labels.append(l)  # Add the first instance of the label
                         new_handles.append(h)
-                ax.legend(new_handles, new_labels, bbox_to_anchor=(1.01,1), loc="upper left") 
+                ax.legend(new_handles, new_labels, bbox_to_anchor=(1.01,1), loc="upper left")
 
                 # Save the figure
                 title = title.replace('\n', '')
@@ -1418,16 +1418,16 @@ class PlottingMixin():
                 fig_path = os.path.join(output_dir, fig_name)
                 plt.savefig(fig_path, bbox_inches = 'tight')
 
-    def plot_monthly_energy_consumption_for_eia(self, df, color_map, output_dir):    
+    def plot_monthly_energy_consumption_for_eia(self, df, color_map, output_dir):
         # Columns to summarize
         cols_to_summarize = {
-            'Electricity consumption (kWh)': np.sum,
-            'Natural gas consumption (thous Btu)': np.sum
+            'Electricity consumption (kWh)': 'sum',
+            'Natural gas consumption (thous Btu)': 'sum'
         }
 
         # Disaggregate to these levels
         group_bys = [
-        #     'State',
+            # self.STATE_ABBRV,
             'Division'
         ]
 
@@ -1436,11 +1436,11 @@ class PlottingMixin():
                 # Summarize the data
                 vals = [col]  # Values in Excel pivot table
                 ags = [agg_method]  # How each of the values will be aggregated, like Value Field Settings in Excel, but applied to all values
-                cols = ['Dataset'] # Columns in Excel pivot table
+                cols = [self.DATASET] # Columns in Excel pivot table
 
 
                 first_ax = None
-                for group_name, group_data in df.groupby(group_by): 
+                for group_name, group_data in df.groupby(group_by):
 
                     # With group-by
                     pivot = group_data.pivot_table(values=vals, columns=cols, index='Month', aggfunc=ags)
@@ -1461,7 +1461,7 @@ class PlottingMixin():
                         units = 'TODO units'
 
                     # Set title and units
-                    title = f"{agg_method.__name__} Monthly {col.replace(f' {units}', '')}\n by {group_by} for {group_name}".title()
+                    title = f"{agg_method} Monthly {col.replace(f' {units}', '')}\n by {group_by} for {group_name}".title()
 
                     # Remove 'Sum' from title
                     title = title.replace('Sum', '').strip()
@@ -1474,7 +1474,7 @@ class PlottingMixin():
                     new_labels = []
                     new_handles = []
                     for l, h in zip(labels, handles):
-                        if not l in new_labels:                   
+                        if not l in new_labels:
                             new_labels.append(l)  # Add the first instance of the label
                             new_handles.append(h)
                     ax.legend(new_handles, new_labels, bbox_to_anchor=(1.01,1), loc="upper left")

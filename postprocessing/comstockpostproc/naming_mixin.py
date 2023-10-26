@@ -9,6 +9,8 @@ class NamingMixin():
     BLDG_ID = 'bldg_id'
     CEN_REG = 'in.census_region_name'
     CEN_DIV = 'in.census_division_name'
+    STATE_NAME = 'in.state_name'
+    STATE_ABBRV = 'in.state'
     FLR_AREA = 'in.sqft'
     FLR_AREA_CAT = 'in.floor_area_category'
     CBECS_BLDG_TYPE = 'in.cbecs_building_type'
