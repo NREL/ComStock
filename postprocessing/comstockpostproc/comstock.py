@@ -103,7 +103,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.include_upgrades = include_upgrades
         self.upgrade_ids_to_skip = upgrade_ids_to_skip
         self.s3_client = boto3.client('s3')
-        self.athena_client = BuildStockQuery('eulp','enduse', self.athena_table_name, skip_reports=True)
+        if self.athena_table_name is not None:
+            self.athena_client = BuildStockQuery('eulp','enduse', self.athena_table_name, skip_reports=True)
         self.make_comparison_plots = make_comparison_plots
         logger.info(f'Creating {self.dataset_name}')
 
@@ -596,7 +597,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # ejscreen['nhgis_tract_gisjoin'] = ejscreen.apply(lambda row: nhgis_tract_gisjoin_from_census_id(row['ID']))
 
         ejscreen = ejscreen.with_columns(
-            pl.col('ID').apply(lambda x: nhgis_tract_gisjoin_from_census_id(x)).alias('nhgis_tract_gisjoin'),
+            pl.col('ID').map_elements(lambda x: nhgis_tract_gisjoin_from_census_id(x)).alias('nhgis_tract_gisjoin'),
         )
 
         ejscreen = self.reduce_df_memory(ejscreen)
@@ -653,7 +654,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             return gisjoin
 
         cejst = cejst.with_columns(
-            pl.col(cejst_geo_column).apply(lambda x: nhgis_tract_gisjoin_from_census_id(x)).alias(tract_col),
+            pl.col(cejst_geo_column).map_elements(lambda x: nhgis_tract_gisjoin_from_census_id(x)).alias(tract_col),
         )
 
         cejst = self.reduce_df_memory(cejst)
@@ -1220,7 +1221,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # self.data[self.VINTAGE] = self.data.apply(lambda row: vintage_bin_from_year(row[]), axis=1)
         self.data = self.data.with_columns(
-            pl.col(self.YEAR_BUILT).apply(lambda x: vintage_bin_from_year(x)).alias(self.VINTAGE),
+            pl.col(self.YEAR_BUILT).map_elements(lambda x: vintage_bin_from_year(x)).alias(self.VINTAGE),
         )
         self.data = self.data.with_columns(pl.col(self.VINTAGE).cast(pl.Categorical))
 
@@ -1647,9 +1648,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         Return:
             comstock_monthly_consumption (pd.DataFrame): Table of natural gas and electricity consumption by state and month.
         """
+        if self.athena_table_name is None:
+            logger.info('No athena_table_name was provided, not attempting to query monthly data from Athena.')
+            return True
 
         # Load or query timeseries ComStock results by state and building type
-        file_name = f'comstock_monthly_natural_gas_and_electricity_by_state_and_bldg_type.csv'
+        file_name = f'comstock_monthly_natural_gas_and_electricity_by_state_and_bldg_type.csvTODOANDREW' # TODO ANDREW Remove
         file_path = os.path.join(self.data_dir, file_name)
         if not os.path.exists(file_path):
             # Query Athena for ComStock results
@@ -1695,7 +1699,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             return building_type
 
         comstock_unscaled = comstock_unscaled.with_columns(
-            pl.col('building_type').apply(lambda x: rename_buildingtypes(x)).alias('building_type'),
+            pl.col('building_type').map_elements(lambda x: rename_buildingtypes(x)).alias('building_type'),
         )
 
         self.monthly_data = comstock_unscaled
@@ -1703,6 +1707,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         return comstock_unscaled
 
     def get_scaled_comstock_monthly_consumption_by_state(self):
+
+        if self.monthly_data is None:
+            logger.info('No monthly_data exists, not attempting to scale monthly data.')
+            return True
 
         # Load or query monthly ComStock energy consumption by state and building type
         monthly = self.monthly_data

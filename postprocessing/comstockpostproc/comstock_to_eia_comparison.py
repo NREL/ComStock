@@ -29,6 +29,9 @@ class ComStockToEIAComparison(NamingMixin, UnitsMixin, PlottingMixin):
         dfs_to_concat = []
         dataset_names = []
         for dataset in (eia_list + comstock_list):
+            if dataset.monthly_data is None:
+                logger.warning(f'No monthly_data was available for {dataset.dataset_name}, not including in EIA comparison.')
+                continue
             if isinstance(dataset, ComStock):
                 dfs_to_concat.append(dataset.monthly_data.to_pandas())
             else:
