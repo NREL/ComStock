@@ -79,8 +79,8 @@ def buildNumber = env.BUILD_NUMBER as int
           try {
             sh("cd ..")
             sh("pwd")
-            archiveArtifacts artifacts: 'tests/*/*.xml', fingerprint: true
-            junit testResults: 'tests/*/*.xml', skipPublishingChecks: true
+            archiveArtifacts artifacts: 'test/*/*.xml', fingerprint: true
+            junit testResults: 'test/*/*.xml', skipPublishingChecks: true
           }
             catch (Exception e) {
             buildResult = 'FAILURE'
@@ -93,7 +93,7 @@ def buildNumber = env.BUILD_NUMBER as int
         // docker user is root so all file permissions need to be changed for jenkins to cleanup
         sh "chmod -R 777 ${linux_base}/${env.JOB_NAME}/${env.BUILD_NUMBER}"
       }
-      cleanup workspace
+      // cleanup workspace
       deleteDir()
 
       Notify github of result
