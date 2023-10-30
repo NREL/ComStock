@@ -14,7 +14,8 @@ namespace :unit_tests do
     # p File.exist?(MEASURETESTS_PATH)
     if File.exist?(MEASURETESTS_PATH)
       # load test files from file.
-      full_file_list = FileList.new(File.readlines(MEASURETESTS_PATH))
+      full_file_list = FileList.new(File.readlines(MEASURETESTS_PATH).map(&:chomp))
+      full_file_list.select! { |item| item.include?('rb')}
       # Select only .rb files that exist
       p full_file_list
 

@@ -1,6 +1,7 @@
 #!/usr/bin/groovy
 
 // def call() {
+/* groovylint-disable LineLength */
 
 // Check for a previous build and cancel
 def buildNumber = env.BUILD_NUMBER as int
@@ -79,8 +80,8 @@ def buildNumber = env.BUILD_NUMBER as int
           try {
             sh("cd ..")
             sh("pwd")
-            archiveArtifacts artifacts: 'test/*/*.xml', fingerprint: true
-            junit testResults: 'test/*/*.xml', skipPublishingChecks: true
+            archiveArtifacts artifacts: 'test/reports2/*.xml', fingerprint: true
+            junit testResults: 'test/reports2/*.xml', skipPublishingChecks: true
           }
             catch (Exception e) {
             buildResult = 'FAILURE'
