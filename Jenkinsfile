@@ -79,8 +79,8 @@ def buildNumber = env.BUILD_NUMBER as int
           try {
             sh("cd ..")
             sh("pwd")
-            archiveArtifacts artifacts: 'tests/*/*.xml', fingerprint: true
-            junit testResults: 'tests/*/*.xml', skipPublishingChecks: true
+            archiveArtifacts artifacts: 'test/*/*.xml', fingerprint: true
+            junit testResults: 'test/*/*.xml', skipPublishingChecks: true
           }
             catch (Exception e) {
             buildResult = 'FAILURE'
