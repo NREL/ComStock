@@ -30,7 +30,7 @@ def buildNumber = env.BUILD_NUMBER as int
         stage('show enviroment') {
           try {
           sh('ruby -v')
-          sh('echo "$JENKINS_HOME"')
+          sh('echo "$"')
           sh('openstudio openstudio_version')
           }
           catch (Exception e) {
@@ -79,8 +79,8 @@ def buildNumber = env.BUILD_NUMBER as int
           try {
             sh("cd ..")
             sh("pwd")
-            archiveArtifacts artifacts: 'test/*/*.xml', fingerprint: true
-            junit testResults: 'test/*/*.xml', skipPublishingChecks: true
+            archiveArtifacts artifacts: 'tests/*/*.xml', fingerprint: true
+            junit testResults: 'tests/*/*.xml', skipPublishingChecks: true
           }
             catch (Exception e) {
             buildResult = 'FAILURE'
@@ -96,7 +96,7 @@ def buildNumber = env.BUILD_NUMBER as int
       // cleanup workspace
       deleteDir()
 
-      Notify github of result
+      // Notify github of result
       if ((buildResult != 'FAILURE') && (buildResult != 'ERROR')) {
       buildResult = 'SUCCESS'
       }
