@@ -47,7 +47,7 @@ require_relative '../measure.rb'
 class PackagedGTHPTest < Minitest::Test
 
   def setup
-    # Check that the test is being run in an environment that has the
+    # Check that the test is being run in an environment that has the GHEdesigner package
     command = "ghedesigner --help"
     begin
       stdout_str, stderr_str, status = Open3.capture3(command)
@@ -152,7 +152,6 @@ class PackagedGTHPTest < Minitest::Test
     puts "Copying #{osm_path}"
     puts "To #{new_osm_path}"
 
-
     FileUtils.cp(osm_path, new_osm_path)
     new_epw_path = "#{run_dir(test_name)}/#{File.basename(epw_path)}"
     FileUtils.cp(epw_path, new_epw_path)
@@ -171,7 +170,7 @@ class PackagedGTHPTest < Minitest::Test
 
     # If the sql file from the sizing run exists, assign
     # it to the model for faster test runtime
-    siz_sql_path = "#{run_dir(test_name)}packaged_gthp_SR/run/eplusout.sql"
+    siz_sql_path = "#{run_dir(test_name)}/AnnualGHELoadsRun/run/eplusout.sql"
     if File.exist?(siz_sql_path)
       puts('Reloading sql file from sizing run to speed testing')
       sql_path = OpenStudio::Path.new(siz_sql_path)
@@ -196,12 +195,7 @@ class PackagedGTHPTest < Minitest::Test
     if run_model && result_success
       puts "\nRUNNING MODEL AFTER MEASURE..."
       assert(std.model_run_simulation_and_log_errors(model, File.join(run_dir(test_name), 'AnnualRunRealGHEObjects')))
-      tot_engy_aft = model.sqlFile.get.totalSiteEnergy.get
     end
-
-    # Assert that there was no change in energy consumption caused by
-    # hard-sizing the model.
-    assert_equal(tot_engy_bef, tot_engy_aft)
 
     # change back directory
     Dir.chdir(start_dir)
@@ -221,12 +215,12 @@ class PackagedGTHPTest < Minitest::Test
     assert_equal(1, arguments.size)
   end
 
-  def test_pszac_with_gas_coil_heat
+  def test_ptac_with_gas_coil_heat
     osm_name = 'PTAC_with_gas_coil_heat_3B.osm'
     epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
     osm_path = model_input_path(osm_name)
     epw_path = epw_input_path(epw_name)
-    measure = AddPackagedGSHPNew.new
+    measure = AddPackagedGSHP.new
     args_hash = {}
     argument_map = populate_argument_map(measure, osm_path, args_hash)
     # Apply the measure and check if before/after results are identical
@@ -234,11 +228,11 @@ class PackagedGTHPTest < Minitest::Test
   end
 
   def test_pszhp
-    osm_name = 'PSZ-HP_3B.osm'
+    osm_name = 'PSZ-HP_gthp.osm'
     epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
     osm_path = model_input_path(osm_name)
     epw_path = epw_input_path(epw_name)
-    measure = AddPackagedGSHPNew.new
+    measure = AddPackagedGSHP.new
     args_hash = {}
     argument_map = populate_argument_map(measure, osm_path, args_hash)
     # Apply the measure and check if before/after results are identical
