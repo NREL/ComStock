@@ -811,122 +811,124 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     #apply sizing values
     model.applySizingValues
 
-    # # scale coil performance data and assign lookup tables
-    # model.getAirLoopHVACUnitarySystems.each do |unitary_sys|
-    # 	# puts "*************************************"
-    # 	# puts "*************************************"
-    # 	# puts "Assigning performance curve data for unitary system (#{unitary_sys.name})"
-    # 	# get cooling coil
-    # 	# get heating coil
-    # 	# get fan
-    # 	heating_capacity = 0
-    # 	heating_air_flow = 0
-    # 	heating_water_flow = 0
-    # 	cooling_capacity = 0
-    # 	cooling_air_flow = 0
-    # 	cooling_water_flow = 0
-    # 	fan_air_flow = 0
+    # scale coil performance data and assign lookup tables
+    model.getAirLoopHVACUnitarySystems.each do |unitary_sys|
+    	# puts "*************************************"
+    	# puts "*************************************"
+    	# puts "Assigning performance curve data for unitary system (#{unitary_sys.name})"
+    	# get cooling coil
+    	# get heating coil
+    	# get fan
+    	heating_capacity = 0
+    	heating_air_flow = 0
+    	heating_water_flow = 0
+    	cooling_capacity = 0
+    	cooling_air_flow = 0
+    	cooling_water_flow = 0
+    	fan_air_flow = 0
 
-    # 	# heating coil
-    # 	if unitary_sys.heatingCoil.is_initialized
-    # 		if unitary_sys.heatingCoil.get.to_CoilHeatingWaterToAirHeatPumpEquationFit.is_initialized
-    # 			coil = unitary_sys.heatingCoil.get.to_CoilHeatingWaterToAirHeatPumpEquationFit.get
-    # 			# capacity
-    # 			if coil.ratedHeatingCapacity.is_initialized
-    # 				heating_capacity = coil.ratedHeatingCapacity.get
-    # 			else
-    # 				runner.registerError("Unable to retrieve reference capacity for coil (#{coil.name})")
-    # 				return false
-    # 			end
-    # 			# air flow
-    # 			if coil.ratedAirFlowRate.is_initialized
-    # 				heating_air_flow = coil.ratedAirFlowRate.get
-    # 			else
-    # 				runner.registerError("Unable to retrieve reference air flow for coil (#{coil.name})")
-    # 				return false
-    # 			end
-    # 			# water flow
-    # 			if coil.ratedWaterFlowRate.is_initialized
-    # 				heating_water_flow = coil.ratedWaterFlowRate.get
-    # 			else
-    # 				runner.registerError("Unable to retrieve reference water flow for coil (#{coil.name})")
-    # 				return false
-    # 			end
-    # 			# add performance data
-    # 			add_lookup_performance_data(model, coil, "packaged_gshp", "Trane_10_ton_GWSC120E", heating_air_flow, heating_water_flow, runner)
-    # 		else
-    # 			runner.registerError("Expecting heating coil of type CoilHeatingWaterToAirHeatPumpEquationFits for (#{unitary_sys.name})")
-    # 			return false
-    # 		end
-    # 	else
-    # 		runner.registerError("Could not find heating coil for unitary system (#{unitary_sys.name})")
-    # 		return false
-    # 	end
+    	# heating coil
+    	if unitary_sys.heatingCoil.is_initialized
+    		if unitary_sys.heatingCoil.get.to_CoilHeatingWaterToAirHeatPumpEquationFit.is_initialized
+    			coil = unitary_sys.heatingCoil.get.to_CoilHeatingWaterToAirHeatPumpEquationFit.get
+    			# capacity
+    			if coil.ratedHeatingCapacity.is_initialized
+    				heating_capacity = coil.ratedHeatingCapacity.get
+    			else
+    				runner.registerError("Unable to retrieve reference capacity for coil (#{coil.name})")
+    				return false
+    			end
+    			# air flow
+    			if coil.ratedAirFlowRate.is_initialized
+    				heating_air_flow = coil.ratedAirFlowRate.get
+    			else
+    				runner.registerError("Unable to retrieve reference air flow for coil (#{coil.name})")
+    				return false
+    			end
+    			# water flow
+    			if coil.ratedWaterFlowRate.is_initialized
+    				heating_water_flow = coil.ratedWaterFlowRate.get
+    			else
+    				runner.registerError("Unable to retrieve reference water flow for coil (#{coil.name})")
+    				return false
+    			end
+    			# add performance data
+    			add_lookup_performance_data(model, coil, "packaged_gshp", "Trane_10_ton_GWSC120E", heating_air_flow, heating_water_flow, runner)
+          #runner.registerInfo("Adding heating performance curves for Trane 10 ton GWS120E unit.")
+    		else
+    			runner.registerError("Expecting heating coil of type CoilHeatingWaterToAirHeatPumpEquationFits for (#{unitary_sys.name})")
+    			return false
+    		end
+    	else
+    		runner.registerError("Could not find heating coil for unitary system (#{unitary_sys.name})")
+    		return false
+    	end
 
-    # 	# cooling coil
-    # 	if unitary_sys.coolingCoil.is_initialized
-    # 		if unitary_sys.coolingCoil.get.to_CoilCoolingWaterToAirHeatPumpEquationFit.is_initialized
-    # 			coil = unitary_sys.coolingCoil.get.to_CoilCoolingWaterToAirHeatPumpEquationFit.get
-    # 			# capacity
-    # 			if coil.ratedTotalCoolingCapacity.is_initialized
-    # 				cooling_capacity = coil.ratedTotalCoolingCapacity.get
-    # 			else
-    # 				runner.registerError("Unable to retrieve reference capacity for coil (#{coil.name})")
-    # 				return false
-    # 			end
-    # 			# air flow
-    # 			if coil.ratedAirFlowRate.is_initialized
-    # 				cooling_air_flow = coil.ratedAirFlowRate.get
-    # 			else
-    # 				runner.registerError("Unable to retrieve reference air flow for coil (#{coil.name})")
-    # 				return false
-    # 			end
-    # 			# water flow
-    # 			if coil.ratedWaterFlowRate.is_initialized
-    # 				cooling_water_flow = coil.ratedWaterFlowRate.get
-    # 			else
-    # 				runner.registerError("Unable to retrieve reference water flow for coil (#{coil.name})")
-    # 				return false
-    # 			end
-    # 			# add performance data
-    # 			add_lookup_performance_data(model, coil, "packaged_gshp", "Trane_10_ton_GWSC120E", cooling_air_flow, cooling_water_flow, runner)
-    # 		else
-    # 			runner.registerError("Expecting cooling coil of type CoilCoolingWaterToAirHeatPumpEquationFits for (#{unitary_sys.name})")
-    # 			return false
-    # 		end
-    # 	else
-    # 		runner.registerError("Could not find cooling coil for unitary system (#{unitary_sys.name})")
-    # 		return false
-    # 	end
+    	# cooling coil
+    	if unitary_sys.coolingCoil.is_initialized
+    		if unitary_sys.coolingCoil.get.to_CoilCoolingWaterToAirHeatPumpEquationFit.is_initialized
+    			coil = unitary_sys.coolingCoil.get.to_CoilCoolingWaterToAirHeatPumpEquationFit.get
+    			# capacity
+    			if coil.ratedTotalCoolingCapacity.is_initialized
+    				cooling_capacity = coil.ratedTotalCoolingCapacity.get
+    			else
+    				runner.registerError("Unable to retrieve reference capacity for coil (#{coil.name})")
+    				return false
+    			end
+    			# air flow
+    			if coil.ratedAirFlowRate.is_initialized
+    				cooling_air_flow = coil.ratedAirFlowRate.get
+    			else
+    				runner.registerError("Unable to retrieve reference air flow for coil (#{coil.name})")
+    				return false
+    			end
+    			# water flow
+    			if coil.ratedWaterFlowRate.is_initialized
+    				cooling_water_flow = coil.ratedWaterFlowRate.get
+    			else
+    				runner.registerError("Unable to retrieve reference water flow for coil (#{coil.name})")
+    				return false
+    			end
+    			# add performance data
+    			add_lookup_performance_data(model, coil, "packaged_gshp", "Trane_10_ton_GWSC120E", cooling_air_flow, cooling_water_flow, runner)
+          #runner.registerInfo("Adding cooling performance curves for Trane 10 ton GWS120E unit.")
+    		else
+    			runner.registerError("Expecting cooling coil of type CoilCoolingWaterToAirHeatPumpEquationFits for (#{unitary_sys.name})")
+    			return false
+    		end
+    	else
+    		runner.registerError("Could not find cooling coil for unitary system (#{unitary_sys.name})")
+    		return false
+    	end
 
-    # 	# fan
-    # 	if unitary_sys.supplyFan.is_initialized
-    # 		if unitary_sys.supplyFan.get.to_FanConstantVolume.is_initialized
-    # 			fan = unitary_sys.supplyFan.get.to_FanConstantVolume.get
-    # 			# air flow
-    # 			if fan.maximumFlowRate.is_initialized
-    # 				fan_air_flow = fan.maximumFlowRate.get
-    # 			else
-    # 				runner.registerError("Unable to retrieve maximum air flow for fan (#{fan.name})")
-    # 				return false
-    # 			end
-    # 		else
-    # 			runner.registerError("Expecting fan of type FanConstantVolume for (#{unitary_sys.name})")
-    # 			return false
-    # 		end
-    # 	else
-    # 		runner.registerError("Could not find fan for unitary system (#{unitary_sys.name})")
-    # 		return false
-    # 	end
-    # 	# puts "*************************************"
-    # 	# puts "Heating capacity = #{heating_capacity.round(2)} W"
-    # 	# puts "Cooling capacity = #{cooling_capacity.round(2)} W"
-    # 	# puts "Heating air flow = #{heating_air_flow.round(5)} m3/s"
-    # 	# puts "Cooling air flow = #{cooling_air_flow.round(5)} m3/s"
-    # 	# puts "Fan air flow = #{fan_air_flow.round(5)} m3/s"
-    # 	# puts "Heating water flow = #{heating_water_flow.round(5)} m3/s"
-    # 	# puts "Cooling water flow = #{cooling_water_flow.round(5)} m3/s"
-    # end
+    	# fan
+    	if unitary_sys.supplyFan.is_initialized
+    		if unitary_sys.supplyFan.get.to_FanConstantVolume.is_initialized
+    			fan = unitary_sys.supplyFan.get.to_FanConstantVolume.get
+    			# air flow
+    			if fan.maximumFlowRate.is_initialized
+    				fan_air_flow = fan.maximumFlowRate.get
+    			else
+    				runner.registerError("Unable to retrieve maximum air flow for fan (#{fan.name})")
+    				return false
+    			end
+    		else
+    			runner.registerError("Expecting fan of type FanConstantVolume for (#{unitary_sys.name})")
+    			return false
+    		end
+    	else
+    		runner.registerError("Could not find fan for unitary system (#{unitary_sys.name})")
+    		return false
+    	end
+    	# puts "*************************************"
+    	# puts "Heating capacity = #{heating_capacity.round(2)} W"
+    	# puts "Cooling capacity = #{cooling_capacity.round(2)} W"
+    	# puts "Heating air flow = #{heating_air_flow.round(5)} m3/s"
+    	# puts "Cooling air flow = #{cooling_air_flow.round(5)} m3/s"
+    	# puts "Fan air flow = #{fan_air_flow.round(5)} m3/s"
+    	# puts "Heating water flow = #{heating_water_flow.round(5)} m3/s"
+    	# puts "Cooling water flow = #{cooling_water_flow.round(5)} m3/s"
+    end
 
     # unless model.getHeatPumpPlantLoopEIRCoolings.empty?
     #   puts "***********************************"
