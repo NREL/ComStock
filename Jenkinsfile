@@ -91,6 +91,36 @@ def buildNumber = env.BUILD_NUMBER as int
           }
         }
 
+        stage('run resources measure tests') {
+          try {
+          timeout(time: 600, unit: 'MINUTES') {
+              sh '''
+              bundle config set without 'native_ext'
+              cd ./resources/
+              bundle exec rake unit_tests:resource_measure_tests
+              '''
+          }
+          }
+          catch (Exception e) {
+          e.printStackTrace()
+          buildResult = 'FAILURE'
+          description = "${description} - Test Failures"
+          }
+          finally {
+          try {
+            sh("cd ..")
+            sh("pwd")
+            archiveArtifacts artifacts: 'test/reports2/*.xml', fingerprint: true
+            junit testResults: 'test/reports2/*.xml', skipPublishingChecks: true
+          }
+            catch (Exception e) {
+            buildResult = 'FAILURE'
+            description = "${description} - Artifact Download Failures"
+            e.printStackTrace()
+            }
+          }
+        }
+
         // docker user is root so all file permissions need to be changed for jenkins to cleanup
         sh "chmod -R 777 ${linux_base}/${env.JOB_NAME}/${env.BUILD_NUMBER}"
       }

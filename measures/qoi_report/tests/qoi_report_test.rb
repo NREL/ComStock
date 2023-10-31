@@ -44,7 +44,6 @@ require 'openstudio-standards'
 require "minitest/reporters"
 require_relative '../../../test/helpers/minitest_helper'
 
-# Minitest::Reporters.use!
 class QOIReportTest < Minitest::Test
   def run_dir(test_name)
     # always generate test output in specially named 'output' directory so result files are not made part of the measure

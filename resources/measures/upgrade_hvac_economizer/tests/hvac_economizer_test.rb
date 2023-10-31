@@ -42,6 +42,7 @@ require 'openstudio/measure/ShowRunnerOutput'
 require 'fileutils'
 require 'minitest/autorun'
 require_relative '../measure.rb'
+require_relative '../../../../test/helpers/minitest_helper'
 
 class HVACEconomizer_Test < Minitest::Test
   # all tests are a sub definition of this class, e.g.:

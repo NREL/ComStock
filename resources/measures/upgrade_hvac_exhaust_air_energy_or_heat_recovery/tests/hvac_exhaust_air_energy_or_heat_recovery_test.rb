@@ -42,6 +42,7 @@ require 'openstudio/measure/ShowRunnerOutput'
 require 'fileutils'
 require 'minitest/autorun'
 require_relative '../measure.rb'
+require_relative '../../../../test/helpers/minitest_helper'
 
 # only necessary to include here if annual simulation request and the measure doesn't require openstudio-standards
 require 'openstudio-standards'
