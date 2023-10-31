@@ -1,0 +1,1 @@
+resources/measures/upgrade_env_roof_insul_aedg/tests/env_roof_insul_aedg_test.rb
