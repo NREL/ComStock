@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>scout_loads_summary</name>
   <uid>10373121-03aa-4e48-a9ea-e51b4c09f771</uid>
-  <version_id>4875183e-e850-4912-9538-950527eb5ac8</version_id>
-  <version_modified>2023-10-16T20:22:23Z</version_modified>
+  <version_id>841a3da4-de32-45e2-ae8d-4d5e0e57b90b</version_id>
+  <version_modified>2023-10-31T20:16:14Z</version_modified>
   <xml_checksum>72C8354A</xml_checksum>
   <class_name>ScoutLoadsSummary</class_name>
   <display_name>Scout Loads Summary</display_name>
@@ -32,6 +32,24 @@
     <argument>
       <name>enable_supply_side_reporting</name>
       <display_name>Enable/disable supply side reporting</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>debug_mode</name>
+      <display_name>Enable extra variables for debugging zone loads</display_name>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -136,7 +154,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>880D4307</checksum>
+      <checksum>86149F94</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -153,13 +171,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>91F6529D</checksum>
+      <checksum>9B5D729F</checksum>
     </file>
     <file>
       <filename>os_lib_heat_transfer.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>106661D8</checksum>
+      <checksum>D265452E</checksum>
     </file>
     <file>
       <filename>os_lib_scout_buildingmeters.rb</filename>
@@ -177,7 +195,7 @@
       <filename>os_lib_scout_meters.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>4A6F3A84</checksum>
+      <checksum>2351F994</checksum>
     </file>
     <file>
       <filename>os_lib_sql_file.rb</filename>
@@ -201,7 +219,13 @@
       <filename>Measure_Test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>82E86DF3</checksum>
+      <checksum>0F560F59</checksum>
+    </file>
+    <file>
+      <filename>Restaurant_5B.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>AF2065EC</checksum>
     </file>
     <file>
       <filename>SCn.osm</filename>
@@ -220,6 +244,12 @@
       <filetype>epw</filetype>
       <usage_type>test</usage_type>
       <checksum>BDF687C1</checksum>
+    </file>
+    <file>
+      <filename>Warehouse_ComStock_90.1-2007_7A.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>4D1B42DF</checksum>
     </file>
     <file>
       <filename>baseboard_electric.osm</filename>
@@ -264,6 +294,18 @@
       <checksum>CE8455E1</checksum>
     </file>
     <file>
+      <filename>prototype_restaurant.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>AFEF2990</checksum>
+    </file>
+    <file>
+      <filename>prototype_restaurant_no_exhaust.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>5A643321</checksum>
+    </file>
+    <file>
       <filename>research_special.osm</filename>
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
@@ -276,10 +318,22 @@
       <checksum>2009F8A6</checksum>
     </file>
     <file>
+      <filename>small_office_pthp_basic.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>496561DD</checksum>
+    </file>
+    <file>
       <filename>small_office_pthp_high_loads.osm</filename>
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
       <checksum>94D9705E</checksum>
+    </file>
+    <file>
+      <filename>small_office_pthp_no_windows.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>139107B8</checksum>
     </file>
   </files>
 </measure>

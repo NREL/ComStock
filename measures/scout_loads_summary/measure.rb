@@ -40,6 +40,11 @@ class ScoutLoadsSummary < OpenStudio::Measure::ReportingMeasure
     enable_supply_side_reporting.setDefaultValue(false)
     args << enable_supply_side_reporting
 
+    debug_mode = OpenStudio::Measure::OSArgument.makeBoolArgument('debug_mode', true)
+    debug_mode.setDisplayName('Enable extra variables for debugging zone loads')
+    debug_mode.setDefaultValue(false)
+    args << debug_mode
+
     return args
   end
 
@@ -103,6 +108,7 @@ class ScoutLoadsSummary < OpenStudio::Measure::ReportingMeasure
     # Get input arguments
     report_timeseries_data = runner.getBoolArgumentValue('report_timeseries_data', user_arguments)
     enable_supply_side_reporting = runner.getBoolArgumentValue('enable_supply_side_reporting', user_arguments)
+    debug_mode = runner.getBoolArgumentValue('debug_mode', user_arguments)
 
     # Define variables
     joules = 'J'
@@ -147,6 +153,10 @@ class ScoutLoadsSummary < OpenStudio::Measure::ReportingMeasure
     # Determine the number of timesteps
     num_ts = hrs_sim * steps_per_hour
     runner.registerInfo("Getting data from #{hrs_sim} hrs at #{steps_per_hour} steps/hr = #{num_ts} timesteps")
+
+    # Get the model year
+    year = model.yearDescription.get.assumedYear
+    start_dt = Time.new(year, 1, 1)
 
     # Read the custom meters for the Scout supply side sub-end-uses from sql file
     bldg_meters = OsLib::Scout::BuildingMeters::BuildingMeterSet.new(num_ts)
@@ -193,57 +203,72 @@ class ScoutLoadsSummary < OpenStudio::Measure::ReportingMeasure
     end
 
     # Get Scout demand side totals, which are heating/cooling demand by component (walls, roofs, etc.)
-    # debug_bldg_heat_transfer_vectors = []
+    debug_bldg_heat_transfer_vectors = []
+    total_building_calculated_energy_balance = Vector.elements(Array.new(num_ts, 0.0))
+    total_building_true_energy_balance = Vector.elements(Array.new(num_ts, 0.0))
     model.getThermalZones.each do |zone|
       # Get the heat transfer broken out by component
-      heat_transfer_vectors = OsLib_HeatTransfer.thermal_zone_heat_transfer_vectors(runner, zone, sql, freq)
+      heat_transfer_vectors = OsLib_HeatTransfer.thermal_zone_heat_transfer_vectors(runner, zone, sql, freq, debug_mode)
 
       # Save zone level heat transfer vectors for debugging
-      # heat_transfer_vectors.each do |vector_name, vector_vals|
-      #   debug_bldg_heat_transfer_vectors << ["#{vector_name}|#{zone.name.get}"] + vector_vals.to_a if vector_vals.kind_of?(Array)
-      # end
+      heat_transfer_vectors.each do |vector_name, vector_vals|
+        debug_bldg_heat_transfer_vectors << ["#{zone.name.get}|#{vector_name}"] + vector_vals.to_a if vector_vals.kind_of?(Vector)
+      end
+
+      # Sum energy balance for validation
+      total_building_calculated_energy_balance += heat_transfer_vectors['Calc Energy Balance']
+      total_building_true_energy_balance += heat_transfer_vectors['True Energy Balance']
 
       # Scout heating/cooling supply and demand breakdown
       zone_meters = OsLib::Scout::Meters::MeterSet.new(num_ts)
-
-      hvac_transfer_vals = heat_transfer_vectors['All HVAC Heat Transfer Energy'].to_a
+      hvac_transfer_vals = heat_transfer_vectors['HVAC (All) Heat Transfer Energy'].to_a
       hvac_transfer_vals.each_with_index do |hvac_energy_transfer, i|
         if hvac_energy_transfer > 0 # heating
           # during heating, all heat gains are "reducing" the heating that the HVAC needs to provide, so reverse sign
-          zone_meters.end_use.demand('heating').sub_end_use('windows_conduction').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Window Convection Heat Transfer Energy'].to_a[i]
-          zone_meters.end_use.demand('heating').sub_end_use('doors_conduction').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Door Convection Heat Transfer Energy'].to_a[i]
-          zone_meters.end_use.demand('heating').sub_end_use('windows_solar').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Window Radiation Heat Transfer Energy'].to_a[i]
-          zone_meters.end_use.demand('heating').sub_end_use('wall').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Wall Convection Heat Transfer Energy'].to_a[i]
-          zone_meters.end_use.demand('heating').sub_end_use('foundation_wall').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Foundation Wall Convection Heat Transfer Energy'].to_a[i]
-          zone_meters.end_use.demand('heating').sub_end_use('ceiling').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Ceiling Convection Heat Transfer Energy'].to_a[i]
-          zone_meters.end_use.demand('heating').sub_end_use('roof').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Roof Convection Heat Transfer Energy'].to_a[i]
-          zone_meters.end_use.demand('heating').sub_end_use('ground').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Ground Convection Heat Transfer Energy'].to_a[i]
-          zone_meters.end_use.demand('heating').sub_end_use('floor').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Floor Convection Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('heating').sub_end_use('people_gain').first.vals[i] = -1.0 * (heat_transfer_vectors['Zone People Convective Heating Energy'].to_a[i] + heat_transfer_vectors['Zone People Delayed Convective Heating Energy'].to_a[i])
+          zone_meters.end_use.demand('heating').sub_end_use('lighting_gain').first.vals[i] = -1.0 * (heat_transfer_vectors['Zone Lights Convective Heating Energy'].to_a[i] + heat_transfer_vectors['Zone Lights Delayed Convective Heating Energy'].to_a[i])
+          zone_meters.end_use.demand('heating').sub_end_use('equipment_gain').first.vals[i] = -1.0 * (heat_transfer_vectors['Zone Equipment Instantaneous Convective Internal Gains'].to_a[i] + heat_transfer_vectors['Zone Equipment Delayed Convective Internal Gains'].to_a[i])
+          zone_meters.end_use.demand('heating').sub_end_use('wall').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Exterior Wall Convection Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('heating').sub_end_use('foundation_wall').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Exterior Foundation Wall Convection Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('heating').sub_end_use('roof').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Exterior Roof Convection Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('heating').sub_end_use('floor').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Exterior Floor Convection Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('heating').sub_end_use('ground').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Exterior Ground Convection Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('heating').sub_end_use('windows_conduction').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Exterior Window Convection Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('heating').sub_end_use('doors_conduction').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Exterior Door Convection Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('heating').sub_end_use('windows_solar').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Windows Radiation Heat Transfer Energy'].to_a[i]
           zone_meters.end_use.demand('heating').sub_end_use('infiltration').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Infiltration Gains'].to_a[i]
           zone_meters.end_use.demand('heating').sub_end_use('ventilation').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Ventilation Gains'].to_a[i]
-          zone_meters.end_use.demand('heating').sub_end_use('people_gain').first.vals[i] = -1.0 * heat_transfer_vectors['Zone People Convective Heating Energy'].to_a[i]
-          zone_meters.end_use.demand('heating').sub_end_use('equipment_gain').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Equipment Internal Gains'].to_a[i]
-          zone_meters.end_use.demand('heating').sub_end_use('lighting_gain').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Lights Convective Heating Energy'].to_a[i]
-          zone_meters.end_use.demand('heating').sub_end_use('other_gain').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Other Convection Heat Transfer Energy'].to_a[i]
         elsif hvac_energy_transfer < 0 # cooling
           # during cooling, all heat gains are "increasing" the cooling that the HVAC needs to provide, so sign matches convention
-          zone_meters.end_use.demand('cooling').sub_end_use('windows_conduction').first.vals[i] = heat_transfer_vectors['Zone Window Convection Heat Transfer Energy'].to_a[i]
-          zone_meters.end_use.demand('cooling').sub_end_use('doors_conduction').first.vals[i] = heat_transfer_vectors['Zone Door Convection Heat Transfer Energy'].to_a[i]
-          zone_meters.end_use.demand('cooling').sub_end_use('windows_solar').first.vals[i] = heat_transfer_vectors['Zone Window Radiation Heat Transfer Energy'].to_a[i]
-          zone_meters.end_use.demand('cooling').sub_end_use('wall').first.vals[i] = heat_transfer_vectors['Zone Wall Convection Heat Transfer Energy'].to_a[i]
-          zone_meters.end_use.demand('cooling').sub_end_use('foundation_wall').first.vals[i] = heat_transfer_vectors['Zone Foundation Wall Convection Heat Transfer Energy'].to_a[i]
-          zone_meters.end_use.demand('cooling').sub_end_use('ceiling').first.vals[i] = heat_transfer_vectors['Zone Ceiling Convection Heat Transfer Energy'].to_a[i]
-          zone_meters.end_use.demand('cooling').sub_end_use('roof').first.vals[i] = heat_transfer_vectors['Zone Roof Convection Heat Transfer Energy'].to_a[i]
-          zone_meters.end_use.demand('cooling').sub_end_use('ground').first.vals[i] = heat_transfer_vectors['Zone Ground Convection Heat Transfer Energy'].to_a[i]
-          zone_meters.end_use.demand('cooling').sub_end_use('floor').first.vals[i] = heat_transfer_vectors['Zone Floor Convection Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('cooling').sub_end_use('people_gain').first.vals[i] = heat_transfer_vectors['Zone People Convective Heating Energy'].to_a[i] + heat_transfer_vectors['Zone People Delayed Convective Heating Energy'].to_a[i]
+          zone_meters.end_use.demand('cooling').sub_end_use('lighting_gain').first.vals[i] = heat_transfer_vectors['Zone Lights Convective Heating Energy'].to_a[i] + heat_transfer_vectors['Zone Lights Delayed Convective Heating Energy'].to_a[i]
+          zone_meters.end_use.demand('cooling').sub_end_use('equipment_gain').first.vals[i] = heat_transfer_vectors['Zone Equipment Instantaneous Convective Internal Gains'].to_a[i] + heat_transfer_vectors['Zone Equipment Delayed Convective Internal Gains'].to_a[i]
+          zone_meters.end_use.demand('cooling').sub_end_use('wall').first.vals[i] = heat_transfer_vectors['Zone Exterior Wall Convection Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('cooling').sub_end_use('foundation_wall').first.vals[i] = heat_transfer_vectors['Zone Exterior Foundation Wall Convection Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('cooling').sub_end_use('roof').first.vals[i] = heat_transfer_vectors['Zone Exterior Roof Convection Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('cooling').sub_end_use('floor').first.vals[i] = heat_transfer_vectors['Zone Exterior Floor Convection Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('cooling').sub_end_use('ground').first.vals[i] = heat_transfer_vectors['Zone Exterior Ground Convection Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('cooling').sub_end_use('windows_conduction').first.vals[i] = heat_transfer_vectors['Zone Exterior Window Convection Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('cooling').sub_end_use('doors_conduction').first.vals[i] = heat_transfer_vectors['Zone Exterior Door Convection Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('cooling').sub_end_use('windows_solar').first.vals[i] = heat_transfer_vectors['Zone Windows Radiation Heat Transfer Energy'].to_a[i]
           zone_meters.end_use.demand('cooling').sub_end_use('infiltration').first.vals[i] = heat_transfer_vectors['Zone Infiltration Gains'].to_a[i]
           zone_meters.end_use.demand('cooling').sub_end_use('ventilation').first.vals[i] = heat_transfer_vectors['Zone Ventilation Gains'].to_a[i]
-          zone_meters.end_use.demand('cooling').sub_end_use('people_gain').first.vals[i] = heat_transfer_vectors['Zone People Convective Heating Energy'].to_a[i]
-          zone_meters.end_use.demand('cooling').sub_end_use('equipment_gain').first.vals[i] = heat_transfer_vectors['Zone Equipment Internal Gains'].to_a[i]
-          zone_meters.end_use.demand('cooling').sub_end_use('lighting_gain').first.vals[i] = heat_transfer_vectors['Zone Lights Convective Heating Energy'].to_a[i]
-          zone_meters.end_use.demand('cooling').sub_end_use('other_gain').first.vals[i] = heat_transfer_vectors['Zone Other Convection Heat Transfer Energy'].to_a[i]
         else # hvac_energy_transfer == 0, floating
           # Heat transfer into/out of the zone at this time is not accounted for by HVAC energy
+          # Track total energy in and out to see how much load occurs during deadband times
+          zone_meters.end_use.demand('floating').sub_end_use('people_gain').first.vals[i] = heat_transfer_vectors['Zone People Convective Heating Energy'].to_a[i] + heat_transfer_vectors['Zone People Delayed Convective Heating Energy'].to_a[i]
+          zone_meters.end_use.demand('floating').sub_end_use('lighting_gain').first.vals[i] = heat_transfer_vectors['Zone Lights Convective Heating Energy'].to_a[i] + heat_transfer_vectors['Zone Lights Delayed Convective Heating Energy'].to_a[i]
+          zone_meters.end_use.demand('floating').sub_end_use('equipment_gain').first.vals[i] = heat_transfer_vectors['Zone Equipment Instantaneous Convective Internal Gains'].to_a[i] + heat_transfer_vectors['Zone Equipment Delayed Convective Internal Gains'].to_a[i]
+          zone_meters.end_use.demand('floating').sub_end_use('wall').first.vals[i] = heat_transfer_vectors['Zone Exterior Wall Convection Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('floating').sub_end_use('foundation_wall').first.vals[i] = heat_transfer_vectors['Zone Exterior Foundation Wall Convection Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('floating').sub_end_use('roof').first.vals[i] = heat_transfer_vectors['Zone Exterior Roof Convection Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('floating').sub_end_use('floor').first.vals[i] = heat_transfer_vectors['Zone Exterior Floor Convection Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('floating').sub_end_use('ground').first.vals[i] = heat_transfer_vectors['Zone Exterior Ground Convection Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('floating').sub_end_use('windows_conduction').first.vals[i] = heat_transfer_vectors['Zone Exterior Window Convection Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('floating').sub_end_use('doors_conduction').first.vals[i] = heat_transfer_vectors['Zone Exterior Door Convection Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('floating').sub_end_use('windows_solar').first.vals[i] = heat_transfer_vectors['Zone Windows Radiation Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('floating').sub_end_use('infiltration').first.vals[i] = heat_transfer_vectors['Zone Infiltration Gains'].to_a[i]
+          zone_meters.end_use.demand('floating').sub_end_use('ventilation').first.vals[i] = heat_transfer_vectors['Zone Ventilation Gains'].to_a[i]
         end
       end
 
@@ -265,6 +290,16 @@ class ScoutLoadsSummary < OpenStudio::Measure::ReportingMeasure
         end
       end
     end
+
+    # Report out total building load energy balance error metrics
+    debug_bldg_heat_transfer_vectors << ['Total Building Calculated Energy Balance'] + total_building_calculated_energy_balance.to_a
+    debug_bldg_heat_transfer_vectors << ['Total Building True Energy Balance'] + total_building_true_energy_balance.to_a
+    total_building_energy_balance_error = OsLib_HeatTransfer.ts_error_between_vectors(total_building_calculated_energy_balance, -1 * total_building_true_energy_balance, 4) # Reverse sign of one before comparing
+    total_building_energy_balance_annual_gain_error = OsLib_HeatTransfer.annual_heat_gain_error_between_vectors(total_building_calculated_energy_balance, -1 * total_building_true_energy_balance, 4) # Reverse sign of one before comparing
+    total_building_energy_balance_annual_loss_error = OsLib_HeatTransfer.annual_heat_loss_error_between_vectors(total_building_calculated_energy_balance, -1 * total_building_true_energy_balance, 4) # Reverse sign of one before comparing
+    runner.registerInfo("Building Annual Energy Balance Gain Error is #{total_building_energy_balance_annual_gain_error * 100}%, Annual Energy Balance Loss Error is #{total_building_energy_balance_annual_loss_error * 100}%")
+    runner.registerValue('building_annual_energy_balance_gain_error_pct', total_building_energy_balance_annual_gain_error * 100)
+    runner.registerValue('building_annual_energy_balance_loss_error_pct', total_building_energy_balance_annual_loss_error * 100)
 
     # Report supply side sub-end-use totals
     if enable_supply_side_reporting
@@ -315,8 +350,17 @@ class ScoutLoadsSummary < OpenStudio::Measure::ReportingMeasure
           csv << row
         end
       end
+
+      # Write zone vectors to file
+      CSV.open('./zone_timeseries_with_datetime_index.csv', 'w') do |csv|
+        debug_bldg_heat_transfer_vectors.transpose.each_with_index do |row,i|
+          i == 0 ? idx = 'datetime_index' : idx = start_dt + 3600.0 * (24.0 + (i.to_f/4))
+          row = row.unshift(idx)
+          csv << row
+        end
+      end
     else
-      runner.registerInfo("Timeseries reporting was not requested, therefore will not be outputted.")
+      runner.registerInfo("Timeseries data .csvs not requested.")
     end
 
     # Close the sql file
