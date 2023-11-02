@@ -155,7 +155,7 @@ class NamingMixin():
         'out.emissions.electricity.lrmer_95_decarb_by_2035_15_2023_start..co2e_kg'
     ]
 
-    #QOI COLS
+    # QOI COLS
     QOI_MAX_SHOULDER_HR = 'out.qoi.maximum_daily_timing_shoulder_hour..hr'
     QOI_MAX_SUMMER_HR = 'out.qoi.maximum_daily_timing_summer_hour..hr'
     QOI_MAX_WINTER_HR = 'out.qoi.maximum_daily_timing_winter_hour..hr'
@@ -436,6 +436,7 @@ class NamingMixin():
     COLOR_CBECS_2012 = '#009E73'
     COLOR_CBECS_2018 = '#16f0b4'
     COLOR_EIA = '#D55E00'
+    COLOR_AMI = '#CC79A7'
 
     # Define ordering for some categorical variables to make plots easier to interpret
     ORDERED_CATEGORIES = {

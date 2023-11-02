@@ -16,6 +16,7 @@ from comstockpostproc.naming_mixin import NamingMixin
 from comstockpostproc.units_mixin import UnitsMixin
 from comstockpostproc.cbecs import CBECS
 from comstockpostproc.eia import EIA
+from comstockpostproc.ami import AMI
 from comstockpostproc.gas_correction_model import GasCorrectionModelMixin
 from comstockpostproc.s3_utilities_mixin import S3UtilitiesMixin
 from buildstock_query import BuildStockQuery
