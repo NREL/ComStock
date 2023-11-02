@@ -1733,9 +1733,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Aggregate ComStock by state and month, combining all building types
         vals = ['Electricity consumption (kWh)', 'Natural gas consumption (thous Btu)']
+        cols_to_drop = ['building_type', 'total_site_electricity_kwh', 'total_site_gas_kbtu', 'Scaling Factor']
         idx = ['FIPS Code', 'Month']
-        monthly = monthly.group_by(idx).agg(monthly.select(vals).sum())
-
+        monthly = monthly.group_by(idx).sum().drop(cols_to_drop) 
+        
         # Add a dataset label column
         monthly = monthly.with_columns([
             pl.lit(self.dataset_name).alias(self.DATASET)
