@@ -630,7 +630,7 @@ results.csv,com_stock_sensitivity_reports.com_report_wwr,out.params.window_to_wa
 results.csv,com_stock_sensitivity_reports.com_report_zone_hvac_fan_power_minimum_flow_fraction,out.params.zone_hvac_fan_power_minimum_flow_fraction,TRUE,FALSE,float,,,Fan power minimum flow fraction for zone hvac equipment
 results.csv,com_stock_sensitivity_reports.com_report_zone_hvac_fan_static_pressure,out.params.zone_hvac_fan_static_pressure,TRUE,FALSE,float,pa,inwc,Fan static pressure in pascals for zone hvac equipment
 results.csv,com_stock_sensitivity_reports.com_report_zone_hvac_fan_total_efficiency,out.params.zone_hvac_fan_total_efficiency,TRUE,FALSE,float,,,Fan total efficiency for zone hvac equipment
-results.csv,com_stock_sensitivity_reports.com_report_number_of_zones,out.param.number_of_zones,TRUE,FALSE,integer,,,Number of ThermalZone objects in the building energy model
+results.csv,com_stock_sensitivity_reports.com_report_number_of_zones,out.params.number_of_zones,TRUE,FALSE,integer,,,Number of ThermalZone objects in the building energy model
 results.csv,com_stock_sensitivity_reports.com_report_number_of_spaces,out.params.number_of_spaces,TRUE,FALSE,integer,,,Number of Space objects in the building energy model
 results.csv,com_stock_sensitivity_reports.com_report_smallest_space_m2,out.params.smallest_space_floor_area,TRUE,FALSE,float,m2,m2,Smallest Space by floor area in the building energy model
 results.csv,com_stock_sensitivity_reports.com_report_number_of_surfaces,out.params.number_of_surfaces,TRUE,FALSE,integer,,,Number of Surface objects in the building energy model

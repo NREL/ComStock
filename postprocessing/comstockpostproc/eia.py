@@ -145,6 +145,8 @@ class EIA(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         file_path = os.path.join(self.truth_data_dir, file_name)
         gas_sales = pd.read_csv(file_path)
         gas_sales.rename(columns=lambda x: x.replace('(MMcf)', '').strip(), inplace=True)
+        # remove leading 'the ' from DC
+        gas_sales.rename(columns=lambda x: x.replace('the ', '').strip(), inplace=True)
         gas_sales_long = pd.melt(gas_sales, id_vars=['Year', 'Month'], var_name='State', value_name='Delivered Volume MMcf')
         gas_sales_long = gas_sales_long.set_index(['Year', 'Month', 'State'])
 
