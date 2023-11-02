@@ -16,6 +16,7 @@ def main():
         comstock_run_name='os_340_transition_10k_3',  # Name of the run on S3
         comstock_run_version='os_340_transition_10k_3',  # Use whatever you want to see in plot and folder names
         comstock_year=2018,  # Typically don't change this
+        athena_table_name=None,  # Typically don't change this
         truth_data_version='v01',  # Typically don't change this
         buildstock_csv_name='buildstock.csv',  # Download buildstock.csv manually
         acceptable_failure_percentage=0.025,  # Can increase this when testing and high failure are OK
