@@ -104,7 +104,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.upgrade_ids_to_skip = upgrade_ids_to_skip
         self.s3_client = boto3.client('s3')
         if self.athena_table_name is not None:
-            self.athena_client = BuildStockQuery('eulp','enduse', self.athena_table_name, skip_reports=True)
+            self.athena_client = BuildStockQuery(workgroup='eulp',db_name='enduse', table_name=self.athena_table_name, skip_reports=True)
         self.make_comparison_plots = make_comparison_plots
         logger.info(f'Creating {self.dataset_name}')
 
@@ -1668,9 +1668,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 FROM
                 (
                     SELECT
-                    EXTRACT(MONTH from "time") as "month",
+                    EXTRACT(MONTH from from_unixtime("time"/1e9)) as "month",
                     SUBSTRING("build_existing_model.county_id", 2, 2) AS "state_id",
-                    "build_existing_model.building_type" as "building_type",
+                    "build_existing_model.create_bar_from_building_type_ratios_bldg_type_a" as "building_type",
                     "total_site_gas_kbtu",
                     "total_site_electricity_kwh"
                     FROM
@@ -1695,7 +1695,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         #Rename Building_Types
         def rename_buildingtypes(building_type):
-            building_type = building_type.replace('_',' ').title().replace(' ', '')
+            building_type = building_type.replace('_',' ').replace(' ', '')
             return building_type
 
         comstock_unscaled = comstock_unscaled.with_columns(
