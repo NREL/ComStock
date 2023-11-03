@@ -23,6 +23,7 @@ import numpy as np
 import pandas as pd
 import polars as pl
 
+from scipy import stats
 from comstockpostproc.naming_mixin import NamingMixin
 from comstockpostproc.units_mixin import UnitsMixin
 from comstockpostproc.s3_utilities_mixin import S3UtilitiesMixin
@@ -32,7 +33,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class AMI(NamingMixin, UnitsMixin, S3UtilitiesMixin):
-    def __init__(self, truth_data_version, year, color_hex=NamingMixin.COLOR_AMI, reload_from_csv=False):
+    def __init__(self, truth_data_version, color_hex=NamingMixin.COLOR_AMI, reload_from_csv=False):
         """
         A class to produce calibration graphics based on utility AMI data from the EULP project.
         Args:
@@ -41,15 +42,12 @@ class AMI(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         """
 
         # Initialize members
-        self.Btu_to_kBtu = (1.0 / 1e3)
-        self.MWh_to_kWh = 1e3
         self.truth_data_version = truth_data_version
-        self.year = year
-        self.dataset_name = f'AMI {self.year}'
+        self.dataset_name = 'AMI'
         current_dir = os.path.dirname(os.path.abspath(__file__))
         self.truth_data_dir = os.path.join(current_dir, '..', 'truth_data', self.truth_data_version)
         self.output_dir = os.path.join(current_dir, '..', 'output', self.dataset_name)
-        self.monthly_data = None
+        self.data = None
         self.color = color_hex
         # run map to list qoi months and county ids in each region
         # 1 is Fort Collins, Colorado
@@ -129,14 +127,15 @@ class AMI(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         logger.info(f'Downloading {self.dataset_name}')
         self.download_truth_data()
         if reload_from_csv:
-            logger.info(f'download happened. do stuff here.')
-            # file_name = f'AMI wide.csv'
-            # file_path = os.path.join(self.output_dir, file_name)
-            # if not os.path.exists(file_path):
-            #      raise FileNotFoundError(
-            #         f'Cannot find {file_path} to reload data, set reload_from_csv=False to create CSV.')
-            # logger.info(f'Reloading from CSV: {file_path}')
-            # self.monthly_data = pd.read_csv(file_path, low_memory=False)
+            file_name = f'AMI long.csv'
+            file_path = os.path.join(self.output_dir, file_name)
+            if not os.path.exists(file_path):
+                 raise FileNotFoundError(
+                    f'Cannot find {file_path} to reload data, set reload_from_csv=False to create CSV.')
+            logger.info(f'Reloading from CSV: {file_path}')
+            self.data = pd.read_csv(file_path, low_memory=False)
+        else:
+            self.calculate_ami_aggregates()
 
     def download_truth_data(self):
         # AMI data
@@ -153,3 +152,102 @@ class AMI(NamingMixin, UnitsMixin, S3UtilitiesMixin):
                     else:
                         logger.warning(f'Missing data for building type {building_type} in region {region_source_name}.')
                         continue
+
+    def calculate_ami_aggregates(self):
+        all_ami_df = pd.DataFrame()
+        # load AMI data
+        for region_hash in self.ami_region_map:
+            region_source_name = region_hash['source_name']
+            lookup_name = str(region_hash['year']) + '_' + region_source_name + '_' + region_hash['filter_method']
+            ami_name = 'ami_' + lookup_name
+            ami_raw_df = pd.DataFrame()
+            for building_type in self.building_types:
+                file_name = lookup_name + '_' + building_type + '_kwh_per_sqft.csv'
+                file_path = os.path.join(self.truth_data_dir, file_name)
+                if not os.path.isfile(file_path):
+                    logger.warning(f'ami data for ' + file_name + ' does not exist.')
+                    continue
+
+                df = pd.read_csv(file_path, parse_dates=['timestamp'], index_col='timestamp')
+                df['building_type'] = building_type
+
+                # remove instances where the count of buildings in the timeseries is less than 30% of the max count
+                max_count = df['bldg_count'].max()
+                count_threshold = 0.3 * max_count
+                df = df[df['bldg_count'] > count_threshold]
+                ami_raw_df = pd.concat([ami_raw_df,df])
+
+            if ami_raw_df.empty:
+                logger.warning(f'no ami data for ' + region_source_name)
+                continue
+
+            # restrict to target year
+            target_year = region_hash['year']
+            ami_raw_df = ami_raw_df[ami_raw_df.index.year == target_year]
+            ami_raw_df = ami_raw_df[ami_raw_df.index.dayofyear != 366]
+            ami_raw_df['run'] = ami_name
+            ami_raw_df['enduse'] = 'total'
+
+            # compare against mean by square foot
+            ami_raw_df['kwh_per_sf'] = ami_raw_df['mean_by_sqft']
+
+            # drop other data
+            ami_raw_df = ami_raw_df[['kwh_per_sf', 'total_sqft', 'std_by_count', 'bldg_count', 'building_type', 'run', 'enduse']]
+
+            def calc_lci(row, confidence_interval):
+                ci = stats.t.interval(confidence_interval, row['bldg_count'] - 1, row['kwh_per_sf'], row['std_by_count'] / (row['bldg_count']**0.5))
+                return ci[0]
+
+            def calc_uci(row, confidence_interval):
+                ci = stats.t.interval(confidence_interval, row['bldg_count'] - 1, row['kwh_per_sf'], row['std_by_count'] / (row['bldg_count']**0.5))
+                return ci[1]
+
+            # calculate total kwh
+            temp_df = pd.DataFrame()
+            total_sf = 0.0
+            for building_type in self.building_types:
+                temp_sf = ami_raw_df[ami_raw_df['building_type'] == building_type]['total_sqft'].max()
+                total_sf = total_sf + temp_sf
+                type_df = ami_raw_df[ami_raw_df['building_type'] == building_type].copy()
+                if len(type_df['kwh_per_sf']) < 6000:
+                    continue
+                type_df['kwh'] = type_df['kwh_per_sf'] * temp_sf
+                type_df['lci_80'] = type_df.apply(lambda row: max(0, calc_lci(row, 0.8)), axis=1).values
+                type_df['uci_80'] = type_df.apply(lambda row: calc_uci(row, 0.8), axis=1).values
+                # type_df['sample_uncertainty'] = (type_df['std_by_count'] / (type_df['bldg_count']**0.5)) / type_df['kwh_per_sf']
+                type_df['sample_uncertainty'] = (type_df['uci_80'] / type_df['kwh_per_sf']) - 1
+                temp_df = pd.concat([temp_df, type_df])
+            ami_df = temp_df
+
+            # calculate the total
+            df = ami_df.groupby(['timestamp', 'run', 'enduse']).sum().reset_index().set_index('timestamp')
+            df = df.drop(['kwh_per_sf'], axis=1)
+            df['kwh_per_sf'] = df['kwh'] / total_sf
+            df['lci_80'] = df.apply(lambda row: calc_lci(row, 0.8), axis=1).values
+            df['uci_80'] = df.apply(lambda row: calc_uci(row, 0.8), axis=1).values
+            ### sum std_by_count is divided by total number of buildings to weight them, canceling the sqrt
+            # df['sample_uncertainty'] = (df['std_by_count'] / df['bldg_count']) / df['kwh_per_sf']
+            df['sample_uncertainty'] = (df['uci_80'] / df['kwh_per_sf']) -1
+            df['building_type'] = 'total'
+
+            # save out total aggregated
+            # data_path = os.path.join('data', 'aggregated_dataset', ami_name + '_agg.csv')
+            # df.to_csv(data_path, index=True)
+
+            # add the total data to the AMI
+            ami_df = pd.concat([ami_df, df])
+
+            # drop other data
+            ami_df = ami_df[['kwh_per_sf', 'bldg_count', 'building_type', 'run', 'enduse', 'sample_uncertainty']]
+
+            # save out long data format
+            logger.info(f'Saving data for region {region_source_name}.')
+            print(f'Saving data for region {region_source_name}.')
+            data_path = os.path.join(self.output_dir, ami_name + '_agg_long.csv')
+            ami_df.to_csv(data_path, index=True)
+            all_ami_df = pd.concat([all_ami_df, ami_df])
+        
+        data_path = os.path.join(self.output_dir, 'AMI long.csv')
+        all_ami_df.to_csv(data_path, index=True)
+        self.data = all_ami_df
+        return all_ami_df
