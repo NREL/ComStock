@@ -1,6 +1,6 @@
 \section{Lighting}
 \subsection{Interior Lighting}
-Interior lighting follows a technology baseline approach, meaning that energy consumed by lighting is set by an assumed distribution of a particular lighting technology (e.g., T8 or linear LEDs), rather than following a lighting power density (LPD) allowance defined in a specific energy code version. The technology baseline approach recognizes that buildings typically do not use their full lighting power allowance. It also explicitly labels lighting technology and subsystems in the energy model for granular energy efficiency measure analysis.  
+Interior lighting follows a technology baseline approach, meaning that energy consumed by lighting is set by an assumed distribution of a particular lighting technology (e.g., T8 or linear LEDs), rather than following a lighting power density (LPD) allowance defined in a specific energy code version. The technology baseline approach recognizes that buildings typically do not use their full lighting power allowance. It also explicitly labels lighting technology and subsystems in the energy model for granular energy efficiency measure analysis.
 
 Two components specify interior lighting: the lighting power density and the interior lighting schedule.  The lighting power density is determined by the distribution of lighting technologies in the stock, the lighting technology properties, and the space type properties. The lighting schedule is determined by a default lighting schedule by space type, occupancy hour adjustments, and magnitude variability.
 
@@ -24,13 +24,13 @@ where:\\
 \item \textbf{LLF} is the lighting loss factor, where LLF  = luminaire dirt depreciation (LDD) * lamp lumen depreciation (LLD)\\
 \end{itemize}
 
-Values for all these terms are specified in the LSM.  The LSM is exact, using a specific lighting product, room geometry, distribution of lighting systems, and other properties to determine the lighting power density allowance for a given space type. ComStock differs from the LSM in several important ways. 
+Values for all these terms are specified in the LSM.  The LSM is exact, using a specific lighting product, room geometry, distribution of lighting systems, and other properties to determine the lighting power density allowance for a given space type. ComStock differs from the LSM in several important ways.
 
 First, ComStock generalizes lighting technology (e.g., T8 linear fluorescent luminaires for general lighting) rather than modeling a specific lighting product.  Source efficacy, lighting loss properties, and radiant fractions are tied to lighting technology. Source efficacy values come from \cite{doe2015lmc} for older lighting technologies and \cite{doe2019ssl} for LEDs.  Radiant heat gain fractions come from \cite{ashrae_rp1282} for older lighting technologies and \cite{ashrae_rp1681} for LEDs.
 
 Second, lighting technologies are broken out into lighting generations depending on the most common space lighting technology in that generation, as general lighting accounts for most ($\sim$80\%--90\%) of total lighting. High bay is treated as general lighting, and the lighting measure uses the general high bay technology for rooms with height $\ge$20 ft. Lighting generations 4--8 are all LED, with improving efficacy over time. Lighting generations and their technologies are detailed in Table \ref{tab:int_light_gens}, and lighting technology properties are detailed in Table~\ref{tab:int_light_techs_all}.
 
-Third, the coefficient of utilization depends on both the luminaire properties and the room geometry, which complicates the calculation in the LSM. The ComStock model associates the coefficient of utilization entirely with room propertiesthat are independent of lighting technology.  ComStock further assumes that rooms of the same space type have similar enough properties that they can use the same coefficient of utilization. To retain some of the variation from the luminaire properties, each kind of lighting system has a different coefficient of utilization for each space type. 
+Third, the coefficient of utilization depends on both the luminaire properties and the room geometry, which complicates the calculation in the LSM. The ComStock model associates the coefficient of utilization entirely with room propertiesthat are independent of lighting technology.  ComStock further assumes that rooms of the same space type have similar enough properties that they can use the same coefficient of utilization. To retain some of the variation from the luminaire properties, each kind of lighting system has a different coefficient of utilization for each space type.
 
 Table~\ref{tab:int_light_space_types} in Appendix~\ref{appendix:a} details the target horizontal illuminance value, the fraction of the target illuminance met by the kind of lighting system, and the lighting system coefficient of utilization for each lighting space type. Lighting space types are defined in 90.1 and are determined based on a mapping of openstudio-standards space types to prototype lighting space types.
 
@@ -110,7 +110,7 @@ Figure \ref{fig:ltg_btype_dist} provides a breakdown of lighting generation dist
 \pagebreak
 
 \subsubsection{Default Interior Lighting Schedules}
-Default interior lighting schedules come from the openstudio-standards DOE prototype building models \citep{deru_2011}.  The End-Use Load Profiles project derived new default lighting schedules for restaurant, retail, education, office, and warehouse buildings, detailed in Section 3.3.1 of the EULP report: ``Interior Lighting Schedules'' \citep{eulp_method_2022}. A full list of default ComStock schedules is available as a  \href{https://github.com/NREL/openstudio-standards/blob/master/lib/openstudio-standards/standards/ashrae_90_1/ashrae_90_1_2013/comstock_ashrae_90_1_2013/data/ashrae_90_1.schedules.json}{schedules .json file} on the openstudio-standards GitHub repository.
+Default interior lighting schedules come from the openstudio-standards DOE prototype building models \citep{deru_2011}.  The End-Use Load Profiles project derived new default lighting schedules for restaurant, retail, education, office, and warehouse buildings, detailed in Section 3.3.1 of the EULP report: ``Interior Lighting Schedules'' \citep{eulp_final_report}. A full list of default ComStock schedules is available as a  \href{https://github.com/NREL/openstudio-standards/blob/master/lib/openstudio-standards/standards/ashrae_90_1/ashrae_90_1_2013/comstock_ashrae_90_1_2013/data/ashrae_90_1.schedules.json}{schedules .json file} on the openstudio-standards GitHub repository.
 
 Additional changes to default schedules include:
 
@@ -124,7 +124,7 @@ Additional changes to default schedules include:
 Interior lighting schedules are adjusted to correspond with the building's operating hours, as described in Section \ref{sec:hoo}.
 
 \subsubsection{Interior Lighting Schedule Magnitude Variability}
-Section 3.3.4 in the End-Use Load Profiles project report, ``Interior Lighting Schedule Magnitude Variability'' \citep{eulp_method_2022}, details the derivation of base-to-peak values applied to the default lighting schedules.
+Section 3.3.4 in the End-Use Load Profiles project report, ``Interior Lighting Schedule Magnitude Variability'' \citep{eulp_final_report}, details the derivation of base-to-peak values applied to the default lighting schedules.
 
 Figure \ref{fig:ltg_bpr} shows the distribution of base-to-peak ratios (BPRs) in the stock by building type for weekdays and weekends.  Note that this methodology was not applied to hospital, outpatient, small and large hotel, and warehouse building types, due to a lack of data.
 
