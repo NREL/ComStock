@@ -28,7 +28,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
 
     return args
   end
-  
+
   # Define the main method that will be called by the OpenStudio application
   def run(model, runner, user_arguments)
     super(model, runner, user_arguments)
@@ -38,7 +38,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     std = Standard.build(template)
     # get climate zone value
     climate_zone = std.model_standards_climate_zone(model)
-  
+
     # determine if the air loop is residential (checks to see if there is outdoor air system object)
     # measure will be applicable to residential AC/residential furnace systems
     def air_loop_res?(air_loop_hvac)
@@ -92,7 +92,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     puts "air loops = #{all_air_loops}"
     if all_air_loops.empty?
       runner.registerInfo("Model does not have any air loops. Get list of PTAC, PTHP, Unit Heater, or Baseboard Electric equipment to delete.")
-      
+
       # check for PTAC units and add to array of zone equipment to delete
       model.getThermalZones.each do |thermal_zone|
         thermal_zone.equipment.each do |equip|
@@ -354,7 +354,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
       fan.setFanEfficiency(0.63) # from PNNL
       fan.setPressureRise(50.0) #Pascal
       fan.setMotorEfficiency(0.29)
-      
+
       # Create a new water-to-air ground source heat pump system
       unitary_system = OpenStudio::Model::AirLoopHVACUnitarySystem.new(model)
       unitary_system.setControlType('Setpoint')
@@ -363,15 +363,19 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
       unitary_system.setControllingZoneorThermostatLocation(thermal_zone)
       unitary_system.setSupplyFan(fan)
       unitary_system.setFanPlacement('DrawThrough')
-      unitary_system.setSupplyAirFlowRateMethodDuringCoolingOperation('SupplyAirFlowRate')
-      unitary_system.setSupplyAirFlowRateMethodDuringHeatingOperation('SupplyAirFlowRate')
+      if model.version < OpenStudio::VersionString.new('3.7.0')
+        unitary_system.setSupplyAirFlowRateMethodDuringCoolingOperation('SupplyAirFlowRate')
+        unitary_system.setSupplyAirFlowRateMethodDuringHeatingOperation('SupplyAirFlowRate')
+        unitary_system.setSupplyAirFlowRateMethodWhenNoCoolingorHeatingisRequired('SupplyAirFlowRate')
+      else
+        unitary_system.autosizeSupplyAirFlowRateDuringCoolingOperation
+        unitary_system.autosizeSupplyAirFlowRateDuringHeatingOperation
+        unitary_system.autosizeSupplyAirFlowRateWhenNoCoolingorHeatingisRequired
+      end
       unitary_system.setSupplyAirFanOperatingModeSchedule(model.alwaysOnDiscreteSchedule)
       unitary_system.setMaximumOutdoorDryBulbTemperatureforSupplementalHeaterOperation(OpenStudio.convert(40.0, 'F', 'C').get)
       unitary_system.setName("#{thermal_zone.name} Unitary HP")
       unitary_system.setMaximumSupplyAirTemperature(40.0)
-      unitary_system.setSupplyAirFlowRateMethodDuringCoolingOperation('SupplyAirFlowRate')
-      unitary_system.setSupplyAirFlowRateMethodDuringHeatingOperation('SupplyAirFlowRate')
-      unitary_system.setSupplyAirFlowRateMethodWhenNoCoolingorHeatingisRequired('SupplyAirFlowRate')
       unitary_system.addToNode(air_loop_hvac.supplyOutletNode)
 
       # create a diffuser and attach the zone/diffuser pair to the air loop
@@ -379,7 +383,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
       diffuser.setName("#{air_loop_hvac.name} Diffuser")
       air_loop_hvac.multiAddBranchForZone(thermal_zone, diffuser.to_HVACComponent.get)
 
-      # make outdoor air fraction for constant 15% 
+      # make outdoor air fraction for constant 15%
       pct_oa = OpenStudio::Model::ScheduleConstant.new(model)
       pct_oa.setName('Outdoor Air Fraction 15%')
       pct_oa.setValue(0.15)
@@ -436,7 +440,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
       #get outlet node of preheat coil to place setpoint manager
       preheat_sm_location = preheat_coil.outletModelObject.get.to_Node.get
       preheat_coil_setpoint_manager.addToNode(preheat_sm_location)
-    end 
+    end
 
     # add output variable for GHEDesigner
     reporting_frequency = 'Hourly'
