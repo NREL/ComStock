@@ -264,7 +264,7 @@ Figure~\ref{fig:economizer_prevalence} shows the comparison of economizer covera
 
 \begin{figure}
   \centering \includegraphics[width=0.7\textwidth]{figures/economizer_prevalence.png}
-  \caption{Economizer floor area coverage comparing ComStock with CBECS 2018.}
+  \caption{Economizer floor area coverage comparing ComStock (left) with CBECS 2018 (right).}
   \label{fig:economizer_prevalence}
 \end{figure}
 
@@ -304,7 +304,7 @@ Figure~\ref{fig:econ_damper_fault_single_model} shows example simulation results
   \label{fig:econ_damper_fault_single_model}
 \end{figure}
 
-Although faults (e.g., damper fully closed) are implemented with fixed prevalence (e.g., 35\%), the actual percentage of economizers being faulted (among applicable economizers) is less than the defined prevalence due to implementation limitations. For example, 35\% of randomly selected buildings that include certain HVAC system types (categorized by the air system) are assigned the damper fully closed fault. However, certain portions of these air systems do not have economizers, thus, they cannot have an economizer fault. In other words, the current limitation is that the random selection of faulted economizers is not fully aligned with buildings that actually have economizers. In these cases, we are losing the opportunity for applying faults and decreasing the representation of fault prevalence in final building stock. Additional to sampling limitations, another limitation is that the economizer faults are currently not applied to packaged single zone systems due to incorrect applicability implementation. Newer versions of California's Title 24 energy code requires fault detection and diagnostics (FDD) for economizers which should prevent and mitigate faults. However, ComStock does not reflect the impact of FDD technology, possibly overestimating the impact of faults in buildings with newer HVAC systems in California.
+Although faults (e.g., damper fully closed) are implemented with fixed prevalence (e.g., 35\%), the actual percentage of economizers being faulted (among applicable economizers) is less than the defined prevalence due to implementation limitations. For example, 35\% of randomly selected buildings that include certain HVAC system types (categorized by the air system) are assigned the damper fully closed fault. However, certain portions of these air systems do not have economizers, thus, they cannot have an economizer fault. In other words, the current limitation is that the random selection of faulted economizers is not fully aligned with buildings that actually have economizers. In these cases, we are losing the opportunity for applying faults and decreasing the representation of fault prevalence in final building stock. Newer versions of California's Title 24 energy code requires fault detection and diagnostics (FDD) for economizers which should prevent and mitigate faults. However, ComStock does not reflect the impact of FDD technology, possibly overestimating the impact of faults in buildings with newer HVAC systems in California.
 
 \subsection{Furnaces}
 
