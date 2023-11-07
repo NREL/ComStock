@@ -98,6 +98,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.monthly_data = None
         self.monthly_data_gap = None
         self.color = color_hex
+        self.building_type_weights = None
         self.weighted_energy_units = weighted_energy_units
         self.weighted_ghg_units = weighted_ghg_units
         self.skip_missing_columns = skip_missing_columns
@@ -1388,6 +1389,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # }
 
         # Assign scaling factors to each ComStock run
+        self.building_type_weights = bldg_type_scale_factors
         self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).map_dict(bldg_type_scale_factors)).alias(self.BLDG_WEIGHT))
 
         # Apply the weight to scale the area and energy columns
