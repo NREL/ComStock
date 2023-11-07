@@ -45,10 +45,6 @@ require 'minitest/autorun'
 require_relative '../measure.rb'
 
 class HVACEconomizer_Test < Minitest::Test
-  # all tests are a sub definition of this class, e.g.:
-  # def test_new_kind_of_test
-  #   # test content
-  # end
 
   def test_number_of_arguments_and_argument_names
     # this test ensures that the current test is matched to the measure inputs
