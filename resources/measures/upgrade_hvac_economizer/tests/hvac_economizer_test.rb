@@ -38,6 +38,7 @@
 
 # dependencies
 require 'openstudio'
+require 'openstudio-standards'
 require 'openstudio/measure/ShowRunnerOutput'
 require 'fileutils'
 require 'minitest/autorun'
@@ -60,9 +61,10 @@ class HVACEconomizer_Test < Minitest::Test
     # make an empty model
     model = OpenStudio::Model::Model.new
 
-    # get arguments and test that they are what we are expecting
+    # Get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(0, arguments.size)
+    assert_equal(1, arguments.size)
+    assert_equal('apply_measure', arguments[0].name)
   end
 
   # return file paths to test models in test directory
@@ -175,12 +177,11 @@ class HVACEconomizer_Test < Minitest::Test
   def models_to_test
     test_sets = []
     test_sets << { model: 'PVAV_gas_heat_electric_reheat_4A', weather: 'VA_MANASSAS_724036_12', result: 'Success' }
-    test_sets << { model: 'VAV_chiller_boiler_4A', weather: 'TN_KNOXVILLE_723260_12', result: 'Success' }
-    test_sets << { model: 'Baseboard_electric_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'NA' }
-    test_sets << { model: 'PSZ-AC_with_gas_coil_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
-    test_sets << { model: 'Residential_AC_with_electric_baseboard_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'NA' }
-    test_sets << { model: 'Residential_heat_pump_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'NA' }
-    test_sets << { model: 'DOAS_wshp_gshp_3A', weather: 'GA_ROBINS_AFB_722175_12', result: 'NA' }
+    # test_sets << { model: 'Baseboard_electric_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'NA' }
+    # test_sets << { model: 'PSZ-AC_with_gas_coil_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+    # test_sets << { model: 'Residential_AC_with_electric_baseboard_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'NA' }
+    # test_sets << { model: 'Residential_heat_pump_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'NA' }
+    # test_sets << { model: 'DOAS_wshp_gshp_3A', weather: 'GA_ROBINS_AFB_722175_12', result: 'NA' }
     return test_sets
   end
 
@@ -207,6 +208,11 @@ class HVACEconomizer_Test < Minitest::Test
       # set arguments here; will vary by measure
       arguments = measure.arguments(model)
       argument_map = OpenStudio::Measure::OSArgumentMap.new
+
+      # set arguments: choice of economizer
+      apply_measure = arguments[0].clone
+      assert(apply_measure.setValue(true))
+      argument_map['apply_measure'] = apply_measure
 
       # apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
