@@ -16,8 +16,8 @@ This pull request makes changes to (select all the apply):
  - [ ] Reporting Measures
  - [ ] Postprocessing
 
+Author pull request checklist:
 <!--- Add to this list or remove from it as applicable.  This is a simple templated set of guidelines. -->
-
  - [ ] Tagged the pull request with the appropriate label (documentation, infrastructure, sampling, workflow measure, upgrade measure, reporting measure, postprocessing) to help categorize changes in the release notes.
  - [ ] Added tests for new measures
  - [ ] Updated measure .xml(s)
