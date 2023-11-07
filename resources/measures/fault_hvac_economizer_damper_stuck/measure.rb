@@ -196,18 +196,6 @@ class FaultHvacEconomizerDamperStuck < OpenStudio::Ruleset::ModelUserScript
         next
       end
 
-      is_unitary = false
-      air_loop_hvac.supplyComponents.each do |sc|
-        if sc.to_AirLoopHVACUnitarySystem.is_initialized
-          is_unitary = true
-        end
-      end
-
-      if is_unitary
-        runner.registerInfo("Air loop #{air_loop_hvac.name} is a unitary system cannot economize.")
-        next
-      end
-
       sizing_system = air_loop_hvac.sizingSystem
       type_of_load = sizing_system.typeofLoadtoSizeOn
       if type_of_load == 'VentilationRequirement'
