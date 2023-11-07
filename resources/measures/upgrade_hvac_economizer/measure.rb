@@ -76,14 +76,14 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
     super(model, runner, user_arguments)
 
     # ----------------------------------------------------
-    puts("### use the built-in error checking ")
+    # puts("### use the built-in error checking ")
     # ----------------------------------------------------
     if !runner.validateUserArguments(arguments(model), user_arguments)
       return false
     end
 
     # ----------------------------------------------------
-    puts("### obtain user inputs")
+    # puts("### obtain user inputs")
     # ----------------------------------------------------
     apply_measure = runner.getBoolArgumentValue('apply_measure', user_arguments)
 
@@ -116,7 +116,7 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
     # ov_coil_cooling.setVariableName("Cooling Coil Total Cooling Rate")
 
     # ----------------------------------------------------
-    puts("### applicability")
+    # puts("### applicability")
     # ---------------------------------------------------- 
     # don't apply measure if specified in input
     if apply_measure == false
@@ -162,39 +162,111 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
     end
 
     # ----------------------------------------------------
-    puts("### initialization")
+    # puts("### initialization")
     # ----------------------------------------------------
     runner.registerInitialCondition("Out of #{model.getAirLoopHVACs.size} air loops, #{no_outdoor_air_loops} do not have outdoor air, #{doas_loops} are DOAS systems, and #{existing_economizer_loops} have existing economizers, leaving #{selected_air_loops.size} eligible for an economizer.")
 
     # ----------------------------------------------------
-    puts("### implement economizers")
+    # puts("### implement economizers")
     # ----------------------------------------------------
     # build standard to access methods
     template = 'ComStock 90.1-2019'
     std = Standard.build(template)
 
-    added_economizers = 0
-    total_cooling_capacity_w = 0
-    selected_air_loops.each do |air_loop_hvac|
-      # determine climate zone for economizer type
-      climate_zone = std.model_standards_climate_zone(model)
-      if climate_zone.empty?
-        runner.registerError('Unable to determine climate zone for model. Cannot apply economizing without climate zone information.')
-      else
-        climate_zone = std.model_find_climate_zone_set(model, climate_zone)
-        runner.registerInfo("Setting economizer based on model climate zone #{climate_zone}")
-      end
-
-      std.air_loop_hvac_apply_prm_baseline_economizer(air_loop_hvac, climate_zone)
-      added_economizers += 1
-      total_cooling_capacity_w += std.air_loop_hvac_total_cooling_capacity(air_loop_hvac)
+    # get climate zone
+    climate_zone = std.model_standards_climate_zone(model)
+    runner.registerInfo("initial read of climate zone = #{climate_zone}")
+    if climate_zone.empty?
+      runner.registerError('Unable to determine climate zone for model. Cannot apply economizer without climate zone information.')
     end
 
-    total_cooling_capacity_btuh = OpenStudio.convert(total_cooling_capacity_w, 'W', 'Btu/hr').get
-    total_cooling_capacity_tons = total_cooling_capacity_btuh / 12_000
+    # check climate zone name validity
+    # this happens to example model but maybe not during ComStock model creation?
+    substring_count = climate_zone.scan(/ASHRAE 169-2013-/).length
+    if substring_count > 1
+      runner.registerInfo("climate zone name includes repeated substring of 'ASHRAE 169-2013-'")
+      climate_zone = climate_zone.sub(/ASHRAE 169-2013-/, '')
+      runner.registerInfo("revised climate zone name = #{climate_zone}")
+    end
+
+    # determine economizer type
+    economizer_type = std.model_economizer_type(model, climate_zone)
+    runner.registerInfo("economizer type for the climate zone = #{economizer_type}")
+
+    # add economizer to selected airloops
+    added_economizers = 0
+    selected_air_loops.each do |air_loop_hvac|
+
+      # get airLoopHVACOutdoorAirSystem
+      oa_sys = air_loop_hvac.airLoopHVACOutdoorAirSystem
+      if oa_sys.is_initialized
+        oa_sys = oa_sys.get
+      else
+        OpenStudio.logFree(OpenStudio::Error, 'openstudio.prototype.Model', "#{air_loop.name} is required to have an economizer, but it has no OA system.")
+        next
+      end
+
+      # get controller:outdoorair
+      oa_control = oa_sys.getControllerOutdoorAir
+      # puts("--- adding economizer to controller:outdoorair = #{oa_control.name}")
+
+      # change/check settings: control type
+      # puts("--- economizer control type before: #{oa_control.getEconomizerControlType}")
+      if oa_control.getEconomizerControlType != economizer_type
+        oa_control.setEconomizerControlType(economizer_type)
+      end
+      # puts("--- economizer control type new: #{oa_control.getEconomizerControlType}")
+
+      # get economizer limits
+      limits = std.air_loop_hvac_economizer_limits(air_loop_hvac, climate_zone)
+      # puts("--- economizer limits [db max|enthal max|dewpoint max] for the climate zone = #{limits}")
+
+      # implement limits for each control type
+      case economizer_type
+      when 'FixedDryBulb'
+        if oa_control.getEconomizerMaximumLimitDryBulbTemperature.is_initialized
+          puts("--- economizer limit for #{economizer_type} before: #{oa_control.getEconomizerMaximumLimitDryBulbTemperature.get}")
+        end
+        oa_control.resetEconomizerMaximumLimitDryBulbTemperature
+        oa_control.setEconomizerMaximumLimitDryBulbTemperature(limits[0])
+        # puts("--- economizer limit for #{economizer_type} new: #{oa_control.getEconomizerMaximumLimitDryBulbTemperature.get}")
+      when 'FixedEnthalpy'
+        if oa_control.getEconomizerMaximumLimitEnthalpy.is_initialized
+          puts("--- economizer limit for #{economizer_type} before: #{oa_control.getEconomizerMaximumLimitEnthalpy.get}")
+        end
+        oa_control.resetEconomizerMaximumLimitEnthalpy
+        oa_control.setEconomizerMaximumLimitEnthalpy(limits[1])
+        # puts("--- economizer limit for #{economizer_type} new: #{oa_control.getEconomizerMaximumLimitEnthalpy.get}")
+      when 'FixedDewPointAndDryBulb'
+        if oa_control.getEconomizerMaximumLimitDewpointTemperature.is_initialized
+          puts("--- economizer limit for #{economizer_type} before: #{oa_control.getEconomizerMaximumLimitDewpointTemperature.get}")
+        end
+        drybulb_limit_f = 75
+        dewpoint_limit_f = 55
+        oa_control.resetEconomizerMaximumLimitDryBulbTemperature
+        oa_control.resetEconomizerMaximumLimitDewpointTemperature
+        oa_control.setEconomizerMaximumLimitDryBulbTemperature(drybulb_limit_f)
+        oa_control.setEconomizerMaximumLimitDewpointTemperature(dewpoint_limit_f)
+        # puts("--- economizer limit for #{economizer_type} new: #{oa_control.getEconomizerMaximumLimitDryBulbTemperature.get}")
+        # puts("--- economizer limit for #{economizer_type} new: #{oa_control.getEconomizerMaximumLimitDewpointTemperature.get}")
+      end
+
+      # change/check settings: lockout type
+      # puts("--- economizer lockout type before: #{oa_control.getLockoutType}")
+      if oa_control.getLockoutType != "LockoutWithHeating"
+        oa_control.setLockoutType("LockoutWithHeating") # integrated economizer
+      end
+      # puts("--- economizer lockout type new: #{oa_control.getLockoutType}")
+
+      # calc statistics
+      added_economizers += 1
+    end
+
+    # ----------------------------------------------------
+    # puts("### report final condition")
+    # ----------------------------------------------------
     # report final condition of model
-    runner.registerValue('hvac_economizer_cooling_load_in_tons', total_cooling_capacity_tons)
-    runner.registerFinalCondition("Added #{added_economizers} to the model with #{total_cooling_capacity_tons.round(1)} tons of total cooling capacity.")
+    runner.registerFinalCondition("Added #{added_economizers} to the model.")
 
     return true
   end
