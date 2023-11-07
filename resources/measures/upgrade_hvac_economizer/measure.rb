@@ -218,7 +218,7 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
       # puts("--- economizer control type new: #{oa_control.getEconomizerControlType}")
 
       # get economizer limits
-      limits = std.air_loop_hvac_economizer_limits(air_loop_hvac, climate_zone)
+      limits = std.air_loop_hvac_economizer_limits(air_loop_hvac, climate_zone) # in IP unit
       # puts("--- economizer limits [db max|enthal max|dewpoint max] for the climate zone = #{limits}")
 
       # implement limits for each control type
@@ -227,15 +227,17 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
         if oa_control.getEconomizerMaximumLimitDryBulbTemperature.is_initialized
           puts("--- economizer limit for #{economizer_type} before: #{oa_control.getEconomizerMaximumLimitDryBulbTemperature.get}")
         end
+        drybulb_limit_c = OpenStudio.convert(limits[0], 'F', 'C').get
         oa_control.resetEconomizerMaximumLimitDryBulbTemperature
-        oa_control.setEconomizerMaximumLimitDryBulbTemperature(limits[0])
+        oa_control.setEconomizerMaximumLimitDryBulbTemperature(drybulb_limit_c)
         # puts("--- economizer limit for #{economizer_type} new: #{oa_control.getEconomizerMaximumLimitDryBulbTemperature.get}")
       when 'FixedEnthalpy'
         if oa_control.getEconomizerMaximumLimitEnthalpy.is_initialized
           puts("--- economizer limit for #{economizer_type} before: #{oa_control.getEconomizerMaximumLimitEnthalpy.get}")
         end
+        enthalpy_limit_j_per_kg = OpenStudio.convert(limits[1], 'Btu/lb', 'J/kg').get
         oa_control.resetEconomizerMaximumLimitEnthalpy
-        oa_control.setEconomizerMaximumLimitEnthalpy(limits[1])
+        oa_control.setEconomizerMaximumLimitEnthalpy(enthalpy_limit_j_per_kg)
         # puts("--- economizer limit for #{economizer_type} new: #{oa_control.getEconomizerMaximumLimitEnthalpy.get}")
       when 'FixedDewPointAndDryBulb'
         if oa_control.getEconomizerMaximumLimitDewpointTemperature.is_initialized
@@ -243,12 +245,14 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
         end
         drybulb_limit_f = 75
         dewpoint_limit_f = 55
+        drybulb_limit_c = OpenStudio.convert(drybulb_limit_f, 'F', 'C').get
+        dewpoint_limit_c = OpenStudio.convert(dewpoint_limit_f, 'F', 'C').get
         oa_control.resetEconomizerMaximumLimitDryBulbTemperature
         oa_control.resetEconomizerMaximumLimitDewpointTemperature
-        oa_control.setEconomizerMaximumLimitDryBulbTemperature(drybulb_limit_f)
-        oa_control.setEconomizerMaximumLimitDewpointTemperature(dewpoint_limit_f)
-        # puts("--- economizer limit for #{economizer_type} new: #{oa_control.getEconomizerMaximumLimitDryBulbTemperature.get}")
-        # puts("--- economizer limit for #{economizer_type} new: #{oa_control.getEconomizerMaximumLimitDewpointTemperature.get}")
+        oa_control.setEconomizerMaximumLimitDryBulbTemperature(drybulb_limit_c)
+        oa_control.setEconomizerMaximumLimitDewpointTemperature(dewpoint_limit_c)
+        # puts("--- economizer limit (max db T) for #{economizer_type} new: #{oa_control.getEconomizerMaximumLimitDryBulbTemperature.get}")
+        # puts("--- economizer limit (max dp T) for #{economizer_type} new: #{oa_control.getEconomizerMaximumLimitDewpointTemperature.get}")
       end
 
       # change/check settings: lockout type
