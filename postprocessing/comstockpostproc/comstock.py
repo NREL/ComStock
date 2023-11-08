@@ -231,6 +231,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             s3_file_path = f'truth_data/{self.truth_data_version}/EPA/CEJST/{self.cejst_file_name}'
             self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
 
+    def download_timeseries_data_for_ami_comparison(self, ami):
+        for region in ami.ami_region_map:
+            ts_agg = self.athena_client.agg.aggregate_timeseries(enduses=['total_site_electricity_kwh'],
+                                                                 group_by=['build_existing_model.building_type', 'build_existing_model.county_id', 'time'],
+                                                                 restrict=[('build_existing_model.county_id', region['county_ids'])])
+            file_path = os.path.join(self.output_dir, region['source_name'] + '_total_timeseries.csv')
+            ts_agg.to_csv(file_path, index=False)
+
     def reduce_df_memory(self, df):
         logger.debug(f'Memory before reduce_df_memory: {df.estimated_size()}')
         # Set dtypes to reduce in-memory size
