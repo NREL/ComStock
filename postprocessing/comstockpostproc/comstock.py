@@ -474,12 +474,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         elif 'Building' in headers:
             col_def_names.append('Building')  # Newer buildstockbatch versions, used for join only
 
+        cols_to_keep = []
         for c in col_def_names:
-            if not c in headers:
-                logger.warning(f'Column {c} requested but not found in buildstock.csv')
-                col_def_names.remove(c)
+            if c in headers:
+                cols_to_keep.append(c)
+            else:
+                logger.warning(f'Column {c} requested but not found in buildstock.csv, removing from col_def_names')
 
-        buildstock = pl.read_csv(buildstock_csv_path, columns=col_def_names, infer_schema_length=10000)
+        buildstock = pl.read_csv(buildstock_csv_path, columns=cols_to_keep, infer_schema_length=10000)
 
         # For backwards compatibility
         buildstock = buildstock.rename({'Building': 'sample_building_id'})
