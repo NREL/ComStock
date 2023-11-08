@@ -768,6 +768,7 @@ class PlottingMixin():
                         g = sns.catplot(
                             data=bldg_type_ts_df,
                             y=column_for_grouping,
+                            hue=column_for_grouping,
                             x=col,
                             order=list(color_map.keys()),
                             palette=color_map.values(),
@@ -779,7 +780,8 @@ class PlottingMixin():
                                 "markerfacecolor":"yellow",
                                 "markeredgecolor":"black",
                                 "markersize":"8"
-                            }
+                            },
+                            legend=False
                         )
                     else:
                         # With group-by
