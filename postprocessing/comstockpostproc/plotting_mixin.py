@@ -32,7 +32,7 @@ class PlottingMixin():
         for applicable_scenario in ['stock', 'applicable_only']:
 
             df_scen = df.copy()
-            
+
 
             if applicable_scenario == 'applicable_only':
                 applic_bldgs = df_scen.loc[(df_scen[self.UPGRADE_NAME]!='Baseline') & (df_scen['applicability']==True), self.BLDG_ID]
@@ -315,13 +315,15 @@ class PlottingMixin():
                     g = sns.catplot(
                         data=df,
                         x=column_for_grouping,
+                        hue=column_for_grouping,
                         y=col,
                         estimator=agg_method,
                         order=list(color_map.keys()),
                         palette=color_map.values(),
                         kind='bar',
                         errorbar=None,
-                        aspect=1.5
+                        aspect=1.5,
+                        legend=False
                     )
                 else:
                     # With group-by
@@ -397,6 +399,7 @@ class PlottingMixin():
                     g = sns.catplot(
                         data=df,
                         y=column_for_grouping,
+                        hue=column_for_grouping,
                         x=col,
                         order=list(color_map.keys()),
                         palette=color_map.values(),
@@ -408,7 +411,8 @@ class PlottingMixin():
                             "markerfacecolor":"yellow",
                             "markeredgecolor":"black",
                             "markersize":"8"
-                        }
+                        },
+                        legend=False
                     )
                 else:
                     # With group-by
@@ -500,13 +504,15 @@ class PlottingMixin():
                         g = sns.catplot(
                             data=bldg_type_ts_df,
                             x=column_for_grouping,
+                            hue=column_for_grouping,
                             y=col,
                             estimator=agg_method,
                             order=list(color_map.keys()),
                             palette=color_map.values(),
                             errorbar=None,
                             kind='bar',
-                            aspect=1.5
+                            aspect=1.5,
+                            legend=False
                         )
                     else:
                         # With group-by
