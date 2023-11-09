@@ -39,6 +39,18 @@ def download_data(state):
     return df
 
 
+def manual_fips_update(df_buildstock):
+    county_fips_map = {
+        'G5105150': 'G5100190'
+        # 'G4601130': 'G4601020',       TODO: Look into Shannon County to Oglala Lakota County
+        # 'G0202800': '??'              TODO: Look into Wrangell-Petersburg County; we have Petersburg Census Area in the cluster mapping
+    }
+
+    df_buildstock.replace({'county_id': county_fips_map}, inplace=True)
+
+    return df_buildstock
+
+
 def the_func(state, df_buildstock):
     # =========== Determine building size (large vs. not-large) in buildstock file ===========
     sqft = []
@@ -167,6 +179,9 @@ def main():
     # Import buildstock.csv
     df_buildstock = pd.read_csv(os.path.join('output-buildstocks', 'intermediate', args.buildstock_name), index_col='Building', na_filter=False)
     
+    # Manually update select FIPS codes due to Census year differences
+    df_buildstock = manual_fips_update(df_buildstock)
+    
     df_nan = df_buildstock.loc[df_buildstock['rentable_area'].isna()]
     df_buildstock = df_buildstock.loc[~df_buildstock['rentable_area'].isna()]
     
@@ -178,7 +193,7 @@ def main():
         ]
     res = pd.concat(Parallel(n_jobs=-1, verbose=10)(delayed(the_func)(state, df_buildstock) for state in state_fips))
     res_total = pd.concat([res, df_nan])
-    df_geospatial_lkup = pd.read_csv(os.path.join('resources', 'spatial_tract_lookup_table_publish_v4.csv'))
+    df_geospatial_lkup = pd.read_csv(os.path.join('resources', 'spatial_tract_lookup_table_publish_v5.csv'))
     df_results_geospatial = res_total.merge(df_geospatial_lkup, left_on='gisjoin', right_on='nhgis_tract_gisjoin', how='left')
     df_results_geospatial.drop(['sqft', 'building_size', 'gisjoin'], axis=1, inplace=True)
     df_results_geospatial.index = np.linspace(1, len(df_results_geospatial), len(df_results_geospatial)).astype(int)
