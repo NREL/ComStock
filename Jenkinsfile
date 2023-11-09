@@ -5,16 +5,18 @@
 
 // Check for a previous build and cancel
 def buildNumber = env.BUILD_NUMBER as int
-  if (buildNumber > 1) { milestone(buildNumber - 1) }
-  milestone(buildNumber)
+if (buildNumber > 1) {
+  milestone(buildNumber - 1)
+}
+milestone(buildNumber)
 
-  def buildResult = 'PENDING'
-  String description = 'test using nrel/openstudio:3.6.1'
-  String context = 'nrel/openstudio:3.6.1'
-  // GitHUb Notifcation here.  Until the github plugin is fixed. See https://issues.jenkins-ci.org/browse/JENKINS-54249'
-  // It sucks that you don't have a way to mark a status as "Skipped", but if we defer the creation of the status after Skip CI is checked, then you won't get any status on the PR
-  // letting you know that the build is actually pending and with a link to go check on Jenkins. And that can take several hours for the windows instance.
-  githubNotify description: "${description}",  context: "${context}", status: "${buildResult}" , credentialsId: 'ci-commercialbuildings-test'
+def buildResult = 'PENDING'
+String description = 'test using nrel/openstudio:3.6.1'
+String context = 'nrel/openstudio:3.6.1'
+// GitHUb Notifcation here.  Until the github plugin is fixed. See https://issues.jenkins-ci.org/browse/JENKINS-54249'
+// It sucks that you don't have a way to mark a status as "Skipped", but if we defer the creation of the status after Skip CI is checked, then you won't get any status on the PR
+// letting you know that the build is actually pending and with a link to go check on Jenkins. And that can take several hours for the windows instance.
+githubNotify description: "${description}", context: "${context}", status: "${buildResult}", credentialsId: 'ci-commercialbuildings-test'
 
 parallel(
   'ruby-tests': {
@@ -135,30 +137,32 @@ parallel(
     //     githubNotify description: "${description}",  context: "${context}", status: "${buildResult}" , credentialsId: 'ci-commercialbuildings-test'
     //     currentBuild.result = "${buildResult}"
     //   }
-    },
-  'python-unittest':{
-      node("openstudio-ubuntu-1804-nrel") {
-
-        String linux_base = "/srv/data/jenkins/git";
-
-        dir("${linux_base}/${env.JOB_NAME}/${env.BUILD_NUMBER}")  {
+  },
+  'python-unittest': {
+    node("openstudio-ubuntu-1804-nrel") {
+      String linux_base = "/srv/jenkins/openstudio/git/";
+      dir("${linux_base}/${env.JOB_NAME}/${env.BUILD_NUMBER}") {
         deleteDir()
 
         checkout scm
-          // Need to mount the conan directory for data cache
-          docker.image('nrel/openstudio-cmake-tools:ubuntu-20.04').inside('-u root -e "LANG=en_US.UTF-8"') {
+        // Need to mount the conan directory for data cache
+        docker.image('nrel/openstudio-cmake-tools:ubuntu-20.04').inside('-u root -e "LANG=en_US.UTF-8"') {
 
-            stage("clean workspace") {
-              
-              sh("pwd")
-              // not ideal but we are in relative dir inside the container. The linux_base is mounted here so this is what we are
-              // deleting
+          stage("clean workspace") {
 
-            }
+            sh"""
+            cd ./postprocessing
+            pip3 install -e .[dev]
+            pytest . --junitxml=../test/report.xml
+            """
+            // not ideal but we are in relative dir inside the container. The linux_base is mounted here so this is what we are
+            // deleting
+
           }
         }
-      }  
+      }
     }
+  }
 )
 // }
 // call()
