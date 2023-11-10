@@ -40,10 +40,17 @@ def download_data(state):
 
 
 def manual_fips_update(df_buildstock):
+    """
+    Due to discrepancies between Census years, county FIPS in spatial_tract_lookup_published_v5.csv do not
+    exactly match the counties sampled in ComStock. This function is a manual FIPS update for these counties
+    to ensure every sample in ComStock receives the proper geospatial fields in the metadata.
+
+    These counties include (2010 Census): Bedford City County, Shannon County and Wrangell-Petersburg County
+    """
     county_fips_map = {
-        'G5105150': 'G5100190'
-        # 'G4601130': 'G4601020',       TODO: Look into Shannon County to Oglala Lakota County
-        # 'G0202800': '??'              TODO: Look into Wrangell-Petersburg County; we have Petersburg Census Area in the cluster mapping
+        'G5105150': 'G5100190'          # Bedford City County changed to Bedford County
+        # 'G4601130': 'G4601020',       TODO: Look into Shannon County changing to Oglala Lakota County
+        # 'G0202800': '??'              TODO: Look into Wrangell-Petersburg County; ComStock includes Petersburg Census Area in the cluster mapping
     }
 
     df_buildstock.replace({'county_id': county_fips_map}, inplace=True)
