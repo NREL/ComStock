@@ -1642,7 +1642,6 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
         erv.setLatentEffectivenessat75CoolingAirFlow(0)
       end
     end
-    ######################################################
 
     ######################################################
     # puts("### override VRF outdoor unit performance/configuration with customized data")
