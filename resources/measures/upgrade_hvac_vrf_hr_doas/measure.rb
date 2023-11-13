@@ -440,260 +440,227 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
   # applying VRF object specifications (mostly performance maps)
   def apply_vrf_performance_data(
     vrf_outdoor_unit,
-    curve_ccapft_boundary,
-    curve_low_ccapft,
-    curve_high_ccapft,
-    curve_ceirft_boundary,
-    curve_low_ceirft,
-    curve_high_ceirft,
-    curve_low_ceirfplr,
-    curve_high_ceirfplr,
-    curve_ccr,
-    curve_onoff_cplffplr,
-    curve_hcapft_boundary,
-    curve_low_hcapft,
-    curve_high_hcapft,
-    curve_heirft_boundary,
-    curve_low_heirft,
-    curve_high_heirft,
-    curve_low_heirfplr,
-    curve_high_heirfplr,
-    curve_hcr,
-    curve_onoff_hplffplr,
-    curve_defrost_heirft,
-    heating_oa_temperature_type,
-    min_hp_plr,
-    heating_rated_cop,
-    cooling_rated_cop,
+    map_performance_data,
     vrf_defrost_strategy,
-    disable_defrost,
-    min_oa_temp_cooling,
-    max_oa_temp_cooling,
-    max_oa_temp_heating,
-    min_oa_temp_heatrecovery,
-    max_oa_temp_heatrecovery,
-    initial_heatrecovery_cap_frac_cooling,
-    initial_heatrecovery_cap_frac_heating,
-    initial_heatrecovery_cap_timeconstant_cooling,
-    initial_heatrecovery_cap_timeconstant_heating
+    disable_defrost
     )
 
     # puts("*** applying performance map to AirConditioner:VariableRefrigerantFlow object: #{vrf_outdoor_unit.name.to_s}")
 
     # cooling
-    if curve_ccapft_boundary.nil?
+    if map_performance_data['curve_ccapft_boundary'].nil?
       # puts("*** curve not applied because it is nill: curve_ccapft_boundary")
       vrf_outdoor_unit.resetCoolingCapacityRatioBoundaryCurve
     else
       # puts("*** curve applied: curve_ccapft_boundary")
-      vrf_outdoor_unit.setCoolingCapacityRatioBoundaryCurve(curve_ccapft_boundary)
+      vrf_outdoor_unit.setCoolingCapacityRatioBoundaryCurve(map_performance_data['curve_ccapft_boundary'])
     end
-    if curve_low_ccapft.nil?
+    if map_performance_data['curve_low_ccapft'].nil?
       # puts("*** curve not applied because it is nill: curve_low_ccapft")
       vrf_outdoor_unit.resetCoolingCapacityRatioModifierFunctionofLowTemperatureCurve
     else
       # puts("*** curve applied: curve_low_ccapft")
-      vrf_outdoor_unit.setCoolingCapacityRatioModifierFunctionofLowTemperatureCurve(curve_low_ccapft)
+      vrf_outdoor_unit.setCoolingCapacityRatioModifierFunctionofLowTemperatureCurve(map_performance_data['curve_low_ccapft'])
     end
-    if curve_high_ccapft.nil?
+    if map_performance_data['curve_high_ccapft'].nil?
       # puts("*** curve not applied because it is nill: curve_high_ccapft")
       vrf_outdoor_unit.resetCoolingCapacityRatioModifierFunctionofHighTemperatureCurve
     else
       # puts("*** curve applied: curve_high_ccapft")
-      vrf_outdoor_unit.setCoolingCapacityRatioModifierFunctionofHighTemperatureCurve(curve_high_ccapft)
+      vrf_outdoor_unit.setCoolingCapacityRatioModifierFunctionofHighTemperatureCurve(map_performance_data['curve_high_ccapft'])
     end
-    if curve_ceirft_boundary.nil?
+    if map_performance_data['curve_ceirft_boundary'].nil?
       # puts("*** curve not applied because it is nill: curve_ceirft_boundary")
       vrf_outdoor_unit.resetCoolingEnergyInputRatioBoundaryCurve
     else
       # puts("*** curve applied: curve_ceirft_boundary")
-      vrf_outdoor_unit.setCoolingEnergyInputRatioBoundaryCurve(curve_ceirft_boundary)
+      vrf_outdoor_unit.setCoolingEnergyInputRatioBoundaryCurve(map_performance_data['curve_ceirft_boundary'])
     end
-    if curve_low_ceirft.nil?
+    if map_performance_data['curve_low_ceirft'].nil?
       # puts("*** curve not applied because it is nill: curve_low_ceirft")
       vrf_outdoor_unit.resetCoolingEnergyInputRatioModifierFunctionofLowTemperatureCurve
     else
       # puts("*** curve applied: curve_low_ceirft")
-      vrf_outdoor_unit.setCoolingEnergyInputRatioModifierFunctionofLowTemperatureCurve(curve_low_ceirft)
+      vrf_outdoor_unit.setCoolingEnergyInputRatioModifierFunctionofLowTemperatureCurve(map_performance_data['curve_low_ceirft'])
     end
-    if curve_high_ceirft.nil?
+    if map_performance_data['curve_high_ceirft'].nil?
       # puts("*** curve not applied because it is nill: curve_high_ceirft")
       vrf_outdoor_unit.resetCoolingEnergyInputRatioModifierFunctionofHighTemperatureCurve
     else
       # puts("*** curve applied: curve_high_ceirft")
-      vrf_outdoor_unit.setCoolingEnergyInputRatioModifierFunctionofHighTemperatureCurve(curve_high_ceirft)
+      vrf_outdoor_unit.setCoolingEnergyInputRatioModifierFunctionofHighTemperatureCurve(map_performance_data['curve_high_ceirft'])
     end
-    if curve_low_ceirfplr.nil?
+    if map_performance_data['curve_low_ceirfplr'].nil?
       # puts("*** curve not applied because it is nill: curve_low_ceirfplr")
       vrf_outdoor_unit.resetCoolingEnergyInputRatioModifierFunctionofLowPartLoadRatioCurve
     else
       # puts("*** curve applied: curve_low_ceirfplr")
-      vrf_outdoor_unit.setCoolingEnergyInputRatioModifierFunctionofLowPartLoadRatioCurve(curve_low_ceirfplr)
+      vrf_outdoor_unit.setCoolingEnergyInputRatioModifierFunctionofLowPartLoadRatioCurve(map_performance_data['curve_low_ceirfplr'])
     end
-    if curve_high_ceirfplr.nil?
+    if map_performance_data['curve_high_ceirfplr'].nil?
       # puts("*** curve not applied because it is nill: curve_high_ceirfplr")
       vrf_outdoor_unit.resetCoolingEnergyInputRatioModifierFunctionofHighPartLoadRatioCurve
     else
       # puts("*** curve applied: curve_high_ceirfplr")
-      vrf_outdoor_unit.setCoolingEnergyInputRatioModifierFunctionofHighPartLoadRatioCurve(curve_high_ceirfplr)
+      vrf_outdoor_unit.setCoolingEnergyInputRatioModifierFunctionofHighPartLoadRatioCurve(map_performance_data['curve_high_ceirfplr'])
     end
-    if curve_ccr.nil?
+    if map_performance_data['curve_ccr'].nil?
       # puts("*** curve not applied because it is nill: curve_ccr")
       vrf_outdoor_unit.resetCoolingCombinationRatioCorrectionFactorCurve
     else
       # puts("*** curve applied: curve_ccr")
-      vrf_outdoor_unit.setCoolingCombinationRatioCorrectionFactorCurve(curve_ccr)
+      vrf_outdoor_unit.setCoolingCombinationRatioCorrectionFactorCurve(map_performance_data['curve_ccr'])
     end
-    if curve_onoff_cplffplr.nil?
+    if map_performance_data['curve_onoff_cplffplr'].nil?
       # puts("*** curve not applied because it is nill: curve_onoff_cplffplr")
       vrf_outdoor_unit.resetCoolingPartLoadFractionCorrelationCurve
     else
       # puts("*** curve applied: curve_onoff_cplffplr")
-      vrf_outdoor_unit.setCoolingPartLoadFractionCorrelationCurve(curve_onoff_cplffplr)
+      vrf_outdoor_unit.setCoolingPartLoadFractionCorrelationCurve(map_performance_data['curve_onoff_cplffplr'])
     end
 
     # heating
-    if curve_hcapft_boundary.nil?
+    if map_performance_data['curve_hcapft_boundary'].nil?
       # puts("*** curve not applied because it is nill: curve_hcapft_boundary")
       vrf_outdoor_unit.resetHeatingCapacityRatioBoundaryCurve
     else
       # puts("*** curve applied: curve_hcapft_boundary")
-      vrf_outdoor_unit.setHeatingCapacityRatioBoundaryCurve(curve_hcapft_boundary)
+      vrf_outdoor_unit.setHeatingCapacityRatioBoundaryCurve(map_performance_data['curve_hcapft_boundary'])
     end
-    if curve_low_hcapft.nil?
+    if map_performance_data['curve_low_hcapft'].nil?
       # puts("*** curve not applied because it is nill: curve_low_hcapft")
       vrf_outdoor_unit.resetHeatingCapacityRatioModifierFunctionofLowTemperatureCurve
     else
       # puts("*** curve applied: curve_low_hcapft")
-      vrf_outdoor_unit.setHeatingCapacityRatioModifierFunctionofLowTemperatureCurve(curve_low_hcapft)
+      vrf_outdoor_unit.setHeatingCapacityRatioModifierFunctionofLowTemperatureCurve(map_performance_data['curve_low_hcapft'])
     end
-    if curve_high_hcapft.nil?
+    if map_performance_data['curve_high_hcapft'].nil?
       # puts("*** curve not applied because it is nill: curve_high_hcapft")
       vrf_outdoor_unit.resetHeatingCapacityRatioModifierFunctionofHighTemperatureCurve
     else
       # puts("*** curve applied: curve_high_hcapft")
-      vrf_outdoor_unit.setHeatingCapacityRatioModifierFunctionofHighTemperatureCurve(curve_high_hcapft)
+      vrf_outdoor_unit.setHeatingCapacityRatioModifierFunctionofHighTemperatureCurve(map_performance_data['curve_high_hcapft'])
     end
-    if curve_heirft_boundary.nil?
+    if map_performance_data['curve_heirft_boundary'].nil?
       # puts("*** curve not applied because it is nill: curve_heirft_boundary")
       vrf_outdoor_unit.resetHeatingEnergyInputRatioBoundaryCurve
     else
       # puts("*** curve applied: curve_heirft_boundary")
-      vrf_outdoor_unit.setHeatingEnergyInputRatioBoundaryCurve(curve_heirft_boundary)
+      vrf_outdoor_unit.setHeatingEnergyInputRatioBoundaryCurve(map_performance_data['curve_heirft_boundary'])
     end
-    if curve_low_heirft.nil?
+    if map_performance_data['curve_low_heirft'].nil?
       # puts("*** curve not applied because it is nill: curve_low_heirft")
       vrf_outdoor_unit.resetHeatingEnergyInputRatioModifierFunctionofLowTemperatureCurve
     else
       # puts("*** curve applied: curve_low_heirft")
-      vrf_outdoor_unit.setHeatingEnergyInputRatioModifierFunctionofLowTemperatureCurve(curve_low_heirft)
+      vrf_outdoor_unit.setHeatingEnergyInputRatioModifierFunctionofLowTemperatureCurve(map_performance_data['curve_low_heirft'])
     end
-    if curve_high_heirft.nil?
+    if map_performance_data['curve_high_heirft'].nil?
       # puts("*** curve not applied because it is nill: curve_high_heirft")
       vrf_outdoor_unit.resetHeatingEnergyInputRatioModifierFunctionofHighTemperatureCurve
     else
       # puts("*** curve applied: curve_high_heirft")
-      vrf_outdoor_unit.setHeatingEnergyInputRatioModifierFunctionofHighTemperatureCurve(curve_high_heirft)
+      vrf_outdoor_unit.setHeatingEnergyInputRatioModifierFunctionofHighTemperatureCurve(map_performance_data['curve_high_heirft'])
     end
-    if curve_low_heirfplr.nil?
+    if map_performance_data['curve_low_heirfplr'].nil?
       # puts("*** curve not applied because it is nill: curve_low_heirfplr")
       vrf_outdoor_unit.resetHeatingEnergyInputRatioModifierFunctionofLowPartLoadRatioCurve
     else
       # puts("*** curve applied: curve_low_heirfplr")
-      vrf_outdoor_unit.setHeatingEnergyInputRatioModifierFunctionofLowPartLoadRatioCurve(curve_low_heirfplr)
+      vrf_outdoor_unit.setHeatingEnergyInputRatioModifierFunctionofLowPartLoadRatioCurve(map_performance_data['curve_low_heirfplr'])
     end
-    if curve_high_heirfplr.nil?
+    if map_performance_data['curve_high_heirfplr'].nil?
       # puts("*** curve not applied because it is nill: curve_high_heirfplr")
       vrf_outdoor_unit.resetHeatingEnergyInputRatioModifierFunctionofHighPartLoadRatioCurve
     else
       # puts("*** curve applied: curve_high_heirfplr")
-      vrf_outdoor_unit.setHeatingEnergyInputRatioModifierFunctionofHighPartLoadRatioCurve(curve_high_heirfplr)
+      vrf_outdoor_unit.setHeatingEnergyInputRatioModifierFunctionofHighPartLoadRatioCurve(map_performance_data['curve_high_heirfplr'])
     end
-    if curve_hcr.nil?
+    if map_performance_data['curve_hcr'].nil?
       # puts("*** curve not applied because it is nill: curve_hcr")
       vrf_outdoor_unit.resetHeatingCombinationRatioCorrectionFactorCurve
     else
       # puts("*** curve applied: curve_hcr")
-      vrf_outdoor_unit.setHeatingCombinationRatioCorrectionFactorCurve(curve_hcr)
+      vrf_outdoor_unit.setHeatingCombinationRatioCorrectionFactorCurve(map_performance_data['curve_hcr'])
     end
-    if curve_onoff_hplffplr.nil?
+    if map_performance_data['curve_onoff_hplffplr'].nil?
       # puts("*** curve not applied because it is nill: curve_onoff_hplffplr")
       vrf_outdoor_unit.resetHeatingPartLoadFractionCorrelationCurve
     else
       # puts("*** curve applied: curve_onoff_hplffplr")
-      vrf_outdoor_unit.setHeatingPartLoadFractionCorrelationCurve(curve_onoff_hplffplr)
+      vrf_outdoor_unit.setHeatingPartLoadFractionCorrelationCurve(map_performance_data['curve_onoff_hplffplr'])
     end
-    if curve_defrost_heirft.nil?
+    if map_performance_data['curve_defrost_heirft'].nil?
       # puts("*** curve not applied because it is nill: curve_defrost_heirft")
       vrf_outdoor_unit.resetDefrostEnergyInputRatioModifierFunctionofTemperatureCurve
     else
       # puts("*** curve applied: curve_defrost_heirft")
-      vrf_outdoor_unit.setDefrostEnergyInputRatioModifierFunctionofTemperatureCurve(curve_defrost_heirft)
+      vrf_outdoor_unit.setDefrostEnergyInputRatioModifierFunctionofTemperatureCurve(map_performance_data['curve_defrost_heirft'])
     end
 
     # other configurations
-    if heating_oa_temperature_type.nil?
+    if map_performance_data['heating_oa_temperature_type'].nil?
       # puts("*** configuration not applied because it is nill: heating_oa_temperature_type")
     else
       # puts("*** configuration applied: heating_oa_temperature_type")
-      vrf_outdoor_unit.setHeatingPerformanceCurveOutdoorTemperatureType(heating_oa_temperature_type)
+      vrf_outdoor_unit.setHeatingPerformanceCurveOutdoorTemperatureType(map_performance_data['heating_oa_temperature_type'])
     end
-    if min_hp_plr.nil?
+    if map_performance_data['min_hp_plr'].nil?
       # puts("*** configuration not applied because it is nill: min_hp_plr")
     else
       # puts("*** configuration applied: min_hp_plr")
-      vrf_outdoor_unit.setMinimumHeatPumpPartLoadRatio(min_hp_plr)
+      vrf_outdoor_unit.setMinimumHeatPumpPartLoadRatio(map_performance_data['min_hp_plr'])
     end
-    if heating_rated_cop.nil?
+    if map_performance_data['heating_rated_cop'].nil?
       # puts("*** configuration not applied because it is nill: heating_rated_cop")
     else
       # puts("*** configuration applied: heating_rated_cop")
-      vrf_outdoor_unit.setRatedHeatingCOP(heating_rated_cop)
+      vrf_outdoor_unit.setRatedHeatingCOP(map_performance_data['heating_rated_cop'])
     end
-    if cooling_rated_cop.nil?
+    if map_performance_data['cooling_rated_cop'].nil?
       # puts("*** configuration not applied because it is nill: cooling_rated_cop")
     else
       # puts("*** configuration applied: cooling_rated_cop")
-      vrf_outdoor_unit.setGrossRatedCoolingCOP(cooling_rated_cop)
+      vrf_outdoor_unit.setGrossRatedCoolingCOP(map_performance_data['cooling_rated_cop'])
     end
-    if vrf_defrost_strategy.nil?
+    if map_performance_data['vrf_defrost_strategy'].nil?
       # puts("*** configuration not applied because it is nill: vrf_defrost_strategy")
     else
       # puts("*** configuration applied: vrf_defrost_strategy")
-      vrf_outdoor_unit.setDefrostStrategy(vrf_defrost_strategy)
+      vrf_outdoor_unit.setDefrostStrategy(map_performance_data['vrf_defrost_strategy'])
     end
-    if disable_defrost == true
+    if map_performance_data['disable_defrost'] == true
       # puts("*** configuration applied: disabling defrost")
       vrf_outdoor_unit.setDefrostControl('timed')
       vrf_outdoor_unit.setDefrostTimePeriodFraction(0.0)
       vrf_outdoor_unit.setResistiveDefrostHeaterCapacity(0.0)
     end
-    unless min_oa_temp_cooling.nil?
-      vrf_outdoor_unit.setMinimumOutdoorTemperatureinCoolingMode(min_oa_temp_cooling)
+    unless map_performance_data['min_oa_temp_cooling'].nil?
+      vrf_outdoor_unit.setMinimumOutdoorTemperatureinCoolingMode(map_performance_data['min_oa_temp_cooling'])
     end
-    unless max_oa_temp_cooling.nil?
-      vrf_outdoor_unit.setMaximumOutdoorTemperatureinCoolingMode(max_oa_temp_cooling)
+    unless map_performance_data['max_oa_temp_cooling'].nil?
+      vrf_outdoor_unit.setMaximumOutdoorTemperatureinCoolingMode(map_performance_data['max_oa_temp_cooling'])
     end
-    unless max_oa_temp_heating.nil?
-      vrf_outdoor_unit.setMaximumOutdoorTemperatureinHeatingMode(max_oa_temp_heating)
+    unless map_performance_data['max_oa_temp_heating'].nil?
+      vrf_outdoor_unit.setMaximumOutdoorTemperatureinHeatingMode(map_performance_data['max_oa_temp_heating'])
     end
-    unless min_oa_temp_heatrecovery.nil?
-      vrf_outdoor_unit.setMinimumOutdoorTemperatureinHeatRecoveryMode(min_oa_temp_heatrecovery)
+    unless map_performance_data['min_oa_temp_heatrecovery'].nil?
+      vrf_outdoor_unit.setMinimumOutdoorTemperatureinHeatRecoveryMode(map_performance_data['min_oa_temp_heatrecovery'])
     end
-    unless max_oa_temp_heatrecovery.nil?
-      vrf_outdoor_unit.setMaximumOutdoorTemperatureinHeatRecoveryMode(max_oa_temp_heatrecovery)
+    unless map_performance_data['max_oa_temp_heatrecovery'].nil?
+      vrf_outdoor_unit.setMaximumOutdoorTemperatureinHeatRecoveryMode(map_performance_data['max_oa_temp_heatrecovery'])
     end
-    unless initial_heatrecovery_cap_frac_cooling.nil?
-      vrf_outdoor_unit.setInitialHeatRecoveryCoolingCapacityFraction(initial_heatrecovery_cap_frac_cooling)
+    unless map_performance_data['initial_heatrecovery_cap_frac_cooling'].nil?
+      vrf_outdoor_unit.setInitialHeatRecoveryCoolingCapacityFraction(map_performance_data['initial_heatrecovery_cap_frac_cooling'])
     end
-    unless initial_heatrecovery_cap_frac_heating.nil?
-      vrf_outdoor_unit.setInitialHeatRecoveryHeatingCapacityFraction(initial_heatrecovery_cap_frac_heating)
+    unless map_performance_data['initial_heatrecovery_cap_frac_heating'].nil?
+      vrf_outdoor_unit.setInitialHeatRecoveryHeatingCapacityFraction(map_performance_data['initial_heatrecovery_cap_frac_heating'])
     end
-    unless initial_heatrecovery_cap_timeconstant_cooling.nil?
-      vrf_outdoor_unit.setHeatRecoveryCoolingCapacityTimeConstant(initial_heatrecovery_cap_timeconstant_cooling)
+    unless map_performance_data['initial_heatrecovery_cap_timeconstant_cooling'].nil?
+      vrf_outdoor_unit.setHeatRecoveryCoolingCapacityTimeConstant(map_performance_data['initial_heatrecovery_cap_timeconstant_cooling'])
     end
-    unless initial_heatrecovery_cap_timeconstant_heating.nil?
-      vrf_outdoor_unit.setHeatRecoveryHeatingCapacityTimeConstant(initial_heatrecovery_cap_timeconstant_heating)
+    unless map_performance_data['initial_heatrecovery_cap_timeconstant_heating'].nil?
+      vrf_outdoor_unit.setHeatRecoveryHeatingCapacityTimeConstant(map_performance_data['initial_heatrecovery_cap_timeconstant_heating'])
     end
 
   end
@@ -1799,31 +1766,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       # ----------------------------------------------------
       apply_vrf_performance_data(
         vrf_outdoor_unit,
-        map_performance_data['curve_ccapft_boundary'],
-        map_performance_data['curve_low_ccapft'],
-        map_performance_data['curve_high_ccapft'],
-        map_performance_data['curve_ceirft_boundary'],
-        map_performance_data['curve_low_ceirft'],
-        map_performance_data['curve_high_ceirft'],
-        map_performance_data['curve_low_ceirfplr'],
-        map_performance_data['curve_high_ceirfplr'],
-        map_performance_data['curve_ccr'],
-        map_performance_data['curve_onoff_cplffplr'],
-        map_performance_data['curve_hcapft_boundary'],
-        map_performance_data['curve_low_hcapft'],
-        map_performance_data['curve_high_hcapft'],
-        map_performance_data['curve_heirft_boundary'],
-        map_performance_data['curve_low_heirft'],
-        map_performance_data['curve_high_heirft'],
-        map_performance_data['curve_low_heirfplr'],
-        map_performance_data['curve_high_heirfplr'],
-        map_performance_data['curve_hcr'],
-        map_performance_data['curve_onoff_hplffplr'],
-        map_performance_data['curve_defrost_heirft'],
-        map_performance_data['heating_oa_temperature_type'],
-        map_performance_data['min_hp_plr'],
-        map_performance_data['heating_rated_cop'],
-        map_performance_data['cooling_rated_cop'],
+        map_performance_data,
         vrf_defrost_strategy,
         disable_defrost
       )
