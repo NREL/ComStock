@@ -78,11 +78,11 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     args << disable_defrost
 
     # disable defrosting mode?
-    25pct_upsizing_allowance = OpenStudio::Measure::OSArgument.makeBoolArgument('25pct_upsizing_allowance', true)
-    25pct_upsizing_allowance.setDisplayName('Allowing 25% upsizing (or 125% from original size) for heating dominant buildings?')
-    25pct_upsizing_allowance.setDescription('')
-    25pct_upsizing_allowance.setDefaultValue(false)
-    args << 25pct_upsizing_allowance
+    upsizing_allowance_pct = OpenStudio::Measure::OSArgument.makeDoubleArgument('upsizing_allowance_pct', true)
+    upsizing_allowance_pct.setDisplayName('Upsizing allowance from cooling design load for heating dominant buildings')
+    upsizing_allowance_pct.setDescription('25% upsizing allowance is the same as 125% from the original size')
+    upsizing_allowance_pct.setDefaultValue(25.0)
+    args << upsizing_allowance_pct
 
     # apply/not-apply measure
     apply_measure = OpenStudio::Measure::OSArgument.makeBoolArgument('apply_measure', true)
@@ -882,7 +882,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     apply_measure = runner.getBoolArgumentValue('apply_measure', user_arguments)
     vrf_defrost_strategy = runner.getStringArgumentValue('vrf_defrost_strategy', user_arguments)    
     disable_defrost = runner.getBoolArgumentValue('disable_defrost', user_arguments)
-    25pct_upsizing_allowance = runner.getBoolArgumentValue('25pct_upsizing_allowance', user_arguments)
+    upsizing_allowance_pct = runner.getDoubleArgumentValue('upsizing_allowance_pct', user_arguments)
 
     ######################################################
     # puts("### report initial condition of model")
