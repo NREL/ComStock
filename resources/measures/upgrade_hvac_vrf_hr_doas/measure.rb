@@ -1736,12 +1736,12 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       first_space = first_thermalzone.spaces[0]
       story = first_space.buildingStory.get
       z_coord = story.nominalZCoordinate.get
-      # puts("--- additional outdoor unit configuration: outdoor unit serves the floor with z-coordinate of #{z_coord} m")
       thermal_zones = applicable_thermalzone_per_floor[z_coord]
       max_equiv_distance, max_net_vert_distance = get_max_vrf_pipe_lengths(model, thermal_zones) 
       vrf_outdoor_unit.setEquivalentPipingLengthusedforPipingCorrectionFactorinCoolingMode(max_equiv_distance)
       vrf_outdoor_unit.setEquivalentPipingLengthusedforPipingCorrectionFactorinHeatingMode(max_equiv_distance)
       vrf_outdoor_unit.setVerticalHeightusedforPipingCorrectionFactor(max_net_vert_distance)
+      # puts("--- additional outdoor unit configuration: outdoor unit serves the floor with z-coordinate of #{z_coord} m")
       # puts("--- additional outdoor unit configuration: max_equiv_distance = #{max_equiv_distance} m")
       # puts("--- additional outdoor unit configuration: max_net_vert_distance = #{max_net_vert_distance} m")
 
