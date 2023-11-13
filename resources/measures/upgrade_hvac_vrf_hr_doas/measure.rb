@@ -422,6 +422,15 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       map_performance_data['cooling_rated_cop'] = acvrf.grossRatedCoolingCOP
       map_performance_data['heating_rated_cop'] = acvrf.ratedHeatingCOP
       map_performance_data['num_compressors'] = acvrf.numberofCompressors
+      map_performance_data['min_oa_temp_cooling'] = acvrf.minimumOutdoorTemperatureinCoolingMode
+      map_performance_data['max_oa_temp_cooling'] = acvrf.maximumOutdoorTemperatureinCoolingMode
+      map_performance_data['max_oa_temp_heating'] = acvrf.maximumOutdoorTemperatureinHeatingMode
+      map_performance_data['min_oa_temp_heatrecovery'] = acvrf.minimumOutdoorTemperatureinHeatRecoveryMode
+      map_performance_data['max_oa_temp_heatrecovery'] = acvrf.maximumOutdoorTemperatureinHeatRecoveryMode
+      map_performance_data['initial_heatrecovery_cap_frac_cooling'] = acvrf.initialHeatRecoveryCoolingCapacityFraction 
+      map_performance_data['initial_heatrecovery_cap_frac_heating'] = acvrf.initialHeatRecoveryHeatingCapacityFraction
+      map_performance_data['initial_heatrecovery_cap_timeconstant_cooling'] = acvrf.heatRecoveryCoolingCapacityTimeConstant
+      map_performance_data['initial_heatrecovery_cap_timeconstant_heating'] = acvrf.heatRecoveryHeatingCapacityTimeConstant
       # map_performance_data["defrost_strategy"] = acvrf.defrostStrategy # unused for now
       # map_performance_data["defrost_control"] = acvrf.defrostControl # unused for now
     end
@@ -457,7 +466,17 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     heating_rated_cop,
     cooling_rated_cop,
     vrf_defrost_strategy,
-    disable_defrost)
+    disable_defrost,
+    min_oa_temp_cooling,
+    max_oa_temp_cooling,
+    max_oa_temp_heating,
+    min_oa_temp_heatrecovery,
+    max_oa_temp_heatrecovery,
+    initial_heatrecovery_cap_frac_cooling,
+    initial_heatrecovery_cap_frac_heating,
+    initial_heatrecovery_cap_timeconstant_cooling,
+    initial_heatrecovery_cap_timeconstant_heating
+    )
 
     # puts("*** applying performance map to AirConditioner:VariableRefrigerantFlow object: #{vrf_outdoor_unit.name.to_s}")
 
@@ -649,6 +668,34 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       vrf_outdoor_unit.setDefrostTimePeriodFraction(0.0)
       vrf_outdoor_unit.setResistiveDefrostHeaterCapacity(0.0)
     end
+    unless min_oa_temp_cooling.nil?
+      vrf_outdoor_unit.setMinimumOutdoorTemperatureinCoolingMode(min_oa_temp_cooling)
+    end
+    unless max_oa_temp_cooling.nil?
+      vrf_outdoor_unit.setMaximumOutdoorTemperatureinCoolingMode(max_oa_temp_cooling)
+    end
+    unless max_oa_temp_heating.nil?
+      vrf_outdoor_unit.setMaximumOutdoorTemperatureinHeatingMode(max_oa_temp_heating)
+    end
+    unless min_oa_temp_heatrecovery.nil?
+      vrf_outdoor_unit.setMinimumOutdoorTemperatureinHeatRecoveryMode(min_oa_temp_heatrecovery)
+    end
+    unless max_oa_temp_heatrecovery.nil?
+      vrf_outdoor_unit.setMaximumOutdoorTemperatureinHeatRecoveryMode(max_oa_temp_heatrecovery)
+    end
+    unless initial_heatrecovery_cap_frac_cooling.nil?
+      vrf_outdoor_unit.setInitialHeatRecoveryCoolingCapacityFraction(initial_heatrecovery_cap_frac_cooling)
+    end
+    unless initial_heatrecovery_cap_frac_heating.nil?
+      vrf_outdoor_unit.setInitialHeatRecoveryHeatingCapacityFraction(initial_heatrecovery_cap_frac_heating)
+    end
+    unless initial_heatrecovery_cap_timeconstant_cooling.nil?
+      vrf_outdoor_unit.setHeatRecoveryCoolingCapacityTimeConstant(initial_heatrecovery_cap_timeconstant_cooling)
+    end
+    unless initial_heatrecovery_cap_timeconstant_heating.nil?
+      vrf_outdoor_unit.setHeatRecoveryHeatingCapacityTimeConstant(initial_heatrecovery_cap_timeconstant_heating)
+    end
+
   end
 
   # check if air loop is evaporative cooler
@@ -1730,6 +1777,8 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       # puts("&&& configure additional/missed parameters")
       # ----------------------------------------------------
       vrf_outdoor_unit.setMinimumOutdoorTemperatureinHeatingMode(-30.0)
+      vrf_outdoor_unit.setHeatPumpWasteHeatRecovery(true)
+      vrf_outdoor_unit.setMasterThermostatPriorityControlType('LoadPriority')
       first_indoor_unit = vrf_outdoor_unit.terminals[0]
       zonehvaccomp = first_indoor_unit.to_ZoneHVACComponent.get # assuming all indoor units are on the same floor
       first_thermalzone = zonehvaccomp.thermalZone.get
