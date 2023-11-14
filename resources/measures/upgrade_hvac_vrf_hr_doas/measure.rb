@@ -94,9 +94,12 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     args
   end
 
+  # --------------------------------------- #
+  # supporting method
   # loading curves to model from standards data
   # somehow the same method in standards did not work for NECB
   # so using locally saved files and locally saved method
+  # --------------------------------------- #
   def model_add_curve(model, curve_name, standards_data_curve, std)
     # First check model and return curve if it already exists
     existing_curves = []
@@ -282,6 +285,9 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     end
   end
 
+  # --------------------------------------- #
+  # supporting method
+  # --------------------------------------- #
   def get_tabular_data(model, coil_name, column_name)
     result = OpenStudio::OptionalDouble.new
     sql = model.sqlFile
@@ -294,8 +300,11 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     result
   end
 
+  # --------------------------------------- #
+  # supporting method
   # extracting VRF object specifications from existing (fully populated) object
   # this is used to copy specs from (manufacturer provided) osc files
+  # --------------------------------------- #
   def extract_curves_from_dummy_acvrf_object(model, name)
     # initialize performance map
     map_performance_data = {}
@@ -441,7 +450,10 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     map_performance_data
   end
 
-  # applying VRF object specifications (mostly performance maps)
+  # --------------------------------------- #
+  # supporting method
+  # applying VRF object specifications
+  # --------------------------------------- #
   def apply_vrf_performance_data(
     vrf_outdoor_unit,
     map_performance_data,
@@ -680,7 +692,10 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     end
   end
 
+  # --------------------------------------- #
+  # supporting method
   # check if air loop is evaporative cooler
+  # --------------------------------------- #
   def air_loop_hvac_include_evaporative_cooler?(air_loop_hvac)
     air_loop_hvac.supplyComponents.each do |comp|
       return true if comp.to_EvaporativeCoolerDirectResearchSpecial.is_initialized
@@ -689,7 +704,10 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     false
   end
 
+  # --------------------------------------- #
+  # supporting method
   # check if air loop uses district energy
+  # --------------------------------------- #
   def air_loop_hvac_served_by_district_energy?(air_loop_hvac)
     served_by_district_energy = false
     thermalzones = air_loop_hvac.thermalZones
@@ -711,7 +729,10 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     served_by_district_energy
   end
 
+  # --------------------------------------- #
+  # supporting method
   # check if air loop is served by DOAS
+  # --------------------------------------- #
   def air_loop_hvac_served_by_doas?(air_loop_hvac)
     is_doas = false
     sizing_system = air_loop_hvac.sizingSystem
@@ -719,8 +740,11 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     is_doas
   end
 
+  # --------------------------------------- #
+  # supporting method
   # Return hash of flags for whether storey is conditioned and average ceiling z-coordinates of building storeys.
   # reference: https://github.com/NREL/openstudio-standards/blob/12bbfabf3962af05b8c267c1da54b8e3a89217a0/lib/openstudio-standards/standards/necb/ECMS/hvac_systems.rb#L99
+  # --------------------------------------- #
   def get_storey_avg_clg_zcoords(model)
     storey_avg_clg_zcoords = {}
     model.getBuildingStorys.each do |storey|
@@ -752,8 +776,11 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     storey_avg_clg_zcoords
   end
 
+  # --------------------------------------- #
+  # supporting method
   # Return x,y,z coordinates of the centroid of the roof of the storey
   # reference: https://github.com/NREL/openstudio-standards/blob/12bbfabf3962af05b8c267c1da54b8e3a89217a0/lib/openstudio-standards/standards/necb/ECMS/hvac_systems.rb#L188
+  # --------------------------------------- #
   def get_roof_centroid_coords(storey)
     sum_x = 0.0
     sum_y = 0.0
@@ -785,8 +812,11 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     [cent_x, cent_y, cent_z]
   end
 
+  # --------------------------------------- #
+  # supporting method
   # Return x,y,z coordinates of space centroid
   # reference: https://github.com/NREL/openstudio-standards/blob/12bbfabf3962af05b8c267c1da54b8e3a89217a0/lib/openstudio-standards/standards/necb/ECMS/hvac_systems.rb#L168
+  # --------------------------------------- #
   def get_space_centroid_coords(space)
     total_area = 0.0
     sum_x = 0.0
@@ -805,8 +835,11 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     [space_centroid_x, space_centroid_y, space_centroid_z]
   end
 
+  # --------------------------------------- #
+  # supporting method
   # Return x,y,z coordinates of exterior wall with largest area on the lowest floor
   # reference: https://github.com/NREL/openstudio-standards/blob/12bbfabf3962af05b8c267c1da54b8e3a89217a0/lib/openstudio-standards/standards/necb/ECMS/hvac_systems.rb#L136
+  # --------------------------------------- #
   def get_lowest_floor_ext_wall_centroid_coords(storeys_clg_zcoords)
     ext_wall = nil
     ext_wall_x = nil
@@ -838,8 +871,11 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     [ext_wall_x, ext_wall_y, ext_wall_z]
   end
 
+  # --------------------------------------- #
+  # supporting method
   # Determine maximum equivalent and net vertical pipe runs for VRF model
   # reference: https://github.com/NREL/openstudio-standards/blob/12bbfabf3962af05b8c267c1da54b8e3a89217a0/lib/openstudio-standards/standards/necb/ECMS/hvac_systems.rb#L218
+  # --------------------------------------- #
   def get_max_vrf_pipe_lengths(model, thermal_zones)
     # Get and sort floors average ceilings z-coordinates hash
     storeys_clg_zcoords = get_storey_avg_clg_zcoords(model)
@@ -1096,9 +1132,9 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     # ov18.setReportingFrequency("timestep")
     # ov18.setVariableName("VRF Heat Pump Runtime Fraction")
 
-    # ######################################################
-    # #puts('### applicability')
-    # ######################################################
+    ######################################################
+    # puts('### applicability')
+    ######################################################
     # applicability: don't apply measure if specified in input
     if apply_measure == false
       runner.registerAsNotApplicable('Measure is not applied based on user input.')
@@ -1516,7 +1552,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     end
 
     ######################################################
-    # puts("### modifying DOAS systems")
+    # puts("### modify DOAS systems")
     ######################################################
 
     # get climate full string and classification (i.e. "5A")
@@ -2008,9 +2044,9 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       end
     end
 
-    # #####################################################
+    #####################################################
     # puts("### update equipment efficiencies for non-applicable thermal zones getting new airloops")
-    # #####################################################
+    #####################################################
     model.getAirLoopHVACs.each do |air_loop_hvac|
       # determine applicability based on thermal zone
       # only non-applicable thermal zones that were broken off from multizone systems
@@ -2074,9 +2110,9 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       end
     end
 
-    # ######################################################
-    # #puts("### update COPs based on capacity sizing results")
-    # ######################################################
+    ######################################################
+    # puts("### update COPs based on capacity sizing results")
+    ######################################################
     total_cooling_capacity_w = 0
     total_heating_capacity_w = 0
     counts_vrf = model.getAirConditionerVariableRefrigerantFlows.size
