@@ -79,7 +79,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
 
     # disable defrosting mode?
     upsizing_allowance_pct = OpenStudio::Measure::OSArgument.makeDoubleArgument('upsizing_allowance_pct', true)
-    upsizing_allowance_pct.setDisplayName('Upsizing allowance from cooling design load for heating dominant buildings')
+    upsizing_allowance_pct.setDisplayName('Upsizing allowance (in %) from cooling design load for heating dominant buildings')
     upsizing_allowance_pct.setDescription('25% upsizing allowance is the same as 125% from the original size')
     upsizing_allowance_pct.setDefaultValue(25.0)
     args << upsizing_allowance_pct
