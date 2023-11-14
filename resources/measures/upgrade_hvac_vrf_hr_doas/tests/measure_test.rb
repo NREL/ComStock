@@ -178,6 +178,18 @@ class HvacVrfHrDoasTest < Minitest::Test
   def models_to_test
     test_sets = []
 
+    # test: too many indoor units
+    test_sets << {
+      model: 'Outpatient_VAV_chiller_PFP_boxes',
+      weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
+      result: 'NA'
+    }
+    # test: floor area too large 
+    test_sets << {
+      model: 'SecondarySchool_PTHP',
+      weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
+      result: 'NA'
+    }
     # test: not applicable building type
     test_sets << {
       model: 'Quick_Service_Restaurant_CA',
