@@ -1193,7 +1193,6 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     applicability_msgs = []
     applicability_msg = ''
     air_loop_hvacs = model.getAirLoopHVACs
-    max_number_indoor_units = 41 # hardcoded based on manufacturer engineering manual
     if air_loop_hvacs.size == 0
       applicability_msg = 'this model does not have an air loop (so neither RTU nor VAV). so, skipping this model...'
       # puts("&&& #{applicability_msg}")
@@ -1219,16 +1218,6 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
         # exclude if it is evaporative cooler
         if air_loop_hvac_include_evaporative_cooler?(air_loop_hvac)
           applicability_msg = 'this air loop is an evaporative cooler. so, skipping this air loop system...'
-          # puts("--- #{applicability_msg}")
-          applicability_msgs << applicability_msg
-          applicability << false
-          na_air_loops << air_loop_hvac
-          next
-        end
-
-        # exclude if number of thermal zones for the air loop exceeds maximum indoor unit count
-        if air_loop_hvac.thermalZones.size > max_number_indoor_units
-          applicability_msg = "this air loop includes thermal zones (#{air_loop_hvac.thermalZones.size}) more than max indoor unit count (#{max_number_indoor_units}). so, skipping this air loop system..."
           # puts("--- #{applicability_msg}")
           applicability_msgs << applicability_msg
           applicability << false
@@ -1404,6 +1393,23 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       if applicable_thermalzone_per_floor.key?(z_coords_space[0])
         applicable_thermalzone_per_floor[z_coords_space[0]] << thermal_zone
       end
+    end
+
+    # applicability: number of indoor units per outdoor unit
+    max_number_indoor_units_per_outdoor_unit = 41 # hardcoded based on manufacturer engineering manual
+    max_indoor_unit_count_per_outdoor_unit = 0
+    applicable_thermalzone_per_floor.each do |z_coord, zones|
+      puts("checking number of thermal zones on each floor: z-coord = #{z_coord}")
+      puts("total number of thermal zones: #{zones.size} ")
+      if zones.size > max_indoor_unit_count_per_outdoor_unit
+        max_indoor_unit_count_per_outdoor_unit = zones.size
+      end
+    end
+    if max_indoor_unit_count_per_outdoor_unit <= max_number_indoor_units_per_outdoor_unit
+      runner.registerInfo('this building model is applicable for the upgrade in terms of indoor unit counts')
+    else
+      runner.registerAsNotApplicable("this building model is not applicable because the number of indoor units exceeds #{max_number_indoor_units_per_outdoor_unit} per an outdoor unit")
+      return true
     end
 
     # determine heating fuel type for non applicable thermal zones on applicable multizone systems
