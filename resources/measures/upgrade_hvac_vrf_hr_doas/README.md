@@ -35,7 +35,7 @@ ModelMeasure
 **Required:** true,
 **Model Dependent:** false
 
-### Upsizing allowance from cooling design load for heating dominant buildings
+### Upsizing allowance (in %) from cooling design load for heating dominant buildings
 25% upsizing allowance is the same as 125% from the original size
 **Name:** upsizing_allowance_pct,
 **Type:** Double,

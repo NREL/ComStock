@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>hvac_vrf_hr_doas</name>
   <uid>95ea1937-6b29-4af5-8946-0e271c828d10</uid>
-  <version_id>3af258cb-ff0b-4958-9df2-a1250211e880</version_id>
-  <version_modified>2023-11-14T15:52:19Z</version_modified>
+  <version_id>8e3c2131-ceb7-4df9-bdb0-aa11e5556524</version_id>
+  <version_modified>2023-11-14T21:51:52Z</version_modified>
   <xml_checksum>D8B5A9EA</xml_checksum>
   <class_name>HvacVrfHrDoas</class_name>
   <display_name>hvac_vrf_hr_doas</display_name>
@@ -50,7 +50,7 @@
     </argument>
     <argument>
       <name>upsizing_allowance_pct</name>
-      <display_name>Upsizing allowance from cooling design load for heating dominant buildings</display_name>
+      <display_name>Upsizing allowance (in %) from cooling design load for heating dominant buildings</display_name>
       <description>25% upsizing allowance is the same as 125% from the original size</description>
       <type>Double</type>
       <required>true</required>
@@ -149,7 +149,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>DA46ECB8</checksum>
+      <checksum>88BA89F3</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -166,7 +166,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>E702BF05</checksum>
+      <checksum>9ADCD1A2</checksum>
     </file>
     <file>
       <filename>performance_maps_Daikin_RELQ_100CR_120MBH.json</filename>
@@ -179,6 +179,12 @@
       <filetype>osc</filetype>
       <usage_type>resource</usage_type>
       <checksum>268E0358</checksum>
+    </file>
+    <file>
+      <filename>measure_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>F6FC07B1</checksum>
     </file>
   </files>
 </measure>
