@@ -288,14 +288,14 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
   # --------------------------------------- #
   # supporting method
   # --------------------------------------- #
-  def get_tabular_data(model, coil_name, column_name)
+  def get_tabular_data(model, sql, report_name, report_for_string, table_name, row_name, column_name)
     result = OpenStudio::OptionalDouble.new
-    sql = model.sqlFile
-    if sql.is_initialized
-      sql = sql.get
-      query = "Select Value FROM TabularDataWithStrings WHERE ReportName = 'CoilSizingDetails' AND RowName = '#{coil_name}' AND TableName = 'Coils' AND ColumnName = '#{column_name}' " # AND Units = 'C'
-      val = sql.execAndReturnFirstDouble(query)
-      result = OpenStudio::OptionalDouble.new(val.get) if val.is_initialized
+    var_val_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName = '#{report_name}' AND ReportForString = '#{report_for_string}' AND TableName = '#{table_name}' AND RowName = '#{row_name}' AND ColumnName = '#{column_name}'"
+    val = sql.execAndReturnFirstDouble(var_val_query)
+    if val.is_initialized
+      result = OpenStudio::OptionalDouble.new(val.get)
+    else
+      puts("Cannot query: #{report_name} | #{report_for_string} | #{table_name} | #{row_name} | #{column_name}")
     end
     result
   end
@@ -1399,8 +1399,8 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     max_number_indoor_units_per_outdoor_unit = 41 # hardcoded based on manufacturer engineering manual
     max_indoor_unit_count_per_outdoor_unit = 0
     applicable_thermalzone_per_floor.each do |z_coord, zones|
-      puts("checking number of thermal zones on each floor: z-coord = #{z_coord}")
-      puts("total number of thermal zones: #{zones.size} ")
+      # puts("checking number of thermal zones on each floor: z-coord = #{z_coord}")
+      # puts("total number of thermal zones: #{zones.size} ")
       if zones.size > max_indoor_unit_count_per_outdoor_unit
         max_indoor_unit_count_per_outdoor_unit = zones.size
       end
@@ -1878,108 +1878,136 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       return false
     end
 
-    # zone_htg_load = 0
-    # vrf_terminal_htg_cap = 0
-    # zone_clg_load = 0
-    # vrf_terminal_clg_cap = 0
-    # vrf_outdoor=nil
-    # model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+    ######################################################
+    # upsizing allowance
+    ######################################################
 
-    #   next unless (['doas', 'DOAS', 'Doas'].any? { |word| (air_loop_hvac.name.to_s).include?(word) })
-    #   # as a backup, skip non applicable airloops
-    #   next if na_air_loops.member?(air_loop_hvac)
-    #   # loop through thermal zones
-    #   air_loop_hvac.thermalZones.each do |thermal_zone|
-    #     # find vrf terminal units
-    #     vrf_terminal=nil
-    #     thermal_zone.equipment.each do |equip|
-    #       next unless equip.to_ZoneHVACTerminalUnitVariableRefrigerantFlow.is_initialized
-    #       vrf_terminal = equip.to_ZoneHVACTerminalUnitVariableRefrigerantFlow.get
-    #     end
-    #     vrf_cooling_coil = vrf_terminal.coolingCoil.get.to_CoilCoolingDXVariableRefrigerantFlow.get
-    #     vrf_heating_coil = vrf_terminal.heatingCoil.get.to_CoilHeatingDXVariableRefrigerantFlow.get
-    #     vrf_outdoor = vrf_terminal.vrfSystem.get.to_AirConditionerVariableRefrigerantFlow.get
+    # get sql
+    sql = model.sqlFile
+    if sql.is_initialized
+      sql = sql.get
+    end
 
-    #     # get sensible cooling heat ratio
-    #     # this is used for sizing cooling coils at design conditions
-    #     shr=nil
-    #     if vrf_cooling_coil.autosizedRatedSensibleHeatRatio.is_initialized
-    #       shr = vrf_cooling_coil.autosizedRatedSensibleHeatRatio.get
-    #     elsif vrf_cooling_coil.ratedSensibleHeatRatio.is_initialized
-    #       shr = vrf_cooling_coil.ratedSensibleHeatRatio.get
-    #     else
-    #       runner.registerError("Design sensible heat ratio not found for VRF cooling coil: #{vrf_cooling_coil.name}")
-    #     end
+    # check if building is heating dominant building
 
-    #     # indoor unit capactity function of temperature curves
-    #     cool_indoor_cap_ft_curve = vrf_cooling_coil.coolingCapacityRatioModifierFunctionofTemperatureCurve
-    #     heat_indoor_cap_ft_curve = vrf_heating_coil.heatingCapacityRatioModifierFunctionofTemperatureCurve
-    #     # temperature for calculating indoor capacity at design conditions
-    #     cool_indoor_peak_ia_wb_c = get_tabular_data(model, vrf_cooling_coil.name.get.upcase, 'Coil Entering Air Wetbulb at Ideal Loads Peak')
-    #     puts "cool_indoor_peak_ia_wb_c: #{cool_indoor_peak_ia_wb_c}"
-    #     cool_indoor_peak_oa_db_c = get_tabular_data(model, vrf_cooling_coil.name.get.upcase, 'Outdoor Air Drybulb at Ideal Loads Peak')
-    #     puts "cool_indoor_peak_oa_db_c: #{cool_indoor_peak_oa_db_c}"
-    #     cool_indoor_supply_fan_heat = get_tabular_data(model, vrf_cooling_coil.name.get.upcase, 'Supply Fan Air Heat Gain at Ideal Loads Peak')
-    #     puts "cool_indoor_sf_heat: #{cool_indoor_supply_fan_heat}"
+    # loop through each outdoor unit
+    model.getAirConditionerVariableRefrigerantFlows.each do |ou|
+      puts("### DEBUGGING: ####################################")
+      puts("### DEBUGGING: OU name = #{ou.name}")
+      ou.terminals.each do |iu|
+        
+        coil_cooling = iu.coolingCoil.get
+        coil_heating = iu.heatingCoil.get
+        puts("### DEBUGGING: ------------------------------------")
+        puts("### DEBUGGING: IU cooling coil name = #{coil_cooling.name}")
+        row_name_cooling = coil_cooling.name.to_s.upcase
+        row_name_heating = coil_heating.name.to_s.upcase
 
-    #     # calculate indoor capacity modifier
-    #     puts "cool_indoor_cap_ft_curve.class: #{cool_indoor_cap_ft_curve.class}"
-    #     cool_indoor_peak_cap_ft_mod = cool_indoor_cap_ft_curve.evaluate(cool_indoor_peak_ia_wb_c.to_f, cool_indoor_peak_oa_db_c.to_f)
-    #     puts "cool_indoor_peak_cap_ft_mod: #{cool_indoor_peak_cap_ft_mod}"
+        # get design_cooling_load
+        column_name = 'Zone Sensible Heat Gain at Ideal Loads Peak'
+        design_cooling_load = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_cooling, column_name).to_f
+        puts("### DEBUGGING: #{coil_cooling.name} | design_cooling_load = #{design_cooling_load} W")
 
-    #     # run statements
-    #     puts "Zone: #{thermal_zone.name}"
+        # get design_heating_load
+        column_name = 'Zone Sensible Heat Gain at Ideal Loads Peak'
+        design_heating_load = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_heating, column_name).to_f
+        puts("### DEBUGGING: #{coil_cooling.name} | design_heating_load = #{design_heating_load} W")
 
-    #     # cooling
-    #     puts ""
-    #     puts "VRF cooling coil: #{vrf_cooling_coil.name}"
-    #     puts "VRF cooling class: #{vrf_cooling_coil.class}"
-    #     puts "Cooling Load: #{thermal_zone.autosizedCoolingDesignLoad}"
-    #     puts "Sensible heat ratio: #{shr}"
-    #     puts "Capacity Modifier: #{cool_indoor_peak_cap_ft_mod}"
-    #     puts "Req total cooling cap with shr: #{(thermal_zone.autosizedCoolingDesignLoad.get / shr / cool_indoor_peak_cap_ft_mod) + cool_indoor_supply_fan_heat.to_f}"
-    #     zone_clg_load += thermal_zone.autosizedCoolingDesignLoad.to_f
-    #     puts "VRF cooling Cap: #{vrf_cooling_coil.autosizedRatedTotalCoolingCapacity}"
-    #     vrf_terminal_clg_cap += vrf_cooling_coil.autosizedRatedTotalCoolingCapacity.to_f
-    #     puts "Cooling vrf/load ratio: #{((thermal_zone.autosizedCoolingDesignLoad.get / shr / cool_indoor_peak_cap_ft_mod) + cool_indoor_supply_fan_heat.to_f) / vrf_cooling_coil.autosizedRatedTotalCoolingCapacity.to_f }"
-    #     puts "Cooling Airflow: #{thermal_zone.autosizedCoolingDesignAirFlowRate}"
-    #     puts "VRF cooling Airflow: #{vrf_terminal.autosizedSupplyAirFlowRateDuringCoolingOperation}"
-    #     puts ""
+        # get design_air_flow_rate_m_3_per_sec
+        column_name = 'Coil Air Volume Flow Rate at Ideal Loads Peak'
+        design_air_flow_rate_m_3_per_sec = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_cooling, column_name).to_f
+        puts("### DEBUGGING: #{coil_cooling.name} | design_air_flow_rate_m_3_per_sec = #{design_air_flow_rate_m_3_per_sec} m3/s")
 
-    #     # heating
-    #     puts "VRF heating coil: #{vrf_heating_coil.name}"
-    #     puts "Heating Load: #{thermal_zone.autosizedHeatingDesignLoad}"
-    #     zone_htg_load += thermal_zone.autosizedHeatingDesignLoad.to_f
-    #     puts "VRF heating Cap: #{vrf_heating_coil.autosizedRatedTotalHeatingCapacity}"
-    #     vrf_terminal_htg_cap += vrf_heating_coil.autosizedRatedTotalHeatingCapacity.to_f
-    #     puts "Heating vrf/load ratio: #{thermal_zone.autosizedHeatingDesignLoad.to_f / vrf_heating_coil.autosizedRatedTotalHeatingCapacity.to_f }"
-    #     puts "Heating Airflow: #{thermal_zone.autosizedHeatingDesignAirFlowRate}"
-    #     puts "VRF heating Airflow: #{vrf_terminal.autosizedSupplyAirFlowRateDuringHeatingOperation}"
-    #     puts "XXXXX"
-    #   end
+        # get fan_heat_gain
+        column_name = 'Supply Fan Air Heat Gain at Ideal Loads Peak'
+        fan_heat_gain = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_cooling, column_name).to_f
+        puts("### DEBUGGING: #{coil_cooling.name} | fan_heat_gain = #{fan_heat_gain} W")
+  
+        # get rated_capacity_modifier
+        column_name = 'Coil Off-Rating Capacity Modifier at Ideal Loads Peak'
+        rated_capacity_modifier = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_cooling, column_name).to_f
+        puts("### DEBUGGING: #{coil_cooling.name} | rated_capacity_modifier = #{rated_capacity_modifier}")
 
-    #   # get outdoor unit properties for cooling
-    #   cool_outdoor_pipe_length_m = vrf_outdoor.equivalentPipingLengthusedforPipingCorrectionFactorinCoolingMode # length for piping correction
-    #   cool_outdoor_vert_pipe_length_m = vrf_outdoor.verticalHeightusedforPipingCorrectionFactor
-    #   cool_outdoor_cap_f_length = vrf_outdoor.pipingCorrectionFactorforLengthinCoolingModeCurve # curve for piping losses
+        # get capacity_original_rated
+        column_name = 'Coil Final Gross Total Capacity'
+        capacity_original_rated = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_cooling, column_name).to_f
+        puts("### DEBUGGING: #{coil_cooling.name} | capacity_original_rated = #{capacity_original_rated} W")
 
-    #   #model.getAirConditionerVariableRefrigerantFlows.each TODO
+        # get capacity_upsized_rated
+        capacity_upsized_rated = capacity_original_rated * (1 + upsizing_allowance_pct / 100.0)
+        puts("### DEBUGGING: #{coil_cooling.name} | capacity_upsized_rated = #{capacity_upsized_rated} W")
 
-    #   # outdoor unit capacity modifiers
-    #   #vrf_outdoor.coolingCapacityRatioModifierFunctionofLowTemperatureCurve # curve for cooling capacity as a function of temperature
-    #   #vrf_outdoor.coolingCombinationRatioCorrectionFactorCurve # combination ratio for cooling
-    #   #vrf_outdoor.pipingCorrectionFactorforLengthinCoolingModeCurve  # piping correction
+        # get design capacity from upsized rated capacity
+        capacity_upsized_design = capacity_upsized_rated / rated_capacity_modifier
+        puts("### DEBUGGING: #{coil_cooling.name} | capacity_upsized_design = #{capacity_upsized_design}")
+        capacity_upsized_design_wo_fan_heat_gain = capacity_upsized_design - fan_heat_gain
+        puts("### DEBUGGING: #{coil_cooling.name} | capacity_upsized_design_wo_fan_heat_gain = #{capacity_upsized_design_wo_fan_heat_gain}")
 
+        # check design capacity against design heating load
+        if capacity_upsized_design_wo_fan_heat_gain > design_heating_load
+          capacity_final_design = design_heating_load
+        else
+          capacity_final_design = capacity_upsized_design_wo_fan_heat_gain
+        end
+        puts("### DEBUGGING: #{coil_cooling.name} | capacity_final_design = #{capacity_final_design}")
 
-    #   # outdoor unit
-    #   puts "zone_htg_load: #{zone_htg_load}"
-    #   puts "vrf_terminal_htg_cap: #{vrf_terminal_htg_cap}"
-    #   puts "vrf_outdoor htg cap: #{vrf_outdoor.autosizedGrossRatedHeatingCapacity}"
-    #   puts "zone_htg_load: #{zone_clg_load}"
-    #   puts "vrf_terminal_clg_cap: #{vrf_terminal_clg_cap}"
-    #   puts "vrf_outdoor clg cap: #{vrf_outdoor.autosizedGrossRatedTotalCoolingCapacity}"
+        # get final upsized rated capacity
+        capacity_final_rated = capacity_final_design + fan_heat_gain
+        capacity_final_rated = capacity_final_rated * rated_capacity_modifier
+        puts("### DEBUGGING: #{coil_cooling.name} | capacity_final_rated = #{capacity_final_rated}")
 
-    # end
+        # get CFM/ton 
+        design_air_flow_rate_cfm = design_air_flow_rate_m_3_per_sec * 2118.88 
+        puts("### DEBUGGING: #{coil_cooling.name} | design_air_flow_rate_cfm = #{design_air_flow_rate_cfm} CFM")
+        capacity_upsized_rated_ton = capacity_final_rated * 0.000284345
+        puts("### DEBUGGING: #{coil_cooling.name} | capacity_upsized_rated_ton = #{capacity_upsized_rated_ton} ton")
+        cfm_per_ton = design_air_flow_rate_cfm / capacity_upsized_rated_ton
+        puts("### DEBUGGING: #{coil_cooling.name} | cfm_per_ton = #{cfm_per_ton}")
+
+        # get final upsized rated capacity if CFM/ton is out of bound between 300 and 450
+        if cfm_per_ton < 300.0
+          #TBD
+        elsif cfm_per_ton > 450
+          #TBD
+        end
+
+      end
+
+    end
+
+      # loop through each indoor unit: use `terminals` method
+
+        # get design_cooling_load
+        # get design_heating_load
+        # get design_flow_rate
+
+        # get sizing parameters
+
+        # get capacity_original_rated: original outdoor unit capacity
+          # Component Sizing Summary
+          # Entire Facility
+          # AirConditioner:VariableRefrigerantFlow
+
+        # get capacity_upsized_rated: upsized rated outdoor unit capacity
+
+        # get capacity_upsized_design: upsized design outdoor unit capacity
+
+        # get capacity_upsized_design_wo_fan_heat_gain: upsized design outdoor unit capacity without fan heat gain
+
+        # if 
+          # capacity_upsized_design_wo_fan_heat_gain is larger than design_heating_load, set capacity_final_design_wo_fan_heat_gain = design_heating_load
+          # capacity_upsized_design_wo_fan_heat_gain is smaller than design_heating_load, set capacity_final_design_wo_fan_heat_gain = capacity_upsized_design_wo_fan_heat_gain
+
+        # set capacity_final_design = capacity_final_design_wo_fan_heat_gain + fan_heat_gain
+
+        # set capacity_final_rated = capacity_final_design / rated_capacity_modifier
+
+        # get CFM/ton from capacity_final_rated and design_flow_rate
+
+        # if
+          # CFM/ton is lower than 300 CFM/ton, adjust design_flow_rate based on 300 CFM/ton
+          # CFM/ton is higher than 450 CFM/ton, adjust design
+    # ------------------------------------------------- #
 
     ######################################################
     # puts("### Update ERV/HRV wheel power and efficiencies based on sizing run")
