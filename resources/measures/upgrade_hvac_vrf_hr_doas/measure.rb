@@ -427,10 +427,14 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       map_performance_data['max_oa_temp_heating'] = acvrf.maximumOutdoorTemperatureinHeatingMode
       map_performance_data['min_oa_temp_heatrecovery'] = acvrf.minimumOutdoorTemperatureinHeatRecoveryMode
       map_performance_data['max_oa_temp_heatrecovery'] = acvrf.maximumOutdoorTemperatureinHeatRecoveryMode
-      map_performance_data['initial_heatrecovery_cap_frac_cooling'] = acvrf.initialHeatRecoveryCoolingCapacityFraction 
+      map_performance_data['initial_heatrecovery_cap_frac_cooling'] = acvrf.initialHeatRecoveryCoolingCapacityFraction
+      map_performance_data['initial_heatrecovery_en_frac_cooling'] = acvrf.initialHeatRecoveryCoolingEnergyFraction
       map_performance_data['initial_heatrecovery_cap_frac_heating'] = acvrf.initialHeatRecoveryHeatingCapacityFraction
+      map_performance_data['initial_heatrecovery_en_frac_heating'] = acvrf.initialHeatRecoveryHeatingEnergyFraction
       map_performance_data['initial_heatrecovery_cap_timeconstant_cooling'] = acvrf.heatRecoveryCoolingCapacityTimeConstant
+      map_performance_data['initial_heatrecovery_en_timeconstant_cooling'] = acvrf.heatRecoveryCoolingEnergyTimeConstant
       map_performance_data['initial_heatrecovery_cap_timeconstant_heating'] = acvrf.heatRecoveryHeatingCapacityTimeConstant
+      map_performance_data['initial_heatrecovery_en_timeconstant_heating'] = acvrf.heatRecoveryHeatingEnergyTimeConstant
       # map_performance_data["defrost_strategy"] = acvrf.defrostStrategy # unused for now
       # map_performance_data["defrost_control"] = acvrf.defrostControl # unused for now
     end
@@ -653,16 +657,27 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     unless map_performance_data['initial_heatrecovery_cap_frac_cooling'].nil?
       vrf_outdoor_unit.setInitialHeatRecoveryCoolingCapacityFraction(map_performance_data['initial_heatrecovery_cap_frac_cooling'])
     end
+    unless map_performance_data['initial_heatrecovery_en_frac_cooling'].nil?
+      vrf_outdoor_unit.setInitialHeatRecoveryCoolingEnergyFraction(map_performance_data['initial_heatrecovery_en_frac_cooling'])
+    end
     unless map_performance_data['initial_heatrecovery_cap_frac_heating'].nil?
       vrf_outdoor_unit.setInitialHeatRecoveryHeatingCapacityFraction(map_performance_data['initial_heatrecovery_cap_frac_heating'])
+    end
+    unless map_performance_data['initial_heatrecovery_en_frac_heating'].nil?
+      vrf_outdoor_unit.setInitialHeatRecoveryHeatingEnergyFraction(map_performance_data['initial_heatrecovery_en_frac_heating'])
     end
     unless map_performance_data['initial_heatrecovery_cap_timeconstant_cooling'].nil?
       vrf_outdoor_unit.setHeatRecoveryCoolingCapacityTimeConstant(map_performance_data['initial_heatrecovery_cap_timeconstant_cooling'])
     end
+    unless map_performance_data['initial_heatrecovery_en_timeconstant_cooling'].nil?
+      vrf_outdoor_unit.setHeatRecoveryCoolingEnergyTimeConstant(map_performance_data['initial_heatrecovery_en_timeconstant_cooling'])
+    end
     unless map_performance_data['initial_heatrecovery_cap_timeconstant_heating'].nil?
       vrf_outdoor_unit.setHeatRecoveryHeatingCapacityTimeConstant(map_performance_data['initial_heatrecovery_cap_timeconstant_heating'])
     end
-
+    unless map_performance_data['initial_heatrecovery_en_timeconstant_heating'].nil?
+      vrf_outdoor_unit.setHeatRecoveryHeatingEnergyTimeConstant(map_performance_data['initial_heatrecovery_en_timeconstant_heating'])
+    end
   end
 
   # check if air loop is evaporative cooler
