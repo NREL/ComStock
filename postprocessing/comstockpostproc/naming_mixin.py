@@ -487,6 +487,34 @@ class NamingMixin():
             'Warehouse']
     }
 
+    END_USES = [
+        'exterior_lighting',
+        'interior_lighting',
+        'interior_equipment',
+        'water_systems',
+        'heat_recovery',
+        'heat_rejection',
+        'cooling',
+        'heating',
+        'fans',
+        'pumps',
+        'refrigeration'
+    ]
+
+    END_USES_TIMESERIES_DICT = {
+        'exterior_lighting': 'electricity_exterior_lighting_kwh',
+        'interior_lighting': 'electricity_interior_lighting_kwh',
+        'interior_equipment': 'electricity_interior_equipment_kwh',
+        'water_systems': 'electricity_water_systems_kwh',
+        'heat_recovery': 'electricity_heat_recovery_kwh',
+        'heat_rejection': 'electricity_heat_rejection_kwh',
+        'cooling': 'electricity_cooling_kwh',
+        'heating': 'electricity_heating_kwh',
+        'fans': 'electricity_fans_kwh',
+        'pumps': 'electricity_pumps_kwh',
+        'refrigeration': 'electricity_refrigeration_kwh'
+    }
+
     def end_use_group(self, end_use):
         # Add an End Use Group
         end_use_groups = {
