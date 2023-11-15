@@ -942,12 +942,19 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     return false unless runner.validateUserArguments(arguments(model), user_arguments)
 
     ######################################################
-    # puts('### obtain user in#puts')
+    # puts('### obtain user inputs')
     ######################################################
     apply_measure = runner.getBoolArgumentValue('apply_measure', user_arguments)
     vrf_defrost_strategy = runner.getStringArgumentValue('vrf_defrost_strategy', user_arguments)    
     disable_defrost = runner.getBoolArgumentValue('disable_defrost', user_arguments)
     upsizing_allowance_pct = runner.getDoubleArgumentValue('upsizing_allowance_pct', user_arguments)
+
+    ######################################################
+    # puts('### check input argument values')
+    ######################################################
+    if upsizing_allowance_pct < 0
+      runner.registerError("Upsizing allowance percentage cannot be a negative value.")
+    end
 
     ######################################################
     # puts("### report initial condition of model")
