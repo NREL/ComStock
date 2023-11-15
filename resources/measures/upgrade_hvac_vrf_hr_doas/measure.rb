@@ -1881,23 +1881,32 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     ######################################################
     # upsizing allowance
     ######################################################
-
-    # get sql
+    # get sql (for extracting sizing information)
     sql = model.sqlFile
     if sql.is_initialized
       sql = sql.get
     end
 
-    # check if building is heating dominant building
-
     # loop through each outdoor unit
     model.getAirConditionerVariableRefrigerantFlows.each do |ou|
       puts("### DEBUGGING: ####################################")
       puts("### DEBUGGING: OU name = #{ou.name}")
+      capacity_outdoor_unit_new = 0
       ou.terminals.each do |iu|
         
+        # get coil from indoor unit
         coil_cooling = iu.coolingCoil.get
         coil_heating = iu.heatingCoil.get
+        if coil_cooling.to_CoilCoolingDXVariableRefrigerantFlow.is_initialized
+          coil_cooling = coil_cooling.to_CoilCoolingDXVariableRefrigerantFlow.get
+        else
+          runner.registerError("cannot get CoilCoolingDXVariableRefrigerantFlow object")
+        end
+        if coil_heating.to_CoilHeatingDXVariableRefrigerantFlow.is_initialized
+          coil_heating = coil_heating.to_CoilHeatingDXVariableRefrigerantFlow.get
+        else
+          runner.registerError("cannot get CoilHeatingDXVariableRefrigerantFlow object")
+        end
         puts("### DEBUGGING: ------------------------------------")
         puts("### DEBUGGING: IU cooling coil name = #{coil_cooling.name}")
         row_name_cooling = coil_cooling.name.to_s.upcase
@@ -1938,7 +1947,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
         puts("### DEBUGGING: #{coil_cooling.name} | capacity_upsized_rated = #{capacity_upsized_rated} W")
 
         # get design capacity from upsized rated capacity
-        capacity_upsized_design = capacity_upsized_rated / rated_capacity_modifier
+        capacity_upsized_design = capacity_upsized_rated * rated_capacity_modifier
         puts("### DEBUGGING: #{coil_cooling.name} | capacity_upsized_design = #{capacity_upsized_design}")
         capacity_upsized_design_wo_fan_heat_gain = capacity_upsized_design - fan_heat_gain
         puts("### DEBUGGING: #{coil_cooling.name} | capacity_upsized_design_wo_fan_heat_gain = #{capacity_upsized_design_wo_fan_heat_gain}")
@@ -1953,7 +1962,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
 
         # get final upsized rated capacity
         capacity_final_rated = capacity_final_design + fan_heat_gain
-        capacity_final_rated = capacity_final_rated * rated_capacity_modifier
+        capacity_final_rated = capacity_final_rated / rated_capacity_modifier
         puts("### DEBUGGING: #{coil_cooling.name} | capacity_final_rated = #{capacity_final_rated}")
 
         # get CFM/ton 
@@ -1964,14 +1973,46 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
         cfm_per_ton = design_air_flow_rate_cfm / capacity_upsized_rated_ton
         puts("### DEBUGGING: #{coil_cooling.name} | cfm_per_ton = #{cfm_per_ton}")
 
-        # get final upsized rated capacity if CFM/ton is out of bound between 300 and 450
+        # adjust indoor unit flow rate if CFM/ton is out of bound between 300 and 450
         if cfm_per_ton < 300.0
-          #TBD
+          puts("### DEBUGGING: #{coil_cooling.name} | CFM/ton minimum limit violated. Adjusting air flow rate to match with minimum limit.")
+          new_air_flow_rate_cfm = 300 * capacity_upsized_rated_ton
+          puts("### DEBUGGING: #{coil_cooling.name} | indoor unit air flow adjusted match with minimum limit: #{new_air_flow_rate_cfm} CFM")
         elsif cfm_per_ton > 450
-          #TBD
+          puts("### DEBUGGING: #{coil_cooling.name} | CFM/ton maximum limit violated. Adjusting air flow rate to match with maximum limit.")
+          new_air_flow_rate_cfm = 450 * capacity_upsized_rated_ton
+          puts("### DEBUGGING: #{coil_cooling.name} | indoor unit air flow adjusted match with maximum limit: #{new_air_flow_rate_cfm} CFM")
+        else
+          new_air_flow_rate_cfm = design_air_flow_rate_cfm
         end
 
+        # override indoor unit capacity and air flow rate
+        new_air_flow_rate_m_3_per_s = new_air_flow_rate_cfm / 2118.88
+        puts("### DEBUGGING: #{coil_cooling.name} | indoor unit cooling air flow rate before: #{coil_cooling.ratedAirFlowRate} m3/s")
+        coil_cooling.setRatedAirFlowRate(new_air_flow_rate_m_3_per_s)
+        puts("### DEBUGGING: #{coil_cooling.name} | indoor unit cooling air flow rate after: #{coil_cooling.ratedAirFlowRate} m3/s")
+        puts("### DEBUGGING: #{coil_heating.name} | indoor unit heating air flow rate before: #{coil_heating.ratedAirFlowRate} m3/s")
+        coil_heating.setRatedAirFlowRate(new_air_flow_rate_m_3_per_s)
+        puts("### DEBUGGING: #{coil_heating.name} | indoor unit heating air flow rate after: #{coil_heating.ratedAirFlowRate} m3/s")
+
+        puts("### DEBUGGING: #{coil_cooling.name} | indoor unit cooling capacity before: #{coil_cooling.ratedTotalCoolingCapacity} W")
+        coil_cooling.setRatedTotalCoolingCapacity(capacity_final_rated)
+        puts("### DEBUGGING: #{coil_cooling.name} | indoor unit cooling capacity after: #{coil_cooling.ratedTotalCoolingCapacity} W")
+        puts("### DEBUGGING: #{coil_heating.name} | indoor unit heating capacity before: #{coil_heating.ratedTotalHeatingCapacity} W")
+        coil_heating.setRatedTotalHeatingCapacity(capacity_final_rated)
+        puts("### DEBUGGING: #{coil_heating.name} | indoor unit heating capacity after: #{coil_heating.ratedTotalHeatingCapacity} W")
+
+        # add final indoor unit capacity for calculating outdoor unit capacity
+        capacity_outdoor_unit_new += capacity_final_rated
       end
+
+      # override outdoor unit capacity
+      puts("### DEBUGGING: #{ou.name} | outdoor unit cooling capacity before: #{ou.autosizedGrossRatedTotalCoolingCapacity} W")
+      ou.setGrossRatedTotalCoolingCapacity(capacity_outdoor_unit_new)
+      puts("### DEBUGGING: #{ou.name} | outdoor unit cooling capacity after: #{ou.grossRatedTotalCoolingCapacity} W")
+      puts("### DEBUGGING: #{ou.name} | outdoor unit heating capacity before: #{ou.autosizedGrossRatedHeatingCapacity} W")
+      ou.setGrossRatedHeatingCapacity(capacity_outdoor_unit_new)
+      puts("### DEBUGGING: #{ou.name} | outdoor unit heating capacity after: #{ou.grossRatedHeatingCapacity} W")
 
     end
 
