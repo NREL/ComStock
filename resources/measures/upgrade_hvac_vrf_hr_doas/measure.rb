@@ -1875,9 +1875,9 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     end
 
     ######################################################
-    # puts("### sizing")
+    # puts("### regular sizing")
     ######################################################
-    # placeholder for updating sizing scheme (below is what original measure had)
+    # run sizing
     std.model_apply_prm_sizing_parameters(model)
     if std.model_run_sizing_run(model, "#{Dir.pwd}/SR1") == false
       runner.registerError('Sizing run did not succeed, cannot apply HVAC efficiencies.')
@@ -1888,7 +1888,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     ######################################################
     # upsizing allowance
     ######################################################
-    if upsizing_allowance_pct > 0
+    if upsizing_allowance_pct > 0.0
 
       # get sql (for extracting sizing information)
       sql = model.sqlFile
