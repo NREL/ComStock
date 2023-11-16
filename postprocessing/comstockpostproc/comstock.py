@@ -91,6 +91,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.rename_upgrades = rename_upgrades
         self.rename_upgrades_file_name = 'rename_upgrades.json'
         self.data = None
+        self.data_long = None
         self.color = color_hex
         self.weighted_energy_units = weighted_energy_units
         self.weighted_ghg_units = weighted_ghg_units
@@ -1455,14 +1456,19 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 propane_ghg = f'calc.weighted.emissions.propane..co2e_mmt'
                 fuel_oil_ghg = f'calc.weighted.emissions.fuel_oil..co2e_mmt'
                 tot_ghg_expr = (pl.col(propane_ghg).add(pl.col(fuel_oil_ghg)))
-                self.data = self.data.with_columns(
-                    (tot_ghg_expr.mul(pl.col(enduse_gp_engy)).truediv(pl.col(tot_engy))).alias(enduse_gp_ghg_col),
-                )
+                self.data = self.data.with_columns([
+                    pl.when((pl.col(tot_engy) > 0))  # Avoid divide-by-zero
+                    .then((tot_ghg_expr.mul(pl.col(enduse_gp_engy)).truediv(pl.col(tot_engy))))
+                    .otherwise(0.0)
+                    .alias(enduse_gp_ghg_col),
+                ])
             else:
-                self.data = self.data.with_columns(
-                    (pl.col(tot_ghg).mul(pl.col(enduse_gp_engy)).truediv(pl.col(tot_engy))).alias(enduse_gp_ghg_col),
-                )
-
+                self.data = self.data.with_columns([
+                    pl.when((pl.col(tot_engy) > 0))  # Avoid divide-by-zero
+                    .then((pl.col(tot_ghg).mul(pl.col(enduse_gp_engy)).truediv(pl.col(tot_engy))))
+                    .otherwise(0.0)
+                    .alias(enduse_gp_ghg_col)
+                ])
     def add_weighted_energy_savings_columns(self):
         # Select energy columns to calculate savings for
         engy_cols = []
@@ -1659,45 +1665,103 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Export dictionaries corresponding to the exported columns
         self.export_data_and_enumeration_dictionary()
 
-    def export_to_csv_long(self):
-        # Exports comstock data to CSV in long format, with rows for each end use
-        # TODO POLARS implement export_to_csv_long
+    def create_long_energy_data(self):
+        # Convert energy and emissions data into long format, with a row for each fuel/enduse group combo
 
-        # Convert ComStock into long format, with a new row for each Fuel.Enduse combination
         engy_cols = []
-        for col in (self.COLS_ENDUSE_ANN_ENGY):
-            engy_cols.append(self.col_name_to_weighted(col, self.weighted_energy_units))
+        emis_cols = []
+        for col in (self.COLS_ENDUSE_GROUP_ANN_ENGY):
+            fuel, enduse_gp = col.replace('calc.enduse_group.', '').replace('.energy_consumption..kwh', '').split('.')
+            pre = f'calc.weighted.enduse_group.{fuel}.{enduse_gp}'
+            enduse_gp_engy = f'{pre}.energy_consumption..tbtu'
+            engy_cols.append(enduse_gp_engy)
+            # Find the corresponding emissions column
+            for c in self.data.columns:
+                if c.startswith(f'{pre}.emissions'):
+                    emis_cols.append(c)
 
-        bldg_cols = []
-        for c in self.data.columns:
-            if not 'out.' in c:
-                bldg_cols.append(c)
+        # Convert energy columns to long form
+        engy_var_col = 'calc.weighted.enduse_group.fuel.enduse_group.energy_consumption..units'
+        pre = 'calc.weighted.enduse_group.'
+        suf = '..tbtu'
+        engy_val_col = f'calc.weighted.energy_consumption..{self.weighted_energy_units}'
+        engy = self.data.melt(id_vars=[self.BLDG_ID, self.UPGRADE_ID], value_vars=engy_cols, variable_name=engy_var_col, value_name=engy_val_col)
+        engy = engy.with_columns(
+            pl.col(engy_var_col).str.strip_prefix(pre).str.strip_suffix(suf).str.split('.').list.get(0).alias('fuel'),
+            pl.col(engy_var_col).str.strip_prefix(pre).str.strip_suffix(suf).str.split('.').list.get(1).alias('enduse_group'),
+        )
 
-        var_col = 'type.fuel.enduse.energy_consumption..units'
-        val_col = 'weighted_energy_consumption'
-        dl = pd.melt(self.data, id_vars=[self.BLDG_UP_ID, self.UPGRADE_ID, 'in.state_abbreviation'], value_vars=engy_cols, var_name=var_col, value_name=val_col)
+        # Convert emissions columns to long form
+        emis_var_col = 'calc.weighted.enduse_group.fuel.enduse_group.emissions..units'
+        pre = 'calc.weighted.enduse_group.'
+        emis_val_col = f'calc.weighted.emissions..{self.weighted_ghg_units}'
+        emis = self.data.melt(id_vars=[self.BLDG_ID, self.UPGRADE_ID], value_vars=emis_cols, variable_name=emis_var_col, value_name=emis_val_col)
+        emis = emis.with_columns(
+            pl.col(emis_var_col).str.strip_prefix(pre).str.split('.').list.get(0).alias('fuel'),
+            pl.col(emis_var_col).str.strip_prefix(pre).str.split('.').list.get(1).alias('enduse_group'),
+        )
 
-        # Remove rows with zero values for the fuel type/end use combo
-        dl = dl.loc[dl[val_col] > 0]
+        # Join long form energy and emissions
+        join_cols = [self.BLDG_ID, self.UPGRADE_ID, 'fuel', 'enduse_group']
+        engy_emis = engy.join(emis, how='left', on=join_cols)
+        # Fill blank emissions (for district heating and cooling) with zeroes
+        # TODO remove if emissions cols for district heating and cooling get added
+        engy_emis = engy_emis.with_columns(
+            pl.col(emis_val_col).fill_null(0.0)
+        )
+        # Remove rows with zero energy for the fuel/end use group combo to make file shorter
+        engy_emis = engy_emis.filter((pl.col(engy_val_col) > 0))
+        engy_emis = engy_emis.select(join_cols + [engy_val_col, emis_val_col])
+        engy_emis = engy_emis.sort(by=join_cols)
 
-        # Sort by building and upgrade ID
-        dl.sort_values(self.BLDG_UP_ID, inplace=True)
+        # Check that the long and wide sums match by fuel and for the total
+        fuels_to_check = engy_emis.get_column('fuel').unique().to_list() + ['total']
+        for fuel in fuels_to_check:
+            # Define column names
+            tot_engy_col = f'calc.weighted.{fuel}.total.energy_consumption..tbtu'
+            tot_ghg_col = f'calc.weighted.emissions.{fuel}..co2e_mmt'
+            if fuel == 'electricity':
+                tot_ghg_col = 'calc.weighted.emissions.electricity.egrid_2021_subregion..co2e_mmt'
+            elif fuel == 'total':
+                tot_engy_col = self.col_name_to_weighted(self.ANN_TOT_ENGY_KBTU, self.weighted_energy_units)
+                tot_ghg_col = self.col_name_to_weighted(self.ANN_GHG_EGRID, self.weighted_ghg_units)
+            elif fuel in ['other_fuel', 'district_heating', 'district_cooling']:
+                # TODO revise if district emissions added
+                # Other is sum of propane and fuel_oil columns, and district cols have no emissions columns
+                # Checked as part of checking total
+                continue
+            # Energy check
+            if fuel == 'total':
+                tot_engy_long = engy_emis.select(pl.sum(engy_val_col)).item()
+            else:
+                tot_engy_long = engy_emis.filter((pl.col('fuel') == fuel)).select(pl.sum(engy_val_col)).item()
+            tot_engy_wide = self.data.select(pl.sum(tot_engy_col)).item()
+            logger.debug(f'{fuel} long energy {tot_engy_long}')
+            logger.debug(f'{fuel} wide energy {tot_engy_wide}')
+            assert round(tot_engy_long, 1) == round(tot_engy_wide, 1), f'For {fuel}, long energy {tot_engy_long} does not match wide energy {tot_emis_wide}'
+            # Emissions check
+            if fuel == 'total':
+                tot_emis_long = engy_emis.select(pl.sum(emis_val_col)).item()
+            else:
+                tot_emis_long = engy_emis.filter((pl.col('fuel') == fuel)).select(pl.sum(emis_val_col)).item()
+            tot_emis_wide = self.data.select(pl.sum(tot_ghg_col)).item()
+            logger.debug(f'{fuel} long emissions {tot_emis_long}')
+            logger.debug(f'{fuel} wide emissions {tot_emis_wide}')
+            assert round(tot_emis_long, 1) == round(tot_emis_wide, 1), f'For {fuel}, long emissions {tot_engy_long} do not match wide emissions {tot_emis_wide}'
 
-        # Separate'type.fuel.enduse.energy_consumption..units' into multiple columns
-        def split_col_name(col_name):
-            p = self.engy_col_name_to_parts(col_name)
+        # Assign
+        self.data_long = engy_emis
 
-            return [p['fuel'], p['enduse'], p['enduse_group'], p['units'], ]
+    def export_to_csv_long(self):
+        # Exports comstock data to CSV in long format, with rows for each fuel/enduse group combo
 
-        dl['fuel'], dl['enduse'], dl['enduse_group'], dl['weighted_energy_consumption_units'] = zip(*dl[var_col].apply(split_col_name))
-
-        # Drop the combined type.fuel.enduse.energy_consumption..units column
-        dl.drop(var_col, axis=1, inplace=True)
+        if self.data_long is None:
+            self.create_long_energy_data()
 
         # Save files - separate building energy from characteristics for file size
         file_name = f'ComStock energy long.csv'
         file_path = os.path.join(self.output_dir, file_name)
-        dl.to_csv(file_path, index=False)
+        self.data_long.write_csv(file_path)
 
     def combine_emissions_cols(self):
         # Create combined emissions columns
