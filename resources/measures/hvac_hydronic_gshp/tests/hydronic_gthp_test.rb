@@ -44,10 +44,10 @@ require 'minitest/autorun'
 require 'open3'
 require_relative '../measure.rb'
 
-class ReplaceBoilerWithGTHPTest < Minitest::Test
+class HydronicGTHPTest < Minitest::Test
 
   def setup
-    # Check that the test is being run in an environment that has the
+    # Check that the test is being run in an environment that has the GHEdesigner package
     command = "ghedesigner --help"
     begin
       stdout_str, stderr_str, status = Open3.capture3(command)
@@ -152,7 +152,6 @@ class ReplaceBoilerWithGTHPTest < Minitest::Test
     puts "Copying #{osm_path}"
     puts "To #{new_osm_path}"
 
-
     FileUtils.cp(osm_path, new_osm_path)
     new_epw_path = "#{run_dir(test_name)}/#{File.basename(epw_path)}"
     FileUtils.cp(epw_path, new_epw_path)
@@ -171,7 +170,8 @@ class ReplaceBoilerWithGTHPTest < Minitest::Test
 
     # If the sql file from the sizing run exists, assign
     # it to the model for faster test runtime
-    siz_sql_path = "#{run_dir(test_name)}/replace_boiler_with_gthp_SR/run/eplusout.sql"
+    siz_sql_path = "#{run_dir(test_name)}/AnnualGHELoadsRun/run/eplusout.sql"
+	puts "size_sql_path = #{siz_sql_path}"
     if File.exist?(siz_sql_path)
       puts('Reloading sql file from sizing run to speed testing')
       sql_path = OpenStudio::Path.new(siz_sql_path)
@@ -196,12 +196,7 @@ class ReplaceBoilerWithGTHPTest < Minitest::Test
     if run_model && result_success
       puts "\nRUNNING MODEL AFTER MEASURE..."
       assert(std.model_run_simulation_and_log_errors(model, File.join(run_dir(test_name), 'AnnualRunRealGHEObjects')))
-      tot_engy_aft = model.sqlFile.get.totalSiteEnergy.get
     end
-
-    # Assert that there was no change in energy consumption caused by
-    # hard-sizing the model.
-    assert_equal(tot_engy_bef, tot_engy_aft)
 
     # change back directory
     Dir.chdir(start_dir)
@@ -209,52 +204,50 @@ class ReplaceBoilerWithGTHPTest < Minitest::Test
     return result
   end
 
-  def dont_test_number_of_arguments_and_argument_names
+  def test_number_of_arguments_and_argument_names
     # Create an instance of the measure
-    measure = ReplaceBoilerWithGTHP.new
+    measure = HVACHydronicGSHP.new
 
     # Make an empty model
     model = OpenStudio::Model::Model.new
 
     # Get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(1, arguments.size)
+    assert_equal(7, arguments.size)
   end
 
-  def test_largeoffice_vav_chiller_boiler
+  def test_vav_chiller_boiler
     osm_name = 'LargeOffice_VAV_chiller_boiler.osm'
     epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
     osm_path = model_input_path(osm_name)
     epw_path = epw_input_path(epw_name)
-    measure = ReplaceBoilerWithGTHP.new
+    measure = HVACHydronicGSHP.new
     args_hash = {}
-    args_hash['keep_setpoint'] = true
-    args_hash['hw_setpoint_F'] = 140.0
-    args_hash['autosize_hc'] = true
-    args_hash['sizing_method'] = 'Outdoor Air Temperature'
-    args_hash['hp_sizing_temp'] = 17.0
-    args_hash['hp_sizing_per'] = 70.0
-    args_hash['hp_des_cap'] = 40.0
-    args_hash['bu_type'] = 'Existing Boiler'
-    args_hash['hpwh_cutoff_T'] = -5.0
-    args_hash['hpwh_Design_OAT'] = 47.0
-    args_hash['cop'] = 2.85
     argument_map = populate_argument_map(measure, osm_path, args_hash)
     # Apply the measure and check if before/after results are identical
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
   end
-
-  def dont_test_largeoffice_vav_chiller_boiler_2
-    osm_name = 'LargeOffice_VAV_chiller_boiler_2.osm'
+  
+    def test_vav_chiller_pfp_boxes
+    osm_name = 'Outpatient_VAV_chiller_PFP_boxes.osm'
     epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
     osm_path = model_input_path(osm_name)
     epw_path = epw_input_path(epw_name)
-    measure = ReplaceBoilerWithGTHP.new
+    measure = HVACHydronicGSHP.new
     args_hash = {}
-    args_hash['keep_setpoint'] = true
-    args_hash['hw_setpoint_F'] = 140
-    args_hash['autosize_hc'] = true
-    args_hash['sizing_method'] = 'Outdoor Air Temperature'
+    argument_map = populate_argument_map(measure, osm_path, args_hash)
+    # Apply the measure and check if before/after results are identical
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
+  end
+  
+
+  def test_pszhp
+    osm_name = 'PSZ-HP_gthp.osm'
+    epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+    measure = HVACHydronicGSHP.new
+    args_hash = {}
     argument_map = populate_argument_map(measure, osm_path, args_hash)
     # Apply the measure and check if before/after results are identical
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)

@@ -4,6 +4,14 @@
 # http://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/
 require 'openstudio-standards'
 
+require 'csv'
+
+# require all .rb files in resources folder
+Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }  
+
+# resource file modules
+include Make_Performance_Curves
+
 # start the measure
 class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
   # human readable name
@@ -157,8 +165,11 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     plant_loops = model.getPlantLoops
     if plant_loops.size >> 0
       plant_loops.each do |plant_loop|
-        runner.registerInfo("Removed existing plant loop #{plant_loop.name}.")
+        # do not delete service water heating loops
+        next if ['Service'].any? { |word| plant_loop.name.get.include?(word) }
+        
         plant_loop.remove
+        runner.registerInfo("Removed existing plant loop #{plant_loop.name}.")
       end
     end
 
@@ -484,7 +495,6 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
 
     # add timeseries ground loads to array
     ground_loads_ts = sql.timeSeries(ann_env_pd, 'Hourly', 'Plant Temperature Source Component Heat Transfer Rate', 'GROUND LOOP TEMPERATURE SOURCE (GROUND HEAT EXCHANGER PLACEHOLDER)')
-    runner.registerInfo("Ground loads = #{ground_loads_ts}")
     if ground_loads_ts.is_initialized
       ground_loads = []
       vals = ground_loads_ts.get.values
@@ -496,7 +506,6 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     # Make directory for GHEDesigner simulation
     ghedesigner_run_dir = "#{Dir.pwd}/GHEDesigner"
     # ghedesigner_run_dir = "C:/Users/mprapros/Desktop/ghedesigner"
-    runner.registerInfo("ghedesigner_run_dir = #{ghedesigner_run_dir}")
     if !File.exist?(ghedesigner_run_dir)
       FileUtils.mkdir_p(ghedesigner_run_dir)
     end
@@ -541,7 +550,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     ghe_sys = sim_summary['ghe_system']
 
     number_of_boreholes = ghe_sys['number_of_boreholes']
-    runner.registerInfo("number of boreholes = #{number_of_boreholes}")
+    runner.registerInfo("Number of boreholes = #{number_of_boreholes}")
 
     throw 'Unexpected units' unless ghe_sys['fluid_mass_flow_rate_per_borehole']['units'] == 'kg/s'
     fluid_mass_flow_rate_per_borehole_kg_per_s = ghe_sys['fluid_mass_flow_rate_per_borehole']['value']
@@ -603,7 +612,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     # Replace temperature source with ground heat exchanger
     ground_loop.addSupplyBranchForComponent(ghx)
     ground_loop.removeSupplyBranchWithComponent(ground_temp_source)
-    runner.registerInfo("replaced temporary ground temperature source with vertical ground heat exchanger #{ghx}")
+    runner.registerInfo("Replaced temporary ground temperature source with vertical ground heat exchanger #{ghx}.")
 
     runner.registerFinalCondition("Replaced existing HVAC system with console water-to-air ground source heat pumps.")
     return true

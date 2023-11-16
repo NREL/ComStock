@@ -171,6 +171,7 @@ class PackagedGTHPTest < Minitest::Test
     # If the sql file from the sizing run exists, assign
     # it to the model for faster test runtime
     siz_sql_path = "#{run_dir(test_name)}/AnnualGHELoadsRun/run/eplusout.sql"
+	puts "size_sql_path = #{siz_sql_path}"
     if File.exist?(siz_sql_path)
       puts('Reloading sql file from sizing run to speed testing')
       sql_path = OpenStudio::Path.new(siz_sql_path)
@@ -203,16 +204,16 @@ class PackagedGTHPTest < Minitest::Test
     return result
   end
 
-  def dont_test_number_of_arguments_and_argument_names
+  def test_number_of_arguments_and_argument_names
     # Create an instance of the measure
-    measure = ReplaceBoilerWithGTHP.new
+    measure = AddPackagedGSHP.new
 
     # Make an empty model
     model = OpenStudio::Model::Model.new
 
     # Get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(1, arguments.size)
+    assert_equal(3, arguments.size)
   end
 
   def test_ptac_with_gas_coil_heat

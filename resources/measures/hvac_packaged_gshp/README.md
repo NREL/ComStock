@@ -2,7 +2,7 @@
 
 ###### (Automatically generated documentation)
 
-# add_packaged_gshp_new
+# add_packaged_gshp
 
 ## Description
 This measure replaces packaged single zone systems with a packaged water-to-air ground source heat pump system.

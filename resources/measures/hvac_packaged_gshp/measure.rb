@@ -650,15 +650,20 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
       unitary_system.setControllingZoneorThermostatLocation(thermal_zone)
       unitary_system.setSupplyFan(fan)
       unitary_system.setFanPlacement(fan_location)
-      unitary_system.setSupplyAirFlowRateMethodDuringCoolingOperation('SupplyAirFlowRate')
-      unitary_system.setSupplyAirFlowRateMethodDuringHeatingOperation('SupplyAirFlowRate')
       unitary_system.setSupplyAirFanOperatingModeSchedule(model.alwaysOnDiscreteSchedule)
       unitary_system.setMaximumOutdoorDryBulbTemperatureforSupplementalHeaterOperation(OpenStudio.convert(40.0, 'F',
                                                                                                           'C').get)
       unitary_system.setName("#{air_loop_hvac.name} Unitary HP")
       unitary_system.setMaximumSupplyAirTemperature(40.0)
-      unitary_system.setSupplyAirFlowRateMethodDuringCoolingOperation('SupplyAirFlowRate')
-      unitary_system.setSupplyAirFlowRateMethodDuringHeatingOperation('SupplyAirFlowRate')
+      if model.version < OpenStudio::VersionString.new('3.7.0')
+        unitary_system.setSupplyAirFlowRateMethodDuringCoolingOperation('SupplyAirFlowRate')
+        unitary_system.setSupplyAirFlowRateMethodDuringHeatingOperation('SupplyAirFlowRate')
+        unitary_system.setSupplyAirFlowRateMethodWhenNoCoolingorHeatingisRequired('SupplyAirFlowRate')
+      else
+        unitary_system.autosizeSupplyAirFlowRateDuringCoolingOperation
+        unitary_system.autosizeSupplyAirFlowRateDuringHeatingOperation
+        unitary_system.autosizeSupplyAirFlowRateWhenNoCoolingorHeatingisRequired
+      end
       unitary_system.setSupplyAirFlowRateMethodWhenNoCoolingorHeatingisRequired('SupplyAirFlowRate')
       unitary_system.addToNode(air_loop_hvac.supplyOutletNode)
 
@@ -854,7 +859,6 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     			end
     			# add performance data
     			add_lookup_performance_data(model, coil, "packaged_gshp", "Trane_10_ton_GWSC120E", heating_air_flow, heating_water_flow, runner)
-          #runner.registerInfo("Adding heating performance curves for Trane 10 ton GWS120E unit.")
     		else
     			runner.registerError("Expecting heating coil of type CoilHeatingWaterToAirHeatPumpEquationFits for (#{unitary_sys.name})")
     			return false
@@ -891,7 +895,6 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     			end
     			# add performance data
     			add_lookup_performance_data(model, coil, "packaged_gshp", "Trane_10_ton_GWSC120E", cooling_air_flow, cooling_water_flow, runner)
-          #runner.registerInfo("Adding cooling performance curves for Trane 10 ton GWS120E unit.")
     		else
     			runner.registerError("Expecting cooling coil of type CoilCoolingWaterToAirHeatPumpEquationFits for (#{unitary_sys.name})")
     			return false
@@ -1001,7 +1004,6 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     # retrieve or perform annual run to get hourly thermal loads
     ann_loads_run_dir = "#{Dir.pwd}/AnnualGHELoadsRun"
     ann_loads_sql_path = "#{ann_loads_run_dir}/run/eplusout.sql"
-    runner.registerInfo("annual loads path = #{ann_loads_sql_path}")
     if File.exist?(ann_loads_sql_path)
       runner.registerInfo("Reloading sql file from previous run.")
       sql_path = OpenStudio::Path.new(ann_loads_sql_path)
@@ -1033,8 +1035,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     end
 
     # add timeseries ground loads to array
-    ground_loads_ts = sql.timeSeries(ann_env_pd, 'Hourly', 'Plant Temperature Source Component Heat Transfer Rate',
-                                     'GROUND LOOP TEMPERATURE SOURCE (GROUND HEAT EXCHANGER PLACEHOLDER)')
+    ground_loads_ts = sql.timeSeries(ann_env_pd, 'Hourly', 'Plant Temperature Source Component Heat Transfer Rate','GROUND LOOP TEMPERATURE SOURCE (GROUND HEAT EXCHANGER PLACEHOLDER)')              
     if ground_loads_ts.is_initialized
       ground_loads = []
       vals = ground_loads_ts.get.values
@@ -1043,12 +1044,9 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
       end
     end
 
-    runner.registerInfo("ground loads = #{ground_loads}")
-
     # Make directory for GHEDesigner simulation
-    # ghedesigner_run_dir = "#{Dir.pwd}/GHEDesigner"
-    ghedesigner_run_dir = "C:/Users/mprapros/Desktop/ghedesigner"
-    # runner.registerInfo("ghedesigner_run_dir = #{ghedesigner_run_dir}")
+    ghedesigner_run_dir = "#{Dir.pwd}/GHEDesigner"
+    # ghedesigner_run_dir = "C:/Users/mprapros/Desktop/ghedesigner"
     FileUtils.mkdir_p(ghedesigner_run_dir) unless File.exist?(ghedesigner_run_dir)
 
     # Make json input file for GHEDesigner
@@ -1067,9 +1065,9 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     # require 'etc'
 
     envname = 'base'
-    command = "C:/Users/#{Etc.getlogin}/Anaconda3/Scripts/activate.bat && conda activate #{envname} && ghedesigner #{ghe_in_path} #{ghedesigner_run_dir}"
+    # command = "C:/Users/#{Etc.getlogin}/Anaconda3/Scripts/activate.bat && conda activate #{envname} && ghedesigner #{ghe_in_path} #{ghedesigner_run_dir}"
     # command = "conda activate base && ghedesigner '#{ghe_in_path}' '#{ghedesigner_run_dir}'"
-    # command = "ghedesigner #{ghe_in_path} #{ghedesigner_run_dir}"
+    command = "ghedesigner #{ghe_in_path} #{ghedesigner_run_dir}"
     stdout_str, stderr_str, status = Open3.capture3(command, chdir: ghedesigner_run_dir)
     if status.success?
       runner.registerInfo("Successfully ran ghedesigner: #{command}")
@@ -1091,7 +1089,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     ghe_sys = sim_summary['ghe_system']
 
     number_of_boreholes = ghe_sys['number_of_boreholes']
-    #runner.registerInfo("number of boreholes = #{number_of_boreholes}")
+    runner.registerInfo("Number of boreholes = #{number_of_boreholes}")
 
     throw 'Unexpected units' unless ghe_sys['fluid_mass_flow_rate_per_borehole']['units'] == 'kg/s'
     fluid_mass_flow_rate_per_borehole_kg_per_s = ghe_sys['fluid_mass_flow_rate_per_borehole']['value']
@@ -1154,7 +1152,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     # Replace temperature source with ground heat exchanger
     ground_loop.addSupplyBranchForComponent(ghx)
     ground_loop.removeSupplyBranchWithComponent(ground_temp_source)
-    runner.registerInfo("replaced temporary ground temperature source with vertical ground heat exchanger #{ghx}")
+    runner.registerInfo("Replaced temporary ground temperature source with vertical ground heat exchanger #{ghx}.")
 
     runner.registerFinalCondition("Replaced #{psz_air_loops.size} packaged single zone RTUs  and #{vav_air_loops.size} VAVs with packaged water-to-air ground source heat pumps.")
     true

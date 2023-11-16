@@ -136,8 +136,6 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     args
   end
 
-  
-
   # define what happens when the measure is run
   def run(model, runner, user_arguments)
     super(model, runner, user_arguments)
@@ -1228,8 +1226,8 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
 
 
     # Make directory for GHEDesigner simulation
-    ghedesigner_run_dir = "C:/Users/mprapros/Desktop/ghedesigner"
-    # ghedesigner_run_dir = "#{Dir.pwd}/GHEDesigner"
+    # ghedesigner_run_dir = "C:/Users/mprapros/Desktop/ghedesigner"
+    ghedesigner_run_dir = "#{Dir.pwd}/GHEDesigner"
     FileUtils.mkdir_p(ghedesigner_run_dir) unless File.exist?(ghedesigner_run_dir)
 
     # Make json input file for GHEDesigner
@@ -1250,9 +1248,9 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     require 'open3'
     require 'etc'
     # TODO: remove conda activate andrew
-    command = "C:/Users/#{Etc.getlogin}/Anaconda3/Scripts/activate.bat && conda activate #{envname} && ghedesigner #{ghe_in_path} #{ghedesigner_run_dir}"
+    # command = "C:/Users/#{Etc.getlogin}/Anaconda3/Scripts/activate.bat && conda activate #{envname} && ghedesigner #{ghe_in_path} #{ghedesigner_run_dir}"
     # command = "conda activate base && ghedesigner '#{ghe_in_path}' '#{ghedesigner_run_dir}'"
-    # command = "ghedesigner #{ghe_in_path} #{ghedesigner_run_dir}"
+    command = "ghedesigner #{ghe_in_path} #{ghedesigner_run_dir}"
     stdout_str, stderr_str, status = Open3.capture3(command, chdir: ghedesigner_run_dir)
     if status.success?
       runner.registerInfo("Successfully ran ghedesigner: #{command}")
