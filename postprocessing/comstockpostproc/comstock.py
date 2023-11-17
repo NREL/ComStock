@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import polars as pl
 import re
+import datetime
 
 from comstockpostproc.naming_mixin import NamingMixin
 from comstockpostproc.units_mixin import UnitsMixin
@@ -244,7 +245,100 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
             file_path = os.path.join(self.output_dir, region['source_name'] + '_building_type_timeseries_wide.csv')
             ts_agg.to_csv(file_path, index=False)
-            logger.info(f"Saved enduse timeseries for {region['source_name']} to {file_path}")
+            logger.info(f"Saved enduse timeseries in wide format for {region['source_name']} to {file_path}")
+
+            self.convert_timeseries_to_long(ts_agg, region['county_ids'], region['source_name'])
+
+    def convert_timeseries_to_long(self, agg_df, county_ids, output_name):
+
+        # data_path = os.path.join(self.aggregate_csv_dir, output_name + '_agg_long.csv')
+        # if os.path.isfile(data_path):
+        #     print('long format data for ' + output_name + ' already exists at ' + data_path)
+        #     return False
+
+        # rename columns
+        agg_df = agg_df.set_index('time')
+        agg_df = agg_df.rename(columns={
+            "build_existing_model.building_type": "building_type",
+            "electricity_exterior_lighting_kwh": "exterior_lighting",
+            "electricity_interior_lighting_kwh": "interior_lighting",
+            "electricity_interior_equipment_kwh": "interior_equipment",
+            "electricity_water_systems_kwh": "water_systems",
+            "electricity_heat_recovery_kwh": "heat_recovery",
+            "electricity_fans_kwh": "fans",
+            "electricity_pumps_kwh": "pumps",
+            "electricity_cooling_kwh": "cooling",
+            "electricity_heating_kwh": "heating",
+            "electricity_refrigeration_kwh": "refrigeration",
+            "total_site_electricity_kwh": "total"
+        })
+
+        # aggregate by hour
+        agg_df['year'] = agg_df.index.year
+        agg_df['month'] = agg_df.index.month
+        agg_df['day'] = agg_df.index.day
+        agg_df['hour'] = agg_df.index.hour
+        agg_df = agg_df.groupby(['building_type', 'year', 'month', 'day', 'hour']).sum().reset_index()
+        agg_df['timestamp'] = agg_df.apply(
+            lambda r: datetime.datetime(
+                r['year'],
+                r['month'],
+                r['day']
+            ) +
+            datetime.timedelta(hours=r['hour']),
+            axis=1
+        )
+        agg_df = agg_df.drop(['year', 'month', 'day', 'hour', 'sample_count', 'units_count'], axis=1)
+        agg_df = agg_df.set_index('timestamp')
+        agg_df = agg_df[agg_df.index.dayofyear != 366]
+
+        # melt into long format
+        val_vars = [
+            'exterior_lighting',
+            'interior_lighting',
+            'interior_equipment',
+            'water_systems',
+            'heat_recovery',
+            'fans',
+            'pumps',
+            'cooling',
+            'heating',
+            'refrigeration',
+            'total'
+        ]
+        agg_df = pd.melt(
+            agg_df.reset_index(),
+            id_vars=[
+                'timestamp',
+                'building_type'
+            ],
+            value_vars=val_vars,
+            var_name='enduse',
+            value_name='kwh'
+        ).set_index('timestamp')
+        agg_df['run'] = self.comstock_run_version
+ 
+
+        # size get data
+        size_df = self.data[self.data['in.nhgis_county_gisjoin'].isin(county_ids)]
+        size_df = size_df[['in.comstock_building_type', 'in.sqft', 'calc.weighted.sqft']].groupby(['in.comstock_building_type']).sum()
+
+        # agg_df['kwh_weighted'] = agg_df['kwh'] * agg_df['building_type'].map(self.building_type_weights)
+
+
+        # # calculate kwh/sf
+        # temp_df = pd.DataFrame()
+        # for building_type in size_df.index.values:
+        #     type_df = agg_df.loc[agg_df['building_type'] == building_type]
+        #     size_sf = size_df[size_df.index == building_type]['calc.weighted.sqft'].values[0]
+        #     type_df['kwh_per_sf'] = type_df['kwh_weighted'].div(size_sf)
+        #     temp_df = temp_df.append(type_df)
+        # agg_df = temp_df
+
+        # save out long data format
+        file_path = os.path.join(self.output_dir, output_name + '_building_type_timeseries_long.csv')
+        agg_df.to_csv(file_path, index=False)
+        logger.info(f"Saved enduse timeseries in long format for {output_name} to {file_path}")
 
     def reduce_df_memory(self, df):
         logger.debug(f'Memory before reduce_df_memory: {df.estimated_size()}')
