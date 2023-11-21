@@ -320,9 +320,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
  
 
         # size get data
-        size_df = self.data[self.data['in.nhgis_county_gisjoin'].isin(county_ids)]
-        size_df = size_df[['in.comstock_building_type', 'in.sqft', 'calc.weighted.sqft']].groupby(['in.comstock_building_type']).sum()
+        size_df = self.data.filter(self.data['in.nhgis_county_gisjoin'].is_in(county_ids))
+        size_df = size_df.select(['in.comstock_building_type', 'in.sqft', 'calc.weighted.sqft'])
+        size_df = size_df.group_by('in.comstock_building_type').agg(pl.col(['in.sqft', 'calc.weighted.sqft']).sum())
+        size_df = size_df.with_columns((pl.col('calc.weighted.sqft')/pl.col('in.sqft')).alias('weight'))
+        #file_path = os.path.join(self.output_dir, output_name + '_comstock_obj_data_sum.csv')
+        #size_df.write_csv(file_path)
 
+        #print(size_df.to_dict())
         # agg_df['kwh_weighted'] = agg_df['kwh'] * agg_df['building_type'].map(self.building_type_weights)
 
 
