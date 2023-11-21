@@ -79,10 +79,15 @@ class HVACEconomizerEMSTest < OpenStudio::Measure::ModelMeasure
     end
     apply_measure = runner.getBoolArgumentValue('apply_measure', user_arguments)
 
+    # for ems output variables
+    li_ems_sens_zn_clg_rate = []
+    li_ems_sens_econ_status = []
+    li_ems_act_oa_flow = []
+
     # loop through air loops
     model.getAirLoopHVACs.each do |air_loop_hvac|
 
-      air_loop_hvac.setName(air_loop_hvac.name.to_s.gsub("-", ""))
+      # air_loop_hvac.setName(air_loop_hvac.name.to_s.gsub("-", ""))
 
       # get OA system
       oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem
@@ -92,7 +97,7 @@ class HVACEconomizerEMSTest < OpenStudio::Measure::ModelMeasure
 
       # get economizer from OA controller
       oa_controller = oa_system.getControllerOutdoorAir
-      oa_controller.setName(oa_controller.name.to_s.gsub("-", ""))
+      # oa_controller.setName(oa_controller.name.to_s.gsub("-", ""))
       economizer_type = oa_controller.getEconomizerControlType
       next unless economizer_type != 'NoEconomizer'
 
@@ -102,14 +107,17 @@ class HVACEconomizerEMSTest < OpenStudio::Measure::ModelMeasure
 
       # get zones
       zone = air_loop_hvac.thermalZones[0]
-      zone.setName(zone.name.to_s.gsub("-", ""))
+      # zone.setName(zone.name.to_s.gsub("-", ""))
 
       # EMS code
       #### Sensors #####
       # set sensor for zone cooling load
       sens_zn_clg_rate = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Zone Predicted Sensible Load to Cooling Setpoint Heat Transfer Rate')
-      sens_zn_clg_rate.setName("sens_zn_clg_rate_#{zone.name.get}") 
-      sens_zn_clg_rate.setKeyName("#{zone.name}")
+      sens_zn_clg_rate.setName("sens_zn_clg_rate_#{zone.name.get.to_s.gsub("-", "")}") 
+      sens_zn_clg_rate.setKeyName("#{zone.name.get}")
+
+      li_ems_sens_zn_clg_rate << sens_zn_clg_rate
+
 
       # # set sensor - Outdoor Air Controller Minimum Mass Flow Rate
       # sens_min_oa_rate = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Air System Outdoor Air Mechanical Ventilation Requested Mass Flow Rate')
@@ -118,10 +126,10 @@ class HVACEconomizerEMSTest < OpenStudio::Measure::ModelMeasure
 
       # set sensor - Air System Outdoor Air Economizer Status
       sens_econ_status = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Air System Outdoor Air Economizer Status')
-      sens_econ_status.setName("sens_econ_status_#{oa_controller.name.get}") 
-      sens_econ_status.setKeyName("#{oa_controller.name.get}")
+      sens_econ_status.setName("sens_econ_status_#{oa_controller.name.get.to_s.gsub("-", "")}") 
+      sens_econ_status.setKeyName("#{air_loop_hvac.name.get}")
 
-      puts sens_econ_status
+      li_ems_sens_econ_status << sens_econ_status
 
       #### Actuators #####
       # set actuator - oa controller air mass flow rate
@@ -129,24 +137,27 @@ class HVACEconomizerEMSTest < OpenStudio::Measure::ModelMeasure
                                                                           'Outdoor Air Controller', 
                                                                           'Air Mass Flow Rate'
                                                                           )
-      act_oa_flow.setName("act_oa_flow_#{air_loop_hvac.name.get}")
+      act_oa_flow.setName("act_oa_flow_#{air_loop_hvac.name.get.to_s.gsub("-", "")}")
+
+      li_ems_act_oa_flow << act_oa_flow
 
       # consider setting maximum OA schedule directly to cap maximum; maybe DCV can still work
       # find DCV model, PSZ, night vent; confirm minimum flow OA 
       # run model without economizer
 
       #### Program #####
+      # reset OA to min OA if there is a call for economizer but no cooling load
       prgrm_econ_override = model.getEnergyManagementSystemTrendVariableByName('econ_override')
       unless prgrm_econ_override.is_initialized
         prgrm_econ_override = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
-        prgrm_econ_override.setName("#{air_loop_hvac.name}_program")
+        prgrm_econ_override.setName("#{air_loop_hvac.name.get.to_s.gsub("-", "")}_program")
         prgrm_econ_override_body = <<-EMS
           SET act_oa_flow = Null,
           SET sens_zn_clg_rate = #{sens_zn_clg_rate.name},
-          SET min_oa_rate = #{min_oa_flow_rate},
+          SET min_oa_flow_rate = #{min_oa_flow_rate},
           SET sens_econ_status = #{sens_econ_status.name},
-          IF (sens_econ_status < > 0) && (sens_coil_clg_rate >= 0),
-            SET act_oa_flow = sens_min_oa_rate,
+          IF ((sens_econ_status >= 0) && (sens_zn_clg_rate >= 0)), 
+            SET act_oa_flow = min_oa_flow_rate,
           ELSE,
             SET act_oa_flow = Null,
           ENDIF
@@ -155,40 +166,94 @@ class HVACEconomizerEMSTest < OpenStudio::Measure::ModelMeasure
       end
 
         programs_at_beginning_of_timestep = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
-        programs_at_beginning_of_timestep.setName("#{air_loop_hvac.name.get}_Programs_At_Beginning_Of_Timestep")
-        programs_at_beginning_of_timestep.setCallingPoint('AfterPredictorAfterHVACManagers')
+        programs_at_beginning_of_timestep.setName("#{air_loop_hvac.name.get.to_s.gsub("-", "")}_Programs_At_Beginning_Of_Timestep")
+        programs_at_beginning_of_timestep.setCallingPoint('AfterPredictorBeforeHVACManagers')
         programs_at_beginning_of_timestep.addProgram(prgrm_econ_override)
 
     end
+
+    # && (sens_zn_clg_rate >= 0))
 
 
     # ----------------------------------------------------  
     puts("### adding output variables (for debugging)")
     # ----------------------------------------------------  
-    ov_eco_status = OpenStudio::Model::OutputVariable.new("debugging_ecostatus",model)
-    ov_eco_status.setKeyValue("*")
-    ov_eco_status.setReportingFrequency("timestep") 
-    ov_eco_status.setVariableName("Air System Outdoor Air Economizer Status")
+    # ov_eco_status = OpenStudio::Model::OutputVariable.new("debugging_ecostatus",model)
+    # ov_eco_status.setKeyValue("*")
+    # ov_eco_status.setReportingFrequency("timestep") 
+    # ov_eco_status.setVariableName("Air System Outdoor Air Economizer Status")
 
-    ov_oa_fraction = OpenStudio::Model::OutputVariable.new("debugging_ov_oafraction",model)
-    ov_oa_fraction.setKeyValue("*")
-    ov_oa_fraction.setReportingFrequency("timestep") 
-    ov_oa_fraction.setVariableName("Air System Outdoor Air Flow Fraction")
+    # ov_oa_fraction = OpenStudio::Model::OutputVariable.new("debugging_ov_oafraction",model)
+    # ov_oa_fraction.setKeyValue("*")
+    # ov_oa_fraction.setReportingFrequency("timestep") 
+    # ov_oa_fraction.setVariableName("Air System Outdoor Air Flow Fraction")
 
-    ov_oa_mdot = OpenStudio::Model::OutputVariable.new("debugging_oamdot",model)
-    ov_oa_mdot.setKeyValue("*")
-    ov_oa_mdot.setReportingFrequency("timestep") 
-    ov_oa_mdot.setVariableName("Air System Outdoor Air Mass Flow Rate")
+    # ov_oa_mdot = OpenStudio::Model::OutputVariable.new("debugging_oamdot",model)
+    # ov_oa_mdot.setKeyValue("*")
+    # ov_oa_mdot.setReportingFrequency("timestep") 
+    # ov_oa_mdot.setVariableName("Air System Outdoor Air Mass Flow Rate")
 
-    ov_oat = OpenStudio::Model::OutputVariable.new("debugging_oat",model)
-    ov_oat.setKeyValue("*")
-    ov_oat.setReportingFrequency("timestep") 
-    ov_oat.setVariableName("Site Outdoor Air Drybulb Temperature")
+    # ov_oat = OpenStudio::Model::OutputVariable.new("debugging_oat",model)
+    # ov_oat.setKeyValue("*")
+    # ov_oat.setReportingFrequency("timestep") 
+    # ov_oat.setVariableName("Site Outdoor Air Drybulb Temperature")
 
-    ov_coil_cooling = OpenStudio::Model::OutputVariable.new("debugging_cooling",model)
-    ov_coil_cooling.setKeyValue("*")
-    ov_coil_cooling.setReportingFrequency("timestep") 
-    ov_coil_cooling.setVariableName("Cooling Coil Total Cooling Rate")
+    # ov_coil_cooling = OpenStudio::Model::OutputVariable.new("debugging_cooling",model)
+    # ov_coil_cooling.setKeyValue("*")
+    # ov_coil_cooling.setReportingFrequency("timestep") 
+    # ov_coil_cooling.setVariableName("Cooling Coil Total Cooling Rate")
+
+    # ems_output = OpenStudio::Model::OutputEnergyManagementSystem.new(model, 'ems edd')
+    # ems_output.setActuatorAvailabilityDictionaryReporting('Verbose')
+    # ems_output.setInternalVariableAvailabilityDictionaryReporting('Verbose')
+    # ems_output.setEMSRuntimeLanguageDebugOutputLevel('ErrorsOnly')
+
+    # create OutputEnergyManagementSystem object (a 'unique' object) and configure to allow EMS reporting
+    output_EMS = model.getOutputEnergyManagementSystem
+    output_EMS.setInternalVariableAvailabilityDictionaryReporting('Verbose')
+    output_EMS.setEMSRuntimeLanguageDebugOutputLevel('Verbose')
+    output_EMS.setActuatorAvailabilityDictionaryReporting('Verbose')
+
+    # make list of available EMS variables
+    ems_output_variable_list = []
+  
+    # li_ems_sens_zn_clg_rate
+    li_ems_sens_zn_clg_rate.each do |sensor|
+      name = sensor.name
+      ems_sens_zn_clg_rate = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, sensor)
+      ems_sens_zn_clg_rate.setUpdateFrequency('ZoneTimestep')
+      ems_sens_zn_clg_rate.setName("#{name}_ems_outvar")
+      # ems_sens_zn_clg_rate.setUnits('C')
+      ems_output_variable_list << ems_sens_zn_clg_rate.name.to_s
+    end
+
+    # li_ems_sens_econ_status
+    li_ems_sens_econ_status.each do |sensor|
+      name = sensor.name
+      ems_sens_econ_status = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, sensor)
+      ems_sens_econ_status.setUpdateFrequency('Timestep')
+      ems_sens_econ_status.setName("#{name}_ems_outvar")
+      # ems_sens_zn_clg_rate.setUnits('C')
+      ems_output_variable_list << ems_sens_econ_status.name.to_s
+    end
+  
+    # li_ems_act_oa_flow
+    li_ems_act_oa_flow.each do |act|
+      name = act.name
+      ems_act_oa_flow = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, act)
+      ems_act_oa_flow.setUpdateFrequency('Timestep')
+      ems_act_oa_flow.setName("#{name}_ems_outvar")
+      # ems_act_oa_flow.setUnits('C')
+      ems_output_variable_list << ems_act_oa_flow.name.to_s
+    end
+  
+    # iterate list to call output variables
+    ems_output_variable_list.each do |variable|
+      output = OpenStudio::Model::OutputVariable.new(variable,model)
+      output.setKeyValue("*")
+      output.setReportingFrequency('Timestep')
+      puts "output: #{output}"
+    end
 
     # # ----------------------------------------------------
     # puts("### applicability")
