@@ -32,14 +32,15 @@ def test_ami_plot_generation():
         cbecs_year = 2018,
         truth_data_version='v01',
         color_hex='#009E73',
-        reload_from_csv=True, # True since CSV already made and want faster reload times
+        reload_from_csv=False
         )
 
     # AMI
     ami = comstockpostproc.ami.AMI(
-        truth_data_version="v01",
-        reload_from_csv=True, # True since CSV already made and want faster reload times
-    )
+        truth_data_version='v01',
+        reload_from_csv=False
+        )
+    comstock.download_timeseries_data_for_ami_comparison(ami)
 
     # Scale ComStock run to CBECS 2018 AND remove non-ComStock buildings from CBECS
     # This is how weights in the models are set to represent national energy consumption

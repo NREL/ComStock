@@ -9,7 +9,7 @@ import comstockpostproc.comstock_to_eia_comparison
 import comstockpostproc.cbecs
 
 
-def test_plot_generation():
+def test_eia_plot_generation():
     # ComStock
     comstock = comstockpostproc.comstock.ComStock(
         s3_base_dir='eulp/euss_com',

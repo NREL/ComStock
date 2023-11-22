@@ -11,7 +11,7 @@ import comstockpostproc.cbecs
 import comstockpostproc.comstock_to_cbecs_comparison
 
 
-def test_plot_generation():
+def test_cbecs_plot_generation():
     comstock = comstockpostproc.comstock.ComStock(
         s3_base_dir='comstock-core/test',  # If run not on S3, download results_up**.parquet manually
         comstock_run_name='com_os340_stds_030_10k_test_1',  # Name of the run on S3
