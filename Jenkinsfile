@@ -188,17 +188,18 @@ parallel(
 
         checkout scm
         // Need to mount the conan directory for data cache
-        docker.image('').inside('-u root -e "LANG=en_US.UTF-8"') {
+        docker.image('kuangwenyi/buildstock_tools').inside('-u root -e "LANG=en_US.UTF-8"') {
 
           stage("comstock intergrated test") {
 
             sh"""
-
+            buildstock_local ymls/bsb-integration-test-baseline.yml
             """
             // not ideal but we are in relative dir inside the container. The linux_base is mounted here so this is what we are
             // deleting
 
           }
+          deleteDir();
         }
       }
     }  
