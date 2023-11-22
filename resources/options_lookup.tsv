@@ -4948,7 +4948,10 @@ baseline_window_type	Single - No LowE - Tinted/Reflective - Wood	replace_baselin
 baseline_window_type	Triple - LowE - Clear - Thermally Broken Aluminum	replace_baseline_windows	window_pane_type=Triple - LowE - Clear - Thermally Broken Aluminum	u_value_ip=0.3	shgc=0.328	vlt=0.527
 baseline_window_type	Triple - LowE - Tinted/Reflective - Thermally Broken Aluminum	replace_baseline_windows	window_pane_type=Triple - LowE - Tinted/Reflective - Thermally Broken Aluminum	u_value_ip=0.299	shgc=0.224	vlt=0.32
 baseline_hvac_sizing	autosize	hardsize_model	apply_hardsize=false
+		adjust_occupancy_schedule	peak_occ_frac=0.4	apply_measure=true
 baseline_hvac_sizing	hardsize	hardsize_model	apply_hardsize=true
+		adjust_occupancy_schedule	peak_occ_frac=0.4	apply_measure=true
+occupancy_schedule_adjust	peak_occ_frac=0.4	adjust_occupancy_schedule	apply_measure=true
 env_exterior_wall_insulation	exterior_wall_insulation	upgrade_env_exterior_wall_insulation
 env_roof_insul_aedg	roof_insul_aedg	upgrade_env_roof_insul_aedg
 env_secondary_windows	secondary_windows	upgrade_env_secondary_windows
