@@ -8,7 +8,7 @@
 
 * Determine which specific commit of OpenStudio Standards you want to pull. You will need the full SHA.
 
-* Open `/ComStock-Internal/resources/Gemfile` in a text editor and update the existing strings with the SHA you want.
+* Open `/ComStock/resources/Gemfile` in a text editor and update the existing strings with the SHA you want.
 
 * Save the Gemfile.
 
@@ -17,7 +17,7 @@
 * Build Singularity/Docker Image
 
     ```bash
-    cd C:\path\to\comstock-internal
+    cd C:\path\to\ComStock
     ```
 
 * Build Singularity/Docker Image
@@ -43,10 +43,10 @@
 
 * Launch the Container (in privileged mode with docker.sock mounted in the container)
 
-    __*Windows: change the line endings in your `C:\path\to\comstock-internal\build\singularity\build_singularity.sh` file from Windows (CR LF) to Unix (LF).  You can do this with Notepad++ using Edit > EOL Conversion or VSCode using the Change End of Line Sequence command.  If you don't, you will get the error `: No such file or directory` in the next step*__
+    __*Windows: change the line endings in your `C:\path\to\ComStock\build\singularity\build_singularity.sh` file from Windows (CR LF) to Unix (LF).  You can do this with Notepad++ using Edit > EOL Conversion or VSCode using the Change End of Line Sequence command.  If you don't, you will get the error `: No such file or directory` in the next step*__
 
     ```bash
-    cd C:\path\to\comstock-internal\build
+    cd C:\path\to\ComStock\build
     ```
 
     ```bash
@@ -57,7 +57,7 @@
     docker run -it --rm --privileged -v %CD%:/root/build -v /var/run/docker.sock:/var/run/docker.sock --network container:registry singularity /root/build/singularity/build_singularity.sh
     ```
 
-* The singularity image should be at `C:\path\to\comstock-internal\build docker-openstudio.simg`. Hop inside the singularity container to test the new image
+* The singularity image should be at `C:\path\to\ComStock\build docker-openstudio.simg`. Hop inside the singularity container to test the new image
 
     ```bash
     # Start the docker container
