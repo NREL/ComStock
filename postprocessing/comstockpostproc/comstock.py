@@ -243,18 +243,18 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 # Convert bigint to timestamp type if necessary
                 ts_agg['time'] = pd.to_datetime(ts_agg['time']/1e9, unit='s')
 
-            file_path = os.path.join(self.output_dir, region['source_name'] + '_building_type_timeseries_wide.csv')
-            ts_agg.to_csv(file_path, index=False)
-            logger.info(f"Saved enduse timeseries in wide format for {region['source_name']} to {file_path}")
+            # output_file_path = os.path.join(self.output_dir, region['source_name'] + '_building_type_timeseries_wide.csv')
+            # ts_agg.to_csv(output_file_path, index=False)
+            # logger.info(f"Saved enduse timeseries in wide format for {region['source_name']} to {output_file_path}")
 
             self.convert_timeseries_to_long(ts_agg, region['county_ids'], region['source_name'])
 
     def convert_timeseries_to_long(self, agg_df, county_ids, output_name):
 
-        # data_path = os.path.join(self.aggregate_csv_dir, output_name + '_agg_long.csv')
-        # if os.path.isfile(data_path):
-        #     print('long format data for ' + output_name + ' already exists at ' + data_path)
-        #     return False
+        output_file_path = os.path.join(self.output_dir, output_name + '_building_type_timeseries_long.csv')
+        if os.path.isfile(output_file_path):
+            print('timeseries data in long format for ' + output_name + ' already exists at ' + output_file_path)
+            return False
 
         # rename columns
         agg_df = agg_df.set_index('time')
@@ -317,33 +317,29 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             value_name='kwh'
         ).set_index('timestamp')
         agg_df['run'] = self.comstock_run_version
- 
+
 
         # size get data
+        # note that this is a Polars dataframe, not a Pandas dataframe
         size_df = self.data.filter(self.data['in.nhgis_county_gisjoin'].is_in(county_ids))
         size_df = size_df.select(['in.comstock_building_type', 'in.sqft', 'calc.weighted.sqft'])
         size_df = size_df.group_by('in.comstock_building_type').agg(pl.col(['in.sqft', 'calc.weighted.sqft']).sum())
         size_df = size_df.with_columns((pl.col('calc.weighted.sqft')/pl.col('in.sqft')).alias('weight'))
-        #file_path = os.path.join(self.output_dir, output_name + '_comstock_obj_data_sum.csv')
-        #size_df.write_csv(file_path)
+        size_df = size_df.with_columns((pl.col('in.comstock_building_type').apply(lambda x: NamingMixin.BLDG_TYPE_TO_SNAKE_CASE[x])).alias('building_type'))
+        # file_path = os.path.join(self.output_dir, output_name + '_building_type_size.csv')
+        # size_df.write_csv(file_path)
 
-        #print(size_df.to_dict())
-        # agg_df['kwh_weighted'] = agg_df['kwh'] * agg_df['building_type'].map(self.building_type_weights)
+        weight_dict = dict(zip(size_df['building_type'].to_list(), size_df['weight'].to_list()))
+        weight_size_dict = dict(zip(size_df['building_type'].to_list(), size_df['calc.weighted.sqft'].to_list()))
+        agg_df['kwh_weighted'] = agg_df['kwh'] * agg_df['building_type'].map(weight_dict)
 
-
-        # # calculate kwh/sf
-        # temp_df = pd.DataFrame()
-        # for building_type in size_df.index.values:
-        #     type_df = agg_df.loc[agg_df['building_type'] == building_type]
-        #     size_sf = size_df[size_df.index == building_type]['calc.weighted.sqft'].values[0]
-        #     type_df['kwh_per_sf'] = type_df['kwh_weighted'].div(size_sf)
-        #     temp_df = temp_df.append(type_df)
-        # agg_df = temp_df
+        # calculate kwh/sf
+        agg_df['kwh_per_sf'] = agg_df.apply(lambda row: row['kwh_weighted'] / weight_size_dict.get(row['building_type'], 1), axis=1)
+        agg_df = agg_df.drop(['kwh', 'kwh_weighted'], axis=1)
 
         # save out long data format
-        file_path = os.path.join(self.output_dir, output_name + '_building_type_timeseries_long.csv')
-        agg_df.to_csv(file_path, index=False)
-        logger.info(f"Saved enduse timeseries in long format for {output_name} to {file_path}")
+        agg_df.to_csv(output_file_path, index=True)
+        logger.info(f"Saved enduse timeseries in long format for {output_name} to {output_file_path}")
 
     def reduce_df_memory(self, df):
         logger.debug(f'Memory before reduce_df_memory: {df.estimated_size()}')

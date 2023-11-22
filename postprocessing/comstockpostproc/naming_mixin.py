@@ -487,6 +487,23 @@ class NamingMixin():
             'Warehouse']
     }
 
+    BLDG_TYPE_TO_SNAKE_CASE = {
+        'FullServiceRestaurant': 'full_service_restaurant',
+        'QuickServiceRestaurant': 'quick_service_restaurant',
+        'RetailStripmall': 'strip_mall',
+        'RetailStandalone': 'retail',
+        'SmallOffice': 'small_office',
+        'MediumOffice': 'medium_office',
+        'LargeOffice': 'large_office',
+        'PrimarySchool': 'primary_school',
+        'SecondarySchool': 'secondary_school',
+        'Outpatient': 'outpatient',
+        'Hospital': 'hospital',
+        'SmallHotel': 'small_hotel',
+        'LargeHotel': 'large_hotel',
+        'Warehouse': 'warehouse'
+    }
+
     END_USES = [
         'exterior_lighting',
         'interior_lighting',
