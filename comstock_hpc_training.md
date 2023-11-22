@@ -44,7 +44,7 @@ To just access files, use WinSCP:
      - Build in development mode (add -d) – able to make changes
    - ```repos```
      - ```buildstockbatch```. Run and manage batch simulations for stock modeling; commercial equivalent of OpenStudio-BuildStock
-     - ```ComStock```. All measures and resources related to ComStock
+     - ```comstock```. All measures and resources related to ComStock
      - ```vizstock-upload```. Process and upload ComStock results from Eagle for use in VizStock
    - ```samples```. Contains all the *buildstock.csv* files
    - ```singularity_images```. openstudio-standards singularity containers
@@ -55,7 +55,7 @@ To just access files, use WinSCP:
 
 ## Folder Structure Guidelines:
 - repos
-  - Shared repos will be stored here (i.e. buildstockbatch, ComStock, vizstock)
+  - Shared repos will be stored here (i.e. buildstockbatch, comstock, vizstock)
   - Clone the repo you are working in using this command: git clone [http://github.com/nrel/\*repo-name\*.git](http://github.com/nrel/*repo-name*.git)
   - If there are multiple ComStock runs going at once, especially from different branches, use caution and communicate with the team members because checking out another branch it will affect other runs
   - You could clone two versions of the same repo, therefore they can run simultaneously off of separate branches
@@ -226,12 +226,12 @@ Notes:
  2. Check to make sure you are using the latest singularity image and that your yml points to this image:
     - Located in ```shared-projects/buildstock/singularity_image```
  3. Make sure you commit all of your changes, push them to github, and pull changes onto eagle
-    - navigate to ```/projects/enduse/comstock/repos/ComStock``` (or whatever repo you're running from)
+    - navigate to ```/projects/enduse/comstock/repos/comstock``` (or whatever repo you're running from)
     - ```git status```
     - ```git fetch```
     - if not already on branch you want to use ```git checkout *branch name*```
     - ```git pull```
- 4. If you added any upgrade measures to the ComStock repo (```/ComStock/resources/measures/``` folder), make sure you also added them to yml file and the options_lookup.tsv
+ 4. If you added any upgrade measures to the ComStock repo (```/comstock/resources/measures/``` folder), make sure you also added them to yml file and the options_lookup.tsv
     - ```yml``` (see formatting above)
     - ```options_lookup```:
       - Parameter Name: your choice; must match yml
@@ -244,8 +244,8 @@ Notes:
         | env_wall_insul_r_val  | wall_insul_efficient | env_wall_insul | r_val=30.0    | allow_reduct=false |
         ```
   5. If you made any changes to the options_lookup, make sure it is copied into both locations in the comstock repo:
-     - ```ComStock/national/housing_characteristics/```
-     - ```ComStock/resources/```
+     - ```comstock/national/housing_characteristics/```
+     - ```comstock/resources/```
   6. If you added any reporting measures (to the comstock/measures/ folder), make sure you also added them to the yml file
      - yml format for reporting measures (see formatting above)
   7. Double check that your yml is pointing to all the right locations for the sample, repo, weather, and output folder
