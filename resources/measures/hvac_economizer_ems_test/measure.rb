@@ -82,6 +82,7 @@ class HVACEconomizerEMSTest < OpenStudio::Measure::ModelMeasure
     # for ems output variables
     li_ems_sens_zn_clg_rate = []
     li_ems_sens_econ_status = []
+    li_ems_sens_min_flow = []
     li_ems_act_oa_flow = []
 
     # loop through air loops
@@ -101,9 +102,9 @@ class HVACEconomizerEMSTest < OpenStudio::Measure::ModelMeasure
       economizer_type = oa_controller.getEconomizerControlType
       next unless economizer_type != 'NoEconomizer'
 
-      # get minimum outdoor air flow rate
-      # this is used to override economizer when there is no cooling
-      min_oa_flow_rate = oa_controller.minimumOutdoorAirFlowRate 
+      # # get minimum outdoor air flow rate
+      # # this is used to override economizer when there is no cooling
+      # min_oa_flow_rate = oa_controller.minimumOutdoorAirFlowRate 
 
       # get zones
       zone = air_loop_hvac.thermalZones[0]
@@ -118,17 +119,17 @@ class HVACEconomizerEMSTest < OpenStudio::Measure::ModelMeasure
 
       li_ems_sens_zn_clg_rate << sens_zn_clg_rate
 
+      # set sensor - Outdoor Air Controller Minimum Mass Flow Rate
+      sens_min_oa_rate = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Air System Outdoor Air Mechanical Ventilation Requested Mass Flow Rate')
+      sens_min_oa_rate.setName("sens_min_oa_flow_#{oa_controller.name.get.to_s.gsub("-", "")}") 
+      sens_min_oa_rate.setKeyName("#{air_loop_hvac.name.get}")
 
-      # # set sensor - Outdoor Air Controller Minimum Mass Flow Rate
-      # sens_min_oa_rate = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Air System Outdoor Air Mechanical Ventilation Requested Mass Flow Rate')
-      # sens_min_oa_rate.setName("sens_min_oa_flow_#{oa_controller.name}") 
-      # sens_min_oa_rate.setKeyName("#{oa_controller.name}")
+      li_ems_sens_min_flow << sens_min_oa_rate
 
       # set sensor - Air System Outdoor Air Economizer Status
       sens_econ_status = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Air System Outdoor Air Economizer Status')
       sens_econ_status.setName("sens_econ_status_#{oa_controller.name.get.to_s.gsub("-", "")}") 
       sens_econ_status.setKeyName("#{air_loop_hvac.name.get}")
-
       li_ems_sens_econ_status << sens_econ_status
 
       #### Actuators #####
@@ -138,7 +139,7 @@ class HVACEconomizerEMSTest < OpenStudio::Measure::ModelMeasure
                                                                           'Air Mass Flow Rate'
                                                                           )
       act_oa_flow.setName("act_oa_flow_#{air_loop_hvac.name.get.to_s.gsub("-", "")}")
-
+      
       li_ems_act_oa_flow << act_oa_flow
 
       # consider setting maximum OA schedule directly to cap maximum; maybe DCV can still work
@@ -152,12 +153,12 @@ class HVACEconomizerEMSTest < OpenStudio::Measure::ModelMeasure
         prgrm_econ_override = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
         prgrm_econ_override.setName("#{air_loop_hvac.name.get.to_s.gsub("-", "")}_program")
         prgrm_econ_override_body = <<-EMS
-          SET act_oa_flow = Null,
+          SET act_oa_flow = #{act_oa_flow.name},
           SET sens_zn_clg_rate = #{sens_zn_clg_rate.name},
-          SET min_oa_flow_rate = #{min_oa_flow_rate},
+          SET sens_min_oa_rate = #{sens_min_oa_rate.name},
           SET sens_econ_status = #{sens_econ_status.name},
           IF ((sens_econ_status >= 0) && (sens_zn_clg_rate >= 0)), 
-            SET act_oa_flow = min_oa_flow_rate,
+            SET act_oa_flow = sens_min_oa_rate,
           ELSE,
             SET act_oa_flow = Null,
           ENDIF
@@ -171,9 +172,6 @@ class HVACEconomizerEMSTest < OpenStudio::Measure::ModelMeasure
         programs_at_beginning_of_timestep.addProgram(prgrm_econ_override)
 
     end
-
-    # && (sens_zn_clg_rate >= 0))
-
 
     # ----------------------------------------------------  
     puts("### adding output variables (for debugging)")
@@ -235,6 +233,16 @@ class HVACEconomizerEMSTest < OpenStudio::Measure::ModelMeasure
       ems_sens_econ_status.setName("#{name}_ems_outvar")
       # ems_sens_zn_clg_rate.setUnits('C')
       ems_output_variable_list << ems_sens_econ_status.name.to_s
+    end
+
+    # li_ems_sens_min_flow
+    li_ems_sens_min_flow.each do |sensor|
+      name = sensor.name
+      ems_sens_min_flow = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, sensor)
+      ems_sens_min_flow.setUpdateFrequency('Timestep')
+      ems_sens_min_flow.setName("#{name}_ems_outvar")
+      # ems_sens_zn_clg_rate.setUnits('C')
+      ems_output_variable_list << ems_sens_min_flow.name.to_s
     end
   
     # li_ems_act_oa_flow
