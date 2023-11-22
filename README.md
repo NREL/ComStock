@@ -28,16 +28,16 @@ and the [Department of Energy's Building Technology Office](https://www.energy.g
 ongoing support of and investment in building energy modeling software.
 
 ## Directories
-- [**`/build`**](https://github.com/NREL/comstock-internal/tree/develop/build) contains instructions for building Singularity images for running ComStock on HPC systems.
-- [**`/documentation`**](https://github.com/NREL/comstock-internal/tree/develop/documentation) contains LaTeX documentation and instructions for building the documentation.
-- [**`/measures`**](https://github.com/NREL/comstock-internal/tree/develop/measures) contains the high-level "meta" measures used to call other measures, and the reporting measures used to summarize outputs.
-- [**`/national`**](https://github.com/NREL/comstock-internal/tree/develop/national) contains seed directories necessary for a ComStock run using buildstockbatch.
-- [**`/postprocessing`**](https://github.com/NREL/comstock-internal/tree/develop/postprocessing) contains postprocessing scripts to create graphics for viewing results and comparing to other data sources.
-- [**`/resources`**](https://github.com/NREL/comstock-internal/tree/develop/resources) contains workflow and upgrade measures
-- [**`/samples`**](https://github.com/NREL/comstock-internal/tree/develop/samples) contains sample buildstock.csv files, which describe the set of models included in a run.
-- [**`/sampling`**](https://github.com/NREL/comstock-internal/tree/develop/sampling) contains instructions and code to generate buildstock.csv files.
-- [**`/ymls`**](https://github.com/NREL/comstock-internal/tree/develop/ymls) contains sample .yml files, which are the configuration files used to execture a ComStock run with buildstockbatch.
+- [**`/build`**](https://github.com/NREL/ComStock/tree/develop/build) contains instructions for building Singularity images for running ComStock on HPC systems.
+- [**`/documentation`**](https://github.com/NREL/ComStock/tree/develop/documentation) contains LaTeX documentation and instructions for building the documentation.
+- [**`/measures`**](https://github.com/NREL/ComStock/tree/develop/measures) contains the high-level "meta" measures used to call other measures, and the reporting measures used to summarize outputs.
+- [**`/national`**](https://github.com/NREL/ComStock/tree/develop/national) contains seed directories necessary for a ComStock run using buildstockbatch.
+- [**`/postprocessing`**](https://github.com/NREL/ComStock/tree/develop/postprocessing) contains postprocessing scripts to create graphics for viewing results and comparing to other data sources.
+- [**`/resources`**](https://github.com/NREL/ComStock/tree/develop/resources) contains workflow and upgrade measures
+- [**`/samples`**](https://github.com/NREL/ComStock/tree/develop/samples) contains sample buildstock.csv files, which describe the set of models included in a run.
+- [**`/sampling`**](https://github.com/NREL/ComStock/tree/develop/sampling) contains instructions and code to generate buildstock.csv files.
+- [**`/ymls`**](https://github.com/NREL/ComStock/tree/develop/ymls) contains sample .yml files, which are the configuration files used to execture a ComStock run with buildstockbatch.
 
 ## Usage
-ComStock is under an open source license. See [LICENSE.txt](https://github.com/NREL/comstock-internal/blob/develop/LICENSE.txt) in this directory.
+ComStock is under an open source license. See [LICENSE.txt](https://github.com/NREL/ComStock/blob/develop/LICENSE.txt) in this directory.
 You are welcome to use this repository for your own use. However, we do not provide technical support. Please refer to our [technical assistance documentation](https://nrel.github.io/ComStock.github.io/docs/resources/resources.html) instead. We strongly suggest and support using the public datasets instead of attempting to run millions of building energy models yourself.
