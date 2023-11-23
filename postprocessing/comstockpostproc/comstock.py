@@ -232,10 +232,25 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             s3_file_path = f'truth_data/{self.truth_data_version}/EPA/CEJST/{self.cejst_file_name}'
             self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
 
-    def download_timeseries_data_for_ami_comparison(self, ami):     
+    def download_timeseries_data_for_ami_comparison(self, ami, reload_from_csv=True, save_individual_regions=False):     
+        if reload_from_csv:
+            file_name = f'Timeseries for AMI long.csv'
+            file_path = os.path.join(self.output_dir, file_name)
+            if not os.path.exists(file_path):
+                 raise FileNotFoundError(
+                    f'Cannot find {file_path} to reload data, set reload_from_csv=False to create CSV.')
+            logger.info(f'Reloading from CSV: {file_path}')
+            #self.ami_timeseries_data = pd.read_csv(file_path, low_memory=False)
+        
         athena_end_uses = list(map(lambda x: NamingMixin.END_USES_TIMESERIES_DICT[x], NamingMixin.END_USES))
         athena_end_uses.append('total_site_electricity_kwh')
+        all_timeseries_df = pd.DataFrame()
         for region in ami.ami_region_map:
+            region_file_path_long = os.path.join(self.output_dir, region['source_name'] + '_building_type_timeseries_long.csv')
+            if os.path.isfile(region_file_path_long) and reload_from_csv and save_individual_regions:
+                print('timeseries data in long format for ' + region['source_name'] + ' already exists at ' + region_file_path_long)
+                continue
+
             ts_agg = self.athena_client.agg.aggregate_timeseries(enduses=athena_end_uses,
                                                                  group_by=['build_existing_model.building_type', 'time'],
                                                                  restrict=[('build_existing_model.county_id', region['county_ids'])])
@@ -243,19 +258,19 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 # Convert bigint to timestamp type if necessary
                 ts_agg['time'] = pd.to_datetime(ts_agg['time']/1e9, unit='s')
 
-            # output_file_path = os.path.join(self.output_dir, region['source_name'] + '_building_type_timeseries_wide.csv')
-            # ts_agg.to_csv(output_file_path, index=False)
-            # logger.info(f"Saved enduse timeseries in wide format for {region['source_name']} to {output_file_path}")
+            # region_file_path_wide = os.path.join(self.output_dir, region['source_name'] + '_building_type_timeseries_wide.csv')
+            # ts_agg.to_csv(region_file_path_wide, index=False)
+            # logger.info(f"Saved enduse timeseries in wide format for {region['source_name']} to {region_file_path_wide}")
 
-            self.convert_timeseries_to_long(ts_agg, region['county_ids'], region['source_name'])
+            timeseries_df = self.convert_timeseries_to_long(ts_agg, region['county_ids'], region['source_name'], save_individual_region=save_individual_regions)
+            timeseries_df['region_name'] = region['source_name']
+            all_timeseries_df = pd.concat([all_timeseries_df, timeseries_df])
+        
+        data_path = os.path.join(self.output_dir, 'Timeseries for AMI long.csv')
+        all_timeseries_df.to_csv(data_path, index=True)
+        # self.ami_timeseries_data = all_timeseries_df
 
-    def convert_timeseries_to_long(self, agg_df, county_ids, output_name):
-
-        output_file_path = os.path.join(self.output_dir, output_name + '_building_type_timeseries_long.csv')
-        if os.path.isfile(output_file_path):
-            print('timeseries data in long format for ' + output_name + ' already exists at ' + output_file_path)
-            return False
-
+    def convert_timeseries_to_long(self, agg_df, county_ids, output_name, save_individual_region=False):
         # rename columns
         agg_df = agg_df.set_index('time')
         agg_df = agg_df.rename(columns={
@@ -316,8 +331,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             var_name='enduse',
             value_name='kwh'
         ).set_index('timestamp')
-        agg_df['run'] = self.comstock_run_version
-
 
         # size get data
         # note that this is a Polars dataframe, not a Pandas dataframe
@@ -338,8 +351,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         agg_df = agg_df.drop(['kwh', 'kwh_weighted'], axis=1)
 
         # save out long data format
-        agg_df.to_csv(output_file_path, index=True)
-        logger.info(f"Saved enduse timeseries in long format for {output_name} to {output_file_path}")
+        if save_individual_region:
+            output_file_path = os.path.join(self.output_dir, output_name + '_building_type_timeseries_long.csv')
+            agg_df.to_csv(output_file_path, index=True)
+            logger.info(f"Saved enduse timeseries in long format for {output_name} to {output_file_path}")
+        
+        return agg_df
 
     def reduce_df_memory(self, df):
         logger.debug(f'Memory before reduce_df_memory: {df.estimated_size()}')

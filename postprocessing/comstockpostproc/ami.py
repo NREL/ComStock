@@ -158,7 +158,9 @@ class AMI(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         # load AMI data
         for region_hash in self.ami_region_map:
             region_source_name = region_hash['source_name']
-            lookup_name = str(region_hash['year']) + '_' + region_source_name + '_' + region_hash['filter_method']
+            region_year = str(region_hash['year'])
+            region_filter_method = region_hash['filter_method']
+            lookup_name = region_year + '_' + region_source_name + '_' + region_filter_method
             ami_name = 'ami_' + lookup_name
             ami_raw_df = pd.DataFrame()
             for building_type in self.building_types:
@@ -185,14 +187,16 @@ class AMI(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             target_year = region_hash['year']
             ami_raw_df = ami_raw_df[ami_raw_df.index.year == target_year]
             ami_raw_df = ami_raw_df[ami_raw_df.index.dayofyear != 366]
-            ami_raw_df['run'] = ami_name
+            ami_raw_df['region_name'] = region_source_name
+            ami_raw_df['year'] = region_year
+            ami_raw_df['filter_method'] = region_filter_method
             ami_raw_df['enduse'] = 'total'
 
             # compare against mean by square foot
             ami_raw_df['kwh_per_sf'] = ami_raw_df['mean_by_sqft']
 
             # drop other data
-            ami_raw_df = ami_raw_df[['kwh_per_sf', 'total_sqft', 'std_by_count', 'bldg_count', 'building_type', 'run', 'enduse']]
+            ami_raw_df = ami_raw_df[['kwh_per_sf', 'total_sqft', 'std_by_count', 'bldg_count', 'building_type', 'region_name', 'year', 'filter_method', 'enduse']]
 
             def calc_lci(row, confidence_interval):
                 ci = stats.t.interval(confidence_interval, row['bldg_count'] - 1, row['kwh_per_sf'], row['std_by_count'] / (row['bldg_count']**0.5))
@@ -220,7 +224,7 @@ class AMI(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             ami_df = temp_df
 
             # calculate the total
-            df = ami_df.groupby(['timestamp', 'run', 'enduse']).sum().reset_index().set_index('timestamp')
+            df = ami_df.groupby(['timestamp', 'region_name', 'year', 'filter_method', 'enduse']).sum().reset_index().set_index('timestamp')
             df = df.drop(['kwh_per_sf'], axis=1)
             df['kwh_per_sf'] = df['kwh'] / total_sf
             df['lci_80'] = df.apply(lambda row: calc_lci(row, 0.8), axis=1).values
@@ -238,13 +242,12 @@ class AMI(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             ami_df = pd.concat([ami_df, df])
 
             # drop other data
-            ami_df = ami_df[['kwh_per_sf', 'bldg_count', 'building_type', 'run', 'enduse', 'sample_uncertainty']]
+            ami_df = ami_df[['kwh_per_sf', 'bldg_count', 'building_type', 'region_name', 'year', 'filter_method', 'enduse', 'sample_uncertainty']]
 
             # save out long data format
-            logger.info(f'Saving data for region {region_source_name}.')
-            print(f'Saving data for region {region_source_name}.')
-            data_path = os.path.join(self.output_dir, ami_name + '_agg_long.csv')
-            ami_df.to_csv(data_path, index=True)
+            logger.info(f'Adding data for region {region_source_name}.')
+            # data_path = os.path.join(self.output_dir, ami_name + '_agg_long.csv')
+            # ami_df.to_csv(data_path, index=True)
             all_ami_df = pd.concat([all_ami_df, ami_df])
         
         data_path = os.path.join(self.output_dir, 'AMI long.csv')
