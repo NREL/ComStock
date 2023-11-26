@@ -104,7 +104,8 @@ class SetHeatingFuel < OpenStudio::Measure::ModelMeasure
     eplus_htg_fuels = {
         'NaturalGas'=> 'NaturalGas',
         'Propane'=> 'Propane',
-        'FuelOil'=> 'FuelOilNo2'
+        'FuelOil'=> 'FuelOilNo2',
+        'DistrictHeating' => 'DistrictHeatingWater'
     }
 
     # Heating coils
@@ -113,6 +114,7 @@ class SetHeatingFuel < OpenStudio::Measure::ModelMeasure
     # inconsistent fuel enumerations between objects.
     if model.version < OpenStudio::VersionString.new('3.0.0')
       eplus_htg_fuels['FuelOil'] = 'FuelOil#2'
+      eplus_htg_fuels['DistrictHeating'] = 'DistrictHeatingWater'
     end
 
     htg_coils_changed = []

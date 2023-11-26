@@ -100,7 +100,7 @@ class SetServiceWaterHeatingFuel < OpenStudio::Measure::ModelMeasure
         'NaturalGas' => 'NaturalGas',
         'Propane' => 'Propane',
         'FuelOil' => 'FuelOilNo2',
-        'DistrictHeating' => 'DistrictHeating'
+        'DistrictHeating' => 'DistrictHeatingWater'
     }
 
     # Compatibility with earlier EnergyPlus versions with
