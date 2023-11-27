@@ -28,7 +28,6 @@ namespace :unit_tests do
 
   Rake::TestTask.new('resource_measure_tests') do |t|
     RESOURCE_MEASURETESTS_PATH = "test/resource_measure_tests.txt"
-    p "here we are"
     if File.exist?(RESOURCE_MEASURETESTS_PATH)
       # load test files from file.
       full_file_list = FileList.new(File.readlines(RESOURCE_MEASURETESTS_PATH).map(&:chomp))
