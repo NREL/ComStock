@@ -204,7 +204,7 @@ class ConsoleGTHPTest < Minitest::Test
     return result
   end
 
-  def dont_test_number_of_arguments_and_argument_names
+  def test_number_of_arguments_and_argument_names
     # Create an instance of the measure
     measure = AddConsoleGSHP.new
 
@@ -213,10 +213,10 @@ class ConsoleGTHPTest < Minitest::Test
 
     # Get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(1, arguments.size)
+    assert_equal(0, arguments.size)
   end
 
-  def test_pthp_370
+  def test_pthp
     osm_name = 'PTHP_3B.osm'
     epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
     osm_path = model_input_path(osm_name)
@@ -228,8 +228,8 @@ class ConsoleGTHPTest < Minitest::Test
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
   end
 
-  def dont_test_window_ac
-    osm_name = 'Window_AC_with_forced_air_furnace.osm'
+  def test_ptac_electric_heat
+    osm_name = 'PTAC_with_electric_coil.osm'
     epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
     osm_path = model_input_path(osm_name)
     epw_path = epw_input_path(epw_name)
@@ -240,9 +240,95 @@ class ConsoleGTHPTest < Minitest::Test
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
   end
 
-  def dont_test_pszhp
+  # test all applicable system types
+  def test_ptac_gas_heat
+    osm_name = 'PTAC_with_gas_coil_heat_3B.osm'
+    epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+    measure = AddConsoleGSHP.new
+    args_hash = {}
+    argument_map = populate_argument_map(measure, osm_path, args_hash)
+    # Apply the measure and check if before/after results are identical
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
+  end
+
+  def test_ptac_gas_boiler
+    osm_name = 'PTAC_with_gas_boiler.osm'
+    epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+    measure = AddConsoleGSHP.new
+    args_hash = {}
+    argument_map = populate_argument_map(measure, osm_path, args_hash)
+    # Apply the measure and check if before/after results are identical
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
+  end
+
+  def test_gas_unit_heaters
+    osm_name = 'Unit_heaters.osm'
+    epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+    measure = AddConsoleGSHP.new
+    args_hash = {}
+    argument_map = populate_argument_map(measure, osm_path, args_hash)
+    # Apply the measure and check if before/after results are identical
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
+  end
+
+  def test_baseboard_electric
+    osm_name = 'Baseboard_electric.osm'
+    epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+    measure = AddConsoleGSHP.new
+    args_hash = {}
+    argument_map = populate_argument_map(measure, osm_path, args_hash)
+    # Apply the measure and check if before/after results are identical
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
+  end
+
+  def test_residential_ac
+    osm_name = 'Residential_AC.osm'
+    epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+    measure = AddConsoleGSHP.new
+    args_hash = {}
+    argument_map = populate_argument_map(measure, osm_path, args_hash)
+    # Apply the measure and check if before/after results are identical
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
+  end
+  
+  # test a few non-applicable system types
+  def test_direct_evap_coolers_baseboard_gas_boiler
+    osm_name = 'Direct_evap_coolers_boiler.osm'
+    epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+    measure = AddConsoleGSHP.new
+    args_hash = {}
+    argument_map = populate_argument_map(measure, osm_path, args_hash)
+    # Apply the measure and check if before/after results are identical
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
+  end
+
+  def test_pszhp
     osm_name = 'PSZ-HP_gthp.osm'
     epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+    measure = AddConsoleGSHP.new
+    args_hash = {}
+    argument_map = populate_argument_map(measure, osm_path, args_hash)
+    # Apply the measure and check if before/after results are identical
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
+  end
+  
+  def test_pvav_gas_heat_electric_reheat
+    osm_name = 'PVAV_gas_heat_electric_reheat.osm'
+    epw_name = 'NY_New_York_John_F_Ke_744860_16.epw'
     osm_path = model_input_path(osm_name)
     epw_path = epw_input_path(epw_name)
     measure = AddConsoleGSHP.new

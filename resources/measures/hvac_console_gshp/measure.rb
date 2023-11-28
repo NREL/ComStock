@@ -97,7 +97,6 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     baseboards = []
     unit_heaters = []
     all_air_loops = model.getAirLoopHVACs
-    puts "air loops = #{all_air_loops}"
     if all_air_loops.empty?
       runner.registerInfo("Model does not have any air loops. Get list of PTAC, PTHP, Unit Heater, or Baseboard Electric equipment to delete.")
 
@@ -151,25 +150,8 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
         runner.registerInfo("Model has residential HVAC system, measure will be applied.")
       # check if evaporative cooling systems
       elsif air_loop_evaporative_cooler?(air_loop_hvac)
-        selected_air_loops << air_loop_hvac
-        thermal_zone = air_loop_hvac.thermalZones[0]
-        thermal_zone.equipment.each do |equip|
-          equip_to_delete << equip
-        end
-        runner.registerInfo("Model has direct evap coolers, measure will be applied.")
-      end
-    end
-
-    # get plant loops and remove
-    # only relevant for direct evap coolers with baseboard gas boiler
-    plant_loops = model.getPlantLoops
-    if plant_loops.size >> 0
-      plant_loops.each do |plant_loop|
-        # do not delete service water heating loops
-        next if ['Service'].any? { |word| plant_loop.name.get.include?(word) }
-        
-        plant_loop.remove
-        runner.registerInfo("Removed existing plant loop #{plant_loop.name}.")
+        runner.registerAsNotApplicable("Model has direct evaporative coolers; measure is not applicable.")
+        break
       end
     end
 
@@ -181,6 +163,22 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
           baseboards << equip.to_ZoneHVACBaseboardConvectiveWater.get
           equip_to_delete << equip.to_ZoneHVACBaseboardConvectiveWater.get
         end
+      end
+    end 
+
+    # delete equipment from original loop
+    equip_to_delete.each(&:remove)
+
+    # get plant loops and remove
+    # only relevant for direct evap coolers with baseboard gas boiler
+    plant_loops = model.getPlantLoops
+    if plant_loops.size >> 0
+      plant_loops.each do |plant_loop|
+        # do not delete service water heating loops
+        next if ['Service'].any? { |word| plant_loop.name.get.include?(word) }
+
+        plant_loop.remove
+        runner.registerInfo("Removed existing plant loop #{plant_loop.name}.")
       end
     end
 
@@ -285,8 +283,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     # Add temp source to the supply side of the ground loop
     ground_loop.addSupplyBranchForComponent(ground_temp_source)
 
-    # delete equipment from original loop
-    equip_to_delete.each(&:remove)
+
 
     # Loop through air loops, plant loops, and thermal zones and remove old equipment
     selected_air_loops.each do |air_loop_hvac|
@@ -324,39 +321,39 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
       # add new single speed cooling coil
       new_cooling_coil = OpenStudio::Model::CoilCoolingWaterToAirHeatPumpEquationFit.new(model)
       new_cooling_coil.setName("#{thermal_zone.name} Heat Pump Cooling Coil")
-      new_cooling_coil.setRatedCoolingCoefficientofPerformance(3.4)
-      new_cooling_coil.setTotalCoolingCapacityCoefficient1(-4.30266987344639)
-      new_cooling_coil.setTotalCoolingCapacityCoefficient2(7.18536990534372)
-      new_cooling_coil.setTotalCoolingCapacityCoefficient3(-2.23946714486189)
-      new_cooling_coil.setTotalCoolingCapacityCoefficient4(0.139995928440879)
-      new_cooling_coil.setTotalCoolingCapacityCoefficient5(0.102660179888915)
-      new_cooling_coil.setSensibleCoolingCapacityCoefficient1(6.0019444814887)
-      new_cooling_coil.setSensibleCoolingCapacityCoefficient2(22.6300677244073)
-      new_cooling_coil.setSensibleCoolingCapacityCoefficient3(-26.7960783730934)
-      new_cooling_coil.setSensibleCoolingCapacityCoefficient4(-1.72374720346819)
-      new_cooling_coil.setSensibleCoolingCapacityCoefficient5(0.490644802367817)
-      new_cooling_coil.setSensibleCoolingCapacityCoefficient6(0.0693119353468141)
-      new_cooling_coil.setCoolingPowerConsumptionCoefficient1(-5.67775976415698)
-      new_cooling_coil.setCoolingPowerConsumptionCoefficient2(0.438988156976704)
-      new_cooling_coil.setCoolingPowerConsumptionCoefficient3(5.845277342193)
-      new_cooling_coil.setCoolingPowerConsumptionCoefficient4(0.141605667000125)
-      new_cooling_coil.setCoolingPowerConsumptionCoefficient5(-0.168727936032429)
+      # new_cooling_coil.setRatedCoolingCoefficientofPerformance(3.4)
+      # new_cooling_coil.setTotalCoolingCapacityCoefficient1(-4.30266987344639)
+      # new_cooling_coil.setTotalCoolingCapacityCoefficient2(7.18536990534372)
+      # new_cooling_coil.setTotalCoolingCapacityCoefficient3(-2.23946714486189)
+      # new_cooling_coil.setTotalCoolingCapacityCoefficient4(0.139995928440879)
+      # new_cooling_coil.setTotalCoolingCapacityCoefficient5(0.102660179888915)
+      # new_cooling_coil.setSensibleCoolingCapacityCoefficient1(6.0019444814887)
+      # new_cooling_coil.setSensibleCoolingCapacityCoefficient2(22.6300677244073)
+      # new_cooling_coil.setSensibleCoolingCapacityCoefficient3(-26.7960783730934)
+      # new_cooling_coil.setSensibleCoolingCapacityCoefficient4(-1.72374720346819)
+      # new_cooling_coil.setSensibleCoolingCapacityCoefficient5(0.490644802367817)
+      # new_cooling_coil.setSensibleCoolingCapacityCoefficient6(0.0693119353468141)
+      # new_cooling_coil.setCoolingPowerConsumptionCoefficient1(-5.67775976415698)
+      # new_cooling_coil.setCoolingPowerConsumptionCoefficient2(0.438988156976704)
+      # new_cooling_coil.setCoolingPowerConsumptionCoefficient3(5.845277342193)
+      # new_cooling_coil.setCoolingPowerConsumptionCoefficient4(0.141605667000125)
+      # new_cooling_coil.setCoolingPowerConsumptionCoefficient5(-0.168727936032429)
       condenser_loop.addDemandBranchForComponent(new_cooling_coil)
 
       # add new single speed heating coil
       new_heating_coil = OpenStudio::Model::CoilHeatingWaterToAirHeatPumpEquationFit.new(model)
       new_heating_coil.setName("#{thermal_zone.name} Heat Pump Heating Coil")
-      new_heating_coil.setRatedHeatingCoefficientofPerformance(4.2)
-      new_heating_coil.setHeatingCapacityCoefficient1(0.237847462869254)
-      new_heating_coil.setHeatingCapacityCoefficient2(-3.35823796081626)
-      new_heating_coil.setHeatingCapacityCoefficient3(3.80640467406376)
-      new_heating_coil.setHeatingCapacityCoefficient4(0.179200417311554)
-      new_heating_coil.setHeatingCapacityCoefficient5(0.12860719846082)
-      new_heating_coil.setHeatingPowerConsumptionCoefficient1(-3.79175529243238)
-      new_heating_coil.setHeatingPowerConsumptionCoefficient2(3.38799239505527)
-      new_heating_coil.setHeatingPowerConsumptionCoefficient3(1.5022612076303)
-      new_heating_coil.setHeatingPowerConsumptionCoefficient4(-0.177653510577989)
-      new_heating_coil.setHeatingPowerConsumptionCoefficient5(-0.103079864171839)
+      # new_heating_coil.setRatedHeatingCoefficientofPerformance(4.2)
+      # new_heating_coil.setHeatingCapacityCoefficient1(0.237847462869254)
+      # new_heating_coil.setHeatingCapacityCoefficient2(-3.35823796081626)
+      # new_heating_coil.setHeatingCapacityCoefficient3(3.80640467406376)
+      # new_heating_coil.setHeatingCapacityCoefficient4(0.179200417311554)
+      # new_heating_coil.setHeatingCapacityCoefficient5(0.12860719846082)
+      # new_heating_coil.setHeatingPowerConsumptionCoefficient1(-3.79175529243238)
+      # new_heating_coil.setHeatingPowerConsumptionCoefficient2(3.38799239505527)
+      # new_heating_coil.setHeatingPowerConsumptionCoefficient3(1.5022612076303)
+      # new_heating_coil.setHeatingPowerConsumptionCoefficient4(-0.177653510577989)
+      # new_heating_coil.setHeatingPowerConsumptionCoefficient5(-0.103079864171839)
       condenser_loop.addDemandBranchForComponent(new_heating_coil)
 
       #add supply fan
