@@ -227,6 +227,30 @@ class PackagedGTHPTest < Minitest::Test
     # Apply the measure and check if before/after results are identical
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
   end
+  
+  def test_pvav_gas_heat_electric_reheat
+    osm_name = 'PVAV_gas_heat_electric_reheat.osm'
+    epw_name = 'NY_New_York_John_F_Ke_744860_16.epw'
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+    measure = AddPackagedGSHP.new
+    args_hash = {}
+    argument_map = populate_argument_map(measure, osm_path, args_hash)
+    # Apply the measure and check if before/after results are identical
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
+  end
+  
+  def test_vav_pfp_boxes_361
+    osm_name = 'Outpatient_VAV_chiller_PFP_boxes.osm'
+    epw_name = 'NY_New_York_John_F_Ke_744860_16.epw'
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+    measure = AddPackagedGSHP.new
+    args_hash = {}
+    argument_map = populate_argument_map(measure, osm_path, args_hash)
+    # Apply the measure and check if before/after results are identical
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
+  end
 
   def test_pszhp
     osm_name = 'PSZ-HP_gthp.osm'
