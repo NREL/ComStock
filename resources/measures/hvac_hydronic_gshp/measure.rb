@@ -255,7 +255,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
 
 
     # change to model.getBoilers....
-    runner.registerInfo("Start time of first loop: #{Time.now} ")
+    # runner.registerInfo("Start time of first loop: #{Time.now} ")
 
     # #AA added this to refactor 7/24
 
@@ -269,17 +269,17 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     # the following error "Blank field not allowed for this coil type when cooling coil air flow rate is not AutoSized". To avoid this, if the flow rate method is blank, a default method
     # called "SupplyAirFlowRate" is assigned
 
-    runner.registerInfo("looping thru unitary systems: #{Time.now} ")
+    # runner.registerInfo("looping thru unitary systems: #{Time.now} ")
     model.getAirLoopHVACUnitarySystems.each do |unit|
       flowmethod = unit.supplyAirFlowRateMethodDuringHeatingOperation.get
-      runner.registerInfo("flow method is #{flowmethod} ")
+      # runner.registerInfo("flow method is #{flowmethod} ")
       if flowmethod == ''
         unit.setSupplyAirFlowRateMethodDuringHeatingOperation('SupplyAirFlowRate')
         runner.registerInfo("SupplyAirFlowRateMethodDuringHeatingOperation reset to use 'SupplyAirFlowRate' method")
       end
     end
 
-    runner.registerInfo("end of looping thru unitary systems: #{Time.now} ")
+    # runner.registerInfo("end of looping thru unitary systems: #{Time.now} ")
     #------------------------------------------------
 
     # Sizing run to calculate boiler capacity if no autosized or hard sized capacities were found
@@ -545,11 +545,11 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
         # create CHW and HHW coils and add to loop
         coil = sys.coolingCoil.get
         coil = coil.to_CoilCoolingDXSingleSpeed.get
-        runner.registerInfo("unitary coil class: #{coil.class}")
-        runner.registerInfo("unitary coil: #{coil}")
+        # runner.registerInfo("unitary coil class: #{coil.class}")
+        # runner.registerInfo("unitary coil: #{coil}")
         # get supplemental htg coil if there is one
         sup_htg_coil = sys.supplementalHeatingCoil.get
-        runner.registerInfo("sup heating coil : #{sup_htg_coil}")
+        # runner.registerInfo("sup heating coil : #{sup_htg_coil}")
         sup_htg_coil = sup_htg_coil.to_CoilHeatingElectric.get
         sys.resetSupplementalHeatingCoil
         sup_htg_coil.remove
@@ -560,7 +560,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
             unitary_cap += coil.autosizedRatedTotalCoolingCapacity.get.to_f
           end
         end
-        runner.registerInfo("unitary coil capacity: #{unitary_cap}")
+        # runner.registerInfo("unitary coil capacity: #{unitary_cap}")
         # unitary_cap = unitary_cap + coil_cap
         chw_coil = OpenStudio::Model::CoilCoolingWater.new(model)
         chw_coil.autosizeDesignAirFlowRate
@@ -569,7 +569,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
         chw_loop.addDemandBranchForComponent(chw_coil)
         air_loop = sys.airLoopHVAC.get
         mixed_air_node = air_loop.mixedAirNode.get # didnt work to_Node.get()
-        runner.registerInfo("unitary mixed air node #{mixed_air_node}")
+        # runner.registerInfo("unitary mixed air node #{mixed_air_node}")
         # remove existing system
         sys.resetCoolingCoil
         coil.remove
@@ -589,11 +589,11 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
       model.getCoilCoolingDXTwoSpeeds.each do |coil|
         # tally up coil capacity
         if coil.autosizedRatedHighSpeedTotalCoolingCapacity.is_initialized # #AA moved up, 7/12
-          runner.registerInfo("coil name:  #{coil.name} and #{coil.autosizedRatedHighSpeedTotalCoolingCapacity.get.to_f}") # boiler capacity #{boiler.nominalCapacity.get.to_f}")
-          runner.registerInfo("#{coil.autosizedRatedHighSpeedTotalCoolingCapacity.get.to_f.class}")
+          # runner.registerInfo("coil name:  #{coil.name} and #{coil.autosizedRatedHighSpeedTotalCoolingCapacity.get.to_f}") # boiler capacity #{boiler.nominalCapacity.get.to_f}")
+          # runner.registerInfo("#{coil.autosizedRatedHighSpeedTotalCoolingCapacity.get.to_f.class}")
           cap_coils += coil.autosizedRatedHighSpeedTotalCoolingCapacity.get.to_f # sum up capacity across boilers on loop
         end
-        runner.registerInfo("dx coil: #{coil}")
+        # runner.registerInfo("dx coil: #{coil}")
         # inlet_node_name = coil.airInletNodeName()
         # need to get inlet and outlet air side nodes and add CHW coil there
         chw_coil = OpenStudio::Model::CoilCoolingWater.new(model)
@@ -603,7 +603,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
         chw_loop.addDemandBranchForComponent(chw_coil)
         air_loop = coil.airLoopHVAC.get
         mixed_air_node = air_loop.mixedAirNode.get # didnt work to_Node.get()
-        runner.registerInfo("mixed air node #{mixed_air_node}")
+        # runner.registerInfo("mixed air node #{mixed_air_node}")
         coil.remove
         chw_coil.addToNode(mixed_air_node)
         # autosize components of the air loop
@@ -653,9 +653,9 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
         # autosize water and air flow rates
         coil.autosizeDesignWaterFlowRate
         coil.autosizeDesignAirFlowRate
-        runner.registerInfo("coil  #{coil}")
+        # runner.registerInfo("coil  #{coil}")
         outlet_node = coil.airOutletModelObject.get.to_Node.get
-        runner.registerInfo("coil outlet node #{outlet_node}")
+        # runner.registerInfo("coil outlet node #{outlet_node}")
         hhw_coil = OpenStudio::Model::CoilHeatingWater.new(model)
         # hhw_coil.autosizeDesignAirFlowRate()
         hhw_coil.autosizeMaximumWaterFlowRate
@@ -782,11 +782,11 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
 
     # no chiller case, calculating # of heat pumps required
     working_des_cap_clg = [hp_des_cap_clg * 1000, cap_coils_comb].max
-    runner.registerInfo("cap coils comb: #{cap_coils_comb}")
+    # runner.registerInfo("cap coils comb: #{cap_coils_comb}")
 
     if working_des_cap_clg > hp_des_cap_clg
       no_hps = (working_des_cap_clg / (hp_des_cap_clg * 1000)).to_f.ceil
-      runner.registerInfo("no. hps: #{no_hps}")
+      # runner.registerInfo("no. hps: #{no_hps}")
       # no_hps = (working_des_cap_clg/(hp_des_cap_clg*1000)).round(0)
       working_hp_cap_clg = hp_des_cap_clg * 1000
     else
@@ -794,8 +794,8 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
       working_hp_cap_clg = cap_coils_comb
     end
 
-    runner.registerInfo("working_hp_cap_clg: #{working_hp_cap_clg}")
-    runner.registerInfo("no_hps: #{no_hps}")
+    # runner.registerInfo("working_hp_cap_clg: #{working_hp_cap_clg}")
+    # runner.registerInfo("no_hps: #{no_hps}")
 
     if no_chillers == 0 # && no_unit_sys
       # add heat pump to new CHW loop and source side loop
@@ -847,22 +847,22 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
       # if not c.to_ChillerElectricEIR.empty?
       # chiller = c.to_ChillerElectricEIR.get
       # if boiler.nominalCapacity.is_initialized ##AA moved up, 7/12
-      runner.registerInfo("nominal name:  #{chiller.name}") # boiler capacity #{boiler.nominalCapacity.get.to_f}")
+      # runner.registerInfo("nominal name:  #{chiller.name}") # boiler capacity #{boiler.nominalCapacity.get.to_f}")
       # cap_blr += boiler.nominalCapacity.get.to_f #sum up capacity across boilers on loop
       inlet = chiller.supplyInletModelObject.get.to_Node.get # #AA need to modify this approach for multiple boilers
       outlet = chiller.supplyInletModelObject.get.to_Node.get # #AA need to modify this approach for multiple boilers \
       chw_loop = chiller.plantLoop.get
       if chiller.autosizedReferenceCapacity.is_initialized # #AA moved up, 7/12
-        runner.registerInfo("nominal name:  #{chiller.name} and #{chiller.autosizedReferenceCapacity.get.to_f}") # boiler capacity #{boiler.nominalCapacity.get.to_f}")
-        runner.registerInfo("#{chiller.autosizedReferenceCapacity.get.to_f.class}")
+        # runner.registerInfo("nominal name:  #{chiller.name} and #{chiller.autosizedReferenceCapacity.get.to_f}") # boiler capacity #{boiler.nominalCapacity.get.to_f}")
+        # runner.registerInfo("#{chiller.autosizedReferenceCapacity.get.to_f.class}")
         cap_chiller += chiller.autosizedReferenceCapacity.get.to_f # sum up capacity across boilers on loop
-        runner.registerInfo("capacity:  #{cap_chiller}")
+        # runner.registerInfo("capacity:  #{cap_chiller}")
       end
       # deal with water-cooled chillers
-      runner.registerInfo("condenser type #{chiller.condenserType}")
+      # runner.registerInfo("condenser type #{chiller.condenserType}")
       if chiller.condenserType == 'WaterCooled'
         chiller_cond_loop = chiller.condenserWaterLoop.get
-        runner.registerInfo("chiller cond loop#{chiller_cond_loop}")
+        # runner.registerInfo("chiller cond loop#{chiller_cond_loop}")
         chiller_cond_loop.remove
       end
       chiller.remove
@@ -871,18 +871,18 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
         next unless sup_comp.to_PumpConstantSpeed.is_initialized
 
         pump = sup_comp.to_PumpConstantSpeed.get # may need to adjust this for different pump types
-        runner.registerInfo('at chw pump')
+        # runner.registerInfo('at chw pump')
         pump.autosizeRatedFlowRate
         pump.autosizeRatedPowerConsumption
       end
 
 
       working_des_cap_clg = [hp_des_cap_clg * 1000, cap_chiller].max
-      runner.registerInfo("cap chiller: #{cap_chiller}")
+      # runner.registerInfo("cap chiller: #{cap_chiller}")
 
       if working_des_cap_clg > hp_des_cap_clg
         no_hps = (working_des_cap_clg / (hp_des_cap_clg * 1000)).to_f.ceil
-        runner.registerInfo("no. hps: #{no_hps}")
+        # runner.registerInfo("no. hps: #{no_hps}")
         # no_hps = (working_des_cap_clg/(hp_des_cap_clg*1000)).round(0)
         working_hp_cap_clg = hp_des_cap_clg * 1000
       else
@@ -936,14 +936,14 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
 
 
     model.getBoilerHotWaters.sort.each do |boiler|
-      runner.registerInfo("starting hot water loop #{Time.now}")
+      # runner.registerInfo("starting hot water loop #{Time.now}")
 
       cap_boiler = 0
 
       # get boilers and then nodes
       # model.getBoilerHotWater.each.do boiler
       # boiler.plantLoop =>optional plant loop
-      runner.registerInfo("inside boiler loop #{Time.now} ")
+      # runner.registerInfo("inside boiler loop #{Time.now} ")
       inlet = boiler.inletModelObject.get.to_Node.get # #AA need to modify this approach for multiple boilers
       outlet = boiler.outletModelObject.get.to_Node.get # #AA need to modify this approach for multiple boilers
       htg_loop = boiler.plantLoop.get
@@ -955,10 +955,10 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
         spm.to_SetpointManagerScheduled.get.setSchedule(sched)
       end
       if boiler.autosizedNominalCapacity.is_initialized # #AA moved up, 7/12
-        runner.registerInfo("nominal name:  #{boiler.name} and #{boiler.autosizedNominalCapacity.get.to_f}") # boiler capacity #{boiler.nominalCapacity.get.to_f}")
-        runner.registerInfo("#{boiler.autosizedNominalCapacity.get.to_f.class}")
+        # runner.registerInfo("nominal name:  #{boiler.name} and #{boiler.autosizedNominalCapacity.get.to_f}") # boiler capacity #{boiler.nominalCapacity.get.to_f}")
+        # runner.registerInfo("#{boiler.autosizedNominalCapacity.get.to_f.class}")
         cap_boiler += boiler.autosizedNominalCapacity.get.to_f # sum up capacity across boilers on loop
-        runner.registerInfo("capacity:  #{cap_boiler}")
+        # runner.registerInfo("capacity:  #{cap_boiler}")
       end
       boiler.remove
 
@@ -968,15 +968,12 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
         next unless sup_comp.to_PumpVariableSpeed.is_initialized
 
         pump = sup_comp.to_PumpVariableSpeed.get
-        runner.registerInfo('at pump')
+        # runner.registerInfo('at pump')
         pump.autosizeRatedFlowRate
         pump.autosizeRatedPowerConsumption
       end
 
-
-
-      runner.registerInfo("starting hp loop #{Time.now} ")
-
+      # runner.registerInfo("starting hp loop #{Time.now} ")
 
       working_des_cap_htg = [hp_des_cap_htg * 1000, cap_boiler].max
 
@@ -1043,7 +1040,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
 
         # end
       end
-      runner.registerInfo("end of hp loop #{Time.now} ")
+      # runner.registerInfo("end of hp loop #{Time.now} ")
       # adding availability manager to heat pump loop. This is based on users cut-off temperature input
       # AA commented this out
       # low_temp_off = OpenStudio::Model::AvailabilityManagerLowTemperatureTurnOff.new(model)
@@ -1059,7 +1056,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
       # changing hardsized heating coil values by autosizing
 
       # AA don't need to repeat for cooling, since only heating temp changing
-      runner.registerInfo("start of autosizing #{Time.now} ")
+      # runner.registerInfo("start of autosizing #{Time.now} ")
       next unless autosize_hc == true # only change coil to autosize if user choose to autosize it
 
       # model.getPlantLoops.each do |plant_loop| ##AA commented out since this is now in a loop thru the heating loops
@@ -1104,7 +1101,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
         term.autosizeMaximumAirFlowRate
       end
     end
-    runner.registerInfo("end of autosizing #{Time.now} ")
+    # runner.registerInfo("end of autosizing #{Time.now} ")
     # END HARDWARE ----------------------------------------------------------------------------------------------------
 
     # Register final condition
@@ -1112,43 +1109,10 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     whs_ic = model.getBoilerHotWaters.size
     hp_ic =  model.getHeatPumpPlantLoopEIRHeatings.size
 
-    runner.registerInfo("main part of measure done  #{Time.now} ")
+    # runner.registerInfo("main part of measure done  #{Time.now} ")
 
     runner.registerFinalCondition("The building finished with #{whs_ic} hot water boilers and " \
                                   "and #{hp_ic} heat pump water heater(s).")
-
-
-    # puts "***********************************"
-    # puts "***********************************"
-    # puts "Reporting HeatPumpPlantLoopEIRCooling objects"
-    # puts "***********************************"
-    # model.getHeatPumpPlantLoopEIRCoolings.each do |hp|
-    # puts hp
-    # end
-
-    # puts "***********************************"
-    # puts "***********************************"
-    # puts "Reporting HeatPumpPlantLoopEIRHeating objects"
-    # puts "***********************************"
-    # model.getHeatPumpPlantLoopEIRHeatings.each do |hp|
-    # puts hp
-    # end
-
-    # puts "***********************************"
-    # puts "***********************************"
-    # puts "Reporting TableLookup objects"
-    # puts "***********************************"
-    # model.getTableLookups.each do |table|
-    # puts table
-    # end
-
-    # puts "***********************************"
-    # puts "***********************************"
-    # puts "Reporting TableIndependentVariable objects"
-    # puts "***********************************"
-    # model.getTableIndependentVariables.each do |ind_var|
-    # puts ind_var
-    # end
 
     # add output variable for GHEDesigner
     reporting_frequency = 'Hourly'
@@ -1272,6 +1236,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     ghe_sys = sim_summary['ghe_system']
 
     number_of_boreholes = ghe_sys['number_of_boreholes']
+    runner.registerInfo("Number of boreholes = #{number_of_boreholes}")
 
     throw 'Unexpected units' unless ghe_sys['fluid_mass_flow_rate_per_borehole']['units'] == 'kg/s'
     fluid_mass_flow_rate_per_borehole_kg_per_s = ghe_sys['fluid_mass_flow_rate_per_borehole']['value']
@@ -1339,6 +1304,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     # Replace temperature source with ground heat exchanger
     ground_loop.addSupplyBranchForComponent(ghx)
     ground_loop.removeSupplyBranchWithComponent(ground_temp_source)
+    runner.registerInfo("Replaced temporary ground temperature source with vertical ground heat exchanger #{ghx}.")
 
     runner.registerInfo("end of ghx measure #{Time.now} ")
 
