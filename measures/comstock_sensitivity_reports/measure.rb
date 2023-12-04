@@ -1470,7 +1470,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     average_vrf_heating_load_weighted_design_cop = vrf_total_heating_load_j > 0.0 ? vrf_heating_load_weighted_design_cop / vrf_total_heating_load_j : 0.0
     runner.registerValue('com_report_hvac_vrf_heating_design_cop', average_vrf_heating_load_weighted_design_cop)
     average_vrf_heating_load_weighted_design_cop_minus22F = vrf_total_heating_load_j > 0.0 ? vrf_heating_load_weighted_design_cop_minus22F / vrf_total_heating_load_j : 0.0
-    runner.registerValue('com_report_hvac_vrf_heating_design_cop_minus22_f', average_vrf_heating_load_weighted_design_cop_minus22F)
+    runner.registerValue('com_report_hvac_vrf_heating_design_cop_minus_22_f', average_vrf_heating_load_weighted_design_cop_minus22F)
     average_vrf_heating_load_weighted_design_cop_0F = vrf_total_heating_load_j > 0.0 ? vrf_heating_load_weighted_design_cop_0F / vrf_total_heating_load_j : 0.0
     runner.registerValue('com_report_hvac_vrf_heating_design_cop_0_f', average_vrf_heating_load_weighted_design_cop_0F)
     average_vrf_heating_load_weighted_design_cop_20F = vrf_total_heating_load_j > 0.0 ? vrf_heating_load_weighted_design_cop_20F / vrf_total_heating_load_j : 0.0
