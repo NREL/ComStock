@@ -56,6 +56,4 @@ def test_plot_generation():
     comp.monthly_data
     comp.export_to_csv_wide()
 
-    # # Generate comparison plots
-    # comp.plot_monthly_energy_consumption_for_eia()
     
