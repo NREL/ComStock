@@ -1417,6 +1417,7 @@ class PlottingMixin():
                 fig_name = f'com_eia_{title.replace(" ", "_").lower()}.{self.image_type}'
                 fig_path = os.path.join(output_dir, fig_name)
                 plt.savefig(fig_path, bbox_inches = 'tight')
+                plt.close()
 
     def plot_monthly_energy_consumption_for_eia(self, df, color_map, output_dir):
         # Columns to summarize
@@ -1479,3 +1480,4 @@ class PlottingMixin():
                     fig_name = f'com_eia_{title.replace(" ", "_").lower()}.{self.image_type}'
                     fig_path = os.path.join(output_dir, fig_name) 
                     plt.savefig(fig_path, bbox_inches = 'tight')
+                    plt.close()
