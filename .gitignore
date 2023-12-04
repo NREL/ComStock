@@ -24,3 +24,4 @@ lib/
 /sampling/output-buildstocks
 /sampling/truth_data
 *.pyc
+.vscode
