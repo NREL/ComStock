@@ -11,25 +11,7 @@ We derived the hours of operation by applying the method introduced in \cite{bia
 
 Figure~\ref{fig:utility_building_type} lists the number of buildings for each building type from each utility's AMI data set that was considered during the EULP project. The utility data sets and names are listed in Table 10 of the EULP Final Technical Report \citep{eulp_final_report}. Among the 15 building types considered in ComStock, 14 can be found in the commercial schedules AMI data set. The only exception is secondary schools, because all schools were grouped together in the AMI data.
 
-%\begin{figure}
-%    \centering \includegraphics[width=0.8\textwidth]{figures/utility_building_type.png}
-%    \caption[Number of samples by building type and utility in the commercial AMI data set]{Number of samples by building type and utility in the commercial AMI data set used to derive hours of operation schedules. See EULP Final Technical Report Table 10 for more detail.}
-%    \label{fig:utility_building_type}
-%\end{figure}
-
 We compared the distribution extracted from the commercial schedules AMI data set with the inputs of ComStock at the start of the EULP calibration. The results of the small office building type are presented in Figure~\ref{fig:small_office_season} to illustrate the process, because this building type has the largest sample size in the AMI data set. We considered two day types, working day vs. non-working day, and two season definitions---one defined by month, and the other defined by daily average outdoor air temperature. The distribution of hours of operation is more diffuse in the AMI data set than in the ComStock inputs at the start of EULP calibration. Also, the duration of high load is smaller in the real AMI data than in the previous ComStock assumptions.
-
-%\begin{figure}
-%    \centering \includegraphics[width=0.8\textwidth]{figures/small_office_season.png}
-%    \caption[Distribution of small office hours of operations, by day type and season]{Distribution of small office hours of operations extracted from AMI data (from seven utilities), by day type and season, and compared to ComStock before updates. This figure shows how the hours of operation (start time and duration of the high load period) are influenced by season (all utilities are combined in this plot).}
-    %\label{fig:small_office_season}
-%\end{figure}
-
-%\begin{figure}
-%    \centering \includegraphics[width=0.7\textwidth]{figures/small_office_utility.png}
- %   \caption[Distribution of small office hours of operation, by utility and day type]{Distribution of small office hours of operations extracted from AMI data (from seven utilities), by utility and day type, and compared to ComStock before updates. This figure shows how the hours of operation (start time and duration of the high load period) are influenced by utility region (all seasons are combined in this plot).}
-    %\label{fig:small_office_utility}
-%   \end{figure}
 
 We explored whether and how the hours of operation are influenced by season (in Figure~\ref{fig:small_office_season}) and by utility (in Figure \ref{fig:small_office_utility}). Some differences can be observed; however, due to the modeling complexity and the desire to create a nationally applicable approach that avoids overfitting to a specific utility region, we combined the AMI data across seasons and utilities to generate a distribution of hours of operation for each building type. These new distributions were applied to ComStock in place of the existing distributions.
 
@@ -45,37 +27,12 @@ The maximum number of people in a zone (calculated from occupancy density and zo
 
 These base occupancy schedules are stretched, compressed, or shifted in time to reflect the model’s assigned hours of operation. For example, the base occupancy schedule for large offices is 9 a.m.--5 p.m. (8 hours of operation). If one large office model is assigned a start time of 8 a.m. and an operating duration of 10 hours, the base schedules in the model will be stretched so that the occupied period is an additional two hours long. All schedules in the model (occupancy, lighting, thermostat, plug load, etc.) are modified in the same manner to ensure coordination between occupancy, lighting, etc.  
 
-%\begin{figure}
-%    \centering
-%    \includegraphics[trim={0 0 0 0}, clip,  % L B R T
-%    width=\textwidth]{figures/occupancy_schedules_deer_1.png}
-%    \caption{California base occupancy schedules for food service, lodging, healthcare, and education ComStock building types.}
-%    \label{fig:occupancy_schedules_deer_1}
-%\end{figure}
-
-%\begin{figure}
-%    \centering
-%    \includegraphics[trim={0 0 0 0}, clip,  % L B R T
-%    width=\textwidth]{figures/occupancy_schedules_deer_2.png}
-%    \caption{California base occupancy schedules for retail, office, and warehouse ComStock building types.}
- %   \label{fig:occupancy_schedules_deer_2}
-%\end{figure}
 
 \subsubsection{Occupancy Activity Schedules}
 Occupancy activity schedules represent the total heat gain per person, including convective, radiant, and latent heat. An internal EnergyPlus algorithm determines the fraction of the total load that is sensible and latent. The sensible portion is further divided into radiant and convective using the default fraction radiant value. DOE prototype activity levels are fixed for a given building type and range from 120--132 watts per person across the various building types. DEER prototype activity levels vary by space type and range from 117--331 watts per person. Table~\ref{tab:activity_schedule} lists the occupancy activity schedules used in ComStock.
 
-%\input{tables/activity_schedules.tex}
 \pagebreak
 
-%\input{tables/occupancy_density_food_service}
-%\input{tables/occupancy_density_healthcare}
-%\input{tables/occupancy_density_hotels}
-%\input{tables/occupancy_density_office}
-%\input{tables/occupancy_density_school}
-%\input{tables/occupancy_density_retail}
-%\input{tables/occupancy_density_warehouse}
-
-%\input{tables/occupancy_schedule_sources}
 \begin{figure}
    \centering \includegraphics[width=1\textwidth]{figures/start_time.png}
    \caption{Operating hours' start time distributions.}

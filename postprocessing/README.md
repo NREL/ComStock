@@ -72,7 +72,7 @@ $ conda activate /projects/cscore/envs/comstockpostproc_<myname>
 
 Navigate to the `/postprocessing` directory of this repo:
 ```
-$ cd /path/to/comstock-internal/postprocessing
+$ cd /path/to/ComStock/postprocessing
 ```
 
 Make sure you are using the latest version of `pip`:
