@@ -2061,6 +2061,8 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
         puts("### #{ou.name} | outdoor unit heating capacity after = #{ou.grossRatedHeatingCapacity} W")
 
       end
+    else
+      runner.registerInfo("upsizing allowance set to #{upsizing_allowance_pct}% so skipping upsizing.")
     end
 
     ######################################################
