@@ -1367,7 +1367,7 @@ class PlottingMixin():
                     ax = pivot.plot.bar(color=color_map, ax=first_ax)
 
                 # Extract the units from the column name
-                match = re.search('\(.*\)', col)
+                match = re.search('\\(.*\\)', col)
                 if match:
                     units = match.group(0)
                 else:
@@ -1406,6 +1406,7 @@ class PlottingMixin():
                 fig_name = f'com_eia_{title.replace(" ", "_").lower()}.{self.image_type}'
                 fig_path = os.path.join(output_dir, fig_name)
                 plt.savefig(fig_path, bbox_inches = 'tight')
+                plt.close()
 
     def plot_monthly_energy_consumption_for_eia(self, df, color_map, output_dir):
         # Columns to summarize
@@ -1416,7 +1417,7 @@ class PlottingMixin():
 
         # Disaggregate to these levels
         group_bys = [
-            # self.STATE_ABBRV,
+            self.STATE_ABBRV,
             'Division'
         ]
 
@@ -1428,7 +1429,6 @@ class PlottingMixin():
                 cols = [self.DATASET] # Columns in Excel pivot table
 
 
-                first_ax = None
                 for group_name, group_data in df.groupby(group_by):
 
                     # With group-by
@@ -1436,14 +1436,10 @@ class PlottingMixin():
                     pivot = pivot.droplevel([0, 1], axis=1)
 
                     # Make the graph
-                    if first_ax == None:
-                        ax = pivot.plot.bar(color=color_map)
-                        first_ax = ax
-                    else:
-                        ax = pivot.plot.bar(color=color_map, ax=first_ax)
+                    ax = pivot.plot.bar(color=color_map)
 
                     # Extract the units from the column name
-                    match = re.search('\(.*\)', col)
+                    match = re.search('\\(.*\\)', col)
                     if match:
                         units = match.group(0)
                     else:
@@ -1459,7 +1455,7 @@ class PlottingMixin():
                     ax.set_ylabel(f'Monthly Energy Consumption {units}')
 
                     # Add legend with no duplicate entries
-                    handles, labels = first_ax.get_legend_handles_labels()
+                    handles, labels = ax.get_legend_handles_labels()
                     new_labels = []
                     new_handles = []
                     for l, h in zip(labels, handles):
@@ -1471,5 +1467,6 @@ class PlottingMixin():
                     # Save the figure
                     title = title.replace('\n', '')
                     fig_name = f'com_eia_{title.replace(" ", "_").lower()}.{self.image_type}'
-                    fig_path = os.path.join(output_dir, fig_name)
+                    fig_path = os.path.join(output_dir, fig_name) 
                     plt.savefig(fig_path, bbox_inches = 'tight')
+                    plt.close()

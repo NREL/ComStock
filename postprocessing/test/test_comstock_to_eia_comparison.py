@@ -1,3 +1,6 @@
+# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# See top level LICENSE.txt file for license terms.
+
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
@@ -56,6 +59,4 @@ def test_eia_plot_generation():
     comp.monthly_data
     comp.export_to_csv_wide()
 
-    # # Generate comparison plots
-    # comp.plot_monthly_energy_consumption_for_eia()
     

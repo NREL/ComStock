@@ -454,7 +454,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 # Any combination of null, true, and false is considered a boolean column
                 bool_possibilities = [set(['true', 'false']), set(['true']), set(['false'])]
                 if set(lower_col_vals) in bool_possibilities:
-                    up_res = up_res.with_columns(pl.col(col).str.to_lowercase().map_dict({"false": False, "true": True}))
+                    up_res = up_res.with_columns(pl.col(col).str.to_lowercase().replace({"false": False, "true": True}, default=None))
 
             # Downselect columns to reduce memory use
             up_res = self.downselect_imported_columns(up_res)
@@ -848,7 +848,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             'Residential forced air_Furnace_None': 'Residential Style Central Systems'
             }
 
-        self.data = self.data.with_columns((pl.col('in.hvac_combined_type').map_dict(hvac_group_map)).alias('in.hvac_category'))
+        self.data = self.data.with_columns((pl.col('in.hvac_combined_type').replace(hvac_group_map, default=None)).alias('in.hvac_category'))
 
         # Define building type groups relevant to segmentation
         non_food_svc = ['RetailStandalone', 'Warehouse','SmallOffice', 'LargeHotel', 'MediumOffice', 'PrimarySchool',
@@ -910,7 +910,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             (pl.col('in.hvac_category') == 'Other HVAC'))
             .then(pl.lit(self.SEG_I))
             # Catchall - should not hit this, every building should have a segment
-            .otherwise('ERROR')
+            .otherwise(pl.lit('ERROR'))
             # Assign the column name
             .alias(self.SEG_NAME)
         ])
@@ -1229,7 +1229,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 logger.info(f'Renaming upgrades')
                 for old, new in upgrade2upgrade.items():
                     logger.debug(f'{old} -> {new}')
-                self.data = self.data.with_columns((pl.col(self.UPGRADE_NAME).map_dict(upgrade2upgrade)).alias(self.UPGRADE_NAME))
+                self.data = self.data.with_columns((pl.col(self.UPGRADE_NAME).replace(upgrade2upgrade, default=None)).alias(self.UPGRADE_NAME))
                 self.data = self.data.with_columns(pl.col(self.UPGRADE_NAME).cast(pl.Categorical))
 
         logger.debug(f'Memory after rename_columns_and_convert_units: {self.data.estimated_size()}')
@@ -1404,17 +1404,17 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # add column for ventilation
         dict_vent = dict(zip(hvac['system_type'], hvac['ventilation_type']))
-        self.data = self.data.with_columns((pl.col('in.hvac_system_type').map_dict(dict_vent)).alias('in.hvac_vent_type'))
+        self.data = self.data.with_columns((pl.col('in.hvac_system_type').replace(dict_vent, default=None)).alias('in.hvac_vent_type'))
         self.data = self.data.with_columns(pl.col('in.hvac_vent_type').cast(pl.Categorical))
 
         # add column for heating
         dict_heat = dict(zip(hvac['system_type'], hvac['primary_heating']))
-        self.data = self.data.with_columns((pl.col('in.hvac_system_type').map_dict(dict_heat)).alias('in.hvac_heat_type'))
+        self.data = self.data.with_columns((pl.col('in.hvac_system_type').replace(dict_heat, default=None)).alias('in.hvac_heat_type'))
         self.data = self.data.with_columns(pl.col('in.hvac_heat_type').cast(pl.Categorical))
 
         # add column for cooling
         dict_cool = dict(zip(hvac['system_type'], hvac['primary_cooling']))
-        self.data = self.data.with_columns((pl.col('in.hvac_system_type').map_dict(dict_cool)).alias('in.hvac_cool_type'))
+        self.data = self.data.with_columns((pl.col('in.hvac_system_type').replace(dict_cool, default=None)).alias('in.hvac_cool_type'))
         self.data = self.data.with_columns(pl.col('in.hvac_cool_type').cast(pl.Categorical))
 
         # hvac combined
@@ -1440,7 +1440,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             'Warehouse': 'Warehouse and Storage',
         }
 
-        self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).map_dict(bldg_type_groups)).alias(self.BLDG_TYPE_GROUP))
+        self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).replace(bldg_type_groups, default=None)).alias(self.BLDG_TYPE_GROUP))
         self.data = self.data.with_columns(pl.col(self.BLDG_TYPE_GROUP).cast(pl.Categorical))
 
     def add_national_scaling_weights(self, cbecs: CBECS, remove_non_comstock_bldg_types_from_cbecs: bool):
@@ -1517,7 +1517,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Assign scaling factors to each ComStock run
         self.building_type_weights = bldg_type_scale_factors
-        self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).map_dict(bldg_type_scale_factors)).alias(self.BLDG_WEIGHT))
+        self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).replace(bldg_type_scale_factors, default=None)).alias(self.BLDG_WEIGHT))
 
         # Apply the weight to scale the area and energy columns
         self.add_weighted_area_and_energy_columns()
@@ -1850,7 +1850,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         comstock_scaling_factors = dict(comstock_scaling_factors.iter_rows())
 
         # Assign the correct per-building-type scaling factor to ComStock monthly data
-        monthly = monthly.with_columns((pl.col('building_type').map_dict(comstock_scaling_factors)).alias('Scaling Factor'))
+        monthly = monthly.with_columns((pl.col('building_type').replace(comstock_scaling_factors, default=None)).alias('Scaling Factor'))
 
         # Scale the ComStock energy consumption
         monthly = monthly.with_columns(
