@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>com_stock_sensitivity_reports</name>
   <uid>aeb81242-de7e-4613-af47-c1faf19d286a</uid>
-  <version_id>fe9bb45b-8a2b-4759-95b5-38e5f95ad96e</version_id>
-  <version_modified>2023-12-04T18:17:43Z</version_modified>
+  <version_id>6b0fee42-b4b5-4066-9414-39ee184586e2</version_id>
+  <version_modified>2023-12-04T18:21:39Z</version_modified>
   <xml_checksum>A0069B90</xml_checksum>
   <class_name>ComStockSensitivityReports</class_name>
   <display_name>ComStock_Sensitivity_Reports</display_name>
@@ -82,7 +82,7 @@
       <filename>Variable List.xlsx</filename>
       <filetype>xlsx</filetype>
       <usage_type>resource</usage_type>
-      <checksum>FD301959</checksum>
+      <checksum>2987419A</checksum>
     </file>
     <file>
       <filename>FortCollins2016.epw</filename>
