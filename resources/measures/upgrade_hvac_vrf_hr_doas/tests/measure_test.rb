@@ -184,48 +184,48 @@ class HvacVrfHrDoasTest < Minitest::Test
       weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
       result: 'Success'
     }
-    # # test: cold weather
-    # test_sets << {
-    #   model: 'Small_Office_2A',
-    #   weather: 'USA_AK_Fairbanks.Intl.AP.702610_TMY3',
-    #   result: 'Success'
-    # }
-    # # test: too many indoor units
-    # test_sets << {
-    #   model: 'Outpatient_VAV_chiller_PFP_boxes',
-    #   weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
-    #   result: 'NA'
-    # }
-    # # test: floor area too large 
-    # test_sets << {
-    #   model: 'SecondarySchool_PTHP',
-    #   weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
-    #   result: 'NA'
-    # }
-    # # test: not applicable building type
-    # test_sets << {
-    #   model: 'Quick_Service_Restaurant_CA',
-    #   weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
-    #   result: 'NA'
-    # }
-    # # test: not applicable building type
-    # test_sets << {
-    #   model: 'Restaurant_5B',
-    #   weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
-    #   result: 'NA'
-    # }
-    # # test: not applicable hvac type
-    # test_sets << {
-    #   model: 'Residential_AC_with_electric_baseboard_heat_3B',
-    #   weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
-    #   result: 'NA'
-    # }
-    # # test: not applicable hvac type
-    # test_sets << {
-    #   model: 'Retail_7',
-    #   weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
-    #   result: 'NA'
-    # }
+    # test: cold weather
+    test_sets << {
+      model: 'Small_Office_2A',
+      weather: 'USA_AK_Fairbanks.Intl.AP.702610_TMY3',
+      result: 'Success'
+    }
+    # test: too many indoor units
+    test_sets << {
+      model: 'Outpatient_VAV_chiller_PFP_boxes',
+      weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
+      result: 'NA'
+    }
+    # test: floor area too large 
+    test_sets << {
+      model: 'SecondarySchool_PTHP',
+      weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
+      result: 'NA'
+    }
+    # test: not applicable building type
+    test_sets << {
+      model: 'Quick_Service_Restaurant_CA',
+      weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
+      result: 'NA'
+    }
+    # test: not applicable building type
+    test_sets << {
+      model: 'Restaurant_5B',
+      weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
+      result: 'NA'
+    }
+    # test: not applicable hvac type
+    test_sets << {
+      model: 'Residential_AC_with_electric_baseboard_heat_3B',
+      weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
+      result: 'NA'
+    }
+    # test: not applicable hvac type
+    test_sets << {
+      model: 'Retail_7',
+      weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
+      result: 'NA'
+    }
     
     return test_sets
   end
