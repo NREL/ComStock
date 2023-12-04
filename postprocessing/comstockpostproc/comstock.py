@@ -781,7 +781,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             (pl.col('in.hvac_category') == 'Other HVAC'))
             .then(pl.lit(self.SEG_I))
             # Catchall - should not hit this, every building should have a segment
-            .otherwise('ERROR')
+            .otherwise(pl.lit('ERROR'))
             # Assign the column name
             .alias(self.SEG_NAME)
         ])
