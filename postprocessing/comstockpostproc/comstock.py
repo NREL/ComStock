@@ -240,35 +240,35 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                  raise FileNotFoundError(
                     f'Cannot find {file_path} to reload data, set reload_from_csv=False to create CSV.')
             logger.info(f'Reloading from CSV: {file_path}')
-            #self.ami_timeseries_data = pd.read_csv(file_path, low_memory=False)
-        
-        athena_end_uses = list(map(lambda x: NamingMixin.END_USES_TIMESERIES_DICT[x], NamingMixin.END_USES))
-        athena_end_uses.append('total_site_electricity_kwh')
-        all_timeseries_df = pd.DataFrame()
-        for region in ami.ami_region_map:
-            region_file_path_long = os.path.join(self.output_dir, region['source_name'] + '_building_type_timeseries_long.csv')
-            if os.path.isfile(region_file_path_long) and reload_from_csv and save_individual_regions:
-                print('timeseries data in long format for ' + region['source_name'] + ' already exists at ' + region_file_path_long)
-                continue
+            self.ami_timeseries_data = pd.read_csv(file_path, low_memory=False)
+        else:
+            athena_end_uses = list(map(lambda x: NamingMixin.END_USES_TIMESERIES_DICT[x], NamingMixin.END_USES))
+            athena_end_uses.append('total_site_electricity_kwh')
+            all_timeseries_df = pd.DataFrame()
+            for region in ami.ami_region_map:
+                region_file_path_long = os.path.join(self.output_dir, region['source_name'] + '_building_type_timeseries_long.csv')
+                if os.path.isfile(region_file_path_long) and reload_from_csv and save_individual_regions:
+                    print('timeseries data in long format for ' + region['source_name'] + ' already exists at ' + region_file_path_long)
+                    continue
 
-            ts_agg = self.athena_client.agg.aggregate_timeseries(enduses=athena_end_uses,
-                                                                 group_by=['build_existing_model.building_type', 'time'],
-                                                                 restrict=[('build_existing_model.county_id', region['county_ids'])])
-            if ts_agg['time'].dtype == 'Int64':
-                # Convert bigint to timestamp type if necessary
-                ts_agg['time'] = pd.to_datetime(ts_agg['time']/1e9, unit='s')
+                ts_agg = self.athena_client.agg.aggregate_timeseries(enduses=athena_end_uses,
+                                                                    group_by=['build_existing_model.building_type', 'time'],
+                                                                    restrict=[('build_existing_model.county_id', region['county_ids'])])
+                if ts_agg['time'].dtype == 'Int64':
+                    # Convert bigint to timestamp type if necessary
+                    ts_agg['time'] = pd.to_datetime(ts_agg['time']/1e9, unit='s')
 
-            # region_file_path_wide = os.path.join(self.output_dir, region['source_name'] + '_building_type_timeseries_wide.csv')
-            # ts_agg.to_csv(region_file_path_wide, index=False)
-            # logger.info(f"Saved enduse timeseries in wide format for {region['source_name']} to {region_file_path_wide}")
+                # region_file_path_wide = os.path.join(self.output_dir, region['source_name'] + '_building_type_timeseries_wide.csv')
+                # ts_agg.to_csv(region_file_path_wide, index=False)
+                # logger.info(f"Saved enduse timeseries in wide format for {region['source_name']} to {region_file_path_wide}")
 
-            timeseries_df = self.convert_timeseries_to_long(ts_agg, region['county_ids'], region['source_name'], save_individual_region=save_individual_regions)
-            timeseries_df['region_name'] = region['source_name']
-            all_timeseries_df = pd.concat([all_timeseries_df, timeseries_df])
-        
-        data_path = os.path.join(self.output_dir, 'Timeseries for AMI long.csv')
-        all_timeseries_df.to_csv(data_path, index=True)
-        # self.ami_timeseries_data = all_timeseries_df
+                timeseries_df = self.convert_timeseries_to_long(ts_agg, region['county_ids'], region['source_name'], save_individual_region=save_individual_regions)
+                timeseries_df['region_name'] = region['source_name']
+                all_timeseries_df = pd.concat([all_timeseries_df, timeseries_df])
+            
+            data_path = os.path.join(self.output_dir, 'Timeseries for AMI long.csv')
+            all_timeseries_df.to_csv(data_path, index=True)
+            self.ami_timeseries_data = all_timeseries_df
 
     def convert_timeseries_to_long(self, agg_df, county_ids, output_name, save_individual_region=False):
         # rename columns

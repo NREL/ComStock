@@ -47,7 +47,7 @@ class AMI(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         current_dir = os.path.dirname(os.path.abspath(__file__))
         self.truth_data_dir = os.path.join(current_dir, '..', 'truth_data', self.truth_data_version)
         self.output_dir = os.path.join(current_dir, '..', 'output', self.dataset_name)
-        self.data = None
+        self.ami_timeseries_data = None
         self.color = color_hex
         # run map to list qoi months and county ids in each region
         # 1 is Fort Collins, Colorado
@@ -133,7 +133,7 @@ class AMI(NamingMixin, UnitsMixin, S3UtilitiesMixin):
                  raise FileNotFoundError(
                     f'Cannot find {file_path} to reload data, set reload_from_csv=False to create CSV.')
             logger.info(f'Reloading from CSV: {file_path}')
-            self.data = pd.read_csv(file_path, low_memory=False)
+            self.ami_timeseries_data = pd.read_csv(file_path, low_memory=False)
         else:
             self.calculate_ami_aggregates()
 
@@ -189,14 +189,12 @@ class AMI(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             ami_raw_df = ami_raw_df[ami_raw_df.index.dayofyear != 366]
             ami_raw_df['region_name'] = region_source_name
             ami_raw_df['year'] = region_year
-            ami_raw_df['filter_method'] = region_filter_method
-            ami_raw_df['enduse'] = 'total'
 
             # compare against mean by square foot
             ami_raw_df['kwh_per_sf'] = ami_raw_df['mean_by_sqft']
 
             # drop other data
-            ami_raw_df = ami_raw_df[['kwh_per_sf', 'total_sqft', 'std_by_count', 'bldg_count', 'building_type', 'region_name', 'year', 'filter_method', 'enduse']]
+            ami_raw_df = ami_raw_df[['kwh_per_sf', 'total_sqft', 'std_by_count', 'bldg_count', 'building_type', 'region_name', 'year']]
 
             def calc_lci(row, confidence_interval):
                 ci = stats.t.interval(confidence_interval, row['bldg_count'] - 1, row['kwh_per_sf'], row['std_by_count'] / (row['bldg_count']**0.5))
@@ -224,7 +222,7 @@ class AMI(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             ami_df = temp_df
 
             # calculate the total
-            df = ami_df.groupby(['timestamp', 'region_name', 'year', 'filter_method', 'enduse']).sum().reset_index().set_index('timestamp')
+            df = ami_df.groupby(['timestamp', 'region_name', 'year']).sum().reset_index().set_index('timestamp')
             df = df.drop(['kwh_per_sf'], axis=1)
             df['kwh_per_sf'] = df['kwh'] / total_sf
             df['lci_80'] = df.apply(lambda row: calc_lci(row, 0.8), axis=1).values
@@ -242,7 +240,7 @@ class AMI(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             ami_df = pd.concat([ami_df, df])
 
             # drop other data
-            ami_df = ami_df[['kwh_per_sf', 'bldg_count', 'building_type', 'region_name', 'year', 'filter_method', 'enduse', 'sample_uncertainty']]
+            ami_df = ami_df[['kwh_per_sf', 'bldg_count', 'building_type', 'region_name', 'year', 'sample_uncertainty']]
 
             # save out long data format
             logger.info(f'Adding data for region {region_source_name}.')
@@ -252,5 +250,5 @@ class AMI(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         
         data_path = os.path.join(self.output_dir, 'AMI long.csv')
         all_ami_df.to_csv(data_path, index=True)
-        self.data = all_ami_df
+        self.ami_timeseries_data = all_ami_df
         return all_ami_df
