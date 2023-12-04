@@ -146,6 +146,12 @@ class ChangeBuildingLocation < OpenStudio::Measure::ModelMeasure
     grid_region.setDefaultValue('RMPAc')
     args << grid_region
 
+    # make argument for soil conductivity (used for ground source heat pump modeling)
+    soil_conductivity = OpenStudio::Ruleset::OSArgument::makeDoubleArgument('soil_conductivity', true)
+    soil_conductivity.setDisplayName('Soil Conductivity')
+    soil_conductivity.setDefaultValue(1.5) # Default value, change as needed
+    args << soil_conductivity
+
     return args
   end
 
@@ -357,6 +363,62 @@ class ChangeBuildingLocation < OpenStudio::Measure::ModelMeasure
       climateZones.setClimateZone('ASHRAE', args['climate_zone'].gsub('ASHRAE 169-2006-', ''))
       runner.registerInfo("Setting Climate Zone to #{climateZones.getClimateZones('ASHRAE').first.value}")
     end
+
+    # set soil properties as building additional properties for ground source heat pump modeling
+    soil_conductivity = runner.getDoubleArgumentValue('soil_conductivity', user_arguments)
+
+    # get climate zone and set undisturbed ground temp (used for ground source heat pump modeling)
+    climate_zone = runner.getStringArgumentValue('climate_zone', user_arguments)
+    puts "climate zone = #{climate_zone}"
+
+    undisturbed_ground_temps = {
+    'ASHRAE 169-2013-1A' => 25.9,
+    'ASHRAE 169-2013-2A' => 20.9,
+    'ASHRAE 169-2013-2B' => 25.0,
+    'T24-CEC15' => 25.0,
+    'ASHRAE 169-2013-3A' => 17.9,
+    'ASHRAE 169-2013-3B' => 19.7,
+    'T24-CEC7' => 19.7,
+    'T24-CEC8' => 19.7,
+    'T24-CEC9' => 19.7,
+    'T24-CEC10' => 19.7,
+    'T24-CEC11' => 19.7,
+    'T24-CEC12' => 19.7,
+    'T24-CEC13' => 19.7,
+    'T24-CEC14' => 19.7,
+    'ASHRAE 169-2013-3C' => 17.0,
+    'T24-CEC2' => 17.0,
+    'T24-CEC3' => 17.0,
+    'T24-CEC4' => 17.0,
+    'T24-CEC5' => 17.0,
+    'T24-CEC6' => 17.0,
+    'ASHRAE 169-2013-4A' => 14.7,
+    'ASHRAE 169-2013-4B' => 16.3,
+    'T24-CEC1' => 16.3,
+    'ASHRAE 169-2013-4C' => 13.3,
+    'ASHRAE 169-2013-5A' => 11.5,
+    'ASHRAE 169-2013-5B' => 12.9,
+    'T24-CEC16' => 12.9,
+    'ASHRAE 169-2013-6A' => 9.0,
+    'ASHRAE 169-2013-6B' => 9.3,
+    'ASHRAE 169-2013-7A' => 7.0,
+    'ASHRAE 169-2013-7B' => 6.5,
+    'ASHRAE 169-2013-7' => 5.4,
+    'ASHRAE 169-2013-8A' => 2.3,
+    'ASHRAE 169-2013-8' => 2.3
+    }
+
+    undisturbed_ground_temp = undisturbed_ground_temps[climate_zone] || runner.registerError("Climate zone not found.")
+
+    # Add the values as additional properties to the building
+    building = model.getBuilding
+    building.additionalProperties.setFeature('Soil Conductivity', soil_conductivity)
+    building.additionalProperties.setFeature('Undisturbed Ground Temperature', undisturbed_ground_temp)
+
+    # Report that the measure was successful
+    runner.registerInfo("Added soil conductivity #{soil_conductivity} Btu/hr-ft-F and undisturbed ground temperature #{undisturbed_ground_temp} degC as additional properties to the building.")
+
+    return true
 
     # add final condition
     runner.registerFinalCondition("The final weather file is #{model.getWeatherFile.city} and the model has #{model.getDesignDays.size} design day objects.")
