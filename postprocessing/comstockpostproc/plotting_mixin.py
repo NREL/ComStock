@@ -1367,7 +1367,7 @@ class PlottingMixin():
                     ax = pivot.plot.bar(color=color_map, ax=first_ax)
 
                 # Extract the units from the column name
-                match = re.search('\(.*\)', col)
+                match = re.search('\\(.*\\)', col)
                 if match:
                     units = match.group(0)
                 else:
@@ -1439,7 +1439,7 @@ class PlottingMixin():
                     ax = pivot.plot.bar(color=color_map)
 
                     # Extract the units from the column name
-                    match = re.search('\(.*\)', col)
+                    match = re.search('\\(.*\\)', col)
                     if match:
                         units = match.group(0)
                     else:
