@@ -114,7 +114,9 @@ class SetHeatingFuel < OpenStudio::Measure::ModelMeasure
     # inconsistent fuel enumerations between objects.
     if model.version < OpenStudio::VersionString.new('3.0.0')
       eplus_htg_fuels['FuelOil'] = 'FuelOil#2'
-      eplus_htg_fuels['DistrictHeating'] = 'DistrictHeatingWater'
+    end
+    if model.version < OpenStudio::VersionString.new('3.7.0')
+      eplus_htg_fuels['DistrictHeating'] = 'DistrictHeating'
     end
 
     htg_coils_changed = []
