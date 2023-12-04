@@ -715,8 +715,8 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     thermalzones.each do |thermalzone|
       zone_fuels = ''
       htg_fuels = thermalzone.heatingFuelTypes.map(&:valueName)
-      if htg_fuels.include?('DistrictHeating')
-        zone_fuels = 'DistrictHeating'
+      if htg_fuels.include?('DistrictHeatingWater')
+        zone_fuels = 'DistrictHeatingWater'
         district_energy_types << zone_fuels
       end
       clg_fuels = thermalzone.coolingFuelTypes.map(&:valueName)

@@ -100,7 +100,7 @@ class SetServiceWaterHeatingFuel < OpenStudio::Measure::ModelMeasure
         'NaturalGas' => 'NaturalGas',
         'Propane' => 'Propane',
         'FuelOil' => 'FuelOilNo2',
-        'DistrictHeating' => 'DistrictHeating'
+        'DistrictHeating' => 'DistrictHeatingWater'
     }
 
     # Compatibility with earlier EnergyPlus versions with
@@ -108,6 +108,9 @@ class SetServiceWaterHeatingFuel < OpenStudio::Measure::ModelMeasure
     if model.version < OpenStudio::VersionString.new('3.0.0')
       eplus_htg_fuels['FuelOil'] = 'FuelOil#2'
       eplus_htg_fuels['Propane'] = 'PropaneGas'
+    end
+    if model.version < OpenStudio::VersionString.new('3.7.0')
+      eplus_htg_fuels['DistrictHeating'] = 'DistrictHeating'
     end
 
     # If the service_water_heating_fuel is Propane, FuelOil, or DistrictHeating
