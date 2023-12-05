@@ -1200,10 +1200,10 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     
     # get soil properties from building additional properties and set them in json file
     building = model.getBuilding
-    soil_conductivity = building.additionalProperties.getFeature('Soil Conductivity', soil_conductivity)
-    undisturbed_ground_temp = building.additionalProperties.getFeature('Undisturbed Ground Temperature', undisturbed_ground_temp)
-    borefield_defaults[:soil][:conductivity] = soil_conductivity
-    borefield_defaults[:soil][:undisturbed_temp] = undisturbed_ground_temp
+    soil_conductivity = building.additionalProperties.getFeatureAsDouble('Soil Conductivity')
+    undisturbed_ground_temp = building.additionalProperties.getFeatureAsDouble('Undisturbed Ground Temperature')
+    borefield_defaults['soil']['conductivity'] = soil_conductivity.to_f.round(2)
+    borefield_defaults['soil']['undisturbed_temp'] = undisturbed_ground_temp.to_f.round(2)
     
     # add timeseries ground loads to json file
     borefield_defaults['loads'] = {}
