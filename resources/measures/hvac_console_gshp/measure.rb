@@ -510,6 +510,14 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     # Make json input file for GHEDesigner
     borefield_defaults_json_path = "#{File.dirname(__FILE__)}/resources/borefield_defaults.json"
     borefield_defaults = JSON.parse(File.read(borefield_defaults_json_path))
+
+    # get soil properties from building additional properties and set them in json file
+    building = model.getBuilding
+    soil_conductivity = building.additionalProperties.getFeature('Soil Conductivity', soil_conductivity)
+    undisturbed_ground_temp = building.additionalProperties.getFeature('Undisturbed Ground Temperature', undisturbed_ground_temp)
+    borefield_defaults[:soil][:conductivity] = soil_conductivity
+    borefield_defaults[:soil][:undisturbed_temp] = undisturbed_ground_temp
+
     borefield_defaults['loads'] = {}
     borefield_defaults['loads']['ground_loads'] = ground_loads
     ghe_in_path = "#{ghedesigner_run_dir}/ghedesigner_input.json"
