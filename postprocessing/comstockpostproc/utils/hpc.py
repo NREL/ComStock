@@ -70,7 +70,7 @@ def extract_models_from_simulation_output(yml_path, up_id='up00', output_vars=[]
     df_bstock_csv = pd.read_csv(path_to_buildstock_file, index_col=i)
 
     # Load results.csv
-    path_to_zipped_results_file = os.path.join(results_csv_path, 'results_up00.csv.gz')
+    path_to_zipped_results_file = os.path.join(results_csv_path, f'results_{up_id}.csv.gz')
     df_results_csv = pd.read_csv(path_to_zipped_results_file, compression='infer', header=0, sep=',', quotechar='"', index_col='building_id')
 
     # Untar all relevant models in a single job's .tar.gz and pull required zip files into folder structure (.idf, .osm)
