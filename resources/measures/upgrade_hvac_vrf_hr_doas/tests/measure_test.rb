@@ -226,6 +226,12 @@ class HvacVrfHrDoasTest < Minitest::Test
       weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
       result: 'NA'
     }
+    test: not applicable hvac type
+    test_sets << {
+      model: 'LargeOffice_VAV_district_chw_hw',
+      weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
+      result: 'NA'
+    }
     
     return test_sets
   end
