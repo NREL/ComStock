@@ -9,6 +9,8 @@ class NamingMixin():
     BLDG_ID = 'bldg_id'
     CEN_REG = 'in.census_region_name'
     CEN_DIV = 'in.census_division_name'
+    STATE_NAME = 'in.state_name'
+    STATE_ABBRV = 'in.state'
     FLR_AREA = 'in.sqft'
     FLR_AREA_CAT = 'in.floor_area_category'
     CBECS_BLDG_TYPE = 'in.cbecs_building_type'
@@ -433,6 +435,7 @@ class NamingMixin():
     COLOR_COMSTOCK_AFTER = '#56B4E9'
     COLOR_CBECS_2012 = '#009E73'
     COLOR_CBECS_2018 = '#16f0b4'
+    COLOR_EIA = '#D55E00'
 
     # Define ordering for some categorical variables to make plots easier to interpret
     ORDERED_CATEGORIES = {
