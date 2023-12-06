@@ -13,23 +13,23 @@ class AdvancedRTUControl < OpenStudio::Measure::ModelMeasure
 
   # human readable description
   def description
-    return 'Replace this text with an explanation of what the measure does in terms that can be understood by a general building professional audience (building owners, architects, engineers, contractors, etc.).  This description will be used to create reports aimed at convincing the owner and/or design team to implement the measure in the actual building design.  For this reason, the description may include details about how the measure would be implemented, along with explanations of qualitative benefits associated with the measure.  It is good practice to include citations in the measure if the description is taken from a known source or if specific benefits are listed.'
+    return 'This measure implements advanced RTU controls, including a variable-speed fan, with options for economizing and demand-controlled ventilation.'
   end
 
   # human readable description of modeling approach
   def modeler_description
-    return 'Replace this text with an explanation for the energy modeler specifically.  It should explain how the measure is modeled, including any requirements about how the baseline model must be set up, major assumptions, citations of references to applicable modeling resources, etc.  The energy modeler should be able to read this description and understand what changes the measure is making to the model and why these changes are being made.  Because the Modeler Description is written for an expert audience, using common abbreviations for brevity is good practice.'
+    return 'This measure iterates through airloops, and, where applicable, replaces constant speed fans with variable speed fans, and replaces the existing termianl unit.'
   end
 
   # define the arguments that the user will input
   def arguments(model)
     args = OpenStudio::Measure::OSArgumentVector.new
 
-    # the name of the space to add to the model
-    space_name = OpenStudio::Measure::OSArgument.makeStringArgument('space_name', true)
-    space_name.setDisplayName('New space name')
-    space_name.setDescription('This name will be used as the name of the new space.')
-    args << space_name
+    # # the name of the space to add to the model
+    # space_name = OpenStudio::Measure::OSArgument.makeStringArgument('space_name', true)
+    # space_name.setDisplayName('New space name')
+    # space_name.setDescription('This name will be used as the name of the new space.')
+    # args << space_name
 
     return args
   end
@@ -43,27 +43,31 @@ class AdvancedRTUControl < OpenStudio::Measure::ModelMeasure
       return false
     end
 
-    # assign the user inputs to variables
-    space_name = runner.getStringArgumentValue('space_name', user_arguments)
+    # # assign the user inputs to variables
+    # space_name = runner.getStringArgumentValue('space_name', user_arguments)
 
-    # check the space_name for reasonableness
-    if space_name.empty?
-      runner.registerError('Empty space name was entered.')
-      return false
-    end
+    # # check the space_name for reasonableness
+    # if space_name.empty?
+      # runner.registerError('Empty space name was entered.')
+      # return false
+    # end
+	
+	#iterate thru air loops
+	
+	#if applicable change control type to VAV, replace CS fan with variable, and replace terminal unit 
 
-    # report initial condition of model
-    runner.registerInitialCondition("The building started with #{model.getSpaces.size} spaces.")
+    # # report initial condition of model
+    # runner.registerInitialCondition("The building started with #{model.getSpaces.size} spaces.")
 
-    # add a new space to the model
-    new_space = OpenStudio::Model::Space.new(model)
-    new_space.setName(space_name)
+    # # add a new space to the model
+    # new_space = OpenStudio::Model::Space.new(model)
+    # new_space.setName(space_name)
 
-    # echo the new space's name back to the user
-    runner.registerInfo("Space #{new_space.name} was added.")
+    # # echo the new space's name back to the user
+    # runner.registerInfo("Space #{new_space.name} was added.")
 
-    # report final condition of model
-    runner.registerFinalCondition("The building finished with #{model.getSpaces.size} spaces.")
+    # # report final condition of model
+    # runner.registerFinalCondition("The building finished with #{model.getSpaces.size} spaces.")
 
     return true
   end
