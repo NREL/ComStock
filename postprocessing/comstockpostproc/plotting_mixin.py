@@ -1487,13 +1487,13 @@ class PlottingMixin():
             'exterior_lighting',
             'interior_lighting',
             'interior_equipment',
-            'exterior_equipment',
+            #'exterior_equipment',
             'water_systems',
             'heat_recovery',
             'fans',
             'pumps',
-            'heat_rejection',
-            'humidification',
+            #'heat_rejection',
+            #'humidification',
             'cooling',
             'heating',
             'refrigeration'
@@ -1503,13 +1503,13 @@ class PlottingMixin():
             '#DEC310',  # exterior lighting
             '#F7DF10',  # interior lighting
             '#4A4D4A',  # interior equipment
-            '#B5B2B5',  # exterior equipment
+            #'#B5B2B5',  # exterior equipment
             '#FFB239',  # water systems
             '#CE5921',  # heat recovery
             '#FF79AD',  # fans
             '#632C94',  # pumps
-            '#F75921',  # heat rejection
-            '#293094',  # humidification
+            #'#F75921',  # heat rejection
+            #'#293094',  # humidification
             '#0071BD',  # cooling
             '#EF1C21',  # heating
             '#29AAE7'   # refrigeration
@@ -1533,39 +1533,44 @@ class PlottingMixin():
         comstock_data.columns = comstock_data.columns.droplevel(0)
         comstock_data = comstock_data.reset_index().rename_axis(None, axis=1)
         comstock_data = comstock_data.set_index('timestamp')
-
+        comstock_data = comstock_data.head(8760)
+        comstock_data_path = os.path.join(output_dir, 'comstock_data_test.csv')
+        comstock_data.to_csv(comstock_data_path, index=True)
 
         ami_data = df.loc[df.run.isin([ami_data_label])][['run', energy_column]]
         ami_data = ami_data.pivot(columns='run', values=[energy_column])
         ami_data.columns = ami_data.columns.droplevel(0)
         ami_data = ami_data.reset_index().rename_axis(None, axis=1)
         ami_data = ami_data.set_index('timestamp')
+        ami_data_path = os.path.join(output_dir, 'ami_data_test.csv')
+        ami_data.to_csv(ami_data_path, index=True)
 
         # Assign sample uncertainty
+        total_data = df.loc[df.enduse.isin(['total'])]
         try:
-            sample_uncertainty = df.loc[df.run.isin([ami_data_label])][['sample_uncertainty']]
+            sample_uncertainty = total_data.loc[total_data.run.isin([ami_data_label])][['sample_uncertainty']]
         except KeyError:
-            sample_uncertainty = df.loc[df.run.isin([ami_data_label])][['run', energy_column]]
+            sample_uncertainty = total_data.loc[total_data.run.isin([ami_data_label])][['run', energy_column]]
             sample_uncertainty.rename(columns={energy_column: 'sample_uncertainty'}, inplace=True)
             sample_uncertainty['sample_uncertainty'] = default_uncertainty
 
         # day type dictionary
         day_type_dict = {}
         if summer_months:
-            day_type_dict.update({'Summer_Weekday': (df.index.weekday < 5)
-                                  & (df.index.month.isin(summer_months))})
-            day_type_dict.update({'Summer_Weekend': (df.index.weekday >= 5)
-                                  & (df.index.month.isin(summer_months))})
+            day_type_dict.update({'Summer_Weekday': (ami_data.index.weekday < 5)
+                                  & (ami_data.index.month.isin(summer_months))})
+            day_type_dict.update({'Summer_Weekend': (ami_data.index.weekday >= 5)
+                                  & (ami_data.index.month.isin(summer_months))})
         if winter_months:
-            day_type_dict.update({'Winter_Weekday': (df.index.weekday < 5)
-                                  & (df.index.month.isin(winter_months))})
-            day_type_dict.update({'Winter_Weekend': (df.index.weekday >= 5)
-                                  & (df.index.month.isin(winter_months))})
+            day_type_dict.update({'Winter_Weekday': (ami_data.index.weekday < 5)
+                                  & (ami_data.index.month.isin(winter_months))})
+            day_type_dict.update({'Winter_Weekend': (ami_data.index.weekday >= 5)
+                                  & (ami_data.index.month.isin(winter_months))})
         if shoulder_months:
-            day_type_dict.update({'Shoulder_Weekday': (df.index.weekday < 5)
-                                  & (df.index.month.isin(shoulder_months))})
-            day_type_dict.update({'Shoulder_Weekend': (df.index.weekday >= 5)
-                                  & (df.index.month.isin(shoulder_months))})
+            day_type_dict.update({'Shoulder_Weekday': (ami_data.index.weekday < 5)
+                                  & (ami_data.index.month.isin(shoulder_months))})
+            day_type_dict.update({'Shoulder_Weekend': (ami_data.index.weekday >= 5)
+                                  & (ami_data.index.month.isin(shoulder_months))})
 
         # plot
         plt.figure(figsize=(20, 20))
@@ -1619,7 +1624,7 @@ class PlottingMixin():
             plt.rcParams.update({'font.size': 16})
 
             # Truth data
-            truth_data = pd.DataFrame(ami_data[ami_data_label[0]][day_type_dict[day_type]])
+            truth_data = pd.DataFrame(ami_data[ami_data_label][day_type_dict[day_type]])
             truth_data['hour'] = truth_data.index.hour
             truth_data = truth_data.groupby('hour').mean()
             if normalization == 'Daytype':
@@ -1689,15 +1694,15 @@ class PlottingMixin():
             data_df['region'] = region['source_name']
             data_df['building_type'] = building_type
             data_df['day_type'] = day_type
-            data_df['lci80'] = lower_truth
+            #data_df['lci80'] = lower_truth
             data_df['ami'] = truth_data
-            data_df['uci80'] = upper_truth
+            #data_df['uci80'] = upper_truth
             data_df['graph_type'] = graph_type
             data_df['ami_n_min'] = ami_count_min
             data_df['ami_n_mean'] = ami_count_avg
             data_df['ami_n_max'] = ami_count_max
             data_df = data_df.reset_index(drop=True)
-            plot_data_df = plot_data_df.append(data_df)
+            plot_data_df = pd.concat([plot_data_df, data_df])
 
             plt.title(day_type.replace("_", ""))
             plt.xlim([0, 23])

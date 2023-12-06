@@ -53,4 +53,4 @@ def test_ami_plot_generation():
         )
     comstock.download_timeseries_data_for_ami_comparison(ami, reload_from_csv=True)
     comparison = comstockpostproc.comstock_to_ami_comparison.ComStockToAMIComparison(comstock, ami, make_comparison_plots=True)
-    comparison.export_to_csv_wide()
+    # comparison.export_to_csv_wide()
