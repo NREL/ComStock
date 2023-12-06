@@ -46,7 +46,7 @@ class AMI(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
         # Initialize members
         self.truth_data_version = truth_data_version
-        self.dataset_name = 'AMI'
+        self.dataset_name = f'AMI {self.truth_data_version}'
         current_dir = os.path.dirname(os.path.abspath(__file__))
         self.truth_data_dir = os.path.join(current_dir, '..', 'truth_data', self.truth_data_version)
         self.output_dir = os.path.join(current_dir, '..', 'output', self.dataset_name)

@@ -29,19 +29,19 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
         # Concatenate the datasets and create a color map
         dfs_to_concat = []
         dataset_names = []
-        for dataset in [ami_object, comstock_object]:
+        for dataset in [comstock_object, ami_object]:
             if dataset.ami_timeseries_data is None:
-                logger.warning(f'No monthly_data was available for {dataset.dataset_name}, not including in EIA comparison.')
+                logger.warning(f'No timeseries data was available for {dataset.dataset_name}, unable to make AMI comparison.')
                 continue
             if isinstance(dataset, ComStock):
                 df = dataset.ami_timeseries_data
-                df['run'] = self.comstock_object.comstock_run_version
+                df['run'] = self.comstock_object.dataset_name
                 df['year'] = self.comstock_object.year
                 dfs_to_concat.append(df)
                 df.iloc[0:0]
             elif isinstance(dataset, AMI):
                 df = dataset.ami_timeseries_data
-                df['run'] = self.ami_object.dataset_name + ' ' + self.ami_object.truth_data_version
+                df['run'] = self.ami_object.dataset_name
                 df['enduse'] = 'total'
                 dfs_to_concat.append(df)
                 df.iloc[0:0]
@@ -54,6 +54,8 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
 
         # Combine into a single dataframe for convenience
         self.ami_timeseries_data = pd.concat(dfs_to_concat, join='outer', ignore_index=True)
+        self.ami_timeseries_data['timestamp'] = pd.to_datetime(self.ami_timeseries_data['timestamp'])
+        self.ami_timeseries_data.set_index('timestamp', inplace=True, drop=True)
 
         # Make directories
         current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -72,9 +74,21 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
         # Exports comparison data to CSV in wide format
         file_name = f'ComStock AMI Comparison Timeseries Long.csv'
         file_path = os.path.join(self.output_dir, file_name)
-        self.ami_timeseries_data.to_csv(file_path, index=False)
+        self.ami_timeseries_data.to_csv(file_path, index=True)
 
     def make_plots(self, df, color_map, output_dir):
+        logger.info('Making comparison plots')
         # Make plots comparing the datasets
 
-        logger.info('Making comparison plots')
+        # for each region
+        for region in self.ami_object.ami_region_map:
+            # only for testing
+            if not region['region'] == 'region1':
+                continue
+            region_df = df.loc[df['region_name'] == region['source_name']]
+            # for each building type
+            for building_type in self.ami_object.building_types:
+                if not building_type == 'full_service_restaurant':
+                    continue
+                type_region_df = region_df.loc[region_df['building_type'] == building_type]
+                self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, color_map, output_dir)        

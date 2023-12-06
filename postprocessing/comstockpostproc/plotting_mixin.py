@@ -1467,6 +1467,257 @@ class PlottingMixin():
                     # Save the figure
                     title = title.replace('\n', '')
                     fig_name = f'com_eia_{title.replace(" ", "_").lower()}.{self.image_type}'
-                    fig_path = os.path.join(output_dir, fig_name) 
+                    fig_path = os.path.join(output_dir, fig_name)
                     plt.savefig(fig_path, bbox_inches = 'tight')
                     plt.close()
+
+    """
+    Seasonal load stacked area plots by daytype (weekday and weekdend) comparison
+    """
+    def plot_day_type_comparison_stacked_by_enduse(self, df, region, building_type, color_map, output_dir):
+        # df_path = os.path.join(output_dir, 'test.csv')
+        # df.to_csv(df_path, index=True)
+        # print(df.dtypes)
+        # print(region)
+        summer_months = region['summer_months']
+        winter_months = region['winter_months']
+        shoulder_months = region['shoulder_months']
+
+        enduse_list = [
+            'exterior_lighting',
+            'interior_lighting',
+            'interior_equipment',
+            'exterior_equipment',
+            'water_systems',
+            'heat_recovery',
+            'fans',
+            'pumps',
+            'heat_rejection',
+            'humidification',
+            'cooling',
+            'heating',
+            'refrigeration'
+        ]
+
+        enduse_colors = [
+            '#DEC310',  # exterior lighting
+            '#F7DF10',  # interior lighting
+            '#4A4D4A',  # interior equipment
+            '#B5B2B5',  # exterior equipment
+            '#FFB239',  # water systems
+            '#CE5921',  # heat recovery
+            '#FF79AD',  # fans
+            '#632C94',  # pumps
+            '#F75921',  # heat rejection
+            '#293094',  # humidification
+            '#0071BD',  # cooling
+            '#EF1C21',  # heating
+            '#29AAE7'   # refrigeration
+        ]
+
+        comstock_data_label = list(color_map.keys())[0]
+        ami_data_label = list(color_map.keys())[1]
+        energy_column = 'kwh_per_sf'
+        default_uncertainty = 0.1
+        normalization = 'None'
+
+        # return false if ami data is not available for this type
+        ami_count = df.loc[df.run.isin([ami_data_label])]['bldg_count']
+        ami_count_max = int(ami_count.max())
+        ami_count_avg = ami_count.mean()
+        ami_count_min = int(ami_count.min())
+
+        comstock_data = df.loc[df.run.isin([comstock_data_label])][['enduse', energy_column]]
+        comstock_data = comstock_data.reset_index().groupby(['enduse', 'timestamp']).sum().reset_index().set_index('timestamp')
+        comstock_data = comstock_data.pivot(columns='enduse', values=[energy_column])
+        comstock_data.columns = comstock_data.columns.droplevel(0)
+        comstock_data = comstock_data.reset_index().rename_axis(None, axis=1)
+        comstock_data = comstock_data.set_index('timestamp')
+
+
+        ami_data = df.loc[df.run.isin([ami_data_label])][['run', energy_column]]
+        ami_data = ami_data.pivot(columns='run', values=[energy_column])
+        ami_data.columns = ami_data.columns.droplevel(0)
+        ami_data = ami_data.reset_index().rename_axis(None, axis=1)
+        ami_data = ami_data.set_index('timestamp')
+
+        # Assign sample uncertainty
+        try:
+            sample_uncertainty = df.loc[df.run.isin([ami_data_label])][['sample_uncertainty']]
+        except KeyError:
+            sample_uncertainty = df.loc[df.run.isin([ami_data_label])][['run', energy_column]]
+            sample_uncertainty.rename(columns={energy_column: 'sample_uncertainty'}, inplace=True)
+            sample_uncertainty['sample_uncertainty'] = default_uncertainty
+
+        # day type dictionary
+        day_type_dict = {}
+        if summer_months:
+            day_type_dict.update({'Summer_Weekday': (df.index.weekday < 5)
+                                  & (df.index.month.isin(summer_months))})
+            day_type_dict.update({'Summer_Weekend': (df.index.weekday >= 5)
+                                  & (df.index.month.isin(summer_months))})
+        if winter_months:
+            day_type_dict.update({'Winter_Weekday': (df.index.weekday < 5)
+                                  & (df.index.month.isin(winter_months))})
+            day_type_dict.update({'Winter_Weekend': (df.index.weekday >= 5)
+                                  & (df.index.month.isin(winter_months))})
+        if shoulder_months:
+            day_type_dict.update({'Shoulder_Weekday': (df.index.weekday < 5)
+                                  & (df.index.month.isin(shoulder_months))})
+            day_type_dict.update({'Shoulder_Weekend': (df.index.weekday >= 5)
+                                  & (df.index.month.isin(shoulder_months))})
+
+        # plot
+        plt.figure(figsize=(20, 20))
+        filename = (region['source_name'] + '_' + ami_data_label.lower().replace(' ', '') + '_' + building_type)
+        graph_type = ''
+        if normalization == 'Annual':
+            plt.suptitle('{}, {}\n{}, N={}\nAnnual Normalized Day Type Comparison by Enduse'.format(comstock_data_label, building_type, ami_data_label, ami_count_max), fontsize=24)
+            graph_type = "annual_normalized_day_type_comparison_by_enduse"
+        elif normalization == 'Daytype':
+            plt.suptitle('{}, {}\n{}, N={}\Day Type Normalized Day Type Comparison by Enduse'.format(comstock_data_label, building_type, ami_data_label, ami_count_max), fontsize=24)
+            graph_type = "daytype_normalized_day_type_comparison_by_enduse"
+        else:
+            plt.suptitle('{}, {}\n{}, N={}\nDay Type Comparison by Enduse'.format(comstock_data_label, building_type, ami_data_label, ami_count_max), fontsize=24)
+            graph_type = "day_type_comparison_by_enduse"
+        filename = filename + "_" + graph_type
+        plt.subplots_adjust(top=0.9)
+        fig_n = 0
+
+        ylabel_text = 'Electric Load (kwh/ft2)'
+        if normalization == 'Annual':
+          ylabel_text = 'Normalized (Annual Sum = 1)'
+        elif normalization == 'Daytype':
+          ylabel_text = 'Normalized (Day Sum = 1)'
+
+        # calculate y_max in the plot
+        y_max_buildstock = 0
+        for day_type in day_type_dict.keys():
+            y_max_temp = pd.DataFrame(comstock_data['total'][day_type_dict[day_type]])
+            y_max_temp['hour'] = y_max_temp.index.hour
+            y_max_temp_value = float(y_max_temp.groupby('hour').mean().max())
+            if y_max_temp_value > y_max_buildstock:
+                y_max_buildstock = y_max_temp_value
+        y_max_ami = 0
+
+        for day_type in day_type_dict.keys():
+            y_max_temp = pd.DataFrame(ami_data[day_type_dict[day_type]])
+            y_max_temp['hour'] = y_max_temp.index.hour
+            y_max_temp_value = float(y_max_temp.groupby('hour').mean().max())
+            if y_max_temp_value > y_max_ami:
+                y_max_ami = y_max_temp_value
+        y_max = max(y_max_buildstock, y_max_ami)
+
+        plot_data_df = pd.DataFrame()
+        for day_type in day_type_dict.keys():
+            fig_n = fig_n + 1
+            ax = plt.subplot(3, 2, fig_n)
+            ax.spines['top'].set_color('black')
+            ax.spines['bottom'].set_color('black')
+            ax.spines['right'].set_color('black')
+            ax.spines['left'].set_color('black')
+            plt.rcParams.update({'font.size': 16})
+
+            # Truth data
+            truth_data = pd.DataFrame(ami_data[ami_data_label[0]][day_type_dict[day_type]])
+            truth_data['hour'] = truth_data.index.hour
+            truth_data = truth_data.groupby('hour').mean()
+            if normalization == 'Daytype':
+              truth_data_total = truth_data.sum()
+              truth_data = truth_data / (truth_data_total)
+              print(day_type)
+              print('truth_data_total', truth_data_total)
+
+            # Stacked Enduses Plot
+            processed_data_for_stack_plot = pd.DataFrame(comstock_data[enduse_list][day_type_dict[day_type]])
+            processed_data_for_stack_plot['hour'] = processed_data_for_stack_plot.index.hour
+            processed_data_for_stack_plot = processed_data_for_stack_plot.groupby('hour').mean()
+            if normalization == 'Daytype':
+              processed_data_total = processed_data_for_stack_plot.sum().sum()
+              processed_data_for_stack_plot = processed_data_for_stack_plot / (processed_data_total)
+              print('processed_data_total', processed_data_total)
+
+            plt.stackplot(
+                processed_data_for_stack_plot.index,
+                processed_data_for_stack_plot.T,
+                labels=enduse_list,
+                colors=enduse_colors
+            )
+
+            # Truth Data Plot
+            y = truth_data
+            s_uncertainty = pd.DataFrame(sample_uncertainty[day_type_dict[day_type]])
+            s_uncertainty['hour'] = s_uncertainty.index.hour
+            s_uncertainty = s_uncertainty.groupby('hour').mean()
+
+            # Upper Estimate
+            upper_truth = pd.DataFrame(
+                y[ami_data_label].values +
+                y[ami_data_label].values * s_uncertainty['sample_uncertainty'].values.reshape(-1, 1)
+            )
+            plt.plot(
+                upper_truth,
+                color='k',
+                label='{}: 80% CI upper estimate'.format(ami_data_label),
+                linestyle='--'
+            )
+            y_max = np.max([float(np.max(upper_truth)), y_max])
+
+            # # Mean Estimate
+            # plt.plot(
+                # y,
+                # color='k',
+                # label=ami_data_label[0]
+            # )
+
+            # Lower estimate
+            lower_truth = pd.DataFrame(
+                y[ami_data_label].values -
+                y[ami_data_label].values * s_uncertainty['sample_uncertainty'].values.reshape(-1, 1)
+            )
+            # values cannot be negative
+            lower_truth = lower_truth.clip(lower=0)
+            plt.plot(
+                lower_truth,
+                color='k',
+                label='{}: 80% CI lower estimate'.format(ami_data_label),
+                linestyle='dashed'
+            )
+
+            data_df = processed_data_for_stack_plot.copy()
+            data_df['hour'] = data_df.index
+            data_df['region'] = region['source_name']
+            data_df['building_type'] = building_type
+            data_df['day_type'] = day_type
+            data_df['lci80'] = lower_truth
+            data_df['ami'] = truth_data
+            data_df['uci80'] = upper_truth
+            data_df['graph_type'] = graph_type
+            data_df['ami_n_min'] = ami_count_min
+            data_df['ami_n_mean'] = ami_count_avg
+            data_df['ami_n_max'] = ami_count_max
+            data_df = data_df.reset_index(drop=True)
+            plot_data_df = plot_data_df.append(data_df)
+
+            plt.title(day_type.replace("_", ""))
+            plt.xlim([0, 23])
+            plt.ylim([0, y_max * 1.1])
+
+            if fig_n > 4:
+                plt.xlabel('Hour of Day', fontsize=24)
+            if fig_n % 2 != 0:
+                plt.ylabel(ylabel_text, fontsize=24)
+
+        ax = plt.gca()
+        handles, labels = ax.get_legend_handles_labels()
+        plt.figlegend(handles[::-1], labels[::-1], loc='center right', bbox_to_anchor=(1.2, 0.52), ncol=1)
+
+        # save plot
+        output_path = os.path.join(output_dir, '%s.png' % (filename) )
+        plt.savefig(output_path, bbox_inches='tight')
+
+        # save graph data
+        output_path = os.path.join(output_dir, '%s.csv' % (filename) )
+        plot_data_df.to_csv(output_path, index=False)
+
+        plt.close('all')
