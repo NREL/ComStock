@@ -245,12 +245,12 @@ results.csv,build_existing_model.fault_hvac_economizer_changeover_temperature_ap
 results.csv,build_existing_model.fault_hvac_economizer_changeover_temperature_changeovertemp,,FALSE,FALSE,string,,,
 results.csv,build_existing_model.fault_hvac_economizer_changeover_temperature_econ_choice,,FALSE,FALSE,string,,,
 results.csv,build_existing_model.fault_hvac_economizer_damper_stuck_applicable,in.economizer_damper_stuck_fault_applicable,TRUE,FALSE,string,,,Indicates whether the economizer damper stuck fault is applicable
-results.csv,build_existing_model.fault_hvac_economizer_damper_stuck_apply_measure,TODO,FALSE,FALSE,float,,,
-results.csv,build_existing_model.fault_hvac_economizer_damper_stuck_damper_pos,TODO,FALSE,FALSE,float,,,
-results.csv,build_existing_model.fault_hvac_economizer_damper_stuck_duration_days,TODO,FALSE,FALSE,float,,,
-results.csv,build_existing_model.fault_hvac_economizer_damper_stuck_econ_choice,TODO,FALSE,FALSE,float,,,
-results.csv,build_existing_model.fault_hvac_economizer_damper_stuck_start_day,TODO,FALSE,FALSE,float,,,
-results.csv,build_existing_model.fault_hvac_economizer_damper_stuck_start_month,TODO,FALSE,FALSE,float,,,
+results.csv,build_existing_model.fault_hvac_economizer_damper_stuck_apply_measure,,FALSE,FALSE,float,,,
+results.csv,build_existing_model.fault_hvac_economizer_damper_stuck_damper_pos,,FALSE,FALSE,float,,,
+results.csv,build_existing_model.fault_hvac_economizer_damper_stuck_duration_days,,FALSE,FALSE,float,,,
+results.csv,build_existing_model.fault_hvac_economizer_damper_stuck_econ_choice,,FALSE,FALSE,float,,,
+results.csv,build_existing_model.fault_hvac_economizer_damper_stuck_start_day,,FALSE,FALSE,float,,,
+results.csv,build_existing_model.fault_hvac_economizer_damper_stuck_start_month,,FALSE,FALSE,float,,,
 results.csv,build_existing_model.hardsize_model_applicable,,FALSE,FALSE,string,,,Whether the hardsizing measure was applicable
 results.csv,build_existing_model.hardsize_model_apply_hardsize,,FALSE,FALSE,string,,,Whether the hardsizing measure was applied
 results.csv,build_existing_model.hvac_night_variability,in.hvac_night_variability,TRUE,FALSE,string,,,"Specifies the HVAC nighttime hvac operation used in model, which impacts fan and ventialtion behavior during unnoccupied times"

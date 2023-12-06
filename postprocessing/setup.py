@@ -50,7 +50,7 @@ setup(
         'pyarrow',
         'fsspec',
         's3fs',
-        'kaleido',
+        'kaleido==0.1.0post1',
         'boto3',
         'botocore',
         'pyyaml',
