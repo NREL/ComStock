@@ -1577,13 +1577,13 @@ class PlottingMixin():
         filename = (region['source_name'] + '_' + ami_data_label.lower().replace(' ', '') + '_' + building_type)
         graph_type = ''
         if normalization == 'Annual':
-            plt.suptitle('{}, {}\n{}, N={}\nAnnual Normalized Day Type Comparison by Enduse'.format(comstock_data_label, building_type, ami_data_label, ami_count_max), fontsize=24)
+            plt.suptitle('{}\n{}, {}\n{}, N={}\nAnnual Normalized Day Type Comparison by Enduse'.format(comstock_data_label, region['source_name'], building_type, ami_data_label, ami_count_max), fontsize=24)
             graph_type = "annual_normalized_day_type_comparison_by_enduse"
         elif normalization == 'Daytype':
-            plt.suptitle('{}, {}\n{}, N={}\Day Type Normalized Day Type Comparison by Enduse'.format(comstock_data_label, building_type, ami_data_label, ami_count_max), fontsize=24)
+            plt.suptitle('{}\n{}, {}\n{}, N={}\Day Type Normalized Day Type Comparison by Enduse'.format(comstock_data_label, region['source_name'], building_type, ami_data_label, ami_count_max), fontsize=24)
             graph_type = "daytype_normalized_day_type_comparison_by_enduse"
         else:
-            plt.suptitle('{}, {}\n{}, N={}\nDay Type Comparison by Enduse'.format(comstock_data_label, building_type, ami_data_label, ami_count_max), fontsize=24)
+            plt.suptitle('{}\n{}, {}\n{}, N={}\nDay Type Comparison by Enduse'.format(comstock_data_label, region['source_name'], building_type, ami_data_label, ami_count_max), fontsize=24)
             graph_type = "day_type_comparison_by_enduse"
         filename = filename + "_" + graph_type
         plt.subplots_adjust(top=0.9)
@@ -1726,3 +1726,106 @@ class PlottingMixin():
         plot_data_df.to_csv(output_path, index=False)
 
         plt.close('all')
+
+    def plot_load_duration_curve(self, df, region, building_type, color_map, output_dir):
+        comstock_data_label = list(color_map.keys())[0]
+        ami_data_label = list(color_map.keys())[1]
+        energy_column = 'kwh_per_sf'
+        default_uncertainty = 0.1
+        zoom_in_hours = -1
+
+        total_data = df.loc[df.enduse.isin(['total'])]
+
+        # format comstock data
+        comstock_data = total_data.loc[total_data.run.isin([comstock_data_label])][['run', energy_column]]
+        comstock_data = comstock_data.pivot(columns='run', values=[energy_column])
+        comstock_data.columns = comstock_data.columns.droplevel(0)
+        comstock_data = comstock_data.reset_index().rename_axis(None, axis=1)
+        comstock_data = comstock_data.set_index('timestamp')
+        comstock_data_path = os.path.join(output_dir, 'comstock_load_curve_test.csv')
+        comstock_data.to_csv(comstock_data_path, index=True)
+
+        # format ami data
+        ami_data = total_data.loc[total_data.run.isin([ami_data_label])][['run', energy_column]]
+        ami_data = ami_data.pivot(columns='run', values=[energy_column])
+        ami_data.columns = ami_data.columns.droplevel(0)
+        ami_data = ami_data.reset_index().rename_axis(None, axis=1)
+        ami_data = ami_data.set_index('timestamp')
+
+        # Assign sample uncertainty
+        try:
+            sample_uncertainty = np.array(total_data.loc[total_data.run.isin([ami_data_label])][['sample_uncertainty']])
+        except KeyError:
+            sample_uncertainty = total_data.loc[total_data.run.isin([ami_data_label])][['run', energy_column]]
+            sample_uncertainty.rename(columns={energy_column: 'sample_uncertainty'}, inplace=True)
+            sample_uncertainty['sample_uncertainty'] = default_uncertainty
+            sample_uncertainty = np.array(sample_uncertainty['sample_uncertainty']).reshape(-1, 1)
+
+        # # Check parameter quality:
+        # ami_data, comstock_data, sample_uncertainty = self.check_data_lengths(
+        #     ami_data=ami_data,
+        #     comstock_data=comstock_data,
+        #     ami_data_label=ami_data_label,
+        #     sample_uncertainty=sample_uncertainty
+        # )
+
+        # set up default values
+        if zoom_in_hours == -1:
+            zoom_in_hours = len(ami_data)
+
+        # check for missing data
+        if ami_data.empty:
+            print('AMI data for ' + building_type + ' in region ' + region['source_name'] + ' does not exist in data ' + ami_data_label)
+            return False
+
+        # Sort values
+        ami_data_sorted = ami_data.sort_values(
+            by=list(ami_data.columns), ascending=False).reset_index(drop=True).iloc[0:zoom_in_hours, :]
+        ami_data_sorted = ami_data_sorted.reset_index(drop=True)
+        comstock_data_sorted = pd.DataFrame(
+            np.sort(comstock_data.values,
+                    axis=0)[::-1],
+            index=comstock_data.index,
+            columns=comstock_data.columns
+        ).iloc[0:zoom_in_hours, :]
+        comstock_data_sorted = comstock_data_sorted.reset_index(drop=True)
+        sample_uncertainty = sample_uncertainty[0:zoom_in_hours]
+
+        # plot
+        plt.figure(figsize=(12, 8))
+
+        # color_list need to be revisited
+        line_width = [2, 2, 2, 2, 2, 2, 2, 2, 3]
+        color_list = ['#d73027', '#f46d43', '#fdae61', '#fee090', '#e0f3f8', '#abd9e9', '#74add1', '#4575b4', '#4575b4']
+        plt.ylabel('kwh/ft2', fontsize=16)
+
+        for ith_run, ith_color, ith_width in zip([comstock_data_label], color_list, line_width):
+            plt.plot(comstock_data_sorted[ith_run], color=ith_color, linewidth=ith_width)
+
+        y = ami_data_sorted
+        #plt.plot(y + y * sample_uncertainty, color='k', linestyle='dashed')
+        plt.plot(y, color='k')
+        #plt.plot(y - y * sample_uncertainty, color='k', linestyle='dashed')
+
+        plt.xlabel('Hours Equaled or Exceeded', fontsize=16)
+
+        y_max = max([ami_data_sorted.values.max(), comstock_data_sorted.values.max()])
+        y_min = 0
+        if zoom_in_hours < 501:
+            y_min = 0.9 * min([ami_data_sorted.values.min(), comstock_data_sorted.values.min()])
+        plt.xlim(0, len(ami_data_sorted))
+        plt.ylim([y_min, 1.1 * y_max])
+        plt.yticks(fontsize=15)
+        plt.xticks(fontsize=15)
+        plt.legend([comstock_data_label] + [ami_data_label], fontsize=15, loc=1)
+        # plt.legend([comstock_data_label] + [ami_data_label + ': upper estimate'] +
+        #            [ami_data_label] + [ami_data_label + ': lower estimate'], fontsize=15, loc=1)
+        plt.title('{}, {}, Load Duration Curve: {} hours'.format(region['source_name'], building_type, len(ami_data_sorted)), fontsize=19)
+
+        # Output figure
+        if len(output_dir) > 0:
+            if zoom_in_hours > 0:
+                output_path = os.path.join(output_dir, '%s_%s_load_duration_curve_top_%d_hours.png' % (region['source_name'], building_type, zoom_in_hours))
+            else:
+                output_path = os.path.join(output_dir, '%s_%s_load_duration_curve.png' % (region['source_name'], building_type))
+        plt.savefig(output_path, bbox_inches='tight')

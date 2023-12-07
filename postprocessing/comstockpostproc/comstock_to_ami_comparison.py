@@ -91,4 +91,5 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 if not building_type == 'full_service_restaurant':
                     continue
                 type_region_df = region_df.loc[region_df['building_type'] == building_type]
-                self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, color_map, output_dir)        
+                self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, color_map, output_dir)
+                self.plot_load_duration_curve(type_region_df, region, building_type, color_map, output_dir)
