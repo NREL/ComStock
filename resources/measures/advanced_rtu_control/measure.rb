@@ -33,6 +33,18 @@ class AdvancedRTUControl < OpenStudio::Measure::ModelMeasure
 
     return args
   end
+  
+  def air_loop_hvac_unitary_system?(air_loop_hvac)
+    is_unitary_system = false
+    air_loop_hvac.supplyComponents.each do |component|
+      obj_type = component.iddObjectType.valueName.to_s
+      case obj_type
+      when 'OS_AirLoopHVAC_UnitarySystem', 'OS_AirLoopHVAC_UnitaryHeatPump_AirToAir', 'OS_AirLoopHVAC_UnitaryHeatPump_AirToAir_MultiSpeed', 'OS_AirLoopHVAC_UnitaryHeatCool_VAVChangeoverBypass'
+        is_unitary_system = true
+      end
+    end
+    return is_unitary_system
+  end
 
   # define what happens when the measure is run
   def run(model, runner, user_arguments)
@@ -42,6 +54,27 @@ class AdvancedRTUControl < OpenStudio::Measure::ModelMeasure
     if !runner.validateUserArguments(arguments(model), user_arguments)
       return false
     end
+
+	
+   #iterate thru air loops associated with packaged single zone systems 
+	#AirLoopHVACUnitarySystem #confirm that this isn't casting a broader net than intended 
+	model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+	      runner.registerInfo("in air loop") 
+	      #if air_loop_hvac_unitary_system?(air_loop_hvac) #need to revisit this later 
+		  #if applicable, replace CS fan with VS, change control type to VAV, and replace terminal unit 
+		  sup_fan = air_loop_hvac.supplyFan.get() #might need to convert to unitary sys 
+		  #check if fan CS
+		  #runner.registerInfo("in unitary sys") 
+		  runner.registerInfo("fan: #{sup_fan.class}")
+		  runner.registerInfo("fan: #{sup_fan}")
+		  if sup_fan.to_FanConstantVolume.is_initialized  
+			runner.registerInfo("fan being removed")
+			sup_fan.remove() #this seems to be working 
+		  end   
+
+		  #end 
+		  
+	end 
 
     # # assign the user inputs to variables
     # space_name = runner.getStringArgumentValue('space_name', user_arguments)
