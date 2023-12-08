@@ -11,6 +11,15 @@ In some cases, filtering down to a specific region and building type in the CBEC
 
 Some commercial building HVAC systems use multiple fuel types. For example, a VAV system with a gas furnace in the air handling unit and electric resistance coils in the reheat boxes, or a gas furnace DOAS with variable refrigerant flow (VRF) heat pumps serving the zones. This can complicate the categorization of these systems into a single primary fuel type. To address this, we determine the primary heating fuel type for the mixed fuel systems/ The primary heating fuel is the heating fuel expected to carry the majority of the heating load. For example, the previously mentione example of a VAV system with gas heat at the air handler and electric reheat would be classified as an electric-heated system, since the majority of heating for multizone VAV systems usually comes from the reheat. A full list of ComStock HVAC systems and their fuel type categories are shown in Table~\ref{tab:hvac_system_heating_fuel_categories}. Further detail on model HVAC system assignment methodology can be found in Section~\ref{sec:HVAC_System_Type}.
 
+Figure~\ref{fig:fuel_cbecs_v_cstock} compares the prevelance of heating fuel type by stock floor area for CBECS 2012 and ComStock, by building type. In most cases, ComStock closley aligns to the CBECS 2012 values. However, there are some differences between the two sources due to randomness in the sampling process and from the leveraging other data sources to achieve county-level granluarity in fuel type prevelance. The largest difference is in small hotels where ComStock shows 87\% of the floor area using electric heating while CBECS suggest 74\%, an absolute difference of 12\%.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=1.10\textwidth]{figures/cbecs_comstock_fuel_type_comparison.png}
+  \caption[Comparison of heating fuel type prevelance by floor area between CBECS 2012 and ComStock.]{Comparison of heating fuel type prevelance by floor area between CBECS 2012 and ComStock.}
+  \label{fig:fuel_cbecs_v_cstock}
+\end{figure}
+
 The county-level prevalences of different heating fuel types are shown in Figure~\ref{fig:map_naturalgas} (natural gas), Figure~\ref{fig:map_electricity} (electricity), Figure~\ref{fig:map_fueloil} (fuel oil), Figure~\ref{fig:map_propane} (propane), and Figure~\ref{fig:map_district} (district heating).
 
 \begin{figure}
@@ -46,17 +55,9 @@ The county-level prevalences of different heating fuel types are shown in Figure
   \includegraphics[width=0.8\textwidth]{figures/map_districtheating.png}
   \caption[Fraction of ComStock models using district heating/water heating per county]{Fraction of ComStock models using district heating per county.}
   \label{fig:map_district}
-\end{figure}
-
-% \begin{figure}
-%   \centering
-%   \includegraphics[width=0.12\textwidth]{figures/cbecs_comstock_fuel_type_comparison.png}
-%   \caption[Comparison of heating fuel type prevelance by floor area between CBECS 2012 and ComStock.]{Comparison of heating fuel type prevelance by floor area between CBECS 2012 and ComStock.}
-%   \label{fig:fuel_cbecs_v_cstock}
-% \end{figure}
+\end{figure}   
 
 
-% Because ComStock samples by building count rather than building area, discrepancies in the fuel type prevalence can occur when comparing CBECS to ComStock on a floor area basis. This is illustrated by building type in Figure~\ref{fig:cbecs_comstock_fuel_comparison_full_service_restaurant} (full service restaurant), Figure~\ref{fig:cbecs_comstock_fuel_comparison_hospital} (hospital), Figure~\ref{fig:cbecs_comstock_fuel_comparison_large_hotel} (large hotel), Figure~\ref{fig:cbecs_comstock_fuel_comparison_large_office} (large office), Figure~\ref{fig:cbecs_comstock_fuel_comparison_medium_office} (medium office), Figure~\ref{fig:cbecs_comstock_fuel_comparison_outpatient} (outpatient), Figure~\ref{fig:cbecs_comstock_fuel_comparison_primary_school} (primary school), Figure~\ref{fig:cbecs_comstock_fuel_comparison_quick_service_restaurant} (quick service restaurant), Figure~\ref{fig:cbecs_comstock_fuel_comparison_retail} (retail), Figure~\ref{fig:cbecs_comstock_fuel_comparison_secondary_school} (secondary school), Figure~\ref{fig:cbecs_comstock_fuel_comparison_small_hotel} (small hotel), Figure~\ref{fig:cbecs_comstock_fuel_comparison_small_office} (small office), Figure~\ref{fig:cbecs_comstock_fuel_comparison_strip_mall} (strip mall), and Figure~\ref{fig:cbecs_comstock_fuel_comparison_warehouse} (warehouse). Note that differences in fuel type prevalence between ComStock and CBECS on an area basis result in differences in the amount of floor area served by HVAC equipment for that fuel type in ComStock models compared to CBECS.
 
 %figures moved to appendix
 
@@ -223,6 +224,9 @@ Commercial buildings require constant design outdoor air ventilation rates when 
 An industry-provided BAS data set of over 5,700 AHUs was used to inform the prevalence of three unoccupied AHU operation modes. The data set includes time series (hourly) BAS variables for ``Occupied Status'' (describes whether the AHU was in an occupied mode for that hour), ``Fan Status'' (describes whether the fan was used for that hour), and ``Ventilation Status'' (describes whether outdoor ventilation air was used for that hour). Counts of AHUs and buildings by building type in the data set are shown in Table~\ref{tab:unnoc_ahu_data_counts}, and the three unoccupied AHU shutdown control schemes are summarized in Table~\ref{tab:unnoc_ahu_schemes}.
 
 The data set suggests that 27\% of AHUs use scheme 1 (least efficient), 50\% of AHUs use scheme 2 (more efficient), and 23\% of AHUs use scheme 3 (most efficient; ASHRAE-90.1 required). The prevalence of the AHU unoccupied control schemes by building type is shown in Table~\ref{tab:unnoc_ahu_scheme_prev}. These probability distributions are used in ComStock sampling to set the fraction of buildings utilizing the discussed control schemes, by building type, for models that use AHU-based HVAC systems. Non-AHU HVAC system types are not applicable to this methodology, nor are building types not listed in Table~\ref{tab:unnoc_ahu_scheme_prev}. Note that building types with less than 25 buildings in the BAS data set (Table~\ref{tab:unnoc_ahu_data_counts}) use the ``All Types'' distribution of the data set at large, as fewer than 25 samples cannot reliably be used to represent a population.
+
+The following building types are not included in the unnocupied air handling unit operation workflow, and utlize default scheduling only: small hotels, large hotels, outpatient, hospitals, primary schools, and secondary schools. The building types may be integrated into this workflow in the future as more data becomes available.
+
 \input{tables/unnoc_ahu_data_counts}
 \input{tables/unnoc_ahu_schemes}
 
