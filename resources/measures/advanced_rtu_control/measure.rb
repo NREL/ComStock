@@ -52,23 +52,9 @@ class AdvancedRTUControl < OpenStudio::Measure::ModelMeasure
       # return false
     # end
 	
-
+	#iterate thru air loops
 	
-	#iterate thru air loops associated with packaged single zone systems 
-	#AirLoopHVACUnitarySystem #confirm that this isn't casting a broader net than intended 
-	model.getAirLoopHVACs.sort.each do |air_loop_hvac|
-	      runner.registerInfo("in air loop")
-	      if air_loop_hvac_unitary_system?(air_loop_hvac)
-		     #if applicable, replace CS fan with VS, change control type to VAV, and replace terminal unit 
-		     sup_fan = air_loop_hvac.supplyFan() #might need to convert to unitary sys 
-			 #check if fan CS
-			 runner.registerInfo("fan: #{sup_fan.class}")
-			 if sup_fan.class == 'Fan:ConstantVolume'
-				runner.registerInfo("fan: #{sup_fan.class}")
-				fan.remove()
-		     end   
-		  
-		  end 
+	#if applicable change control type to VAV, replace CS fan with variable, and replace terminal unit 
 
     # # report initial condition of model
     # runner.registerInitialCondition("The building started with #{model.getSpaces.size} spaces.")
