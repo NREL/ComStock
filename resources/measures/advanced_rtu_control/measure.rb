@@ -55,23 +55,48 @@ class AdvancedRTUControl < OpenStudio::Measure::ModelMeasure
     if !runner.validateUserArguments(arguments(model), user_arguments)
       return false
     end
+	
+	
+	#Set constants
+	#confirm that these are appropriate 
+	fan_tot_eff = 0.63
+    fan_mot_eff = 0.29
+    fan_static_pressure = 50.0
 
    	model.getAirLoopHVACs.sort.each do |air_loop_hvac|
 	      runner.registerInfo("in air loop") 
 	      if air_loop_hvac_unitary_system?(air_loop_hvac) 
+		    #set control type
+			 air_loop_hvac.supplyComponents.each do |component|#more efficient way of doing this? 
+             obj_type = component.iddObjectType.valueName.to_s
+             case obj_type
+             when 'OS_AirLoopHVAC_UnitarySystem'
+                 component = component.to_AirLoopHVACUnitarySystem.get
+                 component.setControlType('SingleZoneVAV') #confirmed that this worked 
+			 end 
+			 end 
 			sup_fan = air_loop_hvac.supplyFan
 			if sup_fan.is_initialized
                sup_fan = sup_fan.get
 				if sup_fan.to_FanConstantVolume.is_initialized  
 					runner.registerInfo("fan being removed")
-					sup_fan = sup_fan.to_FanConstantVolume.get()
+					sup_fan = sup_fan.to_FanConstantVolume.get() #need to handle other fan cases? 
 					fan_inlet_node = sup_fan.inletNode()
 					runner.registerInfo("fan inlet node: #{fan_inlet_node}")
 					sup_fan.remove() #this seems to be working 
+					#Create VS supply fan 
+					fan = OpenStudio::Model::FanVariableVolume.new(model)
+					fan.setName("#{air_loop_hvac.name} Fan")
+					fan.setFanEfficiency(fan_tot_eff) # from PNNL
+					fan.setPressureRise(fan_static_pressure)
+					fan.setMotorEfficiency(fan_mot_eff) unless fan_mot_eff.nil?
+					#Add it to the unitary sys
+					air_loop_hvac.setSupplyFan(fan) #need to confirm that this worked 
 				end   
 		     end 
 		  end
     end 
+	
 	
    #iterate thru air loops associated with packaged single zone systems 
 	#AirLoopHVACUnitarySystem #confirm that this isn't casting a broader net than intended 
