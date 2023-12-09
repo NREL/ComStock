@@ -4,6 +4,7 @@
 # http://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/
 
 # start the measure
+#make sure testing on 3.7 models! 
 class AdvancedRTUControl < OpenStudio::Measure::ModelMeasure
   # human readable name
   def name
@@ -55,26 +56,48 @@ class AdvancedRTUControl < OpenStudio::Measure::ModelMeasure
       return false
     end
 
+   	model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+	      runner.registerInfo("in air loop") 
+	      if air_loop_hvac_unitary_system?(air_loop_hvac) 
+			sup_fan = air_loop_hvac.supplyFan
+			if sup_fan.is_initialized
+               sup_fan = sup_fan.get
+				if sup_fan.to_FanConstantVolume.is_initialized  
+					runner.registerInfo("fan being removed")
+					sup_fan = sup_fan.to_FanConstantVolume.get()
+					fan_inlet_node = sup_fan.inletNode()
+					runner.registerInfo("fan inlet node: #{fan_inlet_node}")
+					sup_fan.remove() #this seems to be working 
+				end   
+		     end 
+		  end
+    end 
 	
    #iterate thru air loops associated with packaged single zone systems 
 	#AirLoopHVACUnitarySystem #confirm that this isn't casting a broader net than intended 
-	model.getAirLoopHVACs.sort.each do |air_loop_hvac|
-	      runner.registerInfo("in air loop") 
-	      #if air_loop_hvac_unitary_system?(air_loop_hvac) #need to revisit this later 
-		  #if applicable, replace CS fan with VS, change control type to VAV, and replace terminal unit 
-		  sup_fan = air_loop_hvac.supplyFan.get() #might need to convert to unitary sys 
-		  #check if fan CS
-		  #runner.registerInfo("in unitary sys") 
-		  runner.registerInfo("fan: #{sup_fan.class}")
-		  runner.registerInfo("fan: #{sup_fan}")
-		  if sup_fan.to_FanConstantVolume.is_initialized  
-			runner.registerInfo("fan being removed")
-			sup_fan.remove() #this seems to be working 
-		  end   
+	#restore for those that aren't unitary systems 
+	# model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+	      # runner.registerInfo("in air loop") 
+	      # #if air_loop_hvac_unitary_system?(air_loop_hvac) #need to revisit this later 
+		  # #if applicable, replace CS fan with VS, change control type to VAV, and replace terminal unit 
+		  # sup_fan = air_loop_hvac.supplyFan.get() #might need to convert to unitary sys 
+		  # #check if fan CS
+		  # #runner.registerInfo("in unitary sys") 
+		  # runner.registerInfo("fan: #{sup_fan.class}")
+		  # runner.registerInfo("fan: #{sup_fan}")
+		  # if sup_fan.to_FanConstantVolume.is_initialized  
+			# runner.registerInfo("fan being removed")
+			# sup_fan = sup_fan.to_FanConstantVolume.get()
+		    # fan_inlet_node = sup_fan.inletNode()
+		    # runner.registerInfo("fan inlet node: #{fan_inlet_node}")
+			# sup_fan.remove() #this seems to be working 
+		  # end   
+		  # #identify the node and connect a new VS supply fan there 
+		  # #might need to modify the overall approach for unitary systems
 
-		  #end 
+		  # #end 
 		  
-	end 
+	# end 
 
     # # assign the user inputs to variables
     # space_name = runner.getStringArgumentValue('space_name', user_arguments)
