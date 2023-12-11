@@ -85,40 +85,6 @@ class AdvancedRTUControl < OpenStudio::Measure::ModelMeasure
 				component.setSupplyFan(fan) #need to confirm that this worked 
 			 end 
 			 end 
-			# if sup_fan.is_initialized
-               # sup_fan = sup_fan.get
-			   # runner.registerInfo("supply fan #{sup_fan}")
-				# if sup_fan.to_FanConstantVolume.is_initialized  
-					# runner.registerInfo("fan being removed")
-					# sup_fan = sup_fan.to_FanConstantVolume.get() #need to handle other fan cases? 
-					# fan_inlet_node = sup_fan.inletNode()
-					# runner.registerInfo("fan inlet node: #{fan_inlet_node}")
-					# sup_fan.remove() #this seems to be working 
-					# #Create VS supply fan 
-					# fan = OpenStudio::Model::FanVariableVolume.new(model)
-					# fan.setName("#{air_loop_hvac.name} Fan")
-					# fan.setFanEfficiency(fan_tot_eff) # from PNNL
-					# fan.setPressureRise(fan_static_pressure)
-					# fan.setMotorEfficiency(fan_mot_eff) unless fan_mot_eff.nil?
-					# #Add it to the unitary sys
-					# air_loop_hvac.setSupplyFan(fan) #need to confirm that this worked 
-				# end   
-				# if sup_fan.to_FanOnOff.is_initialized  #could streamline this 
-					# runner.registerInfo("fan being removed")
-					# sup_fan = sup_fan.to_FanOnOff.get() #need to handle other fan cases? 
-					# fan_inlet_node = sup_fan.inletNode()
-					# runner.registerInfo("fan inlet node: #{fan_inlet_node}")
-					# sup_fan.remove() #this seems to be working 
-					# #Create VS supply fan 
-					# fan = OpenStudio::Model::FanVariableVolume.new(model)
-					# fan.setName("#{air_loop_hvac.name} Fan")
-					# fan.setFanEfficiency(fan_tot_eff) # from PNNL
-					# fan.setPressureRise(fan_static_pressure)
-					# fan.setMotorEfficiency(fan_mot_eff) unless fan_mot_eff.nil?
-					# #Add it to the unitary sys
-					# air_loop_hvac.setSupplyFan(fan) #need to confirm that this worked 
-				# end  
-		     # end 
 		  end
     end 
 	
