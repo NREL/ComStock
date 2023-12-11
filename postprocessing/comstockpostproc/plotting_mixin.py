@@ -1475,10 +1475,6 @@ class PlottingMixin():
     Seasonal load stacked area plots by daytype (weekday and weekdend) comparison
     """
     def plot_day_type_comparison_stacked_by_enduse(self, df, region, building_type, color_map, output_dir):
-        # df_path = os.path.join(output_dir, 'test.csv')
-        # df.to_csv(df_path, index=True)
-        # print(df.dtypes)
-        # print(region)
         summer_months = region['summer_months']
         winter_months = region['winter_months']
         shoulder_months = region['shoulder_months']
@@ -1558,19 +1554,19 @@ class PlottingMixin():
         day_type_dict = {}
         if summer_months:
             day_type_dict.update({'Summer_Weekday': (ami_data.index.weekday < 5)
-                                  & (ami_data.index.month.isin(summer_months))})
+                                    & (ami_data.index.month.isin(summer_months))})
             day_type_dict.update({'Summer_Weekend': (ami_data.index.weekday >= 5)
-                                  & (ami_data.index.month.isin(summer_months))})
+                                    & (ami_data.index.month.isin(summer_months))})
         if winter_months:
             day_type_dict.update({'Winter_Weekday': (ami_data.index.weekday < 5)
-                                  & (ami_data.index.month.isin(winter_months))})
+                                    & (ami_data.index.month.isin(winter_months))})
             day_type_dict.update({'Winter_Weekend': (ami_data.index.weekday >= 5)
-                                  & (ami_data.index.month.isin(winter_months))})
+                                    & (ami_data.index.month.isin(winter_months))})
         if shoulder_months:
             day_type_dict.update({'Shoulder_Weekday': (ami_data.index.weekday < 5)
-                                  & (ami_data.index.month.isin(shoulder_months))})
+                                    & (ami_data.index.month.isin(shoulder_months))})
             day_type_dict.update({'Shoulder_Weekend': (ami_data.index.weekday >= 5)
-                                  & (ami_data.index.month.isin(shoulder_months))})
+                                    & (ami_data.index.month.isin(shoulder_months))})
 
         # plot
         plt.figure(figsize=(20, 20))
@@ -1591,9 +1587,9 @@ class PlottingMixin():
 
         ylabel_text = 'Electric Load (kwh/ft2)'
         if normalization == 'Annual':
-          ylabel_text = 'Normalized (Annual Sum = 1)'
+            ylabel_text = 'Normalized (Annual Sum = 1)'
         elif normalization == 'Daytype':
-          ylabel_text = 'Normalized (Day Sum = 1)'
+            ylabel_text = 'Normalized (Day Sum = 1)'
 
         # calculate y_max in the plot
         y_max_buildstock = 0
@@ -1628,19 +1624,19 @@ class PlottingMixin():
             truth_data['hour'] = truth_data.index.hour
             truth_data = truth_data.groupby('hour').mean()
             if normalization == 'Daytype':
-              truth_data_total = truth_data.sum()
-              truth_data = truth_data / (truth_data_total)
-              print(day_type)
-              print('truth_data_total', truth_data_total)
+                truth_data_total = truth_data.sum()
+                truth_data = truth_data / (truth_data_total)
+                print(day_type)
+                print('truth_data_total', truth_data_total)
 
             # Stacked Enduses Plot
             processed_data_for_stack_plot = pd.DataFrame(comstock_data[enduse_list][day_type_dict[day_type]])
             processed_data_for_stack_plot['hour'] = processed_data_for_stack_plot.index.hour
             processed_data_for_stack_plot = processed_data_for_stack_plot.groupby('hour').mean()
             if normalization == 'Daytype':
-              processed_data_total = processed_data_for_stack_plot.sum().sum()
-              processed_data_for_stack_plot = processed_data_for_stack_plot / (processed_data_total)
-              print('processed_data_total', processed_data_total)
+                processed_data_total = processed_data_for_stack_plot.sum().sum()
+                processed_data_for_stack_plot = processed_data_for_stack_plot / (processed_data_total)
+                print('processed_data_total', processed_data_total)
 
             plt.stackplot(
                 processed_data_for_stack_plot.index,
@@ -1722,8 +1718,8 @@ class PlottingMixin():
         plt.savefig(output_path, bbox_inches='tight')
 
         # save graph data
-        output_path = os.path.join(output_dir, '%s.csv' % (filename) )
-        plot_data_df.to_csv(output_path, index=False)
+        # output_path = os.path.join(output_dir, '%s.csv' % (filename) )
+        # plot_data_df.to_csv(output_path, index=False)
 
         plt.close('all')
 
@@ -1789,7 +1785,7 @@ class PlottingMixin():
             columns=comstock_data.columns
         ).iloc[0:zoom_in_hours, :]
         comstock_data_sorted = comstock_data_sorted.reset_index(drop=True)
-        sample_uncertainty = sample_uncertainty[0:zoom_in_hours]
+        sample_uncertainty = sample_uncertainty[0:zoom_in_hours].max()
 
         # plot
         plt.figure(figsize=(12, 8))
@@ -1803,9 +1799,9 @@ class PlottingMixin():
             plt.plot(comstock_data_sorted[ith_run], color=ith_color, linewidth=ith_width)
 
         y = ami_data_sorted
-        #plt.plot(y + y * sample_uncertainty, color='k', linestyle='dashed')
+        plt.plot(y + y * sample_uncertainty, color='k', linestyle='dashed')
         plt.plot(y, color='k')
-        #plt.plot(y - y * sample_uncertainty, color='k', linestyle='dashed')
+        plt.plot(y - y * sample_uncertainty, color='k', linestyle='dashed')
 
         plt.xlabel('Hours Equaled or Exceeded', fontsize=16)
 
@@ -1817,15 +1813,11 @@ class PlottingMixin():
         plt.ylim([y_min, 1.1 * y_max])
         plt.yticks(fontsize=15)
         plt.xticks(fontsize=15)
-        plt.legend([comstock_data_label] + [ami_data_label], fontsize=15, loc=1)
-        # plt.legend([comstock_data_label] + [ami_data_label + ': upper estimate'] +
-        #            [ami_data_label] + [ami_data_label + ': lower estimate'], fontsize=15, loc=1)
+        plt.legend([comstock_data_label] + [ami_data_label + ': upper estimate'] +
+                    [ami_data_label] + [ami_data_label + ': lower estimate'], fontsize=15, loc=1)
         plt.title('{}, {}, Load Duration Curve: {} hours'.format(region['source_name'], building_type, len(ami_data_sorted)), fontsize=19)
 
         # Output figure
-        if len(output_dir) > 0:
-            if zoom_in_hours > 0:
-                output_path = os.path.join(output_dir, '%s_%s_load_duration_curve_top_%d_hours.png' % (region['source_name'], building_type, zoom_in_hours))
-            else:
-                output_path = os.path.join(output_dir, '%s_%s_load_duration_curve.png' % (region['source_name'], building_type))
+        filename = region['source_name'] + '_' + ami_data_label.lower().replace(' ', '') + '_' + building_type + '_load_duration_curve_top_' + str(zoom_in_hours) + '_hours.png'
+        output_path = os.path.join(output_dir, filename)
         plt.savefig(output_path, bbox_inches='tight')

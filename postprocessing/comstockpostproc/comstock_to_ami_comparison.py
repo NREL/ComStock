@@ -76,9 +76,13 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
         file_path = os.path.join(self.output_dir, file_name)
         self.ami_timeseries_data.to_csv(file_path, index=True)
 
+    """
+    Make plots comparing the datasets
+    """
     def make_plots(self, df, color_map, output_dir):
         logger.info('Making comparison plots')
-        # Make plots comparing the datasets
+        comstock_data_label = list(color_map.keys())[0]
+        ami_data_label = list(color_map.keys())[1]
 
         # for each region
         for region in self.ami_object.ami_region_map:
@@ -88,8 +92,17 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
             region_df = df.loc[df['region_name'] == region['source_name']]
             # for each building type
             for building_type in self.ami_object.building_types:
-                if not building_type == 'full_service_restaurant':
-                    continue
                 type_region_df = region_df.loc[region_df['building_type'] == building_type]
+
+                # check that both ami and comstock data have values defined
+                ami_check = type_region_df[type_region_df['run'] == ami_data_label]
+                comstock_check = type_region_df[type_region_df['run'] == comstock_data_label]
+                if ami_check.empty:
+                    logger.warning(f'dataset does not contain {building_type} buildings in {ami_data_label}. Skipping building specific graphics.')
+                    continue
+                if comstock_check.empty:
+                    logger.warning(f'dataset does not contain {building_type} buildings in {comstock_data_label}. Skipping building specific graphics.')
+                    continue
+                
                 self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, color_map, output_dir)
                 self.plot_load_duration_curve(type_region_df, region, building_type, color_map, output_dir)

@@ -248,7 +248,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             for region in ami.ami_region_map:
                 region_file_path_long = os.path.join(self.output_dir, region['source_name'] + '_building_type_timeseries_long.csv')
                 if os.path.isfile(region_file_path_long) and reload_from_csv and save_individual_regions:
-                    print('timeseries data in long format for ' + region['source_name'] + ' already exists at ' + region_file_path_long)
+                    logger.info(f"timeseries data in long format for {region['source_name']} already exists at {region_file_path_long}")
                     continue
 
                 ts_agg = self.athena_client.agg.aggregate_timeseries(enduses=athena_end_uses,
