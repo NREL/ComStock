@@ -153,22 +153,14 @@ class HVACEconomizerEMSTest < OpenStudio::Measure::ModelMeasure
         prgrm_econ_override = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
         prgrm_econ_override.setName("#{air_loop_hvac.name.get.to_s.gsub("-", "")}_program")
         prgrm_econ_override_body = <<-EMS
-          SET act_oa_flow = #{act_oa_flow.name},
-          SET sens_zn_clg_rate = #{sens_zn_clg_rate.name},
-          SET sens_min_oa_rate = #{sens_min_oa_rate.name},
-          SET sens_econ_status = #{sens_econ_status.name},
-          IF ((sens_econ_status >= 0) && (sens_zn_clg_rate >= 0)), 
-            SET act_oa_flow = sens_min_oa_rate,
-          ELSE,
-            SET act_oa_flow = Null,
-          ENDIF
+          SET act_oa_flow = 0,
         EMS
         prgrm_econ_override.setBody(prgrm_econ_override_body)
       end
 
         programs_at_beginning_of_timestep = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
         programs_at_beginning_of_timestep.setName("#{air_loop_hvac.name.get.to_s.gsub("-", "")}_Programs_At_Beginning_Of_Timestep")
-        programs_at_beginning_of_timestep.setCallingPoint('AfterPredictorBeforeHVACManagers')
+        programs_at_beginning_of_timestep.setCallingPoint('InsideHVACSystemIterationLoop')
         programs_at_beginning_of_timestep.addProgram(prgrm_econ_override)
 
     end

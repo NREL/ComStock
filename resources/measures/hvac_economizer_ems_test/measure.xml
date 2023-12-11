@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>hvac_economizer_ems_test</name>
   <uid>8b934097-4d9c-479e-a8ee-f369e38f04b1</uid>
-  <version_id>502782d6-b6a0-4413-82ee-a3496edd1b92</version_id>
-  <version_modified>2023-11-20T18:58:55Z</version_modified>
+  <version_id>085d76e0-d8e7-4a83-ab40-5179f525b5d2</version_id>
+  <version_modified>2023-12-08T18:34:45Z</version_modified>
   <xml_checksum>4A421510</xml_checksum>
   <class_name>HVACEconomizerEMSTest</class_name>
   <display_name>HVACEconomizer EMS Test</display_name>
@@ -95,7 +95,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>55005D65</checksum>
+      <checksum>B78311AB</checksum>
     </file>
     <file>
       <filename>hvac_economizer_ems_test_test.rb</filename>
