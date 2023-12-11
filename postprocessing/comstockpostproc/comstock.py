@@ -1783,7 +1783,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             return True
 
         # Load or query timeseries ComStock results by state and building type
-        file_name = f'comstock_monthly_natural_gas_and_electricity_by_state_and_bldg_type.csvTODOANDREW' # TODO ANDREW Remove
+        file_name = f'comstock_monthly_natural_gas_and_electricity_by_state_and_bldg_type.csv'
         file_path = os.path.join(self.data_dir, file_name)
         if not os.path.exists(file_path):
             # Query Athena for ComStock results
