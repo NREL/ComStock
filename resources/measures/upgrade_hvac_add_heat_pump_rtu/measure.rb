@@ -1146,6 +1146,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       cool_cap_ft1.setMaximumValueofx(100)
       cool_cap_ft1.setMinimumValueofy(-100)
       cool_cap_ft1.setMaximumValueofy(100)
+      cool_cap_ft1.setMinimumCurveOutput(0)
       # Heating Capacity Function of Temperature Curve - 2
       cool_cap_ft2 = OpenStudio::Model::CurveBiquadratic.new(model)
       cool_cap_ft2.setName("#{air_loop_hvac.name} cool_cap_ft2")
@@ -1159,6 +1160,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       cool_cap_ft2.setMaximumValueofx(100)
       cool_cap_ft2.setMinimumValueofy(-100)
       cool_cap_ft2.setMaximumValueofy(100)
+      cool_cap_ft2.setMinimumCurveOutput(0)
       # Heating Capacity Function of Temperature Curve - 3
       cool_cap_ft3 = OpenStudio::Model::CurveBiquadratic.new(model)
       cool_cap_ft3.setName("#{air_loop_hvac.name} cool_cap_ft3")
@@ -1172,6 +1174,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       cool_cap_ft3.setMaximumValueofx(100)
       cool_cap_ft3.setMinimumValueofy(-100)
       cool_cap_ft3.setMaximumValueofy(100)
+      cool_cap_ft3.setMinimumCurveOutput(0)
       # Heating Capacity Function of Temperature Curve - 4
       cool_cap_ft4 = OpenStudio::Model::CurveBiquadratic.new(model)
       cool_cap_ft4.setName("#{air_loop_hvac.name} cool_cap_ft4")
@@ -1185,6 +1188,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       cool_cap_ft4.setMaximumValueofx(100)
       cool_cap_ft4.setMinimumValueofy(-100)
       cool_cap_ft4.setMaximumValueofy(100)
+      cool_cap_ft4.setMinimumCurveOutput(0)
 
       # Heating Capacity Function of Flow Fraction Curve
       cool_cap_fff_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
@@ -1210,6 +1214,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       cool_eir_ft1.setMaximumValueofx(100)
       cool_eir_ft1.setMinimumValueofy(-100)
       cool_eir_ft1.setMaximumValueofy(100)
+      cool_eir_ft1.setMinimumCurveOutput(0)
       # Energy Input Ratio Function of Temperature Curve - 2
       cool_eir_ft2 = OpenStudio::Model::CurveBiquadratic.new(model)
       cool_eir_ft2.setName("#{air_loop_hvac.name} cool_eir_ft2")
@@ -1223,6 +1228,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       cool_eir_ft2.setMaximumValueofx(100)
       cool_eir_ft2.setMinimumValueofy(-100)
       cool_eir_ft2.setMaximumValueofy(100)
+      cool_eir_ft2.setMinimumCurveOutput(0)
       # Energy Input Ratio Function of Temperature Curve - 3
       cool_eir_ft3 = OpenStudio::Model::CurveBiquadratic.new(model)
       cool_eir_ft3.setName("#{air_loop_hvac.name} cool_eir_ft3")
@@ -1236,6 +1242,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       cool_eir_ft3.setMaximumValueofx(100)
       cool_eir_ft3.setMinimumValueofy(-100)
       cool_eir_ft3.setMaximumValueofy(100)
+      cool_eir_ft3.setMinimumCurveOutput(0)
       # Energy Input Ratio Function of Temperature Curve - 4
       cool_eir_ft4 = OpenStudio::Model::CurveBiquadratic.new(model)
       cool_eir_ft4.setName("#{air_loop_hvac.name} cool_eir_ft4")
@@ -1249,7 +1256,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       cool_eir_ft4.setMaximumValueofx(100)
       cool_eir_ft4.setMinimumValueofy(-100)
       cool_eir_ft4.setMaximumValueofy(100)
-
+      cool_eir_ft4.setMinimumCurveOutput(0)
       # Energy Input Ratio Function of Flow Fraction Curve
       cool_eir_fff_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
       cool_eir_fff_all_stages.setName("#{air_loop_hvac.name} cool_eir_fff")
@@ -1379,6 +1386,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       defrost_eir.setMaximumValueofx(100)
       defrost_eir.setMinimumValueofy(-100)
       defrost_eir.setMaximumValueofy(100)
+      defrost_eir.setMinimumCurveOutput(0)
 
       # Heating Capacity Function of Temperature Curve - 1
       heat_cap_ft1 = OpenStudio::Model::CurveBiquadratic.new(model)
@@ -1393,6 +1401,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       heat_cap_ft1.setMaximumValueofx(100)
       heat_cap_ft1.setMinimumValueofy(-100)
       heat_cap_ft1.setMaximumValueofy(100)
+      heat_cap_ft1.setMinimumCurveOutput(0)
       # Heating Capacity Function of Temperature Curve - 2
       heat_cap_ft2 = OpenStudio::Model::CurveBiquadratic.new(model)
       heat_cap_ft2.setName("#{air_loop_hvac.name} heat_cap_ft2")
@@ -1406,6 +1415,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       heat_cap_ft2.setMaximumValueofx(100)
       heat_cap_ft2.setMinimumValueofy(-100)
       heat_cap_ft2.setMaximumValueofy(100)
+      heat_cap_ft2.setMinimumCurveOutput(0)
       # Heating Capacity Function of Temperature Curve - 3
       heat_cap_ft3 = OpenStudio::Model::CurveBiquadratic.new(model)
       heat_cap_ft3.setName("#{air_loop_hvac.name} heat_cap_ft3")
@@ -1419,6 +1429,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       heat_cap_ft3.setMaximumValueofx(100)
       heat_cap_ft3.setMinimumValueofy(-100)
       heat_cap_ft3.setMaximumValueofy(100)
+      cool_cap_ft1.setMinimumCurveOutput(0)
       # Heating Capacity Function of Temperature Curve - 4
       heat_cap_ft4 = OpenStudio::Model::CurveBiquadratic.new(model)
       heat_cap_ft4.setName("#{air_loop_hvac.name} heat_cap_ft4")
@@ -1432,6 +1443,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       heat_cap_ft4.setMaximumValueofx(100)
       heat_cap_ft4.setMinimumValueofy(-100)
       heat_cap_ft4.setMaximumValueofy(100)
+      cool_cap_ft1.setMinimumCurveOutput(0)
 
       # Heating Capacity Function of Flow Fraction Curve
       heat_cap_fff_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
@@ -1443,6 +1455,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       heat_cap_fff_all_stages.setMaximumValueofx(2)
       heat_cap_fff_all_stages.setMinimumCurveOutput(0)
       heat_cap_fff_all_stages.setMaximumCurveOutput(2)
+      cool_cap_ft1.setMinimumCurveOutput(0)
 
       # Energy Input Ratio Function of Temperature Curve - 1
       heat_eir_ft1 = OpenStudio::Model::CurveBiquadratic.new(model)
@@ -1457,6 +1470,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       heat_eir_ft1.setMaximumValueofx(100)
       heat_eir_ft1.setMinimumValueofy(-100)
       heat_eir_ft1.setMaximumValueofy(100)
+      heat_eir_ft1.setMinimumCurveOutput(0)
       # Energy Input Ratio Function of Temperature Curve - 2
       heat_eir_ft2 = OpenStudio::Model::CurveBiquadratic.new(model)
       heat_eir_ft2.setName("#{air_loop_hvac.name} heat_eir_ft2")
@@ -1470,6 +1484,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       heat_eir_ft2.setMaximumValueofx(100)
       heat_eir_ft2.setMinimumValueofy(-100)
       heat_eir_ft2.setMaximumValueofy(100)
+      heat_eir_ft2.setMinimumCurveOutput(0)
       # Energy Input Ratio Function of Temperature Curve - 3
       heat_eir_ft3 = OpenStudio::Model::CurveBiquadratic.new(model)
       heat_eir_ft3.setName("#{air_loop_hvac.name} heat_eir_ft3")
@@ -1483,6 +1498,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       heat_eir_ft3.setMaximumValueofx(100)
       heat_eir_ft3.setMinimumValueofy(-100)
       heat_eir_ft3.setMaximumValueofy(100)
+      heat_eir_ft3.setMinimumCurveOutput(0)
       # Energy Input Ratio Function of Temperature Curve - 4
       heat_eir_ft4 = OpenStudio::Model::CurveBiquadratic.new(model)
       heat_eir_ft4.setName("#{air_loop_hvac.name} heat_eir_ft4")
@@ -1496,6 +1512,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       heat_eir_ft4.setMaximumValueofx(100)
       heat_eir_ft4.setMinimumValueofy(-100)
       heat_eir_ft4.setMaximumValueofy(100)
+      heat_eir_ft4.setMinimumCurveOutput(0)
 
       # Energy Input Ratio Function of Flow Fraction Curve
       heat_eir_fff_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
