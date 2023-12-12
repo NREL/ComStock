@@ -86,10 +86,12 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
 
         # for each region
         for region in self.ami_object.ami_region_map:
-            # only for testing
-            if not region['region'] == 'region1':
+            # ami region 3x  cherryland is failing for some reason
+            if region['region'] == 'region3c':
                 continue
+
             region_df = df.loc[df['region_name'] == region['source_name']]
+
             # for each building type
             for building_type in self.ami_object.building_types:
                 type_region_df = region_df.loc[region_df['building_type'] == building_type]
@@ -98,11 +100,13 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 ami_check = type_region_df[type_region_df['run'] == ami_data_label]
                 comstock_check = type_region_df[type_region_df['run'] == comstock_data_label]
                 if ami_check.empty:
-                    logger.warning(f'dataset does not contain {building_type} buildings in {ami_data_label}. Skipping building specific graphics.')
+                    logger.debug(f"dataset does not contain {building_type} buildings in {ami_data_label} for region {region['source_name']}. Skipping building specific graphics.")
                     continue
                 if comstock_check.empty:
-                    logger.warning(f'dataset does not contain {building_type} buildings in {comstock_data_label}. Skipping building specific graphics.')
+                    logger.debug(f"dataset does not contain {building_type} buildings in {comstock_data_label} for region {region['source_name']}. Skipping building specific graphics.")
                     continue
-                
+
                 self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, color_map, output_dir)
+                self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, color_map, output_dir, normalization='Daytype')
+                self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, color_map, output_dir, normalization='Annual')
                 self.plot_load_duration_curve(type_region_df, region, building_type, color_map, output_dir)

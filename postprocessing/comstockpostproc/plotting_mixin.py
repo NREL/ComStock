@@ -1473,8 +1473,15 @@ class PlottingMixin():
 
     """
     Seasonal load stacked area plots by daytype (weekday and weekdend) comparison
+    Args:
+        df: long form dataset with a comstock run and ami data
+        region: region object from AMI class
+        building_type (str): building type
+        color_map: hash with dataset names as the keys
+        output_dir (str): output directory
+        normalization (str): how to normalize the data. Default is 'None' which directly compares kwh_per_sf. Other options are 'Annual' and 'Daytype'. 'Annual' will normalize the data as a fraction compared to the total annual energy use. 'Daytype' will normalize to the energy use for the given day type.
     """
-    def plot_day_type_comparison_stacked_by_enduse(self, df, region, building_type, color_map, output_dir):
+    def plot_day_type_comparison_stacked_by_enduse(self, df, region, building_type, color_map, output_dir, normalization='None'):
         summer_months = region['summer_months']
         winter_months = region['winter_months']
         shoulder_months = region['shoulder_months']
@@ -1483,13 +1490,13 @@ class PlottingMixin():
             'exterior_lighting',
             'interior_lighting',
             'interior_equipment',
-            #'exterior_equipment',
+            'exterior_equipment',
             'water_systems',
             'heat_recovery',
             'fans',
             'pumps',
-            #'heat_rejection',
-            #'humidification',
+            'heat_rejection',
+            'humidification',
             'cooling',
             'heating',
             'refrigeration'
@@ -1499,13 +1506,13 @@ class PlottingMixin():
             '#DEC310',  # exterior lighting
             '#F7DF10',  # interior lighting
             '#4A4D4A',  # interior equipment
-            #'#B5B2B5',  # exterior equipment
+            '#B5B2B5',  # exterior equipment
             '#FFB239',  # water systems
             '#CE5921',  # heat recovery
             '#FF79AD',  # fans
             '#632C94',  # pumps
-            #'#F75921',  # heat rejection
-            #'#293094',  # humidification
+            '#F75921',  # heat rejection
+            '#293094',  # humidification
             '#0071BD',  # cooling
             '#EF1C21',  # heating
             '#29AAE7'   # refrigeration
@@ -1515,7 +1522,6 @@ class PlottingMixin():
         ami_data_label = list(color_map.keys())[1]
         energy_column = 'kwh_per_sf'
         default_uncertainty = 0.1
-        normalization = 'None'
 
         # return false if ami data is not available for this type
         ami_count = df.loc[df.run.isin([ami_data_label])]['bldg_count']
@@ -1523,6 +1529,7 @@ class PlottingMixin():
         ami_count_avg = ami_count.mean()
         ami_count_min = int(ami_count.min())
 
+        # filter and collect comstock data
         comstock_data = df.loc[df.run.isin([comstock_data_label])][['enduse', energy_column]]
         comstock_data = comstock_data.reset_index().groupby(['enduse', 'timestamp']).sum().reset_index().set_index('timestamp')
         comstock_data = comstock_data.pivot(columns='enduse', values=[energy_column])
@@ -1530,16 +1537,24 @@ class PlottingMixin():
         comstock_data = comstock_data.reset_index().rename_axis(None, axis=1)
         comstock_data = comstock_data.set_index('timestamp')
         comstock_data = comstock_data.head(8760)
-        comstock_data_path = os.path.join(output_dir, 'comstock_data_test.csv')
-        comstock_data.to_csv(comstock_data_path, index=True)
+        if normalization == 'Annual':
+          comstock_annual_total = comstock_data['total'].sum()
+          comstock_data = comstock_data / comstock_annual_total
 
+        # Remove missing enduses from enduse list and enduse colors before plotting
+        filtered_enduse_list = [col for col in enduse_list if col in comstock_data.columns]
+        filtered_enduse_colors = [enduse_colors[i] for i, col in enumerate(enduse_list) if col in comstock_data.columns]
+
+        # filter and collect ami data
         ami_data = df.loc[df.run.isin([ami_data_label])][['run', energy_column]]
         ami_data = ami_data.pivot(columns='run', values=[energy_column])
         ami_data.columns = ami_data.columns.droplevel(0)
         ami_data = ami_data.reset_index().rename_axis(None, axis=1)
         ami_data = ami_data.set_index('timestamp')
-        ami_data_path = os.path.join(output_dir, 'ami_data_test.csv')
-        ami_data.to_csv(ami_data_path, index=True)
+        ami_data = ami_data.head(8760)
+        if normalization == 'Annual':
+          ami_annual_total = ami_data.sum()
+          ami_data = ami_data / ami_annual_total
 
         # Assign sample uncertainty
         total_data = df.loc[df.enduse.isin(['total'])]
@@ -1550,22 +1565,40 @@ class PlottingMixin():
             sample_uncertainty.rename(columns={energy_column: 'sample_uncertainty'}, inplace=True)
             sample_uncertainty['sample_uncertainty'] = default_uncertainty
 
-        # day type dictionary
-        day_type_dict = {}
+        # comstock day type dictionary
+        comstock_day_type_dict = {}
         if summer_months:
-            day_type_dict.update({'Summer_Weekday': (ami_data.index.weekday < 5)
+            comstock_day_type_dict.update({'Summer_Weekday': (comstock_data.index.weekday < 5)
+                                    & (comstock_data.index.month.isin(summer_months))})
+            comstock_day_type_dict.update({'Summer_Weekend': (comstock_data.index.weekday >= 5)
+                                    & (comstock_data.index.month.isin(summer_months))})
+        if winter_months:
+            comstock_day_type_dict.update({'Winter_Weekday': (comstock_data.index.weekday < 5)
+                                    & (comstock_data.index.month.isin(winter_months))})
+            comstock_day_type_dict.update({'Winter_Weekend': (comstock_data.index.weekday >= 5)
+                                    & (comstock_data.index.month.isin(winter_months))})
+        if shoulder_months:
+            comstock_day_type_dict.update({'Shoulder_Weekday': (comstock_data.index.weekday < 5)
+                                    & (comstock_data.index.month.isin(shoulder_months))})
+            comstock_day_type_dict.update({'Shoulder_Weekend': (comstock_data.index.weekday >= 5)
+                                    & (comstock_data.index.month.isin(shoulder_months))})
+
+        # ami day type dictionary
+        ami_day_type_dict = {}
+        if summer_months:
+            ami_day_type_dict.update({'Summer_Weekday': (ami_data.index.weekday < 5)
                                     & (ami_data.index.month.isin(summer_months))})
-            day_type_dict.update({'Summer_Weekend': (ami_data.index.weekday >= 5)
+            ami_day_type_dict.update({'Summer_Weekend': (ami_data.index.weekday >= 5)
                                     & (ami_data.index.month.isin(summer_months))})
         if winter_months:
-            day_type_dict.update({'Winter_Weekday': (ami_data.index.weekday < 5)
+            ami_day_type_dict.update({'Winter_Weekday': (ami_data.index.weekday < 5)
                                     & (ami_data.index.month.isin(winter_months))})
-            day_type_dict.update({'Winter_Weekend': (ami_data.index.weekday >= 5)
+            ami_day_type_dict.update({'Winter_Weekend': (ami_data.index.weekday >= 5)
                                     & (ami_data.index.month.isin(winter_months))})
         if shoulder_months:
-            day_type_dict.update({'Shoulder_Weekday': (ami_data.index.weekday < 5)
+            ami_day_type_dict.update({'Shoulder_Weekday': (ami_data.index.weekday < 5)
                                     & (ami_data.index.month.isin(shoulder_months))})
-            day_type_dict.update({'Shoulder_Weekend': (ami_data.index.weekday >= 5)
+            ami_day_type_dict.update({'Shoulder_Weekend': (ami_data.index.weekday >= 5)
                                     & (ami_data.index.month.isin(shoulder_months))})
 
         # plot
@@ -1573,14 +1606,15 @@ class PlottingMixin():
         filename = (region['source_name'] + '_' + ami_data_label.lower().replace(' ', '') + '_' + building_type)
         graph_type = ''
         if normalization == 'Annual':
-            plt.suptitle('{}\n{}, {}\n{}, N={}\nAnnual Normalized Day Type Comparison by Enduse'.format(comstock_data_label, region['source_name'], building_type, ami_data_label, ami_count_max), fontsize=24)
+            day_type_label = 'Annual Normalized'
             graph_type = "annual_normalized_day_type_comparison_by_enduse"
         elif normalization == 'Daytype':
-            plt.suptitle('{}\n{}, {}\n{}, N={}\Day Type Normalized Day Type Comparison by Enduse'.format(comstock_data_label, region['source_name'], building_type, ami_data_label, ami_count_max), fontsize=24)
+            day_type_label = 'Day Type Normalized'
             graph_type = "daytype_normalized_day_type_comparison_by_enduse"
         else:
-            plt.suptitle('{}\n{}, {}\n{}, N={}\nDay Type Comparison by Enduse'.format(comstock_data_label, region['source_name'], building_type, ami_data_label, ami_count_max), fontsize=24)
+            day_type_label = ''
             graph_type = "day_type_comparison_by_enduse"
+        plt.suptitle('{} Day Type Comparison by Enduse\n{} vs. {} (N={})\n{}, {}'.format(day_type_label, comstock_data_label, ami_data_label, ami_count_max, region['source_name'], building_type), fontsize=24)
         filename = filename + "_" + graph_type
         plt.subplots_adjust(top=0.9)
         fig_n = 0
@@ -1593,24 +1627,24 @@ class PlottingMixin():
 
         # calculate y_max in the plot
         y_max_buildstock = 0
-        for day_type in day_type_dict.keys():
-            y_max_temp = pd.DataFrame(comstock_data['total'][day_type_dict[day_type]])
+        for day_type in comstock_day_type_dict.keys():
+            y_max_temp = pd.DataFrame(comstock_data['total'][comstock_day_type_dict[day_type]])
             y_max_temp['hour'] = y_max_temp.index.hour
-            y_max_temp_value = float(y_max_temp.groupby('hour').mean().max())
+            y_max_temp_value = float(y_max_temp.groupby('hour').mean().max().iloc[0])
             if y_max_temp_value > y_max_buildstock:
                 y_max_buildstock = y_max_temp_value
-        y_max_ami = 0
 
-        for day_type in day_type_dict.keys():
-            y_max_temp = pd.DataFrame(ami_data[day_type_dict[day_type]])
+        y_max_ami = 0
+        for day_type in ami_day_type_dict.keys():
+            y_max_temp = pd.DataFrame(ami_data[ami_day_type_dict[day_type]])
             y_max_temp['hour'] = y_max_temp.index.hour
-            y_max_temp_value = float(y_max_temp.groupby('hour').mean().max())
+            y_max_temp_value = float(y_max_temp.groupby('hour').mean().max().iloc[0])
             if y_max_temp_value > y_max_ami:
                 y_max_ami = y_max_temp_value
         y_max = max(y_max_buildstock, y_max_ami)
 
         plot_data_df = pd.DataFrame()
-        for day_type in day_type_dict.keys():
+        for day_type in ami_day_type_dict.keys():
             fig_n = fig_n + 1
             ax = plt.subplot(3, 2, fig_n)
             ax.spines['top'].set_color('black')
@@ -1620,41 +1654,38 @@ class PlottingMixin():
             plt.rcParams.update({'font.size': 16})
 
             # Truth data
-            truth_data = pd.DataFrame(ami_data[ami_data_label][day_type_dict[day_type]])
+            truth_data = pd.DataFrame(ami_data[ami_data_label][ami_day_type_dict[day_type]])
             truth_data['hour'] = truth_data.index.hour
             truth_data = truth_data.groupby('hour').mean()
             if normalization == 'Daytype':
                 truth_data_total = truth_data.sum()
-                truth_data = truth_data / (truth_data_total)
-                print(day_type)
-                print('truth_data_total', truth_data_total)
+                truth_data = truth_data / truth_data_total
 
             # Stacked Enduses Plot
-            processed_data_for_stack_plot = pd.DataFrame(comstock_data[enduse_list][day_type_dict[day_type]])
+            processed_data_for_stack_plot = pd.DataFrame(comstock_data[filtered_enduse_list][comstock_day_type_dict[day_type]])
             processed_data_for_stack_plot['hour'] = processed_data_for_stack_plot.index.hour
             processed_data_for_stack_plot = processed_data_for_stack_plot.groupby('hour').mean()
             if normalization == 'Daytype':
                 processed_data_total = processed_data_for_stack_plot.sum().sum()
-                processed_data_for_stack_plot = processed_data_for_stack_plot / (processed_data_total)
-                print('processed_data_total', processed_data_total)
+                processed_data_for_stack_plot = processed_data_for_stack_plot / processed_data_total
 
             plt.stackplot(
                 processed_data_for_stack_plot.index,
                 processed_data_for_stack_plot.T,
-                labels=enduse_list,
-                colors=enduse_colors
+                labels=filtered_enduse_list,
+                colors=filtered_enduse_colors
             )
 
             # Truth Data Plot
             y = truth_data
-            s_uncertainty = pd.DataFrame(sample_uncertainty[day_type_dict[day_type]])
+            s_uncertainty = pd.DataFrame(sample_uncertainty[ami_day_type_dict[day_type]])
             s_uncertainty['hour'] = s_uncertainty.index.hour
             s_uncertainty = s_uncertainty.groupby('hour').mean()
 
             # Upper Estimate
             upper_truth = pd.DataFrame(
                 y[ami_data_label].values +
-                y[ami_data_label].values * s_uncertainty['sample_uncertainty'].values.reshape(-1, 1)
+                y[ami_data_label].values * s_uncertainty['sample_uncertainty'].values
             )
             plt.plot(
                 upper_truth,
@@ -1664,17 +1695,17 @@ class PlottingMixin():
             )
             y_max = np.max([float(np.max(upper_truth)), y_max])
 
-            # # Mean Estimate
-            # plt.plot(
-                # y,
-                # color='k',
-                # label=ami_data_label[0]
-            # )
+            # Mean Estimate
+            plt.plot(
+                y,
+                color='k',
+                label=ami_data_label
+            )
 
             # Lower estimate
             lower_truth = pd.DataFrame(
                 y[ami_data_label].values -
-                y[ami_data_label].values * s_uncertainty['sample_uncertainty'].values.reshape(-1, 1)
+                y[ami_data_label].values * s_uncertainty['sample_uncertainty'].values
             )
             # values cannot be negative
             lower_truth = lower_truth.clip(lower=0)
@@ -1700,7 +1731,7 @@ class PlottingMixin():
             data_df = data_df.reset_index(drop=True)
             plot_data_df = pd.concat([plot_data_df, data_df])
 
-            plt.title(day_type.replace("_", ""))
+            plt.title(day_type.replace("_", " "))
             plt.xlim([0, 23])
             plt.ylim([0, y_max * 1.1])
 
@@ -1723,6 +1754,15 @@ class PlottingMixin():
 
         plt.close('all')
 
+    """
+    Load duration curve comparison
+    Args:
+        df: long form dataset with a comstock run and ami data
+        region: region object from AMI class
+        building_type (str): building type
+        color_map: hash with dataset names as the keys
+        output_dir (str): output directory
+    """
     def plot_load_duration_curve(self, df, region, building_type, color_map, output_dir):
         comstock_data_label = list(color_map.keys())[0]
         ami_data_label = list(color_map.keys())[1]
@@ -1738,8 +1778,6 @@ class PlottingMixin():
         comstock_data.columns = comstock_data.columns.droplevel(0)
         comstock_data = comstock_data.reset_index().rename_axis(None, axis=1)
         comstock_data = comstock_data.set_index('timestamp')
-        comstock_data_path = os.path.join(output_dir, 'comstock_load_curve_test.csv')
-        comstock_data.to_csv(comstock_data_path, index=True)
 
         # format ami data
         ami_data = total_data.loc[total_data.run.isin([ami_data_label])][['run', energy_column]]
@@ -1748,7 +1786,7 @@ class PlottingMixin():
         ami_data = ami_data.reset_index().rename_axis(None, axis=1)
         ami_data = ami_data.set_index('timestamp')
 
-        # Assign sample uncertainty
+        # assign sample uncertainty
         try:
             sample_uncertainty = np.array(total_data.loc[total_data.run.isin([ami_data_label])][['sample_uncertainty']])
         except KeyError:
@@ -1757,24 +1795,11 @@ class PlottingMixin():
             sample_uncertainty['sample_uncertainty'] = default_uncertainty
             sample_uncertainty = np.array(sample_uncertainty['sample_uncertainty']).reshape(-1, 1)
 
-        # # Check parameter quality:
-        # ami_data, comstock_data, sample_uncertainty = self.check_data_lengths(
-        #     ami_data=ami_data,
-        #     comstock_data=comstock_data,
-        #     ami_data_label=ami_data_label,
-        #     sample_uncertainty=sample_uncertainty
-        # )
-
         # set up default values
         if zoom_in_hours == -1:
             zoom_in_hours = len(ami_data)
 
-        # check for missing data
-        if ami_data.empty:
-            print('AMI data for ' + building_type + ' in region ' + region['source_name'] + ' does not exist in data ' + ami_data_label)
-            return False
-
-        # Sort values
+        # sort values
         ami_data_sorted = ami_data.sort_values(
             by=list(ami_data.columns), ascending=False).reset_index(drop=True).iloc[0:zoom_in_hours, :]
         ami_data_sorted = ami_data_sorted.reset_index(drop=True)
@@ -1789,20 +1814,12 @@ class PlottingMixin():
 
         # plot
         plt.figure(figsize=(12, 8))
-
-        # color_list need to be revisited
-        line_width = [2, 2, 2, 2, 2, 2, 2, 2, 3]
-        color_list = ['#d73027', '#f46d43', '#fdae61', '#fee090', '#e0f3f8', '#abd9e9', '#74add1', '#4575b4', '#4575b4']
         plt.ylabel('kwh/ft2', fontsize=16)
-
-        for ith_run, ith_color, ith_width in zip([comstock_data_label], color_list, line_width):
-            plt.plot(comstock_data_sorted[ith_run], color=ith_color, linewidth=ith_width)
-
+        plt.plot(comstock_data_sorted, color='#d73027', linewidth=2)
         y = ami_data_sorted
         plt.plot(y + y * sample_uncertainty, color='k', linestyle='dashed')
         plt.plot(y, color='k')
         plt.plot(y - y * sample_uncertainty, color='k', linestyle='dashed')
-
         plt.xlabel('Hours Equaled or Exceeded', fontsize=16)
 
         y_max = max([ami_data_sorted.values.max(), comstock_data_sorted.values.max()])
@@ -1817,7 +1834,7 @@ class PlottingMixin():
                     [ami_data_label] + [ami_data_label + ': lower estimate'], fontsize=15, loc=1)
         plt.title('{}, {}, Load Duration Curve: {} hours'.format(region['source_name'], building_type, len(ami_data_sorted)), fontsize=19)
 
-        # Output figure
+        # output figure
         filename = region['source_name'] + '_' + ami_data_label.lower().replace(' ', '') + '_' + building_type + '_load_duration_curve_top_' + str(zoom_in_hours) + '_hours.png'
         output_path = os.path.join(output_dir, filename)
         plt.savefig(output_path, bbox_inches='tight')
