@@ -11,7 +11,6 @@ import numpy as np
 import pandas as pd
 import polars as pl
 import re
-import yaml
 
 from comstockpostproc.naming_mixin import NamingMixin
 from comstockpostproc.units_mixin import UnitsMixin
@@ -57,7 +56,7 @@ def basic_metadata_columns():
 
 # ComStock in a constructor class for processing ComStock results
 class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixin):
-    def __init__(self, s3_base_dir, local_base_dir, comstock_run_name, comstock_run_version, comstock_year,
+    def __init__(self, s3_base_dir, comstock_run_name, comstock_run_version, comstock_year,
         truth_data_version, buildstock_csv_name = 'buildstock.csv', acceptable_failure_percentage=0.01, drop_failed_runs=True,
         color_hex=NamingMixin.COLOR_COMSTOCK_BEFORE, weighted_energy_units='tbtu', weighted_ghg_units='co2e_mmt', skip_missing_columns=False,
         reload_from_csv=False, make_comparison_plots=True, include_upgrades=True, upgrade_ids_to_skip=[], rename_upgrades=False):
@@ -109,10 +108,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # S3 location
         self.s3_inpath = None
-        if s3_base_dir:
+        if s3_base_dir is not None:
             self.s3_inpath = f"s3://{s3_base_dir}/{self.comstock_run_name}/{self.comstock_run_name}"
-        elif local_base_dir:
-            self.local_path = f"{local_base_dir}/{self.comstock_run_name}"
 
         # Load and transform data, preserving all columns
         self.download_data()
@@ -166,38 +163,18 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # baseline/results_up00.parquet
         results_data_path = os.path.join(self.data_dir, self.results_file_name)
         if not os.path.exists(results_data_path):
-            if self.s3_inpath:
-                s3_path = f"{self.s3_inpath}/baseline/{self.results_file_name}"
-                logger.info(f'Downloading: {s3_path}')
-                data = pd.read_parquet(s3_path, engine="pyarrow")
-                data.to_parquet(results_data_path)
-            elif self.local_path:
-                local_base_path = f"{self.local_path}/parquet/baseline/{self.results_file_name}"
-                logger.info(f"Copying local run files from {self.local_path}/{self.comstock_run_name}")
-                data = pd.read_parquet(local_base_path, engine="pyarrow")
-                data.to_parquet(results_data_path)
-            else:
-                raise FileNotFoundError(f"No S3 or local data path specified.  Please provide a path to obtain run results from.")
+            s3_path = f"{self.s3_inpath}/baseline/{self.results_file_name}"
+            logger.info(f'Downloading: {s3_path}')
+            data = pd.read_parquet(s3_path, engine="pyarrow")
+            data.to_parquet(results_data_path)
 
         # upgrades/upgrade=*/results_up*.parquet
         if self.include_upgrades:
             if len(glob.glob(f'{self.data_dir}/results_up*.parquet')) < 2:
-                if self.local_path:
-                    upgrade_dir = f"{self.local_path}/parquet/upgrades"
-                    for name in os.listdir(upgrade_dir):
-                        n = re.search('upgrade=(.*)', name)
-                        if not n:
-                            continue
-                        upgrade_id = n.group(1)
-                        upgrade_path = os.path.join(upgrade_dir, f"upgrade={upgrade_id}")
-                        if upgrade_id in self.upgrade_ids_to_skip:
-                            logger.info(f'Skipping data download for upgrade {upgrade_id}')
-                            continue
-                        results_data_path = os.path.join(upgrade_dir, f"upgrade={upgrade_id}", f'results_up{upgrade_id.zfill(2)}.parquet')
-                        if not os.path.exists(results_data_path):
-                            data = pd.read_parquet(results_data_path, engine="pyarrow")
-                            data.to_parquet(results_data_path)
-                elif self.s3_inpath:
+                if self.s3_inpath is None:
+                    logger.info('The s3 path passed to the constructor is invalid, '
+                                'cannot check for results_up**.parquet files to download')
+                else:
                     s3_path_items = self.s3_inpath.lstrip('s3://').split('/')
                     bucket_name = s3_path_items[0]
                     prfx = '/'.join(s3_path_items[1:])
@@ -219,19 +196,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                             logger.info(f'Downloading: {s3_path}')
                             data = pd.read_parquet(s3_path, engine="pyarrow")
                             data.to_parquet(results_data_path)
-                else: logger.info('The s3 and local paths passed to the constructor is invalid, '
-                                 'cannot check for results_up**.parquet files to download')
 
         # buildstock.csv
         buildstock_csv_path = os.path.join(self.data_dir, self.buildstock_file_name)
         if not os.path.exists(buildstock_csv_path):
-            # try to locate from local path
-            local_buildstock_path = os.path.join(self.local_path, '..', self.buildstock_file_name)
-            if os.path.exists(local_buildstock_path):
-                pd.read_csv(local_buildstock_path).to_csv(buildstock_csv_path)
-            else:
-                raise FileNotFoundError(
-                f'Missing buildstock.csv file. Manually download and place in {os.path.abspath(self.data_dir)}')
+            raise FileNotFoundError(
+            f'Missing buildstock.csv file. Manually download and place in {os.path.abspath(self.data_dir)}')
 
         # EJSCREEN
         ejscreen_data_path = os.path.join(self.truth_data_dir, self.ejscreen_file_name)
