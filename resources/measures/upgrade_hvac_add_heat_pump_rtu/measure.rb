@@ -75,6 +75,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     htg_to_clg_hp_ratio.setDescription('At rated conditions, a compressor will generally have slightly more cooling capacity than heating capacity. This factor integrates this ratio into the unit sizing.')
     args << htg_to_clg_hp_ratio
 
+    # model standard performance hp rtu
+    std_perf = OpenStudio::Measure::OSArgument.makeBoolArgument('std_perf', true)
+    std_perf.setDisplayName('Model standard performance HP RTU?')
+    std_perf.setDefaultValue(false)
+    args << std_perf
+
     # add heat recovery option
     hr = OpenStudio::Measure::OSArgument.makeBoolArgument('hr', true)
     hr.setDisplayName('Add Energy Recovery?')
@@ -168,6 +174,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     htg_sizing_option = runner.getStringArgumentValue('htg_sizing_option', user_arguments)
     clg_oversizing_estimate = runner.getDoubleArgumentValue('clg_oversizing_estimate', user_arguments)
     htg_to_clg_hp_ratio = runner.getDoubleArgumentValue('htg_to_clg_hp_ratio', user_arguments)
+    std_perf = runner.getBoolArgumentValue('std_perf', user_arguments)
     hr = runner.getBoolArgumentValue('hr', user_arguments)
     dcv = runner.getBoolArgumentValue('dcv', user_arguments)
     econ = runner.getBoolArgumentValue('econ', user_arguments)
