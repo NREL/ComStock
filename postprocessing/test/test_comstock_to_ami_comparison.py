@@ -26,7 +26,7 @@ def test_ami_plot_generation():
         color_hex='#0072B2',
         skip_missing_columns=True,
         athena_table_name='ami_comparison',
-        reload_from_csv=True,
+        reload_from_csv=False,
         include_upgrades=False
         )
 
@@ -35,7 +35,7 @@ def test_ami_plot_generation():
         cbecs_year = 2018,
         truth_data_version='v01',
         color_hex='#009E73',
-        reload_from_csv=True
+        reload_from_csv=False
         )
 
     # Scale ComStock run to CBECS 2018 AND remove non-ComStock buildings from CBECS
@@ -49,8 +49,7 @@ def test_ami_plot_generation():
     # AMI
     ami = comstockpostproc.ami.AMI(
         truth_data_version='v01',
-        reload_from_csv=True
+        reload_from_csv=False
         )
-    comstock.download_timeseries_data_for_ami_comparison(ami, reload_from_csv=True)
+    comstock.download_timeseries_data_for_ami_comparison(ami, reload_from_csv=False)
     comparison = comstockpostproc.comstock_to_ami_comparison.ComStockToAMIComparison(comstock, ami, make_comparison_plots=True)
-    # comparison.export_to_csv_wide()
