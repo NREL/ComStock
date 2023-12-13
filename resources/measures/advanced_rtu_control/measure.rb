@@ -85,35 +85,45 @@ class AdvancedRTUControl < OpenStudio::Measure::ModelMeasure
 				component.setSupplyFan(fan) #need to confirm that this worked 
 			 end 
 			 end 
-			 air_loop_hvac.demandComponents.each do |component|
-			     runner.registerInfo("demand component #{component}")
-				 # if ['Diffuser Inlet Air Node'].any? { |word| (component.name.get).include?(word) }
-					# inlet_node = component 
-					# runner.registerInfo("inlet node selected #{component}")
+			 air_loop_hvac.thermalZones.each do |thermal_zone|
+				thermal_zone.equipment.each do |equip|
+				if equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
+					  new_term = OpenStudio::Model::AirTerminalSingleDuctVAVHeatAndCoolNoReheat.new(model)
+					  air_loop_hvac.removeBranchForZone(thermal_zone)
+					  air_loop_hvac.addBranchForZone(thermal_zone, new_term)
+				  # Do something
+				  
+				  #remove branch for zone and add back with terminal 
+			end
+	  end
+	end
+			 # air_loop_hvac.demandComponents.each do |component|
+			     # runner.registerInfo("demand component #{component}")
+				 # # if ['Diffuser Inlet Air Node'].any? { |word| (component.name.get).include?(word) }
+					# # inlet_node = component 
+					# # runner.registerInfo("inlet node selected #{component}")
+				 # # end 
+	 
+				 # if component.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
+				    # new_term = OpenStudio::Model::AirTerminalSingleDuctVAVHeatAndCoolNoReheat.new(model)
+				    # air_loop_hvac.removeBranchForZone() #remove branch + terminal 
+				     # air_loop_hvac.addBranchForZone(zone, new terminal)
+				    # term = component.to_AirTerminalSingleDuctConstantVolumeNoReheat.get
+				    # inlet_node = term.inletModelObject.get.to_Node.get
+					# runner.registerInfo("inlet node selected #{inlet_node}")
+				    
+					# #new_term.addToNode(inlet_node) 
+					# #component.remove()
 				 # end 
-				 if component.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
-				    term = component.to_AirTerminalSingleDuctConstantVolumeNoReheat.get
-				    inlet_node = term.inletModelObject.get.to_Node.get
-					runner.registerInfo("inlet node selected #{inlet_node}")
-				    new_term = OpenStudio::Model::AirTerminalSingleDuctVAVHeatAndCoolNoReheat.new(model)
-					new_term.addToNode(inlet_node) 
-					component.remove()
-				 end 
-				 #diffusers are the object we want to manipulate. 
-				 #could take the new one and instantiate/add to node 
-			 end 
+				 # #diffusers are the object we want to manipulate. 
+				 # #could take the new one and instantiate/add to node 
+			 # end 
 		  end
     end 
 	
-   # model.getThermalZones.sort.each do |thermal_zone|
-          # equip = thermal_zone.equipment 
-		  # runner.registerInfo("#{thermal_zone}'s zone equipment #{equip}")
-		  # runner.registerInfo("#{thermal_zone}'s zone equipment #{equip}")
-		  # if equip[0].get.AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
-		     # runner.registerInfo("single duct CV")
-			 # # replace with AirTerminal:SingleDuct:VAV:HeatAndCool:NoReheat
-		  # end 
-	  # end 
+	  
+	  #include this in earlier loop? add this back in, per andrew 
+
      
 	
 	#need to replace TUs
