@@ -4954,7 +4954,8 @@ ground_thermal_conductivity	0.8	ChangeBuildingLocation	soil_conductivity=0.8
 ground_thermal_conductivity	1.1	ChangeBuildingLocation	soil_conductivity=1.1																																											
 ground_thermal_conductivity	1.4	ChangeBuildingLocation	soil_conductivity=1.4																																											
 ground_thermal_conductivity	1.7	ChangeBuildingLocation	soil_conductivity=1.7																																											
-ground_thermal_conductivity	2	ChangeBuildingLocation	soil_conductivity=2																																											
+ground_thermal_conductivity	2.0	ChangeBuildingLocation	soil_conductivity=2.0
+ground_thermal_conductivity	2	ChangeBuildingLocation	soil_conductivity=2.0																																											
 ground_thermal_conductivity	2.3	ChangeBuildingLocation	soil_conductivity=2.3																																											
 ground_thermal_conductivity	2.6	ChangeBuildingLocation	soil_conductivity=2.6
 env_exterior_wall_insulation	exterior_wall_insulation	upgrade_env_exterior_wall_insulation
