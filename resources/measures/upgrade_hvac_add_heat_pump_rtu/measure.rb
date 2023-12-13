@@ -1274,7 +1274,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       cool_cap_ft1.setMaximumValueofx(100)
       cool_cap_ft1.setMinimumValueofy(-100)
       cool_cap_ft1.setMaximumValueofy(100)
-      # Heating Capacity Function of Temperature Curve - 2
+      # Cooling Capacity Function of Temperature Curve - 2
       cool_cap_ft2 = OpenStudio::Model::CurveBiquadratic.new(model)
       cool_cap_ft2.setName("#{air_loop_hvac.name} cool_cap_ft2")
       cool_cap_ft2.setCoefficient1Constant(-1.07)
@@ -1287,7 +1287,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       cool_cap_ft2.setMaximumValueofx(100)
       cool_cap_ft2.setMinimumValueofy(-100)
       cool_cap_ft2.setMaximumValueofy(100)
-      # Heating Capacity Function of Temperature Curve - 3
+      # Cooling Capacity Function of Temperature Curve - 3
       cool_cap_ft3 = OpenStudio::Model::CurveBiquadratic.new(model)
       cool_cap_ft3.setName("#{air_loop_hvac.name} cool_cap_ft3")
       cool_cap_ft3.setCoefficient1Constant(-0.619499999999998)
@@ -1300,7 +1300,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       cool_cap_ft3.setMaximumValueofx(100)
       cool_cap_ft3.setMinimumValueofy(-100)
       cool_cap_ft3.setMaximumValueofy(100)
-      # Heating Capacity Function of Temperature Curve - 4
+      # Cooling Capacity Function of Temperature Curve - 4
       cool_cap_ft4 = OpenStudio::Model::CurveBiquadratic.new(model)
       cool_cap_ft4.setName("#{air_loop_hvac.name} cool_cap_ft4")
       cool_cap_ft4.setCoefficient1Constant(1.037)
@@ -1314,7 +1314,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       cool_cap_ft4.setMinimumValueofy(-100)
       cool_cap_ft4.setMaximumValueofy(100)
 
-      # Heating Capacity Function of Flow Fraction Curve
+      # Cooling Capacity Function of Flow Fraction Curve
       cool_cap_fff_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
       cool_cap_fff_all_stages.setName("#{air_loop_hvac.name} cool_cap_fff_all_stages")
       cool_cap_fff_all_stages.setCoefficient1Constant(1)
