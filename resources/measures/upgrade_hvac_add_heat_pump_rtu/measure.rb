@@ -1459,7 +1459,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed1.setEvaporativeCondenserEffectiveness(0.9)
       new_dx_cooling_coil_speed1.autosizedEvaporativeCondenserAirFlowRate
       new_dx_cooling_coil_speed1.autosizedRatedEvaporativeCondenserPumpPowerConsumption
-      new_dx_cooling_coil.addStage(new_dx_cooling_coil_speed1) unless ((hash_clg_speed_level_status[1] == false) || (hash_htg_speed_level_status[1] == false))
+      if std_perf
+        new_dx_cooling_coil.addStage(new_dx_cooling_coil_speed1) unless (hash_clg_speed_level_status[1] == false)
+      else
+        new_dx_cooling_coil.addStage(new_dx_cooling_coil_speed1) unless ((hash_clg_speed_level_status[1] == false) || (hash_htg_speed_level_status[1] == false))
+      end
 
       # create stage 2
       new_dx_cooling_coil_speed2 = OpenStudio::Model::CoilCoolingDXMultiSpeedStageData.new(model)
@@ -1479,7 +1483,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed2.setEvaporativeCondenserEffectiveness(0.9)
       new_dx_cooling_coil_speed2.autosizedEvaporativeCondenserAirFlowRate
       new_dx_cooling_coil_speed2.autosizedRatedEvaporativeCondenserPumpPowerConsumption
-      new_dx_cooling_coil.addStage(new_dx_cooling_coil_speed2) unless ((hash_clg_speed_level_status[2] == false) || (hash_htg_speed_level_status[2] == false))
+      if std_perf
+        new_dx_cooling_coil.addStage(new_dx_cooling_coil_speed2) unless (hash_clg_speed_level_status[2] == false)
+      else
+        new_dx_cooling_coil.addStage(new_dx_cooling_coil_speed2) unless ((hash_clg_speed_level_status[2] == false) || (hash_htg_speed_level_status[2] == false))
+      end
 
       # create stage 3
       new_dx_cooling_coil_speed3 = OpenStudio::Model::CoilCoolingDXMultiSpeedStageData.new(model)
@@ -1499,7 +1507,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed3.setEvaporativeCondenserEffectiveness(0.9)
       new_dx_cooling_coil_speed3.autosizedEvaporativeCondenserAirFlowRate
       new_dx_cooling_coil_speed3.autosizedRatedEvaporativeCondenserPumpPowerConsumption
-      new_dx_cooling_coil.addStage(new_dx_cooling_coil_speed3) unless ((hash_clg_speed_level_status[3] == false) || (hash_htg_speed_level_status[3] == false))
+      if std_perf
+        new_dx_cooling_coil.addStage(new_dx_cooling_coil_speed3) unless (hash_clg_speed_level_status[3] == false)
+      else
+        new_dx_cooling_coil.addStage(new_dx_cooling_coil_speed3) unless ((hash_clg_speed_level_status[3] == false) || (hash_htg_speed_level_status[3] == false))
+      end
+
       # create stage 4
       new_dx_cooling_coil_speed4 = OpenStudio::Model::CoilCoolingDXMultiSpeedStageData.new(model)
       new_dx_cooling_coil_speed4.setGrossRatedTotalCoolingCapacity(hash_clg_cap_stgs[4])
@@ -1723,7 +1736,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_heating_coil_speed1.setEnergyInputRatioFunctionofTemperatureCurve(heat_eir_ft1)
       new_dx_heating_coil_speed1.setEnergyInputRatioFunctionofFlowFractionCurve (heat_eir_fff_all_stages)
       new_dx_heating_coil_speed1.setPartLoadFractionCorrelationCurve(heat_plf_fplr_all_stages)
-      new_dx_heating_coil.addStage(new_dx_heating_coil_speed1) unless ((hash_clg_speed_level_status[1] == false) || (hash_htg_speed_level_status[1] == false))
+      if std_perf
+        new_dx_heating_coil.addStage(new_dx_heating_coil_speed1) unless (hash_clg_speed_level_status[1] == false)
+      else
+        new_dx_heating_coil.addStage(new_dx_heating_coil_speed1) unless ((hash_clg_speed_level_status[1] == false) || (hash_htg_speed_level_status[1] == false))
+      end
+
       # create stage 2
       new_dx_heating_coil_speed2 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
       new_dx_heating_coil_speed2.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[2])
@@ -1735,7 +1753,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_heating_coil_speed2.setEnergyInputRatioFunctionofTemperatureCurve(heat_eir_ft2)
       new_dx_heating_coil_speed2.setEnergyInputRatioFunctionofFlowFractionCurve (heat_eir_fff_all_stages)
       new_dx_heating_coil_speed2.setPartLoadFractionCorrelationCurve(heat_plf_fplr_all_stages)
-      new_dx_heating_coil.addStage(new_dx_heating_coil_speed2) unless ((hash_clg_speed_level_status[2] == false) || (hash_htg_speed_level_status[2] == false))
+      if std_perf
+        new_dx_heating_coil.addStage(new_dx_heating_coil_speed2) unless (hash_clg_speed_level_status[2] == false)
+      else
+        new_dx_heating_coil.addStage(new_dx_heating_coil_speed2) unless ((hash_clg_speed_level_status[2] == false) || (hash_htg_speed_level_status[2] == false))
+      end
+
       # create stage 3
       new_dx_heating_coil_speed3 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
       new_dx_heating_coil_speed3.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[3])
@@ -1747,7 +1770,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_heating_coil_speed3.setEnergyInputRatioFunctionofTemperatureCurve(heat_eir_ft3)
       new_dx_heating_coil_speed3.setEnergyInputRatioFunctionofFlowFractionCurve (heat_eir_fff_all_stages)
       new_dx_heating_coil_speed3.setPartLoadFractionCorrelationCurve(heat_plf_fplr_all_stages)
-      new_dx_heating_coil.addStage(new_dx_heating_coil_speed3) unless ((hash_clg_speed_level_status[3] == false) || (hash_htg_speed_level_status[3] == false))
+      if std_perf
+        new_dx_heating_coil.addStage(new_dx_heating_coil_speed3) unless (hash_clg_speed_level_status[3] == false)
+      else
+        new_dx_heating_coil.addStage(new_dx_heating_coil_speed3) unless ((hash_clg_speed_level_status[3] == false) || (hash_htg_speed_level_status[3] == false))
+      end
+      
       # create stage 4
       new_dx_heating_coil_speed4 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
       new_dx_heating_coil_speed4.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[4])
