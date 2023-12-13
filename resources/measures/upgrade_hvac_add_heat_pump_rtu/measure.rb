@@ -630,7 +630,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
       # cooling performance function of fraction of flow: c_cap_high_ff
       c_cap_high_ff = OpenStudio::Model::CurveQuadratic.new(model)
-      c_cap_high_ff.setName("#{air_loop_hvac.name} c_cap_high_ff")
+      c_cap_high_ff.setName("c_cap_high_ff")
       c_cap_high_ff.setCoefficient1Constant(0.7960)
       c_cap_high_ff.setCoefficient2x(0.2081)
       c_cap_high_ff.setCoefficient3xPOW2(0)
@@ -641,7 +641,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
       # cooling performance function of fraction of flow: c_cap_low_ff
       c_cap_low_ff = OpenStudio::Model::CurveQuadratic.new(model)
-      c_cap_low_ff.setName("#{air_loop_hvac.name} c_cap_low_ff")
+      c_cap_low_ff.setName("c_cap_low_ff")
       c_cap_low_ff.setCoefficient1Constant(0.7732)
       c_cap_low_ff.setCoefficient2x(0.2311)
       c_cap_low_ff.setCoefficient3xPOW2(0)
@@ -652,7 +652,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
       # cooling performance function of fraction of flow: c_eir_allstages_ff
       c_eir_allstages_ff = OpenStudio::Model::CurveQuadratic.new(model)
-      c_eir_allstages_ff.setName("#{air_loop_hvac.name} c_eir_allstages_ff")
+      c_eir_allstages_ff.setName("c_eir_allstages_ff")
       c_eir_allstages_ff.setCoefficient1Constant(1.2077)
       c_eir_allstages_ff.setCoefficient2x(-0.2184)
       c_eir_allstages_ff.setCoefficient3xPOW2(0)
@@ -667,7 +667,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
       # heating performance function of fraction of flow: h_cap_allstages_ff
       h_cap_allstages_ff = OpenStudio::Model::CurveQuadratic.new(model)
-      h_cap_allstages_ff.setName("#{air_loop_hvac.name} h_cap_allstages_ff")
+      h_cap_allstages_ff.setName("h_cap_allstages_ff")
       h_cap_allstages_ff.setCoefficient1Constant(0.8322)
       h_cap_allstages_ff.setCoefficient2x(0.1688)
       h_cap_allstages_ff.setCoefficient3xPOW2(0)
@@ -678,7 +678,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       
       # heating performance function of fraction of flow: h_eir_allstages_ff
       h_eir_allstages_ff = OpenStudio::Model::CurveQuadratic.new(model)
-      h_eir_allstages_ff.setName("#{air_loop_hvac.name} h_eir_allstages_ff")
+      h_eir_allstages_ff.setName("h_eir_allstages_ff")
       h_eir_allstages_ff.setCoefficient1Constant(1.5880)
       h_eir_allstages_ff.setCoefficient2x(-0.6012)
       h_eir_allstages_ff.setCoefficient3xPOW2(0)
@@ -687,6 +687,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       h_eir_allstages_ff.setMinimumCurveOutput(0)
       h_eir_allstages_ff.setMaximumCurveOutput(1.4)
     end  
+
+    puts("### DEBUGGING: h_eir_allstages_ff = #{h_eir_allstages_ff}")
 
     # # make list of dummy heating coils; these are used to determine actual heating load, but need to be deleted later
     # li_dummy_htg_coils = []
