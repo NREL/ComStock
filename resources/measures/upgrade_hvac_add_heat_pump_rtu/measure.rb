@@ -1093,9 +1093,15 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       end
       ### Cooling
       # define cooling stages; 40% to 100%, equally spaced; fractions from ResStock Reference file
+      # overriding 0.67 (value for stage3) to 0.61 (average of standard performance products) for modeling standard performance
+      if std_perf
+        stage3_factor = 0.61
+      else
+        stage3_factor = 0.67
+      end
       clg_stage1 = dx_rated_clg_cap_applied * 0.36
       clg_stage2 = dx_rated_clg_cap_applied * 0.51
-      clg_stage3 = dx_rated_clg_cap_applied * 0.67
+      clg_stage3 = dx_rated_clg_cap_applied * stage3_factor
       clg_stage4 = dx_rated_clg_cap_applied
       hash_clg_cap_stgs = {1 => clg_stage1, 2 => clg_stage2, 3 => clg_stage3, 4 => clg_stage4}
 
@@ -1240,6 +1246,17 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # puts hash_htg_airflow_stgs
       # puts hash_htg_speed_level_status
       #################################### End Sizing Logic
+
+      # override stage configuration for modeling standard performance
+      if std_perf
+        # set single stage for heating
+        hash_htg_speed_level_status[1] = false
+        hash_htg_speed_level_status[2] = false
+        hash_htg_speed_level_status[3] = false
+        # set two stages for cooling
+        hash_clg_speed_level_status[1] = false
+        hash_clg_speed_level_status[2] = false
+      end
 
       ################################### Cooling Performance Curves
       # define performance curves
