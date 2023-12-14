@@ -104,6 +104,7 @@ class DispatchScheduleGeneration < OpenStudio::Measure::ModelMeasure
     peak_len = runner.getIntegerArgumentValue("peak_len",user_arguments)
     rebound_len = runner.getIntegerArgumentValue("rebound_len",user_arguments)
     output_path = runner.getStringArgumentValue("output_path",user_arguments)
+    sample_num_timesteps_in_hr = runner.getIntegerArgumentValue("sample_num_timesteps_in_hr",user_arguments)
 
     ### Functions
     ### convert day of year to month-day date ######################### NEED TO ADD FUNCTIONALITY OF DEALING WITH LEAP YEAR
