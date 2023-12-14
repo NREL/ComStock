@@ -82,6 +82,11 @@ class DispatchScheduleGeneration < OpenStudio::Measure::ModelMeasure
     output_path.setDefaultValue("../outputs/output.csv")
     args << output_path
 
+    sample_num_timesteps_in_hr = OpenStudio::Measure::OSArgument.makeIntegerArgument('sample_num_timesteps_in_hr', true)
+    sample_num_timesteps_in_hr.setDisplayName("Number/Count of timesteps in an hour for sample simulations")
+    sample_num_timesteps_in_hr.setDefaultValue(4)
+    args << sample_num_timesteps_in_hr
+
     return args
   end
 
