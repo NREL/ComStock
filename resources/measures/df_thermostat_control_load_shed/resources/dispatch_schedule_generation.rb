@@ -107,148 +107,148 @@ def create_binsamples(oat)
   # tempbins = {'ext-hot' => [], 'hot' => [], 'mild' => [], 'cool-mild' => [], 'cool' => [], 'cold' => []}
   # hourbins = {'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => []}
   combbins = {
+    'ext-hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+    'hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+    'mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+    'cool-mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+    'cool' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+    'cold' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] }
+  }
+  selectdays = {
   'ext-hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
   'hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
   'mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
   'cool-mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
   'cool' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
   'cold' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] }
-}
-selectdays = {
-'ext-hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-'hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-'mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-'cool-mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-'cool' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-'cold' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] }
-}
+  }
 
-### NEED TO ADJUST FOR LEAP YEAR 
-(0..364).each do |d|
-  # daystats[d] = {
-  #   'day' => d + 1,
-  #   'OATmax' => Xday[Xday.index.day_of_year == d + 1]['OAT'].max,
-  #   'OATmaxhour' => Xday[Xday.index.day_of_year == d + 1]['OAT'].index(Xday[Xday.index.day_of_year == d + 1]['OAT'].max),
-  #   'OATmin' => Xday[Xday.index.day_of_year == d + 1]['OAT'].min,
-  #   'OATmean' => Xday[Xday.index.day_of_year == d + 1]['OAT'].mean,
-  #   'OATstd' => Xday[Xday.index.day_of_year == d + 1]['OAT'].std,
-  #   'OATmed' => Xday[Xday.index.day_of_year == d + 1]['OAT'].median,
-  # }
-  oatmax = oat[24*d..24*(d+1)-1].max
-  oatmaxind = oat[24*d..24*(d+1)-1].index(oat[24*d..24*(d+1)-1].max)
-  
-  if oatmax >= 32.0
-    # tempbins['ext-hot'] << d+1
-    if (oatmaxind >= 9.0) && (oatmaxind <= 11.0)
-      combbins['ext-hot']['morning'] << d+1
-    elsif (oatmaxind > 11.0) && (oatmaxind <= 14.0)
-      combbins['ext-hot']['noon'] << d+1
-    elsif (oatmaxind > 14.0) && (oatmaxind <= 15.0)
-      combbins['ext-hot']['afternoon'] << d+1
-    elsif (oatmaxind > 15.0) && (oatmaxind <= 17.0)
-      combbins['ext-hot']['late-afternoon'] << d+1
-    elsif (oatmaxind > 17.0) && (oatmaxind <= 20.0)
-      combbins['ext-hot']['evening'] << d+1
+  ### NEED TO ADJUST FOR LEAP YEAR 
+  (0..364).each do |d|
+    # daystats[d] = {
+    #   'day' => d + 1,
+    #   'OATmax' => Xday[Xday.index.day_of_year == d + 1]['OAT'].max,
+    #   'OATmaxhour' => Xday[Xday.index.day_of_year == d + 1]['OAT'].index(Xday[Xday.index.day_of_year == d + 1]['OAT'].max),
+    #   'OATmin' => Xday[Xday.index.day_of_year == d + 1]['OAT'].min,
+    #   'OATmean' => Xday[Xday.index.day_of_year == d + 1]['OAT'].mean,
+    #   'OATstd' => Xday[Xday.index.day_of_year == d + 1]['OAT'].std,
+    #   'OATmed' => Xday[Xday.index.day_of_year == d + 1]['OAT'].median,
+    # }
+    oatmax = oat[24*d..24*(d+1)-1].max
+    oatmaxind = oat[24*d..24*(d+1)-1].index(oat[24*d..24*(d+1)-1].max)
+    
+    if oatmax >= 32.0
+      # tempbins['ext-hot'] << d+1
+      if (oatmaxind >= 9.0) && (oatmaxind <= 11.0)
+        combbins['ext-hot']['morning'] << d+1
+      elsif (oatmaxind > 11.0) && (oatmaxind <= 14.0)
+        combbins['ext-hot']['noon'] << d+1
+      elsif (oatmaxind > 14.0) && (oatmaxind <= 15.0)
+        combbins['ext-hot']['afternoon'] << d+1
+      elsif (oatmaxind > 15.0) && (oatmaxind <= 17.0)
+        combbins['ext-hot']['late-afternoon'] << d+1
+      elsif (oatmaxind > 17.0) && (oatmaxind <= 20.0)
+        combbins['ext-hot']['evening'] << d+1
+      else
+        combbins['ext-hot']['other'] << d+1
+      end
+    elsif oatmax >= 30.0
+      # tempbins['hot'] << d+1
+      if (oatmaxind >= 9.0) && (oatmaxind <= 11.0)
+        combbins['hot']['morning'] << d+1
+      elsif (oatmaxind > 11.0) && (oatmaxind <= 14.0)
+        combbins['hot']['noon'] << d+1
+      elsif (oatmaxind > 14.0) && (oatmaxind <= 15.0)
+        combbins['hot']['afternoon'] << d+1
+      elsif (oatmaxind > 15.0) && (oatmaxind <= 17.0)
+        combbins['hot']['late-afternoon'] << d+1
+      elsif (oatmaxind > 17.0) && (oatmaxind <= 20.0)
+        combbins['hot']['evening'] << d+1
+      else
+        combbins['hot']['other'] << d+1
+      end
+    elsif oatmax >= 26.0
+      # tempbins['mild'] << d+1
+      if (oatmaxind >= 9.0) && (oatmaxind <= 11.0)
+        combbins['mild']['morning'] << d+1
+      elsif (oatmaxind > 11.0) && (oatmaxind <= 14.0)
+        combbins['mild']['noon'] << d+1
+      elsif (oatmaxind > 14.0) && (oatmaxind <= 15.0)
+        combbins['mild']['afternoon'] << d+1
+      elsif (oatmaxind > 15.0) && (oatmaxind <= 17.0)
+        combbins['mild']['late-afternoon'] << d+1
+      elsif (oatmaxind > 17.0) && (oatmaxind <= 20.0)
+        combbins['mild']['evening'] << d+1
+      else
+        combbins['mild']['other'] << d+1
+      end
+    elsif oatmax >= 20.0
+      # tempbins['cool-mild'] << d+1
+      if (oatmaxind >= 9.0) && (oatmaxind <= 11.0)
+        combbins['cool-mild']['morning'] << d+1
+      elsif (oatmaxind > 11.0) && (oatmaxind <= 14.0)
+        combbins['cool-mild']['noon'] << d+1
+      elsif (oatmaxind > 14.0) && (oatmaxind <= 15.0)
+        combbins['cool-mild']['afternoon'] << d+1
+      elsif (oatmaxind > 15.0) && (oatmaxind <= 17.0)
+        combbins['cool-mild']['late-afternoon'] << d+1
+      elsif (oatmaxind > 17.0) && (oatmaxind <= 20.0)
+        combbins['cool-mild']['evening'] << d+1
+      else
+        combbins['cool-mild']['other'] << d+1
+      end
+    elsif oatmax >= 15.0
+      # tempbins['cool'] << d+1
+      if (oatmaxind >= 9.0) && (oatmaxind <= 11.0)
+        combbins['cool']['morning'] << d+1
+      elsif (oatmaxind > 11.0) && (oatmaxind <= 14.0)
+        combbins['cool']['noon'] << d+1
+      elsif (oatmaxind > 14.0) && (oatmaxind <= 15.0)
+        combbins['cool']['afternoon'] << d+1
+      elsif (oatmaxind > 15.0) && (oatmaxind <= 17.0)
+        combbins['cool']['late-afternoon'] << d+1
+      elsif (oatmaxind > 17.0) && (oatmaxind <= 20.0)
+        combbins['cool']['evening'] << d+1
+      else
+        combbins['cool']['other'] << d+1
+      end
     else
-      combbins['ext-hot']['other'] << d+1
-    end
-  elsif oatmax >= 30.0
-    # tempbins['hot'] << d+1
-    if (oatmaxind >= 9.0) && (oatmaxind <= 11.0)
-      combbins['hot']['morning'] << d+1
-    elsif (oatmaxind > 11.0) && (oatmaxind <= 14.0)
-      combbins['hot']['noon'] << d+1
-    elsif (oatmaxind > 14.0) && (oatmaxind <= 15.0)
-      combbins['hot']['afternoon'] << d+1
-    elsif (oatmaxind > 15.0) && (oatmaxind <= 17.0)
-      combbins['hot']['late-afternoon'] << d+1
-    elsif (oatmaxind > 17.0) && (oatmaxind <= 20.0)
-      combbins['hot']['evening'] << d+1
-    else
-      combbins['hot']['other'] << d+1
-    end
-  elsif oatmax >= 26.0
-    # tempbins['mild'] << d+1
-    if (oatmaxind >= 9.0) && (oatmaxind <= 11.0)
-      combbins['mild']['morning'] << d+1
-    elsif (oatmaxind > 11.0) && (oatmaxind <= 14.0)
-      combbins['mild']['noon'] << d+1
-    elsif (oatmaxind > 14.0) && (oatmaxind <= 15.0)
-      combbins['mild']['afternoon'] << d+1
-    elsif (oatmaxind > 15.0) && (oatmaxind <= 17.0)
-      combbins['mild']['late-afternoon'] << d+1
-    elsif (oatmaxind > 17.0) && (oatmaxind <= 20.0)
-      combbins['mild']['evening'] << d+1
-    else
-      combbins['mild']['other'] << d+1
-    end
-  elsif oatmax >= 20.0
-    # tempbins['cool-mild'] << d+1
-    if (oatmaxind >= 9.0) && (oatmaxind <= 11.0)
-      combbins['cool-mild']['morning'] << d+1
-    elsif (oatmaxind > 11.0) && (oatmaxind <= 14.0)
-      combbins['cool-mild']['noon'] << d+1
-    elsif (oatmaxind > 14.0) && (oatmaxind <= 15.0)
-      combbins['cool-mild']['afternoon'] << d+1
-    elsif (oatmaxind > 15.0) && (oatmaxind <= 17.0)
-      combbins['cool-mild']['late-afternoon'] << d+1
-    elsif (oatmaxind > 17.0) && (oatmaxind <= 20.0)
-      combbins['cool-mild']['evening'] << d+1
-    else
-      combbins['cool-mild']['other'] << d+1
-    end
-  elsif oatmax >= 15.0
-    # tempbins['cool'] << d+1
-    if (oatmaxind >= 9.0) && (oatmaxind <= 11.0)
-      combbins['cool']['morning'] << d+1
-    elsif (oatmaxind > 11.0) && (oatmaxind <= 14.0)
-      combbins['cool']['noon'] << d+1
-    elsif (oatmaxind > 14.0) && (oatmaxind <= 15.0)
-      combbins['cool']['afternoon'] << d+1
-    elsif (oatmaxind > 15.0) && (oatmaxind <= 17.0)
-      combbins['cool']['late-afternoon'] << d+1
-    elsif (oatmaxind > 17.0) && (oatmaxind <= 20.0)
-      combbins['cool']['evening'] << d+1
-    else
-      combbins['cool']['other'] << d+1
-    end
-  else
-    # tempbins['cold'] << d+1
-    if (oatmaxind >= 9.0) && (oatmaxind <= 11.0)
-      combbins['cold']['morning'] << d+1
-    elsif (oatmaxind > 11.0) && (oatmaxind <= 14.0)
-      combbins['cold']['noon'] << d+1
-    elsif (oatmaxind > 14.0) && (oatmaxind <= 15.0)
-      combbins['cold']['afternoon'] << d+1
-    elsif (oatmaxind > 15.0) && (oatmaxind <= 17.0)
-      combbins['cold']['late-afternoon'] << d+1
-    elsif (oatmaxind > 17.0) && (oatmaxind <= 20.0)
-      combbins['cold']['evening'] << d+1
-    else
-      combbins['cold']['other'] << d+1
+      # tempbins['cold'] << d+1
+      if (oatmaxind >= 9.0) && (oatmaxind <= 11.0)
+        combbins['cold']['morning'] << d+1
+      elsif (oatmaxind > 11.0) && (oatmaxind <= 14.0)
+        combbins['cold']['noon'] << d+1
+      elsif (oatmaxind > 14.0) && (oatmaxind <= 15.0)
+        combbins['cold']['afternoon'] << d+1
+      elsif (oatmaxind > 15.0) && (oatmaxind <= 17.0)
+        combbins['cold']['late-afternoon'] << d+1
+      elsif (oatmaxind > 17.0) && (oatmaxind <= 20.0)
+        combbins['cold']['evening'] << d+1
+      else
+        combbins['cold']['other'] << d+1
+      end
     end
   end
-end
 
-ns = 0
-combbins.keys.each do |key|
-  # puts key
-  combbins[key].keys.each do |keykey|
-    # puts keykey
-    # puts combbins[key][keykey].length
-    if combbins[key][keykey].length > 14
-      selectdays[key][keykey] = combbins[key][keykey].sample(3)
-      ns += 3
-    elsif combbins[key][keykey].length > 7
-      selectdays[key][keykey] = combbins[key][keykey].sample(2)
-      ns += 2
-    elsif combbins[key][keykey].length > 0
-      selectdays[key][keykey] = combbins[key][keykey].sample(1)
-      ns += 1
+  ns = 0
+  combbins.keys.each do |key|
+    # puts key
+    combbins[key].keys.each do |keykey|
+      # puts keykey
+      # puts combbins[key][keykey].length
+      if combbins[key][keykey].length > 14
+        selectdays[key][keykey] = combbins[key][keykey].sample(3)
+        ns += 3
+      elsif combbins[key][keykey].length > 7
+        selectdays[key][keykey] = combbins[key][keykey].sample(2)
+        ns += 2
+      elsif combbins[key][keykey].length > 0
+        selectdays[key][keykey] = combbins[key][keykey].sample(1)
+        ns += 1
+      end
     end
   end
-end
-return combbins, selectdays, ns
+  return combbins, selectdays, ns
 end
 
 ### run simulation on selected day of year
@@ -398,48 +398,49 @@ end
 ### run simulation on all sample days of year
 def run_samples(model, year, selectdays)
   y_seed = {
-  'ext-hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  'hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  'mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  'cool-mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  'cool' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  'cold' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] }
-}
+    'ext-hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+    'hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+    'mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+    'cool-mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+    'cool' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+    'cold' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] }
+  }
 
-run_time = 0
-selectdays.keys.each do |key|
-  selectdays[key].keys.each do |keykey|
-    puts key, keykey
-    ns = selectdays[key][keykey].length.to_f
-    puts "Number of samples: #{ns}"
-    selectdays[key][keykey].each do |doy|
-      start_time = Time.now
-      puts "Simulation on day of year: #{doy}"
-      yd = model_run_simulation_on_doy(model, year, doy)
-      # puts yd
-      if ns == 1
-        y_seed[key][keykey] = yd
-      elsif ns > 1
-        if y_seed[key][keykey] == []
-          y_seed[key][keykey] = yd.map { |a| a/ns }
-        else
-          y_seed[key][keykey] = yd.zip(y_seed[key][keykey]).map { |a, b| (a/ns+b) }
+  run_time = 0
+  selectdays.keys.each do |key|
+    selectdays[key].keys.each do |keykey|
+      puts key, keykey
+      ns = selectdays[key][keykey].length.to_f
+      puts "Number of samples: #{ns}"
+      selectdays[key][keykey].each do |doy|
+        start_time = Time.now
+        puts "Simulation on day of year: #{doy}"
+        yd = model_run_simulation_on_doy(model, year, doy)
+        puts("--- yd = #{yd}")
+        # puts yd
+        if ns == 1
+          y_seed[key][keykey] = yd
+        elsif ns > 1
+          if y_seed[key][keykey] == []
+            y_seed[key][keykey] = yd.map { |a| a/ns }
+          else
+            y_seed[key][keykey] = yd.zip(y_seed[key][keykey]).map { |a, b| (a/ns+b) }
+          end
         end
+        end_time = Time.now
+        run_time += end_time - start_time
+        puts "Script execution time: #{end_time - start_time} seconds"
+        # y_seed[key][keykey] = yd / selectdays[key][keykey].length.to_f
+        # puts y_seed[key][keykey]
+        # break
       end
-      end_time = Time.now
-      run_time += end_time - start_time
-      puts "Script execution time: #{end_time - start_time} seconds"
-      # y_seed[key][keykey] = yd / selectdays[key][keykey].length.to_f
-      # puts y_seed[key][keykey]
       # break
+      # puts y_seed[key][keykey]
     end
     # break
-    # puts y_seed[key][keykey]
   end
-  # break
-end
-puts "Run time for sample simulation run: #{run_time} seconds"
-return y_seed
+  puts "Run time for sample simulation run: #{run_time} seconds"
+  return y_seed
 end
 
 ### populate load profile of samples to all days based on bins
