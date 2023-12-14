@@ -5,6 +5,7 @@ from .cbecs import CBECS
 from .eia import EIA
 from .comstock_to_cbecs_comparison import ComStockToCBECSComparison
 from .comstock_measure_comparison import ComStockMeasureComparison
+from .comstock_to_eia_comparison import ComStockToEIAComparison
 from .resstock import ResStock
 from .utils.hpc import *
 
