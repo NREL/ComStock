@@ -86,7 +86,7 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
 
     sample_num_timesteps_in_hr = OpenStudio::Measure::OSArgument.makeIntegerArgument('sample_num_timesteps_in_hr', true)
     sample_num_timesteps_in_hr.setDisplayName("Number/Count of timesteps in an hour for sample simulations")
-    sample_num_timesteps_in_hr.setDefaultValue(4)
+    sample_num_timesteps_in_hr.setDefaultValue(1)
     args << sample_num_timesteps_in_hr
 
     return args
@@ -119,7 +119,7 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     puts("### Reading weather file...")
     year, oat = read_epw(weather_file)
     puts("--- year = #{year}")
-    puts("--- oat = #{year}")
+    puts("--- oat = #{oat}")
     puts("--- Weather file read!")
 
     puts("### ============================================================")
@@ -131,7 +131,7 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
 
     puts("### ============================================================")
     puts("### Running simulation on samples...")
-    y_seed = run_samples(model, year, selectdays)
+    y_seed = run_samples(model, year, selectdays, sample_num_timesteps_in_hr)
     puts("--- y_seed = #{y_seed}")
 
     puts("### ============================================================")
