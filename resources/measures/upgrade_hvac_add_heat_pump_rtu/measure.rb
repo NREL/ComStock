@@ -366,6 +366,82 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     dcv = runner.getBoolArgumentValue('dcv', user_arguments)
     econ = runner.getBoolArgumentValue('econ', user_arguments)
 
+    # # adding output variables (for debugging)
+    # ov = OpenStudio::Model::OutputVariable.new('ov', model)
+    # ov.setKeyValue('*')
+    # ov.setReportingFrequency('timestep')
+    # ov.setVariableName('Air System Mixed Air Mass Flow Rate')
+
+    # ov = OpenStudio::Model::OutputVariable.new('ov', model)
+    # ov.setKeyValue('*')
+    # ov.setReportingFrequency('timestep')
+    # ov.setVariableName('Fan Air Mass Flow Rate')
+
+    # ov = OpenStudio::Model::OutputVariable.new('ov', model)
+    # ov.setKeyValue('*')
+    # ov.setReportingFrequency('timestep')
+    # ov.setVariableName('Cooling Coil Total Cooling Rate')
+
+    # ov = OpenStudio::Model::OutputVariable.new('ov', model)
+    # ov.setKeyValue('*')
+    # ov.setReportingFrequency('timestep')
+    # ov.setVariableName('Cooling Coil Electricity Rate')
+
+    # ov = OpenStudio::Model::OutputVariable.new('ov', model)
+    # ov.setKeyValue('*')
+    # ov.setReportingFrequency('timestep')
+    # ov.setVariableName('Cooling Coil Runtime Fraction')
+
+    # ov = OpenStudio::Model::OutputVariable.new('ov', model)
+    # ov.setKeyValue('*')
+    # ov.setReportingFrequency('timestep')
+    # ov.setVariableName('Heating Coil Heating Rate')
+
+    # ov = OpenStudio::Model::OutputVariable.new('ov', model)
+    # ov.setKeyValue('*')
+    # ov.setReportingFrequency('timestep')
+    # ov.setVariableName('Heating Coil Electricity Rate')
+
+    # ov = OpenStudio::Model::OutputVariable.new('ov', model)
+    # ov.setKeyValue('*')
+    # ov.setReportingFrequency('timestep')
+    # ov.setVariableName('Heating Coil Runtime Fraction')
+
+    # ov = OpenStudio::Model::OutputVariable.new('ov', model)
+    # ov.setKeyValue('*')
+    # ov.setReportingFrequency('timestep')
+    # ov.setVariableName('Unitary System DX Coil Cycling Ratio')
+
+    # ov = OpenStudio::Model::OutputVariable.new('ov', model)
+    # ov.setKeyValue('*')
+    # ov.setReportingFrequency('timestep')
+    # ov.setVariableName('Unitary System DX Coil Speed Ratio')
+
+    # ov = OpenStudio::Model::OutputVariable.new('ov', model)
+    # ov.setKeyValue('*')
+    # ov.setReportingFrequency('timestep')
+    # ov.setVariableName('Unitary System DX Coil Speed Level')
+
+    # ov = OpenStudio::Model::OutputVariable.new('ov', model)
+    # ov.setKeyValue('*')
+    # ov.setReportingFrequency('timestep')
+    # ov.setVariableName('Unitary System Total Cooling Rate')
+
+    # ov = OpenStudio::Model::OutputVariable.new('ov', model)
+    # ov.setKeyValue('*')
+    # ov.setReportingFrequency('timestep')
+    # ov.setVariableName('Unitary System Total Heating Rate')
+
+    # ov = OpenStudio::Model::OutputVariable.new('ov', model)
+    # ov.setKeyValue('*')
+    # ov.setReportingFrequency('timestep')
+    # ov.setVariableName('Unitary System Electricity Rate')
+
+    # ov = OpenStudio::Model::OutputVariable.new('ov', model)
+    # ov.setKeyValue('*')
+    # ov.setReportingFrequency('timestep')
+    # ov.setVariableName('Unitary System Ancillary Electricity Rate')    
+
     # build standard to use OS standards methods
     template = 'ComStock 90.1-2019'
     std = Standard.build(template)
