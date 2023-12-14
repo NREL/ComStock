@@ -36,6 +36,9 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # *******************************************************************************
 
+# require all .rb files in resources folder
+Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }
+
 require 'openstudio'
 require 'date'
 require 'openstudio-standards'
