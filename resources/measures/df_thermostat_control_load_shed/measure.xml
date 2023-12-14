@@ -1,0 +1,169 @@
+<?xml version="1.0"?>
+<measure>
+  <schema_version>3.1</schema_version>
+  <name>df_thermostat_control_load_shed</name>
+  <uid>0fdd58b3-9943-40b9-a47f-3db37228b200</uid>
+  <version_id>1980d792-5d30-4920-8ca8-4d818489fad9</version_id>
+  <version_modified>2023-12-14T19:36:28Z</version_modified>
+  <xml_checksum>DE3258BC</xml_checksum>
+  <class_name>DfThermostatControlLoadShed</class_name>
+  <display_name>df thermostat control load shed</display_name>
+  <description>tbd</description>
+  <modeler_description>tbd</modeler_description>
+  <arguments>
+    <argument>
+      <name>input_path</name>
+      <display_name>Path to weather file (epw)</display_name>
+      <type>String</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>C:/Users/jxiong/Documents/GitHub/ComStock/resources/measures/dispatch_schedule_generation/tests/in.epw</default_value>
+    </argument>
+    <argument>
+      <name>peak_len</name>
+      <display_name>Length of dispatch window (hour)</display_name>
+      <type>Integer</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>4</default_value>
+    </argument>
+    <argument>
+      <name>rebound_len</name>
+      <display_name>Length of rebound period after dispatch window (hour)</display_name>
+      <type>Integer</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>2</default_value>
+    </argument>
+    <argument>
+      <name>output_path</name>
+      <display_name>Path to output data CSV. INCLUDE .CSV EXTENSION</display_name>
+      <type>String</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>../outputs/output.csv</default_value>
+    </argument>
+    <argument>
+      <name>sample_num_timesteps_in_hr</name>
+      <display_name>Number/Count of timesteps in an hour for sample simulations</display_name>
+      <type>Integer</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>4</default_value>
+    </argument>
+  </arguments>
+  <outputs />
+  <provenances />
+  <tags>
+    <tag>Whole Building.Whole Building Schedules</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Language</name>
+      <value>Ruby</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>LICENSE.md</filename>
+      <filetype>md</filetype>
+      <usage_type>license</usage_type>
+      <checksum>CD7F5672</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>D5312CEF</checksum>
+    </file>
+    <file>
+      <filename>README.md.erb</filename>
+      <filetype>erb</filetype>
+      <usage_type>readmeerb</usage_type>
+      <checksum>F1C26127</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>3.5.1</identifier>
+        <min_compatible>3.5.1</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>2227C469</checksum>
+    </file>
+    <file>
+      <filename>dispatch_schedule_generation.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>00000000</checksum>
+    </file>
+    <file>
+      <filename>df_thermostat_control_load_shed_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>24E7326E</checksum>
+    </file>
+    <file>
+      <filename>in/files/in.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>8CECDBED</checksum>
+    </file>
+    <file>
+      <filename>in/workflow.osw</filename>
+      <filetype>osw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>E3CAA8C5</checksum>
+    </file>
+    <file>
+      <filename>in.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>8CECDBED</checksum>
+    </file>
+    <file>
+      <filename>in.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>C41609FA</checksum>
+    </file>
+  </files>
+</measure>
