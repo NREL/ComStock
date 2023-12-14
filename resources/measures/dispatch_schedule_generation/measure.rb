@@ -36,9 +36,6 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # *******************************************************************************
 
-# see the URL below for information on how to write OpenStudio measures
-# http://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/
-
 require 'openstudio'
 require 'date'
 require 'openstudio-standards'
@@ -90,7 +87,7 @@ class DispatchScheduleGeneration < OpenStudio::Measure::ModelMeasure
 
   # define what happens when the measure is run
   def run(model, runner, user_arguments)
-    super(model, runner, user_arguments)  # Do **NOT** remove this line
+    super(model, runner, user_arguments)
 
     # use the built-in error checking
     if !runner.validateUserArguments(arguments(model), user_arguments)
