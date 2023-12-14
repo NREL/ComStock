@@ -366,7 +366,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     dcv = runner.getBoolArgumentValue('dcv', user_arguments)
     econ = runner.getBoolArgumentValue('econ', user_arguments)
 
-    # # adding output variables (for debugging)
+    # adding output variables (for debugging)
     # ov = OpenStudio::Model::OutputVariable.new('ov', model)
     # ov.setKeyValue('*')
     # ov.setReportingFrequency('timestep')
@@ -547,7 +547,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     oa_ration_allowance = 0.55
     selected_air_loops.each do |air_loop_hvac|
 
-      puts air_loop_hvac.name
+      # puts air_loop_hvac.name
 
       thermal_zone = air_loop_hvac.thermalZones[0]
 
@@ -1172,6 +1172,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # overriding 0.67 (value for stage3) to 0.61 (average of standard performance products) for modeling standard performance
       if std_perf
         stage3_factor = 0.61
+        runner.registerInfo("--- for air loop (#{air_loop_hvac.name}), overriding stage 3 factor to #{stage3_factor} for modeling standard performance.")
       else
         stage3_factor = 0.67
       end
@@ -1366,7 +1367,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # Cooling Capacity Function of Temperature Curve - 3
       if std_perf
         cool_cap_ft3 = c_cap_low_T
-        puts("### DEBUGGING: overriding for modeling standard performance: cool_cap_ft3.name = #{cool_cap_ft3.name}")
+        runner.registerInfo("--- for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: cool_cap_ft3.name = #{cool_cap_ft3.name}")
       else
         cool_cap_ft3 = OpenStudio::Model::CurveBiquadratic.new(model)
         cool_cap_ft3.setName("#{air_loop_hvac.name} cool_cap_ft3")
@@ -1384,7 +1385,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # Cooling Capacity Function of Temperature Curve - 4
       if std_perf
         cool_cap_ft4 = c_cap_high_T
-        puts("### DEBUGGING: overriding for modeling standard performance: cool_cap_ft4.name = #{cool_cap_ft4.name}")
+        runner.registerInfo("--- for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: cool_cap_ft4.name = #{cool_cap_ft4.name}")
       else
         cool_cap_ft4 = OpenStudio::Model::CurveBiquadratic.new(model)
         cool_cap_ft4.setName("#{air_loop_hvac.name} cool_cap_ft4")
@@ -1403,7 +1404,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # Cooling Capacity Function of Flow Fraction Curve
       if std_perf
         cool_cap_fff_all_stages = c_cap_high_ff
-        puts("### DEBUGGING: overriding for modeling standard performance: cool_cap_fff_all_stages.name = #{cool_cap_fff_all_stages.name}")
+        runner.registerInfo("--- for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: cool_cap_fff_all_stages.name = #{cool_cap_fff_all_stages.name}")
       else
         cool_cap_fff_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
         cool_cap_fff_all_stages.setName("#{air_loop_hvac.name} cool_cap_fff_all_stages")
@@ -1445,7 +1446,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # Energy Input Ratio Function of Temperature Curve - 3
       if std_perf
         cool_eir_ft3 = c_eir_allstages_T
-        puts("### DEBUGGING: overriding for modeling standard performance: cool_eir_ft3.name = #{cool_eir_ft3.name}")
+        runner.registerInfo("--- for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: cool_eir_ft3.name = #{cool_eir_ft3.name}")
       else
         cool_eir_ft3 = OpenStudio::Model::CurveBiquadratic.new(model)
         cool_eir_ft3.setName("#{air_loop_hvac.name} cool_eir_ft3")
@@ -1463,7 +1464,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # Energy Input Ratio Function of Temperature Curve - 4
       if std_perf
         cool_eir_ft4 = c_eir_allstages_T
-        puts("### DEBUGGING: overriding for modeling standard performance: cool_eir_ft4.name = #{cool_eir_ft4.name}")
+        runner.registerInfo("--- for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: cool_eir_ft4.name = #{cool_eir_ft4.name}")
       else
         cool_eir_ft4 = OpenStudio::Model::CurveBiquadratic.new(model)
         cool_eir_ft4.setName("#{air_loop_hvac.name} cool_eir_ft4")
@@ -1482,7 +1483,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # Energy Input Ratio Function of Flow Fraction Curve
       if std_perf
         cool_eir_fff_all_stages = c_eir_allstages_ff
-        puts("### DEBUGGING: overriding for modeling standard performance: cool_eir_fff_all_stages.name = #{cool_eir_fff_all_stages.name}")
+        runner.registerInfo("--- for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: cool_eir_fff_all_stages.name = #{cool_eir_fff_all_stages.name}")
       else
         cool_eir_fff_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
         cool_eir_fff_all_stages.setName("#{air_loop_hvac.name} cool_eir_fff")
@@ -1669,7 +1670,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # Heating Capacity Function of Temperature Curve - 4
       if std_perf
         heat_cap_ft4 = h_cap_allstages_T
-        puts("### DEBUGGING: overriding for modeling standard performance: heat_cap_ft4.name = #{heat_cap_ft4.name}")
+        runner.registerInfo("--- for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: heat_cap_ft4.name = #{heat_cap_ft4.name}")
       else
         heat_cap_ft4 = OpenStudio::Model::CurveBiquadratic.new(model)
         heat_cap_ft4.setName("#{air_loop_hvac.name} heat_cap_ft4")
@@ -1688,7 +1689,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # Heating Capacity Function of Flow Fraction Curve
       if std_perf
         heat_cap_fff_all_stages = h_cap_allstages_ff
-        puts("### DEBUGGING: overriding for modeling standard performance: heat_cap_fff_all_stages.name = #{heat_cap_fff_all_stages.name}")
+        runner.registerInfo("--- for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: heat_cap_fff_all_stages.name = #{heat_cap_fff_all_stages.name}")
       else
         heat_cap_fff_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
         heat_cap_fff_all_stages.setName("#{air_loop_hvac.name} heat_cap_fff_all_stages")
@@ -1743,7 +1744,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # Energy Input Ratio Function of Temperature Curve - 4
       if std_perf
         heat_eir_ft4 = h_eir_allstages_T
-        puts("### DEBUGGING: overriding for modeling standard performance: heat_eir_ft4.name = #{heat_eir_ft4.name}")
+        runner.registerInfo("--- for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: heat_eir_ft4.name = #{heat_eir_ft4.name}")
       else
         heat_eir_ft4 = OpenStudio::Model::CurveBiquadratic.new(model)
         heat_eir_ft4.setName("#{air_loop_hvac.name} heat_eir_ft4")
@@ -1762,7 +1763,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # Energy Input Ratio Function of Flow Fraction Curve
       if std_perf
         heat_eir_fff_all_stages = h_eir_allstages_ff
-        puts("### DEBUGGING: overriding for modeling standard performance: heat_eir_fff_all_stages.name = #{heat_eir_fff_all_stages.name}")
+        runner.registerInfo("--- for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: heat_eir_fff_all_stages.name = #{heat_eir_fff_all_stages.name}")
       else
         heat_eir_fff_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
         heat_eir_fff_all_stages.setName("#{air_loop_hvac.name} heat_eir_fff")
