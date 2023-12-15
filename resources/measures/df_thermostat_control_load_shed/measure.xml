@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>df_thermostat_control_load_shed</name>
   <uid>0fdd58b3-9943-40b9-a47f-3db37228b200</uid>
-  <version_id>ea5d6f17-4caa-443e-8e76-a4a92e25d585</version_id>
-  <version_modified>2023-12-14T21:09:13Z</version_modified>
+  <version_id>e3b0e7da-805b-475a-938e-f2fdb9abe2b8</version_id>
+  <version_modified>2023-12-15T19:50:58Z</version_modified>
   <xml_checksum>D7E77FC2</xml_checksum>
   <class_name>DfThermostatControlLoadShed</class_name>
   <display_name>df thermostat control load shed</display_name>
@@ -17,7 +17,7 @@
       <type>String</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
-      <default_value>C:/Users/jxiong/Documents/GitHub/ComStock/resources/measures/dispatch_schedule_generation/tests/in.epw</default_value>
+      <default_value>C:/Users/jxiong/Documents/GitHub/ComStock/resources/measures/df_thermostat_control_load_shed/tests/USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw</default_value>
     </argument>
     <argument>
       <name>peak_len</name>
@@ -44,12 +44,12 @@
       <default_value>../outputs/output.csv</default_value>
     </argument>
     <argument>
-      <name>sample_num_timesteps_in_hr</name>
+      <name>num_timesteps_in_hr</name>
       <display_name>Number/Count of timesteps in an hour for sample simulations</display_name>
       <type>Integer</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
-      <default_value>1</default_value>
+      <default_value>4</default_value>
     </argument>
   </arguments>
   <outputs />
@@ -110,7 +110,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>2E41CC31</checksum>
+      <checksum>6917CAA9</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -127,13 +127,37 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>D28A7BE1</checksum>
+      <checksum>56E33199</checksum>
     </file>
     <file>
       <filename>dispatch_schedule_generation.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>F0E64BA9</checksum>
+      <checksum>FF1C6CAF</checksum>
+    </file>
+    <file>
+      <filename>Small_Office_psz_gas_3a/files/USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>288AE598</checksum>
+    </file>
+    <file>
+      <filename>Small_Office_psz_gas_3a/workflow.osw</filename>
+      <filetype>osw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>5DB861DC</checksum>
+    </file>
+    <file>
+      <filename>Small_Office_psz_gas_3a.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>143E0799</checksum>
+    </file>
+    <file>
+      <filename>USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>288AE598</checksum>
     </file>
     <file>
       <filename>df_thermostat_control_load_shed_test.rb</filename>

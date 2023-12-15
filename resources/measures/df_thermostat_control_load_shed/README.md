@@ -57,7 +57,7 @@ ModelMeasure
 
 ### Number/Count of timesteps in an hour for sample simulations
 
-**Name:** sample_num_timesteps_in_hr,
+**Name:** num_timesteps_in_hr,
 **Type:** Integer,
 **Units:** ,
 **Required:** true,

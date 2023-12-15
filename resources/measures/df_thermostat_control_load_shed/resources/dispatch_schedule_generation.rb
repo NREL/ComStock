@@ -102,6 +102,9 @@ def read_epw(weather_file)#,peak_threshold)
   #   puts("#{t} = #{v}")
   # end
   # return weather_ts
+  if year == 0
+    year = 2018
+  end
   return year, vals
 end
 
@@ -256,7 +259,7 @@ def create_binsamples(oat)
 end
 
 ### run simulation on selected day of year
-def model_run_simulation_on_doy(model, year, doy, sample_num_timesteps_in_hr, run_dir = "#{Dir.pwd}/Run")
+def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, run_dir = "#{Dir.pwd}/Run")
   ### reference: https://github.com/NREL/openstudio-standards/blob/master/lib/openstudio-standards/utilities/simulation.rb#L187
   # Make the directory if it doesn't exist
   unless Dir.exist?(run_dir)
@@ -288,7 +291,7 @@ def model_run_simulation_on_doy(model, year, doy, sample_num_timesteps_in_hr, ru
   model.getRunPeriod.setBeginDayOfMonth(begin_day)
   model.getRunPeriod.setEndMonth(end_month)
   model.getRunPeriod.setEndDayOfMonth(end_day)
-  model.getTimestep.setNumberOfTimestepsPerHour(sample_num_timesteps_in_hr)
+  model.getTimestep.setNumberOfTimestepsPerHour(num_timesteps_in_hr)
 
   puts("### DEBUGGING: model.getRunPeriod.getBeginDayOfMonth = #{model.getRunPeriod.getBeginDayOfMonth}")
   puts("### DEBUGGING: model.getRunPeriod.getBeginMonth = #{model.getRunPeriod.getBeginMonth}")
@@ -403,7 +406,7 @@ def model_run_simulation_on_doy(model, year, doy, sample_num_timesteps_in_hr, ru
 end
 
 ### run simulation on all sample days of year
-def run_samples(model, year, selectdays, sample_num_timesteps_in_hr)
+def run_samples(model, year, selectdays, num_timesteps_in_hr)
   y_seed = {
     'ext-hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
     'hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
@@ -422,9 +425,9 @@ def run_samples(model, year, selectdays, sample_num_timesteps_in_hr)
       selectdays[key][keykey].each do |doy|
         start_time = Time.now
         puts "Simulation on day of year: #{doy}"
-        yd = model_run_simulation_on_doy(model, year, doy, sample_num_timesteps_in_hr)
+        yd = model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr)
         puts("--- yd = #{yd}")
-        # puts yd
+        puts yd.size
         if ns == 1
           y_seed[key][keykey] = yd
         elsif ns > 1
@@ -456,11 +459,16 @@ def load_prediction_from_sample(y_seed, combbins)
   puts("--- combbins = #{combbins}")
   annual_load = []
   (0..364).each do |d|
+    puts d
     combbins.each do |key,subbin|
-      if subbin.value?(d+1)
-        keykey = subbin.key(d+1)
-        annual_load.concat(y_seed[key][keykey])
-        break
+      puts key
+      puts subbin
+      subbin.each do |keykey,bin|
+        if bin.include?(d+1)
+          puts keykey
+          annual_load.concat(y_seed[key][keykey])
+          # break
+        end
       end
     end
   end
@@ -468,7 +476,7 @@ def load_prediction_from_sample(y_seed, combbins)
 end
 
 ### run simulation on full year
-def load_prediction_from_full_run(model, year, run_dir = "#{Dir.pwd}/Run")
+def load_prediction_from_full_run(model, year, num_timesteps_in_hr, run_dir = "#{Dir.pwd}/Run")
   ### reference: https://github.com/NREL/openstudio-standards/blob/master/lib/openstudio-standards/utilities/simulation.rb#L187
   # Make the directory if it doesn't exist
   unless Dir.exist?(run_dir)
@@ -477,7 +485,6 @@ def load_prediction_from_full_run(model, year, run_dir = "#{Dir.pwd}/Run")
   
   template = 'ComStock 90.1-2019'
   std = Standard.build(template)
-  
   # Save the model to energyplus idf
   # idf_name = 'in.idf'
   osm_name = 'in.osm'
@@ -486,14 +493,13 @@ def load_prediction_from_full_run(model, year, run_dir = "#{Dir.pwd}/Run")
   OpenStudio.logFree(OpenStudio::Info, 'openstudio.model.Model', "Started simulation #{run_dir} at #{Time.now.strftime('%T.%L')}")
   # forward_translator = OpenStudio::EnergyPlus::ForwardTranslator.new
   
-  nts = 1
   ### reference: SetRunPeriod measure on BCL
   model.getYearDescription.setCalendarYear(year)
   model.getRunPeriod.setBeginMonth(1)
   model.getRunPeriod.setBeginDayOfMonth(1)
   model.getRunPeriod.setEndMonth(12)
   model.getRunPeriod.setEndDayOfMonth(31)
-  model.getTimestep.setNumberOfTimestepsPerHour(nts)
+  model.getTimestep.setNumberOfTimestepsPerHour(num_timesteps_in_hr)
   # puts("### DEBUGGING: model.getRunPeriod.getBeginDayOfMonth = #{model.getRunPeriod.getBeginDayOfMonth}")
   # puts("### DEBUGGING: model.getRunPeriod.getBeginMonth = #{model.getRunPeriod.getBeginMonth}")
   # puts("### DEBUGGING: model.getRunPeriod.getEndMonth = #{model.getRunPeriod.getEndMonth}")
@@ -505,16 +511,13 @@ def load_prediction_from_full_run(model, year, run_dir = "#{Dir.pwd}/Run")
   osw_path = OpenStudio::Path.new("#{run_dir}/#{osw_name}")
   # idf.save(idf_path, true)
   model.save(osm_path, true)
-  
   # Set up the simulation
   # Find the weather file
   epw_path = std.model_get_full_weather_file_path(model)
   if epw_path.empty?
     return false
   end
-  
   epw_path = epw_path.get
-  
   # close current sql file
   model.resetSqlFile
   
