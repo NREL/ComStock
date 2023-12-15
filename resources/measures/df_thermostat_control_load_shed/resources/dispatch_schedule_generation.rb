@@ -49,8 +49,22 @@ def day_of_year_to_date(year, day_of_year)
 end
 
 ### run simulation on selected day of year
-def read_epw(weather_file)#,peak_threshold)
-  epw_file = OpenStudio::EpwFile.new(weather_file)
+def read_epw(model)#,peak_threshold)
+
+  # get EPWFile class from model
+  weatherfile = nil
+  if model.weatherFile.is_initialized
+    weatherfile = model.weatherFile.get
+    epw_file = nil
+    if weatherfile.file.is_initialized
+      epw_file = weatherfile.file.get
+    else
+      runner.registerError('Cannot find weather file from model using EPWFile class')
+    end
+  else
+    runner.registerError('Cannot find weather file from model using weatherFile class')
+  end
+
   # weather_lat = epw_file.latitude
   # weather_lon = epw_file.longitude
   # weather_time = epw_file.timeZone
