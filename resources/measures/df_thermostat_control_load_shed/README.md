@@ -19,15 +19,6 @@ ModelMeasure
 ## Arguments
 
 
-### Path to weather file (epw)
-
-**Name:** input_path,
-**Type:** String,
-**Units:** ,
-**Required:** true,
-**Model Dependent:** false
-
-
 ### Length of dispatch window (hour)
 
 **Name:** peak_len,

@@ -64,11 +64,6 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
   def arguments(model)
     args = OpenStudio::Measure::OSArgumentVector.new
 
-    input_path = OpenStudio::Ruleset::OSArgument::makeStringArgument("input_path",true)
-    input_path.setDisplayName("Path to weather file (epw)")
-    input_path.setDefaultValue("C:/Users/jxiong/Documents/GitHub/ComStock/resources/measures/df_thermostat_control_load_shed/tests/USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw")
-    args << input_path
-
     peak_len = OpenStudio::Measure::OSArgument.makeIntegerArgument('peak_len', true)
     peak_len.setDisplayName("Length of dispatch window (hour)")
     peak_len.setDefaultValue(4)
@@ -106,7 +101,6 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     ############################################
     # assign the user inputs to variables
     ############################################
-    weather_file = runner.getStringArgumentValue("input_path",user_arguments)
     peak_len = runner.getIntegerArgumentValue("peak_len",user_arguments)
     rebound_len = runner.getIntegerArgumentValue("rebound_len",user_arguments)
     output_path = runner.getStringArgumentValue("output_path",user_arguments)
@@ -117,10 +111,9 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     ############################################
     puts("### ============================================================")
     puts("### Reading weather file...")
-    year, oat = read_epw(weather_file)
+    year, oat = read_epw(model)
     puts("--- year = #{year}")
-    puts("--- oat = #{oat}")
-    puts("--- Weather file read!")
+    puts("--- oat.size = #{oat.size}")
 
     puts("### ============================================================")
     puts("### Creating bins...")

@@ -3,22 +3,14 @@
   <schema_version>3.1</schema_version>
   <name>df_thermostat_control_load_shed</name>
   <uid>0fdd58b3-9943-40b9-a47f-3db37228b200</uid>
-  <version_id>e3b0e7da-805b-475a-938e-f2fdb9abe2b8</version_id>
-  <version_modified>2023-12-15T19:50:58Z</version_modified>
+  <version_id>c39a55df-6920-4a59-97e6-fd4126c8fcab</version_id>
+  <version_modified>2023-12-15T22:38:00Z</version_modified>
   <xml_checksum>D7E77FC2</xml_checksum>
   <class_name>DfThermostatControlLoadShed</class_name>
   <display_name>df thermostat control load shed</display_name>
   <description>tbd</description>
   <modeler_description>tbd</modeler_description>
   <arguments>
-    <argument>
-      <name>input_path</name>
-      <display_name>Path to weather file (epw)</display_name>
-      <type>String</type>
-      <required>true</required>
-      <model_dependent>false</model_dependent>
-      <default_value>C:/Users/jxiong/Documents/GitHub/ComStock/resources/measures/df_thermostat_control_load_shed/tests/USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw</default_value>
-    </argument>
     <argument>
       <name>peak_len</name>
       <display_name>Length of dispatch window (hour)</display_name>
@@ -110,7 +102,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>6917CAA9</checksum>
+      <checksum>F9224855</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -127,13 +119,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>56E33199</checksum>
+      <checksum>A28FCB5C</checksum>
     </file>
     <file>
       <filename>dispatch_schedule_generation.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>FF1C6CAF</checksum>
+      <checksum>8A12229A</checksum>
     </file>
     <file>
       <filename>Small_Office_psz_gas_3a/files/USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw</filename>
@@ -163,7 +155,7 @@
       <filename>df_thermostat_control_load_shed_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>24E7326E</checksum>
+      <checksum>5175CA5B</checksum>
     </file>
     <file>
       <filename>in/files/in.epw</filename>
