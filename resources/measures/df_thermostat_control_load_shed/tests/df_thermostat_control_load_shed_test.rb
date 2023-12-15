@@ -158,62 +158,57 @@ class DfThermostatControlLoadShedTest < Minitest::Test
     return model
   end
 
-  # def test_models
-  #   test_name = 'test_models'
-  #   puts "\n######\nTEST:#{test_name}\n######\n"
+  def test_models
+    test_name = 'test_models'
+    puts "\n######\nTEST:#{test_name}\n######\n"
 
-  #   models_to_test.each do |set|
-  #     instance_test_name = set[:model]
-  #     puts "instance test name: #{instance_test_name}"
-  #     osm_path = models_for_tests.select { |x| set[:model] == File.basename(x, '.osm') }
-  #     epw_path = epws_for_tests.select { |x| set[:weather] == File.basename(x, '.epw') }
-  #     assert(!osm_path.empty?)
-  #     assert(!epw_path.empty?)
-  #     osm_path = osm_path[0]
-  #     epw_path = epw_path[0]
+    models_to_test.each do |set|
+      instance_test_name = set[:model]
+      puts "instance test name: #{instance_test_name}"
+      osm_path = models_for_tests.select { |x| set[:model] == File.basename(x, '.osm') }
+      epw_path = epws_for_tests.select { |x| set[:weather] == File.basename(x, '.epw') }
+      assert(!osm_path.empty?)
+      assert(!epw_path.empty?)
+      osm_path = osm_path[0]
+      epw_path = epw_path[0]
 
-  #     # create an instance of the measure
-  #     measure = DfThermostatControlLoadShed.new
+      # create an instance of the measure
+      measure = DfThermostatControlLoadShed.new
 
-  #     # load the model; only used here for populating arguments
-  #     model = load_model(osm_path)
+      # load the model; only used here for populating arguments
+      model = load_model(osm_path)
 
-  #     # set arguments here; will vary by measure
-  #     arguments = measure.arguments(model)
-  #     argument_map = OpenStudio::Measure::OSArgumentMap.new
+      # set arguments here; will vary by measure
+      arguments = measure.arguments(model)
+      argument_map = OpenStudio::Measure::OSArgumentMap.new
 
-  #     # set arguments: choice of economizer
-  #     vrf_defrost_strategy = arguments[0].clone
-  #     assert(vrf_defrost_strategy.setValue('reverse-cycle'))
-  #     argument_map['vrf_defrost_strategy'] = vrf_defrost_strategy
+      # set arguments: choice of economizer
+      peak_len = arguments[0].clone
+      assert(peak_len.setValue(4))
+      argument_map['peak_len'] = peak_len
 
-  #     # set arguments: changeover temperature C
-  #     disable_defrost = arguments[1].clone
-  #     assert(disable_defrost.setValue(false))
-  #     argument_map['disable_defrost'] = disable_defrost
+      # set arguments: changeover temperature C
+      rebound_len = arguments[1].clone
+      assert(rebound_len.setValue(2))
+      argument_map['rebound_len'] = rebound_len
 
-  #     # set arguments: changeover temperature C
-  #     upsizing_allowance_pct = arguments[2].clone
-  #     assert(upsizing_allowance_pct.setValue(25.0))
-  #     argument_map['upsizing_allowance_pct'] = upsizing_allowance_pct
+      # set arguments: apply measure
+      num_timesteps_in_hr = arguments[2].clone	
+      assert(num_timesteps_in_hr.setValue(4))
+      argument_map['num_timesteps_in_hr'] = num_timesteps_in_hr
 
-  #     # set arguments: apply measure
-  #     apply_measure = arguments[3].clone	
-  #     assert(apply_measure.setValue(true))
-  #     argument_map['apply_measure'] = apply_measure
+      # apply the measure to the model and optionally run the model
+      result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
 
-  #     # apply the measure to the model and optionally run the model
-  #     result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+      # check the measure result; result values will equal Success, Fail, or Not Applicable (NA)
+      # also check the amount of warnings, info, and error messages
+      # use if or case statements to change expected assertion depending on model characteristics
+      assert(result.value.valueName == set[:result])
 
-  #     # check the measure result; result values will equal Success, Fail, or Not Applicable (NA)
-  #     # also check the amount of warnings, info, and error messages
-  #     # use if or case statements to change expected assertion depending on model characteristics
-  #     assert(result.value.valueName == set[:result])
+      # to check that something changed in the model, load the model and the check the objects match expected new value
+      model = load_model(model_output_path(instance_test_name))
 
-  #     # to check that something changed in the model, load the model and the check the objects match expected new value
-  #     model = load_model(model_output_path(instance_test_name))
-
-  #   end
-  # end
+    end
+  end
 
 end
