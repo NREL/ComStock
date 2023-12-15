@@ -886,7 +886,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         cols_to_keep.append(c)
                 else:
                     # Report columns available in the data but not listed in the column definitions
-                    logger.info(f'Column {c} is available but was not listed in in {COLUMN_DEFINITION_FILE_NAME}')
+                    logger.debug(f'Column {c} is available but was not listed in in {COLUMN_DEFINITION_FILE_NAME}')
 
         # df = df[cols_to_keep]
         df = df.select(cols_to_keep)
