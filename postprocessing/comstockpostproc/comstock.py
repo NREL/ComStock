@@ -1660,6 +1660,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             logger.info('Querying Athena for ComStock monthly energy data by state and building type, this will take several minutes.')
             query = f"""
                 SELECT
+                "upgrade",
                 "month",
                 "state_id",
                 "building_type",
@@ -1671,6 +1672,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     EXTRACT(MONTH from from_unixtime("time"/1e9)) as "month",
                     SUBSTRING("build_existing_model.county_id", 2, 2) AS "state_id",
                     "build_existing_model.create_bar_from_building_type_ratios_bldg_type_a" as "building_type",
+                    "upgrade",
                     "total_site_gas_kbtu",
                     "total_site_electricity_kwh"
                     FROM
@@ -1680,6 +1682,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     WHERE "build_existing_model.building_type" IS NOT NULL
                 )
                 GROUP BY
+                "upgrade",
                 "month",
                 "state_id",
                 "building_type"
@@ -1692,7 +1695,15 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Rename columns
         comstock_unscaled = comstock_unscaled.rename({'month': 'Month', 'state_id': 'FIPS Code'})
-
+        
+        # Rename upgrade values
+        upgrade_data = self.data.select([self.UPGRADE_ID, self.UPGRADE_NAME])
+        print(upgrade_data.head())
+        upgrade_name_map = dict(zip(upgrade_data[self.UPGRADE_ID], upgrade_data[self.UPGRADE_NAME]))
+        comstock_unscaled = comstock_unscaled.with_columns(
+            pl.col('upgrade').replace(upgrade_name_map).alias('upgrade_name'),
+        )
+        print(comstock_unscaled.head())
         #Rename Building_Types
         def rename_buildingtypes(building_type):
             building_type = building_type.replace('_',' ').replace(' ', '')
@@ -1734,7 +1745,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Aggregate ComStock by state and month, combining all building types
         vals = ['Electricity consumption (kWh)', 'Natural gas consumption (thous Btu)']
         cols_to_drop = ['building_type', 'total_site_electricity_kwh', 'total_site_gas_kbtu', 'Scaling Factor']
-        idx = ['FIPS Code', 'Month']
+        idx = ['FIPS Code', 'Month', 'upgrade', 'upgrade_name']
         monthly = monthly.group_by(idx).sum().drop(cols_to_drop) 
         
         # Add a dataset label column
