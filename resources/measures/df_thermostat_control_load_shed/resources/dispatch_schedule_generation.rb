@@ -382,7 +382,7 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, run_dir =
   if availableEnvPeriods.size == 1
     envperiod = 'RUN PERIOD 1'
   else
-    raise 'options for availableEnvPeriods are more than one: #{availableEnvPeriods}'
+    raise "options for availableEnvPeriods are not just one: #{availableEnvPeriods}"
   end
   timeseriesname = 'Electricity:Facility'
   reportingfrequency = 'Zone Timestep'
