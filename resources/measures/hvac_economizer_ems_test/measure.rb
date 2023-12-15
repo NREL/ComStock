@@ -80,7 +80,7 @@ class HVACEconomizerEMSTest < OpenStudio::Measure::ModelMeasure
     apply_measure = runner.getBoolArgumentValue('apply_measure', user_arguments)
 
     # for ems output variables
-    li_ems_sens_zn_clg_rate = []
+    li_ems_clg_coil_rate = []
     li_ems_sens_econ_status = []
     li_ems_sens_min_flow = []
     li_ems_act_oa_flow = []
@@ -100,15 +100,12 @@ class HVACEconomizerEMSTest < OpenStudio::Measure::ModelMeasure
       economizer_type = oa_controller.getEconomizerControlType
       next unless economizer_type != 'NoEconomizer'
 
-      # # get minimum outdoor air flow rate
-      # # this is used to override economizer when there is no cooling
-      # min_oa_flow_rate = oa_controller.minimumOutdoorAirFlowRate 
-
       # get zones
       zone = air_loop_hvac.thermalZones[0]
       # zone.setName(zone.name.to_s.gsub("-", ""))
 
       # get main cooling coil from air loop
+      # this is used to determine if there is a cooling load on the air loop
       clg_coil=nil
       air_loop_hvac.supplyComponents.each do |component|
         # Get the object type
@@ -149,24 +146,15 @@ class HVACEconomizerEMSTest < OpenStudio::Measure::ModelMeasure
         end
       end
 
-      # EMS code
-      #### Sensors #####
-      # set sensor for zone cooling load
-      # sens_zn_clg_rate = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Zone Predicted Sensible Load to Cooling Setpoint Heat Transfer Rate')
-      # sens_zn_clg_rate.setName("sens_zn_clg_rate_#{zone.name.get.to_s.gsub("-", "")}") 
-      # sens_zn_clg_rate.setKeyName("#{zone.name.get}")
-
-      # li_ems_sens_zn_clg_rate << sens_zn_clg_rate
-
-      # set sensor for zone cooling load
-      sens_zn_clg_rate = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Cooling Coil Total Cooling Rate')
-      sens_zn_clg_rate.setName("sens_zn_clg_rate_#{zone.name.get.to_s.gsub("-", "")}") 
-      sens_zn_clg_rate.setKeyName("#{clg_coil.name.get}")
-
-      li_ems_sens_zn_clg_rate << sens_zn_clg_rate
-
+      # set sensor for zone cooling load from cooling coil cooling rate
+      sens_clg_coil_rate = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Cooling Coil Total Cooling Rate')
+      sens_clg_coil_rate.setName("sens_zn_clg_rate_#{zone.name.get.to_s.gsub("-", "")}") 
+      sens_clg_coil_rate.setKeyName("#{clg_coil.name.get}")
+      # EMS variables are added to lists for export
+      li_ems_clg_coil_rate << sens_clg_coil_rate
 
       # set sensor - Outdoor Air Controller Minimum Mass Flow Rate
+      # TODO need to confirm if this variable is reliable
       sens_min_oa_rate = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Air System Outdoor Air Mechanical Ventilation Requested Mass Flow Rate')
       sens_min_oa_rate.setName("sens_min_oa_flow_#{oa_controller.name.get.to_s.gsub("-", "")}") 
       sens_min_oa_rate.setKeyName("#{air_loop_hvac.name.get}")
@@ -189,10 +177,6 @@ class HVACEconomizerEMSTest < OpenStudio::Measure::ModelMeasure
       
       li_ems_act_oa_flow << act_oa_flow
 
-      # consider setting maximum OA schedule directly to cap maximum; maybe DCV can still work
-      # find DCV model, PSZ, night vent; confirm minimum flow OA 
-      # run model without economizer
-
       #### Program #####
       # reset OA to min OA if there is a call for economizer but no cooling load
       prgrm_econ_override = model.getEnergyManagementSystemTrendVariableByName('econ_override')
@@ -201,10 +185,10 @@ class HVACEconomizerEMSTest < OpenStudio::Measure::ModelMeasure
         prgrm_econ_override.setName("#{air_loop_hvac.name.get.to_s.gsub("-", "")}_program")
         prgrm_econ_override_body = <<-EMS
         SET #{act_oa_flow.name} = #{act_oa_flow.name},
-        SET sens_zn_clg_rate = #{sens_zn_clg_rate.name},
+        SET sens_zn_clg_rate = #{sens_clg_coil_rate.name},
         SET sens_min_oa_rate = #{sens_min_oa_rate.name},
         SET sens_econ_status = #{sens_econ_status.name},
-        IF ((sens_econ_status >= 0) && (sens_zn_clg_rate <= 0)), 
+        IF ((sens_econ_status > 0) && (sens_zn_clg_rate <= 0)), 
           SET #{act_oa_flow.name} = sens_min_oa_rate,
         ELSE,
           SET #{act_oa_flow.name} = Null,
@@ -212,9 +196,6 @@ class HVACEconomizerEMSTest < OpenStudio::Measure::ModelMeasure
         EMS
         prgrm_econ_override.setBody(prgrm_econ_override_body)
       end
-
-      
-
         programs_at_beginning_of_timestep = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
         programs_at_beginning_of_timestep.setName("#{air_loop_hvac.name.get.to_s.gsub("-", "")}_Programs_At_Beginning_Of_Timestep")
         programs_at_beginning_of_timestep.setCallingPoint('InsideHVACSystemIterationLoop')
@@ -250,11 +231,6 @@ class HVACEconomizerEMSTest < OpenStudio::Measure::ModelMeasure
     ov_coil_cooling.setReportingFrequency("timestep") 
     ov_coil_cooling.setVariableName("Cooling Coil Total Cooling Rate")
 
-    # ems_output = OpenStudio::Model::OutputEnergyManagementSystem.new(model, 'ems edd')
-    # ems_output.setActuatorAvailabilityDictionaryReporting('Verbose')
-    # ems_output.setInternalVariableAvailabilityDictionaryReporting('Verbose')
-    # ems_output.setEMSRuntimeLanguageDebugOutputLevel('ErrorsOnly')
-
     # create OutputEnergyManagementSystem object (a 'unique' object) and configure to allow EMS reporting
     output_EMS = model.getOutputEnergyManagementSystem
     output_EMS.setInternalVariableAvailabilityDictionaryReporting('Verbose')
@@ -265,13 +241,13 @@ class HVACEconomizerEMSTest < OpenStudio::Measure::ModelMeasure
     ems_output_variable_list = []
   
     # li_ems_sens_zn_clg_rate
-    li_ems_sens_zn_clg_rate.each do |sensor|
+    li_ems_clg_coil_rate.each do |sensor|
       name = sensor.name
-      ems_sens_zn_clg_rate = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, sensor)
-      ems_sens_zn_clg_rate.setUpdateFrequency('ZoneTimestep')
-      ems_sens_zn_clg_rate.setName("#{name}_ems_outvar")
-      # ems_sens_zn_clg_rate.setUnits('C')
-      ems_output_variable_list << ems_sens_zn_clg_rate.name.to_s
+      ems_sens_clg_coil_rate = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, sensor)
+      ems_sens_clg_coil_rate.setUpdateFrequency('ZoneTimestep')
+      ems_sens_clg_coil_rate.setName("#{name}_ems_outvar")
+      ems_sens_clg_coil_rate.setUnits('W')
+      ems_output_variable_list << ems_sens_clg_coil_rate.name.to_s
     end
 
     # li_ems_sens_econ_status
@@ -290,7 +266,7 @@ class HVACEconomizerEMSTest < OpenStudio::Measure::ModelMeasure
       ems_sens_min_flow = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, sensor)
       ems_sens_min_flow.setUpdateFrequency('Timestep')
       ems_sens_min_flow.setName("#{name}_ems_outvar")
-      # ems_sens_zn_clg_rate.setUnits('C')
+      ems_sens_min_flow.setUnits('kg/s')
       ems_output_variable_list << ems_sens_min_flow.name.to_s
     end
   
@@ -300,7 +276,7 @@ class HVACEconomizerEMSTest < OpenStudio::Measure::ModelMeasure
       ems_act_oa_flow = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, act)
       ems_act_oa_flow.setUpdateFrequency('Timestep')
       ems_act_oa_flow.setName("#{name}_ems_outvar")
-      # ems_act_oa_flow.setUnits('C')
+      ems_act_oa_flow.setUnits('kg/s')
       ems_output_variable_list << ems_act_oa_flow.name.to_s
     end
   
@@ -311,89 +287,6 @@ class HVACEconomizerEMSTest < OpenStudio::Measure::ModelMeasure
       output.setReportingFrequency('Timestep')
       #puts "output: #{output}"
     end
-
-    # # ----------------------------------------------------
-    # puts("### applicability")
-    # # ---------------------------------------------------- 
-    # # don't apply measure if specified in input
-    # if apply_measure == false
-    #   runner.registerAsNotApplicable('Measure is not applied based on user input.')
-    #   return true
-    # end
-    # no_outdoor_air_loops = 0
-    # doas_loops = 0
-    # existing_economizer_loops = 0
-    # selected_air_loops = []
-    # model.getAirLoopHVACs.each do |air_loop_hvac|
-    #   oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem
-    #   if oa_system.is_initialized
-    #     oa_system = oa_system.get
-    #   else
-    #     no_outdoor_air_loops += 1
-    #     runner.registerInfo("Air loop #{air_loop_hvac.name} does not have outdoor air and cannot economize.")
-    #     next
-    #   end
-
-    #   sizing_system = air_loop_hvac.sizingSystem
-    #   type_of_load = sizing_system.typeofLoadtoSizeOn
-    #   if type_of_load == 'VentilationRequirement'
-    #     doas_loops += 1
-    #     runner.registerInfo("Air loop #{air_loop_hvac.name} is a DOAS system and cannot economize.")
-    #     next
-    #   end
-
-    #   oa_controller = oa_system.getControllerOutdoorAir
-    #   economizer_type = oa_controller.getEconomizerControlType
-    #   if economizer_type == 'NoEconomizer'
-    #     runner.registerInfo("Air loop #{air_loop_hvac.name} does not have an existing economizer.  This measure will add an economizer.")
-    #     selected_air_loops << air_loop_hvac
-    #   else
-    #     existing_economizer_loops += 1
-    #     runner.registerInfo("Air loop #{air_loop_hvac.name} has an existing #{economizer_type} economizer.")
-    #   end
-    # end
-
-    # if selected_air_loops.size.zero?
-    #   runner.registerAsNotApplicable('Model contains no air loops eligible for adding an outdoor air economizer.')
-    #   return true
-    # end
-
-    # # ----------------------------------------------------
-    # puts("### initialization")
-    # # ----------------------------------------------------
-    # runner.registerInitialCondition("Out of #{model.getAirLoopHVACs.size} air loops, #{no_outdoor_air_loops} do not have outdoor air, #{doas_loops} are DOAS systems, and #{existing_economizer_loops} have existing economizers, leaving #{selected_air_loops.size} eligible for an economizer.")
-
-    # # ----------------------------------------------------
-    # puts("### implement economizers")
-    # # ----------------------------------------------------
-    # # build standard to access methods
-    # template = 'ComStock 90.1-2019'
-    # std = Standard.build(template)
-
-    # added_economizers = 0
-    # total_cooling_capacity_w = 0
-    # selected_air_loops.each do |air_loop_hvac|
-    #   # determine climate zone for economizer type
-    #   climate_zone = std.model_standards_climate_zone(model)
-    #   if climate_zone.empty?
-    #     runner.registerError('Unable to determine climate zone for model. Cannot apply economizing without climate zone information.')
-    #   else
-    #     climate_zone = std.model_find_climate_zone_set(model, climate_zone)
-    #     runner.registerInfo("Setting economizer based on model climate zone #{climate_zone}")
-    #   end
-
-    #   std.air_loop_hvac_apply_prm_baseline_economizer(air_loop_hvac, climate_zone)
-    #   added_economizers += 1
-    #   total_cooling_capacity_w += std.air_loop_hvac_total_cooling_capacity(air_loop_hvac)
-    # end
-
-    # total_cooling_capacity_btuh = OpenStudio.convert(total_cooling_capacity_w, 'W', 'Btu/hr').get
-    # total_cooling_capacity_tons = total_cooling_capacity_btuh / 12_000
-    # # report final condition of model
-    # runner.registerValue('hvac_economizer_cooling_load_in_tons', total_cooling_capacity_tons)
-    # runner.registerFinalCondition("Added #{added_economizers} to the model with #{total_cooling_capacity_tons.round(1)} tons of total cooling capacity.")
-
-    #############
     return true
   end
 end
