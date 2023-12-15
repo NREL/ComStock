@@ -158,6 +158,86 @@ class DfThermostatControlLoadShedTest < Minitest::Test
     return model
   end
 
+  def run_dir(test_name)
+    # always generate test output in specially named 'output' directory so result files are not made part of the measure
+    return "#{File.dirname(__FILE__)}/output/#{test_name}"
+  end
+
+  def model_output_path(test_name)
+    return "#{run_dir(test_name)}/#{test_name}.osm"
+  end
+
+  def report_path(test_name)
+    return "#{run_dir(test_name)}/reports/eplustbl.html"
+  end
+
+  # applies the measure and then runs the model
+  def apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+    assert(File.exist?(osm_path))
+    assert(File.exist?(epw_path))
+
+    # create run directory if it does not exist
+    if !File.exist?(run_dir(test_name))
+      FileUtils.mkdir_p(run_dir(test_name))
+    end
+    assert(File.exist?(run_dir(test_name)))
+
+    # change into run directory for tests
+    start_dir = Dir.pwd
+    Dir.chdir run_dir(test_name)
+
+    # remove prior runs if they exist
+    if File.exist?(model_output_path(test_name))
+      FileUtils.rm(model_output_path(test_name))
+    end
+    if File.exist?(report_path(test_name))
+      FileUtils.rm(report_path(test_name))
+    end
+
+    # copy the osm and epw to the test directory
+    new_osm_path = "#{run_dir(test_name)}/#{File.basename(osm_path)}"
+    FileUtils.cp(osm_path, new_osm_path)
+    new_epw_path = "#{run_dir(test_name)}/#{File.basename(epw_path)}"
+    FileUtils.cp(epw_path, new_epw_path)
+    # create an instance of a runner
+    runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
+
+    # load the test model
+    model = load_model(new_osm_path)
+
+    # set model weather file
+    epw_file = OpenStudio::EpwFile.new(OpenStudio::Path.new(new_epw_path))
+    OpenStudio::Model::WeatherFile.setWeatherFile(model, epw_file)
+    assert(model.weatherFile.is_initialized)
+
+    # run the measure
+    puts "\nAPPLYING MEASURE..."
+    measure.run(model, runner, argument_map)
+    result = runner.result
+    result_success = result.value.valueName == 'Success'
+
+    # show the output
+    show_output(result)
+
+    # save model
+    model.save(model_output_path(test_name), true)
+
+    if run_model && result_success
+      puts "\nRUNNING MODEL..."
+
+      std = Standard.build('90.1-2013')
+      std.model_run_simulation_and_log_errors(model, run_dir(test_name))
+
+      # check that the model ran successfully
+      assert(File.exist?(sql_path(test_name)))
+    end
+
+    # change back directory
+    Dir.chdir(start_dir)
+
+    return result
+  end
+
   def test_models
     test_name = 'test_models'
     puts "\n######\nTEST:#{test_name}\n######\n"
