@@ -5,7 +5,12 @@
 
 # start the measure
 #make sure testing on 3.7 models! 
+#also need to add in DCV and economizing! 
+#design limitations for htg + coolign coils 
+#dial in economizer params more 
 class AdvancedRTUControl < OpenStudio::Measure::ModelMeasure
+
+require 'openstudio-standards'
   # human readable name
   def name
     # Measure name should be the title case of the class name.
@@ -62,6 +67,24 @@ class AdvancedRTUControl < OpenStudio::Measure::ModelMeasure
 	fan_tot_eff = 0.63
     fan_mot_eff = 0.29
     fan_static_pressure = 50.0
+	
+	#set airflow design ratios
+	max_flow = 0.9
+	min_flow = 0.4 
+	
+	
+	#Sizing run 
+	standard = Standard.build('90.1-2013')
+    if standard.model_run_sizing_run(model, "#{Dir.pwd}/advanced_rtu_control") == false
+      runner.registerError('Sizing run for Hardsize model failed, cannot hard-size model.')
+      puts('Sizing run for Hardsize model failed, cannot hard-size model.')
+      puts("directory: #{Dir.pwd}")
+      return false
+    end
+
+    # apply sizing values
+    model.applySizingValues
+	
 
    	model.getAirLoopHVACs.sort.each do |air_loop_hvac|
 	      runner.registerInfo("in air loop") 
@@ -88,15 +111,46 @@ class AdvancedRTUControl < OpenStudio::Measure::ModelMeasure
 			 air_loop_hvac.thermalZones.each do |thermal_zone|
 				thermal_zone.equipment.each do |equip|
 				if equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
+				      term = equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.get 
+					  runner.registerInfo("term #{term}")
 					  new_term = OpenStudio::Model::AirTerminalSingleDuctVAVHeatAndCoolNoReheat.new(model)
+					  if term.autosizedMaximumAirFlowRate.is_initialized
+					     des_airflow_rate = term.autosizedMaximumAirFlowRate.get
+						 runner.registerInfo("des airflow #{des_airflow_rate}")
+						 new_term.setMaximumAirFlowRate(des_airflow_rate * max_flow) 
+						 new_term.setZoneMinimumAirFlowFraction(min_flow)
+					  elsif term.maximumAirFlowRate.is_initialized
+					      des_airflow_rate = term.maximumAirFlowRate.get
+						  runner.registerInfo("des airflow #{des_airflow_rate}")
+						  new_term.setMaximumAirFlowRate(des_airflow_rate * max_flow) 
+						  new_term.setZoneMinimumAirFlowFraction(min_flow)
+					  end 
 					  air_loop_hvac.removeBranchForZone(thermal_zone)
 					  air_loop_hvac.addBranchForZone(thermal_zone, new_term)
+					  #set this params based on the VAV approach, with teh max airflow appropriately 
+					  #need to calculate airflow required for vent! 
+					  #need to set other param values 
 				  # Do something
 				  
 				  #remove branch for zone and add back with terminal 
 			end
 	  end
 	end
+	            #set up economizer
+			    oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+				controller_oa = oa_system.getControllerOutdoorAir
+				# econ_type = std.model_economizer_type(model, climate_zone)
+				# set economizer type
+				controller_oa.setEconomizerControlType('DifferentialEnthalpy')
+				# set drybulb temperature limit; per 90.1-2013, this is constant 75F for all climates
+				drybulb_limit_f=75
+				drybulb_limit_c = OpenStudio.convert(drybulb_limit_f, 'F', 'C').get
+				controller_oa.setEconomizerMaximumLimitDryBulbTemperature(drybulb_limit_c)
+                # set lockout for integrated heating
+                 controller_oa.setLockoutType('LockoutWithHeating')
+				 #set up DCV        
+                 controller_mv = controller_oa.controllerMechanicalVentilation
+                 controller_mv.setDemandControlledVentilation(true)
 			 # air_loop_hvac.demandComponents.each do |component|
 			     # runner.registerInfo("demand component #{component}")
 				 # # if ['Diffuser Inlet Air Node'].any? { |word| (component.name.get).include?(word) }
