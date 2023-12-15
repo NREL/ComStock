@@ -51,6 +51,69 @@ require 'openstudio-standards'
     end
     return is_unitary_system
   end
+  
+   #slightly modified from OS standards to adjust log messages 
+   def thermal_zone_outdoor_airflow_rate(thermal_zone)
+    tot_oa_flow_rate = 0.0
+
+    spaces = thermal_zone.spaces.sort
+
+    sum_floor_area = 0.0
+    sum_number_of_people = 0.0
+    sum_volume = 0.0
+
+    # Variables for merging outdoor air
+    any_max_oa_method = false
+    sum_oa_for_people = 0.0
+    sum_oa_for_floor_area = 0.0
+    sum_oa_rate = 0.0
+    sum_oa_for_volume = 0.0
+
+    # Find common variables for the new space
+    spaces.each do |space|
+      floor_area = space.floorArea
+      sum_floor_area += floor_area
+
+      number_of_people = space.numberOfPeople
+      sum_number_of_people += number_of_people
+
+      volume = space.volume
+      sum_volume += volume
+
+      dsn_oa = space.designSpecificationOutdoorAir
+      next if dsn_oa.empty?
+
+      dsn_oa = dsn_oa.get
+
+      # compute outdoor air rates in case we need them
+      oa_for_people = number_of_people * dsn_oa.outdoorAirFlowperPerson
+      oa_for_floor_area = floor_area * dsn_oa.outdoorAirFlowperFloorArea
+      oa_rate = dsn_oa.outdoorAirFlowRate
+      oa_for_volume = volume * dsn_oa.outdoorAirFlowAirChangesperHour / 3600
+
+      # First check if this space uses the Maximum method and other spaces do not
+      if dsn_oa.outdoorAirMethod == 'Maximum'
+        sum_oa_rate += [oa_for_people, oa_for_floor_area, oa_rate, oa_for_volume].max
+      elsif dsn_oa.outdoorAirMethod == 'Sum'
+        sum_oa_for_people += oa_for_people
+        sum_oa_for_floor_area += oa_for_floor_area
+        sum_oa_rate += oa_rate
+        sum_oa_for_volume += oa_for_volume
+      end
+    end
+
+    tot_oa_flow_rate += sum_oa_for_people
+    tot_oa_flow_rate += sum_oa_for_floor_area
+    tot_oa_flow_rate += sum_oa_rate
+    tot_oa_flow_rate += sum_oa_for_volume
+
+    # Convert to cfm
+    tot_oa_flow_rate_cfm = OpenStudio.convert(tot_oa_flow_rate, 'm^3/s', 'cfm').get
+
+    #runner.registerInfo("For #{thermal_zone.name}, design min OA = #{tot_oa_flow_rate_cfm.round} cfm.")
+
+    return tot_oa_flow_rate
+  end
 
   # define what happens when the measure is run
   def run(model, runner, user_arguments)
@@ -109,6 +172,8 @@ require 'openstudio-standards'
 			 end 
 			 end 
 			 air_loop_hvac.thermalZones.each do |thermal_zone|
+			    min_oa_flow_rate = thermal_zone_outdoor_airflow_rate(thermal_zone) 
+				runner.registerInfo("min_oa_flow_rate #{min_oa_flow_rate}")
 				thermal_zone.equipment.each do |equip|
 				if equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
 				      term = equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.get 
@@ -123,16 +188,11 @@ require 'openstudio-standards'
 					      des_airflow_rate = term.maximumAirFlowRate.get
 						  runner.registerInfo("des airflow #{des_airflow_rate}")
 						  new_term.setMaximumAirFlowRate(des_airflow_rate * max_flow) 
-						  new_term.setZoneMinimumAirFlowFraction(min_flow)
+						  new_term.setZoneMinimumAirFlowFraction(max(min_flow, min_oa_flow_rate/max_flow ))
 					  end 
 					  air_loop_hvac.removeBranchForZone(thermal_zone)
 					  air_loop_hvac.addBranchForZone(thermal_zone, new_term)
-					  #set this params based on the VAV approach, with teh max airflow appropriately 
-					  #need to calculate airflow required for vent! 
-					  #need to set other param values 
-				  # Do something
-				  
-				  #remove branch for zone and add back with terminal 
+
 			end
 	  end
 	end
