@@ -188,6 +188,7 @@ require 'openstudio-standards'
 					      des_airflow_rate = term.maximumAirFlowRate.get
 						  runner.registerInfo("des airflow #{des_airflow_rate}")
 						  new_term.setMaximumAirFlowRate(des_airflow_rate * max_flow) 
+						  #set minimum based on max of 40% of max flow, or min ventilation level req'd 
 						  new_term.setZoneMinimumAirFlowFraction(max(min_flow, min_oa_flow_rate/max_flow ))
 					  end 
 					  air_loop_hvac.removeBranchForZone(thermal_zone)
