@@ -74,11 +74,6 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     rebound_len.setDefaultValue(2)
     args << rebound_len
 
-    output_path = OpenStudio::Ruleset::OSArgument::makeStringArgument("output_path",true)
-    output_path.setDisplayName("Path to output data CSV. INCLUDE .CSV EXTENSION")
-    output_path.setDefaultValue("../outputs/output.csv")
-    args << output_path
-
     num_timesteps_in_hr = OpenStudio::Measure::OSArgument.makeIntegerArgument('num_timesteps_in_hr', true)
     num_timesteps_in_hr.setDisplayName("Number/Count of timesteps in an hour for sample simulations")
     num_timesteps_in_hr.setDefaultValue(4)
@@ -103,7 +98,6 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     ############################################
     peak_len = runner.getIntegerArgumentValue("peak_len",user_arguments)
     rebound_len = runner.getIntegerArgumentValue("rebound_len",user_arguments)
-    output_path = runner.getStringArgumentValue("output_path",user_arguments)
     num_timesteps_in_hr = runner.getIntegerArgumentValue("num_timesteps_in_hr",user_arguments)
 
     ############################################

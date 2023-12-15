@@ -37,15 +37,6 @@ ModelMeasure
 **Model Dependent:** false
 
 
-### Path to output data CSV. INCLUDE .CSV EXTENSION
-
-**Name:** output_path,
-**Type:** String,
-**Units:** ,
-**Required:** true,
-**Model Dependent:** false
-
-
 ### Number/Count of timesteps in an hour for sample simulations
 
 **Name:** num_timesteps_in_hr,

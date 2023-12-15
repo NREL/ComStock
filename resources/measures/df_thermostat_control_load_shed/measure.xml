@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>df_thermostat_control_load_shed</name>
   <uid>0fdd58b3-9943-40b9-a47f-3db37228b200</uid>
-  <version_id>c39a55df-6920-4a59-97e6-fd4126c8fcab</version_id>
-  <version_modified>2023-12-15T22:38:00Z</version_modified>
+  <version_id>d1f9aad1-adeb-431c-b77d-a8cc89666fc0</version_id>
+  <version_modified>2023-12-15T22:46:00Z</version_modified>
   <xml_checksum>D7E77FC2</xml_checksum>
   <class_name>DfThermostatControlLoadShed</class_name>
   <display_name>df thermostat control load shed</display_name>
@@ -26,14 +26,6 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>2</default_value>
-    </argument>
-    <argument>
-      <name>output_path</name>
-      <display_name>Path to output data CSV. INCLUDE .CSV EXTENSION</display_name>
-      <type>String</type>
-      <required>true</required>
-      <model_dependent>false</model_dependent>
-      <default_value>../outputs/output.csv</default_value>
     </argument>
     <argument>
       <name>num_timesteps_in_hr</name>
@@ -102,7 +94,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>F9224855</checksum>
+      <checksum>16DC8A23</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -119,7 +111,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>A28FCB5C</checksum>
+      <checksum>695FED5E</checksum>
     </file>
     <file>
       <filename>dispatch_schedule_generation.rb</filename>
@@ -155,7 +147,7 @@
       <filename>df_thermostat_control_load_shed_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>5175CA5B</checksum>
+      <checksum>48A1C501</checksum>
     </file>
     <file>
       <filename>in/files/in.epw</filename>
