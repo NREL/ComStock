@@ -238,7 +238,9 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
                 self.data[col] = self.data[col].replace('Not applicable', np.nan)
                 self.data[col] = self.data[col].astype('float64')
                 found_cols.append(col)
-            self.data[new_col_name] = self.data[found_cols].sum(axis=1)
+            new_col_dict = {}
+            new_col_dict[new_col_name] = self.data[found_cols].sum(axis=1)
+            self.data = pd.concat([self.data, pd.DataFrame(new_col_dict)],axis=1)
 
         # Convert all energy columns from base CBECS kBtu to kWh
         for col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY):
@@ -406,6 +408,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         self.data[new_area_col] = self.data[self.FLR_AREA] * self.data[self.BLDG_WEIGHT]
 
         # Energy
+        new_col_dict = {}
         for col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY):
             # Skip end-use columns that aren't part of CBECS
             if not col in self.data:
@@ -419,7 +422,8 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             old_units = self.units_from_col_name(col)
             new_units = self.weighted_energy_units
             conv_fact = self.conv_fact(old_units, new_units)
-            self.data[new_col] = self.data[col] * self.data[self.BLDG_WEIGHT] * conv_fact
+            new_col_dict[new_col] = self.data[col] * self.data[self.BLDG_WEIGHT] * conv_fact
+        self.data = pd.concat([self.data, pd.DataFrame(new_col_dict)], axis=1)
 
     def export_to_csv_wide(self):
         # Exports comstock data to CSV in wide format
