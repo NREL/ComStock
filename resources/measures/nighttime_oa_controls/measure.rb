@@ -150,6 +150,7 @@ require 'openstudio-standards'
       return true
     end
 
+    ##AA take out these counts if not needed 
     oa_schd_1_count = 0
     oa_schd_op_count = 0
     op_schd_1_count = 0
@@ -157,6 +158,7 @@ require 'openstudio-standards'
     fan_sch_op_count = 0
 
     # make changes to unitary systems
+	#need to deal with non unitary systems, too 
     li_unitary_systems.sort.each do |air_loop_hvac|
 
       # change night OA schedule to match hvac operation schedule for no night OA
@@ -199,6 +201,25 @@ require 'openstudio-standards'
           end
         end
     end 
+	
+	#handle non-unitary systems 
+	li_non_unitary_systems.sort.each do |air_loop_hvac|
+
+      # change night OA schedule to match hvac operation schedule for no night OA
+      #case rtu_night_mode
+      #when 'night_fancycle_novent'
+        # Schedule to control whether or not unit ventilates at night - clone hvac availability schedule
+        next unless air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.is_initialized
+        air_loop_vent_sch = air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.get
+        air_loop_vent_sch.setName("#{air_loop_hvac.name}_night_novent_schedule")
+        next unless air_loop_hvac.airLoopHVACOutdoorAirSystem.is_initialized
+        air_loop_oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get.getControllerOutdoorAir
+        next unless air_loop_oa_system.minimumOutdoorAirSchedule.is_initialized
+        air_loop_oa_system.setMinimumOutdoorAirSchedule(air_loop_vent_sch)
+        oa_schd_op_count += 1
+      #end
+	  
+	  end 
     return true
   end
 end
