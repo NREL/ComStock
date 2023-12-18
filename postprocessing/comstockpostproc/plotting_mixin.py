@@ -335,7 +335,7 @@ class PlottingMixin():
                     title = f'{self.col_name_to_nice_name(col)}'
                     for ax in g.axes.flatten():
                         ax.set_ylabel(f'{self.col_name_to_nice_name(col)} ({units})')
-                        ax.set_xlabel('')
+                        ax.tick_params(axis='x', labelrotation = 90)
                 else:
                     # With group-by
                     title = f'{self.col_name_to_nice_name(col)}\n by {self.col_name_to_nice_name(group_by)}'
