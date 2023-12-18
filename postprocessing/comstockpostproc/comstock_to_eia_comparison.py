@@ -41,10 +41,12 @@ class ComStockToEIAComparison(NamingMixin, UnitsMixin, PlottingMixin):
                     monthly_data[dataset.DATASET] = monthly_data[dataset.DATASET] + ' - ' + monthly_data['upgrade_name']
                     dfs_to_concat.append(monthly_data)
                     up_name_map = dict(zip(monthly_data['upgrade'].unique(), monthly_data['upgrade_name'].unique()))
-                    for upgrade_id in monthly_data['upgrade'].unique():
+                    upgrade_list = list(monthly_data['upgrade'].unique())
+                    color_dict = self.linear_gradient(dataset.COLOR_COMSTOCK_BEFORE, dataset.COLOR_COMSTOCK_AFTER, len(upgrade_list))
+                    for idx, upgrade_id in enumerate(upgrade_list):
                         dataset_name = dataset.dataset_name + ' - ' + up_name_map[upgrade_id]
                         dataset_names.append(dataset_name)
-                        self.color_map[dataset_name] = dataset.color
+                        self.color_map[dataset_name] = color_dict['hex'][idx]
                 elif upgrade_id not in dataset.monthly_data['upgrade']:
                     logger.error(f'Upgrade {upgrade_id} not found in {dataset.dataset_name}. Enter a valid upgrade ID in the ComStockToEIAComparison constructor or \"All\" to include all upgrades.')
                 else:
