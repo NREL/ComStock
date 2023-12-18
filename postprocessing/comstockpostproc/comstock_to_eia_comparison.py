@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class ComStockToEIAComparison(NamingMixin, UnitsMixin, PlottingMixin):
     def __init__(self, comstock_list: List[ComStock], eia_list: List[EIA], upgrade_id=0, image_type='jpg', name=None, make_comparison_plots=True):
         """
-        Creates the ComStock to EIA comparison charts
+        Creates the ComStock to EIA comparison plots.
 
         Args:
             comstock_list (List[ComStock]): List of ComStock dataset objects
