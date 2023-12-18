@@ -1814,7 +1814,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_heating_coil_speed1.setEnergyInputRatioFunctionofFlowFractionCurve (heat_eir_fff_all_stages)
       new_dx_heating_coil_speed1.setPartLoadFractionCorrelationCurve(heat_plf_fplr_all_stages)
       if std_perf
-        new_dx_heating_coil.addStage(new_dx_heating_coil_speed1) unless (hash_clg_speed_level_status[1] == false)
+        new_dx_heating_coil.addStage(new_dx_heating_coil_speed1) unless (hash_htg_speed_level_status[1] == false)
       else
         new_dx_heating_coil.addStage(new_dx_heating_coil_speed1) unless ((hash_clg_speed_level_status[1] == false) || (hash_htg_speed_level_status[1] == false))
       end
@@ -1831,7 +1831,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_heating_coil_speed2.setEnergyInputRatioFunctionofFlowFractionCurve (heat_eir_fff_all_stages)
       new_dx_heating_coil_speed2.setPartLoadFractionCorrelationCurve(heat_plf_fplr_all_stages)
       if std_perf
-        new_dx_heating_coil.addStage(new_dx_heating_coil_speed2) unless (hash_clg_speed_level_status[2] == false)
+        new_dx_heating_coil.addStage(new_dx_heating_coil_speed2) unless (hash_htg_speed_level_status[2] == false)
       else
         new_dx_heating_coil.addStage(new_dx_heating_coil_speed2) unless ((hash_clg_speed_level_status[2] == false) || (hash_htg_speed_level_status[2] == false))
       end
@@ -1848,7 +1848,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_heating_coil_speed3.setEnergyInputRatioFunctionofFlowFractionCurve (heat_eir_fff_all_stages)
       new_dx_heating_coil_speed3.setPartLoadFractionCorrelationCurve(heat_plf_fplr_all_stages)
       if std_perf
-        new_dx_heating_coil.addStage(new_dx_heating_coil_speed3) unless (hash_clg_speed_level_status[3] == false)
+        new_dx_heating_coil.addStage(new_dx_heating_coil_speed3) unless (hash_htg_speed_level_status[3] == false)
       else
         new_dx_heating_coil.addStage(new_dx_heating_coil_speed3) unless ((hash_clg_speed_level_status[3] == false) || (hash_htg_speed_level_status[3] == false))
       end
