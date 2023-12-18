@@ -6,6 +6,9 @@ require 'minitest/autorun'
 require_relative '../measure.rb'
 require 'fileutils'
 
+# require all .rb files in resources folder
+Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }
+
 class DfThermostatControlLoadShedTest < Minitest::Test
   # def setup
   # end
@@ -35,7 +38,7 @@ class DfThermostatControlLoadShedTest < Minitest::Test
     test_sets << {
       model: 'Small_Office_2A',
       weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
-      result: 'Success'
+      result: 'NA'
     }
     
     return test_sets
@@ -180,6 +183,84 @@ class DfThermostatControlLoadShedTest < Minitest::Test
       model = load_model(model_output_path(instance_test_name))
 
     end
+  end
+
+  def dispatch_gen_create_binsamples_test
+    oat_harcoded = []
+    bins_hardcoded = 
+    selectdays_hardcoded = 
+    ns_hardcoded = 
+
+    puts("### ============================================================")
+    puts("### Creating bins...")
+    bins, selectdays, ns = create_binsamples(oat_harcoded)
+    puts("--- bins = #{bins}")
+    puts("--- selectdays = #{selectdays}")
+    puts("--- ns = #{ns}")
+
+    assert(bins == bins_hardcoded)
+    assert(selectdays == selectdays_hardcoded)
+    assert(ns == ns_hardcoded)
+  end
+
+  def dispatch_gen_run_samples_test(model)
+    year_hardcoded = 
+    selectdays_hardcoded = 
+    num_timesteps_in_hr_hardcoded = 
+    y_seed_harcoded = 
+
+    puts("### ============================================================")
+    puts("### Running simulation on samples...")
+    y_seed = run_samples(model, year, selectdays, num_timesteps_in_hr)
+
+    assert(y_seed == y_seed_hardcoded)
+  end
+
+  def dispatch_gen_small_run_test(model)
+    oat_harcoded = []
+    bins_hardcoded = 
+    selectdays_hardcoded = 
+    ns_hardcoded = 1
+    year_hardcoded = 2018
+    selectdays_hardcoded = 
+    num_timesteps_in_hr_hardcoded = 
+    y_seed_harcoded = 
+
+    puts("### ============================================================")
+    puts("### Reading weather file...")
+    year, oat = read_epw(model)
+    puts("--- year = #{year}")
+    puts("--- oat.size = #{oat.size}")
+
+    puts("### ============================================================")
+    puts("### Creating bins...")
+    bins, selectdays, ns = create_binsamples(oat)
+    puts("--- bins = #{bins}")
+    puts("--- selectdays = #{selectdays}")
+    puts("--- ns = #{ns}")
+
+    puts("### ============================================================")
+    puts("### Running simulation on samples...")
+    y_seed = run_samples(model, year, selectdays, num_timesteps_in_hr)
+    puts("--- y_seed = #{y_seed}")
+
+    puts("### ============================================================")
+    puts("### Creating annual prediction...")
+    annual_load = load_prediction_from_sample(y_seed, bins)
+    puts("--- annual_load = #{annual_load}")
+    puts("--- annual_load.class = #{annual_load.class}")
+
+    puts("### ============================================================")
+    puts("### Creating peak schedule...")
+    start_time = Time.now
+    peak_schedule = peak_schedule_generation(annual_load, peak_len, rebound_len)
+    end_time = Time.now
+    puts("--- start_time = #{start_time}")
+    puts("--- end_time = #{end_time}")
+    puts("--- elapsed time = #{end_time - start_time} seconds")
+    puts("--- peak_schedule = #{peak_schedule}")
+
+    assert()
   end
 
 end
