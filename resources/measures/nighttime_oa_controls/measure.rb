@@ -37,7 +37,7 @@ require 'openstudio-standards'
    # Determine if the air loop is a unitary system
   #
   # @return [Bool] Returns true if a unitary system is present, false if not.
-  def air_loop_hvac_unitary_system?(air_loop_hvac)
+  def self.air_loop_hvac_unitary_system?(air_loop_hvac)
     is_unitary_system = false
     air_loop_hvac.supplyComponents.each do |component|
       obj_type = component.iddObjectType.valueName.to_s
@@ -50,7 +50,7 @@ require 'openstudio-standards'
   end
 
   # determine if the air loop is residential (checks to see if there is outdoor air system object)
-  def air_loop_res?(air_loop_hvac)
+  def self.air_loop_res?(air_loop_hvac)
     is_res_system = true
     air_loop_hvac.supplyComponents.each do |component|
       obj_type = component.iddObjectType.valueName.to_s
@@ -64,17 +64,17 @@ require 'openstudio-standards'
 
   # Determine if the system is a DOAS based on
   # whether there is 100% OA in heating and cooling sizing.
-  def air_loop_doas?(air_loop_hvac)
+  def self.air_loop_doas?(air_loop_hvac)
     is_doas = false
     sizing_system = air_loop_hvac.sizingSystem
-    if sizing_system.allOutdoorAirinCooling && sizing_system.allOutdoorAirinHeating && (air_loop_res?(air_loop_hvac) == false) && (air_loop_hvac.name.to_s.include?("DOAS") || air_loop_hvac.name.to_s.include?("doas"))
+    if sizing_system.allOutdoorAirinCooling && sizing_system.allOutdoorAirinHeating && (NighttimeOAControls.air_loop_res?(air_loop_hvac) == false) && (air_loop_hvac.name.to_s.include?("DOAS") || air_loop_hvac.name.to_s.include?("doas"))
       is_doas = true
     end
     return is_doas
   end
 
   # Determine if is evaporative cooler
-  def air_loop_evaporative_cooler?(air_loop_hvac)
+  def self.air_loop_evaporative_cooler?(air_loop_hvac)
     is_evap = false
     air_loop_hvac.supplyComponents.each do |component|
       obj_type = component.iddObjectType.valueName.to_s
@@ -127,13 +127,13 @@ require 'openstudio-standards'
     li_non_unitary_systems = []
     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
       # skip systems that are residential, use evap coolers, or are DOAS
-      next if air_loop_res?(air_loop_hvac)
-      next if air_loop_evaporative_cooler?(air_loop_hvac)
-      next if air_loop_doas?(air_loop_hvac)
+      next if NighttimeOAControls.air_loop_res?(air_loop_hvac)
+      next if NighttimeOAControls.air_loop_evaporative_cooler?(air_loop_hvac)
+      next if NighttimeOAControls.air_loop_doas?(air_loop_hvac)
       # skip data centers
       next if ['Data Center', 'DataCenter', 'data center', 'datacenter', 'DATACENTER', 'DATA CENTER'].any? { |word| (air_loop_hvac.name.get).include?(word) }
       # check unitary systems
-      if air_loop_hvac_unitary_system?(air_loop_hvac)
+      if NighttimeOAControls.air_loop_hvac_unitary_system?(air_loop_hvac)
         unitary_system_count += 1
         li_unitary_systems << air_loop_hvac
       else
