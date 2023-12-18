@@ -345,7 +345,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   end
 
   # get rated cooling COP from fitted regression
-  def get_rated_cop_cooling(runner, air_loop_hvac, rated_m_3_per_sec, rated_capacity_w)
+  def get_rated_cop_cooling(air_loop_hvac, rated_m_3_per_sec, rated_capacity_w)
     intercept = 4.3220789259
     coef_1 = 0.0000000000
     coef_2 = 0.0003771728
@@ -359,12 +359,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     rated_capacity_kw = rated_capacity_w / 1000 # W to kW
     rated_cop_cooling = intercept + 1 * coef_1 + coef_2 * rated_CFM + coef_3 * rated_capacity_kw + coef_4 * (rated_CFM**2) + coef_5 * (rated_CFM * rated_capacity_kw) + coef_6 * (rated_capacity_kw**2)
     rated_cop_cooling = rated_cop_cooling.clamp(min_cop, max_cop)
-    puts("--- (standard performance) for air loop (#{air_loop_hvac.name}), rated_CFM = #{rated_CFM} | rated_capacity_kw = #{rated_capacity_kw} | rated_cop_cooling = #{rated_cop_cooling}")
     return rated_cop_cooling
   end
 
   # get rated heating COP from fitted regression
-  def get_rated_cop_heating(runner, air_loop_hvac, rated_m_3_per_sec, rated_capacity_w)
+  def get_rated_cop_heating(air_loop_hvac, rated_m_3_per_sec, rated_capacity_w)
     intercept = 3.1801481338
     coef_1 = 0.0000000000
     coef_2 = 0.0009038274
@@ -378,7 +377,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     rated_capacity_kw = rated_capacity_w / 1000 # W to kW
     rated_cop_heating = intercept + 1 * coef_1 + coef_2 * rated_CFM + coef_3 * rated_capacity_kw + coef_4 * (rated_CFM**2) + coef_5 * (rated_CFM * rated_capacity_kw) + coef_6 * (rated_capacity_kw**2)
     rated_cop_heating = rated_cop_heating.clamp(min_cop, max_cop)
-    puts("--- (standard performance) for air loop (#{air_loop_hvac.name}), rated_CFM = #{rated_CFM} | rated_capacity_kw = #{rated_capacity_kw} | rated_cop_heating = #{rated_cop_heating}")
     return rated_cop_heating
   end
   #### End predefined functions
@@ -1561,8 +1559,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed1.setGrossRatedTotalCoolingCapacity(hash_clg_cap_stgs[1])
       new_dx_cooling_coil_speed1.setGrossRatedSensibleHeatRatio(0.872821200315651)
       if std_perf
-        rated_cop_fit = get_rated_cop_cooling(runner, air_loop_hvac, hash_clg_airflow_stgs[1], hash_clg_cap_stgs[1])
+        rated_cop_fit = get_rated_cop_cooling(air_loop_hvac, hash_clg_airflow_stgs[1], hash_clg_cap_stgs[1])
         new_dx_cooling_coil_speed1.setGrossRatedCoolingCOP(rated_cop_fit)
+        puts("--- (standard performance) for air loop (#{air_loop_hvac.name}), stage 1 rated_cop_cooling = #{rated_cop_fit}")
       else
         new_dx_cooling_coil_speed1.setGrossRatedCoolingCOP(4.40)
       end
@@ -1590,8 +1589,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed2.setGrossRatedTotalCoolingCapacity(hash_clg_cap_stgs[2])
       new_dx_cooling_coil_speed2.setGrossRatedSensibleHeatRatio(0.80463149283227)
       if std_perf
-        rated_cop_fit = get_rated_cop_cooling(runner, air_loop_hvac, hash_clg_airflow_stgs[2], hash_clg_cap_stgs[2])
+        rated_cop_fit = get_rated_cop_cooling(air_loop_hvac, hash_clg_airflow_stgs[2], hash_clg_cap_stgs[2])
         new_dx_cooling_coil_speed1.setGrossRatedCoolingCOP(rated_cop_fit)
+        puts("--- (standard performance) for air loop (#{air_loop_hvac.name}), stage 2 rated_cop_cooling = #{rated_cop_fit}")
       else
         new_dx_cooling_coil_speed2.setGrossRatedCoolingCOP(4.56)
       end
@@ -1619,8 +1619,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed3.setGrossRatedTotalCoolingCapacity(hash_clg_cap_stgs[3])
       new_dx_cooling_coil_speed3.setGrossRatedSensibleHeatRatio(0.79452681573034)
       if std_perf
-        rated_cop_fit = get_rated_cop_cooling(runner, air_loop_hvac, hash_clg_airflow_stgs[3], hash_clg_cap_stgs[3])
+        rated_cop_fit = get_rated_cop_cooling(air_loop_hvac, hash_clg_airflow_stgs[3], hash_clg_cap_stgs[3])
         new_dx_cooling_coil_speed1.setGrossRatedCoolingCOP(rated_cop_fit)
+        puts("--- (standard performance) for air loop (#{air_loop_hvac.name}), stage 3 rated_cop_cooling = #{rated_cop_fit}")
       else
         new_dx_cooling_coil_speed3.setGrossRatedCoolingCOP(4.44)
       end
@@ -1648,8 +1649,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed4.setGrossRatedTotalCoolingCapacity(hash_clg_cap_stgs[4])
       new_dx_cooling_coil_speed4.setGrossRatedSensibleHeatRatio(0.784532541812955)
       if std_perf
-        rated_cop_fit = get_rated_cop_cooling(runner, air_loop_hvac, hash_clg_airflow_stgs[4], hash_clg_cap_stgs[4])
+        rated_cop_fit = get_rated_cop_cooling(air_loop_hvac, hash_clg_airflow_stgs[4], hash_clg_cap_stgs[4])
         new_dx_cooling_coil_speed1.setGrossRatedCoolingCOP(rated_cop_fit)
+        puts("--- (standard performance) for air loop (#{air_loop_hvac.name}), stage 4 rated_cop_cooling = #{rated_cop_fit}")
       else
         new_dx_cooling_coil_speed4.setGrossRatedCoolingCOP(4.11)
       end
@@ -1858,7 +1860,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         new_dx_heating_coil.setDefrostTimePeriodFraction(0.058333)
 
         new_dx_heating_coil.setRatedTotalHeatingCapacity(hash_htg_cap_stgs[4])
-        rated_cop_fit = get_rated_cop_heating(runner, air_loop_hvac, hash_htg_airflow_stgs[4], hash_htg_cap_stgs[4])
+        rated_cop_fit = get_rated_cop_heating(air_loop_hvac, hash_htg_airflow_stgs[4], hash_htg_cap_stgs[4])
+        puts("--- (standard performance) for air loop (#{air_loop_hvac.name}), single stage rated_cop_heating = #{rated_cop_fit}")
         new_dx_heating_coil.setRatedCOP(rated_cop_fit)
         new_dx_heating_coil.setRatedAirFlowRate(hash_htg_airflow_stgs[4])
         new_dx_heating_coil.setRatedSupplyFanPowerPerVolumeFlowRate(773.3)
