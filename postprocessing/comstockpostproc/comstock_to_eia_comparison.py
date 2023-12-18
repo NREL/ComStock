@@ -17,8 +17,18 @@ from comstockpostproc.comstock import ComStock
 logger = logging.getLogger(__name__)
 
 class ComStockToEIAComparison(NamingMixin, UnitsMixin, PlottingMixin):
-    def __init__(self, comstock_list: List[ComStock], eia_list: List[EIA], upgrade_id, image_type='jpg', name=None, make_comparison_plots=True):
+    def __init__(self, comstock_list: List[ComStock], eia_list: List[EIA], upgrade_id=0, image_type='jpg', name=None, make_comparison_plots=True):
+        """
+        Creates the ComStock to EIA comparison charts
 
+        Args:
+            comstock_list (List[ComStock]): List of ComStock dataset objects
+            eia_list (List[EIA]): List of EIA dataset objects.
+            upgrade_id (Union[str, int], optional): The upgrade ID to include in the chart, or 'All' to include all upgrades for the ComStock run(s).
+            image_type (str, optional): Image file type to use. Defaults to 'jpg'.
+            name (str, optional): Name of output directory. If None, a name will be generated. Defaults to None.
+            make_comparison_plots (bool, optional): Flag to create comparison plots. Defaults to True.
+        """
         # Initialize members
         self.comstock_list = comstock_list
         self.eia_list = eia_list
