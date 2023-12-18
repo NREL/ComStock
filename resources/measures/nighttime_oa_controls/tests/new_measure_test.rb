@@ -126,8 +126,8 @@ class NewMeasureTest < Minitest::Test
   def test_361_warehouse_pvav
    
    # this makes sure measure registers an na for non applicable model
-    osm_name = '361_Warehouse_PVAV_2a_vent_mod.osm'
-    epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
+    osm_name = '361_Warehouse_PVAV_2a_vent_mod_v2.osm'
+    epw_name = 'TX_Port_Arthur_Jeffers_722410_16.epw'
 
     osm_path = model_input_path(osm_name)
 	osm_path_output = model_output_path(osm_name)
@@ -187,7 +187,7 @@ class NewMeasureTest < Minitest::Test
              min_oa_sched = air_loop_oa_system.minimumOutdoorAirSchedule.get()
 			 if min_oa_sched.to_ScheduleRuleset.is_initialized
 			    puts('sched loop')
-			    min_oa_sched = air_loop_oa_system.minimumOutdoorAirSchedule.to_ScheduleRuleset.get
+			    min_oa_sched = min_oa_sched.to_ScheduleRuleset.get
 			    puts(min_oa_sched)
 			end 
 			if min_oa_sched.to_ScheduleConstant.is_initialized
@@ -203,8 +203,8 @@ class NewMeasureTest < Minitest::Test
     end
 	
 	def test_361_warehouse_pvav_post
-	    osm_name = '361_Warehouse_PVAV_2a_vent_mod.osm'
-        epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
+	    osm_name = '361_Warehouse_PVAV_2a_vent_mod_v2.osm'
+        epw_name = 'TX_Port_Arthur_Jeffers_722410_16.epw'
 		osm_path_output = model_output_path(osm_name)
 	    model = load_model("C://Users//aallen//Documents//GitHub//ComStock//resources//measures//nighttime_oa_controls//tests//output//test_361_warehouse_pvav_na//run//in.osm") 
 		    unitary_system_count = 0
