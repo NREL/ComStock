@@ -1549,7 +1549,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil.setCondenserType('AirCooled')
       new_dx_cooling_coil.setAvailabilitySchedule(always_on)
       new_dx_cooling_coil.setMinimumOutdoorDryBulbTemperatureforCompressorOperation(-25)
-      new_dx_cooling_coil.setApplyPartLoadFractiontoSpeedsGreaterthan1(false)
+      if std_perf
+        new_dx_cooling_coil.setApplyPartLoadFractiontoSpeedsGreaterthan1(true)
+      else
+        new_dx_cooling_coil.setApplyPartLoadFractiontoSpeedsGreaterthan1(false)
+      end
       new_dx_cooling_coil.setApplyLatentDegradationtoSpeedsGreaterthan1(false)
       new_dx_cooling_coil.setFuelType('Electricity')
 
