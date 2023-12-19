@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>df_thermostat_control_load_shed</name>
   <uid>0fdd58b3-9943-40b9-a47f-3db37228b200</uid>
-  <version_id>d1f9aad1-adeb-431c-b77d-a8cc89666fc0</version_id>
-  <version_modified>2023-12-15T22:46:00Z</version_modified>
+  <version_id>a2daeb5b-03bf-4114-b502-bc83d379855e</version_id>
+  <version_modified>2023-12-19T20:22:41Z</version_modified>
   <xml_checksum>D7E77FC2</xml_checksum>
   <class_name>DfThermostatControlLoadShed</class_name>
   <display_name>df thermostat control load shed</display_name>
@@ -111,13 +111,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>695FED5E</checksum>
+      <checksum>3BE7EC8A</checksum>
     </file>
     <file>
       <filename>dispatch_schedule_generation.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>8A12229A</checksum>
+      <checksum>31160397</checksum>
     </file>
     <file>
       <filename>Small_Office_psz_gas_3a/files/USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw</filename>
@@ -147,7 +147,7 @@
       <filename>df_thermostat_control_load_shed_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>48A1C501</checksum>
+      <checksum>876023D4</checksum>
     </file>
     <file>
       <filename>in/files/in.epw</filename>
@@ -171,7 +171,7 @@
       <filename>in.osm</filename>
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
-      <checksum>C41609FA</checksum>
+      <checksum>9E458E32</checksum>
     </file>
   </files>
 </measure>

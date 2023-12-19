@@ -1,7 +1,7 @@
 
 OS:Version,
-  {07476691-bdca-4922-a8e3-1ccefbb181d8}, !- Handle
-  3.5.1;                                  !- Version Identifier
+  {a46f4ea2-7642-4965-8505-3dbf3dc71a6d}, !- Handle
+  3.6.1;                                  !- Version Identifier
 
 OS:Facility,
   {5518790d-a14e-4fb0-9541-3684fdf4d37c}; !- Handle
@@ -37041,7 +37041,9 @@ OS:SurfaceConvectionAlgorithm:Outside,
 
 OS:ZoneAirHeatBalanceAlgorithm,
   {a2fa590d-c6e2-4cf9-9c74-22b312b8182a}, !- Handle
-  ThirdOrderBackwardDifference;           !- Algorithm
+  ThirdOrderBackwardDifference,           !- Algorithm
+  ,                                       !- Do Space Heat Balance for Sizing
+  ;                                       !- Do Space Heat Balance for Simulation
 
 OS:ZoneAirContaminantBalance,
   {c2351b91-e9db-4f4e-b56d-93f4938d79a1}; !- Handle

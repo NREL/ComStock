@@ -121,21 +121,21 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     y_seed = run_samples(model, year, selectdays, num_timesteps_in_hr)
     puts("--- y_seed = #{y_seed}")
 
-    puts("### ============================================================")
-    puts("### Creating annual prediction...")
-    annual_load = load_prediction_from_sample(y_seed, bins)
-    puts("--- annual_load = #{annual_load}")
-    puts("--- annual_load.class = #{annual_load.class}")
+    # puts("### ============================================================")
+    # puts("### Creating annual prediction...")
+    # annual_load = load_prediction_from_sample(y_seed, bins)
+    # puts("--- annual_load = #{annual_load}")
+    # puts("--- annual_load.class = #{annual_load.class}")
 
-    puts("### ============================================================")
-    puts("### Creating peak schedule...")
-    start_time = Time.now
-    peak_schedule = peak_schedule_generation(annual_load, peak_len, rebound_len)
-    end_time = Time.now
-    puts("--- start_time = #{start_time}")
-    puts("--- end_time = #{end_time}")
-    puts("--- elapsed time = #{end_time - start_time} seconds")
-    puts("--- peak_schedule = #{peak_schedule}")
+    # puts("### ============================================================")
+    # puts("### Creating peak schedule...")
+    # start_time = Time.now
+    # peak_schedule = peak_schedule_generation(annual_load, peak_len, rebound_len)
+    # end_time = Time.now
+    # puts("--- start_time = #{start_time}")
+    # puts("--- end_time = #{end_time}")
+    # puts("--- elapsed time = #{end_time - start_time} seconds")
+    # puts("--- peak_schedule = #{peak_schedule}")
     
     return true
   end

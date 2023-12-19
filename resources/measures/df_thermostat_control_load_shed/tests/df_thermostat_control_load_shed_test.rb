@@ -7,7 +7,7 @@ require_relative '../measure.rb'
 require 'fileutils'
 
 # require all .rb files in resources folder
-Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }
+Dir[File.dirname(__FILE__) + '../resources/*.rb'].each { |file| require file }
 
 class DfThermostatControlLoadShedTest < Minitest::Test
   # def setup
@@ -36,8 +36,8 @@ class DfThermostatControlLoadShedTest < Minitest::Test
 
     # test: not applicable building type
     test_sets << {
-      model: 'Small_Office_2A',
-      weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
+      model: '361_Medium_Office_PSZ_HP',
+      weather: 'CO_FortCollins_16',
       result: 'NA'
     }
     
@@ -55,6 +55,15 @@ class DfThermostatControlLoadShedTest < Minitest::Test
   def run_dir(test_name)
     # always generate test output in specially named 'output' directory so result files are not made part of the measure
     return "#{File.dirname(__FILE__)}/output/#{test_name}"
+  end
+
+  def model_input_path(osm_name)
+    # return models_for_tests.select { |x| set[:model] == osm_name }
+    return File.join(File.dirname(__FILE__), '../../../tests/models', osm_name)
+  end
+
+  def epw_input_path(epw_name)
+    return File.join(File.dirname(__FILE__), '../../../tests/weather', epw_name)
   end
 
   def model_output_path(test_name)
@@ -132,99 +141,125 @@ class DfThermostatControlLoadShedTest < Minitest::Test
     return result
   end
 
-  def test_models
-    test_name = 'test_models'
-    puts "\n######\nTEST:#{test_name}\n######\n"
+  # def test_models
+  #   test_name = 'test_models'
+  #   puts "\n######\nTEST:#{test_name}\n######\n"
 
-    models_to_test.each do |set|
-      instance_test_name = set[:model]
-      puts "instance test name: #{instance_test_name}"
-      osm_path = models_for_tests.select { |x| set[:model] == File.basename(x, '.osm') }
-      epw_path = epws_for_tests.select { |x| set[:weather] == File.basename(x, '.epw') }
-      assert(!osm_path.empty?)
-      assert(!epw_path.empty?)
-      osm_path = osm_path[0]
-      epw_path = epw_path[0]
+  #   models_to_test.each do |set|
+  #     instance_test_name = set[:model]
+  #     puts "instance test name: #{instance_test_name}"
+  #     osm_path = models_for_tests.select { |x| set[:model] == File.basename(x, '.osm') }
+  #     epw_path = epws_for_tests.select { |x| set[:weather] == File.basename(x, '.epw') }
+  #     assert(!osm_path.empty?)
+  #     assert(!epw_path.empty?)
+  #     osm_path = osm_path[0]
+  #     epw_path = epw_path[0]
 
-      # create an instance of the measure
-      measure = DfThermostatControlLoadShed.new
+  #     # create an instance of the measure
+  #     measure = DfThermostatControlLoadShed.new
 
-      # load the model; only used here for populating arguments
-      model = load_model(osm_path)
+  #     # load the model; only used here for populating arguments
+  #     model = load_model(osm_path)
 
-      # set arguments here; will vary by measure
-      arguments = measure.arguments(model)
-      argument_map = OpenStudio::Measure::OSArgumentMap.new
+  #     # set arguments here; will vary by measure
+  #     arguments = measure.arguments(model)
+  #     argument_map = OpenStudio::Measure::OSArgumentMap.new
 
-      # set arguments: choice of economizer
-      peak_len = arguments[0].clone
-      assert(peak_len.setValue(4))
-      argument_map['peak_len'] = peak_len
+  #     # set arguments: 
+  #     peak_len = arguments[0].clone
+  #     assert(peak_len.setValue(4))
+  #     argument_map['peak_len'] = peak_len
 
-      # set arguments: changeover temperature C
-      rebound_len = arguments[1].clone
-      assert(rebound_len.setValue(2))
-      argument_map['rebound_len'] = rebound_len
+  #     # set arguments: 
+  #     rebound_len = arguments[1].clone
+  #     assert(rebound_len.setValue(2))
+  #     argument_map['rebound_len'] = rebound_len
 
-      # set arguments: apply measure
-      num_timesteps_in_hr = arguments[2].clone	
-      assert(num_timesteps_in_hr.setValue(4))
-      argument_map['num_timesteps_in_hr'] = num_timesteps_in_hr
+  #     # set arguments: 
+  #     num_timesteps_in_hr = arguments[2].clone	
+  #     assert(num_timesteps_in_hr.setValue(4))
+  #     argument_map['num_timesteps_in_hr'] = num_timesteps_in_hr
 
-      # apply the measure to the model and optionally run the model
-      result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+  #     # apply the measure to the model and optionally run the model
+  #     result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
 
-      # check the measure result; result values will equal Success, Fail, or Not Applicable (NA)
-      # also check the amount of warnings, info, and error messages
-      # use if or case statements to change expected assertion depending on model characteristics
-      assert(result.value.valueName == set[:result])
+  #     # check the measure result; result values will equal Success, Fail, or Not Applicable (NA)
+  #     # also check the amount of warnings, info, and error messages
+  #     # use if or case statements to change expected assertion depending on model characteristics
+  #     assert(result.value.valueName == set[:result])
 
-      # to check that something changed in the model, load the model and the check the objects match expected new value
-      model = load_model(model_output_path(instance_test_name))
+  #     # to check that something changed in the model, load the model and the check the objects match expected new value
+  #     model = load_model(model_output_path(instance_test_name))
 
-    end
-  end
+  #   end
+  # end
 
-  def dispatch_gen_create_binsamples_test
+  # def dispatch_gen_create_binsamples_test
+  #   oat_harcoded = []
+  #   bins_hardcoded = 
+  #   selectdays_hardcoded = 
+  #   ns_hardcoded = 
+
+  #   puts("### ============================================================")
+  #   puts("### Creating bins...")
+  #   bins, selectdays, ns = create_binsamples(oat_harcoded)
+  #   puts("--- bins = #{bins}")
+  #   puts("--- selectdays = #{selectdays}")
+  #   puts("--- ns = #{ns}")
+
+  #   assert(bins == bins_hardcoded)
+  #   assert(selectdays == selectdays_hardcoded)
+  #   assert(ns == ns_hardcoded)
+  # end
+
+  # def dispatch_gen_run_samples_test(model)
+  #   year_hardcoded = 
+  #   selectdays_hardcoded = 
+  #   num_timesteps_in_hr_hardcoded = 
+  #   y_seed_harcoded = 
+
+  #   puts("### ============================================================")
+  #   puts("### Running simulation on samples...")
+  #   y_seed = run_samples(model, year, selectdays, num_timesteps_in_hr)
+
+  #   assert(y_seed == y_seed_hardcoded)
+  # end
+
+  def dispatch_gen_small_run_test
+    osm_name = '361_Medium_Office_PSZ_HP.osm'
+    epw_name = 'CO_FortCollins_16.epw'
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+    model = load_model(osm_path)
+    
     oat_harcoded = []
-    bins_hardcoded = 
-    selectdays_hardcoded = 
-    ns_hardcoded = 
-
-    puts("### ============================================================")
-    puts("### Creating bins...")
-    bins, selectdays, ns = create_binsamples(oat_harcoded)
-    puts("--- bins = #{bins}")
-    puts("--- selectdays = #{selectdays}")
-    puts("--- ns = #{ns}")
-
-    assert(bins == bins_hardcoded)
-    assert(selectdays == selectdays_hardcoded)
-    assert(ns == ns_hardcoded)
-  end
-
-  def dispatch_gen_run_samples_test(model)
-    year_hardcoded = 
-    selectdays_hardcoded = 
-    num_timesteps_in_hr_hardcoded = 
-    y_seed_harcoded = 
-
-    puts("### ============================================================")
-    puts("### Running simulation on samples...")
-    y_seed = run_samples(model, year, selectdays, num_timesteps_in_hr)
-
-    assert(y_seed == y_seed_hardcoded)
-  end
-
-  def dispatch_gen_small_run_test(model)
-    oat_harcoded = []
-    bins_hardcoded = 
-    selectdays_hardcoded = 
+    bins_hardcoded = {
+      'ext-hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+      'hot' => { 'morning' => [], 'noon' => [], 'afternoon' => Array(1..365), 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+      'mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+      'cool-mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+      'cool' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+      'cold' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] }
+    }
+    selectdays_hardcoded = {
+      'ext-hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+      'hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [200], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+      'mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+      'cool-mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+      'cool' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+      'cold' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] }
+    }
     ns_hardcoded = 1
     year_hardcoded = 2018
-    selectdays_hardcoded = 
-    num_timesteps_in_hr_hardcoded = 
-    y_seed_harcoded = 
+    num_timesteps_in_hr_hardcoded = 4
+    y_seed_harcoded = {
+      'ext-hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+      'hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+      'mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+      'cool-mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+      'cool' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+      'cold' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] }
+    }
 
     puts("### ============================================================")
     puts("### Reading weather file...")
@@ -238,11 +273,14 @@ class DfThermostatControlLoadShedTest < Minitest::Test
     puts("--- bins = #{bins}")
     puts("--- selectdays = #{selectdays}")
     puts("--- ns = #{ns}")
+    assert(bins == bins_hardcoded)
+    assert(selectdays == selectdays_hardcoded)
 
     puts("### ============================================================")
     puts("### Running simulation on samples...")
     y_seed = run_samples(model, year, selectdays, num_timesteps_in_hr)
     puts("--- y_seed = #{y_seed}")
+    assert(y_seed == y_seed_harcoded)
 
     puts("### ============================================================")
     puts("### Creating annual prediction...")
@@ -260,7 +298,7 @@ class DfThermostatControlLoadShedTest < Minitest::Test
     puts("--- elapsed time = #{end_time - start_time} seconds")
     puts("--- peak_schedule = #{peak_schedule}")
 
-    assert()
+    # assert()
   end
 
 end

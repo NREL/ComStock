@@ -65,10 +65,6 @@ def read_epw(model)#,peak_threshold)
     runner.registerError('Cannot find weather file from model using weatherFile class')
   end
 
-  # weather_lat = epw_file.latitude
-  # weather_lon = epw_file.longitude
-  # weather_time = epw_file.timeZone
-  # weather_elev = epw_file.elevation
   # weather_startDate = epw_file.startDate
   weather_startDateActualYear = epw_file.startDateActualYear
   year = weather_startDateActualYear.to_i
@@ -76,19 +72,6 @@ def read_epw(model)#,peak_threshold)
   weather_daylightSavingEndDate = epw_file.daylightSavingEndDate
   weather_daylightSavingStartDate = epw_file.daylightSavingStartDate
   # puts("weather name: #{epw_file.city}_#{epw_file.stateProvinceRegion}_#{epw_file.country}")
-  # puts "latitude, longtitude, timezone, elevation"
-  # puts weather_lat
-  # puts weather_lon
-  # puts weather_time
-  # puts weather_elev
-  # puts "start date, start year, start day of week"
-  # puts weather_startDate
-  # puts year
-  # puts weather_startDayOfWeek
-  # puts "timestep, daylightsaving end, start"
-  # puts weather_timeStep
-  # puts weather_daylightSavingEndDate
-  # puts weather_daylightSavingStartDate
   
   field = 'DryBulbTemperature'
   weather_ts = epw_file.getTimeSeries(field)
@@ -252,6 +235,7 @@ def create_binsamples(oat)
   end
 
   ns = 0
+  srand(42)
   combbins.keys.each do |key|
     # puts key
     combbins[key].keys.each do |keykey|
@@ -294,10 +278,10 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, run_dir =
   begin_month, begin_day = day_of_year_to_date(year, doy-1)
   end_month, end_day = day_of_year_to_date(year, doy)
 
-  puts("### DEBUGGING: begin_month = #{begin_month}")
-  puts("### DEBUGGING: begin_day = #{begin_day}")
-  puts("### DEBUGGING: end_month = #{end_month}")
-  puts("### DEBUGGING: end_day = #{end_day}")
+  # puts("### DEBUGGING: begin_month = #{begin_month}")
+  # puts("### DEBUGGING: begin_day = #{begin_day}")
+  # puts("### DEBUGGING: end_month = #{end_month}")
+  # puts("### DEBUGGING: end_day = #{end_day}")
 
   ### reference: SetRunPeriod measure on BCL
   model.getYearDescription.setCalendarYear(year)
@@ -305,12 +289,20 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, run_dir =
   model.getRunPeriod.setBeginDayOfMonth(begin_day)
   model.getRunPeriod.setEndMonth(end_month)
   model.getRunPeriod.setEndDayOfMonth(end_day)
-  model.getTimestep.setNumberOfTimestepsPerHour(num_timesteps_in_hr)
+  if num_timesteps_in_hr != 4
+    model.getTimestep.setNumberOfTimestepsPerHour(num_timesteps_in_hr)
+  end
+  model.getSimulationControl.setDoZoneSizingCalculation(false)
+  model.getSimulationControl.setDoSystemSizingCalculation(false)
+  model.getSimulationControl.setDoPlantSizingCalculation(false)
 
-  puts("### DEBUGGING: model.getRunPeriod.getBeginDayOfMonth = #{model.getRunPeriod.getBeginDayOfMonth}")
-  puts("### DEBUGGING: model.getRunPeriod.getBeginMonth = #{model.getRunPeriod.getBeginMonth}")
-  puts("### DEBUGGING: model.getRunPeriod.getEndMonth = #{model.getRunPeriod.getEndMonth}")
-  puts("### DEBUGGING: model.getRunPeriod.getEndDayOfMonth = #{model.getRunPeriod.getEndDayOfMonth}")
+  # puts("### DEBUGGING: model.getRunPeriod.getBeginDayOfMonth = #{model.getRunPeriod.getBeginDayOfMonth}")
+  # puts("### DEBUGGING: model.getRunPeriod.getBeginMonth = #{model.getRunPeriod.getBeginMonth}")
+  # puts("### DEBUGGING: model.getRunPeriod.getEndMonth = #{model.getRunPeriod.getEndMonth}")
+  # puts("### DEBUGGING: model.getRunPeriod.getEndDayOfMonth = #{model.getRunPeriod.getEndDayOfMonth}")
+  puts("### DEBUGGING: model.getSimulationControl.doZoneSizingCalculation = #{model.getSimulationControl.doZoneSizingCalculation}")
+  puts("### DEBUGGING: model.getSimulationControl.doSystemSizingCalculation = #{model.getSimulationControl.doSystemSizingCalculation}")
+  puts("### DEBUGGING: model.getSimulationControl.doPlantSizingCalculation = #{model.getSimulationControl.doPlantSizingCalculation}")
 
   # idf = forward_translator.translateModel(model)
   # idf_path = OpenStudio::Path.new("#{run_dir}/#{idf_name}")
@@ -354,15 +346,19 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, run_dir =
   cli_path = OpenStudio.getOpenStudioCLI
   cmd = "\"#{cli_path}\" run -w \"#{osw_path}\""
   # cmd = "\"#{cli_path}\" --verbose run -w \"#{osw_path}\""
-  # puts cmd
+  puts cmd
   # Run the sizing run
   OpenstudioStandards.run_command(cmd)
   OpenStudio.logFree(OpenStudio::Info, 'openstudio.model.Model', "Finished simulation #{run_dir} at #{Time.now.strftime('%T.%L')}")
   sql_path = OpenStudio::Path.new("#{run_dir}/run/eplusout.sql")
-  # puts("### DEBUGGING: sql_path = #{sql_path}")
+  puts("### DEBUGGING: sql_path = #{sql_path}")
   
   # get sql
   sqlFile = OpenStudio::SqlFile.new(sql_path)
+  # if sqlFile.is_initialized
+  #   sqlFile = sqlFile.get
+  # end
+
 
   # check available timeseries extraction options
   availableEnvPeriods = sqlFile.availableEnvPeriods.to_a
@@ -375,7 +371,7 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, run_dir =
   end
 
   puts("### DEBUGGING: availableEnvPeriods = #{availableEnvPeriods}")
-  puts("### DEBUGGING: availableTimeSeries = #{availableTimeSeries}")
+  # puts("### DEBUGGING: availableTimeSeries = #{availableTimeSeries}")
   puts("### DEBUGGING: availableReportingFrequencies = #{availableReportingFrequencies}")
   
   envperiod = nil
@@ -385,7 +381,7 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, run_dir =
     raise "options for availableEnvPeriods are not just one: #{availableEnvPeriods}"
   end
   timeseriesname = 'Electricity:Facility'
-  reportingfrequency = 'Zone Timestep'
+  reportingfrequency = 'Hourly' #'Zone Timestep'
 
   unless availableEnvPeriods.include?(envperiod) 
     raise "envperiod of #{envperiod} not included in available options: #{availableEnvPeriods}"
@@ -393,8 +389,12 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, run_dir =
   unless availableTimeSeries.include?(timeseriesname) 
     raise "timeseriesname of #{timeseriesname} not included in available options: #{availableTimeSeries}"
   end
-  unless availableReportingFrequencies.include?(reportingfrequency) 
-    raise "reportingfrequency of #{reportingfrequency} not included in available options: #{availableReportingFrequencies}"
+  unless availableReportingFrequencies.include?(reportingfrequency)
+    puts("Hourly reporting frequency is not available")
+    reportingfrequency = 'Zone Timestep'
+    unless availableReportingFrequencies.include?(reportingfrequency)
+      raise "reportingfrequency of #{reportingfrequency} not included in available options: #{availableReportingFrequencies}"
+    end
   end
 
   electricity_results = sqlFile.timeSeries(envperiod,reportingfrequency,timeseriesname)
@@ -441,7 +441,7 @@ def run_samples(model, year, selectdays, num_timesteps_in_hr)
         puts "Simulation on day of year: #{doy}"
         yd = model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr)
         puts("--- yd = #{yd}")
-        puts yd.size
+        puts("--- yd.size = #{yd.size}")
         if ns == 1
           y_seed[key][keykey] = yd
         elsif ns > 1
