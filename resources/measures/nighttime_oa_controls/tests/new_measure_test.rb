@@ -189,11 +189,13 @@ class NewMeasureTest < Minitest::Test
 			    puts('sched loop')
 			    min_oa_sched = min_oa_sched.to_ScheduleRuleset.get
 			    puts(min_oa_sched)
+				#assert(true) 
 			end 
 			if min_oa_sched.to_ScheduleConstant.is_initialized
 			    puts('sched loop')
 			    min_oa_sched = min_oa_sched.to_ScheduleConstant.get
 			    puts(min_oa_sched)
+				#assert(false) 
 			end 
        end 
       #end
@@ -244,16 +246,46 @@ class NewMeasureTest < Minitest::Test
 			    puts('sched simulated loop')
 			    min_oa_sched = min_oa_sched .to_ScheduleRuleset.get
 			    puts(min_oa_sched)
+				assert(true)
 			end 
 			if min_oa_sched.to_ScheduleConstant.is_initialized
 			    puts('sched simulated loop')
 			    min_oa_sched = min_oa_sched.to_ScheduleConstant.get
 			    puts(min_oa_sched)
+				assert(false)
 			end 
        end 
       #end
 	  
 	  end 
+	  
+	  #confirm that schedule changed for unitary systems 
+	  li_unitary_systems.sort.each do |air_loop_hvac|
+
+      # change night OA schedule to match hvac operation schedule for no night OA
+        # Schedule to control whether or not unit ventilates at night - clone hvac availability schedule
+        next unless air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.is_initialized
+        air_loop_vent_sch = air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.get
+        air_loop_vent_sch.setName("#{air_loop_hvac.name}_night_novent_schedule")
+        if  air_loop_hvac.airLoopHVACOutdoorAirSystem.is_initialized
+		     air_loop_oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get.getControllerOutdoorAir
+             min_oa_sched = air_loop_oa_system.minimumOutdoorAirSchedule.get()
+			 puts ('in simulated loop')
+			 if min_oa_sched.to_ScheduleRuleset.is_initialized
+			    puts('sched simulated loop')
+			    min_oa_sched = min_oa_sched .to_ScheduleRuleset.get
+			    puts(min_oa_sched)
+				assert(true)
+			end 
+			if min_oa_sched.to_ScheduleConstant.is_initialized
+			    puts('sched simulated loop')
+			    min_oa_sched = min_oa_sched.to_ScheduleConstant.get
+			    puts(min_oa_sched)
+				assert(false)
+			end 
+			end 
+ 
+	 end 
 		
 	
 	
