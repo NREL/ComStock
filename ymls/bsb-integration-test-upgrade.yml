@@ -1,0 +1,121 @@
+schema_version: '0.3'
+buildstock_directory: ../
+project_directory: national
+output_directory: ../baseline_test_output
+weather_files_url: https://data.nrel.gov/system/files/156/BuildStock_TMY3_FIPS.zip
+
+sampler:
+  type: precomputed
+  args:
+    sample_file: ../samples/bsb-integration-test.csv
+
+baseline:
+  n_buildings_represented: 10
+  custom_gems: True
+
+os_version: 3.6.1
+os_sha: bb9481519e
+workflow_generator:
+  type: commercial_default
+  args:
+    reporting_measures:
+    - measure_dir_name: SimulationOutputReport
+    - measure_dir_name: comstock_sensitivity_reports
+    - measure_dir_name: emissions_reporting
+    - measure_dir_name: qoi_report
+    - measure_dir_name: la_100_qaqc
+      arguments:
+        run_qaqc: false
+    - measure_dir_name: simulation_settings_check
+      arguments:
+        run_sim_settings_checks: true
+    - measure_dir_name: run_directory_cleanup
+    timeseries_csv_export:
+       reporting_frequency: Timestep
+       inc_output_variables: false
+upgrades:
+  - upgrade_name: HP RTU E Backup
+    options:
+      - option: hvac_add_heat_pump_rtu|electric_backup_base
+      - option: hvac_add_multispeed_coil_min_flow|multispeed_min_flow_default
+
+  - upgrade_name: HP RTU G Backup
+    options:
+      - option: hvac_add_heat_pump_rtu|orig_fuel_backup_base
+      - option: hvac_add_multispeed_coil_min_flow|multispeed_min_flow_default
+
+  - upgrade_name: VRF with DOAS
+    options:
+      - option: hvac_vrf_hr_doas|vrf_hr
+
+  - upgrade_name: DOAS HP Minisplits
+    options:
+      - option: hvac_add_doas_heat_pump_minisplit|hp_minisplit_default
+
+  - upgrade_name: HP Boiler E Backup
+    options:
+      - option: hvac_replace_boiler_by_heatpump|boiler_backup_new_hot_water_setpoint_coil_autosize
+
+  - upgrade_name: HP Boiler G Backup
+    options:
+      - option: hvac_replace_boiler_by_heatpump|gas_boiler_backup_new_hot_water_setpoint_coil_autosize
+
+  - upgrade_name: Economizer
+    options:
+      - option: hvac_economizer|apply_measure
+      - option: fault_economizer_damper_fully_closed|dummy_option_does_nothing
+
+  - upgrade_name: DCV
+    options:
+      - option: hvac_dcv_v2|demand_control_ventilation
+
+  - upgrade_name: Energy Recovery
+    options:
+      - option: hvac_exhaust_air_energy_or_heat_recovery|add_energy_or_heat_recovery
+
+  - upgrade_name: LED Lighting
+    options:
+      - option: light_led|lighting_technology_gen5
+
+  - upgrade_name: Wall Insulation
+    options:
+      - option: env_exterior_wall_insulation|exterior_wall_insulation
+
+  - upgrade_name: Roof Insulation
+    options:
+      - option: env_roof_insul_aedg|roof_insul_aedg
+
+  - upgrade_name: Secondary Windows
+    options:
+      - option: env_secondary_windows|secondary_windows
+
+  - upgrade_name: Window Film
+    options:
+      - option: env_window_film|window_film
+
+  - upgrade_name: New Windows
+    options:
+      - option: env_new_aedg_windows|new_aedg_windows
+
+  - upgrade_name: Package 1
+    options:
+      - option: env_exterior_wall_insulation|exterior_wall_insulation
+      - option: env_roof_insul_aedg|roof_insul_aedg
+      - option: env_new_aedg_windows|new_aedg_windows
+
+  - upgrade_name: Package 2
+    options:
+      - option: light_led|lighting_technology_gen5
+      - option: hvac_replace_boiler_by_heatpump|boiler_backup_new_hot_water_setpoint_coil_autosize
+      - option: hvac_add_heat_pump_rtu|electric_backup_base
+      - option: hvac_add_multispeed_coil_min_flow|multispeed_min_flow_default
+
+  - upgrade_name: Package 3
+    options:
+      - option: env_exterior_wall_insulation|exterior_wall_insulation
+      - option: env_roof_insul_aedg|roof_insul_aedg
+      - option: env_new_aedg_windows|new_aedg_windows
+      - option: light_led|lighting_technology_gen5
+      - option: hvac_replace_boiler_by_heatpump|boiler_backup_new_hot_water_setpoint_coil_autosize
+      - option: hvac_add_heat_pump_rtu|electric_backup_base
+      - option: hvac_add_multispeed_coil_min_flow|multispeed_min_flow_default

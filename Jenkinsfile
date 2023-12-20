@@ -180,8 +180,7 @@ parallel(
 
                 checkout scm
                 // Need to mount the conan directory for data cache
-                docker.image('kuangwenyi/buildstock_tools').inside('-u root -e "LANG=en_US.UTF-8"') {
-
+                docker.image('kuangwenyi/buildstock_tools:23-10').inside('-u root -e "LANG=en_US.UTF-8"') {
                     stage("comstock intergrated test") {
                         sh"""
                         buildstock_local ymls/bsb-integration-test-baseline.yml
