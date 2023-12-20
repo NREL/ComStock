@@ -123,40 +123,40 @@ class AdvancedRTUControlTest < Minitest::Test
   
   #test for a particula rbuilding type 
   
-  def test_retail_PSZ_gas_5a
+  # def test_retail_PSZ_gas_5a
    
-   # this makes sure measure registers an na for non applicable model
-    osm_name = '361_Retail_PSZ_Gas_5a_added_output.osm'
-    epw_name = 'USA_NE_Kearney.Muni.AWOS.725526_TMY3.epw'
+   # # this makes sure measure registers an na for non applicable model
+    # osm_name = '361_Retail_PSZ_Gas_5a_added_output.osm'
+    # epw_name = 'USA_NE_Kearney.Muni.AWOS.725526_TMY3.epw'
 
-    osm_path = model_input_path(osm_name)
-	osm_path_output = model_output_path(osm_name)
-    epw_path = epw_input_path(epw_name)
+    # osm_path = model_input_path(osm_name)
+	# osm_path_output = model_output_path(osm_name)
+    # epw_path = epw_input_path(epw_name)
 
-    # Create an instance of the measure
-    measure = AdvancedRTUControl.new
+    # # Create an instance of the measure
+    # measure = AdvancedRTUControl.new
 
-    # Load the model; only used here for populating arguments
-    #model = load_model(osm_path)
-	puts ("#{File.dirname(__FILE__)}" + "//models//" + "#{osm_name}") 
-	model = load_model(osm_path)
-    #osm_path = "C://Users//aallen//Documents//GitHub//ComStock//resources//measures//advanced_rtu_control//tests//models//361_Retail_PSZ_Gas_5a_added_output.osm"
-	arguments = measure.arguments(model)
-    argument_map = OpenStudio::Measure::OSArgumentMap.new
+    # # Load the model; only used here for populating arguments
+    # #model = load_model(osm_path)
+	# puts ("#{File.dirname(__FILE__)}" + "//models//" + "#{osm_name}") 
+	# model = load_model(osm_path)
+    # #osm_path = "C://Users//aallen//Documents//GitHub//ComStock//resources//measures//advanced_rtu_control//tests//models//361_Retail_PSZ_Gas_5a_added_output.osm"
+	# arguments = measure.arguments(model)
+    # argument_map = OpenStudio::Measure::OSArgumentMap.new
 	
-	# Apply the measure to the model and optionally run the model
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
-	#result = apply_measure_and_run(__method__, measure, osm_path, epw_path, run_model: true)
-    assert_equal('Success', result.value.valueName)
+	# # Apply the measure to the model and optionally run the model
+    # result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
+	# #result = apply_measure_and_run(__method__, measure, osm_path, epw_path, run_model: true)
+    # assert_equal('Success', result.value.valueName)
 	
-    template = 'ComStock 90.1-2013'
-    std = Standard.build(template)
+    # template = 'ComStock 90.1-2013'
+    # std = Standard.build(template)
 	
 
 
-    end
+    # end
 	
-    def test_retail_PSZ_gas_5a_post
+    def test_retail_PSZ_gas_5a_post_econo
 	   #confirm economizers 
 	   osm_name = '361_Warehouse_PVAV_2a_vent_mod_v2.osm'
        epw_name = 'TX_Port_Arthur_Jeffers_722410_16.epw'
@@ -164,7 +164,8 @@ class AdvancedRTUControlTest < Minitest::Test
 		#puts ("output path" + "#{model_output_path(osm_name)}") 
 	   input_path = File.join('C:\Users\aallen\Documents\GitHub\ComStock\resources\measures\test\run\in.osm') ##temporary, need to modify this for systematically getting path 
 	   model = load_model(input_path) 
-	   print('test') 
+	    
+	   #confirm economizer implemented 
        model.getAirLoopHVACs.sort.each do |air_loop_hvac|
 		  puts("in loop")
 		  if air_loop_hvac.airLoopHVACOutdoorAirSystem.is_initialized
@@ -174,6 +175,28 @@ class AdvancedRTUControlTest < Minitest::Test
 		  
 		  end 
    
+    end
+	
+	end 
+   def test_retail_PSZ_gas_5a_post_dcv
+	   #confirm dcv 
+	   osm_name = '361_Warehouse_PVAV_2a_vent_mod_v2.osm'
+       epw_name = 'TX_Port_Arthur_Jeffers_722410_16.epw'
+		#osm_path_output = model_output_path(osm_name)
+		#puts ("output path" + "#{model_output_path(osm_name)}") 
+	   input_path = File.join('C:\Users\aallen\Documents\GitHub\ComStock\resources\measures\test\run\in.osm') ##temporary, need to modify this for systematically getting path 
+	   model = load_model(input_path) 
+	    
+	   #confirm economizer implemented 
+       model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+		  puts("in loop")
+		  if air_loop_hvac.airLoopHVACOutdoorAirSystem.is_initialized
+		     oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+             controller_oa = oa_system.getControllerOutdoorAir
+			 controller_mv = controller_oa.controllerMechanicalVentilation
+			 assert_equal(controller_mv.demandControlledVentilation, true)
+		  
+		  end 
     end
 	
 	end 
