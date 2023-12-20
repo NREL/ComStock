@@ -30,12 +30,18 @@ require 'openstudio-standards'
   # define the arguments that the user will input
   def arguments(model)
     args = OpenStudio::Measure::OSArgumentVector.new
-
-    # # the name of the space to add to the model
-    # space_name = OpenStudio::Measure::OSArgument.makeStringArgument('space_name', true)
-    # space_name.setDisplayName('New space name')
-    # space_name.setDescription('This name will be used as the name of the new space.')
-    # args << space_name
+	
+	#economizer option 
+    add_econo = OpenStudio::Measure::OSArgument.makeBoolArgument('add_econo', true)
+    add_econo.setDisplayName('Economizer to be added?')
+    add_econo.setDescription('Add economizer (true) or not (false)')
+    args << add_econo
+	
+	#dcv option 
+	add_dcv = OpenStudio::Measure::OSArgument.makeBoolArgument('add_dcv', true)
+    add_dcv.setDisplayName('DCV to be added?')
+    add_dcv.setDescription('Add DCV (true) or not (false)')
+    args << add_dcv
 
     return args
   end
@@ -123,7 +129,9 @@ require 'openstudio-standards'
     if !runner.validateUserArguments(arguments(model), user_arguments)
       return false
     end
-	
+	#read in arguments
+	add_econo = runner.getBoolArgumentValue('add_econo', user_arguments)
+	add_dcv = runner.getBoolArgumentValue('add_dcv', user_arguments)
 	
 	#Set constants
 	#confirm that these are appropriate 
@@ -161,9 +169,9 @@ require 'openstudio-standards'
                  component.setControlType('SingleZoneVAV') #confirmed that this worked 
 				 #Set overall flow rates for air loop 
 				 if air_loop_hvac.autosizedDesignSupplyAirFlowRate.is_initialized
-				    puts ("setting airloop flow rates")
+				    #puts ("setting airloop flow rates")
 				    des_supply_airflow = air_loop_hvac.autosizedDesignSupplyAirFlowRate.get
-					puts ("des supply airflow" + "#{air_loop_hvac.name.to_s}" "#{des_supply_airflow}" + "new max" + "#{max_flow*des_supply_airflow}")
+					#puts ("des supply airflow" + "#{air_loop_hvac.name.to_s}" "#{des_supply_airflow}" + "new max" + "#{max_flow*des_supply_airflow}")
 					component.setSupplyAirFlowRateDuringCoolingOperation(max_flow*des_supply_airflow)
 					component.setSupplyAirFlowRateDuringHeatingOperation(max_flow*des_supply_airflow)
 					component.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_flow*des_supply_airflow)
@@ -185,14 +193,14 @@ require 'openstudio-standards'
 				runner.registerInfo("min_oa_flow_rate #{min_oa_flow_rate}")
 				thermal_zone.equipment.each do |equip|
 				if equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
-				      puts ("moding terminal") 
+				      #puts ("moding terminal") 
 				      term = equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.get 
 					  runner.registerInfo("term #{term}")
 					  new_term = OpenStudio::Model::AirTerminalSingleDuctVAVHeatAndCoolNoReheat.new(model)
 					  if term.autosizedMaximumAirFlowRate.is_initialized
-					     puts ("moding terminal") 
+					     #puts ("moding terminal") 
 					     des_airflow_rate = term.autosizedMaximumAirFlowRate.get
-						 puts ("tz #{thermal_zone}" + "max term rate" + "#{des_airflow_rate * max_flow}")
+						 #puts ("tz #{thermal_zone}" + "max term rate" + "#{des_airflow_rate * max_flow}")
 						 runner.registerInfo("des airflow #{des_airflow_rate}")
 						 new_term.setMaximumAirFlowRate(des_airflow_rate * max_flow) 
 						 new_term.setZoneMinimumAirFlowFraction(min_flow)
@@ -200,7 +208,7 @@ require 'openstudio-standards'
 					      des_airflow_rate = term.maximumAirFlowRate.get
 						  runner.registerInfo("des airflow #{des_airflow_rate}")
 						  new_term.setMaximumAirFlowRate(des_airflow_rate * max_flow) 
-						  puts ("tz #{thermal_zone}" + "max term rate" + "#{des_airflow_rate * max_flow}")
+						  #puts ("tz #{thermal_zone}" + "max term rate" + "#{des_airflow_rate * max_flow}")
 						  #set minimum based on max of 40% of max flow, or min ventilation level req'd 
 						  new_term.setZoneMinimumAirFlowFraction(max(min_flow, min_oa_flow_rate/max_flow ))
 					  end 
@@ -210,104 +218,27 @@ require 'openstudio-standards'
 			end
 	  end
 	end
-	            #set up economizer
-			    oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
-				controller_oa = oa_system.getControllerOutdoorAir
-				# econ_type = std.model_economizer_type(model, climate_zone)
-				# set economizer type
-				controller_oa.setEconomizerControlType('DifferentialEnthalpy')
-				# set drybulb temperature limit; per 90.1-2013, this is constant 75F for all climates
-				drybulb_limit_f=75
-				drybulb_limit_c = OpenStudio.convert(drybulb_limit_f, 'F', 'C').get
-				controller_oa.setEconomizerMaximumLimitDryBulbTemperature(drybulb_limit_c)
-                # set lockout for integrated heating
-                 controller_oa.setLockoutType('LockoutWithHeating')
-				 #set up DCV        
-                 controller_mv = controller_oa.controllerMechanicalVentilation
-                 controller_mv.setDemandControlledVentilation(true)
-			 # air_loop_hvac.demandComponents.each do |component|
-			     # runner.registerInfo("demand component #{component}")
-				 # # if ['Diffuser Inlet Air Node'].any? { |word| (component.name.get).include?(word) }
-					# # inlet_node = component 
-					# # runner.registerInfo("inlet node selected #{component}")
-				 # # end 
-	 
-				 # if component.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
-				    # new_term = OpenStudio::Model::AirTerminalSingleDuctVAVHeatAndCoolNoReheat.new(model)
-				    # air_loop_hvac.removeBranchForZone() #remove branch + terminal 
-				     # air_loop_hvac.addBranchForZone(zone, new terminal)
-				    # term = component.to_AirTerminalSingleDuctConstantVolumeNoReheat.get
-				    # inlet_node = term.inletModelObject.get.to_Node.get
-					# runner.registerInfo("inlet node selected #{inlet_node}")
-				    
-					# #new_term.addToNode(inlet_node) 
-					# #component.remove()
-				 # end 
-				 # #diffusers are the object we want to manipulate. 
-				 # #could take the new one and instantiate/add to node 
-			 # end 
+	            if add_econo
+					oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+					controller_oa = oa_system.getControllerOutdoorAir
+					# econ_type = std.model_economizer_type(model, climate_zone)
+					# set economizer type
+					controller_oa.setEconomizerControlType('DifferentialEnthalpy')
+					# set drybulb temperature limit; per 90.1-2013, this is constant 75F for all climates
+					drybulb_limit_f=75
+					drybulb_limit_c = OpenStudio.convert(drybulb_limit_f, 'F', 'C').get
+					controller_oa.setEconomizerMaximumLimitDryBulbTemperature(drybulb_limit_c)
+					# set lockout for integrated heating
+					 controller_oa.setLockoutType('LockoutWithHeating')
+			    end 
+				 #set up DCV  
+				 if add_dcv
+					 controller_mv = controller_oa.controllerMechanicalVentilation
+					 controller_mv.setDemandControlledVentilation(true)
+				 end 
+
 		  end
     end 
-	
-	  
-	  #include this in earlier loop? add this back in, per andrew 
-
-     
-	
-	#need to replace TUs
-	
-	
-   #iterate thru air loops associated with packaged single zone systems 
-	#AirLoopHVACUnitarySystem #confirm that this isn't casting a broader net than intended 
-	#restore for those that aren't unitary systems 
-	# model.getAirLoopHVACs.sort.each do |air_loop_hvac|
-	      # runner.registerInfo("in air loop") 
-	      # #if air_loop_hvac_unitary_system?(air_loop_hvac) #need to revisit this later 
-		  # #if applicable, replace CS fan with VS, change control type to VAV, and replace terminal unit 
-		  # sup_fan = air_loop_hvac.supplyFan.get() #might need to convert to unitary sys 
-		  # #check if fan CS
-		  # #runner.registerInfo("in unitary sys") 
-		  # runner.registerInfo("fan: #{sup_fan.class}")
-		  # runner.registerInfo("fan: #{sup_fan}")
-		  # if sup_fan.to_FanConstantVolume.is_initialized  
-			# runner.registerInfo("fan being removed")
-			# sup_fan = sup_fan.to_FanConstantVolume.get()
-		    # fan_inlet_node = sup_fan.inletNode()
-		    # runner.registerInfo("fan inlet node: #{fan_inlet_node}")
-			# sup_fan.remove() #this seems to be working 
-		  # end   
-		  # #identify the node and connect a new VS supply fan there 
-		  # #might need to modify the overall approach for unitary systems
-
-		  # #end 
-		  
-	# end 
-
-    # # assign the user inputs to variables
-    # space_name = runner.getStringArgumentValue('space_name', user_arguments)
-
-    # # check the space_name for reasonableness
-    # if space_name.empty?
-      # runner.registerError('Empty space name was entered.')
-      # return false
-    # end
-	
-	#iterate thru air loops
-	
-	#if applicable change control type to VAV, replace CS fan with variable, and replace terminal unit 
-
-    # # report initial condition of model
-    # runner.registerInitialCondition("The building started with #{model.getSpaces.size} spaces.")
-
-    # # add a new space to the model
-    # new_space = OpenStudio::Model::Space.new(model)
-    # new_space.setName(space_name)
-
-    # # echo the new space's name back to the user
-    # runner.registerInfo("Space #{new_space.name} was added.")
-
-    # # report final condition of model
-    # runner.registerFinalCondition("The building finished with #{model.getSpaces.size} spaces.")
 
     return true
   end
