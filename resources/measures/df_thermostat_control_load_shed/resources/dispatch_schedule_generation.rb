@@ -314,12 +314,47 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=
   puts("### DEBUGGING: model.getSimulationControl.doSystemSizingCalculation = #{model.getSimulationControl.doSystemSizingCalculation}")
   puts("### DEBUGGING: model.getSimulationControl.doPlantSizingCalculation = #{model.getSimulationControl.doPlantSizingCalculation}")
 
-  idf = forward_translator.translateModel(model)
-  puts(idf.class)
-  # puts idf.objects
-  # simulationcontrol = idf.getIddObject(idf.getObjectsByType("SimulationControl")[0])
-  # puts simulationcontrol
-  # puts idf.getObjectsByType("SimulationControl")
+  # get idf workspace
+  workspace = forward_translator.translateModel(model)
+  puts("### DEBUGGING: workspace.class = #{workspace.class}")
+
+  # get simulation control workspace object
+  workspaceobject_simulationcontrol_original = workspace.getObjectsByType('SimulationControl')[0]
+  puts("### DEBUGGING: workspaceobject_simulationcontrol_original = #{workspaceobject_simulationcontrol_original}")
+
+  # get idfObject
+  idf_object_original = workspaceobject_simulationcontrol_original.idfObject
+  handle_simulationcontrol_original = idf_object_original.handle
+  puts("### DEBUGGING: handle_simulationcontrol_original = #{handle_simulationcontrol_original}")
+
+  # create clone
+  idf_object_updated = idf_object_original.clone
+
+  # updates values to relevant fields
+  idf_object_updated.dataFields.each do |data_field|
+    puts("### DEBUGGING: data_field = #{data_field}")
+    field_name = idf_object_updated.fieldComment(data_field, true).get
+    puts("### DEBUGGING: field_name = #{field_name}")
+    field_string = idf_object_updated.getString(data_field)
+    puts("### DEBUGGING: field_string = #{field_string}")
+    if field_name.include?('Do Zone Sizing Calculation')
+      idf_object_updated.setString(data_field, 'False')
+    elsif field_name.include?('Do System Sizing Calculation')
+      idf_object_updated.setString(data_field, 'False')
+    elsif field_name.include?('Do Plant Sizing Calculation')
+      idf_object_updated.setString(data_field, 'False')
+    end
+  end
+  puts("### DEBUGGING: idf_object_updated = #{idf_object_updated}")
+
+  # add udpated idf object to workspace
+  workspace.addObject(idf_object_updated)
+  
+  # remove original simulation control
+  workspace.removeObject(handle_simulationcontrol_original)
+
+  puts("### DEBUGGING: final workspace = #{workspace.getObjectsByType('SimulationControl')[0]}")
+
   idf_path = OpenStudio::Path.new("#{run_dir}/#{idf_name}")
   osm_path = OpenStudio::Path.new("#{run_dir}/#{osm_name}")
   osw_path = OpenStudio::Path.new("#{run_dir}/#{osw_name}")
