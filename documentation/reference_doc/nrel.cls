@@ -60,7 +60,7 @@
 }
 % NREL is assumed to be true by default
 % unless switched off by EERE flag
-\ifthenelse{\boolean{IsNREL}}{ 
+\ifthenelse{\boolean{IsNREL}}{
 	\def\NREL@class{report}
 	\typeout{Using NREL report RAAW}
 }{}
@@ -150,22 +150,22 @@
 \RequirePackage[]{titlesec}
 \RequirePackage[title,titletoc]{appendix}
 %% ----------------------------
-%% References section 
+%% References section
 %% ----------------------------
-% For formatting the bibliography. See guidance 
+% For formatting the bibliography. See guidance
 \RequirePackage[babel]{csquotes}
 \RequirePackage[
 	style=chicago-authordate,
-	strict,backend=bibtex,
+	strict,backend=biber,
 	natbib=true,
 	bibencoding=inputenc,
 	sorting=nyt,
-	doi=true, 
+	doi=true,
 	maxbibnames=10,
-	giveninits=true, 
+	giveninits=true,
 	maxcitenames=3,
 ]{biblatex}
-% change the name of the bib 
+% change the name of the bib
 % (see http://tex.stackexchange.com/questions/82993/how-to-change-the-name-of-document-elements-like-figure-contents-bibliogr)
 \DefineBibliographyStrings{american}{%
   bibliography = {References},
@@ -175,13 +175,13 @@
 	% \titleformat{\chapter}{\fontsize{18pt}{0pt}\bfseries\selectfont}
 	% \vspace*{12pt}
 	}
-% see NREL formatting guidelines at 
+% see NREL formatting guidelines at
 % https://communications_resources.nrel.gov/style_guide/references
 % technical reports
 \DeclareBibliographyAlias{techreport}{book}
 % make one type of publication look like another
 % map unknown bibliography entry types to the misc type
-\DeclareBibliographyAlias{*}{misc} 
+\DeclareBibliographyAlias{*}{misc}
 % make sure URLs in the bibliography are shown in roman fonts
 \urlstyle{same}
 
@@ -191,8 +191,8 @@
 % NREL default is ragged right.
 % Load ragged2e so \justifying and environment justify are available.
 % Redefines \centering, \raggedleft, and \raggedright, and environments center
-% flushleft and flushright to use versions made by ragged2e. 
-% Sets default alignment to ragged right. 
+% flushleft and flushright to use versions made by ragged2e.
+% Sets default alignment to ragged right.
 % To override, use the command \justifying or the environment justify.
 \RequirePackage[newcommands,document]{ragged2e}
 
@@ -371,9 +371,9 @@
 
 % deal with the appendix
 \renewcommand\appendix{\par
-	\setcounter{chapter}{0} 
+	\setcounter{chapter}{0}
 	\setcounter{section}{0}
-	\setcounter{footnote}{0} 
+	\setcounter{footnote}{0}
 	% counters should reset each chapter
 	\counterwithin{figure}{chapter}
 	\counterwithin{table}{chapter}
@@ -386,7 +386,7 @@
 		\titleformat{\chapter}{\fontfamily{phv}\fontsize{18}{0}\selectfont\bfseries}{\textcolor{nrelblue}
 		{Appendix}}{11pt}{\textcolor{nrelblue}}
 		\titlespacing*{\chapter}{0pt}{-20pt}{-6pt}
-		} %<--------- Use this if only one appendix	
+		} %<--------- Use this if only one appendix
 	\newcommand{\appchapter}[1]{
 	\chapter*{Appendix\hspace{11pt} #1}
     \addcontentsline{toc}{chapter}{{Appendix\hspace{11pt} #1}}}
@@ -402,8 +402,8 @@
 	}
 
 
-% check that the default san-serif font is sort-of-arial				
-% (required for tables)					
+% check that the default san-serif font is sort-of-arial
+% (required for tables)
 % \renewcommand{\sfdefault}{phv} % Arial
 % Indenting and spacing between paragraphs
 \setlength{\parindent}{0pt}
@@ -440,32 +440,32 @@
 % % Add .pdf links
 % \ifthenelse{\boolean{blacklinks}}{% True
 % 	\RequirePackage[
-% 		final, 
-% 		pdfa, 
-% 		linktocpage, 
-% 		colorlinks, 
-% 		linktoc=all, 
-% 		linkcolor=black, 
-% 		citecolor=black, 
-% 		menucolor=black, 
-% 		urlcolor=black, 
-% 		pdfborder={0 0 0}, 
-% 		unicode, 
+% 		final,
+% 		pdfa,
+% 		linktocpage,
+% 		colorlinks,
+% 		linktoc=all,
+% 		linkcolor=black,
+% 		citecolor=black,
+% 		menucolor=black,
+% 		urlcolor=black,
+% 		pdfborder={0 0 0},
+% 		unicode,
 % 		pdflang={en-US}
 % 	]{hyperref}
 % }{% False
 % 	\RequirePackage[
-% 		final, 
-% 		pdfa, 
-% 		linktocpage, 
-% 		colorlinks, 
-% 		linktoc=all, 
-% 		linkcolor=black, 
-% 		citecolor=nrelblue, 
-% 		menucolor=black, 
-% 		urlcolor=nrelblue, 
+% 		final,
+% 		pdfa,
+% 		linktocpage,
+% 		colorlinks,
+% 		linktoc=all,
+% 		linkcolor=black,
+% 		citecolor=nrelblue,
+% 		menucolor=black,
+% 		urlcolor=nrelblue,
 % 		pdfborder={0 0 0},
-% 		unicode, 
+% 		unicode,
 % 		pdflang={en-US}
 % 	]{hyperref}
 % }
@@ -525,7 +525,7 @@
 	% \renewcommand{\headrulewidth}{0.5pt}
 	% \renewcommand{\headrule}{\hbox to\headwidth{%
 	% 		\color{nrelblue}\leaders\hrule height \headrulewidth\hfill}}
-	
+
 	% \renewcommand{\footrulewidth}{0.5pt}
 	% \renewcommand{\footrule}{\hbox to\headwidth{%
 	% 		\color{nrelblue}\leaders\hrule height \headrulewidth\hfill}}
@@ -533,9 +533,9 @@
 % \pagestyle{nrel}
 }
 
-\appto\frontmatter{\pagestyle{nrel}}                                       
-\appto\mainmatter{\pagestyle{nrel}}                                        
-\appto\backmatter{\pagestyle{empty}}   
+\appto\frontmatter{\pagestyle{nrel}}
+\appto\mainmatter{\pagestyle{nrel}}
+\appto\backmatter{\pagestyle{empty}}
 
 % note that the first page of a chapter uses "plain", so we need to redefine that to match the "nrel" page style.
 % \let\ps@plain\ps@nrel
@@ -561,16 +561,16 @@
 \makeatletter
 \typeout{\cleanlist}
 \hypersetup{
-	final, 
-	linktocpage, 
-	colorlinks=false, 
-	linktoc=all, 
-	linkcolor=black, 
-	citecolor=nrelblue, 
-	menucolor=black, 
-	urlcolor=nrelblue, 
+	final,
+	linktocpage,
+	colorlinks=false,
+	linktoc=all,
+	linkcolor=black,
+	citecolor=nrelblue,
+	menucolor=black,
+	urlcolor=nrelblue,
 	pdfborder={0 0 0},
-	unicode, 
+	unicode,
 	pdflang={en-US},
 	pdftitle=\@title,
 	pdfauthor={Nicholas Hamilton}
@@ -605,26 +605,23 @@
 	% hard-coded formatting for title page
 	% * no changes needed *
 	% -------------------------------------
-	\thispagestyle{empty}		
+	\thispagestyle{empty}
 	\centering
 	% \vspace*{-8em}
 	% \includegraphics[width=\textwidth]{header}\\
 	\vspace*{4em}
 	\begin{flushright}
 		\begin{minipage}{0.7\textwidth}
-			\maketitle			
+			\maketitle
 		\end{minipage}
-		\\	
+		\\
 		\vfill
 		\begin{minipage}[b]{0.7\textwidth}
 			\begin{minipage}[b]{0.7\textwidth}
-				This is a temporary cover page.\\ 
-				A final cover page will be generated\\
-				by comms with current style and formatting.
 			\end{minipage}
 		\end{minipage}
 	\end{flushright}
-	\raggedright	
+	\raggedright
 % 	\clearpage
 }
 

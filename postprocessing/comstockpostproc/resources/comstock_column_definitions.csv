@@ -630,10 +630,10 @@ results.csv,com_stock_sensitivity_reports.com_report_wwr,out.params.window_to_wa
 results.csv,com_stock_sensitivity_reports.com_report_zone_hvac_fan_power_minimum_flow_fraction,out.params.zone_hvac_fan_power_minimum_flow_fraction,TRUE,FALSE,float,,,Fan power minimum flow fraction for zone hvac equipment
 results.csv,com_stock_sensitivity_reports.com_report_zone_hvac_fan_static_pressure,out.params.zone_hvac_fan_static_pressure,TRUE,FALSE,float,pa,inwc,Fan static pressure in pascals for zone hvac equipment
 results.csv,com_stock_sensitivity_reports.com_report_zone_hvac_fan_total_efficiency,out.params.zone_hvac_fan_total_efficiency,TRUE,FALSE,float,,,Fan total efficiency for zone hvac equipment
-results.csv,com_stock_sensitivity_reports.com_report_number_of_zones,,TRUE,FALSE,integer,,,Number of ThermalZone objects in the building energy model
-results.csv,com_stock_sensitivity_reports.com_report_number_of_spaces,,TRUE,FALSE,integer,,,Number of Space objects in the building energy model
-results.csv,com_stock_sensitivity_reports.com_report_smallest_space_m2,,TRUE,FALSE,float,m2,m2,Smallest Space by floor area in the building energy model
-results.csv,com_stock_sensitivity_reports.com_report_number_of_surfaces,,TRUE,FALSE,integer,,,Number of Surface objects in the building energy model
+results.csv,com_stock_sensitivity_reports.com_report_number_of_zones,out.param.number_of_zones,TRUE,FALSE,integer,,,Number of ThermalZone objects in the building energy model
+results.csv,com_stock_sensitivity_reports.com_report_number_of_spaces,out.params.number_of_spaces,TRUE,FALSE,integer,,,Number of Space objects in the building energy model
+results.csv,com_stock_sensitivity_reports.com_report_smallest_space_m2,out.params.smallest_space_floor_area,TRUE,FALSE,float,m2,m2,Smallest Space by floor area in the building energy model
+results.csv,com_stock_sensitivity_reports.com_report_number_of_surfaces,out.params.number_of_surfaces,TRUE,FALSE,integer,,,Number of Surface objects in the building energy model
 results.csv,completed_at,,FALSE,FALSE,float,,,Simulation end time for model
 results.csv,completed_status,completed_status,TRUE,FALSE,string,,,Simulation completion status
 results.csv,emissions_reporting.annual_electricity_ghg_emissions_aer_95_decarb_by_2035_kg,out.emissions.electricity.aer_95_decarb_by_2035_from_2023,TRUE,FALSE,float,co2e_kg,co2e_kg,"annual greenhouse gas emissions from electricity use, using Cambium 2022 aer_95_decarb_by_2035 non-levelized values from 2023"

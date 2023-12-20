@@ -5,7 +5,7 @@ Before running these scripts, please set up credentials for accessing the S3 RES
 ## Installation
 Navigate to the `/sampling` directory of this repo:
 ```
-$ cd /path/to/comstock-internal/sampling
+$ cd /path/to/comstock/sampling
 ```
 
 Create a new environment from the environment.yml file containing the packages needed for this repository:
