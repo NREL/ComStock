@@ -1868,7 +1868,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         puts("--- (standard performance) for air loop (#{air_loop_hvac.name}), single stage rated_cop_heating = #{rated_cop_fit}")
         new_dx_heating_coil.setRatedCOP(rated_cop_fit)
         new_dx_heating_coil.setRatedAirFlowRate(hash_htg_airflow_stgs[4])
-        new_dx_heating_coil.setRatedSupplyFanPowerPerVolumeFlowRate(773.3)
+        new_dx_heating_coil.setRatedSupplyFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil.setTotalHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft4)
         new_dx_heating_coil.setTotalHeatingCapacityFunctionofFlowFractionCurve(heat_cap_fff_all_stages)
         new_dx_heating_coil.setEnergyInputRatioFunctionofTemperatureCurve(heat_eir_ft4)
@@ -2001,13 +2001,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_air_to_air_heatpump.setMaximumSupplyAirTemperature(50) 
       new_air_to_air_heatpump.setDXHeatingCoilSizingRatio(1+performance_oversizing_factor)
       # set cooling design flow rate
-      new_air_to_air_heatpump.setSupplyAirFlowRateMethodDuringCoolingOperation('SupplyAirFlowRate')
-      new_air_to_air_heatpump.setSupplyAirFlowRateDuringCoolingOperation(hash_htg_airflow_stgs[4])
+      new_air_to_air_heatpump.setSupplyAirFlowRateDuringCoolingOperation(hash_clg_airflow_stgs[4])
       # set heating design flow rate
-      new_air_to_air_heatpump.setSupplyAirFlowRateMethodDuringHeatingOperation('SupplyAirFlowRate')
-      new_air_to_air_heatpump.setSupplyAirFlowRateDuringHeatingOperation(hash_clg_airflow_stgs[4])
+      new_air_to_air_heatpump.setSupplyAirFlowRateDuringHeatingOperation(hash_htg_airflow_stgs[4])
       # set no load design flow rate
-      new_air_to_air_heatpump.setSupplyAirFlowRateMethodWhenNoCoolingorHeatingisRequired('SupplyAirFlowRate')
+      new_air_to_air_heatpump.resetSupplyAirFlowRateMethodWhenNoCoolingorHeatingisRequired
       new_air_to_air_heatpump.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_airflow_m3_per_s)
 
       # new_air_to_air_heatpump.setDOASDXCoolingCoilLeavingMinimumAirTemperature(7.5) # set minimum discharge temp to 45F, required for VAV operation
