@@ -313,29 +313,27 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       curve
     when 'MultiVariableLookupTable'
       num_ind_var = data['number_independent_variables'].to_i
-      table = OpenStudio::Model::TableMultiVariableLookup.new(model, num_ind_var)
+      table = OpenStudio::Model::TableLookup.new(model)
       table.setName(data['name'])
-      table.setInterpolationMethod(data['interpolation_method'])
-      table.setNumberofInterpolationPoints(data['number_of_interpolation_points'])
-      table.setCurveType(data['curve_type'])
-      table.setTableDataFormat('SingleLineIndependentVariableWithMatrix')
-      table.setNormalizationReference(data['normalization_reference'].to_f)
+      table.setNormalizationDivisor(data['normalization_reference'].to_f)
       table.setOutputUnitType(data['output_unit_type'])
-      table.setMinimumValueofX1(data['minimum_independent_variable_1'].to_f)
-      table.setMaximumValueofX1(data['maximum_independent_variable_1'].to_f)
-      table.setInputUnitTypeforX1(data['input_unit_type_x1'])
-      if num_ind_var == 2
-        table.setMinimumValueofX2(data['minimum_independent_variable_2'].to_f)
-        table.setMaximumValueofX2(data['maximum_independent_variable_2'].to_f)
-        table.setInputUnitTypeforX2(data['input_unit_type_x2'])
-      end
       data_points = data.each.select { |key, _value| key.include? 'data_point' }
       data_points.each do |_key, value|
-        if num_ind_var == 1
-          table.addPoint(value.split(',')[0].to_f, value.split(',')[1].to_f)
-        elsif num_ind_var == 2
-          table.addPoint(value.split(',')[0].to_f, value.split(',')[1].to_f, value.split(',')[2].to_f)
+        var_dep = value.split(',')[2].to_f
+        table.addOutputValue(var_dep)
+      end
+      num_ind_var.times do |i|
+        table_indvar = OpenStudio::Model::TableIndependentVariable.new(model)
+        table_indvar.setInterpolationMethod(data['interpolation_method'])
+        # table_indvar.setNormalizationReferenceValue(data['normalization_reference'].to_f)
+        table_indvar.setMinimumValue(data["minimum_independent_variable_#{i+1}"].to_f)
+        table_indvar.setMaximumValue(data["maximum_independent_variable_#{i+1}"].to_f)
+        table_indvar.setUnitType(data["input_unit_type_x#{i+1}"].to_s)
+        data_points.each do |_key, value|
+          var_ind = value.split(',')[i].to_f
+          table_indvar.addValue(var_ind)
         end
+        table.addIndependentVariable(table_indvar)
       end
       table
     else
