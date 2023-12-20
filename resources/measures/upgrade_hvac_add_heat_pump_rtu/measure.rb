@@ -313,7 +313,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       curve
     when 'MultiVariableLookupTable'
       num_ind_var = data['number_independent_variables'].to_i
-      table = OpenStudio::Model::TableLookup.new(model, num_ind_var)
+      table = OpenStudio::Model::TableMultiVariableLookup.new(model, num_ind_var)
       table.setName(data['name'])
       table.setInterpolationMethod(data['interpolation_method'])
       table.setNumberofInterpolationPoints(data['number_of_interpolation_points'])
