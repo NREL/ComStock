@@ -159,6 +159,15 @@ require 'openstudio-standards'
              when 'OS_AirLoopHVAC_UnitarySystem'
                  component = component.to_AirLoopHVACUnitarySystem.get
                  component.setControlType('SingleZoneVAV') #confirmed that this worked 
+				 #Set overall flow rates for air loop 
+				 if air_loop_hvac.autosizedDesignSupplyAirFlowRate.is_initialized
+				    puts ("setting airloop flow rates")
+				    des_supply_airflow = air_loop_hvac.autosizedDesignSupplyAirFlowRate.get
+					puts ("des supply airflow" + "#{air_loop_hvac.name.to_s}" "#{des_supply_airflow}" + "new max" + "#{max_flow*des_supply_airflow}")
+					component.setSupplyAirFlowRateDuringCoolingOperation(max_flow*des_supply_airflow)
+					component.setSupplyAirFlowRateDuringHeatingOperation(max_flow*des_supply_airflow)
+					component.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_flow*des_supply_airflow)
+				 end 
 				 component.resetSupplyFan()
 				 sup_fan = air_loop_hvac.supplyFan
 				#Create VS supply fan 
@@ -176,11 +185,14 @@ require 'openstudio-standards'
 				runner.registerInfo("min_oa_flow_rate #{min_oa_flow_rate}")
 				thermal_zone.equipment.each do |equip|
 				if equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
+				      puts ("moding terminal") 
 				      term = equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.get 
 					  runner.registerInfo("term #{term}")
 					  new_term = OpenStudio::Model::AirTerminalSingleDuctVAVHeatAndCoolNoReheat.new(model)
 					  if term.autosizedMaximumAirFlowRate.is_initialized
+					     puts ("moding terminal") 
 					     des_airflow_rate = term.autosizedMaximumAirFlowRate.get
+						 puts ("tz #{thermal_zone}" + "max term rate" + "#{des_airflow_rate * max_flow}")
 						 runner.registerInfo("des airflow #{des_airflow_rate}")
 						 new_term.setMaximumAirFlowRate(des_airflow_rate * max_flow) 
 						 new_term.setZoneMinimumAirFlowFraction(min_flow)
@@ -188,6 +200,7 @@ require 'openstudio-standards'
 					      des_airflow_rate = term.maximumAirFlowRate.get
 						  runner.registerInfo("des airflow #{des_airflow_rate}")
 						  new_term.setMaximumAirFlowRate(des_airflow_rate * max_flow) 
+						  puts ("tz #{thermal_zone}" + "max term rate" + "#{des_airflow_rate * max_flow}")
 						  #set minimum based on max of 40% of max flow, or min ventilation level req'd 
 						  new_term.setZoneMinimumAirFlowFraction(max(min_flow, min_oa_flow_rate/max_flow ))
 					  end 
