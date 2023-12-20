@@ -74,6 +74,11 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     rebound_len.setDefaultValue(2)
     args << rebound_len
 
+    sp_adjustment = OpenStudio::Measure::OSArgument.makeDoubleArgument('sp_adjustment', true)
+    sp_adjustment.setDisplayName("Degrees C to Adjust Setpoint By")
+    sp_adjustment.setDefaultValue(2)
+    args << sp_adjustment
+
     num_timesteps_in_hr = OpenStudio::Measure::OSArgument.makeIntegerArgument('num_timesteps_in_hr', true)
     num_timesteps_in_hr.setDisplayName("Number/Count of timesteps in an hour for sample simulations")
     num_timesteps_in_hr.setDefaultValue(4)
@@ -100,6 +105,80 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     rebound_len = runner.getIntegerArgumentValue("rebound_len",user_arguments)
     num_timesteps_in_hr = runner.getIntegerArgumentValue("num_timesteps_in_hr",user_arguments)
 
+    def temp_setp_adjust_hourly_based_on_sch(peak_sch, sp_adjustment)
+      sp_adjustment_values = peak_sch.map{|a| sp_adjustment*a}
+      return sp_adjustment_values
+    end
+
+    def get_8760_values_from_schedule_ruleset(model, schedule_ruleset)
+      yd = model.getYearDescription
+      #puts yd
+      yd.setIsLeapYear(false)
+      start_date = yd.makeDate(1, 1)
+      end_date = yd.makeDate(12, 31)
+      day_of_week = start_date.dayOfWeek.valueName
+      values = []#OpenStudio::Vector.new
+      day = OpenStudio::Time.new(1.0)
+      interval = OpenStudio::Time.new(1.0 / 24.0)
+      day_schedules = schedule_ruleset.getDaySchedules(start_date, end_date)
+  
+      #numdays = day_schedules.size
+      # Make new array of day schedules for year
+      day_sched_array = []
+      day_schedules.each do |day_schedule|
+        day_sched_array << day_schedule
+      end
+
+      numdays = day_schedules.size
+  
+      day_sched_array.each do |day_schedule|
+        current_hour = interval
+        time_values = day_schedule.times
+        num_times = time_values.size
+        value_sum = 0
+        value_count = 0
+        time_values.each do |until_hr|
+          if until_hr < current_hour
+            # Add to tally for next hour average
+            value_sum += day_schedule.getValue(until_hr).to_f
+            value_count += 1
+          elsif until_hr >= current_hour + interval
+            # Loop through hours to catch current hour up to until_hr
+            while current_hour <= until_hr
+              values << day_schedule.getValue(until_hr).to_f
+              current_hour += interval
+            end
+  
+            if (current_hour - until_hr) < interval
+              # This means until_hr is not an even hour break
+              # i.e. there is a sub-hour time step
+              # Increment the sum for averaging
+              value_sum += day_schedule.getValue(until_hr).to_f
+              value_count += 1
+            end
+  
+          else
+            # Add to tally for this hour average
+            value_sum += day_schedule.getValue(until_hr).to_f
+            value_count += 1
+            # Calc hour average
+            if value_count > 0
+              value_avg = value_sum / value_count
+            else
+              value_avg = 0
+            end
+            values << value_avg
+            # setup for next hour
+            value_sum = 0
+            value_count = 0
+            current_hour += interval
+          end
+        end
+      end
+  
+      return values
+    end
+
     ############################################
     # For bin-sample run
     ############################################
@@ -121,22 +200,19 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     y_seed = run_samples(model, year, selectdays, num_timesteps_in_hr)
     puts("--- y_seed = #{y_seed}")
 
-    # puts("### ============================================================")
-    # puts("### Creating annual prediction...")
-    # annual_load = load_prediction_from_sample(y_seed, bins)
-    # puts("--- annual_load = #{annual_load}")
-    # puts("--- annual_load.class = #{annual_load.class}")
+    puts("### ============================================================")
+    puts("### Creating annual prediction...")
+    annual_load = load_prediction_from_sample(y_seed, bins)
+    puts("--- annual_load = #{annual_load}")
+    puts("--- annual_load.class = #{annual_load.class}")
 
-    # puts("### ============================================================")
-    # puts("### Creating peak schedule...")
-    # start_time = Time.now
-    # peak_schedule = peak_schedule_generation(annual_load, peak_len, rebound_len)
-    # end_time = Time.now
-    # puts("--- start_time = #{start_time}")
-    # puts("--- end_time = #{end_time}")
-    # puts("--- elapsed time = #{end_time - start_time} seconds")
-    # puts("--- peak_schedule = #{peak_schedule}")
+    puts("### ============================================================")
+    puts("### Creating peak schedule...")
+    peak_schedule = peak_schedule_generation(annual_load, peak_len, rebound_len)
+    puts("--- peak_schedule = #{peak_schedule}")
     
+    sp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(peak_schedule, sp_adjustment)
+
     return true
   end
 end
