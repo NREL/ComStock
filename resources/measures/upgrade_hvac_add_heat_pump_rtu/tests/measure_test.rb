@@ -186,9 +186,15 @@ class AddHeatPumpRtuTest < Minitest::Test
 	assert_equal('econ', arguments[7].name)
   end
 
+  # test application of measure on a fully-applicable model
+  # test includes:
+  # 1) running model to ensure succesful completion
+  # 2) checking user-specified electric backup heating is applied
+  # 3) checking that all gas heating couls have been removed from model
+  # 4) all air loops contain multispeed heating coil
+  # 5) 
   def test_361_Small_Office_PSZ_Gas
   
-	# this makes sure measure works for applicable model
     osm_name = '361_Small_Office_PSZ_Gas_3a.osm'
     epw_name = 'CO_FortCollins_16.epw'
 
@@ -203,45 +209,58 @@ class AddHeatPumpRtuTest < Minitest::Test
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure::OSArgumentMap.new
 	
-	# set arguments
-	backup_ht_fuel_scheme = arguments[0].clone
-    assert(backup_ht_fuel_scheme.setValue('match_original_primary_heating_fuel'))
+    # set arguments
+    backup_ht_fuel_scheme = arguments[0].clone
+    assert(backup_ht_fuel_scheme.setValue('electric_resistance_backup'))
     argument_map['backup_ht_fuel_scheme'] = backup_ht_fuel_scheme
-	# allowance for heating oversizing
-	performance_oversizing_factor = arguments[1].clone
+    # allowance for heating oversizing
+    performance_oversizing_factor = arguments[1].clone
     assert(performance_oversizing_factor.setValue(0))
     argument_map['performance_oversizing_factor'] = performance_oversizing_factor
-	# how to size heating
-	htg_sizing_option = arguments[2].clone	
+    # how to size heating
+    htg_sizing_option = arguments[2].clone	
     assert(htg_sizing_option.setValue('0F'))
     argument_map['htg_sizing_option'] = htg_sizing_option
-	# cooling oversizing estimate
-	clg_oversizing_estimate = arguments[3].clone
+    # cooling oversizing estimate
+    clg_oversizing_estimate = arguments[3].clone
     assert(clg_oversizing_estimate.setValue(1))
     argument_map['clg_oversizing_estimate'] = clg_oversizing_estimate
-	# htg to clg ratio
-	htg_to_clg_hp_ratio = arguments[4].clone
+    # htg to clg ratio
+    htg_to_clg_hp_ratio = arguments[4].clone
     assert(htg_to_clg_hp_ratio.setValue(1))
     argument_map['htg_to_clg_hp_ratio'] = htg_to_clg_hp_ratio
-	# hr
-	hr = arguments[5].clone
+    # hr
+    hr = arguments[5].clone
     assert(hr.setValue(false))
     argument_map['hr'] = hr
-	# dcv
-	dcv = arguments[6].clone
+    # dcv
+    dcv = arguments[6].clone
     assert(dcv.setValue(false))
     argument_map['dcv'] = dcv
-	# economizer
-	econ = arguments[7].clone
+    # economizer
+    econ = arguments[7].clone
     assert(econ.setValue(false))
     argument_map['econ'] = econ
+
+    # get gas heating coils
+    li_gas_htg_coils_before = model.getCoilHeatingGass
+    puts "li_gas_htg_coils_before: #{li_gas_htg_coils_before}"
+	puts "li_gas_htg_coils_before.size: #{li_gas_htg_coils_before.size}"
+	
+    # get number of applicable air loops
+	li_unitary_sys_before = model.getAirLoopHVACUnitarySystems
+    puts "li_unitary_sys_before: #{li_unitary_sys_before}"
+	puts "li_unitary_sys_before.size: #{li_unitary_sys_before.size}"
+
+    # 
 
     # Apply the measure to the model and optionally run the model
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
     assert_equal('Success', result.value.valueName)
 
   end
-
+   
+   # test
    def test_361_warehouse_pvav_na
    
    # this makes sure measure registers an na for non applicable model
@@ -259,36 +278,36 @@ class AddHeatPumpRtuTest < Minitest::Test
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure::OSArgumentMap.new
 	
-	# set arguments
-	backup_ht_fuel_scheme = arguments[0].clone
-    assert(backup_ht_fuel_scheme.setValue('match_original_primary_heating_fuel'))
+    # set arguments
+    backup_ht_fuel_scheme = arguments[0].clone
+    assert(backup_ht_fuel_scheme.setValue('electric_resistance_backup'))
     argument_map['backup_ht_fuel_scheme'] = backup_ht_fuel_scheme
-	# allowance for heating oversizing
-	performance_oversizing_factor = arguments[1].clone
+    # allowance for heating oversizing
+    performance_oversizing_factor = arguments[1].clone
     assert(performance_oversizing_factor.setValue(0))
     argument_map['performance_oversizing_factor'] = performance_oversizing_factor
-	# how to size heating
-	htg_sizing_option = arguments[2].clone	
+    # how to size heating
+    htg_sizing_option = arguments[2].clone	
     assert(htg_sizing_option.setValue('0F'))
     argument_map['htg_sizing_option'] = htg_sizing_option
-	# cooling oversizing estimate
-	clg_oversizing_estimate = arguments[3].clone
+    # cooling oversizing estimate
+    clg_oversizing_estimate = arguments[3].clone
     assert(clg_oversizing_estimate.setValue(1))
     argument_map['clg_oversizing_estimate'] = clg_oversizing_estimate
-	# htg to clg ratio
-	htg_to_clg_hp_ratio = arguments[4].clone
+    # htg to clg ratio
+    htg_to_clg_hp_ratio = arguments[4].clone
     assert(htg_to_clg_hp_ratio.setValue(1))
     argument_map['htg_to_clg_hp_ratio'] = htg_to_clg_hp_ratio
-	# hr
-	hr = arguments[5].clone
+    # hr
+    hr = arguments[5].clone
     assert(hr.setValue(false))
     argument_map['hr'] = hr
-	# dcv
-	dcv = arguments[6].clone
+    # dcv
+    dcv = arguments[6].clone
     assert(dcv.setValue(false))
     argument_map['dcv'] = dcv
-	# economizer
-	econ = arguments[7].clone
+    # economizer
+    econ = arguments[7].clone
     assert(econ.setValue(false))
     argument_map['econ'] = econ
 
