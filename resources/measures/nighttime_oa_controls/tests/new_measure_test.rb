@@ -8,7 +8,7 @@ require 'fileutils'
 
 #puts NighttimeOAControls.methods.sort
 #puts NighttimeOAControls.singleton_methods.sort
-puts NighttimeOAControls.instance_methods.sort
+#puts NighttimeOAControls.instance_methods.sort
 
 
 class NewMeasureTest < Minitest::Test
@@ -207,8 +207,11 @@ class NewMeasureTest < Minitest::Test
 	def test_361_warehouse_pvav_post
 	    osm_name = '361_Warehouse_PVAV_2a_vent_mod_v2.osm'
         epw_name = 'TX_Port_Arthur_Jeffers_722410_16.epw'
-		osm_path_output = model_output_path(osm_name)
-	    model = load_model("C://Users//aallen//Documents//GitHub//ComStock//resources//measures//nighttime_oa_controls//tests//output//test_361_warehouse_pvav_na//run//in.osm") 
+		#osm_path_output = model_output_path(osm_name)
+		#puts ("output path" + "#{model_output_path(osm_name)}") 
+		input_path = File.join(File.dirname(__FILE__), '/output/test_361_warehouse_pvav/run/in.osm') ##temporary, need to modify this for systematically getting path 
+	    model = load_model(input_path) 
+		
 		    unitary_system_count = 0
     li_unitary_systems = []
     non_unitary_system_count = 0
