@@ -225,7 +225,7 @@ class DfThermostatControlLoadShedTest < Minitest::Test
   #   assert(y_seed == y_seed_hardcoded)
   # end
 
-  def dispatch_gen_small_run_test
+  def test_dispatch_gen_small_run
     osm_name = '361_Medium_Office_PSZ_HP.osm'
     epw_name = 'CO_FortCollins_16.epw'
     osm_path = model_input_path(osm_name)
