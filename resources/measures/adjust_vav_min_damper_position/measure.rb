@@ -73,9 +73,14 @@ class AdjustVavMinDamperPosition < OpenStudio::Measure::ModelMeasure
         zone.airLoopHVACTerminals.each do |terminal|
           if ["AirTerminalSingleDuctVAVNoReheat","AirTerminalSingleDuctVAVReheat"].include?(terminal.iddObjectType.valueName.gsub(/(OS_|_)/,''))
             terminal = terminal.method("to_#{terminal.iddObjectType.valueName.gsub(/(OS_|_)/,'')}").call.get
-            terminal.setConstantMinimumAirFlowFraction(mdp)
-            terminal.setZoneMinimumAirFlowInputMethod("Constant")
-            ct += 1
+            existing_mdp = terminal.constantMinimumAirFlowFraction
+            if mdp > existing_mdp
+              terminal.setConstantMinimumAirFlowFraction(mdp)
+              terminal.setZoneMinimumAirFlowInputMethod("Constant")
+              ct += 1
+            else
+              runner.registerInfo("#{terminal.name} has an existing minimum damper position greater than the input new minimum damper position. No action taken.")
+            end
           end
         end
 
