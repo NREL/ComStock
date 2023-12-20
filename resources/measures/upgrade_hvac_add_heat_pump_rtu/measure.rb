@@ -1570,7 +1570,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         new_dx_cooling_coil_speed1.setGrossRatedCoolingCOP(4.40)
       end
       new_dx_cooling_coil_speed1.setRatedAirFlowRate(hash_clg_airflow_stgs[1])
-      new_dx_cooling_coil_speed1.setRatedEvaporatorFanPowerPerVolumeFlowRate(773.3)
+      new_dx_cooling_coil_speed1.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
       new_dx_cooling_coil_speed1.setTotalCoolingCapacityFunctionofTemperatureCurve(cool_cap_ft1)
       new_dx_cooling_coil_speed1.setTotalCoolingCapacityFunctionofFlowFractionCurve(cool_cap_fff_all_stages)
       new_dx_cooling_coil_speed1.setEnergyInputRatioFunctionofTemperatureCurve(cool_eir_ft1)
@@ -1600,7 +1600,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         new_dx_cooling_coil_speed2.setGrossRatedCoolingCOP(4.56)
       end
       new_dx_cooling_coil_speed2.setRatedAirFlowRate(hash_clg_airflow_stgs[2])
-      new_dx_cooling_coil_speed2.setRatedEvaporatorFanPowerPerVolumeFlowRate(773.3)
+      new_dx_cooling_coil_speed2.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
       new_dx_cooling_coil_speed2.setTotalCoolingCapacityFunctionofTemperatureCurve(cool_cap_ft2)
       new_dx_cooling_coil_speed2.setTotalCoolingCapacityFunctionofFlowFractionCurve(cool_cap_fff_all_stages)
       new_dx_cooling_coil_speed2.setEnergyInputRatioFunctionofTemperatureCurve(cool_eir_ft2)
@@ -1630,7 +1630,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         new_dx_cooling_coil_speed3.setGrossRatedCoolingCOP(4.44)
       end
       new_dx_cooling_coil_speed3.setRatedAirFlowRate(hash_clg_airflow_stgs[3])
-      new_dx_cooling_coil_speed3.setRatedEvaporatorFanPowerPerVolumeFlowRate(773.3)
+      new_dx_cooling_coil_speed3.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
       new_dx_cooling_coil_speed3.setTotalCoolingCapacityFunctionofTemperatureCurve(cool_cap_ft3)
       new_dx_cooling_coil_speed3.setTotalCoolingCapacityFunctionofFlowFractionCurve(cool_cap_fff_all_stages)
       new_dx_cooling_coil_speed3.setEnergyInputRatioFunctionofTemperatureCurve(cool_eir_ft3)
@@ -1660,7 +1660,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         new_dx_cooling_coil_speed4.setGrossRatedCoolingCOP(4.11)
       end
       new_dx_cooling_coil_speed4.setRatedAirFlowRate(hash_clg_airflow_stgs[4])
-      new_dx_cooling_coil_speed4.setRatedEvaporatorFanPowerPerVolumeFlowRate(773.3)
+      new_dx_cooling_coil_speed4.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
       new_dx_cooling_coil_speed4.setTotalCoolingCapacityFunctionofTemperatureCurve(cool_cap_ft4)
       new_dx_cooling_coil_speed4.setTotalCoolingCapacityFunctionofFlowFractionCurve(cool_cap_fff_all_stages)
       new_dx_cooling_coil_speed4.setEnergyInputRatioFunctionofTemperatureCurve(cool_eir_ft4)
