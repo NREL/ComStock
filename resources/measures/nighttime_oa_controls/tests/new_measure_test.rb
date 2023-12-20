@@ -291,5 +291,30 @@ class NewMeasureTest < Minitest::Test
 	
 	end 
 	
+	def test_361_retail_psz
+   
+   # this makes sure measure registers an na for non applicable model
+    osm_name = '361_Retail_PSZ_Gas_5a_mod_AHU_schedules_vent_added_output_v3.osm'
+    epw_name = 'TX_Port_Arthur_Jeffers_722410_16.epw'
+
+    osm_path = model_input_path(osm_name)
+	osm_path_output = model_output_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+
+    # Create an instance of the measure
+    measure = NighttimeOAControls.new
+
+    # Load the model; only used here for populating arguments
+    model = load_model(osm_path)
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure::OSArgumentMap.new
+	
+	# Apply the measure to the model and optionally run the model
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
+	#result = apply_measure_and_run(__method__, measure, osm_path, epw_path, run_model: true)
+    assert_equal('Success', result.value.valueName)
+	
+	end 
+	
 	
 end
