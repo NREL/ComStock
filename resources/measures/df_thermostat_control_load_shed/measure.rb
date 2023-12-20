@@ -179,6 +179,174 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
       return values
     end
 
+    def assign_clgsch_to_thermostats(model, clgsp_adjustment_values)
+      clg_set_schs = {}
+      values = []
+      header = []
+      #header << 'Time'
+      # get spaces
+      thermostats = model.getThermostatSetpointDualSetpoints
+      thermostats.each do |thermostat|
+        # setup new cooling setpoint schedule
+        clg_set_sch = thermostat.coolingSetpointTemperatureSchedule
+
+        if !clg_set_sch.empty?
+          #runner.registerInfo("#{clg_set_sch.get.name.to_s}")
+          #puts clg_set_sch.get
+
+          # clone of not already in hash
+          if clg_set_schs.key?(clg_set_sch.get.name.to_s)
+            # exist
+            new_clg_set_sch = clg_set_schs[clg_set_sch.get.name.to_s]
+          else
+            # new
+            schedule = clg_set_sch.get.clone(model)
+            schedule = schedule.to_Schedule.get
+            #puts "cloned new name: #{schedule.name.to_s}"
+            #puts schedule
+            #puts schedule.class
+            #puts schedule.to_ScheduleRuleset.class
+            #puts schedule.to_ScheduleRuleset.get
+
+            runner.registerInfo("Populating existing schedule ruleset to 8760 schedules...")
+
+            header << clg_set_sch.get.name.to_s
+            schedule_8760 = get_8760_values_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get)
+            values << schedule_8760
+
+            runner.registerInfo("Update 8760 schedule...")
+
+            header << "#{clg_set_sch.get.name.to_s} adjusted"
+            nums = [schedule_8760, cooling_adjustment_values]
+            new_schedule_8760 = nums.transpose.map(&:sum)
+            num_rows = new_schedule_8760.length
+            values << new_schedule_8760
+
+            schedule_values = OpenStudio::Vector.new(num_rows, 0.0)
+            new_schedule_8760.each_with_index do |val,i|
+              schedule_values[i] = val
+            end
+
+            # infer interval
+            interval = []
+            if (num_rows == 8760) || (num_rows == 8784) #hourly data
+              interval = OpenStudio::Time.new(0, 1, 0)
+            elsif (num_rows == 35040) || (num_rows == 35136) # 15 min interval data
+              interval = OpenStudio::Time.new(0, 0, 15)
+            else
+              runner.registerError('This measure does not support non-hourly or non-15 min interval data.  Cast your values as 15-min or hourly interval data.  See the values template.')
+              return false
+            end
+
+            runner.registerInfo("Make new interval schedule...")
+
+            # make a schedule
+            startDate = OpenStudio::Date.new(OpenStudio::MonthOfYear.new(1), 1)
+            timeseries = OpenStudio::TimeSeries.new(startDate, interval, schedule_values, "C")
+            new_clg_set_sch = OpenStudio::Model::ScheduleInterval::fromTimeSeries(timeseries, model)
+            if new_clg_set_sch.empty?
+              runner.registerError("Unable to make schedule")
+              return false
+            end
+            new_clg_set_sch = new_clg_set_sch.get
+            new_clg_set_sch.setName("#{clg_set_sch.get.name.to_s} adjusted")
+
+            ### add to the hash
+            clg_set_schs[clg_set_sch.get.name.to_s] = new_clg_set_sch
+          end
+          # hook up clone to thermostat
+          runner.registerInfo("Setting new schedule #{new_clg_set_sch.name.to_s}")
+          thermostat.setCoolingSetpointTemperatureSchedule(new_clg_set_sch)
+        else
+          runner.registerWarning("Thermostat '#{thermostat.name}' doesn't have a cooling setpoint schedule")
+        end
+      end
+    end
+
+    def assign_heatsch_to_thermostats(model, heatsp_adjustment_values)
+      heat_set_schs = {}
+      values = []
+      header = []
+      #header << 'Time'
+      # get spaces
+      thermostats = model.getThermostatSetpointDualSetpoints
+      thermostats.each do |thermostat|
+        # setup new cooling setpoint schedule
+        heat_set_sch = thermostat.heatingSetpointTemperatureSchedule
+
+        if !heat_set_sch.empty?
+          #runner.registerInfo("#{heat_set_sch.get.name.to_s}")
+          #puts heat_set_sch.get
+
+          # clone of not already in hash
+          if heat_set_schs.key?(heat_set_sch.get.name.to_s)
+            # exist
+            new_heat_set_sch = heat_set_schs[heat_set_sch.get.name.to_s]
+          else
+            # new
+            schedule = heat_set_sch.get.clone(model)
+            schedule = schedule.to_Schedule.get
+            #puts "cloned new name: #{schedule.name.to_s}"
+            #puts schedule
+            #puts schedule.class
+            #puts schedule.to_ScheduleRuleset.class
+            #puts schedule.to_ScheduleRuleset.get
+
+            runner.registerInfo("Populating existing schedule ruleset to 8760 schedules...")
+
+            header << heat_set_sch.get.name.to_s
+            schedule_8760 = get_8760_values_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get)
+            values << schedule_8760
+
+            runner.registerInfo("Update 8760 schedule...")
+
+            header << "#{heat_set_sch.get.name.to_s} adjusted"
+            nums = [schedule_8760, cooling_adjustment_values]
+            new_schedule_8760 = nums.transpose.map(&:sum)
+            num_rows = new_schedule_8760.length
+            values << new_schedule_8760
+
+            schedule_values = OpenStudio::Vector.new(num_rows, 0.0)
+            new_schedule_8760.each_with_index do |val,i|
+              schedule_values[i] = val
+            end
+
+            # infer interval
+            interval = []
+            if (num_rows == 8760) || (num_rows == 8784) #hourly data
+              interval = OpenStudio::Time.new(0, 1, 0)
+            elsif (num_rows == 35040) || (num_rows == 35136) # 15 min interval data
+              interval = OpenStudio::Time.new(0, 0, 15)
+            else
+              runner.registerError('This measure does not support non-hourly or non-15 min interval data.  Cast your values as 15-min or hourly interval data.  See the values template.')
+              return false
+            end
+
+            runner.registerInfo("Make new interval schedule...")
+
+            # make a schedule
+            startDate = OpenStudio::Date.new(OpenStudio::MonthOfYear.new(1), 1)
+            timeseries = OpenStudio::TimeSeries.new(startDate, interval, schedule_values, "C")
+            new_heat_set_sch = OpenStudio::Model::ScheduleInterval::fromTimeSeries(timeseries, model)
+            if new_heat_set_sch.empty?
+              runner.registerError("Unable to make schedule")
+              return false
+            end
+            new_heat_set_sch = new_heat_set_sch.get
+            new_heat_set_sch.setName("#{heat_set_sch.get.name.to_s} adjusted")
+
+            ### add to the hash
+            heat_set_schs[heat_set_sch.get.name.to_s] = new_heat_set_sch
+          end
+          # hook up clone to thermostat
+          runner.registerInfo("Setting new schedule #{new_heat_set_sch.name.to_s}")
+          thermostat.setHeatingSetpointTemperatureSchedule(new_heat_set_sch)
+        else
+          runner.registerWarning("Thermostat '#{thermostat.name}' doesn't have a cooling setpoint schedule")
+        end
+      end
+    end
+
     ############################################
     # For bin-sample run
     ############################################
@@ -211,7 +379,11 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     peak_schedule = peak_schedule_generation(annual_load, peak_len, rebound_len)
     puts("--- peak_schedule = #{peak_schedule}")
     
-    sp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(peak_schedule, sp_adjustment)
+    clgsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(peak_schedule, sp_adjustment=sp_adjustment)
+    heatsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(peak_schedule, sp_adjustment=-sp_adjustment)
+
+    assign_clgsch_to_thermostats(model, clgsp_adjustment_values)
+    assign_heatsch_to_thermostats(model, heatsp_adjustment_values)
 
     return true
   end
