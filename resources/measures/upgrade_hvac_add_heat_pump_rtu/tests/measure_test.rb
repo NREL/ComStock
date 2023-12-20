@@ -242,22 +242,121 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert(econ.setValue(false))
     argument_map['econ'] = econ
 
-    # get gas heating coils
-    li_gas_htg_coils_before = model.getCoilHeatingGass
-    puts "li_gas_htg_coils_before: #{li_gas_htg_coils_before}"
-	puts "li_gas_htg_coils_before.size: #{li_gas_htg_coils_before.size}"
+    # get initial gas heating coils
+    li_gas_htg_coils_initial = model.getCoilHeatingGass
 	
-    # get number of applicable air loops
-	li_unitary_sys_before = model.getAirLoopHVACUnitarySystems
-    puts "li_unitary_sys_before: #{li_unitary_sys_before}"
-	puts "li_unitary_sys_before.size: #{li_unitary_sys_before.size}"
-
-    # 
+    # get initial number of applicable air loops
+	  li_unitary_sys_initial = model.getAirLoopHVACUnitarySystems
 
     # Apply the measure to the model and optionally run the model
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
     assert_equal('Success', result.value.valueName)
+    model = load_model(model_output_path(__method__))
 
+    # get final gas heating coils
+    li_gas_htg_coils_final = model.getCoilHeatingGass
+
+    # assert gas heating coils have been removed
+    assert_equal(li_gas_htg_coils_final.size, 0)
+
+    # get list of final unitary systems
+    li_unitary_sys_final = model.getAirLoopHVACUnitarySystems
+
+    # assert same number of unitary systems as initial
+    assert_equal(li_unitary_sys_initial.size, li_unitary_sys_final.size)
+
+    # assert characteristics of new unitary systems
+    li_unitary_sys_final.sort.each do |system|
+
+      # assert new unitary systems all have variable speed fans
+      fan = system.supplyFan.get
+      assert(fan.to_FanVariableVolume.is_initialized)
+
+      # ***heating***
+      # assert new unitary systems all have multispeed DX heating coils
+      htg_coil = system.heatingCoil.get
+      assert(htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized)
+      htg_coil = htg_coil.to_CoilHeatingDXMultiSpeed.get
+      
+      # assert multispeed heating coil has 4 stages
+      assert_equal(htg_coil.numberOfStages, 4)
+      htg_coil_spd4 = htg_coil.stages[3]
+
+      # assert speed 4 flowrate matches design flow rate
+      htg_dsn_flowrate = system.supplyAirFlowRateDuringHeatingOperation
+      assert_equal(htg_dsn_flowrate.to_f, htg_coil_spd4.ratedAirFlowRate.to_f)
+      
+      # assert flow rate reduces for lower speeds
+      htg_coil_spd3 = htg_coil.stages[2]
+      htg_coil_spd2 = htg_coil.stages[1]
+      htg_coil_spd1 = htg_coil.stages[0]
+      assert(htg_coil_spd4.ratedAirFlowRate.to_f > htg_coil_spd3.ratedAirFlowRate.to_f)
+      assert(htg_coil_spd3.ratedAirFlowRate.to_f > htg_coil_spd2.ratedAirFlowRate.to_f)
+      assert(htg_coil_spd2.ratedAirFlowRate.to_f > htg_coil_spd1.ratedAirFlowRate.to_f)
+
+      # assert capacity reduces for lower speeds
+      assert(htg_coil_spd4.grossRatedHeatingCapacity.to_f > htg_coil_spd3.grossRatedHeatingCapacity.to_f)
+      assert(htg_coil_spd3.grossRatedHeatingCapacity.to_f > htg_coil_spd2.grossRatedHeatingCapacity.to_f)
+      assert(htg_coil_spd2.grossRatedHeatingCapacity.to_f > htg_coil_spd1.grossRatedHeatingCapacity.to_f)
+
+      # assert flow per capacity is within range for all stages; added 1% tolerance
+      # min = 4.03e-05 m3/s/watt; max = 6.041e-05 m3/s/watt; 
+      min_flow_per_cap = 4.03e-05*0.99999
+      max_flow_per_cap = 6.041e-05*1.000001
+      htg_coil_spd4_cfm_per_ton = htg_coil_spd4.ratedAirFlowRate.to_f / htg_coil_spd4.grossRatedHeatingCapacity.to_f
+      htg_coil_spd3_cfm_per_ton = htg_coil_spd3.ratedAirFlowRate.to_f / htg_coil_spd3.grossRatedHeatingCapacity.to_f
+      htg_coil_spd2_cfm_per_ton = htg_coil_spd2.ratedAirFlowRate.to_f / htg_coil_spd2.grossRatedHeatingCapacity.to_f
+      htg_coil_spd1_cfm_per_ton = htg_coil_spd1.ratedAirFlowRate.to_f / htg_coil_spd1.grossRatedHeatingCapacity.to_f
+      assert((htg_coil_spd4_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd4_cfm_per_ton <= max_flow_per_cap))
+      assert((htg_coil_spd3_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd3_cfm_per_ton <= max_flow_per_cap))
+      assert((htg_coil_spd2_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd2_cfm_per_ton <= max_flow_per_cap))
+      assert((htg_coil_spd1_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd1_cfm_per_ton <= max_flow_per_cap))
+
+      # assert supplemental heating coil type matches user-specified electric resistance
+      sup_htg_coil = system.supplementalHeatingCoil.get 
+      assert(sup_htg_coil.to_CoilHeatingElectric.is_initialized)
+      puts "sup_htg_coil: #{sup_htg_coil}"
+
+      # ***cooling***
+      # assert new unitary systems all have multispeed DX cooling coils
+      clg_coil = system.coolingCoil.get
+      assert(clg_coil.to_CoilCoolingDXMultiSpeed.is_initialized)
+      clg_coil = clg_coil.to_CoilCoolingDXMultiSpeed.get
+      
+      # assert multispeed heating coil has 4 stages
+      assert_equal(clg_coil.numberOfStages, 4)
+      clg_coil_spd4 = clg_coil.stages[3]
+
+      # assert speed 4 flowrate matches design flow rate
+      clg_dsn_flowrate = system.supplyAirFlowRateDuringCoolingOperation
+      assert_equal(clg_dsn_flowrate.to_f, clg_coil_spd4.ratedAirFlowRate.to_f)
+      
+      # assert flow rate reduces for lower speeds
+      clg_coil_spd3 = clg_coil.stages[2]
+      clg_coil_spd2 = clg_coil.stages[1]
+      clg_coil_spd1 = clg_coil.stages[0]
+      assert(clg_coil_spd4.ratedAirFlowRate.to_f > clg_coil_spd3.ratedAirFlowRate.to_f)
+      assert(clg_coil_spd3.ratedAirFlowRate.to_f > clg_coil_spd2.ratedAirFlowRate.to_f)
+      assert(clg_coil_spd2.ratedAirFlowRate.to_f > clg_coil_spd1.ratedAirFlowRate.to_f)
+
+      # assert capacity reduces for lower speeds
+      assert(clg_coil_spd4.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f)
+      assert(clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f)
+      assert(clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd1.grossRatedTotalCoolingCapacity.to_f)
+
+      # assert flow per capacity is within range for all stages; added 1% tolerance
+      # min = 4.03e-05 m3/s/watt; max = 6.041e-05 m3/s/watt; 
+      min_flow_per_cap = 4.03e-05*0.99999
+      max_flow_per_cap = 6.041e-05*1.000001
+      clg_coil_spd4_cfm_per_ton = clg_coil_spd4.ratedAirFlowRate.to_f / clg_coil_spd4.grossRatedTotalCoolingCapacity.to_f
+      clg_coil_spd3_cfm_per_ton = clg_coil_spd3.ratedAirFlowRate.to_f / clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f
+      clg_coil_spd2_cfm_per_ton = clg_coil_spd2.ratedAirFlowRate.to_f / clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f
+      clg_coil_spd1_cfm_per_ton = clg_coil_spd1.ratedAirFlowRate.to_f / clg_coil_spd1.grossRatedTotalCoolingCapacity.to_f
+      assert((clg_coil_spd4_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd4_cfm_per_ton <= max_flow_per_cap))
+      assert((clg_coil_spd3_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd3_cfm_per_ton <= max_flow_per_cap))
+      assert((clg_coil_spd2_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd2_cfm_per_ton <= max_flow_per_cap))
+      assert((clg_coil_spd1_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd1_cfm_per_ton <= max_flow_per_cap))
+    end
   end
    
    # test
@@ -316,194 +415,4 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert_equal('NA', result.value.valueName)
    
    end
-  
-
-  # def test_r_value_cz_5a
-  #   osm_name = 'SecondarySchool_Pre1980_5A.osm'
-  #   epw_name = 'USA_CA_Fullerton.Muni.AP.722976_TMY3.epw'
-
-  #   # Test expectations for Double - No LowE - Clear - Aluminum
-  #   # is to increase to 0.61 in all climate zones
-  #   target_u_value_ip = 0.61
-
-  #   osm_path = model_input_path(osm_name)
-  #   epw_path = epw_input_path(epw_name)
-
-  #   # Create an instance of the measure
-  #   measure = AddHeatPumpRtu.new
-
-  #   # Load the model; only used here for populating arguments
-  #   model = load_model(osm_path)
-  #   arguments = measure.arguments(model)
-  #   argument_map = OpenStudio::Measure::OSArgumentMap.new
-
-  #   # Check that the starting R-value is less than the target
-  #   old_u_val_ip = 0
-  #   old_ext_surf_material = nil
-  #   model.getSubSurfaces.each do |sub_surface|
-  #     next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && (sub_surface.subSurfaceType.include?('Window'))
-  #     surf_const = sub_surface.construction.get.to_LayeredConstruction.get
-  #     glazing_layer = surf_const.layers[0].to_SimpleGlazing.get
-  #     old_u_val_si = glazing_layer.uFactor
-  #     old_u_val_ip = OpenStudio.convert(old_u_val_si, 'W/m^2*K', 'Btu/ft^2*h*R').get
-
-  #     break
-  #   end
-  #   assert(old_u_val_ip > target_u_value_ip)
-
-  #   # Apply the measure to the model and optionally run the model
-  #   result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
-
-  #   model = load_model(model_output_path(__method__))
-  #   model.getSubSurfaces.each do |sub_surface|
-  #     next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && (sub_surface.subSurfaceType.include?('Window'))
-  #     surf_const = sub_surface.construction.get.to_LayeredConstruction.get
-  #     glazing_layer = surf_const.layers[0].to_SimpleGlazing.get
-  #     new_u_val_si = glazing_layer.uFactor
-  #     new_u_val_ip = OpenStudio.convert(new_u_val_si, 'W/m^2*K', 'Btu/ft^2*h*R').get
-
-  #     # Check that original U-value was above (worse than) the target threshold
-  #     assert(old_u_val_ip > new_u_val_ip)
-
-  #     # Check that the new U-value matches the target
-  #     tolerance = 0.01
-  #     assert_in_delta(target_u_value_ip, new_u_val_ip, tolerance)
-
-  #     break
-  #   end
-  # end
-
-  # def test_r_value_cz_8a_double_pane_thermally_broken
-  #   osm_name = 'Stripmall_Pre1980_8A.osm'
-  #   epw_name = 'USA_CA_Fullerton.Muni.AP.722976_TMY3.epw'
-
-  #   # Test expectations for Double - No LowE - Clear - Aluminum
-  #   # is to increase to U-0.44 in CZ 8
-  #   target_u_value_ip = 0.44
-
-  #   osm_path = model_input_path(osm_name)
-  #   epw_path = epw_input_path(epw_name)
-
-  #   # Create an instance of the measure
-  #   measure = AddHeatPumpRtu.new
-
-  #   # Load the model; only used here for populating arguments
-  #   model = load_model(osm_path)
-  #   arguments = measure.arguments(model)
-  #   argument_map = OpenStudio::Measure::OSArgumentMap.new
-
-  #   # Check that the starting R-value is less than the target
-  #   old_u_val_ip = 0
-  #   old_ext_surf_material = nil
-  #   model.getSubSurfaces.each do |sub_surface|
-  #     next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && (sub_surface.subSurfaceType.include?('Window'))
-  #     surf_const = sub_surface.construction.get.to_LayeredConstruction.get
-  #     glazing_layer = surf_const.layers[0].to_SimpleGlazing.get
-  #     old_u_val_si = glazing_layer.uFactor
-  #     old_u_val_ip = OpenStudio.convert(old_u_val_si, 'W/m^2*K', 'Btu/ft^2*h*R').get
-
-  #     break
-  #   end
-  #   assert(old_u_val_ip > target_u_value_ip)
-
-  #   # Apply the measure to the model and optionally run the model
-  #   result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
-
-  #   model = load_model(model_output_path(__method__))
-  #   model.getSubSurfaces.each do |sub_surface|
-  #     next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && (sub_surface.subSurfaceType.include?('Window'))
-  #     surf_const = sub_surface.construction.get.to_LayeredConstruction.get
-  #     glazing_layer = surf_const.layers[0].to_SimpleGlazing.get
-  #     new_u_val_si = glazing_layer.uFactor
-  #     new_u_val_ip = OpenStudio.convert(new_u_val_si, 'W/m^2*K', 'Btu/ft^2*h*R').get
-
-  #     # Check that original U-value was above (worse than) the target threshold
-  #     assert(old_u_val_ip > new_u_val_ip)
-
-  #     # Check that the new U-value matches the target
-  #     tolerance = 0.01
-  #     assert_in_delta(target_u_value_ip, new_u_val_ip, tolerance)
-
-  #     break
-  #   end
-  # end
-
-  # def test_r_value_cz_cec16_double_pane_thermally_broken
-  #   osm_name = 'Retail_DEERPre1975_CEC16.osm'
-  #   epw_name = 'USA_CA_Fullerton.Muni.AP.722976_TMY3.epw'
-
-  #   # Test expectations for Single - No LowE - Clear - Aluminum
-  #   # is to increase to U-0.61 in all climate zones
-  #   target_u_value_ip = 0.61
-
-  #   osm_path = model_input_path(osm_name)
-  #   epw_path = epw_input_path(epw_name)
-
-  #   # Create an instance of the measure
-  #   measure = AddHeatPumpRtu.new
-
-  #   # Load the model; only used here for populating arguments
-  #   model = load_model(osm_path)
-  #   arguments = measure.arguments(model)
-  #   argument_map = OpenStudio::Measure::OSArgumentMap.new
-
-  #   # Check that the starting R-value is less than the target
-  #   old_u_val_ip = 0
-  #   old_ext_surf_material = nil
-  #   model.getSubSurfaces.each do |sub_surface|
-  #     next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && (sub_surface.subSurfaceType.include?('Window'))
-  #     surf_const = sub_surface.construction.get.to_LayeredConstruction.get
-  #     glazing_layer = surf_const.layers[0].to_SimpleGlazing.get
-  #     old_u_val_si = glazing_layer.uFactor
-  #     old_u_val_ip = OpenStudio.convert(old_u_val_si, 'W/m^2*K', 'Btu/ft^2*h*R').get
-
-  #     break
-  #   end
-  #   assert(old_u_val_ip > target_u_value_ip)
-
-  #   # Apply the measure to the model and optionally run the model
-  #   result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
-
-  #   model = load_model(model_output_path(__method__))
-  #   model.getSubSurfaces.each do |sub_surface|
-  #     next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && (sub_surface.subSurfaceType.include?('Window'))
-  #     surf_const = sub_surface.construction.get.to_LayeredConstruction.get
-  #     glazing_layer = surf_const.layers[0].to_SimpleGlazing.get
-  #     new_u_val_si = glazing_layer.uFactor
-  #     new_u_val_ip = OpenStudio.convert(new_u_val_si, 'W/m^2*K', 'Btu/ft^2*h*R').get
-
-  #     # Check that original U-value was above (worse than) the target threshold
-  #     assert(old_u_val_ip > new_u_val_ip)
-
-  #     # Check that the new U-value matches the target
-  #     # Set the tolerance higher for this test because the
-  #     # Single - No LowE - Clear - Aluminum
-  #     tolerance = 0.01
-  #     assert_in_delta(target_u_value_ip, new_u_val_ip, tolerance)
-
-  #     break
-  #   end
-  # end
-
-  # def test_na_simple_glazing_name_not_recognized
-  #   osm_name = 'Warehouse_5A.osm'
-  #   epw_name = 'MI_DETROIT_725375_12.epw'
-
-  #   osm_path = model_input_path(osm_name)
-  #   epw_path = epw_input_path(epw_name)
-
-  #   # Create an instance of the measure
-  #   measure = AddHeatPumpRtu.new
-
-  #   # Load the model for populating arguments
-  #   model = load_model(osm_path)
-  #   arguments = measure.arguments(model)
-  #   argument_map = OpenStudio::Measure::OSArgumentMap.new
-
-  #   # Apply the measure to the model and optionally run the model
-  #   result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
-
-  #   # Should be NA because this is a warehouse with metal building walls
-  #   assert_equal('NA', result.value.valueName)
-  # end
 end
