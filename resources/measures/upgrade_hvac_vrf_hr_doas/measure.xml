@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>hvac_vrf_hr_doas</name>
   <uid>95ea1937-6b29-4af5-8946-0e271c828d10</uid>
-  <version_id>c3d98946-561a-427e-8633-83bf6900df49</version_id>
-  <version_modified>2023-12-04T18:34:14Z</version_modified>
+  <version_id>5745b77b-b883-4951-b172-2f7fe8884a21</version_id>
+  <version_modified>2023-12-21T16:52:43Z</version_modified>
   <xml_checksum>D8B5A9EA</xml_checksum>
   <class_name>HvacVrfHrDoas</class_name>
   <display_name>hvac_vrf_hr_doas</display_name>
@@ -166,7 +166,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>F774FC85</checksum>
+      <checksum>ACDFB0B1</checksum>
     </file>
     <file>
       <filename>performance_maps_Daikin_RELQ_100CR_120MBH.json</filename>
@@ -184,7 +184,7 @@
       <filename>measure_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>0C4EC7B3</checksum>
+      <checksum>B129F4D5</checksum>
     </file>
   </files>
 </measure>

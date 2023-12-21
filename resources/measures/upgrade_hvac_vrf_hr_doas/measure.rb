@@ -96,9 +96,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
 
   # --------------------------------------- #
   # supporting method
-  # loading curves to model from standards data
-  # somehow the same method in standards did not work for NECB
-  # so using locally saved files and locally saved method
+  # modified version (to read custom json) of same method in OS Standards
   # --------------------------------------- #
   def model_add_curve(model, curve_name, standards_data_curve, std)
     # First check model and return curve if it already exists
@@ -1567,7 +1565,6 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     ######################################################
     # puts("### modify DOAS systems")
     ######################################################
-
     # get climate full string and classification (i.e. "5A")
     climate_zone = std.model_standards_climate_zone(model)
     climate_zone_classification = climate_zone.split('-')[-1]
