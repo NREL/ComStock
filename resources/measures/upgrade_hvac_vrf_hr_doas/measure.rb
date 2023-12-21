@@ -1968,7 +1968,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           # check design capacity against design heating load
           if capacity_upsized_design_wo_fan_heat_gain > design_heating_load
             capacity_final_design = design_heating_load
-            puts("--- #{coil_cooling.name} | upsized design load (#{capacity_upsized_design_wo_fan_heat_gain} W) larger than actual design heating load (#{design_heating_load} W)")
+            puts("--- #{coil_cooling.name} | upsized design load (#{capacity_upsized_design_wo_fan_heat_gain.round(0)} W) larger than actual design heating load (#{design_heating_load.round(0)} W)")
           else
             capacity_final_design = capacity_upsized_design_wo_fan_heat_gain
           end
@@ -1977,7 +1977,12 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           # get final upsized rated capacity
           capacity_final_rated = capacity_final_design + fan_heat_gain
           capacity_final_rated = capacity_final_rated / rated_capacity_modifier
+          if capacity_final_rated < capacity_original_rated
+            puts("--- #{coil_cooling.name} | recalculation of rated capacity (#{capacity_final_rated.round(0)} W) is less than original rated capacity (#{capacity_original_rated.round(0)} W)")
+            capacity_final_rated = capacity_original_rated
+          end
           puts("--- #{coil_cooling.name} | capacity_final_rated = #{capacity_final_rated}")
+          
 
           # get CFM/ton 
           design_air_flow_rate_cfm = design_air_flow_rate_m_3_per_sec * 2118.88 
