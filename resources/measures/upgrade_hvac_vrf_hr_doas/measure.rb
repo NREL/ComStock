@@ -1968,6 +1968,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           # check design capacity against design heating load
           if capacity_upsized_design_wo_fan_heat_gain > design_heating_load
             capacity_final_design = design_heating_load
+            puts("--- #{coil_cooling.name} | upsized design load (#{capacity_upsized_design_wo_fan_heat_gain} W) larger than actual design heating load (#{design_heating_load} W)")
           else
             capacity_final_design = capacity_upsized_design_wo_fan_heat_gain
           end
