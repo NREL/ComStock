@@ -179,6 +179,7 @@ class NewMeasureTest < Minitest::Test
     li_non_unitary_systems.sort.each do |air_loop_hvac|
 
       # change night OA schedule to match hvac operation schedule for no night OA
+	  #look at schedule in base case 
       #case rtu_night_mode
       #when 'night_fancycle_novent'
         # Schedule to control whether or not unit ventilates at night - clone hvac availability schedule
@@ -198,7 +199,6 @@ class NewMeasureTest < Minitest::Test
 				#assert(false) 
 			end 
        end 
-      #end
 	  
 	  end 
 
@@ -212,7 +212,7 @@ class NewMeasureTest < Minitest::Test
 		input_path = File.join(File.dirname(__FILE__), '/output/test_361_warehouse_pvav/run/in.osm') ##temporary, need to modify this for systematically getting path 
 	    model = load_model(input_path) 
 		
-		    unitary_system_count = 0
+    unitary_system_count = 0
     li_unitary_systems = []
     non_unitary_system_count = 0
     li_non_unitary_systems = []
