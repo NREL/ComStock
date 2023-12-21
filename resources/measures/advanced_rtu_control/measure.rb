@@ -134,7 +134,6 @@ require 'openstudio-standards'
 	add_dcv = runner.getBoolArgumentValue('add_dcv', user_arguments)
 	
 	#Set constants
-	#confirm that these are appropriate 
 	fan_tot_eff = 0.63
     fan_mot_eff = 0.29
     fan_static_pressure = 50.0
@@ -204,6 +203,7 @@ require 'openstudio-standards'
 						 runner.registerInfo("des airflow #{des_airflow_rate}")
 						 new_term.setMaximumAirFlowRate(des_airflow_rate * max_flow) 
 						 new_term.setZoneMinimumAirFlowFraction(min_flow)
+						 puts ("tz #{thermal_zone}" + "min term rate" + "#{des_airflow_rate * min_flow}")
 					  elsif term.maximumAirFlowRate.is_initialized
 					      des_airflow_rate = term.maximumAirFlowRate.get
 						  runner.registerInfo("des airflow #{des_airflow_rate}")
@@ -211,6 +211,7 @@ require 'openstudio-standards'
 						  #puts ("tz #{thermal_zone}" + "max term rate" + "#{des_airflow_rate * max_flow}")
 						  #set minimum based on max of 40% of max flow, or min ventilation level req'd 
 						  new_term.setZoneMinimumAirFlowFraction(max(min_flow, min_oa_flow_rate/max_flow ))
+						  puts ("tz #{thermal_zone}" + "min term rate" + "#{des_airflow_rate * min_flow}")
 					  end 
 					  air_loop_hvac.removeBranchForZone(thermal_zone)
 					  air_loop_hvac.addBranchForZone(thermal_zone, new_term)
@@ -231,8 +232,8 @@ require 'openstudio-standards'
 					# set lockout for integrated heating
 					 controller_oa.setLockoutType('LockoutWithHeating')
 			    end 
-				 #set up DCV  
-				 if add_dcv
+				 #set up DCV  and check for space types that should not be controlled with DCV 
+				 if add_dcv and not ['kitchen', 'Kitchen', 'dining', 'Dining', 'Laboratory', 'KITCHEN', 'LABORATORY', 'DINING', 'patient', 'PATIENT', 'Patient'].any? { |word| (air_loop_hvac.name.get).include?(word) }
 					 controller_mv = controller_oa.controllerMechanicalVentilation
 					 controller_mv.setDemandControlledVentilation(true)
 				 end 
