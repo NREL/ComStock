@@ -26,12 +26,6 @@ require 'openstudio-standards'
   def arguments(model)
     args = OpenStudio::Measure::OSArgumentVector.new
 
-    # the name of the space to add to the model
-    # space_name = OpenStudio::Measure::OSArgument.makeStringArgument('space_name', true)
-    # space_name.setDisplayName('New space name')
-    # space_name.setDescription('This name will be used as the name of the new space.')
-    # args << space_name
-
     return args
   end
    # Determine if the air loop is a unitary system
@@ -95,27 +89,6 @@ require 'openstudio-standards'
       return false
     end
 
-    # assign the user inputs to variables
-    #space_name = runner.getStringArgumentValue('space_name', user_arguments)
-
-    # check the space_name for reasonableness
-    # if space_name.empty?
-      # runner.registerError('Empty space name was entered.')
-      # return false
-    # end
-
-    # report initial condition of model
-    # runner.registerInitialCondition("The building started with #{model.getSpaces.size} spaces.")
-
-    # # add a new space to the model
-    # new_space = OpenStudio::Model::Space.new(model)
-    # new_space.setName(space_name)
-
-    # # echo the new space's name back to the user
-    # runner.registerInfo("Space #{new_space.name} was added.")
-
-    # # report final condition of model
-    # runner.registerFinalCondition("The building finished with #{model.getSpaces.size} spaces.")
 	
 	template = 'ComStock 90.1-2013'
     std = Standard.build(template)
@@ -126,12 +99,11 @@ require 'openstudio-standards'
     non_unitary_system_count = 0
     li_non_unitary_systems = []
     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
-      # skip systems that are residential, use evap coolers, or are DOAS
+      # skip systems that are residential, or are DOAS
       next if NighttimeOAControls.air_loop_res?(air_loop_hvac)
-      next if NighttimeOAControls.air_loop_evaporative_cooler?(air_loop_hvac)
       next if NighttimeOAControls.air_loop_doas?(air_loop_hvac)
-      # skip data centers
-      next if ['Data Center', 'DataCenter', 'data center', 'datacenter', 'DATACENTER', 'DATA CENTER'].any? { |word| (air_loop_hvac.name.get).include?(word) }
+      # skip outpatient healthcare and schools 
+      next if ['outpatient', 'Outpatient', 'OUTPATIENT', 'school', 'SCHOOL', 'School', 'k12', 'K12', 'education', 'EDUCATION', 'Education'].any? { |word| (air_loop_hvac.name.get).include?(word) }
       # check unitary systems
       if NighttimeOAControls.air_loop_hvac_unitary_system?(air_loop_hvac)
         unitary_system_count += 1
