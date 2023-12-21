@@ -4,10 +4,7 @@
 # http://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/
 
 # start the measure
-#make sure testing on 3.7 models! 
-#also need to add in DCV and economizing! 
-#design limitations for htg + coolign coils 
-#dial in economizer params more 
+
 class AdvancedRTUControl < OpenStudio::Measure::ModelMeasure
 
 require 'openstudio-standards'
@@ -219,24 +216,24 @@ require 'openstudio-standards'
 			end
 	  end
 	end
-	            if add_econo
-					oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
-					controller_oa = oa_system.getControllerOutdoorAir
-					# econ_type = std.model_economizer_type(model, climate_zone)
-					# set economizer type
-					controller_oa.setEconomizerControlType('DifferentialEnthalpy')
-					# set drybulb temperature limit; per 90.1-2013, this is constant 75F for all climates
-					drybulb_limit_f=75
-					drybulb_limit_c = OpenStudio.convert(drybulb_limit_f, 'F', 'C').get
-					controller_oa.setEconomizerMaximumLimitDryBulbTemperature(drybulb_limit_c)
-					# set lockout for integrated heating
-					 controller_oa.setLockoutType('LockoutWithHeating')
-			    end 
-				 #set up DCV  and check for space types that should not be controlled with DCV 
-				 if add_dcv and not ['kitchen', 'Kitchen', 'dining', 'Dining', 'Laboratory', 'KITCHEN', 'LABORATORY', 'DINING', 'patient', 'PATIENT', 'Patient'].any? { |word| (air_loop_hvac.name.get).include?(word) }
-					 controller_mv = controller_oa.controllerMechanicalVentilation
-					 controller_mv.setDemandControlledVentilation(true)
-				 end 
+		if add_econo
+			oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+			controller_oa = oa_system.getControllerOutdoorAir
+			# econ_type = std.model_economizer_type(model, climate_zone)
+			# set economizer type
+			controller_oa.setEconomizerControlType('DifferentialEnthalpy')
+			# set drybulb temperature limit; per 90.1-2013, this is constant 75F for all climates
+			drybulb_limit_f=75
+			drybulb_limit_c = OpenStudio.convert(drybulb_limit_f, 'F', 'C').get
+			controller_oa.setEconomizerMaximumLimitDryBulbTemperature(drybulb_limit_c)
+			# set lockout for integrated heating
+			 controller_oa.setLockoutType('LockoutWithHeating')
+		end 
+		 #set up DCV  and check for space types that should not be controlled with DCV 
+		 if add_dcv and not ['kitchen', 'Kitchen', 'dining', 'Dining', 'Laboratory', 'KITCHEN', 'LABORATORY', 'DINING', 'patient', 'PATIENT', 'Patient'].any? { |word| (air_loop_hvac.name.get).include?(word) }
+			 controller_mv = controller_oa.controllerMechanicalVentilation
+			 controller_mv.setDemandControlledVentilation(true)
+		 end 
 
 		  end
     end 
