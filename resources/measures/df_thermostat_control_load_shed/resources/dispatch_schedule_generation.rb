@@ -124,12 +124,12 @@ def create_binsamples(oat)
     'cold' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] }
   }
   selectdays = {
-  'ext-hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  'hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  'mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  'cool-mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  'cool' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  'cold' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] }
+    'ext-hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+    'hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+    'mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+    'cool-mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+    'cool' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+    'cold' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] }
   }
 
   ### NEED TO ADJUST FOR LEAP YEAR 
@@ -241,24 +241,32 @@ def create_binsamples(oat)
 
   ns = 0
   srand(42)
+  max_doys = []
   combbins.keys.each do |key|
     # puts key
     combbins[key].keys.each do |keykey|
       # puts keykey
       # puts combbins[key][keykey].length
       if combbins[key][keykey].length > 14
-        selectdays[key][keykey] = combbins[key][keykey].sample(3)
+        selectdays[key][keykey] = combbins[key][keykey].sort.take(3).to_a
+        # selectdays[key][keykey] = combbins[key][keykey].sample(3)
         ns += 3
       elsif combbins[key][keykey].length > 7
-        selectdays[key][keykey] = combbins[key][keykey].sample(2)
+        selectdays[key][keykey] = combbins[key][keykey].sort.take(2).to_a
+        # selectdays[key][keykey] = combbins[key][keykey].sample(2)
         ns += 2
       elsif combbins[key][keykey].length > 0
-        selectdays[key][keykey] = combbins[key][keykey].sample(1)
+        selectdays[key][keykey] = combbins[key][keykey].sort.take(1).to_a
+        # selectdays[key][keykey] = combbins[key][keykey].sample(1)
         ns += 1
+      end
+      if selectdays[key][keykey] != []
+        max_doys << selectdays[key][keykey].max
       end
     end
   end
-  return combbins, selectdays, ns
+  max_doy = max_doys.max
+  return combbins, selectdays, ns, max_doy
 end
 
 ### run simulation on selected day of year
@@ -268,13 +276,10 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=
   unless Dir.exist?(run_dir)
     FileUtils.mkdir_p(run_dir)
   end
-
   puts("### DEBUGGING: run_dir = #{run_dir}")
-  
   template = 'ComStock 90.1-2019'
   std = Standard.build(template)
   # Save the model to energyplus idf
-  idf_name = 'in.idf'
   osm_name = 'in.osm'
   osw_name = 'in.osw'
   OpenStudio.logFree(OpenStudio::Debug, 'openstudio.model.Model', "Starting simulation here: #{run_dir}.")
@@ -287,12 +292,10 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=
     begin_month, begin_day = day_of_year_to_date(year, doy)
     end_month, end_day = day_of_year_to_date(year, doy)
   end
-
   # puts("### DEBUGGING: begin_month = #{begin_month}")
   # puts("### DEBUGGING: begin_day = #{begin_day}")
   # puts("### DEBUGGING: end_month = #{end_month}")
   # puts("### DEBUGGING: end_day = #{end_day}")
-
   ### reference: SetRunPeriod measure on BCL
   model.getYearDescription.setCalendarYear(year)
   model.getRunPeriod.setBeginMonth(begin_month)
@@ -302,63 +305,18 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=
   if num_timesteps_in_hr != 4
     model.getTimestep.setNumberOfTimestepsPerHour(num_timesteps_in_hr)
   end
-  model.getSimulationControl.setDoZoneSizingCalculation(false)
-  model.getSimulationControl.setDoSystemSizingCalculation(false)
-  model.getSimulationControl.setDoPlantSizingCalculation(false)
-
+  # model.getSimulationControl.setDoZoneSizingCalculation(false)
+  # model.getSimulationControl.setDoSystemSizingCalculation(false)
+  # model.getSimulationControl.setDoPlantSizingCalculation(false)
   # puts("### DEBUGGING: model.getRunPeriod.getBeginDayOfMonth = #{model.getRunPeriod.getBeginDayOfMonth}")
   # puts("### DEBUGGING: model.getRunPeriod.getBeginMonth = #{model.getRunPeriod.getBeginMonth}")
   # puts("### DEBUGGING: model.getRunPeriod.getEndMonth = #{model.getRunPeriod.getEndMonth}")
   # puts("### DEBUGGING: model.getRunPeriod.getEndDayOfMonth = #{model.getRunPeriod.getEndDayOfMonth}")
-  puts("### DEBUGGING: model.getSimulationControl.doZoneSizingCalculation = #{model.getSimulationControl.doZoneSizingCalculation}")
-  puts("### DEBUGGING: model.getSimulationControl.doSystemSizingCalculation = #{model.getSimulationControl.doSystemSizingCalculation}")
-  puts("### DEBUGGING: model.getSimulationControl.doPlantSizingCalculation = #{model.getSimulationControl.doPlantSizingCalculation}")
-
-  # get idf workspace
-  workspace = forward_translator.translateModel(model)
-  puts("### DEBUGGING: workspace.class = #{workspace.class}")
-
-  # get simulation control workspace object
-  workspaceobject_simulationcontrol_original = workspace.getObjectsByType('SimulationControl')[0]
-  puts("### DEBUGGING: workspaceobject_simulationcontrol_original = #{workspaceobject_simulationcontrol_original}")
-
-  # get idfObject
-  idf_object_original = workspaceobject_simulationcontrol_original.idfObject
-  handle_simulationcontrol_original = idf_object_original.handle
-  puts("### DEBUGGING: handle_simulationcontrol_original = #{handle_simulationcontrol_original}")
-
-  # create clone
-  idf_object_updated = idf_object_original.clone
-
-  # updates values to relevant fields
-  idf_object_updated.dataFields.each do |data_field|
-    puts("### DEBUGGING: data_field = #{data_field}")
-    field_name = idf_object_updated.fieldComment(data_field, true).get
-    puts("### DEBUGGING: field_name = #{field_name}")
-    field_string = idf_object_updated.getString(data_field)
-    puts("### DEBUGGING: field_string = #{field_string}")
-    if field_name.include?('Do Zone Sizing Calculation')
-      idf_object_updated.setString(data_field, 'False')
-    elsif field_name.include?('Do System Sizing Calculation')
-      idf_object_updated.setString(data_field, 'False')
-    elsif field_name.include?('Do Plant Sizing Calculation')
-      idf_object_updated.setString(data_field, 'False')
-    end
-  end
-  puts("### DEBUGGING: idf_object_updated = #{idf_object_updated}")
-
-  # add udpated idf object to workspace
-  workspace.addObject(idf_object_updated)
-  
-  # remove original simulation control
-  workspace.removeObject(handle_simulationcontrol_original)
-
-  puts("### DEBUGGING: final workspace = #{workspace.getObjectsByType('SimulationControl')[0]}")
-
-  idf_path = OpenStudio::Path.new("#{run_dir}/#{idf_name}")
+  # puts("### DEBUGGING: model.getSimulationControl.doZoneSizingCalculation = #{model.getSimulationControl.doZoneSizingCalculation}")
+  # puts("### DEBUGGING: model.getSimulationControl.doSystemSizingCalculation = #{model.getSimulationControl.doSystemSizingCalculation}")
+  # puts("### DEBUGGING: model.getSimulationControl.doPlantSizingCalculation = #{model.getSimulationControl.doPlantSizingCalculation}")
   osm_path = OpenStudio::Path.new("#{run_dir}/#{osm_name}")
   osw_path = OpenStudio::Path.new("#{run_dir}/#{osw_name}")
-  idf.save(idf_path, true)
   model.save(osm_path, true)
   # Set up the simulation
   # Find the weather file
@@ -373,72 +331,36 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=
   # close current sql file
   model.resetSqlFile
   # initialize OSW
-  use_runmanager = true
-  # begin
-  #   workflow = OpenStudio::WorkflowJSON.new
-  #   use_runmanager = false
-  # rescue NameError
-  #   use_runmanager = true
-  # end
-  # begin
-  #   workflow = OpenStudio::WorkflowJSON.new
-  # rescue NameError
-  #   raise 'Cannot run simulation with OSW approach'
-  # end
-  sql_path = nil
-  if use_runmanager
-    OpenStudio.logFree(OpenStudio::Debug, 'openstudio.model.Model', 'Running with RunManager.')
-    # Find EnergyPlus
-    ep_dir = OpenStudio.getEnergyPlusDirectory
-    ep_path = OpenStudio.getEnergyPlusExecutable
-    ep_tool = OpenStudio::Runmanager::ToolInfo.new(ep_path)
-    idd_path = OpenStudio::Path.new(ep_dir.to_s + '/Energy+.idd')
-    output_path = OpenStudio::Path.new("#{run_dir}/")
-    # Make a run manager and queue up the run
-    run_manager_db_path = OpenStudio::Path.new("#{run_dir}/run.db")
-    # HACK: workaround for Mac with Qt 5.4, need to address in the future.
-    OpenStudio::Application.instance.application(false)
-    run_manager = OpenStudio::Runmanager::RunManager.new(run_manager_db_path, true, false, false, false)
-    job = OpenStudio::Runmanager::JobFactory.createEnergyPlusJob(ep_tool,
-                                                                 idd_path,
-                                                                 idf_path,
-                                                                 epw_path,
-                                                                 output_path)
-    run_manager.enqueue(job, true)
-    # Start the run and wait for it to finish.
-    while run_manager.workPending
-      sleep 1
-      OpenStudio::Application.instance.processEvents
-    end
-    sql_path = OpenStudio::Path.new("#{run_dir}/EnergyPlus/eplusout.sql")
-    # puts("### DEBUGGING: sql_path = #{sql_path}")
-    OpenStudio.logFree(OpenStudio::Info, 'openstudio.model.Model', "Finished simulation #{run_dir} at #{Time.now.strftime('%T.%L')}")
-  else
-    OpenStudio.logFree(OpenStudio::Debug, 'openstudio.model.Model', 'Running with OS 2.x WorkflowJSON.')
-    # Copy the weather file to this directory
-    epw_name = 'in.epw'
-    begin
-      FileUtils.copy(epw_path.to_s, "#{run_dir}/#{epw_name}")
-    rescue StandardError
-      OpenStudio.logFree(OpenStudio::Error, 'openstudio.model.Model', "Due to limitations on Windows file path lengths, this measure won't work unless your project is located in a directory whose filepath is less than 90 characters long, including slashes.")
-      return false
-    end
-    workflow.setSeedFile(osm_name)
-    puts osm_path
-    workflow.setWeatherFile(epw_name)
-    workflow.saveAs(File.absolute_path(osw_path.to_s))
-    # 'touch' the weather file - for some odd reason this fixes the simulation not running issue we had on openstudio-server.
-    # Removed for until further investigation completed.
-    # FileUtils.touch("#{run_dir}/#{epw_name}")
-    cli_path = OpenStudio.getOpenStudioCLI
-    cmd = "\"#{cli_path}\" run -w \"#{osw_path}\""
-    # cmd = "\"#{cli_path}\" --verbose run -w \"#{osw_path}\""
-    puts cmd
-    # Run the sizing run
-    OpenstudioStandards.run_command(cmd)
-    OpenStudio.logFree(OpenStudio::Info, 'openstudio.model.Model', "Finished simulation #{run_dir} at #{Time.now.strftime('%T.%L')}")
-    sql_path = OpenStudio::Path.new("#{run_dir}/run/eplusout.sql")
+  begin
+    workflow = OpenStudio::WorkflowJSON.new
+  rescue NameError
+    raise 'Cannot run simulation with OSW approach'
   end
+  sql_path = nil
+  OpenStudio.logFree(OpenStudio::Debug, 'openstudio.model.Model', 'Running with OS 2.x WorkflowJSON.')
+  # Copy the weather file to this directory
+  epw_name = 'in.epw'
+  begin
+    FileUtils.copy(epw_path.to_s, "#{run_dir}/#{epw_name}")
+  rescue StandardError
+    OpenStudio.logFree(OpenStudio::Error, 'openstudio.model.Model', "Due to limitations on Windows file path lengths, this measure won't work unless your project is located in a directory whose filepath is less than 90 characters long, including slashes.")
+    return false
+  end
+  workflow.setSeedFile(osm_name)
+  puts osm_path
+  workflow.setWeatherFile(epw_name)
+  workflow.saveAs(File.absolute_path(osw_path.to_s))
+  # 'touch' the weather file - for some odd reason this fixes the simulation not running issue we had on openstudio-server.
+  # Removed for until further investigation completed.
+  # FileUtils.touch("#{run_dir}/#{epw_name}")
+  cli_path = OpenStudio.getOpenStudioCLI
+  cmd = "\"#{cli_path}\" run -w \"#{osw_path}\""
+  # cmd = "\"#{cli_path}\" --verbose run -w \"#{osw_path}\""
+  puts cmd
+  # Run the sizing run
+  OpenstudioStandards.run_command(cmd)
+  OpenStudio.logFree(OpenStudio::Info, 'openstudio.model.Model', "Finished simulation #{run_dir} at #{Time.now.strftime('%T.%L')}")
+  sql_path = OpenStudio::Path.new("#{run_dir}/run/eplusout.sql")
   puts("### DEBUGGING: sql_path = #{sql_path}")
   # get sql
   sqlFile = OpenStudio::SqlFile.new(sql_path)
@@ -454,11 +376,9 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=
       availableReportingFrequencies << repfreq
     end
   end
-
   puts("### DEBUGGING: availableEnvPeriods = #{availableEnvPeriods}")
   # puts("### DEBUGGING: availableTimeSeries = #{availableTimeSeries}")
   puts("### DEBUGGING: availableReportingFrequencies = #{availableReportingFrequencies}")
-  
   envperiod = nil
   if availableEnvPeriods.size == 1
     envperiod = 'RUN PERIOD 1'
@@ -467,7 +387,6 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=
   end
   timeseriesname = 'Electricity:Facility'
   reportingfrequency = 'Hourly' #'Zone Timestep'
-
   unless availableEnvPeriods.include?(envperiod) 
     raise "envperiod of #{envperiod} not included in available options: #{availableEnvPeriods}"
   end
@@ -498,12 +417,10 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=
       vals << elec_vals[i]
     end
   end
-
   # raise if vals is empty
   if vals.empty?
     raise 'load profile for the sample run returned empty'
   end
-
   return vals
 end
 
@@ -533,7 +450,7 @@ def run_samples(model, year, selectdays, num_timesteps_in_hr, epw_path=nil)
         if yd.size > 24
           averages = []
           yd.each_slice(yd.size/24) do |slice|
-            average = slice.reduce(:+).to_f / slice.size
+            average = slice.reduce(:+).to_f
             averages << average
           end
           yd = averages
@@ -560,6 +477,201 @@ def run_samples(model, year, selectdays, num_timesteps_in_hr, epw_path=nil)
     # break
   end
   puts "Run time for sample simulation run: #{run_time} seconds"
+  return y_seed
+end
+
+### run simulation on part of year
+def model_run_simulation_on_part_of_year(model, year, max_doy, num_timesteps_in_hr, epw_path=nil, run_dir = "#{Dir.pwd}/Run")
+  ### reference: https://github.com/NREL/openstudio-standards/blob/master/lib/openstudio-standards/utilities/simulation.rb#L187
+  # Make the directory if it doesn't exist
+  unless Dir.exist?(run_dir)
+    FileUtils.mkdir_p(run_dir)
+  end
+  puts("### DEBUGGING: run_dir = #{run_dir}")
+  template = 'ComStock 90.1-2019'
+  std = Standard.build(template)
+  # Save the model to energyplus idf
+  osm_name = 'in.osm'
+  osw_name = 'in.osw'
+  OpenStudio.logFree(OpenStudio::Debug, 'openstudio.model.Model', "Starting simulation here: #{run_dir}.")
+  OpenStudio.logFree(OpenStudio::Info, 'openstudio.model.Model', "Started simulation #{run_dir} at #{Time.now.strftime('%T.%L')}")
+  forward_translator = OpenStudio::EnergyPlus::ForwardTranslator.new
+  begin_month, begin_day = day_of_year_to_date(year, 1)
+  end_month, end_day = day_of_year_to_date(year, max_doy)
+  # puts("### DEBUGGING: begin_month = #{begin_month}")
+  # puts("### DEBUGGING: begin_day = #{begin_day}")
+  # puts("### DEBUGGING: end_month = #{end_month}")
+  # puts("### DEBUGGING: end_day = #{end_day}")
+  ### reference: SetRunPeriod measure on BCL
+  model.getYearDescription.setCalendarYear(year)
+  model.getRunPeriod.setBeginMonth(begin_month)
+  model.getRunPeriod.setBeginDayOfMonth(begin_day)
+  model.getRunPeriod.setEndMonth(end_month)
+  model.getRunPeriod.setEndDayOfMonth(end_day)
+  if num_timesteps_in_hr != 4
+    model.getTimestep.setNumberOfTimestepsPerHour(num_timesteps_in_hr)
+  end
+  model.getSimulationControl.setDoZoneSizingCalculation(false)
+  model.getSimulationControl.setDoSystemSizingCalculation(false)
+  model.getSimulationControl.setDoPlantSizingCalculation(false)
+  # puts("### DEBUGGING: model.getRunPeriod.getBeginDayOfMonth = #{model.getRunPeriod.getBeginDayOfMonth}")
+  # puts("### DEBUGGING: model.getRunPeriod.getBeginMonth = #{model.getRunPeriod.getBeginMonth}")
+  # puts("### DEBUGGING: model.getRunPeriod.getEndMonth = #{model.getRunPeriod.getEndMonth}")
+  # puts("### DEBUGGING: model.getRunPeriod.getEndDayOfMonth = #{model.getRunPeriod.getEndDayOfMonth}")
+  puts("### DEBUGGING: model.getSimulationControl.doZoneSizingCalculation = #{model.getSimulationControl.doZoneSizingCalculation}")
+  puts("### DEBUGGING: model.getSimulationControl.doSystemSizingCalculation = #{model.getSimulationControl.doSystemSizingCalculation}")
+  puts("### DEBUGGING: model.getSimulationControl.doPlantSizingCalculation = #{model.getSimulationControl.doPlantSizingCalculation}")
+  osm_path = OpenStudio::Path.new("#{run_dir}/#{osm_name}")
+  osw_path = OpenStudio::Path.new("#{run_dir}/#{osw_name}")
+  model.save(osm_path, true)
+  # Set up the simulation
+  # Find the weather file
+  if epw_path==nil
+    epw_path = std.model_get_full_weather_file_path(model)
+    if epw_path.empty?
+      return false
+    end
+    epw_path = epw_path.get
+    puts epw_path
+  end
+  # close current sql file
+  model.resetSqlFile
+  # initialize OSW
+  begin
+    workflow = OpenStudio::WorkflowJSON.new
+  rescue NameError
+    raise 'Cannot run simulation with OSW approach'
+  end
+  sql_path = nil
+  OpenStudio.logFree(OpenStudio::Debug, 'openstudio.model.Model', 'Running with OS 2.x WorkflowJSON.')
+  # Copy the weather file to this directory
+  epw_name = 'in.epw'
+  begin
+    FileUtils.copy(epw_path.to_s, "#{run_dir}/#{epw_name}")
+  rescue StandardError
+    OpenStudio.logFree(OpenStudio::Error, 'openstudio.model.Model', "Due to limitations on Windows file path lengths, this measure won't work unless your project is located in a directory whose filepath is less than 90 characters long, including slashes.")
+    return false
+  end
+  workflow.setSeedFile(osm_name)
+  puts osm_path
+  workflow.setWeatherFile(epw_name)
+  workflow.saveAs(File.absolute_path(osw_path.to_s))
+  # 'touch' the weather file - for some odd reason this fixes the simulation not running issue we had on openstudio-server.
+  # Removed for until further investigation completed.
+  # FileUtils.touch("#{run_dir}/#{epw_name}")
+  cli_path = OpenStudio.getOpenStudioCLI
+  cmd = "\"#{cli_path}\" run -w \"#{osw_path}\""
+  # cmd = "\"#{cli_path}\" --verbose run -w \"#{osw_path}\""
+  puts cmd
+  # Run the sizing run
+  OpenstudioStandards.run_command(cmd)
+  OpenStudio.logFree(OpenStudio::Info, 'openstudio.model.Model', "Finished simulation #{run_dir} at #{Time.now.strftime('%T.%L')}")
+  sql_path = OpenStudio::Path.new("#{run_dir}/run/eplusout.sql")
+  puts("### DEBUGGING: sql_path = #{sql_path}")
+  # get sql
+  sqlFile = OpenStudio::SqlFile.new(sql_path)
+  # if sqlFile.is_initialized
+  #   sqlFile = sqlFile.get
+  # end
+  # check available timeseries extraction options
+  availableEnvPeriods = sqlFile.availableEnvPeriods.to_a
+  availableTimeSeries = sqlFile.availableTimeSeries.to_a
+  availableReportingFrequencies = []
+  availableEnvPeriods.each do |envperiod|
+    sqlFile.availableReportingFrequencies(envperiod).to_a.each do |repfreq|
+      availableReportingFrequencies << repfreq
+    end
+  end
+  puts("### DEBUGGING: availableEnvPeriods = #{availableEnvPeriods}")
+  # puts("### DEBUGGING: availableTimeSeries = #{availableTimeSeries}")
+  puts("### DEBUGGING: availableReportingFrequencies = #{availableReportingFrequencies}")
+  envperiod = nil
+  if availableEnvPeriods.size == 1
+    envperiod = 'RUN PERIOD 1'
+  else
+    raise "options for availableEnvPeriods are not just one: #{availableEnvPeriods}"
+  end
+  timeseriesname = 'Electricity:Facility'
+  unless availableEnvPeriods.include?(envperiod) 
+    raise "envperiod of #{envperiod} not included in available options: #{availableEnvPeriods}"
+  end
+  unless availableTimeSeries.include?(timeseriesname) 
+    raise "timeseriesname of #{timeseriesname} not included in available options: #{availableTimeSeries}"
+  end
+  reportingfrequency = 'Hourly' #'Zone Timestep'
+  unless availableReportingFrequencies.include?(reportingfrequency)
+    puts("Hourly reporting frequency is not available. Use Zone Timestep.")
+    reportingfrequency = 'Zone Timestep'
+    unless availableReportingFrequencies.include?(reportingfrequency)
+      raise "reportingfrequency of #{reportingfrequency} not included in available options: #{availableReportingFrequencies}"
+    end
+  end
+  electricity_results = sqlFile.timeSeries(envperiod,reportingfrequency,timeseriesname)
+  vals = []
+  electricity_results.each do |electricity_result|
+    elec_vals = electricity_result.values
+    for i in 0..(elec_vals.size - 1)
+      vals << elec_vals[i]
+    end
+  end
+  # raise if vals is empty
+  if vals.empty?
+    raise 'load profile for the sample run returned empty'
+  end
+  return vals
+end
+
+### run simulation on part of year and extract samples
+def run_part_year_samples(model, year, max_doy, selectdays, num_timesteps_in_hr, epw_path=nil)
+  y_seed = {
+    'ext-hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+    'hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+    'mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+    'cool-mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+    'cool' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
+    'cold' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] }
+  }
+  puts "Simulation on part year until day: #{max_doy}"
+  start_time = Time.now
+  yd = model_run_simulation_on_part_of_year(model, year, max_doy, num_timesteps_in_hr, epw_path=epw_path)
+  end_time = Time.now
+  puts "Script execution time: #{end_time - start_time} seconds"
+  # puts("--- yd.size = #{yd.size}")
+  if yd.size > 24*max_doy
+    puts("Convert interval to hourly")
+    sums = []
+    yd.each_slice(yd.size/24/max_doy) do |slice|
+      sum = slice.reduce(:+).to_f
+      sums << sum
+    end
+    yd = sums
+  end
+  # puts("--- yd = #{yd}")
+  # puts("--- yd.size = #{yd.size}")
+  selectdays.keys.each do |key|
+    selectdays[key].keys.each do |keykey|
+      # puts key, keykey
+      ns = selectdays[key][keykey].length.to_f
+      # puts "Number of samples: #{ns}"
+      selectdays[key][keykey].each do |doy|
+        if ns == 1
+          y_seed[key][keykey] = yd[(doy*24-24)..(doy*24-1)]
+        elsif ns > 1
+          if y_seed[key][keykey] == []
+            y_seed[key][keykey] = yd[(doy*24-24)..(doy*24-1)].map { |a| a/ns }
+          else
+            y_seed[key][keykey] = yd[(doy*24-24)..(doy*24-1)].zip(y_seed[key][keykey]).map { |a, b| (a/ns+b) }
+          end
+        end
+        # y_seed[key][keykey] = yd / selectdays[key][keykey].length.to_f
+        # puts y_seed[key][keykey]
+        # break
+      end
+      # break
+      # puts y_seed[key][keykey]
+    end
+    # break
+  end
   return y_seed
 end
 
