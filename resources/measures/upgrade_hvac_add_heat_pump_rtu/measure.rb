@@ -580,8 +580,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     oa_ration_allowance = 0.55
     selected_air_loops.each do |air_loop_hvac|
 
-      # puts air_loop_hvac.name
-
       thermal_zone = air_loop_hvac.thermalZones[0]
 
       # get the min OA flow rate for calculating unit OA fraction
