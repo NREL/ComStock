@@ -318,21 +318,20 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       table.setNormalizationDivisor(data['normalization_reference'].to_f)
       table.setOutputUnitType(data['output_unit_type'])
       data_points = data.each.select { |key, _value| key.include? 'data_point' }
+      data_points = data_points.sort_by { |item| item[1].split(',').map(&:to_f) } # sorting data in ascending order
       data_points.each do |_key, value|
         var_dep = value.split(',')[2].to_f
         table.addOutputValue(var_dep)
       end
       num_ind_var.times do |i|
         table_indvar = OpenStudio::Model::TableIndependentVariable.new(model)
+        table_indvar.setName(data['name'] + "_ind_#{i + 1}")
         table_indvar.setInterpolationMethod(data['interpolation_method'])
-        # table_indvar.setNormalizationReferenceValue(data['normalization_reference'].to_f)
-        table_indvar.setMinimumValue(data["minimum_independent_variable_#{i+1}"].to_f)
-        table_indvar.setMaximumValue(data["maximum_independent_variable_#{i+1}"].to_f)
-        table_indvar.setUnitType(data["input_unit_type_x#{i+1}"].to_s)
-        data_points.each do |_key, value|
-          var_ind = value.split(',')[i].to_f
-          table_indvar.addValue(var_ind)
-        end
+        table_indvar.setMinimumValue(data["minimum_independent_variable_#{i + 1}"].to_f)
+        table_indvar.setMaximumValue(data["maximum_independent_variable_#{i + 1}"].to_f)
+        table_indvar.setUnitType(data["input_unit_type_x#{i + 1}"].to_s)
+        var_ind_unique = data_points.map { |_key, value| value.split(',')[i].to_f }.uniq
+        var_ind_unique.each { |var_ind| table_indvar.addValue(var_ind) }
         table.addIndependentVariable(table_indvar)
       end
       table
