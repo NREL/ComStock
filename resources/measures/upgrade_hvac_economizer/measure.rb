@@ -95,6 +95,8 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
       runner.registerAsNotApplicable('Measure is not applied based on user input.')
       return true
     end
+
+    # check applicability
     no_outdoor_air_loops = 0
     doas_loops = 0
     existing_economizer_loops = 0
@@ -127,7 +129,6 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
         runner.registerInfo("Air loop #{air_loop_hvac.name} has an existing #{economizer_type} economizer.")
       end
     end
-
     if selected_air_loops.size.zero?
       runner.registerAsNotApplicable('Model contains no air loops eligible for adding an outdoor air economizer.')
       return true
