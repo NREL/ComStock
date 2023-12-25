@@ -15,8 +15,10 @@ import re
 from comstockpostproc.naming_mixin import NamingMixin
 from comstockpostproc.units_mixin import UnitsMixin
 from comstockpostproc.cbecs import CBECS
+from comstockpostproc.eia import EIA
 from comstockpostproc.gas_correction_model import GasCorrectionModelMixin
 from comstockpostproc.s3_utilities_mixin import S3UtilitiesMixin
+from buildstock_query import BuildStockQuery
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +58,7 @@ def basic_metadata_columns():
 
 # ComStock in a constructor class for processing ComStock results
 class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixin):
-    def __init__(self, s3_base_dir, comstock_run_name, comstock_run_version, comstock_year,
+    def __init__(self, s3_base_dir, comstock_run_name, comstock_run_version, comstock_year, athena_table_name,
         truth_data_version, buildstock_csv_name = 'buildstock.csv', acceptable_failure_percentage=0.01, drop_failed_runs=True,
         color_hex=NamingMixin.COLOR_COMSTOCK_BEFORE, weighted_energy_units='tbtu', weighted_ghg_units='co2e_mmt', skip_missing_columns=False,
         reload_from_csv=False, make_comparison_plots=True, include_upgrades=True, upgrade_ids_to_skip=[], rename_upgrades=False):
@@ -90,7 +92,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.hvac_metadata_file_name = 'hvac_metadata.csv'
         self.rename_upgrades = rename_upgrades
         self.rename_upgrades_file_name = 'rename_upgrades.json'
+        self.athena_table_name = athena_table_name
         self.data = None
+        self.monthly_data = None
+        self.monthly_data_gap = None
         self.color = color_hex
         self.weighted_energy_units = weighted_energy_units
         self.weighted_ghg_units = weighted_ghg_units
@@ -98,6 +103,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.include_upgrades = include_upgrades
         self.upgrade_ids_to_skip = upgrade_ids_to_skip
         self.s3_client = boto3.client('s3')
+        if self.athena_table_name is not None:
+            self.athena_client = BuildStockQuery(workgroup='eulp',db_name='enduse', table_name=self.athena_table_name, skip_reports=True)
         self.make_comparison_plots = make_comparison_plots
         logger.info(f'Creating {self.dataset_name}')
 
@@ -113,7 +120,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Load and transform data, preserving all columns
         self.download_data()
-        pl.enable_string_cache(True)
+        pl.enable_string_cache()
         if reload_from_csv:
             if os.path.exists(os.path.join(self.output_dir, 'ComStock wide.parquet')):
                 file_path = os.path.join(self.output_dir, 'ComStock wide.parquet')
@@ -154,6 +161,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.add_addressable_segments_columns()
             self.combine_emissions_cols()
             self.add_metadata_index_col()
+            self.get_comstock_unscaled_monthly_energy_consumption()
 
             # logger.debug('\nComStock columns after adding all data:')
             # for c in self.data.columns:
@@ -317,7 +325,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 # Any combination of null, true, and false is considered a boolean column
                 bool_possibilities = [set(['true', 'false']), set(['true']), set(['false'])]
                 if set(lower_col_vals) in bool_possibilities:
-                    up_res = up_res.with_columns(pl.col(col).str.to_lowercase().map_dict({"false": False, "true": True}))
+                    up_res = up_res.with_columns(pl.col(col).str.to_lowercase().replace({"false": False, "true": True}, default=None))
 
             # Downselect columns to reduce memory use
             up_res = self.downselect_imported_columns(up_res)
@@ -474,12 +482,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         elif 'Building' in headers:
             col_def_names.append('Building')  # Newer buildstockbatch versions, used for join only
 
+        cols_to_keep = []
         for c in col_def_names:
-            if not c in headers:
-                logger.warning(f'Column {c} requested but not found in buildstock.csv')
-                col_def_names.remove(c)
+            if c in headers:
+                cols_to_keep.append(c)
+            else:
+                logger.warning(f'Column {c} requested but not found in buildstock.csv, removing from col_def_names')
 
-        buildstock = pl.read_csv(buildstock_csv_path, columns=col_def_names, infer_schema_length=10000)
+        buildstock = pl.read_csv(buildstock_csv_path, columns=cols_to_keep, infer_schema_length=10000)
 
         # For backwards compatibility
         buildstock = buildstock.rename({'Building': 'sample_building_id'})
@@ -587,7 +597,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # ejscreen['nhgis_tract_gisjoin'] = ejscreen.apply(lambda row: nhgis_tract_gisjoin_from_census_id(row['ID']))
 
         ejscreen = ejscreen.with_columns(
-            pl.col('ID').apply(lambda x: nhgis_tract_gisjoin_from_census_id(x)).alias('nhgis_tract_gisjoin'),
+            pl.col('ID').map_elements(lambda x: nhgis_tract_gisjoin_from_census_id(x)).alias('nhgis_tract_gisjoin'),
         )
 
         ejscreen = self.reduce_df_memory(ejscreen)
@@ -644,7 +654,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             return gisjoin
 
         cejst = cejst.with_columns(
-            pl.col(cejst_geo_column).apply(lambda x: nhgis_tract_gisjoin_from_census_id(x)).alias(tract_col),
+            pl.col(cejst_geo_column).map_elements(lambda x: nhgis_tract_gisjoin_from_census_id(x)).alias(tract_col),
         )
 
         cejst = self.reduce_df_memory(cejst)
@@ -709,7 +719,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             'Residential forced air_Furnace_None': 'Residential Style Central Systems'
             }
 
-        self.data = self.data.with_columns((pl.col('in.hvac_combined_type').map_dict(hvac_group_map)).alias('in.hvac_category'))
+        self.data = self.data.with_columns((pl.col('in.hvac_combined_type').replace(hvac_group_map, default=None)).alias('in.hvac_category'))
 
         # Define building type groups relevant to segmentation
         non_food_svc = ['RetailStandalone', 'Warehouse','SmallOffice', 'LargeHotel', 'MediumOffice', 'PrimarySchool',
@@ -771,7 +781,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             (pl.col('in.hvac_category') == 'Other HVAC'))
             .then(pl.lit(self.SEG_I))
             # Catchall - should not hit this, every building should have a segment
-            .otherwise('ERROR')
+            .otherwise(pl.lit('ERROR'))
             # Assign the column name
             .alias(self.SEG_NAME)
         ])
@@ -1090,7 +1100,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 logger.info(f'Renaming upgrades')
                 for old, new in upgrade2upgrade.items():
                     logger.debug(f'{old} -> {new}')
-                self.data = self.data.with_columns((pl.col(self.UPGRADE_NAME).map_dict(upgrade2upgrade)).alias(self.UPGRADE_NAME))
+                self.data = self.data.with_columns((pl.col(self.UPGRADE_NAME).replace(upgrade2upgrade, default=None)).alias(self.UPGRADE_NAME))
                 self.data = self.data.with_columns(pl.col(self.UPGRADE_NAME).cast(pl.Categorical))
 
         logger.debug(f'Memory after rename_columns_and_convert_units: {self.data.estimated_size()}')
@@ -1211,7 +1221,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # self.data[self.VINTAGE] = self.data.apply(lambda row: vintage_bin_from_year(row[]), axis=1)
         self.data = self.data.with_columns(
-            pl.col(self.YEAR_BUILT).apply(lambda x: vintage_bin_from_year(x)).alias(self.VINTAGE),
+            pl.col(self.YEAR_BUILT).map_elements(lambda x: vintage_bin_from_year(x)).alias(self.VINTAGE),
         )
         self.data = self.data.with_columns(pl.col(self.VINTAGE).cast(pl.Categorical))
 
@@ -1265,17 +1275,17 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # add column for ventilation
         dict_vent = dict(zip(hvac['system_type'], hvac['ventilation_type']))
-        self.data = self.data.with_columns((pl.col('in.hvac_system_type').map_dict(dict_vent)).alias('in.hvac_vent_type'))
+        self.data = self.data.with_columns((pl.col('in.hvac_system_type').replace(dict_vent, default=None)).alias('in.hvac_vent_type'))
         self.data = self.data.with_columns(pl.col('in.hvac_vent_type').cast(pl.Categorical))
 
         # add column for heating
         dict_heat = dict(zip(hvac['system_type'], hvac['primary_heating']))
-        self.data = self.data.with_columns((pl.col('in.hvac_system_type').map_dict(dict_heat)).alias('in.hvac_heat_type'))
+        self.data = self.data.with_columns((pl.col('in.hvac_system_type').replace(dict_heat, default=None)).alias('in.hvac_heat_type'))
         self.data = self.data.with_columns(pl.col('in.hvac_heat_type').cast(pl.Categorical))
 
         # add column for cooling
         dict_cool = dict(zip(hvac['system_type'], hvac['primary_cooling']))
-        self.data = self.data.with_columns((pl.col('in.hvac_system_type').map_dict(dict_cool)).alias('in.hvac_cool_type'))
+        self.data = self.data.with_columns((pl.col('in.hvac_system_type').replace(dict_cool, default=None)).alias('in.hvac_cool_type'))
         self.data = self.data.with_columns(pl.col('in.hvac_cool_type').cast(pl.Categorical))
 
         # hvac combined
@@ -1301,7 +1311,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             'Warehouse': 'Warehouse and Storage',
         }
 
-        self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).map_dict(bldg_type_groups)).alias(self.BLDG_TYPE_GROUP))
+        self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).replace(bldg_type_groups, default=None)).alias(self.BLDG_TYPE_GROUP))
         self.data = self.data.with_columns(pl.col(self.BLDG_TYPE_GROUP).cast(pl.Categorical))
 
     def add_national_scaling_weights(self, cbecs: CBECS, remove_non_comstock_bldg_types_from_cbecs: bool):
@@ -1331,7 +1341,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Total sqft of each building type, ComStock
         baseline_data = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).clone()
-        comstock_bldg_type_sqft = baseline_data.groupby(self.BLDG_TYPE).agg([pl.col(self.FLR_AREA).sum()])
+        comstock_bldg_type_sqft = baseline_data.group_by(self.BLDG_TYPE).agg([pl.col(self.FLR_AREA).sum()])
         comstock_bldg_type_sqft = comstock_bldg_type_sqft.to_pandas().set_index(self.BLDG_TYPE)
         logger.debug('ComStock Baseline floor area by building type')
         logger.debug(comstock_bldg_type_sqft)
@@ -1377,7 +1387,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # }
 
         # Assign scaling factors to each ComStock run
-        self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).map_dict(bldg_type_scale_factors)).alias(self.BLDG_WEIGHT))
+        self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).replace(bldg_type_scale_factors, default=None)).alias(self.BLDG_WEIGHT))
 
         # Apply the weight to scale the area and energy columns
         self.add_weighted_area_and_energy_columns()
@@ -1390,6 +1400,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 logger.info('Energy savings columns already in data')
             else:
                 self.add_weighted_energy_savings_columns()
+
+        # Adding weighting factors to the monthly data
+        self.get_scaled_comstock_monthly_consumption_by_state()
 
         return bldg_type_scale_factors
 
@@ -1625,6 +1638,144 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             logger.debug(f'{old} -> {new}')
 
         self.data = self.data.rename(crnms)
+
+    def get_comstock_unscaled_monthly_energy_consumption(self):
+        """
+        From the ComStock run, get the monthly timeseries data into monthly natural gas and electricity energy consumption for each state.
+        Scale the monthly consumption to national scale.
+        First, scale each building type up to match CBECS sqft for that building type.
+        Second, scale the total energy for that total sqft up to match the total of CBECS for ALL building types.
+        Return:
+            comstock_monthly_consumption (pd.DataFrame): Table of natural gas and electricity consumption by state and month.
+        """
+        if self.athena_table_name is None:
+            logger.info('No athena_table_name was provided, not attempting to query monthly data from Athena.')
+            return True
+
+        # Load or query timeseries ComStock results by state and building type
+        file_name = f'comstock_monthly_natural_gas_and_electricity_by_state_and_bldg_type.csv'
+        file_path = os.path.join(self.data_dir, file_name)
+        if not os.path.exists(file_path):
+            # Query Athena for ComStock results
+            logger.info('Querying Athena for ComStock monthly energy data by state and building type, this will take several minutes.')
+            query = f"""
+                SELECT
+                "month",
+                "state_id",
+                "building_type",
+                sum("total_site_gas_kbtu") AS "total_site_gas_kbtu",
+                sum("total_site_electricity_kwh") AS "total_site_electricity_kwh"
+                FROM
+                (
+                    SELECT
+                    EXTRACT(MONTH from from_unixtime("time"/1e9)) as "month",
+                    SUBSTRING("build_existing_model.county_id", 2, 2) AS "state_id",
+                    "build_existing_model.create_bar_from_building_type_ratios_bldg_type_a" as "building_type",
+                    "total_site_gas_kbtu",
+                    "total_site_electricity_kwh"
+                    FROM
+                    "{self.athena_table_name}_timeseries"
+                    JOIN "{self.athena_table_name}_baseline"
+                    ON "{self.athena_table_name}_timeseries"."building_id" = "{self.athena_table_name}_baseline"."building_id"
+                    WHERE "build_existing_model.building_type" IS NOT NULL
+                )
+                GROUP BY
+                "month",
+                "state_id",
+                "building_type"
+            """
+            comstock_unscaled_data = self.athena_client.execute(query)
+            comstock_unscaled_data.to_csv(file_path, index=False)
+
+        # Read data from disk
+        comstock_unscaled = pl.read_csv(file_path)
+
+        # Rename columns
+        comstock_unscaled = comstock_unscaled.rename({'month': 'Month', 'state_id': 'FIPS Code'})
+
+        #Rename Building_Types
+        def rename_buildingtypes(building_type):
+            building_type = building_type.replace('_',' ').replace(' ', '')
+            return building_type
+
+        comstock_unscaled = comstock_unscaled.with_columns(
+            pl.col('building_type').map_elements(lambda x: rename_buildingtypes(x)).alias('building_type'),
+        )
+
+        self.monthly_data = comstock_unscaled
+
+        return comstock_unscaled
+
+    def get_scaled_comstock_monthly_consumption_by_state(self):
+
+        if self.monthly_data is None:
+            logger.info('No monthly_data exists, not attempting to scale monthly data.')
+            return True
+
+        # Load or query monthly ComStock energy consumption by state and building type
+        monthly = self.monthly_data
+
+        # Get the scaling factors to take the results of this ComStock run to the national scale
+        comstock_scaling_factors = self.data.group_by(self.BLDG_TYPE).agg(pl.col(self.BLDG_WEIGHT).mean())
+        comstock_scaling_factors = dict(comstock_scaling_factors.iter_rows())
+
+        # Assign the correct per-building-type scaling factor to ComStock monthly data
+        monthly = monthly.with_columns((pl.col('building_type').replace(comstock_scaling_factors, default=None)).alias('Scaling Factor'))
+
+        # Scale the ComStock energy consumption
+        monthly = monthly.with_columns(
+            (pl.col('total_site_electricity_kwh').mul(pl.col('Scaling Factor'))).alias('Electricity consumption (kWh)'),
+        )
+
+        monthly = monthly.with_columns(
+            (pl.col('total_site_gas_kbtu').mul(pl.col('Scaling Factor'))).alias('Natural gas consumption (thous Btu)'),
+        )
+
+        # Aggregate ComStock by state and month, combining all building types
+        vals = ['Electricity consumption (kWh)', 'Natural gas consumption (thous Btu)']
+        cols_to_drop = ['building_type', 'total_site_electricity_kwh', 'total_site_gas_kbtu', 'Scaling Factor']
+        idx = ['FIPS Code', 'Month']
+        monthly = monthly.group_by(idx).sum().drop(cols_to_drop) 
+        
+        # Add a dataset label column
+        monthly = monthly.with_columns([
+            pl.lit(self.dataset_name).alias(self.DATASET)
+        ])
+
+        # load the state id table
+        file_path = os.path.join(self.truth_data_dir, 'state_region_division_table.csv')
+        if not os.path.exists(file_path):
+            raise AssertionError('State metadata not found, download truth data')
+        else:
+            state_table = pl.read_csv(file_path)
+
+        # Rename columns
+        state_table = state_table.rename({'State': self.STATE_NAME, 'State Code': self.STATE_ABBRV})
+
+        # Append the state metadata
+        cols = ['FIPS Code', self.STATE_ABBRV, 'Division']
+        monthly = monthly.join(state_table.select(cols), on='FIPS Code', how='left')
+
+        # # Get the energy consumption of the buildings NOT covered by ComStock from CBECS
+        # cbecs_gap_elec_tbtu, cbecs_gap_gas_tbtu = self.get_comstock_to_whole_stock_energy_gaps()
+
+        # Using ComStock's existing distribution of energy consumption by state and month,
+        # add the energy consumption of the buildings NOT covered by ComStock.
+        # This will be called the ComStock Gap Model.
+        # Because of the way the stacked bar plots are created, ComStock Gap = ComStock + ComStock Gap
+        # comstock_elec_tbtu = comstock['Electricity consumption (kWh)'].sum() * self.kWh_to_kBtu * self.kBtu_to_TBtu
+        # comstock_gas_tbtu = comstock['Natural gas consumption (thous Btu)'].sum() * self.kBtu_to_TBtu
+        # elec_scale = (cbecs_gap_elec_tbtu + comstock_elec_tbtu) / comstock_elec_tbtu
+        # gas_scale = (cbecs_gap_gas_tbtu + comstock_gas_tbtu) / comstock_gas_tbtu
+        # comstock_gap = comstock.copy()
+        # comstock_gap['Dataset'] = 'ComStock Gap Model'
+        # comstock_gap['Electricity consumption (kWh)'] = comstock_gap['Electricity consumption (kWh)'] * elec_scale
+        # comstock_gap['Natural gas consumption (thous Btu)'] = comstock_gap['Natural gas consumption (thous Btu)'] * gas_scale
+
+
+        # self.monthly_data_gap = comstock_gap
+        self.monthly_data = monthly
+        return monthly
 
     def export_to_csv_wide(self):
         # Exports comstock data to CSV in wide format

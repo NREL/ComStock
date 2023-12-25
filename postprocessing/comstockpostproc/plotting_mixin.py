@@ -1,12 +1,13 @@
 # ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 import os
-
+import re
 import logging
 import numpy as np
 import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib import ticker
 import plotly.express as px
 import seaborn as sns
 import plotly.graph_objects as go
@@ -32,7 +33,7 @@ class PlottingMixin():
         for applicable_scenario in ['stock', 'applicable_only']:
 
             df_scen = df.copy()
-            
+
 
             if applicable_scenario == 'applicable_only':
                 applic_bldgs = df_scen.loc[(df_scen[self.UPGRADE_NAME]!='Baseline') & (df_scen['applicability']==True), self.BLDG_ID]
@@ -170,116 +171,97 @@ class PlottingMixin():
         df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('Re', 'RE', regex=True)
         df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('Calc.Weighted.Emissions.', '', regex=True)
         df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('calc.weighted.emissions.', '', regex=True)
-        df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('.', '', regex=True)
+        df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('.', '', regex=False)
         df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('Subregion', '', regex=True)
         df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace(' 2023 Start', '', regex=True)
 
         # plot
         order_map = list(color_map.keys()) # this will set baseline first in plots
-        dict_order_map = {column_for_grouping: order_map}
-        fig = px.bar(df_emi_gb_long, x='variable', y='Annual GHG Emissions (MMT CO2e)', color=column_for_grouping,
-                   barmode='group', text_auto='.1f', template='simple_white', color_discrete_map=color_map, category_orders=dict_order_map,
-                    width=700)
+        color_palette = sns.color_palette("colorblind")
 
-        # formatting and saving image
-        title = 'ghg_emissions_by_fuel'
-        # format title and axis
-        fig.update_xaxes(mirror=True, showgrid=True, showline=True, title=None, ticks='outside', linewidth=1, linecolor='black', tickangle=25)
-        fig.update_yaxes(mirror=True, showgrid=True, showline=True, ticks='outside', linewidth=1, linecolor='black', rangemode="tozero", range=[0,500])
-        fig.update_layout(title=None,  margin=dict(l=20, r=20, t=27, b=20), width=800, legend_title=None) #legend_traceorder="reversed",
-        fig.update_layout(legend=dict(
-            yanchor="top",
-            y=0.95,
-            xanchor="left",
-            x=0.6,
-            bgcolor ='rgba(255,255,255,0.8)',
-            bordercolor='black',
-            borderwidth=1),
-            font=dict(
-                size=14)
-            )
+        # Create three vertical subplots with shared y-axis
+        fig, axes = plt.subplots(1, 3, figsize=(8, 3.4), sharey=True, gridspec_kw={'top': 1.2})
+        plt.rcParams['axes.facecolor'] = 'white'
+        # list of electricity grid scenarios
+        electricity_scenarios = list(df_emi_gb_long[df_emi_gb_long['variable'].str.contains('electricity', case=False)]['variable'].unique())
 
-        # # adds savings at top of plot
-        # measure_name = list(color_map.keys())[1]
-        # # print(measure_name)
-        # # print(df_emi_gb_long)
-        # df_emi_plot_gb = df_emi_gb_long.groupby(column_for_grouping)['Greenhouse Gas Emissions (MMT)'].sum().to_frame()
-        # # print(df_emi_plot_gb)
-        # # print('')
-        # # print((df_emi_plot_gb.loc['Baseline'] - df_emi_plot_gb.loc[measure_name]).values[0])
-        # # print(type((df_emi_plot_gb.loc['Baseline'] - df_emi_plot_gb.loc[measure_name]) + 3))
-        # # print('')
-        # df_emi_plot_gb.loc[measure_name] = f"Savings = {round((df_emi_plot_gb.loc['Baseline'] - df_emi_plot_gb.loc[measure_name]).values[0], 1)} ({round(((df_emi_plot_gb.loc['Baseline'] - df_emi_plot_gb.loc[measure_name])/(df_emi_plot_gb.loc['Baseline'])*100).values[0], 1)}%)"
-        # df_emi_plot_gb.loc['Baseline'] = ''
-        # # print(df_emi_plot_gb)
+        # loop through grid scenarios
+        ax_position = 0
+        for scenario in electricity_scenarios:
+            
+            # filter to grid scenario plus on-site combustion fuels
+            df_scenario = df_emi_gb_long.loc[(df_emi_gb_long['variable']==scenario) | (df_emi_gb_long['variable'].isin(['Natural Gas', 'Fuel Oil', 'Propane']))]
 
-        # fig.add_trace(go.Scatter(
-        # x=df_emi_plot_gb.index,
-        # y=df_emi_plot_gb,
-        # text=df_emi_plot_gb,
-        # mode='text',
-        # textposition='top center',
-        # textfont=dict(
-        #     size=12,
-        # ),
-        # showlegend=False
-        # ))
+            # Pivot the DataFrame to prepare for the stacked bars
+            pivot_df = df_scenario.pivot(index='in.upgrade_name', columns='variable', values='Annual GHG Emissions (MMT CO2e)')
 
-        # add callout for electricity scenarios - make 4 lines and text
-        fig.add_shape(type="line",
-        xref="paper", yref="paper",
-        x0=0.005, y0=0.98,
-        x1=0.50, y1=0.98,
-        line_color="black",
-        opacity=1,
-        line_width=1,
-        )
+            # Sort the columns by the sum in descending order
+            pivot_df = pivot_df[pivot_df.sum().sort_values(ascending=False).index]
+            pivot_df = pivot_df.reindex(['Baseline'] + [idx for idx in pivot_df.index if idx != 'Baseline'])
 
-        fig.add_shape(type="line",
-        xref="paper", yref="paper",
-        x0=0.005, y0=0.98,
-        x1=0.005, y1=0.94,
-        line_color="black",
-        opacity=1,
-        line_width=1,
-        )
+            # # Set the color palette; colorblind friendly
+            sns.set_palette(color_palette)
 
-        fig.add_shape(type="line",
-        xref="paper", yref="paper",
-        x0=0.50, y0=0.98,
-        x1=0.50, y1=0.94,
-        line_color="black",
-        opacity=1,
-        line_width=1,
-        )
+            # Create plot
+            pivot_df.plot(kind='bar', stacked=True, ax=axes[ax_position], width=0.5)
 
-        fig.add_shape(type="line",
-        xref="paper", yref="paper",
-        x0=0.25, y0=0.98,
-        x1=0.25, y1=1.00,
-        line_color="black",
-        opacity=1,
-        line_width=1,
-        )
+            # Set the title for the specific subplot
+            axes[ax_position].set_title(scenario.replace('Electricity:', '')) 
+            axes[ax_position].set_xticklabels(axes[ax_position].get_xticklabels())
+            for ax in axes:
+                for label in ax.get_xticklabels():
+                    label.set_horizontalalignment('left')
+                    label.set_rotation(-30)  # Rotate the labels for better visibility
 
-        text="Electricity Grid Scenarios: Choose 1"
-        fig.add_annotation(
-        x=0.1,
-        y=1.05,
-        text=text,
-        xref="paper",
-        yref="paper",
-        showarrow=False,
-        font_size=12
-        )
+            # remove x label
+            axes[ax_position].set_xlabel(None)
+            # Increase font size for text labels
+            axes[ax_position].tick_params(axis='both', labelsize=12)
+            # Add text labels to the bars for bars taller than a threshold
+            threshold = 20  # Adjust this threshold as needed
+            for bar in axes[ax_position].containers:
+                if bar.datavalues.sum() > threshold:
+                    axes[ax_position].bar_label(bar, fmt='%.0f', padding=2, label_type='center')
 
+            # Add aggregate values above the bars
+            for i, v in enumerate(pivot_df.sum(axis=1)):
+                # Display percentage savings only on the second bar
+                if i == 1:
+                    # Calculate percentage savings versus the first bar (baseline)
+                    savings = (v - pivot_df.sum(axis=1).iloc[0]) / pivot_df.sum(axis=1).iloc[0] * 100
+                    axes[ax_position].text(i, v + 2, f'{v:.0f} ({savings:.0f}%)', ha='center', va='bottom')
+                else:
+                    axes[ax_position].text(i, v + 2, f'{v:.0f}', ha='center', va='bottom')
+
+            # increase axes position
+            ax_position+=1
+
+        # Create single plot legend
+        handles, labels = axes[2].get_legend_handles_labels()
+        # Modify the labels to simplify them
+        labels = [label.replace('Electricity: LRMER Low RE Cost 15', 'Electricity') for label in labels]
+        # Create a legend at the top of the plot, above the subplot titles
+        fig.legend(handles, labels, title=None, loc='upper center', bbox_to_anchor=(0.5, 1.4), ncol=4)
+        # Hide legends in the other subplots
+        for ax in axes[:]:
+            ax.get_legend().remove()
+        # y label name
+        axes[0].set_ylabel('Annual GHG Emissions (MMT CO2e)', fontsize=14)
+
+        # Add black boxes around the plot areas
+        for ax in axes:
+            for spine in ax.spines.values():
+                spine.set_edgecolor('black')
+        # Adjust spacing between subplots and reduce white space
+        plt.subplots_adjust(wspace=0.2, hspace=0.2, bottom=0.15)
         # figure name and save
+        title=f"GHG_emissions_{order_map[1]}"
         fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
         fig_sub_dir = os.path.join(output_dir)
         if not os.path.exists(fig_sub_dir):
             os.makedirs(fig_sub_dir)
         fig_path = os.path.join(fig_sub_dir, fig_name)
-        fig.write_image(fig_path, scale=10)
+        plt.savefig(fig_path, dpi=600, bbox_inches = 'tight')
 
     def plot_floor_area_and_energy_totals(self, df, column_for_grouping, color_map, output_dir):
         # Summarize square footage and energy totals
@@ -315,13 +297,15 @@ class PlottingMixin():
                     g = sns.catplot(
                         data=df,
                         x=column_for_grouping,
+                        hue=column_for_grouping,
                         y=col,
                         estimator=agg_method,
                         order=list(color_map.keys()),
                         palette=color_map.values(),
                         kind='bar',
                         errorbar=None,
-                        aspect=1.5
+                        aspect=1.5,
+                        legend=False
                     )
                 else:
                     # With group-by
@@ -397,6 +381,7 @@ class PlottingMixin():
                     g = sns.catplot(
                         data=df,
                         y=column_for_grouping,
+                        hue=column_for_grouping,
                         x=col,
                         order=list(color_map.keys()),
                         palette=color_map.values(),
@@ -408,7 +393,8 @@ class PlottingMixin():
                             "markerfacecolor":"yellow",
                             "markeredgecolor":"black",
                             "markersize":"8"
-                        }
+                        },
+                        legend=False
                     )
                 else:
                     # With group-by
@@ -500,13 +486,15 @@ class PlottingMixin():
                         g = sns.catplot(
                             data=bldg_type_ts_df,
                             x=column_for_grouping,
+                            hue=column_for_grouping,
                             y=col,
                             estimator=agg_method,
                             order=list(color_map.keys()),
                             palette=color_map.values(),
                             errorbar=None,
                             kind='bar',
-                            aspect=1.5
+                            aspect=1.5,
+                            legend=False
                         )
                     else:
                         # With group-by
@@ -762,6 +750,7 @@ class PlottingMixin():
                         g = sns.catplot(
                             data=bldg_type_ts_df,
                             y=column_for_grouping,
+                            hue=column_for_grouping,
                             x=col,
                             order=list(color_map.keys()),
                             palette=color_map.values(),
@@ -773,7 +762,8 @@ class PlottingMixin():
                                 "markerfacecolor":"yellow",
                                 "markeredgecolor":"black",
                                 "markersize":"8"
-                            }
+                            },
+                            legend=False
                         )
                     else:
                         # With group-by
@@ -1333,3 +1323,150 @@ class PlottingMixin():
         df_2.loc[:, cols] = df_2[cols] * 100
 
         return df_2
+
+    def plot_annual_energy_consumption_for_eia(self, df, color_map, output_dir):
+         # Summarize annual energy consumption for EIA plots
+
+       # Columns to summarize
+        cols_to_summarize = {
+            'Electricity consumption (kWh)': 'sum',
+            'Natural gas consumption (thous Btu)': 'sum'
+        }
+
+        # Disaggregate to these levels
+        group_bys = [
+            None,
+            self.STATE_ABBRV,
+            'Division'
+        ]
+
+        for col, agg_method in cols_to_summarize.items():
+            for group_by in group_bys:
+                # Summarize the data
+                vals = [col]  # Values in Excel pivot table
+                ags = [agg_method]  # How each of the values will be aggregated, like Value Field Settings in Excel, but applied to all values
+                cols = [self.DATASET] # Columns in Excel pivot table
+
+                first_ax = None
+
+                if group_by is None:
+                    # No group-by
+                    pivot = df.pivot_table(values=vals, columns=cols, aggfunc=ags)
+                    pivot = pivot.droplevel([0], axis=1)
+                else:
+                    # With group-by
+                    idx = [group_by]  # Rows in Excel pivot table
+                    pivot = df.pivot_table(values=vals, columns=cols, index=idx, aggfunc=ags)
+                    pivot = pivot.droplevel([0, 1], axis=1)
+
+                # Make the graph
+                if first_ax is None:
+                    ax = pivot.plot.bar(color=color_map)
+                    first_ax = ax
+                else:
+                    ax = pivot.plot.bar(color=color_map, ax=first_ax)
+
+                # Extract the units from the column name
+                match = re.search('\\(.*\\)', col)
+                if match:
+                    units = match.group(0)
+                else:
+                    units = 'TODO units'
+
+                # Formatting
+                if group_by is None:
+                    # No group-by]
+                    title = f"{agg_method} {col.replace(f' {units}', '')}".title()
+                    ax.tick_params(axis='x', labelrotation = 0)
+                    for container in ax.containers:
+                        ax.bar_label(container, fmt='%.2e')
+                else:
+                    # With group-by
+                    title = f"{agg_method} {col.replace(f' {units}', '')}\n by {group_by}".title()
+
+                # Remove 'Sum' from title
+                title = title.replace('Sum', '').strip()
+
+                # Set title and units
+                ax.set_title(title)
+                ax.set_ylabel(f'Annual Energy Consumption {units}')
+
+                # Add legend with no duplicate entries
+                handles, labels = first_ax.get_legend_handles_labels()
+                new_labels = []
+                new_handles = []
+                for l, h in zip(labels, handles):
+                    if not l in new_labels:
+                        new_labels.append(l)  # Add the first instance of the label
+                        new_handles.append(h)
+                ax.legend(new_handles, new_labels, bbox_to_anchor=(1.01,1), loc="upper left")
+
+                # Save the figure
+                title = title.replace('\n', '')
+                fig_name = f'com_eia_{title.replace(" ", "_").lower()}.{self.image_type}'
+                fig_path = os.path.join(output_dir, fig_name)
+                plt.savefig(fig_path, bbox_inches = 'tight')
+                plt.close()
+
+    def plot_monthly_energy_consumption_for_eia(self, df, color_map, output_dir):
+        # Columns to summarize
+        cols_to_summarize = {
+            'Electricity consumption (kWh)': 'sum',
+            'Natural gas consumption (thous Btu)': 'sum'
+        }
+
+        # Disaggregate to these levels
+        group_bys = [
+            self.STATE_ABBRV,
+            'Division'
+        ]
+
+        for col, agg_method in cols_to_summarize.items():
+            for group_by in group_bys:
+                # Summarize the data
+                vals = [col]  # Values in Excel pivot table
+                ags = [agg_method]  # How each of the values will be aggregated, like Value Field Settings in Excel, but applied to all values
+                cols = [self.DATASET] # Columns in Excel pivot table
+
+
+                for group_name, group_data in df.groupby(group_by):
+
+                    # With group-by
+                    pivot = group_data.pivot_table(values=vals, columns=cols, index='Month', aggfunc=ags)
+                    pivot = pivot.droplevel([0, 1], axis=1)
+
+                    # Make the graph
+                    ax = pivot.plot.bar(color=color_map)
+
+                    # Extract the units from the column name
+                    match = re.search('\\(.*\\)', col)
+                    if match:
+                        units = match.group(0)
+                    else:
+                        units = 'TODO units'
+
+                    # Set title and units
+                    title = f"{agg_method} Monthly {col.replace(f' {units}', '')}\n by {group_by} for {group_name}".title()
+
+                    # Remove 'Sum' from title
+                    title = title.replace('Sum', '').strip()
+
+                    ax.set_title(title)
+                    ax.set_ylabel(f'Monthly Energy Consumption {units}')
+
+                    # Add legend with no duplicate entries
+                    handles, labels = ax.get_legend_handles_labels()
+                    new_labels = []
+                    new_handles = []
+                    for l, h in zip(labels, handles):
+                        if not l in new_labels:
+                            new_labels.append(l)  # Add the first instance of the label
+                            new_handles.append(h)
+                    ax.legend(new_handles, new_labels, bbox_to_anchor=(1.01,1), loc="upper left")
+
+                    # Save the figure
+                    title = title.replace('\n', '')
+                    fig_name = f'com_eia_{title.replace(" ", "_").lower()}.{self.image_type}'
+                    fig_path = os.path.join(output_dir, fig_name) 
+                    plt.savefig(fig_path, bbox_inches = 'tight')
+                    plt.close()

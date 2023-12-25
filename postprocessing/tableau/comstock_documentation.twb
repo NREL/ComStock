@@ -26,7 +26,7 @@
       <connection class='federated'>
         <named-connections>
           <named-connection caption='ComStock wide' name='textscan.0fton0i1lmz0s112605cl1pwh7pw'>
-            <connection class='textscan' directory='path/to/comstock-internal/postprocessing/output/run' filename='ComStock wide.csv' password='' server='' />
+            <connection class='textscan' directory='path/to/comstock/postprocessing/output/run' filename='ComStock wide.csv' password='' server='' />
           </named-connection>
         </named-connections>
         <_.fcp.ObjectModelEncapsulateLegacy.false...relation connection='textscan.0fton0i1lmz0s112605cl1pwh7pw' name='ComStock wide.csv' table='[ComStock wide#csv]' type='table'>
