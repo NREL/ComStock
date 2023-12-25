@@ -368,87 +368,86 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
     # ----------------------------------------------------  
     # puts("### adding output variables (for debugging)")
     # ----------------------------------------------------  
-    ov_eco_status = OpenStudio::Model::OutputVariable.new("debugging_ecostatus",model)
-    ov_eco_status.setKeyValue("*")
-    ov_eco_status.setReportingFrequency("timestep") 
-    ov_eco_status.setVariableName("Air System Outdoor Air Economizer Status")
+    # ov_eco_status = OpenStudio::Model::OutputVariable.new("debugging_ecostatus",model)
+    # ov_eco_status.setKeyValue("*")
+    # ov_eco_status.setReportingFrequency("timestep") 
+    # ov_eco_status.setVariableName("Air System Outdoor Air Economizer Status")
 
-    ov_oa_fraction = OpenStudio::Model::OutputVariable.new("debugging_ov_oafraction",model)
-    ov_oa_fraction.setKeyValue("*")
-    ov_oa_fraction.setReportingFrequency("timestep") 
-    ov_oa_fraction.setVariableName("Air System Outdoor Air Flow Fraction")
+    # ov_oa_fraction = OpenStudio::Model::OutputVariable.new("debugging_ov_oafraction",model)
+    # ov_oa_fraction.setKeyValue("*")
+    # ov_oa_fraction.setReportingFrequency("timestep") 
+    # ov_oa_fraction.setVariableName("Air System Outdoor Air Flow Fraction")
 
-    ov_oa_mdot = OpenStudio::Model::OutputVariable.new("debugging_oamdot",model)
-    ov_oa_mdot.setKeyValue("*")
-    ov_oa_mdot.setReportingFrequency("timestep") 
-    ov_oa_mdot.setVariableName("Air System Outdoor Air Mass Flow Rate")
+    # ov_oa_mdot = OpenStudio::Model::OutputVariable.new("debugging_oamdot",model)
+    # ov_oa_mdot.setKeyValue("*")
+    # ov_oa_mdot.setReportingFrequency("timestep") 
+    # ov_oa_mdot.setVariableName("Air System Outdoor Air Mass Flow Rate")
 
-    ov_oat = OpenStudio::Model::OutputVariable.new("debugging_oat",model)
-    ov_oat.setKeyValue("*")
-    ov_oat.setReportingFrequency("timestep") 
-    ov_oat.setVariableName("Site Outdoor Air Drybulb Temperature")
+    # ov_oat = OpenStudio::Model::OutputVariable.new("debugging_oat",model)
+    # ov_oat.setKeyValue("*")
+    # ov_oat.setReportingFrequency("timestep") 
+    # ov_oat.setVariableName("Site Outdoor Air Drybulb Temperature")
 
-    ov_coil_cooling = OpenStudio::Model::OutputVariable.new("debugging_cooling",model)
-    ov_coil_cooling.setKeyValue("*")
-    ov_coil_cooling.setReportingFrequency("timestep") 
-    ov_coil_cooling.setVariableName("Cooling Coil Total Cooling Rate")
+    # ov_coil_cooling = OpenStudio::Model::OutputVariable.new("debugging_cooling",model)
+    # ov_coil_cooling.setKeyValue("*")
+    # ov_coil_cooling.setReportingFrequency("timestep") 
+    # ov_coil_cooling.setVariableName("Cooling Coil Total Cooling Rate")
 
-    # create OutputEnergyManagementSystem object (a 'unique' object) and configure to allow EMS reporting
-    output_EMS = model.getOutputEnergyManagementSystem
-    output_EMS.setInternalVariableAvailabilityDictionaryReporting('Verbose')
-    output_EMS.setEMSRuntimeLanguageDebugOutputLevel('Verbose')
-    output_EMS.setActuatorAvailabilityDictionaryReporting('Verbose')
+    # # create OutputEnergyManagementSystem object (a 'unique' object) and configure to allow EMS reporting
+    # output_EMS = model.getOutputEnergyManagementSystem
+    # output_EMS.setInternalVariableAvailabilityDictionaryReporting('Verbose')
+    # output_EMS.setEMSRuntimeLanguageDebugOutputLevel('Verbose')
+    # output_EMS.setActuatorAvailabilityDictionaryReporting('Verbose')
 
-    # make list of available EMS variables
-    ems_output_variable_list = []
+    # # make list of available EMS variables
+    # ems_output_variable_list = []
   
-    # li_ems_sens_zn_clg_rate
-    li_ems_clg_coil_rate.each do |sensor|
-      name = sensor.name
-      ems_sens_clg_coil_rate = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, sensor)
-      ems_sens_clg_coil_rate.setUpdateFrequency('ZoneTimestep')
-      ems_sens_clg_coil_rate.setName("#{name}_ems_outvar")
-      ems_sens_clg_coil_rate.setUnits('W')
-      ems_output_variable_list << ems_sens_clg_coil_rate.name.to_s
-    end
+    # # li_ems_sens_zn_clg_rate
+    # li_ems_clg_coil_rate.each do |sensor|
+    #   name = sensor.name
+    #   ems_sens_clg_coil_rate = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, sensor)
+    #   ems_sens_clg_coil_rate.setUpdateFrequency('ZoneTimestep')
+    #   ems_sens_clg_coil_rate.setName("#{name}_ems_outvar")
+    #   ems_sens_clg_coil_rate.setUnits('W')
+    #   ems_output_variable_list << ems_sens_clg_coil_rate.name.to_s
+    # end
 
-    # li_ems_sens_econ_status
-    li_ems_sens_econ_status.each do |sensor|
-      name = sensor.name
-      ems_sens_econ_status = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, sensor)
-      ems_sens_econ_status.setUpdateFrequency('Timestep')
-      ems_sens_econ_status.setName("#{name}_ems_outvar")
-      # ems_sens_zn_clg_rate.setUnits('C')
-      ems_output_variable_list << ems_sens_econ_status.name.to_s
-    end
+    # # li_ems_sens_econ_status
+    # li_ems_sens_econ_status.each do |sensor|
+    #   name = sensor.name
+    #   ems_sens_econ_status = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, sensor)
+    #   ems_sens_econ_status.setUpdateFrequency('Timestep')
+    #   ems_sens_econ_status.setName("#{name}_ems_outvar")
+    #   # ems_sens_zn_clg_rate.setUnits('C')
+    #   ems_output_variable_list << ems_sens_econ_status.name.to_s
+    # end
 
-    # li_ems_sens_min_flow
-    li_ems_sens_min_flow.each do |sensor|
-      name = sensor.name
-      ems_sens_min_flow = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, sensor)
-      ems_sens_min_flow.setUpdateFrequency('Timestep')
-      ems_sens_min_flow.setName("#{name}_ems_outvar")
-      ems_sens_min_flow.setUnits('kg/s')
-      ems_output_variable_list << ems_sens_min_flow.name.to_s
-    end
+    # # li_ems_sens_min_flow
+    # li_ems_sens_min_flow.each do |sensor|
+    #   name = sensor.name
+    #   ems_sens_min_flow = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, sensor)
+    #   ems_sens_min_flow.setUpdateFrequency('Timestep')
+    #   ems_sens_min_flow.setName("#{name}_ems_outvar")
+    #   ems_sens_min_flow.setUnits('kg/s')
+    #   ems_output_variable_list << ems_sens_min_flow.name.to_s
+    # end
   
-    # li_ems_act_oa_flow
-    li_ems_act_oa_flow.each do |act|
-      name = act.name
-      ems_act_oa_flow = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, act)
-      ems_act_oa_flow.setUpdateFrequency('Timestep')
-      ems_act_oa_flow.setName("#{name}_ems_outvar")
-      ems_act_oa_flow.setUnits('kg/s')
-      ems_output_variable_list << ems_act_oa_flow.name.to_s
-    end
+    # # li_ems_act_oa_flow
+    # li_ems_act_oa_flow.each do |act|
+    #   name = act.name
+    #   ems_act_oa_flow = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, act)
+    #   ems_act_oa_flow.setUpdateFrequency('Timestep')
+    #   ems_act_oa_flow.setName("#{name}_ems_outvar")
+    #   ems_act_oa_flow.setUnits('kg/s')
+    #   ems_output_variable_list << ems_act_oa_flow.name.to_s
+    # end
   
-    # iterate list to call output variables
-    ems_output_variable_list.each do |variable|
-      output = OpenStudio::Model::OutputVariable.new(variable,model)
-      output.setKeyValue("*")
-      output.setReportingFrequency('Timestep')
-      #puts "output: #{output}"
-    end
+    # # iterate list to call output variables
+    # ems_output_variable_list.each do |variable|
+    #   output = OpenStudio::Model::OutputVariable.new(variable,model)
+    #   output.setKeyValue("*")
+    #   output.setReportingFrequency('Timestep')
+    # end
 
     # ----------------------------------------------------
     # puts("### report final condition")
