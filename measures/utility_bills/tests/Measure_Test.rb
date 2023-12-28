@@ -163,7 +163,7 @@ class UtilityBills_Test < Minitest::Test
   end
 
   # Test when the building is in a tract with no EIA utility ID assigned
-  def dont_testsm_hotel_no_utility_for_tract
+  def test_sm_hotel_no_utility_for_tract
     test_name = 'sm_hotel_no_urdb_rates'
     model_in_path = "#{File.dirname(__FILE__)}/1004_SmallHotel_a.osm"
     # This census tract has no EIA utility ID assigned
@@ -230,7 +230,7 @@ class UtilityBills_Test < Minitest::Test
   end
 
   # Test when the building is assigned a utility with no rates from URDB
-  def dont_testsm_hotel_no_urdb_rates
+  def test_sm_hotel_no_urdb_rates
     test_name = 'sm_hotel_no_urdb_rates'
     model_in_path = "#{File.dirname(__FILE__)}/1004_SmallHotel_a.osm"
     # This census tract is assigned to EIA utility 17683,

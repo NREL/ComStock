@@ -12,6 +12,25 @@ require 'open3'
 
 #start the measure
 class UtilityBills < OpenStudio::Measure::ReportingMeasure
+
+  def os
+    @os ||= (
+      host_os = RbConfig::CONFIG['host_os']
+      case host_os
+      when /mswin|msys|mingw|cygwin|bccwin|wince|emc/
+        :windows
+      when /darwin|mac os/
+        :macosx
+      when /linux/
+        :linux
+      when /solaris|bsd/
+        :unix
+      else
+        raise Error::WebDriverError, "unknown os: #{host_os.inspect}"
+      end
+    )
+  end
+
   # human readable name
   def name
     return "Utility Bills"
@@ -196,7 +215,7 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
 
       if rate.has_key?('peakkwhusagemax')
         if tot_elec_kwh > rate['peakkwhusagemax']
-          runner.registerInfo("Rate #{rate_name} is not applicable because the building annual energy #{max} kWh is above maximum threshold of #{rate['peakkwhusagemax']} kWh.")
+          runner.registerInfo("Rate #{rate_name} is not applicable because the building annual energy #{tot_elec_kwh} kWh is above maximum threshold of #{rate['peakkwhusagemax']} kWh.")
           next
         end
       end
@@ -244,7 +263,16 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
         runner.registerInfo("Calculating bills for #{rate_name}")
 
         # Call calc_elec_bill.py
-        command = "python #{calc_elec_bill_py_path} #{elec_csv_path} #{rate_path}"
+        py = if (os == :windows || os == :macosx)
+               'python' # Assumes running buildstockbatch from a Conda shell
+             elsif os == :linux
+               'python3.8' # Assumes running buildstockbatch from ComStock docker image
+             else
+               runner.registerError("Could not find python command for #{os}")
+               return false
+             end
+
+        command = "#{py} #{calc_elec_bill_py_path} #{elec_csv_path} #{rate_path}"
         stdout_str, stderr_str, status = Open3.capture3(command)
         if status.success?
           pysam_out = JSON.parse(stdout_str)
@@ -338,6 +366,8 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
       end
     end
 
+    # Close the sql file
+    sql.close
 
     return true
   end
