@@ -65,9 +65,8 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             self.add_comstock_building_type_column()
             self.add_vintage_column()
             self.add_energy_intensity_columns()
-
-        # Calculate weighted area and energy consumption columns
-        self.add_weighted_area_and_energy_columns()
+            # Calculate weighted area and energy consumption columns
+            self.add_weighted_area_and_energy_columns()
 
         logger.debug('\nCBECS columns after adding all data')
         for c in self.data.columns:
