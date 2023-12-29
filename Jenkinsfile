@@ -20,7 +20,7 @@ githubNotify description: "${description}", context: "${context}", status: "${bu
 
 parallel(
     'ruby-tests': {
-        node('nrel_docker_vcpu80') {
+        node('nrel_docker_vcpu80_1') {
             String linux_base = '/srv/data/jenkins/git'
 
             dir("${linux_base}/${env.JOB_NAME}/${env.BUILD_NUMBER}") {
