@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>change_building_location</name>
   <uid>d4db4971-f5ba-11e3-a3ac-0800200c9a66</uid>
-  <version_id>81b41c7e-bb1f-4ae9-8593-fc0705c32cc4</version_id>
-  <version_modified>2023-12-04T22:53:45Z</version_modified>
+  <version_id>bc4cc9b3-6b6c-4ed6-8dfa-b068590fe578</version_id>
+  <version_modified>2024-01-02T18:03:16Z</version_modified>
   <xml_checksum>057E8D9D</xml_checksum>
   <class_name>ChangeBuildingLocation</class_name>
   <display_name>ChangeBuildingLocation</display_name>
@@ -334,7 +334,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>F7BA7BFB</checksum>
+      <checksum>F5580118</checksum>
     </file>
     <file>
       <filename>epw.rb</filename>
@@ -430,7 +430,7 @@
       <filename>change_building_location_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>38A17E21</checksum>
+      <checksum>ED29DEF3</checksum>
     </file>
     <file>
       <filename>multiyear.ddy</filename>
