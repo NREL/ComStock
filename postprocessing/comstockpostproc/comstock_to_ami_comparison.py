@@ -66,7 +66,7 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
 
         # Make ComStock to AMI comparison plots
         if make_comparison_plots:
-            self.make_plots(self.ami_timeseries_data, self.color_map, self.output_dir)
+            self.make_plots()
         else:
             logger.info("make_comparison_plots is set to false, so not plots were created. Set make_comparison_plots to True for plots.")
 
@@ -79,23 +79,19 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
     """
     Make plots comparing the datasets
     """
-    def make_plots(self, df, color_map, output_dir):
+    def make_plots(self):
         logger.info('Making comparison plots')
-        comstock_data_label = list(color_map.keys())[0]
-        ami_data_label = list(color_map.keys())[1]
+        comstock_data_label = list(self.color_map.keys())[0]
+        ami_data_label = list(self.color_map.keys())[1]
 
         # for each region
         for region in self.ami_object.ami_region_map:
-            # ami region 3x  cherryland is failing for some reason
-            if region['region'] == 'region3c':
-                continue
-
-            region_df = df.loc[df['region_name'] == region['source_name']]
+            region_df = self.ami_timeseries_data.loc[self.ami_timeseries_data['region_name'] == region['source_name']]
 
             # for each building type
             for building_type in self.ami_object.building_types:
                 type_region_df = region_df.loc[region_df['building_type'] == building_type]
-                bldg_type_output_dir = os.path.join(output_dir, building_type)
+                bldg_type_output_dir = os.path.join(self.output_dir, building_type)
                 if not os.path.exists(bldg_type_output_dir):
                     os.makedirs(bldg_type_output_dir)
 
@@ -109,7 +105,7 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
                     logger.debug(f"dataset does not contain {building_type} buildings in {comstock_data_label} for region {region['source_name']}. Skipping building specific graphics.")
                     continue
 
-                self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, color_map, bldg_type_output_dir)
-                self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, color_map, bldg_type_output_dir, normalization='Daytype')
-                self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, color_map, bldg_type_output_dir, normalization='Annual')
-                self.plot_load_duration_curve(type_region_df, region, building_type, color_map, bldg_type_output_dir)
+                self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, self.color_map, bldg_type_output_dir)
+                self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, self.color_map, bldg_type_output_dir, normalization='Daytype')
+                self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, self.color_map, bldg_type_output_dir, normalization='Annual')
+                self.plot_load_duration_curve(type_region_df, region, building_type, self.color_map, bldg_type_output_dir)
