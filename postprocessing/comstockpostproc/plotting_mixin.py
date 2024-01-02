@@ -1523,14 +1523,13 @@ class PlottingMixin():
         energy_column = 'kwh_per_sf'
         default_uncertainty = 0.1
 
-        # return false if ami data is not available for this type
-        ami_count = df.loc[df.run.isin([ami_data_label])]['bldg_count']
-        ami_count_max = int(ami_count.max())
-        ami_count_avg = ami_count.mean()
-        ami_count_min = int(ami_count.min())
-
         # filter and collect comstock data
-        comstock_data = df.loc[df.run.isin([comstock_data_label])][['enduse', energy_column]]
+        comstock_data = df.loc[df.run.isin([comstock_data_label])]
+        comstock_count = comstock_data['bldg_count']
+        comstock_count_max = int(comstock_count.max())
+        comstock_count_avg = comstock_count.mean()
+        comstock_count_min = int(comstock_count.min())
+        comstock_data = comstock_data[['enduse', energy_column]]
         comstock_data = comstock_data.reset_index().groupby(['enduse', 'timestamp']).sum().reset_index().set_index('timestamp')
         comstock_data = comstock_data.pivot(columns='enduse', values=[energy_column])
         comstock_data.columns = comstock_data.columns.droplevel(0)
@@ -1546,7 +1545,12 @@ class PlottingMixin():
         filtered_enduse_colors = [enduse_colors[i] for i, col in enumerate(enduse_list) if col in comstock_data.columns]
 
         # filter and collect ami data
-        ami_data = df.loc[df.run.isin([ami_data_label])][['run', energy_column]]
+        ami_data = df.loc[df.run.isin([ami_data_label])]
+        ami_count = ami_data['bldg_count']
+        ami_count_max = int(ami_count.max())
+        ami_count_avg = ami_count.mean()
+        ami_count_min = int(ami_count.min())
+        ami_data = ami_data[['run', energy_column]]
         ami_data = ami_data.pivot(columns='run', values=[energy_column])
         ami_data.columns = ami_data.columns.droplevel(0)
         ami_data = ami_data.reset_index().rename_axis(None, axis=1)
@@ -1614,7 +1618,7 @@ class PlottingMixin():
         else:
             day_type_label = ''
             graph_type = "day_type_comparison_by_enduse"
-        plt.suptitle('{} Day Type Comparison by Enduse\n{} vs. {} (N={})\n{}, {}'.format(day_type_label, comstock_data_label, ami_data_label, ami_count_max, region['source_name'], building_type), fontsize=24)
+        plt.suptitle('{} Day Type Comparison by Enduse\n{} (n={}) vs. {} (n={})\n{}, {}'.format(day_type_label, comstock_data_label, comstock_count_max, ami_data_label, ami_count_max, region['source_name'], building_type), fontsize=24)
         filename = filename + "_" + graph_type
         plt.subplots_adjust(top=0.9)
         fig_n = 0

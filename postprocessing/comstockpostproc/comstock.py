@@ -98,6 +98,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.data = None
         self.monthly_data = None
         self.monthly_data_gap = None
+        self.ami_timeseries_data = None
         self.color = color_hex
         self.building_type_weights = None
         self.weighted_energy_units = weighted_energy_units
@@ -303,7 +304,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             datetime.timedelta(hours=r['hour']),
             axis=1
         )
-        agg_df = agg_df.drop(['year', 'month', 'day', 'hour', 'sample_count', 'units_count'], axis=1)
+        agg_df = agg_df.drop(['year', 'month', 'day', 'hour', 'units_count'], axis=1)
         agg_df = agg_df.set_index('timestamp')
         agg_df = agg_df[agg_df.index.dayofyear != 366]
 
@@ -325,12 +326,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             agg_df.reset_index(),
             id_vars=[
                 'timestamp',
-                'building_type'
+                'building_type',
+                'sample_count'
             ],
             value_vars=val_vars,
             var_name='enduse',
             value_name='kwh'
         ).set_index('timestamp')
+        agg_df = agg_df.rename(columns={'sample_count': 'bldg_count'})
 
         # size get data
         # note that this is a Polars dataframe, not a Pandas dataframe
