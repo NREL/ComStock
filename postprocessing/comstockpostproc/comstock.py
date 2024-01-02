@@ -341,7 +341,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         size_df = size_df.select(['in.comstock_building_type', 'in.sqft', 'calc.weighted.sqft'])
         size_df = size_df.group_by('in.comstock_building_type').agg(pl.col(['in.sqft', 'calc.weighted.sqft']).sum())
         size_df = size_df.with_columns((pl.col('calc.weighted.sqft')/pl.col('in.sqft')).alias('weight'))
-        size_df = size_df.with_columns((pl.col('in.comstock_building_type').apply(lambda x: NamingMixin.BLDG_TYPE_TO_SNAKE_CASE[x])).alias('building_type'))
+        size_df = size_df.with_columns((pl.col('in.comstock_building_type').map_elements(lambda x: NamingMixin.BLDG_TYPE_TO_SNAKE_CASE[x])).alias('building_type'))
         # file_path = os.path.join(self.output_dir, output_name + '_building_type_size.csv')
         # size_df.write_csv(file_path)
 

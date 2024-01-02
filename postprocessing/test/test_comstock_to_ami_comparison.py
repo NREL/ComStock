@@ -55,4 +55,3 @@ def test_ami_plot_generation():
 
     # comparison
     comparison = comstockpostproc.comstock_to_ami_comparison.ComStockToAMIComparison(comstock, ami, make_comparison_plots=True)
-    comparison.export_to_csv_wide() 
