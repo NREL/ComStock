@@ -95,6 +95,9 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
             # for each building type
             for building_type in self.ami_object.building_types:
                 type_region_df = region_df.loc[region_df['building_type'] == building_type]
+                bldg_type_output_dir = os.path.join(output_dir, building_type)
+                if not os.path.exists(bldg_type_output_dir):
+                    os.makedirs(bldg_type_output_dir)
 
                 # check that both ami and comstock data have values defined
                 ami_check = type_region_df[type_region_df['run'] == ami_data_label]
@@ -106,7 +109,7 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
                     logger.debug(f"dataset does not contain {building_type} buildings in {comstock_data_label} for region {region['source_name']}. Skipping building specific graphics.")
                     continue
 
-                self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, color_map, output_dir)
-                self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, color_map, output_dir, normalization='Daytype')
-                self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, color_map, output_dir, normalization='Annual')
-                self.plot_load_duration_curve(type_region_df, region, building_type, color_map, output_dir)
+                self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, color_map, bldg_type_output_dir)
+                self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, color_map, bldg_type_output_dir, normalization='Daytype')
+                self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, color_map, bldg_type_output_dir, normalization='Annual')
+                self.plot_load_duration_curve(type_region_df, region, building_type, color_map, bldg_type_output_dir)
