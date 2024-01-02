@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>create_typical_building_from_model</name>
   <uid>339a2e3a-273c-4494-bb50-bfe586a0647c</uid>
-  <version_id>d4d8e1ca-a5db-47e0-aae1-f98dad728eb8</version_id>
-  <version_modified>2023-10-16T20:24:52Z</version_modified>
+  <version_id>e0d7a67d-835a-43a5-9698-36b20ceda38f</version_id>
+  <version_modified>2024-01-02T15:25:32Z</version_modified>
   <xml_checksum>EE13F09F</xml_checksum>
   <class_name>CreateTypicalBuildingFromModel</class_name>
   <display_name>Create Typical Building from Model</display_name>
@@ -1475,7 +1475,7 @@
       <filename>os_lib_model_generation.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>7AA832CC</checksum>
+      <checksum>3097D1DE</checksum>
     </file>
     <file>
       <filename>GenericGbxml.osm</filename>
