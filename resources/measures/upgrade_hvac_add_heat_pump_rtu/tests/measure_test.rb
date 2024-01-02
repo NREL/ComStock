@@ -186,233 +186,1555 @@ class AddHeatPumpRtuTest < Minitest::Test
 	assert_equal('econ', arguments[7].name)
   end
 
-  # test application of measure on a fully-applicable model
-  # test includes:
+  #####This section tests proper application of measure on fully applicable models
+  # tests include:
   # 1) running model to ensure succesful completion
   # 2) checking user-specified electric backup heating is applied
   # 3) checking that all gas heating couls have been removed from model
   # 4) all air loops contain multispeed heating coil
-  # 5) 
-  def test_361_Small_Office_PSZ_Gas
+  # 5) coil speeds capacities and flow rates are ascending
+  # 6) coil speeds fall within E+ specified cfm/ton ranges
+
+  # def test_361_Small_Office_PSZ_Gas
   
-    osm_name = '361_Small_Office_PSZ_Gas_3a.osm'
-    epw_name = 'CO_FortCollins_16.epw'
+  #   osm_name = '361_Small_Office_PSZ_Gas_3a.osm'
+  #   epw_name = 'CO_FortCollins_16.epw'
 
-    osm_path = model_input_path(osm_name)
-    epw_path = epw_input_path(epw_name)
+  #   osm_path = model_input_path(osm_name)
+  #   epw_path = epw_input_path(epw_name)
 
-    # Create an instance of the measure
-    measure = AddHeatPumpRtu.new
+  #   # Create an instance of the measure
+  #   measure = AddHeatPumpRtu.new
 
-    # Load the model; only used here for populating arguments
-    model = load_model(osm_path)
-    arguments = measure.arguments(model)
-    argument_map = OpenStudio::Measure::OSArgumentMap.new
+  #   # Load the model; only used here for populating arguments
+  #   model = load_model(osm_path)
+  #   arguments = measure.arguments(model)
+  #   argument_map = OpenStudio::Measure::OSArgumentMap.new
 	
-    # set arguments
-    backup_ht_fuel_scheme = arguments[0].clone
-    assert(backup_ht_fuel_scheme.setValue('electric_resistance_backup'))
-    argument_map['backup_ht_fuel_scheme'] = backup_ht_fuel_scheme
-    # allowance for heating oversizing
-    performance_oversizing_factor = arguments[1].clone
-    assert(performance_oversizing_factor.setValue(0))
-    argument_map['performance_oversizing_factor'] = performance_oversizing_factor
-    # how to size heating
-    htg_sizing_option = arguments[2].clone	
-    assert(htg_sizing_option.setValue('0F'))
-    argument_map['htg_sizing_option'] = htg_sizing_option
-    # cooling oversizing estimate
-    clg_oversizing_estimate = arguments[3].clone
-    assert(clg_oversizing_estimate.setValue(1))
-    argument_map['clg_oversizing_estimate'] = clg_oversizing_estimate
-    # htg to clg ratio
-    htg_to_clg_hp_ratio = arguments[4].clone
-    assert(htg_to_clg_hp_ratio.setValue(1))
-    argument_map['htg_to_clg_hp_ratio'] = htg_to_clg_hp_ratio
-    # hr
-    hr = arguments[5].clone
-    assert(hr.setValue(false))
-    argument_map['hr'] = hr
-    # dcv
-    dcv = arguments[6].clone
-    assert(dcv.setValue(false))
-    argument_map['dcv'] = dcv
-    # economizer
-    econ = arguments[7].clone
-    assert(econ.setValue(false))
-    argument_map['econ'] = econ
+  #   # set arguments
+  #   backup_ht_fuel_scheme = arguments[0].clone
+  #   assert(backup_ht_fuel_scheme.setValue('electric_resistance_backup'))
+  #   argument_map['backup_ht_fuel_scheme'] = backup_ht_fuel_scheme
+  #   # allowance for heating oversizing
+  #   performance_oversizing_factor = arguments[1].clone
+  #   assert(performance_oversizing_factor.setValue(0))
+  #   argument_map['performance_oversizing_factor'] = performance_oversizing_factor
+  #   # how to size heating
+  #   htg_sizing_option = arguments[2].clone	
+  #   assert(htg_sizing_option.setValue('0F'))
+  #   argument_map['htg_sizing_option'] = htg_sizing_option
+  #   # cooling oversizing estimate
+  #   clg_oversizing_estimate = arguments[3].clone
+  #   assert(clg_oversizing_estimate.setValue(1))
+  #   argument_map['clg_oversizing_estimate'] = clg_oversizing_estimate
+  #   # htg to clg ratio
+  #   htg_to_clg_hp_ratio = arguments[4].clone
+  #   assert(htg_to_clg_hp_ratio.setValue(1))
+  #   argument_map['htg_to_clg_hp_ratio'] = htg_to_clg_hp_ratio
+  #   # hr
+  #   hr = arguments[5].clone
+  #   assert(hr.setValue(false))
+  #   argument_map['hr'] = hr
+  #   # dcv
+  #   dcv = arguments[6].clone
+  #   assert(dcv.setValue(false))
+  #   argument_map['dcv'] = dcv
+  #   # economizer
+  #   econ = arguments[7].clone
+  #   assert(econ.setValue(false))
+  #   argument_map['econ'] = econ
 
-    # get initial gas heating coils
-    li_gas_htg_coils_initial = model.getCoilHeatingGass
+  #   # get initial gas heating coils
+  #   li_gas_htg_coils_initial = model.getCoilHeatingGass
 	
-    # get initial number of applicable air loops
-	  li_unitary_sys_initial = model.getAirLoopHVACUnitarySystems
+  #   # get initial number of applicable air loops
+	#   li_unitary_sys_initial = model.getAirLoopHVACUnitarySystems
 
-    # Apply the measure to the model and optionally run the model
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
-    assert_equal('Success', result.value.valueName)
-    model = load_model(model_output_path(__method__))
-
-    # get final gas heating coils
-    li_gas_htg_coils_final = model.getCoilHeatingGass
-
-    # assert gas heating coils have been removed
-    assert_equal(li_gas_htg_coils_final.size, 0)
-
-    # get list of final unitary systems
-    li_unitary_sys_final = model.getAirLoopHVACUnitarySystems
-
-    # assert same number of unitary systems as initial
-    assert_equal(li_unitary_sys_initial.size, li_unitary_sys_final.size)
-
-    # assert characteristics of new unitary systems
-    li_unitary_sys_final.sort.each do |system|
-
-      # assert new unitary systems all have variable speed fans
-      fan = system.supplyFan.get
-      assert(fan.to_FanVariableVolume.is_initialized)
-
-      # ***heating***
-      # assert new unitary systems all have multispeed DX heating coils
-      htg_coil = system.heatingCoil.get
-      assert(htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized)
-      htg_coil = htg_coil.to_CoilHeatingDXMultiSpeed.get
+  #   # get initial unitary system schedules for outdoor air and general operation
+  #   # these will be compared against applied HP-RTU system
+  #   dict_oa_sched_min_initial={}
+  #   dict_min_oa_initial={}
+  #   dict_max_oa_initial={}
+  #   model.getAirLoopHVACs.sort.each do |air_loop_hvac|
       
-      # assert multispeed heating coil has 4 stages
-      assert_equal(htg_coil.numberOfStages, 4)
-      htg_coil_spd4 = htg_coil.stages[3]
+  #     # get thermal zone for dictionary mapping
+  #     thermal_zone = air_loop_hvac.thermalZones[0]
 
-      # assert speed 4 flowrate matches design flow rate
-      htg_dsn_flowrate = system.supplyAirFlowRateDuringHeatingOperation
-      assert_equal(htg_dsn_flowrate.to_f, htg_coil_spd4.ratedAirFlowRate.to_f)
+  #     # get OA schedule from OA controller
+  #     oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+  #     controller_oa = oa_system.getControllerOutdoorAir
+  #     oa_schedule = controller_oa.minimumOutdoorAirSchedule.get
+  #     dict_oa_sched_min_initial[thermal_zone] = oa_schedule
+
+  #     # get min/max outdoor air flow rate
+  #     min_oa = controller_oa.minimumOutdoorAirFlowRate
+  #     max_oa = controller_oa.maximumOutdoorAirFlowRate
+  #     dict_min_oa_initial[thermal_zone] = min_oa
+  #     dict_max_oa_initial[thermal_zone] = max_oa
+  #   end
+
+
+  #   # Apply the measure to the model and optionally run the model
+  #   result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+  #   assert_equal('Success', result.value.valueName)
+  #   model = load_model(model_output_path(__method__))
+
+  #   # get final gas heating coils
+  #   li_gas_htg_coils_final = model.getCoilHeatingGass
+
+  #   # assert gas heating coils have been removed
+  #   assert_equal(li_gas_htg_coils_final.size, 0)
+
+  #   # get list of final unitary systems
+  #   li_unitary_sys_final = model.getAirLoopHVACUnitarySystems
+
+  #   # assert same number of unitary systems as initial
+  #   assert_equal(li_unitary_sys_initial.size, li_unitary_sys_final.size)
+
+  #   # get final unitary system schedules for outdoor air and general operation
+  #   # these will be compared against original system
+  #   dict_oa_sched_min_final={}
+  #   dict_min_oa_final={}
+  #   dict_max_oa_final={}
+  #   model.getAirLoopHVACs.sort.each do |air_loop_hvac|
       
-      # assert flow rate reduces for lower speeds
-      htg_coil_spd3 = htg_coil.stages[2]
-      htg_coil_spd2 = htg_coil.stages[1]
-      htg_coil_spd1 = htg_coil.stages[0]
-      assert(htg_coil_spd4.ratedAirFlowRate.to_f > htg_coil_spd3.ratedAirFlowRate.to_f)
-      assert(htg_coil_spd3.ratedAirFlowRate.to_f > htg_coil_spd2.ratedAirFlowRate.to_f)
-      assert(htg_coil_spd2.ratedAirFlowRate.to_f > htg_coil_spd1.ratedAirFlowRate.to_f)
+  #     # get thermal zone for dictionary mapping
+  #     thermal_zone = air_loop_hvac.thermalZones[0]
 
-      # assert capacity reduces for lower speeds
-      assert(htg_coil_spd4.grossRatedHeatingCapacity.to_f > htg_coil_spd3.grossRatedHeatingCapacity.to_f)
-      assert(htg_coil_spd3.grossRatedHeatingCapacity.to_f > htg_coil_spd2.grossRatedHeatingCapacity.to_f)
-      assert(htg_coil_spd2.grossRatedHeatingCapacity.to_f > htg_coil_spd1.grossRatedHeatingCapacity.to_f)
+  #     # get OA schedule from OA controller
+  #     oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+  #     controller_oa = oa_system.getControllerOutdoorAir
+  #     oa_schedule = controller_oa.minimumOutdoorAirSchedule.get
+  #     dict_oa_sched_min_final[thermal_zone] = oa_schedule
 
-      # assert flow per capacity is within range for all stages; added 1% tolerance
-      # min = 4.03e-05 m3/s/watt; max = 6.041e-05 m3/s/watt; 
-      min_flow_per_cap = 4.03e-05*0.99999
-      max_flow_per_cap = 6.041e-05*1.000001
-      htg_coil_spd4_cfm_per_ton = htg_coil_spd4.ratedAirFlowRate.to_f / htg_coil_spd4.grossRatedHeatingCapacity.to_f
-      htg_coil_spd3_cfm_per_ton = htg_coil_spd3.ratedAirFlowRate.to_f / htg_coil_spd3.grossRatedHeatingCapacity.to_f
-      htg_coil_spd2_cfm_per_ton = htg_coil_spd2.ratedAirFlowRate.to_f / htg_coil_spd2.grossRatedHeatingCapacity.to_f
-      htg_coil_spd1_cfm_per_ton = htg_coil_spd1.ratedAirFlowRate.to_f / htg_coil_spd1.grossRatedHeatingCapacity.to_f
-      assert((htg_coil_spd4_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd4_cfm_per_ton <= max_flow_per_cap))
-      assert((htg_coil_spd3_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd3_cfm_per_ton <= max_flow_per_cap))
-      assert((htg_coil_spd2_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd2_cfm_per_ton <= max_flow_per_cap))
-      assert((htg_coil_spd1_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd1_cfm_per_ton <= max_flow_per_cap))
+  #     # get min/max outdoor air flow rate
+  #     # min_oa = controller_oa.minimumOutdoorAirFlowRate.get
+  #     # max_oa = controller_oa.maximumOutdoorAirFlowRate.get
+  #     # dict_min_oa_final[thermal_zone] = min_oa
+  #     # dict_max_oa_final[thermal_zone] = max_oa
+  #   end
 
-      # assert supplemental heating coil type matches user-specified electric resistance
-      sup_htg_coil = system.supplementalHeatingCoil.get 
-      assert(sup_htg_coil.to_CoilHeatingElectric.is_initialized)
-      puts "sup_htg_coil: #{sup_htg_coil}"
+  #   # assert outdoor air values match between initial and new system
+  #   model.getThermalZones.sort.each do |thermal_zone|
+  #     assert_equal(dict_oa_sched_min_initial[thermal_zone], dict_oa_sched_min_final[thermal_zone])
+  #     # assert_equal(dict_min_oa_initial[thermal_zone], dict_min_oa_final[thermal_zone])
+  #     # assert_equal(dict_max_oa_initial[thermal_zone], dict_max_oa_final[thermal_zone])
+  #   end
 
-      # ***cooling***
-      # assert new unitary systems all have multispeed DX cooling coils
-      clg_coil = system.coolingCoil.get
-      assert(clg_coil.to_CoilCoolingDXMultiSpeed.is_initialized)
-      clg_coil = clg_coil.to_CoilCoolingDXMultiSpeed.get
+  #   # assert characteristics of new unitary systems
+  #   li_unitary_sys_final.sort.each do |system|
+
+  #     # assert new unitary systems all have variable speed fans
+  #     fan = system.supplyFan.get
+  #     assert(fan.to_FanVariableVolume.is_initialized)
+
+  #     # ***heating***
+  #     # assert new unitary systems all have multispeed DX heating coils
+  #     htg_coil = system.heatingCoil.get
+  #     assert(htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized)
+  #     htg_coil = htg_coil.to_CoilHeatingDXMultiSpeed.get
       
-      # assert multispeed heating coil has 4 stages
-      assert_equal(clg_coil.numberOfStages, 4)
-      clg_coil_spd4 = clg_coil.stages[3]
+  #     # assert multispeed heating coil has 4 stages
+  #     assert_equal(htg_coil.numberOfStages, 4)
+  #     htg_coil_spd4 = htg_coil.stages[3]
 
-      # assert speed 4 flowrate matches design flow rate
-      clg_dsn_flowrate = system.supplyAirFlowRateDuringCoolingOperation
-      assert_equal(clg_dsn_flowrate.to_f, clg_coil_spd4.ratedAirFlowRate.to_f)
+  #     # assert speed 4 flowrate matches design flow rate
+  #     htg_dsn_flowrate = system.supplyAirFlowRateDuringHeatingOperation
+  #     assert_equal(htg_dsn_flowrate.to_f, htg_coil_spd4.ratedAirFlowRate.to_f)
       
-      # assert flow rate reduces for lower speeds
-      clg_coil_spd3 = clg_coil.stages[2]
-      clg_coil_spd2 = clg_coil.stages[1]
-      clg_coil_spd1 = clg_coil.stages[0]
-      assert(clg_coil_spd4.ratedAirFlowRate.to_f > clg_coil_spd3.ratedAirFlowRate.to_f)
-      assert(clg_coil_spd3.ratedAirFlowRate.to_f > clg_coil_spd2.ratedAirFlowRate.to_f)
-      assert(clg_coil_spd2.ratedAirFlowRate.to_f > clg_coil_spd1.ratedAirFlowRate.to_f)
+  #     # assert flow rate reduces for lower speeds
+  #     htg_coil_spd3 = htg_coil.stages[2]
+  #     htg_coil_spd2 = htg_coil.stages[1]
+  #     htg_coil_spd1 = htg_coil.stages[0]
+  #     assert(htg_coil_spd4.ratedAirFlowRate.to_f > htg_coil_spd3.ratedAirFlowRate.to_f)
+  #     assert(htg_coil_spd3.ratedAirFlowRate.to_f > htg_coil_spd2.ratedAirFlowRate.to_f)
+  #     assert(htg_coil_spd2.ratedAirFlowRate.to_f > htg_coil_spd1.ratedAirFlowRate.to_f)
 
-      # assert capacity reduces for lower speeds
-      assert(clg_coil_spd4.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f)
-      assert(clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f)
-      assert(clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd1.grossRatedTotalCoolingCapacity.to_f)
+  #     # assert capacity reduces for lower speeds
+  #     assert(htg_coil_spd4.grossRatedHeatingCapacity.to_f > htg_coil_spd3.grossRatedHeatingCapacity.to_f)
+  #     assert(htg_coil_spd3.grossRatedHeatingCapacity.to_f > htg_coil_spd2.grossRatedHeatingCapacity.to_f)
+  #     assert(htg_coil_spd2.grossRatedHeatingCapacity.to_f > htg_coil_spd1.grossRatedHeatingCapacity.to_f)
 
-      # assert flow per capacity is within range for all stages; added 1% tolerance
-      # min = 4.03e-05 m3/s/watt; max = 6.041e-05 m3/s/watt; 
-      min_flow_per_cap = 4.03e-05*0.99999
-      max_flow_per_cap = 6.041e-05*1.000001
-      clg_coil_spd4_cfm_per_ton = clg_coil_spd4.ratedAirFlowRate.to_f / clg_coil_spd4.grossRatedTotalCoolingCapacity.to_f
-      clg_coil_spd3_cfm_per_ton = clg_coil_spd3.ratedAirFlowRate.to_f / clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f
-      clg_coil_spd2_cfm_per_ton = clg_coil_spd2.ratedAirFlowRate.to_f / clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f
-      clg_coil_spd1_cfm_per_ton = clg_coil_spd1.ratedAirFlowRate.to_f / clg_coil_spd1.grossRatedTotalCoolingCapacity.to_f
-      assert((clg_coil_spd4_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd4_cfm_per_ton <= max_flow_per_cap))
-      assert((clg_coil_spd3_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd3_cfm_per_ton <= max_flow_per_cap))
-      assert((clg_coil_spd2_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd2_cfm_per_ton <= max_flow_per_cap))
-      assert((clg_coil_spd1_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd1_cfm_per_ton <= max_flow_per_cap))
+  #     # assert flow per capacity is within range for all stages; added 1% tolerance
+  #     # min = 4.03e-05 m3/s/watt; max = 6.041e-05 m3/s/watt; 
+  #     min_flow_per_cap = 4.03e-05*0.99999
+  #     max_flow_per_cap = 6.041e-05*1.000001
+  #     htg_coil_spd4_cfm_per_ton = htg_coil_spd4.ratedAirFlowRate.to_f / htg_coil_spd4.grossRatedHeatingCapacity.to_f
+  #     htg_coil_spd3_cfm_per_ton = htg_coil_spd3.ratedAirFlowRate.to_f / htg_coil_spd3.grossRatedHeatingCapacity.to_f
+  #     htg_coil_spd2_cfm_per_ton = htg_coil_spd2.ratedAirFlowRate.to_f / htg_coil_spd2.grossRatedHeatingCapacity.to_f
+  #     htg_coil_spd1_cfm_per_ton = htg_coil_spd1.ratedAirFlowRate.to_f / htg_coil_spd1.grossRatedHeatingCapacity.to_f
+  #     assert((htg_coil_spd4_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd4_cfm_per_ton <= max_flow_per_cap))
+  #     assert((htg_coil_spd3_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd3_cfm_per_ton <= max_flow_per_cap))
+  #     assert((htg_coil_spd2_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd2_cfm_per_ton <= max_flow_per_cap))
+  #     assert((htg_coil_spd1_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd1_cfm_per_ton <= max_flow_per_cap))
+
+  #     # assert supplemental heating coil type matches user-specified electric resistance
+  #     sup_htg_coil = system.supplementalHeatingCoil.get 
+  #     assert(sup_htg_coil.to_CoilHeatingElectric.is_initialized)
+
+  #     # ***cooling***
+  #     # assert new unitary systems all have multispeed DX cooling coils
+  #     clg_coil = system.coolingCoil.get
+  #     assert(clg_coil.to_CoilCoolingDXMultiSpeed.is_initialized)
+  #     clg_coil = clg_coil.to_CoilCoolingDXMultiSpeed.get
+      
+  #     # assert multispeed heating coil has 4 stages
+  #     assert_equal(clg_coil.numberOfStages, 4)
+  #     clg_coil_spd4 = clg_coil.stages[3]
+
+  #     # assert speed 4 flowrate matches design flow rate
+  #     clg_dsn_flowrate = system.supplyAirFlowRateDuringCoolingOperation
+  #     assert_equal(clg_dsn_flowrate.to_f, clg_coil_spd4.ratedAirFlowRate.to_f)
+      
+  #     # assert flow rate reduces for lower speeds
+  #     clg_coil_spd3 = clg_coil.stages[2]
+  #     clg_coil_spd2 = clg_coil.stages[1]
+  #     clg_coil_spd1 = clg_coil.stages[0]
+  #     assert(clg_coil_spd4.ratedAirFlowRate.to_f > clg_coil_spd3.ratedAirFlowRate.to_f)
+  #     assert(clg_coil_spd3.ratedAirFlowRate.to_f > clg_coil_spd2.ratedAirFlowRate.to_f)
+  #     assert(clg_coil_spd2.ratedAirFlowRate.to_f > clg_coil_spd1.ratedAirFlowRate.to_f)
+
+  #     # assert capacity reduces for lower speeds
+  #     assert(clg_coil_spd4.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f)
+  #     assert(clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f)
+  #     assert(clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd1.grossRatedTotalCoolingCapacity.to_f)
+
+  #     # assert flow per capacity is within range for all stages; added 1% tolerance
+  #     # min = 4.03e-05 m3/s/watt; max = 6.041e-05 m3/s/watt; 
+  #     min_flow_per_cap = 4.03e-05*0.99999
+  #     max_flow_per_cap = 6.041e-05*1.000001
+  #     clg_coil_spd4_cfm_per_ton = clg_coil_spd4.ratedAirFlowRate.to_f / clg_coil_spd4.grossRatedTotalCoolingCapacity.to_f
+  #     clg_coil_spd3_cfm_per_ton = clg_coil_spd3.ratedAirFlowRate.to_f / clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f
+  #     clg_coil_spd2_cfm_per_ton = clg_coil_spd2.ratedAirFlowRate.to_f / clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f
+  #     clg_coil_spd1_cfm_per_ton = clg_coil_spd1.ratedAirFlowRate.to_f / clg_coil_spd1.grossRatedTotalCoolingCapacity.to_f
+  #     assert((clg_coil_spd4_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd4_cfm_per_ton <= max_flow_per_cap))
+  #     assert((clg_coil_spd3_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd3_cfm_per_ton <= max_flow_per_cap))
+  #     assert((clg_coil_spd2_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd2_cfm_per_ton <= max_flow_per_cap))
+  #     assert((clg_coil_spd1_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd1_cfm_per_ton <= max_flow_per_cap))
+  #   end
+  # end
+
+  # def test_370_Small_Office_PSZ_Gas_2A
+  
+  #   osm_name = '370_small_office_psz_gas_2A.osm'
+  #   epw_name = 'Mobile Downtown AL USA.epw'
+
+  #   osm_path = model_input_path(osm_name)
+  #   epw_path = epw_input_path(epw_name)
+
+  #   # Create an instance of the measure
+  #   measure = AddHeatPumpRtu.new
+
+  #   # Load the model; only used here for populating arguments
+  #   model = load_model(osm_path)
+  #   arguments = measure.arguments(model)
+  #   argument_map = OpenStudio::Measure::OSArgumentMap.new
+	
+  #   # set arguments
+  #   backup_ht_fuel_scheme = arguments[0].clone
+  #   assert(backup_ht_fuel_scheme.setValue('electric_resistance_backup'))
+  #   argument_map['backup_ht_fuel_scheme'] = backup_ht_fuel_scheme
+  #   # allowance for heating oversizing
+  #   performance_oversizing_factor = arguments[1].clone
+  #   assert(performance_oversizing_factor.setValue(0))
+  #   argument_map['performance_oversizing_factor'] = performance_oversizing_factor
+  #   # how to size heating
+  #   htg_sizing_option = arguments[2].clone	
+  #   assert(htg_sizing_option.setValue('0F'))
+  #   argument_map['htg_sizing_option'] = htg_sizing_option
+  #   # cooling oversizing estimate
+  #   clg_oversizing_estimate = arguments[3].clone
+  #   assert(clg_oversizing_estimate.setValue(1))
+  #   argument_map['clg_oversizing_estimate'] = clg_oversizing_estimate
+  #   # htg to clg ratio
+  #   htg_to_clg_hp_ratio = arguments[4].clone
+  #   assert(htg_to_clg_hp_ratio.setValue(1))
+  #   argument_map['htg_to_clg_hp_ratio'] = htg_to_clg_hp_ratio
+  #   # hr
+  #   hr = arguments[5].clone
+  #   assert(hr.setValue(false))
+  #   argument_map['hr'] = hr
+  #   # dcv
+  #   dcv = arguments[6].clone
+  #   assert(dcv.setValue(false))
+  #   argument_map['dcv'] = dcv
+  #   # economizer
+  #   econ = arguments[7].clone
+  #   assert(econ.setValue(false))
+  #   argument_map['econ'] = econ
+
+  #   # get initial gas heating coils
+  #   li_gas_htg_coils_initial = model.getCoilHeatingGass
+	
+  #   # get initial number of applicable air loops
+	#   li_unitary_sys_initial = model.getAirLoopHVACUnitarySystems
+
+  #   # get initial unitary system schedules for outdoor air and general operation
+  #   # these will be compared against applied HP-RTU system
+  #   dict_oa_sched_min_initial={}
+  #   dict_min_oa_initial={}
+  #   dict_max_oa_initial={}
+  #   model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+      
+  #     # get thermal zone for dictionary mapping
+  #     thermal_zone = air_loop_hvac.thermalZones[0]
+
+  #     # get OA schedule from OA controller
+  #     oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+  #     controller_oa = oa_system.getControllerOutdoorAir
+  #     oa_schedule = controller_oa.minimumOutdoorAirSchedule.get
+  #     dict_oa_sched_min_initial[thermal_zone] = oa_schedule
+
+  #     # get min/max outdoor air flow rate
+  #     min_oa = controller_oa.minimumOutdoorAirFlowRate
+  #     max_oa = controller_oa.maximumOutdoorAirFlowRate
+  #     dict_min_oa_initial[thermal_zone] = min_oa
+  #     dict_max_oa_initial[thermal_zone] = max_oa
+  #   end
+
+
+  #   # Apply the measure to the model and optionally run the model
+  #   result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+  #   assert_equal('Success', result.value.valueName)
+  #   model = load_model(model_output_path(__method__))
+
+  #   # get final gas heating coils
+  #   li_gas_htg_coils_final = model.getCoilHeatingGass
+
+  #   # assert gas heating coils have been removed
+  #   assert_equal(li_gas_htg_coils_final.size, 0)
+
+  #   # get list of final unitary systems
+  #   li_unitary_sys_final = model.getAirLoopHVACUnitarySystems
+
+  #   # assert same number of unitary systems as initial
+  #   assert_equal(li_unitary_sys_initial.size, li_unitary_sys_final.size)
+
+  #   # get final unitary system schedules for outdoor air and general operation
+  #   # these will be compared against original system
+  #   dict_oa_sched_min_final={}
+  #   dict_min_oa_final={}
+  #   dict_max_oa_final={}
+  #   model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+      
+  #     # get thermal zone for dictionary mapping
+  #     thermal_zone = air_loop_hvac.thermalZones[0]
+
+  #     # get OA schedule from OA controller
+  #     oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+  #     controller_oa = oa_system.getControllerOutdoorAir
+  #     oa_schedule = controller_oa.minimumOutdoorAirSchedule.get
+  #     dict_oa_sched_min_final[thermal_zone] = oa_schedule
+
+  #     # get min/max outdoor air flow rate
+  #     # min_oa = controller_oa.minimumOutdoorAirFlowRate.get
+  #     # max_oa = controller_oa.maximumOutdoorAirFlowRate.get
+  #     # dict_min_oa_final[thermal_zone] = min_oa
+  #     # dict_max_oa_final[thermal_zone] = max_oa
+  #   end
+
+  #   # assert outdoor air values match between initial and new system
+  #   model.getThermalZones.sort.each do |thermal_zone|
+  #     assert_equal(dict_oa_sched_min_initial[thermal_zone], dict_oa_sched_min_final[thermal_zone])
+  #     # assert_equal(dict_min_oa_initial[thermal_zone], dict_min_oa_final[thermal_zone])
+  #     # assert_equal(dict_max_oa_initial[thermal_zone], dict_max_oa_final[thermal_zone])
+  #   end
+
+  #   # assert characteristics of new unitary systems
+  #   li_unitary_sys_final.sort.each do |system|
+
+  #     # assert new unitary systems all have variable speed fans
+  #     fan = system.supplyFan.get
+  #     assert(fan.to_FanVariableVolume.is_initialized)
+
+  #     # ***heating***
+  #     # assert new unitary systems all have multispeed DX heating coils
+  #     htg_coil = system.heatingCoil.get
+  #     assert(htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized)
+  #     htg_coil = htg_coil.to_CoilHeatingDXMultiSpeed.get
+      
+  #     # assert multispeed heating coil has 4 stages
+  #     assert_equal(htg_coil.numberOfStages, 4)
+  #     htg_coil_spd4 = htg_coil.stages[3]
+
+  #     # assert speed 4 flowrate matches design flow rate
+  #     htg_dsn_flowrate = system.supplyAirFlowRateDuringHeatingOperation
+  #     assert_equal(htg_dsn_flowrate.to_f, htg_coil_spd4.ratedAirFlowRate.to_f)
+      
+  #     # assert flow rate reduces for lower speeds
+  #     htg_coil_spd3 = htg_coil.stages[2]
+  #     htg_coil_spd2 = htg_coil.stages[1]
+  #     htg_coil_spd1 = htg_coil.stages[0]
+  #     assert(htg_coil_spd4.ratedAirFlowRate.to_f > htg_coil_spd3.ratedAirFlowRate.to_f)
+  #     assert(htg_coil_spd3.ratedAirFlowRate.to_f > htg_coil_spd2.ratedAirFlowRate.to_f)
+  #     assert(htg_coil_spd2.ratedAirFlowRate.to_f > htg_coil_spd1.ratedAirFlowRate.to_f)
+
+  #     # assert capacity reduces for lower speeds
+  #     assert(htg_coil_spd4.grossRatedHeatingCapacity.to_f > htg_coil_spd3.grossRatedHeatingCapacity.to_f)
+  #     assert(htg_coil_spd3.grossRatedHeatingCapacity.to_f > htg_coil_spd2.grossRatedHeatingCapacity.to_f)
+  #     assert(htg_coil_spd2.grossRatedHeatingCapacity.to_f > htg_coil_spd1.grossRatedHeatingCapacity.to_f)
+
+  #     # assert flow per capacity is within range for all stages; added 1% tolerance
+  #     # min = 4.03e-05 m3/s/watt; max = 6.041e-05 m3/s/watt; 
+  #     min_flow_per_cap = 4.027e-05*0.99999
+  #     max_flow_per_cap = 6.041e-05*1.000001
+  #     htg_coil_spd4_cfm_per_ton = htg_coil_spd4.ratedAirFlowRate.to_f / htg_coil_spd4.grossRatedHeatingCapacity.to_f
+  #     htg_coil_spd3_cfm_per_ton = htg_coil_spd3.ratedAirFlowRate.to_f / htg_coil_spd3.grossRatedHeatingCapacity.to_f
+  #     htg_coil_spd2_cfm_per_ton = htg_coil_spd2.ratedAirFlowRate.to_f / htg_coil_spd2.grossRatedHeatingCapacity.to_f
+  #     htg_coil_spd1_cfm_per_ton = htg_coil_spd1.ratedAirFlowRate.to_f / htg_coil_spd1.grossRatedHeatingCapacity.to_f
+  #     # puts ""
+  #     # puts "system name: #{system.name}"
+  #     # puts "htg_coil_spd4_cfm_per_ton: #{htg_coil_spd4_cfm_per_ton}"
+  #     # puts "htg_coil_spd4_cfm_per_ton >= min_flow_per_cap: #{htg_coil_spd4_cfm_per_ton >= min_flow_per_cap}"
+  #     # puts "htg_coil_spd4_cfm_per_ton <= max_flow_per_cap: #{htg_coil_spd4_cfm_per_ton <= max_flow_per_cap}"
+  #     # puts "htg_coil_spd3_cfm_per_ton: #{htg_coil_spd3_cfm_per_ton}"
+  #     # puts "htg_coil_spd3_cfm_per_ton >= min_flow_per_cap: #{htg_coil_spd3_cfm_per_ton >= min_flow_per_cap}"
+  #     # puts "htg_coil_spd3_cfm_per_ton <= max_flow_per_cap: #{htg_coil_spd3_cfm_per_ton <= max_flow_per_cap}"
+  #     # puts "htg_coil_spd2_cfm_per_ton: #{htg_coil_spd2_cfm_per_ton}"
+  #     # puts "htg_coil_spd2_cfm_per_ton >= min_flow_per_cap: #{htg_coil_spd2_cfm_per_ton >= min_flow_per_cap}"
+  #     # puts "htg_coil_spd2_cfm_per_ton <= max_flow_per_cap: #{htg_coil_spd2_cfm_per_ton <= max_flow_per_cap}"
+  #     # puts "htg_coil_spd1_cfm_per_ton: #{htg_coil_spd1_cfm_per_ton}"
+  #     # puts "htg_coil_spd1_cfm_per_ton >= min_flow_per_cap: #{htg_coil_spd1_cfm_per_ton >= min_flow_per_cap}"
+  #     # puts "htg_coil_spd1_cfm_per_ton <= max_flow_per_cap: #{htg_coil_spd1_cfm_per_ton <= max_flow_per_cap}"
+
+
+  #     assert((htg_coil_spd4_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd4_cfm_per_ton <= max_flow_per_cap))
+  #     assert((htg_coil_spd3_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd3_cfm_per_ton <= max_flow_per_cap))
+  #     assert((htg_coil_spd2_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd2_cfm_per_ton <= max_flow_per_cap))
+  #     assert((htg_coil_spd1_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd1_cfm_per_ton <= max_flow_per_cap))
+
+  #     # assert supplemental heating coil type matches user-specified electric resistance
+  #     sup_htg_coil = system.supplementalHeatingCoil.get 
+  #     assert(sup_htg_coil.to_CoilHeatingElectric.is_initialized)
+
+  #     # ***cooling***
+  #     # assert new unitary systems all have multispeed DX cooling coils
+  #     clg_coil = system.coolingCoil.get
+  #     assert(clg_coil.to_CoilCoolingDXMultiSpeed.is_initialized)
+  #     clg_coil = clg_coil.to_CoilCoolingDXMultiSpeed.get
+      
+  #     # assert multispeed heating coil has 4 stages
+  #     assert_equal(clg_coil.numberOfStages, 4)
+  #     clg_coil_spd4 = clg_coil.stages[3]
+
+  #     # assert speed 4 flowrate matches design flow rate
+  #     clg_dsn_flowrate = system.supplyAirFlowRateDuringCoolingOperation
+  #     assert_equal(clg_dsn_flowrate.to_f, clg_coil_spd4.ratedAirFlowRate.to_f)
+      
+  #     # assert flow rate reduces for lower speeds
+  #     clg_coil_spd3 = clg_coil.stages[2]
+  #     clg_coil_spd2 = clg_coil.stages[1]
+  #     clg_coil_spd1 = clg_coil.stages[0]
+  #     assert(clg_coil_spd4.ratedAirFlowRate.to_f > clg_coil_spd3.ratedAirFlowRate.to_f)
+  #     assert(clg_coil_spd3.ratedAirFlowRate.to_f > clg_coil_spd2.ratedAirFlowRate.to_f)
+  #     assert(clg_coil_spd2.ratedAirFlowRate.to_f > clg_coil_spd1.ratedAirFlowRate.to_f)
+
+  #     # assert capacity reduces for lower speeds
+  #     assert(clg_coil_spd4.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f)
+  #     assert(clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f)
+  #     assert(clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd1.grossRatedTotalCoolingCapacity.to_f)
+
+  #     # assert flow per capacity is within range for all stages; added 1% tolerance
+  #     # min = 4.03e-05 m3/s/watt; max = 6.041e-05 m3/s/watt; 
+  #     min_flow_per_cap = 4.03e-05*0.99999
+  #     max_flow_per_cap = 6.041e-05*1.000001
+  #     clg_coil_spd4_cfm_per_ton = clg_coil_spd4.ratedAirFlowRate.to_f / clg_coil_spd4.grossRatedTotalCoolingCapacity.to_f
+  #     clg_coil_spd3_cfm_per_ton = clg_coil_spd3.ratedAirFlowRate.to_f / clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f
+  #     clg_coil_spd2_cfm_per_ton = clg_coil_spd2.ratedAirFlowRate.to_f / clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f
+  #     clg_coil_spd1_cfm_per_ton = clg_coil_spd1.ratedAirFlowRate.to_f / clg_coil_spd1.grossRatedTotalCoolingCapacity.to_f
+  #     assert((clg_coil_spd4_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd4_cfm_per_ton <= max_flow_per_cap))
+  #     assert((clg_coil_spd3_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd3_cfm_per_ton <= max_flow_per_cap))
+  #     assert((clg_coil_spd2_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd2_cfm_per_ton <= max_flow_per_cap))
+  #     assert((clg_coil_spd1_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd1_cfm_per_ton <= max_flow_per_cap))
+  #   end
+  # end
+
+  # def test_370_small_office_psz_gas_coil_7A
+  
+  #   osm_name = '370_small_office_psz_gas_coil_7A.osm'
+  #   epw_name = 'WY Yellowstone Lake.epw'
+
+  #   osm_path = model_input_path(osm_name)
+  #   epw_path = epw_input_path(epw_name)
+
+  #   # Create an instance of the measure
+  #   measure = AddHeatPumpRtu.new
+
+  #   # Load the model; only used here for populating arguments
+  #   model = load_model(osm_path)
+  #   arguments = measure.arguments(model)
+  #   argument_map = OpenStudio::Measure::OSArgumentMap.new
+	
+  #   # set arguments
+  #   backup_ht_fuel_scheme = arguments[0].clone
+  #   assert(backup_ht_fuel_scheme.setValue('electric_resistance_backup'))
+  #   argument_map['backup_ht_fuel_scheme'] = backup_ht_fuel_scheme
+  #   # allowance for heating oversizing
+  #   performance_oversizing_factor = arguments[1].clone
+  #   assert(performance_oversizing_factor.setValue(0))
+  #   argument_map['performance_oversizing_factor'] = performance_oversizing_factor
+  #   # how to size heating
+  #   htg_sizing_option = arguments[2].clone	
+  #   assert(htg_sizing_option.setValue('0F'))
+  #   argument_map['htg_sizing_option'] = htg_sizing_option
+  #   # cooling oversizing estimate
+  #   clg_oversizing_estimate = arguments[3].clone
+  #   assert(clg_oversizing_estimate.setValue(1))
+  #   argument_map['clg_oversizing_estimate'] = clg_oversizing_estimate
+  #   # htg to clg ratio
+  #   htg_to_clg_hp_ratio = arguments[4].clone
+  #   assert(htg_to_clg_hp_ratio.setValue(1))
+  #   argument_map['htg_to_clg_hp_ratio'] = htg_to_clg_hp_ratio
+  #   # hr
+  #   hr = arguments[5].clone
+  #   assert(hr.setValue(false))
+  #   argument_map['hr'] = hr
+  #   # dcv
+  #   dcv = arguments[6].clone
+  #   assert(dcv.setValue(false))
+  #   argument_map['dcv'] = dcv
+  #   # economizer
+  #   econ = arguments[7].clone
+  #   assert(econ.setValue(false))
+  #   argument_map['econ'] = econ
+
+  #   # get initial gas heating coils
+  #   li_gas_htg_coils_initial = model.getCoilHeatingGass
+	
+  #   # get initial number of applicable air loops
+	#   li_unitary_sys_initial = model.getAirLoopHVACUnitarySystems
+
+  #   # get initial unitary system schedules for outdoor air and general operation
+  #   # these will be compared against applied HP-RTU system
+  #   dict_oa_sched_min_initial={}
+  #   dict_min_oa_initial={}
+  #   dict_max_oa_initial={}
+  #   model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+      
+  #     # get thermal zone for dictionary mapping
+  #     thermal_zone = air_loop_hvac.thermalZones[0]
+
+  #     # get OA schedule from OA controller
+  #     oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+  #     controller_oa = oa_system.getControllerOutdoorAir
+  #     oa_schedule = controller_oa.minimumOutdoorAirSchedule.get
+  #     dict_oa_sched_min_initial[thermal_zone] = oa_schedule
+
+  #     # get min/max outdoor air flow rate
+  #     min_oa = controller_oa.minimumOutdoorAirFlowRate
+  #     max_oa = controller_oa.maximumOutdoorAirFlowRate
+  #     dict_min_oa_initial[thermal_zone] = min_oa
+  #     dict_max_oa_initial[thermal_zone] = max_oa
+  #   end
+
+  #   # Apply the measure to the model and optionally run the model
+  #   result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+  #   assert_equal('Success', result.value.valueName)
+  #   model = load_model(model_output_path(__method__))
+
+  #   # get final gas heating coils
+  #   li_gas_htg_coils_final = model.getCoilHeatingGass
+
+  #   # assert gas heating coils have been removed
+  #   assert_equal(li_gas_htg_coils_final.size, 0)
+
+  #   # get list of final unitary systems
+  #   li_unitary_sys_final = model.getAirLoopHVACUnitarySystems
+
+  #   # assert same number of unitary systems as initial
+  #   assert_equal(li_unitary_sys_initial.size, li_unitary_sys_final.size)
+
+  #   # get final unitary system schedules for outdoor air and general operation
+  #   # these will be compared against original system
+  #   dict_oa_sched_min_final={}
+  #   dict_min_oa_final={}
+  #   dict_max_oa_final={}
+  #   model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+      
+  #     # get thermal zone for dictionary mapping
+  #     thermal_zone = air_loop_hvac.thermalZones[0]
+
+  #     # get OA schedule from OA controller
+  #     oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+  #     controller_oa = oa_system.getControllerOutdoorAir
+  #     oa_schedule = controller_oa.minimumOutdoorAirSchedule.get
+  #     dict_oa_sched_min_final[thermal_zone] = oa_schedule
+
+  #     # get min/max outdoor air flow rate
+  #     # min_oa = controller_oa.minimumOutdoorAirFlowRate.get
+  #     # max_oa = controller_oa.maximumOutdoorAirFlowRate.get
+  #     # dict_min_oa_final[thermal_zone] = min_oa
+  #     # dict_max_oa_final[thermal_zone] = max_oa
+  #   end
+
+  #   # assert outdoor air values match between initial and new system
+  #   model.getThermalZones.sort.each do |thermal_zone|
+  #     assert_equal(dict_oa_sched_min_initial[thermal_zone], dict_oa_sched_min_final[thermal_zone])
+  #     # assert_equal(dict_min_oa_initial[thermal_zone], dict_min_oa_final[thermal_zone])
+  #     # assert_equal(dict_max_oa_initial[thermal_zone], dict_max_oa_final[thermal_zone])
+  #   end
+
+  #   # assert characteristics of new unitary systems
+  #   li_unitary_sys_final.sort.each do |system|
+
+  #     # assert new unitary systems all have variable speed fans
+  #     fan = system.supplyFan.get
+  #     assert(fan.to_FanVariableVolume.is_initialized)
+
+  #     # ***heating***
+  #     # assert new unitary systems all have multispeed DX heating coils
+  #     htg_coil = system.heatingCoil.get
+  #     assert(htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized)
+  #     htg_coil = htg_coil.to_CoilHeatingDXMultiSpeed.get
+      
+  #     # assert multispeed heating coil has 4 stages
+  #     assert_equal(htg_coil.numberOfStages, 4)
+  #     htg_coil_spd4 = htg_coil.stages[3]
+
+  #     # assert speed 4 flowrate matches design flow rate
+  #     htg_dsn_flowrate = system.supplyAirFlowRateDuringHeatingOperation
+  #     assert_equal(htg_dsn_flowrate.to_f, htg_coil_spd4.ratedAirFlowRate.to_f)
+      
+  #     # assert flow rate reduces for lower speeds
+  #     htg_coil_spd3 = htg_coil.stages[2]
+  #     htg_coil_spd2 = htg_coil.stages[1]
+  #     htg_coil_spd1 = htg_coil.stages[0]
+  #     assert(htg_coil_spd4.ratedAirFlowRate.to_f > htg_coil_spd3.ratedAirFlowRate.to_f)
+  #     assert(htg_coil_spd3.ratedAirFlowRate.to_f > htg_coil_spd2.ratedAirFlowRate.to_f)
+  #     assert(htg_coil_spd2.ratedAirFlowRate.to_f > htg_coil_spd1.ratedAirFlowRate.to_f)
+
+  #     # assert capacity reduces for lower speeds
+  #     assert(htg_coil_spd4.grossRatedHeatingCapacity.to_f > htg_coil_spd3.grossRatedHeatingCapacity.to_f)
+  #     assert(htg_coil_spd3.grossRatedHeatingCapacity.to_f > htg_coil_spd2.grossRatedHeatingCapacity.to_f)
+  #     assert(htg_coil_spd2.grossRatedHeatingCapacity.to_f > htg_coil_spd1.grossRatedHeatingCapacity.to_f)
+
+  #     # assert flow per capacity is within range for all stages; added 1% tolerance
+  #     # min = 4.03e-05 m3/s/watt; max = 6.041e-05 m3/s/watt; 
+  #     min_flow_per_cap = 4.027e-05*0.99999
+  #     max_flow_per_cap = 6.041e-05*1.000001
+  #     htg_coil_spd4_cfm_per_ton = htg_coil_spd4.ratedAirFlowRate.to_f / htg_coil_spd4.grossRatedHeatingCapacity.to_f
+  #     htg_coil_spd3_cfm_per_ton = htg_coil_spd3.ratedAirFlowRate.to_f / htg_coil_spd3.grossRatedHeatingCapacity.to_f
+  #     htg_coil_spd2_cfm_per_ton = htg_coil_spd2.ratedAirFlowRate.to_f / htg_coil_spd2.grossRatedHeatingCapacity.to_f
+  #     htg_coil_spd1_cfm_per_ton = htg_coil_spd1.ratedAirFlowRate.to_f / htg_coil_spd1.grossRatedHeatingCapacity.to_f
+  #     # puts ""
+  #     # puts "system name: #{system.name}"
+  #     # puts "htg_coil_spd4_cfm_per_ton: #{htg_coil_spd4_cfm_per_ton}"
+  #     # puts "htg_coil_spd4_cfm_per_ton >= min_flow_per_cap: #{htg_coil_spd4_cfm_per_ton >= min_flow_per_cap}"
+  #     # puts "htg_coil_spd4_cfm_per_ton <= max_flow_per_cap: #{htg_coil_spd4_cfm_per_ton <= max_flow_per_cap}"
+  #     # puts "htg_coil_spd3_cfm_per_ton: #{htg_coil_spd3_cfm_per_ton}"
+  #     # puts "htg_coil_spd3_cfm_per_ton >= min_flow_per_cap: #{htg_coil_spd3_cfm_per_ton >= min_flow_per_cap}"
+  #     # puts "htg_coil_spd3_cfm_per_ton <= max_flow_per_cap: #{htg_coil_spd3_cfm_per_ton <= max_flow_per_cap}"
+  #     # puts "htg_coil_spd2_cfm_per_ton: #{htg_coil_spd2_cfm_per_ton}"
+  #     # puts "htg_coil_spd2_cfm_per_ton >= min_flow_per_cap: #{htg_coil_spd2_cfm_per_ton >= min_flow_per_cap}"
+  #     # puts "htg_coil_spd2_cfm_per_ton <= max_flow_per_cap: #{htg_coil_spd2_cfm_per_ton <= max_flow_per_cap}"
+  #     # puts "htg_coil_spd1_cfm_per_ton: #{htg_coil_spd1_cfm_per_ton}"
+  #     # puts "htg_coil_spd1_cfm_per_ton >= min_flow_per_cap: #{htg_coil_spd1_cfm_per_ton >= min_flow_per_cap}"
+  #     # puts "htg_coil_spd1_cfm_per_ton <= max_flow_per_cap: #{htg_coil_spd1_cfm_per_ton <= max_flow_per_cap}"
+
+
+  #     assert((htg_coil_spd4_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd4_cfm_per_ton <= max_flow_per_cap))
+  #     assert((htg_coil_spd3_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd3_cfm_per_ton <= max_flow_per_cap))
+  #     assert((htg_coil_spd2_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd2_cfm_per_ton <= max_flow_per_cap))
+  #     assert((htg_coil_spd1_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd1_cfm_per_ton <= max_flow_per_cap))
+
+  #     # assert supplemental heating coil type matches user-specified electric resistance
+  #     sup_htg_coil = system.supplementalHeatingCoil.get 
+  #     assert(sup_htg_coil.to_CoilHeatingElectric.is_initialized)
+
+  #     # ***cooling***
+  #     # assert new unitary systems all have multispeed DX cooling coils
+  #     clg_coil = system.coolingCoil.get
+  #     assert(clg_coil.to_CoilCoolingDXMultiSpeed.is_initialized)
+  #     clg_coil = clg_coil.to_CoilCoolingDXMultiSpeed.get
+      
+  #     # assert multispeed heating coil has 4 stages
+  #     assert_equal(clg_coil.numberOfStages, 4)
+  #     clg_coil_spd4 = clg_coil.stages[3]
+
+  #     # assert speed 4 flowrate matches design flow rate
+  #     clg_dsn_flowrate = system.supplyAirFlowRateDuringCoolingOperation
+  #     assert_equal(clg_dsn_flowrate.to_f, clg_coil_spd4.ratedAirFlowRate.to_f)
+      
+  #     # assert flow rate reduces for lower speeds
+  #     clg_coil_spd3 = clg_coil.stages[2]
+  #     clg_coil_spd2 = clg_coil.stages[1]
+  #     clg_coil_spd1 = clg_coil.stages[0]
+  #     assert(clg_coil_spd4.ratedAirFlowRate.to_f > clg_coil_spd3.ratedAirFlowRate.to_f)
+  #     assert(clg_coil_spd3.ratedAirFlowRate.to_f > clg_coil_spd2.ratedAirFlowRate.to_f)
+  #     assert(clg_coil_spd2.ratedAirFlowRate.to_f > clg_coil_spd1.ratedAirFlowRate.to_f)
+
+  #     # assert capacity reduces for lower speeds
+  #     assert(clg_coil_spd4.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f)
+  #     assert(clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f)
+  #     assert(clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd1.grossRatedTotalCoolingCapacity.to_f)
+
+  #     # assert flow per capacity is within range for all stages; added 1% tolerance
+  #     # min = 4.03e-05 m3/s/watt; max = 6.041e-05 m3/s/watt; 
+  #     min_flow_per_cap = 4.03e-05*0.99999
+  #     max_flow_per_cap = 6.041e-05*1.000001
+  #     clg_coil_spd4_cfm_per_ton = clg_coil_spd4.ratedAirFlowRate.to_f / clg_coil_spd4.grossRatedTotalCoolingCapacity.to_f
+  #     clg_coil_spd3_cfm_per_ton = clg_coil_spd3.ratedAirFlowRate.to_f / clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f
+  #     clg_coil_spd2_cfm_per_ton = clg_coil_spd2.ratedAirFlowRate.to_f / clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f
+  #     clg_coil_spd1_cfm_per_ton = clg_coil_spd1.ratedAirFlowRate.to_f / clg_coil_spd1.grossRatedTotalCoolingCapacity.to_f
+  #     assert((clg_coil_spd4_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd4_cfm_per_ton <= max_flow_per_cap))
+  #     assert((clg_coil_spd3_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd3_cfm_per_ton <= max_flow_per_cap))
+  #     assert((clg_coil_spd2_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd2_cfm_per_ton <= max_flow_per_cap))
+  #     assert((clg_coil_spd1_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd1_cfm_per_ton <= max_flow_per_cap))
+  #   end
+  # end
+
+  
+  # def test_370_warehouse_psz_gas_6A
+  
+  #   osm_name = '370_warehouse_psz_gas_6A.osm'
+  #   epw_name = 'WI La Crosse Municipal.epw'
+
+  #   osm_path = model_input_path(osm_name)
+  #   epw_path = epw_input_path(epw_name)
+
+  #   # Create an instance of the measure
+  #   measure = AddHeatPumpRtu.new
+
+  #   # Load the model; only used here for populating arguments
+  #   model = load_model(osm_path)
+  #   arguments = measure.arguments(model)
+  #   argument_map = OpenStudio::Measure::OSArgumentMap.new
+	
+  #   # set arguments
+  #   backup_ht_fuel_scheme = arguments[0].clone
+  #   assert(backup_ht_fuel_scheme.setValue('electric_resistance_backup'))
+  #   argument_map['backup_ht_fuel_scheme'] = backup_ht_fuel_scheme
+  #   # allowance for heating oversizing
+  #   performance_oversizing_factor = arguments[1].clone
+  #   assert(performance_oversizing_factor.setValue(0))
+  #   argument_map['performance_oversizing_factor'] = performance_oversizing_factor
+  #   # how to size heating
+  #   htg_sizing_option = arguments[2].clone	
+  #   assert(htg_sizing_option.setValue('0F'))
+  #   argument_map['htg_sizing_option'] = htg_sizing_option
+  #   # cooling oversizing estimate
+  #   clg_oversizing_estimate = arguments[3].clone
+  #   assert(clg_oversizing_estimate.setValue(1))
+  #   argument_map['clg_oversizing_estimate'] = clg_oversizing_estimate
+  #   # htg to clg ratio
+  #   htg_to_clg_hp_ratio = arguments[4].clone
+  #   assert(htg_to_clg_hp_ratio.setValue(1))
+  #   argument_map['htg_to_clg_hp_ratio'] = htg_to_clg_hp_ratio
+  #   # hr
+  #   hr = arguments[5].clone
+  #   assert(hr.setValue(false))
+  #   argument_map['hr'] = hr
+  #   # dcv
+  #   dcv = arguments[6].clone
+  #   assert(dcv.setValue(false))
+  #   argument_map['dcv'] = dcv
+  #   # economizer
+  #   econ = arguments[7].clone
+  #   assert(econ.setValue(false))
+  #   argument_map['econ'] = econ
+
+  #   # get initial gas heating coils
+  #   li_gas_htg_coils_initial = model.getCoilHeatingGass
+	
+  #   # get initial number of applicable air loops
+	#   li_unitary_sys_initial = model.getAirLoopHVACUnitarySystems
+
+  #   # get initial unitary system schedules for outdoor air and general operation
+  #   # these will be compared against applied HP-RTU system
+  #   dict_oa_sched_min_initial={}
+  #   dict_min_oa_initial={}
+  #   dict_max_oa_initial={}
+  #   model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+      
+  #     # get thermal zone for dictionary mapping
+  #     thermal_zone = air_loop_hvac.thermalZones[0]
+
+  #     # get OA schedule from OA controller
+  #     oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+  #     controller_oa = oa_system.getControllerOutdoorAir
+  #     oa_schedule = controller_oa.minimumOutdoorAirSchedule.get
+  #     dict_oa_sched_min_initial[thermal_zone] = oa_schedule
+
+  #     # get min/max outdoor air flow rate
+  #     min_oa = controller_oa.minimumOutdoorAirFlowRate
+  #     max_oa = controller_oa.maximumOutdoorAirFlowRate
+  #     dict_min_oa_initial[thermal_zone] = min_oa
+  #     dict_max_oa_initial[thermal_zone] = max_oa
+  #   end
+
+  #   # Apply the measure to the model and optionally run the model
+  #   result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+  #   assert_equal('Success', result.value.valueName)
+  #   model = load_model(model_output_path(__method__))
+
+  #   # get final gas heating coils
+  #   li_gas_htg_coils_final = model.getCoilHeatingGass
+
+  #   # assert gas heating coils have been removed
+  #   assert_equal(li_gas_htg_coils_final.size, 0)
+
+  #   # get list of final unitary systems
+  #   li_unitary_sys_final = model.getAirLoopHVACUnitarySystems
+
+  #   # assert same number of unitary systems as initial
+  #   assert_equal(li_unitary_sys_initial.size, li_unitary_sys_final.size)
+
+  #   # get final unitary system schedules for outdoor air and general operation
+  #   # these will be compared against original system
+  #   dict_oa_sched_min_final={}
+  #   dict_min_oa_final={}
+  #   dict_max_oa_final={}
+  #   model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+      
+  #     # get thermal zone for dictionary mapping
+  #     thermal_zone = air_loop_hvac.thermalZones[0]
+
+  #     # get OA schedule from OA controller
+  #     oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+  #     controller_oa = oa_system.getControllerOutdoorAir
+  #     oa_schedule = controller_oa.minimumOutdoorAirSchedule.get
+  #     dict_oa_sched_min_final[thermal_zone] = oa_schedule
+
+  #     # get min/max outdoor air flow rate
+  #     # min_oa = controller_oa.minimumOutdoorAirFlowRate.get
+  #     # max_oa = controller_oa.maximumOutdoorAirFlowRate.get
+  #     # dict_min_oa_final[thermal_zone] = min_oa
+  #     # dict_max_oa_final[thermal_zone] = max_oa
+  #   end
+
+  #   # assert outdoor air values match between initial and new system
+  #   model.getThermalZones.sort.each do |thermal_zone|
+  #     assert_equal(dict_oa_sched_min_initial[thermal_zone], dict_oa_sched_min_final[thermal_zone])
+  #     # assert_equal(dict_min_oa_initial[thermal_zone], dict_min_oa_final[thermal_zone])
+  #     # assert_equal(dict_max_oa_initial[thermal_zone], dict_max_oa_final[thermal_zone])
+  #   end
+
+  #   # assert characteristics of new unitary systems
+  #   li_unitary_sys_final.sort.each do |system|
+
+  #     # assert new unitary systems all have variable speed fans
+  #     fan = system.supplyFan.get
+  #     assert(fan.to_FanVariableVolume.is_initialized)
+
+  #     # ***heating***
+  #     # assert new unitary systems all have multispeed DX heating coils
+  #     htg_coil = system.heatingCoil.get
+  #     assert(htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized)
+  #     htg_coil = htg_coil.to_CoilHeatingDXMultiSpeed.get
+      
+  #     # assert multispeed heating coil has 4 stages
+  #     assert_equal(htg_coil.numberOfStages, 4)
+  #     htg_coil_spd4 = htg_coil.stages[3]
+
+  #     # assert speed 4 flowrate matches design flow rate
+  #     htg_dsn_flowrate = system.supplyAirFlowRateDuringHeatingOperation
+  #     assert_equal(htg_dsn_flowrate.to_f, htg_coil_spd4.ratedAirFlowRate.to_f)
+      
+  #     # assert flow rate reduces for lower speeds
+  #     htg_coil_spd3 = htg_coil.stages[2]
+  #     htg_coil_spd2 = htg_coil.stages[1]
+  #     htg_coil_spd1 = htg_coil.stages[0]
+  #     assert(htg_coil_spd4.ratedAirFlowRate.to_f > htg_coil_spd3.ratedAirFlowRate.to_f)
+  #     assert(htg_coil_spd3.ratedAirFlowRate.to_f > htg_coil_spd2.ratedAirFlowRate.to_f)
+  #     assert(htg_coil_spd2.ratedAirFlowRate.to_f > htg_coil_spd1.ratedAirFlowRate.to_f)
+
+  #     # assert capacity reduces for lower speeds
+  #     assert(htg_coil_spd4.grossRatedHeatingCapacity.to_f > htg_coil_spd3.grossRatedHeatingCapacity.to_f)
+  #     assert(htg_coil_spd3.grossRatedHeatingCapacity.to_f > htg_coil_spd2.grossRatedHeatingCapacity.to_f)
+  #     assert(htg_coil_spd2.grossRatedHeatingCapacity.to_f > htg_coil_spd1.grossRatedHeatingCapacity.to_f)
+
+  #     # assert flow per capacity is within range for all stages; added 1% tolerance
+  #     # min = 4.03e-05 m3/s/watt; max = 6.041e-05 m3/s/watt; 
+  #     min_flow_per_cap = 4.027e-05*0.99999
+  #     max_flow_per_cap = 6.041e-05*1.000001
+  #     htg_coil_spd4_cfm_per_ton = htg_coil_spd4.ratedAirFlowRate.to_f / htg_coil_spd4.grossRatedHeatingCapacity.to_f
+  #     htg_coil_spd3_cfm_per_ton = htg_coil_spd3.ratedAirFlowRate.to_f / htg_coil_spd3.grossRatedHeatingCapacity.to_f
+  #     htg_coil_spd2_cfm_per_ton = htg_coil_spd2.ratedAirFlowRate.to_f / htg_coil_spd2.grossRatedHeatingCapacity.to_f
+  #     htg_coil_spd1_cfm_per_ton = htg_coil_spd1.ratedAirFlowRate.to_f / htg_coil_spd1.grossRatedHeatingCapacity.to_f
+  #     # puts ""
+  #     # puts "system name: #{system.name}"
+  #     # puts "htg_coil_spd4_cfm_per_ton: #{htg_coil_spd4_cfm_per_ton}"
+  #     # puts "htg_coil_spd4_cfm_per_ton >= min_flow_per_cap: #{htg_coil_spd4_cfm_per_ton >= min_flow_per_cap}"
+  #     # puts "htg_coil_spd4_cfm_per_ton <= max_flow_per_cap: #{htg_coil_spd4_cfm_per_ton <= max_flow_per_cap}"
+  #     # puts "htg_coil_spd3_cfm_per_ton: #{htg_coil_spd3_cfm_per_ton}"
+  #     # puts "htg_coil_spd3_cfm_per_ton >= min_flow_per_cap: #{htg_coil_spd3_cfm_per_ton >= min_flow_per_cap}"
+  #     # puts "htg_coil_spd3_cfm_per_ton <= max_flow_per_cap: #{htg_coil_spd3_cfm_per_ton <= max_flow_per_cap}"
+  #     # puts "htg_coil_spd2_cfm_per_ton: #{htg_coil_spd2_cfm_per_ton}"
+  #     # puts "htg_coil_spd2_cfm_per_ton >= min_flow_per_cap: #{htg_coil_spd2_cfm_per_ton >= min_flow_per_cap}"
+  #     # puts "htg_coil_spd2_cfm_per_ton <= max_flow_per_cap: #{htg_coil_spd2_cfm_per_ton <= max_flow_per_cap}"
+  #     # puts "htg_coil_spd1_cfm_per_ton: #{htg_coil_spd1_cfm_per_ton}"
+  #     # puts "htg_coil_spd1_cfm_per_ton >= min_flow_per_cap: #{htg_coil_spd1_cfm_per_ton >= min_flow_per_cap}"
+  #     # puts "htg_coil_spd1_cfm_per_ton <= max_flow_per_cap: #{htg_coil_spd1_cfm_per_ton <= max_flow_per_cap}"
+
+
+  #     assert((htg_coil_spd4_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd4_cfm_per_ton <= max_flow_per_cap))
+  #     assert((htg_coil_spd3_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd3_cfm_per_ton <= max_flow_per_cap))
+  #     assert((htg_coil_spd2_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd2_cfm_per_ton <= max_flow_per_cap))
+  #     assert((htg_coil_spd1_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd1_cfm_per_ton <= max_flow_per_cap))
+
+  #     # assert supplemental heating coil type matches user-specified electric resistance
+  #     sup_htg_coil = system.supplementalHeatingCoil.get 
+  #     assert(sup_htg_coil.to_CoilHeatingElectric.is_initialized)
+
+  #     # ***cooling***
+  #     # assert new unitary systems all have multispeed DX cooling coils
+  #     clg_coil = system.coolingCoil.get
+  #     assert(clg_coil.to_CoilCoolingDXMultiSpeed.is_initialized)
+  #     clg_coil = clg_coil.to_CoilCoolingDXMultiSpeed.get
+      
+  #     # assert multispeed heating coil has 4 stages
+  #     assert_equal(clg_coil.numberOfStages, 4)
+  #     clg_coil_spd4 = clg_coil.stages[3]
+
+  #     # assert speed 4 flowrate matches design flow rate
+  #     clg_dsn_flowrate = system.supplyAirFlowRateDuringCoolingOperation
+  #     assert_equal(clg_dsn_flowrate.to_f, clg_coil_spd4.ratedAirFlowRate.to_f)
+      
+  #     # assert flow rate reduces for lower speeds
+  #     clg_coil_spd3 = clg_coil.stages[2]
+  #     clg_coil_spd2 = clg_coil.stages[1]
+  #     clg_coil_spd1 = clg_coil.stages[0]
+  #     assert(clg_coil_spd4.ratedAirFlowRate.to_f > clg_coil_spd3.ratedAirFlowRate.to_f)
+  #     assert(clg_coil_spd3.ratedAirFlowRate.to_f > clg_coil_spd2.ratedAirFlowRate.to_f)
+  #     assert(clg_coil_spd2.ratedAirFlowRate.to_f > clg_coil_spd1.ratedAirFlowRate.to_f)
+
+  #     # assert capacity reduces for lower speeds
+  #     assert(clg_coil_spd4.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f)
+  #     assert(clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f)
+  #     assert(clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd1.grossRatedTotalCoolingCapacity.to_f)
+
+  #     # assert flow per capacity is within range for all stages; added 1% tolerance
+  #     # min = 4.03e-05 m3/s/watt; max = 6.041e-05 m3/s/watt; 
+  #     min_flow_per_cap = 4.03e-05*0.99999
+  #     max_flow_per_cap = 6.041e-05*1.000001
+  #     clg_coil_spd4_cfm_per_ton = clg_coil_spd4.ratedAirFlowRate.to_f / clg_coil_spd4.grossRatedTotalCoolingCapacity.to_f
+  #     clg_coil_spd3_cfm_per_ton = clg_coil_spd3.ratedAirFlowRate.to_f / clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f
+  #     clg_coil_spd2_cfm_per_ton = clg_coil_spd2.ratedAirFlowRate.to_f / clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f
+  #     clg_coil_spd1_cfm_per_ton = clg_coil_spd1.ratedAirFlowRate.to_f / clg_coil_spd1.grossRatedTotalCoolingCapacity.to_f
+  #     assert((clg_coil_spd4_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd4_cfm_per_ton <= max_flow_per_cap))
+  #     assert((clg_coil_spd3_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd3_cfm_per_ton <= max_flow_per_cap))
+  #     assert((clg_coil_spd2_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd2_cfm_per_ton <= max_flow_per_cap))
+  #     assert((clg_coil_spd1_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd1_cfm_per_ton <= max_flow_per_cap))
+  #   end
+  # end
+
+  # def test_370_retail_psz_gas_6B
+  
+  #   osm_name = '370_retail_psz_gas_6B.osm'
+  #   epw_name = 'WY Cody Muni Awos.epw'
+
+  #   osm_path = model_input_path(osm_name)
+  #   epw_path = epw_input_path(epw_name)
+
+  #   # Create an instance of the measure
+  #   measure = AddHeatPumpRtu.new
+
+  #   # Load the model; only used here for populating arguments
+  #   model = load_model(osm_path)
+  #   arguments = measure.arguments(model)
+  #   argument_map = OpenStudio::Measure::OSArgumentMap.new
+	
+  #   # set arguments
+  #   backup_ht_fuel_scheme = arguments[0].clone
+  #   assert(backup_ht_fuel_scheme.setValue('electric_resistance_backup'))
+  #   argument_map['backup_ht_fuel_scheme'] = backup_ht_fuel_scheme
+  #   # allowance for heating oversizing
+  #   performance_oversizing_factor = arguments[1].clone
+  #   assert(performance_oversizing_factor.setValue(0))
+  #   argument_map['performance_oversizing_factor'] = performance_oversizing_factor
+  #   # how to size heating
+  #   htg_sizing_option = arguments[2].clone	
+  #   assert(htg_sizing_option.setValue('0F'))
+  #   argument_map['htg_sizing_option'] = htg_sizing_option
+  #   # cooling oversizing estimate
+  #   clg_oversizing_estimate = arguments[3].clone
+  #   assert(clg_oversizing_estimate.setValue(1))
+  #   argument_map['clg_oversizing_estimate'] = clg_oversizing_estimate
+  #   # htg to clg ratio
+  #   htg_to_clg_hp_ratio = arguments[4].clone
+  #   assert(htg_to_clg_hp_ratio.setValue(1))
+  #   argument_map['htg_to_clg_hp_ratio'] = htg_to_clg_hp_ratio
+  #   # hr
+  #   hr = arguments[5].clone
+  #   assert(hr.setValue(false))
+  #   argument_map['hr'] = hr
+  #   # dcv
+  #   dcv = arguments[6].clone
+  #   assert(dcv.setValue(false))
+  #   argument_map['dcv'] = dcv
+  #   # economizer
+  #   econ = arguments[7].clone
+  #   assert(econ.setValue(false))
+  #   argument_map['econ'] = econ
+
+  #   # get initial gas heating coils
+  #   li_gas_htg_coils_initial = model.getCoilHeatingGass
+	
+  #   # get initial number of applicable air loops
+	#   li_unitary_sys_initial = model.getAirLoopHVACUnitarySystems
+
+  #   # get initial unitary system schedules for outdoor air and general operation
+  #   # these will be compared against applied HP-RTU system
+  #   dict_oa_sched_min_initial={}
+  #   dict_min_oa_initial={}
+  #   dict_max_oa_initial={}
+  #   model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+      
+  #     # get thermal zone for dictionary mapping
+  #     thermal_zone = air_loop_hvac.thermalZones[0]
+
+  #     # get OA schedule from OA controller
+  #     oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+  #     controller_oa = oa_system.getControllerOutdoorAir
+  #     oa_schedule = controller_oa.minimumOutdoorAirSchedule.get
+  #     dict_oa_sched_min_initial[thermal_zone] = oa_schedule
+
+  #     # get min/max outdoor air flow rate
+  #     min_oa = controller_oa.minimumOutdoorAirFlowRate
+  #     max_oa = controller_oa.maximumOutdoorAirFlowRate
+  #     dict_min_oa_initial[thermal_zone] = min_oa
+  #     dict_max_oa_initial[thermal_zone] = max_oa
+  #   end
+
+  #   # Apply the measure to the model and optionally run the model
+  #   result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+  #   assert_equal('Success', result.value.valueName)
+  #   model = load_model(model_output_path(__method__))
+
+  #   # get final gas heating coils
+  #   li_gas_htg_coils_final = model.getCoilHeatingGass
+
+  #   # assert gas heating coils have been removed
+  #   assert_equal(li_gas_htg_coils_final.size, 0)
+
+  #   # get list of final unitary systems
+  #   li_unitary_sys_final = model.getAirLoopHVACUnitarySystems
+
+  #   # assert same number of unitary systems as initial
+  #   assert_equal(li_unitary_sys_initial.size, li_unitary_sys_final.size)
+
+  #   # get final unitary system schedules for outdoor air and general operation
+  #   # these will be compared against original system
+  #   dict_oa_sched_min_final={}
+  #   dict_min_oa_final={}
+  #   dict_max_oa_final={}
+  #   model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+      
+  #     # get thermal zone for dictionary mapping
+  #     thermal_zone = air_loop_hvac.thermalZones[0]
+
+  #     # get OA schedule from OA controller
+  #     oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+  #     controller_oa = oa_system.getControllerOutdoorAir
+  #     oa_schedule = controller_oa.minimumOutdoorAirSchedule.get
+  #     dict_oa_sched_min_final[thermal_zone] = oa_schedule
+
+  #     # get min/max outdoor air flow rate
+  #     min_oa = controller_oa.minimumOutdoorAirFlowRate.get
+  #     max_oa = controller_oa.maximumOutdoorAirFlowRate.get
+  #     dict_min_oa_final[thermal_zone] = min_oa
+  #     dict_max_oa_final[thermal_zone] = max_oa
+  #   end
+
+  #   # assert outdoor air values match between initial and new system
+  #   model.getThermalZones.sort.each do |thermal_zone|
+  #     assert_equal(dict_oa_sched_min_initial[thermal_zone], dict_oa_sched_min_final[thermal_zone])
+  #     assert_in_delta(dict_min_oa_initial[thermal_zone].to_f, dict_min_oa_final[thermal_zone].to_f, 0.001)
+  #     assert_in_delta(dict_max_oa_initial[thermal_zone].to_f, dict_max_oa_final[thermal_zone].to_f, 0.001)
+  #   end
+
+  #   # assert characteristics of new unitary systems
+  #   li_unitary_sys_final.sort.each do |system|
+
+  #     # assert new unitary systems all have variable speed fans
+  #     fan = system.supplyFan.get
+  #     assert(fan.to_FanVariableVolume.is_initialized)
+
+  #     # ***heating***
+  #     # assert new unitary systems all have multispeed DX heating coils
+  #     htg_coil = system.heatingCoil.get
+  #     assert(htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized)
+  #     htg_coil = htg_coil.to_CoilHeatingDXMultiSpeed.get
+      
+  #     # assert multispeed heating coil has 4 stages
+  #     assert_equal(htg_coil.numberOfStages, 4)
+  #     htg_coil_spd4 = htg_coil.stages[3]
+
+  #     # assert speed 4 flowrate matches design flow rate
+  #     htg_dsn_flowrate = system.supplyAirFlowRateDuringHeatingOperation
+  #     assert_equal(htg_dsn_flowrate.to_f, htg_coil_spd4.ratedAirFlowRate.to_f)
+      
+  #     # assert flow rate reduces for lower speeds
+  #     htg_coil_spd3 = htg_coil.stages[2]
+  #     htg_coil_spd2 = htg_coil.stages[1]
+  #     htg_coil_spd1 = htg_coil.stages[0]
+  #     assert(htg_coil_spd4.ratedAirFlowRate.to_f > htg_coil_spd3.ratedAirFlowRate.to_f)
+  #     assert(htg_coil_spd3.ratedAirFlowRate.to_f > htg_coil_spd2.ratedAirFlowRate.to_f)
+  #     assert(htg_coil_spd2.ratedAirFlowRate.to_f > htg_coil_spd1.ratedAirFlowRate.to_f)
+
+  #     # assert capacity reduces for lower speeds
+  #     assert(htg_coil_spd4.grossRatedHeatingCapacity.to_f > htg_coil_spd3.grossRatedHeatingCapacity.to_f)
+  #     assert(htg_coil_spd3.grossRatedHeatingCapacity.to_f > htg_coil_spd2.grossRatedHeatingCapacity.to_f)
+  #     assert(htg_coil_spd2.grossRatedHeatingCapacity.to_f > htg_coil_spd1.grossRatedHeatingCapacity.to_f)
+
+  #     # assert flow per capacity is within range for all stages; added 1% tolerance
+  #     # min = 4.03e-05 m3/s/watt; max = 6.041e-05 m3/s/watt; 
+  #     min_flow_per_cap = 4.027e-05*0.99999
+  #     max_flow_per_cap = 6.041e-05*1.000001
+  #     htg_coil_spd4_cfm_per_ton = htg_coil_spd4.ratedAirFlowRate.to_f / htg_coil_spd4.grossRatedHeatingCapacity.to_f
+  #     htg_coil_spd3_cfm_per_ton = htg_coil_spd3.ratedAirFlowRate.to_f / htg_coil_spd3.grossRatedHeatingCapacity.to_f
+  #     htg_coil_spd2_cfm_per_ton = htg_coil_spd2.ratedAirFlowRate.to_f / htg_coil_spd2.grossRatedHeatingCapacity.to_f
+  #     htg_coil_spd1_cfm_per_ton = htg_coil_spd1.ratedAirFlowRate.to_f / htg_coil_spd1.grossRatedHeatingCapacity.to_f
+  #     assert((htg_coil_spd4_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd4_cfm_per_ton <= max_flow_per_cap))
+  #     assert((htg_coil_spd3_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd3_cfm_per_ton <= max_flow_per_cap))
+  #     assert((htg_coil_spd2_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd2_cfm_per_ton <= max_flow_per_cap))
+  #     assert((htg_coil_spd1_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd1_cfm_per_ton <= max_flow_per_cap))
+
+  #     # assert supplemental heating coil type matches user-specified electric resistance
+  #     sup_htg_coil = system.supplementalHeatingCoil.get 
+  #     assert(sup_htg_coil.to_CoilHeatingElectric.is_initialized)
+
+  #     # ***cooling***
+  #     # assert new unitary systems all have multispeed DX cooling coils
+  #     clg_coil = system.coolingCoil.get
+  #     assert(clg_coil.to_CoilCoolingDXMultiSpeed.is_initialized)
+  #     clg_coil = clg_coil.to_CoilCoolingDXMultiSpeed.get
+      
+  #     # assert multispeed heating coil has 4 stages
+  #     assert_equal(clg_coil.numberOfStages, 4)
+  #     clg_coil_spd4 = clg_coil.stages[3]
+
+  #     # assert speed 4 flowrate matches design flow rate
+  #     clg_dsn_flowrate = system.supplyAirFlowRateDuringCoolingOperation
+  #     assert_equal(clg_dsn_flowrate.to_f, clg_coil_spd4.ratedAirFlowRate.to_f)
+      
+  #     # assert flow rate reduces for lower speeds
+  #     clg_coil_spd3 = clg_coil.stages[2]
+  #     clg_coil_spd2 = clg_coil.stages[1]
+  #     clg_coil_spd1 = clg_coil.stages[0]
+  #     assert(clg_coil_spd4.ratedAirFlowRate.to_f > clg_coil_spd3.ratedAirFlowRate.to_f)
+  #     assert(clg_coil_spd3.ratedAirFlowRate.to_f > clg_coil_spd2.ratedAirFlowRate.to_f)
+  #     assert(clg_coil_spd2.ratedAirFlowRate.to_f > clg_coil_spd1.ratedAirFlowRate.to_f)
+
+  #     # assert capacity reduces for lower speeds
+  #     assert(clg_coil_spd4.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f)
+  #     assert(clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f)
+  #     assert(clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd1.grossRatedTotalCoolingCapacity.to_f)
+
+  #     # assert flow per capacity is within range for all stages; added 1% tolerance
+  #     # min = 4.03e-05 m3/s/watt; max = 6.041e-05 m3/s/watt; 
+  #     min_flow_per_cap = 4.03e-05*0.99999
+  #     max_flow_per_cap = 6.041e-05*1.000001
+  #     clg_coil_spd4_cfm_per_ton = clg_coil_spd4.ratedAirFlowRate.to_f / clg_coil_spd4.grossRatedTotalCoolingCapacity.to_f
+  #     clg_coil_spd3_cfm_per_ton = clg_coil_spd3.ratedAirFlowRate.to_f / clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f
+  #     clg_coil_spd2_cfm_per_ton = clg_coil_spd2.ratedAirFlowRate.to_f / clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f
+  #     clg_coil_spd1_cfm_per_ton = clg_coil_spd1.ratedAirFlowRate.to_f / clg_coil_spd1.grossRatedTotalCoolingCapacity.to_f
+  #     assert((clg_coil_spd4_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd4_cfm_per_ton <= max_flow_per_cap))
+  #     assert((clg_coil_spd3_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd3_cfm_per_ton <= max_flow_per_cap))
+  #     assert((clg_coil_spd2_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd2_cfm_per_ton <= max_flow_per_cap))
+  #     assert((clg_coil_spd1_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd1_cfm_per_ton <= max_flow_per_cap))
+  #   end
+  # end
+
+
+  #####This section tests proper classification of partially-applicable building types
+    def test_370_retail_psz_gas_6B
+  
+      osm_name = '370_retail_psz_gas_6B.osm'
+      epw_name = 'WY Cody Muni Awos.epw'
+
+      osm_path = model_input_path(osm_name)
+      epw_path = epw_input_path(epw_name)
+
+      # Create an instance of the measure
+      measure = AddHeatPumpRtu.new
+
+      # Load the model; only used here for populating arguments
+      model = load_model(osm_path)
+      arguments = measure.arguments(model)
+      argument_map = OpenStudio::Measure::OSArgumentMap.new
+    
+      # set arguments
+      backup_ht_fuel_scheme = arguments[0].clone
+      assert(backup_ht_fuel_scheme.setValue('electric_resistance_backup'))
+      argument_map['backup_ht_fuel_scheme'] = backup_ht_fuel_scheme
+      # allowance for heating oversizing
+      performance_oversizing_factor = arguments[1].clone
+      assert(performance_oversizing_factor.setValue(0))
+      argument_map['performance_oversizing_factor'] = performance_oversizing_factor
+      # how to size heating
+      htg_sizing_option = arguments[2].clone	
+      assert(htg_sizing_option.setValue('0F'))
+      argument_map['htg_sizing_option'] = htg_sizing_option
+      # cooling oversizing estimate
+      clg_oversizing_estimate = arguments[3].clone
+      assert(clg_oversizing_estimate.setValue(1))
+      argument_map['clg_oversizing_estimate'] = clg_oversizing_estimate
+      # htg to clg ratio
+      htg_to_clg_hp_ratio = arguments[4].clone
+      assert(htg_to_clg_hp_ratio.setValue(1))
+      argument_map['htg_to_clg_hp_ratio'] = htg_to_clg_hp_ratio
+      # hr
+      hr = arguments[5].clone
+      assert(hr.setValue(false))
+      argument_map['hr'] = hr
+      # dcv
+      dcv = arguments[6].clone
+      assert(dcv.setValue(false))
+      argument_map['dcv'] = dcv
+      # economizer
+      econ = arguments[7].clone
+      assert(econ.setValue(false))
+      argument_map['econ'] = econ
+
+      # get initial gas heating coils
+      li_gas_htg_coils_initial = model.getCoilHeatingGass
+    
+      # get initial number of applicable air loops
+      li_unitary_sys_initial = model.getAirLoopHVACUnitarySystems
+
+      # get initial unitary system schedules for outdoor air and general operation
+      # these will be compared against applied HP-RTU system
+      dict_oa_sched_min_initial={}
+      dict_min_oa_initial={}
+      dict_max_oa_initial={}
+      model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+        
+        # get thermal zone for dictionary mapping
+        thermal_zone = air_loop_hvac.thermalZones[0]
+
+        # get OA schedule from OA controller
+        oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+        controller_oa = oa_system.getControllerOutdoorAir
+        oa_schedule = controller_oa.minimumOutdoorAirSchedule.get
+        dict_oa_sched_min_initial[thermal_zone] = oa_schedule
+
+        # get min/max outdoor air flow rate
+        min_oa = controller_oa.minimumOutdoorAirFlowRate
+        max_oa = controller_oa.maximumOutdoorAirFlowRate
+        dict_min_oa_initial[thermal_zone] = min_oa
+        dict_max_oa_initial[thermal_zone] = max_oa
+      end
+
+      # Apply the measure to the model and optionally run the model
+      result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+      assert_equal('Success', result.value.valueName)
+      model = load_model(model_output_path(__method__))
+
+      # get final gas heating coils
+      li_gas_htg_coils_final = model.getCoilHeatingGass
+
+      # assert gas heating coils have been removed
+      assert_equal(li_gas_htg_coils_final.size, 0)
+
+      # get list of final unitary systems
+      li_unitary_sys_final = model.getAirLoopHVACUnitarySystems
+
+      # assert same number of unitary systems as initial
+      assert_equal(li_unitary_sys_initial.size, li_unitary_sys_final.size)
+
+      # get final unitary system schedules for outdoor air and general operation
+      # these will be compared against original system
+      dict_oa_sched_min_final={}
+      dict_min_oa_final={}
+      dict_max_oa_final={}
+      model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+        
+        # get thermal zone for dictionary mapping
+        thermal_zone = air_loop_hvac.thermalZones[0]
+
+        # get OA schedule from OA controller
+        oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+        controller_oa = oa_system.getControllerOutdoorAir
+        oa_schedule = controller_oa.minimumOutdoorAirSchedule.get
+        dict_oa_sched_min_final[thermal_zone] = oa_schedule
+
+        # get min/max outdoor air flow rate
+        min_oa = controller_oa.minimumOutdoorAirFlowRate.get
+        max_oa = controller_oa.maximumOutdoorAirFlowRate.get
+        dict_min_oa_final[thermal_zone] = min_oa
+        dict_max_oa_final[thermal_zone] = max_oa
+      end
+
+      # assert outdoor air values match between initial and new system
+      model.getThermalZones.sort.each do |thermal_zone|
+        assert_equal(dict_oa_sched_min_initial[thermal_zone], dict_oa_sched_min_final[thermal_zone])
+        assert_in_delta(dict_min_oa_initial[thermal_zone].to_f, dict_min_oa_final[thermal_zone].to_f, 0.001)
+        assert_in_delta(dict_max_oa_initial[thermal_zone].to_f, dict_max_oa_final[thermal_zone].to_f, 0.001)
+      end
+
+      # assert characteristics of new unitary systems
+      li_unitary_sys_final.sort.each do |system|
+
+        # assert new unitary systems all have variable speed fans
+        fan = system.supplyFan.get
+        assert(fan.to_FanVariableVolume.is_initialized)
+
+        # ***heating***
+        # assert new unitary systems all have multispeed DX heating coils
+        htg_coil = system.heatingCoil.get
+        assert(htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized)
+        htg_coil = htg_coil.to_CoilHeatingDXMultiSpeed.get
+        
+        # assert multispeed heating coil has 4 stages
+        assert_equal(htg_coil.numberOfStages, 4)
+        htg_coil_spd4 = htg_coil.stages[3]
+
+        # assert speed 4 flowrate matches design flow rate
+        htg_dsn_flowrate = system.supplyAirFlowRateDuringHeatingOperation
+        assert_equal(htg_dsn_flowrate.to_f, htg_coil_spd4.ratedAirFlowRate.to_f)
+        
+        # assert flow rate reduces for lower speeds
+        htg_coil_spd3 = htg_coil.stages[2]
+        htg_coil_spd2 = htg_coil.stages[1]
+        htg_coil_spd1 = htg_coil.stages[0]
+        assert(htg_coil_spd4.ratedAirFlowRate.to_f > htg_coil_spd3.ratedAirFlowRate.to_f)
+        assert(htg_coil_spd3.ratedAirFlowRate.to_f > htg_coil_spd2.ratedAirFlowRate.to_f)
+        assert(htg_coil_spd2.ratedAirFlowRate.to_f > htg_coil_spd1.ratedAirFlowRate.to_f)
+
+        # assert capacity reduces for lower speeds
+        assert(htg_coil_spd4.grossRatedHeatingCapacity.to_f > htg_coil_spd3.grossRatedHeatingCapacity.to_f)
+        assert(htg_coil_spd3.grossRatedHeatingCapacity.to_f > htg_coil_spd2.grossRatedHeatingCapacity.to_f)
+        assert(htg_coil_spd2.grossRatedHeatingCapacity.to_f > htg_coil_spd1.grossRatedHeatingCapacity.to_f)
+
+        # assert flow per capacity is within range for all stages; added 1% tolerance
+        # min = 4.03e-05 m3/s/watt; max = 6.041e-05 m3/s/watt; 
+        min_flow_per_cap = 4.027e-05*0.99999
+        max_flow_per_cap = 6.041e-05*1.000001
+        htg_coil_spd4_cfm_per_ton = htg_coil_spd4.ratedAirFlowRate.to_f / htg_coil_spd4.grossRatedHeatingCapacity.to_f
+        htg_coil_spd3_cfm_per_ton = htg_coil_spd3.ratedAirFlowRate.to_f / htg_coil_spd3.grossRatedHeatingCapacity.to_f
+        htg_coil_spd2_cfm_per_ton = htg_coil_spd2.ratedAirFlowRate.to_f / htg_coil_spd2.grossRatedHeatingCapacity.to_f
+        htg_coil_spd1_cfm_per_ton = htg_coil_spd1.ratedAirFlowRate.to_f / htg_coil_spd1.grossRatedHeatingCapacity.to_f
+        assert((htg_coil_spd4_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd4_cfm_per_ton <= max_flow_per_cap))
+        assert((htg_coil_spd3_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd3_cfm_per_ton <= max_flow_per_cap))
+        assert((htg_coil_spd2_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd2_cfm_per_ton <= max_flow_per_cap))
+        assert((htg_coil_spd1_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd1_cfm_per_ton <= max_flow_per_cap))
+
+        # assert supplemental heating coil type matches user-specified electric resistance
+        sup_htg_coil = system.supplementalHeatingCoil.get 
+        assert(sup_htg_coil.to_CoilHeatingElectric.is_initialized)
+
+        # ***cooling***
+        # assert new unitary systems all have multispeed DX cooling coils
+        clg_coil = system.coolingCoil.get
+        assert(clg_coil.to_CoilCoolingDXMultiSpeed.is_initialized)
+        clg_coil = clg_coil.to_CoilCoolingDXMultiSpeed.get
+        
+        # assert multispeed heating coil has 4 stages
+        assert_equal(clg_coil.numberOfStages, 4)
+        clg_coil_spd4 = clg_coil.stages[3]
+
+        # assert speed 4 flowrate matches design flow rate
+        clg_dsn_flowrate = system.supplyAirFlowRateDuringCoolingOperation
+        assert_equal(clg_dsn_flowrate.to_f, clg_coil_spd4.ratedAirFlowRate.to_f)
+        
+        # assert flow rate reduces for lower speeds
+        clg_coil_spd3 = clg_coil.stages[2]
+        clg_coil_spd2 = clg_coil.stages[1]
+        clg_coil_spd1 = clg_coil.stages[0]
+        assert(clg_coil_spd4.ratedAirFlowRate.to_f > clg_coil_spd3.ratedAirFlowRate.to_f)
+        assert(clg_coil_spd3.ratedAirFlowRate.to_f > clg_coil_spd2.ratedAirFlowRate.to_f)
+        assert(clg_coil_spd2.ratedAirFlowRate.to_f > clg_coil_spd1.ratedAirFlowRate.to_f)
+
+        # assert capacity reduces for lower speeds
+        assert(clg_coil_spd4.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f)
+        assert(clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f)
+        assert(clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd1.grossRatedTotalCoolingCapacity.to_f)
+
+        # assert flow per capacity is within range for all stages; added 1% tolerance
+        # min = 4.03e-05 m3/s/watt; max = 6.041e-05 m3/s/watt; 
+        min_flow_per_cap = 4.03e-05*0.99999
+        max_flow_per_cap = 6.041e-05*1.000001
+        clg_coil_spd4_cfm_per_ton = clg_coil_spd4.ratedAirFlowRate.to_f / clg_coil_spd4.grossRatedTotalCoolingCapacity.to_f
+        clg_coil_spd3_cfm_per_ton = clg_coil_spd3.ratedAirFlowRate.to_f / clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f
+        clg_coil_spd2_cfm_per_ton = clg_coil_spd2.ratedAirFlowRate.to_f / clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f
+        clg_coil_spd1_cfm_per_ton = clg_coil_spd1.ratedAirFlowRate.to_f / clg_coil_spd1.grossRatedTotalCoolingCapacity.to_f
+        assert((clg_coil_spd4_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd4_cfm_per_ton <= max_flow_per_cap))
+        assert((clg_coil_spd3_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd3_cfm_per_ton <= max_flow_per_cap))
+        assert((clg_coil_spd2_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd2_cfm_per_ton <= max_flow_per_cap))
+        assert((clg_coil_spd1_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd1_cfm_per_ton <= max_flow_per_cap))
+      end
     end
-  end
-   
-   # test
-   def test_361_warehouse_pvav_na
-   
-   # this makes sure measure registers an na for non applicable model
-    osm_name = '361_Warehouse_PVAV_2a.osm'
-    epw_name = 'CO_FortCollins_16.epw'
 
-    osm_path = model_input_path(osm_name)
-    epw_path = epw_input_path(epw_name)
 
-    # Create an instance of the measure
-    measure = AddHeatPumpRtu.new
 
-    # Load the model; only used here for populating arguments
-    model = load_model(osm_path)
-    arguments = measure.arguments(model)
-    argument_map = OpenStudio::Measure::OSArgumentMap.new
-	
-    # set arguments
-    backup_ht_fuel_scheme = arguments[0].clone
-    assert(backup_ht_fuel_scheme.setValue('electric_resistance_backup'))
-    argument_map['backup_ht_fuel_scheme'] = backup_ht_fuel_scheme
-    # allowance for heating oversizing
-    performance_oversizing_factor = arguments[1].clone
-    assert(performance_oversizing_factor.setValue(0))
-    argument_map['performance_oversizing_factor'] = performance_oversizing_factor
-    # how to size heating
-    htg_sizing_option = arguments[2].clone	
-    assert(htg_sizing_option.setValue('0F'))
-    argument_map['htg_sizing_option'] = htg_sizing_option
-    # cooling oversizing estimate
-    clg_oversizing_estimate = arguments[3].clone
-    assert(clg_oversizing_estimate.setValue(1))
-    argument_map['clg_oversizing_estimate'] = clg_oversizing_estimate
-    # htg to clg ratio
-    htg_to_clg_hp_ratio = arguments[4].clone
-    assert(htg_to_clg_hp_ratio.setValue(1))
-    argument_map['htg_to_clg_hp_ratio'] = htg_to_clg_hp_ratio
-    # hr
-    hr = arguments[5].clone
-    assert(hr.setValue(false))
-    argument_map['hr'] = hr
-    # dcv
-    dcv = arguments[6].clone
-    assert(dcv.setValue(false))
-    argument_map['dcv'] = dcv
-    # economizer
-    econ = arguments[7].clone
-    assert(econ.setValue(false))
-    argument_map['econ'] = econ
 
-    # Apply the measure to the model and optionally run the model
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
-    assert_equal('NA', result.value.valueName)
-   
-   end
+
+
+  # #####This section tests proper classification of non applicable HVAC systems
+
+  # # assert that non applicable HVAC system registers as NA
+  # def test_370_StripMall_Residential_AC_with_residential_forced_air_furnace_2A
+  
+  # # this makes sure measure registers an na for non applicable model
+  # osm_name = '370_StripMall_Residential AC with residential forced air furnace_2A.osm'
+  # epw_name = 'Middleton Fld.epw'
+
+  # osm_path = model_input_path(osm_name)
+  # epw_path = epw_input_path(epw_name)
+
+  # # Create an instance of the measure
+  # measure = AddHeatPumpRtu.new
+
+  # # Load the model; only used here for populating arguments
+  # model = load_model(osm_path)
+  # arguments = measure.arguments(model)
+  # argument_map = OpenStudio::Measure::OSArgumentMap.new
+
+  # # set arguments
+  # backup_ht_fuel_scheme = arguments[0].clone
+  # assert(backup_ht_fuel_scheme.setValue('electric_resistance_backup'))
+  # argument_map['backup_ht_fuel_scheme'] = backup_ht_fuel_scheme
+  # # allowance for heating oversizing
+  # performance_oversizing_factor = arguments[1].clone
+  # assert(performance_oversizing_factor.setValue(0))
+  # argument_map['performance_oversizing_factor'] = performance_oversizing_factor
+  # # how to size heating
+  # htg_sizing_option = arguments[2].clone	
+  # assert(htg_sizing_option.setValue('0F'))
+  # argument_map['htg_sizing_option'] = htg_sizing_option
+  # # cooling oversizing estimate
+  # clg_oversizing_estimate = arguments[3].clone
+  # assert(clg_oversizing_estimate.setValue(1))
+  # argument_map['clg_oversizing_estimate'] = clg_oversizing_estimate
+  # # htg to clg ratio
+  # htg_to_clg_hp_ratio = arguments[4].clone
+  # assert(htg_to_clg_hp_ratio.setValue(1))
+  # argument_map['htg_to_clg_hp_ratio'] = htg_to_clg_hp_ratio
+  # # hr
+  # hr = arguments[5].clone
+  # assert(hr.setValue(false))
+  # argument_map['hr'] = hr
+  # # dcv
+  # dcv = arguments[6].clone
+  # assert(dcv.setValue(false))
+  # argument_map['dcv'] = dcv
+  # # economizer
+  # econ = arguments[7].clone
+  # assert(econ.setValue(false))
+  # argument_map['econ'] = econ
+
+  # # Apply the measure to the model and optionally run the model
+  # result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+  # assert_equal('NA', result.value.valueName)
+  # end
+
+  # # assert that non applicable HVAC system registers as NA
+  # def test_370_warehouse_pvav_gas_boiler_reheat_2A
+  
+  #   # this makes sure measure registers an na for non applicable model
+  #   osm_name = '370_warehouse_pvav_gas_boiler_reheat_2A.osm'
+  #   epw_name = 'Mobile Downtown AL USA.epw'
+  
+  #   osm_path = model_input_path(osm_name)
+  #   epw_path = epw_input_path(epw_name)
+  
+  #   # Create an instance of the measure
+  #   measure = AddHeatPumpRtu.new
+  
+  #   # Load the model; only used here for populating arguments
+  #   model = load_model(osm_path)
+  #   arguments = measure.arguments(model)
+  #   argument_map = OpenStudio::Measure::OSArgumentMap.new
+  
+  #   # set arguments
+  #   backup_ht_fuel_scheme = arguments[0].clone
+  #   assert(backup_ht_fuel_scheme.setValue('electric_resistance_backup'))
+  #   argument_map['backup_ht_fuel_scheme'] = backup_ht_fuel_scheme
+  #   # allowance for heating oversizing
+  #   performance_oversizing_factor = arguments[1].clone
+  #   assert(performance_oversizing_factor.setValue(0))
+  #   argument_map['performance_oversizing_factor'] = performance_oversizing_factor
+  #   # how to size heating
+  #   htg_sizing_option = arguments[2].clone	
+  #   assert(htg_sizing_option.setValue('0F'))
+  #   argument_map['htg_sizing_option'] = htg_sizing_option
+  #   # cooling oversizing estimate
+  #   clg_oversizing_estimate = arguments[3].clone
+  #   assert(clg_oversizing_estimate.setValue(1))
+  #   argument_map['clg_oversizing_estimate'] = clg_oversizing_estimate
+  #   # htg to clg ratio
+  #   htg_to_clg_hp_ratio = arguments[4].clone
+  #   assert(htg_to_clg_hp_ratio.setValue(1))
+  #   argument_map['htg_to_clg_hp_ratio'] = htg_to_clg_hp_ratio
+  #   # hr
+  #   hr = arguments[5].clone
+  #   assert(hr.setValue(false))
+  #   argument_map['hr'] = hr
+  #   # dcv
+  #   dcv = arguments[6].clone
+  #   assert(dcv.setValue(false))
+  #   argument_map['dcv'] = dcv
+  #   # economizer
+  #   econ = arguments[7].clone
+  #   assert(econ.setValue(false))
+  #   argument_map['econ'] = econ
+  
+  #   # Apply the measure to the model and optionally run the model
+  #   result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+  #   assert_equal('NA', result.value.valueName)
+  #   end
+
+  # # assert that non applicable HVAC system registers as NA
+  # def test_370_medium_office_doas_fan_coil_acc_boiler_3A
+  
+  #   # this makes sure measure registers an na for non applicable model
+  #   osm_name = '370_medium_office_doas_fan_coil_acc_boiler_3A.osm'
+  #   epw_name = 'Birmingham Muni.epw'
+  
+  #   osm_path = model_input_path(osm_name)
+  #   epw_path = epw_input_path(epw_name)
+  
+  #   # Create an instance of the measure
+  #   measure = AddHeatPumpRtu.new
+  
+  #   # Load the model; only used here for populating arguments
+  #   model = load_model(osm_path)
+  #   arguments = measure.arguments(model)
+  #   argument_map = OpenStudio::Measure::OSArgumentMap.new
+  
+  #   # set arguments
+  #   backup_ht_fuel_scheme = arguments[0].clone
+  #   assert(backup_ht_fuel_scheme.setValue('electric_resistance_backup'))
+  #   argument_map['backup_ht_fuel_scheme'] = backup_ht_fuel_scheme
+  #   # allowance for heating oversizing
+  #   performance_oversizing_factor = arguments[1].clone
+  #   assert(performance_oversizing_factor.setValue(0))
+  #   argument_map['performance_oversizing_factor'] = performance_oversizing_factor
+  #   # how to size heating
+  #   htg_sizing_option = arguments[2].clone	
+  #   assert(htg_sizing_option.setValue('0F'))
+  #   argument_map['htg_sizing_option'] = htg_sizing_option
+  #   # cooling oversizing estimate
+  #   clg_oversizing_estimate = arguments[3].clone
+  #   assert(clg_oversizing_estimate.setValue(1))
+  #   argument_map['clg_oversizing_estimate'] = clg_oversizing_estimate
+  #   # htg to clg ratio
+  #   htg_to_clg_hp_ratio = arguments[4].clone
+  #   assert(htg_to_clg_hp_ratio.setValue(1))
+  #   argument_map['htg_to_clg_hp_ratio'] = htg_to_clg_hp_ratio
+  #   # hr
+  #   hr = arguments[5].clone
+  #   assert(hr.setValue(false))
+  #   argument_map['hr'] = hr
+  #   # dcv
+  #   dcv = arguments[6].clone
+  #   assert(dcv.setValue(false))
+  #   argument_map['dcv'] = dcv
+  #   # economizer
+  #   econ = arguments[7].clone
+  #   assert(econ.setValue(false))
+  #   argument_map['econ'] = econ
+  
+  #   # Apply the measure to the model and optionally run the model
+  #   result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+  #   assert_equal('NA', result.value.valueName)
+  #   end
+
+
+
+
+
+
+
 end

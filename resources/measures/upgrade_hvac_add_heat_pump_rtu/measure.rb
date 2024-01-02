@@ -182,6 +182,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     selected_air_loops = []
     applicable_area_m2 = 0
     prim_ht_fuel_type = 'electric' # we assume electric unless we find a gas coil in any air loop
+    is_sizing_run_needed=true
+    unitary_sys=nil
     model.getAirLoopHVACs.each do |air_loop_hvac|
       # skip units that are not single zone
       next if air_loop_hvac.thermalZones.length() > 1
@@ -257,6 +259,55 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # add area served by air loop
       thermal_zone = air_loop_hvac.thermalZones[0]
       applicable_area_m2+=thermal_zone.floorArea
+
+      ############# Determine if equipment has been hardsized to avoid sizing run
+      oa_flow_m3_per_s = nil
+      old_terminal_sa_flow_m3_per_s = nil
+      orig_clg_coil_gross_cap = nil
+      orig_htg_coil_gross_cap = nil
+
+      # determine if sizing run is needed
+      oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+      controller_oa = oa_system.getControllerOutdoorAir
+      if controller_oa.minimumOutdoorAirFlowRate.is_initialized
+        oa_flow_m3_per_s = controller_oa.minimumOutdoorAirFlowRate.get
+      end
+
+      # get design supply air flow rate
+      old_terminal_sa_flow_m3_per_s = nil
+      if air_loop_hvac.designSupplyAirFlowRate.is_initialized
+        old_terminal_sa_flow_m3_per_s = air_loop_hvac.designSupplyAirFlowRate.get
+      end
+
+      # get previous cooling coil capacity
+      orig_clg_coil = unitary_sys.coolingCoil.get
+      if orig_clg_coil.to_CoilCoolingDXSingleSpeed.is_initialized
+        orig_clg_coil = orig_clg_coil.to_CoilCoolingDXSingleSpeed.get
+        # get either autosized or specified cooling capacityet
+        if orig_clg_coil.ratedTotalCoolingCapacity.is_initialized
+          orig_clg_coil_gross_cap = orig_clg_coil.ratedTotalCoolingCapacity.to_f
+        end
+      end
+
+      # get original heating coil capacity
+      orig_htg_coil = unitary_sys.heatingCoil.get
+      # get coil object if electric resistance
+      if orig_htg_coil.to_CoilHeatingElectric.is_initialized 
+        orig_htg_coil = orig_htg_coil.to_CoilHeatingElectric.get
+      # get coil object if gas
+      elsif orig_htg_coil.to_CoilHeatingGas.is_initialized
+        orig_htg_coil = orig_htg_coil.to_CoilHeatingGas.get
+      end
+      # get either autosized or specified capacity
+      if orig_htg_coil.nominalCapacity.is_initialized
+        orig_htg_coil_gross_cap = orig_htg_coil.nominalCapacity.to_f
+      end
+
+      next if oa_flow_m3_per_s == nil
+      next if old_terminal_sa_flow_m3_per_s == nil
+      next if orig_clg_coil_gross_cap == nil
+      next if orig_htg_coil_gross_cap == nil
+      is_sizing_run_needed==false
     end
 
     # check if any air loops are applicable to measure
@@ -266,8 +317,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     end
 
     # do sizing run with new equipment to set sizing-specific features
-    if std.model_run_sizing_run(model, "#{Dir.pwd}/SR_HP") == false
-    return false
+    if is_sizing_run_needed == true
+      if std.model_run_sizing_run(model, "#{Dir.pwd}/SR_HP") == false
+        return false
+      end
     end
 
     #########################################################################################################
@@ -276,8 +329,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # add systems with high outdoor air ratios to a list for non-applicability
     oa_ration_allowance = 0.55
     selected_air_loops.each do |air_loop_hvac|
-
-      puts air_loop_hvac.name
 
       thermal_zone = air_loop_hvac.thermalZones[0]
 
@@ -295,21 +346,35 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       end
 
       # get design supply air flow rate
-      # get old terminal box
-      if thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
-        old_terminal = thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctConstantVolumeNoReheat.get
-      else
-        runner.registerError("Terminal box type for air loop #{air_loop_hvac.name} not supported.")
-        return false
-      end
-      # get sizing information from terminal box
-      if old_terminal.isMaximumAirFlowRateAutosized == true
-        old_terminal_sa_flow_m3_per_s = old_terminal.autosizedMaximumAirFlowRate.get
-      elsif old_terminal.maximumAirFlowRate.is_initialized
-        old_terminal_sa_flow_m3_per_s = old_terminal.maximumAirFlowRate.get
+      old_terminal_sa_flow_m3_per_s = nil
+      if air_loop_hvac.designSupplyAirFlowRate.is_initialized
+        old_terminal_sa_flow_m3_per_s = air_loop_hvac.designSupplyAirFlowRate.get
+      elsif air_loop_hvac.isDesignSupplyAirFlowRateAutosized
+        old_terminal_sa_flow_m3_per_s = air_loop_hvac.autosizedDesignSupplyAirFlowRate.get
       else
         runner.registerError("No sizing data available for air loop #{air_loop_hvac.name} zone terminal box.")
       end
+
+      ######
+      # # get old terminal box
+      # if thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
+      #   old_terminal = thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctConstantVolumeNoReheat.get
+      # else
+      #   runner.registerError("Terminal box type for air loop #{air_loop_hvac.name} not supported.")
+      #   return false
+      # end
+      # # get sizing information from terminal box
+      # if old_terminal.isMaximumAirFlowRateAutosized == true
+      #   old_terminal_sa_flow_m3_per_s = old_terminal.autosizedMaximumAirFlowRate.get
+      # elsif old_terminal.maximumAirFlowRate.is_initialized
+      #   old_terminal_sa_flow_m3_per_s = old_terminal.maximumAirFlowRate.get
+      # else
+      #   runner.registerError("No sizing data available for air loop #{air_loop_hvac.name} zone terminal box.")
+      # end
+      #####
+
+
+
       # define minimum flow rate needed to maintain ventilation - add in max fraction if in model
       min_oa_flow_ratio = (oa_flow_m3_per_s/old_terminal_sa_flow_m3_per_s)
 
@@ -666,11 +731,23 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         return false
       end
 
-      # get sizing information from terminal box
-      if old_terminal.isMaximumAirFlowRateAutosized == true
-        old_terminal_sa_flow_m3_per_s = old_terminal.autosizedMaximumAirFlowRate.get
-      elsif old_terminal.maximumAirFlowRate.is_initialized
-        old_terminal_sa_flow_m3_per_s = old_terminal.maximumAirFlowRate.get
+      #######
+      # # get sizing information from terminal box
+      # if old_terminal.isMaximumAirFlowRateAutosized == true
+      #   old_terminal_sa_flow_m3_per_s = old_terminal.autosizedMaximumAirFlowRate.get
+      # elsif old_terminal.maximumAirFlowRate.is_initialized
+      #   old_terminal_sa_flow_m3_per_s = old_terminal.maximumAirFlowRate.get
+      # else
+      #   runner.registerError("No sizing data available for air loop #{air_loop_hvac.name} zone terminal box.")
+      # end
+      #######
+
+      # get design supply air flow rate
+      old_terminal_sa_flow_m3_per_s = nil
+      if air_loop_hvac.designSupplyAirFlowRate.is_initialized
+        old_terminal_sa_flow_m3_per_s = air_loop_hvac.designSupplyAirFlowRate.get
+      elsif air_loop_hvac.isDesignSupplyAirFlowRateAutosized
+        old_terminal_sa_flow_m3_per_s = air_loop_hvac.autosizedDesignSupplyAirFlowRate.get
       else
         runner.registerError("No sizing data available for air loop #{air_loop_hvac.name} zone terminal box.")
       end
