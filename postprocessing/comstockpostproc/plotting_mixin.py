@@ -1480,8 +1480,9 @@ class PlottingMixin():
         color_map: hash with dataset names as the keys
         output_dir (str): output directory
         normalization (str): how to normalize the data. Default is 'None' which directly compares kwh_per_sf. Other options are 'Annual' and 'Daytype'. 'Annual' will normalize the data as a fraction compared to the total annual energy use. 'Daytype' will normalize to the energy use for the given day type.
+        save_graph_data (bool): set to true to save graph data
     """
-    def plot_day_type_comparison_stacked_by_enduse(self, df, region, building_type, color_map, output_dir, normalization='None'):
+    def plot_day_type_comparison_stacked_by_enduse(self, df, region, building_type, color_map, output_dir, normalization='None', save_graph_data=False):
         summer_months = region['summer_months']
         winter_months = region['winter_months']
         shoulder_months = region['shoulder_months']
@@ -1720,21 +1721,6 @@ class PlottingMixin():
                 linestyle='dashed'
             )
 
-            data_df = processed_data_for_stack_plot.copy()
-            data_df['hour'] = data_df.index
-            data_df['region'] = region['source_name']
-            data_df['building_type'] = building_type
-            data_df['day_type'] = day_type
-            #data_df['lci80'] = lower_truth
-            data_df['ami'] = truth_data
-            #data_df['uci80'] = upper_truth
-            data_df['graph_type'] = graph_type
-            data_df['ami_n_min'] = ami_count_min
-            data_df['ami_n_mean'] = ami_count_avg
-            data_df['ami_n_max'] = ami_count_max
-            data_df = data_df.reset_index(drop=True)
-            plot_data_df = pd.concat([plot_data_df, data_df])
-
             plt.title(day_type.replace("_", " "))
             plt.xlim([0, 23])
             plt.ylim([0, y_max * 1.1])
@@ -1743,6 +1729,35 @@ class PlottingMixin():
                 plt.xlabel('Hour of Day', fontsize=24)
             if fig_n % 2 != 0:
                 plt.ylabel(ylabel_text, fontsize=24)
+
+            # collect graph data
+            data_df = processed_data_for_stack_plot.copy()
+            data_df['hour'] = data_df.index
+            data_df['region'] = region['source_name']
+            data_df['building_type'] = building_type
+            data_df['day_type'] = day_type
+            #data_df['lci80'] = lower_truth
+            data_df['ami_total'] = truth_data
+            #data_df['uci80'] = upper_truth
+            data_df['graph_type'] = graph_type
+            data_df['ami_n_min'] = ami_count_min
+            data_df['ami_n_mean'] = ami_count_avg
+            data_df['ami_n_max'] = ami_count_max
+            data_df['comstock_n_min'] = comstock_count_min
+            data_df['comstock_n_mean'] = comstock_count_avg
+            data_df['comstock_n_max'] = comstock_count_max
+
+            # add comstock total
+            processed_total_data = pd.DataFrame(comstock_data['total'][comstock_day_type_dict[day_type]])
+            processed_total_data['hour'] = processed_total_data.index.hour
+            processed_total_data = processed_total_data.groupby('hour').mean()
+            data_df['comstock_total'] = processed_total_data
+            data_df['error'] = data_df['ami_total'] - data_df['comstock_total']
+            data_df['relative_error'] = (data_df['ami_total'] - data_df['comstock_total']) / data_df['ami_total']
+
+            # add to total plot data
+            data_df = data_df.reset_index(drop=True)
+            plot_data_df = pd.concat([plot_data_df, data_df])
 
         ax = plt.gca()
         handles, labels = ax.get_legend_handles_labels()
@@ -1753,10 +1768,12 @@ class PlottingMixin():
         plt.savefig(output_path, bbox_inches='tight')
 
         # save graph data
-        # output_path = os.path.join(output_dir, '%s.csv' % (filename) )
-        # plot_data_df.to_csv(output_path, index=False)
+        if save_graph_data:
+            output_path = os.path.join(output_dir, '%s.csv' % (filename) )
+            plot_data_df.to_csv(output_path, index=False)
 
         plt.close('all')
+        return plot_data_df
 
     """
     Load duration curve comparison

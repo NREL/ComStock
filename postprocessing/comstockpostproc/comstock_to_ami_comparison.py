@@ -22,6 +22,7 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
         self.comstock_object = comstock_object
         self.ami_object = ami_object
         self.ami_timeseries_data = None
+        self.ami_plot_data = None
         self.color_map = {}
         self.image_type = image_type
         self.name = name
@@ -76,6 +77,12 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
         file_path = os.path.join(self.output_dir, file_name)
         self.ami_timeseries_data.to_csv(file_path, index=True)
 
+    def export_plot_data_to_csv_wide(self):
+        # Exports comparison data to CSV in wide format
+        file_name = f'ComStock AMI Comparison Plot Data.csv'
+        file_path = os.path.join(self.output_dir, file_name)
+        self.ami_plot_data.to_csv(file_path, index=False)
+
     """
     Make plots comparing the datasets
     """
@@ -85,6 +92,7 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
         ami_data_label = list(self.color_map.keys())[1]
 
         # for each region
+        dfs_to_concat = []
         for region in self.ami_object.ami_region_map:
             region_df = self.ami_timeseries_data.loc[self.ami_timeseries_data['region_name'] == region['source_name']]
 
@@ -112,7 +120,11 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
                     logger.debug(f"dataset contains fewer than 5 {building_type} buildings in {ami_data_label} for region {region['source_name']}. Skipping building specific graphics.")
                     continue
 
-                self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, self.color_map, bldg_type_output_dir)
+                type_region_plot_data = self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, self.color_map, bldg_type_output_dir)
+                dfs_to_concat.append(type_region_plot_data)
                 self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, self.color_map, bldg_type_output_dir, normalization='Daytype')
                 self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, self.color_map, bldg_type_output_dir, normalization='Annual')
                 self.plot_load_duration_curve(type_region_df, region, building_type, self.color_map, bldg_type_output_dir)
+        
+        # combine plot data
+        self.ami_plot_data = pd.concat(dfs_to_concat, join='outer', ignore_index=True)
