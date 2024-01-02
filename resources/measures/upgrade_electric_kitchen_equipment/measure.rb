@@ -110,6 +110,7 @@ class ElectrifyKitchenEquipment < OpenStudio::Measure::ModelMeasure
         electric_equip = OpenStudio::Model::ElectricEquipment.new(electric_equip_definition)
         electric_equip.setName("electric_#{equip_type}_equipment_bldg_quantity=#{quantity}")
         electric_equip.setMultiplier(multiplier)
+        electric_equip.setSpaceType(space_type)
 
         replaced_equip_list << "#{quantity} #{equip_type}s"
       end

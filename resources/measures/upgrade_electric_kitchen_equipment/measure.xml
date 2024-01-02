@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>electrify_kitchen_equipment</name>
   <uid>005867a6-dcb5-4333-a880-d11037cb605c</uid>
-  <version_id>be78219d-3450-4a90-9d2e-da677c369194</version_id>
-  <version_modified>2023-12-28T21:57:22Z</version_modified>
+  <version_id>5304054f-8456-4d0f-9da3-e841d4243cc1</version_id>
+  <version_modified>2024-01-02T22:14:28Z</version_modified>
   <xml_checksum>0C204E3D</xml_checksum>
   <class_name>ElectrifyKitchenEquipment</class_name>
   <display_name>electrify_kitchen_equipment</display_name>
@@ -82,7 +82,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>45EFF945</checksum>
+      <checksum>C15D2822</checksum>
     </file>
     <file>
       <filename>example_model.osm</filename>
