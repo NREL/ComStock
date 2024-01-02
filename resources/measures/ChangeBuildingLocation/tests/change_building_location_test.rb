@@ -54,7 +54,7 @@ class ChangeBuildingLocation_Test < Minitest::Test
   end
 
   # method to apply arguments, run measure, and assert results (only populate args hash with non-default argument values)
-  def apply_measure_to_model(test_name, args, model_name = nil, result_value = 'Success', warnings_count = 0, info_count = nil, num_dsn_days = 3)
+  def apply_measure_to_model(test_name, args, model_name = nil, result_value = 'Success', warnings_count = 0, info_count = nil, num_dsn_days = 3, soil_conductivity = 1.8)
     # create an instance of the measure
     measure = ChangeBuildingLocation.new
 
@@ -127,6 +127,11 @@ class ChangeBuildingLocation_Test < Minitest::Test
       assert_equal(num_dsn_days, model.getDesignDays.size, "Expected #{num_dsn_days} but found #{model.getDesignDays.size}.")
     end
 
+    # For tests expected to succeed, check for soil conductivity value
+    if result.value.valueName == 'Success'
+      assert_equal(soil_conductivity, model.getBuilding.additionalProperties.getFeatureAsDouble('Soil Conductivity').to_f.round(1), "Expected soil conductivity #{soil_conductivity} but found #{model.getBuilding.additionalProperties.getFeatureAsDouble('Soil Conductivity')}.")
+    end
+
     # save the model to test output directory
     output_file_path = OpenStudio::Path.new(File.dirname(__FILE__) + "/output/#{test_name}_test_output.osm")
     model.save(output_file_path, true)
@@ -157,9 +162,18 @@ class ChangeBuildingLocation_Test < Minitest::Test
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'test.osm', 'Fail', nil, nil)
   end
 
-  def test_weather_file_monthly_design_days
+  def weather_file_monthly_design_days
     args = {}
     args['weather_file_name'] = 'CA_LOS-ANGELES-IAP_722950S_12.epw' # seems to search directory of OSW even with empty file_paths
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'test.osm', nil, nil, nil, 10)
+  end
+
+  def test_soil_conductivity
+    args = {}
+    args['weather_file_name'] = 'CA_LOS-ANGELES-IAP_722950S_12.epw'
+	args['climate_zone'] = 'T24-CEC8'
+	args['year'] = '2018'
+	args['soil_conductivity'] = 1.8
+    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'test.osm', nil, nil, nil, 14, 1.8)
   end
 end

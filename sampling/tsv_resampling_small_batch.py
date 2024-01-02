@@ -89,7 +89,7 @@ class CommercialBaseSobolSampler(BuildStockSampler):
         tsv_arrays = [
             [
                 'building_type', 'state_id', 'county_id', 'year_of_simulation', 'region',
-                'climate_zone', 'year_built', 'subtype', 'rentable_area'
+                'climate_zone', 'year_built', 'subtype', 'rentable_area', 'ground_thermal_conductivity'
             ],
             [
                 'original_building_construction', 'window_wall_ratio', 'interior_lighting',
@@ -104,7 +104,7 @@ class CommercialBaseSobolSampler(BuildStockSampler):
                 'year_bin_of_last_hvac'
             ],
             [
-                'cook', 'ground_thermal_conductivity'
+                'cook'
             ],
             [
                 'energy_code_compliance_interior_lighting', 'energy_code_followed_during_last_interior_lighting',
