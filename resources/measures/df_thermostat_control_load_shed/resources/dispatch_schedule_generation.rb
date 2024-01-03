@@ -48,6 +48,15 @@ def day_of_year_to_date(year, day_of_year)
   return month, day
 end
 
+### if year is leap year
+def leap_year?(year)
+  if (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
+    return true
+  else
+    return false
+  end
+end
+
 ### run simulation on selected day of year
 def read_epw(model, epw_path=nil)
 
@@ -112,6 +121,12 @@ end
 
 ### create bins based on temperature profile and select sample days in bins
 def create_binsamples(oat)
+
+  if oat.size == 8784
+    nd = 366
+  else
+    nd = 365
+  end
   # daystats = []
   # tempbins = {'ext-hot' => [], 'hot' => [], 'mild' => [], 'cool-mild' => [], 'cool' => [], 'cold' => []}
   # hourbins = {'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => []}
@@ -133,7 +148,7 @@ def create_binsamples(oat)
   }
 
   ### NEED TO ADJUST FOR LEAP YEAR 
-  (0..364).each do |d|
+  (0..nd-1).each do |d|
     # daystats[d] = {
     #   'day' => d + 1,
     #   'OATmax' => Xday[Xday.index.day_of_year == d + 1]['OAT'].max,
@@ -676,11 +691,16 @@ def run_part_year_samples(model, year, max_doy, selectdays, num_timesteps_in_hr,
 end
 
 ### populate load profile of samples to all days based on bins
-def load_prediction_from_sample(y_seed, combbins)
+def load_prediction_from_sample(y_seed, combbins, year)
   # puts("--- y_seed = #{y_seed}")
   # puts("--- combbins = #{combbins}")
+  if leap_year?(year)
+    nd = 366
+  else
+    nd = 365
+  end
   annual_load = []
-  (0..364).each do |d|
+  (0..nd-1).each do |d|
     # puts d
     combbins.each do |key,subbin|
       # puts key
@@ -874,12 +894,17 @@ end
 
 ### Generate peak schedule for whole year with rebound option ########################### NEED TO JUSTIFY PUTTING REBOUND OPTION HERE OR IN INDIVIDUAL DF MEASURES
 def peak_schedule_generation(annual_load, peak_len, rebound_len)
-  peak_schedule = Array.new(365 * 24, 0)
+  if annual_load.size == 8784
+    nd = 366
+  else
+    nd = 365
+  end
+  peak_schedule = Array.new(nd * 24, 0)
   puts("--- rebound_len = #{rebound_len}")
   puts("--- peak_len = #{peak_len}")
   # puts("--- peak_schedule = #{peak_schedule}")
   # peak_ind_ann = []
-  (0..364).each do |d|
+  (0..nd-1).each do |d|
     range_start = d * 24
     range_end = d * 24 + 23
     peak_ind = find_daily_peak_window(annual_load[range_start..range_end], peak_len)

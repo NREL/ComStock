@@ -43,7 +43,7 @@ class DfThermostatControlLoadShedTest < Minitest::Test
     test_sets << {
       model: 'LargeOffice_VAV_chiller_boiler',#LargeOffice_VAV_district_chw_hw
       weather: 'CO_FortCollins_16',
-      result: 'success'
+      result: 'Success'
     }
     
     return test_sets
