@@ -318,6 +318,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
     # do sizing run with new equipment to set sizing-specific features
     if is_sizing_run_needed == true
+      runner.registerInfo("Sizing run needed")
       if std.model_run_sizing_run(model, "#{Dir.pwd}/SR_HP") == false
         return false
       end
