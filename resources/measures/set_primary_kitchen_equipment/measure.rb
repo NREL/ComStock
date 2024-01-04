@@ -292,7 +292,7 @@ class SetPrimaryKitchenEquipment < OpenStudio::Measure::ModelMeasure
         equip_new.setName("electric_#{app}_equipment_bldg_quantity=#{appliance_quantity_hash[app]}")
         equip_new.setElectricEquipmentDefinition(equip_def_new)
         # use original gas equipment schedule; consider using gas schedules for schools
-        equip_new.setSchedule(electric_equip_sched_orig)
+        equip_new.setSchedule(gas_equip_sched_orig)
         # equip_new.setSchedule(gas_equip_sched_orig)
         # use multiplier to spread equipment across multiple kitchens
         equip_new.setMultiplier(1.0/num_kitchens)
