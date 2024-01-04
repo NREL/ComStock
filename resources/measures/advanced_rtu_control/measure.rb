@@ -212,6 +212,8 @@ require 'openstudio-standards'
 					  end 
 					  air_loop_hvac.removeBranchForZone(thermal_zone)
 					  air_loop_hvac.addBranchForZone(thermal_zone, new_term)
+					  end 
+					 
 
 			end
 	  end
@@ -229,13 +231,85 @@ require 'openstudio-standards'
 			# set lockout for integrated heating
 			 controller_oa.setLockoutType('LockoutWithHeating')
 		end 
-		 #set up DCV  and check for space types that should not be controlled with DCV 
-		 if add_dcv and not ['kitchen', 'Kitchen', 'dining', 'Dining', 'Laboratory', 'KITCHEN', 'LABORATORY', 'DINING', 'patient', 'PATIENT', 'Patient'].any? { |word| (air_loop_hvac.name.get).include?(word) }
-			 controller_mv = controller_oa.controllerMechanicalVentilation
-			 controller_mv.setDemandControlledVentilation(true)
-		 end 
+		 #set up DCV  and check for space types that should not be controlled with DCV
+		air_loop_hvac.thermalZones.each do |thermal_zone|
+			if add_dcv and not ['kitchen', 'Kitchen', 'dining', 'Dining', 'Laboratory', 'KITCHEN', 'LABORATORY', 'DINING', 'patient', 'PATIENT', 'Patient'].any? { |word| (air_loop_hvac.name.get).include?(word) }
+						 oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+						 controller_oa = oa_system.getControllerOutdoorAir
+						 controller_mv = controller_oa.controllerMechanicalVentilation
+						 controller_mv.setDemandControlledVentilation(true)
+						 #Set design OA object attributes 
+						 thermal_zone.spaces.each do |space|
+							  dsn_oa = space.designSpecificationOutdoorAir
+							  next if dsn_oa.empty?
+							  dsn_oa = dsn_oa.get
+							  # set design specification outdoor air objects to sum
+							  dsn_oa.setOutdoorAirMethod('Sum')
 
-		  end
+							  # Get the space properties
+							  floor_area = space.floorArea
+							  number_of_people = space.numberOfPeople
+							  people_per_m2 = space.peoplePerFloorArea
+
+							  # Sum up the total OA from all sources
+							  oa_for_people_per_m2 = people_per_m2 * dsn_oa.outdoorAirFlowperPerson
+							  oa_for_floor_area_per_m2 = dsn_oa.outdoorAirFlowperFloorArea
+							  tot_oa_per_m2 = oa_for_people_per_m2 + oa_for_floor_area_per_m2
+							  tot_oa_cfm_per_ft2 = OpenStudio.convert(OpenStudio.convert(tot_oa_per_m2, 'm^3/s', 'cfm').get, '1/m^2', '1/ft^2').get
+							  tot_oa_cfm = floor_area * tot_oa_cfm_per_ft2
+							  
+							   # # if space is ineligible type, convert all OA to per-area to avoid DCV being applied
+						  # if space_types_no_dcv.any? { |i| space.spaceType.get.name.to_s.include? i } & !dsn_oa.outdoorAirFlowperPerson.zero?
+							# runner.registerInfo("Space '#{space.name}' is an ineligable space type but is on an air loop that serves other DCV-eligible spaces. Converting all outdoor air to per-area.")
+							# dsn_oa.setOutdoorAirFlowperPerson(0.0)
+							# dsn_oa.setOutdoorAirFlowperFloorArea(tot_oa_per_m2)
+							# next
+						  # end
+
+						  # if both per-area and per-person are present, does not need to be modified
+						  if !dsn_oa.outdoorAirFlowperPerson.zero? & !dsn_oa.outdoorAirFlowperFloorArea.zero?
+							next
+						  
+						  # if both are zero, skip space
+						  elsif dsn_oa.outdoorAirFlowperPerson.zero? & dsn_oa.outdoorAirFlowperFloorArea.zero?
+							runner.registerInfo("Space '#{space.name}' has 0 outdoor air per-person and per-area rates. DCV may be still be applied to this air loop, but it will not function on this space.")
+							next
+						  
+						  # if per-person or per-area values are zero, set to 10 cfm / person and allocate the rest to per-area
+						  elsif dsn_oa.outdoorAirFlowperPerson.zero? || dsn_oa.outdoorAirFlowperFloorArea.zero?
+							# puts "========Before Per Person========="
+							# puts "Per-person", dsn_oa.outdoorAirFlowperPerson * people_per_m2
+							# puts "Per-area", dsn_oa.outdoorAirFlowperFloorArea
+							# puts "Total OA", tot_oa_per_m2
+
+							if dsn_oa.outdoorAirFlowperPerson.zero?
+							  runner.registerInfo("Space '#{space.name}' per-person outdoor air rate is 0. Using a minimum of 10 cfm / person and assigning the remaining space outdoor air requirement to per-area.")
+							elsif dsn_oa.outdoorAirFlowperFloorArea.zero?
+							  runner.registerInfo("Space '#{space.name}' per-area outdoor air rate is 0. Using a minimum of 10 cfm / person and assigning the remaining space outdoor air requirement to per-area.")
+							end
+
+							# default ventilation is 10 cfm / person
+							per_person_ventilation_rate = OpenStudio.convert(10, 'ft^3/min', 'm^3/s').get
+
+							# assign remaining oa to per-area
+							new_oa_for_people_per_m2 = people_per_m2 * per_person_ventilation_rate
+							new_oa_for_people_cfm_per_f2 = OpenStudio.convert(OpenStudio.convert(new_oa_for_people_per_m2, 'm^3/s', 'cfm').get, '1/m^2', '1/ft^2').get
+							new_oa_for_people_cfm = number_of_people * new_oa_for_people_cfm_per_f2
+							remaining_oa_per_m2 = tot_oa_per_m2 - new_oa_for_people_per_m2
+							if remaining_oa_per_m2 <= 0
+							  runner.registerInfo("Space '#{space.name}' has #{number_of_people.round(1)} people which corresponds to a ventilation minimum requirement of #{new_oa_for_people_cfm.round(0)} cfm at 10 cfm / person, but total zone outdoor air is only #{tot_oa_cfm.round(0)} cfm. Setting all outdoor air as per-person.")
+							  per_person_ventilation_rate = tot_oa_per_m2 / people_per_m2
+							  dsn_oa.setOutdoorAirFlowperFloorArea(0.0)
+							else
+							  oa_per_area_per_m2 = remaining_oa_per_m2
+							  dsn_oa.setOutdoorAirFlowperFloorArea(oa_per_area_per_m2)
+							end
+							dsn_oa.setOutdoorAirFlowperPerson(per_person_ventilation_rate)
+					  end 
+		 end 
+		 end 
+        end 
+
     end 
 
     return true
