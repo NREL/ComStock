@@ -1,12 +1,13 @@
 # ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 import os
-
+import re
 import logging
 import numpy as np
 import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib import ticker
 import plotly.express as px
 import seaborn as sns
 import plotly.graph_objects as go
@@ -1322,3 +1323,150 @@ class PlottingMixin():
         df_2.loc[:, cols] = df_2[cols] * 100
 
         return df_2
+
+    def plot_annual_energy_consumption_for_eia(self, df, color_map, output_dir):
+         # Summarize annual energy consumption for EIA plots
+
+       # Columns to summarize
+        cols_to_summarize = {
+            'Electricity consumption (kWh)': 'sum',
+            'Natural gas consumption (thous Btu)': 'sum'
+        }
+
+        # Disaggregate to these levels
+        group_bys = [
+            None,
+            self.STATE_ABBRV,
+            'Division'
+        ]
+
+        for col, agg_method in cols_to_summarize.items():
+            for group_by in group_bys:
+                # Summarize the data
+                vals = [col]  # Values in Excel pivot table
+                ags = [agg_method]  # How each of the values will be aggregated, like Value Field Settings in Excel, but applied to all values
+                cols = [self.DATASET] # Columns in Excel pivot table
+
+                first_ax = None
+
+                if group_by is None:
+                    # No group-by
+                    pivot = df.pivot_table(values=vals, columns=cols, aggfunc=ags)
+                    pivot = pivot.droplevel([0], axis=1)
+                else:
+                    # With group-by
+                    idx = [group_by]  # Rows in Excel pivot table
+                    pivot = df.pivot_table(values=vals, columns=cols, index=idx, aggfunc=ags)
+                    pivot = pivot.droplevel([0, 1], axis=1)
+
+                # Make the graph
+                if first_ax is None:
+                    ax = pivot.plot.bar(color=color_map)
+                    first_ax = ax
+                else:
+                    ax = pivot.plot.bar(color=color_map, ax=first_ax)
+
+                # Extract the units from the column name
+                match = re.search('\\(.*\\)', col)
+                if match:
+                    units = match.group(0)
+                else:
+                    units = 'TODO units'
+
+                # Formatting
+                if group_by is None:
+                    # No group-by]
+                    title = f"{agg_method} {col.replace(f' {units}', '')}".title()
+                    ax.tick_params(axis='x', labelrotation = 0)
+                    for container in ax.containers:
+                        ax.bar_label(container, fmt='%.2e')
+                else:
+                    # With group-by
+                    title = f"{agg_method} {col.replace(f' {units}', '')}\n by {group_by}".title()
+
+                # Remove 'Sum' from title
+                title = title.replace('Sum', '').strip()
+
+                # Set title and units
+                ax.set_title(title)
+                ax.set_ylabel(f'Annual Energy Consumption {units}')
+
+                # Add legend with no duplicate entries
+                handles, labels = first_ax.get_legend_handles_labels()
+                new_labels = []
+                new_handles = []
+                for l, h in zip(labels, handles):
+                    if not l in new_labels:
+                        new_labels.append(l)  # Add the first instance of the label
+                        new_handles.append(h)
+                ax.legend(new_handles, new_labels, bbox_to_anchor=(1.01,1), loc="upper left")
+
+                # Save the figure
+                title = title.replace('\n', '')
+                fig_name = f'com_eia_{title.replace(" ", "_").lower()}.{self.image_type}'
+                fig_path = os.path.join(output_dir, fig_name)
+                plt.savefig(fig_path, bbox_inches = 'tight')
+                plt.close()
+
+    def plot_monthly_energy_consumption_for_eia(self, df, color_map, output_dir):
+        # Columns to summarize
+        cols_to_summarize = {
+            'Electricity consumption (kWh)': 'sum',
+            'Natural gas consumption (thous Btu)': 'sum'
+        }
+
+        # Disaggregate to these levels
+        group_bys = [
+            self.STATE_ABBRV,
+            'Division'
+        ]
+
+        for col, agg_method in cols_to_summarize.items():
+            for group_by in group_bys:
+                # Summarize the data
+                vals = [col]  # Values in Excel pivot table
+                ags = [agg_method]  # How each of the values will be aggregated, like Value Field Settings in Excel, but applied to all values
+                cols = [self.DATASET] # Columns in Excel pivot table
+
+
+                for group_name, group_data in df.groupby(group_by):
+
+                    # With group-by
+                    pivot = group_data.pivot_table(values=vals, columns=cols, index='Month', aggfunc=ags)
+                    pivot = pivot.droplevel([0, 1], axis=1)
+
+                    # Make the graph
+                    ax = pivot.plot.bar(color=color_map)
+
+                    # Extract the units from the column name
+                    match = re.search('\\(.*\\)', col)
+                    if match:
+                        units = match.group(0)
+                    else:
+                        units = 'TODO units'
+
+                    # Set title and units
+                    title = f"{agg_method} Monthly {col.replace(f' {units}', '')}\n by {group_by} for {group_name}".title()
+
+                    # Remove 'Sum' from title
+                    title = title.replace('Sum', '').strip()
+
+                    ax.set_title(title)
+                    ax.set_ylabel(f'Monthly Energy Consumption {units}')
+
+                    # Add legend with no duplicate entries
+                    handles, labels = ax.get_legend_handles_labels()
+                    new_labels = []
+                    new_handles = []
+                    for l, h in zip(labels, handles):
+                        if not l in new_labels:
+                            new_labels.append(l)  # Add the first instance of the label
+                            new_handles.append(h)
+                    ax.legend(new_handles, new_labels, bbox_to_anchor=(1.01,1), loc="upper left")
+
+                    # Save the figure
+                    title = title.replace('\n', '')
+                    fig_name = f'com_eia_{title.replace(" ", "_").lower()}.{self.image_type}'
+                    fig_path = os.path.join(output_dir, fig_name) 
+                    plt.savefig(fig_path, bbox_inches = 'tight')
+                    plt.close()

@@ -54,7 +54,7 @@ class TimeseriesCSVExport < OpenStudio::Measure::ReportingMeasure
     fuel_types = ['Electricity',
                   'NaturalGas',
                   'DistrictCooling',
-                  'DistrictHeating',
+                  'DistrictHeatingWater',
                   'Water',
                   'FuelOilNo2',
                   'Propane']
@@ -101,7 +101,7 @@ class TimeseriesCSVExport < OpenStudio::Measure::ReportingMeasure
     new_line = new_line.gsub('runperiod','')
     new_line = new_line.gsub('Date/Time','Time')
     new_line = new_line.gsub('Heating:Electricity [kWh]','electricity_heating_kwh')
-    new_line = new_line.gsub('Heating:DistrictHeating [kBtu]','districtheating_heating_kbtu')
+    new_line = new_line.gsub('Heating:DistrictHeatingWater [kBtu]','districtheating_heating_kbtu')
     new_line = new_line.gsub('Heating:NaturalGas [kBtu]','gas_heating_kbtu')
     new_line = new_line.gsub('Heating:Propane [kBtu]','propane_heating_kbtu')
     new_line = new_line.gsub('Heating:FuelOilNo2 [kBtu]','fueloil_heating_kbtu')
@@ -127,13 +127,13 @@ class TimeseriesCSVExport < OpenStudio::Measure::ReportingMeasure
     new_line = new_line.gsub('Generators:Electricity [kWh]','electricity_generators_kwh')
     new_line = new_line.gsub('WaterSystems:Electricity [kWh]','electricity_water_systems_kwh')
     new_line = new_line.gsub('WaterSystems:NaturalGas [kBtu]','gas_water_systems_kbtu')
-    new_line = new_line.gsub('WaterSystems:DistrictHeating [kBtu]','districtheating_water_systems_kbtu')
+    new_line = new_line.gsub('WaterSystems:DistrictHeatingWater [kBtu]','districtheating_water_systems_kbtu')
     new_line = new_line.gsub('WaterSystems:Propane [kBtu]','propane_water_systems_kbtu')
     new_line = new_line.gsub('WaterSystems:FuelOilNo2 [kBtu]','fueloil_water_systems_kbtu')
     new_line = new_line.gsub('WaterSystems:Water [gal]','water_systems_gal')
     new_line = new_line.gsub('Electricity:Facility [kWh]','total_site_electricity_kwh')
     new_line = new_line.gsub('DistrictCooling:Facility [kBtu]','total_site_districtcooling_kbtu')
-    new_line = new_line.gsub('DistrictHeating:Facility [kBtu]','total_site_districtheating_kbtu')
+    new_line = new_line.gsub('DistrictHeatingWater:Facility [kBtu]','total_site_districtheating_kbtu')
     new_line = new_line.gsub('NaturalGas:Facility [kBtu]','total_site_gas_kbtu')
     new_line = new_line.gsub('FuelOilNo2:Facility [kBtu]','total_site_fueloil_kbtu')
     new_line = new_line.gsub('Propane:Facility [kBtu]','total_site_propane_kbtu')
