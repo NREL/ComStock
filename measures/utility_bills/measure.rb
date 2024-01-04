@@ -247,6 +247,7 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
       elec_ann_incr = JSON.parse(File.read(elec_ann_incr_path))[state_abbreviation]
 
       # Calculate the bills for each applicable electric rate using the PySAM API via python
+      rate_results = {}
       calc_elec_bill_py_path = File.join(File.dirname(__FILE__), 'resources', 'calc_elec_bill.py')
       applicable_rates.each_with_index do |rate_path, i|
         # Load the rate data
@@ -260,8 +261,6 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
           runner.registerWarning("#{rate_name} listed no start date, assuming #{rate_start_year}")
         end
 
-        runner.registerInfo("Calculating bills for #{rate_name}")
-
         # Call calc_elec_bill.py
         py = if (os == :windows || os == :macosx)
                'python' # Assumes running buildstockbatch from a Conda shell
@@ -274,18 +273,27 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
 
         command = "#{py} #{calc_elec_bill_py_path} #{elec_csv_path} #{rate_path}"
         stdout_str, stderr_str, status = Open3.capture3(command)
+        # Remove the warning string from the PySAM output if necessary.
+        # The bills are typically reasonable despite this warning.
+        rate_warn_a = 'Billing Demand Notice.'
+        rate_warn_b = 'This rate includes billing demand adjustments and/or demand ratchets that may not be accurately reflected in the data downloaded from the URDB. Please check the information in the Description under Description and Applicability and review the rate sheet to be sure the billing demand inputs are correct.'
+        stdout_str = stdout_str.gsub(rate_warn_a, '')
+        stdout_str = stdout_str.gsub(rate_warn_b, '')
+        stdout_str = stdout_str.strip
         if status.success?
-          pysam_out = JSON.parse(stdout_str)
+          begin
+            pysam_out = JSON.parse(stdout_str)
+          rescue JSON::ParserError
+            runner.registerError("Error running PySAM: #{command}")
+            runner.registerError("stdout: #{stdout_str}")
+            return false
+          end
           # Adjust the rate for price increases using state averages
-          n_yr = 2022 - rate_start_year
-          pct_inc = n_yr * elec_ann_incr
+          pct_inc = ((2022 - rate_start_year) * elec_ann_incr).round(3)
           total_utility_bill_dollars_base_yr = pysam_out['total_utility_bill_dollars'].round.to_i
           total_utility_bill_dollars_2022 = (total_utility_bill_dollars_base_yr * (1.0 + pct_inc)).round.to_i
-          # runner.registerInfo("Adjusting bill from #{rate_name} from #{rate_start_year} to 2022 assuming #{pct_inc} increase.")
-          # Register the resulting bill and associated rate name
-          runner.registerValue("electricity_rate_#{i+1}_name", rate_name)
-          runner.registerValue("electricity_rate_#{i+1}_bill_dollars", total_utility_bill_dollars_2022)
-          elec_bills << total_utility_bill_dollars_2022
+          rate_results[rate_name] = total_utility_bill_dollars_2022
+          runner.registerInfo("Bill for #{rate_name}: $#{total_utility_bill_dollars_2022}, adjusted from #{rate_start_year} to 2022 assuming #{pct_inc} increase.")
         else
           runner.registerError("Error running PySAM: #{command}")
           runner.registerError("stdout: #{stdout_str}")
@@ -294,11 +302,23 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
         end
       end
 
-      # TODO check for outliers
-
-      # TODO report start or end date or latest revision date of each rate
-
-      # TODO if there are many rates, use newer rates only
+      # Report bills for reasonable rates where: 0.25x_median < bill < 2x_median
+      bills_sorted = rate_results.values.sort
+      median_bill = bills_sorted[(bills_sorted.length - 1) / 2] + bills_sorted[bills_sorted.length / 2] / 2.0
+      i = 1
+      rate_results.each do |rate_name, bill|
+        if bill < 0.25 * median_bill
+          runner.registerInfo("Removing #{rate_name}, because bill #{bill} < 0.25 x median #{median_bill}")
+        elsif bill > 2.0 * median_bill
+          runner.registerInfo("Removing #{rate_name}, because bill #{bill} > 2.0 x median #{median_bill}")
+        else
+          # Register the resulting bill and associated rate name
+          runner.registerValue("electricity_rate_#{i}_name", rate_name)
+          runner.registerValue("electricity_rate_#{i}_bill_dollars", bill)
+          elec_bills << bill
+          i += 1
+        end
+      end
     else
       elec_prices_path = File.join(File.dirname(__FILE__), 'resources', 'eia_com_elec_prices_dol_per_kwh_2022.json')
       elec_rate_dollars_per_kwh = JSON.parse(File.read(elec_prices_path))[state_abbreviation]
@@ -308,9 +328,25 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
       elec_bills << total_elec_utility_bill_dollars
     end
 
-    # Calculate the average annual bill across all applicable electric rates
-    avg_elec_bill = (elec_bills.sum(0.0) / elec_bills.size).round.to_i
-    runner.registerValue('electricity_average_bill_dollars', avg_elec_bill)
+    # Report bill statistics across all applicable electric rates
+    elec_bills = elec_bills.sort
+    runner.registerInfo("Bills sorted: #{elec_bills}")
+    min_bill = elec_bills.min
+    max_bill = elec_bills.max
+    mean_bill = (elec_bills.sum.to_f / elec_bills.length).round.to_i
+    lo_i = (elec_bills.length - 1) / 2
+    # runner.registerInfo("min_pos: #{lo_i}")
+    # runner.registerInfo("min_val: #{elec_bills[lo_i]}")
+    hi_i = elec_bills.length / 2
+    # runner.registerInfo("max_pos: #{hi_i}")
+    # runner.registerInfo("max_val: #{elec_bills[hi_i]}")
+    median_bill = ((elec_bills[lo_i] + elec_bills[hi_i]) / 2.0).round.to_i
+    n_bills = elec_bills.length
+    runner.registerValue('electricity_bill_min_dollars', min_bill)
+    runner.registerValue('electricity_bill_max_dollars', max_bill)
+    runner.registerValue('electricity_bill_mean_dollars', mean_bill)
+    runner.registerValue('electricity_bill_median_dollars', median_bill)
+    runner.registerValue('electricity_bill_number_of_rates', n_bills)
 
     # Natural Gas Bill
     if sql.naturalGasTotalEndUses.is_initialized
@@ -319,8 +355,8 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
         prices_path = File.join(File.dirname(__FILE__), 'resources', 'eia_com_gas_prices_dol_per_kbtu_2022.json')
         dollars_per_kbtu = JSON.parse(File.read(prices_path))[state_abbreviation]
         utility_bill_dollars = (tot_kbtu * dollars_per_kbtu).round.to_i
-        runner.registerValue("natural_gas_rate_1_name", "EIA 2022 Average Commercial Natural Gas Price for #{state_abbreviation}")
-        runner.registerValue("natural_gas_rate_1_bill_dollars", utility_bill_dollars)
+        runner.registerValue("natural_gas_rate_name", "EIA 2022 Average Commercial Natural Gas Price for #{state_abbreviation}")
+        runner.registerValue("natural_gas_bill_dollars", utility_bill_dollars)
       end
     end
 
@@ -331,8 +367,8 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
         prices_path = File.join(File.dirname(__FILE__), 'resources', 'eia_res_propane_prices_dol_per_kbtu_2022.json')
         dollars_per_kbtu = JSON.parse(File.read(prices_path))[state_abbreviation]
         utility_bill_dollars = (tot_kbtu * dollars_per_kbtu).round.to_i
-        runner.registerValue("propane_rate_1_name", "EIA 2022 Average Residential Propane Price for #{state_abbreviation}")
-        runner.registerValue("propane_rate_1_bill_dollars", utility_bill_dollars)
+        runner.registerValue("propane_rate_name", "EIA 2022 Average Residential Propane Price for #{state_abbreviation}")
+        runner.registerValue("propane_bill_dollars", utility_bill_dollars)
       end
     end
 
@@ -343,8 +379,8 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
         prices_path = File.join(File.dirname(__FILE__), 'resources', 'eia_res_fuel_oil_prices_dol_per_kbtu_2022.json')
         dollars_per_kbtu = JSON.parse(File.read(prices_path))[state_abbreviation]
         utility_bill_dollars = (tot_kbtu * dollars_per_kbtu).round.to_i
-        runner.registerValue("fuel_oil_rate_1_name", "EIA 2022 Average Residential Fuel Oil Price for #{state_abbreviation}")
-        runner.registerValue("fuel_oil_rate_1_bill_dollars", utility_bill_dollars)
+        runner.registerValue("fuel_oil_rate_name", "EIA 2022 Average Residential Fuel Oil Price for #{state_abbreviation}")
+        runner.registerValue("fuel_oil_bill_dollars", utility_bill_dollars)
       end
     end
 

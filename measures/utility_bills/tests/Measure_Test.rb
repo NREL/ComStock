@@ -212,14 +212,20 @@ class UtilityBills_Test < Minitest::Test
 
     # Check that electric bills are being calculated
     puts '***Machine-Readable Attributes**'
-    register_values = {}
+    rvs = {}
     result.stepValues.each do |value|
       name_val = JSON.parse(value.string)
-      register_values[name_val['name']] = name_val['value']
+      rvs[name_val['name']] = name_val['value']
     end
-    assert(register_values.has_key?('electricity_rate_1_name'))
-    assert(register_values.has_key?('electricity_rate_1_bill_dollars'))
-    assert(register_values.has_key?('electricity_average_bill_dollars'))
+    assert(rvs.has_key?('electricity_rate_1_name'))
+    assert(rvs.has_key?('electricity_rate_1_bill_dollars'))
+    assert(rvs.has_key?('electricity_bill_mean_dollars'))
+
+    # Check that the statistics make sense (all should match b/c using the EIA rate only)
+    assert_equal(rvs['electricity_bill_min_dollars'],  rvs['electricity_bill_mean_dollars'])
+    assert_equal(rvs['electricity_bill_min_dollars'], rvs['electricity_bill_median_dollars'])
+    assert_equal(rvs['electricity_bill_min_dollars'], rvs['electricity_bill_max_dollars'])
+    assert_equal(rvs['electricity_bill_number_of_rates'], 1)
 
     # Check for a warning about missing utility
     found_warn = false
@@ -280,14 +286,20 @@ class UtilityBills_Test < Minitest::Test
 
     # Check that electric bills are being calculated
     puts '***Machine-Readable Attributes**'
-    register_values = {}
+    rvs = {}
     result.stepValues.each do |value|
       name_val = JSON.parse(value.string)
-      register_values[name_val['name']] = name_val['value']
+      rvs[name_val['name']] = name_val['value']
     end
-    assert(register_values.has_key?('electricity_rate_1_name'))
-    assert(register_values.has_key?('electricity_rate_1_bill_dollars'))
-    assert(register_values.has_key?('electricity_average_bill_dollars'))
+    assert(rvs.has_key?('electricity_rate_1_name'))
+    assert(rvs.has_key?('electricity_rate_1_bill_dollars'))
+    assert(rvs.has_key?('electricity_bill_mean_dollars'))
+
+    # Check that the statistics make sense (all should match b/c using the EIA rate only)
+    assert_equal(rvs['electricity_bill_min_dollars'],  rvs['electricity_bill_mean_dollars'])
+    assert_equal(rvs['electricity_bill_min_dollars'], rvs['electricity_bill_median_dollars'])
+    assert_equal(rvs['electricity_bill_min_dollars'], rvs['electricity_bill_max_dollars'])
+    assert_equal(rvs['electricity_bill_number_of_rates'], 1)
 
     # Check for a warning about no rates found
     found_warn = false
@@ -301,10 +313,10 @@ class UtilityBills_Test < Minitest::Test
   def test_sm_hotel_many_urdb_rates
     test_name = 'sm_hotel_many_urdb_rates'
     model_in_path = "#{File.dirname(__FILE__)}/1004_SmallHotel_a.osm"
-    # Set census tract: G2000030953600 which matches
-    # utility ID: 10000 with lots of rates
-    census_tract = 'G2000030953600'
-    state_abbreviation ='KS'
+    # Set census tract: G0600010400200 which matches
+    # utility ID: 14328 (Pacific Gas & Electric Co.) with lots of rates
+    census_tract = 'G0600010400200'
+    state_abbreviation ='CA'
 
     # create an instance of the measure
     measure = UtilityBills.new
@@ -348,16 +360,98 @@ class UtilityBills_Test < Minitest::Test
 
     # Check that electric bills are being calculated
     puts '***Machine-Readable Attributes**'
-    register_values = {}
+    rvs = {}
     result.stepValues.each do |value|
       name_val = JSON.parse(value.string)
-      register_values[name_val['name']] = name_val['value']
+      rvs[name_val['name']] = name_val['value']
     end
-    assert(register_values.has_key?('electricity_rate_1_name'))
-    assert(register_values.has_key?('electricity_rate_1_bill_dollars'))
-    assert(register_values.has_key?('electricity_average_bill_dollars'))
+    assert(rvs.has_key?('electricity_rate_1_name'))
+    assert(rvs.has_key?('electricity_rate_1_bill_dollars'))
+    assert(rvs.has_key?('electricity_bill_mean_dollars'))
 
-    # Check for a warning about no rates found
+    # Check that the statistics make sense
+    assert(rvs['electricity_bill_min_dollars'] < rvs['electricity_bill_mean_dollars'])
+    assert(rvs['electricity_bill_min_dollars'] < rvs['electricity_bill_median_dollars'])
+    assert(rvs['electricity_bill_max_dollars'] > rvs['electricity_bill_mean_dollars'])
+    assert(rvs['electricity_bill_max_dollars'] > rvs['electricity_bill_median_dollars'])
+    assert(rvs['electricity_bill_number_of_rates'] > 2)
+
+    # Check that more than one rates are applicable
+    num_appl_rates = 0
+    result.stepInfo.each do |msg|
+      num_appl_rates += 1 if msg.include?('is applicable')
+    end
+    assert(num_appl_rates > 0)
+  end
+
+  # Test when the building is a utility with rates with PySAM warning
+  def test_sm_hotel_pysam_warn_rates
+    test_name = 'sm_hotel_pysam_warn_rates'
+    model_in_path = "#{File.dirname(__FILE__)}/1004_SmallHotel_a.osm"
+    # Set census tract: G0900110693300 which matches
+    # utility ID: 2089 (Bozrah Light & Power Company) with lots of rates
+    census_tract = 'G0900110693300'
+    state_abbreviation ='CT'
+
+    # create an instance of the measure
+    measure = UtilityBills.new
+
+    # create an instance of a runner
+    runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
+
+    # get arguments
+    arguments = measure.arguments
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+
+    # get the energyplus output requests, this will be done automatically by OS App and PAT
+    idf_output_requests = measure.energyPlusOutputRequests(OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new), argument_map)
+    assert(idf_output_requests.size > 0, 'Expected IDF output requests, but none were found')
+
+    # mimic the process of running this measure in OS App or PAT
+    epw_path = epw_path_default
+    setup_test(test_name, idf_output_requests, census_tract, state_abbreviation, model_in_path)
+
+    assert(File.exist?(model_out_path(test_name)))
+    assert(File.exist?(sql_path(test_name)), "Could not find sql file at #{sql_path(test_name)}")
+
+    # Set up runner, this will happen automatically when measure is run in PAT or OpenStudio
+    runner.setLastOpenStudioModelPath(OpenStudio::Path.new(model_out_path(test_name)))
+    runner.setLastEnergyPlusWorkspacePath(OpenStudio::Path.new(workspace_path(test_name)))
+    runner.setLastEpwFilePath('')
+    runner.setLastEnergyPlusSqlFilePath(OpenStudio::Path.new(sql_path(test_name)))
+
+    # Temporarily change directory to the run directory and run the measure
+    start_dir = Dir.pwd
+    begin
+      Dir.chdir(run_dir(test_name))
+      # run the measure
+      measure.run(runner, argument_map)
+      result = runner.result
+      show_output(result)
+      assert_equal('Success', result.value.valueName)
+    ensure
+      Dir.chdir(start_dir)
+    end
+
+    # Check that electric bills are being calculated
+    puts '***Machine-Readable Attributes**'
+    rvs = {}
+    result.stepValues.each do |value|
+      name_val = JSON.parse(value.string)
+      rvs[name_val['name']] = name_val['value']
+    end
+    assert(rvs.has_key?('electricity_rate_1_name'))
+    assert(rvs.has_key?('electricity_rate_1_bill_dollars'))
+    assert(rvs.has_key?('electricity_bill_mean_dollars'))
+
+    # Check that the statistics make sense
+    assert(rvs['electricity_bill_min_dollars'] < rvs['electricity_bill_mean_dollars'])
+    assert(rvs['electricity_bill_min_dollars'] < rvs['electricity_bill_median_dollars'])
+    assert(rvs['electricity_bill_max_dollars'] > rvs['electricity_bill_mean_dollars'])
+    assert(rvs['electricity_bill_max_dollars'] > rvs['electricity_bill_median_dollars'])
+    assert(rvs['electricity_bill_number_of_rates'] > 2)
+
+    # Check that more than one rates are applicable
     num_appl_rates = 0
     result.stepInfo.each do |msg|
       num_appl_rates += 1 if msg.include?('is applicable')
@@ -378,19 +472,25 @@ class UtilityBills_Test < Minitest::Test
 
     # Call calc_elec_bill.py on every rate
     all_elec_rates.sort.each_with_index do |rate_path, i|
-      # next unless i >= 0
       rate_path = File.expand_path(rate_path)
       # puts("Testing electricity rate #{i+1}: #{rate_path}")
       command = "python #{calc_elec_bill_path} #{elec_csv_path} #{rate_path}"
       stdout_str, stderr_str, status = Open3.capture3(command)
+      # Remove the warning string from the PySAM output if necessary
+      rate_warn_a = 'Billing Demand Notice.'
+      rate_warn_b = 'This rate includes billing demand adjustments and/or demand ratchets that may not be accurately reflected in the data downloaded from the URDB. Please check the information in the Description under Description and Applicability and review the rate sheet to be sure the billing demand inputs are correct.'
+      stdout_str = stdout_str.gsub(rate_warn_a, '')
+      stdout_str = stdout_str.gsub(rate_warn_b, '')
+      stdout_str = stdout_str.strip
       if status.success?
         # Register the resulting bill and associated rate name
-        msg = "stdout: #{stdout_str}, stderr: #{stderr_str}"
+        msg = "#{i} rate_path: #{rate_path}, stdout: #{stdout_str}, stderr: #{stderr_str}"
         begin
           pysam_out = JSON.parse(stdout_str)
         rescue
           puts(msg)
         end
+        assert(!pysam_out.nil?, msg)
         # Check that a bill was calculated
         assert(pysam_out['total_utility_bill_dollars'] > 0.0, msg)
         # Check blended rates. Some places in AK and HI appear to have rates > ~$1.40/kWh!!!
@@ -403,5 +503,10 @@ class UtilityBills_Test < Minitest::Test
       end
       assert(status.success?, "Rate #{rate_path} failed: stdout: #{stdout_str}, stderr: #{stderr_str}")
     end
+
+    broken_rate_paths.each do |brp|
+      puts brp
+    end
+
   end
 end
