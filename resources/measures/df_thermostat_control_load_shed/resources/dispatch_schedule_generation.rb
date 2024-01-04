@@ -376,7 +376,7 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=
   OpenstudioStandards.run_command(cmd)
   OpenStudio.logFree(OpenStudio::Info, 'openstudio.model.Model', "Finished simulation #{run_dir} at #{Time.now.strftime('%T.%L')}")
   sql_path = OpenStudio::Path.new("#{run_dir}/run/eplusout.sql")
-  puts("### DEBUGGING: sql_path = #{sql_path}")
+  # puts("### DEBUGGING: sql_path = #{sql_path}")
   # get sql
   sqlFile = OpenStudio::SqlFile.new(sql_path)
   # if sqlFile.is_initialized
@@ -391,9 +391,9 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=
       availableReportingFrequencies << repfreq
     end
   end
-  puts("### DEBUGGING: availableEnvPeriods = #{availableEnvPeriods}")
+  # puts("### DEBUGGING: availableEnvPeriods = #{availableEnvPeriods}")
   # puts("### DEBUGGING: availableTimeSeries = #{availableTimeSeries}")
-  puts("### DEBUGGING: availableReportingFrequencies = #{availableReportingFrequencies}")
+  # puts("### DEBUGGING: availableReportingFrequencies = #{availableReportingFrequencies}")
   envperiod = nil
   if availableEnvPeriods.size == 1
     envperiod = 'RUN PERIOD 1'
@@ -502,7 +502,7 @@ def model_run_simulation_on_part_of_year(model, year, max_doy, num_timesteps_in_
   unless Dir.exist?(run_dir)
     FileUtils.mkdir_p(run_dir)
   end
-  puts("### DEBUGGING: run_dir = #{run_dir}")
+  # puts("### DEBUGGING: run_dir = #{run_dir}")
   template = 'ComStock 90.1-2019'
   std = Standard.build(template)
   # Save the model to energyplus idf
@@ -533,9 +533,9 @@ def model_run_simulation_on_part_of_year(model, year, max_doy, num_timesteps_in_
   # puts("### DEBUGGING: model.getRunPeriod.getBeginMonth = #{model.getRunPeriod.getBeginMonth}")
   # puts("### DEBUGGING: model.getRunPeriod.getEndMonth = #{model.getRunPeriod.getEndMonth}")
   # puts("### DEBUGGING: model.getRunPeriod.getEndDayOfMonth = #{model.getRunPeriod.getEndDayOfMonth}")
-  puts("### DEBUGGING: model.getSimulationControl.doZoneSizingCalculation = #{model.getSimulationControl.doZoneSizingCalculation}")
-  puts("### DEBUGGING: model.getSimulationControl.doSystemSizingCalculation = #{model.getSimulationControl.doSystemSizingCalculation}")
-  puts("### DEBUGGING: model.getSimulationControl.doPlantSizingCalculation = #{model.getSimulationControl.doPlantSizingCalculation}")
+  # puts("### DEBUGGING: model.getSimulationControl.doZoneSizingCalculation = #{model.getSimulationControl.doZoneSizingCalculation}")
+  # puts("### DEBUGGING: model.getSimulationControl.doSystemSizingCalculation = #{model.getSimulationControl.doSystemSizingCalculation}")
+  # puts("### DEBUGGING: model.getSimulationControl.doPlantSizingCalculation = #{model.getSimulationControl.doPlantSizingCalculation}")
   osm_path = OpenStudio::Path.new("#{run_dir}/#{osm_name}")
   osw_path = OpenStudio::Path.new("#{run_dir}/#{osw_name}")
   model.save(osm_path, true)
@@ -582,7 +582,7 @@ def model_run_simulation_on_part_of_year(model, year, max_doy, num_timesteps_in_
   OpenstudioStandards.run_command(cmd)
   OpenStudio.logFree(OpenStudio::Info, 'openstudio.model.Model', "Finished simulation #{run_dir} at #{Time.now.strftime('%T.%L')}")
   sql_path = OpenStudio::Path.new("#{run_dir}/run/eplusout.sql")
-  puts("### DEBUGGING: sql_path = #{sql_path}")
+  # puts("### DEBUGGING: sql_path = #{sql_path}")
   # get sql
   sqlFile = OpenStudio::SqlFile.new(sql_path)
   # if sqlFile.is_initialized
@@ -597,9 +597,9 @@ def model_run_simulation_on_part_of_year(model, year, max_doy, num_timesteps_in_
       availableReportingFrequencies << repfreq
     end
   end
-  puts("### DEBUGGING: availableEnvPeriods = #{availableEnvPeriods}")
+  # puts("### DEBUGGING: availableEnvPeriods = #{availableEnvPeriods}")
   # puts("### DEBUGGING: availableTimeSeries = #{availableTimeSeries}")
-  puts("### DEBUGGING: availableReportingFrequencies = #{availableReportingFrequencies}")
+  # puts("### DEBUGGING: availableReportingFrequencies = #{availableReportingFrequencies}")
   envperiod = nil
   if availableEnvPeriods.size == 1
     envperiod = 'RUN PERIOD 1'

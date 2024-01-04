@@ -190,6 +190,11 @@ class DfThermostatControlLoadShedTest < Minitest::Test
       assert(num_timesteps_in_hr.setValue(4))
       argument_map['num_timesteps_in_hr'] = num_timesteps_in_hr
 
+      # set arguments: 
+      load_prediction_method = arguments[4].clone	
+      assert(load_prediction_method.setValue('full baseline'))
+      argument_map['load_prediction_method'] = load_prediction_method
+
       # apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
 
