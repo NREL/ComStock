@@ -126,7 +126,7 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
       return sp_adjustment_values
     end
 
-    def get_8760_values_from_schedule_ruleset(model, schedule_ruleset)
+    def get_hourly_schedule_from_schedule_ruleset(model, schedule_ruleset)
       yd = model.getYearDescription
       #puts yd
       # yd.setIsLeapYear(false)
@@ -192,6 +192,7 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
       clg_set_schs = {}
       values = []
       header = []
+      nts = 0
       # thermostats = model.getThermostatSetpointDualSetpoints
       applicable_clg_thermostats.each do |thermostat|
         # setup new cooling setpoint schedule
@@ -212,11 +213,11 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
             #puts schedule.class
             #puts schedule.to_ScheduleRuleset.class
             #puts schedule.to_ScheduleRuleset.get
-            puts("Populating existing schedule ruleset to 8760 schedules...")
+            # puts("Populating existing schedule ruleset to 8760 schedules...")
             header << clg_set_sch.get.name.to_s
-            schedule_8760 = get_8760_values_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get)
+            schedule_8760 = get_hourly_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get)
             values << schedule_8760
-            puts("Update 8760 schedule...")
+            # puts("Update 8760 schedule...")
             header << "#{clg_set_sch.get.name.to_s} adjusted"
             nums = [schedule_8760, clgsp_adjustment_values]
             new_schedule_8760 = nums.transpose.map(&:sum)
@@ -236,7 +237,7 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
               runner.registerError('This measure does not support non-hourly or non-15 min interval data.  Cast your values as 15-min or hourly interval data.  See the values template.')
               return false
             end
-            puts("Make new interval schedule...")
+            # puts("Make new interval schedule...")
             # make a schedule
             startDate = OpenStudio::Date.new(OpenStudio::MonthOfYear.new(1), 1)
             timeseries = OpenStudio::TimeSeries.new(startDate, interval, schedule_values, "C")
@@ -251,18 +252,21 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
             clg_set_schs[clg_set_sch.get.name.to_s] = new_clg_set_sch
           end
           # hook up clone to thermostat
-          puts("Setting new schedule #{new_clg_set_sch.name.to_s}")
+          # puts("Setting new schedule #{new_clg_set_sch.name.to_s}")
           thermostat.setCoolingSetpointTemperatureSchedule(new_clg_set_sch)
+          nts += 1
         else
           runner.registerWarning("Thermostat '#{thermostat.name}' doesn't have a cooling setpoint schedule")
         end
       end
+      return nts
     end
 
     def assign_heatsch_to_thermostats(model,applicable_htg_thermostats,runner,heatsp_adjustment_values)
       heat_set_schs = {}
       values = []
       header = []
+      nts = 0
       # thermostats = model.getThermostatSetpointDualSetpoints
       applicable_htg_thermostats.each do |thermostat|
         # setup new cooling setpoint schedule
@@ -283,11 +287,11 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
             #puts schedule.class
             #puts schedule.to_ScheduleRuleset.class
             #puts schedule.to_ScheduleRuleset.get
-            puts("Populating existing schedule ruleset to 8760 schedules...")
+            # puts("Populating existing schedule ruleset to 8760 schedules...")
             header << heat_set_sch.get.name.to_s
-            schedule_8760 = get_8760_values_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get)
+            schedule_8760 = get_hourly_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get)
             values << schedule_8760
-            puts("Update 8760 schedule...")
+            # puts("Update 8760 schedule...")
             header << "#{heat_set_sch.get.name.to_s} adjusted"
             nums = [schedule_8760, heatsp_adjustment_values]
             new_schedule_8760 = nums.transpose.map(&:sum)
@@ -307,7 +311,7 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
               runner.registerError('This measure does not support non-hourly or non-15 min interval data.  Cast your values as 15-min or hourly interval data.  See the values template.')
               return false
             end
-            puts("Make new interval schedule...")
+            # puts("Make new interval schedule...")
             # make a schedule
             startDate = OpenStudio::Date.new(OpenStudio::MonthOfYear.new(1), 1)
             timeseries = OpenStudio::TimeSeries.new(startDate, interval, schedule_values, "C")
@@ -322,12 +326,14 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
             heat_set_schs[heat_set_sch.get.name.to_s] = new_heat_set_sch
           end
           # hook up clone to thermostat
-          puts("Setting new schedule #{new_heat_set_sch.name.to_s}")
+          # puts("Setting new schedule #{new_heat_set_sch.name.to_s}")
           thermostat.setHeatingSetpointTemperatureSchedule(new_heat_set_sch)
+          nts += 1
         else
           runner.registerWarning("Thermostat '#{thermostat.name}' doesn't have a cooling setpoint schedule")
         end
       end
+      return nts
     end
 
     def isapplicable_buildingtype(model,runner,applicable_building_types)
@@ -344,6 +350,7 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
         runner.registerAsNotApplicable("applicability not passed due to building type (office buildings): #{model_building_type}")
         return false
       elsif model_building_type == 'Office'
+        # https://github.com/NREL/ComStock/blob/a541f15d27206f4e23d56be53ef8b7e154edda9e/postprocessing/comstockpostproc/cbecs.py#L309-L327
         model_building_floor_area_m2 = model.building.get.floorArea.to_f
         model_building_floor_area_sqft = OpenStudio.convert(model_building_floor_area_m2, 'm^2', 'ft^2').get
         # puts("--- model_building_floor_area_sqft = #{model_building_floor_area_sqft}")
@@ -373,11 +380,11 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
           runner.registerAsNotApplicable("applicability not passed due to building type (large office buildings): #{cstock_bldg_type}")
           return false
         else
-          puts("&&& applicability passed for building type: #{cstock_bldg_type}")
+          puts("--- applicability passed for building type: #{cstock_bldg_type}")
           return true
         end
       else
-        puts("&&& applicability passed for building type: #{model_building_type}")
+        puts("--- applicability passed for building type: #{model_building_type}")
         return true
       end
     end
@@ -399,7 +406,7 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
           applicable_htg_thermostats << thermostat
         end
       end
-      return applicable_clg_thermostats, applicable_htg_thermostats
+      return applicable_clg_thermostats, applicable_htg_thermostats, thermostats.size
     end
 
     puts("### ============================================================")
@@ -412,24 +419,24 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
       "Office"
     ]
     if isapplicable_buildingtype(model,runner,applicable_building_types)
-      puts("building type applicability passed")
+      puts("--- building type applicability passed")
     else
       return true
     end
-    applicable_clg_thermostats, applicable_htg_thermostats = applicable_thermostats(model)
-    puts(applicable_clg_thermostats.size)
-    puts(applicable_htg_thermostats.size)
+    applicable_clg_thermostats, applicable_htg_thermostats, nts = applicable_thermostats(model)
+    # puts(applicable_clg_thermostats.size)
+    # puts(applicable_htg_thermostats.size)
     if applicable_clg_thermostats.size > 0 && applicable_htg_thermostats.size > 0
-      puts("electric cooling and heating applicability passed")
+      puts("--- electric cooling and heating applicability passed")
     elsif applicable_clg_thermostats.size > 0
-      puts("electric cooling applicability passed")
+      puts("--- electric cooling applicability passed")
     elsif applicable_htg_thermostats.size > 0
-      puts("electric heating applicability passed")
+      puts("--- electric heating applicability passed")
     else
       runner.registerAsNotApplicable("applicability not passed for electric cooling and heating")
       return true
     end
-
+    runner.registerInitialCondition("The building initially has #{nts} thermostats, of which #{applicable_clg_thermostats.size} are associated with electric cooling and #{applicable_htg_thermostats.size} are associated with electric heating.")
     ############################################
     # Load prediction
     ############################################
@@ -482,21 +489,23 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     puts("--- peak_schedule.size = #{peak_schedule.size}")
     
     puts("### ============================================================")
+    nts_clg = 0
+    nts_htg = 0
     if applicable_clg_thermostats.size > 0
       puts("### Creating cooling setpoint adjustment schedule...")
       clgsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(peak_schedule, sp_adjustment=sp_adjustment)
       puts("### Updating thermostat cooling setpoint schedule...")
-      assign_clgsch_to_thermostats(model,applicable_clg_thermostats,runner,clgsp_adjustment_values)
+      nts_clg = assign_clgsch_to_thermostats(model,applicable_clg_thermostats,runner,clgsp_adjustment_values)
     end
     if applicable_htg_thermostats.size > 0
       puts("### Creating heating setpoint adjustment schedule...")
       heatsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(peak_schedule, sp_adjustment=-sp_adjustment)
       puts("### Updating thermostat cooling setpoint schedule...")
-      assign_heatsch_to_thermostats(model,applicable_htg_thermostats,runner,heatsp_adjustment_values)
+      nts_htg = assign_heatsch_to_thermostats(model,applicable_htg_thermostats,runner,heatsp_adjustment_values)
     end
     # puts("--- clgsp_adjustment_values = #{clgsp_adjustment_values}")
     # puts("--- heatsp_adjustment_values = #{heatsp_adjustment_values}")
-    puts("Complete!")
+    runner.registerFinalCondition("Updated #{nts_clg}/#{applicable_clg_thermostats.size} thermostat cooling setpoint schedules and #{nts_htg}/#{applicable_htg_thermostats.size} thermostat heating setpoint schedules to model, with #{sp_adjustment} degree C setback for #{peak_len} hours of daily peak window and rebound in #{rebound_len} hours after peak, using #{load_prediction_method} simulation for load prediction")
     return true
   end
 end
