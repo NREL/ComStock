@@ -89,6 +89,8 @@ class ElectrifyKitchenEquipment < OpenStudio::Measure::ModelMeasure
         equip_type = get_equip_type_from_name(gas_equip.name.to_s)
         multiplier = gas_equip.multiplier
         modified_name = gas_equip.name.to_s.sub(/^gas_/, '')
+        # get existing gas equipment definition schedule
+        gas_equip_sched_orig = gas_equip.schedule.get.to_ScheduleRuleset.get
 
         # Remove the gas equipment object
         gas_equip.remove
@@ -111,6 +113,8 @@ class ElectrifyKitchenEquipment < OpenStudio::Measure::ModelMeasure
         electric_equip.setName("electric_#{equip_type}_equipment_bldg_quantity=#{quantity}")
         electric_equip.setMultiplier(multiplier)
         electric_equip.setSpaceType(space_type)
+        #set new equipment schedule to the old gas equip schedule
+        electric_equip.setSchedule(gas_equip_sched_orig)
 
         replaced_equip_list << "#{quantity} #{equip_type}s"
       end
