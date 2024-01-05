@@ -41,11 +41,21 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
       result: 'NA'
     }
     test_sets << {
-      model: 'LargeOffice_VAV_chiller_boiler',#LargeOffice_VAV_district_chw_hw
+      model: 'LargeOffice_VAV_chiller_boiler',
       weather: 'CO_FortCollins_16',
       result: 'Success'
     }
-    
+    test_sets << {
+      model: 'LargeOffice_VAV_chiller_boiler_2',
+      weather: 'CO_FortCollins_16',
+      result: 'Success'
+    }
+    test_sets << {
+      model: 'LargeOffice_VAV_district_chw_hw',
+      weather: 'CO_FortCollins_16',
+      result: 'NA'
+    }
+
     return test_sets
   end
 
@@ -192,7 +202,7 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
 
       # set arguments: 
       load_prediction_method = arguments[4].clone	
-      assert(load_prediction_method.setValue('full baseline'))
+      assert(load_prediction_method.setValue('part year bin sample'))#'bin sample''full baseline'
       argument_map['load_prediction_method'] = load_prediction_method
 
       # apply the measure to the model and optionally run the model

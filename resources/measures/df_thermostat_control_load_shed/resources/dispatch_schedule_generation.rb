@@ -291,7 +291,7 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=
   unless Dir.exist?(run_dir)
     FileUtils.mkdir_p(run_dir)
   end
-  puts("### DEBUGGING: run_dir = #{run_dir}")
+  # puts("### DEBUGGING: run_dir = #{run_dir}")
   template = 'ComStock 90.1-2019'
   std = Standard.build(template)
   # Save the model to energyplus idf
@@ -362,7 +362,7 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=
     return false
   end
   workflow.setSeedFile(osm_name)
-  puts osm_path
+  # puts osm_path
   workflow.setWeatherFile(epw_name)
   workflow.saveAs(File.absolute_path(osw_path.to_s))
   # 'touch' the weather file - for some odd reason this fixes the simulation not running issue we had on openstudio-server.
@@ -371,7 +371,7 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=
   cli_path = OpenStudio.getOpenStudioCLI
   cmd = "\"#{cli_path}\" run -w \"#{osw_path}\""
   # cmd = "\"#{cli_path}\" --verbose run -w \"#{osw_path}\""
-  puts cmd
+  # puts cmd
   # Run the sizing run
   OpenstudioStandards.run_command(cmd)
   OpenStudio.logFree(OpenStudio::Info, 'openstudio.model.Model', "Finished simulation #{run_dir} at #{Time.now.strftime('%T.%L')}")
@@ -409,7 +409,7 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=
     raise "timeseriesname of #{timeseriesname} not included in available options: #{availableTimeSeries}"
   end
   unless availableReportingFrequencies.include?(reportingfrequency)
-    puts("Hourly reporting frequency is not available")
+    # puts("Hourly reporting frequency is not available")
     reportingfrequency = 'Zone Timestep'
     unless availableReportingFrequencies.include?(reportingfrequency)
       raise "reportingfrequency of #{reportingfrequency} not included in available options: #{availableReportingFrequencies}"
@@ -457,11 +457,11 @@ def run_samples(model, year, selectdays, num_timesteps_in_hr, epw_path=nil)
       ns = selectdays[key][keykey].length.to_f
       # puts "Number of samples: #{ns}"
       selectdays[key][keykey].each do |doy|
-        start_time = Time.now
+        # start_time = Time.now
         puts "Simulation on day of year: #{doy}"
         yd = model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=epw_path)
-        puts("--- yd = #{yd}")
-        puts("--- yd.size = #{yd.size}")
+        # puts("--- yd = #{yd}")
+        # puts("--- yd.size = #{yd.size}")
         if yd.size > 24
           averages = []
           yd.each_slice(yd.size/24) do |slice|
@@ -479,9 +479,9 @@ def run_samples(model, year, selectdays, num_timesteps_in_hr, epw_path=nil)
             y_seed[key][keykey] = yd.zip(y_seed[key][keykey]).map { |a, b| (a/ns+b) }
           end
         end
-        end_time = Time.now
+        # end_time = Time.now
         run_time += end_time - start_time
-        puts "Script execution time: #{end_time - start_time} seconds"
+        # puts "Script execution time: #{end_time - start_time} seconds"
         # y_seed[key][keykey] = yd / selectdays[key][keykey].length.to_f
         # puts y_seed[key][keykey]
         # break
@@ -491,7 +491,7 @@ def run_samples(model, year, selectdays, num_timesteps_in_hr, epw_path=nil)
     end
     # break
   end
-  puts "Run time for sample simulation run: #{run_time} seconds"
+  # puts "Run time for sample simulation run: #{run_time} seconds"
   return y_seed
 end
 
