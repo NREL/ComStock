@@ -15,7 +15,7 @@ import comstockpostproc.cbecs
 def test_ami_plot_generation():
     # ComStock
     comstock = comstockpostproc.comstock.ComStock(
-        s3_base_dir='eulp/euss_com',
+        s3_base_dir='eulp/comstock_core',
         comstock_run_name='ami_comparison',
         comstock_run_version='ami_comparison',
         comstock_year=2018,
