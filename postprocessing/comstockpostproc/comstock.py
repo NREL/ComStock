@@ -108,7 +108,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.upgrade_ids_to_skip = upgrade_ids_to_skip
         self.s3_client = boto3.client('s3')
         if self.athena_table_name is not None:
-            self.athena_client = BuildStockQuery(workgroup='eulp',db_name='enduse', table_name=self.athena_table_name, skip_reports=True)
+            self.athena_client = BuildStockQuery(workgroup='eulp',
+                                                 db_name='enduse',
+                                                 buildstock_type='comstock',
+                                                 table_name=self.athena_table_name,
+                                                 skip_reports=True)
         self.make_comparison_plots = make_comparison_plots
         logger.info(f'Creating {self.dataset_name}')
 
@@ -233,7 +237,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             s3_file_path = f'truth_data/{self.truth_data_version}/EPA/CEJST/{self.cejst_file_name}'
             self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
 
-    def download_timeseries_data_for_ami_comparison(self, ami, reload_from_csv=True, save_individual_regions=False):     
+    def download_timeseries_data_for_ami_comparison(self, ami, reload_from_csv=True, save_individual_regions=False):
         if reload_from_csv:
             file_name = f'Timeseries for AMI long.csv'
             file_path = os.path.join(self.output_dir, file_name)
@@ -266,7 +270,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 timeseries_df = self.convert_timeseries_to_long(ts_agg, region['county_ids'], region['source_name'], save_individual_region=save_individual_regions)
                 timeseries_df['region_name'] = region['source_name']
                 all_timeseries_df = pd.concat([all_timeseries_df, timeseries_df])
-            
+
             data_path = os.path.join(self.output_dir, 'Timeseries for AMI long.csv')
             all_timeseries_df.to_csv(data_path, index=True)
             self.ami_timeseries_data = all_timeseries_df
@@ -358,7 +362,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             output_file_path = os.path.join(self.output_dir, output_name + '_building_type_timeseries_long.csv')
             agg_df.to_csv(output_file_path, index=True)
             logger.info(f"Saved enduse timeseries in long format for {output_name} to {output_file_path}")
-        
+
         return agg_df
 
     def reduce_df_memory(self, df):
@@ -851,7 +855,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             'Residential forced air_Furnace_None': 'Residential Style Central Systems'
             }
 
-        self.data = self.data.with_columns((pl.col('in.hvac_combined_type').replace(hvac_group_map, default=None)).alias('in.hvac_category'))
+        self.data = self.data.with_columns((pl.col('in.hvac_combined_type').cast(pl.Utf8).replace(hvac_group_map, default=None)).alias('in.hvac_category'))
 
         # Define building type groups relevant to segmentation
         non_food_svc = ['RetailStandalone', 'Warehouse','SmallOffice', 'LargeHotel', 'MediumOffice', 'PrimarySchool',
@@ -1407,17 +1411,17 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # add column for ventilation
         dict_vent = dict(zip(hvac['system_type'], hvac['ventilation_type']))
-        self.data = self.data.with_columns((pl.col('in.hvac_system_type').replace(dict_vent, default=None)).alias('in.hvac_vent_type'))
+        self.data = self.data.with_columns((pl.col('in.hvac_system_type').cast(pl.Utf8).replace(dict_vent, default=None)).alias('in.hvac_vent_type'))
         self.data = self.data.with_columns(pl.col('in.hvac_vent_type').cast(pl.Categorical))
 
         # add column for heating
         dict_heat = dict(zip(hvac['system_type'], hvac['primary_heating']))
-        self.data = self.data.with_columns((pl.col('in.hvac_system_type').replace(dict_heat, default=None)).alias('in.hvac_heat_type'))
+        self.data = self.data.with_columns((pl.col('in.hvac_system_type').cast(pl.Utf8).replace(dict_heat, default=None)).alias('in.hvac_heat_type'))
         self.data = self.data.with_columns(pl.col('in.hvac_heat_type').cast(pl.Categorical))
 
         # add column for cooling
         dict_cool = dict(zip(hvac['system_type'], hvac['primary_cooling']))
-        self.data = self.data.with_columns((pl.col('in.hvac_system_type').replace(dict_cool, default=None)).alias('in.hvac_cool_type'))
+        self.data = self.data.with_columns((pl.col('in.hvac_system_type').cast(pl.Utf8).replace(dict_cool, default=None)).alias('in.hvac_cool_type'))
         self.data = self.data.with_columns(pl.col('in.hvac_cool_type').cast(pl.Categorical))
 
         # hvac combined
@@ -1443,7 +1447,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             'Warehouse': 'Warehouse and Storage',
         }
 
-        self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).replace(bldg_type_groups, default=None)).alias(self.BLDG_TYPE_GROUP))
+        self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_groups, default=None)).alias(self.BLDG_TYPE_GROUP))
         self.data = self.data.with_columns(pl.col(self.BLDG_TYPE_GROUP).cast(pl.Categorical))
 
     def add_national_scaling_weights(self, cbecs: CBECS, remove_non_comstock_bldg_types_from_cbecs: bool):
@@ -1520,7 +1524,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Assign scaling factors to each ComStock run
         self.building_type_weights = bldg_type_scale_factors
-        self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).replace(bldg_type_scale_factors, default=None)).alias(self.BLDG_WEIGHT))
+        self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_scale_factors, default=None)).alias(self.BLDG_WEIGHT))
 
         # Apply the weight to scale the area and energy columns
         self.add_weighted_area_and_energy_columns()
@@ -1868,8 +1872,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         vals = ['Electricity consumption (kWh)', 'Natural gas consumption (thous Btu)']
         cols_to_drop = ['building_type', 'total_site_electricity_kwh', 'total_site_gas_kbtu', 'Scaling Factor']
         idx = ['FIPS Code', 'Month']
-        monthly = monthly.group_by(idx).sum().drop(cols_to_drop) 
-        
+        monthly = monthly.group_by(idx).sum().drop(cols_to_drop)
+
         # Add a dataset label column
         monthly = monthly.with_columns([
             pl.lit(self.dataset_name).alias(self.DATASET)
