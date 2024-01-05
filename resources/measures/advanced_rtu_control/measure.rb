@@ -154,24 +154,24 @@ require 'openstudio-standards'
 	
 
    	model.getAirLoopHVACs.sort.each do |air_loop_hvac|
-	      runner.registerInfo("in air loop") 
-	      if air_loop_hvac_unitary_system?(air_loop_hvac) 
-		    #set control type
-			 air_loop_hvac.supplyComponents.each do |component|#more efficient way of doing this? 
-             obj_type = component.iddObjectType.valueName.to_s
-             case obj_type
-             when 'OS_AirLoopHVAC_UnitarySystem'
-                 component = component.to_AirLoopHVACUnitarySystem.get
-                 component.setControlType('SingleZoneVAV') #confirmed that this worked 
-				 #Set overall flow rates for air loop 
-				 if air_loop_hvac.autosizedDesignSupplyAirFlowRate.is_initialized
-				    #puts ("setting airloop flow rates")
-				    des_supply_airflow = air_loop_hvac.autosizedDesignSupplyAirFlowRate.get
-					#puts ("des supply airflow" + "#{air_loop_hvac.name.to_s}" "#{des_supply_airflow}" + "new max" + "#{max_flow*des_supply_airflow}")
-					component.setSupplyAirFlowRateDuringCoolingOperation(max_flow*des_supply_airflow)
-					component.setSupplyAirFlowRateDuringHeatingOperation(max_flow*des_supply_airflow)
-					component.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_flow*des_supply_airflow)
-				 end 
+		runner.registerInfo("in air loop") 
+	    if air_loop_hvac_unitary_system?(air_loop_hvac) 
+		   #set control type
+			air_loop_hvac.supplyComponents.each do |component|#more efficient way of doing this? 
+				obj_type = component.iddObjectType.valueName.to_s
+			    case obj_type
+                when 'OS_AirLoopHVAC_UnitarySystem'
+					component = component.to_AirLoopHVACUnitarySystem.get
+					component.setControlType('SingleZoneVAV') #confirmed that this worked 
+					#Set overall flow rates for air loop 
+					if air_loop_hvac.autosizedDesignSupplyAirFlowRate.is_initialized
+						#puts ("setting airloop flow rates")
+						des_supply_airflow = air_loop_hvac.autosizedDesignSupplyAirFlowRate.get
+						#puts ("des supply airflow" + "#{air_loop_hvac.name.to_s}" "#{des_supply_airflow}" + "new max" + "#{max_flow*des_supply_airflow}")
+						component.setSupplyAirFlowRateDuringCoolingOperation(max_flow*des_supply_airflow)
+						component.setSupplyAirFlowRateDuringHeatingOperation(max_flow*des_supply_airflow)
+						component.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_flow*des_supply_airflow)
+					end 
 				 component.resetSupplyFan()
 				 sup_fan = air_loop_hvac.supplyFan
 				#Create VS supply fan 
@@ -243,6 +243,7 @@ require 'openstudio-standards'
 							  dsn_oa = space.designSpecificationOutdoorAir
 							  next if dsn_oa.empty?
 							  dsn_oa = dsn_oa.get
+							  puts "design spec oa name #{dsn_oa.name}"
 							  # set design specification outdoor air objects to sum
 							  dsn_oa.setOutdoorAirMethod('Sum')
 
@@ -277,10 +278,12 @@ require 'openstudio-standards'
 						  
 						  # if per-person or per-area values are zero, set to 10 cfm / person and allocate the rest to per-area
 						  elsif dsn_oa.outdoorAirFlowperPerson.zero? || dsn_oa.outdoorAirFlowperFloorArea.zero?
-							# puts "========Before Per Person========="
-							# puts "Per-person", dsn_oa.outdoorAirFlowperPerson * people_per_m2
-							# puts "Per-area", dsn_oa.outdoorAirFlowperFloorArea
-							# puts "Total OA", tot_oa_per_m2
+							puts "========Before Per Person========="
+							puts "#{space.name}"
+							puts "people per m2", people_per_m2
+							puts "Per-person", dsn_oa.outdoorAirFlowperPerson * people_per_m2
+							puts "Per-area", dsn_oa.outdoorAirFlowperFloorArea
+							puts "Total OA", tot_oa_per_m2
 
 							if dsn_oa.outdoorAirFlowperPerson.zero?
 							  runner.registerInfo("Space '#{space.name}' per-person outdoor air rate is 0. Using a minimum of 10 cfm / person and assigning the remaining space outdoor air requirement to per-area.")
