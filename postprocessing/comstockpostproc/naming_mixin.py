@@ -135,6 +135,20 @@ class NamingMixin():
         ANN_OTHER_INTEQUIP_GROUP_KBTU
     ]
 
+    # Utility bills
+    UTIL_BILL_ELEC = 'out.utility_bills.electricity_bill_mean..usd'
+    UTIL_BILL_GAS = 'out.utility_bills.natural_gas_bill..usd'
+    UTIL_BILL_FUEL_OIL = 'out.utility_bills.fuel_oil_bill..usd'
+    UTIL_BILL_PROPANE = 'out.utility_bills.propane_bill..usd'
+
+    # Utility bill columns
+    COLS_UTIL_BILLS = [
+        UTIL_BILL_ELEC,
+        UTIL_BILL_GAS,
+        UTIL_BILL_FUEL_OIL,
+        UTIL_BILL_PROPANE
+    ]
+
     # GHG emissions columns
     ANN_GHG_EGRID = 'calc.emissions.total_with_egrid..co2e_kg'
     ANN_GHG_CAMBIUM = 'calc.emissions.total_with_cambium_mid_case_15y..co2e_kg'
@@ -564,6 +578,26 @@ class NamingMixin():
         area_units = 'ft2'  # Hard-coded because in.sqft column name is required by SightGlass
         eui_units = f'{engy_units}_per_{area_units}'
         col_name = col_name.replace(f'..{engy_units}', f'..{eui_units}')
+
+        return col_name
+
+    def col_name_to_area_intensity(self, col_name):
+        units = self.units_from_col_name(col_name)
+        col_name = col_name.replace('bill_mean..usd', 'bill_intensity..usd')
+        col_name = col_name.replace('bill..usd', 'bill_intensity..usd')
+        area_units = 'ft2'
+        intensity_units = f'{units}_per_{area_units}'
+        col_name = col_name.replace(f'..{units}', f'..{intensity_units}')
+
+        return col_name
+
+    def col_name_to_energy_rate(self, col_name):
+        units = self.units_from_col_name(col_name)
+        col_name = col_name.replace('bill_mean..usd', 'energy_rate..usd')
+        col_name = col_name.replace('bill..usd', 'energy_rate..usd')
+        energy_units = 'kwh'
+        intensity_units = f'{units}_per_{energy_units}'
+        col_name = col_name.replace(f'..{units}', f'..{intensity_units}')
 
         return col_name
 

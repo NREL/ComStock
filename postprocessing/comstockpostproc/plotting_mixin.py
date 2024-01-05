@@ -188,7 +188,7 @@ class PlottingMixin():
         # loop through grid scenarios
         ax_position = 0
         for scenario in electricity_scenarios:
-            
+
             # filter to grid scenario plus on-site combustion fuels
             df_scenario = df_emi_gb_long.loc[(df_emi_gb_long['variable']==scenario) | (df_emi_gb_long['variable'].isin(['Natural Gas', 'Fuel Oil', 'Propane']))]
 
@@ -206,7 +206,7 @@ class PlottingMixin():
             pivot_df.plot(kind='bar', stacked=True, ax=axes[ax_position], width=0.5)
 
             # Set the title for the specific subplot
-            axes[ax_position].set_title(scenario.replace('Electricity:', '')) 
+            axes[ax_position].set_title(scenario.replace('Electricity:', ''))
             axes[ax_position].set_xticklabels(axes[ax_position].get_xticklabels())
             for ax in axes:
                 for label in ax.get_xticklabels():
@@ -450,6 +450,104 @@ class PlottingMixin():
                 fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
                 fig_name = fig_name.replace('boxplot_of_', 'bp_')
                 fig_name = fig_name.replace('total_energy_consumption_', '')
+                fig_path = os.path.join(output_dir, fig_name)
+                plt.savefig(fig_path, bbox_inches = 'tight')
+                plt.close()
+
+    def plot_energy_rate_boxplots(self, df, column_for_grouping, color_map, output_dir):
+        # energy rate box plot comparisons by building type and several disaggregations
+
+        # Columns to summarize
+        cols_to_summarize = [
+            self.col_name_to_energy_rate(self.UTIL_BILL_ELEC),
+            self.col_name_to_energy_rate(self.UTIL_BILL_GAS),
+        ]
+
+        # Disaggregate to these levels
+        group_bys = [
+            self.CEN_DIV,
+            self.BLDG_TYPE
+        ]
+
+        for col in cols_to_summarize:
+            # for bldg_type, bldg_type_ts_df in df.groupby(self.BLDG_TYPE):
+
+            # Make a plot for each group
+            for group_by in group_bys:
+                if group_by is None:
+                    # No group-by
+                    g = sns.catplot(
+                        data=df,
+                        y=column_for_grouping,
+                        hue=column_for_grouping,
+                        x=col,
+                        order=list(color_map.keys()),
+                        palette=color_map.values(),
+                        kind='box',
+                        orient='h',
+                        showfliers=False,
+                        showmeans=True,
+                        meanprops={"marker":"d",
+                            "markerfacecolor":"yellow",
+                            "markeredgecolor":"black",
+                            "markersize":"8"
+                        },
+                        legend=False
+                    )
+                else:
+                    # With group-by
+                    g = sns.catplot(
+                        data=df,
+                        x=col,
+                        hue=column_for_grouping,
+                        y=group_by,
+                        order=self.ORDERED_CATEGORIES[group_by],
+                        hue_order=list(color_map.keys()),
+                        palette=color_map.values(),
+                        kind='box',
+                        orient='h',
+                        showfliers=False,
+                        showmeans=True,
+                        meanprops={"marker":"d",
+                            "markerfacecolor":"yellow",
+                            "markeredgecolor":"black",
+                            "markersize":"8"
+                        },
+                        aspect=2
+                    )
+                    g._legend.set_title(self.col_name_to_nice_name(column_for_grouping))
+
+                fig = g.figure
+
+                # Extract the units from the column name
+                units = self.nice_units(self.units_from_col_name(col))
+
+                # Titles and axis labels
+                col_title = self.col_name_to_nice_name(col)
+                # col_title = col.replace(f' {units}', '')
+                # col_title = col_title.replace('Normalized Annual ', '')
+                fuel = self.col_name_to_fuel(col_title)
+
+                # Formatting
+                if group_by is None:
+                    # No group-by
+                    title = f"Boxplot of {col_title}".title()
+                    for ax in g.axes.flatten():
+                        ax.set_xlabel(f'{fuel} rate ({units})')
+                        ax.set_ylabel('')
+                else:
+                    # With group-by
+                    gb = self.col_name_to_nice_name(group_by)
+                    title = f"Boxplot of {col_title} by {f'{gb}'}".title()
+                    for ax in g.axes.flatten():
+                        ax.set_xlabel(f'{fuel} rate ({units})')
+                        ax.set_ylabel(f'{gb}')
+
+                # Save figure
+                title = title.replace('\n', '')
+                fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+                fig_name = fig_name.replace('boxplot_of_', 'bp_')
+                # fig_name = fig_name.replace('total_energy_consumption_', '')
                 fig_path = os.path.join(output_dir, fig_name)
                 plt.savefig(fig_path, bbox_inches = 'tight')
                 plt.close()
@@ -1467,6 +1565,6 @@ class PlottingMixin():
                     # Save the figure
                     title = title.replace('\n', '')
                     fig_name = f'com_eia_{title.replace(" ", "_").lower()}.{self.image_type}'
-                    fig_path = os.path.join(output_dir, fig_name) 
+                    fig_path = os.path.join(output_dir, fig_name)
                     plt.savefig(fig_path, bbox_inches = 'tight')
                     plt.close()
