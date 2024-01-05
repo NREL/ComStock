@@ -9,7 +9,7 @@ require 'fileutils'
 # require all .rb files in resources folder
 Dir[File.dirname(__FILE__) + '../resources/*.rb'].each { |file| require file }
 
-class DfThermostatControlLoadShedTest < Minitest::Test
+class DfThermostatControlLoadShiftTest < Minitest::Test
   # def setup
   # end
 
@@ -161,7 +161,7 @@ class DfThermostatControlLoadShedTest < Minitest::Test
       epw_path = epw_path[0]
 
       # create an instance of the measure
-      measure = DfThermostatControlLoadShed.new
+      measure = DfThermostatControlLoadShift.new
 
       # load the model; only used here for populating arguments
       model = load_model(osm_path)
@@ -176,9 +176,9 @@ class DfThermostatControlLoadShedTest < Minitest::Test
       argument_map['peak_len'] = peak_len
 
       # set arguments: 
-      rebound_len = arguments[1].clone
-      assert(rebound_len.setValue(2))
-      argument_map['rebound_len'] = rebound_len
+      prepeak_len = arguments[1].clone
+      assert(prepeak_len.setValue(2))
+      argument_map['prepeak_len'] = prepeak_len
 
       # set arguments: 
       sp_adjustment = arguments[2].clone	
@@ -192,7 +192,7 @@ class DfThermostatControlLoadShedTest < Minitest::Test
 
       # set arguments: 
       load_prediction_method = arguments[4].clone	
-      assert(load_prediction_method.setValue('part year bin sample'))#'full baseline'
+      assert(load_prediction_method.setValue('full baseline'))
       argument_map['load_prediction_method'] = load_prediction_method
 
       # apply the measure to the model and optionally run the model
@@ -313,7 +313,7 @@ class DfThermostatControlLoadShedTest < Minitest::Test
 
   #   puts("============================================================")
   #   puts("### Creating peak schedule...")
-  #   peak_schedule = peak_schedule_generation(annual_load, peak_len=4, rebound_len=2)
+  #   peak_schedule = peak_schedule_generation(annual_load, peak_len=4, prepeak_len=2)
   #   # puts("--- peak_schedule = #{peak_schedule}")
   #   puts("--- peak_schedule.size = #{peak_schedule.size}")
 
