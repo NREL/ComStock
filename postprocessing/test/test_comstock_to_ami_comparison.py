@@ -5,6 +5,7 @@
 # -*- coding: utf-8 -*-
 
 import pytest
+import logging
 
 import comstockpostproc.comstock
 import comstockpostproc.ami
@@ -12,7 +13,8 @@ import comstockpostproc.comstock_to_ami_comparison
 import comstockpostproc.cbecs
 
 
-def test_ami_plot_generation():
+def test_ami_plot_generation(caplog):
+    caplog.set_level(logging.INFO)
     # ComStock
     comstock = comstockpostproc.comstock.ComStock(
         s3_base_dir='eulp/comstock_core',
