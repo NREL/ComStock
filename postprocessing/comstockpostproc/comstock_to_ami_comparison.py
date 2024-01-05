@@ -54,9 +54,8 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
             self.name = ' vs '.join(dataset_names)
 
         # Combine into a single dataframe for convenience
-        self.ami_timeseries_data = pd.concat(dfs_to_concat, join='outer', ignore_index=True)
-        self.ami_timeseries_data['timestamp'] = pd.to_datetime(self.ami_timeseries_data['timestamp'])
-        self.ami_timeseries_data.set_index('timestamp', inplace=True, drop=True)
+        self.ami_timeseries_data = pd.concat(dfs_to_concat, join='outer')
+        self.ami_timeseries_data.index = pd.to_datetime(self.ami_timeseries_data.index)
 
         # Make directories
         current_dir = os.path.dirname(os.path.abspath(__file__))
