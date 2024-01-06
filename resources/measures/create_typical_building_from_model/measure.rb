@@ -176,6 +176,8 @@ class CreateTypicalBuildingFromModel < OpenStudio::Measure::ModelMeasure
     hvac_chs << 'PVAV with district hot water reheat'
     hvac_chs << 'PVAV with PFP boxes'
     hvac_chs << 'PVAV with gas heat with electric reheat'
+    hvac_chs << 'PVAV with gas coil heat with electric reheat'
+    hvac_chs << 'PVAV with gas boiler heat with electric reheat'
     hvac_chs << 'Residential AC with baseboard electric'
     hvac_chs << 'Residential AC with baseboard gas boiler'
     hvac_chs << 'Residential AC with baseboard central air source heat pump'
