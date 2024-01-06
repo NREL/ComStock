@@ -177,12 +177,12 @@ require 'openstudio-standards'
 						component.setSupplyAirFlowRateDuringHeatingOperation(max_flow*des_supply_airflow)
 						component.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_flow*des_supply_airflow)
 					end 
-				component.resetSupplyFan()
-				sup_fan = air_loop_hvac.supplyFan
+				sup_fan = component.supplyFan
 				if sup_fan.is_initialized
 					sup_fan = sup_fan.get
 					#handle fan on off objects; replace FanOnOff with FanVariableVolume 
                     if sup_fan.to_FanOnOff.is_initialized
+					   puts "fan on off" 
 					   sup_fan = sup_fan.to_FanOnOff.get
 					   pressure_rise = sup_fan.pressureRise()
 					   #Create VS supply fan 
@@ -194,6 +194,7 @@ require 'openstudio-standards'
 					   fan.setFanPowerMinimumFlowFraction(min_flow_fraction)
 					   fan.setMotorEfficiency(fan_mot_eff) unless fan_mot_eff.nil?
 					   #Add it to the unitary sys
+					   #component.resetSupplyFan()
 					   component.setSupplyFan(fan) 
 					end 
 					#handle constant speed fan objects; replace FanConstantVolume with FanVariableVolume 
@@ -209,6 +210,7 @@ require 'openstudio-standards'
 					   fan.setFanPowerMinimumFlowFraction(min_flow_fraction)
 					   fan.setMotorEfficiency(fan_mot_eff) unless fan_mot_eff.nil?
 					   #Add it to the unitary sys
+					   #component.resetSupplyFan()
 					   component.setSupplyFan(fan) 
 					end 
 				end 
