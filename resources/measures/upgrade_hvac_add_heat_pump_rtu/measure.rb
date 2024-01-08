@@ -303,11 +303,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         orig_htg_coil_gross_cap = orig_htg_coil.nominalCapacity.to_f
       end
 
+      # only require sizing run if required attributes have not been hardsized.
       next if oa_flow_m3_per_s == nil
       next if old_terminal_sa_flow_m3_per_s == nil
       next if orig_clg_coil_gross_cap == nil
       next if orig_htg_coil_gross_cap == nil
-      is_sizing_run_needed==false
+      is_sizing_run_needed=false
     end
 
     # check if any air loops are applicable to measure
@@ -319,7 +320,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # do sizing run with new equipment to set sizing-specific features
     if is_sizing_run_needed == true
       runner.registerInfo("Sizing run needed")
-      if std.model_run_sizing_run(model, "#{Dir.pwd}/SR_HP") == false
+      if std.model_run_sizing_run(model, "#{Dir.pwd}/SR1") == false
         return false
       end
     end
@@ -355,26 +356,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       else
         runner.registerError("No sizing data available for air loop #{air_loop_hvac.name} zone terminal box.")
       end
-
-      ######
-      # # get old terminal box
-      # if thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
-      #   old_terminal = thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctConstantVolumeNoReheat.get
-      # else
-      #   runner.registerError("Terminal box type for air loop #{air_loop_hvac.name} not supported.")
-      #   return false
-      # end
-      # # get sizing information from terminal box
-      # if old_terminal.isMaximumAirFlowRateAutosized == true
-      #   old_terminal_sa_flow_m3_per_s = old_terminal.autosizedMaximumAirFlowRate.get
-      # elsif old_terminal.maximumAirFlowRate.is_initialized
-      #   old_terminal_sa_flow_m3_per_s = old_terminal.maximumAirFlowRate.get
-      # else
-      #   runner.registerError("No sizing data available for air loop #{air_loop_hvac.name} zone terminal box.")
-      # end
-      #####
-
-
 
       # define minimum flow rate needed to maintain ventilation - add in max fraction if in model
       min_oa_flow_ratio = (oa_flow_m3_per_s/old_terminal_sa_flow_m3_per_s)
@@ -437,30 +418,26 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ### End of temp section
     #########################################################################################################
 
-    # model.autosize()
-
-    runner.registerInfo("#{selected_air_loops.size}")
-
     # check if any air loops are applicable to measure
     if selected_air_loops.empty?
       runner.registerAsNotApplicable('No applicable air loops in model. No changes will be made.')
       return true
     end
 
-
     # get model conditioned square footage for reporting
     if model.building.get.conditionedFloorArea.empty?
-      runner.registerError("model.building.get.conditionedFloorArea() is empty.")
-      return true
+      runner.registerWarning("model.building.get.conditionedFloorArea() is empty; applicable floor area fraction will not be reported.")
+      # report initial condition of model
+      runner.registerInitialCondition("The building has #{selected_air_loops.size} applicable air loops (out of the total #{model.getAirLoopHVACs.size} airloops in the model) that will be replaced with heat pump RTUs, serving #{applicable_area_m2.round(0)} m2 of floor area. The remaning airloops were determined to be not applicable.")
     else
       total_area_m2 = model.building.get.conditionedFloorArea.get
+
+      # fraction of conditioned floorspace
+      applicable_floorspace_frac = applicable_area_m2 / total_area_m2
+
+      # report initial condition of model
+      runner.registerInitialCondition("The building has #{selected_air_loops.size} applicable air loops that will be replaced with heat pump RTUs, representing #{(applicable_floorspace_frac*100).round(2)}% of the building floor area.")
     end
-
-    # fraction of conditioned floorspace
-    applicable_floorspace_frac = applicable_area_m2 / total_area_m2
-
-    # report initial condition of model
-    runner.registerInitialCondition("The building has #{selected_air_loops.size} applicable air loops that will be replaced with heat pump RTUs, representing #{(applicable_floorspace_frac*100).round(2)}% of the building floor area.")
 
     backup_heat_source=nil
     # report gas heating as backup source
@@ -732,17 +709,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         return false
       end
 
-      #######
-      # # get sizing information from terminal box
-      # if old_terminal.isMaximumAirFlowRateAutosized == true
-      #   old_terminal_sa_flow_m3_per_s = old_terminal.autosizedMaximumAirFlowRate.get
-      # elsif old_terminal.maximumAirFlowRate.is_initialized
-      #   old_terminal_sa_flow_m3_per_s = old_terminal.maximumAirFlowRate.get
-      # else
-      #   runner.registerError("No sizing data available for air loop #{air_loop_hvac.name} zone terminal box.")
-      # end
-      #######
-
       # get design supply air flow rate
       old_terminal_sa_flow_m3_per_s = nil
       if air_loop_hvac.designSupplyAirFlowRate.is_initialized
@@ -761,12 +727,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       else
         min_oa_flow_ratio = (oa_flow_m3_per_s/old_terminal_sa_flow_m3_per_s)
       end
-
-      # # register as not applicable if OA limit exceeded and unit has night cycling schedules
-      # if (oa_flow_m3_per_s/old_terminal_sa_flow_m3_per_s) > 0.6
-      #   runner.registerAsNotApplicable("Air loop #{air_loop_hvac.name} has an outdoor air ratio of #{(oa_flow_m3_per_s/old_terminal_sa_flow_m3_per_s).round(2)} which exceeds the maximum allowable limit of 0.60 (due to an EnergyPlus night cycling bug with multispeed coils) making this model not applicable at this time.")
-      #   return false
-      # end
 
       # remove old equipment
       old_terminal.remove

@@ -948,18 +948,195 @@ class AddHeatPumpRtuTest < Minitest::Test
     argument_map['econ'] = econ
 
     # get baseline ERVs
+    airloops_w_existing_ervs = []
+    existing_ervs = []
     ervs_baseline = model.getHeatExchangerAirToAirSensibleAndLatents
+    ervs_baseline.each do |erv|
+      airloops_w_existing_ervs << erv.airLoopHVAC.get.to_AirLoopHVAC.get
+      existing_ervs << erv
+    end
+
+    # determine air loops with/without food service (kitchens and dining)
+    airloop_na_no_erv = []
+    airloop_na_erv = []
+    airloop_applic_no_erv = []
+    airloop_applic_erv = []
+    model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+
+      # skip food service space types
+      thermal_zone_names_to_exclude = [
+        'Kitchen',
+        'kitchen',
+        'KITCHEN',
+        'dining',
+        'DINING',
+        'Dining'
+      ]
+
+      # classify non applicable thermal zones
+      if thermal_zone_names_to_exclude.any? { |word| (air_loop_hvac.name.to_s).include?(word) }
+        # classified as NA for HR, but inlcudes existing HR
+        if airloops_w_existing_ervs.include? air_loop_hvac
+          airloop_na_erv << air_loop_hvac
+          puts "NA, ERV: #{air_loop_hvac.name}"
+        # NA for new ERV, no existing ERV
+        else
+          airloop_na_no_erv << air_loop_hvac
+          puts "NA, No ERV: #{air_loop_hvac.name}"
+        end
+        # skip to next loop
+        next
+      end
+      
+      # add remaining applicable zones to list
+      # existing ERV
+      if airloops_w_existing_ervs.include? air_loop_hvac
+        airloop_applic_erv << air_loop_hvac
+        puts "Applicable, ERV: #{air_loop_hvac.name}"
+      # no existing ERV
+      else
+        airloop_applic_no_erv << air_loop_hvac
+        puts "Applicable, No ERV: #{air_loop_hvac.name}"
+      end
+    end
   
     # Apply the measure to the model and optionally run the model
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
     model = load_model(model_output_path(__method__))
     assert_equal('Success', result.value.valueName)
 
-    # assert no difference in ERVs in upgrade model
+    # get upgrade ervs
     ervs_upgrade = model.getHeatExchangerAirToAirSensibleAndLatents
-    puts "erv baseline: #{ervs_baseline.size}"
-    puts "erv upgrade: #{ervs_upgrade.size}"
-    # assert_equal(ervs_baseline, ervs_upgrade)
+
+    # get upgrade ERVs
+    airloops_w_existing_ervs_upgrade = []
+    ervs_baseline = model.getHeatExchangerAirToAirSensibleAndLatents
+    ervs_baseline.each do |erv|
+      airloops_w_existing_ervs_upgrade << erv.airLoopHVAC.get.to_AirLoopHVAC.get
+    end
+
+    # determine air loops with/without food service (kitchens and dining)
+    airloop_na_no_erv_upgrade = []
+    airloop_na_erv_upgrade = []
+    airloop_applic_no_erv_upgrade = []
+    airloop_applic_erv_upgrade = []
+    model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+
+      # skip food service space types
+      thermal_zone_names_to_exclude = [
+        'Kitchen',
+        'kitchen',
+        'KITCHEN',
+        'dining',
+        'DINING',
+        'Dining'
+      ]
+
+      # classify non applicable thermal zones
+      if thermal_zone_names_to_exclude.any? { |word| (air_loop_hvac.name.to_s).include?(word) }
+        # classified as NA for HR, but inlcudes existing HR
+        if airloops_w_existing_ervs.include? air_loop_hvac
+          airloop_na_erv_upgrade << air_loop_hvac
+          puts "NA, ERV: #{air_loop_hvac.name}"
+        # NA for new ERV, no existing ERV
+        else
+          airloop_na_no_erv_upgrade << air_loop_hvac
+          puts "NA, No ERV: #{air_loop_hvac.name}"
+        end
+        # skip to next element
+        next
+      end
+      
+      # add remaining applicable zones to list
+      # existing ERV
+      if airloops_w_existing_ervs.include? air_loop_hvac
+        airloop_applic_erv_upgrade << air_loop_hvac
+        puts "Applicable, ERV: #{air_loop_hvac.name}"
+      # no existing ERV
+      else
+        airloop_applic_no_erv_upgrade << air_loop_hvac
+        puts "Applicable, No ERV: #{air_loop_hvac.name}"
+      end
+    end
+
+
+
+
+    ########
+      # # determine air loops with/without food service (kitchens and dining)
+      # tz_na = []
+      # tz_applicable = []
+      # model.getAirLoopHVACUnitarySystems.sort.each do |unitary_sys|
+
+      #   # skip kitchen spaces
+      #   thermal_zone_names_to_exclude = [
+      #     'Kitchen',
+      #     'kitchen',
+      #     'KITCHEN',
+      #   ]
+      #   if thermal_zone_names_to_exclude.any? { |word| (unitary_sys.name.to_s).include?(word) }
+      #     tz_kitchens << unitary_sys
+
+      #     # add kitchen heating coil to list
+      #     kitchen_htg_coils << unitary_sys.heatingCoil.get
+
+      #     next
+      #   end
+        
+      #   # add non kitchen zone and heating coil to list
+      #   tz_all_other << unitary_sys
+      #   # add kitchen heating coil to list
+      #   nonkitchen_htg_coils << unitary_sys.heatingCoil.get
+      # end
+
+      # # Apply the measure to the model and optionally run the model
+      # result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+      # assert_equal('Success', result.value.valueName)
+      # model = load_model(model_output_path(__method__))
+
+      # # get heating coils from final model for kitchen and non kitchen spaces
+      # tz_kitchens_final = []
+      # kitchen_htg_coils_final = []
+      # tz_all_other_final = []
+      # nonkitchen_htg_coils_final = []
+      # model.getAirLoopHVACUnitarySystems.sort.each do |unitary_sys|
+
+      #   # skip kitchen spaces
+      #   thermal_zone_names_to_exclude = [
+      #     'Kitchen',
+      #     'kitchen',
+      #     'KITCHEN',
+      #   ]
+      #   if thermal_zone_names_to_exclude.any? { |word| (unitary_sys.name.to_s).include?(word) }
+      #     tz_kitchens_final << unitary_sys
+
+      #     # add kitchen heating coil to list
+      #     kitchen_htg_coils_final << unitary_sys.heatingCoil.get
+
+      #     next
+      #   end
+        
+      #   # add non kitchen zone and heating coil to list
+      #   tz_all_other_final << unitary_sys
+      #   # add kitchen heating coil to list
+      #   nonkitchen_htg_coils_final << unitary_sys.heatingCoil.get
+      # end
+
+      # # assert no changes to kitchen unitary systems
+      # assert_equal(tz_kitchens_final, tz_kitchens)
+
+      # # assert non kitchen spaces contain multispeed DX heating coils
+      # nonkitchen_htg_coils_final.each do |htg_coil|
+      #   assert(htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized)
+      # end
+
+      # # assert kitchen spaces still contain gas coils
+      # kitchen_htg_coils_final.each do |htg_coil|
+      #   assert(htg_coil.to_CoilHeatingGas.is_initialized)
+      # end
+
+
+    ########
 
   end
 
