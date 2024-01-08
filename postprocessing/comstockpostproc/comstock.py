@@ -1959,6 +1959,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 if len(str_enums) > 50:
                     logger.debug(f'Not defining enumerations for {col}, see column definition for pattern')
                     col_enums = str_enums[0:10] + ['...too many to list']
+                elif 'utility_bills.' in col:
+                    pass  # Don't define utility rate names
                 else:
                     col_enums = str_enums
                     all_enums.extend(str_enums)
