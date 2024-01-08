@@ -55,7 +55,6 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
 
         # Combine into a single dataframe for convenience
         self.ami_timeseries_data = pd.concat(dfs_to_concat, join='outer')
-        self.ami_timeseries_data.index = pd.to_datetime(self.ami_timeseries_data.index)
 
         # Make directories
         current_dir = os.path.dirname(os.path.abspath(__file__))

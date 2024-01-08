@@ -245,7 +245,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                  raise FileNotFoundError(
                     f'Cannot find {file_path} to reload data, set reload_from_csv=False to create CSV.')
             logger.info(f'Reloading from CSV: {file_path}')
-            self.ami_timeseries_data = pd.read_csv(file_path, low_memory=False)
+            self.ami_timeseries_data = pd.read_csv(file_path, low_memory=False, index_col='timestamp', parse_dates=True)
         else:
             athena_end_uses = list(map(lambda x: NamingMixin.END_USES_TIMESERIES_DICT[x], NamingMixin.END_USES))
             athena_end_uses.append('total_site_electricity_kwh')

@@ -136,7 +136,7 @@ class AMI(NamingMixin, UnitsMixin, S3UtilitiesMixin):
                  raise FileNotFoundError(
                     f'Cannot find {file_path} to reload data, set reload_from_csv=False to create CSV.')
             logger.info(f'Reloading from CSV: {file_path}')
-            self.ami_timeseries_data = pd.read_csv(file_path, low_memory=False)
+            self.ami_timeseries_data = pd.read_csv(file_path, low_memory=False, index_col='timestamp', parse_dates=True)
         else:
             self.calculate_ami_aggregates()
 
