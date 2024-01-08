@@ -76,7 +76,7 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
 
     sp_adjustment = OpenStudio::Measure::OSArgument.makeDoubleArgument('sp_adjustment', true)
     sp_adjustment.setDisplayName("Degrees C to Adjust Setpoint By")
-    sp_adjustment.setDefaultValue(2)
+    sp_adjustment.setDefaultValue(2.0)
     args << sp_adjustment
 
     num_timesteps_in_hr = OpenStudio::Measure::OSArgument.makeIntegerArgument('num_timesteps_in_hr', true)

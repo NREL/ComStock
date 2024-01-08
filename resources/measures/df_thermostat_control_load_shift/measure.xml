@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <measure>
   <schema_version>3.1</schema_version>
-  <name>df_thermostat_control_load_shed</name>
+  <name>df_thermostat_control_load_shift</name>
   <uid>0fdd58b3-9943-40b9-a47f-3db37228b200</uid>
-  <version_id>a2daeb5b-03bf-4114-b502-bc83d379855e</version_id>
-  <version_modified>2023-12-19T20:22:41Z</version_modified>
+  <version_id>134f9386-ac35-43b2-b205-8c8e5f2cb429</version_id>
+  <version_modified>2024-01-08T23:14:28Z</version_modified>
   <xml_checksum>D7E77FC2</xml_checksum>
-  <class_name>DfThermostatControlLoadShed</class_name>
-  <display_name>df thermostat control load shed</display_name>
+  <class_name>DfThermostatControlLoadShift</class_name>
+  <display_name>demand flexibility - thermostat control load shift</display_name>
   <description>tbd</description>
   <modeler_description>tbd</modeler_description>
   <arguments>
@@ -20,9 +20,17 @@
       <default_value>4</default_value>
     </argument>
     <argument>
-      <name>rebound_len</name>
-      <display_name>Length of rebound period after dispatch window (hour)</display_name>
+      <name>prepeak_len</name>
+      <display_name>Length of pre-peak period before dispatch window (hour)</display_name>
       <type>Integer</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>2</default_value>
+    </argument>
+    <argument>
+      <name>sp_adjustment</name>
+      <display_name>Degrees C to Adjust Setpoint By</display_name>
+      <type>Double</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>2</default_value>
@@ -34,6 +42,28 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>4</default_value>
+    </argument>
+    <argument>
+      <name>load_prediction_method</name>
+      <display_name>Method of load prediction (full baseline run, bin sample, part year bin sample)</display_name>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>full baseline</default_value>
+      <choices>
+        <choice>
+          <value>full baseline</value>
+          <display_name>full baseline</display_name>
+        </choice>
+        <choice>
+          <value>bin sample</value>
+          <display_name>bin sample</display_name>
+        </choice>
+        <choice>
+          <value>part year bin sample</value>
+          <display_name>part year bin sample</display_name>
+        </choice>
+      </choices>
     </argument>
   </arguments>
   <outputs />
@@ -85,24 +115,6 @@
   </attributes>
   <files>
     <file>
-      <filename>LICENSE.md</filename>
-      <filetype>md</filetype>
-      <usage_type>license</usage_type>
-      <checksum>CD7F5672</checksum>
-    </file>
-    <file>
-      <filename>README.md</filename>
-      <filetype>md</filetype>
-      <usage_type>readme</usage_type>
-      <checksum>16DC8A23</checksum>
-    </file>
-    <file>
-      <filename>README.md.erb</filename>
-      <filetype>erb</filetype>
-      <usage_type>readmeerb</usage_type>
-      <checksum>F1C26127</checksum>
-    </file>
-    <file>
       <version>
         <software_program>OpenStudio</software_program>
         <identifier>3.5.1</identifier>
@@ -111,67 +123,19 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>3BE7EC8A</checksum>
+      <checksum>DEEC97A3</checksum>
     </file>
     <file>
       <filename>dispatch_schedule_generation.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>31160397</checksum>
+      <checksum>F8949348</checksum>
     </file>
     <file>
-      <filename>Small_Office_psz_gas_3a/files/USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw</filename>
-      <filetype>epw</filetype>
-      <usage_type>test</usage_type>
-      <checksum>288AE598</checksum>
-    </file>
-    <file>
-      <filename>Small_Office_psz_gas_3a/workflow.osw</filename>
-      <filetype>osw</filetype>
-      <usage_type>test</usage_type>
-      <checksum>5DB861DC</checksum>
-    </file>
-    <file>
-      <filename>Small_Office_psz_gas_3a.osm</filename>
-      <filetype>osm</filetype>
-      <usage_type>test</usage_type>
-      <checksum>143E0799</checksum>
-    </file>
-    <file>
-      <filename>USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw</filename>
-      <filetype>epw</filetype>
-      <usage_type>test</usage_type>
-      <checksum>288AE598</checksum>
-    </file>
-    <file>
-      <filename>df_thermostat_control_load_shed_test.rb</filename>
+      <filename>df_thermostat_control_load_shift_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>876023D4</checksum>
-    </file>
-    <file>
-      <filename>in/files/in.epw</filename>
-      <filetype>epw</filetype>
-      <usage_type>test</usage_type>
-      <checksum>8CECDBED</checksum>
-    </file>
-    <file>
-      <filename>in/workflow.osw</filename>
-      <filetype>osw</filetype>
-      <usage_type>test</usage_type>
-      <checksum>E3CAA8C5</checksum>
-    </file>
-    <file>
-      <filename>in.epw</filename>
-      <filetype>epw</filetype>
-      <usage_type>test</usage_type>
-      <checksum>8CECDBED</checksum>
-    </file>
-    <file>
-      <filename>in.osm</filename>
-      <filetype>osm</filetype>
-      <usage_type>test</usage_type>
-      <checksum>9E458E32</checksum>
+      <checksum>57C6034A</checksum>
     </file>
   </files>
 </measure>
