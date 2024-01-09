@@ -3,7 +3,7 @@
 There are **TWO** measure directories on this GitHub repository.
 This measure repository is for workflow and upgrade measures that require input arguments defined in the [`options_lookup.tsv`](https://github.com/NREL/ComStock/blob/develop/resources/options_lookup.tsv).
 
-Meta and reporting measures are located under [`measures/`](https://github.com/NREL/ComStock/tree/develop/measures).
+Meta and reporting measures are located under [`measures/`](https://github.com/NREL/ComStock/tree/main/measures).
 
 # Workflow Measures
 Measures are added to the workflow in order they first appear in the [`options_lookup.tsv`](https://github.com/NREL/ComStock/blob/develop/resources/options_lookup.tsv) (Additional arguments may be passed to a measure later in the `options_lookup.tsv`, but the order depends on the order of first appearance).
