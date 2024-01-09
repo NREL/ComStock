@@ -2,6 +2,7 @@
 # See top level LICENSE.txt file for license terms.
 from .comstock import ComStock
 from .cbecs import CBECS
+from .eia import EIA
 from .comstock_to_cbecs_comparison import ComStockToCBECSComparison
 from .comstock_measure_comparison import ComStockMeasureComparison
 from .resstock import ResStock
