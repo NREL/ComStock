@@ -4,6 +4,7 @@ import os
 from functools import lru_cache
 
 import boto3
+import botocore
 import glob
 import json
 import logging
@@ -106,7 +107,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.skip_missing_columns = skip_missing_columns
         self.include_upgrades = include_upgrades
         self.upgrade_ids_to_skip = upgrade_ids_to_skip
-        self.s3_client = boto3.client('s3')
+        self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
         if self.athena_table_name is not None:
             self.athena_client = BuildStockQuery(workgroup='eulp',
                                                  db_name='enduse',

@@ -21,6 +21,7 @@ The methods in this class produce the following graphics.
 import os
 
 import boto3
+import botocore
 import logging
 import numpy as np
 import pandas as pd
@@ -119,7 +120,7 @@ class AMI(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             ]
 
         # Initialize s3 client
-        self.s3_client = boto3.client('s3')
+        self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
 
         # Make directories
         for p in [self.truth_data_dir, self.output_dir]:
