@@ -46,90 +46,90 @@ def attempt_sampling(df_in, tsv_version, sim_year, buildstock_dir, sizing_arg):
         gen_county_samples(row, tsv_dir_short, tsv_dir, sim_year, buildstock_dir, sizing_arg)
 
 
-def gen_county_samples(row, tsv_dir_short, tsv_dir, sim_year, buildstock_dir, sizing_arg):
-    """
-    Run tsv_resampling_small_batch.py on a county-by-county basis for counties that require additional samples.\
-    For each county, copy the contents of the comstock_tsvs folder to temporary_folder for data manipulation.\
-    The county_id.tsv and climate_zone.tsv files are modified within temporary_folder.  In county_id.tsv, all\
-    probabilities are set to 0 except where the column is the county in question and the climate zone is that of where\
-    the county is located.  In climate_zone.tsv, all probabilities are set to 0 except the climate zone where the\
-    county is located.
+# def gen_county_samples(row, tsv_dir_short, tsv_dir, sim_year, buildstock_dir, sizing_arg):
+#     """
+#     Run tsv_resampling_small_batch.py on a county-by-county basis for counties that require additional samples.\
+#     For each county, copy the contents of the comstock_tsvs folder to temporary_folder for data manipulation.\
+#     The county_id.tsv and climate_zone.tsv files are modified within temporary_folder.  In county_id.tsv, all\
+#     probabilities are set to 0 except where the column is the county in question and the climate zone is that of where\
+#     the county is located.  In climate_zone.tsv, all probabilities are set to 0 except the climate zone where the\
+#     county is located.
 
-    These manipulated tsvs and the number of additional samples needed are passed to tsv_resampling_small_batch.py\
-    for county-specific sampling.  The output buildstock.csv is uniquely named with the county ID and saved in a\
-    separate folder.  temporary_folder is deleted, and the loop continues to the next county in need_more_samples.csv.
-    :param row: Specific row in file containing counties and number of additional samples
-    :param tsv_version: tsv version
-    :param tsv_dir: Directory where tsv files are located
-    :param sim_year: Simulation year (2012-2019)
-    :param buildstock_dir: Directory where county-specific buildstock.csv files are saved
-    """
-    county = row['county_id']
-    print('county =', county)
+#     These manipulated tsvs and the number of additional samples needed are passed to tsv_resampling_small_batch.py\
+#     for county-specific sampling.  The output buildstock.csv is uniquely named with the county ID and saved in a\
+#     separate folder.  temporary_folder is deleted, and the loop continues to the next county in need_more_samples.csv.
+#     :param row: Specific row in file containing counties and number of additional samples
+#     :param tsv_version: tsv version
+#     :param tsv_dir: Directory where tsv files are located
+#     :param sim_year: Simulation year (2012-2019)
+#     :param buildstock_dir: Directory where county-specific buildstock.csv files are saved
+#     """
+#     county = row['county_id']
+#     print('county =', county)
 
-    # Extract TSVs to temporary folder
-    tmp_dir = tempfile.mkdtemp()
-    with zipfile.ZipFile(f'{tsv_dir}.zip', 'r') as zipObj:
-        zipObj.extractall(tmp_dir)
+#     # Extract TSVs to temporary folder
+#     tmp_dir = tempfile.mkdtemp()
+#     with zipfile.ZipFile(f'{tsv_dir}.zip', 'r') as zipObj:
+#         zipObj.extractall(tmp_dir)
 
-    # Import year_of_simulation, county_id and climate_zone to manipulate
-    year_of_simulation = pd.read_csv(os.path.join(tmp_dir, tsv_dir_short, 'year_of_simulation.tsv'), sep='\t', index_col=False)
-    county_id = pd.read_csv(os.path.join(tmp_dir, tsv_dir_short, 'county_id.tsv'), sep='\t', index_col=False)
-    climate_zone = pd.read_csv(os.path.join(tmp_dir, tsv_dir_short, 'climate_zone.tsv'), sep='\t', index_col=False)
+#     # Import year_of_simulation, county_id and climate_zone to manipulate
+#     year_of_simulation = pd.read_csv(os.path.join(tmp_dir, tsv_dir_short, 'year_of_simulation.tsv'), sep='\t', index_col=False)
+#     county_id = pd.read_csv(os.path.join(tmp_dir, tsv_dir_short, 'county_id.tsv'), sep='\t', index_col=False)
+#     climate_zone = pd.read_csv(os.path.join(tmp_dir, tsv_dir_short, 'climate_zone.tsv'), sep='\t', index_col=False)
 
-    # Zero out all probabilities except for the simulation year - change probability to 1
-    for col in year_of_simulation.columns:
-        if col == 'Option=' + str(sim_year):
-            year_of_simulation[col].values[:] = 1
-        elif col != 'Option=' + str(sim_year):
-            year_of_simulation[col].values[:] = 0
+#     # Zero out all probabilities except for the simulation year - change probability to 1
+#     for col in year_of_simulation.columns:
+#         if col == 'Option=' + str(sim_year):
+#             year_of_simulation[col].values[:] = 1
+#         elif col != 'Option=' + str(sim_year):
+#             year_of_simulation[col].values[:] = 0
 
-    # Zero out all probabilities except for the county in question - change probability to 1
-    # Note location of non-zero probability for identifying the county's climate zone
-    y = 0
-    for col in county_id.columns:
-        if col == 'Dependency=climate_zone':
-            continue
-        elif col == 'Option=' + row['county_id']:
-            y = int(county_id[county_id[col] != 0].index[0])
-            county_id.loc[y, col] = 1
-        elif col != 'Option=' + row['county_id']:
-            county_id[col].values[:] = 0
+#     # Zero out all probabilities except for the county in question - change probability to 1
+#     # Note location of non-zero probability for identifying the county's climate zone
+#     y = 0
+#     for col in county_id.columns:
+#         if col == 'Dependency=climate_zone':
+#             continue
+#         elif col == 'Option=' + row['county_id']:
+#             y = int(county_id[county_id[col] != 0].index[0])
+#             county_id.loc[y, col] = 1
+#         elif col != 'Option=' + row['county_id']:
+#             county_id[col].values[:] = 0
 
-    # Identify climate zone county is located in
-    zone = county_id.iloc[y, 0]
+#     # Identify climate zone county is located in
+#     zone = county_id.iloc[y, 0]
 
-    # Zero all climate zones except zone county is located in
-    # Change probability to 1
-    for col in climate_zone.columns:
-        if col == ('Option=' + zone):
-            climate_zone[col].values[:] = 1
-        elif col != ('Option=' + zone):
-            climate_zone[col].values[:] = 0
+#     # Zero all climate zones except zone county is located in
+#     # Change probability to 1
+#     for col in climate_zone.columns:
+#         if col == ('Option=' + zone):
+#             climate_zone[col].values[:] = 1
+#         elif col != ('Option=' + zone):
+#             climate_zone[col].values[:] = 0
 
-    # Write altered TSVs to temporary folder for use in tsv_resampling
-    year_of_simulation.to_csv(os.path.join(tmp_dir, tsv_dir_short, 'year_of_simulation.tsv'), sep='\t', index=False)
-    county_id.to_csv(os.path.join(tmp_dir, tsv_dir_short, 'county_id.tsv'), sep='\t', index=False)
-    climate_zone.to_csv(os.path.join(tmp_dir, tsv_dir_short, 'climate_zone.tsv'), sep='\t', index=False)
+#     # Write altered TSVs to temporary folder for use in tsv_resampling
+#     year_of_simulation.to_csv(os.path.join(tmp_dir, tsv_dir_short, 'year_of_simulation.tsv'), sep='\t', index=False)
+#     county_id.to_csv(os.path.join(tmp_dir, tsv_dir_short, 'county_id.tsv'), sep='\t', index=False)
+#     climate_zone.to_csv(os.path.join(tmp_dir, tsv_dir_short, 'climate_zone.tsv'), sep='\t', index=False)
 
-    # Number of additional samples needed for this county
-    n_add_samples = int(row['additional_samples'])
-    print('number of samples =', n_add_samples)
+#     # Number of additional samples needed for this county
+#     n_add_samples = int(row['additional_samples'])
+#     print('number of samples =', n_add_samples)
 
-    # Run sampling for county
-    lock_dir = tempfile.mkdtemp()
-    sampler = tsv_resampling_small_batch.instantiate_sampler(
-        buildstock_dir,
-        n_add_samples,
-        os.path.join(tmp_dir, tsv_dir_short),
-        lock_dir
-    )
-    sampler.run_sampling(n_datapoints=n_add_samples, county_id=county, sizing_arg=sizing_arg)
-    time.sleep(1)
+#     # Run sampling for county
+#     lock_dir = tempfile.mkdtemp()
+#     sampler = tsv_resampling_small_batch.instantiate_sampler(
+#         buildstock_dir,
+#         n_add_samples,
+#         os.path.join(tmp_dir, tsv_dir_short),
+#         lock_dir
+#     )
+#     sampler.run_sampling(n_datapoints=n_add_samples, county_id=county, sizing_arg=sizing_arg)
+#     time.sleep(1)
 
-    # Remove temporary folder
-    shutil.rmtree(tmp_dir)
-    shutil.rmtree(lock_dir)
+#     # Remove temporary folder
+#     shutil.rmtree(tmp_dir)
+#     shutil.rmtree(lock_dir)
 
 
 def parse_arguments():
