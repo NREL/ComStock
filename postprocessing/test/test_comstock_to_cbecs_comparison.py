@@ -23,6 +23,7 @@ def test_cbecs_plot_generation():
         drop_failed_runs=True,  # False if you want to evaluate which runs failed in raw output data
         color_hex='#0072B2',  # Color used to represent this run in plots
         skip_missing_columns=True,  # False if you want to ensure you have all data specified for export
+        athena_table_name='com_os340_stds_030_10k_test_1',
         reload_from_csv=False, # True if CSV already made and want faster reload times
         include_upgrades=False,  # False if not looking at upgrades
         upgrade_ids_to_skip=[]  # Use ['01', '03'] etc. to exclude certain upgrades
