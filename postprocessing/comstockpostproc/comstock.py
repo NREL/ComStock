@@ -342,11 +342,20 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # size get data
         # note that this is a Polars dataframe, not a Pandas dataframe
+        self.data = self.data.with_columns([pl.col('in.nhgis_county_gisjoin').cast(pl.Utf8)])
         size_df = self.data.filter(self.data['in.nhgis_county_gisjoin'].is_in(county_ids))
         size_df = size_df.select(['in.comstock_building_type', 'in.sqft', 'calc.weighted.sqft'])
+
+        # Cast columns to match dtype of lists
+        size_df = size_df.with_columns([
+            pl.col('in.comstock_building_type').cast(pl.Utf8),
+            pl.col('in.sqft').cast(pl.Float64),
+            pl.col('calc.weighted.sqft').cast(pl.Float64)
+        ])
+
         size_df = size_df.group_by('in.comstock_building_type').agg(pl.col(['in.sqft', 'calc.weighted.sqft']).sum())
         size_df = size_df.with_columns((pl.col('calc.weighted.sqft')/pl.col('in.sqft')).alias('weight'))
-        size_df = size_df.with_columns((pl.col('in.comstock_building_type').cast(pl.Utf8).replace(self.BLDG_TYPE_TO_SNAKE_CASE, default=None)).alias('building_type'))
+        size_df = size_df.with_columns((pl.col('in.comstock_building_type').replace(self.BLDG_TYPE_TO_SNAKE_CASE, default=None)).alias('building_type'))
         # file_path = os.path.join(self.output_dir, output_name + '_building_type_size.csv')
         # size_df.write_csv(file_path)
 
