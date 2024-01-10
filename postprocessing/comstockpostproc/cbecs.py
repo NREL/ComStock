@@ -88,6 +88,13 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             s3_file_path = f'truth_data/{self.truth_data_version}/EIA/CBECS/{file_name}'
             self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
 
+        # state region division table
+        file_name = f'state_region_division_table.csv'
+        file_path = os.path.join(self.truth_data_dir, file_name)
+        if not os.path.exists(file_path):
+            s3_file_path = f'truth_data/{self.truth_data_version}/EIA/CBECS/{file_name}'
+            self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
+
     def load_data(self):
         # Load raw microdata and codebook and decode numeric keys to strings using codebook
 
