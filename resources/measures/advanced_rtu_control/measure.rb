@@ -21,7 +21,7 @@ require 'openstudio-standards'
 
   # human readable description of modeling approach
   def modeler_description
-    return 'This measure iterates through airloops, and, where applicable, replaces constant speed fans with variable speed fans, and replaces the existing termianl unit.'
+    return 'This measure iterates through airloops, and, where applicable, replaces constant speed fans with variable speed fans, and replaces the existing zone terminal.'
   end
 
   # define the arguments that the user will input
@@ -179,30 +179,30 @@ require 'openstudio-standards'
     model.applySizingValues
 	
 
-   	model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+   	model.getAirLoopHVACs.sort.each do |air_loop_hvac| #iterating thru air loops in the model to identify ones suitable for VAV conversion 
 	    if air_loop_hvac_unitary_system?(air_loop_hvac) #applying to unitary systems 
 		   # skip units that are not single zone, or are residential, or do not have outdoor air present, or are evaporative coolers 
-           next if (air_loop_hvac.thermalZones.length() > 1) || air_loop_res(air_loop_hvac) || air_loop_evaporative_cooler(air_loop_hvac)|| (air_loop_hvac.name.to_s.include?("DOAS")) || (air_loop_hvac.name.to_s.include?("doas")) 
+           next if ((air_loop_hvac.thermalZones.length() > 1) || air_loop_res(air_loop_hvac) || air_loop_evaporative_cooler(air_loop_hvac)|| (air_loop_hvac.name.to_s.include?("DOAS")) || (air_loop_hvac.name.to_s.include?("doas")))
 		   #skip based on residential being in name, or if a DOAS 
 		   sizing_system = air_loop_hvac.sizingSystem
-		   next if (air_loop_hvac.name.to_s.include?("residential")) || (air_loop_hvac.name.to_s.include?("Residential")) || (sizing_system.allOutdoorAirinCooling && sizing_system.allOutdoorAirinHeating)
+		   next if ((air_loop_hvac.name.to_s.include?("residential")) || (air_loop_hvac.name.to_s.include?("Residential")) || (sizing_system.allOutdoorAirinCooling && sizing_system.allOutdoorAirinHeating))
 		   #skip VAV systems
 		   next if ['VAV', 'PVAV'].any? { |word| (air_loop_hvac.name.get).include?(word) }
 		   #set control type
-			air_loop_hvac.supplyComponents.each do |component|#more efficient way of doing this? 
+			air_loop_hvac.supplyComponents.each do |component|#identifying unitary systems 
 				obj_type = component.iddObjectType.valueName.to_s
 			    case obj_type
                 when 'OS_AirLoopHVAC_UnitarySystem'
 					component = component.to_AirLoopHVACUnitarySystem.get
 					component.setControlType('SingleZoneVAV') 
 					#Set overall flow rates for air loop 
-					if air_loop_hvac.autosizedDesignSupplyAirFlowRate.is_initialized
-						des_supply_airflow = air_loop_hvac.autosizedDesignSupplyAirFlowRate.get
+					if air_loop_hvac.autosizedDesignSupplyAirFlowRate.is_initialized #change supply air flow design parameters to match VAV conversion 
+						des_supply_airflow = air_loop_hvac.autosizedDesignSupplyAirFlowRate.get #handle autosized 
 						#puts ("des supply airflow" + "#{air_loop_hvac.name.to_s}" "#{des_supply_airflow}" + "new max" + "#{max_flow*des_supply_airflow}")
 						component.setSupplyAirFlowRateDuringCoolingOperation(max_flow*des_supply_airflow) #Set max based on limit after retrofit 
 						component.setSupplyAirFlowRateDuringHeatingOperation(max_flow*des_supply_airflow) #Set max based on limit after retrofit 
 						component.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_flow*des_supply_airflow) #Set min based on limit after retrofit 
-					elsif air_loop_hvac.designSupplyAirFlowRate.is_initialized
+					elsif air_loop_hvac.designSupplyAirFlowRate.is_initialized #handle hard-sized 
 						des_supply_airflow = air_loop_hvac.designSupplyAirFlowRate.get
 						#puts ("des supply airflow" + "#{air_loop_hvac.name.to_s}" "#{des_supply_airflow}" + "new max" + "#{max_flow*des_supply_airflow}")
 						component.setSupplyAirFlowRateDuringCoolingOperation(max_flow*des_supply_airflow)
@@ -210,7 +210,7 @@ require 'openstudio-standards'
 						component.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_flow*des_supply_airflow)
 					end 
 				sup_fan = component.supplyFan
-				if sup_fan.is_initialized
+				if sup_fan.is_initialized #Replace constant speed with variable speed fan objects 
 					sup_fan = sup_fan.get
 					#handle fan on off objects; replace FanOnOff with FanVariableVolume 
                     if sup_fan.to_FanOnOff.is_initialized
@@ -248,14 +248,14 @@ require 'openstudio-standards'
 				end 
 			 end 
 			 end 
-			 air_loop_hvac.thermalZones.each do |thermal_zone|
+			 air_loop_hvac.thermalZones.each do |thermal_zone| #iterate thru thermal zones and modify zone-level terminal units 
 			    min_oa_flow_rate = thermal_zone_outdoor_airflow_rate(thermal_zone) 
 				#runner.registerInfo("min_oa_flow_rate #{min_oa_flow_rate}")
 				thermal_zone.equipment.each do |equip|
 					if equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
 				      term = equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.get 
 					  runner.registerInfo("term #{term}")
-					  new_term = OpenStudio::Model::AirTerminalSingleDuctVAVHeatAndCoolNoReheat.new(model)
+					  new_term = OpenStudio::Model::AirTerminalSingleDuctVAVHeatAndCoolNoReheat.new(model) #create new terminal unit 
 						if term.autosizedMaximumAirFlowRate.is_initialized
 					     des_airflow_rate = term.autosizedMaximumAirFlowRate.get
 						 new_term.setMaximumAirFlowRate(des_airflow_rate * max_flow) #cap maximum based on overall limit 
@@ -271,7 +271,7 @@ require 'openstudio-standards'
 					  air_loop_hvac.addBranchForZone(thermal_zone, new_term)
 					end 
 			    end
-			#handle DCV
+			#handle DCV in appropriate air loops, after screening out those that aren't suitable 
 				if add_dcv and not ['kitchen', 'Kitchen', 'dining', 'Dining', 'Laboratory', 'KITCHEN', 'LABORATORY', 'DINING', 'patient', 'PATIENT', 'Patient'].any? { |word| (air_loop_hvac.name.get).include?(word) }
 				   oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
 				   controller_oa = oa_system.getControllerOutdoorAir
@@ -343,7 +343,7 @@ require 'openstudio-standards'
 					end 
 			         end 
 		        end 
-				if add_econo
+				if add_econo #handle economizing if implementing it 
 					oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
 					controller_oa = oa_system.getControllerOutdoorAir
 					# econ_type = std.model_economizer_type(model, climate_zone)
