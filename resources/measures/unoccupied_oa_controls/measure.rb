@@ -100,12 +100,12 @@ require 'openstudio-standards'
     li_non_unitary_systems = []
     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
       # skip systems that are residential, or are DOAS
-      next if NighttimeOAControls.air_loop_res?(air_loop_hvac)
-      next if NighttimeOAControls.air_loop_doas?(air_loop_hvac)
+      next if UnoccupiedOAControls.air_loop_res?(air_loop_hvac)
+      next if UnoccupiedOAControls.air_loop_doas?(air_loop_hvac)
       # skip outpatient healthcare and schools 
       next if ['outpatient', 'Outpatient', 'OUTPATIENT', 'school', 'SCHOOL', 'School', 'k12', 'K12', 'education', 'EDUCATION', 'Education'].any? { |word| (air_loop_hvac.name.get).include?(word) }
       # check unitary systems
-      if NighttimeOAControls.air_loop_hvac_unitary_system?(air_loop_hvac)
+      if UnoccupiedOAControls.air_loop_hvac_unitary_system?(air_loop_hvac)
         unitary_system_count += 1
         li_unitary_systems << air_loop_hvac
       else
@@ -176,7 +176,8 @@ require 'openstudio-standards'
 	
 	#handle non-unitary systems 
 	li_non_unitary_systems.sort.each do |air_loop_hvac|
-
+	
+      puts "in non unitary list" 
       # change night OA schedule to match hvac operation schedule for no night OA
       #case rtu_night_mode
       #when 'night_fancycle_novent'
@@ -193,15 +194,15 @@ require 'openstudio-standards'
 	#get the supply fan and modify its availability schedule	
 		sup_fan = air_loop_hvac.supplyFan()
 		if sup_fan.to_fanVariableVolume.is_initialized
-		   sup_fan = sup.fan.toFanVariableVolume.get
+		   sup_fan = air_loop_hvac.supplyFan.to_FanVariableVolume.get
 		   sup.fan.setAvailabilitySchedule(air_loop_vent_sch) 
 		end 
 		if sup_fan.to_fanConstantVolume.is_initialized
-		   sup_fan = sup.fan.toFanConstantVolume.get
+		   sup_fan = sup_fan.to_FanConstantVolume.get
 		   sup.fan.setAvailabilitySchedule(air_loop_vent_sch) 
 		end 
 		if sup_fan.to_fanOnOff.is_initialized
-		   sup_fan = sup.fan.toFanOnOff.get
+		   sup_fan = sup_fan.to_FanOnOff.get
 		   sup.fan.setAvailabilitySchedule(air_loop_vent_sch) 
 		end 
 	  
