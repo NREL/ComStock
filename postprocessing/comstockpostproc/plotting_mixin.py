@@ -188,7 +188,7 @@ class PlottingMixin():
         # loop through grid scenarios
         ax_position = 0
         for scenario in electricity_scenarios:
-            
+
             # filter to grid scenario plus on-site combustion fuels
             df_scenario = df_emi_gb_long.loc[(df_emi_gb_long['variable']==scenario) | (df_emi_gb_long['variable'].isin(['Natural Gas', 'Fuel Oil', 'Propane']))]
 
@@ -206,7 +206,7 @@ class PlottingMixin():
             pivot_df.plot(kind='bar', stacked=True, ax=axes[ax_position], width=0.5)
 
             # Set the title for the specific subplot
-            axes[ax_position].set_title(scenario.replace('Electricity:', '')) 
+            axes[ax_position].set_title(scenario.replace('Electricity:', ''))
             axes[ax_position].set_xticklabels(axes[ax_position].get_xticklabels())
             for ax in axes:
                 for label in ax.get_xticklabels():
@@ -1635,7 +1635,11 @@ class PlottingMixin():
         for day_type in comstock_day_type_dict.keys():
             y_max_temp = pd.DataFrame(comstock_data['total'][comstock_day_type_dict[day_type]])
             y_max_temp['hour'] = y_max_temp.index.hour
-            y_max_temp_value = float(y_max_temp.groupby('hour').mean().max().iloc[0])
+            y_max_temp = y_max_temp.groupby('hour').mean()
+            if normalization == 'Daytype':
+                y_max_temp_value = float(y_max_temp['total'].max()/y_max_temp['total'].sum())
+            else:
+                y_max_temp_value = float(y_max_temp['total'].max())
             if y_max_temp_value > y_max_buildstock:
                 y_max_buildstock = y_max_temp_value
 
