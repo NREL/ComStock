@@ -55,6 +55,31 @@ require 'openstudio-standards'
     return is_unitary_system
   end
   
+   def air_loop_res?(air_loop_hvac)
+    is_res_system = true
+    air_loop_hvac.supplyComponents.each do |component|
+      obj_type = component.iddObjectType.valueName.to_s
+      case obj_type
+      when 'OS_AirLoopHVAC_OutdoorAirSystem'
+        is_res_system = false
+      end
+    end
+    return is_res_system
+  end
+
+  # Determine if is evaporative cooler
+  def air_loop_evaporative_cooler?(air_loop_hvac)
+    is_evap = false
+    air_loop_hvac.supplyComponents.each do |component|
+      obj_type = component.iddObjectType.valueName.to_s
+      case obj_type
+      when 'OS_EvaporativeCooler_Direct_ResearchSpecial', 'OS_EvaporativeCooler_Indirect_ResearchSpecial', 'OS_EvaporativeFluidCooler_SingleSpeed', 'OS_EvaporativeFluidCooler_TwoSpeed'
+        is_evap = true
+      end
+    end
+    return is_evap
+  end
+  
    #slightly modified from OS standards to adjust log messages 
    def thermal_zone_outdoor_airflow_rate(thermal_zone)
     tot_oa_flow_rate = 0.0
@@ -156,6 +181,13 @@ require 'openstudio-standards'
 
    	model.getAirLoopHVACs.sort.each do |air_loop_hvac|
 	    if air_loop_hvac_unitary_system?(air_loop_hvac) #applying to unitary systems 
+		   # skip units that are not single zone, or are residential, or do not have outdoor air present, or are evaporative coolers 
+           next if (air_loop_hvac.thermalZones.length() > 1) || air_loop_res(air_loop_hvac) || air_loop_evaporative_cooler(air_loop_hvac)|| (air_loop_hvac.name.to_s.include?("DOAS")) || (air_loop_hvac.name.to_s.include?("doas")) 
+		   #skip based on residential being in name, or if a DOAS 
+		   sizing_system = air_loop_hvac.sizingSystem
+		   next if (air_loop_hvac.name.to_s.include?("residential")) || (air_loop_hvac.name.to_s.include?("Residential")) || (sizing_system.allOutdoorAirinCooling && sizing_system.allOutdoorAirinHeating)
+		   #skip VAV systems
+		   next if ['VAV', 'PVAV'].any? { |word| (air_loop_hvac.name.get).include?(word) }
 		   #set control type
 			air_loop_hvac.supplyComponents.each do |component|#more efficient way of doing this? 
 				obj_type = component.iddObjectType.valueName.to_s
