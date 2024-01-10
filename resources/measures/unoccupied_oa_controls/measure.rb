@@ -19,7 +19,7 @@ require 'openstudio-standards'
 
   # human readable description of modeling approach
   def modeler_description
-    return 'This measure continues to allow for air-side economizing during nighttime hours, since it is only the minimum outdoor air level being modified.'
+    return 'This measure continues to allow for air-side economizing during unoccupied hours, since it is only the minimum outdoor air level being modified.'
   end
 
   # define the arguments that the user will input
