@@ -3,6 +3,7 @@
 import os
 
 import boto3
+import botocore
 import logging
 import numpy as np
 import pandas as pd
@@ -39,7 +40,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         self.data = None
         self.color = color_hex
         self.weighted_energy_units = weighted_energy_units
-        self.s3_client = boto3.client('s3')
+        self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
         logger.info(f'Creating {self.dataset_name}')
 
         # Make directories
