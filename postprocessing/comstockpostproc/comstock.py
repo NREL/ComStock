@@ -871,6 +871,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         lodging = ['SmallHotel', 'LargeHotel']
 
+        # Cast columns used in is_in() statements below to match dtype of lists
+        self.data = self.data.with_columns([
+            pl.col('in.comstock_building_type').cast(pl.Utf8),
+            pl.col('in.hvac_category').cast(pl.Utf8),
+            pl.col('in.hvac_heat_type').cast(pl.Utf8)
+        ])
+
         # Assign segment
         self.data = self.data.with_columns([
             # Segment A
