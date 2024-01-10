@@ -192,18 +192,18 @@ require 'openstudio-standards'
         oa_schd_op_count += 1
 		
 	#get the supply fan and modify its availability schedule	
-		sup_fan = air_loop_hvac.supplyFan()
-		if sup_fan.to_fanVariableVolume.is_initialized
-		   sup_fan = air_loop_hvac.supplyFan.to_FanVariableVolume.get
-		   sup.fan.setAvailabilitySchedule(air_loop_vent_sch) 
+		sup_fan = air_loop_hvac.supplyFan.get
+		if sup_fan.to_FanVariableVolume.is_initialized
+		   sup_fan = sup_fan.to_FanVariableVolume.get
+		   sup_fan.setAvailabilitySchedule(air_loop_vent_sch) 
 		end 
-		if sup_fan.to_fanConstantVolume.is_initialized
+		if sup_fan.to_FanConstantVolume.is_initialized
 		   sup_fan = sup_fan.to_FanConstantVolume.get
-		   sup.fan.setAvailabilitySchedule(air_loop_vent_sch) 
+		   sup_fan.setAvailabilitySchedule(air_loop_vent_sch) 
 		end 
-		if sup_fan.to_fanOnOff.is_initialized
+		if sup_fan.to_FanOnOff.is_initialized
 		   sup_fan = sup_fan.to_FanOnOff.get
-		   sup.fan.setAvailabilitySchedule(air_loop_vent_sch) 
+		   sup_fan.setAvailabilitySchedule(air_loop_vent_sch) 
 		end 
 	  
 	  end 
