@@ -248,7 +248,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             logger.info(f'Reloading from CSV: {file_path}')
             self.ami_timeseries_data = pd.read_csv(file_path, low_memory=False, index_col='timestamp', parse_dates=True)
         else:
-            athena_end_uses = list(map(lambda x: NamingMixin.END_USES_TIMESERIES_DICT[x], NamingMixin.END_USES))
+            athena_end_uses = list(map(lambda x: self.END_USES_TIMESERIES_DICT[x], self.END_USES))
             athena_end_uses.append('total_site_electricity_kwh')
             all_timeseries_df = pd.DataFrame()
             for region in ami.ami_region_map:
@@ -258,8 +258,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     continue
 
                 ts_agg = self.athena_client.agg.aggregate_timeseries(enduses=athena_end_uses,
-                                                                    group_by=['build_existing_model.building_type', 'time'],
-                                                                    restrict=[('build_existing_model.county_id', region['county_ids'])])
+                                                                     group_by=['build_existing_model.building_type', 'time'],
+                                                                     restrict=[('build_existing_model.county_id', region['county_ids'])])
                 if ts_agg['time'].dtype == 'Int64':
                     # Convert bigint to timestamp type if necessary
                     ts_agg['time'] = pd.to_datetime(ts_agg['time']/1e9, unit='s')
@@ -346,7 +346,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         size_df = size_df.select(['in.comstock_building_type', 'in.sqft', 'calc.weighted.sqft'])
         size_df = size_df.group_by('in.comstock_building_type').agg(pl.col(['in.sqft', 'calc.weighted.sqft']).sum())
         size_df = size_df.with_columns((pl.col('calc.weighted.sqft')/pl.col('in.sqft')).alias('weight'))
-        size_df = size_df.with_columns((pl.col('in.comstock_building_type').map_elements(lambda x: NamingMixin.BLDG_TYPE_TO_SNAKE_CASE[x])).alias('building_type'))
+        size_df = size_df.with_columns((pl.col('in.comstock_building_type').cast(pl.Utf8).replace(self.BLDG_TYPE_TO_SNAKE_CASE, default=None)).alias('building_type'))
         # file_path = os.path.join(self.output_dir, output_name + '_building_type_size.csv')
         # size_df.write_csv(file_path)
 
