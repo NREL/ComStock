@@ -189,7 +189,21 @@ require 'openstudio-standards'
         next unless air_loop_oa_system.minimumOutdoorAirSchedule.is_initialized
         air_loop_oa_system.setMinimumOutdoorAirSchedule(air_loop_vent_sch)
         oa_schd_op_count += 1
-      #end
+		
+	#get the supply fan and modify its availability schedule	
+		sup_fan = air_loop_hvac.supplyFan()
+		if sup_fan.to_fanVariableVolume.is_initialized
+		   sup_fan = sup.fan.toFanVariableVolume.get
+		   sup.fan.setAvailabilitySchedule(air_loop_vent_sch) 
+		end 
+		if sup_fan.to_fanConstantVolume.is_initialized
+		   sup_fan = sup.fan.toFanConstantVolume.get
+		   sup.fan.setAvailabilitySchedule(air_loop_vent_sch) 
+		end 
+		if sup_fan.to_fanOnOff.is_initialized
+		   sup_fan = sup.fan.toFanOnOff.get
+		   sup.fan.setAvailabilitySchedule(air_loop_vent_sch) 
+		end 
 	  
 	  end 
     return true
