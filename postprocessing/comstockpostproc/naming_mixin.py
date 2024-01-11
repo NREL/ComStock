@@ -155,7 +155,7 @@ class NamingMixin():
         'out.emissions.electricity.lrmer_95_decarb_by_2035_15_2023_start..co2e_kg'
     ]
 
-    #QOI COLS
+    # QOI COLS
     QOI_MAX_SHOULDER_HR = 'out.qoi.maximum_daily_timing_shoulder_hour..hr'
     QOI_MAX_SUMMER_HR = 'out.qoi.maximum_daily_timing_summer_hour..hr'
     QOI_MAX_WINTER_HR = 'out.qoi.maximum_daily_timing_winter_hour..hr'
@@ -436,6 +436,7 @@ class NamingMixin():
     COLOR_CBECS_2012 = '#009E73'
     COLOR_CBECS_2018 = '#16f0b4'
     COLOR_EIA = '#D55E00'
+    COLOR_AMI = '#CC79A7'
 
     # Define ordering for some categorical variables to make plots easier to interpret
     ORDERED_CATEGORIES = {
@@ -484,6 +485,51 @@ class NamingMixin():
             'SmallHotel',
             'LargeHotel',
             'Warehouse']
+    }
+
+    BLDG_TYPE_TO_SNAKE_CASE = {
+        'FullServiceRestaurant': 'full_service_restaurant',
+        'QuickServiceRestaurant': 'quick_service_restaurant',
+        'RetailStripmall': 'strip_mall',
+        'RetailStandalone': 'retail',
+        'SmallOffice': 'small_office',
+        'MediumOffice': 'medium_office',
+        'LargeOffice': 'large_office',
+        'PrimarySchool': 'primary_school',
+        'SecondarySchool': 'secondary_school',
+        'Outpatient': 'outpatient',
+        'Hospital': 'hospital',
+        'SmallHotel': 'small_hotel',
+        'LargeHotel': 'large_hotel',
+        'Warehouse': 'warehouse'
+    }
+
+    END_USES = [
+        'exterior_lighting',
+        'interior_lighting',
+        'interior_equipment',
+        'water_systems',
+        'heat_recovery',
+        'heat_rejection',
+        'cooling',
+        'heating',
+        'fans',
+        'pumps',
+        'refrigeration'
+    ]
+
+    END_USES_TIMESERIES_DICT = {
+        'exterior_lighting': 'electricity_exterior_lighting_kwh',
+        'interior_lighting': 'electricity_interior_lighting_kwh',
+        'interior_equipment': 'electricity_interior_equipment_kwh',
+        'water_systems': 'electricity_water_systems_kwh',
+        'heat_recovery': 'electricity_heat_recovery_kwh',
+        'heat_rejection': 'electricity_heat_rejection_kwh',
+        'cooling': 'electricity_cooling_kwh',
+        'heating': 'electricity_heating_kwh',
+        'fans': 'electricity_fans_kwh',
+        'pumps': 'electricity_pumps_kwh',
+        'refrigeration': 'electricity_refrigeration_kwh'
     }
 
     def end_use_group(self, end_use):

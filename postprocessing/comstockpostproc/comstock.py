@@ -4,6 +4,7 @@ import os
 from functools import lru_cache
 
 import boto3
+import botocore
 import glob
 import json
 import logging
@@ -11,11 +12,13 @@ import numpy as np
 import pandas as pd
 import polars as pl
 import re
+import datetime
 
 from comstockpostproc.naming_mixin import NamingMixin
 from comstockpostproc.units_mixin import UnitsMixin
 from comstockpostproc.cbecs import CBECS
 from comstockpostproc.eia import EIA
+from comstockpostproc.ami import AMI
 from comstockpostproc.gas_correction_model import GasCorrectionModelMixin
 from comstockpostproc.s3_utilities_mixin import S3UtilitiesMixin
 from buildstock_query import BuildStockQuery
@@ -96,15 +99,21 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.data = None
         self.monthly_data = None
         self.monthly_data_gap = None
+        self.ami_timeseries_data = None
         self.color = color_hex
+        self.building_type_weights = None
         self.weighted_energy_units = weighted_energy_units
         self.weighted_ghg_units = weighted_ghg_units
         self.skip_missing_columns = skip_missing_columns
         self.include_upgrades = include_upgrades
         self.upgrade_ids_to_skip = upgrade_ids_to_skip
-        self.s3_client = boto3.client('s3')
+        self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
         if self.athena_table_name is not None:
-            self.athena_client = BuildStockQuery(workgroup='eulp',db_name='enduse', table_name=self.athena_table_name, skip_reports=True)
+            self.athena_client = BuildStockQuery(workgroup='eulp',
+                                                 db_name='enduse',
+                                                 buildstock_type='comstock',
+                                                 table_name=self.athena_table_name,
+                                                 skip_reports=True)
         self.make_comparison_plots = make_comparison_plots
         logger.info(f'Creating {self.dataset_name}')
 
@@ -228,6 +237,143 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         if not os.path.exists(cejst_data_path):
             s3_file_path = f'truth_data/{self.truth_data_version}/EPA/CEJST/{self.cejst_file_name}'
             self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
+
+    def download_timeseries_data_for_ami_comparison(self, ami, reload_from_csv=True, save_individual_regions=False):
+        if reload_from_csv:
+            file_name = f'Timeseries for AMI long.csv'
+            file_path = os.path.join(self.output_dir, file_name)
+            if not os.path.exists(file_path):
+                 raise FileNotFoundError(
+                    f'Cannot find {file_path} to reload data, set reload_from_csv=False to create CSV.')
+            logger.info(f'Reloading from CSV: {file_path}')
+            self.ami_timeseries_data = pd.read_csv(file_path, low_memory=False, index_col='timestamp', parse_dates=True)
+        else:
+            athena_end_uses = list(map(lambda x: self.END_USES_TIMESERIES_DICT[x], self.END_USES))
+            athena_end_uses.append('total_site_electricity_kwh')
+            all_timeseries_df = pd.DataFrame()
+            for region in ami.ami_region_map:
+                region_file_path_long = os.path.join(self.output_dir, region['source_name'] + '_building_type_timeseries_long.csv')
+                if os.path.isfile(region_file_path_long) and reload_from_csv and save_individual_regions:
+                    logger.info(f"timeseries data in long format for {region['source_name']} already exists at {region_file_path_long}")
+                    continue
+
+                ts_agg = self.athena_client.agg.aggregate_timeseries(enduses=athena_end_uses,
+                                                                     group_by=['build_existing_model.building_type', 'time'],
+                                                                     restrict=[('build_existing_model.county_id', region['county_ids'])])
+                if ts_agg['time'].dtype == 'Int64':
+                    # Convert bigint to timestamp type if necessary
+                    ts_agg['time'] = pd.to_datetime(ts_agg['time']/1e9, unit='s')
+
+                # region_file_path_wide = os.path.join(self.output_dir, region['source_name'] + '_building_type_timeseries_wide.csv')
+                # ts_agg.to_csv(region_file_path_wide, index=False)
+                # logger.info(f"Saved enduse timeseries in wide format for {region['source_name']} to {region_file_path_wide}")
+
+                timeseries_df = self.convert_timeseries_to_long(ts_agg, region['county_ids'], region['source_name'], save_individual_region=save_individual_regions)
+                timeseries_df['region_name'] = region['source_name']
+                all_timeseries_df = pd.concat([all_timeseries_df, timeseries_df])
+
+            data_path = os.path.join(self.output_dir, 'Timeseries for AMI long.csv')
+            all_timeseries_df.to_csv(data_path, index=True)
+            self.ami_timeseries_data = all_timeseries_df
+
+    def convert_timeseries_to_long(self, agg_df, county_ids, output_name, save_individual_region=False):
+        # rename columns
+        agg_df = agg_df.set_index('time')
+        agg_df = agg_df.rename(columns={
+            "build_existing_model.building_type": "building_type",
+            "electricity_exterior_lighting_kwh": "exterior_lighting",
+            "electricity_interior_lighting_kwh": "interior_lighting",
+            "electricity_interior_equipment_kwh": "interior_equipment",
+            "electricity_water_systems_kwh": "water_systems",
+            "electricity_heat_recovery_kwh": "heat_recovery",
+            "electricity_fans_kwh": "fans",
+            "electricity_pumps_kwh": "pumps",
+            "electricity_cooling_kwh": "cooling",
+            "electricity_heating_kwh": "heating",
+            "electricity_refrigeration_kwh": "refrigeration",
+            "total_site_electricity_kwh": "total"
+        })
+
+        # aggregate by hour
+        agg_df['year'] = agg_df.index.year
+        agg_df['month'] = agg_df.index.month
+        agg_df['day'] = agg_df.index.day
+        agg_df['hour'] = agg_df.index.hour
+        agg_df = agg_df.groupby(['building_type', 'year', 'month', 'day', 'hour']).sum().reset_index()
+        agg_df['timestamp'] = agg_df.apply(
+            lambda r: datetime.datetime(
+                r['year'],
+                r['month'],
+                r['day']
+            ) +
+            datetime.timedelta(hours=r['hour']),
+            axis=1
+        )
+        agg_df = agg_df.drop(['year', 'month', 'day', 'hour', 'units_count'], axis=1)
+        agg_df = agg_df.set_index('timestamp')
+        agg_df = agg_df[agg_df.index.dayofyear != 366]
+
+        # melt into long format
+        val_vars = [
+            'exterior_lighting',
+            'interior_lighting',
+            'interior_equipment',
+            'water_systems',
+            'heat_recovery',
+            'fans',
+            'pumps',
+            'cooling',
+            'heating',
+            'refrigeration',
+            'total'
+        ]
+        agg_df = pd.melt(
+            agg_df.reset_index(),
+            id_vars=[
+                'timestamp',
+                'building_type',
+                'sample_count'
+            ],
+            value_vars=val_vars,
+            var_name='enduse',
+            value_name='kwh'
+        ).set_index('timestamp')
+        agg_df = agg_df.rename(columns={'sample_count': 'bldg_count'})
+
+        # size get data
+        # note that this is a Polars dataframe, not a Pandas dataframe
+        self.data = self.data.with_columns([pl.col('in.nhgis_county_gisjoin').cast(pl.Utf8)])
+        size_df = self.data.filter(self.data['in.nhgis_county_gisjoin'].is_in(county_ids))
+        size_df = size_df.select(['in.comstock_building_type', 'in.sqft', 'calc.weighted.sqft'])
+
+        # Cast columns to match dtype of lists
+        size_df = size_df.with_columns([
+            pl.col('in.comstock_building_type').cast(pl.Utf8),
+            pl.col('in.sqft').cast(pl.Float64),
+            pl.col('calc.weighted.sqft').cast(pl.Float64)
+        ])
+
+        size_df = size_df.group_by('in.comstock_building_type').agg(pl.col(['in.sqft', 'calc.weighted.sqft']).sum())
+        size_df = size_df.with_columns((pl.col('calc.weighted.sqft')/pl.col('in.sqft')).alias('weight'))
+        size_df = size_df.with_columns((pl.col('in.comstock_building_type').replace(self.BLDG_TYPE_TO_SNAKE_CASE, default=None)).alias('building_type'))
+        # file_path = os.path.join(self.output_dir, output_name + '_building_type_size.csv')
+        # size_df.write_csv(file_path)
+
+        weight_dict = dict(zip(size_df['building_type'].to_list(), size_df['weight'].to_list()))
+        weight_size_dict = dict(zip(size_df['building_type'].to_list(), size_df['calc.weighted.sqft'].to_list()))
+        agg_df['kwh_weighted'] = agg_df['kwh'] * agg_df['building_type'].map(weight_dict)
+
+        # calculate kwh/sf
+        agg_df['kwh_per_sf'] = agg_df.apply(lambda row: row['kwh_weighted'] / weight_size_dict.get(row['building_type'], 1), axis=1)
+        agg_df = agg_df.drop(['kwh', 'kwh_weighted'], axis=1)
+
+        # save out long data format
+        if save_individual_region:
+            output_file_path = os.path.join(self.output_dir, output_name + '_building_type_timeseries_long.csv')
+            agg_df.to_csv(output_file_path, index=True)
+            logger.info(f"Saved enduse timeseries in long format for {output_name} to {output_file_path}")
+
+        return agg_df
 
     def reduce_df_memory(self, df):
         logger.debug(f'Memory before reduce_df_memory: {df.estimated_size()}')
@@ -719,7 +865,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             'Residential forced air_Furnace_None': 'Residential Style Central Systems'
             }
 
-        self.data = self.data.with_columns((pl.col('in.hvac_combined_type').replace(hvac_group_map, default=None)).alias('in.hvac_category'))
+        self.data = self.data.with_columns((pl.col('in.hvac_combined_type').cast(pl.Utf8).replace(hvac_group_map, default=None)).alias('in.hvac_category'))
 
         # Define building type groups relevant to segmentation
         non_food_svc = ['RetailStandalone', 'Warehouse','SmallOffice', 'LargeHotel', 'MediumOffice', 'PrimarySchool',
@@ -733,6 +879,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             'SecondarySchool', 'LargeOffice']
 
         lodging = ['SmallHotel', 'LargeHotel']
+
+        # Cast columns used in is_in() statements below to match dtype of lists
+        self.data = self.data.with_columns([
+            pl.col('in.comstock_building_type').cast(pl.Utf8),
+            pl.col('in.hvac_category').cast(pl.Utf8),
+            pl.col('in.hvac_heat_type').cast(pl.Utf8)
+        ])
 
         # Assign segment
         self.data = self.data.with_columns([
@@ -1275,17 +1428,17 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # add column for ventilation
         dict_vent = dict(zip(hvac['system_type'], hvac['ventilation_type']))
-        self.data = self.data.with_columns((pl.col('in.hvac_system_type').replace(dict_vent, default=None)).alias('in.hvac_vent_type'))
+        self.data = self.data.with_columns((pl.col('in.hvac_system_type').cast(pl.Utf8).replace(dict_vent, default=None)).alias('in.hvac_vent_type'))
         self.data = self.data.with_columns(pl.col('in.hvac_vent_type').cast(pl.Categorical))
 
         # add column for heating
         dict_heat = dict(zip(hvac['system_type'], hvac['primary_heating']))
-        self.data = self.data.with_columns((pl.col('in.hvac_system_type').replace(dict_heat, default=None)).alias('in.hvac_heat_type'))
+        self.data = self.data.with_columns((pl.col('in.hvac_system_type').cast(pl.Utf8).replace(dict_heat, default=None)).alias('in.hvac_heat_type'))
         self.data = self.data.with_columns(pl.col('in.hvac_heat_type').cast(pl.Categorical))
 
         # add column for cooling
         dict_cool = dict(zip(hvac['system_type'], hvac['primary_cooling']))
-        self.data = self.data.with_columns((pl.col('in.hvac_system_type').replace(dict_cool, default=None)).alias('in.hvac_cool_type'))
+        self.data = self.data.with_columns((pl.col('in.hvac_system_type').cast(pl.Utf8).replace(dict_cool, default=None)).alias('in.hvac_cool_type'))
         self.data = self.data.with_columns(pl.col('in.hvac_cool_type').cast(pl.Categorical))
 
         # hvac combined
@@ -1311,7 +1464,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             'Warehouse': 'Warehouse and Storage',
         }
 
-        self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).replace(bldg_type_groups, default=None)).alias(self.BLDG_TYPE_GROUP))
+        self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_groups, default=None)).alias(self.BLDG_TYPE_GROUP))
         self.data = self.data.with_columns(pl.col(self.BLDG_TYPE_GROUP).cast(pl.Categorical))
 
     def add_national_scaling_weights(self, cbecs: CBECS, remove_non_comstock_bldg_types_from_cbecs: bool):
@@ -1387,7 +1540,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # }
 
         # Assign scaling factors to each ComStock run
-        self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).replace(bldg_type_scale_factors, default=None)).alias(self.BLDG_WEIGHT))
+        self.building_type_weights = bldg_type_scale_factors
+        self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_scale_factors, default=None)).alias(self.BLDG_WEIGHT))
 
         # Apply the weight to scale the area and energy columns
         self.add_weighted_area_and_energy_columns()
@@ -1745,6 +1899,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Aggregate ComStock by state and month, combining all building types
         vals = ['Electricity consumption (kWh)', 'Natural gas consumption (thous Btu)']
         cols_to_drop = ['building_type', 'total_site_electricity_kwh', 'total_site_gas_kbtu', 'Scaling Factor']
+
         idx = ['FIPS Code', 'Month', 'upgrade', 'upgrade_name']
         monthly = monthly.group_by(idx).sum().drop(cols_to_drop) 
         
