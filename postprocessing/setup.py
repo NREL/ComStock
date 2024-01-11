@@ -44,6 +44,7 @@ setup(
         'seaborn>=0.12.0',
         'xlrd',
         'nbformat',
+        'scipy',
         'pandas',
         'plotly',
         'pyarrow',
