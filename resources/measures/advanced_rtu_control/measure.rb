@@ -153,31 +153,24 @@ require 'openstudio-standards'
 	
 	
 	#set airflow design ratios
-	#Based on Catalyst 
-	max_flow = 0.9
-	min_flow = 0.4 
+	max_flow = 1 #revised upward, for energy modeling compatabiltiy 
+	min_flow = 0.4 	#Based on Catalyst 
 	
 	min_flow_fraction = 0.3 #typ for non-inverter driven motors 
 	
-	#Fan curve coeffs from OS standards      
-	coeff_a = 0.027828
-    coeff_b = 0.026583
-    coeff_c = -0.087069
-    coeff_d = 1.030920
-	
-	
 	#Sizing run 
 	standard = Standard.build('90.1-2013')
-    if standard.model_run_sizing_run(model, "#{Dir.pwd}/advanced_rtu_control") == false
-      runner.registerError('Sizing run for Hardsize model failed, cannot hard-size model.')
-      puts('Sizing run for Hardsize model failed, cannot hard-size model.')
-      puts("directory: #{Dir.pwd}")
-      return false
-    end
-
-    #apply sizing values
-    model.applySizingValues
 	
+    if model.sqlFile.empty?
+	  puts('Model had no sizing values--running size run')
+	  if standard.model_run_sizing_run(model, "#{Dir.pwd}/advanced_rtu_control") == false
+		  runner.registerError('Sizing run for Hardsize model failed, cannot hard-size model.')
+		  puts('Sizing run for Hardsize model failed, cannot hard-size model.')
+		  puts("directory: #{Dir.pwd}")
+		  return false
+     end
+	 model.applySizingValues
+    end 
 
    	model.getAirLoopHVACs.sort.each do |air_loop_hvac| #iterating thru air loops in the model to identify ones suitable for VAV conversion 
 	    if air_loop_hvac_unitary_system?(air_loop_hvac) #applying to unitary systems 
@@ -233,14 +226,11 @@ require 'openstudio-standards'
 				   fan.setName("#{air_loop_hvac.name} Fan")
 				   fan.setFanPowerMinimumFlowRateInputMethod("Fraction")
 				   fan.setPressureRise(pressure_rise)#keep it the same as the existing fan, since the balance of systems is the same 
-				   fan.setFanPowerMinimumFlowFraction(min_flow_fraction)
 				   fan.setMotorEfficiency(fan_motor_eff) 
 				   fan.setFanTotalEfficiency(fan_motor_eff * fan_eff) 
 				   #set fan curve coefficients
-                   fan.setFanPowerCoefficient1(coeff_a)
-				   fan.setFanPowerCoefficient2(coeff_b)
-				   fan.setFanPowerCoefficient3(coeff_c)
-				   fan.setFanPowerCoefficient4(coeff_d)
+				   standard.fan_variable_volume_set_control_type(fan, 'Single Zone VAV Fan ') 
+                   fan.setFanPowerMinimumFlowFraction(min_flow_fraction) #resetting minimum flow fraction to be appropriate for retrofit as opposed to 10% in method above 
 				   #Add it to the unitary sys
 				   component.setSupplyFan(fan) 
 				end 
