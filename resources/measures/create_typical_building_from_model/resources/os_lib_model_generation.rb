@@ -2700,7 +2700,7 @@ module OsLib_ModelGeneration
         # Rfilm_in = 0.135, Rfilm_out = 0.03, Rcons = 0.15/1.95
         if cons.area <= (0.135 + 0.03 + 0.15/1.95) * cons.perimeterExposed * cons.fFactor
           # set minimum Rfic to > 1e-3
-          new_area = 0.233 * cons.perimeterExposed * cons.fFactor
+          new_area = 0.2423 * cons.perimeterExposed * cons.fFactor
           runner.registerInfo("F-factor fictitious resistance for #{cons.name.get} with Area=#{cons.area.round(2)}, Exposed Perimeter=#{cons.perimeterExposed.round(2)}, and F-factor=#{cons.fFactor.round(2)} will result in a negative value and a failed simulation. Construction area is adjusted to be #{new_area.round(2)}.")
           cons.setArea(new_area)
         end
