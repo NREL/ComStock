@@ -7,7 +7,7 @@ require 'openstudio-standards'
   # human readable name
   def name
     # Measure name should be the title case of the class name.
-    return 'AdvancedRTUControl'
+    return 'Advanced RTU Control'
   end
 
   # human readable description
@@ -151,15 +151,19 @@ require 'openstudio-standards'
 	add_econo = runner.getBoolArgumentValue('add_econo', user_arguments)
 	add_dcv = runner.getBoolArgumentValue('add_dcv', user_arguments)
 	
-	#Set constants
-	fan_tot_eff = 0.7 #Eplus default, reasonable
-    fan_mot_eff = 0.9 #Eplus default, reasonable 
 	
 	#set airflow design ratios
+	#Based on Catalyst 
 	max_flow = 0.9
 	min_flow = 0.4 
 	
 	min_flow_fraction = 0.3 #typ for non-inverter driven motors 
+	
+	#Fan curve coeffs from OS standards      
+	coeff_a = 0.027828
+    coeff_b = 0.026583
+    coeff_c = -0.087069
+    coeff_d = 1.030920
 	
 	
 	#Sizing run 
@@ -178,7 +182,7 @@ require 'openstudio-standards'
    	model.getAirLoopHVACs.sort.each do |air_loop_hvac| #iterating thru air loops in the model to identify ones suitable for VAV conversion 
 	    if air_loop_hvac_unitary_system?(air_loop_hvac) #applying to unitary systems 
 		   # skip units that are not single zone, or are residential, or do not have outdoor air present, or are evaporative coolers 
-           next if ((air_loop_hvac.thermalZones.length() > 1) || air_loop_res(air_loop_hvac) || air_loop_evaporative_cooler(air_loop_hvac)|| (air_loop_hvac.name.to_s.include?("DOAS")) || (air_loop_hvac.name.to_s.include?("doas")))
+           next if ((air_loop_hvac.thermalZones.length() > 1) || air_loop_res?(air_loop_hvac) || air_loop_evaporative_cooler?(air_loop_hvac)|| (air_loop_hvac.name.to_s.include?("DOAS")) || (air_loop_hvac.name.to_s.include?("doas")))
 		   #skip based on residential being in name, or if a DOAS 
 		   sizing_system = air_loop_hvac.sizingSystem
 		   next if ((air_loop_hvac.name.to_s.include?("residential")) || (air_loop_hvac.name.to_s.include?("Residential")) || (sizing_system.allOutdoorAirinCooling && sizing_system.allOutdoorAirinHeating))
@@ -210,37 +214,35 @@ require 'openstudio-standards'
 					sup_fan = sup_fan.get
 					#handle fan on off objects; replace FanOnOff with FanVariableVolume 
                     if sup_fan.to_FanOnOff.is_initialized
-					   puts "fan on off" 
 					   sup_fan = sup_fan.to_FanOnOff.get
 					   pressure_rise = sup_fan.pressureRise()
-					   #Create VS supply fan 
-					   fan = OpenStudio::Model::FanVariableVolume.new(model)
-					   fan.setName("#{air_loop_hvac.name} Fan")
-					   fan.setFanEfficiency(fan_tot_eff) 
-					   fan.setFanPowerMinimumFlowRateInputMethod("Fraction")
-					   fan.setPressureRise(pressure_rise)#keep it the same as the existing fan, since the balance of systems is the same 
-					   fan.setFanPowerMinimumFlowFraction(min_flow_fraction)
-					   fan.setMotorEfficiency(fan_mot_eff) unless fan_mot_eff.nil?
-					   #Add it to the unitary sys
-					   #component.resetSupplyFan()
-					   component.setSupplyFan(fan) 
+					   motor_hp = standard.fan_motor_horsepower(sup_fan) 
+					   fan_eff = standard.fan_baseline_impeller_efficiency(sup_fan)
+					   fan_motor_eff = standard.fan_standard_minimum_motor_efficiency_and_size(sup_fan, motor_hp)[0] #calculate fan motor eff per Standards
 					end 
 					#handle constant speed fan objects; replace FanConstantVolume with FanVariableVolume 
 					if sup_fan.to_FanConstantVolume.is_initialized
 					   sup_fan = sup_fan.to_FanConstantVolume.get
 					   pressure_rise = sup_fan.pressureRise()
-					   #Create VS supply fan 
-					   fan = OpenStudio::Model::FanVariableVolume.new(model)
-					   fan.setName("#{air_loop_hvac.name} Fan")
-					   fan.setFanEfficiency(fan_tot_eff) 
-					   fan.setFanPowerMinimumFlowRateInputMethod("Fraction")
-					   fan.setPressureRise(pressure_rise)#keep it the same as the existing fan, since the balance of systems is the same 
-					   fan.setFanPowerMinimumFlowFraction(min_flow_fraction)
-					   fan.setMotorEfficiency(fan_mot_eff) unless fan_mot_eff.nil?
-					   #Add it to the unitary sys
-					   #component.resetSupplyFan()
-					   component.setSupplyFan(fan) 
+					   motor_hp = standard.fan_motor_horsepower(sup_fan) 
+					   fan_eff = standard.fan_baseline_impeller_efficiency(sup_fan)
+					   fan_motor_eff = standard.fan_standard_minimum_motor_efficiency_and_size(sup_fan, motor_hp)[0] #calculate fan motor eff per Standards
 					end 
+					#create new VS fan 
+				   fan = OpenStudio::Model::FanVariableVolume.new(model)
+				   fan.setName("#{air_loop_hvac.name} Fan")
+				   fan.setFanPowerMinimumFlowRateInputMethod("Fraction")
+				   fan.setPressureRise(pressure_rise)#keep it the same as the existing fan, since the balance of systems is the same 
+				   fan.setFanPowerMinimumFlowFraction(min_flow_fraction)
+				   fan.setMotorEfficiency(fan_motor_eff) 
+				   fan.setFanTotalEfficiency(fan_motor_eff * fan_eff) 
+				   #set fan curve coefficients
+                   fan.setFanPowerCoefficient1(coeff_a)
+				   fan.setFanPowerCoefficient2(coeff_b)
+				   fan.setFanPowerCoefficient3(coeff_c)
+				   fan.setFanPowerCoefficient4(coeff_d)
+				   #Add it to the unitary sys
+				   component.setSupplyFan(fan) 
 				end 
 			 end 
 			 end 
