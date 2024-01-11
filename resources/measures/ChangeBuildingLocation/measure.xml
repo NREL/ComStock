@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>change_building_location</name>
   <uid>d4db4971-f5ba-11e3-a3ac-0800200c9a66</uid>
-  <version_id>bc4cc9b3-6b6c-4ed6-8dfa-b068590fe578</version_id>
-  <version_modified>2024-01-02T18:03:16Z</version_modified>
+  <version_id>605548bb-a5f2-4ccf-9fd9-280d9e180d5f</version_id>
+  <version_modified>2024-01-11T02:23:54Z</version_modified>
   <xml_checksum>057E8D9D</xml_checksum>
   <class_name>ChangeBuildingLocation</class_name>
   <display_name>ChangeBuildingLocation</display_name>
@@ -26,6 +26,7 @@
       <type>String</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
+      <default_value>2018</default_value>
     </argument>
     <argument>
       <name>climate_zone</name>
@@ -334,7 +335,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>F5580118</checksum>
+      <checksum>D348FD01</checksum>
     </file>
     <file>
       <filename>epw.rb</filename>
@@ -430,7 +431,7 @@
       <filename>change_building_location_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>ED29DEF3</checksum>
+      <checksum>42DEBBF2</checksum>
     </file>
     <file>
       <filename>multiyear.ddy</filename>

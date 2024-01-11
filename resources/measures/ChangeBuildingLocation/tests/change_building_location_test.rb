@@ -54,7 +54,7 @@ class ChangeBuildingLocation_Test < Minitest::Test
   end
 
   # method to apply arguments, run measure, and assert results (only populate args hash with non-default argument values)
-  def apply_measure_to_model(test_name, args, model_name = nil, result_value = 'Success', warnings_count = 0, info_count = nil, num_dsn_days = 7, soil_conductivity = 1.5)
+  def apply_measure_to_model(test_name, args, model_name = nil, result_value = 'Success', warnings_count = 0, info_count = nil, num_dsn_days = 7)
     # create an instance of the measure
     measure = ChangeBuildingLocation.new
 
@@ -127,10 +127,6 @@ class ChangeBuildingLocation_Test < Minitest::Test
       assert_equal(num_dsn_days, model.getDesignDays.size, "Expected #{num_dsn_days} but found #{model.getDesignDays.size}.")
     end
 
-    if result.value.valueName == 'Success'
-	  assert_equal(soil_conductivity, model.getBuilding.additionalProperties.getFeatureAsDouble('Soil Conductivity').to_f.round(1), "Expected soil conductivity #{args['soil_conductivity']} but found #{model.getBuilding.additionalProperties.getFeatureAsDouble('Soil Conductivity')}.")
-    end
-
     # save the model to test output directory
     output_file_path = OpenStudio::Path.new(File.dirname(__FILE__) + "/output/#{test_name}_test_output.osm")
     model.save(output_file_path, true)
@@ -178,6 +174,16 @@ class ChangeBuildingLocation_Test < Minitest::Test
     args['climate_zone'] = 'T24-CEC8'
     args['year'] = '2018'
     args['soil_conductivity'] = 1.8
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'test.osm', nil, nil, nil, 14, 1.8)
+    test_name = __method__.to_s.gsub('test_', '')
+    apply_measure_to_model(test_name, args, 'test.osm', nil, nil, nil, 14)
+
+    # load the test model
+    model_path = File.dirname(__FILE__) + "/output/#{test_name}_test_output.osm"
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    model = translator.loadModel(OpenStudio::Path.new(model_path))
+    assert(!model.empty?)
+    model = model.get
+    model.getBuilding.additionalProperties.getFeatureAsDouble('Soil Conductivity')
+    assert_equal(args['soil_conductivity'], model.getBuilding.additionalProperties.getFeatureAsDouble('Soil Conductivity').to_f.round(1), "Expected soil conductivity #{args['soil_conductivity']} but found #{model.getBuilding.additionalProperties.getFeatureAsDouble('Soil Conductivity')}.")
   end
 end
