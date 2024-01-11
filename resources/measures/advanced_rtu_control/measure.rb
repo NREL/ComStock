@@ -1,9 +1,5 @@
-# insert your copyright here
-
-# see the URL below for information on how to write OpenStudio measures
-# http://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/
-
-# start the measure
+# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# See top level LICENSE.txt file for license terms.
 
 class AdvancedRTUControl < OpenStudio::Measure::ModelMeasure
 
