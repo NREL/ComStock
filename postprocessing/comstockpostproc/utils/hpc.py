@@ -680,7 +680,7 @@ def summarize_failures(yml_path):
                             continue
                         bldg_id = re.search(r'.*bldg(\d+).*', tar_member.name).group(1)
                         up_id = re.search(r'.*up(\d+).*', tar_member.name).group(1)
-                        sing_out_name = f'./up{up_id}/bldg{bldg_id}/singularity_output.log'
+                        sing_out_name = f'./up{up_id}/bldg{bldg_id}/openstudio_output.log'
                         job_fails.write(f'Errors from up{up_id}/bldg{bldg_id}\n')
                         try:
                             sing_out_bytes=tar.extractfile(sing_out_name).read()
@@ -688,7 +688,7 @@ def summarize_failures(yml_path):
                                 if re.search(f'\[.* ERROR\]', l):
                                     job_fails.write(f'{l}\n')
                         except KeyError as err:
-                            job_fails.write(f'Did not find singularity_output.log for up{up_id}/bldg{bldg_id}, cannot extract failure details\n')
+                            job_fails.write(f'Did not find openstudio_output.log for up{up_id}/bldg{bldg_id}, cannot extract failure details\n')
                     tar.close()
         return
 
