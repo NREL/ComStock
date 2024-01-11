@@ -1,7 +1,6 @@
 # ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
-# start the measure
 class UnoccupiedOAControls < OpenStudio::Measure::ModelMeasure
 require 'openstudio-standards'
   # human readable name
