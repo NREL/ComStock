@@ -3,6 +3,7 @@
 import os
 
 import boto3
+import botocore
 import logging
 import numpy as np
 import pandas as pd
@@ -39,7 +40,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         self.data = None
         self.color = color_hex
         self.weighted_energy_units = weighted_energy_units
-        self.s3_client = boto3.client('s3')
+        self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
         logger.info(f'Creating {self.dataset_name}')
 
         # Make directories
@@ -82,6 +83,13 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
         # CBECS microdata codebook
         file_name = f'CBECS_{self.year}_microdata_codebook.csv'
+        file_path = os.path.join(self.truth_data_dir, file_name)
+        if not os.path.exists(file_path):
+            s3_file_path = f'truth_data/{self.truth_data_version}/EIA/CBECS/{file_name}'
+            self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
+
+        # state region division table
+        file_name = f'state_region_division_table.csv'
         file_path = os.path.join(self.truth_data_dir, file_name)
         if not os.path.exists(file_path):
             s3_file_path = f'truth_data/{self.truth_data_version}/EIA/CBECS/{file_name}'
