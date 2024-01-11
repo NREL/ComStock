@@ -1,7 +1,5 @@
-# insert your copyright here
-
-# see the URL below for information on how to write OpenStudio measures
-# http://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/
+# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# See top level LICENSE.txt file for license terms.
 
 # start the measure
 class UnoccupiedOAControls < OpenStudio::Measure::ModelMeasure
@@ -103,7 +101,7 @@ require 'openstudio-standards'
       next if UnoccupiedOAControls.air_loop_res?(air_loop_hvac)
       next if UnoccupiedOAControls.air_loop_doas?(air_loop_hvac)
       # skip outpatient healthcare and schools 
-      next if ['outpatient', 'Outpatient', 'OUTPATIENT', 'school', 'SCHOOL', 'School', 'k12', 'K12', 'education', 'EDUCATION', 'Education'].any? { |word| (air_loop_hvac.name.get).include?(word) }
+      next if ['outpatient', 'Outpatient', 'OUTPATIENT', 'school', 'SCHOOL', 'School', 'k12', 'K12', 'education', 'EDUCATION', 'Education', 'DOAS', 'doas', 'Hotel', 'hotel'].any? { |word| (air_loop_hvac.name.get).include?(word) }
       # check unitary systems
       if UnoccupiedOAControls.air_loop_hvac_unitary_system?(air_loop_hvac)
         unitary_system_count += 1
