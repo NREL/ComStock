@@ -16,7 +16,7 @@ require 'openstudio-standards'
 
   # human readable description of modeling approach
   def modeler_description
-    return 'This measure continues to allow for air-side economizing during unoccupied hours, since it is only the minimum outdoor air level being modified.'
+    return 'This measure ensures that the minimum outdoor air schedule aligns with the occupancy schedule of the building, so that fans cycling during unoccupied hours do not bring in outdoor air for ventilation. If the mininum OA schedule has been changed to a constant schedule through the nighttime operation variability measure, this measure reverts that. This measure continues to allow for air-side economizing during unoccupied hours, since it is only the minimum outdoor air level being modified.'
   end
 
   # define the arguments that the user will input
@@ -25,8 +25,7 @@ require 'openstudio-standards'
 
     return args
   end
-   # Determine if the air loop is a unitary system
-  #
+  # Determine if the air loop is a unitary system
   # @return [Bool] Returns true if a unitary system is present, false if not.
   def self.air_loop_hvac_unitary_system?(air_loop_hvac)
     is_unitary_system = false
@@ -95,7 +94,7 @@ require 'openstudio-standards'
     li_unitary_systems = []
     non_unitary_system_count = 0
     li_non_unitary_systems = []
-	constant_schedules = 0 
+	constant_schedules = 0 #Counter for constant schedules in the model 
 	#Assess measure applicabilty 
     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
       # skip systems that are residential, or are DOAS
@@ -154,7 +153,7 @@ require 'openstudio-standards'
       return true
     end
 
-    ##AA take out these counts if not needed 
+    #AA take out these counts if not needed 
     oa_schd_1_count = 0
     oa_schd_op_count = 0
     op_schd_1_count = 0
