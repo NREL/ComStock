@@ -184,6 +184,13 @@ require 'openstudio-standards'
 	#Sizing run 
 	standard = Standard.build('90.1-2013')
 	
+	
+	#Set up for economizer implementation for checking applicability 
+    no_outdoor_air_loops = 0
+    doas_loops = 0
+    existing_economizer_loops = 0
+    selected_air_loops = []
+	
     if model.sqlFile.empty?
 	  puts('Model had no sizing values--running size run')
 	  if standard.model_run_sizing_run(model, "#{Dir.pwd}/advanced_rtu_control") == false
