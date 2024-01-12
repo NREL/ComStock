@@ -138,6 +138,29 @@ require 'openstudio-standards'
 
     return tot_oa_flow_rate
   end
+  
+ def vav_terminals?(air_loop_hvac)
+	air_loop_hvac.thermalZones.each do |thermal_zone| #iterate thru thermal zones and modify zone-level terminal units 
+		thermal_zone.equipment.each do |equip|
+			if equip.to_AirTerminalSingleDuctVAVHeatAndCoolNoReheat.is_initialized
+               return true
+			elsif equip.to_AirTerminalSingleDuctVAVHeatAndCoolReheat.is_initialized
+               return true
+			elsif equip.to_AirTerminalSingleDuctVAVReheat.is_initialized
+               return true
+		    elsif equip.to_AirTerminalSingleDuctVAVNoReheat.is_initialized
+               return true
+			elsif equip.to_AirTerminalDualDuctVAV.is_initialized
+			    return true
+			elsif equip.to_AirTerminalDualDuctVAVOutdoorAir.is_initialized
+			    return true			
+		    else 
+			    return false 
+			end 
+	    end 
+	end 
+  end
+  
 
   # define what happens when the measure is run
   def run(model, runner, user_arguments)
@@ -180,7 +203,7 @@ require 'openstudio-standards'
 		   sizing_system = air_loop_hvac.sizingSystem
 		   next if ((air_loop_hvac.name.to_s.include?("residential")) || (air_loop_hvac.name.to_s.include?("Residential")) || (sizing_system.allOutdoorAirinCooling && sizing_system.allOutdoorAirinHeating))
 		   #skip VAV systems
-		   next if ['VAV', 'PVAV'].any? { |word| (air_loop_hvac.name.get).include?(word) }
+		   next if ['VAV', 'PVAV'].any? { |word| (air_loop_hvac.name.get).include?(word) } || vav_terminals?(air_loop_hvac)
 		   #set control type
 			air_loop_hvac.supplyComponents.each do |component|#identifying unitary systems 
 				obj_type = component.iddObjectType.valueName.to_s
