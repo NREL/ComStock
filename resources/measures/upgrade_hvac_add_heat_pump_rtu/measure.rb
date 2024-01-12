@@ -717,10 +717,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     custom_data_json = nil
     c_cap_high_T = nil  
     c_cap_low_T = nil
-    c_eir_allstages_T = nil
+    c_eir_high_T = nil
+    c_eir_low_T = nil
     c_cap_high_ff = nil
     c_cap_low_ff = nil
-    c_eir_allstages_ff = nil
+    c_eir_high_ff = nil
+    c_eir_low_ff = nil
     h_cap_allstages_T = nil
     h_eir_allstages_T = nil
     h_cap_allstages_ff = nil
@@ -733,7 +735,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # cooling performances function of temperatures
       c_cap_high_T = model_add_curve(model, 'c_cap_high_T', custom_data_json, std)
       c_cap_low_T = model_add_curve(model, 'c_cap_low_T', custom_data_json, std)
-      c_eir_allstages_T = model_add_curve(model, 'c_eir_high_T', custom_data_json, std)
+      c_eir_high_T = model_add_curve(model, 'c_eir_high_T', custom_data_json, std)
+      c_eir_low_T = model_add_curve(model, 'c_eir_low_T', custom_data_json, std)
 
       # cooling performance function of fraction of flow: c_cap_high_ff
       c_cap_high_ff = OpenStudio::Model::CurveQuadratic.new(model)
@@ -757,16 +760,27 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       c_cap_low_ff.setMinimumCurveOutput(0)
       c_cap_low_ff.setMaximumCurveOutput(1)
 
-      # cooling performance function of fraction of flow: c_eir_allstages_ff
-      c_eir_allstages_ff = OpenStudio::Model::CurveQuadratic.new(model)
-      c_eir_allstages_ff.setName("c_eir_allstages_ff")
-      c_eir_allstages_ff.setCoefficient1Constant(1.2077)
-      c_eir_allstages_ff.setCoefficient2x(-0.2184)
-      c_eir_allstages_ff.setCoefficient3xPOW2(0)
-      c_eir_allstages_ff.setMinimumValueofx(0.5)
-      c_eir_allstages_ff.setMaximumValueofx(1)
-      c_eir_allstages_ff.setMinimumCurveOutput(0)
-      c_eir_allstages_ff.setMaximumCurveOutput(1.2)
+      # cooling performance function of fraction of flow: c_eir_high_ff
+      c_eir_high_ff = OpenStudio::Model::CurveQuadratic.new(model)
+      c_eir_high_ff.setName("c_eir_high_ff")
+      c_eir_high_ff.setCoefficient1Constant(1.209351)
+      c_eir_high_ff.setCoefficient2x(-0.217052)
+      c_eir_high_ff.setCoefficient3xPOW2(0)
+      c_eir_high_ff.setMinimumValueofx(0.5)
+      c_eir_high_ff.setMaximumValueofx(1)
+      c_eir_high_ff.setMinimumCurveOutput(0)
+      c_eir_high_ff.setMaximumCurveOutput(1.2)
+
+      # cooling performance function of fraction of flow: c_eir_low_ff
+      c_eir_low_ff = OpenStudio::Model::CurveQuadratic.new(model)
+      c_eir_low_ff.setName("c_eir_low_ff")
+      c_eir_low_ff.setCoefficient1Constant(1.140446)
+      c_eir_low_ff.setCoefficient2x(-0.140201)
+      c_eir_low_ff.setCoefficient3xPOW2(0)
+      c_eir_low_ff.setMinimumValueofx(0.7)
+      c_eir_low_ff.setMaximumValueofx(1)
+      c_eir_low_ff.setMinimumCurveOutput(0)
+      c_eir_low_ff.setMaximumCurveOutput(1.2)
 
       # heating performances function of temperatures
       h_cap_allstages_T = model_add_curve(model, 'h_cap_T', custom_data_json, std)
@@ -1476,7 +1490,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       cool_eir_ft2.setMaximumValueofy(100)
       # Energy Input Ratio Function of Temperature Curve - 3
       if std_perf
-        cool_eir_ft3 = c_eir_allstages_T
+        cool_eir_ft3 = c_eir_low_T
         puts("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: cool_eir_ft3.name = #{cool_eir_ft3.name}")
       else
         cool_eir_ft3 = OpenStudio::Model::CurveBiquadratic.new(model)
@@ -1494,7 +1508,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       end
       # Energy Input Ratio Function of Temperature Curve - 4
       if std_perf
-        cool_eir_ft4 = c_eir_allstages_T
+        cool_eir_ft4 = c_eir_high_T
         puts("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: cool_eir_ft4.name = #{cool_eir_ft4.name}")
       else
         cool_eir_ft4 = OpenStudio::Model::CurveBiquadratic.new(model)
@@ -1513,8 +1527,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
       # Energy Input Ratio Function of Flow Fraction Curve
       if std_perf
-        cool_eir_fff_all_stages = c_eir_allstages_ff
-        puts("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: cool_eir_fff_all_stages.name = #{cool_eir_fff_all_stages.name}")
+        cool_eir_fff_all_stages = nil
+        puts("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: using high/low curves and not using cool_eir_fff_all_stages")
       else
         cool_eir_fff_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
         cool_eir_fff_all_stages.setName("#{air_loop_hvac.name} cool_eir_fff")
@@ -1629,7 +1643,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed3.setTotalCoolingCapacityFunctionofTemperatureCurve(cool_cap_ft3)
       new_dx_cooling_coil_speed3.setTotalCoolingCapacityFunctionofFlowFractionCurve(cool_cap_fff_all_stages)
       new_dx_cooling_coil_speed3.setEnergyInputRatioFunctionofTemperatureCurve(cool_eir_ft3)
-      new_dx_cooling_coil_speed3.setEnergyInputRatioFunctionofFlowFractionCurve (cool_eir_fff_all_stages)
+      if std_perf
+        new_dx_cooling_coil_speed3.setEnergyInputRatioFunctionofFlowFractionCurve(c_eir_low_ff)
+      else
+        new_dx_cooling_coil_speed3.setEnergyInputRatioFunctionofFlowFractionCurve(cool_eir_fff_all_stages)
+      end
       new_dx_cooling_coil_speed3.setPartLoadFractionCorrelationCurve(cool_plf_fplr_all_stages)
       new_dx_cooling_coil_speed3.setNominalTimeforCondensateRemovaltoBegin(1000)
       new_dx_cooling_coil_speed3.setRatioofInitialMoistureEvaporationRateandSteadyStateLatentCapacity(1.5)
@@ -1659,7 +1677,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed4.setTotalCoolingCapacityFunctionofTemperatureCurve(cool_cap_ft4)
       new_dx_cooling_coil_speed4.setTotalCoolingCapacityFunctionofFlowFractionCurve(cool_cap_fff_all_stages)
       new_dx_cooling_coil_speed4.setEnergyInputRatioFunctionofTemperatureCurve(cool_eir_ft4)
-      new_dx_cooling_coil_speed4.setEnergyInputRatioFunctionofFlowFractionCurve (cool_eir_fff_all_stages)
+      if std_perf
+        new_dx_cooling_coil_speed3.setEnergyInputRatioFunctionofFlowFractionCurve(c_eir_high_ff)
+      else
+        new_dx_cooling_coil_speed4.setEnergyInputRatioFunctionofFlowFractionCurve(cool_eir_fff_all_stages)
+      end
       new_dx_cooling_coil_speed4.setPartLoadFractionCorrelationCurve(cool_plf_fplr_all_stages)
       new_dx_cooling_coil_speed4.setNominalTimeforCondensateRemovaltoBegin(1000)
       new_dx_cooling_coil_speed4.setRatioofInitialMoistureEvaporationRateandSteadyStateLatentCapacity(1.5)
