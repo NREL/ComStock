@@ -60,10 +60,7 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     result = OpenStudio::IdfObjectVector.new
 
     # Request hourly data for fuel types with hourly bill calculations
-    fuel_types = ['Electricity'] # 'NaturalGas', 'DistrictCooling', 'DistrictHeating', 'FuelOilNo2', 'Propane'
-    fuel_types.each do |fuel_type|
-      result << OpenStudio::IdfObject.load("Output:Meter,#{fuel_type}:Facility,Hourly;").get
-    end
+    result << OpenStudio::IdfObject.load("Output:Meter,Electricity:Facility,Hourly;").get
 
     return result
   end
@@ -100,12 +97,18 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
       return false
     end
 
-    # Determine the model year
+    # Determine the model year and start day of year
+    rp = model.getRunPeriod
     year_object = model.getYearDescription
     if year_object.calendarYear.is_initialized
       year = year_object.calendarYear.get
+      yr = year_object.calendarYear.get
+      year_start_day = year_object.makeDate(rp.getBeginMonth, rp.getBeginDayOfMonth).dayOfWeek.valueName
+      runner.registerInfo("Year set to #{yr}. Simulation start day of #{rp.getBeginMonth}/#{rp.getBeginDayOfMonth}/#{yr} is a #{year_start_day}.")
     else
-      year = 2009
+      yr = year_object.assumedYear
+      year_start_day = year_object.makeDate(rp.getBeginMonth, rp.getBeginDayOfMonth).dayOfWeek.valueName
+      runner.registerInfo("Year not specified. OpenStudio assumed #{yr}. Simulation start day of #{rp.getBeginMonth}/#{rp.getBeginDayOfMonth}/#{yr} is a #{year_start_day}.")
     end
 
     # Get the weather file run period
@@ -125,17 +128,72 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
 
     # Electricity Bill
 
-    # Get hourly electricity values
-    env_period_ix_query = "SELECT EnvironmentPeriodIndex FROM EnvironmentPeriods WHERE EnvironmentName='#{ann_env_pd}'"
-    env_period_ix = sql.execAndReturnFirstInt(env_period_ix_query).get
-    electricity_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableTYpe='Sum' AND VariableName='Electricity:Facility' AND ReportingFrequency='Hourly' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
-    hourly_electricity_kwh = []
-    unless sql.execAndReturnVectorOfDouble(electricity_query).get.empty?
-      values = sql.execAndReturnVectorOfDouble(electricity_query).get
-      values.each do |val|
-        hourly_electricity_kwh << OpenStudio.convert(val, 'J', 'kWh').get # hourly data
+    # Get hourly electricity timeseries
+    elec_ts = sql.timeSeries(ann_env_pd, 'Hourly', 'Electricity:Facility', '')
+    if elec_ts.empty?
+      runner.registerError("Could not get hourly electricity consumption, cannot calculate electricity bill")
+      return false
+    end
+    elec_ts = elec_ts.get
+
+    # PySAM 4.2.0 assumes that Jan 1 is a Monday per https://github.com/NREL/ssc/issues/195
+    # Shift timeseries electricity data to match that assumption
+    # so that the weekday/weekend rates apply to the correct energy consumption
+
+    # Find the first Monday timestamp
+    first_monday_i = nil
+    elec_ts.dateTimes.each_with_index do |date_time, i|
+      # runner.registerInfo("timestamp index: #{i}, #{date_time.date.dayOfWeek.valueName} ,#{date_time}")
+      if date_time.date.dayOfWeek.valueName == 'Monday'
+         # E+ timestamps are hour-ending, so a 00:00 timestamp represents 11-12pm the day prior
+        if date_time.time.hours.zero?
+          first_monday_i = i + 1
+        else
+          first_monday_i = i
+        end
+        runner.registerInfo("First monday timestamp index: #{first_monday_i}")
+        break
       end
     end
+
+    # Convert the timeseries vectors to Ruby arrays
+    orig_dts = []
+    elec_ts.dateTimes.each {|dt| orig_dts << dt}
+    orig_vals = []
+    elec_ts.values.each {|val| orig_vals << val}
+
+    # Shift values if necessary
+    runner.registerInfo("Raw electric timeseries dates #{orig_dts[0]} to #{orig_dts[-1]}")
+    if first_monday_i.zero?
+      # No shift required
+      shifted_dts = orig_dts
+      shifted_vals = orig_vals
+    else
+      # First monday through the end of the year, then first few pre-Monday days
+      runner.registerInfo("Shifting electric timeseries to Monday start for PySAM")
+      shifted_dts = orig_dts[first_monday_i..-1] + orig_dts[0..first_monday_i-1]
+      shifted_vals = orig_vals[first_monday_i..-1] + orig_vals[0..first_monday_i-1]
+      runner.registerInfo("Shifted electric timeseries dates #{shifted_dts[0]} to #{shifted_dts[-1]}")
+    end
+
+    # Check that the size is the same
+    unless shifted_vals.size == elec_ts.values.size
+      runner.registerError("Error shifting values to Monday start, started with #{elec_ts.values.size}, ended with #{shifted_vals.size}")
+      return false
+    end
+
+    # Check that the total energy is the same
+    unless shifted_vals.sum == elec_ts.values.sum
+      runner.registerError("Error shifting values to Monday start, started with #{elec_ts.values.sum}, ended with #{shifted_vals.sum}")
+      return false
+    end
+
+    # Convert electricity to kWh
+    hourly_electricity_kwh = []
+    shifted_vals.each do |val|
+      hourly_electricity_kwh << OpenStudio.convert(val, 'J', 'kWh').get # hourly data
+    end
+
     # Get min and peak demand for rates with qualifiers
     tot_elec_kwh = hourly_electricity_kwh.sum.round
     min_kw = hourly_electricity_kwh.min.round
@@ -255,7 +313,7 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
         rate_name = rate['name']
         rate_start_date = rate['startdate']
         if rate_start_date
-          rate_start_year = Time.at(1318996912).utc.to_datetime.to_date.year
+          rate_start_year = Time.at(rate_start_date).utc.to_datetime.to_date.year
         else
           rate_start_year = 2013
           runner.registerWarning("#{rate_name} listed no start date, assuming #{rate_start_year}")

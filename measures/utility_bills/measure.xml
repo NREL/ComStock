@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>utility_bills</name>
   <uid>2a3442c1-944d-4e91-9e11-11e0cf368c64</uid>
-  <version_id>3a6506e6-1e73-4482-b21f-58991d686a0c</version_id>
-  <version_modified>2024-01-04T21:35:50Z</version_modified>
+  <version_id>7ec10982-2213-4b46-a686-2febd9cdd3d7</version_id>
+  <version_modified>2024-01-12T22:12:35Z</version_modified>
   <xml_checksum>15BF4E57</xml_checksum>
   <class_name>UtilityBills</class_name>
   <display_name>Utility Bills</display_name>
@@ -33,7 +33,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>6FEE3CF3</checksum>
+      <checksum>C5A9C741</checksum>
     </file>
     <file>
       <filename>calc_elec_bill.py</filename>
@@ -63825,7 +63825,7 @@
       <filename>Measure_Test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>0B59CF4A</checksum>
+      <checksum>30EC3ADD</checksum>
     </file>
     <file>
       <filename>USA_CO_Golden-NREL.724666_TMY3.ddy</filename>

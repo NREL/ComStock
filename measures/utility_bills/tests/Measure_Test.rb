@@ -45,10 +45,6 @@ require_relative '../measure.rb'
 require 'minitest/autorun'
 
 class UtilityBills_Test < Minitest::Test
-  def model_in_path_default
-    return "#{File.dirname(__FILE__)}/ExampleModel.osm"
-  end
-
   def epw_path_default
     # make sure we have a weather data location
     epw = nil
@@ -122,7 +118,7 @@ class UtilityBills_Test < Minitest::Test
   end
 
   # create test files if they do not exist when the test first runs
-  def setup_test(test_name, idf_output_requests, census_tract, state_abbrev, model_in_path = model_in_path_default, epw_path = epw_path_default)
+  def setup_test(test_name, idf_output_requests, census_tract, state_abbrev, start_year, model_in_path, epw_path = epw_path_default)
     if !File.exist?(run_dir(test_name))
       FileUtils.mkdir_p(run_dir(test_name))
     end
@@ -151,6 +147,7 @@ class UtilityBills_Test < Minitest::Test
     model.addObjects(request_model.objects)
     model.getBuilding.additionalProperties.setFeature('nhgis_tract_gisjoin', census_tract)
     model.getBuilding.additionalProperties.setFeature('state_abbreviation', state_abbrev)
+    model.getYearDescription.setCalendarYear(start_year)
     model.save(model_out_path(test_name), true)
 
     if ENV['OPENSTUDIO_TEST_NO_CACHE_SQLFILE']
@@ -169,6 +166,7 @@ class UtilityBills_Test < Minitest::Test
     # This census tract has no EIA utility ID assigned
     census_tract = 'G0100470957000'
     state_abbreviation ='AL'
+    year = 1999
 
     # create an instance of the measure
     measure = UtilityBills.new
@@ -186,7 +184,7 @@ class UtilityBills_Test < Minitest::Test
 
     # mimic the process of running this measure in OS App or PAT
     epw_path = epw_path_default
-    setup_test(test_name, idf_output_requests, census_tract, state_abbreviation, model_in_path)
+    setup_test(test_name, idf_output_requests, census_tract, state_abbreviation, year, model_in_path)
 
     assert(File.exist?(model_out_path(test_name)))
     assert(File.exist?(sql_path(test_name)), "Could not find sql file at #{sql_path(test_name)}")
@@ -243,6 +241,7 @@ class UtilityBills_Test < Minitest::Test
     # which has no valid rates in URDB
     census_tract = 'G2800630950100'
     state_abbreviation ='MS'
+    year = 1999
 
     # create an instance of the measure
     measure = UtilityBills.new
@@ -260,7 +259,7 @@ class UtilityBills_Test < Minitest::Test
 
     # mimic the process of running this measure in OS App or PAT
     epw_path = epw_path_default
-    setup_test(test_name, idf_output_requests, census_tract, state_abbreviation, model_in_path)
+    setup_test(test_name, idf_output_requests, census_tract, state_abbreviation, year, model_in_path)
 
     assert(File.exist?(model_out_path(test_name)))
     assert(File.exist?(sql_path(test_name)), "Could not find sql file at #{sql_path(test_name)}")
@@ -317,6 +316,7 @@ class UtilityBills_Test < Minitest::Test
     # utility ID: 14328 (Pacific Gas & Electric Co.) with lots of rates
     census_tract = 'G0600010400200'
     state_abbreviation ='CA'
+    year = 1999
 
     # create an instance of the measure
     measure = UtilityBills.new
@@ -334,7 +334,7 @@ class UtilityBills_Test < Minitest::Test
 
     # mimic the process of running this measure in OS App or PAT
     epw_path = epw_path_default
-    setup_test(test_name, idf_output_requests, census_tract, state_abbreviation, model_in_path)
+    setup_test(test_name, idf_output_requests, census_tract, state_abbreviation, year, model_in_path)
 
     assert(File.exist?(model_out_path(test_name)))
     assert(File.exist?(sql_path(test_name)), "Could not find sql file at #{sql_path(test_name)}")
@@ -378,10 +378,94 @@ class UtilityBills_Test < Minitest::Test
 
     # Check that more than one rates are applicable
     num_appl_rates = 0
+    shift_msgs = 0
     result.stepInfo.each do |msg|
       num_appl_rates += 1 if msg.include?('is applicable')
+      shift_msgs += 1 if msg.include?('Shifting electric timeseries to Monday start')
     end
     assert(num_appl_rates > 0)
+    assert(shift_msgs > 0)
+  end
+
+  # Test when the building is assigned a utility with many rates from URDB
+  def test_sm_hotel_many_urdb_rates_monday_start
+    test_name = 'sm_hotel_many_urdb_rates_monday_start'
+    model_in_path = "#{File.dirname(__FILE__)}/1004_SmallHotel_a.osm"
+    # Set census tract: G0600010400200 which matches
+    # utility ID: 14328 (Pacific Gas & Electric Co.) with lots of rates
+    census_tract = 'G0600010400200'
+    state_abbreviation ='CA'
+    year = 2018
+
+    # create an instance of the measure
+    measure = UtilityBills.new
+
+    # create an instance of a runner
+    runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
+
+    # get arguments
+    arguments = measure.arguments
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+
+    # get the energyplus output requests, this will be done automatically by OS App and PAT
+    idf_output_requests = measure.energyPlusOutputRequests(OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new), argument_map)
+    assert(idf_output_requests.size > 0, 'Expected IDF output requests, but none were found')
+
+    # mimic the process of running this measure in OS App or PAT
+    epw_path = epw_path_default
+    setup_test(test_name, idf_output_requests, census_tract, state_abbreviation, year, model_in_path)
+
+    assert(File.exist?(model_out_path(test_name)))
+    assert(File.exist?(sql_path(test_name)), "Could not find sql file at #{sql_path(test_name)}")
+
+    # Set up runner, this will happen automatically when measure is run in PAT or OpenStudio
+    runner.setLastOpenStudioModelPath(OpenStudio::Path.new(model_out_path(test_name)))
+    runner.setLastEnergyPlusWorkspacePath(OpenStudio::Path.new(workspace_path(test_name)))
+    runner.setLastEpwFilePath('')
+    runner.setLastEnergyPlusSqlFilePath(OpenStudio::Path.new(sql_path(test_name)))
+
+    # Temporarily change directory to the run directory and run the measure
+    start_dir = Dir.pwd
+    begin
+      Dir.chdir(run_dir(test_name))
+      # run the measure
+      measure.run(runner, argument_map)
+      result = runner.result
+      show_output(result)
+      assert_equal('Success', result.value.valueName)
+    ensure
+      Dir.chdir(start_dir)
+    end
+
+    # Check that electric bills are being calculated
+    puts '***Machine-Readable Attributes**'
+    rvs = {}
+    result.stepValues.each do |value|
+      name_val = JSON.parse(value.string)
+      rvs[name_val['name']] = name_val['value']
+    end
+    assert(rvs.has_key?('electricity_rate_1_name'))
+    assert(rvs.has_key?('electricity_rate_1_bill_dollars'))
+    assert(rvs.has_key?('electricity_bill_mean_dollars'))
+
+    # Check that the statistics make sense
+    assert(rvs['electricity_bill_min_dollars'] < rvs['electricity_bill_mean_dollars'])
+    assert(rvs['electricity_bill_min_dollars'] < rvs['electricity_bill_median_dollars'])
+    assert(rvs['electricity_bill_max_dollars'] > rvs['electricity_bill_mean_dollars'])
+    assert(rvs['electricity_bill_max_dollars'] > rvs['electricity_bill_median_dollars'])
+    assert(rvs['electricity_bill_number_of_rates'] > 2)
+
+    # Check that more than one rates are applicable
+    # and that there is no message about shifting the timeseries to Monday start
+    # because 2018 starts on a Monday
+    num_appl_rates = 0
+    shift_msgs = 0
+    result.stepInfo.each do |msg|
+      num_appl_rates += 1 if msg.include?('is applicable')
+      shift_msgs += 1 if msg.include?('Shifting electric timeseries to Monday start')
+    end
+    assert(num_appl_rates > 0)
+    assert(shift_msgs.zero?)
   end
 
   # Test when the building is a utility with rates with PySAM warning
@@ -392,6 +476,7 @@ class UtilityBills_Test < Minitest::Test
     # utility ID: 2089 (Bozrah Light & Power Company) with lots of rates
     census_tract = 'G0900110693300'
     state_abbreviation ='CT'
+    year = 1999
 
     # create an instance of the measure
     measure = UtilityBills.new
@@ -409,7 +494,7 @@ class UtilityBills_Test < Minitest::Test
 
     # mimic the process of running this measure in OS App or PAT
     epw_path = epw_path_default
-    setup_test(test_name, idf_output_requests, census_tract, state_abbreviation, model_in_path)
+    setup_test(test_name, idf_output_requests, census_tract, state_abbreviation, year, model_in_path)
 
     assert(File.exist?(model_out_path(test_name)))
     assert(File.exist?(sql_path(test_name)), "Could not find sql file at #{sql_path(test_name)}")
@@ -452,11 +537,16 @@ class UtilityBills_Test < Minitest::Test
     assert(rvs['electricity_bill_number_of_rates'] > 2)
 
     # Check that more than one rates are applicable
+    # and messages about shifting the timeseries to Monday start
+    # because 1999 starts on a Friday
     num_appl_rates = 0
+    shift_msgs = 0
     result.stepInfo.each do |msg|
       num_appl_rates += 1 if msg.include?('is applicable')
+      shift_msgs += 1 if msg.include?('Shifting electric timeseries to Monday start')
     end
     assert(num_appl_rates > 0)
+    assert(shift_msgs > 0)
   end
 
   # Test that all of the rate .json files can successfully be evaluated through PySAM
