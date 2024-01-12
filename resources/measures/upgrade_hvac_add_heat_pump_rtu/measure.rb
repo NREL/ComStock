@@ -1527,7 +1527,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
       # Energy Input Ratio Function of Flow Fraction Curve
       if std_perf
-        cool_eir_fff_all_stages = nil
+        cool_eir_fff_all_stages = c_eir_high_ff
         puts("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: using high/low curves and not using cool_eir_fff_all_stages")
       else
         cool_eir_fff_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
