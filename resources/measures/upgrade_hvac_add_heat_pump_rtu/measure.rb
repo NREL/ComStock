@@ -343,13 +343,13 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
   # get rated cooling COP from fitted regression
   def get_rated_cop_cooling(air_loop_hvac, rated_m_3_per_sec, rated_capacity_w)
-    intercept = 4.3220789259
+    intercept = 4.49070660088438
     coef_1 = 0.0000000000
-    coef_2 = 0.0003771728
-    coef_3 = -0.0523635412
-    coef_4 = -0.0000000710
-    coef_5 = 0.0000094462
-    coef_6 = -0.0001245700
+    coef_2 = 0.0003756651
+    coef_3 = -0.0586332053
+    coef_4 = -0.0000000391
+    coef_5 = 0.0000047027
+    coef_6 = 0.0001053728
     min_cop = 3.43
     max_cop = 4.92
     rated_CFM = rated_m_3_per_sec * 2118.88 # m3/sec to CFM
@@ -360,14 +360,14 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   end
 
   # get rated heating COP from fitted regression
-  def get_rated_cop_heating(air_loop_hvac, rated_m_3_per_sec, rated_capacity_w)
-    intercept = 3.1801481338
-    coef_1 = 0.0000000000
-    coef_2 = 0.0009038274
-    coef_3 = -0.0803590676
-    coef_4 = -0.0000000948
-    coef_5 = 0.0000084049
-    coef_6 = 0.0001054192  
+  def get_rated_cop_heating(air_loop_hvac, rated_m_3_per_sec, rated_capacity_w)    
+    intercept = 4.3102941156455
+    coef_1 = 0.0000000000000
+    coef_2 = 0.0005719993613
+    coef_3 = -0.0896221465453
+    coef_4 = -0.0000000330634
+    coef_5 = 0.0000029291133
+    coef_6 = 0.0004096485708
     min_cop = 2.95
     max_cop = 5.42  
     rated_CFM = rated_m_3_per_sec * 2118.88 # m3/sec to CFM
