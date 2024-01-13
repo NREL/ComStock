@@ -213,19 +213,20 @@ require 'openstudio-standards'
       #case rtu_night_mode
       #when 'night_fancycle_novent'
         # Schedule to control whether or not unit ventilates at night - clone hvac availability schedule
-        next unless air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.is_initialized
-		air_loop_vent_sch = air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.get
-		air_loop_vent_sch.setName("#{air_loop_hvac.name}_night_novent_schedule")
-		next unless air_loop_hvac.availabilitySchedule.clone.to_ScheduleConstant.is_initialized #handle constant schedule 
-		sch_ruleset = std.thermal_zones_get_occupancy_schedule(thermal_zones=air_loop_hvac.thermalZones,
-														occupied_percentage_threshold:0.05)
-		# set air loop availability controls and night cycle manager, after oa system added
-		air_loop_hvac.setAvailabilitySchedule(sch_ruleset)
-		air_loop_hvac.setNightCycleControlType('CycleOnAny')
-		air_loop_vent_sch = sch_ruleset  
+        if air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.is_initialized
+			air_loop_vent_sch = air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.get
+			air_loop_vent_sch.setName("#{air_loop_hvac.name}_night_novent_schedule")
+		end 
+		if air_loop_hvac.availabilitySchedule.clone.to_ScheduleConstant.is_initialized #handle constant schedule 
+			sch_ruleset = std.thermal_zones_get_occupancy_schedule(thermal_zones=air_loop_hvac.thermalZones,
+															occupied_percentage_threshold:0.05)
+			# set air loop availability controls and night cycle manager, after oa system added
+			air_loop_hvac.setAvailabilitySchedule(sch_ruleset)
+			air_loop_hvac.setNightCycleControlType('CycleOnAny')
+			air_loop_vent_sch = sch_ruleset  
+		end 
 	    next unless air_loop_hvac.airLoopHVACOutdoorAirSystem.is_initialized
 		air_loop_oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get.getControllerOutdoorAir
-		next unless air_loop_oa_system.minimumOutdoorAirSchedule.is_initialized
 	    air_loop_oa_system.setMinimumOutdoorAirSchedule(air_loop_vent_sch) 
 	  end 
 	  
