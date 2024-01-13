@@ -110,17 +110,17 @@ require 'openstudio-standards'
         li_non_unitary_systems << air_loop_hvac
         non_unitary_system_count += 1
       end
-	  #check for constant schedules 
+	  #check min oa for constant schedules 
 	  air_loop_oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get.getControllerOutdoorAir
-      next unless air_loop_oa_system.minimumOutdoorAirSchedule.is_initialized
-      air_loop_oa_system.setMinimumOutdoorAirSchedule(air_loop_vent_sch)
-	  if setMinimumOutdoorAirSchedule.to_ScheduleConstant.is_initialized 
-	      constant_schedules = constant_schedules + 1 
+      if air_loop_oa_system.minimumOutdoorAirSchedule.get.to_ScheduleConstant.is_initialized 
+	        constant_schedules = constant_schedules + 1 
 	  end 
-	  next unless air_loop_hvac.availabilitySchedule.is_initalized
-	  if air_loop_hvac.availabilitySchedule.is_initalized.to_ScheduleConstant.is_initialized
+	  #check air loop availability for constant schedules 
+	   avail_sched = air_loop_hvac.availabilitySchedule #got an error checking this for initialization 
+	   if avail_sched.to_ScheduleConstant.is_initialized
 	     constant_schedules = constant_schedules + 1 
-	  end 
+	   end 
+	  #among unitary systems, check supply fan operating mode for constant schedules 
 	  if UnoccupiedOAControls.air_loop_hvac_unitary_system?(air_loop_hvac)
 	      air_loop_hvac.supplyComponents.each do |component|
           obj_type = component.iddObjectType.valueName.to_s
@@ -134,14 +134,15 @@ require 'openstudio-standards'
           when 'OS_AirLoopHVAC_UnitaryHeatCool_VAVChangeoverBypass'
             component = component.to_AirLoopHVACUnitaryHeatCoolVAVChangeoverBypass.get
 		  component.getSupplyAirFanOperatingModeSchedule
-            if setMinimumOutdoorAirSchedule.to_ScheduleConstant.is_initialized 
+          if setMinimumOutdoorAirSchedule.to_ScheduleConstant.is_initialized 
 			   constant_schedules = constant_schedules + 1 
-			end 
+		  end 
 		  end 
         end
 	  end 
 	  if constant_schedules == 0 
-	     runner.registerNotApplicable('No constant HVAC operation schedules found--measure not applicable.') 
+	     runner.registerAsNotApplicable('No constant HVAC operation schedules found--measure not applicable.') 
+		 return true 
 	  end 
     end
 
@@ -163,7 +164,7 @@ require 'openstudio-standards'
     # make changes to unitary systems
 	#need to deal with non unitary systems, too 
     li_unitary_systems.sort.each do |air_loop_hvac|
-
+        puts "unitary system" 
       # change night OA schedule to match hvac operation schedule for no night OA
         # Schedule to control whether or not unit ventilates at night - clone hvac availability schedule
         next unless air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.is_initialized
@@ -173,7 +174,6 @@ require 'openstudio-standards'
         air_loop_oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get.getControllerOutdoorAir
         next unless air_loop_oa_system.minimumOutdoorAirSchedule.is_initialized
         air_loop_oa_system.setMinimumOutdoorAirSchedule(air_loop_vent_sch)
-        oa_schd_op_count += 1
       
 	  
 	   # change fan operation schedule to new clone of hvac operation schedule to ensure night cycling of fans (removing any constant schedules)
@@ -213,24 +213,22 @@ require 'openstudio-standards'
       #case rtu_night_mode
       #when 'night_fancycle_novent'
         # Schedule to control whether or not unit ventilates at night - clone hvac availability schedule
-        if air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.is_initialized
-			air_loop_vent_sch = air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.get
-			air_loop_vent_sch.setName("#{air_loop_hvac.name}_night_novent_schedule")
-		elsif air_loop_hvac.availabilitySchedule.clone.to_ScheduleConstant.is_initialized #handle constant schedule 
-		      sch_ruleset = std.thermal_zones_get_occupancy_schedule(thermal_zones=air_loop_hvac.thermalZones,
-                                                            occupied_percentage_threshold:0.05)
-		      # set air loop availability controls and night cycle manager, after oa system added
-		      air_loop_hvac.setAvailabilitySchedule(sch_ruleset)
-		      air_loop_hvac.setNightCycleControlType('CycleOnAny')
-			  air_loop_vent_sch = sch_ruleset 
-		end #make sure this doesnt proceed to the next step without a schedule! 
-        next unless air_loop_hvac.airLoopHVACOutdoorAirSystem.is_initialized
-        air_loop_oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get.getControllerOutdoorAir
-        next unless air_loop_oa_system.minimumOutdoorAirSchedule.is_initialized
-        air_loop_oa_system.setMinimumOutdoorAirSchedule(air_loop_vent_sch)
-        oa_schd_op_count += 
-	  
+        next unless air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.is_initialized
+		air_loop_vent_sch = air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.get
+		air_loop_vent_sch.setName("#{air_loop_hvac.name}_night_novent_schedule")
+		next unless air_loop_hvac.availabilitySchedule.clone.to_ScheduleConstant.is_initialized #handle constant schedule 
+		sch_ruleset = std.thermal_zones_get_occupancy_schedule(thermal_zones=air_loop_hvac.thermalZones,
+														occupied_percentage_threshold:0.05)
+		# set air loop availability controls and night cycle manager, after oa system added
+		air_loop_hvac.setAvailabilitySchedule(sch_ruleset)
+		air_loop_hvac.setNightCycleControlType('CycleOnAny')
+		air_loop_vent_sch = sch_ruleset  
+	    next unless air_loop_hvac.airLoopHVACOutdoorAirSystem.is_initialized
+		air_loop_oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get.getControllerOutdoorAir
+		next unless air_loop_oa_system.minimumOutdoorAirSchedule.is_initialized
+	    air_loop_oa_system.setMinimumOutdoorAirSchedule(air_loop_vent_sch) 
 	  end 
+	  
     return true
   end
 end

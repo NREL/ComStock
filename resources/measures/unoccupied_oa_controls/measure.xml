@@ -3,23 +3,14 @@
   <schema_version>3.1</schema_version>
   <name>unoccupied_oa_controls</name>
   <uid>e6960929-a4a7-4447-8dc6-d9dfc6b92765</uid>
-  <version_id>10ce1645-8cc4-4cf1-b166-08225bff1811</version_id>
-  <version_modified>2023-12-06T17:53:33Z</version_modified>
-  <xml_checksum>00000000</xml_checksum>
+  <version_id>a6edf245-a6ee-4e9d-9ae8-2c1cecdc5bea</version_id>
+  <version_modified>2024-01-12T23:50:43Z</version_modified>
+  <xml_checksum>B3180F38</xml_checksum>
   <class_name>UnoccupiedOAControls</class_name>
-  <display_name>UnoccupiedOAControls</display_name>
-  <description>Replace this text with an explanation of what the measure does in terms that can be understood by a general building professional audience (building owners, architects, engineers, contractors, etc.).  This description will be used to create reports aimed at convincing the owner and/or design team to implement the measure in the actual building design.  For this reason, the description may include details about how the measure would be implemented, along with explanations of qualitative benefits associated with the measure.  It is good practice to include citations in the measure if the description is taken from a known source or if specific benefits are listed.</description>
-  <modeler_description>Replace this text with an explanation for the energy modeler specifically.  It should explain how the measure is modeled, including any requirements about how the baseline model must be set up, major assumptions, citations of references to applicable modeling resources, etc.  The energy modeler should be able to read this description and understand what changes the measure is making to the model and why these changes are being made.  Because the Modeler Description is written for an expert audience, using common abbreviations for brevity is good practice.</modeler_description>
-  <arguments>
-    <argument>
-      <name>space_name</name>
-      <display_name>New space name</display_name>
-      <description>This name will be used as the name of the new space.</description>
-      <type>String</type>
-      <required>true</required>
-      <model_dependent>false</model_dependent>
-    </argument>
-  </arguments>
+  <display_name>Unoccupied OA Controls</display_name>
+  <description>This measure sets minimum outdoor airflow to zero during extended periods of no occupancy (nighttime and weekends). Fans cycle during these unoccupied periods to meet the thermostat setpoints.</description>
+  <modeler_description>This measure ensures that the minimum outdoor air schedule aligns with the occupancy schedule of the building, so that fans cycling during unoccupied hours do not bring in outdoor air for ventilation. If the mininum OA schedule has been changed to a constant schedule through the nighttime operation variability measure, this measure reverts that. This measure continues to allow for air-side economizing during unoccupied hours, since it is only the minimum outdoor air level being modified.</modeler_description>
+  <arguments />
   <outputs />
   <provenances />
   <tags>
@@ -59,10 +50,10 @@
   </attributes>
   <files>
     <file>
-      <filename>LICENSE.md</filename>
+      <filename>README.md</filename>
       <filetype>md</filetype>
-      <usage_type>license</usage_type>
-      <checksum>CD7F5672</checksum>
+      <usage_type>readme</usage_type>
+      <checksum>24264A44</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -80,11 +71,12 @@
       <version>
         <software_program>OpenStudio</software_program>
         <identifier>3.6.1</identifier>
+        <min_compatible>3.6.1</min_compatible>
       </version>
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>FE47D144</checksum>
+      <checksum>56E98BEB</checksum>
     </file>
     <file>
       <filename>example_model.osm</filename>
@@ -93,10 +85,22 @@
       <checksum>53D14E69</checksum>
     </file>
     <file>
+      <filename>models/361_Retail_PSZ_Gas_5a_mod_AHU_schedules_vent_added_output_v3.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>ABC6F764</checksum>
+    </file>
+    <file>
+      <filename>models/361_Warehouse_PVAV_2a_vent_mod_v2.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>0E80EB76</checksum>
+    </file>
+    <file>
       <filename>new_measure_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>576EDB23</checksum>
+      <checksum>E585352F</checksum>
     </file>
   </files>
 </measure>
