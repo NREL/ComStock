@@ -97,6 +97,7 @@ require 'openstudio-standards'
 	constant_schedules = 0 #Counter for constant schedules in the model 
 	#Assess measure applicabilty 
     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+	   puts air_loop_hvac
       # skip systems that are residential, or are DOAS
       next if UnoccupiedOAControls.air_loop_res?(air_loop_hvac)
       next if UnoccupiedOAControls.air_loop_doas?(air_loop_hvac)
@@ -116,10 +117,11 @@ require 'openstudio-standards'
 	        constant_schedules = constant_schedules + 1 
 	  end 
 	  #check air loop availability for constant schedules 
-	   avail_sched = air_loop_hvac.availabilitySchedule #got an error checking this for initialization 
-	   if avail_sched.to_ScheduleConstant.is_initialized
+	  avail_sched = air_loop_hvac.availabilitySchedule #got an error checking this for initialization 
+	  if avail_sched.to_ScheduleConstant.is_initialized
+	     puts "in schedule constant" 
 	     constant_schedules = constant_schedules + 1 
-	   end 
+	  end 
 	  #among unitary systems, check supply fan operating mode for constant schedules 
 	  if UnoccupiedOAControls.air_loop_hvac_unitary_system?(air_loop_hvac)
 	      air_loop_hvac.supplyComponents.each do |component|
@@ -139,12 +141,13 @@ require 'openstudio-standards'
 		  end 
 		  end 
         end
-	  end 
-	  if constant_schedules == 0 
+	  end
+    end
+	
+	if constant_schedules == 0 
 	     runner.registerAsNotApplicable('No constant HVAC operation schedules found--measure not applicable.') 
 		 return true 
-	  end 
-    end
+	end 
 
     # report initial condition of model
     #runner.registerInitialCondition("The building has #{unitary_system_count} unitary systems and #{non_unitary_system_count} non-unitary airloop systems applicable for nighttime operation changes. #{rtu_night_mode} is the selected nighttime operation mode.")
@@ -154,53 +157,48 @@ require 'openstudio-standards'
       return true
     end
 
-    #AA take out these counts if not needed 
-    oa_schd_1_count = 0
-    oa_schd_op_count = 0
-    op_schd_1_count = 0
-    fan_schd_1_count = 0
-    fan_sch_op_count = 0
-
     # make changes to unitary systems
 	#need to deal with non unitary systems, too 
     li_unitary_systems.sort.each do |air_loop_hvac|
         puts "unitary system" 
       # change night OA schedule to match hvac operation schedule for no night OA
         # Schedule to control whether or not unit ventilates at night - clone hvac availability schedule
-        next unless air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.is_initialized
-        air_loop_vent_sch = air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.get
-        air_loop_vent_sch.setName("#{air_loop_hvac.name}_night_novent_schedule")
-        next unless air_loop_hvac.airLoopHVACOutdoorAirSystem.is_initialized
-        air_loop_oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get.getControllerOutdoorAir
-        next unless air_loop_oa_system.minimumOutdoorAirSchedule.is_initialized
-        air_loop_oa_system.setMinimumOutdoorAirSchedule(air_loop_vent_sch)
-      
-	  
+        if air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.is_initialized
+			air_loop_vent_sch = air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.get
+			air_loop_vent_sch.setName("#{air_loop_hvac.name}_night_novent_schedule")
+		end 
+		if air_loop_hvac.availabilitySchedule.clone.to_ScheduleConstant.is_initialized
+			sch_ruleset = std.thermal_zones_get_occupancy_schedule(thermal_zones=air_loop_hvac.thermalZones,
+															occupied_percentage_threshold:0.05)
+			# set air loop availability controls and night cycle manager, after oa system added
+			sch_ruleset.setName("#{air_loop_hvac.name}_night_fancycle_schedule")
+			air_loop_hvac.setAvailabilitySchedule(sch_ruleset)
+			air_loop_hvac.setNightCycleControlType('CycleOnAny')
+			air_loop_vent_sch = sch_ruleset  
+		end 
+        if air_loop_hvac.airLoopHVACOutdoorAirSystem.is_initialized
+			air_loop_oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get.getControllerOutdoorAir
+            air_loop_oa_system.setMinimumOutdoorAirSchedule(air_loop_vent_sch)
+        end 
+		
 	   # change fan operation schedule to new clone of hvac operation schedule to ensure night cycling of fans (removing any constant schedules)
         # Schedule to control whether or not unit ventilates at night - clone hvac availability schedule
-        next unless air_loop_hvac.availabilitySchedule.to_ScheduleRuleset.is_initialized
-        air_loop_fan_sch = air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.get
-        air_loop_fan_sch.setName("#{air_loop_hvac.name}_night_fancycle_schedule")
         # Schedule to control the airloop fan operation schedule
         air_loop_hvac.supplyComponents.each do |component|
           obj_type = component.iddObjectType.valueName.to_s
           case obj_type
           when 'OS_AirLoopHVAC_UnitarySystem'
             component = component.to_AirLoopHVACUnitarySystem.get
-            component.setSupplyAirFanOperatingModeSchedule(air_loop_fan_sch)
-            fan_sch_op_count += 1
+            component.setSupplyAirFanOperatingModeSchedule(air_loop_vent_sch)
           when 'OS_AirLoopHVAC_UnitaryHeatPump_AirToAir'
             component = component.to_AirLoopHVACUnitaryHeatPump_AirToAir.get
-            component.setSupplyAirFanOperatingModeSchedule(air_loop_fan_sch)
-            fan_sch_op_count += 1
+            component.setSupplyAirFanOperatingModeSchedule(air_loop_vent_sch)
           when 'OS_AirLoopHVAC_UnitaryHeatPump_AirToAir_MultiSpeed'
             component = component.to_AirLoopHVACUnitaryHeatPumpAirToAirMultiSpeed.get
-            component.setSupplyAirFanOperatingModeSchedule(air_loop_fan_sch)
-            fan_sch_op_count += 1
+            component.setSupplyAirFanOperatingModeSchedule(air_loop_vent_sch)
           when 'OS_AirLoopHVAC_UnitaryHeatCool_VAVChangeoverBypass'
             component = component.to_AirLoopHVACUnitaryHeatCoolVAVChangeoverBypass.get
-            component.setSupplyAirFanOperatingModeSchedule(air_loop_fan_sch)
-            fan_sch_op_count += 1
+            component.setSupplyAirFanOperatingModeSchedule(air_loop_vent_sch)
           end
         end
     end 
