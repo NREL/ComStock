@@ -171,7 +171,7 @@ require 'openstudio-standards'
 			sch_ruleset = std.thermal_zones_get_occupancy_schedule(thermal_zones=air_loop_hvac.thermalZones,
 															occupied_percentage_threshold:0.05)
 			# set air loop availability controls and night cycle manager, after oa system added
-			sch_ruleset.setName("#{air_loop_hvac.name}_night_fancycle_schedule")
+			sch_ruleset.setName("#{air_loop_hvac.name}_night_fancycle_novent_schedule")
 			air_loop_hvac.setAvailabilitySchedule(sch_ruleset)
 			air_loop_hvac.setNightCycleControlType('CycleOnAny')
 			air_loop_vent_sch = sch_ruleset  
@@ -221,6 +221,7 @@ require 'openstudio-standards'
 			# set air loop availability controls and night cycle manager, after oa system added
 			air_loop_hvac.setAvailabilitySchedule(sch_ruleset)
 			air_loop_hvac.setNightCycleControlType('CycleOnAny')
+			sch_ruleset.setName("#{air_loop_hvac.name}_night_fancycle_novent_schedule")
 			air_loop_vent_sch = sch_ruleset  
 		end 
 	    next unless air_loop_hvac.airLoopHVACOutdoorAirSystem.is_initialized
