@@ -156,6 +156,15 @@ require 'openstudio-standards'
 	end 
   end
   
+    def air_loop_doas?(air_loop_hvac)
+    is_doas = false
+    sizing_system = air_loop_hvac.sizingSystem
+    if sizing_system.allOutdoorAirinCooling && sizing_system.allOutdoorAirinHeating && (air_loop_res?(air_loop_hvac) == false) && (air_loop_hvac.name.to_s.include?("DOAS") || air_loop_hvac.name.to_s.include?("doas"))
+      is_doas = true
+    end
+    return is_doas
+  end
+  
 
   # define what happens when the measure is run
   def run(model, runner, user_arguments)
@@ -200,7 +209,7 @@ require 'openstudio-standards'
    	model.getAirLoopHVACs.sort.each do |air_loop_hvac| #iterating thru air loops in the model to identify ones suitable for VAV conversion 
 	    if air_loop_hvac_unitary_system?(air_loop_hvac) #applying to unitary systems 
 		   # skip units that are not single zone, or are residential, or do not have outdoor air present, or are evaporative coolers 
-           next if ((air_loop_hvac.thermalZones.length() > 1) || air_loop_res?(air_loop_hvac) || air_loop_evaporative_cooler?(air_loop_hvac)|| (air_loop_hvac.name.to_s.include?("DOAS")) || (air_loop_hvac.name.to_s.include?("doas")))
+           next if ((air_loop_hvac.thermalZones.length() > 1) || air_loop_res?(air_loop_hvac) || air_loop_evaporative_cooler?(air_loop_hvac)|| (air_loop_hvac.name.to_s.include?("DOAS")) || (air_loop_hvac.name.to_s.include?("doas"))) || air_loop_doas?(air_loop_hvac)
 		   #skip based on residential being in name, or if a DOAS 
 		   sizing_system = air_loop_hvac.sizingSystem
 		   next if ((air_loop_hvac.name.to_s.include?("residential")) || (air_loop_hvac.name.to_s.include?("Residential")) || (sizing_system.allOutdoorAirinCooling && sizing_system.allOutdoorAirinHeating))
