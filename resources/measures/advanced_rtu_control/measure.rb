@@ -219,7 +219,7 @@ require 'openstudio-standards'
 		  runner.registerError('Unable to determine climate zone for model. Cannot apply economizer without climate zone information.')
 		end
 		
-							# check climate zone name validity
+	    # check climate zone name validity
 		# this happens to example model but maybe not during ComStock model creation?
 		substring_count = climate_zone.scan(/ASHRAE 169-2013-/).length
 		if substring_count > 1
@@ -421,11 +421,8 @@ require 'openstudio-standards'
 				# get airLoopHVACOutdoorAirSystem
 			    oa_sys = air_loop_hvac.airLoopHVACOutdoorAirSystem
 			    if oa_sys.is_initialized
-			      puts "in oa system loop" 
-				  puts "#{air_loop_hvac}"
 				  oa_sys = oa_sys.get
 			    else
-				  puts "in else case"
 				  OpenStudio.logFree(OpenStudio::Error, 'openstudio.prototype.Model', "#{air_loop.name} is required to have an economizer, but it has no OA system.")
 				  next
 			    end
