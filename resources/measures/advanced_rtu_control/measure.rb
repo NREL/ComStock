@@ -131,11 +131,6 @@ require 'openstudio-standards'
     tot_oa_flow_rate += sum_oa_rate
     tot_oa_flow_rate += sum_oa_for_volume
 
-    # Convert to cfm
-    tot_oa_flow_rate_cfm = OpenStudio.convert(tot_oa_flow_rate, 'm^3/s', 'cfm').get
-
-    #runner.registerInfo("For #{thermal_zone.name}, design min OA = #{tot_oa_flow_rate_cfm.round} cfm.")
-
     return tot_oa_flow_rate
   end
   
@@ -176,7 +171,7 @@ require 'openstudio-standards'
 	
 	
 	#set airflow design ratios
-	max_flow = 1 #revised upward, for energy modeling compatabiltiy 
+	#max_flow = 1 #revised upward, for energy modeling compatabiltiy 
 	min_flow = 0.4 	#Based on Catalyst 
 	
 	min_flow_fraction = 0.3 #typ for non-inverter driven motors 
@@ -222,14 +217,14 @@ require 'openstudio-standards'
 					if air_loop_hvac.autosizedDesignSupplyAirFlowRate.is_initialized #change supply air flow design parameters to match VAV conversion 
 						des_supply_airflow = air_loop_hvac.autosizedDesignSupplyAirFlowRate.get #handle autosized 
 						#puts ("des supply airflow" + "#{air_loop_hvac.name.to_s}" "#{des_supply_airflow}" + "new max" + "#{max_flow*des_supply_airflow}")
-						component.setSupplyAirFlowRateDuringCoolingOperation(max_flow*des_supply_airflow) #Set max based on limit after retrofit 
-						component.setSupplyAirFlowRateDuringHeatingOperation(max_flow*des_supply_airflow) #Set max based on limit after retrofit 
+						component.setSupplyAirFlowRateDuringCoolingOperation(des_supply_airflow) #Set the same as before
+						component.setSupplyAirFlowRateDuringHeatingOperation(des_supply_airflow) #Set same as before
 						component.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_flow*des_supply_airflow) #Set min based on limit after retrofit 
 					elsif air_loop_hvac.designSupplyAirFlowRate.is_initialized #handle hard-sized 
 						des_supply_airflow = air_loop_hvac.designSupplyAirFlowRate.get
 						#puts ("des supply airflow" + "#{air_loop_hvac.name.to_s}" "#{des_supply_airflow}" + "new max" + "#{max_flow*des_supply_airflow}")
-						component.setSupplyAirFlowRateDuringCoolingOperation(max_flow*des_supply_airflow)
-						component.setSupplyAirFlowRateDuringHeatingOperation(max_flow*des_supply_airflow)
+						component.setSupplyAirFlowRateDuringCoolingOperation(des_supply_airflow)
+						component.setSupplyAirFlowRateDuringHeatingOperation(des_supply_airflow)
 						component.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_flow*des_supply_airflow)
 					end 
 				sup_fan = component.supplyFan
@@ -267,6 +262,7 @@ require 'openstudio-standards'
 			 end 
 			 end 
 			 air_loop_hvac.thermalZones.each do |thermal_zone| #iterate thru thermal zones and modify zone-level terminal units 
+			    
 			    min_oa_flow_rate = thermal_zone_outdoor_airflow_rate(thermal_zone) 
 				#runner.registerInfo("min_oa_flow_rate #{min_oa_flow_rate}")
 				thermal_zone.equipment.each do |equip|
@@ -276,21 +272,21 @@ require 'openstudio-standards'
 					  new_term = OpenStudio::Model::AirTerminalSingleDuctVAVHeatAndCoolNoReheat.new(model) #create new terminal unit 
 						if term.autosizedMaximumAirFlowRate.is_initialized
 					     des_airflow_rate = term.autosizedMaximumAirFlowRate.get
-						 new_term.setMaximumAirFlowRate(des_airflow_rate * max_flow) #cap maximum based on overall limit 
+						 new_term.setMaximumAirFlowRate(des_airflow_rate) #same as before 
 						 #set minimum based on max of 40% of max flow, or min ventilation level req'd 
-						 new_term.setZoneMinimumAirFlowFraction([min_flow, min_oa_flow_rate/max_flow].max)
+						 new_term.setZoneMinimumAirFlowFraction([min_flow, min_oa_flow_rate/des_airflow_rate].max)
 						elsif term.maximumAirFlowRate.is_initialized
 					      des_airflow_rate = term.maximumAirFlowRate.get
-						  new_term.setMaximumAirFlowRate(des_airflow_rate * max_flow) #cap maximum based on overall limit 
+						  new_term.setMaximumAirFlowRate(des_airflow_rate) #same as before
 						  #set minimum based on max of 40% of max flow, or min ventilation level req'd 
-						  new_term.setZoneMinimumAirFlowFraction([min_flow, min_oa_flow_rate/max_flow].max)
+						  new_term.setZoneMinimumAirFlowFraction([min_flow, min_oa_flow_rate/des_airflow_rate].max)
 						end 
 					  air_loop_hvac.removeBranchForZone(thermal_zone)
 					  air_loop_hvac.addBranchForZone(thermal_zone, new_term)
 					end 
 			    end
 			#handle DCV in appropriate air loops, after screening out those that aren't suitable 
-				if add_dcv and not ['kitchen', 'Kitchen', 'dining', 'Dining', 'Laboratory', 'KITCHEN', 'LABORATORY', 'DINING', 'patient', 'PATIENT', 'Patient'].any? { |word| (air_loop_hvac.name.get).include?(word) }
+				if add_dcv && ! ['kitchen', 'Kitchen', 'dining', 'Dining', 'Laboratory', 'KITCHEN', 'LABORATORY', 'DINING', 'patient', 'PATIENT', 'Patient'].any? { |word| (air_loop_hvac.name.get).include?(word) }
 				   oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
 				   controller_oa = oa_system.getControllerOutdoorAir
 				   controller_mv = controller_oa.controllerMechanicalVentilation
@@ -317,11 +313,11 @@ require 'openstudio-standards'
 					  tot_oa_cfm = floor_area * tot_oa_cfm_per_ft2
 
 					  # if both per-area and per-person are present, does not need to be modified
-					  if !dsn_oa.outdoorAirFlowperPerson.zero? & !dsn_oa.outdoorAirFlowperFloorArea.zero?
+					  if !dsn_oa.outdoorAirFlowperPerson.zero? && !dsn_oa.outdoorAirFlowperFloorArea.zero?
 						next
 					  
 					  # if both are zero, skip space
-					  elsif dsn_oa.outdoorAirFlowperPerson.zero? & dsn_oa.outdoorAirFlowperFloorArea.zero?
+					  elsif dsn_oa.outdoorAirFlowperPerson.zero? && dsn_oa.outdoorAirFlowperFloorArea.zero?
 						runner.registerInfo("Space '#{space.name}' has 0 outdoor air per-person and per-area rates. DCV may be still be applied to this air loop, but it will not function on this space.")
 						next
 					  
