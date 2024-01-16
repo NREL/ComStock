@@ -903,7 +903,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     end
 
   ############################################################################
-  #####This section tests proper application of energy recovery systems
+  #####This section tests proper application of energy recovery systems in semi-applicable buildings
 
   # check space type applicability
   thermal_zone_names_to_exclude = [

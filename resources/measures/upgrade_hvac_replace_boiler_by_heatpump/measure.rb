@@ -770,7 +770,7 @@ class Replace_boiler_by_heatpump < OpenStudio::Measure::ModelMeasure
 
           sizings = model.getSizingSystems
           sizings.each do |s|
-            s.autosizeDesignOutdoorAirFlowRate
+            # s.autosizeDesignOutdoorAirFlowRate
             s.autosizeHeatingDesignCapacity
           end
 
