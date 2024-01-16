@@ -1217,7 +1217,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # define cooling stages; 40% to 100%, equally spaced; fractions from ResStock Reference file
       # overriding 0.67 (value for stage3) to 0.61 (average of standard performance products) for modeling standard performance
       if std_perf
-        stage3_factor = 0.61
+        stage3_factor = 0.60
         puts("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding stage 3 factor to #{stage3_factor} for modeling standard performance.")
       else
         stage3_factor = 0.67
