@@ -1889,12 +1889,12 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
 
       # get sql (for extracting sizing information)
       sql = model.sqlFile
-      if sql.is_initialized
-        sql = sql.get
-      end
       if sql.empty?
         runner.registerError('Cannot find last sql file.')
         return false
+      end
+      if sql.is_initialized
+        sql = sql.get
       end
 
       # loop through each outdoor unit
