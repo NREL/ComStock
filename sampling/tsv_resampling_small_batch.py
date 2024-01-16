@@ -89,7 +89,7 @@ class CommercialBaseSobolSampler(BuildStockSampler):
         tsv_arrays = [
             [
                 'building_type', 'state_id', 'county_id', 'year_of_simulation', 'region',
-                'climate_zone', 'year_built', 'subtype', 'rentable_area'
+                'climate_zone', 'year_built', 'subtype', 'rentable_area', 'ground_thermal_conductivity'
             ],
             [
                 'original_building_construction', 'window_wall_ratio', 'interior_lighting',

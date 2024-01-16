@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>create_typical_building_from_model</name>
   <uid>339a2e3a-273c-4494-bb50-bfe586a0647c</uid>
-  <version_id>d4d8e1ca-a5db-47e0-aae1-f98dad728eb8</version_id>
-  <version_modified>2023-10-16T20:24:52Z</version_modified>
+  <version_id>5815cc73-0b2b-46bc-9ae2-7ead558f15ce</version_id>
+  <version_modified>2024-01-03T18:32:46Z</version_modified>
   <xml_checksum>EE13F09F</xml_checksum>
   <class_name>CreateTypicalBuildingFromModel</class_name>
   <display_name>Create Typical Building from Model</display_name>
@@ -544,6 +544,14 @@
         <choice>
           <value>PVAV with gas heat with electric reheat</value>
           <display_name>PVAV with gas heat with electric reheat</display_name>
+        </choice>
+        <choice>
+          <value>PVAV with gas coil heat with electric reheat</value>
+          <display_name>PVAV with gas coil heat with electric reheat</display_name>
+        </choice>
+        <choice>
+          <value>PVAV with gas boiler heat with electric reheat</value>
+          <display_name>PVAV with gas boiler heat with electric reheat</display_name>
         </choice>
         <choice>
           <value>Residential AC with baseboard electric</value>
@@ -1451,13 +1459,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>E7221B07</checksum>
+      <checksum>FF7CA5B1</checksum>
     </file>
     <file>
       <filename>Model.hvac.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>48B87A43</checksum>
+      <checksum>C6E68B0D</checksum>
     </file>
     <file>
       <filename>deer_vintages.rb</filename>
@@ -1475,7 +1483,7 @@
       <filename>os_lib_model_generation.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>7AA832CC</checksum>
+      <checksum>3097D1DE</checksum>
     </file>
     <file>
       <filename>GenericGbxml.osm</filename>
