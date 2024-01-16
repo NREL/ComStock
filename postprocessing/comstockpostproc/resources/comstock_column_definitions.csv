@@ -245,12 +245,12 @@ results.csv,build_existing_model.fault_hvac_economizer_changeover_temperature_ap
 results.csv,build_existing_model.fault_hvac_economizer_changeover_temperature_changeovertemp,,FALSE,FALSE,string,,,
 results.csv,build_existing_model.fault_hvac_economizer_changeover_temperature_econ_choice,,FALSE,FALSE,string,,,
 results.csv,build_existing_model.fault_hvac_economizer_damper_stuck_applicable,in.economizer_damper_stuck_fault_applicable,TRUE,FALSE,string,,,Indicates whether the economizer damper stuck fault is applicable
-results.csv,build_existing_model.fault_hvac_economizer_damper_stuck_apply_measure,TODO,FALSE,FALSE,float,,,
-results.csv,build_existing_model.fault_hvac_economizer_damper_stuck_damper_pos,TODO,FALSE,FALSE,float,,,
-results.csv,build_existing_model.fault_hvac_economizer_damper_stuck_duration_days,TODO,FALSE,FALSE,float,,,
-results.csv,build_existing_model.fault_hvac_economizer_damper_stuck_econ_choice,TODO,FALSE,FALSE,float,,,
-results.csv,build_existing_model.fault_hvac_economizer_damper_stuck_start_day,TODO,FALSE,FALSE,float,,,
-results.csv,build_existing_model.fault_hvac_economizer_damper_stuck_start_month,TODO,FALSE,FALSE,float,,,
+results.csv,build_existing_model.fault_hvac_economizer_damper_stuck_apply_measure,,FALSE,FALSE,float,,,
+results.csv,build_existing_model.fault_hvac_economizer_damper_stuck_damper_pos,,FALSE,FALSE,float,,,
+results.csv,build_existing_model.fault_hvac_economizer_damper_stuck_duration_days,,FALSE,FALSE,float,,,
+results.csv,build_existing_model.fault_hvac_economizer_damper_stuck_econ_choice,,FALSE,FALSE,float,,,
+results.csv,build_existing_model.fault_hvac_economizer_damper_stuck_start_day,,FALSE,FALSE,float,,,
+results.csv,build_existing_model.fault_hvac_economizer_damper_stuck_start_month,,FALSE,FALSE,float,,,
 results.csv,build_existing_model.hardsize_model_applicable,,FALSE,FALSE,string,,,Whether the hardsizing measure was applicable
 results.csv,build_existing_model.hardsize_model_apply_hardsize,,FALSE,FALSE,string,,,Whether the hardsizing measure was applied
 results.csv,build_existing_model.hvac_night_variability,in.hvac_night_variability,TRUE,FALSE,string,,,"Specifies the HVAC nighttime hvac operation used in model, which impacts fan and ventialtion behavior during unnoccupied times"
@@ -630,7 +630,7 @@ results.csv,com_stock_sensitivity_reports.com_report_wwr,out.params.window_to_wa
 results.csv,com_stock_sensitivity_reports.com_report_zone_hvac_fan_power_minimum_flow_fraction,out.params.zone_hvac_fan_power_minimum_flow_fraction,TRUE,FALSE,float,,,Fan power minimum flow fraction for zone hvac equipment
 results.csv,com_stock_sensitivity_reports.com_report_zone_hvac_fan_static_pressure,out.params.zone_hvac_fan_static_pressure,TRUE,FALSE,float,pa,inwc,Fan static pressure in pascals for zone hvac equipment
 results.csv,com_stock_sensitivity_reports.com_report_zone_hvac_fan_total_efficiency,out.params.zone_hvac_fan_total_efficiency,TRUE,FALSE,float,,,Fan total efficiency for zone hvac equipment
-results.csv,com_stock_sensitivity_reports.com_report_number_of_zones,out.param.number_of_zones,TRUE,FALSE,integer,,,Number of ThermalZone objects in the building energy model
+results.csv,com_stock_sensitivity_reports.com_report_number_of_zones,out.params.number_of_zones,TRUE,FALSE,integer,,,Number of ThermalZone objects in the building energy model
 results.csv,com_stock_sensitivity_reports.com_report_number_of_spaces,out.params.number_of_spaces,TRUE,FALSE,integer,,,Number of Space objects in the building energy model
 results.csv,com_stock_sensitivity_reports.com_report_smallest_space_m2,out.params.smallest_space_floor_area,TRUE,FALSE,float,m2,m2,Smallest Space by floor area in the building energy model
 results.csv,com_stock_sensitivity_reports.com_report_number_of_surfaces,out.params.number_of_surfaces,TRUE,FALSE,integer,,,Number of Surface objects in the building energy model
