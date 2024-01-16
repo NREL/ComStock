@@ -872,7 +872,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         non_food_svc = ['RetailStandalone', 'Warehouse','SmallOffice', 'LargeHotel', 'MediumOffice', 'PrimarySchool',
             'Hospital', 'SmallHotel', 'Outpatient', 'SecondarySchool', 'LargeOffice']
 
-        food_svc = ['QuickServiceRestaurant', 'FullServiceRestaurant', 'RetailStripmall']
+        food_svc = ['QuickServiceRestaurant', 'FullServiceRestaurant']
+
+        some_food_svc = ['RetailStripmall']
 
         non_lodging = ['QuickServiceRestaurant', 'RetailStripmall', 'RetailStandalone', 'Warehouse',
             'SmallOffice', 'MediumOffice', 'PrimarySchool',
@@ -884,6 +886,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Cast columns used in is_in() statements below to match dtype of lists
         self.data = self.data.with_columns([
             pl.col('in.comstock_building_type').cast(pl.Utf8),
+            pl.col('in.building_subtype').cast(pl.Utf8),
             pl.col('in.hvac_category').cast(pl.Utf8),
             pl.col('in.hvac_heat_type').cast(pl.Utf8)
         ])
@@ -895,45 +898,57 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             (pl.col('in.comstock_building_type').is_in(non_food_svc)) &
             (pl.col('in.hvac_category') == 'Small Packaged Unit'))
             .then(pl.lit(self.SEG_A))
+            # Segment A - includes strip malls with no food service
+            .when(
+            (pl.col('in.comstock_building_type').is_in(some_food_svc)) &
+            (pl.col('in.hvac_category') == 'Small Packaged Unit') &
+            (pl.col('in.building_subtype') == 'strip_mall_restaurant0'))
+            .then(pl.lit(self.SEG_A))
             # Segment B
             .when(
             (pl.col('in.comstock_building_type').is_in(food_svc)) &
             (pl.col('in.hvac_category') == 'Small Packaged Unit'))
             .then(pl.lit(self.SEG_B))
-            # Segment C
+            # Segment C - strip malls with SOME food service
+            .when(
+            (pl.col('in.comstock_building_type').is_in(some_food_svc)) &
+            (pl.col('in.hvac_category') == 'Small Packaged Unit') &
+            (pl.col('in.building_subtype') != 'strip_mall_restaurant0'))
+            .then(pl.lit(self.SEG_C))
+            # Segment D
             # NOTE see the space after Boiler... this is an artifact of previous code!
             .when(
             (pl.col('in.hvac_heat_type').is_in(['Boiler ', 'District'])) &
             (pl.col('in.hvac_category') == 'Multizone CAV/VAV'))
-            .then(pl.lit(self.SEG_C))
-            # Segment D
-            .when(
-            (pl.col('in.comstock_building_type').is_in(lodging)) &
-            (pl.col('in.hvac_category') == 'Zone-by-Zone'))
             .then(pl.lit(self.SEG_D))
             # Segment E
             .when(
-            (pl.col('in.hvac_heat_type') == 'Electric Resistance') &
-            (pl.col('in.hvac_category') == 'Multizone CAV/VAV'))
+            (pl.col('in.comstock_building_type').is_in(lodging)) &
+            (pl.col('in.hvac_category') == 'Zone-by-Zone'))
             .then(pl.lit(self.SEG_E))
             # Segment F
             .when(
-            (pl.col('in.hvac_heat_type') == 'Furnace') &
+            (pl.col('in.hvac_heat_type') == 'Electric Resistance') &
             (pl.col('in.hvac_category') == 'Multizone CAV/VAV'))
             .then(pl.lit(self.SEG_F))
             # Segment G
             .when(
-            (pl.col('in.hvac_category') == 'Residential Style Central Systems'))
+            (pl.col('in.hvac_heat_type') == 'Furnace') &
+            (pl.col('in.hvac_category') == 'Multizone CAV/VAV'))
             .then(pl.lit(self.SEG_G))
             # Segment H
             .when(
-            (pl.col('in.comstock_building_type').is_in(non_lodging)) &
-            (pl.col('in.hvac_category') == 'Zone-by-Zone'))
+            (pl.col('in.hvac_category') == 'Residential Style Central Systems'))
             .then(pl.lit(self.SEG_H))
             # Segment I
             .when(
-            (pl.col('in.hvac_category') == 'Other HVAC'))
+            (pl.col('in.comstock_building_type').is_in(non_lodging)) &
+            (pl.col('in.hvac_category') == 'Zone-by-Zone'))
             .then(pl.lit(self.SEG_I))
+            # Segment J
+            .when(
+            (pl.col('in.hvac_category') == 'Other HVAC'))
+            .then(pl.lit(self.SEG_J))
             # Catchall - should not hit this, every building should have a segment
             .otherwise(pl.lit('ERROR'))
             # Assign the column name
