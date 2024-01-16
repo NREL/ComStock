@@ -135,6 +135,28 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
 
     args
   end
+  
+   def vav_terminals?(air_loop_hvac)
+	air_loop_hvac.thermalZones.each do |thermal_zone| #iterate thru thermal zones and modify zone-level terminal units 
+		thermal_zone.equipment.each do |equip|
+			if equip.to_AirTerminalSingleDuctVAVHeatAndCoolNoReheat.is_initialized
+               return true
+			elsif equip.to_AirTerminalSingleDuctVAVHeatAndCoolReheat.is_initialized
+               return true
+			elsif equip.to_AirTerminalSingleDuctVAVReheat.is_initialized
+               return true
+		    elsif equip.to_AirTerminalSingleDuctVAVNoReheat.is_initialized
+               return true
+			elsif equip.to_AirTerminalDualDuctVAV.is_initialized
+			    return true
+			elsif equip.to_AirTerminalDualDuctVAVOutdoorAir.is_initialized
+			    return true			
+		    else 
+			    return false 
+			end 
+	    end 
+	end 
+  end
 
   # define what happens when the measure is run
   def run(model, runner, user_arguments)
@@ -252,6 +274,16 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
       runner.registerAsNotApplicable('Baseboard heaters in model--measure will not be applied.')
       return true
     end
+	
+	#Screen out packaged single zone with gas boiler 
+    model.getAirLoopHVACs.each do |air_loop_hvac|
+	      supply_comp = air_loop_hvac.supplyComponents
+	      if (air_loop_hvac.thermalZones.length() == 1) && ! vav_terminals?(air_loop_hvac) #identify single zone systems with no VAV terminals
+			  if supply_comp.map{ |x| x.iddObjectType.valueName.to_s }.include?('OS_Coil_Heating_Water' && 'OS_Coil_Cooling_DX_SingleSpeed') 
+				runner.registerAsNotApplicable('Packaged single zone system with hot water heating--measure will not be applied.')
+			  end 
+		  end 
+	end
 
 
     # change to model.getBoilers....
