@@ -1892,6 +1892,10 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       if sql.is_initialized
         sql = sql.get
       end
+      if sql.empty?
+        runner.registerError('Cannot find last sql file.')
+        return false
+      end
 
       # loop through each outdoor unit
       model.getAirConditionerVariableRefrigerantFlows.each do |ou|
