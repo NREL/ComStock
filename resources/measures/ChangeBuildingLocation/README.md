@@ -51,6 +51,14 @@ Cambium electric grid region, or eGrid region for Alaska and Hawaii
 **Required:** true,
 **Model Dependent:** false
 
+### Soil Conductivity
+
+**Name:** soil_conductivity,
+**Type:** Double,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
 
 
 
