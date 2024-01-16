@@ -353,7 +353,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     coef_6 = 0.0001053728
     min_cop = 3.43
     max_cop = 4.92
-    rated_CFM = rated_m_3_per_sec * 2118.88 # m3/sec to CFM
+    rated_CFM = OpenStudio.convert(rated_m_3_per_sec, 'm^3/s', 'cfm').get
     rated_capacity_kw = rated_capacity_w / 1000 # W to kW
     rated_cop_cooling = intercept + 1 * coef_1 + coef_2 * rated_CFM + coef_3 * rated_capacity_kw + coef_4 * (rated_CFM**2) + coef_5 * (rated_CFM * rated_capacity_kw) + coef_6 * (rated_capacity_kw**2)
     rated_cop_cooling = rated_cop_cooling.clamp(min_cop, max_cop)
@@ -371,7 +371,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     coef_6 = 0.0004096485708
     min_cop = 2.95
     max_cop = 5.42  
-    rated_CFM = rated_m_3_per_sec * 2118.88 # m3/sec to CFM
+    rated_CFM = OpenStudio.convert(rated_m_3_per_sec, 'm^3/s', 'cfm').get
     rated_capacity_kw = rated_capacity_w / 1000 # W to kW
     rated_cop_heating = intercept + 1 * coef_1 + coef_2 * rated_CFM + coef_3 * rated_capacity_kw + coef_4 * (rated_CFM**2) + coef_5 * (rated_CFM * rated_capacity_kw) + coef_6 * (rated_capacity_kw**2)
     rated_cop_heating = rated_cop_heating.clamp(min_cop, max_cop)
