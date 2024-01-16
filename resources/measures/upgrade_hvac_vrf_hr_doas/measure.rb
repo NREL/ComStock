@@ -2033,7 +2033,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           puts("--- #{coil_heating.name} | indoor unit heating air flow rate after = #{coil_heating.ratedAirFlowRate} m3/s")
 
           # override new specifications: rated capacity for cooling
-          if coil_cooling.ratedTotalCoolingCapacity .is_initialized
+          if coil_cooling.ratedTotalCoolingCapacity.is_initialized
             puts("--- #{coil_cooling.name} | indoor unit cooling capacity before = #{coil_cooling.ratedTotalCoolingCapacity} W")
           elsif coil_cooling.autosizedRatedTotalCoolingCapacity.is_initialized
             puts("--- #{coil_cooling.name} | indoor unit cooling capacity before = #{coil_cooling.autosizedRatedTotalCoolingCapacity} W")
@@ -2044,7 +2044,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           puts("--- #{coil_cooling.name} | indoor unit cooling capacity after = #{coil_cooling.ratedTotalCoolingCapacity} W")
 
           # override new specifications: rated capacity for heating
-          if coil_heating.ratedTotalHeatingCapacity .is_initialized
+          if coil_heating.ratedTotalHeatingCapacity.is_initialized
             puts("--- #{coil_heating.name} | indoor unit heating capacity before = #{coil_heating.ratedTotalHeatingCapacity} W")
           elsif coil_heating.autosizedRatedTotalHeatingCapacity.is_initialized
             puts("--- #{coil_heating.name} | indoor unit heating capacity before = #{coil_heating.autosizedRatedTotalHeatingCapacity} W")
