@@ -1155,7 +1155,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       "RSD", # Restaurant - Sit-Down
       "Hsp", # Health/Medical - Hospital
       #'RetailStandalone',
-      'RetailStripmall',
+      # 'RetailStripmall',
       "QuickServiceRestaurant",
       "FullServiceRestaurant",
       "Hospital"
