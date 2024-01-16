@@ -96,7 +96,7 @@ $ pip install -e .[dev]
     $ conda activate comstockpostproc
     $ python compare_runs.py
     ```
-5. Look in the `/output` directory for results
+4. Look in the `/output` directory for results
 
 ### Comparing upgrades in a single ComStock run
 
@@ -107,7 +107,20 @@ $ pip install -e .[dev]
     $ conda activate comstockpostproc
     $ python compare_upgrades.py
     ```
-5. Look in the `/output` directory for results
+4. Look in the `/output` directory for results
+
+### Comparing a ComStock run to AMI data
+
+1. Copy the `compare_comstock_to_ami.py.template` file to `compare_comstock_to_ami.py`
+2. Edit `compare_comstock_to_ami.py` to point to the ComStock runs you want to plot.
+    Note that your run should use a buildstock.csv generated from the 10k sample file in /sampling/resources/ami_comparison.csv
+3. Open an Anaconda prompt, activate the environment, and run the file:
+    ```
+    $ conda activate comstockpostproc
+    $ python compare_comstock_to_ami.py
+    ```
+4. Look in the `/output` directory for results
+
 
 ### NREL Staff - Extracting simulations and summarizing EnergyPlus warnings and errors on HPC
 
