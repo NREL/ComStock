@@ -369,30 +369,19 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
     # ----------------------------------------------------  
     # puts("### adding output variables (for debugging)")
     # ----------------------------------------------------  
-    # ov_eco_status = OpenStudio::Model::OutputVariable.new("debugging_ecostatus",model)
-    # ov_eco_status.setKeyValue("*")
-    # ov_eco_status.setReportingFrequency("timestep") 
-    # ov_eco_status.setVariableName("Air System Outdoor Air Economizer Status")
-
-    # ov_oa_fraction = OpenStudio::Model::OutputVariable.new("debugging_ov_oafraction",model)
-    # ov_oa_fraction.setKeyValue("*")
-    # ov_oa_fraction.setReportingFrequency("timestep") 
-    # ov_oa_fraction.setVariableName("Air System Outdoor Air Flow Fraction")
-
-    # ov_oa_mdot = OpenStudio::Model::OutputVariable.new("debugging_oamdot",model)
-    # ov_oa_mdot.setKeyValue("*")
-    # ov_oa_mdot.setReportingFrequency("timestep") 
-    # ov_oa_mdot.setVariableName("Air System Outdoor Air Mass Flow Rate")
-
-    # ov_oat = OpenStudio::Model::OutputVariable.new("debugging_oat",model)
-    # ov_oat.setKeyValue("*")
-    # ov_oat.setReportingFrequency("timestep") 
-    # ov_oat.setVariableName("Site Outdoor Air Drybulb Temperature")
-
-    # ov_coil_cooling = OpenStudio::Model::OutputVariable.new("debugging_cooling",model)
-    # ov_coil_cooling.setKeyValue("*")
-    # ov_coil_cooling.setReportingFrequency("timestep") 
-    # ov_coil_cooling.setVariableName("Cooling Coil Total Cooling Rate")
+    # out_vars = [
+    #   'Air System Outdoor Air Economizer Status', 
+    #   'Air System Outdoor Air Flow Fraction',
+    #   'Air System Outdoor Air Mass Flow Rate',
+    #   'Site Outdoor Air Drybulb Temperature',
+    #   'Cooling Coil Total Cooling Rate'
+    # ]
+    # out_vars.each do |out_var_name|
+    #     ov = OpenStudio::Model::OutputVariable.new('ov', model)
+    #     ov.setKeyValue('*')
+    #     ov.setReportingFrequency('timestep')
+    #     ov.setVariableName(out_var_name)
+    # end
 
     # # create OutputEnergyManagementSystem object (a 'unique' object) and configure to allow EMS reporting
     # output_EMS = model.getOutputEnergyManagementSystem
