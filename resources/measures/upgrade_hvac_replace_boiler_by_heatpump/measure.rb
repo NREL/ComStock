@@ -762,15 +762,15 @@ class Replace_boiler_by_heatpump < OpenStudio::Measure::ModelMeasure
                 h_coil.autosizeUFactorTimesAreaValue
                 h_coil.autosizeMaximumWaterFlowRate
                 h_coil.autosizeHeatingDesignCapacity
-                h_coil.setRatedInletWaterTemperature(hw_setpoint_c)
-                h_coil.setRatedOutletWaterTemperature(hw_setpoint_c-tempd)
+                # h_coil.setRatedInletWaterTemperature(hw_setpoint_c)
+                # h_coil.setRatedOutletWaterTemperature(hw_setpoint_c-tempd)
               end
             end
           end
 
           sizings = model.getSizingSystems
           sizings.each do |s|
-            s.autosizeDesignOutdoorAirFlowRate
+            #s.autosizeDesignOutdoorAirFlowRate
             s.autosizeHeatingDesignCapacity
           end
 
