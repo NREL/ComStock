@@ -44,7 +44,7 @@ setup(
         'seaborn>=0.12.0',
         'xlrd',
         'nbformat',
-        'pandas',
+        'pandas>=2.0.0',
         'plotly',
         'pyarrow',
         'fsspec',
