@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>replace_boiler_by_heatpump</name>
   <uid>e5661219-4641-4140-8c83-a9d602e45ca7</uid>
-  <version_id>94be9893-0008-42b4-9d3b-47ed8ae266b0</version_id>
-  <version_modified>2023-10-16T20:24:56Z</version_modified>
+  <version_id>19d92578-1d81-4b27-9f29-30c6027b0209</version_id>
+  <version_modified>2024-01-17T00:01:13Z</version_modified>
   <xml_checksum>F0147A36</xml_checksum>
   <class_name>Replace_boiler_by_heatpump</class_name>
   <display_name>replace_boiler_by_heatpump</display_name>

@@ -367,7 +367,7 @@ class Replace_boiler_by_heatpump < OpenStudio::Measure::ModelMeasure
 
     unitarys = model.getAirLoopHVACUnitarySystems
     unitarys.each do |unit|
-      flowmethod = unit.supplyAirFlowRateMethodDuringHeatingOperation.get
+      flowmethod = unit.supplyAirFlowRateMethodDuringHeatingOperation #.get
       runner.registerInfo("flow method is #{flowmethod} ")
       if flowmethod == ''
         unit.setSupplyAirFlowRateMethodDuringHeatingOperation('SupplyAirFlowRate')
