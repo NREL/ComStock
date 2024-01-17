@@ -1,0 +1,9 @@
+//Jenkins pipelines are stored in shared libaries. Please see: https://github.com/NREL/cbci_jenkins_libs
+
+@Library('cbci_shared_libs@wenyidev') _
+
+
+// Build for PR to main branch only.
+if ((env.CHANGE_ID)) {
+    building_comstock_all()
+}
