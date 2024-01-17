@@ -188,13 +188,28 @@ class SetPrimaryKitchenEquipment < OpenStudio::Measure::ModelMeasure
     # make hash of equipment quantities
     appliance_quantity_hash = Hash[li_appliance_types.zip li_appliance_quantities]
     # make list of electric equipment power (in kW)
-    li_appliance_electric_power_kW = [11.000,12.000,22.000,15.000,12.000,15.000]
+    li_appliance_electric_power_kW = [10.815,17.116,14.009,12.104,21.014,26.964]
     # make hash of electric equipment
     appliance_electric_power_hash = Hash[li_appliance_types.zip li_appliance_electric_power_kW]
     # make list of gas equipment power (in kW)
-    li_appliance_gas_power_kW = [25.800,20.500,48.100,16.400,52.500,61.500]
+    li_appliance_gas_power_kW = [28.136,26.377,23.447,12.896,42.497,58.617]
     # make hash of gas equipment
     appliance_gas_power_hash = Hash[li_appliance_types.zip li_appliance_gas_power_kW]
+   
+    # fraction latent always set to 0.1
+    frac_latent = 0.1
+    # make list of gas radiant fraction values
+    li_gas_frac_radiant = [0.12,0.18,0.23,0.08,0.11,0.1]
+    gas_fraction_radiant_hash = Hash[li_appliance_types.zip li_gas_frac_radiant]
+    # make list of electric radiant fraction values
+    li_elec_frac_radiant = [0.35,0.39,0.36,0.22,0.1,0.1]
+    elec_fraction_radiant_hash = Hash[li_appliance_types.zip li_elec_frac_radiant]
+    # make list of gas lost fraction values
+    li_gas_frac_lost = [0.68,0.62,0.57,0.72,0.69,0.7]
+    gas_fraction_lost_hash = Hash[li_appliance_types.zip li_gas_frac_lost]
+    # make list of electric lost fraction values
+    li_elec_frac_lost = [0.45,0.41,0.44,0.58,0.7,0.7]
+    elec_fraction_lost_hash = Hash[li_appliance_types.zip li_elec_frac_lost]
 
     # make list of equipment to delete
     li_euip_to_remove=[]
@@ -243,6 +258,11 @@ class SetPrimaryKitchenEquipment < OpenStudio::Measure::ModelMeasure
         # set aggregate equipment power; multiply quantity by power per unit; multiply by 1000 for kW to W
         agg_power=appliance_quantity_hash[app]*appliance_gas_power_hash[app]
         equip_def_new.setDesignLevel(agg_power*1000)
+        equip_def_new.setFractionLatent(frac_latent)
+        frac_radiant = gas_fraction_radiant_hash[app]
+        equip_def_new.setFractionRadiant(frac_radiant)
+        frac_lost = gas_fraction_lost_hash[app]
+        equip_def_new.setFractionLost(frac_lost)
         # create new gas equipment and link to new definition
         equip_new = gas_equip_orig.clone.to_GasEquipment.get
         equip_new.setName("gas_#{app}_equipment_bldg_quantity=#{appliance_quantity_hash[app]}")
@@ -262,12 +282,17 @@ class SetPrimaryKitchenEquipment < OpenStudio::Measure::ModelMeasure
         # set aggregate equipment power; multiply quantity by power per unit; multiply by 1000 for kW to W
         agg_power=appliance_quantity_hash[app]*appliance_electric_power_hash[app]
         equip_def_new.setDesignLevel(agg_power*1000)
+        equip_def_new.setFractionLatent(frac_latent)
+        frac_radiant = elec_fraction_radiant_hash[app]
+        equip_def_new.setFractionRadiant(frac_radiant)
+        frac_lost = elec_fraction_lost_hash[app]
+        equip_def_new.setFractionLost(frac_lost)
         # create new gas equipment and link to new definition
         equip_new = electric_equip_orig.clone.to_ElectricEquipment.get
         equip_new.setName("electric_#{app}_equipment_bldg_quantity=#{appliance_quantity_hash[app]}")
         equip_new.setElectricEquipmentDefinition(equip_def_new)
         # use original gas equipment schedule; consider using gas schedules for schools
-        equip_new.setSchedule(electric_equip_sched_orig)
+        equip_new.setSchedule(gas_equip_sched_orig)
         # equip_new.setSchedule(gas_equip_sched_orig)
         # use multiplier to spread equipment across multiple kitchens
         equip_new.setMultiplier(1.0/num_kitchens)
