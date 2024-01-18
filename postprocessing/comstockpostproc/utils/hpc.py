@@ -685,7 +685,7 @@ def summarize_failures(yml_path):
                         try:
                             sing_out_bytes=tar.extractfile(sing_out_name).read()
                             for l in sing_out_bytes.decode().split('\n'):
-                                if re.search(f'\[.* ERROR\]', l):
+                                if re.search(r'\[.* ERROR\]|\[.*<Error>.*\]', l):
                                     job_fails.write(f'{l}\n')
                         except KeyError as err:
                             job_fails.write(f'Did not find openstudio_output.log for up{up_id}/bldg{bldg_id}, cannot extract failure details\n')
