@@ -68,6 +68,15 @@ At rated conditions, a compressor will generally have slightly more cooling capa
 **Model Dependent:** false
 
 
+### Model standard performance HP RTU?
+
+**Name:** std_perf,
+**Type:** Boolean,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+
 ### Add Energy Recovery?
 
 **Name:** hr,

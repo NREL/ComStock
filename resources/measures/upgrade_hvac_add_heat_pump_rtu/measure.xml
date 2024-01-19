@@ -81,6 +81,24 @@
       <default_value>1</default_value>
     </argument>
     <argument>
+      <name>std_perf</name>
+      <display_name>Model standard performance HP RTU?</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
       <name>hr</name>
       <display_name>Add Energy Recovery?</display_name>
       <type>Boolean</type>
@@ -178,7 +196,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>7946ED10</checksum>
+      <checksum>750B4F54</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -201,7 +219,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>512BD614</checksum>
+      <checksum>767D7070</checksum>
+    </file>
+    <file>
+      <filename>performance_maps_hprtu_std.json</filename>
+      <filetype>json</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>784F9499</checksum>
     </file>
     <file>
       <filename>example_model.osm</filename>
