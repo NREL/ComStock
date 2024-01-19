@@ -614,51 +614,50 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
       # get outlet node of preheat coil to place setpoint manager
       preheat_sm_location = preheat_coil.outletModelObject.get.to_Node.get
       preheat_coil_setpoint_manager.addToNode(preheat_sm_location)
+    
+    end
 
-      # add dcv to air loop if dcv arg is true
-      if dcv == true
-        #get path to DCV measure
-        dcv_measure_path = Dir.glob(File.join(__dir__, '../upgrade_hvac_dcv'))
-        runner.registerInfo("dcv_measure path = #{dcv_measure_path}")
-        # Load dcv measure
-        measure = HVACDCV.new
+    # add dcv to air loop if dcv arg is true
+    if dcv == true
+      #get path to DCV measure
+      dcv_measure_path = Dir.glob(File.join(__dir__, '../upgrade_hvac_dcv'))
+      # Load dcv measure
+      measure = HVACDCV.new
 
-        # Apply dcv measure
-        result = measure.run(model, runner, OpenStudio::Measure::OSArgumentMap.new)
-        result = runner.result
+      # Apply dcv measure
+      result = measure.run(model, runner, OpenStudio::Measure::OSArgumentMap.new)
+      result = runner.result
 
-        # Check if the measure ran successfully
-        if result.value.valueName == 'Success'
-          runner.registerInfo('DCV measure was applied successfully.')
-        elsif result.value.valueName == 'NA'
-          runner.registerInfo('DCV measure was not applicable.')
-        else
-          runner.registerError('DCV measure failed.')
-          return  false
-        end
+      # Check if the measure ran successfully
+      if result.value.valueName == 'Success'
+        runner.registerInfo('DCV measure was applied successfully.')
+      elsif result.value.valueName == 'NA'
+        runner.registerInfo('DCV measure was not applicable.')
+      else
+        runner.registerError('DCV measure failed.')
+        return  false
       end
+    end
 
-      # add economizer if economizer arg is true
-      if econ == true
-        #get path to economizer measure
-        econ_measure_path = Dir.glob(File.join(__dir__, '../upgrade_hvac_economizer'))
-        runner.registerInfo("econ_measure path = #{econ_measure_path}")
-        # Load economizer measure
-        measure = HVACEconomizer.new
+    # add economizer if economizer arg is true
+    if econ == true
+      #get path to economizer measure
+      econ_measure_path = Dir.glob(File.join(__dir__, '../upgrade_hvac_economizer'))
+      # Load economizer measure
+      measure = HVACEconomizer.new
 
-        # Apply economizer measure
-        result = measure.run(model, runner, OpenStudio::Measure::OSArgumentMap.new)
-        result = runner.result
+      # Apply economizer measure
+      result = measure.run(model, runner, OpenStudio::Measure::OSArgumentMap.new)
+      result = runner.result
 
-        # Check if the measure ran successfully
-        if result.value.valueName == 'Success'
-          runner.registerInfo('Economizer measure was applied successfully.')
-        elsif result.value.valueName == 'NA'
-          runner.registerInfo('Economizer measure was not applicable.')
-        else
-          runner.registerError('Economizer measure failed.')
-          return  false
-        end
+      # Check if the measure ran successfully
+      if result.value.valueName == 'Success'
+        runner.registerInfo('Economizer measure was applied successfully.')
+      elsif result.value.valueName == 'NA'
+        runner.registerInfo('Economizer measure was not applicable.')
+      else
+        runner.registerError('Economizer measure failed.')
+        return  false
       end
     end
 
