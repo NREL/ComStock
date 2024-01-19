@@ -3,7 +3,7 @@
 There are **TWO** measure directories on this GitHub repository.
 This measure directory contains meta and reporting measures that do not require input arguments.
 
-Workflow and upgrade measures are located under [resources/measures](https://github.com/NREL/ComStock/tree/develop/resources/measures).
+Workflow and upgrade measures are located under [resources/measures](https://github.com/NREL/ComStock/tree/main/resources/measures).
 
 # Meta Measures
 

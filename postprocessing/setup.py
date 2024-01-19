@@ -44,6 +44,7 @@ setup(
         'seaborn>=0.12.0',
         'xlrd',
         'nbformat',
+        'scipy',
         'pandas',
         'plotly',
         'pyarrow',
@@ -54,7 +55,8 @@ setup(
         'botocore',
         'pyyaml',
         'joblib',
-        'polars>=0.19.0'
+        'polars>=0.19.16',
+        'buildstock_query @ git+https://github.com/NREL/buildstock-query'
     ],
     extras_require={
         'dev': [
