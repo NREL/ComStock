@@ -61,13 +61,6 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
   def arguments(model)
     args = OpenStudio::Measure::OSArgumentVector.new
 
-    # apply/not-apply measure
-    apply_measure = OpenStudio::Measure::OSArgument.makeBoolArgument('apply_measure', true)
-    apply_measure.setDisplayName('Apply measure?')
-    apply_measure.setDescription('')
-    apply_measure.setDefaultValue(true)
-    args << apply_measure
-
     return args
   end
 
@@ -83,19 +76,8 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
     end
 
     # ----------------------------------------------------
-    # puts("### obtain user inputs")
-    # ----------------------------------------------------
-    apply_measure = runner.getBoolArgumentValue('apply_measure', user_arguments)
-
-    # ----------------------------------------------------
     # puts("### applicability")
     # ---------------------------------------------------- 
-    # don't apply measure if specified in input
-    if apply_measure == false
-      runner.registerAsNotApplicable('Measure is not applied based on user input.')
-      return true
-    end
-
     # check applicability
     no_outdoor_air_loops = 0
     doas_loops = 0
