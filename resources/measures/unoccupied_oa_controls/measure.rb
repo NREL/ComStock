@@ -101,8 +101,8 @@ require 'openstudio-standards'
       # skip systems that are residential, or are DOAS
       next if UnoccupiedOAControls.air_loop_res?(air_loop_hvac)
       next if UnoccupiedOAControls.air_loop_doas?(air_loop_hvac)
-      # skip outpatient healthcare and schools 
-      next if ['outpatient', 'Outpatient', 'OUTPATIENT', 'school', 'SCHOOL', 'School', 'k12', 'K12', 'education', 'EDUCATION', 'Education', 'DOAS', 'doas', 'Hotel', 'hotel'].any? { |word| (air_loop_hvac.name.get).include?(word) }
+      # skip outpatient healthcare, hospitals, and schools 
+      next if ['outpatient', 'Outpatient', 'Hospital', 'hospital', 'OUTPATIENT', 'school', 'SCHOOL', 'School', 'k12', 'K12', 'education', 'EDUCATION', 'Education', 'DOAS', 'doas', 'Hotel', 'hotel'].any? { |word| (air_loop_hvac.name.get).include?(word) }
       # check unitary systems
       if UnoccupiedOAControls.air_loop_hvac_unitary_system?(air_loop_hvac)
         unitary_system_count += 1
