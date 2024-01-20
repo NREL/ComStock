@@ -619,45 +619,208 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
 
     # add dcv to air loop if dcv arg is true
     if dcv == true
-      #get path to DCV measure
-      dcv_measure_path = Dir.glob(File.join(__dir__, '../upgrade_hvac_dcv'))
-      # Load dcv measure
-      measure = HVACDCV.new
 
-      # Apply dcv measure
-      result = measure.run(model, runner, OpenStudio::Measure::OSArgumentMap.new)
-      result = runner.result
+      #check applicability
+      # # build standard to access methods
+      orig_hvac_code_comstock = model.getBuilding.additionalProperties.getFeatureAsString("hvac_as_constructed_template")
+      std = Standard.build(orig_hvac_code_comstock.to_s)
 
-      # Check if the measure ran successfully
-      if result.value.valueName == 'Success'
-        runner.registerInfo('DCV measure was applied successfully.')
-      elsif result.value.valueName == 'NA'
-        runner.registerInfo('DCV measure was not applicable.')
-      else
-        runner.registerError('DCV measure failed.')
-        return  false
+      # list of space types where DCV will not be applied
+      space_types_no_dcv = [
+        'Kitchen',
+        'kitchen',
+        'PatRm',
+        'PatRoom',
+        'Lab',
+        'Exam',
+        'PatCorridor',
+        'BioHazard',
+        'Exam',
+        'OR',
+        'PreOp',
+        'Soil Work',
+        'Trauma',
+        'Triage',
+        'PhysTherapy',
+        'Data Center',
+        'CorridorStairway',
+        'Corridor',
+        'Mechanical',
+        'Restroom',
+        'Entry',
+        'Dining',
+        'IT_Room',
+        'LockerRoom',
+        'Stair',
+        'Toilet',
+        'MechElecRoom',
+      ]
+    
+      no_outdoor_air_loops = 0
+      no_per_person_rates_loops = 0
+      constant_volume_doas_loops = 0
+      existing_dcv_loops = 0
+      ervs = 0
+      ineligible_space_types = 0
+      selected_air_loops = []
+      model.getAirLoopHVACs.each do |air_loop_hvac|
+        
+        # check for prevelance of OA system in air loop; skip if none
+        oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem
+        if oa_system.is_initialized
+          oa_system = oa_system.get
+        else
+          no_outdoor_air_loops += 1
+          runner.registerInfo("Air loop '#{air_loop_hvac.name}' does not have outdoor air and cannot have demand control ventilation.")
+          next
+        end
+
+        # check if airloop is DOAS; skip if true
+        sizing_system = air_loop_hvac.sizingSystem
+        type_of_load = sizing_system.typeofLoadtoSizeOn
+        if type_of_load == 'VentilationRequirement'
+          constant_volume_doas_loops += 1
+          runner.registerInfo("Air loop '#{air_loop_hvac.name}' is a constant volume DOAS system and cannot have demand control ventilation.")
+          next
+        end
+
+        # Check for ERV. If the air loop has an ERV, air loop is not applicable for DCV measure.
+        erv_components = []
+        air_loop_hvac.oaComponents.each do |component|
+            component_name = component.name.to_s
+            next if component_name.include? "Node"
+            if component_name.include? "ERV"
+              erv_components << component
+            end
+          end
+        if erv_components.any?
+          runner.registerInfo("Air loop '#{air_loop_hvac.name}' has an ERV. DCV will not be applied.")
+          ervs += 1
+          next
+        end
+
+        # check to see if airloop has existing DCV
+        # TODO - if it does have DCV, check to see if all zones are getting DCV
+        controller_oa = oa_system.getControllerOutdoorAir
+        controller_mv = controller_oa.controllerMechanicalVentilation
+        if controller_mv.demandControlledVentilation
+          existing_dcv_loops += 1
+          runner.registerInfo("Air loop '#{air_loop_hvac.name}' already has demand control ventilation enabled.")
+          next
+        end
+
+        # check to see if airloop has applicable space types
+        # these space types are often ventilation driven, or generally do not use ventilation rates per person
+        # exclude these space types: kitchens, laboratories, patient care rooms
+        # TODO - add functionality to add DCV to multizone systems to applicable zones only
+        space_no_dcv = 0
+        space_dcv = 0
+        air_loop_hvac.thermalZones.sort.each do |zone|
+          zone.spaces.each do |space|
+            if space_types_no_dcv.any? { |i| space.spaceType.get.name.to_s.include? i }
+              space_no_dcv += 1
+            else
+              space_dcv += 1
+            end
+          end
+        end
+        unless space_dcv >= 1
+          runner.registerInfo("Air loop '#{air_loop_hvac.name}' serves only ineligible space types. DCV will not be applied.")
+          ineligible_space_types += 1
+          next
+        end
+        
+        runner.registerInfo("Air loop '#{air_loop_hvac.name}' does not have existing demand control ventilation.  This measure will enable it.")
+        selected_air_loops << air_loop_hvac
+      end
+
+      if selected_air_loops.size.zero?
+        runner.registerInfo('Model does not contain air loops eligible for enabling demand control ventilation.')
+      elsif model.getBuilding.name.to_s.include?("hotel") || model.getBuilding.name.to_s.include?("Hotel") || model.getBuilding.name.to_s.include?("Htl") || model.getBuilding.name.to_s.include?("Mtl")
+          runner.registerInfo("Building is a hotel. DCV measure is not applicable.")
+      elsif ((model.getBuilding.name.to_s.include?("restaurant") || model.getBuilding.name.to_s.include?("Restaurant") || model.getBuilding.name.to_s.include?("RSD") || model.getBuilding.name.to_s.include?("RFF"))) && !(model.getBuilding.name.to_s.include?("Strip") || model.getBuilding.name.to_s.include?("strip"))
+          runner.registerInfo("Building is a restaurant or strip mall. DCV measure is not applicable.")
+      else 
+        #get path to DCV measure
+        dcv_measure_path = Dir.glob(File.join(__dir__, '../upgrade_hvac_dcv'))
+        # Load dcv measure
+        measure = HVACDCV.new
+
+        # Apply dcv measure
+        result = measure.run(model, runner, OpenStudio::Measure::OSArgumentMap.new)
+        result = runner.result
+
+        # Check if the measure ran successfully
+        if result.value.valueName == 'Success' || result.value.valueName == 'NA'
+          runner.registerInfo('DCV measure was applied successfully.')
+        # elsif result.value.valueName == 'NA'
+        #   runner.registerInfo('DCV measure was not applicable.')
+        else
+          runner.registerError('DCV measure failed.')
+          return  false
+        end
       end
     end
 
     # add economizer if economizer arg is true
     if econ == true
-      #get path to economizer measure
-      econ_measure_path = Dir.glob(File.join(__dir__, '../upgrade_hvac_economizer'))
-      # Load economizer measure
-      measure = HVACEconomizer.new
 
-      # Apply economizer measure
-      result = measure.run(model, runner, OpenStudio::Measure::OSArgumentMap.new)
-      result = runner.result
+      # check applicability
+      no_outdoor_air_loops = 0
+      doas_loops = 0
+      existing_economizer_loops = 0
+      selected_air_loops = []
+      model.getAirLoopHVACs.each do |air_loop_hvac|
+        oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem
+        if oa_system.is_initialized
+          oa_system = oa_system.get
+        else
+          no_outdoor_air_loops += 1
+          runner.registerInfo("Air loop #{air_loop_hvac.name} does not have outdoor air and cannot economize.")
+          next
+        end
 
-      # Check if the measure ran successfully
-      if result.value.valueName == 'Success'
-        runner.registerInfo('Economizer measure was applied successfully.')
-      elsif result.value.valueName == 'NA'
-        runner.registerInfo('Economizer measure was not applicable.')
+        sizing_system = air_loop_hvac.sizingSystem
+        type_of_load = sizing_system.typeofLoadtoSizeOn
+        if type_of_load == 'VentilationRequirement'
+          doas_loops += 1
+          runner.registerInfo("Air loop #{air_loop_hvac.name} is a DOAS system and cannot economize.")
+          next
+        end
+
+        oa_controller = oa_system.getControllerOutdoorAir
+        economizer_type = oa_controller.getEconomizerControlType
+        if economizer_type == 'NoEconomizer'
+          runner.registerInfo("Air loop #{air_loop_hvac.name} does not have an existing economizer.  This measure will add an economizer.")
+          selected_air_loops << air_loop_hvac
+        else
+          existing_economizer_loops += 1
+          runner.registerInfo("Air loop #{air_loop_hvac.name} has an existing #{economizer_type} economizer.")
+        end
+      end
+
+      if selected_air_loops.size.zero?
+        runner.registerInfo("Economizer measure is not applicable. Skipping.")
       else
-        runner.registerError('Economizer measure failed.')
-        return  false
+        #get path to economizer measure
+        econ_measure_path = Dir.glob(File.join(__dir__, '../upgrade_hvac_economizer'))
+        # Load economizer measure
+        measure = HVACEconomizer.new
+
+        # Apply economizer measure
+        result = measure.run(model, runner, OpenStudio::Measure::OSArgumentMap.new)
+        result = runner.result
+
+        # Check if the measure ran successfully
+        if result.value.valueName == 'Success'
+          runner.registerInfo('Economizer measure was applied successfully.')
+        elsif result.value.valueName == 'NA'
+          runner.registerInfo('Economizer measure was not applicable.')
+          result = true
+        else
+          runner.registerError('Economizer measure failed.')
+          return  false
+        end
       end
     end
 
