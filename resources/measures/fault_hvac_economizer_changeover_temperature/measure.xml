@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>fault_hvac_economizer_changeover_temperature</name>
   <uid>ba9893ba-e0f1-427a-becc-9484ab739681</uid>
-  <version_id>8df6bb60-8f90-4b81-88ea-864183f142c1</version_id>
-  <version_modified>2023-10-16T20:24:55Z</version_modified>
+  <version_id>6a2d09c4-8b12-4015-8d90-eb487ef860fc</version_id>
+  <version_modified>2023-11-07T14:57:02Z</version_modified>
   <xml_checksum>3166FFDC</xml_checksum>
   <class_name>FaultHvacEconomizerChangeoverTemperature</class_name>
   <display_name>fault hvac economizer changeover temperature</display_name>
@@ -166,7 +166,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>C2486816</checksum>
+      <checksum>08929401</checksum>
+    </file>
+    <file>
+      <filename>measure_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>8611FE49</checksum>
     </file>
   </files>
 </measure>

@@ -3,34 +3,14 @@
   <schema_version>3.1</schema_version>
   <name>hvac_economizer</name>
   <uid>8781f87a-daa2-4712-a567-6206a340efa7</uid>
-  <version_id>3ab4d66b-c3b7-4713-8099-eb49facc2558</version_id>
-  <version_modified>2023-12-25T20:52:11Z</version_modified>
+  <version_id>f7587f6d-0945-4612-91d0-475fd9976874</version_id>
+  <version_modified>2024-01-22T23:13:38Z</version_modified>
   <xml_checksum>356BE47F</xml_checksum>
   <class_name>HVACEconomizer</class_name>
   <display_name>HVACEconomizer</display_name>
   <description>This measure enables air-side economizing in an air system if not already present.</description>
   <modeler_description>This measure enables dry-bulb or enthalpy-based air-side economizing depending on climate zone in the controller outdoor air object.</modeler_description>
-  <arguments>
-    <argument>
-      <name>apply_measure</name>
-      <display_name>Apply measure?</display_name>
-      <description></description>
-      <type>Boolean</type>
-      <required>true</required>
-      <model_dependent>false</model_dependent>
-      <default_value>true</default_value>
-      <choices>
-        <choice>
-          <value>true</value>
-          <display_name>true</display_name>
-        </choice>
-        <choice>
-          <value>false</value>
-          <display_name>false</display_name>
-        </choice>
-      </choices>
-    </argument>
-  </arguments>
+  <arguments />
   <outputs />
   <provenances />
   <tags>
@@ -63,7 +43,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>F93C8698</checksum>
+      <checksum>054AB4D3</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -80,13 +60,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>5E3110FC</checksum>
+      <checksum>53B78FC6</checksum>
     </file>
     <file>
       <filename>hvac_economizer_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>1127A5DD</checksum>
+      <checksum>18F58A3E</checksum>
     </file>
   </files>
 </measure>
