@@ -312,22 +312,26 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
       sens_econ_status.setKeyName("#{air_loop_hvac.name.get}")
       li_ems_sens_econ_status << sens_econ_status
 
+      # set ems friendly identifier name
+      ems_friendly_identifier = std.ems_friendly_name(air_loop_hvac.name.get.to_s)
+
       #### Actuators #####
       # set actuator - oa controller air mass flow rate
       act_oa_flow = OpenStudio::Model::EnergyManagementSystemActuator.new(oa_controller,
                                                                           'Outdoor Air Controller', 
                                                                           'Air Mass Flow Rate'
                                                                           )
-      act_oa_flow.setName("act_oa_flow_#{air_loop_hvac.name.get.to_s.gsub("-", "")}")
+      act_oa_flow.setName("act_oa_flow_#{ems_friendly_identifier}")
       
       li_ems_act_oa_flow << act_oa_flow
 
       #### Program #####
       # reset OA to min OA if there is a call for economizer but no cooling load
       prgrm_econ_override = model.getEnergyManagementSystemTrendVariableByName('econ_override')
+      
       unless prgrm_econ_override.is_initialized
         prgrm_econ_override = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
-        prgrm_econ_override.setName("#{air_loop_hvac.name.get.to_s.gsub("-", "")}_program")
+        prgrm_econ_override.setName("#{ems_friendly_identifier}_program")
         prgrm_econ_override_body = <<-EMS
         SET #{act_oa_flow.name} = #{act_oa_flow.name},
         SET sens_zn_clg_rate = #{sens_clg_coil_rate.name},
@@ -342,7 +346,7 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
         prgrm_econ_override.setBody(prgrm_econ_override_body)
       end
         programs_at_beginning_of_timestep = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
-        programs_at_beginning_of_timestep.setName("#{air_loop_hvac.name.get.to_s.gsub("-", "")}_Programs_At_Beginning_Of_Timestep")
+        programs_at_beginning_of_timestep.setName("#{ems_friendly_identifier}_Programs_At_Beginning_Of_Timestep")
         programs_at_beginning_of_timestep.setCallingPoint('InsideHVACSystemIterationLoop')
         programs_at_beginning_of_timestep.addProgram(prgrm_econ_override)
 
