@@ -183,7 +183,7 @@ require 'openstudio-standards'
 	#max_flow = 1 #revised upward, for energy modeling compatabiltiy 
 	min_flow = 0.4 	#Based on Catalyst 
 	
-	min_flow_fraction = 0.3 #typ for non-inverter driven motors 
+	min_flow_fraction = 0.67 #30% power for non-inverter driven motors, this is applied to flow, so roughly 30% power with cubic fan curve 
 	
 	#Sizing run 
 	standard = Standard.build('90.1-2013')
@@ -527,6 +527,9 @@ require 'openstudio-standards'
 		  oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem
 		  if oa_system.is_initialized
 			oa_system = oa_system.get
+		  else 
+		    runner.registerInfo("Air loop #{air_loop_hvac.name} does not have outdoor air and cannot economize.")
+		    next
 		  end
 
 		  # get economizer from OA controller
