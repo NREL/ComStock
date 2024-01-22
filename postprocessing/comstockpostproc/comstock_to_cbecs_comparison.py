@@ -85,6 +85,7 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         self.plot_end_use_totals_by_building_type(df, column_for_grouping, color_map, output_dir)
         self.plot_eui_histograms_by_building_type(df, column_for_grouping, color_map, output_dir)
         self.plot_eui_boxplots_by_building_type(df, column_for_grouping, color_map, output_dir)
+        self.plot_energy_rate_boxplots(df, column_for_grouping, color_map, output_dir)
 
     def make_qoi_plots(self, df, column_for_grouping, color_map, output_dir):
         self.plot_qoi_timing(df, column_for_grouping, color_map, output_dir)
