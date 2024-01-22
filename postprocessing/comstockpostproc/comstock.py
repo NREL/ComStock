@@ -132,10 +132,18 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.download_data()
         pl.enable_string_cache()
         if reload_from_csv:
-            if os.path.exists(os.path.join(self.output_dir, 'ComStock wide.parquet')):
-                file_path = os.path.join(self.output_dir, 'ComStock wide.parquet')
-                logger.info(f'Reloading data from: {file_path}')
-                self.data = pl.read_parquet(file_path)
+            upgrade_pqts = glob.glob(os.path.join(self.output_dir, 'ComStock wide upgrade*.parquet'))
+            if len(upgrade_pqts) > 0:
+                upgrade_dfs = []
+                for file_path in upgrade_pqts:
+                    bn = os.path.basename(file_path)
+                    up_id = int(bn.replace('ComStock wide upgrade', '').replace('.parquet', ''))
+                    if up_id in self.upgrade_ids_to_skip:
+                        logger.info(f'Skipping reload for upgrade {up_id}')
+                        continue
+                    logger.info(f'Reloading data from: {file_path}')
+                    upgrade_dfs.append(pl.read_parquet(file_path))
+                self.data = pl.concat(upgrade_dfs)
             elif os.path.exists(os.path.join(self.output_dir, 'ComStock wide.csv')):
                 file_path = os.path.join(self.output_dir, 'ComStock wide.csv')
                 logger.info(f'Reloading data from: {file_path}')
@@ -2077,9 +2085,15 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.create_long_energy_data()
 
         # Save files - separate building energy from characteristics for file size
-        file_name = f'ComStock energy long.csv'
-        file_path = os.path.join(self.output_dir, file_name)
-        self.data_long.write_csv(file_path)
+        up_ids = self.data.get_column(self.UPGRADE_ID).unique().to_list()
+        up_ids.sort()
+        logger.error(f'Got here {up_ids}')
+        for up_id in up_ids:
+            logger.error('Got here')
+            file_name = f'upgrade{up_id:02d}_energy_long.csv'
+            file_path = os.path.join(self.output_dir, file_name)
+            logger.info(f'Exporting to: {file_path}')
+            self.data.filter(pl.col(self.UPGRADE_ID) == up_id).write_csv(file_path)
 
     def combine_emissions_cols(self):
         # Create combined emissions columns
