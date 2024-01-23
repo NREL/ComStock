@@ -70,7 +70,7 @@ MONTHS = [
 ]
 
 class EIA(NamingMixin, UnitsMixin, S3UtilitiesMixin):
-    def __init__(self, truth_data_version, year, color_hex=NamingMixin.COLOR_CBECS_2012, reload_from_csv=False):
+    def __init__(self, truth_data_version, year, color_hex=NamingMixin.COLOR_EIA, reload_from_csv=False):
         """
         A class to produce validation graphics based on EIA Form 861, EIA natural gas data, and utility LRD.
         Args:
@@ -89,6 +89,8 @@ class EIA(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         self.output_dir = os.path.join(current_dir, '..', 'output', self.dataset_name)
         self.monthly_data = None
         self.color = color_hex
+        self.emissions_data = None
+        self.emissions_cols = []
 
         # Initialize s3 client
         self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
@@ -111,6 +113,7 @@ class EIA(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         else:
             self.convert_eia_natural_gas_volumes_to_energy()
             self.get_eia_monthly_consumption_by_state()
+            self.get_eia_annual_emissions_by_fuel()
 
 
     def download_truth_data(self):
@@ -140,6 +143,13 @@ class EIA(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         file_path = os.path.join(self.truth_data_dir, file_name)
         if not os.path.exists(file_path):
             s3_file_path = f'truth_data/{self.truth_data_version}/EIA/CBECS/{file_name}'
+            self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
+
+        # Annual emissions by fuel
+        file_name = 'eia_annual_commercial_emissions.csv'
+        file_path = os.path.join(self.truth_data_dir, file_name)
+        if not os.path.exists(file_path):
+            s3_file_path = f'truth_data/{self.truth_data_version}/EIA/EIA Emissions Data/{file_name}'
             self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
 
     def convert_eia_natural_gas_volumes_to_energy(self):
@@ -267,3 +277,41 @@ class EIA(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         eia.to_csv(file_path, index=False)
 
         return eia
+
+    def get_eia_annual_emissions_by_fuel(self):
+        # load the EIA electricity data
+        file_name = 'eia_annual_commercial_emissions.csv'
+        file_path = os.path.join(self.truth_data_dir, file_name)
+        if not os.path.exists(file_path):
+            raise AssertionError('EIA annual emissions data not found, download truth data')
+        else:
+            eia_emissions = pl.read_csv(file_path, infer_schema_length=10000)
+
+        # Downselect to year of interest
+        eia_emissions = eia_emissions.filter(pl.col('Year') == self.year)
+
+        # Rename the EIA data to match ComStock emissions column names
+        weighted_ghg_units='co2e_mmt'
+
+        ghg_elec_col = self.col_name_to_weighted(self.GHG_ELEC_EGRID, weighted_ghg_units)
+        ghg_gas_col = self.col_name_to_weighted(self.GHG_NATURAL_GAS, weighted_ghg_units)
+        ghg_fuel_oil_col = self.col_name_to_weighted(self.GHG_FUEL_OIL, weighted_ghg_units)
+        ghg_propane_col = self.col_name_to_weighted(self.GHG_PROPANE, weighted_ghg_units)
+
+        col_renames = {
+            'Commercial Share of Electric Power Sector CO2 Emissions (Million Metric Tons of Carbon Dioxide)': ghg_elec_col,
+            'Natural Gas, Excluding Supplemental Gaseous Fuels, Commercial Sector CO2 Emissions (Million Metric Tons of Carbon Dioxide)': ghg_gas_col,
+            'Distillate Fuel Oil Commercial Sector CO2 Emissions (Million Metric Tons of Carbon Dioxide)': ghg_fuel_oil_col,
+            'Petroleum, Excluding Biofuels, Commercial Sector CO2 Emissions (Million Metric Tons of Carbon Dioxide)': ghg_propane_col,
+        }
+        eia_emissions = eia_emissions.rename(col_renames)
+
+        # Downselect to the fuels represented in ComStock
+        self.emissions_cols = list(col_renames.values())
+        eia_emissions = eia_emissions.select(self.emissions_cols)
+
+        # Add a dataset column
+        eia_emissions = eia_emissions.with_columns([pl.lit(self.dataset_name).alias(self.DATASET)])
+
+        # Assign data to an attribute
+        self.emissions_data = eia_emissions
