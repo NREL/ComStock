@@ -155,12 +155,12 @@ require 'openstudio-standards'
 	    end
 	end
   end
-def no_DCV_zones?(air_loop_hvac)
-	air_loop_hvac.thermalZones.each do |thermal_zone| #iterate thru thermal zones and modify zone-level terminal units
-		return true if ['patient', 'Outpatient', 'OUTPATIENT', 'outpatient', 'PATIENT', 'Patient', 'kitchen', 'Kitchen', 'dining', 'Dining', 'laboratory', 'Laboratory', 'KITCHEN', 'LABORATORY', 'DINING'].any? { |word| (thermal_zone.name.get).include?(word) }
-	end
-	return false
-end
+# def no_DCV_zones?(air_loop_hvac)
+	# air_loop_hvac.thermalZones.each do |thermal_zone| #iterate thru thermal zones and modify zone-level terminal units
+		# return true if ['patient', 'Outpatient', 'OUTPATIENT', 'outpatient', 'PATIENT', 'Patient', 'kitchen', 'Kitchen', 'dining', 'Dining', 'laboratory', 'Laboratory', 'KITCHEN', 'LABORATORY', 'DINING'].any? { |word| (thermal_zone.name.get).include?(word) }
+	# end
+	# return false
+# end
 
 def air_loop_doas?(air_loop_hvac)
     is_doas = false
@@ -344,7 +344,7 @@ def run(model, runner, user_arguments)
 	#handle DCV in appropriate air loops, after screening out those that aren't suitable
 	 if add_dcv
 		overall_sel_air_loops.sort.each do |air_loop_hvac|
-			if ! (['kitchen', 'Kitchen', 'dining', 'Dining', 'Laboratory', 'KITCHEN', 'LABORATORY', 'DINING', 'patient', 'PATIENT', 'Patient'].any? { |word| (air_loop_hvac.name.get).include?(word) } ) && !(no_DCV_zones?(air_loop_hvac))
+			if ! (['kitchen', 'Kitchen', 'dining', 'Dining', 'Laboratory', 'KITCHEN', 'LABORATORY', 'DINING', 'patient', 'PATIENT', 'Patient'].any? { |word| (air_loop_hvac.name.get).include?(word) } )# && !(no_DCV_zones?(air_loop_hvac))
 			oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
 			controller_oa = oa_system.getControllerOutdoorAir
 			controller_mv = controller_oa.controllerMechanicalVentilation
@@ -663,6 +663,7 @@ def run(model, runner, user_arguments)
 		end
     end
  #end
+ return true 
 end
 end
 # register the measure to be used by the application
