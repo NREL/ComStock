@@ -1278,7 +1278,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
           # range can be met using minimum airflow and increasing capacity of speed
           # this will only occur if new capacity is at least 50% between previous and new stage capacity
           puts "Bunch of Stuff: #{(((hash_clg_cap_stgs[clg_stg+spacer] - (stg_cap / (0.00006041 / (stg_airflow/stg_cap)))) / (hash_clg_cap_stgs[clg_stg+spacer] - stg_cap)))}"
-          if ((max_reached==false) && (((hash_clg_cap_stgs[clg_stg+spacer] - (stg_cap / (0.00006041 / (stg_airflow/stg_cap)))) / (hash_clg_cap_stgs[clg_stg+spacer] - stg_cap)) > 0.42)) || (clg_stg==4)
+          if ((max_reached==false) && (((hash_clg_cap_stgs[clg_stg+spacer] - (stg_cap / (0.00006041 / (stg_airflow/stg_cap)))) / (hash_clg_cap_stgs[clg_stg+spacer] - stg_cap)) > 0.40)) || (clg_stg==4)
             
             puts "cap changes"
             # max_reached=true
