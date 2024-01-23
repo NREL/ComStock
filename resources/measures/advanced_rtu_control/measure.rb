@@ -528,7 +528,7 @@ def run(model, runner, user_arguments)
 		end
 	end
 
-	if selected_air_loops.size.zero?
+	if selected_air_loops.size.zero? && add_econo
 			runner.registerInfo('Model contains no air loops eligible for adding an outdoor air economizer.')
 			#return true ##AA commented out for integration in this measure
 	end
