@@ -23,14 +23,14 @@ require 'openstudio-standards'
   # define the arguments that the user will input
   def arguments(model)
     args = OpenStudio::Measure::OSArgumentVector.new
-	
-	#economizer option 
+
+	#economizer option
     add_econo = OpenStudio::Measure::OSArgument.makeBoolArgument('add_econo', true)
     add_econo.setDisplayName('Economizer to be added?')
     add_econo.setDescription('Add economizer (true) or not (false)')
     args << add_econo
-	
-	#dcv option 
+
+	#dcv option
 	add_dcv = OpenStudio::Measure::OSArgument.makeBoolArgument('add_dcv', true)
     add_dcv.setDisplayName('DCV to be added?')
     add_dcv.setDescription('Add DCV (true) or not (false)')
@@ -38,7 +38,7 @@ require 'openstudio-standards'
 
     return args
   end
-  
+
   def air_loop_hvac_unitary_system?(air_loop_hvac)
     is_unitary_system = false
     air_loop_hvac.supplyComponents.each do |component|
@@ -50,7 +50,7 @@ require 'openstudio-standards'
     end
     return is_unitary_system
   end
-  
+
    def air_loop_res?(air_loop_hvac)
     is_res_system = true
     air_loop_hvac.supplyComponents.each do |component|
@@ -75,8 +75,8 @@ require 'openstudio-standards'
     end
     return is_evap
   end
-  
-   #slightly modified from OS standards to adjust log messages 
+
+   #slightly modified from OS standards to adjust log messages
    def thermal_zone_outdoor_airflow_rate(thermal_zone)
     tot_oa_flow_rate = 0.0
 
@@ -133,9 +133,9 @@ require 'openstudio-standards'
 
     return tot_oa_flow_rate
   end
-  
+
  def vav_terminals?(air_loop_hvac)
-	air_loop_hvac.thermalZones.each do |thermal_zone| #iterate thru thermal zones and modify zone-level terminal units 
+	air_loop_hvac.thermalZones.each do |thermal_zone| #iterate thru thermal zones and modify zone-level terminal units
 		thermal_zone.equipment.each do |equip|
 			if equip.to_AirTerminalSingleDuctVAVHeatAndCoolNoReheat.is_initialized
                return true
@@ -148,31 +148,31 @@ require 'openstudio-standards'
 			elsif equip.to_AirTerminalDualDuctVAV.is_initialized
 			    return true
 			elsif equip.to_AirTerminalDualDuctVAVOutdoorAir.is_initialized
-			    return true			
-		    else 
-			    return false 
-			end 
-	    end 
-	end 
+			    return true
+		    else
+			    return false
+			end
+	    end
+	end
   end
-  def no_DCV_zones?(air_loop_hvac)
-	air_loop_hvac.thermalZones.each do |thermal_zone| #iterate thru thermal zones and modify zone-level terminal units 
+def no_DCV_zones?(air_loop_hvac)
+	air_loop_hvac.thermalZones.each do |thermal_zone| #iterate thru thermal zones and modify zone-level terminal units
 		return true if ['patient', 'Outpatient', 'OUTPATIENT', 'outpatient', 'PATIENT', 'Patient', 'kitchen', 'Kitchen', 'dining', 'Dining', 'laboratory', 'Laboratory', 'KITCHEN', 'LABORATORY', 'DINING'].any? { |word| (thermal_zone.name.get).include?(word) }
-	end 
-  end
-  
-    def air_loop_doas?(air_loop_hvac)
+	end
+	return false
+end
+
+def air_loop_doas?(air_loop_hvac)
     is_doas = false
     sizing_system = air_loop_hvac.sizingSystem
     if sizing_system.allOutdoorAirinCooling && sizing_system.allOutdoorAirinHeating && (air_loop_res?(air_loop_hvac) == false) && (air_loop_hvac.name.to_s.include?("DOAS") || air_loop_hvac.name.to_s.include?("doas"))
       is_doas = true
     end
     return is_doas
-  end
-  
+end
 
   # define what happens when the measure is run
-  def run(model, runner, user_arguments)
+def run(model, runner, user_arguments)
     super(model, runner, user_arguments)  # Do **NOT** remove this line
 
     # use the built-in error checking
@@ -182,26 +182,26 @@ require 'openstudio-standards'
 	#read in arguments
 	add_econo = runner.getBoolArgumentValue('add_econo', user_arguments)
 	add_dcv = runner.getBoolArgumentValue('add_dcv', user_arguments)
-	
-	
+
+
 	#set airflow design ratios
-	#max_flow = 1 #revised upward, for energy modeling compatabiltiy 
-	min_flow = 0.4 	#Based on Catalyst 
-	
-	min_flow_fraction = 0.67 #30% power for non-inverter driven motors, this is applied to flow, so roughly 30% power with cubic fan curve 
-	
-	#Sizing run 
+	#max_flow = 1 #revised upward, for energy modeling compatabiltiy
+	min_flow = 0.4 	#Based on Catalyst
+
+	min_flow_fraction = 0.67 #30% power for non-inverter driven motors, this is applied to flow, so roughly 30% power with cubic fan curve
+
+	#Sizing run
 	standard = Standard.build('90.1-2013')
-	
-	
-	#Set up for economizer implementation for checking applicability 
+
+
+	#Set up for economizer implementation for checking applicability
     no_outdoor_air_loops = 0
     doas_loops = 0
     existing_economizer_loops = 0
     selected_air_loops = []
 	added_economizers = 0
-	
-    if model.sqlFile.empty?
+
+  if model.sqlFile.empty?
 	  puts('Model had no sizing values--running size run')
 	  if standard.model_run_sizing_run(model, "#{Dir.pwd}/advanced_rtu_control") == false
 		  runner.registerError('Sizing run for Hardsize model failed, cannot hard-size model.')
@@ -210,9 +210,9 @@ require 'openstudio-standards'
 		  return false
      end
 	 model.applySizingValues
-    end 
-	
-	if add_econo #if adding economizing, set high level params 
+  end
+
+	if add_econo #if adding economizing, set high level params
 		# build standard to access methods
 		template = 'ComStock 90.1-2019'
 		std = Standard.build(template)
@@ -223,7 +223,7 @@ require 'openstudio-standards'
 		if climate_zone.empty?
 		  runner.registerError('Unable to determine climate zone for model. Cannot apply economizer without climate zone information.')
 		end
-		
+
 	    # check climate zone name validity
 		# this happens to example model but maybe not during ComStock model creation?
 		substring_count = climate_zone.scan(/ASHRAE 169-2013-/).length
@@ -236,287 +236,304 @@ require 'openstudio-standards'
 		# determine economizer type
 		economizer_type = std.model_economizer_type(model, climate_zone)
 		runner.registerInfo("economizer type for the climate zone = #{economizer_type}")
-	
-	end 
 
-   	model.getAirLoopHVACs.sort.each do |air_loop_hvac| #iterating thru air loops in the model to identify ones suitable for VAV conversion 
-	    if air_loop_hvac_unitary_system?(air_loop_hvac) #applying to unitary systems 
-		   # skip units that are not single zone, or are residential, or do not have outdoor air present, or are evaporative coolers 
-           next if ((air_loop_hvac.thermalZones.length() > 1) || air_loop_res?(air_loop_hvac) || air_loop_evaporative_cooler?(air_loop_hvac)|| (air_loop_hvac.name.to_s.include?("DOAS")) || (air_loop_hvac.name.to_s.include?("doas"))) || air_loop_doas?(air_loop_hvac)
-		   #skip based on residential being in name, or if a DOAS 
-		   sizing_system = air_loop_hvac.sizingSystem
-		   next if ((air_loop_hvac.name.to_s.include?("residential")) || (air_loop_hvac.name.to_s.include?("Residential")) || (sizing_system.allOutdoorAirinCooling && sizing_system.allOutdoorAirinHeating))
-		   #skip VAV systems
-		   next if ['VAV', 'PVAV'].any? { |word| (air_loop_hvac.name.get).include?(word) } || vav_terminals?(air_loop_hvac)
-		   #set control type
-			air_loop_hvac.supplyComponents.each do |component|#identifying unitary systems 
-				obj_type = component.iddObjectType.valueName.to_s
+	end
+
+	#Identify suitable loops for applying the measure
+	overall_sel_air_loops =[]
+
+	model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+		next if ((air_loop_hvac.thermalZones.length() > 1) || air_loop_res?(air_loop_hvac) || air_loop_evaporative_cooler?(air_loop_hvac)|| (air_loop_hvac.name.to_s.include?("DOAS")) || (air_loop_hvac.name.to_s.include?("doas"))) || air_loop_doas?(air_loop_hvac)
+		#skip based on residential being in name, or if a DOAS
+		sizing_system = air_loop_hvac.sizingSystem
+		next if ((air_loop_hvac.name.to_s.include?("residential")) || (air_loop_hvac.name.to_s.include?("Residential")) || (sizing_system.allOutdoorAirinCooling && sizing_system.allOutdoorAirinHeating))
+		#skip VAV systems
+		next if ['VAV', 'PVAV'].any? { |word| (air_loop_hvac.name.get).include?(word) } || vav_terminals?(air_loop_hvac)
+		next if !(air_loop_hvac_unitary_system?(air_loop_hvac)) #select unitary systems only
+		overall_sel_air_loops << air_loop_hvac
+	end
+
+	#register na if no applicable air loops
+	if overall_sel_air_loops.length() == 0
+		runner.registerAsNotApplicable('No applicable air loops found in model')
+
+	end
+
+
+	overall_sel_air_loops.sort.each do |air_loop_hvac| #iterating thru air loops in the model to identify ones suitable for VAV conversion
+		#set control type
+		air_loop_hvac.supplyComponents.each do |component|#identifying unitary systems
+			obj_type = component.iddObjectType.valueName.to_s
 			    case obj_type
                 when 'OS_AirLoopHVAC_UnitarySystem'
 					component = component.to_AirLoopHVACUnitarySystem.get
-					component.setControlType('SingleZoneVAV') 
-					#Set overall flow rates for air loop 
-					if air_loop_hvac.autosizedDesignSupplyAirFlowRate.is_initialized #change supply air flow design parameters to match VAV conversion 
-						des_supply_airflow = air_loop_hvac.autosizedDesignSupplyAirFlowRate.get #handle autosized 
+					component.setControlType('SingleZoneVAV')
+					#Set overall flow rates for air loop
+					if air_loop_hvac.autosizedDesignSupplyAirFlowRate.is_initialized #change supply air flow design parameters to match VAV conversion
+						des_supply_airflow = air_loop_hvac.autosizedDesignSupplyAirFlowRate.get #handle autosized
 						#puts ("des supply airflow" + "#{air_loop_hvac.name.to_s}" "#{des_supply_airflow}" + "new max" + "#{max_flow*des_supply_airflow}")
 						component.setSupplyAirFlowRateDuringCoolingOperation(des_supply_airflow) #Set the same as before
 						component.setSupplyAirFlowRateDuringHeatingOperation(des_supply_airflow) #Set same as before
-						component.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_flow*des_supply_airflow) #Set min based on limit after retrofit 
-					elsif air_loop_hvac.designSupplyAirFlowRate.is_initialized #handle hard-sized 
+						component.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_flow*des_supply_airflow) #Set min based on limit after retrofit
+					elsif air_loop_hvac.designSupplyAirFlowRate.is_initialized #handle hard-sized
 						des_supply_airflow = air_loop_hvac.designSupplyAirFlowRate.get
 						#puts ("des supply airflow" + "#{air_loop_hvac.name.to_s}" "#{des_supply_airflow}" + "new max" + "#{max_flow*des_supply_airflow}")
 						component.setSupplyAirFlowRateDuringCoolingOperation(des_supply_airflow)
 						component.setSupplyAirFlowRateDuringHeatingOperation(des_supply_airflow)
 						component.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_flow*des_supply_airflow)
-					end 
-				sup_fan = component.supplyFan
-				if sup_fan.is_initialized #Replace constant speed with variable speed fan objects 
-					sup_fan = sup_fan.get
-					#handle fan on off objects; replace FanOnOff with FanVariableVolume 
+					end
+					sup_fan = component.supplyFan
+					if sup_fan.is_initialized #Replace constant speed with variable speed fan objects
+						sup_fan = sup_fan.get
+					#handle fan on off objects; replace FanOnOff with FanVariableVolume
                     if sup_fan.to_FanOnOff.is_initialized
 					   sup_fan = sup_fan.to_FanOnOff.get
 					   pressure_rise = sup_fan.pressureRise()
-					   motor_hp = standard.fan_motor_horsepower(sup_fan) 
+					   motor_hp = standard.fan_motor_horsepower(sup_fan)
 					   fan_eff = standard.fan_baseline_impeller_efficiency(sup_fan)
 					   fan_motor_eff = standard.fan_standard_minimum_motor_efficiency_and_size(sup_fan, motor_hp)[0] #calculate fan motor eff per Standards
-					end 
-					#handle constant speed fan objects; replace FanConstantVolume with FanVariableVolume 
+					end
+					#handle constant speed fan objects; replace FanConstantVolume with FanVariableVolume
 					if sup_fan.to_FanConstantVolume.is_initialized
 					   sup_fan = sup_fan.to_FanConstantVolume.get
 					   pressure_rise = sup_fan.pressureRise()
-					   motor_hp = standard.fan_motor_horsepower(sup_fan) 
+					   motor_hp = standard.fan_motor_horsepower(sup_fan)
 					   fan_eff = standard.fan_baseline_impeller_efficiency(sup_fan)
 					   fan_motor_eff = standard.fan_standard_minimum_motor_efficiency_and_size(sup_fan, motor_hp)[0] #calculate fan motor eff per Standards
-					end 
-					#create new VS fan 
-				   fan = OpenStudio::Model::FanVariableVolume.new(model)
-				   fan.setName("#{air_loop_hvac.name} Fan")
-				   fan.setFanPowerMinimumFlowRateInputMethod("Fraction")
-				   fan.setPressureRise(pressure_rise)#keep it the same as the existing fan, since the balance of systems is the same 
-				   fan.setMotorEfficiency(fan_motor_eff) 
-				   fan.setFanTotalEfficiency(fan_motor_eff * fan_eff) 
-				   #set fan curve coefficients
-				   standard.fan_variable_volume_set_control_type(fan, 'Single Zone VAV Fan ') 
-                   fan.setFanPowerMinimumFlowFraction(min_flow_fraction) #resetting minimum flow fraction to be appropriate for retrofit as opposed to 10% in method above 
-				   #Add it to the unitary sys
-				   component.setSupplyFan(fan) 
-				end 
-			 end 
-			 end 
-			 air_loop_hvac.thermalZones.each do |thermal_zone| #iterate thru thermal zones and modify zone-level terminal units 
-			    
-			    min_oa_flow_rate = thermal_zone_outdoor_airflow_rate(thermal_zone) 
-				#runner.registerInfo("min_oa_flow_rate #{min_oa_flow_rate}")
-				thermal_zone.equipment.each do |equip|
-					if equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
-				      term = equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.get 
-					  runner.registerInfo("term #{term}")
-					  new_term = OpenStudio::Model::AirTerminalSingleDuctVAVHeatAndCoolNoReheat.new(model) #create new terminal unit 
-						if term.autosizedMaximumAirFlowRate.is_initialized
-					     des_airflow_rate = term.autosizedMaximumAirFlowRate.get
-						 new_term.setMaximumAirFlowRate(des_airflow_rate) #same as before 
-						 #set minimum based on max of 40% of max flow, or min ventilation level req'd 
-						 new_term.setZoneMinimumAirFlowFraction([min_flow, min_oa_flow_rate/des_airflow_rate].max)
-						elsif term.maximumAirFlowRate.is_initialized
-					      des_airflow_rate = term.maximumAirFlowRate.get
-						  new_term.setMaximumAirFlowRate(des_airflow_rate) #same as before
-						  #set minimum based on max of 40% of max flow, or min ventilation level req'd 
-						  new_term.setZoneMinimumAirFlowFraction([min_flow, min_oa_flow_rate/des_airflow_rate].max)
-						end 
-					  air_loop_hvac.removeBranchForZone(thermal_zone)
-					  air_loop_hvac.addBranchForZone(thermal_zone, new_term)
-					end 
+					end
+					#create new VS fan
+					fan = OpenStudio::Model::FanVariableVolume.new(model)
+					fan.setName("#{air_loop_hvac.name} Fan")
+					fan.setFanPowerMinimumFlowRateInputMethod("Fraction")
+					fan.setPressureRise(pressure_rise)#keep it the same as the existing fan, since the balance of systems is the same
+					fan.setMotorEfficiency(fan_motor_eff)
+					fan.setFanTotalEfficiency(fan_motor_eff * fan_eff)
+					#set fan curve coefficients
+					standard.fan_variable_volume_set_control_type(fan, 'Single Zone VAV Fan ')
+					fan.setFanPowerMinimumFlowFraction(min_flow_fraction) #resetting minimum flow fraction to be appropriate for retrofit as opposed to 10% in method above
+					#Add it to the unitary sys
+					component.setSupplyFan(fan)
+				end
 			    end
-			#handle DCV in appropriate air loops, after screening out those that aren't suitable 
-				if add_dcv && (! ['kitchen', 'Kitchen', 'dining', 'Dining', 'Laboratory', 'KITCHEN', 'LABORATORY', 'DINING', 'patient', 'PATIENT', 'Patient'].any? { |word| (air_loop_hvac.name.get).include?(word) } ) && !(no_DCV_zones?(air_loop_hvac))
-				   oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
-				   controller_oa = oa_system.getControllerOutdoorAir
-				   controller_mv = controller_oa.controllerMechanicalVentilation
-				   controller_mv.setDemandControlledVentilation(true)
-				   #Set design OA object attributes 
-				   thermal_zone.spaces.each do |space|
-					  dsn_oa = space.designSpecificationOutdoorAir
-					  next if dsn_oa.empty?
-					  dsn_oa = dsn_oa.get
-					  puts "design spec oa name #{dsn_oa.name}"
-					  # set design specification outdoor air objects to sum
-					  dsn_oa.setOutdoorAirMethod('Sum')
-
-					  # Get the space properties
-					  floor_area = space.floorArea
-					  number_of_people = space.numberOfPeople
-					  people_per_m2 = space.peoplePerFloorArea
-
-					  # Sum up the total OA from all sources
-					  oa_for_people_per_m2 = people_per_m2 * dsn_oa.outdoorAirFlowperPerson
-					  oa_for_floor_area_per_m2 = dsn_oa.outdoorAirFlowperFloorArea
-					  tot_oa_per_m2 = oa_for_people_per_m2 + oa_for_floor_area_per_m2
-					  tot_oa_cfm_per_ft2 = OpenStudio.convert(OpenStudio.convert(tot_oa_per_m2, 'm^3/s', 'cfm').get, '1/m^2', '1/ft^2').get
-					  tot_oa_cfm = floor_area * tot_oa_cfm_per_ft2
-
-					  # if both per-area and per-person are present, does not need to be modified
-					  if !dsn_oa.outdoorAirFlowperPerson.zero? && !dsn_oa.outdoorAirFlowperFloorArea.zero?
-						next
-					  
-					  # if both are zero, skip space
-					  elsif dsn_oa.outdoorAirFlowperPerson.zero? && dsn_oa.outdoorAirFlowperFloorArea.zero?
-						runner.registerInfo("Space '#{space.name}' has 0 outdoor air per-person and per-area rates. DCV may be still be applied to this air loop, but it will not function on this space.")
-						next
-					  
-					  # if per-person or per-area values are zero, set to 10 cfm / person and allocate the rest to per-area
-					  elsif dsn_oa.outdoorAirFlowperPerson.zero? || dsn_oa.outdoorAirFlowperFloorArea.zero?
-						puts "========Before Per Person========="
-						puts "#{space.name}"
-						puts "people per m2", people_per_m2
-						puts "Per-person", dsn_oa.outdoorAirFlowperPerson * people_per_m2
-						puts "Per-area", dsn_oa.outdoorAirFlowperFloorArea
-						puts "Total OA", tot_oa_per_m2
-
-						if dsn_oa.outdoorAirFlowperPerson.zero?
-						  runner.registerInfo("Space '#{space.name}' per-person outdoor air rate is 0. Using a minimum of 10 cfm / person and assigning the remaining space outdoor air requirement to per-area.")
-						elsif dsn_oa.outdoorAirFlowperFloorArea.zero?
-						  runner.registerInfo("Space '#{space.name}' per-area outdoor air rate is 0. Using a minimum of 10 cfm / person and assigning the remaining space outdoor air requirement to per-area.")
-						end
-
-						# default ventilation is 10 cfm / person
-						per_person_ventilation_rate = OpenStudio.convert(10, 'ft^3/min', 'm^3/s').get
-
-						# assign remaining oa to per-area
-						new_oa_for_people_per_m2 = people_per_m2 * per_person_ventilation_rate
-						new_oa_for_people_cfm_per_f2 = OpenStudio.convert(OpenStudio.convert(new_oa_for_people_per_m2, 'm^3/s', 'cfm').get, '1/m^2', '1/ft^2').get
-						new_oa_for_people_cfm = number_of_people * new_oa_for_people_cfm_per_f2
-						remaining_oa_per_m2 = tot_oa_per_m2 - new_oa_for_people_per_m2
-						if remaining_oa_per_m2 <= 0
-						  runner.registerInfo("Space '#{space.name}' has #{number_of_people.round(1)} people which corresponds to a ventilation minimum requirement of #{new_oa_for_people_cfm.round(0)} cfm at 10 cfm / person, but total zone outdoor air is only #{tot_oa_cfm.round(0)} cfm. Setting all outdoor air as per-person.")
-						  per_person_ventilation_rate = tot_oa_per_m2 / people_per_m2
-						  dsn_oa.setOutdoorAirFlowperFloorArea(0.0)
-						else
-						  oa_per_area_per_m2 = remaining_oa_per_m2
-						  dsn_oa.setOutdoorAirFlowperFloorArea(oa_per_area_per_m2)
-						end
-						dsn_oa.setOutdoorAirFlowperPerson(per_person_ventilation_rate)
-						
-					end 
-			         end 
-		        end 
-				end 
-			if add_econo #handle economizing if implementing it 
-				oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem
-			    if oa_system.is_initialized
-				    oa_system = oa_system.get
-			    else
-				    runner.registerInfo("Air loop #{air_loop_hvac.name} does not have outdoor air and cannot economize.")
-				    next
-			    end
-				sizing_system = air_loop_hvac.sizingSystem
-			    type_of_load = sizing_system.typeofLoadtoSizeOn
-				if type_of_load == 'VentilationRequirement'
-					runner.registerInfo("Air loop #{air_loop_hvac.name} is a DOAS system and cannot economize.")
-					next
-				end
-				oa_controller = oa_system.getControllerOutdoorAir
-				current_economizer_type = oa_controller.getEconomizerControlType
-				if current_economizer_type == 'NoEconomizer'
-					runner.registerInfo("Air loop #{air_loop_hvac.name} does not have an existing economizer.  This measure will add an economizer.")
-				    selected_air_loops << air_loop_hvac
-				else
-				   runner.registerInfo("Air loop #{air_loop_hvac.name} has an existing #{current_economizer_type} economizer.")
-				   next 
-				end
-				# get airLoopHVACOutdoorAirSystem
-			    oa_sys = air_loop_hvac.airLoopHVACOutdoorAirSystem
-			    if oa_sys.is_initialized
-				  oa_sys = oa_sys.get
-			    else
-				  OpenStudio.logFree(OpenStudio::Error, 'openstudio.prototype.Model', "#{air_loop.name} is required to have an economizer, but it has no OA system.")
-				  next
-			    end
-			    # get controller:outdoorair
-			    oa_control = oa_sys.getControllerOutdoorAir
-				oa_control.setEconomizerControlType(economizer_type)
-			    if oa_control.getEconomizerControlType != economizer_type
-			        puts("--- adding economizer to air loop hvac = #{air_loop_hvac.name}")
-				    oa_control.setEconomizerControlType(economizer_type)
-			    end
-			   # puts("--- economizer control type new: #{oa_control.getEconomizerControlType}")
-
-			   # get economizer limits
-			    limits = std.air_loop_hvac_economizer_limits(air_loop_hvac, climate_zone) # in IP unit
-			  # puts("--- economizer limits [db max|enthal max|dewpoint max] for the climate zone = #{limits}")
-			        # implement limits for each control type
-			  case economizer_type
-			  when 'FixedDryBulb'
-				if oa_control.getEconomizerMaximumLimitDryBulbTemperature.is_initialized
-				  puts("--- economizer limit for #{economizer_type} before: #{oa_control.getEconomizerMaximumLimitDryBulbTemperature.get}")
-				end
-				drybulb_limit_c = OpenStudio.convert(limits[0], 'F', 'C').get
-				oa_control.resetEconomizerMaximumLimitDryBulbTemperature
-				oa_control.setEconomizerMaximumLimitDryBulbTemperature(drybulb_limit_c)
-				# puts("--- economizer limit for #{economizer_type} new: #{oa_control.getEconomizerMaximumLimitDryBulbTemperature.get}")
-			  when 'FixedEnthalpy'
-				if oa_control.getEconomizerMaximumLimitEnthalpy.is_initialized
-				  puts("--- economizer limit for #{economizer_type} before: #{oa_control.getEconomizerMaximumLimitEnthalpy.get}")
-				end
-				enthalpy_limit_j_per_kg = OpenStudio.convert(limits[1], 'Btu/lb', 'J/kg').get
-				oa_control.resetEconomizerMaximumLimitEnthalpy
-				oa_control.setEconomizerMaximumLimitEnthalpy(enthalpy_limit_j_per_kg)
-				# puts("--- economizer limit for #{economizer_type} new: #{oa_control.getEconomizerMaximumLimitEnthalpy.get}")
-			  when 'FixedDewPointAndDryBulb'
-				if oa_control.getEconomizerMaximumLimitDewpointTemperature.is_initialized
-				  puts("--- economizer limit for #{economizer_type} before: #{oa_control.getEconomizerMaximumLimitDewpointTemperature.get}")
-				end
-				drybulb_limit_f = 75
-				dewpoint_limit_f = 55
-				drybulb_limit_c = OpenStudio.convert(drybulb_limit_f, 'F', 'C').get
-				dewpoint_limit_c = OpenStudio.convert(dewpoint_limit_f, 'F', 'C').get
-				oa_control.resetEconomizerMaximumLimitDryBulbTemperature
-				oa_control.resetEconomizerMaximumLimitDewpointTemperature
-				oa_control.setEconomizerMaximumLimitDryBulbTemperature(drybulb_limit_c)
-				oa_control.setEconomizerMaximumLimitDewpointTemperature(dewpoint_limit_c)
-				# puts("--- economizer limit (max db T) for #{economizer_type} new: #{oa_control.getEconomizerMaximumLimitDryBulbTemperature.get}")
-				# puts("--- economizer limit (max dp T) for #{economizer_type} new: #{oa_control.getEconomizerMaximumLimitDewpointTemperature.get}")
-			  end
-			  # change/check settings: lockout type
-			  # puts("--- economizer lockout type before: #{oa_control.getLockoutType}")
-			  if oa_control.getLockoutType != "LockoutWithHeating"
-				oa_control.setLockoutType("LockoutWithHeating") # integrated economizer
-			  end
-			  # puts("--- economizer lockout type new: #{oa_control.getLockoutType}")
-
-			  # calc statistics
-			  added_economizers += 1
-
-					
-										# ----------------------------------------------------
-					# puts("### initialization")
-					# ----------------------------------------------------
-					#runner.registerInitialCondition("Out of #{model.getAirLoopHVACs.size} air loops, #{no_outdoor_air_loops} do not have outdoor air, #{doas_loops} are DOAS systems, and #{existing_economizer_loops} have existing economizers, leaving #{selected_air_loops.size} eligible for an economizer.")
-
-					# ----------------------------------------------------
-					# puts("### implement economizers")
-					# ----------------------------------------------------
-
-
-					# oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
-					# controller_oa = oa_system.getControllerOutdoorAir
-					# # econ_type = std.model_economizer_type(model, climate_zone)
-					# # set economizer type
-					# controller_oa.setEconomizerControlType('DifferentialEnthalpy') #acceptable in all climate zones 
-					# # set drybulb temperature limit; per 90.1-2013, this is constant 75F for all climates
-					# drybulb_limit_f=75
-					# drybulb_limit_c = OpenStudio.convert(drybulb_limit_f, 'F', 'C').get
-					# controller_oa.setEconomizerMaximumLimitDryBulbTemperature(drybulb_limit_c)
-					# # set lockout for integrated heating
-					# controller_oa.setLockoutType('LockoutWithHeating')
-				end 
-				end 
-	       end
-		if selected_air_loops.size.zero?
-			runner.registerInfo('Model contains no air loops eligible for adding an outdoor air economizer.')
-			#return true ##AA commented out for integration in this measure 
 		end
-	#deal with economizer controls 
-	if add_econo 
+		air_loop_hvac.thermalZones.each do |thermal_zone| #iterate thru thermal zones and modify zone-level terminal units
+			min_oa_flow_rate = thermal_zone_outdoor_airflow_rate(thermal_zone)
+			#runner.registerInfo("min_oa_flow_rate #{min_oa_flow_rate}")
+			thermal_zone.equipment.each do |equip|
+				if equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
+					term = equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.get
+					runner.registerInfo("term #{term}")
+					new_term = OpenStudio::Model::AirTerminalSingleDuctVAVHeatAndCoolNoReheat.new(model) #create new terminal unit
+					if term.autosizedMaximumAirFlowRate.is_initialized
+						des_airflow_rate = term.autosizedMaximumAirFlowRate.get
+						new_term.setMaximumAirFlowRate(des_airflow_rate) #same as before
+						#set minimum based on max of 40% of max flow, or min ventilation level req'd
+						new_term.setZoneMinimumAirFlowFraction([min_flow, min_oa_flow_rate/des_airflow_rate].max)
+					elsif term.maximumAirFlowRate.is_initialized
+						des_airflow_rate = term.maximumAirFlowRate.get
+						new_term.setMaximumAirFlowRate(des_airflow_rate) #same as before
+						#set minimum based on max of 40% of max flow, or min ventilation level req'd
+						new_term.setZoneMinimumAirFlowFraction([min_flow, min_oa_flow_rate/des_airflow_rate].max)
+					end
+					air_loop_hvac.removeBranchForZone(thermal_zone)
+					air_loop_hvac.addBranchForZone(thermal_zone, new_term)
+				end
+			end
+		end
+	end
+	#handle DCV in appropriate air loops, after screening out those that aren't suitable
+	 if add_dcv
+		overall_sel_air_loops.sort.each do |air_loop_hvac|
+			if ! (['kitchen', 'Kitchen', 'dining', 'Dining', 'Laboratory', 'KITCHEN', 'LABORATORY', 'DINING', 'patient', 'PATIENT', 'Patient'].any? { |word| (air_loop_hvac.name.get).include?(word) } ) && !(no_DCV_zones?(air_loop_hvac))
+			oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+			controller_oa = oa_system.getControllerOutdoorAir
+			controller_mv = controller_oa.controllerMechanicalVentilation
+			controller_mv.setDemandControlledVentilation(true)
+			#Set design OA object attributes
+			thermal_zone.spaces.each do |space|
+				dsn_oa = space.designSpecificationOutdoorAir
+				next if dsn_oa.empty?
+				dsn_oa = dsn_oa.get
+				puts "design spec oa name #{dsn_oa.name}"
+				# set design specification outdoor air objects to sum
+				dsn_oa.setOutdoorAirMethod('Sum')
+
+				# Get the space properties
+				floor_area = space.floorArea
+				number_of_people = space.numberOfPeople
+				people_per_m2 = space.peoplePerFloorArea
+
+				# Sum up the total OA from all sources
+				oa_for_people_per_m2 = people_per_m2 * dsn_oa.outdoorAirFlowperPerson
+				oa_for_floor_area_per_m2 = dsn_oa.outdoorAirFlowperFloorArea
+				tot_oa_per_m2 = oa_for_people_per_m2 + oa_for_floor_area_per_m2
+				tot_oa_cfm_per_ft2 = OpenStudio.convert(OpenStudio.convert(tot_oa_per_m2, 'm^3/s', 'cfm').get, '1/m^2', '1/ft^2').get
+				tot_oa_cfm = floor_area * tot_oa_cfm_per_ft2
+
+				# if both per-area and per-person are present, does not need to be modified
+				if !dsn_oa.outdoorAirFlowperPerson.zero? && !dsn_oa.outdoorAirFlowperFloorArea.zero?
+				next
+
+				# if both are zero, skip space
+				elsif dsn_oa.outdoorAirFlowperPerson.zero? && dsn_oa.outdoorAirFlowperFloorArea.zero?
+				runner.registerInfo("Space '#{space.name}' has 0 outdoor air per-person and per-area rates. DCV may be still be applied to this air loop, but it will not function on this space.")
+				next
+
+				# if per-person or per-area values are zero, set to 10 cfm / person and allocate the rest to per-area
+				elsif dsn_oa.outdoorAirFlowperPerson.zero? || dsn_oa.outdoorAirFlowperFloorArea.zero?
+				puts "========Before Per Person========="
+				puts "#{space.name}"
+				puts "people per m2", people_per_m2
+				puts "Per-person", dsn_oa.outdoorAirFlowperPerson * people_per_m2
+				puts "Per-area", dsn_oa.outdoorAirFlowperFloorArea
+				puts "Total OA", tot_oa_per_m2
+
+				if dsn_oa.outdoorAirFlowperPerson.zero?
+					runner.registerInfo("Space '#{space.name}' per-person outdoor air rate is 0. Using a minimum of 10 cfm / person and assigning the remaining space outdoor air requirement to per-area.")
+				elsif dsn_oa.outdoorAirFlowperFloorArea.zero?
+					runner.registerInfo("Space '#{space.name}' per-area outdoor air rate is 0. Using a minimum of 10 cfm / person and assigning the remaining space outdoor air requirement to per-area.")
+				end
+
+				# default ventilation is 10 cfm / person
+				per_person_ventilation_rate = OpenStudio.convert(10, 'ft^3/min', 'm^3/s').get
+
+				# assign remaining oa to per-area
+				new_oa_for_people_per_m2 = people_per_m2 * per_person_ventilation_rate
+				new_oa_for_people_cfm_per_f2 = OpenStudio.convert(OpenStudio.convert(new_oa_for_people_per_m2, 'm^3/s', 'cfm').get, '1/m^2', '1/ft^2').get
+				new_oa_for_people_cfm = number_of_people * new_oa_for_people_cfm_per_f2
+				remaining_oa_per_m2 = tot_oa_per_m2 - new_oa_for_people_per_m2
+				if remaining_oa_per_m2 <= 0
+					runner.registerInfo("Space '#{space.name}' has #{number_of_people.round(1)} people which corresponds to a ventilation minimum requirement of #{new_oa_for_people_cfm.round(0)} cfm at 10 cfm / person, but total zone outdoor air is only #{tot_oa_cfm.round(0)} cfm. Setting all outdoor air as per-person.")
+					per_person_ventilation_rate = tot_oa_per_m2 / people_per_m2
+					dsn_oa.setOutdoorAirFlowperFloorArea(0.0)
+				else
+					oa_per_area_per_m2 = remaining_oa_per_m2
+					dsn_oa.setOutdoorAirFlowperFloorArea(oa_per_area_per_m2)
+				end
+				dsn_oa.setOutdoorAirFlowperPerson(per_person_ventilation_rate)
+			end
+		end
+		end
+	 end
+	end
+	if add_econo #handle economizing if implementing it
+		overall_sel_air_loops.sort.each do |air_loop_hvac|
+			oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem
+			if oa_system.is_initialized
+				oa_system = oa_system.get
+			else
+				runner.registerInfo("Air loop #{air_loop_hvac.name} does not have outdoor air and cannot economize.")
+				next
+			end
+			sizing_system = air_loop_hvac.sizingSystem
+			type_of_load = sizing_system.typeofLoadtoSizeOn
+			if type_of_load == 'VentilationRequirement'
+				runner.registerInfo("Air loop #{air_loop_hvac.name} is a DOAS system and cannot economize.")
+				next
+			end
+			oa_controller = oa_system.getControllerOutdoorAir
+			current_economizer_type = oa_controller.getEconomizerControlType
+			if current_economizer_type == 'NoEconomizer'
+				runner.registerInfo("Air loop #{air_loop_hvac.name} does not have an existing economizer.  This measure will add an economizer.")
+				selected_air_loops << air_loop_hvac
+			else
+				runner.registerInfo("Air loop #{air_loop_hvac.name} has an existing #{current_economizer_type} economizer.")
+				next
+			end
+			# get airLoopHVACOutdoorAirSystem
+			oa_sys = air_loop_hvac.airLoopHVACOutdoorAirSystem
+			if oa_sys.is_initialized
+				oa_sys = oa_sys.get
+			else
+				OpenStudio.logFree(OpenStudio::Error, 'openstudio.prototype.Model', "#{air_loop.name} is required to have an economizer, but it has no OA system.")
+				next
+			end
+			# get controller:outdoorair
+			oa_control = oa_sys.getControllerOutdoorAir
+			oa_control.setEconomizerControlType(economizer_type)
+			if oa_control.getEconomizerControlType != economizer_type
+				puts("--- adding economizer to air loop hvac = #{air_loop_hvac.name}")
+				oa_control.setEconomizerControlType(economizer_type)
+			end
+			# puts("--- economizer control type new: #{oa_control.getEconomizerControlType}")
+
+			# get economizer limits
+			limits = std.air_loop_hvac_economizer_limits(air_loop_hvac, climate_zone) # in IP unit
+			# puts("--- economizer limits [db max|enthal max|dewpoint max] for the climate zone = #{limits}")
+				# implement limits for each control type
+			case economizer_type
+			when 'FixedDryBulb'
+			if oa_control.getEconomizerMaximumLimitDryBulbTemperature.is_initialized
+				puts("--- economizer limit for #{economizer_type} before: #{oa_control.getEconomizerMaximumLimitDryBulbTemperature.get}")
+			end
+			drybulb_limit_c = OpenStudio.convert(limits[0], 'F', 'C').get
+			oa_control.resetEconomizerMaximumLimitDryBulbTemperature
+			oa_control.setEconomizerMaximumLimitDryBulbTemperature(drybulb_limit_c)
+			# puts("--- economizer limit for #{economizer_type} new: #{oa_control.getEconomizerMaximumLimitDryBulbTemperature.get}")
+			when 'FixedEnthalpy'
+			if oa_control.getEconomizerMaximumLimitEnthalpy.is_initialized
+				puts("--- economizer limit for #{economizer_type} before: #{oa_control.getEconomizerMaximumLimitEnthalpy.get}")
+			end
+			enthalpy_limit_j_per_kg = OpenStudio.convert(limits[1], 'Btu/lb', 'J/kg').get
+			oa_control.resetEconomizerMaximumLimitEnthalpy
+			oa_control.setEconomizerMaximumLimitEnthalpy(enthalpy_limit_j_per_kg)
+			# puts("--- economizer limit for #{economizer_type} new: #{oa_control.getEconomizerMaximumLimitEnthalpy.get}")
+			when 'FixedDewPointAndDryBulb'
+			if oa_control.getEconomizerMaximumLimitDewpointTemperature.is_initialized
+				puts("--- economizer limit for #{economizer_type} before: #{oa_control.getEconomizerMaximumLimitDewpointTemperature.get}")
+			end
+			drybulb_limit_f = 75
+			dewpoint_limit_f = 55
+			drybulb_limit_c = OpenStudio.convert(drybulb_limit_f, 'F', 'C').get
+			dewpoint_limit_c = OpenStudio.convert(dewpoint_limit_f, 'F', 'C').get
+			oa_control.resetEconomizerMaximumLimitDryBulbTemperature
+			oa_control.resetEconomizerMaximumLimitDewpointTemperature
+			oa_control.setEconomizerMaximumLimitDryBulbTemperature(drybulb_limit_c)
+			oa_control.setEconomizerMaximumLimitDewpointTemperature(dewpoint_limit_c)
+			# puts("--- economizer limit (max db T) for #{economizer_type} new: #{oa_control.getEconomizerMaximumLimitDryBulbTemperature.get}")
+			# puts("--- economizer limit (max dp T) for #{economizer_type} new: #{oa_control.getEconomizerMaximumLimitDewpointTemperature.get}")
+			end
+			# change/check settings: lockout type
+			# puts("--- economizer lockout type before: #{oa_control.getLockoutType}")
+			if oa_control.getLockoutType != "LockoutWithHeating"
+			oa_control.setLockoutType("LockoutWithHeating") # integrated economizer
+			end
+			# puts("--- economizer lockout type new: #{oa_control.getLockoutType}")
+
+			# calc statistics
+			added_economizers += 1
+
+
+									# ----------------------------------------------------
+				# puts("### initialization")
+				# ----------------------------------------------------
+				#runner.registerInitialCondition("Out of #{model.getAirLoopHVACs.size} air loops, #{no_outdoor_air_loops} do not have outdoor air, #{doas_loops} are DOAS systems, and #{existing_economizer_loops} have existing economizers, leaving #{selected_air_loops.size} eligible for an economizer.")
+
+				# ----------------------------------------------------
+				# puts("### implement economizers")
+				# ----------------------------------------------------
+
+
+				# oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+				# controller_oa = oa_system.getControllerOutdoorAir
+				# # econ_type = std.model_economizer_type(model, climate_zone)
+				# # set economizer type
+				# controller_oa.setEconomizerControlType('DifferentialEnthalpy') #acceptable in all climate zones
+				# # set drybulb temperature limit; per 90.1-2013, this is constant 75F for all climates
+				# drybulb_limit_f=75
+				# drybulb_limit_c = OpenStudio.convert(drybulb_limit_f, 'F', 'C').get
+				# controller_oa.setEconomizerMaximumLimitDryBulbTemperature(drybulb_limit_c)
+				# # set lockout for integrated heating
+				# controller_oa.setLockoutType('LockoutWithHeating')
+		end
+	end
+
+	if selected_air_loops.size.zero?
+			runner.registerInfo('Model contains no air loops eligible for adding an outdoor air economizer.')
+			#return true ##AA commented out for integration in this measure
+	end
+	#deal with economizer controls
+ if add_econo
 		# puts("### implement EMS for economizing only when cooling")
 		# ----------------------------------------------------
 		# for ems output variables
@@ -526,13 +543,13 @@ require 'openstudio-standards'
 		li_ems_act_oa_flow = []
 
 		# loop through air loops
-		model.getAirLoopHVACs.each do |air_loop_hvac|
+		overall_sel_air_loops.each do |air_loop_hvac|
 
 		  # get OA system
 		  oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem
 		  if oa_system.is_initialized
 			oa_system = oa_system.get
-		  else 
+		  else
 		    runner.registerInfo("Air loop #{air_loop_hvac.name} does not have outdoor air and cannot economize.")
 		    next
 		  end
@@ -542,7 +559,7 @@ require 'openstudio-standards'
 		  # oa_controller.setName(oa_controller.name.to_s.gsub("-", ""))
 		  economizer_type = oa_controller.getEconomizerControlType
 		  next unless economizer_type != 'NoEconomizer'
-		  
+
 		  # get zones
 		  zone = air_loop_hvac.thermalZones[0]
 		  # zone.setName(zone.name.to_s.gsub("-", ""))
@@ -588,66 +605,65 @@ require 'openstudio-standards'
 			  end
 			end
 		  end
-		   # set sensor for zone cooling load from cooling coil cooling rate
-      sens_clg_coil_rate = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Cooling Coil Total Cooling Rate')
-      sens_clg_coil_rate.setName("sens_zn_clg_rate_#{zone.name.get.to_s.gsub("-", "")}") 
-      sens_clg_coil_rate.setKeyName("#{clg_coil.name.get}")
-      # EMS variables are added to lists for export
-      li_ems_clg_coil_rate << sens_clg_coil_rate
 
-      # set sensor - Outdoor Air Controller Minimum Mass Flow Rate
-      # TODO need to confirm if this variable is reliable
-      sens_min_oa_rate = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Air System Outdoor Air Mechanical Ventilation Requested Mass Flow Rate')
-      sens_min_oa_rate.setName("sens_min_oa_flow_#{oa_controller.name.get.to_s.gsub("-", "")}") 
-      sens_min_oa_rate.setKeyName("#{air_loop_hvac.name.get}")
+			# set sensor for zone cooling load from cooling coil cooling rate
+			sens_clg_coil_rate = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Cooling Coil Total Cooling Rate')
+			sens_clg_coil_rate.setName("sens_zn_clg_rate_#{zone.name.get.to_s.gsub("-", "")}")
+			sens_clg_coil_rate.setKeyName("#{clg_coil.name.get}")
+			# EMS variables are added to lists for export
+			li_ems_clg_coil_rate << sens_clg_coil_rate
 
-      li_ems_sens_min_flow << sens_min_oa_rate
+			# set sensor - Outdoor Air Controller Minimum Mass Flow Rate
+			# TODO need to confirm if this variable is reliable
+			sens_min_oa_rate = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Air System Outdoor Air Mechanical Ventilation Requested Mass Flow Rate')
+			sens_min_oa_rate.setName("sens_min_oa_flow_#{oa_controller.name.get.to_s.gsub("-", "")}")
+			sens_min_oa_rate.setKeyName("#{air_loop_hvac.name.get}")
 
-      # set sensor - Air System Outdoor Air Economizer Status
-      sens_econ_status = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Air System Outdoor Air Economizer Status')
-      sens_econ_status.setName("sens_econ_status_#{oa_controller.name.get.to_s.gsub("-", "")}") 
-      sens_econ_status.setKeyName("#{air_loop_hvac.name.get}")
-      li_ems_sens_econ_status << sens_econ_status
+			li_ems_sens_min_flow << sens_min_oa_rate
 
-      #### Actuators #####
-      # set actuator - oa controller air mass flow rate
-      act_oa_flow = OpenStudio::Model::EnergyManagementSystemActuator.new(oa_controller,
-                                                                          'Outdoor Air Controller', 
-                                                                          'Air Mass Flow Rate'
-                                                                          )
-      act_oa_flow.setName("act_oa_flow_#{air_loop_hvac.name.get.to_s.gsub("-", "")}")
-      
-      li_ems_act_oa_flow << act_oa_flow
+			# set sensor - Air System Outdoor Air Economizer Status
+			sens_econ_status = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Air System Outdoor Air Economizer Status')
+			sens_econ_status.setName("sens_econ_status_#{oa_controller.name.get.to_s.gsub("-", "")}")
+			sens_econ_status.setKeyName("#{air_loop_hvac.name.get}")
+			li_ems_sens_econ_status << sens_econ_status
 
-      #### Program #####
-      # reset OA to min OA if there is a call for economizer but no cooling load
-      prgrm_econ_override = model.getEnergyManagementSystemTrendVariableByName('econ_override')
-      unless prgrm_econ_override.is_initialized
-        prgrm_econ_override = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
-        prgrm_econ_override.setName("#{air_loop_hvac.name.get.to_s.gsub("-", "")}_program")
-        prgrm_econ_override_body = <<-EMS
-        SET #{act_oa_flow.name} = #{act_oa_flow.name},
-        SET sens_zn_clg_rate = #{sens_clg_coil_rate.name},
-        SET sens_min_oa_rate = #{sens_min_oa_rate.name},
-        SET sens_econ_status = #{sens_econ_status.name},
-        IF ((sens_econ_status > 0) && (sens_zn_clg_rate <= 0)), 
-          SET #{act_oa_flow.name} = sens_min_oa_rate,
-        ELSE,
-          SET #{act_oa_flow.name} = Null,
-        ENDIF
-        EMS
-        prgrm_econ_override.setBody(prgrm_econ_override_body)
-      end
-        programs_at_beginning_of_timestep = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
-        programs_at_beginning_of_timestep.setName("#{air_loop_hvac.name.get.to_s.gsub("-", "")}_Programs_At_Beginning_Of_Timestep")
-        programs_at_beginning_of_timestep.setCallingPoint('InsideHVACSystemIterationLoop')
-        programs_at_beginning_of_timestep.addProgram(prgrm_econ_override)
+			#### Actuators #####
+			# set actuator - oa controller air mass flow rate
+			act_oa_flow = OpenStudio::Model::EnergyManagementSystemActuator.new(oa_controller,
+																				'Outdoor Air Controller',
+																				'Air Mass Flow Rate'
+																				)
+			act_oa_flow.setName("act_oa_flow_#{air_loop_hvac.name.get.to_s.gsub("-", "")}")
 
+			li_ems_act_oa_flow << act_oa_flow
+
+			#### Program #####
+			# reset OA to min OA if there is a call for economizer but no cooling load
+			prgrm_econ_override = model.getEnergyManagementSystemTrendVariableByName('econ_override')
+			unless prgrm_econ_override.is_initialized
+				prgrm_econ_override = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
+				prgrm_econ_override.setName("#{air_loop_hvac.name.get.to_s.gsub("-", "")}_program")
+				prgrm_econ_override_body = <<-EMS
+				SET #{act_oa_flow.name} = #{act_oa_flow.name},
+				SET sens_zn_clg_rate = #{sens_clg_coil_rate.name},
+				SET sens_min_oa_rate = #{sens_min_oa_rate.name},
+				SET sens_econ_status = #{sens_econ_status.name},
+				IF ((sens_econ_status > 0) && (sens_zn_clg_rate <= 0)),
+				SET #{act_oa_flow.name} = sens_min_oa_rate,
+				ELSE,
+				SET #{act_oa_flow.name} = Null,
+				ENDIF
+				EMS
+				prgrm_econ_override.setBody(prgrm_econ_override_body)
+		    end
+			programs_at_beginning_of_timestep = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
+			programs_at_beginning_of_timestep.setName("#{air_loop_hvac.name.get.to_s.gsub("-", "")}_Programs_At_Beginning_Of_Timestep")
+			programs_at_beginning_of_timestep.setCallingPoint('InsideHVACSystemIterationLoop')
+			programs_at_beginning_of_timestep.addProgram(prgrm_econ_override)
+		end
     end
-    end 
-	return true 
-	end  
+ #end
 end
-
+end
 # register the measure to be used by the application
 AdvancedRTUControl.new.registerWithApplication
