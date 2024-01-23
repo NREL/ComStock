@@ -3,21 +3,49 @@
   <schema_version>3.1</schema_version>
   <name>advanced_rtu_control</name>
   <uid>b3e18436-f7da-4b62-bbce-c21e2f9d5ad4</uid>
-  <version_id>ce6a303b-8949-484a-8f83-3cf21610fd45</version_id>
-  <version_modified>2023-12-06T19:56:33Z</version_modified>
-  <xml_checksum>00000000</xml_checksum>
+  <version_id>2cacfd23-d578-4f20-b254-4c13644cddad</version_id>
+  <version_modified>2024-01-23T02:36:52Z</version_modified>
+  <xml_checksum>B3180F38</xml_checksum>
   <class_name>AdvancedRTUControl</class_name>
-  <display_name>AdvancedRTUControl</display_name>
-  <description>Replace this text with an explanation of what the measure does in terms that can be understood by a general building professional audience (building owners, architects, engineers, contractors, etc.).  This description will be used to create reports aimed at convincing the owner and/or design team to implement the measure in the actual building design.  For this reason, the description may include details about how the measure would be implemented, along with explanations of qualitative benefits associated with the measure.  It is good practice to include citations in the measure if the description is taken from a known source or if specific benefits are listed.</description>
-  <modeler_description>Replace this text with an explanation for the energy modeler specifically.  It should explain how the measure is modeled, including any requirements about how the baseline model must be set up, major assumptions, citations of references to applicable modeling resources, etc.  The energy modeler should be able to read this description and understand what changes the measure is making to the model and why these changes are being made.  Because the Modeler Description is written for an expert audience, using common abbreviations for brevity is good practice.</modeler_description>
+  <display_name>Advanced RTU Control</display_name>
+  <description>This measure implements advanced RTU controls, including a variable-speed fan, with options for economizing and demand-controlled ventilation.</description>
+  <modeler_description>This measure iterates through airloops, and, where applicable, replaces constant speed fans with variable speed fans, and replaces the existing zone terminal.</modeler_description>
   <arguments>
     <argument>
-      <name>space_name</name>
-      <display_name>New space name</display_name>
-      <description>This name will be used as the name of the new space.</description>
-      <type>String</type>
+      <name>add_econo</name>
+      <display_name>Economizer to be added?</display_name>
+      <description>Add economizer (true) or not (false)</description>
+      <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>add_dcv</name>
+      <display_name>DCV to be added?</display_name>
+      <description>Add DCV (true) or not (false)</description>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
     </argument>
   </arguments>
   <outputs />
@@ -59,10 +87,10 @@
   </attributes>
   <files>
     <file>
-      <filename>LICENSE.md</filename>
+      <filename>README.md</filename>
       <filetype>md</filetype>
-      <usage_type>license</usage_type>
-      <checksum>CD7F5672</checksum>
+      <usage_type>readme</usage_type>
+      <checksum>42F48706</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -80,23 +108,30 @@
       <version>
         <software_program>OpenStudio</software_program>
         <identifier>3.6.1</identifier>
+        <min_compatible>3.6.1</min_compatible>
       </version>
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>8F68781A</checksum>
+      <checksum>7497FB65</checksum>
     </file>
     <file>
       <filename>advanced_rtu_control_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>54E705D2</checksum>
+      <checksum>FACD8688</checksum>
     </file>
     <file>
       <filename>example_model.osm</filename>
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
       <checksum>53D14E69</checksum>
+    </file>
+    <file>
+      <filename>models/361_Retail_PSZ_Gas_5a_added_output.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>B5B31B25</checksum>
     </file>
   </files>
 </measure>
