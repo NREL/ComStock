@@ -1029,7 +1029,13 @@ OS:AdditionalProperties,
   ComStock DEER Pre-1975,                 !- Feature Value 13
   hvac_template,                          !- Feature Name 14
   String,                                 !- Feature Data Type 14
-  ComStock DEER 1996;                     !- Feature Value 14
+  ComStock DEER 1996,                     !- Feature Value 14
+  Soil Conductivity,                      !- Feature Name 15
+  Double,                                 !- Feature Data Type 15
+  1.1000000000000001,                     !- Feature Value 15
+  Undisturbed Ground Temperature,         !- Feature Name 16
+  Double,                                 !- Feature Data Type 16
+  19.699999999999999;                     !- Feature Value 16
 
 OS:SpaceType,
   {58bcb63f-2c81-4764-bed2-149a02817c7b}, !- Handle
