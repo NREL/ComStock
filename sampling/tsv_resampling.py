@@ -6,7 +6,7 @@ from datetime import datetime
 import json
 from joblib import Parallel, delayed
 import logging
-from multiprocessing import Manager, cpu_count
+from multiprocessing import cpu_count
 import numpy as np
 import os
 import pandas as pd
@@ -86,10 +86,10 @@ class CommercialBaseSobolSampler(BuildStockSampler):
             'building_area', 'building_type', 'sampling_region', 'size_bin'
         ],
         [
-            'number_stories', 'tract', 'year_built'
+            'number_stories', 'tract', 'year_built', 'state_id', 'county_id'
         ],
         [
-            'building_subtype', 'census_region', 'climate_zone', 'county_id', 'ground_thermal_conductivity', 'state_id', 'year_of_simulation'
+            'building_subtype', 'census_region', 'climate_zone', 'ground_thermal_conductivity', 'year_of_simulation'
         ],
         [
             'energy_code_compliance_during_original_building_construction', 'energy_code_followed_during_original_building_construction', 'energy_code_in_force_during_original_building_construction', 'ownership_status', 'party_responsible_for_operation', 'purchase_input_responsibility', 'window_wall_ratio', 'year_bin_of_original_building_construction'
@@ -145,7 +145,7 @@ class CommercialBaseSobolSampler(BuildStockSampler):
 
         username = os.getlogin()
         now = datetime.now()
-        date = now.strftime("%Y%m%d")
+        date = now.strftime("%Y%m%d-%H%m")
         if n_datapoints is not None:
             self.sample_number = n_datapoints
         if self.sample_number == 0:
@@ -168,7 +168,7 @@ class CommercialBaseSobolSampler(BuildStockSampler):
         tsv_hash = {}
 
         if load_jsons:
-            for attr in attrs:
+            for attr in [item for item in attrs if '_id' not in item]: # skip county_id and state_id
                 with open(os.path.join(tsv_dir, attr + '.json'), 'r') as rfobj:
                     tsv_hash[attr] = json.load(rfobj)
             attr_order = self.TSV_ARRAYS[0] + ['tract', 'year_built', 'number_stories']
@@ -223,25 +223,21 @@ class CommercialBaseSobolSampler(BuildStockSampler):
             sample_matrix = self._com_execute_sobol_sampling(len(attrs_to_sample), self.sample_number)
             sample_dict = sample_matrix.to_dict(orient='list')
             prev_results_dict = prev_results.to_dict(orient='index')
-            res = dict()
+
             if jsons:
+                res = dict()
                 for index in range(self.sample_number):
                     res[index] = self._com_execute_json_sample(
                         tsv_hash, dependency_hash, attr_order, sample_dict[index], prev_results_dict.get(index, dict())
                     )
+                df = pd.DataFrame.from_dict(res).transpose()
             else:
-                for index in range(self.sample_number):
-                    res[index] = self._com_execute_sample(
+                res = Parallel(n_jobs=round(cpu_count()), verbose=5)(
+                    delayed(self._com_execute_sample)(
                         tsv_hash, dependency_hash, attr_order, sample_dict[index], prev_results_dict.get(index, dict())
-                    )
-                # res = Parallel(n_jobs=1, verbose=5)(
-                #     delayed(self._com_execute_sample)(
-                #         tsv_hash, dependency_hash, attr_order, sample_dict[index], prev_results_dict.get(index, dict())
-                #     ) for index in range(self.sample_number)
-                # )
-            df = pd.DataFrame.from_dict(res).transpose()
-            # breakpoint()
-
+                    ) for index in range(self.sample_number)
+                )
+                df = pd.DataFrame.from_dict(res)
             df.index.name = 'Building'
 
             # Save the intermediate buildstock csvs within the temporary directory and the final at the specified location
@@ -257,8 +253,8 @@ class CommercialBaseSobolSampler(BuildStockSampler):
     @staticmethod
     def _com_execute_sobol_sampling(n_dims, n_samples):
         """
-        Execute a low discrepancy sampling of the unit hyper-cube defined by the n_dims input using the sobol sequence\
-        methodology implemented by Corrado Chisari. Please refer to the sobol_lib.py file for license & attribution\
+        Execute a low discrepancy sampling of the unit hyper-cube defined by the n_dims input using the sobol sequence
+        methodology implemented by Corrado Chisari. Please refer to the sobol_lib.py file for license & attribution
         details.
         :param n_dims: Number of dimensions, equivalent to the number of TSV files to be sampled from
         :param n_samples: Number of samples to calculate
@@ -266,6 +262,8 @@ class CommercialBaseSobolSampler(BuildStockSampler):
         """
         sample = i4_sobol_generate(n_dims, n_samples, 0)
         projected_sample = np.mod(sample + [random.random() for _ in range(len(sample[0]))], 1)
+        projected_shuffled_sample = pd.DataFrame(projected_sample).transpose().sample(frac=1).transpose()
+        projected_shuffled_sample.columns = range(n_samples)
         return pd.DataFrame(projected_sample)
 
     @staticmethod
@@ -351,7 +349,7 @@ class CommercialBaseSobolSampler(BuildStockSampler):
                         ]
                     if tsv_lkup.shape[0] == 0:
                         warn('TSV lookup reduced to 0 for {}, dep hash {}'.format(attr, dep_hash))
-                        breakpoint()
+                        breakpocint()
                         return
                     if (tsv_lkup.shape[0] != 1) and (len(tsv_lkup.shape) > 1):
                         raise RuntimeError('Unable to reduce tsv for {} to 1 row, dep_hash {}'.format(attr, dep_hash))
@@ -393,6 +391,8 @@ class CommercialBaseSobolSampler(BuildStockSampler):
                 attr_result = attr_series[attr_series.values.cumsum() > tsv_dist_val].index[0].replace('Option=', '')
             dep_hash[attr] = attr_result
             results_dict[attr] = attr_result
+        results_dict['state_id'] = results_dict['tract'][:4]
+        results_dict['county_id'] = results_dict['tract'][:8]
         return results_dict
 
 def parse_arguments():
