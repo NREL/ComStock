@@ -315,13 +315,6 @@ class Replace_boiler_by_heatpump < OpenStudio::Measure::ModelMeasure
     sched.setName('Heat Pump Heating Temperature Setpoint')
     sched.defaultDaySchedule.setName('Heat Pump Heating Temperature Setpoint Default')
 
-    # identifying outlet air nodes in the model
-    #oa_nodes =[]
-    #oa_systems = model.getAirLoopHVACOutdoorAirSystems
-    #oa_systems.each do |oa_system|
-      #oa_nodes << oa_system.outdoorAirModelObject.get.to_Node.get
-    #end
-
     # Find all ng boilers in the hot water loop
     whtrs=[]
     loops = model.getPlantLoops
@@ -367,7 +360,7 @@ class Replace_boiler_by_heatpump < OpenStudio::Measure::ModelMeasure
 
     unitarys = model.getAirLoopHVACUnitarySystems
     unitarys.each do |unit|
-      flowmethod = unit.supplyAirFlowRateMethodDuringHeatingOperation #.get
+      flowmethod = unit.supplyAirFlowRateMethodDuringHeatingOperation
       runner.registerInfo("flow method is #{flowmethod} ")
       if flowmethod == ''
         unit.setSupplyAirFlowRateMethodDuringHeatingOperation('SupplyAirFlowRate')
@@ -678,11 +671,6 @@ class Replace_boiler_by_heatpump < OpenStudio::Measure::ModelMeasure
           hp_loop.addSupplyBranchForComponent(heatpump)
 
       end
-      # adding availability manager to heat pump loop. This is based on users cut-off temperature input
-	    #low_temp_off = OpenStudio::Model::AvailabilityManagerLowTemperatureTurnOff.new(model)
-      #low_temp_off.setTemperature(hpwh_cutoff_T)
-      #low_temp_off.setSensorNode(oa_nodes[0])
-      #hp_loop.addAvailabilityManager(low_temp_off)
 
       # adding availability manager to heat pump loop. This is based on users cut-off temperature input
       heat_pump_avail_sch = OpenStudio::Model::ScheduleConstant.new(model)
@@ -762,15 +750,12 @@ class Replace_boiler_by_heatpump < OpenStudio::Measure::ModelMeasure
                 h_coil.autosizeUFactorTimesAreaValue
                 h_coil.autosizeMaximumWaterFlowRate
                 h_coil.autosizeHeatingDesignCapacity
-                # h_coil.setRatedInletWaterTemperature(hw_setpoint_c)
-                # h_coil.setRatedOutletWaterTemperature(hw_setpoint_c-tempd)
               end
             end
           end
 
           sizings = model.getSizingSystems
           sizings.each do |s|
-            #s.autosizeDesignOutdoorAirFlowRate
             s.autosizeHeatingDesignCapacity
           end
 
