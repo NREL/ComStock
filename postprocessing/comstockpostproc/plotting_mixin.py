@@ -263,6 +263,91 @@ class PlottingMixin():
         fig_path = os.path.join(fig_sub_dir, fig_name)
         plt.savefig(fig_path, dpi=600, bbox_inches = 'tight')
 
+    # Plot for GHG emissions by fuel for baseline and EIA data
+    def plot_annual_emissions_comparison(self, df, column_for_grouping, color_map, output_dir):
+        # Summarize annual emissions by fuel
+
+        # Columns to summarize
+        weighted_ghg_units='co2e_mmt'
+        cols_to_summarize = {
+            self.col_name_to_weighted(self.GHG_ELEC_EGRID, weighted_ghg_units): np.sum,
+            self.col_name_to_weighted(self.GHG_NATURAL_GAS, weighted_ghg_units): np.sum,
+            self.col_name_to_weighted(self.GHG_FUEL_OIL, weighted_ghg_units): np.sum,
+            self.col_name_to_weighted(self.GHG_PROPANE, weighted_ghg_units): np.sum,
+        }
+
+        # Disaggregate to these levels
+        group_bys = [
+            None,
+        ]
+
+        for col, agg_method in cols_to_summarize.items(): # loops through column names and provides agg function for specific column
+
+            for group_by in group_bys: # loops through group by options
+
+                # Summarize the data
+                if group_by is None:
+                    # No group-by
+                    g = sns.catplot(
+                        data=df,
+                        x=column_for_grouping,
+                        hue=column_for_grouping,
+                        y=col,
+                        estimator=agg_method,
+                        order=list(color_map.keys()),
+                        palette=color_map.values(),
+                        kind='bar',
+                        errorbar=None,
+                        aspect=1.5,
+                        legend=False
+                    )
+                else:
+                    # With group-by
+                    g = sns.catplot(
+                        data=df,
+                        y=col,
+                        estimator=agg_method,
+                        hue=column_for_grouping,
+                        x=group_by,
+                        order=self.ORDERED_CATEGORIES[group_by],
+                        hue_order=list(color_map.keys()),
+                        palette=color_map.values(),
+                        kind='bar',
+                        errorbar=None,
+                        aspect=2
+                    )
+                    g._legend.set_title(self.col_name_to_nice_name(column_for_grouping))
+
+                fig = g.figure
+
+                # Extract the units from the column name
+                units = self.nice_units(self.units_from_col_name(col))
+
+                # Title and axis labels
+                if group_by is None:
+                    # No group-by
+                    title = f'{self.col_name_to_nice_name(col)}'
+                    for ax in g.axes.flatten():
+                        ax.set_ylabel(f'{self.col_name_to_nice_name(col)} ({units})')
+                        ax.set_xlabel('')
+                else:
+                    # With group-by
+                    title = f'{self.col_name_to_nice_name(col)}\n by {self.col_name_to_nice_name(group_by)}'
+                    for ax in g.axes.flatten():
+                        ax.set_ylabel(f'{self.col_name_to_nice_name(col)} ({units})')
+                        ax.set_xlabel(f'{self.col_name_to_nice_name(group_by)}')
+                        ax.tick_params(axis='x', labelrotation = 90)
+
+                # Formatting
+                fig.subplots_adjust(top=0.9)
+
+                # Save figure
+                title = title.replace('\n', '')
+                fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+                fig_path = os.path.join(output_dir, fig_name)
+                plt.savefig(fig_path, bbox_inches = 'tight')
+                plt.close()
+
     def plot_floor_area_and_energy_totals(self, df, column_for_grouping, color_map, output_dir):
         # Summarize square footage and energy totals
 
