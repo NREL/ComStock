@@ -344,11 +344,12 @@ def run(model, runner, user_arguments)
 	#handle DCV in appropriate air loops, after screening out those that aren't suitable
 	 if add_dcv
 		overall_sel_air_loops.sort.each do |air_loop_hvac|
-			if ! (['kitchen', 'Kitchen', 'dining', 'Dining', 'Laboratory', 'KITCHEN', 'LABORATORY', 'DINING', 'patient', 'PATIENT', 'Patient'].any? { |word| (air_loop_hvac.name.get).include?(word) } )# && !(no_DCV_zones?(air_loop_hvac))
+			unless ((['kitchen', 'Kitchen', 'dining', 'Dining', 'Laboratory', 'KITCHEN', 'LABORATORY', 'DINING', 'patient', 'PATIENT', 'Patient'].any? { |word| (air_loop_hvac.name.get).include?(word) } )|| (no_DCV_zones?(air_loop_hvac)))
 			oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
 			controller_oa = oa_system.getControllerOutdoorAir
 			controller_mv = controller_oa.controllerMechanicalVentilation
 			controller_mv.setDemandControlledVentilation(true)
+			air_loop_hvac.thermalZones.each do |thermal_zone| 
 			#Set design OA object attributes
 			thermal_zone.spaces.each do |space|
 				dsn_oa = space.designSpecificationOutdoorAir
@@ -413,7 +414,8 @@ def run(model, runner, user_arguments)
 				dsn_oa.setOutdoorAirFlowperPerson(per_person_ventilation_rate)
 			end
 		end
-		end
+	end
+end 	
 	 end
 	end
 	if add_econo #handle economizing if implementing it
