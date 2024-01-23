@@ -155,12 +155,12 @@ require 'openstudio-standards'
 	    end
 	end
   end
-# def no_DCV_zones?(air_loop_hvac)
-	# air_loop_hvac.thermalZones.each do |thermal_zone| #iterate thru thermal zones and modify zone-level terminal units
-		# return true if ['patient', 'Outpatient', 'OUTPATIENT', 'outpatient', 'PATIENT', 'Patient', 'kitchen', 'Kitchen', 'dining', 'Dining', 'laboratory', 'Laboratory', 'KITCHEN', 'LABORATORY', 'DINING'].any? { |word| (thermal_zone.name.get).include?(word) }
-	# end
-	# return false
-# end
+def no_DCV_zones?(air_loop_hvac)
+	air_loop_hvac.thermalZones.each do |thermal_zone| #iterate thru thermal zones and modify zone-level terminal units
+		return true if ['patient', 'Outpatient', 'OUTPATIENT', 'outpatient', 'PATIENT', 'Patient', 'kitchen', 'Kitchen', 'dining', 'Dining', 'laboratory', 'Laboratory', 'KITCHEN', 'LABORATORY', 'DINING'].any? { |word| (thermal_zone.name.get).include?(word) }
+	end
+	return false
+end
 
 def air_loop_doas?(air_loop_hvac)
     is_doas = false
