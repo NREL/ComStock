@@ -210,7 +210,14 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
       elsif air_loop_hvac.thermalZones.length > 1
         #look for PVAV and VAV systems
         if %w[PVAV].any? { |word| air_loop_hvac.name.get.include?(word) }
-          runner.registerInfo("Model has PVAV system, measure will be applicable.")  
+          air_loop_hvac.supplyComponents.each do |component|
+            # filter out VAV with PFP boxes, which are labeled as PVAV systems but are actually VAV
+            if component.to_CoilCoolingWater.is_initialized
+              runner.registerAsNotApplicable("Air loop has a chilled water coil, indicating that it is a VAV chiller with PFP boxes system. Measure is not applicable.")
+              return true
+            end
+          end
+          runner.registerInfo("Model has a PVAV system, measure will be applicable.") 
           pvav_air_loops << air_loop_hvac
         elsif %w[VAV].any? { |word| air_loop_hvac.name.get.include?(word) }
           runner.registerAsNotApplicable("Model has VAV system, measure is not applicable.")
@@ -268,7 +275,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     # Create and add a pump to the loop
     condenser_pump = OpenStudio::Model::PumpVariableSpeed.new(model)
     condenser_pump.setName('Condenser loop circulation pump')
-    condenser_pump.setPumpControlType('Intermittent')
+    condenser_pump.setPumpControlType('Continuous')
     condenser_pump.setRatedPumpHead(44_834.7) # 15 ft for primary pump for a primary-secondary system based on Appendix G; does this need to change?
     condenser_pump.addToNode(condenser_loop.supplyInletNode)
 
@@ -826,7 +833,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
 
     # do sizing run to get coil capacities to scale coil performance data
     if std.model_run_sizing_run(model, "#{Dir.pwd}/coil_curving_scaling_SR") == false
-    	runner.registerError("Sizing runto scale coil performance data failed, cannot hard-size model.")
+    	runner.registerError("Sizing run to scale coil performance data failed, cannot hard-size model.")
     	# puts("Sizing run to scale coil performance data failed, cannot hard-size model.")
     	# puts("directory: #{Dir.pwd}/CoilCurveScalingSR")
     	return false
