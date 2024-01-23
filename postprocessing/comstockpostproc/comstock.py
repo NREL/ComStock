@@ -158,6 +158,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.add_missing_energy_columns()
             self.add_enduse_total_energy_columns()
             self.add_energy_intensity_columns()
+            self.add_bill_intensity_columns()
+            self.add_energy_rate_columns()
             self.add_normalized_qoi_columns()
             self.add_vintage_column()
             self.add_dataset_column()
@@ -1145,6 +1147,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         out_peak = []
         out_intensity = []
         out_emissions = []
+        out_utility = []
         out_qoi = []
         out_params = []
         calc = []
@@ -1160,6 +1163,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 out_qoi.append(c)
             elif c.startswith('out.emissions.'):
                 out_emissions.append(c)
+            elif c.startswith('out.utility_bills.'):
+                out_utility.append(c)
             elif c.startswith('out.params.'):
                 out_params.append(c)
             elif c.startswith('calc.'):
@@ -1179,7 +1184,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             else:
                 logger.error(f'Didnt find an order for column: {c}')
 
-        sorted_cols = front_cols + applicability + geogs + ins + out_engy_cons_svgs + out_peak + out_intensity + out_qoi + out_emissions + out_params + calc
+        sorted_cols = front_cols + applicability + geogs + ins + out_engy_cons_svgs + out_peak + out_intensity + out_qoi + out_emissions + out_utility + out_params + calc
 
         self.data = self.data.select(sorted_cols)
 
@@ -1297,6 +1302,37 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             eui_col = self.col_name_to_eui(engy_col)
             self.data = self.data.with_columns(
                 (pl.col(engy_col) / pl.col(self.FLR_AREA)).alias(eui_col))
+
+    def add_bill_intensity_columns(self):
+        # Create bill per area column for each annual utility bill column
+        for bill_col in self.COLS_UTIL_BILLS:
+            # Put in np.nan for bill columns that aren't part of ComStock
+            if not bill_col in self.data:
+                self.data = self.data.with_columns([pl.lit(None).alias(bill_col)])
+
+            # Divide bill by area to create intensity
+            per_area_col = self.col_name_to_area_intensity(bill_col)
+            self.data = self.data.with_columns(
+                (pl.col(bill_col) / pl.col(self.FLR_AREA)).alias(per_area_col))
+
+    def add_energy_rate_columns(self):
+        # Create energy rate column for each annual utility bill column
+        for bill_col in self.COLS_UTIL_BILLS:
+            # Get the corresponding energy consumption column
+            bill_to_engy_col = {
+                self.UTIL_BILL_ELEC: self.ANN_TOT_ELEC_KBTU,
+                self.UTIL_BILL_GAS: self.ANN_TOT_GAS_KBTU,
+                self.UTIL_BILL_FUEL_OIL: None,
+                self.UTIL_BILL_PROPANE: None
+            }
+            # Only create rate columns for fuels with bills and annual consumption
+            engy_col = bill_to_engy_col[bill_col]
+            if not engy_col:
+                continue
+            # Divide bill by consumption to create rate
+            rate_col = self.col_name_to_energy_rate(bill_col)
+            self.data = self.data.with_columns(
+                (pl.col(bill_col) / pl.col(engy_col)).alias(rate_col))
 
     def add_normalized_qoi_columns(self):
         dict_cols = []
@@ -2068,7 +2104,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             if col.startswith('applicability.'):
                 continue  # measure-within-upgrade applicability column names are dynamic, don't check
             col = col.replace(f'..{self.units_from_col_name(col)}', '')
-            col_def = col_defs.row(by_predicate=(pl.col('new_col_name') == col), named=True)
+            try:
+                col_def = col_defs.row(by_predicate=(pl.col('new_col_name') == col), named=True)
+            except pl.exceptions.NoRowsReturnedError as nrrerr:
+                logger.error(f'No definition for {col} in {col_def_path}')
+                continue
+
             col_enums = []
             if col_def['data_type'] == 'string':
                 str_enums = []
@@ -2084,6 +2125,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 if len(str_enums) > 50:
                     logger.debug(f'Not defining enumerations for {col}, see column definition for pattern')
                     col_enums = str_enums[0:10] + ['...too many to list']
+                elif 'utility_bills.' in col:
+                    pass  # Don't define utility rate names
                 else:
                     col_enums = str_enums
                     all_enums.extend(str_enums)

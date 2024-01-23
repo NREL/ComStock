@@ -4751,6 +4751,7 @@ cook_dining_type	Potato	set_primary_kitchen_equipment	cook_dining_type=Potato
 cook_dining_type	Fish A	set_primary_kitchen_equipment	cook_dining_type=Fish A
 cook_dining_type	Restaurant B	set_primary_kitchen_equipment	cook_dining_type=Restaurant B
 cook_dining_type	Cookie	set_primary_kitchen_equipment	cook_dining_type=Cookie
+cook_dining_type	Pancake	set_primary_kitchen_equipment	cook_dining_type=Pancake
 cook_fuel_broiler	Gas	set_primary_kitchen_equipment	cook_fuel_broiler=Gas
 cook_fuel_broiler	Electric	set_primary_kitchen_equipment	cook_fuel_broiler=Electric
 cook_fuel_fryer	Gas	set_primary_kitchen_equipment	cook_fuel_fryer=Gas
@@ -5007,3 +5008,60 @@ fault_economizer_damper_fully_closed	Fault oct	fault_hvac_economizer_damper_stuc
 fault_economizer_damper_fully_closed	Fault nov	fault_hvac_economizer_damper_stuck	apply_measure=true	econ_choice=all available economizer	start_month=11	start_day=1	duration_days=30	damper_pos=0.0
 fault_economizer_damper_fully_closed	Fault dec	fault_hvac_economizer_damper_stuck	apply_measure=true	econ_choice=all available economizer	start_month=12	start_day=1	duration_days=31	damper_pos=0.0
 fault_economizer_damper_fully_closed	dummy_option_does_nothing	fault_hvac_economizer_damper_stuck
+state_id	*
+energy_code_compliance_during_original_building_construction	*
+energy_code_compliance_interior_lighting	*
+energy_code_compliance_hvac	*
+energy_code_compliance_exterior_lighting	*
+energy_code_compliance_interior_equipment	*
+energy_code_compliance_roof	*
+energy_code_compliance_service_water_heating	*
+energy_code_compliance_walls	*
+energy_code_compliance_windows	*
+region	*
+year_built	*
+ownership_status	*
+party_responsible_for_operation	*
+purchase_input_responsibility	*
+year_bin_of_last_interior_lighting_replacement	*
+year_bin_of_original_building_construction	*
+building_shape	*
+ltg_sch_base_peak_ratio_type	*
+plugload_sch_base_peak_ratio_type	*
+year_bin_of_last_hvac_replacement	*
+building_size_lighting_tech	*
+year_bin_of_last_exterior_lighting_replacement	*
+year_bin_of_last_interior_equipment_replacement	*
+year_bin_of_last_roof_replacement	*
+year_bin_of_last_service_water_heating_replacement	*
+year_bin_of_last_walls_replacement	*
+year_bin_of_last_windows_replacement	*
+energy_code_in_force_during_last_interior_lighting_replacement	*
+energy_code_in_force_during_original_building_construction	*
+energy_code_in_force_during_last_hvac_replacement	*
+energy_code_in_force_during_last_exterior_lighting_replacement	*
+energy_code_in_force_during_last_interior_equipment_replacement	*
+energy_code_in_force_during_last_roof_replacement	*
+energy_code_in_force_during_last_service_water_heating_replacement	*
+energy_code_in_force_during_last_walls_replacement	*
+energy_code_in_force_during_last_windows_replacement	*
+energy_code_followed_during_last_interior_lighting_replacement	*
+energy_code_followed_during_last_windows_replacement	*
+nhgis_tract_gisjoin	*
+nhgis_county_gisjoin	*
+nhgis_puma_gisjoin	*
+state_name	*
+state_abbreviation	*
+census_division_name	*
+census_region_name	*
+census_division_name_recs	*
+american_housing_survey_region	*
+weather_file_2018	*
+weather_file_TMY3	*
+climate_zone_building_america	*
+climate_zone_ashrae_2006	*
+iso_region	*
+reeds_balancing_area	*
+resstock_county_id	*
+resstock_puma_id	*
+resstock_custom_region	*
