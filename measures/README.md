@@ -27,6 +27,9 @@ This measure runs several QAQC checks on the model.
 ### qoi_report
 This measure reports Quantities of Interest (QOIs) which include peak demand, such as the average daily summer peak demand.
 
+### utility_bills
+This measure calculates utility bills for electricity, natural gas, propane, and fuel oil.
+
 ### run_directory_cleanup
 This measure deletes most of the model run files after the simulation is complete to save drive space on large runs.
 
