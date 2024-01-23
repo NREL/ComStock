@@ -310,6 +310,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     # Create and add a pump to the loop
     ground_pump = OpenStudio::Model::PumpConstantSpeed.new(model)
     ground_pump.setName('Ground loop circulation pump')
+    ground_pump.setPumpControlType('Continuous')
     ground_pump.setRatedPumpHead(44_834.7) # 15 ft for primary pump for a primary-secondary system based on Appendix G; does this need to change?
     ground_pump.addToNode(ground_loop.supplyInletNode)
 
