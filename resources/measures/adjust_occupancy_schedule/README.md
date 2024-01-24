@@ -28,15 +28,6 @@ ModelMeasure
 **Model Dependent:** false
 
 
-### Apply Measure
-
-**Name:** apply_measure,
-**Type:** Boolean,
-**Units:** ,
-**Required:** true,
-**Model Dependent:** false
-
-
 
 
 

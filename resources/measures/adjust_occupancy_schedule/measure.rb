@@ -37,12 +37,6 @@ class AdjustOccupancySchedule < OpenStudio::Measure::ModelMeasure
     peak_occ_frac.setDefaultValue(0.6)
     args << peak_occ_frac
 
-    # apply/not apply measure
-    apply_measure = OpenStudio::Ruleset::OSArgument.makeBoolArgument('apply_measure', true)
-    apply_measure.setDisplayName('Apply Measure')
-    apply_measure.setDefaultValue(true)
-    args << apply_measure
-
     return args
   end
 
@@ -57,13 +51,6 @@ class AdjustOccupancySchedule < OpenStudio::Measure::ModelMeasure
 
     # assign argument to variables
     peak_occ_frac = runner.getDoubleArgumentValue('peak_occ_frac', user_arguments)
-    apply_measure = runner.getBoolArgumentValue('apply_measure', user_arguments)
-
-    # return if measure not applicable
-    if !apply_measure
-      runner.registerAsNotApplicable('Measure not applied')
-      return true
-    end
 
     total_occ = 0
     all_sch_info = []
