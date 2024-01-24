@@ -317,7 +317,7 @@ def run(model, runner, user_arguments)
 					fan.setFanPowerMinimumFlowRateInputMethod("Fraction")
 					fan.setPressureRise(pressure_rise)#keep it the same as the existing fan, since the balance of systems is the same
 					fan.setMotorEfficiency(fan_motor_eff)
-					fan.setMaximumFlowRate(fan_flow) 
+					fan.setMaximumFlowRate(fan_flow) #keep it the same as the existing fan, since the fan itself will be the same 
 					fan.setFanTotalEfficiency(fan_motor_eff * fan_eff)
 					#set fan curve coefficients
 					standard.fan_variable_volume_set_control_type(fan, 'Single Zone VAV Fan ')
@@ -525,19 +525,6 @@ end
 				# ----------------------------------------------------
 				# puts("### implement economizers")
 				# ----------------------------------------------------
-
-
-				# oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
-				# controller_oa = oa_system.getControllerOutdoorAir
-				# # econ_type = std.model_economizer_type(model, climate_zone)
-				# # set economizer type
-				# controller_oa.setEconomizerControlType('DifferentialEnthalpy') #acceptable in all climate zones
-				# # set drybulb temperature limit; per 90.1-2013, this is constant 75F for all climates
-				# drybulb_limit_f=75
-				# drybulb_limit_c = OpenStudio.convert(drybulb_limit_f, 'F', 'C').get
-				# controller_oa.setEconomizerMaximumLimitDryBulbTemperature(drybulb_limit_c)
-				# # set lockout for integrated heating
-				# controller_oa.setLockoutType('LockoutWithHeating')
 		end
 	end
 
