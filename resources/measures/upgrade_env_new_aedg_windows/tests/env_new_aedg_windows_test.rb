@@ -41,6 +41,7 @@ require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
 require 'fileutils'
 require 'minitest/autorun'
+require_relative '../../../../test/helpers/minitest_helper'
 require_relative '../measure.rb'
 
 class EnvStormWindowsTest < Minitest::Test
