@@ -53,7 +53,7 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
 
                 # convert grouping column from cat to str to avoid processing errors with more than 2 measures
                 self.data[self.column_for_grouping] = self.data[self.column_for_grouping].astype(str)
-
+                
                 df_upgrade = self.data.loc[(self.data[self.UPGRADE_ID]==upgrade_id) | (self.data[self.UPGRADE_ID]==up_base_id), :]
 
                 color_map = {'Baseline': self.COLOR_COMSTOCK_BEFORE, upgrade_name: self.COLOR_COMSTOCK_AFTER}
