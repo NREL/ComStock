@@ -291,7 +291,7 @@ def run(model, runner, user_arguments)
 					   pressure_rise = sup_fan.pressureRise()
 					   motor_hp = standard.fan_motor_horsepower(sup_fan)
 					   fan_eff = standard.fan_baseline_impeller_efficiency(sup_fan)
-					   if sup_fan.autosizeMaximumFlowRate.is_initialized
+					   if sup_fan.autosizedMaximumFlowRate.is_initialized
 						  fan_flow = sup_fan.autosizedMaximumFlowRate.get
 					   elsif sup_fan.maximumFlowRate.is_initialized
 					       fan_flow = sup_fan.maximumFlowRate.get
@@ -304,7 +304,7 @@ def run(model, runner, user_arguments)
 					   pressure_rise = sup_fan.pressureRise()
 					   motor_hp = standard.fan_motor_horsepower(sup_fan)
 					   fan_eff = standard.fan_baseline_impeller_efficiency(sup_fan)
-					   if sup_fan.autosizeMaximumFlowRate.is_initialized
+					   if sup_fan.autosizedMaximumFlowRate.is_initialized
 						  fan_flow = sup_fan.autosizedMaximumFlowRate.get
 					   elsif sup_fan.maximumFlowRate.is_initialized
 					       fan_flow = sup_fan.maximumFlowRate.get
