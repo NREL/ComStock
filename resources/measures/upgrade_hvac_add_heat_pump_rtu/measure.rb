@@ -1246,66 +1246,46 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       clg_stage4 = dx_rated_clg_cap_applied
       hash_clg_cap_stgs = {1 => clg_stage1, 2 => clg_stage2, 3 => clg_stage3, 4 => clg_stage4}
 
-      # puts "Original Cooling..."
-      # puts hash_clg_cap_stgs
-      # puts hash_clg_airflow_stgs
-      # puts ""
-
             ################################################
       # puts "Analysis..."
       hash_clg_speed_level_status = {}
       [4,3,2,1].each do |clg_stg|
         # define airflow and capacity for stage
-        puts "Airloop: #{air_loop_hvac.name}"
-        puts "Stage #: #{clg_stg}"
         stg_cap = hash_clg_cap_stgs[clg_stg]
-        puts "Capacity: #{stg_cap}"
         stg_airflow = hash_clg_airflow_stgs[clg_stg]
-        puts "Airflow: #{stg_airflow}"
         ratio_flow_to_cap_orig = stg_airflow / stg_cap
-        puts "ratio_flow_to_cap_orig: #{ratio_flow_to_cap_orig.round(8)}"
-        puts "Outdoor Air: #{oa_flow_m3_per_s}"
         
         # check upper limit of ratio for compliance (>450 CFM/Ton)
         spacer = 0 
         spacer = 1 unless clg_stg==4
         max_reached=false
         # next if clg_stg==4
-        if ratio_flow_to_cap_orig.round(8) > 0.00006041*(1.01)
-          puts "ratio_flow_to_cap_orig.round(8): #{ratio_flow_to_cap_orig.round(8)}"
-          puts "0.00006041*(1.01): #{0.00006041*(1.01)}"
-          puts "ratio_flow_to_cap_orig.round(8) > 0.00006041*(1.01): #{ratio_flow_to_cap_orig.round(8) > 0.00006041*(1.01)}"
+        if ratio_flow_to_cap_orig.round(8) > 0.00006041
           # range can be met using minimum airflow and increasing capacity of speed
           # this will only occur if new capacity is at least 50% between previous and new stage capacity
-          puts "Bunch of Stuff: #{(((hash_clg_cap_stgs[clg_stg+spacer] - (stg_cap / (0.00006041 / (stg_airflow/stg_cap)))) / (hash_clg_cap_stgs[clg_stg+spacer] - stg_cap)))}"
-          if ((max_reached==false) && (((hash_clg_cap_stgs[clg_stg+spacer] - (stg_cap / (0.00006041 / (stg_airflow/stg_cap)))) / (hash_clg_cap_stgs[clg_stg+spacer] - stg_cap)) > 0.40)) || (clg_stg==4)
+          if ((max_reached==false) && (((hash_clg_cap_stgs[clg_stg+spacer] - (stg_cap / (0.00006041 / (stg_airflow/stg_cap)))) / (hash_clg_cap_stgs[clg_stg+spacer] - stg_cap)) > 0.50)) || ((clg_stg==4) || (clg_stg==3))
             
-            puts "cap changes"
             # max_reached=true
             # calculate new capacities based on decreased airflow to minimum allowed and increasing capacity
             new_airflow = stg_airflow
             new_cap = stg_cap / (0.00006041 / (stg_airflow/stg_cap))
             hash_clg_airflow_stgs[clg_stg] = new_airflow
             hash_clg_cap_stgs[clg_stg] = new_cap
-            runner.registerWarning("For airloop #{air_loop_hvac.name}, cooling stage #{clg_stg} airflow/capacity ratio is too high with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 6.041e-05 m3/s/watt. The capacity of the stage will be increased from #{stg_cap.round(0)} watts to #{new_cap.round(0)} watts.")
+            #runner.registerWarning("For airloop #{air_loop_hvac.name}, cooling stage #{clg_stg} airflow/capacity ratio is too high with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 6.041e-05 m3/s/watt. The capacity of the stage will be increased from #{stg_cap.round(0)} watts to #{new_cap.round(0)} watts.")
             hash_clg_speed_level_status[clg_stg] = true
-            puts "new_airflow: #{new_airflow}"
-            puts "new_cap: #{new_cap}"
-            puts "new_airflow/new_cap: #{new_airflow/new_cap}"
           # range cannot be met given minimum airflow constraints, or limit has already been met in previous stage
           else
             max_reached=true
-            runner.registerWarning("For airloop #{air_loop_hvac.name}, cooling stage #{clg_stg} airflow/capacity airflow is too high with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 6.04e-05 m3/s/watt. Due to minimum outdoor airflow requirements this value cannot be brought into bounds. This stage will be given a neglible capacity making it effectively unavailable.")
+            #runner.registerWarning("For airloop #{air_loop_hvac.name}, cooling stage #{clg_stg} airflow/capacity airflow is too high with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 6.04e-05 m3/s/watt. Due to minimum outdoor airflow requirements this value cannot be brought into bounds. This stage will be given a neglible capacity making it effectively unavailable.")
             hash_clg_speed_level_status[clg_stg] = false
-            puts "max_reached=true"
           end
 
         # check lower limit of ratio for complaince (<300 CFM/Ton)
-        elsif ((stg_airflow / stg_cap) < 0.00004027*(0.99)) && (clg_stg != 4)
+        elsif ((stg_airflow / stg_cap) < 0.00004027) && (clg_stg != 4)
           # calculate new stage capacity to fall in range. This should be an increase.
           new_cap = stg_cap / (0.00004027 / (stg_airflow/stg_cap))
           hash_clg_cap_stgs[clg_stg] = new_cap
-          runner.registerWarning("For airloop #{air_loop_hvac.name}, cooling stage #{clg_stg} airflow/capacity ratio is too low with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 4.03e-05 m3/s/watt. The capacity for this stage will be decreased from #{stg_cap.round(2)} watts to #{new_cap.round(2)} m3/s to bring the airflow/capacity within the allowable bounds.")
+          #runner.registerWarning("For airloop #{air_loop_hvac.name}, cooling stage #{clg_stg} airflow/capacity ratio is too low with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 4.03e-05 m3/s/watt. The capacity for this stage will be decreased from #{stg_cap.round(2)} watts to #{new_cap.round(2)} m3/s to bring the airflow/capacity within the allowable bounds.")
           hash_clg_speed_level_status[clg_stg] = true
         else
           hash_clg_speed_level_status[clg_stg] = true
@@ -1332,17 +1312,17 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         spacer = 0 
         spacer = 1 unless htg_stg==4
         # next if htg_stg==4
-        if ratio_flow_to_cap_orig.round(8) > 0.00006041*(1.01)
+        if ratio_flow_to_cap_orig.round(8) > 0.00006041
           # range can be met using minimum airflow and increasing capacity of speed
           # this will only occur if new capacity is at least 50% between previous and new stage capacity
-          if ((max_reached==false) && (((hash_htg_cap_stgs[htg_stg+spacer] - (stg_cap / (0.00006041*(1.01) / (stg_airflow/stg_cap)))) / (hash_htg_cap_stgs[htg_stg+spacer] - stg_cap)) > 0.5)) || (htg_stg==4)
+          if ((max_reached==false) && (((hash_htg_cap_stgs[htg_stg+spacer] - (stg_cap / (0.00006041 / (stg_airflow/stg_cap)))) / (hash_htg_cap_stgs[htg_stg+spacer] - stg_cap)) > 0.5)) || ((htg_stg==4) || (htg_stg==3))
             # max_reached=true
             # calculate new capacities based on decreased airflow to minimum allowed and increasing capacity
             new_airflow = stg_airflow
             new_cap = stg_cap / (0.00006041 / (stg_airflow/stg_cap))
             hash_htg_airflow_stgs[htg_stg] = new_airflow
             hash_htg_cap_stgs[htg_stg] = new_cap
-            runner.registerWarning("For airloop #{air_loop_hvac.name}, heating stage #{htg_stg} airflow/capacity ratio is too high with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 6.04e-05 m3/s/watt. The capacity of the stage will be increased from #{stg_cap.round(0)} watts to #{new_cap.round(0)} watts.")
+            #runner.registerWarning("For airloop #{air_loop_hvac.name}, heating stage #{htg_stg} airflow/capacity ratio is too high with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 6.04e-05 m3/s/watt. The capacity of the stage will be increased from #{stg_cap.round(0)} watts to #{new_cap.round(0)} watts.")
             hash_htg_speed_level_status[htg_stg] = true
           # range cannot be met given minimum airflow constraints, or limit has already been met in previous stage
           else
@@ -1353,11 +1333,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
         # check lower limit of ratio for complaince (<300 CFM/Ton)
         # check lower limit of ratio for complaince (<300 CFM/Ton)
-        elsif ((stg_airflow / stg_cap).round(8) < 0.00004027*(0.99)) && (htg_stg != 4)
+        elsif ((stg_airflow / stg_cap).round(8) < 0.00004027) && (htg_stg != 4)
           # calculate new stage capacity to fall in range. This should be an increase.
           new_cap = stg_cap / (0.00004027 / (stg_airflow/stg_cap))
           hash_htg_cap_stgs[htg_stg] = new_cap
-          runner.registerWarning("For airloop #{air_loop_hvac.name}, heating stage #{htg_stg} airflow/capacity ratio is too low with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 4.03e-05 m3/s/watt. The capacity for this stage will be decreased from #{stg_cap.round(2)} watts to #{new_cap.round(2)} m3/s to bring the airflow/capacity within the allowable bounds.")
+          #runner.registerWarning("For airloop #{air_loop_hvac.name}, heating stage #{htg_stg} airflow/capacity ratio is too low with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 4.03e-05 m3/s/watt. The capacity for this stage will be decreased from #{stg_cap.round(2)} watts to #{new_cap.round(2)} m3/s to bring the airflow/capacity within the allowable bounds.")
           hash_htg_speed_level_status[htg_stg] = true
         else
           hash_htg_speed_level_status[htg_stg] = true
