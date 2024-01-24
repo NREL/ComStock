@@ -291,6 +291,11 @@ def run(model, runner, user_arguments)
 					   pressure_rise = sup_fan.pressureRise()
 					   motor_hp = standard.fan_motor_horsepower(sup_fan)
 					   fan_eff = standard.fan_baseline_impeller_efficiency(sup_fan)
+					   if sup_fan.autosizeMaximumFlowRate.is_initialized
+						  fan_flow = sup_fan.autosizedMaximumFlowRate.get
+					   elsif sup_fan.maximumFlowRate.is_initialized
+					       fan_flow = sup_fan.maximumFlowRate.get
+					   end 
 					   fan_motor_eff = standard.fan_standard_minimum_motor_efficiency_and_size(sup_fan, motor_hp)[0] #calculate fan motor eff per Standards
 					end
 					#handle constant speed fan objects; replace FanConstantVolume with FanVariableVolume
@@ -299,6 +304,11 @@ def run(model, runner, user_arguments)
 					   pressure_rise = sup_fan.pressureRise()
 					   motor_hp = standard.fan_motor_horsepower(sup_fan)
 					   fan_eff = standard.fan_baseline_impeller_efficiency(sup_fan)
+					   if sup_fan.autosizeMaximumFlowRate.is_initialized
+						  fan_flow = sup_fan.autosizedMaximumFlowRate.get
+					   elsif sup_fan.maximumFlowRate.is_initialized
+					       fan_flow = sup_fan.maximumFlowRate.get
+					   end 
 					   fan_motor_eff = standard.fan_standard_minimum_motor_efficiency_and_size(sup_fan, motor_hp)[0] #calculate fan motor eff per Standards
 					end
 					#create new VS fan
@@ -307,6 +317,7 @@ def run(model, runner, user_arguments)
 					fan.setFanPowerMinimumFlowRateInputMethod("Fraction")
 					fan.setPressureRise(pressure_rise)#keep it the same as the existing fan, since the balance of systems is the same
 					fan.setMotorEfficiency(fan_motor_eff)
+					fan.setMaximumFlowRate(fan_flow) 
 					fan.setFanTotalEfficiency(fan_motor_eff * fan_eff)
 					#set fan curve coefficients
 					standard.fan_variable_volume_set_control_type(fan, 'Single Zone VAV Fan ')
