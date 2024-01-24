@@ -4950,7 +4950,7 @@ baseline_window_type	Triple - LowE - Clear - Thermally Broken Aluminum	replace_b
 baseline_window_type	Triple - LowE - Tinted/Reflective - Thermally Broken Aluminum	replace_baseline_windows	window_pane_type=Triple - LowE - Tinted/Reflective - Thermally Broken Aluminum	u_value_ip=0.299	shgc=0.224	vlt=0.32
 baseline_hvac_sizing	autosize	hardsize_model	apply_hardsize=false
 baseline_hvac_sizing	hardsize	hardsize_model	apply_hardsize=true
-occupancy_schedule_adjust	adjust_schedule	adjust_occupancy_schedule	peak_occ_frac=0.231	apply_measure=true
+occupancy_schedule_adjust	adjust_schedule	adjust_occupancy_schedule	peak_occ_frac=0.231
 ground_thermal_conductivity	0.5	ChangeBuildingLocation	soil_conductivity=0.5
 ground_thermal_conductivity	0.8	ChangeBuildingLocation	soil_conductivity=0.8
 ground_thermal_conductivity	1.1	ChangeBuildingLocation	soil_conductivity=1.1
