@@ -1,4 +1,5 @@
-# insert your copyright here
+# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# See top level LICENSE.txt file for license terms.
 
 require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
@@ -16,7 +17,7 @@ class AdjustOccupancyScheduleTest < Minitest::Test
   def apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false)
     assert(File.exist?(osm_path))
     assert(File.exist?(epw_path))
-    
+
     # create run directory if it does not exist
     if !File.exist?(run_dir(test_name))
       FileUtils.mkdir_p(run_dir(test_name))
@@ -92,9 +93,8 @@ class AdjustOccupancyScheduleTest < Minitest::Test
 
     # get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(2, arguments.size)
+    assert_equal(1, arguments.size)
     assert_equal('peak_occ_frac', arguments[0].name)
-    assert_equal('apply_measure', arguments[1].name)
   end
 
   # return file paths to test models in test directory
@@ -181,7 +181,7 @@ class AdjustOccupancyScheduleTest < Minitest::Test
       model.getPeoples.each do |ppl|
         data = {}
         next if initial_info.any?{ |hash| hash[:sch] == ppl.numberofPeopleSchedule.get }
-        data[:sch] = ppl.numberofPeopleSchedule.get
+        data[:sch] = ppl.numberofPeopleSchedule.get.to_ScheduleRuleset.get
         initial_info << data
       end
 
@@ -197,11 +197,11 @@ class AdjustOccupancyScheduleTest < Minitest::Test
       model = load_model(model_output_path(instance_test_name))
 
       initial_info.each do |hash|
-        new_sch = model.getScheduleRulesetByName(hash[:sch].name.get + " #{peak_occ_frac * 100}%")
+        new_sch = model.getScheduleRulesetByName(hash[:sch].name.get + " reduced by #{peak_occ_frac.round(2) * 100}%")
         assert(new_sch.is_initialized)
         new_sch = new_sch.get
-        old_limits = OsLib_Schedules.getMinMaxAnnualProfileValue(model, hash[:sch])
-        new_limits = OsLib_Schedules.getMinMaxAnnualProfileValue(model, new_sch)
+        old_limits = schedule_ruleset_get_min_max(hash[:sch])
+        new_limits = schedule_ruleset_get_min_max(new_sch)
         assert(new_limits['max'] = old_limits['max'] * peak_occ_frac)
       end
     end
