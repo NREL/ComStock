@@ -1,0 +1,804 @@
+EnergyPlus Starting
+EnergyPlus, Version 23.2.0-7636e6b3e9, YMD=2024.01.24 11:14
+Initializing Response Factors
+Calculating CTFs for "INTERIORFURNISHINGS 1"
+Calculating CTFs for "TYPICAL IEAD ROOF R-10.0"
+Calculating CTFs for "TYPICAL INSULATED STEEL FRAMED EXTERIOR WALL R-4.44"
+Calculating CTFs for "TYPICAL INTERIOR CEILING"
+Calculating CTFs for "TYPICAL INTERIOR WALL"
+Calculating CTFs for "FOUNDATION F 126 PERIM 0 AREA 36278"
+Calculating CTFs for "FOUNDATION F 126 PERIM 0 AREA 7845"
+Calculating CTFs for "FOUNDATION F 126 PERIM 0 AREA 7926"
+Calculating CTFs for "FOUNDATION F 126 PERIM 1401 AREA 6404"
+Calculating CTFs for "FOUNDATION F 126 PERIM 259 AREA 11841"
+Calculating CTFs for "FOUNDATION F 126 PERIM 56 AREA 2561"
+Calculating CTFs for "FOUNDATION F 126 PERIM 566 AREA 2587"
+Calculating CTFs for "FOUNDATION F 126 PERIM 914 AREA 209"
+Initializing Window Optical Properties
+Initializing Solar Calculations
+Allocate Solar Module Arrays
+Initializing Zone and Enclosure Report Variables
+Initializing Surface (Shading) Report Variables
+Computing Interior Solar Absorption Factors
+Determining Shadowing Combinations
+Computing Window Shade Absorption Factors
+Proceeding with Initializing Solar Calculations
+Initializing Surfaces
+Initializing Outdoor environment for Surfaces
+Setting up Surface Reporting Variables
+Initializing Temperature and Flux Histories
+Initializing Window Shading
+Computing Interior Absorption Factors
+Computing Interior Diffuse Solar Absorption Factors
+Initializing Solar Heat Gains
+Initializing Internal Heat Gains
+Initializing Interior Solar Distribution
+Initializing Interior Convection Coefficients
+Gathering Information for Predefined Reporting
+Completed Initializing Surface Heat Balance
+Calculate Outside Surface Heat Balance
+Calculate Inside Surface Heat Balance
+Calculate Air Heat Balance
+Initializing HVAC
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #1 MAXWELL AFB ANN CLG .4% CONDNS DB=>MWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #2 MAXWELL AFB ANN CLG .4% CONDNS WB=>MDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #3 MAXWELL AFB ANN CLG 1% CONDNS DB=>MWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #4 MAXWELL AFB ANN CLG 2% CONDNS DP=>MDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #5 MAXWELL AFB ANN HTG 99% CONDNS DB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #6 MAXWELL AFB ANN HTG 99.6% CONDNS DB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #7 MAXWELL AFB ANN HTG WIND 99% CONDNS WS=>MCDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #8 MAXWELL AFB APRIL .4% CONDNS DB=>MCWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #9 MAXWELL AFB APRIL .4% CONDNS WB=>MCDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #10 MAXWELL AFB AUGUST .4% CONDNS DB=>MCWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #11 MAXWELL AFB AUGUST .4% CONDNS WB=>MCDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #12 MAXWELL AFB DECEMBER .4% CONDNS DB=>MCWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #13 MAXWELL AFB DECEMBER .4% CONDNS WB=>MCDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #14 MAXWELL AFB FEBRUARY .4% CONDNS DB=>MCWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #15 MAXWELL AFB FEBRUARY .4% CONDNS WB=>MCDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #16 MAXWELL AFB JANUARY .4% CONDNS DB=>MCWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #17 MAXWELL AFB JANUARY .4% CONDNS WB=>MCDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #18 MAXWELL AFB JULY .4% CONDNS DB=>MCWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #19 MAXWELL AFB JULY .4% CONDNS WB=>MCDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #20 MAXWELL AFB JUNE .4% CONDNS DB=>MCWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #21 MAXWELL AFB JUNE .4% CONDNS WB=>MCDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #22 MAXWELL AFB MARCH .4% CONDNS DB=>MCWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #23 MAXWELL AFB MARCH .4% CONDNS WB=>MCDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #24 MAXWELL AFB MAY .4% CONDNS DB=>MCWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #25 MAXWELL AFB MAY .4% CONDNS WB=>MCDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #26 MAXWELL AFB NOVEMBER .4% CONDNS DB=>MCWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #27 MAXWELL AFB NOVEMBER .4% CONDNS WB=>MCDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #28 MAXWELL AFB OCTOBER .4% CONDNS DB=>MCWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #29 MAXWELL AFB OCTOBER .4% CONDNS WB=>MCDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #30 MAXWELL AFB SEPTEMBER .4% CONDNS DB=>MCWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #31 MAXWELL AFB SEPTEMBER .4% CONDNS WB=>MCDB 1
+Calculating System sizing
+...for Sizing Period: #1 MAXWELL AFB ANN CLG .4% CONDNS DB=>MWB 1
+Calculating System sizing
+...for Sizing Period: #2 MAXWELL AFB ANN CLG .4% CONDNS WB=>MDB 1
+Calculating System sizing
+...for Sizing Period: #3 MAXWELL AFB ANN CLG 1% CONDNS DB=>MWB 1
+Calculating System sizing
+...for Sizing Period: #4 MAXWELL AFB ANN CLG 2% CONDNS DP=>MDB 1
+Calculating System sizing
+...for Sizing Period: #5 MAXWELL AFB ANN HTG 99% CONDNS DB 1
+Calculating System sizing
+...for Sizing Period: #6 MAXWELL AFB ANN HTG 99.6% CONDNS DB 1
+Calculating System sizing
+...for Sizing Period: #7 MAXWELL AFB ANN HTG WIND 99% CONDNS WS=>MCDB 1
+Calculating System sizing
+...for Sizing Period: #8 MAXWELL AFB APRIL .4% CONDNS DB=>MCWB 1
+Calculating System sizing
+...for Sizing Period: #9 MAXWELL AFB APRIL .4% CONDNS WB=>MCDB 1
+Calculating System sizing
+...for Sizing Period: #10 MAXWELL AFB AUGUST .4% CONDNS DB=>MCWB 1
+Calculating System sizing
+...for Sizing Period: #11 MAXWELL AFB AUGUST .4% CONDNS WB=>MCDB 1
+Calculating System sizing
+...for Sizing Period: #12 MAXWELL AFB DECEMBER .4% CONDNS DB=>MCWB 1
+Calculating System sizing
+...for Sizing Period: #13 MAXWELL AFB DECEMBER .4% CONDNS WB=>MCDB 1
+Calculating System sizing
+...for Sizing Period: #14 MAXWELL AFB FEBRUARY .4% CONDNS DB=>MCWB 1
+Calculating System sizing
+...for Sizing Period: #15 MAXWELL AFB FEBRUARY .4% CONDNS WB=>MCDB 1
+Calculating System sizing
+...for Sizing Period: #16 MAXWELL AFB JANUARY .4% CONDNS DB=>MCWB 1
+Calculating System sizing
+...for Sizing Period: #17 MAXWELL AFB JANUARY .4% CONDNS WB=>MCDB 1
+Calculating System sizing
+...for Sizing Period: #18 MAXWELL AFB JULY .4% CONDNS DB=>MCWB 1
+Calculating System sizing
+...for Sizing Period: #19 MAXWELL AFB JULY .4% CONDNS WB=>MCDB 1
+Calculating System sizing
+...for Sizing Period: #20 MAXWELL AFB JUNE .4% CONDNS DB=>MCWB 1
+Calculating System sizing
+...for Sizing Period: #21 MAXWELL AFB JUNE .4% CONDNS WB=>MCDB 1
+Calculating System sizing
+...for Sizing Period: #22 MAXWELL AFB MARCH .4% CONDNS DB=>MCWB 1
+Calculating System sizing
+...for Sizing Period: #23 MAXWELL AFB MARCH .4% CONDNS WB=>MCDB 1
+Calculating System sizing
+...for Sizing Period: #24 MAXWELL AFB MAY .4% CONDNS DB=>MCWB 1
+Calculating System sizing
+...for Sizing Period: #25 MAXWELL AFB MAY .4% CONDNS WB=>MCDB 1
+Calculating System sizing
+...for Sizing Period: #26 MAXWELL AFB NOVEMBER .4% CONDNS DB=>MCWB 1
+Calculating System sizing
+...for Sizing Period: #27 MAXWELL AFB NOVEMBER .4% CONDNS WB=>MCDB 1
+Calculating System sizing
+...for Sizing Period: #28 MAXWELL AFB OCTOBER .4% CONDNS DB=>MCWB 1
+Calculating System sizing
+...for Sizing Period: #29 MAXWELL AFB OCTOBER .4% CONDNS WB=>MCDB 1
+Calculating System sizing
+...for Sizing Period: #30 MAXWELL AFB SEPTEMBER .4% CONDNS DB=>MCWB 1
+Calculating System sizing
+...for Sizing Period: #31 MAXWELL AFB SEPTEMBER .4% CONDNS WB=>MCDB 1
+Adjusting Air System Sizing
+Adjusting Standard 62.1 Ventilation Sizing
+Initializing Simulation
+Reporting Surfaces
+Beginning HVAC Sizing Simulation
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting HVAC Sizing Simulation at 07/21 for MAXWELL AFB ANN CLG .4% CONDNS DB=>MWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Warming up {6}
+Starting HVAC Sizing Simulation at 07/21 for MAXWELL AFB ANN CLG .4% CONDNS WB=>MDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting HVAC Sizing Simulation at 07/21 for MAXWELL AFB ANN CLG 1% CONDNS DB=>MWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Warming up {6}
+Starting HVAC Sizing Simulation at 07/21 for MAXWELL AFB ANN CLG 2% CONDNS DP=>MDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Warming up {6}
+Warming up {7}
+Starting HVAC Sizing Simulation at 01/21 for MAXWELL AFB ANN HTG 99% CONDNS DB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Warming up {6}
+Warming up {7}
+Warming up {8}
+Warming up {9}
+Starting HVAC Sizing Simulation at 01/21 for MAXWELL AFB ANN HTG 99.6% CONDNS DB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Warming up {6}
+Warming up {7}
+Warming up {8}
+Starting HVAC Sizing Simulation at 01/21 for MAXWELL AFB ANN HTG WIND 99% CONDNS WS=>MCDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Warming up {6}
+Starting HVAC Sizing Simulation at 04/21 for MAXWELL AFB APRIL .4% CONDNS DB=>MCWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Warming up {6}
+Starting HVAC Sizing Simulation at 04/21 for MAXWELL AFB APRIL .4% CONDNS WB=>MCDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting HVAC Sizing Simulation at 08/21 for MAXWELL AFB AUGUST .4% CONDNS DB=>MCWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Warming up {6}
+Starting HVAC Sizing Simulation at 08/21 for MAXWELL AFB AUGUST .4% CONDNS WB=>MCDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting HVAC Sizing Simulation at 12/21 for MAXWELL AFB DECEMBER .4% CONDNS DB=>MCWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting HVAC Sizing Simulation at 12/21 for MAXWELL AFB DECEMBER .4% CONDNS WB=>MCDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting HVAC Sizing Simulation at 02/21 for MAXWELL AFB FEBRUARY .4% CONDNS DB=>MCWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting HVAC Sizing Simulation at 02/21 for MAXWELL AFB FEBRUARY .4% CONDNS WB=>MCDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting HVAC Sizing Simulation at 01/21 for MAXWELL AFB JANUARY .4% CONDNS DB=>MCWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting HVAC Sizing Simulation at 01/21 for MAXWELL AFB JANUARY .4% CONDNS WB=>MCDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting HVAC Sizing Simulation at 07/21 for MAXWELL AFB JULY .4% CONDNS DB=>MCWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Warming up {6}
+Starting HVAC Sizing Simulation at 07/21 for MAXWELL AFB JULY .4% CONDNS WB=>MCDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting HVAC Sizing Simulation at 06/21 for MAXWELL AFB JUNE .4% CONDNS DB=>MCWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Warming up {6}
+Starting HVAC Sizing Simulation at 06/21 for MAXWELL AFB JUNE .4% CONDNS WB=>MCDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting HVAC Sizing Simulation at 03/21 for MAXWELL AFB MARCH .4% CONDNS DB=>MCWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting HVAC Sizing Simulation at 03/21 for MAXWELL AFB MARCH .4% CONDNS WB=>MCDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Warming up {6}
+Starting HVAC Sizing Simulation at 05/21 for MAXWELL AFB MAY .4% CONDNS DB=>MCWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Warming up {6}
+Starting HVAC Sizing Simulation at 05/21 for MAXWELL AFB MAY .4% CONDNS WB=>MCDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting HVAC Sizing Simulation at 11/21 for MAXWELL AFB NOVEMBER .4% CONDNS DB=>MCWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting HVAC Sizing Simulation at 11/21 for MAXWELL AFB NOVEMBER .4% CONDNS WB=>MCDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting HVAC Sizing Simulation at 10/21 for MAXWELL AFB OCTOBER .4% CONDNS DB=>MCWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting HVAC Sizing Simulation at 10/21 for MAXWELL AFB OCTOBER .4% CONDNS WB=>MCDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting HVAC Sizing Simulation at 09/21 for MAXWELL AFB SEPTEMBER .4% CONDNS DB=>MCWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Warming up {6}
+Starting HVAC Sizing Simulation at 09/21 for MAXWELL AFB SEPTEMBER .4% CONDNS WB=>MCDB 1 HVAC Sizing Pass 1
+Beginning Primary Simulation
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting Simulation at 07/21 for MAXWELL AFB ANN CLG .4% CONDNS DB=>MWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Warming up {6}
+Starting Simulation at 07/21 for MAXWELL AFB ANN CLG .4% CONDNS WB=>MDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting Simulation at 07/21 for MAXWELL AFB ANN CLG 1% CONDNS DB=>MWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Warming up {6}
+Starting Simulation at 07/21 for MAXWELL AFB ANN CLG 2% CONDNS DP=>MDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Warming up {6}
+Warming up {7}
+Starting Simulation at 01/21 for MAXWELL AFB ANN HTG 99% CONDNS DB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Warming up {6}
+Warming up {7}
+Warming up {8}
+Warming up {9}
+Starting Simulation at 01/21 for MAXWELL AFB ANN HTG 99.6% CONDNS DB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Warming up {6}
+Warming up {7}
+Warming up {8}
+Starting Simulation at 01/21 for MAXWELL AFB ANN HTG WIND 99% CONDNS WS=>MCDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Warming up {6}
+Starting Simulation at 04/21 for MAXWELL AFB APRIL .4% CONDNS DB=>MCWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Warming up {6}
+Starting Simulation at 04/21 for MAXWELL AFB APRIL .4% CONDNS WB=>MCDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting Simulation at 08/21 for MAXWELL AFB AUGUST .4% CONDNS DB=>MCWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Warming up {6}
+Starting Simulation at 08/21 for MAXWELL AFB AUGUST .4% CONDNS WB=>MCDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting Simulation at 12/21 for MAXWELL AFB DECEMBER .4% CONDNS DB=>MCWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting Simulation at 12/21 for MAXWELL AFB DECEMBER .4% CONDNS WB=>MCDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting Simulation at 02/21 for MAXWELL AFB FEBRUARY .4% CONDNS DB=>MCWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting Simulation at 02/21 for MAXWELL AFB FEBRUARY .4% CONDNS WB=>MCDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting Simulation at 01/21 for MAXWELL AFB JANUARY .4% CONDNS DB=>MCWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting Simulation at 01/21 for MAXWELL AFB JANUARY .4% CONDNS WB=>MCDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting Simulation at 07/21 for MAXWELL AFB JULY .4% CONDNS DB=>MCWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Warming up {6}
+Starting Simulation at 07/21 for MAXWELL AFB JULY .4% CONDNS WB=>MCDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting Simulation at 06/21 for MAXWELL AFB JUNE .4% CONDNS DB=>MCWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Warming up {6}
+Starting Simulation at 06/21 for MAXWELL AFB JUNE .4% CONDNS WB=>MCDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting Simulation at 03/21 for MAXWELL AFB MARCH .4% CONDNS DB=>MCWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting Simulation at 03/21 for MAXWELL AFB MARCH .4% CONDNS WB=>MCDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Warming up {6}
+Starting Simulation at 05/21 for MAXWELL AFB MAY .4% CONDNS DB=>MCWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Warming up {6}
+Starting Simulation at 05/21 for MAXWELL AFB MAY .4% CONDNS WB=>MCDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting Simulation at 11/21 for MAXWELL AFB NOVEMBER .4% CONDNS DB=>MCWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting Simulation at 11/21 for MAXWELL AFB NOVEMBER .4% CONDNS WB=>MCDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting Simulation at 10/21 for MAXWELL AFB OCTOBER .4% CONDNS DB=>MCWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting Simulation at 10/21 for MAXWELL AFB OCTOBER .4% CONDNS WB=>MCDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting Simulation at 09/21 for MAXWELL AFB SEPTEMBER .4% CONDNS DB=>MCWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Warming up {6}
+Starting Simulation at 09/21 for MAXWELL AFB SEPTEMBER .4% CONDNS WB=>MCDB 1
+Writing tabular output file results using HTML format.
+Computing Life Cycle Costs and Reporting
+Writing final SQL reports
+EnergyPlus Run Time=00hr 03min 55.24sec

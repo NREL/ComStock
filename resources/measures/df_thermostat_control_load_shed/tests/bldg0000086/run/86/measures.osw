@@ -1,0 +1,330 @@
+{
+   "created_at" : "20240119T210014Z",
+   "measure_paths" : 
+   [
+      "measures"
+   ],
+   "seed_file" : "seeds/EmptySeedModel.osm",
+   "steps" : 
+   [
+      {
+         "arguments" : 
+         {
+            "climate_zone" : "ASHRAE 169-2013-3A",
+            "grid_region" : "ERCTc",
+            "soil_conductivity" : "1.1",
+            "weather_file_name" : "G4804390.epw",
+            "year" : "18"
+         },
+         "measure_dir_name" : "ChangeBuildingLocation"
+      },
+      {
+         "arguments" : 
+         {
+            "begin_day" : "1",
+            "begin_month" : "1",
+            "calendar_year" : "2018",
+            "dst_end" : "1st Sunday in November",
+            "dst_start" : "2nd Sunday in March",
+            "enable_dst" : "true",
+            "end_day" : "31",
+            "end_month" : "12",
+            "jan_first_day_of_wk" : "Monday",
+            "timesteps_per_hr" : "4"
+         },
+         "measure_dir_name" : "simulation_settings"
+      },
+      {
+         "arguments" : 
+         {
+            "bar_division_method" : "Multiple Space Types - Individual Stories Sliced",
+            "bar_sep_dist_mult" : "10.0",
+            "bar_width" : "0.0",
+            "bldg_subtype_a" : "largeoffice_nodatacenter",
+            "bldg_subtype_b" : "NA",
+            "bldg_subtype_c" : "NA",
+            "bldg_subtype_d" : "NA",
+            "bldg_type_a" : "LargeOffice",
+            "bldg_type_a_num_units" : "1",
+            "bldg_type_b" : "LargeOffice",
+            "bldg_type_b_fract_bldg_area" : "0",
+            "bldg_type_b_num_units" : "1",
+            "bldg_type_c" : "LargeOffice",
+            "bldg_type_c_fract_bldg_area" : "0",
+            "bldg_type_c_num_units" : "1",
+            "bldg_type_d" : "LargeOffice",
+            "bldg_type_d_fract_bldg_area" : "0",
+            "bldg_type_d_num_units" : "1",
+            "bottom_story_ground_exposed_floor" : "true",
+            "building_height_relative_to_neighbors" : "0",
+            "building_rotation" : "315",
+            "climate_zone" : "ASHRAE 169-2013-3A",
+            "custom_height_bar" : "true",
+            "double_loaded_corridor" : "Primary Space Type",
+            "floor_height" : "0",
+            "make_mid_story_surfaces_adiabatic" : "true",
+            "neighbor_height_east" : "0",
+            "neighbor_height_method" : "Absolute",
+            "neighbor_height_north" : "0",
+            "neighbor_height_south" : "0",
+            "neighbor_height_west" : "0",
+            "neighbor_offset_east" : "0",
+            "neighbor_offset_north" : "0",
+            "neighbor_offset_south" : "0",
+            "neighbor_offset_west" : "0",
+            "ns_to_ew_ratio" : "3",
+            "num_stories_above_grade" : "1",
+            "num_stories_below_grade" : "0",
+            "party_wall_fraction" : "0",
+            "party_wall_stories_east" : "0",
+            "party_wall_stories_north" : "0",
+            "party_wall_stories_south" : "0",
+            "party_wall_stories_west" : "0",
+            "perim_mult" : "0.0",
+            "single_floor_area" : "0",
+            "space_type_sort_logic" : "Building Type > Size",
+            "story_multiplier" : "None",
+            "template" : "ComStock DOE Ref 1980-2004",
+            "top_story_exterior_exposed_roof" : "true",
+            "total_bldg_floor_area" : "37500",
+            "use_upstream_args" : "false",
+            "wwr" : "0.18"
+         },
+         "measure_dir_name" : "create_bar_from_building_type_ratios"
+      },
+      {
+         "arguments" : 
+         {
+            "add_constructions" : "true",
+            "add_elevators" : "true",
+            "add_exhaust" : "true",
+            "add_exterior_lights" : "true",
+            "add_hvac" : "true",
+            "add_internal_mass" : "true",
+            "add_refrigeration" : "true",
+            "add_space_type_loads" : "true",
+            "add_swh" : "true",
+            "add_thermostat" : "true",
+            "clg_src" : "Inferred",
+            "climate_zone" : "ASHRAE 169-2013-3A",
+            "exterior_lighting_zone" : "3 - All Other Areas",
+            "htg_src" : "Inferred",
+            "hvac_delivery_type" : "Inferred",
+            "kitchen_makeup" : "Adjacent",
+            "modify_wkdy_op_hrs" : "true",
+            "modify_wknd_op_hrs" : "true",
+            "onsite_parking_fraction" : "1",
+            "remove_objects" : "true",
+            "swh_src" : "Electricity",
+            "system_type" : "VAV chiller with PFP boxes",
+            "template" : "ComStock DOE Ref 1980-2004",
+            "unmet_hours_tolerance" : "1.0",
+            "use_upstream_args" : "false",
+            "wall_construction_type" : "Mass",
+            "wkdy_op_hrs_duration" : "11.5",
+            "wkdy_op_hrs_start_time" : "4.75",
+            "wknd_op_hrs_duration" : "12.5",
+            "wknd_op_hrs_start_time" : "4.25"
+         },
+         "measure_dir_name" : "create_typical_building_from_model"
+      },
+      {
+         "arguments" : 
+         {
+            "as_constructed_template" : "ComStock DOE Ref 1980-2004",
+            "climate_zone" : "ASHRAE 169-2013-3A",
+            "template" : "ComStock DOE Ref 1980-2004"
+         },
+         "measure_dir_name" : "set_wall_template"
+      },
+      {
+         "arguments" : 
+         {
+            "as_constructed_template" : "ComStock DOE Ref 1980-2004",
+            "climate_zone" : "ASHRAE 169-2013-3A",
+            "template" : "ComStock DOE Ref 1980-2004"
+         },
+         "measure_dir_name" : "set_roof_template"
+      },
+      {
+         "arguments" : 
+         {
+            "as_constructed_template" : "ComStock DOE Ref 1980-2004",
+            "climate_zone" : "ASHRAE 169-2013-3A",
+            "template" : "ComStock 90.1-2007"
+         },
+         "measure_dir_name" : "set_exterior_lighting_template"
+      },
+      {
+         "arguments" : 
+         {
+            "as_constructed_template" : "ComStock DOE Ref 1980-2004",
+            "climate_zone" : "ASHRAE 169-2013-3A",
+            "template" : "ComStock 90.1-2013"
+         },
+         "measure_dir_name" : "set_interior_equipment_template"
+      },
+      {
+         "arguments" : 
+         {
+            "as_constructed_template" : "ComStock DOE Ref 1980-2004",
+            "climate_zone" : "ASHRAE 169-2013-3A",
+            "template" : "ComStock DOE Ref 1980-2004"
+         },
+         "measure_dir_name" : "set_service_water_heating_template"
+      },
+      {
+         "arguments" : 
+         {
+            "as_constructed_template" : "ComStock DOE Ref 1980-2004",
+            "climate_zone" : "ASHRAE 169-2013-3A",
+            "template" : "ComStock 90.1-2013"
+         },
+         "measure_dir_name" : "set_hvac_template"
+      },
+      {
+         "arguments" : 
+         {
+            "add_blinds" : "true"
+         },
+         "measure_dir_name" : "add_blinds_to_selected_windows"
+      },
+      {
+         "arguments" : {},
+         "measure_dir_name" : "prototype_space_type_assignment"
+      },
+      {
+         "arguments" : {},
+         "measure_dir_name" : "set_space_type_load_subcategories"
+      },
+      {
+         "arguments" : 
+         {
+            "service_water_heating_fuel" : "Electricity"
+         },
+         "measure_dir_name" : "set_service_water_heating_fuel"
+      },
+      {
+         "arguments" : 
+         {
+            "heating_fuel" : "Electricity"
+         },
+         "measure_dir_name" : "set_heating_fuel"
+      },
+      {
+         "arguments" : 
+         {
+            "lighting_generation" : "gen2_t8_halogen"
+         },
+         "measure_dir_name" : "set_interior_lighting_technology"
+      },
+      {
+         "arguments" : 
+         {
+            "modify_wkdy_bpr" : "true",
+            "modify_wknd_bpr" : "true",
+            "wkdy_bpr" : "0.3",
+            "wknd_bpr" : "0"
+         },
+         "measure_dir_name" : "set_interior_lighting_bpr"
+      },
+      {
+         "arguments" : 
+         {
+            "modify_wkdy_bpr" : "true",
+            "modify_wknd_bpr" : "true",
+            "wkdy_bpr" : "0.3",
+            "wknd_bpr" : "0.95"
+         },
+         "measure_dir_name" : "set_electric_equipment_bpr"
+      },
+      {
+         "arguments" : 
+         {
+            "rtu_night_mode" : "night_fanon_vent"
+         },
+         "measure_dir_name" : "add_hvac_nighttime_operation_variability"
+      },
+      {
+         "arguments" : 
+         {
+            "air_barrier" : "false",
+            "airtightness_area" : "6-sided",
+            "airtightness_pressure" : "75.0",
+            "airtightness_value" : "20.0",
+            "building_type" : "Lookup From Model",
+            "climate_zone" : "Lookup From Model",
+            "hvac_schedule" : "Lookup From Model"
+         },
+         "measure_dir_name" : "set_nist_infiltration_correlations"
+      },
+      {
+         "arguments" : 
+         {
+            "clg_delta_f" : "7",
+            "clg_sp_f" : "79",
+            "htg_delta_f" : "6",
+            "htg_sp_f" : "66"
+         },
+         "measure_dir_name" : "add_thermostat_setpoint_variability"
+      },
+      {
+         "arguments" : 
+         {
+            "cook_broilers_counts" : "0.0",
+            "cook_dining_type" : "None",
+            "cook_fryers_counts" : "0.0",
+            "cook_fuel_broiler" : "Gas",
+            "cook_fuel_fryer" : "Gas",
+            "cook_fuel_griddle" : "Gas",
+            "cook_fuel_oven" : "Electric",
+            "cook_fuel_range" : "Gas",
+            "cook_fuel_steamer" : "Gas",
+            "cook_griddles_counts" : "0.0",
+            "cook_ovens_counts" : "0.0",
+            "cook_ranges_counts" : "0.0",
+            "cook_steamers_counts" : "0.0"
+         },
+         "measure_dir_name" : "set_primary_kitchen_equipment"
+      },
+      {
+         "arguments" : 
+         {
+            "shgc" : "0.646",
+            "u_value_ip" : "0.746",
+            "vlt" : "0.671",
+            "window_pane_type" : "Double - No LowE - Clear - Aluminum"
+         },
+         "measure_dir_name" : "replace_baseline_windows"
+      },
+      {
+         "arguments" : 
+         {
+            "apply_hardsize" : "true"
+         },
+         "measure_dir_name" : "hardsize_model"
+      },
+      {
+         "arguments" : 
+         {
+            "apply_measure" : "false",
+            "changeovertemp" : "10.88",
+            "econ_choice" : "all available economizer"
+         },
+         "measure_dir_name" : "fault_hvac_economizer_changeover_temperature"
+      },
+      {
+         "arguments" : 
+         {
+            "apply_measure" : "false",
+            "damper_pos" : "0.0",
+            "duration_days" : "365",
+            "econ_choice" : "all available economizer",
+            "start_day" : "1",
+            "start_month" : "1"
+         },
+         "measure_dir_name" : "fault_hvac_economizer_damper_stuck"
+      }
+   ],
+   "updated_at" : "20240119T210014Z"
+}

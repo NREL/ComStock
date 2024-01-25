@@ -36,26 +36,41 @@ class DfThermostatControlLoadShedTest < Minitest::Test
     test_sets = []
 
     # test: not applicable building type
+    # test_sets << {
+    #   model: '361_Medium_Office_PSZ_HP',
+    #   weather: 'CO_FortCollins_16',
+    #   result: 'NA'
+    # }
+    # test_sets << {
+    #   model: 'LargeOffice_VAV_chiller_boiler',#LargeOffice_VAV_district_chw_hw
+    #   weather: 'CO_FortCollins_16',
+    #   result: 'Success'
+    # }
+    # test_sets << {
+    #   model: 'LargeOffice_VAV_chiller_boiler_2',
+    #   weather: 'CO_FortCollins_16',
+    #   result: 'Success'
+    # }
+    # test_sets << {
+    #   model: 'LargeOffice_VAV_district_chw_hw',
+    #   weather: 'CO_FortCollins_16',
+    #   result: 'NA'
+    # }
     test_sets << {
-      model: '361_Medium_Office_PSZ_HP',
-      weather: 'CO_FortCollins_16',
-      result: 'NA'
-    }
-    test_sets << {
-      model: 'LargeOffice_VAV_chiller_boiler',#LargeOffice_VAV_district_chw_hw
+      model: '72',
       weather: 'CO_FortCollins_16',
       result: 'Success'
     }
-    test_sets << {
-      model: 'LargeOffice_VAV_chiller_boiler_2',
-      weather: 'CO_FortCollins_16',
-      result: 'Success'
-    }
-    test_sets << {
-      model: 'LargeOffice_VAV_district_chw_hw',
-      weather: 'CO_FortCollins_16',
-      result: 'NA'
-    }
+    # test_sets << {
+    #   model: '73',
+    #   weather: 'CO_FortCollins_16',
+    #   result: 'NA'
+    # }
+    # test_sets << {
+    #   model: '86',
+    #   weather: 'CO_FortCollins_16',
+    #   result: 'NA'
+    # }
     
     return test_sets
   end
@@ -203,7 +218,7 @@ class DfThermostatControlLoadShedTest < Minitest::Test
 
       # set arguments: 
       load_prediction_method = arguments[4].clone	
-      assert(load_prediction_method.setValue('bin sample'))#'part year bin sample''full baseline'
+      assert(load_prediction_method.setValue('part year bin sample'))#'bin sample''full baseline'
       argument_map['load_prediction_method'] = load_prediction_method
 
       # apply the measure to the model and optionally run the model

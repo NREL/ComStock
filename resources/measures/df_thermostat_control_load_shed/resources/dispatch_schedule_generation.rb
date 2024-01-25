@@ -316,7 +316,7 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=
   syssizing_orig = model.getSimulationControl.doSystemSizingCalculation
   plantsizing_orig = model.getSimulationControl.doPlantSizingCalculation
   ### reference: SetRunPeriod measure on BCL
-  # model.getYearDescription.setCalendarYear(year)
+  model.getYearDescription.setCalendarYear(year)
   model.getRunPeriod.setBeginMonth(begin_month)
   model.getRunPeriod.setBeginDayOfMonth(begin_day)
   model.getRunPeriod.setEndMonth(end_month)
@@ -544,7 +544,7 @@ def model_run_simulation_on_part_of_year(model, year, max_doy, num_timesteps_in_
   puts("### DEBUGGING: syssizing_orig = #{syssizing_orig}")
   puts("### DEBUGGING: plantsizing_orig = #{plantsizing_orig}")
   ### reference: SetRunPeriod measure on BCL
-  # model.getYearDescription.setCalendarYear(year)
+  model.getYearDescription.setCalendarYear(year)
   model.getRunPeriod.setBeginMonth(begin_month)
   model.getRunPeriod.setBeginDayOfMonth(begin_day)
   model.getRunPeriod.setEndMonth(end_month)
@@ -775,7 +775,7 @@ def load_prediction_from_full_run(model, year, num_timesteps_in_hr, epw_path=nil
   end_day_orig = model.getRunPeriod.getEndDayOfMonth
   num_timesteps_in_hr_orig = model.getTimestep.numberOfTimestepsPerHour
   ### reference: SetRunPeriod measure on BCL
-  # model.getYearDescription.setCalendarYear(year)
+  model.getYearDescription.setCalendarYear(year)
   model.getRunPeriod.setBeginMonth(1)
   model.getRunPeriod.setBeginDayOfMonth(1)
   model.getRunPeriod.setEndMonth(12)

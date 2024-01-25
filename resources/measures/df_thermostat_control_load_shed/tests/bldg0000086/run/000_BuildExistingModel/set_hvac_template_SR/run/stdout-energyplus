@@ -1,0 +1,691 @@
+EnergyPlus Starting
+EnergyPlus, Version 23.2.0-7636e6b3e9, YMD=2024.01.19 14:00
+Initializing Response Factors
+Calculating CTFs for "INTERIORFURNISHINGS 1"
+Calculating CTFs for "TYPICAL IEAD ROOF R-13.89"
+Calculating CTFs for "TYPICAL INSULATED EXTERIOR MASS WALL R-3.45"
+Calculating CTFs for "TYPICAL INTERIOR WALL"
+Calculating CTFs for "FOUNDATION F 126 PERIM 0 AREA 232105"
+Calculating CTFs for "FOUNDATION F 126 PERIM 2493 AREA 1140"
+Calculating CTFs for "FOUNDATION F 126 PERIM 914 AREA 209"
+Calculating CTFs for "FOUNDATION F 126 PERIM 9309 AREA 4256"
+Initializing Window Optical Properties
+Initializing Solar Calculations
+Allocate Solar Module Arrays
+Initializing Zone and Enclosure Report Variables
+Initializing Surface (Shading) Report Variables
+Computing Interior Solar Absorption Factors
+Determining Shadowing Combinations
+Computing Window Shade Absorption Factors
+Proceeding with Initializing Solar Calculations
+Initializing Surfaces
+Initializing Outdoor environment for Surfaces
+Setting up Surface Reporting Variables
+Initializing Temperature and Flux Histories
+Initializing Window Shading
+Computing Interior Absorption Factors
+Computing Interior Diffuse Solar Absorption Factors
+Initializing Solar Heat Gains
+Initializing Internal Heat Gains
+Initializing Interior Solar Distribution
+Initializing Interior Convection Coefficients
+Gathering Information for Predefined Reporting
+Completed Initializing Surface Heat Balance
+Calculate Outside Surface Heat Balance
+Calculate Inside Surface Heat Balance
+Calculate Air Heat Balance
+Initializing HVAC
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #1 FORT WORTH ALLIANCE ANN CLG .4% CONDNS DB=>MWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #2 FORT WORTH ALLIANCE ANN CLG .4% CONDNS WB=>MDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #3 FORT WORTH ALLIANCE ANN CLG 1% CONDNS DB=>MWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #4 FORT WORTH ALLIANCE ANN CLG 2% CONDNS DP=>MDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #5 FORT WORTH ALLIANCE ANN HTG 99% CONDNS DB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #6 FORT WORTH ALLIANCE ANN HTG 99.6% CONDNS DB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #7 FORT WORTH ALLIANCE ANN HTG WIND 99% CONDNS WS=>MCDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #8 FORT WORTH ALLIANCE APRIL .4% CONDNS DB=>MCWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #9 FORT WORTH ALLIANCE APRIL .4% CONDNS WB=>MCDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #10 FORT WORTH ALLIANCE AUGUST .4% CONDNS DB=>MCWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #11 FORT WORTH ALLIANCE AUGUST .4% CONDNS WB=>MCDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #12 FORT WORTH ALLIANCE DECEMBER .4% CONDNS DB=>MCWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #13 FORT WORTH ALLIANCE DECEMBER .4% CONDNS WB=>MCDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #14 FORT WORTH ALLIANCE FEBRUARY .4% CONDNS DB=>MCWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #15 FORT WORTH ALLIANCE FEBRUARY .4% CONDNS WB=>MCDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #16 FORT WORTH ALLIANCE JANUARY .4% CONDNS DB=>MCWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #17 FORT WORTH ALLIANCE JANUARY .4% CONDNS WB=>MCDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #18 FORT WORTH ALLIANCE JULY .4% CONDNS DB=>MCWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #19 FORT WORTH ALLIANCE JULY .4% CONDNS WB=>MCDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #20 FORT WORTH ALLIANCE JUNE .4% CONDNS DB=>MCWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #21 FORT WORTH ALLIANCE JUNE .4% CONDNS WB=>MCDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #22 FORT WORTH ALLIANCE MARCH .4% CONDNS DB=>MCWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #23 FORT WORTH ALLIANCE MARCH .4% CONDNS WB=>MCDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #24 FORT WORTH ALLIANCE MAY .4% CONDNS DB=>MCWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #25 FORT WORTH ALLIANCE MAY .4% CONDNS WB=>MCDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #26 FORT WORTH ALLIANCE NOVEMBER .4% CONDNS DB=>MCWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #27 FORT WORTH ALLIANCE NOVEMBER .4% CONDNS WB=>MCDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #28 FORT WORTH ALLIANCE OCTOBER .4% CONDNS DB=>MCWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #29 FORT WORTH ALLIANCE OCTOBER .4% CONDNS WB=>MCDB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #30 FORT WORTH ALLIANCE SEPTEMBER .4% CONDNS DB=>MCWB 1
+Warming up
+Warming up
+Warming up
+Warming up
+Performing Zone Sizing Simulation
+...for Sizing Period: #31 FORT WORTH ALLIANCE SEPTEMBER .4% CONDNS WB=>MCDB 1
+Calculating System sizing
+...for Sizing Period: #1 FORT WORTH ALLIANCE ANN CLG .4% CONDNS DB=>MWB 1
+Calculating System sizing
+...for Sizing Period: #2 FORT WORTH ALLIANCE ANN CLG .4% CONDNS WB=>MDB 1
+Calculating System sizing
+...for Sizing Period: #3 FORT WORTH ALLIANCE ANN CLG 1% CONDNS DB=>MWB 1
+Calculating System sizing
+...for Sizing Period: #4 FORT WORTH ALLIANCE ANN CLG 2% CONDNS DP=>MDB 1
+Calculating System sizing
+...for Sizing Period: #5 FORT WORTH ALLIANCE ANN HTG 99% CONDNS DB 1
+Calculating System sizing
+...for Sizing Period: #6 FORT WORTH ALLIANCE ANN HTG 99.6% CONDNS DB 1
+Calculating System sizing
+...for Sizing Period: #7 FORT WORTH ALLIANCE ANN HTG WIND 99% CONDNS WS=>MCDB 1
+Calculating System sizing
+...for Sizing Period: #8 FORT WORTH ALLIANCE APRIL .4% CONDNS DB=>MCWB 1
+Calculating System sizing
+...for Sizing Period: #9 FORT WORTH ALLIANCE APRIL .4% CONDNS WB=>MCDB 1
+Calculating System sizing
+...for Sizing Period: #10 FORT WORTH ALLIANCE AUGUST .4% CONDNS DB=>MCWB 1
+Calculating System sizing
+...for Sizing Period: #11 FORT WORTH ALLIANCE AUGUST .4% CONDNS WB=>MCDB 1
+Calculating System sizing
+...for Sizing Period: #12 FORT WORTH ALLIANCE DECEMBER .4% CONDNS DB=>MCWB 1
+Calculating System sizing
+...for Sizing Period: #13 FORT WORTH ALLIANCE DECEMBER .4% CONDNS WB=>MCDB 1
+Calculating System sizing
+...for Sizing Period: #14 FORT WORTH ALLIANCE FEBRUARY .4% CONDNS DB=>MCWB 1
+Calculating System sizing
+...for Sizing Period: #15 FORT WORTH ALLIANCE FEBRUARY .4% CONDNS WB=>MCDB 1
+Calculating System sizing
+...for Sizing Period: #16 FORT WORTH ALLIANCE JANUARY .4% CONDNS DB=>MCWB 1
+Calculating System sizing
+...for Sizing Period: #17 FORT WORTH ALLIANCE JANUARY .4% CONDNS WB=>MCDB 1
+Calculating System sizing
+...for Sizing Period: #18 FORT WORTH ALLIANCE JULY .4% CONDNS DB=>MCWB 1
+Calculating System sizing
+...for Sizing Period: #19 FORT WORTH ALLIANCE JULY .4% CONDNS WB=>MCDB 1
+Calculating System sizing
+...for Sizing Period: #20 FORT WORTH ALLIANCE JUNE .4% CONDNS DB=>MCWB 1
+Calculating System sizing
+...for Sizing Period: #21 FORT WORTH ALLIANCE JUNE .4% CONDNS WB=>MCDB 1
+Calculating System sizing
+...for Sizing Period: #22 FORT WORTH ALLIANCE MARCH .4% CONDNS DB=>MCWB 1
+Calculating System sizing
+...for Sizing Period: #23 FORT WORTH ALLIANCE MARCH .4% CONDNS WB=>MCDB 1
+Calculating System sizing
+...for Sizing Period: #24 FORT WORTH ALLIANCE MAY .4% CONDNS DB=>MCWB 1
+Calculating System sizing
+...for Sizing Period: #25 FORT WORTH ALLIANCE MAY .4% CONDNS WB=>MCDB 1
+Calculating System sizing
+...for Sizing Period: #26 FORT WORTH ALLIANCE NOVEMBER .4% CONDNS DB=>MCWB 1
+Calculating System sizing
+...for Sizing Period: #27 FORT WORTH ALLIANCE NOVEMBER .4% CONDNS WB=>MCDB 1
+Calculating System sizing
+...for Sizing Period: #28 FORT WORTH ALLIANCE OCTOBER .4% CONDNS DB=>MCWB 1
+Calculating System sizing
+...for Sizing Period: #29 FORT WORTH ALLIANCE OCTOBER .4% CONDNS WB=>MCDB 1
+Calculating System sizing
+...for Sizing Period: #30 FORT WORTH ALLIANCE SEPTEMBER .4% CONDNS DB=>MCWB 1
+Calculating System sizing
+...for Sizing Period: #31 FORT WORTH ALLIANCE SEPTEMBER .4% CONDNS WB=>MCDB 1
+Adjusting Air System Sizing
+Adjusting Standard 62.1 Ventilation Sizing
+Initializing Simulation
+Reporting Surfaces
+Beginning HVAC Sizing Simulation
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting HVAC Sizing Simulation at 07/21 for FORT WORTH ALLIANCE ANN CLG .4% CONDNS DB=>MWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting HVAC Sizing Simulation at 07/21 for FORT WORTH ALLIANCE ANN CLG .4% CONDNS WB=>MDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting HVAC Sizing Simulation at 07/21 for FORT WORTH ALLIANCE ANN CLG 1% CONDNS DB=>MWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting HVAC Sizing Simulation at 07/21 for FORT WORTH ALLIANCE ANN CLG 2% CONDNS DP=>MDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting HVAC Sizing Simulation at 01/21 for FORT WORTH ALLIANCE ANN HTG 99% CONDNS DB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting HVAC Sizing Simulation at 01/21 for FORT WORTH ALLIANCE ANN HTG 99.6% CONDNS DB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting HVAC Sizing Simulation at 01/21 for FORT WORTH ALLIANCE ANN HTG WIND 99% CONDNS WS=>MCDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting HVAC Sizing Simulation at 04/21 for FORT WORTH ALLIANCE APRIL .4% CONDNS DB=>MCWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting HVAC Sizing Simulation at 04/21 for FORT WORTH ALLIANCE APRIL .4% CONDNS WB=>MCDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting HVAC Sizing Simulation at 08/21 for FORT WORTH ALLIANCE AUGUST .4% CONDNS DB=>MCWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting HVAC Sizing Simulation at 08/21 for FORT WORTH ALLIANCE AUGUST .4% CONDNS WB=>MCDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting HVAC Sizing Simulation at 12/21 for FORT WORTH ALLIANCE DECEMBER .4% CONDNS DB=>MCWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting HVAC Sizing Simulation at 12/21 for FORT WORTH ALLIANCE DECEMBER .4% CONDNS WB=>MCDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting HVAC Sizing Simulation at 02/21 for FORT WORTH ALLIANCE FEBRUARY .4% CONDNS DB=>MCWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting HVAC Sizing Simulation at 02/21 for FORT WORTH ALLIANCE FEBRUARY .4% CONDNS WB=>MCDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting HVAC Sizing Simulation at 01/21 for FORT WORTH ALLIANCE JANUARY .4% CONDNS DB=>MCWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting HVAC Sizing Simulation at 01/21 for FORT WORTH ALLIANCE JANUARY .4% CONDNS WB=>MCDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting HVAC Sizing Simulation at 07/21 for FORT WORTH ALLIANCE JULY .4% CONDNS DB=>MCWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting HVAC Sizing Simulation at 07/21 for FORT WORTH ALLIANCE JULY .4% CONDNS WB=>MCDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting HVAC Sizing Simulation at 06/21 for FORT WORTH ALLIANCE JUNE .4% CONDNS DB=>MCWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting HVAC Sizing Simulation at 06/21 for FORT WORTH ALLIANCE JUNE .4% CONDNS WB=>MCDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting HVAC Sizing Simulation at 03/21 for FORT WORTH ALLIANCE MARCH .4% CONDNS DB=>MCWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting HVAC Sizing Simulation at 03/21 for FORT WORTH ALLIANCE MARCH .4% CONDNS WB=>MCDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting HVAC Sizing Simulation at 05/21 for FORT WORTH ALLIANCE MAY .4% CONDNS DB=>MCWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting HVAC Sizing Simulation at 05/21 for FORT WORTH ALLIANCE MAY .4% CONDNS WB=>MCDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting HVAC Sizing Simulation at 11/21 for FORT WORTH ALLIANCE NOVEMBER .4% CONDNS DB=>MCWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting HVAC Sizing Simulation at 11/21 for FORT WORTH ALLIANCE NOVEMBER .4% CONDNS WB=>MCDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting HVAC Sizing Simulation at 10/21 for FORT WORTH ALLIANCE OCTOBER .4% CONDNS DB=>MCWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting HVAC Sizing Simulation at 10/21 for FORT WORTH ALLIANCE OCTOBER .4% CONDNS WB=>MCDB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting HVAC Sizing Simulation at 09/21 for FORT WORTH ALLIANCE SEPTEMBER .4% CONDNS DB=>MCWB 1 HVAC Sizing Pass 1
+Initializing New Environment Parameters, HVAC Sizing Simulation
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting HVAC Sizing Simulation at 09/21 for FORT WORTH ALLIANCE SEPTEMBER .4% CONDNS WB=>MCDB 1 HVAC Sizing Pass 1
+Beginning Primary Simulation
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting Simulation at 07/21 for FORT WORTH ALLIANCE ANN CLG .4% CONDNS DB=>MWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting Simulation at 07/21 for FORT WORTH ALLIANCE ANN CLG .4% CONDNS WB=>MDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting Simulation at 07/21 for FORT WORTH ALLIANCE ANN CLG 1% CONDNS DB=>MWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting Simulation at 07/21 for FORT WORTH ALLIANCE ANN CLG 2% CONDNS DP=>MDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting Simulation at 01/21 for FORT WORTH ALLIANCE ANN HTG 99% CONDNS DB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting Simulation at 01/21 for FORT WORTH ALLIANCE ANN HTG 99.6% CONDNS DB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting Simulation at 01/21 for FORT WORTH ALLIANCE ANN HTG WIND 99% CONDNS WS=>MCDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting Simulation at 04/21 for FORT WORTH ALLIANCE APRIL .4% CONDNS DB=>MCWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting Simulation at 04/21 for FORT WORTH ALLIANCE APRIL .4% CONDNS WB=>MCDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting Simulation at 08/21 for FORT WORTH ALLIANCE AUGUST .4% CONDNS DB=>MCWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting Simulation at 08/21 for FORT WORTH ALLIANCE AUGUST .4% CONDNS WB=>MCDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting Simulation at 12/21 for FORT WORTH ALLIANCE DECEMBER .4% CONDNS DB=>MCWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting Simulation at 12/21 for FORT WORTH ALLIANCE DECEMBER .4% CONDNS WB=>MCDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting Simulation at 02/21 for FORT WORTH ALLIANCE FEBRUARY .4% CONDNS DB=>MCWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting Simulation at 02/21 for FORT WORTH ALLIANCE FEBRUARY .4% CONDNS WB=>MCDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting Simulation at 01/21 for FORT WORTH ALLIANCE JANUARY .4% CONDNS DB=>MCWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting Simulation at 01/21 for FORT WORTH ALLIANCE JANUARY .4% CONDNS WB=>MCDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting Simulation at 07/21 for FORT WORTH ALLIANCE JULY .4% CONDNS DB=>MCWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting Simulation at 07/21 for FORT WORTH ALLIANCE JULY .4% CONDNS WB=>MCDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting Simulation at 06/21 for FORT WORTH ALLIANCE JUNE .4% CONDNS DB=>MCWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting Simulation at 06/21 for FORT WORTH ALLIANCE JUNE .4% CONDNS WB=>MCDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting Simulation at 03/21 for FORT WORTH ALLIANCE MARCH .4% CONDNS DB=>MCWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting Simulation at 03/21 for FORT WORTH ALLIANCE MARCH .4% CONDNS WB=>MCDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting Simulation at 05/21 for FORT WORTH ALLIANCE MAY .4% CONDNS DB=>MCWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting Simulation at 05/21 for FORT WORTH ALLIANCE MAY .4% CONDNS WB=>MCDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting Simulation at 11/21 for FORT WORTH ALLIANCE NOVEMBER .4% CONDNS DB=>MCWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Warming up {5}
+Starting Simulation at 11/21 for FORT WORTH ALLIANCE NOVEMBER .4% CONDNS WB=>MCDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting Simulation at 10/21 for FORT WORTH ALLIANCE OCTOBER .4% CONDNS DB=>MCWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting Simulation at 10/21 for FORT WORTH ALLIANCE OCTOBER .4% CONDNS WB=>MCDB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting Simulation at 09/21 for FORT WORTH ALLIANCE SEPTEMBER .4% CONDNS DB=>MCWB 1
+Initializing New Environment Parameters
+Warming up {1}
+Warming up {2}
+Warming up {3}
+Warming up {4}
+Starting Simulation at 09/21 for FORT WORTH ALLIANCE SEPTEMBER .4% CONDNS WB=>MCDB 1
+Writing tabular output file results using HTML format.
+Computing Life Cycle Costs and Reporting
+Writing final SQL reports
+EnergyPlus Run Time=00hr 00min 20.05sec

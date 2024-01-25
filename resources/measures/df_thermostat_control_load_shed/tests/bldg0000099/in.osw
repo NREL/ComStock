@@ -1,0 +1,73 @@
+{
+    "id": "bldg0000099up01",
+    "steps": [
+        {
+            "measure_dir_name": "BuildExistingModel",
+            "arguments": {
+                "number_of_buildings_represented": 1,
+                "building_id": 99
+            },
+            "measure_type": "ModelMeasure"
+        },
+        {
+            "measure_dir_name": "ApplyUpgrade",
+            "arguments": {
+                "run_measure": 1,
+                "upgrade_name": "part year 60min sample",
+                "option_1": "thermostat_control_load_shed|part_year_60min_sample"
+            }
+        },
+        {
+            "measure_dir_name": "TimeseriesCSVExport",
+            "arguments": {
+                "reporting_frequency": "Timestep",
+                "inc_output_variables": false
+            },
+            "measure_type": "ReportingMeasure"
+        },
+        {
+            "measure_dir_name": "SimulationOutputReport",
+            "arguments": {},
+            "measure_type": "ReportingMeasure"
+        },
+        {
+            "measure_dir_name": "comstock_sensitivity_reports",
+            "arguments": {},
+            "measure_type": "ReportingMeasure"
+        },
+        {
+            "measure_dir_name": "qoi_report",
+            "arguments": {},
+            "measure_type": "ReportingMeasure"
+        },
+        {
+            "measure_dir_name": "la_100_qaqc",
+            "arguments": {
+                "run_qaqc": false
+            },
+            "measure_type": "ReportingMeasure"
+        },
+        {
+            "measure_dir_name": "simulation_settings_check",
+            "arguments": {
+                "run_sim_settings_checks": true
+            },
+            "measure_type": "ReportingMeasure"
+        },
+        {
+            "measure_dir_name": "emissions_reporting",
+            "arguments": {},
+            "measure_type": "ReportingMeasure"
+        },
+        {
+            "measure_dir_name": "run_directory_cleanup",
+            "arguments": {},
+            "measure_type": "ReportingMeasure"
+        }
+    ],
+    "created_at": "2024-01-24T11:08:05.221384",
+    "measure_paths": [
+        "measures"
+    ],
+    "weather_file": "weather/empty.epw"
+}

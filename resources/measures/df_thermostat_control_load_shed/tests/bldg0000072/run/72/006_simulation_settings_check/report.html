@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Simulation Settings Check</title>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+<style type="text/css">
+    .slice text {
+        font-size: 10pt;
+        font-family: Arial;
+    }
+</style>
+<style>
+<!--
+.tab { margin-left: 50px; }
+-->
+</style>
+</head>
+<body>
+<div class="container">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th>Input</th>
+        <th>Output</th>
+        <th>Warning</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Hours Simulated</td>
+        <td>Run from 1/1 to 12/31.</td>
+        <td>Simulation was 8760.0 hrs.</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td>Daylight Savings</td>
+        <td>RunPeriodControl:DaylightSavingTime starts 2nd Sunday in March, ends 1st Sunday in November.</td>
+        <td>Daylight savings observed for 5736 of 8760 hrs simulated.</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td>Timestep</td>
+        <td>TimeStep object set to 4 steps/hr.</td>
+        <td>E+ timeseries shows 4.0 steps/hr.</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td>Start Day</td>
+        <td>Year set to 2018. Simulation start day of 1/1/2018 is a Monday.</td>
+        <td>E+ output first day of the simulation is a Monday.</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td>Leap Year</td>
+        <td>Year is set to 2018, which is NOT a leap year.</td>
+        <td>E+ output does NOT have values for February 29th, so it is NOT running as a leap year.</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+</body>
+</html>

@@ -1,0 +1,20 @@
+!Electricity
+conv,J,kWh,2.777778E-07,0
+wild,elec,J,kWh
+!Natural Gas
+conv,J,kBtu,9.484517E-07,0
+wild,gas,J,kBtu
+!District Cooling
+conv,J,kBtu,9.484517E-07,0
+wild,districtcooling,J,kBtu
+!District Heating
+conv,J,kBtu,9.484517E-07,0
+wild,districtheating,J,kBtu
+!Propane
+conv,J,kBtu,9.484517E-07,0
+wild,propane,J,kBtu
+!Fuel Oil
+conv,J,kBtu,9.484517E-07,0
+wild,fueloil,J,kBtu
+!Water
+conv,m3,gal,2.641720E+02,0

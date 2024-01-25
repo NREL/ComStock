@@ -191,10 +191,6 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     end
 
     def assign_clgsch_to_thermostats(model,applicable_clg_thermostats,runner,clgsp_adjustment_values)
-      if clgsp_adjustment_values.size != 8760
-        runner.registerError('This measure does not support leap year weather yet.')
-        return false
-      end
       clg_set_schs = {}
       values = []
       header = []
@@ -271,10 +267,6 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     end
 
     def assign_heatsch_to_thermostats(model,applicable_htg_thermostats,runner,heatsp_adjustment_values)
-      if heatsp_adjustment_values.size != 8760
-        runner.registerError('This measure does not support leap year weather yet.')
-        return false
-      end
       heat_set_schs = {}
       values = []
       header = []

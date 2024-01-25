@@ -1,0 +1,3 @@
+[14:01:13.950497 WARN] [openstudio.energyplus.ForwardTranslator] Defaulting the Heating Control Zone List to all zones served by the AirLoopHVAC attached to Object of type 'OS:AvailabilityManager:NightCycle' and named 'Availability Manager Night Cycle 1'
+[14:01:13.990076 WARN] [utilities.idf.WorkspaceObject] Object of type 'Schedule:Constant' and named 'Always Off Discrete', points to an object named OnOff 1 from field 1, but that object cannot be located.
+[14:01:13.990139 WARN] [utilities.idf.WorkspaceObject] Object of type 'Schedule:Constant' and named 'Always On Continuous', points to an object named Fractional 1 from field 1, but that object cannot be located.
