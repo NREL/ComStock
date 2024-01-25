@@ -107,9 +107,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert(File.exist?(run_dir(test_name)))
 
     # change into run directory for tests
-    puts "start_dir: #{Dir.pwd}"
     start_dir = Dir.pwd
-    puts "run_dir(test_name): #{run_dir(test_name)}"
     Dir.chdir run_dir(test_name)
 
     # remove prior runs if they exist
@@ -148,7 +146,6 @@ class AddHeatPumpRtuTest < Minitest::Test
     show_output(result)
 
     # Save model
-    puts "saving model to #{model_output_path(test_name)}"
     model.save(model_output_path(test_name), true)
 
     if run_model && result_success
