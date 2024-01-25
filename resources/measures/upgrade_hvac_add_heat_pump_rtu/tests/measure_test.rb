@@ -42,6 +42,8 @@ require 'openstudio/measure/ShowRunnerOutput'
 require 'fileutils'
 require 'minitest/autorun'
 require_relative '../measure.rb'
+require_relative '../../../../test/helpers/minitest_helper'
+
 
 class AddHeatPumpRtuTest < Minitest::Test
 
@@ -191,7 +193,6 @@ class AddHeatPumpRtuTest < Minitest::Test
 
   end
 
-  
   def verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
      # get initial gas heating coils
      li_gas_htg_coils_initial = model.getCoilHeatingGass

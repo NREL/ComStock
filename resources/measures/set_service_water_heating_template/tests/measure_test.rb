@@ -41,6 +41,7 @@ require 'openstudio/measure/ShowRunnerOutput'
 require 'minitest/autorun'
 require_relative '../measure.rb'
 require 'fileutils'
+require_relative '../../../../test/helpers/minitest_helper'
 
 class SetServiceWaterHeatingTemplateTest < Minitest::Test
   def setup
