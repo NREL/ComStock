@@ -190,10 +190,10 @@ def run(model, runner, user_arguments)
 
 	min_flow_fraction = 0.67 #30% power for non-inverter driven motors, this is applied to flow, so roughly 30% power with cubic fan curve
 
-	#Sizing run
+	#Setting up OS standards 
 	standard = Standard.build('90.1-2013')
-
-
+	standard_new_motor = Standard.build('90.1-2019') #to reflect new motors 
+	
 	#Set up for economizer implementation for checking applicability
     no_outdoor_air_loops = 0
     doas_loops = 0
@@ -296,7 +296,8 @@ def run(model, runner, user_arguments)
 					   elsif sup_fan.maximumFlowRate.is_initialized
 					       fan_flow = sup_fan.maximumFlowRate.get
 					   end 
-					   fan_motor_eff = standard.fan_standard_minimum_motor_efficiency_and_size(sup_fan, motor_hp)[0] #calculate fan motor eff per Standards
+					   #ASHRAE 90.1 2019 version of the standard to reflect motor replacement 
+					   fan_motor_eff = standard_new_motor.fan_standard_minimum_motor_efficiency_and_size(sup_fan, motor_hp)[0] #calculate fan motor eff per Standards
 					end
 					#handle constant speed fan objects; replace FanConstantVolume with FanVariableVolume
 					if sup_fan.to_FanConstantVolume.is_initialized
@@ -309,7 +310,8 @@ def run(model, runner, user_arguments)
 					   elsif sup_fan.maximumFlowRate.is_initialized
 					       fan_flow = sup_fan.maximumFlowRate.get
 					   end 
-					   fan_motor_eff = standard.fan_standard_minimum_motor_efficiency_and_size(sup_fan, motor_hp)[0] #calculate fan motor eff per Standards
+					   #ASHRAE 90.1 2019 version of the standard to reflect motor replacement 
+					   fan_motor_eff = standard_new_motor.fan_standard_minimum_motor_efficiency_and_size(sup_fan, motor_hp)[0] #calculate fan motor eff per Standards
 					end
 					#create new VS fan
 					fan = OpenStudio::Model::FanVariableVolume.new(model)
