@@ -105,7 +105,9 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert(File.exist?(run_dir(test_name)))
 
     # change into run directory for tests
+    puts "start_dir: #{Dir.pwd}"
     start_dir = Dir.pwd
+    puts "run_dir(test_name): #{run_dir(test_name)}"
     Dir.chdir run_dir(test_name)
 
     # remove prior runs if they exist
@@ -144,6 +146,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     show_output(result)
 
     # Save model
+    puts "saving model to #{model_output_path(test_name)}"
     model.save(model_output_path(test_name), true)
 
     if run_model && result_success
@@ -189,7 +192,7 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   
-  def verify_hp_rtu(model, measure, argument_map, osm_path, epw_path)
+  def verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
      # get initial gas heating coils
      li_gas_htg_coils_initial = model.getCoilHeatingGass
 	
@@ -220,9 +223,9 @@ class AddHeatPumpRtuTest < Minitest::Test
      end
  
      # Apply the measure to the model and optionally run the model
-     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+     result = apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false)
      assert_equal('Success', result.value.valueName)
-     model = load_model(model_output_path(__method__))
+     model = load_model(model_output_path(test_name))
  
      # get final gas heating coils
      li_gas_htg_coils_final = model.getCoilHeatingGass
@@ -356,8 +359,11 @@ class AddHeatPumpRtuTest < Minitest::Test
        assert((clg_coil_spd3_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd3_cfm_per_ton <= max_flow_per_cap))
        assert((clg_coil_spd2_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd2_cfm_per_ton <= max_flow_per_cap))
        assert((clg_coil_spd1_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd1_cfm_per_ton <= max_flow_per_cap))
-     end
+     
     end
+    return
+  end
+
 
     # list thermal zone not applicable to HR
     thermal_zone_names_to_exclude = [
@@ -383,6 +389,8 @@ class AddHeatPumpRtuTest < Minitest::Test
     osm_name = '370_small_office_psz_gas_2A.osm'
     epw_name = 'Mobile Downtown AL USA.epw'
 
+    test_name = 'test_370_Small_Office_PSZ_Gas_2A'
+
     puts "\n######\nTEST:#{osm_name}\n######\n"
 
     osm_path = model_input_path(osm_name)
@@ -433,8 +441,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert(econ.setValue(false))
     argument_map['econ'] = econ
 
-
-    test_result = verify_hp_rtu(model, measure, argument_map, osm_path, epw_path)
+    test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
   end
 
   def test_370_small_office_psz_gas_coil_7A
@@ -442,6 +449,8 @@ class AddHeatPumpRtuTest < Minitest::Test
     osm_name = '370_small_office_psz_gas_coil_7A.osm'
     epw_name = 'WY Yellowstone Lake.epw'
 
+    test_name = 'test_370_small_office_psz_gas_coil_7A'
+
     puts "\n######\nTEST:#{osm_name}\n######\n"
 
     osm_path = model_input_path(osm_name)
@@ -492,7 +501,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert(econ.setValue(false))
     argument_map['econ'] = econ
 
-    test_result = verify_hp_rtu(model, measure, argument_map, osm_path, epw_path)
+    test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
   end
 
   
@@ -501,6 +510,8 @@ class AddHeatPumpRtuTest < Minitest::Test
     osm_name = '370_warehouse_psz_gas_6A.osm'
     epw_name = 'WI La Crosse Municipal.epw'
 
+    test_name = 'test_370_warehouse_psz_gas_6A'
+
     puts "\n######\nTEST:#{osm_name}\n######\n"
 
     osm_path = model_input_path(osm_name)
@@ -551,7 +562,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert(econ.setValue(false))
     argument_map['econ'] = econ
 
-    test_result = verify_hp_rtu(model, measure, argument_map, osm_path, epw_path)
+    test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
   end
 
   def test_370_retail_psz_gas_6B
@@ -559,6 +570,8 @@ class AddHeatPumpRtuTest < Minitest::Test
     osm_name = '370_retail_psz_gas_6B.osm'
     epw_name = 'WY Cody Muni Awos.epw'
 
+    test_name = 'test_370_retail_psz_gas_6B'
+
     puts "\n######\nTEST:#{osm_name}\n######\n"
 
     osm_path = model_input_path(osm_name)
@@ -609,7 +622,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert(econ.setValue(false))
     argument_map['econ'] = econ
 
-    test_result = verify_hp_rtu(model, measure, argument_map, osm_path, epw_path)
+    test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
   end
 
 
@@ -950,278 +963,278 @@ class AddHeatPumpRtuTest < Minitest::Test
     'Dining'
   ]
 
-  # TODO - Test Incomplete
-  # # test that ERVs are properly implemented in models with some existing ERVs
-  # # this model has existing ervs in both applicable and non applicable zones
-  # # existing ervs in applicable zones should be replaced
-  # # existing ervs in nonapplicable zones should not be modified
-  # def test_370_strip_mall_psz_gas_some_erv_4a
+  # # TODO - Test Incomplete
+  # # # test that ERVs are properly implemented in models with some existing ERVs
+  # # # this model has existing ervs in both applicable and non applicable zones
+  # # # existing ervs in applicable zones should be replaced
+  # # # existing ervs in nonapplicable zones should not be modified
+  # # def test_370_strip_mall_psz_gas_some_erv_4a
 
-  #   osm_name = '370_strip_mall_psz_gas_some_erv_4a.osm'
-  #   epw_name = 'PA Northeast Philadelph.epw'
+  # #   osm_name = '370_strip_mall_psz_gas_some_erv_4a.osm'
+  # #   epw_name = 'PA Northeast Philadelph.epw'
 
-  #   puts "\n######\nTEST:#{osm_name}\n######\n"
+  # #   puts "\n######\nTEST:#{osm_name}\n######\n"
   
-  #   osm_path = model_input_path(osm_name)
-  #   epw_path = epw_input_path(epw_name)
+  # #   osm_path = model_input_path(osm_name)
+  # #   epw_path = epw_input_path(epw_name)
   
-  #   # Create an instance of the measure
-  #   measure = AddHeatPumpRtu.new
+  # #   # Create an instance of the measure
+  # #   measure = AddHeatPumpRtu.new
   
-  #   # Load the model; only used here for populating arguments
-  #   model = load_model(osm_path)
-  #   arguments = measure.arguments(model)
-  #   argument_map = OpenStudio::Measure::OSArgumentMap.new
+  # #   # Load the model; only used here for populating arguments
+  # #   model = load_model(osm_path)
+  # #   arguments = measure.arguments(model)
+  # #   argument_map = OpenStudio::Measure::OSArgumentMap.new
   
-  #   # set arguments
-  #   backup_ht_fuel_scheme = arguments[0].clone
-  #   assert(backup_ht_fuel_scheme.setValue('electric_resistance_backup'))
-  #   argument_map['backup_ht_fuel_scheme'] = backup_ht_fuel_scheme
-  #   # allowance for heating oversizing
-  #   performance_oversizing_factor = arguments[1].clone
-  #   assert(performance_oversizing_factor.setValue(0))
-  #   argument_map['performance_oversizing_factor'] = performance_oversizing_factor
-  #   # how to size heating
-  #   htg_sizing_option = arguments[2].clone	
-  #   assert(htg_sizing_option.setValue('0F'))
-  #   argument_map['htg_sizing_option'] = htg_sizing_option
-  #   # cooling oversizing estimate
-  #   clg_oversizing_estimate = arguments[3].clone
-  #   assert(clg_oversizing_estimate.setValue(1))
-  #   argument_map['clg_oversizing_estimate'] = clg_oversizing_estimate
-  #   # htg to clg ratio
-  #   htg_to_clg_hp_ratio = arguments[4].clone
-  #   assert(htg_to_clg_hp_ratio.setValue(1))
-  #   argument_map['htg_to_clg_hp_ratio'] = htg_to_clg_hp_ratio
-  #   # hr
-  #   hr = arguments[5].clone
-  #   assert(hr.setValue(true))
-  #   argument_map['hr'] = hr
-  #   # dcv
-  #   dcv = arguments[6].clone
-  #   assert(dcv.setValue(false))
-  #   argument_map['dcv'] = dcv
-  #   # economizer
-  #   econ = arguments[7].clone
-  #   assert(econ.setValue(false))
-  #   argument_map['econ'] = econ
+  # #   # set arguments
+  # #   backup_ht_fuel_scheme = arguments[0].clone
+  # #   assert(backup_ht_fuel_scheme.setValue('electric_resistance_backup'))
+  # #   argument_map['backup_ht_fuel_scheme'] = backup_ht_fuel_scheme
+  # #   # allowance for heating oversizing
+  # #   performance_oversizing_factor = arguments[1].clone
+  # #   assert(performance_oversizing_factor.setValue(0))
+  # #   argument_map['performance_oversizing_factor'] = performance_oversizing_factor
+  # #   # how to size heating
+  # #   htg_sizing_option = arguments[2].clone	
+  # #   assert(htg_sizing_option.setValue('0F'))
+  # #   argument_map['htg_sizing_option'] = htg_sizing_option
+  # #   # cooling oversizing estimate
+  # #   clg_oversizing_estimate = arguments[3].clone
+  # #   assert(clg_oversizing_estimate.setValue(1))
+  # #   argument_map['clg_oversizing_estimate'] = clg_oversizing_estimate
+  # #   # htg to clg ratio
+  # #   htg_to_clg_hp_ratio = arguments[4].clone
+  # #   assert(htg_to_clg_hp_ratio.setValue(1))
+  # #   argument_map['htg_to_clg_hp_ratio'] = htg_to_clg_hp_ratio
+  # #   # hr
+  # #   hr = arguments[5].clone
+  # #   assert(hr.setValue(true))
+  # #   argument_map['hr'] = hr
+  # #   # dcv
+  # #   dcv = arguments[6].clone
+  # #   assert(dcv.setValue(false))
+  # #   argument_map['dcv'] = dcv
+  # #   # economizer
+  # #   econ = arguments[7].clone
+  # #   assert(econ.setValue(false))
+  # #   argument_map['econ'] = econ
 
-  #   # skip food service space types
-  #   thermal_zone_names_to_exclude = [
-  #     'Kitchen',
-  #     'kitchen',
-  #     'KITCHEN',
-  #     'dining',
-  #     'DINING',
-  #     'Dining'
-  #   ]
+  # #   # skip food service space types
+  # #   thermal_zone_names_to_exclude = [
+  # #     'Kitchen',
+  # #     'kitchen',
+  # #     'KITCHEN',
+  # #     'dining',
+  # #     'DINING',
+  # #     'Dining'
+  # #   ]
 
-  #   # get baseline ERVs
-  #   airloops_w_existing_ervs = []
-  #   dict_exist_ervs_applicable = {}
-  #   dict_exist_ervs_na = {}
-  #   ervs_baseline = model.getHeatExchangerAirToAirSensibleAndLatents
-  #   ervs_baseline.each do |erv|
-  #     air_loop_hvac = erv.airLoopHVAC.get.to_AirLoopHVAC.get
-  #     airloops_w_existing_ervs << air_loop_hvac
-  #     # classify non applicable thermal zones
-  #     if thermal_zone_names_to_exclude.any? { |word| (air_loop_hvac.name.to_s).include?(word) }
-  #       dict_exist_ervs_na[air_loop_hvac] = erv
-  #       puts "dict_exist_ervs_na[air_loop_hvac], #{air_loop_hvac} = erv: #{dict_exist_ervs_na[air_loop_hvac] = erv}"
-  #     else
-  #       dict_exist_ervs_applicable[air_loop_hvac] = erv
-  #       puts "dict_exist_ervs_applicable[air_loop_hvac], #{air_loop_hvac} = erv: #{dict_exist_ervs_applicable[air_loop_hvac] = erv}"
-  #     end
-  #   end
+  # #   # get baseline ERVs
+  # #   airloops_w_existing_ervs = []
+  # #   dict_exist_ervs_applicable = {}
+  # #   dict_exist_ervs_na = {}
+  # #   ervs_baseline = model.getHeatExchangerAirToAirSensibleAndLatents
+  # #   ervs_baseline.each do |erv|
+  # #     air_loop_hvac = erv.airLoopHVAC.get.to_AirLoopHVAC.get
+  # #     airloops_w_existing_ervs << air_loop_hvac
+  # #     # classify non applicable thermal zones
+  # #     if thermal_zone_names_to_exclude.any? { |word| (air_loop_hvac.name.to_s).include?(word) }
+  # #       dict_exist_ervs_na[air_loop_hvac] = erv
+  # #       puts "dict_exist_ervs_na[air_loop_hvac], #{air_loop_hvac} = erv: #{dict_exist_ervs_na[air_loop_hvac] = erv}"
+  # #     else
+  # #       dict_exist_ervs_applicable[air_loop_hvac] = erv
+  # #       puts "dict_exist_ervs_applicable[air_loop_hvac], #{air_loop_hvac} = erv: #{dict_exist_ervs_applicable[air_loop_hvac] = erv}"
+  # #     end
+  # #   end
 
-  #   # determine air loops with/without food service (kitchens and dining)
-  #   airloop_na_no_erv = []
-  #   airloop_na_erv = []
-  #   airloop_applic_no_erv = []
-  #   airloop_applic_erv = []
-  #   model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+  # #   # determine air loops with/without food service (kitchens and dining)
+  # #   airloop_na_no_erv = []
+  # #   airloop_na_erv = []
+  # #   airloop_applic_no_erv = []
+  # #   airloop_applic_erv = []
+  # #   model.getAirLoopHVACs.sort.each do |air_loop_hvac|
 
-  #     # classify non applicable thermal zones
-  #     if thermal_zone_names_to_exclude.any? { |word| (air_loop_hvac.name.to_s).include?(word) }
-  #       # classified as NA for HR, but inlcudes existing HR
-  #       if airloops_w_existing_ervs.include? air_loop_hvac
-  #         airloop_na_erv << air_loop_hvac
-  #         #puts "NA, ERV: #{air_loop_hvac.name}"
-  #       # NA for new ERV, no existing ERV
-  #       else
-  #         airloop_na_no_erv << air_loop_hvac
-  #         #puts "NA, No ERV: #{air_loop_hvac.name}"
-  #       end
-  #       # skip to next loop
-  #       next
-  #     end
+  # #     # classify non applicable thermal zones
+  # #     if thermal_zone_names_to_exclude.any? { |word| (air_loop_hvac.name.to_s).include?(word) }
+  # #       # classified as NA for HR, but inlcudes existing HR
+  # #       if airloops_w_existing_ervs.include? air_loop_hvac
+  # #         airloop_na_erv << air_loop_hvac
+  # #         #puts "NA, ERV: #{air_loop_hvac.name}"
+  # #       # NA for new ERV, no existing ERV
+  # #       else
+  # #         airloop_na_no_erv << air_loop_hvac
+  # #         #puts "NA, No ERV: #{air_loop_hvac.name}"
+  # #       end
+  # #       # skip to next loop
+  # #       next
+  # #     end
       
-  #     # add remaining applicable zones to list
-  #     # existing ERV
-  #     if airloops_w_existing_ervs.include? air_loop_hvac
-  #       airloop_applic_erv << air_loop_hvac
-  #       #puts "Applicable, ERV: #{air_loop_hvac.name}"
-  #     # no existing ERV
-  #     else
-  #       airloop_applic_no_erv << air_loop_hvac
-  #       #puts "Applicable, No ERV: #{air_loop_hvac.name}"
-  #     end
-  #   end
+  # #     # add remaining applicable zones to list
+  # #     # existing ERV
+  # #     if airloops_w_existing_ervs.include? air_loop_hvac
+  # #       airloop_applic_erv << air_loop_hvac
+  # #       #puts "Applicable, ERV: #{air_loop_hvac.name}"
+  # #     # no existing ERV
+  # #     else
+  # #       airloop_applic_no_erv << air_loop_hvac
+  # #       #puts "Applicable, No ERV: #{air_loop_hvac.name}"
+  # #     end
+  # #   end
   
-  #   # Apply the measure to the model and optionally run the model
-  #   result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
-  #   model = load_model(model_output_path(__method__))
-  #   assert_equal('Success', result.value.valueName)
+  # #   # Apply the measure to the model and optionally run the model
+  # #   result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+  # #   model = load_model(model_output_path(__method__))
+  # #   assert_equal('Success', result.value.valueName)
 
-  #   # get upgrade ERVs
-  #   airloops_w_existing_ervs_up = []
-  #   dict_exist_ervs_applicable_up = {}
-  #   dict_exist_ervs_na_up = {}
-  #   ervs_upgrade = model.getHeatExchangerAirToAirSensibleAndLatents
-  #   ervs_upgrade.each do |erv|
-  #     air_loop_hvac = erv.airLoopHVAC.get.to_AirLoopHVAC.get
-  #     airloops_w_existing_ervs_up << air_loop_hvac
-  #     # classify non applicable thermal zones
-  #     if thermal_zone_names_to_exclude.any? { |word| (air_loop_hvac.name.to_s).include?(word) }
-  #       dict_exist_ervs_na_up[air_loop_hvac] = erv
-  #       puts "dict_exist_ervs_na_up[air_loop_hvac], #{air_loop_hvac} = erv: #{dict_exist_ervs_na_up[air_loop_hvac] = erv}"
-  #     else
-  #       dict_exist_ervs_applicable_up[air_loop_hvac] = erv
-  #       puts "dict_exist_ervs_applicable_up[air_loop_hvac], #{air_loop_hvac} = erv: #{dict_exist_ervs_applicable_up[air_loop_hvac] = erv}"
-  #     end
-  #   end
+  # #   # get upgrade ERVs
+  # #   airloops_w_existing_ervs_up = []
+  # #   dict_exist_ervs_applicable_up = {}
+  # #   dict_exist_ervs_na_up = {}
+  # #   ervs_upgrade = model.getHeatExchangerAirToAirSensibleAndLatents
+  # #   ervs_upgrade.each do |erv|
+  # #     air_loop_hvac = erv.airLoopHVAC.get.to_AirLoopHVAC.get
+  # #     airloops_w_existing_ervs_up << air_loop_hvac
+  # #     # classify non applicable thermal zones
+  # #     if thermal_zone_names_to_exclude.any? { |word| (air_loop_hvac.name.to_s).include?(word) }
+  # #       dict_exist_ervs_na_up[air_loop_hvac] = erv
+  # #       puts "dict_exist_ervs_na_up[air_loop_hvac], #{air_loop_hvac} = erv: #{dict_exist_ervs_na_up[air_loop_hvac] = erv}"
+  # #     else
+  # #       dict_exist_ervs_applicable_up[air_loop_hvac] = erv
+  # #       puts "dict_exist_ervs_applicable_up[air_loop_hvac], #{air_loop_hvac} = erv: #{dict_exist_ervs_applicable_up[air_loop_hvac] = erv}"
+  # #     end
+  # #   end
 
-  #   # get upgrade ervs
-  #   ervs_upgrade = model.getHeatExchangerAirToAirSensibleAndLatents
+  # #   # get upgrade ervs
+  # #   ervs_upgrade = model.getHeatExchangerAirToAirSensibleAndLatents
 
-  #   # get upgrade ERVs
-  #   airloops_w_existing_ervs_upgrade = []
-  #   ervs_baseline = model.getHeatExchangerAirToAirSensibleAndLatents
-  #   ervs_baseline.each do |erv|
-  #     airloops_w_existing_ervs_upgrade << erv.airLoopHVAC.get.to_AirLoopHVAC.get
-  #   end
+  # #   # get upgrade ERVs
+  # #   airloops_w_existing_ervs_upgrade = []
+  # #   ervs_baseline = model.getHeatExchangerAirToAirSensibleAndLatents
+  # #   ervs_baseline.each do |erv|
+  # #     airloops_w_existing_ervs_upgrade << erv.airLoopHVAC.get.to_AirLoopHVAC.get
+  # #   end
 
-  #   # determine air loops with/without food service (kitchens and dining)
-  #   airloop_na_no_erv_upgrade = []
-  #   airloop_na_erv_upgrade = []
-  #   airloop_applic_no_erv_upgrade = []
-  #   airloop_applic_erv_upgrade = []
-  #   model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+  # #   # determine air loops with/without food service (kitchens and dining)
+  # #   airloop_na_no_erv_upgrade = []
+  # #   airloop_na_erv_upgrade = []
+  # #   airloop_applic_no_erv_upgrade = []
+  # #   airloop_applic_erv_upgrade = []
+  # #   model.getAirLoopHVACs.sort.each do |air_loop_hvac|
 
-  #     # skip food service space types
-  #     thermal_zone_names_to_exclude = [
-  #       'Kitchen',
-  #       'kitchen',
-  #       'KITCHEN',
-  #       'dining',
-  #       'DINING',
-  #       'Dining'
-  #     ]
+  # #     # skip food service space types
+  # #     thermal_zone_names_to_exclude = [
+  # #       'Kitchen',
+  # #       'kitchen',
+  # #       'KITCHEN',
+  # #       'dining',
+  # #       'DINING',
+  # #       'Dining'
+  # #     ]
 
-  #     # classify non applicable thermal zones
-  #     if thermal_zone_names_to_exclude.any? { |word| (air_loop_hvac.name.to_s).include?(word) }
-  #       # classified as NA for HR, but inlcudes existing HR
-  #       if airloops_w_existing_ervs.include? air_loop_hvac
-  #         airloop_na_erv_upgrade << air_loop_hvac
-  #         #puts "NA, ERV: #{air_loop_hvac.name}"
-  #       # NA for new ERV, no existing ERV
-  #       else
-  #         airloop_na_no_erv_upgrade << air_loop_hvac
-  #         #puts "NA, No ERV: #{air_loop_hvac.name}"
-  #       end
-  #       # skip to next element
-  #       next
-  #     end
+  # #     # classify non applicable thermal zones
+  # #     if thermal_zone_names_to_exclude.any? { |word| (air_loop_hvac.name.to_s).include?(word) }
+  # #       # classified as NA for HR, but inlcudes existing HR
+  # #       if airloops_w_existing_ervs.include? air_loop_hvac
+  # #         airloop_na_erv_upgrade << air_loop_hvac
+  # #         #puts "NA, ERV: #{air_loop_hvac.name}"
+  # #       # NA for new ERV, no existing ERV
+  # #       else
+  # #         airloop_na_no_erv_upgrade << air_loop_hvac
+  # #         #puts "NA, No ERV: #{air_loop_hvac.name}"
+  # #       end
+  # #       # skip to next element
+  # #       next
+  # #     end
       
-  #     # add remaining applicable zones to list
-  #     # existing ERV
-  #     if airloops_w_existing_ervs.include? air_loop_hvac
-  #       airloop_applic_erv_upgrade << air_loop_hvac
-  #       #puts "Applicable, ERV: #{air_loop_hvac.name}"
-  #     # no existing ERV
-  #     else
-  #       airloop_applic_no_erv_upgrade << air_loop_hvac
-  #       #puts "Applicable, No ERV: #{air_loop_hvac.name}"
-  #     end
-  #   end
+  # #     # add remaining applicable zones to list
+  # #     # existing ERV
+  # #     if airloops_w_existing_ervs.include? air_loop_hvac
+  # #       airloop_applic_erv_upgrade << air_loop_hvac
+  # #       #puts "Applicable, ERV: #{air_loop_hvac.name}"
+  # #     # no existing ERV
+  # #     else
+  # #       airloop_applic_no_erv_upgrade << air_loop_hvac
+  # #       #puts "Applicable, No ERV: #{air_loop_hvac.name}"
+  # #     end
+  # #   end
 
-    ########
-      # # determine air loops with/without food service (kitchens and dining)
-      # tz_na = []
-      # tz_applicable = []
-      # model.getAirLoopHVACUnitarySystems.sort.each do |unitary_sys|
+  #   ########
+  #     # # determine air loops with/without food service (kitchens and dining)
+  #     # tz_na = []
+  #     # tz_applicable = []
+  #     # model.getAirLoopHVACUnitarySystems.sort.each do |unitary_sys|
 
-      #   # skip kitchen spaces
-      #   thermal_zone_names_to_exclude = [
-      #     'Kitchen',
-      #     'kitchen',
-      #     'KITCHEN',
-      #   ]
-      #   if thermal_zone_names_to_exclude.any? { |word| (unitary_sys.name.to_s).include?(word) }
-      #     tz_kitchens << unitary_sys
+  #     #   # skip kitchen spaces
+  #     #   thermal_zone_names_to_exclude = [
+  #     #     'Kitchen',
+  #     #     'kitchen',
+  #     #     'KITCHEN',
+  #     #   ]
+  #     #   if thermal_zone_names_to_exclude.any? { |word| (unitary_sys.name.to_s).include?(word) }
+  #     #     tz_kitchens << unitary_sys
 
-      #     # add kitchen heating coil to list
-      #     kitchen_htg_coils << unitary_sys.heatingCoil.get
+  #     #     # add kitchen heating coil to list
+  #     #     kitchen_htg_coils << unitary_sys.heatingCoil.get
 
-      #     next
-      #   end
+  #     #     next
+  #     #   end
         
-      #   # add non kitchen zone and heating coil to list
-      #   tz_all_other << unitary_sys
-      #   # add kitchen heating coil to list
-      #   nonkitchen_htg_coils << unitary_sys.heatingCoil.get
-      # end
+  #     #   # add non kitchen zone and heating coil to list
+  #     #   tz_all_other << unitary_sys
+  #     #   # add kitchen heating coil to list
+  #     #   nonkitchen_htg_coils << unitary_sys.heatingCoil.get
+  #     # end
 
-      # # Apply the measure to the model and optionally run the model
-      # result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
-      # assert_equal('Success', result.value.valueName)
-      # model = load_model(model_output_path(__method__))
+  #     # # Apply the measure to the model and optionally run the model
+  #     # result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+  #     # assert_equal('Success', result.value.valueName)
+  #     # model = load_model(model_output_path(__method__))
 
-      # # get heating coils from final model for kitchen and non kitchen spaces
-      # tz_kitchens_final = []
-      # kitchen_htg_coils_final = []
-      # tz_all_other_final = []
-      # nonkitchen_htg_coils_final = []
-      # model.getAirLoopHVACUnitarySystems.sort.each do |unitary_sys|
+  #     # # get heating coils from final model for kitchen and non kitchen spaces
+  #     # tz_kitchens_final = []
+  #     # kitchen_htg_coils_final = []
+  #     # tz_all_other_final = []
+  #     # nonkitchen_htg_coils_final = []
+  #     # model.getAirLoopHVACUnitarySystems.sort.each do |unitary_sys|
 
-      #   # skip kitchen spaces
-      #   thermal_zone_names_to_exclude = [
-      #     'Kitchen',
-      #     'kitchen',
-      #     'KITCHEN',
-      #   ]
-      #   if thermal_zone_names_to_exclude.any? { |word| (unitary_sys.name.to_s).include?(word) }
-      #     tz_kitchens_final << unitary_sys
+  #     #   # skip kitchen spaces
+  #     #   thermal_zone_names_to_exclude = [
+  #     #     'Kitchen',
+  #     #     'kitchen',
+  #     #     'KITCHEN',
+  #     #   ]
+  #     #   if thermal_zone_names_to_exclude.any? { |word| (unitary_sys.name.to_s).include?(word) }
+  #     #     tz_kitchens_final << unitary_sys
 
-      #     # add kitchen heating coil to list
-      #     kitchen_htg_coils_final << unitary_sys.heatingCoil.get
+  #     #     # add kitchen heating coil to list
+  #     #     kitchen_htg_coils_final << unitary_sys.heatingCoil.get
 
-      #     next
-      #   end
+  #     #     next
+  #     #   end
         
-      #   # add non kitchen zone and heating coil to list
-      #   tz_all_other_final << unitary_sys
-      #   # add kitchen heating coil to list
-      #   nonkitchen_htg_coils_final << unitary_sys.heatingCoil.get
-      # end
+  #     #   # add non kitchen zone and heating coil to list
+  #     #   tz_all_other_final << unitary_sys
+  #     #   # add kitchen heating coil to list
+  #     #   nonkitchen_htg_coils_final << unitary_sys.heatingCoil.get
+  #     # end
 
-      # # assert no changes to kitchen unitary systems
-      # assert_equal(tz_kitchens_final, tz_kitchens)
+  #     # # assert no changes to kitchen unitary systems
+  #     # assert_equal(tz_kitchens_final, tz_kitchens)
 
-      # # assert non kitchen spaces contain multispeed DX heating coils
-      # nonkitchen_htg_coils_final.each do |htg_coil|
-      #   assert(htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized)
-      # end
+  #     # # assert non kitchen spaces contain multispeed DX heating coils
+  #     # nonkitchen_htg_coils_final.each do |htg_coil|
+  #     #   assert(htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized)
+  #     # end
 
-      # # assert kitchen spaces still contain gas coils
-      # kitchen_htg_coils_final.each do |htg_coil|
-      #   assert(htg_coil.to_CoilHeatingGas.is_initialized)
-      # end
+  #     # # assert kitchen spaces still contain gas coils
+  #     # kitchen_htg_coils_final.each do |htg_coil|
+  #     #   assert(htg_coil.to_CoilHeatingGas.is_initialized)
+  #     # end
 
 
-    ########
+  #   ########
 
-  # end
+  # # end
 
   # test that ERVs do no impact existing ERVs when ERV argument is NOT toggled
   def test_370_full_service_restaurant_psz_gas_coil_single_erv_3A

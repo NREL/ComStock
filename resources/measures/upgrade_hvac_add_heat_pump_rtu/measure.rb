@@ -2178,51 +2178,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
               hx.setNominalElectricPower(power)
             end
           end
-
-          # # update parameters
-          # new_hr.addToNode(oa_system.outboardOANode.get)
-          # new_hr.setAvailabilitySchedule(always_on)
-          # new_hr.setEconomizerLockout(true)
-          # new_hr.setFrostControlType('MinimumExhaustTemperature')
-          # new_hr.setThresholdTemperature(1.66667) #35F, from E+ recommendation
-          # new_hr.setInitialDefrostTimeFraction(0.083) # 5 minutes every 60 minutes, from Daikin
-          # new_hr.setRateofDefrostTimeFractionIncrease(0.024) # from E+ recommended values
-          # new_hr.setHeatExchangerType('Rotary')
-          # new_hr.setName("#{air_loop_hvac.name} ERV")
-          # # fan efficiency for ERV wheel power
-          # default_fan_efficiency = new_fan.fanTotalEfficiency
-          # power = (oa_flow_m3_per_s * 174.188 / default_fan_efficiency) + ((oa_flow_m3_per_s * 0.9 * 124.42) / default_fan_efficiency)
-          # new_hr.setNominalElectricPower(power)
-          # # set efficiencies; from DOE prototypes which exceed 90.1
-          # new_hr.setSupplyAirOutletTemperatureControl(true)
-          # # set efficiencies; assumed 90% airflow returned to unit
-          # new_hr.setSensibleEffectivenessat100HeatingAirFlow(0.75)
-          # new_hr.setSensibleEffectivenessat75HeatingAirFlow(0.78)
-          # new_hr.setLatentEffectivenessat100HeatingAirFlow(0.61)
-          # new_hr.setLatentEffectivenessat75HeatingAirFlow(0.68)
-          # new_hr.setSensibleEffectivenessat100CoolingAirFlow(0.75)
-          # new_hr.setSensibleEffectivenessat75CoolingAirFlow(0.78)
-          # new_hr.setLatentEffectivenessat100CoolingAirFlow(0.55)
-          # new_hr.setLatentEffectivenessat75CoolingAirFlow(0.60)
-          # # add setpoint manager to control recovery
-          # # Add a setpoint manager OA pretreat to control the ERV
-          # spm_oa_pretreat = OpenStudio::Model::SetpointManagerOutdoorAirPretreat.new(air_loop_hvac.model)
-          # spm_oa_pretreat.setMinimumSetpointTemperature(-99.0)
-          # spm_oa_pretreat.setMaximumSetpointTemperature(99.0)
-          # spm_oa_pretreat.setMinimumSetpointHumidityRatio(0.00001)
-          # spm_oa_pretreat.setMaximumSetpointHumidityRatio(1.0)
-          # # Reference setpoint node and mixed air stream node are outlet node of the OA system
-          # mixed_air_node = oa_system.mixedAirModelObject.get.to_Node.get
-          # spm_oa_pretreat.setReferenceSetpointNode(mixed_air_node)
-          # spm_oa_pretreat.setMixedAirStreamNode(mixed_air_node)
-          # # Outdoor air node is the outboard OA node of the OA system
-          # spm_oa_pretreat.setOutdoorAirStreamNode(oa_system.outboardOANode.get)
-          # # Return air node is the inlet node of the OA system
-          # return_air_node = oa_system.returnAirModelObject.get.to_Node.get
-          # spm_oa_pretreat.setReturnAirStreamNode(return_air_node)
-          # # Attach to the outlet of the HX
-          # hx_outlet = new_hr.primaryAirOutletModelObject.get.to_Node.get
-          # spm_oa_pretreat.addToNode(hx_outlet)
         end
       end
     end
