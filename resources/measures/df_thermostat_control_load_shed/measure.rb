@@ -127,17 +127,19 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     end
 
     def get_hourly_schedule_from_schedule_ruleset(model, schedule_ruleset)
-      yd = model.getYearDescription
-      #puts yd
-      # yd.setIsLeapYear(false)
-      start_date = yd.makeDate(1, 1)
-      end_date = yd.makeDate(12, 31)
+      year = model.getYearDescription
+      puts("--- year = #{year}") 
+      start_date = year.makeDate(1, 1)
+      end_date = year.makeDate(12, 31)
+      puts("--- end_date.year = #{end_date.year}")
       day_of_week = start_date.dayOfWeek.valueName
       values = []#OpenStudio::Vector.new
       day = OpenStudio::Time.new(1.0)
       interval = OpenStudio::Time.new(1.0 / 24.0)
+      ### need to address leap year for this function
       day_schedules = schedule_ruleset.getDaySchedules(start_date, end_date)
-      # numdays = day_schedules.size
+      numdays = day_schedules.size
+      puts("--- numdays = #{numdays}")
       # Make new array of day schedules for year
       day_sched_array = []
       day_schedules.each do |day_schedule|
@@ -189,6 +191,10 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     end
 
     def assign_clgsch_to_thermostats(model,applicable_clg_thermostats,runner,clgsp_adjustment_values)
+      if clgsp_adjustment_values.size != 8760
+        runner.registerError('This measure does not support leap year weather yet.')
+        return false
+      end
       clg_set_schs = {}
       values = []
       header = []
@@ -219,6 +225,8 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
             values << schedule_8760
             # puts("Update 8760 schedule...")
             header << "#{clg_set_sch.get.name.to_s} adjusted"
+            puts("### DEBUGGING: schedule_8760.size = #{schedule_8760.size}")
+            puts("### DEBUGGING: clgsp_adjustment_values.size = #{clgsp_adjustment_values.size}")
             nums = [schedule_8760, clgsp_adjustment_values]
             new_schedule_8760 = nums.transpose.map(&:sum)
             num_rows = new_schedule_8760.length
@@ -263,6 +271,10 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     end
 
     def assign_heatsch_to_thermostats(model,applicable_htg_thermostats,runner,heatsp_adjustment_values)
+      if heatsp_adjustment_values.size != 8760
+        runner.registerError('This measure does not support leap year weather yet.')
+        return false
+      end
       heat_set_schs = {}
       values = []
       header = []
@@ -353,12 +365,12 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
         # https://github.com/NREL/ComStock/blob/a541f15d27206f4e23d56be53ef8b7e154edda9e/postprocessing/comstockpostproc/cbecs.py#L309-L327
         model_building_floor_area_m2 = model.building.get.floorArea.to_f
         model_building_floor_area_sqft = OpenStudio.convert(model_building_floor_area_m2, 'm^2', 'ft^2').get
-        # puts("--- model_building_floor_area_sqft = #{model_building_floor_area_sqft}")
+        puts("--- model_building_floor_area_sqft = #{model_building_floor_area_sqft}")
         model_num_floor = nil
         buildingstories = model.building.get.buildingStories
         model_num_floor = buildingstories.size
         # puts("--- buildingstories = #{buildingstories}")
-        # puts("--- model_num_floor = #{model_num_floor}")
+        puts("--- model_num_floor = #{model_num_floor}")
         if model_building_floor_area_sqft < 25000
           if model_num_floor <= 3
               cstock_bldg_type = 'SmallOffice'
