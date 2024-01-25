@@ -737,6 +737,19 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     if ((hr==true) && (btype_erv_applicable==false))
       runner.registerWarning("The user chose to include energy recovery in the heat pump RTUs, but the building type -#{model_building_type}- is not applicable for energy recovery. Energy recovery will not be added.")
     end
+
+    # get climate full string and classification (i.e. "5A")
+    climate_zone = std.model_standards_climate_zone(model)
+    climate_zone_classification = climate_zone.split('-')[-1]
+
+    # Get ER/HR type from climate zone
+    doas_dat_clg_c, doas_dat_htg_c, doas_type=
+      if ['1A', '2A', '3A', '4A', '5A', '6A', '7', '7A', '8', '8A'].include?(climate_zone_classification)
+        [12.7778, 19.4444, 'ERV']
+      else
+        [15.5556, 19.4444, 'HRV']
+      end
+
     # load performance data if modeling standard performance
     custom_data_json = nil
     c_cap_high_T = nil  
@@ -1876,7 +1889,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         new_dx_heating_coil_speed1.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[1])
         new_dx_heating_coil_speed1.setGrossRatedHeatingCOP(4.96)
         new_dx_heating_coil_speed1.setRatedAirFlowRate(hash_htg_airflow_stgs[1])
-        new_dx_heating_coil_speed1.setRatedSupplyAirFanPowerPerVolumeFlowRate(773.3)
+        new_dx_heating_coil_speed1.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed1.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft1)
         new_dx_heating_coil_speed1.setHeatingCapacityFunctionofFlowFractionCurve(heat_cap_fff_all_stages)
         new_dx_heating_coil_speed1.setEnergyInputRatioFunctionofTemperatureCurve(heat_eir_ft1)
@@ -1889,7 +1902,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         new_dx_heating_coil_speed2.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[2])
         new_dx_heating_coil_speed2.setGrossRatedHeatingCOP(4.24)
         new_dx_heating_coil_speed2.setRatedAirFlowRate(hash_htg_airflow_stgs[2])
-        new_dx_heating_coil_speed2.setRatedSupplyAirFanPowerPerVolumeFlowRate(773.3)
+        new_dx_heating_coil_speed2.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed2.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft2)
         new_dx_heating_coil_speed2.setHeatingCapacityFunctionofFlowFractionCurve(heat_cap_fff_all_stages)
         new_dx_heating_coil_speed2.setEnergyInputRatioFunctionofTemperatureCurve(heat_eir_ft2)
@@ -1902,7 +1915,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         new_dx_heating_coil_speed3.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[3])
         new_dx_heating_coil_speed3.setGrossRatedHeatingCOP(3.59)
         new_dx_heating_coil_speed3.setRatedAirFlowRate(hash_htg_airflow_stgs[3])
-        new_dx_heating_coil_speed3.setRatedSupplyAirFanPowerPerVolumeFlowRate(773.3)
+        new_dx_heating_coil_speed3.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed3.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft3)
         new_dx_heating_coil_speed3.setHeatingCapacityFunctionofFlowFractionCurve(heat_cap_fff_all_stages)
         new_dx_heating_coil_speed3.setEnergyInputRatioFunctionofTemperatureCurve(heat_eir_ft3)
@@ -1915,7 +1928,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         new_dx_heating_coil_speed4.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[4])
         new_dx_heating_coil_speed4.setGrossRatedHeatingCOP(3.42)
         new_dx_heating_coil_speed4.setRatedAirFlowRate(hash_htg_airflow_stgs[4])
-        new_dx_heating_coil_speed4.setRatedSupplyAirFanPowerPerVolumeFlowRate(773.3)
+        new_dx_heating_coil_speed4.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed4.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft4)
         new_dx_heating_coil_speed4.setHeatingCapacityFunctionofFlowFractionCurve(heat_cap_fff_all_stages)
         new_dx_heating_coil_speed4.setEnergyInputRatioFunctionofTemperatureCurve(heat_eir_ft4)
@@ -2065,53 +2078,151 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
           # remove existing ERV; these will be replaced with new ERV equipment
           erv_components.each(&:remove)
           # get oa system
-          oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
-          # add new HR system
-          new_hr = OpenStudio::Model::HeatExchangerAirToAirSensibleAndLatent.new(model)
-          # update parameters
-          new_hr.addToNode(oa_system.outboardOANode.get)
-          new_hr.setAvailabilitySchedule(always_on)
-          new_hr.setEconomizerLockout(true)
-          new_hr.setFrostControlType('MinimumExhaustTemperature')
-          new_hr.setThresholdTemperature(1.66667) #35F, from E+ recommendation
-          new_hr.setInitialDefrostTimeFraction(0.083) # 5 minutes every 60 minutes, from Daikin
-          new_hr.setRateofDefrostTimeFractionIncrease(0.024) # from E+ recommended values
-          new_hr.setHeatExchangerType('Rotary')
-          new_hr.setName("#{air_loop_hvac.name} ERV")
-          # fan efficiency for ERV wheel power
-          default_fan_efficiency = new_fan.fanTotalEfficiency
-          power = (oa_flow_m3_per_s * 174.188 / default_fan_efficiency) + ((oa_flow_m3_per_s * 0.9 * 124.42) / default_fan_efficiency) + 50
-          new_hr.setNominalElectricPower(power)
-          # set efficiencies; from DOE prototypes which exceed 90.1
-          new_hr.setSupplyAirOutletTemperatureControl(true)
-          # set efficiencies; assumed 90% airflow returned to unit
-          new_hr.setSensibleEffectivenessat100HeatingAirFlow(0.75)
-          new_hr.setSensibleEffectivenessat75HeatingAirFlow(0.78)
-          new_hr.setLatentEffectivenessat100HeatingAirFlow(0.61)
-          new_hr.setLatentEffectivenessat75HeatingAirFlow(0.68)
-          new_hr.setSensibleEffectivenessat100CoolingAirFlow(0.75)
-          new_hr.setSensibleEffectivenessat75CoolingAirFlow(0.78)
-          new_hr.setLatentEffectivenessat100CoolingAirFlow(0.55)
-          new_hr.setLatentEffectivenessat75CoolingAirFlow(0.60)
-          # add setpoint manager to control recovery
-          # Add a setpoint manager OA pretreat to control the ERV
-          spm_oa_pretreat = OpenStudio::Model::SetpointManagerOutdoorAirPretreat.new(air_loop_hvac.model)
-          spm_oa_pretreat.setMinimumSetpointTemperature(-99.0)
-          spm_oa_pretreat.setMaximumSetpointTemperature(99.0)
-          spm_oa_pretreat.setMinimumSetpointHumidityRatio(0.00001)
-          spm_oa_pretreat.setMaximumSetpointHumidityRatio(1.0)
-          # Reference setpoint node and mixed air stream node are outlet node of the OA system
-          mixed_air_node = oa_system.mixedAirModelObject.get.to_Node.get
-          spm_oa_pretreat.setReferenceSetpointNode(mixed_air_node)
-          spm_oa_pretreat.setMixedAirStreamNode(mixed_air_node)
-          # Outdoor air node is the outboard OA node of the OA system
-          spm_oa_pretreat.setOutdoorAirStreamNode(oa_system.outboardOANode.get)
-          # Return air node is the inlet node of the OA system
-          return_air_node = oa_system.returnAirModelObject.get.to_Node.get
-          spm_oa_pretreat.setReturnAirStreamNode(return_air_node)
-          # Attach to the outlet of the HX
-          hx_outlet = new_hr.primaryAirOutletModelObject.get.to_Node.get
-          spm_oa_pretreat.addToNode(hx_outlet)
+          oa_sys = air_loop_hvac.airLoopHVACOutdoorAirSystem
+          std.air_loop_hvac_apply_energy_recovery_ventilator(air_loop_hvac, climate_zone)
+          # set heat exchanger efficiency levels
+          # get outdoor airflow (which is used for sizing)
+          oa_sys = oa_sys.get
+          oa_controller = oa_sys.getControllerOutdoorAir
+          oa_sys_sizing = air_loop_hvac.sizingSystem
+          oa_flow_m3_per_s = nil
+          # get design outdoor air flow rate
+          # this is used to estimate wheel "fan" power
+          # loop through thermal zones
+          oa_flow_m3_per_s = 0
+          air_loop_hvac.thermalZones.each do |thermal_zone|
+            space = thermal_zone.spaces[0]
+
+            # get zone area
+            fa = thermal_zone.floorArea
+
+            # get zone volume
+            vol = thermal_zone.airVolume
+
+            # get zone design people
+            num_people = thermal_zone.numberOfPeople
+
+            if space.designSpecificationOutdoorAir.is_initialized
+              dsn_spec_oa = space.designSpecificationOutdoorAir.get
+
+              # add floor area component
+              oa_area = dsn_spec_oa.outdoorAirFlowperFloorArea
+              oa_flow_m3_per_s += oa_area * fa
+
+              # add per person component
+              oa_person = dsn_spec_oa.outdoorAirFlowperPerson
+              oa_flow_m3_per_s += oa_person * num_people
+
+              # add air change component
+              oa_ach = dsn_spec_oa.outdoorAirFlowAirChangesperHour
+              oa_flow_m3_per_s += (oa_ach * vol) / 60
+            end
+          end
+
+          oa_sys.oaComponents.each do |oa_comp|
+            if oa_comp.to_HeatExchangerAirToAirSensibleAndLatent.is_initialized
+              hx = oa_comp.to_HeatExchangerAirToAirSensibleAndLatent.get
+              # set controls
+              hx.setSupplyAirOutletTemperatureControl(true)
+              hx.setEconomizerLockout(true)
+              hx.setFrostControlType('MinimumExhaustTemperature')
+              hx.setThresholdTemperature(1.66667) #35F, from E+ recommendation
+              hx.setHeatExchangerType('Rotary') # rotary is used for fan power modulation when bypass is active. Only affects supply temp control with bypass.
+              # add setpoint manager to control recovery
+              # Add a setpoint manager OA pretreat to control the ERV
+              spm_oa_pretreat = OpenStudio::Model::SetpointManagerOutdoorAirPretreat.new(air_loop_hvac.model)
+              spm_oa_pretreat.setMinimumSetpointTemperature(-99.0)
+              spm_oa_pretreat.setMaximumSetpointTemperature(99.0)
+              spm_oa_pretreat.setMinimumSetpointHumidityRatio(0.00001)
+              spm_oa_pretreat.setMaximumSetpointHumidityRatio(1.0)
+              # Reference setpoint node and mixed air stream node are outlet node of the OA system
+              mixed_air_node = oa_sys.mixedAirModelObject.get.to_Node.get
+              spm_oa_pretreat.setReferenceSetpointNode(mixed_air_node)
+              spm_oa_pretreat.setMixedAirStreamNode(mixed_air_node)
+              # Outdoor air node is the outboard OA node of the OA system
+              spm_oa_pretreat.setOutdoorAirStreamNode(oa_sys.outboardOANode.get)
+              # Return air node is the inlet node of the OA system
+              return_air_node = oa_sys.returnAirModelObject.get.to_Node.get
+              spm_oa_pretreat.setReturnAirStreamNode(return_air_node)
+              # Attach to the outlet of the HX
+              hx_outlet = hx.primaryAirOutletModelObject.get.to_Node.get
+              spm_oa_pretreat.addToNode(hx_outlet)
+    
+              # set parameters for ERV
+              if doas_type=='ERV'
+                # set efficiencies; assumed 90% airflow returned to unit
+                hx.setSensibleEffectivenessat100HeatingAirFlow(0.75)
+                hx.setSensibleEffectivenessat75HeatingAirFlow(0.78)
+                hx.setLatentEffectivenessat100HeatingAirFlow(0.61)
+                hx.setLatentEffectivenessat75HeatingAirFlow(0.68)
+                hx.setSensibleEffectivenessat100CoolingAirFlow(0.75)
+                hx.setSensibleEffectivenessat75CoolingAirFlow(0.78)
+                hx.setLatentEffectivenessat100CoolingAirFlow(0.55)
+                hx.setLatentEffectivenessat75CoolingAirFlow(0.60)  
+              # set parameters for HRV
+              elsif doas_type=='HRV'
+                # set efficiencies; assumed 90% airflow returned to unit
+                hx.setSensibleEffectivenessat100HeatingAirFlow(0.84)
+                hx.setSensibleEffectivenessat75HeatingAirFlow(0.86)
+                hx.setLatentEffectivenessat100HeatingAirFlow(0)
+                hx.setLatentEffectivenessat75HeatingAirFlow(0)
+                hx.setSensibleEffectivenessat100CoolingAirFlow(0.83)
+                hx.setSensibleEffectivenessat75CoolingAirFlow(0.84)
+                hx.setLatentEffectivenessat100CoolingAirFlow(0)
+                hx.setLatentEffectivenessat75CoolingAirFlow(0)
+              end
+    
+              # fan efficiency ranges from 40-60% (Energy Modeling Guide for Very High Efficiency DOAS Final Report)
+              default_fan_efficiency = 0.55
+              power = (oa_flow_m3_per_s * 174.188 / default_fan_efficiency) + ((oa_flow_m3_per_s * 0.9 * 124.42) / default_fan_efficiency)
+              hx.setNominalElectricPower(power)
+            end
+          end
+
+          # # update parameters
+          # new_hr.addToNode(oa_system.outboardOANode.get)
+          # new_hr.setAvailabilitySchedule(always_on)
+          # new_hr.setEconomizerLockout(true)
+          # new_hr.setFrostControlType('MinimumExhaustTemperature')
+          # new_hr.setThresholdTemperature(1.66667) #35F, from E+ recommendation
+          # new_hr.setInitialDefrostTimeFraction(0.083) # 5 minutes every 60 minutes, from Daikin
+          # new_hr.setRateofDefrostTimeFractionIncrease(0.024) # from E+ recommended values
+          # new_hr.setHeatExchangerType('Rotary')
+          # new_hr.setName("#{air_loop_hvac.name} ERV")
+          # # fan efficiency for ERV wheel power
+          # default_fan_efficiency = new_fan.fanTotalEfficiency
+          # power = (oa_flow_m3_per_s * 174.188 / default_fan_efficiency) + ((oa_flow_m3_per_s * 0.9 * 124.42) / default_fan_efficiency)
+          # new_hr.setNominalElectricPower(power)
+          # # set efficiencies; from DOE prototypes which exceed 90.1
+          # new_hr.setSupplyAirOutletTemperatureControl(true)
+          # # set efficiencies; assumed 90% airflow returned to unit
+          # new_hr.setSensibleEffectivenessat100HeatingAirFlow(0.75)
+          # new_hr.setSensibleEffectivenessat75HeatingAirFlow(0.78)
+          # new_hr.setLatentEffectivenessat100HeatingAirFlow(0.61)
+          # new_hr.setLatentEffectivenessat75HeatingAirFlow(0.68)
+          # new_hr.setSensibleEffectivenessat100CoolingAirFlow(0.75)
+          # new_hr.setSensibleEffectivenessat75CoolingAirFlow(0.78)
+          # new_hr.setLatentEffectivenessat100CoolingAirFlow(0.55)
+          # new_hr.setLatentEffectivenessat75CoolingAirFlow(0.60)
+          # # add setpoint manager to control recovery
+          # # Add a setpoint manager OA pretreat to control the ERV
+          # spm_oa_pretreat = OpenStudio::Model::SetpointManagerOutdoorAirPretreat.new(air_loop_hvac.model)
+          # spm_oa_pretreat.setMinimumSetpointTemperature(-99.0)
+          # spm_oa_pretreat.setMaximumSetpointTemperature(99.0)
+          # spm_oa_pretreat.setMinimumSetpointHumidityRatio(0.00001)
+          # spm_oa_pretreat.setMaximumSetpointHumidityRatio(1.0)
+          # # Reference setpoint node and mixed air stream node are outlet node of the OA system
+          # mixed_air_node = oa_system.mixedAirModelObject.get.to_Node.get
+          # spm_oa_pretreat.setReferenceSetpointNode(mixed_air_node)
+          # spm_oa_pretreat.setMixedAirStreamNode(mixed_air_node)
+          # # Outdoor air node is the outboard OA node of the OA system
+          # spm_oa_pretreat.setOutdoorAirStreamNode(oa_system.outboardOANode.get)
+          # # Return air node is the inlet node of the OA system
+          # return_air_node = oa_system.returnAirModelObject.get.to_Node.get
+          # spm_oa_pretreat.setReturnAirStreamNode(return_air_node)
+          # # Attach to the outlet of the HX
+          # hx_outlet = new_hr.primaryAirOutletModelObject.get.to_Node.get
+          # spm_oa_pretreat.addToNode(hx_outlet)
         end
       end
     end
