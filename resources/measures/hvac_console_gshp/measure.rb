@@ -96,6 +96,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     pthps = []
     baseboards = []
     unit_heaters = []
+    thermal_zones_to_skip = []
     all_air_loops = model.getAirLoopHVACs
     if all_air_loops.empty?
       runner.registerInfo("Model does not have any air loops. Get list of PTAC, PTHP, Unit Heater, or Baseboard Electric equipment to delete.")
@@ -118,12 +119,17 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
         end
       end
 
-      #check for baseboard electric and add to array of zone equipment to delete
+      # check for baseboard electric and add to array of zone equipment to delete
+      # if there are PTACs or PTHPs in the building, skips zones with baseboards 
       model.getThermalZones.each do |thermal_zone|
         thermal_zone.equipment.each do |equip|
           next unless equip.to_ZoneHVACBaseboardConvectiveElectric.is_initialized
-          baseboards << equip.to_ZoneHVACBaseboardConvectiveElectric.get
-          equip_to_delete << equip.to_ZoneHVACBaseboardConvectiveElectric.get
+          if ptacs.size >> 0 && pthps.size >> 0
+            thermal_zones_to_skip << thermal_zone.name.get
+          else
+            baseboards << equip.to_ZoneHVACBaseboardConvectiveElectric.get
+            equip_to_delete << equip.to_ZoneHVACBaseboardConvectiveElectric.get
+          end
         end
       end
 
@@ -151,7 +157,10 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
       # check if evaporative cooling systems
       elsif air_loop_evaporative_cooler?(air_loop_hvac)
         runner.registerAsNotApplicable("Model has direct evaporative coolers; measure is not applicable.")
-        break
+        return true
+      elsif air_loop_hvac_unitary_system?(air_loop_hvac)
+        runner.registerAsNotApplicable("Model has unitary systems; measure is not applicable.")
+        return true
       end
     end
 
@@ -283,8 +292,6 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     # Add temp source to the supply side of the ground loop
     ground_loop.addSupplyBranchForComponent(ground_temp_source)
 
-
-
     # Loop through air loops, plant loops, and thermal zones and remove old equipment
     selected_air_loops.each do |air_loop_hvac|
       # remove old air loop, new ones will be added
@@ -293,6 +300,10 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
 
     # Loop through each thermal zone and remove old PTAC/PTHP and replace it with a water-to-air ground source heat pump
     model.getThermalZones.each do |thermal_zone|
+
+      #skip if it has baseboards in baseline
+      next if thermal_zones_to_skip.include? thermal_zone.name.get
+
       OpenStudio.logFree(OpenStudio::Info, 'openstudio.Model.Model', "Adding water-to-air heat pump for #{thermal_zone.name}.")
 
       #create new air loop for unitary system

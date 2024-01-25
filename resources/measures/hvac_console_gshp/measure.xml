@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>add_console_gshp</name>
   <uid>e7cff13c-fffa-4c6c-9494-938e27f7f335</uid>
-  <version_id>489336c6-5367-42d1-9f07-b46bb69607c9</version_id>
-  <version_modified>2023-11-28T17:58:21Z</version_modified>
+  <version_id>d4cbd090-31f0-455e-adce-143bbab5f587</version_id>
+  <version_modified>2024-01-24T21:13:04Z</version_modified>
   <xml_checksum>5E2576E4</xml_checksum>
   <class_name>AddConsoleGSHP</class_name>
   <display_name>add_console_gshp</display_name>
@@ -71,7 +71,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>CA1B983E</checksum>
+      <checksum>41948EB8</checksum>
     </file>
     <file>
       <filename>Ground Loop Heat Pump Performance Data.xlsx</filename>
@@ -143,7 +143,7 @@
       <filename>borefield_defaults.json</filename>
       <filetype>json</filetype>
       <usage_type>resource</usage_type>
-      <checksum>B49273C1</checksum>
+      <checksum>998238A3</checksum>
     </file>
     <file>
       <filename>performance_curves.rb</filename>
@@ -155,7 +155,7 @@
       <filename>console_gthp_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>DDEE02AF</checksum>
+      <checksum>8233E9B8</checksum>
     </file>
   </files>
 </measure>
