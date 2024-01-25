@@ -63,6 +63,7 @@ class ElectrifyKitchenEquipment < OpenStudio::Measure::ModelMeasure
     # measure not applicable if building does not have a kitchen
     if num_kitchens == 0
       runner.registerAsNotApplicable("Building does not have a kitchen; measure is not applicable.")
+      return true
     end
 
     # Helper method to extract quantity from the object name
