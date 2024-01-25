@@ -66,9 +66,10 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             self.add_comstock_building_type_column()
             self.add_vintage_column()
             self.add_energy_intensity_columns()
-
-        # Calculate weighted area and energy consumption columns
-        self.add_weighted_area_and_energy_columns()
+            self.add_bill_intensity_columns()
+            self.add_energy_rate_columns()
+            # Calculate weighted area and energy consumption columns
+            self.add_weighted_area_and_energy_columns()
 
         logger.debug('\nCBECS columns after adding all data')
         for c in self.data.columns:
@@ -215,7 +216,11 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             # End use energy - other fuels (sum of propane and fuel oil)
             'Fuel oil heating use (thous Btu)': self.ANN_OTHER_HEAT_KBTU,
             'Fuel oil cooling use (thous Btu)': self.ANN_OTHER_COOL_KBTU,
-            'Fuel oil water heating use (thous Btu)': self.ANN_OTHER_SWH_KBTU
+            'Fuel oil water heating use (thous Btu)': self.ANN_OTHER_SWH_KBTU,
+            # Utility bills
+            'Annual electricity expenditures ($)': self.UTIL_BILL_ELEC,
+            'Annual natural gas expenditures ($)': self.UTIL_BILL_GAS,
+            'Annual fuel oil expenditures ($)': self.UTIL_BILL_FUEL_OIL
         }
         self.data.rename(columns=column_map, inplace=True)
 
@@ -246,7 +251,9 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
                 self.data[col] = self.data[col].replace('Not applicable', np.nan)
                 self.data[col] = self.data[col].astype('float64')
                 found_cols.append(col)
-            self.data[new_col_name] = self.data[found_cols].sum(axis=1)
+            new_col_dict = {}
+            new_col_dict[new_col_name] = self.data[found_cols].sum(axis=1)
+            self.data = pd.concat([self.data, pd.DataFrame(new_col_dict)],axis=1)
 
         # Convert all energy columns from base CBECS kBtu to kWh
         for col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY):
@@ -286,6 +293,38 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             self.data[engy_col] = self.data[engy_col].replace('Not Applicable', np.nan)
             self.data[engy_col] = self.data[engy_col].astype('float64')
             self.data[eui_col] = self.data[engy_col] / self.data[self.FLR_AREA]
+
+    def add_bill_intensity_columns(self):
+        # Create bill per area column for each annual utility bill column
+        for bill_col in self.COLS_UTIL_BILLS:
+            # Put in np.nan for bill columns that aren't part of CBECS
+            if not bill_col in self.data:
+                self.data[bill_col] = np.nan
+            # Divide bill by area to create intensity
+            per_area_col = self.col_name_to_area_intensity(bill_col)
+            self.data[bill_col] = self.data[bill_col].replace('Not applicable', np.nan)
+            self.data[bill_col] = self.data[bill_col].astype('float64')
+            self.data[per_area_col] = self.data[bill_col] / self.data[self.FLR_AREA]
+
+    def add_energy_rate_columns(self):
+        # Create energy rate column for each annual utility bill column
+        for bill_col in self.COLS_UTIL_BILLS:
+            # Get the corresponding energy consumption column
+            bill_to_engy_col = {
+                self.UTIL_BILL_ELEC: self.ANN_TOT_ELEC_KBTU,
+                self.UTIL_BILL_GAS: self.ANN_TOT_GAS_KBTU,
+                self.UTIL_BILL_FUEL_OIL: None,
+                self.UTIL_BILL_PROPANE: None
+            }
+            # Only create rate columns for fuels with bills
+            engy_col = bill_to_engy_col[bill_col]
+            if not engy_col:
+                continue
+            # Divide bill by consumption to create rate
+            rate_col = self.col_name_to_energy_rate(bill_col)
+            self.data[bill_col] = self.data[bill_col].replace('Not applicable', np.nan)
+            self.data[bill_col] = self.data[bill_col].astype('float64')
+            self.data[rate_col] = self.data[bill_col] / self.data[engy_col]
 
     def add_comstock_building_type_column(self):
         # Add the ComStock building type for each row of CBECS
@@ -414,6 +453,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         self.data[new_area_col] = self.data[self.FLR_AREA] * self.data[self.BLDG_WEIGHT]
 
         # Energy
+        new_col_dict = {}
         for col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY):
             # Skip end-use columns that aren't part of CBECS
             if not col in self.data:
@@ -427,7 +467,8 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             old_units = self.units_from_col_name(col)
             new_units = self.weighted_energy_units
             conv_fact = self.conv_fact(old_units, new_units)
-            self.data[new_col] = self.data[col] * self.data[self.BLDG_WEIGHT] * conv_fact
+            new_col_dict[new_col] = self.data[col] * self.data[self.BLDG_WEIGHT] * conv_fact
+        self.data = pd.concat([self.data, pd.DataFrame(new_col_dict)], axis=1)
 
     def export_to_csv_wide(self):
         # Exports comstock data to CSV in wide format

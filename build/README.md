@@ -43,8 +43,6 @@
 
 * Launch the Container (in privileged mode with docker.sock mounted in the container)
 
-    __*Windows: change the line endings in your `C:\path\to\comstock\build\singularity\build_singularity.sh` file from Windows (CR LF) to Unix (LF).  You can do this with Notepad++ using Edit > EOL Conversion or VSCode using the Change End of Line Sequence command.  If you don't, you will get the error `: No such file or directory` in the next step*__
-
     ```bash
     cd C:\path\to\comstock\build
     ```

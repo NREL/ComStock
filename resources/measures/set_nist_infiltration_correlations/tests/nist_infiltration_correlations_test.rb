@@ -38,6 +38,7 @@
 require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
 require 'minitest/autorun'
+require_relative '../../../../test/helpers/minitest_helper'
 require_relative '../measure.rb'
 require 'fileutils'
 
@@ -99,7 +100,7 @@ class SetNISTInfiltrationCorrelationsTest < Minitest::Test
 
     # make an empty model
     model = OpenStudio::Model::Model.new
-    
+
     # create hash of argument values
     args_hash = {}
     args_hash['airtightness_value'] = -1.0
