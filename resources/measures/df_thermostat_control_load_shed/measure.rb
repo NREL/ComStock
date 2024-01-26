@@ -127,19 +127,17 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     end
 
     def get_hourly_schedule_from_schedule_ruleset(model, schedule_ruleset)
+      # https://github.com/NREL/openstudio-standards/blob/9e6bdf751baedfe73567f532007fefe6656f5abf/lib/openstudio-standards/standards/Standards.ScheduleRuleset.rb#L696
       year = model.getYearDescription
-      puts("--- year = #{year}") 
       start_date = year.makeDate(1, 1)
       end_date = year.makeDate(12, 31)
-      puts("--- end_date.year = #{end_date.year}")
       day_of_week = start_date.dayOfWeek.valueName
       values = []#OpenStudio::Vector.new
       day = OpenStudio::Time.new(1.0)
       interval = OpenStudio::Time.new(1.0 / 24.0)
-      ### need to address leap year for this function
       day_schedules = schedule_ruleset.getDaySchedules(start_date, end_date)
-      numdays = day_schedules.size
-      puts("--- numdays = #{numdays}")
+      # numdays = day_schedules.size
+      # puts("--- numdays = #{numdays}")
       # Make new array of day schedules for year
       day_sched_array = []
       day_schedules.each do |day_schedule|
@@ -221,8 +219,8 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
             values << schedule_8760
             # puts("Update 8760 schedule...")
             header << "#{clg_set_sch.get.name.to_s} adjusted"
-            puts("### DEBUGGING: schedule_8760.size = #{schedule_8760.size}")
-            puts("### DEBUGGING: clgsp_adjustment_values.size = #{clgsp_adjustment_values.size}")
+            # puts("### DEBUGGING: schedule_8760.size = #{schedule_8760.size}")
+            # puts("### DEBUGGING: clgsp_adjustment_values.size = #{clgsp_adjustment_values.size}")
             nums = [schedule_8760, clgsp_adjustment_values]
             new_schedule_8760 = nums.transpose.map(&:sum)
             num_rows = new_schedule_8760.length
@@ -452,10 +450,7 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     if load_prediction_method == 'full baseline'
       puts("### ============================================================")
       puts("### Running full baseline for load prediction...")
-      # start_time = Time.now
       annual_load = load_prediction_from_full_run(model, year=year, num_timesteps_in_hr=num_timesteps_in_hr)
-      # end_time = Time.now
-      # puts "Script execution time: #{end_time - start_time} seconds"
       # puts("--- annual_load = #{annual_load}")
       puts("--- annual_load.size = #{annual_load.size}")
     else
@@ -465,14 +460,14 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
       puts("### ============================================================")
       puts("### Creating bins...")
       bins, selectdays, ns, max_doy = create_binsamples(oat)
-      puts("--- bins = #{bins}")
-      puts("--- selectdays = #{selectdays}")
-      puts("--- ns = #{ns}")
+      # puts("--- bins = #{bins}")
+      # puts("--- selectdays = #{selectdays}")
+      # puts("--- ns = #{ns}")
       if load_prediction_method == 'bin sample'
         puts("### ============================================================")
         puts("### Running simulation on samples...")
         y_seed = run_samples(model, year, selectdays, num_timesteps_in_hr)
-        puts("--- y_seed = #{y_seed}")
+        # puts("--- y_seed = #{y_seed}")
       elsif load_prediction_method == 'part year bin sample'
         puts("============================================================")
         puts("### Running simulation on part year samples...")

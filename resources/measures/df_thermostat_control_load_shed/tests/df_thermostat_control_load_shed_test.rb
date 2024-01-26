@@ -36,16 +36,16 @@ class DfThermostatControlLoadShedTest < Minitest::Test
     test_sets = []
 
     # test: not applicable building type
-    # test_sets << {
-    #   model: '361_Medium_Office_PSZ_HP',
-    #   weather: 'CO_FortCollins_16',
-    #   result: 'NA'
-    # }
-    # test_sets << {
-    #   model: 'LargeOffice_VAV_chiller_boiler',#LargeOffice_VAV_district_chw_hw
-    #   weather: 'CO_FortCollins_16',
-    #   result: 'Success'
-    # }
+    test_sets << {
+      model: '361_Medium_Office_PSZ_HP',
+      weather: 'CO_FortCollins_16',
+      result: 'NA'
+    }
+    test_sets << {
+      model: 'LargeOffice_VAV_chiller_boiler',#LargeOffice_VAV_district_chw_hw
+      weather: 'CO_FortCollins_16',
+      result: 'Success'
+    }
     # test_sets << {
     #   model: 'LargeOffice_VAV_chiller_boiler_2',
     #   weather: 'CO_FortCollins_16',
@@ -56,11 +56,11 @@ class DfThermostatControlLoadShedTest < Minitest::Test
     #   weather: 'CO_FortCollins_16',
     #   result: 'NA'
     # }
-    test_sets << {
-      model: '72',
-      weather: 'CO_FortCollins_16',
-      result: 'Success'
-    }
+    # test_sets << {
+    #   model: '72',
+    #   weather: 'CO_FortCollins_16',
+    #   result: 'Success'
+    # }
     # test_sets << {
     #   model: '73',
     #   weather: 'CO_FortCollins_16',

@@ -535,14 +535,14 @@ def model_run_simulation_on_part_of_year(model, year, max_doy, num_timesteps_in_
   zonesizing_orig = model.getSimulationControl.doZoneSizingCalculation
   syssizing_orig = model.getSimulationControl.doSystemSizingCalculation
   plantsizing_orig = model.getSimulationControl.doPlantSizingCalculation
-  puts("### DEBUGGING: begin_month_orig = #{begin_month_orig}")
-  puts("### DEBUGGING: begin_day_orig = #{begin_day_orig}")
-  puts("### DEBUGGING: end_month_orig = #{end_month_orig}")
-  puts("### DEBUGGING: end_day_orig = #{end_day_orig}")
-  puts("### DEBUGGING: num_timesteps_in_hr_orig = #{num_timesteps_in_hr_orig}")
-  puts("### DEBUGGING: zonesizing_orig = #{zonesizing_orig}")
-  puts("### DEBUGGING: syssizing_orig = #{syssizing_orig}")
-  puts("### DEBUGGING: plantsizing_orig = #{plantsizing_orig}")
+  # puts("### DEBUGGING: begin_month_orig = #{begin_month_orig}")
+  # puts("### DEBUGGING: begin_day_orig = #{begin_day_orig}")
+  # puts("### DEBUGGING: end_month_orig = #{end_month_orig}")
+  # puts("### DEBUGGING: end_day_orig = #{end_day_orig}")
+  # puts("### DEBUGGING: num_timesteps_in_hr_orig = #{num_timesteps_in_hr_orig}")
+  # puts("### DEBUGGING: zonesizing_orig = #{zonesizing_orig}")
+  # puts("### DEBUGGING: syssizing_orig = #{syssizing_orig}")
+  # puts("### DEBUGGING: plantsizing_orig = #{plantsizing_orig}")
   ### reference: SetRunPeriod measure on BCL
   model.getYearDescription.setCalendarYear(year)
   model.getRunPeriod.setBeginMonth(begin_month)
@@ -774,6 +774,9 @@ def load_prediction_from_full_run(model, year, num_timesteps_in_hr, epw_path=nil
   end_month_orig = model.getRunPeriod.getEndMonth
   end_day_orig = model.getRunPeriod.getEndDayOfMonth
   num_timesteps_in_hr_orig = model.getTimestep.numberOfTimestepsPerHour
+  zonesizing_orig = model.getSimulationControl.doZoneSizingCalculation
+  syssizing_orig = model.getSimulationControl.doSystemSizingCalculation
+  plantsizing_orig = model.getSimulationControl.doPlantSizingCalculation
   ### reference: SetRunPeriod measure on BCL
   model.getYearDescription.setCalendarYear(year)
   model.getRunPeriod.setBeginMonth(1)
