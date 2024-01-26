@@ -4,6 +4,8 @@
 # http://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/
 require 'openstudio-standards'
 require 'csv'
+require_relative '../upgrade_hvac_dcv/measure.rb'
+require_relative '../upgrade_hvac_economizer/measure.rb'
 
 # require all .rb files in resources folder
 Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }  
@@ -45,12 +47,6 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
   # Define the arguments that the user will input
   def arguments(_model)
     args = OpenStudio::Measure::OSArgumentVector.new
-
-    # add heat recovery option
-    hr = OpenStudio::Measure::OSArgument.makeBoolArgument('hr', true)
-    hr.setDisplayName('Add Energy Recovery?')
-    hr.setDefaultValue(false)
-    args << hr
 
     # add dcv option
     dcv = OpenStudio::Measure::OSArgument.makeBoolArgument('dcv', true)
@@ -144,7 +140,6 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     # assign user inputs to variables
     dcv = runner.getBoolArgumentValue('dcv', user_arguments)
     econ = runner.getBoolArgumentValue('econ', user_arguments)
-    hr = runner.getBoolArgumentValue('hr', user_arguments)
 
     # check if model has airloops, if not register not applicable
     all_air_loops = model.getAirLoopHVACs
@@ -181,7 +176,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
 
     # get applicable psz hvac air loops
     psz_air_loops = []
-    vav_air_loops = []
+    pvav_air_loops = []
     applicable_area_m2 = 0
     all_air_loops.each do |air_loop_hvac|
       # skip units that are not single zone
@@ -192,12 +187,6 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
           next
         end
 
-        # skip VAV and PVAV systems and remove the air loop
-        if %w[VAV PVAV].any? { |word| air_loop_hvac.name.get.include?(word) }
-          vav_air_loops << air_loop_hvac
-          # air_loop_hvac.remove
-          next
-        end
         # skip if residential system
         next if air_loop_res?(air_loop_hvac)
         # skip if system has no outdoor air, also indication of residential system
@@ -219,17 +208,26 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
         psz_air_loops << air_loop_hvac
         # add area served by air loop
       elsif air_loop_hvac.thermalZones.length > 1
-        # look for PVAV and VAV systems
-        next unless %w[VAV PVAV].any? { |word| air_loop_hvac.name.get.include?(word) }
-
-        vav_air_loops << air_loop_hvac
-        # remove pvav and vav air loops, they will not be reused in the model
-        # air_loop_hvac.remove
+        #look for PVAV and VAV systems
+        if %w[PVAV].any? { |word| air_loop_hvac.name.get.include?(word) }
+          air_loop_hvac.supplyComponents.each do |component|
+            # filter out VAV with PFP boxes, which are labeled as PVAV systems but are actually VAV
+            if component.to_CoilCoolingWater.is_initialized
+              runner.registerAsNotApplicable("Air loop has a chilled water coil, indicating that it is a VAV chiller with PFP boxes system. Measure is not applicable.")
+              return true
+            end
+          end
+          runner.registerInfo("Model has a PVAV system, measure will be applicable.") 
+          pvav_air_loops << air_loop_hvac
+        elsif %w[VAV].any? { |word| air_loop_hvac.name.get.include?(word) }
+          runner.registerAsNotApplicable("Model has VAV system, measure is not applicable.")
+          return true
+        end
       end
     end
 
     # Check if there are any packaged single zone systems in the model
-    if (psz_air_loops.size == 0) && (vav_air_loops.size == 0)
+    if (psz_air_loops.size == 0) && (pvav_air_loops.size == 0)
       runner.registerAsNotApplicable('Model has no applicable air loops, measure is not applicable.')
       return true
     end
@@ -240,7 +238,6 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
       plant_loops.each do |plant_loop|
         # do not delete service water heating loops
         next if ['Service'].any? { |word| plant_loop.name.get.include?(word) }
-
         runner.registerInfo("Removed existing plant loop #{plant_loop.name}.")
         plant_loop.remove
       end
@@ -278,7 +275,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     # Create and add a pump to the loop
     condenser_pump = OpenStudio::Model::PumpVariableSpeed.new(model)
     condenser_pump.setName('Condenser loop circulation pump')
-    condenser_pump.setPumpControlType('Intermittent')
+    condenser_pump.setPumpControlType('Continuous')
     condenser_pump.setRatedPumpHead(44_834.7) # 15 ft for primary pump for a primary-secondary system based on Appendix G; does this need to change?
     condenser_pump.addToNode(condenser_loop.supplyInletNode)
 
@@ -313,6 +310,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     # Create and add a pump to the loop
     ground_pump = OpenStudio::Model::PumpConstantSpeed.new(model)
     ground_pump.setName('Ground loop circulation pump')
+    ground_pump.setPumpControlType('Continuous')
     ground_pump.setRatedPumpHead(44_834.7) # 15 ft for primary pump for a primary-secondary system based on Appendix G; does this need to change?
     ground_pump.addToNode(ground_loop.supplyInletNode)
 
@@ -343,7 +341,6 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
 
     # get necessary schedules, etc. from unitary system object
     # initialize variables before loop
-
     unitary_availability_sched = 'tmp'
     control_zone = 'tmp'
     dehumid_type = 'tmp'
@@ -422,46 +419,6 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
           fan_mot_eff = supply_fan.motorEfficiency
           # get supply fan static pressure
           fan_static_pressure = supply_fan.pressureRise
-          # get previous cooling coil capacity
-          # orig_clg_coil = unitary_sys.coolingCoil.get
-          # if orig_clg_coil.to_CoilCoolingDXSingleSpeed.is_initialized
-          #   orig_clg_coil = orig_clg_coil.to_CoilCoolingDXSingleSpeed.get
-          #   puts "coil object class = #{orig_clg_coil.class}"
-          #   # get either autosized or specified cooling capacity
-          #   if orig_clg_coil.isRatedTotalCoolingCapacityAutosized == true
-          #     puts "coil capacity = #{orig_clg_coil.ratedTotalCoolingCapacity}"
-          #     orig_clg_coil_gross_cap = orig_clg_coil.autosizedRatedTotalCoolingCapacity.get
-          #   elsif orig_clg_coil.ratedTotalCoolingCapacity.is_initialized
-          #     orig_clg_coil_gross_cap = orig_clg_coil.ratedTotalCoolingCapacity.to_f
-          #   else
-          #     runner.registerError("Original cooling coil capacity for #{air_loop_hvac.name} not found. Either it was not directly specified, or sizing run data is not available.")
-          #   end
-          # end
-          # get original heating coil capacity
-          # orig_htg_coil = unitary_sys.heatingCoil.get
-          # # get coil object if electric resistance
-          # if orig_htg_coil.to_CoilHeatingElectric.is_initialized
-          #   orig_htg_coil = orig_htg_coil.to_CoilHeatingElectric.get
-          # # get coil object if gas
-          # elsif orig_htg_coil.to_CoilHeatingGas.is_initialized
-          #   orig_htg_coil = orig_htg_coil.to_CoilHeatingGas.get
-          # # get coil object if water
-          # elsif orig_htg_coil.to_CoilHeatingWater.is_initialized
-          #   orig_htg_coil = orig_htg_coil.to_CoilHeatingWater.get
-          # # get coil object if water
-          # elsif orig_htg_coil.to_CoilHeatingDXSingleSpeed.is_initialized
-          #   orig_htg_coil = orig_htg_coil.to_CoilHeatingDXSingleSpeed.get
-          # else
-          #   runner.registerError("Heating coil for #{air_loop_hvac.name} is of an unsupported type. This measure currently supports CoilHeatingElectric and CoilHeatingGas object types.")
-          # end
-          # # get either autosized or specified capacity
-          # if orig_htg_coil.isNominalCapacityAutosized == true
-          #   orig_htg_coil_gross_cap = orig_htg_coil.autosizedNominalCapacity.get
-          # elsif orig_htg_coil.nominalCapacity.is_initialized
-          #   orig_htg_coil_gross_cap = orig_htg_coil.nominalCapacity.to_f
-          # else
-          #   runner.registerError("Original heating coil capacity for #{air_loop_hvac.name} not found. Either it was not directly specified, or sizing run data is not available.")
-          # end
         end
 
       # get non-unitary system objects.
@@ -533,9 +490,9 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
 
     equip_to_delete.each(&:remove)
 
-    # remove old VAV air loops; this must be done after removing zone equipment or it will cause segmentation fault
-    vav_air_loops.each do |vav_air_loop|
-      vav_air_loop.remove
+    # remove old PVAV air loops; this must be done after removing zone equipment or it will cause segmentation fault
+    pvav_air_loops.each do |pvav_air_loop|
+      pvav_air_loop.remove
     end
 
     # loop through thermal zones and add
@@ -550,8 +507,6 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
 
       if thermal_zone.airLoopHVAC.is_initialized
         air_loop_hvac = thermal_zone.airLoopHVAC.get
-
-
       else
         # create new air loop for unitary system
         air_loop_hvac = OpenStudio::Model::AirLoopHVAC.new(model)
@@ -562,11 +517,9 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
         # adjusted zone design temperatures for ptac
         dsgn_temps = std.standard_design_sizing_temperatures
         dsgn_temps['zn_htg_dsgn_sup_air_temp_f'] = 122.0
-        dsgn_temps['zn_htg_dsgn_sup_air_temp_c'] =
-          OpenStudio.convert(dsgn_temps['zn_htg_dsgn_sup_air_temp_f'], 'F', 'C').get
+        dsgn_temps['zn_htg_dsgn_sup_air_temp_c'] = OpenStudio.convert(dsgn_temps['zn_htg_dsgn_sup_air_temp_f'], 'F', 'C').get
         dsgn_temps['zn_clg_dsgn_sup_air_temp_f'] = 57.0
-        dsgn_temps['zn_clg_dsgn_sup_air_temp_c'] =
-          OpenStudio.convert(dsgn_temps['zn_clg_dsgn_sup_air_temp_f'], 'F', 'C').get
+        dsgn_temps['zn_clg_dsgn_sup_air_temp_c'] = OpenStudio.convert(dsgn_temps['zn_clg_dsgn_sup_air_temp_f'], 'F', 'C').get
         sizing_zone = thermal_zone.sizingZone
         sizing_zone.setZoneCoolingDesignSupplyAirTemperature(dsgn_temps['zn_clg_dsgn_sup_air_temp_c'])
         sizing_zone.setZoneHeatingDesignSupplyAirTemperature(dsgn_temps['zn_htg_dsgn_sup_air_temp_c'])
@@ -600,22 +553,6 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
       new_cooling_coil.setName("#{air_loop_hvac.name} Heat Pump Cooling Coil")
 
       new_cooling_coil.setRatedCoolingCoefficientofPerformance(3.4)
-      # new_cooling_coil.setTotalCoolingCapacityCoefficient1(-4.30266987344639)
-      # new_cooling_coil.setTotalCoolingCapacityCoefficient2(7.18536990534372)
-      # new_cooling_coil.setTotalCoolingCapacityCoefficient3(-2.23946714486189)
-      # new_cooling_coil.setTotalCoolingCapacityCoefficient4(0.139995928440879)
-      # new_cooling_coil.setTotalCoolingCapacityCoefficient5(0.102660179888915)
-      # new_cooling_coil.setSensibleCoolingCapacityCoefficient1(6.0019444814887)
-      # new_cooling_coil.setSensibleCoolingCapacityCoefficient2(22.6300677244073)
-      # new_cooling_coil.setSensibleCoolingCapacityCoefficient3(-26.7960783730934)
-      # new_cooling_coil.setSensibleCoolingCapacityCoefficient4(-1.72374720346819)
-      # new_cooling_coil.setSensibleCoolingCapacityCoefficient5(0.490644802367817)
-      # new_cooling_coil.setSensibleCoolingCapacityCoefficient6(0.0693119353468141)
-      # new_cooling_coil.setCoolingPowerConsumptionCoefficient1(-5.67775976415698)
-      # new_cooling_coil.setCoolingPowerConsumptionCoefficient2(0.438988156976704)
-      # new_cooling_coil.setCoolingPowerConsumptionCoefficient3(5.845277342193)
-      # new_cooling_coil.setCoolingPowerConsumptionCoefficient4(0.141605667000125)
-      # new_cooling_coil.setCoolingPowerConsumptionCoefficient5(-0.168727936032429)
       condenser_loop.addDemandBranchForComponent(new_cooling_coil)
 
       # add new single speed heating coil
@@ -623,16 +560,6 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
       new_heating_coil.setName("#{air_loop_hvac.name} Heat Pump Heating Coil")
 
       new_heating_coil.setRatedHeatingCoefficientofPerformance(4.2)
-      # new_heating_coil.setHeatingCapacityCoefficient1(0.237847462869254)
-      # new_heating_coil.setHeatingCapacityCoefficient2(-3.35823796081626)
-      # new_heating_coil.setHeatingCapacityCoefficient3(3.80640467406376)
-      # new_heating_coil.setHeatingCapacityCoefficient4(0.179200417311554)
-      # new_heating_coil.setHeatingCapacityCoefficient5(0.12860719846082)
-      # new_heating_coil.setHeatingPowerConsumptionCoefficient1(-3.79175529243238)
-      # new_heating_coil.setHeatingPowerConsumptionCoefficient2(3.38799239505527)
-      # new_heating_coil.setHeatingPowerConsumptionCoefficient3(1.5022612076303)
-      # new_heating_coil.setHeatingPowerConsumptionCoefficient4(-0.177653510577989)
-      # new_heating_coil.setHeatingPowerConsumptionCoefficient5(-0.103079864171839)
       condenser_loop.addDemandBranchForComponent(new_heating_coil)
 
       # add supply fan
@@ -695,119 +622,219 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
       # get outlet node of preheat coil to place setpoint manager
       preheat_sm_location = preheat_coil.outletModelObject.get.to_Node.get
       preheat_coil_setpoint_manager.addToNode(preheat_sm_location)
+    
+    end
 
-      # # Set the efficiency of the heat pump system
-      # heat_pump.setRatedCoolingCOP(4.0)
-      # heat_pump.setRatedHeatingCoefficientofPerformance(4.0)
+    # add dcv to air loop if dcv arg is true
+    if dcv == true
 
-      # Add the thermal zone to the new heat pump system
-      # heat_pump.addToThermalZone(thermal_zone)
+      #check applicability
+      # # build standard to access methods
+      orig_hvac_code_comstock = model.getBuilding.additionalProperties.getFeatureAsString("hvac_as_constructed_template")
+      std = Standard.build(orig_hvac_code_comstock.to_s)
 
-      # Remove the packaged single zone system
-      # air_loop_hvac.remove
+      # list of space types where DCV will not be applied
+      space_types_no_dcv = [
+        'Kitchen',
+        'kitchen',
+        'PatRm',
+        'PatRoom',
+        'Lab',
+        'Exam',
+        'PatCorridor',
+        'BioHazard',
+        'Exam',
+        'OR',
+        'PreOp',
+        'Soil Work',
+        'Trauma',
+        'Triage',
+        'PhysTherapy',
+        'Data Center',
+        'CorridorStairway',
+        'Corridor',
+        'Mechanical',
+        'Restroom',
+        'Entry',
+        'Dining',
+        'IT_Room',
+        'LockerRoom',
+        'Stair',
+        'Toilet',
+        'MechElecRoom',
+      ]
+    
+      no_outdoor_air_loops = 0
+      no_per_person_rates_loops = 0
+      constant_volume_doas_loops = 0
+      existing_dcv_loops = 0
+      ervs = 0
+      ineligible_space_types = 0
+      selected_air_loops = []
+      model.getAirLoopHVACs.each do |air_loop_hvac|
+        
+        # check for prevelance of OA system in air loop; skip if none
+        oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem
+        if oa_system.is_initialized
+          oa_system = oa_system.get
+        else
+          no_outdoor_air_loops += 1
+          runner.registerInfo("Air loop '#{air_loop_hvac.name}' does not have outdoor air and cannot have demand control ventilation.")
+          next
+        end
 
-      # add dcv to air loop if dcv flag is true
+        # check if airloop is DOAS; skip if true
+        sizing_system = air_loop_hvac.sizingSystem
+        type_of_load = sizing_system.typeofLoadtoSizeOn
+        if type_of_load == 'VentilationRequirement'
+          constant_volume_doas_loops += 1
+          runner.registerInfo("Air loop '#{air_loop_hvac.name}' is a constant volume DOAS system and cannot have demand control ventilation.")
+          next
+        end
 
-      if dcv == true
-        oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+        # Check for ERV. If the air loop has an ERV, air loop is not applicable for DCV measure.
+        erv_components = []
+        air_loop_hvac.oaComponents.each do |component|
+            component_name = component.name.to_s
+            next if component_name.include? "Node"
+            if component_name.include? "ERV"
+              erv_components << component
+            end
+          end
+        if erv_components.any?
+          runner.registerInfo("Air loop '#{air_loop_hvac.name}' has an ERV. DCV will not be applied.")
+          ervs += 1
+          next
+        end
+
+        # check to see if airloop has existing DCV
+        # TODO - if it does have DCV, check to see if all zones are getting DCV
         controller_oa = oa_system.getControllerOutdoorAir
         controller_mv = controller_oa.controllerMechanicalVentilation
-        controller_mv.setDemandControlledVentilation(true)
+        if controller_mv.demandControlledVentilation
+          existing_dcv_loops += 1
+          runner.registerInfo("Air loop '#{air_loop_hvac.name}' already has demand control ventilation enabled.")
+          next
+        end
+
+        # check to see if airloop has applicable space types
+        # these space types are often ventilation driven, or generally do not use ventilation rates per person
+        # exclude these space types: kitchens, laboratories, patient care rooms
+        # TODO - add functionality to add DCV to multizone systems to applicable zones only
+        space_no_dcv = 0
+        space_dcv = 0
+        air_loop_hvac.thermalZones.sort.each do |zone|
+          zone.spaces.each do |space|
+            if space_types_no_dcv.any? { |i| space.spaceType.get.name.to_s.include? i }
+              space_no_dcv += 1
+            else
+              space_dcv += 1
+            end
+          end
+        end
+        unless space_dcv >= 1
+          runner.registerInfo("Air loop '#{air_loop_hvac.name}' serves only ineligible space types. DCV will not be applied.")
+          ineligible_space_types += 1
+          next
+        end
+        
+        runner.registerInfo("Air loop '#{air_loop_hvac.name}' does not have existing demand control ventilation.  This measure will enable it.")
+        selected_air_loops << air_loop_hvac
       end
 
-      # add economizer
-      if econ == true
-        # set parameters
-        oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
-        controller_oa = oa_system.getControllerOutdoorAir
-        # econ_type = std.model_economizer_type(model, climate_zone)
-        # set economizer type
-        controller_oa.setEconomizerControlType('DifferentialEnthalpy')
-        # set drybulb temperature limit; per 90.1-2013, this is constant 75F for all climates
-        drybulb_limit_f = 75
-        drybulb_limit_c = OpenStudio.convert(drybulb_limit_f, 'F', 'C').get
-        controller_oa.setEconomizerMaximumLimitDryBulbTemperature(drybulb_limit_c)
-        # set lockout for integrated heating
-        controller_oa.setLockoutType('LockoutWithHeating')
+      if selected_air_loops.size.zero?
+        runner.registerInfo('Model does not contain air loops eligible for enabling demand control ventilation.')
+      elsif model.getBuilding.name.to_s.include?("hotel") || model.getBuilding.name.to_s.include?("Hotel") || model.getBuilding.name.to_s.include?("Htl") || model.getBuilding.name.to_s.include?("Mtl")
+          runner.registerInfo("Building is a hotel. DCV measure is not applicable.")
+      elsif ((model.getBuilding.name.to_s.include?("restaurant") || model.getBuilding.name.to_s.include?("Restaurant") || model.getBuilding.name.to_s.include?("RSD") || model.getBuilding.name.to_s.include?("RFF"))) && !(model.getBuilding.name.to_s.include?("Strip") || model.getBuilding.name.to_s.include?("strip"))
+          runner.registerInfo("Building is a restaurant or strip mall. DCV measure is not applicable.")
+      else 
+        #get path to DCV measure
+        dcv_measure_path = Dir.glob(File.join(__dir__, '../upgrade_hvac_dcv'))
+        # Load dcv measure
+        measure = HVACDCV.new
+
+        # Apply dcv measure
+        result = measure.run(model, runner, OpenStudio::Measure::OSArgumentMap.new)
+        result = runner.result
+
+        # Check if the measure ran successfully
+        if result.value.valueName == 'Success' || result.value.valueName == 'NA'
+          runner.registerInfo('DCV measure was applied successfully.')
+        # elsif result.value.valueName == 'NA'
+        #   runner.registerInfo('DCV measure was not applicable.')
+        else
+          runner.registerError('DCV measure failed.')
+          return  false
+        end
       end
+    end
 
-      # make sure existing economizer is integrated or it wont work with multispeed coil
-      oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
-      controller_oa = oa_system.getControllerOutdoorAir
-      controller_oa.setLockoutType('LockoutWithHeating') unless controller_oa.getEconomizerControlType == 'NoEconomizer'
+    # add economizer if economizer arg is true
+    if econ == true
 
-      # Energy recovery
-      # check for ERV, and get components
-      # ERV components will be removed and replaced if ERV flag was selected
-      # If ERV flag was not selected, ERV equipment will remain in place as-is
-      erv_components = []
-      air_loop_hvac.oaComponents.each do |component|
-        component_name = component.name.to_s
-        next if component_name.include? 'Node'
+      # check applicability
+      no_outdoor_air_loops = 0
+      doas_loops = 0
+      existing_economizer_loops = 0
+      selected_air_loops = []
+      model.getAirLoopHVACs.each do |air_loop_hvac|
+        oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem
+        if oa_system.is_initialized
+          oa_system = oa_system.get
+        else
+          no_outdoor_air_loops += 1
+          runner.registerInfo("Air loop #{air_loop_hvac.name} does not have outdoor air and cannot economize.")
+          next
+        end
 
-        if component_name.include? 'ERV'
-          erv_components << component
-          erv_components = erv_components.uniq
+        sizing_system = air_loop_hvac.sizingSystem
+        type_of_load = sizing_system.typeofLoadtoSizeOn
+        if type_of_load == 'VentilationRequirement'
+          doas_loops += 1
+          runner.registerInfo("Air loop #{air_loop_hvac.name} is a DOAS system and cannot economize.")
+          next
+        end
+
+        oa_controller = oa_system.getControllerOutdoorAir
+        economizer_type = oa_controller.getEconomizerControlType
+        if economizer_type == 'NoEconomizer'
+          runner.registerInfo("Air loop #{air_loop_hvac.name} does not have an existing economizer.  This measure will add an economizer.")
+          selected_air_loops << air_loop_hvac
+        else
+          existing_economizer_loops += 1
+          runner.registerInfo("Air loop #{air_loop_hvac.name} has an existing #{economizer_type} economizer.")
         end
       end
 
-      # add energy recovery if specified
-      next unless hr == true
-
-      # if there was not previosuly an ERV, add 0.5" (124.42 pascals) static to supply fan
-      fan.setPressureRise(fan_static_pressure + 124.42) if erv_components.empty?
-      # remove existing ERV; these will be replaced with new ERV equipment
-      erv_components.each(&:remove)
-      # get oa system
-      oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
-
-      # Get the min OA flow rate from the OA; this is used below
-      oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
-      controller_oa = oa_system.getControllerOutdoorAir
-      oa_flow_m3_per_s = nil
-      if controller_oa.minimumOutdoorAirFlowRate.is_initialized
-        oa_flow_m3_per_s = controller_oa.minimumOutdoorAirFlowRate.get
-      elsif controller_oa.autosizedMinimumOutdoorAirFlowRate.is_initialized
-        oa_flow_m3_per_s = controller_oa.autosizedMinimumOutdoorAirFlowRate.get
+      if selected_air_loops.size.zero?
+        runner.registerInfo("Economizer measure is not applicable. Skipping.")
       else
-        runner.registerWarning("No outdoor air sizing information was found for #{controller_oa.name}, which is required for setting ERV wheel power consumption.")
-        return false
-      end
+        #get path to economizer measure
+        econ_measure_path = Dir.glob(File.join(__dir__, '../upgrade_hvac_economizer'))
+        # Load economizer measure
+        measure = HVACEconomizer.new
 
-      # add new HR system
-      new_hr = OpenStudio::Model::HeatExchangerAirToAirSensibleAndLatent.new(model)
-      # update parameters
-      new_hr.addToNode(oa_system.outboardOANode.get)
-      new_hr.setAvailabilitySchedule(always_on)
-      new_hr.setEconomizerLockout(true)
-      new_hr.setFrostControlType('ExhaustOnly')
-      new_hr.setThresholdTemperature(0) # 32F, from Daikin
-      new_hr.setInitialDefrostTimeFraction(0.083) # 5 minutes every 60 minutes, from Daikin
-      new_hr.setRateofDefrostTimeFractionIncrease(0.024) # from E+ recommended values
-      new_hr.setHeatExchangerType('Rotary')
-      new_hr.setName("#{air_loop_hvac.name} ERV")
-      # set wheel power consumption if OA flow rate is available, else autosize; from DOE prototypes which exceed 90.1
-      if oa_flow_m3_per_s.empty?
-      else
-        default_fan_efficiency = 0.5
-        power = (oa_flow_m3_per_s * 212.5 / default_fan_efficiency) + (oa_flow_m3_per_s * 0.9 * 162.5 / default_fan_efficiency) + 50
-        new_hr.setNominalElectricPower(power)
+        # Apply economizer measure
+        result = measure.run(model, runner, OpenStudio::Measure::OSArgumentMap.new)
+        result = runner.result
+
+        # Check if the measure ran successfully
+        if result.value.valueName == 'Success'
+          runner.registerInfo('Economizer measure was applied successfully.')
+        elsif result.value.valueName == 'NA'
+          runner.registerInfo('Economizer measure was not applicable.')
+          result = true
+        else
+          runner.registerError('Economizer measure failed.')
+          return  false
+        end
       end
-      # set efficiencies; from DOE prototypes which exceed 90.1
-      new_hr.setSupplyAirOutletTemperatureControl(false)
-      new_hr.setSensibleEffectivenessat100HeatingAirFlow(0.76)
-      new_hr.setSensibleEffectivenessat75HeatingAirFlow(0.81)
-      new_hr.setLatentEffectivenessat100HeatingAirFlow(0.68)
-      new_hr.setLatentEffectivenessat75HeatingAirFlow(0.73)
-      new_hr.setSensibleEffectivenessat100CoolingAirFlow(0.76)
-      new_hr.setSensibleEffectivenessat75CoolingAirFlow(0.81)
-      new_hr.setLatentEffectivenessat100CoolingAirFlow(0.68)
-      new_hr.setLatentEffectivenessat75CoolingAirFlow(0.73)
     end
 
     # do sizing run to get coil capacities to scale coil performance data
     if std.model_run_sizing_run(model, "#{Dir.pwd}/coil_curving_scaling_SR") == false
-    	runner.registerError("Sizing runto scale coil performance data failed, cannot hard-size model.")
+    	runner.registerError("Sizing run to scale coil performance data failed, cannot hard-size model.")
     	# puts("Sizing run to scale coil performance data failed, cannot hard-size model.")
     	# puts("directory: #{Dir.pwd}/CoilCurveScalingSR")
     	return false
@@ -923,76 +950,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     		runner.registerError("Could not find fan for unitary system (#{unitary_sys.name})")
     		return false
     	end
-    	# puts "*************************************"
-    	# puts "Heating capacity = #{heating_capacity.round(2)} W"
-    	# puts "Cooling capacity = #{cooling_capacity.round(2)} W"
-    	# puts "Heating air flow = #{heating_air_flow.round(5)} m3/s"
-    	# puts "Cooling air flow = #{cooling_air_flow.round(5)} m3/s"
-    	# puts "Fan air flow = #{fan_air_flow.round(5)} m3/s"
-    	# puts "Heating water flow = #{heating_water_flow.round(5)} m3/s"
-    	# puts "Cooling water flow = #{cooling_water_flow.round(5)} m3/s"
     end
-
-    # unless model.getHeatPumpPlantLoopEIRCoolings.empty?
-    #   puts "***********************************"
-    #   puts "***********************************"
-    #   puts "Reporting HeatPumpPlantLoopEIRCooling objects"
-    #   puts "***********************************"
-    #   model.getHeatPumpPlantLoopEIRCoolings.each do |hp|
-    #     puts hp
-    #   end
-    # end
-
-
-    # unless model.getHeatPumpPlantLoopEIRHeatings.empty?
-    #   puts "***********************************"
-    #   puts "***********************************"
-    #   puts "Reporting HeatPumpPlantLoopEIRHeating objects"
-    #   puts "***********************************"
-    #   model.getHeatPumpPlantLoopEIRHeatings.each do |hp|
-    #     puts hp
-    #   end
-    # end
-
-    # unless model.getCoilCoolingWaterToAirHeatPumpEquationFits.empty?
-    #   puts "***********************************"
-    #   puts "***********************************"
-    #   puts "Reporting CoilCoolingWaterToAirHeatPumpEquationFit objects"
-    #   puts "***********************************"
-    #   model.getCoilCoolingWaterToAirHeatPumpEquationFits.each do |coil|
-    #     puts coil
-    #   end
-    # end
-
-    # unless model.getCoilHeatingWaterToAirHeatPumpEquationFits.empty?
-    #   puts "***********************************"
-    #   puts "***********************************"
-    #   puts "Reporting CoilHeatingWaterToAirHeatPumpEquationFit objects"
-    #   puts "***********************************"
-    #   model.getCoilHeatingWaterToAirHeatPumpEquationFits.each do |coil|
-    #     puts coil
-    #   end
-    # end
-
-    # unless model.getTableLookups.empty?
-    #   puts "***********************************"
-    #   puts "***********************************"
-    #   puts "Reporting TableLookup objects"
-    #   puts "***********************************"
-    #   model.getTableLookups.each do |table|
-    #     puts table
-    #   end
-    # end
-
-    # unless model.getTableIndependentVariables.empty?
-    #   puts "***********************************"
-    #   puts "***********************************"
-    #   puts "Reporting TableIndependentVariable objects"
-    #   puts "***********************************"
-    #   model.getTableIndependentVariables.each do |ind_var|
-    #     puts ind_var
-    #   end
-    # end
 
     # add output variable for GHEDesigner
     reporting_frequency = 'Hourly'
@@ -1162,7 +1120,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     ground_loop.removeSupplyBranchWithComponent(ground_temp_source)
     runner.registerInfo("Replaced temporary ground temperature source with vertical ground heat exchanger #{ghx}.")
 
-    runner.registerFinalCondition("Replaced #{psz_air_loops.size} packaged single zone RTUs  and #{vav_air_loops.size} VAVs with packaged water-to-air ground source heat pumps.")
+    runner.registerFinalCondition("Replaced #{psz_air_loops.size} packaged single zone RTUs  and #{pvav_air_loops.size} PVAVs with packaged water-to-air ground source heat pumps.")
     true
   end
 end
