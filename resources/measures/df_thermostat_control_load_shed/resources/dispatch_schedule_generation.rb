@@ -463,7 +463,6 @@ def run_samples(model, year, selectdays, num_timesteps_in_hr, epw_path=nil)
     'cold' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] }
   }
 
-  run_time = 0
   selectdays.keys.each do |key|
     selectdays[key].keys.each do |keykey|
       # puts key, keykey
@@ -492,9 +491,6 @@ def run_samples(model, year, selectdays, num_timesteps_in_hr, epw_path=nil)
             y_seed[key][keykey] = yd.zip(y_seed[key][keykey]).map { |a, b| (a/ns+b) }
           end
         end
-        # end_time = Time.now
-        run_time += end_time - start_time
-        # puts "Script execution time: #{end_time - start_time} seconds"
         # y_seed[key][keykey] = yd / selectdays[key][keykey].length.to_f
         # puts y_seed[key][keykey]
         # break
@@ -504,7 +500,6 @@ def run_samples(model, year, selectdays, num_timesteps_in_hr, epw_path=nil)
     end
     # break
   end
-  # puts "Run time for sample simulation run: #{run_time} seconds"
   return y_seed
 end
 
