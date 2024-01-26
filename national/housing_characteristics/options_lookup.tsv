@@ -5066,3 +5066,5 @@ reeds_balancing_area	*
 resstock_county_id	*
 resstock_puma_id	*
 resstock_custom_region	*
+cluster_id	*
+cluster_name	*
