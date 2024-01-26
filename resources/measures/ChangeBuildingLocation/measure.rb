@@ -286,8 +286,8 @@ class ChangeBuildingLocation < OpenStudio::Measure::ModelMeasure
       # grab only the ones that matter
       ddy_list = [
         /Htg 99.6. Condns DB/, # Annual heating 99.6%
-        /Clg .4. Condns WB=>MDB/, # Annual cooling
-        /Clg .4. Condns DB=>MWB/, # Annual humidity (for cooling towers and evap coolers)
+        /Clg .4. Condns WB=>MDB/, # Annual humidity (for cooling towers and evap coolers)
+        /Clg .4. Condns DB=>MWB/, # Annual cooling
         /August .4. Condns DB=>MCWB/, # Monthly cooling DB=>MCWB (to handle solar-gain-driven cooling)
         /September .4. Condns DB=>MCWB/,
         /October .4. Condns DB=>MCWB/

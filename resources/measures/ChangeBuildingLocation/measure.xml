@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>change_building_location</name>
   <uid>d4db4971-f5ba-11e3-a3ac-0800200c9a66</uid>
-  <version_id>5e30b4d3-50c3-4c4a-ab26-beabc26b5caf</version_id>
-  <version_modified>2024-01-24T23:25:27Z</version_modified>
+  <version_id>b2127c2c-d32e-48c2-98e6-1974815395ca</version_id>
+  <version_modified>2024-01-26T03:26:16Z</version_modified>
   <xml_checksum>057E8D9D</xml_checksum>
   <class_name>ChangeBuildingLocation</class_name>
   <display_name>ChangeBuildingLocation</display_name>
@@ -335,7 +335,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>C892E512</checksum>
+      <checksum>680AE904</checksum>
     </file>
     <file>
       <filename>epw.rb</filename>
