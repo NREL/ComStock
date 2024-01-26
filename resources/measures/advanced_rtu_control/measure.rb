@@ -156,10 +156,118 @@ require 'openstudio-standards'
 	end
   end
 def no_DCV_zones?(air_loop_hvac)
-	air_loop_hvac.thermalZones.each do |thermal_zone| #iterate thru thermal zones and modify zone-level terminal units
-		return true if ['patient', 'Outpatient', 'OUTPATIENT', 'outpatient', 'PATIENT', 'Patient', 'kitchen', 'Kitchen', 'dining', 'Dining', 'laboratory', 'Laboratory', 'KITCHEN', 'LABORATORY', 'DINING'].any? { |word| (thermal_zone.name.get).include?(word) }
-	end
-	return false
+	# air_loop_hvac.thermalZones.each do |thermal_zone| #iterate thru thermal zones and modify zone-level terminal units
+		# return true if ['patient', 'Outpatient', 'OUTPATIENT', 'outpatient', 'PATIENT', 'Patient', 'kitchen', 'Kitchen', 'dining', 'Dining', 'laboratory', 'Laboratory', 'KITCHEN', 'LABORATORY', 'DINING'].any? { |word| (thermal_zone.name.get).include?(word) }
+	# end
+	# return false
+	selected_air_loops = []
+	 # check for prevelance of OA system in air loop; skip if none
+	  space_types_no_dcv = [
+      'Kitchen',
+      'kitchen',
+      'PatRm',
+      'PatRoom',
+      'Lab',
+      'Exam',
+      'PatCorridor',
+      'BioHazard',
+      'Exam',
+      'OR',
+      'PreOp',
+      'Soil Work',
+      'Trauma',
+      'Triage',
+      'PhysTherapy',
+      'Data Center',
+      'CorridorStairway',
+      'Corridor',
+      'Mechanical',
+      'Restroom',
+      'Entry',
+      'Dining',
+      'IT_Room',
+      'LockerRoom',
+      'Stair',
+      'Toilet',
+      'MechElecRoom',
+    ]
+  
+      oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem
+      if oa_system.is_initialized
+        oa_system = oa_system.get
+      else
+        #no_outdoor_air_loops += 1
+		return true
+      end
+
+      # check if airloop is DOAS; skip if true
+      sizing_system = air_loop_hvac.sizingSystem
+      type_of_load = sizing_system.typeofLoadtoSizeOn
+      if type_of_load == 'VentilationRequirement'
+        #constant_volume_doas_loops += 1
+        #runner.registerInfo("Air loop '#{air_loop_hvac.name}' is a constant volume DOAS system and cannot have demand control ventilation.")
+        return true 
+      end
+
+      # Check for ERV. If the air loop has an ERV, air loop is not applicable for DCV measure.
+      erv_components = []
+      air_loop_hvac.oaComponents.each do |component|
+          component_name = component.name.to_s
+          next if component_name.include? "Node"
+          if component_name.include? "ERV"
+            erv_components << component
+          end
+        end
+      if erv_components.any?
+        #runner.registerInfo("Air loop '#{air_loop_hvac.name}' has an ERV. DCV will not be applied.")
+        #ervs += 1
+        return true 
+      end
+
+      # check to see if airloop has existing DCV
+      # TODO - if it does have DCV, check to see if all zones are getting DCV
+      controller_oa = oa_system.getControllerOutdoorAir
+      controller_mv = controller_oa.controllerMechanicalVentilation
+      if controller_mv.demandControlledVentilation
+        #existing_dcv_loops += 1
+        #runner.registerInfo("Air loop '#{air_loop_hvac.name}' already has demand control ventilation enabled.")
+        return true 
+      end
+
+      # check to see if airloop has applicable space types
+      # these space types are often ventilation driven, or generally do not use ventilation rates per person
+      # exclude these space types: kitchens, laboratories, patient care rooms
+      # TODO - add functionality to add DCV to multizone systems to applicable zones only
+      space_no_dcv = 0
+      space_dcv = 0
+      air_loop_hvac.thermalZones.sort.each do |zone|
+        zone.spaces.each do |space|
+          if space_types_no_dcv.any? { |i| space.spaceType.get.name.to_s.include? i }
+            space_no_dcv += 1
+          else
+            space_dcv += 1
+          end
+        end
+      end
+      if space_no_dcv >= 1
+        #runner.registerInfo("Air loop '#{air_loop_hvac.name}' serves only ineligible space types. DCV will not be applied.")
+        #ineligible_space_types += 1
+        return true 
+      end
+      
+      # #runner.registerInfo("Air loop '#{air_loop_hvac.name}' does not have existing demand control ventilation.  This measure will enable it.")
+      # selected_air_loops << air_loop_hvac
+    # #end
+
+    # # report initial condition of model
+    # #runner.registerInitialCondition("Out of #{model.getAirLoopHVACs.size} air loops, #{no_outdoor_air_loops} do not have outdoor air, #{no_per_person_rates_loops} have a zone without per-person OA rates, #{constant_volume_doas_loops} are constant volume DOAS systems, #{ervs} have ERVs, #{ineligible_space_types} serve ineligible space types, and #{existing_dcv_loops} already have demand control ventilation enabled, leaving #{selected_air_loops.size} eligible for demand control ventilation.")
+
+    # if selected_air_loops.size.zero?
+      # #runner.registerInfo('Model does not contain air loops eligible for enabling demand control ventilation.')
+      # return true
+    # end
+	
+	return false 
 end
 
 def air_loop_doas?(air_loop_hvac)
@@ -357,7 +465,8 @@ def run(model, runner, user_arguments)
 	#handle DCV in appropriate air loops, after screening out those that aren't suitable
 	 if add_dcv
 		overall_sel_air_loops.sort.each do |air_loop_hvac|
-			unless ((['kitchen', 'Kitchen', 'dining', 'Dining', 'Laboratory', 'KITCHEN', 'LABORATORY', 'DINING', 'patient', 'PATIENT', 'Patient'].any? { |word| (air_loop_hvac.name.get).include?(word) } )|| (no_DCV_zones?(air_loop_hvac)))
+			unless(no_DCV_zones?(air_loop_hvac))
+			runner.registerInfo("adding dcv") 
 			oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
 			controller_oa = oa_system.getControllerOutdoorAir
 			controller_mv = controller_oa.controllerMechanicalVentilation
@@ -430,8 +539,8 @@ def run(model, runner, user_arguments)
 	end
 	standard.air_loop_hvac_enable_demand_control_ventilation(air_loop_hvac, '')
 end 	
-	 end
-	end
+end
+end
 	if add_econo #handle economizing if implementing it
 		overall_sel_air_loops.sort.each do |air_loop_hvac|
 			oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem
