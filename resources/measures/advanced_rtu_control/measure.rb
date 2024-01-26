@@ -428,6 +428,7 @@ def run(model, runner, user_arguments)
 			end
 		end
 	end
+	standard.air_loop_hvac_enable_demand_control_ventilation(air_loop_hvac, '')
 end 	
 	 end
 	end
