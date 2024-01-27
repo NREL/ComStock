@@ -38,6 +38,92 @@ require 'openstudio-standards'
     end
     return is_unitary_system
   end
+  
+ def no_change_zones?(air_loop_hvac)
+	selected_air_loops = []
+	  space_types_no_change = [
+      'Kitchen',
+      'kitchen',
+      'PatRm',
+      'PatRoom',
+      'Lab',
+      'Exam',
+      'PatCorridor',
+      'BioHazard',
+      'Exam',
+      'OR',
+      'PreOp',
+      'Soil Work',
+      'Trauma',
+      'Triage',
+      'PhysTherapy',
+	  'outpatient', 
+	  'Outpatient',
+	  'Hospital', 
+	  'hospital',
+	  'epr',
+	  'EPR', 
+	  'EPr', 
+	  'HOSPITAL', 
+	  'OUTPATIENT', 
+	  'school',
+	  'SCHOOL', 
+	  'School', 
+	  'k12',
+	  'K12', 
+	  'education', 
+	  'EDUCATION', 
+	  'Education', 
+	  'DOAS', 
+	  'doas', 
+	  'Hotel',
+	  'hotel', 
+	  'HOTEL'
+
+    ]
+  
+      # oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem
+      # if oa_system.is_initialized
+        # oa_system = oa_system.get
+      # else
+        # #no_outdoor_air_loops += 1
+		# return true
+      # end
+
+
+      # check to see if airloop has applicable space types
+      # these space types are often ventilation driven, or generally do not use ventilation rates per person
+      # exclude these space types: kitchens, laboratories, patient care rooms
+      # TODO - add functionality to add DCV to multizone systems to applicable zones only
+      space_types_no_change_count = 0
+      air_loop_hvac.thermalZones.sort.each do |zone|
+        zone.spaces.each do |space|
+          if space_types_no_change.any? { |i| space.spaceType.get.name.to_s.include? i }
+            space_types_no_change_count += 1
+          else
+          end
+        end
+      end
+      if space_types_no_change_count >= 1
+        #runner.registerInfo("Air loop '#{air_loop_hvac.name}' serves only ineligible space types. DCV will not be applied.")
+        #ineligible_space_types += 1
+        return true 
+      end
+      
+      # #runner.registerInfo("Air loop '#{air_loop_hvac.name}' does not have existing demand control ventilation.  This measure will enable it.")
+      # selected_air_loops << air_loop_hvac
+    # #end
+
+    # # report initial condition of model
+    # #runner.registerInitialCondition("Out of #{model.getAirLoopHVACs.size} air loops, #{no_outdoor_air_loops} do not have outdoor air, #{no_per_person_rates_loops} have a zone without per-person OA rates, #{constant_volume_doas_loops} are constant volume DOAS systems, #{ervs} have ERVs, #{ineligible_space_types} serve ineligible space types, and #{existing_dcv_loops} already have demand control ventilation enabled, leaving #{selected_air_loops.size} eligible for demand control ventilation.")
+
+    # if selected_air_loops.size.zero?
+      # #runner.registerInfo('Model does not contain air loops eligible for enabling demand control ventilation.')
+      # return true
+    # end
+	
+	return false 
+end
 
   # determine if the air loop is residential (checks to see if there is outdoor air system object)
   def self.air_loop_res?(air_loop_hvac)
@@ -102,7 +188,7 @@ require 'openstudio-standards'
       next if UnoccupiedOAControls.air_loop_res?(air_loop_hvac)
       next if UnoccupiedOAControls.air_loop_doas?(air_loop_hvac)
       # skip outpatient healthcare, hospitals, and schools 
-      next if ['outpatient', 'Outpatient', 'Hospital', 'hospital', 'epr', 'EPR', 'EPr', 'HOSPITAL', 'OUTPATIENT', 'school', 'SCHOOL', 'School', 'k12', 'K12', 'education', 'EDUCATION', 'Education', 'DOAS', 'doas', 'Hotel', 'hotel', 'HOTEL'].any? { |word| (air_loop_hvac.name.get).include?(word) }
+      next if no_change_zones?(air_loop_hvac) #screen out space types this shouldn't be applied to 
       # check unitary systems
       if UnoccupiedOAControls.air_loop_hvac_unitary_system?(air_loop_hvac)
         unitary_system_count += 1
