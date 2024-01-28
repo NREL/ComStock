@@ -143,7 +143,7 @@ end
   def self.air_loop_doas?(air_loop_hvac)
     is_doas = false
     sizing_system = air_loop_hvac.sizingSystem
-    if sizing_system.allOutdoorAirinCooling && sizing_system.allOutdoorAirinHeating && (NighttimeOAControls.air_loop_res?(air_loop_hvac) == false) && (air_loop_hvac.name.to_s.include?("DOAS") || air_loop_hvac.name.to_s.include?("doas"))
+    if sizing_system.allOutdoorAirinCooling && sizing_system.allOutdoorAirinHeating && (UnoccupiedOAControls.air_loop_res?(air_loop_hvac) == false) && (air_loop_hvac.name.to_s.include?("DOAS") || air_loop_hvac.name.to_s.include?("doas"))
       is_doas = true
     end
     return is_doas
@@ -231,7 +231,7 @@ end
     end
 	
 	if constant_schedules == 0 
-	     runner.registerAsNotApplicable('No constant HVAC operation schedules found--measure not applicable.') 
+	     runner.registerAsNotApplicable('No constant HVAC operation schedules or no candidate air loops found--measure not applicable.') 
 		 return true 
 	end 
 
