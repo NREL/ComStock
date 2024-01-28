@@ -4949,6 +4949,15 @@ baseline_window_type	Triple - LowE - Clear - Thermally Broken Aluminum	replace_b
 baseline_window_type	Triple - LowE - Tinted/Reflective - Thermally Broken Aluminum	replace_baseline_windows	window_pane_type=Triple - LowE - Tinted/Reflective - Thermally Broken Aluminum	u_value_ip=0.299	shgc=0.224	vlt=0.32
 baseline_hvac_sizing	autosize	hardsize_model	apply_hardsize=false
 baseline_hvac_sizing	hardsize	hardsize_model	apply_hardsize=true
+ground_thermal_conductivity	0.5	ChangeBuildingLocation	soil_conductivity=0.5																																											
+ground_thermal_conductivity	0.8	ChangeBuildingLocation	soil_conductivity=0.8																																											
+ground_thermal_conductivity	1.1	ChangeBuildingLocation	soil_conductivity=1.1																																											
+ground_thermal_conductivity	1.4	ChangeBuildingLocation	soil_conductivity=1.4																																											
+ground_thermal_conductivity	1.7	ChangeBuildingLocation	soil_conductivity=1.7																																											
+ground_thermal_conductivity	2.0	ChangeBuildingLocation	soil_conductivity=2.0
+ground_thermal_conductivity	2	ChangeBuildingLocation	soil_conductivity=2.0																																											
+ground_thermal_conductivity	2.3	ChangeBuildingLocation	soil_conductivity=2.3																																											
+ground_thermal_conductivity	2.6	ChangeBuildingLocation	soil_conductivity=2.6
 env_exterior_wall_insulation	exterior_wall_insulation	upgrade_env_exterior_wall_insulation
 env_roof_insul_aedg	roof_insul_aedg	upgrade_env_roof_insul_aedg
 env_secondary_windows	secondary_windows	upgrade_env_secondary_windows
@@ -4977,7 +4986,7 @@ hvac_vrf_hr_doas	vrf_hr	upgrade_hvac_vrf_hr_doas	vrf_defrost_strategy=reverse-cy
 hvac_add_doas_heat_pump_minisplit	hp_minisplit_default	upgrade_hvac_doas_hp_minisplits	area_limit_sf=20000		doas_htg_fuel=electric_resistance	performance_oversizing_factor=0.35
 hvac_replace_boiler_by_heatpump	boiler_backup_new_hot_water_setpoint_coil_autosize	upgrade_hvac_replace_boiler_by_heatpump	keep_setpoint=false	hw_setpoint_F=140.0	autosize_hc=true	sizing_method=Outdoor Air Temperature	hp_sizing_temp=17.0	hp_sizing_per=70.0	hp_des_cap=40.0	bu_type=New Electric Resistance Heater	hpwh_cutoff_T=-5	hpwh_Design_OAT=47.0	cop=2.85
 hvac_replace_boiler_by_heatpump	gas_boiler_backup_new_hot_water_setpoint_coil_autosize	upgrade_hvac_replace_boiler_by_heatpump	keep_setpoint=false	hw_setpoint_F=140.0	autosize_hc=true	sizing_method=Outdoor Air Temperature	hp_sizing_temp=17.0	hp_sizing_per=70.0	hp_des_cap=40.0	bu_type=Existing Boiler	hpwh_cutoff_T=-5	hpwh_Design_OAT=47.0	cop=2.85
-hvac_economizer	apply_measure	upgrade_hvac_economizer	apply_measure=true
+hvac_economizer	apply_measure	upgrade_hvac_economizer
 hvac_dcv_v2	demand_control_ventilation	upgrade_hvac_dcv
 hvac_exhaust_air_energy_or_heat_recovery	add_energy_or_heat_recovery	upgrade_hvac_exhaust_air_energy_or_heat_recovery
 fault_economizer_db_limit	NA	fault_hvac_economizer_changeover_temperature	apply_measure=false	econ_choice=all available economizer	changeovertemp=10.88

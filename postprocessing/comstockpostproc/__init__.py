@@ -3,8 +3,10 @@
 from .comstock import ComStock
 from .cbecs import CBECS
 from .eia import EIA
+from .ami import AMI
 from .comstock_to_cbecs_comparison import ComStockToCBECSComparison
 from .comstock_measure_comparison import ComStockMeasureComparison
+from .comstock_to_ami_comparison import ComStockToAMIComparison
 from .resstock import ResStock
 from .utils.hpc import *
 

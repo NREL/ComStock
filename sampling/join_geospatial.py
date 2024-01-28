@@ -2,6 +2,7 @@
 # See top level LICENSE.txt file for license terms.
 import argparse
 import boto3
+import botocore
 from joblib import Parallel, delayed
 import logging
 import numpy as np
@@ -20,7 +21,7 @@ def download_data(state):
     s3_file_path = 'truth_data/v01/spatial_dists_by_state/{}'.format(file_name)
     bucket_name = 'eulp'
 
-    s3_client = boto3.client('s3')
+    s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
     
     # Check if file exists, if it doesn't query from s3
     if not os.path.exists(local_path):
