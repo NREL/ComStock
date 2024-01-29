@@ -317,7 +317,7 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
 
     # Daily peak median by month (12)
     months.each do |month, month_val|
-      report_sim_output(runner, "med_daily_peak_use_#{month}_kw", daily_peak_stats_by_month(timeseries, month_val, 'med'), '', '')
+      report_sim_output(runner, "median_daily_peak_use_#{month}_kw", daily_peak_stats_by_month(timeseries, month_val, 'med'), '', '')
     end
 
     # Daily peak third quartile (75%) by month (12)

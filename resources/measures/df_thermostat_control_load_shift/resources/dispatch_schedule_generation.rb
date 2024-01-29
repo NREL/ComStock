@@ -147,7 +147,6 @@ def create_binsamples(oat)
     'cold' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] }
   }
 
-  ### NEED TO ADJUST FOR LEAP YEAR 
   (0..nd-1).each do |d|
     # daystats[d] = {
     #   'day' => d + 1,
@@ -307,10 +306,15 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=
     begin_month, begin_day = day_of_year_to_date(year, doy)
     end_month, end_day = day_of_year_to_date(year, doy)
   end
-  # puts("### DEBUGGING: begin_month = #{begin_month}")
-  # puts("### DEBUGGING: begin_day = #{begin_day}")
-  # puts("### DEBUGGING: end_month = #{end_month}")
-  # puts("### DEBUGGING: end_day = #{end_day}")
+  # store original config
+  begin_month_orig = model.getRunPeriod.getBeginMonth
+  begin_day_orig = model.getRunPeriod.getBeginDayOfMonth
+  end_month_orig = model.getRunPeriod.getEndMonth
+  end_day_orig = model.getRunPeriod.getEndDayOfMonth
+  num_timesteps_in_hr_orig = model.getTimestep.numberOfTimestepsPerHour
+  zonesizing_orig = model.getSimulationControl.doZoneSizingCalculation
+  syssizing_orig = model.getSimulationControl.doSystemSizingCalculation
+  plantsizing_orig = model.getSimulationControl.doPlantSizingCalculation
   ### reference: SetRunPeriod measure on BCL
   model.getYearDescription.setCalendarYear(year)
   model.getRunPeriod.setBeginMonth(begin_month)
@@ -436,6 +440,15 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=
   if vals.empty?
     raise 'load profile for the sample run returned empty'
   end
+  # reset model config for upgrade run
+  model.getRunPeriod.setBeginMonth(begin_month_orig)
+  model.getRunPeriod.setBeginDayOfMonth(begin_day_orig)
+  model.getRunPeriod.setEndMonth(end_month_orig)
+  model.getRunPeriod.setEndDayOfMonth(end_day_orig)
+  model.getTimestep.setNumberOfTimestepsPerHour(num_timesteps_in_hr_orig)
+  model.getSimulationControl.setDoZoneSizingCalculation(zonesizing_orig)
+  model.getSimulationControl.setDoSystemSizingCalculation(syssizing_orig)
+  model.getSimulationControl.setDoPlantSizingCalculation(plantsizing_orig)
   return vals
 end
 
@@ -450,7 +463,6 @@ def run_samples(model, year, selectdays, num_timesteps_in_hr, epw_path=nil)
     'cold' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] }
   }
 
-  run_time = 0
   selectdays.keys.each do |key|
     selectdays[key].keys.each do |keykey|
       # puts key, keykey
@@ -479,9 +491,6 @@ def run_samples(model, year, selectdays, num_timesteps_in_hr, epw_path=nil)
             y_seed[key][keykey] = yd.zip(y_seed[key][keykey]).map { |a, b| (a/ns+b) }
           end
         end
-        # end_time = Time.now
-        run_time += end_time - start_time
-        # puts "Script execution time: #{end_time - start_time} seconds"
         # y_seed[key][keykey] = yd / selectdays[key][keykey].length.to_f
         # puts y_seed[key][keykey]
         # break
@@ -491,7 +500,6 @@ def run_samples(model, year, selectdays, num_timesteps_in_hr, epw_path=nil)
     end
     # break
   end
-  # puts "Run time for sample simulation run: #{run_time} seconds"
   return y_seed
 end
 
@@ -513,6 +521,23 @@ def model_run_simulation_on_part_of_year(model, year, max_doy, num_timesteps_in_
   # forward_translator = OpenStudio::EnergyPlus::ForwardTranslator.new
   begin_month, begin_day = day_of_year_to_date(year, 1)
   end_month, end_day = day_of_year_to_date(year, max_doy)
+  # store original config
+  begin_month_orig = model.getRunPeriod.getBeginMonth
+  begin_day_orig = model.getRunPeriod.getBeginDayOfMonth
+  end_month_orig = model.getRunPeriod.getEndMonth
+  end_day_orig = model.getRunPeriod.getEndDayOfMonth
+  num_timesteps_in_hr_orig = model.getTimestep.numberOfTimestepsPerHour
+  zonesizing_orig = model.getSimulationControl.doZoneSizingCalculation
+  syssizing_orig = model.getSimulationControl.doSystemSizingCalculation
+  plantsizing_orig = model.getSimulationControl.doPlantSizingCalculation
+  # puts("### DEBUGGING: begin_month_orig = #{begin_month_orig}")
+  # puts("### DEBUGGING: begin_day_orig = #{begin_day_orig}")
+  # puts("### DEBUGGING: end_month_orig = #{end_month_orig}")
+  # puts("### DEBUGGING: end_day_orig = #{end_day_orig}")
+  # puts("### DEBUGGING: num_timesteps_in_hr_orig = #{num_timesteps_in_hr_orig}")
+  # puts("### DEBUGGING: zonesizing_orig = #{zonesizing_orig}")
+  # puts("### DEBUGGING: syssizing_orig = #{syssizing_orig}")
+  # puts("### DEBUGGING: plantsizing_orig = #{plantsizing_orig}")
   ### reference: SetRunPeriod measure on BCL
   model.getYearDescription.setCalendarYear(year)
   model.getRunPeriod.setBeginMonth(begin_month)
@@ -629,6 +654,15 @@ def model_run_simulation_on_part_of_year(model, year, max_doy, num_timesteps_in_
   if vals.empty?
     raise 'load profile for the sample run returned empty'
   end
+  # reset model config for upgrade run
+  model.getRunPeriod.setBeginMonth(begin_month_orig)
+  model.getRunPeriod.setBeginDayOfMonth(begin_day_orig)
+  model.getRunPeriod.setEndMonth(end_month_orig)
+  model.getRunPeriod.setEndDayOfMonth(end_day_orig)
+  model.getTimestep.setNumberOfTimestepsPerHour(num_timesteps_in_hr_orig)
+  model.getSimulationControl.setDoZoneSizingCalculation(zonesizing_orig)
+  model.getSimulationControl.setDoSystemSizingCalculation(syssizing_orig)
+  model.getSimulationControl.setDoPlantSizingCalculation(plantsizing_orig)
   return vals
 end
 
@@ -729,6 +763,15 @@ def load_prediction_from_full_run(model, year, num_timesteps_in_hr, epw_path=nil
   OpenStudio.logFree(OpenStudio::Debug, 'openstudio.model.Model', "Starting simulation here: #{run_dir}.")
   OpenStudio.logFree(OpenStudio::Info, 'openstudio.model.Model', "Started simulation #{run_dir} at #{Time.now.strftime('%T.%L')}")
   # forward_translator = OpenStudio::EnergyPlus::ForwardTranslator.new
+  # store original config
+  begin_month_orig = model.getRunPeriod.getBeginMonth
+  begin_day_orig = model.getRunPeriod.getBeginDayOfMonth
+  end_month_orig = model.getRunPeriod.getEndMonth
+  end_day_orig = model.getRunPeriod.getEndDayOfMonth
+  num_timesteps_in_hr_orig = model.getTimestep.numberOfTimestepsPerHour
+  zonesizing_orig = model.getSimulationControl.doZoneSizingCalculation
+  syssizing_orig = model.getSimulationControl.doSystemSizingCalculation
+  plantsizing_orig = model.getSimulationControl.doPlantSizingCalculation
   ### reference: SetRunPeriod measure on BCL
   model.getYearDescription.setCalendarYear(year)
   model.getRunPeriod.setBeginMonth(1)
@@ -844,6 +887,15 @@ def load_prediction_from_full_run(model, year, num_timesteps_in_hr, epw_path=nil
     end
     vals = sums
   end
+  # reset model config for upgrade run
+  model.getRunPeriod.setBeginMonth(begin_month_orig)
+  model.getRunPeriod.setBeginDayOfMonth(begin_day_orig)
+  model.getRunPeriod.setEndMonth(end_month_orig)
+  model.getRunPeriod.setEndDayOfMonth(end_day_orig)
+  model.getTimestep.setNumberOfTimestepsPerHour(num_timesteps_in_hr_orig)
+  model.getSimulationControl.setDoZoneSizingCalculation(zonesizing_orig)
+  model.getSimulationControl.setDoSystemSizingCalculation(syssizing_orig)
+  model.getSimulationControl.setDoPlantSizingCalculation(plantsizing_orig)
   return vals
 end
 

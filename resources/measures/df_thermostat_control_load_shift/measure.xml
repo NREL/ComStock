@@ -2,9 +2,9 @@
 <measure>
   <schema_version>3.1</schema_version>
   <name>df_thermostat_control_load_shift</name>
-  <uid>0fdd58b3-9943-40b9-a47f-3db37228b200</uid>
-  <version_id>134f9386-ac35-43b2-b205-8c8e5f2cb429</version_id>
-  <version_modified>2024-01-08T23:14:28Z</version_modified>
+  <uid>97e23fce-5a82-4bdd-9e97-c4b65bfaea90</uid>
+  <version_id>e647164e-4a33-4497-8672-8a95d4c092d9</version_id>
+  <version_modified>2024-01-25T18:37:43Z</version_modified>
   <xml_checksum>D7E77FC2</xml_checksum>
   <class_name>DfThermostatControlLoadShift</class_name>
   <display_name>demand flexibility - thermostat control load shift</display_name>
