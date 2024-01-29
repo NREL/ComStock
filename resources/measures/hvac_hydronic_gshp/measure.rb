@@ -319,14 +319,14 @@ end
       runner.registerAsNotApplicable('Baseboard heaters in model--measure will not be applied.')
       return true
     end
-	
+
 	#Screen out PTAC systems 
 	if model.getAirLoopHVACs.length == 0
 	   runner.registerAsNotApplicable('No air loops in model--measure will not be applied.')
 	   return true 
 	end 
 	
-	#Screen out packaged single zone with gas boiler 
+	#Screen out packaged single zone with gas boiler, district HVAC systems, and PVAV with hot water reheat 
     model.getAirLoopHVACs.each do |air_loop_hvac|
 	      supply_comp = air_loop_hvac.supplyComponents
 		  if air_loop_hvac_served_by_district_energy?(air_loop_hvac)
@@ -344,10 +344,7 @@ end
 				    return true 
 				  end 
 			   end 
-		         
-		  end 
-	end
-
+			   
 
     # change to model.getBoilers....
     # runner.registerInfo("Start time of first loop: #{Time.now} ")
