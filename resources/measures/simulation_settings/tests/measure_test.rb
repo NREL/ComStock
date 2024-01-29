@@ -7,6 +7,7 @@ require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
 require 'minitest/autorun'
 require_relative '../measure.rb'
+require_relative '../../../../test/helpers/minitest_helper'
 require 'fileutils'
 
 class SimulationSettingsTest < Minitest::Test

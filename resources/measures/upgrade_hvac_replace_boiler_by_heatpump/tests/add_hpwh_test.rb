@@ -42,6 +42,8 @@ require 'openstudio/measure/ShowRunnerOutput'
 require 'minitest/autorun'
 require_relative '../measure'
 require 'fileutils'
+require_relative '../../../../test/helpers/minitest_helper'
+
 
 class AddHpwhTest < Minitest::Test
   # def setup
