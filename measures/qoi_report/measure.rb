@@ -36,6 +36,8 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # *******************************************************************************
 
+require 'date'
+
 # start the measure
 class QOIReport < OpenStudio::Measure::ReportingMeasure
   # human readable name
@@ -307,27 +309,27 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
 
     # Daily peak minimum by month (12)
     months.each do |month, month_val|
-      report_sim_output(runner, "minimum_daily_peak_use_#{month}_kw", daily_peak_stats_by_month(timeseries, month_val, 'min'), '', '')
+      report_sim_output(runner, "minimum_daily_peak_#{month}_kw", daily_peak_stats_by_month(timeseries, month_val, 'min'), '', '')
     end
 
     # Daily peak first quartile (25%) by month (12)
     months.each do |month, month_val|
-      report_sim_output(runner, "q1_daily_peak_use_#{month}_kw", daily_peak_stats_by_month(timeseries, month_val, 'q1'), '', '')
+      report_sim_output(runner, "q1_daily_peak_#{month}_kw", daily_peak_stats_by_month(timeseries, month_val, 'q1'), '', '')
     end
 
     # Daily peak median by month (12)
     months.each do |month, month_val|
-      report_sim_output(runner, "median_daily_peak_use_#{month}_kw", daily_peak_stats_by_month(timeseries, month_val, 'med'), '', '')
+      report_sim_output(runner, "median_daily_peak_#{month}_kw", daily_peak_stats_by_month(timeseries, month_val, 'med'), '', '')
     end
 
     # Daily peak third quartile (75%) by month (12)
     months.each do |month, month_val|
-      report_sim_output(runner, "q3_daily_peak_use_#{month}_kw", daily_peak_stats_by_month(timeseries, month_val, 'q3'), '', '')
+      report_sim_output(runner, "q3_daily_peak_#{month}_kw", daily_peak_stats_by_month(timeseries, month_val, 'q3'), '', '')
     end
 
     # Daily peak maximum by month (12)
     months.each do |month, month_val|
-      report_sim_output(runner, "max_daily_peak_use_#{month}_kw", daily_peak_stats_by_month(timeseries, month_val, 'max'), '', '')
+      report_sim_output(runner, "maximum_daily_peak_#{month}_kw", daily_peak_stats_by_month(timeseries, month_val, 'max'), '', '')
     end
 
     # Daily peak timing median by month (12)
@@ -408,8 +410,6 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
     daily_vals = daily_vals["hour"][0..top]
     return daily_vals.inject { |sum, el| sum + el }.to_f / daily_vals.size
   end
-
-  require 'date'
 
   def day_of_year_to_date(day_of_year, year)
     date = Date.new(year, 1, 1) + day_of_year - 1
