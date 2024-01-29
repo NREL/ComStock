@@ -38,6 +38,7 @@
 
 require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
+require_relative '../../../../test/helpers/minitest_helper'
 require 'fileutils'
 
 require_relative '../measure.rb'

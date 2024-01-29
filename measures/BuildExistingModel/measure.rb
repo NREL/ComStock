@@ -9,7 +9,7 @@ require 'openstudio'
 require 'json'
 
 # start the measure
-class BuildExistingModel < OpenStudio::Ruleset::ModelUserScript
+class BuildExistingModel < OpenStudio::Measure::ModelMeasure
 
   # human readable name
   def name
@@ -28,7 +28,7 @@ class BuildExistingModel < OpenStudio::Ruleset::ModelUserScript
 
   # define the arguments that the user will input
   def arguments(model)
-    args = OpenStudio::Ruleset::OSArgumentVector.new
+    args = OpenStudio::Measure::OSArgumentVector.new
 
     building_id = OpenStudio::Ruleset::OSArgument.makeIntegerArgument("building_id", true)
     building_id.setDisplayName("Building ID")
@@ -87,6 +87,11 @@ class BuildExistingModel < OpenStudio::Ruleset::ModelUserScript
     # Retrieve all data associated with sample number
     bldg_data = get_data_for_sample(buildstock_csv, building_id, runner)
     runner.registerInfo("bldg_data: #{bldg_data}")
+
+    # Assign all building parameters from buildstock.csv to building as additional properties
+    bldg_data.each do |k, v|
+      model.getBuilding.additionalProperties.setFeature(k, v)
+    end
 
     # Retrieve order of parameters to run
     parameters_ordered_superset = get_parameters_ordered_from_options_lookup_tsv(resources_dir, nil)

@@ -335,7 +335,7 @@ class PlottingMixin():
                     title = f'{self.col_name_to_nice_name(col)}'
                     for ax in g.axes.flatten():
                         ax.set_ylabel(f'{self.col_name_to_nice_name(col)} ({units})')
-                        ax.set_xlabel('')
+                        ax.tick_params(axis='x', labelrotation = 90)
                 else:
                     # With group-by
                     title = f'{self.col_name_to_nice_name(col)}\n by {self.col_name_to_nice_name(group_by)}'
@@ -450,6 +450,104 @@ class PlottingMixin():
                 fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
                 fig_name = fig_name.replace('boxplot_of_', 'bp_')
                 fig_name = fig_name.replace('total_energy_consumption_', '')
+                fig_path = os.path.join(output_dir, fig_name)
+                plt.savefig(fig_path, bbox_inches = 'tight')
+                plt.close()
+
+    def plot_energy_rate_boxplots(self, df, column_for_grouping, color_map, output_dir):
+        # energy rate box plot comparisons by building type and several disaggregations
+
+        # Columns to summarize
+        cols_to_summarize = [
+            self.col_name_to_energy_rate(self.UTIL_BILL_ELEC),
+            self.col_name_to_energy_rate(self.UTIL_BILL_GAS),
+        ]
+
+        # Disaggregate to these levels
+        group_bys = [
+            self.CEN_DIV,
+            self.BLDG_TYPE
+        ]
+
+        for col in cols_to_summarize:
+            # for bldg_type, bldg_type_ts_df in df.groupby(self.BLDG_TYPE):
+
+            # Make a plot for each group
+            for group_by in group_bys:
+                if group_by is None:
+                    # No group-by
+                    g = sns.catplot(
+                        data=df,
+                        y=column_for_grouping,
+                        hue=column_for_grouping,
+                        x=col,
+                        order=list(color_map.keys()),
+                        palette=color_map.values(),
+                        kind='box',
+                        orient='h',
+                        showfliers=False,
+                        showmeans=True,
+                        meanprops={"marker":"d",
+                            "markerfacecolor":"yellow",
+                            "markeredgecolor":"black",
+                            "markersize":"8"
+                        },
+                        legend=False
+                    )
+                else:
+                    # With group-by
+                    g = sns.catplot(
+                        data=df,
+                        x=col,
+                        hue=column_for_grouping,
+                        y=group_by,
+                        order=self.ORDERED_CATEGORIES[group_by],
+                        hue_order=list(color_map.keys()),
+                        palette=color_map.values(),
+                        kind='box',
+                        orient='h',
+                        showfliers=False,
+                        showmeans=True,
+                        meanprops={"marker":"d",
+                            "markerfacecolor":"yellow",
+                            "markeredgecolor":"black",
+                            "markersize":"8"
+                        },
+                        aspect=2
+                    )
+                    g._legend.set_title(self.col_name_to_nice_name(column_for_grouping))
+
+                fig = g.figure
+
+                # Extract the units from the column name
+                units = self.nice_units(self.units_from_col_name(col))
+
+                # Titles and axis labels
+                col_title = self.col_name_to_nice_name(col)
+                # col_title = col.replace(f' {units}', '')
+                # col_title = col_title.replace('Normalized Annual ', '')
+                fuel = self.col_name_to_fuel(col_title)
+
+                # Formatting
+                if group_by is None:
+                    # No group-by
+                    title = f"Boxplot of {col_title}".title()
+                    for ax in g.axes.flatten():
+                        ax.set_xlabel(f'{fuel} rate ({units})')
+                        ax.set_ylabel('')
+                else:
+                    # With group-by
+                    gb = self.col_name_to_nice_name(group_by)
+                    title = f"Boxplot of {col_title} by {f'{gb}'}".title()
+                    for ax in g.axes.flatten():
+                        ax.set_xlabel(f'{fuel} rate ({units})')
+                        ax.set_ylabel(f'{gb}')
+
+                # Save figure
+                title = title.replace('\n', '')
+                fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+                fig_name = fig_name.replace('boxplot_of_', 'bp_')
+                # fig_name = fig_name.replace('total_energy_consumption_', '')
                 fig_path = os.path.join(output_dir, fig_name)
                 plt.savefig(fig_path, bbox_inches = 'tight')
                 plt.close()
@@ -1471,6 +1569,52 @@ class PlottingMixin():
                     plt.savefig(fig_path, bbox_inches = 'tight')
                     plt.close()
 
+
+    # color functions from https://bsouthga.dev/posts/color-gradients-with-python
+    def linear_gradient(self, start_hex, finish_hex="#FFFFFF", n=10):
+        ''' returns a gradient list of (n) colors between
+            two hex colors. start_hex and finish_hex
+            should be the full six-digit color string,
+            inlcuding the number sign ("#FFFFFF") '''
+        # Starting and ending colors in RGB for
+        s = self.hex_to_RGB(start_hex)
+        f = self.hex_to_RGB(finish_hex)
+        # Initilize a list of the output colors with the starting color
+        RGB_list = [s]
+        # Calcuate a color at each evenly spaced value of t from 1 to n
+        for t in range(1, n):
+            # Interpolate RGB vector for color at the current value of t
+            curr_vector = [
+            int(s[j] + (float(t)/(n-1))*(f[j]-s[j]))
+            for j in range(3)
+            ]
+            # Add it to our list of output colors
+            RGB_list.append(curr_vector)
+
+        return self.color_dict(RGB_list)
+    
+    def color_dict(self, gradient):
+        ''' Takes in a list of RGB sub-lists and returns dictionary of
+            colors in RGB and hex form for use in a graphing function
+            defined later on '''
+        return {"hex":[self.RGB_to_hex(RGB) for RGB in gradient],
+            "r":[RGB[0] for RGB in gradient],
+            "g":[RGB[1] for RGB in gradient],
+            "b":[RGB[2] for RGB in gradient]}
+        
+    def hex_to_RGB(self, hex):
+        ''' "#FFFFFF" -> [255,255,255] '''
+        # Pass 16 to the integer function for change of base
+        return [int(hex[i:i+2], 16) for i in range(1,6,2)]
+    
+    def RGB_to_hex(self, RGB):
+        ''' [255,255,255] -> "#FFFFFF" '''
+        # Components need to be integers for hex to make sense
+        RGB = [int(x) for x in RGB]
+        return "#"+"".join(["0{0:x}".format(v) if v < 16 else
+                    "{0:x}".format(v) for v in RGB])
+  
+
     """
     Seasonal load stacked area plots by daytype (weekday and weekdend) comparison
     Args:
@@ -1863,3 +2007,4 @@ class PlottingMixin():
         filename = region['source_name'] + '_' + ami_data_label.lower().replace(' ', '') + '_' + building_type + '_load_duration_curve_top_' + str(zoom_in_hours) + '_hours.png'
         output_path = os.path.join(output_dir, filename)
         plt.savefig(output_path, bbox_inches='tight')
+

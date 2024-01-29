@@ -56,6 +56,7 @@ RUN wget https://www.python.org/ftp/python/3.8.8/Python-3.8.8.tgz --no-check-cer
     rm -rf Python-3.8.8.tgz
 
 RUN python3.8 -m pip install GHEDesigner==1.0
+RUN python3.8 -m pip install NREL-PySAM==4.2.0
 
 RUN ghedesigner --help
 
