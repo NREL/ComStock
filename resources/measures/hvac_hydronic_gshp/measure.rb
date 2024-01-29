@@ -344,7 +344,8 @@ end
 				    return true 
 				  end 
 			   end 
-			   
+		end 
+end 		
 
     # change to model.getBoilers....
     # runner.registerInfo("Start time of first loop: #{Time.now} ")
