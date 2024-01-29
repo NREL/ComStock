@@ -157,7 +157,52 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
 	    end 
 	end 
   end
+  
+  def hhw_reheat?(air_loop_hvac)
+	air_loop_hvac.thermalZones.each do |thermal_zone| #iterate thru thermal zones and modify zone-level terminal units 
+		thermal_zone.equipment.each do |equip|
+			next if equip.to_AirTerminalSingleDuctVAVHeatAndCoolNoReheat.is_initialized
+			next if equip.to_AirTerminalSingleDuctVAVNoReheat.is_initialized
+			next if equip.to_AirTerminalDualDuctVAV.is_initialized
+			next if equip.to_AirTerminalDualDuctVAVOutdoorAir.is_initialized
+			if equip.to_AirTerminalSingleDuctVAVHeatAndCoolReheat.is_initialized
+               term = equip.to_AirTerminalSingleDuctVAVHeatAndCoolReheat.get
+			   if term.reheatCoil.to_CoilHeatingWater.is_initialized
+			       return true
+			   end 
+			elsif equip.to_AirTerminalSingleDuctVAVReheat.is_initialized
+               term = equip.to_AirTerminalSingleDuctVAVReheat.get
+			   if term.reheatCoil.to_CoilHeatingWater.is_initialized
+			       return true
+			   end 		
+		    else 
+			    return false 
+			end 
+	    end 
+	end 
+end 
 
+# check if air loop uses district energy
+  def air_loop_hvac_served_by_district_energy?(air_loop_hvac)
+    served_by_district_energy = false
+    thermalzones = air_loop_hvac.thermalZones
+    district_energy_types = []
+    thermalzones.each do |thermalzone|
+      zone_fuels = ''
+      htg_fuels = thermalzone.heatingFuelTypes.map(&:valueName)
+      if htg_fuels.include?('DistrictHeating')
+        zone_fuels = 'DistrictHeating'
+        district_energy_types << zone_fuels
+      end
+      clg_fuels = thermalzone.coolingFuelTypes.map(&:valueName)
+      if clg_fuels.include?('DistrictCooling')
+        zone_fuels += 'DistrictCooling'
+        district_energy_types << zone_fuels
+      end
+    end
+    served_by_district_energy = true unless district_energy_types.empty?
+    served_by_district_energy
+  end
   # define what happens when the measure is run
   def run(model, runner, user_arguments)
     super(model, runner, user_arguments)
@@ -275,13 +320,31 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
       return true
     end
 	
+	#Screen out PTAC systems 
+	if model.getAirLoopHVACs.length == 0
+	   runner.registerAsNotApplicable('No air loops in model--measure will not be applied.')
+	   return true 
+	end 
+	
 	#Screen out packaged single zone with gas boiler 
     model.getAirLoopHVACs.each do |air_loop_hvac|
 	      supply_comp = air_loop_hvac.supplyComponents
-	      if (air_loop_hvac.thermalZones.length() == 1) && ! vav_terminals?(air_loop_hvac) #identify single zone systems with no VAV terminals
+		  if air_loop_hvac_served_by_district_energy?(air_loop_hvac)
+		     runner.registerAsNotApplicable('HVAC system served by district energy-measure will not be applied.')
+			 return true 
+	      elsif (air_loop_hvac.thermalZones.length() == 1) && ! vav_terminals?(air_loop_hvac) #identify single zone systems with no VAV terminals
 			  if supply_comp.map{ |x| x.iddObjectType.valueName.to_s }.include?('OS_Coil_Heating_Water' && 'OS_Coil_Cooling_DX_SingleSpeed') 
 				runner.registerAsNotApplicable('Packaged single zone system with hot water heating--measure will not be applied.')
+				return true 
 			  end 
+		  elsif vav_terminals?(air_loop_hvac)
+		       if supply_comp.map{ |x| x.iddObjectType.valueName.to_s }.include?('OS_Coil_Heating_Water' &&  ('OS_Coil_Cooling_DX_TwoSpeed' || 'OS_Coil_Cooling_DX_SingleSpeed' ) ) 
+			      if hhw_reheat?(air_loop_hvac)
+				  	runner.registerAsNotApplicable('Packaged VAV with hot water reheat system--measure will not be applied.')
+				    return true 
+				  end 
+			   end 
+		         
 		  end 
 	end
 
