@@ -181,6 +181,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     all_air_loops.each do |air_loop_hvac|
       # skip units that are not single zone
       if air_loop_hvac.thermalZones.length == 1
+
         # skip DOAS units; check sizing for all OA and for DOAS in name
         sizing_system = air_loop_hvac.sizingSystem
         if sizing_system.allOutdoorAirinCooling && sizing_system.allOutdoorAirinHeating && (air_loop_res?(air_loop_hvac) == false) && (air_loop_hvac.name.to_s.include?('DOAS') || air_loop_hvac.name.to_s.include?('doas'))
@@ -194,18 +195,29 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
         # skip if evaporative cooling systems
         next if air_loop_evaporative_cooler?(air_loop_hvac)
 
-        # skip DOAS units; check sizing for all OA and for DOAS in name
-        sizing_system = air_loop_hvac.sizingSystem
-        if sizing_system.allOutdoorAirinCooling && sizing_system.allOutdoorAirinHeating && (air_loop_res?(air_loop_hvac) == false) && (air_loop_hvac.name.to_s.include?('DOAS') || air_loop_hvac.name.to_s.include?('doas'))
-          next
-        end
         # skip if space is not heated and cooled
         unless std.thermal_zone_heated?(air_loop_hvac.thermalZones[0]) && std.thermal_zone_cooled?(air_loop_hvac.thermalZones[0])
           next
         end
-
-        # add applicable air loop to list
-        psz_air_loops << air_loop_hvac
+        
+        #look for PVAV and VAV systems (some might only have 1 zone per air loop)
+        if %w[PVAV].any? { |word| air_loop_hvac.name.get.include?(word) }
+          air_loop_hvac.supplyComponents.each do |component|
+            # filter out VAV with PFP boxes, which are labeled as PVAV systems but are actually VAV
+            if component.to_CoilCoolingWater.is_initialized
+              runner.registerAsNotApplicable("Air loop has a chilled water coil, indicating that it is a VAV chiller with PFP boxes system. Measure is not applicable.")
+              return true
+            end
+          end
+          runner.registerInfo("Model has a PVAV system, measure will be applicable.") 
+          pvav_air_loops << air_loop_hvac
+        elsif %w[VAV].any? { |word| air_loop_hvac.name.get.include?(word) }
+          runner.registerAsNotApplicable("Model has VAV system, measure is not applicable.")
+          return true
+        else
+          # add applicable air loop to list
+          psz_air_loops << air_loop_hvac
+        end
         # add area served by air loop
       elsif air_loop_hvac.thermalZones.length > 1
         #look for PVAV and VAV systems
