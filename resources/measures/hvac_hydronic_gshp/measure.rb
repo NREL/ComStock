@@ -275,16 +275,16 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
       return true
     end
 	
-	#Screen out packaged single zone with gas boiler 
+	  #Screen out packaged single zone with gas boiler 
     model.getAirLoopHVACs.each do |air_loop_hvac|
-	      supply_comp = air_loop_hvac.supplyComponents
-	      if (air_loop_hvac.thermalZones.length() == 1) && ! vav_terminals?(air_loop_hvac) #identify single zone systems with no VAV terminals
-			  if supply_comp.map{ |x| x.iddObjectType.valueName.to_s }.include?('OS_Coil_Heating_Water' && 'OS_Coil_Cooling_DX_SingleSpeed') 
-				runner.registerAsNotApplicable('Packaged single zone system with hot water heating--measure will not be applied.')
-			  end 
+      supply_comp = air_loop_hvac.supplyComponents
+      if (air_loop_hvac.thermalZones.length() == 1) && ! vav_terminals?(air_loop_hvac) #identify single zone systems with no VAV terminals
+        if supply_comp.map{ |x| x.iddObjectType.valueName.to_s }.include?('OS_Coil_Heating_Water' && 'OS_Coil_Cooling_DX_SingleSpeed') 
+          runner.registerAsNotApplicable('Packaged single zone system with hot water heating--measure will not be applied.')
+          return true
+        end 
 		  end 
-	end
-
+	  end
 
     # change to model.getBoilers....
     # runner.registerInfo("Start time of first loop: #{Time.now} ")
