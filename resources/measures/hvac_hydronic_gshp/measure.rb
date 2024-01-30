@@ -341,6 +341,7 @@ end
 	#Screen out packaged single zone with gas boiler, district HVAC systems, and PVAV with hot water reheat 
     model.getAirLoopHVACs.each do |air_loop_hvac|
 	      supply_comp = air_loop_hvac.supplyComponents
+		  #screen out district energy 
 		  if air_loop_hvac_served_by_district_energy?(air_loop_hvac)
 		     runner.registerAsNotApplicable('HVAC system served by district energy-measure will not be applied.')
 			 return true 
@@ -348,6 +349,7 @@ end
 		     supply_comp.each do |component|
 			 obj_type = component.iddObjectType.valueName.to_s
 			case obj_type
+			#screen out PSZ with hot water heating 
 			when 'OS_AirLoopHVAC_UnitarySystem', 'OS_AirLoopHVAC_UnitaryHeatPump_AirToAir', 'OS_AirLoopHVAC_UnitaryHeatPump_AirToAir_MultiSpeed', 'OS_AirLoopHVAC_UnitaryHeatCool_VAVChangeoverBypass'
                   component = component.to_AirLoopHVACUnitarySystem.get
 				  if (air_loop_hvac.thermalZones.length() == 1) && ! vav_terminals?(air_loop_hvac) #identify single zone systems with no VAV terminals 
@@ -364,11 +366,13 @@ end
 			      end 
 			end 
 			end
+		 #Screen out PSZ with hot water heating not modeled as unitary 
 	      elsif (air_loop_hvac.thermalZones.length() == 1) && ! vav_terminals?(air_loop_hvac) #identify single zone systems with no VAV terminals
 			  if supply_comp.map{ |x| x.iddObjectType.valueName.to_s }.include?('OS_Coil_Heating_Water' && ('OS_Coil_Cooling_DX_SingleSpeed' ||'OS_Coil_Cooling_DX_TwoSpeed' )) 
 				runner.registerAsNotApplicable('Packaged single zone system with hot water heating--measure will not be applied.')
 				return true 
 			  end 
+		  #Screen out packaged VAV with hot water heating and hot water reheat 
 		  elsif vav_terminals?(air_loop_hvac)
 		       if supply_comp.map{ |x| x.iddObjectType.valueName.to_s }.include?('OS_Coil_Heating_Water' &&  ('OS_Coil_Cooling_DX_TwoSpeed' || 'OS_Coil_Cooling_DX_SingleSpeed' ) ) 
 			      if hhw_reheat?(air_loop_hvac)
