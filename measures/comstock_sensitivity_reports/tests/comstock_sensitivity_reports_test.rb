@@ -42,6 +42,7 @@ require 'openstudio/ruleset/ShowRunnerOutput'
 require 'minitest/autorun'
 require_relative '../measure.rb'
 require 'fileutils'
+require_relative '../../../test/helpers/minitest_helper'
 
 class ComStockSensitivityReportsTest < Minitest::Test
   def run_dir(test_name)
@@ -150,7 +151,7 @@ class ComStockSensitivityReportsTest < Minitest::Test
       values << value.string
     end
     File.write(run_dir(test_name)+"/output.txt", "[\n#{values.join(',').strip}\n]")
-    
+
     assert_equal('Success', result.value.valueName)
 
     # change back directory
