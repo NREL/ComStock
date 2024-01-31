@@ -162,6 +162,9 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     # check for baseboard electric and add to array of zone equipment to delete
     model.getThermalZones.each do |thermal_zone|
       zones_to_skip << thermal_zone.name.get if thermal_zone.equipment.empty?
+      if ['Bulk', 'Entry'].any? { |word| (thermal_zone.name.get).include?(word) }
+        zones_to_skip << thermal_zone.name.get
+      end
       thermal_zone.equipment.each do |equip|
         # dont delete diffusers from PSZs, these will be reused
         next if equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
@@ -635,6 +638,20 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
       preheat_sm_location = preheat_coil.outletModelObject.get.to_Node.get
       preheat_coil_setpoint_manager.addToNode(preheat_sm_location)
     
+    end
+
+    # for zones that got skipped, check if there are already baseboards. if not, add them. 
+    model.getThermalZones.each do |thermal_zone|
+      if zones_to_skip.include? thermal_zone.name.get
+        if thermal_zone.equipment.empty? || thermal_zone.equipment.OfType(OpenStudio::Model::ZoneHVACBaseboardConvectiveElectric.iddObjectType).empty?
+          baseboard = OpenStudio::Model::ZoneHVACBaseboardConvectiveElectric.new(model)
+          baseboard.setName("#{thermal_zone.name} Electric Baseboard")
+          baseboard.setEfficiency(1.0)
+          baseboard.autosizeNominalCapacity
+          baseboard.setAvailabilitySchedule(model.alwaysOnDiscreteSchedule)
+          baseboard.addToThermalZone(thermal_zone)
+        end
+      end
     end
 
     # add dcv to air loop if dcv arg is true
