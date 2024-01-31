@@ -48,21 +48,21 @@ require_relative '../../../../test/helpers/minitest_helper'
 
 class HVACEconomizer_Test < Minitest::Test
 
-  # def test_number_of_arguments_and_argument_names
-  #   # this test ensures that the current test is matched to the measure inputs
-  #   test_name = 'test_number_of_arguments_and_argument_names'
-  #   puts "\n######\nTEST:#{test_name}\n######\n"
+  def test_number_of_arguments_and_argument_names
+    # this test ensures that the current test is matched to the measure inputs
+    test_name = 'test_number_of_arguments_and_argument_names'
+    puts "\n######\nTEST:#{test_name}\n######\n"
 
-  #   # create an instance of the measure
-  #   measure = HVACEconomizer.new
+    # create an instance of the measure
+    measure = HVACEconomizer.new
 
-  #   # make an empty model
-  #   model = OpenStudio::Model::Model.new
+    # make an empty model
+    model = OpenStudio::Model::Model.new
 
-  #   # Get arguments and test that they are what we are expecting
-  #   arguments = measure.arguments(model)
-  #   assert_equal(0, arguments.size)
-  # end
+    # Get arguments and test that they are what we are expecting
+    arguments = measure.arguments(model)
+    assert_equal(0, arguments.size)
+  end
 
   # return file paths to test models in test directory
   def models_for_tests
@@ -385,9 +385,9 @@ class HVACEconomizer_Test < Minitest::Test
 
   def models_to_test_design_oa_rates
     test_sets = []
+    test_sets << { model: 'PSZ-AC_with_gas_coil_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
     # test_sets << { model: 'PVAV_gas_heat_electric_reheat_4A', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
-    # test_sets << { model: 'PSZ-AC_with_gas_coil_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
-    test_sets << { model: '361_Warehouse_PVAV_2a', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+    # test_sets << { model: '361_Warehouse_PVAV_2a', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
     # test_sets << { model: 'LargeOffice_VAV_chiller_boiler', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
     # test_sets << { model: 'LargeOffice_VAV_district_chw_hw', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
     # test_sets << { model: 'Outpatient_VAV_chiller_PFP_boxes', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
@@ -397,83 +397,96 @@ class HVACEconomizer_Test < Minitest::Test
     return test_sets
   end
 
-  # def test_design_oa_rates
-  #   # Define test name
-  #   test_name = 'test_design_oa_rates'
-  #   puts "\n######\nTEST:#{test_name}\n######\n"
+  def test_design_oa_rates
+    # Define test name
+    test_name = 'test_design_oa_rates'
+    puts "\n######\nTEST:#{test_name}\n######\n"
 
-  #   # loop through each model from models_to_test_design_oa_rates and conduct test
-  #   models_to_test_design_oa_rates.each do |set|
-  #     instance_test_name = set[:model]
-  #     puts "instance test name: #{instance_test_name}"
-  #     osm_path = models_for_tests.select { |x| set[:model] == File.basename(x, '.osm') }
-  #     epw_path = epws_for_tests.select { |x| set[:weather] == File.basename(x, '.epw') }
-  #     assert(!osm_path.empty?)
-  #     assert(!epw_path.empty?)
-  #     osm_path = osm_path[0]
-  #     epw_path = epw_path[0]
+    # loop through each model from models_to_test_design_oa_rates and conduct test
+    models_to_test_design_oa_rates.each do |set|
+      instance_test_name = set[:model]
+      puts "instance test name: #{instance_test_name}"
+      osm_path = models_for_tests.select { |x| set[:model] == File.basename(x, '.osm') }
+      epw_path = epws_for_tests.select { |x| set[:weather] == File.basename(x, '.epw') }
+      assert(!osm_path.empty?)
+      assert(!epw_path.empty?)
+      osm_path = osm_path[0]
+      epw_path = epw_path[0]
 
-  #     # Initialize hash
-  #     oa_design_rates_before = {}
-  #     oa_design_rates_after = {}
+      # Initialize hash
+      oa_design_rates_before = {}
+      oa_design_rates_after = {}
 
-  #     # Create an instance of the measure
-  #     measure = HVACEconomizer.new
+      # Create an instance of the measure
+      measure = HVACEconomizer.new
 
-  #     # Load the model; only used here for populating arguments
-  #     model = load_model(osm_path)
-  #     arguments = measure.arguments(model)
-  #     argument_map = OpenStudio::Measure::OSArgumentMap.new
+      # Load the model; only used here for populating arguments
+      model = load_model(osm_path)
+      arguments = measure.arguments(model)
+      argument_map = OpenStudio::Measure::OSArgumentMap.new
 
-  #     # Set weather
-  #     epw_file = OpenStudio::EpwFile.new(OpenStudio::Path.new(epw_path))
-  #     OpenStudio::Model::WeatherFile.setWeatherFile(model, epw_file)
+      # Set weather
+      epw_file = OpenStudio::EpwFile.new(OpenStudio::Path.new(epw_path))
+      OpenStudio::Model::WeatherFile.setWeatherFile(model, epw_file)
 
-  #     # Hardsize model
-  #     puts("### DEBUGGING: first hardsize")
-  #     standard = Standard.build('ComStock DOE Ref Pre-1980')
-  #     if standard.model_run_sizing_run(model, "#{File.dirname(__FILE__)}/output/#{instance_test_name}/SR1") == false
-  #       puts("Sizing run for Hardsize model failed, cannot hard-size model.")
-  #       return false
-  #     end
-  #     model.applySizingValues
+      # Hardsize model
+      puts("### DEBUGGING: first hardsize")
+      standard = Standard.build('ComStock DOE Ref Pre-1980')
+      if standard.model_run_sizing_run(model, "#{File.dirname(__FILE__)}/output/#{instance_test_name}/SR1") == false
+        puts("Sizing run for Hardsize model failed, cannot hard-size model.")
+        return false
+      end
+      model.applySizingValues
 
-  #     # Check economizer availability and see if original model does not include economizer
-  #     economizer_availability_before = economizer_available(model)
-  #     puts("### DEBUGGING: economizer available before measure = #{economizer_availability_before}")
-  #     assert(economizer_availability_before.include?(false))
+      # Check economizer availability and see if original model does not include economizer
+      economizer_availability_before = economizer_available(model)
+      puts("### DEBUGGING: economizer available before measure = #{economizer_availability_before}")
+      assert(economizer_availability_before.include?(false))
 
-  #     # Get OA rates before applying measure
-  #     oa_design_rates_before = get_design_oa_flow_rates(model)
+      # Get OA rates before applying measure
+      oa_design_rates_before = get_design_oa_flow_rates(model)
 
-  #     # Apply the measure to the model and optionally run the model
-  #     result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
-  #     model = load_model(model_output_path(instance_test_name))
-  #     puts("### DEBUGGING: result = #{result}")
+      # Apply the measure to the model and optionally run the model
+      result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+      model = load_model(model_output_path(instance_test_name))
+      puts("### DEBUGGING: result = #{result}")
 
-  #     # Hardsize model
-  #     puts("### DEBUGGING: second hardsize")
-  #     standard = Standard.build('ComStock DOE Ref Pre-1980')
-  #     if standard.model_run_sizing_run(model, "#{File.dirname(__FILE__)}/output/#{instance_test_name}/SR2") == false
-  #       puts("Sizing run for Hardsize model failed, cannot hard-size model.")
-  #       return false
-  #     end
-  #     model.applySizingValues
+      # Hardsize model
+      puts("### DEBUGGING: second hardsize")
+      standard = Standard.build('ComStock DOE Ref Pre-1980')
+      if standard.model_run_sizing_run(model, "#{File.dirname(__FILE__)}/output/#{instance_test_name}/SR2") == false
+        puts("Sizing run for Hardsize model failed, cannot hard-size model.")
+        return false
+      end
+      model.applySizingValues
 
-  #     # Check economizer availability and see if updated model includes economizer
-  #     economizer_availability_after = economizer_available(model)
-  #     puts("### DEBUGGING: economizer available after measure = #{economizer_availability_after}")
-  #     assert(economizer_availability_after.include?(true))
+      # Check economizer availability and see if updated model includes economizer
+      economizer_availability_after = economizer_available(model)
+      puts("### DEBUGGING: economizer available after measure = #{economizer_availability_after}")
+      assert(economizer_availability_after.include?(true))
 
-  #     # Get OA rates after applying measure
-  #     oa_design_rates_after = get_design_oa_flow_rates(model)
-  #     puts("### DEBUGGING: oa_design_rates_before = #{oa_design_rates_before}")
-  #     puts("### DEBUGGING: oa_design_rates_after = #{oa_design_rates_after}")
+      # Get OA rates after applying measure
+      oa_design_rates_after = get_design_oa_flow_rates(model)
+      puts("### DEBUGGING: oa_design_rates_before = #{oa_design_rates_before}")
+      puts("### DEBUGGING: oa_design_rates_after = #{oa_design_rates_after}")
 
-  #     # Check if OA rates are the same before and after the measure implementation
-  #     assert(oa_design_rates_before == oa_design_rates_after)
-  #   end
-  # end
+      # Check if OA rates are the same before and after the measure implementation
+      assert(oa_design_rates_before == oa_design_rates_after)
+    end
+  end
+
+  def models_to_test_requested_oa_rates
+    test_sets = []
+    test_sets << { model: 'Retail_PVAV_gas_ht_elec_rht', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+    # test_sets << { model: 'PVAV_gas_heat_electric_reheat_4A', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+    # test_sets << { model: '361_Warehouse_PVAV_2a', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+    # test_sets << { model: 'LargeOffice_VAV_chiller_boiler', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+    # test_sets << { model: 'LargeOffice_VAV_district_chw_hw', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+    # test_sets << { model: 'Outpatient_VAV_chiller_PFP_boxes', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+    # test_sets << { model: 'VAV_chiller_boiler_4A', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+    # test_sets << { model: 'VAV_with_reheat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+    return test_sets
+  end
 
   def test_requested_oa_rates
     # Define test name
@@ -484,8 +497,8 @@ class HVACEconomizer_Test < Minitest::Test
     number_of_timesteps_in_an_hr_test = 1
     csv_file_path = run_dir(test_name) + "_after" + '/output_timeseries.csv'
 
-    # loop through each model from models_to_test_design_oa_rates and conduct test
-    models_to_test_design_oa_rates.each do |set|
+    # loop through each model from models_to_test_requested_oa_rates and conduct test
+    models_to_test_requested_oa_rates.each do |set|
       instance_test_name = set[:model]
       puts "instance test name: #{instance_test_name}"
       osm_path = models_for_tests.select { |x| set[:model] == File.basename(x, '.osm') }
@@ -619,19 +632,19 @@ class HVACEconomizer_Test < Minitest::Test
           end
         end
 
+        # Get indices of interest (non-zero values in actuator)
+        indices_of_interest = timeseries_reference.each_index.select { |i| timeseries_reference[i] != 0 }
+
+        # Get filtered output vars
+        timeseries_outputvar_before = timeseries_outputvar_before.values_at(*indices_of_interest)
+        timeseries_outputvar_after = timeseries_outputvar_after.values_at(*indices_of_interest)
+
         puts("### ----------------------------------------------------------------------------")
         puts("### DEBUGGING: identifier = #{identifier}")
         puts("### DEBUGGING: length timeseries_outputvar_before = #{timeseries_outputvar_before.size}")
         puts("### DEBUGGING: length timeseries_outputvar_after = #{timeseries_outputvar_after.size}")
         puts("### DEBUGGING: length timeseries_reference = #{timeseries_reference.size}")
-
-        # Get indices of interest (non-zero values in actuator)
-        indices_of_interest = timeseries_reference.each_index.select { |i| timeseries_reference[i] != 0 }
         puts("### DEBUGGING: number of times actuator override = #{indices_of_interest.size}")
-
-        # Get filtered output vars
-        timeseries_outputvar_before = timeseries_outputvar_before.values_at(*indices_of_interest)
-        timeseries_outputvar_after = timeseries_outputvar_after.values_at(*indices_of_interest)
         puts("### DEBUGGING: length timeseries_outputvar_before (filtered) = #{timeseries_outputvar_before.size}")
         puts("### DEBUGGING: length timeseries_outputvar_after (filtered) = #{timeseries_outputvar_after.size}")
         puts("### DEBUGGING: unique values of filtered timeseries values = #{(timeseries_outputvar_before + timeseries_outputvar_after).uniq}")
@@ -639,73 +652,53 @@ class HVACEconomizer_Test < Minitest::Test
         assert(timeseries_outputvar_before == timeseries_outputvar_after)
 
       end
-
-
-
-      # # filter data when EMS actuator is setting OA flow to min value
-      # filtered_indices = transposed_array[0].each_index.select { |i| transposed_array[0][i].include?("act_oa_flow_") }
-      # filtered_rows = transposed_array.select { |row| filtered_indices.all? { |i| row[i] != 0.0 } }
-
-      # puts("### --------------------------------------------------------------------")
-      # puts("### DEBUGGING: filtered_rows:")
-      # filtered_rows.each { |row| p row }
-      # puts("### --------------------------------------------------------------------")
-
-      # # Check if each row (except the header) has the same value
-      # same_value = filtered_rows[1..-1].all? { |row| row.uniq.length == 1 }
-      # unless same_value
-      #   test_pass = false
-      # end
-
-      # # Check if OA rates are the same before and after the measure implementation
-      # assert(test_pass == true)
     end
   end
 
-  # # create an array of hashes with model name, weather, and expected result
-  # def models_to_test
-  #   test_sets = []
-  #   test_sets << { model: 'PVAV_gas_heat_electric_reheat_4A', weather: 'VA_MANASSAS_724036_12', result: 'Success' }
-  #   test_sets << { model: 'Baseboard_electric_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'NA' }
-  #   test_sets << { model: 'PSZ-AC_with_gas_coil_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
-  #   test_sets << { model: 'Residential_AC_with_electric_baseboard_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'NA' }
-  #   test_sets << { model: 'Residential_heat_pump_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'NA' }
-  #   test_sets << { model: 'DOAS_wshp_gshp_3A', weather: 'GA_ROBINS_AFB_722175_12', result: 'NA' }
-  #   test_sets << { model: 'Outpatient_VAV_chiller_PFP_boxes', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
-  #   return test_sets
-  # end
+  # create an array of hashes with model name, weather, and expected result
+  def models_to_test
+    test_sets = []
+    test_sets << { model: 'PVAV_gas_heat_electric_reheat_4A', weather: 'VA_MANASSAS_724036_12', result: 'Success' }
+    test_sets << { model: 'Baseboard_electric_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'NA' }
+    test_sets << { model: 'PSZ-AC_with_gas_coil_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+    test_sets << { model: 'Residential_AC_with_electric_baseboard_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'NA' }
+    test_sets << { model: 'Residential_heat_pump_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'NA' }
+    test_sets << { model: 'DOAS_wshp_gshp_3A', weather: 'GA_ROBINS_AFB_722175_12', result: 'NA' }
+    test_sets << { model: 'Outpatient_VAV_chiller_PFP_boxes', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+    return test_sets
+  end
 
-  # def test_models
-  #   test_name = 'test_models'
-  #   puts "\n######\nTEST:#{test_name}\n######\n"
+  def test_models
+    test_name = 'test_models'
+    puts "\n######\nTEST:#{test_name}\n######\n"
 
-  #   models_to_test.each do |set|
-  #     instance_test_name = set[:model]
-  #     puts "instance test name: #{instance_test_name}"
-  #     osm_path = models_for_tests.select { |x| set[:model] == File.basename(x, '.osm') }
-  #     epw_path = epws_for_tests.select { |x| set[:weather] == File.basename(x, '.epw') }
-  #     assert(!osm_path.empty?)
-  #     assert(!epw_path.empty?)
-  #     osm_path = osm_path[0]
-  #     epw_path = epw_path[0]
+    models_to_test.each do |set|
+      instance_test_name = set[:model]
+      puts "instance test name: #{instance_test_name}"
+      osm_path = models_for_tests.select { |x| set[:model] == File.basename(x, '.osm') }
+      epw_path = epws_for_tests.select { |x| set[:weather] == File.basename(x, '.epw') }
+      assert(!osm_path.empty?)
+      assert(!epw_path.empty?)
+      osm_path = osm_path[0]
+      epw_path = epw_path[0]
 
-  #     # create an instance of the measure
-  #     measure = HVACEconomizer.new
+      # create an instance of the measure
+      measure = HVACEconomizer.new
 
-  #     # load the model; only used here for populating arguments
-  #     model = load_model(osm_path)
+      # load the model; only used here for populating arguments
+      model = load_model(osm_path)
 
-  #     # set arguments here; will vary by measure
-  #     arguments = measure.arguments(model)
-  #     argument_map = OpenStudio::Measure::OSArgumentMap.new
+      # set arguments here; will vary by measure
+      arguments = measure.arguments(model)
+      argument_map = OpenStudio::Measure::OSArgumentMap.new
 
-  #     # apply the measure to the model and optionally run the model
-  #     result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+      # apply the measure to the model and optionally run the model
+      result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
 
-  #     # check the measure result; result values will equal Success, Fail, or Not Applicable
-  #     # also check the amount of warnings, info, and error messages
-  #     # use if or case statements to change expected assertion depending on model characteristics
-  #     assert(result.value.valueName == set[:result])
-  #   end
-  # end
+      # check the measure result; result values will equal Success, Fail, or Not Applicable
+      # also check the amount of warnings, info, and error messages
+      # use if or case statements to change expected assertion depending on model characteristics
+      assert(result.value.valueName == set[:result])
+    end
+  end
 end
