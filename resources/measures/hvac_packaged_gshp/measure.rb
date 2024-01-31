@@ -513,17 +513,14 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     #also remove any EMS objects tied to PVAV air loops that are being removed
     # Get all EMS objects in the model
     ems_objects = model.getEnergyManagementSystemSensors.to_a + model.getEnergyManagementSystemActuators.to_a + model.getEnergyManagementSystemPrograms.to_a + model.getEnergyManagementSystemProgramCallingManagers.to_a + model.getEnergyManagementSystemInternalVariables.to_a
-    puts "ems objects = #{ems_objects}"
-    # ems_objects_copy = ems_objects.dup
 
-    # Filter EMS objects whose names contain "pvav"
+    # Filter EMS objects that contain "pvav"
     ems_objects_to_remove = ems_objects.select { |ems_object| ems_object.name.to_s.include?('PVAV') }
-    puts "ems objects to remove = #{ems_objects_to_remove}"
 
     # Remove each matching EMS object from the model
     ems_objects_to_remove.each do |object_to_remove|
       # Remove the EMS object from the model
-      puts "Removing #{object_to_remove} from the model."
+      puts "Removing unused PVAV EMS objects from the model."
       object_to_remove.remove
     end
 
