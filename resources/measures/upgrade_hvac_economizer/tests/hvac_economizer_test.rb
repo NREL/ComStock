@@ -333,7 +333,7 @@ class HVACEconomizer_Test < Minitest::Test
     # Hard-code: reporting frequency to zone timestep
     reportingfrequency = 'Zone Timestep' #'Zone Timestep'
     unless availableReportingFrequencies.include?(reportingfrequency)
-      puts("Hourly reporting frequency is not available. Use Zone Timestep.")
+      # puts("### Debugging: Hourly reporting frequency is not available. Use Zone Timestep.")
       reportingfrequency = 'Zone Timestep'
       unless availableReportingFrequencies.include?(reportingfrequency)
         raise "reportingfrequency of #{reportingfrequency} not included in available options: #{availableReportingFrequencies}"
@@ -345,7 +345,7 @@ class HVACEconomizer_Test < Minitest::Test
       unless availableEnvPeriods.include?(envperiod) 
         raise "envperiod of #{envperiod} not included in available options: #{availableEnvPeriods}"
       end
-      puts("### DEBUGGING: availableTimeSeries = #{availableTimeSeries}")
+      # puts("### DEBUGGING: availableTimeSeries = #{availableTimeSeries}")
       unless availableTimeSeries.include?(timeseriesname) 
         raise "timeseriesname of #{timeseriesname} not included in available options: #{availableTimeSeries}"
       end
@@ -355,15 +355,16 @@ class HVACEconomizer_Test < Minitest::Test
     timeseries_results_combined = {}
     
     timeseriesnames.each do |timeseriesname|
-
       availableKeyValues = sqlFile.availableKeyValues(envperiod,reportingfrequency,timeseriesname).to_a
 
-      puts("### ------------------------------------------------")
-      puts("### DEBUGGING: timeseriesname = #{timeseriesname}")
-      puts("### DEBUGGING: availableKeyValues = #{availableKeyValues}")
+      # puts("### ------------------------------------------------")
+      # puts("### DEBUGGING: timeseriesname = #{timeseriesname}")
+      # puts("### DEBUGGING: availableKeyValues = #{availableKeyValues}")
 
       availableKeyValues.each do |key_value|
-        puts("### DEBUGGING: key_value = #{key_value}")
+        unless timeseries_results_combined.key?(key_value)
+          timeseries_results_combined[key_value] = {}
+        end
         timeseries_result = sqlFile.timeSeries(envperiod,reportingfrequency,timeseriesname,key_value).get     
         vals = []
         elec_vals = timeseries_result.values
@@ -374,8 +375,7 @@ class HVACEconomizer_Test < Minitest::Test
         if vals.empty?
           raise 'load profile for the sample run returned empty'
         end
-        timeseries_results_combined['identifier'] = key_value
-        timeseries_results_combined[timeseriesname] = vals
+        timeseries_results_combined[key_value][timeseriesname] = vals
       end
     end
     
@@ -384,9 +384,9 @@ class HVACEconomizer_Test < Minitest::Test
 
   def models_to_test_design_oa_rates
     test_sets = []
-    test_sets << { model: 'PVAV_gas_heat_electric_reheat_4A', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+    # test_sets << { model: 'PVAV_gas_heat_electric_reheat_4A', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
     # test_sets << { model: 'PSZ-AC_with_gas_coil_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
-    # test_sets << { model: '361_Warehouse_PVAV_2a', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+    test_sets << { model: '361_Warehouse_PVAV_2a', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
     # test_sets << { model: 'LargeOffice_VAV_chiller_boiler', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
     # test_sets << { model: 'LargeOffice_VAV_district_chw_hw', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
     # test_sets << { model: 'Outpatient_VAV_chiller_PFP_boxes', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
@@ -479,7 +479,7 @@ class HVACEconomizer_Test < Minitest::Test
     test_name = 'test_requested_oa_rates'
     puts "\n######\nTEST:#{test_name}\n######\n"
 
-    number_of_days_to_test = 1
+    number_of_days_to_test = 365
     number_of_timesteps_in_an_hr_test = 1
     csv_file_path = run_dir(test_name) + "_after" + '/output_timeseries.csv'
 
@@ -530,9 +530,9 @@ class HVACEconomizer_Test < Minitest::Test
       timeseries_results_combined_before = run_simulation_and_get_timeseries(model, 2018, number_of_days_to_test, number_of_timesteps_in_an_hr_test, timeseriesnames, epw_path=epw_path, run_dir = run_dir(test_name)+"_before")
       timeseries_results_combined['before'] = timeseries_results_combined_before
 
-      puts("### ##########################################################")
-      puts("### DEBUGGING: timeseries_results_combine = #{timeseries_results_combined}")
-      puts("### ##########################################################")
+      # puts("### ##########################################################")
+      # puts("### DEBUGGING: timeseries_results_combine = #{timeseries_results_combined}")
+      # puts("### ##########################################################")
 
       # Apply the measure to the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
@@ -582,21 +582,64 @@ class HVACEconomizer_Test < Minitest::Test
       timeseries_results_combined_after = run_simulation_and_get_timeseries(model, 2018, number_of_days_to_test, number_of_timesteps_in_an_hr_test, timeseriesnames, epw_path=epw_path, run_dir = run_dir(test_name)+"_after")
       timeseries_results_combined['after'] = timeseries_results_combined_after
 
-      puts("### -------------------------------------------------------------")
-      puts("### DEBUGGING: timeseries_results_combined = #{timeseries_results_combined}")
-      puts("### -------------------------------------------------------------")
+      # puts("### -------------------------------------------------------------")
+      # puts("### DEBUGGING: timeseries_results_combined = #{timeseries_results_combined}")
+      # puts("### -------------------------------------------------------------")
 
-      # # Create array from hash
-      # result_array = []
-      # timeseries_results_combined.each do |prefix, inner_hash|
-      #   inner_hash.each do |column_name, values|
-      #     result_array << [prefix + "_" + column_name, *values]
-      #   end
-      # end
-      # transposed_array = result_array.transpose
-      # CSV.open(csv_file_path, 'w') do |csv|
-      #   transposed_array.each { |row| csv << row }
-      # end
+      # Get unique identifier names
+      unique_identifiers = timeseries_results_combined.values.flat_map(&:keys).uniq
+
+      # Define interested output var name
+      output_var_name = 'Air System Outdoor Air Mechanical Ventilation Requested Mass Flow Rate'
+
+      # Compare output var results before and after the measure
+      unique_identifiers.each do |identifier|
+
+        # skip if the output var key is EMS
+        next if identifier == "EMS"
+
+        # get reference string for string match
+        identifier_lowercase = identifier.gsub(' ', '_').downcase
+
+        # get output var timeseries
+        timeseries_outputvar_before = []
+        timeseries_outputvar_after = []
+        unless identifier == "EMS"
+          timeseries_outputvar_before = timeseries_results_combined['before'][identifier][output_var_name]
+          timeseries_outputvar_after = timeseries_results_combined['after'][identifier][output_var_name]
+        end
+
+        # get reference (ems actuator) timeseries
+        timeseries_reference = []
+        timeseries_results_combined['after']['EMS'].keys.each do |output_var_ems|
+          output_var_ems_lowercase = output_var_ems.downcase
+          if output_var_ems_lowercase.include?(identifier_lowercase)
+            timeseries_reference = timeseries_results_combined['after']['EMS'][output_var_ems]
+          end
+        end
+
+        puts("### ----------------------------------------------------------------------------")
+        puts("### DEBUGGING: identifier = #{identifier}")
+        puts("### DEBUGGING: length timeseries_outputvar_before = #{timeseries_outputvar_before.size}")
+        puts("### DEBUGGING: length timeseries_outputvar_after = #{timeseries_outputvar_after.size}")
+        puts("### DEBUGGING: length timeseries_reference = #{timeseries_reference.size}")
+
+        # Get indices of interest (non-zero values in actuator)
+        indices_of_interest = timeseries_reference.each_index.select { |i| timeseries_reference[i] != 0 }
+        puts("### DEBUGGING: number of times actuator override = #{indices_of_interest.size}")
+
+        # Get filtered output vars
+        timeseries_outputvar_before = timeseries_outputvar_before.values_at(*indices_of_interest)
+        timeseries_outputvar_after = timeseries_outputvar_after.values_at(*indices_of_interest)
+        puts("### DEBUGGING: length timeseries_outputvar_before (filtered) = #{timeseries_outputvar_before.size}")
+        puts("### DEBUGGING: length timeseries_outputvar_after (filtered) = #{timeseries_outputvar_after.size}")
+        puts("### DEBUGGING: unique values of filtered timeseries values = #{(timeseries_outputvar_before + timeseries_outputvar_after).uniq}")
+
+        assert(timeseries_outputvar_before == timeseries_outputvar_after)
+
+      end
+
+
 
       # # filter data when EMS actuator is setting OA flow to min value
       # filtered_indices = transposed_array[0].each_index.select { |i| transposed_array[0][i].include?("act_oa_flow_") }
