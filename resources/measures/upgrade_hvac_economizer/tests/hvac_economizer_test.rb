@@ -44,6 +44,7 @@ require 'fileutils'
 require 'minitest/autorun'
 require_relative '../measure.rb'
 require 'csv'
+require_relative '../../../../test/helpers/minitest_helper'
 
 class HVACEconomizer_Test < Minitest::Test
 
