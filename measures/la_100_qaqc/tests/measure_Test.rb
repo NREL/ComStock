@@ -6,6 +6,7 @@ require 'openstudio/ruleset/ShowRunnerOutput'
 require "#{File.dirname(__FILE__)}/../measure.rb"
 require 'fileutils'
 require 'minitest/autorun'
+require_relative '../../../test/helpers/minitest_helper'
 
 class LA100QAQC_Test < Minitest::Test
   def is_openstudio_2?

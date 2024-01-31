@@ -272,6 +272,7 @@ over_1mil,Over one million
 over_25,Over twenty five
 owner_occupied,The tenants of the building own the building
 Pacific,"The census division covering AK, CA, HI, OR, and WA"
+Pancake,A type of building in a survey of kitchen equipment
 Pizza A,A type of building in a survey of kitchen equipment
 Pizza B,A type of building in a survey of kitchen equipment
 PJM,The Pennsylvania New Jersey Maryland interconnect
@@ -349,6 +350,7 @@ strip_mall_restaurant20,Strip mall building type with 20% restaurant floor area
 strip_mall_restaurant30,Strip mall building type with 30% restaurant floor area
 strip_mall_restaurant40,Strip mall building type with 40% restaurant floor area
 Subarctic,The ASHRAE climate zone description
+Success,A run or measure completed without errors
 T24-CEC1,California Energy Commission Title 24 climate zone 1
 T24-CEC10,California Energy Commission Title 24 climate zone 10
 T24-CEC11,California Energy Commission Title 24 climate zone 11

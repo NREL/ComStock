@@ -50,7 +50,6 @@ setup(
         'pyarrow',
         'fsspec',
         's3fs',
-        'kaleido==0.1.0post1',
         'boto3',
         'botocore',
         'pyyaml',
@@ -69,6 +68,16 @@ setup(
             'ipykernel',
             # 'awscli',
             # 'colorama==0.4.3'
-        ]
+        ],
+        ':sys_platform == "win32"': [
+            'kaleido==0.1.0post1',  # kaleido version for Windows
+        ],
+        ':sys_platform == "linux"': [
+            'kaleido==0.1.0',  # kaleido version for Linux
+        ],
+        ':sys_platform == "darwin"': [
+            'kaleido==0.1.0',  # kaleido version for MacOS
+        ],
+
     }
 )
