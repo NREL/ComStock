@@ -331,8 +331,8 @@ class OpenStudio::Model::Model
 
     when 'PTAC with gas coil'
       standard.model_add_hvac_system(self, 'PTAC', ht = nil, znht = 'NaturalGas', cl = 'Electricity', system_zones)
-      # use 'Baseboard electric' for heated only zones
-      standard.model_add_hvac_system(self, 'Baseboards', ht = 'Electricity', znht = nil, cl = nil, heated_only_zones)
+      # use gas unit heaters for heated only zones
+      standard.model_add_hvac_system(self, 'Unit Heaters', ht = 'NaturalGas', znht = nil, cl = nil, heated_zones)
 
     when 'PTAC with gas boiler'
       standard.model_add_hvac_system(self, 'PTAC', ht = 'NaturalGas', znht = nil, cl = 'Electricity', system_zones)
@@ -380,8 +380,8 @@ class OpenStudio::Model::Model
 
     when 'PSZ-AC with gas coil'
       standard.model_add_hvac_system(self, 'PSZ-AC', ht = nil, znht = 'NaturalGas', cl = 'Electricity', system_zones)
-      # use 'Baseboard electric' for heated only zones
-      standard.model_add_hvac_system(self, 'Baseboards', ht = 'Electricity', znht = nil, cl = nil, heated_only_zones)
+      # use gas unit heaters for heated only zones
+      standard.model_add_hvac_system(self, 'Unit Heaters', ht = 'NaturalGas', znht = nil, cl = nil, heated_zones)
 
     when 'PSZ-AC with gas boiler'
       standard.model_add_hvac_system(self, 'PSZ-AC', ht = 'NaturalGas', znht = nil, cl = 'Electricity', system_zones)
