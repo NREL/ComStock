@@ -55,7 +55,7 @@ The county-level prevalences of different heating fuel types are shown in Figure
   \includegraphics[width=0.8\textwidth]{figures/map_districtheating.png}
   \caption[Fraction of ComStock models using district heating/water heating per county]{Fraction of ComStock models using district heating per county.}
   \label{fig:map_district}
-\end{figure}   
+\end{figure}
 
 
 
@@ -87,7 +87,9 @@ Overall, we produced 603 probability distributions from the CBECS HVAC analysis,
 
 \subsection{HVAC System Sizing}
 
-HVAC systems in ComStock are sized using standard EnergyPlus sizing routines. The program uses design day information from the respective weather file coupled with the model's specific control settings and performs sizing runs to determine equipment capacity sizing. Per ASHRAE 90.1 Appendix G, systems are oversized by 15\% for cooling and 25\% for heating. Note that sizing results for a model will be impacted by several control properties specific to the model, such as supply air temperature control, thermostat set points, and outdoor ventilation rates, which are described in later sections.
+HVAC system design sizing is determined from several EnergyPlus design day sizing runs. Equipment capacity is hardsized, meaning it is explicitly set in the model. Design day conditions come from the same weather location as the weather file. Design days include the annual heating 99.6\% drybulb temperature, annual cooling 0.4\% drybulb temperature, annual cooling 0.4\% wetbulb temperature for cooling towers and evaporative coolers, and monthly 0.4\% drybulb temperature for August, September, and October to account for buildings with solar-gain driven cooling load maximums.
+
+Per ASHRAE 90.1 Appendix G, HVAC systems are oversized by 15\% for cooling and 25\% for heating. Note that sizing results for a model will be impacted by several control properties specific to the model, such as supply air temperature control, thermostat set points, and outdoor ventilation rates, which are described in later sections.
 
 \subsection{Outdoor Air Ventilation Rates}
 
