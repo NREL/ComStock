@@ -38,6 +38,7 @@
 # Measure distributed under NREL Copyright terms, see LICENSE.md file.
 
 require 'date'
+require 'openstudio-standards'
 
 #start the measure
 class FaultHvacEconomizerDamperStuck < OpenStudio::Ruleset::ModelUserScript
@@ -146,9 +147,9 @@ class FaultHvacEconomizerDamperStuck < OpenStudio::Ruleset::ModelUserScript
       return false
     end
 
-    # # ----------------------------------------------------  
+    # ----------------------------------------------------  
     # puts("### adding output variables (for debugging)")
-    # # ----------------------------------------------------  
+    # ----------------------------------------------------  
     # ov_eco_status = OpenStudio::Model::OutputVariable.new("debugging_ecostatus",model)
     # ov_eco_status.setKeyValue("*")
     # ov_eco_status.setReportingFrequency("timestep") 
@@ -224,6 +225,9 @@ class FaultHvacEconomizerDamperStuck < OpenStudio::Ruleset::ModelUserScript
       runner.registerAsNotApplicable('Model contains no air loops eligible for adding an outdoor air economizer.')
       return true
     end
+    # build standard to access methods
+    template = 'ComStock 90.1-2019'
+    std = Standard.build(template)
     
     # ----------------------------------------------------
     # puts("### apply fault only to applicable economizers")
@@ -238,7 +242,7 @@ class FaultHvacEconomizerDamperStuck < OpenStudio::Ruleset::ModelUserScript
 
       # loop through air loops
       count_eco = 0
-      selected_air_loops.each_with_index do |selected_air_loop, i|
+      selected_air_loops.each do |selected_air_loop|
         controlleroutdoorair = selected_air_loop.airLoopHVACOutdoorAirSystem.get.getControllerOutdoorAir
         if controlleroutdoorair.name.to_s.eql?(econ_choice) || econ_choice.eql?("all available economizer")
 
@@ -247,23 +251,44 @@ class FaultHvacEconomizerDamperStuck < OpenStudio::Ruleset::ModelUserScript
           # ----------------------------------------------------
           # puts("--- create dummy min/max OA fraction schedules (meant for fault incidence) if there aren't any existing schedules")
           # ----------------------------------------------------
+          identifier_ctrloa = std.ems_friendly_name(controlleroutdoorair.name.to_s)
+          sch_fraction_oa_min_type = nil
+          sch_fraction_oa_max_type = nil
           if controlleroutdoorair.minimumFractionofOutdoorAirSchedule.empty?
             sch_fraction_oa_min = OpenStudio::Model::ScheduleConstant.new(model)
-            sch_fraction_oa_min.setName("FRAC_OA_MIN_#{controlleroutdoorair.name.to_s}")
+            sch_fraction_oa_min.setName("FRAC_OA_MIN_#{identifier_ctrloa}")
             sch_fraction_oa_min.setValue(0.0)
+            sch_fraction_oa_min_type = 'Schedule:Constant'
             # puts("*** new schedule created for minimum OA fraction")
           else
             sch_fraction_oa_min = controlleroutdoorair.minimumFractionofOutdoorAirSchedule.get
-            # puts("*** found existing schedule for minimum OA fraction: #{sch_fraction_oa_min.name}")
+            sch_fraction_oa_min.setName("FRAC_OA_MIN_#{identifier_ctrloa}")
+            if sch_fraction_oa_min.to_ScheduleRuleset.is_initialized
+              sch_fraction_oa_min_type = 'Schedule:Year'
+            elsif sch_fraction_oa_min.to_ScheduleConstant.is_initialized
+              sch_fraction_oa_min_type = 'Schedule:Constant'
+            elsif sch_fraction_oa_min.to_ScheduleCompact.is_initialized
+              sch_fraction_oa_min_type = 'Schedule:Compact'
+            end
+            # puts("*** found existing schedule for minimum OA fraction: type = #{sch_fraction_oa_min_type}")
           end
           if controlleroutdoorair.maximumFractionofOutdoorAirSchedule.empty?
             sch_fraction_oa_max = OpenStudio::Model::ScheduleConstant.new(model)
-            sch_fraction_oa_max.setName("FRAC_OA_MAX_#{controlleroutdoorair.name.to_s}")
+            sch_fraction_oa_max.setName("FRAC_OA_MAX_#{identifier_ctrloa}")
             sch_fraction_oa_max.setValue(1.0)
+            sch_fraction_oa_max_type = 'Schedule:Constant'
             # puts("*** new schedule created for maximum OA fraction")
           else
             sch_fraction_oa_max = controlleroutdoorair.maximumFractionofOutdoorAirSchedule.get
-            # puts("*** found existing schedule for maximum OA fraction: #{sch_fraction_oa_min.name}")
+            sch_fraction_oa_max.setName("FRAC_OA_MAX_#{identifier_ctrloa}")
+            if sch_fraction_oa_max.to_ScheduleRuleset.is_initialized
+              sch_fraction_oa_max_type = 'Schedule:Year'
+            elsif sch_fraction_oa_max.to_ScheduleConstant.is_initialized
+              sch_fraction_oa_max_type = 'Schedule:Constant'
+            elsif sch_fraction_oa_max.to_ScheduleCompact.is_initialized
+              sch_fraction_oa_max_type = 'Schedule:Compact'
+            end
+            # puts("*** found existing schedule for maximum OA fraction: type = #{sch_fraction_oa_max_type}")
           end
         
           # ----------------------------------------------------
@@ -288,11 +313,11 @@ class FaultHvacEconomizerDamperStuck < OpenStudio::Ruleset::ModelUserScript
 
             #create a schedule that the economizer is fixed at the damper_pos for the entire simulation period
             faultschedule = OpenStudio::Model::ScheduleRuleset.new(model)
-            faultschedule.setName("Damper Stuck Fault Schedule for #{econ_choice}")
+            faultschedule.setName("damper_stuck_whole_yr_#{identifier_ctrloa}")
             faultscheduledefault = faultschedule.defaultDaySchedule
             faultscheduledefault.clearValues
             faultscheduledefault.addValue(OpenStudio::Time.new(0,24,0,0), damper_pos)
-            faultscheduledefault.setName("Default Damper Stuck Fault Default Schedule for #{econ_choice}")
+            faultscheduledefault.setName("damper_stuck_whole_yr_default_#{identifier_ctrloa}")
             
             #set the faulted damper schedule
             controlleroutdoorair.setMinimumFractionofOutdoorAirSchedule(faultschedule)
@@ -309,13 +334,13 @@ class FaultHvacEconomizerDamperStuck < OpenStudio::Ruleset::ModelUserScript
 
             # create EMS actuator object
             # puts("*** create EMS actuator for min outdoor air fraction")
-            ema_actuator_frac_oa_min = OpenStudio::Model::EnergyManagementSystemActuator.new(sch_fraction_oa_min,"Schedule:Constant","Schedule Value")
-            ema_actuator_frac_oa_min.setName("sch_fraction_oa_min_#{i+1}")
+            ema_actuator_frac_oa_min = OpenStudio::Model::EnergyManagementSystemActuator.new(sch_fraction_oa_min,sch_fraction_oa_min_type,"Schedule Value")
+            ema_actuator_frac_oa_min.setName("sch_fraction_oa_min_#{identifier_ctrloa}")
             
             # create EMS actuator object
             # puts("*** create EMS actuator for max outdoor air fraction")
-            ema_actuator_frac_oa_max = OpenStudio::Model::EnergyManagementSystemActuator.new(sch_fraction_oa_max,"Schedule:Constant","Schedule Value")
-            ema_actuator_frac_oa_max.setName("sch_fraction_oa_max_#{i+1}")
+            ema_actuator_frac_oa_max = OpenStudio::Model::EnergyManagementSystemActuator.new(sch_fraction_oa_max,sch_fraction_oa_max_type,"Schedule Value")
+            ema_actuator_frac_oa_max.setName("sch_fraction_oa_max_#{identifier_ctrloa}")
             
             # create new EnergyManagementSystem:Program object
             # puts("*** create EMS program")
@@ -325,8 +350,8 @@ class FaultHvacEconomizerDamperStuck < OpenStudio::Ruleset::ModelUserScript
             ems_program_sch_override.addLine("SET #{ema_actuator_frac_oa_min.name} = #{damper_pos}")
             ems_program_sch_override.addLine("SET #{ema_actuator_frac_oa_max.name} = #{damper_pos}")
             ems_program_sch_override.addLine("ELSE")
-            ems_program_sch_override.addLine("SET #{ema_actuator_frac_oa_min.name} = 0.0")
-            ems_program_sch_override.addLine("SET #{ema_actuator_frac_oa_max.name} = 1.0")
+            ems_program_sch_override.addLine("SET #{ema_actuator_frac_oa_min.name} = Null")
+            ems_program_sch_override.addLine("SET #{ema_actuator_frac_oa_max.name} = Null")
             ems_program_sch_override.addLine("ENDIF") 
             
             # create new EnergyManagementSystem:ProgramCallingManager object
