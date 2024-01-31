@@ -13,13 +13,13 @@ def main():
     # ComStock run
     comstock = cspp.ComStock(
         s3_base_dir='eulp/comstock_fy22',  # If run not on S3, download results_up**.parquet manually
-        comstock_run_name='loadshed_partyear_60_v0',  # Name of the run on S3
-        comstock_run_version='loadshed_partyear_60_v0',  # Use whatever you want to see in plot and folder names
+        comstock_run_name='loadshed_59_v1',  # Name of the run on S3
+        comstock_run_version='loadshed_59_v1',  # Use whatever you want to see in plot and folder names
         comstock_year=2018,  # Typically don't change this
         athena_table_name=None,  # Typically don't change this
         truth_data_version='v01',  # Typically don't change this
-        buildstock_csv_name='buildstock_20240117_v23_2018_mprapros_60_hardsize_JX.csv',  # Download buildstock.csv manually
-        acceptable_failure_percentage=0.2,  # Can increase this when testing and high failure are OK
+        buildstock_csv_name='buildstock_20240117_v23_2018_mprapros_59_hardsize_JX.csv',  # Download buildstock.csv manually
+        acceptable_failure_percentage=0.025,  # Can increase this when testing and high failure are OK
         drop_failed_runs=True,  # False if you want to evaluate which runs failed in raw output data
         color_hex='#0072B2',  # Color used to represent this run in plots
         skip_missing_columns=True,  # False if you want to ensure you have all data specified for export
