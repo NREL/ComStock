@@ -657,7 +657,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     # for zones that got skipped, check if there are already baseboards. if not, add them. 
     model.getThermalZones.each do |thermal_zone|
       if zones_to_skip.include? thermal_zone.name.get
-        if thermal_zone.equipment.empty? || thermal_zone.equipment.OfType(OpenStudio::Model::ZoneHVACBaseboardConvectiveElectric.iddObjectType).empty?
+        if thermal_zone.equipment.empty? || thermal_zone.equipment.none? { |equip| equip.iddObjectType == OpenStudio::Model::ZoneHVACBaseboardConvectiveElectric.iddObjectType }
           baseboard = OpenStudio::Model::ZoneHVACBaseboardConvectiveElectric.new(model)
           baseboard.setName("#{thermal_zone.name} Electric Baseboard")
           baseboard.setEfficiency(1.0)
