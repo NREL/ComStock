@@ -159,10 +159,14 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     equip_to_delete = []
     # if zone has baseboard electric (typically small, storage style space types), skip this zone and do not add GHP here
     zones_to_skip = []
+    unconditioned_zones = []
     # check for baseboard electric and add to array of zone equipment to delete
     model.getThermalZones.each do |thermal_zone|
-      zones_to_skip << thermal_zone.name.get if thermal_zone.equipment.empty?
-      if ['Bulk', 'Entry'].any? { |word| (thermal_zone.name.get).include?(word) }
+      # if original zone has no equipment (unconditioned), skip this zone entirely
+      if thermal_zone.equipment.empty?
+        unconditioned_zones << thermal_zone.name.get 
+      # if original zone is typically conditioned with baseboards (as opposed to an RTU), maintain this
+      elsif ['Bulk', 'Entry'].any? { |word| (thermal_zone.name.get).include?(word) }
         zones_to_skip << thermal_zone.name.get
       end
       thermal_zone.equipment.each do |equip|
@@ -656,7 +660,9 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
 
     # for zones that got skipped, check if there are already baseboards. if not, add them. 
     model.getThermalZones.each do |thermal_zone|
-      if zones_to_skip.include? thermal_zone.name.get
+      if unconditioned_zones.include? thermal_zone.name.get
+        runner.registerInfo("Thermal zone #{thermal_zone} was unconditioned in the baseline, and will not receive a packaged GHP.")
+      elsif zones_to_skip.include? thermal_zone.name.get
         if thermal_zone.equipment.empty? || thermal_zone.equipment.none? { |equip| equip.iddObjectType == OpenStudio::Model::ZoneHVACBaseboardConvectiveElectric.iddObjectType }
           baseboard = OpenStudio::Model::ZoneHVACBaseboardConvectiveElectric.new(model)
           baseboard.setName("#{thermal_zone.name} Electric Baseboard")

@@ -96,8 +96,20 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     pthps = []
     baseboards = []
     unit_heaters = []
-    thermal_zones_to_skip = []
+    unconditioned_zones = []
+    zones_to_skip = []
     all_air_loops = model.getAirLoopHVACs
+
+    # if a thermal zone started out with no equipment (aka it is unconditioned), skip this zone
+    model.getThermalZones.each do |thermal_zone|
+      if thermal_zone.equipment.empty?
+        unconditioned_zones << thermal_zone.name.get 
+      # if original zone is typically conditioned with baseboards (as opposed to an RTU), maintain baseboards in this space
+      elsif ['Bulk', 'Entry'].any? { |word| (thermal_zone.name.get).include?(word) }
+        zones_to_skip << thermal_zone.name.get
+      end
+    end
+
     if all_air_loops.empty?
       runner.registerInfo("Model does not have any air loops. Get list of PTAC, PTHP, Unit Heater, or Baseboard Electric equipment to delete.")
 
@@ -125,7 +137,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
         thermal_zone.equipment.each do |equip|
           next unless equip.to_ZoneHVACBaseboardConvectiveElectric.is_initialized
           if ptacs.size >> 0 && pthps.size >> 0
-            thermal_zones_to_skip << thermal_zone.name.get
+            zones_to_skip << thermal_zone.name.get
           else
             baseboards << equip.to_ZoneHVACBaseboardConvectiveElectric.get
             equip_to_delete << equip.to_ZoneHVACBaseboardConvectiveElectric.get
@@ -302,7 +314,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     model.getThermalZones.each do |thermal_zone|
 
       #skip if it has baseboards in baseline
-      next if thermal_zones_to_skip.include? thermal_zone.name.get
+      next if zones_to_skip.include? thermal_zone.name.get
 
       OpenStudio.logFree(OpenStudio::Info, 'openstudio.Model.Model', "Adding water-to-air heat pump for #{thermal_zone.name}.")
 
@@ -459,6 +471,23 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
       #get outlet node of preheat coil to place setpoint manager
       preheat_sm_location = preheat_coil.outletModelObject.get.to_Node.get
       preheat_coil_setpoint_manager.addToNode(preheat_sm_location)
+    end
+
+    # for zones that got skipped, check if there are already baseboards. if not, add them. 
+    model.getThermalZones.each do |thermal_zone|
+      if unconditioned_zones.include? thermal_zone.name.get
+        runner.registerInfo("Thermal zone #{thermal_zone} was unconditioned in the baseline, and will not receive a packaged GHP.")
+      elsif zones_to_skip.include? thermal_zone.name.get
+        if thermal_zone.equipment.empty? || thermal_zone.equipment.none? { |equip| equip.iddObjectType == OpenStudio::Model::ZoneHVACBaseboardConvectiveElectric.iddObjectType }
+          runner.registerInfo("Thermal zone #{thermal_zone} will not receive a packaged GHP and will recieve electric baseboards instead.")  
+          baseboard = OpenStudio::Model::ZoneHVACBaseboardConvectiveElectric.new(model)
+          baseboard.setName("#{thermal_zone.name} Electric Baseboard")
+          baseboard.setEfficiency(1.0)
+          baseboard.autosizeNominalCapacity
+          baseboard.setAvailabilitySchedule(model.alwaysOnDiscreteSchedule)
+          baseboard.addToThermalZone(thermal_zone)
+        end
+      end
     end
 
     # do sizing run to get coil capacities to scale coil performance data
