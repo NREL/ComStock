@@ -80,6 +80,14 @@ class CommercialBaseSobolSampler(BuildStockSampler):
             print("folder '{}' created ".format(self.output_dir))
 
         self.sample_number = self.cfg.get('baseline', {}).get('n_datapoints', 0)
+        self.n_buckets = self.cfg.get('baseline', {}).get('n_buckets', 0)
+        self.sobol = self.cfg.get('baseline', {}).get('sobol', True)
+        if self.sample_number == 0:
+            raise RuntimeError('Sample number set to 0. Please ensure non-zero sample number.')
+        if self.n_buckets == 0:
+            raise RuntimeError('Number or buckets set to 0. Please ensure non-zero number or buckets.')
+        if self.sample_number % self.n_buckets != 0:
+            raise RuntimeError('Number of samples divided by number of buckets results in non-zero remainder.')
 
     TSV_ARRAYS = [
         [
@@ -210,34 +218,44 @@ class CommercialBaseSobolSampler(BuildStockSampler):
             jsons = False
             if 'tract' in attrs_to_sample:
                 jsons = True
+            # TODO establish the nchuncks here - i'm not clear on if I need an id -> chunck mapper or what but instantiate it here regardless
+                
+            chunck_mapper = []
             # load in previous result csv, if it exists, and pass through to _com_execute_sample
             # treat it like the sample matrix -- pull out index row number, and dump each key value pair from the row from the previous sampling into the dependency hash
             if os.path.isfile(os.path.join(rw_dir, 'buildstock.csv')):
                 prev_results = pd.read_csv(
                     os.path.join(rw_dir, 'buildstock.csv'), index_col='Building', keep_default_na=False
                 )
+                prev_results = np.array_split(prev_results, self.n_buckets)
             else:
-                prev_results = pd.DataFrame()
+                prev_results = [
+                    pd.DataFrame(index=range(int(self.sample_number / self.n_buckets))) for _ in range(self.n_buckets)
+                ]
 
-            tsv_hash, dependency_hash, attr_order = self.load_tsvs(attrs_to_sample, rw_dir, list(prev_results), jsons)
-            sample_matrix = self._com_execute_sobol_sampling(len(attrs_to_sample), self.sample_number)
-            sample_dict = sample_matrix.to_dict(orient='list')
-            prev_results_dict = prev_results.to_dict(orient='index')
+            tsv_hash, dependency_hash, attr_order = self.load_tsvs(attrs_to_sample, rw_dir, list(prev_results[0]), jsons)
+            prev_results_list = [df.to_dict(orient='index') for df in prev_results]
+            if self.sobol:
+                sample_matrices = self._com_execute_sobol_sampling(
+                    len(attrs_to_sample), self.sample_number, self.n_buckets
+                )
+            else:
+                sample_matrices = self._com_execute_rand_sampling(
+                    len(attrs_to_sample), self.sample_number, self.n_buckets
+                )
 
             if jsons:
-                res = dict()
-                for index in range(self.sample_number):
-                    res[index] = self._com_execute_json_sample(
-                        tsv_hash, dependency_hash, attr_order, sample_dict[index], prev_results_dict.get(index, dict())
-                    )
-                df = pd.DataFrame.from_dict(res).transpose()
+                res = Parallel(round(cpu_count()), verbose=5)(
+                    delayed(self._com_execute_json_samples)(
+                        tsv_hash, dependency_hash, attr_order, sample_matrices[bucket], prev_results_list[bucket]
+                    ) for bucket in range(self.n_buckets))
             else:
-                res = Parallel(n_jobs=round(cpu_count()), verbose=5)(
-                    delayed(self._com_execute_sample)(
-                        tsv_hash, dependency_hash, attr_order, sample_dict[index], prev_results_dict.get(index, dict())
-                    ) for index in range(self.sample_number)
+                res = Parallel(round(cpu_count()), verbose=5)(
+                    delayed(self._com_execute_samples)(
+                        tsv_hash, dependency_hash, attr_order, sample_matrices[bucket], prev_results_list[bucket]
+                    ) for bucket in range(self.n_buckets)
                 )
-                df = pd.DataFrame.from_dict(res)
+            df = pd.concat([pd.DataFrame.from_dict(bucket_res) for bucket_res in res])
             df.index.name = 'Building'
 
             # Save the intermediate buildstock csvs within the temporary directory and the final at the specified location
@@ -251,7 +269,29 @@ class CommercialBaseSobolSampler(BuildStockSampler):
         return csv_path
 
     @staticmethod
-    def _com_execute_sobol_sampling(n_dims, n_samples):
+    def _com_execute_rand_sampling(n_dims, n_samples, n_buckets):
+        """_summary_
+
+        :param n_dims: _description_
+        :type n_dims: _type_
+        :param n_samples: _description_
+        :type n_samples: _type_
+        :param n_buckets: _description_
+        :type n_buckets: _type_
+        :raises RuntimeError: _description_
+        :raises RuntimeError: _description_
+        :return: _description_
+        :rtype: _type_
+        """
+
+        res = {
+            i: pd.DataFrame(np.random.random((n_dims, round(n_samples / n_buckets))))
+            for i in range(n_buckets)
+        }
+        return res
+
+    @staticmethod
+    def _com_execute_sobol_sampling(n_dims, n_samples, n_buckets):
         """
         Execute a low discrepancy sampling of the unit hyper-cube defined by the n_dims input using the sobol sequence
         methodology implemented by Corrado Chisari. Please refer to the sobol_lib.py file for license & attribution
@@ -260,11 +300,14 @@ class CommercialBaseSobolSampler(BuildStockSampler):
         :param n_samples: Number of samples to calculate
         :return: Pandas DataFrame object which contains the low discrepancy result of the sobol algorithm
         """
-        sample = i4_sobol_generate(n_dims, n_samples, 0)
-        projected_sample = np.mod(sample + [random.random() for _ in range(len(sample[0]))], 1)
-        projected_shuffled_sample = pd.DataFrame(projected_sample).transpose().sample(frac=1).transpose()
-        projected_shuffled_sample.columns = range(n_samples)
-        return pd.DataFrame(projected_sample)
+        res = dict()
+        for i in range(n_buckets):
+            sample = i4_sobol_generate(n_dims, round(n_samples / n_buckets), 0)
+            projected_sample = np.mod(sample + [random.random() for _ in range(len(sample[0]))], 1)
+            projected_shuffled_sample = pd.DataFrame(projected_sample).transpose().sample(frac=1).transpose()
+            projected_shuffled_sample.columns = range(int(n_samples / n_buckets))
+            res[i] = projected_shuffled_sample
+        return res
 
     @staticmethod
     def _com_order_tsvs(tsv_hash, prev_attrs):
@@ -309,7 +352,6 @@ class CommercialBaseSobolSampler(BuildStockSampler):
             elif max_iterations > 0:
                 max_iterations -= 1
             else:
-                breakpoint()
                 raise RuntimeError(
                     'Unable to resolve the dependency tree within the set iteration limit. The following TSV files '\
                     f'were not resolved within 5 iterations: {set(dependency_hash.keys()) - set(attr_order)}'
@@ -320,7 +362,7 @@ class CommercialBaseSobolSampler(BuildStockSampler):
         
     
     @staticmethod
-    def _com_execute_sample(tsv_hash, dependency_hash, attr_order, sample_vector, prev_results=dict()):
+    def _com_execute_samples(tsv_hash, dependency_hash, attr_order, sample_dict, prev_results_dict):
         """
         This function evaluates a single point in the sample matrix with the provided TSV files & persists the result\
         of the sample to the CSV file specified. The provided lock ensures the file is not corrupted by multiple\
@@ -331,40 +373,46 @@ class CommercialBaseSobolSampler(BuildStockSampler):
         :param sample_vector: Pandas DataFrame specifying the points in the sample space to sample
         :param sample_index: Integer specifying which sample in the sample_matrix to evaluate
         """
-        dep_hash = deepcopy(dependency_hash)
-        results_dict = dict()
-        sample_vector_index = -1
-        for attr in attr_order:
-            if attr in prev_results.keys():
-                attr_result = prev_results[attr]
-            else:
-                sample_vector_index += 1
-                tsv_lkup = tsv_hash[attr]
-                tsv_dist_val = sample_vector[sample_vector_index]
-                if tsv_lkup.shape[0] != 1:
-                    for dep in dep_hash[attr]:
-                        dep_col = 'Dependency=' + dep
-                        tsv_lkup = tsv_lkup.loc[
-                            tsv_lkup.loc[:, dep_col] == str(dep_hash[dep]), [col for col in list(tsv_lkup) if col != dep_col]
-                        ]
-                    if tsv_lkup.shape[0] == 0:
-                        warn('TSV lookup reduced to 0 for {}, dep hash {}'.format(attr, dep_hash))
-                        breakpocint()
-                        return
-                    if (tsv_lkup.shape[0] != 1) and (len(tsv_lkup.shape) > 1):
-                        raise RuntimeError('Unable to reduce tsv for {} to 1 row, dep_hash {}'.format(attr, dep_hash))
-                    tsv_lkup = tsv_lkup.transpose()
+        res = list()
+        for index in sample_dict.keys():
+            results_dict = dict()
+            dep_hash = deepcopy(dependency_hash)
+            sample_vector = sample_dict[index]
+            prev_results = prev_results_dict[index]
+            sample_vector_index = -1
+            for attr in attr_order:
+                if attr in prev_results.keys():
+                    attr_result = prev_results[attr]
                 else:
-                    tsv_lkup = tsv_lkup.iloc[0, :]
-                tsv_lkup = tsv_lkup.astype(float)
-                attr_result = tsv_lkup[tsv_lkup.values.cumsum() > tsv_dist_val].index[0].replace('Option=', '')
-            dep_hash[attr] = attr_result
-            results_dict[attr] = attr_result
-        return results_dict
+                    sample_vector_index += 1
+                    tsv_lkup = tsv_hash[attr].copy(deep=True)
+                    tsv_dist_val = sample_vector[sample_vector_index]
+                    if tsv_lkup.shape[0] != 1:
+                        for dep in dep_hash[attr]:
+                            dep_col = 'Dependency=' + dep
+                            tsv_lkup = tsv_lkup.loc[
+                                tsv_lkup.loc[:, dep_col] == str(dep_hash[dep]),
+                                [col for col in list(tsv_lkup) if col != dep_col]
+                            ]
+                        if tsv_lkup.shape[0] == 0:
+                            warn(f'TSV lookup reduced to 0 for {attr}, dep hash {dep_hash}')
+                            breakpoint()
+                            return
+                        if (tsv_lkup.shape[0] != 1) and (len(tsv_lkup.shape) > 1):
+                            raise RuntimeError(f'Unable to reduce tsv for {attr} to 1 row, dep_hash {dep_hash}')
+                        tsv_lkup = tsv_lkup.transpose()
+                    else:
+                        tsv_lkup = tsv_lkup.iloc[0, :]
+                    tsv_lkup = tsv_lkup.astype(float)
+                    attr_result = tsv_lkup[tsv_lkup.values.cumsum() > tsv_dist_val].index[0].replace('Option=', '')
+                dep_hash[attr] = attr_result
+                results_dict[attr] = attr_result
+            res.append(results_dict)
+        return res
 
 
     @staticmethod
-    def _com_execute_json_sample(json_set, dependency_hash, attr_order, sample_vector, prev_results=dict()):
+    def _com_execute_json_samples(json_set, dependency_hash, attr_order, sample_dict, prev_results_dict):
         """
         This function evaluates a single point in the sample matrix with the provided TSV files & persists the result\
         of the sample to the CSV file specified. The provided lock ensures the file is not corrupted by multiple\
@@ -375,25 +423,30 @@ class CommercialBaseSobolSampler(BuildStockSampler):
         :param sample_vector: Pandas DataFrame specifying the points in the sample space to sample
         :param sample_index: Integer specifying which sample in the sample_matrix to evaluate
         """
-        dep_hash = deepcopy(dependency_hash)
-        results_dict = dict()
-        sample_vector_index = -1
-        for attr in attr_order:
-            if attr in prev_results.keys():
-                attr_result = prev_results[attr]
-            else:
-                sample_vector_index += 1
-                attr_dict = json_set[attr]
-                tsv_dist_val = sample_vector[sample_vector_index]
-                for dep in dep_hash[attr]:
-                    attr_dict = attr_dict[str(dep_hash[dep])]
-                attr_series = pd.Series(attr_dict).astype(float)
-                attr_result = attr_series[attr_series.values.cumsum() > tsv_dist_val].index[0].replace('Option=', '')
-            dep_hash[attr] = attr_result
-            results_dict[attr] = attr_result
-        results_dict['state_id'] = results_dict['tract'][:4]
-        results_dict['county_id'] = results_dict['tract'][:8]
-        return results_dict
+        res = list()
+        for index in sample_dict.keys():
+            dep_hash = deepcopy(dependency_hash)
+            prev_results = prev_results_dict[index]
+            sample_vector = sample_dict[index]
+            results_dict = dict()
+            sample_vector_index = -1
+            for attr in attr_order:
+                if attr in prev_results.keys():
+                    attr_result = prev_results[attr]
+                else:
+                    sample_vector_index += 1
+                    attr_dict = json_set[attr]
+                    tsv_dist_val = sample_vector[sample_vector_index]
+                    for dep in dep_hash[attr]:
+                        attr_dict = attr_dict[str(dep_hash[dep])]
+                    attr_series = pd.Series(attr_dict).astype(float)
+                    attr_result = attr_series[attr_series.values.cumsum() > tsv_dist_val].index[0].replace('Option=', '')
+                dep_hash[attr] = attr_result
+                results_dict[attr] = attr_result
+            results_dict['state_id'] = results_dict['tract'][:4]
+            results_dict['county_id'] = results_dict['tract'][:8]
+            res.append(results_dict)
+        return res
 
 def parse_arguments():
     """
@@ -404,8 +457,10 @@ def parse_arguments():
     parser.add_argument('tsv_version', type=str, help='Version of tsvs to sample (e.g., v16)')
     parser.add_argument('sim_year', type=int, help='Year of simulation (2015 - 2019)')
     parser.add_argument('n_samples', type=int, help='Number of samples (full national run = 350000)')
+    parser.add_argument('n_buckets', type=int, help='Number of discrete buckets to sample (full national run = 350000)')
     parser.add_argument('hvac_sizing', type=str, help='Enter "autosize" or "hardsize" to indicate whether the models should have their HVAC systems autosized or hardsized')
     parser.add_argument('-v', '--verbose', action='store_true', help='Enables verbose debugging outputs')
+    parser.add_argument('-r', '--random', action='store_false', help='Replaces Sobol with Pseudorandom')
     argument = parser.parse_args()
     
     if argument.verbose:
@@ -423,7 +478,7 @@ def main():
         sim_year=args.sim_year,
         output_dir=os.path.join('output-buildstocks', 'intermediate'),
         hvac_sizing=args.hvac_sizing,
-        cfg={'baseline': {'n_datapoints': args.n_samples}},
+        cfg={'baseline': {'n_datapoints': args.n_samples, 'n_buckets': args.n_buckets, 'sobol': args.random}},
         tmp_output_dir = f'tsvs-{args.tsv_version}',
         project_dir='/tmp/fake'
     )
