@@ -2069,12 +2069,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         if thermal_zone_names_to_exclude.any? { |word| (thermal_zone.name.to_s).include?(word) }
           runner.registerWarning("The user selected to add energy recovery to the HP-RTUs, but thermal zone #{thermal_zone.name.to_s} is a non-applicable space type for energy recovery. Any existing energy recovery will remain for consistancy, but no new energy recovery will be added.")
         else
-          # assuming 90% return airflow based on PNNL prototype models
-          # only do this if the value is currently 1 and there is no existing ERV
-          # this is to retain consistancy with baseline
-          if (air_loop_hvac.designReturnAirFlowFractionofSupplyAirFlow == 1) && (existing_erv==false)
-            air_loop_hvac.setDesignReturnAirFlowFractionofSupplyAirFlow(0.9)
-          end
+          # # assuming 90% return airflow based on PNNL prototype models
+          # # only do this if the value is currently 1 and there is no existing ERV
+          # # this is to retain consistancy with baseline
+          # if (air_loop_hvac.designReturnAirFlowFractionofSupplyAirFlow == 1) && (existing_erv==false)
+          #   air_loop_hvac.setDesignReturnAirFlowFractionofSupplyAirFlow(0.9)
+          # end
           # remove existing ERV; these will be replaced with new ERV equipment
           erv_components.each(&:remove)
           # get oa system
@@ -2151,23 +2151,23 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
               # set parameters for ERV
               if doas_type=='ERV'
                 # set efficiencies; assumed 90% airflow returned to unit
-                hx.setSensibleEffectivenessat100HeatingAirFlow(0.75)
-                hx.setSensibleEffectivenessat75HeatingAirFlow(0.78)
-                hx.setLatentEffectivenessat100HeatingAirFlow(0.61)
-                hx.setLatentEffectivenessat75HeatingAirFlow(0.68)
-                hx.setSensibleEffectivenessat100CoolingAirFlow(0.75)
-                hx.setSensibleEffectivenessat75CoolingAirFlow(0.78)
-                hx.setLatentEffectivenessat100CoolingAirFlow(0.55)
-                hx.setLatentEffectivenessat75CoolingAirFlow(0.60)  
+                hx.setSensibleEffectivenessat100HeatingAirFlow(0.75*0.9)
+                hx.setSensibleEffectivenessat75HeatingAirFlow(0.78*0.9)
+                hx.setLatentEffectivenessat100HeatingAirFlow(0.61*0.9)
+                hx.setLatentEffectivenessat75HeatingAirFlow(0.68*0.9)
+                hx.setSensibleEffectivenessat100CoolingAirFlow(0.75*0.9)
+                hx.setSensibleEffectivenessat75CoolingAirFlow(0.78*0.9)
+                hx.setLatentEffectivenessat100CoolingAirFlow(0.55*0.9)
+                hx.setLatentEffectivenessat75CoolingAirFlow(0.60*0.9)  
               # set parameters for HRV
               elsif doas_type=='HRV'
                 # set efficiencies; assumed 90% airflow returned to unit
-                hx.setSensibleEffectivenessat100HeatingAirFlow(0.84)
-                hx.setSensibleEffectivenessat75HeatingAirFlow(0.86)
+                hx.setSensibleEffectivenessat100HeatingAirFlow(0.84*0.9)
+                hx.setSensibleEffectivenessat75HeatingAirFlow(0.86*0.9)
                 hx.setLatentEffectivenessat100HeatingAirFlow(0)
                 hx.setLatentEffectivenessat75HeatingAirFlow(0)
-                hx.setSensibleEffectivenessat100CoolingAirFlow(0.83)
-                hx.setSensibleEffectivenessat75CoolingAirFlow(0.84)
+                hx.setSensibleEffectivenessat100CoolingAirFlow(0.83*0.9)
+                hx.setSensibleEffectivenessat75CoolingAirFlow(0.84*0.9)
                 hx.setLatentEffectivenessat100CoolingAirFlow(0)
                 hx.setLatentEffectivenessat75CoolingAirFlow(0)
               end
