@@ -435,6 +435,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     selected_air_loops = []
     applicable_area_m2 = 0
     prim_ht_fuel_type = 'electric' # we assume electric unless we find a gas coil in any air loop
+    is_sizing_run_needed=true
+    unitary_sys=nil
     model.getAirLoopHVACs.each do |air_loop_hvac|
       # skip units that are not single zone
       next if air_loop_hvac.thermalZones.length() > 1
@@ -510,6 +512,56 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # add area served by air loop
       thermal_zone = air_loop_hvac.thermalZones[0]
       applicable_area_m2+=thermal_zone.floorArea
+
+      ############# Determine if equipment has been hardsized to avoid sizing run
+      oa_flow_m3_per_s = nil
+      old_terminal_sa_flow_m3_per_s = nil
+      orig_clg_coil_gross_cap = nil
+      orig_htg_coil_gross_cap = nil
+
+      # determine if sizing run is needed
+      oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+      controller_oa = oa_system.getControllerOutdoorAir
+      if controller_oa.minimumOutdoorAirFlowRate.is_initialized
+        oa_flow_m3_per_s = controller_oa.minimumOutdoorAirFlowRate.get
+      end
+
+      # get design supply air flow rate
+      old_terminal_sa_flow_m3_per_s = nil
+      if air_loop_hvac.designSupplyAirFlowRate.is_initialized
+        old_terminal_sa_flow_m3_per_s = air_loop_hvac.designSupplyAirFlowRate.get
+      end
+
+      # get previous cooling coil capacity
+      orig_clg_coil = unitary_sys.coolingCoil.get
+      if orig_clg_coil.to_CoilCoolingDXSingleSpeed.is_initialized
+        orig_clg_coil = orig_clg_coil.to_CoilCoolingDXSingleSpeed.get
+        # get either autosized or specified cooling capacityet
+        if orig_clg_coil.ratedTotalCoolingCapacity.is_initialized
+          orig_clg_coil_gross_cap = orig_clg_coil.ratedTotalCoolingCapacity.to_f
+        end
+      end
+
+      # get original heating coil capacity
+      orig_htg_coil = unitary_sys.heatingCoil.get
+      # get coil object if electric resistance
+      if orig_htg_coil.to_CoilHeatingElectric.is_initialized 
+        orig_htg_coil = orig_htg_coil.to_CoilHeatingElectric.get
+      # get coil object if gas
+      elsif orig_htg_coil.to_CoilHeatingGas.is_initialized
+        orig_htg_coil = orig_htg_coil.to_CoilHeatingGas.get
+      end
+      # get either autosized or specified capacity
+      if orig_htg_coil.nominalCapacity.is_initialized
+        orig_htg_coil_gross_cap = orig_htg_coil.nominalCapacity.to_f
+      end
+
+      # only require sizing run if required attributes have not been hardsized.
+      next if oa_flow_m3_per_s == nil
+      next if old_terminal_sa_flow_m3_per_s == nil
+      next if orig_clg_coil_gross_cap == nil
+      next if orig_htg_coil_gross_cap == nil
+      is_sizing_run_needed=false
     end
 
     # check if any air loops are applicable to measure
@@ -519,8 +571,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     end
 
     # do sizing run with new equipment to set sizing-specific features
-    if std.model_run_sizing_run(model, "#{Dir.pwd}/SR_HP") == false
-    return false
+    if is_sizing_run_needed == true
+      runner.registerInfo("Sizing run needed")
+      if std.model_run_sizing_run(model, "#{Dir.pwd}/SR1") == false
+        return false
+      end
     end
 
     #########################################################################################################
@@ -546,21 +601,15 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       end
 
       # get design supply air flow rate
-      # get old terminal box
-      if thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
-        old_terminal = thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctConstantVolumeNoReheat.get
-      else
-        runner.registerError("Terminal box type for air loop #{air_loop_hvac.name} not supported.")
-        return false
-      end
-      # get sizing information from terminal box
-      if old_terminal.isMaximumAirFlowRateAutosized == true
-        old_terminal_sa_flow_m3_per_s = old_terminal.autosizedMaximumAirFlowRate.get
-      elsif old_terminal.maximumAirFlowRate.is_initialized
-        old_terminal_sa_flow_m3_per_s = old_terminal.maximumAirFlowRate.get
+      old_terminal_sa_flow_m3_per_s = nil
+      if air_loop_hvac.designSupplyAirFlowRate.is_initialized
+        old_terminal_sa_flow_m3_per_s = air_loop_hvac.designSupplyAirFlowRate.get
+      elsif air_loop_hvac.isDesignSupplyAirFlowRateAutosized
+        old_terminal_sa_flow_m3_per_s = air_loop_hvac.autosizedDesignSupplyAirFlowRate.get
       else
         runner.registerError("No sizing data available for air loop #{air_loop_hvac.name} zone terminal box.")
       end
+
       # define minimum flow rate needed to maintain ventilation - add in max fraction if in model
       min_oa_flow_ratio = (oa_flow_m3_per_s/old_terminal_sa_flow_m3_per_s)
 
@@ -622,30 +671,26 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ### End of temp section
     #########################################################################################################
 
-    # model.autosize()
-
-    runner.registerInfo("#{selected_air_loops.size}")
-
     # check if any air loops are applicable to measure
     if selected_air_loops.empty?
       runner.registerAsNotApplicable('No applicable air loops in model. No changes will be made.')
       return true
     end
 
-
     # get model conditioned square footage for reporting
     if model.building.get.conditionedFloorArea.empty?
-      runner.registerError("model.building.get.conditionedFloorArea() is empty.")
-      return true
+      runner.registerWarning("model.building.get.conditionedFloorArea() is empty; applicable floor area fraction will not be reported.")
+      # report initial condition of model
+      runner.registerInitialCondition("The building has #{selected_air_loops.size} applicable air loops (out of the total #{model.getAirLoopHVACs.size} airloops in the model) that will be replaced with heat pump RTUs, serving #{applicable_area_m2.round(0)} m2 of floor area. The remaning airloops were determined to be not applicable.")
     else
       total_area_m2 = model.building.get.conditionedFloorArea.get
+
+      # fraction of conditioned floorspace
+      applicable_floorspace_frac = applicable_area_m2 / total_area_m2
+
+      # report initial condition of model
+      runner.registerInitialCondition("The building has #{selected_air_loops.size} applicable air loops that will be replaced with heat pump RTUs, representing #{(applicable_floorspace_frac*100).round(2)}% of the building floor area.")
     end
-
-    # fraction of conditioned floorspace
-    applicable_floorspace_frac = applicable_area_m2 / total_area_m2
-
-    # report initial condition of model
-    runner.registerInitialCondition("The building has #{selected_air_loops.size} applicable air loops that will be replaced with heat pump RTUs, representing #{(applicable_floorspace_frac*100).round(2)}% of the building floor area.")
 
     backup_heat_source=nil
     # report gas heating as backup source
@@ -662,6 +707,48 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       runner.registerInfo("Based on model features and user-inputs, heat pump backup heat will be electric resistance.")
       backup_heat_source='electric'
     end
+
+    # applicability checks for heat recovery; building type
+    # building type not applicable to ERVs as part of this measure will receive no additional or modification of ERV systems
+    # this is only relevant if the user selected to add ERVs
+    # space type applicability is handled later in the code when looping through individual air loops
+    building_types_to_exclude = [
+      "RFF",
+      "RSD",
+      "QuickServiceRestaurant",
+      "FullServiceRestaurant",
+    ]
+    # determine building type applicability for ERV
+    btype_erv_applicable=true
+    building_types_to_exclude = building_types_to_exclude.map { |item| item.downcase }
+    # get Standards building type name and check against building type applicability list
+    model_building_type=nil
+    if model.getBuilding.standardsBuildingType.is_initialized
+      model_building_type = model.getBuilding.standardsBuildingType.get
+    else
+      runner.registerError("Building type not found.")
+      return true
+    end
+    # register applicability; this will be used in code section where ERV is added
+    if building_types_to_exclude.include?(model_building_type.downcase)
+      btype_erv_applicable=false
+    end
+    # warn user if they selected to add ERV but building type is not applicable for ERV
+    if ((hr==true) && (btype_erv_applicable==false))
+      runner.registerWarning("The user chose to include energy recovery in the heat pump RTUs, but the building type -#{model_building_type}- is not applicable for energy recovery. Energy recovery will not be added.")
+    end
+
+    # get climate full string and classification (i.e. "5A")
+    climate_zone = std.model_standards_climate_zone(model)
+    climate_zone_classification = climate_zone.split('-')[-1]
+
+    # Get ER/HR type from climate zone
+    doas_dat_clg_c, doas_dat_htg_c, doas_type=
+      if ['1A', '2A', '3A', '4A', '5A', '6A', '7', '7A', '8', '8A'].include?(climate_zone_classification)
+        [12.7778, 19.4444, 'ERV']
+      else
+        [15.5556, 19.4444, 'HRV']
+      end
 
     # load performance data if modeling standard performance
     custom_data_json = nil
@@ -983,11 +1070,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         return false
       end
 
-      # get sizing information from terminal box
-      if old_terminal.isMaximumAirFlowRateAutosized == true
-        old_terminal_sa_flow_m3_per_s = old_terminal.autosizedMaximumAirFlowRate.get
-      elsif old_terminal.maximumAirFlowRate.is_initialized
-        old_terminal_sa_flow_m3_per_s = old_terminal.maximumAirFlowRate.get
+      # get design supply air flow rate
+      old_terminal_sa_flow_m3_per_s = nil
+      if air_loop_hvac.designSupplyAirFlowRate.is_initialized
+        old_terminal_sa_flow_m3_per_s = air_loop_hvac.designSupplyAirFlowRate.get
+      elsif air_loop_hvac.isDesignSupplyAirFlowRateAutosized
+        old_terminal_sa_flow_m3_per_s = air_loop_hvac.autosizedDesignSupplyAirFlowRate.get
       else
         runner.registerError("No sizing data available for air loop #{air_loop_hvac.name} zone terminal box.")
       end
@@ -1000,12 +1088,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       else
         min_oa_flow_ratio = (oa_flow_m3_per_s/old_terminal_sa_flow_m3_per_s)
       end
-
-      # # register as not applicable if OA limit exceeded and unit has night cycling schedules
-      # if (oa_flow_m3_per_s/old_terminal_sa_flow_m3_per_s) > 0.6
-      #   runner.registerAsNotApplicable("Air loop #{air_loop_hvac.name} has an outdoor air ratio of #{(oa_flow_m3_per_s/old_terminal_sa_flow_m3_per_s).round(2)} which exceeds the maximum allowable limit of 0.60 (due to an EnergyPlus night cycling bug with multispeed coils) making this model not applicable at this time.")
-      #   return false
-      # end
 
       # remove old equipment
       old_terminal.remove
@@ -1177,51 +1259,37 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       clg_stage4 = dx_rated_clg_cap_applied
       hash_clg_cap_stgs = {1 => clg_stage1, 2 => clg_stage2, 3 => clg_stage3, 4 => clg_stage4}
 
-      # puts "Original Cooling..."
-      # puts hash_clg_cap_stgs
-      # puts hash_clg_airflow_stgs
-      # puts ""
-
             ################################################
       # puts "Analysis..."
       hash_clg_speed_level_status = {}
       [4,3,2,1].each do |clg_stg|
         # define airflow and capacity for stage
-        # puts "Stage #: #{clg_stg}"
         stg_cap = hash_clg_cap_stgs[clg_stg]
-        # puts "Capacity: #{stg_cap}"
         stg_airflow = hash_clg_airflow_stgs[clg_stg]
-        # puts "Airflow: #{stg_airflow}"
         ratio_flow_to_cap_orig = stg_airflow / stg_cap
-        # puts "ratio_flow_to_cap_orig: #{ratio_flow_to_cap_orig}"
-        # puts "Outdoor Air: #{oa_flow_m3_per_s}"
         
         # check upper limit of ratio for compliance (>450 CFM/Ton)
         spacer = 0 
         spacer = 1 unless clg_stg==4
         max_reached=false
         # next if clg_stg==4
-        if ratio_flow_to_cap_orig > 0.00006041
+        if ratio_flow_to_cap_orig.round(8) > 0.00006041
           # range can be met using minimum airflow and increasing capacity of speed
           # this will only occur if new capacity is at least 50% between previous and new stage capacity
-          if ((max_reached==false) && (((hash_clg_cap_stgs[clg_stg+spacer] - (stg_cap / (0.00006041 / (stg_airflow/stg_cap)))) / (hash_clg_cap_stgs[clg_stg+spacer] - stg_cap)) > 0.5)) || (clg_stg==4)
-            # puts "cap changes"
-            # puts ((hash_clg_cap_stgs[clg_stg+1] - (stg_cap / (0.00006041 / (oa_flow_m3_per_s/stg_cap)))) / (hash_clg_cap_stgs[clg_stg+1] - stg_cap))
+          if ((max_reached==false) && (((hash_clg_cap_stgs[clg_stg+spacer] - (stg_cap / (0.00006041 / (stg_airflow/stg_cap)))) / (hash_clg_cap_stgs[clg_stg+spacer] - stg_cap)) > 0.50)) || ((clg_stg==4) || (clg_stg==3))
+            
             # max_reached=true
             # calculate new capacities based on decreased airflow to minimum allowed and increasing capacity
             new_airflow = stg_airflow
             new_cap = stg_cap / (0.00006041 / (stg_airflow/stg_cap))
             hash_clg_airflow_stgs[clg_stg] = new_airflow
             hash_clg_cap_stgs[clg_stg] = new_cap
-            runner.registerWarning("For airloop #{air_loop_hvac.name}, cooling stage #{clg_stg} airflow/capacity ratio is too high with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 6.041e-05 m3/s/watt. The capacity of the stage will be increased from #{stg_cap.round(0)} watts to #{new_cap.round(0)} watts.")
+            #runner.registerWarning("For airloop #{air_loop_hvac.name}, cooling stage #{clg_stg} airflow/capacity ratio is too high with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 6.041e-05 m3/s/watt. The capacity of the stage will be increased from #{stg_cap.round(0)} watts to #{new_cap.round(0)} watts.")
             hash_clg_speed_level_status[clg_stg] = true
-            # puts new_airflow
-            # puts new_cap
-            # puts new_airflow/new_cap
           # range cannot be met given minimum airflow constraints, or limit has already been met in previous stage
           else
             max_reached=true
-            runner.registerWarning("For airloop #{air_loop_hvac.name}, cooling stage #{clg_stg} airflow/capacity airflow is too high with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 6.04e-05 m3/s/watt. Due to minimum outdoor airflow requirements this value cannot be brought into bounds. This stage will be given a neglible capacity making it effectively unavailable.")
+            #runner.registerWarning("For airloop #{air_loop_hvac.name}, cooling stage #{clg_stg} airflow/capacity airflow is too high with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 6.04e-05 m3/s/watt. Due to minimum outdoor airflow requirements this value cannot be brought into bounds. This stage will be given a neglible capacity making it effectively unavailable.")
             hash_clg_speed_level_status[clg_stg] = false
           end
 
@@ -1230,19 +1298,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
           # calculate new stage capacity to fall in range. This should be an increase.
           new_cap = stg_cap / (0.00004027 / (stg_airflow/stg_cap))
           hash_clg_cap_stgs[clg_stg] = new_cap
-          runner.registerWarning("For airloop #{air_loop_hvac.name}, cooling stage #{clg_stg} airflow/capacity ratio is too low with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 4.03e-05 m3/s/watt. The capacity for this stage will be decreased from #{stg_cap.round(2)} watts to #{new_cap.round(2)} m3/s to bring the airflow/capacity within the allowable bounds.")
+          #runner.registerWarning("For airloop #{air_loop_hvac.name}, cooling stage #{clg_stg} airflow/capacity ratio is too low with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 4.03e-05 m3/s/watt. The capacity for this stage will be decreased from #{stg_cap.round(2)} watts to #{new_cap.round(2)} m3/s to bring the airflow/capacity within the allowable bounds.")
           hash_clg_speed_level_status[clg_stg] = true
         else
           hash_clg_speed_level_status[clg_stg] = true
         end
       end
-
-      # puts ""
-      # puts "New Cooling"
-      # puts hash_clg_cap_stgs
-      # puts hash_clg_airflow_stgs
-      # puts hash_clg_speed_level_status
-      # puts ""
 
       ### Heating
       # define heating stages
@@ -1252,48 +1313,32 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       htg_stage4 = dx_rated_htg_cap_applied
       hash_htg_cap_stgs = {1 => htg_stage1, 2 => htg_stage2, 3 => htg_stage3, 4 => htg_stage4}
 
-      # puts "Original Heating..."
-      # puts hash_htg_cap_stgs
-      # puts hash_htg_airflow_stgs
-      # puts ""
-
       max_reached=false
       hash_htg_speed_level_status = {}
       [4,3,2,1].each do |htg_stg|
-        # puts htg_stg
         # define airflow and capacity for stage
-        # puts "Stage #: #{htg_stg}"
         stg_cap = hash_htg_cap_stgs[htg_stg]
-        # puts "Capacity: #{stg_cap}"
         stg_airflow = hash_htg_airflow_stgs[htg_stg]
-        # puts "Airflow: #{stg_airflow}"
         ratio_flow_to_cap_orig = stg_airflow / stg_cap
-        # puts "ratio_flow_to_cap_orig: #{ratio_flow_to_cap_orig}"
-        # puts "Outdoor Air: #{oa_flow_m3_per_s}"
-        
+
         # check upper limit of ratio for compliance (>450 CFM/Ton)
         spacer = 0 
         spacer = 1 unless htg_stg==4
         # next if htg_stg==4
-        if ratio_flow_to_cap_orig > 0.00006041
-          # puts "Flow too high"
+        if ratio_flow_to_cap_orig.round(8) > 0.00006041
           # range can be met using minimum airflow and increasing capacity of speed
           # this will only occur if new capacity is at least 50% between previous and new stage capacity
-          if ((max_reached==false) && (((hash_htg_cap_stgs[htg_stg+spacer] - (stg_cap / (0.00006041 / (stg_airflow/stg_cap)))) / (hash_htg_cap_stgs[htg_stg+spacer] - stg_cap)) > 0.5)) || (htg_stg==4)
+          if ((max_reached==false) && (((hash_htg_cap_stgs[htg_stg+spacer] - (stg_cap / (0.00006041 / (stg_airflow/stg_cap)))) / (hash_htg_cap_stgs[htg_stg+spacer] - stg_cap)) > 0.5)) || ((htg_stg==4) || (htg_stg==3))
             # max_reached=true
             # calculate new capacities based on decreased airflow to minimum allowed and increasing capacity
             new_airflow = stg_airflow
             new_cap = stg_cap / (0.00006041 / (stg_airflow/stg_cap))
             hash_htg_airflow_stgs[htg_stg] = new_airflow
             hash_htg_cap_stgs[htg_stg] = new_cap
-            runner.registerWarning("For airloop #{air_loop_hvac.name}, heating stage #{htg_stg} airflow/capacity ratio is too high with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 6.04e-05 m3/s/watt. The capacity of the stage will be increased from #{stg_cap.round(0)} watts to #{new_cap.round(0)} watts.")
+            #runner.registerWarning("For airloop #{air_loop_hvac.name}, heating stage #{htg_stg} airflow/capacity ratio is too high with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 6.04e-05 m3/s/watt. The capacity of the stage will be increased from #{stg_cap.round(0)} watts to #{new_cap.round(0)} watts.")
             hash_htg_speed_level_status[htg_stg] = true
-            # puts new_airflow
-            # puts new_cap
-            # puts new_airflow/new_cap
           # range cannot be met given minimum airflow constraints, or limit has already been met in previous stage
           else
-            # puts "cant help"
             max_reached=true
             runner.registerWarning("For airloop #{air_loop_hvac.name}, heating stage #{htg_stg} airflow/capacity airflow is too high with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 6.04e-05 m3/s/watt. Due to minimum outdoor airflow requirements this value cannot be brought into bounds. This stage will be given a neglible capacity making it effectively unavailable.")
             hash_htg_speed_level_status[htg_stg] = false
@@ -1301,22 +1346,17 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
         # check lower limit of ratio for complaince (<300 CFM/Ton)
         # check lower limit of ratio for complaince (<300 CFM/Ton)
-        elsif ((stg_airflow / stg_cap) < 0.00004027) && (htg_stg != 4)
+        elsif ((stg_airflow / stg_cap).round(8) < 0.00004027) && (htg_stg != 4)
           # calculate new stage capacity to fall in range. This should be an increase.
           new_cap = stg_cap / (0.00004027 / (stg_airflow/stg_cap))
           hash_htg_cap_stgs[htg_stg] = new_cap
-          runner.registerWarning("For airloop #{air_loop_hvac.name}, heating stage #{htg_stg} airflow/capacity ratio is too low with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 4.03e-05 m3/s/watt. The capacity for this stage will be decreased from #{stg_cap.round(2)} watts to #{new_cap.round(2)} m3/s to bring the airflow/capacity within the allowable bounds.")
+          #runner.registerWarning("For airloop #{air_loop_hvac.name}, heating stage #{htg_stg} airflow/capacity ratio is too low with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 4.03e-05 m3/s/watt. The capacity for this stage will be decreased from #{stg_cap.round(2)} watts to #{new_cap.round(2)} m3/s to bring the airflow/capacity within the allowable bounds.")
           hash_htg_speed_level_status[htg_stg] = true
         else
           hash_htg_speed_level_status[htg_stg] = true
         end
       end
 
-      # puts ""
-      # puts "New Heating"
-      # puts hash_htg_cap_stgs
-      # puts hash_htg_airflow_stgs
-      # puts hash_htg_speed_level_status
       #################################### End Sizing Logic
 
       # override stage configuration for modeling standard performance
@@ -1492,7 +1532,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       cool_plf_fplr_all_stages.setMinimumCurveOutput(0.7)
       cool_plf_fplr_all_stages.setMaximumCurveOutput(1)
 
-      # add new multispeed cooling coil
+      # add new cooling coil; multispeed if at least 2 stages are possible
+      if (hash_clg_speed_level_status[3] == false) || (hash_htg_speed_level_status[3] == false)
+        new_dx_cooling_coil = OpenStudio::Model::CoilCoolingDXSingleSpeed.new(model)
+      end
       new_dx_cooling_coil = OpenStudio::Model::CoilCoolingDXMultiSpeed.new(model)
       new_dx_cooling_coil.setName("#{air_loop_hvac.name} Heat Pump Cooling Coil")
       new_dx_cooling_coil.setCondenserType('AirCooled')
@@ -1846,7 +1889,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         new_dx_heating_coil_speed1.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[1])
         new_dx_heating_coil_speed1.setGrossRatedHeatingCOP(4.96)
         new_dx_heating_coil_speed1.setRatedAirFlowRate(hash_htg_airflow_stgs[1])
-        new_dx_heating_coil_speed1.setRatedSupplyAirFanPowerPerVolumeFlowRate(773.3)
+        new_dx_heating_coil_speed1.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed1.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft1)
         new_dx_heating_coil_speed1.setHeatingCapacityFunctionofFlowFractionCurve(heat_cap_fff_all_stages)
         new_dx_heating_coil_speed1.setEnergyInputRatioFunctionofTemperatureCurve(heat_eir_ft1)
@@ -1859,7 +1902,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         new_dx_heating_coil_speed2.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[2])
         new_dx_heating_coil_speed2.setGrossRatedHeatingCOP(4.24)
         new_dx_heating_coil_speed2.setRatedAirFlowRate(hash_htg_airflow_stgs[2])
-        new_dx_heating_coil_speed2.setRatedSupplyAirFanPowerPerVolumeFlowRate(773.3)
+        new_dx_heating_coil_speed2.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed2.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft2)
         new_dx_heating_coil_speed2.setHeatingCapacityFunctionofFlowFractionCurve(heat_cap_fff_all_stages)
         new_dx_heating_coil_speed2.setEnergyInputRatioFunctionofTemperatureCurve(heat_eir_ft2)
@@ -1872,7 +1915,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         new_dx_heating_coil_speed3.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[3])
         new_dx_heating_coil_speed3.setGrossRatedHeatingCOP(3.59)
         new_dx_heating_coil_speed3.setRatedAirFlowRate(hash_htg_airflow_stgs[3])
-        new_dx_heating_coil_speed3.setRatedSupplyAirFanPowerPerVolumeFlowRate(773.3)
+        new_dx_heating_coil_speed3.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed3.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft3)
         new_dx_heating_coil_speed3.setHeatingCapacityFunctionofFlowFractionCurve(heat_cap_fff_all_stages)
         new_dx_heating_coil_speed3.setEnergyInputRatioFunctionofTemperatureCurve(heat_eir_ft3)
@@ -1885,7 +1928,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         new_dx_heating_coil_speed4.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[4])
         new_dx_heating_coil_speed4.setGrossRatedHeatingCOP(3.42)
         new_dx_heating_coil_speed4.setRatedAirFlowRate(hash_htg_airflow_stgs[4])
-        new_dx_heating_coil_speed4.setRatedSupplyAirFanPowerPerVolumeFlowRate(773.3)
+        new_dx_heating_coil_speed4.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed4.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft4)
         new_dx_heating_coil_speed4.setHeatingCapacityFunctionofFlowFractionCurve(heat_cap_fff_all_stages)
         new_dx_heating_coil_speed4.setEnergyInputRatioFunctionofTemperatureCurve(heat_eir_ft4)
@@ -1992,55 +2035,150 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       controller_oa = oa_system.getControllerOutdoorAir
       controller_oa.setLockoutType('LockoutWithHeating') unless controller_oa.getEconomizerControlType == "NoEconomizer"
 
-
       # Energy recovery
       # check for ERV, and get components
       # ERV components will be removed and replaced if ERV flag was selected
       # If ERV flag was not selected, ERV equipment will remain in place as-is
       erv_components = []
-        air_loop_hvac.oaComponents.each do |component|
-            component_name = component.name.to_s
-            next if component_name.include? "Node"
-            if component_name.include? "ERV"
-              erv_components << component
-              erv_components = erv_components.uniq
-            end
-          end  
+      air_loop_hvac.oaComponents.each do |component|
+          component_name = component.name.to_s
+          next if component_name.include? "Node"
+          if component_name.include? "ERV"
+            erv_components << component
+            erv_components = erv_components.uniq
+          end
+        end  
       
-      # add energy recovery if specified
-      if hr==true
-        # if there was not previosuly an ERV, add 0.5" (124.42 pascals) static to supply fan
-        new_fan.setPressureRise(fan_static_pressure + 124.42) if erv_components.empty?
-        # remove existing ERV; these will be replaced with new ERV equipment
-        erv_components.each(&:remove)
-        # get oa system
-        oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
-        # add new HR system
-        new_hr = OpenStudio::Model::HeatExchangerAirToAirSensibleAndLatent.new(model)
-        # update parameters
-        new_hr.addToNode(oa_system.outboardOANode.get)
-        new_hr.setAvailabilitySchedule(always_on)
-        new_hr.setEconomizerLockout(true)
-        new_hr.setFrostControlType('ExhaustOnly')
-        new_hr.setThresholdTemperature(0) # 32F, from Daikin
-        new_hr.setInitialDefrostTimeFraction(0.083) # 5 minutes every 60 minutes, from Daikin
-        new_hr.setRateofDefrostTimeFractionIncrease(0.024) # from E+ recommended values
-        new_hr.setHeatExchangerType('Rotary')
-        new_hr.setName("#{air_loop_hvac.name} ERV")
-        # set wheel power consumption; from DOE prototypes which exceed 90.1
-        default_fan_efficiency = 0.5
-        power = (oa_flow_m3_per_s * 212.5 / default_fan_efficiency) + (oa_flow_m3_per_s * 0.9 * 162.5 / default_fan_efficiency) + 50
-        new_hr.setNominalElectricPower(power)
-        # set efficiencies; from DOE prototypes which exceed 90.1
-        new_hr.setSupplyAirOutletTemperatureControl(false)
-        new_hr.setSensibleEffectivenessat100HeatingAirFlow(0.76)
-        new_hr.setSensibleEffectivenessat75HeatingAirFlow(0.81)
-        new_hr.setLatentEffectivenessat100HeatingAirFlow(0.68)
-        new_hr.setLatentEffectivenessat75HeatingAirFlow(0.73)
-        new_hr.setSensibleEffectivenessat100CoolingAirFlow(0.76)
-        new_hr.setSensibleEffectivenessat75CoolingAirFlow(0.81)
-        new_hr.setLatentEffectivenessat100CoolingAirFlow(0.68)
-        new_hr.setLatentEffectivenessat75CoolingAirFlow(0.73)
+      # add energy recovery if specified by user and if the building type is applicable
+      if ((hr==true) && (btype_erv_applicable==true))
+
+        # check if there was previously an ERV on this air loop
+        existing_erv = !erv_components.empty?
+
+        # check for space type applicability
+        stype_erv_applicable=true
+        thermal_zone_names_to_exclude = [
+          'Kitchen',
+          'kitchen',
+          'KITCHEN',
+          'Dining',
+          'dining',
+          'DINING',
+        ]
+        # skip air loops that serve non-applicable space types and warn user
+        if thermal_zone_names_to_exclude.any? { |word| (thermal_zone.name.to_s).include?(word) }
+          runner.registerWarning("The user selected to add energy recovery to the HP-RTUs, but thermal zone #{thermal_zone.name.to_s} is a non-applicable space type for energy recovery. Any existing energy recovery will remain for consistancy, but no new energy recovery will be added.")
+        else
+          # # assuming 90% return airflow based on PNNL prototype models
+          # # only do this if the value is currently 1 and there is no existing ERV
+          # # this is to retain consistancy with baseline
+          # if (air_loop_hvac.designReturnAirFlowFractionofSupplyAirFlow == 1) && (existing_erv==false)
+          #   air_loop_hvac.setDesignReturnAirFlowFractionofSupplyAirFlow(0.9)
+          # end
+          # remove existing ERV; these will be replaced with new ERV equipment
+          erv_components.each(&:remove)
+          # get oa system
+          oa_sys = air_loop_hvac.airLoopHVACOutdoorAirSystem
+          std.air_loop_hvac_apply_energy_recovery_ventilator(air_loop_hvac, climate_zone)
+          # set heat exchanger efficiency levels
+          # get outdoor airflow (which is used for sizing)
+          oa_sys = oa_sys.get
+          oa_controller = oa_sys.getControllerOutdoorAir
+          oa_sys_sizing = air_loop_hvac.sizingSystem
+          oa_flow_m3_per_s = nil
+          # get design outdoor air flow rate
+          # this is used to estimate wheel "fan" power
+          # loop through thermal zones
+          oa_flow_m3_per_s = 0
+          air_loop_hvac.thermalZones.each do |thermal_zone|
+            space = thermal_zone.spaces[0]
+
+            # get zone area
+            fa = thermal_zone.floorArea
+
+            # get zone volume
+            vol = thermal_zone.airVolume
+
+            # get zone design people
+            num_people = thermal_zone.numberOfPeople
+
+            if space.designSpecificationOutdoorAir.is_initialized
+              dsn_spec_oa = space.designSpecificationOutdoorAir.get
+
+              # add floor area component
+              oa_area = dsn_spec_oa.outdoorAirFlowperFloorArea
+              oa_flow_m3_per_s += oa_area * fa
+
+              # add per person component
+              oa_person = dsn_spec_oa.outdoorAirFlowperPerson
+              oa_flow_m3_per_s += oa_person * num_people
+
+              # add air change component
+              oa_ach = dsn_spec_oa.outdoorAirFlowAirChangesperHour
+              oa_flow_m3_per_s += (oa_ach * vol) / 60
+            end
+          end
+
+          oa_sys.oaComponents.each do |oa_comp|
+            if oa_comp.to_HeatExchangerAirToAirSensibleAndLatent.is_initialized
+              hx = oa_comp.to_HeatExchangerAirToAirSensibleAndLatent.get
+              # set controls
+              hx.setSupplyAirOutletTemperatureControl(true)
+              hx.setEconomizerLockout(true)
+              hx.setFrostControlType('MinimumExhaustTemperature')
+              hx.setThresholdTemperature(1.66667) #35F, from E+ recommendation
+              hx.setHeatExchangerType('Rotary') # rotary is used for fan power modulation when bypass is active. Only affects supply temp control with bypass.
+              # add setpoint manager to control recovery
+              # Add a setpoint manager OA pretreat to control the ERV
+              spm_oa_pretreat = OpenStudio::Model::SetpointManagerOutdoorAirPretreat.new(air_loop_hvac.model)
+              spm_oa_pretreat.setMinimumSetpointTemperature(-99.0)
+              spm_oa_pretreat.setMaximumSetpointTemperature(99.0)
+              spm_oa_pretreat.setMinimumSetpointHumidityRatio(0.00001)
+              spm_oa_pretreat.setMaximumSetpointHumidityRatio(1.0)
+              # Reference setpoint node and mixed air stream node are outlet node of the OA system
+              mixed_air_node = oa_sys.mixedAirModelObject.get.to_Node.get
+              spm_oa_pretreat.setReferenceSetpointNode(mixed_air_node)
+              spm_oa_pretreat.setMixedAirStreamNode(mixed_air_node)
+              # Outdoor air node is the outboard OA node of the OA system
+              spm_oa_pretreat.setOutdoorAirStreamNode(oa_sys.outboardOANode.get)
+              # Return air node is the inlet node of the OA system
+              return_air_node = oa_sys.returnAirModelObject.get.to_Node.get
+              spm_oa_pretreat.setReturnAirStreamNode(return_air_node)
+              # Attach to the outlet of the HX
+              hx_outlet = hx.primaryAirOutletModelObject.get.to_Node.get
+              spm_oa_pretreat.addToNode(hx_outlet)
+    
+              # set parameters for ERV
+              if doas_type=='ERV'
+                # set efficiencies; assumed 90% airflow returned to unit
+                hx.setSensibleEffectivenessat100HeatingAirFlow(0.75*0.9)
+                hx.setSensibleEffectivenessat75HeatingAirFlow(0.78*0.9)
+                hx.setLatentEffectivenessat100HeatingAirFlow(0.61*0.9)
+                hx.setLatentEffectivenessat75HeatingAirFlow(0.68*0.9)
+                hx.setSensibleEffectivenessat100CoolingAirFlow(0.75*0.9)
+                hx.setSensibleEffectivenessat75CoolingAirFlow(0.78*0.9)
+                hx.setLatentEffectivenessat100CoolingAirFlow(0.55*0.9)
+                hx.setLatentEffectivenessat75CoolingAirFlow(0.60*0.9)  
+              # set parameters for HRV
+              elsif doas_type=='HRV'
+                # set efficiencies; assumed 90% airflow returned to unit
+                hx.setSensibleEffectivenessat100HeatingAirFlow(0.84*0.9)
+                hx.setSensibleEffectivenessat75HeatingAirFlow(0.86*0.9)
+                hx.setLatentEffectivenessat100HeatingAirFlow(0)
+                hx.setLatentEffectivenessat75HeatingAirFlow(0)
+                hx.setSensibleEffectivenessat100CoolingAirFlow(0.83*0.9)
+                hx.setSensibleEffectivenessat75CoolingAirFlow(0.84*0.9)
+                hx.setLatentEffectivenessat100CoolingAirFlow(0)
+                hx.setLatentEffectivenessat75CoolingAirFlow(0)
+              end
+    
+              # fan efficiency ranges from 40-60% (Energy Modeling Guide for Very High Efficiency DOAS Final Report)
+              default_fan_efficiency = 0.55
+              power = (oa_flow_m3_per_s * 174.188 / default_fan_efficiency) + ((oa_flow_m3_per_s * 0.9 * 124.42) / default_fan_efficiency)
+              hx.setNominalElectricPower(power)
+            end
+          end
+        end
       end
     end
         
