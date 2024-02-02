@@ -509,10 +509,7 @@ class HVACEconomizer_Test < Minitest::Test
       epw_path = epw_path[0]
 
       # Initialize variables
-      oa_design_rates_before = {}
-      oa_design_rates_after = {}
       timeseries_results_combined = {}
-      test_pass = true
 
       # Create an instance of the measure
       measure = HVACEconomizer.new
@@ -609,6 +606,9 @@ class HVACEconomizer_Test < Minitest::Test
       # Compare output var results before and after the measure
       unique_identifiers.each do |identifier|
 
+        puts("### ----------------------------------------------------------------------------")
+        puts("### DEBUGGING: identifier = #{identifier}")
+
         # skip if the output var key is EMS
         next if identifier == "EMS"
 
@@ -631,25 +631,25 @@ class HVACEconomizer_Test < Minitest::Test
             timeseries_reference = timeseries_results_combined['after']['EMS'][output_var_ems]
           end
         end
+        puts("### DEBUGGING: length timeseries_outputvar_before = #{timeseries_outputvar_before.size}")
+        puts("### DEBUGGING: length timeseries_outputvar_after = #{timeseries_outputvar_after.size}")
+        puts("### DEBUGGING: length timeseries_reference = #{timeseries_reference.size}")
 
         # Get indices of interest (non-zero values in actuator)
         indices_of_interest = timeseries_reference.each_index.select { |i| timeseries_reference[i] != 0 }
+        puts("### DEBUGGING: number of times actuator override = #{indices_of_interest.size}")
 
         # Get filtered output vars
         timeseries_outputvar_before = timeseries_outputvar_before.values_at(*indices_of_interest)
         timeseries_outputvar_after = timeseries_outputvar_after.values_at(*indices_of_interest)
-
-        puts("### ----------------------------------------------------------------------------")
-        puts("### DEBUGGING: identifier = #{identifier}")
-        puts("### DEBUGGING: length timeseries_outputvar_before = #{timeseries_outputvar_before.size}")
-        puts("### DEBUGGING: length timeseries_outputvar_after = #{timeseries_outputvar_after.size}")
-        puts("### DEBUGGING: length timeseries_reference = #{timeseries_reference.size}")
-        puts("### DEBUGGING: number of times actuator override = #{indices_of_interest.size}")
+        timeseries_reference = timeseries_reference.values_at(*indices_of_interest)
         puts("### DEBUGGING: length timeseries_outputvar_before (filtered) = #{timeseries_outputvar_before.size}")
         puts("### DEBUGGING: length timeseries_outputvar_after (filtered) = #{timeseries_outputvar_after.size}")
-        puts("### DEBUGGING: unique values of filtered timeseries values = #{(timeseries_outputvar_before + timeseries_outputvar_after).uniq}")
+        puts("### DEBUGGING: length timeseries_reference (filtered) = #{timeseries_reference.size}")
+        puts("### DEBUGGING: unique values of filtered timeseries values = #{(timeseries_outputvar_before + timeseries_outputvar_after + timeseries_reference).uniq}")
 
         assert(timeseries_outputvar_before == timeseries_outputvar_after)
+        assert(timeseries_outputvar_before == timeseries_reference)
 
       end
     end
