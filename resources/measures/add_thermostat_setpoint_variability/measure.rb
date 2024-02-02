@@ -305,6 +305,15 @@ class AddThermostatSetpointVariability < OpenStudio::Measure::ModelMeasure
         next
       end
 
+      # temporary workaround to not adjust warehouse office space types
+      if model.getBuilding.name.get.include? 'Warehouse'
+        # don't allow heating setpoint reduction
+        if adjust_htg_setpt && (htg_sp_c < sch_info[:max])
+          runner.registerWarning("User-input heating setpoint temp of #{htg_sp_f}F would reduce heating setpoint for schedule #{htg_sch.name}. Skipping.")
+          next
+        end
+      end
+
       # warn if setback input for flat schedule
       if adjust_htg_setback && (sch_info[:num_vals] == 1)
         runner.registerWarning("Heating schedule #{htg_sch.name} only has 1 temperature setpoint and is therefore not applicable for adding any setbacks to the temperature schedules.")
