@@ -186,7 +186,7 @@ end
 	   puts air_loop_hvac
       # skip systems that are residential, or are DOAS or evaporative coolers 
       next if UnoccupiedOAControls.air_loop_res?(air_loop_hvac)
-	  next if air_loop_evaporative_cooler?(air_loop_hvac)
+	  next if UnoccupiedOAControls.air_loop_evaporative_cooler?(air_loop_hvac)
       next if UnoccupiedOAControls.air_loop_doas?(air_loop_hvac)
       # skip outpatient healthcare, hospitals, and schools 
       next if no_change_zones?(air_loop_hvac) #screen out space types this shouldn't be applied to 
