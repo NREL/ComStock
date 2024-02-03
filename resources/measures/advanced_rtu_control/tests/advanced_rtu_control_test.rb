@@ -184,7 +184,7 @@ class AdvancedRTUControlTest < Minitest::Test
     return result
   end
 
-  def dont_test_number_of_arguments_and_argument_names
+  def test_number_of_arguments_and_argument_names
     # This test ensures that the current test is matched to the measure inputs
     test_name = 'test_number_of_arguments_and_argument_names'
     puts "\n######\nTEST:#{test_name}\n######\n"
@@ -197,10 +197,66 @@ class AdvancedRTUControlTest < Minitest::Test
 
     # Get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(0, arguments.size)
+    assert_equal(2, arguments.size)
+  end
+  
+  
+  
+   def test_econo
+    osm_name = '361_Small_Office_PSZ_Gas_3a.osm'
+    epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
+
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+
+    # Create an instance of the measure
+    measure = AdvancedRTUControl.new
+
+    # Load the model; only used here for populating arguments
+	puts "loading test model 2" 
+    model = load_model(osm_path)
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+     #put base case assertions here 
+    # create hash of argument values
+    args_hash = { 'add_econo' => true, 'add_dcv' => false}
+    # populate argument with specified hash value if specified
+    arguments.each do |arg|
+      temp_arg_var = arg.clone
+      if args_hash.key?(arg.name)
+        assert(temp_arg_var.setValue(args_hash[arg.name]), "Could not set #{arg.name} to #{args_hash[arg.name]}")
+      end
+      argument_map[arg.name] = temp_arg_var
+    end
+	
+
+    # Apply the measure to the model and optionally run the model
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+    puts "loading test model 3" 
+    #model = load_model(model_output_path(__method__))
+    model = load_model(File.expand_path(model_output_path(__method__)))
+	#confirm that at least one air loop now has an economizer 
+	has_econo = false 
+	model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+	oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem
+	if oa_system.is_initialized
+		oa_system = oa_system.get
+		oa_controller = oa_system.getControllerOutdoorAir
+		economizer_type = oa_controller.getEconomizerControlType
+		if economizer_type != 'NoEconomizer'
+		   has_econo = true 
+		end 
+	else
+	    runner.registerInfo("Air loop #{air_loop_hvac.name} does not have outdoor air and cannot economize.")
+	end
+	
+	end 
+	assert(has_econo) 
+#put in assertions here 
+#then duplicate it for other models if needed 
   end
 
-  def test_r_value_cz_3a
+  def test_var_vol_fan 
     osm_name = '361_Retail_PSZ_Gas_5a.osm'
     epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
 
@@ -236,169 +292,28 @@ class AdvancedRTUControlTest < Minitest::Test
     #model = load_model(model_output_path(__method__))
     model = load_model(File.expand_path(model_output_path(__method__)))
 	
+	var_vol_fan = false 
+	model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+		air_loop_hvac.supplyComponents.each do |component|
+		obj_type = component.iddObjectType.valueName.to_s
+	    case obj_type
+        when 'OS_AirLoopHVAC_UnitarySystem'
+		component = component.to_AirLoopHVACUnitarySystem.get
+		sup_fan = component.supplyFan
+		if sup_fan.is_initialized 
+			sup_fan = sup_fan.get
+            if sup_fan.to_FanVariableVolume.is_initialized
+		       var_vol_fan = true 
+		    end 
+	    end 
+	    end 
+        end 
+	end 
+	
+	assert(var_vol_fan) 
+	
 #put in assertions here 
 #then duplicate it for other models if needed 
   end
 
-  def dont_test_r_value_cz_7
-    osm_name = 'Retail_7.osm'
-    epw_name = 'MN_Cloquet_Carlton_Co_726558_16.epw'
-
-    # Test expectations
-    target_r_value_ip = 21.0 # 7
-
-    osm_path = model_input_path(osm_name)
-    epw_path = epw_input_path(epw_name)
-
-    # Create an instance of the measure
-    measure = AdvancedRTUControl.new
-
-    # Load the model; only used here for populating arguments
-    model = load_model(osm_path)
-    arguments = measure.arguments(model)
-    argument_map = OpenStudio::Measure::OSArgumentMap.new
-
-    # Check that the starting R-value is less than the target
-    old_r_val_ip = 0
-    old_ext_surf_material = nil
-    model.getSurfaces.each do |surface|
-      next unless (surface.outsideBoundaryCondition == 'Outdoors') && (surface.surfaceType == 'Wall')
-      surf_const = surface.construction.get.to_LayeredConstruction.get
-      old_r_val_si = 1 / surface.thermalConductance.to_f
-      old_r_val_ip = OpenStudio.convert(old_r_val_si, 'm^2*K/W', 'ft^2*h*R/Btu').get
-      old_ext_surf_material = surf_const.getLayer(0)
-      break
-    end
-    assert(old_r_val_ip < target_r_value_ip)
-
-    # Apply the measure to the model and optionally run the model
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
-
-    model = load_model(model_output_path(__method__))
-    model.getSurfaces.each do |surface|
-      next unless (surface.outsideBoundaryCondition == 'Outdoors') && (surface.surfaceType == 'Wall')
-      surf_const = surface.construction.get.to_LayeredConstruction.get
-      new_r_val_si = 1.0 / surface.thermalConductance.to_f
-      new_r_val_ip = OpenStudio.convert(new_r_val_si, 'm^2*K/W', 'ft^2*h*R/Btu').get
-      new_ext_surf_material = surf_const.getLayer(0)
-      insul = surf_const.insulation.get
-      insul_thick_in = OpenStudio.convert(insul.thickness, 'm', 'in').get
-
-      # Check that original R-value was below target threshold
-      assert(old_r_val_ip < new_r_val_ip)
-
-      # Check that exterior surface material doesn't change
-      assert_equal(old_ext_surf_material.name.get.to_s, new_ext_surf_material.name.get.to_s)
-
-      # Check that the new R-value matches the target
-      tolerance = 5.0 * 0.5 # R-5/inch * max 1/2 inch off from rounding to nearest inch
-      assert_in_delta(target_r_value_ip, new_r_val_ip, tolerance)
-
-      # Check that the thickness of the added insulation is rounded to nearest inch
-      assert_in_epsilon(1.0, insul_thick_in, 0.001)
-      break
-    end
-  end
-
-  def dont_test_na_less_than_half_inch_insul_needed
-    osm_name = 'Retail_7.osm'
-    epw_name = 'MN_Cloquet_Carlton_Co_726558_16.epw'
-
-    # Test expectations
-    target_r_value_ip = 21.0 # 7
-
-    osm_path = model_input_path(osm_name)
-    epw_path = epw_input_path(epw_name)
-
-    # Create an instance of the measure
-    measure = AdvancedRTUControl.new
-
-    # Load the model for populating arguments
-    model = load_model(osm_path)
-    arguments = measure.arguments(model)
-    argument_map = OpenStudio::Measure::OSArgumentMap.new
-
-    # Modify the initial model to represent an R-value almost high enough
-    ins = model.getMasslessOpaqueMaterialByName('Typical Insulation R-15.06').get
-    bef_r_si = ins.thermalResistance
-    ins.setThermalResistance(ins.thermalResistance * 1.2)
-    aft_r_si = ins.thermalResistance
-    assert(aft_r_si > bef_r_si)
-
-    # Apply the measure to the model and optionally run the model
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, model: model)
-
-    # Should be NA because insulation thickness required is less than 0.5 inches
-    assert_equal('NA', result.value.valueName)
-  end
-
-  def dont_test_na_no_insul_needed
-    osm_name = 'Retail_7.osm'
-    epw_name = 'MN_Cloquet_Carlton_Co_726558_16.epw'
-
-    # Test expectations
-    target_r_value_ip = 21.0 # 7
-
-    osm_path = model_input_path(osm_name)
-    epw_path = epw_input_path(epw_name)
-
-    # Create an instance of the measure
-    measure = AdvancedRTUControl.new
-
-    # Load the model for populating arguments
-    model = load_model(osm_path)
-    arguments = measure.arguments(model)
-    argument_map = OpenStudio::Measure::OSArgumentMap.new
-
-    # Modify the initial model to represent an R-value already high enough
-    ins = model.getMasslessOpaqueMaterialByName('Typical Insulation R-15.06').get
-    bef_r_si = ins.thermalResistance
-    ins.setThermalResistance(ins.thermalResistance * 2.0)
-    aft_r_si = ins.thermalResistance
-    assert(aft_r_si > bef_r_si)
-
-    # Apply the measure to the model and optionally run the model
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, model: model)
-
-    # Should be NA because insulation thickness required is less than 0.5 inches
-    assert_equal('NA', result.value.valueName)
-  end
-
-  def dont_test_na_metal_building
-    osm_name = 'Warehouse_5A.osm'
-    epw_name = 'MI_DETROIT_725375_12.epw'
-
-    # Test expectations
-    target_r_value_ip = 21.0 # 7
-
-    osm_path = model_input_path(osm_name)
-    epw_path = epw_input_path(epw_name)
-
-    # Create an instance of the measure
-    measure = AdvancedRTUControl.new
-
-    # Load the model for populating arguments
-    model = load_model(osm_path)
-    arguments = measure.arguments(model)
-    argument_map = OpenStudio::Measure::OSArgumentMap.new
-
-    # Check that the starting R-value is less than the target
-    old_r_val_ip = 0
-    old_ext_surf_material = nil
-    model.getSurfaces.each do |surface|
-      next unless (surface.outsideBoundaryCondition == 'Outdoors') && (surface.surfaceType == 'Wall')
-      surf_const = surface.construction.get.to_LayeredConstruction.get
-      old_r_val_si = 1 / surface.thermalConductance.to_f
-      old_r_val_ip = OpenStudio.convert(old_r_val_si, 'm^2*K/W', 'ft^2*h*R/Btu').get
-      old_ext_surf_material = surf_const.getLayer(0)
-      break
-    end
-    assert(old_r_val_ip < target_r_value_ip)
-
-    # Apply the measure to the model and optionally run the model
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
-
-    # Should be NA because this is a warehouse with metal building walls
-    assert_equal('NA', result.value.valueName)
-  end
 end
