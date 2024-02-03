@@ -324,7 +324,7 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
       li_ems_sens_econ_status << sens_econ_status
 
       # set global variable for debugging
-      dummy_debugging = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, "dummy_debugging_#{std.ems_friendly_name(oa_controller.name.get.to_s)}")
+      dummy_debugging = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, "dummy_debugging_#{std.ems_friendly_name(air_loop_hvac.name.get.to_s)}")
 
       #### Actuators #####
       # set actuator - oa controller air mass flow rate
