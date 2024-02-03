@@ -136,7 +136,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
       model.getThermalZones.each do |thermal_zone|
         thermal_zone.equipment.each do |equip|
           next unless equip.to_ZoneHVACBaseboardConvectiveElectric.is_initialized
-          if ptacs.size >> 0 && pthps.size >> 0
+          if ptacs.size > 0 || pthps.size > 0
             zones_to_skip << thermal_zone.name.get
           else
             baseboards << equip.to_ZoneHVACBaseboardConvectiveElectric.get
@@ -315,6 +315,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
 
       #skip if it has baseboards in baseline
       next if zones_to_skip.include? thermal_zone.name.get
+      next if unconditioned_zones.include? thermal_zone.name.get
 
       OpenStudio.logFree(OpenStudio::Info, 'openstudio.Model.Model', "Adding water-to-air heat pump for #{thermal_zone.name}.")
 
@@ -476,10 +477,11 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     # for zones that got skipped, check if there are already baseboards. if not, add them. 
     model.getThermalZones.each do |thermal_zone|
       if unconditioned_zones.include? thermal_zone.name.get
-        runner.registerInfo("Thermal zone #{thermal_zone} was unconditioned in the baseline, and will not receive a packaged GHP.")
+        runner.registerInfo("Thermal zone #{thermal_zone.name} was unconditioned in the baseline, and will not receive a packaged GHP.")
       elsif zones_to_skip.include? thermal_zone.name.get
-        if thermal_zone.equipment.empty? || thermal_zone.equipment.none? { |equip| equip.iddObjectType == OpenStudio::Model::ZoneHVACBaseboardConvectiveElectric.iddObjectType }
-          runner.registerInfo("Thermal zone #{thermal_zone} will not receive a packaged GHP and will recieve electric baseboards instead.")  
+        #if thermal_zone.equipment.empty? || thermal_zone.equipment.none? { |equip| equip.iddObjectType == OpenStudio::Model::ZoneHVACBaseboardConvectiveElectric.iddObjectType }
+        if thermal_zone.equipment.empty?
+          runner.registerInfo("Thermal zone #{thermal_zone.name} will not receive a packaged GHP and will receive electric baseboards instead.")  
           baseboard = OpenStudio::Model::ZoneHVACBaseboardConvectiveElectric.new(model)
           baseboard.setName("#{thermal_zone.name} Electric Baseboard")
           baseboard.setEfficiency(1.0)
