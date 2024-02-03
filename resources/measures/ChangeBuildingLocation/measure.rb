@@ -285,36 +285,11 @@ class ChangeBuildingLocation < OpenStudio::Measure::ModelMeasure
       # grab only the ones that matter
       ddy_list = [
         /Htg 99.6. Condns DB/, # Annual heating 99.6%
-        /Htg 99. Condns DB/, # Annual heating 99%
-        /Htg Wind 99. Condns WS=>MCDB/, # Annual heating wind
-        /Clg 1. Condns DB=>MWB/, # Annual cooling 1%
-        /Clg 2. Condns DP=>MDB/, # Annual cooling 2%
-        /Clg .4. Condns WB=>MDB/, # Annual cooling
-        /Clg .4. Condns DB=>MWB/, # Annual humidity (for cooling towers and evap coolers)
-        /January .4. Condns DB=>MCWB/, # Monthly cooling DB=>MCWB (to handle solar-gain-driven cooling)
-        /February .4. Condns DB=>MCWB/,
-        /March .4. Condns DB=>MCWB/,
-        /April .4. Condns DB=>MCWB/,
-        /May .4. Condns DB=>MCWB/,
-        /June .4. Condns DB=>MCWB/,
-        /July .4. Condns DB=>MCWB/,
-        /August .4. Condns DB=>MCWB/,
+        /Clg .4. Condns WB=>MDB/, # Annual humidity (for cooling towers and evap coolers)
+        /Clg .4. Condns DB=>MWB/, # Annual cooling
+        /August .4. Condns DB=>MCWB/, # Monthly cooling DB=>MCWB (to handle solar-gain-driven cooling)
         /September .4. Condns DB=>MCWB/,
-        /October .4. Condns DB=>MCWB/,
-        /November .4. Condns DB=>MCWB/,
-        /December .4. Condns DB=>MCWB/,
-        /January .4. Condns WB=>MCDB/, # Monthly cooling WB=>MCDB (to handle solar-gain-driven cooling)
-        /February .4. Condns WB=>MCDB/,
-        /March .4. Condns WB=>MCDB/,
-        /April .4. Condns WB=>MCDB/,
-        /May .4. Condns WB=>MCDB/,
-        /June .4. Condns WB=>MCDB/,
-        /July .4. Condns WB=>MCDB/,
-        /August .4. Condns WB=>MCDB/,
-        /September .4. Condns WB=>MCDB/,
-        /October .4. Condns WB=>MCDB/,
-        /November .4. Condns WB=>MCDB/,
-        /December .4. Condns WB=>MCDB/
+        /October .4. Condns DB=>MCWB/
       ]
       ddy_list.each do |ddy_name_regex|
         if d.name.get.to_s =~ ddy_name_regex
