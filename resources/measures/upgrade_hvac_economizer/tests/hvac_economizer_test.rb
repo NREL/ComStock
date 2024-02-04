@@ -477,6 +477,7 @@ class HVACEconomizer_Test < Minitest::Test
 
   def models_to_test_requested_oa_rates
     test_sets = []
+    # test_sets << { model: 'Outpatient_VAV_difference_min_and_requested_oa', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
     test_sets << { model: 'Retail_PVAV_gas_ht_elec_rht', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
     # test_sets << { model: 'PVAV_gas_heat_electric_reheat_4A', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
     # test_sets << { model: '361_Warehouse_PVAV_2a', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
@@ -525,7 +526,8 @@ class HVACEconomizer_Test < Minitest::Test
 
       # Define output vars for simulation before measure implementation
       timeseriesnames = [
-        'Air System Outdoor Air Mechanical Ventilation Requested Mass Flow Rate', 
+        # 'Air System Outdoor Air Mechanical Ventilation Requested Mass Flow Rate',
+        "Air System Outdoor Air Mass Flow Rate",
       ]
 
       # Add output vars for simulation before measure implementation
@@ -550,10 +552,13 @@ class HVACEconomizer_Test < Minitest::Test
       model = load_model(model_output_path(instance_test_name))
       # puts("### DEBUGGING: result = #{result}")
 
-      # Get EMS actuator created by the measure
+      # Get EMS variables created by the measure
       li_ems_act_oa_flow = []
       model.getEnergyManagementSystemActuators.each do |ems_actuator|
         li_ems_act_oa_flow << ems_actuator
+      end
+      model.getEnergyManagementSystemGlobalVariables.each do |glo_var|
+        li_ems_act_oa_flow << glo_var
       end
 
       # Create OutputEnergyManagementSystem object (a 'unique' object) and configure to allow EMS reporting
@@ -601,7 +606,7 @@ class HVACEconomizer_Test < Minitest::Test
       unique_identifiers = timeseries_results_combined.values.flat_map(&:keys).uniq
 
       # Define interested output var name
-      output_var_name = 'Air System Outdoor Air Mechanical Ventilation Requested Mass Flow Rate'
+      output_var_name = 'Air System Outdoor Air Mass Flow Rate'
 
       # Compare output var results before and after the measure
       unique_identifiers.each do |identifier|
@@ -625,31 +630,38 @@ class HVACEconomizer_Test < Minitest::Test
 
         # get reference (ems actuator) timeseries
         timeseries_reference = []
+        timeseries_outputvar_ems_actuator = []
         timeseries_results_combined['after']['EMS'].keys.each do |output_var_ems|
           output_var_ems_lowercase = output_var_ems.downcase
-          if output_var_ems_lowercase.include?(identifier_lowercase)
+          if (output_var_ems_lowercase.include?(identifier_lowercase)) & (output_var_ems_lowercase.include?('dummy_debugging'))
             timeseries_reference = timeseries_results_combined['after']['EMS'][output_var_ems]
           end
+          if (output_var_ems_lowercase.include?(identifier_lowercase)) & (output_var_ems_lowercase.include?('act_oa_flow_'))
+            timeseries_outputvar_ems_actuator = timeseries_results_combined['after']['EMS'][output_var_ems]
+          end
         end
-        puts("### DEBUGGING: length timeseries_outputvar_before = #{timeseries_outputvar_before.size}")
-        puts("### DEBUGGING: length timeseries_outputvar_after = #{timeseries_outputvar_after.size}")
-        puts("### DEBUGGING: length timeseries_reference = #{timeseries_reference.size}")
+        puts("### DEBUGGING: length before applying measure: #{output_var_name} = #{timeseries_outputvar_before}")
+        puts("### DEBUGGING: length after applying measure: #{output_var_name} = #{timeseries_outputvar_after}")
+        puts("### DEBUGGING: length ems actuator = #{timeseries_outputvar_ems_actuator}")
+        puts("### DEBUGGING: length dummy reference = #{timeseries_reference}")
 
         # Get indices of interest (non-zero values in actuator)
-        indices_of_interest = timeseries_reference.each_index.select { |i| timeseries_reference[i] != 0 }
-        puts("### DEBUGGING: number of times actuator override = #{indices_of_interest.size}")
+        indices_of_interest = timeseries_reference.each_index.select { |i| timeseries_reference[i] == 0 }
+        puts("### DEBUGGING: number of times actuator override (= disable economizing) = #{indices_of_interest.size}")
 
         # Get filtered output vars
         timeseries_outputvar_before = timeseries_outputvar_before.values_at(*indices_of_interest)
         timeseries_outputvar_after = timeseries_outputvar_after.values_at(*indices_of_interest)
+        timeseries_outputvar_ems_actuator = timeseries_outputvar_ems_actuator.values_at(*indices_of_interest)
         timeseries_reference = timeseries_reference.values_at(*indices_of_interest)
-        puts("### DEBUGGING: length timeseries_outputvar_before (filtered) = #{timeseries_outputvar_before.size}")
-        puts("### DEBUGGING: length timeseries_outputvar_after (filtered) = #{timeseries_outputvar_after.size}")
-        puts("### DEBUGGING: length timeseries_reference (filtered) = #{timeseries_reference.size}")
-        puts("### DEBUGGING: unique values of filtered timeseries values = #{(timeseries_outputvar_before + timeseries_outputvar_after + timeseries_reference).uniq}")
+        puts("### DEBUGGING: length before applying measure: #{output_var_name} (filtered) = #{timeseries_outputvar_before.size}")
+        puts("### DEBUGGING: length after applying measure: #{output_var_name} (filtered) = #{timeseries_outputvar_after.size}")
+        puts("### DEBUGGING: length ems actuator (filtered) = #{timeseries_outputvar_ems_actuator.size}")
+        puts("### DEBUGGING: length dummy reference (filtered) = #{timeseries_reference.size}")
+        puts("### DEBUGGING: unique values of filtered timeseries values = #{(timeseries_outputvar_before + timeseries_outputvar_after + timeseries_outputvar_ems_actuator + timeseries_reference).uniq}")
 
         assert(timeseries_outputvar_before == timeseries_outputvar_after)
-        assert(timeseries_outputvar_before == timeseries_reference)
+        assert(timeseries_outputvar_after == timeseries_outputvar_ems_actuator)
 
       end
     end

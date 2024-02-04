@@ -291,6 +291,17 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
         end
       end
 
+      # get minimum outdoor air flow rate
+      min_oa_flow_m_3_per_sec = 999
+      if oa_controller.autosizedMinimumOutdoorAirFlowRate.is_initialized
+        min_oa_flow_m_3_per_sec = oa_controller.autosizedMinimumOutdoorAirFlowRate.get
+      elsif oa_controller.minimumOutdoorAirFlowRate.is_initialized
+        min_oa_flow_m_3_per_sec = oa_controller.minimumOutdoorAirFlowRate.get
+      else
+        runner.registerError("cannot get minimum outdoor air flow rate from #{oa_controller.name.to_s}")
+      end
+      min_oa_flow_kg_per_sec = min_oa_flow_m_3_per_sec * 1.196621537 # TODO: is temperature dependency not considered for air density?
+
       # set sensor for zone cooling load from cooling coil cooling rate
       sens_clg_coil_rate = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Cooling Coil Total Cooling Rate')
       sens_clg_coil_rate.setName("sens_zn_clg_rate_#{std.ems_friendly_name(zone.name.get.to_s)}") 
@@ -311,6 +322,9 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
       sens_econ_status.setName("sens_econ_status_#{std.ems_friendly_name(oa_controller.name.get.to_s)}") 
       sens_econ_status.setKeyName("#{air_loop_hvac.name.get}")
       li_ems_sens_econ_status << sens_econ_status
+
+      # set global variable for debugging
+      dummy_debugging = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, "dummy_debugging_#{std.ems_friendly_name(air_loop_hvac.name.get.to_s)}")
 
       #### Actuators #####
       # set actuator - oa controller air mass flow rate
@@ -334,10 +348,17 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
         SET sens_zn_clg_rate = #{sens_clg_coil_rate.name},
         SET sens_min_oa_rate = #{sens_min_oa_rate.name},
         SET sens_econ_status = #{sens_econ_status.name},
-        IF ((sens_econ_status > 0) && (sens_zn_clg_rate <= 0)), 
-          SET #{act_oa_flow.name} = sens_min_oa_rate,
+        SET #{dummy_debugging.name} = #{dummy_debugging.name},
+        IF ((sens_econ_status > 0) && (sens_zn_clg_rate <= 0)),
+          IF sens_min_oa_rate > #{min_oa_flow_kg_per_sec},
+            SET #{act_oa_flow.name} = sens_min_oa_rate,
+          ELSE,
+            SET #{act_oa_flow.name} = #{min_oa_flow_kg_per_sec},
+          ENDIF
+          SET #{dummy_debugging.name} = 0,
         ELSE,
           SET #{act_oa_flow.name} = Null,
+          SET #{dummy_debugging.name} = 1,
         ENDIF
         EMS
         prgrm_econ_override.setBody(prgrm_econ_override_body)
