@@ -524,7 +524,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     # Remove each matching EMS object from the model
     ems_objects_to_remove.each do |object_to_remove|
       # Remove the EMS object from the model
-      puts "Removing unused PVAV EMS objects from the model."
+      runner.registerInfo("Removing unused PVAV EMS objects from the model.")
       object_to_remove.remove
     end
 
@@ -532,6 +532,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     model.getThermalZones.each do |thermal_zone|
       # skip if zone has baseboards and should not get a GHP
       next if zones_to_skip.include? thermal_zone.name.get
+      next if unconditioned_zones.include? thermal_zone.name.get
 
       # set always on schedule; this will be used in other object definitions
       always_on = model.alwaysOnDiscreteSchedule
@@ -663,7 +664,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
       if unconditioned_zones.include? thermal_zone.name.get
         runner.registerInfo("Thermal zone #{thermal_zone} was unconditioned in the baseline, and will not receive a packaged GHP.")
       elsif zones_to_skip.include? thermal_zone.name.get
-        if thermal_zone.equipment.empty? || thermal_zone.equipment.none? { |equip| equip.iddObjectType == OpenStudio::Model::ZoneHVACBaseboardConvectiveElectric.iddObjectType }
+        if thermal_zone.equipment.empty? 
           baseboard = OpenStudio::Model::ZoneHVACBaseboardConvectiveElectric.new(model)
           baseboard.setName("#{thermal_zone.name} Electric Baseboard")
           baseboard.setEfficiency(1.0)
