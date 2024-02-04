@@ -350,7 +350,7 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
       #### Program #####
       # reset OA to min OA
       # economizer only when (1) economizing is favorable and (2) cooling load is present
-      # when not economizing, if controlleroutdoorair min OA is higher than requested OA, then used controlleroutdoorair min OA
+      # when not economizing, if controlleroutdoorair min OA is higher than requested OA, then use controlleroutdoorair min OA
       # when not economizing, actuate to min OA only when nighttime var sch is non-zero
       # dummy_debugging parameter: 0 = ems not actuated | 1 = ems actuated (i.e., forced to minimum)
       prgrm_econ_override = model.getEnergyManagementSystemTrendVariableByName('econ_override')
