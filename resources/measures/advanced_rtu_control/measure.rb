@@ -404,7 +404,23 @@ def run(model, runner, user_arguments)
 		end
 	  end
 	  air_loop_hvac.thermalZones.each do |thermal_zone| #iterate thru thermal zones and modify zone-level terminal units
-	    min_oa_flow_rate = thermal_zone_outdoor_airflow_rate(thermal_zone)
+	    min_oa_flow_rate_cont = 0
+        #See if a minimum OA flow rate is already set 		
+	    if air_loop_hvac.airLoopHVACOutdoorAirSystem.is_initialized
+		  oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+		  controller_oa = oa_system.getControllerOutdoorAir
+		    if controller_oa.autosizedMinimumOutdoorAirFlowRate.is_initialized
+			  min_oa_flow_rate_cont = controller_oa.autosizedMinimumOutdoorAirFlowRate.get
+		    elsif controller_oa.minimumOutdoorAirFlowRate.is_initialized? 
+		      min_oa_flow_rate_cont = controller_oa.minimumOutdoorAirFlowRate.get
+			end  
+		end 
+		#if min OA flow rate is 0, or if it isn't set, calculate it 
+		if min_oa_flow_rate_cont == 0
+		    min_oa_flow_rate = thermal_zone_outdoor_airflow_rate(thermal_zone)
+		elsif 
+		   min_oa_flow_rate = min_oa_flow_rate_cont
+		end 
 		thermal_zone.equipment.each do |equip|
 		  if equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
 		    term = equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.get
