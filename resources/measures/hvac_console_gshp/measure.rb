@@ -700,10 +700,12 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     if status.success?
       runner.registerInfo("Successfully ran ghedesigner: #{command}")
     else
-      runner.registerError("Error running ghedesigner: #{command}")
-      runner.registerError("stdout: #{stdout_str}")
-      runner.registerError("stderr: #{stderr_str}")
-      return false
+      # runner.registerError("Error running ghedesigner: #{command}")
+      # runner.registerError("stdout: #{stdout_str}")
+      # runner.registerError("stderr: #{stderr_str}")
+      # return false
+      runner.registerAsNotApplicable("Error running ghedesigner: #{command}. Measure will be logged as not applicable.")
+      return true
     end
     end_time = Time.new
     runner.registerInfo("Running GHEDesigner took #{end_time - start_time} seconds")

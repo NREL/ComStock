@@ -201,11 +201,6 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
         next unless air_loop_hvac.airLoopHVACOutdoorAirSystem.is_initialized
         # skip if evaporative cooling systems
         next if air_loop_evaporative_cooler?(air_loop_hvac)
-
-        # skip if space is not heated and cooled
-        unless std.thermal_zone_heated?(air_loop_hvac.thermalZones[0]) && std.thermal_zone_cooled?(air_loop_hvac.thermalZones[0])
-          next
-        end
         
         #look for PVAV and VAV systems (some might only have 1 zone per air loop)
         if %w[PVAV].any? { |word| air_loop_hvac.name.get.include?(word) }
@@ -1088,10 +1083,12 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     if status.success?
       runner.registerInfo("Successfully ran ghedesigner: #{command}")
     else
-      runner.registerError("Error running ghedesigner: #{command}")
-      runner.registerError("stdout: #{stdout_str}")
-      runner.registerError("stderr: #{stderr_str}")
-      return false
+      # runner.registerError("Error running ghedesigner: #{command}")
+      # runner.registerError("stdout: #{stdout_str}")
+      # runner.registerError("stderr: #{stderr_str}")
+      # return false
+      runner.registerAsNotApplicable("Error running ghedesigner: #{command}. Measure will be logged as not applicable.")
+      return true
     end
     end_time = Time.new
     runner.registerInfo("Running GHEDesigner took #{end_time - start_time} seconds")
