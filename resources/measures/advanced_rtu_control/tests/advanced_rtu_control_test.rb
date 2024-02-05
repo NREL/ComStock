@@ -130,7 +130,6 @@ class AdvancedRTUControlTest < Minitest::Test
 
     # load the test model
     if model.nil?
-	  puts 'loading test model 1' 
       model = load_model(new_osm_path)
     end
 	
@@ -217,7 +216,7 @@ class AdvancedRTUControlTest < Minitest::Test
     model = load_model(osm_path)
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
-     #put base case assertions here 
+    #put base case assertions here 
     # create hash of argument values
     args_hash = { 'add_econo' => true, 'add_dcv' => false}
     # populate argument with specified hash value if specified
@@ -240,12 +239,12 @@ class AdvancedRTUControlTest < Minitest::Test
 	model.getAirLoopHVACs.sort.each do |air_loop_hvac|
 	oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem
 	if oa_system.is_initialized
-		oa_system = oa_system.get
-		oa_controller = oa_system.getControllerOutdoorAir
-		economizer_type = oa_controller.getEconomizerControlType
-		if economizer_type != 'NoEconomizer'
-		   has_econo = true 
-		end 
+	  oa_system = oa_system.get
+	  oa_controller = oa_system.getControllerOutdoorAir
+	  economizer_type = oa_controller.getEconomizerControlType
+	  if economizer_type != 'NoEconomizer'
+	    has_econo = true 
+	  end 
 	else
 	    runner.registerInfo("Air loop #{air_loop_hvac.name} does not have outdoor air and cannot economize.")
 	end
@@ -268,8 +267,7 @@ class AdvancedRTUControlTest < Minitest::Test
     # Create an instance of the measure
     measure = AdvancedRTUControl.new
 
-    # Load the model; only used here for populating arguments
-	puts "loading test model 2" 
+    # Load the model; only used here for populating arguments 
     model = load_model(osm_path)
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
@@ -287,33 +285,29 @@ class AdvancedRTUControlTest < Minitest::Test
 	
 
     # Apply the measure to the model and optionally run the model
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
-    puts "loading test model 3" 
-    #model = load_model(model_output_path(__method__))
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false) 
     model = load_model(File.expand_path(model_output_path(__method__)))
 	
 	var_vol_fan = false 
 	model.getAirLoopHVACs.sort.each do |air_loop_hvac|
-		air_loop_hvac.supplyComponents.each do |component|
-		obj_type = component.iddObjectType.valueName.to_s
-	    case obj_type
-        when 'OS_AirLoopHVAC_UnitarySystem'
-		component = component.to_AirLoopHVACUnitarySystem.get
-		sup_fan = component.supplyFan
-		if sup_fan.is_initialized 
-			sup_fan = sup_fan.get
-            if sup_fan.to_FanVariableVolume.is_initialized
-		       var_vol_fan = true 
-		    end 
-	    end 
-	    end 
-        end 
+	  air_loop_hvac.supplyComponents.each do |component|
+	  obj_type = component.iddObjectType.valueName.to_s
+	  case obj_type
+      when 'OS_AirLoopHVAC_UnitarySystem'
+	  component = component.to_AirLoopHVACUnitarySystem.get
+	  sup_fan = component.supplyFan
+	  if sup_fan.is_initialized 
+	    sup_fan = sup_fan.get
+        if sup_fan.to_FanVariableVolume.is_initialized
+		  var_vol_fan = true 
+		end 
+	  end 
+	  end 
+      end 
 	end 
 	
 	assert(var_vol_fan) 
 	
-#put in assertions here 
-#then duplicate it for other models if needed 
   end
 
 end
