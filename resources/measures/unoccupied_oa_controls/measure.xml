@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>unoccupied_oa_controls</name>
   <uid>795882f6-7521-454e-a68b-ddbfe67e10b0</uid>
-  <version_id>69be13c6-a95d-40f4-a732-d8ee2b5aec31</version_id>
-  <version_modified>2024-02-02T19:58:52Z</version_modified>
+  <version_id>7cf8ebc7-fb14-4c20-b54e-6a8cf54f2189</version_id>
+  <version_modified>2024-02-05T03:56:41Z</version_modified>
   <xml_checksum>B3180F38</xml_checksum>
   <class_name>UnoccupiedOAControls</class_name>
   <display_name>Unoccupied OA Controls</display_name>
@@ -76,7 +76,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>1C214290</checksum>
+      <checksum>91455D05</checksum>
     </file>
     <file>
       <filename>example_model.osm</filename>
@@ -101,6 +101,12 @@
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
       <checksum>E585352F</checksum>
+    </file>
+    <file>
+      <filename>unoccupied_oa_controls_measure_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>A73ED34E</checksum>
     </file>
   </files>
 </measure>
