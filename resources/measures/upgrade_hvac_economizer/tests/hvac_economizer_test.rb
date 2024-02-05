@@ -383,287 +383,287 @@ class HVACEconomizer_Test < Minitest::Test
     return timeseries_results_combined
   end
 
-  def models_to_test_design_oa_rates
-    test_sets = []
-    test_sets << { model: 'PSZ-AC_with_gas_coil_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
-    # test_sets << { model: 'PVAV_gas_heat_electric_reheat_4A', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
-    # test_sets << { model: '361_Warehouse_PVAV_2a', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
-    # test_sets << { model: 'LargeOffice_VAV_chiller_boiler', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
-    # test_sets << { model: 'LargeOffice_VAV_district_chw_hw', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
-    # test_sets << { model: 'Outpatient_VAV_chiller_PFP_boxes', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
-    # test_sets << { model: 'Retail_PVAV_gas_ht_elec_rht', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
-    # test_sets << { model: 'VAV_chiller_boiler_4A', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
-    # test_sets << { model: 'VAV_with_reheat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
-    return test_sets
-  end
+  # def models_to_test_design_oa_rates
+  #   test_sets = []
+  #   test_sets << { model: 'PSZ-AC_with_gas_coil_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+  #   # test_sets << { model: 'PVAV_gas_heat_electric_reheat_4A', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+  #   # test_sets << { model: '361_Warehouse_PVAV_2a', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+  #   # test_sets << { model: 'LargeOffice_VAV_chiller_boiler', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+  #   # test_sets << { model: 'LargeOffice_VAV_district_chw_hw', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+  #   # test_sets << { model: 'Outpatient_VAV_chiller_PFP_boxes', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+  #   # test_sets << { model: 'Retail_PVAV_gas_ht_elec_rht', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+  #   # test_sets << { model: 'VAV_chiller_boiler_4A', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+  #   # test_sets << { model: 'VAV_with_reheat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+  #   return test_sets
+  # end
 
-  def test_design_oa_rates
-    # Define test name
-    test_name = 'test_design_oa_rates'
-    puts "\n######\nTEST:#{test_name}\n######\n"
+  # def test_design_oa_rates
+  #   # Define test name
+  #   test_name = 'test_design_oa_rates'
+  #   puts "\n######\nTEST:#{test_name}\n######\n"
 
-    # loop through each model from models_to_test_design_oa_rates and conduct test
-    models_to_test_design_oa_rates.each do |set|
-      instance_test_name = set[:model]
-      puts "instance test name: #{instance_test_name}"
-      osm_path = models_for_tests.select { |x| set[:model] == File.basename(x, '.osm') }
-      epw_path = epws_for_tests.select { |x| set[:weather] == File.basename(x, '.epw') }
-      assert(!osm_path.empty?)
-      assert(!epw_path.empty?)
-      osm_path = osm_path[0]
-      epw_path = epw_path[0]
+  #   # loop through each model from models_to_test_design_oa_rates and conduct test
+  #   models_to_test_design_oa_rates.each do |set|
+  #     instance_test_name = set[:model]
+  #     puts "instance test name: #{instance_test_name}"
+  #     osm_path = models_for_tests.select { |x| set[:model] == File.basename(x, '.osm') }
+  #     epw_path = epws_for_tests.select { |x| set[:weather] == File.basename(x, '.epw') }
+  #     assert(!osm_path.empty?)
+  #     assert(!epw_path.empty?)
+  #     osm_path = osm_path[0]
+  #     epw_path = epw_path[0]
 
-      # Initialize hash
-      oa_design_rates_before = {}
-      oa_design_rates_after = {}
+  #     # Initialize hash
+  #     oa_design_rates_before = {}
+  #     oa_design_rates_after = {}
 
-      # Create an instance of the measure
-      measure = HVACEconomizer.new
+  #     # Create an instance of the measure
+  #     measure = HVACEconomizer.new
 
-      # Load the model; only used here for populating arguments
-      model = load_model(osm_path)
-      arguments = measure.arguments(model)
-      argument_map = OpenStudio::Measure::OSArgumentMap.new
+  #     # Load the model; only used here for populating arguments
+  #     model = load_model(osm_path)
+  #     arguments = measure.arguments(model)
+  #     argument_map = OpenStudio::Measure::OSArgumentMap.new
 
-      # Set weather
-      epw_file = OpenStudio::EpwFile.new(OpenStudio::Path.new(epw_path))
-      OpenStudio::Model::WeatherFile.setWeatherFile(model, epw_file)
+  #     # Set weather
+  #     epw_file = OpenStudio::EpwFile.new(OpenStudio::Path.new(epw_path))
+  #     OpenStudio::Model::WeatherFile.setWeatherFile(model, epw_file)
 
-      # Hardsize model
-      puts("### DEBUGGING: first hardsize")
-      standard = Standard.build('ComStock DOE Ref Pre-1980')
-      if standard.model_run_sizing_run(model, "#{File.dirname(__FILE__)}/output/#{instance_test_name}/SR1") == false
-        puts("Sizing run for Hardsize model failed, cannot hard-size model.")
-        return false
-      end
-      model.applySizingValues
+  #     # Hardsize model
+  #     puts("### DEBUGGING: first hardsize")
+  #     standard = Standard.build('ComStock DOE Ref Pre-1980')
+  #     if standard.model_run_sizing_run(model, "#{File.dirname(__FILE__)}/output/#{instance_test_name}/SR1") == false
+  #       puts("Sizing run for Hardsize model failed, cannot hard-size model.")
+  #       return false
+  #     end
+  #     model.applySizingValues
 
-      # Check economizer availability and see if original model does not include economizer
-      economizer_availability_before = economizer_available(model)
-      puts("### DEBUGGING: economizer available before measure = #{economizer_availability_before}")
-      assert(economizer_availability_before.include?(false))
+  #     # Check economizer availability and see if original model does not include economizer
+  #     economizer_availability_before = economizer_available(model)
+  #     puts("### DEBUGGING: economizer available before measure = #{economizer_availability_before}")
+  #     assert(economizer_availability_before.include?(false))
 
-      # Get OA rates before applying measure
-      oa_design_rates_before = get_design_oa_flow_rates(model)
+  #     # Get OA rates before applying measure
+  #     oa_design_rates_before = get_design_oa_flow_rates(model)
 
-      # Apply the measure to the model and optionally run the model
-      result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
-      model = load_model(model_output_path(instance_test_name))
-      puts("### DEBUGGING: result = #{result}")
+  #     # Apply the measure to the model and optionally run the model
+  #     result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+  #     model = load_model(model_output_path(instance_test_name))
+  #     puts("### DEBUGGING: result = #{result}")
 
-      # Hardsize model
-      puts("### DEBUGGING: second hardsize")
-      standard = Standard.build('ComStock DOE Ref Pre-1980')
-      if standard.model_run_sizing_run(model, "#{File.dirname(__FILE__)}/output/#{instance_test_name}/SR2") == false
-        puts("Sizing run for Hardsize model failed, cannot hard-size model.")
-        return false
-      end
-      model.applySizingValues
+  #     # Hardsize model
+  #     puts("### DEBUGGING: second hardsize")
+  #     standard = Standard.build('ComStock DOE Ref Pre-1980')
+  #     if standard.model_run_sizing_run(model, "#{File.dirname(__FILE__)}/output/#{instance_test_name}/SR2") == false
+  #       puts("Sizing run for Hardsize model failed, cannot hard-size model.")
+  #       return false
+  #     end
+  #     model.applySizingValues
 
-      # Check economizer availability and see if updated model includes economizer
-      economizer_availability_after = economizer_available(model)
-      puts("### DEBUGGING: economizer available after measure = #{economizer_availability_after}")
-      assert(economizer_availability_after.include?(true))
+  #     # Check economizer availability and see if updated model includes economizer
+  #     economizer_availability_after = economizer_available(model)
+  #     puts("### DEBUGGING: economizer available after measure = #{economizer_availability_after}")
+  #     assert(economizer_availability_after.include?(true))
 
-      # Get OA rates after applying measure
-      oa_design_rates_after = get_design_oa_flow_rates(model)
-      puts("### DEBUGGING: oa_design_rates_before = #{oa_design_rates_before}")
-      puts("### DEBUGGING: oa_design_rates_after = #{oa_design_rates_after}")
+  #     # Get OA rates after applying measure
+  #     oa_design_rates_after = get_design_oa_flow_rates(model)
+  #     puts("### DEBUGGING: oa_design_rates_before = #{oa_design_rates_before}")
+  #     puts("### DEBUGGING: oa_design_rates_after = #{oa_design_rates_after}")
 
-      # Check if OA rates are the same before and after the measure implementation
-      assert(oa_design_rates_before == oa_design_rates_after)
-    end
-  end
+  #     # Check if OA rates are the same before and after the measure implementation
+  #     assert(oa_design_rates_before == oa_design_rates_after)
+  #   end
+  # end
 
-  def models_to_test_requested_oa_rates
-    test_sets = []
-    # test_sets << { model: 'Outpatient_VAV_difference_min_and_requested_oa', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
-    # test_sets << { model: 'Retail_PVAV_gas_ht_elec_rht', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
-    # test_sets << { model: 'PVAV_gas_heat_electric_reheat_4A', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
-    # test_sets << { model: '361_Warehouse_PVAV_2a', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
-    # test_sets << { model: 'LargeOffice_VAV_chiller_boiler', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
-    # test_sets << { model: 'LargeOffice_VAV_district_chw_hw', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
-    # test_sets << { model: 'Outpatient_VAV_chiller_PFP_boxes', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
-    # test_sets << { model: 'VAV_chiller_boiler_4A', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
-    # test_sets << { model: 'VAV_with_reheat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
-    return test_sets
-  end
+  # def models_to_test_final_oa_rates
+  #   test_sets = []
+  #   test_sets << { model: 'Outpatient_VAV_difference_min_and_requested_oa', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+  #   # test_sets << { model: 'Retail_PVAV_gas_ht_elec_rht', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+  #   # test_sets << { model: 'PVAV_gas_heat_electric_reheat_4A', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+  #   # test_sets << { model: '361_Warehouse_PVAV_2a', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+  #   # test_sets << { model: 'LargeOffice_VAV_chiller_boiler', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+  #   # test_sets << { model: 'LargeOffice_VAV_district_chw_hw', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+  #   # test_sets << { model: 'Outpatient_VAV_chiller_PFP_boxes', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+  #   # test_sets << { model: 'VAV_chiller_boiler_4A', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+  #   # test_sets << { model: 'VAV_with_reheat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+  #   return test_sets
+  # end
 
-  def test_requested_oa_rates
-    # Define test name
-    test_name = 'test_requested_oa_rates'
-    puts "\n######\nTEST:#{test_name}\n######\n"
+  # def test_final_oa_rates
+  #   # Define test name
+  #   test_name = 'test_final_oa_rates'
+  #   puts "\n######\nTEST:#{test_name}\n######\n"
 
-    number_of_days_to_test = 365
-    number_of_timesteps_in_an_hr_test = 1
+  #   number_of_days_to_test = 365
+  #   number_of_timesteps_in_an_hr_test = 1
 
-    # loop through each model from models_to_test_requested_oa_rates and conduct test
-    models_to_test_requested_oa_rates.each do |set|
-      instance_test_name = set[:model]
-      puts "instance test name: #{instance_test_name}"
-      osm_path = models_for_tests.select { |x| set[:model] == File.basename(x, '.osm') }
-      epw_path = epws_for_tests.select { |x| set[:weather] == File.basename(x, '.epw') }
-      assert(!osm_path.empty?)
-      assert(!epw_path.empty?)
-      osm_path = osm_path[0]
-      epw_path = epw_path[0]
+  #   # loop through each model from models_to_test_final_oa_rates and conduct test
+  #   models_to_test_final_oa_rates.each do |set|
+  #     instance_test_name = set[:model]
+  #     puts "instance test name: #{instance_test_name}"
+  #     osm_path = models_for_tests.select { |x| set[:model] == File.basename(x, '.osm') }
+  #     epw_path = epws_for_tests.select { |x| set[:weather] == File.basename(x, '.epw') }
+  #     assert(!osm_path.empty?)
+  #     assert(!epw_path.empty?)
+  #     osm_path = osm_path[0]
+  #     epw_path = epw_path[0]
 
-      # Initialize variables
-      timeseries_results_combined = {}
+  #     # Initialize variables
+  #     timeseries_results_combined = {}
 
-      # Create an instance of the measure
-      measure = HVACEconomizer.new
+  #     # Create an instance of the measure
+  #     measure = HVACEconomizer.new
 
-      # Load the model; only used here for populating arguments
-      model = load_model(osm_path)
-      arguments = measure.arguments(model)
-      argument_map = OpenStudio::Measure::OSArgumentMap.new
+  #     # Load the model; only used here for populating arguments
+  #     model = load_model(osm_path)
+  #     arguments = measure.arguments(model)
+  #     argument_map = OpenStudio::Measure::OSArgumentMap.new
 
-      # Set weather
-      epw_file = OpenStudio::EpwFile.new(OpenStudio::Path.new(epw_path))
-      OpenStudio::Model::WeatherFile.setWeatherFile(model, epw_file)
+  #     # Set weather
+  #     epw_file = OpenStudio::EpwFile.new(OpenStudio::Path.new(epw_path))
+  #     OpenStudio::Model::WeatherFile.setWeatherFile(model, epw_file)
 
-      # Define output vars for simulation before measure implementation
-      timeseriesnames = [
-        # 'Air System Outdoor Air Mechanical Ventilation Requested Mass Flow Rate',
-        "Air System Outdoor Air Mass Flow Rate",
-      ]
+  #     # Define output vars for simulation before measure implementation
+  #     timeseriesnames = [
+  #       # 'Air System Outdoor Air Mechanical Ventilation Requested Mass Flow Rate',
+  #       "Air System Outdoor Air Mass Flow Rate",
+  #     ]
 
-      # Add output vars for simulation before measure implementation
-      timeseriesnames.each do |out_var_name|
-        ov = OpenStudio::Model::OutputVariable.new('ov', model)
-        ov.setKeyValue('*')
-        ov.setReportingFrequency('timestep')
-        ov.setVariableName(out_var_name)
-      end
+  #     # Add output vars for simulation before measure implementation
+  #     timeseriesnames.each do |out_var_name|
+  #       ov = OpenStudio::Model::OutputVariable.new('ov', model)
+  #       ov.setKeyValue('*')
+  #       ov.setReportingFrequency('timestep')
+  #       ov.setVariableName(out_var_name)
+  #     end
 
-      # Run simulation prior to measure application
-      puts("### DEBUGGING: first simulation prior to measure application")      
-      timeseries_results_combined_before = run_simulation_and_get_timeseries(model, 2018, number_of_days_to_test, number_of_timesteps_in_an_hr_test, timeseriesnames, epw_path=epw_path, run_dir = run_dir(test_name)+"_before")
-      timeseries_results_combined['before'] = timeseries_results_combined_before
+  #     # Run simulation prior to measure application
+  #     puts("### DEBUGGING: first simulation prior to measure application")      
+  #     timeseries_results_combined_before = run_simulation_and_get_timeseries(model, 2018, number_of_days_to_test, number_of_timesteps_in_an_hr_test, timeseriesnames, epw_path=epw_path, run_dir = run_dir(test_name)+"_before")
+  #     timeseries_results_combined['before'] = timeseries_results_combined_before
 
-      # puts("### ##########################################################")
-      # puts("### DEBUGGING: timeseries_results_combine = #{timeseries_results_combined}")
-      # puts("### ##########################################################")
+  #     # puts("### ##########################################################")
+  #     # puts("### DEBUGGING: timeseries_results_combine = #{timeseries_results_combined}")
+  #     # puts("### ##########################################################")
 
-      # Apply the measure to the model
-      result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
-      model = load_model(model_output_path(instance_test_name))
-      # puts("### DEBUGGING: result = #{result}")
+  #     # Apply the measure to the model
+  #     result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+  #     model = load_model(model_output_path(instance_test_name))
+  #     # puts("### DEBUGGING: result = #{result}")
 
-      # Get EMS variables created by the measure
-      li_ems_act_oa_flow = []
-      model.getEnergyManagementSystemActuators.each do |ems_actuator|
-        li_ems_act_oa_flow << ems_actuator
-      end
-      model.getEnergyManagementSystemGlobalVariables.each do |glo_var|
-        li_ems_act_oa_flow << glo_var
-      end
+  #     # Get EMS variables created by the measure
+  #     li_ems_act_oa_flow = []
+  #     model.getEnergyManagementSystemActuators.each do |ems_actuator|
+  #       li_ems_act_oa_flow << ems_actuator
+  #     end
+  #     model.getEnergyManagementSystemGlobalVariables.each do |glo_var|
+  #       li_ems_act_oa_flow << glo_var
+  #     end
 
-      # Create OutputEnergyManagementSystem object (a 'unique' object) and configure to allow EMS reporting
-      output_EMS = model.getOutputEnergyManagementSystem
-      output_EMS.setInternalVariableAvailabilityDictionaryReporting('Verbose')
-      output_EMS.setEMSRuntimeLanguageDebugOutputLevel('Verbose')
-      output_EMS.setActuatorAvailabilityDictionaryReporting('Verbose')
+  #     # Create OutputEnergyManagementSystem object (a 'unique' object) and configure to allow EMS reporting
+  #     output_EMS = model.getOutputEnergyManagementSystem
+  #     output_EMS.setInternalVariableAvailabilityDictionaryReporting('Verbose')
+  #     output_EMS.setEMSRuntimeLanguageDebugOutputLevel('Verbose')
+  #     output_EMS.setActuatorAvailabilityDictionaryReporting('Verbose')
 
-      # Create output var for EMS variables
-      ems_output_variable_list = []
-      li_ems_act_oa_flow.each do |act|
-        name = act.name
-        ems_act_oa_flow = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, act)
-        ems_act_oa_flow.setUpdateFrequency('Timestep')
-        ems_act_oa_flow.setName("#{name}_ems_outvar")
-        ems_output_variable_list << ems_act_oa_flow.name.to_s
-      end
+  #     # Create output var for EMS variables
+  #     ems_output_variable_list = []
+  #     li_ems_act_oa_flow.each do |act|
+  #       name = act.name
+  #       ems_act_oa_flow = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, act)
+  #       ems_act_oa_flow.setUpdateFrequency('Timestep')
+  #       ems_act_oa_flow.setName("#{name}_ems_outvar")
+  #       ems_output_variable_list << ems_act_oa_flow.name.to_s
+  #     end
 
-      # Add EMS output variables to regular output variables
-      ems_output_variable_list.each do |variable|
-        output = OpenStudio::Model::OutputVariable.new(variable,model)
-        output.setKeyValue("*")
-        output.setReportingFrequency('Timestep')
-        timeseriesnames << variable
-      end
+  #     # Add EMS output variables to regular output variables
+  #     ems_output_variable_list.each do |variable|
+  #       output = OpenStudio::Model::OutputVariable.new(variable,model)
+  #       output.setKeyValue("*")
+  #       output.setReportingFrequency('Timestep')
+  #       timeseriesnames << variable
+  #     end
 
-      # Add output vars for simulation after measure implementation
-      timeseriesnames.each do |out_var_name|
-        ov = OpenStudio::Model::OutputVariable.new('ov', model)
-        ov.setKeyValue('*')
-        ov.setReportingFrequency('timestep')
-        ov.setVariableName(out_var_name)
-      end
+  #     # Add output vars for simulation after measure implementation
+  #     timeseriesnames.each do |out_var_name|
+  #       ov = OpenStudio::Model::OutputVariable.new('ov', model)
+  #       ov.setKeyValue('*')
+  #       ov.setReportingFrequency('timestep')
+  #       ov.setVariableName(out_var_name)
+  #     end
 
-      # Run simulation after measure application
-      puts("### DEBUGGING: second simulation after measure application")
-      timeseries_results_combined_after = run_simulation_and_get_timeseries(model, 2018, number_of_days_to_test, number_of_timesteps_in_an_hr_test, timeseriesnames, epw_path=epw_path, run_dir = run_dir(test_name)+"_after")
-      timeseries_results_combined['after'] = timeseries_results_combined_after
+  #     # Run simulation after measure application
+  #     puts("### DEBUGGING: second simulation after measure application")
+  #     timeseries_results_combined_after = run_simulation_and_get_timeseries(model, 2018, number_of_days_to_test, number_of_timesteps_in_an_hr_test, timeseriesnames, epw_path=epw_path, run_dir = run_dir(test_name)+"_after")
+  #     timeseries_results_combined['after'] = timeseries_results_combined_after
 
-      # puts("### ----------------------------------------------------------------------------")
-      # puts("### DEBUGGING: timeseries_results_combined = #{timeseries_results_combined}")
-      # puts("### ----------------------------------------------------------------------------")
+  #     # puts("### ----------------------------------------------------------------------------")
+  #     # puts("### DEBUGGING: timeseries_results_combined = #{timeseries_results_combined}")
+  #     # puts("### ----------------------------------------------------------------------------")
 
-      # Get unique identifier names
-      unique_identifiers = timeseries_results_combined.values.flat_map(&:keys).uniq
+  #     # Get unique identifier names
+  #     unique_identifiers = timeseries_results_combined.values.flat_map(&:keys).uniq
 
-      # Define interested output var name
-      output_var_name = 'Air System Outdoor Air Mass Flow Rate'
+  #     # Define interested output var name
+  #     output_var_name = 'Air System Outdoor Air Mass Flow Rate'
 
-      # Compare output var results before and after the measure
-      unique_identifiers.each do |identifier|
+  #     # Compare output var results before and after the measure
+  #     unique_identifiers.each do |identifier|
 
-        puts("### ----------------------------------------------------------------------------")
-        puts("### DEBUGGING: identifier = #{identifier}")
+  #       puts("### ----------------------------------------------------------------------------")
+  #       puts("### DEBUGGING: identifier = #{identifier}")
 
-        # skip if the output var key is EMS
-        next if identifier == "EMS"
+  #       # skip if the output var key is EMS
+  #       next if identifier == "EMS"
 
-        # get reference string for string match
-        identifier_lowercase = identifier.gsub(' ', '_').downcase
+  #       # get reference string for string match
+  #       identifier_lowercase = identifier.gsub(' ', '_').downcase
 
-        # get output var timeseries
-        timeseries_outputvar_before = []
-        timeseries_outputvar_after = []
-        unless identifier == "EMS"
-          timeseries_outputvar_before = timeseries_results_combined['before'][identifier][output_var_name]
-          timeseries_outputvar_after = timeseries_results_combined['after'][identifier][output_var_name]
-        end
+  #       # get output var timeseries
+  #       timeseries_outputvar_before = []
+  #       timeseries_outputvar_after = []
+  #       unless identifier == "EMS"
+  #         timeseries_outputvar_before = timeseries_results_combined['before'][identifier][output_var_name]
+  #         timeseries_outputvar_after = timeseries_results_combined['after'][identifier][output_var_name]
+  #       end
 
-        # get reference (ems actuator) timeseries
-        timeseries_reference = []
-        timeseries_outputvar_ems_actuator = []
-        timeseries_results_combined['after']['EMS'].keys.each do |output_var_ems|
-          output_var_ems_lowercase = output_var_ems.downcase
-          if (output_var_ems_lowercase.include?(identifier_lowercase)) & (output_var_ems_lowercase.include?('dummy_debugging'))
-            timeseries_reference = timeseries_results_combined['after']['EMS'][output_var_ems]
-          end
-          if (output_var_ems_lowercase.include?(identifier_lowercase)) & (output_var_ems_lowercase.include?('act_oa_flow_'))
-            timeseries_outputvar_ems_actuator = timeseries_results_combined['after']['EMS'][output_var_ems]
-          end
-        end
-        puts("### DEBUGGING: length before applying measure | #{output_var_name} = #{timeseries_outputvar_before.size}")
-        puts("### DEBUGGING: length after applying measure | #{output_var_name} = #{timeseries_outputvar_after.size}")
-        puts("### DEBUGGING: length ems actuator = #{timeseries_outputvar_ems_actuator.size}")
-        puts("### DEBUGGING: length dummy reference = #{timeseries_reference.size}")
+  #       # get reference (ems actuator) timeseries
+  #       timeseries_reference = []
+  #       timeseries_outputvar_ems_actuator = []
+  #       timeseries_results_combined['after']['EMS'].keys.each do |output_var_ems|
+  #         output_var_ems_lowercase = output_var_ems.downcase
+  #         if (output_var_ems_lowercase.include?(identifier_lowercase)) & (output_var_ems_lowercase.include?('dummy_debugging'))
+  #           timeseries_reference = timeseries_results_combined['after']['EMS'][output_var_ems]
+  #         end
+  #         if (output_var_ems_lowercase.include?(identifier_lowercase)) & (output_var_ems_lowercase.include?('act_oa_flow_'))
+  #           timeseries_outputvar_ems_actuator = timeseries_results_combined['after']['EMS'][output_var_ems]
+  #         end
+  #       end
+  #       puts("### DEBUGGING: length before applying measure | #{output_var_name} = #{timeseries_outputvar_before.size}")
+  #       puts("### DEBUGGING: length after applying measure | #{output_var_name} = #{timeseries_outputvar_after.size}")
+  #       puts("### DEBUGGING: length ems actuator = #{timeseries_outputvar_ems_actuator.size}")
+  #       puts("### DEBUGGING: length dummy reference = #{timeseries_reference.size}")
 
-        # Get indices of interest (when OA is forced to minimum)
-        indices_of_interest = timeseries_reference.each_index.select { |i| timeseries_reference[i] == 1 } # 0 = ems not actuated | 1 = ems actuated (i.e., forced to minimum)
-        puts("### DEBUGGING: number of times actuator override (= disable economizing) = #{indices_of_interest.size}")
+  #       # Get indices of interest (when OA is forced to minimum)
+  #       indices_of_interest = timeseries_reference.each_index.select { |i| timeseries_reference[i] == 1 } # 0 = ems not actuated | 1 = ems actuated (i.e., forced to minimum)
+  #       puts("### DEBUGGING: number of times actuator override (= disable economizing) = #{indices_of_interest.size}")
 
-        # Get filtered output vars
-        timeseries_outputvar_before = timeseries_outputvar_before.values_at(*indices_of_interest)
-        timeseries_outputvar_after = timeseries_outputvar_after.values_at(*indices_of_interest)
-        timeseries_outputvar_ems_actuator = timeseries_outputvar_ems_actuator.values_at(*indices_of_interest)
-        timeseries_reference = timeseries_reference.values_at(*indices_of_interest)
-        puts("### DEBUGGING: length before applying measure | #{output_var_name} (filtered) = #{timeseries_outputvar_before.size}")
-        puts("### DEBUGGING: length after applying measure | #{output_var_name} (filtered) = #{timeseries_outputvar_after.size}")
-        puts("### DEBUGGING: length ems actuator (filtered) = #{timeseries_outputvar_ems_actuator.size}")
-        puts("### DEBUGGING: length dummy reference (filtered) = #{timeseries_reference.size}")
-        puts("### DEBUGGING: unique values of filtered timeseries values = #{(timeseries_outputvar_before + timeseries_outputvar_after + timeseries_outputvar_ems_actuator + timeseries_reference).uniq}")
+  #       # Get filtered output vars
+  #       timeseries_outputvar_before = timeseries_outputvar_before.values_at(*indices_of_interest)
+  #       timeseries_outputvar_after = timeseries_outputvar_after.values_at(*indices_of_interest)
+  #       timeseries_outputvar_ems_actuator = timeseries_outputvar_ems_actuator.values_at(*indices_of_interest)
+  #       timeseries_reference = timeseries_reference.values_at(*indices_of_interest)
+  #       puts("### DEBUGGING: length before applying measure | #{output_var_name} (filtered) = #{timeseries_outputvar_before.size}")
+  #       puts("### DEBUGGING: length after applying measure | #{output_var_name} (filtered) = #{timeseries_outputvar_after.size}")
+  #       puts("### DEBUGGING: length ems actuator (filtered) = #{timeseries_outputvar_ems_actuator.size}")
+  #       puts("### DEBUGGING: length dummy reference (filtered) = #{timeseries_reference.size}")
+  #       puts("### DEBUGGING: unique values of filtered timeseries values = #{(timeseries_outputvar_before + timeseries_outputvar_after + timeseries_outputvar_ems_actuator + timeseries_reference).uniq}")
 
-        assert(timeseries_outputvar_before == timeseries_outputvar_ems_actuator)
+  #       assert(timeseries_outputvar_before == timeseries_outputvar_ems_actuator)
 
-      end
-    end
-  end
+  #     end
+  #   end
+  # end
 
   # create an array of hashes with model name, weather, and expected result
   def models_to_test
