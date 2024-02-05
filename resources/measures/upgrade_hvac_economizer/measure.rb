@@ -292,13 +292,13 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
       end
 
       # get minimum outdoor air flow rate
-      min_oa_flow_m_3_per_sec = 999
+      min_oa_flow_m_3_per_sec = 0
       if oa_controller.autosizedMinimumOutdoorAirFlowRate.is_initialized
         min_oa_flow_m_3_per_sec = oa_controller.autosizedMinimumOutdoorAirFlowRate.get
       elsif oa_controller.minimumOutdoorAirFlowRate.is_initialized
         min_oa_flow_m_3_per_sec = oa_controller.minimumOutdoorAirFlowRate.get
       else
-        runner.registerError("cannot get minimum outdoor air flow rate from #{oa_controller.name.to_s}")
+        runner.registerWarning("cannot get minimum outdoor air flow rate from #{oa_controller.name.to_s}. make sure to hardsize the model in order to get the correct sizing information.")
       end
       min_oa_flow_kg_per_sec = min_oa_flow_m_3_per_sec * 1.196621537 # TODO: is temperature dependency not considered for air density?
 
