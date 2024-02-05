@@ -224,8 +224,7 @@ class UnoccupiedOAControlsTest < Minitest::Test
     # Create an instance of the measure
     measure = UnoccupiedOAControls.new
 
-    # Load the model; only used here for populating arguments
-	puts "loading test model 2" 
+    # Load the model; only used here for populating arguments 
     model = load_model(osm_path)
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
@@ -233,17 +232,15 @@ class UnoccupiedOAControlsTest < Minitest::Test
   
 
     # Apply the measure to the model and optionally run the model
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
-    puts "loading test model 3" 
-    #model = load_model(model_output_path(__method__))
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false) 
     model = load_model(File.expand_path(model_output_path(__method__)))
 	
 	no_constant_oa = true 
 	model.getAirLoopHVACs.sort.each do |air_loop_hvac|
-	     air_loop_oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get.getControllerOutdoorAir
-         if air_loop_oa_system.minimumOutdoorAirSchedule.get.to_ScheduleConstant.is_initialized 
-	        no_constant_oa = false 
-	    end 
+	  air_loop_oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get.getControllerOutdoorAir
+      if air_loop_oa_system.minimumOutdoorAirSchedule.get.to_ScheduleConstant.is_initialized 
+	    no_constant_oa = false 
+	  end 
 	end 
 	
 	assert(no_constant_oa) 
@@ -252,7 +249,7 @@ class UnoccupiedOAControlsTest < Minitest::Test
 #then duplicate it for other models if needed 
   end
   
- def test_constant_air_loop_sched 
+  def test_constant_air_loop_sched 
     osm_name = 'LargeOffice_VAV_chiller_boiler.osm'
     epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
 
@@ -262,8 +259,7 @@ class UnoccupiedOAControlsTest < Minitest::Test
     # Create an instance of the measure
     measure = UnoccupiedOAControls.new
 
-    # Load the model; only used here for populating arguments
-	puts "loading test model 2" 
+    # Load the model; only used here for populating arguments 
     model = load_model(osm_path)
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
@@ -271,20 +267,18 @@ class UnoccupiedOAControlsTest < Minitest::Test
   
 
     # Apply the measure to the model and optionally run the model
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
-    puts "loading test model 3" 
-    #model = load_model(model_output_path(__method__))
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false) 
     model = load_model(File.expand_path(model_output_path(__method__)))
 	
 	no_constant_loop_sched = true 
 	model.getAirLoopHVACs.sort.each do |air_loop_hvac|
-    avail_sched = air_loop_hvac.availabilitySchedule #got an error checking this for initialization 
-	     if avail_sched.to_ScheduleConstant.is_initialized
-            no_constant_loop_sched = false 
-	     end 
+      avail_sched = air_loop_hvac.availabilitySchedule #got an error checking this for initialization 
+	  if avail_sched.to_ScheduleConstant.is_initialized
+        no_constant_loop_sched = false 
+	  end 
 	  #among unitary systems, check supply fan operating mode for constant schedules 
 	  if UnoccupiedOAControlsTest.air_loop_hvac_unitary_system?(air_loop_hvac)
-	      air_loop_hvac.supplyComponents.each do |component|
+	    air_loop_hvac.supplyComponents.each do |component|
           obj_type = component.iddObjectType.valueName.to_s
           case obj_type
           when 'OS_AirLoopHVAC_UnitarySystem'
@@ -297,7 +291,7 @@ class UnoccupiedOAControlsTest < Minitest::Test
             component = component.to_AirLoopHVACUnitaryHeatCoolVAVChangeoverBypass.get
 		  component.getSupplyAirFanOperatingModeSchedule
           if setMinimumOutdoorAirSchedule.to_ScheduleConstant.is_initialized 
-			   no_constant_loop_sched = false 
+		    no_constant_loop_sched = false 
 		  end 
 		  end 
         end
