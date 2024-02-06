@@ -106,8 +106,6 @@ class AdvancedRTUControlTest < Minitest::Test
     end
     assert(File.exist?(run_dir(test_name)))
 
-
-
     # remove prior runs if they exist
     # if File.exist?(model_output_path(test_name))
       # FileUtils.rm(model_output_path(test_name))
@@ -142,7 +140,6 @@ class AdvancedRTUControlTest < Minitest::Test
     # run the simulation if necessary
     unless File.exist?(sql_path(test_name))
       puts "\nRUNNING SIZING RUN FOR #{test_name}..."
-
       std = Standard.build('90.1-2013')
       std.model_run_sizing_run(model, run_dir(test_name))
     end
@@ -231,8 +228,6 @@ class AdvancedRTUControlTest < Minitest::Test
 
     # Apply the measure to the model and optionally run the model
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
-    puts "loading test model 3" 
-    #model = load_model(model_output_path(__method__))
     model = load_model(File.expand_path(model_output_path(__method__)))
 	#confirm that at least one air loop now has an economizer 
 	has_econo = false 

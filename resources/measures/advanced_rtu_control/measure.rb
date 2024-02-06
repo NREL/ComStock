@@ -283,11 +283,9 @@ def run(model, runner, user_arguments)
 	added_economizers = 0
 
   if model.sqlFile.empty?
-	  puts('Model had no sizing values--running size run')
+	  #runner.registerInfo('Model had no sizing values--running size run')
 	  if standard.model_run_sizing_run(model, "#{Dir.pwd}/advanced_rtu_control") == false
 		  runner.registerError('Sizing run for Hardsize model failed, cannot hard-size model.')
-		  puts('Sizing run for Hardsize model failed, cannot hard-size model.')
-		  puts("directory: #{Dir.pwd}")
 		  return false
      end
 	 model.applySizingValues
@@ -299,7 +297,7 @@ def run(model, runner, user_arguments)
 	  std = Standard.build(template)
 	  # get climate zone
 	  climate_zone = std.model_standards_climate_zone(model)
-	  runner.registerInfo("initial read of climate zone = #{climate_zone}")
+	  #runner.registerInfo("initial read of climate zone = #{climate_zone}")
 	  if climate_zone.empty?
 	    runner.registerError('Unable to determine climate zone for model. Cannot apply economizer without climate zone information.')
 	  end
@@ -307,13 +305,13 @@ def run(model, runner, user_arguments)
 	  # this happens to example model but maybe not during ComStock model creation?
 	  substring_count = climate_zone.scan(/ASHRAE 169-2013-/).length
 	  if substring_count > 1
-	    runner.registerInfo("climate zone name includes repeated substring of 'ASHRAE 169-2013-'")
+	    #runner.registerInfo("climate zone name includes repeated substring of 'ASHRAE 169-2013-'")
 		climate_zone = climate_zone.sub(/ASHRAE 169-2013-/, '')
-		runner.registerInfo("revised climate zone name = #{climate_zone}")
+		#runner.registerInfo("revised climate zone name = #{climate_zone}")
 	  end
 	  # determine economizer type
 	   economizer_type = std.model_economizer_type(model, climate_zone)
-	   runner.registerInfo("economizer type for the climate zone = #{economizer_type}")
+	   #runner.registerInfo("economizer type for the climate zone = #{economizer_type}")
 	end
 
 	#Identify suitable loops for applying the measure
@@ -338,7 +336,7 @@ def run(model, runner, user_arguments)
 
 	overall_sel_air_loops.sort.each do |air_loop_hvac| #iterating thru air loops in the model to identify ones suitable for VAV conversion
 	  #set control type
-	  air_loop_hvac.supplyComponents.each do |component|#identifying unitary systems
+	  air_loop_hvac.supplyComponents.sort.each do |component|#identifying unitary systems
 	    obj_type = component.iddObjectType.valueName.to_s
 	    case obj_type
         when 'OS_AirLoopHVAC_UnitarySystem'
@@ -476,22 +474,16 @@ def run(model, runner, user_arguments)
 
 			# if both are zero, skip space
 			elsif dsn_oa.outdoorAirFlowperPerson.zero? && dsn_oa.outdoorAirFlowperFloorArea.zero?
-			runner.registerInfo("Space '#{space.name}' has 0 outdoor air per-person and per-area rates. DCV may be still be applied to this air loop, but it will not function on this space.")
+			#runner.registerInfo("Space '#{space.name}' has 0 outdoor air per-person and per-area rates. DCV may be still be applied to this air loop, but it will not function on this space.")
 			next
 
 			# if per-person or per-area values are zero, set to 10 cfm / person and allocate the rest to per-area
 			elsif dsn_oa.outdoorAirFlowperPerson.zero? || dsn_oa.outdoorAirFlowperFloorArea.zero?
-			puts "========Before Per Person========="
-			puts "#{space.name}"
-			puts "people per m2", people_per_m2
-			puts "Per-person", dsn_oa.outdoorAirFlowperPerson * people_per_m2
-			puts "Per-area", dsn_oa.outdoorAirFlowperFloorArea
-			puts "Total OA", tot_oa_per_m2
 
 			if dsn_oa.outdoorAirFlowperPerson.zero?
-				runner.registerInfo("Space '#{space.name}' per-person outdoor air rate is 0. Using a minimum of 10 cfm / person and assigning the remaining space outdoor air requirement to per-area.")
+				#runner.registerInfo("Space '#{space.name}' per-person outdoor air rate is 0. Using a minimum of 10 cfm / person and assigning the remaining space outdoor air requirement to per-area.")
 			elsif dsn_oa.outdoorAirFlowperFloorArea.zero?
-				runner.registerInfo("Space '#{space.name}' per-area outdoor air rate is 0. Using a minimum of 10 cfm / person and assigning the remaining space outdoor air requirement to per-area.")
+				#runner.registerInfo("Space '#{space.name}' per-area outdoor air rate is 0. Using a minimum of 10 cfm / person and assigning the remaining space outdoor air requirement to per-area.")
 			end
 
 			# default ventilation is 10 cfm / person
@@ -503,7 +495,7 @@ def run(model, runner, user_arguments)
 			new_oa_for_people_cfm = number_of_people * new_oa_for_people_cfm_per_f2
 			remaining_oa_per_m2 = tot_oa_per_m2 - new_oa_for_people_per_m2
 			if remaining_oa_per_m2 <= 0
-				runner.registerInfo("Space '#{space.name}' has #{number_of_people.round(1)} people which corresponds to a ventilation minimum requirement of #{new_oa_for_people_cfm.round(0)} cfm at 10 cfm / person, but total zone outdoor air is only #{tot_oa_cfm.round(0)} cfm. Setting all outdoor air as per-person.")
+				#runner.registerInfo("Space '#{space.name}' has #{number_of_people.round(1)} people which corresponds to a ventilation minimum requirement of #{new_oa_for_people_cfm.round(0)} cfm at 10 cfm / person, but total zone outdoor air is only #{tot_oa_cfm.round(0)} cfm. Setting all outdoor air as per-person.")
 				per_person_ventilation_rate = tot_oa_per_m2 / people_per_m2
 				dsn_oa.setOutdoorAirFlowperFloorArea(0.0)
 			else
@@ -524,22 +516,22 @@ def run(model, runner, user_arguments)
 		if oa_system.is_initialized
 		  oa_system = oa_system.get
 		else
-		  runner.registerInfo("Air loop #{air_loop_hvac.name} does not have outdoor air and cannot economize.")
+		  #runner.registerInfo("Air loop #{air_loop_hvac.name} does not have outdoor air and cannot economize.")
 		  next
 		end
 		sizing_system = air_loop_hvac.sizingSystem
 		type_of_load = sizing_system.typeofLoadtoSizeOn
 		if type_of_load == 'VentilationRequirement'
-			runner.registerInfo("Air loop #{air_loop_hvac.name} is a DOAS system and cannot economize.")
+			#runner.registerInfo("Air loop #{air_loop_hvac.name} is a DOAS system and cannot economize.")
 			next
 		end
 		oa_controller = oa_system.getControllerOutdoorAir
 		current_economizer_type = oa_controller.getEconomizerControlType
 		if current_economizer_type == 'NoEconomizer'
-			runner.registerInfo("Air loop #{air_loop_hvac.name} does not have an existing economizer.  This measure will add an economizer.")
+			#runner.registerInfo("Air loop #{air_loop_hvac.name} does not have an existing economizer.  This measure will add an economizer.")
 			selected_air_loops << air_loop_hvac
 		else
-			runner.registerInfo("Air loop #{air_loop_hvac.name} has an existing #{current_economizer_type} economizer.")
+			#runner.registerInfo("Air loop #{air_loop_hvac.name} has an existing #{current_economizer_type} economizer.")
 			next
 		end
 		# get airLoopHVACOutdoorAirSystem
@@ -554,33 +546,33 @@ def run(model, runner, user_arguments)
 		oa_control = oa_sys.getControllerOutdoorAir
 		oa_control.setEconomizerControlType(economizer_type)
 		if oa_control.getEconomizerControlType != economizer_type
-			puts("--- adding economizer to air loop hvac = #{air_loop_hvac.name}")
+			##runner.registerInfo("--- adding economizer to air loop hvac = #{air_loop_hvac.name}")
 			oa_control.setEconomizerControlType(economizer_type)
 		end
 		# get economizer limits
 		limits = std.air_loop_hvac_economizer_limits(air_loop_hvac, climate_zone) # in IP unit
-		# puts("--- economizer limits [db max|enthal max|dewpoint max] for the climate zone = #{limits}")
+		# #runner.registerInfo("--- economizer limits [db max|enthal max|dewpoint max] for the climate zone = #{limits}")
 			# implement limits for each control type
 		case economizer_type
 		when 'FixedDryBulb'
 		if oa_control.getEconomizerMaximumLimitDryBulbTemperature.is_initialized
-			puts("--- economizer limit for #{economizer_type} before: #{oa_control.getEconomizerMaximumLimitDryBulbTemperature.get}")
+			##runner.registerInfo("--- economizer limit for #{economizer_type} before: #{oa_control.getEconomizerMaximumLimitDryBulbTemperature.get}")
 		end
 		drybulb_limit_c = OpenStudio.convert(limits[0], 'F', 'C').get
 		oa_control.resetEconomizerMaximumLimitDryBulbTemperature
 		oa_control.setEconomizerMaximumLimitDryBulbTemperature(drybulb_limit_c)
-		# puts("--- economizer limit for #{economizer_type} new: #{oa_control.getEconomizerMaximumLimitDryBulbTemperature.get}")
+		# #runner.registerInfo("--- economizer limit for #{economizer_type} new: #{oa_control.getEconomizerMaximumLimitDryBulbTemperature.get}")
 		when 'FixedEnthalpy'
 		if oa_control.getEconomizerMaximumLimitEnthalpy.is_initialized
-			puts("--- economizer limit for #{economizer_type} before: #{oa_control.getEconomizerMaximumLimitEnthalpy.get}")
+			##runner.registerInfo("--- economizer limit for #{economizer_type} before: #{oa_control.getEconomizerMaximumLimitEnthalpy.get}")
 		end
 		enthalpy_limit_j_per_kg = OpenStudio.convert(limits[1], 'Btu/lb', 'J/kg').get
 		oa_control.resetEconomizerMaximumLimitEnthalpy
 		oa_control.setEconomizerMaximumLimitEnthalpy(enthalpy_limit_j_per_kg)
-		# puts("--- economizer limit for #{economizer_type} new: #{oa_control.getEconomizerMaximumLimitEnthalpy.get}")
+		# #runner.registerInfo("--- economizer limit for #{economizer_type} new: #{oa_control.getEconomizerMaximumLimitEnthalpy.get}")
 		when 'FixedDewPointAndDryBulb'
 		if oa_control.getEconomizerMaximumLimitDewpointTemperature.is_initialized
-			puts("--- economizer limit for #{economizer_type} before: #{oa_control.getEconomizerMaximumLimitDewpointTemperature.get}")
+			##runner.registerInfo("--- economizer limit for #{economizer_type} before: #{oa_control.getEconomizerMaximumLimitDewpointTemperature.get}")
 		end
 		drybulb_limit_f = 75
 		dewpoint_limit_f = 55
@@ -590,15 +582,15 @@ def run(model, runner, user_arguments)
 		oa_control.resetEconomizerMaximumLimitDewpointTemperature
 		oa_control.setEconomizerMaximumLimitDryBulbTemperature(drybulb_limit_c)
 		oa_control.setEconomizerMaximumLimitDewpointTemperature(dewpoint_limit_c)
-		# puts("--- economizer limit (max db T) for #{economizer_type} new: #{oa_control.getEconomizerMaximumLimitDryBulbTemperature.get}")
-		# puts("--- economizer limit (max dp T) for #{economizer_type} new: #{oa_control.getEconomizerMaximumLimitDewpointTemperature.get}")
+		# #runner.registerInfo("--- economizer limit (max db T) for #{economizer_type} new: #{oa_control.getEconomizerMaximumLimitDryBulbTemperature.get}")
+		# #runner.registerInfo("--- economizer limit (max dp T) for #{economizer_type} new: #{oa_control.getEconomizerMaximumLimitDewpointTemperature.get}")
 		end
 		# change/check settings: lockout type
-		# puts("--- economizer lockout type before: #{oa_control.getLockoutType}")
+		# #runner.registerInfo("--- economizer lockout type before: #{oa_control.getLockoutType}")
 		if oa_control.getLockoutType != "LockoutWithHeating"
 		oa_control.setLockoutType("LockoutWithHeating") # integrated economizer
 		end
-		# puts("--- economizer lockout type new: #{oa_control.getLockoutType}")
+		# #runner.registerInfo("--- economizer lockout type new: #{oa_control.getLockoutType}")
 
 		# calc statistics
 		added_economizers += 1
@@ -606,11 +598,11 @@ def run(model, runner, user_arguments)
 	end
 
 	if selected_air_loops.size.zero? && add_econo
-			runner.registerInfo('Model contains no air loops eligible for adding an outdoor air economizer.')
+			#runner.registerInfo('Model contains no air loops eligible for adding an outdoor air economizer.')
 	end
 	#deal with economizer controls
 	if add_econo
-	  # puts("### implement EMS for economizing only when cooling")
+	  # #runner.registerInfo("### implement EMS for economizing only when cooling")
 	  # ----------------------------------------------------
 	  # for ems output variables
 	  li_ems_clg_coil_rate = []
@@ -626,7 +618,7 @@ def run(model, runner, user_arguments)
 	  if oa_system.is_initialized
 		oa_system = oa_system.get
 	  else
-		runner.registerInfo("Air loop #{air_loop_hvac.name} does not have outdoor air and cannot economize.")
+		#runner.registerInfo("Air loop #{air_loop_hvac.name} does not have outdoor air and cannot economize.")
 		next
 	  end
 
