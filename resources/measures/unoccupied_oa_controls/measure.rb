@@ -106,10 +106,8 @@ class UnoccupiedOAControls < OpenStudio::Measure::ModelMeasure
     is_res_system = true
     air_loop_hvac.supplyComponents.each do |component|
       obj_type = component.iddObjectType.valueName.to_s
-      case obj_type
-      when 'OS_AirLoopHVAC_OutdoorAirSystem'
-        is_res_system = false
-      end
+	  next unless obj_type == 'OS_AirLoopHVAC_OutdoorAirSystem'
+      is_res_system = false
     end
     return is_res_system
   end
@@ -151,10 +149,8 @@ class UnoccupiedOAControls < OpenStudio::Measure::ModelMeasure
     template = 'ComStock 90.1-2013'
     std = Standard.build(template)
 
-    # loop through air loops
-    unitary_system_count = 0
+    # loop through air loop
     li_unitary_systems = []
-    non_unitary_system_count = 0
     li_non_unitary_systems = []
     constant_schedules = 0 # Counter for constant schedules in the model
     # Assess measure applicabilty
@@ -168,11 +164,9 @@ class UnoccupiedOAControls < OpenStudio::Measure::ModelMeasure
 
       # check unitary systems
       if UnoccupiedOAControls.air_loop_hvac_unitary_system?(air_loop_hvac)
-        unitary_system_count += 1
         li_unitary_systems << air_loop_hvac
       else
         li_non_unitary_systems << air_loop_hvac
-        non_unitary_system_count += 1
       end
       # check min oa for constant schedules
       air_loop_oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get.getControllerOutdoorAir
@@ -212,7 +206,7 @@ class UnoccupiedOAControls < OpenStudio::Measure::ModelMeasure
     end
 
 
-    if (non_unitary_system_count + unitary_system_count) < 1
+    if (li_unitary_systems.size + li_non_unitary_systems.size) < 1
       runner.registerAsNotApplicable('No applicable systems were found.')
       return true
     end
