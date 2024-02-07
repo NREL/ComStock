@@ -1,7 +1,7 @@
 
 OS:Version,
-  {490df4b4-4faf-4b51-bd09-461de262d191}, !- Handle
-  3.7.0;                                  !- Version Identifier
+  {5784764b-22d1-49bf-91e9-89a199c8ef63}, !- Handle
+  3.6.1;                                  !- Version Identifier
 
 OS:Facility,
   {d5b8a5b9-9933-48cf-93f5-25da6c69229f}; !- Handle
@@ -84,6 +84,22 @@ OS:LifeCycleCost:Parameters,
   ,                                       !- Service Date Month
   ,                                       !- Service Date Year
   ;                                       !- Length of Study Period in Years
+
+OS:WeatherFile,
+  {8e0582b5-8c35-465b-b6ea-171daf62934a}, !- Handle
+  Mobile Bates Field,                     !- City
+  AL,                                     !- State Province Region
+  USA,                                    !- Country
+  customized weather file,                !- Data Source
+  722230,                                 !- WMO Number
+  30.69,                                  !- Latitude {deg}
+  -88.25,                                 !- Longitude {deg}
+  -6,                                     !- Time Zone {hr}
+  67,                                     !- Elevation {m}
+  /weather/G0100970.epw,                  !- Url
+  226BE93E,                               !- Checksum
+  ,                                       !- Start Date Actual Year
+  Friday;                                 !- Start Day of Week
 
 OS:Site:WaterMainsTemperature,
   {00f67c5a-0a7b-4b72-b4bd-33f7f718b44a}, !- Handle
@@ -953,11 +969,7 @@ OS:ClimateZones,
   ASHRAE,                                 !- Climate Zone Institution Name 1
   ANSI/ASHRAE Standard 169,               !- Climate Zone Document Name 1
   2006,                                   !- Climate Zone Document Year 1
-  ASHRAE 169-2013-2A,                     !- Climate Zone Value 1
-  CEC,                                    !- Climate Zone Institution Name 2
-  California Climate Zone Descriptions,   !- Climate Zone Document Name 2
-  1995,                                   !- Climate Zone Document Year 2
-  ;                                       !- Climate Zone Value 2
+  ASHRAE 169-2013-2A;                     !- Climate Zone Value 1
 
 OS:Building,
   {1b28c290-1ba4-4785-a12e-a2c234e6f91a}, !- Handle
@@ -6028,8 +6040,7 @@ OS:Boiler:HotWater,
   {484ddb27-56fb-46e3-9ebb-887f300ad6f6}, !- Boiler Water Outlet Node Name
   95.0000000000001,                       !- Water Outlet Upper Temperature Limit {C}
   LeavingSetpointModulated,               !- Boiler Flow Mode
-  0,                                      !- On Cycle Parasitic Electric Load {W}
-  0,                                      !- Off Cycle Parasitic Fuel Load {W}
+  0,                                      !- Parasitic Electric Load {W}
   1,                                      !- Sizing Factor
   General;                                !- End-Use Subcategory
 
@@ -6557,8 +6568,6 @@ OS:Coil:Cooling:DX:TwoSpeed,
   Autosize,                               !- Rated High Speed Sensible Heat Ratio
   3.09963242149003,                       !- Rated High Speed COP {W/W}
   Autosize,                               !- Rated High Speed Air Flow Rate {m3/s}
-  773.3,                                  !- Rated High Speed Evaporator Fan Power Per Volume Flow Rate 2017 {W/(m3/s)}
-  934.4,                                  !- Rated High Speed Evaporator Fan Power Per Volume Flow Rate 2023 {W/(m3/s)}
   773.3,                                  !- Unit Internal Static Air Pressure {Pa}
   {2ec139a3-43a3-4cef-bfaa-04dfcbe83758}, !- Air Inlet Node Name
   {d9bf2a82-de18-4fa0-b55e-be75f6eaef32}, !- Air Outlet Node Name
@@ -6571,8 +6580,6 @@ OS:Coil:Cooling:DX:TwoSpeed,
   0.69,                                   !- Rated Low Speed Sensible Heat Ratio
   3.09963242149003,                       !- Rated Low Speed COP {W/W}
   ,                                       !- Rated Low Speed Air Flow Rate {m3/s}
-  773.3,                                  !- Rated Low Speed Evaporator Fan Power Per Volume Flow Rate 2017 {W/(m3/s)}
-  934.4,                                  !- Rated Low Speed Evaporator Fan Power Per Volume Flow Rate 2023 {W/(m3/s)}
   {c76c5a50-eb2d-4d20-b5d0-797f79c63e40}, !- Low Speed Total Cooling Capacity Function of Temperature Curve Name
   {a85be32a-6009-4511-adf3-3de05c38d22b}, !- Low Speed Energy Input Ratio Function of Temperature Curve Name
   ,                                       !- Condenser Air Inlet Node Name
@@ -6637,8 +6644,7 @@ OS:Controller:OutdoorAir,
   ,                                       !- Humidistat Control Zone Name
   ,                                       !- High Humidity Outdoor Air Flow Ratio
   ,                                       !- Control High Indoor Humidity Based on Outdoor Humidity Ratio
-  BypassWhenWithinEconomizerLimits,       !- Heat Recovery Bypass Control Type
-  InterlockedWithMechanicalCooling;       !- Economizer Operation Staging
+  BypassWhenWithinEconomizerLimits;       !- Heat Recovery Bypass Control Type
 
 OS:Controller:MechanicalVentilation,
   {f722022d-4929-4dcd-bb7d-21c763ec041e}, !- Handle
@@ -11359,120 +11365,4 @@ OS:Construction,
   Window U-0.75 SHGC 0.65,                !- Name
   ,                                       !- Surface Rendering Name
   {7379ef23-2092-4c2b-a121-4601e479237f}; !- Layer 1
-
-OS:StandardsInformation:Construction,
-  {45f958aa-d761-4d84-92a7-7ac671662eb1}, !- Handle
-  {f3c794de-11a3-4f0f-b383-45dbf5af9f4d}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {77c07b0d-c8e6-496f-b54d-6fc3395c2243}, !- Handle
-  {0d617d33-ce20-46b9-9b74-56a3dd36ecd4}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {46bf3289-276b-448a-8059-ba0114a9fc2f}, !- Handle
-  {8fece075-3156-4c76-a0fb-9ea1345f3c14}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {aeec016f-4edd-4f74-bf5f-9ab51a9c65d6}, !- Handle
-  {05e85f83-e221-448d-8511-e50b31fcf4b8}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {269ecac4-eb83-4ffa-81ce-a9bb9026fce4}, !- Handle
-  {0cac559f-01e4-4ddc-a4bf-47c435275fda}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {2d086ec0-5e62-4c79-83d4-d052780fc0d5}, !- Handle
-  {8e382129-813f-4eed-a328-de310fae5f85}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {0b9d139a-a251-4f18-8094-23db876f6aba}, !- Handle
-  {2944d1c2-8847-4ed9-8bee-7495392af707}; !- Construction Name
-
-OS:StandardsInformation:Material,
-  {c5f76b4e-46d1-4f32-a0ff-14869a730d75}, !- Handle
-  {cd45002e-d0ec-4efe-9302-88b7e8136901}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {fedde2f6-b0d8-495c-8142-7c9b42192012}, !- Handle
-  {0dc95803-1a69-4f82-a7f8-c3792d848756}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {63cfdfb5-46fd-4dfd-b061-1ac3bf6bf5fb}, !- Handle
-  {452054cb-c9e2-4ba1-b942-b5cb65c0c511}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {42ce7289-fd08-468a-8594-afc544a4528c}, !- Handle
-  {6854c146-493b-48b2-8a17-0508e2e3a01a}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {efd41399-e00b-4774-9221-1f7c8ab18743}, !- Handle
-  {b7c6aa69-a161-4101-a712-c30a2ae3323a}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {f2fe4b04-7310-4f05-9d5c-eb41245ad8a5}, !- Handle
-  {f17f3cac-3cbd-4400-97d8-c9947874028d}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {f5ee0ad7-6407-4eb9-abb6-e77d487884d0}, !- Handle
-  {b73d7c75-e990-4603-8083-9cba0b413cb1}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {7a6b740e-9a6e-4ee6-8c69-7e9fd17c4d1e}, !- Handle
-  {053d0ba6-cdd1-4ccd-ba92-c52da8f34f07}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {66a23e4c-fb37-4218-9363-0e75b1b3b011}, !- Handle
-  {3385ca37-4ed7-4bbe-aa60-311d6ca7cb45}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {0131afd0-6f2e-472a-aeb7-81aacbc04f05}, !- Handle
-  {048e257c-43b9-4ed4-a77d-a4cd9623b616}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {c423846e-7e88-4e3e-a75a-8aa37c57bf99}, !- Handle
-  {20afc97e-24f8-417a-aab5-13a98a7a7233}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {2cbe28b4-060e-498a-bc7e-2b5b55fa084f}, !- Handle
-  {d5423dc6-fce7-4670-9587-4b258f3ac097}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {a62c4833-f0da-4a07-bba9-1dddcda388fa}, !- Handle
-  {490837c8-7764-4a78-8b3a-952c7cf54706}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {85a93ad7-4852-4afb-9e99-4e1c7240ebc2}, !- Handle
-  {e9813ede-b548-4cc2-a126-804b138ef95b}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {3a0f79d6-37d9-4ca3-b5eb-6d167ba404cb}, !- Handle
-  {aa58f56d-07cc-483c-b430-8483826dc8ec}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {c01ee5b6-96a2-4419-9197-fe57e2eadcca}, !- Handle
-  {8513097a-e15c-4190-967b-d4c62d31e596}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {0ad99c52-2cbb-4260-89ff-b6426a282daf}, !- Handle
-  {e360aa83-074b-46df-9c64-e465602205b3}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {63a36a47-53a2-41f3-93e9-a721108c7264}, !- Handle
-  {10c8c3a2-f1df-4494-9337-45ec0fdc383d}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {aed5b660-e724-431f-ae7f-b449b341ebd8}, !- Handle
-  {bd2dccbb-cd90-4e84-93ae-08d4482307d3}; !- Material Name
-
-OS:StandardsInformation:Construction,
-  {bf7f7eb8-94fb-488f-bc03-8b5ff82e9691}, !- Handle
-  {f8a496a8-3d71-4f76-ae0e-50bba431b23e}; !- Construction Name
-
-OS:StandardsInformation:Material,
-  {de750033-9f7a-4599-aa6a-e6c377e797e6}, !- Handle
-  {7379ef23-2092-4c2b-a121-4601e479237f}; !- Material Name
-
-OS:StandardsInformation:Construction,
-  {31ca2d16-977a-46a9-8ee4-e33d45be8c53}, !- Handle
-  {dd0eebb4-7e86-4547-ab4b-ba2d45e30a40}; !- Construction Name
 

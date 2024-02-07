@@ -1,7 +1,7 @@
 
 OS:Version,
-  {8219217d-67a7-40ee-881e-6e7d5cf55894}, !- Handle
-  3.7.0;                                  !- Version Identifier
+  {53555fa4-716b-48ab-beb3-f7d073f6506a}, !- Handle
+  3.4.0;                                  !- Version Identifier
 
 OS:Facility,
   {aeb52b6f-809b-4d8b-8a17-8aaf43fa0691}; !- Handle
@@ -84,6 +84,22 @@ OS:LifeCycleCost:Parameters,
   ,                                       !- Service Date Month
   ,                                       !- Service Date Year
   ;                                       !- Length of Study Period in Years
+
+OS:WeatherFile,
+  {716e0e78-3407-4ff5-8b64-44817c9ae611}, !- Handle
+  Jacksonville Intnl,                     !- City
+  FL,                                     !- State Province Region
+  USA,                                    !- Country
+  customized weather file,                !- Data Source
+  722060,                                 !- WMO Number
+  30.49,                                  !- Latitude {deg}
+  -81.69,                                 !- Longitude {deg}
+  -5,                                     !- Time Zone {hr}
+  10,                                     !- Elevation {m}
+  /weather/G1200310.epw,                  !- Url
+  226BE93E,                               !- Checksum
+  ,                                       !- Start Date Actual Year
+  Friday;                                 !- Start Day of Week
 
 OS:Site:WaterMainsTemperature,
   {5951641e-caee-486c-b146-f915246113b1}, !- Handle
@@ -953,11 +969,7 @@ OS:ClimateZones,
   ASHRAE,                                 !- Climate Zone Institution Name 1
   ANSI/ASHRAE Standard 169,               !- Climate Zone Document Name 1
   2006,                                   !- Climate Zone Document Year 1
-  ASHRAE 169-2013-2A,                     !- Climate Zone Value 1
-  CEC,                                    !- Climate Zone Institution Name 2
-  California Climate Zone Descriptions,   !- Climate Zone Document Name 2
-  1995,                                   !- Climate Zone Document Year 2
-  ;                                       !- Climate Zone Value 2
+  ASHRAE 169-2013-2A;                     !- Climate Zone Value 1
 
 OS:Building,
   {56b5494e-d672-4b83-b695-0aca893f4929}, !- Handle
@@ -1760,14 +1772,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {bb63a00e-6423-40b9-b6ce-5708d31c6026}, !- Handle
@@ -1972,14 +1977,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {f2b48135-1a87-402d-bab1-be4d1220595c}, !- Handle
@@ -2184,14 +2182,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {cfc3523d-ebcc-47b5-84ad-b8a41e4920a5}, !- Handle
@@ -2396,14 +2387,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {af44fc3f-debf-4433-92ee-be15e47d0d3d}, !- Handle
@@ -2608,14 +2592,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {8c0737b5-1ac6-4652-bfd8-f8f6e7069e21}, !- Handle
@@ -2820,14 +2797,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {dff2fe0e-31b0-4660-b2d5-166e00768f5c}, !- Handle
@@ -3032,14 +3002,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {64966b3b-9469-4f90-93a5-eede39df4db1}, !- Handle
@@ -3244,14 +3207,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {2cf90870-9399-4eb5-943c-6b17e7ff12c3}, !- Handle
@@ -3456,14 +3412,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {d1f0ece7-85ab-472b-b55b-fe913d8809e4}, !- Handle
@@ -3669,14 +3618,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {cb5d12da-c53d-424c-b129-b8d6c27b871c}, !- Handle
@@ -3887,14 +3829,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {d7b4195c-021f-4728-8e74-e7a65c298d0b}, !- Handle
@@ -4105,14 +4040,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {dc887b76-4db1-46d7-adc3-24df08d8a435}, !- Handle
@@ -4322,14 +4250,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {538fbbf0-e07c-4b35-9e3a-126eb9890c68}, !- Handle
@@ -4534,14 +4455,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {d541865c-a464-4199-94f0-77a171c23a93}, !- Handle
@@ -4746,14 +4660,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {85688b0a-7116-4486-882e-2fe698609a70}, !- Handle
@@ -4958,14 +4865,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {354053d9-0d12-470e-90af-9a975c37cf7e}, !- Handle
@@ -5170,14 +5070,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {ae2a92e5-92b5-492e-8f58-987560a32f93}, !- Handle
@@ -5382,14 +5275,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {269cc980-a342-4b9d-9df9-10c60f397b2e}, !- Handle
@@ -5594,14 +5480,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {ed134366-57ec-4684-901c-a8708be37adf}, !- Handle
@@ -5806,14 +5685,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {2cf267ac-ccfb-43af-9193-3ffe4eed5efd}, !- Handle
@@ -6018,14 +5890,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {0de77bbb-fe08-41ee-bf4c-010d58317400}, !- Handle
@@ -6230,14 +6095,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {ee2df1c9-0604-4bca-9746-e3b07754e974}, !- Handle
@@ -6442,14 +6300,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {013b44eb-f0a5-4b99-a751-7facc3baa1da}, !- Handle
@@ -6654,14 +6505,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {9dfbd371-f3ac-4feb-ad28-c1eb6f7c6345}, !- Handle
@@ -6866,14 +6710,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {fc4def82-bc97-4045-b304-defd36445509}, !- Handle
@@ -7078,14 +6915,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {6fa9382a-b289-467e-81a9-bc667ec87e82}, !- Handle
@@ -7290,14 +7120,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {b34131f4-a07a-4d24-b4a9-0dc437c1f9ad}, !- Handle
@@ -7502,14 +7325,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {24228438-f5b9-4b62-94a8-87b0eb644191}, !- Handle
@@ -7714,14 +7530,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {f6cd3f7a-7690-4bc0-b3dc-bbb321532010}, !- Handle
@@ -7926,14 +7735,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {3e93955a-f1c3-4ed2-a41b-c9046187a69f}, !- Handle
@@ -8139,14 +7941,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {378de743-2772-40fc-8356-53d8aabe0340}, !- Handle
@@ -8357,14 +8152,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {7dbf6206-24ff-408a-8249-7d8c3d594cd4}, !- Handle
@@ -8575,14 +8363,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {758071c9-67cc-4105-95d1-f1c8867c73f9}, !- Handle
@@ -8792,14 +8573,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {dc485b61-80ec-423e-8dd3-b65b0da2c5f7}, !- Handle
@@ -9004,14 +8778,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {39123688-5c6f-4d5e-9e50-230532b650c7}, !- Handle
@@ -9216,14 +8983,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {5fd0ee59-d9f2-401e-8505-a23081a1f373}, !- Handle
@@ -9428,14 +9188,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {da6ffbcd-ad7f-480a-acb8-05abcd79a4bc}, !- Handle
@@ -9640,14 +9393,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {2a023862-b090-4316-be9e-2c728dc5a996}, !- Handle
@@ -9852,14 +9598,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {24a8b030-4497-41ef-bc20-3fce0ce9d20e}, !- Handle
@@ -10064,14 +9803,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {a7d1da06-de31-4b0e-93fc-959f89625743}, !- Handle
@@ -10276,14 +10008,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {88414a50-77e0-4e38-af17-a1862834f5bc}, !- Handle
@@ -10488,14 +10213,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {4833dfba-2594-424f-9b81-f60a70a2b631}, !- Handle
@@ -10700,14 +10418,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {9360b4e3-ed3a-4e71-8d6e-97fc6585c90e}, !- Handle
@@ -10912,14 +10623,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {e88ef749-e453-4ac2-85b8-11a8024ee0e5}, !- Handle
@@ -11124,14 +10828,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {d1504bcb-a043-49e4-b701-7b5c0a2419d5}, !- Handle
@@ -11336,14 +11033,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {502e178f-d501-48a4-b204-7190bfe49993}, !- Handle
@@ -11548,14 +11238,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {f9c13d93-62da-47bc-a19a-5eb69e08224f}, !- Handle
@@ -11760,14 +11443,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {3453cc5f-8f41-4e03-b3f2-f2bd29d8c975}, !- Handle
@@ -11972,14 +11648,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {149a74aa-5671-4d19-b056-3e73b77a7b21}, !- Handle
@@ -12184,14 +11853,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {8fd0f3d9-a6bf-4552-91db-aec2b5d2346e}, !- Handle
@@ -12396,14 +12058,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {09ddfcbe-26e3-4f0b-b6ec-cb3add9c3a33}, !- Handle
@@ -12608,14 +12263,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {3a32ee11-8bc6-437a-84ac-1ba3bcae381e}, !- Handle
@@ -12820,14 +12468,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {1e5914a2-b4ce-43d1-bf81-b2c4a5b8a76a}, !- Handle
@@ -13032,14 +12673,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {e3247552-d40b-42c5-80c8-2586a5d2c6c7}, !- Handle
@@ -13244,14 +12878,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {29b19b15-2b87-4e27-8d99-c317434c9c90}, !- Handle
@@ -13456,14 +13083,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {ac7b91ef-8310-449d-8b84-006ff11694e7}, !- Handle
@@ -13668,14 +13288,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {76d66d78-3c72-49c1-a4a1-5251bc9f9312}, !- Handle
@@ -13880,14 +13493,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {5b1f8c0b-9879-4f9b-943b-f4dd14cf0be0}, !- Handle
@@ -14092,14 +13698,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {752a683a-f88f-4665-992a-13b5d2bd2873}, !- Handle
@@ -14304,14 +13903,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {0ae16d3b-1f56-4a5e-bb3d-e3bfa78a7e96}, !- Handle
@@ -15321,14 +14913,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {851d0250-c07d-4820-941f-2e5210a6ed44}, !- Handle
@@ -15538,14 +15123,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {73da9545-19fa-4829-96e2-77ba3eefaef3}, !- Handle
@@ -15750,14 +15328,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {94e11399-a121-4198-b25f-3673afda32b3}, !- Handle
@@ -15962,14 +15533,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {ee87ce89-f076-4cda-bca2-6d08fe4b456e}, !- Handle
@@ -16174,14 +15738,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {f6f934a1-38d1-4141-b6a2-867ea28f61b0}, !- Handle
@@ -16387,14 +15944,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {cdbcc3af-ce2c-4fb5-be43-80b0626f20b5}, !- Handle
@@ -16604,14 +16154,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {58ce1961-d2f1-4989-8473-314ef7a0b0d0}, !- Handle
@@ -16817,14 +16360,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {cdd6ae68-5757-4b53-8e0c-dfa9f90bca99}, !- Handle
@@ -17034,14 +16570,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {dfec824e-8fef-49f7-9343-033e6961cc4b}, !- Handle
@@ -17246,14 +16775,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {122950f0-d4e5-4448-bce4-165bb3fcdc80}, !- Handle
@@ -17458,14 +16980,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {f297697a-2cde-4f9f-a179-22b950ac27d4}, !- Handle
@@ -17670,14 +17185,7 @@ OS:Sizing:Zone,
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
-  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
-  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
-  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
-  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
-  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
 
 OS:ZoneHVAC:EquipmentList,
   {077effc8-f71d-4461-9a7b-1e578b4c69b3}, !- Handle
@@ -27746,8 +27254,7 @@ OS:Controller:OutdoorAir,
   ,                                       !- Humidistat Control Zone Name
   ,                                       !- High Humidity Outdoor Air Flow Ratio
   ,                                       !- Control High Indoor Humidity Based on Outdoor Humidity Ratio
-  BypassWhenWithinEconomizerLimits,       !- Heat Recovery Bypass Control Type
-  InterlockedWithMechanicalCooling;       !- Economizer Operation Staging
+  BypassWhenWithinEconomizerLimits;       !- Heat Recovery Bypass Control Type
 
 OS:Controller:MechanicalVentilation,
   {a0f124f8-a2a6-4ddd-904f-95ab0ad50b76}, !- Handle
@@ -42237,316 +41744,4 @@ OS:Construction,
   Window U-1.01 SHGC 0.58,                !- Name
   ,                                       !- Surface Rendering Name
   {9ac99e4c-974f-43f3-bf58-c3d5865de47b}; !- Layer 1
-
-OS:StandardsInformation:Construction,
-  {da776fad-72cb-4428-832f-94fdd2ceabc6}, !- Handle
-  {6f29bd95-7455-4360-96c5-be26bc17ee09}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {4b117e8d-80ac-4a7f-8f23-0da802907a91}, !- Handle
-  {dfae9714-c9b7-4914-8e54-adf4b8a9306d}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {22be42ff-e40f-44c5-b676-8dba966dc3b0}, !- Handle
-  {f83e3007-c8ba-45ea-914a-c468b077bc24}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {04153100-cad3-4a7e-8a01-0d2920b4ca23}, !- Handle
-  {8f189d10-f02b-4433-b4b0-b3d8bad62a4e}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {816ca8ad-c283-4a01-9c79-b744637e61ec}, !- Handle
-  {b06ed572-e259-42d5-bbf8-d71faa09145c}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {89261376-8868-425e-9347-e95b195da166}, !- Handle
-  {f33dbe0c-9660-4743-b494-4220e81c65e8}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {8a5282a8-7e21-484a-9c16-91767429f7e1}, !- Handle
-  {fb2ce844-1a0c-4818-9ef4-41823c60c04b}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {eb473fda-3ae0-4b7b-a3a6-4ab93a1c6f13}, !- Handle
-  {b85c4ce9-b9f5-4bfa-9617-f09ee993ff4f}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {14a297c3-c609-4927-a028-f17784437fd6}, !- Handle
-  {cbf7ade5-b041-4b9f-9314-d8eb73d2ac84}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {bf546cc0-a441-48ab-9a55-21a2b5c6a492}, !- Handle
-  {60bd5c54-d7ae-4f2b-9fc6-4798f693007a}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {a40227f4-78eb-425a-9b87-1d3827b6e362}, !- Handle
-  {cce3c956-2601-48d1-95cb-9892bcc1acd6}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {ab857f06-bb88-47fe-b2c4-f078671c04e1}, !- Handle
-  {df648241-03af-4de9-b499-676843c810c1}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {04967b1e-e918-4bc1-8ec0-5dd7c4feadda}, !- Handle
-  {93424dff-6ad2-4c7b-a9b1-604190fad169}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {1e66f82e-68d6-4281-96a6-3b5cbf4a3f01}, !- Handle
-  {7679ee5b-73e4-43d9-858d-34dabd81dd36}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {aef7c2c7-ccb4-4220-a2b1-210cb508b6eb}, !- Handle
-  {4904f093-20f2-4801-b5c4-9fb6c8d39bc4}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {182bf796-cf3f-4182-afb4-0a26eddfe407}, !- Handle
-  {4e46541b-9bb6-497b-9a03-452cc135567f}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {a5989264-1a13-4791-a5af-f3239b02c676}, !- Handle
-  {29b4c136-ad48-4110-a4d9-8bee4dcc7069}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {bf257f49-c93d-47d2-87fa-11cc671691c9}, !- Handle
-  {8292006d-c95c-48fe-9f99-9d12461c70a2}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {e495c33c-b75f-4aa0-9805-fd022be2b0eb}, !- Handle
-  {e7e2788e-8f4e-4d2d-b649-3aba5bcb00ea}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {6b5f3a2b-066d-4372-8334-f2eeb5363e54}, !- Handle
-  {08c8a38c-f37e-4558-aa31-b1e1e8066061}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {bf7a7553-eaf1-48fa-8fba-d007bd421985}, !- Handle
-  {11a83731-3b1d-4b8b-b972-dd082c55a57b}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {9423d28b-4847-413b-afd7-31861f48273a}, !- Handle
-  {9efee18e-b508-4e94-8ab5-b7271e690f62}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {64b03c8b-e5f4-4882-a88e-2caffa4500f8}, !- Handle
-  {855cbeea-bdb7-4ea3-a0b2-091209cdfaea}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {1cd1d437-0a45-46b3-a89e-25fcb87ebdb8}, !- Handle
-  {d411b823-f2e8-4940-800c-79414a54a9f1}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {29ef9d88-aeb4-437c-b06d-d1c6c1bc44f2}, !- Handle
-  {f167f4f5-ec8a-4d94-a558-f5df02bb10a0}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {77bd218c-f2ad-4279-810e-0f9f875c46a5}, !- Handle
-  {f3d2d0ab-810e-4d50-96e4-cacdbf6ea2b2}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {d0322a8b-1589-422b-bbf2-9153ce38f5c3}, !- Handle
-  {62ec84ab-19d5-460b-8a85-38622ac3e4a0}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {c303dadf-4771-4b77-8746-0290e41952a1}, !- Handle
-  {1bc85eb8-245c-47ea-8203-1f47f27fe63b}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {e63c98c5-391d-4b12-87be-646b8146c713}, !- Handle
-  {e087fd21-92eb-4ecd-b47d-2ddb1bbbdc67}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {1b4acad4-ec55-4361-aaff-e13751963a23}, !- Handle
-  {31badc19-cb3d-4c31-b954-af20a877dd2e}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {c4a064a3-ac2f-4d20-81cb-016492baea5c}, !- Handle
-  {a1f16fe5-fbe4-4ff8-a14a-459ab8f7965a}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {c80d4adf-911f-4abf-a3d3-ef18a7b8a0bd}, !- Handle
-  {02dd68f3-ead1-4368-94a2-8ec0dbaad7b3}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {2f5c0092-a733-47b0-b8e2-cc07f2fd3248}, !- Handle
-  {877b7bfc-108c-4653-ad8d-716ece80163f}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {47917bec-56fc-47db-ac27-84ee8516de5b}, !- Handle
-  {be2148e9-996a-4c75-b150-5dfff7f268bf}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {573ea9a7-4881-40db-b006-82c746fd9cf4}, !- Handle
-  {50eb99b1-ff6b-4b02-b5a3-ead7ce07240b}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {84dff87b-a57e-42a1-a41d-bc7cb0904759}, !- Handle
-  {5a1e2bf7-149d-48d7-b1ee-5afa5cd7c421}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {56cfafb1-b494-4569-809c-4675bfac55e3}, !- Handle
-  {e9973c8c-026c-4b12-a65b-b80d4fd9bf4f}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {d93f6c6f-b99b-4b98-b49a-07c8f40f1f31}, !- Handle
-  {6e747c5f-e0f4-48a2-8f1d-372bd7086e20}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {83566911-bb8f-416b-a4e2-6741d7d4199e}, !- Handle
-  {6f5d4897-2b0e-4add-bb4f-5d6542432629}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {8433d495-ecd9-4584-963c-15ce2013cd49}, !- Handle
-  {d846ff80-30ec-4199-a952-7299d2f9fe76}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {eec9c842-d5e2-409e-a60d-42a7eecdd6ee}, !- Handle
-  {562b34df-9279-444d-aabc-eab805dd087d}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {dbfdcff3-46ce-42c3-aa36-d92108ba0c90}, !- Handle
-  {be671cbf-0360-45d9-8e11-bcbb19919606}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {c456ac23-40b7-4b5c-a849-390e3c39b1cc}, !- Handle
-  {de755c2a-aff6-4901-9f5e-e5749d90cb7a}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {c7c33ef2-34c8-4126-a93b-4cd9757430e8}, !- Handle
-  {33841b8d-3a83-424a-bfb0-24e7ba3e04d9}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {93bba6cd-8db1-47b5-a07e-33ecb160c5b7}, !- Handle
-  {3d5b04a4-9315-4b84-96a3-960a326e9f66}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {8a704079-81f3-4fae-9528-0a9d1ca049ec}, !- Handle
-  {0884c673-838e-4c03-92d8-87b90cba3d57}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {3302054e-ece7-47a2-bde3-9f39c3461c9e}, !- Handle
-  {ff5f5b6a-84e7-49a3-af15-e12efaf3ff95}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {c567623b-53da-4949-a2f4-65435aa065a4}, !- Handle
-  {928ad6ac-b8f7-4fc9-9f1c-d84326168507}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {b2ff29d4-9c8f-4ab7-905e-063b8424ba16}, !- Handle
-  {bc09f4d0-66dc-43cd-b8db-7c41d56ecc94}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {85195c01-4fb8-4845-b963-5cdc04bfac17}, !- Handle
-  {20af23af-1365-4c39-b8e1-a9a19ca97230}; !- Construction Name
-
-OS:StandardsInformation:Construction,
-  {f82b6835-c802-413d-a1f6-4d8f6abfbd37}, !- Handle
-  {55aa6111-1d6f-421e-93e4-f32adc72776a}; !- Construction Name
-
-OS:StandardsInformation:Material,
-  {3ca25d81-2992-46ca-ac53-3d3260ca290c}, !- Handle
-  {670f16d7-d1c6-4d07-ae13-3e72eebdcdaf}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {57d2829b-f115-41d8-a2e0-693b49527562}, !- Handle
-  {c7af47c8-7bb2-4310-9560-7132fa5b077d}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {dd5b90e0-c5c5-4fc9-b686-0aa0dc3ca2c2}, !- Handle
-  {5a67ce29-47ce-4deb-8e34-5d04cf1de037}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {6d219472-7c71-4807-8065-a7905d8ddc72}, !- Handle
-  {05523430-faf5-4131-955e-b8f0672feb55}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {9f529768-549c-45e6-9640-3cd33f155c05}, !- Handle
-  {c4205749-9e1e-4db7-b2b3-ddbe19db192e}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {acf182e9-e154-4186-b8b7-de02ec5b109b}, !- Handle
-  {78cecbec-3e42-4635-826d-64b41b585ae7}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {169c81c0-4c1c-41e7-b6f9-fe3aaf093b51}, !- Handle
-  {c4221ec2-9dd3-447f-a9f2-4d5ac5e244ca}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {f7a2126d-844a-4364-92bc-9ed8f93b381c}, !- Handle
-  {07ca7b03-7867-435b-b5c1-f55a7467413d}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {0101b9ff-87f2-4e9f-8847-15a1f7a94449}, !- Handle
-  {c02a92d9-b957-4dd0-8606-efb94a78e41b}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {3d2a6836-5273-4872-8f73-9972ccb09132}, !- Handle
-  {7f0f4b69-aa0d-4601-a4d7-657117cc549e}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {02488a3b-ed4e-413c-a7dd-32a9b9849040}, !- Handle
-  {ea49e674-ab86-4c9c-916a-5eb0d5d29ca7}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {84321351-5e90-4bd4-b5d7-8d3eceaa2da7}, !- Handle
-  {011f36b7-1b92-4bb3-8e79-02a6af3e1c37}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {de765d2f-9b69-45a1-bb66-da2b0947e2a3}, !- Handle
-  {a906ad05-6e2a-4aa8-9166-3e3ee576f69c}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {efa7da21-bab7-4e0c-8475-f09bc0e984b2}, !- Handle
-  {4bbec40f-f017-4947-8aa0-278340d72a21}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {21377af2-2957-4620-a7cd-c87c4c52a635}, !- Handle
-  {c3f6415f-18fb-4631-8dec-57558fafb670}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {27483a08-d686-4458-92f6-82b442c0f9a2}, !- Handle
-  {370b516d-70d2-4957-9522-fc99ee01cbea}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {ee0ad0ef-cddd-4c85-bc8c-8aba486fbecf}, !- Handle
-  {f1fb9acb-66ad-4cc1-8abf-6b57871dbaaa}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {6ef8ed16-91ee-416c-bf02-87e69df50c26}, !- Handle
-  {96c3e188-d986-4ea4-8446-e6d60699c0ce}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {ef003ca8-5deb-46db-ad59-c601862ccbdf}, !- Handle
-  {15f2b1ae-3fea-4fb7-9762-86d94aff53e2}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {c50e6265-c537-4d22-9e1a-758f1d6ac14c}, !- Handle
-  {6852e4d0-7e83-4ef2-a0d8-936d51358377}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {678169f6-125a-4a4b-82f4-0eaecc73eb6a}, !- Handle
-  {953296af-5568-4664-bc42-be34bb0a3281}; !- Material Name
-
-OS:StandardsInformation:Construction,
-  {8dc92970-500d-4748-b4a1-2c79a8fddd42}, !- Handle
-  {4b473dd3-db43-4e07-9c29-7e954a067fbb}; !- Construction Name
-
-OS:StandardsInformation:Material,
-  {e2eda810-d3b2-47cf-9507-b0ec8102f53d}, !- Handle
-  {452819c1-5b93-4e70-9c78-f097b0c2fa6b}; !- Material Name
-
-OS:StandardsInformation:Material,
-  {bc7be16f-2c2f-4d05-a7fa-6fe8ccd094c0}, !- Handle
-  {d5797e2d-0f1f-4fe3-b9f0-d10947cf101e}; !- Material Name
-
-OS:StandardsInformation:Construction,
-  {c30a4856-1938-4550-b9b5-1e07f040e06e}, !- Handle
-  {3c71c352-b95c-4b8c-b7f6-fa0ee09d5bc9}; !- Construction Name
-
-OS:StandardsInformation:Material,
-  {47eb3e3e-1aa2-454f-970a-4c621df7c2cc}, !- Handle
-  {9ac99e4c-974f-43f3-bf58-c3d5865de47b}; !- Material Name
-
-OS:StandardsInformation:Construction,
-  {8789cabb-987b-45f5-a91f-a80fe8311f7f}, !- Handle
-  {88ffd95d-79fd-4db8-ad11-ba6e20aab3e0}; !- Construction Name
 
