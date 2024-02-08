@@ -378,6 +378,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         return agg_df
 
     def reduce_df_memory(self, df):
+
         logger.debug(f'Memory before reduce_df_memory: {df.estimated_size()}')
         # Set dtypes to reduce in-memory size
 
@@ -459,6 +460,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     elif dt == pl.Utf8:
                         logger.debug(f'For {c}: Nulls set to "False" (String) in baseline')
                         up_res = up_res.with_columns([pl.col(c).fill_null(pl.lit("False"))])
+                        up_res = up_res.with_columns([pl.when(pl.col(c).str.lengths() == 0).then(pl.lit('False')).otherwise(pl.col(c)).keep_name()])
 
             # Convert columns with only 'True' and/or 'False' strings to Boolean
             for col, dt in up_res.schema.items():
@@ -565,6 +567,16 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # Applicable results go straight
             up_res_applic = up_res_applic.select(sorted(up_res_applic.columns))
             up_res_applic = self.reduce_df_memory(up_res_applic)
+
+            # Cast utility columns to float64 to avoid data type inconsistancies
+            pattern_util_rate_name = re.compile(r'utility_bills\.electricity_rate_\d+_name')
+            pattern_util_cost = re.compile(r'utility_bills\.electricity_rate_\d+_bill_dollars')
+            for col, dt in up_res_applic.schema.items():
+                if pattern_util_rate_name.match(col):
+                    up_res_applic = up_res_applic.with_columns([pl.col(col).cast(pl.Utf8)])
+                elif pattern_util_cost.match(col):
+                    up_res_applic = up_res_applic.with_columns([pl.col(col).cast(pl.Float64)])
+
             results_dfs.append(up_res_applic)
 
             # For buildings where the upgrade did NOT apply, add annual results columns from the Baseline run
@@ -595,6 +607,15 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # Sort the columns so concat will work
             up_res_na = up_res_na.select(sorted(up_res_na.columns))
             up_res_na = self.reduce_df_memory(up_res_na)
+
+            # Cast utility columns to float64 to avoid data type inconsistancies
+            pattern_util_rate_name = re.compile(r'utility_bills\.electricity_rate_\d+_name')
+            pattern_util_cost = re.compile(r'utility_bills\.electricity_rate_\d+_bill_dollars')
+            for col, dt in up_res_na.schema.items():
+                if pattern_util_rate_name.match(col):
+                    up_res_na = up_res_na.with_columns([pl.col(col).cast(pl.Utf8)])
+                elif pattern_util_cost.match(col):
+                    up_res_na = up_res_na.with_columns([pl.col(col).cast(pl.Float64)])
             results_dfs.append(up_res_na)
 
         self.data = pl.concat(results_dfs, how='diagonal')
@@ -1885,7 +1906,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Rename columns
         comstock_unscaled = comstock_unscaled.rename({'month': 'Month', 'state_id': 'FIPS Code'})
-        
+
         # Rename upgrade values
         upgrade_data = self.data.select([self.UPGRADE_ID, self.UPGRADE_NAME])
         print(upgrade_data.head())
@@ -1937,8 +1958,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         cols_to_drop = ['building_type', 'total_site_electricity_kwh', 'total_site_gas_kbtu', 'Scaling Factor']
 
         idx = ['FIPS Code', 'Month', 'upgrade', 'upgrade_name']
-        monthly = monthly.group_by(idx).sum().drop(cols_to_drop) 
-        
+        monthly = monthly.group_by(idx).sum().drop(cols_to_drop)
+
         # Add a dataset label column
         monthly = monthly.with_columns([
             pl.lit(self.dataset_name).alias(self.DATASET)
