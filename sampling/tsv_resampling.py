@@ -62,7 +62,7 @@ class BuildStockSampler(object):
 
 class CommercialBaseSobolSampler(BuildStockSampler):
 
-    def __init__(self, output_dir, tmp_output_dir, hvac_sizing, *args, **kwargs):
+    def __init__(self, output_dir, tmp_output_dir, hvac_sizing, precomputed_params_path=None, *args, **kwargs):
         """
         This class uses the Commercial Precomputed Sampler for Peregrine Singularity deployments
 
@@ -88,6 +88,22 @@ class CommercialBaseSobolSampler(BuildStockSampler):
             raise RuntimeError('Number or buckets set to 0. Please ensure non-zero number or buckets.')
         if self.sample_number % self.n_buckets != 0:
             raise RuntimeError('Number of samples divided by number of buckets results in non-zero remainder.')
+        
+        if precomputed_params_path:
+            if os.path.isfile(precomputed_params_path):
+                tmp_df = pd.read_csv(precomputed_params_path, index_col='Building')
+                if tmp_df.shape[0] != self.sample_number:
+                    raise RuntimeError(
+                        f'Precomputed sample at {precomputed_params_path} has {tmp_df.shape[0]} samples, but was '\
+                        f'expecting {self.sample_number} samples'
+                    )
+                precomputed_buildstock_path = os.path.join(self.tmp_dir, self.tsv_dirname, 'buildstock.csv')
+                if tmp_df.index.name != 'Building':
+                    tmp_df = tmp_df.reset_index(drop=True)
+                    tmp_df.index.name = 'Building'
+                tmp_df.to_csv(precomputed_buildstock_path, index=True, na_rep='NA')
+            else:
+                raise FileNotFoundError(f'Unable to find precomputed CSV {precomputed_params_path}')
 
     TSV_ARRAYS = [
         [
@@ -179,7 +195,7 @@ class CommercialBaseSobolSampler(BuildStockSampler):
             for attr in [item for item in attrs if '_id' not in item]: # skip county_id and state_id
                 with open(os.path.join(tsv_dir, attr + '.json'), 'r') as rfobj:
                     tsv_hash[attr] = json.load(rfobj)
-            attr_order = self.TSV_ARRAYS[0] + ['tract', 'year_built', 'number_stories']
+            attr_order = previously_sampled_attrs + ['tract', 'year_built', 'number_stories']
             dependency_hash = {
                 'tract': ['sampling_region', 'building_type', 'size_bin'],
                 'year_built': ['sampling_region', 'building_type', 'size_bin'],
@@ -220,7 +236,6 @@ class CommercialBaseSobolSampler(BuildStockSampler):
                 jsons = True
             # TODO establish the nchuncks here - i'm not clear on if I need an id -> chunck mapper or what but instantiate it here regardless
                 
-            chunck_mapper = []
             # load in previous result csv, if it exists, and pass through to _com_execute_sample
             # treat it like the sample matrix -- pull out index row number, and dump each key value pair from the row from the previous sampling into the dependency hash
             if os.path.isfile(os.path.join(rw_dir, 'buildstock.csv')):
@@ -256,6 +271,7 @@ class CommercialBaseSobolSampler(BuildStockSampler):
                     ) for bucket in range(self.n_buckets)
                 )
             df = pd.concat([pd.DataFrame.from_dict(bucket_res) for bucket_res in res])
+            df = df.reset_index(drop=True)
             df.index.name = 'Building'
 
             # Save the intermediate buildstock csvs within the temporary directory and the final at the specified location
@@ -264,6 +280,7 @@ class CommercialBaseSobolSampler(BuildStockSampler):
                 df.to_csv(csv_path, index=True, na_rep='NA')
                 shutil.rmtree(self.tmp_dir)
             else:
+                breakpoint()
                 df.to_csv(tmp_csv_path, index=True, na_rep='NA')
 
         return csv_path
@@ -374,11 +391,12 @@ class CommercialBaseSobolSampler(BuildStockSampler):
         :param sample_index: Integer specifying which sample in the sample_matrix to evaluate
         """
         res = list()
+        prev_results_key_list = list(prev_results_dict.keys())
         for index in sample_dict.keys():
             results_dict = dict()
             dep_hash = deepcopy(dependency_hash)
             sample_vector = sample_dict[index]
-            prev_results = prev_results_dict[index]
+            prev_results = prev_results_dict[prev_results_key_list[index]]
             sample_vector_index = -1
             for attr in attr_order:
                 if attr in prev_results.keys():
@@ -396,7 +414,6 @@ class CommercialBaseSobolSampler(BuildStockSampler):
                             ]
                         if tsv_lkup.shape[0] == 0:
                             warn(f'TSV lookup reduced to 0 for {attr}, dep hash {dep_hash}')
-                            breakpoint()
                             return
                         if (tsv_lkup.shape[0] != 1) and (len(tsv_lkup.shape) > 1):
                             raise RuntimeError(f'Unable to reduce tsv for {attr} to 1 row, dep_hash {dep_hash}')
@@ -424,9 +441,10 @@ class CommercialBaseSobolSampler(BuildStockSampler):
         :param sample_index: Integer specifying which sample in the sample_matrix to evaluate
         """
         res = list()
+        prev_results_key_list = list(prev_results_dict.keys())
         for index in sample_dict.keys():
             dep_hash = deepcopy(dependency_hash)
-            prev_results = prev_results_dict[index]
+            prev_results = prev_results_dict[prev_results_key_list[index]]
             sample_vector = sample_dict[index]
             results_dict = dict()
             sample_vector_index = -1
@@ -461,6 +479,9 @@ def parse_arguments():
     parser.add_argument('hvac_sizing', type=str, help='Enter "autosize" or "hardsize" to indicate whether the models should have their HVAC systems autosized or hardsized')
     parser.add_argument('-v', '--verbose', action='store_true', help='Enables verbose debugging outputs')
     parser.add_argument('-r', '--random', action='store_false', help='Replaces Sobol with Pseudorandom')
+    parser.add_argument(
+        '-p', '--precomputed', type=str, default=None, help='Path to optional CSV specifying precomputed sample attrs'
+    )
     argument = parser.parse_args()
     
     if argument.verbose:
@@ -480,7 +501,8 @@ def main():
         hvac_sizing=args.hvac_sizing,
         cfg={'baseline': {'n_datapoints': args.n_samples, 'n_buckets': args.n_buckets, 'sobol': args.random}},
         tmp_output_dir = f'tsvs-{args.tsv_version}',
-        project_dir='/tmp/fake'
+        project_dir='/tmp/fake',
+        precomputed_params_path=args.precomputed
     )
     sampler.run_sampling(args.n_samples)
 
