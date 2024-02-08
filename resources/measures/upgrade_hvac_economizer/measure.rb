@@ -229,6 +229,7 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
     li_ems_sens_econ_status = []
     li_ems_sens_min_flow = []
     li_ems_act_oa_flow = []
+    li_ems_ref = []
 
     # loop through air loops
     model.getAirLoopHVACs.each do |air_loop_hvac|
@@ -292,6 +293,7 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
       end
 
       # get minimum outdoor air flow rate
+      # if the measure is applied on an autosized model, then this part will result in incorrect EMS application.
       min_oa_flow_m_3_per_sec = 0
       if oa_controller.autosizedMinimumOutdoorAirFlowRate.is_initialized
         min_oa_flow_m_3_per_sec = oa_controller.autosizedMinimumOutdoorAirFlowRate.get
@@ -301,6 +303,8 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
         runner.registerWarning("cannot get minimum outdoor air flow rate from #{oa_controller.name.to_s}. make sure to hardsize the model in order to get the correct sizing information.")
       end
       min_oa_flow_kg_per_sec = min_oa_flow_m_3_per_sec * 1.196621537 # TODO: is temperature dependency not considered for air density?
+      runner.registerInfo("#{oa_controller.name}: minimum outdoor air flow rate extracted from the model = #{min_oa_flow_m_3_per_sec} m3/sec")
+      runner.registerInfo("#{oa_controller.name}: minimum outdoor air flow rate extracted from the model = #{min_oa_flow_kg_per_sec} kg/sec")
 
       # get nighttime variability ventilation schedule
       min_oa_flow_sch_nighttime_variability = nil
@@ -333,9 +337,11 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
       sens_nighttimevar = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Schedule Value')
       sens_nighttimevar.setName("sens_nighttimevar_#{std.ems_friendly_name(air_loop_hvac.name.get.to_s)}") 
       sens_nighttimevar.setKeyName(min_oa_flow_sch_nighttime_variability_name)
+      li_ems_ref << sens_nighttimevar
 
       # set global variable for debugging
       dummy_debugging = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, "dummy_debugging_#{std.ems_friendly_name(air_loop_hvac.name.get.to_s)}")
+      li_ems_ref << dummy_debugging
 
       #### Actuators #####
       # set actuator - oa controller air mass flow rate
@@ -386,9 +392,9 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
 
     end
 
-    # ----------------------------------------------------  
-    # puts("### adding output variables (for debugging)")
-    # ----------------------------------------------------  
+    # # ----------------------------------------------------  
+    # # puts("### adding output variables (for debugging)")
+    # # ----------------------------------------------------  
     # out_vars = [
     #   'Air System Outdoor Air Economizer Status', 
     #   'Air System Outdoor Air Flow Fraction',
@@ -449,6 +455,15 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
     #   ems_act_oa_flow.setUpdateFrequency('Timestep')
     #   ems_act_oa_flow.setName("#{name}_ems_outvar")
     #   ems_act_oa_flow.setUnits('kg/s')
+    #   ems_output_variable_list << ems_act_oa_flow.name.to_s
+    # end
+
+    # # li_ems_ref
+    # li_ems_ref.each do |act|
+    #   name = act.name
+    #   ems_act_oa_flow = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, act)
+    #   ems_act_oa_flow.setUpdateFrequency('Timestep')
+    #   ems_act_oa_flow.setName("#{name}_ems_outvar")
     #   ems_output_variable_list << ems_act_oa_flow.name.to_s
     # end
   
