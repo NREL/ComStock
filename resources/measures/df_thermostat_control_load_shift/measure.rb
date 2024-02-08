@@ -344,12 +344,12 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
         runner.registerError('model.getBuilding.standardsBuildingType is empty.')
         return false
       end
-      puts("--- model_building_type = #{model_building_type}")
+      # puts("--- model_building_type = #{model_building_type}")
       if !applicable_building_types.include?(model_building_type)#.downcase)
         # puts("&&& applicability not passed due to building type (buildings with large exhaust): #{model_building_type}")
         runner.registerAsNotApplicable("applicability not passed due to building type (office buildings): #{model_building_type}")
         return false
-      elsif model_building_type == 'Office'
+      elsif model_building_type == 'Office' || model_building_type == 'OfL' || model_building_type == 'OfS'
         # https://github.com/NREL/ComStock/blob/a541f15d27206f4e23d56be53ef8b7e154edda9e/postprocessing/comstockpostproc/cbecs.py#L309-L327
         model_building_floor_area_m2 = model.building.get.floorArea.to_f
         model_building_floor_area_sqft = OpenStudio.convert(model_building_floor_area_m2, 'm^2', 'ft^2').get
