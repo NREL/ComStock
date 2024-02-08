@@ -357,7 +357,6 @@ class HVACEconomizer_Test < Minitest::Test
     # suggestion: test all of these models locally but only include one model that can test quickly since the test requires simulation run.
     test_sets = []
     test_sets << { model: 'Outpatient_VAV_economizer_test', weather: 'G4201010', result: 'Success' }
-    # test_sets << { model: 'Warehouse_economizer_test', weather: 'G0400210', result: 'Success' }
     return test_sets
   end
 
