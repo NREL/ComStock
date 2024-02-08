@@ -8,7 +8,7 @@ OS:Facility,
 
 OS:Site,
   {2e26f417-9128-4d67-9e34-b01a2158b894}, !- Handle
-  Phoenix Sky Harbor_AZ_USA,              !- Name
+  Phoenix Sky Harbor,                     !- Name
   33.44,                                  !- Latitude {deg}
   -111.99,                                !- Longitude {deg}
   -7,                                     !- Time Zone {hr}
@@ -62,8 +62,8 @@ OS:RunPeriod,
   Run Period 1,                           !- Name
   1,                                      !- Begin Month
   1,                                      !- Begin Day of Month
-  12,                                     !- End Month
-  31,                                     !- End Day of Month
+  1,                                      !- End Month
+  7,                                      !- End Day of Month
   ,                                       !- Use Weather File Holidays and Special Days
   ,                                       !- Use Weather File Daylight Saving Period
   ,                                       !- Apply Weekend Holiday Rule
@@ -84,22 +84,6 @@ OS:LifeCycleCost:Parameters,
   ,                                       !- Service Date Month
   ,                                       !- Service Date Year
   ;                                       !- Length of Study Period in Years
-
-OS:WeatherFile,
-  {07efe339-76c1-49a9-9827-ed27343edd74}, !- Handle
-  Phoenix Sky Harbor,                     !- City
-  AZ,                                     !- State Province Region
-  USA,                                    !- Country
-  customized weather file,                !- Data Source
-  722780,                                 !- WMO Number
-  33.44,                                  !- Latitude {deg}
-  -111.99,                                !- Longitude {deg}
-  -7,                                     !- Time Zone {hr}
-  346,                                    !- Elevation {m}
-  /weather/G0400210.epw,                  !- Url
-  226BE93E,                               !- Checksum
-  ,                                       !- Start Date Actual Year
-  Friday;                                 !- Start Day of Week
 
 OS:Site:WaterMainsTemperature,
   {f531460c-e67e-46c2-baf6-6dde69730bfe}, !- Handle
@@ -277,7 +261,11 @@ OS:ClimateZones,
   ASHRAE,                                 !- Climate Zone Institution Name 1
   ANSI/ASHRAE Standard 169,               !- Climate Zone Document Name 1
   2006,                                   !- Climate Zone Document Year 1
-  ASHRAE 169-2013-2B;                     !- Climate Zone Value 1
+  ASHRAE 169-2013-2B,                     !- Climate Zone Value 1
+  CEC,                                    !- Climate Zone Institution Name 2
+  California Climate Zone Descriptions,   !- Climate Zone Document Name 2
+  1995,                                   !- Climate Zone Document Year 2
+  ;                                       !- Climate Zone Value 2
 
 OS:RunPeriodControl:DaylightSavingTime,
   {8206a6aa-0a32-4f93-8140-58f6e77a55bd}, !- Handle
@@ -12462,4 +12450,250 @@ OS:Construction,
   Window U-0.91 SHGC 0.53,                !- Name
   ,                                       !- Surface Rendering Name
   {01f15a77-8842-453d-9315-060256ba2350}; !- Layer 1
+
+OS:StandardsInformation:Construction,
+  {bbff8f82-2e51-4895-9ac3-fc3d48e5f56f}, !- Handle
+  {ae9466e8-3974-4016-9158-078bfb1d697e}; !- Construction Name
+
+OS:StandardsInformation:Construction,
+  {5ccd6c31-c1e3-4256-9cde-a5f9c162020e}, !- Handle
+  {32cd7273-a288-49a4-86ca-8182765f0391}; !- Construction Name
+
+OS:StandardsInformation:Construction,
+  {c94778c8-b432-48a4-b0ad-b3f47f0b05c7}, !- Handle
+  {fcef6efd-50e9-433c-bff2-b8641b59abb8}; !- Construction Name
+
+OS:StandardsInformation:Construction,
+  {d093f8f5-d25b-427d-8dee-2b4fafee36b0}, !- Handle
+  {51fc934c-d5dc-432e-a89a-bae4db1898e9}; !- Construction Name
+
+OS:StandardsInformation:Construction,
+  {54f265c3-c3a5-440a-8fd6-9c3027dad7e7}, !- Handle
+  {26401f2b-c3e2-40a1-b066-b5f67a2422ac}; !- Construction Name
+
+OS:StandardsInformation:Construction,
+  {1cb7d65a-e25c-42b4-bf91-4b336e646723}, !- Handle
+  {eabf0d94-7799-43c6-9419-7a78fdf18756}; !- Construction Name
+
+OS:StandardsInformation:Construction,
+  {35439f3c-f18f-48e4-9ab2-c6a992ade1de}, !- Handle
+  {3a1e0f9e-0818-4fd6-af30-e7276d8752c8}; !- Construction Name
+
+OS:StandardsInformation:Material,
+  {62d51022-1f1f-46fe-80e3-d6cd95304b57}, !- Handle
+  {d12e7c7b-955d-465d-9302-f287558a9ce4}; !- Material Name
+
+OS:StandardsInformation:Material,
+  {32bfe8c6-fe91-40db-8932-1b0be2dadeb0}, !- Handle
+  {60de2732-c08d-4daa-b32a-28673f1dc0db}; !- Material Name
+
+OS:StandardsInformation:Material,
+  {cd47d8ee-6366-4ff6-ba67-cd5efe2a765c}, !- Handle
+  {6468a6b5-4189-40a9-b79f-a40778c28590}; !- Material Name
+
+OS:StandardsInformation:Material,
+  {b2435d1d-dfbf-4b65-8ed0-98b2776f46a8}, !- Handle
+  {f9ada300-6cd4-49bc-ba5b-f12bcad0f0db}; !- Material Name
+
+OS:StandardsInformation:Material,
+  {180f1a66-dae9-43c2-81bd-9b291a7ddee8}, !- Handle
+  {f7dd8716-34b3-471a-b0a9-d9df9baf48d9}; !- Material Name
+
+OS:StandardsInformation:Material,
+  {d87c1e88-2e48-4c47-963e-181333cba72b}, !- Handle
+  {6af188bb-b010-4811-a39c-f0f7687b304a}; !- Material Name
+
+OS:StandardsInformation:Material,
+  {87ce254b-5dca-408c-b97c-af7b109fa787}, !- Handle
+  {19b64dfe-f2cb-4f20-8b02-0423190ef32e}; !- Material Name
+
+OS:StandardsInformation:Material,
+  {a4d5ad30-5023-4cec-96a6-87489dc37224}, !- Handle
+  {deadfaee-e7e1-4763-b43a-240266840f46}; !- Material Name
+
+OS:StandardsInformation:Material,
+  {ae9ce108-cb1c-49d0-81bf-46d6ab3528ca}, !- Handle
+  {30a1a61c-99d8-429a-87e3-2200758aecb6}; !- Material Name
+
+OS:StandardsInformation:Material,
+  {ea742702-ff1d-46cf-b190-1651ba8859bd}, !- Handle
+  {71edae63-f502-41b1-809f-203b78b2baae}; !- Material Name
+
+OS:StandardsInformation:Material,
+  {037a7fe0-f6d6-4171-85e4-83f7ed6ee347}, !- Handle
+  {21e41387-cb22-44a7-b40a-5f5fc61c5b67}; !- Material Name
+
+OS:StandardsInformation:Material,
+  {7c4cd5e0-7e8b-498f-8456-fb5d0418a17c}, !- Handle
+  {f600c191-c4ad-4758-855e-d11ee4858b42}; !- Material Name
+
+OS:StandardsInformation:Material,
+  {55db301f-9ffc-4107-86a6-46d1776f8635}, !- Handle
+  {53840076-5814-4d01-a0dc-d326767e0119}; !- Material Name
+
+OS:StandardsInformation:Material,
+  {ecba79bb-491a-4a89-aea5-a512913865fd}, !- Handle
+  {77ccae6f-2695-4331-a58b-7f8cdf3f328d}; !- Material Name
+
+OS:StandardsInformation:Material,
+  {78442bb1-d408-49d1-aa2e-3afc9b47ad99}, !- Handle
+  {99ba6910-d3fc-4d48-93ad-cdc6bb7783c2}; !- Material Name
+
+OS:StandardsInformation:Material,
+  {9c2bd1f5-e336-43b8-8a02-4df009d14c11}, !- Handle
+  {0414a054-ba5f-480f-b417-992ee77f9c04}; !- Material Name
+
+OS:StandardsInformation:Material,
+  {e925d6d8-71d4-4396-9aa5-f5b415247ac9}, !- Handle
+  {08ff4cd7-aa37-4f11-bb55-d3e7d10c6601}; !- Material Name
+
+OS:StandardsInformation:Material,
+  {b86a53a6-6e06-4140-995f-21ef9323ea62}, !- Handle
+  {93369730-bab8-4f47-8bc0-e081bc7386a7}; !- Material Name
+
+OS:StandardsInformation:Material,
+  {3828c93a-63ce-4287-8367-f6a0d001f0be}, !- Handle
+  {678b86d7-7569-4705-a244-6f3b75f75ae8}; !- Material Name
+
+OS:StandardsInformation:Material,
+  {d4934682-9fdf-45cf-9134-90bfc1f0e3a0}, !- Handle
+  {496d691d-973f-4083-9916-2fb903494e4e}; !- Material Name
+
+OS:StandardsInformation:Construction,
+  {cd604e11-c231-4b8e-8666-947aa8ea6589}, !- Handle
+  {b3f3e14a-c03c-4558-b34d-432b031594e3}; !- Construction Name
+
+OS:StandardsInformation:Material,
+  {38709e44-87ce-4210-a993-a63bef77813a}, !- Handle
+  {01f15a77-8842-453d-9315-060256ba2350}; !- Material Name
+
+OS:StandardsInformation:Construction,
+  {21822a3e-ce83-4cbe-8731-a986cd2f63de}, !- Handle
+  {1f1655d8-bf4d-4ec3-a0bd-2045f494648c}; !- Construction Name
+
+OS:WeatherFile,
+  {2a88fd65-bee3-4a69-9cea-cd5e97c38fb5}, !- Handle
+  Phoenix Sky Harbor,                     !- City
+  AZ,                                     !- State Province Region
+  USA,                                    !- Country
+  customized weather file,                !- Data Source
+  722780,                                 !- WMO Number
+  33.44,                                  !- Latitude {deg}
+  -111.99,                                !- Longitude {deg}
+  -7,                                     !- Time Zone {hr}
+  346,                                    !- Elevation {m}
+  G0400210.epw,                           !- Url
+  E83DB087,                               !- Checksum
+  2018,                                   !- Start Date Actual Year
+  Monday;                                 !- Start Day of Week
+
+OS:RadianceParameters,
+  {6461a595-8f0d-49b1-b011-d631f9b36496}, !- Handle
+  1,                                      !- Accumulated Rays per Record
+  0,                                      !- Direct Threshold
+  1,                                      !- Direct Certainty
+  1,                                      !- Direct Jitter
+  1,                                      !- Direct Pretest
+  6,                                      !- Ambient Bounces VMX
+  2,                                      !- Ambient Bounces DMX
+  4050,                                   !- Ambient Divisions VMX
+  512,                                    !- Ambient Divisions DMX
+  256,                                    !- Ambient Supersamples
+  0.001,                                  !- Limit Weight VMX
+  0.001,                                  !- Limit Weight DMX
+  500,                                    !- Klems Sampling Density
+  146;                                    !- Sky Discretization Resolution
+
+OS:ProgramControl,
+  {efbe5bd9-4f04-4e92-80f8-59cdfd9d7a3c}; !- Handle
+
+OS:ConvergenceLimits,
+  {2179fa2e-4eee-4cec-b309-b9c197d5bb24}, !- Handle
+  1;                                      !- Minimum System Timestep {minutes}
+
+OS:SurfaceConvectionAlgorithm:Inside,
+  {7d3e2aef-63e9-4261-bf7c-be8db3b7887b}, !- Handle
+  TARP;                                   !- Algorithm
+
+OS:SurfaceConvectionAlgorithm:Outside,
+  {79b521c9-141a-4ba8-b2dd-fd2bdff338d4}, !- Handle
+  DOE-2;                                  !- Algorithm
+
+OS:ZoneAirHeatBalanceAlgorithm,
+  {04a2613b-8f5a-4ed4-9d8b-d2e3595c82e3}, !- Handle
+  ,                                       !- Algorithm
+  ,                                       !- Do Space Heat Balance for Sizing
+  ;                                       !- Do Space Heat Balance for Simulation
+
+OS:ZoneAirContaminantBalance,
+  {e0058092-8d33-441d-a8cb-a1f5c696b960}; !- Handle
+
+OS:ZoneCapacitanceMultiplier:ResearchSpecial,
+  {c23990e0-67fe-4299-94fd-2d5856661ef9}, !- Handle
+  ,                                       !- Temperature Capacity Multiplier
+  ,                                       !- Humidity Capacity Multiplier
+  ;                                       !- Carbon Dioxide Capacity Multiplier
+
+OS:Output:JSON,
+  {fad46bab-8b6f-4745-b56c-f619be7a1860}, !- Handle
+  TimeSeriesAndTabular,                   !- Option Type
+  No,                                     !- Output JSON
+  No,                                     !- Output CBOR
+  No;                                     !- Output MessagePack
+
+OS:Output:Table:SummaryReports,
+  {02a0dab7-e427-4198-bee5-f92ea90c56e1}, !- Handle
+  AllSummary;                             !- Report Name 1
+
+OS:Output:Diagnostics,
+  {cfdd6810-e224-4f24-b844-2342ea56cc42}; !- Handle
+
+OS:Output:Variable,
+  {106b27de-e5c1-45f6-8f54-1395a1d3a6ab}, !- Handle
+  Output Variable 1,                      !- Name
+  *,                                      !- Key Value
+  Air System Outdoor Air Flow Fraction,   !- Variable Name
+  Timestep;                               !- Reporting Frequency
+
+OS:Output:Variable,
+  {9a8923ef-8b03-447c-9549-082aa77db1ad}, !- Handle
+  Output Variable 2,                      !- Name
+  *,                                      !- Key Value
+  Air System Outdoor Air Mass Flow Rate,  !- Variable Name
+  Timestep;                               !- Reporting Frequency
+
+OS:Output:Variable,
+  {0e1c2fab-f6cf-4d91-84bd-09ed7bca00a5}, !- Handle
+  Output Variable 3,                      !- Name
+  *,                                      !- Key Value
+  Cooling Coil Total Cooling Rate,        !- Variable Name
+  Timestep;                               !- Reporting Frequency
+
+OS:Output:Variable,
+  {275c6463-372a-4e8e-be90-124473b63e3e}, !- Handle
+  Output Variable 4,                      !- Name
+  *,                                      !- Key Value
+  Zone Mean Air Temperature,              !- Variable Name
+  Timestep;                               !- Reporting Frequency
+
+OS:Output:Variable,
+  {c3587ee6-2a82-4586-9918-99e27f9ffbc6}, !- Handle
+  Output Variable 5,                      !- Name
+  *,                                      !- Key Value
+  Zone Thermostat Cooling Setpoint Temperature, !- Variable Name
+  Timestep;                               !- Reporting Frequency
+
+OS:Output:Variable,
+  {2ce24cbd-df7e-44d6-ab04-c2ca4805b920}, !- Handle
+  Output Variable 6,                      !- Name
+  *,                                      !- Key Value
+  Zone Thermostat Heating Setpoint Temperature, !- Variable Name
+  Timestep;                               !- Reporting Frequency
+
+OS:Output:Variable,
+  {5b6d86d8-a0d9-47b2-ab5f-8b8070d143e8}, !- Handle
+  Output Variable 7,                      !- Name
+  *,                                      !- Key Value
+  Zone Outdoor Air Drybulb Temperature,   !- Variable Name
+  Timestep;                               !- Reporting Frequency
 
