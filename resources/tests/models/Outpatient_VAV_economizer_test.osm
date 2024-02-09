@@ -62,7 +62,7 @@ OS:RunPeriod,
   Run Period 1,                           !- Name
   1,                                      !- Begin Month
   1,                                      !- Begin Day of Month
-  1,                                      !- End Month
+  12,                                     !- End Month
   31,                                     !- End Day of Month
   ,                                       !- Use Weather File Holidays and Special Days
   ,                                       !- Use Weather File Daylight Saving Period
@@ -71446,4 +71446,20 @@ OS:Output:Variable,
   *,                                      !- Key Value
   Air System Outdoor Air Mechanical Ventilation Requested Mass Flow Rate, !- Variable Name
   Hourly;                                 !- Reporting Frequency
+
+OS:WeatherFile,
+  {77c58c34-5229-4269-b9c9-a65458c8c475}, !- Handle
+  Northeast Philadelph,                   !- City
+  PA,                                     !- State Province Region
+  USA,                                    !- Country
+  customized weather file,                !- Data Source
+  724085,                                 !- WMO Number
+  40.08,                                  !- Latitude {deg}
+  -75.01,                                 !- Longitude {deg}
+  -5,                                     !- Time Zone {hr}
+  36,                                     !- Elevation {m}
+  G4201010.epw,                           !- Url
+  1BC1659A,                               !- Checksum
+  2018,                                   !- Start Date Actual Year
+  Monday;                                 !- Start Day of Week
 
