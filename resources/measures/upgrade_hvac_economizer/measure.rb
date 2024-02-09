@@ -232,7 +232,7 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
     li_ems_ref = []
 
     # loop through air loops
-    model.getAirLoopHVACs.each do |air_loop_hvac|
+    selected_air_loops.each do |air_loop_hvac|
 
       # get OA system
       oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem
