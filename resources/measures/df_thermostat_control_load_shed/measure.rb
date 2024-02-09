@@ -221,7 +221,12 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
             header << "#{clg_set_sch.get.name.to_s} adjusted"
             # puts("### DEBUGGING: schedule_8760.size = #{schedule_8760.size}")
             # puts("### DEBUGGING: clgsp_adjustment_values.size = #{clgsp_adjustment_values.size}")
-            nums = [schedule_8760, clgsp_adjustment_values]
+            if schedule_8760.size != clgsp_adjustment_values.size
+              msize = [schedule_8760.size, clgsp_adjustment_values.size].min
+              nums = [schedule_8760.take(msize), clgsp_adjustment_values.take(msize)]
+            else
+              nums = [schedule_8760, clgsp_adjustment_values]
+            end
             new_schedule_8760 = nums.transpose.map(&:sum)
             num_rows = new_schedule_8760.length
             values << new_schedule_8760
@@ -295,7 +300,12 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
             values << schedule_8760
             # puts("Update 8760 schedule...")
             header << "#{heat_set_sch.get.name.to_s} adjusted"
-            nums = [schedule_8760, heatsp_adjustment_values]
+            if schedule_8760.size != heatsp_adjustment_values.size
+              msize = [schedule_8760.size, heatsp_adjustment_values.size].min
+              nums = [schedule_8760.take(msize), heatsp_adjustment_values.take(msize)]
+            else
+              nums = [schedule_8760, heatsp_adjustment_values]
+            end
             new_schedule_8760 = nums.transpose.map(&:sum)
             num_rows = new_schedule_8760.length
             values << new_schedule_8760
