@@ -150,11 +150,11 @@ require 'openstudio-standards'
 		elsif equip.to_AirTerminalDualDuctVAVOutdoorAir.is_initialized
 		  return true
 		else
-		  next 
+		  next
 		end
 	    end
 	end
-	  return false #if no VAV terminals found on the air loop 
+	  return false #if no VAV terminals found on the air loop
   end
 def no_DCV_zones?(air_loop_hvac)
 	selected_air_loops = []
@@ -187,7 +187,7 @@ def no_DCV_zones?(air_loop_hvac)
       'Toilet',
       'MechElecRoom',
     ]
-  
+
     oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem
     if oa_system.is_initialized
       oa_system = oa_system.get
@@ -199,7 +199,7 @@ def no_DCV_zones?(air_loop_hvac)
     sizing_system = air_loop_hvac.sizingSystem
     type_of_load = sizing_system.typeofLoadtoSizeOn
     if type_of_load == 'VentilationRequirement'
-      return true 
+      return true
     end
 
     # Check for ERV. If the air loop has an ERV, air loop is not applicable for DCV measure.
@@ -212,7 +212,7 @@ def no_DCV_zones?(air_loop_hvac)
       end
     end
     if erv_components.any?
-      return true 
+      return true
     end
 
     # check to see if airloop has existing DCV
@@ -220,7 +220,7 @@ def no_DCV_zones?(air_loop_hvac)
     controller_oa = oa_system.getControllerOutdoorAir
     controller_mv = controller_oa.controllerMechanicalVentilation
     if controller_mv.demandControlledVentilation
-      return true 
+      return true
     end
 
     # check to see if airloop has applicable space types
@@ -239,9 +239,9 @@ def no_DCV_zones?(air_loop_hvac)
       end
     end
     if space_no_dcv >= 1
-      return true 
+      return true
     end
-	return false 
+	return false
 end
 
 def air_loop_doas?(air_loop_hvac)
@@ -271,10 +271,10 @@ def run(model, runner, user_arguments)
 
 	min_flow_fraction = 0.67 #30% power for non-inverter driven motors, this is applied to flow, so roughly 30% power with cubic fan curve
 
-	#Setting up OS standards 
+	#Setting up OS standards
 	standard = Standard.build('90.1-2013')
-	standard_new_motor = Standard.build('90.1-2019') #to reflect new motors 
-	
+	standard_new_motor = Standard.build('90.1-2019') #to reflect new motors
+
 	#Set up for economizer implementation for checking applicability
     no_outdoor_air_loops = 0
     doas_loops = 0
@@ -367,8 +367,8 @@ def run(model, runner, user_arguments)
 			    fan_flow = sup_fan.autosizedMaximumFlowRate.get
 			  elsif sup_fan.maximumFlowRate.is_initialized
 			    fan_flow = sup_fan.maximumFlowRate.get
-			  end 
-			  #ASHRAE 90.1 2019 version of the standard to reflect motor replacement 
+			  end
+			  #ASHRAE 90.1 2019 version of the standard to reflect motor replacement
 			  fan_motor_eff = standard_new_motor.fan_standard_minimum_motor_efficiency_and_size(sup_fan, motor_hp)[0] #calculate fan motor eff per Standards
 			end
 			#handle constant speed fan objects; replace FanConstantVolume with FanVariableVolume
@@ -381,8 +381,8 @@ def run(model, runner, user_arguments)
 			    fan_flow = sup_fan.autosizedMaximumFlowRate.get
 			  elsif sup_fan.maximumFlowRate.is_initialized
 			    fan_flow = sup_fan.maximumFlowRate.get
-			  end 
-			  #ASHRAE 90.1 2019 version of the standard to reflect motor replacement 
+			  end
+			  #ASHRAE 90.1 2019 version of the standard to reflect motor replacement
 			  fan_motor_eff = standard_new_motor.fan_standard_minimum_motor_efficiency_and_size(sup_fan, motor_hp)[0] #calculate fan motor eff per Standards
 			end
 			#create new VS fan
@@ -391,7 +391,7 @@ def run(model, runner, user_arguments)
 			fan.setFanPowerMinimumFlowRateInputMethod("Fraction")
 			fan.setPressureRise(pressure_rise)#keep it the same as the existing fan, since the balance of systems is the same
 			fan.setMotorEfficiency(fan_motor_eff)
-			fan.setMaximumFlowRate(fan_flow) #keep it the same as the existing fan, since the fan itself will be the same 
+			fan.setMaximumFlowRate(fan_flow) #keep it the same as the existing fan, since the fan itself will be the same
 			fan.setFanTotalEfficiency(fan_motor_eff * fan_eff)
 			#set fan curve coefficients
 			standard.fan_variable_volume_set_control_type(fan, 'Single Zone VAV Fan ')
@@ -403,22 +403,22 @@ def run(model, runner, user_arguments)
 	  end
 	  air_loop_hvac.thermalZones.each do |thermal_zone| #iterate thru thermal zones and modify zone-level terminal units
 	    min_oa_flow_rate_cont = 0
-        #See if a minimum OA flow rate is already set 		
+        #See if a minimum OA flow rate is already set
 	    if air_loop_hvac.airLoopHVACOutdoorAirSystem.is_initialized
 		  oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
 		  controller_oa = oa_system.getControllerOutdoorAir
 		    if controller_oa.autosizedMinimumOutdoorAirFlowRate.is_initialized
 			  min_oa_flow_rate_cont = controller_oa.autosizedMinimumOutdoorAirFlowRate.get
-		    elsif controller_oa.minimumOutdoorAirFlowRate.is_initialized? 
+		    elsif controller_oa.minimumOutdoorAirFlowRate.is_initialized?
 		      min_oa_flow_rate_cont = controller_oa.minimumOutdoorAirFlowRate.get
-			end  
-		end 
-		#if min OA flow rate is 0, or if it isn't set, calculate it 
+			end
+		end
+		#if min OA flow rate is 0, or if it isn't set, calculate it
 		if min_oa_flow_rate_cont == 0
 		    min_oa_flow_rate = thermal_zone_outdoor_airflow_rate(thermal_zone)
-		elsif 
+		elsif
 		   min_oa_flow_rate = min_oa_flow_rate_cont
-		end 
+		end
 		thermal_zone.equipment.each do |equip|
 		  if equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
 		    term = equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.get
@@ -443,12 +443,12 @@ def run(model, runner, user_arguments)
 	#handle DCV in appropriate air loops, after screening out those that aren't suitable
 	if add_dcv
 	  overall_sel_air_loops.sort.each do |air_loop_hvac|
-	  unless(no_DCV_zones?(air_loop_hvac)) 
+	  unless(no_DCV_zones?(air_loop_hvac))
 	    oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
 		controller_oa = oa_system.getControllerOutdoorAir
 		controller_mv = controller_oa.controllerMechanicalVentilation
 		controller_mv.setDemandControlledVentilation(true)
-		air_loop_hvac.thermalZones.each do |thermal_zone| 
+		air_loop_hvac.thermalZones.each do |thermal_zone|
 		#Set design OA object attributes
 		thermal_zone.spaces.each do |space|
 			dsn_oa = space.designSpecificationOutdoorAir
@@ -507,7 +507,7 @@ def run(model, runner, user_arguments)
 		end
 		end
         standard.air_loop_hvac_enable_demand_control_ventilation(air_loop_hvac, '')
-	  end 	
+	  end
 	  end
 	end
 	if add_econo #handle economizing if implementing it
@@ -726,7 +726,7 @@ def run(model, runner, user_arguments)
 	  programs_at_beginning_of_timestep.addProgram(prgrm_econ_override)
 	  end
     end
- return true 
+ return true
 end
 end
 # register the measure to be used by the application
