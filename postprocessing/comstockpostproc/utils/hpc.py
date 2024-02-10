@@ -13,6 +13,7 @@ import yaml
 import zipfile
 import shutil
 import gzip
+import json
 
 # from dask.distributed import Client
 from joblib import Parallel, delayed, parallel_backend
@@ -72,7 +73,7 @@ def extract_models_from_simulation_output(yml_path, up_id='up00', output_vars=[]
     # Load results.csv
     path_to_zipped_results_file = os.path.join(results_csv_path, f'results_{up_id}.csv.gz')
     df_results_csv = pd.read_csv(path_to_zipped_results_file, compression='infer', header=0, sep=',', quotechar='"', index_col='building_id')
-    
+
     if up_id != "up00":
         # load baseline results.csv
         path_to_baseline_results_file = os.path.join(results_csv_path, 'results_up00.csv.gz')
@@ -680,15 +681,44 @@ def summarize_failures(yml_path):
                             continue
                         bldg_id = re.search(r'.*bldg(\d+).*', tar_member.name).group(1)
                         up_id = re.search(r'.*up(\d+).*', tar_member.name).group(1)
+                        osw_out_name = f'./up{up_id}/bldg{bldg_id}/out.osw'
                         sing_out_name = f'./up{up_id}/bldg{bldg_id}/openstudio_output.log'
                         job_fails.write(f'Errors from up{up_id}/bldg{bldg_id}\n')
                         try:
-                            sing_out_bytes=tar.extractfile(sing_out_name).read()
-                            for l in sing_out_bytes.decode().split('\n'):
-                                if re.search(r'\[.* ERROR\]|\[.*<Error>.*\]', l):
-                                    job_fails.write(f'{l}\n')
-                        except KeyError as err:
-                            job_fails.write(f'Did not find openstudio_output.log for up{up_id}/bldg{bldg_id}, cannot extract failure details\n')
+                            with tar.extractfile(osw_out_name) as osw_out_name:
+                                data = json.load(osw_out_name)
+                                steps = data.get('steps', [])
+                                for step in steps:
+                                    result = step.get('result', {})
+                                    measure_name = result.get('measure_name')
+                                    step_errors = result.get('step_errors', [])
+                                    if step_errors:
+                                        job_fails.write(f"\tIn step: {measure_name}:\n")
+                                        for step_error in step_errors:
+                                            if '[openstudio.standards.command]' in step_error:
+                                                # these aren't that useful
+                                                continue
+                                            if 'Sizing run for Hardsize model failed, cannot hard-size model.' in step_error:
+                                                job_fails.write(f'\t{step_error}\n')
+                                                # actual error message in stdout
+                                                std_out = result.get('stdout')
+                                                lines = std_out.split('\n')
+                                                for line in lines:
+                                                    if '[openstudio.model.Model]' in line:
+                                                        line = re.sub(r'(\\n)|(\n)',r'\n\t\t', line)
+                                                        job_fails.write(f'\t\t{line}\n')
+                                            else:
+                                                # indent and newline the messages for readability
+                                                step_error = re.sub(r'(\\n)|(\n)',r'\n\t', step_error)
+                                                job_fails.write(f"\t{step_error}\n")
+                        except KeyError:
+                            try:
+                                sing_out_bytes=tar.extractfile(sing_out_name).read()
+                                for l in sing_out_bytes.decode().split('\n'):
+                                    if re.search(r'\[.* ERROR\]|\[.*<Error>.*\]', l):
+                                        job_fails.write(f'{l}\n')
+                            except KeyError as err:
+                                job_fails.write(f'Did not find out.osw or openstudio_output.log for up{up_id}/bldg{bldg_id}, cannot extract failure details\n')
                     tar.close()
         return
 
@@ -702,11 +732,15 @@ def summarize_failures(yml_path):
     tar_paths = glob.glob(f'{simulation_output_dir}/simulations_job*.tar.gz')
     Parallel(n_jobs=-1, verbose=10) (delayed(extract_errors_from_tar)(tar_path, fails_dir) for tar_path in tar_paths)
 
+    # sort filenames in numeric order
+    def sort_names(s):
+        return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
+
     # Concatenate failures for all jobs into one file
     fail_summary_path = os.path.join(fails_dir, "failure_summary.log")
     print(f'Writing summary to {fail_summary_path}')
     with open(fail_summary_path, 'w') as f:
-        for job_fails_path in glob.glob(f'{fails_dir}/job*_failures.log'):
+        for job_fails_path in sorted(glob.glob(f'{fails_dir}/job*_failures.log'), key=sort_names):
             with open(job_fails_path, 'r') as job_fails:
                 for line in job_fails:
                     f.write(line)
