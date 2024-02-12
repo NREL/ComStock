@@ -64,6 +64,15 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
     return args
   end
 
+  # check if air loop is evaporative cooler
+  def air_loop_hvac_include_evaporative_cooler?(air_loop_hvac)
+    air_loop_hvac.supplyComponents.each do |comp|
+      return true if comp.to_EvaporativeCoolerDirectResearchSpecial.is_initialized
+      return true if comp.to_EvaporativeCoolerIndirectResearchSpecial.is_initialized
+    end
+    false
+  end
+
   # define what happens when the measure is run
   def run(model, runner, user_arguments)
     super(model, runner, user_arguments)
@@ -98,6 +107,11 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
       if type_of_load == 'VentilationRequirement'
         doas_loops += 1
         runner.registerInfo("Air loop #{air_loop_hvac.name} is a DOAS system and cannot economize.")
+        next
+      end
+
+      if air_loop_hvac_include_evaporative_cooler?(air_loop_hvac)
+        runner.registerInfo("Air loop #{air_loop_hvac.name} is a evaporative cooler and cannot economize.")
         next
       end
 
