@@ -3,23 +3,14 @@
   <schema_version>3.1</schema_version>
   <name>advanced_rtu_control</name>
   <uid>b3e18436-f7da-4b62-bbce-c21e2f9d5ad4</uid>
-  <version_id>ce6a303b-8949-484a-8f83-3cf21610fd45</version_id>
-  <version_modified>2023-12-06T19:56:33Z</version_modified>
-  <xml_checksum>00000000</xml_checksum>
+  <version_id>a65a74a7-9e09-47ac-a5a9-05699fccf5c3</version_id>
+  <version_modified>2024-02-12T16:59:51Z</version_modified>
+  <xml_checksum>B3180F38</xml_checksum>
   <class_name>AdvancedRTUControl</class_name>
   <display_name>AdvancedRTUControl</display_name>
-  <description>Replace this text with an explanation of what the measure does in terms that can be understood by a general building professional audience (building owners, architects, engineers, contractors, etc.).  This description will be used to create reports aimed at convincing the owner and/or design team to implement the measure in the actual building design.  For this reason, the description may include details about how the measure would be implemented, along with explanations of qualitative benefits associated with the measure.  It is good practice to include citations in the measure if the description is taken from a known source or if specific benefits are listed.</description>
-  <modeler_description>Replace this text with an explanation for the energy modeler specifically.  It should explain how the measure is modeled, including any requirements about how the baseline model must be set up, major assumptions, citations of references to applicable modeling resources, etc.  The energy modeler should be able to read this description and understand what changes the measure is making to the model and why these changes are being made.  Because the Modeler Description is written for an expert audience, using common abbreviations for brevity is good practice.</modeler_description>
-  <arguments>
-    <argument>
-      <name>space_name</name>
-      <display_name>New space name</display_name>
-      <description>This name will be used as the name of the new space.</description>
-      <type>String</type>
-      <required>true</required>
-      <model_dependent>false</model_dependent>
-    </argument>
-  </arguments>
+  <description>This measure implements advanced RTU controls, including a variable-speed fan, with options for economizing and demand-controlled ventilation.</description>
+  <modeler_description>This measure iterates through airloops, and, where applicable, replaces constant speed fans with variable speed fans, and replaces the existing termianl unit.</modeler_description>
+  <arguments />
   <outputs />
   <provenances />
   <tags>
@@ -65,6 +56,12 @@
       <checksum>CD7F5672</checksum>
     </file>
     <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>8FF112E5</checksum>
+    </file>
+    <file>
       <filename>README.md.erb</filename>
       <filetype>erb</filetype>
       <usage_type>readmeerb</usage_type>
@@ -80,11 +77,12 @@
       <version>
         <software_program>OpenStudio</software_program>
         <identifier>3.6.1</identifier>
+        <min_compatible>3.6.1</min_compatible>
       </version>
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>8F68781A</checksum>
+      <checksum>51B986C6</checksum>
     </file>
     <file>
       <filename>advanced_rtu_control_test.rb</filename>
@@ -97,6 +95,12 @@
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
       <checksum>53D14E69</checksum>
+    </file>
+    <file>
+      <filename>models/361_Small_Office_PSZ_Gas_3a.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>073BEAE6</checksum>
     </file>
   </files>
 </measure>
