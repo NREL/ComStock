@@ -146,11 +146,16 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
       end
 
       #check for gas unit heaters and add to array of zone equipment to delete
+      # if there are PTACs or PTHPs in the building, skips zones with unit heaters
       model.getThermalZones.each do |thermal_zone|
         thermal_zone.equipment.each do |equip|
           next unless equip.to_ZoneHVACUnitHeater.is_initialized
-          unit_heaters << equip.to_ZoneHVACUnitHeater.get
-          equip_to_delete << equip.to_ZoneHVACUnitHeater.get
+          if ptacs.size > 0 || pthps.size > 0
+            zones_to_skip << thermal_zone.name.get
+          else
+            unit_heaters << equip.to_ZoneHVACUnitHeater.get
+            equip_to_delete << equip.to_ZoneHVACUnitHeater.get
+          end
         end
       end
     end

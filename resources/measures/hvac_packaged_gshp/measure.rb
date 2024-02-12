@@ -169,11 +169,15 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
       elsif ['Bulk', 'Entry'].any? { |word| (thermal_zone.name.get).include?(word) }
         zones_to_skip << thermal_zone.name.get
       end
+      
+      # delete old zone equipment except if its a baseboard or unit heater
       thermal_zone.equipment.each do |equip|
         # dont delete diffusers from PSZs, these will be reused
         next if equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
 
         if equip.to_ZoneHVACBaseboardConvectiveElectric.is_initialized
+          zones_to_skip << thermal_zone.name.get
+        elsif equip.to_ZoneHVACUnitHeater.is_initialized
           zones_to_skip << thermal_zone.name.get
         else
           equip_to_delete << equip
