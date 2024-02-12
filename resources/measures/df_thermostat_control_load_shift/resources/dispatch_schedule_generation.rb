@@ -949,5 +949,6 @@ def peak_schedule_generation(annual_load, peak_len, rebound_len=0, prepeak_len=0
       end
     end
   end
+  peak_schedule = peak_schedule.take(nd * 24)
   return peak_schedule
 end
