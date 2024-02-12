@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>advanced_rtu_control</name>
   <uid>b3e18436-f7da-4b62-bbce-c21e2f9d5ad4</uid>
-  <version_id>c0a8515a-4032-440f-8e06-9f5547ebcbee</version_id>
-  <version_modified>2024-02-12T16:09:23Z</version_modified>
+  <version_id>714a2297-6e07-434f-bb01-e9756c3d54e9</version_id>
+  <version_modified>2024-02-12T17:04:39Z</version_modified>
   <xml_checksum>B3180F38</xml_checksum>
   <class_name>AdvancedRTUControl</class_name>
   <display_name>Advanced RTU Control</display_name>
