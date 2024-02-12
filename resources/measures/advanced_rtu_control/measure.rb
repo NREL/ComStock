@@ -409,7 +409,7 @@ def run(model, runner, user_arguments)
 		  controller_oa = oa_system.getControllerOutdoorAir
 		    if controller_oa.autosizedMinimumOutdoorAirFlowRate.is_initialized
 			  min_oa_flow_rate_cont = controller_oa.autosizedMinimumOutdoorAirFlowRate.get
-		    elsif controller_oa.minimumOutdoorAirFlowRate.is_initialized?
+		    elsif controller_oa.minimumOutdoorAirFlowRate.is_initialized
 		      min_oa_flow_rate_cont = controller_oa.minimumOutdoorAirFlowRate.get
 			end
 		end

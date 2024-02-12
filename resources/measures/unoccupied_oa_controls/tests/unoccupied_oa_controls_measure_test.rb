@@ -299,8 +299,6 @@ class UnoccupiedOAControlsTest < Minitest::Test
     end 
 	assert(no_constant_loop_sched) 
 	
-#put in assertions here 
-#then duplicate it for other models if needed 
   end
 
 end
