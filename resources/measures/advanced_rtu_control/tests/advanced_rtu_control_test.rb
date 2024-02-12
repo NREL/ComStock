@@ -209,7 +209,6 @@ class AdvancedRTUControlTest < Minitest::Test
     measure = AdvancedRTUControl.new
 
     # Load the model; only used here for populating arguments
-	puts "loading test model 2" 
     model = load_model(osm_path)
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
