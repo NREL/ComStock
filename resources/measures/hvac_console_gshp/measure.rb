@@ -104,10 +104,15 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     model.getThermalZones.each do |thermal_zone|
       if thermal_zone.equipment.empty?
         unconditioned_zones << thermal_zone.name.get 
-      # if original zone is typically conditioned with baseboards (as opposed to an RTU), maintain baseboards in this space
-      elsif ['Bulk', 'Entry'].any? { |word| (thermal_zone.name.get).include?(word) }
+      # if original zone is typically conditioned with baseboards or unit heaters (as opposed to primary system), maintain zone equipment in this space
+      elsif ['Bulk', 'Entry', 'WarehouseUnCond'].any? { |word| (thermal_zone.name.get).include?(word) }
         zones_to_skip << thermal_zone.name.get
       end
+    end
+
+    if (zones_to_skip.size + unconditioned_zones.size) == model.getThermalZones.size
+      runner.registerAsNotApplicable("Entire building is made up of non-applicable space types. Measure is not applicable.")
+      return true
     end
 
     if all_air_loops.empty?
@@ -182,7 +187,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     end
 
     # check for PTAC with gas boiler and remove baseboard water from zones
-    if ptacs.size >> 0
+    if ptacs.size > 0
       model.getThermalZones.each do |thermal_zone|
         thermal_zone.equipment.each do |equip|
           next unless equip.to_ZoneHVACBaseboardConvectiveWater.is_initialized
@@ -190,7 +195,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
           equip_to_delete << equip.to_ZoneHVACBaseboardConvectiveWater.get
         end
       end
-    end 
+    end
 
     # delete equipment from original loop
     equip_to_delete.each(&:remove)
@@ -198,7 +203,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     # get plant loops and remove
     # only relevant for direct evap coolers with baseboard gas boiler
     plant_loops = model.getPlantLoops
-    if plant_loops.size >> 0
+    if plant_loops.size > 0
       plant_loops.each do |plant_loop|
         # do not delete service water heating loops
         next if ['Service'].any? { |word| plant_loop.name.get.include?(word) }
