@@ -86,18 +86,6 @@ class AddThermostatSetpointVariability < OpenStudio::Measure::ModelMeasure
     htg_sp_f = runner.getDoubleArgumentValue('htg_sp_f', user_arguments)
     htg_delta_f = runner.getDoubleArgumentValue('htg_delta_f', user_arguments)
 
-    # make conversions for cooling
-    clg_sp_c = OpenStudio.convert(clg_sp_f, 'F', 'C').get
-    clg_sb_f = clg_sp_f + clg_delta_f
-    clg_delta_c = OpenStudio.convert(clg_delta_f, 'R', 'K').get
-    clg_sb_c = OpenStudio.convert(clg_sb_f, 'F', 'C').get
-
-    # make conversions for heating
-    htg_sp_c = OpenStudio.convert(htg_sp_f, 'F', 'C').get
-    htg_sb_f = htg_sp_f - htg_delta_f
-    htg_delta_c = OpenStudio.convert(htg_delta_f, 'R', 'K').get
-    htg_sb_c = OpenStudio.convert(htg_sb_f, 'F', 'C').get
-
     # turn no-op args into bools
     adjust_clg_setpt = !(clg_sp_f == 999)
     adjust_clg_setback = !(clg_delta_f == 999)
@@ -134,6 +122,18 @@ class AddThermostatSetpointVariability < OpenStudio::Measure::ModelMeasure
       runner.registerWarning("User-input heating setpoint of #{htg_sp_f}F is > 2F from the user-input cooling setpoint of #{clg_sp_f}F which is not permitted. The user-input heating setpoint is now #{clg_sp_f  - 2}F to allow a reasonable deadband range.")
       htg_sp_f = clg_sp_f - 2
     end
+
+    # make conversions for cooling
+    clg_sp_c = OpenStudio.convert(clg_sp_f, 'F', 'C').get
+    clg_sb_f = clg_sp_f + clg_delta_f
+    clg_delta_c = OpenStudio.convert(clg_delta_f, 'R', 'K').get
+    clg_sb_c = OpenStudio.convert(clg_sb_f, 'F', 'C').get
+
+    # make conversions for heating
+    htg_sp_c = OpenStudio.convert(htg_sp_f, 'F', 'C').get
+    htg_sb_f = htg_sp_f - htg_delta_f
+    htg_delta_c = OpenStudio.convert(htg_delta_f, 'R', 'K').get
+    htg_sb_c = OpenStudio.convert(htg_sb_f, 'F', 'C').get
 
     # Initialize arrays
     clg_tstat_schedules = []

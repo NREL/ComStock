@@ -131,7 +131,7 @@ class AddThermostatSetpointVariabilityTest < Minitest::Test
   # create an array of hashes with model name, weather, and expected result
   def models_to_test
     test_sets = []
-    # test_sets << { model: 'PSZ-AC_with_gas_coil_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success'}
+    test_sets << { model: 'PSZ-AC_with_gas_coil_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success'}
     # test_sets << { model: '361_Small_Office_PSZ_Gas_3a_economizer_notallfdb', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
     # test_sets << { model: 'Restaurant_5B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
     # test_sets << { model: 'Retail_DEERPre1975_CEC16', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
@@ -153,6 +153,14 @@ class AddThermostatSetpointVariabilityTest < Minitest::Test
     end
 
     return argument_map
+  end
+
+  def get_sch_minmax(sch)
+    profiles = [sch.defaultDaySchedule]
+    sch.scheduleRules.each{|p| profiles << p.daySchedule}
+    values = []
+    profiles.each{|p| values << p.values}
+    return {min: values.flatten.min, max: values.flatten.max}
   end
 
   def test_number_of_arguments_and_argument_names
@@ -269,14 +277,6 @@ class AddThermostatSetpointVariabilityTest < Minitest::Test
   def test_models
     test_name = 'test_models'
     puts "\n######\nTEST:#{test_name}\n######\n"
-
-    def get_sch_minmax(sch)
-      profiles = [sch.defaultDaySchedule]
-      sch.scheduleRules.each{|p| profiles << p.daySchedule}
-      values = []
-      profiles.each{|p| values << p.values}
-      return {min: values.flatten.min, max: values.flatten.max}
-    end
 
     models_to_test.each do |set|
       instance_test_name = set[:model]
@@ -415,10 +415,54 @@ class AddThermostatSetpointVariabilityTest < Minitest::Test
     # populate argument with specified hash value if specified
     argument_map = set_argument_map(model, measure, args_hash)
 
+    # gather initial setpoint schedules
+    clg_schs = []
+    htg_schs = []
+    model.getThermalZones.each do |zone|
+      next unless zone.thermostatSetpointDualSetpoint.is_initialized
+      next unless zone.thermostatSetpointDualSetpoint.get.coolingSetpointTemperatureSchedule.is_initialized
+      next if clg_schs.include?(zone.thermostatSetpointDualSetpoint.get.coolingSetpointTemperatureSchedule.get)
+      clg_schs << zone.thermostatSetpointDualSetpoint.get.coolingSetpointTemperatureSchedule.get
+      next unless zone.thermostatSetpointDualSetpoint.get.heatingSetpointTemperatureSchedule.is_initialized
+      next if htg_schs.include?(zone.thermostatSetpointDualSetpoint.get.heatingSetpointTemperatureSchedule.get)
+      htg_schs << zone.thermostatSetpointDualSetpoint.get.heatingSetpointTemperatureSchedule.get
+    end
+
+    puts "#{clg_schs.size} Cooling Schedules"
+    puts "#{htg_schs.size} Heating Schedules"
+
+    before_vals = {}
+    (clg_schs+htg_schs).each do |sch|
+      sch = sch.to_ScheduleRuleset.get
+      before_vals[sch.name.get] = get_sch_minmax(sch)
+    end
+    puts before_vals
+
     # apply the measure to the model and optionally run the model
     result = apply_measure_and_run(instance_test[:model], measure, argument_map, osm_path, epw_path, run_model: false)
 
+    # show_output(result)
+
     assert(result.stepWarnings.any?{|w| w.include?('> 2F from the user-input cooling setpoint')})
+
+    model = load_model(model_output_path(instance_test[:model]))
+    model.getThermostatSetpointDualSetpoints.each do |tstat|
+      clg = tstat.coolingSetpointTemperatureSchedule.get.to_ScheduleRuleset.get
+      clg_name = clg.name.get
+
+      # get new min/max
+      min_clg = OpenStudio.convert(get_sch_minmax(clg)[:min],'C','F').get
+
+      # heating
+      htg = tstat.heatingSetpointTemperatureSchedule.get.to_ScheduleRuleset.get
+      htg_name = htg.name.get
+      max_htg = OpenStudio.convert(get_sch_minmax(htg)[:max],'C','F').get
+
+      unless (OpenStudio.convert(before_vals[clg_name][:min],'C','F').get == min_clg) || (OpenStudio.convert(before_vals[htg_name][:max],'C','F').get == max_htg)
+        puts "comparing changed #{clg_name} or #{htg_name}"
+        assert_in_delta(min_clg, max_htg, 2.0001, "#{clg_name} or #{htg_name}")
+      end
+    end
 
   end
 
