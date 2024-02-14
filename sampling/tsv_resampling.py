@@ -280,7 +280,6 @@ class CommercialBaseSobolSampler(BuildStockSampler):
                 df.to_csv(csv_path, index=True, na_rep='NA')
                 shutil.rmtree(self.tmp_dir)
             else:
-                breakpoint()
                 df.to_csv(tmp_csv_path, index=True, na_rep='NA')
 
         return csv_path
@@ -413,7 +412,7 @@ class CommercialBaseSobolSampler(BuildStockSampler):
                                 [col for col in list(tsv_lkup) if col != dep_col]
                             ]
                         if tsv_lkup.shape[0] == 0:
-                            warn(f'TSV lookup reduced to 0 for {attr}, dep hash {dep_hash}')
+                            warn(f'TSV lookup reduced to 0 for {attr}, dep hash {dep_hash}. This will cause an error.')
                             return
                         if (tsv_lkup.shape[0] != 1) and (len(tsv_lkup.shape) > 1):
                             raise RuntimeError(f'Unable to reduce tsv for {attr} to 1 row, dep_hash {dep_hash}')
