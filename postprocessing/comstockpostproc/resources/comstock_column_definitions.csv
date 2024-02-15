@@ -935,6 +935,90 @@ results.csv,qoi_report.average_of_top_ten_highest_peaks_timing_winter_hour,,FALS
 results.csv,qoi_report.average_of_top_ten_highest_peaks_use_shoulder_kw,,FALSE,FALSE,float,kw,kw,Average hourly top 10 highest electric peaks during shoulder season
 results.csv,qoi_report.average_of_top_ten_highest_peaks_use_summer_kw,,FALSE,FALSE,float,kw,kw,Average hourly top 10 highest electric peaks during summer
 results.csv,qoi_report.average_of_top_ten_highest_peaks_use_winter_kw,,FALSE,FALSE,float,kw,kw,Average hourly top 10 highest electric peaks during winter
+results.csv,qoi_report.minimum_daily_peak_jan_kw,out.qoi.minimum_daily_peak_jan,TRUE,FALSE,float,kw,kw,Minimum hourly daily electric load peak during January
+results.csv,qoi_report.minimum_daily_peak_feb_kw,out.qoi.minimum_daily_peak_feb,TRUE,FALSE,float,kw,kw,Minimum hourly daily electric load peak during Febuary
+results.csv,qoi_report.minimum_daily_peak_mar_kw,out.qoi.minimum_daily_peak_mar,TRUE,FALSE,float,kw,kw,Minimum hourly daily electric load peak during March
+results.csv,qoi_report.minimum_daily_peak_apr_kw,out.qoi.minimum_daily_peak_apr,TRUE,FALSE,float,kw,kw,Minimum hourly daily electric load peak during April
+results.csv,qoi_report.minimum_daily_peak_may_kw,out.qoi.minimum_daily_peak_may,TRUE,FALSE,float,kw,kw,Minimum hourly daily electric load peak during May
+results.csv,qoi_report.minimum_daily_peak_jun_kw,out.qoi.minimum_daily_peak_jun,TRUE,FALSE,float,kw,kw,Minimum hourly daily electric load peak during June
+results.csv,qoi_report.minimum_daily_peak_jul_kw,out.qoi.minimum_daily_peak_jul,TRUE,FALSE,float,kw,kw,Minimum hourly daily electric load peak during July
+results.csv,qoi_report.minimum_daily_peak_aug_kw,out.qoi.minimum_daily_peak_aug,TRUE,FALSE,float,kw,kw,Minimum hourly daily electric load peak during August
+results.csv,qoi_report.minimum_daily_peak_sep_kw,out.qoi.minimum_daily_peak_sep,TRUE,FALSE,float,kw,kw,Minimum hourly daily electric load peak during September
+results.csv,qoi_report.minimum_daily_peak_oct_kw,out.qoi.minimum_daily_peak_oct,TRUE,FALSE,float,kw,kw,Minimum hourly daily electric load peak during October
+results.csv,qoi_report.minimum_daily_peak_nov_kw,out.qoi.minimum_daily_peak_nov,TRUE,FALSE,float,kw,kw,Minimum hourly daily electric load peak during November
+results.csv,qoi_report.minimum_daily_peak_dec_kw,out.qoi.minimum_daily_peak_dec,TRUE,FALSE,float,kw,kw,Minimum hourly daily electric load peak during December
+results.csv,qoi_report.maximum_daily_peak_jan_kw,out.qoi.maximum_daily_peak_jan,TRUE,FALSE,float,kw,kw,Maximum hourly daily electric load peak during January
+results.csv,qoi_report.maximum_daily_peak_feb_kw,out.qoi.maximum_daily_peak_feb,TRUE,FALSE,float,kw,kw,Maximum hourly daily electric load peak during Febuary
+results.csv,qoi_report.maximum_daily_peak_mar_kw,out.qoi.maximum_daily_peak_mar,TRUE,FALSE,float,kw,kw,Maximum hourly daily electric load peak during March
+results.csv,qoi_report.maximum_daily_peak_apr_kw,out.qoi.maximum_daily_peak_apr,TRUE,FALSE,float,kw,kw,Maximum hourly daily electric load peak during April
+results.csv,qoi_report.maximum_daily_peak_may_kw,out.qoi.maximum_daily_peak_may,TRUE,FALSE,float,kw,kw,Maximum hourly daily electric load peak during May
+results.csv,qoi_report.maximum_daily_peak_jun_kw,out.qoi.maximum_daily_peak_jun,TRUE,FALSE,float,kw,kw,Maximum hourly daily electric load peak during June
+results.csv,qoi_report.maximum_daily_peak_jul_kw,out.qoi.maximum_daily_peak_jul,TRUE,FALSE,float,kw,kw,Maximum hourly daily electric load peak during July
+results.csv,qoi_report.maximum_daily_peak_aug_kw,out.qoi.maximum_daily_peak_aug,TRUE,FALSE,float,kw,kw,Maximum hourly daily electric load peak during August
+results.csv,qoi_report.maximum_daily_peak_sep_kw,out.qoi.maximum_daily_peak_sep,TRUE,FALSE,float,kw,kw,Maximum hourly daily electric load peak during September
+results.csv,qoi_report.maximum_daily_peak_oct_kw,out.qoi.maximum_daily_peak_oct,TRUE,FALSE,float,kw,kw,Maximum hourly daily electric load peak during October
+results.csv,qoi_report.maximum_daily_peak_nov_kw,out.qoi.maximum_daily_peak_nov,TRUE,FALSE,float,kw,kw,Maximum hourly daily electric load peak during November
+results.csv,qoi_report.maximum_daily_peak_dec_kw,out.qoi.maximum_daily_peak_dec,TRUE,FALSE,float,kw,kw,Maximum hourly daily electric load peak during December
+results.csv,qoi_report.median_daily_peak_jan_kw,out.qoi.median_daily_peak_jan,TRUE,FALSE,float,kw,kw,Median hourly daily electric load peak during January
+results.csv,qoi_report.median_daily_peak_feb_kw,out.qoi.median_daily_peak_feb,TRUE,FALSE,float,kw,kw,Median hourly daily electric load peak during Febuary
+results.csv,qoi_report.median_daily_peak_mar_kw,out.qoi.median_daily_peak_mar,TRUE,FALSE,float,kw,kw,Median hourly daily electric load peak during March
+results.csv,qoi_report.median_daily_peak_apr_kw,out.qoi.median_daily_peak_apr,TRUE,FALSE,float,kw,kw,Median hourly daily electric load peak during April
+results.csv,qoi_report.median_daily_peak_may_kw,out.qoi.median_daily_peak_may,TRUE,FALSE,float,kw,kw,Median hourly daily electric load peak during May
+results.csv,qoi_report.median_daily_peak_jun_kw,out.qoi.median_daily_peak_jun,TRUE,FALSE,float,kw,kw,Median hourly daily electric load peak during June
+results.csv,qoi_report.median_daily_peak_jul_kw,out.qoi.median_daily_peak_jul,TRUE,FALSE,float,kw,kw,Median hourly daily electric load peak during July
+results.csv,qoi_report.median_daily_peak_aug_kw,out.qoi.median_daily_peak_aug,TRUE,FALSE,float,kw,kw,Median hourly daily electric load peak during August
+results.csv,qoi_report.median_daily_peak_sep_kw,out.qoi.median_daily_peak_sep,TRUE,FALSE,float,kw,kw,Median hourly daily electric load peak during September
+results.csv,qoi_report.median_daily_peak_oct_kw,out.qoi.median_daily_peak_oct,TRUE,FALSE,float,kw,kw,Median hourly daily electric load peak during October
+results.csv,qoi_report.median_daily_peak_nov_kw,out.qoi.median_daily_peak_nov,TRUE,FALSE,float,kw,kw,Median hourly daily electric load peak during November
+results.csv,qoi_report.median_daily_peak_dec_kw,out.qoi.median_daily_peak_dec,TRUE,FALSE,float,kw,kw,Median hourly daily electric load peak during December
+results.csv,qoi_report.q_1_daily_peak_jan_kw,out.qoi.q1_daily_peak_jan,TRUE,FALSE,float,kw,kw,First quartile of hourly daily electric load peak during January
+results.csv,qoi_report.q_1_daily_peak_feb_kw,out.qoi.q1_daily_peak_feb,TRUE,FALSE,float,kw,kw,First quartile of hourly daily electric load peak during Febuary
+results.csv,qoi_report.q_1_daily_peak_mar_kw,out.qoi.q1_daily_peak_mar,TRUE,FALSE,float,kw,kw,First quartile of hourly daily electric load peak during March
+results.csv,qoi_report.q_1_daily_peak_apr_kw,out.qoi.q1_daily_peak_apr,TRUE,FALSE,float,kw,kw,First quartile of hourly daily electric load peak during April
+results.csv,qoi_report.q_1_daily_peak_may_kw,out.qoi.q1_daily_peak_may,TRUE,FALSE,float,kw,kw,First quartile of hourly daily electric load peak during May
+results.csv,qoi_report.q_1_daily_peak_jun_kw,out.qoi.q1_daily_peak_jun,TRUE,FALSE,float,kw,kw,First quartile of hourly daily electric load peak during June
+results.csv,qoi_report.q_1_daily_peak_jul_kw,out.qoi.q1_daily_peak_jul,TRUE,FALSE,float,kw,kw,First quartile of hourly daily electric load peak during July
+results.csv,qoi_report.q_1_daily_peak_aug_kw,out.qoi.q1_daily_peak_aug,TRUE,FALSE,float,kw,kw,First quartile of hourly daily electric load peak during August
+results.csv,qoi_report.q_1_daily_peak_sep_kw,out.qoi.q1_daily_peak_sep,TRUE,FALSE,float,kw,kw,First quartile of hourly daily electric load peak during September
+results.csv,qoi_report.q_1_daily_peak_oct_kw,out.qoi.q1_daily_peak_oct,TRUE,FALSE,float,kw,kw,First quartile of hourly daily electric load peak during October
+results.csv,qoi_report.q_1_daily_peak_nov_kw,out.qoi.q1_daily_peak_nov,TRUE,FALSE,float,kw,kw,First quartile of hourly daily electric load peak during November
+results.csv,qoi_report.q_1_daily_peak_dec_kw,out.qoi.q1_daily_peak_dec,TRUE,FALSE,float,kw,kw,First quartile of hourly daily electric load peak during December
+results.csv,qoi_report.q_3_daily_peak_jan_kw,out.qoi.q3_daily_peak_jan,TRUE,FALSE,float,kw,kw,Third quartile of hourly daily electric load peak during January
+results.csv,qoi_report.q_3_daily_peak_feb_kw,out.qoi.q3_daily_peak_feb,TRUE,FALSE,float,kw,kw,Third quartile of hourly daily electric load peak during Febuary
+results.csv,qoi_report.q_3_daily_peak_mar_kw,out.qoi.q3_daily_peak_mar,TRUE,FALSE,float,kw,kw,Third quartile of hourly daily electric load peak during March
+results.csv,qoi_report.q_3_daily_peak_apr_kw,out.qoi.q3_daily_peak_apr,TRUE,FALSE,float,kw,kw,Third quartile of hourly daily electric load peak during April
+results.csv,qoi_report.q_3_daily_peak_may_kw,out.qoi.q3_daily_peak_may,TRUE,FALSE,float,kw,kw,Third quartile of hourly daily electric load peak during May
+results.csv,qoi_report.q_3_daily_peak_jun_kw,out.qoi.q3_daily_peak_jun,TRUE,FALSE,float,kw,kw,Third quartile of hourly daily electric load peak during June
+results.csv,qoi_report.q_3_daily_peak_jul_kw,out.qoi.q3_daily_peak_jul,TRUE,FALSE,float,kw,kw,Third quartile of hourly daily electric load peak during July
+results.csv,qoi_report.q_3_daily_peak_aug_kw,out.qoi.q3_daily_peak_aug,TRUE,FALSE,float,kw,kw,Third quartile of hourly daily electric load peak during August
+results.csv,qoi_report.q_3_daily_peak_sep_kw,out.qoi.q3_daily_peak_sep,TRUE,FALSE,float,kw,kw,Third quartile of hourly daily electric load peak during September
+results.csv,qoi_report.q_3_daily_peak_oct_kw,out.qoi.q3_daily_peak_oct,TRUE,FALSE,float,kw,kw,Third quartile of hourly daily electric load peak during October
+results.csv,qoi_report.q_3_daily_peak_nov_kw,out.qoi.q3_daily_peak_nov,TRUE,FALSE,float,kw,kw,Third quartile of hourly daily electric load peak during November
+results.csv,qoi_report.q_3_daily_peak_dec_kw,out.qoi.q3_daily_peak_dec,TRUE,FALSE,float,kw,kw,Third quartile of hourly daily electric load peak during December
+results.csv,qoi_report.median_daily_peak_timing_jan_hour,out.qoi.median_daily_peak_timing_jan,TRUE,FALSE,float,hr,hr,Median hour of daily electric load peak during January
+results.csv,qoi_report.median_daily_peak_timing_feb_hour,out.qoi.median_daily_peak_timing_feb,TRUE,FALSE,float,hr,hr,Median hour of daily electric load peak during Febuary
+results.csv,qoi_report.median_daily_peak_timing_mar_hour,out.qoi.median_daily_peak_timing_mar,TRUE,FALSE,float,hr,hr,Median hour of daily electric load peak during March
+results.csv,qoi_report.median_daily_peak_timing_apr_hour,out.qoi.median_daily_peak_timing_apr,TRUE,FALSE,float,hr,hr,Median hour of daily electric load peak during April
+results.csv,qoi_report.median_daily_peak_timing_may_hour,out.qoi.median_daily_peak_timing_may,TRUE,FALSE,float,hr,hr,Median hour of daily electric load peak during May
+results.csv,qoi_report.median_daily_peak_timing_jun_hour,out.qoi.median_daily_peak_timing_jun,TRUE,FALSE,float,hr,hr,Median hour of daily electric load peak during June
+results.csv,qoi_report.median_daily_peak_timing_jul_hour,out.qoi.median_daily_peak_timing_jul,TRUE,FALSE,float,hr,hr,Median hour of daily electric load peak during July
+results.csv,qoi_report.median_daily_peak_timing_aug_hour,out.qoi.median_daily_peak_timing_aug,TRUE,FALSE,float,hr,hr,Median hour of daily electric load peak during August
+results.csv,qoi_report.median_daily_peak_timing_sep_hour,out.qoi.median_daily_peak_timing_sep,TRUE,FALSE,float,hr,hr,Median hour of daily electric load peak during September
+results.csv,qoi_report.median_daily_peak_timing_oct_hour,out.qoi.median_daily_peak_timing_oct,TRUE,FALSE,float,hr,hr,Median hour of daily electric load peak during October
+results.csv,qoi_report.median_daily_peak_timing_nov_hour,out.qoi.median_daily_peak_timing_nov,TRUE,FALSE,float,hr,hr,Median hour of daily electric load peak during November
+results.csv,qoi_report.median_daily_peak_timing_dec_hour,out.qoi.median_daily_peak_timing_dec,TRUE,FALSE,float,hr,hr,Median hour of daily electric load peak during December
+results.csv,qoi_report.total_electricity_use_jan_kwh,out.electricity.total.jan.energy_consumption,TRUE,FALSE,float,kwh,kwh,Total electricity energy consumption during January
+results.csv,qoi_report.total_electricity_use_feb_kwh,out.electricity.total.feb.energy_consumption,TRUE,FALSE,float,kwh,kwh,Total electricity energy consumption during Febuary
+results.csv,qoi_report.total_electricity_use_mar_kwh,out.electricity.total.mar.energy_consumption,TRUE,FALSE,float,kwh,kwh,Total electricity energy consumption during March
+results.csv,qoi_report.total_electricity_use_apr_kwh,out.electricity.total.apr.energy_consumption,TRUE,FALSE,float,kwh,kwh,Total electricity energy consumption during April
+results.csv,qoi_report.total_electricity_use_may_kwh,out.electricity.total.may.energy_consumption,TRUE,FALSE,float,kwh,kwh,Total electricity energy consumption during May
+results.csv,qoi_report.total_electricity_use_jun_kwh,out.electricity.total.jun.energy_consumption,TRUE,FALSE,float,kwh,kwh,Total electricity energy consumption during June
+results.csv,qoi_report.total_electricity_use_jul_kwh,out.electricity.total.jul.energy_consumption,TRUE,FALSE,float,kwh,kwh,Total electricity energy consumption during July
+results.csv,qoi_report.total_electricity_use_aug_kwh,out.electricity.total.aug.energy_consumption,TRUE,FALSE,float,kwh,kwh,Total electricity energy consumption during August
+results.csv,qoi_report.total_electricity_use_sep_kwh,out.electricity.total.sep.energy_consumption,TRUE,FALSE,float,kwh,kwh,Total electricity energy consumption during September
+results.csv,qoi_report.total_electricity_use_oct_kwh,out.electricity.total.oct.energy_consumption,TRUE,FALSE,float,kwh,kwh,Total electricity energy consumption during October
+results.csv,qoi_report.total_electricity_use_nov_kwh,out.electricity.total.nov.energy_consumption,TRUE,FALSE,float,kwh,kwh,Total electricity energy consumption during November
+results.csv,qoi_report.total_electricity_use_dec_kwh,out.electricity.total.dec.energy_consumption,TRUE,FALSE,float,kwh,kwh,Total electricity energy consumption during December
 results.csv,run_directory_cleanup.applicable,,FALSE,FALSE,boolean,,,Specifies if directory cleanup was applied to model
 results.csv,run_name,,FALSE,FALSE,string,,,Name of original ComStock run sometimes manually added when combining multiple ComStock runs
 results.csv,simulation_output_report.annual_peak_electric_demand_kw,out.electricity.total.peak_demand,TRUE,FALSE,float,kw,kw,Building annual peak electric demand

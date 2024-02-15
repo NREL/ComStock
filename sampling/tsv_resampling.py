@@ -145,7 +145,7 @@ class CommercialBaseSobolSampler(BuildStockSampler):
                 'year_bin_of_last_hvac'
             ],
             [
-                'cook'
+                'cook', 'ground_thermal_conductivity'
             ],
             [
                 'energy_code_compliance_interior_lighting', 'energy_code_followed_during_last_interior_lighting',
