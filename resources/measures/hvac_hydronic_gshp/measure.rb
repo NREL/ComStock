@@ -454,8 +454,10 @@ end
 
 
     # Create and add a pump to the loop
-    ground_pump = OpenStudio::Model::PumpConstantSpeed.new(model)
+    ground_pump = OpenStudio::Model::PumpVariableSpeed.new(model)
     ground_pump.setName('Ground loop circulation pump')
+    ground_pump.setPumpControlType('Continuous')
+    ground_pump.setDesignMinimumFlowRateFraction(0.3)
     ground_pump.setRatedPumpHead(66_955.1) # #Set this based on modified version of example in Table 6.15 in ASHRAE geothermal design guide (subtracted out heat pumps and headers to them)
     ground_pump.addToNode(ground_loop.supplyInletNode)
 
@@ -589,17 +591,21 @@ end
 
 
     # add a pump to the intermediate clg condenser loop
-    pump_clg_intermed_loop = OpenStudio::Model::PumpConstantSpeed.new(model)
+    pump_clg_intermed_loop = OpenStudio::Model::PumpVariableSpeed.new(model)
     # pump = OpenStudio::Model::PumpConstantSpeed.new(model) ##AA trying constant speed pump for now based on HP object
     pump_clg_intermed_loop.setName('Intermediate cooling loop circulation Pump')
+    pump_clg_intermed_loop.setPumpControlType('Continuous')
+    pump_clg_intermed_loop.setDesignMinimumFlowRateFraction(0.3)
     pump_clg_intermed_loop.setRatedPumpHead(100) # setting head to a nominal value since this loop wouldn't actually exist
     # pump.addToNode(hp_loop.supplyInletNode) ##AA commented out
     pump_clg_intermed_loop.addToNode(intermed_clg_cond_loop.supplyInletNode)
 
     # add a pump to the intermediate htg condenser loop
-    pump_htg_intermed_loop = OpenStudio::Model::PumpConstantSpeed.new(model)
+    pump_htg_intermed_loop = OpenStudio::Model::PumpVariableSpeed.new(model)
     # pump = OpenStudio::Model::PumpConstantSpeed.new(model) ##AA trying constant speed pump for now based on HP object
     pump_htg_intermed_loop.setName('Intermediate heating loop circulation Pump')
+    pump_htg_intermed_loop.setPumpControlType('Continuous')
+    pump_htg_intermed_loop.setDesignMinimumFlowRateFraction(0.3)
     pump_htg_intermed_loop.setRatedPumpHead(100) # setting head to a nominal value since this loop wouldn't actually exist
     # pump.addToNode(hp_loop.supplyInletNode) ##AA commented out
     pump_htg_intermed_loop.addToNode(intermed_htg_cond_loop.supplyInletNode)
@@ -608,6 +614,8 @@ end
     pump = OpenStudio::Model::PumpVariableSpeed.new(model)
     # pump = OpenStudio::Model::PumpConstantSpeed.new(model) ##AA trying constant speed pump for now based on HP object
     pump.setName('Heat pump circulation Pump')
+    pump.setPumpControlType('Continuous')
+    pump.setDesignMinimumFlowRateFraction(0.3)
     pump.setRatedPumpHead(44_834.7) # 15 ftf for primary pump for a primary-secondary system based on Appendix G
     # pump.addToNode(hp_loop.supplyInletNode) ##AA commented out
     pump.addToNode(cond_loop.supplyInletNode)
