@@ -141,12 +141,20 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     dcv = runner.getBoolArgumentValue('dcv', user_arguments)
     econ = runner.getBoolArgumentValue('econ', user_arguments)
 
+
+    # check if GroundHeatExchanger:Vertical is present (for package runs)
+    if model.getObjectsByType(OpenStudio::Model::GroundHeatExchangerVertical.iddObjectType).size > 0
+      runner.registerAsNotApplicable("Model already contains a GroundHeatExchanger:Vertical, upgrade is not applicable.")
+      return true
+    end
+    
     # check if model has airloops, if not register not applicable
     all_air_loops = model.getAirLoopHVACs
     if all_air_loops.empty?
       runner.registerAsNotApplicable('Model has no air loops, meaning existing HVAC system is not PSZ, PVAV, or VAV and measure is not applicable.')
       return true
     end
+
     # check if any air loops are served by district energy, if so register not applicable
     all_air_loops.each do |air_loop_hvac|
       if air_loop_hvac_served_by_district_energy?(air_loop_hvac)
@@ -169,7 +177,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
       elsif ['Bulk', 'Entry'].any? { |word| (thermal_zone.name.get).include?(word) }
         zones_to_skip << thermal_zone.name.get
       end
-      
+
       # delete old zone equipment except if its a baseboard or unit heater
       thermal_zone.equipment.each do |equip|
         # dont delete diffusers from PSZs, these will be reused

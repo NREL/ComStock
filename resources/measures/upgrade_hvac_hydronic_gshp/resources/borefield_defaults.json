@@ -31,7 +31,7 @@
       "num_months": 240
     },
     "geometric_constraints": {
-      "length": 300,
+      "length": 400,
       "b": 5,
       "max_height": 135.0,
       "min_height": 60.0,
