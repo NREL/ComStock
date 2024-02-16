@@ -190,7 +190,7 @@ module OsLib_ModelGeneration
       'LargeOffice' => 'OfL',
       'SmallHotel' => 'Mtl',
       'LargeHotel' => 'Htl',
-      'Warehouse' => 'SCn', # Unconditioned Storage (SUn) is nearly identical to SCn
+      'Warehouse' => 'SUn', # Unconditioned Storage (SUn) is nearly identical to SCn
       'RetailStandalone' => 'RtL',
       'RetailStripmall' => 'RtS',
       'QuickServiceRestaurant' => 'RFF',

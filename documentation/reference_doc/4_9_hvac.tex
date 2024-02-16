@@ -77,7 +77,7 @@ In several cases, the combinations of survey responses related to the HVAC syste
 
 Based on survey responses, some CBECS samples appear to utilize multiple types of HVAC systems. For example, one sample responded affirmatively to having a chiller, packaged terminal air conditioners (PTACs), heat pumps, and a swamp cooler. However, there is no indication as to the fraction of the building serving each system type in the survey. Additionally, ComStock is not trying to model buildings with several HVAC system types. To address this, we needed to determine prioritization rules when multiple system types for a single CBECS sample appeared to be prevalent. To achieve this, we grouped systems into the following four categories: VAVs, single-zone RTU, DOAS with zone terminal units (e.g., DOAS with heat pumps, VRF), and miscellaneous single-zone equipment.
 
-There were several cases where the assigned HVAC system for a CBECS sample was unlikely given the size and type of the building. For example, only a small percentage of small office buildings would be expected to use large, multi-zone VAV systems. Similarly, only a small percentage of very large office buildings would be expected to use single-zone RTUs or zone terminal equipment with no DOAS. To address this, we recategorized some system type assignments based on the building type and size to ensure that the resulting probability distributions were realistic.
+There were several cases where the assigned HVAC system for a CBECS sample was unlikely given the size and type of the building. For example, only a small percentage of small office buildings would be expected to use large, multi-zone VAV systems. Similarly, only a small percentage of very large office buildings would be expected to use single-zone RTUs or zone terminal equipment with no DOAS. To address this, we recategorized some system type assignments based on the building type and size to ensure that the resulting probability distributions were realistic. Additional heating-only system types were assigned to building zones whose thermostat setpoints (see \ref{section:therm_setpoints}) described heating-only operation. This primarily affected warehouse buildings in California, representing approximately 13\% of the total stock warehouse floor area, which moved from the primary system type to heating-only gas unit heaters or electric baseboard systems, depending on primary heating fuel source.
 
 Overall, we produced 603 probability distributions from the CBECS HVAC analysis, with dependencies based on building type, census division, and heating fuel type. These distributions are used with the ComStock sampling process, described in Section \ref{chap:3_sampling}, which ensures that HVAC system types are applied to the correct proportion of models. The prevalence of each HVAC system type in ComStock for all building types is shown in Figure~\ref{fig:hvac_sys_type_prevalence} through Figure~\ref{fig:hvac_sys_type_prevalence_warehouse}.
 
@@ -152,7 +152,7 @@ All pumps in ComStock are set to use intermittent controls, meaning that they ca
 %TODO: Make sure VAV is correct
 %TODO: Add performance curves for VAV pumps
 
-\subsection{Thermostat Set Points}
+\subsection{Thermostat Set Points} \label{section:therm_setpoints}
 Thermostat set points, both heating and cooling, dictate the target indoor temperature range for the HVAC system to satisfy. The cooling thermostat set point will set the upper temperature limit, whereas the heating thermostat set point will set the lower temperature limit.
 
 Thermostat set points are implemented in ComStock through square-wave schedules. Each model is assigned a set point temperature, which is the temperature the HVAC system must maintain during occupied hours, and a setback temperature, which is the temperature the HVAC system must maintain during unoccupied hours (note that some models have no setback temperature). The set point and setback temperatures used in the models are described later in this section. The timing of the set point and setback temperatures align with the building occupancy schedules discussed in Section~\ref{sec:hoo}.
@@ -192,7 +192,7 @@ The prevalence of thermostat setbacks in ComStock models is determined by buildi
 
 \subsubsection{Unoccupied Thermostat Setbacks Informed by Building Automation System Data}
 
-The method for determining the magnitude of the temperature setback for buildings with unoccupied temperature setbacks is described in this section. This methodology is used for the following building types: full service restaurant, large office, medium office, primary school, quick service restaurant, retail standalone, retail strip mall, secondary school, small office, and warehouse.
+The method for determining the magnitude of the temperature setback for buildings with unoccupied temperature setbacks is described in this section. This methodology is used for the following building types: full service restaurant, large office, medium office, primary school, quick service restaurant, retail standalone, retail strip mall, secondary school, small office, and warehouse. In warehouse buildings, this methodology only applies to the office space type within the building.
 
 The magnitudes of the temperature setbacks are determined using the same data sets and methods described in Section~\ref{section:therm_setpoints_bas} for thermostat set points; probability distributions are created for each building type. The relationship between the thermostat set points and the delta setbacks is shown in Figure~\ref{fig:therm_setpoint_setback}. The resulting heating and cooling thermostat delta setback temperature probability distributions, for each applicable building type, are shown in Figure~\ref{fig:therm_heating_setback} and Figure~\ref{fig:therm_cooling_setback}, respectively.
 
@@ -208,12 +208,15 @@ The magnitudes of the temperature setbacks are determined using the same data se
     \label{fig:therm_cooling_setback}
 \end{figure}
 
-%\subsubsection{Thermostat Setpoints Not Informed by Building %Automation System Data}
+\subsubsection{Thermostat Setpoints Not Informed by Building %Automation System Data}
 % TODO: All of these alternative building types
-%The following ComStock building types do not infer thermostat %setpoints from the BAS data, and therefore each have there own %methodology described in this section: Hospitals, Outpatient, %Warehouses, Small Hotels, and Large Hotels.
+The following ComStock building types do not infer thermostat %setpoints from the BAS data, and therefore each have there own %methodology described in this section: Hospitals, Outpatient, %Warehouses, Small Hotels, and Large Hotels.
 %\paragraph{Hospitals}
 %\paragraph{Outpatient}
-%\paragraph{Warehouses}
+\paragraph{Warehouses}
+
+Heating thermostat setpoints for warehouse storage spaces are adjusted from the DOE/DEER prototype model defaults in order to better calibrate warehouse energy consumption to the CBECS truth data set, informed by CBECS 2018 \citep{eia2018cbecs} responses to the ``Percent Heated'' and ``Percent Cooled'' questions as well as engineering judgement. The default DOE prototype setpoint value of 45°F (50°F for buildings built after 2004) was increased, and the default DEER prototype setpoint value of 70°F was decreased, both to a new heating setpoint of 61°F. Cooling thermostat setpoints remained unchanged, except for California (DEER prototype) warehousees, which are modeled as heated-only.
+
 %\paragraph{Small Hotels}
 %\paragraph{Large Hotels}
 

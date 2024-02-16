@@ -64,6 +64,15 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
     return args
   end
 
+  # check if air loop is evaporative cooler
+  def air_loop_hvac_include_evaporative_cooler?(air_loop_hvac)
+    air_loop_hvac.supplyComponents.each do |comp|
+      return true if comp.to_EvaporativeCoolerDirectResearchSpecial.is_initialized
+      return true if comp.to_EvaporativeCoolerIndirectResearchSpecial.is_initialized
+    end
+    false
+  end
+
   # define what happens when the measure is run
   def run(model, runner, user_arguments)
     super(model, runner, user_arguments)
@@ -98,6 +107,11 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
       if type_of_load == 'VentilationRequirement'
         doas_loops += 1
         runner.registerInfo("Air loop #{air_loop_hvac.name} is a DOAS system and cannot economize.")
+        next
+      end
+
+      if air_loop_hvac_include_evaporative_cooler?(air_loop_hvac)
+        runner.registerInfo("Air loop #{air_loop_hvac.name} is a evaporative cooler and cannot economize.")
         next
       end
 
@@ -229,9 +243,10 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
     li_ems_sens_econ_status = []
     li_ems_sens_min_flow = []
     li_ems_act_oa_flow = []
+    li_ems_ref = []
 
     # loop through air loops
-    model.getAirLoopHVACs.each do |air_loop_hvac|
+    selected_air_loops.each do |air_loop_hvac|
 
       # get OA system
       oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem
@@ -245,9 +260,18 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
       economizer_type = oa_controller.getEconomizerControlType
       next unless economizer_type != 'NoEconomizer'
 
-      # get zones
-      zone = air_loop_hvac.thermalZones[0]
-      # zone.setName(zone.name.to_s.gsub("-", ""))
+      # check zone exhaust fan availability
+      zone_fan_exhaust_available = false
+      zone_fan_exhaust_names = []
+      air_loop_hvac.thermalZones.each do |tz|
+        tz.equipment.each do |zone_equipment|
+          if zone_equipment.to_FanZoneExhaust.is_initialized
+            fanzoneexhaust = zone_equipment.to_FanZoneExhaust.get
+            zone_fan_exhaust_available = true
+            zone_fan_exhaust_names << fanzoneexhaust.name.to_s
+          end
+        end
+      end
 
       # get main cooling coil from air loop
       # this is used to determine if there is a cooling load on the air loop
@@ -291,26 +315,65 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
         end
       end
 
+      # get minimum outdoor air flow rate
+      # if the measure is applied on an autosized model, then this part will result in incorrect EMS application.
+      min_oa_flow_m_3_per_sec = 0
+      if oa_controller.autosizedMinimumOutdoorAirFlowRate.is_initialized
+        min_oa_flow_m_3_per_sec = oa_controller.autosizedMinimumOutdoorAirFlowRate.get
+      elsif oa_controller.minimumOutdoorAirFlowRate.is_initialized
+        min_oa_flow_m_3_per_sec = oa_controller.minimumOutdoorAirFlowRate.get
+      else
+        runner.registerWarning("cannot get minimum outdoor air flow rate from #{oa_controller.name.to_s}. make sure to hardsize the model in order to get the correct sizing information.")
+      end
+      min_oa_flow_kg_per_sec = min_oa_flow_m_3_per_sec * 1.196621537 # TODO: is temperature dependency not considered for air density?
+      runner.registerInfo("#{oa_controller.name}: minimum outdoor air flow rate extracted from the model = #{min_oa_flow_m_3_per_sec} m3/sec")
+      runner.registerInfo("#{oa_controller.name}: minimum outdoor air flow rate extracted from the model = #{min_oa_flow_kg_per_sec} kg/sec")
+
+      # get nighttime variability ventilation schedule
+      min_oa_flow_sch_nighttime_variability = nil
+      if oa_controller.minimumOutdoorAirSchedule.is_initialized
+        min_oa_flow_sch_nighttime_variability = oa_controller.minimumOutdoorAirSchedule.get
+        min_oa_flow_sch_nighttime_variability_name = min_oa_flow_sch_nighttime_variability.name.to_s
+      else
+        runner.registerError("cannot get minimum outdoor air schedule from #{oa_controller.name.to_s}")
+      end
+
       # set sensor for zone cooling load from cooling coil cooling rate
       sens_clg_coil_rate = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Cooling Coil Total Cooling Rate')
-      sens_clg_coil_rate.setName("sens_zn_clg_rate_#{std.ems_friendly_name(zone.name.get.to_s)}") 
+      sens_clg_coil_rate.setName("sens_zn_clg_rate_#{std.ems_friendly_name(air_loop_hvac.name.get.to_s)}") 
       sens_clg_coil_rate.setKeyName("#{clg_coil.name.get}")
-      # EMS variables are added to lists for export
       li_ems_clg_coil_rate << sens_clg_coil_rate
 
       # set sensor - Outdoor Air Controller Minimum Mass Flow Rate
-      # TODO need to confirm if this variable is reliable
       sens_min_oa_rate = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Air System Outdoor Air Mechanical Ventilation Requested Mass Flow Rate')
-      sens_min_oa_rate.setName("sens_min_oa_flow_#{std.ems_friendly_name(oa_controller.name.get.to_s)}") 
+      sens_min_oa_rate.setName("sens_min_oa_flow_#{std.ems_friendly_name(air_loop_hvac.name.get.to_s)}") 
       sens_min_oa_rate.setKeyName("#{air_loop_hvac.name.get}")
-
       li_ems_sens_min_flow << sens_min_oa_rate
 
       # set sensor - Air System Outdoor Air Economizer Status
       sens_econ_status = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Air System Outdoor Air Economizer Status')
-      sens_econ_status.setName("sens_econ_status_#{std.ems_friendly_name(oa_controller.name.get.to_s)}") 
+      sens_econ_status.setName("sens_econ_status_#{std.ems_friendly_name(air_loop_hvac.name.get.to_s)}") 
       sens_econ_status.setKeyName("#{air_loop_hvac.name.get}")
       li_ems_sens_econ_status << sens_econ_status
+
+      # set sensor for zone cooling load from cooling coil cooling rate
+      sens_nighttimevar = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Schedule Value')
+      sens_nighttimevar.setName("sens_nighttimevar_#{std.ems_friendly_name(air_loop_hvac.name.get.to_s)}") 
+      sens_nighttimevar.setKeyName(min_oa_flow_sch_nighttime_variability_name)
+      li_ems_ref << sens_nighttimevar
+
+      # set sensor for zone exhaust fan
+      if zone_fan_exhaust_available
+        zone_fan_exhaust_names.each_with_index do |zone_fan_exhaust_name, i|
+          sens_zn_ex_fan = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Fan Electricity Rate')
+          sens_zn_ex_fan.setName("sens_zn_ex_fan_#{std.ems_friendly_name(zone_fan_exhaust_name)}") 
+          sens_zn_ex_fan.setKeyName(zone_fan_exhaust_name)
+        end
+      end
+
+      # set global variable for debugging
+      dummy_debugging = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, "dummy_debugging_#{std.ems_friendly_name(air_loop_hvac.name.get.to_s)}")
+      li_ems_ref << dummy_debugging
 
       #### Actuators #####
       # set actuator - oa controller air mass flow rate
@@ -323,35 +386,57 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
       li_ems_act_oa_flow << act_oa_flow
 
       #### Program #####
-      # reset OA to min OA if there is a call for economizer but no cooling load
+      # reset OA to min OA
+      # economizer only when (1) economizing is favorable and (2) cooling load is present
+      # when not economizing, if controlleroutdoorair min OA is higher than requested OA, then use controlleroutdoorair min OA
+      # when not economizing, actuate to min OA only when nighttime var sch is non-zero
+      # if there is any zone level exhaust fan, change "cooling load" variable to exhaust fan power 
+      # dummy_debugging parameter: 0 = ems not actuated | 1 = ems actuated (i.e., forced to minimum)
       prgrm_econ_override = model.getEnergyManagementSystemTrendVariableByName('econ_override')
       
       unless prgrm_econ_override.is_initialized
         prgrm_econ_override = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
         prgrm_econ_override.setName("#{std.ems_friendly_name(air_loop_hvac.name.get.to_s)}_program")
-        prgrm_econ_override_body = <<-EMS
-        SET #{act_oa_flow.name} = #{act_oa_flow.name},
-        SET sens_zn_clg_rate = #{sens_clg_coil_rate.name},
-        SET sens_min_oa_rate = #{sens_min_oa_rate.name},
-        SET sens_econ_status = #{sens_econ_status.name},
-        IF ((sens_econ_status > 0) && (sens_zn_clg_rate <= 0)), 
-          SET #{act_oa_flow.name} = sens_min_oa_rate,
-        ELSE,
-          SET #{act_oa_flow.name} = Null,
-        ENDIF
-        EMS
-        prgrm_econ_override.setBody(prgrm_econ_override_body)
+        prgrm_econ_override.addLine("SET #{act_oa_flow.name} = #{act_oa_flow.name}")
+        if zone_fan_exhaust_available
+          cmd_ex_fan = ''
+          zone_fan_exhaust_names.each_with_index do |zone_fan_exhaust_name, i|
+            prgrm_econ_override.addLine("SET sens_zn_ex_fan_#{i.to_i} = sens_zn_ex_fan_#{std.ems_friendly_name(zone_fan_exhaust_name)}")
+            if i == 0
+              cmd_ex_fan = "SET sens_load_ref = sens_zn_ex_fan_#{i.to_i}"
+            else
+              cmd_ex_fan = cmd_ex_fan + "|| sens_zn_ex_fan_#{i.to_i}"
+            end
+          end
+          prgrm_econ_override.addLine(cmd_ex_fan)
+        else
+          prgrm_econ_override.addLine("SET sens_load_ref = #{sens_clg_coil_rate.name}")
+        end
+        prgrm_econ_override.addLine("SET sens_min_oa_rate = #{sens_min_oa_rate.name}")
+        prgrm_econ_override.addLine("SET sens_econ_status = #{sens_econ_status.name}")
+        prgrm_econ_override.addLine("SET sens_nighttimevar = #{sens_nighttimevar.name}")
+        prgrm_econ_override.addLine("SET #{dummy_debugging.name} = #{dummy_debugging.name}")
+        prgrm_econ_override.addLine("IF ((sens_econ_status > 0) && (sens_load_ref <= 0))")
+        prgrm_econ_override.addLine("IF sens_min_oa_rate > #{min_oa_flow_kg_per_sec}")
+        prgrm_econ_override.addLine("SET #{act_oa_flow.name} = sens_min_oa_rate * sens_nighttimevar")
+        prgrm_econ_override.addLine("ELSE")
+        prgrm_econ_override.addLine("SET #{act_oa_flow.name} = #{min_oa_flow_kg_per_sec} * sens_nighttimevar")
+        prgrm_econ_override.addLine("ENDIF")
+        prgrm_econ_override.addLine("SET #{dummy_debugging.name} = sens_nighttimevar")
+        prgrm_econ_override.addLine("ELSE")
+        prgrm_econ_override.addLine("SET #{act_oa_flow.name} = Null")
+        prgrm_econ_override.addLine("SET #{dummy_debugging.name} = 0")
+        prgrm_econ_override.addLine("ENDIF")
       end
-        programs_at_beginning_of_timestep = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
-        programs_at_beginning_of_timestep.setName("#{std.ems_friendly_name(air_loop_hvac.name.get.to_s)}_Programs_At_Beginning_Of_Timestep")
-        programs_at_beginning_of_timestep.setCallingPoint('InsideHVACSystemIterationLoop')
-        programs_at_beginning_of_timestep.addProgram(prgrm_econ_override)
-
+      programs_at_beginning_of_timestep = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
+      programs_at_beginning_of_timestep.setName("#{std.ems_friendly_name(air_loop_hvac.name.get.to_s)}_Programs_At_Beginning_Of_Timestep")
+      programs_at_beginning_of_timestep.setCallingPoint('InsideHVACSystemIterationLoop')
+      programs_at_beginning_of_timestep.addProgram(prgrm_econ_override)
     end
 
-    # ----------------------------------------------------  
-    # puts("### adding output variables (for debugging)")
-    # ----------------------------------------------------  
+    # # ----------------------------------------------------  
+    # # puts("### adding output variables (for debugging)")
+    # # ----------------------------------------------------  
     # out_vars = [
     #   'Air System Outdoor Air Economizer Status', 
     #   'Air System Outdoor Air Flow Fraction',
@@ -412,6 +497,15 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
     #   ems_act_oa_flow.setUpdateFrequency('Timestep')
     #   ems_act_oa_flow.setName("#{name}_ems_outvar")
     #   ems_act_oa_flow.setUnits('kg/s')
+    #   ems_output_variable_list << ems_act_oa_flow.name.to_s
+    # end
+
+    # # li_ems_ref
+    # li_ems_ref.each do |act|
+    #   name = act.name
+    #   ems_act_oa_flow = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, act)
+    #   ems_act_oa_flow.setUpdateFrequency('Timestep')
+    #   ems_act_oa_flow.setName("#{name}_ems_outvar")
     #   ems_output_variable_list << ems_act_oa_flow.name.to_s
     # end
   
