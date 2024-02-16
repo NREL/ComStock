@@ -89,6 +89,12 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
       return is_unitary_system
     end
 
+    # check if GroundHeatExchanger:Vertical is present (for package runs)
+    if model.getObjectsByType(OpenStudio::Model::GroundHeatExchangerVertical.iddObjectType).size > 0
+      runner.registerAsNotApplicable("Model already contains a GroundHeatExchanger:Vertical, upgrade is not applicable.")
+      return true
+    end
+
     # measure will be applicable to some system types that have air loops; need to narrow down to these system types
     selected_air_loops = []
     equip_to_delete = []
