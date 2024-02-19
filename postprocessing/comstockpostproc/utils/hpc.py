@@ -662,7 +662,7 @@ def summarize_failures(yml_path, sort_order='upgrade'):
 
     :param yml_path: The path to the YML file used to run buildstockbatch
 
-    :param sort_order: Either 'upgrade' or 'downgrade' to sort the failures by upgrade id first or building id first
+    :param sort_order: Either 'upgrade' or 'building' to sort the failures by upgrade id first or building id first
 
     :return: None
     """
