@@ -708,7 +708,7 @@ def summarize_failures(yml_path, sort_order='upgrade'):
     # Extract errors from tar.gz, run in parallel. returs nested dict of {upgrade_id: {building_id: [error_lines]}}
     def extract_errors_from_tar(tar_path, fails_dir, sort_order):
         job_id = re.search(r'.*simulations_job(\d+).tar.gz', tar_path).group(1)
-        job_fails_name = f'job{job_id}_failures_new_{sort_order}.log'
+        job_fails_name = f'job{job_id}_failures_{sort_order}.log'
         job_fails_path = os.path.join(fails_dir, job_fails_name)
 
         failed_jobs = []
