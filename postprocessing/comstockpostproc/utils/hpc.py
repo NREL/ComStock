@@ -655,72 +655,121 @@ def summarize_energyplus_error_files(yml_path):
                 print(f'    {w}')
 
 
-def summarize_failures(yml_path):
+def summarize_failures(yml_path, sort_order='upgrade'):
     """Summarize failures across an whole ComStock run.
 
     This function extracts the ERROR messages for failed runs from the run.log files.
 
     :param yml_path: The path to the YML file used to run buildstockbatch
 
+    :param sort_order: Either 'upgrade' or 'downgrade' to sort the failures by upgrade id first or building id first
+
     :return: None
     """
-    # Extract errors from tar.gz, run in parallel
-    def extract_errors_from_tar(tar_path, fails_dir):
+    # function to merge nested dicts
+    def merge_error_dicts(*dict_args):
+        merged_dict = {}
+        for dict in dict_args:
+            for k, v in dict.items():
+                if k not in merged_dict:
+                    merged_dict[k] = {}
+                merged_dict[k].update(v)
+        return merged_dict
+
+    # Function to sort and write the dictionary based on the option
+    def write_sorted_dict(nested_dict, sort_order, file_name):
+        with open(file_name, 'w') as f:
+            if sort_order == 'upgrade':
+                # Sort by top-level keys and then by second-level keys
+                for top_key in sorted(nested_dict.keys()):
+                    f.write(f'{top_key}:\n')
+                    for second_key in sorted(nested_dict[top_key].keys()):
+                        f.write(f'\t{second_key}:\n')
+                        for error_line in nested_dict[top_key][second_key]:
+                            f.write(f'\t{error_line}')
+            elif sort_order == 'building':
+                # Flip the dict to be second-level keys first
+                flipped_dict = {}
+                for top_key, second_level_dict in nested_dict.items():
+                    for second_key, value in second_level_dict.items():
+                        if second_key not in flipped_dict:
+                            flipped_dict[second_key] = {}
+                        flipped_dict[second_key][top_key] = value
+                # Sort by second-level keys and then by top-level keys
+                for second_key in sorted(flipped_dict.keys()):
+                    f.write(f'{second_key}:\n')
+                    for top_key in sorted(flipped_dict[second_key].keys()):
+                        f.write(f'\t{top_key}:\n')
+                        for error_line in flipped_dict[second_key][top_key]:
+                            f.write(f'\t{error_line}')
+            else:
+                raise ValueError("Invalid option. Please choose 'upgrade' or 'building'.")
+
+    # Extract errors from tar.gz, run in parallel. returs nested dict of {upgrade_id: {building_id: [error_lines]}}
+    def extract_errors_from_tar(tar_path, fails_dir, sort_order):
         job_id = re.search(r'.*simulations_job(\d+).tar.gz', tar_path).group(1)
-        job_fails_name = f'job{job_id}_failures.log'
+        job_fails_name = f'job{job_id}_failures_new_{sort_order}.log'
         job_fails_path = os.path.join(fails_dir, job_fails_name)
-        if os.path.exists(job_fails_path):
-            print(f'Already extracted failures from job {job_id} to {job_fails_path}')
-        else:
-            print(f'Extracting failures from job {job_id} to {job_fails_path}')
-            with open(job_fails_path, 'w') as job_fails:
-                job_fails.write(f'Errors from job_id={job_id}\n')
-                with tarfile.open(tar_path) as tar:
-                    for tar_member in tar.getmembers():
-                        if not 'failed.job' in tar_member.name:
-                            continue
-                        bldg_id = re.search(r'.*bldg(\d+).*', tar_member.name).group(1)
-                        up_id = re.search(r'.*up(\d+).*', tar_member.name).group(1)
-                        osw_out_name = f'./up{up_id}/bldg{bldg_id}/out.osw'
-                        sing_out_name = f'./up{up_id}/bldg{bldg_id}/openstudio_output.log'
-                        job_fails.write(f'Errors from up{up_id}/bldg{bldg_id}\n')
-                        try:
-                            with tar.extractfile(osw_out_name) as osw_out_name:
-                                data = json.load(osw_out_name)
-                                steps = data.get('steps', [])
-                                for step in steps:
-                                    result = step.get('result', {})
-                                    measure_name = result.get('measure_name')
-                                    step_errors = result.get('step_errors', [])
-                                    if step_errors:
-                                        job_fails.write(f"\tIn step: {measure_name}:\n")
-                                        for step_error in step_errors:
-                                            if '[openstudio.standards.command]' in step_error:
-                                                # these aren't that useful
-                                                continue
-                                            if 'Sizing run for Hardsize model failed, cannot hard-size model.' in step_error:
-                                                job_fails.write(f'\t{step_error}\n')
-                                                # actual error message in stdout
-                                                std_out = result.get('stdout')
-                                                lines = std_out.split('\n')
-                                                for line in lines:
-                                                    if '[openstudio.model.Model]' in line:
-                                                        line = re.sub(r'(\\n)|(\n)',r'\n\t\t', line)
-                                                        job_fails.write(f'\t\t{line}\n')
-                                            else:
-                                                # indent and newline the messages for readability
-                                                step_error = re.sub(r'(\\n)|(\n)',r'\n\t', step_error)
-                                                job_fails.write(f"\t{step_error}\n")
-                        except KeyError:
-                            try:
-                                sing_out_bytes=tar.extractfile(sing_out_name).read()
-                                for l in sing_out_bytes.decode().split('\n'):
-                                    if re.search(r'\[.* ERROR\]|\[.*<Error>.*\]', l):
-                                        job_fails.write(f'{l}\n')
-                            except KeyError as err:
-                                job_fails.write(f'Did not find out.osw or openstudio_output.log for up{up_id}/bldg{bldg_id}, cannot extract failure details\n')
-                    tar.close()
-        return
+
+        failed_jobs = []
+        print(f'Extracting failures from job {job_id} to {job_fails_path}')
+        with tarfile.open(tar_path) as tar:
+            for tar_member in tar.getmembers():
+                if 'failed.job' in tar_member.name:
+                    bldg_id = re.search(r'.*bldg(\d+).*', tar_member.name).group(1)
+                    up_id = re.search(r'.*up(\d+).*', tar_member.name).group(1)
+                    if [up_id,bldg_id] not in failed_jobs:
+                        failed_jobs.append([up_id,bldg_id])
+            all_errors = {}
+            for job in failed_jobs:
+                errors_dict = {}
+                error_lines = [f'\tIn job{job_id}:\n']
+                try:
+                    osw_out_name = f'./up{job[0]}/bldg{job[1]}/out.osw'
+                    with tar.extractfile(osw_out_name) as out_osw:
+                        data = json.load(out_osw)
+                        if data.get('timeout'):
+                            error_lines.append(f'\tTimeout: {data.get("timeout")}\n')
+                        steps = data.get('steps', [])
+                        for step in steps:
+                            result = step.get('result', {})
+                            measure_name = result.get('measure_name')
+                            step_errors = result.get('step_errors', [])
+                            if step_errors:
+                                error_lines.append(f'\tIn step: {measure_name}:\n')
+                                for step_error in step_errors:
+                                    if '[openstudio.standards.command]' in step_error:
+                                        # these aren't that useful
+                                        continue
+                                    if 'Sizing run for Hardsize model failed, cannot hard-size model.' in step_error:
+                                        error_lines.append(f'\t{step_error}\n')
+                                        # actual error message in stdout
+                                        std_out = result.get('stdout')
+                                        lines = std_out.split('\n')
+                                        for line in lines:
+                                            if '[openstudio.model.Model]' in line:
+                                                line = re.sub(r'(\\n)|(\n)',r'\n\t\t', line)
+                                                error_lines.append(f'\t\t{line}\n')
+                                    else:
+                                        # indent and newline the messages for readability
+                                        step_error = re.sub(r'(\\n)|(\n)',r'\n\t\t', step_error)
+                                        error_lines.append(f'\t\t{step_error}\n')
+                except KeyError:
+                    try:
+                        sing_out_bytes=tar.extractfile(f'up{job[0]}/bldg{job[1]}/openstudio_output.log').read()
+                        for l in sing_out_bytes.decode().split('\n'):
+                            if re.search(r'\[.* ERROR\]|\[.*<Error>.*\]', l):
+                                error_lines.append(f'\t\t{l}\n')
+                    except KeyError as err:
+                        error_lines.append(f'Did not find out.osw or openstudio_output.log for up{job[0]}/bldg{job[1]}, cannot extract failure details\n')
+                if f'up{job[0]}' not in errors_dict:
+                    errors_dict[f'up{job[0]}'] = {}
+                    if f'bldg{job[1]}' not in errors_dict[f'up{job[0]}']:
+                        errors_dict[f'up{job[0]}'][f'bldg{job[1]}'] = error_lines
+                        all_errors = merge_error_dicts(all_errors, errors_dict)
+            write_sorted_dict(all_errors, sort_order, job_fails_path)
+            return all_errors
+        tar.close()
 
     # Set up output directory
     simulation_output_dir = get_simulation_output_dir_from_yml(yml_path)
@@ -730,20 +779,13 @@ def summarize_failures(yml_path):
 
     # Extract the failures per job and write to file
     tar_paths = glob.glob(f'{simulation_output_dir}/simulations_job*.tar.gz')
-    Parallel(n_jobs=-1, verbose=10) (delayed(extract_errors_from_tar)(tar_path, fails_dir) for tar_path in tar_paths)
+    all_errors_list = Parallel(n_jobs=-1, verbose=10) (delayed(extract_errors_from_tar)(tar_path, fails_dir, sort_order) for tar_path in tar_paths)
 
-    # sort filenames in numeric order
-    def sort_names(s):
-        return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
+    # merge errors dicts into one
+    all_errors_dict = merge_error_dicts(*all_errors_list)
 
-    # Concatenate failures for all jobs into one file
-    fail_summary_path = os.path.join(fails_dir, "failure_summary.log")
-    print(f'Writing summary to {fail_summary_path}')
-    with open(fail_summary_path, 'w') as f:
-        for job_fails_path in sorted(glob.glob(f'{fails_dir}/job*_failures.log'), key=sort_names):
-            with open(job_fails_path, 'r') as job_fails:
-                for line in job_fails:
-                    f.write(line)
+    # write combined summary
+    write_sorted_dict(all_errors_dict, sort_order, os.path.join(fails_dir, f"failure_summary_{sort_order}.log"))
 
 def transfer_model_files_to_s3(yml_path, s3_output_dir, oedi_metadata_dir):
     """Copies zipped .osm files from specified ComStock run on Eagle to specified S3 bucket.
