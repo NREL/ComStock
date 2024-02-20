@@ -496,22 +496,26 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
 
     puts("### ============================================================")
     puts("### Creating peak schedule...")
-    prepeak_schedule = peak_schedule_generation(annual_load, peak_len, rebound_len=0, prepeak_len=prepeak_len)
+    prepeak_schedule_winter = peak_schedule_generation(annual_load, oat, peak_len, rebound_len=0, prepeak_len=prepeak_len, seasons='winter')
+    prepeak_schedule_nonwinter = peak_schedule_generation(annual_load, oat, peak_len, rebound_len=0, prepeak_len=prepeak_len, seasons='nonwinter')
+    # prepeak_schedule = peak_schedule_generation(annual_load, oat, peak_len, rebound_len=0, prepeak_len=prepeak_len, seasons='all')
     # puts("--- prepeak_schedule = #{prepeak_schedule}")
-    puts("--- prepeak_schedule.size = #{prepeak_schedule.size}")
+    # puts("--- prepeak_schedule.size = #{prepeak_schedule.size}")
     
     puts("### ============================================================")
     nts_clg = 0
     nts_htg = 0
     if applicable_clg_thermostats.size > 0
       puts("### Creating cooling setpoint adjustment schedule...")
-      clgsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(prepeak_schedule, sp_adjustment=-sp_adjustment)
+      # clgsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(prepeak_schedule, sp_adjustment=-sp_adjustment)
+      clgsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(prepeak_schedule_nonwinter, sp_adjustment=-sp_adjustment)
       puts("### Updating thermostat cooling setpoint schedule...")
       nts_clg = assign_clgsch_to_thermostats(model,applicable_clg_thermostats,runner,clgsp_adjustment_values)
     end
     if applicable_htg_thermostats.size > 0
       puts("### Creating heating setpoint adjustment schedule...")
-      heatsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(prepeak_schedule, sp_adjustment=sp_adjustment)
+      # heatsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(prepeak_schedule, sp_adjustment=sp_adjustment)
+      heatsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(prepeak_schedule_winter, sp_adjustment=sp_adjustment)
       puts("### Updating thermostat cooling setpoint schedule...")
       nts_htg = assign_heatsch_to_thermostats(model,applicable_htg_thermostats,runner,heatsp_adjustment_values)
     end

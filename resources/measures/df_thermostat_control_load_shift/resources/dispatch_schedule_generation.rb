@@ -913,8 +913,18 @@ def find_daily_peak_window(daily_load, peak_len)
   return peak_ind
 end
 
+def seasons
+  return {
+      'winter' => [-1e9, 55],
+      'summer' => [70, 1e9],
+      'shoulder' => [55, 70],
+      'nonwinter' => [55, 1e9],
+      'all' => [-1e9, 1e9]
+  }
+end
+
 ### Generate peak schedule for whole year with rebound option ########################### NEED TO JUSTIFY PUTTING REBOUND OPTION HERE OR IN INDIVIDUAL DF MEASURES
-def peak_schedule_generation(annual_load, peak_len, rebound_len=0, prepeak_len=0)
+def peak_schedule_generation(annual_load, oat, peak_len, rebound_len=0, prepeak_len=0, season='all')
   if annual_load.size == 8784
     nd = 366
   elsif annual_load.size == 8760
@@ -923,6 +933,7 @@ def peak_schedule_generation(annual_load, peak_len, rebound_len=0, prepeak_len=0
     raise 'annual load profile not hourly'
   end
   peak_schedule = Array.new(nd * 24, 0)
+  temperature_range = seasons[season]
   # puts("--- rebound_len = #{rebound_len}")
   # puts("--- peak_len = #{peak_len}")
   # puts("--- peak_schedule.size = #{peak_schedule.size}")
@@ -930,22 +941,26 @@ def peak_schedule_generation(annual_load, peak_len, rebound_len=0, prepeak_len=0
   (0..nd-1).each do |d|
     range_start = d * 24
     range_end = d * 24 + 23
-    peak_ind = find_daily_peak_window(annual_load[range_start..range_end], peak_len)
-    # peak and rebound schedule
-    if prepeak_len == 0
-      peak_schedule[(range_start + peak_ind)..(range_start + peak_ind + peak_len - 1)] = Array.new(peak_len, 1)
-      if rebound_len > 0
-        range_rebound_start = range_start + peak_ind + peak_len - 1
-        range_rebound_end = range_start + peak_ind + peak_len + rebound_len
-        peak_schedule[range_rebound_start..range_rebound_end] = (0..rebound_len + 1).map { |i| 1.0 - i.to_f / (rebound_len + 1) }
-      end
-      # peak_ind_ann << peak_ind
-    # prepeak schedule
-    else
-      if peak_ind >= prepeak_len
-        peak_schedule[(range_start + peak_ind - prepeak_len)..(range_start + peak_ind - 1)] = Array.new(prepeak_len, 1)
+    temps = oat[range_start..range_end]
+    avg_temp = temps.inject { |sum, el| sum + el }.to_f / temps.size
+    if avg_temp > temperature_range[0] and avg_temp < temperature_range[1]
+      peak_ind = find_daily_peak_window(annual_load[range_start..range_end], peak_len)
+      # peak and rebound schedule
+      if prepeak_len == 0
+        peak_schedule[(range_start + peak_ind)..(range_start + peak_ind + peak_len - 1)] = Array.new(peak_len, 1)
+        if rebound_len > 0
+          range_rebound_start = range_start + peak_ind + peak_len - 1
+          range_rebound_end = range_start + peak_ind + peak_len + rebound_len
+          peak_schedule[range_rebound_start..range_rebound_end] = (0..rebound_len + 1).map { |i| 1.0 - i.to_f / (rebound_len + 1) }
+        end
+        # peak_ind_ann << peak_ind
+      # prepeak schedule
       else
-        peak_schedule[(range_start)..(range_start + peak_ind - 1)] = Array.new(peak_ind, 1)
+        if peak_ind >= prepeak_len
+          peak_schedule[(range_start + peak_ind - prepeak_len)..(range_start + peak_ind - 1)] = Array.new(prepeak_len, 1)
+        else
+          peak_schedule[(range_start)..(range_start + peak_ind - 1)] = Array.new(peak_ind, 1)
+        end
       end
     end
   end
