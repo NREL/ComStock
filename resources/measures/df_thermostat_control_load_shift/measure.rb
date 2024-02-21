@@ -190,14 +190,16 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
 
     def assign_clgsch_to_thermostats(model,applicable_clg_thermostats,runner,clgsp_adjustment_values)
       clg_set_schs = {}
-      values = []
-      header = []
+      heat_set_schs = {}
+      # values = []
+      # header = []
       nts = 0
       # thermostats = model.getThermostatSetpointDualSetpoints
       applicable_clg_thermostats.each do |thermostat|
         # setup new cooling setpoint schedule
         clg_set_sch = thermostat.coolingSetpointTemperatureSchedule
-        if !clg_set_sch.empty?
+        heat_set_sch = thermostat.heatingSetpointTemperatureSchedule
+        if !clg_set_sch.empty? && !heat_set_sch.empty?
           #puts("#{clg_set_sch.get.name.to_s}")
           #puts clg_set_sch.get
           # clone of not already in hash
@@ -208,17 +210,20 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
             # new
             schedule = clg_set_sch.get.clone(model)
             schedule = schedule.to_Schedule.get
+            schedule_heat = heat_set_sch.get.clone(model)
+            schedule_heat = schedule_heat.to_Schedule.get
             #puts "cloned new name: #{schedule.name.to_s}"
             #puts schedule
             #puts schedule.class
             #puts schedule.to_ScheduleRuleset.class
             #puts schedule.to_ScheduleRuleset.get
             # puts("Populating existing schedule ruleset to 8760 schedules...")
-            header << clg_set_sch.get.name.to_s
+            # header << clg_set_sch.get.name.to_s
             schedule_8760 = get_hourly_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get)
-            values << schedule_8760
+            schedule_8760_heat = get_hourly_schedule_from_schedule_ruleset(model, schedule_heat.to_ScheduleRuleset.get)
+            # values << schedule_8760
             # puts("Update 8760 schedule...")
-            header << "#{clg_set_sch.get.name.to_s} adjusted"
+            # header << "#{clg_set_sch.get.name.to_s} adjusted"
             if schedule_8760.size != clgsp_adjustment_values.size
               msize = [schedule_8760.size, clgsp_adjustment_values.size].min
               nums = [schedule_8760.take(msize), clgsp_adjustment_values.take(msize)]
@@ -227,10 +232,11 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
             end
             new_schedule_8760 = nums.transpose.map(&:sum)
             num_rows = new_schedule_8760.length
-            values << new_schedule_8760
+            # values << new_schedule_8760
             schedule_values = OpenStudio::Vector.new(num_rows, 0.0)
             new_schedule_8760.each_with_index do |val,i|
-              schedule_values[i] = val
+              # in case clg sp lower than heat sp
+              schedule_values[i] = (val>schedule_8760_heat[i] ? val:(schedule_8760_heat[i]+1.0))
             end
             # infer interval
             interval = []
@@ -261,7 +267,7 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
           thermostat.setCoolingSetpointTemperatureSchedule(new_clg_set_sch)
           nts += 1
         else
-          runner.registerWarning("Thermostat '#{thermostat.name}' doesn't have a cooling setpoint schedule")
+          runner.registerWarning("Thermostat '#{thermostat.name}' doesn't have cooling and heating setpoint schedules")
         end
       end
       return nts
@@ -269,8 +275,8 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
 
     def assign_heatsch_to_thermostats(model,applicable_htg_thermostats,runner,heatsp_adjustment_values)
       heat_set_schs = {}
-      values = []
-      header = []
+      # values = []
+      # header = []
       nts = 0
       # thermostats = model.getThermostatSetpointDualSetpoints
       applicable_htg_thermostats.each do |thermostat|
@@ -293,11 +299,11 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
             #puts schedule.to_ScheduleRuleset.class
             #puts schedule.to_ScheduleRuleset.get
             # puts("Populating existing schedule ruleset to 8760 schedules...")
-            header << heat_set_sch.get.name.to_s
+            # header << heat_set_sch.get.name.to_s
             schedule_8760 = get_hourly_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get)
-            values << schedule_8760
+            # values << schedule_8760
             # puts("Update 8760 schedule...")
-            header << "#{heat_set_sch.get.name.to_s} adjusted"
+            # header << "#{heat_set_sch.get.name.to_s} adjusted"
             if schedule_8760.size != heatsp_adjustment_values.size
               msize = [schedule_8760.size, heatsp_adjustment_values.size].min
               nums = [schedule_8760.take(msize), heatsp_adjustment_values.take(msize)]
@@ -306,7 +312,7 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
             end
             new_schedule_8760 = nums.transpose.map(&:sum)
             num_rows = new_schedule_8760.length
-            values << new_schedule_8760
+            # values << new_schedule_8760
             schedule_values = OpenStudio::Vector.new(num_rows, 0.0)
             new_schedule_8760.each_with_index do |val,i|
               schedule_values[i] = val
@@ -496,9 +502,9 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
 
     puts("### ============================================================")
     puts("### Creating peak schedule...")
-    prepeak_schedule_winter = peak_schedule_generation(annual_load, oat, peak_len, rebound_len=0, prepeak_len=prepeak_len, seasons='winter')
-    prepeak_schedule_nonwinter = peak_schedule_generation(annual_load, oat, peak_len, rebound_len=0, prepeak_len=prepeak_len, seasons='nonwinter')
-    # prepeak_schedule = peak_schedule_generation(annual_load, oat, peak_len, rebound_len=0, prepeak_len=prepeak_len, seasons='all')
+    # prepeak_schedule_winter = peak_schedule_generation(annual_load, oat, peak_len, rebound_len=0, prepeak_len=prepeak_len, seasons='winter')
+    # prepeak_schedule_nonwinter = peak_schedule_generation(annual_load, oat, peak_len, rebound_len=0, prepeak_len=prepeak_len, seasons='nonwinter')
+    prepeak_schedule = peak_schedule_generation(annual_load, oat, peak_len, rebound_len=0, prepeak_len=prepeak_len, seasons='all')
     # puts("--- prepeak_schedule = #{prepeak_schedule}")
     # puts("--- prepeak_schedule.size = #{prepeak_schedule.size}")
     
@@ -507,18 +513,19 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
     nts_htg = 0
     if applicable_clg_thermostats.size > 0
       puts("### Creating cooling setpoint adjustment schedule...")
-      # clgsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(prepeak_schedule, sp_adjustment=-sp_adjustment)
-      clgsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(prepeak_schedule_nonwinter, sp_adjustment=-sp_adjustment)
+      clgsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(prepeak_schedule, sp_adjustment=-sp_adjustment)
+      # clgsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(prepeak_schedule_nonwinter, sp_adjustment=-sp_adjustment)
       puts("### Updating thermostat cooling setpoint schedule...")
       nts_clg = assign_clgsch_to_thermostats(model,applicable_clg_thermostats,runner,clgsp_adjustment_values)
     end
-    if applicable_htg_thermostats.size > 0
-      puts("### Creating heating setpoint adjustment schedule...")
-      # heatsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(prepeak_schedule, sp_adjustment=sp_adjustment)
-      heatsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(prepeak_schedule_winter, sp_adjustment=sp_adjustment)
-      puts("### Updating thermostat cooling setpoint schedule...")
-      nts_htg = assign_heatsch_to_thermostats(model,applicable_htg_thermostats,runner,heatsp_adjustment_values)
-    end
+    ### Leave pre-heating for future development
+    # if applicable_htg_thermostats.size > 0
+    #   puts("### Creating heating setpoint adjustment schedule...")
+    #   # heatsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(prepeak_schedule, sp_adjustment=sp_adjustment)
+    #   heatsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(prepeak_schedule_winter, sp_adjustment=sp_adjustment)
+    #   puts("### Updating thermostat cooling setpoint schedule...")
+    #   nts_htg = assign_heatsch_to_thermostats(model,applicable_htg_thermostats,runner,heatsp_adjustment_values)
+    # end
     # puts("--- clgsp_adjustment_values = #{clgsp_adjustment_values}")
     # puts("--- heatsp_adjustment_values = #{heatsp_adjustment_values}")
     runner.registerFinalCondition("Updated #{nts_clg}/#{applicable_clg_thermostats.size} thermostat cooling setpoint schedules and #{nts_htg}/#{applicable_htg_thermostats.size} thermostat heating setpoint schedules to model, with #{sp_adjustment} degree C offset for #{prepeak_len} hours of daily pre-cooling/pre-heating before #{peak_len}-hour peak window, using #{load_prediction_method} simulation for load prediction")
