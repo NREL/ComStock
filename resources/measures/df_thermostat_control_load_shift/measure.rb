@@ -122,6 +122,10 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
       end
     end
 
+    def day_of_year(year, month, day)
+      return (Date.new(year, month, day) - Date.new(year,1,1)).to_i + 1
+    end
+
     def temp_setp_adjust_hourly_based_on_sch(peak_sch, sp_adjustment)
       sp_adjustment_values = peak_sch.map{|a| sp_adjustment*a}
       return sp_adjustment_values
@@ -189,7 +193,7 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
       return values
     end
 
-    def get_15min_max_schedule_from_schedule_ruleset(model, schedule_ruleset)
+    def get_reference_schedule_from_schedule_ruleset(model, schedule_ruleset, step=4, max_or_avg='max')
       yd = model.getYearDescription
       #puts yd
       # yd.setIsLeapYear(false)
@@ -198,7 +202,7 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
       day_of_week = start_date.dayOfWeek.valueName
       values = []#OpenStudio::Vector.new
       day = OpenStudio::Time.new(1.0)
-      interval = OpenStudio::Time.new(1.0 / 24.0 / 4.0)
+      interval = OpenStudio::Time.new(1.0 / 24.0 / step)
       day_schedules = schedule_ruleset.getDaySchedules(start_date, end_date)
       # numdays = day_schedules.size
       # Make new array of day schedules for year
@@ -237,10 +241,15 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
             # Calc hour average
             if value_sum.size > 0
               value_max = value_sum.max
+              value_avg = value_sum.sum / value_sum.length.to_f
             else
               value_max = 0
             end
-            values << value_max
+            if max_or_avg == 'max'
+              values << value_max
+            else
+              values << value_avg
+            end
             # setup for next hour
             value_sum = []
             # value_count = 0
@@ -248,6 +257,37 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
           end
         end
       end
+      designdays = model.getDesignDays
+      designdays.each do |designday|
+        month = designday.month
+        day = designday.dayOfMonth
+        daytype = designday.dayType
+        # puts("### month=#{month}")
+        # puts("### day=#{day}")
+        # puts("### daytype=#{daytype}")
+        # puts("### yd.calendarYear=#{yd.calendarYear}")
+        doy = day_of_year(yd.calendarYear.to_i, month, day)
+        # puts("### doy=#{doy}")
+        if daytype == 'SummerDesignDay'
+          day_schedule = schedule_ruleset.summerDesignDaySchedule
+        elsif daytype == 'WinterDesignDay'
+          day_schedule = schedule_ruleset.winterDesignDaySchedule
+        else
+          runner.registerWarning("No design day schedule - use default")
+          day_schedule = schedule_ruleset.defaultDaySchedule
+        end
+        time_values = day_schedule.times
+        # puts("### time_values=#{time_values}")
+        vals = day_schedule.values
+        # puts("### time_values=#{vals}")
+        if vals.length > 1
+          val = vals.max
+        else
+          val = vals[0]
+        end
+        values[((doy-1)*step*24), (step*24)] = [val] * (step*24)
+      end
+      # puts("### values=#{values}")
       return values
     end
 
@@ -262,7 +302,7 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
         # setup new cooling setpoint schedule
         clg_set_sch = thermostat.coolingSetpointTemperatureSchedule
         heat_set_sch = thermostat.heatingSetpointTemperatureSchedule
-        if !clg_set_sch.empty? && !heat_set_sch.empty?
+        if !clg_set_sch.empty? || !heat_set_sch.empty?
           # puts("#{clg_set_sch.get.name.to_s}")
           # puts("#{heat_set_sch.get.name.to_s}")
           # puts clg_set_sch.get
@@ -282,8 +322,8 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
             # puts("Populating existing schedule ruleset to 8760 schedules...")
             # header << clg_set_sch.get.name.to_s
             schedule_8760 = get_hourly_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get)
-            schedule_35040_heat = get_15min_max_schedule_from_schedule_ruleset(model, schedule_heat.to_ScheduleRuleset.get) # use hourly max instead of hourly average to avoid optimium start spikes
-            puts("### schedule_35040_heat.size=#{schedule_35040_heat.size}")
+            schedule_35040_heat = get_reference_schedule_from_schedule_ruleset(model, schedule_heat.to_ScheduleRuleset.get, step=4, max_or_avg='max') # use hourly max instead of hourly average to avoid optimium start spikes
+            # puts("### schedule_35040_heat.size=#{schedule_35040_heat.size}")
             # CSV.open('C:\Users\jxiong\Documents\GitHub\EEDF-GEB\EUSS\2974\sch_15m.csv','w') do |csv|
             #   schedule_35040_heat.each do |row|
             #     csv << [row]
@@ -293,7 +333,7 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
             schedule_35040_heat.each_slice(4) do |hrval|
               schedule_8760_heat_max << hrval.max
             end
-            puts("### schedule_8760_heat_max.size=#{schedule_8760_heat_max.size}")
+            # puts("### schedule_8760_heat_max.size=#{schedule_8760_heat_max.size}")
             # values << schedule_8760
             # puts("Update 8760 schedule...")
             # header << "#{clg_set_sch.get.name.to_s} adjusted"
@@ -316,10 +356,10 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
               end
               # schedule_values_heat[i] = schedule_8760_heat[i]
             end
-            schedule_values_heat = OpenStudio::Vector.new(schedule_35040_heat.size, 0.0)
-            schedule_35040_heat.each_with_index do |val,i|
-              schedule_values_heat[i] = val
-            end
+            # schedule_values_heat = OpenStudio::Vector.new(schedule_35040_heat.size, 0.0)
+            # schedule_35040_heat.each_with_index do |val,i|
+            #   schedule_values_heat[i] = val
+            # end
             # CSV.open('C:\Users\jxiong\Documents\GitHub\EEDF-GEB\EUSS\2974\sch.csv','w') do |csv|
             #   csv << ['clg', 'htg', 'clg_adj']
             #   new_schedule_8760.zip(schedule_8760_heat_max,schedule_values).each do |row|
@@ -329,30 +369,30 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
             # infer interval
             # interval = []
             interval_hr = OpenStudio::Time.new(0, 1, 0)
-            interval_15m = OpenStudio::Time.new(0, 0, 15)
+            # interval_15m = OpenStudio::Time.new(0, 0, 15)
             # puts("Make new interval schedule...")
             # make schedule
             startDate = OpenStudio::Date.new(OpenStudio::MonthOfYear.new(1), 1)
             timeseries = OpenStudio::TimeSeries.new(startDate, interval_hr, schedule_values, "C")
-            timeseries_heat = OpenStudio::TimeSeries.new(startDate, interval_15m, schedule_values_heat, "C")
+            # timeseries_heat = OpenStudio::TimeSeries.new(startDate, interval_15m, schedule_values_heat, "C")
             new_clg_set_sch = OpenStudio::Model::ScheduleInterval::fromTimeSeries(timeseries, model)
-            new_heat_set_sch = OpenStudio::Model::ScheduleInterval::fromTimeSeries(timeseries_heat, model)
+            # new_heat_set_sch = OpenStudio::Model::ScheduleInterval::fromTimeSeries(timeseries_heat, model)
             if new_clg_set_sch.empty?
               runner.registerError("Unable to make schedule")
               return false
             end
             new_clg_set_sch = new_clg_set_sch.get
-            new_heat_set_sch = new_heat_set_sch.get
+            # new_heat_set_sch = new_heat_set_sch.get
             new_clg_set_sch.setName("#{clg_set_sch.get.name.to_s} adjusted")
-            new_heat_set_sch.setName("#{heat_set_sch.get.name.to_s} adjusted")
+            # new_heat_set_sch.setName("#{heat_set_sch.get.name.to_s} adjusted")
             ### add to the hash
             clg_set_schs[clg_set_sch.get.name.to_s] = new_clg_set_sch
-            heat_set_schs[heat_set_sch.get.name.to_s] = new_heat_set_sch
+            # heat_set_schs[heat_set_sch.get.name.to_s] = new_heat_set_sch
           end
           # hook up clone to thermostat
           # puts("Setting new schedule #{new_clg_set_sch.name.to_s}")
           thermostat.setCoolingSetpointTemperatureSchedule(new_clg_set_sch)
-          thermostat.setHeatingSetpointTemperatureSchedule(new_heat_set_sch)
+          # thermostat.setHeatingSetpointTemperatureSchedule(new_heat_set_sch)
           nts += 1
         else
           runner.registerWarning("Thermostat '#{thermostat.name}' doesn't have cooling and heating setpoint schedules")
