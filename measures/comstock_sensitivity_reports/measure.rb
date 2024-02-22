@@ -2697,7 +2697,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       heat_exchanger_weighted_demand_outlet_temperature_c += heat_exchanger_energy_j * heat_exchanger_demand_outlet_temperature_c
     end
     runner.registerValue('com_report_hvac_ghx_num_boreholes', num_boreholes)
-    average_borehole_depth_ft = num_boreholes > 0.0 ? total_borehole_depth_ft / num_boreholes.to_f : 0.0
+    average_borehole_depth_ft = num_boreholes > 0.0 ? total_borehole_depth_ft.to_f : 0.0
     runner.registerValue('com_report_hvac_ghx_average_borehole_depth_ft', average_borehole_depth_ft)
     average_ghx_design_flow_rate_ft3_per_min = num_boreholes > 0.0 ? total_ghx_design_flow_rate_ft3_per_min / num_boreholes.to_f : 0.0
     runner.registerValue('com_report_hvac_average_ghx_design_flow_rate_ft3_per_min', average_ghx_design_flow_rate_ft3_per_min)

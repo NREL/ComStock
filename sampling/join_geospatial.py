@@ -42,7 +42,7 @@ def download_data(state):
 
 def manual_fips_update(df_buildstock):
     """
-    Due to discrepancies between Census years, county FIPS in spatial_tract_lookup_published_v5.csv do not
+    Due to discrepancies between Census years, county FIPS in spatial_tract_lookup_published_v6.csv do not
     exactly match the counties sampled in ComStock. This function is a manual FIPS update for these counties
     to ensure every sample in ComStock receives the proper geospatial fields in the metadata.
 
@@ -201,7 +201,7 @@ def main():
         ]
     res = pd.concat(Parallel(n_jobs=-1, verbose=10, prefer='threads')(delayed(the_func)(state, df_buildstock) for state in state_fips))
     res_total = pd.concat([res, df_nan])
-    df_geospatial_lkup = pd.read_csv(os.path.join('resources', 'spatial_tract_lookup_table_publish_v5.csv'))
+    df_geospatial_lkup = pd.read_csv(os.path.join('resources', 'spatial_tract_lookup_table_publish_v6.csv'))
     df_results_geospatial = res_total.merge(df_geospatial_lkup, left_on='gisjoin', right_on='nhgis_tract_gisjoin', how='left')
     df_results_geospatial.drop(['sqft', 'building_size', 'gisjoin'], axis=1, inplace=True)
     df_results_geospatial.index = np.linspace(1, len(df_results_geospatial), len(df_results_geospatial)).astype(int)

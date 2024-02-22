@@ -68,6 +68,15 @@ At rated conditions, a compressor will generally have slightly more cooling capa
 **Model Dependent:** false
 
 
+### Model standard performance HP RTU?
+Standard performance refers to the followings: manufacturer claimed as standard efficiency (as of OCT 2023), direct drive supply fan, two stages of heat pump cooling, single stage heat pump heating (i.e., all compressors running at the same time), heat pump minimum lockout temperature of 0°F (-17.8°C), backup electric resistance heating, backup heating runs at the same time as heat pump heating, heat pump heating locking out below minimum operating temperature, IEER in between 11-13, and HSPF in between 8-8.9.
+**Name:** std_perf,
+**Type:** Boolean,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+
 ### Add Energy Recovery?
 
 **Name:** hr,
