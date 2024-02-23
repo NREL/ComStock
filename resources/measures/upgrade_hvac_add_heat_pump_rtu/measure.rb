@@ -1582,7 +1582,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed1.setGrossRatedSensibleHeatRatio(0.872821200315651)
       # if cchpc scenarios are set, use fixed cop. else, use the default cop.
       if cchpc != 'false'
-        if (cchpc == 'scenario_1') || (cchpc == 'scenario_)2' || (cchpc == 'scenario_3')
+        if (cchpc == 'scenario_1') || (cchpc == 'scenario_2') || (cchpc == 'scenario_3')
           rated_cop_fit = 3.60
         elsif (cchpc == 'scenario_4') || (cchpc == 'scenario_5') || (cchpc == 'scenario_6')
           rated_cop_fit = 4.00
