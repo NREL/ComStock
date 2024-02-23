@@ -2082,6 +2082,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
       # add new multispeed heating coil
       # if cchpc scenarios are set, use compressor lockout temperatures (-15F, -13F, 5F). else, use the standard performance lockout temperature (0F)
+      compress_lockout_temp = nil
       if std_perf
         new_dx_heating_coil = OpenStudio::Model::CoilHeatingDXSingleSpeed.new(model)
         new_dx_heating_coil.setName("#{air_loop_hvac.name} Heat Pump Coil")
