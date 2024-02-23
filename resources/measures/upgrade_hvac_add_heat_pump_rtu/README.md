@@ -86,6 +86,17 @@ Standard performance refers to the followings: manufacturer claimed as standard 
 **Model Dependent:** false
 
 
+### Model HP RTU using CCHPC curves?
+Model standard performance HP-RTU and use performance curves developed for the Cold Climate Heat Pump Challenge (FEB 2024).
+**Name:** cchpc,
+**Type:** Choice,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+**Choice Display Names** ["false", "scenario_1", "scenario_2", "scenario_3", "scenario_4", "scenario_5", "scenario_6"]
+
+
 ### Add Energy Recovery?
 
 **Name:** hr,
