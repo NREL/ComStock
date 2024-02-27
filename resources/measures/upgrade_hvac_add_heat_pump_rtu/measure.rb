@@ -1884,7 +1884,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # add stage data: create stage 1
         new_dx_heating_coil_speed1 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
         new_dx_heating_coil_speed1.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[1])
-        new_dx_heating_coil_speed1.setGrossRatedHeatingCOP(4.96)
+        new_dx_heating_coil_speed1.setGrossRatedHeatingCOP(5.51)
         new_dx_heating_coil_speed1.setRatedAirFlowRate(hash_htg_airflow_stgs[1])
         new_dx_heating_coil_speed1.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed1.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft1)
@@ -1897,7 +1897,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # add stage data: create stage 2
         new_dx_heating_coil_speed2 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
         new_dx_heating_coil_speed2.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[2])
-        new_dx_heating_coil_speed2.setGrossRatedHeatingCOP(4.24)
+        new_dx_heating_coil_speed2.setGrossRatedHeatingCOP(4.71)
         new_dx_heating_coil_speed2.setRatedAirFlowRate(hash_htg_airflow_stgs[2])
         new_dx_heating_coil_speed2.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed2.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft2)
@@ -1910,7 +1910,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # add stage data: create stage 3
         new_dx_heating_coil_speed3 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
         new_dx_heating_coil_speed3.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[3])
-        new_dx_heating_coil_speed3.setGrossRatedHeatingCOP(3.59)
+        new_dx_heating_coil_speed3.setGrossRatedHeatingCOP(3.98)
         new_dx_heating_coil_speed3.setRatedAirFlowRate(hash_htg_airflow_stgs[3])
         new_dx_heating_coil_speed3.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed3.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft3)
@@ -1923,7 +1923,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # add stage data: create stage 4
         new_dx_heating_coil_speed4 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
         new_dx_heating_coil_speed4.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[4])
-        new_dx_heating_coil_speed4.setGrossRatedHeatingCOP(3.42)
+        new_dx_heating_coil_speed4.setGrossRatedHeatingCOP(3.80)
         new_dx_heating_coil_speed4.setRatedAirFlowRate(hash_htg_airflow_stgs[4])
         new_dx_heating_coil_speed4.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed4.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft4)
