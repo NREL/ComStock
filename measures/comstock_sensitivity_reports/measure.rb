@@ -153,6 +153,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     result << OpenStudio::IdfObject.load("Output:Variable,*,Heating Coil #{elec} Energy,RunPeriod;").get # J
     result << OpenStudio::IdfObject.load("Output:Variable,*,Heating Coil #{gas} Energy,RunPeriod;").get # J
     result << OpenStudio::IdfObject.load("Output:Variable,*,Heating Coil Defrost #{elec} Energy,RunPeriod;").get # J
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Heating Coil Crankcase Heater #{elec} Energy,RunPeriod;").get # J
     result << OpenStudio::IdfObject.load('Output:Variable,*,Heating Coil Heating Energy,RunPeriod;').get # J
     result << OpenStudio::IdfObject.load('Output:Variable,*,Cooling Coil Total Cooling Energy,RunPeriod;').get # J
     result << OpenStudio::IdfObject.load('Output:Variable,*,Zone VRF Air Terminal Total Heating Energy,RunPeriod;').get # J
@@ -1181,11 +1182,11 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
             supplemental_coil = supplemental_coil.to_CoilHeatingElectric.get
             supplemental_electric_j = sql_get_report_variable_data_double(runner, sql, supplemental_coil, "Heating Coil #{elec} Energy")
-            
+
           elsif supplemental_coil.to_CoilHeatingGas.is_initialized
             # supplemental load is sourced from gas
             vrf_total_heating_supplemental_load_gas_j += supplemental_coil_heating_energy_j
-            
+
             supplemental_coil = supplemental_coil.to_CoilHeatingGas.get
             supplemental_gas_j = sql_get_report_variable_data_double(runner, sql, supplemental_coil, "Heating Coil #{gas} Energy")
           else
@@ -1248,7 +1249,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
       # get VRF Heat Pump Cooling Electricity Energy
       vrf_cooling_electric_j = sql_get_report_variable_data_double(runner, sql, vrf, 'VRF Heat Pump Cooling Electricity Energy')
-  
+
       # get VRF Heat Pump Heating Electricity Energy
       vrf_heating_electric_j = sql_get_report_variable_data_double(runner, sql, vrf, 'VRF Heat Pump Heating Electricity Energy')
 
@@ -1260,7 +1261,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
       # get VRF Heat Pump Heat Recovery Energy
       vrf_heat_recovery_j = sql_get_report_variable_data_double(runner, sql, vrf, 'VRF Heat Pump Heat Recovery Energy')
-      
+
       # VRF design cops
       vrf_cooling_design_cop = vrf.grossRatedCoolingCOP
       vrf_heating_design_cop = vrf.ratedHeatingCOP
@@ -1287,8 +1288,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       cooling_eir_low_temp_curve = nil
       cooling_eir_high_temp_curve = nil
       if vrf.coolingEnergyInputRatioModifierFunctionofLowTemperatureCurve.is_initialized
-        cooling_eir_low_temp_curve = vrf.coolingEnergyInputRatioModifierFunctionofLowTemperatureCurve.get 
-      end   
+        cooling_eir_low_temp_curve = vrf.coolingEnergyInputRatioModifierFunctionofLowTemperatureCurve.get
+      end
       if vrf.coolingEnergyInputRatioModifierFunctionofHighTemperatureCurve.is_initialized
         cooling_eir_high_temp_curve = vrf.coolingEnergyInputRatioModifierFunctionofHighTemperatureCurve.get
       end
@@ -1360,8 +1361,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       heating_eir_low_temp_curve = nil
       heating_eir_high_temp_curve = nil
       if vrf.heatingEnergyInputRatioModifierFunctionofLowTemperatureCurve.is_initialized
-        heating_eir_low_temp_curve = vrf.heatingEnergyInputRatioModifierFunctionofLowTemperatureCurve.get 
-      end   
+        heating_eir_low_temp_curve = vrf.heatingEnergyInputRatioModifierFunctionofLowTemperatureCurve.get
+      end
       if vrf.heatingEnergyInputRatioModifierFunctionofHighTemperatureCurve.is_initialized
         heating_eir_high_temp_curve = vrf.heatingEnergyInputRatioModifierFunctionofHighTemperatureCurve.get
       end
@@ -1604,7 +1605,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       end
       wa_hp_cooling_total_capacity_w += capacity_w
 
-      coil_design_cop = coil.ratedCoolingCoefficientofPerformance 
+      coil_design_cop = coil.ratedCoolingCoefficientofPerformance
 
       # get Cooling Coil Total Cooling Energy
       coil_cooling_energy_j = sql_get_report_variable_data_double(runner, sql, coil, 'Cooling Coil Total Cooling Energy')
@@ -1648,7 +1649,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       end
       wa_hp_heating_total_capacity_w += capacity_w
 
-      coil_design_cop = coil.ratedHeatingCoefficientofPerformance 
+      coil_design_cop = coil.ratedHeatingCoefficientofPerformance
 
       # get Heating Coil Heating Energy
       coil_heating_energy_j = sql_get_report_variable_data_double(runner, sql, coil, 'Heating Coil Heating Energy')
@@ -1734,7 +1735,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         end
       elsif coil.to_CoilCoolingDXTwoSpeed.is_initialized
         coil = coil.to_CoilCoolingDXTwoSpeed.get
-        
+
         # capacity
         if coil.ratedHighSpeedTotalCoolingCapacity.is_initialized
           capacity_w = coil.ratedHighSpeedTotalCoolingCapacity.get
@@ -1756,7 +1757,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         end
       elsif coil.to_CoilCoolingDXMultiSpeed.is_initialized
         coil = coil.to_CoilCoolingDXMultiSpeed.get
-        
+
         # capacity and cop, use cop at highest capacity
         temp_capacity_w = 0.0
         coil.stages.each do |stage|
@@ -1921,6 +1922,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     dx_heating_total_supplemental_load_gas_j = 0.0
     dx_heating_total_supplemental_electric_j = 0.0
     dx_heating_total_supplemental_gas_j = 0.0
+    dx_heating_total_crankcase_electric_j = 0.0
     dx_heating_defrost_energy_j = 0.0
     dx_heating_0_to_30_kbtuh_total_load_j = 0.0
     dx_heating_30_to_65_kbtuh_total_load_j = 0.0
@@ -1940,6 +1942,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     dx_heating_total_supplemental_capacity_w = 0.0
     dx_heating_total_supplemental_capacity_electric_w = 0.0
     dx_heating_total_supplemental_capacity_gas_w = 0.0
+    dx_heating_total_crankcase_capacity_w = 0.0
     dx_heating_capacity_weighted_min_temp_w_c = 0.0
     dx_heating_count_0_to_30_kbtuh = 0.0
     dx_heating_count_30_to_65_kbtuh = 0.0
@@ -2108,6 +2111,9 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       minimum_temp_c = coil.minimumOutdoorDryBulbTemperatureforCompressorOperation
       dx_heating_capacity_weighted_min_temp_w_c += capacity_w * minimum_temp_c
 
+      # get crankcase heater total capacity
+      dx_heating_total_crankcase_capacity_w += coil.crankcaseHeaterCapacity
+
       # get supplemental heating coil
       supplemental_coil = nil
       if coil.airLoopHVAC.is_initialized
@@ -2198,7 +2204,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       supplemental_gas_j = 0.0
       unless supplemental_coil.nil?
         runner.registerInfo("'#{supplemental_coil.name}' is the supplemental heating coil for DX heating coil '#{coil.name}'")
-        
+
         # supplemental heating coil heating energy
         supplemental_coil_heating_energy_j = sql_get_report_variable_data_double(runner, sql, supplemental_coil, 'Heating Coil Heating Energy')
 
@@ -2235,15 +2241,21 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       # get Heating Coil Defrost Electric Energy
       coil_defrost_electric_energy_j = sql_get_report_variable_data_double(runner, sql, coil, "Heating Coil Defrost #{elec} Energy")
 
+      # get heating coil crankcase heater Electric Energy
+      coil_crankcase_heater_electric_energy_j = sql_get_report_variable_data_double(runner, sql, coil, "Heating Coil Crankcase Heater #{elec} Energy")
+      #puts "coil_crankcase_heater_electric_energy_j: #{coil_crankcase_heater_electric_energy_j}"
+      #coil_crankcase_heater_electric_energy_j = 5000000
+
       # add to weighted load cop
       total_heating_j = coil_heating_energy_j + supplemental_coil_heating_energy_j
-      total_energy_input_j = coil_electric_energy_j + supplemental_electric_j + supplemental_gas_j + coil_defrost_electric_energy_j
+      total_energy_input_j = coil_electric_energy_j + supplemental_electric_j + supplemental_gas_j + coil_defrost_electric_energy_j + coil_crankcase_heater_electric_energy_j
       coil_annual_cop = coil_heating_energy_j > 0.0 ? coil_heating_energy_j / coil_electric_energy_j : 0.0
       annual_total_cop = total_heating_j > 0.0 ? total_heating_j / total_energy_input_j : 0.0
       dx_heating_total_dx_electric_j += coil_electric_energy_j
       dx_heating_total_dx_load_j += coil_heating_energy_j
       dx_heating_total_load_j += total_heating_j
       dx_heating_defrost_energy_j += coil_defrost_electric_energy_j
+      dx_heating_total_crankcase_electric_j += coil_crankcase_heater_electric_energy_j
       dx_heating_load_weighted_cop += coil_heating_energy_j * coil_annual_cop
       dx_heating_load_weighted_total_cop += total_heating_j * annual_total_cop
       dx_heating_load_weighted_design_cop += coil_heating_energy_j * coil_design_cop
@@ -2324,6 +2336,10 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     runner.registerValue('com_report_hvac_count_dx_heating_135_to_240_kbtuh', dx_heating_count_135_to_240_kbtuh)
     runner.registerValue('com_report_hvac_count_dx_heating_240_plus_kbtuh', dx_heating_count_240_plus_kbtuh)
 
+    # report out crankcase heater capacities
+    dx_heating_total_crankcase_capacity_kbtuh = OpenStudio.convert(dx_heating_total_crankcase_capacity_w, 'W', 'kBtu/h').get
+    runner.registerValue('com_report_hvac_dx_heating_crankcase_heater_capacity_kbtuh', dx_heating_total_crankcase_capacity_kbtuh)
+
     # report out DX heating load and electric
     runner.registerValue('com_report_hvac_dx_heating_total_dx_electric_j', dx_heating_total_dx_electric_j)
     runner.registerValue('com_report_hvac_dx_heating_total_dx_load_j', dx_heating_total_dx_load_j)
@@ -2373,6 +2389,12 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       dx_heating_fraction_electric_defrost = dx_heating_defrost_energy_j / (dx_heating_total_supplemental_load_electric_j + dx_heating_defrost_energy_j + dx_heating_total_dx_electric_j)
     end
     runner.registerValue('com_report_hvac_dx_heating_fraction_electric_defrost', dx_heating_fraction_electric_defrost)
+
+    # report out crankcase heater energy
+    #puts "dx_heating_total_crankcase_electric_j: #{dx_heating_total_crankcase_electric_j}"
+    dx_heating_crankcase_heater_energy_kwh = OpenStudio.convert(dx_heating_total_crankcase_electric_j, 'J', 'kWh').get
+    #puts "dx_heating_crankcase_heater_energy_kwh: #{dx_heating_crankcase_heater_energy_kwh}"
+    runner.registerValue('com_report_hvac_dx_heating_crankcase_heater_energy_kwh', dx_heating_crankcase_heater_energy_kwh)
 
     # Get the outdoor air temp timeseries
     hours_below_minus_20_F = -999
@@ -2851,7 +2873,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       heat_pump_water_heater_total_volume_gal += volume_gal
       heat_pump_water_heater_count += 1.0
       if volume_gal == 0.0
-        runner.registerWarning("Heat pump water heater #{hpwh} has a zero gallon tank.")      
+        runner.registerWarning("Heat pump water heater #{hpwh} has a zero gallon tank.")
       elsif  volume_gal < 40.0
         heat_pump_water_heater_0_to_40_gal_total_volume_gal += volume_gal
         heat_pump_water_heater_0_to_40_gal_count += 1.0
@@ -2895,7 +2917,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       # get backup Water Heater Heating Energy
       tank_heating_energy_j = sql_get_report_variable_data_double(runner, sql, tank, 'Water Heater Heating Energy')
 
-      # get backup Water Heater Unmet Demand Heat Transfer Energy 
+      # get backup Water Heater Unmet Demand Heat Transfer Energy
       tank_unmet_demand_energy_j = sql_get_report_variable_data_double(runner, sql, tank, 'Water Heater Unmet Demand Heat Transfer Energy')
 
       # get Water Heater <Fuel Type> Energy
@@ -2942,7 +2964,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       heat_pump_water_heater_total_output_j += hpwh_total_output_energy_j
       heat_pump_water_heater_total_input_j += hpwh_total_input_energy_j
       if volume_gal == 0.0
-        runner.registerWarning("Heat pump water heater #{hpwh} has a zero gallon tank.")      
+        runner.registerWarning("Heat pump water heater #{hpwh} has a zero gallon tank.")
       elsif  volume_gal < 40.0
         heat_pump_water_heater_0_to_40_gal_capacity_w = heating_capacity_w * volume_gal
         heat_pump_water_heater_0_to_40_gal_cop += hpwh_cop * hpwh_total_output_energy_j
@@ -2988,7 +3010,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       water_heater_total_volume_gal += volume_gal
       water_heater_count += 1.0
       if volume_gal == 0.0
-        runner.registerWarning("Water heater #{wh} has a zero gallon tank.")      
+        runner.registerWarning("Water heater #{wh} has a zero gallon tank.")
       elsif  volume_gal < 40.0
         water_heater_0_to_40_gal_total_volume_gal += volume_gal
         water_heater_0_to_40_gal_count += 1.0
@@ -3003,7 +3025,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         water_heater_90_plus_gal_count += 1.0
       end
 
-      # get Water Heater Unmet Demand Heat Transfer Energy 
+      # get Water Heater Unmet Demand Heat Transfer Energy
       wh_unmet_demand_energy_j = sql_get_report_variable_data_double(runner, sql, wh, 'Water Heater Unmet Demand Heat Transfer Energy')
 
       # get Water Heater <Fuel Type> Energy

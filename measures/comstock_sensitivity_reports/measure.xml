@@ -1,10 +1,17 @@
 <?xml version="1.0"?>
 <measure>
   <schema_version>3.1</schema_version>
+  <error>C:/Users/ccaradon/Documents/GitHub/ComStock/measures/comstock_sensitivity_reports/measure.rb:2244: syntax error, unexpected constant, expecting `end'
+...Heater Electricity Energy") CC1
+...                            ^~~
+C:/Users/ccaradon/Documents/GitHub/ComStock/measures/comstock_sensitivity_reports/measure.rb:3138: Invalid return in class/module body
+    return true
+    ^~~~~~
+C:/Users/ccaradon/Documents/GitHub/ComStock/measures/comstock_sensitivity_reports/measure.rb:3140: syntax error, unexpected `end', expecting end-of-input</error>
   <name>com_stock_sensitivity_reports</name>
   <uid>aeb81242-de7e-4613-af47-c1faf19d286a</uid>
-  <version_id>6b0fee42-b4b5-4066-9414-39ee184586e2</version_id>
-  <version_modified>2023-12-04T18:21:39Z</version_modified>
+  <version_id>3f9ef7bc-69c6-40b3-a881-2978e94b044d</version_id>
+  <version_modified>2024-02-27T18:39:51Z</version_modified>
   <xml_checksum>A0069B90</xml_checksum>
   <class_name>ComStockSensitivityReports</class_name>
   <display_name>ComStock_Sensitivity_Reports</display_name>
@@ -59,7 +66,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>16CEB2D0</checksum>
+      <checksum>0B68E96D</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -76,7 +83,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>E3AD8595</checksum>
+      <checksum>F1793402</checksum>
     </file>
     <file>
       <filename>Variable List.xlsx</filename>
@@ -220,7 +227,7 @@
       <filename>comstock_sensitivity_reports_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>EE9495BD</checksum>
+      <checksum>0CC35CE4</checksum>
     </file>
     <file>
       <filename>ground_heat_exchanger.osm</filename>
