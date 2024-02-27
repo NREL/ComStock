@@ -2,14 +2,14 @@
 <measure>
   <schema_version>3.1</schema_version>
   <name>df_thermostat_control_load_shift</name>
-  <uid>97e23fce-5a82-4bdd-9e97-c4b65bfaea90</uid>
-  <version_id>e647164e-4a33-4497-8672-8a95d4c092d9</version_id>
-  <version_modified>2024-01-25T18:37:43Z</version_modified>
+  <uid>5aa9a6e4-0f3d-44f7-bf50-97686603a657</uid>
+  <version_id>6fa84956-2d8f-40d2-88bb-6f4528091d9c</version_id>
+  <version_modified>2024-02-26T23:10:23Z</version_modified>
   <xml_checksum>D7E77FC2</xml_checksum>
   <class_name>DfThermostatControlLoadShift</class_name>
   <display_name>demand flexibility - thermostat control load shift</display_name>
-  <description>tbd</description>
-  <modeler_description>tbd</modeler_description>
+  <description>This measure implements demand flexibility measure on daily thermostat control with load shift strategy, by adjusting thermostat setpoints for pre-cooling and/or pre-heating corresponding to the pre-peak schedule based on daily peak load prediction.</description>
+  <modeler_description>This measure performs load prediction based on options of full baseline run, bin-sample method and par year bin-sample method. Based on the predicted load profile the measure generates daily (pre-)peak schedule, and iterates through all applicable (electric) thermostats to adjust the pre-peak cooling or heating setpoints for pre-cooling or pre-heating.</modeler_description>
   <arguments>
     <argument>
       <name>peak_len</name>
@@ -25,7 +25,7 @@
       <type>Integer</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
-      <default_value>2</default_value>
+      <default_value>1</default_value>
     </argument>
     <argument>
       <name>sp_adjustment</name>
@@ -33,7 +33,7 @@
       <type>Double</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
-      <default_value>2</default_value>
+      <default_value>1</default_value>
     </argument>
     <argument>
       <name>num_timesteps_in_hr</name>
@@ -123,19 +123,19 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>DEEC97A3</checksum>
+      <checksum>E4BD5D9F</checksum>
     </file>
     <file>
       <filename>dispatch_schedule_generation.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>F8949348</checksum>
+      <checksum>A1F3F628</checksum>
     </file>
     <file>
       <filename>df_thermostat_control_load_shift_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>57C6034A</checksum>
+      <checksum>AAC28C6A</checksum>
     </file>
   </files>
 </measure>

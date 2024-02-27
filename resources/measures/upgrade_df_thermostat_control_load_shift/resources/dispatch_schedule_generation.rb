@@ -40,7 +40,7 @@ require 'openstudio'
 require 'date'
 require 'openstudio-standards'
 
-### convert day of year to month-day date ######################### NEED TO ADD FUNCTIONALITY OF DEALING WITH LEAP YEAR
+### convert day of year to month-day date
 def day_of_year_to_date(year, day_of_year)
   date = Date.new(year, 1, 1) + day_of_year - 1
   month = date.month
@@ -57,9 +57,8 @@ def leap_year?(year)
   end
 end
 
-### run simulation on selected day of year
+### obtain oat profile from epw file 
 def read_epw(model, epw_path=nil)
-
   if epw_path==nil
     # get EPWFile class from model
     weatherfile = nil
@@ -78,24 +77,13 @@ def read_epw(model, epw_path=nil)
     puts("Override with given epw from #{epw_path}")
     epw_file = OpenStudio::EpwFile.new(epw_path)
   end
-
-  # weather_startDate = epw_file.startDate
-  weather_startDateActualYear = epw_file.startDateActualYear
-  year = weather_startDateActualYear.to_i
-  weather_timeStep = epw_file.timeStep
-  weather_daylightSavingEndDate = epw_file.daylightSavingEndDate
-  weather_daylightSavingStartDate = epw_file.daylightSavingStartDate
-  # puts("weather name: #{epw_file.city}_#{epw_file.stateProvinceRegion}_#{epw_file.country}")
-  
   field = 'DryBulbTemperature'
   weather_ts = epw_file.getTimeSeries(field)
-  
   if weather_ts.is_initialized
     weather_ts = weather_ts.get
   else
     puts "FAIL, could not retrieve field: #{field} from #{epw_file}"
   end
-  # puts weather_ts
   # Put dateTimes into array
   times = []
   os_times = weather_ts.dateTimes
@@ -108,28 +96,16 @@ def read_epw(model, epw_path=nil)
   for i in 0..(os_vals.size - 1)
     vals << os_vals[i]
   end
-  # # Loop through the time/value pairs
-  # times.zip(vals).each_with_index do |t, v|
-  #   puts("#{t} = #{v}")
-  # end
-  # return weather_ts
-  if year == 0
-    year = 2018
-  end
-  return year, vals
+  return vals
 end
 
 ### create bins based on temperature profile and select sample days in bins
-def create_binsamples(oat)
-
+def create_binsamples(oat,option)
   if oat.size == 8784
     nd = 366
   else
     nd = 365
   end
-  # daystats = []
-  # tempbins = {'ext-hot' => [], 'hot' => [], 'mild' => [], 'cool-mild' => [], 'cool' => [], 'cold' => []}
-  # hourbins = {'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => []}
   combbins = {
     'ext-hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
     'hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
@@ -146,22 +122,10 @@ def create_binsamples(oat)
     'cool' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
     'cold' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] }
   }
-
   (0..nd-1).each do |d|
-    # daystats[d] = {
-    #   'day' => d + 1,
-    #   'OATmax' => Xday[Xday.index.day_of_year == d + 1]['OAT'].max,
-    #   'OATmaxhour' => Xday[Xday.index.day_of_year == d + 1]['OAT'].index(Xday[Xday.index.day_of_year == d + 1]['OAT'].max),
-    #   'OATmin' => Xday[Xday.index.day_of_year == d + 1]['OAT'].min,
-    #   'OATmean' => Xday[Xday.index.day_of_year == d + 1]['OAT'].mean,
-    #   'OATstd' => Xday[Xday.index.day_of_year == d + 1]['OAT'].std,
-    #   'OATmed' => Xday[Xday.index.day_of_year == d + 1]['OAT'].median,
-    # }
     oatmax = oat[24*d..24*(d+1)-1].max
     oatmaxind = oat[24*d..24*(d+1)-1].index(oat[24*d..24*(d+1)-1].max)
-    
     if oatmax >= 32.0
-      # tempbins['ext-hot'] << d+1
       if (oatmaxind >= 9.0) && (oatmaxind <= 11.0)
         combbins['ext-hot']['morning'] << d+1
       elsif (oatmaxind > 11.0) && (oatmaxind <= 14.0)
@@ -176,7 +140,6 @@ def create_binsamples(oat)
         combbins['ext-hot']['other'] << d+1
       end
     elsif oatmax >= 30.0
-      # tempbins['hot'] << d+1
       if (oatmaxind >= 9.0) && (oatmaxind <= 11.0)
         combbins['hot']['morning'] << d+1
       elsif (oatmaxind > 11.0) && (oatmaxind <= 14.0)
@@ -191,7 +154,6 @@ def create_binsamples(oat)
         combbins['hot']['other'] << d+1
       end
     elsif oatmax >= 26.0
-      # tempbins['mild'] << d+1
       if (oatmaxind >= 9.0) && (oatmaxind <= 11.0)
         combbins['mild']['morning'] << d+1
       elsif (oatmaxind > 11.0) && (oatmaxind <= 14.0)
@@ -206,7 +168,6 @@ def create_binsamples(oat)
         combbins['mild']['other'] << d+1
       end
     elsif oatmax >= 20.0
-      # tempbins['cool-mild'] << d+1
       if (oatmaxind >= 9.0) && (oatmaxind <= 11.0)
         combbins['cool-mild']['morning'] << d+1
       elsif (oatmaxind > 11.0) && (oatmaxind <= 14.0)
@@ -221,7 +182,6 @@ def create_binsamples(oat)
         combbins['cool-mild']['other'] << d+1
       end
     elsif oatmax >= 15.0
-      # tempbins['cool'] << d+1
       if (oatmaxind >= 9.0) && (oatmaxind <= 11.0)
         combbins['cool']['morning'] << d+1
       elsif (oatmaxind > 11.0) && (oatmaxind <= 14.0)
@@ -236,7 +196,6 @@ def create_binsamples(oat)
         combbins['cool']['other'] << d+1
       end
     else
-      # tempbins['cold'] << d+1
       if (oatmaxind >= 9.0) && (oatmaxind <= 11.0)
         combbins['cold']['morning'] << d+1
       elsif (oatmaxind > 11.0) && (oatmaxind <= 14.0)
@@ -252,26 +211,40 @@ def create_binsamples(oat)
       end
     end
   end
-
   ns = 0
   srand(42)
   max_doys = []
   combbins.keys.each do |key|
-    # puts key
     combbins[key].keys.each do |keykey|
-      # puts keykey
-      # puts combbins[key][keykey].length
       if combbins[key][keykey].length > 14
-        selectdays[key][keykey] = combbins[key][keykey].sort.take(3).to_a
-        # selectdays[key][keykey] = combbins[key][keykey].sample(3)
+        if option=='random'
+          selectdays[key][keykey] = combbins[key][keykey].sample(3)
+        elsif option=='sort'
+          selectdays[key][keykey] = combbins[key][keykey].sort.take(3).to_a
+        else
+          puts('Wrong sampling option')
+          return false
+        end
         ns += 3
       elsif combbins[key][keykey].length > 7
-        selectdays[key][keykey] = combbins[key][keykey].sort.take(2).to_a
-        # selectdays[key][keykey] = combbins[key][keykey].sample(2)
+        if option=='random'
+          selectdays[key][keykey] = combbins[key][keykey].sample(2)
+        elsif option=='sort'
+          selectdays[key][keykey] = combbins[key][keykey].sort.take(2).to_a
+        else
+          puts('Wrong sampling option')
+          return false
+        end
         ns += 2
       elsif combbins[key][keykey].length > 0
-        selectdays[key][keykey] = combbins[key][keykey].sort.take(1).to_a
-        # selectdays[key][keykey] = combbins[key][keykey].sample(1)
+        if option=='random'
+          selectdays[key][keykey] = combbins[key][keykey].sample(1)
+        elsif option=='sort'
+          selectdays[key][keykey] = combbins[key][keykey].sort.take(1).to_a
+        else
+          puts('Wrong sampling option')
+          return false
+        end
         ns += 1
       end
       if selectdays[key][keykey] != []
@@ -284,13 +257,12 @@ def create_binsamples(oat)
 end
 
 ### run simulation on selected day of year
-def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=nil, run_dir = "#{Dir.pwd}/Run")
+def model_run_simulation_on_doy(model, doy, num_timesteps_in_hr, epw_path=nil, run_dir = "#{Dir.pwd}/Run")
   ### reference: https://github.com/NREL/openstudio-standards/blob/master/lib/openstudio-standards/utilities/simulation.rb#L187
   # Make the directory if it doesn't exist
   unless Dir.exist?(run_dir)
     FileUtils.mkdir_p(run_dir)
   end
-  # puts("### DEBUGGING: run_dir = #{run_dir}")
   template = 'ComStock 90.1-2019'
   std = Standard.build(template)
   # Save the model to energyplus idf
@@ -298,7 +270,7 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=
   osw_name = 'in.osw'
   OpenStudio.logFree(OpenStudio::Debug, 'openstudio.model.Model', "Starting simulation here: #{run_dir}.")
   OpenStudio.logFree(OpenStudio::Info, 'openstudio.model.Model', "Started simulation #{run_dir} at #{Time.now.strftime('%T.%L')}")
-  forward_translator = OpenStudio::EnergyPlus::ForwardTranslator.new
+  year = model.getYearDescription.calendarYear.to_i
   if doy == 1
     begin_month, begin_day = day_of_year_to_date(year, doy)
     end_month, end_day = day_of_year_to_date(year, doy+1)
@@ -316,7 +288,6 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=
   syssizing_orig = model.getSimulationControl.doSystemSizingCalculation
   plantsizing_orig = model.getSimulationControl.doPlantSizingCalculation
   ### reference: SetRunPeriod measure on BCL
-  model.getYearDescription.setCalendarYear(year)
   model.getRunPeriod.setBeginMonth(begin_month)
   model.getRunPeriod.setBeginDayOfMonth(begin_day)
   model.getRunPeriod.setEndMonth(end_month)
@@ -324,16 +295,9 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=
   if num_timesteps_in_hr != 4
     model.getTimestep.setNumberOfTimestepsPerHour(num_timesteps_in_hr)
   end
-  # model.getSimulationControl.setDoZoneSizingCalculation(false)
-  # model.getSimulationControl.setDoSystemSizingCalculation(false)
-  # model.getSimulationControl.setDoPlantSizingCalculation(false)
-  # puts("### DEBUGGING: model.getRunPeriod.getBeginDayOfMonth = #{model.getRunPeriod.getBeginDayOfMonth}")
-  # puts("### DEBUGGING: model.getRunPeriod.getBeginMonth = #{model.getRunPeriod.getBeginMonth}")
-  # puts("### DEBUGGING: model.getRunPeriod.getEndMonth = #{model.getRunPeriod.getEndMonth}")
-  # puts("### DEBUGGING: model.getRunPeriod.getEndDayOfMonth = #{model.getRunPeriod.getEndDayOfMonth}")
-  # puts("### DEBUGGING: model.getSimulationControl.doZoneSizingCalculation = #{model.getSimulationControl.doZoneSizingCalculation}")
-  # puts("### DEBUGGING: model.getSimulationControl.doSystemSizingCalculation = #{model.getSimulationControl.doSystemSizingCalculation}")
-  # puts("### DEBUGGING: model.getSimulationControl.doPlantSizingCalculation = #{model.getSimulationControl.doPlantSizingCalculation}")
+  model.getSimulationControl.setDoZoneSizingCalculation(false)
+  model.getSimulationControl.setDoSystemSizingCalculation(false)
+  model.getSimulationControl.setDoPlantSizingCalculation(false)
   osm_path = OpenStudio::Path.new("#{run_dir}/#{osm_name}")
   osw_path = OpenStudio::Path.new("#{run_dir}/#{osw_name}")
   model.save(osm_path, true)
@@ -366,7 +330,6 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=
     return false
   end
   workflow.setSeedFile(osm_name)
-  # puts osm_path
   workflow.setWeatherFile(epw_name)
   workflow.saveAs(File.absolute_path(osw_path.to_s))
   # 'touch' the weather file - for some odd reason this fixes the simulation not running issue we had on openstudio-server.
@@ -374,13 +337,10 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=
   # FileUtils.touch("#{run_dir}/#{epw_name}")
   cli_path = OpenStudio.getOpenStudioCLI
   cmd = "\"#{cli_path}\" run -w \"#{osw_path}\""
-  # cmd = "\"#{cli_path}\" --verbose run -w \"#{osw_path}\""
-  # puts cmd
   # Run the sizing run
   OpenstudioStandards.run_command(cmd)
   OpenStudio.logFree(OpenStudio::Info, 'openstudio.model.Model', "Finished simulation #{run_dir} at #{Time.now.strftime('%T.%L')}")
   sql_path = OpenStudio::Path.new("#{run_dir}/run/eplusout.sql")
-  # puts("### DEBUGGING: sql_path = #{sql_path}")
   # get sql
   sqlFile = OpenStudio::SqlFile.new(sql_path)
   # if sqlFile.is_initialized
@@ -395,9 +355,6 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=
       availableReportingFrequencies << repfreq
     end
   end
-  # puts("### DEBUGGING: availableEnvPeriods = #{availableEnvPeriods}")
-  # puts("### DEBUGGING: availableTimeSeries = #{availableTimeSeries}")
-  # puts("### DEBUGGING: availableReportingFrequencies = #{availableReportingFrequencies}")
   envperiod = nil
   if availableEnvPeriods.size == 1
     envperiod = 'RUN PERIOD 1'
@@ -413,25 +370,15 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=
     raise "timeseriesname of #{timeseriesname} not included in available options: #{availableTimeSeries}"
   end
   unless availableReportingFrequencies.include?(reportingfrequency)
-    # puts("Hourly reporting frequency is not available")
     reportingfrequency = 'Zone Timestep'
     unless availableReportingFrequencies.include?(reportingfrequency)
       raise "reportingfrequency of #{reportingfrequency} not included in available options: #{availableReportingFrequencies}"
     end
   end
-
   electricity_results = sqlFile.timeSeries(envperiod,reportingfrequency,timeseriesname)
   vals = []
   electricity_results.each do |electricity_result|
-    # puts("--- electricity_result.intervalLength = #{electricity_result.intervalLength}")
-    # puts("--- electricity_result.startDateTime = #{electricity_result.startDateTime}")
-    # electricity_result.values.each_with_index do |value, i|
-    #   puts("--- value #{i} = #{value}")
-    # end
     elec_vals = electricity_result.values
-    # for i in (elec_vals.size/2)..(elec_vals.size - 1)
-    #   vals << elec_vals[i]
-    # end
     for i in 0..(elec_vals.size - 1)
       vals << elec_vals[i]
     end
@@ -453,7 +400,7 @@ def model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=
 end
 
 ### run simulation on all sample days of year
-def run_samples(model, year, selectdays, num_timesteps_in_hr, epw_path=nil)
+def run_samples(model, selectdays, num_timesteps_in_hr, epw_path=nil)
   y_seed = {
     'ext-hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
     'hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
@@ -462,18 +409,12 @@ def run_samples(model, year, selectdays, num_timesteps_in_hr, epw_path=nil)
     'cool' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
     'cold' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] }
   }
-
   selectdays.keys.each do |key|
     selectdays[key].keys.each do |keykey|
-      # puts key, keykey
       ns = selectdays[key][keykey].length.to_f
-      # puts "Number of samples: #{ns}"
       selectdays[key][keykey].each do |doy|
-        # start_time = Time.now
         puts "Simulation on day of year: #{doy}"
-        yd = model_run_simulation_on_doy(model, year, doy, num_timesteps_in_hr, epw_path=epw_path)
-        # puts("--- yd = #{yd}")
-        # puts("--- yd.size = #{yd.size}")
+        yd = model_run_simulation_on_doy(model, doy, num_timesteps_in_hr, epw_path=epw_path)
         if yd.size > 24
           averages = []
           yd.each_slice(yd.size/24) do |slice|
@@ -491,26 +432,19 @@ def run_samples(model, year, selectdays, num_timesteps_in_hr, epw_path=nil)
             y_seed[key][keykey] = yd.zip(y_seed[key][keykey]).map { |a, b| (a/ns+b) }
           end
         end
-        # y_seed[key][keykey] = yd / selectdays[key][keykey].length.to_f
-        # puts y_seed[key][keykey]
-        # break
       end
-      # break
-      # puts y_seed[key][keykey]
     end
-    # break
   end
   return y_seed
 end
 
 ### run simulation on part of year
-def model_run_simulation_on_part_of_year(model, year, max_doy, num_timesteps_in_hr, epw_path=nil, run_dir = "#{Dir.pwd}/Run")
+def model_run_simulation_on_part_of_year(model, max_doy, num_timesteps_in_hr, epw_path=nil, run_dir = "#{Dir.pwd}/Run")
   ### reference: https://github.com/NREL/openstudio-standards/blob/master/lib/openstudio-standards/utilities/simulation.rb#L187
   # Make the directory if it doesn't exist
   unless Dir.exist?(run_dir)
     FileUtils.mkdir_p(run_dir)
   end
-  # puts("### DEBUGGING: run_dir = #{run_dir}")
   template = 'ComStock 90.1-2019'
   std = Standard.build(template)
   # Save the model to energyplus idf
@@ -518,7 +452,7 @@ def model_run_simulation_on_part_of_year(model, year, max_doy, num_timesteps_in_
   osw_name = 'in.osw'
   OpenStudio.logFree(OpenStudio::Debug, 'openstudio.model.Model', "Starting simulation here: #{run_dir}.")
   OpenStudio.logFree(OpenStudio::Info, 'openstudio.model.Model', "Started simulation #{run_dir} at #{Time.now.strftime('%T.%L')}")
-  # forward_translator = OpenStudio::EnergyPlus::ForwardTranslator.new
+  year = model.getYearDescription.calendarYear.to_i
   begin_month, begin_day = day_of_year_to_date(year, 1)
   end_month, end_day = day_of_year_to_date(year, max_doy)
   # store original config
@@ -530,16 +464,7 @@ def model_run_simulation_on_part_of_year(model, year, max_doy, num_timesteps_in_
   zonesizing_orig = model.getSimulationControl.doZoneSizingCalculation
   syssizing_orig = model.getSimulationControl.doSystemSizingCalculation
   plantsizing_orig = model.getSimulationControl.doPlantSizingCalculation
-  # puts("### DEBUGGING: begin_month_orig = #{begin_month_orig}")
-  # puts("### DEBUGGING: begin_day_orig = #{begin_day_orig}")
-  # puts("### DEBUGGING: end_month_orig = #{end_month_orig}")
-  # puts("### DEBUGGING: end_day_orig = #{end_day_orig}")
-  # puts("### DEBUGGING: num_timesteps_in_hr_orig = #{num_timesteps_in_hr_orig}")
-  # puts("### DEBUGGING: zonesizing_orig = #{zonesizing_orig}")
-  # puts("### DEBUGGING: syssizing_orig = #{syssizing_orig}")
-  # puts("### DEBUGGING: plantsizing_orig = #{plantsizing_orig}")
   ### reference: SetRunPeriod measure on BCL
-  model.getYearDescription.setCalendarYear(year)
   model.getRunPeriod.setBeginMonth(begin_month)
   model.getRunPeriod.setBeginDayOfMonth(begin_day)
   model.getRunPeriod.setEndMonth(end_month)
@@ -550,13 +475,6 @@ def model_run_simulation_on_part_of_year(model, year, max_doy, num_timesteps_in_
   model.getSimulationControl.setDoZoneSizingCalculation(false)
   model.getSimulationControl.setDoSystemSizingCalculation(false)
   model.getSimulationControl.setDoPlantSizingCalculation(false)
-  # puts("### DEBUGGING: model.getRunPeriod.getBeginDayOfMonth = #{model.getRunPeriod.getBeginDayOfMonth}")
-  # puts("### DEBUGGING: model.getRunPeriod.getBeginMonth = #{model.getRunPeriod.getBeginMonth}")
-  # puts("### DEBUGGING: model.getRunPeriod.getEndMonth = #{model.getRunPeriod.getEndMonth}")
-  # puts("### DEBUGGING: model.getRunPeriod.getEndDayOfMonth = #{model.getRunPeriod.getEndDayOfMonth}")
-  # puts("### DEBUGGING: model.getSimulationControl.doZoneSizingCalculation = #{model.getSimulationControl.doZoneSizingCalculation}")
-  # puts("### DEBUGGING: model.getSimulationControl.doSystemSizingCalculation = #{model.getSimulationControl.doSystemSizingCalculation}")
-  # puts("### DEBUGGING: model.getSimulationControl.doPlantSizingCalculation = #{model.getSimulationControl.doPlantSizingCalculation}")
   osm_path = OpenStudio::Path.new("#{run_dir}/#{osm_name}")
   osw_path = OpenStudio::Path.new("#{run_dir}/#{osw_name}")
   model.save(osm_path, true)
@@ -568,7 +486,6 @@ def model_run_simulation_on_part_of_year(model, year, max_doy, num_timesteps_in_
       return false
     end
     epw_path = epw_path.get
-    # puts epw_path
   end
   # close current sql file
   model.resetSqlFile
@@ -589,7 +506,6 @@ def model_run_simulation_on_part_of_year(model, year, max_doy, num_timesteps_in_
     return false
   end
   workflow.setSeedFile(osm_name)
-  # puts osm_path
   workflow.setWeatherFile(epw_name)
   workflow.saveAs(File.absolute_path(osw_path.to_s))
   # 'touch' the weather file - for some odd reason this fixes the simulation not running issue we had on openstudio-server.
@@ -597,18 +513,13 @@ def model_run_simulation_on_part_of_year(model, year, max_doy, num_timesteps_in_
   # FileUtils.touch("#{run_dir}/#{epw_name}")
   cli_path = OpenStudio.getOpenStudioCLI
   cmd = "\"#{cli_path}\" run -w \"#{osw_path}\""
-  # cmd = "\"#{cli_path}\" --verbose run -w \"#{osw_path}\""
   puts cmd
   # Run the sizing run
   OpenstudioStandards.run_command(cmd)
   OpenStudio.logFree(OpenStudio::Info, 'openstudio.model.Model', "Finished simulation #{run_dir} at #{Time.now.strftime('%T.%L')}")
   sql_path = OpenStudio::Path.new("#{run_dir}/run/eplusout.sql")
-  # puts("### DEBUGGING: sql_path = #{sql_path}")
   # get sql
   sqlFile = OpenStudio::SqlFile.new(sql_path)
-  # if sqlFile.is_initialized
-  #   sqlFile = sqlFile.get
-  # end
   # check available timeseries extraction options
   availableEnvPeriods = sqlFile.availableEnvPeriods.to_a
   availableTimeSeries = sqlFile.availableTimeSeries.to_a
@@ -618,9 +529,6 @@ def model_run_simulation_on_part_of_year(model, year, max_doy, num_timesteps_in_
       availableReportingFrequencies << repfreq
     end
   end
-  # puts("### DEBUGGING: availableEnvPeriods = #{availableEnvPeriods}")
-  # puts("### DEBUGGING: availableTimeSeries = #{availableTimeSeries}")
-  # puts("### DEBUGGING: availableReportingFrequencies = #{availableReportingFrequencies}")
   envperiod = nil
   if availableEnvPeriods.size == 1
     envperiod = 'RUN PERIOD 1'
@@ -667,7 +575,7 @@ def model_run_simulation_on_part_of_year(model, year, max_doy, num_timesteps_in_
 end
 
 ### run simulation on part of year and extract samples
-def run_part_year_samples(model, year, max_doy, selectdays, num_timesteps_in_hr, epw_path=nil)
+def run_part_year_samples(model, max_doy, selectdays, num_timesteps_in_hr, epw_path=nil)
   y_seed = {
     'ext-hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
     'hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
@@ -677,11 +585,7 @@ def run_part_year_samples(model, year, max_doy, selectdays, num_timesteps_in_hr,
     'cold' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] }
   }
   puts "Simulation on part year until day: #{max_doy}"
-  # start_time = Time.now
-  yd = model_run_simulation_on_part_of_year(model, year, max_doy, num_timesteps_in_hr, epw_path=epw_path)
-  # end_time = Time.now
-  # puts "Script execution time: #{end_time - start_time} seconds"
-  # puts("--- yd.size = #{yd.size}")
+  yd = model_run_simulation_on_part_of_year(model, max_doy, num_timesteps_in_hr, epw_path=epw_path)
   if num_timesteps_in_hr != 1 #yd.size > 24*max_doy
     puts("Convert interval to hourly")
     sums = []
@@ -691,13 +595,9 @@ def run_part_year_samples(model, year, max_doy, selectdays, num_timesteps_in_hr,
     end
     yd = sums
   end
-  # puts("--- yd = #{yd}")
-  # puts("--- yd.size = #{yd.size}")
   selectdays.keys.each do |key|
     selectdays[key].keys.each do |keykey|
-      # puts key, keykey
       ns = selectdays[key][keykey].length.to_f
-      # puts "Number of samples: #{ns}"
       selectdays[key][keykey].each do |doy|
         if ns == 1
           y_seed[key][keykey] = yd[(doy*24-24)..(doy*24-1)]
@@ -708,22 +608,15 @@ def run_part_year_samples(model, year, max_doy, selectdays, num_timesteps_in_hr,
             y_seed[key][keykey] = yd[(doy*24-24)..(doy*24-1)].zip(y_seed[key][keykey]).map { |a, b| (a/ns+b) }
           end
         end
-        # y_seed[key][keykey] = yd / selectdays[key][keykey].length.to_f
-        # puts y_seed[key][keykey]
-        # break
       end
-      # break
-      # puts y_seed[key][keykey]
     end
-    # break
   end
   return y_seed
 end
 
 ### populate load profile of samples to all days based on bins
-def load_prediction_from_sample(y_seed, combbins, year)
-  # puts("--- y_seed = #{y_seed}")
-  # puts("--- combbins = #{combbins}")
+def load_prediction_from_sample(model, y_seed, combbins)
+  year = model.getYearDescription.calendarYear.to_i
   if leap_year?(year)
     nd = 366
   else
@@ -731,15 +624,10 @@ def load_prediction_from_sample(y_seed, combbins, year)
   end
   annual_load = []
   (0..nd-1).each do |d|
-    # puts d
     combbins.each do |key,subbin|
-      # puts key
-      # puts subbin
       subbin.each do |keykey,bin|
         if bin.include?(d+1)
-          # puts key, keykey
           annual_load.concat(y_seed[key][keykey])
-          # break
         end
       end
     end
@@ -748,7 +636,7 @@ def load_prediction_from_sample(y_seed, combbins, year)
 end
 
 ### run simulation on full year
-def load_prediction_from_full_run(model, year, num_timesteps_in_hr, epw_path=nil, run_dir = "#{Dir.pwd}/Run")
+def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path=nil, run_dir = "#{Dir.pwd}/Run")
   ### reference: https://github.com/NREL/openstudio-standards/blob/master/lib/openstudio-standards/utilities/simulation.rb#L187
   # Make the directory if it doesn't exist
   unless Dir.exist?(run_dir)
@@ -762,7 +650,6 @@ def load_prediction_from_full_run(model, year, num_timesteps_in_hr, epw_path=nil
   osw_name = 'in.osw'
   OpenStudio.logFree(OpenStudio::Debug, 'openstudio.model.Model', "Starting simulation here: #{run_dir}.")
   OpenStudio.logFree(OpenStudio::Info, 'openstudio.model.Model', "Started simulation #{run_dir} at #{Time.now.strftime('%T.%L')}")
-  # forward_translator = OpenStudio::EnergyPlus::ForwardTranslator.new
   # store original config
   begin_month_orig = model.getRunPeriod.getBeginMonth
   begin_day_orig = model.getRunPeriod.getBeginDayOfMonth
@@ -773,7 +660,6 @@ def load_prediction_from_full_run(model, year, num_timesteps_in_hr, epw_path=nil
   syssizing_orig = model.getSimulationControl.doSystemSizingCalculation
   plantsizing_orig = model.getSimulationControl.doPlantSizingCalculation
   ### reference: SetRunPeriod measure on BCL
-  model.getYearDescription.setCalendarYear(year)
   model.getRunPeriod.setBeginMonth(1)
   model.getRunPeriod.setBeginDayOfMonth(1)
   model.getRunPeriod.setEndMonth(12)
@@ -781,6 +667,9 @@ def load_prediction_from_full_run(model, year, num_timesteps_in_hr, epw_path=nil
   if num_timesteps_in_hr != 4
     model.getTimestep.setNumberOfTimestepsPerHour(num_timesteps_in_hr)
   end
+  model.getSimulationControl.setDoZoneSizingCalculation(false)
+  model.getSimulationControl.setDoSystemSizingCalculation(false)
+  model.getSimulationControl.setDoPlantSizingCalculation(false)
   osm_path = OpenStudio::Path.new("#{run_dir}/#{osm_name}")
   osw_path = OpenStudio::Path.new("#{run_dir}/#{osw_name}")
   model.save(osm_path, true)
@@ -792,7 +681,6 @@ def load_prediction_from_full_run(model, year, num_timesteps_in_hr, epw_path=nil
       return false
     end
     epw_path = epw_path.get
-    # puts epw_path
   end
   # close current sql file
   model.resetSqlFile
@@ -813,7 +701,6 @@ def load_prediction_from_full_run(model, year, num_timesteps_in_hr, epw_path=nil
     return false
   end
   workflow.setSeedFile(osm_name)
-  # puts osm_path
   workflow.setWeatherFile(epw_name)
   workflow.saveAs(File.absolute_path(osw_path.to_s))
   # 'touch' the weather file - for some odd reason this fixes the simulation not running issue we had on openstudio-server.
@@ -821,18 +708,13 @@ def load_prediction_from_full_run(model, year, num_timesteps_in_hr, epw_path=nil
   # FileUtils.touch("#{run_dir}/#{epw_name}")
   cli_path = OpenStudio.getOpenStudioCLI
   cmd = "\"#{cli_path}\" run -w \"#{osw_path}\""
-  # cmd = "\"#{cli_path}\" --verbose run -w \"#{osw_path}\""
   puts cmd
   # Run the sizing run
   OpenstudioStandards.run_command(cmd)
   OpenStudio.logFree(OpenStudio::Info, 'openstudio.model.Model', "Finished simulation #{run_dir} at #{Time.now.strftime('%T.%L')}")
   sql_path = OpenStudio::Path.new("#{run_dir}/run/eplusout.sql")
-  # puts("### DEBUGGING: sql_path = #{sql_path}")
   # get sql
   sqlFile = OpenStudio::SqlFile.new(sql_path)
-  # if sqlFile.is_initialized
-  #   sqlFile = sqlFile.get
-  # end
   # check available timeseries extraction options
   availableEnvPeriods = sqlFile.availableEnvPeriods.to_a
   availableTimeSeries = sqlFile.availableTimeSeries.to_a
@@ -842,9 +724,6 @@ def load_prediction_from_full_run(model, year, num_timesteps_in_hr, epw_path=nil
       availableReportingFrequencies << repfreq
     end
   end
-  # puts("### DEBUGGING: availableEnvPeriods = #{availableEnvPeriods}")
-  # puts("### DEBUGGING: availableTimeSeries = #{availableTimeSeries}")
-  # puts("### DEBUGGING: availableReportingFrequencies = #{availableReportingFrequencies}")
   envperiod = nil
   if availableEnvPeriods.size == 1
     envperiod = 'RUN PERIOD 1'
@@ -902,9 +781,6 @@ end
 ### determine daily peak window based on daily load profile
 def find_daily_peak_window(daily_load, peak_len)
   maxload_ind = daily_load.index(daily_load.max)
-  # puts("--- daily_load = #{daily_load}")
-  # puts("--- peak_len = #{peak_len}")
-  # puts("--- maxload_ind = #{maxload_ind}")
   # maxload = daily_load.max
   peak_sum = (0..peak_len-1).map do |i|
     daily_load[(maxload_ind - i)..(maxload_ind - i + peak_len - 1)].sum
@@ -913,8 +789,18 @@ def find_daily_peak_window(daily_load, peak_len)
   return peak_ind
 end
 
-### Generate peak schedule for whole year with rebound option ########################### NEED TO JUSTIFY PUTTING REBOUND OPTION HERE OR IN INDIVIDUAL DF MEASURES
-def peak_schedule_generation(annual_load, peak_len, rebound_len=0, prepeak_len=0)
+def seasons
+  return {
+      'winter' => [-1e9, 55],
+      'summer' => [70, 1e9],
+      'shoulder' => [55, 70],
+      'nonwinter' => [55, 1e9],
+      'all' => [-1e9, 1e9]
+  }
+end
+
+### Generate peak schedule for whole year with rebound option
+def peak_schedule_generation(annual_load, oat, peak_len, rebound_len=0, prepeak_len=0, season='all')
   if annual_load.size == 8784
     nd = 366
   elsif annual_load.size == 8760
@@ -923,29 +809,29 @@ def peak_schedule_generation(annual_load, peak_len, rebound_len=0, prepeak_len=0
     raise 'annual load profile not hourly'
   end
   peak_schedule = Array.new(nd * 24, 0)
-  # puts("--- rebound_len = #{rebound_len}")
-  # puts("--- peak_len = #{peak_len}")
-  # puts("--- peak_schedule.size = #{peak_schedule.size}")
-  # peak_ind_ann = []
+  temperature_range = seasons[season]
   (0..nd-1).each do |d|
     range_start = d * 24
     range_end = d * 24 + 23
-    peak_ind = find_daily_peak_window(annual_load[range_start..range_end], peak_len)
-    # peak and rebound schedule
-    if prepeak_len == 0
-      peak_schedule[(range_start + peak_ind)..(range_start + peak_ind + peak_len - 1)] = Array.new(peak_len, 1)
-      if rebound_len > 0
-        range_rebound_start = range_start + peak_ind + peak_len - 1
-        range_rebound_end = range_start + peak_ind + peak_len + rebound_len
-        peak_schedule[range_rebound_start..range_rebound_end] = (0..rebound_len + 1).map { |i| 1.0 - i.to_f / (rebound_len + 1) }
-      end
-      # peak_ind_ann << peak_ind
-    # prepeak schedule
-    else
-      if peak_ind >= prepeak_len
-        peak_schedule[(range_start + peak_ind - prepeak_len)..(range_start + peak_ind - 1)] = Array.new(prepeak_len, 1)
+    temps = oat[range_start..range_end]
+    avg_temp = temps.inject { |sum, el| sum + el }.to_f / temps.size
+    if avg_temp > temperature_range[0] and avg_temp < temperature_range[1]
+      peak_ind = find_daily_peak_window(annual_load[range_start..range_end], peak_len)
+      # peak and rebound schedule
+      if prepeak_len == 0
+        peak_schedule[(range_start + peak_ind)..(range_start + peak_ind + peak_len - 1)] = Array.new(peak_len, 1)
+        if rebound_len > 0
+          range_rebound_start = range_start + peak_ind + peak_len - 1
+          range_rebound_end = range_start + peak_ind + peak_len + rebound_len
+          peak_schedule[range_rebound_start..range_rebound_end] = (0..rebound_len + 1).map { |i| 1.0 - i.to_f / (rebound_len + 1) }
+        end
+      # prepeak schedule
       else
-        peak_schedule[(range_start)..(range_start + peak_ind - 1)] = Array.new(peak_ind, 1)
+        if peak_ind >= prepeak_len
+          peak_schedule[(range_start + peak_ind - prepeak_len)..(range_start + peak_ind - 1)] = Array.new(prepeak_len, 1)
+        else
+          peak_schedule[(range_start)..(range_start + peak_ind - 1)] = Array.new(peak_ind, 1)
+        end
       end
     end
   end
