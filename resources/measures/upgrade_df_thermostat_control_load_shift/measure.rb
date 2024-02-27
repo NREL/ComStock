@@ -71,7 +71,7 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
 
     prepeak_len = OpenStudio::Measure::OSArgument.makeIntegerArgument('prepeak_len', true)
     prepeak_len.setDisplayName("Length of pre-peak period before dispatch window (hour)")
-    prepeak_len.setDefaultValue(1)
+    prepeak_len.setDefaultValue(2)
     args << prepeak_len
 
     sp_adjustment = OpenStudio::Measure::OSArgument.makeDoubleArgument('sp_adjustment', true)
