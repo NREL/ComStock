@@ -20,6 +20,7 @@ class IntegrationTest(unittest.TestCase):
 
     def test_comstock(self):
         # ComStock run
+        print('Running ComStock...')
         comstock = cspp.ComStock(
             s3_base_dir=None,  # If run not on S3, download results_up**.parquet manually
             comstock_run_name='bsb-integration-test-baseline',  # Name of the run on S3
@@ -66,7 +67,3 @@ class IntegrationTest(unittest.TestCase):
 
         # Export the comparison data to wide format for Tableau
         comparison.export_to_csv_wide()
-
-# Code to execute the script
-# if __name__=="__main__":
-#     main()

@@ -215,7 +215,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                             logger.info(f'Downloading: {s3_path}')
                             data = pd.read_parquet(s3_path, engine="pyarrow")
                             data.to_parquet(results_data_path)
-
+        logging.info('Data download complete')
         # buildstock.csv
         buildstock_csv_path = os.path.join(self.data_dir, self.buildstock_file_name)
         if not os.path.exists(buildstock_csv_path):
@@ -231,8 +231,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # egrid emissions factors
         egrid_data_path = os.path.join(self.truth_data_dir, self.egrid_file_name)
         if not os.path.exists(egrid_data_path):
+            logging.info(f'egrid_data_path: {egrid_data_path}')
             s3_file_path = f'truth_data/{self.truth_data_version}/EPA/eGRID/{self.egrid_file_name}'
-            self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
+            self.read_delimited_truth_data_file_from_S3(s3_file_path, ',') #why do we need this????
 
         # CEJST (CEQ's official EJ/J40 designations)
         cejst_data_path = os.path.join(self.truth_data_dir, self.cejst_file_name)
@@ -409,6 +410,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
     def load_data(self, acceptable_failure_percentage=0.01, drop_failed_runs=True):
         # Ensure that the baseline results exist
         data_file_path = os.path.join(self.data_dir, self.results_file_name)
+        logger.info(f'Loading {data_file_path}')
         if not os.path.exists(data_file_path):
             raise FileNotFoundError(
                 f'Missing {data_file_path}, cannot load ComStock data')
@@ -426,6 +428,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Load results, identify failed runs
         for results_path in glob.glob(os.path.join(self.data_dir, 'results_up*.parquet')):
+            logging.info(f'Loading {results_path} from {self.data_dir}')
             upgrade_id = np.int64(os.path.basename(results_path).replace('results_up', '').replace('.parquet', ''))
 
             # Skip specified upgrades
@@ -439,6 +442,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             up_res = up_res.with_columns([
                 pl.lit(upgrade_id).alias(self.UPGRADE_ID)
             ])
+            logging.info(f'Loaded {len(up_res)} rows from results_up{upgrade_id}')
 
             # Set a few columns for the baseline
             if upgrade_id == 0:
@@ -499,6 +503,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 pl.col('building_id').filter(pl.col(self.COMP_STATUS) == 'Fail')
             )
 
+            #TODO: the paquet from bsb-integration-baseline has no site_energy_mbtu column
             site_engy_col = 'simulation_output_report.total_site_energy_mbtu'
             up_fake_success_ids = up_res.select(
                 pl.col('building_id').filter((pl.col(self.COMP_STATUS) == 'Success') & (pl.col(site_engy_col).is_null()))
