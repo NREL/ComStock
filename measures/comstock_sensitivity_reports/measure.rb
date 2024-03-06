@@ -2739,61 +2739,59 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     
     # iterate through each model to get all of the gas coils and check if they are supplemental coils for Unitary HVAC Objects and count each seperately.
     model.getCoilHeatingGass.sort.each do |coil|
-      
-      model.getAirLoopHVACUnitarySystems.sort.each do |hvac|
-        if hvac.supplementalHeatingCoil.is_initialized && hvac.supplementalHeatingCoil.get == coil
-          # get gas coil capacity
-          supplemental_capacity_w = 0.0
-          if coil.nominalCapacity.is_initialized
-            supplemental_capacity_w = coil.nominalCapacity.get
-          elsif coil.autosizedNominalCapacity.is_initialized
-            supplemental_capacity_w = coil.autosizedNominalCapacity.get
-          else
-            runner.registerWarning("Gas heating coil capacity not available for '#{coil.name}'.")
-          end
-          supplemental_gas_coil_total_capacity_w += supplemental_capacity_w
-          supplemental_gas_coil_capacity_weighted_efficiency += supplemental_capacity_w * coil.gasBurnerEfficiency
-
-          # log count of sizes
-          supplemental_capacity_kbtuh = OpenStudio.convert(supplemental_capacity_w, 'W', 'kBtu/h').get
-          if supplemental_capacity_kbtuh < 30
-            supplemental_gas_count_0_to_30_kbtuh += 1
-          elsif supplemental_capacity_kbtuh < 65
-            supplemental_gas_count_30_to_65_kbtuh += 1
-          elsif supplemental_capacity_kbtuh < 135
-            supplemental_gas_count_65_to_135_kbtuh += 1
-          elsif supplemental_capacity_kbtuh < 240
-            supplemental_gas_count_135_to_240_kbtuh += 1
-          else # capacity is over 240 kbtuh
-            supplemental_gas_count_240_plus_kbtuh += 1
-          end
-        end
-      end
-      
       # get gas coil capacity
-      primary_capacity_w = 0.0
-      if coil.nominalCapacity.is_initialized
-        primary_capacity_w = coil.nominalCapacity.get
-      elsif coil.autosizedNominalCapacity.is_initialized
-        primary_capacity_w = coil.autosizedNominalCapacity.get
-      else
-        runner.registerWarning("Gas heating coil capacity not available for '#{coil.name}'.")
-      end
-      primary_gas_coil_total_capacity_w += primary_capacity_w
-      primary_gas_coil_capacity_weighted_efficiency += primary_capacity_w * coil.gasBurnerEfficiency
+      supplemental_capacity_w = 0.0
+      if !model.getAirLoopHVACUnitarySystems.empty? 
+        if coil.nominalCapacity.is_initialized
+          supplemental_capacity_w = coil.nominalCapacity.get
+        elsif coil.autosizedNominalCapacity.is_initialized
+          supplemental_capacity_w = coil.autosizedNominalCapacity.get
+        else
+          runner.registerWarning("Gas heating coil capacity not available for '#{coil.name}'.")
+        end
+        supplemental_gas_coil_total_capacity_w += supplemental_capacity_w
+        supplemental_gas_coil_capacity_weighted_efficiency += supplemental_capacity_w * coil.gasBurnerEfficiency
 
-      # log count of sizes
-      primary_capacity_kbtuh = OpenStudio.convert(primary_capacity_w, 'W', 'kBtu/h').get
-      if primary_capacity_kbtuh < 30
-        primary_gas_count_0_to_30_kbtuh += 1
-      elsif primary_capacity_kbtuh < 65
-        primary_gas_count_30_to_65_kbtuh += 1
-      elsif primary_capacity_kbtuh < 135
-        primary_gas_count_65_to_135_kbtuh += 1
-      elsif primary_capacity_kbtuh < 240
-        primary_gas_count_135_to_240_kbtuh += 1
-      else # capacity is over 240 kbtuh
-        primary_gas_count_240_plus_kbtuh += 1
+        # log count of sizes
+        supplemental_capacity_kbtuh = OpenStudio.convert(supplemental_capacity_w, 'W', 'kBtu/h').get
+        if supplemental_capacity_kbtuh < 30
+          supplemental_gas_count_0_to_30_kbtuh += 1
+        elsif supplemental_capacity_kbtuh < 65
+          supplemental_gas_count_30_to_65_kbtuh += 1
+        elsif supplemental_capacity_kbtuh < 135
+          supplemental_gas_count_65_to_135_kbtuh += 1
+        elsif supplemental_capacity_kbtuh < 240
+          supplemental_gas_count_135_to_240_kbtuh += 1
+        else # capacity is over 240 kbtuh
+          supplemental_gas_count_240_plus_kbtuh += 1
+        end
+      else
+      
+        # get gas coil capacity
+        primary_capacity_w = 0.0
+        if coil.nominalCapacity.is_initialized
+          primary_capacity_w = coil.nominalCapacity.get
+        elsif coil.autosizedNominalCapacity.is_initialized
+          primary_capacity_w = coil.autosizedNominalCapacity.get
+        else
+          runner.registerWarning("Gas heating coil capacity not available for '#{coil.name}'.")
+        end
+        primary_gas_coil_total_capacity_w += primary_capacity_w
+        primary_gas_coil_capacity_weighted_efficiency += primary_capacity_w * coil.gasBurnerEfficiency
+
+        # log count of sizes
+        primary_capacity_kbtuh = OpenStudio.convert(primary_capacity_w, 'W', 'kBtu/h').get
+        if primary_capacity_kbtuh < 30
+          primary_gas_count_0_to_30_kbtuh += 1
+        elsif primary_capacity_kbtuh < 65
+          primary_gas_count_30_to_65_kbtuh += 1
+        elsif primary_capacity_kbtuh < 135
+          primary_gas_count_65_to_135_kbtuh += 1
+        elsif primary_capacity_kbtuh < 240
+          primary_gas_count_135_to_240_kbtuh += 1
+        else # capacity is over 240 kbtuh
+          primary_gas_count_240_plus_kbtuh += 1
+        end
       end
     end
     #report the primary gas coil counts, weight efficiency, and total capacity
