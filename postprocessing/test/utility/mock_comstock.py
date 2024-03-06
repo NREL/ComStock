@@ -50,9 +50,9 @@ class MockComStock:
 
         path = kwargs["path"]
         if "EJSCREEN" in path:
-            filePath =  "./utility/resources/truth_data/v01/EPA/EJSCREEN/EJSCREEN_Tract_2020_USPR.csv"
+            filePath =  "/truth_data/v01/EPA/EJSCREEN/EJSCREEN_Tract_2020_USPR.csv"
         elif "1.0-communities.csv" in path:
-            filePath =  "./utility/resources/truth_data/v01/EPA/CEJST/1.0-communities.csv"
+            filePath =  "/truth_data/v01/EPA/CEJST/1.0-communities.csv"
 
         col_name = kwargs['col_def_names'] 
         dtypes = kwargs['dtypes']

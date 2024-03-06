@@ -31,9 +31,9 @@ class MockCBECS:
 
         path = kwargs["file_path"]
         if "CBECS_2018_microdata.csv" in path:
-            filePath =  "./utility/resources/truth_data/CBECS/CBECS_2018_microdata.csv"
+            filePath =  "/truth_data/v01/EIA/CBECS/CBECS_2018_microdata.csv"
         elif "CBECS_2018_microdata_codebook.csv" in path:
-            filePath =  "./utility/resources/truth_data/CBECS/CBECS_2018_microdata_codebook.csv"
+            filePath =  "/truth_data/v01/EIA/CBECS/CBECS_2018_microdata_codebook.csv"
 
         del kwargs["file_path"]
         return pd.read_csv(filePath, **kwargs)
