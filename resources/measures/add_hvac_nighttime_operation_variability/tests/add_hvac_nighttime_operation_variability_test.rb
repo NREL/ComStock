@@ -26,7 +26,7 @@ class AddHvacNighttimeOperationVariabilityTest < Minitest::Test
     # get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
     assert_equal(1, arguments.size)
-    assert_equal('space_name', arguments[0].name)
+    assert_equal('rtu_night_mode', arguments[0].name)
   end
 
   def test_bad_argument_values
@@ -46,7 +46,7 @@ class AddHvacNighttimeOperationVariabilityTest < Minitest::Test
 
     # create hash of argument values
     args_hash = {}
-    args_hash['space_name'] = ''
+    args_hash['rtu_night_mode'] = 'default_nochange'
 
     # populate argument with specified hash value if specified
     arguments.each do |arg|
@@ -65,7 +65,7 @@ class AddHvacNighttimeOperationVariabilityTest < Minitest::Test
     show_output(result)
 
     # assert that it ran correctly
-    assert_equal('Fail', result.value.valueName)
+    assert_equal('NA', result.value.valueName)
   end
 
   def test_good_argument_values
@@ -78,7 +78,7 @@ class AddHvacNighttimeOperationVariabilityTest < Minitest::Test
 
     # load the test model
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = "#{File.dirname(__FILE__)}/example_model.osm"
+    path = "#{File.dirname(__FILE__)}/../../../tests/models/370_small_office_psz_gas_2A.osm"
     model = translator.loadModel(path)
     assert(!model.empty?)
     model = model.get
@@ -93,7 +93,7 @@ class AddHvacNighttimeOperationVariabilityTest < Minitest::Test
     # create hash of argument values.
     # If the argument has a default that you want to use, you don't need it in the hash
     args_hash = {}
-    args_hash['space_name'] = 'New Space'
+    args_hash['rtu_night_mode'] = 'night_fanon_vent'
     # using defaults values from measure.rb for other arguments
 
     # populate argument with specified hash value if specified
@@ -114,11 +114,7 @@ class AddHvacNighttimeOperationVariabilityTest < Minitest::Test
 
     # assert that it ran correctly
     assert_equal('Success', result.value.valueName)
-    assert(result.info.size == 1)
     assert(result.warnings.empty?)
-
-    # check that there is now 1 space
-    assert_equal(1, model.getSpaces.size - num_spaces_seed)
 
     # save the model to test output directory
     output_file_path = "#{File.dirname(__FILE__)}//output/test_output.osm"
