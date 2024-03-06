@@ -38,6 +38,7 @@
 
 require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
+require_relative '../../../../test/helpers/minitest_helper'
 require 'fileutils'
 
 require_relative '../measure.rb'
@@ -54,7 +55,7 @@ class ChangeBuildingLocation_Test < Minitest::Test
   end
 
   # method to apply arguments, run measure, and assert results (only populate args hash with non-default argument values)
-  def apply_measure_to_model(test_name, args, model_name = nil, result_value = 'Success', warnings_count = 0, info_count = nil, num_dsn_days = 3)
+  def apply_measure_to_model(test_name, args, model_name = nil, result_value = 'Success', warnings_count = 0, info_count = nil, num_dsn_days = 7)
     # create an instance of the measure
     measure = ChangeBuildingLocation.new
 
@@ -135,12 +136,14 @@ class ChangeBuildingLocation_Test < Minitest::Test
   def test_weather_file
     args = {}
     args['weather_file_name'] = 'USA_MA_Boston-Logan.Intl.AP.725090_TMY3.epw' # seems to search directory of OSW even with empty file_paths
+	args['climate_zone'] = 'ASHRAE 169-2013-5A'
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'test.osm', nil, nil, nil)
   end
 
   def test_weather_file_WA_Renton
     args = {}
     args['weather_file_name'] = 'USA_WA_Renton.Muni.AP.727934_TMY3.epw' # seems to search directory of OSW even with empty file_paths
+	args['climate_zone'] = 'ASHRAE 169-2013-4C'
     args['set_year'] = 2012
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'test.osm', nil, 2, nil, 0)
   end
@@ -148,18 +151,40 @@ class ChangeBuildingLocation_Test < Minitest::Test
   def test_multiyear_weather_file
     args = {}
     args['weather_file_name'] = 'multiyear.epw' # seems to search directory of OSW even with empty file_paths
+	args['climate_zone'] = 'ASHRAE 169-2013-4C'
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'test.osm', nil, nil, nil)
   end
 
   def test_weather_file_bad
     args = {}
     args['weather_file_name'] = 'BadFileName.epw' # seems to search directory of OSW even with empty file_paths
+	args['climate_zone'] = 'ASHRAE 169-2013-5A'
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'test.osm', 'Fail', nil, nil)
   end
 
   def test_weather_file_monthly_design_days
     args = {}
     args['weather_file_name'] = 'CA_LOS-ANGELES-IAP_722950S_12.epw' # seems to search directory of OSW even with empty file_paths
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'test.osm', nil, nil, nil, 10)
+		args['climate_zone'] = 'T24-CEC8'
+    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'test.osm', nil, nil, nil, 14)
+  end
+
+  def test_soil_conductivity
+    args = {}
+    args['weather_file_name'] = 'CA_LOS-ANGELES-IAP_722950S_12.epw'
+    args['climate_zone'] = 'T24-CEC8'
+    args['year'] = '2018'
+    args['soil_conductivity'] = 1.8
+    test_name = __method__.to_s.gsub('test_', '')
+    apply_measure_to_model(test_name, args, 'test.osm', nil, nil, nil, 14)
+
+    # load the test model
+    model_path = File.dirname(__FILE__) + "/output/#{test_name}_test_output.osm"
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    model = translator.loadModel(OpenStudio::Path.new(model_path))
+    assert(!model.empty?)
+    model = model.get
+    model.getBuilding.additionalProperties.getFeatureAsDouble('Soil Conductivity')
+    assert_equal(args['soil_conductivity'], model.getBuilding.additionalProperties.getFeatureAsDouble('Soil Conductivity').to_f.round(1), "Expected soil conductivity #{args['soil_conductivity']} but found #{model.getBuilding.additionalProperties.getFeatureAsDouble('Soil Conductivity')}.")
   end
 end

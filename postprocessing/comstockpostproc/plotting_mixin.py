@@ -1,12 +1,13 @@
 # ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 import os
-
+import re
 import logging
 import numpy as np
 import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib import ticker
 import plotly.express as px
 import seaborn as sns
 import plotly.graph_objects as go
@@ -32,7 +33,7 @@ class PlottingMixin():
         for applicable_scenario in ['stock', 'applicable_only']:
 
             df_scen = df.copy()
-            
+
 
             if applicable_scenario == 'applicable_only':
                 applic_bldgs = df_scen.loc[(df_scen[self.UPGRADE_NAME]!='Baseline') & (df_scen['applicability']==True), self.BLDG_ID]
@@ -101,7 +102,6 @@ class PlottingMixin():
             }
 
             # plot
-            order_map = dict(zip(color_map.keys(), [2,1])) # this will set baseline first in plots
             fig = px.bar(df_emi_gb_long, x=column_for_grouping, y='Annual Energy Consumption (TBtu)', color='End Use', pattern_shape='Fuel Type',
                     barmode='stack', text_auto='.1f', template='simple_white', width=700, category_orders=cat_order, color_discrete_map=color_dict,
                     pattern_shape_map=pattern_dict)
@@ -109,12 +109,21 @@ class PlottingMixin():
             # formatting and saving image
             title = 'ann_energy_by_enduse_and_fuel'
             # format title and axis
+            # update plot width based on number of upgrades
+            upgrade_count = df_emi_gb_long[column_for_grouping].nunique()
+            plot_width=550
+            if upgrade_count <= 2:
+                plot_width = 550
+            else:
+                extra_elements = upgrade_count - 2
+                plot_width = 550 * (1 + 0.15 * extra_elements)
+
             fig.update_traces(textposition='inside', width=0.5)
             fig.update_xaxes(type='category', mirror=True, showgrid=False, showline=True, title=None, ticks='outside', linewidth=1, linecolor='black',
                             categoryorder='array', categoryarray=np.array(list(color_map.keys())))
             fig.update_yaxes(mirror=True, showgrid=False, showline=True, ticks='outside', linewidth=1, linecolor='black', rangemode="tozero")
-            fig.update_layout(title=None,  margin=dict(l=20, r=20, t=27, b=20), width=550, legend_title=None, legend_traceorder="reversed",
-                            uniformtext_minsize=8, uniformtext_mode='hide', bargap=0.05)
+            fig.update_layout(title=None,  margin=dict(l=20, r=20, t=27, b=20), width=plot_width, legend_title=None, legend_traceorder="reversed",
+                            uniformtext_minsize=7, uniformtext_mode='hide', bargap=0.05)
             fig.update_layout(
                 font=dict(
                     size=12)
@@ -170,116 +179,106 @@ class PlottingMixin():
         df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('Re', 'RE', regex=True)
         df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('Calc.Weighted.Emissions.', '', regex=True)
         df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('calc.weighted.emissions.', '', regex=True)
-        df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('.', '', regex=True)
+        df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('.', '', regex=False)
         df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('Subregion', '', regex=True)
         df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace(' 2023 Start', '', regex=True)
 
         # plot
         order_map = list(color_map.keys()) # this will set baseline first in plots
-        dict_order_map = {column_for_grouping: order_map}
-        fig = px.bar(df_emi_gb_long, x='variable', y='Annual GHG Emissions (MMT CO2e)', color=column_for_grouping,
-                   barmode='group', text_auto='.1f', template='simple_white', color_discrete_map=color_map, category_orders=dict_order_map,
-                    width=700)
+        color_palette = sns.color_palette("colorblind")
 
-        # formatting and saving image
-        title = 'ghg_emissions_by_fuel'
-        # format title and axis
-        fig.update_xaxes(mirror=True, showgrid=True, showline=True, title=None, ticks='outside', linewidth=1, linecolor='black', tickangle=25)
-        fig.update_yaxes(mirror=True, showgrid=True, showline=True, ticks='outside', linewidth=1, linecolor='black', rangemode="tozero", range=[0,500])
-        fig.update_layout(title=None,  margin=dict(l=20, r=20, t=27, b=20), width=800, legend_title=None) #legend_traceorder="reversed",
-        fig.update_layout(legend=dict(
-            yanchor="top",
-            y=0.95,
-            xanchor="left",
-            x=0.6,
-            bgcolor ='rgba(255,255,255,0.8)',
-            bordercolor='black',
-            borderwidth=1),
-            font=dict(
-                size=14)
-            )
+        # update plot width based on number of upgrades
+        upgrade_count = df_emi_gb_long[column_for_grouping].nunique()
+        plot_width=8
+        if upgrade_count <= 2:
+            plot_width = 8
+        else:
+            extra_elements = upgrade_count - 2
+            plot_width = 8 * (1 + 0.40 * extra_elements)
 
-        # # adds savings at top of plot
-        # measure_name = list(color_map.keys())[1]
-        # # print(measure_name)
-        # # print(df_emi_gb_long)
-        # df_emi_plot_gb = df_emi_gb_long.groupby(column_for_grouping)['Greenhouse Gas Emissions (MMT)'].sum().to_frame()
-        # # print(df_emi_plot_gb)
-        # # print('')
-        # # print((df_emi_plot_gb.loc['Baseline'] - df_emi_plot_gb.loc[measure_name]).values[0])
-        # # print(type((df_emi_plot_gb.loc['Baseline'] - df_emi_plot_gb.loc[measure_name]) + 3))
-        # # print('')
-        # df_emi_plot_gb.loc[measure_name] = f"Savings = {round((df_emi_plot_gb.loc['Baseline'] - df_emi_plot_gb.loc[measure_name]).values[0], 1)} ({round(((df_emi_plot_gb.loc['Baseline'] - df_emi_plot_gb.loc[measure_name])/(df_emi_plot_gb.loc['Baseline'])*100).values[0], 1)}%)"
-        # df_emi_plot_gb.loc['Baseline'] = ''
-        # # print(df_emi_plot_gb)
+        # Create three vertical subplots with shared y-axis
+        fig, axes = plt.subplots(1, 3, figsize=(plot_width, 3.4), sharey=True, gridspec_kw={'top': 1.2})
+        plt.rcParams['axes.facecolor'] = 'white'
+        # list of electricity grid scenarios
+        electricity_scenarios = list(df_emi_gb_long[df_emi_gb_long['variable'].str.contains('electricity', case=False)]['variable'].unique())
 
-        # fig.add_trace(go.Scatter(
-        # x=df_emi_plot_gb.index,
-        # y=df_emi_plot_gb,
-        # text=df_emi_plot_gb,
-        # mode='text',
-        # textposition='top center',
-        # textfont=dict(
-        #     size=12,
-        # ),
-        # showlegend=False
-        # ))
+        # loop through grid scenarios
+        ax_position = 0
+        for scenario in electricity_scenarios:
 
-        # add callout for electricity scenarios - make 4 lines and text
-        fig.add_shape(type="line",
-        xref="paper", yref="paper",
-        x0=0.005, y0=0.98,
-        x1=0.50, y1=0.98,
-        line_color="black",
-        opacity=1,
-        line_width=1,
-        )
+            # filter to grid scenario plus on-site combustion fuels
+            df_scenario = df_emi_gb_long.loc[(df_emi_gb_long['variable']==scenario) | (df_emi_gb_long['variable'].isin(['Natural Gas', 'Fuel Oil', 'Propane']))]
 
-        fig.add_shape(type="line",
-        xref="paper", yref="paper",
-        x0=0.005, y0=0.98,
-        x1=0.005, y1=0.94,
-        line_color="black",
-        opacity=1,
-        line_width=1,
-        )
+            # Pivot the DataFrame to prepare for the stacked bars
+            pivot_df = df_scenario.pivot(index='in.upgrade_name', columns='variable', values='Annual GHG Emissions (MMT CO2e)')
 
-        fig.add_shape(type="line",
-        xref="paper", yref="paper",
-        x0=0.50, y0=0.98,
-        x1=0.50, y1=0.94,
-        line_color="black",
-        opacity=1,
-        line_width=1,
-        )
+            # Sort the columns by the sum in descending order
+            pivot_df = pivot_df[pivot_df.sum().sort_values(ascending=False).index]
+            pivot_df = pivot_df.reindex(['Baseline'] + [idx for idx in pivot_df.index if idx != 'Baseline'])
 
-        fig.add_shape(type="line",
-        xref="paper", yref="paper",
-        x0=0.25, y0=0.98,
-        x1=0.25, y1=1.00,
-        line_color="black",
-        opacity=1,
-        line_width=1,
-        )
+            # # Set the color palette; colorblind friendly
+            sns.set_palette(color_palette)
 
-        text="Electricity Grid Scenarios: Choose 1"
-        fig.add_annotation(
-        x=0.1,
-        y=1.05,
-        text=text,
-        xref="paper",
-        yref="paper",
-        showarrow=False,
-        font_size=12
-        )
+            # Create plot
+            pivot_df.plot(kind='bar', stacked=True, ax=axes[ax_position], width=0.5)
 
+            # Set the title for the specific subplot
+            axes[ax_position].set_title(scenario.replace('Electricity:', ''))
+            axes[ax_position].set_xticklabels(axes[ax_position].get_xticklabels())
+            for ax in axes:
+                for label in ax.get_xticklabels():
+                    label.set_horizontalalignment('left')
+                    label.set_rotation(-30)  # Rotate the labels for better visibility
+
+            # remove x label
+            axes[ax_position].set_xlabel(None)
+            # Increase font size for text labels
+            axes[ax_position].tick_params(axis='both', labelsize=12)
+            # Add text labels to the bars for bars taller than a threshold
+            threshold = 15*upgrade_count  # Adjust this threshold as needed
+            for bar in axes[ax_position].containers:
+                if bar.datavalues.sum() > threshold:
+                    axes[ax_position].bar_label(bar, fmt='%.0f', padding=2, label_type='center')
+
+            # Add aggregate values above the bars
+            for i, v in enumerate(pivot_df.sum(axis=1)):
+                # Display percentage savings only on the second bar
+                if i != 0:
+                    # Calculate percentage savings versus the first bar (baseline)
+                    savings = (v - pivot_df.sum(axis=1).iloc[0]) / pivot_df.sum(axis=1).iloc[0] * 100
+                    axes[ax_position].text(i, v + 2, f'{v:.0f} ({savings:.0f}%)', ha='center', va='bottom')
+                else:
+                    axes[ax_position].text(i, v + 2, f'{v:.0f}', ha='center', va='bottom')
+
+            # increase axes position
+            ax_position+=1
+
+        # Create single plot legend
+        handles, labels = axes[2].get_legend_handles_labels()
+        # Modify the labels to simplify them
+        labels = [label.replace('Electricity: LRMER Low RE Cost 15', 'Electricity') for label in labels]
+        # Create a legend at the top of the plot, above the subplot titles
+        fig.legend(handles, labels, title=None, loc='upper center', bbox_to_anchor=(0.5, 1.4), ncol=4)
+        # Hide legends in the other subplots
+        for ax in axes[:]:
+            ax.get_legend().remove()
+        # y label name
+        axes[0].set_ylabel('Annual GHG Emissions (MMT CO2e)', fontsize=14)
+
+        # Add black boxes around the plot areas
+        for ax in axes:
+            for spine in ax.spines.values():
+                spine.set_edgecolor('black')
+        # Adjust spacing between subplots and reduce white space
+        plt.subplots_adjust(wspace=0.2, hspace=0.2, bottom=0.15)
         # figure name and save
+        title=f"GHG_emissions_{order_map[1]}"
         fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
         fig_sub_dir = os.path.join(output_dir)
         if not os.path.exists(fig_sub_dir):
             os.makedirs(fig_sub_dir)
         fig_path = os.path.join(fig_sub_dir, fig_name)
-        fig.write_image(fig_path, scale=10)
+        plt.savefig(fig_path, dpi=600, bbox_inches = 'tight')
 
     def plot_floor_area_and_energy_totals(self, df, column_for_grouping, color_map, output_dir):
         # Summarize square footage and energy totals
@@ -315,13 +314,15 @@ class PlottingMixin():
                     g = sns.catplot(
                         data=df,
                         x=column_for_grouping,
+                        hue=column_for_grouping,
                         y=col,
                         estimator=agg_method,
                         order=list(color_map.keys()),
                         palette=color_map.values(),
                         kind='bar',
                         errorbar=None,
-                        aspect=1.5
+                        aspect=1.5,
+                        legend=False
                     )
                 else:
                     # With group-by
@@ -351,7 +352,7 @@ class PlottingMixin():
                     title = f'{self.col_name_to_nice_name(col)}'
                     for ax in g.axes.flatten():
                         ax.set_ylabel(f'{self.col_name_to_nice_name(col)} ({units})')
-                        ax.set_xlabel('')
+                        ax.tick_params(axis='x', labelrotation = 90)
                 else:
                     # With group-by
                     title = f'{self.col_name_to_nice_name(col)}\n by {self.col_name_to_nice_name(group_by)}'
@@ -397,6 +398,7 @@ class PlottingMixin():
                     g = sns.catplot(
                         data=df,
                         y=column_for_grouping,
+                        hue=column_for_grouping,
                         x=col,
                         order=list(color_map.keys()),
                         palette=color_map.values(),
@@ -408,7 +410,8 @@ class PlottingMixin():
                             "markerfacecolor":"yellow",
                             "markeredgecolor":"black",
                             "markersize":"8"
-                        }
+                        },
+                        legend=False
                     )
                 else:
                     # With group-by
@@ -468,6 +471,104 @@ class PlottingMixin():
                 plt.savefig(fig_path, bbox_inches = 'tight')
                 plt.close()
 
+    def plot_energy_rate_boxplots(self, df, column_for_grouping, color_map, output_dir):
+        # energy rate box plot comparisons by building type and several disaggregations
+
+        # Columns to summarize
+        cols_to_summarize = [
+            self.col_name_to_energy_rate(self.UTIL_BILL_ELEC),
+            self.col_name_to_energy_rate(self.UTIL_BILL_GAS),
+        ]
+
+        # Disaggregate to these levels
+        group_bys = [
+            self.CEN_DIV,
+            self.BLDG_TYPE
+        ]
+
+        for col in cols_to_summarize:
+            # for bldg_type, bldg_type_ts_df in df.groupby(self.BLDG_TYPE):
+
+            # Make a plot for each group
+            for group_by in group_bys:
+                if group_by is None:
+                    # No group-by
+                    g = sns.catplot(
+                        data=df,
+                        y=column_for_grouping,
+                        hue=column_for_grouping,
+                        x=col,
+                        order=list(color_map.keys()),
+                        palette=color_map.values(),
+                        kind='box',
+                        orient='h',
+                        showfliers=False,
+                        showmeans=True,
+                        meanprops={"marker":"d",
+                            "markerfacecolor":"yellow",
+                            "markeredgecolor":"black",
+                            "markersize":"8"
+                        },
+                        legend=False
+                    )
+                else:
+                    # With group-by
+                    g = sns.catplot(
+                        data=df,
+                        x=col,
+                        hue=column_for_grouping,
+                        y=group_by,
+                        order=self.ORDERED_CATEGORIES[group_by],
+                        hue_order=list(color_map.keys()),
+                        palette=color_map.values(),
+                        kind='box',
+                        orient='h',
+                        showfliers=False,
+                        showmeans=True,
+                        meanprops={"marker":"d",
+                            "markerfacecolor":"yellow",
+                            "markeredgecolor":"black",
+                            "markersize":"8"
+                        },
+                        aspect=2
+                    )
+                    g._legend.set_title(self.col_name_to_nice_name(column_for_grouping))
+
+                fig = g.figure
+
+                # Extract the units from the column name
+                units = self.nice_units(self.units_from_col_name(col))
+
+                # Titles and axis labels
+                col_title = self.col_name_to_nice_name(col)
+                # col_title = col.replace(f' {units}', '')
+                # col_title = col_title.replace('Normalized Annual ', '')
+                fuel = self.col_name_to_fuel(col_title)
+
+                # Formatting
+                if group_by is None:
+                    # No group-by
+                    title = f"Boxplot of {col_title}".title()
+                    for ax in g.axes.flatten():
+                        ax.set_xlabel(f'{fuel} rate ({units})')
+                        ax.set_ylabel('')
+                else:
+                    # With group-by
+                    gb = self.col_name_to_nice_name(group_by)
+                    title = f"Boxplot of {col_title} by {f'{gb}'}".title()
+                    for ax in g.axes.flatten():
+                        ax.set_xlabel(f'{fuel} rate ({units})')
+                        ax.set_ylabel(f'{gb}')
+
+                # Save figure
+                title = title.replace('\n', '')
+                fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+                fig_name = fig_name.replace('boxplot_of_', 'bp_')
+                # fig_name = fig_name.replace('total_energy_consumption_', '')
+                fig_path = os.path.join(output_dir, fig_name)
+                plt.savefig(fig_path, bbox_inches = 'tight')
+                plt.close()
+
     def plot_floor_area_and_energy_totals_by_building_type(self, df, column_for_grouping, color_map, output_dir):
         # Summarize square footage and energy totals by building type
 
@@ -500,13 +601,15 @@ class PlottingMixin():
                         g = sns.catplot(
                             data=bldg_type_ts_df,
                             x=column_for_grouping,
+                            hue=column_for_grouping,
                             y=col,
                             estimator=agg_method,
                             order=list(color_map.keys()),
                             palette=color_map.values(),
                             errorbar=None,
                             kind='bar',
-                            aspect=1.5
+                            aspect=1.5,
+                            legend=False
                         )
                     else:
                         # With group-by
@@ -762,6 +865,7 @@ class PlottingMixin():
                         g = sns.catplot(
                             data=bldg_type_ts_df,
                             y=column_for_grouping,
+                            hue=column_for_grouping,
                             x=col,
                             order=list(color_map.keys()),
                             palette=color_map.values(),
@@ -773,7 +877,8 @@ class PlottingMixin():
                                 "markerfacecolor":"yellow",
                                 "markeredgecolor":"black",
                                 "markersize":"8"
-                            }
+                            },
+                            legend=False
                         )
                     else:
                         # With group-by
@@ -1333,3 +1438,590 @@ class PlottingMixin():
         df_2.loc[:, cols] = df_2[cols] * 100
 
         return df_2
+
+    def plot_annual_energy_consumption_for_eia(self, df, color_map, output_dir):
+         # Summarize annual energy consumption for EIA plots
+
+       # Columns to summarize
+        cols_to_summarize = {
+            'Electricity consumption (kWh)': 'sum',
+            'Natural gas consumption (thous Btu)': 'sum'
+        }
+
+        # Disaggregate to these levels
+        group_bys = [
+            None,
+            self.STATE_ABBRV,
+            'Division'
+        ]
+
+        for col, agg_method in cols_to_summarize.items():
+            for group_by in group_bys:
+                # Summarize the data
+                vals = [col]  # Values in Excel pivot table
+                ags = [agg_method]  # How each of the values will be aggregated, like Value Field Settings in Excel, but applied to all values
+                cols = [self.DATASET] # Columns in Excel pivot table
+
+                first_ax = None
+
+                if group_by is None:
+                    # No group-by
+                    pivot = df.pivot_table(values=vals, columns=cols, aggfunc=ags)
+                    pivot = pivot.droplevel([0], axis=1)
+                else:
+                    # With group-by
+                    idx = [group_by]  # Rows in Excel pivot table
+                    pivot = df.pivot_table(values=vals, columns=cols, index=idx, aggfunc=ags)
+                    pivot = pivot.droplevel([0, 1], axis=1)
+
+                # Make the graph
+                if first_ax is None:
+                    ax = pivot.plot.bar(color=color_map)
+                    first_ax = ax
+                else:
+                    ax = pivot.plot.bar(color=color_map, ax=first_ax)
+
+                # Extract the units from the column name
+                match = re.search('\\(.*\\)', col)
+                if match:
+                    units = match.group(0)
+                else:
+                    units = 'TODO units'
+
+                # Formatting
+                if group_by is None:
+                    # No group-by]
+                    title = f"{agg_method} {col.replace(f' {units}', '')}".title()
+                    ax.tick_params(axis='x', labelrotation = 0)
+                    for container in ax.containers:
+                        ax.bar_label(container, fmt='%.2e')
+                else:
+                    # With group-by
+                    title = f"{agg_method} {col.replace(f' {units}', '')}\n by {group_by}".title()
+
+                # Remove 'Sum' from title
+                title = title.replace('Sum', '').strip()
+
+                # Set title and units
+                ax.set_title(title)
+                ax.set_ylabel(f'Annual Energy Consumption {units}')
+
+                # Add legend with no duplicate entries
+                handles, labels = first_ax.get_legend_handles_labels()
+                new_labels = []
+                new_handles = []
+                for l, h in zip(labels, handles):
+                    if not l in new_labels:
+                        new_labels.append(l)  # Add the first instance of the label
+                        new_handles.append(h)
+                ax.legend(new_handles, new_labels, bbox_to_anchor=(1.01,1), loc="upper left")
+
+                # Save the figure
+                title = title.replace('\n', '')
+                fig_name = f'com_eia_{title.replace(" ", "_").lower()}.{self.image_type}'
+                fig_path = os.path.join(output_dir, fig_name)
+                plt.savefig(fig_path, bbox_inches = 'tight')
+                plt.close()
+
+    def plot_monthly_energy_consumption_for_eia(self, df, color_map, output_dir):
+        # Columns to summarize
+        cols_to_summarize = {
+            'Electricity consumption (kWh)': 'sum',
+            'Natural gas consumption (thous Btu)': 'sum'
+        }
+
+        # Disaggregate to these levels
+        group_bys = [
+            self.STATE_ABBRV,
+            'Division'
+        ]
+
+        for col, agg_method in cols_to_summarize.items():
+            for group_by in group_bys:
+                # Summarize the data
+                vals = [col]  # Values in Excel pivot table
+                ags = [agg_method]  # How each of the values will be aggregated, like Value Field Settings in Excel, but applied to all values
+                cols = [self.DATASET] # Columns in Excel pivot table
+
+
+                for group_name, group_data in df.groupby(group_by):
+
+                    # With group-by
+                    pivot = group_data.pivot_table(values=vals, columns=cols, index='Month', aggfunc=ags)
+                    pivot = pivot.droplevel([0, 1], axis=1)
+
+                    # Make the graph
+                    ax = pivot.plot.bar(color=color_map)
+
+                    # Extract the units from the column name
+                    match = re.search('\\(.*\\)', col)
+                    if match:
+                        units = match.group(0)
+                    else:
+                        units = 'TODO units'
+
+                    # Set title and units
+                    title = f"{agg_method} Monthly {col.replace(f' {units}', '')}\n by {group_by} for {group_name}".title()
+
+                    # Remove 'Sum' from title
+                    title = title.replace('Sum', '').strip()
+
+                    ax.set_title(title)
+                    ax.set_ylabel(f'Monthly Energy Consumption {units}')
+
+                    # Add legend with no duplicate entries
+                    handles, labels = ax.get_legend_handles_labels()
+                    new_labels = []
+                    new_handles = []
+                    for l, h in zip(labels, handles):
+                        if not l in new_labels:
+                            new_labels.append(l)  # Add the first instance of the label
+                            new_handles.append(h)
+                    ax.legend(new_handles, new_labels, bbox_to_anchor=(1.01,1), loc="upper left")
+
+                    # Save the figure
+                    title = title.replace('\n', '')
+                    fig_name = f'com_eia_{title.replace(" ", "_").lower()}.{self.image_type}'
+                    fig_path = os.path.join(output_dir, fig_name)
+                    plt.savefig(fig_path, bbox_inches = 'tight')
+                    plt.close()
+
+
+    # color functions from https://bsouthga.dev/posts/color-gradients-with-python
+    def linear_gradient(self, start_hex, finish_hex="#FFFFFF", n=10):
+        ''' returns a gradient list of (n) colors between
+            two hex colors. start_hex and finish_hex
+            should be the full six-digit color string,
+            inlcuding the number sign ("#FFFFFF") '''
+        # Starting and ending colors in RGB for
+        s = self.hex_to_RGB(start_hex)
+        f = self.hex_to_RGB(finish_hex)
+        # Initilize a list of the output colors with the starting color
+        RGB_list = [s]
+        # Calcuate a color at each evenly spaced value of t from 1 to n
+        for t in range(1, n):
+            # Interpolate RGB vector for color at the current value of t
+            curr_vector = [
+            int(s[j] + (float(t)/(n-1))*(f[j]-s[j]))
+            for j in range(3)
+            ]
+            # Add it to our list of output colors
+            RGB_list.append(curr_vector)
+
+        return self.color_dict(RGB_list)
+
+    def color_dict(self, gradient):
+        ''' Takes in a list of RGB sub-lists and returns dictionary of
+            colors in RGB and hex form for use in a graphing function
+            defined later on '''
+        return {"hex":[self.RGB_to_hex(RGB) for RGB in gradient],
+            "r":[RGB[0] for RGB in gradient],
+            "g":[RGB[1] for RGB in gradient],
+            "b":[RGB[2] for RGB in gradient]}
+
+    def hex_to_RGB(self, hex):
+        ''' "#FFFFFF" -> [255,255,255] '''
+        # Pass 16 to the integer function for change of base
+        return [int(hex[i:i+2], 16) for i in range(1,6,2)]
+
+    def RGB_to_hex(self, RGB):
+        ''' [255,255,255] -> "#FFFFFF" '''
+        # Components need to be integers for hex to make sense
+        RGB = [int(x) for x in RGB]
+        return "#"+"".join(["0{0:x}".format(v) if v < 16 else
+                    "{0:x}".format(v) for v in RGB])
+
+
+    """
+    Seasonal load stacked area plots by daytype (weekday and weekdend) comparison
+    Args:
+        df: long form dataset with a comstock run and ami data
+        region: region object from AMI class
+        building_type (str): building type
+        color_map: hash with dataset names as the keys
+        output_dir (str): output directory
+        normalization (str): how to normalize the data. Default is 'None' which directly compares kwh_per_sf. Other options are 'Annual' and 'Daytype'. 'Annual' will normalize the data as a fraction compared to the total annual energy use. 'Daytype' will normalize to the energy use for the given day type.
+        save_graph_data (bool): set to true to save graph data
+    """
+    def plot_day_type_comparison_stacked_by_enduse(self, df, region, building_type, color_map, output_dir, normalization='None', save_graph_data=False):
+        summer_months = region['summer_months']
+        winter_months = region['winter_months']
+        shoulder_months = region['shoulder_months']
+
+        enduse_list = [
+            'exterior_lighting',
+            'interior_lighting',
+            'interior_equipment',
+            'exterior_equipment',
+            'water_systems',
+            'heat_recovery',
+            'fans',
+            'pumps',
+            'heat_rejection',
+            'humidification',
+            'cooling',
+            'heating',
+            'refrigeration'
+        ]
+
+        enduse_colors = [
+            '#DEC310',  # exterior lighting
+            '#F7DF10',  # interior lighting
+            '#4A4D4A',  # interior equipment
+            '#B5B2B5',  # exterior equipment
+            '#FFB239',  # water systems
+            '#CE5921',  # heat recovery
+            '#FF79AD',  # fans
+            '#632C94',  # pumps
+            '#F75921',  # heat rejection
+            '#293094',  # humidification
+            '#0071BD',  # cooling
+            '#EF1C21',  # heating
+            '#29AAE7'   # refrigeration
+        ]
+
+        comstock_data_label = list(color_map.keys())[0]
+        ami_data_label = list(color_map.keys())[1]
+        energy_column = 'kwh_per_sf'
+        default_uncertainty = 0.1
+
+        # filter and collect comstock data
+        comstock_data = df.loc[df.run.isin([comstock_data_label])]
+        comstock_count = comstock_data['bldg_count']
+        comstock_count_max = int(comstock_count.max())
+        comstock_count_avg = comstock_count.mean()
+        comstock_count_min = int(comstock_count.min())
+        comstock_data = comstock_data[['enduse', energy_column]]
+        comstock_data = comstock_data.reset_index().groupby(['enduse', 'timestamp']).sum().reset_index().set_index('timestamp')
+        comstock_data = comstock_data.pivot(columns='enduse', values=[energy_column])
+        comstock_data.columns = comstock_data.columns.droplevel(0)
+        comstock_data = comstock_data.reset_index().rename_axis(None, axis=1)
+        comstock_data = comstock_data.set_index('timestamp')
+        comstock_data = comstock_data.head(8760)
+        if normalization == 'Annual':
+          comstock_annual_total = comstock_data['total'].sum()
+          comstock_data = comstock_data / comstock_annual_total
+
+        # Remove missing enduses from enduse list and enduse colors before plotting
+        filtered_enduse_list = [col for col in enduse_list if col in comstock_data.columns]
+        filtered_enduse_colors = [enduse_colors[i] for i, col in enumerate(enduse_list) if col in comstock_data.columns]
+
+        # filter and collect ami data
+        ami_data = df.loc[df.run.isin([ami_data_label])]
+        ami_count = ami_data['bldg_count']
+        ami_count_max = int(ami_count.max())
+        ami_count_avg = ami_count.mean()
+        ami_count_min = int(ami_count.min())
+        ami_data = ami_data[['run', energy_column]]
+        ami_data = ami_data.pivot(columns='run', values=[energy_column])
+        ami_data.columns = ami_data.columns.droplevel(0)
+        ami_data = ami_data.reset_index().rename_axis(None, axis=1)
+        ami_data = ami_data.set_index('timestamp')
+        ami_data = ami_data.head(8760)
+        if normalization == 'Annual':
+          ami_annual_total = ami_data.sum()
+          ami_data = ami_data / ami_annual_total
+
+        # Assign sample uncertainty
+        total_data = df.loc[df.enduse.isin(['total'])]
+        try:
+            sample_uncertainty = total_data.loc[total_data.run.isin([ami_data_label])][['sample_uncertainty']]
+        except KeyError:
+            sample_uncertainty = total_data.loc[total_data.run.isin([ami_data_label])][['run', energy_column]]
+            sample_uncertainty.rename(columns={energy_column: 'sample_uncertainty'}, inplace=True)
+            sample_uncertainty['sample_uncertainty'] = default_uncertainty
+
+        # comstock day type dictionary
+        comstock_day_type_dict = {}
+        if summer_months:
+            comstock_day_type_dict.update({'Summer_Weekday': (comstock_data.index.weekday < 5)
+                                    & (comstock_data.index.month.isin(summer_months))})
+            comstock_day_type_dict.update({'Summer_Weekend': (comstock_data.index.weekday >= 5)
+                                    & (comstock_data.index.month.isin(summer_months))})
+        if winter_months:
+            comstock_day_type_dict.update({'Winter_Weekday': (comstock_data.index.weekday < 5)
+                                    & (comstock_data.index.month.isin(winter_months))})
+            comstock_day_type_dict.update({'Winter_Weekend': (comstock_data.index.weekday >= 5)
+                                    & (comstock_data.index.month.isin(winter_months))})
+        if shoulder_months:
+            comstock_day_type_dict.update({'Shoulder_Weekday': (comstock_data.index.weekday < 5)
+                                    & (comstock_data.index.month.isin(shoulder_months))})
+            comstock_day_type_dict.update({'Shoulder_Weekend': (comstock_data.index.weekday >= 5)
+                                    & (comstock_data.index.month.isin(shoulder_months))})
+
+        # ami day type dictionary
+        ami_day_type_dict = {}
+        if summer_months:
+            ami_day_type_dict.update({'Summer_Weekday': (ami_data.index.weekday < 5)
+                                    & (ami_data.index.month.isin(summer_months))})
+            ami_day_type_dict.update({'Summer_Weekend': (ami_data.index.weekday >= 5)
+                                    & (ami_data.index.month.isin(summer_months))})
+        if winter_months:
+            ami_day_type_dict.update({'Winter_Weekday': (ami_data.index.weekday < 5)
+                                    & (ami_data.index.month.isin(winter_months))})
+            ami_day_type_dict.update({'Winter_Weekend': (ami_data.index.weekday >= 5)
+                                    & (ami_data.index.month.isin(winter_months))})
+        if shoulder_months:
+            ami_day_type_dict.update({'Shoulder_Weekday': (ami_data.index.weekday < 5)
+                                    & (ami_data.index.month.isin(shoulder_months))})
+            ami_day_type_dict.update({'Shoulder_Weekend': (ami_data.index.weekday >= 5)
+                                    & (ami_data.index.month.isin(shoulder_months))})
+
+        # plot
+        plt.figure(figsize=(20, 20))
+        filename = (region['source_name'] + '_' + ami_data_label.lower().replace(' ', '') + '_' + building_type)
+        graph_type = ''
+        if normalization == 'Annual':
+            day_type_label = 'Annual Normalized'
+            graph_type = "annual_normalized_day_type_comparison_by_enduse"
+        elif normalization == 'Daytype':
+            day_type_label = 'Day Type Normalized'
+            graph_type = "daytype_normalized_day_type_comparison_by_enduse"
+        else:
+            day_type_label = ''
+            graph_type = "day_type_comparison_by_enduse"
+        plt.suptitle('{} Day Type Comparison by Enduse\n{} (n={}) vs. {} (n={})\n{}, {}'.format(day_type_label, comstock_data_label, comstock_count_max, ami_data_label, ami_count_max, region['source_name'], building_type), fontsize=24)
+        filename = filename + "_" + graph_type
+        plt.subplots_adjust(top=0.9)
+        fig_n = 0
+
+        ylabel_text = 'Electric Load (kwh/ft2)'
+        if normalization == 'Annual':
+            ylabel_text = 'Normalized (Annual Sum = 1)'
+        elif normalization == 'Daytype':
+            ylabel_text = 'Normalized (Day Sum = 1)'
+
+        # calculate y_max in the plot
+        y_max_buildstock = 0
+        for day_type in comstock_day_type_dict.keys():
+            y_max_temp = pd.DataFrame(comstock_data['total'][comstock_day_type_dict[day_type]])
+            y_max_temp['hour'] = y_max_temp.index.hour
+            y_max_temp = y_max_temp.groupby('hour').mean()
+            if normalization == 'Daytype':
+                y_max_temp_value = float(y_max_temp['total'].max()/y_max_temp['total'].sum())
+            else:
+                y_max_temp_value = float(y_max_temp['total'].max())
+            if y_max_temp_value > y_max_buildstock:
+                y_max_buildstock = y_max_temp_value
+
+        y_max_ami = 0
+        for day_type in ami_day_type_dict.keys():
+            y_max_temp = pd.DataFrame(ami_data[ami_day_type_dict[day_type]])
+            y_max_temp['hour'] = y_max_temp.index.hour
+            y_max_temp_value = float(y_max_temp.groupby('hour').mean().max().iloc[0])
+            if y_max_temp_value > y_max_ami:
+                y_max_ami = y_max_temp_value
+        y_max = max(y_max_buildstock, y_max_ami)
+
+        plot_data_df = pd.DataFrame()
+        for day_type in ami_day_type_dict.keys():
+            fig_n = fig_n + 1
+            ax = plt.subplot(3, 2, fig_n)
+            ax.spines['top'].set_color('black')
+            ax.spines['bottom'].set_color('black')
+            ax.spines['right'].set_color('black')
+            ax.spines['left'].set_color('black')
+            plt.rcParams.update({'font.size': 16})
+
+            # Truth data
+            truth_data = pd.DataFrame(ami_data[ami_data_label][ami_day_type_dict[day_type]])
+            truth_data['hour'] = truth_data.index.hour
+            truth_data = truth_data.groupby('hour').mean()
+            if normalization == 'Daytype':
+                truth_data_total = truth_data.sum()
+                truth_data = truth_data / truth_data_total
+
+            # Stacked Enduses Plot
+            processed_data_for_stack_plot = pd.DataFrame(comstock_data[filtered_enduse_list][comstock_day_type_dict[day_type]])
+            processed_data_for_stack_plot['hour'] = processed_data_for_stack_plot.index.hour
+            processed_data_for_stack_plot = processed_data_for_stack_plot.groupby('hour').mean()
+            if normalization == 'Daytype':
+                processed_data_total = processed_data_for_stack_plot.sum().sum()
+                processed_data_for_stack_plot = processed_data_for_stack_plot / processed_data_total
+
+            plt.stackplot(
+                processed_data_for_stack_plot.index,
+                processed_data_for_stack_plot.T,
+                labels=filtered_enduse_list,
+                colors=filtered_enduse_colors
+            )
+
+            # Truth Data Plot
+            y = truth_data
+            s_uncertainty = pd.DataFrame(sample_uncertainty[ami_day_type_dict[day_type]])
+            s_uncertainty['hour'] = s_uncertainty.index.hour
+            s_uncertainty = s_uncertainty.groupby('hour').mean()
+
+            # Upper Estimate
+            upper_truth = pd.DataFrame(
+                y[ami_data_label].values +
+                y[ami_data_label].values * s_uncertainty['sample_uncertainty'].values
+            )
+            plt.plot(
+                upper_truth,
+                color='k',
+                label='{}: 80% CI upper estimate'.format(ami_data_label),
+                linestyle='--'
+            )
+            y_max = np.max([float(np.max(upper_truth)), y_max])
+
+            # Mean Estimate
+            plt.plot(
+                y,
+                color='k',
+                label=ami_data_label
+            )
+
+            # Lower estimate
+            lower_truth = pd.DataFrame(
+                y[ami_data_label].values -
+                y[ami_data_label].values * s_uncertainty['sample_uncertainty'].values
+            )
+            # values cannot be negative
+            lower_truth = lower_truth.clip(lower=0)
+            plt.plot(
+                lower_truth,
+                color='k',
+                label='{}: 80% CI lower estimate'.format(ami_data_label),
+                linestyle='dashed'
+            )
+
+            plt.title(day_type.replace("_", " "))
+            plt.xlim([0, 23])
+            plt.ylim([0, y_max * 1.1])
+
+            if fig_n > 4:
+                plt.xlabel('Hour of Day', fontsize=24)
+            if fig_n % 2 != 0:
+                plt.ylabel(ylabel_text, fontsize=24)
+
+            # collect graph data
+            data_df = processed_data_for_stack_plot.copy()
+            data_df['hour'] = data_df.index
+            data_df['region'] = region['source_name']
+            data_df['building_type'] = building_type
+            data_df['day_type'] = day_type
+            #data_df['lci80'] = lower_truth
+            data_df['ami_total'] = truth_data
+            #data_df['uci80'] = upper_truth
+            data_df['graph_type'] = graph_type
+            data_df['ami_n_min'] = ami_count_min
+            data_df['ami_n_mean'] = ami_count_avg
+            data_df['ami_n_max'] = ami_count_max
+            data_df['comstock_n_min'] = comstock_count_min
+            data_df['comstock_n_mean'] = comstock_count_avg
+            data_df['comstock_n_max'] = comstock_count_max
+
+            # add comstock total
+            processed_total_data = pd.DataFrame(comstock_data['total'][comstock_day_type_dict[day_type]])
+            processed_total_data['hour'] = processed_total_data.index.hour
+            processed_total_data = processed_total_data.groupby('hour').mean()
+            data_df['comstock_total'] = processed_total_data
+            data_df['error'] = data_df['ami_total'] - data_df['comstock_total']
+            data_df['relative_error'] = (data_df['ami_total'] - data_df['comstock_total']) / data_df['ami_total']
+
+            # add to total plot data
+            data_df = data_df.reset_index(drop=True)
+            plot_data_df = pd.concat([plot_data_df, data_df])
+
+        ax = plt.gca()
+        handles, labels = ax.get_legend_handles_labels()
+        plt.figlegend(handles[::-1], labels[::-1], loc='center right', bbox_to_anchor=(1.2, 0.52), ncol=1)
+
+        # save plot
+        output_path = os.path.join(output_dir, '%s.png' % (filename) )
+        plt.savefig(output_path, bbox_inches='tight')
+
+        # save graph data
+        if save_graph_data:
+            output_path = os.path.join(output_dir, '%s.csv' % (filename) )
+            plot_data_df.to_csv(output_path, index=False)
+
+        plt.close('all')
+        return plot_data_df
+
+    """
+    Load duration curve comparison
+    Args:
+        df: long form dataset with a comstock run and ami data
+        region: region object from AMI class
+        building_type (str): building type
+        color_map: hash with dataset names as the keys
+        output_dir (str): output directory
+    """
+    def plot_load_duration_curve(self, df, region, building_type, color_map, output_dir):
+        comstock_data_label = list(color_map.keys())[0]
+        ami_data_label = list(color_map.keys())[1]
+        energy_column = 'kwh_per_sf'
+        default_uncertainty = 0.1
+        zoom_in_hours = -1
+
+        total_data = df.loc[df.enduse.isin(['total'])]
+
+        # format comstock data
+        comstock_data = total_data.loc[total_data.run.isin([comstock_data_label])][['run', energy_column]]
+        comstock_data = comstock_data.pivot(columns='run', values=[energy_column])
+        comstock_data.columns = comstock_data.columns.droplevel(0)
+        comstock_data = comstock_data.reset_index().rename_axis(None, axis=1)
+        comstock_data = comstock_data.set_index('timestamp')
+
+        # format ami data
+        ami_data = total_data.loc[total_data.run.isin([ami_data_label])][['run', energy_column]]
+        ami_data = ami_data.pivot(columns='run', values=[energy_column])
+        ami_data.columns = ami_data.columns.droplevel(0)
+        ami_data = ami_data.reset_index().rename_axis(None, axis=1)
+        ami_data = ami_data.set_index('timestamp')
+
+        # assign sample uncertainty
+        try:
+            sample_uncertainty = np.array(total_data.loc[total_data.run.isin([ami_data_label])][['sample_uncertainty']])
+        except KeyError:
+            sample_uncertainty = total_data.loc[total_data.run.isin([ami_data_label])][['run', energy_column]]
+            sample_uncertainty.rename(columns={energy_column: 'sample_uncertainty'}, inplace=True)
+            sample_uncertainty['sample_uncertainty'] = default_uncertainty
+            sample_uncertainty = np.array(sample_uncertainty['sample_uncertainty']).reshape(-1, 1)
+
+        # set up default values
+        if zoom_in_hours == -1:
+            zoom_in_hours = len(ami_data)
+
+        # sort values
+        ami_data_sorted = ami_data.sort_values(
+            by=list(ami_data.columns), ascending=False).reset_index(drop=True).iloc[0:zoom_in_hours, :]
+        ami_data_sorted = ami_data_sorted.reset_index(drop=True)
+        comstock_data_sorted = pd.DataFrame(
+            np.sort(comstock_data.values,
+                    axis=0)[::-1],
+            index=comstock_data.index,
+            columns=comstock_data.columns
+        ).iloc[0:zoom_in_hours, :]
+        comstock_data_sorted = comstock_data_sorted.reset_index(drop=True)
+        sample_uncertainty = sample_uncertainty[0:zoom_in_hours].max()
+
+        # plot
+        plt.figure(figsize=(12, 8))
+        plt.ylabel('kwh/ft2', fontsize=16)
+        plt.plot(comstock_data_sorted, color='#d73027', linewidth=2)
+        y = ami_data_sorted
+        plt.plot(y + y * sample_uncertainty, color='k', linestyle='dashed')
+        plt.plot(y, color='k')
+        plt.plot(y - y * sample_uncertainty, color='k', linestyle='dashed')
+        plt.xlabel('Hours Equaled or Exceeded', fontsize=16)
+
+        y_max = max([ami_data_sorted.values.max(), comstock_data_sorted.values.max()])
+        y_min = 0
+        if zoom_in_hours < 501:
+            y_min = 0.9 * min([ami_data_sorted.values.min(), comstock_data_sorted.values.min()])
+        plt.xlim(0, len(ami_data_sorted))
+        plt.ylim([y_min, 1.1 * y_max])
+        plt.yticks(fontsize=15)
+        plt.xticks(fontsize=15)
+        plt.legend([comstock_data_label] + [ami_data_label + ': upper estimate'] +
+                    [ami_data_label] + [ami_data_label + ': lower estimate'], fontsize=15, loc=1)
+        plt.title('{}, {}, Load Duration Curve: {} hours'.format(region['source_name'], building_type, len(ami_data_sorted)), fontsize=19)
+
+        # output figure
+        filename = region['source_name'] + '_' + ami_data_label.lower().replace(' ', '') + '_' + building_type + '_load_duration_curve_top_' + str(zoom_in_hours) + '_hours.png'
+        output_path = os.path.join(output_dir, filename)
+        plt.savefig(output_path, bbox_inches='tight')
+

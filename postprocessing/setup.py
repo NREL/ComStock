@@ -44,17 +44,18 @@ setup(
         'seaborn>=0.12.0',
         'xlrd',
         'nbformat',
+        'scipy',
         'pandas',
         'plotly',
         'pyarrow',
         'fsspec',
         's3fs',
-        'kaleido',
         'boto3',
         'botocore',
         'pyyaml',
         'joblib',
-        'polars>=0.19.0'
+        'polars>=0.19.16',
+        'buildstock_query @ git+https://github.com/NREL/buildstock-query'
     ],
     extras_require={
         'dev': [
@@ -67,6 +68,16 @@ setup(
             'ipykernel',
             # 'awscli',
             # 'colorama==0.4.3'
-        ]
+        ],
+        ':sys_platform == "win32"': [
+            'kaleido==0.1.0post1',  # kaleido version for Windows
+        ],
+        ':sys_platform == "linux"': [
+            'kaleido==0.1.0',  # kaleido version for Linux
+        ],
+        ':sys_platform == "darwin"': [
+            'kaleido==0.1.0',  # kaleido version for MacOS
+        ],
+
     }
 )

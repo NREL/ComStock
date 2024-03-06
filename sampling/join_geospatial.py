@@ -2,6 +2,7 @@
 # See top level LICENSE.txt file for license terms.
 import argparse
 import boto3
+import botocore
 from joblib import Parallel, delayed
 import logging
 import numpy as np
@@ -20,7 +21,7 @@ def download_data(state):
     s3_file_path = 'truth_data/v01/spatial_dists_by_state/{}'.format(file_name)
     bucket_name = 'eulp'
 
-    s3_client = boto3.client('s3')
+    s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
     
     # Check if file exists, if it doesn't query from s3
     if not os.path.exists(local_path):
@@ -37,6 +38,25 @@ def download_data(state):
         df = pd.read_csv(local_path, low_memory=False, encoding='latin-1')
 
     return df
+
+
+def manual_fips_update(df_buildstock):
+    """
+    Due to discrepancies between Census years, county FIPS in spatial_tract_lookup_published_v6.csv do not
+    exactly match the counties sampled in ComStock. This function is a manual FIPS update for these counties
+    to ensure every sample in ComStock receives the proper geospatial fields in the metadata.
+
+    These counties include (2010 Census): Bedford City County, Shannon County and Wrangell-Petersburg County
+    """
+    county_fips_map = {
+        'G5105150': 'G5100190'          # Bedford City County changed to Bedford County
+        # 'G4601130': 'G4601020',       TODO: Look into Shannon County changing to Oglala Lakota County
+        # 'G0202800': '??'              TODO: Look into Wrangell-Petersburg County; ComStock includes Petersburg Census Area in the cluster mapping
+    }
+
+    df_buildstock.replace({'county_id': county_fips_map}, inplace=True)
+
+    return df_buildstock
 
 
 def the_func(state, df_buildstock):
@@ -105,12 +125,12 @@ def the_func(state, df_buildstock):
         
         # Calculate probabilities for all building types in the county for use when there aren't building types available for the given tract
         df_tract_all_buildings = df_tract.loc[df_tract.gisjoin.str.contains(county)].copy()
-        total_count_all = df_tract_all_buildings.large_count.agg(func=sum) + df_tract_all_buildings.not_large_count.agg(func=sum)
+        total_count_all = df_tract_all_buildings.large_count.agg('sum') + df_tract_all_buildings.not_large_count.agg('sum')
         df_tract_all_buildings.loc[:, 'probability'] = (df_tract_all_buildings['large_count'] + df_tract_all_buildings['not_large_count']) / total_count_all
 
         # If the building size is "large," calculate probabilities using the "large_count"
         if size == 'large':
-            total_count = df_tract_group.large_count.agg(func=sum)
+            total_count = df_tract_group.large_count.agg('sum')
             if total_count == 0:
                 random_samples = df_tract_all_buildings.loc[:, ['gisjoin', 'probability']].sample(n=num_samples, weights='probability', axis=0, replace=True)
             else:
@@ -119,7 +139,7 @@ def the_func(state, df_buildstock):
             df_buildstock_state.loc[(df_buildstock_state.county_id == county) & (df_buildstock_state.building_type == btype) & (df_buildstock_state.building_size == size), 'gisjoin'] = np.array(random_samples.gisjoin)
         # If the building size is "not_large," calculate probabilities using the "not_large_count"
         elif size == 'not_large':
-            total_count = df_tract_group.not_large_count.agg(func=sum)
+            total_count = df_tract_group.not_large_count.agg('sum')
             if total_count == 0:
                 if len(df_tract_all_buildings['probability']) == 0:
                     continue
@@ -167,6 +187,9 @@ def main():
     # Import buildstock.csv
     df_buildstock = pd.read_csv(os.path.join('output-buildstocks', 'intermediate', args.buildstock_name), index_col='Building', na_filter=False)
     
+    # Manually update select FIPS codes due to Census year differences
+    df_buildstock = manual_fips_update(df_buildstock)
+    
     df_nan = df_buildstock.loc[df_buildstock['rentable_area'].isna()]
     df_buildstock = df_buildstock.loc[~df_buildstock['rentable_area'].isna()]
     
@@ -176,9 +199,9 @@ def main():
         '36', '37', '38', '39', '40', '41', '42', '44', '45', '46', '47', '48', '49', '50', '51', '53',
         '54', '55', '56'
         ]
-    res = pd.concat(Parallel(n_jobs=-1, verbose=10)(delayed(the_func)(state, df_buildstock) for state in state_fips))
+    res = pd.concat(Parallel(n_jobs=-1, verbose=10, prefer='threads')(delayed(the_func)(state, df_buildstock) for state in state_fips))
     res_total = pd.concat([res, df_nan])
-    df_geospatial_lkup = pd.read_csv(os.path.join('resources', 'spatial_tract_lookup_table_publish_v4.csv'))
+    df_geospatial_lkup = pd.read_csv(os.path.join('resources', 'spatial_tract_lookup_table_publish_v6.csv'))
     df_results_geospatial = res_total.merge(df_geospatial_lkup, left_on='gisjoin', right_on='nhgis_tract_gisjoin', how='left')
     df_results_geospatial.drop(['sqft', 'building_size', 'gisjoin'], axis=1, inplace=True)
     df_results_geospatial.index = np.linspace(1, len(df_results_geospatial), len(df_results_geospatial)).astype(int)

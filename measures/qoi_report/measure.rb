@@ -36,6 +36,8 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # *******************************************************************************
 
+require 'date'
+
 # start the measure
 class QOIReport < OpenStudio::Measure::ReportingMeasure
   # human readable name
@@ -81,6 +83,23 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
     }
   end
 
+  def months
+    return {
+        'jan' => 1,
+        'feb' => 2,
+        'mar' => 3,
+        'apr' => 4,
+        'may' => 5,
+        'jun' => 6,
+        'jul' => 7,
+        'aug' => 8,
+        'sep' => 9,
+        'oct' => 10,
+        'nov' => 11,
+        'dec' => 12
+    }
+  end
+
   def average_daily_base_magnitude_by_season
     output_names = []
     seasons.each do |season, temperature_range|
@@ -121,6 +140,62 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
     return output_names
   end
 
+  def min_daily_peak_by_month
+    output_names = []
+    months.each do |month, month_val|
+      output_names << "minimum_daily_peak_use_#{month}_kw"
+    end
+    return output_names
+  end
+
+  def q1_daily_peak_by_month
+    output_names = []
+    months.each do |month, month_val|
+      output_names << "q1_daily_peak_use_#{month}_kw"
+    end
+    return output_names
+  end
+
+  def med_daily_peak_by_month
+    output_names = []
+    months.each do |month, month_val|
+      output_names << "median_daily_peak_use_#{month}_kw"
+    end
+    return output_names
+  end
+
+  def q3_daily_peak_by_month
+    output_names = []
+    months.each do |month, month_val|
+      output_names << "q3_daily_peak_use_#{month}_kw"
+    end
+    return output_names
+  end
+
+  def max_daily_peak_by_month
+    output_names = []
+    months.each do |month, month_val|
+      output_names << "maximum_daily_peak_use_#{month}_kw"
+    end
+    return output_names
+  end
+
+  def med_daily_peak_timing_by_month
+    output_names = []
+    months.each do |month, month_val|
+      output_names << "median_daily_peak_timing_#{month}_hour"
+    end
+    return output_names
+  end
+
+  def total_electricity_by_month
+    output_names = []
+    months.each do |month, month_val|
+      output_names << "total_electricity_use_#{month}_kwh"
+    end
+    return output_names
+  end
+
   def outputs
     output_names = []
     output_names += average_daily_base_magnitude_by_season
@@ -128,6 +203,13 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
     output_names += average_daily_peak_timing_by_season
     output_names += top_ten_daily_seasonal_peak_magnitude_by_season
     output_names += top_ten_seasonal_timing_of_peak_by_season
+    output_names += min_daily_peak_by_month
+    output_names += q1_daily_peak_by_month
+    output_names += med_daily_peak_by_month
+    output_names += q3_daily_peak_by_month
+    output_names += max_daily_peak_by_month
+    output_names += med_daily_peak_timing_by_month
+    output_names += total_electricity_by_month
 
     result = OpenStudio::Measure::OSOutputVector.new
     output_names.each do |output|
@@ -225,6 +307,41 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
       report_sim_output(runner, "average_of_top_ten_highest_peaks_timing_#{season}_hour", average_daily_timing(timeseries, temperature_range, 'max', 10), '', '')
     end
 
+    # Daily peak minimum by month (12)
+    months.each do |month, month_val|
+      report_sim_output(runner, "minimum_daily_peak_#{month}_kw", daily_peak_stats_by_month(timeseries, month_val, 'min'), '', '')
+    end
+
+    # Daily peak first quartile (25%) by month (12)
+    months.each do |month, month_val|
+      report_sim_output(runner, "q1_daily_peak_#{month}_kw", daily_peak_stats_by_month(timeseries, month_val, 'q1'), '', '')
+    end
+
+    # Daily peak median by month (12)
+    months.each do |month, month_val|
+      report_sim_output(runner, "median_daily_peak_#{month}_kw", daily_peak_stats_by_month(timeseries, month_val, 'med'), '', '')
+    end
+
+    # Daily peak third quartile (75%) by month (12)
+    months.each do |month, month_val|
+      report_sim_output(runner, "q3_daily_peak_#{month}_kw", daily_peak_stats_by_month(timeseries, month_val, 'q3'), '', '')
+    end
+
+    # Daily peak maximum by month (12)
+    months.each do |month, month_val|
+      report_sim_output(runner, "maximum_daily_peak_#{month}_kw", daily_peak_stats_by_month(timeseries, month_val, 'max'), '', '')
+    end
+
+    # Daily peak timing median by month (12)
+    months.each do |month, month_val|
+      report_sim_output(runner, "median_daily_peak_timing_#{month}_hour", daily_peak_timing_stats_by_month(timeseries, month_val, 'med'), '', '')
+    end
+
+    # Daily peak timing median by month (12)
+    months.each do |month, month_val|
+      report_sim_output(runner, "total_electricity_use_#{month}_kwh", monthly_energy(timeseries, month_val, 'total'), '', '')
+    end
+
     sqlFile.close
 
     return true
@@ -292,6 +409,92 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
     daily_vals["use"], daily_vals["hour"] = daily_vals["use"].zip(daily_vals["hour"]).sort.reverse.transpose
     daily_vals = daily_vals["hour"][0..top]
     return daily_vals.inject { |sum, el| sum + el }.to_f / daily_vals.size
+  end
+
+  def day_of_year_to_date(day_of_year, year)
+    date = Date.new(year, 1, 1) + day_of_year - 1
+    month = date.month
+    day = date.day
+    return month, day
+  end
+
+  def calculate_percentile(array, percentile)
+    sorted_array = array.sort
+    n = sorted_array.length
+  
+    index = (percentile * (n - 1) / 100.0).floor
+    fractional_part = (percentile * (n - 1) / 100.0) % 1
+  
+    if fractional_part.zero?
+      return sorted_array[index]
+    else
+      lower_value = sorted_array[index]
+      upper_value = sorted_array[index + 1]
+      return (1 - fractional_part) * lower_value + fractional_part * upper_value
+    end
+  end
+
+  def daily_peak_stats_by_month(timeseries, month_val, stats_option = "max", year = 2018)
+    daily_peak_by_month = []
+    timeseries['total_site_electricity_kw'].each_slice(24).with_index do |kws, doy|
+      month, day = day_of_year_to_date(doy, year)
+      if month == month_val
+        daily_peak_by_month << kws.max
+      end
+    end
+    stats_by_month = nil
+    if stats_option == "min"
+      stats_by_month = daily_peak_by_month.min
+    elsif stats_option == "q1"
+      stats_by_month = calculate_percentile(daily_peak_by_month,25)
+    elsif stats_option == "med"
+      stats_by_month = calculate_percentile(daily_peak_by_month,50)
+    elsif stats_option == "q3"
+      stats_by_month = calculate_percentile(daily_peak_by_month,75)
+    elsif stats_option == "max"
+      stats_by_month = daily_peak_by_month.max
+    else
+      return nil
+    end
+    return stats_by_month
+  end
+
+  def daily_peak_timing_stats_by_month(timeseries, month_val, stats_option = "med", year = 2018)
+    daily_peak_timing_by_month = []
+    timeseries['total_site_electricity_kw'].each_slice(24).with_index do |kws, doy|
+      month, day = day_of_year_to_date(doy, year)
+      if month == month_val
+        daily_peak_timing_by_month << kws.index(kws.max)
+      end
+    end
+    stats_by_month = nil
+    if stats_option == "med"
+      stats_by_month = calculate_percentile(daily_peak_timing_by_month,50)
+    elsif stats_option == "mean"
+      stats_by_month = daily_peak_timing_by_month.inject { |sum, el| sum + el }.to_f / daily_peak_timing_by_month.size
+    else
+      return nil
+    end
+    return stats_by_month
+  end
+
+  def monthly_energy(timeseries, month_val, stats_option = "total", year = 2018)
+    daily_energy_by_month = []
+    timeseries['total_site_electricity_kw'].each_slice(24).with_index do |kws, doy|
+      month, day = day_of_year_to_date(doy, year)
+      if month == month_val
+        daily_energy_by_month << kws.inject { |sum, el| sum + el }.to_f
+      end
+    end
+    energy_by_month = nil
+    if stats_option == "total"
+      energy_by_month = daily_energy_by_month.inject { |sum, el| sum + el }.to_f
+    elsif stats_option == "mean"
+      energy_by_month = daily_energy_by_month.inject { |sum, el| sum + el }.to_f / daily_energy_by_month.size
+    else
+      return nil
+    end
+    return energy_by_month
   end
 
   def report_sim_output(runner, name, total_val, os_units, desired_units, percent_of_val = 1.0)

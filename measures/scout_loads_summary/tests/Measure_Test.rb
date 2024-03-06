@@ -6,6 +6,7 @@ require 'minitest/autorun'
 require 'open3'
 
 require_relative '../measure.rb'
+require_relative '../../../test/helpers/minitest_helper'
 
 require 'fileutils'
 

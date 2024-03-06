@@ -3,7 +3,7 @@
 There are **TWO** measure directories on this GitHub repository.
 This measure directory contains meta and reporting measures that do not require input arguments.
 
-Workflow and upgrade measures are located under [resources/measures](https://github.com/NREL/comstock-internal/tree/develop/resources/measures).
+Workflow and upgrade measures are located under [resources/measures](https://github.com/NREL/ComStock/tree/main/resources/measures).
 
 # Meta Measures
 
@@ -26,6 +26,9 @@ This measure runs several QAQC checks on the model.
 
 ### qoi_report
 This measure reports Quantities of Interest (QOIs) which include peak demand, such as the average daily summer peak demand.
+
+### utility_bills
+This measure calculates utility bills for electricity, natural gas, propane, and fuel oil.
 
 ### run_directory_cleanup
 This measure deletes most of the model run files after the simulation is complete to save drive space on large runs.

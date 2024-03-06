@@ -163,6 +163,7 @@ def get_parameters_ordered_from_options_lookup_tsv(resources_dir, characteristic
         next if row.size < 2
         next if row[0].nil? or row[0].downcase == "parameter name" or row[1].nil?
         next if params.include?(row[0])
+        next if row[1] == "*"
         if not characteristics_dir.nil?
             tsvpath = File.join(characteristics_dir, row[0] + ".tsv")
             next if not File.exist?(tsvpath)
@@ -183,6 +184,7 @@ def get_options_for_parameter_from_options_lookup_tsv(resources_dir, parameter_n
         next if row.size < 2
         next if row[0].nil? or row[0].downcase == "parameter name" or row[1].nil?
         next if row[0].downcase != parameter_name.downcase
+        next if row[1] == "*"
         options << row[1]
     end
 
@@ -274,6 +276,7 @@ def get_measure_args_from_option_names(lookup_file, option_names, parameter_name
 
     CSV.foreach(lookup_file, { :col_sep => "\t" }) do |row|
         next if row.size < 2
+        next if row[1] == "*"
         # Found option row?
         if not row[0].nil? and not row[1].nil?
             current_option = nil # reset
@@ -377,5 +380,5 @@ end
 
 class Version
     ComStock_Version = '0.0.1' # Version of ComStock
-    BuildStockBatch_Version = '0.22' # Minimum required version of BuildStockBatch
+    BuildStockBatch_Version = '2023.10.0' # Minimum required version of BuildStockBatch
 end
