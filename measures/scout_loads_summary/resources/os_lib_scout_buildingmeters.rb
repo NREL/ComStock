@@ -124,13 +124,13 @@ module OsLib
                 end
               end
 
-              # Lights assigned to space type are metered at the zone
+              # Lights assigned to space type are metered at the space
               next if space.spaceType.empty?
               space.spaceType.get.lights.each do |component|
                 ft = 'electricity'
                 seu = scout_lighting_type(component)
                 energy_consumption_output_variables(component).each do |var|
-                  self.end_use.supply(eu).sub_end_use(seu, ft).eplus_key_var_pairs << ["#{zone.name} #{component.name}", var]
+                  self.end_use.supply(eu).sub_end_use(seu, ft).eplus_key_var_pairs << ["#{space.name} #{component.name}", var]
                 end
               end
             end
@@ -157,13 +157,13 @@ module OsLib
                 end
               end
 
-              # Electric equipment assigned to space type are metered at the zone
+              # Electric equipment assigned to space type are metered at the space
               next if space.spaceType.empty?
               space.spaceType.get.electricEquipment.each do |component|
                 ft = 'electricity'
                 seu = scout_electric_equipment_type(component)
                 energy_consumption_output_variables(component).each do |var|
-                  self.end_use.supply(eu).sub_end_use(seu, ft).eplus_key_var_pairs << ["#{zone.name} #{component.name}", var]
+                  self.end_use.supply(eu).sub_end_use(seu, ft).eplus_key_var_pairs << ["#{space.name} #{component.name}", var]
                 end
               end
             end
@@ -535,7 +535,7 @@ module OsLib
             end
           end
 
-          return st 
+          return st
         end
 
         # Determine if an HVAC component is inside of a unitary equipment
@@ -544,7 +544,7 @@ module OsLib
             return true
           else
             return false
-          end  
+          end
         end
 
         # Determine if an HVAC component is inside of a zone HVAC component
@@ -690,28 +690,6 @@ module OsLib
           end
 
           return vars
-        end
-
-        # Create IDF objects for all of the custom meters and custom decrement meters
-        def sub_end_use_output_meter_idf_objects(model, reporting_frequency)
-          idf_objects = []
-          sub_end_use_output_meter_infos(model).each do |meter_name, custom_meter_info|
-            next if custom_meter_info["key_var_groups"].empty?
-            if custom_meter_info['meter_type'] == 'normal'
-              custom_meter = create_custom_meter(meter_name,
-                                                custom_meter_info["fuel_type"],
-                                                custom_meter_info["key_var_groups"])
-            else
-              custom_meter = create_custom_meter_decrement(meter_name,
-                                                          custom_meter_info["fuel_type"],
-                                                          custom_meter_info['end_use'],
-                                                          custom_meter_info["key_var_groups"])
-            end
-            idf_objects << OpenStudio::IdfObject.load(custom_meter).get
-            idf_objects << OpenStudio::IdfObject.load("Output:Meter,#{meter_name},#{reporting_frequency};").get
-          end
-
-          return idf_objects
         end
 
         # Convert the EnergyPlus HVAC object fuel type enumerations

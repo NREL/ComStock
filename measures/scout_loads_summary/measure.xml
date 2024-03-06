@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>scout_loads_summary</name>
   <uid>10373121-03aa-4e48-a9ea-e51b4c09f771</uid>
-  <version_id>841a3da4-de32-45e2-ae8d-4d5e0e57b90b</version_id>
-  <version_modified>2023-10-31T20:16:14Z</version_modified>
+  <version_id>af0f40d8-038a-4f02-8960-c1672b61c92a</version_id>
+  <version_modified>2024-03-06T20:32:42Z</version_modified>
   <xml_checksum>72C8354A</xml_checksum>
   <class_name>ScoutLoadsSummary</class_name>
   <display_name>Scout Loads Summary</display_name>
@@ -171,7 +171,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>9B5D729F</checksum>
+      <checksum>BC4835CE</checksum>
     </file>
     <file>
       <filename>os_lib_heat_transfer.rb</filename>
@@ -183,7 +183,7 @@
       <filename>os_lib_scout_buildingmeters.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>2EA6644A</checksum>
+      <checksum>26923569</checksum>
     </file>
     <file>
       <filename>os_lib_scout_hvac.rb</filename>
@@ -219,7 +219,7 @@
       <filename>Measure_Test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>0F560F59</checksum>
+      <checksum>61186A24</checksum>
     </file>
     <file>
       <filename>Restaurant_5B.osm</filename>

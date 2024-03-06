@@ -77,7 +77,6 @@ class ScoutLoadsSummary < OpenStudio::Measure::ReportingMeasure
     bldg_meters = OsLib::Scout::BuildingMeters::BuildingMeterSet.new(num_ts=1) # initialize values to a 1-item array for speed
     bldg_meters.populate_supply_meter_details(model)
     bldg_meters.all_supply_meter_idf_objects(model).each do |meter_idf|
-      # runner.registerInfo("#{meter_idf}")
       result << meter_idf
     end
 
