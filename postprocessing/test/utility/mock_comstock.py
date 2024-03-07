@@ -45,14 +45,16 @@ class MockComStock:
         return True
     
     def mock__read_csv_action(self, **kwargs):
+
         path = kwargs["path"]
         if "EJSCREEN" in path:
             filePath =  "/truth_data/v01/EPA/EJSCREEN/EJSCREEN_Tract_2020_USPR.csv"
         elif "1.0-communities.csv" in path:
             filePath =  "/truth_data/v01/EPA/CEJST/1.0-communities.csv"
-        del kwargs["path"]
 
-        return pl.read_csv(filePath, **kwargs)
+        col_name = kwargs['col_def_names'] 
+        dtypes = kwargs['dtypes']
+        return pl.read_csv(filePath, columns=col_name, dtypes=dtypes)
 
     def stop(self):
         self.patcher.stop()
