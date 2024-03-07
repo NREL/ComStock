@@ -728,7 +728,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Show the dataset size
         logger.debug(f'Memory after add_geospatial_columns: {self.data.estimated_size()}')
     
-    def _read_csv(self, path, col_def_names, dtypes): return pl.read_csv(path, columns=col_def_names, dtypes=dtypes)
+    def _read_csv(self, path, columns, dtypes): return pl.read_csv(path, columns=columns, dtypes=dtypes)
 
     def add_ejscreen_columns(self):
         # Add the EJ Screen data
@@ -749,7 +749,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Read the buildstock.csv and join columns onto annual results by building ID
         file_name = 'EJSCREEN_Tract_2020_USPR.csv'
         file_path = os.path.join(self.truth_data_dir, file_name)
-        ejscreen = self._read_csv(path=file_path, col_def_names=col_def_names, dtypes={'ID': str})
+        ejscreen = self._read_csv(path=file_path, columns=col_def_names, dtypes={'ID': str})
 
         # Convert EJSCREEN census tract ID to gisjoin format
         @lru_cache()
@@ -809,7 +809,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Read the buildstock.csv and join columns onto annual results by building ID
         file_name = self.cejst_file_name
         file_path = os.path.join(self.truth_data_dir, file_name)
-        cejst = self._read_csv(path=file_path, col_def_names=col_def_names, dtypes=col_def_types)
+        cejst = self._read_csv(path=file_path, columns=col_def_names, dtypes=col_def_types)
 
         # Convert CEJST census tract ID to gisjoin format
         @lru_cache()
