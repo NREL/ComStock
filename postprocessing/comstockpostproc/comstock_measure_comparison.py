@@ -26,6 +26,7 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
         self.output_dir = os.path.join(current_dir, '..', 'output', self.dataset_name, 'measure_runs')
         self.column_for_grouping = self.UPGRADE_NAME
         self.dict_measure_dir = {} # this can be called to determine output directory
+        self.upgrade_ids_for_comparison = comstock_object.upgrade_ids_for_comparison
 
         # Ensure that the comstock object has savings columns included
         if not comstock_object.include_upgrades:
@@ -53,7 +54,7 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
 
                 # convert grouping column from cat to str to avoid processing errors with more than 2 measures
                 self.data[self.column_for_grouping] = self.data[self.column_for_grouping].astype(str)
-                
+
                 df_upgrade = self.data.loc[(self.data[self.UPGRADE_ID]==upgrade_id) | (self.data[self.UPGRADE_ID]==up_base_id), :]
 
                 color_map = {'Baseline': self.COLOR_COMSTOCK_BEFORE, upgrade_name: self.COLOR_COMSTOCK_AFTER}
@@ -63,6 +64,37 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
                     self.make_plots(df_upgrade, self.column_for_grouping, color_map, self.dict_measure_dir[upgrade])
                 else:
                     logger.info("make_comparison_plots is set to false, so not plots were created. Set make_comparison_plots to True for plots.")
+
+        # make plots comparing multiple upgrades together
+        for comp_name, comp_up_ids in self.upgrade_ids_for_comparison.items():
+
+                comp_output_dir =  os.path.join(self.output_dir, comp_name)
+
+                # make directory if does not exist
+                if not os.path.exists(comp_output_dir):
+                    os.makedirs(comp_output_dir)
+
+                # convert grouping column from cat to str to avoid processing errors with more than 2 measures
+                self.data[self.column_for_grouping] = self.data[self.column_for_grouping].astype(str)
+
+                # filter to requested upgrades
+                df_upgrade = self.data.loc[(self.data[self.UPGRADE_ID].isin(comp_up_ids))]
+
+                ## set color map for colors and measure ordering in plots
+                color_dict = self.linear_gradient(self.COLOR_COMSTOCK_BEFORE, self.COLOR_COMSTOCK_AFTER, len(comp_up_ids))
+                color_map = {}
+                for i, up_id in enumerate(comp_up_ids):
+                    if up_id in self.dict_upid_to_upname:
+                        color_map[self.dict_upid_to_upname[up_id]] = color_dict['hex'][i]
+                    else:
+                        print(f"up_id {up_id} not found in self.dict_upid_to_upname")
+
+                # make consumption plots for upgrades if requested by user
+                if make_comparison_plots:
+                    self.make_comparative_plots(df_upgrade, self.column_for_grouping, color_map, comp_output_dir)
+                else:
+                    logger.info("make_comparison_plots is set to false, so not plots were created. Set make_comparison_plots to True for plots.")
+
 
     def make_plots(self, df, column_for_grouping, color_map, output_dir):
         # Make plots comparing the upgrades
@@ -82,3 +114,13 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
         self.plot_qoi_timing(df, column_for_grouping, color_map, output_dir)
         self.plot_qoi_max_use(df, column_for_grouping, color_map, output_dir)
         self.plot_qoi_min_use(df, column_for_grouping, color_map, output_dir)
+
+    def make_comparative_plots(self, df, column_for_grouping, color_map, output_dir):
+        # Make plots comparing the upgrades
+
+        logger.info(f'Making comparison plots for upgrade groupings')
+        self.plot_energy_by_enduse_and_fuel_type(df, column_for_grouping, color_map, output_dir)
+        self.plot_emissions_by_fuel_type(df, column_for_grouping, color_map, output_dir)
+        self.plot_floor_area_and_energy_totals(df, column_for_grouping, color_map, output_dir)
+
+
