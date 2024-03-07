@@ -42,6 +42,7 @@ require 'openstudio/measure/ShowRunnerOutput'
 require 'fileutils'
 require 'minitest/autorun'
 require_relative '../measure.rb'
+require_relative '../../../../test/helpers/minitest_helper'
 
 class UnoccupiedOAControlsTest < Minitest::Test
 
@@ -75,7 +76,7 @@ class UnoccupiedOAControlsTest < Minitest::Test
 
   def model_input_path(osm_name)
     # return models_for_tests.select { |x| set[:model] == osm_name }
-	puts (File.expand_path(File.dirname(__FILE__))) #expands path relative to current wd, passing abs path back 
+	puts (File.expand_path(File.dirname(__FILE__))) #expands path relative to current wd, passing abs path back
     return File.expand_path(File.join(File.dirname(__FILE__), '../../../tests/models', osm_name))
   end
 
@@ -117,29 +118,29 @@ class UnoccupiedOAControlsTest < Minitest::Test
     end
 
     # copy the osm and epw to the test directory
-	#osm_path = File.expand_path(osm_path) 
-	puts(osm_path) 
+	#osm_path = File.expand_path(osm_path)
+	puts(osm_path)
     new_osm_path = "#{run_dir(test_name)}/#{File.basename(osm_path)}"
-	new_osm_path = File.expand_path(new_osm_path) 
-	puts(new_osm_path) 
+	new_osm_path = File.expand_path(new_osm_path)
+	puts(new_osm_path)
     FileUtils.cp(osm_path, new_osm_path)
-    new_epw_path = File.expand_path("#{run_dir(test_name)}/#{File.basename(epw_path)}") 
+    new_epw_path = File.expand_path("#{run_dir(test_name)}/#{File.basename(epw_path)}")
     FileUtils.cp(epw_path, new_epw_path)
     # create an instance of a runner
     runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
 
     # load the test model
     if model.nil?
-	  puts 'loading test model 1' 
+	  puts 'loading test model 1'
       model = load_model(new_osm_path)
     end
-	
+
 
     # set model weather file
     epw_file = OpenStudio::EpwFile.new(OpenStudio::Path.new(new_epw_path))
     OpenStudio::Model::WeatherFile.setWeatherFile(model, epw_file)
     assert(model.weatherFile.is_initialized)
-	
+
     # run the simulation if necessary
     unless File.exist?(sql_path(test_name))
       puts "\nRUNNING SIZING RUN FOR #{test_name}..."
@@ -147,20 +148,20 @@ class UnoccupiedOAControlsTest < Minitest::Test
       std = Standard.build('90.1-2013')
       std.model_run_sizing_run(model, run_dir(test_name))
     end
-    assert(File.exist?(File.join(run_dir(test_name), "in.osm"))) 
+    assert(File.exist?(File.join(run_dir(test_name), "in.osm")))
     assert(File.exist?(sql_path(test_name)))
-  
+
     # change into run directory for tests
     start_dir = Dir.pwd
     Dir.chdir run_dir(test_name)
-  
+
 
     # run the measure
     puts "\nAPPLYING MEASURE..."
     measure.run(model, runner, argument_map)
     result = runner.result
     result_success = result.value.valueName == 'Success'
-	
+
 	# change back directory
     Dir.chdir(start_dir)
 
@@ -183,7 +184,7 @@ class UnoccupiedOAControlsTest < Minitest::Test
 
     return result
   end
-  
+
   def self.air_loop_hvac_unitary_system?(air_loop_hvac)
     is_unitary_system = false
     air_loop_hvac.supplyComponents.each do |component|
@@ -211,10 +212,10 @@ class UnoccupiedOAControlsTest < Minitest::Test
     arguments = measure.arguments(model)
     assert_equal(0, arguments.size)
   end
-  
-  
 
-  def test_constant_oa_sched 
+
+
+  def test_constant_oa_sched
     osm_name = '361_Retail_PSZ_Gas_5a.osm'
     epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
 
@@ -224,32 +225,32 @@ class UnoccupiedOAControlsTest < Minitest::Test
     # Create an instance of the measure
     measure = UnoccupiedOAControls.new
 
-    # Load the model; only used here for populating arguments 
+    # Load the model; only used here for populating arguments
     model = load_model(osm_path)
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
-    #no arguments to measure 
-  
+    #no arguments to measure
+
 
     # Apply the measure to the model and optionally run the model
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false) 
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
     model = load_model(File.expand_path(model_output_path(__method__)))
-	
-	no_constant_oa = true 
+
+	no_constant_oa = true
 	model.getAirLoopHVACs.sort.each do |air_loop_hvac|
 	  air_loop_oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get.getControllerOutdoorAir
-      if air_loop_oa_system.minimumOutdoorAirSchedule.get.to_ScheduleConstant.is_initialized 
-	    no_constant_oa = false 
-	  end 
-	end 
-	
-	assert(no_constant_oa) 
-	
-#put in assertions here 
-#then duplicate it for other models if needed 
+      if air_loop_oa_system.minimumOutdoorAirSchedule.get.to_ScheduleConstant.is_initialized
+	    no_constant_oa = false
+	  end
+	end
+
+	assert(no_constant_oa)
+
+#put in assertions here
+#then duplicate it for other models if needed
   end
-  
-  def test_constant_air_loop_sched 
+
+  def test_constant_air_loop_sched
     osm_name = 'LargeOffice_VAV_chiller_boiler.osm'
     epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
 
@@ -259,24 +260,24 @@ class UnoccupiedOAControlsTest < Minitest::Test
     # Create an instance of the measure
     measure = UnoccupiedOAControls.new
 
-    # Load the model; only used here for populating arguments 
+    # Load the model; only used here for populating arguments
     model = load_model(osm_path)
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
-    #no arguments to measure 
-  
+    #no arguments to measure
+
 
     # Apply the measure to the model and optionally run the model
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false) 
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
     model = load_model(File.expand_path(model_output_path(__method__)))
-	
-	no_constant_loop_sched = true 
+
+	no_constant_loop_sched = true
 	model.getAirLoopHVACs.sort.each do |air_loop_hvac|
-      avail_sched = air_loop_hvac.availabilitySchedule #got an error checking this for initialization 
+      avail_sched = air_loop_hvac.availabilitySchedule #got an error checking this for initialization
 	  if avail_sched.to_ScheduleConstant.is_initialized
-        no_constant_loop_sched = false 
-	  end 
-	  #among unitary systems, check supply fan operating mode for constant schedules 
+        no_constant_loop_sched = false
+	  end
+	  #among unitary systems, check supply fan operating mode for constant schedules
 	  if UnoccupiedOAControlsTest.air_loop_hvac_unitary_system?(air_loop_hvac)
 	    air_loop_hvac.supplyComponents.each do |component|
           obj_type = component.iddObjectType.valueName.to_s
@@ -290,15 +291,15 @@ class UnoccupiedOAControlsTest < Minitest::Test
           when 'OS_AirLoopHVAC_UnitaryHeatCool_VAVChangeoverBypass'
             component = component.to_AirLoopHVACUnitaryHeatCoolVAVChangeoverBypass.get
 		  component.getSupplyAirFanOperatingModeSchedule
-          if setMinimumOutdoorAirSchedule.to_ScheduleConstant.is_initialized 
-		    no_constant_loop_sched = false 
-		  end 
-		  end 
+          if setMinimumOutdoorAirSchedule.to_ScheduleConstant.is_initialized
+		    no_constant_loop_sched = false
+		  end
+		  end
         end
 	  end
-    end 
-	assert(no_constant_loop_sched) 
-	
+    end
+	assert(no_constant_loop_sched)
+
   end
 
 end

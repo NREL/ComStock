@@ -23,8 +23,7 @@ require 'openstudio'
 require 'openstudio/ruleset/ShowRunnerOutput'
 require_relative '../../../../test/helpers/minitest_helper'
 
-require "#{File.dirname(__FILE__)}/../measure.rb"
-
+require_relative '../measure.rb'
 require 'minitest/autorun'
 
 class InjectIDFObjects_Test < MiniTest::Unit::TestCase
