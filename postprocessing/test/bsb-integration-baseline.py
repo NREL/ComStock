@@ -26,7 +26,7 @@ class TestIntegration:
     
     def test_1_Initial_comstock(self):
         # ComStock run
-        print('Running ComStock...')
+        logging.info('Running ComStock...')
         comstock = cspp.ComStock(
             s3_base_dir=None,  # If run not on S3, download results_up**.parquet manually
             comstock_run_name='bsb-integration-test-baseline',  # Name of the run on S3

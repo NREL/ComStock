@@ -105,12 +105,10 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
         # Load microdata
         file_path = os.path.join(self.truth_data_dir, self.data_file_name)
-        # self.data = pd.read_csv(file_path, low_memory=False, na_values=['.'])
         self.data = self._read_csv(file_path=file_path, low_memory=False, na_values=['.'])
 
         # Load microdata codebook
         file_path = os.path.join(self.truth_data_dir, self.data_codebook_file_name)
-        # codebook = pd.read_csv(file_path, index_col='File order', low_memory=False)
         codebook = self._read_csv(file_path=file_path, index_col='File order', low_memory=False)
         # Make a dict of column names (e.g. PBA) to labels (e.g. Principal building activity)
         # and a dict of numeric enumerations to strings for non-numeric variables

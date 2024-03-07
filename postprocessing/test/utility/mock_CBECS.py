@@ -1,6 +1,7 @@
 from unittest.mock import patch, MagicMock
 import pandas as pd
 import polars as pl
+import logging
 import comstockpostproc
 from unittest.mock import patch
 
@@ -22,13 +23,11 @@ class MockCBECS:
         self.mock__read_csv.side_effect = self.mock__read_csv_action
 
     def mock_read_delimited_truth_data_file_from_S3_action(self, s3_file_path, delimiter):
-        print('reading from path: {} with delimiter {}'.format(s3_file_path, delimiter))
+        logging.info('reading from path: {} with delimiter {}'.format(s3_file_path, delimiter))
         return pd.DataFrame()
     
     def mock__read_csv_action(self, **kwargs):
-        print('Mocking read_csv from CBECS')
-        print(kwargs)
-
+        logging.info('Mocking read_csv from CBECS')
         path = kwargs["file_path"]
         if "CBECS_2018_microdata.csv" in path:
             filePath =  "/truth_data/v01/EIA/CBECS/CBECS_2018_microdata.csv"

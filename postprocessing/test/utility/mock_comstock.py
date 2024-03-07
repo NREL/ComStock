@@ -1,8 +1,8 @@
 from unittest.mock import patch, MagicMock
 import pandas as pd
 import polars as pl
-import comstockpostproc
 from unittest.mock import patch
+import logging
 
 
 class MockComStock:
@@ -34,29 +34,25 @@ class MockComStock:
         self.mock__read_csv.side_effect = self.mock__read_csv_action
 
     def mock_upload_data_to_S3_action(self, file_path, s3_file_path):
-        print('Uploading {}...'.format(file_path))
+        logging.info('Uploading {}...'.format(file_path))
 
     def mock_read_delimited_truth_data_file_from_S3_action(self, s3_file_path, delimiter):
-        print('reading from path: {} with delimiter {}'.format(s3_file_path, delimiter))
+        logging.info('reading from path: {} with delimiter {}'.format(s3_file_path, delimiter))
         return pd.DataFrame()
 
     def mock_isfile_on_S3_action(self, bucket, file_path):
-        print('Mocking isfile_on_S3')
+        logging.info('Mocking isfile_on_S3')
         return True
     
     def mock__read_csv_action(self, **kwargs):
-        print('Mocking _read_cejst')
-        print(kwargs)
-
         path = kwargs["path"]
         if "EJSCREEN" in path:
             filePath =  "/truth_data/v01/EPA/EJSCREEN/EJSCREEN_Tract_2020_USPR.csv"
         elif "1.0-communities.csv" in path:
             filePath =  "/truth_data/v01/EPA/CEJST/1.0-communities.csv"
+        del kwargs["path"]
 
-        col_name = kwargs['col_def_names'] 
-        dtypes = kwargs['dtypes']
-        return pl.read_csv(filePath, columns=col_name, dtypes=dtypes)
+        return pl.read_csv(filePath, **kwargs)
 
     def stop(self):
         self.patcher.stop()
