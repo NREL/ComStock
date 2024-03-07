@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
-import unittest
+import pytest
 from utility.mock_comstock import MockComStock
 from utility.mock_CBECS import MockCBECS
 import comstockpostproc as cspp
@@ -12,20 +12,17 @@ import pandas as pd
 logging.basicConfig(level='INFO')  # Use DEBUG, INFO, or WARNING
 logger = logging.getLogger(__name__)
 
-class IntegrationTest(unittest.TestCase):
+class TestIntegration:
 
-    def setUp(self) -> None:
+    @pytest.fixture(autouse=True)
+    def setup_and_teardown(self):
         self.mock_comstock = MockComStock()
         self.mock_cebcs = MockCBECS()
-
-        # used to verify that the Comstock wide.csv file exists in the correct location
-        # the file path should be /Comstock/postprocessing/output/ComStock\ bsb-integration-test-baseline\ 2018/ComStock wide.csv
-
         self.widePath = "../output/ComStock bsb-integration-test-baseline 2018/ComStock wide.csv"
-
-    def tearDown(self):
+        yield
         self.mock_comstock.stop()
         self.mock_cebcs.stop()
+
     
     def test_1_Initial_comstock(self):
         # ComStock run
@@ -78,16 +75,12 @@ class IntegrationTest(unittest.TestCase):
         comparison.export_to_csv_wide()
 
     def test_2_verifyExistance(self):
-        self.assertTrue(os.path.isfile(self.widePath))
-    
+        assert os.path.isfile(self.widePath)
+
     def test_3_verifyWideShape(self):
-        # read in the wide file
         wide = pd.read_csv(self.widePath)
-        # check that the wide file has the expected number of rows and columns
-        self.assertEqual(wide.shape, (4, 892))
+        assert wide.shape == (4, 892)
 
     def test_4_verifyWideColumns(self):
-        #read in the wide file
         wide = pd.read_csv(self.widePath)
-        # check that the wide file has the expected columns
-        self.assertTrue((wide.completed_status == "Success").all())
+        assert (wide.completed_status == "Success").all()
