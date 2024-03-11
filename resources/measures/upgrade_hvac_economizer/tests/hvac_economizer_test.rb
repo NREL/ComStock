@@ -309,22 +309,22 @@ class HVACEconomizer_Test < Minitest::Test
       unless availableReportingFrequencies.include?(reportingfrequency)
         raise "reportingfrequency of #{reportingfrequency} not included in available options: #{availableReportingFrequencies}"
       end
-    end    
+    end
 
     # Check if timeseries name is available in sql
     timeseriesnames.each do |timeseriesname|
-      unless availableEnvPeriods.include?(envperiod) 
+      unless availableEnvPeriods.include?(envperiod)
         raise "envperiod of #{envperiod} not included in available options: #{availableEnvPeriods}"
       end
       # puts("### DEBUGGING: availableTimeSeries = #{availableTimeSeries}")
-      unless availableTimeSeries.include?(timeseriesname) 
+      unless availableTimeSeries.include?(timeseriesname)
         raise "timeseriesname of #{timeseriesname} not included in available options: #{availableTimeSeries}"
       end
     end
 
     # Extract timeseries data
     timeseries_results_combined = {}
-    
+
     timeseriesnames.each do |timeseriesname|
       availableKeyValues = sqlFile.availableKeyValues(envperiod,reportingfrequency,timeseriesname).to_a
 
@@ -336,7 +336,7 @@ class HVACEconomizer_Test < Minitest::Test
         unless timeseries_results_combined.key?(key_value)
           timeseries_results_combined[key_value] = {}
         end
-        timeseries_result = sqlFile.timeSeries(envperiod,reportingfrequency,timeseriesname,key_value).get     
+        timeseries_result = sqlFile.timeSeries(envperiod,reportingfrequency,timeseriesname,key_value).get
         vals = []
         elec_vals = timeseries_result.values
         for i in 0..(elec_vals.size - 1)
@@ -349,14 +349,14 @@ class HVACEconomizer_Test < Minitest::Test
         timeseries_results_combined[key_value][timeseriesname] = vals
       end
     end
-    
+
     return timeseries_results_combined
   end
 
   def models_to_test_final_oa_rates
     # suggestion: test all of these models locally but only include one model that can test quickly since the test requires simulation run.
     test_sets = []
-    test_sets << { model: 'Outpatient_VAV_economizer_test', weather: 'G4201010', result: 'Success' }
+    test_sets << { model: 'Outpatient_VAV_economizer_test', weather: 'VA_MANASSAS_724036_12', result: 'Success' }
     return test_sets
   end
 
@@ -364,7 +364,7 @@ class HVACEconomizer_Test < Minitest::Test
 
     # raise if array sizes are different
     return false if array1.length != array2.length
-  
+
     # Count values that violate tolerance 1
     violations_count = array1.zip(array2).count { |a, b| (a - b).abs > (tolerance1 / 100.0) * a }
 
@@ -373,7 +373,7 @@ class HVACEconomizer_Test < Minitest::Test
     #   puts row.join(', ')
     # end
     # puts("#################################################################")
-  
+
     # Check if the ratio of violations to the total count is within tolerance 2
     violations_ratio = violations_count.to_f / array1.length
     violation_final = violations_ratio > tolerance2 / 100.0
@@ -401,8 +401,8 @@ class HVACEconomizer_Test < Minitest::Test
       puts "instance test name: #{instance_test_name}"
       osm_path = models_for_tests.select { |x| set[:model] == File.basename(x, '.osm') }
       epw_path = epws_for_tests.select { |x| set[:weather] == File.basename(x, '.epw') }
-      assert(!osm_path.empty?)
-      assert(!epw_path.empty?)
+      assert(!osm_path.empty?, "Could not find osm file at #{osm_path}")
+      assert(!epw_path.empty?, "Could not find epw file at #{epw_path}")
       osm_path = osm_path[0]
       epw_path = epw_path[0]
 
@@ -439,7 +439,7 @@ class HVACEconomizer_Test < Minitest::Test
       economizer_count_before = economizer_available(model)
 
       # Run simulation prior to measure application
-      puts("### DEBUGGING: first simulation prior to measure application")      
+      puts("### DEBUGGING: first simulation prior to measure application")
       timeseries_results_combined_before = run_simulation_and_get_timeseries(model, 2016, number_of_days_to_test, number_of_timesteps_in_an_hr_test, timeseriesnames, epw_path=epw_path, run_dir = run_dir(instance_test_name)+'/beforemeasure')
       timeseries_results_combined['before'] = timeseries_results_combined_before
 
@@ -617,7 +617,7 @@ class HVACEconomizer_Test < Minitest::Test
 
       # Apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
-      
+
       # check the measure result; result values will equal Success, Fail, or Not Applicable
       # also check the amount of warnings, info, and error messages
       # use if or case statements to change expected assertion depending on model characteristics
