@@ -1,8 +1,9 @@
 # NREL Staff Instructions for Running ComStock on NREL's Supercomputer
 
 ## Permissions Dependencies
- - Request an [HPC account](https://www.nrel.gov/hpc/user-accounts.html)
- - Get added to specific allocations.  Contact Ry for ComStock 'comstock' or Tony for EULP 'enduse' permissions
+ - Request an [HPC account](https://www.nrel.gov/hpc/user-accounts.html) 
+   - When asked for allocation in the request portal, use 'cscore' for ComStock or 'enduse' for EULP.
+ - Get added to specific allocations.  Contact Ry for ComStock 'cscore' or Tony for EULP 'enduse' permissions. Ask
  - If uploading results to S3, Athena, ask Noel for an S3 account
    - Setup MFA on your AWS account
    - Under the security tab, create API access keys.  You'll need one for Eagle and one for your local machine if you plan to process results.
