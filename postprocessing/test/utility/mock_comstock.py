@@ -28,8 +28,9 @@ class MockComStock:
         self.patcher_read_delimited_truth_data_file_from_S3 = patch('comstockpostproc.comstock.ComStock.read_delimited_truth_data_file_from_S3')
         self.mock_read_delimited_truth_data_file_from_S3 = self.patcher_read_delimited_truth_data_file_from_S3.start()
         self.mock_read_delimited_truth_data_file_from_S3.side_effect = self.mock_read_delimited_truth_data_file_from_S3_action
-        
-        self.patcher__read_csv = patch('comstockpostproc.comstock.ComStock._read_csv')
+
+        self.original_read_csv = pl.read_csv 
+        self.patcher__read_csv = patch('polars.read_csv')
         self.mock__read_csv = self.patcher__read_csv.start()
         self.mock__read_csv.side_effect = self.mock__read_csv_action
 
@@ -44,15 +45,17 @@ class MockComStock:
         logging.info('Mocking isfile_on_S3')
         return True
     
-    def mock__read_csv_action(self, **kwargs):
-        path = kwargs["path"]
+    def mock__read_csv_action(self, *args, **kwargs):
+        logging.info('Mocking read_csv from ComStock')
+        filePath = None
+        path = args[0]
         if "EJSCREEN" in path:
-            filePath =  "/truth_data/v01/EPA/EJSCREEN/EJSCREEN_Tract_2020_USPR.csv"
+            filePath = "/truth_data/v01/EPA/EJSCREEN/EJSCREEN_Tract_2020_USPR.csv"
         elif "1.0-communities.csv" in path:
-            filePath =  "/truth_data/v01/EPA/CEJST/1.0-communities.csv"
-        del kwargs["path"]
-
-        return pl.read_csv(filePath, **kwargs)
+            filePath = "/truth_data/v01/EPA/CEJST/1.0-communities.csv"
+        if not filePath: 
+            return self.original_read_csv(*args, **kwargs)
+        return self.original_read_csv(filePath, **kwargs)
 
     def stop(self):
         self.patcher.stop()
