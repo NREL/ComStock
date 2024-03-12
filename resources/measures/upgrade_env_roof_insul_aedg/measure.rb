@@ -40,41 +40,41 @@
 require 'openstudio-standards'
 
 # start the measure
-class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure 
+class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure
   # human readable name
-  def name 
-    return "Roof Insulation AEDG" 
+  def name
+    return "Roof Insulation AEDG"
   end
 
   # human readable description
-  def description 
-    return "Roof Insulation is defined as sky facing horizontal surfaces, or surfaces sloped within 60 degrees of sky facing horizontal" 
+  def description
+    return "Roof Insulation is defined as sky facing horizontal surfaces, or surfaces sloped within 60 degrees of sky facing horizontal"
   end
 
   # human readable description of modeling approach
   def modeler_description
     return 'Determine the thickness of extruded polystyrene insulation required to meet the specified R-value, determined from the AEDG target assembly performance for each climate zone.  Find all the constructions used by roofs in the model, clone them, add a layer of insulation to the cloned constructions, and then assign the construction back to the roof.'
   end
-  
-  # define the arguments that the user will input for the model
-  def arguments(model) 
-    args = OpenStudio::Measure::OSArgumentVector.new 
 
-    return args 
-  end 
+  # define the arguments that the user will input for the model
+  def arguments(model)
+    args = OpenStudio::Measure::OSArgumentVector.new
+
+    return args
+  end
 
   # define what happens when the measure is run
-  def run(model, runner, user_arguments) 
-    super(model, runner, user_arguments) 
+  def run(model, runner, user_arguments)
+    super(model, runner, user_arguments)
 
-    # use the built-in error checking 
-    if !runner.validateUserArguments(arguments(model), user_arguments) 
+    # use the built-in error checking
+    if !runner.validateUserArguments(arguments(model), user_arguments)
       return false
     end
 
     # set limit for minimum insulation in IP units -- this is used to limit input and for inferring insulation layer in construction
     min_exp_r_val_ip = 1.0
-    
+
     # build standard to use OS standards methods
     template = 'ComStock 90.1-2019'
     std = Standard.build(template)
@@ -92,7 +92,7 @@ class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure
       target_r_val_ip = 37
     else # all DEER climate zones except 15 and 16
       target_r_val_ip = 26
-    end 
+    end
     # Convert target_r_val_ip to si
     target_r_val_si = OpenStudio.convert(target_r_val_ip, 'ft^2*h*R/Btu', 'm^2*K/W').get
 
@@ -110,39 +110,39 @@ class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure
     end
 
     # create an array of roofs and find range of starting construction R-value (not just insulation layer)
-    ext_surfs = [] 
-    ext_surf_consts = [] 
-    ext_surf_const_names = [] 
-    roof_resist = [] 
-    model.getSurfaces.each do |surface| 
+    ext_surfs = []
+    ext_surf_consts = []
+    ext_surf_const_names = []
+    roof_resist = []
+    model.getSurfaces.each do |surface|
       next unless (surface.outsideBoundaryCondition == 'Outdoors') && (surface.surfaceType == 'RoofCeiling') #which are outdoor roofs
-      ext_surfs << surface 
-      roof_const = surface.construction.get 
+      ext_surfs << surface
+      roof_const = surface.construction.get
       # only add construction if it hasn't been added yet
-      ext_surf_consts << roof_const.to_Construction.get unless ext_surf_const_names.include?(roof_const.name.to_s) 
-      ext_surf_const_names << roof_const.name.to_s 
-      roof_resist << 1 / roof_const.thermalConductance.to_f 
+      ext_surf_consts << roof_const.to_Construction.get unless ext_surf_const_names.include?(roof_const.name.to_s)
+      ext_surf_const_names << roof_const.name.to_s
+      roof_resist << 1 / roof_const.thermalConductance.to_f
     end
 
     # hashes to track constructions and materials made by the measure, to avoid duplicates
-    consts_old_new = {} 
+    consts_old_new = {}
 
     # used to get net area of new construction
-    consts_new_old = {} 
-    matls_hash = {} 
+    consts_new_old = {}
+    matls_hash = {}
 
     # array and counter for new constructions that are made, used for reporting final condition
-    final_consts = [] 
+    final_consts = []
 
     # loop through all constructions and materials used on roofs, edit and clone
-    ext_surf_consts.each do |ext_surf_const| 
+    ext_surf_consts.each do |ext_surf_const|
       matls_in_const = ext_surf_const.layers.map.with_index { |l, i| { 'name' => l.name.to_s, 'index' => i, 'nomass' => !l.to_MasslessOpaqueMaterial.empty?, 'r_val' => l.to_OpaqueMaterial.get.thermalResistance, 'matl' => l } }
-      no_mass_matls = matls_in_const.select { |m| m['nomass'] == true } 
+      no_mass_matls = matls_in_const.select { |m| m['nomass'] == true }
 
       # measure will select the no-mass material with the highest R-value as the insulation layer -- if no no-mass materials are present, the measure will select the material with the highest R-value per inch
-      if !no_mass_matls.empty? 
+      if !no_mass_matls.empty?
         r_vals = no_mass_matls.map { |m| m['r_val'] } #
-        max_matl_hash = no_mass_matls.select { |m| m['r_val'] >= r_vals.max } 
+        max_matl_hash = no_mass_matls.select { |m| m['r_val'] >= r_vals.max }
       else
         r_val_per_thick_vals = matls_in_const.map { |m| m['r_val'] / m['mat'].thickness }
         max_matl_hash = matls_in_const.select { |m| m['index'] == r_val_per_thick_vals.index(r_val_per_thick_vals.max) }
@@ -153,7 +153,7 @@ class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure
       # check to make sure assumed insulation layer is between reasonable bounds
       if max_r_val_matl.to_OpaqueMaterial.get.thermalResistance <= OpenStudio.convert(min_exp_r_val_ip, 'ft^2*h*R/Btu', 'm^2*K/W').get
         runner.registerWarning("Construction '#{ext_surf_const.name}' does not appear to have an insulation layer and was not altered")
-      elsif (max_r_val_matl.to_OpaqueMaterial.get.thermalResistance >= target_r_val_si) 
+      elsif (max_r_val_matl.to_OpaqueMaterial.get.thermalResistance >= target_r_val_si)
         runner.registerInfo("The insulation layer of construction #{ext_surf_const.name} exceeds the requested R-value and was not altered")
       else
 
@@ -170,7 +170,7 @@ class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure
         # clone the construction
         final_const = ext_surf_const.clone(model).to_Construction.get
         # get r-value
-        final_const_r_si = 1 / final_const.thermalConductance.to_f 
+        final_const_r_si = 1 / final_const.thermalConductance.to_f
         final_const_r_ip = OpenStudio.convert(final_const_r_si, 'm^2*K/W' , 'ft^2*h*R/Btu').get
         # determine required r-value of XPS insulation to bring roof up to target
         xps_target_r_val_si = target_r_val_si - final_const_r_si
@@ -210,7 +210,7 @@ class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure
       end
     end
 
-    # register as not applicable if 
+    # register as not applicable if
     if final_consts.empty?
       runner.registerAsNotApplicable("No applicable roofs were found.")
       return true
@@ -299,17 +299,17 @@ class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure
     end
 
     # nothing will be done if there are no exterior surfaces
-    if ext_surfs.empty? 
-     runner.registerAsNotApplicable('The building has no roofs.') 
-     return true 
-    end 
+    if ext_surfs.empty?
+     runner.registerAsNotApplicable('The building has no roofs.')
+     return true
+    end
 
     # report strings for initial condition
-    init_str = [] 
-    ext_surf_consts.uniq.each do |ext_surf_const|  
+    init_str = []
+    ext_surf_consts.uniq.each do |ext_surf_const|
       # unit conversion of roof insulation from SI units (m2-K/W) to IP units (ft2-h-R/Btu)
       init_r_val_ip = OpenStudio.convert(1 / ext_surf_const.thermalConductance.to_f, 'm^2*K/W', 'ft^2*h*R/Btu').get
-      init_str << "#{ext_surf_const.name} (R-#{(format '%.1f', init_r_val_ip)})" 
+      init_str << "#{ext_surf_const.name} (R-#{(format '%.1f', init_r_val_ip)})"
     end
 
     # report strings for final condition, not all roof constructions, but only new ones made -- if roof didn't have insulation and was not altered we don't want to show it
@@ -333,10 +333,10 @@ class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure
     end
 
     # Report the initial condition
-    runner.registerInitialCondition("The building had #{init_str.size} roof constructions: #{init_str.sort.join(', ')}") 
+    runner.registerInitialCondition("The building had #{init_str.size} roof constructions: #{init_str.sort.join(', ')}")
 
     # Report the final condition
-    runner.registerFinalCondition("The insulation for roofs was set to R-#{target_r_val_ip} -- this was applied to #{area_changed_ip.round(2)} ft2 across #{final_str.size} roof constructions: #{final_str.sort.join(', ')}")
+    runner.registerFinalCondition("The insulation for roofs was set to R-#{target_r_val_ip.round(1)} -- this was applied to #{area_changed_ip.round(2)} ft2 across #{final_str.size} roof constructions: #{final_str.sort.join(', ')}")
     runner.registerValue('env_roof_insul_roof_area_ft2', area_changed_ip.round(2), 'ft2')
     return true
   end

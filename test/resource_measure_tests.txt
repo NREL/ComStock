@@ -2,7 +2,6 @@ resources/measures/upgrade_env_roof_insul_aedg/tests/env_roof_insul_aedg_test.rb
 resources/measures/set_exterior_lighting_template/tests/measure_test.rb
 resources/measures/set_wall_template/tests/measure_test.rb
 resources/measures/upgrade_env_new_aedg_windows/tests/measure_test.rb
-resources/measures/upgrade_env_new_aedg_windows/tests/env_new_aedg_windows_test.rb
 resources/measures/create_bar_from_building_type_ratios/tests/create_bar_from_building_type_ratios_test.rb
 resources/measures/set_roof_template/tests/measure_test.rb
 resources/measures/upgrade_light_led/tests/light_led_test.rb
