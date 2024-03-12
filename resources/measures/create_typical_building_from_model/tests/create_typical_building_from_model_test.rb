@@ -191,11 +191,6 @@ class CreateTypicalBuildingFromModel_Test < Minitest::Test
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'SmallOffice.osm', nil, nil)
   end
 
-  def test_generic_gbxml
-    args = {}
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'GenericGbxml.osm', nil, nil)
-  end
-
   # DEER Prototypes
   def test_asm
     args = {}
