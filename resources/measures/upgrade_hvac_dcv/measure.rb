@@ -156,7 +156,7 @@ class HVACDCV < OpenStudio::Measure::ModelMeasure
       if erv_components.any?
         runner.registerInfo("Air loop '#{air_loop_hvac.name}' has an ERV. DCV will not be applied.")
         ervs += 1
-        next
+        #next
       end
 
       # check to see if airloop has existing DCV

@@ -2579,7 +2579,7 @@ module OsLib_ModelGeneration
 
     # validate climate zone
     if !args.key?('climate_zone') || args['climate_zone'] == 'Lookup From Model'
-      climate_zone = standard.model_get_building_climate_zone_and_building_type(model)['climate_zone']
+      climate_zone = standard.model_get_building_properties(model)['climate_zone']
       runner.registerInfo("Using climate zone #{climate_zone} from model")
     else
       climate_zone = args['climate_zone']
@@ -2679,7 +2679,7 @@ module OsLib_ModelGeneration
         occ_type = 'Nonresidential'
       end
       if !args.has_key?('climate_zone') || args['climate_zone'] == 'Lookup From Model'
-        climate_zone = standard.model_get_building_climate_zone_and_building_type(model)['climate_zone']
+        climate_zone = standard.model_get_building_properties(model)['climate_zone']
         runner.registerInfo("Using climate zone #{climate_zone} from model")
       else
         climate_zone = args['climate_zone']
@@ -2920,26 +2920,6 @@ module OsLib_ModelGeneration
       if !stripmall_swh_loops.empty?
         runner.registerInfo("Adding #{stripmall_swh_loops.size} RetailStripmall service water heating loops.")
       end
-
-      # Modify Pipe:Indoor objects to have an ambient temperature that's always
-      # higher than the warmest Site:WaterMainsTemperature found in the year
-      # TODO remove once this EnergyPlus issue is closed: https://github.com/NREL/EnergyPlus/issues/9650
-      water_temp = model.getSiteWaterMainsTemperature
-      mean_c = water_temp.annualAverageOutdoorAirTemperature.get
-      max_delta_c = water_temp.maximumDifferenceInMonthlyAverageOutdoorAirTemperatures.get
-      max_temp_c = mean_c + (0.5 * max_delta_c) + 3.0 # To ensure higher than mains temp
-      max_temp_c = max_temp_c.round(1)
-      max_temp_f = OpenStudio.convert(max_temp_c, 'C', 'F').get
-      max_temp_f = max_temp_f.round(1)
-      pipe_indoor_temp_sch = OpenStudio::Model::ScheduleConstant.new(model)
-      pipe_indoor_temp_sch.setName("Temporary Pipe Indoor Ambient Temp #{max_temp_f}F")
-      pipe_indoor_temp_sch.setValue(max_temp_c)
-      model.getPipeIndoors.each do |heat_loss_pipe|
-        # TODO schedule type registry error for this setter
-        # heat_loss_pipe.setAmbientTemperatureSchedule(pipe_indoor_temp_sch)
-        heat_loss_pipe.setPointer(7, pipe_indoor_temp_sch.handle)
-      end
-      runner.registerWarning("Set Pipe:Indoor ambient temp schedules to #{max_temp_f}F to avoid E+ issue 9650, remove once fixed.")
     end
 
     # add_daylighting_controls (since outdated measure don't have this default to true if arg not found)

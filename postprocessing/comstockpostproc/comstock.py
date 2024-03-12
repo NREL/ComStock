@@ -64,7 +64,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
     def __init__(self, s3_base_dir, comstock_run_name, comstock_run_version, comstock_year, athena_table_name,
         truth_data_version, buildstock_csv_name = 'buildstock.csv', acceptable_failure_percentage=0.01, drop_failed_runs=True,
         color_hex=NamingMixin.COLOR_COMSTOCK_BEFORE, weighted_energy_units='tbtu', weighted_ghg_units='co2e_mmt', skip_missing_columns=False,
-        reload_from_csv=False, make_comparison_plots=True, include_upgrades=True, upgrade_ids_to_skip=[], rename_upgrades=False):
+        reload_from_csv=False, make_comparison_plots=True, include_upgrades=True, upgrade_ids_to_skip=[], upgrade_ids_for_comparison={}, rename_upgrades=False):
         """
         A class to load and transform ComStock data for export, analysis, and comparison.
         Args:
@@ -107,6 +107,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.skip_missing_columns = skip_missing_columns
         self.include_upgrades = include_upgrades
         self.upgrade_ids_to_skip = upgrade_ids_to_skip
+        self.upgrade_ids_for_comparison = upgrade_ids_for_comparison
         self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
         if self.athena_table_name is not None:
             self.athena_client = BuildStockQuery(workgroup='eulp',
@@ -138,7 +139,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             elif os.path.exists(os.path.join(self.output_dir, 'ComStock wide.csv')):
                 file_path = os.path.join(self.output_dir, 'ComStock wide.csv')
                 logger.info(f'Reloading data from: {file_path}')
-                self.data = pl.read_csv(file_path, dtypes={self.UPGRADE_ID: pl.Int64}, infer_schema_length=5000)
+                self.data = pl.read_csv(file_path, dtypes={self.UPGRADE_ID: pl.Int64}, infer_schema_length=10000)
                 self.data = self.reduce_df_memory(self.data)
             else:
                 raise FileNotFoundError(
@@ -569,8 +570,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             up_res_applic = self.reduce_df_memory(up_res_applic)
 
             # Cast utility columns to float64 to avoid data type inconsistancies
-            pattern_util_rate_name = re.compile(r'utility_bills\.electricity_rate_\d+_name')
-            pattern_util_cost = re.compile(r'utility_bills\.electricity_rate_\d+_bill_dollars')
+            pattern_util_rate_name = re.compile(r'utility_bills.*_rate.*_name')
+            pattern_util_cost = re.compile(r'utility_bills.*_rate.*_bill_dollars')
             for col, dt in up_res_applic.schema.items():
                 if pattern_util_rate_name.match(col):
                     up_res_applic = up_res_applic.with_columns([pl.col(col).cast(pl.Utf8)])
@@ -609,8 +610,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             up_res_na = self.reduce_df_memory(up_res_na)
 
             # Cast utility columns to float64 to avoid data type inconsistancies
-            pattern_util_rate_name = re.compile(r'utility_bills\.electricity_rate_\d+_name')
-            pattern_util_cost = re.compile(r'utility_bills\.electricity_rate_\d+_bill_dollars')
+            pattern_util_rate_name = re.compile(r'utility_bills.*_rate.*_name')
+            pattern_util_cost = re.compile(r'utility_bills.*_rate.*_bill_dollars')
             for col, dt in up_res_na.schema.items():
                 if pattern_util_rate_name.match(col):
                     up_res_na = up_res_na.with_columns([pl.col(col).cast(pl.Utf8)])
