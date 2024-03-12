@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>create_typical_building_from_model</name>
   <uid>339a2e3a-273c-4494-bb50-bfe586a0647c</uid>
-  <version_id>5815cc73-0b2b-46bc-9ae2-7ead558f15ce</version_id>
-  <version_modified>2024-01-03T18:32:46Z</version_modified>
+  <version_id>0d175608-4423-4f34-b2e0-80c11ecfbeca</version_id>
+  <version_modified>2024-03-06T20:35:24Z</version_modified>
   <xml_checksum>EE13F09F</xml_checksum>
   <class_name>CreateTypicalBuildingFromModel</class_name>
   <display_name>Create Typical Building from Model</display_name>
@@ -1465,7 +1465,7 @@
       <filename>Model.hvac.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>C6E68B0D</checksum>
+      <checksum>12DE0C84</checksum>
     </file>
     <file>
       <filename>deer_vintages.rb</filename>
@@ -1483,7 +1483,7 @@
       <filename>os_lib_model_generation.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>3097D1DE</checksum>
+      <checksum>477FE285</checksum>
     </file>
     <file>
       <filename>GenericGbxml.osm</filename>
@@ -1543,7 +1543,7 @@
       <filename>create_typical_building_from_model_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>484CE1FC</checksum>
+      <checksum>7389B9AD</checksum>
     </file>
     <file>
       <filename>ecc.osm</filename>
