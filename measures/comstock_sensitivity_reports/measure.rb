@@ -2741,7 +2741,16 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     model.getCoilHeatingGass.sort.each do |coil|
       # get gas coil capacity
       supplemental_capacity_w = 0.0
-      if !model.getAirLoopHVACUnitarySystems.empty? 
+      # default coil type unless proven otherwise
+      supplemental_coil = false
+      model.getAirLoopHVACUnitarySystems.sort.each do |supp_coil| 
+        if supp_coil.supplementalHeatingCoil.is_initialized && supp_coil.supplementalHeatingCoil.get == coil
+          supplemental_coil = true
+          break
+        end
+      end
+            
+      if supplemental_coil
         if coil.nominalCapacity.is_initialized
           supplemental_capacity_w = coil.nominalCapacity.get
         elsif coil.autosizedNominalCapacity.is_initialized
@@ -2766,7 +2775,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
           supplemental_gas_count_240_plus_kbtuh += 1
         end
       else
-      
+    
         # get gas coil capacity
         primary_capacity_w = 0.0
         if coil.nominalCapacity.is_initialized
