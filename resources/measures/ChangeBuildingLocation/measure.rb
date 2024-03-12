@@ -94,7 +94,6 @@ class ChangeBuildingLocation < OpenStudio::Measure::ModelMeasure
     year = OpenStudio::Measure::OSArgument.makeStringArgument('year', true)
     year.setDisplayName('Weather File Year')
     year.setDescription('Year of the weather file to use.')
-    year.setDefaultValue('2018')
     args << year
 
     # make choice argument for climate zone
@@ -150,7 +149,7 @@ class ChangeBuildingLocation < OpenStudio::Measure::ModelMeasure
     # make argument for soil conductivity (used for ground source heat pump modeling)
     soil_conductivity = OpenStudio::Ruleset::OSArgument::makeDoubleArgument('soil_conductivity', true)
     soil_conductivity.setDisplayName('Soil Conductivity')
-    soil_conductivity.setDefaultValue(1.5)
+    soil_conductivity.setDefaultValue(1.5) # Default value, change as needed
     args << soil_conductivity
 
     return args
@@ -286,36 +285,11 @@ class ChangeBuildingLocation < OpenStudio::Measure::ModelMeasure
       # grab only the ones that matter
       ddy_list = [
         /Htg 99.6. Condns DB/, # Annual heating 99.6%
-        /Htg 99. Condns DB/, # Annual heating 99%
-        /Htg Wind 99. Condns WS=>MCDB/, # Annual heating wind
-        /Clg 1. Condns DB=>MWB/, # Annual cooling 1%
-        /Clg 2. Condns DP=>MDB/, # Annual cooling 2%
-        /Clg .4. Condns WB=>MDB/, # Annual cooling
-        /Clg .4. Condns DB=>MWB/, # Annual humidity (for cooling towers and evap coolers)
-        /January .4. Condns DB=>MCWB/, # Monthly cooling DB=>MCWB (to handle solar-gain-driven cooling)
-        /February .4. Condns DB=>MCWB/,
-        /March .4. Condns DB=>MCWB/,
-        /April .4. Condns DB=>MCWB/,
-        /May .4. Condns DB=>MCWB/,
-        /June .4. Condns DB=>MCWB/,
-        /July .4. Condns DB=>MCWB/,
-        /August .4. Condns DB=>MCWB/,
+        /Clg .4. Condns WB=>MDB/, # Annual humidity (for cooling towers and evap coolers)
+        /Clg .4. Condns DB=>MWB/, # Annual cooling
+        /August .4. Condns DB=>MCWB/, # Monthly cooling DB=>MCWB (to handle solar-gain-driven cooling)
         /September .4. Condns DB=>MCWB/,
-        /October .4. Condns DB=>MCWB/,
-        /November .4. Condns DB=>MCWB/,
-        /December .4. Condns DB=>MCWB/,
-        /January .4. Condns WB=>MCDB/, # Monthly cooling WB=>MCDB (to handle solar-gain-driven cooling)
-        /February .4. Condns WB=>MCDB/,
-        /March .4. Condns WB=>MCDB/,
-        /April .4. Condns WB=>MCDB/,
-        /May .4. Condns WB=>MCDB/,
-        /June .4. Condns WB=>MCDB/,
-        /July .4. Condns WB=>MCDB/,
-        /August .4. Condns WB=>MCDB/,
-        /September .4. Condns WB=>MCDB/,
-        /October .4. Condns WB=>MCDB/,
-        /November .4. Condns WB=>MCDB/,
-        /December .4. Condns WB=>MCDB/
+        /October .4. Condns DB=>MCWB/
       ]
       ddy_list.each do |ddy_name_regex|
         if d.name.get.to_s =~ ddy_name_regex
@@ -366,57 +340,65 @@ class ChangeBuildingLocation < OpenStudio::Measure::ModelMeasure
     end
 
     # set soil properties as building additional properties for ground source heat pump modeling
+    soil_conductivity = runner.getDoubleArgumentValue('soil_conductivity', user_arguments)
+
+    # get climate zone and set undisturbed ground temp (used for ground source heat pump modeling)
+    climate_zone = runner.getStringArgumentValue('climate_zone', user_arguments)
+    puts "climate zone = #{climate_zone}"
+
     undisturbed_ground_temps = {
-      'ASHRAE 169-2013-1A' => 25.9,
-      'ASHRAE 169-2013-2A' => 20.9,
-      'ASHRAE 169-2013-2B' => 25.0,
-      'ASHRAE 169-2013-3A' => 17.9,
-      'ASHRAE 169-2013-3B' => 19.7,
-      'ASHRAE 169-2013-3C' => 17.0,
-      'ASHRAE 169-2013-4A' => 14.7,
-      'ASHRAE 169-2013-4B' => 16.3,
-      'ASHRAE 169-2013-4C' => 13.3,
-      'ASHRAE 169-2013-5A' => 11.5,
-      'ASHRAE 169-2013-5B' => 12.9,
-      'ASHRAE 169-2013-6A' => 9.0,
-      'ASHRAE 169-2013-6B' => 9.3,
-      'ASHRAE 169-2013-7A' => 7.0,
-      'ASHRAE 169-2013-7B' => 6.5,
-      'ASHRAE 169-2013-7' => 5.4,
-      'ASHRAE 169-2013-8A' => 2.3,
-      'ASHRAE 169-2013-8' => 2.3,
-      'T24-CEC1' => 16.3,
-      'T24-CEC2' => 17.0,
-      'T24-CEC3' => 17.0,
-      'T24-CEC4' => 17.0,
-      'T24-CEC5' => 17.0,
-      'T24-CEC6' => 17.0,
-      'T24-CEC7' => 19.7,
-      'T24-CEC8' => 19.7,
-      'T24-CEC9' => 19.7,
-      'T24-CEC10' => 19.7,
-      'T24-CEC11' => 19.7,
-      'T24-CEC12' => 19.7,
-      'T24-CEC13' => 19.7,
-      'T24-CEC14' => 19.7,
-      'T24-CEC15' => 25.0,
-      'T24-CEC16' => 12.9
+    'ASHRAE 169-2013-1A' => 25.9,
+    'ASHRAE 169-2013-2A' => 20.9,
+    'ASHRAE 169-2013-2B' => 25.0,
+    'T24-CEC15' => 25.0,
+    'ASHRAE 169-2013-3A' => 17.9,
+    'ASHRAE 169-2013-3B' => 19.7,
+    'T24-CEC7' => 19.7,
+    'T24-CEC8' => 19.7,
+    'T24-CEC9' => 19.7,
+    'T24-CEC10' => 19.7,
+    'T24-CEC11' => 19.7,
+    'T24-CEC12' => 19.7,
+    'T24-CEC13' => 19.7,
+    'T24-CEC14' => 19.7,
+    'ASHRAE 169-2013-3C' => 17.0,
+    'T24-CEC2' => 17.0,
+    'T24-CEC3' => 17.0,
+    'T24-CEC4' => 17.0,
+    'T24-CEC5' => 17.0,
+    'T24-CEC6' => 17.0,
+    'ASHRAE 169-2013-4A' => 14.7,
+    'ASHRAE 169-2013-4B' => 16.3,
+    'T24-CEC1' => 16.3,
+    'ASHRAE 169-2013-4C' => 13.3,
+    'ASHRAE 169-2013-5A' => 11.5,
+    'ASHRAE 169-2013-5B' => 12.9,
+    'T24-CEC16' => 12.9,
+    'ASHRAE 169-2013-6A' => 9.0,
+    'ASHRAE 169-2013-6B' => 9.3,
+    'ASHRAE 169-2013-7A' => 7.0,
+    'ASHRAE 169-2013-7B' => 6.5,
+    'ASHRAE 169-2013-7' => 5.4,
+    'ASHRAE 169-2013-8A' => 2.3,
+    'ASHRAE 169-2013-8' => 2.3
     }
 
-    undisturbed_ground_temp = undisturbed_ground_temps[args['climate_zone']] || runner.registerError("Climate zone not found.")
+    undisturbed_ground_temp = undisturbed_ground_temps[climate_zone] || runner.registerError("Climate zone not found.")
 
     # Add the values as additional properties to the building
     building = model.getBuilding
-    building.additionalProperties.setFeature('Soil Conductivity', args['soil_conductivity'])
+    building.additionalProperties.setFeature('Soil Conductivity', soil_conductivity)
     building.additionalProperties.setFeature('Undisturbed Ground Temperature', undisturbed_ground_temp)
 
     # Report that the measure was successful
-    runner.registerInfo("Added soil conductivity #{args['soil_conductivity']} Btu/hr-ft-F and undisturbed ground temperature #{undisturbed_ground_temp} degC as additional properties to the building.")
+    runner.registerInfo("Added soil conductivity #{soil_conductivity} Btu/hr-ft-F and undisturbed ground temperature #{undisturbed_ground_temp} degC as additional properties to the building.")
+
+    return true
 
     # add final condition
     runner.registerFinalCondition("The final weather file is #{model.getWeatherFile.city} and the model has #{model.getDesignDays.size} design day objects.")
 
-    return true
+    true
   end
 end
 

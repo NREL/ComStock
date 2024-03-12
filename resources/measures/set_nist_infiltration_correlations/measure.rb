@@ -133,7 +133,7 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
       nist_building_type = 'SmallOffice'
     when 'OfL'
       nist_building_type = 'MediumOffice'
-    when 'SCn'
+    when 'SCn','SUn'
       nist_building_type = 'RetailStripmall'
     else
       nist_building_type = model_building_type

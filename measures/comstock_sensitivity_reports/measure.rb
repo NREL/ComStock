@@ -901,21 +901,51 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       thermostat = zone.thermostatSetpointDualSetpoint.get
       if thermostat.heatingSetpointTemperatureSchedule.is_initialized
         thermostat_heating_schedule = thermostat.heatingSetpointTemperatureSchedule.get
-        next unless thermostat_heating_schedule.to_ScheduleRuleset.is_initialized
-        thermostat_heating_schedule = thermostat_heating_schedule.to_ScheduleRuleset.get
-        heat_min_max = std.schedule_ruleset_annual_min_max_value(thermostat_heating_schedule)
-        weighted_thermostat_heating_min_c += heat_min_max['min'] * floor_area_m2
-        weighted_thermostat_heating_max_c += heat_min_max['max'] * floor_area_m2
-        weighted_thermostat_heating_area_m2 += floor_area_m2
+        if thermostat_heating_schedule.to_ScheduleRuleset.is_initialized
+          puts("--- Ruleset schedule")
+          thermostat_heating_schedule = thermostat_heating_schedule.to_ScheduleRuleset.get
+          cool_min_max = std.schedule_ruleset_annual_min_max_value(thermostat_heating_schedule)
+          weighted_thermostat_heating_min_c += cool_min_max['min'] * floor_area_m2
+          weighted_thermostat_heating_max_c += cool_min_max['max'] * floor_area_m2
+          weighted_thermostat_heating_area_m2 += floor_area_m2
+        elsif thermostat_heating_schedule.to_ScheduleInterval.is_initialized
+          puts("--- Interval schedule")
+          thermostat_heating_schedule = thermostat_heating_schedule.to_ScheduleInterval.get
+          ts = thermostat_heating_schedule.timeSeries
+          interval_values_array = ts.values
+          weighted_thermostat_heating_min_c += interval_values_array.min * floor_area_m2
+          weighted_thermostat_heating_max_c += interval_values_array.max * floor_area_m2
+          weighted_thermostat_heating_area_m2 += floor_area_m2
+        else
+          puts("--- Not supported schedule")
+        end
+        # next unless thermostat_heating_schedule.to_ScheduleRuleset.is_initialized
+        # thermostat_heating_schedule = thermostat_heating_schedule.to_ScheduleRuleset.get
+        # heat_min_max = std.schedule_ruleset_annual_min_max_value(thermostat_heating_schedule)
+        # weighted_thermostat_heating_min_c += heat_min_max['min'] * floor_area_m2
+        # weighted_thermostat_heating_max_c += heat_min_max['max'] * floor_area_m2
+        # weighted_thermostat_heating_area_m2 += floor_area_m2
       end
       if thermostat.coolingSetpointTemperatureSchedule.is_initialized
-        thermostat_cooling_schedule = thermostat.coolingSetpointTemperatureSchedule.get.to_ScheduleRuleset.get
-        next unless thermostat_cooling_schedule.to_ScheduleRuleset.is_initialized
-        thermostat_cooling_schedule = thermostat_cooling_schedule.to_ScheduleRuleset.get
-        cool_min_max = std.schedule_ruleset_annual_min_max_value(thermostat_cooling_schedule)
-        weighted_thermostat_cooling_min_c += cool_min_max['min'] * floor_area_m2
-        weighted_thermostat_cooling_max_c += cool_min_max['max'] * floor_area_m2
-        weighted_thermostat_cooling_area_m2 += floor_area_m2
+        thermostat_cooling_schedule = thermostat.coolingSetpointTemperatureSchedule.get
+        if thermostat_cooling_schedule.to_ScheduleRuleset.is_initialized
+          puts("--- Ruleset schedule")
+          thermostat_cooling_schedule = thermostat_cooling_schedule.to_ScheduleRuleset.get
+          cool_min_max = std.schedule_ruleset_annual_min_max_value(thermostat_cooling_schedule)
+          weighted_thermostat_cooling_min_c += cool_min_max['min'] * floor_area_m2
+          weighted_thermostat_cooling_max_c += cool_min_max['max'] * floor_area_m2
+          weighted_thermostat_cooling_area_m2 += floor_area_m2
+        elsif thermostat_cooling_schedule.to_ScheduleInterval.is_initialized
+          puts("--- Interval schedule")
+          thermostat_cooling_schedule = thermostat_cooling_schedule.to_ScheduleInterval.get
+          ts = thermostat_cooling_schedule.timeSeries
+          interval_values_array = ts.values
+          weighted_thermostat_cooling_min_c += interval_values_array.min * floor_area_m2
+          weighted_thermostat_cooling_max_c += interval_values_array.max * floor_area_m2
+          weighted_thermostat_cooling_area_m2 += floor_area_m2
+        else
+          puts("--- Not supported schedule")
+        end
       end
     end
 
@@ -2667,7 +2697,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       heat_exchanger_weighted_demand_outlet_temperature_c += heat_exchanger_energy_j * heat_exchanger_demand_outlet_temperature_c
     end
     runner.registerValue('com_report_hvac_ghx_num_boreholes', num_boreholes)
-    average_borehole_depth_ft = num_boreholes > 0.0 ? total_borehole_depth_ft / num_boreholes.to_f : 0.0
+    average_borehole_depth_ft = num_boreholes > 0.0 ? total_borehole_depth_ft.to_f : 0.0
     runner.registerValue('com_report_hvac_ghx_average_borehole_depth_ft', average_borehole_depth_ft)
     average_ghx_design_flow_rate_ft3_per_min = num_boreholes > 0.0 ? total_ghx_design_flow_rate_ft3_per_min / num_boreholes.to_f : 0.0
     runner.registerValue('com_report_hvac_average_ghx_design_flow_rate_ft3_per_min', average_ghx_design_flow_rate_ft3_per_min)
