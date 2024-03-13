@@ -678,30 +678,29 @@ def summarize_failures(yml_path, sort_order='upgrade'):
 
     # Function to sort and write the dictionary based on the option
     def write_sorted_dict(nested_dict, sort_order, file_name):
+        # flatten the nested dict
+        def flat_dict(d, parent_key=()):
+            flat_list = []
+            for k,v in d.items():
+                new_key = parent_key + (k,)
+                if isinstance(v, dict):
+                    flat_list.extend(flat_dict(v,new_key))
+                else:
+                    flat_list.append(list(new_key) + [v])
+            return flat_list
+
+        flattened_dict = flat_dict(nested_dict)
         with open(file_name, 'w') as f:
             if sort_order == 'upgrade':
-                # Sort by top-level keys and then by second-level keys
-                for top_key in sorted(nested_dict.keys()):
-                    f.write(f'{top_key}:\n')
-                    for second_key in sorted(nested_dict[top_key].keys()):
-                        f.write(f'\t{second_key}:\n')
-                        for error_line in nested_dict[top_key][second_key]:
-                            f.write(f'\t{error_line}')
+                for item in sorted(flattened_dict, key=lambda x: (x[0], x[1])):
+                    f.write(f'{item[0]}:\n{item[1]}:\n')
+                    for error in item[2]:
+                        f.write(f'\t{error}')
             elif sort_order == 'building':
-                # Flip the dict to be second-level keys first
-                flipped_dict = {}
-                for top_key, second_level_dict in nested_dict.items():
-                    for second_key, value in second_level_dict.items():
-                        if second_key not in flipped_dict:
-                            flipped_dict[second_key] = {}
-                        flipped_dict[second_key][top_key] = value
-                # Sort by second-level keys and then by top-level keys
-                for second_key in sorted(flipped_dict.keys()):
-                    f.write(f'{second_key}:\n')
-                    for top_key in sorted(flipped_dict[second_key].keys()):
-                        f.write(f'\t{top_key}:\n')
-                        for error_line in flipped_dict[second_key][top_key]:
-                            f.write(f'\t{error_line}')
+                for item in sorted(flattened_dict, key=lambda x: (x[1], x[0])):
+                    f.write(f'{item[0]}:\n{item[1]}:\n')
+                    for error in item[2]:
+                        f.write(f'\t{error}')
             else:
                 raise ValueError("Invalid option. Please choose 'upgrade' or 'building'.")
 
