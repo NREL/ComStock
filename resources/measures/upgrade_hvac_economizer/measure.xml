@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>hvac_economizer</name>
   <uid>8781f87a-daa2-4712-a567-6206a340efa7</uid>
-  <version_id>dd86969d-f482-4111-9658-1e75a9dfc0e2</version_id>
-  <version_modified>2024-02-12T16:38:35Z</version_modified>
+  <version_id>587784e4-6557-4bc7-b7da-9041f19ec7f2</version_id>
+  <version_modified>2024-03-06T22:49:48Z</version_modified>
   <xml_checksum>356BE47F</xml_checksum>
   <class_name>HVACEconomizer</class_name>
   <display_name>HVACEconomizer</display_name>
@@ -60,13 +60,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>1F8A19C4</checksum>
+      <checksum>D801FE86</checksum>
     </file>
     <file>
       <filename>hvac_economizer_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>6DDABDB9</checksum>
+      <checksum>16F5DCC3</checksum>
     </file>
   </files>
 </measure>
