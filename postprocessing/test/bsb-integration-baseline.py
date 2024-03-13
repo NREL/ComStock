@@ -3,8 +3,6 @@
 
 import logging
 import pytest
-from utility.mock_comstock import MockComStock
-from utility.mock_CBECS import MockCBECS
 import comstockpostproc as cspp
 import os
 import pandas as pd
@@ -16,13 +14,7 @@ class TestIntegration:
 
     @pytest.fixture(autouse=True)
     def setup_and_teardown(self):
-        self.mock_comstock = MockComStock()
-        self.mock_cebcs = MockCBECS()
         self.widePath = "../output/ComStock bsb-integration-test-baseline 2018/ComStock wide.csv"
-        yield
-        self.mock_comstock.stop()
-        self.mock_cebcs.stop()
-
     
     def test_1_Initial_comstock(self):
         # ComStock run
