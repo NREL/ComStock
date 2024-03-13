@@ -759,7 +759,6 @@ class Replace_boiler_by_heatpump < OpenStudio::Measure::ModelMeasure
             s.autosizeHeatingDesignCapacity
           end
 
-
           # autosizing the Maximum Hot Water/steam Flow Rate.
           model.getAirTerminalSingleDuctVAVReheats.each do |term|
             term.autosizeMaximumHotWaterOrSteamFlowRate

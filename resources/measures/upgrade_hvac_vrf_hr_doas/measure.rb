@@ -77,6 +77,13 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     disable_defrost.setDefaultValue(false)
     args << disable_defrost
 
+    # upsizing allowance
+    upsizing_allowance_pct = OpenStudio::Measure::OSArgument.makeDoubleArgument('upsizing_allowance_pct', true)
+    upsizing_allowance_pct.setDisplayName('Upsizing allowance (in %) from cooling design load for heating dominant buildings')
+    upsizing_allowance_pct.setDescription('25% upsizing allowance is the same as 125% from the original size. Setting this value to zero means not applying upsizing.')
+    upsizing_allowance_pct.setDefaultValue(0.0)
+    args << upsizing_allowance_pct
+
     # apply/not-apply measure
     apply_measure = OpenStudio::Measure::OSArgument.makeBoolArgument('apply_measure', true)
     apply_measure.setDisplayName('Apply measure?')
@@ -87,9 +94,10 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     args
   end
 
-  # loading curves to model from standards data
-  # somehow the same method in standards did not work for NECB
-  # so using locally saved files and locally saved method
+  # --------------------------------------- #
+  # supporting method
+  # modified version (to read custom json) of same method in OS Standards
+  # --------------------------------------- #
   def model_add_curve(model, curve_name, standards_data_curve, std)
     # First check model and return curve if it already exists
     existing_curves = []
@@ -275,20 +283,26 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     end
   end
 
-  def get_tabular_data(model, coil_name, column_name)
+  # --------------------------------------- #
+  # supporting method
+  # --------------------------------------- #
+  def get_tabular_data(model, sql, report_name, report_for_string, table_name, row_name, column_name)
     result = OpenStudio::OptionalDouble.new
-    sql = model.sqlFile
-    if sql.is_initialized
-      sql = sql.get
-      query = "Select Value FROM TabularDataWithStrings WHERE ReportName = 'CoilSizingDetails' AND RowName = '#{coil_name}' AND TableName = 'Coils' AND ColumnName = '#{column_name}' " # AND Units = 'C'
-      val = sql.execAndReturnFirstDouble(query)
-      result = OpenStudio::OptionalDouble.new(val.get) if val.is_initialized
+    var_val_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName = '#{report_name}' AND ReportForString = '#{report_for_string}' AND TableName = '#{table_name}' AND RowName = '#{row_name}' AND ColumnName = '#{column_name}'"
+    val = sql.execAndReturnFirstDouble(var_val_query)
+    if val.is_initialized
+      result = OpenStudio::OptionalDouble.new(val.get)
+    else
+      puts("Cannot query: #{report_name} | #{report_for_string} | #{table_name} | #{row_name} | #{column_name}")
     end
     result
   end
 
+  # --------------------------------------- #
+  # supporting method
   # extracting VRF object specifications from existing (fully populated) object
   # this is used to copy specs from (manufacturer provided) osc files
+  # --------------------------------------- #
   def extract_curves_from_dummy_acvrf_object(model, name)
     # initialize performance map
     map_performance_data = {}
@@ -415,236 +429,271 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       map_performance_data['cooling_rated_cop'] = acvrf.grossRatedCoolingCOP
       map_performance_data['heating_rated_cop'] = acvrf.ratedHeatingCOP
       map_performance_data['num_compressors'] = acvrf.numberofCompressors
+      map_performance_data['min_oa_temp_cooling'] = acvrf.minimumOutdoorTemperatureinCoolingMode
+      map_performance_data['max_oa_temp_cooling'] = acvrf.maximumOutdoorTemperatureinCoolingMode
+      map_performance_data['max_oa_temp_heating'] = acvrf.maximumOutdoorTemperatureinHeatingMode
+      map_performance_data['min_oa_temp_heatrecovery'] = acvrf.minimumOutdoorTemperatureinHeatRecoveryMode
+      map_performance_data['max_oa_temp_heatrecovery'] = acvrf.maximumOutdoorTemperatureinHeatRecoveryMode
+      map_performance_data['initial_heatrecovery_cap_frac_cooling'] = acvrf.initialHeatRecoveryCoolingCapacityFraction
+      map_performance_data['initial_heatrecovery_en_frac_cooling'] = acvrf.initialHeatRecoveryCoolingEnergyFraction
+      map_performance_data['initial_heatrecovery_cap_frac_heating'] = acvrf.initialHeatRecoveryHeatingCapacityFraction
+      map_performance_data['initial_heatrecovery_en_frac_heating'] = acvrf.initialHeatRecoveryHeatingEnergyFraction
+      map_performance_data['initial_heatrecovery_cap_timeconstant_cooling'] = acvrf.heatRecoveryCoolingCapacityTimeConstant
+      map_performance_data['initial_heatrecovery_en_timeconstant_cooling'] = acvrf.heatRecoveryCoolingEnergyTimeConstant
+      map_performance_data['initial_heatrecovery_cap_timeconstant_heating'] = acvrf.heatRecoveryHeatingCapacityTimeConstant
+      map_performance_data['initial_heatrecovery_en_timeconstant_heating'] = acvrf.heatRecoveryHeatingEnergyTimeConstant
       # map_performance_data["defrost_strategy"] = acvrf.defrostStrategy # unused for now
       # map_performance_data["defrost_control"] = acvrf.defrostControl # unused for now
     end
     map_performance_data
   end
 
-  # applying VRF object specifications (mostly performance maps)
+  # --------------------------------------- #
+  # supporting method
+  # applying VRF object specifications
+  # --------------------------------------- #
   def apply_vrf_performance_data(
     vrf_outdoor_unit,
-    curve_ccapft_boundary,
-    curve_low_ccapft,
-    curve_high_ccapft,
-    curve_ceirft_boundary,
-    curve_low_ceirft,
-    curve_high_ceirft,
-    curve_low_ceirfplr,
-    curve_high_ceirfplr,
-    curve_ccr,
-    curve_onoff_cplffplr,
-    curve_hcapft_boundary,
-    curve_low_hcapft,
-    curve_high_hcapft,
-    curve_heirft_boundary,
-    curve_low_heirft,
-    curve_high_heirft,
-    curve_low_heirfplr,
-    curve_high_heirfplr,
-    curve_hcr,
-    curve_onoff_hplffplr,
-    curve_defrost_heirft,
-    heating_oa_temperature_type,
-    min_hp_plr,
-    heating_rated_cop,
-    cooling_rated_cop,
+    map_performance_data,
     vrf_defrost_strategy,
-    disable_defrost)
+    disable_defrost
+    )
 
     # puts("*** applying performance map to AirConditioner:VariableRefrigerantFlow object: #{vrf_outdoor_unit.name.to_s}")
 
     # cooling
-    if curve_ccapft_boundary.nil?
+    if map_performance_data['curve_ccapft_boundary'].nil?
       # puts("*** curve not applied because it is nill: curve_ccapft_boundary")
       vrf_outdoor_unit.resetCoolingCapacityRatioBoundaryCurve
     else
       # puts("*** curve applied: curve_ccapft_boundary")
-      vrf_outdoor_unit.setCoolingCapacityRatioBoundaryCurve(curve_ccapft_boundary)
+      vrf_outdoor_unit.setCoolingCapacityRatioBoundaryCurve(map_performance_data['curve_ccapft_boundary'])
     end
-    if curve_low_ccapft.nil?
+    if map_performance_data['curve_low_ccapft'].nil?
       # puts("*** curve not applied because it is nill: curve_low_ccapft")
       vrf_outdoor_unit.resetCoolingCapacityRatioModifierFunctionofLowTemperatureCurve
     else
       # puts("*** curve applied: curve_low_ccapft")
-      vrf_outdoor_unit.setCoolingCapacityRatioModifierFunctionofLowTemperatureCurve(curve_low_ccapft)
+      vrf_outdoor_unit.setCoolingCapacityRatioModifierFunctionofLowTemperatureCurve(map_performance_data['curve_low_ccapft'])
     end
-    if curve_high_ccapft.nil?
+    if map_performance_data['curve_high_ccapft'].nil?
       # puts("*** curve not applied because it is nill: curve_high_ccapft")
       vrf_outdoor_unit.resetCoolingCapacityRatioModifierFunctionofHighTemperatureCurve
     else
       # puts("*** curve applied: curve_high_ccapft")
-      vrf_outdoor_unit.setCoolingCapacityRatioModifierFunctionofHighTemperatureCurve(curve_high_ccapft)
+      vrf_outdoor_unit.setCoolingCapacityRatioModifierFunctionofHighTemperatureCurve(map_performance_data['curve_high_ccapft'])
     end
-    if curve_ceirft_boundary.nil?
+    if map_performance_data['curve_ceirft_boundary'].nil?
       # puts("*** curve not applied because it is nill: curve_ceirft_boundary")
       vrf_outdoor_unit.resetCoolingEnergyInputRatioBoundaryCurve
     else
       # puts("*** curve applied: curve_ceirft_boundary")
-      vrf_outdoor_unit.setCoolingEnergyInputRatioBoundaryCurve(curve_ceirft_boundary)
+      vrf_outdoor_unit.setCoolingEnergyInputRatioBoundaryCurve(map_performance_data['curve_ceirft_boundary'])
     end
-    if curve_low_ceirft.nil?
+    if map_performance_data['curve_low_ceirft'].nil?
       # puts("*** curve not applied because it is nill: curve_low_ceirft")
       vrf_outdoor_unit.resetCoolingEnergyInputRatioModifierFunctionofLowTemperatureCurve
     else
       # puts("*** curve applied: curve_low_ceirft")
-      vrf_outdoor_unit.setCoolingEnergyInputRatioModifierFunctionofLowTemperatureCurve(curve_low_ceirft)
+      vrf_outdoor_unit.setCoolingEnergyInputRatioModifierFunctionofLowTemperatureCurve(map_performance_data['curve_low_ceirft'])
     end
-    if curve_high_ceirft.nil?
+    if map_performance_data['curve_high_ceirft'].nil?
       # puts("*** curve not applied because it is nill: curve_high_ceirft")
       vrf_outdoor_unit.resetCoolingEnergyInputRatioModifierFunctionofHighTemperatureCurve
     else
       # puts("*** curve applied: curve_high_ceirft")
-      vrf_outdoor_unit.setCoolingEnergyInputRatioModifierFunctionofHighTemperatureCurve(curve_high_ceirft)
+      vrf_outdoor_unit.setCoolingEnergyInputRatioModifierFunctionofHighTemperatureCurve(map_performance_data['curve_high_ceirft'])
     end
-    if curve_low_ceirfplr.nil?
+    if map_performance_data['curve_low_ceirfplr'].nil?
       # puts("*** curve not applied because it is nill: curve_low_ceirfplr")
       vrf_outdoor_unit.resetCoolingEnergyInputRatioModifierFunctionofLowPartLoadRatioCurve
     else
       # puts("*** curve applied: curve_low_ceirfplr")
-      vrf_outdoor_unit.setCoolingEnergyInputRatioModifierFunctionofLowPartLoadRatioCurve(curve_low_ceirfplr)
+      vrf_outdoor_unit.setCoolingEnergyInputRatioModifierFunctionofLowPartLoadRatioCurve(map_performance_data['curve_low_ceirfplr'])
     end
-    if curve_high_ceirfplr.nil?
+    if map_performance_data['curve_high_ceirfplr'].nil?
       # puts("*** curve not applied because it is nill: curve_high_ceirfplr")
       vrf_outdoor_unit.resetCoolingEnergyInputRatioModifierFunctionofHighPartLoadRatioCurve
     else
       # puts("*** curve applied: curve_high_ceirfplr")
-      vrf_outdoor_unit.setCoolingEnergyInputRatioModifierFunctionofHighPartLoadRatioCurve(curve_high_ceirfplr)
+      vrf_outdoor_unit.setCoolingEnergyInputRatioModifierFunctionofHighPartLoadRatioCurve(map_performance_data['curve_high_ceirfplr'])
     end
-    if curve_ccr.nil?
+    if map_performance_data['curve_ccr'].nil?
       # puts("*** curve not applied because it is nill: curve_ccr")
       vrf_outdoor_unit.resetCoolingCombinationRatioCorrectionFactorCurve
     else
       # puts("*** curve applied: curve_ccr")
-      vrf_outdoor_unit.setCoolingCombinationRatioCorrectionFactorCurve(curve_ccr)
+      vrf_outdoor_unit.setCoolingCombinationRatioCorrectionFactorCurve(map_performance_data['curve_ccr'])
     end
-    if curve_onoff_cplffplr.nil?
+    if map_performance_data['curve_onoff_cplffplr'].nil?
       # puts("*** curve not applied because it is nill: curve_onoff_cplffplr")
       vrf_outdoor_unit.resetCoolingPartLoadFractionCorrelationCurve
     else
       # puts("*** curve applied: curve_onoff_cplffplr")
-      vrf_outdoor_unit.setCoolingPartLoadFractionCorrelationCurve(curve_onoff_cplffplr)
+      vrf_outdoor_unit.setCoolingPartLoadFractionCorrelationCurve(map_performance_data['curve_onoff_cplffplr'])
     end
 
     # heating
-    if curve_hcapft_boundary.nil?
+    if map_performance_data['curve_hcapft_boundary'].nil?
       # puts("*** curve not applied because it is nill: curve_hcapft_boundary")
       vrf_outdoor_unit.resetHeatingCapacityRatioBoundaryCurve
     else
       # puts("*** curve applied: curve_hcapft_boundary")
-      vrf_outdoor_unit.setHeatingCapacityRatioBoundaryCurve(curve_hcapft_boundary)
+      vrf_outdoor_unit.setHeatingCapacityRatioBoundaryCurve(map_performance_data['curve_hcapft_boundary'])
     end
-    if curve_low_hcapft.nil?
+    if map_performance_data['curve_low_hcapft'].nil?
       # puts("*** curve not applied because it is nill: curve_low_hcapft")
       vrf_outdoor_unit.resetHeatingCapacityRatioModifierFunctionofLowTemperatureCurve
     else
       # puts("*** curve applied: curve_low_hcapft")
-      vrf_outdoor_unit.setHeatingCapacityRatioModifierFunctionofLowTemperatureCurve(curve_low_hcapft)
+      vrf_outdoor_unit.setHeatingCapacityRatioModifierFunctionofLowTemperatureCurve(map_performance_data['curve_low_hcapft'])
     end
-    if curve_high_hcapft.nil?
+    if map_performance_data['curve_high_hcapft'].nil?
       # puts("*** curve not applied because it is nill: curve_high_hcapft")
       vrf_outdoor_unit.resetHeatingCapacityRatioModifierFunctionofHighTemperatureCurve
     else
       # puts("*** curve applied: curve_high_hcapft")
-      vrf_outdoor_unit.setHeatingCapacityRatioModifierFunctionofHighTemperatureCurve(curve_high_hcapft)
+      vrf_outdoor_unit.setHeatingCapacityRatioModifierFunctionofHighTemperatureCurve(map_performance_data['curve_high_hcapft'])
     end
-    if curve_heirft_boundary.nil?
+    if map_performance_data['curve_heirft_boundary'].nil?
       # puts("*** curve not applied because it is nill: curve_heirft_boundary")
       vrf_outdoor_unit.resetHeatingEnergyInputRatioBoundaryCurve
     else
       # puts("*** curve applied: curve_heirft_boundary")
-      vrf_outdoor_unit.setHeatingEnergyInputRatioBoundaryCurve(curve_heirft_boundary)
+      vrf_outdoor_unit.setHeatingEnergyInputRatioBoundaryCurve(map_performance_data['curve_heirft_boundary'])
     end
-    if curve_low_heirft.nil?
+    if map_performance_data['curve_low_heirft'].nil?
       # puts("*** curve not applied because it is nill: curve_low_heirft")
       vrf_outdoor_unit.resetHeatingEnergyInputRatioModifierFunctionofLowTemperatureCurve
     else
       # puts("*** curve applied: curve_low_heirft")
-      vrf_outdoor_unit.setHeatingEnergyInputRatioModifierFunctionofLowTemperatureCurve(curve_low_heirft)
+      vrf_outdoor_unit.setHeatingEnergyInputRatioModifierFunctionofLowTemperatureCurve(map_performance_data['curve_low_heirft'])
     end
-    if curve_high_heirft.nil?
+    if map_performance_data['curve_high_heirft'].nil?
       # puts("*** curve not applied because it is nill: curve_high_heirft")
       vrf_outdoor_unit.resetHeatingEnergyInputRatioModifierFunctionofHighTemperatureCurve
     else
       # puts("*** curve applied: curve_high_heirft")
-      vrf_outdoor_unit.setHeatingEnergyInputRatioModifierFunctionofHighTemperatureCurve(curve_high_heirft)
+      vrf_outdoor_unit.setHeatingEnergyInputRatioModifierFunctionofHighTemperatureCurve(map_performance_data['curve_high_heirft'])
     end
-    if curve_low_heirfplr.nil?
+    if map_performance_data['curve_low_heirfplr'].nil?
       # puts("*** curve not applied because it is nill: curve_low_heirfplr")
       vrf_outdoor_unit.resetHeatingEnergyInputRatioModifierFunctionofLowPartLoadRatioCurve
     else
       # puts("*** curve applied: curve_low_heirfplr")
-      vrf_outdoor_unit.setHeatingEnergyInputRatioModifierFunctionofLowPartLoadRatioCurve(curve_low_heirfplr)
+      vrf_outdoor_unit.setHeatingEnergyInputRatioModifierFunctionofLowPartLoadRatioCurve(map_performance_data['curve_low_heirfplr'])
     end
-    if curve_high_heirfplr.nil?
+    if map_performance_data['curve_high_heirfplr'].nil?
       # puts("*** curve not applied because it is nill: curve_high_heirfplr")
       vrf_outdoor_unit.resetHeatingEnergyInputRatioModifierFunctionofHighPartLoadRatioCurve
     else
       # puts("*** curve applied: curve_high_heirfplr")
-      vrf_outdoor_unit.setHeatingEnergyInputRatioModifierFunctionofHighPartLoadRatioCurve(curve_high_heirfplr)
+      vrf_outdoor_unit.setHeatingEnergyInputRatioModifierFunctionofHighPartLoadRatioCurve(map_performance_data['curve_high_heirfplr'])
     end
-    if curve_hcr.nil?
+    if map_performance_data['curve_hcr'].nil?
       # puts("*** curve not applied because it is nill: curve_hcr")
       vrf_outdoor_unit.resetHeatingCombinationRatioCorrectionFactorCurve
     else
       # puts("*** curve applied: curve_hcr")
-      vrf_outdoor_unit.setHeatingCombinationRatioCorrectionFactorCurve(curve_hcr)
+      vrf_outdoor_unit.setHeatingCombinationRatioCorrectionFactorCurve(map_performance_data['curve_hcr'])
     end
-    if curve_onoff_hplffplr.nil?
+    if map_performance_data['curve_onoff_hplffplr'].nil?
       # puts("*** curve not applied because it is nill: curve_onoff_hplffplr")
       vrf_outdoor_unit.resetHeatingPartLoadFractionCorrelationCurve
     else
       # puts("*** curve applied: curve_onoff_hplffplr")
-      vrf_outdoor_unit.setHeatingPartLoadFractionCorrelationCurve(curve_onoff_hplffplr)
+      vrf_outdoor_unit.setHeatingPartLoadFractionCorrelationCurve(map_performance_data['curve_onoff_hplffplr'])
     end
-    if curve_defrost_heirft.nil?
+    if map_performance_data['curve_defrost_heirft'].nil?
       # puts("*** curve not applied because it is nill: curve_defrost_heirft")
       vrf_outdoor_unit.resetDefrostEnergyInputRatioModifierFunctionofTemperatureCurve
     else
       # puts("*** curve applied: curve_defrost_heirft")
-      vrf_outdoor_unit.setDefrostEnergyInputRatioModifierFunctionofTemperatureCurve(curve_defrost_heirft)
+      vrf_outdoor_unit.setDefrostEnergyInputRatioModifierFunctionofTemperatureCurve(map_performance_data['curve_defrost_heirft'])
     end
 
     # other configurations
-    if heating_oa_temperature_type.nil?
+    if map_performance_data['heating_oa_temperature_type'].nil?
       # puts("*** configuration not applied because it is nill: heating_oa_temperature_type")
     else
       # puts("*** configuration applied: heating_oa_temperature_type")
-      vrf_outdoor_unit.setHeatingPerformanceCurveOutdoorTemperatureType(heating_oa_temperature_type)
+      vrf_outdoor_unit.setHeatingPerformanceCurveOutdoorTemperatureType(map_performance_data['heating_oa_temperature_type'])
     end
-    if min_hp_plr.nil?
+    if map_performance_data['min_hp_plr'].nil?
       # puts("*** configuration not applied because it is nill: min_hp_plr")
     else
       # puts("*** configuration applied: min_hp_plr")
-      vrf_outdoor_unit.setMinimumHeatPumpPartLoadRatio(min_hp_plr)
+      vrf_outdoor_unit.setMinimumHeatPumpPartLoadRatio(map_performance_data['min_hp_plr'])
     end
-    if heating_rated_cop.nil?
+    if map_performance_data['heating_rated_cop'].nil?
       # puts("*** configuration not applied because it is nill: heating_rated_cop")
     else
       # puts("*** configuration applied: heating_rated_cop")
-      vrf_outdoor_unit.setRatedHeatingCOP(heating_rated_cop)
+      vrf_outdoor_unit.setRatedHeatingCOP(map_performance_data['heating_rated_cop'])
     end
-    if cooling_rated_cop.nil?
+    if map_performance_data['cooling_rated_cop'].nil?
       # puts("*** configuration not applied because it is nill: cooling_rated_cop")
     else
       # puts("*** configuration applied: cooling_rated_cop")
-      vrf_outdoor_unit.setGrossRatedCoolingCOP(cooling_rated_cop)
+      vrf_outdoor_unit.setGrossRatedCoolingCOP(map_performance_data['cooling_rated_cop'])
     end
-    if vrf_defrost_strategy.nil?
+    if map_performance_data['vrf_defrost_strategy'].nil?
       # puts("*** configuration not applied because it is nill: vrf_defrost_strategy")
     else
       # puts("*** configuration applied: vrf_defrost_strategy")
-      vrf_outdoor_unit.setDefrostStrategy(vrf_defrost_strategy)
+      vrf_outdoor_unit.setDefrostStrategy(map_performance_data['vrf_defrost_strategy'])
     end
-    if disable_defrost == true
+    if map_performance_data['disable_defrost'] == true
       # puts("*** configuration applied: disabling defrost")
       vrf_outdoor_unit.setDefrostControl('timed')
       vrf_outdoor_unit.setDefrostTimePeriodFraction(0.0)
       vrf_outdoor_unit.setResistiveDefrostHeaterCapacity(0.0)
     end
+    unless map_performance_data['min_oa_temp_cooling'].nil?
+      vrf_outdoor_unit.setMinimumOutdoorTemperatureinCoolingMode(map_performance_data['min_oa_temp_cooling'])
+    end
+    unless map_performance_data['max_oa_temp_cooling'].nil?
+      vrf_outdoor_unit.setMaximumOutdoorTemperatureinCoolingMode(map_performance_data['max_oa_temp_cooling'])
+    end
+    unless map_performance_data['max_oa_temp_heating'].nil?
+      vrf_outdoor_unit.setMaximumOutdoorTemperatureinHeatingMode(map_performance_data['max_oa_temp_heating'])
+    end
+    unless map_performance_data['min_oa_temp_heatrecovery'].nil?
+      vrf_outdoor_unit.setMinimumOutdoorTemperatureinHeatRecoveryMode(map_performance_data['min_oa_temp_heatrecovery'])
+    end
+    unless map_performance_data['max_oa_temp_heatrecovery'].nil?
+      vrf_outdoor_unit.setMaximumOutdoorTemperatureinHeatRecoveryMode(map_performance_data['max_oa_temp_heatrecovery'])
+    end
+    unless map_performance_data['initial_heatrecovery_cap_frac_cooling'].nil?
+      vrf_outdoor_unit.setInitialHeatRecoveryCoolingCapacityFraction(map_performance_data['initial_heatrecovery_cap_frac_cooling'])
+    end
+    unless map_performance_data['initial_heatrecovery_en_frac_cooling'].nil?
+      vrf_outdoor_unit.setInitialHeatRecoveryCoolingEnergyFraction(map_performance_data['initial_heatrecovery_en_frac_cooling'])
+    end
+    unless map_performance_data['initial_heatrecovery_cap_frac_heating'].nil?
+      vrf_outdoor_unit.setInitialHeatRecoveryHeatingCapacityFraction(map_performance_data['initial_heatrecovery_cap_frac_heating'])
+    end
+    unless map_performance_data['initial_heatrecovery_en_frac_heating'].nil?
+      vrf_outdoor_unit.setInitialHeatRecoveryHeatingEnergyFraction(map_performance_data['initial_heatrecovery_en_frac_heating'])
+    end
+    unless map_performance_data['initial_heatrecovery_cap_timeconstant_cooling'].nil?
+      vrf_outdoor_unit.setHeatRecoveryCoolingCapacityTimeConstant(map_performance_data['initial_heatrecovery_cap_timeconstant_cooling'])
+    end
+    unless map_performance_data['initial_heatrecovery_en_timeconstant_cooling'].nil?
+      vrf_outdoor_unit.setHeatRecoveryCoolingEnergyTimeConstant(map_performance_data['initial_heatrecovery_en_timeconstant_cooling'])
+    end
+    unless map_performance_data['initial_heatrecovery_cap_timeconstant_heating'].nil?
+      vrf_outdoor_unit.setHeatRecoveryHeatingCapacityTimeConstant(map_performance_data['initial_heatrecovery_cap_timeconstant_heating'])
+    end
+    unless map_performance_data['initial_heatrecovery_en_timeconstant_heating'].nil?
+      vrf_outdoor_unit.setHeatRecoveryHeatingEnergyTimeConstant(map_performance_data['initial_heatrecovery_en_timeconstant_heating'])
+    end
   end
 
+  # --------------------------------------- #
+  # supporting method
   # check if air loop is evaporative cooler
+  # --------------------------------------- #
   def air_loop_hvac_include_evaporative_cooler?(air_loop_hvac)
     air_loop_hvac.supplyComponents.each do |comp|
       return true if comp.to_EvaporativeCoolerDirectResearchSpecial.is_initialized
@@ -653,7 +702,10 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     false
   end
 
+  # --------------------------------------- #
+  # supporting method
   # check if air loop uses district energy
+  # --------------------------------------- #
   def air_loop_hvac_served_by_district_energy?(air_loop_hvac)
     served_by_district_energy = false
     thermalzones = air_loop_hvac.thermalZones
@@ -675,7 +727,10 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     served_by_district_energy
   end
 
+  # --------------------------------------- #
+  # supporting method
   # check if air loop is served by DOAS
+  # --------------------------------------- #
   def air_loop_hvac_served_by_doas?(air_loop_hvac)
     is_doas = false
     sizing_system = air_loop_hvac.sizingSystem
@@ -683,8 +738,11 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     is_doas
   end
 
+  # --------------------------------------- #
+  # supporting method
   # Return hash of flags for whether storey is conditioned and average ceiling z-coordinates of building storeys.
   # reference: https://github.com/NREL/openstudio-standards/blob/12bbfabf3962af05b8c267c1da54b8e3a89217a0/lib/openstudio-standards/standards/necb/ECMS/hvac_systems.rb#L99
+  # --------------------------------------- #
   def get_storey_avg_clg_zcoords(model)
     storey_avg_clg_zcoords = {}
     model.getBuildingStorys.each do |storey|
@@ -716,8 +774,11 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     storey_avg_clg_zcoords
   end
 
+  # --------------------------------------- #
+  # supporting method
   # Return x,y,z coordinates of the centroid of the roof of the storey
   # reference: https://github.com/NREL/openstudio-standards/blob/12bbfabf3962af05b8c267c1da54b8e3a89217a0/lib/openstudio-standards/standards/necb/ECMS/hvac_systems.rb#L188
+  # --------------------------------------- #
   def get_roof_centroid_coords(storey)
     sum_x = 0.0
     sum_y = 0.0
@@ -749,8 +810,11 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     [cent_x, cent_y, cent_z]
   end
 
+  # --------------------------------------- #
+  # supporting method
   # Return x,y,z coordinates of space centroid
   # reference: https://github.com/NREL/openstudio-standards/blob/12bbfabf3962af05b8c267c1da54b8e3a89217a0/lib/openstudio-standards/standards/necb/ECMS/hvac_systems.rb#L168
+  # --------------------------------------- #
   def get_space_centroid_coords(space)
     total_area = 0.0
     sum_x = 0.0
@@ -769,8 +833,11 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     [space_centroid_x, space_centroid_y, space_centroid_z]
   end
 
+  # --------------------------------------- #
+  # supporting method
   # Return x,y,z coordinates of exterior wall with largest area on the lowest floor
   # reference: https://github.com/NREL/openstudio-standards/blob/12bbfabf3962af05b8c267c1da54b8e3a89217a0/lib/openstudio-standards/standards/necb/ECMS/hvac_systems.rb#L136
+  # --------------------------------------- #
   def get_lowest_floor_ext_wall_centroid_coords(storeys_clg_zcoords)
     ext_wall = nil
     ext_wall_x = nil
@@ -802,8 +869,11 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     [ext_wall_x, ext_wall_y, ext_wall_z]
   end
 
+  # --------------------------------------- #
+  # supporting method
   # Determine maximum equivalent and net vertical pipe runs for VRF model
   # reference: https://github.com/NREL/openstudio-standards/blob/12bbfabf3962af05b8c267c1da54b8e3a89217a0/lib/openstudio-standards/standards/necb/ECMS/hvac_systems.rb#L218
+  # --------------------------------------- #
   def get_max_vrf_pipe_lengths(model, thermal_zones)
     # Get and sort floors average ceilings z-coordinates hash
     storeys_clg_zcoords = get_storey_avg_clg_zcoords(model)
@@ -870,11 +940,19 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     return false unless runner.validateUserArguments(arguments(model), user_arguments)
 
     ######################################################
-    # puts('### obtain user in#puts')
+    # puts('### obtain user inputs')
     ######################################################
     apply_measure = runner.getBoolArgumentValue('apply_measure', user_arguments)
-    vrf_defrost_strategy = runner.getStringArgumentValue('vrf_defrost_strategy', user_arguments)
+    vrf_defrost_strategy = runner.getStringArgumentValue('vrf_defrost_strategy', user_arguments)    
     disable_defrost = runner.getBoolArgumentValue('disable_defrost', user_arguments)
+    upsizing_allowance_pct = runner.getDoubleArgumentValue('upsizing_allowance_pct', user_arguments)
+
+    ######################################################
+    # puts('### check input argument values')
+    ######################################################
+    if upsizing_allowance_pct < 0
+      runner.registerError("Upsizing allowance percentage cannot be a negative value.")
+    end
 
     ######################################################
     # puts("### report initial condition of model")
@@ -1059,9 +1137,9 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     # ov18.setReportingFrequency("timestep")
     # ov18.setVariableName("VRF Heat Pump Runtime Fraction")
 
-    # ######################################################
-    # #puts('### applicability')
-    # ######################################################
+    ######################################################
+    # puts('### applicability')
+    ######################################################
     # applicability: don't apply measure if specified in input
     if apply_measure == false
       runner.registerAsNotApplicable('Measure is not applied based on user input.')
@@ -1077,7 +1155,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       "RSD", # Restaurant - Sit-Down
       "Hsp", # Health/Medical - Hospital
       #'RetailStandalone',
-      #'RetailStripmall'
+      # 'RetailStripmall',
       "QuickServiceRestaurant",
       "FullServiceRestaurant",
       "Hospital"
@@ -1120,7 +1198,6 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     applicability_msgs = []
     applicability_msg = ''
     air_loop_hvacs = model.getAirLoopHVACs
-    max_number_indoor_units = 41 # hardcoded based on manufacturer engineering manual
     if air_loop_hvacs.size == 0
       applicability_msg = 'this model does not have an air loop (so neither RTU nor VAV). so, skipping this model...'
       # puts("&&& #{applicability_msg}")
@@ -1146,16 +1223,6 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
         # exclude if it is evaporative cooler
         if air_loop_hvac_include_evaporative_cooler?(air_loop_hvac)
           applicability_msg = 'this air loop is an evaporative cooler. so, skipping this air loop system...'
-          # puts("--- #{applicability_msg}")
-          applicability_msgs << applicability_msg
-          applicability << false
-          na_air_loops << air_loop_hvac
-          next
-        end
-
-        # exclude if number of thermal zones for the air loop exceeds maximum indoor unit count
-        if air_loop_hvac.thermalZones.size > max_number_indoor_units
-          applicability_msg = "this air loop includes thermal zones (#{air_loop_hvac.thermalZones.size}) more than max indoor unit count (#{max_number_indoor_units}). so, skipping this air loop system..."
           # puts("--- #{applicability_msg}")
           applicability_msgs << applicability_msg
           applicability << false
@@ -1333,6 +1400,23 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       end
     end
 
+    # applicability: number of indoor units per outdoor unit
+    max_number_indoor_units_per_outdoor_unit = 41 # hardcoded based on manufacturer engineering manual
+    max_indoor_unit_count_per_outdoor_unit = 0
+    applicable_thermalzone_per_floor.each do |z_coord, zones|
+      # puts("checking number of thermal zones on each floor: z-coord = #{z_coord}")
+      # puts("total number of thermal zones: #{zones.size} ")
+      if zones.size > max_indoor_unit_count_per_outdoor_unit
+        max_indoor_unit_count_per_outdoor_unit = zones.size
+      end
+    end
+    if max_indoor_unit_count_per_outdoor_unit <= max_number_indoor_units_per_outdoor_unit
+      runner.registerInfo('this building model is applicable for the upgrade in terms of indoor unit counts')
+    else
+      runner.registerAsNotApplicable("this building model is not applicable because the number of indoor units exceeds #{max_number_indoor_units_per_outdoor_unit} per an outdoor unit")
+      return true
+    end
+
     # determine heating fuel type for non applicable thermal zones on applicable multizone systems
     # this will determine heating fuel of new system for the non applicable thermal zone
     htg_type = 'Electricity'
@@ -1479,9 +1563,8 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     end
 
     ######################################################
-    # puts("### modifying DOAS systems")
+    # puts("### modify DOAS systems")
     ######################################################
-
     # get climate full string and classification (i.e. "5A")
     climate_zone = std.model_standards_climate_zone(model)
     climate_zone_classification = climate_zone.split('-')[-1]
@@ -1634,7 +1717,6 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
         erv.setLatentEffectivenessat75CoolingAirFlow(0)
       end
     end
-    ######################################################
 
     ######################################################
     # puts("### override VRF outdoor unit performance/configuration with customized data")
@@ -1723,18 +1805,20 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       # puts("&&& configure additional/missed parameters")
       # ----------------------------------------------------
       vrf_outdoor_unit.setMinimumOutdoorTemperatureinHeatingMode(-30.0)
+      vrf_outdoor_unit.setHeatPumpWasteHeatRecovery(true)
+      vrf_outdoor_unit.setMasterThermostatPriorityControlType('LoadPriority')
       first_indoor_unit = vrf_outdoor_unit.terminals[0]
       zonehvaccomp = first_indoor_unit.to_ZoneHVACComponent.get # assuming all indoor units are on the same floor
       first_thermalzone = zonehvaccomp.thermalZone.get
       first_space = first_thermalzone.spaces[0]
       story = first_space.buildingStory.get
       z_coord = story.nominalZCoordinate.get
-      # puts("--- additional outdoor unit configuration: outdoor unit serves the floor with z-coordinate of #{z_coord} m")
       thermal_zones = applicable_thermalzone_per_floor[z_coord]
       max_equiv_distance, max_net_vert_distance = get_max_vrf_pipe_lengths(model, thermal_zones) 
       vrf_outdoor_unit.setEquivalentPipingLengthusedforPipingCorrectionFactorinCoolingMode(max_equiv_distance)
       vrf_outdoor_unit.setEquivalentPipingLengthusedforPipingCorrectionFactorinHeatingMode(max_equiv_distance)
       vrf_outdoor_unit.setVerticalHeightusedforPipingCorrectionFactor(max_net_vert_distance)
+      # puts("--- additional outdoor unit configuration: outdoor unit serves the floor with z-coordinate of #{z_coord} m")
       # puts("--- additional outdoor unit configuration: max_equiv_distance = #{max_equiv_distance} m")
       # puts("--- additional outdoor unit configuration: max_net_vert_distance = #{max_net_vert_distance} m")
 
@@ -1743,31 +1827,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       # ----------------------------------------------------
       apply_vrf_performance_data(
         vrf_outdoor_unit,
-        map_performance_data['curve_ccapft_boundary'],
-        map_performance_data['curve_low_ccapft'],
-        map_performance_data['curve_high_ccapft'],
-        map_performance_data['curve_ceirft_boundary'],
-        map_performance_data['curve_low_ceirft'],
-        map_performance_data['curve_high_ceirft'],
-        map_performance_data['curve_low_ceirfplr'],
-        map_performance_data['curve_high_ceirfplr'],
-        map_performance_data['curve_ccr'],
-        map_performance_data['curve_onoff_cplffplr'],
-        map_performance_data['curve_hcapft_boundary'],
-        map_performance_data['curve_low_hcapft'],
-        map_performance_data['curve_high_hcapft'],
-        map_performance_data['curve_heirft_boundary'],
-        map_performance_data['curve_low_heirft'],
-        map_performance_data['curve_high_heirft'],
-        map_performance_data['curve_low_heirfplr'],
-        map_performance_data['curve_high_heirfplr'],
-        map_performance_data['curve_hcr'],
-        map_performance_data['curve_onoff_hplffplr'],
-        map_performance_data['curve_defrost_heirft'],
-        map_performance_data['heating_oa_temperature_type'],
-        map_performance_data['min_hp_plr'],
-        map_performance_data['heating_rated_cop'],
-        map_performance_data['cooling_rated_cop'],
+        map_performance_data,
         vrf_defrost_strategy,
         disable_defrost
       )
@@ -1812,9 +1872,9 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     end
 
     ######################################################
-    # puts("### sizing")
+    # puts("### regular sizing")
     ######################################################
-    # placeholder for updating sizing scheme (below is what original measure had)
+    # run sizing
     std.model_apply_prm_sizing_parameters(model)
     if std.model_run_sizing_run(model, "#{Dir.pwd}/SR1") == false
       runner.registerError('Sizing run did not succeed, cannot apply HVAC efficiencies.')
@@ -1822,108 +1882,195 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       return false
     end
 
-    # zone_htg_load = 0
-    # vrf_terminal_htg_cap = 0
-    # zone_clg_load = 0
-    # vrf_terminal_clg_cap = 0
-    # vrf_outdoor=nil
-    # model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+    ######################################################
+    # upsizing allowance
+    ######################################################
+    if upsizing_allowance_pct > 0.0
 
-    #   next unless (['doas', 'DOAS', 'Doas'].any? { |word| (air_loop_hvac.name.to_s).include?(word) })
-    #   # as a backup, skip non applicable airloops
-    #   next if na_air_loops.member?(air_loop_hvac)
-    #   # loop through thermal zones
-    #   air_loop_hvac.thermalZones.each do |thermal_zone|
-    #     # find vrf terminal units
-    #     vrf_terminal=nil
-    #     thermal_zone.equipment.each do |equip|
-    #       next unless equip.to_ZoneHVACTerminalUnitVariableRefrigerantFlow.is_initialized
-    #       vrf_terminal = equip.to_ZoneHVACTerminalUnitVariableRefrigerantFlow.get
-    #     end
-    #     vrf_cooling_coil = vrf_terminal.coolingCoil.get.to_CoilCoolingDXVariableRefrigerantFlow.get
-    #     vrf_heating_coil = vrf_terminal.heatingCoil.get.to_CoilHeatingDXVariableRefrigerantFlow.get
-    #     vrf_outdoor = vrf_terminal.vrfSystem.get.to_AirConditionerVariableRefrigerantFlow.get
+      # get sql (for extracting sizing information)
+      sql = model.sqlFile
+      if sql.empty?
+        runner.registerError('Cannot find last sql file.')
+        return false
+      end
+      if sql.is_initialized
+        sql = sql.get
+      end
 
-    #     # get sensible cooling heat ratio
-    #     # this is used for sizing cooling coils at design conditions
-    #     shr=nil
-    #     if vrf_cooling_coil.autosizedRatedSensibleHeatRatio.is_initialized
-    #       shr = vrf_cooling_coil.autosizedRatedSensibleHeatRatio.get
-    #     elsif vrf_cooling_coil.ratedSensibleHeatRatio.is_initialized
-    #       shr = vrf_cooling_coil.ratedSensibleHeatRatio.get
-    #     else
-    #       runner.registerError("Design sensible heat ratio not found for VRF cooling coil: #{vrf_cooling_coil.name}")
-    #     end
+      # loop through each outdoor unit
+      model.getAirConditionerVariableRefrigerantFlows.each do |ou|
+        puts("### ####################################")
+        puts("### OU name = #{ou.name}")
+        capacity_outdoor_unit_new = 0
+        ou.terminals.each do |iu|
+          
+          # get coil from indoor unit
+          coil_cooling = iu.coolingCoil.get
+          coil_heating = iu.heatingCoil.get
+          if coil_cooling.to_CoilCoolingDXVariableRefrigerantFlow.is_initialized
+            coil_cooling = coil_cooling.to_CoilCoolingDXVariableRefrigerantFlow.get
+          else
+            runner.registerError("cannot get CoilCoolingDXVariableRefrigerantFlow object")
+          end
+          if coil_heating.to_CoilHeatingDXVariableRefrigerantFlow.is_initialized
+            coil_heating = coil_heating.to_CoilHeatingDXVariableRefrigerantFlow.get
+          else
+            runner.registerError("cannot get CoilHeatingDXVariableRefrigerantFlow object")
+          end
+          puts("--- ------------------------------------")
+          puts("--- IU cooling coil name = #{coil_cooling.name}")
+          row_name_cooling = coil_cooling.name.to_s.upcase
+          row_name_heating = coil_heating.name.to_s.upcase
 
-    #     # indoor unit capactity function of temperature curves
-    #     cool_indoor_cap_ft_curve = vrf_cooling_coil.coolingCapacityRatioModifierFunctionofTemperatureCurve
-    #     heat_indoor_cap_ft_curve = vrf_heating_coil.heatingCapacityRatioModifierFunctionofTemperatureCurve
-    #     # temperature for calculating indoor capacity at design conditions
-    #     cool_indoor_peak_ia_wb_c = get_tabular_data(model, vrf_cooling_coil.name.get.upcase, 'Coil Entering Air Wetbulb at Ideal Loads Peak')
-    #     puts "cool_indoor_peak_ia_wb_c: #{cool_indoor_peak_ia_wb_c}"
-    #     cool_indoor_peak_oa_db_c = get_tabular_data(model, vrf_cooling_coil.name.get.upcase, 'Outdoor Air Drybulb at Ideal Loads Peak')
-    #     puts "cool_indoor_peak_oa_db_c: #{cool_indoor_peak_oa_db_c}"
-    #     cool_indoor_supply_fan_heat = get_tabular_data(model, vrf_cooling_coil.name.get.upcase, 'Supply Fan Air Heat Gain at Ideal Loads Peak')
-    #     puts "cool_indoor_sf_heat: #{cool_indoor_supply_fan_heat}"
+          # get design_cooling_load
+          column_name = 'Zone Sensible Heat Gain at Ideal Loads Peak'
+          design_cooling_load = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_cooling, column_name).to_f
+          puts("--- #{coil_cooling.name} | design_cooling_load = #{design_cooling_load} W")
 
-    #     # calculate indoor capacity modifier
-    #     puts "cool_indoor_cap_ft_curve.class: #{cool_indoor_cap_ft_curve.class}"
-    #     cool_indoor_peak_cap_ft_mod = cool_indoor_cap_ft_curve.evaluate(cool_indoor_peak_ia_wb_c.to_f, cool_indoor_peak_oa_db_c.to_f)
-    #     puts "cool_indoor_peak_cap_ft_mod: #{cool_indoor_peak_cap_ft_mod}"
+          # get design_heating_load
+          column_name = 'Zone Sensible Heat Gain at Ideal Loads Peak'
+          design_heating_load = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_heating, column_name).to_f
+          puts("--- #{coil_cooling.name} | design_heating_load = #{design_heating_load} W")
 
-    #     # run statements
-    #     puts "Zone: #{thermal_zone.name}"
+          # get capacity_original_rated
+          column_name = 'Coil Final Gross Total Capacity'
+          capacity_original_rated = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_cooling, column_name).to_f
+          puts("--- #{coil_cooling.name} | capacity_original_rated = #{capacity_original_rated} W")
 
-    #     # cooling
-    #     puts ""
-    #     puts "VRF cooling coil: #{vrf_cooling_coil.name}"
-    #     puts "VRF cooling class: #{vrf_cooling_coil.class}"
-    #     puts "Cooling Load: #{thermal_zone.autosizedCoolingDesignLoad}"
-    #     puts "Sensible heat ratio: #{shr}"
-    #     puts "Capacity Modifier: #{cool_indoor_peak_cap_ft_mod}"
-    #     puts "Req total cooling cap with shr: #{(thermal_zone.autosizedCoolingDesignLoad.get / shr / cool_indoor_peak_cap_ft_mod) + cool_indoor_supply_fan_heat.to_f}"
-    #     zone_clg_load += thermal_zone.autosizedCoolingDesignLoad.to_f
-    #     puts "VRF cooling Cap: #{vrf_cooling_coil.autosizedRatedTotalCoolingCapacity}"
-    #     vrf_terminal_clg_cap += vrf_cooling_coil.autosizedRatedTotalCoolingCapacity.to_f
-    #     puts "Cooling vrf/load ratio: #{((thermal_zone.autosizedCoolingDesignLoad.get / shr / cool_indoor_peak_cap_ft_mod) + cool_indoor_supply_fan_heat.to_f) / vrf_cooling_coil.autosizedRatedTotalCoolingCapacity.to_f }"
-    #     puts "Cooling Airflow: #{thermal_zone.autosizedCoolingDesignAirFlowRate}"
-    #     puts "VRF cooling Airflow: #{vrf_terminal.autosizedSupplyAirFlowRateDuringCoolingOperation}"
-    #     puts ""
+          # skip upsizing if indoor unit is not expected as heating dominant unit
+          if design_heating_load <= design_cooling_load
+            puts("--- #{coil_cooling.name} | this indoor unit is not expected as heating dominant, so skipping for upsizing.")
+            capacity_outdoor_unit_new += capacity_original_rated
+            next
+          end
 
-    #     # heating
-    #     puts "VRF heating coil: #{vrf_heating_coil.name}"
-    #     puts "Heating Load: #{thermal_zone.autosizedHeatingDesignLoad}"
-    #     zone_htg_load += thermal_zone.autosizedHeatingDesignLoad.to_f
-    #     puts "VRF heating Cap: #{vrf_heating_coil.autosizedRatedTotalHeatingCapacity}"
-    #     vrf_terminal_htg_cap += vrf_heating_coil.autosizedRatedTotalHeatingCapacity.to_f
-    #     puts "Heating vrf/load ratio: #{thermal_zone.autosizedHeatingDesignLoad.to_f / vrf_heating_coil.autosizedRatedTotalHeatingCapacity.to_f }"
-    #     puts "Heating Airflow: #{thermal_zone.autosizedHeatingDesignAirFlowRate}"
-    #     puts "VRF heating Airflow: #{vrf_terminal.autosizedSupplyAirFlowRateDuringHeatingOperation}"
-    #     puts "XXXXX"
-    #   end
+          # get design_air_flow_rate_m_3_per_sec
+          column_name = 'Coil Air Volume Flow Rate at Ideal Loads Peak'
+          design_air_flow_rate_m_3_per_sec = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_cooling, column_name).to_f
+          puts("--- #{coil_cooling.name} | design_air_flow_rate_m_3_per_sec = #{design_air_flow_rate_m_3_per_sec} m3/s")
 
-    #   # get outdoor unit properties for cooling
-    #   cool_outdoor_pipe_length_m = vrf_outdoor.equivalentPipingLengthusedforPipingCorrectionFactorinCoolingMode # length for piping correction
-    #   cool_outdoor_vert_pipe_length_m = vrf_outdoor.verticalHeightusedforPipingCorrectionFactor
-    #   cool_outdoor_cap_f_length = vrf_outdoor.pipingCorrectionFactorforLengthinCoolingModeCurve # curve for piping losses
+          # get fan_heat_gain
+          column_name = 'Supply Fan Air Heat Gain at Ideal Loads Peak'
+          fan_heat_gain = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_cooling, column_name).to_f
+          puts("--- #{coil_cooling.name} | fan_heat_gain = #{fan_heat_gain} W")
+    
+          # get rated_capacity_modifier
+          column_name = 'Coil Off-Rating Capacity Modifier at Ideal Loads Peak'
+          rated_capacity_modifier = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_cooling, column_name).to_f
+          puts("--- #{coil_cooling.name} | rated_capacity_modifier = #{rated_capacity_modifier}")
 
-    #   #model.getAirConditionerVariableRefrigerantFlows.each TODO
+          # get capacity_upsized_rated
+          capacity_upsized_rated = capacity_original_rated * (1 + upsizing_allowance_pct / 100.0)
+          puts("--- #{coil_cooling.name} | capacity_upsized_rated = #{capacity_upsized_rated} W")
 
-    #   # outdoor unit capacity modifiers
-    #   #vrf_outdoor.coolingCapacityRatioModifierFunctionofLowTemperatureCurve # curve for cooling capacity as a function of temperature
-    #   #vrf_outdoor.coolingCombinationRatioCorrectionFactorCurve # combination ratio for cooling
-    #   #vrf_outdoor.pipingCorrectionFactorforLengthinCoolingModeCurve  # piping correction
+          # get design capacity from upsized rated capacity
+          capacity_upsized_design = capacity_upsized_rated * rated_capacity_modifier
+          puts("--- #{coil_cooling.name} | capacity_upsized_design = #{capacity_upsized_design}")
+          capacity_upsized_design_wo_fan_heat_gain = capacity_upsized_design - fan_heat_gain
+          puts("--- #{coil_cooling.name} | capacity_upsized_design_wo_fan_heat_gain = #{capacity_upsized_design_wo_fan_heat_gain}")
 
+          # check design capacity against design heating load
+          if capacity_upsized_design_wo_fan_heat_gain > design_heating_load
+            capacity_final_design = design_heating_load
+            puts("--- #{coil_cooling.name} | upsized design load (#{capacity_upsized_design_wo_fan_heat_gain.round(0)} W) larger than actual design heating load (#{design_heating_load.round(0)} W)")
+          else
+            capacity_final_design = capacity_upsized_design_wo_fan_heat_gain
+          end
+          puts("--- #{coil_cooling.name} | capacity_final_design = #{capacity_final_design}")
 
-    #   # outdoor unit
-    #   puts "zone_htg_load: #{zone_htg_load}"
-    #   puts "vrf_terminal_htg_cap: #{vrf_terminal_htg_cap}"
-    #   puts "vrf_outdoor htg cap: #{vrf_outdoor.autosizedGrossRatedHeatingCapacity}"
-    #   puts "zone_htg_load: #{zone_clg_load}"
-    #   puts "vrf_terminal_clg_cap: #{vrf_terminal_clg_cap}"
-    #   puts "vrf_outdoor clg cap: #{vrf_outdoor.autosizedGrossRatedTotalCoolingCapacity}"
+          # get final upsized rated capacity
+          capacity_final_rated = capacity_final_design + fan_heat_gain
+          capacity_final_rated = capacity_final_rated / rated_capacity_modifier
+          if capacity_final_rated < capacity_original_rated
+            puts("--- #{coil_cooling.name} | recalculation of rated capacity (#{capacity_final_rated.round(0)} W) is less than original rated capacity (#{capacity_original_rated.round(0)} W)")
+            capacity_final_rated = capacity_original_rated
+          end
+          puts("--- #{coil_cooling.name} | capacity_final_rated = #{capacity_final_rated}")
+          
 
-    # end
+          # get CFM/ton 
+          design_air_flow_rate_cfm = design_air_flow_rate_m_3_per_sec * 2118.88 
+          puts("--- #{coil_cooling.name} | design_air_flow_rate_cfm = #{design_air_flow_rate_cfm} CFM")
+          capacity_upsized_rated_ton = capacity_final_rated * 0.000284345
+          puts("--- #{coil_cooling.name} | capacity_upsized_rated_ton = #{capacity_upsized_rated_ton} ton")
+          cfm_per_ton = design_air_flow_rate_cfm / capacity_upsized_rated_ton
+          puts("--- #{coil_cooling.name} | cfm_per_ton = #{cfm_per_ton}")
+
+          # adjust indoor unit flow rate if CFM/ton is out of bound between 300 and 450 CFM/ton
+          if cfm_per_ton < 300.0
+            puts("--- #{coil_cooling.name} | CFM/ton minimum limit violated. Adjusting air flow rate to match with minimum limit.")
+            new_air_flow_rate_cfm = 300 * capacity_upsized_rated_ton
+            puts("--- #{coil_cooling.name} | indoor unit air flow adjusted match with minimum limit = #{new_air_flow_rate_cfm} CFM")
+          elsif cfm_per_ton > 450
+            puts("--- #{coil_cooling.name} | CFM/ton maximum limit violated. Adjusting air flow rate to match with maximum limit.")
+            new_air_flow_rate_cfm = 450 * capacity_upsized_rated_ton
+            puts("--- #{coil_cooling.name} | indoor unit air flow adjusted match with maximum limit = #{new_air_flow_rate_cfm} CFM")
+          else
+            new_air_flow_rate_cfm = design_air_flow_rate_cfm
+          end
+          new_air_flow_rate_m_3_per_s = new_air_flow_rate_cfm / 2118.88
+
+          # override new specifications: rated air flow rate for cooling coil
+          if coil_cooling.ratedAirFlowRate.is_initialized
+            puts("--- #{coil_cooling.name} | indoor unit cooling air flow rate before = #{coil_cooling.ratedAirFlowRate} m3/s")
+          elsif coil_cooling.autosizedRatedAirFlowRate.is_initialized
+            puts("--- #{coil_cooling.name} | indoor unit cooling air flow rate before = #{coil_cooling.autosizedRatedAirFlowRate} m3/s")
+          else
+            runner.registerError("Cannot find rated air flow rate for cooling.")
+          end
+          coil_cooling.setRatedAirFlowRate(new_air_flow_rate_m_3_per_s)
+          puts("--- #{coil_cooling.name} | indoor unit cooling air flow rate after = #{coil_cooling.ratedAirFlowRate} m3/s")
+
+          # override new specifications: rated air flow rate for heating coil
+          if coil_heating.ratedAirFlowRate.is_initialized
+            puts("--- #{coil_heating.name} | indoor unit heating air flow rate before = #{coil_heating.ratedAirFlowRate} m3/s")
+          elsif coil_heating.autosizedRatedAirFlowRate.is_initialized
+            puts("--- #{coil_heating.name} | indoor unit heating air flow rate before = #{coil_heating.autosizedRatedAirFlowRate} m3/s")
+          else
+            runner.registerError("Cannot find rated air flow rate for heating.")
+          end
+          coil_heating.setRatedAirFlowRate(new_air_flow_rate_m_3_per_s)
+          puts("--- #{coil_heating.name} | indoor unit heating air flow rate after = #{coil_heating.ratedAirFlowRate} m3/s")
+
+          # override new specifications: rated capacity for cooling
+          if coil_cooling.ratedTotalCoolingCapacity.is_initialized
+            puts("--- #{coil_cooling.name} | indoor unit cooling capacity before = #{coil_cooling.ratedTotalCoolingCapacity} W")
+          elsif coil_cooling.autosizedRatedTotalCoolingCapacity.is_initialized
+            puts("--- #{coil_cooling.name} | indoor unit cooling capacity before = #{coil_cooling.autosizedRatedTotalCoolingCapacity} W")
+          else
+            runner.registerError("Cannot find rated capacity for cooling.")
+          end
+          coil_cooling.setRatedTotalCoolingCapacity(capacity_final_rated)
+          puts("--- #{coil_cooling.name} | indoor unit cooling capacity after = #{coil_cooling.ratedTotalCoolingCapacity} W")
+
+          # override new specifications: rated capacity for heating
+          if coil_heating.ratedTotalHeatingCapacity.is_initialized
+            puts("--- #{coil_heating.name} | indoor unit heating capacity before = #{coil_heating.ratedTotalHeatingCapacity} W")
+          elsif coil_heating.autosizedRatedTotalHeatingCapacity.is_initialized
+            puts("--- #{coil_heating.name} | indoor unit heating capacity before = #{coil_heating.autosizedRatedTotalHeatingCapacity} W")
+          else
+            runner.registerError("Cannot find rated capacity for heating.")
+          end
+          coil_heating.setRatedTotalHeatingCapacity(capacity_final_rated)
+          puts("--- #{coil_heating.name} | indoor unit heating capacity after = #{coil_heating.ratedTotalHeatingCapacity} W")
+
+          # add final indoor unit capacity for calculating outdoor unit capacity
+          capacity_outdoor_unit_new += capacity_final_rated
+        end
+
+        # override outdoor unit capacity
+        puts("### ------------------------------------")
+        puts("### #{ou.name} | outdoor unit cooling capacity before = #{ou.autosizedGrossRatedTotalCoolingCapacity} W")
+        ou.setGrossRatedTotalCoolingCapacity(capacity_outdoor_unit_new)
+        puts("### #{ou.name} | outdoor unit cooling capacity after = #{ou.grossRatedTotalCoolingCapacity} W")
+        puts("### #{ou.name} | outdoor unit heating capacity before = #{ou.autosizedGrossRatedHeatingCapacity} W")
+        ou.setGrossRatedHeatingCapacity(capacity_outdoor_unit_new)
+        puts("### #{ou.name} | outdoor unit heating capacity after = #{ou.grossRatedHeatingCapacity} W")
+
+      end
+    else
+      runner.registerInfo("upsizing allowance set to #{upsizing_allowance_pct}% so skipping upsizing.")
+    end
 
     ######################################################
     # puts("### Update ERV/HRV wheel power and efficiencies based on sizing run")
@@ -1994,9 +2141,9 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       end
     end
 
-    # #####################################################
+    #####################################################
     # puts("### update equipment efficiencies for non-applicable thermal zones getting new airloops")
-    # #####################################################
+    #####################################################
     model.getAirLoopHVACs.each do |air_loop_hvac|
       # determine applicability based on thermal zone
       # only non-applicable thermal zones that were broken off from multizone systems
@@ -2060,9 +2207,9 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       end
     end
 
-    # ######################################################
-    # #puts("### update COPs based on capacity sizing results")
-    # ######################################################
+    ######################################################
+    # puts("### update COPs based on capacity sizing results")
+    ######################################################
     total_cooling_capacity_w = 0
     total_heating_capacity_w = 0
     counts_vrf = model.getAirConditionerVariableRefrigerantFlows.size
