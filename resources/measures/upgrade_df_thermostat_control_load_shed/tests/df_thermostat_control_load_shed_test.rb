@@ -210,8 +210,13 @@ class DfThermostatControlLoadShedTest < Minitest::Test
 
       # set arguments: 
       load_prediction_method = arguments[4].clone	
-      assert(load_prediction_method.setValue('full baseline'))#'bin sample''part year bin sample'
+      assert(load_prediction_method.setValue('fix'))#'oat''bin sample''part year bin sample''full baseline'
       argument_map['load_prediction_method'] = load_prediction_method
+
+      # set arguments: 
+      peak_lag = arguments[5].clone
+      assert(peak_lag.setValue(2))
+      argument_map['peak_lag'] = peak_lag
 
       # apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)

@@ -803,7 +803,7 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path=nil, run_
     end
   end
   if (reportingfrequency = 'Zone Timestep') && (vals.size != 8760 || vals.size != 8784)
-    puts("Convert interval to hourly")
+    puts("Convert interval to hourly with size=#{vals.size}")
     sums = []
     vals.each_slice(num_timesteps_in_hr) do |slice|
       sum = slice.reduce(:+).to_f
@@ -827,6 +827,7 @@ end
 def find_daily_peak_window(daily_load, peak_len)
   maxload_ind = daily_load.index(daily_load.max)
   # maxload = daily_load.max
+  # peak_sum = (0...peak_len).map { |i| load[maxload_ind - i, peak_len].sum }
   peak_sum = (0..peak_len-1).map do |i|
     daily_load[(maxload_ind - i)..(maxload_ind - i + peak_len - 1)].sum
   end
@@ -882,4 +883,257 @@ def peak_schedule_generation(annual_load, oat, peak_len, rebound_len=0, prepeak_
   end
   peak_schedule = peak_schedule.take(nd * 24)
   return peak_schedule
+end
+
+def peak_window_fix_based_on_climate_zone
+  return {
+    '2A'=> {
+      'wint_start'=> 18,
+      'wint_end'=> 21,
+      'wint_peak'=> 20,
+      'sum_start'=> 17,
+      'sum_end'=> 20,
+      'sum_peak'=> 19,
+    },
+    '2B'=> {
+      'wint_start'=> 18,
+      'wint_end'=> 21,
+      'wint_peak'=> 19,
+      'sum_start'=> 16,
+      'sum_end'=> 19,
+      'sum_peak'=> 17,
+    },
+    '3A'=> {
+      'wint_start'=> 17,
+      'wint_end'=> 20,
+      'wint_peak'=> 19,
+      'sum_start'=> 18,
+      'sum_end'=> 21,
+      'sum_peak'=> 19,
+    },
+    '3B'=> {
+      'wint_start'=> 18,
+      'wint_end'=> 21,
+      'wint_peak'=> 20,
+      'sum_start'=> 17,
+      'sum_end'=> 20,
+      'sum_peak'=> 19,
+    },
+    '3C'=> {
+      'wint_start'=> 17,
+      'wint_end'=> 20,
+      'wint_peak'=> 19,
+      'sum_start'=> 18,
+      'sum_end'=> 21,
+      'sum_peak'=> 21,
+    },
+    '4A'=> {
+      'wint_start'=> 17,
+      'wint_end'=> 20,
+      'wint_peak'=> 18,
+      'sum_start'=> 13,
+      'sum_end'=> 16,
+      'sum_peak'=> 14,
+    },
+    '4B'=> {
+      'wint_start'=> 18,
+      'wint_end'=> 21,
+      'wint_peak'=> 19,
+      'sum_start'=> 16,
+      'sum_end'=> 19,
+      'sum_peak'=> 17,
+    },
+    '4C'=> {
+      'wint_start'=> 17,
+      'wint_end'=> 20,
+      'wint_peak'=> 18,
+      'sum_start'=> 16,
+      'sum_end'=> 19,
+      'sum_peak'=> 17,
+    },
+    '5A'=> {
+      'wint_start'=> 17,
+      'wint_end'=> 20,
+      'wint_peak'=> 19,
+      'sum_start'=> 17,
+      'sum_end'=> 20,
+      'sum_peak'=> 18,
+    },
+    '5B'=> {
+      'wint_start'=> 17,
+      'wint_end'=> 20,
+      'wint_peak'=> 19,
+      'sum_start'=> 16,
+      'sum_end'=> 19,
+      'sum_peak'=> 17,
+    },
+    '5C'=> {
+      'wint_start'=> 17,
+      'wint_end'=> 20,
+      'wint_peak'=> 18,
+      'sum_start'=> 16,
+      'sum_end'=> 19,
+      'sum_peak'=> 17,
+    },
+    '6A'=> {
+      'wint_start'=> 17,
+      'wint_end'=> 20,
+      'wint_peak'=> 19,
+      'sum_start'=> 15,
+      'sum_end'=> 18,
+      'sum_peak'=> 17,
+    },
+    '6B'=> {
+      'wint_start'=> 17,
+      'wint_end'=> 20,
+      'wint_peak'=> 18,
+      'sum_start'=> 16,
+      'sum_end'=> 19,
+      'sum_peak'=> 17,
+    },
+    '7'=> {
+      'wint_start'=> 17,
+      'wint_end'=> 20,
+      'wint_peak'=> 19,
+      'sum_start'=> 15,
+      'sum_end'=> 18,
+      'sum_peak'=> 17,
+    },
+  }
+end
+
+def map_cec_to_iecc
+  return {
+    1=>"4B",
+    2=>"3C",
+    3=>"3C",
+    4=>"3C",
+    5=>"3C",
+    6=>"3C",
+    7=>"3B",
+    8=>"3B",
+    9=>"3B",
+    10=>"3B",
+    11=>"3B",
+    12=>"3B",
+    13=>"3B",
+    14=>"3B",
+    15=>"2B",
+    16=>"5B"
+  }
+end
+
+### Generate fixed peak schedules (cooling and heating respectively) for whole year with rebound option
+def peak_schedule_generation_fix(cz, oat, rebound_len=0, prepeak_len=0, season='all')
+  if oat.size == 8784
+    nd = 366
+  elsif oat.size == 8760
+    nd = 365
+  else
+    raise 'annual load profile not hourly'
+  end
+  peak_schedule_clg = Array.new(nd * 24, 0)
+  peak_schedule_htg = Array.new(nd * 24, 0)
+  temperature_range = seasons[season]
+  peak_start_clg = peak_window_fix_based_on_climate_zone[cz]['sum_start']-1
+  peak_end_clg = peak_window_fix_based_on_climate_zone[cz]['sum_end']-1
+  peak_start_htg = peak_window_fix_based_on_climate_zone[cz]['wint_start']-1
+  peak_end_htg = peak_window_fix_based_on_climate_zone[cz]['wint_end']-1
+  (0..nd-1).each do |d|
+    range_start = d * 24
+    range_end = d * 24 + 23
+    temps = oat[range_start..range_end]
+    avg_temp = temps.inject { |sum, el| sum + el }.to_f / temps.size
+    if avg_temp > temperature_range[0] and avg_temp < temperature_range[1]
+      # peak and rebound schedule
+      if prepeak_len == 0
+        peak_schedule_clg[(range_start + peak_start_clg)..(range_start + peak_end_clg)] = Array.new(peak_end_clg-peak_start_clg+1, 1)
+        peak_schedule_htg[(range_start + peak_start_htg)..(range_start + peak_end_htg)] = Array.new(peak_end_htg-peak_start_htg+1, 1)
+        if rebound_len > 0
+          range_rebound_start_clg = range_start + peak_end_clg
+          range_rebound_end_clg = range_start + peak_end_clg + 1 + rebound_len
+          peak_schedule_clg[range_rebound_start_clg..range_rebound_end_clg] = (0..rebound_len + 1).map { |i| 1.0 - i.to_f / (rebound_len + 1) }
+          range_rebound_start_htg = range_start + peak_end_htg
+          range_rebound_end_htg = range_start + peak_end_htg + 1 + rebound_len
+          peak_schedule_htg[range_rebound_start_htg..range_rebound_end_htg] = (0..rebound_len + 1).map { |i| 1.0 - i.to_f / (rebound_len + 1) }
+        end
+      # prepeak schedule
+      else
+        if peak_start_clg >= prepeak_len
+          peak_schedule_clg[(range_start + peak_start_clg - prepeak_len)..(range_start + peak_start_clg - 1)] = Array.new(prepeak_len, 1)
+        else
+          peak_schedule_clg[(range_start)..(range_start + peak_start_clg - 1)] = Array.new(peak_start_clg, 1)
+        end
+        if peak_start_htg >= prepeak_len
+          peak_schedule_htg[(range_start + peak_start_htg - prepeak_len)..(range_start + peak_start_htg - 1)] = Array.new(prepeak_len, 1)
+        else
+          peak_schedule_htg[(range_start)..(range_start + peak_start_htg - 1)] = Array.new(peak_start_htg, 1)
+        end
+      end
+    end
+  end
+  peak_schedule_clg = peak_schedule_clg.take(nd * 24)
+  peak_schedule_htg = peak_schedule_htg.take(nd * 24)
+  return peak_schedule_clg, peak_schedule_htg
+end
+
+### determine daily peak window based on daily temperature profile
+def find_daily_peak_window_based_on_oat(daily_temp, peak_len, peak_lag)
+  tmp = daily_temp.each_cons(peak_len).map { |slice| slice.sum }
+  peak_ind_clg = tmp.index(tmp.max) + peak_lag
+  peak_ind_htg = tmp.index(tmp.min) + peak_lag
+  return peak_ind_clg, peak_ind_htg
+end
+
+### Generate peak schedule for whole year with rebound option based on temperature
+def peak_schedule_generation_oat(oat, peak_len, peak_lag=0, rebound_len=0, prepeak_len=0, season='all')
+  if oat.size == 8784
+    nd = 366
+  elsif oat.size == 8760
+    nd = 365
+  else
+    raise 'annual load profile not hourly'
+  end
+  peak_schedule_clg = Array.new(nd * 24, 0)
+  peak_schedule_htg = Array.new(nd * 24, 0)
+  temperature_range = seasons[season]
+  (0..nd-1).each do |d|
+    range_start = d * 24
+    range_end = d * 24 + 23
+    temps = oat[range_start..range_end]
+    avg_temp = temps.inject { |sum, el| sum + el }.to_f / temps.size
+    if avg_temp > temperature_range[0] and avg_temp < temperature_range[1]
+      peak_start_clg, peak_start_htg = find_daily_peak_window_based_on_oat(oat[range_start..range_end], peak_len, peak_lag)
+      peak_end_clg = peak_start_clg + peak_len - 1
+      peak_end_htg = peak_start_htg + peak_len - 1
+      # peak and rebound schedule
+      if prepeak_len == 0
+        peak_schedule_clg[(range_start + peak_start_clg)..(range_start + peak_end_clg)] = Array.new(peak_len, 1)
+        peak_schedule_htg[(range_start + peak_start_htg)..(range_start + peak_end_htg)] = Array.new(peak_len, 1)
+        if rebound_len > 0
+          range_rebound_start_clg = range_start + peak_end_clg
+          range_rebound_end_clg = range_start + peak_end_clg + 1 + rebound_len
+          peak_schedule_clg[range_rebound_start_clg..range_rebound_end_clg] = (0..rebound_len + 1).map { |i| 1.0 - i.to_f / (rebound_len + 1) }
+          range_rebound_start_htg = range_start + peak_end_htg
+          range_rebound_end_htg = range_start + peak_end_htg + 1 + rebound_len
+          peak_schedule_htg[range_rebound_start_htg..range_rebound_end_htg] = (0..rebound_len + 1).map { |i| 1.0 - i.to_f / (rebound_len + 1) }
+        end
+      # prepeak schedule
+      else
+        if peak_start_clg >= prepeak_len
+          peak_schedule_clg[(range_start + peak_start_clg - prepeak_len)..(range_start + peak_start_clg - 1)] = Array.new(prepeak_len, 1)
+        else
+          peak_schedule_clg[(range_start)..(range_start + peak_start_clg - 1)] = Array.new(peak_start_clg, 1)
+        end
+        if peak_start_htg >= prepeak_len
+          peak_schedule_htg[(range_start + peak_start_htg - prepeak_len)..(range_start + peak_start_htg - 1)] = Array.new(prepeak_len, 1)
+        else
+          peak_schedule_htg[(range_start)..(range_start + peak_start_htg - 1)] = Array.new(peak_start_htg, 1)
+        end
+      end
+    end
+  end
+  peak_schedule_clg = peak_schedule_clg.take(nd * 24)
+  peak_schedule_htg = peak_schedule_htg.take(nd * 24)
+  return peak_schedule_clg, peak_schedule_htg
 end
