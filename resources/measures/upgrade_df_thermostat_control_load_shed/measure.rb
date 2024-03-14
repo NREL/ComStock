@@ -84,11 +84,16 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     num_timesteps_in_hr.setDefaultValue(4)
     args << num_timesteps_in_hr
 
-    choices = ['full baseline', 'bin sample', 'part year bin sample']
+    choices = ['full baseline', 'bin sample', 'part year bin sample', 'fix', 'oat']
     load_prediction_method = OpenStudio::Ruleset::OSArgument.makeChoiceArgument('load_prediction_method', choices, true)
     load_prediction_method.setDisplayName("Method of load prediction (full baseline run, bin sample, part year bin sample)")
     load_prediction_method.setDefaultValue('full baseline')
     args << load_prediction_method
+
+    peak_lag = OpenStudio::Measure::OSArgument.makeIntegerArgument('peak_lag', true)
+    peak_lag.setDisplayName("Time lag of peak responding to temperature peak (hour)")
+    peak_lag.setDefaultValue(2)
+    args << peak_lag
 
     return args
   end
@@ -112,6 +117,7 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     sp_adjustment = runner.getDoubleArgumentValue('sp_adjustment', user_arguments)
     num_timesteps_in_hr = runner.getIntegerArgumentValue("num_timesteps_in_hr",user_arguments)
     load_prediction_method = runner.getStringArgumentValue("load_prediction_method",user_arguments)
+    peak_lag = runner.getIntegerArgumentValue("peak_lag",user_arguments)
 
     def leap_year?(year)
       if (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
@@ -411,14 +417,14 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     puts("### ============================================================")
     puts("### Reading weather file...")
     oat = read_epw(model)
-    # puts("--- oat.size = #{oat.size}")
+    puts("--- oat.size = #{oat.size}")
     if load_prediction_method == 'full baseline'
       puts("### ============================================================")
       puts("### Running full baseline for load prediction...")
       annual_load = load_prediction_from_full_run(model, num_timesteps_in_hr=num_timesteps_in_hr)
       # puts("--- annual_load = #{annual_load}")
       # puts("--- annual_load.size = #{annual_load.size}")
-    else
+    elsif load_prediction_method.include?('bin sample')
       puts("### ============================================================")
       if load_prediction_method == 'bin sample'
         puts("### Creating bins...")
@@ -446,6 +452,9 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
       annual_load = load_prediction_from_sample(model, y_seed, bins)
       # puts("--- annual_load = #{annual_load}")
       # puts("--- annual_load.size = #{annual_load.size}")
+    else
+      puts("### ============================================================")
+      puts("### No load prediction needed...")
     end
 
     ############################################
@@ -453,7 +462,35 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     ############################################
     puts("### ============================================================")
     puts("### Creating peak schedule...")
-    peak_schedule = peak_schedule_generation(annual_load, oat, peak_len, rebound_len=rebound_len, prepeak_len=0, season='all')
+    if load_prediction_method == 'fix'
+      puts("### Fixed schedule...")
+      template = 'ComStock 90.1-2019'
+      std = Standard.build(template)
+      climate_zone = std.model_standards_climate_zone(model)
+      runner.registerInfo("climate zone = #{climate_zone}")
+      if climate_zone.empty?
+        runner.registerError('Unable to determine climate zone for model. Cannot apply window film without climate zone information.')
+      else
+        if climate_zone.include?("CEC")
+          climate_zone_num_ca = climate_zone.split("CEC")[-1]
+          puts "--- climate_zone_num_ca = #{climate_zone_num_ca}"
+          cz = map_cec_to_iecc[climate_zone_num_ca.to_i]
+        elsif climate_zone.include?("ASHRAE")
+          cz = climate_zone.split("-")[-1]
+        else
+          runner.registerError('Unable to determine climate zone for model. Cannot apply window film without climate zone information.')
+        end
+      end
+      puts "--- cz = #{cz}"
+      peak_schedule_clg, peak_schedule_htg = peak_schedule_generation_fix(cz, oat, rebound_len=0, prepeak_len=0, season='all')
+    elsif load_prediction_method == 'oat'
+      puts("### OAT-based schedule...")
+      peak_schedule_clg, peak_schedule_htg = peak_schedule_generation_oat(oat, peak_len, peak_lag=peak_lag, rebound_len=rebound_len, prepeak_len=0, season='all')
+    else
+      puts("### Predictive schedule...")
+      peak_schedule_clg = peak_schedule_generation(annual_load, oat, peak_len, rebound_len=rebound_len, prepeak_len=0, season='all')
+      peak_schedule_htg = peak_schedule_clg
+    end
     # puts("--- peak_schedule = #{peak_schedule}")
     # puts("--- peak_schedule.size = #{peak_schedule.size}")
     
@@ -465,13 +502,13 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     nts_htg = 0
     if applicable_clg_thermostats.size > 0
       puts("### Creating cooling setpoint adjustment schedule...")
-      clgsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(peak_schedule, sp_adjustment=sp_adjustment)
+      clgsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(peak_schedule_clg, sp_adjustment=sp_adjustment)
       puts("### Updating thermostat cooling setpoint schedule...")
       nts_clg = assign_clgsch_to_thermostats(model,applicable_clg_thermostats,runner,clgsp_adjustment_values)
     end
     if applicable_htg_thermostats.size > 0
       puts("### Creating heating setpoint adjustment schedule...")
-      heatsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(peak_schedule, sp_adjustment=-sp_adjustment)
+      heatsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(peak_schedule_htg, sp_adjustment=-sp_adjustment)
       puts("### Updating thermostat cooling setpoint schedule...")
       nts_htg = assign_heatsch_to_thermostats(model,applicable_htg_thermostats,runner,heatsp_adjustment_values)
     end

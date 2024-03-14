@@ -2,9 +2,9 @@
 <measure>
   <schema_version>3.1</schema_version>
   <name>df_thermostat_control_load_shed</name>
-  <uid>f4372ee0-7caa-4db1-8838-31c886e60881</uid>
-  <version_id>01847dfe-7ea2-4df5-b00b-93b885aa2b08</version_id>
-  <version_modified>2024-03-14T17:13:58Z</version_modified>
+  <uid>8de4bbcc-0430-4f71-8131-0467cbb6f9a4</uid>
+  <version_id>2d28095e-9a61-4149-b8c9-2e9f22314b9a</version_id>
+  <version_modified>2024-03-14T17:13:51Z</version_modified>
   <xml_checksum>D7E77FC2</xml_checksum>
   <class_name>DfThermostatControlLoadShed</class_name>
   <display_name>demand flexibility - thermostat control load shed</display_name>
@@ -63,7 +63,23 @@
           <value>part year bin sample</value>
           <display_name>part year bin sample</display_name>
         </choice>
+        <choice>
+          <value>fix</value>
+          <display_name>fix</display_name>
+        </choice>
+        <choice>
+          <value>oat</value>
+          <display_name>oat</display_name>
+        </choice>
       </choices>
+    </argument>
+    <argument>
+      <name>peak_lag</name>
+      <display_name>Time lag of peak responding to temperature peak (hour)</display_name>
+      <type>Integer</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>2</default_value>
     </argument>
   </arguments>
   <outputs />
@@ -123,25 +139,19 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>8F5137A8</checksum>
+      <checksum>0F181F45</checksum>
     </file>
     <file>
       <filename>dispatch_schedule_generation.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>203A7FBB</checksum>
-    </file>
-    <file>
-      <filename>dispatch_schedule_generation_extend.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>3CDD7F1E</checksum>
+      <checksum>8212473C</checksum>
     </file>
     <file>
       <filename>df_thermostat_control_load_shed_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>426E6449</checksum>
+      <checksum>9FA545C7</checksum>
     </file>
   </files>
 </measure>
