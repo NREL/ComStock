@@ -44,20 +44,20 @@ require 'date'
 require 'openstudio-standards'
 
 # start the measure
-class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
+class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
   # human readable name
   def name
-    return "demand flexibility - thermostat control load shift"
+    return "demand flexibility - thermostat control load shed"
   end
 
   # human readable description
   def description
-    return "This measure implements demand flexibility measure on daily thermostat control with load shift strategy, by adjusting thermostat setpoints for pre-cooling and/or pre-heating corresponding to the pre-peak schedule based on daily peak load prediction."
+    return "This measure implements demand flexibility measure on daily thermostat control with load shed strategy, by adjusting thermostat setpoints (increasing the deadband) corresponding to the peak schedule based on daily peak load prediction."
   end
 
   # human readable description of modeling approach
   def modeler_description
-    return "This measure performs load prediction based on options of full baseline run, bin-sample method and par year bin-sample method. Based on the predicted load profile the measure generates daily (pre-)peak schedule, and iterates through all applicable (electric) thermostats to adjust the pre-peak cooling or heating setpoints for pre-cooling or pre-heating."
+    return "This measure performs load prediction based on options of full baseline run, bin-sample method and par year bin-sample method. It generates daily peak schedule based on the load prediction, and then iterates through all applicable (electric) thermostats to adjust the cooling and heating setpoints for daily peak window."
   end
 
   # define the arguments that the user will input
@@ -69,14 +69,14 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
     peak_len.setDefaultValue(4)
     args << peak_len
 
-    prepeak_len = OpenStudio::Measure::OSArgument.makeIntegerArgument('prepeak_len', true)
-    prepeak_len.setDisplayName("Length of pre-peak period before dispatch window (hour)")
-    prepeak_len.setDefaultValue(2)
-    args << prepeak_len
+    rebound_len = OpenStudio::Measure::OSArgument.makeIntegerArgument('rebound_len', true)
+    rebound_len.setDisplayName("Length of rebound period after dispatch window (hour)")
+    rebound_len.setDefaultValue(2)
+    args << rebound_len
 
     sp_adjustment = OpenStudio::Measure::OSArgument.makeDoubleArgument('sp_adjustment', true)
     sp_adjustment.setDisplayName("Degrees C to Adjust Setpoint By")
-    sp_adjustment.setDefaultValue(1.0)
+    sp_adjustment.setDefaultValue(2.0)
     args << sp_adjustment
 
     num_timesteps_in_hr = OpenStudio::Measure::OSArgument.makeIntegerArgument('num_timesteps_in_hr', true)
@@ -84,11 +84,16 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
     num_timesteps_in_hr.setDefaultValue(4)
     args << num_timesteps_in_hr
 
-    choices = ['full baseline', 'bin sample', 'part year bin sample']
+    choices = ['full baseline', 'bin sample', 'part year bin sample', 'fix', 'oat']
     load_prediction_method = OpenStudio::Ruleset::OSArgument.makeChoiceArgument('load_prediction_method', choices, true)
     load_prediction_method.setDisplayName("Method of load prediction (full baseline run, bin sample, part year bin sample)")
     load_prediction_method.setDefaultValue('full baseline')
     args << load_prediction_method
+
+    peak_lag = OpenStudio::Measure::OSArgument.makeIntegerArgument('peak_lag', true)
+    peak_lag.setDisplayName("Time lag of peak responding to temperature peak (hour)")
+    peak_lag.setDefaultValue(2)
+    args << peak_lag
 
     return args
   end
@@ -108,10 +113,11 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
     # assign the user inputs to variables
     ############################################
     peak_len = runner.getIntegerArgumentValue("peak_len",user_arguments)
-    prepeak_len = runner.getIntegerArgumentValue("prepeak_len",user_arguments)
+    rebound_len = runner.getIntegerArgumentValue("rebound_len",user_arguments)
     sp_adjustment = runner.getDoubleArgumentValue('sp_adjustment', user_arguments)
     num_timesteps_in_hr = runner.getIntegerArgumentValue("num_timesteps_in_hr",user_arguments)
     load_prediction_method = runner.getStringArgumentValue("load_prediction_method",user_arguments)
+    peak_lag = runner.getIntegerArgumentValue("peak_lag",user_arguments)
 
     def leap_year?(year)
       if (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
@@ -119,10 +125,6 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
       else
         return false
       end
-    end
-
-    def day_of_year(year, month, day)
-      return (Date.new(year, month, day) - Date.new(year,1,1)).to_i + 1
     end
 
     def temp_setp_adjust_hourly_based_on_sch(peak_sch, sp_adjustment)
@@ -188,90 +190,13 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
       return values
     end
 
-    def get_reference_schedule_from_schedule_ruleset(model, schedule_ruleset, step=4, max_or_avg='max')
-      yd = model.getYearDescription
-      start_date = yd.makeDate(1, 1)
-      end_date = yd.makeDate(12, 31)
-      values = []#OpenStudio::Vector.new
-      interval = OpenStudio::Time.new(1.0 / 24.0 / step)
-      day_schedules = schedule_ruleset.getDaySchedules(start_date, end_date)
-      day_sched_array = []
-      day_schedules.each do |day_schedule|
-        day_sched_array << day_schedule
-      end
-      day_sched_array.each do |day_schedule|
-        current_hour = interval
-        time_values = day_schedule.times
-        num_times = time_values.size
-        value_sum = []
-        time_values.each do |until_hr|
-          if until_hr < current_hour
-            # Add to tally for next step
-            value_sum << day_schedule.getValue(until_hr).to_f
-          elsif until_hr >= current_hour + interval
-            # Loop through hours to catch current step up to until_step
-            while current_hour <= until_hr
-              values << day_schedule.getValue(until_hr).to_f
-              current_hour += interval
-            end
-            if (current_hour - until_hr) < interval
-              value_sum << day_schedule.getValue(until_hr).to_f
-            end
-          else
-            # Add to tally for this step average
-            value_sum << day_schedule.getValue(until_hr).to_f
-            # Calc step max or average
-            if value_sum.size > 0
-              value_max = value_sum.max
-              value_avg = value_sum.sum / value_sum.length.to_f
-            else
-              value_max = 0
-            end
-            if max_or_avg == 'max'
-              values << value_max
-            else
-              values << value_avg
-            end
-            # setup for next step
-            value_sum = []
-            current_hour += interval
-          end
-        end
-      end
-      designdays = model.getDesignDays
-      designdays.each do |designday|
-        month = designday.month
-        day = designday.dayOfMonth
-        daytype = designday.dayType
-        doy = day_of_year(yd.calendarYear.to_i, month, day)
-        if daytype == 'SummerDesignDay'
-          day_schedule = schedule_ruleset.summerDesignDaySchedule
-        elsif daytype == 'WinterDesignDay'
-          day_schedule = schedule_ruleset.winterDesignDaySchedule
-        else
-          puts('Check designday for dayType')
-          day_schedule = schedule_ruleset.defaultDaySchedule
-        end
-        vals = day_schedule.values
-        if vals.length > 1
-          val = vals.max
-        else
-          val = vals[0]
-        end
-        # replace sp values with design day sch on design days
-        values[((doy-1)*step*24), (step*24)] = [val] * (step*24)
-      end
-      return values
-    end
-
     def assign_clgsch_to_thermostats(model,applicable_clg_thermostats,runner,clgsp_adjustment_values)
       clg_set_schs = {}
       nts = 0
       applicable_clg_thermostats.each do |thermostat|
         # setup new cooling setpoint schedule
         clg_set_sch = thermostat.coolingSetpointTemperatureSchedule
-        heat_set_sch = thermostat.heatingSetpointTemperatureSchedule
-        if !clg_set_sch.empty? || !heat_set_sch.empty?
+        if !clg_set_sch.empty?
           # clone of not already in hash
           if clg_set_schs.key?(clg_set_sch.get.name.to_s)
             # exist
@@ -280,14 +205,7 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
             # new
             schedule = clg_set_sch.get.clone(model)
             schedule = schedule.to_Schedule.get
-            schedule_heat = heat_set_sch.get.clone(model)
-            schedule_heat = schedule_heat.to_Schedule.get
             schedule_8760 = get_hourly_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get)
-            schedule_35040_heat = get_reference_schedule_from_schedule_ruleset(model, schedule_heat.to_ScheduleRuleset.get, step=4, max_or_avg='max') # use hourly max instead of hourly average to avoid optimium start spikes
-            schedule_8760_heat_max = []
-            schedule_35040_heat.each_slice(4) do |hrval|
-              schedule_8760_heat_max << hrval.max
-            end
             if schedule_8760.size != clgsp_adjustment_values.size
               msize = [schedule_8760.size, clgsp_adjustment_values.size].min
               nums = [schedule_8760.take(msize), clgsp_adjustment_values.take(msize)]
@@ -296,16 +214,10 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
             end
             new_schedule_8760 = nums.transpose.map(&:sum)
             schedule_values = OpenStudio::Vector.new(new_schedule_8760.length, 0.0)
-            # check reference htg sp sch in case clg sp lower than heat sp
             new_schedule_8760.each_with_index do |val,i|
-              if val > schedule_8760_heat_max[i]
-                schedule_values[i] = val
-              else
-                # if clg sp is lower, change it to middle line of original clg sp and the reference htg sp
-                schedule_values[i] = (schedule_8760_heat_max[i]+schedule_8760[i]) / 2.0
-              end
+              schedule_values[i] = val
             end
-            # make schedule
+            # make a schedule
             interval_hr = OpenStudio::Time.new(0, 1, 0)
             startDate = OpenStudio::Date.new(OpenStudio::MonthOfYear.new(1), 1)
             timeseries = OpenStudio::TimeSeries.new(startDate, interval_hr, schedule_values, "C")
@@ -324,7 +236,7 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
           thermostat.setCoolingSetpointTemperatureSchedule(new_clg_set_sch)
           nts += 1
         else
-          runner.registerWarning("Thermostat '#{thermostat.name}' doesn't have cooling and heating setpoint schedules")
+          runner.registerWarning("Thermostat '#{thermostat.name}' doesn't have a cooling setpoint schedule")
         end
       end
       return nts
@@ -358,6 +270,16 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
             new_schedule_8760.each_with_index do |val,i|
               schedule_values[i] = val
             end
+            # # infer interval
+            # interval = []
+            # if (num_rows == 8760) || (num_rows == 8784) #hourly data
+            #   interval = OpenStudio::Time.new(0, 1, 0)
+            # elsif (num_rows == 35040) || (num_rows == 35136) # 15 min interval data
+            #   interval = OpenStudio::Time.new(0, 0, 15)
+            # else
+            #   runner.registerError('This measure does not support non-hourly or non-15 min interval data.  Cast your values as 15-min or hourly interval data.  See the values template.')
+            #   return false
+            # end
             # make a schedule
             interval_hr = OpenStudio::Time.new(0, 1, 0)
             startDate = OpenStudio::Date.new(OpenStudio::MonthOfYear.new(1), 1)
@@ -422,6 +344,7 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
         end
         puts("--- cstock_bldg_type = #{cstock_bldg_type}")
         if !applicable_building_types.include?(cstock_bldg_type)#.downcase)
+          # puts("&&& applicability not passed due to building type (buildings with large exhaust): #{model_building_type}")
           runner.registerAsNotApplicable("applicability not passed due to building type (large office buildings): #{cstock_bldg_type}")
           return false
         else
@@ -474,6 +397,8 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
       return true
     end
     applicable_clg_thermostats, applicable_htg_thermostats, nts = applicable_thermostats(model)
+    # puts(applicable_clg_thermostats.size)
+    # puts(applicable_htg_thermostats.size)
     if applicable_clg_thermostats.size > 0 && applicable_htg_thermostats.size > 0
       puts("--- electric cooling and heating applicability passed")
     elsif applicable_clg_thermostats.size > 0
@@ -481,7 +406,7 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
     elsif applicable_htg_thermostats.size > 0
       puts("--- electric heating applicability passed")
     else
-      runner.registerAsNotApplicable("applicability not passed for electric cooling or heating")
+      runner.registerAsNotApplicable("applicability not passed for electric cooling and heating")
       return true
     end
     runner.registerInitialCondition("The building initially has #{nts} thermostats, of which #{applicable_clg_thermostats.size} are associated with electric cooling and #{applicable_htg_thermostats.size} are associated with electric heating.")
@@ -492,14 +417,14 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
     puts("### ============================================================")
     puts("### Reading weather file...")
     oat = read_epw(model)
-    # puts("--- oat.size = #{oat.size}")
+    puts("--- oat.size = #{oat.size}")
     if load_prediction_method == 'full baseline'
       puts("### ============================================================")
       puts("### Running full baseline for load prediction...")
       annual_load = load_prediction_from_full_run(model, num_timesteps_in_hr=num_timesteps_in_hr)
       # puts("--- annual_load = #{annual_load}")
       # puts("--- annual_load.size = #{annual_load.size}")
-    else
+    elsif load_prediction_method.include?('bin sample')
       puts("### ============================================================")
       if load_prediction_method == 'bin sample'
         puts("### Creating bins...")
@@ -509,7 +434,7 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
         # puts("--- ns = #{ns}")
         puts("### ============================================================")
         puts("### Running simulation on samples...")
-        y_seed = run_samples(model, selectdays, num_timesteps_in_hr)
+        y_seed = run_samples(model, year, selectdays, num_timesteps_in_hr)
         # puts("--- y_seed = #{y_seed}")
       elsif load_prediction_method == 'part year bin sample'
         puts("### Creating bins...")
@@ -527,6 +452,9 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
       annual_load = load_prediction_from_sample(model, y_seed, bins)
       # puts("--- annual_load = #{annual_load}")
       # puts("--- annual_load.size = #{annual_load.size}")
+    else
+      puts("### ============================================================")
+      puts("### No load prediction needed...")
     end
 
     ############################################
@@ -534,10 +462,38 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
     ############################################
     puts("### ============================================================")
     puts("### Creating peak schedule...")
-    prepeak_schedule = peak_schedule_generation(annual_load, oat, peak_len, rebound_len=0, prepeak_len=prepeak_len, season='all')
-    # puts("--- prepeak_schedule = #{prepeak_schedule}")
-    # puts("--- prepeak_schedule.size = #{prepeak_schedule.size}")
-
+    if load_prediction_method == 'fix'
+      puts("### Fixed schedule...")
+      template = 'ComStock 90.1-2019'
+      std = Standard.build(template)
+      climate_zone = std.model_standards_climate_zone(model)
+      runner.registerInfo("climate zone = #{climate_zone}")
+      if climate_zone.empty?
+        runner.registerError('Unable to determine climate zone for model. Cannot apply window film without climate zone information.')
+      else
+        if climate_zone.include?("CEC")
+          climate_zone_num_ca = climate_zone.split("CEC")[-1]
+          puts "--- climate_zone_num_ca = #{climate_zone_num_ca}"
+          cz = map_cec_to_iecc[climate_zone_num_ca.to_i]
+        elsif climate_zone.include?("ASHRAE")
+          cz = climate_zone.split("-")[-1]
+        else
+          runner.registerError('Unable to determine climate zone for model. Cannot apply window film without climate zone information.')
+        end
+      end
+      puts "--- cz = #{cz}"
+      peak_schedule_clg, peak_schedule_htg = peak_schedule_generation_fix(cz, oat, rebound_len=0, prepeak_len=0, season='all')
+    elsif load_prediction_method == 'oat'
+      puts("### OAT-based schedule...")
+      peak_schedule_clg, peak_schedule_htg = peak_schedule_generation_oat(oat, peak_len, peak_lag=peak_lag, rebound_len=rebound_len, prepeak_len=0, season='all')
+    else
+      puts("### Predictive schedule...")
+      peak_schedule_clg = peak_schedule_generation(annual_load, oat, peak_len, rebound_len=rebound_len, prepeak_len=0, season='all')
+      peak_schedule_htg = peak_schedule_clg
+    end
+    # puts("--- peak_schedule = #{peak_schedule}")
+    # puts("--- peak_schedule.size = #{peak_schedule.size}")
+    
     ############################################
     # Update thermostat setpoint schedule 
     ############################################
@@ -546,23 +502,22 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
     nts_htg = 0
     if applicable_clg_thermostats.size > 0
       puts("### Creating cooling setpoint adjustment schedule...")
-      clgsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(prepeak_schedule, sp_adjustment=-sp_adjustment)
+      clgsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(peak_schedule_clg, sp_adjustment=sp_adjustment)
       puts("### Updating thermostat cooling setpoint schedule...")
       nts_clg = assign_clgsch_to_thermostats(model,applicable_clg_thermostats,runner,clgsp_adjustment_values)
     end
-    ### Leave pre-heating & seasonal operation for future development
-    # if applicable_htg_thermostats.size > 0
-    #   puts("### Creating heating setpoint adjustment schedule...")
-    #   heatsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(prepeak_schedule, sp_adjustment=sp_adjustment)
-    #   puts("### Updating thermostat cooling setpoint schedule...")
-    #   nts_htg = assign_heatsch_to_thermostats(model,applicable_htg_thermostats,runner,heatsp_adjustment_values)
-    # end
+    if applicable_htg_thermostats.size > 0
+      puts("### Creating heating setpoint adjustment schedule...")
+      heatsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(peak_schedule_htg, sp_adjustment=-sp_adjustment)
+      puts("### Updating thermostat cooling setpoint schedule...")
+      nts_htg = assign_heatsch_to_thermostats(model,applicable_htg_thermostats,runner,heatsp_adjustment_values)
+    end
     # puts("--- clgsp_adjustment_values = #{clgsp_adjustment_values}")
     # puts("--- heatsp_adjustment_values = #{heatsp_adjustment_values}")
-    runner.registerFinalCondition("Updated #{nts_clg}/#{applicable_clg_thermostats.size} thermostat cooling setpoint schedules and #{nts_htg}/#{applicable_htg_thermostats.size} thermostat heating setpoint schedules to model, with #{sp_adjustment.abs} degree C offset for #{prepeak_len} hours of daily pre-cooling/pre-heating before #{peak_len}-hour peak window, using #{load_prediction_method} simulation for load prediction")
+    runner.registerFinalCondition("Updated #{nts_clg}/#{applicable_clg_thermostats.size} thermostat cooling setpoint schedules and #{nts_htg}/#{applicable_htg_thermostats.size} thermostat heating setpoint schedules to model, with #{sp_adjustment.abs} degree C setback for #{peak_len} hours of daily peak window and rebound in #{rebound_len} hours after peak, using #{load_prediction_method} simulation for load prediction")
     return true
   end
 end
 
 # register the measure to be used by the application
-DfThermostatControlLoadShift.new.registerWithApplication
+DfThermostatControlLoadShed.new.registerWithApplication
