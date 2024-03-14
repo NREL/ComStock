@@ -222,7 +222,7 @@ def create_binsamples(oat,option)
         elsif option=='sort'
           selectdays[key][keykey] = combbins[key][keykey].sort.take(3).to_a
         else
-          puts('Wrong sampling option')
+          runner.registerError('Wrong sampling option')
           return false
         end
         ns += 3
@@ -385,7 +385,22 @@ def model_run_simulation_on_doy(model, doy, num_timesteps_in_hr, epw_path=nil, r
   end
   # raise if vals is empty
   if vals.empty?
-    raise 'load profile for the sample run returned empty'
+    puts("Hourly reporting frequency return empty data. Use Zone Timestep.")
+    reportingfrequency = 'Zone Timestep'
+    unless availableReportingFrequencies.include?(reportingfrequency)
+      raise "reportingfrequency of #{reportingfrequency} not included in available options: #{availableReportingFrequencies}"
+    end
+    electricity_results = sqlFile.timeSeries(envperiod,reportingfrequency,timeseriesname)
+    vals = []
+    electricity_results.each do |electricity_result|
+      elec_vals = electricity_result.values
+      for i in 0..(elec_vals.size - 1)
+        vals << elec_vals[i]
+      end
+    end
+    if vals.empty?
+      raise 'load profile for the sample run returned empty'
+    end
   end
   # reset model config for upgrade run
   model.getRunPeriod.setBeginMonth(begin_month_orig)
@@ -560,7 +575,22 @@ def model_run_simulation_on_part_of_year(model, max_doy, num_timesteps_in_hr, ep
   end
   # raise if vals is empty
   if vals.empty?
-    raise 'load profile for the sample run returned empty'
+    puts("Hourly reporting frequency return empty data. Use Zone Timestep.")
+    reportingfrequency = 'Zone Timestep'
+    unless availableReportingFrequencies.include?(reportingfrequency)
+      raise "reportingfrequency of #{reportingfrequency} not included in available options: #{availableReportingFrequencies}"
+    end
+    electricity_results = sqlFile.timeSeries(envperiod,reportingfrequency,timeseriesname)
+    vals = []
+    electricity_results.each do |electricity_result|
+      elec_vals = electricity_result.values
+      for i in 0..(elec_vals.size - 1)
+        vals << elec_vals[i]
+      end
+    end
+    if vals.empty?
+      raise 'load profile for the sample run returned empty'
+    end
   end
   # reset model config for upgrade run
   model.getRunPeriod.setBeginMonth(begin_month_orig)
@@ -755,9 +785,24 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path=nil, run_
   end
   # raise if vals is empty
   if vals.empty?
-    raise 'load profile for the sample run returned empty'
+    puts("Hourly reporting frequency return empty data. Use Zone Timestep.")
+    reportingfrequency = 'Zone Timestep'
+    unless availableReportingFrequencies.include?(reportingfrequency)
+      raise "reportingfrequency of #{reportingfrequency} not included in available options: #{availableReportingFrequencies}"
+    end
+    electricity_results = sqlFile.timeSeries(envperiod,reportingfrequency,timeseriesname)
+    vals = []
+    electricity_results.each do |electricity_result|
+      elec_vals = electricity_result.values
+      for i in 0..(elec_vals.size - 1)
+        vals << elec_vals[i]
+      end
+    end
+    if vals.empty?
+      raise 'load profile for the sample run returned empty'
+    end
   end
-  if num_timesteps_in_hr > 1
+  if (reportingfrequency = 'Zone Timestep') && (vals.size != 8760 || vals.size != 8784)
     puts("Convert interval to hourly")
     sums = []
     vals.each_slice(num_timesteps_in_hr) do |slice|
@@ -799,7 +844,7 @@ def seasons
   }
 end
 
-### Generate peak schedule for whole year with rebound option
+### Generate peak schedule for whole year with rebound option ########################### NEED TO JUSTIFY PUTTING REBOUND OPTION HERE OR IN INDIVIDUAL DF MEASURES
 def peak_schedule_generation(annual_load, oat, peak_len, rebound_len=0, prepeak_len=0, season='all')
   if annual_load.size == 8784
     nd = 366

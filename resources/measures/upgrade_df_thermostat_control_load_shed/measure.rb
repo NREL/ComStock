@@ -453,7 +453,7 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     ############################################
     puts("### ============================================================")
     puts("### Creating peak schedule...")
-    peak_schedule = peak_schedule_generation(annual_load, oat, peak_len, rebound_len=rebound_len, prepeak_len=0, seasons='all')
+    peak_schedule = peak_schedule_generation(annual_load, oat, peak_len, rebound_len=rebound_len, prepeak_len=0, season='all')
     # puts("--- peak_schedule = #{peak_schedule}")
     # puts("--- peak_schedule.size = #{peak_schedule.size}")
     

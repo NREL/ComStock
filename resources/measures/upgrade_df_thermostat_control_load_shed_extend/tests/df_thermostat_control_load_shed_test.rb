@@ -6,8 +6,6 @@ require 'openstudio/measure/ShowRunnerOutput'
 require 'minitest/autorun'
 require_relative '../measure.rb'
 require 'fileutils'
-require_relative '../../../../test/helpers/minitest_helper'
-
 
 # require all .rb files in resources folder
 Dir[File.dirname(__FILE__) + '../resources/*.rb'].each { |file| require file }
@@ -63,7 +61,7 @@ class DfThermostatControlLoadShedTest < Minitest::Test
       weather: 'CO_Fulton_Arpt_Brow_18',
       result: 'Success'
     }
-
+    
     return test_sets
   end
 
@@ -188,30 +186,35 @@ class DfThermostatControlLoadShedTest < Minitest::Test
       arguments = measure.arguments(model)
       argument_map = OpenStudio::Measure::OSArgumentMap.new
 
-      # set arguments:
+      # set arguments: 
       peak_len = arguments[0].clone
       assert(peak_len.setValue(4))
       argument_map['peak_len'] = peak_len
 
-      # set arguments:
+      # set arguments: 
       rebound_len = arguments[1].clone
       assert(rebound_len.setValue(2))
       argument_map['rebound_len'] = rebound_len
 
-      # set arguments:
-      sp_adjustment = arguments[2].clone
+      # set arguments: 
+      sp_adjustment = arguments[2].clone	
       assert(sp_adjustment.setValue(2.0))
       argument_map['sp_adjustment'] = sp_adjustment
 
-      # set arguments:
-      num_timesteps_in_hr = arguments[3].clone
+      # set arguments: 
+      num_timesteps_in_hr = arguments[3].clone	
       assert(num_timesteps_in_hr.setValue(4))
       argument_map['num_timesteps_in_hr'] = num_timesteps_in_hr
 
       # set arguments: 
       load_prediction_method = arguments[4].clone	
-      assert(load_prediction_method.setValue('full baseline'))#'bin sample''part year bin sample'
+      assert(load_prediction_method.setValue('fix'))#'oat''bin sample''part year bin sample''full baseline'
       argument_map['load_prediction_method'] = load_prediction_method
+
+      # set arguments: 
+      peak_lag = arguments[5].clone
+      assert(peak_lag.setValue(2))
+      argument_map['peak_lag'] = peak_lag
 
       # apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
@@ -229,9 +232,9 @@ class DfThermostatControlLoadShedTest < Minitest::Test
 
   # def dispatch_gen_create_binsamples_test
   #   oat_harcoded = []
-  #   bins_hardcoded =
-  #   selectdays_hardcoded =
-  #   ns_hardcoded =
+  #   bins_hardcoded = 
+  #   selectdays_hardcoded = 
+  #   ns_hardcoded = 
 
   #   puts("### ============================================================")
   #   puts("### Creating bins...")
@@ -246,10 +249,10 @@ class DfThermostatControlLoadShedTest < Minitest::Test
   # end
 
   # def dispatch_gen_run_samples_test(model)
-  #   year_hardcoded =
-  #   selectdays_hardcoded =
-  #   num_timesteps_in_hr_hardcoded =
-  #   y_seed_harcoded =
+  #   year_hardcoded = 
+  #   selectdays_hardcoded = 
+  #   num_timesteps_in_hr_hardcoded = 
+  #   y_seed_harcoded = 
 
   #   puts("### ============================================================")
   #   puts("### Running simulation on samples...")
@@ -265,7 +268,7 @@ class DfThermostatControlLoadShedTest < Minitest::Test
   #   osm_path = model_input_path(osm_name)
   #   epw_path = epw_input_path(epw_name)
   #   model = load_model(osm_path)
-
+    
   #   oat_harcoded = []
   #   bins_hardcoded = {
   #     'ext-hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
