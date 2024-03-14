@@ -1181,11 +1181,11 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
             supplemental_coil = supplemental_coil.to_CoilHeatingElectric.get
             supplemental_electric_j = sql_get_report_variable_data_double(runner, sql, supplemental_coil, "Heating Coil #{elec} Energy")
-            
+
           elsif supplemental_coil.to_CoilHeatingGas.is_initialized
             # supplemental load is sourced from gas
             vrf_total_heating_supplemental_load_gas_j += supplemental_coil_heating_energy_j
-            
+
             supplemental_coil = supplemental_coil.to_CoilHeatingGas.get
             supplemental_gas_j = sql_get_report_variable_data_double(runner, sql, supplemental_coil, "Heating Coil #{gas} Energy")
           else
@@ -1248,7 +1248,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
       # get VRF Heat Pump Cooling Electricity Energy
       vrf_cooling_electric_j = sql_get_report_variable_data_double(runner, sql, vrf, 'VRF Heat Pump Cooling Electricity Energy')
-  
+
       # get VRF Heat Pump Heating Electricity Energy
       vrf_heating_electric_j = sql_get_report_variable_data_double(runner, sql, vrf, 'VRF Heat Pump Heating Electricity Energy')
 
@@ -1260,7 +1260,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
       # get VRF Heat Pump Heat Recovery Energy
       vrf_heat_recovery_j = sql_get_report_variable_data_double(runner, sql, vrf, 'VRF Heat Pump Heat Recovery Energy')
-      
+
       # VRF design cops
       vrf_cooling_design_cop = vrf.grossRatedCoolingCOP
       vrf_heating_design_cop = vrf.ratedHeatingCOP
@@ -1287,8 +1287,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       cooling_eir_low_temp_curve = nil
       cooling_eir_high_temp_curve = nil
       if vrf.coolingEnergyInputRatioModifierFunctionofLowTemperatureCurve.is_initialized
-        cooling_eir_low_temp_curve = vrf.coolingEnergyInputRatioModifierFunctionofLowTemperatureCurve.get 
-      end   
+        cooling_eir_low_temp_curve = vrf.coolingEnergyInputRatioModifierFunctionofLowTemperatureCurve.get
+      end
       if vrf.coolingEnergyInputRatioModifierFunctionofHighTemperatureCurve.is_initialized
         cooling_eir_high_temp_curve = vrf.coolingEnergyInputRatioModifierFunctionofHighTemperatureCurve.get
       end
@@ -1360,8 +1360,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       heating_eir_low_temp_curve = nil
       heating_eir_high_temp_curve = nil
       if vrf.heatingEnergyInputRatioModifierFunctionofLowTemperatureCurve.is_initialized
-        heating_eir_low_temp_curve = vrf.heatingEnergyInputRatioModifierFunctionofLowTemperatureCurve.get 
-      end   
+        heating_eir_low_temp_curve = vrf.heatingEnergyInputRatioModifierFunctionofLowTemperatureCurve.get
+      end
       if vrf.heatingEnergyInputRatioModifierFunctionofHighTemperatureCurve.is_initialized
         heating_eir_high_temp_curve = vrf.heatingEnergyInputRatioModifierFunctionofHighTemperatureCurve.get
       end
@@ -1604,7 +1604,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       end
       wa_hp_cooling_total_capacity_w += capacity_w
 
-      coil_design_cop = coil.ratedCoolingCoefficientofPerformance 
+      coil_design_cop = coil.ratedCoolingCoefficientofPerformance
 
       # get Cooling Coil Total Cooling Energy
       coil_cooling_energy_j = sql_get_report_variable_data_double(runner, sql, coil, 'Cooling Coil Total Cooling Energy')
@@ -1648,7 +1648,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       end
       wa_hp_heating_total_capacity_w += capacity_w
 
-      coil_design_cop = coil.ratedHeatingCoefficientofPerformance 
+      coil_design_cop = coil.ratedHeatingCoefficientofPerformance
 
       # get Heating Coil Heating Energy
       coil_heating_energy_j = sql_get_report_variable_data_double(runner, sql, coil, 'Heating Coil Heating Energy')
@@ -1734,7 +1734,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         end
       elsif coil.to_CoilCoolingDXTwoSpeed.is_initialized
         coil = coil.to_CoilCoolingDXTwoSpeed.get
-        
+
         # capacity
         if coil.ratedHighSpeedTotalCoolingCapacity.is_initialized
           capacity_w = coil.ratedHighSpeedTotalCoolingCapacity.get
@@ -1756,7 +1756,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         end
       elsif coil.to_CoilCoolingDXMultiSpeed.is_initialized
         coil = coil.to_CoilCoolingDXMultiSpeed.get
-        
+
         # capacity and cop, use cop at highest capacity
         temp_capacity_w = 0.0
         coil.stages.each do |stage|
@@ -2198,7 +2198,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       supplemental_gas_j = 0.0
       unless supplemental_coil.nil?
         runner.registerInfo("'#{supplemental_coil.name}' is the supplemental heating coil for DX heating coil '#{coil.name}'")
-        
+
         # supplemental heating coil heating energy
         supplemental_coil_heating_energy_j = sql_get_report_variable_data_double(runner, sql, supplemental_coil, 'Heating Coil Heating Energy')
 
@@ -2736,20 +2736,36 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     supplemental_gas_count_65_to_135_kbtuh = 0.0
     supplemental_gas_count_135_to_240_kbtuh = 0.0
     supplemental_gas_count_240_plus_kbtuh = 0.0
-    
+
     # iterate through each model to get all of the gas coils and check if they are supplemental coils for Unitary HVAC Objects and count each seperately.
     model.getCoilHeatingGass.sort.each do |coil|
+
       # get gas coil capacity
       supplemental_capacity_w = 0.0
+
       # default coil type unless proven otherwise
       supplemental_coil = false
-      model.getAirLoopHVACUnitarySystems.sort.each do |supp_coil| 
-        if supp_coil.supplementalHeatingCoil.is_initialized && supp_coil.supplementalHeatingCoil.get == coil
-          supplemental_coil = true
-          break
+
+      #check if coil is contained by an unitary equipment and cast the hvac component to its child types
+      if coil.containingHVACComponent.is_initialized
+        hvac_comp = coil.containingHVACComponent.get
+        obj_type = hvac_comp.iddObjectType.valueName
+        obj_type_name = obj_type.gsub('OS_','').gsub('_','')
+        method_name = "to_#{obj_type_name}"
+        if hvac_comp.respond_to?(method_name)
+          unitary_equip = hvac_comp.method(method_name).call
+          if !unitary_equip.empty?
+            unitary_equip = unitary_equip.get
+          end
         end
       end
-            
+
+      #test if the coil is a supplemental coil on the unitary equipment
+      if unitary_equip.respond_to?("supplementalHeatingCoil") && unitary_equip.supplementalHeatingCoil.is_initialized && unitary_equip.supplementalHeatingCoil.get == coil
+        supplemental_coil = true
+      end
+
+      #get supplemental gas coil capacity
       if supplemental_coil
         if coil.nominalCapacity.is_initialized
           supplemental_capacity_w = coil.nominalCapacity.get
@@ -2775,8 +2791,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
           supplemental_gas_count_240_plus_kbtuh += 1
         end
       else
-    
-        # get gas coil capacity
+
+        # get primary gas coil capacity
         primary_capacity_w = 0.0
         if coil.nominalCapacity.is_initialized
           primary_capacity_w = coil.nominalCapacity.get
@@ -2912,7 +2928,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       heat_pump_water_heater_total_volume_gal += volume_gal
       heat_pump_water_heater_count += 1.0
       if volume_gal == 0.0
-        runner.registerWarning("Heat pump water heater #{hpwh} has a zero gallon tank.")      
+        runner.registerWarning("Heat pump water heater #{hpwh} has a zero gallon tank.")
       elsif  volume_gal < 40.0
         heat_pump_water_heater_0_to_40_gal_total_volume_gal += volume_gal
         heat_pump_water_heater_0_to_40_gal_count += 1.0
@@ -2956,7 +2972,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       # get backup Water Heater Heating Energy
       tank_heating_energy_j = sql_get_report_variable_data_double(runner, sql, tank, 'Water Heater Heating Energy')
 
-      # get backup Water Heater Unmet Demand Heat Transfer Energy 
+      # get backup Water Heater Unmet Demand Heat Transfer Energy
       tank_unmet_demand_energy_j = sql_get_report_variable_data_double(runner, sql, tank, 'Water Heater Unmet Demand Heat Transfer Energy')
 
       # get Water Heater <Fuel Type> Energy
@@ -3003,7 +3019,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       heat_pump_water_heater_total_output_j += hpwh_total_output_energy_j
       heat_pump_water_heater_total_input_j += hpwh_total_input_energy_j
       if volume_gal == 0.0
-        runner.registerWarning("Heat pump water heater #{hpwh} has a zero gallon tank.")      
+        runner.registerWarning("Heat pump water heater #{hpwh} has a zero gallon tank.")
       elsif  volume_gal < 40.0
         heat_pump_water_heater_0_to_40_gal_capacity_w = heating_capacity_w * volume_gal
         heat_pump_water_heater_0_to_40_gal_cop += hpwh_cop * hpwh_total_output_energy_j
@@ -3049,7 +3065,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       water_heater_total_volume_gal += volume_gal
       water_heater_count += 1.0
       if volume_gal == 0.0
-        runner.registerWarning("Water heater #{wh} has a zero gallon tank.")      
+        runner.registerWarning("Water heater #{wh} has a zero gallon tank.")
       elsif  volume_gal < 40.0
         water_heater_0_to_40_gal_total_volume_gal += volume_gal
         water_heater_0_to_40_gal_count += 1.0
@@ -3064,7 +3080,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         water_heater_90_plus_gal_count += 1.0
       end
 
-      # get Water Heater Unmet Demand Heat Transfer Energy 
+      # get Water Heater Unmet Demand Heat Transfer Energy
       wh_unmet_demand_energy_j = sql_get_report_variable_data_double(runner, sql, wh, 'Water Heater Unmet Demand Heat Transfer Energy')
 
       # get Water Heater <Fuel Type> Energy
