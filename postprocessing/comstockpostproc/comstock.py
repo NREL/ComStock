@@ -406,6 +406,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 continue
             # If the first value is numeric, don't categorize
             try:
+                if '_' in first_val:
+                    first_val = f'{first_val}_is_string_in_comstock'
                 float(first_val)
             except ValueError as e:
                 # if len(df.get_column(col).unique()) < 20:
@@ -430,9 +432,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         logger.info(f'{buildstock_bldg_count} models in buildstock.csv')
 
         # Create a list of results to eventually combine
-        all_failed_ids = set()
         base_failed_ids = set()
         upgrade_id_to_results = {}
+        failure_summaries = []
 
         # Load results, identify failed runs
         for results_path in glob.glob(os.path.join(self.data_dir, 'results_up*.parquet')):
@@ -490,9 +492,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # Downselect columns to reduce memory use
             up_res = self.downselect_imported_columns(up_res)
 
-            # Reduce DF memory by converting some columns to boolean or category
-            up_res = self.reduce_df_memory(up_res)
-
             # Check that the results length matches buildstock.csv length
             if not len(up_res) == buildstock_bldg_count:
                 logger.warning(f"There were {buildstock_bldg_count} buildings in the buildstock.csv but only {len(up_res)} in the results.csv ({round((len(up_res)/buildstock_bldg_count)*100, 2)}%).")
@@ -501,27 +500,116 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
                 # Add building IDs that are missing to the list of "failed" buildings
                 missing_ids = [id for id in buildstock['sample_building_id'] if id not in up_res.index]
-                all_failed_ids.update(missing_ids)
+                base_failed_ids.update(missing_ids)
 
-            # Identify buildings that failed
+            # Determine the verified success/failure/NA status
+            # buildings that failed per builstockbatch
             # or were "successful" but have no results (happens when long-running building jobs are manually killed)
+            # or have any empty completion status column (unclear why this happens)
+            VERIFIED_COMP_STATUS = 'verified_completed_status'
+            ST_TOTAL = 'Building Count'
+            ST_SUCCESS = 'Success'
+            ST_NA = 'Not Applicable'
+            ST_FAIL = 'Failed'
+            ST_FAIL_BSB = 'Failed: per BuildStockBatch'
+            ST_FAIL_NO_RES = 'Failed: missing simulation results'
+            ST_FAIL_NO_STATUS = 'Failed: missing completion status'
+            FRAC_FAIL = 'Fraction of Total Failed'
+            FRAC_NA = 'Fraction Not Applicable'
+            FRAC_APPL = 'Fraction Applicable'
+            ST_SUCCESS_BASE_FAIL_UP = 'Success in baseline, failed in upgrade'
+            ST_SUCCESS_UP_FAIL_BASE = 'Success in upgrade, failed in baseline'
+            up_res = up_res.with_columns([
+                # Failed per buildstockbatch completion status
+                pl.when(
+                (pl.col(self.COMP_STATUS) == 'Fail'))
+                .then(pl.lit(ST_FAIL_BSB))
+                # Failed because missing simulation outputs
+                .when(
+                (pl.col(self.COMP_STATUS) == 'Success') &
+                (pl.col('simulation_output_report.total_site_energy_mbtu').is_null()))
+                .then(pl.lit(ST_FAIL_NO_RES))
+                # Failed because missing completion status
+                .when(
+                (pl.col(self.COMP_STATUS).is_null()))
+                .then(pl.lit(ST_FAIL_NO_STATUS))
+                # Sucessful, but upgrade was NA, so has no results
+                .when(
+                (pl.col(self.COMP_STATUS) == 'Invalid'))
+                .then(pl.lit(ST_NA))
+                # Successful and has results available
+                .otherwise(pl.lit(ST_SUCCESS))
+                # Assign the column name
+                .alias(VERIFIED_COMP_STATUS)
+            ])
+
+            # Correct the completion status column to reflect all failure modes
+            up_res = up_res.with_columns([
+                # Failures of all types
+                pl.when(
+                (pl.col(VERIFIED_COMP_STATUS).is_in([ST_FAIL_BSB, ST_FAIL_NO_RES, ST_FAIL_NO_STATUS])))
+                .then(pl.lit('Fail'))
+                # Not applicable
+                .when(
+                (pl.col(VERIFIED_COMP_STATUS) == ST_NA))
+                .then(pl.lit('Invalid'))
+                # Success
+                .when(
+                (pl.col(VERIFIED_COMP_STATUS) == ST_SUCCESS))
+                .then(pl.lit('Success'))
+                # Should not get here
+                .otherwise(pl.lit('ERROR'))
+                # Assign the column name
+                .alias(self.COMP_STATUS)
+            ])
+
+            # Check that no rows have a completion status of "ERROR" assigned
+            errs = up_res.select((pl.col(self.COMP_STATUS).filter(pl.col(self.COMP_STATUS) == 'ERROR').count()))
+            num_errs = errs.get_column(self.COMP_STATUS).sum()
+            if num_errs > 0:
+                raise Exception(f'Errors in correcting completion status for {num_errs} buildings, fix logic.')
+
+            # Get the upgrade name
+            up_res_success = up_res.select(
+                (pl.col('apply_upgrade.upgrade_name').filter(pl.col(VERIFIED_COMP_STATUS) == ST_SUCCESS))
+            )
+            upgrade_name = up_res_success.get_column('apply_upgrade.upgrade_name').head(1).to_list()[0]
+
+            # Summarize the failure status counts
+            fs = up_res.get_column(VERIFIED_COMP_STATUS).value_counts()
+            dat = [fs.get_column('count').to_list()]
+            sch = fs.get_column(VERIFIED_COMP_STATUS).to_list()
+            fs = pl.DataFrame(data=dat, schema=sch)
+
+            # Add upgrade ID and name to failure summary
+            fs = fs.with_columns([pl.lit(upgrade_id).alias(str(self.UPGRADE_ID))])
+            fs = fs.with_columns([pl.lit(upgrade_name).alias(str(self.UPGRADE_NAME))])
+
+            # Add missing completion statuses (not all upgrades will have all failure types)
+            for fm in [ST_SUCCESS, ST_NA, ST_FAIL_BSB, ST_FAIL_NO_RES, ST_FAIL_NO_STATUS]:
+                if fm not in fs:
+                    fs = fs.with_columns([pl.lit(0).alias(fm).cast(pl.Int64)])
+
+            # Calculate total number of failures
+            fs = fs.with_columns(((pl.col(ST_FAIL_BSB)) + (pl.col(ST_FAIL_NO_RES)) + (pl.col(ST_FAIL_NO_STATUS))).alias(ST_FAIL))
+
+            # Calculate the total number of models
+            fs = fs.with_columns(((pl.col(ST_SUCCESS)) + (pl.col(ST_NA)) + (pl.col(ST_FAIL))).alias(ST_TOTAL))
+
+            # Calculate failure percentage
+            fs = fs.with_columns((pl.col(ST_FAIL) / pl.col(ST_TOTAL)).round(3).alias(FRAC_FAIL))
+
+            # Calculate fraction not applicable
+            fs = fs.with_columns((pl.col(ST_NA) / pl.col(ST_TOTAL)).round(3).alias(FRAC_NA))
+
+            # Calculate fraction applicable
+            fs = fs.with_columns((pl.col(ST_SUCCESS) / pl.col(ST_TOTAL)).round(3).alias(FRAC_APPL))
+
+            # Find the failed building IDs
             up_fail_ids = up_res.select(
-                pl.col('building_id').filter(pl.col(self.COMP_STATUS) == 'Fail')
+                (pl.col('building_id').filter(pl.col(self.COMP_STATUS) == 'Fail'))
             )
-
-            site_engy_col = 'simulation_output_report.total_site_energy_mbtu'
-            up_fake_success_ids = up_res.select(
-                pl.col('building_id').filter((pl.col(self.COMP_STATUS) == 'Success') & (pl.col(site_engy_col).is_null()))
-            )
-
-            up_null_success_ids = up_res.select(
-                pl.col('building_id').filter(pl.col(self.COMP_STATUS).is_null())
-            )
-
             up_fail_ids = up_fail_ids.get_column('building_id').unique().to_list()
-            up_fail_ids.extend(up_fake_success_ids.get_column('building_id').unique().to_list())
-            up_fail_ids.extend(up_null_success_ids.get_column('building_id').unique().to_list())
-            all_failed_ids.update(up_fail_ids)
             if upgrade_id == 0:
                 base_failed_ids.update(up_fail_ids)
 
@@ -537,32 +625,54 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
             # Find buildings that failed in the upgrade but not the baseline
             failed_in_up_success_in_base = [id for id in up_fail_ids if id not in base_failed_ids]
-            if len(failed_in_up_success_in_base) > 0:
-                logger.info(f'{len(failed_in_up_success_in_base)} models that were successful in the baseline failed in upgrade {upgrade_id}')
+            fs = fs.with_columns([pl.lit(len(failed_in_up_success_in_base)).cast(pl.Int64).alias(str(ST_SUCCESS_BASE_FAIL_UP))])
 
             # Find buildings that failed in the baseline but not the upgrade
             failed_in_base_success_in_up = [id for id in base_failed_ids if id not in up_fail_ids]
-            if len(failed_in_base_success_in_up) > 0:
-                logger.info(f'{len(failed_in_base_success_in_up)} models that were successful in upgrade {upgrade_id} failed in the baseline')
+            fs = fs.with_columns([pl.lit(len(failed_in_base_success_in_up)).cast(pl.Int64).alias(ST_SUCCESS_UP_FAIL_BASE)])
+
+            fs = fs.select(sorted(fs.columns))
+            failure_summaries.append(fs)
 
             if drop_failed_runs:
                 # Drop failed baseline runs
                 up_res = up_res.filter(~pl.col('building_id').is_in(base_failed_ids))
 
-                # Drop failed upgrades runs
-                up_res = up_res.filter(~pl.col('building_id').is_in(up_fail_ids))
-
             upgrade_id_to_results[upgrade_id] = up_res
+
+        # Save failure summary
+        failure_summaries = pl.concat(failure_summaries, how='diagonal')
+        fs_cols = [
+            self.UPGRADE_ID,
+            self.UPGRADE_NAME,
+            ST_TOTAL,
+            ST_SUCCESS,
+            ST_NA,
+            ST_FAIL,
+            FRAC_APPL,
+            FRAC_NA,
+            FRAC_FAIL,
+            ST_SUCCESS_BASE_FAIL_UP,
+            ST_SUCCESS_UP_FAIL_BASE,
+            ST_FAIL_BSB,
+            ST_FAIL_NO_RES,
+            ST_FAIL_NO_STATUS,
+        ]
+        failure_summaries = failure_summaries.select(fs_cols)
+        file_name = f'failure_summary.csv'
+        file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
+        logger.info(f'Exporting to: {file_path}')
+        failure_summaries.write_csv(file_path)
 
         # Process results
         results_dfs = []
         for upgrade_id, up_res in upgrade_id_to_results.items():
             logger.info(f'Processing upgrade {upgrade_id}')
-            # Drop all buildings that failed in ANY run, baseline or upgrade
-            up_res = up_res.filter(~pl.col('building_id').is_in(all_failed_ids))
+            # Drop all buildings that failed in the baseline run
+            up_res = up_res.filter(~pl.col('building_id').is_in(base_failed_ids))
 
             # Get the baseline results
-            base_res = upgrade_id_to_results[0]  # .filter(~pl.col('building_id').is_in(all_failed_ids))
+            base_res = upgrade_id_to_results[0]
 
             # Merge the building characteristics from the baseline results to the upgrade results
             bldg_char_cols = [c for c in base_res.columns if c not in up_res.columns]
@@ -570,64 +680,109 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             if not upgrade_id == 0:
                 up_res = up_res.join(base_res.select(bldg_char_cols), how='left', on='building_id')
 
-            # Split upgrade results into applicable (Success) and not applicable (Invalid)
+            # Split upgrade results into applicable (Success), not applicable (Invalid), and failed in upgrade
             up_res_applic = up_res.filter(pl.col(self.COMP_STATUS) == 'Success')
             up_res_na = up_res.filter(pl.col(self.COMP_STATUS) == 'Invalid')
+            up_res_fail = up_res.filter(pl.col(self.COMP_STATUS) == 'Fail')
 
-            # Applicable results go straight
+            # Applicable results are unmodified
             up_res_applic = up_res_applic.select(sorted(up_res_applic.columns))
-            up_res_applic = self.reduce_df_memory(up_res_applic)
-
-            # Cast utility columns to float64 to avoid data type inconsistancies
-            pattern_util_rate_name = re.compile(r'utility_bills.*_rate.*_name')
-            pattern_util_cost = re.compile(r'utility_bills.*_rate.*_bill_dollars')
-            for col, dt in up_res_applic.schema.items():
-                if pattern_util_rate_name.match(col):
-                    up_res_applic = up_res_applic.with_columns([pl.col(col).cast(pl.Utf8)])
-                elif pattern_util_cost.match(col):
-                    up_res_applic = up_res_applic.with_columns([pl.col(col).cast(pl.Float64)])
 
             results_dfs.append(up_res_applic)
+
+            # Get the upgrade name
+            up_res_success = up_res_applic.select(
+                (pl.col('apply_upgrade.upgrade_name').filter(pl.col(self.COMP_STATUS) == 'Success'))
+            )
+            upgrade_name = up_res_success.get_column('apply_upgrade.upgrade_name').head(1).to_list()[0]
 
             # For buildings where the upgrade did NOT apply, add annual results columns from the Baseline run
             # The columns completed_status = "Invalid" and apply_upgrade.applicable = FALSE enable identification later,
             # and any savings calculated for these runs will be zero because upgrade == baseline
-            if up_res_na.shape[0] == 0:
-                # Don't try to join an empty dataframe
-                continue
-            shared_cols = [c for c in base_res.columns if c in up_res.columns]
-            cols_to_leave_alone = [
-                'job_id',
-                'started_at',
-                'completed_at',
-                self.COMP_STATUS,
-                'apply_upgrade.applicable',
-                'apply_upgrade.upgrade_name',
-                self.UPGRADE_ID,
-                'apply_upgrade.reference_scenario',
-                self.upgrade_ids_to_skip
-            ]
-            cols_to_replace = [c for c in shared_cols if c not in cols_to_leave_alone]
-            cols_to_keep = [c for c in base_res.columns if c not in cols_to_replace]
-            cols_to_keep.append('building_id')
-            up_res_na = up_res_na.select(cols_to_keep).join(
-                base_res.select(cols_to_replace), how='left', on='building_id'
-            )
+            if up_res_na.shape[0] > 0:
+                shared_cols = [c for c in base_res.columns if c in up_res.columns]
+                cols_to_leave_alone = [
+                    'job_id',
+                    'started_at',
+                    'completed_at',
+                    self.COMP_STATUS,
+                    'apply_upgrade.applicable',
+                    'apply_upgrade.upgrade_name',
+                    self.UPGRADE_ID,
+                    'apply_upgrade.reference_scenario',
+                    self.upgrade_ids_to_skip
+                ]
+                cols_to_replace = [c for c in shared_cols if c not in cols_to_leave_alone]
+                cols_to_keep = [c for c in base_res.columns if c not in cols_to_replace]
+                cols_to_keep.append('building_id')
+                up_res_na = up_res_na.select(cols_to_keep).join(
+                    base_res.select(cols_to_replace), how='left', on='building_id'
+                )
 
-            # Sort the columns so concat will work
-            up_res_na = up_res_na.select(sorted(up_res_na.columns))
-            up_res_na = self.reduce_df_memory(up_res_na)
+                # Sort the columns so concat will work
+                up_res_na = up_res_na.select(sorted(up_res_na.columns))
 
-            # Cast utility columns to float64 to avoid data type inconsistancies
+                results_dfs.append(up_res_na)
+
+            # For buildings where the upgrade failed, add annual results columns from the Baseline run
+            # The columns completed_status = "Fail" and apply_upgrade.applicable = FALSE enable identification later,
+            # and any savings calculated for these runs will be zero because upgrade == baseline
+            if up_res_fail.shape[0] > 0:
+                shared_cols = [c for c in base_res.columns if c in up_res.columns]
+                cols_to_leave_alone = [
+                    'job_id',
+                    'started_at',
+                    'completed_at',
+                    self.COMP_STATUS,
+                    'apply_upgrade.applicable',
+                    'apply_upgrade.upgrade_name',
+                    self.UPGRADE_ID,
+                    'apply_upgrade.reference_scenario',
+                    self.upgrade_ids_to_skip
+                ]
+                cols_to_replace = [c for c in shared_cols if c not in cols_to_leave_alone]
+                cols_to_keep = [c for c in base_res.columns if c not in cols_to_replace]
+                cols_to_keep.append('building_id')
+                up_res_fail = up_res_fail.select(cols_to_keep).join(
+                    base_res.select(cols_to_replace), how='left', on='building_id'
+                )
+                # Set applicability to False and upgrade name because often blank for failed runs
+                up_res_fail = up_res_fail.with_columns([pl.lit(False).alias('apply_upgrade.applicable')])
+                up_res_fail = up_res_fail.with_columns([pl.lit(upgrade_name).alias('apply_upgrade.upgrade_name')])
+
+                # Sort the columns so concat will work
+                up_res_fail = up_res_fail.select(sorted(up_res_fail.columns))
+
+                results_dfs.append(up_res_fail)
+
+        # Cast utility columns to float64 to avoid data type inconsistancies
+        # Also, gather schema data for debugging on failed concatenation
+        results_df_schemas = {}
+        for results_df in results_dfs:
             pattern_util_rate_name = re.compile(r'utility_bills.*_rate.*_name')
             pattern_util_cost = re.compile(r'utility_bills.*_rate.*_bill_dollars')
-            for col, dt in up_res_na.schema.items():
+            for col, dt in results_df.schema.items():
                 if pattern_util_rate_name.match(col):
-                    up_res_na = up_res_na.with_columns([pl.col(col).cast(pl.Utf8)])
+                    results_df = results_df.with_columns([pl.col(col).cast(pl.Utf8)])
                 elif pattern_util_cost.match(col):
-                    up_res_na = up_res_na.with_columns([pl.col(col).cast(pl.Float64)])
-            results_dfs.append(up_res_na)
+                    results_df = results_df.with_columns([pl.col(col).cast(pl.Float64)])
+                # Store the dtype of all columns
+                if col in results_df_schemas:
+                    results_df_schemas[col].append(dt)
+                else:
+                    results_df_schemas[col] = [dt]
 
+        # Check the schemas for inconsistent dtypes which prevent concatenation
+        for col, dts in results_df_schemas.items():
+            if len(set(dts)) > 1:
+                vals = []
+                for df in results_dfs:
+                    vals += df.get_column(col).unique().to_list()
+                err_msg = f'Column {col} is being read as multiple dtypes: {set(dts)} from values: {set(vals)}'
+                logger.error(err_msg)
+                raise Exception(err_msg)
+
+        # Combine applicable, not applicable, and failed-replaced-with-baseline results from all upgrades
         self.data = pl.concat(results_dfs, how='diagonal')
 
         # Reduce DF memory by converting some columns to boolean or category
@@ -1255,6 +1410,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # Skip missing columns if specified
             if self.skip_missing_columns:
                 if not orig_name in self.data.columns:
+                    if 'utility_bills.' in orig_name:
+                        continue
                     logger.warning(f'Column {orig_name} was requested as an input but not found in data, skipping')
                     continue
 
@@ -2036,10 +2193,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Reorder the columns before exporting
         self.reorder_data_columns()
 
-        file_name = f'ComStock wide.csv'
-        file_path = os.path.join(self.output_dir, file_name)
-        logger.info(f'Exporting to: {file_path}')
-        self.data.write_csv(file_path)
+        up_ids = self.data.get_column(self.UPGRADE_ID).unique().to_list()
+        up_ids.sort()
+        for up_id in up_ids:
+            file_name = f'ComStock wide upgrade{up_id}.csv'
+            file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
+            logger.info(f'Exporting to: {file_path}')
+            self.data.filter(pl.col(self.UPGRADE_ID) == up_id).write_csv(file_path)
 
         # Export dictionaries corresponding to the exported columns
         self.export_data_and_enumeration_dictionary()
@@ -2054,7 +2214,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         up_ids.sort()
         for up_id in up_ids:
             file_name = f'ComStock wide upgrade{up_id}.parquet'
-            file_path = os.path.join(self.output_dir, file_name)
+            file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
             logger.info(f'Exporting to: {file_path}')
             self.data.filter(pl.col(self.UPGRADE_ID) == up_id).write_parquet(file_path)
 
@@ -2161,7 +2321,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         for up_id in up_ids:
             logger.error('Got here')
             file_name = f'upgrade{up_id:02d}_energy_long.csv'
-            file_path = os.path.join(self.output_dir, file_name)
+            file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
             logger.info(f'Exporting to: {file_path}')
             self.data.filter(pl.col(self.UPGRADE_ID) == up_id).write_csv(file_path)
 
@@ -2272,11 +2432,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Save files
         file_name = f'data_dictionary.tsv'
-        file_path = os.path.join(self.output_dir, file_name)
+        file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
         logger.info(f'Exporting data dictionary to: {file_path}')
         data_dictionary.write_csv(file_path, separator='\t')
 
         file_name = f'enumeration_dictionary.tsv'
-        file_path = os.path.join(self.output_dir, file_name)
+        file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
         logger.info(f'Exporting enumeration dictionary to: {file_path}')
         enum_dictionary.write_csv(file_path, separator='\t')
