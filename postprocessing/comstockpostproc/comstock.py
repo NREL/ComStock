@@ -764,8 +764,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             for col, dt in results_df.schema.items():
                 if pattern_util_rate_name.match(col):
                     results_df = results_df.with_columns([pl.col(col).cast(pl.Utf8)])
+                    dt = pl.Utf8
                 elif pattern_util_cost.match(col):
                     results_df = results_df.with_columns([pl.col(col).cast(pl.Float64)])
+                    dt = pl.Float64
                 # Store the dtype of all columns
                 if col in results_df_schemas:
                     results_df_schemas[col].append(dt)
