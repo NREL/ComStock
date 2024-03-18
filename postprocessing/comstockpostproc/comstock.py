@@ -437,7 +437,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         failure_summaries = []
 
         # Load results, identify failed runs
-        for results_path in glob.glob(os.path.join(self.data_dir, 'results_up*.parquet')):
+        results_paths = glob.glob(os.path.join(self.data_dir, 'results_up*.parquet'))
+        results_paths.sort()
+        for results_path in results_paths:
             upgrade_id = np.int64(os.path.basename(results_path).replace('results_up', '').replace('.parquet', ''))
 
             # Skip specified upgrades
@@ -688,6 +690,23 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # Applicable results are unmodified
             up_res_applic = up_res_applic.select(sorted(up_res_applic.columns))
 
+            # Cast utility columns to float64 to avoid data type inconsistancies
+            pattern_util_rate_name = re.compile(r'utility_bills.*_rate.*_name')
+            pattern_util_cost = re.compile(r'utility_bills.*_rate.*_bill_dollars')
+            for col, dt in up_res_applic.schema.items():
+                if pattern_util_rate_name.match(col):
+                    orig_dt = up_res_applic.schema[col]
+                    if not orig_dt == pl.Utf8:
+                        up_res_applic = up_res_applic.with_columns([pl.col(col).cast(pl.Utf8)])
+                        dt = up_res_applic.schema[col]
+                        logger.info(f'Cast {col} from {orig_dt} to {dt}')
+                elif pattern_util_cost.match(col):
+                    orig_dt = up_res_applic.schema[col]
+                    if not orig_dt == pl.Float64:
+                        up_res_applic = up_res_applic.with_columns([pl.col(col).cast(pl.Float64)])
+                        dt = up_res_applic.schema[col]
+                        logger.info(f'Cast {col} from {orig_dt} to {dt}')
+
             results_dfs.append(up_res_applic)
 
             # Get the upgrade name
@@ -722,6 +741,23 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 # Sort the columns so concat will work
                 up_res_na = up_res_na.select(sorted(up_res_na.columns))
 
+                # Cast utility columns to float64 to avoid data type inconsistancies
+                pattern_util_rate_name = re.compile(r'utility_bills.*_rate.*_name')
+                pattern_util_cost = re.compile(r'utility_bills.*_rate.*_bill_dollars')
+                for col, dt in up_res_na.schema.items():
+                    if pattern_util_rate_name.match(col):
+                        orig_dt = up_res_na.schema[col]
+                        if not orig_dt == pl.Utf8:
+                            up_res_na = up_res_na.with_columns([pl.col(col).cast(pl.Utf8)])
+                            dt = up_res_na.schema[col]
+                            logger.info(f'Cast {col} from {orig_dt} to {dt}')
+                    elif pattern_util_cost.match(col):
+                        orig_dt = up_res_na.schema[col]
+                        if not orig_dt == pl.Float64:
+                            up_res_na = up_res_na.with_columns([pl.col(col).cast(pl.Float64)])
+                            dt = up_res_na.schema[col]
+                            logger.info(f'Cast {col} from {orig_dt} to {dt}')
+
                 results_dfs.append(up_res_na)
 
             # For buildings where the upgrade failed, add annual results columns from the Baseline run
@@ -753,22 +789,31 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 # Sort the columns so concat will work
                 up_res_fail = up_res_fail.select(sorted(up_res_fail.columns))
 
+                # Cast utility columns to float64 to avoid data type inconsistancies
+                pattern_util_rate_name = re.compile(r'utility_bills.*_rate.*_name')
+                pattern_util_cost = re.compile(r'utility_bills.*_rate.*_bill_dollars')
+                for col, dt in up_res_fail.schema.items():
+                    if pattern_util_rate_name.match(col):
+                        orig_dt = up_res_fail.schema[col]
+                        if not orig_dt == pl.Utf8:
+                            up_res_fail = up_res_fail.with_columns([pl.col(col).cast(pl.Utf8)])
+                            dt = up_res_fail.schema[col]
+                            logger.info(f'Cast {col} from {orig_dt} to {dt}')
+                    elif pattern_util_cost.match(col):
+                        orig_dt = up_res_fail.schema[col]
+                        if not orig_dt == pl.Float64:
+                            up_res_fail = up_res_fail.with_columns([pl.col(col).cast(pl.Float64)])
+                            dt = up_res_fail.schema[col]
+                            logger.info(f'Cast {col} from {orig_dt} to {dt}')
+
                 results_dfs.append(up_res_fail)
 
-        # Cast utility columns to float64 to avoid data type inconsistancies
-        # Also, gather schema data for debugging on failed concatenation
+        # Gather schema data for debugging on failed concatenation
         results_df_schemas = {}
         for results_df in results_dfs:
             pattern_util_rate_name = re.compile(r'utility_bills.*_rate.*_name')
             pattern_util_cost = re.compile(r'utility_bills.*_rate.*_bill_dollars')
             for col, dt in results_df.schema.items():
-                if pattern_util_rate_name.match(col):
-                    results_df = results_df.with_columns([pl.col(col).cast(pl.Utf8)])
-                    dt = pl.Utf8
-                elif pattern_util_cost.match(col):
-                    results_df = results_df.with_columns([pl.col(col).cast(pl.Float64)])
-                    dt = pl.Float64
-                # Store the dtype of all columns
                 if col in results_df_schemas:
                     results_df_schemas[col].append(dt)
                 else:
