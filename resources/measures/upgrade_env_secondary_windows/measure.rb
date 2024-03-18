@@ -64,7 +64,7 @@ class EnvSecondaryWindows < OpenStudio::Measure::ModelMeasure
 
     # make argument for type of SGS to upgrade to
     # make list of secondary glazing options
-    li_sgs_options = ["High Performance, Low Tech", "High Performance, High Tech"]
+    li_sgs_options = ["high_perf_low_tech", "high_perf_high_tech"]
     v_sgs_options = OpenStudio::StringVector.new
     li_sgs_options.each do |option|
       v_sgs_options << option
@@ -72,7 +72,7 @@ class EnvSecondaryWindows < OpenStudio::Measure::ModelMeasure
     static_sgs_upgrade = OpenStudio::Measure::OSArgument.makeChoiceArgument('static_sgs_upgrade', v_sgs_options, true)
     static_sgs_upgrade.setDisplayName('Static SGS Upgrade')
     static_sgs_upgrade.setDescription('Identify secondary glazing technology to be applied to entire building.')
-    static_sgs_upgrade.setDefaultValue("High Performance, Low Tech")
+    static_sgs_upgrade.setDefaultValue("high_perf_low_tech")
     args << static_sgs_upgrade
 
     return args
@@ -150,21 +150,21 @@ class EnvSecondaryWindows < OpenStudio::Measure::ModelMeasure
       vlt_reduct = 0.0
       # assign variables for each baseline window type
       if simple_glazing.name.get.include?("Single - No LowE - Clear - Aluminum")
-        if static_sgs_upgrade == "High Performance, Low Tech"
+        if static_sgs_upgrade == "high_perf_low_tech"
           u_val_reduct = 0.703
           shgc_reduct = 0.530
           vlt_reduct = 0.489
-        elsif static_sgs_upgrade == "High Performance, High Tech"
+        elsif static_sgs_upgrade == "high_perf_high_tech"
           u_val_reduct = 0.782
           shgc_reduct = 0.530
           vlt_reduct = 0.489
         end
       elsif simple_glazing.name.get.include?("Single - No LowE - Tinted/Reflective - Aluminum")
-        if static_sgs_upgrade == "High Performance, Low Tech"
+        if static_sgs_upgrade == "high_perf_low_tech"
           u_val_reduct = 0.703
           shgc_reduct = 0.568
           vlt_reduct = 0.396
-        elsif static_sgs_upgrade == "High Performance, High Tech"
+        elsif static_sgs_upgrade == "high_perf_high_tech"
           u_val_reduct = 0.782
           shgc_reduct = 0.568
           vlt_reduct = 0.396
