@@ -62,6 +62,19 @@ class EnvSecondaryWindows < OpenStudio::Measure::ModelMeasure
     # make an argument vector
     args = OpenStudio::Measure::OSArgumentVector.new
 
+    # make argument for type of SGS to upgrade to
+    # make list of secondary glazing options
+    li_sgs_options = ["High Performance, Low Tech", "High Performance, High Tech"]
+    v_sgs_options = OpenStudio::StringVector.new
+    li_sgs_options.each do |option|
+      v_sgs_options << option
+    end
+    static_sgs_upgrade = OpenStudio::Measure::OSArgument.makeChoiceArgument('static_sgs_upgrade', v_sgs_options, true)
+    static_sgs_upgrade.setDisplayName('Static SGS Upgrade')
+    static_sgs_upgrade.setDescription('Identify secondary glazing technology to be applied to entire building.')
+    static_sgs_upgrade.setDefaultValue("High Performance, Low Tech")
+    args << static_sgs_upgrade
+
     return args
   end
 
@@ -74,6 +87,9 @@ class EnvSecondaryWindows < OpenStudio::Measure::ModelMeasure
       return false
     end
 
+    # assign the user inputs to variables
+    static_sgs_upgrade = runner.getStringArgumentValue('static_sgs_upgrade', user_arguments)
+    
     # create new construction hash
     # key = old const, value = new const
     new_construction_hash = {}
@@ -119,6 +135,14 @@ class EnvSecondaryWindows < OpenStudio::Measure::ModelMeasure
       end
       simple_glazing = glazing_layer.to_SimpleGlazing.get
 
+      # only apply to single pane aluminum frame
+      if simple_glazing.name.get.include?("Single - No LowE - Clear - Aluminum") || simple_glazing.name.get.include?("Single - No LowE - Tinted/Reflective - Aluminum")
+        runner.registerInfo("Building has single pane aluminum windows; measure is applicable.")
+      else
+        runner.registerAsNotApplicable("Building does not have single pane aluminum windows; measure is not applicable.")
+        return true
+      end
+
       # Determine the appropriate changes to reflect the application of
       # a secondary window based on the existing window type.
       u_val_reduct = 0.0
@@ -126,89 +150,25 @@ class EnvSecondaryWindows < OpenStudio::Measure::ModelMeasure
       vlt_reduct = 0.0
       # assign variables for each baseline window type
       if simple_glazing.name.get.include?("Single - No LowE - Clear - Aluminum")
-        u_val_reduct = 0.396
-        shgc_reduct = 0.272
-        vlt_reduct = 0.381
+        if static_sgs_upgrade == "High Performance, Low Tech"
+          u_val_reduct = 0.703
+          shgc_reduct = 0.530
+          vlt_reduct = 0.489
+        elsif static_sgs_upgrade == "High Performance, High Tech"
+          u_val_reduct = 0.782
+          shgc_reduct = 0.530
+          vlt_reduct = 0.489
+        end
       elsif simple_glazing.name.get.include?("Single - No LowE - Tinted/Reflective - Aluminum")
-        u_val_reduct = 0.479
-        shgc_reduct = 0.264
-        vlt_reduct = 0.180
-      elsif simple_glazing.name.get.include?("Single - No LowE - Clear - Wood")
-        u_val_reduct = 0.594
-        shgc_reduct = 0.283
-        vlt_reduct = 0.380
-      elsif simple_glazing.name.get.include?("Single - No LowE - Tinted/Reflective - Wood")
-        u_val_reduct = 0.594
-        shgc_reduct = 0.278
-        vlt_reduct = 0.179
-      elsif simple_glazing.name.get.include?("Double - No LowE - Clear - Aluminum")
-        u_val_reduct = 0.185
-        shgc_reduct = 0.166
-        vlt_reduct = 0.463
-      elsif simple_glazing.name.get.include?("Double - No LowE - Tinted/Reflective - Aluminum")
-        u_val_reduct = 0.186
-        shgc_reduct = 0.130
-        vlt_reduct = 0.107
-      elsif simple_glazing.name.get.include?("Double - LowE - Clear - Aluminum")
-        # ASHRAE climate zones
-        if climate_zone.include?("ASHRAE 169-2013-1") || climate_zone.include?("ASHRAE 169-2013-2") || climate_zone.include?("ASHRAE 169-2013-3")
-          u_val_reduct = 0.097
-          shgc_reduct = 0.098
-          vlt_reduct = 0.464
-        elsif climate_zone.include?("ASHRAE 169-2013-4") || climate_zone.include?("ASHRAE 169-2013-5") || climate_zone.include?("ASHRAE 169-2013-6")
-          u_val_reduct = 0.097
-          shgc_reduct = 0.098
-          vlt_reduct = 0.464
-        elsif climate_zone.include?("ASHRAE 169-2013-7") || climate_zone.include?("ASHRAE 169-2013-8")
-          u_val_reduct = 0.097
-          shgc_reduct = 0.078
-          vlt_reduct = 0.108
-        # CEC climate zones
-        elsif climate_zone.include?("CEC2") || climate_zone.include?("CEC3") || climate_zone.include?("CEC4") || climate_zone.include?("CEC5") || climate_zone.include?("CEC6") || climate_zone.include?("CEC7") || climate_zone.include?("CEC8") || climate_zone.include?("CEC9") || climate_zone.include?("CEC10") || climate_zone.include?("CEC11") || climate_zone.include?("CEC12") || climate_zone.include?("CEC13") || climate_zone.include?("CEC14") || climate_zone.include?("CEC15")
-          u_val_reduct = 0.097
-          shgc_reduct = 0.098
-          vlt_reduct = 0.464
-        elsif climate_zone.include?("CEC1") || climate_zone.include?("CEC16")
-          u_val_reduct = 0.097
-          shgc_reduct = 0.098
-          vlt_reduct = 0.464
+        if static_sgs_upgrade == "High Performance, Low Tech"
+          u_val_reduct = 0.703
+          shgc_reduct = 0.568
+          vlt_reduct = 0.396
+        elsif static_sgs_upgrade == "High Performance, High Tech"
+          u_val_reduct = 0.782
+          shgc_reduct = 0.568
+          vlt_reduct = 0.396
         end
-      elsif simple_glazing.name.get.include?("Double - LowE - Tinted/Reflective - Aluminum")
-        u_val_reduct = 0.096
-        shgc_reduct = 0.080
-        vlt_reduct = 0.109
-      elsif simple_glazing.name.get.include?("Double - LowE - Clear - Thermally Broken Aluminum")
-        if climate_zone.include?("ASHRAE 169-2013-1") || climate_zone.include?("ASHRAE 169-2013-2") || climate_zone.include?("ASHRAE 169-2013-3")
-          u_val_reduct = 0.108
-          shgc_reduct = 0.101
-          vlt_reduct = 0.464
-        elsif climate_zone.include?("ASHRAE 169-2013-4") || climate_zone.include?("ASHRAE 169-2013-5") || climate_zone.include?("ASHRAE 169-2013-6")
-          u_val_reduct = 0.108
-          shgc_reduct = 0.079
-          vlt_reduct = 0.108
-        elsif climate_zone.include?("ASHRAE 169-2013-7") || climate_zone.include?("ASHRAE 169-2013-8")
-          u_val_reduct = 0.108
-          shgc_reduct = 0.079
-          vlt_reduct = 0.108
-        # CEC climate zones
-        elsif climate_zone.include?("CEC2") || climate_zone.include?("CEC3") || climate_zone.include?("CEC4") || climate_zone.include?("CEC5") || climate_zone.include?("CEC6") || climate_zone.include?("CEC7") || climate_zone.include?("CEC8") || climate_zone.include?("CEC9") || climate_zone.include?("CEC10") || climate_zone.include?("CEC11") || climate_zone.include?("CEC12") || climate_zone.include?("CEC13") || climate_zone.include?("CEC14") || climate_zone.include?("CEC15")
-          u_val_reduct = 0.108
-          shgc_reduct = 0.101
-          vlt_reduct = 0.464
-        elsif climate_zone.include?("CEC1") || climate_zone.include?("CEC16")
-          u_val_reduct = 0.108
-          shgc_reduct = 0.079
-          vlt_reduct = 0.108
-        end
-      elsif simple_glazing.name.get.include?("Double - LowE - Tinted/Reflective - Thermally Broken Aluminum")
-        u_val_reduct = 0.106
-        shgc_reduct = 0.083
-        vlt_reduct = 0.109
-      elsif simple_glazing.name.get.include?("Triple")
-        runner.registerAsNotApplicable("Starting windows are triple pane. Secondary glass will not be added.")
-      else
-        runner.registerInfo("Simple glazing named #{simple_glazing.name} is not recognized, windows will not be modified.")
-        next
       end
 
       # get old values
@@ -221,11 +181,12 @@ class EnvSecondaryWindows < OpenStudio::Measure::ModelMeasure
 
       # calculate new values
       new_simple_glazing_u = old_simple_glazing_u * (1.0 - u_val_reduct)
+      puts "new simple glazing = #{new_simple_glazing_u}"
       new_simple_glazing_shgc = old_simple_glazing_shgc * (1.0 - shgc_reduct)
       new_simple_glazing_vlt = old_simple_glazing_vlt * (1.0 - vlt_reduct)
 
       # check to make sure the new properties are better than the old before replacing
-      if old_simple_glazing_u <= new_simple_glazing_u
+      if old_simple_glazing_u < new_simple_glazing_u
         runner.registerWarning('Old simple glazing U-value is larger than the new simple glazing U-value. Consider revising measure arguments.')
       end
 

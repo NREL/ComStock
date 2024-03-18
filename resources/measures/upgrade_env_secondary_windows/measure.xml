@@ -3,14 +3,34 @@
   <schema_version>3.1</schema_version>
   <name>env_secondary_windows</name>
   <uid>ebff8bcb-7bf6-405e-a5ba-f0ab6db2ec80</uid>
-  <version_id>b8033936-eff0-42f1-868f-78e95f09feea</version_id>
-  <version_modified>2023-10-16T20:24:54Z</version_modified>
+  <version_id>5f8e175b-618f-42b1-b7b5-df601b37a290</version_id>
+  <version_modified>2024-03-18T22:23:22Z</version_modified>
   <xml_checksum>1D437E7C</xml_checksum>
   <class_name>EnvSecondaryWindows</class_name>
   <display_name>Secondary Windows</display_name>
   <description>Adds secondary windows to inside of existing windows, decreasing the U-value, SHGC, and VLT by a specified amount.</description>
   <modeler_description>First gets all building detailed fenestration surfaces. Loops over all detailed fenestration surfaces and checks to see if the surface type is a window. If the surface type is a window then it gets the construction name. With the construction name it determines the simple glazing system object name. With the simple glazing system object name it decreases the U-value, SHGC, and VLT by a static value to reflect the addition of secondary windows.</modeler_description>
-  <arguments />
+  <arguments>
+    <argument>
+      <name>static_sgs_upgrade</name>
+      <display_name>Static SGS Upgrade</display_name>
+      <description>Identify secondary glazing technology to be applied to entire building.</description>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>High Performance, Low Tech</default_value>
+      <choices>
+        <choice>
+          <value>High Performance, Low Tech</value>
+          <display_name>High Performance, Low Tech</display_name>
+        </choice>
+        <choice>
+          <value>High Performance, High Tech</value>
+          <display_name>High Performance, High Tech</display_name>
+        </choice>
+      </choices>
+    </argument>
+  </arguments>
   <outputs />
   <provenances />
   <tags>
@@ -43,13 +63,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>635A068E</checksum>
+      <checksum>6A3B2EBB</checksum>
     </file>
     <file>
       <filename>measure_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>4317A3F7</checksum>
+      <checksum>EDC91457</checksum>
     </file>
   </files>
 </measure>
