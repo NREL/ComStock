@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>electrochromic_windows_modulating</name>
   <uid>e41d5e62-b905-4943-adc3-615f968a847a</uid>
-  <version_id>d8c72157-01f4-424e-8aa0-0a3060ec4bda</version_id>
-  <version_modified>2024-03-19T18:47:16Z</version_modified>
+  <version_id>f8ecc7e3-d944-4d52-8d17-efda92876c1f</version_id>
+  <version_modified>2024-03-19T21:15:22Z</version_modified>
   <xml_checksum>9C8A26EB</xml_checksum>
   <class_name>ElectrochromicWindowsModulating</class_name>
   <display_name>Electrochromic Windows Modulating</display_name>
@@ -212,7 +212,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>883E0512</checksum>
+      <checksum>68A22C19</checksum>
     </file>
     <file>
       <filename>env_electrochromic_window_test.rb</filename>

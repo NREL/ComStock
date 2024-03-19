@@ -182,6 +182,20 @@ class ElectrochromicWindowsModulating < OpenStudio::Measure::ModelMeasure
     shgc_tinted = 0.0
     vt_tinted = 0.0
 
+    # Find all exterior windows and get a list of their constructions
+    constructions = []
+    model.getSubSurfaces.each do |sub_surface|
+      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && (sub_surface.subSurfaceType.include?('Window'))
+      next if sub_surface.construction.empty?
+      constructions << sub_surface.construction.get
+    end
+
+    # check to make sure building has fenestration surfaces
+    if constructions.empty?
+      runner.registerAsNotApplicable('The building has no exterior windows.')
+      return true
+    end
+    
     # set the SHGC and VLT for clear/tinted states based on existing window and upgrade level selected
     constructions.uniq.each do |construction|
       construction = construction.to_Construction
@@ -211,24 +225,24 @@ class ElectrochromicWindowsModulating < OpenStudio::Measure::ModelMeasure
 
       # assign SHGC and VLT values based on baseline window type
       if simple_glazing.name.get.include?("Single - No LowE - Clear - Aluminum")
-        if static_sgs_upgrade == "high_perf_low_tech"
+        if dynamic_sgs_upgrade == "high_perf_low_tech"
           shgc_clear = 0.35
           vt_clear = 0.385
           shgc_tinted = 0.05
           vt_tinted = 0.055
-        elsif static_sgs_upgrade == "high_perf_high_tech"
+        elsif dynamic_sgs_upgrade == "high_perf_high_tech"
           shgc_clear = 0.35
           vt_clear = 0.385
           shgc_tinted = 0.20
           vt_tinted = 0.22
         end
       elsif simple_glazing.name.get.include?("Single - No LowE - Tinted/Reflective - Aluminum")
-        if static_sgs_upgrade == "high_perf_low_tech"
+        if dynamic_sgs_upgrade == "high_perf_low_tech"
           shgc_clear = 0.25
           vt_clear = 0.275
           shgc_tinted = 0.05
           vt_tinted = 0.055
-        elsif static_sgs_upgrade == "high_perf_high_tech"
+        elsif dynamic_sgs_upgrade == "high_perf_high_tech"
           shgc_clear = 0.25
           vt_clear = 0.275
           shgc_tinted = 0.15
