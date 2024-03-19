@@ -19,34 +19,10 @@ ModelMeasure
 ## Arguments
 
 
-### SHGC Clear
-Sets SHGC for clear state. Value of 0 will use current glazing property.
-**Name:** shgc_clear,
-**Type:** Double,
-**Units:** ,
-**Required:** true,
-**Model Dependent:** false
-
-### VT Clear
-Sets VT for clear state. Value of 0 will use current glazing property.
-**Name:** vt_clear,
-**Type:** Double,
-**Units:** ,
-**Required:** true,
-**Model Dependent:** false
-
-### SHGC Tinted
-Sets SHGC for tinted state.
-**Name:** shgc_tinted,
-**Type:** Double,
-**Units:** ,
-**Required:** true,
-**Model Dependent:** false
-
-### VT Tinted
-Sets VT for tinted state.
-**Name:** vt_tinted,
-**Type:** Double,
+### Dynamic SGS Upgrade
+Identify electrochromic secondary glazing technology to be applied to entire building.
+**Name:** dynamic_sgs_upgrade,
+**Type:** Choice,
 **Units:** ,
 **Required:** true,
 **Model Dependent:** false
@@ -122,3 +98,7 @@ Sets minimum temperature to allow for EC tinting. A low value will mitigate heat
 **Units:** ,
 **Required:** false,
 **Model Dependent:** false
+
+
+
+

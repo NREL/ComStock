@@ -62,33 +62,46 @@ class ElectrochromicWindowsModulating < OpenStudio::Measure::ModelMeasure
   def arguments(model)
     args = OpenStudio::Measure::OSArgumentVector.new
 
-    # Set clear SHGC
-    shgc_clear = OpenStudio::Measure::OSArgument::makeDoubleArgument('shgc_clear', true)
-    shgc_clear.setDisplayName('SHGC Clear')
-    shgc_clear.setDescription('Sets SHGC for clear state. Value of 0 will use current glazing property.')
-    shgc_clear.setDefaultValue(0.319)
-    args << shgc_clear
+    # make argument for type of SGS to upgrade to
+    # make list of secondary glazing options
+    li_sgs_options = ["high_perf_low_tech", "high_perf_high_tech"]
+    v_sgs_options = OpenStudio::StringVector.new
+    li_sgs_options.each do |option|
+      v_sgs_options << option
+    end
+    dynamic_sgs_upgrade = OpenStudio::Measure::OSArgument.makeChoiceArgument('dynamic_sgs_upgrade', v_sgs_options, true)
+    dynamic_sgs_upgrade.setDisplayName('Dynamic SGS Upgrade')
+    dynamic_sgs_upgrade.setDescription('Identify electrochromic secondary glazing technology to be applied to entire building.')
+    dynamic_sgs_upgrade.setDefaultValue("high_perf_low_tech")
+    args << dynamic_sgs_upgrade
 
-    # Set clear VT
-    vt_clear = OpenStudio::Measure::OSArgument::makeDoubleArgument('vt_clear', true)
-    vt_clear.setDisplayName('VT Clear')
-    vt_clear.setDescription('Sets VT for clear state. Value of 0 will use current glazing property.')
-    vt_clear.setDefaultValue(0.396)
-    args << vt_clear
+    # # Set clear SHGC
+    # shgc_clear = OpenStudio::Measure::OSArgument::makeDoubleArgument('shgc_clear', true)
+    # shgc_clear.setDisplayName('SHGC Clear')
+    # shgc_clear.setDescription('Sets SHGC for clear state. Value of 0 will use current glazing property.')
+    # shgc_clear.setDefaultValue(0.319)
+    # args << shgc_clear
 
-    # Set tinted SHGC
-    shgc_tinted = OpenStudio::Measure::OSArgument::makeDoubleArgument('shgc_tinted', true)
-    shgc_tinted.setDisplayName('SHGC Tinted')
-    shgc_tinted.setDescription('Sets SHGC for tinted state.')
-    shgc_tinted.setDefaultValue(0.077)
-    args << shgc_tinted
+    # # Set clear VT
+    # vt_clear = OpenStudio::Measure::OSArgument::makeDoubleArgument('vt_clear', true)
+    # vt_clear.setDisplayName('VT Clear')
+    # vt_clear.setDescription('Sets VT for clear state. Value of 0 will use current glazing property.')
+    # vt_clear.setDefaultValue(0.396)
+    # args << vt_clear
 
-    # Set tinted VT
-    vt_tinted = OpenStudio::Measure::OSArgument::makeDoubleArgument('vt_tinted', true)
-    vt_tinted.setDisplayName('VT Tinted')
-    vt_tinted.setDescription('Sets VT for tinted state.')
-    vt_tinted.setDefaultValue(0.007)
-    args << vt_tinted
+    # # Set tinted SHGC
+    # shgc_tinted = OpenStudio::Measure::OSArgument::makeDoubleArgument('shgc_tinted', true)
+    # shgc_tinted.setDisplayName('SHGC Tinted')
+    # shgc_tinted.setDescription('Sets SHGC for tinted state.')
+    # shgc_tinted.setDefaultValue(0.077)
+    # args << shgc_tinted
+
+    # # Set tinted VT
+    # vt_tinted = OpenStudio::Measure::OSArgument::makeDoubleArgument('vt_tinted', true)
+    # vt_tinted.setDisplayName('VT Tinted')
+    # vt_tinted.setDescription('Sets VT for tinted state.')
+    # vt_tinted.setDefaultValue(0.007)
+    # args << vt_tinted
 
     # Set glazing u-value
     u_value = OpenStudio::Measure::OSArgument::makeDoubleArgument('u_value', true)
@@ -152,15 +165,77 @@ class ElectrochromicWindowsModulating < OpenStudio::Measure::ModelMeasure
     end
 
     # Assign user-input variables
-    shgc_clear = runner.getDoubleArgumentValue('shgc_clear', user_arguments)
-    vt_clear = runner.getDoubleArgumentValue('vt_clear', user_arguments)
-    shgc_tinted = runner.getDoubleArgumentValue('shgc_tinted', user_arguments)
-    vt_tinted = runner.getDoubleArgumentValue('vt_tinted', user_arguments)
+    # shgc_clear = runner.getDoubleArgumentValue('shgc_clear', user_arguments)
+    # vt_clear = runner.getDoubleArgumentValue('vt_clear', user_arguments)
+    # shgc_tinted = runner.getDoubleArgumentValue('shgc_tinted', user_arguments)
+    # vt_tinted = runner.getDoubleArgumentValue('vt_tinted', user_arguments)
+    dynamic_sgs_upgrade = runner.getStringArgumentValue('dynamic_sgs_upgrade', user_arguments)
     u_value = runner.getDoubleArgumentValue('u_value', user_arguments)
     max_rad_w_per_m2 = runner.getDoubleArgumentValue('max_rad_w_per_m2', user_arguments)
     gi = runner.getDoubleArgumentValue('gi', user_arguments)
     min_temp = runner.getDoubleArgumentValue('min_temp', user_arguments)
     ec_priority_logic = runner.getBoolArgumentValue('ec_priority_logic', user_arguments)
+
+    # set shgc and vt for clear and tinted states; these will be modified later
+    shgc_clear = 0.0
+    vt_clear = 0.0
+    shgc_tinted = 0.0
+    vt_tinted = 0.0
+
+    # set the SHGC and VLT for clear/tinted states based on existing window and upgrade level selected
+    constructions.uniq.each do |construction|
+      construction = construction.to_Construction
+      if construction.empty?
+        runner.registerInfo("Window construction #{construction.name} is not a layered construction, cannot modify.")
+        next
+      end
+      construction = construction.get
+
+      # Get the first glazing layer
+      glazing_layer = construction.layers[0]
+
+      # Check that this construction uses a SimpleGlazing material
+      if glazing_layer.to_SimpleGlazing.empty?
+        runner.registerInfo("Cannot modify #{construction}, it does not use the SimpleGlazing window modeling approach.")
+        next
+      end
+      simple_glazing = glazing_layer.to_SimpleGlazing.get
+
+      # only apply to single pane aluminum frame
+      if simple_glazing.name.get.include?("Single - No LowE - Clear - Aluminum") || simple_glazing.name.get.include?("Single - No LowE - Tinted/Reflective - Aluminum")
+        runner.registerInfo("Building has single pane aluminum windows; measure is applicable.")
+      else
+        runner.registerAsNotApplicable("Building does not have single pane aluminum windows; measure is not applicable.")
+        return true
+      end
+
+      # assign SHGC and VLT values based on baseline window type
+      if simple_glazing.name.get.include?("Single - No LowE - Clear - Aluminum")
+        if static_sgs_upgrade == "high_perf_low_tech"
+          shgc_clear = 0.35
+          vt_clear = 0.385
+          shgc_tinted = 0.05
+          vt_tinted = 0.055
+        elsif static_sgs_upgrade == "high_perf_high_tech"
+          shgc_clear = 0.35
+          vt_clear = 0.385
+          shgc_tinted = 0.20
+          vt_tinted = 0.22
+        end
+      elsif simple_glazing.name.get.include?("Single - No LowE - Tinted/Reflective - Aluminum")
+        if static_sgs_upgrade == "high_perf_low_tech"
+          shgc_clear = 0.25
+          vt_clear = 0.275
+          shgc_tinted = 0.05
+          vt_tinted = 0.055
+        elsif static_sgs_upgrade == "high_perf_high_tech"
+          shgc_clear = 0.25
+          vt_clear = 0.275
+          shgc_tinted = 0.15
+          vt_tinted = 0.165
+        end
+      end
+    end
 
     # convert u value
     u_value_si = OpenStudio.convert(u_value.to_f, 'Btu/hr*ft^2*R', 'W/m^2*K').get
