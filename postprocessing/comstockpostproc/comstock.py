@@ -134,6 +134,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         pl.enable_string_cache()
         if reload_from_csv:
             upgrade_pqts = glob.glob(os.path.join(self.output_dir, 'ComStock wide upgrade*.parquet'))
+            upgrade_pqts.sort()
             if len(upgrade_pqts) > 0:
                 upgrade_dfs = []
                 for file_path in upgrade_pqts:
