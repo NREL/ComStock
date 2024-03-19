@@ -96,6 +96,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         if not os.path.exists(file_path):
             s3_file_path = f'truth_data/{self.truth_data_version}/EIA/CBECS/{file_name}'
             self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
+    
 
     def load_data(self):
         # Load raw microdata and codebook and decode numeric keys to strings using codebook
@@ -107,7 +108,6 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         # Load microdata codebook
         file_path = os.path.join(self.truth_data_dir, self.data_codebook_file_name)
         codebook = pd.read_csv(file_path, index_col='File order', low_memory=False)
-
         # Make a dict of column names (e.g. PBA) to labels (e.g. Principal building activity)
         # and a dict of numeric enumerations to strings for non-numeric variables
         var_name_to_label = {}

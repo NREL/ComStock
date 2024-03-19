@@ -727,10 +727,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Show the dataset size
         logger.debug(f'Memory after add_geospatial_columns: {self.data.estimated_size()}')
-
+    
     def add_ejscreen_columns(self):
         # Add the EJ Screen data
-
         if not 'nhgis_tract_gisjoin' in self.data:
             logger.warning(('Because the nhgis_tract_gisjoin column is missing '
                 'from the data, EJSCREEN characteristics cannot be joined.'))
@@ -781,6 +780,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Show the dataset size
         logger.debug(f'Memory after add_ejscreen_columns: {self.data.estimated_size()}')
+    
 
     def add_cejst_columns(self):
         # Add the CEJST data
