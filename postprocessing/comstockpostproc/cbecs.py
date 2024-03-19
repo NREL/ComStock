@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
-    def __init__(self, cbecs_year, truth_data_version, color_hex=NamingMixin.COLOR_CBECS_2012, weighted_energy_units='tbtu', reload_from_csv=False):
+    def __init__(self, cbecs_year, truth_data_version, color_hex=NamingMixin.COLOR_CBECS_2012, weighted_energy_units='tbtu', weighted_utility_units='billion_usd', reload_from_csv=False):
         """
         A class to load and transform CBECS data for export, analysis, and comparison.
         Args:
@@ -40,6 +40,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         self.data = None
         self.color = color_hex
         self.weighted_energy_units = weighted_energy_units
+        self.weighted_utility_units = weighted_utility_units
         self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
         logger.info(f'Creating {self.dataset_name}')
 
