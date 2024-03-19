@@ -11,8 +11,8 @@ buildstock.csv,census_division_name,in.census_division_name,TRUE,FALSE,string,,,
 buildstock.csv,census_division_name_recs,in.census_division_name_recs,FALSE,FALSE,string,,,
 buildstock.csv,census_region_name,in.census_region_name,TRUE,FALSE,string,,,Census region name
 buildstock.csv,climate_zone,,FALSE,FALSE,,,,
-buildstock.csv,climate_zone_ashrae_2006,in.ashrae_iecc_climate_zone_2006,TRUE,FALSE,string,,,ASHRAE Standard 169 - 2006 Climate Zone
-buildstock.csv,climate_zone_building_america,in.building_america_climate_zone,TRUE,FALSE,string,,,DOE Building America climate zone
+buildstock.csv,climate_zone_ashrae_2006,in.ashrae_iecc_climate_zone_2006,TRUE,TRUE,string,,,ASHRAE Standard 169 - 2006 Climate Zone
+buildstock.csv,climate_zone_building_america,in.building_america_climate_zone,TRUE,TRUE,string,,,DOE Building America climate zone
 buildstock.csv,county_id,,FALSE,FALSE,,,,
 buildstock.csv,cluster_id,in.cluster_id,TRUE,TRUE,integer,,,The identified for the geographic cluster ComStock uses to group together areas with similar building stocks
 buildstock.csv,cluster_name,in.cluster_name,TRUE,TRUE,string,,,The name for the geographic cluster ComStock uses to group together areas with similar building stocks
@@ -69,15 +69,15 @@ buildstock.csv,purchase_input_responsibility,in.purchase_input_responsibility,TR
 buildstock.csv,reeds_balancing_area,in.reeds_balancing_area,TRUE,FALSE,string,,,Balancing area ID for the NREL ReEDS modeling tool
 buildstock.csv,region,,FALSE,FALSE,,,,
 buildstock.csv,rentable_area,,FALSE,FALSE,,,,
-buildstock.csv,resstock_county_id,in.county_name,TRUE,FALSE,string,,,State abbreviation and county name
+buildstock.csv,resstock_county_id,in.county_name,TRUE,TRUE,string,,,State abbreviation and county name
 buildstock.csv,resstock_custom_region,in.resstock_custom_region,FALSE,FALSE,string,,,
 buildstock.csv,resstock_puma_id,in.resstock_puma_id,FALSE,FALSE,string,,,State abbreviation and PUMA identifier
 buildstock.csv,rotation,,FALSE,FALSE,,,,
 buildstock.csv,sample_building_id,,FALSE,FALSE,,,,
 buildstock.csv,service_water_heating_fuel,,FALSE,FALSE,,,,
-buildstock.csv,state_abbreviation,in.state,TRUE,FALSE,string,,,Postal abbreviation of state
+buildstock.csv,state_abbreviation,in.state,TRUE,TRUE,string,,,Postal abbreviation of state
 buildstock.csv,state_id,,FALSE,FALSE,,,,
-buildstock.csv,state_name,in.state_name,TRUE,FALSE,string,,,Full name of state
+buildstock.csv,state_name,in.state_name,TRUE,TRUE,string,,,Full name of state
 buildstock.csv,weather_file_2018,in.weather_file_2018,TRUE,FALSE,string,,,Weather file used for the 2018 AMY simulations
 buildstock.csv,weather_file_TMY3,in.weather_file_tmy3,TRUE,FALSE,string,,,Weather file used for the TMY3 simulations
 buildstock.csv,weekday_duration,,FALSE,FALSE,,,,
@@ -94,7 +94,7 @@ buildstock.csv,year_bin_of_last_service_water_heating_replacement,,FALSE,FALSE,,
 buildstock.csv,year_bin_of_last_walls_replacement,,FALSE,FALSE,,,,
 buildstock.csv,year_bin_of_last_windows_replacement,,FALSE,FALSE,,,,
 buildstock.csv,year_bin_of_original_building_construction,,FALSE,FALSE,,,,
-buildstock.csv,year_built,in.year_built,TRUE,FALSE,string,,,Year of original building construction
+buildstock.csv,year_built,in.year_built,TRUE,TRUE,string,,,Year of original building construction
 buildstock.csv,year_of_simulation,,FALSE,FALSE,,,,
 cejst,Census tract 2010 ID,,FALSE,FALSE,,,,Census tract identifier
 cejst,Identified as disadvantaged,in.cejst_is_disadvantaged,TRUE,FALSE,boolean,,,Whether the building's census tract is identified as a disadvantaged community in the EPA CEJST tool. See CEJST documentation for more details.
@@ -106,9 +106,9 @@ ejscreen,P_MINORPCT,in.ejscreen_census_tract_percentile_for_people_of_color,TRUE
 ejscreen,P_OVR64PCT,in.ejscreen_census_tract_percentile_for_people_over_64,TRUE,FALSE,float,,,Percentile for % over age 64 in building's census tract. See EPA EJSCREEN documentation for details.
 ejscreen,P_UNDR5PCT,in.ejscreen_census_tract_percentile_percent_people_under_5,TRUE,FALSE,float,,,Percentile for % under age 5 in building's census tract. See EPA EJSCREEN documentation for details.
 ejscreen,P_VULEOPCT,in.ejscreen_census_tract_percentile_for_demographic_index,TRUE,FALSE,float,,,Percentile for Demographic Index in building's census tract. See EPA EJSCREEN documentation for details.
-results.csv,apply_upgrade.applicable,applicability,TRUE,FALSE,boolean,,,Specifies if an upgrade measure was applicable to model if an upgrade was run
+results.csv,apply_upgrade.applicable,applicability,TRUE,TRUE,boolean,,,Specifies if an upgrade measure was applicable to model if an upgrade was run
 results.csv,apply_upgrade.reference_scenario,,FALSE,FALSE,string,,,Name of reference scenario
-results.csv,apply_upgrade.upgrade_name,in.upgrade_name,TRUE,FALSE,string,,,Name of upgrade if an upgrade was run
+results.csv,apply_upgrade.upgrade_name,in.upgrade_name,TRUE,TRUE,string,,,Name of upgrade if an upgrade was run
 results.csv,build_existing_model.add_blinds_to_selected_windows_add_blinds,,FALSE,FALSE,boolean,,,Specifies if window blinds were added to model
 results.csv,build_existing_model.add_blinds_to_selected_windows_applicable,,FALSE,FALSE,boolean,,,Applicabilty status window blinds for model
 results.csv,build_existing_model.add_hvac_nighttime_operation_variability_applicable,,FALSE,FALSE,boolean,,,Applicabilty status of hvac nighttime operation variability modifications to model
@@ -122,8 +122,8 @@ results.csv,build_existing_model.airtightness,,FALSE,FALSE,float,,,6-sided air l
 results.csv,build_existing_model.applicable,,FALSE,FALSE,boolean,,,Applicability status of build existing model measure
 results.csv,build_existing_model.aspect_ratio,in.aspect_ratio,TRUE,FALSE,float,,,Aspect ratio of building geometry which is the ratio of North/South Facade Length Relative to East/West Facade Length
 results.csv,build_existing_model.baseline_hvac_sizing,,FALSE,FALSE,string,,,Whether the model was hard-sized after baseline creation to avoid upgrades changing equipment sizes or left autosized
-results.csv,build_existing_model.baseline_window_type,in.window_type,TRUE,FALSE,string,,,Type of windows in the model
-results.csv,build_existing_model.building_subtype,in.building_subtype,TRUE,FALSE,string,,,Building subtype of model
+results.csv,build_existing_model.baseline_window_type,in.window_type,TRUE,TRUE,string,,,Type of windows in the model
+results.csv,build_existing_model.building_subtype,in.building_subtype,TRUE,TRUE,string,,,Building subtype of model
 results.csv,build_existing_model.building_type,,FALSE,FALSE,string,,,Building type of model
 results.csv,build_existing_model.cambium_grid_region,in.cambium_grid_region,TRUE,FALSE,string,,,Specifies Cambium grid region
 results.csv,build_existing_model.changebuildinglocation_applicable,,FALSE,FALSE,boolean,,,Applicability status of change building location measure
@@ -154,7 +154,7 @@ results.csv,build_existing_model.create_bar_from_building_type_ratios_bldg_subty
 results.csv,build_existing_model.create_bar_from_building_type_ratios_bldg_subtype_b,,FALSE,FALSE,string,,,Building subtype of model
 results.csv,build_existing_model.create_bar_from_building_type_ratios_bldg_subtype_c,,FALSE,FALSE,string,,,Building subtype of model
 results.csv,build_existing_model.create_bar_from_building_type_ratios_bldg_subtype_d,,FALSE,FALSE,string,,,Building subtype of model
-results.csv,build_existing_model.create_bar_from_building_type_ratios_bldg_type_a,in.comstock_building_type,TRUE,FALSE,string,,,Primary building type of model
+results.csv,build_existing_model.create_bar_from_building_type_ratios_bldg_type_a,in.comstock_building_type,TRUE,TRUE,string,,,Primary building type of model
 results.csv,build_existing_model.create_bar_from_building_type_ratios_bldg_type_a_num_units,,FALSE,FALSE,float,,,Number of units of specified building type
 results.csv,build_existing_model.create_bar_from_building_type_ratios_bldg_type_b,,FALSE,FALSE,string,,,Building type of model
 results.csv,build_existing_model.create_bar_from_building_type_ratios_bldg_type_b_fract_bldg_area,,FALSE,FALSE,float,,,Fraction of total building area for specified building type
@@ -196,7 +196,7 @@ results.csv,build_existing_model.create_bar_from_building_type_ratios_space_type
 results.csv,build_existing_model.create_bar_from_building_type_ratios_story_multiplier,,FALSE,FALSE,string,,,Specifies calculation method for story mutliplier
 results.csv,build_existing_model.create_bar_from_building_type_ratios_template,,FALSE,FALSE,string,,,Specifies the target energy code standard
 results.csv,build_existing_model.create_bar_from_building_type_ratios_top_story_exterior_exposed_roof,,FALSE,FALSE,boolean,,,Specifies if the top story ceiling is exposed or adiabatic
-results.csv,build_existing_model.create_bar_from_building_type_ratios_total_bldg_floor_area,in.sqft,TRUE,FALSE,float,ft2,ft2,Building total floor area
+results.csv,build_existing_model.create_bar_from_building_type_ratios_total_bldg_floor_area,in.sqft,TRUE,TRUE,float,ft2,ft2,Building total floor area
 results.csv,build_existing_model.create_bar_from_building_type_ratios_use_upstream_args,,FALSE,FALSE,boolean,,,"When true this will look for arguments or registerValues in upstream measures that match arguments from this measure, and will use the value from the upstream measure in place of what is entered for this measure"
 results.csv,build_existing_model.create_bar_from_building_type_ratios_wwr,,FALSE,FALSE,float,,,Specifies the fraction of total exterior window area to total verticle fa�ade area
 results.csv,build_existing_model.create_typical_building_from_model_add_constructions,,FALSE,FALSE,boolean,,,Specifies if constructions have been added to model
@@ -221,7 +221,7 @@ results.csv,build_existing_model.create_typical_building_from_model_modify_wknd_
 results.csv,build_existing_model.create_typical_building_from_model_onsite_parking_fraction,,FALSE,FALSE,float,,,"Specifies if onsight parking has been added to model, which impacts exterior lighting power"
 results.csv,build_existing_model.create_typical_building_from_model_remove_objects,,FALSE,FALSE,boolean,,,Specifies if model has been cleaned of non-geometry objects where new model objects are to be added
 results.csv,build_existing_model.create_typical_building_from_model_swh_src,,FALSE,FALSE,string,,,Specifies service water heating fuel source used in model
-results.csv,build_existing_model.create_typical_building_from_model_system_type,in.hvac_system_type,TRUE,FALSE,string,,,Building primary HVAC system type
+results.csv,build_existing_model.create_typical_building_from_model_system_type,in.hvac_system_type,TRUE,TRUE,string,,,Building primary HVAC system type
 results.csv,build_existing_model.create_typical_building_from_model_template,,FALSE,FALSE,string,,,Specifies energy code standard template to use which drives model properties
 results.csv,build_existing_model.create_typical_building_from_model_unmet_hours_tolerance,,FALSE,FALSE,float,delta_f,delta_f,Specifies delta degree tolerance for which unmet hours are registered in model during simulation
 results.csv,build_existing_model.create_typical_building_from_model_use_upstream_args,,FALSE,FALSE,boolean,,,"When true this will look for arguments or registerValues in upstream measures that match arguments from this measure, and will use the value from the upstream measure in place of what is entered for this measure"
@@ -230,14 +230,14 @@ results.csv,build_existing_model.create_typical_building_from_model_wkdy_op_hrs_
 results.csv,build_existing_model.create_typical_building_from_model_wkdy_op_hrs_start_time,in.weekday_opening_time,TRUE,FALSE,float,hr,hr,Building weekday start hour which impacts the start time of schedules
 results.csv,build_existing_model.create_typical_building_from_model_wknd_op_hrs_duration,in.weekend_operating_hours,TRUE,FALSE,float,hr,hr,Building duration of weekend hours of operation which influences duration of schedules
 results.csv,build_existing_model.create_typical_building_from_model_wknd_op_hrs_start_time,in.weekend_opening_time,TRUE,FALSE,float,hr,hr,Building weekend start hour which impacts the start time of schedules
-results.csv,build_existing_model.energy_code_followed_during_last_exterior_lighting_replacement,in.energy_code_followed_during_last_ext_lighting_replacement,TRUE,FALSE,string,,,Specifies the energy code used to determine exterior lighting power and controls
+results.csv,build_existing_model.energy_code_followed_during_last_exterior_lighting_replacement,in.energy_code_followed_during_last_ext_lighting_replacement,TRUE,TRUE,string,,,Specifies the energy code used to determine exterior lighting power and controls
 results.csv,build_existing_model.energy_code_followed_during_last_hvac_replacement,in.energy_code_followed_during_last_hvac_replacement,TRUE,TRUE,string,,,"Specifies the energy code used to determine HVAC system types, efficiencies, and controls"
-results.csv,build_existing_model.energy_code_followed_during_last_interior_equipment_replacement,in.energy_code_followed_during_last_int_equipment_replacement,TRUE,FALSE,string,,,Specifies the energy code used to determine interior equipment loads
-results.csv,build_existing_model.energy_code_followed_during_last_roof_replacement,in.energy_code_followed_during_last_roof_replacement,TRUE,FALSE,string,,,Specifies the energy code used to determine roof insulation values
-results.csv,build_existing_model.energy_code_followed_during_last_service_water_heating_replacement,in.energy_code_followed_during_last_svc_water_htg_replacement,TRUE,FALSE,string,,,Specifies the energy code used to determine service water heating efficiencies
-results.csv,build_existing_model.energy_code_followed_during_last_walls_replacement,in.energy_code_followed_during_last_walls_replacement,TRUE,FALSE,string,,,Specifies the energy code used to determine wall insulation values
-results.csv,build_existing_model.energy_code_followed_during_original_building_construction,in.energy_code_followed_during_original_building_construction,TRUE,FALSE,string,,,Specifies the date of contruction of the modeled building which impacts the assumed energy code year of building subsystems
-results.csv,build_existing_model.heating_fuel,in.heating_fuel,TRUE,FALSE,string,,,Building primary HVAC heating fuel source
+results.csv,build_existing_model.energy_code_followed_during_last_interior_equipment_replacement,in.energy_code_followed_during_last_int_equipment_replacement,TRUE,TRUE,string,,,Specifies the energy code used to determine interior equipment loads
+results.csv,build_existing_model.energy_code_followed_during_last_roof_replacement,in.energy_code_followed_during_last_roof_replacement,TRUE,TRUE,string,,,Specifies the energy code used to determine roof insulation values
+results.csv,build_existing_model.energy_code_followed_during_last_service_water_heating_replacement,in.energy_code_followed_during_last_svc_water_htg_replacement,TRUE,TRUE,string,,,Specifies the energy code used to determine service water heating efficiencies
+results.csv,build_existing_model.energy_code_followed_during_last_walls_replacement,in.energy_code_followed_during_last_walls_replacement,TRUE,TRUE,string,,,Specifies the energy code used to determine wall insulation values
+results.csv,build_existing_model.energy_code_followed_during_original_building_construction,in.energy_code_followed_during_original_building_construction,TRUE,TRUE,string,,,Specifies the date of contruction of the modeled building which impacts the assumed energy code year of building subsystems
+results.csv,build_existing_model.heating_fuel,in.heating_fuel,TRUE,TRUE,string,,,Building primary HVAC heating fuel source
 results.csv,build_existing_model.fault_economizer_damper_fully_closed,in.economizer_damper_stuck_fault_timing,TRUE,FALSE,string,,,Month when the economizer damper stuck fault happens if applicable
 results.csv,build_existing_model.fault_economizer_db_limit,,FALSE,FALSE,string,,,
 results.csv,build_existing_model.fault_hvac_economizer_changeover_temperature_applicable,in.economizer_changeover_temperature_fault_applicable,TRUE,FALSE,boolean,,,Indicates whether the economizer changeover temperature fault is applicable
@@ -263,7 +263,7 @@ results.csv,build_existing_model.lighting_generation,in.interior_lighting_genera
 results.csv,build_existing_model.ltg_sch_weekday_base_peak_ratio,,FALSE,FALSE,float,,,Specifies the ratio of weekday base power consumption to peak power consumption for lighting schedules
 results.csv,build_existing_model.ltg_sch_weekend_base_peak_ratio,,FALSE,FALSE,float,,,Specifies the ratio of weekend base power consumption to peak power consumption for lighting schedules
 results.csv,build_existing_model.number_of_buildings_represented,,FALSE,FALSE,float,,,Specifies the number of buildings represented by model
-results.csv,build_existing_model.number_stories,in.number_stories,TRUE,FALSE,string,,,Specifies the number of stories of the building
+results.csv,build_existing_model.number_stories,in.number_stories,TRUE,TRUE,string,,,Specifies the number of stories of the building
 results.csv,build_existing_model.plugload_sch_weekday_base_peak_ratio,,FALSE,FALSE,float,,,Specifies the ratio of weekday base power consumption to peak power consumption for plug load schedules
 results.csv,build_existing_model.plugload_sch_weekend_base_peak_ratio,,FALSE,FALSE,float,,,Specifies the ratio of weekend base power consumption to peak power consumption for plug load schedules
 results.csv,build_existing_model.prototype_space_type_assignment_applicable,,FALSE,FALSE,boolean,,,
@@ -1067,7 +1067,7 @@ results.csv,simulation_output_report.upgrade_cost_usd,,FALSE,FALSE,float,usd,usd
 results.csv,simulation_settings_check.applicable,,FALSE,FALSE,boolean,,,Specifies if similation setting check was applicable to model
 results.csv,simulation_settings_check.run_sim_settings_checks,,FALSE,FALSE,boolean,,,Specifies ifsimulation setting check measure was run for model
 results.csv,started_at,,FALSE,FALSE,float,,,Simulation start time for model
-results.csv,upgrade,upgrade,TRUE,FALSE,string,,,ID of upgrade including 00 for Baseline
+results.csv,upgrade,upgrade,TRUE,TRUE,string,,,ID of upgrade including 00 for Baseline
 results.csv,utility_bills.applicable,,FALSE,FALSE,boolean,,,Specifies if the utility bill calculation was applied to model
 results.csv,utility_bills.electricity_rate_2_bill_dollars,out.utility_bills.electricity_rate_2_bill,TRUE,FALSE,float,usd,usd,Electric bill from one applicable rate
 results.csv,utility_bills.electricity_rate_2_name,out.utility_bills.electricity_rate_2_name,TRUE,FALSE,string,,,Name of one applicable electric rate
@@ -1272,7 +1272,7 @@ calculated,metadata_index,metadata_index,TRUE,FALSE,string,,,A unique number for
 calculated,weight,weight,TRUE,TRUE,float,,,The number of real buildings that this model represents in the U.S. building stock
 calculated,in.comstock_building_type_group,in.comstock_building_type_group,TRUE,TRUE,string,,,A building categorization that consolidates multiple ComStock building types into single categories
 calculated,in.hvac_category,in.hvac_category,TRUE,TRUE,string,,,A basic categorization of HVAC system typologies
-calculated,in.hvac_combined_type,in.hvac_combined_type,TRUE,FALSE,string,,,"A combination of the HVAC ventilation, heating, and cooling categorizations"
+calculated,in.hvac_combined_type,in.hvac_combined_type,TRUE,TRUE,string,,,"A combination of the HVAC ventilation, heating, and cooling categorizations"
 calculated,in.hvac_cool_type,in.hvac_cool_type,TRUE,FALSE,string,,,A basic categorization of the HVAC cooling type
 calculated,in.hvac_heat_type,in.hvac_heat_type,TRUE,FALSE,string,,,A basic categorization of the HVAC heating type
 calculated,in.hvac_vent_type,in.hvac_vent_type,TRUE,FALSE,string,,,A basic categorization of the HVAC ventilation type
@@ -1308,7 +1308,7 @@ calculated,out.other_fuel.heating.energy_consumption_intensity,out.other_fuel.he
 calculated,out.other_fuel.interior_equipment.energy_consumption_intensity,out.other_fuel.interior_equipment.energy_consumption_intensity,TRUE,FALSE,float,kwh_per_ft2,kwh_per_ft2,
 calculated,out.other_fuel.total.energy_consumption_intensity,out.other_fuel.total.energy_consumption_intensity,TRUE,FALSE,float,kwh_per_ft2,kwh_per_ft2,
 calculated,out.other_fuel.water_systems.energy_consumption_intensity,out.other_fuel.water_systems.energy_consumption_intensity,TRUE,FALSE,float,kwh_per_ft2,kwh_per_ft2,
-calculated,out.site_energy.total.energy_consumption_intensity,out.site_energy.total.energy_consumption_intensity,TRUE,FALSE,float,kwh_per_ft2,kwh_per_ft2,
+calculated,out.site_energy.total.energy_consumption_intensity,out.site_energy.total.energy_consumption_intensity,TRUE,TRUE,float,kwh_per_ft2,kwh_per_ft2,
 calculated,calc.emissions.total_with_cambium_mid_case_15y,calc.emissions.total_with_cambium_mid_case_15y,TRUE,FALSE,float,co2e_kg,co2e_kg,Annual greenhouse gas emissions from all energy consumption using Cambium 2022 lrmer_mid_case_30 levelized over 15 years starting in 2025 for electricity emissions
 calculated,calc.emissions.total_with_egrid,calc.emissions.total_with_egrid,TRUE,FALSE,float,co2e_kg,co2e_kg,Annual greenhouse gas emissions from all energy consumption using egrid 2021 for electricity emissions
 calculated,calc.enduse_group.district_cooling.hvac.energy_consumption,calc.enduse_group.district_cooling.hvac.energy_consumption,TRUE,FALSE,float,kwh,kwh,"District cooling energy consumption for all HVAC end uses including cooling, fans, heat_recovery, heat_rejection, heating, humidification, and pumps"
@@ -1391,8 +1391,8 @@ calculated,calc.percent_savings.other_fuel.total.energy_consumption,calc.percent
 calculated,calc.percent_savings.other_fuel.total.energy_consumption_intensity,calc.percent_savings.other_fuel.total.energy_consumption_intensity,TRUE,FALSE,float,percent,percent,Fractional savings in fuel oil and propane energy for the total end use on a per area basis
 calculated,calc.percent_savings.other_fuel.water_systems.energy_consumption,calc.percent_savings.other_fuel.water_systems.energy_consumption,TRUE,FALSE,float,percent,percent,Fractional savings in fuel oil and propane energy for the water systems end use
 calculated,calc.percent_savings.other_fuel.water_systems.energy_consumption_intensity,calc.percent_savings.other_fuel.water_systems.energy_consumption_intensity,TRUE,FALSE,float,percent,percent,Fractional savings in fuel oil and propane energy for the water systems end use on a per area basis
-calculated,calc.percent_savings.site_energy.total.energy_consumption,calc.percent_savings.site_energy.total.energy_consumption,TRUE,FALSE,float,percent,percent,Fractional savings in total energy
-calculated,calc.percent_savings.site_energy.total.energy_consumption_intensity,calc.percent_savings.site_energy.total.energy_consumption_intensity,TRUE,FALSE,float,percent,percent,Fractional savings in total energy on a per area basis
+calculated,calc.percent_savings.site_energy.total.energy_consumption,calc.percent_savings.site_energy.total.energy_consumption,TRUE,TRUE,float,percent,percent,Fractional savings in total energy
+calculated,calc.percent_savings.site_energy.total.energy_consumption_intensity,calc.percent_savings.site_energy.total.energy_consumption_intensity,TRUE,TRUE,float,percent,percent,Fractional savings in total energy on a per area basis
 calculated,calc.weighted.district_cooling.cooling.energy_consumption,calc.weighted.district_cooling.cooling.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total weighted consumption of district cooling energy for the cooling end use
 calculated,calc.weighted.district_cooling.total.energy_consumption,calc.weighted.district_cooling.total.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total consumption of district cooling energy for all end uses
 calculated,calc.weighted.district_heating.cooling.energy_consumption,calc.weighted.district_heating.cooling.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total consumption of district heating energy for the cooling end use
@@ -1444,35 +1444,35 @@ calculated,calc.weighted.enduse_group.other_fuel.hvac.energy_consumption,calc.we
 calculated,calc.weighted.enduse_group.other_fuel.water_systems.energy_consumption,calc.weighted.enduse_group.other_fuel.water_systems.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total fuel oil and propane energy consumption for the water_systems end use
 calculated,calc.weighted.enduse_group.other_fuel.interior_equipment.energy_consumption,calc.weighted.enduse_group.other_fuel.interior_equipment.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total fuel oil and propane energy consumption for the interior_equipment end use
 calculated,calc.weighted.savings.district_cooling.cooling.energy_consumption,calc.weighted.savings.district_cooling.cooling.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of district cooling energy for the cooling end use
-calculated,calc.weighted.savings.district_cooling.total.energy_consumption,calc.weighted.savings.district_cooling.total.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of district cooling energy for the total end use
-calculated,calc.weighted.savings.district_heating.cooling.energy_consumption,calc.weighted.savings.district_heating.cooling.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of district heating energy for the cooling end use
-calculated,calc.weighted.savings.district_heating.heating.energy_consumption,calc.weighted.savings.district_heating.heating.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of district heating energy for the heating end use
-calculated,calc.weighted.savings.district_heating.interior_equipment.energy_consumption,calc.weighted.savings.district_heating.interior_equipment.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of district heating energy for the interior equipment end use
-calculated,calc.weighted.savings.district_heating.total.energy_consumption,calc.weighted.savings.district_heating.total.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of district heating energy for the total end use
-calculated,calc.weighted.savings.district_heating.water_systems.energy_consumption,calc.weighted.savings.district_heating.water_systems.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of district heating energy for the water systems end use
-calculated,calc.weighted.savings.electricity.cooling.energy_consumption,calc.weighted.savings.electricity.cooling.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of electricity energy for the cooling end use
-calculated,calc.weighted.savings.electricity.exterior_lighting.energy_consumption,calc.weighted.savings.electricity.exterior_lighting.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of electricity energy for the exterior lighting end use
-calculated,calc.weighted.savings.electricity.fans.energy_consumption,calc.weighted.savings.electricity.fans.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of electricity energy for the fans end use
-calculated,calc.weighted.savings.electricity.heat_recovery.energy_consumption,calc.weighted.savings.electricity.heat_recovery.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of electricity energy for the heat recovery end use
-calculated,calc.weighted.savings.electricity.heat_rejection.energy_consumption,calc.weighted.savings.electricity.heat_rejection.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of electricity energy for the heat rejection end use
-calculated,calc.weighted.savings.electricity.heating.energy_consumption,calc.weighted.savings.electricity.heating.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of electricity energy for the heating end use
-calculated,calc.weighted.savings.electricity.interior_equipment.energy_consumption,calc.weighted.savings.electricity.interior_equipment.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of electricity energy for the interior equipment end use
-calculated,calc.weighted.savings.electricity.interior_lighting.energy_consumption,calc.weighted.savings.electricity.interior_lighting.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of electricity energy for the interior lighting end use
-calculated,calc.weighted.savings.electricity.pumps.energy_consumption,calc.weighted.savings.electricity.pumps.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of electricity energy for the pumps end use
-calculated,calc.weighted.savings.electricity.refrigeration.energy_consumption,calc.weighted.savings.electricity.refrigeration.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of electricity energy for the refrigeration end use
-calculated,calc.weighted.savings.electricity.total.energy_consumption,calc.weighted.savings.electricity.total.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of electricity energy for the total end use
-calculated,calc.weighted.savings.electricity.water_systems.energy_consumption,calc.weighted.savings.electricity.water_systems.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of electricity energy for the water systems end use
-calculated,calc.weighted.savings.natural_gas.cooling.energy_consumption,calc.weighted.savings.natural_gas.cooling.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of natural gas energy for the cooling end use
-calculated,calc.weighted.savings.natural_gas.heating.energy_consumption,calc.weighted.savings.natural_gas.heating.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of natural gas energy for the heating end use
-calculated,calc.weighted.savings.natural_gas.interior_equipment.energy_consumption,calc.weighted.savings.natural_gas.interior_equipment.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of natural gas energy for the interior equipment end use
-calculated,calc.weighted.savings.natural_gas.total.energy_consumption,calc.weighted.savings.natural_gas.total.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of natural gas energy for the total end use
-calculated,calc.weighted.savings.natural_gas.water_systems.energy_consumption,calc.weighted.savings.natural_gas.water_systems.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of natural gas energy for the water systems end use
-calculated,calc.weighted.savings.other_fuel.cooling.energy_consumption,calc.weighted.savings.other_fuel.cooling.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of fuel oil and propane energy for the cooling end use
-calculated,calc.weighted.savings.other_fuel.heating.energy_consumption,calc.weighted.savings.other_fuel.heating.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of fuel oil and propane energy for the heating end use
-calculated,calc.weighted.savings.other_fuel.interior_equipment.energy_consumption,calc.weighted.savings.other_fuel.interior_equipment.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of fuel oil and propane energy for the interior equipment end use
-calculated,calc.weighted.savings.other_fuel.total.energy_consumption,calc.weighted.savings.other_fuel.total.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of fuel oil and propane energy for the total end use
-calculated,calc.weighted.savings.other_fuel.water_systems.energy_consumption,calc.weighted.savings.other_fuel.water_systems.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of fuel oil and propane energy for the water systems end use
-calculated,calc.weighted.savings.site_energy.total.energy_consumption,calc.weighted.savings.site_energy.total.energy_consumption,TRUE,FALSE,float,tbtu,tbtu,Stock total savings of site energy for all end uses
+calculated,calc.weighted.savings.district_cooling.total.energy_consumption,calc.weighted.savings.district_cooling.total.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of district cooling energy for the total end use
+calculated,calc.weighted.savings.district_heating.cooling.energy_consumption,calc.weighted.savings.district_heating.cooling.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of district heating energy for the cooling end use
+calculated,calc.weighted.savings.district_heating.heating.energy_consumption,calc.weighted.savings.district_heating.heating.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of district heating energy for the heating end use
+calculated,calc.weighted.savings.district_heating.interior_equipment.energy_consumption,calc.weighted.savings.district_heating.interior_equipment.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of district heating energy for the interior equipment end use
+calculated,calc.weighted.savings.district_heating.total.energy_consumption,calc.weighted.savings.district_heating.total.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of district heating energy for the total end use
+calculated,calc.weighted.savings.district_heating.water_systems.energy_consumption,calc.weighted.savings.district_heating.water_systems.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of district heating energy for the water systems end use
+calculated,calc.weighted.savings.electricity.cooling.energy_consumption,calc.weighted.savings.electricity.cooling.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of electricity energy for the cooling end use
+calculated,calc.weighted.savings.electricity.exterior_lighting.energy_consumption,calc.weighted.savings.electricity.exterior_lighting.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of electricity energy for the exterior lighting end use
+calculated,calc.weighted.savings.electricity.fans.energy_consumption,calc.weighted.savings.electricity.fans.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of electricity energy for the fans end use
+calculated,calc.weighted.savings.electricity.heat_recovery.energy_consumption,calc.weighted.savings.electricity.heat_recovery.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of electricity energy for the heat recovery end use
+calculated,calc.weighted.savings.electricity.heat_rejection.energy_consumption,calc.weighted.savings.electricity.heat_rejection.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of electricity energy for the heat rejection end use
+calculated,calc.weighted.savings.electricity.heating.energy_consumption,calc.weighted.savings.electricity.heating.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of electricity energy for the heating end use
+calculated,calc.weighted.savings.electricity.interior_equipment.energy_consumption,calc.weighted.savings.electricity.interior_equipment.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of electricity energy for the interior equipment end use
+calculated,calc.weighted.savings.electricity.interior_lighting.energy_consumption,calc.weighted.savings.electricity.interior_lighting.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of electricity energy for the interior lighting end use
+calculated,calc.weighted.savings.electricity.pumps.energy_consumption,calc.weighted.savings.electricity.pumps.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of electricity energy for the pumps end use
+calculated,calc.weighted.savings.electricity.refrigeration.energy_consumption,calc.weighted.savings.electricity.refrigeration.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of electricity energy for the refrigeration end use
+calculated,calc.weighted.savings.electricity.total.energy_consumption,calc.weighted.savings.electricity.total.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of electricity energy for the total end use
+calculated,calc.weighted.savings.electricity.water_systems.energy_consumption,calc.weighted.savings.electricity.water_systems.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of electricity energy for the water systems end use
+calculated,calc.weighted.savings.natural_gas.cooling.energy_consumption,calc.weighted.savings.natural_gas.cooling.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of natural gas energy for the cooling end use
+calculated,calc.weighted.savings.natural_gas.heating.energy_consumption,calc.weighted.savings.natural_gas.heating.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of natural gas energy for the heating end use
+calculated,calc.weighted.savings.natural_gas.interior_equipment.energy_consumption,calc.weighted.savings.natural_gas.interior_equipment.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of natural gas energy for the interior equipment end use
+calculated,calc.weighted.savings.natural_gas.total.energy_consumption,calc.weighted.savings.natural_gas.total.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of natural gas energy for the total end use
+calculated,calc.weighted.savings.natural_gas.water_systems.energy_consumption,calc.weighted.savings.natural_gas.water_systems.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of natural gas energy for the water systems end use
+calculated,calc.weighted.savings.other_fuel.cooling.energy_consumption,calc.weighted.savings.other_fuel.cooling.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of fuel oil and propane energy for the cooling end use
+calculated,calc.weighted.savings.other_fuel.heating.energy_consumption,calc.weighted.savings.other_fuel.heating.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of fuel oil and propane energy for the heating end use
+calculated,calc.weighted.savings.other_fuel.interior_equipment.energy_consumption,calc.weighted.savings.other_fuel.interior_equipment.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of fuel oil and propane energy for the interior equipment end use
+calculated,calc.weighted.savings.other_fuel.total.energy_consumption,calc.weighted.savings.other_fuel.total.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of fuel oil and propane energy for the total end use
+calculated,calc.weighted.savings.other_fuel.water_systems.energy_consumption,calc.weighted.savings.other_fuel.water_systems.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of fuel oil and propane energy for the water systems end use
+calculated,calc.weighted.savings.site_energy.total.energy_consumption,calc.weighted.savings.site_energy.total.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total savings of site energy for all end uses
 calculated,calc.weighted.emissions.natural_gas,calc.weighted.emissions.natural_gas,TRUE,TRUE,float,co2e_mmt,co2e_mmt,Stock total annual greenhouse gas emissions from natural gas use
 calculated,calc.weighted.emissions.fuel_oil,calc.weighted.emissions.fuel_oil,TRUE,TRUE,float,co2e_mmt,co2e_mmt,Stock total annual greenhouse gas emissions from fuel oil use
 calculated,calc.weighted.emissions.propane,calc.weighted.emissions.propane,TRUE,TRUE,float,co2e_mmt,co2e_mmt,Stock total annual greenhouse gas emissions from propane use
