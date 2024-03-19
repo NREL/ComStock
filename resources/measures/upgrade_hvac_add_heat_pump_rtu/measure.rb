@@ -1989,17 +1989,25 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_air_to_air_heatpump.setAvailabilitySchedule(unitary_availability_sched)
       new_air_to_air_heatpump.setDehumidificationControlType(dehumid_type)
       new_air_to_air_heatpump.setSupplyAirFanOperatingModeSchedule(supply_fan_op_sched)
-      new_air_to_air_heatpump.setControlType('Load') ##cc-tmp
+      new_air_to_air_heatpump.setControlType('Load') ## cc-tmp
       new_air_to_air_heatpump.setName("#{thermal_zone.name} RTU SZ-VAV Heat Pump")
       new_air_to_air_heatpump.setMaximumSupplyAirTemperature(50)
       new_air_to_air_heatpump.setDXHeatingCoilSizingRatio(1+performance_oversizing_factor)
-      # set cooling design flow rate
-      new_air_to_air_heatpump.setSupplyAirFlowRateDuringCoolingOperation(hash_clg_airflow_stgs[4])
-      # set heating design flow rate
-      new_air_to_air_heatpump.setSupplyAirFlowRateDuringHeatingOperation(hash_htg_airflow_stgs[4])
-      # set no load design flow rate
-      new_air_to_air_heatpump.resetSupplyAirFlowRateMethodWhenNoCoolingorHeatingisRequired
-      new_air_to_air_heatpump.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_airflow_m3_per_s)
+
+      # handle deprecated methods for OS Version 3.7.0
+      if model.version < OpenStudio::VersionString.new('3.7.0')
+        # set cooling design flow rate
+        new_air_to_air_heatpump.setSupplyAirFlowRateDuringCoolingOperation(hash_clg_airflow_stgs[4])
+        # set heating design flow rate
+        new_air_to_air_heatpump.setSupplyAirFlowRateDuringHeatingOperation(hash_htg_airflow_stgs[4])
+        # set no load design flow rate
+        new_air_to_air_heatpump.resetSupplyAirFlowRateMethodWhenNoCoolingorHeatingisRequired
+        new_air_to_air_heatpump.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_airflow_m3_per_s)
+      else
+        new_air_to_air_heatpump.autosizeSupplyAirFlowRateDuringCoolingOperation
+        new_air_to_air_heatpump.autosizeSupplyAirFlowRateDuringHeatingOperation
+        new_air_to_air_heatpump.autosizeSupplyAirFlowRateWhenNoCoolingorHeatingisRequired
+      end
 
       # new_air_to_air_heatpump.setDOASDXCoolingCoilLeavingMinimumAirTemperature(7.5) # set minimum discharge temp to 45F, required for VAV operation
 
@@ -2012,7 +2020,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       end
 
       # add economizer
-      if econ==true
+      if econ == true
         # set parameters
         oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
         controller_oa = oa_system.getControllerOutdoorAir
