@@ -4968,6 +4968,8 @@ env_secondary_windows	high_perf_high_tech	upgrade_env_secondary_windows	static_s
 env_window_film	window_film	upgrade_env_window_film
 env_new_aedg_windows	new_aedg_windows	upgrade_env_new_aedg_windows
 env_window_electrochromic	optimal_state	upgrade_env_electrochromic_windows	shgc_clear=0.4	vt_clear=0.52	shgc_tinted=0.09	vt_tinted=0.01	u_value=0.394	max_rad_w_per_m2=63	gi=24	min_temp=50	ec_priority_logic=false	North=true	East=true	South=true	West=true
+env_window_electrochromic	high_perf_low_tech	upgrade_env_electrochromic_windows	dynmamic_sgs_upgrade=high_perf_low_tech	u_value=0.394	max_rad_w_per_m2=63	gi=24	min_temp=50	ec_priority_logic=false	North=true	East=true	South=true	West=true
+env_window_electrochromic	high_perf_high_tech	upgrade_env_electrochromic_windows	dynmamic_sgs_upgrade=high_perf_high_tech	u_value=0.394	max_rad_w_per_m2=63	gi=24	min_temp=50	ec_priority_logic=false	North=true	East=true	South=true	West=true
 light_led	lighting_technology_gen4	upgrade_light_led	lighting_generation=gen4_led
 light_led	lighting_technology_gen5	upgrade_light_led	lighting_generation=gen5_led
 light_led	lighting_technology_gen6	upgrade_light_led	lighting_generation=gen6_led
