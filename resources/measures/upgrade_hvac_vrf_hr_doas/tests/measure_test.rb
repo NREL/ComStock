@@ -42,6 +42,7 @@ require 'openstudio/measure/ShowRunnerOutput'
 require 'fileutils'
 require 'minitest/autorun'
 require_relative '../measure.rb'
+require_relative '../../../../test/helpers/minitest_helper'
 
 # only necessary to include here if annual simulation request and the measure doesn't require openstudio-standards
 # require 'openstudio-standards'
@@ -196,7 +197,7 @@ class HvacVrfHrDoasTest < Minitest::Test
       weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
       result: 'NA'
     }
-    # test: floor area too large 
+    # test: floor area too large
     test_sets << {
       model: 'SecondarySchool_PTHP',
       weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
@@ -232,7 +233,7 @@ class HvacVrfHrDoasTest < Minitest::Test
       weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
       result: 'NA'
     }
-    
+
     return test_sets
   end
 
@@ -276,7 +277,7 @@ class HvacVrfHrDoasTest < Minitest::Test
       argument_map['upsizing_allowance_pct'] = upsizing_allowance_pct
 
       # set arguments: apply measure
-      apply_measure = arguments[3].clone	
+      apply_measure = arguments[3].clone
       assert(apply_measure.setValue(true))
       argument_map['apply_measure'] = apply_measure
 

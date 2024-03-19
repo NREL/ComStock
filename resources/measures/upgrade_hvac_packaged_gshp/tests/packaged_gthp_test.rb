@@ -44,6 +44,7 @@ require 'minitest/autorun'
 require 'open3'
 require 'openstudio-standards'
 require_relative '../measure.rb'
+require_relative '../../../../test/helpers/minitest_helper'
 
 class PackagedGTHPTest < Minitest::Test
 
@@ -228,7 +229,7 @@ class PackagedGTHPTest < Minitest::Test
     # Apply the measure and check if before/after results are identical
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
   end
-  
+
   def test_pvav_gas_heat_electric_reheat_no_econ
     osm_name = 'PVAV_gas_heat_electric_reheat.osm'
     epw_name = 'NY_New_York_John_F_Ke_744860_16.epw'
@@ -240,7 +241,7 @@ class PackagedGTHPTest < Minitest::Test
     # Apply the measure and check if before/after results are identical
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
   end
-  
+
   def test_vav
     osm_name = 'VAV_chiller_boiler_4A.osm'
     epw_name = 'NY_New_York_John_F_Ke_744860_16.epw'
@@ -264,7 +265,7 @@ class PackagedGTHPTest < Minitest::Test
     # Apply the measure and check if before/after results are identical
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
   end
-  
+
    def test_vav_pfp
     osm_name = 'VAV_with_PFP.osm'
     epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
@@ -276,7 +277,7 @@ class PackagedGTHPTest < Minitest::Test
     # Apply the measure and check if before/after results are identical
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
   end
-  
+
   def test_pvav_pfp
     osm_name = 'PVAV_with_PFP.osm'
     epw_name = 'NY_New_York_John_F_Ke_744860_16.epw'

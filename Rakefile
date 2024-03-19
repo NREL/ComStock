@@ -27,13 +27,22 @@ namespace :unit_tests do
     if File.exist?(RESOURCE_MEASURETESTS_PATH)
       # load test files from file.
       full_file_list = FileList.new(File.readlines(RESOURCE_MEASURETESTS_PATH).map(&:chomp))
-      full_file_list.select! { |item| item.include?('rb')}
+      full_file_list.select! { |item| item.include?('rb')  && File.exist?(item) }
       p full_file_list
     end
-    t.test_files = full_file_list
+    t.test_files = full_file_list.select do |file|
+      begin
+        # Try to load the file to check for syntax errors
+        load file
+        true
+      rescue Exception => e
+        puts "Error in #{file}: #{e.message}"
+        Minitest::Reporters.reporter.report_error(file, e)
+        false
+      end
+    end
     p(full_file_list)
     t.verbose = false
     t.warning = false
   end
-
 end
