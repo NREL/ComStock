@@ -42,6 +42,7 @@ require 'openstudio/measure/ShowRunnerOutput'
 require 'fileutils'
 require 'minitest/autorun'
 require_relative '../measure.rb'
+require_relative '../../../../test/helpers/minitest_helper'
 
 class EnvRoofInsulAedgTest < Minitest::Test
   # all tests are a sub definition of this class, e.g.:
@@ -62,9 +63,7 @@ class EnvRoofInsulAedgTest < Minitest::Test
 
     # get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(2, arguments.size)
-    assert_equal('r_val', arguments[0].name)
-    assert_equal('allow_reduct', arguments[1].name)
+    assert_equal(0, arguments.size)
   end
 
   # return file paths to test models in test directory
@@ -176,9 +175,9 @@ class EnvRoofInsulAedgTest < Minitest::Test
   # create an array of hashes with model name, weather, and expected result
   def models_to_test
     test_sets = []
-    test_sets << { model: 'Warehouse_5A', weather: 'MI_DETROIT_725375_12', result: 'Success' }
-    test_sets << { model: 'Retail_7', weather: 'MN_Cloquet_Carlton_Co_726558_16', result: 'Success' }
-    test_sets << { model: 'Small_Office_2A', weather: 'TX_Port_Arthur_Jeffers_722410_16', result: 'Success' }
+    test_sets << { model: 'Warehouse_5A', weather: 'MI_DETROIT_725375_12', result: 'Success', new_r: 33 }
+    test_sets << { model: 'Retail_7', weather: 'MN_Cloquet_Carlton_Co_726558_16', result: 'Success', new_r: 37}
+    test_sets << { model: 'Small_Office_2A', weather: 'TX_Port_Arthur_Jeffers_722410_16', result: 'Success', new_r: 26}
     return test_sets
   end
 
@@ -215,15 +214,15 @@ class EnvRoofInsulAedgTest < Minitest::Test
       end
       ################ END CUSTOMIZE #########################
 
-      # set R-value argument
-      r_val = arguments[0].clone
-      assert(r_val.setValue(30.0))
-      argument_map['r_val'] = r_val
+      # # set R-value argument
+      # r_val = arguments[0].clone
+      # assert(r_val.setValue(30.0))
+      # argument_map['r_val'] = r_val
 
-      # set allow reduction argument
-      allow_reduct = arguments[1].clone
-      assert(allow_reduct.setValue(false))
-      argument_map['allow_reduct'] = allow_reduct
+      # # set allow reduction argument
+      # allow_reduct = arguments[1].clone
+      # assert(allow_reduct.setValue(false))
+      # argument_map['allow_reduct'] = allow_reduct
 
       # apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
@@ -236,7 +235,7 @@ class EnvRoofInsulAedgTest < Minitest::Test
         new_r_val_si = 1 / surface.thermalConductance.to_f
         new_r_val_ip = OpenStudio.convert(new_r_val_si, 'm^2*K/W', 'ft^2*h*R/Btu').get
         assert(old_r_val_ip < new_r_val_ip)
-        assert((new_r_val_ip - 30).abs < 0.6)
+        assert((new_r_val_ip - set[:new_r]).abs < 0.6)
       end
       ################ END CUSTOMIZE #########################
     end

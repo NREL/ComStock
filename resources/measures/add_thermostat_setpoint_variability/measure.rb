@@ -27,7 +27,7 @@ class AddThermostatSetpointVariability < OpenStudio::Measure::ModelMeasure
   def arguments(model)
     args = OpenStudio::Measure::OSArgumentVector.new
 
-    # make an argument for window U-Value
+    # make an argument for occupied cooling setpoint
     clg_sp_f = OpenStudio::Measure::OSArgument.makeDoubleArgument('clg_sp_f', true)
     clg_sp_f.setDefaultValue('999')
     clg_sp_f.setDisplayName('Cooling Thermostat Occupied Setpoint')
@@ -35,15 +35,16 @@ class AddThermostatSetpointVariability < OpenStudio::Measure::ModelMeasure
     clg_sp_f.setUnits('F')
     args << clg_sp_f
 
-    # make an argument for window U-Value
+    # make an argument for cooling setback
     clg_delta_f = OpenStudio::Measure::OSArgument.makeDoubleArgument('clg_delta_f', true)
     clg_delta_f.setDefaultValue('999')
     clg_delta_f.setDisplayName('Cooling Thermostat Delta Setback')
     clg_delta_f.setDescription('Enter 999 for no change to setback.')
     clg_delta_f.setUnits('F')
+    clg_delta_f.setMinValue(0)
     args << clg_delta_f
 
-    # make an argument for window U-Value
+    # make an argument for occuped heating setpoint
     htg_sp_f = OpenStudio::Measure::OSArgument.makeDoubleArgument('htg_sp_f', true)
     htg_sp_f.setDefaultValue('999')
     htg_sp_f.setDisplayName('Heating Thermostat Occupied Setpoint')
@@ -51,17 +52,24 @@ class AddThermostatSetpointVariability < OpenStudio::Measure::ModelMeasure
     htg_sp_f.setUnits('F')
     args << htg_sp_f
 
-    # make an argument for window U-Value
+    # make an argument for heating setback
     htg_delta_f = OpenStudio::Measure::OSArgument.makeDoubleArgument('htg_delta_f', true)
     htg_delta_f.setDefaultValue('999')
     htg_delta_f.setDisplayName('Heating Thermostat Delta Setback')
     htg_delta_f.setDescription('Enter 999 for no change to setback.')
     htg_delta_f.setUnits('F')
+    htg_delta_f.setMinValue(0)
     args << htg_delta_f
 
     return args
 
   end
+
+  # setpoint limits
+  CLG_MAX_F = 100
+  CLG_MAX_C = OpenStudio.convert(CLG_MAX_F,"F","C").get
+  HTG_MIN_F = 32
+  HTG_MIN_C = OpenStudio.convert(HTG_MIN_F, "F","C").get
 
   # define what happens when the measure is run
   def run(model, runner, user_arguments)
@@ -78,327 +86,331 @@ class AddThermostatSetpointVariability < OpenStudio::Measure::ModelMeasure
     htg_sp_f = runner.getDoubleArgumentValue('htg_sp_f', user_arguments)
     htg_delta_f = runner.getDoubleArgumentValue('htg_delta_f', user_arguments)
 
-    # make conversions for cooling
-    clg_sp_c = OpenStudio.convert(clg_sp_f, 'F', 'C').get
-    clg_sb_f = clg_sp_f + clg_delta_f
-    clg_delta_c = (5/9r)*clg_delta_f
-    clg_sb_c = OpenStudio.convert(clg_sb_f, 'F', 'C').get
+    # turn no-op args into bools
+    adjust_clg_setpt = !(clg_sp_f == 999)
+    adjust_clg_setback = !(clg_delta_f == 999)
+    adjust_cooling = adjust_clg_setpt || adjust_clg_setback
 
-    # make conversions for heating
-    if (htg_sp_f > (clg_sp_f - 2)) && (clg_sb_f != 999) && (htg_sp_f != 999)
+    adjust_htg_setpt = !(htg_sp_f == 999)
+    adjust_htg_setback = !(htg_delta_f == 999)
+    adjust_heating = adjust_htg_setpt || adjust_htg_setback
+
+    if !adjust_cooling && !adjust_heating
+      runner.registerAsNotApplicable('All arguments are set to 999 which registers no change to model.')
+      return true
+    end
+
+    # Write 'As Not Applicable' message
+    if model.getThermalZones.empty?
+      runner.registerAsNotApplicable('There are no thermal zones in the model. Measure is not applicable.')
+      return true
+    end
+
+    # check inputs for reasonableness
+    if adjust_clg_setpt && clg_sp_f < HTG_MIN_F
+      runner.registerError("User-input cooling setpoint #{clg_sp_f} is less than minimum allowed heating setpoint of #{HTG_MIN_F}. Check input.")
+      return false
+    end
+
+    if adjust_htg_setpt && htg_sp_f > CLG_MAX_F
+      runner.registerError("User-input heating setpoint #{htg_sp_f} is greater than maximum allowed cooling setpoint of #{CLG_MAX_F}. Check input.")
+      return false
+    end
+
+    # adjust heating setpoint if too close to cooling setpoint
+    if adjust_clg_setpt && adjust_htg_setpt && (htg_sp_f > (clg_sp_f - 2))
       runner.registerWarning("User-input heating setpoint of #{htg_sp_f}F is > 2F from the user-input cooling setpoint of #{clg_sp_f}F which is not permitted. The user-input heating setpoint is now #{clg_sp_f  - 2}F to allow a reasonable deadband range.")
       htg_sp_f = clg_sp_f - 2
     end
 
+    # make conversions for cooling
+    clg_sp_c = OpenStudio.convert(clg_sp_f, 'F', 'C').get
+    clg_sb_f = clg_sp_f + clg_delta_f
+    clg_delta_c = OpenStudio.convert(clg_delta_f, 'R', 'K').get
+    clg_sb_c = OpenStudio.convert(clg_sb_f, 'F', 'C').get
+
     # make conversions for heating
     htg_sp_c = OpenStudio.convert(htg_sp_f, 'F', 'C').get
     htg_sb_f = htg_sp_f - htg_delta_f
-    htg_delta_c = (5/9r)*htg_delta_f
+    htg_delta_c = OpenStudio.convert(htg_delta_f, 'R', 'K').get
     htg_sb_c = OpenStudio.convert(htg_sb_f, 'F', 'C').get
 
-    # Write 'As Not Applicable' message
-    if model.getThermalZones.empty?
-      runner.registerAsNotApplicable('There are no conditioned thermal zones in the model. Measure is not applicable.')
-      return true
-    end
+    # Initialize arrays
+    clg_tstat_schedules = []
+    htg_tstat_schedules = []
 
-    if (clg_sp_f == 999) && (clg_delta_f == 999) && (htg_sp_f == 999) && (htg_delta_f == 999)
-      runner.registerAsNotApplicable('All arugments are set to 999 which registers no change to model.')
-      return true
-    end
-
-    # Initialize variables
-    zone_count = 0
-    edited_clg_tstat_schedules = []
-    edited_htg_tstat_schedules = []
-
-    # Get the thermal zones and loop through them
+    # Collect zone thermostat schedules
     model.getThermalZones.each do |thermal_zone|
 
       # skip data centers
-      next if ['Data Center', 'DataCenter', 'data center', 'datacenter'].any? { |word| (thermal_zone.name.get).include?(word) }
+      next if thermal_zone.name.get.downcase.gsub(' ','').include?('datacenter')
 
-      if thermal_zone.thermostatSetpointDualSetpoint.is_initialized
-        zone_thermostat = thermal_zone.thermostatSetpointDualSetpoint.get
-        zone_count += 1
+      # skip zones without thermostats
+      next unless thermal_zone.thermostatSetpointDualSetpoint.is_initialized
 
-        if zone_thermostat.coolingSetpointTemperatureSchedule.is_initialized && ((clg_sp_f != 999) || (clg_delta_f != 999))
+      zone_thermostat = thermal_zone.thermostatSetpointDualSetpoint.get
 
-          clg_tstat_schedule = zone_thermostat.coolingSetpointTemperatureSchedule.get
+      clg_schedule = zone_thermostat.coolingSetpointTemperatureSchedule
+      if adjust_cooling
+        if clg_schedule.empty?
+          runner.registerWarning("Cooling setpoint schedule not found for zone '#{zone.name.get}'")
+        elsif clg_schedule.get.to_ScheduleRuleset.empty?
+          runner.registerWarning("Schedule '#{clg_schedule.get.name.get}' is not a ScheduleRuleset, will not be adjusted")
+        else
+          clg_tstat_schedules << clg_schedule.get.to_ScheduleRuleset.get
+        end
+      end
 
-          # check if already edited
-          next if edited_clg_tstat_schedules.include? "#{clg_tstat_schedule.name}"
-          edited_clg_tstat_schedules << clg_tstat_schedule.name.get
-          clg_tstat_schedule.to_ScheduleRuleset.is_initialized
-          clg_tstat_schedule = clg_tstat_schedule.to_ScheduleRuleset.get
+      htg_schedule = zone_thermostat.heatingSetpointTemperatureSchedule
+      if adjust_heating
+        if htg_schedule.empty?
+          runner.registerWarning("Heating setpoint schedule not found for zone '#{zone.name.get}'")
+        elsif htg_schedule.get.to_ScheduleRuleset.empty?
+          runner.registerWarning("Schedule '#{htg_schedule.get.name.get}' is not a ScheduleRuleset, will not be adjusted")
+        else
+          htg_tstat_schedules << htg_schedule.get.to_ScheduleRuleset.get
+        end
+      end
+    end
 
-          # Gather schedule profiles
-          schedule_profiles = []
-          default_profile = clg_tstat_schedule.to_ScheduleRuleset.get.defaultDaySchedule
-          schedule_profiles << default_profile
-          clg_tstat_schedule.scheduleRules.each { |rule| schedule_profiles << rule.daySchedule }
+    # get tstat schedule info
+    def get_tstat_profiles_and_stats(tstat_schedule)
+      if tstat_schedule.to_ScheduleRuleset.empty?
+        runner.registerWarning("Schedule '#{tstat_schedule.name.get}' is not a ScheduleRuleset, will not be adjusted")
+        return false
+      else
+        tstat_schedule = tstat_schedule.to_ScheduleRuleset.get
 
-          # get min and max of profiles
-          clg_sch_values = []
-          schedule_profiles.sort.each do |profile|
-            clg_sch_values << profile.values
-          end
-          clg_sch_values = clg_sch_values.flatten
-          clg_tstat_schedule_min = clg_sch_values.min()
-          clg_tstat_schedule_max = clg_sch_values.max()
-          clg_tstat_schedule_n_values = clg_sch_values.uniq.size
+        profiles = [tstat_schedule.defaultDaySchedule]
+        tstat_schedule.scheduleRules.each { |rule| profiles << rule.daySchedule }
 
-          # puts '---SCHEDULE START---'
-          # puts "Schedule Name: #{clg_tstat_schedule.name}"
-          # puts "Schedule Size: #{clg_tstat_schedule_n_values}"
-          # puts "Cooling SP: #{clg_sp_c}"
-          # puts "Cooling SB: #{clg_sb_c}"
-          # puts "Schedule Min: #{clg_tstat_schedule_min}"
-          # puts "Schedule Max: #{clg_tstat_schedule_max}"
-          # puts '---SCHEDULE END---'
+        values = []
+        profiles.each { |profile| values << profile.values}
+        values = values.flatten
+        sch_min = values.min
+        sch_max = values.max
+        num_vals = values.uniq.size
+        return { profiles: profiles, values: values, min: sch_min, max: sch_max, num_vals: num_vals}
+      end
+    end
 
+    # adjust cooling schedules
+    clg_tstat_schedules.uniq.each do |clg_sch|
+      sch_info = get_tstat_profiles_and_stats(clg_sch)
+      next if !sch_info
 
-          # skip is setpoint value is over 90F, aka no cooling
-          if clg_tstat_schedule_min < 32.2222
+      if sch_info[:min] > CLG_MAX_C
+        runner.registerWarning(("Cooling schedule #{clg_sch.name} has a minimum setpoint over #{CLG_MAX_F}F, and therefore is not applicable for this measure as it is likely a non-cooled zone. It will be skipped."))
+        next
+      end
 
-            if clg_tstat_schedule_n_values == 1
-              runner.registerWarning("Cooling schedule #{clg_tstat_schedule.name} only has 1 temperature setpoint and is therefore not applicable for adding any setbacks to the temperature schedules. User-input temperature setpoints will still be applied.")
-            end
+      # warn if setback input for flat schedule
+      if adjust_clg_setback && (sch_info[:num_vals] == 1)
+        runner.registerWarning("Cooling schedule #{clg_sch.name} only has 1 temperature setpoint and is therefore not applicable for adding any setbacks to the temperature schedules.")
+      end
 
-            # set design day schedules
-            if clg_sp_f != 999
-              des_day = OpenStudio::Model::ScheduleDay.new(model, clg_sp_c)
-              clg_tstat_schedule.setSummerDesignDaySchedule(des_day)
-              clg_tstat_schedule.setWinterDesignDaySchedule(des_day)
-            end
+      # set design day schedules
+      if adjust_clg_setpt
+        des_day = OpenStudio::Model::ScheduleDay.new(model, clg_sp_c)
+        clg_sch.setSummerDesignDaySchedule(des_day)
+        clg_sch.setWinterDesignDaySchedule(des_day)
+      end
 
-            # Loop through schedules and make changes
-            schedule_profiles.sort.each do |profile|
-              # puts profile.name
-              profile_name = profile.name
-              profile_min = profile.values.min
-              profile_max = profile.values.max
-              profile_size = profile.values.uniq.size
-              time_h =  profile.times
+      # Loop through schedules and make changes
+      sch_info[:profiles].each do |profile|
+        profile_name = profile.name
+        profile_min = profile.values.min
+        profile_max = profile.values.max
+        profile_size = profile.values.uniq.size
+        time_h =  profile.times
 
-              # if no change is desired, use original setpoint temperatures for cooling
-              if clg_sp_f == 999
-                clg_sp_c = clg_tstat_schedule_min
-                if clg_delta_f != 999
-                  clg_sb_c = clg_tstat_schedule_min + clg_delta_c
-                end
-              end
-              if clg_delta_f == 999
-                clg_sb_c = clg_tstat_schedule_max
-              end
+        # if only adjust setback, use existing schedule min as setpoint
+        if !adjust_clg_setpt && adjust_clg_setback
+          clg_sp_c = sch_info[:min]
+          clg_sb_c = sch_info[:min] + clg_delta_c
+        end
 
-              # If profile is constant sched that matches minimum schedule value (i.e. occupied cooling setpoint)
-              if (profile_size == 1) && (profile_min == clg_tstat_schedule_min)
-                # runner.registerWarning("For #{clg_tstat_schedule.name} cooling thermostat schedule, cooling profile #{profile_name} is constant with a value of #{OpenStudio.convert(profile_min, 'C', 'F').get.round(1)}F, which matches the original occupied temperature setpoint for this schedule. This schedule will be changed to match user-input cooling setpoint temperature #{clg_sp_f}F. No setback will be added.")
-                i=0
-                profile.values.each do |value|
-                  profile.addValue(time_h[i], clg_sp_c)
-                  i+=1
-                end
-
-              # If profile is constant sched that matches minimum schedule value (i.e. occupied cooling setpoint)
-              elsif (profile_size == 1) && (profile_max == clg_tstat_schedule_max)
-                # runner.registerWarning("For #{clg_tstat_schedule.name} cooling thermostat schedule, cooling profile #{profile_name} is constant with a value of #{OpenStudio.convert(profile_max, 'C', 'F').get.round(1)}F, which matches the original setback setpoint for this schedule. This schedule will be changed to match the user-input unnocupied cooling setback delta of #{clg_delta_f}F, if one was specified.")
-                # time_h = profile.times
-                i=0
-                profile.values.each do |value|
-                  profile.addValue(time_h[i], clg_sb_c)
-                  i+=1
-                end
-
-              # If profile is constant and does not match max or min
-              elsif (profile_size == 1) && ((profile_max != clg_tstat_schedule_max) || (profile_min == clg_tstat_schedule_min))
-                runner.registerWarning("For #{clg_tstat_schedule.name} cooling thermostat schedule, cooling profile #{profile_name} is constant with a value of #{OpenStudio.convert(profile_max, 'C', 'F').get.round(1)}F, which does not match the max or min of the original profile, making it unknown if this is an occupied or unnocupied setpoint. Profile will not be changed.")
-
-              # If profile is square wave (2 setpoints, occupied vs unoccupied)
-              elsif (profile_size == 2)
-                time_h=profile.times
-                i=0
-                profile.values.each do |value|
-                  if value == clg_tstat_schedule_min
-                    profile.addValue(time_h[i], clg_sp_c)
-                    i+=1
-                  else value == clg_tstat_schedule_max
-                    profile.addValue(time_h[i], clg_sb_c)
-                    i+=1
-                  end
-                end
-
-              # If profile is not square wave (i.e. more than two setpoints)
-              elsif (profile_size > 2)
-                values = profile.values
-                values_uniq_ramps = values - [profile_min, profile_max]
-
-                # create hash of ramp values and their proportion to original setpoint and setback
-                ramp_fracs = {}
-                values_uniq_ramps.sort.each do |ramp|
-                  ramp_fracs[ramp] = (ramp - profile_min) / (profile_max - profile_min)
-                end
-
-                # Loop through profiles and add new setpoints
-                i=0
-                profile.values.each do |value|
-                  # add values for profile minimum
-                  if value == profile_min
-                    profile.addValue(time_h[i], clg_sp_c)
-                    i+=1
-                  # add values for profile maximum
-                  elsif value == profile_max
-                    profile.addValue(time_h[i], clg_sb_c)
-                    i+=1
-                  # add values for ramps
-                  else
-                    ramp_new = (ramp_fracs[value] * clg_delta_c) + clg_sp_c
-                    profile.addValue(time_h[i], ramp_new)
-                    i+=1
-                  end
-                end
-              end
-            end
+        # if only adjust setpoint, use existing setback unless it's within 2F of new setpoint
+        if adjust_clg_setpt && !adjust_clg_setback
+          if sch_info[:max] < (clg_sp_c + OpenStudio.convert(2.0, 'R', 'K').get)
+            runner.registerWarning("User input requests cooling setpoint temp of #{clg_sp_f}F is within 2 degrees of existing cooling temperature setback of #{OpenStudio.convert(sch_info[:max],'C','F').get.round(1)}F. Setback will be adjusted to 2F.")
+            clg_sb_c = clg_sp_c + OpenStudio.convert(2.0, 'R', 'K').get
           else
-            runner.registerWarning(("Cooling schedule #{clg_tstat_schedule.name} has a minimum setpoint over 90F, and therefore is not applicable for this measure as it is likely a non-cooled zone. It will be skipped."))
+            clg_sb_c = sch_info[:max]
           end
         end
 
-        # repeat for heating thermostats
-        if zone_thermostat.heatingSetpointTemperatureSchedule.is_initialized && ((htg_sp_f != 999) || (htg_delta_f != 999))
-          htg_tstat_schedule = zone_thermostat.heatingSetpointTemperatureSchedule.get
+        # adjust schedules and setbacks depending on existing profile structure
+        case
+        when (profile_size == 1) && (profile_min == sch_info[:min])
+          # profile is constant sched that matches minimum schedule value (i.e. occupied cooling setpoint)
+          profile.values.each_with_index { |value,i| profile.addValue(time_h[i], clg_sp_c) }
 
-          # check if already edited
-          next if edited_htg_tstat_schedules.include? "#{htg_tstat_schedule.name}"
-          edited_htg_tstat_schedules << htg_tstat_schedule.name.get
-          htg_tstat_schedule.to_ScheduleRuleset.is_initialized
-          htg_tstat_schedule = htg_tstat_schedule.to_ScheduleRuleset.get
+        when (profile_size == 1) && (profile_max == sch_info[:max])
+          # profile is constant sched that matches maximum schedule value (i.e. occupied setback)
+          profile.values.each_with_index { |value,i| profile.addValue(time_h[i], clg_sb_c) }
 
-          # Gather schedule profiles
-          schedule_profiles = []
-          default_profile = htg_tstat_schedule.to_ScheduleRuleset.get.defaultDaySchedule
-          schedule_profiles << default_profile
-          htg_tstat_schedule.scheduleRules.each { |rule| schedule_profiles << rule.daySchedule }
+        when (profile_size == 1) && (profile_max != sch_info[:max]) && (profile_min != sch_info[:min])
+          # profile is constant and does not match max or min
+          runner.registerWarning("For #{clg_sch.name} cooling thermostat schedule, cooling profile #{profile_name} is constant with a value of #{OpenStudio.convert(profile_max, 'C', 'F').get.round(1)}F, which does not match the max or min of the original profile, making it unknown if this is an occupied or unnocupied setpoint. Profile will not be changed.")
 
-          # get min and max of profiles
-          htg_sch_values = []
-          schedule_profiles.sort.each do |profile|
-            htg_sch_values << profile.values
+        when profile_size == 2
+          # profile is square wave (2 setpoints, occupied vs unoccupied)
+          profile.values.each_with_index do |value, i|
+            if value == profile_min
+              profile.addValue(time_h[i], clg_sp_c)
+              # warn if profile min does not match schedule min
+              if profile_min != sch_info[:min]
+                runner.registerWarning("Cooling Setpoint Schedule '#{clg_sch.name}' profile '#{profile_name}' min value of #{OpenStudio.convert(profile_min,'C','F').get.round(1)}F does not match Schedule minimum of #{OpenStudio.convert(sch_info[:min],'C','F').get.round(1)}F. The profile value will be updated to the user-entered setpoint of #{clg_sp_f}F")
+              end
+            elsif value == profile_max
+              profile.addValue(time_h[i], clg_sb_c)
+              # warn if profile max does not match schedule max
+              if profile_max != sch_info[:max]
+                runner.registerWarning("Cooling Setpoint Schedule '#{clg_sch.name}' profile '#{profile_name}' max value of #{OpenStudio.convert(profile_max,'C','F').get.round(1)}F does not match Schedule maximum of #{OpenStudio.convert(sch_info[:max],'C','F').get.round(1)}F. The profile value will be updated to the user-entered setpoint of #{clg_sb_f}F")
+              end
+            end
           end
-          htg_sch_values = htg_sch_values.flatten
-          htg_tstat_schedule_min = htg_sch_values.min()
-          htg_tstat_schedule_max = htg_sch_values.max()
-          htg_tstat_schedule_n_values = htg_sch_values.uniq.size
+        when profile_size > 2
+          values_uniq_ramps = profile.values - [profile_min, profile_max]
 
-          # skip if maximum setpoint is < 60 F, AKA partially or unheated
-          if htg_tstat_schedule_max >= 15.5556
-            if htg_tstat_schedule_n_values == 1
-              runner.registerWarning("Heating schedule #{htg_tstat_schedule.name} only has 1 temperature setpoint, and is therefore not applicable for adding any setbacks to the temperature schedules. User-input occupied temperature setpoints will still be applied.")
+          # create hash of ramp values and their proportion to original setpoint and setback
+          ramp_fracs = {}
+          values_uniq_ramps.each do |ramp|
+            ramp_fracs[ramp] = (ramp - profile_min) / (profile_max - profile_min)
+          end
+
+          # loop through profiles and add new setpoints
+          profile.values.each_with_index do |value, i|
+            if value == profile_min
+              profile.addValue(time_h[i], clg_sp_c)
+            elsif value == profile_max
+              profile.addValue(time_h[i], clg_sb_c)
+            else
+              ramp_new = (ramp_fracs[value] * clg_delta_c) + clg_sp_c
+              profile.addValue(time_h[i], ramp_new)
             end
+          end
+        end
+      end
+    end
 
-            # set design day schedules
-            if htg_sp_f != 999
-              des_day = OpenStudio::Model::ScheduleDay.new(model, htg_sp_c)
-              htg_tstat_schedule.setSummerDesignDaySchedule(des_day)
-              htg_tstat_schedule.setWinterDesignDaySchedule(des_day)
-            end
+    # adjust heating schedules
+    htg_tstat_schedules.uniq.each do |htg_sch|
+      sch_info = get_tstat_profiles_and_stats(htg_sch)
+      next if !sch_info
 
-            # Loop through schedules and make changes
-            schedule_profiles.sort.each do |profile|
-              profile_name = profile.name
-              profile_min = profile.values.min
-              profile_max = profile.values.max
-              profile_size = profile.values.uniq.size
-              time_h =  profile.times
-              # if no change is desired, use original setpoint temperatures for cooling
-              if htg_sp_f == 999
-                htg_sp_c = htg_tstat_schedule_max
-                if htg_delta_f != 999
-                  htg_sb_c = htg_tstat_schedule_max - htg_delta_c
-                end
-              end
-              if htg_delta_f == 999
-                htg_sb_c = htg_tstat_schedule_min
-              end
+      if sch_info[:max] < HTG_MIN_C
+        runner.registerWarning(("Heating schedule #{htg_sch.name} has a maximum setpoint under #{HTG_MIN_F}F, and therefore is not applicable for this measure as it is likely a non-heated zone. It will be skipped."))
+        next
+      end
 
-              # If profile is constant sched that matches maximum schedule value (i.e. occupied heating setpoint)
-              if (profile_size == 1) && (profile_min == htg_tstat_schedule_max)
-                runner.registerWarning("For #{htg_tstat_schedule.name} heating thermostat schedule, heating profile #{profile_name} is constant with a value of #{OpenStudio.convert(profile_max, 'C', 'F').get.round(1)}F, which matches the original occupied setpoint temperature for this schedule. This schedule will be changed to match user-input occupied heating setpoint temperature of #{htg_sp_f}F. No setback will be added.")
-                time_h =  profile.times
-                i=0
-                profile.values.each do |value|
-                  profile.addValue(time_h[i], htg_sp_c)
-                  i+=1
-                end
-              # If profile is constant sched that matches minimum schedule value (i.e. unoccupied heating setpoint)
-              elsif (profile_size == 1) && (profile_max == htg_tstat_schedule_min)
-                runner.registerWarning("For #{htg_tstat_schedule.name} heating thermostat schedule, heating profile #{profile_name} is constant with a value of #{OpenStudio.convert(profile_min, 'C', 'F').get.round(1)}F, which matches the original unnocupied setback temperature for this schedule. This schedule will be changed to match the user-input unnocupied heating setback delta of #{htg_delta_f}F, if one was specified.")
-                time_h =  profile.times
-                i=0
-                profile.values.each do |value|
-                  profile.addValue(time_h[i], htg_sb_c)
-                  i+=1
-                end
-              # If profile is constant and does not match max or min
-              elsif (profile_size == 1) && ((profile_max != htg_tstat_schedule_min) || (profile_min == htg_tstat_schedule_min))
-                runner.registerWarning("For #{htg_tstat_schedule.name} heating thermostat schedule, heating profile #{profile_name} is constant with a value of #{OpenStudio.convert(profile_max, 'C', 'F').get.round(1)}F, which does not match the max or min of the original profile, making it unknown if this is an occupied or unnocupied setpoint. Profile will not be changed.")
-              # If profile is square wave with 2 setpoints
-              elsif (profile_size == 2)
-                time_h=profile.times
-                i=0
-                profile.values.each do |value|
-                  if value == htg_tstat_schedule_max
-                    profile.addValue(time_h[i], htg_sp_c)
-                    i+=1
-                  else
-                    profile.addValue(time_h[i], htg_sb_c)
-                    i+=1
-                  end
-                end
-              # If profile is not square wave (i.e. more than two setpoints)
-              elsif profile_size > 2
-                values = profile.values
-                values_uniq_ramps = values - [profile_min, profile_max]
+      # temporary workaround to not adjust warehouse office space types
+      if model.getBuilding.name.get.include? 'Warehouse'
+        # don't allow heating setpoint reduction
+        if adjust_htg_setpt && (htg_sp_c < sch_info[:max])
+          runner.registerWarning("User-input heating setpoint temp of #{htg_sp_f}F would reduce heating setpoint for schedule #{htg_sch.name}. Skipping.")
+          next
+        end
+      end
 
-                # create hash of ramp values and their proportion to original setpoint and setback
-                ramp_fracs = {}
-                values_uniq_ramps.sort.each do |ramp|
-                  ramp_fracs[ramp] = (ramp - profile_min) / (profile_max - profile_min)
-                end
+      # warn if setback input for flat schedule
+      if adjust_htg_setback && (sch_info[:num_vals] == 1)
+        runner.registerWarning("Heating schedule #{htg_sch.name} only has 1 temperature setpoint and is therefore not applicable for adding any setbacks to the temperature schedules.")
+      end
 
-                # Loop through profiles and add new setpoints
-                i=0
-                profile.values.each do |value|
-                  # add values for profile minimum (heating setback)
-                  if value == profile_min
-                    profile.addValue(time_h[i], htg_sb_c)
-                    i+=1
-                  # add values for profile maximum (heating setpoint)
-                  elsif value == profile_max
-                    profile.addValue(time_h[i], htg_sp_c)
-                    i+=1
-                  # add values for ramps
-                  else
-                    ramp_new = (ramp_fracs[value] * htg_delta_c) + htg_sb_c
-                    profile.addValue(time_h[i], ramp_new)
-                    i+=1
-                  end
-                end
-              end
-            end
+      # set design day schedules
+      if adjust_htg_setpt
+        des_day = OpenStudio::Model::ScheduleDay.new(model, htg_sp_c)
+        htg_sch.setSummerDesignDaySchedule(des_day)
+        htg_sch.setWinterDesignDaySchedule(des_day)
+      end
+
+      # Loop through schedules and make changes
+      sch_info[:profiles].each do |profile|
+        profile_name = profile.name
+        profile_min = profile.values.min
+        profile_max = profile.values.max
+        profile_size = profile.values.uniq.size
+        time_h =  profile.times
+
+        # if only adjust setback, use existing schedule min as setpoint
+        if !adjust_htg_setpt && adjust_htg_setback
+          htg_sp_c = sch_info[:max]
+          htg_sb_c = sch_info[:max] - htg_delta_c
+        end
+
+        # if only adjust setpoint, use existing setback unless it's within 2F of new setpoint
+        if adjust_htg_setpt && !adjust_htg_setback
+          if sch_info[:min] > (htg_sp_c - OpenStudio.convert(2.0, 'R', 'K').get)
+            runner.registerWarning("User input requests heating setpoint temp of #{htg_sp_f}F is within 2 degrees of existing heating temperature setback of #{OpenStudio.convert(sch_info[:min],'C','F').get.round(1)}F. Setback will be adjusted to 2F.")
+            htg_sb_c = htg_sp_c - OpenStudio.convert(2.0, 'R', 'K').get
           else
-          runner.registerWarning(("Heating schedule #{htg_tstat_schedule.name} has a maximum setpoint under 60F, and therefore is not applicable for this measure as it is likely a partially-heated zone. It will be skipped."))
+            htg_sb_c = sch_info[:max]
+          end
+        end
+
+        # adjust schedules and setbacks depending on existing profile structure
+        case
+        when (profile_size == 1) && (profile_min == sch_info[:max])
+          # profile is constant sched that matches maximum schedule value (i.e. occupied heating setpoint)
+          profile.values.each_with_index { |value,i| profile.addValue(time_h[i], htg_sp_c) }
+
+        when (profile_size == 1) && (profile_max == sch_info[:min])
+          # profile is constant sched that matches maximum schedule value (i.e. occupied setback)
+          profile.values.each_with_index { |value,i| profile.addValue(time_h[i], htg_sb_c) }
+
+        when (profile_size == 1) && (profile_max != sch_info[:max]) && (profile_min != sch_info[:min])
+          # profile is constant and does not match max or min
+          runner.registerWarning("For #{htg_sch.name} heating thermostat schedule, heating profile #{profile_name} is constant with a value of #{OpenStudio.convert(profile_max, 'C', 'F').get.round(1)}F, which does not match the max or min of the original profile, making it unknown if this is an occupied or unnocupied setpoint. Profile will not be changed.")
+
+        when profile_size == 2
+          # profile is square wave (2 setpoints, occupied vs unoccupied)
+          profile.values.each_with_index do |value, i|
+            if value == profile_max
+              profile.addValue(time_h[i], htg_sp_c)
+              # warn if profile max does not match schedule min
+              if profile_max != sch_info[:max]
+                runner.registerWarning("Heating Setpoint Schedule '#{htg_sch.name}' profile '#{profile_name}' max value of #{OpenStudio.convert(profile_max,'C','F').get.round(1)}F does not match Schedule maximum of #{OpenStudio.convert(sch_info[:max],'C','F').get.round(1)}F. The profile value will be updated to the user-entered setpoint of #{htg_sp_f}F")
+              end
+            elsif value == profile_min
+              profile.addValue(time_h[i], htg_sb_c)
+              # warn if profile max does not match schedule max
+              if profile_min != sch_info[:min]
+                runner.registerWarning("Heatng Setpoint Schedule '#{htg_sch.name}' profile '#{profile_name}' min value of #{OpenStudio.convert(profile_min,'C','F').get.round(1)}F does not match Schedule minimum of #{OpenStudio.convert(sch_info[:min],'C','F').get.round(1)}F. The profile value will be updated to the user-entered setpoint of #{htg_sb_f}F")
+              end
+            end
+          end
+
+        when profile_size > 2
+          values_uniq_ramps = profile.values - [profile_min, profile_max]
+
+          # create hash of ramp values and their proportion to original setpoint and setback
+          ramp_fracs = {}
+          values_uniq_ramps.each do |ramp|
+            ramp_fracs[ramp] = (ramp - profile_min) / (profile_max - profile_min)
+          end
+
+          # loop through profiles and add new setpoints
+          profile.values.each_with_index do |value, i|
+            if value == profile_max
+              profile.addValue(time_h[i], htg_sp_c)
+            elsif value == profile_min
+              profile.addValue(time_h[i], htg_sb_c)
+            else
+              ramp_new = (ramp_fracs[value] * htg_delta_c) + htg_sb_c
+              profile.addValue(time_h[i], ramp_new)
+            end
           end
         end
       end
     end
 
     # report initial condition of model
-    runner.registerInitialCondition("The building started with #{edited_clg_tstat_schedules.size} unique cooling thermostat schedules and #{edited_htg_tstat_schedules.size} unique heating thermostat schedules. User-input occupied cooling setpoint is #{clg_sp_f}F with a #{clg_delta_f}F unnocupied setpoint delta. User-input heating occupied setpoint is #{htg_sp_f}F with a #{htg_delta_f}F unnocupied setpoint delta. A value of 999 indicates no user-specified change.")
+    runner.registerInitialCondition("The building started with #{clg_tstat_schedules.uniq.size} unique cooling thermostat schedules and #{htg_tstat_schedules.uniq.size} unique heating thermostat schedules. User-input occupied cooling setpoint is #{clg_sp_f}F with a #{clg_delta_f}F unoccupied setpoint delta. User-input heating occupied setpoint is #{htg_sp_f}F with a #{htg_delta_f}F unnocupied setpoint delta. A value of 999 indicates no user-specified change.")
 
     # report final condition of model
-    runner.registerFinalCondition("#{edited_clg_tstat_schedules.size} cooling and #{edited_htg_tstat_schedules.size} heating schedules have been changed in accordance to user inputs.")
+    runner.registerFinalCondition("#{clg_tstat_schedules.uniq.size} cooling and #{htg_tstat_schedules.uniq.size} heating schedules have been changed in accordance to user inputs.")
 
     return true
   end

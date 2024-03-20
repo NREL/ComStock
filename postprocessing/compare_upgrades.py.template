@@ -25,7 +25,8 @@ def main():
         skip_missing_columns=True,  # False if you want to ensure you have all data specified for export
         reload_from_csv=False, # True if CSV already made and want faster reload times
         include_upgrades=True,  # False if not looking at upgrades
-        upgrade_ids_to_skip=[]  # Use [1, 3] etc. to exclude certain upgrades
+        upgrade_ids_to_skip=[], # Use [1, 3] etc. to exclude certain upgrades
+        upgrade_ids_for_comparison={} # Use {'<Name you want for comparison run folder>':[0,1,2]}; add as many upgrade IDs as needed, but plots look strange over 5
         )
 
     # CBECS

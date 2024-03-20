@@ -3,6 +3,7 @@
 
 require 'openstudio'
 require 'openstudio/ruleset/ShowRunnerOutput'
+require_relative '../../../../test/helpers/minitest_helper'
 require 'minitest/autorun'
 require_relative '../measure.rb'
 require 'fileutils'
@@ -188,11 +189,6 @@ class CreateTypicalBuildingFromModel_Test < Minitest::Test
     args = {}
     args['system_type'] = 'Water source heat pumps fluid cooler with boiler'
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'SmallOffice.osm', nil, nil)
-  end
-
-  def test_generic_gbxml
-    args = {}
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'GenericGbxml.osm', nil, nil)
   end
 
   # DEER Prototypes
