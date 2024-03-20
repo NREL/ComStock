@@ -207,7 +207,10 @@ class PlottingMixin():
         for scenario in electricity_scenarios:
 
             # filter to grid scenario plus on-site combustion fuels
-            df_scenario = df_emi_gb_long.loc[(df_emi_gb_long['variable']==scenario) | (df_emi_gb_long['variable'].isin(['Natural Gas', 'Fuel Oil', 'Propane']))]
+            df_scenario = df_emi_gb_long.loc[(df_emi_gb_long['variable']==scenario) | (df_emi_gb_long['variable'].isin(['Natural Gas', 'Fuel Oil', 'Propane']))].copy()
+
+            # force measure ordering
+            df_scenario['in.upgrade_name'] = pd.Categorical(df_scenario['in.upgrade_name'], categories=order_map, ordered=True)
 
             # Pivot the DataFrame to prepare for the stacked bars
             pivot_df = df_scenario.pivot(index='in.upgrade_name', columns='variable', values='Annual GHG Emissions (MMT CO2e)')
@@ -330,7 +333,10 @@ class PlottingMixin():
         for scenario in electricity_scenarios:
 
             # filter to grid scenario plus on-site combustion fuels
-            df_scenario = df_emi_gb_long.loc[(df_emi_gb_long['variable']==scenario) | (df_emi_gb_long['variable'].isin(['Natural Gas', 'Fuel Oil', 'Propane']))]
+            df_scenario = df_emi_gb_long.loc[(df_emi_gb_long['variable']==scenario) | (df_emi_gb_long['variable'].isin(['Natural Gas', 'Fuel Oil', 'Propane']))].copy()
+
+            # force measure ordering
+            df_scenario['in.upgrade_name'] = pd.Categorical(df_scenario['in.upgrade_name'], categories=order_map, ordered=True)
 
             # Pivot the DataFrame to prepare for the stacked bars
             pivot_df = df_scenario.pivot(index='in.upgrade_name', columns='variable', values='Annual Utility Bill (Billion USD)')
@@ -1740,9 +1746,9 @@ class PlottingMixin():
         # make lists of columns; these savings columns should exist in dataframe
         dict_saving = {}
         li_eui_svgs_fuel_cols = [self.col_name_to_savings(self.col_name_to_area_intensity(c)) for c in ([self.UTIL_BILL_TOTAL_MEAN] + self.COLS_UTIL_BILLS)]
-        dict_saving['Utility Savings Intensity by Fuel (kBtu/ft<sup>2</sup>)'] = li_eui_svgs_fuel_cols
+        dict_saving['Utility Bill Savings Intensity by Fuel (kBtu/ft<sup>2</sup>)'] = li_eui_svgs_fuel_cols
         li_pct_svgs_fuel_cols = [self.col_name_to_percent_savings(c, 'percent') for c in ([self.UTIL_BILL_TOTAL_MEAN] + self.COLS_UTIL_BILLS)]
-        dict_saving['Percent Utility Savings by Fuel (%)'] = li_pct_svgs_fuel_cols
+        dict_saving['Percent Utility Bill Savings by Fuel (%)'] = li_pct_svgs_fuel_cols
 
         # loop through plot types
         for savings_name, col_list in dict_saving.items():
@@ -1946,6 +1952,9 @@ class PlottingMixin():
 
         # multiply by 100 to get percent savings
         df_2.loc[:, cols] = df_2[cols] * 100
+
+        # filter out % savings values greater than 100%
+        df_2.loc[:, cols] = df_2[cols].mask(df_2[cols] > 100, np.nan)
 
         return df_2
 
