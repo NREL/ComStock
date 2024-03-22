@@ -131,10 +131,21 @@ class ElectrochromicWindowsModulating < OpenStudio::Measure::ModelMeasure
     min_temp.setDefaultValue(55)
     args << min_temp
 
-    # Set EC functionality prioritization; glare or temperature first
-    ec_priority_logic = OpenStudio::Measure::OSArgument.makeBoolArgument('ec_priority_logic', false)
-    ec_priority_logic.setDisplayName('Prioritize Glare Over Temperature?')
-    ec_priority_logic.setDefaultValue(true)
+    # # Set EC functionality prioritization; glare or temperature first
+    # ec_priority_logic = OpenStudio::Measure::OSArgument.makeBoolArgument('ec_priority_logic', false)
+    # ec_priority_logic.setDisplayName('Prioritize Glare Or Temperature?')
+    # ec_priority_logic.setDefaultValue(true)
+    # args << ec_priority_logic
+
+    li_ec_priority_options = ["glare", "temperature"]
+    v_ec_priority_options = OpenStudio::StringVector.new
+    li_ec_priority_options.each do |option|
+      v_ec_priority_options << option
+    end
+    ec_priority_logic = OpenStudio::Measure::OSArgument.makeChoiceArgument('ec_priority_logic', v_ec_priority_options, true)
+    ec_priority_logic.setDisplayName('Prioritize Glare Or Temperature?')
+    ec_priority_logic.setDescription('Select whether to prioritize glare or outdoor temperature when deciding EC state.')
+    ec_priority_logic.setDefaultValue("glare")
     args << ec_priority_logic
 
     # Set facade applicability
@@ -174,7 +185,10 @@ class ElectrochromicWindowsModulating < OpenStudio::Measure::ModelMeasure
     max_rad_w_per_m2 = runner.getDoubleArgumentValue('max_rad_w_per_m2', user_arguments)
     gi = runner.getDoubleArgumentValue('gi', user_arguments)
     min_temp = runner.getDoubleArgumentValue('min_temp', user_arguments)
-    ec_priority_logic = runner.getBoolArgumentValue('ec_priority_logic', user_arguments)
+    # ec_priority_logic = runner.getBoolArgumentValue('ec_priority_logic', user_arguments)
+    ec_priority_logic = runner.getStringArgumentValue('ec_priority_logic', user_arguments)
+    puts "ec_priority logic = #{ec_priority_logic.class}"
+    ec_priority_logic_temp = "temperature"
 
     # set shgc and vt for clear and tinted states; these will be modified later
     shgc_clear = 0.0
@@ -465,7 +479,7 @@ class ElectrochromicWindowsModulating < OpenStudio::Measure::ModelMeasure
                 SET gi = #{gi}
                 SET min_temp = #{min_temp_c}
                 SET ec_priority_logic = "#{ec_priority_logic}"
-                IF (#{ec_priority_logic} == false) && (#{sens_oa_temp.name.get} < #{min_temp_c}),
+                IF (#{ec_priority_logic} == #{ec_priority_logic_temp}) && (#{sens_oa_temp.name.get} < #{min_temp_c}),
                     SET #{act_window.name.get} = #{ems_civ_1.name.get},
                 ELSEIF #{sens_window_glare.name.get} >= #{gi},
                     SET #{act_window.name.get} = #{ems_civ_4.name.get},

@@ -59,12 +59,12 @@ Sets minimum temperature to allow for EC tinting. A low value will mitigate heat
 **Required:** true,
 **Model Dependent:** false
 
-### Prioritize Glare Over Temperature?
-
+### Prioritize Glare Or Temperature?
+Select whether to prioritize glare or outdoor temperature when deciding EC state.
 **Name:** ec_priority_logic,
-**Type:** Boolean,
+**Type:** Choice,
 **Units:** ,
-**Required:** false,
+**Required:** true,
 **Model Dependent:** false
 
 ### Apply electrochromic glazing to North facade windows.
