@@ -136,53 +136,51 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     args
   end
 
-   def vav_terminals?(air_loop_hvac)
-  air_loop_hvac.thermalZones.each do |thermal_zone| #iterate thru thermal zones and modify zone-level terminal units
-    thermal_zone.equipment.each do |equip|
-      if equip.to_AirTerminalSingleDuctVAVHeatAndCoolNoReheat.is_initialized
-               return true
-      elsif equip.to_AirTerminalSingleDuctVAVHeatAndCoolReheat.is_initialized
-               return true
-      elsif equip.to_AirTerminalSingleDuctVAVReheat.is_initialized
-               return true
+  def vav_terminals?(air_loop_hvac)
+    air_loop_hvac.thermalZones.each do |thermal_zone| #iterate thru thermal zones and modify zone-level terminal units
+      thermal_zone.equipment.each do |equip|
+        if equip.to_AirTerminalSingleDuctVAVHeatAndCoolNoReheat.is_initialized
+          return true
+        elsif equip.to_AirTerminalSingleDuctVAVHeatAndCoolReheat.is_initialized
+          return true
+        elsif equip.to_AirTerminalSingleDuctVAVReheat.is_initialized
+          return true
         elsif equip.to_AirTerminalSingleDuctVAVNoReheat.is_initialized
-               return true
-      elsif equip.to_AirTerminalDualDuctVAV.is_initialized
           return true
-      elsif equip.to_AirTerminalDualDuctVAVOutdoorAir.is_initialized
+        elsif equip.to_AirTerminalDualDuctVAV.is_initialized
           return true
-        else
+        elsif equip.to_AirTerminalDualDuctVAVOutdoorAir.is_initialized
+          return true
+        end
       end
-      end
-  end
-  return false
+    end
+    return false
   end
 
   def hhw_reheat?(air_loop_hvac)
-  air_loop_hvac.thermalZones.each do |thermal_zone| #iterate thru thermal zones and modify zone-level terminal units
-    thermal_zone.equipment.each do |equip|
-      next if equip.to_AirTerminalSingleDuctVAVHeatAndCoolNoReheat.is_initialized
-      next if equip.to_AirTerminalSingleDuctVAVNoReheat.is_initialized
-      next if equip.to_AirTerminalDualDuctVAV.is_initialized
-      next if equip.to_AirTerminalDualDuctVAVOutdoorAir.is_initialized
-      if equip.to_AirTerminalSingleDuctVAVHeatAndCoolReheat.is_initialized
-               term = equip.to_AirTerminalSingleDuctVAVHeatAndCoolReheat.get
-         if term.reheatCoil.to_CoilHeatingWater.is_initialized
-             return true
-         end
-      elsif equip.to_AirTerminalSingleDuctVAVReheat.is_initialized
-               term = equip.to_AirTerminalSingleDuctVAVReheat.get
-         if term.reheatCoil.to_CoilHeatingWater.is_initialized
-             return true
-         end
-        else
+    air_loop_hvac.thermalZones.each do |thermal_zone| #iterate thru thermal zones and modify zone-level terminal units
+      thermal_zone.equipment.each do |equip|
+        next if equip.to_AirTerminalSingleDuctVAVHeatAndCoolNoReheat.is_initialized
+        next if equip.to_AirTerminalSingleDuctVAVNoReheat.is_initialized
+        next if equip.to_AirTerminalDualDuctVAV.is_initialized
+        next if equip.to_AirTerminalDualDuctVAVOutdoorAir.is_initialized
+        if equip.to_AirTerminalSingleDuctVAVHeatAndCoolReheat.is_initialized
+          term = equip.to_AirTerminalSingleDuctVAVHeatAndCoolReheat.get
+          if term.reheatCoil.to_CoilHeatingWater.is_initialized
+            return true
+          end
+        elsif equip.to_AirTerminalSingleDuctVAVReheat.is_initialized
+          term = equip.to_AirTerminalSingleDuctVAVReheat.get
+          if term.reheatCoil.to_CoilHeatingWater.is_initialized
+            return true
+          end
+        end
       end
-      end
+    end
+    return false
   end
-  return false
-end
 
-# check if air loop uses district energy
+  # check if air loop uses district energy
   def air_loop_hvac_served_by_district_energy?(air_loop_hvac)
     served_by_district_energy = false
     thermalzones = air_loop_hvac.thermalZones
@@ -204,7 +202,7 @@ end
     served_by_district_energy
   end
 
- def air_loop_hvac_unitary_system?(air_loop_hvac)
+  def air_loop_hvac_unitary_system?(air_loop_hvac)
     is_unitary_system = false
     air_loop_hvac.supplyComponents.each do |component|
       obj_type = component.iddObjectType.valueName.to_s
@@ -215,6 +213,7 @@ end
     end
     return is_unitary_system
   end
+
   # define what happens when the measure is run
   def run(model, runner, user_arguments)
     super(model, runner, user_arguments)
@@ -332,56 +331,56 @@ end
       return true
     end
 
-  #Screen out PTAC systems
-  if model.getAirLoopHVACs.length == 0
-     runner.registerAsNotApplicable('No air loops in model--measure will not be applied.')
-     return true
-  end
+    #Screen out PTAC systems
+    if model.getAirLoopHVACs.length == 0
+      runner.registerAsNotApplicable('No air loops in model--measure will not be applied.')
+      return true
+    end
 
-  #Screen out packaged single zone with gas boiler, district HVAC systems, and PVAV with hot water reheat
+    #Screen out packaged single zone with gas boiler, district HVAC systems, and PVAV with hot water reheat
     model.getAirLoopHVACs.each do |air_loop_hvac|
         supply_comp = air_loop_hvac.supplyComponents
       #screen out district energy
       if air_loop_hvac_served_by_district_energy?(air_loop_hvac)
-         runner.registerAsNotApplicable('HVAC system served by district energy-measure will not be applied.')
-       return true
+        runner.registerAsNotApplicable('HVAC system served by district energy-measure will not be applied.')
+        return true
       elsif air_loop_hvac_unitary_system?(air_loop_hvac)
-         supply_comp.each do |component|
-       obj_type = component.iddObjectType.valueName.to_s
-      case obj_type
-      #screen out PSZ with hot water heating
-      when 'OS_AirLoopHVAC_UnitarySystem', 'OS_AirLoopHVAC_UnitaryHeatPump_AirToAir', 'OS_AirLoopHVAC_UnitaryHeatPump_AirToAir_MultiSpeed', 'OS_AirLoopHVAC_UnitaryHeatCool_VAVChangeoverBypass'
-                  component = component.to_AirLoopHVACUnitarySystem.get
+        supply_comp.each do |component|
+        obj_type = component.iddObjectType.valueName.to_s
+        case obj_type
+        #screen out PSZ with hot water heating
+        when 'OS_AirLoopHVAC_UnitarySystem', 'OS_AirLoopHVAC_UnitaryHeatPump_AirToAir', 'OS_AirLoopHVAC_UnitaryHeatPump_AirToAir_MultiSpeed', 'OS_AirLoopHVAC_UnitaryHeatCool_VAVChangeoverBypass'
+          component = component.to_AirLoopHVACUnitarySystem.get
           if (air_loop_hvac.thermalZones.length() == 1) && ! vav_terminals?(air_loop_hvac) #identify single zone systems with no VAV terminals
             if component.coolingCoil.is_initialized
-                  clg_coil = component.coolingCoil.get
+              clg_coil = component.coolingCoil.get
               if component.heatingCoil.is_initialized
-                  htg_coil = component.heatingCoil.get
-                   if (htg_coil.to_CoilHeatingWater.is_initialized && (clg_coil.to_CoilCoolingDXSingleSpeed.is_initialized || clg_coil.to_CoilCoolingDXTwoSpeed.is_initialized ))
-                       runner.registerAsNotApplicable('Packaged single zone system with hot water heating--measure will not be applied.')
-                       return true
-                   end
-             end
-          end
+                htg_coil = component.heatingCoil.get
+                if (htg_coil.to_CoilHeatingWater.is_initialized && (clg_coil.to_CoilCoolingDXSingleSpeed.is_initialized || clg_coil.to_CoilCoolingDXTwoSpeed.is_initialized ))
+                  runner.registerAsNotApplicable('Packaged single zone system with hot water heating--measure will not be applied.')
+                  return true
+                end
+              end
             end
-      end
+          end
+        end
       end
      #Screen out PSZ with hot water heating not modeled as unitary
-        elsif (air_loop_hvac.thermalZones.length() == 1) && ! vav_terminals?(air_loop_hvac) #identify single zone systems with no VAV terminals
+      elsif (air_loop_hvac.thermalZones.length() == 1) && ! vav_terminals?(air_loop_hvac) #identify single zone systems with no VAV terminals
         if supply_comp.map{ |x| x.iddObjectType.valueName.to_s }.include?('OS_Coil_Heating_Water' && ('OS_Coil_Cooling_DX_SingleSpeed' ||'OS_Coil_Cooling_DX_TwoSpeed' ))
-        runner.registerAsNotApplicable('Packaged single zone system with hot water heating--measure will not be applied.')
-        return true
+          runner.registerAsNotApplicable('Packaged single zone system with hot water heating--measure will not be applied.')
+          return true
         end
       #Screen out packaged VAV with hot water heating and hot water reheat
       elsif vav_terminals?(air_loop_hvac)
-           if supply_comp.map{ |x| x.iddObjectType.valueName.to_s }.include?('OS_Coil_Heating_Water' &&  ('OS_Coil_Cooling_DX_TwoSpeed' || 'OS_Coil_Cooling_DX_SingleSpeed' ) )
-            if hhw_reheat?(air_loop_hvac)
+        if supply_comp.map{ |x| x.iddObjectType.valueName.to_s }.include?('OS_Coil_Heating_Water' &&  ('OS_Coil_Cooling_DX_TwoSpeed' || 'OS_Coil_Cooling_DX_SingleSpeed' ) )
+          if hhw_reheat?(air_loop_hvac)
             runner.registerAsNotApplicable('Packaged VAV with hot water reheat system--measure will not be applied.')
             return true
           end
-         end
-     end
-   end
+        end
+      end
+    end
 
     # change to model.getBoilers....
     # runner.registerInfo("Start time of first loop: #{Time.now} ")
