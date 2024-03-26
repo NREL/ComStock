@@ -370,7 +370,7 @@ class Replace_boiler_by_heatpump < OpenStudio::Measure::ModelMeasure
       else
         if flowmethod == ''
           unit.autosizeSupplyAirFlowRateDuringHeatingOperation
-          runner.registerInfo("Utilized autosizeSupplyAirFlowRateMethodDuringHeatingOperation method")
+          runner.registerInfo("SupplyAirFlowRateMethodDuringHeatingOperation is reset to use 'SupplyAirFlowRate' method")
         end
       end
     end

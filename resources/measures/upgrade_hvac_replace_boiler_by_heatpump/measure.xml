@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>replace_boiler_by_heatpump</name>
   <uid>e5661219-4641-4140-8c83-a9d602e45ca7</uid>
-  <version_id>a7b3039f-b4bd-4f82-9227-c63b980e14aa</version_id>
-  <version_modified>2024-03-19T20:41:52Z</version_modified>
+  <version_id>5beddc65-d79e-4193-80d3-8c60e54f8f90</version_id>
+  <version_modified>2024-03-26T21:10:17Z</version_modified>
   <xml_checksum>F0147A36</xml_checksum>
   <class_name>Replace_boiler_by_heatpump</class_name>
   <display_name>replace_boiler_by_heatpump</display_name>
@@ -221,7 +221,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>1C160CC6</checksum>
+      <checksum>A67C40F8</checksum>
     </file>
     <file>
       <filename>SmallHotel-2A.osm</filename>

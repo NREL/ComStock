@@ -1361,9 +1361,15 @@ class HvacDoasHpMinisplits < OpenStudio::Measure::ModelMeasure
         unitary_sys.setSupplyAirFlowRateMethodWhenNoCoolingorHeatingisRequired('SupplyAirFlowRate')
         unitary_sys.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(airflow_stage1)
       else
+         # set cooling design flow rate
         unitary_sys.autosizeSupplyAirFlowRateDuringCoolingOperation
+        unitary_sys.setSupplyAirFlowRateDuringCoolingOperation(airflow_stage4)
+        # set heating design flow rate
         unitary_sys.autosizeSupplyAirFlowRateDuringHeatingOperation
+        unitary_sys.setSupplyAirFlowRateDuringHeatingOperation(airflow_stage4)
+        # set no load design flow rate
         unitary_sys.autosizeSupplyAirFlowRateWhenNoCoolingorHeatingisRequired
+        unitary_sys.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(airflow_stage1)
       end
     end
     return true

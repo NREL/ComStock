@@ -2004,9 +2004,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         new_air_to_air_heatpump.resetSupplyAirFlowRateMethodWhenNoCoolingorHeatingisRequired
         new_air_to_air_heatpump.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_airflow_m3_per_s)
       else
-        new_air_to_air_heatpump.autosizeSupplyAirFlowRateDuringCoolingOperation
-        new_air_to_air_heatpump.autosizeSupplyAirFlowRateDuringHeatingOperation
-        new_air_to_air_heatpump.autosizeSupplyAirFlowRateWhenNoCoolingorHeatingisRequired
+         # set cooling design flow rate
+         new_air_to_air_heatpump.setSupplyAirFlowRateDuringCoolingOperation(hash_clg_airflow_stgs[4])
+         # set heating design flow rate
+         new_air_to_air_heatpump.setSupplyAirFlowRateDuringHeatingOperation(hash_htg_airflow_stgs[4])
+         # set no load design flow rate
+         new_air_to_air_heatpump.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_airflow_m3_per_s)
       end
 
       # new_air_to_air_heatpump.setDOASDXCoolingCoilLeavingMinimumAirTemperature(7.5) # set minimum discharge temp to 45F, required for VAV operation
