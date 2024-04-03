@@ -1044,6 +1044,16 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Merge in the CEJST columns
         self.data = self.data.join(cejst, on=tract_col, how='left')
 
+	    # Fill missing rows with false
+        self.data = self.data.with_columns(pl.col(tract_col).fill_null(False))
+
+
+        # Check that no rows have null values
+        errs = self.data.select((pl.col(tract_col).filter(pl.col(tract_col).is_null()).count()))
+        num_errs = errs.get_column(tract_col).sum()
+        if num_errs > 0:
+            raise Exception(f'Errors in assigning CEJST data to {num_errs} buildings, fix logic.')
+
         # Show the dataset size
         logger.debug(f'Memory after add_cejst_columns: {self.data.estimated_size()}')
 
