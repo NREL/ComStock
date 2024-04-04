@@ -139,8 +139,14 @@ class HardsizeModel < OpenStudio::Measure::ModelMeasure
 
     # TODO remove once this functionality is added to the OpenStudio C++ for hard sizing UnitarySystems
     model.getAirLoopHVACUnitarySystems.each do |unitary|
-      unitary.setSupplyAirFlowRateMethodDuringCoolingOperation('SupplyAirFlowRate')
-      unitary.setSupplyAirFlowRateMethodDuringHeatingOperation('SupplyAirFlowRate')
+      if model.version < OpenStudio::VersionString.new('3.7.0')
+        unitary.setSupplyAirFlowRateMethodDuringCoolingOperation('SupplyAirFlowRate')
+        unitary.setSupplyAirFlowRateMethodDuringHeatingOperation('SupplyAirFlowRate')
+      else
+        unitary.autosizeSupplyAirflowRateDuringCoolingOperation
+        unitary.autosizeSupplyAirflowRateDuringHeatingOperation
+      end
+
     end
     # TODO remove once this functionality is added to the OpenStudio C++ for hard sizing Sizing:System
     model.getSizingSystems.each do |sizing_system|
