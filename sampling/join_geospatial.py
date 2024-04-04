@@ -61,27 +61,42 @@ def manual_fips_update(df_buildstock):
 def the_func(state, df_buildstock):
     # =========== Determine building size (large vs. not-large) in buildstock file ===========
     sqft = []
+    sqft_col = 'building_area'
     for i, row in df_buildstock.iterrows():
-        if row['rentable_area'] == '_1000':
+        if row[sqft_col] == '_1000':
             sqft.append(1000)
-        elif row['rentable_area'] == '100001_200000':
-            sqft.append(150000)
-        elif row['rentable_area'] == '10001_25000':
-            sqft.append(17500)
-        elif row['rentable_area'] == '1001_5000':
-            sqft.append(3000)
-        elif row['rentable_area'] == '200001_500000':
-            sqft.append(350000)
-        elif row['rentable_area'] == '25001_50000':
-            sqft.append(37500)
-        elif row['rentable_area'] == '500001_1mil':
-            sqft.append(750000)
-        elif row['rentable_area'] == '50001_100000':
+        elif row[sqft_col] == '1001_3000':
+            sqft.append(2000)
+        elif row[sqft_col] == '3001_8000':
+            sqft.append(5500)
+        elif row[sqft_col] == '8001_12000':
+            sqft.append(10000)
+        elif row[sqft_col] == '12001_30000':
+            sqft.append(21000)
+        elif row[sqft_col] == '30001_40000':
+            sqft.append(35000)
+        elif row[sqft_col] == '40001_52000':
+            sqft.append(46000)
+        elif row[sqft_col] == '52001_64000':
+            sqft.append(58000)
+        elif row[sqft_col] == '64001_70000':
+            sqft.append(67000)
+        elif row[sqft_col] == '70001_80000':
             sqft.append(75000)
-        elif row['rentable_area'] == '5001_10000':
-            sqft.append(7500)
-        elif row['rentable_area'] == 'over_1mil':
-            sqft.append(1e6)
+        elif row[sqft_col] == '80001_100000':
+            sqft.append(90000)
+        elif row[sqft_col] == '100001_150000':
+            sqft.append(125000)
+        elif row[sqft_col] == '150001_200000':
+            sqft.append(175000)
+        elif row[sqft_col] == '200001_400000':
+            sqft.append(300000)
+        elif row[sqft_col] == '400001_600000':
+            sqft.append(500000)
+        elif row[sqft_col] == '600001_1mil':
+            sqft.append(800000)
+        elif row[sqft_col] == 'over_1mil':
+            sqft.append(1100000)
 
     df_buildstock['sqft'] = sqft
     df_buildstock.loc[df_buildstock['sqft'] >= 100000, 'building_size'] = 'large'
@@ -189,8 +204,8 @@ def main():
     # Manually update select FIPS codes due to Census year differences
     df_buildstock = manual_fips_update(df_buildstock)
     
-    df_nan = df_buildstock.loc[df_buildstock['rentable_area'].isna()]
-    df_buildstock = df_buildstock.loc[~df_buildstock['rentable_area'].isna()]
+    df_nan = df_buildstock.loc[df_buildstock['building_area'].isna()]
+    df_buildstock = df_buildstock.loc[~df_buildstock['building_area'].isna()]
     
     state_fips = [
         '01', '02', '04', '05', '06', '08', '09', '10', '11', '12', '13', '15', '16', '17', '18', '19',
