@@ -72,7 +72,7 @@ def extract_models_from_simulation_output(yml_path, up_id='up00', output_vars=[]
     # Load results.csv
     path_to_zipped_results_file = os.path.join(results_csv_path, f'results_{up_id}.csv.gz')
     df_results_csv = pd.read_csv(path_to_zipped_results_file, compression='infer', header=0, sep=',', quotechar='"', index_col='building_id')
-    
+
     if up_id != "up00":
         # load baseline results.csv
         path_to_baseline_results_file = os.path.join(results_csv_path, 'results_up00.csv.gz')

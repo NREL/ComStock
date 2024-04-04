@@ -43,6 +43,8 @@ require 'fileutils'
 require 'minitest/autorun'
 require 'open3'
 require_relative '../measure.rb'
+require_relative '../../../../test/helpers/minitest_helper'
+
 
 class HydronicGTHPTest < Minitest::Test
 
@@ -215,7 +217,7 @@ class HydronicGTHPTest < Minitest::Test
     arguments = measure.arguments(model)
     assert_equal(7, arguments.size)
   end
-  
+
   # test all applicable system types
   def test_pszac_gas_boiler
     osm_name = 'PSZ-AC_with_gas_boiler.osm'
@@ -228,7 +230,7 @@ class HydronicGTHPTest < Minitest::Test
     # Apply the measure and check if before/after results are identical
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
   end
-  
+
   def test_pvav_gas_boiler_reheat
     osm_name = 'PVAV_with_gas_boiler_reheat.osm'
     epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
@@ -240,7 +242,7 @@ class HydronicGTHPTest < Minitest::Test
     # Apply the measure and check if before/after results are identical
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
   end
-  
+
   def test_vav_air_cooled_chiller_with_gas_boiler_reheat
     osm_name = 'VAV_air_cooled_chiller_with_gas_boiler_reheat.osm'
     epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
@@ -252,7 +254,7 @@ class HydronicGTHPTest < Minitest::Test
     # Apply the measure and check if before/after results are identical
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
   end
-  
+
   def test_vav_chiller_pfp_boxes
     osm_name = 'Outpatient_VAV_chiller_PFP_boxes.osm'
     epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
@@ -264,7 +266,7 @@ class HydronicGTHPTest < Minitest::Test
     # Apply the measure and check if before/after results are identical
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
   end
-  
+
   def test_doas_fan_coil_air_cooled_chiller_boiler
     osm_name = 'DOAS_fan_coil_air_cooled_chiller_with_boiler.osm'
     epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
@@ -276,7 +278,7 @@ class HydronicGTHPTest < Minitest::Test
     # Apply the measure and check if before/after results are identical
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
   end
-  
+
   # test non-applicable system types
   def test_pszhp
     osm_name = 'PSZ-HP_gthp.osm'

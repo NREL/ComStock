@@ -2805,55 +2805,132 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     runner.registerValue('com_report_hvac_hot_water_loop_boiler_fraction', hot_water_loop_boiler_fraction)
     runner.registerValue('com_report_hvac_hot_water_loop_heat_pump_fraction', hot_water_loop_heat_pump_fraction)
 
-    # Average gas coil efficiency
-    gas_coil_capacity_weighted_efficiency = 0.0
-    gas_coil_total_capacity_w = 0.0
-    gas_count_0_to_30_kbtuh = 0.0
-    gas_count_30_to_65_kbtuh = 0.0
-    gas_count_65_to_135_kbtuh = 0.0
-    gas_count_135_to_240_kbtuh = 0.0
-    gas_count_240_plus_kbtuh = 0.0
-    model.getCoilHeatingGass.sort.each do |coil|
-      # get gas coil capacity
-      capacity_w = 0.0
-      if coil.nominalCapacity.is_initialized
-        capacity_w = coil.nominalCapacity.get
-      elsif coil.autosizedNominalCapacity.is_initialized
-        capacity_w = coil.autosizedNominalCapacity.get
-      else
-        runner.registerWarning("Gas heating coil capacity not available for '#{coil.name}'.")
-      end
-      gas_coil_total_capacity_w += capacity_w
-      gas_coil_capacity_weighted_efficiency += capacity_w * coil.gasBurnerEfficiency
+    # Average primary gas coil efficiency
+    primary_gas_coil_capacity_weighted_efficiency = 0.0
+    primary_gas_coil_total_capacity_w = 0.0
+    primary_gas_count_0_to_30_kbtuh = 0.0
+    primary_gas_count_30_to_65_kbtuh = 0.0
+    primary_gas_count_65_to_135_kbtuh = 0.0
+    primary_gas_count_135_to_240_kbtuh = 0.0
+    primary_gas_count_240_plus_kbtuh = 0.0
 
-      # log count of sizes
-      capacity_kbtuh = OpenStudio.convert(capacity_w, 'W', 'kBtu/h').get
-      if capacity_kbtuh < 30
-        gas_count_0_to_30_kbtuh += 1
-      elsif capacity_kbtuh < 65
-        gas_count_30_to_65_kbtuh += 1
-      elsif capacity_kbtuh < 135
-        gas_count_65_to_135_kbtuh += 1
-      elsif capacity_kbtuh < 240
-        gas_count_135_to_240_kbtuh += 1
-      else # capacity is over 240 kbtuh
-        gas_count_240_plus_kbtuh += 1
+    # Average supplemental gas coil efficiency
+    supplemental_gas_coil_capacity_weighted_efficiency = 0.0
+    supplemental_gas_coil_total_capacity_w = 0.0
+    supplemental_gas_count_0_to_30_kbtuh = 0.0
+    supplemental_gas_count_30_to_65_kbtuh = 0.0
+    supplemental_gas_count_65_to_135_kbtuh = 0.0
+    supplemental_gas_count_135_to_240_kbtuh = 0.0
+    supplemental_gas_count_240_plus_kbtuh = 0.0
+
+    # iterate through each model to get all of the gas coils and check if they are supplemental coils for Unitary HVAC Objects and count each seperately.
+    model.getCoilHeatingGass.sort.each do |coil|
+
+      # get gas coil capacity
+      supplemental_capacity_w = 0.0
+
+      # default coil type unless proven otherwise
+      supplemental_coil = false
+
+      #check if coil is contained by an unitary equipment and cast the hvac component to its child types
+      if coil.containingHVACComponent.is_initialized
+        hvac_comp = coil.containingHVACComponent.get
+        obj_type = hvac_comp.iddObjectType.valueName
+        obj_type_name = obj_type.gsub('OS_','').gsub('_','')
+        method_name = "to_#{obj_type_name}"
+        if hvac_comp.respond_to?(method_name)
+          unitary_equip = hvac_comp.method(method_name).call
+          if !unitary_equip.empty?
+            unitary_equip = unitary_equip.get
+          end
+        end
+      end
+
+      #test if the coil is a supplemental coil on the unitary equipment
+      if unitary_equip.respond_to?("supplementalHeatingCoil") && unitary_equip.supplementalHeatingCoil.is_initialized && unitary_equip.supplementalHeatingCoil.get == coil
+        supplemental_coil = true
+      end
+
+      #get supplemental gas coil capacity
+      if supplemental_coil
+        if coil.nominalCapacity.is_initialized
+          supplemental_capacity_w = coil.nominalCapacity.get
+        elsif coil.autosizedNominalCapacity.is_initialized
+          supplemental_capacity_w = coil.autosizedNominalCapacity.get
+        else
+          runner.registerWarning("Gas heating coil capacity not available for '#{coil.name}'.")
+        end
+        supplemental_gas_coil_total_capacity_w += supplemental_capacity_w
+        supplemental_gas_coil_capacity_weighted_efficiency += supplemental_capacity_w * coil.gasBurnerEfficiency
+
+        # log count of sizes
+        supplemental_capacity_kbtuh = OpenStudio.convert(supplemental_capacity_w, 'W', 'kBtu/h').get
+        if supplemental_capacity_kbtuh < 30
+          supplemental_gas_count_0_to_30_kbtuh += 1
+        elsif supplemental_capacity_kbtuh < 65
+          supplemental_gas_count_30_to_65_kbtuh += 1
+        elsif supplemental_capacity_kbtuh < 135
+          supplemental_gas_count_65_to_135_kbtuh += 1
+        elsif supplemental_capacity_kbtuh < 240
+          supplemental_gas_count_135_to_240_kbtuh += 1
+        else # capacity is over 240 kbtuh
+          supplemental_gas_count_240_plus_kbtuh += 1
+        end
+      else
+
+        # get primary gas coil capacity
+        primary_capacity_w = 0.0
+        if coil.nominalCapacity.is_initialized
+          primary_capacity_w = coil.nominalCapacity.get
+        elsif coil.autosizedNominalCapacity.is_initialized
+          primary_capacity_w = coil.autosizedNominalCapacity.get
+        else
+          runner.registerWarning("Gas heating coil capacity not available for '#{coil.name}'.")
+        end
+        primary_gas_coil_total_capacity_w += primary_capacity_w
+        primary_gas_coil_capacity_weighted_efficiency += primary_capacity_w * coil.gasBurnerEfficiency
+
+        # log count of sizes
+        primary_capacity_kbtuh = OpenStudio.convert(primary_capacity_w, 'W', 'kBtu/h').get
+        if primary_capacity_kbtuh < 30
+          primary_gas_count_0_to_30_kbtuh += 1
+        elsif primary_capacity_kbtuh < 65
+          primary_gas_count_30_to_65_kbtuh += 1
+        elsif primary_capacity_kbtuh < 135
+          primary_gas_count_65_to_135_kbtuh += 1
+        elsif primary_capacity_kbtuh < 240
+          primary_gas_count_135_to_240_kbtuh += 1
+        else # capacity is over 240 kbtuh
+          primary_gas_count_240_plus_kbtuh += 1
+        end
       end
     end
-    capacity_weighted_gas_coil_efficiency = gas_coil_total_capacity_w > 0.0 ? gas_coil_capacity_weighted_efficiency / gas_coil_total_capacity_w : 0.0
-    gas_coil_total_capacity_kbuth = OpenStudio.convert(gas_coil_total_capacity_w, 'W', 'kBtu/h').get
-    runner.registerValue('com_report_hvac_capacity_weighted_gas_coil_efficiency', capacity_weighted_gas_coil_efficiency)
-    runner.registerValue('com_report_hvac_furnace_capacity_kbtuh', gas_coil_total_capacity_kbuth)
-    runner.registerValue('com_report_hvac_count_furnace_0_to_30_kbtuh', gas_count_0_to_30_kbtuh)
-    runner.registerValue('com_report_hvac_count_furnace_30_to_65_kbtuh', gas_count_30_to_65_kbtuh)
-    runner.registerValue('com_report_hvac_count_furnace_65_to_135_kbtuh', gas_count_65_to_135_kbtuh)
-    runner.registerValue('com_report_hvac_count_furnace_135_to_240_kbtuh', gas_count_135_to_240_kbtuh)
-    runner.registerValue('com_report_hvac_count_furnace_240_plus_kbtuh', gas_count_240_plus_kbtuh)
+    #report the primary gas coil counts, weight efficiency, and total capacity
+    primary_capacity_weighted_gas_coil_efficiency = primary_gas_coil_total_capacity_w > 0.0 ? primary_gas_coil_capacity_weighted_efficiency / primary_gas_coil_total_capacity_w : 0.0
+    primary_gas_coil_total_capacity_kbuth = OpenStudio.convert(primary_gas_coil_total_capacity_w, 'W', 'kBtu/h').get
+    runner.registerValue('com_report_hvac_capacity_weighted_primary_gas_coil_efficiency', primary_capacity_weighted_gas_coil_efficiency)
+    runner.registerValue('com_report_hvac_primary_gas_coil_capacity_kbtuh', primary_gas_coil_total_capacity_kbuth)
+    runner.registerValue('com_report_hvac_count_primary_gas_coil_0_to_30_kbtuh', primary_gas_count_0_to_30_kbtuh)
+    runner.registerValue('com_report_hvac_count_primary_gas_coil_30_to_65_kbtuh', primary_gas_count_30_to_65_kbtuh)
+    runner.registerValue('com_report_hvac_count_primary_gas_coil_65_to_135_kbtuh', primary_gas_count_65_to_135_kbtuh)
+    runner.registerValue('com_report_hvac_count_primary_gas_coil_135_to_240_kbtuh', primary_gas_count_135_to_240_kbtuh)
+    runner.registerValue('com_report_hvac_count_primary_gas_coil_240_plus_kbtuh', primary_gas_count_240_plus_kbtuh)
+
+    #report the supplemental gas coil counts, weight efficiency, and total capacity
+    supplemental_capacity_weighted_gas_coil_efficiency = supplemental_gas_coil_total_capacity_w > 0.0 ? supplemental_gas_coil_capacity_weighted_efficiency / supplemental_gas_coil_total_capacity_w : 0.0
+    supplemental_gas_coil_total_capacity_kbuth = OpenStudio.convert(supplemental_gas_coil_total_capacity_w, 'W', 'kBtu/h').get
+    runner.registerValue('com_report_hvac_supplemental_capacity_weighted_gas_coil_efficiency', supplemental_capacity_weighted_gas_coil_efficiency)
+    runner.registerValue('com_report_hvac_supplemental_gas_coil_capacity_kbtuh', supplemental_gas_coil_total_capacity_kbuth)
+    runner.registerValue('com_report_hvac_count_supplemental_gas_coil_0_to_30_kbtuh', supplemental_gas_count_0_to_30_kbtuh)
+    runner.registerValue('com_report_hvac_count_supplemental_gas_coil_30_to_65_kbtuh', supplemental_gas_count_30_to_65_kbtuh)
+    runner.registerValue('com_report_hvac_count_supplemental_gas_coil_65_to_135_kbtuh', supplemental_gas_count_65_to_135_kbtuh)
+    runner.registerValue('com_report_hvac_count_supplemental_gas_coil_135_to_240_kbtuh', supplemental_gas_count_135_to_240_kbtuh)
+    runner.registerValue('com_report_hvac_count_supplemental_gas_coil_240_plus_kbtuh', supplemental_gas_count_240_plus_kbtuh)
 
     # Sum of heating and cooling equipment capacity
     cooling_equipment_capacity_tons = chiller_total_capacity_tons + dx_cooling_total_capacity_tons
     runner.registerValue('com_report_hvac_cooling_equipment_tons', cooling_equipment_capacity_tons)
-    heating_equipment_capacity_kbtuh = dx_heating_total_capacity_kbtuh + boiler_total_capacity_kbtuh + heat_pump_heating_total_capacity_kbtuh + gas_coil_total_capacity_kbuth
+    heating_equipment_capacity_kbtuh = dx_heating_total_capacity_kbtuh + boiler_total_capacity_kbtuh + heat_pump_heating_total_capacity_kbtuh + primary_gas_coil_total_capacity_kbuth + supplemental_gas_coil_total_capacity_kbuth
     runner.registerValue('com_report_hvac_heating_equipment_kbtuh', heating_equipment_capacity_kbtuh)
 
     # Service water heating hot water use
