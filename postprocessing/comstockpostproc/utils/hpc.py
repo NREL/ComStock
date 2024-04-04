@@ -73,7 +73,7 @@ def extract_models_from_simulation_output(yml_path, up_id='up00', output_vars=[]
     path_to_zipped_results_file = os.path.join(results_csv_path, f'results_{up_id}.csv.gz')
     df_results_csv = pd.read_csv(path_to_zipped_results_file, compression='infer', header=0, sep=',', quotechar='"', index_col='building_id')
     
-    if up_id is not "up00":
+    if up_id != "up00":
         # load baseline results.csv
         path_to_baseline_results_file = os.path.join(results_csv_path, 'results_up00.csv.gz')
         baseline_results_csv = pd.read_csv(path_to_baseline_results_file, compression='infer', header=0, sep=',', quotechar='"', index_col='building_id')
@@ -680,15 +680,15 @@ def summarize_failures(yml_path):
                             continue
                         bldg_id = re.search(r'.*bldg(\d+).*', tar_member.name).group(1)
                         up_id = re.search(r'.*up(\d+).*', tar_member.name).group(1)
-                        sing_out_name = f'./up{up_id}/bldg{bldg_id}/singularity_output.log'
+                        sing_out_name = f'./up{up_id}/bldg{bldg_id}/openstudio_output.log'
                         job_fails.write(f'Errors from up{up_id}/bldg{bldg_id}\n')
                         try:
                             sing_out_bytes=tar.extractfile(sing_out_name).read()
                             for l in sing_out_bytes.decode().split('\n'):
-                                if re.search(f'\[.* ERROR\]', l):
+                                if re.search(r'\[.* ERROR\]|\[.*<Error>.*\]', l):
                                     job_fails.write(f'{l}\n')
                         except KeyError as err:
-                            job_fails.write(f'Did not find singularity_output.log for up{up_id}/bldg{bldg_id}, cannot extract failure details\n')
+                            job_fails.write(f'Did not find openstudio_output.log for up{up_id}/bldg{bldg_id}, cannot extract failure details\n')
                     tar.close()
         return
 

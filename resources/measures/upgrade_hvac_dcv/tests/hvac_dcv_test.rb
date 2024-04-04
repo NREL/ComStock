@@ -42,6 +42,8 @@ require 'openstudio/measure/ShowRunnerOutput'
 require 'fileutils'
 require 'minitest/autorun'
 require_relative '../measure.rb'
+require_relative '../../../../test/helpers/minitest_helper'
+
 
 class HVACDCV_Test < Minitest::Test
   # all tests are a sub definition of this class, e.g.:
@@ -109,7 +111,7 @@ class HVACDCV_Test < Minitest::Test
   end
 
   # applies the measure and then runs the model
-  def apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false)    
+  def apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false)
     assert(File.exist?(osm_path))
     assert(File.exist?(epw_path))
 

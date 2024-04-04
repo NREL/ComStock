@@ -1,19 +1,19 @@
 # ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 ######################################################################
-#  Copyright (c) 2008-2013, Alliance for Sustainable Energy.  
+#  Copyright (c) 2008-2013, Alliance for Sustainable Energy.
 #  All rights reserved.
-#  
+#
 #  This library is free software you can redistribute it and/or
 #  modify it under the terms of the GNU Lesser General Public
 #  License as published by the Free Software Foundation either
 #  version 2.1 of the License, or (at your option) any later version.
-#  
+#
 #  This library is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 #  Lesser General Public License for more details.
-#  
+#
 #  You should have received a copy of the GNU Lesser General Public
 #  License along with this library if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -21,9 +21,9 @@
 
 require 'openstudio'
 require 'openstudio/ruleset/ShowRunnerOutput'
+require_relative '../../../../test/helpers/minitest_helper'
 
-require "#{File.dirname(__FILE__)}/../measure.rb"
-
+require_relative '../measure.rb'
 require 'minitest/autorun'
 
 class InjectIDFObjects_Test < MiniTest::Unit::TestCase
@@ -33,7 +33,7 @@ class InjectIDFObjects_Test < MiniTest::Unit::TestCase
 
     # create an instance of the measure
     measure = MultispeedMinimumFlow.new
-	
+
 
     # create an instance of a runner with OSW
     runner = OpenStudio::Ruleset::OSRunner.new(OpenStudio::WorkflowJSON.new)

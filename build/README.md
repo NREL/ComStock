@@ -1,6 +1,8 @@
 # NREL Staff Instructions for Building Custom Singularity Images for HPC usage
 
-## *NOTE: THIS ONLY SUPPORTS OPENSTUDIO VERSIONS > 3.0*
+## *NOTE: REQUIREMENTS:
+* OPENSTUDIO VERSIONS > 3.0
+* (as of 2/7/24) Docker Engine <= 24.0.6
 
 ## Modify the Dockerfile to change OpenStudio version
 
@@ -42,8 +44,6 @@
     ```
 
 * Launch the Container (in privileged mode with docker.sock mounted in the container)
-
-    __*Windows: change the line endings in your `C:\path\to\comstock\build\singularity\build_singularity.sh` file from Windows (CR LF) to Unix (LF).  You can do this with Notepad++ using Edit > EOL Conversion or VSCode using the Change End of Line Sequence command.  If you don't, you will get the error `: No such file or directory` in the next step*__
 
     ```bash
     cd C:\path\to\comstock\build
@@ -113,7 +113,7 @@
                                                                                               ^^^^SHA HERE^^^^
     ```
 
-* If the above returned the expected OpenStudio Standards version, push rename the simg file and push it to Eagle. [`SIMG_VERSION_NAME` and `SIMG_VERSION_SHA`](https://nrel.github.io/buildstockbatch/project_defn.html#openstudio-version-overrides) should be set to a unique combination for each new singularity image. This provides the means of specifying this singularity image in the ComStock project YAML. [See also the ComStock HPC Training document.](../comstock_hpc_training.md#example-yml-file-contents-documentation) __`SIMG_VERSION_SHA` must be the SHA of the version of OpenStudio included, NOT the SHA of openstudio-standards.__ To signify a custom version of openstudio-standards, set the `SIMG_VERSION_NAME` to something meaningful. Something like: `SIMG_VERSION_NAME=os_340_stds_b50172b4cc18` and `SIMG_VERSION_SHA=4bd816f785`.
+* If the above returned the expected OpenStudio Standards version, push rename the simg file and push it to Eagle. [`SIMG_VERSION_NAME` and `SIMG_VERSION_SHA`](https://buildstockbatch.readthedocs.io/en/latest/project_defn.html#openstudio-version-overrides) should be set to a unique combination for each new singularity image. This provides the means of specifying this singularity image in the ComStock project YAML. See also the [ComStock HPC Training document.](../comstock_hpc_training.md#example-yml-file-contents-documentation). __`SIMG_VERSION_SHA` must be the SHA of the version of OpenStudio included, NOT the SHA of openstudio-standards.__ To signify a custom version of openstudio-standards, set the `SIMG_VERSION_NAME` to something meaningful. Something like: `SIMG_VERSION_NAME=os_340_stds_b50172b4cc18` and `SIMG_VERSION_SHA=4bd816f785`.
 
     ```bash
     # Rename the container
@@ -133,7 +133,7 @@
 
 * Record the details of the Singularity image, including the openstudio-standards SHA and the version of OpenStudio used, in the Singularity Images tab of the Run Dashboard spreadsheet.
 
-* The final step is moving the container from your home directory on eagle to the [singularity image directory](../comstock_hpc_training.md#example-yml-file-contents-documentation), typically `/shared-projects/buildstock/singularity-images` or `/project/my-project/singularity-images`.
+* The final step is moving the container from your home directory on eagle to the [singularity image directory](../comstock_hpc_training.md#example-yml-file-contents), typically `/shared-projects/buildstock/singularity_images` or `/project/my-project/singularity-images`.
 
 * You're now ready to update your YAML and run!
 

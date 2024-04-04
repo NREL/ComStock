@@ -1,0 +1,143 @@
+<?xml version="1.0"?>
+<measure>
+  <schema_version>3.1</schema_version>
+  <name>advanced_rtu_control</name>
+  <uid>b3e18436-f7da-4b62-bbce-c21e2f9d5ad4</uid>
+  <version_id>a0963351-d433-4cc5-8dbf-6fe63773ea7a</version_id>
+  <version_modified>2024-02-12T18:18:00Z</version_modified>
+  <xml_checksum>B3180F38</xml_checksum>
+  <class_name>AdvancedRTUControl</class_name>
+  <display_name>Advanced RTU Control</display_name>
+  <description>This measure implements advanced RTU controls, including a variable-speed fan, with options for economizing and demand-controlled ventilation.</description>
+  <modeler_description>This measure iterates through airloops, and, where applicable, replaces constant speed fans with variable speed fans, and replaces the existing zone terminal.</modeler_description>
+  <arguments>
+    <argument>
+      <name>add_econo</name>
+      <display_name>Economizer to be added?</display_name>
+      <description>Add economizer (true) or not (false)</description>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>add_dcv</name>
+      <display_name>DCV to be added?</display_name>
+      <description>Add DCV (true) or not (false)</description>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+  </arguments>
+  <outputs />
+  <provenances />
+  <tags>
+    <tag>HVAC.HVAC Controls</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Measure Language</name>
+      <value>Ruby</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Retrofit EE</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>42F48706</checksum>
+    </file>
+    <file>
+      <filename>README.md.erb</filename>
+      <filetype>erb</filetype>
+      <usage_type>readmeerb</usage_type>
+      <checksum>F1C26127</checksum>
+    </file>
+    <file>
+      <filename>.gitkeep</filename>
+      <filetype>gitkeep</filetype>
+      <usage_type>doc</usage_type>
+      <checksum>00000000</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>3.6.1</identifier>
+        <min_compatible>3.6.1</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>22968503</checksum>
+    </file>
+    <file>
+      <filename>advanced_rtu_control_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>B8D467CB</checksum>
+    </file>
+    <file>
+      <filename>example_model.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>53D14E69</checksum>
+    </file>
+    <file>
+      <filename>models/361_Retail_PSZ_Gas_5a_added_output.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>B5B31B25</checksum>
+    </file>
+    <file>
+      <filename>models/361_Small_Office_PSZ_Gas_3a.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>073BEAE6</checksum>
+    </file>
+  </files>
+</measure>

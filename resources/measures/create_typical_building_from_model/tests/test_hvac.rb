@@ -6,8 +6,9 @@ require 'openstudio/ruleset/ShowRunnerOutput'
 require 'minitest/autorun'
 require_relative '../measure.rb'
 require 'fileutils'
+require_relative '../../../../test/helpers/minitest_helper'
 
-class AddHVACSystemTest < MiniTest::Unit::TestCase
+class AddHVACSystemTest < Minitest::Test
   def test_add_hvac_systems
     # Get the original working directory
     start_dir = Dir.pwd
