@@ -76,7 +76,7 @@ setup(
             'kaleido==0.1.0',  # kaleido version for Linux
         ],
         ':sys_platform == "darwin"': [
-            'kaleido==0.1.0',  # kaleido version for MacOS
+            'kaleido==0.2.0',  # kaleido version for MacOS
         ],
 
     }

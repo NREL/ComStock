@@ -201,14 +201,15 @@ class NamingMixin():
 
     # Addressable segment columns
     SEG_A = 'A: Non Food-Service Buildings with Small Packaged Units'
-    SEG_B = 'B: Food-Service, Freestanding and in Strip Malls with Small Packaged Units'
-    SEG_C = 'C: Buildings with Hydronically Heated Multizone Systems'
-    SEG_D = 'D: Lodging with Zone-by-Zone Systems'
-    SEG_E = 'E: Buildings with Electric Resistance Multizone Systems'
-    SEG_F = 'F: Buildings with Furnace-Based Multizone Systems'
-    SEG_G = 'G: Buildings with Residential Style Central Systems'
-    SEG_H = 'H: Non-Lodging Buildings with Zone-by-Zone Systems'
-    SEG_I = 'I: Other'
+    SEG_B = 'B: Food-Service Buildings with Small Packaged Units'
+    SEG_C = 'C: Strip Malls with some Food-Service with Small Packaged Units'
+    SEG_D = 'D: Buildings with Hydronically Heated Multizone Systems'
+    SEG_E = 'E: Lodging with Zone-by-Zone Systems'
+    SEG_F = 'F: Buildings with Electric Resistance Multizone Systems'
+    SEG_G = 'G: Buildings with Furnace-Based Multizone Systems'
+    SEG_H = 'H: Buildings with Residential Style Central Systems'
+    SEG_I = 'I: Non-Lodging Buildings with Zone-by-Zone Systems'
+    SEG_J = 'J: Other'
 
     # List of addressable segments
     COLS_SEGMENTS = [
@@ -220,7 +221,8 @@ class NamingMixin():
         SEG_F,
         SEG_G,
         SEG_H,
-        SEG_I
+        SEG_I,
+        SEG_J
     ]
 
     # List of total annual energy columns
