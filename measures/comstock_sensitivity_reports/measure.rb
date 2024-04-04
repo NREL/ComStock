@@ -79,18 +79,27 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
   # helper method to access report variable data
   def sql_get_report_variable_data_double(runner, sql, object, variable_name)
     value = 0.0
-    var_data_id_query = "SELECT ReportVariableDataDictionaryIndex FROM ReportVariableDataDictionary WHERE VariableName = '#{variable_name}' AND ReportingFrequency = 'Run Period' AND KeyValue = '#{object.name.get.to_s.upcase}'"
+    # See if object input is the actual object or just a string and handle appropriately
+    if object.respond_to?('name')
+      var_data_id_query = "SELECT ReportVariableDataDictionaryIndex FROM ReportVariableDataDictionary WHERE VariableName = '#{variable_name}' AND ReportingFrequency = 'Run Period' AND KeyValue = '#{object.name.get.to_s.upcase}'"
+    else
+      var_data_id_query = "SELECT ReportVariableDataDictionaryIndex FROM ReportVariableDataDictionary WHERE VariableName = '#{variable_name}' AND ReportingFrequency = 'Run Period' AND KeyValue = '#{object.upcase}'"
+    end
     var_data_id = sql.execAndReturnFirstDouble(var_data_id_query)
     if var_data_id.is_initialized
       var_val_query = "SELECT VariableValue FROM ReportVariableData WHERE ReportVariableDataDictionaryIndex = '#{var_data_id.get}'"
       val = sql.execAndReturnFirstDouble(var_val_query)
       if val.is_initialized
         value = val.get
-      else
+      elsif object.respond_to?('name')
         runner.registerWarning("'#{variable_name}' not available for #{object.iddObjectType} '#{object.name}'.")
+      else
+        runner.registerWarning("'#{variable_name}' not available for #{object}'.")
       end
-    else
+    elsif object.respond_to?('name')
       runner.registerWarning("'#{variable_name}' not available for #{object.iddObjectType} '#{object.name}'.")
+    else
+    runner.registerWarning("'#{variable_name}' not available for #{object}'.")
     end
     return value
   end
@@ -177,6 +186,34 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       result << OpenStudio::IdfObject.load('Output:Variable,*,Heating Coil Total Water Heating Energy,RunPeriod;').get # J
       result << OpenStudio::IdfObject.load('Output:Variable,*,Heating Coil Water Heating Electricity Energy,RunPeriod;').get # J
     end
+
+    # request zoneHVACComponents mixed air and outdoor air nodes mass flow rate
+    model.getZoneHVACComponents.sort.each do |zone_hvac_component|
+      # cast the zone_hvac_component down to its child object
+      obj_type = zone_hvac_component.iddObjectType.valueName
+      obj_type_name = obj_type.gsub('OS_','').gsub('_','')
+      method_name = "to_#{obj_type_name}"
+      if zone_hvac_component.respond_to?(method_name)
+        actual_zone_hvac = zone_hvac_component.method(method_name).call
+        if !actual_zone_hvac.empty?
+          actual_zone_hvac = actual_zone_hvac.get
+        end
+      end
+
+      next if actual_zone_hvac.airLoopHVAC.is_initialized || !actual_zone_hvac.respond_to?('supplyAirFan')
+
+      base_obj_name = actual_zone_hvac.name.get
+      outlet_node = actual_zone_hvac.outletNode.get
+      result << OpenStudio::IdfObject.load("Output:Variable, #{outlet_node.name.get}, System Node Mass Flow Rate,RunPeriod;").get # kg/s
+      if actual_zone_hvac.respond_to?('outdoorAirMixerName')
+        result << OpenStudio::IdfObject.load("Output:Variable,#{base_obj_name} OA Node, System Node Mass Flow Rate,RunPeriod;").get # kg/s
+      elsif actual_zone_hvac.respond_to?('vrfSystem')
+        result << OpenStudio::IdfObject.load("Output:Variable,#{base_obj_name} Outdoor Air Node, System Node Mass Flow Rate,RunPeriod;").get # kg/s
+      else
+        next
+      end
+    end
+
 
     #result << OpenStudio::IdfObject.load("Output:Variable,*,Fan #{elec} Energy,RunPeriod;").get # J
     #result << OpenStudio::IdfObject.load("Output:Variable,*,Humidifier #{elec} Energy,RunPeriod;").get # J
@@ -717,7 +754,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       air_system_weighted_fan_efficiency += fan_efficiency * air_loop_mass_flow_rate_kg_s
     end
     average_outdoor_air_fraction = air_system_total_mass_flow_kg_s > 0.0 ? air_system_total_oa_mass_flow_kg_s / air_system_total_mass_flow_kg_s : 0.0
-    runner.registerValue('com_report_average_outdoor_air_fraction', average_outdoor_air_fraction)
+    runner.registerValue('com_report_air_system_average_outdoor_air_fraction', average_outdoor_air_fraction)
     air_system_fan_power_minimum_flow_fraction = air_system_total_mass_flow_kg_s > 0.0 ? air_system_weighted_fan_power_minimum_flow_fraction / air_system_total_mass_flow_kg_s : 0.0
     runner.registerValue('com_report_air_system_fan_power_minimum_flow_fraction', air_system_fan_power_minimum_flow_fraction)
     air_system_fan_static_pressure = air_system_total_mass_flow_kg_s > 0.0 ? air_system_weighted_fan_static_pressure / air_system_total_mass_flow_kg_s : 0.0
@@ -765,6 +802,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     runner.registerValue('com_report_hvac_economizer_high_limit_enthalpy_j_per_kg', weighted_economizer_high_limit_enthalpy_j_per_kg)
 
     # Zone HVAC properties
+    zone_hvac_total_mass_flow_kg_s = 0.0
+    zone_hvac_total_oa_mass_flow_kg_s = 0.0
     zone_hvac_fan_total_air_flow_m3_per_s = 0.0
     zone_hvac_weighted_fan_power_minimum_flow_fraction = 0.0
     zone_hvac_weighted_fan_static_pressure = 0.0
@@ -857,18 +896,65 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
           next
         end
 
+        # add to weighted
         zone_hvac_fan_total_air_flow_m3_per_s += max_air_flow_rate_m3_per_s
         zone_hvac_weighted_fan_power_minimum_flow_fraction += fan_minimum_flow_frac * max_air_flow_rate_m3_per_s
         zone_hvac_weighted_fan_static_pressure += fan_static_pressure * max_air_flow_rate_m3_per_s
         zone_hvac_weighted_fan_efficiency += fan_efficiency * max_air_flow_rate_m3_per_s
       end
+
+      # cast zone_hvac_component down to its child object
+      obj_type = zone_hvac_component.iddObjectType.valueName
+      obj_type_name = obj_type.gsub('OS_','').gsub('_','')
+      method_name = "to_#{obj_type_name}"
+      if zone_hvac_component.respond_to?(method_name)
+        actual_zone_hvac = zone_hvac_component.method(method_name).call
+        if !actual_zone_hvac.empty?
+          actual_zone_hvac = actual_zone_hvac.get
+        end
+      end
+
+      oa_node_exists = false
+      next if actual_zone_hvac.airLoopHVAC.is_initialized || !actual_zone_hvac.respond_to?('supplyAirFan')
+
+      base_obj_name = actual_zone_hvac.name.get
+      outlet_node = actual_zone_hvac.outletNode.get
+      zone_equip_mass_flow_rate_kg_s = sql_get_report_variable_data_double(runner, sql, outlet_node, 'System Node Mass Flow Rate')
+      if actual_zone_hvac.respond_to?('outdoorAirMixerName')
+        oa_node_exists = true
+        oa_node = "#{base_obj_name} OA Node"
+      elsif actual_zone_hvac.respond_to?('vrfSystem')
+        oa_node_exists = true
+        oa_node = "#{base_obj_name} Outdoor Air Node"
+      end
+
+      if oa_node_exists
+        zone_equip_oa_mass_flow_rate_kg_s = sql_get_report_variable_data_double(runner, sql, oa_node, 'System Node Mass Flow Rate')
+      else
+        zone_equip_oa_mass_flow_rate_kg_s = 0.0
+      end
+
+      # add to weighted
+      zone_hvac_total_mass_flow_kg_s += zone_equip_mass_flow_rate_kg_s
+      zone_hvac_total_oa_mass_flow_kg_s += zone_equip_oa_mass_flow_rate_kg_s
     end
+
+    runner.registerValue('com_report_zone_hvac_total_mass_flow_rate', zone_hvac_total_mass_flow_kg_s, 'kg/s')
+    runner.registerValue('com_report_zone_hvac_total_outdoor_air_mass_flow_rate', zone_hvac_total_oa_mass_flow_kg_s, 'kg/s')
+    zone_hvac_average_outdoor_air_fraction = zone_hvac_total_mass_flow_kg_s > 0.0 ? zone_hvac_total_oa_mass_flow_kg_s / zone_hvac_total_mass_flow_kg_s : 0.0
+    runner.registerValue('com_report_zone_hvac_average_outdoor_air_fraction', zone_hvac_average_outdoor_air_fraction)
     zone_hvac_fan_power_minimum_flow_fraction = zone_hvac_fan_total_air_flow_m3_per_s > 0.0 ? zone_hvac_weighted_fan_power_minimum_flow_fraction / zone_hvac_fan_total_air_flow_m3_per_s : 0.0
     runner.registerValue('com_report_zone_hvac_fan_power_minimum_flow_fraction', zone_hvac_fan_power_minimum_flow_fraction)
     zone_hvac_fan_static_pressure = zone_hvac_fan_total_air_flow_m3_per_s > 0.0 ? zone_hvac_weighted_fan_static_pressure / zone_hvac_fan_total_air_flow_m3_per_s : 0.0
     runner.registerValue('com_report_zone_hvac_fan_static_pressure', zone_hvac_fan_static_pressure ,'Pa')
     zone_hvac_fan_total_efficiency = zone_hvac_fan_total_air_flow_m3_per_s > 0.0 ? zone_hvac_weighted_fan_efficiency / zone_hvac_fan_total_air_flow_m3_per_s : 0.0
     runner.registerValue('com_report_zone_hvac_fan_total_efficiency', zone_hvac_fan_total_efficiency)
+    total_building_avg_mass_flow_rate_kg_s = zone_hvac_total_mass_flow_kg_s + air_system_total_mass_flow_kg_s
+    runner.registerValue('com_report_total_building_average_mass_flow_rate', total_building_avg_mass_flow_rate_kg_s, 'kg/s')
+    total_building_avg_oa_mass_flow_rate_kg_s = zone_hvac_total_oa_mass_flow_kg_s + air_system_total_oa_mass_flow_kg_s
+    runner.registerValue('com_report_total_building_average_oa_mass_flow_rate', total_building_avg_oa_mass_flow_rate_kg_s, 'kg/s')
+    total_building_avg_oa_fraction = total_building_avg_oa_mass_flow_rate_kg_s/total_building_avg_mass_flow_rate_kg_s
+    runner.registerValue('com_report_total_building_average_outdoor_air_fraction', total_building_avg_oa_fraction)
 
     # calculate building heating and cooling
     building_heated_zone_area_m2 = 0.0
