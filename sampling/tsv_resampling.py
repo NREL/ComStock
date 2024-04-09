@@ -61,7 +61,7 @@ class ComStockBaseSampler:
         self.sample_number = n_datapoints
         self.n_buckets = n_buckets
         self.sobol = sobol
-        self._process_sampling_inputs(n_datapoints, n_buckets, sobol)
+        self._process_sampling_inputs()
         
         # Set up the directory structures required
         self._instantiate_folder_structures()
@@ -144,7 +144,7 @@ class ComStockBaseSampler:
         if self.sample_number == 0:
             raise RuntimeError('Sample number set to 0. Please ensure non-zero sample number.')
         if self.n_buckets == 0:
-            raise RuntimeError('Number or buckets set to 0. Please ensure non-zero number or buckets.')
+            raise RuntimeError('Number or buckets set to 0. Please ensure non-zero number of buckets.')
         if self.sample_number % self.n_buckets != 0:
             raise RuntimeError('Number of samples divided by number of buckets results in non-zero remainder.')
 
@@ -622,9 +622,9 @@ def main():
         n_datapoints=args.n_samples,
         n_buckets=args.n_buckets,
         sobol=args.random,
-        precomputed_params_path=args.precomputed
+        precomputed_sample=args.precomputed
     )
-    sampler.run_sampling(args.n_samples)
+    sampler.run_sampling()
 
 if __name__ == '__main__':
     main()
