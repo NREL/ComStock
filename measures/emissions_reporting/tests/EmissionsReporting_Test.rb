@@ -41,6 +41,7 @@ require 'minitest/autorun'
 require_relative '../measure.rb'
 require 'fileutils'
 require 'openstudio-standards'
+require_relative '../../../test/helpers/minitest_helper'
 
 class EmissionsReporting_Test < Minitest::Test
   def test_number_of_arguments_and_argument_names
@@ -113,7 +114,7 @@ class EmissionsReporting_Test < Minitest::Test
 
       end
       result_string << ",TRUE,TRUE,float,co2e_kg,co2e_kg"
-      case 
+      case
       when captures[2].include?('egrid')
         result_string << ",\"annual greehouse gas emissions from #{captures[0].gsub("_"," ")} #{captures[1].gsub("_"," ")} use, using #{captures[2].gsub("_"," ")} emissions intensity\""
       when captures[2].include?('aer')

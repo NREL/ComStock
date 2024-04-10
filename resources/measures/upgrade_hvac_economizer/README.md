@@ -19,14 +19,8 @@ ModelMeasure
 ## Arguments
 
 
-### Apply measure?
-
-**Name:** apply_measure,
-**Type:** Boolean,
-**Units:** ,
-**Required:** true,
-**Model Dependent:** false
 
 
+This measure does not have any user arguments
 
 

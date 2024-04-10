@@ -42,6 +42,8 @@ require 'fileutils'
 require 'open3'
 
 require_relative '../measure.rb'
+require_relative '../../../test/helpers/minitest_helper'
+
 require 'minitest/autorun'
 
 class TimeseriesCSVExport_Test < Minitest::Test

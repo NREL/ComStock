@@ -1,0 +1,46 @@
+{
+    "version": "1.0",
+    "fluid": {
+      "fluid_name": "PROPYLENEGLYCOL",
+      "concentration_percent": 20.0,
+      "temperature": 20
+    },
+    "grout": {
+      "conductivity": 1.0,
+      "rho_cp": 3901000
+    },
+    "soil": {
+      "conductivity": 2.0,
+      "rho_cp": 2343493,
+      "undisturbed_temp": 18.3
+    },
+    "pipe": {
+      "inner_diameter": 0.034036,
+      "outer_diameter": 0.042164,
+      "shank_spacing": 0.0323,
+      "roughness": 0.000001,
+      "conductivity": 0.4,
+      "rho_cp": 1542000,
+      "arrangement": "SINGLEUTUBE"
+    },
+    "borehole": {
+      "buried_depth": 2.0,
+      "diameter": 0.150
+    },
+    "simulation": {
+      "num_months": 240
+    },
+    "geometric_constraints": {
+      "length": 400,
+      "b": 5,
+      "max_height": 135.0,
+      "min_height": 60.0,
+      "method": "NEARSQUARE"
+    },
+    "design": {
+      "flow_rate": 0.2,
+      "flow_type": "BOREHOLE",
+      "max_eft": 35.0,
+      "min_eft": 5.0
+    }
+}

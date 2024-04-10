@@ -102,7 +102,6 @@ class PlottingMixin():
             }
 
             # plot
-            order_map = dict(zip(color_map.keys(), [2,1])) # this will set baseline first in plots
             fig = px.bar(df_emi_gb_long, x=column_for_grouping, y='Annual Energy Consumption (TBtu)', color='End Use', pattern_shape='Fuel Type',
                     barmode='stack', text_auto='.1f', template='simple_white', width=700, category_orders=cat_order, color_discrete_map=color_dict,
                     pattern_shape_map=pattern_dict)
@@ -110,12 +109,21 @@ class PlottingMixin():
             # formatting and saving image
             title = 'ann_energy_by_enduse_and_fuel'
             # format title and axis
+            # update plot width based on number of upgrades
+            upgrade_count = df_emi_gb_long[column_for_grouping].nunique()
+            plot_width=550
+            if upgrade_count <= 2:
+                plot_width = 550
+            else:
+                extra_elements = upgrade_count - 2
+                plot_width = 550 * (1 + 0.15 * extra_elements)
+
             fig.update_traces(textposition='inside', width=0.5)
             fig.update_xaxes(type='category', mirror=True, showgrid=False, showline=True, title=None, ticks='outside', linewidth=1, linecolor='black',
                             categoryorder='array', categoryarray=np.array(list(color_map.keys())))
             fig.update_yaxes(mirror=True, showgrid=False, showline=True, ticks='outside', linewidth=1, linecolor='black', rangemode="tozero")
-            fig.update_layout(title=None,  margin=dict(l=20, r=20, t=27, b=20), width=550, legend_title=None, legend_traceorder="reversed",
-                            uniformtext_minsize=8, uniformtext_mode='hide', bargap=0.05)
+            fig.update_layout(title=None,  margin=dict(l=20, r=20, t=27, b=20), width=plot_width, legend_title=None, legend_traceorder="reversed",
+                            uniformtext_minsize=7, uniformtext_mode='hide', bargap=0.05)
             fig.update_layout(
                 font=dict(
                     size=12)
@@ -179,8 +187,17 @@ class PlottingMixin():
         order_map = list(color_map.keys()) # this will set baseline first in plots
         color_palette = sns.color_palette("colorblind")
 
+        # update plot width based on number of upgrades
+        upgrade_count = df_emi_gb_long[column_for_grouping].nunique()
+        plot_width=8
+        if upgrade_count <= 2:
+            plot_width = 8
+        else:
+            extra_elements = upgrade_count - 2
+            plot_width = 8 * (1 + 0.40 * extra_elements)
+
         # Create three vertical subplots with shared y-axis
-        fig, axes = plt.subplots(1, 3, figsize=(8, 3.4), sharey=True, gridspec_kw={'top': 1.2})
+        fig, axes = plt.subplots(1, 3, figsize=(plot_width, 3.4), sharey=True, gridspec_kw={'top': 1.2})
         plt.rcParams['axes.facecolor'] = 'white'
         # list of electricity grid scenarios
         electricity_scenarios = list(df_emi_gb_long[df_emi_gb_long['variable'].str.contains('electricity', case=False)]['variable'].unique())
@@ -218,7 +235,7 @@ class PlottingMixin():
             # Increase font size for text labels
             axes[ax_position].tick_params(axis='both', labelsize=12)
             # Add text labels to the bars for bars taller than a threshold
-            threshold = 20  # Adjust this threshold as needed
+            threshold = 15*upgrade_count  # Adjust this threshold as needed
             for bar in axes[ax_position].containers:
                 if bar.datavalues.sum() > threshold:
                     axes[ax_position].bar_label(bar, fmt='%.0f', padding=2, label_type='center')
@@ -226,7 +243,7 @@ class PlottingMixin():
             # Add aggregate values above the bars
             for i, v in enumerate(pivot_df.sum(axis=1)):
                 # Display percentage savings only on the second bar
-                if i == 1:
+                if i != 0:
                     # Calculate percentage savings versus the first bar (baseline)
                     savings = (v - pivot_df.sum(axis=1).iloc[0]) / pivot_df.sum(axis=1).iloc[0] * 100
                     axes[ax_position].text(i, v + 2, f'{v:.0f} ({savings:.0f}%)', ha='center', va='bottom')
@@ -420,7 +437,7 @@ class PlottingMixin():
                     title = f'{self.col_name_to_nice_name(col)}'
                     for ax in g.axes.flatten():
                         ax.set_ylabel(f'{self.col_name_to_nice_name(col)} ({units})')
-                        ax.set_xlabel('')
+                        ax.tick_params(axis='x', labelrotation = 90)
                 else:
                     # With group-by
                     title = f'{self.col_name_to_nice_name(col)}\n by {self.col_name_to_nice_name(group_by)}'
@@ -1654,6 +1671,52 @@ class PlottingMixin():
                     plt.savefig(fig_path, bbox_inches = 'tight')
                     plt.close()
 
+
+    # color functions from https://bsouthga.dev/posts/color-gradients-with-python
+    def linear_gradient(self, start_hex, finish_hex="#FFFFFF", n=10):
+        ''' returns a gradient list of (n) colors between
+            two hex colors. start_hex and finish_hex
+            should be the full six-digit color string,
+            inlcuding the number sign ("#FFFFFF") '''
+        # Starting and ending colors in RGB for
+        s = self.hex_to_RGB(start_hex)
+        f = self.hex_to_RGB(finish_hex)
+        # Initilize a list of the output colors with the starting color
+        RGB_list = [s]
+        # Calcuate a color at each evenly spaced value of t from 1 to n
+        for t in range(1, n):
+            # Interpolate RGB vector for color at the current value of t
+            curr_vector = [
+            int(s[j] + (float(t)/(n-1))*(f[j]-s[j]))
+            for j in range(3)
+            ]
+            # Add it to our list of output colors
+            RGB_list.append(curr_vector)
+
+        return self.color_dict(RGB_list)
+
+    def color_dict(self, gradient):
+        ''' Takes in a list of RGB sub-lists and returns dictionary of
+            colors in RGB and hex form for use in a graphing function
+            defined later on '''
+        return {"hex":[self.RGB_to_hex(RGB) for RGB in gradient],
+            "r":[RGB[0] for RGB in gradient],
+            "g":[RGB[1] for RGB in gradient],
+            "b":[RGB[2] for RGB in gradient]}
+
+    def hex_to_RGB(self, hex):
+        ''' "#FFFFFF" -> [255,255,255] '''
+        # Pass 16 to the integer function for change of base
+        return [int(hex[i:i+2], 16) for i in range(1,6,2)]
+
+    def RGB_to_hex(self, RGB):
+        ''' [255,255,255] -> "#FFFFFF" '''
+        # Components need to be integers for hex to make sense
+        RGB = [int(x) for x in RGB]
+        return "#"+"".join(["0{0:x}".format(v) if v < 16 else
+                    "{0:x}".format(v) for v in RGB])
+
+
     """
     Seasonal load stacked area plots by daytype (weekday and weekdend) comparison
     Args:
@@ -2046,3 +2109,4 @@ class PlottingMixin():
         filename = region['source_name'] + '_' + ami_data_label.lower().replace(' ', '') + '_' + building_type + '_load_duration_curve_top_' + str(zoom_in_hours) + '_hours.png'
         output_path = os.path.join(output_dir, filename)
         plt.savefig(output_path, bbox_inches='tight')
+
