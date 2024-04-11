@@ -146,11 +146,11 @@ class PlottingMixin():
             # figure name and save
             fig_name = f'{title.replace(" ", "_").lower()}_{applicable_scenario}.{self.image_type}'
             fig_name_html = f'{title.replace(" ", "_").lower()}_{applicable_scenario}.html'
-            fig_sub_dir = os.path.join(output_dir)
+            fig_sub_dir = os.path.abspath(os.path.join(output_dir))
             if not os.path.exists(fig_sub_dir):
                 os.makedirs(fig_sub_dir)
-            fig_path = os.path.join(fig_sub_dir, fig_name)
-            fig_path_html = os.path.join(fig_sub_dir, fig_name_html)
+            fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
+            fig_path_html = os.path.abspath(os.path.join(fig_sub_dir, fig_name_html))
             fig.write_image(fig_path, scale=10)
             fig.write_html(fig_path_html)
 
@@ -274,10 +274,10 @@ class PlottingMixin():
         # figure name and save
         title=f"GHG_emissions_{order_map[1]}"
         fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
-        fig_sub_dir = os.path.join(output_dir)
+        fig_sub_dir = os.path.abspath(os.path.join(output_dir))
         if not os.path.exists(fig_sub_dir):
             os.makedirs(fig_sub_dir)
-        fig_path = os.path.join(fig_sub_dir, fig_name)
+        fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
         plt.savefig(fig_path, dpi=600, bbox_inches = 'tight')
 
     # Plot for GHG emissions by fuel for baseline and EIA data
@@ -361,7 +361,7 @@ class PlottingMixin():
                 # Save figure
                 title = title.replace('\n', '')
                 fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
-                fig_path = os.path.join(output_dir, fig_name)
+                fig_path = os.path.abspath(os.path.join(output_dir, fig_name))
                 plt.savefig(fig_path, bbox_inches = 'tight')
                 plt.close()
 
@@ -453,7 +453,7 @@ class PlottingMixin():
                 title = title.replace('\n', '')
                 fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
                 fig_name = fig_name.replace('_total_energy_consumption', '')
-                fig_path = os.path.join(output_dir, fig_name)
+                fig_path = os.path.abspath(os.path.join(output_dir, fig_name))
                 plt.savefig(fig_path, bbox_inches = 'tight')
                 plt.close()
 
@@ -552,7 +552,7 @@ class PlottingMixin():
                 fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
                 fig_name = fig_name.replace('boxplot_of_', 'bp_')
                 fig_name = fig_name.replace('total_energy_consumption_', '')
-                fig_path = os.path.join(output_dir, fig_name)
+                fig_path = os.path.abspath(os.path.join(output_dir, fig_name))
                 plt.savefig(fig_path, bbox_inches = 'tight')
                 plt.close()
 
@@ -650,7 +650,7 @@ class PlottingMixin():
                 fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
                 fig_name = fig_name.replace('boxplot_of_', 'bp_')
                 # fig_name = fig_name.replace('total_energy_consumption_', '')
-                fig_path = os.path.join(output_dir, fig_name)
+                fig_path = os.path.abspath(os.path.join(output_dir, fig_name))
                 plt.savefig(fig_path, bbox_inches = 'tight')
                 plt.close()
 
@@ -743,10 +743,10 @@ class PlottingMixin():
                     title = title.replace('\n', '')
                     fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
                     fig_name = fig_name.replace('_total_energy_consumption', '')
-                    fig_sub_dir = os.path.join(output_dir, bldg_type)
+                    fig_sub_dir = os.path.abspath(os.path.join(output_dir, bldg_type))
                     if not os.path.exists(fig_sub_dir):
                         os.makedirs(fig_sub_dir)
-                    fig_path = os.path.join(fig_sub_dir, fig_name)
+                    fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
                     plt.savefig(fig_path, bbox_inches = 'tight')
                     plt.close()
 
@@ -828,10 +828,10 @@ class PlottingMixin():
                 # Save figure
                 title = title.replace('\n', '')
                 fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
-                fig_sub_dir = os.path.join(output_dir, bldg_type)
+                fig_sub_dir = os.path.abspath(os.path.join(output_dir, bldg_type))
                 if not os.path.exists(fig_sub_dir):
                     os.makedirs(fig_sub_dir)
-                fig_path = os.path.join(fig_sub_dir, fig_name)
+                fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
                 plt.savefig(fig_path, bbox_inches = 'tight')
                 plt.close()
 
@@ -914,10 +914,10 @@ class PlottingMixin():
                     title = title.replace('\n', '')
                     fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
                     fig_name = fig_name.replace('distribution_of_', 'dist_')
-                    fig_sub_dir = os.path.join(output_dir, bldg_type)
+                    fig_sub_dir = os.path.abspath(os.path.join(output_dir, bldg_type))
                     if not os.path.exists(fig_sub_dir):
                         os.makedirs(fig_sub_dir)
-                    fig_path = os.path.join(fig_sub_dir, fig_name)
+                    fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
                     plt.savefig(fig_path, bbox_inches = 'tight')
                     plt.cla()
                     plt.close()
@@ -1019,10 +1019,10 @@ class PlottingMixin():
                     fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
                     fig_name = fig_name.replace('boxplot_of_', 'bp_')
                     fig_name = fig_name.replace('total_energy_consumption_', '')
-                    fig_sub_dir = os.path.join(output_dir, bldg_type)
+                    fig_sub_dir = os.path.abspath(os.path.join(output_dir, bldg_type))
                     if not os.path.exists(fig_sub_dir):
                         os.makedirs(fig_sub_dir)
-                    fig_path = os.path.join(fig_sub_dir, fig_name)
+                    fig_path = os.path.abspath((os.path.join(fig_sub_dir, fig_name)))
                     plt.savefig(fig_path, bbox_inches = 'tight')
                     plt.close()
 
@@ -1113,10 +1113,10 @@ class PlottingMixin():
             fig.update_yaxes(mirror=True, showgrid=True, type='category', dtick=1)
             fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
             fig_name = fig_name.replace('_total_energy_consumption', '')
-            fig_sub_dir = os.path.join(output_dir, 'savings_distributions')
+            fig_sub_dir = os.path.abspath(os.path.join(output_dir, 'savings_distributions'))
             if not os.path.exists(fig_sub_dir):
                 os.makedirs(fig_sub_dir)
-            fig_path = os.path.join(fig_sub_dir, fig_name)
+            fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
             fig.write_image(fig_path, scale=10)
 
         return
@@ -1207,10 +1207,10 @@ class PlottingMixin():
             fig.update_xaxes(mirror=True, showgrid=True, zeroline=True, nticks=16, title=group_name)
             fig.update_yaxes(mirror=True, showgrid=True, type='category', dtick=1)
             fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
-            fig_sub_dir = os.path.join(output_dir, 'savings_distributions')
+            fig_sub_dir = os.path.abspath(os.path.join(output_dir, 'savings_distributions'))
             if not os.path.exists(fig_sub_dir):
                 os.makedirs(fig_sub_dir)
-            fig_path = os.path.join(fig_sub_dir, fig_name)
+            fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
             fig.write_image(fig_path, scale=10)
 
         return
@@ -1301,10 +1301,10 @@ class PlottingMixin():
             fig.update_xaxes(mirror=True, showgrid=True, zeroline=True, nticks=16, title=group_name, automargin=True)
             fig.update_yaxes(mirror=True, showgrid=True, nticks=len(li_group), type='category', dtick=1, automargin=True)
             fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
-            fig_sub_dir = os.path.join(output_dir, 'savings_distributions')
+            fig_sub_dir = os.path.abspath(os.path.join(output_dir, 'savings_distributions'))
             if not os.path.exists(fig_sub_dir):
                 os.makedirs(fig_sub_dir)
-            fig_path = os.path.join(fig_sub_dir, fig_name)
+            fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
             fig.write_image(fig_path, scale=10)
 
 
@@ -1392,10 +1392,10 @@ class PlottingMixin():
             fig.update_xaxes(mirror=True, showgrid=True, zeroline=True, nticks=16, title=savings_name)
             fig.update_yaxes(mirror=True, showgrid=True, nticks=len(li_pct_svgs_enduse_cols), type='category', dtick=1)
             fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
-            fig_sub_dir = os.path.join(output_dir, 'savings_distributions')
+            fig_sub_dir = os.path.abspath(os.path.join(output_dir, 'savings_distributions'))
             if not os.path.exists(fig_sub_dir):
                 os.makedirs(fig_sub_dir)
-            fig_path = os.path.join(fig_sub_dir, fig_name)
+            fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
             fig.write_image(fig_path, scale=10)
 
     def plot_qoi_timing(self, df, column_for_grouping, color_map, output_dir):
@@ -1428,10 +1428,10 @@ class PlottingMixin():
             margin=dict(l=5, r=5, t=5, b=5),
             )
         fig_name = f'{title}.{self.image_type}'
-        fig_sub_dir = os.path.join(output_dir, 'qoi_distributions')
+        fig_sub_dir = os.path.abspath(os.path.join(output_dir, 'qoi_distributions'))
         if not os.path.exists(fig_sub_dir):
             os.makedirs(fig_sub_dir)
-        fig_path = os.path.join(fig_sub_dir, fig_name)
+        fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
         violin_qoi_timing.write_image(fig_path, scale=10)
 
     def plot_qoi_max_use(self, df, column_for_grouping, color_map, output_dir):
@@ -1464,10 +1464,10 @@ class PlottingMixin():
             margin=dict(l=5, r=5, t=5, b=5),
             )
         fig_name = f'{title}.{self.image_type}'
-        fig_sub_dir = os.path.join(output_dir, 'qoi_distributions')
+        fig_sub_dir = os.path.abspath(os.path.join(output_dir, 'qoi_distributions'))
         if not os.path.exists(fig_sub_dir):
             os.makedirs(fig_sub_dir)
-        fig_path = os.path.join(fig_sub_dir, fig_name)
+        fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
         violin_qoi_timing.write_image(fig_path, scale=10)
 
     def plot_qoi_min_use(self, df, column_for_grouping, color_map, output_dir):
@@ -1500,10 +1500,10 @@ class PlottingMixin():
             margin=dict(l=5, r=5, t=5, b=5),
             )
         fig_name = f'{title}.{self.image_type}'
-        fig_sub_dir = os.path.join(output_dir, 'qoi_distributions')
+        fig_sub_dir = os.path.abspath(os.path.join(output_dir, 'qoi_distributions'))
         if not os.path.exists(fig_sub_dir):
             os.makedirs(fig_sub_dir)
-        fig_path = os.path.join(fig_sub_dir, fig_name)
+        fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
         violin_qoi_timing.write_image(fig_path, scale=10)
 
     def filter_outlier_pct_savings_values(self, df, max_fraction_change):
@@ -1604,7 +1604,7 @@ class PlottingMixin():
                 # Save the figure
                 title = title.replace('\n', '')
                 fig_name = f'com_eia_{title.replace(" ", "_").lower()}.{self.image_type}'
-                fig_path = os.path.join(output_dir, fig_name)
+                fig_path = os.path.abspath(os.path.join(output_dir, fig_name))
                 plt.savefig(fig_path, bbox_inches = 'tight')
                 plt.close()
 
@@ -1667,7 +1667,7 @@ class PlottingMixin():
                     # Save the figure
                     title = title.replace('\n', '')
                     fig_name = f'com_eia_{title.replace(" ", "_").lower()}.{self.image_type}'
-                    fig_path = os.path.join(output_dir, fig_name)
+                    fig_path = os.path.abspath(os.path.join(output_dir, fig_name))
                     plt.savefig(fig_path, bbox_inches = 'tight')
                     plt.close()
 
@@ -2014,12 +2014,12 @@ class PlottingMixin():
         plt.figlegend(handles[::-1], labels[::-1], loc='center right', bbox_to_anchor=(1.2, 0.52), ncol=1)
 
         # save plot
-        output_path = os.path.join(output_dir, '%s.png' % (filename) )
+        output_path = os.path.abspath(os.path.join(output_dir, '%s.png' % (filename) ))
         plt.savefig(output_path, bbox_inches='tight')
 
         # save graph data
         if save_graph_data:
-            output_path = os.path.join(output_dir, '%s.csv' % (filename) )
+            output_path = os.path.abspath(os.path.join(output_dir, '%s.csv' % (filename) ))
             plot_data_df.to_csv(output_path, index=False)
 
         plt.close('all')
@@ -2107,6 +2107,5 @@ class PlottingMixin():
 
         # output figure
         filename = region['source_name'] + '_' + ami_data_label.lower().replace(' ', '') + '_' + building_type + '_load_duration_curve_top_' + str(zoom_in_hours) + '_hours.png'
-        output_path = os.path.join(output_dir, filename)
+        output_path = os.path.abspath(os.path.join(output_dir, filename))
         plt.savefig(output_path, bbox_inches='tight')
-
