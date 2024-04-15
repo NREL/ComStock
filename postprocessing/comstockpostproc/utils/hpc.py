@@ -70,8 +70,13 @@ def extract_models_from_simulation_output(yml_path, up_id='up00', output_vars=[]
     df_bstock_csv = pd.read_csv(path_to_buildstock_file, index_col=i)
 
     # Load results.csv
-    path_to_zipped_results_file = os.path.join(results_csv_path, 'results_up00.csv.gz')
+    path_to_zipped_results_file = os.path.join(results_csv_path, f'results_{up_id}.csv.gz')
     df_results_csv = pd.read_csv(path_to_zipped_results_file, compression='infer', header=0, sep=',', quotechar='"', index_col='building_id')
+
+    if up_id != "up00":
+        # load baseline results.csv
+        path_to_baseline_results_file = os.path.join(results_csv_path, 'results_up00.csv.gz')
+        baseline_results_csv = pd.read_csv(path_to_baseline_results_file, compression='infer', header=0, sep=',', quotechar='"', index_col='building_id')
 
     # Untar all relevant models in a single job's .tar.gz and pull required zip files into folder structure (.idf, .osm)
     def model_extract(tar_path, tar_to_zip_dict, tar_to_id_dict, bldgid_to_zip_dict, model_files_dir):
@@ -212,7 +217,11 @@ def extract_models_from_simulation_output(yml_path, up_id='up00', output_vars=[]
     for subdirs, dirs, files in os.walk(model_files_dir):
         for directory in dirs:
             bldg_id = int(directory.split('_')[-3].replace('BLDG', '').lstrip('0'))
-            epw_name = list(df_results_csv.loc[df_results_csv.index==bldg_id, 'build_existing_model.changebuildinglocation_weather_file_name'])[0]
+            if up_id == 'up00':
+                epw_name = list(df_results_csv.loc[df_results_csv.index==bldg_id, 'build_existing_model.changebuildinglocation_weather_file_name'])[0]
+            else:
+                # look for epw name in baseline results csv
+                epw_name = list(baseline_results_csv.loc[baseline_results_csv.index==bldg_id, 'build_existing_model.changebuildinglocation_weather_file_name'])[0]
             epw_zip = zipfile.ZipFile(weather_file_dir)
             model_dir = os.path.join(model_files_dir, directory)
             epw = epw_zip.extract(epw_name, path=model_dir)
@@ -671,15 +680,15 @@ def summarize_failures(yml_path):
                             continue
                         bldg_id = re.search(r'.*bldg(\d+).*', tar_member.name).group(1)
                         up_id = re.search(r'.*up(\d+).*', tar_member.name).group(1)
-                        sing_out_name = f'./up{up_id}/bldg{bldg_id}/singularity_output.log'
+                        sing_out_name = f'./up{up_id}/bldg{bldg_id}/openstudio_output.log'
                         job_fails.write(f'Errors from up{up_id}/bldg{bldg_id}\n')
                         try:
                             sing_out_bytes=tar.extractfile(sing_out_name).read()
                             for l in sing_out_bytes.decode().split('\n'):
-                                if re.search(f'\[.* ERROR\]', l):
+                                if re.search(r'\[.* ERROR\]|\[.*<Error>.*\]', l):
                                     job_fails.write(f'{l}\n')
                         except KeyError as err:
-                            job_fails.write(f'Did not find singularity_output.log for up{up_id}/bldg{bldg_id}, cannot extract failure details\n')
+                            job_fails.write(f'Did not find openstudio_output.log for up{up_id}/bldg{bldg_id}, cannot extract failure details\n')
                     tar.close()
         return
 

@@ -14,12 +14,14 @@ ruby "~> 2.7.0"
 # Bug in addressable to 2.8.1 and patched version has an issue https://github.com/NREL/OpenStudio/issues/4870
 gem 'addressable', '= 2.8.1'
 
-gem 'openstudio-extension', '= 0.6.0'
+gem 'openstudio-extension', '= 0.7.0'
 gem 'openstudio-workflow', '= 2.3.1'
-gem 'openstudio-standards', '= 0.4.0'
+gem 'openstudio-standards', '= 0.5.0'
 # gem 'openstudio-standards', git: 'https://github.com/NREL/openstudio-standards.git', ref: '971514ee0a64262a9c81788fd85fc60d8dd69980'
 # gem 'openstudio-standards', path: "C:/GitRepos/openstudio-standards" # Use this format when testing openstudio-standards changes locally
-gem 'tbd', :github => 'rd2/tbd', :ref => 'v3.2.2'
+gem 'tbd', :github => 'rd2/tbd', :ref => 'v3.2.3'
+gem 'openstudio_measure_tester', '= 0.3.2'
+gem 'json_schemer', '= 2.0.0'
 
 group :native_ext do
   gem 'pycall', '= 1.2.1', :github => 'NREL/pycall.rb', :ref => '5d60b274ac646cdb422a436aad98b40ef8b902b8'
@@ -29,6 +31,10 @@ group :native_ext do
   gem 'oga', '3.2'
   # gem 'cbor', '0.5.9.6' # Cbor will require a ton of patching, so disabling it in favor of msgpack (cbor is a fork of msgpack anyways)
   gem 'msgpack', '1.4.2'
+end
+group :test do
+  gem 'minitest-reporters', '= 1.4.3'
+  gem 'minitest-junit', '= 1.1.0'
 end
 
 # leave this line in for now as we may try to get nokogiri to compile correctly on windows

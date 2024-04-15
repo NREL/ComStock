@@ -2579,7 +2579,7 @@ module OsLib_ModelGeneration
 
     # validate climate zone
     if !args.key?('climate_zone') || args['climate_zone'] == 'Lookup From Model'
-      climate_zone = standard.model_get_building_climate_zone_and_building_type(model)['climate_zone']
+      climate_zone = standard.model_get_building_properties(model)['climate_zone']
       runner.registerInfo("Using climate zone #{climate_zone} from model")
     else
       climate_zone = args['climate_zone']
@@ -2679,7 +2679,7 @@ module OsLib_ModelGeneration
         occ_type = 'Nonresidential'
       end
       if !args.has_key?('climate_zone') || args['climate_zone'] == 'Lookup From Model'
-        climate_zone = standard.model_get_building_climate_zone_and_building_type(model)['climate_zone']
+        climate_zone = standard.model_get_building_properties(model)['climate_zone']
         runner.registerInfo("Using climate zone #{climate_zone} from model")
       else
         climate_zone = args['climate_zone']
@@ -2697,10 +2697,10 @@ module OsLib_ModelGeneration
 
       # adjust F factor constructions to avoid simulation errors
       model.getFFactorGroundFloorConstructions.each do |cons|
-        # Rfilm_in = 0.125, Rfilm_out = 0.03, Rcons = 0.15/1.95
-        if cons.area <= (0.125 + 0.03 + 0.15/1.95) * cons.perimeterExposed * cons.fFactor
+        # Rfilm_in = 0.135, Rfilm_out = 0.03, Rcons = 0.15/1.95
+        if cons.area < (0.001 + 0.135 + 0.03 + 0.15/1.95) * cons.perimeterExposed * cons.fFactor
           # set minimum Rfic to > 1e-3
-          new_area = 0.233 * cons.perimeterExposed * cons.fFactor
+          new_area = 0.243 * cons.perimeterExposed * cons.fFactor
           runner.registerInfo("F-factor fictitious resistance for #{cons.name.get} with Area=#{cons.area.round(2)}, Exposed Perimeter=#{cons.perimeterExposed.round(2)}, and F-factor=#{cons.fFactor.round(2)} will result in a negative value and a failed simulation. Construction area is adjusted to be #{new_area.round(2)}.")
           cons.setArea(new_area)
         end
@@ -2920,26 +2920,6 @@ module OsLib_ModelGeneration
       if !stripmall_swh_loops.empty?
         runner.registerInfo("Adding #{stripmall_swh_loops.size} RetailStripmall service water heating loops.")
       end
-
-      # Modify Pipe:Indoor objects to have an ambient temperature that's always
-      # higher than the warmest Site:WaterMainsTemperature found in the year
-      # TODO remove once this EnergyPlus issue is closed: https://github.com/NREL/EnergyPlus/issues/9650
-      water_temp = model.getSiteWaterMainsTemperature
-      mean_c = water_temp.annualAverageOutdoorAirTemperature.get
-      max_delta_c = water_temp.maximumDifferenceInMonthlyAverageOutdoorAirTemperatures.get
-      max_temp_c = mean_c + (0.5 * max_delta_c) + 3.0 # To ensure higher than mains temp
-      max_temp_c = max_temp_c.round(1)
-      max_temp_f = OpenStudio.convert(max_temp_c, 'C', 'F').get
-      max_temp_f = max_temp_f.round(1)
-      pipe_indoor_temp_sch = OpenStudio::Model::ScheduleConstant.new(model)
-      pipe_indoor_temp_sch.setName("Temporary Pipe Indoor Ambient Temp #{max_temp_f}F")
-      pipe_indoor_temp_sch.setValue(max_temp_c)
-      model.getPipeIndoors.each do |heat_loss_pipe|
-        # TODO schedule type registry error for this setter
-        # heat_loss_pipe.setAmbientTemperatureSchedule(pipe_indoor_temp_sch)
-        heat_loss_pipe.setPointer(7, pipe_indoor_temp_sch.handle)
-      end
-      runner.registerWarning("Set Pipe:Indoor ambient temp schedules to #{max_temp_f}F to avoid E+ issue 9650, remove once fixed.")
     end
 
     # add_daylighting_controls (since outdated measure don't have this default to true if arg not found)

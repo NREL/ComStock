@@ -2,7 +2,9 @@
 
 ## Permissions Dependencies
  - Request an [HPC account](https://www.nrel.gov/hpc/user-accounts.html)
- - Get added to specific allocations.  Contact Ry for ComStock 'comstock' or Tony for EULP 'enduse' permissions
+   - When asked for allocation in the request portal, use 'cscore' for ComStock or 'enduse' for EULP
+ - Get added to specific allocations.  Contact Ry Horsey for ComStock 'cscore' or Anthony Fontanini for EULP 'enduse' permissions.
+   - Recommend requesting access to both to be able to access buildstock environment in the enduse folder on Eagle.
  - If uploading results to S3, Athena, ask Noel for an S3 account
    - Setup MFA on your AWS account
    - Under the security tab, create API access keys.  You'll need one for Eagle and one for your local machine if you plan to process results.
@@ -18,6 +20,7 @@
        [default]
        aws_access_key_id = insert_aws_access_key
        aws_secret_access_key = insert_aws_secret_key
+   - If you dont have access to RES AWS RESBLDG in your account reach out to Andrew Parker or Ry Horsey
 
 ## Software Dependencies
  - [WinSCP](https://winscp.net/eng/index.php) to transfer files to/from HPC
@@ -227,6 +230,7 @@ Notes:
     - Located in ```shared-projects/buildstock/singularity_image```
  3. Make sure you commit all of your changes, push them to github, and pull changes onto eagle
     - navigate to ```/projects/enduse/comstock/repos/comstock``` (or whatever repo you're running from)
+    - if not already initialized use ```git init``` (reinitalizes the existing repo)
     - ```git status```
     - ```git fetch```
     - if not already on branch you want to use ```git checkout *branch name*```

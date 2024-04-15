@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>adjust_occupancy_schedule</name>
   <uid>9ac623a1-fa43-4fa8-ae2c-589993698b5a</uid>
-  <version_id>1f3a5042-d0df-49b3-b9ed-70982556ae11</version_id>
-  <version_modified>2023-11-15T16:35:11Z</version_modified>
+  <version_id>fd10d438-2ec7-4f7e-9742-4b19760b65e1</version_id>
+  <version_modified>2024-01-25T13:47:35Z</version_modified>
   <xml_checksum>2EEF5D1F</xml_checksum>
   <class_name>AdjustOccupancySchedule</class_name>
   <display_name>adjust_occupancy_schedule</display_name>
@@ -18,24 +18,6 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>0.6</default_value>
-    </argument>
-    <argument>
-      <name>apply_measure</name>
-      <display_name>Apply Measure</display_name>
-      <type>Boolean</type>
-      <required>true</required>
-      <model_dependent>false</model_dependent>
-      <default_value>true</default_value>
-      <choices>
-        <choice>
-          <value>true</value>
-          <display_name>true</display_name>
-        </choice>
-        <choice>
-          <value>false</value>
-          <display_name>false</display_name>
-        </choice>
-      </choices>
     </argument>
   </arguments>
   <outputs />
@@ -66,7 +48,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>A0A633A0</checksum>
+      <checksum>BAE73C44</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -89,25 +71,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>22A07748</checksum>
-    </file>
-    <file>
-      <filename>os_lib_schedules.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>5360565E</checksum>
+      <checksum>8D10B16D</checksum>
     </file>
     <file>
       <filename>adjust_occupancy_schedule_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>7F6F2575</checksum>
-    </file>
-    <file>
-      <filename>example_model.osm</filename>
-      <filetype>osm</filetype>
-      <usage_type>test</usage_type>
-      <checksum>53D14E69</checksum>
+      <checksum>09894198</checksum>
     </file>
   </files>
 </measure>

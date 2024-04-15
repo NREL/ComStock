@@ -2,7 +2,7 @@
 # See top level LICENSE.txt file for license terms.
 
 # OpenStudio base image (https://hub.docker.com/r/nrel/openstudio/tags)
-FROM nrel/openstudio:3.6.1 as os-base
+FROM nrel/openstudio:3.7.0 as os-base
 
 LABEL maintainer="Henry (Ry) Horsey henry.horsey@nrel.gov"
 
@@ -26,9 +26,9 @@ RUN rm -rf /var/oscli/gems/ruby/2.7.0/bundler/gems/**/.git \
 # Create a slimmer container without development libraries leftover by OpenStudio
 FROM ubuntu:20.04 AS os-comstock
 
-ARG OPENSTUDIO_VERSION=3.6.1
+ARG OPENSTUDIO_VERSION=3.7.0
 ARG OPENSTUDIO_VERSION_EXT=""
-ENV OPENSTUDIO_VERSION=3.6.1
+ENV OPENSTUDIO_VERSION=3.7.0
 
 # copy executable and energyplus from install
 COPY --from=os-base /usr/local/openstudio-${OPENSTUDIO_VERSION}${OPENSTUDIO_VERSION_EXT}/ /usr/local/openstudio-${OPENSTUDIO_VERSION}${OPENSTUDIO_VERSION_EXT}/
@@ -41,7 +41,24 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
             libpng-dev \
             libgdbm-dev \
             libgomp1 \
+            libgl-dev \
+            libglib2.0-dev \
+            wget \
+            build-essential \
     && rm -rf /var/lib/apt/lists/*
+
+RUN wget https://www.python.org/ftp/python/3.8.8/Python-3.8.8.tgz --no-check-certificate && \
+    tar xzf Python-3.8.8.tgz && \
+    cd Python-3.8.8 && \
+    ./configure --enable-optimizations && \
+    make altinstall && \
+    rm -rf Python-3.8.8 && \
+    rm -rf Python-3.8.8.tgz
+
+RUN python3.8 -m pip install GHEDesigner==1.0
+RUN python3.8 -m pip install NREL-PySAM==4.2.0
+
+RUN ghedesigner --help
 
 # link executable from /usr/local/bin
 RUN ln -s /usr/local/openstudio-${OPENSTUDIO_VERSION}${OPENSTUDIO_VERSION_EXT}/bin/openstudio /usr/local/bin/openstudio

@@ -9,6 +9,8 @@ class NamingMixin():
     BLDG_ID = 'bldg_id'
     CEN_REG = 'in.census_region_name'
     CEN_DIV = 'in.census_division_name'
+    STATE_NAME = 'in.state_name'
+    STATE_ABBRV = 'in.state'
     FLR_AREA = 'in.sqft'
     FLR_AREA_CAT = 'in.floor_area_category'
     CBECS_BLDG_TYPE = 'in.cbecs_building_type'
@@ -133,6 +135,20 @@ class NamingMixin():
         ANN_OTHER_INTEQUIP_GROUP_KBTU
     ]
 
+    # Utility bills
+    UTIL_BILL_ELEC = 'out.utility_bills.electricity_bill_mean..usd'
+    UTIL_BILL_GAS = 'out.utility_bills.natural_gas_bill..usd'
+    UTIL_BILL_FUEL_OIL = 'out.utility_bills.fuel_oil_bill..usd'
+    UTIL_BILL_PROPANE = 'out.utility_bills.propane_bill..usd'
+
+    # Utility bill columns
+    COLS_UTIL_BILLS = [
+        UTIL_BILL_ELEC,
+        UTIL_BILL_GAS,
+        UTIL_BILL_FUEL_OIL,
+        UTIL_BILL_PROPANE
+    ]
+
     # GHG emissions columns
     ANN_GHG_EGRID = 'calc.emissions.total_with_egrid..co2e_kg'
     ANN_GHG_CAMBIUM = 'calc.emissions.total_with_cambium_mid_case_15y..co2e_kg'
@@ -153,7 +169,7 @@ class NamingMixin():
         'out.emissions.electricity.lrmer_95_decarb_by_2035_15_2023_start..co2e_kg'
     ]
 
-    #QOI COLS
+    # QOI COLS
     QOI_MAX_SHOULDER_HR = 'out.qoi.maximum_daily_timing_shoulder_hour..hr'
     QOI_MAX_SUMMER_HR = 'out.qoi.maximum_daily_timing_summer_hour..hr'
     QOI_MAX_WINTER_HR = 'out.qoi.maximum_daily_timing_winter_hour..hr'
@@ -185,14 +201,15 @@ class NamingMixin():
 
     # Addressable segment columns
     SEG_A = 'A: Non Food-Service Buildings with Small Packaged Units'
-    SEG_B = 'B: Food-Service, Freestanding and in Strip Malls with Small Packaged Units'
-    SEG_C = 'C: Buildings with Hydronically Heated Multizone Systems'
-    SEG_D = 'D: Lodging with Zone-by-Zone Systems'
-    SEG_E = 'E: Buildings with Electric Resistance Multizone Systems'
-    SEG_F = 'F: Buildings with Furnace-Based Multizone Systems'
-    SEG_G = 'G: Buildings with Residential Style Central Systems'
-    SEG_H = 'H: Non-Lodging Buildings with Zone-by-Zone Systems'
-    SEG_I = 'I: Other'
+    SEG_B = 'B: Food-Service Buildings with Small Packaged Units'
+    SEG_C = 'C: Strip Malls with some Food-Service with Small Packaged Units'
+    SEG_D = 'D: Buildings with Hydronically Heated Multizone Systems'
+    SEG_E = 'E: Lodging with Zone-by-Zone Systems'
+    SEG_F = 'F: Buildings with Electric Resistance Multizone Systems'
+    SEG_G = 'G: Buildings with Furnace-Based Multizone Systems'
+    SEG_H = 'H: Buildings with Residential Style Central Systems'
+    SEG_I = 'I: Non-Lodging Buildings with Zone-by-Zone Systems'
+    SEG_J = 'J: Other'
 
     # List of addressable segments
     COLS_SEGMENTS = [
@@ -204,7 +221,8 @@ class NamingMixin():
         SEG_F,
         SEG_G,
         SEG_H,
-        SEG_I
+        SEG_I,
+        SEG_J
     ]
 
     # List of total annual energy columns
@@ -433,6 +451,8 @@ class NamingMixin():
     COLOR_COMSTOCK_AFTER = '#56B4E9'
     COLOR_CBECS_2012 = '#009E73'
     COLOR_CBECS_2018 = '#16f0b4'
+    COLOR_EIA = '#D55E00'
+    COLOR_AMI = '#CC79A7'
 
     # Define ordering for some categorical variables to make plots easier to interpret
     ORDERED_CATEGORIES = {
@@ -481,6 +501,51 @@ class NamingMixin():
             'SmallHotel',
             'LargeHotel',
             'Warehouse']
+    }
+
+    BLDG_TYPE_TO_SNAKE_CASE = {
+        'FullServiceRestaurant': 'full_service_restaurant',
+        'QuickServiceRestaurant': 'quick_service_restaurant',
+        'RetailStripmall': 'strip_mall',
+        'RetailStandalone': 'retail',
+        'SmallOffice': 'small_office',
+        'MediumOffice': 'medium_office',
+        'LargeOffice': 'large_office',
+        'PrimarySchool': 'primary_school',
+        'SecondarySchool': 'secondary_school',
+        'Outpatient': 'outpatient',
+        'Hospital': 'hospital',
+        'SmallHotel': 'small_hotel',
+        'LargeHotel': 'large_hotel',
+        'Warehouse': 'warehouse'
+    }
+
+    END_USES = [
+        'exterior_lighting',
+        'interior_lighting',
+        'interior_equipment',
+        'water_systems',
+        'heat_recovery',
+        'heat_rejection',
+        'cooling',
+        'heating',
+        'fans',
+        'pumps',
+        'refrigeration'
+    ]
+
+    END_USES_TIMESERIES_DICT = {
+        'exterior_lighting': 'electricity_exterior_lighting_kwh',
+        'interior_lighting': 'electricity_interior_lighting_kwh',
+        'interior_equipment': 'electricity_interior_equipment_kwh',
+        'water_systems': 'electricity_water_systems_kwh',
+        'heat_recovery': 'electricity_heat_recovery_kwh',
+        'heat_rejection': 'electricity_heat_rejection_kwh',
+        'cooling': 'electricity_cooling_kwh',
+        'heating': 'electricity_heating_kwh',
+        'fans': 'electricity_fans_kwh',
+        'pumps': 'electricity_pumps_kwh',
+        'refrigeration': 'electricity_refrigeration_kwh'
     }
 
     def end_use_group(self, end_use):
@@ -561,6 +626,26 @@ class NamingMixin():
         area_units = 'ft2'  # Hard-coded because in.sqft column name is required by SightGlass
         eui_units = f'{engy_units}_per_{area_units}'
         col_name = col_name.replace(f'..{engy_units}', f'..{eui_units}')
+
+        return col_name
+
+    def col_name_to_area_intensity(self, col_name):
+        units = self.units_from_col_name(col_name)
+        col_name = col_name.replace('bill_mean..usd', 'bill_intensity..usd')
+        col_name = col_name.replace('bill..usd', 'bill_intensity..usd')
+        area_units = 'ft2'
+        intensity_units = f'{units}_per_{area_units}'
+        col_name = col_name.replace(f'..{units}', f'..{intensity_units}')
+
+        return col_name
+
+    def col_name_to_energy_rate(self, col_name):
+        units = self.units_from_col_name(col_name)
+        col_name = col_name.replace('bill_mean..usd', 'energy_rate..usd')
+        col_name = col_name.replace('bill..usd', 'energy_rate..usd')
+        energy_units = 'kwh'
+        intensity_units = f'{units}_per_{energy_units}'
+        col_name = col_name.replace(f'..{units}', f'..{intensity_units}')
 
         return col_name
 

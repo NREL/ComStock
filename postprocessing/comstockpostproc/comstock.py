@@ -4,6 +4,7 @@ import os
 from functools import lru_cache
 
 import boto3
+import botocore
 import glob
 import json
 import logging
@@ -11,12 +12,16 @@ import numpy as np
 import pandas as pd
 import polars as pl
 import re
+import datetime
 
 from comstockpostproc.naming_mixin import NamingMixin
 from comstockpostproc.units_mixin import UnitsMixin
 from comstockpostproc.cbecs import CBECS
+from comstockpostproc.eia import EIA
+from comstockpostproc.ami import AMI
 from comstockpostproc.gas_correction_model import GasCorrectionModelMixin
 from comstockpostproc.s3_utilities_mixin import S3UtilitiesMixin
+from buildstock_query import BuildStockQuery
 
 logger = logging.getLogger(__name__)
 
@@ -56,10 +61,10 @@ def basic_metadata_columns():
 
 # ComStock in a constructor class for processing ComStock results
 class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixin):
-    def __init__(self, s3_base_dir, comstock_run_name, comstock_run_version, comstock_year,
+    def __init__(self, s3_base_dir, comstock_run_name, comstock_run_version, comstock_year, athena_table_name,
         truth_data_version, buildstock_csv_name = 'buildstock.csv', acceptable_failure_percentage=0.01, drop_failed_runs=True,
         color_hex=NamingMixin.COLOR_COMSTOCK_BEFORE, weighted_energy_units='tbtu', weighted_ghg_units='co2e_mmt', skip_missing_columns=False,
-        reload_from_csv=False, make_comparison_plots=True, include_upgrades=True, upgrade_ids_to_skip=[], rename_upgrades=False):
+        reload_from_csv=False, make_comparison_plots=True, include_upgrades=True, upgrade_ids_to_skip=[], upgrade_ids_for_comparison={}, rename_upgrades=False):
         """
         A class to load and transform ComStock data for export, analysis, and comparison.
         Args:
@@ -90,14 +95,27 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.hvac_metadata_file_name = 'hvac_metadata.csv'
         self.rename_upgrades = rename_upgrades
         self.rename_upgrades_file_name = 'rename_upgrades.json'
+        self.athena_table_name = athena_table_name
         self.data = None
+        self.monthly_data = None
+        self.monthly_data_gap = None
+        self.ami_timeseries_data = None
+        self.data_long = None
         self.color = color_hex
+        self.building_type_weights = None
         self.weighted_energy_units = weighted_energy_units
         self.weighted_ghg_units = weighted_ghg_units
         self.skip_missing_columns = skip_missing_columns
         self.include_upgrades = include_upgrades
         self.upgrade_ids_to_skip = upgrade_ids_to_skip
-        self.s3_client = boto3.client('s3')
+        self.upgrade_ids_for_comparison = upgrade_ids_for_comparison
+        self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
+        if self.athena_table_name is not None:
+            self.athena_client = BuildStockQuery(workgroup='eulp',
+                                                 db_name='enduse',
+                                                 buildstock_type='comstock',
+                                                 table_name=self.athena_table_name,
+                                                 skip_reports=True)
         self.make_comparison_plots = make_comparison_plots
         logger.info(f'Creating {self.dataset_name}')
 
@@ -113,16 +131,25 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Load and transform data, preserving all columns
         self.download_data()
-        pl.enable_string_cache(True)
+        pl.enable_string_cache()
         if reload_from_csv:
-            if os.path.exists(os.path.join(self.output_dir, 'ComStock wide.parquet')):
-                file_path = os.path.join(self.output_dir, 'ComStock wide.parquet')
-                logger.info(f'Reloading data from: {file_path}')
-                self.data = pl.read_parquet(file_path)
+            upgrade_pqts = glob.glob(os.path.join(self.output_dir, 'ComStock wide upgrade*.parquet'))
+            upgrade_pqts.sort()
+            if len(upgrade_pqts) > 0:
+                upgrade_dfs = []
+                for file_path in upgrade_pqts:
+                    bn = os.path.basename(file_path)
+                    up_id = int(bn.replace('ComStock wide upgrade', '').replace('.parquet', ''))
+                    if up_id in self.upgrade_ids_to_skip:
+                        logger.info(f'Skipping reload for upgrade {up_id}')
+                        continue
+                    logger.info(f'Reloading data from: {file_path}')
+                    upgrade_dfs.append(pl.read_parquet(file_path))
+                self.data = pl.concat(upgrade_dfs)
             elif os.path.exists(os.path.join(self.output_dir, 'ComStock wide.csv')):
                 file_path = os.path.join(self.output_dir, 'ComStock wide.csv')
                 logger.info(f'Reloading data from: {file_path}')
-                self.data = pl.read_csv(file_path, dtypes={self.UPGRADE_ID: pl.Int64}, infer_schema_length=5000)
+                self.data = pl.read_csv(file_path, dtypes={self.UPGRADE_ID: pl.Int64}, infer_schema_length=10000)
                 self.data = self.reduce_df_memory(self.data)
             else:
                 raise FileNotFoundError(
@@ -142,6 +169,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.add_missing_energy_columns()
             self.add_enduse_total_energy_columns()
             self.add_energy_intensity_columns()
+            self.add_bill_intensity_columns()
+            self.add_energy_rate_columns()
             self.add_normalized_qoi_columns()
             self.add_vintage_column()
             self.add_dataset_column()
@@ -154,6 +183,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.add_addressable_segments_columns()
             self.combine_emissions_cols()
             self.add_metadata_index_col()
+            self.get_comstock_unscaled_monthly_energy_consumption()
 
             # logger.debug('\nComStock columns after adding all data:')
             # for c in self.data.columns:
@@ -221,7 +251,145 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             s3_file_path = f'truth_data/{self.truth_data_version}/EPA/CEJST/{self.cejst_file_name}'
             self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
 
+    def download_timeseries_data_for_ami_comparison(self, ami, reload_from_csv=True, save_individual_regions=False):
+        if reload_from_csv:
+            file_name = f'Timeseries for AMI long.csv'
+            file_path = os.path.join(self.output_dir, file_name)
+            if not os.path.exists(file_path):
+                 raise FileNotFoundError(
+                    f'Cannot find {file_path} to reload data, set reload_from_csv=False to create CSV.')
+            logger.info(f'Reloading from CSV: {file_path}')
+            self.ami_timeseries_data = pd.read_csv(file_path, low_memory=False, index_col='timestamp', parse_dates=True)
+        else:
+            athena_end_uses = list(map(lambda x: self.END_USES_TIMESERIES_DICT[x], self.END_USES))
+            athena_end_uses.append('total_site_electricity_kwh')
+            all_timeseries_df = pd.DataFrame()
+            for region in ami.ami_region_map:
+                region_file_path_long = os.path.join(self.output_dir, region['source_name'] + '_building_type_timeseries_long.csv')
+                if os.path.isfile(region_file_path_long) and reload_from_csv and save_individual_regions:
+                    logger.info(f"timeseries data in long format for {region['source_name']} already exists at {region_file_path_long}")
+                    continue
+
+                ts_agg = self.athena_client.agg.aggregate_timeseries(enduses=athena_end_uses,
+                                                                     group_by=['build_existing_model.building_type', 'time'],
+                                                                     restrict=[('build_existing_model.county_id', region['county_ids'])])
+                if ts_agg['time'].dtype == 'Int64':
+                    # Convert bigint to timestamp type if necessary
+                    ts_agg['time'] = pd.to_datetime(ts_agg['time']/1e9, unit='s')
+
+                # region_file_path_wide = os.path.join(self.output_dir, region['source_name'] + '_building_type_timeseries_wide.csv')
+                # ts_agg.to_csv(region_file_path_wide, index=False)
+                # logger.info(f"Saved enduse timeseries in wide format for {region['source_name']} to {region_file_path_wide}")
+
+                timeseries_df = self.convert_timeseries_to_long(ts_agg, region['county_ids'], region['source_name'], save_individual_region=save_individual_regions)
+                timeseries_df['region_name'] = region['source_name']
+                all_timeseries_df = pd.concat([all_timeseries_df, timeseries_df])
+
+            data_path = os.path.join(self.output_dir, 'Timeseries for AMI long.csv')
+            all_timeseries_df.to_csv(data_path, index=True)
+            self.ami_timeseries_data = all_timeseries_df
+
+    def convert_timeseries_to_long(self, agg_df, county_ids, output_name, save_individual_region=False):
+        # rename columns
+        agg_df = agg_df.set_index('time')
+        agg_df = agg_df.rename(columns={
+            "build_existing_model.building_type": "building_type",
+            "electricity_exterior_lighting_kwh": "exterior_lighting",
+            "electricity_interior_lighting_kwh": "interior_lighting",
+            "electricity_interior_equipment_kwh": "interior_equipment",
+            "electricity_water_systems_kwh": "water_systems",
+            "electricity_heat_recovery_kwh": "heat_recovery",
+            "electricity_fans_kwh": "fans",
+            "electricity_pumps_kwh": "pumps",
+            "electricity_cooling_kwh": "cooling",
+            "electricity_heating_kwh": "heating",
+            "electricity_refrigeration_kwh": "refrigeration",
+            "total_site_electricity_kwh": "total"
+        })
+
+        # aggregate by hour
+        agg_df['year'] = agg_df.index.year
+        agg_df['month'] = agg_df.index.month
+        agg_df['day'] = agg_df.index.day
+        agg_df['hour'] = agg_df.index.hour
+        agg_df = agg_df.groupby(['building_type', 'year', 'month', 'day', 'hour']).sum().reset_index()
+        agg_df['timestamp'] = agg_df.apply(
+            lambda r: datetime.datetime(
+                r['year'],
+                r['month'],
+                r['day']
+            ) +
+            datetime.timedelta(hours=r['hour']),
+            axis=1
+        )
+        agg_df = agg_df.drop(['year', 'month', 'day', 'hour', 'units_count'], axis=1)
+        agg_df = agg_df.set_index('timestamp')
+        agg_df = agg_df[agg_df.index.dayofyear != 366]
+
+        # melt into long format
+        val_vars = [
+            'exterior_lighting',
+            'interior_lighting',
+            'interior_equipment',
+            'water_systems',
+            'heat_recovery',
+            'fans',
+            'pumps',
+            'cooling',
+            'heating',
+            'refrigeration',
+            'total'
+        ]
+        agg_df = pd.melt(
+            agg_df.reset_index(),
+            id_vars=[
+                'timestamp',
+                'building_type',
+                'sample_count'
+            ],
+            value_vars=val_vars,
+            var_name='enduse',
+            value_name='kwh'
+        ).set_index('timestamp')
+        agg_df = agg_df.rename(columns={'sample_count': 'bldg_count'})
+
+        # size get data
+        # note that this is a Polars dataframe, not a Pandas dataframe
+        self.data = self.data.with_columns([pl.col('in.nhgis_county_gisjoin').cast(pl.Utf8)])
+        size_df = self.data.filter(self.data['in.nhgis_county_gisjoin'].is_in(county_ids))
+        size_df = size_df.select(['in.comstock_building_type', 'in.sqft', 'calc.weighted.sqft'])
+
+        # Cast columns to match dtype of lists
+        size_df = size_df.with_columns([
+            pl.col('in.comstock_building_type').cast(pl.Utf8),
+            pl.col('in.sqft').cast(pl.Float64),
+            pl.col('calc.weighted.sqft').cast(pl.Float64)
+        ])
+
+        size_df = size_df.group_by('in.comstock_building_type').agg(pl.col(['in.sqft', 'calc.weighted.sqft']).sum())
+        size_df = size_df.with_columns((pl.col('calc.weighted.sqft')/pl.col('in.sqft')).alias('weight'))
+        size_df = size_df.with_columns((pl.col('in.comstock_building_type').replace(self.BLDG_TYPE_TO_SNAKE_CASE, default=None)).alias('building_type'))
+        # file_path = os.path.join(self.output_dir, output_name + '_building_type_size.csv')
+        # size_df.write_csv(file_path)
+
+        weight_dict = dict(zip(size_df['building_type'].to_list(), size_df['weight'].to_list()))
+        weight_size_dict = dict(zip(size_df['building_type'].to_list(), size_df['calc.weighted.sqft'].to_list()))
+        agg_df['kwh_weighted'] = agg_df['kwh'] * agg_df['building_type'].map(weight_dict)
+
+        # calculate kwh/sf
+        agg_df['kwh_per_sf'] = agg_df.apply(lambda row: row['kwh_weighted'] / weight_size_dict.get(row['building_type'], 1), axis=1)
+        agg_df = agg_df.drop(['kwh', 'kwh_weighted'], axis=1)
+
+        # save out long data format
+        if save_individual_region:
+            output_file_path = os.path.join(self.output_dir, output_name + '_building_type_timeseries_long.csv')
+            agg_df.to_csv(output_file_path, index=True)
+            logger.info(f"Saved enduse timeseries in long format for {output_name} to {output_file_path}")
+
+        return agg_df
+
     def reduce_df_memory(self, df):
+
         logger.debug(f'Memory before reduce_df_memory: {df.estimated_size()}')
         # Set dtypes to reduce in-memory size
 
@@ -239,6 +407,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 continue
             # If the first value is numeric, don't categorize
             try:
+                if '_' in first_val:
+                    first_val = f'{first_val}_is_string_in_comstock'
                 float(first_val)
             except ValueError as e:
                 # if len(df.get_column(col).unique()) < 20:
@@ -263,12 +433,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         logger.info(f'{buildstock_bldg_count} models in buildstock.csv')
 
         # Create a list of results to eventually combine
-        all_failed_ids = set()
         base_failed_ids = set()
         upgrade_id_to_results = {}
+        failure_summaries = []
 
         # Load results, identify failed runs
-        for results_path in glob.glob(os.path.join(self.data_dir, 'results_up*.parquet')):
+        results_paths = glob.glob(os.path.join(self.data_dir, 'results_up*.parquet'))
+        results_paths.sort()
+        for results_path in results_paths:
             upgrade_id = np.int64(os.path.basename(results_path).replace('results_up', '').replace('.parquet', ''))
 
             # Skip specified upgrades
@@ -303,6 +475,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     elif dt == pl.Utf8:
                         logger.debug(f'For {c}: Nulls set to "False" (String) in baseline')
                         up_res = up_res.with_columns([pl.col(c).fill_null(pl.lit("False"))])
+                        up_res = up_res.with_columns([pl.when(pl.col(c).str.lengths() == 0).then(pl.lit('False')).otherwise(pl.col(c)).keep_name()])
 
             # Convert columns with only 'True' and/or 'False' strings to Boolean
             for col, dt in up_res.schema.items():
@@ -317,13 +490,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 # Any combination of null, true, and false is considered a boolean column
                 bool_possibilities = [set(['true', 'false']), set(['true']), set(['false'])]
                 if set(lower_col_vals) in bool_possibilities:
-                    up_res = up_res.with_columns(pl.col(col).str.to_lowercase().map_dict({"false": False, "true": True}))
+                    up_res = up_res.with_columns(pl.col(col).str.to_lowercase().replace({"false": False, "true": True}, default=None))
 
             # Downselect columns to reduce memory use
             up_res = self.downselect_imported_columns(up_res)
-
-            # Reduce DF memory by converting some columns to boolean or category
-            up_res = self.reduce_df_memory(up_res)
 
             # Check that the results length matches buildstock.csv length
             if not len(up_res) == buildstock_bldg_count:
@@ -333,27 +503,116 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
                 # Add building IDs that are missing to the list of "failed" buildings
                 missing_ids = [id for id in buildstock['sample_building_id'] if id not in up_res.index]
-                all_failed_ids.update(missing_ids)
+                base_failed_ids.update(missing_ids)
 
-            # Identify buildings that failed
+            # Determine the verified success/failure/NA status
+            # buildings that failed per builstockbatch
             # or were "successful" but have no results (happens when long-running building jobs are manually killed)
+            # or have any empty completion status column (unclear why this happens)
+            VERIFIED_COMP_STATUS = 'verified_completed_status'
+            ST_TOTAL = 'Building Count'
+            ST_SUCCESS = 'Success'
+            ST_NA = 'Not Applicable'
+            ST_FAIL = 'Failed'
+            ST_FAIL_BSB = 'Failed: per BuildStockBatch'
+            ST_FAIL_NO_RES = 'Failed: missing simulation results'
+            ST_FAIL_NO_STATUS = 'Failed: missing completion status'
+            FRAC_FAIL = 'Fraction of Total Failed'
+            FRAC_NA = 'Fraction Not Applicable'
+            FRAC_APPL = 'Fraction Applicable'
+            ST_SUCCESS_BASE_FAIL_UP = 'Success in baseline, failed in upgrade'
+            ST_SUCCESS_UP_FAIL_BASE = 'Success in upgrade, failed in baseline'
+            up_res = up_res.with_columns([
+                # Failed per buildstockbatch completion status
+                pl.when(
+                (pl.col(self.COMP_STATUS) == 'Fail'))
+                .then(pl.lit(ST_FAIL_BSB))
+                # Failed because missing simulation outputs
+                .when(
+                (pl.col(self.COMP_STATUS) == 'Success') &
+                (pl.col('simulation_output_report.total_site_energy_mbtu').is_null()))
+                .then(pl.lit(ST_FAIL_NO_RES))
+                # Failed because missing completion status
+                .when(
+                (pl.col(self.COMP_STATUS).is_null()))
+                .then(pl.lit(ST_FAIL_NO_STATUS))
+                # Sucessful, but upgrade was NA, so has no results
+                .when(
+                (pl.col(self.COMP_STATUS) == 'Invalid'))
+                .then(pl.lit(ST_NA))
+                # Successful and has results available
+                .otherwise(pl.lit(ST_SUCCESS))
+                # Assign the column name
+                .alias(VERIFIED_COMP_STATUS)
+            ])
+
+            # Correct the completion status column to reflect all failure modes
+            up_res = up_res.with_columns([
+                # Failures of all types
+                pl.when(
+                (pl.col(VERIFIED_COMP_STATUS).is_in([ST_FAIL_BSB, ST_FAIL_NO_RES, ST_FAIL_NO_STATUS])))
+                .then(pl.lit('Fail'))
+                # Not applicable
+                .when(
+                (pl.col(VERIFIED_COMP_STATUS) == ST_NA))
+                .then(pl.lit('Invalid'))
+                # Success
+                .when(
+                (pl.col(VERIFIED_COMP_STATUS) == ST_SUCCESS))
+                .then(pl.lit('Success'))
+                # Should not get here
+                .otherwise(pl.lit('ERROR'))
+                # Assign the column name
+                .alias(self.COMP_STATUS)
+            ])
+
+            # Check that no rows have a completion status of "ERROR" assigned
+            errs = up_res.select((pl.col(self.COMP_STATUS).filter(pl.col(self.COMP_STATUS) == 'ERROR').count()))
+            num_errs = errs.get_column(self.COMP_STATUS).sum()
+            if num_errs > 0:
+                raise Exception(f'Errors in correcting completion status for {num_errs} buildings, fix logic.')
+
+            # Get the upgrade name
+            up_res_success = up_res.select(
+                (pl.col('apply_upgrade.upgrade_name').filter(pl.col(VERIFIED_COMP_STATUS) == ST_SUCCESS))
+            )
+            upgrade_name = up_res_success.get_column('apply_upgrade.upgrade_name').head(1).to_list()[0]
+
+            # Summarize the failure status counts
+            fs = up_res.get_column(VERIFIED_COMP_STATUS).value_counts()
+            dat = [fs.get_column('count').to_list()]
+            sch = fs.get_column(VERIFIED_COMP_STATUS).to_list()
+            fs = pl.DataFrame(data=dat, schema=sch)
+
+            # Add upgrade ID and name to failure summary
+            fs = fs.with_columns([pl.lit(upgrade_id).alias(str(self.UPGRADE_ID))])
+            fs = fs.with_columns([pl.lit(upgrade_name).alias(str(self.UPGRADE_NAME))])
+
+            # Add missing completion statuses (not all upgrades will have all failure types)
+            for fm in [ST_SUCCESS, ST_NA, ST_FAIL_BSB, ST_FAIL_NO_RES, ST_FAIL_NO_STATUS]:
+                if fm not in fs:
+                    fs = fs.with_columns([pl.lit(0).alias(fm).cast(pl.Int64)])
+
+            # Calculate total number of failures
+            fs = fs.with_columns(((pl.col(ST_FAIL_BSB)) + (pl.col(ST_FAIL_NO_RES)) + (pl.col(ST_FAIL_NO_STATUS))).alias(ST_FAIL))
+
+            # Calculate the total number of models
+            fs = fs.with_columns(((pl.col(ST_SUCCESS)) + (pl.col(ST_NA)) + (pl.col(ST_FAIL))).alias(ST_TOTAL))
+
+            # Calculate failure percentage
+            fs = fs.with_columns((pl.col(ST_FAIL) / pl.col(ST_TOTAL)).round(3).alias(FRAC_FAIL))
+
+            # Calculate fraction not applicable
+            fs = fs.with_columns((pl.col(ST_NA) / pl.col(ST_TOTAL)).round(3).alias(FRAC_NA))
+
+            # Calculate fraction applicable
+            fs = fs.with_columns((pl.col(ST_SUCCESS) / pl.col(ST_TOTAL)).round(3).alias(FRAC_APPL))
+
+            # Find the failed building IDs
             up_fail_ids = up_res.select(
-                pl.col('building_id').filter(pl.col(self.COMP_STATUS) == 'Fail')
+                (pl.col('building_id').filter(pl.col(self.COMP_STATUS) == 'Fail'))
             )
-
-            site_engy_col = 'simulation_output_report.total_site_energy_mbtu'
-            up_fake_success_ids = up_res.select(
-                pl.col('building_id').filter((pl.col(self.COMP_STATUS) == 'Success') & (pl.col(site_engy_col).is_null()))
-            )
-
-            up_null_success_ids = up_res.select(
-                pl.col('building_id').filter(pl.col(self.COMP_STATUS).is_null())
-            )
-
             up_fail_ids = up_fail_ids.get_column('building_id').unique().to_list()
-            up_fail_ids.extend(up_fake_success_ids.get_column('building_id').unique().to_list())
-            up_fail_ids.extend(up_null_success_ids.get_column('building_id').unique().to_list())
-            all_failed_ids.update(up_fail_ids)
             if upgrade_id == 0:
                 base_failed_ids.update(up_fail_ids)
 
@@ -369,32 +628,54 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
             # Find buildings that failed in the upgrade but not the baseline
             failed_in_up_success_in_base = [id for id in up_fail_ids if id not in base_failed_ids]
-            if len(failed_in_up_success_in_base) > 0:
-                logger.info(f'{len(failed_in_up_success_in_base)} models that were successful in the baseline failed in upgrade {upgrade_id}')
+            fs = fs.with_columns([pl.lit(len(failed_in_up_success_in_base)).cast(pl.Int64).alias(str(ST_SUCCESS_BASE_FAIL_UP))])
 
             # Find buildings that failed in the baseline but not the upgrade
             failed_in_base_success_in_up = [id for id in base_failed_ids if id not in up_fail_ids]
-            if len(failed_in_base_success_in_up) > 0:
-                logger.info(f'{len(failed_in_base_success_in_up)} models that were successful in upgrade {upgrade_id} failed in the baseline')
+            fs = fs.with_columns([pl.lit(len(failed_in_base_success_in_up)).cast(pl.Int64).alias(ST_SUCCESS_UP_FAIL_BASE)])
+
+            fs = fs.select(sorted(fs.columns))
+            failure_summaries.append(fs)
 
             if drop_failed_runs:
                 # Drop failed baseline runs
                 up_res = up_res.filter(~pl.col('building_id').is_in(base_failed_ids))
 
-                # Drop failed upgrades runs
-                up_res = up_res.filter(~pl.col('building_id').is_in(up_fail_ids))
-
             upgrade_id_to_results[upgrade_id] = up_res
+
+        # Save failure summary
+        failure_summaries = pl.concat(failure_summaries, how='diagonal')
+        fs_cols = [
+            self.UPGRADE_ID,
+            self.UPGRADE_NAME,
+            ST_TOTAL,
+            ST_SUCCESS,
+            ST_NA,
+            ST_FAIL,
+            FRAC_APPL,
+            FRAC_NA,
+            FRAC_FAIL,
+            ST_SUCCESS_BASE_FAIL_UP,
+            ST_SUCCESS_UP_FAIL_BASE,
+            ST_FAIL_BSB,
+            ST_FAIL_NO_RES,
+            ST_FAIL_NO_STATUS,
+        ]
+        failure_summaries = failure_summaries.select(fs_cols)
+        file_name = f'failure_summary.csv'
+        file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
+        logger.info(f'Exporting to: {file_path}')
+        failure_summaries.write_csv(file_path)
 
         # Process results
         results_dfs = []
         for upgrade_id, up_res in upgrade_id_to_results.items():
             logger.info(f'Processing upgrade {upgrade_id}')
-            # Drop all buildings that failed in ANY run, baseline or upgrade
-            up_res = up_res.filter(~pl.col('building_id').is_in(all_failed_ids))
+            # Drop all buildings that failed in the baseline run
+            up_res = up_res.filter(~pl.col('building_id').is_in(base_failed_ids))
 
             # Get the baseline results
-            base_res = upgrade_id_to_results[0]  # .filter(~pl.col('building_id').is_in(all_failed_ids))
+            base_res = upgrade_id_to_results[0]
 
             # Merge the building characteristics from the baseline results to the upgrade results
             bldg_char_cols = [c for c in base_res.columns if c not in up_res.columns]
@@ -402,45 +683,154 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             if not upgrade_id == 0:
                 up_res = up_res.join(base_res.select(bldg_char_cols), how='left', on='building_id')
 
-            # Split upgrade results into applicable (Success) and not applicable (Invalid)
+            # Split upgrade results into applicable (Success), not applicable (Invalid), and failed in upgrade
             up_res_applic = up_res.filter(pl.col(self.COMP_STATUS) == 'Success')
             up_res_na = up_res.filter(pl.col(self.COMP_STATUS) == 'Invalid')
+            up_res_fail = up_res.filter(pl.col(self.COMP_STATUS) == 'Fail')
 
-            # Applicable results go straight
+            # Applicable results are unmodified
             up_res_applic = up_res_applic.select(sorted(up_res_applic.columns))
-            up_res_applic = self.reduce_df_memory(up_res_applic)
+
+            # Cast utility columns to float64 to avoid data type inconsistancies
+            pattern_util_rate_name = re.compile(r'utility_bills.*_rate.*_name')
+            pattern_util_cost = re.compile(r'utility_bills.*_rate.*_bill_dollars')
+            for col, dt in up_res_applic.schema.items():
+                if pattern_util_rate_name.match(col):
+                    orig_dt = up_res_applic.schema[col]
+                    if not orig_dt == pl.Utf8:
+                        up_res_applic = up_res_applic.with_columns([pl.col(col).cast(pl.Utf8)])
+                        dt = up_res_applic.schema[col]
+                        logger.info(f'Cast {col} from {orig_dt} to {dt}')
+                elif pattern_util_cost.match(col):
+                    orig_dt = up_res_applic.schema[col]
+                    if not orig_dt == pl.Float64:
+                        up_res_applic = up_res_applic.with_columns([pl.col(col).cast(pl.Float64)])
+                        dt = up_res_applic.schema[col]
+                        logger.info(f'Cast {col} from {orig_dt} to {dt}')
+
             results_dfs.append(up_res_applic)
+
+            # Get the upgrade name
+            up_res_success = up_res_applic.select(
+                (pl.col('apply_upgrade.upgrade_name').filter(pl.col(self.COMP_STATUS) == 'Success'))
+            )
+            upgrade_name = up_res_success.get_column('apply_upgrade.upgrade_name').head(1).to_list()[0]
 
             # For buildings where the upgrade did NOT apply, add annual results columns from the Baseline run
             # The columns completed_status = "Invalid" and apply_upgrade.applicable = FALSE enable identification later,
             # and any savings calculated for these runs will be zero because upgrade == baseline
-            if up_res_na.shape[0] == 0:
-                # Don't try to join an empty dataframe
-                continue
-            shared_cols = [c for c in base_res.columns if c in up_res.columns]
-            cols_to_leave_alone = [
-                'job_id',
-                'started_at',
-                'completed_at',
-                self.COMP_STATUS,
-                'apply_upgrade.applicable',
-                'apply_upgrade.upgrade_name',
-                self.UPGRADE_ID,
-                'apply_upgrade.reference_scenario',
-                self.upgrade_ids_to_skip
-            ]
-            cols_to_replace = [c for c in shared_cols if c not in cols_to_leave_alone]
-            cols_to_keep = [c for c in base_res.columns if c not in cols_to_replace]
-            cols_to_keep.append('building_id')
-            up_res_na = up_res_na.select(cols_to_keep).join(
-                base_res.select(cols_to_replace), how='left', on='building_id'
-            )
+            if up_res_na.shape[0] > 0:
+                shared_cols = [c for c in base_res.columns if c in up_res.columns]
+                cols_to_leave_alone = [
+                    'job_id',
+                    'started_at',
+                    'completed_at',
+                    self.COMP_STATUS,
+                    'apply_upgrade.applicable',
+                    'apply_upgrade.upgrade_name',
+                    self.UPGRADE_ID,
+                    'apply_upgrade.reference_scenario',
+                    self.upgrade_ids_to_skip
+                ]
+                cols_to_replace = [c for c in shared_cols if c not in cols_to_leave_alone]
+                cols_to_keep = [c for c in base_res.columns if c not in cols_to_replace]
+                cols_to_keep.append('building_id')
+                up_res_na = up_res_na.select(cols_to_keep).join(
+                    base_res.select(cols_to_replace), how='left', on='building_id'
+                )
 
-            # Sort the columns so concat will work
-            up_res_na = up_res_na.select(sorted(up_res_na.columns))
-            up_res_na = self.reduce_df_memory(up_res_na)
-            results_dfs.append(up_res_na)
+                # Sort the columns so concat will work
+                up_res_na = up_res_na.select(sorted(up_res_na.columns))
 
+                # Cast utility columns to float64 to avoid data type inconsistancies
+                pattern_util_rate_name = re.compile(r'utility_bills.*_rate.*_name')
+                pattern_util_cost = re.compile(r'utility_bills.*_rate.*_bill_dollars')
+                for col, dt in up_res_na.schema.items():
+                    if pattern_util_rate_name.match(col):
+                        orig_dt = up_res_na.schema[col]
+                        if not orig_dt == pl.Utf8:
+                            up_res_na = up_res_na.with_columns([pl.col(col).cast(pl.Utf8)])
+                            dt = up_res_na.schema[col]
+                            logger.info(f'Cast {col} from {orig_dt} to {dt}')
+                    elif pattern_util_cost.match(col):
+                        orig_dt = up_res_na.schema[col]
+                        if not orig_dt == pl.Float64:
+                            up_res_na = up_res_na.with_columns([pl.col(col).cast(pl.Float64)])
+                            dt = up_res_na.schema[col]
+                            logger.info(f'Cast {col} from {orig_dt} to {dt}')
+
+                results_dfs.append(up_res_na)
+
+            # For buildings where the upgrade failed, add annual results columns from the Baseline run
+            # The columns completed_status = "Fail" and apply_upgrade.applicable = FALSE enable identification later,
+            # and any savings calculated for these runs will be zero because upgrade == baseline
+            if up_res_fail.shape[0] > 0:
+                shared_cols = [c for c in base_res.columns if c in up_res.columns]
+                cols_to_leave_alone = [
+                    'job_id',
+                    'started_at',
+                    'completed_at',
+                    self.COMP_STATUS,
+                    'apply_upgrade.applicable',
+                    'apply_upgrade.upgrade_name',
+                    self.UPGRADE_ID,
+                    'apply_upgrade.reference_scenario',
+                    self.upgrade_ids_to_skip
+                ]
+                cols_to_replace = [c for c in shared_cols if c not in cols_to_leave_alone]
+                cols_to_keep = [c for c in base_res.columns if c not in cols_to_replace]
+                cols_to_keep.append('building_id')
+                up_res_fail = up_res_fail.select(cols_to_keep).join(
+                    base_res.select(cols_to_replace), how='left', on='building_id'
+                )
+                # Set applicability to False and upgrade name because often blank for failed runs
+                up_res_fail = up_res_fail.with_columns([pl.lit(False).alias('apply_upgrade.applicable')])
+                up_res_fail = up_res_fail.with_columns([pl.lit(upgrade_name).alias('apply_upgrade.upgrade_name')])
+
+                # Sort the columns so concat will work
+                up_res_fail = up_res_fail.select(sorted(up_res_fail.columns))
+
+                # Cast utility columns to float64 to avoid data type inconsistancies
+                pattern_util_rate_name = re.compile(r'utility_bills.*_rate.*_name')
+                pattern_util_cost = re.compile(r'utility_bills.*_rate.*_bill_dollars')
+                for col, dt in up_res_fail.schema.items():
+                    if pattern_util_rate_name.match(col):
+                        orig_dt = up_res_fail.schema[col]
+                        if not orig_dt == pl.Utf8:
+                            up_res_fail = up_res_fail.with_columns([pl.col(col).cast(pl.Utf8)])
+                            dt = up_res_fail.schema[col]
+                            logger.info(f'Cast {col} from {orig_dt} to {dt}')
+                    elif pattern_util_cost.match(col):
+                        orig_dt = up_res_fail.schema[col]
+                        if not orig_dt == pl.Float64:
+                            up_res_fail = up_res_fail.with_columns([pl.col(col).cast(pl.Float64)])
+                            dt = up_res_fail.schema[col]
+                            logger.info(f'Cast {col} from {orig_dt} to {dt}')
+
+                results_dfs.append(up_res_fail)
+
+        # Gather schema data for debugging on failed concatenation
+        results_df_schemas = {}
+        for results_df in results_dfs:
+            pattern_util_rate_name = re.compile(r'utility_bills.*_rate.*_name')
+            pattern_util_cost = re.compile(r'utility_bills.*_rate.*_bill_dollars')
+            for col, dt in results_df.schema.items():
+                if col in results_df_schemas:
+                    results_df_schemas[col].append(dt)
+                else:
+                    results_df_schemas[col] = [dt]
+
+        # Check the schemas for inconsistent dtypes which prevent concatenation
+        for col, dts in results_df_schemas.items():
+            if len(set(dts)) > 1:
+                vals = []
+                for df in results_dfs:
+                    vals += df.get_column(col).unique().to_list()
+                err_msg = f'Column {col} is being read as multiple dtypes: {set(dts)} from values: {set(vals)}'
+                logger.error(err_msg)
+                raise Exception(err_msg)
+
+        # Combine applicable, not applicable, and failed-replaced-with-baseline results from all upgrades
         self.data = pl.concat(results_dfs, how='diagonal')
 
         # Reduce DF memory by converting some columns to boolean or category
@@ -549,10 +939,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Show the dataset size
         logger.debug(f'Memory after add_geospatial_columns: {self.data.estimated_size()}')
-
+    
     def add_ejscreen_columns(self):
         # Add the EJ Screen data
-
         if not 'nhgis_tract_gisjoin' in self.data:
             logger.warning(('Because the nhgis_tract_gisjoin column is missing '
                 'from the data, EJSCREEN characteristics cannot be joined.'))
@@ -589,7 +978,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # ejscreen['nhgis_tract_gisjoin'] = ejscreen.apply(lambda row: nhgis_tract_gisjoin_from_census_id(row['ID']))
 
         ejscreen = ejscreen.with_columns(
-            pl.col('ID').apply(lambda x: nhgis_tract_gisjoin_from_census_id(x)).alias('nhgis_tract_gisjoin'),
+            pl.col('ID').map_elements(lambda x: nhgis_tract_gisjoin_from_census_id(x)).alias('nhgis_tract_gisjoin'),
         )
 
         ejscreen = self.reduce_df_memory(ejscreen)
@@ -603,6 +992,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Show the dataset size
         logger.debug(f'Memory after add_ejscreen_columns: {self.data.estimated_size()}')
+    
 
     def add_cejst_columns(self):
         # Add the CEJST data
@@ -646,13 +1036,23 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             return gisjoin
 
         cejst = cejst.with_columns(
-            pl.col(cejst_geo_column).apply(lambda x: nhgis_tract_gisjoin_from_census_id(x)).alias(tract_col),
+            pl.col(cejst_geo_column).map_elements(lambda x: nhgis_tract_gisjoin_from_census_id(x)).alias(tract_col),
         )
 
         cejst = self.reduce_df_memory(cejst)
 
         # Merge in the CEJST columns
         self.data = self.data.join(cejst, on=tract_col, how='left')
+
+	    # Fill missing rows with false
+        self.data = self.data.with_columns(pl.col(tract_col).fill_null(False))
+
+
+        # Check that no rows have null values
+        errs = self.data.select((pl.col(tract_col).filter(pl.col(tract_col).is_null()).count()))
+        num_errs = errs.get_column(tract_col).sum()
+        if num_errs > 0:
+            raise Exception(f'Errors in assigning CEJST data to {num_errs} buildings, fix logic.')
 
         # Show the dataset size
         logger.debug(f'Memory after add_cejst_columns: {self.data.estimated_size()}')
@@ -711,13 +1111,15 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             'Residential forced air_Furnace_None': 'Residential Style Central Systems'
             }
 
-        self.data = self.data.with_columns((pl.col('in.hvac_combined_type').map_dict(hvac_group_map)).alias('in.hvac_category'))
+        self.data = self.data.with_columns((pl.col('in.hvac_combined_type').cast(pl.Utf8).replace(hvac_group_map, default=None)).alias('in.hvac_category'))
 
         # Define building type groups relevant to segmentation
         non_food_svc = ['RetailStandalone', 'Warehouse','SmallOffice', 'LargeHotel', 'MediumOffice', 'PrimarySchool',
             'Hospital', 'SmallHotel', 'Outpatient', 'SecondarySchool', 'LargeOffice']
 
-        food_svc = ['QuickServiceRestaurant', 'FullServiceRestaurant', 'RetailStripmall']
+        food_svc = ['QuickServiceRestaurant', 'FullServiceRestaurant']
+
+        some_food_svc = ['RetailStripmall']
 
         non_lodging = ['QuickServiceRestaurant', 'RetailStripmall', 'RetailStandalone', 'Warehouse',
             'SmallOffice', 'MediumOffice', 'PrimarySchool',
@@ -726,6 +1128,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         lodging = ['SmallHotel', 'LargeHotel']
 
+        # Cast columns used in is_in() statements below to match dtype of lists
+        self.data = self.data.with_columns([
+            pl.col('in.comstock_building_type').cast(pl.Utf8),
+            pl.col('in.building_subtype').cast(pl.Utf8),
+            pl.col('in.hvac_category').cast(pl.Utf8),
+            pl.col('in.hvac_heat_type').cast(pl.Utf8)
+        ])
+
         # Assign segment
         self.data = self.data.with_columns([
             # Segment A
@@ -733,47 +1143,59 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             (pl.col('in.comstock_building_type').is_in(non_food_svc)) &
             (pl.col('in.hvac_category') == 'Small Packaged Unit'))
             .then(pl.lit(self.SEG_A))
+            # Segment A - includes strip malls with no food service
+            .when(
+            (pl.col('in.comstock_building_type').is_in(some_food_svc)) &
+            (pl.col('in.hvac_category') == 'Small Packaged Unit') &
+            (pl.col('in.building_subtype') == 'strip_mall_restaurant0'))
+            .then(pl.lit(self.SEG_A))
             # Segment B
             .when(
             (pl.col('in.comstock_building_type').is_in(food_svc)) &
             (pl.col('in.hvac_category') == 'Small Packaged Unit'))
             .then(pl.lit(self.SEG_B))
-            # Segment C
+            # Segment C - strip malls with SOME food service
+            .when(
+            (pl.col('in.comstock_building_type').is_in(some_food_svc)) &
+            (pl.col('in.hvac_category') == 'Small Packaged Unit') &
+            (pl.col('in.building_subtype') != 'strip_mall_restaurant0'))
+            .then(pl.lit(self.SEG_C))
+            # Segment D
             # NOTE see the space after Boiler... this is an artifact of previous code!
             .when(
             (pl.col('in.hvac_heat_type').is_in(['Boiler ', 'District'])) &
             (pl.col('in.hvac_category') == 'Multizone CAV/VAV'))
-            .then(pl.lit(self.SEG_C))
-            # Segment D
-            .when(
-            (pl.col('in.comstock_building_type').is_in(lodging)) &
-            (pl.col('in.hvac_category') == 'Zone-by-Zone'))
             .then(pl.lit(self.SEG_D))
             # Segment E
             .when(
-            (pl.col('in.hvac_heat_type') == 'Electric Resistance') &
-            (pl.col('in.hvac_category') == 'Multizone CAV/VAV'))
+            (pl.col('in.comstock_building_type').is_in(lodging)) &
+            (pl.col('in.hvac_category') == 'Zone-by-Zone'))
             .then(pl.lit(self.SEG_E))
             # Segment F
             .when(
-            (pl.col('in.hvac_heat_type') == 'Furnace') &
+            (pl.col('in.hvac_heat_type') == 'Electric Resistance') &
             (pl.col('in.hvac_category') == 'Multizone CAV/VAV'))
             .then(pl.lit(self.SEG_F))
             # Segment G
             .when(
-            (pl.col('in.hvac_category') == 'Residential Style Central Systems'))
+            (pl.col('in.hvac_heat_type') == 'Furnace') &
+            (pl.col('in.hvac_category') == 'Multizone CAV/VAV'))
             .then(pl.lit(self.SEG_G))
             # Segment H
             .when(
-            (pl.col('in.comstock_building_type').is_in(non_lodging)) &
-            (pl.col('in.hvac_category') == 'Zone-by-Zone'))
+            (pl.col('in.hvac_category') == 'Residential Style Central Systems'))
             .then(pl.lit(self.SEG_H))
             # Segment I
             .when(
-            (pl.col('in.hvac_category') == 'Other HVAC'))
+            (pl.col('in.comstock_building_type').is_in(non_lodging)) &
+            (pl.col('in.hvac_category') == 'Zone-by-Zone'))
             .then(pl.lit(self.SEG_I))
+            # Segment J
+            .when(
+            (pl.col('in.hvac_category') == 'Other HVAC'))
+            .then(pl.lit(self.SEG_J))
             # Catchall - should not hit this, every building should have a segment
-            .otherwise('ERROR')
+            .otherwise(pl.lit('ERROR'))
             # Assign the column name
             .alias(self.SEG_NAME)
         ])
@@ -878,7 +1300,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         cols_to_keep.append(c)
                 else:
                     # Report columns available in the data but not listed in the column definitions
-                    logger.info(f'Column {c} is available but was not listed in in {COLUMN_DEFINITION_FILE_NAME}')
+                    logger.debug(f'Column {c} is available but was not listed in in {COLUMN_DEFINITION_FILE_NAME}')
 
         # df = df[cols_to_keep]
         df = df.select(cols_to_keep)
@@ -984,6 +1406,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         out_peak = []
         out_intensity = []
         out_emissions = []
+        out_utility = []
         out_qoi = []
         out_params = []
         calc = []
@@ -999,6 +1422,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 out_qoi.append(c)
             elif c.startswith('out.emissions.'):
                 out_emissions.append(c)
+            elif c.startswith('out.utility_bills.'):
+                out_utility.append(c)
             elif c.startswith('out.params.'):
                 out_params.append(c)
             elif c.startswith('calc.'):
@@ -1018,7 +1443,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             else:
                 logger.error(f'Didnt find an order for column: {c}')
 
-        sorted_cols = front_cols + applicability + geogs + ins + out_engy_cons_svgs + out_peak + out_intensity + out_qoi + out_emissions + out_params + calc
+        sorted_cols = front_cols + applicability + geogs + ins + out_engy_cons_svgs + out_peak + out_intensity + out_qoi + out_emissions + out_utility + out_params + calc
 
         self.data = self.data.select(sorted_cols)
 
@@ -1043,6 +1468,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # Skip missing columns if specified
             if self.skip_missing_columns:
                 if not orig_name in self.data.columns:
+                    if 'utility_bills.' in orig_name:
+                        continue
                     logger.warning(f'Column {orig_name} was requested as an input but not found in data, skipping')
                     continue
 
@@ -1092,7 +1519,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 logger.info(f'Renaming upgrades')
                 for old, new in upgrade2upgrade.items():
                     logger.debug(f'{old} -> {new}')
-                self.data = self.data.with_columns((pl.col(self.UPGRADE_NAME).map_dict(upgrade2upgrade)).alias(self.UPGRADE_NAME))
+                self.data = self.data.with_columns((pl.col(self.UPGRADE_NAME).replace(upgrade2upgrade, default=None)).alias(self.UPGRADE_NAME))
                 self.data = self.data.with_columns(pl.col(self.UPGRADE_NAME).cast(pl.Categorical))
 
         logger.debug(f'Memory after rename_columns_and_convert_units: {self.data.estimated_size()}')
@@ -1136,6 +1563,37 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             eui_col = self.col_name_to_eui(engy_col)
             self.data = self.data.with_columns(
                 (pl.col(engy_col) / pl.col(self.FLR_AREA)).alias(eui_col))
+
+    def add_bill_intensity_columns(self):
+        # Create bill per area column for each annual utility bill column
+        for bill_col in self.COLS_UTIL_BILLS:
+            # Put in np.nan for bill columns that aren't part of ComStock
+            if not bill_col in self.data:
+                self.data = self.data.with_columns([pl.lit(None).alias(bill_col)])
+
+            # Divide bill by area to create intensity
+            per_area_col = self.col_name_to_area_intensity(bill_col)
+            self.data = self.data.with_columns(
+                (pl.col(bill_col) / pl.col(self.FLR_AREA)).alias(per_area_col))
+
+    def add_energy_rate_columns(self):
+        # Create energy rate column for each annual utility bill column
+        for bill_col in self.COLS_UTIL_BILLS:
+            # Get the corresponding energy consumption column
+            bill_to_engy_col = {
+                self.UTIL_BILL_ELEC: self.ANN_TOT_ELEC_KBTU,
+                self.UTIL_BILL_GAS: self.ANN_TOT_GAS_KBTU,
+                self.UTIL_BILL_FUEL_OIL: None,
+                self.UTIL_BILL_PROPANE: None
+            }
+            # Only create rate columns for fuels with bills and annual consumption
+            engy_col = bill_to_engy_col[bill_col]
+            if not engy_col:
+                continue
+            # Divide bill by consumption to create rate
+            rate_col = self.col_name_to_energy_rate(bill_col)
+            self.data = self.data.with_columns(
+                (pl.col(bill_col) / pl.col(engy_col)).alias(rate_col))
 
     def add_normalized_qoi_columns(self):
         dict_cols = []
@@ -1213,7 +1671,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # self.data[self.VINTAGE] = self.data.apply(lambda row: vintage_bin_from_year(row[]), axis=1)
         self.data = self.data.with_columns(
-            pl.col(self.YEAR_BUILT).apply(lambda x: vintage_bin_from_year(x)).alias(self.VINTAGE),
+            pl.col(self.YEAR_BUILT).map_elements(lambda x: vintage_bin_from_year(x)).alias(self.VINTAGE),
         )
         self.data = self.data.with_columns(pl.col(self.VINTAGE).cast(pl.Categorical))
 
@@ -1267,17 +1725,17 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # add column for ventilation
         dict_vent = dict(zip(hvac['system_type'], hvac['ventilation_type']))
-        self.data = self.data.with_columns((pl.col('in.hvac_system_type').map_dict(dict_vent)).alias('in.hvac_vent_type'))
+        self.data = self.data.with_columns((pl.col('in.hvac_system_type').cast(pl.Utf8).replace(dict_vent, default=None)).alias('in.hvac_vent_type'))
         self.data = self.data.with_columns(pl.col('in.hvac_vent_type').cast(pl.Categorical))
 
         # add column for heating
         dict_heat = dict(zip(hvac['system_type'], hvac['primary_heating']))
-        self.data = self.data.with_columns((pl.col('in.hvac_system_type').map_dict(dict_heat)).alias('in.hvac_heat_type'))
+        self.data = self.data.with_columns((pl.col('in.hvac_system_type').cast(pl.Utf8).replace(dict_heat, default=None)).alias('in.hvac_heat_type'))
         self.data = self.data.with_columns(pl.col('in.hvac_heat_type').cast(pl.Categorical))
 
         # add column for cooling
         dict_cool = dict(zip(hvac['system_type'], hvac['primary_cooling']))
-        self.data = self.data.with_columns((pl.col('in.hvac_system_type').map_dict(dict_cool)).alias('in.hvac_cool_type'))
+        self.data = self.data.with_columns((pl.col('in.hvac_system_type').cast(pl.Utf8).replace(dict_cool, default=None)).alias('in.hvac_cool_type'))
         self.data = self.data.with_columns(pl.col('in.hvac_cool_type').cast(pl.Categorical))
 
         # hvac combined
@@ -1303,7 +1761,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             'Warehouse': 'Warehouse and Storage',
         }
 
-        self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).map_dict(bldg_type_groups)).alias(self.BLDG_TYPE_GROUP))
+        self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_groups, default=None)).alias(self.BLDG_TYPE_GROUP))
         self.data = self.data.with_columns(pl.col(self.BLDG_TYPE_GROUP).cast(pl.Categorical))
 
     def add_national_scaling_weights(self, cbecs: CBECS, remove_non_comstock_bldg_types_from_cbecs: bool):
@@ -1333,7 +1791,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Total sqft of each building type, ComStock
         baseline_data = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).clone()
-        comstock_bldg_type_sqft = baseline_data.groupby(self.BLDG_TYPE).agg([pl.col(self.FLR_AREA).sum()])
+        comstock_bldg_type_sqft = baseline_data.group_by(self.BLDG_TYPE).agg([pl.col(self.FLR_AREA).sum()])
         comstock_bldg_type_sqft = comstock_bldg_type_sqft.to_pandas().set_index(self.BLDG_TYPE)
         logger.debug('ComStock Baseline floor area by building type')
         logger.debug(comstock_bldg_type_sqft)
@@ -1379,7 +1837,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # }
 
         # Assign scaling factors to each ComStock run
-        self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).map_dict(bldg_type_scale_factors)).alias(self.BLDG_WEIGHT))
+        self.building_type_weights = bldg_type_scale_factors
+        self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_scale_factors, default=None)).alias(self.BLDG_WEIGHT))
 
         # Apply the weight to scale the area and energy columns
         self.add_weighted_area_and_energy_columns()
@@ -1392,6 +1851,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 logger.info('Energy savings columns already in data')
             else:
                 self.add_weighted_energy_savings_columns()
+
+        # Adding weighting factors to the monthly data
+        self.get_scaled_comstock_monthly_consumption_by_state()
 
         return bldg_type_scale_factors
 
@@ -1455,14 +1917,19 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 propane_ghg = f'calc.weighted.emissions.propane..co2e_mmt'
                 fuel_oil_ghg = f'calc.weighted.emissions.fuel_oil..co2e_mmt'
                 tot_ghg_expr = (pl.col(propane_ghg).add(pl.col(fuel_oil_ghg)))
-                self.data = self.data.with_columns(
-                    (tot_ghg_expr.mul(pl.col(enduse_gp_engy)).truediv(pl.col(tot_engy))).alias(enduse_gp_ghg_col),
-                )
+                self.data = self.data.with_columns([
+                    pl.when((pl.col(tot_engy) > 0))  # Avoid divide-by-zero
+                    .then((tot_ghg_expr.mul(pl.col(enduse_gp_engy)).truediv(pl.col(tot_engy))))
+                    .otherwise(0.0)
+                    .alias(enduse_gp_ghg_col),
+                ])
             else:
-                self.data = self.data.with_columns(
-                    (pl.col(tot_ghg).mul(pl.col(enduse_gp_engy)).truediv(pl.col(tot_engy))).alias(enduse_gp_ghg_col),
-                )
-
+                self.data = self.data.with_columns([
+                    pl.when((pl.col(tot_engy) > 0))  # Avoid divide-by-zero
+                    .then((pl.col(tot_ghg).mul(pl.col(enduse_gp_engy)).truediv(pl.col(tot_engy))))
+                    .otherwise(0.0)
+                    .alias(enduse_gp_ghg_col)
+                ])
     def add_weighted_energy_savings_columns(self):
         # Select energy columns to calculate savings for
         engy_cols = []
@@ -1628,16 +2095,169 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         self.data = self.data.rename(crnms)
 
+    def get_comstock_unscaled_monthly_energy_consumption(self):
+        """
+        From the ComStock run, get the monthly timeseries data into monthly natural gas and electricity energy consumption for each state.
+        Scale the monthly consumption to national scale.
+        First, scale each building type up to match CBECS sqft for that building type.
+        Second, scale the total energy for that total sqft up to match the total of CBECS for ALL building types.
+        Return:
+            comstock_monthly_consumption (pd.DataFrame): Table of natural gas and electricity consumption by state and month.
+        """
+        if self.athena_table_name is None:
+            logger.info('No athena_table_name was provided, not attempting to query monthly data from Athena.')
+            return True
+
+        # Load or query timeseries ComStock results by state and building type
+        file_name = f'comstock_monthly_natural_gas_and_electricity_by_state_and_bldg_type.csv'
+        file_path = os.path.join(self.data_dir, file_name)
+        if not os.path.exists(file_path):
+            # Query Athena for ComStock results
+            logger.info('Querying Athena for ComStock monthly energy data by state and building type, this will take several minutes.')
+            query = f"""
+                SELECT
+                "upgrade",
+                "month",
+                "state_id",
+                "building_type",
+                sum("total_site_gas_kbtu") AS "total_site_gas_kbtu",
+                sum("total_site_electricity_kwh") AS "total_site_electricity_kwh"
+                FROM
+                (
+                    SELECT
+                    EXTRACT(MONTH from from_unixtime("time"/1e9)) as "month",
+                    SUBSTRING("build_existing_model.county_id", 2, 2) AS "state_id",
+                    "build_existing_model.create_bar_from_building_type_ratios_bldg_type_a" as "building_type",
+                    "upgrade",
+                    "total_site_gas_kbtu",
+                    "total_site_electricity_kwh"
+                    FROM
+                    "{self.athena_table_name}_timeseries"
+                    JOIN "{self.athena_table_name}_baseline"
+                    ON "{self.athena_table_name}_timeseries"."building_id" = "{self.athena_table_name}_baseline"."building_id"
+                    WHERE "build_existing_model.building_type" IS NOT NULL
+                )
+                GROUP BY
+                "upgrade",
+                "month",
+                "state_id",
+                "building_type"
+            """
+            comstock_unscaled_data = self.athena_client.execute(query)
+            comstock_unscaled_data.to_csv(file_path, index=False)
+
+        # Read data from disk
+        comstock_unscaled = pl.read_csv(file_path)
+
+        # Rename columns
+        comstock_unscaled = comstock_unscaled.rename({'month': 'Month', 'state_id': 'FIPS Code'})
+
+        # Rename upgrade values
+        upgrade_data = self.data.select([self.UPGRADE_ID, self.UPGRADE_NAME])
+        print(upgrade_data.head())
+        upgrade_name_map = dict(zip(upgrade_data[self.UPGRADE_ID], upgrade_data[self.UPGRADE_NAME]))
+        comstock_unscaled = comstock_unscaled.with_columns(
+            pl.col('upgrade').replace(upgrade_name_map).alias('upgrade_name'),
+        )
+        print(comstock_unscaled.head())
+        #Rename Building_Types
+        def rename_buildingtypes(building_type):
+            building_type = building_type.replace('_',' ').replace(' ', '')
+            return building_type
+
+        comstock_unscaled = comstock_unscaled.with_columns(
+            pl.col('building_type').map_elements(lambda x: rename_buildingtypes(x)).alias('building_type'),
+        )
+
+        self.monthly_data = comstock_unscaled
+
+        return comstock_unscaled
+
+    def get_scaled_comstock_monthly_consumption_by_state(self):
+
+        if self.monthly_data is None:
+            logger.info('No monthly_data exists, not attempting to scale monthly data.')
+            return True
+
+        # Load or query monthly ComStock energy consumption by state and building type
+        monthly = self.monthly_data
+
+        # Get the scaling factors to take the results of this ComStock run to the national scale
+        comstock_scaling_factors = self.data.group_by(self.BLDG_TYPE).agg(pl.col(self.BLDG_WEIGHT).mean())
+        comstock_scaling_factors = dict(comstock_scaling_factors.iter_rows())
+
+        # Assign the correct per-building-type scaling factor to ComStock monthly data
+        monthly = monthly.with_columns((pl.col('building_type').replace(comstock_scaling_factors, default=None)).alias('Scaling Factor'))
+
+        # Scale the ComStock energy consumption
+        monthly = monthly.with_columns(
+            (pl.col('total_site_electricity_kwh').mul(pl.col('Scaling Factor'))).alias('Electricity consumption (kWh)'),
+        )
+
+        monthly = monthly.with_columns(
+            (pl.col('total_site_gas_kbtu').mul(pl.col('Scaling Factor'))).alias('Natural gas consumption (thous Btu)'),
+        )
+
+        # Aggregate ComStock by state and month, combining all building types
+        vals = ['Electricity consumption (kWh)', 'Natural gas consumption (thous Btu)']
+        cols_to_drop = ['building_type', 'total_site_electricity_kwh', 'total_site_gas_kbtu', 'Scaling Factor']
+
+        idx = ['FIPS Code', 'Month', 'upgrade', 'upgrade_name']
+        monthly = monthly.group_by(idx).sum().drop(cols_to_drop)
+
+        # Add a dataset label column
+        monthly = monthly.with_columns([
+            pl.lit(self.dataset_name).alias(self.DATASET)
+        ])
+
+        # load the state id table
+        file_path = os.path.join(self.truth_data_dir, 'state_region_division_table.csv')
+        if not os.path.exists(file_path):
+            raise AssertionError('State metadata not found, download truth data')
+        else:
+            state_table = pl.read_csv(file_path)
+
+        # Rename columns
+        state_table = state_table.rename({'State': self.STATE_NAME, 'State Code': self.STATE_ABBRV})
+
+        # Append the state metadata
+        cols = ['FIPS Code', self.STATE_ABBRV, 'Division']
+        monthly = monthly.join(state_table.select(cols), on='FIPS Code', how='left')
+
+        # # Get the energy consumption of the buildings NOT covered by ComStock from CBECS
+        # cbecs_gap_elec_tbtu, cbecs_gap_gas_tbtu = self.get_comstock_to_whole_stock_energy_gaps()
+
+        # Using ComStock's existing distribution of energy consumption by state and month,
+        # add the energy consumption of the buildings NOT covered by ComStock.
+        # This will be called the ComStock Gap Model.
+        # Because of the way the stacked bar plots are created, ComStock Gap = ComStock + ComStock Gap
+        # comstock_elec_tbtu = comstock['Electricity consumption (kWh)'].sum() * self.kWh_to_kBtu * self.kBtu_to_TBtu
+        # comstock_gas_tbtu = comstock['Natural gas consumption (thous Btu)'].sum() * self.kBtu_to_TBtu
+        # elec_scale = (cbecs_gap_elec_tbtu + comstock_elec_tbtu) / comstock_elec_tbtu
+        # gas_scale = (cbecs_gap_gas_tbtu + comstock_gas_tbtu) / comstock_gas_tbtu
+        # comstock_gap = comstock.copy()
+        # comstock_gap['Dataset'] = 'ComStock Gap Model'
+        # comstock_gap['Electricity consumption (kWh)'] = comstock_gap['Electricity consumption (kWh)'] * elec_scale
+        # comstock_gap['Natural gas consumption (thous Btu)'] = comstock_gap['Natural gas consumption (thous Btu)'] * gas_scale
+
+
+        # self.monthly_data_gap = comstock_gap
+        self.monthly_data = monthly
+        return monthly
+
     def export_to_csv_wide(self):
         # Exports comstock data to CSV in wide format
 
         # Reorder the columns before exporting
         self.reorder_data_columns()
 
-        file_name = f'ComStock wide.csv'
-        file_path = os.path.join(self.output_dir, file_name)
-        logger.info(f'Exporting to: {file_path}')
-        self.data.write_csv(file_path)
+        up_ids = self.data.get_column(self.UPGRADE_ID).unique().to_list()
+        up_ids.sort()
+        for up_id in up_ids:
+            file_name = f'ComStock wide upgrade{up_id}.csv'
+            file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
+            logger.info(f'Exporting to: {file_path}')
+            self.data.filter(pl.col(self.UPGRADE_ID) == up_id).write_csv(file_path)
 
         # Export dictionaries corresponding to the exported columns
         self.export_data_and_enumeration_dictionary()
@@ -1652,52 +2272,116 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         up_ids.sort()
         for up_id in up_ids:
             file_name = f'ComStock wide upgrade{up_id}.parquet'
-            file_path = os.path.join(self.output_dir, file_name)
+            file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
             logger.info(f'Exporting to: {file_path}')
             self.data.filter(pl.col(self.UPGRADE_ID) == up_id).write_parquet(file_path)
 
         # Export dictionaries corresponding to the exported columns
         self.export_data_and_enumeration_dictionary()
 
-    def export_to_csv_long(self):
-        # Exports comstock data to CSV in long format, with rows for each end use
-        # TODO POLARS implement export_to_csv_long
+    def create_long_energy_data(self):
+        # Convert energy and emissions data into long format, with a row for each fuel/enduse group combo
 
-        # Convert ComStock into long format, with a new row for each Fuel.Enduse combination
         engy_cols = []
-        for col in (self.COLS_ENDUSE_ANN_ENGY):
-            engy_cols.append(self.col_name_to_weighted(col, self.weighted_energy_units))
+        emis_cols = []
+        for col in (self.COLS_ENDUSE_GROUP_ANN_ENGY):
+            fuel, enduse_gp = col.replace('calc.enduse_group.', '').replace('.energy_consumption..kwh', '').split('.')
+            pre = f'calc.weighted.enduse_group.{fuel}.{enduse_gp}'
+            enduse_gp_engy = f'{pre}.energy_consumption..tbtu'
+            engy_cols.append(enduse_gp_engy)
+            # Find the corresponding emissions column
+            for c in self.data.columns:
+                if c.startswith(f'{pre}.emissions'):
+                    emis_cols.append(c)
 
-        bldg_cols = []
-        for c in self.data.columns:
-            if not 'out.' in c:
-                bldg_cols.append(c)
+        # Convert energy columns to long form
+        engy_var_col = 'calc.weighted.enduse_group.fuel.enduse_group.energy_consumption..units'
+        pre = 'calc.weighted.enduse_group.'
+        suf = '..tbtu'
+        engy_val_col = f'calc.weighted.energy_consumption..{self.weighted_energy_units}'
+        engy = self.data.melt(id_vars=[self.BLDG_ID, self.UPGRADE_ID], value_vars=engy_cols, variable_name=engy_var_col, value_name=engy_val_col)
+        engy = engy.with_columns(
+            pl.col(engy_var_col).str.strip_prefix(pre).str.strip_suffix(suf).str.split('.').list.get(0).alias('fuel'),
+            pl.col(engy_var_col).str.strip_prefix(pre).str.strip_suffix(suf).str.split('.').list.get(1).alias('enduse_group'),
+        )
 
-        var_col = 'type.fuel.enduse.energy_consumption..units'
-        val_col = 'weighted_energy_consumption'
-        dl = pd.melt(self.data, id_vars=[self.BLDG_UP_ID, self.UPGRADE_ID, 'in.state_abbreviation'], value_vars=engy_cols, var_name=var_col, value_name=val_col)
+        # Convert emissions columns to long form
+        emis_var_col = 'calc.weighted.enduse_group.fuel.enduse_group.emissions..units'
+        pre = 'calc.weighted.enduse_group.'
+        emis_val_col = f'calc.weighted.emissions..{self.weighted_ghg_units}'
+        emis = self.data.melt(id_vars=[self.BLDG_ID, self.UPGRADE_ID], value_vars=emis_cols, variable_name=emis_var_col, value_name=emis_val_col)
+        emis = emis.with_columns(
+            pl.col(emis_var_col).str.strip_prefix(pre).str.split('.').list.get(0).alias('fuel'),
+            pl.col(emis_var_col).str.strip_prefix(pre).str.split('.').list.get(1).alias('enduse_group'),
+        )
 
-        # Remove rows with zero values for the fuel type/end use combo
-        dl = dl.loc[dl[val_col] > 0]
+        # Join long form energy and emissions
+        join_cols = [self.BLDG_ID, self.UPGRADE_ID, 'fuel', 'enduse_group']
+        engy_emis = engy.join(emis, how='left', on=join_cols)
+        # Fill blank emissions (for district heating and cooling) with zeroes
+        # TODO remove if emissions cols for district heating and cooling get added
+        engy_emis = engy_emis.with_columns(
+            pl.col(emis_val_col).fill_null(0.0)
+        )
+        # Remove rows with zero energy for the fuel/end use group combo to make file shorter
+        engy_emis = engy_emis.filter((pl.col(engy_val_col) > 0))
+        engy_emis = engy_emis.select(join_cols + [engy_val_col, emis_val_col])
+        engy_emis = engy_emis.sort(by=join_cols)
 
-        # Sort by building and upgrade ID
-        dl.sort_values(self.BLDG_UP_ID, inplace=True)
+        # Check that the long and wide sums match by fuel and for the total
+        fuels_to_check = engy_emis.get_column('fuel').unique().to_list() + ['total']
+        for fuel in fuels_to_check:
+            # Define column names
+            tot_engy_col = f'calc.weighted.{fuel}.total.energy_consumption..tbtu'
+            tot_ghg_col = f'calc.weighted.emissions.{fuel}..co2e_mmt'
+            if fuel == 'electricity':
+                tot_ghg_col = 'calc.weighted.emissions.electricity.egrid_2021_subregion..co2e_mmt'
+            elif fuel == 'total':
+                tot_engy_col = self.col_name_to_weighted(self.ANN_TOT_ENGY_KBTU, self.weighted_energy_units)
+                tot_ghg_col = self.col_name_to_weighted(self.ANN_GHG_EGRID, self.weighted_ghg_units)
+            elif fuel in ['other_fuel', 'district_heating', 'district_cooling']:
+                # TODO revise if district emissions added
+                # Other is sum of propane and fuel_oil columns, and district cols have no emissions columns
+                # Checked as part of checking total
+                continue
+            # Energy check
+            if fuel == 'total':
+                tot_engy_long = engy_emis.select(pl.sum(engy_val_col)).item()
+            else:
+                tot_engy_long = engy_emis.filter((pl.col('fuel') == fuel)).select(pl.sum(engy_val_col)).item()
+            tot_engy_wide = self.data.select(pl.sum(tot_engy_col)).item()
+            logger.debug(f'{fuel} long energy {tot_engy_long}')
+            logger.debug(f'{fuel} wide energy {tot_engy_wide}')
+            assert round(tot_engy_long, 1) == round(tot_engy_wide, 1), f'For {fuel}, long energy {tot_engy_long} does not match wide energy {tot_emis_wide}'
+            # Emissions check
+            if fuel == 'total':
+                tot_emis_long = engy_emis.select(pl.sum(emis_val_col)).item()
+            else:
+                tot_emis_long = engy_emis.filter((pl.col('fuel') == fuel)).select(pl.sum(emis_val_col)).item()
+            tot_emis_wide = self.data.select(pl.sum(tot_ghg_col)).item()
+            logger.debug(f'{fuel} long emissions {tot_emis_long}')
+            logger.debug(f'{fuel} wide emissions {tot_emis_wide}')
+            assert round(tot_emis_long, 1) == round(tot_emis_wide, 1), f'For {fuel}, long emissions {tot_engy_long} do not match wide emissions {tot_emis_wide}'
 
-        # Separate'type.fuel.enduse.energy_consumption..units' into multiple columns
-        def split_col_name(col_name):
-            p = self.engy_col_name_to_parts(col_name)
+        # Assign
+        self.data_long = engy_emis
 
-            return [p['fuel'], p['enduse'], p['enduse_group'], p['units'], ]
+    def export_to_csv_long(self):
+        # Exports comstock data to CSV in long format, with rows for each fuel/enduse group combo
 
-        dl['fuel'], dl['enduse'], dl['enduse_group'], dl['weighted_energy_consumption_units'] = zip(*dl[var_col].apply(split_col_name))
-
-        # Drop the combined type.fuel.enduse.energy_consumption..units column
-        dl.drop(var_col, axis=1, inplace=True)
+        if self.data_long is None:
+            self.create_long_energy_data()
 
         # Save files - separate building energy from characteristics for file size
-        file_name = f'ComStock energy long.csv'
-        file_path = os.path.join(self.output_dir, file_name)
-        dl.to_csv(file_path, index=False)
+        up_ids = self.data.get_column(self.UPGRADE_ID).unique().to_list()
+        up_ids.sort()
+        logger.error(f'Got here {up_ids}')
+        for up_id in up_ids:
+            logger.error('Got here')
+            file_name = f'upgrade{up_id:02d}_energy_long.csv'
+            file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
+            logger.info(f'Exporting to: {file_path}')
+            self.data.filter(pl.col(self.UPGRADE_ID) == up_id).write_csv(file_path)
 
     def combine_emissions_cols(self):
         # Create combined emissions columns
@@ -1753,7 +2437,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             if col.startswith('applicability.'):
                 continue  # measure-within-upgrade applicability column names are dynamic, don't check
             col = col.replace(f'..{self.units_from_col_name(col)}', '')
-            col_def = col_defs.row(by_predicate=(pl.col('new_col_name') == col), named=True)
+            try:
+                col_def = col_defs.row(by_predicate=(pl.col('new_col_name') == col), named=True)
+            except pl.exceptions.NoRowsReturnedError as nrrerr:
+                logger.error(f'No definition for {col} in {col_def_path}')
+                continue
+
             col_enums = []
             if col_def['data_type'] == 'string':
                 str_enums = []
@@ -1769,6 +2458,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 if len(str_enums) > 50:
                     logger.debug(f'Not defining enumerations for {col}, see column definition for pattern')
                     col_enums = str_enums[0:10] + ['...too many to list']
+                elif 'utility_bills.' in col:
+                    pass  # Don't define utility rate names
                 else:
                     col_enums = str_enums
                     all_enums.extend(str_enums)
@@ -1799,11 +2490,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Save files
         file_name = f'data_dictionary.tsv'
-        file_path = os.path.join(self.output_dir, file_name)
+        file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
         logger.info(f'Exporting data dictionary to: {file_path}')
         data_dictionary.write_csv(file_path, separator='\t')
 
         file_name = f'enumeration_dictionary.tsv'
-        file_path = os.path.join(self.output_dir, file_name)
+        file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
         logger.info(f'Exporting enumeration dictionary to: {file_path}')
         enum_dictionary.write_csv(file_path, separator='\t')

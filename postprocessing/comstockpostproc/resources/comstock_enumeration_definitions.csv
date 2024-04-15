@@ -49,8 +49,7 @@ ASHRAE 169-2013-6B,ASHRAE 90.1 climate zone 6B
 ASHRAE 169-2013-7A,ASHRAE 90.1 climate zone 7A
 ASHRAE 169-2013-8A,ASHRAE 90.1 climate zone 8A
 AZNMc,Cambium grid region AZNMc. See https://www.nrel.gov/analysis/cambium.html
-"B: Food-Service, Freestanding and in Strip Malls with small packaged units",Addressable Segment B. Buildings with food service tenants in freestanding and strip malls with small packaged units. Common Examples:  freestanding and strip mall restaurants.
-"B: Food-Service, Freestanding and in Strip Malls with Small Packaged Units",A segment of the building stock with common characteristics
+B: Food-Service Buildings with Small Packaged Units,Addressable Segment B. Buildings with food service tenants with small packaged units. Common Examples:  freestanding restaurants.
 Baseboard electric,"HVAC system type using zone electric resistance baseboard heating and no cooling, no outside ventilation air"
 Baseboard gas boiler,"HVAC system type using zone hot water baseboard heating from gas boiler and no cooling, no outside ventilation air"
 Baseline,The building without any upgrades beyond those that have occurred up to 2018
@@ -60,7 +59,7 @@ building_owner,The entity who legally owns the building
 building_owner_or_tenant,The entity who legally owns or leases the building
 Burger A,A type of restaurant in a survey of kitchen equipment
 Burger B,A type of restaurant in a survey of kitchen equipment
-C: Buildings with Hydronically Heated Multizone Systems,"Addressable Segment C. Buildings with Hydronically Heated Multizone Systems. Common Examples: large buildings with boilers (schools, large offices, healthcare facilities)."
+C: Strip Malls with some Food-Service with Small Packaged Units,"Addressable Segment C. Strip malls with a mix of food service and non food-service tenants with small packaged units. Common Examples:  strip malls with restaurants, retail, and salons."
 Cafe,A type of restaurant in a survey of kitchen equipment
 CAISO,California Indepentent System Operator
 CAMXc,Cambium grid region CAMXc. See https://www.nrel.gov/analysis/cambium.html
@@ -110,7 +109,7 @@ ComStock DEER Pre-1975,"The CA Title 24 Nonresidential Energy Code, as represent
 ComStock DOE Ref 1980-2004,An energy code closely following ASHRAE 90.1-1980
 ComStock DOE Ref Pre-1980,An energy code formatted set of assumptions representing bulding practices before widespread energy code adoption
 Cookie,A type of restaurant in a survey of kitchen equipment
-D: Lodging with Zone-by-Zone Systems,"Addressable Segment D. Lodging with zone-by-zone HVAC systems. Common Examples: motels and hotels, typically part of large chains"
+D: Buildings with Hydronically Heated Multizone Systems,"Addressable Segment D. Buildings with Hydronically Heated Multizone Systems. Common Examples: large buildings with boilers (schools, large offices, healthcare facilities)."
 default_nochange,The outdoor air system is assumed to operate at night per the code requirements from when the HVAC system was most recently updated
 Dept. Stores,A type of restaurant in a survey of kitchen equipment
 DifferentialDryBulb,An economizer control where operation is based on the difference in dry bulb temperatur between return air and outdoor air
@@ -156,7 +155,7 @@ Double - LowE - Tinted/Reflective - Thermally Broken Aluminum,"Window constructi
 Double - No LowE - Clear - Aluminum,"Window construction type with double pane clear glass, no lowE coating, in aluminum frame with no thermal break"
 Double - No LowE - Tinted/Reflective - Aluminum,"Window construction type with double pane tinted glass, no lowE coating, in aluminum frame with no thermal break"
 DX,Direct expansion
-E: Buildings with Electric Resistance Multizone Systems,Addressable Segment E. Buildings with electric resistance multizone systems. Common Examples: medium to large offices and healthcare facilities. 
+E: Lodging with Zone-by-Zone Systems,"Addressable Segment E. Lodging with zone-by-zone HVAC systems. Common Examples: motels and hotels, typically part of large chains"
 East North Central,"The census division covering IL, IN, MI, OH, and WI"
 East South Central,"The census division covering AL, KY, MS, and TN"
 Education,Building group for education building types
@@ -166,7 +165,8 @@ Electricity,"Fuel type of electricity for either space heating, water heating, e
 ERCOT,Energy Reliability Council of Texas
 ERCTc,Cambium grid region ERCTc. See https://www.nrel.gov/analysis/cambium.html
 Evaporative Cooling,"Moves air over a water-wetted media, evaporating the water to remove heat from the airstream"
-F: Buildings with Furnace-Based Multizone Systems,Addressable Segment F: Buildings with packaged furnace based mulit-zone systems. Common Examples: small to medium offices and schools.
+F: Buildings with Electric Resistance Multizone Systems,Addressable Segment F. Buildings with electric resistance multizone systems. Common Examples: medium to large offices and healthcare facilities.
+Fail,"An upgrade completed with errors. If a model fails during an upgrade, results are replaced with Baseline results for this model."
 Fan coil air-cooled chiller with boiler,"HVAC system type using zone fan coil units for heating and cooling from gas boiler and air-cooled chiller, outside ventilation air supplied directly through system"
 Fan coil air-cooled chiller with no heat,"HVAC system type using zone fan coil units for cooling from air-cooled chiller and no heating, outside ventilation air supplied directly through system"
 Fan coil chiller with baseboard electric,"HVAC system type using zone fan coil units for cooling from air-cooled chiller and heating from zone electric resistance baseboard, outside ventilation air supplied directly through system"
@@ -196,7 +196,7 @@ FRCCc,Cambium grid region FRCCc. See https://www.nrel.gov/analysis/cambium.html
 FuelOil,"Fuel type of Fuel Oil for either space heating, water heating, equipment, etc."
 FullServiceRestaurant,Full service restaurant building type
 Furnace,A fossil fuel combustion appliance where the heat exchanger directly heats a moving airstream which is used to heat a building
-G: Buildings with Residential Style Central Systems,"Addressable Segment G: Buildings with Residential Style Central Systems. Common Examples: small buildings converted from residential uses (small offices such as dentist, accountant, lawyer, etc.)."
+G: Buildings with Furnace-Based Multizone Systems,"Addressable Segment G: Buildings with packaged furnace based multi-zone systems. Common Examples: small to medium offices and schools."
 Gas,Natural gas
 Gas unit heaters,"HVAC system type using zone gas unit heaters for heating and no cooling, no outside ventilation air"
 gen1_t12_incandescent,Lighting type for building using t12 incandescent fixtures
@@ -206,7 +206,7 @@ gen4_led,Lighting type for building using older LED lighting
 gen5_led,Lighting type for building using newer LED lighting
 Grills,A type of restaurant in a survey of kitchen equipment
 GSHP,"Ground source heat pump, sometimes also called a geothermal heat pump"
-H: Non-Lodging Buildings with Zone-by-Zone Systems,Addressable Segment H: All non-lodging buildings with zone-by-zone systems. 
+H: Buildings with Residential Style Central Systems,"Addressable Segment H: Buildings with Residential Style Central Systems. Common Examples: small buildings converted from residential uses (small offices such as dentist, accountant, lawyer, etc.)."
 Healthcare,Building group for healthcare building types
 High School,A type of building in a survey of kitchen equipment
 HIMS,eGrid grid region for HIMS Miscellaneous. See https://www.epa.gov/egrid
@@ -220,7 +220,9 @@ Hotel A,A type of building in a survey of kitchen equipment
 Hotel B,A type of building in a survey of kitchen equipment
 Hot-Humid,The ASHRAE climate zone description
 HVAC,"An end use group that includes the following end uses: cooling, heating, interior equipment, lighting, refrigeration, water systems"
-I: Other,Addressable Segment I: All buildings not in addressable segment A-H
+I: Non-Lodging Buildings with Zone-by-Zone Systems,Addressable Segment I: All non-lodging buildings with zone-by-zone systems.
+Invalid,"An upgrade completed but was not applicable to this model. Results are replaced with Baseline results for this model."
+J: Other,Addressable Segment J: All buildings not in addressable segments A-I
 LargeHotel,Large hotel building type
 LargeOffice,Large office building type
 largeoffice_datacenter,Large office building type including floor area for data center
@@ -272,6 +274,7 @@ over_1mil,Over one million
 over_25,Over twenty five
 owner_occupied,The tenants of the building own the building
 Pacific,"The census division covering AK, CA, HI, OR, and WA"
+Pancake,A type of building in a survey of kitchen equipment
 Pizza A,A type of building in a survey of kitchen equipment
 Pizza B,A type of building in a survey of kitchen equipment
 PJM,The Pennsylvania New Jersey Maryland interconnect
@@ -349,6 +352,7 @@ strip_mall_restaurant20,Strip mall building type with 20% restaurant floor area
 strip_mall_restaurant30,Strip mall building type with 30% restaurant floor area
 strip_mall_restaurant40,Strip mall building type with 40% restaurant floor area
 Subarctic,The ASHRAE climate zone description
+Success,A run or measure completed without errors
 T24-CEC1,California Energy Commission Title 24 climate zone 1
 T24-CEC10,California Energy Commission Title 24 climate zone 10
 T24-CEC11,California Energy Commission Title 24 climate zone 11
