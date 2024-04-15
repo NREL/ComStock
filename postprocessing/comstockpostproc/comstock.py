@@ -2166,7 +2166,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             return building_type
 
         comstock_unscaled = comstock_unscaled.with_columns(
-            pl.col('building_type').map_elements(lambda x: rename_buildingtypes(x)).alias('building_type'),
+            pl.col('building_type').map_elements(lambda x: rename_buildingtypes(x), return_dtype=pl.Utf8).alias('building_type'),
         )
 
         self.monthly_data = comstock_unscaled

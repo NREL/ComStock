@@ -32,62 +32,81 @@ class ComStockToEIAComparison(NamingMixin, UnitsMixin, PlottingMixin):
         # Initialize members
         self.comstock_list = comstock_list
         self.eia_list = eia_list
+        self.data = None
         self.monthly_data = None
         self.monthly_data_gap = None
         self.color_map = {}
+        self.monthly_color_map = {}
         self.image_type = image_type
         self.name = name
 
         # Concatenate the datasets and create a color map
-        dfs_to_concat = []
+        monthly_dfs_to_concat = []
+        annual_dfs_to_concat = []
         dataset_names = []
         for dataset in (eia_list + comstock_list):
-            if dataset.monthly_data is None:
-                logger.warning(f'No monthly_data was available for {dataset.dataset_name}, not including in EIA comparison.')
-                continue
+        # for dataset in (comstock_list + eia_list):
+            logger.info(f'Adding dataset: {dataset.dataset_name}')
+            dataset_names.append(dataset.dataset_name)
             if isinstance(dataset, ComStock):
+                # Annual emissions
+                annual_upgrade_ids = [upgrade_id]
                 if upgrade_id == 'All':
-                    monthly_data = dataset.monthly_data.to_pandas()
-                    monthly_data[dataset.DATASET] = monthly_data[dataset.DATASET] + ' - ' + monthly_data['upgrade_name']
-                    dfs_to_concat.append(monthly_data)
-                    up_name_map = dict(zip(monthly_data['upgrade'].unique(), monthly_data['upgrade_name'].unique()))
-                    upgrade_list = list(monthly_data['upgrade'].unique())
-                    color_dict = self.linear_gradient(dataset.COLOR_COMSTOCK_BEFORE, dataset.COLOR_COMSTOCK_AFTER, len(upgrade_list))
-                    for idx, upgrade_id in enumerate(upgrade_list):
-                        dataset_name = dataset.dataset_name + ' - ' + up_name_map[upgrade_id]
-                        dataset_names.append(dataset_name)
-                        self.color_map[dataset_name] = color_dict['hex'][idx]
-                elif upgrade_id not in dataset.monthly_data['upgrade']:
-                    logger.error(f'Upgrade {upgrade_id} not found in {dataset.dataset_name}. Enter a valid upgrade ID in the ComStockToEIAComparison constructor or \"All\" to include all upgrades.')
-                else:
-                    monthly_data = dataset.monthly_data.filter(pl.col('upgrade') == upgrade_id).to_pandas()
-                    monthly_data[dataset.DATASET] = monthly_data[dataset.DATASET] + ' - ' + monthly_data['upgrade_name']
-                    dfs_to_concat.append(monthly_data)
-                    dataset_name = dataset.dataset_name + ' - ' + monthly_data.iloc[0]['upgrade_name']
-                    self.color_map[dataset_name] = dataset.color
-                    dataset_names.append(dataset_name)
+                    annual_upgrade_ids = dataset.data.get_column('upgrade').unique().to_list()
+                annual_data = dataset.data.filter(pl.col('upgrade').is_in(annual_upgrade_ids))
+                if not annual_upgrade_ids == [0]:
+                    annual_data = annual_data.with_columns(
+                        pl.concat_str([pl.col(dataset.DATASET), pl.col(dataset.UPGRADE_NAME)], separator=" - ").alias(dataset.DATASET),
+                    )
+                color_dict = self.linear_gradient(dataset.COLOR_COMSTOCK_BEFORE, dataset.COLOR_COMSTOCK_AFTER, len(annual_upgrade_ids))
+                for idx, dataset_upgrade_name in enumerate(annual_data.get_column(dataset.DATASET).unique().sort().to_list()):
+                    self.color_map[dataset_upgrade_name] = color_dict['hex'][idx]
+                annual_dfs_to_concat.append(annual_data.to_pandas())
+
+                # Monthly energy
+                if dataset.monthly_data is None:
+                    logger.warning(f'No monthly_data was available for {dataset.dataset_name}, not including in EIA comparison.')
+                    continue
+                monthly_upgrade_ids = [upgrade_id]
+                if upgrade_id == 'All':
+                    monthly_upgrade_ids = dataset.monthly_data.get_column('upgrade').unique().to_list()
+                monthly_data = dataset.monthly_data.filter(pl.col('upgrade').is_in(monthly_upgrade_ids))
+                if not monthly_upgrade_ids == [0]:
+                    monthly_data = monthly_data.with_columns(
+                        pl.concat_str([pl.col(dataset.DATASET), pl.col('upgrade_name')], separator=" - ").alias(dataset.DATASET),
+                    )
+                color_dict = self.linear_gradient(dataset.COLOR_COMSTOCK_BEFORE, dataset.COLOR_COMSTOCK_AFTER, len(monthly_upgrade_ids))
+                for idx, dataset_upgrade_name in enumerate(monthly_data.get_column(dataset.DATASET).unique().sort().to_list()):
+                    self.monthly_color_map[dataset_upgrade_name] = color_dict['hex'][idx]
+                monthly_dfs_to_concat.append(monthly_data.to_pandas())
             else:
-                dfs_to_concat.append(dataset.monthly_data)
+                # Annual emissions
+                annual_dfs_to_concat.append(dataset.emissions_data.to_pandas())
                 self.color_map[dataset.dataset_name] = dataset.color
-                dataset_names.append(dataset.dataset_name)
+
+                # Monthly energy
+                monthly_dfs_to_concat.append(dataset.monthly_data)
+                self.monthly_color_map[dataset.dataset_name] = dataset.color
 
         # Name the comparison
         if self.name is None:
             self.name = ' vs '.join(sorted(dataset_names,key=len)[:2])
 
         # Combine into a single dataframe for convenience
-        self.monthly_data = pd.concat(dfs_to_concat, join='outer', ignore_index=True)
+        self.monthly_data = pd.concat(monthly_dfs_to_concat, join='outer', ignore_index=True)
+        self.data = pd.concat(annual_dfs_to_concat, join='inner', ignore_index=True)
         current_dir = os.path.dirname(os.path.abspath(__file__))
 
         # Make directories
-        self.output_dir = os.path.join(current_dir, '..', 'output', self.name)
-        for p in [self.output_dir]:
-            if not os.path.exists(p):
-                os.makedirs(p)
+        self.output_dir = os.path.abspath(os.path.join(current_dir, '..', 'output', self.name))
+        if not os.path.exists(self.output_dir):
+            os.makedirs(self.output_dir)
+        logger.info(f"output_dir: {self.output_dir}")
 
         # Make ComStock to EIA comparison plots
         if make_comparison_plots:
-            self.make_plots(self.monthly_data, self.color_map, self.output_dir)
+            self.make_emissions_plots(self.data, self.color_map, self.output_dir)
+            self.make_plots(self.monthly_data, self.monthly_color_map, self.output_dir)
         else:
             logger.info("make_comparison_plots is set to false, so not plots were created. Set make_comparison_plots to True for plots.")
 
@@ -100,6 +119,12 @@ class ComStockToEIAComparison(NamingMixin, UnitsMixin, PlottingMixin):
     def make_plots(self, df, color_map, output_dir):
         # Make plots comparing the datasets
 
-        logger.info('Making comparison plots')
+        logger.info('Making energy comparison plots')
         self.plot_annual_energy_consumption_for_eia(df, color_map, output_dir)
         self.plot_monthly_energy_consumption_for_eia(df, color_map, output_dir)
+
+    def make_emissions_plots(self, df, color_map, output_dir):
+        # Make plots comparing annual emissions by fuel
+
+        logger.info('Making emissions comparison plots')
+        self.plot_annual_emissions_comparison(df, self.DATASET, color_map, output_dir)
