@@ -64,16 +64,17 @@ class AdjustVavMinDamperPosition < OpenStudio::Measure::ModelMeasure
       runner.registerAsNotApplicable('Measure not applied based on user input.')
       return true
     end
-    
+
     ct = 0
     # get all air loops
     model.getAirLoopHVACs.each do |air_loop|
-      
+
       air_loop.thermalZones.each do |zone|
         zone.airLoopHVACTerminals.each do |terminal|
           if ["AirTerminalSingleDuctVAVNoReheat","AirTerminalSingleDuctVAVReheat"].include?(terminal.iddObjectType.valueName.gsub(/(OS_|_)/,''))
             terminal = terminal.method("to_#{terminal.iddObjectType.valueName.gsub(/(OS_|_)/,'')}").call.get
-            existing_mdp = terminal.constantMinimumAirFlowFraction
+            next unless terminal.constantMinimumAirFlowFraction.is_initialized
+            existing_mdp = terminal.constantMinimumAirFlowFraction.get
             if mdp > existing_mdp
               terminal.setConstantMinimumAirFlowFraction(mdp)
               terminal.setZoneMinimumAirFlowInputMethod("Constant")
@@ -93,11 +94,11 @@ class AdjustVavMinDamperPosition < OpenStudio::Measure::ModelMeasure
     end
 
     runner.registerFinalCondition("#{ct} Air Terminals Minimum Damper Positions set to #{mdp * 100}%.")
-    # get all terminals on loop 
+    # get all terminals on loop
 
     # if VAV single duct, set minimum damper position
-    
-    # calculate total and minimum system flow 
+
+    # calculate total and minimum system flow
 
     return true
   end
