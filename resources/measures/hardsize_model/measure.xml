@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>hardsize_model</name>
   <uid>3e7bfacf-9163-422c-b63f-254d27920644</uid>
-  <version_id>c208c4a8-e0ef-41d1-92ba-edb17589ba4b</version_id>
-  <version_modified>2024-03-19T19:13:15Z</version_modified>
+  <version_id>bf8f4d54-553d-4479-bbb2-d500ae6e78a1</version_id>
+  <version_modified>2024-04-16T21:12:31Z</version_modified>
   <xml_checksum>D8922A73</xml_checksum>
   <class_name>HardsizeModel</class_name>
   <display_name>Hardsize Model</display_name>
@@ -86,7 +86,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>554DC554</checksum>
+      <checksum>CD904C1F</checksum>
     </file>
     <file>
       <filename>measure_test.rb</filename>
