@@ -54,6 +54,8 @@ class PlottingMixin():
             df_emi_gb_long['End Use'] = df_emi_gb_long['End Use'].str.replace('_', ' ', regex=True)
             df_emi_gb_long['End Use'] = df_emi_gb_long['End Use'].str.title()
 
+            df_emi_gb_long = df_emi_gb_long.sort_values(by='in.upgrade_name')
+
             # add OS color map
             color_dict = {'Heating':'#EF1C21',
             'Cooling':'#0071BD',
@@ -101,6 +103,8 @@ class PlottingMixin():
                 ]
             }
 
+            print(df_emi_gb_long)
+
             # plot
             fig = px.bar(df_emi_gb_long, x=column_for_grouping, y='Annual Energy Consumption (TBtu)', color='End Use', pattern_shape='Fuel Type',
                     barmode='stack', text_auto='.1f', template='simple_white', width=700, category_orders=cat_order, color_discrete_map=color_dict,
@@ -123,7 +127,7 @@ class PlottingMixin():
                             categoryorder='array', categoryarray=np.array(list(color_map.keys())))
             fig.update_yaxes(mirror=True, showgrid=False, showline=True, ticks='outside', linewidth=1, linecolor='black', rangemode="tozero")
             fig.update_layout(title=None,  margin=dict(l=20, r=20, t=27, b=20), width=plot_width, legend_title=None, legend_traceorder="reversed",
-                            uniformtext_minsize=7, uniformtext_mode='hide', bargap=0.05)
+                            uniformtext_minsize=9, uniformtext_mode='hide', bargap=0.05)
             fig.update_layout(
                 font=dict(
                     size=12)

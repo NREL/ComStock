@@ -64,7 +64,7 @@ class NamingMixin():
     # End use energy - district heating
     ANN_DISTHTG_HEAT_KBTU = 'out.district_heating.heating.energy_consumption..kwh'
     ANN_DISTHTG_SWH_KBTU = 'out.district_heating.water_systems.energy_consumption..kwh'
-    ANN_DISTHTG_INTEQUIP_KBTU = 'out.district_heating.interior_equipment.energy_consumption..kwh'
+    #ANN_DISTHTG_INTEQUIP_KBTU = 'out.district_heating.interior_equipment.energy_consumption..kwh'
     ANN_DISTHTG_COOL_KBTU = 'out.district_heating.cooling.energy_consumption..kwh'
 
     # End use energy - other fuels (sum of propane and fuel oil)
@@ -254,7 +254,7 @@ class NamingMixin():
         ANN_GAS_COOL_KBTU,
         ANN_DISTCLG_COOL_KBTU,
         ANN_DISTHTG_HEAT_KBTU,
-        ANN_DISTHTG_INTEQUIP_KBTU,
+        #ANN_DISTHTG_INTEQUIP_KBTU,
         ANN_DISTHTG_SWH_KBTU,
         ANN_DISTHTG_COOL_KBTU,
         ANN_OTHER_HEAT_KBTU,
@@ -354,7 +354,7 @@ class NamingMixin():
 
     # List of Interior Equipment, district_heating end use columns
     COLS_INTEQUIP_DISTHTG_ENDUSE = [
-        ANN_DISTHTG_INTEQUIP_KBTU
+        #ANN_DISTHTG_INTEQUIP_KBTU
     ]
 
     # List of Interior Equipment, other_fuel end use columns
@@ -394,7 +394,7 @@ class NamingMixin():
     COLS_INTEQUIP_ENERGY = [
         ANN_ELEC_INTEQUIP_KBTU,
         ANN_GAS_INTEQUIP_KBTU,
-        ANN_DISTHTG_INTEQUIP_KBTU,
+        #ANN_DISTHTG_INTEQUIP_KBTU,
         ANN_OTHER_INTEQUIP_KBTU
     ]
 

@@ -130,7 +130,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.s3_inpath = f"s3://{s3_base_dir}/{self.comstock_run_name}/{self.comstock_run_name}"
 
         # Load and transform data, preserving all columns
-        self.download_data()
+        #self.download_data()
         pl.enable_string_cache()
         if reload_from_csv:
             upgrade_pqts = glob.glob(os.path.join(self.output_dir, 'ComStock wide upgrade*.parquet'))
@@ -145,6 +145,40 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         continue
                     logger.info(f'Reloading data from: {file_path}')
                     upgrade_dfs.append(pl.read_parquet(file_path))
+                ###
+                for i, df in enumerate(upgrade_dfs):
+                    df = (
+                        df
+                        .with_columns(pl.col('in.iso_rto_region').cast(pl.Utf8))
+                        .with_columns(pl.col('in.upgrade_name').cast(pl.Utf8))
+                        .with_columns(pl.col('in.reeds_balancing_area').cast(pl.Utf8))
+                        .with_columns(pl.col('in.cluster_id').cast(pl.Utf8))
+                        .with_columns(pl.col('in.floor_area_category').cast(pl.Utf8))
+                    )
+                    # Update the DataFrame in the list
+                    upgrade_dfs[i] = df
+
+                # Gather schema data for debugging on failed concatenation
+                results_df_schemas = {}
+                for results_df in upgrade_dfs:
+                    for col, dt in results_df.schema.items():
+                        if col in results_df_schemas:
+                            results_df_schemas[col].append(dt)
+                        else:
+                            results_df_schemas[col] = [dt]
+
+                # Check the schemas for inconsistent dtypes which prevent concatenation
+                for col, dts in results_df_schemas.items():
+                    if len(set(dts)) > 1:
+                        vals = []
+                        for df in upgrade_dfs:
+                            vals += df.get_column(col).unique().to_list()
+                        err_msg = f'Column {col} is being read as multiple dtypes: {set(dts)} from values: {set(vals)}'
+                        logger.error(err_msg)
+                        raise Exception(err_msg)
+
+                ###
+
                 self.data = pl.concat(upgrade_dfs)
             elif os.path.exists(os.path.join(self.output_dir, 'ComStock wide.csv')):
                 file_path = os.path.join(self.output_dir, 'ComStock wide.csv')
@@ -939,7 +973,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Show the dataset size
         logger.debug(f'Memory after add_geospatial_columns: {self.data.estimated_size()}')
-    
+
     def add_ejscreen_columns(self):
         # Add the EJ Screen data
         if not 'nhgis_tract_gisjoin' in self.data:
@@ -992,7 +1026,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Show the dataset size
         logger.debug(f'Memory after add_ejscreen_columns: {self.data.estimated_size()}')
-    
+
 
     def add_cejst_columns(self):
         # Add the CEJST data
@@ -1841,7 +1875,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_scale_factors, default=None)).alias(self.BLDG_WEIGHT))
 
         # Apply the weight to scale the area and energy columns
-        self.add_weighted_area_and_energy_columns()
+        #self.add_weighted_area_and_energy_columns()
 
         # After adding weighted energy columns, calculate savings
         if self.include_upgrades:
@@ -1880,6 +1914,20 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             old_units = self.units_from_col_name(col)
             new_units = self.weighted_energy_units
             conv_fact = self.conv_fact(old_units, new_units)
+
+            #column_names = self.data.columns
+
+            ## Iterate over each column name and check for the substring
+            #matching_columns = [col for col in column_names if 'out.site_energy.total.energy_consumption' in col]
+
+            ## Print the matching columns
+            #if matching_columns:
+            #    print("Columns containing 'out.site_energy.total.energy_consumption':")
+            #    for col in matching_columns:
+            #        print(col)
+            #else:
+            #    print("No columns found containing 'out.site_energy.total.energy_consumption'")
+
             self.data = self.data.with_columns(
                 (pl.col(col) * pl.col(self.BLDG_WEIGHT) * conv_fact).alias(new_col))
 
