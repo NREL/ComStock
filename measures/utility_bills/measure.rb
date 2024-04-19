@@ -55,7 +55,8 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     result = OpenStudio::IdfObjectVector.new
 
     # Request hourly data for fuel types with hourly bill calculations
-    result << OpenStudio::IdfObject.load('Output:Meter,Electricity:Facility,Hourly;').get
+    #result << OpenStudio::IdfObject.load("Output:Meter,Electricity:Facility,Hourly;").get
+    result << OpenStudio::IdfObject.load("Output:Meter,ElectricityNet:Facility,Hourly;").get
 
     return result
   end
@@ -122,7 +123,8 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     # Electricity Bill
 
     # Get hourly electricity timeseries
-    elec_ts = sql.timeSeries(ann_env_pd, 'Hourly', 'Electricity:Facility', '')
+    #elec_ts = sql.timeSeries(ann_env_pd, 'Hourly', 'Electricity:Facility', '')
+    elec_ts = sql.timeSeries(ann_env_pd, 'Hourly', 'ElectricityNet:Facility', '')
     if elec_ts.empty?
       runner.registerError('Could not get hourly electricity consumption, cannot calculate electricity bill')
       return false
@@ -181,8 +183,13 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     end
 
     # Convert electricity to kWh
-    hourly_electricity_kwh = shifted_vals.map do |val|
-      OpenStudio.convert(val, 'J', 'kWh').get # hourly data
+    hourly_electricity_kwh = []
+    shifted_vals.each do |val|
+      # If value is negative (from PV), set it to 0
+      if val < 0
+        val = 0
+      end
+      hourly_electricity_kwh << OpenStudio.convert(val, 'J', 'kWh').get # hourly data
     end
 
     # Get min and peak demand for rates with qualifiers

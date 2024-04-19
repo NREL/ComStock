@@ -115,20 +115,21 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     # request coil and fan energy use for HVAC equipment
     result << OpenStudio::IdfObject.load('Output:Variable,*,Cooling Tower Make Up Water Volume,RunPeriod;').get # m3
     result << OpenStudio::IdfObject.load('Output:Variable,*,Chiller COP,RunPeriod;').get
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Chiller Evaporator Cooling Energy,RunPeriod;').get # J
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Boiler Heating Energy,RunPeriod;').get # J
-    result << OpenStudio::IdfObject.load("Output:Variable,*,Boiler #{elec} Energy,RunPeriod;").get # J
-    result << OpenStudio::IdfObject.load("Output:Variable,*,Boiler #{gas} Energy,RunPeriod;").get # J
-    result << OpenStudio::IdfObject.load("Output:Variable,*,Boiler #{fuel_oil} Energy,RunPeriod;").get # J
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Boiler Propane Energy,RunPeriod;').get # J
-    result << OpenStudio::IdfObject.load("Output:Variable,*,Heat Pump #{elec} Energy,RunPeriod;").get # J
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Heat Pump Load Side Heat Transfer Energy,RunPeriod;').get # J
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Heat Pump Source Side Inlet Temperature,RunPeriod;').get # C
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Fluid Heat Exchanger Loop Supply Side Inlet Temperature,RunPeriod;').get # C
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Fluid Heat Exchanger Loop Supply Side Outlet Temperature,RunPeriod;').get # C
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Fluid Heat Exchanger Loop Demand Side Inlet Temperature,RunPeriod;').get # C
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Fluid Heat Exchanger Loop Demand Side Outlet Temperature,RunPeriod;').get # C
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Fluid Heat Exchanger Heat Transfer Energy,RunPeriod;').get # J
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Chiller Evaporator Cooling Energy,RunPeriod;').get #J
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Boiler Heating Energy,RunPeriod;').get #J
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Boiler #{elec} Energy,RunPeriod;").get #J
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Boiler #{gas} Energy,RunPeriod;").get #J
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Boiler #{fuel_oil} Energy,RunPeriod;").get #J
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Boiler Propane Energy,RunPeriod;").get #J
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Heat Pump #{elec} Energy,RunPeriod;").get #J
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Heat Pump Load Side Heat Transfer Energy,RunPeriod;').get #J
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Heat Pump Source Side Inlet Temperature,RunPeriod;').get #C
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Fluid Heat Exchanger Loop Supply Side Inlet Temperature,RunPeriod;').get #C
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Fluid Heat Exchanger Loop Supply Side Outlet Temperature,RunPeriod;').get #C
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Fluid Heat Exchanger Loop Demand Side Inlet Temperature,RunPeriod;').get #C
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Fluid Heat Exchanger Loop Demand Side Outlet Temperature,RunPeriod;').get #C
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Fluid Heat Exchanger Heat Transfer Energy,RunPeriod;").get # J
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Generator Produced DC Electricity Energy,RunPeriod;").get # J
     result << OpenStudio::IdfObject.load("Output:Variable,*,Cooling Coil #{elec} Energy,RunPeriod;").get # J
     result << OpenStudio::IdfObject.load("Output:Variable,*,Heating Coil #{elec} Energy,RunPeriod;").get # J
     result << OpenStudio::IdfObject.load("Output:Variable,*,Heating Coil #{gas} Energy,RunPeriod;").get # J
@@ -978,6 +979,23 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     else
       runner.registerWarning('Interior electric equipment power is not available; cannot calculate equivalent full load hours.')
     end
+
+    # get PV capacity
+    pv_capacity_w = 0
+    annual_pv_kwh = 0
+    model.getGeneratorPVWattss.sort.each do |pv_sys|
+
+      # get PV system capacity
+      pv_capacity_w+= pv_sys.dcSystemCapacity / 1000
+
+      # get PV Generator Produced Electricity
+      annual_pv_j = sql_get_report_variable_data_double(runner, sql, pv_sys, 'Generator Produced DC Electricity Energy')
+
+      annual_pv_kwh += OpenStudio.convert(annual_pv_j, 'J', 'kWh').get
+
+    end
+    runner.registerValue('com_report_total_pv_capacity_w', pv_capacity_w, 'kW')
+    runner.registerValue('com_report_total_pv_generation_kwh', annual_pv_kwh, 'kWh')
 
     # Occupant calculations
     total_zone_occupant_area_m2 = 0.0

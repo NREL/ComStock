@@ -99,8 +99,8 @@ class NamingMixin():
     ANN_TOT_NET_ELEC_KBTU = 'out.net_site_electricity_consumption..kwh'
 
     # Total annual energy
-    ANN_TOT_ENGY_KBTU = 'out.site_energy.total.energy_consumption..kwh'
-    ANN_TOT_ELEC_KBTU = 'out.electricity.total.energy_consumption..kwh'
+    ANN_TOT_ENGY_KBTU = 'out.net_site_energy_consumption..kwh'
+    ANN_TOT_ELEC_KBTU = 'out.net_site_electricity_consumption..kwh'
     ANN_TOT_GAS_KBTU = 'out.natural_gas.total.energy_consumption..kwh'
     ANN_TOT_OTHFUEL_KBTU = 'out.other_fuel.total.energy_consumption..kwh'
     ANN_TOT_DISTHTG_KBTU = 'out.district_heating.total.energy_consumption..kwh'
