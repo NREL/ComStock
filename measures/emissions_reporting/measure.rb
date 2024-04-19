@@ -295,12 +295,15 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
         frequency = "Hourly"
       end
 
+      puts "frequency: #{frequency}"
+
       if resource.include?("Electricity")
         # add facility meters
         result << OpenStudio::IdfObject.load("Output:Meter,#{resource}Net:Facility,#{frequency};").get
       else
         # add facility meters
         result << OpenStudio::IdfObject.load("Output:Meter,#{resource}:Facility,#{frequency};").get
+      end
 
       # add enduse meters
       enduses.each do |enduse|
