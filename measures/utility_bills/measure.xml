@@ -2,9 +2,9 @@
 <measure>
   <schema_version>3.1</schema_version>
   <name>utility_bills</name>
-  <uid>2a3442c1-944d-4e91-9e11-11e0cf368c64</uid>
-  <version_id>7ec10982-2213-4b46-a686-2febd9cdd3d7</version_id>
-  <version_modified>2024-01-12T22:12:35Z</version_modified>
+  <uid>7194c501-1c59-476b-9602-2e335235f79a</uid>
+  <version_id>3e86db92-2feb-4284-8968-83d1c9dfd6a5</version_id>
+  <version_modified>2024-04-18T20:44:14Z</version_modified>
   <xml_checksum>15BF4E57</xml_checksum>
   <class_name>UtilityBills</class_name>
   <display_name>Utility Bills</display_name>
@@ -33,7 +33,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>C5A9C741</checksum>
+      <checksum>E8B75BE6</checksum>
     </file>
     <file>
       <filename>calc_elec_bill.py</filename>
@@ -63844,12 +63844,6 @@
       <filetype>stat</filetype>
       <usage_type>test</usage_type>
       <checksum>E2C3F063</checksum>
-    </file>
-    <file>
-      <filename>bad_rates.txt</filename>
-      <filetype>txt</filetype>
-      <usage_type>test</usage_type>
-      <checksum>10DD9EBE</checksum>
     </file>
     <file>
       <filename>test_electricity_hourly.csv</filename>
