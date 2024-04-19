@@ -227,7 +227,7 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     ]
     return hvac_uses
   end
-  
+
   # define the arguments that the user will input
   def arguments(model = nil)
     args = OpenStudio::Measure::OSArgumentVector.new
@@ -295,8 +295,12 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
         frequency = "Hourly"
       end
 
-      # add facility meters
-      result << OpenStudio::IdfObject.load("Output:Meter,#{resource}:Facility,#{frequency};").get
+      if resource.include?("Electricity")
+        # add facility meters
+        result << OpenStudio::IdfObject.load("Output:Meter,#{resource}Net:Facility,#{frequency};").get
+      else
+        # add facility meters
+        result << OpenStudio::IdfObject.load("Output:Meter,#{resource}:Facility,#{frequency};").get
 
       # add enduse meters
       enduses.each do |enduse|
@@ -307,7 +311,7 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
 
       # custom meters for hvac
       total_hvac_string = "Meter:Custom,TotalHVAC:#{resource},#{resource},"
-      
+
       hvac_uses.each_with_index do |use,i|
         if hvac_uses.size == i+1
           total_hvac_string << ",#{use}:#{resource};"
@@ -450,7 +454,7 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
       else
         runner.registerError("State '#{model_state}' is not a valid eGRID state.")
         return false
-      end    
+      end
     else
       egrid_state = grid_state
       runner.registerInfo("Using state '#{egrid_state}' from user inputs.")
@@ -459,7 +463,7 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     # get hourly electricity values
     env_period_ix_query = "SELECT EnvironmentPeriodIndex FROM EnvironmentPeriods WHERE EnvironmentName='#{ann_env_pd}'"
     env_period_ix = sqlFile.execAndReturnFirstInt(env_period_ix_query).get
-    electricity_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='Electricity:Facility' AND ReportingFrequency='Hourly' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
+    electricity_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='ElectricityNet:Facility' AND ReportingFrequency='Hourly' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
     electricity_values = sqlFile.execAndReturnVectorOfDouble(electricity_query).get
     if electricity_values.empty?
       runner.registerError('Unable to get hourly timeseries facility electricity use from the model.  Cannot calculate emissions.')
@@ -583,7 +587,7 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
       runner.registerInfo("Annual eGRID #{year} subregion emissions CO2e kg: #{annual_egrid_emissions_co2e_kg.round(2)}")
       runner.registerValue("annual_electricity_ghg_emissions_egrid_#{year}_subregion_kg", annual_egrid_emissions_co2e_kg)
 
-      # electricity end-uses 
+      # electricity end-uses
       electricity_enduse_results.each do |enduse_key, enduse_array|
         enduse_name = enduse_key.gsub('_mwh','')
         annual_egrid_enduse_emissions_co2e_kg = enduse_array.sum * egrid_co2e_kg_per_mwh
@@ -613,7 +617,7 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
       runner.registerInfo("Annual eGRID #{year} state emissions CO2e kg: #{annual_egrid_emissions_co2e_kg.round(2)}")
       runner.registerValue("annual_electricity_ghg_emissions_egrid_#{year}_state_kg", annual_egrid_emissions_co2e_kg)
 
-      # electricity end-uses 
+      # electricity end-uses
       electricity_enduse_results.each do |enduse_key, enduse_array|
         enduse_name = enduse_key.gsub('_mwh','')
         annual_egrid_enduse_emissions_co2e_kg = enduse_array.sum * egrid_co2e_kg_per_mwh
