@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <measure>
-  <schema_version>3.1</schema_version>
+  <schema_version>3.0</schema_version>
   <name>set_exterior_lighting_template</name>
   <uid>7d3e15d7-3749-4baa-b7b3-960dc3bd12fc</uid>
-  <version_id>d8503dd5-dc11-4abb-a76e-7c62559fef51</version_id>
-  <version_modified>2023-10-16T20:24:51Z</version_modified>
+  <version_id>298f0f86-5562-42e3-9bd8-3c0ad33188a7</version_id>
+  <version_modified>20240423T161539Z</version_modified>
   <xml_checksum>4EB6C100</xml_checksum>
   <class_name>SetExteriorLightingTemplate</class_name>
   <display_name>Set Exterior Lighting Template</display_name>
@@ -567,16 +567,16 @@
       <checksum>DB539D52</checksum>
     </file>
     <file>
-      <filename>measure_test.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>test</usage_type>
-      <checksum>B54F5D9B</checksum>
-    </file>
-    <file>
       <filename>rff_test_output.osm</filename>
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
       <checksum>5F50B37D</checksum>
+    </file>
+    <file>
+      <filename>measure_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>788D6AD5</checksum>
     </file>
   </files>
 </measure>
