@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <measure>
-  <schema_version>3.1</schema_version>
+  <schema_version>3.0</schema_version>
   <name>add_hvac_nighttime_operation_variability</name>
   <uid>d3f16ec3-96d1-4379-ba46-04c78dc04342</uid>
-  <version_id>03ff22e7-f9ce-4fb0-aa1d-2e1e40a8cef6</version_id>
-  <version_modified>2023-10-16T20:24:56Z</version_modified>
+  <version_id>cf53fcc0-fadc-4168-9ad1-9cc3072e488f</version_id>
+  <version_modified>20240424T142256Z</version_modified>
   <xml_checksum>356BE47F</xml_checksum>
   <class_name>AddHvacNighttimeOperationVariability</class_name>
   <display_name>add_hvac_nighttime_operation_variability</display_name>
@@ -92,6 +92,12 @@
       <checksum>00000000</checksum>
     </file>
     <file>
+      <filename>example_model.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>53D14E69</checksum>
+    </file>
+    <file>
       <version>
         <software_program>OpenStudio</software_program>
         <identifier>2.9.1</identifier>
@@ -100,19 +106,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>2510603E</checksum>
+      <checksum>E0890CA2</checksum>
     </file>
     <file>
       <filename>add_hvac_nighttime_operation_variability_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>00F5DA20</checksum>
-    </file>
-    <file>
-      <filename>example_model.osm</filename>
-      <filetype>osm</filetype>
-      <usage_type>test</usage_type>
-      <checksum>53D14E69</checksum>
+      <checksum>F083854F</checksum>
     </file>
   </files>
 </measure>
