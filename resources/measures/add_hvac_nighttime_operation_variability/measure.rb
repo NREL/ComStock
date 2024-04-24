@@ -293,6 +293,7 @@ class AddHvacNighttimeOperationVariability < OpenStudio::Measure::ModelMeasure
 
     # report final condition of model
     runner.registerFinalCondition("#{oa_schd_1_count} outdoor air shedules have been changed to contant one schedules for night ventilation (cycling or constant). #{oa_schd_op_count} outdoor air schedules have been changed to match the air loop operation schedule to remove night ventilation. #{op_schd_1_count} air loop operation schedules have been changed to a contant value of one for contant night fan operation. #{fan_schd_1_count} fan operation schedules (unitary systems only) have been changed to a contant value of one for contant night fan operation. #{fan_sch_op_count} fan operation schedules have been changed to match the air loop operation schedule to ensure night cycling.")
+    return true
   end
 end
 

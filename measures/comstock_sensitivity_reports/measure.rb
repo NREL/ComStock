@@ -2478,7 +2478,10 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     end
     runner.registerValue('com_report_hvac_dx_heating_fraction_electric_defrost', dx_heating_fraction_electric_defrost)
 
-    # Get the outdoor air temp timeseries
+    # Get the outdoor air temp timeseries and calculate heating and cooling degree days
+    # Per ISO 15927-6, "Accumulated hourly temperature differences shall be calculated according to 4.4 when hourly data are available. When hourly data are not available, the approximate method given in 4.5, based on the maximum and minimum temperatures each day, may be used."
+    # Method 4.4 is used here, summing hour values over/under a threshold and then dividing by 24
+    # Method 4.5 is commonly used elsewhere, averaging the minimum and maximum daily values, and differencing versus the threshold.
     hours_below_minus_20_F = -999
     hours_below_0_F = -999
     hours_below_5_F = -999
