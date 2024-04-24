@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>set_service_water_heating_template</name>
   <uid>8c402a06-45ca-4501-b7d7-a174077b1f6e</uid>
-  <version_id>a191551c-41c0-4385-8be0-0d6b7ee76da5</version_id>
-  <version_modified>2023-10-16T20:24:53Z</version_modified>
+  <version_id>162810c9-24e6-4b8d-8ac7-9caf355b8e3f</version_id>
+  <version_modified>2024-04-24T14:01:38Z</version_modified>
   <xml_checksum>F5F290C6</xml_checksum>
   <class_name>SetServiceWaterHeatingTemplate</class_name>
   <display_name>Set Service Water Heating Template</display_name>
@@ -540,7 +540,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>66453CFE</checksum>
+      <checksum>7D1D3E77</checksum>
     </file>
     <file>
       <filename>deer_building_types.rb</filename>
@@ -558,7 +558,7 @@
       <filename>measure_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>E32AB082</checksum>
+      <checksum>995F63C0</checksum>
     </file>
   </files>
 </measure>

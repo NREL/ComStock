@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>set_interior_lighting_technology</name>
   <uid>ee650038-cffb-4c0b-b5cc-d3840be083b8</uid>
-  <version_id>022abb00-dfd4-4526-ace1-5f12c64a69a5</version_id>
-  <version_modified>2023-10-16T20:24:55Z</version_modified>
+  <version_id>82bb21ff-6ba8-4a67-af01-3df1ad871b36</version_id>
+  <version_modified>2024-04-24T14:00:17Z</version_modified>
   <xml_checksum>15EDFCC6</xml_checksum>
   <class_name>SetInteriorLightingTechnology</class_name>
   <display_name>set_interior_lighting_technology</display_name>
@@ -183,7 +183,7 @@
       <filename>set_interior_lighting_technology_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>44EC539C</checksum>
+      <checksum>D37EE026</checksum>
     </file>
     <file>
       <filename>small_office.osm</filename>

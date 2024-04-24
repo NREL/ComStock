@@ -117,7 +117,7 @@ class SetElectricEquipmentBPR < OpenStudio::Measure::ModelMeasure
         new_times << time
       end
     end
-    
+
     # set new time/value pairs in schedule
     day_sch.clearValues
     new_vals.zip(new_times).each do |val, time|
