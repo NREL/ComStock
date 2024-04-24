@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>set_service_water_heating_fuel</name>
   <uid>f1dfde2c-0b15-4346-83ae-8456842d203a</uid>
-  <version_id>5a23d937-1418-4057-8377-546e7e703032</version_id>
-  <version_modified>2023-10-16T20:24:55Z</version_modified>
+  <version_id>60429acd-28da-4862-875a-1e00deae0f14</version_id>
+  <version_modified>2024-04-24T14:00:57Z</version_modified>
   <xml_checksum>3191E74A</xml_checksum>
   <class_name>SetServiceWaterHeatingFuel</class_name>
   <display_name>set_service_water_heating_fuel</display_name>
@@ -94,7 +94,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>A9E073FD</checksum>
+      <checksum>F9023C29</checksum>
     </file>
     <file>
       <filename>full_service_restaurant_elec_swh.osm</filename>
@@ -106,7 +106,7 @@
       <filename>measure_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>A82DF9EC</checksum>
+      <checksum>E24C9965</checksum>
     </file>
   </files>
 </measure>
