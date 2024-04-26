@@ -1490,6 +1490,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         ins = []
         out_engy_cons_svgs = []
         out_peak = []
+        out_gen = []
         out_intensity = []
         out_emissions = []
         out_utility = []
@@ -1517,10 +1518,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             elif (c.endswith('.energy_consumption')
                   or c.endswith('.energy_consumption..kwh')
                   or c.endswith('.energy_savings')
+                  or c.endswith('.net_site_electricity_consumption..kwh')
+                  or c.endswith('.net_site_energy_consumption..kwh')
                   or c.endswith('.energy_savings..kwh')):
                 out_engy_cons_svgs.append(c)
             elif (c.endswith('peak_demand') or c.endswith('peak_demand..kw')):
                 out_peak.append(c)
+            elif (c.endswith('generation') or c.endswith('generation..kwh')):
+                out_gen.append(c)
             elif (c.endswith('.energy_consumption_intensity')
                   or c.endswith('.energy_consumption_intensity..kwh_per_ft2')
                   or c.endswith('.energy_savings_intensity')
@@ -1529,7 +1534,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             else:
                 logger.error(f'Didnt find an order for column: {c}')
 
-        sorted_cols = front_cols + applicability + geogs + ins + out_engy_cons_svgs + out_peak + out_intensity + out_qoi + out_emissions + out_utility + out_params + calc
+        sorted_cols = front_cols + applicability + geogs + ins + out_engy_cons_svgs + out_peak + out_gen + out_intensity + out_qoi + out_emissions + out_utility + out_params + calc
 
         input_df = input_df.select(sorted_cols)
 
