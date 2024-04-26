@@ -639,6 +639,8 @@ results.csv,com_stock_sensitivity_reports.com_report_number_of_zones,out.params.
 results.csv,com_stock_sensitivity_reports.com_report_number_of_spaces,out.params.number_of_spaces,TRUE,FALSE,integer,,,Number of Space objects in the building energy model
 results.csv,com_stock_sensitivity_reports.com_report_smallest_space_m_2,out.params.smallest_space_floor_area,TRUE,FALSE,float,m2,m2,Smallest Space by floor area in the building energy model
 results.csv,com_stock_sensitivity_reports.com_report_number_of_surfaces,out.params.number_of_surfaces,TRUE,FALSE,integer,,,Number of Surface objects in the building energy model
+results.csv,com_stock_sensitivity_reports.com_report_total_pv_capacity_w,out.params.total_pv_capacity,TRUE,TRUE,interger,kw,kw,Total installed PV capacity
+results.csv,com_stock_sensitivity_reports.com_report_total_pv_generation_kwh,out.params.total_pv_generation,TRUE,TRUE,interger,kwh,kwh,Total PV generation
 results.csv,completed_at,,FALSE,FALSE,float,,,Simulation end time for model
 results.csv,completed_status,completed_status,TRUE,FALSE,string,,,Simulation completion status
 results.csv,emissions_reporting.annual_electricity_ghg_emissions_aer_95_decarb_by_2035_kg,out.emissions.electricity.aer_95_decarb_by_2035_from_2023,TRUE,FALSE,float,co2e_kg,co2e_kg,"annual greenhouse gas emissions from electricity use, using Cambium 2022 aer_95_decarb_by_2035 non-levelized values from 2023"
@@ -1044,7 +1046,7 @@ results.csv,simulation_output_report.electricity_humidification_kwh,out.electric
 results.csv,simulation_output_report.electricity_interior_equipment_kwh,out.electricity.interior_equipment.energy_consumption,TRUE,FALSE,float,kwh,kwh,Building annual interior equipment electricity energy consumption
 results.csv,simulation_output_report.electricity_interior_lighting_kwh,out.electricity.interior_lighting.energy_consumption,TRUE,FALSE,float,kwh,kwh,Building annual interior lighting electricity energy consumption
 results.csv,simulation_output_report.electricity_pumps_kwh,out.electricity.pumps.energy_consumption,TRUE,FALSE,float,kwh,kwh,Building annual pump electricity energy consumption
-results.csv,simulation_output_report.electricity_pv_kwh,,FALSE,FALSE,float,kwh,kwh,"Annual PV electricity energy consumption in kWh, negative values indicate generation"
+results.csv,simulation_output_report.electricity_pv_kwh,out.electricity_pv,FALSE,FALSE,float,kwh,kwh,"Annual PV electricity energy consumption in kWh, negative values indicate generation"
 results.csv,simulation_output_report.electricity_refrigeration_kwh,out.electricity.refrigeration.energy_consumption,TRUE,FALSE,float,kwh,kwh,Building annual commercial refrigetation electricity energy consumption
 results.csv,simulation_output_report.electricity_water_systems_kwh,out.electricity.water_systems.energy_consumption,TRUE,FALSE,float,kwh,kwh,Building annual service water heating electricity energy consumption
 results.csv,simulation_output_report.hours_cooling_setpoint_not_met,out.params.hours_cooling_setpoint_not_met,TRUE,FALSE,float,hr,hr,Annual number of hours the building was not meeting the cooling thermostat setpoint tolerance for all of its zones
@@ -1056,8 +1058,8 @@ results.csv,simulation_output_report.natural_gas_generators_therm,,FALSE,FALSE,f
 results.csv,simulation_output_report.natural_gas_heating_therm,out.natural_gas.heating.energy_consumption,TRUE,FALSE,float,therm,kwh,Building annual heating natural gas energy consumption
 results.csv,simulation_output_report.natural_gas_interior_equipment_therm,out.natural_gas.interior_equipment.energy_consumption,TRUE,FALSE,float,therm,kwh,Building annual interior equipment natural gas energy consumption
 results.csv,simulation_output_report.natural_gas_water_systems_therm,out.natural_gas.water_systems.energy_consumption,TRUE,FALSE,float,therm,kwh,Building annual service water heating natural gas energy consumption
-results.csv,simulation_output_report.net_site_electricity_kwh,,FALSE,FALSE,float,kwh,kwh,Annual net site electricity in kWh
-results.csv,simulation_output_report.net_site_energy_mbtu,,FALSE,FALSE,float,million_btu,kwh,Annual net energy consumption in million BTUs
+results.csv,simulation_output_report.net_site_electricity_kwh,out.net_site_electricity_consumption,TRUE,TRUE,float,kwh,kwh,Annual net site electricity in kWh
+results.csv,simulation_output_report.net_site_energy_mbtu,out.net_site_energy_consumption,TRUE,TRUE,float,million_btu,kwh,Annual net energy consumption in million BTUs
 results.csv,simulation_output_report.other_fuel_cooling_mbtu,out.other_fuel.cooling.energy_consumption,TRUE,FALSE,float,million_btu,kwh,Building annual cooling energy consumption for other fuels
 results.csv,simulation_output_report.other_fuel_heating_mbtu,out.other_fuel.heating.energy_consumption,TRUE,FALSE,float,million_btu,kwh,Building annual heating energy consumption for other fuels
 results.csv,simulation_output_report.other_fuel_interior_equipment_mbtu,out.other_fuel.interior_equipment.energy_consumption,FALSE,FALSE,float,million_btu,kwh,Annual interior equipment energy consumption for other fuels in million BTUs
