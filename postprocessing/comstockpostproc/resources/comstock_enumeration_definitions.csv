@@ -166,6 +166,7 @@ ERCOT,Energy Reliability Council of Texas
 ERCTc,Cambium grid region ERCTc. See https://www.nrel.gov/analysis/cambium.html
 Evaporative Cooling,"Moves air over a water-wetted media, evaporating the water to remove heat from the airstream"
 F: Buildings with Electric Resistance Multizone Systems,Addressable Segment F. Buildings with electric resistance multizone systems. Common Examples: medium to large offices and healthcare facilities.
+Fail,"An upgrade completed with errors. If a model fails during an upgrade, results are replaced with Baseline results for this model."
 Fan coil air-cooled chiller with boiler,"HVAC system type using zone fan coil units for heating and cooling from gas boiler and air-cooled chiller, outside ventilation air supplied directly through system"
 Fan coil air-cooled chiller with no heat,"HVAC system type using zone fan coil units for cooling from air-cooled chiller and no heating, outside ventilation air supplied directly through system"
 Fan coil chiller with baseboard electric,"HVAC system type using zone fan coil units for cooling from air-cooled chiller and heating from zone electric resistance baseboard, outside ventilation air supplied directly through system"
@@ -220,6 +221,7 @@ Hotel B,A type of building in a survey of kitchen equipment
 Hot-Humid,The ASHRAE climate zone description
 HVAC,"An end use group that includes the following end uses: cooling, heating, interior equipment, lighting, refrigeration, water systems"
 I: Non-Lodging Buildings with Zone-by-Zone Systems,Addressable Segment I: All non-lodging buildings with zone-by-zone systems.
+Invalid,"An upgrade completed but was not applicable to this model. Results are replaced with Baseline results for this model."
 J: Other,Addressable Segment J: All buildings not in addressable segments A-I
 LargeHotel,Large hotel building type
 LargeOffice,Large office building type

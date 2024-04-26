@@ -42,6 +42,8 @@ require 'openstudio/measure/ShowRunnerOutput'
 require 'fileutils'
 require 'minitest/autorun'
 require_relative '../measure.rb'
+require_relative '../../../../test/helpers/minitest_helper'
+
 
 # only necessary to include here if annual simulation request and the measure doesn't require openstudio-standards
 # require 'openstudio-standards'
@@ -257,7 +259,7 @@ class FaultHvacEconomizerDamperStuckTest < Minitest::Test
       argument_map['damper_pos'] = damper_pos
 
       # set arguments: apply measure
-      apply_measure = arguments[5].clone	
+      apply_measure = arguments[5].clone
       assert(apply_measure.setValue(true))
       argument_map['apply_measure'] = apply_measure
 

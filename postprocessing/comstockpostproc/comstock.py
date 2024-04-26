@@ -82,7 +82,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.comstock_run_version = comstock_run_version
         self.year = comstock_year
         self.truth_data_version = truth_data_version
-        self.dataset_name = f'ComStock {self.comstock_run_version} {self.year}'
+        self.dataset_name = f'ComStock {self.comstock_run_version}'
         self.data_dir = os.path.join(CURRENT_DIR, '..', 'comstock_data', self.comstock_run_version)
         self.truth_data_dir = os.path.join(CURRENT_DIR, '..', 'truth_data', self.truth_data_version)
         self.output_dir = os.path.join(CURRENT_DIR, '..', 'output', self.dataset_name)
@@ -135,6 +135,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         pl.enable_string_cache()
         if reload_from_csv:
             upgrade_pqts = glob.glob(os.path.join(self.output_dir, 'ComStock wide upgrade*.parquet'))
+            upgrade_pqts.sort()
             if len(upgrade_pqts) > 0:
                 upgrade_dfs = []
                 for file_path in upgrade_pqts:
@@ -943,7 +944,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
     def add_ejscreen_columns(self):
         # Add the EJ Screen data
-
         if not 'nhgis_tract_gisjoin' in self.data:
             logger.warning(('Because the nhgis_tract_gisjoin column is missing '
                 'from the data, EJSCREEN characteristics cannot be joined.'))
@@ -980,7 +980,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # ejscreen['nhgis_tract_gisjoin'] = ejscreen.apply(lambda row: nhgis_tract_gisjoin_from_census_id(row['ID']))
 
         ejscreen = ejscreen.with_columns(
-            pl.col('ID').map_elements(lambda x: nhgis_tract_gisjoin_from_census_id(x)).alias('nhgis_tract_gisjoin'),
+            pl.col('ID').map_elements(lambda x: nhgis_tract_gisjoin_from_census_id(x), return_dtype=pl.Utf8).alias('nhgis_tract_gisjoin'),
         )
 
         ejscreen = self.reduce_df_memory(ejscreen)
@@ -994,6 +994,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Show the dataset size
         logger.debug(f'Memory after add_ejscreen_columns: {self.data.estimated_size()}')
+
 
     def add_cejst_columns(self):
         # Add the CEJST data
@@ -1037,13 +1038,23 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             return gisjoin
 
         cejst = cejst.with_columns(
-            pl.col(cejst_geo_column).map_elements(lambda x: nhgis_tract_gisjoin_from_census_id(x)).alias(tract_col),
+            pl.col(cejst_geo_column).map_elements(lambda x: nhgis_tract_gisjoin_from_census_id(x), return_dtype=pl.Utf8).alias(tract_col),
         )
 
         cejst = self.reduce_df_memory(cejst)
 
         # Merge in the CEJST columns
         self.data = self.data.join(cejst, on=tract_col, how='left')
+
+	    # Fill missing rows with false
+        self.data = self.data.with_columns(pl.col(tract_col).fill_null(False))
+
+
+        # Check that no rows have null values
+        errs = self.data.select((pl.col(tract_col).filter(pl.col(tract_col).is_null()).count()))
+        num_errs = errs.get_column(tract_col).sum()
+        if num_errs > 0:
+            raise Exception(f'Errors in assigning CEJST data to {num_errs} buildings, fix logic.')
 
         # Show the dataset size
         logger.debug(f'Memory after add_cejst_columns: {self.data.estimated_size()}')
@@ -1666,7 +1677,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # self.data[self.VINTAGE] = self.data.apply(lambda row: vintage_bin_from_year(row[]), axis=1)
         self.data = self.data.with_columns(
-            pl.col(self.YEAR_BUILT).map_elements(lambda x: vintage_bin_from_year(x)).alias(self.VINTAGE),
+            pl.col(self.YEAR_BUILT).map_elements(lambda x: vintage_bin_from_year(x), return_dtype=pl.Utf8).alias(self.VINTAGE),
         )
         self.data = self.data.with_columns(pl.col(self.VINTAGE).cast(pl.Categorical))
 
@@ -2263,7 +2274,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             return building_type
 
         comstock_unscaled = comstock_unscaled.with_columns(
-            pl.col('building_type').map_elements(lambda x: rename_buildingtypes(x)).alias('building_type'),
+            pl.col('building_type').map_elements(lambda x: rename_buildingtypes(x), return_dtype=pl.Utf8).alias('building_type'),
         )
 
         self.monthly_data = comstock_unscaled
