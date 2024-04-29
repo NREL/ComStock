@@ -343,37 +343,27 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   end
 
   # get rated cooling COP from fitted regression
-  def get_rated_cop_cooling(air_loop_hvac, rated_m_3_per_sec, rated_capacity_w)
-    intercept = 4.49070660088438
-    coef_1 = 0.0000000000
-    coef_2 = 0.0003756651
-    coef_3 = -0.0586332053
-    coef_4 = -0.0000000391
-    coef_5 = 0.0000047027
-    coef_6 = 0.0001053728
-    min_cop = 3.43
-    max_cop = 4.92
-    rated_CFM = OpenStudio.convert(rated_m_3_per_sec, 'm^3/s', 'cfm').get
+  # based on actual product performances (Carrier/Lennox) which meet 2023 federal minimum efficiency requirements
+  def get_rated_cop_cooling(rated_capacity_w)
+    intercept = 3.826625
+    coef_1 = -0.010195
+    min_cop = 2.98
+    max_cop = 3.92
     rated_capacity_kw = rated_capacity_w / 1000 # W to kW
-    rated_cop_cooling = intercept + 1 * coef_1 + coef_2 * rated_CFM + coef_3 * rated_capacity_kw + coef_4 * (rated_CFM**2) + coef_5 * (rated_CFM * rated_capacity_kw) + coef_6 * (rated_capacity_kw**2)
+    rated_cop_cooling = intercept + (coef_1 * rated_capacity_kw)
     rated_cop_cooling = rated_cop_cooling.clamp(min_cop, max_cop)
     return rated_cop_cooling
   end
 
   # get rated heating COP from fitted regression
+  # based on actual product performances (Carrier/Lennox) which meet 2023 federal minimum efficiency requirements
   def get_rated_cop_heating(air_loop_hvac, rated_m_3_per_sec, rated_capacity_w)
-    intercept = 4.3102941156455
-    coef_1 = 0.0000000000000
-    coef_2 = 0.0005719993613
-    coef_3 = -0.0896221465453
-    coef_4 = -0.0000000330634
-    coef_5 = 0.0000029291133
-    coef_6 = 0.0004096485708
-    min_cop = 2.95
-    max_cop = 5.42
-    rated_CFM = OpenStudio.convert(rated_m_3_per_sec, 'm^3/s', 'cfm').get
+    intercept = 4.017716
+    coef_1 = -0.008631
+    min_cop = 3.52
+    max_cop = 4.05
     rated_capacity_kw = rated_capacity_w / 1000 # W to kW
-    rated_cop_heating = intercept + 1 * coef_1 + coef_2 * rated_CFM + coef_3 * rated_capacity_kw + coef_4 * (rated_CFM**2) + coef_5 * (rated_CFM * rated_capacity_kw) + coef_6 * (rated_capacity_kw**2)
+    rated_cop_heating = intercept + (coef_1 * rated_capacity_kw)
     rated_cop_heating = rated_cop_heating.clamp(min_cop, max_cop)
     return rated_cop_heating
   end
@@ -1608,7 +1598,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed3.setGrossRatedTotalCoolingCapacity(hash_clg_cap_stgs[3])
       new_dx_cooling_coil_speed3.setGrossRatedSensibleHeatRatio(0.79452681573034)
       if std_perf
-        rated_cop_fit = get_rated_cop_cooling(air_loop_hvac, hash_clg_airflow_stgs[3], hash_clg_cap_stgs[3])
+        rated_cop_fit = get_rated_cop_cooling(hash_clg_cap_stgs[4])
         new_dx_cooling_coil_speed3.setGrossRatedCoolingCOP(rated_cop_fit)
         runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), stage 3 rated_cop_cooling = #{rated_cop_fit}")
       else
@@ -1646,7 +1636,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed4.setGrossRatedTotalCoolingCapacity(hash_clg_cap_stgs[4])
       new_dx_cooling_coil_speed4.setGrossRatedSensibleHeatRatio(0.784532541812955)
       if std_perf
-        rated_cop_fit = get_rated_cop_cooling(air_loop_hvac, hash_clg_airflow_stgs[4], hash_clg_cap_stgs[4])
+        rated_cop_fit = get_rated_cop_cooling(hash_clg_cap_stgs[4])
         new_dx_cooling_coil_speed4.setGrossRatedCoolingCOP(rated_cop_fit)
         runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), stage 4 rated_cop_cooling = #{rated_cop_fit}")
       else
@@ -1865,7 +1855,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         new_dx_heating_coil.setDefrostTimePeriodFraction(0.058333)
 
         new_dx_heating_coil.setRatedTotalHeatingCapacity(hash_htg_cap_stgs[4])
-        rated_cop_fit = get_rated_cop_heating(air_loop_hvac, hash_htg_airflow_stgs[4], hash_htg_cap_stgs[4])
+        rated_cop_fit = get_rated_cop_heating(hash_htg_cap_stgs[4])
         runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), single stage rated_cop_heating = #{rated_cop_fit}")
         new_dx_heating_coil.setRatedCOP(rated_cop_fit)
         new_dx_heating_coil.setRatedAirFlowRate(hash_htg_airflow_stgs[4])
