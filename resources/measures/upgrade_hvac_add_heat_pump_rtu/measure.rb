@@ -1576,7 +1576,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed1 = OpenStudio::Model::CoilCoolingDXMultiSpeedStageData.new(model)
       new_dx_cooling_coil_speed1.setGrossRatedTotalCoolingCapacity(hash_clg_cap_stgs[1])
       new_dx_cooling_coil_speed1.setGrossRatedSensibleHeatRatio(0.872821200315651)
-      new_dx_cooling_coil_speed1.setGrossRatedCoolingCOP(4.40)
+      new_dx_cooling_coil_speed1.setGrossRatedCoolingCOP(get_rated_cop_cooling_adv(hash_clg_cap_stgs[4]))
       new_dx_cooling_coil_speed1.setRatedAirFlowRate(hash_clg_airflow_stgs[1])
       new_dx_cooling_coil_speed1.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
       new_dx_cooling_coil_speed1.setTotalCoolingCapacityFunctionofTemperatureCurve(cool_cap_ft1)
@@ -1600,7 +1600,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed2 = OpenStudio::Model::CoilCoolingDXMultiSpeedStageData.new(model)
       new_dx_cooling_coil_speed2.setGrossRatedTotalCoolingCapacity(hash_clg_cap_stgs[2])
       new_dx_cooling_coil_speed2.setGrossRatedSensibleHeatRatio(0.80463149283227)
-      new_dx_cooling_coil_speed2.setGrossRatedCoolingCOP(4.56)
+      new_dx_cooling_coil_speed2.setGrossRatedCoolingCOP(get_rated_cop_cooling_adv(hash_clg_cap_stgs[4])
       new_dx_cooling_coil_speed2.setRatedAirFlowRate(hash_clg_airflow_stgs[2])
       new_dx_cooling_coil_speed2.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
       new_dx_cooling_coil_speed2.setTotalCoolingCapacityFunctionofTemperatureCurve(cool_cap_ft2)
@@ -1629,7 +1629,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         new_dx_cooling_coil_speed3.setGrossRatedCoolingCOP(rated_cop_fit)
         runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), stage 3 rated_cop_cooling = #{rated_cop_fit}")
       else
-        new_dx_cooling_coil_speed3.setGrossRatedCoolingCOP(4.44)
+        new_dx_cooling_coil_speed3.setGrossRatedCoolingCOP(get_rated_cop_cooling_adv(hash_clg_cap_stgs[4])
       end
       new_dx_cooling_coil_speed3.setRatedAirFlowRate(hash_clg_airflow_stgs[3])
       new_dx_cooling_coil_speed3.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
@@ -1667,7 +1667,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         new_dx_cooling_coil_speed4.setGrossRatedCoolingCOP(rated_cop_fit)
         runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), stage 4 rated_cop_cooling = #{rated_cop_fit}")
       else
-        new_dx_cooling_coil_speed4.setGrossRatedCoolingCOP(4.11)
+        new_dx_cooling_coil_speed4.setGrossRatedCoolingCOP(get_rated_cop_cooling_adv(hash_clg_cap_stgs[4])
       end
       new_dx_cooling_coil_speed4.setRatedAirFlowRate(hash_clg_airflow_stgs[4])
       new_dx_cooling_coil_speed4.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
