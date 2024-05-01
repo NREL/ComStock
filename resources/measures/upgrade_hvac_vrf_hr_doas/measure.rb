@@ -1937,6 +1937,9 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           capacity_original_rated = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_cooling, column_name).to_f
           puts("--- #{coil_cooling.name} | capacity_original_rated = #{capacity_original_rated} W")
 
+          # TODO: convert design heating/cooling loads to rated heating/coolnig capacities
+
+          # TODO: replace design loads to rated capacities
           # skip upsizing if indoor unit is not expected as heating dominant unit
           if design_heating_load <= design_cooling_load
             puts("--- #{coil_cooling.name} | this indoor unit is not expected as heating dominant, so skipping for upsizing.")
