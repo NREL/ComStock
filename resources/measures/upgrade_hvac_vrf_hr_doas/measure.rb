@@ -300,6 +300,40 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
 
   # --------------------------------------- #
   # supporting method
+  # --------------------------------------- #
+  # return dependent varible based on two independent variables from TableMultiVariableLookup
+  # @param model [OpenStudio::Model::TableMultiVariableLookup] OpenStudio TableMultiVariableLookup object
+  # @param ind_var_1 [Double] independent variable 1
+  # @param ind_var_2 [Double] independent variable 2
+  # @return [Double] dependent variable value
+  def get_dep_var_from_lookup_table_with_two_ind_var(lookup_table, ind_var_1, ind_var_2)
+    unless lookup_table.to_TableMultiVariableLookup.is_initialized
+      runner.registerError("#{lookup_table.name} is not a OpenStudio::Model::TableMultiVariableLookup object.")
+      return false
+    end
+
+    # check if the lookup only has two independent variables
+    if lookup_table.numberofIndependentVariables == 2
+
+      # get independent variable 1 and 2 from table
+      array_ind_var_1 = lookup_table.xValues(0)
+      array_ind_var_2 = lookup_table.xValues(1)
+
+      # find the closest independent variable 1 and 2 from table based on method inputs
+      closest_ind_var_1 = array_ind_var_1.min_by{|x| (ind_var_1-x).abs}
+      closest_ind_var_2 = array_ind_var_2.min_by{|x| (ind_var_2-x).abs}
+
+      # grab dependent variable from the closest independent variables
+      dependent_var_val = lookup_table.yValue([closest_ind_var_1, closest_ind_var_2]).get
+    else
+      runner.registerError('This TableMultiVariableLookup is not based on two independent variables.')
+      return false
+    end
+    return dependent_var_val
+  end
+
+  # --------------------------------------- #
+  # supporting method
   # extracting VRF object specifications from existing (fully populated) object
   # this is used to copy specs from (manufacturer provided) osc files
   # --------------------------------------- #
@@ -1937,7 +1971,35 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           capacity_original_rated = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_cooling, column_name).to_f
           puts("--- #{coil_cooling.name} | capacity_original_rated = #{capacity_original_rated} W")
 
-          # TODO: convert design heating/cooling loads to rated heating/coolnig capacities
+          # get capacity modifier curves
+          capacity_modifier_curve_cooling = ou.coolingCapacityRatioModifierFunctionofLowTemperatureCurve.get
+          capacity_modifier_curve_heating = ou.heatingCapacityRatioModifierFunctionofLowTemperatureCurve.get
+          puts("--- #{coil_cooling.name} | capacity_modifier_curve_cooling = #{capacity_modifier_curve_cooling.name}")
+          puts("--- #{coil_cooling.name} | capacity_modifier_curve_heating = #{capacity_modifier_curve_heating.name}")
+
+          # get capacity modifier for cooling
+          if capacity_modifier_curve_cooling.to_TableMultiVariableLookup.is_initialized
+            capacity_modifier_curve_cooling = capacity_modifier_curve_cooling.to_TableMultiVariableLookup.get
+            capacity_modifier_cooling = get_dep_var_from_lookup_table_with_two_ind_var(capacity_modifier_curve_cooling, OpenStudio.convert(67.0,'F','C').get, OpenStudio.convert(95.0,'F','C').get)
+          else
+            capacity_modifier_cooling = capacity_modifier_curve_cooling.evaluate(OpenStudio.convert(67.0,'F','C').get, OpenStudio.convert(95.0,'F','C').get)
+          end
+          puts("--- #{coil_cooling.name} | capacity_modifier_cooling = #{capacity_modifier_cooling}")
+
+          # get capacity modifier for heating
+          if capacity_modifier_curve_cooling.to_TableMultiVariableLookup.is_initialized
+            capacity_modifier_curve_heating = capacity_modifier_curve_heating.to_TableMultiVariableLookup.get
+            capacity_modifier_heating = get_dep_var_from_lookup_table_with_two_ind_var(capacity_modifier_curve_heating, OpenStudio.convert(70.0,'F','C').get, OpenStudio.convert(47.0,'F','C').get)
+          else
+            capacity_modifier_heating = capacity_modifier_curve_heating.evaluate(OpenStudio.convert(70.0,'F','C').get, OpenStudio.convert(47.0,'F','C').get)
+          end
+          puts("--- #{coil_cooling.name} | capacity_modifier_heating = #{capacity_modifier_heating}")
+
+          # get rated capacities based on design loads
+          capacity_original_rated_cooling = design_cooling_load * capacity_modifier_cooling
+          capacity_original_rated_heating = design_heating_load * capacity_modifier_heating
+          puts("--- #{coil_cooling.name} | capacity_original_rated_cooling = #{capacity_original_rated_cooling} W")
+          puts("--- #{coil_cooling.name} | capacity_original_rated_heating = #{capacity_original_rated_heating} W")
 
           # TODO: replace design loads to rated capacities
           # skip upsizing if indoor unit is not expected as heating dominant unit
