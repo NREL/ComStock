@@ -1142,10 +1142,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # cooling stages
       clg_airflow_stage1 = htg_airflow_stage1
       clg_airflow_stage2 = htg_airflow_stage2
-      # overriding value for stage3 to 0.63 (average of standard performance products) for modeling standard performance
-      # evidence data for 0.63 saved in ComStock Teams (high_low_cap_diff_new tab in this spreadsheet): https://nrel.sharepoint.com/:x:/r/sites/comstock/Shared%20Documents/ComStock%20Filing%20Cabinet/Efforts/Measures/HVAC%20-%20Heat%20Pump%20RTU%20std%20performance/performance%20data/231120_PerformanceMaps_RepresentativeMapsGeneration_capacity.xlsx?d=wb0f18bab656a45b68b8da9fbe74dec2a&csf=1&web=1&e=BKnHUx
+      # overriding value for stage3 to 0.59 (average of standard performance products) for modeling standard performance
+      # evidence data for 0.59 saved in ComStock Teams (high_low_cap_diff_new tab in this spreadsheet): https://nrel.sharepoint.com/:x:/r/sites/comstock/Shared%20Documents/ComStock%20Filing%20Cabinet/Efforts/Measures/HVAC%20-%20Heat%20Pump%20RTU%20std%20performance/performance%20data/231120_PerformanceMaps_RepresentativeMapsGeneration_capacity.xlsx?d=wb0f18bab656a45b68b8da9fbe74dec2a&csf=1&web=1&e=BKnHUx
       if std_perf
-        clg_airflow_stage3 = 0.63
+        clg_airflow_stage3 = 0.59
         runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding stage 3 factor for airflow to #{clg_airflow_stage3} for modeling standard performance.")
       else
         clg_airflow_stage3 = htg_airflow_stage3
@@ -1243,10 +1243,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       end
       ### Cooling
       # define cooling stages; 40% to 100%, equally spaced; fractions from ResStock Reference file
-      # overriding 0.67 (value for stage3) to 0.51 (average of standard performance products) for modeling standard performance
-      # evidence data for 0.51 saved in ComStock Teams (high_low_cap_diff_new tab in this spreadsheet): https://nrel.sharepoint.com/:x:/r/sites/comstock/Shared%20Documents/ComStock%20Filing%20Cabinet/Efforts/Measures/HVAC%20-%20Heat%20Pump%20RTU%20std%20performance/performance%20data/231120_PerformanceMaps_RepresentativeMapsGeneration_capacity.xlsx?d=wb0f18bab656a45b68b8da9fbe74dec2a&csf=1&web=1&e=BKnHUx
+      # overriding 0.67 (value for stage3) to 0.50 (average of standard performance products) for modeling standard performance
+      # evidence data for 0.50 saved in ComStock Teams (high_low_cap_diff_new tab in this spreadsheet): https://nrel.sharepoint.com/:x:/r/sites/comstock/Shared%20Documents/ComStock%20Filing%20Cabinet/Efforts/Measures/HVAC%20-%20Heat%20Pump%20RTU%20std%20performance/performance%20data/231120_PerformanceMaps_RepresentativeMapsGeneration_capacity.xlsx?d=wb0f18bab656a45b68b8da9fbe74dec2a&csf=1&web=1&e=BKnHUx
       if std_perf
-        stage3_factor = 0.51
+        stage3_factor = 0.50
         runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding stage 3 factor for capacity to #{stage3_factor} for modeling standard performance.")
       else
         stage3_factor = 0.67
