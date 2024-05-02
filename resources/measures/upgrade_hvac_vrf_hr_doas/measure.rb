@@ -1961,10 +1961,20 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           design_cooling_load = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_cooling, column_name).to_f
           puts("--- #{coil_cooling.name} | design_cooling_load = #{design_cooling_load} W")
 
+          # get design cooling temperature
+          column_name = 'Outdoor Air Drybulb at Ideal Loads Peak'
+          design_cooling_temp = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_cooling, column_name).to_f
+          puts("--- #{coil_cooling.name} | design_cooling_temp = #{design_cooling_temp} C")
+
           # get design_heating_load
           column_name = 'Zone Sensible Heat Gain at Ideal Loads Peak'
           design_heating_load = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_heating, column_name).to_f
           puts("--- #{coil_cooling.name} | design_heating_load = #{design_heating_load} W")
+
+          # get design heating temperature
+          column_name = 'Outdoor Air Drybulb at Ideal Loads Peak'
+          design_heating_temp = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_heating, column_name).to_f
+          puts("--- #{coil_cooling.name} | design_heating_temp = #{design_heating_temp} C")
 
           # get capacity_original_rated
           column_name = 'Coil Final Gross Total Capacity'
@@ -1980,30 +1990,29 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           # get capacity modifier for cooling
           if capacity_modifier_curve_cooling.to_TableMultiVariableLookup.is_initialized
             capacity_modifier_curve_cooling = capacity_modifier_curve_cooling.to_TableMultiVariableLookup.get
-            capacity_modifier_cooling = get_dep_var_from_lookup_table_with_two_ind_var(capacity_modifier_curve_cooling, OpenStudio.convert(67.0,'F','C').get, OpenStudio.convert(95.0,'F','C').get)
+            capacity_modifier_cooling = get_dep_var_from_lookup_table_with_two_ind_var(capacity_modifier_curve_cooling, OpenStudio.convert(67.0,'F','C').get, design_cooling_temp)
           else
-            capacity_modifier_cooling = capacity_modifier_curve_cooling.evaluate(OpenStudio.convert(67.0,'F','C').get, OpenStudio.convert(95.0,'F','C').get)
+            capacity_modifier_cooling = capacity_modifier_curve_cooling.evaluate(OpenStudio.convert(67.0,'F','C').get, design_cooling_temp)
           end
           puts("--- #{coil_cooling.name} | capacity_modifier_cooling = #{capacity_modifier_cooling}")
 
           # get capacity modifier for heating
           if capacity_modifier_curve_cooling.to_TableMultiVariableLookup.is_initialized
             capacity_modifier_curve_heating = capacity_modifier_curve_heating.to_TableMultiVariableLookup.get
-            capacity_modifier_heating = get_dep_var_from_lookup_table_with_two_ind_var(capacity_modifier_curve_heating, OpenStudio.convert(70.0,'F','C').get, OpenStudio.convert(47.0,'F','C').get)
+            capacity_modifier_heating = get_dep_var_from_lookup_table_with_two_ind_var(capacity_modifier_curve_heating, OpenStudio.convert(70.0,'F','C').get, design_heating_temp)
           else
-            capacity_modifier_heating = capacity_modifier_curve_heating.evaluate(OpenStudio.convert(70.0,'F','C').get, OpenStudio.convert(47.0,'F','C').get)
+            capacity_modifier_heating = capacity_modifier_curve_heating.evaluate(OpenStudio.convert(70.0,'F','C').get, design_heating_temp)
           end
           puts("--- #{coil_cooling.name} | capacity_modifier_heating = #{capacity_modifier_heating}")
 
           # get rated capacities based on design loads
-          capacity_original_rated_cooling = design_cooling_load * capacity_modifier_cooling
-          capacity_original_rated_heating = design_heating_load * capacity_modifier_heating
-          puts("--- #{coil_cooling.name} | capacity_original_rated_cooling = #{capacity_original_rated_cooling} W")
-          puts("--- #{coil_cooling.name} | capacity_original_rated_heating = #{capacity_original_rated_heating} W")
+          rated_cooling_capacity_based_on_design_load = design_cooling_load / capacity_modifier_cooling
+          rated_heating_capacity_based_on_design_load = design_heating_load / capacity_modifier_heating
+          puts("--- #{coil_cooling.name} | rated_cooling_capacity_based_on_design_load = #{rated_cooling_capacity_based_on_design_load} W")
+          puts("--- #{coil_cooling.name} | rated_heating_capacity_based_on_design_load = #{rated_heating_capacity_based_on_design_load} W")
 
-          # TODO: replace design loads to rated capacities
-          # skip upsizing if indoor unit is not expected as heating dominant unit
-          if design_heating_load <= design_cooling_load
+          # skip upsizing if indoor unit is not expected as heating dominant
+          if rated_heating_capacity_based_on_design_load <= rated_cooling_capacity_based_on_design_load
             puts("--- #{coil_cooling.name} | this indoor unit is not expected as heating dominant, so skipping for upsizing.")
             capacity_outdoor_unit_new += capacity_original_rated
             next
@@ -2051,7 +2060,6 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
             capacity_final_rated = capacity_original_rated
           end
           puts("--- #{coil_cooling.name} | capacity_final_rated = #{capacity_final_rated}")
-          
 
           # get CFM/ton 
           design_air_flow_rate_cfm = design_air_flow_rate_m_3_per_sec * 2118.88 
