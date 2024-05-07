@@ -64,7 +64,7 @@ To just access files, use WinSCP:
 - samples 
   - Inside the samples folder, put your buildstock samples within the correct project folder, or create a new project folder. This will make it easier to find samples. Label the samples with the version of the TSVs that were used to generate the sample.
 - runs
-  - Inside the runs folder, output your runs into the correct project folder, or create a new project folder. This will limit the number of folders in the /enduse/comstock directory
+  - Inside the runs folder, output your runs into the correct project folder, or create a new project folder. This will limit the number of folders in the /cscore/runs or /eusscom/runs directory
   - Try to keep a standard naming convention for your runs
   - Recommend making sub-folders for different types of test runs so that you can easily find your output folder. 
 - ymls
@@ -150,7 +150,7 @@ Notes:
 
  - ```kestrel```:
    - ```account```: kestrel allocation for project (e.g. eusscom)
-   - ```n_jobs```: estimate based on number of datapoints x number of upgrades (number of jobs necessary roughly equal to total number of simulations divided by 1500-2000)
+   - ```n_jobs```: estimate based on number of datapoints x number of upgrades (number of jobs necessary roughly equal to total number of simulations divided by 5000-6000)
    - ```minutes_per_sim```: 30-60 usually sufficient for most runs; use 120-200 for runs with scout component loads measure
    - ```postprocessing```:
      - ```time```: typically 200-400 is sufficient, but can bump up for larger runs
