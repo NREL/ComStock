@@ -21,7 +21,7 @@ class TsvFile
 
         full_header = nil
         rows = []
-        CSV.foreach(@full_path, { :col_sep => "\t" }) do |row|
+        CSV.foreach(@full_path, col_sep: "\t") do |row|
 
             row.delete_if {|x| x.nil? or x.size == 0} # purge trailing empty fields
 
@@ -159,7 +159,7 @@ def get_parameters_ordered_from_options_lookup_tsv(resources_dir, characteristic
         fail "ERROR: Cannot find #{lookup_file}."
     end
     params = []
-    CSV.foreach(lookup_file, { :col_sep => "\t" }) do |row|
+    CSV.foreach(lookup_file, col_sep: "\t") do |row|
         next if row.size < 2
         next if row[0].nil? or row[0].downcase == "parameter name" or row[1].nil?
         next if params.include?(row[0])
@@ -180,7 +180,7 @@ def get_options_for_parameter_from_options_lookup_tsv(resources_dir, parameter_n
         fail "ERROR: Cannot find #{lookup_file}."
     end
     options = []
-    CSV.foreach(lookup_file, { :col_sep => "\t" }) do |row|
+    CSV.foreach(lookup_file, col_sep: "\t") do |row|
         next if row.size < 2
         next if row[0].nil? or row[0].downcase == "parameter name" or row[1].nil?
         next if row[0].downcase != parameter_name.downcase
@@ -274,7 +274,7 @@ def get_measure_args_from_option_names(lookup_file, option_names, parameter_name
     end
     current_option = nil
 
-    CSV.foreach(lookup_file, { :col_sep => "\t" }) do |row|
+    CSV.foreach(lookup_file, col_sep: "\t") do |row|
         next if row.size < 2
         next if row[1] == "*"
         # Found option row?
