@@ -1180,7 +1180,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     heat_eir_ft3.setMaximumValueofx(100)
     heat_eir_ft3.setMinimumValueofy(-100)
     heat_eir_ft3.setMaximumValueofy(100)
-    
+
     # Energy Input Ratio Function of Temperature Curve - 4
     if std_perf
       heat_eir_ft4 = h_eir_allstages_T
@@ -1757,6 +1757,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         hash_clg_speed_level_status[2] = false
       end
 
+      #################################### Start performance curve assignment
+
+      # ---------------------------------------------------------
+      # cooling curve assignments
+      # ---------------------------------------------------------
+
       # create new multistage coil
       new_dx_cooling_coil = OpenStudio::Model::CoilCoolingDXMultiSpeed.new(model)
       new_dx_cooling_coil.setName("#{air_loop_hvac.name} Heat Pump Cooling Coil")
@@ -1891,7 +1897,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed4.autosizedEvaporativeCondenserAirFlowRate
       new_dx_cooling_coil_speed4.autosizedRatedEvaporativeCondenserPumpPowerConsumption
       new_dx_cooling_coil.addStage(new_dx_cooling_coil_speed4)
-      ####################################### End Cooling Performance Curves
+
+      # ---------------------------------------------------------
+      # heating curve assignments
+      # ---------------------------------------------------------
 
       # add new multispeed heating coil
       if std_perf
@@ -1983,7 +1992,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         new_dx_heating_coil.addStage(new_dx_heating_coil_speed4)
       end
 
-      ####################################### End Heating Performance Curves
+      #################################### End performance curve assignment
 
       # add new supplemental heating coil
       new_backup_heating_coil = nil
