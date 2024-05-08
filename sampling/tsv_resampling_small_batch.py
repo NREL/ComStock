@@ -99,7 +99,7 @@ class CommercialBaseSobolSampler(BuildStockSampler):
             [
                 'aspect_ratio', 'building_shape', 'base_peak_ratio', 'heating_fuel', 'hvac_night',
                 'hvac_system', 'hvac_tst', 'rotation', 'duration', 'start_time', 'number_stories',
-                'wall_construction_type', 'airtightness', 'thermal_bridging', 'fault_economizer_damper_fully_closed', 'fault_economizer_db_limit',
+                'wall_construction_type', 'airtightness', 'fault_economizer_damper_fully_closed', 'fault_economizer_db_limit',
                 'energy_code_compliance_hvac', 'energy_code_in_force_during_last_hvac', 'energy_code_followed_during_last_hvac',
                 'year_bin_of_last_hvac'
             ],
@@ -112,7 +112,7 @@ class CommercialBaseSobolSampler(BuildStockSampler):
                 'building_size_lighting_tech'
             ],
             [
-                'exterior_lighting', 'roof', 'interior_equipment', 'baseline_window',
+                'exterior_lighting', 'roof', 'interior_equipment', 'baseline_window', 'thermal_bridging',
                 'energy_code_compliance_w', 'energy_code_compliance_service',
                 'energy_code_in_force_during_last_w', 'energy_code_in_force_during_last_service',
                 'energy_code_followed_during_last_w', 'energy_code_followed_during_last_service',
@@ -213,6 +213,7 @@ class CommercialBaseSobolSampler(BuildStockSampler):
             elif max_iterations > 0:
                 max_iterations -= 1
             else:
+                breakpoint()
                 raise RuntimeError('Unable to resolve the dependency tree within the set iteration limit')
         return dependency_hash, attr_order
 
