@@ -1549,20 +1549,17 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # design - temperature determined by design days in specified weather file
       oa_temp_c = wntr_design_day_temp_c
       dns_htg_load_at_dsn_temp = orig_htg_coil_gross_cap
-      hp_derate_factor_at_dsn = 0.93607915412 + -0.005481563544*ia_temp_c + -8.5897908e-06*ia_temp_c**2 + 0.02491053192*oa_temp_c +5.3087076e-05*oa_temp_c**2 + -0.000155750364*ia_temp_c*oa_temp_c
-      # TODO: replace with evaluate
+      hp_derate_factor_at_dsn = heat_cap_ft4.evaluate(ia_temp_c, oa_temp_c)
       req_rated_hp_cap_at_47f_to_meet_load_at_dsn = dns_htg_load_at_dsn_temp / hp_derate_factor_at_dsn
       # 0F
       oa_temp_c = -17.7778
       dns_htg_load_at_0f = htg_load_slope*(-17.7778) + htg_load_intercept
-      hp_derate_factor_at_0f = 0.93607915412 + -0.005481563544*ia_temp_c + -8.5897908e-06*ia_temp_c**2 + 0.02491053192*oa_temp_c + 5.3087076e-05*oa_temp_c**2 + -0.000155750364*ia_temp_c*oa_temp_c
-      # TODO: replace with evaluate
+      hp_derate_factor_at_0f = heat_cap_ft4.evaluate(ia_temp_c, oa_temp_c)
       req_rated_hp_cap_at_47f_to_meet_load_at_0f = dns_htg_load_at_0f / hp_derate_factor_at_0f
       # 17F
       oa_temp_c = -8.33333
       dns_htg_load_at_17f = htg_load_slope*(-8.33333) + htg_load_intercept
-      hp_derate_factor_at_17f = 0.93607915412 + -0.005481563544*ia_temp_c + -8.5897908e-06*ia_temp_c**2 + 0.02491053192*oa_temp_c + 5.3087076e-05*oa_temp_c**2 + -0.000155750364*ia_temp_c*oa_temp_c
-      # TODO: replace with evaluate
+      hp_derate_factor_at_17f = heat_cap_ft4.evaluate(ia_temp_c, oa_temp_c)
       req_rated_hp_cap_at_47f_to_meet_load_at_17f = dns_htg_load_at_17f / hp_derate_factor_at_17f
       # 47F - note that this is rated conditions, so "derate" factor is either 1 from the curve, or will be normlized to 1 by E+ during simulation
       oa_temp_c = 8.33333
@@ -1572,8 +1569,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # user-specified design
       oa_temp_c = hp_sizing_temp_c
       dns_htg_load_at_user_dsn_temp = htg_load_slope*hp_sizing_temp_c + htg_load_intercept
-      hp_derate_factor_at_user_dsn = 0.93607915412 + -0.005481563544*ia_temp_c + -8.5897908e-06*ia_temp_c**2 + 0.02491053192*oa_temp_c + 5.3087076e-05*oa_temp_c**2 + -0.000155750364*ia_temp_c*oa_temp_c
-      # TODO: replace with evaluate
+      hp_derate_factor_at_user_dsn = heat_cap_ft4.evaluate(ia_temp_c, oa_temp_c)
       req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn = dns_htg_load_at_user_dsn_temp / hp_derate_factor_at_user_dsn
 
       # determine heat pump system sizing based on user-specified sizing temperature and user-specified maximum upsizing limits
