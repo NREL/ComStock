@@ -20,71 +20,74 @@ class ResStockNamingMixin():
     CZ_ASHRAE = 'in.climate_zone_ashrae_2006'
 
     # Total annual energy
-    ANN_TOT_ENGY_KBTU = 'out.site_energy.total.energy_consumption..kwh'
-    ANN_TOT_ELEC_KBTU = 'out.electricity.total.energy_consumption..kwh'
-    ANN_TOT_GAS_KBTU = 'out.natural_gas.total.energy_consumption..kwh'
-    ANN_TOT_FUELOIL_KBTU = 'out.fuel_oil.total.energy_consumption..kwh'
-    ANN_TOT_PROPANE_KBTU = 'out.propane.total.energy_consumption..kwh'
-    ANN_TOT_WOOD_KBTU = 'out.wood.total.energy_consumption..kwh'
+    ANN_TOT_ENGY_KBTU = 'out.site_energy.total.energy_consumption..kwh'#
+    ANN_TOT_ELEC_KBTU = 'out.electricity.total.energy_consumption..kwh'#
+    ANN_TOT_GAS_KBTU = 'out.natural_gas.total.energy_consumption..kwh' #
+    ANN_TOT_FUELOIL_KBTU = 'out.fuel_oil.total.energy_consumption..kwh'#
+    ANN_TOT_PROPANE_KBTU = 'out.propane.total.energy_consumption..kwh'#
+    # ANN_TOT_WOOD_KBTU = 'out.wood.total.energy_consumption..kwh'
 
     # End use energy - electricity
-    ANN_ELEC_BATHFAN_KBTU = 'out.electricity.bath_fan.energy_consumption..kwh'
-    ANN_ELEC_CEILFAN_KBTU = 'out.electricity.ceiling_fan.energy_consumption..kwh'
-    ANN_ELEC_CLOTHESDRYR_KBTU = 'out.electricity.clothes_dryer.energy_consumption..kwh'
-    ANN_ELEC_CLOTHESWSHR_KBTU = 'out.electricity.clothes_washer.energy_consumption..kwh'
-    ANN_ELEC_RANGE_KBTU = 'out.electricity.cooking_range.energy_consumption..kwh'
-    ANN_ELEC_COOL_KBTU = 'out.electricity.cooling.energy_consumption..kwh'
-    ANN_ELEC_DISHWSHR_KBTU = 'out.electricity.dishwasher.energy_consumption..kwh'
-    ANN_ELEC_HOLLTG_KBTU = 'out.electricity.ext_holiday_light.energy_consumption..kwh'
-    ANN_ELEC_EXTLTG_KBTU = 'out.electricity.exterior_lighting.energy_consumption..kwh'
-    ANN_ELEC_EXTRAREFRIG_KBTU = 'out.electricity.extra_refrigerator.energy_consumption..kwh'
-    ANN_ELEC_FANSCOOL_KBTU = 'out.electricity.fans_cooling.energy_consumption..kwh'
-    ANN_ELEC_FANSHEAT_KBTU = 'out.electricity.fans_heating.energy_consumption..kwh'
-    ANN_ELEC_FREEZER_KBTU = 'out.electricity.freezer.energy_consumption..kwh'
-    ANN_ELEC_GARAGELTG_KBTU = 'out.electricity.garage_lighting.energy_consumption..kwh'
-    ANN_ELEC_HEAT_KBTU = 'out.electricity.heating.energy_consumption..kwh'
-    ANN_ELEC_HEATSUPPL_KBTU = 'out.electricity.heating_supplement.energy_consumption..kwh'
-    ANN_ELEC_HOTTUBHEAT_KBTU = 'out.electricity.hot_tub_heater.energy_consumption..kwh'
-    ANN_ELEC_HOTTUBPUMP_KBTU = 'out.electricity.hot_tub_pump.energy_consumption..kwh'
-    ANN_ELEC_HOUSEFAN_KBTU = 'out.electricity.house_fan.energy_consumption..kwh'
-    ANN_ELEC_INTLTG_KBTU = 'out.electricity.interior_lighting.energy_consumption..kwh'
-    ANN_ELEC_PLUGLOADS_KBTU = 'out.electricity.plug_loads.energy_consumption..kwh'
-    ANN_ELEC_POOLHEAT_KBTU = 'out.electricity.pool_heater.energy_consumption..kwh'
-    ANN_ELEC_POOLPUMP_KBTU = 'out.electricity.pool_pump.energy_consumption..kwh'
-    ANN_ELEC_PUMPSCOOL_KBTU = 'out.electricity.pumps_cooling.energy_consumption..kwh'
-    ANN_ELEC_PUMPSHEAT_KBTU = 'out.electricity.pumps_heating.energy_consumption..kwh'
-    ANN_ELEC_PV_KBTU = 'out.electricity.pv.energy_consumption..kwh'
-    ANN_ELEC_RANGEFAN_KBTU = 'out.electricity.range_fan.energy_consumption..kwh'
-    ANN_ELEC_RECIRCPUMP_KBTU = 'out.electricity.recirc_pump.energy_consumption..kwh'
-    ANN_ELEC_REFRIG_KBTU = 'out.electricity.refrigerator.energy_consumption..kwh'
-    ANN_ELEC_VEHICLE_KBTU = 'out.electricity.vehicle.energy_consumption..kwh'
-    ANN_ELEC_SWH_KBTU = 'out.electricity.water_systems.energy_consumption..kwh'
-    ANN_ELEC_WELLPUMP_KBTU = 'out.electricity.well_pump.energy_consumption..kwh'
+    # ANN_ELEC_BATHFAN_KBTU = 'out.electricity.bath_fan.energy_consumption..kwh'
+    ANN_ELEC_CEILFAN_KBTU = 'out.electricity.ceiling_fan.energy_consumption..kwh' #
+    ANN_ELEC_CLOTHESDRYR_KBTU = 'out.electricity.clothes_dryer.energy_consumption..kwh'#
+    ANN_ELEC_CLOTHESWSHR_KBTU = 'out.electricity.clothes_washer.energy_consumption..kwh'#
+    ANN_ELEC_RANGE_KBTU = 'out.electricity.range_oven.energy_consumption..kwh'#
+    ANN_ELEC_COOL_KBTU = 'out.electricity.cooling.energy_consumption..kwh' #
+    ANN_ELEC_DISHWSHR_KBTU = 'out.electricity.dishwasher.energy_consumption..kwh' #
+    # ANN_ELEC_HOLLTG_KBTU = 'out.electricity.ext_holiday_light.energy_consumption..kwh'
+    ANN_ELEC_EXTLTG_KBTU = 'out.electricity.lighting_exterior.energy_consumption..kwh' #
+    # ANN_ELEC_EXTRAREFRIG_KBTU = 'out.electricity.extra_refrigerator.energy_consumption..kwh'
+    ANN_ELEC_FANSCOOL_KBTU = 'out.electricity.cooling_fans_pumps.energy_consumption..kwh'#
+    ANN_ELEC_FANSHEAT_KBTU = 'out.electricity.heating_fans_pumps.energy_consumption..kwh' #
+    ANN_ELEC_FREEZER_KBTU = 'out.electricity.freezer.energy_consumption..kwh' #
+    ANN_ELEC_GARAGELTG_KBTU = 'out.electricity.lighting_garage.energy_consumption..kwh' #
+    ANN_ELEC_HEAT_KBTU = 'out.electricity.heating.energy_consumption..kwh' #
+    ANN_ELEC_HEATSUPPL_KBTU = 'out.electricity.heating_hp_bkup.energy_consumption..kwh' #
+    ANN_ELEC_HOTTUBHEAT_KBTU = 'out.electricity.hot_tub_heater.energy_consumption..kwh'#
+    ANN_ELEC_HOTTUBPUMP_KBTU = 'out.electricity.hot_tub_pump.energy_consumption..kwh'#
+    ANN_ELEC_HOUSEFAN_KBTU = 'out.electricity.mech_vent.energy_consumption..kwh' #
+    ANN_ELEC_INTLTG_KBTU = 'out.electricity.lighting_interior.energy_consumption..kwh' #
+    ANN_ELEC_PLUGLOADS_KBTU = 'out.electricity.plug_loads.energy_consumption..kwh' #
+    ANN_ELEC_POOLHEAT_KBTU = 'out.electricity.pool_heater.energy_consumption..kwh' #
+    ANN_ELEC_POOLPUMP_KBTU = 'out.electricity.pool_pump.energy_consumption..kwh' #
+    # ANN_ELEC_PUMPSCOOL_KBTU = 'out.electricity.pumps_cooling.energy_consumption..kwh'
+    # ANN_ELEC_PUMPSHEAT_KBTU = 'out.electricity.pumps_heating.energy_consumption..kwh'
+    ANN_ELEC_PV_KBTU = 'out.electricity.pv.energy_consumption..kwh' #
+    # ANN_ELEC_RANGEFAN_KBTU = 'out.electricity.range_fan.energy_consumption..kwh'
+    # ANN_ELEC_RECIRCPUMP_KBTU = 'out.electricity.recirc_pump.energy_consumption..kwh'
+    ANN_ELEC_REFRIG_KBTU = 'out.electricity.refrigerator.energy_consumption..kwh' #
+    # ANN_ELEC_VEHICLE_KBTU = 'out.electricity.vehicle.energy_consumption..kwh'
+    ANN_ELEC_SWH_KBTU = 'out.electricity.hot_water.energy_consumption..kwh' #
+    ANN_ELEC_WELLPUMP_KBTU = 'out.electricity.well_pump.energy_consumption..kwh' #
 
 
     # End use energy - natural gas
-    ANN_GAS_CLOTHESDRYR_KBTU = 'out.natural_gas.clothes_dryer.energy_consumption..kwh'
-    ANN_GAS_RANGE_KBTU = 'out.natural_gas.cooking_range.energy_consumption..kwh'
-    ANN_GAS_FIREPLACE_KBTU = 'out.natural_gas.fireplace.energy_consumption..kwh'
-    ANN_GAS_GRILL_KBTU = 'out.natural_gas.grill.energy_consumption..kwh'
-    ANN_GAS_HEAT_KBTU = 'out.natural_gas.heating.energy_consumption..kwh'
-    ANN_GAS_HOTTUBHEAT_KBTU = 'out.natural_gas.hot_tub_heater.energy_consumption..kwh'
-    ANN_GAS_LTG_KBTU = 'out.natural_gas.lighting.energy_consumption..kwh'
-    ANN_GAS_POOLHEAT_KBTU = 'out.natural_gas.pool_heater.energy_consumption..kwh'
-    ANN_GAS_SWH_KBTU = 'out.natural_gas.water_systems.energy_consumption..kwh'
+    ANN_GAS_CLOTHESDRYR_KBTU = 'out.natural_gas.clothes_dryer.energy_consumption..kwh'#
+    ANN_GAS_RANGE_KBTU = 'out.natural_gas.range_oven.energy_consumption..kwh'#
+    ANN_GAS_FIREPLACE_KBTU = 'out.natural_gas.fireplace.energy_consumption..kwh'#
+    ANN_GAS_GRILL_KBTU = 'out.natural_gas.grill.energy_consumption..kwh'#
+    ANN_GAS_HEAT_KBTU = 'out.natural_gas.heating.energy_consumption..kwh'#
+    ANN_GAS_HEATSUPPL_KBTU = 'out.natural_gas.heating_hp_bkup.energy_consumption..kwh' ##
+    ANN_GAS_HOTTUBHEAT_KBTU = 'out.natural_gas.hot_tub_heater.energy_consumption..kwh'#
+    ANN_GAS_LTG_KBTU = 'out.natural_gas.lighting.energy_consumption..kwh'#
+    ANN_GAS_POOLHEAT_KBTU = 'out.natural_gas.pool_heater.energy_consumption..kwh'#
+    ANN_GAS_SWH_KBTU = 'out.natural_gas.hot_water.energy_consumption..kwh'#
 
     # End use energy - fuel oil
-    ANN_FUELOIL_HEAT_KBTU = 'out.fuel_oil.heating.energy_consumption..kwh'
-    ANN_FUELOIL_SWH_KBTU = 'out.fuel_oil.water_systems.energy_consumption..kwh'
+    ANN_FUELOIL_HEAT_KBTU = 'out.fuel_oil.heating.energy_consumption..kwh' #
+    ANN_FUELOIL_HEATSUPPL_KBTU = 'out.fuel_oil.heating_hp_bkup.energy_consumption..kwh' ##
+    ANN_FUELOIL_SWH_KBTU = 'out.fuel_oil.hot_water.energy_consumption..kwh' #
 
     # End use energy - propane
-    ANN_PROPANE_CLOTHESDRYR_KBTU = 'out.propane.clothes_dryer.energy_consumption..kwh'
-    ANN_PROPANE_RANGE_KBTU = 'out.propane.cooking_range.energy_consumption..kwh'
-    ANN_PROPANE_HEAT_KBTU = 'out.propane.heating.energy_consumption..kwh'
-    ANN_PROPANE_SWH_KBTU = 'out.propane.water_systems.energy_consumption..kwh'
+    ANN_PROPANE_CLOTHESDRYR_KBTU = 'out.propane.clothes_dryer.energy_consumption..kwh' #
+    ANN_PROPANE_RANGE_KBTU = 'out.propane.range_oven.energy_consumption..kwh' #
+    ANN_PROPANE_HEAT_KBTU = 'out.propane.heating.energy_consumption..kwh' #
+    ANN_PROPANE_HEATSUPPL_KBTU = 'out.propane.heating_hp_bkup.energy_consumption..kwh' ##
+    ANN_PROPANE_SWH_KBTU = 'out.propane.hot_water.energy_consumption..kwh'#
 
     # End use energy - wood
-    ANN_WOOD_HEAT_KBTU = 'out.wood.heating.energy_consumption..kwh'
+    # ANN_WOOD_HEAT_KBTU = 'out.wood.heating.energy_consumption..kwh'
 
     # List of total annual energy columns
     COLS_TOT_ANN_ENGY = [
@@ -93,22 +96,22 @@ class ResStockNamingMixin():
         ANN_TOT_GAS_KBTU,
         ANN_TOT_FUELOIL_KBTU,
         ANN_TOT_PROPANE_KBTU,
-        ANN_TOT_WOOD_KBTU
+        # ANN_TOT_WOOD_KBTU
     ]
 
     # List of end use annual energy columns
     COLS_ENDUSE_ANN_ENGY = [
         # End use energy - electricity
-        ANN_ELEC_BATHFAN_KBTU,
+        # ANN_ELEC_BATHFAN_KBTU,
         ANN_ELEC_CEILFAN_KBTU,
         ANN_ELEC_CLOTHESDRYR_KBTU,
         ANN_ELEC_CLOTHESWSHR_KBTU,
         ANN_ELEC_RANGE_KBTU,
         ANN_ELEC_COOL_KBTU,
         ANN_ELEC_DISHWSHR_KBTU,
-        ANN_ELEC_HOLLTG_KBTU,
+        # ANN_ELEC_HOLLTG_KBTU,
         ANN_ELEC_EXTLTG_KBTU,
-        ANN_ELEC_EXTRAREFRIG_KBTU,
+        # ANN_ELEC_EXTRAREFRIG_KBTU,
         ANN_ELEC_FANSCOOL_KBTU,
         ANN_ELEC_FANSHEAT_KBTU,
         ANN_ELEC_FREEZER_KBTU,
@@ -122,13 +125,13 @@ class ResStockNamingMixin():
         ANN_ELEC_PLUGLOADS_KBTU,
         ANN_ELEC_POOLHEAT_KBTU,
         ANN_ELEC_POOLPUMP_KBTU,
-        ANN_ELEC_PUMPSCOOL_KBTU,
-        ANN_ELEC_PUMPSHEAT_KBTU,
+        # ANN_ELEC_PUMPSCOOL_KBTU,
+        # ANN_ELEC_PUMPSHEAT_KBTU,
         ANN_ELEC_PV_KBTU,
-        ANN_ELEC_RANGEFAN_KBTU,
-        ANN_ELEC_RECIRCPUMP_KBTU,
+        # ANN_ELEC_RANGEFAN_KBTU,
+        # ANN_ELEC_RECIRCPUMP_KBTU,
         ANN_ELEC_REFRIG_KBTU,
-        ANN_ELEC_VEHICLE_KBTU,
+        # ANN_ELEC_VEHICLE_KBTU,
         ANN_ELEC_SWH_KBTU,
         ANN_ELEC_WELLPUMP_KBTU,
         # End use energy - natural gas
@@ -144,13 +147,15 @@ class ResStockNamingMixin():
         # End use energy - fuel oil
         ANN_FUELOIL_HEAT_KBTU,
         ANN_FUELOIL_SWH_KBTU,
+        ANN_FUELOIL_HEATSUPPL_KBTU,
         # End use energy - propane
         ANN_PROPANE_CLOTHESDRYR_KBTU,
         ANN_PROPANE_RANGE_KBTU,
         ANN_PROPANE_HEAT_KBTU,
         ANN_PROPANE_SWH_KBTU,
+        ANN_PROPANE_HEATSUPPL_KBTU,
         # End use energy - wood
-        ANN_WOOD_HEAT_KBTU,
+        # ANN_WOOD_HEAT_KBTU,
     ]
 
     # List of natural gas end use columns
@@ -160,6 +165,7 @@ class ResStockNamingMixin():
         ANN_GAS_FIREPLACE_KBTU,
         ANN_GAS_GRILL_KBTU,
         ANN_GAS_HEAT_KBTU,
+        ANN_GAS_HEATSUPPL_KBTU,
         ANN_GAS_HOTTUBHEAT_KBTU,
         ANN_GAS_LTG_KBTU,
         ANN_GAS_POOLHEAT_KBTU,
@@ -168,16 +174,16 @@ class ResStockNamingMixin():
 
     # List of electricity end use columns
     COLS_ELEC_ENDUSE = [
-        ANN_ELEC_BATHFAN_KBTU,
+        # ANN_ELEC_BATHFAN_KBTU,
         ANN_ELEC_CEILFAN_KBTU,
         ANN_ELEC_CLOTHESDRYR_KBTU,
         ANN_ELEC_CLOTHESWSHR_KBTU,
         ANN_ELEC_RANGE_KBTU,
         ANN_ELEC_COOL_KBTU,
         ANN_ELEC_DISHWSHR_KBTU,
-        ANN_ELEC_HOLLTG_KBTU,
+        # ANN_ELEC_HOLLTG_KBTU,
         ANN_ELEC_EXTLTG_KBTU,
-        ANN_ELEC_EXTRAREFRIG_KBTU,
+        # ANN_ELEC_EXTRAREFRIG_KBTU,
         ANN_ELEC_FANSCOOL_KBTU,
         ANN_ELEC_FANSHEAT_KBTU,
         ANN_ELEC_FREEZER_KBTU,
@@ -191,13 +197,13 @@ class ResStockNamingMixin():
         ANN_ELEC_PLUGLOADS_KBTU,
         ANN_ELEC_POOLHEAT_KBTU,
         ANN_ELEC_POOLPUMP_KBTU,
-        ANN_ELEC_PUMPSCOOL_KBTU,
-        ANN_ELEC_PUMPSHEAT_KBTU,
+        # ANN_ELEC_PUMPSCOOL_KBTU,
+        # ANN_ELEC_PUMPSHEAT_KBTU,
         ANN_ELEC_PV_KBTU,
-        ANN_ELEC_RANGEFAN_KBTU,
-        ANN_ELEC_RECIRCPUMP_KBTU,
+        # ANN_ELEC_RANGEFAN_KBTU,
+        # ANN_ELEC_RECIRCPUMP_KBTU,
         ANN_ELEC_REFRIG_KBTU,
-        ANN_ELEC_VEHICLE_KBTU,
+        # ANN_ELEC_VEHICLE_KBTU,
         ANN_ELEC_SWH_KBTU,
         ANN_ELEC_WELLPUMP_KBTU,
     ]
