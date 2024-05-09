@@ -138,14 +138,14 @@ class CommercialBaseSobolSampler(BuildStockSampler):
                 'owner_occupied', 'owner_type', 'purchasing_power', 'operator', 'occupied_by'
             ],
             [
-                'aspect_ratio', 'building_shape', 'base_peak_ratio', 'heating_fuel', 'hvac_night',
-                'hvac_system', 'hvac_tst', 'rotation', 'duration', 'start_time', 'number_stories',
-                'wall_construction', 'airtightness', 'fault_economizer_damper_fully_closed', 'fault_economizer_db_limit',
+                'base_peak_ratio', 'heating_fuel', 'hvac_night', 'hvac_system', 'hvac_tst', 'rotation', 'duration',
+                'start_time', 'fault_economizer_damper_fully_closed', 'fault_economizer_db_limit',
                 'energy_code_compliance_hvac', 'energy_code_in_force_during_last_hvac', 'energy_code_followed_during_last_hvac',
                 'year_bin_of_last_hvac'
             ],
             [
-                'cook', 'ground_thermal_conductivity'
+                'cook', 'ground_thermal_conductivity', 'thermal_bridging', 'wall_construction', 'number_stories',
+                'aspect_ratio', 'building_shape', 'airtightness'
             ],
             [
                 'energy_code_compliance_interior_lighting', 'energy_code_followed_during_last_interior_lighting',
@@ -153,7 +153,7 @@ class CommercialBaseSobolSampler(BuildStockSampler):
                 'building_size_lighting_tech'
             ],
             [
-                'exterior_lighting', 'roof', 'interior_equipment', 'baseline_window', 'thermal_bridging',
+                'exterior_lighting', 'roof', 'interior_equipment', 'baseline_window',
                 'energy_code_compliance_w', 'energy_code_compliance_service',
                 'energy_code_in_force_during_last_w', 'energy_code_in_force_during_last_service',
                 'energy_code_followed_during_last_w', 'energy_code_followed_during_last_service',
