@@ -367,6 +367,31 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     rated_cop_heating = rated_cop_heating.clamp(min_cop, max_cop)
     return rated_cop_heating
   end
+
+  # get rated cooling COP from fitted regression - for advanced HP RTU (from Daikin Rebel data)
+  def get_rated_cop_cooling_adv(rated_capacity_w)
+    intercept = 4.083560
+    coef_1 = -0.007473
+    min_cop = 3.43
+    max_cop = 4.92
+    rated_capacity_kw = rated_capacity_w / 1000 # W to kW
+    rated_cop_cooling = intercept + (coef_1 * rated_capacity_kw)
+    rated_cop_cooling = rated_cop_cooling.clamp(min_cop, max_cop)
+    return rated_cop_cooling
+  end
+
+  # get rated heating COP from fitted regression - for advanced HP RTU (from Daikin Rebel data)
+  def get_rated_cop_heating_adv(rated_capacity_w)
+    intercept = 3.934659
+    coef_1 = -0.003367
+    min_cop = 3.56
+    max_cop = 3.95
+    rated_capacity_kw = rated_capacity_w / 1000 # W to kW
+    rated_cop_heating = intercept + (coef_1 * rated_capacity_kw)
+    rated_cop_heating = rated_cop_heating.clamp(min_cop, max_cop)
+    return rated_cop_heating
+  end
+
   #### End predefined functions
 
   # define what happens when the measure is run
@@ -740,7 +765,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         [15.5556, 19.4444, 'HRV']
       end
 
-    # load performance data if modeling standard performance
+    #################################### Define Performance Curves
+
+    # ---------------------------------------------------------
+    # load performance data for standard performance units
+    # ---------------------------------------------------------
     custom_data_json = nil
     c_cap_high_T = nil
     c_cap_low_T = nil
@@ -835,6 +864,360 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       h_eir_allstages_ff.setMinimumCurveOutput(0.77)
       h_eir_allstages_ff.setMaximumCurveOutput(1.54)
     end
+
+    # ---------------------------------------------------------
+    # define performance curves for cooling
+    # ---------------------------------------------------------
+
+    # Cooling Capacity Function of Temperature Curve - 1
+    cool_cap_ft1 = OpenStudio::Model::CurveBiquadratic.new(model)
+    cool_cap_ft1.setName("cool_cap_ft1")
+    cool_cap_ft1.setCoefficient1Constant(1.203)
+    cool_cap_ft1.setCoefficient2x(0.07866)
+    cool_cap_ft1.setCoefficient3xPOW2(-0.001797)
+    cool_cap_ft1.setCoefficient4y(-0.09527)
+    cool_cap_ft1.setCoefficient5yPOW2(0.00134)
+    cool_cap_ft1.setCoefficient6xTIMESY(0.0009421)
+    cool_cap_ft1.setMinimumValueofx(-100)
+    cool_cap_ft1.setMaximumValueofx(100)
+    cool_cap_ft1.setMinimumValueofy(-100)
+    cool_cap_ft1.setMaximumValueofy(100)
+
+    # Cooling Capacity Function of Temperature Curve - 2
+    cool_cap_ft2 = OpenStudio::Model::CurveBiquadratic.new(model)
+    cool_cap_ft2.setName("cool_cap_ft2")
+    cool_cap_ft2.setCoefficient1Constant(-1.07)
+    cool_cap_ft2.setCoefficient2x(0.2633)
+    cool_cap_ft2.setCoefficient3xPOW2(-0.00629)
+    cool_cap_ft2.setCoefficient4y(-0.03907)
+    cool_cap_ft2.setCoefficient5yPOW2(0.0005085)
+    cool_cap_ft2.setCoefficient6xTIMESY(0.0001078)
+    cool_cap_ft2.setMinimumValueofx(-100)
+    cool_cap_ft2.setMaximumValueofx(100)
+    cool_cap_ft2.setMinimumValueofy(-100)
+    cool_cap_ft2.setMaximumValueofy(100)
+
+    # Cooling Capacity Function of Temperature Curve - 3
+    if std_perf
+      cool_cap_ft3 = c_cap_low_T
+      runner.registerInfo("--- (standard performance) overriding for modeling standard performance: cool_cap_ft3.name = #{cool_cap_ft3.name}")
+    else
+      cool_cap_ft3 = OpenStudio::Model::CurveBiquadratic.new(model)
+      cool_cap_ft3.setName("cool_cap_ft3")
+      cool_cap_ft3.setCoefficient1Constant(-0.619499999999998)
+      cool_cap_ft3.setCoefficient2x(0.1621)
+      cool_cap_ft3.setCoefficient3xPOW2(-0.003028)
+      cool_cap_ft3.setCoefficient4y(-0.002812)
+      cool_cap_ft3.setCoefficient5yPOW2(-2.59e-05)
+      cool_cap_ft3.setCoefficient6xTIMESY(-0.0003764)
+      cool_cap_ft3.setMinimumValueofx(-100)
+      cool_cap_ft3.setMaximumValueofx(100)
+      cool_cap_ft3.setMinimumValueofy(-100)
+      cool_cap_ft3.setMaximumValueofy(100)
+    end
+
+    # Cooling Capacity Function of Temperature Curve - 4
+    if std_perf
+      cool_cap_ft4 = c_cap_high_T
+      runner.registerInfo("--- (standard performance) overriding for modeling standard performance: cool_cap_ft4.name = #{cool_cap_ft4.name}")
+    else
+      cool_cap_ft4 = OpenStudio::Model::CurveBiquadratic.new(model)
+      cool_cap_ft4.setName("cool_cap_ft4")
+      cool_cap_ft4.setCoefficient1Constant(1.037)
+      cool_cap_ft4.setCoefficient2x(-0.02036)
+      cool_cap_ft4.setCoefficient3xPOW2(0.002231)
+      cool_cap_ft4.setCoefficient4y(-0.000253799999999998)
+      cool_cap_ft4.setCoefficient5yPOW2(4.604e-05)
+      cool_cap_ft4.setCoefficient6xTIMESY(-0.000779)
+      cool_cap_ft4.setMinimumValueofx(-100)
+      cool_cap_ft4.setMaximumValueofx(100)
+      cool_cap_ft4.setMinimumValueofy(-100)
+      cool_cap_ft4.setMaximumValueofy(100)
+    end
+
+    # Cooling Capacity Function of Flow Fraction Curve
+    cool_cap_fff_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
+    cool_cap_fff_all_stages.setName("cool_cap_fff_all_stages")
+    cool_cap_fff_all_stages.setCoefficient1Constant(1)
+    cool_cap_fff_all_stages.setCoefficient2x(0)
+    cool_cap_fff_all_stages.setCoefficient3xPOW2(0)
+    cool_cap_fff_all_stages.setMinimumValueofx(0)
+    cool_cap_fff_all_stages.setMaximumValueofx(2)
+    cool_cap_fff_all_stages.setMinimumCurveOutput(0)
+    cool_cap_fff_all_stages.setMaximumCurveOutput(2)
+
+    # Energy Input Ratio Function of Temperature Curve - 1
+    cool_eir_ft1 = OpenStudio::Model::CurveBiquadratic.new(model)
+    cool_eir_ft1.setName("cool_eir_ft1")
+    cool_eir_ft1.setCoefficient1Constant(1.021)
+    cool_eir_ft1.setCoefficient2x(-0.1214)
+    cool_eir_ft1.setCoefficient3xPOW2(0.003936)
+    cool_eir_ft1.setCoefficient4y(0.05435)
+    cool_eir_ft1.setCoefficient5yPOW2(0.000283)
+    cool_eir_ft1.setCoefficient6xTIMESY(-0.002057)
+    cool_eir_ft1.setMinimumValueofx(-100)
+    cool_eir_ft1.setMaximumValueofx(100)
+    cool_eir_ft1.setMinimumValueofy(-100)
+    cool_eir_ft1.setMaximumValueofy(100)
+
+    # Energy Input Ratio Function of Temperature Curve - 2
+    cool_eir_ft2 = OpenStudio::Model::CurveBiquadratic.new(model)
+    cool_eir_ft2.setName("cool_eir_ft2")
+    cool_eir_ft2.setCoefficient1Constant(1.999)
+    cool_eir_ft2.setCoefficient2x(-0.1977)
+    cool_eir_ft2.setCoefficient3xPOW2(0.006001)
+    cool_eir_ft2.setCoefficient4y(0.03196)
+    cool_eir_ft2.setCoefficient5yPOW2(0.000638)
+    cool_eir_ft2.setCoefficient6xTIMESY(-0.001948)
+    cool_eir_ft2.setMinimumValueofx(-100)
+    cool_eir_ft2.setMaximumValueofx(100)
+    cool_eir_ft2.setMinimumValueofy(-100)
+    cool_eir_ft2.setMaximumValueofy(100)
+
+    # Energy Input Ratio Function of Temperature Curve - 3
+    if std_perf
+      cool_eir_ft3 = c_eir_low_T
+      runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: cool_eir_ft3.name = #{cool_eir_ft3.name}")
+    else
+      cool_eir_ft3 = OpenStudio::Model::CurveBiquadratic.new(model)
+      cool_eir_ft3.setName("cool_eir_ft3")
+      cool_eir_ft3.setCoefficient1Constant(1.745)
+      cool_eir_ft3.setCoefficient2x(-0.1546)
+      cool_eir_ft3.setCoefficient3xPOW2(0.004585)
+      cool_eir_ft3.setCoefficient4y(0.02595)
+      cool_eir_ft3.setCoefficient5yPOW2(0.0006609)
+      cool_eir_ft3.setCoefficient6xTIMESY(-0.001752)
+      cool_eir_ft3.setMinimumValueofx(-100)
+      cool_eir_ft3.setMaximumValueofx(100)
+      cool_eir_ft3.setMinimumValueofy(-100)
+      cool_eir_ft3.setMaximumValueofy(100)
+    end
+
+    # Energy Input Ratio Function of Temperature Curve - 4
+    if std_perf
+      cool_eir_ft4 = c_eir_high_T
+      runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: cool_eir_ft4.name = #{cool_eir_ft4.name}")
+    else
+      cool_eir_ft4 = OpenStudio::Model::CurveBiquadratic.new(model)
+      cool_eir_ft4.setName("cool_eir_ft4")
+      cool_eir_ft4.setCoefficient1Constant(0.2555)
+      cool_eir_ft4.setCoefficient2x(0.03711)
+      cool_eir_ft4.setCoefficient3xPOW2(-0.001427)
+      cool_eir_ft4.setCoefficient4y(0.008907)
+      cool_eir_ft4.setCoefficient5yPOW2(0.0005665)
+      cool_eir_ft4.setCoefficient6xTIMESY(-0.0006538)
+      cool_eir_ft4.setMinimumValueofx(-100)
+      cool_eir_ft4.setMaximumValueofx(100)
+      cool_eir_ft4.setMinimumValueofy(-100)
+      cool_eir_ft4.setMaximumValueofy(100)
+    end
+
+    # Energy Input Ratio Function of Flow Fraction Curve
+    cool_eir_fff_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
+    cool_eir_fff_all_stages.setName("cool_eir_fff")
+    cool_eir_fff_all_stages.setCoefficient1Constant(1)
+    cool_eir_fff_all_stages.setCoefficient2x(0)
+    cool_eir_fff_all_stages.setCoefficient3xPOW2(0)
+    cool_eir_fff_all_stages.setMinimumValueofx(0)
+    cool_eir_fff_all_stages.setMaximumValueofx(2)
+    cool_eir_fff_all_stages.setMinimumCurveOutput(0)
+    cool_eir_fff_all_stages.setMaximumCurveOutput(2)
+
+    # Part Load Fraction Correlation Curve
+    cool_plf_fplr_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
+    cool_plf_fplr_all_stages.setName("cool_plf_fplr")
+    cool_plf_fplr_all_stages.setCoefficient1Constant(0.75)
+    cool_plf_fplr_all_stages.setCoefficient2x(0.25)
+    cool_plf_fplr_all_stages.setCoefficient3xPOW2(0)
+    cool_plf_fplr_all_stages.setMinimumValueofx(0)
+    cool_plf_fplr_all_stages.setMaximumValueofx(1)
+    cool_plf_fplr_all_stages.setMinimumCurveOutput(0.7)
+    cool_plf_fplr_all_stages.setMaximumCurveOutput(1)
+
+    # ---------------------------------------------------------
+    # define performance curves for heating
+    # ---------------------------------------------------------
+
+    # Defrost Energy Input Ratio Function of Temperature Curve
+    defrost_eir = OpenStudio::Model::CurveBiquadratic.new(model)
+    defrost_eir.setName("defrost_eir")
+    defrost_eir.setCoefficient1Constant(0.1528)
+    defrost_eir.setCoefficient2x(0)
+    defrost_eir.setCoefficient3xPOW2(0)
+    defrost_eir.setCoefficient4y(0)
+    defrost_eir.setCoefficient5yPOW2(0)
+    defrost_eir.setCoefficient6xTIMESY(0)
+    defrost_eir.setMinimumValueofx(-100)
+    defrost_eir.setMaximumValueofx(100)
+    defrost_eir.setMinimumValueofy(-100)
+    defrost_eir.setMaximumValueofy(100)
+
+    # Heating Capacity Function of Temperature Curve - 1
+    heat_cap_ft1 = OpenStudio::Model::CurveBiquadratic.new(model)
+    heat_cap_ft1.setName("heat_cap_ft1")
+    heat_cap_ft1.setCoefficient1Constant(0.893321031576)
+    heat_cap_ft1.setCoefficient2x(-0.00973374264)
+    heat_cap_ft1.setCoefficient3xPOW2(6.3643968e-05)
+    heat_cap_ft1.setCoefficient4y(0.0391130520048)
+    heat_cap_ft1.setCoefficient5yPOW2(-2.50816824e-06)
+    heat_cap_ft1.setCoefficient6xTIMESY(-0.000272588652)
+    heat_cap_ft1.setMinimumValueofx(-100)
+    heat_cap_ft1.setMaximumValueofx(100)
+    heat_cap_ft1.setMinimumValueofy(-100)
+    heat_cap_ft1.setMaximumValueofy(100)
+
+    # Heating Capacity Function of Temperature Curve - 2
+    heat_cap_ft2 = OpenStudio::Model::CurveBiquadratic.new(model)
+    heat_cap_ft2.setName("heat_cap_ft2")
+    heat_cap_ft2.setCoefficient1Constant(0.9237345336,)
+    heat_cap_ft2.setCoefficient2x(-0.00597077568)
+    heat_cap_ft2.setCoefficient3xPOW2(0)
+    heat_cap_ft2.setCoefficient4y(0.02781672876)
+    heat_cap_ft2.setCoefficient5yPOW2(6.5916828e-05)
+    heat_cap_ft2.setCoefficient6xTIMESY(-0.000189254232)
+    heat_cap_ft2.setMinimumValueofx(-100)
+    heat_cap_ft2.setMaximumValueofx(100)
+    heat_cap_ft2.setMinimumValueofy(-100)
+    heat_cap_ft2.setMaximumValueofy(100)
+
+    # Heating Capacity Function of Temperature Curve - 3
+    heat_cap_ft3 = OpenStudio::Model::CurveBiquadratic.new(model)
+    heat_cap_ft3.setName("heat_cap_ft3")
+    heat_cap_ft3.setCoefficient1Constant(0.9620542196)
+    heat_cap_ft3.setCoefficient2x(-0.00949277772)
+    heat_cap_ft3.setCoefficient3xPOW2(0.000109212948)
+    heat_cap_ft3.setCoefficient4y(0.0247078314)
+    heat_cap_ft3.setCoefficient5yPOW2(3.4225092e-05)
+    heat_cap_ft3.setCoefficient6xTIMESY(-0.000125697744)
+    heat_cap_ft3.setMinimumValueofx(-100)
+    heat_cap_ft3.setMaximumValueofx(100)
+    heat_cap_ft3.setMinimumValueofy(-100)
+    heat_cap_ft3.setMaximumValueofy(100)
+
+    # Heating Capacity Function of Temperature Curve - 4
+    if std_perf
+      heat_cap_ft4 = h_cap_allstages_T
+      runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: heat_cap_ft4.name = #{heat_cap_ft4.name}")
+    else
+      heat_cap_ft4 = OpenStudio::Model::CurveBiquadratic.new(model)
+      heat_cap_ft4.setName("heat_cap_ft4")
+      heat_cap_ft4.setCoefficient1Constant(0.93607915412)
+      heat_cap_ft4.setCoefficient2x(-0.005481563544)
+      heat_cap_ft4.setCoefficient3xPOW2(-8.5897908e-06)
+      heat_cap_ft4.setCoefficient4y(0.02491053192)
+      heat_cap_ft4.setCoefficient5yPOW2(5.3087076e-05)
+      heat_cap_ft4.setCoefficient6xTIMESY(-0.000155750364)
+      heat_cap_ft4.setMinimumValueofx(-100)
+      heat_cap_ft4.setMaximumValueofx(100)
+      heat_cap_ft4.setMinimumValueofy(-100)
+      heat_cap_ft4.setMaximumValueofy(100)
+    end
+
+    # Heating Capacity Function of Flow Fraction Curve
+    if std_perf
+      heat_cap_fff_all_stages = h_cap_allstages_ff
+      runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: heat_cap_fff_all_stages.name = #{heat_cap_fff_all_stages.name}")
+    else
+      heat_cap_fff_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
+      heat_cap_fff_all_stages.setName("heat_cap_fff_all_stages")
+      heat_cap_fff_all_stages.setCoefficient1Constant(1)
+      heat_cap_fff_all_stages.setCoefficient2x(0)
+      heat_cap_fff_all_stages.setCoefficient3xPOW2(0)
+      heat_cap_fff_all_stages.setMinimumValueofx(0)
+      heat_cap_fff_all_stages.setMaximumValueofx(2)
+      heat_cap_fff_all_stages.setMinimumCurveOutput(0)
+      heat_cap_fff_all_stages.setMaximumCurveOutput(2)
+    end
+
+    # Energy Input Ratio Function of Temperature Curve - 1
+    heat_eir_ft1 = OpenStudio::Model::CurveBiquadratic.new(model)
+    heat_eir_ft1.setName("heat_eir_ft1")
+    heat_eir_ft1.setCoefficient1Constant(0.466648487)
+    heat_eir_ft1.setCoefficient2x(0.020263329)
+    heat_eir_ft1.setCoefficient3xPOW2(0.00126839196)
+    heat_eir_ft1.setCoefficient4y(-0.0170161326)
+    heat_eir_ft1.setCoefficient5yPOW2(0.00317499588)
+    heat_eir_ft1.setCoefficient6xTIMESY(-0.00349609608)
+    heat_eir_ft1.setMinimumValueofx(-100)
+    heat_eir_ft1.setMaximumValueofx(100)
+    heat_eir_ft1.setMinimumValueofy(-100)
+    heat_eir_ft1.setMaximumValueofy(100)
+
+    # Energy Input Ratio Function of Temperature Curve - 2
+    heat_eir_ft2 = OpenStudio::Model::CurveBiquadratic.new(model)
+    heat_eir_ft2.setName("heat_eir_ft2")
+    heat_eir_ft2.setCoefficient1Constant(0.450656859)
+    heat_eir_ft2.setCoefficient2x(0.0292902642)
+    heat_eir_ft2.setCoefficient3xPOW2(0.00039314484)
+    heat_eir_ft2.setCoefficient4y(-0.0097895178)
+    heat_eir_ft2.setCoefficient5yPOW2(0.00053936928)
+    heat_eir_ft2.setCoefficient6xTIMESY(-0.0011808828)
+    heat_eir_ft2.setMinimumValueofx(-100)
+    heat_eir_ft2.setMaximumValueofx(100)
+    heat_eir_ft2.setMinimumValueofy(-100)
+    heat_eir_ft2.setMaximumValueofy(100)
+
+    # Energy Input Ratio Function of Temperature Curve - 3
+    heat_eir_ft3 = OpenStudio::Model::CurveBiquadratic.new(model)
+    heat_eir_ft3.setName("heat_eir_ft3")
+    heat_eir_ft3.setCoefficient1Constant(0.5725180114)
+    heat_eir_ft3.setCoefficient2x(0.02289624912)
+    heat_eir_ft3.setCoefficient3xPOW2(0.000266018904)
+    heat_eir_ft3.setCoefficient4y(-0.0106675434)
+    heat_eir_ft3.setCoefficient5yPOW2(0.00049092156)
+    heat_eir_ft3.setCoefficient6xTIMESY(-0.00068136876)
+    heat_eir_ft3.setMinimumValueofx(-100)
+    heat_eir_ft3.setMaximumValueofx(100)
+    heat_eir_ft3.setMinimumValueofy(-100)
+    heat_eir_ft3.setMaximumValueofy(100)
+
+    # Energy Input Ratio Function of Temperature Curve - 4
+    if std_perf
+      heat_eir_ft4 = h_eir_allstages_T
+      runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: heat_eir_ft4.name = #{heat_eir_ft4.name}")
+    else
+      heat_eir_ft4 = OpenStudio::Model::CurveBiquadratic.new(model)
+      heat_eir_ft4.setName("heat_eir_ft4")
+      heat_eir_ft4.setCoefficient1Constant(0.668195855)
+      heat_eir_ft4.setCoefficient2x(0.0146719548)
+      heat_eir_ft4.setCoefficient3xPOW2(0.00044596332)
+      heat_eir_ft4.setCoefficient4y(-0.0114392286)
+      heat_eir_ft4.setCoefficient5yPOW2(0.00049710348)
+      heat_eir_ft4.setCoefficient6xTIMESY(-0.00069095592)
+      heat_eir_ft4.setMinimumValueofx(-100)
+      heat_eir_ft4.setMaximumValueofx(100)
+      heat_eir_ft4.setMinimumValueofy(-100)
+      heat_eir_ft4.setMaximumValueofy(100)
+    end
+
+    # Energy Input Ratio Function of Flow Fraction Curve
+    if std_perf
+      heat_eir_fff_all_stages = h_eir_allstages_ff
+      runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: heat_eir_fff_all_stages.name = #{heat_eir_fff_all_stages.name}")
+    else
+      heat_eir_fff_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
+      heat_eir_fff_all_stages.setName("heat_eir_fff")
+      heat_eir_fff_all_stages.setCoefficient1Constant(1)
+      heat_eir_fff_all_stages.setCoefficient2x(0)
+      heat_eir_fff_all_stages.setCoefficient3xPOW2(0)
+      heat_eir_fff_all_stages.setMinimumValueofx(0)
+      heat_eir_fff_all_stages.setMaximumValueofx(2)
+      heat_eir_fff_all_stages.setMinimumCurveOutput(0)
+      heat_eir_fff_all_stages.setMaximumCurveOutput(2)
+    end
+
+    # Part Load Fraction Correlation Curve
+    heat_plf_fplr_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
+    heat_plf_fplr_all_stages.setName("heat_plf_fplr")
+    heat_plf_fplr_all_stages.setCoefficient1Constant(0.76)
+    heat_plf_fplr_all_stages.setCoefficient2x(0.24)
+    heat_plf_fplr_all_stages.setCoefficient3xPOW2(0)
+    heat_plf_fplr_all_stages.setMinimumValueofx(0)
+    heat_plf_fplr_all_stages.setMaximumValueofx(1)
+    heat_plf_fplr_all_stages.setMinimumCurveOutput(0.7)
+    heat_plf_fplr_all_stages.setMaximumCurveOutput(1)
+
+    #################################### End of defining Performance Curves
 
     # make list of dummy heating coils; these are used to determine actual heating load, but need to be deleted later
     li_dummy_htg_coils = []
@@ -1163,17 +1546,17 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # design - temperature determined by design days in specified weather file
       oa_temp_c = wntr_design_day_temp_c
       dns_htg_load_at_dsn_temp = orig_htg_coil_gross_cap
-      hp_derate_factor_at_dsn = 0.93607915412 + -0.005481563544*ia_temp_c + -8.5897908e-06*ia_temp_c**2 + 0.02491053192*oa_temp_c +5.3087076e-05*oa_temp_c**2 + -0.000155750364*ia_temp_c*oa_temp_c
+      hp_derate_factor_at_dsn = heat_cap_ft4.evaluate(ia_temp_c, oa_temp_c)
       req_rated_hp_cap_at_47f_to_meet_load_at_dsn = dns_htg_load_at_dsn_temp / hp_derate_factor_at_dsn
       # 0F
       oa_temp_c = -17.7778
       dns_htg_load_at_0f = htg_load_slope*(-17.7778) + htg_load_intercept
-      hp_derate_factor_at_0f = 0.93607915412 + -0.005481563544*ia_temp_c + -8.5897908e-06*ia_temp_c**2 + 0.02491053192*oa_temp_c + 5.3087076e-05*oa_temp_c**2 + -0.000155750364*ia_temp_c*oa_temp_c
+      hp_derate_factor_at_0f = heat_cap_ft4.evaluate(ia_temp_c, oa_temp_c)
       req_rated_hp_cap_at_47f_to_meet_load_at_0f = dns_htg_load_at_0f / hp_derate_factor_at_0f
       # 17F
       oa_temp_c = -8.33333
       dns_htg_load_at_17f = htg_load_slope*(-8.33333) + htg_load_intercept
-      hp_derate_factor_at_17f = 0.93607915412 + -0.005481563544*ia_temp_c + -8.5897908e-06*ia_temp_c**2 + 0.02491053192*oa_temp_c + 5.3087076e-05*oa_temp_c**2 + -0.000155750364*ia_temp_c*oa_temp_c
+      hp_derate_factor_at_17f = heat_cap_ft4.evaluate(ia_temp_c, oa_temp_c)
       req_rated_hp_cap_at_47f_to_meet_load_at_17f = dns_htg_load_at_17f / hp_derate_factor_at_17f
       # 47F - note that this is rated conditions, so "derate" factor is either 1 from the curve, or will be normlized to 1 by E+ during simulation
       oa_temp_c = 8.33333
@@ -1183,7 +1566,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # user-specified design
       oa_temp_c = hp_sizing_temp_c
       dns_htg_load_at_user_dsn_temp = htg_load_slope*hp_sizing_temp_c + htg_load_intercept
-      hp_derate_factor_at_user_dsn = 0.93607915412 + -0.005481563544*ia_temp_c + -8.5897908e-06*ia_temp_c**2 + 0.02491053192*oa_temp_c + 5.3087076e-05*oa_temp_c**2 + -0.000155750364*ia_temp_c*oa_temp_c
+      hp_derate_factor_at_user_dsn = heat_cap_ft4.evaluate(ia_temp_c, oa_temp_c)
       req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn = dns_htg_load_at_user_dsn_temp / hp_derate_factor_at_user_dsn
 
       # determine heat pump system sizing based on user-specified sizing temperature and user-specified maximum upsizing limits
@@ -1368,167 +1751,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         hash_clg_speed_level_status[2] = false
       end
 
-      ################################### Cooling Performance Curves
-      # define performance curves
+      #################################### Start performance curve assignment
 
-      # Cooling Capacity Function of Temperature Curve - 1
-      cool_cap_ft1 = OpenStudio::Model::CurveBiquadratic.new(model)
-      cool_cap_ft1.setName("#{air_loop_hvac.name} cool_cap_ft1")
-      cool_cap_ft1.setCoefficient1Constant(1.203)
-      cool_cap_ft1.setCoefficient2x(0.07866)
-      cool_cap_ft1.setCoefficient3xPOW2(-0.001797)
-      cool_cap_ft1.setCoefficient4y(-0.09527)
-      cool_cap_ft1.setCoefficient5yPOW2(0.00134)
-      cool_cap_ft1.setCoefficient6xTIMESY(0.0009421)
-      cool_cap_ft1.setMinimumValueofx(-100)
-      cool_cap_ft1.setMaximumValueofx(100)
-      cool_cap_ft1.setMinimumValueofy(-100)
-      cool_cap_ft1.setMaximumValueofy(100)
-      # Cooling Capacity Function of Temperature Curve - 2
-      cool_cap_ft2 = OpenStudio::Model::CurveBiquadratic.new(model)
-      cool_cap_ft2.setName("#{air_loop_hvac.name} cool_cap_ft2")
-      cool_cap_ft2.setCoefficient1Constant(-1.07)
-      cool_cap_ft2.setCoefficient2x(0.2633)
-      cool_cap_ft2.setCoefficient3xPOW2(-0.00629)
-      cool_cap_ft2.setCoefficient4y(-0.03907)
-      cool_cap_ft2.setCoefficient5yPOW2(0.0005085)
-      cool_cap_ft2.setCoefficient6xTIMESY(0.0001078)
-      cool_cap_ft2.setMinimumValueofx(-100)
-      cool_cap_ft2.setMaximumValueofx(100)
-      cool_cap_ft2.setMinimumValueofy(-100)
-      cool_cap_ft2.setMaximumValueofy(100)
-      # Cooling Capacity Function of Temperature Curve - 3
-      if std_perf
-        cool_cap_ft3 = c_cap_low_T
-        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: cool_cap_ft3.name = #{cool_cap_ft3.name}")
-      else
-        cool_cap_ft3 = OpenStudio::Model::CurveBiquadratic.new(model)
-        cool_cap_ft3.setName("#{air_loop_hvac.name} cool_cap_ft3")
-        cool_cap_ft3.setCoefficient1Constant(-0.619499999999998)
-        cool_cap_ft3.setCoefficient2x(0.1621)
-        cool_cap_ft3.setCoefficient3xPOW2(-0.003028)
-        cool_cap_ft3.setCoefficient4y(-0.002812)
-        cool_cap_ft3.setCoefficient5yPOW2(-2.59e-05)
-        cool_cap_ft3.setCoefficient6xTIMESY(-0.0003764)
-        cool_cap_ft3.setMinimumValueofx(-100)
-        cool_cap_ft3.setMaximumValueofx(100)
-        cool_cap_ft3.setMinimumValueofy(-100)
-        cool_cap_ft3.setMaximumValueofy(100)
-      end
-      # Cooling Capacity Function of Temperature Curve - 4
-      if std_perf
-        cool_cap_ft4 = c_cap_high_T
-        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: cool_cap_ft4.name = #{cool_cap_ft4.name}")
-      else
-        cool_cap_ft4 = OpenStudio::Model::CurveBiquadratic.new(model)
-        cool_cap_ft4.setName("#{air_loop_hvac.name} cool_cap_ft4")
-        cool_cap_ft4.setCoefficient1Constant(1.037)
-        cool_cap_ft4.setCoefficient2x(-0.02036)
-        cool_cap_ft4.setCoefficient3xPOW2(0.002231)
-        cool_cap_ft4.setCoefficient4y(-0.000253799999999998)
-        cool_cap_ft4.setCoefficient5yPOW2(4.604e-05)
-        cool_cap_ft4.setCoefficient6xTIMESY(-0.000779)
-        cool_cap_ft4.setMinimumValueofx(-100)
-        cool_cap_ft4.setMaximumValueofx(100)
-        cool_cap_ft4.setMinimumValueofy(-100)
-        cool_cap_ft4.setMaximumValueofy(100)
-      end
-
-      # Cooling Capacity Function of Flow Fraction Curve
-      cool_cap_fff_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
-      cool_cap_fff_all_stages.setName("#{air_loop_hvac.name} cool_cap_fff_all_stages")
-      cool_cap_fff_all_stages.setCoefficient1Constant(1)
-      cool_cap_fff_all_stages.setCoefficient2x(0)
-      cool_cap_fff_all_stages.setCoefficient3xPOW2(0)
-      cool_cap_fff_all_stages.setMinimumValueofx(0)
-      cool_cap_fff_all_stages.setMaximumValueofx(2)
-      cool_cap_fff_all_stages.setMinimumCurveOutput(0)
-      cool_cap_fff_all_stages.setMaximumCurveOutput(2)
-
-      # Energy Input Ratio Function of Temperature Curve - 1
-      cool_eir_ft1 = OpenStudio::Model::CurveBiquadratic.new(model)
-      cool_eir_ft1.setName("#{air_loop_hvac.name} cool_eir_ft1")
-      cool_eir_ft1.setCoefficient1Constant(1.021)
-      cool_eir_ft1.setCoefficient2x(-0.1214)
-      cool_eir_ft1.setCoefficient3xPOW2(0.003936)
-      cool_eir_ft1.setCoefficient4y(0.05435)
-      cool_eir_ft1.setCoefficient5yPOW2(0.000283)
-      cool_eir_ft1.setCoefficient6xTIMESY(-0.002057)
-      cool_eir_ft1.setMinimumValueofx(-100)
-      cool_eir_ft1.setMaximumValueofx(100)
-      cool_eir_ft1.setMinimumValueofy(-100)
-      cool_eir_ft1.setMaximumValueofy(100)
-      # Energy Input Ratio Function of Temperature Curve - 2
-      cool_eir_ft2 = OpenStudio::Model::CurveBiquadratic.new(model)
-      cool_eir_ft2.setName("#{air_loop_hvac.name} cool_eir_ft2")
-      cool_eir_ft2.setCoefficient1Constant(1.999)
-      cool_eir_ft2.setCoefficient2x(-0.1977)
-      cool_eir_ft2.setCoefficient3xPOW2(0.006001)
-      cool_eir_ft2.setCoefficient4y(0.03196)
-      cool_eir_ft2.setCoefficient5yPOW2(0.000638)
-      cool_eir_ft2.setCoefficient6xTIMESY(-0.001948)
-      cool_eir_ft2.setMinimumValueofx(-100)
-      cool_eir_ft2.setMaximumValueofx(100)
-      cool_eir_ft2.setMinimumValueofy(-100)
-      cool_eir_ft2.setMaximumValueofy(100)
-      # Energy Input Ratio Function of Temperature Curve - 3
-      if std_perf
-        cool_eir_ft3 = c_eir_low_T
-        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: cool_eir_ft3.name = #{cool_eir_ft3.name}")
-      else
-        cool_eir_ft3 = OpenStudio::Model::CurveBiquadratic.new(model)
-        cool_eir_ft3.setName("#{air_loop_hvac.name} cool_eir_ft3")
-        cool_eir_ft3.setCoefficient1Constant(1.745)
-        cool_eir_ft3.setCoefficient2x(-0.1546)
-        cool_eir_ft3.setCoefficient3xPOW2(0.004585)
-        cool_eir_ft3.setCoefficient4y(0.02595)
-        cool_eir_ft3.setCoefficient5yPOW2(0.0006609)
-        cool_eir_ft3.setCoefficient6xTIMESY(-0.001752)
-        cool_eir_ft3.setMinimumValueofx(-100)
-        cool_eir_ft3.setMaximumValueofx(100)
-        cool_eir_ft3.setMinimumValueofy(-100)
-        cool_eir_ft3.setMaximumValueofy(100)
-      end
-      # Energy Input Ratio Function of Temperature Curve - 4
-      if std_perf
-        cool_eir_ft4 = c_eir_high_T
-        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: cool_eir_ft4.name = #{cool_eir_ft4.name}")
-      else
-        cool_eir_ft4 = OpenStudio::Model::CurveBiquadratic.new(model)
-        cool_eir_ft4.setName("#{air_loop_hvac.name} cool_eir_ft4")
-        cool_eir_ft4.setCoefficient1Constant(0.2555)
-        cool_eir_ft4.setCoefficient2x(0.03711)
-        cool_eir_ft4.setCoefficient3xPOW2(-0.001427)
-        cool_eir_ft4.setCoefficient4y(0.008907)
-        cool_eir_ft4.setCoefficient5yPOW2(0.0005665)
-        cool_eir_ft4.setCoefficient6xTIMESY(-0.0006538)
-        cool_eir_ft4.setMinimumValueofx(-100)
-        cool_eir_ft4.setMaximumValueofx(100)
-        cool_eir_ft4.setMinimumValueofy(-100)
-        cool_eir_ft4.setMaximumValueofy(100)
-      end
-
-      # Energy Input Ratio Function of Flow Fraction Curve
-      cool_eir_fff_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
-      cool_eir_fff_all_stages.setName("#{air_loop_hvac.name} cool_eir_fff")
-      cool_eir_fff_all_stages.setCoefficient1Constant(1)
-      cool_eir_fff_all_stages.setCoefficient2x(0)
-      cool_eir_fff_all_stages.setCoefficient3xPOW2(0)
-      cool_eir_fff_all_stages.setMinimumValueofx(0)
-      cool_eir_fff_all_stages.setMaximumValueofx(2)
-      cool_eir_fff_all_stages.setMinimumCurveOutput(0)
-      cool_eir_fff_all_stages.setMaximumCurveOutput(2)
-
-      # Part Load Fraction Correlation Curve
-      cool_plf_fplr_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
-      cool_plf_fplr_all_stages.setName("#{air_loop_hvac.name} cool_plf_fplr")
-      cool_plf_fplr_all_stages.setCoefficient1Constant(0.75)
-      cool_plf_fplr_all_stages.setCoefficient2x(0.25)
-      cool_plf_fplr_all_stages.setCoefficient3xPOW2(0)
-      cool_plf_fplr_all_stages.setMinimumValueofx(0)
-      cool_plf_fplr_all_stages.setMaximumValueofx(1)
-      cool_plf_fplr_all_stages.setMinimumCurveOutput(0.7)
-      cool_plf_fplr_all_stages.setMaximumCurveOutput(1)
+      # ---------------------------------------------------------
+      # cooling curve assignments
+      # ---------------------------------------------------------
 
       # create new multistage coil
       new_dx_cooling_coil = OpenStudio::Model::CoilCoolingDXMultiSpeed.new(model)
@@ -1549,7 +1776,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed1 = OpenStudio::Model::CoilCoolingDXMultiSpeedStageData.new(model)
       new_dx_cooling_coil_speed1.setGrossRatedTotalCoolingCapacity(hash_clg_cap_stgs[1])
       new_dx_cooling_coil_speed1.setGrossRatedSensibleHeatRatio(0.872821200315651)
-      new_dx_cooling_coil_speed1.setGrossRatedCoolingCOP(4.40)
+      new_dx_cooling_coil_speed1.setGrossRatedCoolingCOP(get_rated_cop_cooling_adv(hash_clg_cap_stgs[4]))
       new_dx_cooling_coil_speed1.setRatedAirFlowRate(hash_clg_airflow_stgs[1])
       new_dx_cooling_coil_speed1.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
       new_dx_cooling_coil_speed1.setTotalCoolingCapacityFunctionofTemperatureCurve(cool_cap_ft1)
@@ -1573,7 +1800,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed2 = OpenStudio::Model::CoilCoolingDXMultiSpeedStageData.new(model)
       new_dx_cooling_coil_speed2.setGrossRatedTotalCoolingCapacity(hash_clg_cap_stgs[2])
       new_dx_cooling_coil_speed2.setGrossRatedSensibleHeatRatio(0.80463149283227)
-      new_dx_cooling_coil_speed2.setGrossRatedCoolingCOP(4.56)
+      new_dx_cooling_coil_speed2.setGrossRatedCoolingCOP(get_rated_cop_cooling_adv(hash_clg_cap_stgs[4]))
       new_dx_cooling_coil_speed2.setRatedAirFlowRate(hash_clg_airflow_stgs[2])
       new_dx_cooling_coil_speed2.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
       new_dx_cooling_coil_speed2.setTotalCoolingCapacityFunctionofTemperatureCurve(cool_cap_ft2)
@@ -1602,7 +1829,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         new_dx_cooling_coil_speed3.setGrossRatedCoolingCOP(rated_cop_fit)
         runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), stage 3 rated_cop_cooling = #{rated_cop_fit}")
       else
-        new_dx_cooling_coil_speed3.setGrossRatedCoolingCOP(4.44)
+        new_dx_cooling_coil_speed3.setGrossRatedCoolingCOP(get_rated_cop_cooling_adv(hash_clg_cap_stgs[4]))
       end
       new_dx_cooling_coil_speed3.setRatedAirFlowRate(hash_clg_airflow_stgs[3])
       new_dx_cooling_coil_speed3.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
@@ -1640,7 +1867,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         new_dx_cooling_coil_speed4.setGrossRatedCoolingCOP(rated_cop_fit)
         runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), stage 4 rated_cop_cooling = #{rated_cop_fit}")
       else
-        new_dx_cooling_coil_speed4.setGrossRatedCoolingCOP(4.11)
+        new_dx_cooling_coil_speed4.setGrossRatedCoolingCOP(get_rated_cop_cooling_adv(hash_clg_cap_stgs[4]))
       end
       new_dx_cooling_coil_speed4.setRatedAirFlowRate(hash_clg_airflow_stgs[4])
       new_dx_cooling_coil_speed4.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
@@ -1664,183 +1891,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed4.autosizedEvaporativeCondenserAirFlowRate
       new_dx_cooling_coil_speed4.autosizedRatedEvaporativeCondenserPumpPowerConsumption
       new_dx_cooling_coil.addStage(new_dx_cooling_coil_speed4)
-      ####################################### End Cooling Performance Curves
 
-      ################################### Heating Performance Curves
-      # define performance curves
-
-      # Defrost Energy Input Ratio Function of Temperature Curve
-      defrost_eir = OpenStudio::Model::CurveBiquadratic.new(model)
-      defrost_eir.setName("#{air_loop_hvac.name} defrost_eir")
-      defrost_eir.setCoefficient1Constant(0.1528)
-      defrost_eir.setCoefficient2x(0)
-      defrost_eir.setCoefficient3xPOW2(0)
-      defrost_eir.setCoefficient4y(0)
-      defrost_eir.setCoefficient5yPOW2(0)
-      defrost_eir.setCoefficient6xTIMESY(0)
-      defrost_eir.setMinimumValueofx(-100)
-      defrost_eir.setMaximumValueofx(100)
-      defrost_eir.setMinimumValueofy(-100)
-      defrost_eir.setMaximumValueofy(100)
-
-      # Heating Capacity Function of Temperature Curve - 1
-      heat_cap_ft1 = OpenStudio::Model::CurveBiquadratic.new(model)
-      heat_cap_ft1.setName("#{air_loop_hvac.name} heat_cap_ft1")
-      heat_cap_ft1.setCoefficient1Constant(0.893321031576)
-      heat_cap_ft1.setCoefficient2x(-0.00973374264)
-      heat_cap_ft1.setCoefficient3xPOW2(6.3643968e-05)
-      heat_cap_ft1.setCoefficient4y(0.0391130520048)
-      heat_cap_ft1.setCoefficient5yPOW2(-2.50816824e-06)
-      heat_cap_ft1.setCoefficient6xTIMESY(-0.000272588652)
-      heat_cap_ft1.setMinimumValueofx(-100)
-      heat_cap_ft1.setMaximumValueofx(100)
-      heat_cap_ft1.setMinimumValueofy(-100)
-      heat_cap_ft1.setMaximumValueofy(100)
-      # Heating Capacity Function of Temperature Curve - 2
-      heat_cap_ft2 = OpenStudio::Model::CurveBiquadratic.new(model)
-      heat_cap_ft2.setName("#{air_loop_hvac.name} heat_cap_ft2")
-      heat_cap_ft2.setCoefficient1Constant(0.9237345336,)
-      heat_cap_ft2.setCoefficient2x(-0.00597077568)
-      heat_cap_ft2.setCoefficient3xPOW2(0)
-      heat_cap_ft2.setCoefficient4y(0.02781672876)
-      heat_cap_ft2.setCoefficient5yPOW2(6.5916828e-05)
-      heat_cap_ft2.setCoefficient6xTIMESY(-0.000189254232)
-      heat_cap_ft2.setMinimumValueofx(-100)
-      heat_cap_ft2.setMaximumValueofx(100)
-      heat_cap_ft2.setMinimumValueofy(-100)
-      heat_cap_ft2.setMaximumValueofy(100)
-      # Heating Capacity Function of Temperature Curve - 3
-      heat_cap_ft3 = OpenStudio::Model::CurveBiquadratic.new(model)
-      heat_cap_ft3.setName("#{air_loop_hvac.name} heat_cap_ft3")
-      heat_cap_ft3.setCoefficient1Constant(0.9620542196)
-      heat_cap_ft3.setCoefficient2x(-0.00949277772)
-      heat_cap_ft3.setCoefficient3xPOW2(0.000109212948)
-      heat_cap_ft3.setCoefficient4y(0.0247078314)
-      heat_cap_ft3.setCoefficient5yPOW2(3.4225092e-05)
-      heat_cap_ft3.setCoefficient6xTIMESY(-0.000125697744)
-      heat_cap_ft3.setMinimumValueofx(-100)
-      heat_cap_ft3.setMaximumValueofx(100)
-      heat_cap_ft3.setMinimumValueofy(-100)
-      heat_cap_ft3.setMaximumValueofy(100)
-      # Heating Capacity Function of Temperature Curve - 4
-      if std_perf
-        heat_cap_ft4 = h_cap_allstages_T
-        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: heat_cap_ft4.name = #{heat_cap_ft4.name}")
-      else
-        heat_cap_ft4 = OpenStudio::Model::CurveBiquadratic.new(model)
-        heat_cap_ft4.setName("#{air_loop_hvac.name} heat_cap_ft4")
-        heat_cap_ft4.setCoefficient1Constant(0.93607915412)
-        heat_cap_ft4.setCoefficient2x(-0.005481563544)
-        heat_cap_ft4.setCoefficient3xPOW2(-8.5897908e-06)
-        heat_cap_ft4.setCoefficient4y(0.02491053192)
-        heat_cap_ft4.setCoefficient5yPOW2(5.3087076e-05)
-        heat_cap_ft4.setCoefficient6xTIMESY(-0.000155750364)
-        heat_cap_ft4.setMinimumValueofx(-100)
-        heat_cap_ft4.setMaximumValueofx(100)
-        heat_cap_ft4.setMinimumValueofy(-100)
-        heat_cap_ft4.setMaximumValueofy(100)
-      end
-
-      # Heating Capacity Function of Flow Fraction Curve
-      if std_perf
-        heat_cap_fff_all_stages = h_cap_allstages_ff
-        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: heat_cap_fff_all_stages.name = #{heat_cap_fff_all_stages.name}")
-      else
-        heat_cap_fff_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
-        heat_cap_fff_all_stages.setName("#{air_loop_hvac.name} heat_cap_fff_all_stages")
-        heat_cap_fff_all_stages.setCoefficient1Constant(1)
-        heat_cap_fff_all_stages.setCoefficient2x(0)
-        heat_cap_fff_all_stages.setCoefficient3xPOW2(0)
-        heat_cap_fff_all_stages.setMinimumValueofx(0)
-        heat_cap_fff_all_stages.setMaximumValueofx(2)
-        heat_cap_fff_all_stages.setMinimumCurveOutput(0)
-        heat_cap_fff_all_stages.setMaximumCurveOutput(2)
-      end
-
-      # Energy Input Ratio Function of Temperature Curve - 1
-      heat_eir_ft1 = OpenStudio::Model::CurveBiquadratic.new(model)
-      heat_eir_ft1.setName("#{air_loop_hvac.name} heat_eir_ft1")
-      heat_eir_ft1.setCoefficient1Constant(0.466648487)
-      heat_eir_ft1.setCoefficient2x(0.020263329)
-      heat_eir_ft1.setCoefficient3xPOW2(0.00126839196)
-      heat_eir_ft1.setCoefficient4y(-0.0170161326)
-      heat_eir_ft1.setCoefficient5yPOW2(0.00317499588)
-      heat_eir_ft1.setCoefficient6xTIMESY(-0.00349609608)
-      heat_eir_ft1.setMinimumValueofx(-100)
-      heat_eir_ft1.setMaximumValueofx(100)
-      heat_eir_ft1.setMinimumValueofy(-100)
-      heat_eir_ft1.setMaximumValueofy(100)
-      # Energy Input Ratio Function of Temperature Curve - 2
-      heat_eir_ft2 = OpenStudio::Model::CurveBiquadratic.new(model)
-      heat_eir_ft2.setName("#{air_loop_hvac.name} heat_eir_ft2")
-      heat_eir_ft2.setCoefficient1Constant(0.450656859)
-      heat_eir_ft2.setCoefficient2x(0.0292902642)
-      heat_eir_ft2.setCoefficient3xPOW2(0.00039314484)
-      heat_eir_ft2.setCoefficient4y(-0.0097895178)
-      heat_eir_ft2.setCoefficient5yPOW2(0.00053936928)
-      heat_eir_ft2.setCoefficient6xTIMESY(-0.0011808828)
-      heat_eir_ft2.setMinimumValueofx(-100)
-      heat_eir_ft2.setMaximumValueofx(100)
-      heat_eir_ft2.setMinimumValueofy(-100)
-      heat_eir_ft2.setMaximumValueofy(100)
-      # Energy Input Ratio Function of Temperature Curve - 3
-      heat_eir_ft3 = OpenStudio::Model::CurveBiquadratic.new(model)
-      heat_eir_ft3.setName("#{air_loop_hvac.name} heat_eir_ft3")
-      heat_eir_ft3.setCoefficient1Constant(0.5725180114)
-      heat_eir_ft3.setCoefficient2x(0.02289624912)
-      heat_eir_ft3.setCoefficient3xPOW2(0.000266018904)
-      heat_eir_ft3.setCoefficient4y(-0.0106675434)
-      heat_eir_ft3.setCoefficient5yPOW2(0.00049092156)
-      heat_eir_ft3.setCoefficient6xTIMESY(-0.00068136876)
-      heat_eir_ft3.setMinimumValueofx(-100)
-      heat_eir_ft3.setMaximumValueofx(100)
-      heat_eir_ft3.setMinimumValueofy(-100)
-      heat_eir_ft3.setMaximumValueofy(100)
-      # Energy Input Ratio Function of Temperature Curve - 4
-      if std_perf
-        heat_eir_ft4 = h_eir_allstages_T
-        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: heat_eir_ft4.name = #{heat_eir_ft4.name}")
-      else
-        heat_eir_ft4 = OpenStudio::Model::CurveBiquadratic.new(model)
-        heat_eir_ft4.setName("#{air_loop_hvac.name} heat_eir_ft4")
-        heat_eir_ft4.setCoefficient1Constant(0.668195855)
-        heat_eir_ft4.setCoefficient2x(0.0146719548)
-        heat_eir_ft4.setCoefficient3xPOW2(0.00044596332)
-        heat_eir_ft4.setCoefficient4y(-0.0114392286)
-        heat_eir_ft4.setCoefficient5yPOW2(0.00049710348)
-        heat_eir_ft4.setCoefficient6xTIMESY(-0.00069095592)
-        heat_eir_ft4.setMinimumValueofx(-100)
-        heat_eir_ft4.setMaximumValueofx(100)
-        heat_eir_ft4.setMinimumValueofy(-100)
-        heat_eir_ft4.setMaximumValueofy(100)
-      end
-
-      # Energy Input Ratio Function of Flow Fraction Curve
-      if std_perf
-        heat_eir_fff_all_stages = h_eir_allstages_ff
-        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: heat_eir_fff_all_stages.name = #{heat_eir_fff_all_stages.name}")
-      else
-        heat_eir_fff_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
-        heat_eir_fff_all_stages.setName("#{air_loop_hvac.name} heat_eir_fff")
-        heat_eir_fff_all_stages.setCoefficient1Constant(1)
-        heat_eir_fff_all_stages.setCoefficient2x(0)
-        heat_eir_fff_all_stages.setCoefficient3xPOW2(0)
-        heat_eir_fff_all_stages.setMinimumValueofx(0)
-        heat_eir_fff_all_stages.setMaximumValueofx(2)
-        heat_eir_fff_all_stages.setMinimumCurveOutput(0)
-        heat_eir_fff_all_stages.setMaximumCurveOutput(2)
-      end
-
-      # Part Load Fraction Correlation Curve
-      heat_plf_fplr_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
-      heat_plf_fplr_all_stages.setName("#{air_loop_hvac.name} heat_plf_fplr")
-      heat_plf_fplr_all_stages.setCoefficient1Constant(0.76)
-      heat_plf_fplr_all_stages.setCoefficient2x(0.24)
-      heat_plf_fplr_all_stages.setCoefficient3xPOW2(0)
-      heat_plf_fplr_all_stages.setMinimumValueofx(0)
-      heat_plf_fplr_all_stages.setMaximumValueofx(1)
-      heat_plf_fplr_all_stages.setMinimumCurveOutput(0.7)
-      heat_plf_fplr_all_stages.setMaximumCurveOutput(1)
+      # ---------------------------------------------------------
+      # heating curve assignments
+      # ---------------------------------------------------------
 
       # add new multispeed heating coil
       if std_perf
@@ -1882,7 +1936,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # add stage data: create stage 1
         new_dx_heating_coil_speed1 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
         new_dx_heating_coil_speed1.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[1])
-        new_dx_heating_coil_speed1.setGrossRatedHeatingCOP(5.51)
+        new_dx_heating_coil_speed1.setGrossRatedHeatingCOP(get_rated_cop_heating_adv(hash_htg_cap_stgs[4]))
         new_dx_heating_coil_speed1.setRatedAirFlowRate(hash_htg_airflow_stgs[1])
         new_dx_heating_coil_speed1.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed1.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft1)
@@ -1895,7 +1949,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # add stage data: create stage 2
         new_dx_heating_coil_speed2 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
         new_dx_heating_coil_speed2.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[2])
-        new_dx_heating_coil_speed2.setGrossRatedHeatingCOP(4.71)
+        new_dx_heating_coil_speed2.setGrossRatedHeatingCOP(get_rated_cop_heating_adv(hash_htg_cap_stgs[4]))
         new_dx_heating_coil_speed2.setRatedAirFlowRate(hash_htg_airflow_stgs[2])
         new_dx_heating_coil_speed2.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed2.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft2)
@@ -1908,7 +1962,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # add stage data: create stage 3
         new_dx_heating_coil_speed3 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
         new_dx_heating_coil_speed3.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[3])
-        new_dx_heating_coil_speed3.setGrossRatedHeatingCOP(3.98)
+        new_dx_heating_coil_speed3.setGrossRatedHeatingCOP(get_rated_cop_heating_adv(hash_htg_cap_stgs[4]))
         new_dx_heating_coil_speed3.setRatedAirFlowRate(hash_htg_airflow_stgs[3])
         new_dx_heating_coil_speed3.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed3.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft3)
@@ -1921,7 +1975,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # add stage data: create stage 4
         new_dx_heating_coil_speed4 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
         new_dx_heating_coil_speed4.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[4])
-        new_dx_heating_coil_speed4.setGrossRatedHeatingCOP(3.80)
+        new_dx_heating_coil_speed4.setGrossRatedHeatingCOP(get_rated_cop_heating_adv(hash_htg_cap_stgs[4]))
         new_dx_heating_coil_speed4.setRatedAirFlowRate(hash_htg_airflow_stgs[4])
         new_dx_heating_coil_speed4.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed4.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft4)
@@ -1932,7 +1986,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         new_dx_heating_coil.addStage(new_dx_heating_coil_speed4)
       end
 
-      ####################################### End Heating Performance Curves
+      #################################### End performance curve assignment
 
       # add new supplemental heating coil
       new_backup_heating_coil = nil
