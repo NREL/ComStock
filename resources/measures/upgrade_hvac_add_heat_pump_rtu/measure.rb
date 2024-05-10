@@ -343,37 +343,27 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   end
 
   # get rated cooling COP from fitted regression
-  def get_rated_cop_cooling(air_loop_hvac, rated_m_3_per_sec, rated_capacity_w)
-    intercept = 4.49070660088438
-    coef_1 = 0.0000000000
-    coef_2 = 0.0003756651
-    coef_3 = -0.0586332053
-    coef_4 = -0.0000000391
-    coef_5 = 0.0000047027
-    coef_6 = 0.0001053728
-    min_cop = 3.43
-    max_cop = 4.92
-    rated_CFM = OpenStudio.convert(rated_m_3_per_sec, 'm^3/s', 'cfm').get
+  # based on actual product performances (Carrier/Lennox) which meet 2023 federal minimum efficiency requirements
+  def get_rated_cop_cooling(rated_capacity_w)
+    intercept = 3.826625
+    coef_1 = -0.010195
+    min_cop = 2.98
+    max_cop = 3.92
     rated_capacity_kw = rated_capacity_w / 1000 # W to kW
-    rated_cop_cooling = intercept + 1 * coef_1 + coef_2 * rated_CFM + coef_3 * rated_capacity_kw + coef_4 * (rated_CFM**2) + coef_5 * (rated_CFM * rated_capacity_kw) + coef_6 * (rated_capacity_kw**2)
+    rated_cop_cooling = intercept + (coef_1 * rated_capacity_kw)
     rated_cop_cooling = rated_cop_cooling.clamp(min_cop, max_cop)
     return rated_cop_cooling
   end
 
   # get rated heating COP from fitted regression
+  # based on actual product performances (Carrier/Lennox) which meet 2023 federal minimum efficiency requirements
   def get_rated_cop_heating(air_loop_hvac, rated_m_3_per_sec, rated_capacity_w)
-    intercept = 4.3102941156455
-    coef_1 = 0.0000000000000
-    coef_2 = 0.0005719993613
-    coef_3 = -0.0896221465453
-    coef_4 = -0.0000000330634
-    coef_5 = 0.0000029291133
-    coef_6 = 0.0004096485708
-    min_cop = 2.95
-    max_cop = 5.42
-    rated_CFM = OpenStudio.convert(rated_m_3_per_sec, 'm^3/s', 'cfm').get
+    intercept = 4.017716
+    coef_1 = -0.008631
+    min_cop = 3.52
+    max_cop = 4.05
     rated_capacity_kw = rated_capacity_w / 1000 # W to kW
-    rated_cop_heating = intercept + 1 * coef_1 + coef_2 * rated_CFM + coef_3 * rated_capacity_kw + coef_4 * (rated_CFM**2) + coef_5 * (rated_CFM * rated_capacity_kw) + coef_6 * (rated_capacity_kw**2)
+    rated_cop_heating = intercept + (coef_1 * rated_capacity_kw)
     rated_cop_heating = rated_cop_heating.clamp(min_cop, max_cop)
     return rated_cop_heating
   end
@@ -807,46 +797,46 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # cooling performance function of fraction of flow: c_cap_high_ff
       c_cap_high_ff = OpenStudio::Model::CurveQuadratic.new(model)
       c_cap_high_ff.setName("c_cap_high_ff")
-      c_cap_high_ff.setCoefficient1Constant(0.7960)
-      c_cap_high_ff.setCoefficient2x(0.2081)
+      c_cap_high_ff.setCoefficient1Constant(0.196134)
+      c_cap_high_ff.setCoefficient2x(0.799748)
       c_cap_high_ff.setCoefficient3xPOW2(0)
-      c_cap_high_ff.setMinimumValueofx(0.6)
-      c_cap_high_ff.setMaximumValueofx(1)
-      c_cap_high_ff.setMinimumCurveOutput(0)
-      c_cap_high_ff.setMaximumCurveOutput(1)
+      c_cap_high_ff.setMinimumValueofx(0.68)
+      c_cap_high_ff.setMaximumValueofx(1.41)
+      c_cap_high_ff.setMinimumCurveOutput(0.91)
+      c_cap_high_ff.setMaximumCurveOutput(1.08)
 
       # cooling performance function of fraction of flow: c_cap_low_ff
       c_cap_low_ff = OpenStudio::Model::CurveQuadratic.new(model)
       c_cap_low_ff.setName("c_cap_low_ff")
-      c_cap_low_ff.setCoefficient1Constant(0.7732)
-      c_cap_low_ff.setCoefficient2x(0.2311)
+      c_cap_low_ff.setCoefficient1Constant(0.784604)
+      c_cap_low_ff.setCoefficient2x(0.212229)
       c_cap_low_ff.setCoefficient3xPOW2(0)
-      c_cap_low_ff.setMinimumValueofx(0.55)
-      c_cap_low_ff.setMaximumValueofx(1)
-      c_cap_low_ff.setMinimumCurveOutput(0)
-      c_cap_low_ff.setMaximumCurveOutput(1)
+      c_cap_low_ff.setMinimumValueofx(0.56)
+      c_cap_low_ff.setMaximumValueofx(1.32)
+      c_cap_low_ff.setMinimumCurveOutput(0.89)
+      c_cap_low_ff.setMaximumCurveOutput(1.05)
 
       # cooling performance function of fraction of flow: c_eir_high_ff
       c_eir_high_ff = OpenStudio::Model::CurveQuadratic.new(model)
       c_eir_high_ff.setName("c_eir_high_ff")
-      c_eir_high_ff.setCoefficient1Constant(1.209351)
-      c_eir_high_ff.setCoefficient2x(-0.217052)
+      c_eir_high_ff.setCoefficient1Constant(-0.163166)
+      c_eir_high_ff.setCoefficient2x(1.170145)
       c_eir_high_ff.setCoefficient3xPOW2(0)
-      c_eir_high_ff.setMinimumValueofx(0.5)
-      c_eir_high_ff.setMaximumValueofx(1)
-      c_eir_high_ff.setMinimumCurveOutput(0)
-      c_eir_high_ff.setMaximumCurveOutput(1.2)
+      c_eir_high_ff.setMinimumValueofx(0.57)
+      c_eir_high_ff.setMaximumValueofx(1.52)
+      c_eir_high_ff.setMinimumCurveOutput(0.88)
+      c_eir_high_ff.setMaximumCurveOutput(1.13)
 
       # cooling performance function of fraction of flow: c_eir_low_ff
       c_eir_low_ff = OpenStudio::Model::CurveQuadratic.new(model)
       c_eir_low_ff.setName("c_eir_low_ff")
-      c_eir_low_ff.setCoefficient1Constant(1.140446)
-      c_eir_low_ff.setCoefficient2x(-0.140201)
+      c_eir_low_ff.setCoefficient1Constant(1.094569)
+      c_eir_low_ff.setCoefficient2x(-0.093388)
       c_eir_low_ff.setCoefficient3xPOW2(0)
-      c_eir_low_ff.setMinimumValueofx(0.7)
-      c_eir_low_ff.setMaximumValueofx(1)
-      c_eir_low_ff.setMinimumCurveOutput(0)
-      c_eir_low_ff.setMaximumCurveOutput(1.2)
+      c_eir_low_ff.setMinimumValueofx(0.91)
+      c_eir_low_ff.setMaximumValueofx(1.41)
+      c_eir_low_ff.setMinimumCurveOutput(0.96)
+      c_eir_low_ff.setMaximumCurveOutput(1.02)
 
       # heating performances function of temperatures
       h_cap_allstages_T = model_add_curve(model, 'h_cap_T', custom_data_json, std)
@@ -855,24 +845,24 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # heating performance function of fraction of flow: h_cap_allstages_ff
       h_cap_allstages_ff = OpenStudio::Model::CurveQuadratic.new(model)
       h_cap_allstages_ff.setName("h_cap_allstages_ff")
-      h_cap_allstages_ff.setCoefficient1Constant(0.8322)
-      h_cap_allstages_ff.setCoefficient2x(0.1688)
+      h_cap_allstages_ff.setCoefficient1Constant(0.871514)
+      h_cap_allstages_ff.setCoefficient2x(0.125762)
       h_cap_allstages_ff.setCoefficient3xPOW2(0)
-      h_cap_allstages_ff.setMinimumValueofx(0.6)
-      h_cap_allstages_ff.setMaximumValueofx(1)
-      h_cap_allstages_ff.setMinimumCurveOutput(0)
-      h_cap_allstages_ff.setMaximumCurveOutput(1)
+      h_cap_allstages_ff.setMinimumValueofx(0.68)
+      h_cap_allstages_ff.setMaximumValueofx(1.41)
+      h_cap_allstages_ff.setMinimumCurveOutput(0.87)
+      h_cap_allstages_ff.setMaximumCurveOutput(1.12)
 
       # heating performance function of fraction of flow: h_eir_allstages_ff
       h_eir_allstages_ff = OpenStudio::Model::CurveQuadratic.new(model)
       h_eir_allstages_ff.setName("h_eir_allstages_ff")
-      h_eir_allstages_ff.setCoefficient1Constant(1.5880)
-      h_eir_allstages_ff.setCoefficient2x(-0.6012)
+      h_eir_allstages_ff.setCoefficient1Constant(1.349981)
+      h_eir_allstages_ff.setCoefficient2x(-0.325294)
       h_eir_allstages_ff.setCoefficient3xPOW2(0)
-      h_eir_allstages_ff.setMinimumValueofx(0.53)
-      h_eir_allstages_ff.setMaximumValueofx(1)
-      h_eir_allstages_ff.setMinimumCurveOutput(0)
-      h_eir_allstages_ff.setMaximumCurveOutput(1.4)
+      h_eir_allstages_ff.setMinimumValueofx(0.68)
+      h_eir_allstages_ff.setMaximumValueofx(1.52)
+      h_eir_allstages_ff.setMinimumCurveOutput(0.77)
+      h_eir_allstages_ff.setMaximumCurveOutput(1.54)
     end
 
     # ---------------------------------------------------------
@@ -1535,7 +1525,14 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # cooling stages
       clg_airflow_stage1 = htg_airflow_stage1
       clg_airflow_stage2 = htg_airflow_stage2
-      clg_airflow_stage3 = htg_airflow_stage3
+      # overriding value for stage3 to 0.59 (average of standard performance products) for modeling standard performance
+      # evidence data for 0.59 saved in ComStock Teams (high_low_cap_diff_new tab in this spreadsheet): https://nrel.sharepoint.com/:x:/r/sites/comstock/Shared%20Documents/ComStock%20Filing%20Cabinet/Efforts/Measures/HVAC%20-%20Heat%20Pump%20RTU%20std%20performance/performance%20data/231120_PerformanceMaps_RepresentativeMapsGeneration_capacity.xlsx?d=wb0f18bab656a45b68b8da9fbe74dec2a&csf=1&web=1&e=BKnHUx
+      if std_perf
+        clg_airflow_stage3 = 0.59
+        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding stage 3 factor for airflow to #{clg_airflow_stage3} for modeling standard performance.")
+      else
+        clg_airflow_stage3 = htg_airflow_stage3
+      end
       clg_airflow_stage4 = htg_airflow_stage4
       hash_clg_airflow_stgs = {1 => clg_airflow_stage1, 2 => clg_airflow_stage2, 3 => clg_airflow_stage3, 4 => clg_airflow_stage4}
 
@@ -1629,10 +1626,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       end
       ### Cooling
       # define cooling stages; 40% to 100%, equally spaced; fractions from ResStock Reference file
-      # overriding 0.67 (value for stage3) to 0.60 (average of standard performance products) for modeling standard performance
+      # overriding 0.67 (value for stage3) to 0.50 (average of standard performance products) for modeling standard performance
+      # evidence data for 0.50 saved in ComStock Teams (high_low_cap_diff_new tab in this spreadsheet): https://nrel.sharepoint.com/:x:/r/sites/comstock/Shared%20Documents/ComStock%20Filing%20Cabinet/Efforts/Measures/HVAC%20-%20Heat%20Pump%20RTU%20std%20performance/performance%20data/231120_PerformanceMaps_RepresentativeMapsGeneration_capacity.xlsx?d=wb0f18bab656a45b68b8da9fbe74dec2a&csf=1&web=1&e=BKnHUx
       if std_perf
-        stage3_factor = 0.60
-        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding stage 3 factor to #{stage3_factor} for modeling standard performance.")
+        stage3_factor = 0.50
+        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding stage 3 factor for capacity to #{stage3_factor} for modeling standard performance.")
       else
         stage3_factor = 0.67
       end
@@ -1827,7 +1825,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed3.setGrossRatedTotalCoolingCapacity(hash_clg_cap_stgs[3])
       new_dx_cooling_coil_speed3.setGrossRatedSensibleHeatRatio(0.79452681573034)
       if std_perf
-        rated_cop_fit = get_rated_cop_cooling(air_loop_hvac, hash_clg_airflow_stgs[3], hash_clg_cap_stgs[3])
+        rated_cop_fit = get_rated_cop_cooling(hash_clg_cap_stgs[4])
         new_dx_cooling_coil_speed3.setGrossRatedCoolingCOP(rated_cop_fit)
         runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), stage 3 rated_cop_cooling = #{rated_cop_fit}")
       else
@@ -1865,7 +1863,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed4.setGrossRatedTotalCoolingCapacity(hash_clg_cap_stgs[4])
       new_dx_cooling_coil_speed4.setGrossRatedSensibleHeatRatio(0.784532541812955)
       if std_perf
-        rated_cop_fit = get_rated_cop_cooling(air_loop_hvac, hash_clg_airflow_stgs[4], hash_clg_cap_stgs[4])
+        rated_cop_fit = get_rated_cop_cooling(hash_clg_cap_stgs[4])
         new_dx_cooling_coil_speed4.setGrossRatedCoolingCOP(rated_cop_fit)
         runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), stage 4 rated_cop_cooling = #{rated_cop_fit}")
       else
@@ -1911,7 +1909,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         new_dx_heating_coil.setDefrostTimePeriodFraction(0.058333)
 
         new_dx_heating_coil.setRatedTotalHeatingCapacity(hash_htg_cap_stgs[4])
-        rated_cop_fit = get_rated_cop_heating(air_loop_hvac, hash_htg_airflow_stgs[4], hash_htg_cap_stgs[4])
+        rated_cop_fit = get_rated_cop_heating(hash_htg_cap_stgs[4])
         runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), single stage rated_cop_heating = #{rated_cop_fit}")
         new_dx_heating_coil.setRatedCOP(rated_cop_fit)
         new_dx_heating_coil.setRatedAirFlowRate(hash_htg_airflow_stgs[4])
