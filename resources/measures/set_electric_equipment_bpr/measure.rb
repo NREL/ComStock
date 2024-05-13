@@ -117,7 +117,7 @@ class SetElectricEquipmentBPR < OpenStudio::Measure::ModelMeasure
         new_times << time
       end
     end
-    
+
     # set new time/value pairs in schedule
     day_sch.clearValues
     new_vals.zip(new_times).each do |val, time|
@@ -196,7 +196,7 @@ class SetElectricEquipmentBPR < OpenStudio::Measure::ModelMeasure
       # adjust schedule to meet user-specified BPR value
       new_equip_sch = equip_sch.clone(model).to_ScheduleRuleset.get
       new_equip_sch.setName("#{equip_sch.name} BPR Adjusted")
-      new_equip_sch.defaultDaySchedule.setInterpolatetoTimestep(false)
+      new_equip_sch.defaultDaySchedule.setInterpolatetoTimestep('No')
       original_equip_new_schs[equip_sch] = new_equip_sch
       new_equip_sch.to_ScheduleRuleset.get
 
