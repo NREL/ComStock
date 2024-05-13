@@ -12,6 +12,7 @@ gem 'openstudio-standards', git: 'https://github.com/NREL/openstudio-standards.g
 # gem 'openstudio-standards', path: "C:/GitRepos/openstudio-standards" # Use this format when testing openstudio-standards changes locally
 gem 'tbd', :github => 'rd2/tbd', :ref => 'v3.4.1'
 gem 'openstudio_measure_tester', '= 0.4.0', :github => 'NREL/OpenStudio-measure-tester-gem', :ref => '89b9b7eb5f2d2ef91e225585a09e076577f25d4a'
+gem 'openstudio-geb', '= 0.4.0',:github => 'LBNL-ETA/Openstudio-GEB-gem', :ref => 'a18e023936dd5c92be7dbf354f6331f60a965828'
 
 group :test do
   gem 'minitest-reporters', '= 1.4.3'
