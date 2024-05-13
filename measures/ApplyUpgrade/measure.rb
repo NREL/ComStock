@@ -205,11 +205,18 @@ class ApplyUpgrade < OpenStudio::Ruleset::ModelUserScript
     characteristics_dir = File.absolute_path(File.join(File.dirname(__FILE__), "..", "..", "lib", "housing_characteristics")) # Should have been uploaded per 'Additional Analysis Files' in PAT
     check_dir_exists(characteristics_dir, runner)
     buildstock_file = File.join(resources_dir, "buildstock.rb")
-    measures_dir = File.join(resources_dir, "measures")
+    measures_dirs = [File.join(resources_dir, "measures")]
     lookup_file = File.join(resources_dir, "options_lookup.tsv")
 
     # Load buildstock_file
     require File.join(File.dirname(buildstock_file), File.basename(buildstock_file, File.extname(buildstock_file)))
+
+    # Add openstudio GEB gem measures dir, if installed
+    geb_gem_dir = openstudio_geb_gem_measures_dir(runner)
+    measures_dirs << geb_gem_dir unless geb_gem_dir.nil?
+    measures_dirs.each do |md|
+      check_dir_exists(md, runner)
+    end
 
     # Retrieve workflow_json from BuildExistingModel measure if provided
     workflow_json = get_value_from_runner_past_results(runner, "workflow_json", "build_existing_model", false)
@@ -300,7 +307,7 @@ class ApplyUpgrade < OpenStudio::Ruleset::ModelUserScript
         end
       end
 
-      measures_result =  apply_measures(measures_dir, measures, runner, model, workflow_json, "measures-upgrade.osw", true)
+      measures_result = apply_measures(measures_dirs, measures, runner, model, workflow_json, "measures-upgrade.osw", true)
       if not measures_result
         runner.registerWarning("Result of apply_measures was coerced as false - `#{measures_result}`")
         return false
