@@ -378,6 +378,31 @@ def evaluate_logic(option_apply_logic, runner)
     return result
 end
 
+# Find the openstudio-geb gem measures directory, if installed
+def openstudio_geb_gem_measures_dir(runner)
+    geb_gem_measures_dir = nil
+    custom_gems_dir = File.absolute_path(File.join(File.dirname(__FILE__), "..", "..", ".custom_gems"))
+    runner.registerInfo("custom_gems_dir: #{custom_gems_dir}")
+    unless Dir.exist?(custom_gems_dir)
+      return geb_gem_measures_dir
+    end
+
+    runner.registerInfo("custom_gems_dir exists!")
+    dir_to_glob = File.join(custom_gems_dir, "ruby", "3.2.0", "bundler", "gems","*")
+    runner.registerInfo("Searching for GEB gem in #{dir_to_glob}")
+    Dir.glob(File.join(custom_gems_dir, "ruby", "3.2.0", "bundler", "gems","*")).each do |gem_dir|
+        next unless File.directory?(gem_dir)
+        runner.registerInfo("Found gem: #{gem_dir}")
+        next unless gem_dir.include?('Openstudio-GEB-gem')
+        geb_gem_measures_dir = File.join(gem_dir, 'lib', 'measures')
+        check_file_exists(geb_gem_measures_dir, runner)
+        runner.registerInfo("Using openstudio-geb measures from: #{geb_gem_measures_dir}")
+        break
+    end
+
+    return geb_gem_measures_dir
+end
+
 class Version
     ComStock_Version = '0.0.1' # Version of ComStock
     BuildStockBatch_Version = '2023.10.0' # Minimum required version of BuildStockBatch
