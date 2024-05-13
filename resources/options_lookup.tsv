@@ -4948,18 +4948,18 @@ baseline_window_type	Single - No LowE - Tinted/Reflective - Aluminum	replace_bas
 baseline_window_type	Single - No LowE - Tinted/Reflective - Wood	replace_baseline_windows	window_pane_type=Single - No LowE - Tinted/Reflective - Wood	u_value_ip=0.91	shgc=0.525	vlt=0.436
 baseline_window_type	Triple - LowE - Clear - Thermally Broken Aluminum	replace_baseline_windows	window_pane_type=Triple - LowE - Clear - Thermally Broken Aluminum	u_value_ip=0.3	shgc=0.328	vlt=0.527
 baseline_window_type	Triple - LowE - Tinted/Reflective - Thermally Broken Aluminum	replace_baseline_windows	window_pane_type=Triple - LowE - Tinted/Reflective - Thermally Broken Aluminum	u_value_ip=0.299	shgc=0.224	vlt=0.32
-thermal_bridging_template	poor (BETBG)	thermal_bridging_derating	option=poor (BETBG)
-thermal_bridging_template	regular (BETBG)	thermal_bridging_derating	option=regular (BETBG)
-thermal_bridging_template	efficient (BETBG)	thermal_bridging_derating	option=efficient (BETBG)
-thermal_bridging_template	steel-framed and metal default	thermal_bridging_derating	option=90.1.22|steel.m|default
-thermal_bridging_template	steel-framed and metal unmitigated	thermal_bridging_derating	option=90.1.22|steel.m|unmitigated
-thermal_bridging_template	mass default	thermal_bridging_derating	option=90.1.22|mass.ex|default
-thermal_bridging_template	mass unmitigated	thermal_bridging_derating	option=90.1.22|mass.ex|unmitigated
-thermal_bridging_template	interior mass default	thermal_bridging_derating	option=90.1.22|mass.in|default
-thermal_bridging_template	interior mass unmitigated	thermal_bridging_derating	option=90.1.22|mass.in|unmitigated
-thermal_bridging_template	wood-framed default	thermal_bridging_derating	option=90.1.22|wood.fr|default
-thermal_bridging_template	wood-framed unmitigated	thermal_bridging_derating	option=90.1.22|wood.fr|unmitigated
-thermal_bridging_template	no thermal bridging	thermal_bridging_derating	option=(non thermal bridging)
+thermal_bridging	poor (BETBG)	thermal_bridging_derating	option=poor (BETBG)
+thermal_bridging	regular (BETBG)	thermal_bridging_derating	option=regular (BETBG)
+thermal_bridging	efficient (BETBG)	thermal_bridging_derating	option=efficient (BETBG)
+thermal_bridging	steel-framed and metal default	thermal_bridging_derating	option=90.1.22|steel.m|default
+thermal_bridging	steel-framed and metal unmitigated	thermal_bridging_derating	option=90.1.22|steel.m|unmitigated
+thermal_bridging	mass default	thermal_bridging_derating	option=90.1.22|mass.ex|default
+thermal_bridging	mass unmitigated	thermal_bridging_derating	option=90.1.22|mass.ex|unmitigated
+thermal_bridging	interior mass default	thermal_bridging_derating	option=90.1.22|mass.in|default
+thermal_bridging	interior mass unmitigated	thermal_bridging_derating	option=90.1.22|mass.in|unmitigated
+thermal_bridging	wood-framed default	thermal_bridging_derating	option=90.1.22|wood.fr|default
+thermal_bridging	wood-framed unmitigated	thermal_bridging_derating	option=90.1.22|wood.fr|unmitigated
+thermal_bridging	no thermal bridging	thermal_bridging_derating	option=(non thermal bridging)
 baseline_hvac_sizing	autosize	hardsize_model	apply_hardsize=false
 baseline_hvac_sizing	hardsize	hardsize_model	apply_hardsize=true
 occupancy_schedule_adjust	adjust_schedule	adjust_occupancy_schedule	peak_occ_frac=0.231
