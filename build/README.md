@@ -112,20 +112,20 @@
                                                                                               ^^^^SHA HERE^^^^
     ```
 
-* If the above returned the expected OpenStudio Standards version, push rename the sif file and push it to Eagle. [`SIMG_VERSION_NAME` and `SIMG_VERSION_SHA`](https://buildstockbatch.readthedocs.io/en/latest/project_defn.html#openstudio-version-overrides) should be set to a unique combination for each new apptainer image. This provides the means of specifying this apptainer image in the ComStock project YAML. See also the [ComStock HPC Training document.](../comstock_hpc_training.md#example-yml-file-contents-documentation). __`SIMG_VERSION_SHA` must be the SHA of the version of OpenStudio included, NOT the SHA of openstudio-standards.__ To signify a custom version of openstudio-standards, set the `SIMG_VERSION_NAME` to something meaningful. Something like: `SIMG_VERSION_NAME=os_340_stds_b50172b4cc18` and `SIMG_VERSION_SHA=4bd816f785`.
+* If the above returned the expected OpenStudio Standards version, push rename the sif file and push it to Eagle. [`SIF_VERSION_NAME` and `SIF_VERSION_SHA`](https://buildstockbatch.readthedocs.io/en/latest/project_defn.html#openstudio-version-overrides) should be set to a unique combination for each new apptainer image. This provides the means of specifying this apptainer image in the ComStock project YAML. See also the [ComStock HPC Training document.](../comstock_hpc_training.md#example-yml-file-contents-documentation). __`SIF_VERSION_SHA` must be the SHA of the version of OpenStudio included, NOT the SHA of openstudio-standards.__ To signify a custom version of openstudio-standards, set the `SIF_VERSION_NAME` to something meaningful. Something like: `SIF_VERSION_NAME=os_340_stds_b50172b4cc18` and `SIF_VERSION_SHA=4bd816f785`.
 
     ```bash
     # Rename the container
 
     # Mac/Linux:
-    export SIMG_VERSION_NAME=example-v1
-    export SIMG_VERSION_SHA=0123456789
-    mv docker-openstudio.sif OpenStudio-$SIMG_VERSION_NAME.$SIMG_VERSION_SHA-Apptainer.sif
+    export SIF_VERSION_NAME=example-v1
+    export SIF_VERSION_SHA=0123456789
+    mv docker-openstudio.sif OpenStudio-$SIF_VERSION_NAME.$SIF_VERSION_SHA-Apptainer.sif
 
     # Windows:
     # In your file explorer, rename docker-openstudio.sif
     # to:
-    # OpenStudio-SIMG_VERSION_NAME.SIMG_VERSION_SHA-Apptainer.sif
+    # OpenStudio-SIF_VERSION_NAME.SIF_VERSION_SHA-Apptainer.sif
     ```
 
 * Next: copy the apptainer image to your home directory on eagle using the tool of your choice.
