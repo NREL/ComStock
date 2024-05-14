@@ -39,7 +39,7 @@ To just access files, use WinSCP:
 ## ComStock
  - Run documents for ComStock-funded projects located in ```/projects/comstock/``` or ```/projects/enduse/comstock/```
    - If using ComStock for another project, you may need to use another folder depending on what allocation is being used
- - Exception: openstudio-standards singularity containers located in ```/shared-projects/buildstock/singularity_images/```
+ - Exception: openstudio-standards apptainer containers located in ```/shared-projects/buildstock/apptainer_images/```
  - The ComStock Eagle folder contains:
    - ```envs```
      - buildstockbatch conda environment
@@ -50,7 +50,7 @@ To just access files, use WinSCP:
      - ```comstock```. All measures and resources related to ComStock
      - ```vizstock-upload```. Process and upload ComStock results from Eagle for use in VizStock
    - ```samples```. Contains all the *buildstock.csv* files
-   - ```singularity_images```. openstudio-standards singularity containers
+   - ```apptainer_images```. openstudio-standards apptainer containers
      - buildstockbatch conda environment
    - ```weather```. Zip folders of weather files
      - *!!!Must contain an empty.ddy, empty.epw, and empty.stat file!!!*
@@ -200,8 +200,8 @@ Notes:
    - ```n_buildings_represented```: number of buildings in buildstock.csv
    - ```custom_gems```: always "True"
 
- - ```os_version```: name of singularity container being used
- - ```os_sha```: OS version used to build singularity container; most existing containers are "3472e8b799" but this could change with newer containers
+ - ```os_version```: name of apptainer container being used
+ - ```os_sha```: OS version used to build apptainer container; most existing containers are "3472e8b799" but this could change with newer containers
  - ```workflow_generator```: this section outlines which rpeorting measures are run with the simulation and it can for the most part stay the same. The only time you would need to modify this section is if you are adding a reporting measure (i.e. scout component loads measure). To add a measure, follow this format:
    - ```measure_dir_name```: *measure name*
      - ```arguments:```
@@ -226,8 +226,8 @@ Notes:
     source activate /projects/enduse/comstock/envs/buildstock-com/
     ```
 
- 2. Check to make sure you are using the latest singularity image and that your yml points to this image:
-    - Located in ```shared-projects/buildstock/singularity_image```
+ 2. Check to make sure you are using the latest apptainer image and that your yml points to this image:
+    - Located in ```shared-projects/buildstock/apptainer_image```
  3. Make sure you commit all of your changes, push them to github, and pull changes onto eagle
     - navigate to ```/projects/enduse/comstock/repos/comstock``` (or whatever repo you're running from)
     - if not already initialized use ```git init``` (reinitalizes the existing repo)

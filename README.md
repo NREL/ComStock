@@ -28,7 +28,7 @@ and the [Department of Energy's Building Technology Office](https://www.energy.g
 ongoing support of and investment in building energy modeling software.
 
 ## Directories
-- [**`/build`**](https://github.com/NREL/ComStock/tree/main/build) contains instructions for building Singularity images for running ComStock on HPC systems.
+- [**`/build`**](https://github.com/NREL/ComStock/tree/main/build) contains instructions for building Apptainer images for running ComStock on HPC systems.
 - [**`/documentation`**](https://github.com/NREL/ComStock/tree/main/documentation) contains LaTeX documentation and instructions for building the documentation.
 - [**`/measures`**](https://github.com/NREL/ComStock/tree/main/measures) contains the high-level "meta" measures used to call other measures, and the reporting measures used to summarize outputs.
 - [**`/national`**](https://github.com/NREL/ComStock/tree/main/national) contains seed directories necessary for a ComStock run using buildstockbatch.
