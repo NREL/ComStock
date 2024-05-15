@@ -271,6 +271,20 @@ Notes:
         - example: jobid = 1, buildingid = 12, upgrade = 01
           - ```tar xvzf simulations_job1.tar.gz ./up01/bldg0000012```
   - weather folder – contains weather files used
+ 
+## Debugging jobs on Kestrel
+
+Kestrel uses [Slurm](https://slurm.schedmd.com/overview.html) for it's job scheduling and cluster management. This software package provides a number of commands than can be run on the command line to submit, inspect, change, and cancel jobs. All of these commands begin with the letter `s` for Slurm, such as `sinfo`, `scancel`, or `squeue`.
+
+When a `buildstock_kestrel` command is run successfully and job is submitted to the slurm using the `srun` command by the python code of buildstockbatch. This job is given a job ID which can be used to retrieve data about the submitted job. BuildStockBatch typically submits three jobs, one for sampling, one for BEM execution, and one for post-processing. These jobs are dependent on each other and if any one fails the downstream jobs are automatically canceled. In addition, a single job that requires `N` many nodes will be split into Job IDs `jobid_1`, `jobid_2`, ..., `jobid_N` as they are each in turn scheduled and executed on Kestrel.
+
+A key thing to understand is which queue the job was submitted to. Kestrel has [8 queues](https://nrel.github.io/HPC/Documentation/Systems/Kestrel/running/) which jobs can be submitted to. In almost all cases the jobs should be queued in the `short` and `standard` queues (unless doing a single node test run) or on occasion the `long` queue, but then only for the long-running ComStock BEMs for Standard Data Releases. If you notice a job in a different queue please reach out to Ry and Andrew.
+
+Computational resources, i.e. Nodes, i.e. blades withing a rack, are shared across many queues. As a result, node `n123iabc_1` may spend two hours scheduled against a job in the `short` queue and then 88 hours scheduled against a job in the `long` queue. This is particularly important because all ResStock and ComStock simulations can only run on the 256 nodes in Kestrel that have [2TB NVMe drives](https://www.nrel.gov/hpc/kestrel-system-configuration.html). What this practically means is that if you have a 250 node job queued in the standard queue but someone else has a higher priority queued in the short queue and also requesting nodes with NVMe drives your jobs will wait until after the high priority job has completed, even though it was in a different queue.
+
+Most information about jobs that have been queued but not started is retrieved through the [`squeue` command](https://nrel.github.io/HPC/Documentation/Slurm/monitor_and_control/#squeue). NREL HPC has documented options for this command, including the incredibly useful `--start` command which allows for inspection of when jobs are expected to, well, start.
+
+If jobs appear to not be prioritized to start for several days / weeks then there is likely a limitation in priority for that job. Historically this has been fixable by using the `--qos=high` flag (see [these commands](https://nrel.github.io/HPC/Documentation/Slurm/monitor_and_control/#scontrol) for examples of how to alter the Quality Of Service - QOC - setting after submitting a job). Now, however, the introduction of a new concept called 'fair use' means that any project which has, within the last two weeks (subject to change), used significant numbers of AUs is substantially less likely to be scheduled for even more compute, largely regardless of QOS setting. Please be aware of this and review the information on [`sprio`](https://nrel.github.io/HPC/Documentation/Slurm/monitor_and_control/#sprio) for details on ascertaining if this is the issue you face. If you believe so please talk to Chris, Ry, and/or Andrew.
 
 ## Common Errors and Mistakes
  - Making changes to the ```options_lookup``` and not copying it into both locations
