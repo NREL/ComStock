@@ -489,7 +489,7 @@ class CreateTypicalBuildingFromModel < OpenStudio::Measure::ModelMeasure
 
     # todo - need to make use of this before pass to standards
     use_upstream_args = args['use_upstream_args']
-      
+
     # open channel to log messages
     reset_log
 
@@ -498,7 +498,7 @@ class CreateTypicalBuildingFromModel < OpenStudio::Measure::ModelMeasure
 
     # method run from os_lib_model_generation.rb
     result = OpenstudioStandards::CreateTypical.create_typical_building_from_model(
-      model, 
+      model,
       args['template'],
       climate_zone: args['climate_zone'], # start of optional arguments
       add_hvac: args['add_hvac'],
@@ -506,11 +506,11 @@ class CreateTypicalBuildingFromModel < OpenStudio::Measure::ModelMeasure
       hvac_delivery_type: args['hvac_delivery_type'],
       heating_fuel: args['htg_src'],
       service_water_heating_fuel: args['swh_src_chs'],
-      cooling_fuel: args['clg_src_chs'],
+      cooling_fuel: args['clg_src'],
       kitchen_makeup: args['kitchen_makeup'],
       exterior_lighting_zone: args['exterior_lighting_zone'],
       add_constructions: args['add_constructions'],
-      wall_construction_type: nil, # not exposed in user measure args
+      wall_construction_type: args['wall_construction_type'],
       add_space_type_loads: args['add_space_type_loads'],
       add_daylighting_controls: nil, # not exposed in user measure args
       add_elevators: args['add_elevators'],
