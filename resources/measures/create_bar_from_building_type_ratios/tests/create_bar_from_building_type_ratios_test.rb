@@ -137,7 +137,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['building_rotation'] = -90.0
     args['party_wall_stories_east'] = 2
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args)
+    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, 2)
   end
 
   def test_large_hotel_restaurant
@@ -236,7 +236,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 5.5
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args) # warning no longer valid with curent arguments
+    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, 1)
   end
 
   def test_two_and_half_stories_individual_sliced
@@ -246,7 +246,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 5.5
     args['bar_division_method'] = 'Multiple Space Types - Individual Stories Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args) # warning no longer valid with curent arguments
+    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, 1)
   end
 
   def test_party_wall_stories_test_a
@@ -314,7 +314,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 2
     # args["bar_division_method"] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args)
+    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, 8)
   end
 
   def test_rotation_45_party_wall_fraction
@@ -329,7 +329,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['bar_division_method'] = 'Single Space Type - Core and Perimeter'
 
     # 11 warning messages because using single space type division method with multi-space type building type
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, 14)
+    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, 13)
   end
 
   def test_fixed_single_floor_area
