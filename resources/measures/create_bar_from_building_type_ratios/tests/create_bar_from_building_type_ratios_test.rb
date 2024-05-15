@@ -72,7 +72,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args = {}
     args['total_bldg_floor_area'] = 10000.0
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'example_model.osm')
+    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args)
   end
 
   def test_no_multiplier
@@ -81,7 +81,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 5
     args['story_multiplier'] = 'None'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'example_model.osm')
+    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args)
   end
 
   def test_smart_defaults
@@ -786,7 +786,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 5
     args['story_multiplier'] = 'None'
 
-    model = apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'example_model.osm')
+    model = apply_measure_to_model(__method__.to_s.gsub('test_', ''), args)
 
     # Ensure that building additional properties are preserved
     props = model.getBuilding.additionalProperties
