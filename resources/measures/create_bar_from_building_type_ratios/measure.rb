@@ -280,7 +280,6 @@ class CreateBarFromBuildingTypeRatios < OpenStudio::Measure::ModelMeasure
     ns_to_ew_ratio.setDescription('Selecting an aspect ratio of 0 will trigger a smart building type default. Aspect ratios less than one are not recommended for sliced bar geometry, instead rotate building and use a greater than 1 aspect ratio.')
     ns_to_ew_ratio.setDefaultValue(0.0)
     ns_to_ew_ratio.setMinValue(0.0)
-    ns_to_ew_ratio.setMaxValue(1.0)
     args << ns_to_ew_ratio
 
     # Make argument for perim_mult
