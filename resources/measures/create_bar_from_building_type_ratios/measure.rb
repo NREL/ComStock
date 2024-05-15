@@ -131,6 +131,7 @@ class CreateBarFromBuildingTypeRatios < OpenStudio::Measure::ModelMeasure
     bldg_type_a_num_units.setDisplayName('Primary Building Type Number of Units')
     bldg_type_a_num_units.setDescription('Number of units argument not currently used by this measure')
     bldg_type_a_num_units.setDefaultValue(1)
+    bldg_type_a_num_units.setMinValue(0.0)
     args << bldg_type_a_num_units
 
     # Make an argument for the bldg_type_b
@@ -158,6 +159,7 @@ class CreateBarFromBuildingTypeRatios < OpenStudio::Measure::ModelMeasure
     bldg_type_b_num_units.setDisplayName('Building Type B Number of Units')
     bldg_type_b_num_units.setDescription('Number of units argument not currently used by this measure')
     bldg_type_b_num_units.setDefaultValue(1)
+    bldg_type_b_num_units.setMinValue(0.0)
     args << bldg_type_b_num_units
 
     # Make an argument for the bldg_type_c
@@ -185,6 +187,7 @@ class CreateBarFromBuildingTypeRatios < OpenStudio::Measure::ModelMeasure
     bldg_type_c_num_units.setDisplayName('Building Type C Number of Units')
     bldg_type_c_num_units.setDescription('Number of units argument not currently used by this measure')
     bldg_type_c_num_units.setDefaultValue(1)
+    bldg_type_c_num_units.setMinValue(0.0)
     args << bldg_type_c_num_units
 
     # Make an argument for the bldg_type_d
@@ -212,6 +215,7 @@ class CreateBarFromBuildingTypeRatios < OpenStudio::Measure::ModelMeasure
     bldg_type_d_num_units.setDisplayName('Building Type D Number of Units')
     bldg_type_d_num_units.setDescription('Number of units argument not currently used by this measure')
     bldg_type_d_num_units.setDefaultValue(1)
+    bldg_type_d_num_units.setMinValue(0.0)
     args << bldg_type_d_num_units
 
     # Make argument for single_floor_area
