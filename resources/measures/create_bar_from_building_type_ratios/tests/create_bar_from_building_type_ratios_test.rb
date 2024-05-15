@@ -236,8 +236,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 5.5
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    # 1 warning because to small for core and perimeter zoning
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, 1)
+    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args) # warning no longer valid with curent arguments
   end
 
   def test_two_and_half_stories_individual_sliced
@@ -247,8 +246,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 5.5
     args['bar_division_method'] = 'Multiple Space Types - Individual Stories Sliced'
 
-    # 1 warning because to small for core and perimeter zoning
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, 1)
+    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args) # warning no longer valid with curent arguments
   end
 
   def test_party_wall_stories_test_a
