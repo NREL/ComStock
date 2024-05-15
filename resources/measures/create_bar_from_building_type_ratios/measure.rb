@@ -587,7 +587,13 @@ class CreateBarFromBuildingTypeRatios < OpenStudio::Measure::ModelMeasure
 
     # todo - need to make use of this before pass to standards
     use_upstream_args = args['use_upstream_args']
-      
+
+    # check building type fractional inputs
+    if args['bldg_type_b_fract_bldg_area'] + args['bldg_type_c_fract_bldg_area'] + args['bldg_type_d_fract_bldg_area'] > 1.0
+      runner.registerError('The sum of the fractional values for bulding types b, c, and d should be less than 1.0')
+      return false
+    end
+
     # open channel to log messages
     reset_log
 
