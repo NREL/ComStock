@@ -900,7 +900,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # Cooling Capacity Function of Temperature Curve - 3
     if std_perf
       cool_cap_ft3 = c_cap_low_T
-      runner.registerInfo("--- (standard performance) overriding for modeling standard performance: cool_cap_ft3.name = #{cool_cap_ft3.name}")
+      runner.registerInfo("(standard performance) overriding for modeling standard performance: cool_cap_ft3.name = #{cool_cap_ft3.name}")
     else
       cool_cap_ft3 = OpenStudio::Model::CurveBiquadratic.new(model)
       cool_cap_ft3.setName("cool_cap_ft3")
@@ -919,7 +919,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # Cooling Capacity Function of Temperature Curve - 4
     if std_perf
       cool_cap_ft4 = c_cap_high_T
-      runner.registerInfo("--- (standard performance) overriding for modeling standard performance: cool_cap_ft4.name = #{cool_cap_ft4.name}")
+      runner.registerInfo("(standard performance) overriding for modeling standard performance: cool_cap_ft4.name = #{cool_cap_ft4.name}")
     else
       cool_cap_ft4 = OpenStudio::Model::CurveBiquadratic.new(model)
       cool_cap_ft4.setName("cool_cap_ft4")
@@ -977,7 +977,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # Energy Input Ratio Function of Temperature Curve - 3
     if std_perf
       cool_eir_ft3 = c_eir_low_T
-      runner.registerInfo("--- (standard performance) overriding for modeling standard performance: cool_eir_ft3.name = #{cool_eir_ft3.name}")
+      runner.registerInfo("(standard performance) overriding for modeling standard performance: cool_eir_ft3.name = #{cool_eir_ft3.name}")
     else
       cool_eir_ft3 = OpenStudio::Model::CurveBiquadratic.new(model)
       cool_eir_ft3.setName("cool_eir_ft3")
@@ -996,7 +996,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # Energy Input Ratio Function of Temperature Curve - 4
     if std_perf
       cool_eir_ft4 = c_eir_high_T
-      runner.registerInfo("--- (standard performance) overriding for modeling standard performance: cool_eir_ft4.name = #{cool_eir_ft4.name}")
+      runner.registerInfo("(standard performance) overriding for modeling standard performance: cool_eir_ft4.name = #{cool_eir_ft4.name}")
     else
       cool_eir_ft4 = OpenStudio::Model::CurveBiquadratic.new(model)
       cool_eir_ft4.setName("cool_eir_ft4")
@@ -1097,7 +1097,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # Heating Capacity Function of Temperature Curve - 4
     if std_perf
       heat_cap_ft4 = h_cap_allstages_T
-      runner.registerInfo("--- (standard performance) overriding for modeling standard performance: heat_cap_ft4.name = #{heat_cap_ft4.name}")
+      runner.registerInfo("(standard performance) overriding for modeling standard performance: heat_cap_ft4.name = #{heat_cap_ft4.name}")
     else
       heat_cap_ft4 = OpenStudio::Model::CurveBiquadratic.new(model)
       heat_cap_ft4.setName("heat_cap_ft4")
@@ -1116,7 +1116,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # Heating Capacity Function of Flow Fraction Curve
     if std_perf
       heat_cap_fff_all_stages = h_cap_allstages_ff
-      runner.registerInfo("--- (standard performance) overriding for modeling standard performance: heat_cap_fff_all_stages.name = #{heat_cap_fff_all_stages.name}")
+      runner.registerInfo("(standard performance) overriding for modeling standard performance: heat_cap_fff_all_stages.name = #{heat_cap_fff_all_stages.name}")
     else
       heat_cap_fff_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
       heat_cap_fff_all_stages.setName("heat_cap_fff_all_stages")
@@ -1174,7 +1174,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # Energy Input Ratio Function of Temperature Curve - 4
     if std_perf
       heat_eir_ft4 = h_eir_allstages_T
-      runner.registerInfo("--- (standard performance) overriding for modeling standard performance: heat_eir_ft4.name = #{heat_eir_ft4.name}")
+      runner.registerInfo("(standard performance) overriding for modeling standard performance: heat_eir_ft4.name = #{heat_eir_ft4.name}")
     else
       heat_eir_ft4 = OpenStudio::Model::CurveBiquadratic.new(model)
       heat_eir_ft4.setName("heat_eir_ft4")
@@ -1193,7 +1193,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # Energy Input Ratio Function of Flow Fraction Curve
     if std_perf
       heat_eir_fff_all_stages = h_eir_allstages_ff
-      runner.registerInfo("--- (standard performance) overriding for modeling standard performance: heat_eir_fff_all_stages.name = #{heat_eir_fff_all_stages.name}")
+      runner.registerInfo("(standard performance) overriding for modeling standard performance: heat_eir_fff_all_stages.name = #{heat_eir_fff_all_stages.name}")
     else
       heat_eir_fff_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
       heat_eir_fff_all_stages.setName("heat_eir_fff")
@@ -1529,7 +1529,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # evidence data for 0.59 saved in ComStock Teams (high_low_cap_diff_new tab in this spreadsheet): https://nrel.sharepoint.com/:x:/r/sites/comstock/Shared%20Documents/ComStock%20Filing%20Cabinet/Efforts/Measures/HVAC%20-%20Heat%20Pump%20RTU%20std%20performance/performance%20data/231120_PerformanceMaps_RepresentativeMapsGeneration_capacity.xlsx?d=wb0f18bab656a45b68b8da9fbe74dec2a&csf=1&web=1&e=BKnHUx
       if std_perf
         clg_airflow_stage3 = 0.59 * htg_airflow_stage4
-        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding stage 3 factor for airflow to #{clg_airflow_stage3} for modeling standard performance.")
+        runner.registerInfo("(standard performance) for air loop (#{air_loop_hvac.name}), overriding stage 3 factor for airflow to #{clg_airflow_stage3} for modeling standard performance.")
       else
         clg_airflow_stage3 = htg_airflow_stage3
       end
@@ -1650,7 +1650,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # evidence data for 0.50 saved in ComStock Teams (high_low_cap_diff_new tab in this spreadsheet): https://nrel.sharepoint.com/:x:/r/sites/comstock/Shared%20Documents/ComStock%20Filing%20Cabinet/Efforts/Measures/HVAC%20-%20Heat%20Pump%20RTU%20std%20performance/performance%20data/231120_PerformanceMaps_RepresentativeMapsGeneration_capacity.xlsx?d=wb0f18bab656a45b68b8da9fbe74dec2a&csf=1&web=1&e=BKnHUx
       if std_perf
         stage3_factor = 0.50
-        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding stage 3 factor for capacity to #{stage3_factor} for modeling standard performance.")
+        runner.registerInfo("(standard performance) for air loop (#{air_loop_hvac.name}), overriding stage 3 factor for capacity to #{stage3_factor} for modeling standard performance.")
       else
         stage3_factor = 0.67
       end
@@ -1847,7 +1847,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       if std_perf
         rated_cop_fit = get_rated_cop_cooling(hash_clg_cap_stgs[4])
         new_dx_cooling_coil_speed3.setGrossRatedCoolingCOP(rated_cop_fit)
-        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), stage 3 rated_cop_cooling = #{rated_cop_fit}")
+        runner.registerInfo("(standard performance) for air loop (#{air_loop_hvac.name}), stage 3 rated_cop_cooling = #{rated_cop_fit}")
       else
         new_dx_cooling_coil_speed3.setGrossRatedCoolingCOP(get_rated_cop_cooling_adv(hash_clg_cap_stgs[4]))
       end
@@ -1885,7 +1885,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       if std_perf
         rated_cop_fit = get_rated_cop_cooling(hash_clg_cap_stgs[4])
         new_dx_cooling_coil_speed4.setGrossRatedCoolingCOP(rated_cop_fit)
-        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), stage 4 rated_cop_cooling = #{rated_cop_fit}")
+        runner.registerInfo("(standard performance) for air loop (#{air_loop_hvac.name}), stage 4 rated_cop_cooling = #{rated_cop_fit}")
       else
         new_dx_cooling_coil_speed4.setGrossRatedCoolingCOP(get_rated_cop_cooling_adv(hash_clg_cap_stgs[4]))
       end
@@ -1930,7 +1930,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
         new_dx_heating_coil.setRatedTotalHeatingCapacity(hash_htg_cap_stgs[4])
         rated_cop_fit = get_rated_cop_heating(hash_htg_cap_stgs[4])
-        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), single stage rated_cop_heating = #{rated_cop_fit}")
+        runner.registerInfo("(standard performance) for air loop (#{air_loop_hvac.name}), single stage rated_cop_heating = #{rated_cop_fit}")
         new_dx_heating_coil.setRatedCOP(rated_cop_fit)
         new_dx_heating_coil.setRatedAirFlowRate(hash_htg_airflow_stgs[4])
         new_dx_heating_coil.setRatedSupplyFanPowerPerVolumeFlowRate2017(773.3)
