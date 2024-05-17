@@ -505,7 +505,7 @@ class CreateTypicalBuildingFromModel < OpenStudio::Measure::ModelMeasure
       hvac_system_type: args['system_type'],
       hvac_delivery_type: args['hvac_delivery_type'],
       heating_fuel: args['htg_src'],
-      service_water_heating_fuel: args['swh_src_chs'],
+      service_water_heating_fuel: args['swh_src'],
       cooling_fuel: args['clg_src'],
       kitchen_makeup: args['kitchen_makeup'],
       exterior_lighting_zone: args['exterior_lighting_zone'],
