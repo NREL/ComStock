@@ -75,6 +75,13 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     htg_to_clg_hp_ratio.setDescription('At rated conditions, a compressor will generally have slightly more cooling capacity than heating capacity. This factor integrates this ratio into the unit sizing.')
     args << htg_to_clg_hp_ratio
 
+    # add heat pump minimum compressor lockout outdoor air temperature
+    hp_min_comp_lockout_temp = OpenStudio::Measure::OSArgument.makeDoubleArgument('htg_to_clg_hp_ratio', true)
+    hp_min_comp_lockout_temp.setDisplayName('Minimum outdoor air temperature that locks out heat pump compressor, F')
+    hp_min_comp_lockout_temp.setDefaultValue(1)
+    hp_min_comp_lockout_temp.setDescription('Specifies minimum outdoor air temperature for locking out heat pump compressor. Heat pump heating does not operated below this temperature and backup heating will operate if heating is still needed.')
+    args << hp_min_comp_lockout_temp
+
     # model standard performance hp rtu
     std_perf = OpenStudio::Measure::OSArgument.makeBoolArgument('std_perf', true)
     std_perf.setDisplayName('Model standard performance HP RTU?')
