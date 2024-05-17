@@ -76,11 +76,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     args << htg_to_clg_hp_ratio
 
     # add heat pump minimum compressor lockout outdoor air temperature
-    hp_min_comp_lockout_temp = OpenStudio::Measure::OSArgument.makeDoubleArgument('htg_to_clg_hp_ratio', true)
-    hp_min_comp_lockout_temp.setDisplayName('Minimum outdoor air temperature that locks out heat pump compressor, F')
-    hp_min_comp_lockout_temp.setDefaultValue(0)
-    hp_min_comp_lockout_temp.setDescription('Specifies minimum outdoor air temperature for locking out heat pump compressor. Heat pump heating does not operated below this temperature and backup heating will operate if heating is still needed.')
-    args << hp_min_comp_lockout_temp
+    hp_min_comp_lockout_temp_f = OpenStudio::Measure::OSArgument.makeDoubleArgument('htg_to_clg_hp_ratio', true)
+    hp_min_comp_lockout_temp_f.setDisplayName('Minimum outdoor air temperature that locks out heat pump compressor, F')
+    hp_min_comp_lockout_temp_f.setDefaultValue(0)
+    hp_min_comp_lockout_temp_f.setDescription('Specifies minimum outdoor air temperature for locking out heat pump compressor. Heat pump heating does not operated below this temperature and backup heating will operate if heating is still needed.')
+    args << hp_min_comp_lockout_temp_f
 
     # model standard performance hp rtu
     std_perf = OpenStudio::Measure::OSArgument.makeBoolArgument('std_perf', true)
@@ -417,6 +417,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     htg_sizing_option = runner.getStringArgumentValue('htg_sizing_option', user_arguments)
     clg_oversizing_estimate = runner.getDoubleArgumentValue('clg_oversizing_estimate', user_arguments)
     htg_to_clg_hp_ratio = runner.getDoubleArgumentValue('htg_to_clg_hp_ratio', user_arguments)
+    hp_min_comp_lockout_temp_f = runner.getDoubleArgumentValue('hp_min_comp_lockout_temp_f', user_arguments)
     std_perf = runner.getBoolArgumentValue('std_perf', user_arguments)
     hr = runner.getBoolArgumentValue('hr', user_arguments)
     dcv = runner.getBoolArgumentValue('dcv', user_arguments)
@@ -1927,7 +1928,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       if std_perf
         new_dx_heating_coil = OpenStudio::Model::CoilHeatingDXSingleSpeed.new(model)
         new_dx_heating_coil.setName("#{air_loop_hvac.name} Heat Pump Coil")
-        new_dx_heating_coil.setMinimumOutdoorDryBulbTemperatureforCompressorOperation(-17.7778)
+        new_dx_heating_coil.setMinimumOutdoorDryBulbTemperatureforCompressorOperation(OpenStudio.convert(hp_min_comp_lockout_temp_f, 'F', 'C').get)
         new_dx_heating_coil.setAvailabilitySchedule(always_on)
         new_dx_heating_coil.setDefrostEnergyInputRatioFunctionofTemperatureCurve(defrost_eir) #defrost_eir
         new_dx_heating_coil.setMaximumOutdoorDryBulbTemperatureforDefrostOperation(4.444)
@@ -1949,7 +1950,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       else
         new_dx_heating_coil = OpenStudio::Model::CoilHeatingDXMultiSpeed.new(model)
         new_dx_heating_coil.setName("#{air_loop_hvac.name} Heat Pump Coil")
-        new_dx_heating_coil.setMinimumOutdoorDryBulbTemperatureforCompressorOperation(-17.7778)
+        new_dx_heating_coil.setMinimumOutdoorDryBulbTemperatureforCompressorOperation(OpenStudio.convert(hp_min_comp_lockout_temp_f, 'F', 'C').get)
         new_dx_heating_coil.setAvailabilitySchedule(always_on)
         new_dx_heating_coil.setDefrostEnergyInputRatioFunctionofTemperatureCurve(defrost_eir) #defrost_eir
         new_dx_heating_coil.setMaximumOutdoorDryBulbTemperatureforDefrostOperation(4.444)
