@@ -78,7 +78,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # add heat pump minimum compressor lockout outdoor air temperature
     hp_min_comp_lockout_temp = OpenStudio::Measure::OSArgument.makeDoubleArgument('htg_to_clg_hp_ratio', true)
     hp_min_comp_lockout_temp.setDisplayName('Minimum outdoor air temperature that locks out heat pump compressor, F')
-    hp_min_comp_lockout_temp.setDefaultValue(1)
+    hp_min_comp_lockout_temp.setDefaultValue(0)
     hp_min_comp_lockout_temp.setDescription('Specifies minimum outdoor air temperature for locking out heat pump compressor. Heat pump heating does not operated below this temperature and backup heating will operate if heating is still needed.')
     args << hp_min_comp_lockout_temp
 
