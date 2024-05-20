@@ -123,7 +123,7 @@ class PlottingMixin():
                             categoryorder='array', categoryarray=np.array(list(color_map.keys())))
             fig.update_yaxes(mirror=True, showgrid=False, showline=True, ticks='outside', linewidth=1, linecolor='black', rangemode="tozero")
             fig.update_layout(title=None,  margin=dict(l=20, r=20, t=27, b=20), width=plot_width, legend_title=None, legend_traceorder="reversed",
-                            uniformtext_minsize=7, uniformtext_mode='hide', bargap=0.05)
+                            uniformtext_minsize=8, uniformtext_mode='hide', bargap=0.05)
             fig.update_layout(
                 font=dict(
                     size=12)
@@ -1754,6 +1754,7 @@ class PlottingMixin():
         # loop through plot types
         for savings_name, col_list in dict_saving.items():
 
+
             # remove unit from savings_name
             savings_name_wo_unit = savings_name.rsplit(" ", 1)[0]
 
@@ -1831,7 +1832,7 @@ class PlottingMixin():
         # make lists of columns; these savings columns should exist in dataframe
         dict_saving = {}
         li_eui_svgs_fuel_cols = [self.col_name_to_savings(self.col_name_to_area_intensity(c)) for c in ([self.UTIL_BILL_TOTAL_MEAN] + self.COLS_UTIL_BILLS)]
-        dict_saving['Utility Bill Savings Intensity by Fuel (kBtu/ft<sup>2</sup>)'] = li_eui_svgs_fuel_cols
+        dict_saving['Utility Bill Savings Intensity by Fuel (usd/sqft/year, 2022)'] = li_eui_svgs_fuel_cols
         li_pct_svgs_fuel_cols = [self.col_name_to_percent_savings(c, 'percent') for c in ([self.UTIL_BILL_TOTAL_MEAN] + self.COLS_UTIL_BILLS)]
         dict_saving['Percent Utility Bill Savings by Fuel (%)'] = li_pct_svgs_fuel_cols
 
@@ -1905,6 +1906,7 @@ class PlottingMixin():
             fig.update_xaxes(mirror=True, showgrid=True, zeroline=True, nticks=16, title=savings_name)
             fig.update_yaxes(mirror=True, showgrid=True, nticks=len(li_pct_svgs_fuel_cols), type='category', dtick=1)
             fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+            fig_name = fig_name.replace(r'_(usd/sqft/year,', '')
             fig_sub_dir = os.path.join(output_dir, 'savings_distributions')
             if not os.path.exists(fig_sub_dir):
                 os.makedirs(fig_sub_dir)
