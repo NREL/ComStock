@@ -33,7 +33,7 @@ def main(path):
 
         if not infomrationLines:
             logger.info(">>>>>>> This is Empty >>>>>> ", path, logpath)
-        #     continue
+            continue
 
         # timeDeltaFromCleanedLog = generate_nest_log_from_namedtuple(infomrationLines)
         timeDeltaFromCleanedLog = _generate_printable_log(infomrationLines)
@@ -71,7 +71,7 @@ def __compute_delta(timestamps):
     except ValueError: #the osw.out's start_time and end_time mixed with two kinds of formats.
         end_format = "%Y-%m-%dT%H:%M:%S.%f" 
         start_format = "%Y%m%dT%H%M%SZ"
-        return int(abs((datetime.strptime(timestamps[0], end_format) - datetime.strptime(timestamps[1], start_format)).total_seconds()))
+        return int(abs((datetime.strptime(timestamps[0], start_format) - datetime.strptime(timestamps[1], start_format)).total_seconds()))
 
 def __extract_running_log(tar_path):
     """
@@ -106,9 +106,33 @@ def _generate_printable_log(nestedLog: dict) -> dict:
     }]
 
     for tuple in nestedLog.get("step_info"):
+
         if len(tuple) == 2:
             detail = tuple[0].split(".")
+            if "result.total" in tuple[0]:
+                
+                temp.append({
+                    'upgrade_id': upgrade_id,
+                    'building_id': building_id,
+                    'type': 'step_detail',
+                    'measure_dir': detail[1],
+                    'workflow_substate': 'step',
+                    'name': "total",
+                    'measure_state': 'total',
+                    'time': tuple[1]
+                })
+                continue
+
             measure_total = tuple[1]
+
+            for existed in temp:
+                if existed['upgrade_id'] == upgrade_id \
+                    and existed['measure_dir'] == detail[1] \
+                    and existed['measure_state'] == 'total' \
+                    and existed['type'] == 'step_detail':
+                    print(existed['time'], existed['time'] - measure_total)
+                    existed['time'] -= measure_total
+                    print(existed['time'])
             temp.append({
             'upgrade_id': upgrade_id,
             'building_id': building_id,
@@ -119,9 +143,17 @@ def _generate_printable_log(nestedLog: dict) -> dict:
             'measure_state': 'total',
             'time': measure_total
             })
+
         else:
             measure_detail = tuple.pop(0).split(".")
             measure_total = tuple.pop()
+            for existed in temp:
+                if existed['upgrade_id'] == upgrade_id \
+                    and existed['measure_dir'] == detail[1] \
+                    and existed['measure_state'] == 'total' \
+                    and existed['type'] == 'step_detail':
+                    print(existed['time'], existed['time'] - measure_total)
+                    existed['time'] -= measure_total
             
             measure_datum = {
                 'upgrade_id': upgrade_id,
@@ -152,6 +184,9 @@ def _generate_printable_log(nestedLog: dict) -> dict:
             measure_datum['time'] = measure_total - sizing_total
             temp.append(measure_datum)    
     res['log_detail'] = temp
+    
+
+
     return res
 
 def cleanup_oringinal_log(originalLog: dict) -> dict:
@@ -160,8 +195,14 @@ def cleanup_oringinal_log(originalLog: dict) -> dict:
     the input dict should be the result from out.osw
     """
     res = {}
-    res["total_time"] = __compute_delta([originalLog.get("created_at") , originalLog.get("completed_at")])
+    # print(originalLog.get("completed_status"))
+    if originalLog.get("completed_status") != "Success":
+        logger.info(f"the log is not successfully completed: {originalLog.get('completed_status')}")
+        return res
+    
+    res["total_time"] = __compute_delta([originalLog.get("started_at") , originalLog.get("completed_at")])
     res['step_info'] = __cleanup_step_logs(originalLog.get("steps", []))
+    # print(res['step_info'])
     res['id'] = originalLog['id']
     return res
 
@@ -173,22 +214,41 @@ def __cleanup_step_logs(log: list) -> list:
     keyWord = {"Calling", "runtime", "Started simulation", "Finished simulation"}
     for idx, item in enumerate(log):
         #use the 'measure_dir_name' as the key to identify the step
-        for k, v in __flatten_dict(item, parent_key=f"step.{item.get('measure_dir_name')}").items():
-            # print(k, str(v)[:20])                
+        for k, v in __flatten_dict(item, parent_key=f"step.{item.get('measure_dir_name')}.{idx}").items():
+            # print(f"key: {k}, here")
+
+            if any(char in k for char in {"result.started_at", "result.completed_at"}):
+                step_info.append((k, idx, v))
+
             if "step_info" in k:
+                # print(k)
                 for idx, logline in enumerate(v):
                     if any(char in logline for char in keyWord):
+                        # print("here", k)
                         step_info.append((k, idx, logline.split("\n")[0]))
-    
+    # print(step_info)
     res = __build_namedtuple_from_log(step_info)
     
     return res
 
 def __build_namedtuple_from_log(step_log: list) -> list:
+    print(step_log)
     queue = deque([])
 
     measure = []
-    for key, lineNum, logline in step_log:
+    step_time = {}
+    for key, _, logline in step_log:
+        
+        if "step" in key and "result.completed_at" in key:
+            step_index = ".".join(key.split(".")[:3])
+            step_time[step_index] = logline
+        
+        if "step" in key and "result.started_at" in key:
+            step_index = ".".join(key.split(".")[:3])
+            # queue.append()
+            # print(f"for step {step_index} the total time is ", __compute_delta([logline, step_time[step_index]]))
+            queue.append([step_index + ".result.total", __compute_delta([logline, step_time[step_index]])])
+
         if "Calling" in logline:
             measure.append(key + "." + logline.split(" ")[1])      
 
@@ -214,6 +274,7 @@ def __build_namedtuple_from_log(step_log: list) -> list:
                     starttime = tuple[1]
                     delta = __compute_delta([starttime, sr_time])
                     tuple[1] = delta 
+    # print(step_time)
     return queue
     
 
@@ -263,4 +324,8 @@ if __name__ == "__main__":
     path = sys.argv[1]
     # print(f"we are processing the tar.gz file from {path}")
     main(path)
+    # for k,v in _generate_printable_log(develop_cleanup_oringinal_log(path)).items():
+    #     print(k)
+    #     for item in v:
+    #         print(item)
     # _generate_printable_log(develop_cleanup_oringinal_log(path))
