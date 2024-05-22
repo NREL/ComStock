@@ -4,14 +4,16 @@ ruby "~> 3.2.0"
 # Bug in addressable to 2.8.1 and patched version has an issue https://github.com/NREL/OpenStudio/issues/4870
 gem 'addressable', '= 2.8.1'
 
-gem 'bcl', "= 0.8.0", :github => 'NREL/bcl-gem', :ref => '3c60cadc781410819e7c9bfb8d7ba1af146d9abd'
-gem 'openstudio-extension', '= 0.8.0',:github => 'NREL/openstudio-extension-gem', :ref => '2e86077dce1688443cca462feda3239ef47c232c'
-gem 'openstudio-workflow', '= 2.4.0', :github => 'NREL/OpenStudio-workflow-gem', :ref => '32126e9b9f6bd6ed1ee55331f6dadbb3ba1e7cd2'
-# gem 'openstudio-standards', '= 0.6.0.rc2' # , :github => 'NREL/openstudio-standards', :ref => 'v0.6.0.rc1'
+# This removes the rubocop runtime dependency on 'json ~> 2.3'.
+gem 'rubocop', :github => 'jmarrec/rubocop', :ref => '1.50.0-no_json'
+
+gem 'bcl', "= 0.8.0"
+gem 'openstudio-extension', '= 0.8.0'
+gem 'openstudio-workflow', '= 2.4.0'
+# gem 'openstudio-standards', '= 0.6.1'
 gem 'openstudio-standards', git: 'https://github.com/NREL/openstudio-standards.git', ref: '40f794b0401cbbb500b70b76ea04c523084c02c7'
 # gem 'openstudio-standards', path: "C:/GitRepos/openstudio-standards" # Use this format when testing openstudio-standards changes locally
-gem 'tbd', :github => 'rd2/tbd', :ref => 'v3.4.1'
-gem 'openstudio_measure_tester', '= 0.4.0', :github => 'NREL/OpenStudio-measure-tester-gem', :ref => '89b9b7eb5f2d2ef91e225585a09e076577f25d4a'
+gem 'tbd', '= 3.4.1'
 gem 'openstudio-geb', '= 0.4.0',:github => 'LBNL-ETA/Openstudio-GEB-gem', :ref => 'a18e023936dd5c92be7dbf354f6331f60a965828'
 
 group :test do

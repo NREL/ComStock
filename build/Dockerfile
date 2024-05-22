@@ -2,7 +2,7 @@
 # See top level LICENSE.txt file for license terms.
 
 # OpenStudio base image (https://hub.docker.com/r/nrel/openstudio/tags)
-FROM nrel/openstudio:dev-3.8.0-rc2 as os-base
+FROM nrel/openstudio:3.8.0 as os-base
 
 LABEL maintainer="Henry (Ry) Horsey henry.horsey@nrel.gov"
 
