@@ -141,7 +141,7 @@ class CommercialBaseSobolSampler(BuildStockSampler):
                 'hvac_system', 'hvac_tst', 'rotation', 'duration', 'start_time', 'number_stories',
                 'wall_construction_type', 'airtightness', 'fault_economizer_damper_fully_closed', 'fault_economizer_db_limit',
                 'energy_code_compliance_hvac', 'energy_code_in_force_during_last_hvac', 'energy_code_followed_during_last_hvac',
-                'year_bin_of_last_hvac'
+                'year_bin_of_last_hvac','vav_min_damper_pos'
             ],
             [
                 'cook', 'ground_thermal_conductivity'
@@ -156,7 +156,7 @@ class CommercialBaseSobolSampler(BuildStockSampler):
                 'energy_code_compliance_w', 'energy_code_compliance_service',
                 'energy_code_in_force_during_last_w', 'energy_code_in_force_during_last_service',
                 'energy_code_followed_during_last_w', 'energy_code_followed_during_last_service',
-                'year_bin_of_last_w', 'year_bin_of_last_service','vav_min_damper_pos'
+                'year_bin_of_last_w', 'year_bin_of_last_service'
             ]
         ]
 
