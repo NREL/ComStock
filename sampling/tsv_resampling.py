@@ -15,7 +15,6 @@ import shutil
 import tempfile
 from warnings import warn
 import zipfile
-
 from buildstockbatch.sampler.sobol_lib import i4_sobol_generate
 
 logger = logging.getLogger(__name__)
@@ -157,7 +156,7 @@ class CommercialBaseSobolSampler(BuildStockSampler):
                 'energy_code_compliance_w', 'energy_code_compliance_service',
                 'energy_code_in_force_during_last_w', 'energy_code_in_force_during_last_service',
                 'energy_code_followed_during_last_w', 'energy_code_followed_during_last_service',
-                'year_bin_of_last_w', 'year_bin_of_last_service'
+                'year_bin_of_last_w', 'year_bin_of_last_service','vav_min_damper_pos'
             ]
         ]
 
@@ -171,7 +170,7 @@ class CommercialBaseSobolSampler(BuildStockSampler):
                     dependency_columns = [item for item in list(tsv_df) if 'Dependency=' in item]
                     tsv_df[dependency_columns] = tsv_df[dependency_columns].astype('str')
                     total_tsv_hash[tsv_file.replace('.tsv', '')] = tsv_df
-        
+
         for array in tsv_arrays:
             print(array)
             tsv_hash = {}
@@ -264,7 +263,7 @@ class CommercialBaseSobolSampler(BuildStockSampler):
             else:
                 raise RuntimeError('Unable to resolve the dependency tree within the set iteration limit')
         return dependency_hash, attr_order
-        
+
 
     @staticmethod
     def _com_execute_sample(tsv_hash, dependency_hash, attr_order, sample_matrix, sample_index, total_tsv_hash, tsv_arrays, n_array, prev_results=None):
@@ -294,7 +293,7 @@ class CommercialBaseSobolSampler(BuildStockSampler):
             prev_arrays = list(set(prev_arrays))
             for prev_attr in total_tsv_hash.keys():
                 if any(item in prev_attr for item in prev_arrays):
-                    sample_dependency_hash[prev_attr] = [item.replace('Dependency=', '') for item in 
+                    sample_dependency_hash[prev_attr] = [item.replace('Dependency=', '') for item in
                                                          list(total_tsv_hash[prev_attr]) if 'Dependency=' in item]
         attr_order = []
         for attr in sample_dependency_hash.keys():
@@ -364,7 +363,7 @@ def parse_arguments():
     parser.add_argument('hvac_sizing', type=str, help='Enter "autosize" or "hardsize" to indicate whether the models should have their HVAC systems autosized or hardsized')
     parser.add_argument('-v', '--verbose', action='store_true', help='Enables verbose debugging outputs')
     argument = parser.parse_args()
-    
+
     if argument.verbose:
         logger.setLevel('DEBUG')
     return argument
