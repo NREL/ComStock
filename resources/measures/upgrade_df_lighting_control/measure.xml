@@ -1,15 +1,15 @@
 <?xml version="1.0"?>
 <measure>
   <schema_version>3.1</schema_version>
-  <name>df_thermostat_control_load_shed</name>
-  <uid>294061d5-3d42-486b-9e93-00477d201cfe</uid>
-  <version_id>c82c80d4-f339-462a-9189-494a32f5d6d7</version_id>
-  <version_modified>2024-05-01T19:47:56Z</version_modified>
+  <name>df_lighting_control</name>
+  <uid>8de4bbcc-0430-4f71-8131-0467cbb6f9a4</uid>
+  <version_id>c87ff6b4-f776-4686-94ce-0509bd67fecb</version_id>
+  <version_modified>2024-05-13T19:10:00Z</version_modified>
   <xml_checksum>D7E77FC2</xml_checksum>
-  <class_name>DfThermostatControlLoadShed</class_name>
-  <display_name>demand flexibility - thermostat control load shed</display_name>
-  <description>This measure implements demand flexibility measure on daily thermostat control with load shed strategy, by adjusting thermostat setpoints (increasing the deadband) corresponding to the peak schedule based on daily peak load prediction.</description>
-  <modeler_description>This measure performs load prediction based on options of full baseline run, bin-sample method and par year bin-sample method. It generates daily peak schedule based on the load prediction, and then iterates through all applicable (electric) thermostats to adjust the cooling and heating setpoints for daily peak window.</modeler_description>
+  <class_name>DFLightingControl</class_name>
+  <display_name>demand flexibility - lighting control</display_name>
+  <description>This measure implements demand flexibility measure on daily lighting control with load shed strategy, by adjusting Lighting Power Density (reflecting lighting dimming) corresponding to the peak schedule based on daily peak load prediction.</description>
+  <modeler_description>This measure</modeler_description>
   <arguments>
     <argument>
       <name>peak_len</name>
@@ -20,20 +20,12 @@
       <default_value>4</default_value>
     </argument>
     <argument>
-      <name>rebound_len</name>
-      <display_name>Length of rebound period after dispatch window (hour)</display_name>
-      <type>Integer</type>
-      <required>true</required>
-      <model_dependent>false</model_dependent>
-      <default_value>2</default_value>
-    </argument>
-    <argument>
-      <name>sp_adjustment</name>
-      <display_name>Degrees C to Adjust Setpoint By</display_name>
+      <name>light_adjustment</name>
+      <display_name>Percentage to decrease light dimming/LPD by (0-100)</display_name>
       <type>Double</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
-      <default_value>2</default_value>
+      <default_value>30</default_value>
     </argument>
     <argument>
       <name>num_timesteps_in_hr</name>
@@ -45,7 +37,7 @@
     </argument>
     <argument>
       <name>load_prediction_method</name>
-      <display_name>Method of load prediction (full baseline run, bin sample, part year bin sample)</display_name>
+      <display_name>Method of load prediction (full baseline run, bin sample, part year bin sample, fixed schedule, outdoor air temperature-based)</display_name>
       <type>Choice</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -63,7 +55,23 @@
           <value>part year bin sample</value>
           <display_name>part year bin sample</display_name>
         </choice>
+        <choice>
+          <value>fix</value>
+          <display_name>fix</display_name>
+        </choice>
+        <choice>
+          <value>oat</value>
+          <display_name>oat</display_name>
+        </choice>
       </choices>
+    </argument>
+    <argument>
+      <name>peak_lag</name>
+      <display_name>Time lag of peak responding to temperature peak (hour), for oat prediction method only</display_name>
+      <type>Integer</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>2</default_value>
     </argument>
   </arguments>
   <outputs />
@@ -117,25 +125,25 @@
     <file>
       <version>
         <software_program>OpenStudio</software_program>
-        <identifier>3.5.1</identifier>
-        <min_compatible>3.5.1</min_compatible>
+        <identifier>3.7.0</identifier>
+        <min_compatible>3.7.0</min_compatible>
       </version>
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>1C50D2AC</checksum>
+      <checksum>6F52A666</checksum>
     </file>
     <file>
       <filename>dispatch_schedule_generation.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>A337CB51</checksum>
+      <checksum>F12C9CA4</checksum>
     </file>
     <file>
-      <filename>df_thermostat_control_load_shed_test.rb</filename>
+      <filename>df_lighting_control_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>EECEC6B2</checksum>
+      <checksum>1E696C5C</checksum>
     </file>
   </files>
 </measure>
