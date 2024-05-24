@@ -1,0 +1,168 @@
+<?xml version="1.0"?>
+<measure>
+  <schema_version>3.1</schema_version>
+  <name>add_air_barrier</name>
+  <uid>9ff6f5e3-1cdf-4531-b691-6a0c4e16d1e6</uid>
+  <version_id>6bb6f7f0-1381-42f7-bfab-2f1ebcb9c9cc</version_id>
+  <version_modified>2024-05-24T03:49:47Z</version_modified>
+  <xml_checksum>F7D6EC51</xml_checksum>
+  <class_name>AddAirBarrier</class_name>
+  <display_name>AddAirBarrier</display_name>
+  <description>This measure incorporates infiltration that varies with weather and HVAC operation, and takes into account building geometry (height, above-ground exterior surface area, and volume). It is based on work published by Ng et al. (2018) 'Weather correlations to calculate infiltration rates for U.S. commercial building energy models' and Ng et al. (2021) 'Evaluating potential benefits of air barriers in commercial buildings using NIST infiltration correlations in EnergyPlus'. This method of calculating infiltration was developed using eleven of the DOE commercial prototype building models (Goel et al. 2014) and TMY3 weather files for eight climate zones (CZ). Guidance on implementing the infiltration correlations are explained in the NIST technical report 'Implementing NIST Infiltration Correlations'. Ng et al. (2018) shows that when analyzing the benefits of building envelope airtightening, greater HVAC energy savings were predicted using the infiltration inputs included in this Measure compared with using the default inputs that are included in the prototype building models. Brian Polidoro (NIST) first developed this Measure in 2015 and updated it in 2018 and 2019. Matthew Dahlhausen (NREL) updated the 2019 Measure and published this current version in 2023. To provide feedback on the NIST infiltration correlations, please email infiltration@list.nist.gov or lisa.ng@nist.gov. For measure implementation questions or issues, contact matthew.dahlhausen@nrel.gov.</description>
+  <modeler_description>This measure will remove any existing infiltration objects (OS:SpaceInfiltration:DesignFlowRate and OS:SpaceInfiltration:EffectiveLeakageArea). Every zone will then get two OS:SpaceInfiltration:DesignFlowRate objects that add infiltration using the 'Flow per Exterior Surface Area' input option, one infiltration object when the HVAC system is on and one object when the HVAC system is off. The method assumes that HVAC operation is set by a schedule, though it may not reflect actual simulation/operation when fan operation may depend on internal loads and temperature setpoints. By default, interior zones will receive no infiltration. The user may enter a design building envelope airtightness at a specific design pressure, and whether the design value represents a 4-sided, 5-sided, or 6-sided normalization.  By default, the measure assumes an airtightness design value of 13.8 (m^3/h-m^2) at 75 Pa. The measure assumes that infiltration is evenly distributed across the entire building envelope, including the roof. The user may select the HVAC system operating schedule in the model, or infer it based on the availability schedule of the air loop that serves the largest amount of floor area. The measure will make a copy of the HVAC operating schedule, 'Infiltration HVAC On Schedule', which is used with the HVAC on infiltration correlations.  The measure will also make an 'Infiltration HVAC Off Schedule' with inverse operation, used with the HVAC off infiltration correlations. OS:SpaceInfiltration:DesignFlowRate object coefficients (A, B, C, and D) come from Ng et al. (2018). The user may select the Building Type and Climate Zone, or the measure will infer them from the model.</modeler_description>
+  <arguments />
+  <outputs />
+  <provenances />
+  <tags>
+    <tag>Envelope.Infiltration</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Model Articulation</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Measure Language</name>
+      <value>Ruby</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Retrofit EE</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>LICENSE.md</filename>
+      <filetype>md</filetype>
+      <usage_type>license</usage_type>
+      <checksum>26A358DA</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>0B1656D7</checksum>
+    </file>
+    <file>
+      <filename>README.md.erb</filename>
+      <filetype>erb</filetype>
+      <usage_type>readmeerb</usage_type>
+      <checksum>F1C26127</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>3.4.0</identifier>
+        <min_compatible>3.4.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>77CDF555</checksum>
+    </file>
+    <file>
+      <filename>Data-NISTInfiltrationCorrelations.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>FC1FA7E1</checksum>
+    </file>
+    <file>
+      <filename>bldg0000003.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>5ADBE6F3</checksum>
+    </file>
+    <file>
+      <filename>bldg0000004.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>6274AD32</checksum>
+    </file>
+    <file>
+      <filename>bldg0000005.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>2174B2C9</checksum>
+    </file>
+    <file>
+      <filename>bldg0000025.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>25F2C0A6</checksum>
+    </file>
+    <file>
+      <filename>bldg0000031.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>0F4FB0CF</checksum>
+    </file>
+    <file>
+      <filename>bldg0000043.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>C7374FBD</checksum>
+    </file>
+    <file>
+      <filename>bldg0000045.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>C6912F55</checksum>
+    </file>
+    <file>
+      <filename>bldg0000053.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>B160EBF4</checksum>
+    </file>
+    <file>
+      <filename>bldg0000082.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>761CC6B3</checksum>
+    </file>
+    <file>
+      <filename>upgrade_add_air_barrier_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>7DED49AA</checksum>
+    </file>
+  </files>
+</measure>
