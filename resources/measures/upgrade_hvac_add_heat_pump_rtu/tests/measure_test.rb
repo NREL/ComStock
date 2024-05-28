@@ -179,6 +179,128 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert_equal('econ', arguments[9].name)
   end
 
+  def calc_cfm_per_ton_singlespdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
+    # process heating coils
+    coils_heating = model.getCoilHeatingDXSingleSpeeds
+    refute_equal(coils_heating.size, 0)
+    coils_heating.each do |heating_coil|
+      # get coil specs
+      if heating_coil.ratedTotalHeatingCapacity.is_initialized
+        rated_capacity_w = heating_coil.ratedTotalHeatingCapacity.get
+      end
+      rated_airflow_m_2_per_sec = heating_coil.ratedAirFlowRate.get if heating_coil.ratedAirFlowRate.is_initialized
+
+      # calc relevant metrics
+      rated_capacity_ton = OpenStudio.convert(rated_capacity_w, 'W', 'ton').get
+      rated_airflow_cfm = OpenStudio.convert(rated_airflow_m_2_per_sec, 'm^3/s', 'cfm').get
+      cfm_per_ton = rated_airflow_cfm / rated_capacity_ton
+      puts('### DEBUGGING: ---------------------------------------------------------')
+      puts("### DEBUGGING: heating_coil = #{heating_coil.name}")
+      puts("### DEBUGGING: rated_airflow_cfm = #{rated_airflow_cfm.round(0)} cfm")
+      puts("### DEBUGGING: rated_capacity_ton = #{rated_capacity_ton.round(2)} ton")
+      puts("### DEBUGGING: cfm/ton = #{cfm_per_ton.round(2)} cfm/ton")
+
+      # check if resultant cfm/ton is violating min/max bounds
+      assert_equal(cfm_per_ton >= cfm_per_ton_min, true)
+      assert_equal(cfm_per_ton <= cfm_per_ton_max, true)
+    end
+  end
+
+  def calc_cfm_per_ton_multispdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
+    # process heating coils
+    coils_heating = model.getCoilHeatingDXMultiSpeedStageDatas
+    refute_equal(coils_heating.size, 0)
+    coils_heating.each do |heating_coil|
+      # get coil specs
+      if heating_coil.grossRatedHeatingCapacity.is_initialized
+        rated_capacity_w = heating_coil.grossRatedHeatingCapacity.get
+      end
+      rated_airflow_m_2_per_sec = heating_coil.ratedAirFlowRate.get if heating_coil.ratedAirFlowRate.is_initialized
+
+      # calc relevant metrics
+      rated_capacity_ton = OpenStudio.convert(rated_capacity_w, 'W', 'ton').get
+      rated_airflow_cfm = OpenStudio.convert(rated_airflow_m_2_per_sec, 'm^3/s', 'cfm').get
+      cfm_per_ton = rated_airflow_cfm / rated_capacity_ton
+      puts('### DEBUGGING: ---------------------------------------------------------')
+      puts("### DEBUGGING: heating_coil = #{heating_coil.name}")
+      puts("### DEBUGGING: rated_airflow_cfm = #{rated_airflow_cfm.round(0)} cfm")
+      puts("### DEBUGGING: rated_capacity_ton = #{rated_capacity_ton.round(2)} ton")
+      puts("### DEBUGGING: cfm/ton = #{cfm_per_ton.round(2)} cfm/ton")
+
+      # check if resultant cfm/ton is violating min/max bounds
+      assert_equal(cfm_per_ton >= cfm_per_ton_min, true)
+      assert_equal(cfm_per_ton <= cfm_per_ton_max, true)
+    end
+  end
+
+  def calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
+    # process cooling coils
+    coils_cooling = model.getCoilCoolingDXMultiSpeedStageDatas
+    refute_equal(coils_cooling.size, 0)
+    coils_cooling.each do |cooling_coil|
+      # get coil specs
+      if cooling_coil.grossRatedTotalCoolingCapacity.is_initialized
+        rated_capacity_w = cooling_coil.grossRatedTotalCoolingCapacity.get
+      end
+      rated_airflow_m_2_per_sec = cooling_coil.ratedAirFlowRate.get if cooling_coil.ratedAirFlowRate.is_initialized
+
+      # calc relevant metrics
+      rated_capacity_ton = OpenStudio.convert(rated_capacity_w, 'W', 'ton').get
+      rated_airflow_cfm = OpenStudio.convert(rated_airflow_m_2_per_sec, 'm^3/s', 'cfm').get
+      cfm_per_ton = rated_airflow_cfm / rated_capacity_ton
+      puts('### DEBUGGING: ---------------------------------------------------------')
+      puts("### DEBUGGING: cooling_coil = #{cooling_coil.name}")
+      puts("### DEBUGGING: rated_airflow_cfm = #{rated_airflow_cfm.round(0)} cfm")
+      puts("### DEBUGGING: rated_capacity_ton = #{rated_capacity_ton.round(2)} ton")
+      puts("### DEBUGGING: cfm/ton = #{cfm_per_ton.round(2)} cfm/ton")
+
+      # check if resultant cfm/ton is violating min/max bounds
+      assert_equal(cfm_per_ton >= cfm_per_ton_min, true)
+      assert_equal(cfm_per_ton <= cfm_per_ton_max, true)
+    end
+  end
+
+  def verify_cfm_per_ton(model)
+    # define min and max limits of cfm/ton
+    cfm_per_ton_min = 300
+    cfm_per_ton_max = 450
+
+    # Create an instance of the measure
+    measure = AddHeatPumpRtu.new
+
+    # get arguments
+    arguments = measure.arguments(model)
+
+    # initialize parameters
+    performance_category = nil
+    rated_airflow_m_2_per_sec = nil
+    rated_capacity_w = nil
+
+    # populate argument with specified hash value if specified
+    arguments.each do |arg|
+      performance_category = if arg == 'std_perf'
+                               'standard'
+                             else
+                               'advanced'
+                             end
+    end
+    puts("### DEBUGGING: performance_category = #{performance_category}")
+    refute_equal(performance_category, nil)
+
+    # loop through coils and check cfm/ton values
+    if performance_category.include?('advanced')
+
+      calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
+      calc_cfm_per_ton_multispdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
+
+    elsif performance_category.include?('standard')
+
+      calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
+      calc_cfm_per_ton_singlespdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
+
+    end
+  end
+
   def verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
     # get initial gas heating coils
     li_gas_htg_coils_initial = model.getCoilHeatingGass
@@ -577,6 +699,9 @@ class AddHeatPumpRtuTest < Minitest::Test
     kitchen_htg_coils_final.each do |htg_coil|
       assert(htg_coil.to_CoilHeatingGas.is_initialized)
     end
+
+    # assert cfm/ton violation
+    verify_cfm_per_ton(model)
   end
 
   ###########################################################################
