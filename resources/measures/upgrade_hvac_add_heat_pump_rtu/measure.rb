@@ -1551,7 +1551,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # evidence data for 0.59 saved in ComStock Teams (high_low_cap_diff_new tab in this spreadsheet): https://nrel.sharepoint.com/:x:/r/sites/comstock/Shared%20Documents/ComStock%20Filing%20Cabinet/Efforts/Measures/HVAC%20-%20Heat%20Pump%20RTU%20std%20performance/performance%20data/231120_PerformanceMaps_RepresentativeMapsGeneration_capacity.xlsx?d=wb0f18bab656a45b68b8da9fbe74dec2a&csf=1&web=1&e=BKnHUx
       if std_perf
         clg_airflow_stage3 = 0.59 * htg_airflow_stage4
-        runner.registerInfo("(standard performance) for air loop (#{air_loop_hvac.name}), overriding stage 3 factor for airflow to #{clg_airflow_stage3} for modeling standard performance.")
+        runner.registerInfo("(standard performance) for air loop (#{air_loop_hvac.name}), overriding stage 3 factor for airflow to 0.59 for modeling standard performance.")
       else
         clg_airflow_stage3 = htg_airflow_stage3
       end
@@ -1671,7 +1671,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # evidence data for 0.50 saved in ComStock Teams (high_low_cap_diff_new tab in this spreadsheet): https://nrel.sharepoint.com/:x:/r/sites/comstock/Shared%20Documents/ComStock%20Filing%20Cabinet/Efforts/Measures/HVAC%20-%20Heat%20Pump%20RTU%20std%20performance/performance%20data/231120_PerformanceMaps_RepresentativeMapsGeneration_capacity.xlsx?d=wb0f18bab656a45b68b8da9fbe74dec2a&csf=1&web=1&e=BKnHUx
       if std_perf
         stage3_factor = 0.50
-        runner.registerInfo("(standard performance) for air loop (#{air_loop_hvac.name}), overriding stage 3 factor for capacity to #{stage3_factor} for modeling standard performance.")
+        runner.registerInfo("(standard performance) for air loop (#{air_loop_hvac.name}), overriding stage 3 factor for capacity to 0.5 for modeling standard performance.")
       else
         stage3_factor = 0.67
       end
@@ -1680,6 +1680,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       clg_stage3 = dx_rated_clg_cap_applied * stage3_factor
       clg_stage4 = dx_rated_clg_cap_applied
       hash_clg_cap_stgs = { 1 => clg_stage1, 2 => clg_stage2, 3 => clg_stage3, 4 => clg_stage4 }
+      final_rated_airflow_cfm = OpenStudio.convert(htg_airflow_stage4, 'm^3/s', 'cfm').get.round(0)
+      final_rated_capacity_ton = OpenStudio.convert(dx_rated_clg_cap_applied, 'W', 'ton').get.round(1)
+      runner.registerInfo("### final rated airflow rate = #{htg_airflow_stage4.round(6)} m3/sec = #{final_rated_airflow_cfm} cfm")
+      runner.registerInfo("### final rated capacity = #{dx_rated_clg_cap_applied.round(2)} W = #{final_rated_capacity_ton} ton")
+      runner.registerInfo("### final rated CFM/ton = #{(final_rated_airflow_cfm/final_rated_capacity_ton).round(2)}")
 
       ################################################
       # puts "Analysis..."
