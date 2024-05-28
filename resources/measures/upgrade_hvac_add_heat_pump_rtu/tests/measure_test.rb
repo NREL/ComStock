@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
@@ -41,58 +43,53 @@ require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
 require 'fileutils'
 require 'minitest/autorun'
-require_relative '../measure.rb'
+require_relative '../measure'
 require_relative '../../../../test/helpers/minitest_helper'
 
-
 class AddHeatPumpRtuTest < Minitest::Test
-
   # return file paths to test models in test directory
   def models_for_tests
     paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/models/*.osm'))
-    paths = paths.map { |path| File.expand_path(path) }
-    return paths
+    paths.map { |path| File.expand_path(path) }
   end
 
   # return file paths to epw files in test directory
   def epws_for_tests
     paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/weather/*.epw'))
-    paths = paths.map { |path| File.expand_path(path) }
-    return paths
+    paths.map { |path| File.expand_path(path) }
   end
 
   def load_model(osm_path)
     translator = OpenStudio::OSVersion::VersionTranslator.new
     model = translator.loadModel(OpenStudio::Path.new(osm_path))
     assert(!model.empty?)
-    model = model.get
-    return model
+    model.get
   end
 
   def run_dir(test_name)
     # always generate test output in specially named 'output' directory so result files are not made part of the measure
-    return "#{File.dirname(__FILE__)}/output/#{test_name}"
+    "#{File.dirname(__FILE__)}/output/#{test_name}"
   end
 
   def model_input_path(osm_name)
     # return models_for_tests.select { |x| set[:model] == osm_name }
-    return File.join(File.dirname(__FILE__), '../../../tests/models', osm_name)
+    File.join(File.dirname(__FILE__), '../../../tests/models', osm_name)
   end
 
   def epw_input_path(epw_name)
-    return File.join(File.dirname(__FILE__), '../../../tests/weather', epw_name)
+    File.join(File.dirname(__FILE__), '../../../tests/weather', epw_name)
   end
 
   def model_output_path(test_name)
-    return "#{run_dir(test_name)}/#{test_name}.osm"
+    "#{run_dir(test_name)}/#{test_name}.osm"
   end
 
   def sql_path(test_name)
-    return "#{run_dir(test_name)}/run/eplusout.sql"
+    "#{run_dir(test_name)}/run/eplusout.sql"
   end
 
   def report_path(test_name)
-    return "#{run_dir(test_name)}/reports/eplustbl.html"
+    "#{run_dir(test_name)}/reports/eplustbl.html"
   end
 
   # applies the measure and then runs the model
@@ -101,9 +98,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert(File.exist?(epw_path))
 
     # create run directory if it does not exist
-    if !File.exist?(run_dir(test_name))
-      FileUtils.mkdir_p(run_dir(test_name))
-    end
+    FileUtils.mkdir_p(run_dir(test_name)) unless File.exist?(run_dir(test_name))
     assert(File.exist?(run_dir(test_name)))
 
     # change into run directory for tests
@@ -111,12 +106,8 @@ class AddHeatPumpRtuTest < Minitest::Test
     Dir.chdir run_dir(test_name)
 
     # remove prior runs if they exist
-    if File.exist?(model_output_path(test_name))
-      FileUtils.rm(model_output_path(test_name))
-    end
-    if File.exist?(report_path(test_name))
-      FileUtils.rm(report_path(test_name))
-    end
+    FileUtils.rm(model_output_path(test_name)) if File.exist?(model_output_path(test_name))
+    FileUtils.rm(report_path(test_name)) if File.exist?(report_path(test_name))
 
     # copy the osm and epw to the test directory
     new_osm_path = "#{run_dir(test_name)}/#{File.basename(osm_path)}"
@@ -127,9 +118,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
 
     # load the test model
-    if model.nil?
-      model = load_model(new_osm_path)
-    end
+    model = load_model(new_osm_path) if model.nil?
 
     # set model weather file
     epw_file = OpenStudio::EpwFile.new(OpenStudio::Path.new(new_epw_path))
@@ -161,7 +150,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     # change back directory
     Dir.chdir(start_dir)
 
-    return result
+    result
   end
 
   def test_number_of_arguments_and_argument_names
@@ -188,182 +177,177 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert_equal('hr', arguments[7].name)
     assert_equal('dcv', arguments[8].name)
     assert_equal('econ', arguments[9].name)
-
   end
 
   def verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
-     # get initial gas heating coils
-     li_gas_htg_coils_initial = model.getCoilHeatingGass
-	
-     # get initial number of applicable air loops
-     li_unitary_sys_initial = model.getAirLoopHVACUnitarySystems
- 
-     # get initial unitary system schedules for outdoor air and general operation
-     # these will be compared against applied HP-RTU system
-     dict_oa_sched_min_initial={}
-     dict_min_oa_initial={}
-     dict_max_oa_initial={}
-     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
-       
-       # get thermal zone for dictionary mapping
-       thermal_zone = air_loop_hvac.thermalZones[0]
- 
-       # get OA schedule from OA controller
-       oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
-       controller_oa = oa_system.getControllerOutdoorAir
-       oa_schedule = controller_oa.minimumOutdoorAirSchedule.get
-       dict_oa_sched_min_initial[thermal_zone] = oa_schedule
- 
-       # get min/max outdoor air flow rate
-       min_oa = controller_oa.minimumOutdoorAirFlowRate
-       max_oa = controller_oa.maximumOutdoorAirFlowRate
-       dict_min_oa_initial[thermal_zone] = min_oa
-       dict_max_oa_initial[thermal_zone] = max_oa
-     end
- 
-     # Apply the measure to the model and optionally run the model
-     result = apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false)
-     assert_equal('Success', result.value.valueName)
-     model = load_model(model_output_path(test_name))
- 
-     # get final gas heating coils
-     li_gas_htg_coils_final = model.getCoilHeatingGass
- 
-     # assert gas heating coils have been removed
-     assert_equal(li_gas_htg_coils_final.size, 0)
- 
-     # get list of final unitary systems
-     li_unitary_sys_final = model.getAirLoopHVACUnitarySystems
- 
-     # assert same number of unitary systems as initial
-     assert_equal(li_unitary_sys_initial.size, li_unitary_sys_final.size)
- 
-     # get final unitary system schedules for outdoor air and general operation
-     # these will be compared against original system
-     dict_oa_sched_min_final={}
-     dict_min_oa_final={}
-     dict_max_oa_final={}
-     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
-       
-       # get thermal zone for dictionary mapping
-       thermal_zone = air_loop_hvac.thermalZones[0]
- 
-       # get OA schedule from OA controller
-       oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
-       controller_oa = oa_system.getControllerOutdoorAir
-       oa_schedule = controller_oa.minimumOutdoorAirSchedule.get
-       dict_oa_sched_min_final[thermal_zone] = oa_schedule
- 
-       # get min/max outdoor air flow rate
-       min_oa = controller_oa.minimumOutdoorAirFlowRate.get
-       max_oa = controller_oa.maximumOutdoorAirFlowRate.get
-       dict_min_oa_final[thermal_zone] = min_oa
-       dict_max_oa_final[thermal_zone] = max_oa
-     end
- 
-     # assert outdoor air values match between initial and new system
-     model.getThermalZones.sort.each do |thermal_zone|
-       assert_equal(dict_oa_sched_min_initial[thermal_zone], dict_oa_sched_min_final[thermal_zone])
-       assert_in_delta(dict_min_oa_initial[thermal_zone].to_f, dict_min_oa_final[thermal_zone].to_f, 0.001)
-       assert_in_delta(dict_max_oa_initial[thermal_zone].to_f, dict_max_oa_final[thermal_zone].to_f, 0.001)
-     end
- 
-     # assert characteristics of new unitary systems
-     li_unitary_sys_final.sort.each do |system|
- 
-       # assert new unitary systems all have variable speed fans
-       fan = system.supplyFan.get
-       assert(fan.to_FanVariableVolume.is_initialized)
- 
-       # ***heating***
-       # assert new unitary systems all have multispeed DX heating coils
-       htg_coil = system.heatingCoil.get
-       assert(htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized)
-       htg_coil = htg_coil.to_CoilHeatingDXMultiSpeed.get
-       
-       # assert multispeed heating coil has 4 stages
-       assert_equal(htg_coil.numberOfStages, 4)
-       htg_coil_spd4 = htg_coil.stages[3]
- 
-       # assert speed 4 flowrate matches design flow rate
-       htg_dsn_flowrate = system.supplyAirFlowRateDuringHeatingOperation
-       assert_equal(htg_dsn_flowrate.to_f, htg_coil_spd4.ratedAirFlowRate.to_f)
-       
-       # assert flow rate reduces for lower speeds
-       htg_coil_spd3 = htg_coil.stages[2]
-       htg_coil_spd2 = htg_coil.stages[1]
-       htg_coil_spd1 = htg_coil.stages[0]
-       assert(htg_coil_spd4.ratedAirFlowRate.to_f > htg_coil_spd3.ratedAirFlowRate.to_f)
-       assert(htg_coil_spd3.ratedAirFlowRate.to_f > htg_coil_spd2.ratedAirFlowRate.to_f)
-       assert(htg_coil_spd2.ratedAirFlowRate.to_f > htg_coil_spd1.ratedAirFlowRate.to_f)
- 
-       # assert capacity reduces for lower speeds
-       assert(htg_coil_spd4.grossRatedHeatingCapacity.to_f > htg_coil_spd3.grossRatedHeatingCapacity.to_f)
-       assert(htg_coil_spd3.grossRatedHeatingCapacity.to_f > htg_coil_spd2.grossRatedHeatingCapacity.to_f)
-       assert(htg_coil_spd2.grossRatedHeatingCapacity.to_f > htg_coil_spd1.grossRatedHeatingCapacity.to_f)
- 
-       # assert flow per capacity is within range for all stages; added 1% tolerance
-       # min = 4.03e-05 m3/s/watt; max = 6.041e-05 m3/s/watt; 
-       min_flow_per_cap = 4.027e-05*0.99999
-       max_flow_per_cap = 6.041e-05*1.000001
-       htg_coil_spd4_cfm_per_ton = htg_coil_spd4.ratedAirFlowRate.to_f / htg_coil_spd4.grossRatedHeatingCapacity.to_f
-       htg_coil_spd3_cfm_per_ton = htg_coil_spd3.ratedAirFlowRate.to_f / htg_coil_spd3.grossRatedHeatingCapacity.to_f
-       htg_coil_spd2_cfm_per_ton = htg_coil_spd2.ratedAirFlowRate.to_f / htg_coil_spd2.grossRatedHeatingCapacity.to_f
-       htg_coil_spd1_cfm_per_ton = htg_coil_spd1.ratedAirFlowRate.to_f / htg_coil_spd1.grossRatedHeatingCapacity.to_f
-       assert((htg_coil_spd4_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd4_cfm_per_ton <= max_flow_per_cap))
-       assert((htg_coil_spd3_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd3_cfm_per_ton <= max_flow_per_cap))
-       assert((htg_coil_spd2_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd2_cfm_per_ton <= max_flow_per_cap))
-       assert((htg_coil_spd1_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd1_cfm_per_ton <= max_flow_per_cap))
- 
-       # assert supplemental heating coil type matches user-specified electric resistance
-       sup_htg_coil = system.supplementalHeatingCoil.get 
-       assert(sup_htg_coil.to_CoilHeatingElectric.is_initialized)
- 
-       # ***cooling***
-       # assert new unitary systems all have multispeed DX cooling coils
-       clg_coil = system.coolingCoil.get
-       assert(clg_coil.to_CoilCoolingDXMultiSpeed.is_initialized)
-       clg_coil = clg_coil.to_CoilCoolingDXMultiSpeed.get
-       
-       # assert multispeed heating coil has 4 stages
-       assert_equal(clg_coil.numberOfStages, 4)
-       clg_coil_spd4 = clg_coil.stages[3]
- 
-       # assert speed 4 flowrate matches design flow rate
-       clg_dsn_flowrate = system.supplyAirFlowRateDuringCoolingOperation
-       assert_equal(clg_dsn_flowrate.to_f, clg_coil_spd4.ratedAirFlowRate.to_f)
-       
-       # assert flow rate reduces for lower speeds
-       clg_coil_spd3 = clg_coil.stages[2]
-       clg_coil_spd2 = clg_coil.stages[1]
-       clg_coil_spd1 = clg_coil.stages[0]
-       assert(clg_coil_spd4.ratedAirFlowRate.to_f > clg_coil_spd3.ratedAirFlowRate.to_f)
-       assert(clg_coil_spd3.ratedAirFlowRate.to_f > clg_coil_spd2.ratedAirFlowRate.to_f)
-       assert(clg_coil_spd2.ratedAirFlowRate.to_f > clg_coil_spd1.ratedAirFlowRate.to_f)
- 
-       # assert capacity reduces for lower speeds
-       assert(clg_coil_spd4.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f)
-       assert(clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f)
-       assert(clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd1.grossRatedTotalCoolingCapacity.to_f)
- 
-       # assert flow per capacity is within range for all stages; added 1% tolerance
-       # min = 4.03e-05 m3/s/watt; max = 6.041e-05 m3/s/watt; 
-       min_flow_per_cap = 4.03e-05*0.99999
-       max_flow_per_cap = 6.041e-05*1.000001
-       clg_coil_spd4_cfm_per_ton = clg_coil_spd4.ratedAirFlowRate.to_f / clg_coil_spd4.grossRatedTotalCoolingCapacity.to_f
-       clg_coil_spd3_cfm_per_ton = clg_coil_spd3.ratedAirFlowRate.to_f / clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f
-       clg_coil_spd2_cfm_per_ton = clg_coil_spd2.ratedAirFlowRate.to_f / clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f
-       clg_coil_spd1_cfm_per_ton = clg_coil_spd1.ratedAirFlowRate.to_f / clg_coil_spd1.grossRatedTotalCoolingCapacity.to_f
-       assert((clg_coil_spd4_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd4_cfm_per_ton <= max_flow_per_cap))
-       assert((clg_coil_spd3_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd3_cfm_per_ton <= max_flow_per_cap))
-       assert((clg_coil_spd2_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd2_cfm_per_ton <= max_flow_per_cap))
-       assert((clg_coil_spd1_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd1_cfm_per_ton <= max_flow_per_cap))
-     
+    # get initial gas heating coils
+    li_gas_htg_coils_initial = model.getCoilHeatingGass
+
+    # get initial number of applicable air loops
+    li_unitary_sys_initial = model.getAirLoopHVACUnitarySystems
+
+    # get initial unitary system schedules for outdoor air and general operation
+    # these will be compared against applied HP-RTU system
+    dict_oa_sched_min_initial = {}
+    dict_min_oa_initial = {}
+    dict_max_oa_initial = {}
+    model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+      # get thermal zone for dictionary mapping
+      thermal_zone = air_loop_hvac.thermalZones[0]
+
+      # get OA schedule from OA controller
+      oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+      controller_oa = oa_system.getControllerOutdoorAir
+      oa_schedule = controller_oa.minimumOutdoorAirSchedule.get
+      dict_oa_sched_min_initial[thermal_zone] = oa_schedule
+
+      # get min/max outdoor air flow rate
+      min_oa = controller_oa.minimumOutdoorAirFlowRate
+      max_oa = controller_oa.maximumOutdoorAirFlowRate
+      dict_min_oa_initial[thermal_zone] = min_oa
+      dict_max_oa_initial[thermal_zone] = max_oa
     end
-    return
+
+    # Apply the measure to the model and optionally run the model
+    result = apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+    assert_equal('Success', result.value.valueName)
+    model = load_model(model_output_path(test_name))
+
+    # get final gas heating coils
+    li_gas_htg_coils_final = model.getCoilHeatingGass
+
+    # assert gas heating coils have been removed
+    assert_equal(li_gas_htg_coils_final.size, 0)
+
+    # get list of final unitary systems
+    li_unitary_sys_final = model.getAirLoopHVACUnitarySystems
+
+    # assert same number of unitary systems as initial
+    assert_equal(li_unitary_sys_initial.size, li_unitary_sys_final.size)
+
+    # get final unitary system schedules for outdoor air and general operation
+    # these will be compared against original system
+    dict_oa_sched_min_final = {}
+    dict_min_oa_final = {}
+    dict_max_oa_final = {}
+    model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+      # get thermal zone for dictionary mapping
+      thermal_zone = air_loop_hvac.thermalZones[0]
+
+      # get OA schedule from OA controller
+      oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+      controller_oa = oa_system.getControllerOutdoorAir
+      oa_schedule = controller_oa.minimumOutdoorAirSchedule.get
+      dict_oa_sched_min_final[thermal_zone] = oa_schedule
+
+      # get min/max outdoor air flow rate
+      min_oa = controller_oa.minimumOutdoorAirFlowRate.get
+      max_oa = controller_oa.maximumOutdoorAirFlowRate.get
+      dict_min_oa_final[thermal_zone] = min_oa
+      dict_max_oa_final[thermal_zone] = max_oa
+    end
+
+    # assert outdoor air values match between initial and new system
+    model.getThermalZones.sort.each do |thermal_zone|
+      assert_equal(dict_oa_sched_min_initial[thermal_zone], dict_oa_sched_min_final[thermal_zone])
+      assert_in_delta(dict_min_oa_initial[thermal_zone].to_f, dict_min_oa_final[thermal_zone].to_f, 0.001)
+      assert_in_delta(dict_max_oa_initial[thermal_zone].to_f, dict_max_oa_final[thermal_zone].to_f, 0.001)
+    end
+
+    # assert characteristics of new unitary systems
+    li_unitary_sys_final.sort.each do |system|
+      # assert new unitary systems all have variable speed fans
+      fan = system.supplyFan.get
+      assert(fan.to_FanVariableVolume.is_initialized)
+
+      # ***heating***
+      # assert new unitary systems all have multispeed DX heating coils
+      htg_coil = system.heatingCoil.get
+      assert(htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized)
+      htg_coil = htg_coil.to_CoilHeatingDXMultiSpeed.get
+
+      # assert multispeed heating coil has 4 stages
+      assert_equal(htg_coil.numberOfStages, 4)
+      htg_coil_spd4 = htg_coil.stages[3]
+
+      # assert speed 4 flowrate matches design flow rate
+      htg_dsn_flowrate = system.supplyAirFlowRateDuringHeatingOperation
+      assert_equal(htg_dsn_flowrate.to_f, htg_coil_spd4.ratedAirFlowRate.to_f)
+
+      # assert flow rate reduces for lower speeds
+      htg_coil_spd3 = htg_coil.stages[2]
+      htg_coil_spd2 = htg_coil.stages[1]
+      htg_coil_spd1 = htg_coil.stages[0]
+      assert(htg_coil_spd4.ratedAirFlowRate.to_f > htg_coil_spd3.ratedAirFlowRate.to_f)
+      assert(htg_coil_spd3.ratedAirFlowRate.to_f > htg_coil_spd2.ratedAirFlowRate.to_f)
+      assert(htg_coil_spd2.ratedAirFlowRate.to_f > htg_coil_spd1.ratedAirFlowRate.to_f)
+
+      # assert capacity reduces for lower speeds
+      assert(htg_coil_spd4.grossRatedHeatingCapacity.to_f > htg_coil_spd3.grossRatedHeatingCapacity.to_f)
+      assert(htg_coil_spd3.grossRatedHeatingCapacity.to_f > htg_coil_spd2.grossRatedHeatingCapacity.to_f)
+      assert(htg_coil_spd2.grossRatedHeatingCapacity.to_f > htg_coil_spd1.grossRatedHeatingCapacity.to_f)
+
+      # assert flow per capacity is within range for all stages; added 1% tolerance
+      # min = 4.03e-05 m3/s/watt; max = 6.041e-05 m3/s/watt;
+      min_flow_per_cap = 4.027e-05 * 0.99999
+      max_flow_per_cap = 6.041e-05 * 1.000001
+      htg_coil_spd4_cfm_per_ton = htg_coil_spd4.ratedAirFlowRate.to_f / htg_coil_spd4.grossRatedHeatingCapacity
+      htg_coil_spd3_cfm_per_ton = htg_coil_spd3.ratedAirFlowRate.to_f / htg_coil_spd3.grossRatedHeatingCapacity
+      htg_coil_spd2_cfm_per_ton = htg_coil_spd2.ratedAirFlowRate.to_f / htg_coil_spd2.grossRatedHeatingCapacity
+      htg_coil_spd1_cfm_per_ton = htg_coil_spd1.ratedAirFlowRate.to_f / htg_coil_spd1.grossRatedHeatingCapacity
+      assert((htg_coil_spd4_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd4_cfm_per_ton <= max_flow_per_cap))
+      assert((htg_coil_spd3_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd3_cfm_per_ton <= max_flow_per_cap))
+      assert((htg_coil_spd2_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd2_cfm_per_ton <= max_flow_per_cap))
+      assert((htg_coil_spd1_cfm_per_ton >= min_flow_per_cap) && (htg_coil_spd1_cfm_per_ton <= max_flow_per_cap))
+
+      # assert supplemental heating coil type matches user-specified electric resistance
+      sup_htg_coil = system.supplementalHeatingCoil.get
+      assert(sup_htg_coil.to_CoilHeatingElectric.is_initialized)
+
+      # ***cooling***
+      # assert new unitary systems all have multispeed DX cooling coils
+      clg_coil = system.coolingCoil.get
+      assert(clg_coil.to_CoilCoolingDXMultiSpeed.is_initialized)
+      clg_coil = clg_coil.to_CoilCoolingDXMultiSpeed.get
+
+      # assert multispeed heating coil has 4 stages
+      assert_equal(clg_coil.numberOfStages, 4)
+      clg_coil_spd4 = clg_coil.stages[3]
+
+      # assert speed 4 flowrate matches design flow rate
+      clg_dsn_flowrate = system.supplyAirFlowRateDuringCoolingOperation
+      assert_equal(clg_dsn_flowrate.to_f, clg_coil_spd4.ratedAirFlowRate.to_f)
+
+      # assert flow rate reduces for lower speeds
+      clg_coil_spd3 = clg_coil.stages[2]
+      clg_coil_spd2 = clg_coil.stages[1]
+      clg_coil_spd1 = clg_coil.stages[0]
+      assert(clg_coil_spd4.ratedAirFlowRate.to_f > clg_coil_spd3.ratedAirFlowRate.to_f)
+      assert(clg_coil_spd3.ratedAirFlowRate.to_f > clg_coil_spd2.ratedAirFlowRate.to_f)
+      assert(clg_coil_spd2.ratedAirFlowRate.to_f > clg_coil_spd1.ratedAirFlowRate.to_f)
+
+      # assert capacity reduces for lower speeds
+      assert(clg_coil_spd4.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f)
+      assert(clg_coil_spd3.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f)
+      assert(clg_coil_spd2.grossRatedTotalCoolingCapacity.to_f > clg_coil_spd1.grossRatedTotalCoolingCapacity.to_f)
+
+      # assert flow per capacity is within range for all stages; added 1% tolerance
+      # min = 4.03e-05 m3/s/watt; max = 6.041e-05 m3/s/watt;
+      min_flow_per_cap = 4.03e-05 * 0.99999
+      max_flow_per_cap = 6.041e-05 * 1.000001
+      clg_coil_spd4_cfm_per_ton = clg_coil_spd4.ratedAirFlowRate.to_f / clg_coil_spd4.grossRatedTotalCoolingCapacity
+      clg_coil_spd3_cfm_per_ton = clg_coil_spd3.ratedAirFlowRate.to_f / clg_coil_spd3.grossRatedTotalCoolingCapacity
+      clg_coil_spd2_cfm_per_ton = clg_coil_spd2.ratedAirFlowRate.to_f / clg_coil_spd2.grossRatedTotalCoolingCapacity
+      clg_coil_spd1_cfm_per_ton = clg_coil_spd1.ratedAirFlowRate.to_f / clg_coil_spd1.grossRatedTotalCoolingCapacity
+      assert((clg_coil_spd4_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd4_cfm_per_ton <= max_flow_per_cap))
+      assert((clg_coil_spd3_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd3_cfm_per_ton <= max_flow_per_cap))
+      assert((clg_coil_spd2_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd2_cfm_per_ton <= max_flow_per_cap))
+      assert((clg_coil_spd1_cfm_per_ton >= min_flow_per_cap) && (clg_coil_spd1_cfm_per_ton <= max_flow_per_cap))
+    end
+    nil
   end
 
-  ###This section tests proper application of measure on fully applicable models
+  # ##This section tests proper application of measure on fully applicable models
   # tests include:
   # 1) running model to ensure succesful completion
   # 2) checking user-specified electric backup heating is applied
@@ -373,7 +357,6 @@ class AddHeatPumpRtuTest < Minitest::Test
   # 6) coil speeds fall within E+ specified cfm/ton ranges
 
   def test_370_Small_Office_PSZ_Gas_2A
-  
     osm_name = '370_small_office_psz_gas_2A.osm'
     epw_name = 'SC_Columbia_Metro_723100_12.epw'
 
@@ -389,7 +372,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # Load the model; only used here for populating arguments
     model = load_model(osm_path)
-	
+
     # get arguments
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
@@ -404,7 +387,6 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   def test_370_small_office_psz_gas_coil_7A
-  
     osm_name = '370_small_office_psz_gas_coil_7A.osm'
     epw_name = 'NE_Kearney_Muni_725526_16.epw'
 
@@ -420,7 +402,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # Load the model; only used here for populating arguments
     model = load_model(osm_path)
-	
+
     # get arguments
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
@@ -433,9 +415,8 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
   end
-  
+
   def test_370_warehouse_psz_gas_6A
-  
     osm_name = '370_warehouse_psz_gas_6A.osm'
     epw_name = 'MI_DETROIT_725375_12.epw'
 
@@ -451,7 +432,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # Load the model; only used here for populating arguments
     model = load_model(osm_path)
-	
+
     # get arguments
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
@@ -466,7 +447,6 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   def test_370_retail_psz_gas_6B
-  
     osm_name = '370_retail_psz_gas_6B.osm'
     epw_name = 'NE_Kearney_Muni_725526_16.epw'
 
@@ -482,7 +462,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # Load the model; only used here for populating arguments
     model = load_model(osm_path)
-	
+
     # get arguments
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
@@ -496,11 +476,9 @@ class AddHeatPumpRtuTest < Minitest::Test
     test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
   end
 
-
   ###########################################################################
-  ####This section tests proper classification of partially-applicable building types
+  # ###This section tests proper classification of partially-applicable building types
   def test_370_full_service_restaurant_psz_gas_coil
-
     osm_name = '370_full_service_restaurant_psz_gas_coil.osm'
     epw_name = 'GA_ROBINS_AFB_722175_12.epw'
 
@@ -514,7 +492,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # Load the model; only used here for populating arguments
     model = load_model(osm_path)
-	
+
     # get arguments
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
@@ -524,7 +502,7 @@ class AddHeatPumpRtuTest < Minitest::Test
       temp_arg_var = arg.clone
       argument_map[arg.name] = temp_arg_var
     end
-  
+
     # get initial number of applicable air loops
     li_unitary_sys_initial = model.getAirLoopHVACUnitarySystems
 
@@ -534,12 +512,11 @@ class AddHeatPumpRtuTest < Minitest::Test
     tz_all_other = []
     nonkitchen_htg_coils = []
     model.getAirLoopHVACUnitarySystems.sort.each do |unitary_sys|
-
       # skip kitchen spaces
-      thermal_zone_names_to_exclude = [
-        'Kitchen',
-        'kitchen',
-        'KITCHEN',
+      thermal_zone_names_to_exclude = %w[
+        Kitchen
+        kitchen
+        KITCHEN
       ]
       if thermal_zone_names_to_exclude.any? { |word| (unitary_sys.name.to_s).include?(word) }
         tz_kitchens << unitary_sys
@@ -549,7 +526,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
         next
       end
-      
+
       # add non kitchen zone and heating coil to list
       tz_all_other << unitary_sys
       # add kitchen heating coil to list
@@ -567,12 +544,11 @@ class AddHeatPumpRtuTest < Minitest::Test
     tz_all_other_final = []
     nonkitchen_htg_coils_final = []
     model.getAirLoopHVACUnitarySystems.sort.each do |unitary_sys|
-
       # skip kitchen spaces
-      thermal_zone_names_to_exclude = [
-        'Kitchen',
-        'kitchen',
-        'KITCHEN',
+      thermal_zone_names_to_exclude = %w[
+        Kitchen
+        kitchen
+        KITCHEN
       ]
       if thermal_zone_names_to_exclude.any? { |word| (unitary_sys.name.to_s).include?(word) }
         tz_kitchens_final << unitary_sys
@@ -582,7 +558,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
         next
       end
-      
+
       # add non kitchen zone and heating coil to list
       tz_all_other_final << unitary_sys
       # add kitchen heating coil to list
@@ -604,11 +580,10 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   ###########################################################################
-  ####This section tests proper classification of non applicable HVAC systems
+  # ###This section tests proper classification of non applicable HVAC systems
 
   # assert that non applicable HVAC system registers as NA
   def test_370_StripMall_Residential_AC_with_residential_forced_air_furnace_2A
-  
     # this makes sure measure registers an na for non applicable model
     osm_name = '370_StripMall_Residential AC with residential forced air furnace_2A.osm'
     epw_name = 'TN_KNOXVILLE_723260_12.epw'
@@ -623,7 +598,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # Load the model; only used here for populating arguments
     model = load_model(osm_path)
-	
+
     # get arguments
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
@@ -641,22 +616,21 @@ class AddHeatPumpRtuTest < Minitest::Test
 
   # assert that non applicable HVAC system registers as NA
   def test_370_warehouse_pvav_gas_boiler_reheat_2A
-  
     # this makes sure measure registers an na for non applicable model
     osm_name = '370_warehouse_pvav_gas_boiler_reheat_2A.osm'
     epw_name = 'TN_KNOXVILLE_723260_12.epw'
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
-  
+
     osm_path = model_input_path(osm_name)
     epw_path = epw_input_path(epw_name)
-  
+
     # Create an instance of the measure
     measure = AddHeatPumpRtu.new
-  
+
     # Load the model; only used here for populating arguments
     model = load_model(osm_path)
-	
+
     # get arguments
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
@@ -666,7 +640,7 @@ class AddHeatPumpRtuTest < Minitest::Test
       temp_arg_var = arg.clone
       argument_map[arg.name] = temp_arg_var
     end
-  
+
     # Apply the measure to the model and optionally run the model
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
     assert_equal('NA', result.value.valueName)
@@ -674,22 +648,21 @@ class AddHeatPumpRtuTest < Minitest::Test
 
   # assert that non applicable HVAC system registers as NA
   def test_370_medium_office_doas_fan_coil_acc_boiler_3A
-  
     # this makes sure measure registers an na for non applicable model
     osm_name = '370_medium_office_doas_fan_coil_acc_boiler_3A.osm'
     epw_name = 'TN_KNOXVILLE_723260_12.epw'
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
-  
+
     osm_path = model_input_path(osm_name)
     epw_path = epw_input_path(epw_name)
-  
+
     # Create an instance of the measure
     measure = AddHeatPumpRtu.new
-  
+
     # Load the model; only used here for populating arguments
     model = load_model(osm_path)
-	
+
     # get arguments
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
@@ -699,7 +672,7 @@ class AddHeatPumpRtuTest < Minitest::Test
       temp_arg_var = arg.clone
       argument_map[arg.name] = temp_arg_var
     end
-  
+
     # Apply the measure to the model and optionally run the model
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
     assert_equal('NA', result.value.valueName)
@@ -707,22 +680,21 @@ class AddHeatPumpRtuTest < Minitest::Test
 
   # test that ERVs do no impact existing ERVs when ERV argument is NOT toggled
   def test_370_full_service_restaurant_psz_gas_coil_single_erv_3A
-  
     # this makes sure measure registers an na for non applicable model
     osm_name = '370_full_service_restaurant_psz_gas_coil_single_erv_3A.osm'
     epw_name = 'SC_Columbia_Metro_723100_12.epw'
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
-  
+
     osm_path = model_input_path(osm_name)
     epw_path = epw_input_path(epw_name)
-  
+
     # Create an instance of the measure
     measure = AddHeatPumpRtu.new
-  
+
     # Load the model; only used here for populating arguments
     model = load_model(osm_path)
-	
+
     # get arguments
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
@@ -735,7 +707,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # get baseline ERVs
     ervs_baseline = model.getHeatExchangerAirToAirSensibleAndLatents
-  
+
     # Apply the measure to the model and optionally run the model
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
     assert_equal('Success', result.value.valueName)
@@ -747,22 +719,21 @@ class AddHeatPumpRtuTest < Minitest::Test
 
   # test that ERVs do no impact non-applicable building types
   def test_370_full_service_restaurant_psz_gas_coil_single_erv_3A_na
-  
     # this makes sure measure registers an na for non applicable model
     osm_name = '370_full_service_restaurant_psz_gas_coil_single_erv_3A.osm'
     epw_name = 'SC_Columbia_Metro_723100_12.epw'
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
-  
+
     osm_path = model_input_path(osm_name)
     epw_path = epw_input_path(epw_name)
-  
+
     # Create an instance of the measure
     measure = AddHeatPumpRtu.new
-  
+
     # Load the model; only used here for populating arguments
     model = load_model(osm_path)
-	
+
     # get arguments
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
@@ -775,7 +746,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # get baseline ERVs
     ervs_baseline = model.getHeatExchangerAirToAirSensibleAndLatents
-  
+
     # Apply the measure to the model and optionally run the model
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
     assert_equal('Success', result.value.valueName)
@@ -784,5 +755,4 @@ class AddHeatPumpRtuTest < Minitest::Test
     ervs_upgrade = model.getHeatExchangerAirToAirSensibleAndLatents
     assert_equal(ervs_baseline, ervs_upgrade)
   end
-
 end
