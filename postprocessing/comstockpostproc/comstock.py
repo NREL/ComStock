@@ -1765,6 +1765,23 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.data = self.data.with_columns(pl.col(self.BLDG_TYPE_GROUP).cast(pl.Categorical))
 
     def add_national_scaling_weights(self, cbecs: CBECS, remove_non_comstock_bldg_types_from_cbecs: bool):
+        national_scaling_factors = {
+            'Hospital': 7.40279973438571,
+            'SecondarySchool': 7.61402397003761,
+            'Outpatient': 4.08817512805358,
+            'LargeHotel': 9.52500448561723,
+            'FullServiceRestaurant': 7.56685751697572,
+            'RetailStripmall': 1.87065215852945,
+            'RetailStandalone': 3.20458438519356,
+            'PrimarySchool': 9.72943522508755,
+            'QuickServiceRestaurant': 8.53126424238864,
+            'SmallOffice': 8.72605822017302,
+            'SmallHotel': 3.3063363735822,
+            'MediumOffice': 9.32502232347711,
+            'LargeOffice': 5.75996046109096,
+            'Warehouse': 3.23792487389949
+        }
+
         # Remove CBECS entries for building types not included in the ComStock run
         comstock_bldg_types = self.data[self.BLDG_TYPE].unique()
         bldg_types_to_keep = []
@@ -1779,66 +1796,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # Make a copy of CBECS, leaving the original unchanged
             cbecs = cbecs.data[cbecs.data[self.BLDG_TYPE].isin(bldg_types_to_keep)].copy(deep=True)
 
-        # Calculate scaling factors used to scale ComStock results to CBECS square footages
-        # Only includes successful ComStock simulations, so the failure rate will
-        # change scaling factors between ComStock runs depending on which models failed.
-
-        # Total sqft of each building type, CBECS
-        wt_area_col = self.col_name_to_weighted(self.FLR_AREA)
-        cbecs_bldg_type_sqft = cbecs[[wt_area_col, self.BLDG_TYPE]].groupby([self.BLDG_TYPE]).sum()
-        logger.debug('CBECS floor area by building type')
-        logger.debug(cbecs_bldg_type_sqft)
-
-        # Total sqft of each building type, ComStock
-        baseline_data = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).clone()
-        comstock_bldg_type_sqft = baseline_data.group_by(self.BLDG_TYPE).agg([pl.col(self.FLR_AREA).sum()])
-        comstock_bldg_type_sqft = comstock_bldg_type_sqft.to_pandas().set_index(self.BLDG_TYPE)
-        logger.debug('ComStock Baseline floor area by building type')
-        logger.debug(comstock_bldg_type_sqft)
-
-        # Calculate scaling factor for each building type based on floor area (not building/model count)
-        sf = pd.concat([cbecs_bldg_type_sqft, comstock_bldg_type_sqft], axis = 1)
-        sf[self.BLDG_WEIGHT] = sf[wt_area_col]/sf[self.FLR_AREA]
-        bldg_type_scale_factors = sf[self.BLDG_WEIGHT].to_dict()
-        if np.nan in bldg_type_scale_factors:
-            wrn_msg = (f'A NaN value was found in the scaling factors, which means that a building type was missing '
-                    f'in either the CBECS or ComStock (more likely for a test run) data.')
-            logger.warning(wrn_msg)
-            del bldg_type_scale_factors[np.nan]
-
-        # Report any scaling factor greater than some threshold.
-        # In situations with high failure rates of a single building,
-        # the scaling factor will be high, and the results are likely to be
-        # heavily skewed toward the few successful simulations of that building type.
-        logger.info(f'{self.dataset_name} scaling factors - scale ComStock results to CBECS floor area')
-        for bldg_type, scaling_factor in bldg_type_scale_factors.items():
-            logger.info(f'--- {bldg_type}: {round(scaling_factor, 2)}')
-            if scaling_factor > 15:
-                wrn_msg = (f'The scaling factor for {bldg_type} is high, which indicates either a test run <350k models '
-                    f'or significant failed runs for this building type.  Comparisons to CBECS will likely be invalid.')
-                logger.warning(wrn_msg)
-
-        # For reference/comparison, here are the weights from the ComStock V1 runs
-        # PROD_V1_COMSTOCK_WEIGHTS = {
-        #     'small_office': 9.625838016683277,
-        #     'medium_office': 9.625838016683277,
-        #     'large_office': 9.625838016683277,
-        #     'full_service_restaurant': 11.590605715816617,
-        #     'hospital': 8.751376462064501,
-        #     'large_hotel': 7.5550651530546435,
-        #     'outpatient': 5.369615068860124,
-        #     'primary_school': 13.871553017909118,
-        #     'quick_service_restaurant': 9.065844311687599,
-        #     'retail': 2.816749212502974,
-        #     'secondary_school': 6.958371476467069,
-        #     'small_hotel': 5.062001512453252,
-        #     'strip_mall': 2.1106205675100735,
-        #     'warehouse': 2.1086048544461304
-        # }
-
-        # Assign scaling factors to each ComStock run
-        self.building_type_weights = bldg_type_scale_factors
-        self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_scale_factors, default=None)).alias(self.BLDG_WEIGHT))
+        # Assign scaling factors to each ComStock run using national scaling factors
+        self.building_type_weights = national_scaling_factors
+        self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(national_scaling_factors, default=None)).alias(self.BLDG_WEIGHT))
 
         # Apply the weight to scale the area and energy columns
         self.add_weighted_area_and_energy_columns()
@@ -1855,7 +1815,99 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Adding weighting factors to the monthly data
         self.get_scaled_comstock_monthly_consumption_by_state()
 
-        return bldg_type_scale_factors
+        return national_scaling_factors
+        # # Remove CBECS entries for building types not included in the ComStock run
+        # comstock_bldg_types = self.data[self.BLDG_TYPE].unique()
+        # bldg_types_to_keep = []
+        # for bt in cbecs.data[self.BLDG_TYPE].unique():
+        #     if bt in comstock_bldg_types:
+        #         bldg_types_to_keep.append(bt)
+        # if remove_non_comstock_bldg_types_from_cbecs:
+        #     # Modify CBECS to remove building types not covered by ComStock
+        #     cbecs.data = cbecs.data[cbecs.data[self.BLDG_TYPE].isin(bldg_types_to_keep)]
+        #     cbecs = cbecs.data.copy(deep=True)
+        # else:
+        #     # Make a copy of CBECS, leaving the original unchanged
+        #     cbecs = cbecs.data[cbecs.data[self.BLDG_TYPE].isin(bldg_types_to_keep)].copy(deep=True)
+
+        # # Calculate scaling factors used to scale ComStock results to CBECS square footages
+        # # Only includes successful ComStock simulations, so the failure rate will
+        # # change scaling factors between ComStock runs depending on which models failed.
+
+        # # Total sqft of each building type, CBECS
+        # wt_area_col = self.col_name_to_weighted(self.FLR_AREA)
+        # cbecs_bldg_type_sqft = cbecs[[wt_area_col, self.BLDG_TYPE]].groupby([self.BLDG_TYPE]).sum()
+        # logger.debug('CBECS floor area by building type')
+        # logger.debug(cbecs_bldg_type_sqft)
+
+        # # Total sqft of each building type, ComStock
+        # baseline_data = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).clone()
+        # comstock_bldg_type_sqft = baseline_data.group_by(self.BLDG_TYPE).agg([pl.col(self.FLR_AREA).sum()])
+        # comstock_bldg_type_sqft = comstock_bldg_type_sqft.to_pandas().set_index(self.BLDG_TYPE)
+        # logger.debug('ComStock Baseline floor area by building type')
+        # logger.debug(comstock_bldg_type_sqft)
+
+        # # Calculate scaling factor for each building type based on floor area (not building/model count)
+        # sf = pd.concat([cbecs_bldg_type_sqft, comstock_bldg_type_sqft], axis = 1)
+        # sf[self.BLDG_WEIGHT] = sf[wt_area_col]/sf[self.FLR_AREA]
+        # bldg_type_scale_factors = sf[self.BLDG_WEIGHT].to_dict()
+        # if np.nan in bldg_type_scale_factors:
+        #     wrn_msg = (f'A NaN value was found in the scaling factors, which means that a building type was missing '
+        #             f'in either the CBECS or ComStock (more likely for a test run) data.')
+        #     logger.warning(wrn_msg)
+        #     del bldg_type_scale_factors[np.nan]
+
+        # # Report any scaling factor greater than some threshold.
+        # # In situations with high failure rates of a single building,
+        # # the scaling factor will be high, and the results are likely to be
+        # # heavily skewed toward the few successful simulations of that building type.
+        # logger.info(f'{self.dataset_name} scaling factors - scale ComStock results to CBECS floor area')
+        # for bldg_type, scaling_factor in bldg_type_scale_factors.items():
+        #     logger.info(f'--- {bldg_type}: {round(scaling_factor, 2)}')
+        #     if scaling_factor > 15:
+        #         wrn_msg = (f'The scaling factor for {bldg_type} is high, which indicates either a test run <350k models '
+        #             f'or significant failed runs for this building type.  Comparisons to CBECS will likely be invalid.')
+        #         logger.warning(wrn_msg)
+
+
+        # # For reference/comparison, here are the weights from the ComStock V1 runs
+        # # PROD_V1_COMSTOCK_WEIGHTS = {
+        # #     'small_office': 9.625838016683277,
+        # #     'medium_office': 9.625838016683277,
+        # #     'large_office': 9.625838016683277,
+        # #     'full_service_restaurant': 11.590605715816617,
+        # #     'hospital': 8.751376462064501,
+        # #     'large_hotel': 7.5550651530546435,
+        # #     'outpatient': 5.369615068860124,
+        # #     'primary_school': 13.871553017909118,
+        # #     'quick_service_restaurant': 9.065844311687599,
+        # #     'retail': 2.816749212502974,
+        # #     'secondary_school': 6.958371476467069,
+        # #     'small_hotel': 5.062001512453252,
+        # #     'strip_mall': 2.1106205675100735,
+        # #     'warehouse': 2.1086048544461304
+        # # }
+
+        # # Assign scaling factors to each ComStock run
+        # self.building_type_weights = bldg_type_scale_factors
+        # self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_scale_factors, default=None)).alias(self.BLDG_WEIGHT))
+
+        # # Apply the weight to scale the area and energy columns
+        # self.add_weighted_area_and_energy_columns()
+
+        # # After adding weighted energy columns, calculate savings
+        # if self.include_upgrades:
+        #     # Skip if savings columns are already in the data, which can happen when load_from_csv=True
+        #     wtg_tot_engy_col = self.col_name_to_weighted_savings(self.ANN_TOT_ENGY_KBTU, self.weighted_energy_units)
+        #     if wtg_tot_engy_col in self.data.columns:
+        #         logger.info('Energy savings columns already in data')
+        #     else:
+        #         self.add_weighted_energy_savings_columns()
+
+        # # Adding weighting factors to the monthly data
+        # self.get_scaled_comstock_monthly_consumption_by_state()
+
+        # return bldg_type_scale_factors
 
     def add_weighted_area_and_energy_columns(self):
         # Area - create weighted column
