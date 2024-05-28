@@ -21,7 +21,7 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
     def __init__(self, comstock_list: List[ComStock], cbecs_list: List[CBECS], upgrade_id=0, image_type='jpg', name=None, make_comparison_plots=True):
         """
         Creates the ComStock to CBECS comaprison plots.
-        
+
         Args:
             comstock_list (List[ComStock]): List of ComStock dataset objects.
             cbecs_list (List[CBECS]): List of CBECS dataset objects.
@@ -117,6 +117,7 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         self.plot_floor_area_and_energy_totals(df, column_for_grouping, color_map, output_dir)
         self.plot_eui_boxplots(df, column_for_grouping, color_map, output_dir)
         self.plot_floor_area_and_energy_totals_by_building_type(df, column_for_grouping, color_map, output_dir)
+        self.plot_floor_area_and_energy_totals_by_hvac_type(df, column_for_grouping, color_map, output_dir)
         self.plot_end_use_totals_by_building_type(df, column_for_grouping, color_map, output_dir)
         self.plot_eui_histograms_by_building_type(df, column_for_grouping, color_map, output_dir)
         self.plot_eui_boxplots_by_building_type(df, column_for_grouping, color_map, output_dir)

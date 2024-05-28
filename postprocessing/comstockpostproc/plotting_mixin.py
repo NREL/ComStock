@@ -751,6 +751,103 @@ class PlottingMixin():
                     plt.savefig(fig_path, bbox_inches = 'tight')
                     plt.close()
 
+    def plot_floor_area_and_energy_totals_by_hvac_type(self, df, column_for_grouping, color_map, output_dir):
+            # Summarize square footage and energy totals by HVAC system type
+
+            # Columns to summarize
+            cols_to_summarize = {
+                self.col_name_to_weighted(self.FLR_AREA): np.sum,
+                self.col_name_to_weighted(self.ANN_TOT_ENGY_KBTU, 'tbtu'): np.sum,
+                self.col_name_to_weighted(self.ANN_TOT_ELEC_KBTU, 'tbtu'): np.sum,
+                self.col_name_to_weighted(self.ANN_TOT_GAS_KBTU, 'tbtu'): np.sum,
+                # 'Normalized Annual major fuel consumption (thous Btu per sqft)': np.mean,
+                # 'Normalized Annual electricity consumption (thous Btu per sqft)': np.mean,
+                # 'Normalized Annual natural gas consumption (thous Btu per sqft)': np.mean
+            }
+
+            # Disaggregate to these levels
+            group_bys = [
+                None,
+                self.CEN_DIV,
+                # self.FLR_AREA_CAT, TODO reenable after adding to both CBECS and ComStock
+                # self.VINTAGE,
+            ]
+
+            for col, agg_method in cols_to_summarize.items():
+                for hvac_type, hvac_type_df in df.groupby(self.HVAC_SYS):
+
+                    # Make a plot for each group
+                    for group_by in group_bys:
+                        if group_by is None:
+                            # No group-by
+                            g = sns.catplot(
+                                data=hvac_type_df,
+                                x=column_for_grouping,
+                                hue=column_for_grouping,
+                                y=col,
+                                estimator=agg_method,
+                                order=list(color_map.keys()),
+                                palette=color_map.values(),
+                                errorbar=None,
+                                kind='bar',
+                                aspect=1.5,
+                                legend=False
+                            )
+                        else:
+                            # With group-by
+                            g = sns.catplot(
+                                data=hvac_type_df,
+                                y=col,
+                                hue=column_for_grouping,
+                                x=group_by,
+                                estimator=agg_method,
+                                order=self.ORDERED_CATEGORIES[group_by],
+                                hue_order=list(color_map.keys()),
+                                palette=color_map.values(),
+                                kind='bar',
+                                errorbar=None,
+                                aspect=2
+                            )
+                            g._legend.set_title(self.col_name_to_nice_name(column_for_grouping))
+
+                        fig = g.figure
+
+                        # Extract the units from the column name
+                        units = self.nice_units(self.units_from_col_name(col))
+
+                        # Titles and axis labels
+                        col_title = self.col_name_to_nice_name(col)
+                        # col_title = col.replace(f' {units}', '')
+                        # col_title = col_title.replace('Normalized Annual ', '')
+
+                        # Formatting
+                        if group_by is None:
+                            # No group-by
+                            title = f"{col_title}\n for {hvac_type.replace('_', ' ')}".title()
+                            for ax in g.axes.flatten():
+                                ax.set_ylabel(f'{col_title} ({units})')
+                                ax.set_xlabel('')
+                                ax.tick_params(axis='x', labelrotation = 90)
+                        else:
+                            # With group-by
+                            gb = self.col_name_to_nice_name(group_by)
+                            title = f"{col_title}\n for {hvac_type.replace('_', ' ')} by {f'{gb}'}".title()
+                            for ax in g.axes.flatten():
+                                ax.set_ylabel(f'{col_title} ({units})')
+                                ax.set_xlabel(f'{gb}')
+                                ax.tick_params(axis='x', labelrotation = 90)
+
+                        # Save figure
+                        title = title.replace('\n', '')
+                        fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+                        fig_name = fig_name.replace('_total_energy_consumption', '')
+                        fig_sub_dir = os.path.join(output_dir,'HVAC Charts', hvac_type)
+                        if not os.path.exists(fig_sub_dir):
+                            os.makedirs(fig_sub_dir)
+                        fig_path = os.path.join(fig_sub_dir, fig_name)
+                        plt.savefig(fig_path, bbox_inches = 'tight')
+                        plt.close()
+
     def plot_end_use_totals_by_building_type(self, df, column_for_grouping, color_map, output_dir):
         # Summarize end use energy totals by building type
 
