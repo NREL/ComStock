@@ -363,17 +363,6 @@ class AddHeatPumpRtuTest < Minitest::Test
     return
   end
 
-
-    # list thermal zone not applicable to HR
-    thermal_zone_names_to_exclude = [
-      'Kitchen',
-      'kitchen',
-      'KITCHEN',
-      'dining',
-      'DINING',
-      'Dining'
-    ]
-
   ###This section tests proper application of measure on fully applicable models
   # tests include:
   # 1) running model to ensure succesful completion
