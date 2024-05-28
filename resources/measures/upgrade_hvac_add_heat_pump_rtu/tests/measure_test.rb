@@ -177,16 +177,17 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # Get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(9, arguments.size)
+    assert_equal(10, arguments.size)
     assert_equal('backup_ht_fuel_scheme', arguments[0].name)
     assert_equal('performance_oversizing_factor', arguments[1].name)
     assert_equal('htg_sizing_option', arguments[2].name)
     assert_equal('clg_oversizing_estimate', arguments[3].name)
     assert_equal('htg_to_clg_hp_ratio', arguments[4].name)
-    assert_equal('std_perf', arguments[5].name)
-    assert_equal('hr', arguments[6].name)
-    assert_equal('dcv', arguments[7].name)
-    assert_equal('econ', arguments[8].name)
+    assert_equal('hp_min_comp_lockout_temp_f', arguments[5].name)
+    assert_equal('std_perf', arguments[6].name)
+    assert_equal('hr', arguments[7].name)
+    assert_equal('dcv', arguments[8].name)
+    assert_equal('econ', arguments[9].name)
 
   end
 
@@ -626,138 +627,138 @@ class AddHeatPumpRtuTest < Minitest::Test
 
   ###########################################################################
   ####This section tests proper classification of partially-applicable building types
-    def test_370_full_service_restaurant_psz_gas_coil
+  def test_370_full_service_restaurant_psz_gas_coil
+
+    osm_name = '370_full_service_restaurant_psz_gas_coil.osm'
+    epw_name = 'Birmingham Muni.epw'
+
+    puts "\n######\nTEST:#{osm_name}\n######\n"
+
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+
+    # Create an instance of the measure
+    measure = AddHeatPumpRtu.new
+
+    # Load the model; only used here for populating arguments
+    model = load_model(osm_path)
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure::OSArgumentMap.new
   
-      osm_name = '370_full_service_restaurant_psz_gas_coil.osm'
-      epw_name = 'Birmingham Muni.epw'
+    # set arguments
+    backup_ht_fuel_scheme = arguments[0].clone
+    assert(backup_ht_fuel_scheme.setValue('electric_resistance_backup'))
+    argument_map['backup_ht_fuel_scheme'] = backup_ht_fuel_scheme
+    # allowance for heating oversizing
+    performance_oversizing_factor = arguments[1].clone
+    assert(performance_oversizing_factor.setValue(0))
+    argument_map['performance_oversizing_factor'] = performance_oversizing_factor
+    # how to size heating
+    htg_sizing_option = arguments[2].clone	
+    assert(htg_sizing_option.setValue('0F'))
+    argument_map['htg_sizing_option'] = htg_sizing_option
+    # cooling oversizing estimate
+    clg_oversizing_estimate = arguments[3].clone
+    assert(clg_oversizing_estimate.setValue(1))
+    argument_map['clg_oversizing_estimate'] = clg_oversizing_estimate
+    # htg to clg ratio
+    htg_to_clg_hp_ratio = arguments[4].clone
+    assert(htg_to_clg_hp_ratio.setValue(1))
+    argument_map['htg_to_clg_hp_ratio'] = htg_to_clg_hp_ratio
+    # std perf
+    std_perf = arguments[5].clone
+    assert(std_perf.setValue(false))
+    argument_map['std_perf'] = std_perf
+    # hr
+    hr = arguments[6].clone
+    assert(hr.setValue(true))
+    argument_map['hr'] = hr
+    # dcv
+    dcv = arguments[7].clone
+    assert(dcv.setValue(false))
+    argument_map['dcv'] = dcv
+    # economizer
+    econ = arguments[8].clone
+    assert(econ.setValue(false))
+    argument_map['econ'] = econ
+  
+    # get initial number of applicable air loops
+    li_unitary_sys_initial = model.getAirLoopHVACUnitarySystems
 
-      puts "\n######\nTEST:#{osm_name}\n######\n"
+    # determine air loops with/without kitchens
+    tz_kitchens = []
+    kitchen_htg_coils = []
+    tz_all_other = []
+    nonkitchen_htg_coils = []
+    model.getAirLoopHVACUnitarySystems.sort.each do |unitary_sys|
 
-      osm_path = model_input_path(osm_name)
-      epw_path = epw_input_path(epw_name)
+      # skip kitchen spaces
+      thermal_zone_names_to_exclude = [
+        'Kitchen',
+        'kitchen',
+        'KITCHEN',
+      ]
+      if thermal_zone_names_to_exclude.any? { |word| (unitary_sys.name.to_s).include?(word) }
+        tz_kitchens << unitary_sys
 
-      # Create an instance of the measure
-      measure = AddHeatPumpRtu.new
-
-      # Load the model; only used here for populating arguments
-      model = load_model(osm_path)
-      arguments = measure.arguments(model)
-      argument_map = OpenStudio::Measure::OSArgumentMap.new
-    
-      # set arguments
-      backup_ht_fuel_scheme = arguments[0].clone
-      assert(backup_ht_fuel_scheme.setValue('electric_resistance_backup'))
-      argument_map['backup_ht_fuel_scheme'] = backup_ht_fuel_scheme
-      # allowance for heating oversizing
-      performance_oversizing_factor = arguments[1].clone
-      assert(performance_oversizing_factor.setValue(0))
-      argument_map['performance_oversizing_factor'] = performance_oversizing_factor
-      # how to size heating
-      htg_sizing_option = arguments[2].clone	
-      assert(htg_sizing_option.setValue('0F'))
-      argument_map['htg_sizing_option'] = htg_sizing_option
-      # cooling oversizing estimate
-      clg_oversizing_estimate = arguments[3].clone
-      assert(clg_oversizing_estimate.setValue(1))
-      argument_map['clg_oversizing_estimate'] = clg_oversizing_estimate
-      # htg to clg ratio
-      htg_to_clg_hp_ratio = arguments[4].clone
-      assert(htg_to_clg_hp_ratio.setValue(1))
-      argument_map['htg_to_clg_hp_ratio'] = htg_to_clg_hp_ratio
-      # std perf
-      std_perf = arguments[5].clone
-      assert(std_perf.setValue(false))
-      argument_map['std_perf'] = std_perf
-      # hr
-      hr = arguments[6].clone
-      assert(hr.setValue(true))
-      argument_map['hr'] = hr
-      # dcv
-      dcv = arguments[7].clone
-      assert(dcv.setValue(false))
-      argument_map['dcv'] = dcv
-      # economizer
-      econ = arguments[8].clone
-      assert(econ.setValue(false))
-      argument_map['econ'] = econ
-    
-      # get initial number of applicable air loops
-      li_unitary_sys_initial = model.getAirLoopHVACUnitarySystems
-
-      # determine air loops with/without kitchens
-      tz_kitchens = []
-      kitchen_htg_coils = []
-      tz_all_other = []
-      nonkitchen_htg_coils = []
-      model.getAirLoopHVACUnitarySystems.sort.each do |unitary_sys|
-
-        # skip kitchen spaces
-        thermal_zone_names_to_exclude = [
-          'Kitchen',
-          'kitchen',
-          'KITCHEN',
-        ]
-        if thermal_zone_names_to_exclude.any? { |word| (unitary_sys.name.to_s).include?(word) }
-          tz_kitchens << unitary_sys
-
-          # add kitchen heating coil to list
-          kitchen_htg_coils << unitary_sys.heatingCoil.get
-
-          next
-        end
-        
-        # add non kitchen zone and heating coil to list
-        tz_all_other << unitary_sys
         # add kitchen heating coil to list
-        nonkitchen_htg_coils << unitary_sys.heatingCoil.get
+        kitchen_htg_coils << unitary_sys.heatingCoil.get
+
+        next
       end
-
-      # Apply the measure to the model and optionally run the model
-      result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
-      assert_equal('Success', result.value.valueName)
-      model = load_model(model_output_path(__method__))
-
-      # get heating coils from final model for kitchen and non kitchen spaces
-      tz_kitchens_final = []
-      kitchen_htg_coils_final = []
-      tz_all_other_final = []
-      nonkitchen_htg_coils_final = []
-      model.getAirLoopHVACUnitarySystems.sort.each do |unitary_sys|
-
-        # skip kitchen spaces
-        thermal_zone_names_to_exclude = [
-          'Kitchen',
-          'kitchen',
-          'KITCHEN',
-        ]
-        if thermal_zone_names_to_exclude.any? { |word| (unitary_sys.name.to_s).include?(word) }
-          tz_kitchens_final << unitary_sys
-
-          # add kitchen heating coil to list
-          kitchen_htg_coils_final << unitary_sys.heatingCoil.get
-
-          next
-        end
-        
-        # add non kitchen zone and heating coil to list
-        tz_all_other_final << unitary_sys
-        # add kitchen heating coil to list
-        nonkitchen_htg_coils_final << unitary_sys.heatingCoil.get
-      end
-
-      # assert no changes to kitchen unitary systems
-      assert_equal(tz_kitchens_final, tz_kitchens)
-
-      # assert non kitchen spaces contain multispeed DX heating coils
-      nonkitchen_htg_coils_final.each do |htg_coil|
-        assert(htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized)
-      end
-
-      # assert kitchen spaces still contain gas coils
-      kitchen_htg_coils_final.each do |htg_coil|
-        assert(htg_coil.to_CoilHeatingGas.is_initialized)
-      end
+      
+      # add non kitchen zone and heating coil to list
+      tz_all_other << unitary_sys
+      # add kitchen heating coil to list
+      nonkitchen_htg_coils << unitary_sys.heatingCoil.get
     end
+
+    # Apply the measure to the model and optionally run the model
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+    assert_equal('Success', result.value.valueName)
+    model = load_model(model_output_path(__method__))
+
+    # get heating coils from final model for kitchen and non kitchen spaces
+    tz_kitchens_final = []
+    kitchen_htg_coils_final = []
+    tz_all_other_final = []
+    nonkitchen_htg_coils_final = []
+    model.getAirLoopHVACUnitarySystems.sort.each do |unitary_sys|
+
+      # skip kitchen spaces
+      thermal_zone_names_to_exclude = [
+        'Kitchen',
+        'kitchen',
+        'KITCHEN',
+      ]
+      if thermal_zone_names_to_exclude.any? { |word| (unitary_sys.name.to_s).include?(word) }
+        tz_kitchens_final << unitary_sys
+
+        # add kitchen heating coil to list
+        kitchen_htg_coils_final << unitary_sys.heatingCoil.get
+
+        next
+      end
+      
+      # add non kitchen zone and heating coil to list
+      tz_all_other_final << unitary_sys
+      # add kitchen heating coil to list
+      nonkitchen_htg_coils_final << unitary_sys.heatingCoil.get
+    end
+
+    # assert no changes to kitchen unitary systems
+    assert_equal(tz_kitchens_final, tz_kitchens)
+
+    # assert non kitchen spaces contain multispeed DX heating coils
+    nonkitchen_htg_coils_final.each do |htg_coil|
+      assert(htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized)
+    end
+
+    # assert kitchen spaces still contain gas coils
+    kitchen_htg_coils_final.each do |htg_coil|
+      assert(htg_coil.to_CoilHeatingGas.is_initialized)
+    end
+  end
 
   ############################################################################
   #####This section tests proper classification of non applicable HVAC systems
@@ -884,7 +885,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     # Apply the measure to the model and optionally run the model
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
     assert_equal('NA', result.value.valueName)
-    end
+  end
 
   # assert that non applicable HVAC system registers as NA
   def test_370_medium_office_doas_fan_coil_acc_boiler_3A
@@ -946,7 +947,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     # Apply the measure to the model and optionally run the model
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
     assert_equal('NA', result.value.valueName)
-    end
+  end
 
   ############################################################################
   #####This section tests proper application of energy recovery systems in semi-applicable buildings
