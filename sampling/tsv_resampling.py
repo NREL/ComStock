@@ -129,7 +129,7 @@ class CommercialBaseSobolSampler(BuildStockSampler):
         tsv_arrays = [
             [
                 'building_type', 'state_id', 'county_id', 'year_of_simulation', 'region',
-                'climate_zone', 'year_built', 'subtype', 'rentable_area', 'ground_thermal_conductivity'
+                'climate_zone', 'year_built', 'subtype', 'rentable_area'
             ],
             [
                 'original_building_construction', 'window_wall_ratio', 'interior_lighting',
@@ -137,14 +137,12 @@ class CommercialBaseSobolSampler(BuildStockSampler):
                 'owner_occupied', 'owner_type', 'purchasing_power', 'operator', 'occupied_by'
             ],
             [
-                'aspect_ratio', 'building_shape', 'base_peak_ratio', 'heating_fuel', 'hvac_night',
-                'hvac_system', 'hvac_tst', 'rotation', 'duration', 'start_time', 'number_stories',
-                'wall_construction_type', 'airtightness', 'fault_economizer_damper_fully_closed', 'fault_economizer_db_limit',
-                'energy_code_compliance_hvac', 'energy_code_in_force_during_last_hvac', 'energy_code_followed_during_last_hvac',
-                'year_bin_of_last_hvac','vav_min_damper_pos'
+                'base_peak_ratio', 'heating_fuel', 'hvac_night', 'hvac_system', 'hvac_tst', 'rotation', 'duration', 'start_time', 
+                'fault_economizer_damper_fully_closed', 'fault_economizer_db_limit', 'energy_code_compliance_hvac',
+                'energy_code_in_force_during_last_hvac', 'energy_code_followed_during_last_hvac', 'year_bin_of_last_hvac', 'vav_min_damper_pos'
             ],
             [
-                'cook', 'ground_thermal_conductivity'
+                'cook', 'ground_thermal_conductivity', 'number_stories', 'wall_construction_type', 'aspect_ratio', 'building_shape', 'airtightness'
             ],
             [
                 'energy_code_compliance_interior_lighting', 'energy_code_followed_during_last_interior_lighting',
