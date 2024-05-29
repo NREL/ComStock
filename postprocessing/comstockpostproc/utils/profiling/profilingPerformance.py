@@ -27,16 +27,16 @@ def main(path):
     count = 0
     for logpath, log in __extract_running_log(path):
         logger.info(f"Analyzing log path: {logpath}")
-        infomrationLines = cleanup_oringinal_log(log)
-        # = cleanup_oringinal_log(log)
+        informationLines = cleanup_original_log(log)
+        # = cleanup_original_log(log)
         # if count > 1: break
 
-        if not infomrationLines:
+        if not informationLines:
             logger.info(">>>>>>> This is Empty >>>>>> ", path, logpath)
             continue
 
-        # timeDeltaFromCleanedLog = generate_nest_log_from_namedtuple(infomrationLines)
-        timeDeltaFromCleanedLog = _generate_printable_log(infomrationLines)
+        # timeDeltaFromCleanedLog = generate_nest_log_from_namedtuple(informationLines)
+        timeDeltaFromCleanedLog = _generate_printable_log(informationLines)
         timeDeltaFromCleanedLog['logpath'] = logpath
         generatingReport(timeDeltaFromCleanedLog, path)
 
@@ -69,7 +69,7 @@ def __compute_delta(timestamps):
         format = "%H:%M:%S.%f"
         return int(abs((datetime.strptime(timestamps[0], format) - datetime.strptime(timestamps[1], format)).total_seconds()))
     except ValueError: #the osw.out's start_time and end_time mixed with two kinds of formats.
-        end_format = "%Y-%m-%dT%H:%M:%S.%f" 
+        end_format = "%Y-%m-%dT%H:%M:%S.%f"
         start_format = "%Y%m%dT%H%M%SZ"
         return int(abs((datetime.strptime(timestamps[0], start_format) - datetime.strptime(timestamps[1], start_format)).total_seconds()))
 
@@ -110,7 +110,7 @@ def _generate_printable_log(nestedLog: dict) -> dict:
         if len(tuple) == 2:
             detail = tuple[0].split(".")
             if "result.total" in tuple[0]:
-                
+
                 temp.append({
                     'upgrade_id': upgrade_id,
                     'building_id': building_id,
@@ -154,7 +154,7 @@ def _generate_printable_log(nestedLog: dict) -> dict:
                     and existed['type'] == 'step_detail':
                     print(existed['time'], existed['time'] - measure_total)
                     existed['time'] -= measure_total
-            
+
             measure_datum = {
                 'upgrade_id': upgrade_id,
                 'building_id': building_id,
@@ -179,17 +179,17 @@ def _generate_printable_log(nestedLog: dict) -> dict:
                     'workflow_substate': 'sizing',
                     'name': sr_detail[-1],
                     'measure_state': 'runtime',
-                    'time': sr_total 
+                    'time': sr_total
                 })
             measure_datum['time'] = measure_total - sizing_total
-            temp.append(measure_datum)    
+            temp.append(measure_datum)
     res['log_detail'] = temp
-    
+
 
 
     return res
 
-def cleanup_oringinal_log(originalLog: dict) -> dict:
+def cleanup_original_log(originalLog: dict) -> dict:
     """
     read the original log and filter out the useful information.
     the input dict should be the result from out.osw
@@ -238,7 +238,7 @@ def __cleanup_step_logs(log: list) -> list:
                         step_info.append((k, idx, logline.split("\n")[0]))
     # print(step_info)
     res = __build_namedtuple_from_log(step_info)
-    
+
     return res
 
 def __build_namedtuple_from_log(step_log: list) -> list:
@@ -248,11 +248,11 @@ def __build_namedtuple_from_log(step_log: list) -> list:
     measure = []
     step_time = {}
     for key, _, logline in step_log:
-        
+
         if "step" in key and "result.completed_at" in key:
             step_index = ".".join(key.split(".")[:3])
             step_time[step_index] = logline
-        
+
         if "step" in key and "result.started_at" in key:
             step_index = ".".join(key.split(".")[:3])
             # queue.append()
@@ -260,7 +260,7 @@ def __build_namedtuple_from_log(step_log: list) -> list:
             queue.append([step_index + ".result.total", __compute_delta([logline, step_time[step_index]])])
 
         if "Calling" in logline:
-            measure.append(key + "." + logline.split(" ")[1])      
+            measure.append(key + "." + logline.split(" ")[1])
 
         if "runtime" in logline:
             runtime = float(logline.split(" ")[-2])
@@ -268,13 +268,13 @@ def __build_namedtuple_from_log(step_log: list) -> list:
             measure.append(runtime)
             queue.append(measure)
             measure = []
-    
+
         if "Started simulation" in logline:
             log = logline.split(" ")
             sr_name = log[-3].split("/")[-1]
             sr_time = log[-1]
             measure.append([key+".sizing."+sr_name, sr_time])
-        
+
         if "Finished simulation" in logline:
             log = logline.split(" ")
             sr_name = log[-3].split("/")[-1]
@@ -283,10 +283,10 @@ def __build_namedtuple_from_log(step_log: list) -> list:
                 if sr_name in tuple[0]:
                     starttime = tuple[1]
                     delta = __compute_delta([starttime, sr_time])
-                    tuple[1] = delta 
+                    tuple[1] = delta
     # print(step_time)
     return queue
-    
+
 
 def __flatten_dict(d, parent_key='', sep='.'):
     items = []
@@ -298,10 +298,10 @@ def __flatten_dict(d, parent_key='', sep='.'):
             items.append((new_key, v))
     return dict(items)
 
-def develop_cleanup_oringinal_log(path: str):
+def develop_cleanup_original_log(path: str):
     # with tarfile.open(path, 'r') as t:
     #     print(json.loads(t.extractfile(t.getmembers()[0]).read())
-    res = cleanup_oringinal_log(json.loads(open(path).read()))
+    res = cleanup_original_log(json.loads(open(path).read()))
     return res
 
 def generatingReport(nestedLog: dict, path: str):
@@ -324,7 +324,7 @@ def generatingReport(nestedLog: dict, path: str):
         writer = csv.DictWriter(file, fieldnames=field_names)
         if not file.tell():
             writer.writeheader()
-        
+
         for log in nestedLog.get("log_detail"):
             writer.writerow(log)
 
@@ -334,8 +334,8 @@ if __name__ == "__main__":
     path = sys.argv[1]
     # print(f"we are processing the tar.gz file from {path}")
     main(path)
-    # for k,v in _generate_printable_log(develop_cleanup_oringinal_log(path)).items():
+    # for k,v in _generate_printable_log(develop_cleanup_original_log(path)).items():
     #     print(k)
     #     for item in v:
     #         print(item)
-    # _generate_printable_log(develop_cleanup_oringinal_log(path))
+    # _generate_printable_log(develop_cleanup_original_log(path))
