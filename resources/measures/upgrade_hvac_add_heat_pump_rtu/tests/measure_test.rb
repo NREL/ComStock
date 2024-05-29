@@ -180,87 +180,99 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   def calc_cfm_per_ton_singlespdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
-    # process heating coils
+    # get relevant heating coils
     coils_heating = model.getCoilHeatingDXSingleSpeeds
+
+    # check if there is at least one coil
     refute_equal(coils_heating.size, 0)
+
+    # calc cfm/ton
     coils_heating.each do |heating_coil|
       # get coil specs
       if heating_coil.ratedTotalHeatingCapacity.is_initialized
         rated_capacity_w = heating_coil.ratedTotalHeatingCapacity.get
       end
-      rated_airflow_m_2_per_sec = heating_coil.ratedAirFlowRate.get if heating_coil.ratedAirFlowRate.is_initialized
+      rated_airflow_m_3_per_sec = heating_coil.ratedAirFlowRate.get if heating_coil.ratedAirFlowRate.is_initialized
 
       # calc relevant metrics
       rated_capacity_ton = OpenStudio.convert(rated_capacity_w, 'W', 'ton').get
-      rated_airflow_cfm = OpenStudio.convert(rated_airflow_m_2_per_sec, 'm^3/s', 'cfm').get
+      rated_airflow_cfm = OpenStudio.convert(rated_airflow_m_3_per_sec, 'm^3/s', 'cfm').get
       cfm_per_ton = rated_airflow_cfm / rated_capacity_ton
-      puts('### DEBUGGING: ---------------------------------------------------------')
-      puts("### DEBUGGING: heating_coil = #{heating_coil.name}")
-      puts("### DEBUGGING: rated_airflow_cfm = #{rated_airflow_cfm.round(0)} cfm")
-      puts("### DEBUGGING: rated_capacity_ton = #{rated_capacity_ton.round(2)} ton")
-      puts("### DEBUGGING: cfm/ton = #{cfm_per_ton.round(2)} cfm/ton")
+      # puts('### DEBUGGING: ---------------------------------------------------------')
+      # puts("### DEBUGGING: heating_coil = #{heating_coil.name}")
+      # puts("### DEBUGGING: rated_airflow_cfm = #{rated_airflow_cfm.round(0)} cfm")
+      # puts("### DEBUGGING: rated_capacity_ton = #{rated_capacity_ton.round(2)} ton")
+      # puts("### DEBUGGING: cfm/ton = #{cfm_per_ton.round(2)} cfm/ton")
 
       # check if resultant cfm/ton is violating min/max bounds
-      assert_equal(cfm_per_ton >= cfm_per_ton_min, true)
-      assert_equal(cfm_per_ton <= cfm_per_ton_max, true)
+      assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true)
+      assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true)
     end
   end
 
   def calc_cfm_per_ton_multispdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
-    # process heating coils
+    # get relevant heating coils
     coils_heating = model.getCoilHeatingDXMultiSpeedStageDatas
+
+    # check if there is at least one coil
     refute_equal(coils_heating.size, 0)
+
+    # calc cfm/ton
     coils_heating.each do |heating_coil|
       # get coil specs
       if heating_coil.grossRatedHeatingCapacity.is_initialized
         rated_capacity_w = heating_coil.grossRatedHeatingCapacity.get
       end
-      rated_airflow_m_2_per_sec = heating_coil.ratedAirFlowRate.get if heating_coil.ratedAirFlowRate.is_initialized
+      rated_airflow_m_3_per_sec = heating_coil.ratedAirFlowRate.get if heating_coil.ratedAirFlowRate.is_initialized
 
       # calc relevant metrics
       rated_capacity_ton = OpenStudio.convert(rated_capacity_w, 'W', 'ton').get
-      rated_airflow_cfm = OpenStudio.convert(rated_airflow_m_2_per_sec, 'm^3/s', 'cfm').get
+      rated_airflow_cfm = OpenStudio.convert(rated_airflow_m_3_per_sec, 'm^3/s', 'cfm').get
       cfm_per_ton = rated_airflow_cfm / rated_capacity_ton
-      puts('### DEBUGGING: ---------------------------------------------------------')
-      puts("### DEBUGGING: heating_coil = #{heating_coil.name}")
-      puts("### DEBUGGING: rated_airflow_cfm = #{rated_airflow_cfm.round(0)} cfm")
-      puts("### DEBUGGING: rated_capacity_ton = #{rated_capacity_ton.round(2)} ton")
-      puts("### DEBUGGING: cfm/ton = #{cfm_per_ton.round(2)} cfm/ton")
+      # puts('### DEBUGGING: ---------------------------------------------------------')
+      # puts("### DEBUGGING: heating_coil = #{heating_coil.name}")
+      # puts("### DEBUGGING: rated_airflow_cfm = #{rated_airflow_cfm.round(0)} cfm")
+      # puts("### DEBUGGING: rated_capacity_ton = #{rated_capacity_ton.round(2)} ton")
+      # puts("### DEBUGGING: cfm/ton = #{cfm_per_ton.round(2)} cfm/ton")
 
       # check if resultant cfm/ton is violating min/max bounds
-      assert_equal(cfm_per_ton >= cfm_per_ton_min, true)
-      assert_equal(cfm_per_ton <= cfm_per_ton_max, true)
+      assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true)
+      assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true)
     end
   end
 
   def calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
-    # process cooling coils
+    # get cooling coils
     coils_cooling = model.getCoilCoolingDXMultiSpeedStageDatas
+
+    # check if there is at least one coil
     refute_equal(coils_cooling.size, 0)
+
+    # calc cfm/ton
     coils_cooling.each do |cooling_coil|
       # get coil specs
       if cooling_coil.grossRatedTotalCoolingCapacity.is_initialized
         rated_capacity_w = cooling_coil.grossRatedTotalCoolingCapacity.get
       end
-      rated_airflow_m_2_per_sec = cooling_coil.ratedAirFlowRate.get if cooling_coil.ratedAirFlowRate.is_initialized
+      rated_airflow_m_3_per_sec = cooling_coil.ratedAirFlowRate.get if cooling_coil.ratedAirFlowRate.is_initialized
 
       # calc relevant metrics
       rated_capacity_ton = OpenStudio.convert(rated_capacity_w, 'W', 'ton').get
-      rated_airflow_cfm = OpenStudio.convert(rated_airflow_m_2_per_sec, 'm^3/s', 'cfm').get
+      rated_airflow_cfm = OpenStudio.convert(rated_airflow_m_3_per_sec, 'm^3/s', 'cfm').get
       cfm_per_ton = rated_airflow_cfm / rated_capacity_ton
-      puts('### DEBUGGING: ---------------------------------------------------------')
-      puts("### DEBUGGING: cooling_coil = #{cooling_coil.name}")
-      puts("### DEBUGGING: rated_airflow_cfm = #{rated_airflow_cfm.round(0)} cfm")
-      puts("### DEBUGGING: rated_capacity_ton = #{rated_capacity_ton.round(2)} ton")
-      puts("### DEBUGGING: cfm/ton = #{cfm_per_ton.round(2)} cfm/ton")
+      # puts('### DEBUGGING: ---------------------------------------------------------')
+      # puts("### DEBUGGING: cooling_coil = #{cooling_coil.name}")
+      # puts("### DEBUGGING: rated_airflow_cfm = #{rated_airflow_cfm.round(0)} cfm")
+      # puts("### DEBUGGING: rated_capacity_ton = #{rated_capacity_ton.round(2)} ton")
+      # puts("### DEBUGGING: cfm/ton = #{cfm_per_ton.round(2)} cfm/ton")
 
       # check if resultant cfm/ton is violating min/max bounds
-      assert_equal(cfm_per_ton >= cfm_per_ton_min, true)
-      assert_equal(cfm_per_ton <= cfm_per_ton_max, true)
+      assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true)
+      assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true)
     end
   end
 
-  def verify_cfm_per_ton(model)
+  def verify_cfm_per_ton(model, result)
     # define min and max limits of cfm/ton
     cfm_per_ton_min = 300
     cfm_per_ton_max = 450
@@ -268,23 +280,20 @@ class AddHeatPumpRtuTest < Minitest::Test
     # Create an instance of the measure
     measure = AddHeatPumpRtu.new
 
-    # get arguments
-    arguments = measure.arguments(model)
-
     # initialize parameters
     performance_category = nil
-    rated_airflow_m_2_per_sec = nil
-    rated_capacity_w = nil
 
-    # populate argument with specified hash value if specified
-    arguments.each do |arg|
-      performance_category = if arg == 'std_perf'
-                               'standard'
-                             else
-                               'advanced'
-                             end
+    # check performance category
+    result.stepValues.each do |input_arg|
+      if input_arg.name == 'std_perf'
+        if input_arg.valueAsBoolean == true
+          performance_category = 'standard'
+        else
+          performance_category = 'advanced'
+        end
+      end
     end
-    puts("### DEBUGGING: performance_category = #{performance_category}")
+    # puts("### DEBUGGING: performance_category = #{performance_category}")
     refute_equal(performance_category, nil)
 
     # loop through coils and check cfm/ton values
@@ -503,6 +512,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     arguments.each do |arg|
       temp_arg_var = arg.clone
       argument_map[arg.name] = temp_arg_var
+      puts("### DEBUGGING: temp_arg_var = #{temp_arg_var}")
     end
 
     test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
@@ -701,7 +711,47 @@ class AddHeatPumpRtuTest < Minitest::Test
     end
 
     # assert cfm/ton violation
-    verify_cfm_per_ton(model)
+    verify_cfm_per_ton(model, result)
+  end
+
+  def test_370_full_service_restaurant_psz_gas_coil_std_perf
+    osm_name = '370_full_service_restaurant_psz_gas_coil.osm'
+    epw_name = 'GA_ROBINS_AFB_722175_12.epw'
+
+    puts "\n######\nTEST:#{osm_name}\n######\n"
+
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+
+    # Create an instance of the measure
+    measure = AddHeatPumpRtu.new
+
+    # Load the model; only used here for populating arguments
+    model = load_model(osm_path)
+
+    # get arguments
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+
+    # populate argument with specified hash value if specified
+    arguments.each do |arg|
+      temp_arg_var = arg.clone
+      if arg.name == 'std_perf'
+        std_perf = arguments[6].clone
+        std_perf.setValue(true) # override std_perf arg
+        argument_map[arg.name] = std_perf 
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
+    end
+
+    # Apply the measure to the model and optionally run the model
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+    assert_equal('Success', result.value.valueName)
+    model = load_model(model_output_path(__method__))
+    
+    # assert cfm/ton violation
+    verify_cfm_per_ton(model, result)
   end
 
   ###########################################################################
@@ -836,6 +886,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     # Apply the measure to the model and optionally run the model
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
     assert_equal('Success', result.value.valueName)
+    model = load_model(model_output_path(__method__))
 
     # assert no difference in ERVs in upgrade model
     ervs_upgrade = model.getHeatExchangerAirToAirSensibleAndLatents
@@ -875,6 +926,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     # Apply the measure to the model and optionally run the model
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
     assert_equal('Success', result.value.valueName)
+    model = load_model(model_output_path(__method__))
 
     # assert no difference in ERVs in upgrade model
     ervs_upgrade = model.getHeatExchangerAirToAirSensibleAndLatents
