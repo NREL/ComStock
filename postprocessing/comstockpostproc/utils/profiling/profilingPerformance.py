@@ -63,8 +63,12 @@ def __extract_running_log(tar_path):
                 continue
             if "out.osw" in member.name:
                 logfile = t.extractfile(member)
-                outoswjson = json.loads(logfile.read())
-                yield (member.name, outoswjson)
+                try:
+                    outoswjson = json.loads(logfile.read())
+                    yield (member.name, outoswjson)
+                except Exception as e:
+                    logging.info(f"the log file {member.name} is not a valid json file due to {e}")
+                    continue
 
 def _generate_printable_log(nestedLog: dict) -> dict:
     # print(nestedLog)
