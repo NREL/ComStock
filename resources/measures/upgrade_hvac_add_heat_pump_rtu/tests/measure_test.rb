@@ -486,7 +486,6 @@ class AddHeatPumpRtuTest < Minitest::Test
     arguments.each do |arg|
       temp_arg_var = arg.clone
       argument_map[arg.name] = temp_arg_var
-      puts("### DEBUGGING: temp_arg_var = #{temp_arg_var}")
     end
 
     test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
@@ -583,7 +582,7 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   ###########################################################################
-  # ###This section tests proper classification of partially-applicable building types
+  ###This section tests proper classification of partially-applicable building types
   def test_370_full_service_restaurant_psz_gas_coil
     osm_name = '370_full_service_restaurant_psz_gas_coil.osm'
     epw_name = 'GA_ROBINS_AFB_722175_12.epw'
@@ -688,6 +687,8 @@ class AddHeatPumpRtuTest < Minitest::Test
     verify_cfm_per_ton(model, result)
   end
 
+  ###########################################################################
+  ###This test is for cfm/ton check for standard performance unit
   def test_370_full_service_restaurant_psz_gas_coil_std_perf
     osm_name = '370_full_service_restaurant_psz_gas_coil.osm'
     epw_name = 'GA_ROBINS_AFB_722175_12.epw'
@@ -708,12 +709,54 @@ class AddHeatPumpRtuTest < Minitest::Test
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
     # populate argument with specified hash value if specified
-    arguments.each do |arg|
+    arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
       if arg.name == 'std_perf'
-        std_perf = arguments[6].clone
+        std_perf = arguments[idx].clone
         std_perf.setValue(true) # override std_perf arg
         argument_map[arg.name] = std_perf
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
+    end
+
+    # Apply the measure to the model and optionally run the model
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+    assert_equal('Success', result.value.valueName)
+    model = load_model(model_output_path(__method__))
+
+    # assert cfm/ton violation
+    verify_cfm_per_ton(model, result)
+  end
+
+  ###########################################################################
+  ###This test is for cfm/ton check for upsized unit
+  def test_370_full_service_restaurant_psz_gas_coil_upsizing
+    osm_name = '370_full_service_restaurant_psz_gas_coil.osm'
+    epw_name = 'GA_ROBINS_AFB_722175_12.epw'
+
+    puts "\n######\nTEST:#{osm_name}\n######\n"
+
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+
+    # Create an instance of the measure
+    measure = AddHeatPumpRtu.new
+
+    # Load the model; only used here for populating arguments
+    model = load_model(osm_path)
+
+    # get arguments
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+
+    # populate argument with specified hash value if specified
+    arguments.each_with_index do |arg, idx|
+      temp_arg_var = arg.clone
+      if arg.name == 'performance_oversizing_factor'
+        performance_oversizing_factor = arguments[idx].clone
+        performance_oversizing_factor.setValue(0.25) # override performance_oversizing_factor arg
+        argument_map[arg.name] = performance_oversizing_factor
       else
         argument_map[arg.name] = temp_arg_var
       end
