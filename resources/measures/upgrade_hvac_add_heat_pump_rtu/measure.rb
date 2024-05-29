@@ -1682,10 +1682,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       hash_clg_cap_stgs = { 1 => clg_stage1, 2 => clg_stage2, 3 => clg_stage3, 4 => clg_stage4 }
       final_rated_airflow_cfm = OpenStudio.convert(htg_airflow_stage4, 'm^3/s', 'cfm').get.round(0)
       final_rated_capacity_ton = OpenStudio.convert(dx_rated_clg_cap_applied, 'W', 'ton').get.round(1)
-      puts("### ==================================================================")
-      puts("### rated airflow rate (before cfm/ton check) = #{htg_airflow_stage4.round(6)} m3/sec = #{final_rated_airflow_cfm} cfm")
-      puts("### rated capacity (before cfm/ton check) = #{dx_rated_clg_cap_applied.round(2)} W = #{final_rated_capacity_ton} ton")
-      puts("### rated CFM/ton = #{(final_rated_airflow_cfm / final_rated_capacity_ton).round(3)}")
+      # puts("### ==================================================================")
+      # puts("### rated airflow rate (before cfm/ton check) = #{htg_airflow_stage4.round(6)} m3/sec = #{final_rated_airflow_cfm} cfm")
+      # puts("### rated capacity (before cfm/ton check) = #{dx_rated_clg_cap_applied.round(2)} W = #{final_rated_capacity_ton} ton")
+      # puts("### rated CFM/ton = #{(final_rated_airflow_cfm / final_rated_capacity_ton).round(3)}")
 
       # define cfm/ton bounds
       cfm_per_ton_min = 300
@@ -1737,10 +1737,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         else
           hash_clg_speed_level_status[clg_stg] = true
         end
-        puts("### -----------------------------------------------------------------")
-        puts("### (cooling) rated airflow after cfm/ton check (stage #{clg_stg}) = #{hash_clg_airflow_stgs[clg_stg].round(6)}")
-        puts("### (cooling) rated capacity after cfm/ton check (stage #{clg_stg}) = #{hash_clg_cap_stgs[clg_stg].round(0)}")
-        puts("### (cooling) final cfm/ton = #{(OpenStudio.convert(hash_clg_airflow_stgs[clg_stg], 'm^3/s', 'cfm').get / OpenStudio.convert(hash_clg_cap_stgs[clg_stg], 'W', 'ton').get).round(0)}")
+        # puts("### -----------------------------------------------------------------")
+        # puts("### (cooling) rated airflow after cfm/ton check (stage #{clg_stg}) = #{hash_clg_airflow_stgs[clg_stg].round(6)}")
+        # puts("### (cooling) rated capacity after cfm/ton check (stage #{clg_stg}) = #{hash_clg_cap_stgs[clg_stg].round(0)}")
+        # puts("### (cooling) final cfm/ton = #{(OpenStudio.convert(hash_clg_airflow_stgs[clg_stg], 'm^3/s', 'cfm').get / OpenStudio.convert(hash_clg_cap_stgs[clg_stg], 'W', 'ton').get).round(0)}")
       end
 
       ### Heating
@@ -1790,10 +1790,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         else
           hash_htg_speed_level_status[htg_stg] = true
         end
-        puts("### -----------------------------------------------------------------")
-        puts("### (heating) rated airflow after cfm/ton check (stage #{htg_stg}) = #{hash_htg_airflow_stgs[htg_stg].round(6)}")
-        puts("### (heating) rated capacity after cfm/ton check (stage #{htg_stg}) = #{hash_htg_cap_stgs[htg_stg].round(0)}")
-        puts("### (heating) final cfm/ton = #{(OpenStudio.convert(hash_htg_airflow_stgs[htg_stg], 'm^3/s', 'cfm').get / OpenStudio.convert(hash_htg_cap_stgs[htg_stg], 'W', 'ton').get).round(0)}")
+        # puts("### -----------------------------------------------------------------")
+        # puts("### (heating) rated airflow after cfm/ton check (stage #{htg_stg}) = #{hash_htg_airflow_stgs[htg_stg].round(6)}")
+        # puts("### (heating) rated capacity after cfm/ton check (stage #{htg_stg}) = #{hash_htg_cap_stgs[htg_stg].round(0)}")
+        # puts("### (heating) final cfm/ton = #{(OpenStudio.convert(hash_htg_airflow_stgs[htg_stg], 'm^3/s', 'cfm').get / OpenStudio.convert(hash_htg_cap_stgs[htg_stg], 'W', 'ton').get).round(0)}")
       end
 
       #################################### End Sizing Logic
