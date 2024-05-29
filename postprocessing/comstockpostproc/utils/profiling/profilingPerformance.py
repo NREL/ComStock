@@ -71,7 +71,7 @@ def _generate_printable_log(nestedLog: dict) -> dict:
     # print("total time: ", nestedLog.get("total_time"))
     res = {}
     _id = nestedLog.get("id")
-    upgrade_id, building_id = _id.split("up")[0], "up"+_id.split("up")[1]
+    building_id, upgrade_id = _id.split("up")[0], "up"+_id.split("up")[1]
     temp =[
     {
         'upgrade_id': upgrade_id,
