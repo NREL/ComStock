@@ -285,13 +285,13 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # check performance category
     result.stepValues.each do |input_arg|
-      if input_arg.name == 'std_perf'
-        if input_arg.valueAsBoolean == true
-          performance_category = 'standard'
-        else
-          performance_category = 'advanced'
-        end
-      end
+      next unless input_arg.name == 'std_perf'
+
+      performance_category = if input_arg.valueAsBoolean == true
+                               'standard'
+                             else
+                               'advanced'
+                             end
     end
     # puts("### DEBUGGING: performance_category = #{performance_category}")
     refute_equal(performance_category, nil)
@@ -713,7 +713,7 @@ class AddHeatPumpRtuTest < Minitest::Test
       if arg.name == 'std_perf'
         std_perf = arguments[6].clone
         std_perf.setValue(true) # override std_perf arg
-        argument_map[arg.name] = std_perf 
+        argument_map[arg.name] = std_perf
       else
         argument_map[arg.name] = temp_arg_var
       end
@@ -723,7 +723,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
     assert_equal('Success', result.value.valueName)
     model = load_model(model_output_path(__method__))
-    
+
     # assert cfm/ton violation
     verify_cfm_per_ton(model, result)
   end
