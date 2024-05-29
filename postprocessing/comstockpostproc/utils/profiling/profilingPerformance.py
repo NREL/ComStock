@@ -199,7 +199,17 @@ def cleanup_oringinal_log(originalLog: dict) -> dict:
     if originalLog.get("completed_status") != "Success":
         logger.info(f"the log is not successfully completed: {originalLog.get('completed_status')}")
         return res
-    
+
+    if not originalLog.get("steps"):
+        logger.info("the log is empty")
+        return res
+    if not originalLog.get("started_at") or not originalLog.get("completed_at"):
+        logger.info("the log is empty")
+        return res
+    if not originalLog.get("id"):
+        logging.info("the log is lack of id information")
+        return res
+
     res["total_time"] = __compute_delta([originalLog.get("started_at") , originalLog.get("completed_at")])
     res['step_info'] = __cleanup_step_logs(originalLog.get("steps", []))
     # print(res['step_info'])
