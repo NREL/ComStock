@@ -40,27 +40,6 @@ def main(path):
         timeDeltaFromCleanedLog['logpath'] = logpath
         generatingReport(timeDeltaFromCleanedLog, path)
 
-def aggregate_csv(path):
-    """
-    After all the csv are generated, aggregate the csvs from each run.
-    """
-    summaryPath = os.path.join(os.path.dirname(path), PROFILING_SUMMARY_DIR)
-    with open(summaryPath + '/' + 'aggregate_profiling.csv', 'w') as fout:
-        wout = csv.writer(fout, delimiter=',')
-        interesting_files = glob.glob(summaryPath + "/" + "*tar_gz.csv")
-        print(interesting_files)
-        h = True
-        for filename in interesting_files:
-            # Open and process file
-            logger.info("Aggregating {}".format(filename))
-            with open(filename, 'r') as fin:
-                if h:
-                    h = False
-                else:
-                    next(fin) # Skip header
-                for line in csv.reader(fin):
-                    wout.writerow(line)
-
 def __compute_delta(timestamps):
     """
     helper function: calculate the time usage for an action.
