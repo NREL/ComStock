@@ -471,7 +471,8 @@ class PlottingMixin():
         # Disaggregate to these levels
         group_bys = [
             None,
-            self.BLDG_TYPE
+            self.BLDG_TYPE,
+            self.HVAC_SYS,
         ]
 
         for col in cols_to_summarize:
@@ -847,6 +848,181 @@ class PlottingMixin():
                         fig_path = os.path.join(fig_sub_dir, fig_name)
                         plt.savefig(fig_path, bbox_inches = 'tight')
                         plt.close()
+
+    def plot_eui_boxplots_by_hvac_type(self, df, column_for_grouping, color_map, output_dir):
+        # EUI box plot comparisons by HVAC type and several disaggregations
+
+        # Columns to summarize
+        cols_to_summarize = [
+            self.col_name_to_eui(self.ANN_TOT_ENGY_KBTU),
+            self.col_name_to_eui(self.ANN_TOT_ELEC_KBTU),
+            self.col_name_to_eui(self.ANN_TOT_GAS_KBTU)
+        ]
+
+        # Disaggregate to these levels
+        group_bys = [
+            None,
+            self.CEN_DIV,
+            # self.FLR_AREA_CAT, TODO reenable after adding to both CBECS and ComStock
+            self.VINTAGE,
+            self.BLDG_TYPE
+        ]
+
+        for col in cols_to_summarize:
+            for hvac_type, hvac_type_df in df.groupby(self.HVAC_SYS):
+                if hvac_type_df[col].isnull().all():
+                    print(f"No data for {col} in HVAC type {hvac_type}. Skipping plot.")
+                    continue  # Skip this HVAC type if the column is all NaNs or empty
+
+                for group_by in group_bys:
+                    try:
+                        if group_by is None:
+                            g = sns.catplot(
+                                data=hvac_type_df,
+                                y=column_for_grouping,
+                                hue=column_for_grouping,
+                                x=col,
+                                order=list(color_map.keys()),
+                                palette=list(color_map.values()),
+                                kind='box',
+                                orient='h',
+                                fliersize=0,
+                                showmeans=True,
+                                meanprops={"marker": "d",
+                                        "markerfacecolor": "yellow",
+                                        "markeredgecolor": "black",
+                                        "markersize": "8"},
+                                legend_out=False  # Draw legend inside the plot area
+                            )
+                        else:
+                            g = sns.catplot(
+                                data=hvac_type_df,
+                                x=col,
+                                hue=column_for_grouping,
+                                y=group_by,
+                                order=self.ORDERED_CATEGORIES[group_by],
+                                hue_order=list(color_map.keys()),
+                                palette=list(color_map.values()),
+                                kind='box',
+                                orient='h',
+                                fliersize=0,
+                                showmeans=True,
+                                meanprops={"marker": "d",
+                                        "markerfacecolor": "yellow",
+                                        "markeredgecolor": "black",
+                                        "markersize": "8"},
+                                aspect=2,
+                                legend_out=False  # Draw legend inside the plot area
+                            )
+
+                        if g._legend is not None:
+                            g._legend.set_title(self.col_name_to_nice_name(column_for_grouping))
+                            # Reduce legend font size
+                            for text in g._legend.get_texts():
+                                text.set_fontsize('small')
+                            # Adjust legend frame
+                            g._legend.get_frame().set_edgecolor('black')
+                            g._legend.get_frame().set_linewidth(0.5)
+                            g._legend.get_frame().set_alpha(0.8)
+                            g._legend.set_bbox_to_anchor((1, 0.5))
+
+                        fig = g.figure
+
+                        units = self.nice_units(self.units_from_col_name(col))
+                        col_title = self.col_name_to_nice_name(col)
+                        fuel = self.col_name_to_fuel(col_title)
+
+                        if group_by is None:
+                            title = f"Boxplot of {col_title}\n for {hvac_type.replace('_', ' ')}".title()
+                            for ax in g.axes.flatten():
+                                ax.set_xlabel(f'{fuel} EUI ({units})')
+                                ax.set_ylabel('')
+                        else:
+                            gb = self.col_name_to_nice_name(group_by)
+                            title = f"Boxplot of {col_title}\n for {hvac_type.replace('_', ' ')} by {f'{gb}'}".title()
+                            for ax in g.axes.flatten():
+                                ax.set_xlabel(f'{fuel} EUI ({units})')
+                                ax.set_ylabel(f'{gb}')
+
+                        title = title.replace('\n', '')
+                        fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+                        fig_name = fig_name.replace('boxplot_of_', 'bp_')
+                        fig_name = fig_name.replace('total_energy_consumption_', '')
+                        fig_sub_dir = os.path.join(output_dir, 'HVAC Charts', hvac_type)
+                        if not os.path.exists(fig_sub_dir):
+                            os.makedirs(fig_sub_dir)
+                        fig_path = os.path.join(fig_sub_dir, fig_name)
+                        plt.savefig(fig_path, bbox_inches='tight')
+                        plt.close(fig)
+                        print(f"Successfully created plot for {col} and {hvac_type} with group_by {group_by}")
+
+                    except Exception as e:
+                        print(f"Failed to create plot for {col} and {hvac_type} with group_by {group_by}. Error: {e}")
+
+
+
+    # def plot_eui_boxplots_grouped_hvac_types(self, df, column_for_grouping, color_map, output_dir):
+    #     # EUI box plot comparisons by HVAC type and several disaggregations
+
+    #     # Columns to summarize
+    #     cols_to_summarize = [
+    #         self.col_name_to_eui(self.ANN_TOT_ENGY_KBTU),
+    #         self.col_name_to_eui(self.ANN_TOT_ELEC_KBTU),
+    #         self.col_name_to_eui(self.ANN_TOT_GAS_KBTU)
+    #     ]
+    #     group_bys = [
+    #         None,
+    #         self.HVAC_SYS,
+    #     ]
+    #     for col in cols_to_summarize:
+    #         for group_by in group_bys:
+
+    #         if df[col].isnull().all():
+    #             print(f"No data for {col}. Skipping plot.")
+    #             continue  # Skip this column if it is all NaNs or empty
+
+    #         g = sns.catplot(
+    #             data=df,
+    #             y=self.HVAC_SYS,
+    #             hue=column_for_grouping,
+    #             x=col,
+    #             order=list(color_map.keys()),
+    #             palette=list(color_map.values()),
+    #             kind='box',
+    #             orient='h',
+    #             fliersize=0,
+    #             showmeans=True,
+    #             meanprops={"marker": "d",
+    #                        "markerfacecolor": "yellow",
+    #                        "markeredgecolor": "black",
+    #                        "markersize": "8"},
+    #             legend_out=False  # Draw legend inside the plot area
+    #         )
+
+    #         # Extract the units from the column name
+    #         units = self.nice_units(self.units_from_col_name(col))
+
+    #         # Titles and axis labels
+    #         col_title = self.col_name_to_nice_name(col)
+    #         # col_title = col.replace(f' {units}', '')
+    #         # col_title = col_title.replace('Normalized Annual ', '')
+    #         fuel = self.col_name_to_fuel(col_title)
+
+    #         # Formatting
+    #         title = f"Boxplot of {col_title}".title()
+    #         for ax in g.axes.flatten():
+    #             ax.set_xlabel(f'{fuel} EUI ({units})')
+    #             ax.set_ylabel('')
+
+    #         # Save figure
+    #         title = title.replace('\n', '')
+    #         fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+    #         fig_name = fig_name.replace('boxplot_of_', 'bp_')
+    #         fig_name = fig_name.replace('total_energy_consumption_', '')
+    #         fig_path = os.path.abspath(os.path.join(output_dir, fig_name))
+    #         plt.savefig(fig_path, bbox_inches = 'tight')
+    #         plt.close()
+
 
     def plot_end_use_totals_by_building_type(self, df, column_for_grouping, color_map, output_dir):
         # Summarize end use energy totals by building type
