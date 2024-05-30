@@ -118,6 +118,7 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         self.plot_eui_boxplots(df, column_for_grouping, color_map, output_dir)
         self.plot_floor_area_and_energy_totals_by_building_type(df, column_for_grouping, color_map, output_dir)
         self.plot_floor_area_and_energy_totals_by_hvac_type(df, column_for_grouping, color_map, output_dir)
+        self.plot_eui_boxplots_by_hvac_type(df, column_for_grouping, color_map, output_dir)
         self.plot_end_use_totals_by_building_type(df, column_for_grouping, color_map, output_dir)
         self.plot_eui_histograms_by_building_type(df, column_for_grouping, color_map, output_dir)
         self.plot_eui_boxplots_by_building_type(df, column_for_grouping, color_map, output_dir)
