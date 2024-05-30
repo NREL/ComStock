@@ -354,11 +354,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
   # get rated cooling COP from fitted regression
   # based on actual product performances (Carrier/Lennox) which meet 2023 federal minimum efficiency requirements
+  # reflecting rated COP without blower power and blower heat gain
   def get_rated_cop_cooling(rated_capacity_w)
-    intercept = 3.826625
-    coef_1 = -0.010195
-    min_cop = 2.98
-    max_cop = 3.92
+    intercept = 3.772241
+    coef_1 = -0.01005
+    min_cop = 2.94
+    max_cop = 3.86
     rated_capacity_kw = rated_capacity_w / 1000 # W to kW
     rated_cop_cooling = intercept + (coef_1 * rated_capacity_kw)
     rated_cop_cooling.clamp(min_cop, max_cop)
@@ -366,11 +367,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
   # get rated heating COP from fitted regression
   # based on actual product performances (Carrier/Lennox) which meet 2023 federal minimum efficiency requirements
+  # reflecting rated COP without blower power and blower heat gain
   def get_rated_cop_heating(rated_capacity_w)
-    intercept = 4.017716
-    coef_1 = -0.008631
-    min_cop = 3.52
-    max_cop = 4.05
+    intercept = 3.957724
+    coef_1 = -0.008502
+    min_cop = 3.46
+    max_cop = 3.99
     rated_capacity_kw = rated_capacity_w / 1000 # W to kW
     rated_cop_heating = intercept + (coef_1 * rated_capacity_kw)
     rated_cop_heating.clamp(min_cop, max_cop)
