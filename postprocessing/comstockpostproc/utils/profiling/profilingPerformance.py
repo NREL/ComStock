@@ -28,16 +28,17 @@ def main(path):
     logger.info("Analyzing log files from {}".format(path))
     count = 0
     for logpath, log in __extract_running_log(path):
-        logger.info(f"Analyzing log path: {logpath}")
         informationLines = cleanup_original_log(log)
+        
+        count += 1
+        if count % 10 == 0:
+            logger.info(f"Analyzing log path: {logpath}")
+            logger.info(f"processed {count} logs")
 
         if not informationLines:
             logger.info(f">>>>>>> This is Empty >>>>>>  in path: {path}, logpath: {logpath}")
             continue
 
-        count += 1
-        if count % 10 == 0:
-            logger.info(f"processed {count} logs")
 
         # timeDeltaFromCleanedLog = generate_nest_log_from_namedtuple(informationLines)
         timeDeltaFromCleanedLog = _generate_printable_log(informationLines)
