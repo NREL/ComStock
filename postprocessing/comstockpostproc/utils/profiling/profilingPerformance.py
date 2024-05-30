@@ -29,7 +29,7 @@ def main(path):
     count = 0
     for logpath, log in __extract_running_log(path):
         informationLines = cleanup_original_log(log)
-        
+
         count += 1
         if count % 10 == 0:
             logger.info(f"Analyzing log path: {logpath}")
@@ -45,6 +45,7 @@ def main(path):
         timeDeltaFromCleanedLog['logpath'] = logpath
         generatingReport(timeDeltaFromCleanedLog, path)
     aggregate_csv(path)
+
 def __compute_delta(timestamps):
     """
     helper function: calculate the time usage for an action.
@@ -289,10 +290,6 @@ def __flatten_dict(d, parent_key='', sep='.'):
             items.append((new_key, v))
     return dict(items)
 
-def develop_cleanup_original_log(path: str):
-    res = cleanup_original_log(json.loads(open(path).read()))
-    return res
-
 def generatingReport(nestedLog: dict, path: str):
     """
     After nested log is generated, read the nested log and generate csv file.
@@ -336,13 +333,3 @@ def aggregate_csv(path: str):
                     next(fin) # Skip header
                 for line in csv.reader(fin):
                     wout.writerow(line)
-
-if __name__ == "__main__":
-    import sys
-    path = sys.argv[1]
-    main(path)
-    # for k,v in _generate_printable_log(develop_cleanup_original_log(path)).items():
-    #     print(k)
-    #     for item in v:
-    #         print(item)
-    # _generate_printable_log(develop_cleanup_original_log(path))
