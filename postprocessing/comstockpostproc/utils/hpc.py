@@ -813,16 +813,16 @@ def transfer_model_files_to_s3(yml_path, s3_output_dir, oedi_metadata_dir):
     shutil.rmtree(model_files_dir)
 
 
-def parse_and_generate_profiling(yml_path, worker_number=-1):
+def parse_and_generate_profiling(yml_path, worker_number: int = -1, selecting_upgrade_ids: list = None):
+    # selecting_updarage_ids = ["up00", "up01" ... ]
     if not(platform == "linux" or platform == "linux2"):
         raise RuntimeError('extract_models_from_simulation_output only works on HPC')
-
     simulation_output_dir = get_simulation_output_dir_from_yml(yml_path)
 
     tar_paths = []
     for tar_path in glob.glob(f'{simulation_output_dir}/simulations_job*.tar.gz', recursive=True):
         tar_paths.append(tar_path)
-    Parallel(n_jobs=worker_number, verbose=10)(delayed(profilingPerformance.main)(path) for path in tar_paths)
+    Parallel(n_jobs=worker_number, verbose=10)(delayed(profilingPerformance.main)(path, selecting_upgrade_ids) for path in tar_paths)
 
 def summarize_hpc_usage(yml_path):
     """Summarize HPC usage of a ComStock run.

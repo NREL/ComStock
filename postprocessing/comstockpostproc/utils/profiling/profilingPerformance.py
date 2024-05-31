@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 PROFILING_SUMMARY_DIR = "profiling_summary"
 
-def main(path):
+def main(path, selecting_run=None):
     """
     main function:
     - read the log file from tar.gz
@@ -29,6 +29,10 @@ def main(path):
     count = 0
     for logpath, log in __extract_running_log(path):
         informationLines = cleanup_original_log(log)
+
+        #logpath example: ./up00/bldg0000001/out.osw
+        if logpath.split("/")[1] not in selecting_run:
+            continue
 
         count += 1
         if count % 10 == 0:
@@ -189,17 +193,17 @@ def cleanup_original_log(originalLog: dict) -> dict:
     res = {}
     # print(originalLog.get("completed_status"))
     if originalLog.get("completed_status") != "Success":
-        logger.info(f"the log is not successfully completed: {originalLog.get('completed_status')}")
+        logger.debug(f"the log is not successfully completed: {originalLog.get('completed_status')}")
         return res
 
     if not originalLog.get("steps"):
-        logger.info("the log is empty")
+        logger.debug("the log is empty")
         return res
     if not originalLog.get("started_at") or not originalLog.get("completed_at"):
-        logger.info("the log is empty")
+        logger.debug("the log is empty")
         return res
     if not originalLog.get("id"):
-        logging.info("the log is lack of id information")
+        logging.debug("the log is lack of id information")
         return res
 
     res["total_time"] = __compute_delta([originalLog.get("started_at") , originalLog.get("completed_at")])
