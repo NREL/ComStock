@@ -400,6 +400,25 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     rated_cop_heating.clamp(min_cop, max_cop)
   end
 
+  # adjust rated COP based on reference CFM/ton
+  def adjust_rated_cop_from_ref_cfm_per_ton(airflow_sized_m_3_per_s, reference_cfm_per_ton, rated_capacity_w, original_rated_cop, eir_modifier_curve_flow)
+    # define conversion factors
+    conversion_factor_cfm_to_m_3_per_s = OpenStudio.convert(1.0, 'cfm', 'm^3/s').get
+    conversion_factor_ton_to_w = OpenStudio.convert(1.0, 'ton', 'W').get
+
+    # get reference airflow
+    airflow_reference_m_3_per_s = reference_cfm_per_ton * conversion_factor_cfm_to_m_3_per_s / conversion_factor_ton_to_w * rated_capacity_w
+
+    # get flow fraction
+    flow_fraction = airflow_sized_m_3_per_s / airflow_reference_m_3_per_s
+
+    # calculate modifiers
+    modifier_eir = eir_modifier_curve_flow.evaluate(flow_fraction)
+
+    # adjust rated COP (COP = 1 / EIR)
+    original_rated_cop * (1.0 / modifier_eir)
+  end
+
   #### End predefined functions
 
   # define what happens when the measure is run
@@ -832,8 +851,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # cooling performance function of fraction of flow: c_eir_high_ff
       c_eir_high_ff = OpenStudio::Model::CurveQuadratic.new(model)
       c_eir_high_ff.setName('c_eir_high_ff')
-      c_eir_high_ff.setCoefficient1Constant(-0.163166)
-      c_eir_high_ff.setCoefficient2x(1.170145)
+      c_eir_high_ff.setCoefficient1Constant(1.170145)
+      c_eir_high_ff.setCoefficient2x(-0.163166)
       c_eir_high_ff.setCoefficient3xPOW2(0)
       c_eir_high_ff.setMinimumValueofx(0.57)
       c_eir_high_ff.setMaximumValueofx(1.52)
@@ -1700,7 +1719,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       max_reached = false
       hash_clg_speed_level_status = {}
       [4, 3, 2, 1].each do |clg_stg|
-
         # define airflow and capacity for stage
         stg_cap = hash_clg_cap_stgs[clg_stg]
         stg_airflow = hash_clg_airflow_stgs[clg_stg]
@@ -1730,7 +1748,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
           end
 
         # check lower limit of ratio for complaince (<300 CFM/Ton)
-        elsif ((stg_airflow / stg_cap) < m_3_per_s_per_w_min)
+        elsif (stg_airflow / stg_cap) < m_3_per_s_per_w_min
           # calculate new stage airflow to fall in range.
           new_airflow = stg_cap * m_3_per_s_per_w_min
           hash_clg_airflow_stgs[clg_stg] = new_airflow
@@ -1783,7 +1801,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
           end
 
         # check lower limit of ratio for complaince (<300 CFM/Ton)
-        elsif ((stg_airflow / stg_cap) < m_3_per_s_per_w_min)
+        elsif (stg_airflow / stg_cap) < m_3_per_s_per_w_min
           # calculate new stage airflow to fall in range.
           new_airflow = stg_cap * m_3_per_s_per_w_min
           hash_htg_airflow_stgs[htg_stg] = new_airflow
@@ -1817,6 +1835,24 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # cooling curve assignments
       # ---------------------------------------------------------
 
+      # adjust rated cooling cop
+      final_rated_cooling_cop = nil
+      if std_perf
+        final_rated_cooling_cop = adjust_rated_cop_from_ref_cfm_per_ton(hash_clg_airflow_stgs[4],
+                                                                        404.0,
+                                                                        hash_clg_cap_stgs[4],
+                                                                        get_rated_cop_cooling(hash_clg_cap_stgs[4]),
+                                                                        c_eir_high_ff)
+        runner.registerInfo("rated cooling COP (for standard performance HPRTU) adjusted from #{get_rated_cop_cooling(hash_clg_cap_stgs[4]).round(3)} to #{final_rated_cooling_cop.round(3)} based on reference cfm/ton of 404 (i.e., average value of actual products)")
+      else
+        final_rated_cooling_cop = adjust_rated_cop_from_ref_cfm_per_ton(hash_clg_airflow_stgs[4],
+                                                                        365.0,
+                                                                        hash_clg_cap_stgs[4],
+                                                                        get_rated_cop_cooling_adv(hash_clg_cap_stgs[4]),
+                                                                        cool_eir_fff_all_stages)
+        runner.registerInfo("rated cooling COP (for advanced performance HPRTU) adjusted from #{get_rated_cop_cooling_adv(hash_clg_cap_stgs[4]).round(3)} to #{final_rated_cooling_cop.round(3)} based on reference cfm/ton of 365 (i.e., average value of actual products)")
+      end
+
       # create new multistage coil
       new_dx_cooling_coil = OpenStudio::Model::CoilCoolingDXMultiSpeed.new(model)
       new_dx_cooling_coil.setName("#{air_loop_hvac.name} Heat Pump Cooling Coil")
@@ -1836,7 +1872,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed1 = OpenStudio::Model::CoilCoolingDXMultiSpeedStageData.new(model)
       new_dx_cooling_coil_speed1.setGrossRatedTotalCoolingCapacity(hash_clg_cap_stgs[1])
       new_dx_cooling_coil_speed1.setGrossRatedSensibleHeatRatio(0.872821200315651)
-      new_dx_cooling_coil_speed1.setGrossRatedCoolingCOP(get_rated_cop_cooling_adv(hash_clg_cap_stgs[4]))
+      new_dx_cooling_coil_speed1.setGrossRatedCoolingCOP(final_rated_cooling_cop)
       new_dx_cooling_coil_speed1.setRatedAirFlowRate(hash_clg_airflow_stgs[1])
       new_dx_cooling_coil_speed1.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
       new_dx_cooling_coil_speed1.setTotalCoolingCapacityFunctionofTemperatureCurve(cool_cap_ft1)
@@ -1862,7 +1898,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed2 = OpenStudio::Model::CoilCoolingDXMultiSpeedStageData.new(model)
       new_dx_cooling_coil_speed2.setGrossRatedTotalCoolingCapacity(hash_clg_cap_stgs[2])
       new_dx_cooling_coil_speed2.setGrossRatedSensibleHeatRatio(0.80463149283227)
-      new_dx_cooling_coil_speed2.setGrossRatedCoolingCOP(get_rated_cop_cooling_adv(hash_clg_cap_stgs[4]))
+      new_dx_cooling_coil_speed2.setGrossRatedCoolingCOP(final_rated_cooling_cop)
       new_dx_cooling_coil_speed2.setRatedAirFlowRate(hash_clg_airflow_stgs[2])
       new_dx_cooling_coil_speed2.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
       new_dx_cooling_coil_speed2.setTotalCoolingCapacityFunctionofTemperatureCurve(cool_cap_ft2)
@@ -1888,13 +1924,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed3 = OpenStudio::Model::CoilCoolingDXMultiSpeedStageData.new(model)
       new_dx_cooling_coil_speed3.setGrossRatedTotalCoolingCapacity(hash_clg_cap_stgs[3])
       new_dx_cooling_coil_speed3.setGrossRatedSensibleHeatRatio(0.79452681573034)
-      if std_perf
-        rated_cop_fit = get_rated_cop_cooling(hash_clg_cap_stgs[4])
-        new_dx_cooling_coil_speed3.setGrossRatedCoolingCOP(rated_cop_fit)
-        runner.registerInfo("(standard performance) for air loop (#{air_loop_hvac.name}), stage 3 rated_cop_cooling = #{rated_cop_fit}")
-      else
-        new_dx_cooling_coil_speed3.setGrossRatedCoolingCOP(get_rated_cop_cooling_adv(hash_clg_cap_stgs[4]))
-      end
+      new_dx_cooling_coil_speed3.setGrossRatedCoolingCOP(final_rated_cooling_cop)
       new_dx_cooling_coil_speed3.setRatedAirFlowRate(hash_clg_airflow_stgs[3])
       new_dx_cooling_coil_speed3.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
       new_dx_cooling_coil_speed3.setTotalCoolingCapacityFunctionofTemperatureCurve(cool_cap_ft3)
@@ -1928,13 +1958,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed4 = OpenStudio::Model::CoilCoolingDXMultiSpeedStageData.new(model)
       new_dx_cooling_coil_speed4.setGrossRatedTotalCoolingCapacity(hash_clg_cap_stgs[4])
       new_dx_cooling_coil_speed4.setGrossRatedSensibleHeatRatio(0.784532541812955)
-      if std_perf
-        rated_cop_fit = get_rated_cop_cooling(hash_clg_cap_stgs[4])
-        new_dx_cooling_coil_speed4.setGrossRatedCoolingCOP(rated_cop_fit)
-        runner.registerInfo("(standard performance) for air loop (#{air_loop_hvac.name}), stage 4 rated_cop_cooling = #{rated_cop_fit}")
-      else
-        new_dx_cooling_coil_speed4.setGrossRatedCoolingCOP(get_rated_cop_cooling_adv(hash_clg_cap_stgs[4]))
-      end
+      new_dx_cooling_coil_speed4.setGrossRatedCoolingCOP(final_rated_cooling_cop)
       new_dx_cooling_coil_speed4.setRatedAirFlowRate(hash_clg_airflow_stgs[4])
       new_dx_cooling_coil_speed4.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
       new_dx_cooling_coil_speed4.setTotalCoolingCapacityFunctionofTemperatureCurve(cool_cap_ft4)
@@ -1962,6 +1986,25 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # heating curve assignments
       # ---------------------------------------------------------
 
+      # adjust rated heating cop
+      final_rated_heating_cop = nil
+      puts('### adjust rated COP: HEATING')
+      if std_perf
+        final_rated_heating_cop = adjust_rated_cop_from_ref_cfm_per_ton(hash_htg_airflow_stgs[4],
+                                                                        420.0,
+                                                                        hash_htg_cap_stgs[4],
+                                                                        get_rated_cop_heating(hash_htg_cap_stgs[4]),
+                                                                        heat_eir_fff_all_stages)
+        runner.registerInfo("rated heating COP (for standard performance HPRTU) adjusted from #{get_rated_cop_heating(hash_htg_cap_stgs[4]).round(3)} to #{final_rated_heating_cop.round(3)} based on reference cfm/ton of 420 (i.e., average value of actual products)")
+      else
+        final_rated_heating_cop = adjust_rated_cop_from_ref_cfm_per_ton(hash_htg_airflow_stgs[4],
+                                                                        411.0,
+                                                                        hash_htg_cap_stgs[4],
+                                                                        get_rated_cop_heating_adv(hash_htg_cap_stgs[4]),
+                                                                        heat_eir_fff_all_stages)
+        runner.registerInfo("rated heating COP (for advanced performance HPRTU) adjusted from #{get_rated_cop_heating_adv(hash_htg_cap_stgs[4]).round(3)} to #{final_rated_heating_cop.round(3)} based on reference cfm/ton of 420 (i.e., average value of actual products)")
+      end
+
       # add new multispeed heating coil
       if std_perf
         new_dx_heating_coil = OpenStudio::Model::CoilHeatingDXSingleSpeed.new(model)
@@ -1977,9 +2020,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         new_dx_heating_coil.setDefrostTimePeriodFraction(0.058333)
 
         new_dx_heating_coil.setRatedTotalHeatingCapacity(hash_htg_cap_stgs[4])
-        rated_cop_fit = get_rated_cop_heating(hash_htg_cap_stgs[4])
-        runner.registerInfo("(standard performance) for air loop (#{air_loop_hvac.name}), single stage rated_cop_heating = #{rated_cop_fit}")
-        new_dx_heating_coil.setRatedCOP(rated_cop_fit)
+        new_dx_heating_coil.setRatedCOP(final_rated_heating_cop)
         new_dx_heating_coil.setRatedAirFlowRate(hash_htg_airflow_stgs[4])
         new_dx_heating_coil.setRatedSupplyFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil.setTotalHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft4)
@@ -2006,7 +2047,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # add stage data: create stage 1
         new_dx_heating_coil_speed1 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
         new_dx_heating_coil_speed1.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[1])
-        new_dx_heating_coil_speed1.setGrossRatedHeatingCOP(get_rated_cop_heating_adv(hash_htg_cap_stgs[4]))
+        new_dx_heating_coil_speed1.setGrossRatedHeatingCOP(final_rated_heating_cop)
         new_dx_heating_coil_speed1.setRatedAirFlowRate(hash_htg_airflow_stgs[1])
         new_dx_heating_coil_speed1.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed1.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft1)
@@ -2021,7 +2062,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # add stage data: create stage 2
         new_dx_heating_coil_speed2 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
         new_dx_heating_coil_speed2.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[2])
-        new_dx_heating_coil_speed2.setGrossRatedHeatingCOP(get_rated_cop_heating_adv(hash_htg_cap_stgs[4]))
+        new_dx_heating_coil_speed2.setGrossRatedHeatingCOP(final_rated_heating_cop)
         new_dx_heating_coil_speed2.setRatedAirFlowRate(hash_htg_airflow_stgs[2])
         new_dx_heating_coil_speed2.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed2.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft2)
@@ -2036,7 +2077,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # add stage data: create stage 3
         new_dx_heating_coil_speed3 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
         new_dx_heating_coil_speed3.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[3])
-        new_dx_heating_coil_speed3.setGrossRatedHeatingCOP(get_rated_cop_heating_adv(hash_htg_cap_stgs[4]))
+        new_dx_heating_coil_speed3.setGrossRatedHeatingCOP(final_rated_heating_cop)
         new_dx_heating_coil_speed3.setRatedAirFlowRate(hash_htg_airflow_stgs[3])
         new_dx_heating_coil_speed3.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed3.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft3)
@@ -2051,7 +2092,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # add stage data: create stage 4
         new_dx_heating_coil_speed4 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
         new_dx_heating_coil_speed4.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[4])
-        new_dx_heating_coil_speed4.setGrossRatedHeatingCOP(get_rated_cop_heating_adv(hash_htg_cap_stgs[4]))
+        new_dx_heating_coil_speed4.setGrossRatedHeatingCOP(final_rated_heating_cop)
         new_dx_heating_coil_speed4.setRatedAirFlowRate(hash_htg_airflow_stgs[4])
         new_dx_heating_coil_speed4.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed4.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft4)
