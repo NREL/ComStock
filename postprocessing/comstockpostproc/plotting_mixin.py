@@ -500,6 +500,28 @@ class PlottingMixin():
                         },
                         legend=False
                     )
+                elif group_by is self.HVAC_SYS:
+                    g = sns.catplot(
+                        data=df,
+                        x=col,
+                        hue=column_for_grouping,
+                        y=group_by,
+                        order=self.ORDERED_CATEGORIES[group_by],
+                        hue_order=list(color_map.keys()),
+                        palette=color_map.values(),
+                        kind='box',
+                        aspect=1,
+                        height=20,
+                        orient='h',
+                        fliersize=0,
+                        showmeans=True,
+                        meanprops={"marker":"d",
+                            "markerfacecolor":"yellow",
+                            "markeredgecolor":"black",
+                            "markersize":"2"
+                        },
+                    )
+                    g._legend.set_title(self.col_name_to_nice_name(column_for_grouping))
                 else:
                     # With group-by
                     g = sns.catplot(
@@ -555,8 +577,13 @@ class PlottingMixin():
                 fig_name = fig_name.replace('boxplot_of_', 'bp_')
                 fig_name = fig_name.replace('total_energy_consumption_', '')
                 fig_path = os.path.abspath(os.path.join(output_dir, fig_name))
-                plt.savefig(fig_path, bbox_inches = 'tight')
-                plt.close()
+                if group_by is self.HVAC_SYS:
+                    plt.savefig(fig_path)
+                    plt.close()
+                else:
+                    plt.savefig(fig_path, bbox_inches = 'tight')
+                    plt.close()
+
 
     def plot_energy_rate_boxplots(self, df, column_for_grouping, color_map, output_dir):
         # energy rate box plot comparisons by building type and several disaggregations
