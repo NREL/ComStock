@@ -100,8 +100,10 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
         # Make plots comparing the upgrades
 
         logger.info(f'Making comparison plots for upgrade')
+
         self.plot_energy_by_enduse_and_fuel_type(df, column_for_grouping, color_map, output_dir)
         self.plot_emissions_by_fuel_type(df, column_for_grouping, color_map, output_dir)
+        self.plot_utility_bills_by_fuel_type(df, column_for_grouping, color_map, output_dir)
         self.plot_floor_area_and_energy_totals(df, column_for_grouping, color_map, output_dir)
         self.plot_floor_area_and_energy_totals_by_building_type(df, column_for_grouping, color_map, output_dir)
         self.plot_end_use_totals_by_building_type(df, column_for_grouping, color_map, output_dir)
@@ -111,6 +113,10 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
         self.plot_measure_savings_distributions_by_building_type(df, output_dir)
         self.plot_measure_savings_distributions_by_climate_zone(df, output_dir)
         self.plot_measure_savings_distributions_by_hvac_system_type(df, output_dir)
+        self.plot_measure_utility_savings_distributions_by_fuel(df, output_dir)
+        self.plot_measure_utility_savings_distributions_by_building_type(df, output_dir)
+        self.plot_measure_utility_savings_distributions_by_climate_zone(df, output_dir)
+        self.plot_measure_utility_savings_distributions_by_hvac_system(df, output_dir)
         self.plot_qoi_timing(df, column_for_grouping, color_map, output_dir)
         self.plot_qoi_max_use(df, column_for_grouping, color_map, output_dir)
         self.plot_qoi_min_use(df, column_for_grouping, color_map, output_dir)
@@ -121,6 +127,7 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
         logger.info(f'Making comparison plots for upgrade groupings')
         self.plot_energy_by_enduse_and_fuel_type(df, column_for_grouping, color_map, output_dir)
         self.plot_emissions_by_fuel_type(df, column_for_grouping, color_map, output_dir)
+        self.plot_utility_bills_by_fuel_type(df, column_for_grouping, color_map, output_dir)
         self.plot_floor_area_and_energy_totals(df, column_for_grouping, color_map, output_dir)
 
 
