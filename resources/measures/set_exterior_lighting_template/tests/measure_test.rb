@@ -114,7 +114,7 @@ class SetExteriorLightingTemplateTest < Minitest::Test
     # If the argument has a default that you want to use, you don't need it in the hash
     args_hash = {}
     args_hash['as_constructed_template'] = 'DEER 1985'
-    args_hash['template'] = 'DEER 2025'
+    args_hash['template'] = 'ComStock DEER 2020'
     args_hash['climate_zone'] = 'CEC T24-CEC6'
     # using defaults values from measure.rb for other arguments
 
@@ -165,7 +165,7 @@ class SetExteriorLightingTemplateTest < Minitest::Test
     # If the argument has a default that you want to use, you don't need it in the hash
     args_hash = {}
     args_hash['as_constructed_template'] = 'DEER 1985'
-    args_hash['template'] = 'DEER 2025'
+    args_hash['template'] = 'ComStock DEER 2020'
     args_hash['climate_zone'] = 'CEC T24-CEC6'
     # using defaults values from measure.rb for other arguments
 
@@ -216,7 +216,7 @@ class SetExteriorLightingTemplateTest < Minitest::Test
     # If the argument has a default that you want to use, you don't need it in the hash
     args_hash = {}
     args_hash['as_constructed_template'] = 'DEER 1985'
-    args_hash['template'] = 'DEER 2025'
+    args_hash['template'] = 'ComStock DEER 2020'
     args_hash['climate_zone'] = 'CEC T24-CEC6'
     # using defaults values from measure.rb for other arguments
 
@@ -267,7 +267,7 @@ class SetExteriorLightingTemplateTest < Minitest::Test
     # If the argument has a default that you want to use, you don't need it in the hash
     args_hash = {}
     args_hash['as_constructed_template'] = 'DEER 1985'
-    args_hash['template'] = 'DEER 2025'
+    args_hash['template'] = 'ComStock DEER 2020'
     args_hash['climate_zone'] = 'CEC T24-CEC6'
     # using defaults values from measure.rb for other arguments
 
