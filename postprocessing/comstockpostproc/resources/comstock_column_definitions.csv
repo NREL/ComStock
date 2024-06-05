@@ -372,7 +372,7 @@ results.csv,com_stock_sensitivity_reports.com_report_average_cooling_setpoint_mi
 results.csv,com_stock_sensitivity_reports.com_report_average_exterior_wall_u_value_si,out.params.average_wall_u_value,TRUE,FALSE,float,w_per_m2_k,btu_per_ft2_f_hr,Average exterior wall u-value
 results.csv,com_stock_sensitivity_reports.com_report_average_heating_setpoint_max_c,out.params.average_heating_setpoint_max,TRUE,FALSE,float,c,c,Average maximum heating thermostat setpoint
 results.csv,com_stock_sensitivity_reports.com_report_average_heating_setpoint_min_c,out.params.average_heating_setpoint_min,TRUE,FALSE,float,c,c,Average minimum heating thermostat setpoint
-results.csv,com_stock_sensitivity_reports.com_report_air_system_average_outdoor_air_fraction,out.params.average_outdoor_air_fraction,TRUE,FALSE,float,,,Average outdoor air ventialtion fraction
+results.csv,com_stock_sensitivity_reports.com_report_air_system_average_outdoor_air_fraction,out.params.average_outdoor_air_fraction,TRUE,FALSE,float,,,Average outdoor air ventilation fraction
 results.csv,com_stock_sensitivity_reports.com_report_average_roof_absorptance,out.params.average_roof_absorptance,TRUE,FALSE,float,,,Average roof absorptance
 results.csv,com_stock_sensitivity_reports.com_report_average_roof_u_value_si,out.params.average_roof_u_value,TRUE,FALSE,float,w_per_m2_k,btu_per_ft2_f_hr,Average roof u-value
 results.csv,com_stock_sensitivity_reports.com_report_building_fraction_cooled,out.params.building_fraction_cooled,TRUE,FALSE,float,,,Fraction of building that is served by a cooling system
