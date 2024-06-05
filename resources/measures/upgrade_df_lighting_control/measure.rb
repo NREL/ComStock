@@ -64,6 +64,12 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
   def arguments(model)
     args = OpenStudio::Measure::OSArgumentVector.new
 
+    choices_obj = ['peak load', 'emission', 'utility bill cost', 'operational cost']
+    demand_flexibility_objective = OpenStudio::Ruleset::OSArgument.makeChoiceArgument('demand_flexibility_objective', choices_obj, true)
+    demand_flexibility_objective.setDisplayName("Objective of demand flexibility control (peak load, emission, utility bill cost, operational cost)")
+    demand_flexibility_objective.setDefaultValue('peak load')
+    args << demand_flexibility_objective 
+
     peak_len = OpenStudio::Measure::OSArgument.makeIntegerArgument('peak_len', true)
     peak_len.setDisplayName("Length of dispatch window (hour)")
     peak_len.setDefaultValue(4)
@@ -90,11 +96,39 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     peak_lag.setDefaultValue(2)
     args << peak_lag
 
-    choices_strate = ['max energy savings', 'start with peak', 'end with peak', 'center with peak']
+    choices_strate = ['max savings', 'start with peak', 'end with peak', 'center with peak']
     peak_window_strategy = OpenStudio::Ruleset::OSArgument.makeChoiceArgument('peak_window_strategy', choices_strate, true)
-    peak_window_strategy.setDisplayName("Method of determining peak windows (max energy savings, start with peak, end with peak, center with peak)")
+    peak_window_strategy.setDisplayName("Method of determining peak windows (max savings, start with peak, end with peak, center with peak)")
     peak_window_strategy.setDefaultValue('center with peak')
     args << peak_window_strategy
+
+    choices_scenarios = [
+      'AER_95DecarbBy2035',
+      'AER_95DecarbBy2050',
+      'AER_HighRECost',
+      'AER_LowRECost',
+      'AER_MidCase',
+      'LRMER_95DecarbBy2035_15',
+      'LRMER_95DecarbBy2035_30',
+      'LRMER_95DecarbBy2035_15_2025start',
+      'LRMER_95DecarbBy2035_25_2025start',
+      'LRMER_95DecarbBy2050_15',
+      'LRMER_95DecarbBy2050_30',
+      'LRMER_HighRECost_15',
+      'LRMER_HighRECost_30',
+      'LRMER_LowRECost_15',
+      'LRMER_LowRECost_30',
+      'LRMER_LowRECost_15_2025start',
+      'LRMER_LowRECost_25_2025start',
+      'LRMER_MidCase_15',
+      'LRMER_MidCase_30',
+      'LRMER_MidCase_15_2025start',
+      'LRMER_MidCase_25_2025start'
+    ]
+    cambium_scenario = OpenStudio::Ruleset::OSArgument.makeChoiceArgument('cambium_scenario', choices_scenarios, true)
+    cambium_scenario.setDisplayName("Cambium emission scenario")
+    cambium_scenario.setDefaultValue('LRMER_MidCase_30')
+    args << cambium_scenario
 
     return args
   end
@@ -111,12 +145,14 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     ############################################
     # assign the user inputs to variables
     ############################################
+    demand_flexibility_objective = runner.getStringArgumentValue("demand_flexibility_objective",user_arguments)
     peak_len = runner.getIntegerArgumentValue("peak_len",user_arguments)
     light_adjustment = runner.getDoubleArgumentValue('light_adjustment', user_arguments)
     num_timesteps_in_hr = runner.getIntegerArgumentValue("num_timesteps_in_hr",user_arguments)
     load_prediction_method = runner.getStringArgumentValue("load_prediction_method",user_arguments)
     peak_lag = runner.getIntegerArgumentValue("peak_lag",user_arguments)
     peak_window_strategy = runner.getStringArgumentValue("peak_window_strategy",user_arguments)
+    cambium_scenario = runner.getStringArgumentValue("cambium_scenario",user_arguments)
 
     def light_factor_hourly_based_on_sch(peak_sch, light_adjustment)
       light_factor_values = peak_sch.map{|a| 1-light_adjustment/100.0*a}
@@ -328,38 +364,61 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     end
 
     ############################################
+    # Emission prediction
+    ############################################
+    puts("### ============================================================")
+    puts("### Predicting emission...")
+    if demand_flexibility_objective == 'emission'
+      egrid_co2e_kg_per_mwh, cambium_co2e_kg_per_mwh = read_emission_factors(model, scenario=cambium_scenario)
+      if cambium_co2e_kg_per_mwh == []
+        hourly_emissions_kg = emission_prediction(annual_load, factor=egrid_co2e_kg_per_mwh, num_timesteps_in_hr=num_timesteps_in_hr)
+      else
+        hourly_emissions_kg = emission_prediction(annual_load, factor=cambium_co2e_kg_per_mwh, num_timesteps_in_hr=num_timesteps_in_hr)
+      end
+    end
+
+    ############################################
     # Generate peak schedule
     ############################################
     puts("### ============================================================")
     puts("### Creating peak schedule...")
-    if load_prediction_method == 'fix'
-      puts("### Fixed schedule...")
-      template = 'ComStock 90.1-2019'
-      std = Standard.build(template)
-      climate_zone = std.model_standards_climate_zone(model)
-      runner.registerInfo("climate zone = #{climate_zone}")
-      if climate_zone.empty?
-        runner.registerError('Unable to determine climate zone for model. Cannot apply window film without climate zone information.')
-      else
-        if climate_zone.include?("CEC")
-          climate_zone_num_ca = climate_zone.split("CEC")[-1]
-          puts "--- climate_zone_num_ca = #{climate_zone_num_ca}"
-          cz = map_cec_to_iecc[climate_zone_num_ca.to_i]
-        elsif climate_zone.include?("ASHRAE")
-          cz = climate_zone.split("-")[-1]
-        else
+    if demand_flexibility_objective == 'peak load'
+      puts("### Creating peak schedule for peak load reduction...")
+      if load_prediction_method == 'fix'
+        puts("### Fixed schedule...")
+        template = 'ComStock 90.1-2019'
+        std = Standard.build(template)
+        climate_zone = std.model_standards_climate_zone(model)
+        runner.registerInfo("climate zone = #{climate_zone}")
+        if climate_zone.empty?
           runner.registerError('Unable to determine climate zone for model. Cannot apply window film without climate zone information.')
+        else
+          if climate_zone.include?("CEC")
+            climate_zone_num_ca = climate_zone.split("CEC")[-1]
+            puts "--- climate_zone_num_ca = #{climate_zone_num_ca}"
+            cz = map_cec_to_iecc[climate_zone_num_ca.to_i]
+          elsif climate_zone.include?("ASHRAE")
+            cz = climate_zone.split("-")[-1]
+          else
+            runner.registerError('Unable to determine climate zone for model. Cannot apply window film without climate zone information.')
+          end
         end
+        puts "--- cz = #{cz}"
+        peak_schedule_clg, peak_schedule_htg = peak_schedule_generation_fix(cz, oat, rebound_len=0, prepeak_len=0, season='all')
+      elsif load_prediction_method == 'oat'
+        puts("### OAT-based schedule...")
+        peak_schedule_clg, peak_schedule_htg = peak_schedule_generation_oat(oat, peak_len, peak_lag=peak_lag, rebound_len=rebound_len, prepeak_len=0, season='all')
+      else
+        puts("### Predictive schedule...")
+        peak_schedule_clg = peak_schedule_generation(annual_load, oat, peak_len, num_timesteps_in_hr=num_timesteps_in_hr, peak_window_strategy=peak_window_strategy, rebound_len=0, prepeak_len=0, season='all')
       end
-      puts "--- cz = #{cz}"
-      peak_schedule_clg, peak_schedule_htg = peak_schedule_generation_fix(cz, oat, rebound_len=0, prepeak_len=0, season='all')
-    elsif load_prediction_method == 'oat'
-      puts("### OAT-based schedule...")
-      peak_schedule_clg, peak_schedule_htg = peak_schedule_generation_oat(oat, peak_len, peak_lag=peak_lag, rebound_len=rebound_len, prepeak_len=0, season='all')
+    elsif demand_flexibility_objective == 'emission'
+      puts("### Creating peak schedule for emission reduction...")
+      peak_schedule_clg = peak_schedule_generation(hourly_emissions_kg, oat, peak_len, num_timesteps_in_hr=1, peak_window_strategy=peak_window_strategy, rebound_len=0, prepeak_len=0, season='all')
     else
-      puts("### Predictive schedule...")
-      peak_schedule_clg = peak_schedule_generation(annual_load, oat, peak_len, num_timesteps_in_hr=num_timesteps_in_hr, peak_window_strategy=peak_window_strategy, rebound_len=0, prepeak_len=0, season='all')
+      runner.registerError('Not supported objective.')
     end
+
     # puts("--- peak_schedule = #{peak_schedule_clg}")
     puts("--- peak_schedule.size = #{peak_schedule_clg.size}")
 
