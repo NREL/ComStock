@@ -147,47 +147,79 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         logger.info(f'Skipping reload for upgrade {up_id}')
                         continue
                     logger.info(f'Reloading data from: {file_path}')
-                    upgrade_dfs.append(pl.read_parquet(file_path))
+                    upgrade_dfs.append(pl.scan_parquet(file_path))
                 self.data = pl.concat(upgrade_dfs)
             elif os.path.exists(os.path.join(self.output_dir, 'ComStock wide.csv')):
                 file_path = os.path.join(self.output_dir, 'ComStock wide.csv')
                 logger.info(f'Reloading data from: {file_path}')
-                self.data = pl.read_csv(file_path, dtypes={self.UPGRADE_ID: pl.Int64}, infer_schema_length=10000)
+                self.data = pl.scan_csv(file_path, dtypes={self.UPGRADE_ID: pl.Int64}, infer_schema_length=10000)
                 self.data = self.reduce_df_memory(self.data)
             else:
                 raise FileNotFoundError(
                 f'Cannot find wide .csv or .parquet in {self.output_dir} to reload data, set reload_from_csv=False.')
         else:
+
+            # Get upgrades to process based on available results parquet files
+            upgrade_ids = []
+            results_paths = glob.glob(os.path.join(self.data_dir, 'results_up*.parquet'))
+            results_paths.sort()
+            for results_path in results_paths:
+                upgrade_id = np.int64(os.path.basename(results_path).replace('results_up', '').replace('.parquet', ''))
+
+                # Skip specified upgrades
+                if upgrade_id in self.upgrade_ids_to_skip:
+                    logger.info(f'Skipping upgrade {upgrade_id}')
+                    continue
+
+                upgrade_ids.append(upgrade_id)
+
             # Import columns from buildstock, results.csv, and other files
-            self.load_data(acceptable_failure_percentage, drop_failed_runs)
-            self.add_buildstock_csv_columns()
-            self.add_geospatial_columns()  # TODO remove geospatial join once reliably in buildstock.csv
-            self.add_ejscreen_columns()
-            self.add_cejst_columns()
-            self.data = self.downselect_imported_columns(self.data)
-            self.rename_columns_and_convert_units()
-            self.set_column_data_types()
-            # Calculate/generate columns based on imported columns
-            # self.add_aeo_nems_building_type_column()  # TODO POLARS figure out apply function
-            self.add_missing_energy_columns()
-            self.combine_utility_cols()
-            self.add_enduse_total_energy_columns()
-            self.add_energy_intensity_columns()
-            self.add_bill_intensity_columns()
-            self.add_energy_rate_columns()
-            self.add_normalized_qoi_columns()
-            self.add_vintage_column()
-            self.add_dataset_column()
-            # self.add_upgrade_building_id_column()  # TODO POLARS figure out apply function
-            self.add_hvac_metadata()
-            self.add_building_type_group()
-            self.data = self.reduce_df_memory(self.data)
-            self.add_enduse_fuel_group_columns()
-            self.add_enduse_group_columns()
-            self.add_addressable_segments_columns()
-            self.combine_emissions_cols()
-            self.add_metadata_index_col()
-            self.get_comstock_unscaled_monthly_energy_consumption()
+            up_lazyframes = []
+            for upgrade_id in upgrade_ids:
+                self.data = None
+                # Change this to only load 1 upgrade
+                self.load_data(upgrade_id, acceptable_failure_percentage, drop_failed_runs)
+
+                self.add_buildstock_csv_columns()
+                self.add_geospatial_columns()  # TODO remove geospatial join once reliably in buildstock.csv
+                self.add_ejscreen_columns()
+                self.add_cejst_columns()
+                self.data = self.downselect_imported_columns(self.data)
+                self.rename_columns_and_convert_units()
+                self.set_column_data_types()
+                # Calculate/generate columns based on imported columns
+                # self.add_aeo_nems_building_type_column()  # TODO POLARS figure out apply function
+                self.add_missing_energy_columns()
+                self.combine_utility_cols()
+                self.add_enduse_total_energy_columns()
+                self.add_energy_intensity_columns()
+                self.add_bill_intensity_columns()
+                self.add_energy_rate_columns()
+                self.add_normalized_qoi_columns()
+                self.add_vintage_column()
+                self.add_dataset_column()
+                # self.add_upgrade_building_id_column()  # TODO POLARS figure out apply function
+                self.add_hvac_metadata()
+                self.add_building_type_group()
+                self.data = self.reduce_df_memory(self.data)
+                self.add_enduse_fuel_group_columns()
+                self.add_enduse_group_columns()
+                self.add_addressable_segments_columns()
+                self.combine_emissions_cols()
+                self.add_metadata_index_col()
+                self.get_comstock_unscaled_monthly_energy_consumption()
+                # Downselect the self.data to just the upgrade
+                self.data = self.data.filter(pl.col(self.UPGRADE_ID) == upgrade_id)
+                # Write self.data to parquet file
+                file_name = f'NEW ComStock wide upgrade{upgrade_id}.parquet'
+                file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
+                logger.info(f'Exporting to: {file_path}')
+                self.data.write_parquet(file_path)
+                up_lazyframes.append(pl.scan_parquet(file_path))
+
+            # Now, we have self.data is one huge LazyFrame
+            # which is exactly like self.data was before because it includes all upgrades
+            self.data = pl.concat(up_lazyframes)
 
             # logger.debug('\nComStock columns after adding all data:')
             # for c in self.data.columns:
@@ -423,7 +455,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         return df
 
-    def load_data(self, acceptable_failure_percentage=0.01, drop_failed_runs=True):
+    def load_data(self, upgrade_id, acceptable_failure_percentage=0.01, drop_failed_runs=True):
         # Ensure that the baseline results exist
         data_file_path = os.path.join(self.data_dir, self.results_file_name)
         if not os.path.exists(data_file_path):
@@ -442,10 +474,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         failure_summaries = []
 
         # Load results, identify failed runs
-        results_paths = glob.glob(os.path.join(self.data_dir, 'results_up*.parquet'))
-        results_paths.sort()
-        for results_path in results_paths:
-            upgrade_id = np.int64(os.path.basename(results_path).replace('results_up', '').replace('.parquet', ''))
+        for upgrade_id in [0, upgrade_id]:
 
             # Skip specified upgrades
             if upgrade_id in self.upgrade_ids_to_skip:
@@ -453,6 +482,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 continue
 
             # Load upgrade results
+            results_path = os.path.join(self.data_dir, f'results_up{str(upgrade_id).zfill(2)}.parquet')
             logger.info(f'Reading results_up{upgrade_id}')
             up_res = pl.read_parquet(results_path)
             up_res = up_res.with_columns([
