@@ -387,6 +387,7 @@ class PlottingMixin():
             self.BLDG_TYPE,
             # self.FLR_AREA_CAT, TODO reenable after adding to both CBECS and ComStock
             self.VINTAGE,
+            self.HVAC_SYS,
         ]
 
         for col, agg_method in cols_to_summarize.items(): # loops through column names and provides agg function for specific column
@@ -410,6 +411,23 @@ class PlottingMixin():
                         aspect=1.5,
                         legend=False
                     )
+                elif group_by is self.HVAC_SYS:
+                    # With group-by
+                    g = sns.catplot(
+                        data=df,
+                        y=col,
+                        estimator=agg_method,
+                        hue=column_for_grouping,
+                        x=group_by,
+                        order=self.ORDERED_CATEGORIES[group_by],
+                        hue_order=list(color_map.keys()),
+                        palette=color_map.values(),
+                        kind='bar',
+                        errorbar=None,
+                        aspect=3
+                    )
+                    g._legend.set_title(self.col_name_to_nice_name(column_for_grouping))
+                    g.set_xticklabels(rotation=90)  # Add this line
                 else:
                     # With group-by
                     g = sns.catplot(
@@ -503,16 +521,16 @@ class PlottingMixin():
                 elif group_by is self.HVAC_SYS:
                     g = sns.catplot(
                         data=df,
-                        x=col,
+                        y=col,
                         hue=column_for_grouping,
-                        y=group_by,
+                        x=group_by,
                         order=self.ORDERED_CATEGORIES[group_by],
                         hue_order=list(color_map.keys()),
                         palette=color_map.values(),
                         kind='box',
-                        aspect=1,
-                        height=20,
-                        orient='h',
+                        aspect=5,
+                        height=5,
+                        orient='v',
                         fliersize=0,
                         showmeans=True,
                         meanprops={"marker":"d",
@@ -522,6 +540,8 @@ class PlottingMixin():
                         },
                     )
                     g._legend.set_title(self.col_name_to_nice_name(column_for_grouping))
+                    g.set_xticklabels(rotation=90)  # Add this line
+                    plt.subplots_adjust(bottom=0.9)  # Adjust bottom margin
                 else:
                     # With group-by
                     g = sns.catplot(
