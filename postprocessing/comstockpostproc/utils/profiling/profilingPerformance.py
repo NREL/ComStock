@@ -15,8 +15,10 @@ import tarfile
 logging.basicConfig(level='INFO')  # Use DEBUG, INFO, or WARNING
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+PROFILING_SUMMARY_DIR = "profiling_summary"
 
-def main(path):
+def main(path, selecting_run=None):
     """
     main function:
     - read the log file from tar.gz
@@ -26,19 +28,27 @@ def main(path):
     logger.info("Analyzing log files from {}".format(path))
     count = 0
     for logpath, log in __extract_running_log(path):
-        logger.info(f"Analyzing log path: {logpath}")
         informationLines = cleanup_original_log(log)
-        # = cleanup_original_log(log)
-        # if count > 1: break
+
+        #logpath example: ./up00/bldg0000001/out.osw
+        if logpath.split("/")[1] not in selecting_run:
+            continue
+
+        count += 1
+        if count % 10 == 0:
+            logger.info(f"Analyzing log path: {logpath}")
+            logger.info(f"processed {count} logs")
 
         if not informationLines:
-            logger.info(">>>>>>> This is Empty >>>>>> ", path, logpath)
+            logger.info(f">>>>>>> This is Empty >>>>>>  in path: {path}, logpath: {logpath}")
             continue
+
 
         # timeDeltaFromCleanedLog = generate_nest_log_from_namedtuple(informationLines)
         timeDeltaFromCleanedLog = _generate_printable_log(informationLines)
         timeDeltaFromCleanedLog['logpath'] = logpath
         generatingReport(timeDeltaFromCleanedLog, path)
+    aggregate_csv(path)
 
 def __compute_delta(timestamps):
     """
@@ -71,8 +81,16 @@ def __extract_running_log(tar_path):
                     continue
 
 def _generate_printable_log(nestedLog: dict) -> dict:
-    # print(nestedLog)
-    # print("total time: ", nestedLog.get("total_time"))
+    """
+    Generate a printable log from a nested log dictionary.
+
+    Args:
+        nestedLog (dict): A nested log dictionary containing performance information.
+
+    Returns:
+        dict: A printable log dictionary.
+
+    """
     res = {}
     _id = nestedLog.get("id")
     building_id, upgrade_id = _id.split("up")[0], "up"+_id.split("up")[1]
@@ -113,9 +131,7 @@ def _generate_printable_log(nestedLog: dict) -> dict:
                     and existed['measure_dir'] == detail[1] \
                     and existed['measure_state'] == 'total' \
                     and existed['type'] == 'step_detail':
-                    print(existed['time'], existed['time'] - measure_total)
                     existed['time'] -= measure_total
-                    print(existed['time'])
             temp.append({
             'upgrade_id': upgrade_id,
             'building_id': building_id,
@@ -135,7 +151,6 @@ def _generate_printable_log(nestedLog: dict) -> dict:
                     and existed['measure_dir'] == detail[1] \
                     and existed['measure_state'] == 'total' \
                     and existed['type'] == 'step_detail':
-                    print(existed['time'], existed['time'] - measure_total)
                     existed['time'] -= measure_total
 
             measure_datum = {
@@ -168,8 +183,6 @@ def _generate_printable_log(nestedLog: dict) -> dict:
             temp.append(measure_datum)
     res['log_detail'] = temp
 
-
-
     return res
 
 def cleanup_original_log(originalLog: dict) -> dict:
@@ -180,22 +193,21 @@ def cleanup_original_log(originalLog: dict) -> dict:
     res = {}
     # print(originalLog.get("completed_status"))
     if originalLog.get("completed_status") != "Success":
-        logger.info(f"the log is not successfully completed: {originalLog.get('completed_status')}")
+        logger.debug(f"the log is not successfully completed: {originalLog.get('completed_status')}")
         return res
 
     if not originalLog.get("steps"):
-        logger.info("the log is empty")
+        logger.debug("the log is empty")
         return res
     if not originalLog.get("started_at") or not originalLog.get("completed_at"):
-        logger.info("the log is empty")
+        logger.debug("the log is empty")
         return res
     if not originalLog.get("id"):
-        logging.info("the log is lack of id information")
+        logging.debug("the log is lack of id information")
         return res
 
     res["total_time"] = __compute_delta([originalLog.get("started_at") , originalLog.get("completed_at")])
     res['step_info'] = __cleanup_step_logs(originalLog.get("steps", []))
-    # print(res['step_info'])
     res['id'] = originalLog['id']
     return res
 
@@ -208,24 +220,28 @@ def __cleanup_step_logs(log: list) -> list:
     for idx, item in enumerate(log):
         #use the 'measure_dir_name' as the key to identify the step
         for k, v in __flatten_dict(item, parent_key=f"step.{item.get('measure_dir_name')}.{idx}").items():
-            # print(f"key: {k}, here")
 
             if any(char in k for char in {"result.started_at", "result.completed_at"}):
                 step_info.append((k, idx, v))
 
             if "step_info" in k:
-                # print(k)
                 for idx, logline in enumerate(v):
                     if any(char in logline for char in keyWord):
-                        # print("here", k)
                         step_info.append((k, idx, logline.split("\n")[0]))
-    # print(step_info)
     res = __build_namedtuple_from_log(step_info)
 
     return res
 
 def __build_namedtuple_from_log(step_log: list) -> list:
-    print(step_log)
+    """
+    Builds a namedtuple from the given step log.
+
+    Args:
+        step_log (list): A list of tuples representing the step log.
+
+    Returns:
+        list: A list containing the built namedtuple objects.
+    """
     queue = deque([])
 
     measure = []
@@ -238,8 +254,6 @@ def __build_namedtuple_from_log(step_log: list) -> list:
 
         if "step" in key and "result.started_at" in key:
             step_index = ".".join(key.split(".")[:3])
-            # queue.append()
-            # print(f"for step {step_index} the total time is ", __compute_delta([logline, step_time[step_index]]))
             queue.append([step_index + ".result.total", __compute_delta([logline, step_time[step_index]])])
 
         if "Calling" in logline:
@@ -267,7 +281,6 @@ def __build_namedtuple_from_log(step_log: list) -> list:
                     starttime = tuple[1]
                     delta = __compute_delta([starttime, sr_time])
                     tuple[1] = delta
-    # print(step_time)
     return queue
 
 
@@ -280,12 +293,6 @@ def __flatten_dict(d, parent_key='', sep='.'):
         else:
             items.append((new_key, v))
     return dict(items)
-
-def develop_cleanup_original_log(path: str):
-    # with tarfile.open(path, 'r') as t:
-    #     print(json.loads(t.extractfile(t.getmembers()[0]).read())
-    res = cleanup_original_log(json.loads(open(path).read()))
-    return res
 
 def generatingReport(nestedLog: dict, path: str):
     """
@@ -311,14 +318,22 @@ def generatingReport(nestedLog: dict, path: str):
         for log in nestedLog.get("log_detail"):
             writer.writerow(log)
 
-if __name__ == "__main__":
-    # main("")
-    import sys
-    path = sys.argv[1]
-    # print(f"we are processing the tar.gz file from {path}")
-    main(path)
-    # for k,v in _generate_printable_log(develop_cleanup_original_log(path)).items():
-    #     print(k)
-    #     for item in v:
-    #         print(item)
-    # _generate_printable_log(develop_cleanup_original_log(path))
+def aggregate_csv(path: str):
+    """
+    After all the csv are generated, aggregate the csvs from each run.
+    """
+    summaryPath = os.path.join(os.path.dirname(path), PROFILING_SUMMARY_DIR)
+    with open(summaryPath + '/' + 'aggregate_profiling.csv', 'w') as fout:
+        wout = csv.writer(fout, delimiter=',')
+        interesting_files = glob.glob(summaryPath + "/" + "*tar_gz.csv")
+        h = True
+        for filename in interesting_files:
+            # Open and process file
+            logger.info("Aggregating {}".format(filename))
+            with open(filename, 'r') as fin:
+                if h:
+                    h = False
+                else:
+                    next(fin) # Skip header
+                for line in csv.reader(fin):
+                    wout.writerow(line)
