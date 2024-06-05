@@ -4960,11 +4960,11 @@ ground_thermal_conductivity	2.0	ChangeBuildingLocation	soil_conductivity=2.0
 ground_thermal_conductivity	2	ChangeBuildingLocation	soil_conductivity=2.0
 ground_thermal_conductivity	2.3	ChangeBuildingLocation	soil_conductivity=2.3
 ground_thermal_conductivity	2.6	ChangeBuildingLocation	soil_conductivity=2.6
-vav_mdp	.30	adjust_vav_min_damper_position	mdp=0.4	apply_measure=true	apply_to_sizing=false
-vav_mdp	.35	adjust_vav_min_damper_position	mdp=0.5	apply_measure=true	apply_to_sizing=false
-vav_mdp	.40	adjust_vav_min_damper_position	mdp=0.4	apply_measure=true	apply_to_sizing=false
-vav_mdp	.45	adjust_vav_min_damper_position	mdp=0.5	apply_measure=true	apply_to_sizing=false
-vav_mdp	.50	adjust_vav_min_damper_position	mdp=0.4	apply_measure=true	apply_to_sizing=false
+vav_mdp	0.3	adjust_vav_min_damper_position	mdp=0.3	apply_measure=true	apply_to_sizing=false
+vav_mdp	0.35	adjust_vav_min_damper_position	mdp=0.35	apply_measure=true	apply_to_sizing=false
+vav_mdp	0.4	adjust_vav_min_damper_position	mdp=0.4	apply_measure=true	apply_to_sizing=false
+vav_mdp	0.45	adjust_vav_min_damper_position	mdp=0.45	apply_measure=true	apply_to_sizing=false
+vav_mdp	0.5	adjust_vav_min_damper_position	mdp=0.5	apply_measure=true	apply_to_sizing=false
 env_exterior_wall_insulation	exterior_wall_insulation	upgrade_env_exterior_wall_insulation
 env_roof_insul_aedg	roof_insul_aedg	upgrade_env_roof_insul_aedg
 env_secondary_windows	secondary_windows	upgrade_env_secondary_windows
