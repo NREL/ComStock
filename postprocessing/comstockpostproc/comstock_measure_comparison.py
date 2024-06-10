@@ -27,6 +27,7 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
         self.column_for_grouping = self.UPGRADE_NAME
         self.dict_measure_dir = {} # this can be called to determine output directory
         self.upgrade_ids_for_comparison = comstock_object.upgrade_ids_for_comparison
+        self.comstock_run_name = comstock_object.comstock_run_name
 
         # Ensure that the comstock object has savings columns included
         if not comstock_object.include_upgrades:
@@ -100,20 +101,24 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
         # Make plots comparing the upgrades
 
         logger.info(f'Making comparison plots for upgrade')
-        self.plot_energy_by_enduse_and_fuel_type(df, column_for_grouping, color_map, output_dir)
-        self.plot_emissions_by_fuel_type(df, column_for_grouping, color_map, output_dir)
-        self.plot_floor_area_and_energy_totals(df, column_for_grouping, color_map, output_dir)
-        self.plot_floor_area_and_energy_totals_by_building_type(df, column_for_grouping, color_map, output_dir)
-        self.plot_end_use_totals_by_building_type(df, column_for_grouping, color_map, output_dir)
-        self.plot_eui_histograms_by_building_type(df, column_for_grouping, color_map, output_dir)
-        self.plot_eui_boxplots_by_building_type(df, column_for_grouping, color_map, output_dir)
-        self.plot_measure_savings_distributions_enduse_and_fuel(df, output_dir)
-        self.plot_measure_savings_distributions_by_building_type(df, output_dir)
-        self.plot_measure_savings_distributions_by_climate_zone(df, output_dir)
-        self.plot_measure_savings_distributions_by_hvac_system_type(df, output_dir)
-        self.plot_qoi_timing(df, column_for_grouping, color_map, output_dir)
-        self.plot_qoi_max_use(df, column_for_grouping, color_map, output_dir)
-        self.plot_qoi_min_use(df, column_for_grouping, color_map, output_dir)
+        #self.plot_energy_by_enduse_and_fuel_type(df, column_for_grouping, color_map, output_dir)
+        #self.plot_emissions_by_fuel_type(df, column_for_grouping, color_map, output_dir)
+        #self.plot_floor_area_and_energy_totals(df, column_for_grouping, color_map, output_dir)
+        #self.plot_floor_area_and_energy_totals_by_building_type(df, column_for_grouping, color_map, output_dir)
+        #self.plot_end_use_totals_by_building_type(df, column_for_grouping, color_map, output_dir)
+        #self.plot_eui_histograms_by_building_type(df, column_for_grouping, color_map, output_dir)
+        #self.plot_eui_boxplots_by_building_type(df, column_for_grouping, color_map, output_dir)
+        #self.plot_measure_savings_distributions_enduse_and_fuel(df, output_dir)
+        #self.plot_measure_savings_distributions_by_building_type(df, output_dir)
+        #self.plot_measure_savings_distributions_by_climate_zone(df, output_dir)
+        #self.plot_measure_savings_distributions_by_hvac_system_type(df, output_dir)
+        #self.plot_qoi_timing(df, column_for_grouping, color_map, output_dir)
+        #self.plot_qoi_max_use(df, column_for_grouping, color_map, output_dir)
+        #self.plot_qoi_min_use(df, column_for_grouping, color_map, output_dir)
+
+        # new timeseries plots
+        self.plot_measure_timeseries_peak_week_by_state(df, output_dir, comstock_run_name=self.comstock_run_name) #, df, color_map, output_dir
+        #self.plot_measure_timeseries_averages_by_county()
 
     def make_comparative_plots(self, df, column_for_grouping, color_map, output_dir):
         # Make plots comparing the upgrades

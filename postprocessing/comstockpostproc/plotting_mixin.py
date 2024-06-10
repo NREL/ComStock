@@ -11,6 +11,8 @@ from matplotlib import ticker
 import plotly.express as px
 import seaborn as sns
 import plotly.graph_objects as go
+from buildstock_query import BuildStockQuery
+import matplotlib.colors as mcolors
 
 matplotlib.use('Agg')
 logger = logging.getLogger(__name__)
@@ -2110,3 +2112,248 @@ class PlottingMixin():
         filename = region['source_name'] + '_' + ami_data_label.lower().replace(' ', '') + '_' + building_type + '_load_duration_curve_top_' + str(zoom_in_hours) + '_hours.png'
         output_path = os.path.abspath(os.path.join(output_dir, filename))
         plt.savefig(output_path, bbox_inches='tight')
+
+
+    def plot_measure_timeseries_peak_week_by_state(self, df, output_dir, comstock_run_name): #, df, region, building_type, color_map, output_dir
+
+        counties = {
+                    'G2500250':'Boston, MA (Suffolk County)',
+                    'G2700530':'Minneapolis, MN (Hennepin County)',
+                    'G2200710':'New Orleans, LA (Orleans Parish County)'
+                    }
+
+        # run crawler
+        run_data = BuildStockQuery('eulp',
+                                   'enduse',
+                                   self.comstock_run_name,
+                                   buildstock_type='comstock',
+                                   skip_reports=False)
+
+        # get upgrade ID
+        df_upgrade = df.loc[df[self.UPGRADE_ID]!=0, :]
+        upgrade_num = df_upgrade[self.UPGRADE_ID].iloc[0]
+        upgrade_name = df_upgrade[self.UPGRADE_NAME].iloc[0]
+
+        # get weights
+        dict_wgts = df_upgrade.groupby(self.BLDG_TYPE)[self.BLDG_WEIGHT].mean().to_dict()
+
+        # get weighted load profiles
+        def wgt_by_btype(dict_wgts, upgrade_num, county):
+            """
+            This method weights the timeseries profiles.
+            Returns dataframe with weighted kWh columns.
+            """
+            btype_list = ['Hospital', 'LargeHotel']
+
+            dfs_base=[]
+            dfs_up=[]
+            #for btype in list(df[self.BLDG_TYPE].unique()):
+            for btype in btype_list:
+
+                # get building weights
+                btype_wgt = dict_wgts[btype]
+
+                # baseline load data - aggregate electricity total only
+                df_base_ts_agg = run_data.agg.aggregate_timeseries(
+                                                                    upgrade_id=0,
+                                                                    enduses=(["total_site_electricity_kwh"]),
+                                                                    #restrict=[(('build_existing_model.building_type', [self.BLDG_TYPE_TO_SNAKE_CASE[btype]])), ('build_existing_model.county_id', [f"{county}"])],
+                                                                    restrict=[('build_existing_model.county_id', [f"{county}"])],
+                                                                    timestamp_grouping_func='hour',
+                                                                    get_query_only=False
+                                                                    )
+
+                # upgrade load data - all enduses
+                upgrade_ts_agg = run_data.agg.aggregate_timeseries(
+                                                                    upgrade_id=upgrade_num.astype(str),
+                                                                    enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
+                                                                    #restrict=[(('build_existing_model.building_type', [self.BLDG_TYPE_TO_SNAKE_CASE[btype]])), ('build_existing_model.county_id', [f"{county}"])],
+                                                                    restrict=[('build_existing_model.county_id', [f"{county}"])],
+                                                                    timestamp_grouping_func='hour',
+                                                                    get_query_only=False
+                                                                    )
+
+                # apply weights by building type
+                def apply_wgts(df):
+                    # Identify columns that contain 'kwh' in their names
+                    kwh_columns = [col for col in df.columns if 'kwh' in col]
+
+                    # Apply the weight and add the suffix 'weighted'
+                    weighted_df = df[kwh_columns].apply(lambda x: x * btype_wgt).rename(columns=lambda x: x + '_weighted')
+                    # Concatenate the new weighted columns with the original DataFrame without the unweighted 'kwh' columns
+                    df_wgt = pd.concat([df.drop(columns=kwh_columns), weighted_df], axis=1)
+
+                    return df_wgt
+
+                # add baseline data
+                df_base_ts_agg_weighted = apply_wgts(df_base_ts_agg)
+                dfs_base.append(df_base_ts_agg_weighted)
+
+                # add upgrade data
+                df_upgrade_ts_agg_weighted = apply_wgts(upgrade_ts_agg)
+                dfs_up.append(df_upgrade_ts_agg_weighted)
+
+
+            # concatinate and combine baseline data
+            dfs_base_combined = pd.concat(dfs_base, join='outer', ignore_index=True)
+            dfs_base_combined = dfs_base_combined.groupby(['time'], as_index=False).agg({'total_site_electricity_kwh_weighted': 'sum'})
+            dfs_base_combined[self.UPGRADE_NAME] = 'baseline'
+
+            # concatinate and combine upgrade data
+            dfs_upgrade_combined = pd.concat(dfs_up, join='outer', ignore_index=True)
+            dfs_upgrade_combined = dfs_upgrade_combined.groupby(['time'], as_index=False)[dfs_upgrade_combined.loc[:, dfs_upgrade_combined.columns.str.contains('_kwh')].columns].sum()
+            dfs_upgrade_combined[self.UPGRADE_NAME] = upgrade_name
+
+            return dfs_base_combined, dfs_upgrade_combined
+
+        # apply queries and weighting
+        for county, county_name in counties.items():
+            dfs_base_combined, dfs_upgrade_combined = wgt_by_btype(dict_wgts, upgrade_num, county)
+
+            # merge into single dataframe
+            dfs_merged = pd.concat([dfs_base_combined, dfs_upgrade_combined], ignore_index=True)
+
+            # set index
+            dfs_merged.set_index("time", inplace=True)
+            dfs_merged['Month'] = dfs_merged.index.month
+
+            def map_to_season(month):
+                if 3 <= month <= 5:
+                    return 'Spring'
+                elif 6 <= month <= 8:
+                    return 'Summer'
+                elif 9 <= month <= 11:
+                    return 'Fall'
+                else:
+                    return 'Winter'
+
+            # Apply the mapping function to create the "Season" column
+            dfs_merged['Season'] = dfs_merged['Month'].apply(map_to_season)
+            dfs_merged['Week_of_Year'] = dfs_merged.index.isocalendar().week
+            dfs_merged['Day_of_Year'] = dfs_merged.index.dayofyear
+            dfs_merged['Hour_of_Day'] = dfs_merged.index.hour
+            dfs_merged['Year'] = dfs_merged.index.year
+            # make dec 31st last week of year
+            dfs_merged.loc[dfs_merged['Day_of_Year']==365, 'Week_of_Year'] = 55
+            dfs_merged = dfs_merged.loc[dfs_merged['Year']==2018, :]
+
+            # find peak week by season
+            seasons = ['Spring', 'Summer', 'Fall', 'Winter']
+            for season in seasons:
+                peak_week = dfs_merged.loc[dfs_merged['Season']==season, ["total_site_electricity_kwh_weighted", "Week_of_Year"]]
+                max_peak = peak_week.loc[peak_week["total_site_electricity_kwh_weighted"] == peak_week["total_site_electricity_kwh_weighted"].max(), "total_site_electricity_kwh_weighted"][0]
+                peak_week = peak_week.loc[peak_week["total_site_electricity_kwh_weighted"] == peak_week["total_site_electricity_kwh_weighted"].max(), "Week_of_Year"][0]
+
+
+                # filter to the week
+                dfs_merged_pw = dfs_merged.loc[dfs_merged["Week_of_Year"]==peak_week, :].copy()
+                #dfs_merged_pw = dfs_merged_pw.loc[:, dfs_merged_pw.columns.str.contains("electricity")]
+                dfs_merged_pw.reset_index(inplace=True)
+                dfs_merged_pw = dfs_merged_pw.sort_values('time')
+
+                # rename columns
+                dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace("electricity_", "")
+                dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace("_kwh_weighted", "")
+
+                # plot
+                order_list = [
+                            'interior_equipment',
+                            'fans',
+                            'interior_lighting',
+                            'exterior_lighting',
+                            'cooling',
+                            'heating',
+                            'water_systems',
+                            'refrigeration',
+                            'pumps',
+                            'heat_rejection',
+                            'heat_recovery',
+                            ]
+
+                # convert hourly kWH to 15 minute MW
+                dfs_merged_pw.loc[:, order_list] = dfs_merged_pw.loc[:, order_list]/1000
+                dfs_merged_pw.loc[:, "total_site"] = dfs_merged_pw.loc[:, "total_site"]/1000
+
+                # add OS color map
+
+                color_dict = {
+                'heating':'#EF1C21',
+                'cooling':'#0071BD',
+                'interior_lighting':'#F7DF10',
+                'exterior_lighting':'#DEC310',
+                'interior_equipment':'#4A4D4A',
+                'exterior_equipment':'#B5B2B5',
+                'fans':'#FF79AD',
+                'pumps':'#632C94',
+                'heat_rejection':'#F75921',
+                'heat_recovery': '#CE5921',
+                'water_systems': '#FFB239',
+                'refrigeration': '#29AAE7'}
+
+                # Convert color codes to RGBA with opacity 1.0
+                plotly_color_dict = {key: f"rgba({int(mcolors.to_rgba(value, alpha=1.0)[0]*255)},{int(mcolors.to_rgba(value, alpha=1.0)[1]*255)},{int(mcolors.to_rgba(value, alpha=1.0)[2]*255)},{mcolors.to_rgba(value, alpha=1.0)[3]})" for key, value in color_dict.items()}
+
+                # Create traces for area plot
+                traces = []
+                dfs_merged_pw_up = dfs_merged_pw.loc[dfs_merged_pw['in.upgrade_name']!="baseline"]
+                for enduse in order_list:
+                    trace = go.Scatter(
+                        x=dfs_merged_pw_up['time'],
+                        y=dfs_merged_pw_up[enduse],
+                        fill='tonexty',
+                        fillcolor=plotly_color_dict[enduse],
+                        mode='none',
+                        line=dict(color=plotly_color_dict[enduse], width=0.5),
+                        name=enduse,
+                        stackgroup='stack'
+                    )
+                    traces.append(trace)
+
+                # add baseline load
+                dfs_merged_pw_base = dfs_merged_pw.loc[dfs_merged_pw['in.upgrade_name']=="baseline"]
+                dfs_merged_pw_base.columns = dfs_merged_pw_base.columns.str.replace("total_site", "Baseline Total")
+                # Create a trace for the baseline load
+                baseline_trace = go.Scatter(
+                    x=dfs_merged_pw_base['time'],
+                    y=dfs_merged_pw_base['Baseline Total'],
+                    mode='lines',
+                    line=dict(color='black', width=1.75),
+                    name='Baseline Total'
+                )
+                traces.append(baseline_trace)
+
+                # Create the layout
+                layout = go.Layout(
+                    title=f"{season} - {county_name}",
+                    xaxis=dict(mirror=True, title=None),
+                    yaxis=dict(mirror=True, title='Electricity Demand (MW)', range=[0, max_peak/1000]),
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                    legend_traceorder="reversed",
+                    showlegend=True,
+                    template='simple_white',
+                    width=650,
+                    height=400
+                )
+
+                # Create the figure
+                fig = go.Figure(data=traces, layout=layout)
+
+                # Save fig
+                title = f"{season}_peak_week"
+                fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+                fig_name_html = f'{title.replace(" ", "_").lower()}.html'
+                fig_sub_dir = os.path.abspath(os.path.join(output_dir, f"timeseries/{county_name}"))
+                if not os.path.exists(fig_sub_dir):
+                    os.makedirs(fig_sub_dir)
+                fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
+                fig_path_html = os.path.abspath(os.path.join(fig_sub_dir, fig_name_html))
+                fig.write_image(fig_path, scale=10)
+                fig.write_html(fig_path_html)
+
+
+
+
+
+
+
+
