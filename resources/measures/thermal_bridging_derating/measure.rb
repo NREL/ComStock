@@ -97,16 +97,10 @@ class ThermalBridgingDerating < OpenStudio::Measure::ModelMeasure
 
     return false unless runner.validateUserArguments(arguments(model), args)
 
-    TBD.clean!
-
-    seed = runner.workflow.seedFile
-    seed = File.basename(seed.get.to_s) unless seed.empty?
-    seed = 'OpenStudio model' if seed.empty? || seed == 'temp_measure_manager.osm'
-    argh[:seed] = seed
-
+    TBD.clean! # clean tbd logging
     tbd = TBD.process(model, argh)
-
     TBD.exit(runner, argh)
+
     return true
   end
 end

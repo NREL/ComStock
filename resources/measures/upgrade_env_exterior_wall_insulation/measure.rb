@@ -129,6 +129,11 @@ class ExteriorWallInsulation < OpenStudio::Measure::ModelMeasure
     model.getSurfaces.each do |surface|
       next unless (surface.outsideBoundaryCondition == 'Outdoors') && (surface.surfaceType == 'Wall')
       next if surface.construction.empty?
+
+      # remove hard assigned constructions from thermal bridging measure
+      surface.construction.get.remove
+
+      next if surface.construction.empty?
       wall_constructions << surface.construction.get
     end
 
@@ -216,6 +221,38 @@ class ExteriorWallInsulation < OpenStudio::Measure::ModelMeasure
       surface.setConstruction(wall_construction_plus_ins)
       area_of_insulation_added_si += surface.netArea
     end
+
+    # derate new wall insulation values to account for thermal bridging
+    # the TBD process will not derate constructions that have already been derated and have 'tbd' in the name
+    tbd_args = {}
+
+    # get largest default wall construction type to determine derating option type
+    default_wall_constructions = {}
+    model.getDefaultConstructionSets.sort.each do |const_set|
+      next unless const_set.defaultExteriorSurfaceConstructions.is_initialized
+      ext_surfs = const_set.defaultExteriorSurfaceConstructions.get
+      next unless ext_surfs.wallConstruction.is_initialized
+      wall_construction = ext_surfs.wallConstruction.get
+      default_wall_constructions[wall_construction.name] = wall_construction.getNetArea
+    end
+    default_wall_construction_name = Hash[default_wall_constructions.sort_by{ |k,v| v }].keys[-1]
+    default_wall_construction = model.getConstructionBaseByName(default_wall_construction_name).get
+    const_type = default_wall_construction.standardsInformation.standardsConstructionType
+    case const_type
+    when 'Mass'
+      tbd_args[:option] = '90.1.22|mass.in|unmitigated'
+    when 'WoodFramed'
+      tbd_args[:option] = '90.1.22|wood.fr|unmitigated'
+    when 'SteelFramed', 'Metal Building'
+      tbd_args[:option] = '90.1.22|steel.m|unmitigated'
+    else
+      # use steel frame as default
+      tbd_args[:option] = '90.1.22|steel.m|unmitigated'
+    end
+
+    # run TBD
+    tbd = TBD.process(model, tbd_args)
+    TBD.exit(runner, tbd_args)
 
     # This measure is not applicable if there are no exterior walls
     if area_of_insulation_added_si.zero?

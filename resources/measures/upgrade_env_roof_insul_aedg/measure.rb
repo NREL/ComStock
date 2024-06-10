@@ -115,7 +115,11 @@ class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure
     ext_surf_const_names = []
     roof_resist = []
     model.getSurfaces.each do |surface|
-      next unless (surface.outsideBoundaryCondition == 'Outdoors') && (surface.surfaceType == 'RoofCeiling') #which are outdoor roofs
+      next unless (surface.outsideBoundaryCondition == 'Outdoors') && (surface.surfaceType == 'RoofCeiling')
+
+      # remove hard assigned constructions from thermal bridging measure
+      surface.construction.get.remove
+
       ext_surfs << surface
       roof_const = surface.construction.get
       # only add construction if it hasn't been added yet
@@ -322,6 +326,38 @@ class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure
       final_str << "#{final_const.name} (R-#{(format '%.1f', final_r_val_ip)})"
       area_changed_si += final_const.getNetArea
     end
+
+    # derate new roof insulation values to account for thermal bridging
+    # the TBD process will not derate constructions that have already been derated and have 'tbd' in the name
+    tbd_args = {}
+
+    # get largest default wall construction type to determine derating option type
+    default_wall_constructions = {}
+    model.getDefaultConstructionSets.sort.each do |const_set|
+      next unless const_set.defaultExteriorSurfaceConstructions.is_initialized
+      ext_surfs = const_set.defaultExteriorSurfaceConstructions.get
+      next unless ext_surfs.wallConstruction.is_initialized
+      wall_construction = ext_surfs.wallConstruction.get
+      default_wall_constructions[wall_construction.name] = wall_construction.getNetArea
+    end
+    default_wall_construction_name = Hash[default_wall_constructions.sort_by{ |k,v| v }].keys[-1]
+    default_wall_construction = model.getConstructionBaseByName(default_wall_construction_name).get
+    const_type = default_wall_construction.standardsInformation.standardsConstructionType
+    case const_type
+    when 'Mass'
+      tbd_args[:option] = '90.1.22|mass.in|unmitigated'
+    when 'WoodFramed'
+      tbd_args[:option] = '90.1.22|wood.fr|unmitigated'
+    when 'SteelFramed', 'Metal Building'
+      tbd_args[:option] = '90.1.22|steel.m|unmitigated'
+    else
+      # use steel frame as default
+      tbd_args[:option] = '90.1.22|steel.m|unmitigated'
+    end
+
+    # run TBD
+    tbd = TBD.process(model, tbd_args)
+    TBD.exit(runner, tbd_args)
 
     # add not applicable test if there were roof constructions but non of them were altered (already enough insulation or doesn't look like insulated roof)
     if area_changed_si == 0
