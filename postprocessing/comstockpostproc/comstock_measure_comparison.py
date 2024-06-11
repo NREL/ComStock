@@ -118,6 +118,7 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
 
         # new timeseries plots
         self.plot_measure_timeseries_peak_week_by_state(df, output_dir, comstock_run_name=self.comstock_run_name) #, df, color_map, output_dir
+        self.plot_measure_timeseries_season_average_by_state(df, output_dir, comstock_run_name=self.comstock_run_name) #, df, color_map, output_dir
         #self.plot_measure_timeseries_averages_by_county()
 
     def make_comparative_plots(self, df, column_for_grouping, color_map, output_dir):
