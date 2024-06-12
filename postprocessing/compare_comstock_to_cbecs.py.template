@@ -54,12 +54,23 @@ def main():
             }
 
     # Scale ComStock run to CBECS 2018 AND remove non-ComStock buildings from CBECS
-    comstock.add_national_scaling_weights(cbecs, remove_non_comstock_bldg_types_from_cbecs=True, use_hard_coded_scaling_weights=True, scaling_factors=national_scaling_factors)
+    comstock.add_national_scaling_weights(cbecs, remove_non_comstock_bldg_types_from_cbecs=True,
+                                          use_hard_coded_scaling_weights=True,
+                                          scaling_factors=national_scaling_factors)
+
     comstock.export_to_csv_wide()
 
     # Make a comparison by passing in a list of CBECs and ComStock runs to compare
     # upgrade_id can be 'All' or the upgrade number
-    comp = cspp.ComStockToCBECSComparison(cbecs_list=[cbecs], comstock_list=[comstock], upgrade_id='All',make_comparison_plots=True)
+    # TODO - add a way to call HVAC plots or not. Remove once HVAC.SYS types are available for CBECS 2018
+    comp = cspp.ComStockToCBECSComparison(cbecs_list=[cbecs],
+                                          comstock_list=[comstock],
+                                          upgrade_id='All',
+                                          make_comparison_plots=True,
+                                          make_hvac_plots=True) #Only works with CBECS 2012
+
+    # HVAC plots only work for CBECS 2012 TODO - remove this once HVAC.SYS types are available for CBECS 2018
+
 
     comp.export_to_csv_wide()
 
