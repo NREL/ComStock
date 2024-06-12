@@ -2116,7 +2116,7 @@ class PlottingMixin():
 
 
     # get weighted load profiles
-    def wgt_by_btype(self, df, run_data, dict_wgts, upgrade_num, county, upgrade_name):
+    def wgt_by_btype(self, df, run_data, dict_wgts, upgrade_num, state, upgrade_name):
         """
         This method weights the timeseries profiles.
         Returns dataframe with weighted kWh columns.
@@ -2135,7 +2135,8 @@ class PlottingMixin():
                                                                 upgrade_id=0,
                                                                 enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
                                                                 #restrict=[(('build_existing_model.building_type', [self.BLDG_TYPE_TO_SNAKE_CASE[btype]])), ('build_existing_model.county_id', [f"{county}"])],
-                                                                restrict=[('build_existing_model.county_id', [f"{county}"])],
+                                                                #restrict=[('state_id', [f"{state}"])],
+                                                                restrict=[('build_existing_model.county_id', [f"{state}"])],
                                                                 timestamp_grouping_func='hour',
                                                                 get_query_only=False
                                                                 )
@@ -2145,7 +2146,8 @@ class PlottingMixin():
                                                                 upgrade_id=upgrade_num.astype(str),
                                                                 enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
                                                                 #restrict=[(('build_existing_model.building_type', [self.BLDG_TYPE_TO_SNAKE_CASE[btype]])), ('build_existing_model.county_id', [f"{county}"])],
-                                                                restrict=[('build_existing_model.county_id', [f"{county}"])],
+                                                                #restrict=[('state_id', [f"{state}"])],
+                                                                restrict=[('build_existing_model.county_id', [f"{state}"])],
                                                                 timestamp_grouping_func='hour',
                                                                 get_query_only=False
                                                                 )
@@ -2227,11 +2229,19 @@ class PlottingMixin():
 
     def plot_measure_timeseries_peak_week_by_state(self, df, output_dir, comstock_run_name): #, df, region, building_type, color_map, output_dir
 
-        counties = {
+        states = {
                     'G2500250':'Boston, MA (Suffolk County)',
                     #'G2700530':'Minneapolis, MN (Hennepin County)',
                     #'G2200710':'New Orleans, LA (Orleans Parish County)'
                     }
+
+        #states = {
+        #    'MA':'Massachuessetts',
+        #    'LA': 'Louisiana',
+        #    'AZ': 'Arizona',
+        #    'OR': 'Oregon',
+        #    'MN': 'Minnesota'
+        #}
 
         # run crawler
         run_data = BuildStockQuery('eulp',
@@ -2249,8 +2259,8 @@ class PlottingMixin():
         dict_wgts = df_upgrade.groupby(self.BLDG_TYPE)[self.BLDG_WEIGHT].mean().to_dict()
 
         # apply queries and weighting
-        for county, county_name in counties.items():
-            dfs_base_combined, dfs_upgrade_combined = self.wgt_by_btype(df, run_data, dict_wgts, upgrade_num, county, upgrade_name)
+        for state, state_name in states.items():
+            dfs_base_combined, dfs_upgrade_combined = self.wgt_by_btype(df, run_data, dict_wgts, upgrade_num, state, upgrade_name)
 
             # merge into single dataframe
             dfs_merged = pd.concat([dfs_base_combined, dfs_upgrade_combined], ignore_index=True)
@@ -2318,6 +2328,20 @@ class PlottingMixin():
                     )
                     traces.append(trace)
 
+                # add aggregate measure load
+                dfs_merged_pw_up = dfs_merged_pw.loc[dfs_merged_pw['in.upgrade_name'] != "baseline"]
+                dfs_merged_pw_up.columns = dfs_merged_pw_up.columns.str.replace("total_site", "Measure Total")
+
+                # Create a trace for the baseline load
+                upgrade_trace = go.Scatter(
+                    x=dfs_merged_pw_up['time'],
+                    y=dfs_merged_pw_up['Measure Total'],
+                    mode='lines',
+                    line=dict(color='black', width=1.8, dash='solid'),
+                    name='Measure Total',
+                )
+                traces.append(upgrade_trace)
+
                 # add baseline load
                 dfs_merged_pw_base = dfs_merged_pw.loc[dfs_merged_pw['in.upgrade_name']=="baseline"]
                 dfs_merged_pw_base.columns = dfs_merged_pw_base.columns.str.replace("total_site", "Baseline Total")
@@ -2327,17 +2351,17 @@ class PlottingMixin():
                     y=dfs_merged_pw_base['Baseline Total'],
                     mode='lines',
                     #line=dict(color='black', width=1.75),
-                    line=dict(color='black', width=1.8, dash='dash'),
+                    line=dict(color='black', width=1.8, dash='dot'),
                     name='Baseline Total'
                 )
                 traces.append(baseline_trace)
 
                 # Create the layout
                 layout = go.Layout(
-                    #title=f"{season} - {county_name}",
+                    #title=f"{season} Peak Week - {state_name}",
                     xaxis=dict(mirror=True, title=None, showline=True),
                     yaxis=dict(mirror=True, title='Electricity Demand (MW)', range=[0, max_peak/1000], showline=True),
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                    legend=dict(font=dict(size=8), y=1.02, xanchor="left", x=0.0, orientation="h", yanchor="bottom", itemwidth=30),
                     legend_traceorder="reversed",
                     showlegend=True,
                     template='simple_white',
@@ -2348,7 +2372,7 @@ class PlottingMixin():
                                     y=-0.35,  # Adjust this value as needed to place the title correctly
                                     xref='paper',
                                     yref='paper',
-                                    text=f"{season} - {county_name}",
+                                    text=f"{season} Peak Week - {state_name}",
                                     showarrow=False,
                                     font=dict(
                                         size=16
@@ -2362,7 +2386,7 @@ class PlottingMixin():
                 title = f"{season}_peak_week"
                 fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
                 fig_name_html = f'{title.replace(" ", "_").lower()}.html'
-                fig_sub_dir = os.path.abspath(os.path.join(output_dir, f"timeseries/{county_name}"))
+                fig_sub_dir = os.path.abspath(os.path.join(output_dir, f"timeseries/{state_name}"))
                 if not os.path.exists(fig_sub_dir):
                     os.makedirs(fig_sub_dir)
                 fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
@@ -2371,16 +2395,24 @@ class PlottingMixin():
                 fig.write_image(fig_path, scale=10)
                 fig.write_html(fig_path_html)
 
-            dfs_merged.to_csv(f"{fig_sub_dir}/timeseries_data_{county_name}.csv")
+            dfs_merged.to_csv(f"{fig_sub_dir}/timeseries_data_{state_name}.csv")
 
 
     def plot_measure_timeseries_season_average_by_state(self, df, output_dir, comstock_run_name):
 
-        counties = {
+        states = {
             'G2500250':'Boston, MA (Suffolk County)',
             #'G2700530':'Minneapolis, MN (Hennepin County)',
             #'G2200710':'New Orleans, LA (Orleans Parish County)'
         }
+
+        #states = {
+        #    'MA':'Massachuessetts',
+        #    'LA': 'Louisiana',
+        #    'AZ': 'Arizona',
+        #    'OR': 'Oregon',
+        #    'MN': 'Minnesota'
+        #}
 
         # run crawler
         run_data = BuildStockQuery('eulp',
@@ -2398,8 +2430,8 @@ class PlottingMixin():
         dict_wgts = df_upgrade.groupby(self.BLDG_TYPE)[self.BLDG_WEIGHT].mean().to_dict()
 
         # apply queries and weighting
-        for county, county_name in counties.items():
-            dfs_base_combined, dfs_upgrade_combined = self.wgt_by_btype(df, run_data, dict_wgts, upgrade_num, county, upgrade_name)
+        for state, state_name in states.items():
+            dfs_base_combined, dfs_upgrade_combined = self.wgt_by_btype(df, run_data, dict_wgts, upgrade_num, state, upgrade_name)
 
             # merge into single dataframe
             dfs_merged = pd.concat([dfs_base_combined, dfs_upgrade_combined], ignore_index=True)
@@ -2438,15 +2470,15 @@ class PlottingMixin():
             max_peak = dfs_merged_gb.loc[:, 'total_site_electricity_kwh_weighted'].max()
 
             # find peak week by season
-            seasons = ['Shoulder', 'Summer', 'Winter']
+            seasons = ['Summer', 'Shoulder', 'Winter']
             day_types = ['Weekday', 'Weekend']
             fig = make_subplots(rows=3, cols=2, subplot_titles=[f"{season} - {day_type}" for season in seasons for day_type in day_types], vertical_spacing=0.10)
 
             season_to_subplot = {
-                ('Shoulder', 'Weekday'): (1, 1),
-                ('Shoulder', 'Weekend'): (1, 2),
-                ('Summer', 'Weekday'): (2, 1),
-                ('Summer', 'Weekend'): (2, 2),
+                ('Summer', 'Weekday'): (1, 1),
+                ('Summer', 'Weekend'): (1, 2),
+                ('Shoulder', 'Weekday'): (2, 1),
+                ('Shoulder', 'Weekend'): (2, 2),
                 ('Winter', 'Weekday'): (3, 1),
                 ('Winter', 'Weekend'): (3, 2),
             }
@@ -2488,6 +2520,24 @@ class PlottingMixin():
                         )
                         fig.add_trace(trace, row=row, col=col)
 
+                    # add aggregate measure load
+                    dfs_merged_pw_up = dfs_merged_pw.loc[dfs_merged_pw['in.upgrade_name'] != "baseline"]
+                    dfs_merged_pw_up.columns = dfs_merged_pw_up.columns.str.replace("total_site", "Measure Total")
+
+                    showlegend = 'Measure Total' not in legend_entries
+                    legend_entries.add('Measure Total')
+
+                    # Create a trace for the baseline load
+                    upgrade_trace = go.Scatter(
+                        x=dfs_merged_pw_up['Hour_of_Day'],
+                        y=dfs_merged_pw_up['Measure Total'],
+                        mode='lines',
+                        line=dict(color='black', width=3, dash='solid'),
+                        name='Measure Total',
+                        showlegend=showlegend
+                    )
+                    fig.add_trace(upgrade_trace, row=row, col=col)
+
                     # add baseline load
                     dfs_merged_pw_base = dfs_merged_pw.loc[dfs_merged_pw['in.upgrade_name'] == "baseline"]
                     dfs_merged_pw_base.columns = dfs_merged_pw_base.columns.str.replace("total_site", "Baseline Total")
@@ -2506,12 +2556,12 @@ class PlottingMixin():
                     )
                     fig.add_trace(baseline_trace, row=row, col=col)
 
-                    fig.update_xaxes(title_text='Hour of Day', showline=True, linewidth=2, linecolor='black', row=row, col=col, mirror=True)
+                    fig.update_xaxes(title_text='Hour of Day', showline=True, linewidth=2, linecolor='black', row=row, col=col, mirror=True, tickvals=[0, 6, 12, 18, 23], ticktext=["12 AM", "6 AM", "12 PM", "6 PM", "12 AM"])
                     fig.update_yaxes(title_text='Electricity Demand (MW)', showline=True, linewidth=2, linecolor='black', row=row, col=col, mirror=True, range=[0, max_peak/1000])
 
             # Update layout
             fig.update_layout(
-                title=f"Seasonal Average - {county_name}</b>",
+                title=f"Seasonal Average - {state_name}</b>",
                 title_x=0.04,  # Align title to the left
                 title_y=0.97,  # Move title to the bottom
                 title_xanchor='left',
@@ -2532,7 +2582,7 @@ class PlottingMixin():
             title = "seasonal_average_subplot"
             fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
             fig_name_html = f'{title.replace(" ", "_").lower()}.html'
-            fig_sub_dir = os.path.abspath(os.path.join(output_dir, f"timeseries/{county_name}"))
+            fig_sub_dir = os.path.abspath(os.path.join(output_dir, f"timeseries/{state_name}"))
             if not os.path.exists(fig_sub_dir):
                 os.makedirs(fig_sub_dir)
             fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
