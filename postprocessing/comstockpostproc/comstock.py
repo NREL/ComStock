@@ -422,6 +422,24 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         return df
 
     def load_data(self, acceptable_failure_percentage=0.01, drop_failed_runs=True):
+        # Determine the verified success/failure/NA status
+        # buildings that failed per builstockbatch
+        # or were "successful" but have no results (happens when long-running building jobs are manually killed)
+        # or have any empty completion status column (unclear why this happens)
+        VERIFIED_COMP_STATUS = 'verified_completed_status'
+        ST_TOTAL = 'Building Count'
+        ST_SUCCESS = 'Success'
+        ST_NA = 'Not Applicable'
+        ST_FAIL = 'Failed'
+        ST_FAIL_BSB = 'Failed: per BuildStockBatch'
+        ST_FAIL_NO_RES = 'Failed: missing simulation results'
+        ST_FAIL_NO_STATUS = 'Failed: missing completion status'
+        FRAC_FAIL = 'Fraction of Total Failed'
+        FRAC_NA = 'Fraction Not Applicable'
+        FRAC_APPL = 'Fraction Applicable'
+        ST_SUCCESS_BASE_FAIL_UP = 'Success in baseline, failed in upgrade'
+        ST_SUCCESS_UP_FAIL_BASE = 'Success in upgrade, failed in baseline'
+
         # Ensure that the baseline results exist
         data_file_path = os.path.join(self.data_dir, self.results_file_name)
         if not os.path.exists(data_file_path):
@@ -442,13 +460,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Load results, identify failed runs
         results_paths = glob.glob(os.path.join(self.data_dir, 'results_up*.parquet'))
         results_paths.sort()
-        for results_path in results_paths:
+
+        def _process_up_res(results_path):
             upgrade_id = np.int64(os.path.basename(results_path).replace('results_up', '').replace('.parquet', ''))
 
             # Skip specified upgrades
             if upgrade_id in self.upgrade_ids_to_skip:
                 logger.info(f'Skipping upgrade {upgrade_id}')
-                continue
+                yield None
 
             # Load upgrade results
             logger.info(f'Reading results_up{upgrade_id}')
@@ -507,23 +526,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 missing_ids = [id for id in buildstock['sample_building_id'] if id not in up_res.index]
                 base_failed_ids.update(missing_ids)
 
-            # Determine the verified success/failure/NA status
-            # buildings that failed per builstockbatch
-            # or were "successful" but have no results (happens when long-running building jobs are manually killed)
-            # or have any empty completion status column (unclear why this happens)
-            VERIFIED_COMP_STATUS = 'verified_completed_status'
-            ST_TOTAL = 'Building Count'
-            ST_SUCCESS = 'Success'
-            ST_NA = 'Not Applicable'
-            ST_FAIL = 'Failed'
-            ST_FAIL_BSB = 'Failed: per BuildStockBatch'
-            ST_FAIL_NO_RES = 'Failed: missing simulation results'
-            ST_FAIL_NO_STATUS = 'Failed: missing completion status'
-            FRAC_FAIL = 'Fraction of Total Failed'
-            FRAC_NA = 'Fraction Not Applicable'
-            FRAC_APPL = 'Fraction Applicable'
-            ST_SUCCESS_BASE_FAIL_UP = 'Success in baseline, failed in upgrade'
-            ST_SUCCESS_UP_FAIL_BASE = 'Success in upgrade, failed in baseline'
             up_res = up_res.with_columns([
                 # Failed per buildstockbatch completion status
                 pl.when(
@@ -642,43 +644,46 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             if drop_failed_runs:
                 # Drop failed baseline runs
                 up_res = up_res.filter(~pl.col('building_id').is_in(base_failed_ids))
+            yield up_res
 
-            upgrade_id_to_results[upgrade_id] = up_res
+        for results_path in results_paths:
+            up_res = _process_up_res(results_path)
+            upgrade_id = np.int64(os.path.basename(results_path).replace('results_up', '').replace('.parquet', ''))
+            if up_res is not None:
+                upgrade_id_to_results[upgrade_id] = up_res
 
+        def generate_failure_summary():
+            failure_summaries = pl.concat(failure_summaries, how='diagonal')
+            fs_cols = [
+                self.UPGRADE_ID,
+                self.UPGRADE_NAME,
+                ST_TOTAL,
+                ST_SUCCESS,
+                ST_NA,
+                ST_FAIL,
+                FRAC_APPL,
+                FRAC_NA,
+                FRAC_FAIL,
+                ST_SUCCESS_BASE_FAIL_UP,
+                ST_SUCCESS_UP_FAIL_BASE,
+                ST_FAIL_BSB,
+                ST_FAIL_NO_RES,
+                ST_FAIL_NO_STATUS,
+            ]
+            failure_summaries = failure_summaries.select(fs_cols)
+            file_name = f'failure_summary.csv'
+            file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
+            logger.info(f'Exporting to: {file_path}')
+            failure_summaries.write_csv(file_path)
+        
         # Save failure summary
-        failure_summaries = pl.concat(failure_summaries, how='diagonal')
-        fs_cols = [
-            self.UPGRADE_ID,
-            self.UPGRADE_NAME,
-            ST_TOTAL,
-            ST_SUCCESS,
-            ST_NA,
-            ST_FAIL,
-            FRAC_APPL,
-            FRAC_NA,
-            FRAC_FAIL,
-            ST_SUCCESS_BASE_FAIL_UP,
-            ST_SUCCESS_UP_FAIL_BASE,
-            ST_FAIL_BSB,
-            ST_FAIL_NO_RES,
-            ST_FAIL_NO_STATUS,
-        ]
-        failure_summaries = failure_summaries.select(fs_cols)
-        file_name = f'failure_summary.csv'
-        file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
-        logger.info(f'Exporting to: {file_path}')
-        failure_summaries.write_csv(file_path)
+        generate_failure_summary()
 
-        # Process results
-        results_dfs = []
-        for upgrade_id, up_res in upgrade_id_to_results.items():
-            logger.info(f'Processing upgrade {upgrade_id}')
-            # Drop all buildings that failed in the baseline run
-            up_res = up_res.filter(~pl.col('building_id').is_in(base_failed_ids))
+        # Get the baseline results
+        base_res = upgrade_id_to_results[0]
 
-            # Get the baseline results
-            base_res = upgrade_id_to_results[0]
-
+        def _get_res_df(up_res):
+            up_res_all = []
             # Merge the building characteristics from the baseline results to the upgrade results
             bldg_char_cols = [c for c in base_res.columns if c not in up_res.columns]
             bldg_char_cols.append('building_id')
@@ -710,7 +715,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         dt = up_res_applic.schema[col]
                         logger.info(f'Cast {col} from {orig_dt} to {dt}')
 
-            results_dfs.append(up_res_applic)
+            up_res_all.append(up_res_applic)
 
             # Get the upgrade name
             up_res_success = up_res_applic.select(
@@ -761,7 +766,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                             dt = up_res_na.schema[col]
                             logger.info(f'Cast {col} from {orig_dt} to {dt}')
 
-                results_dfs.append(up_res_na)
+                up_res_all.append(up_res_na)
 
             # For buildings where the upgrade failed, add annual results columns from the Baseline run
             # The columns completed_status = "Fail" and apply_upgrade.applicable = FALSE enable identification later,
@@ -809,13 +814,19 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                             dt = up_res_fail.schema[col]
                             logger.info(f'Cast {col} from {orig_dt} to {dt}')
 
-                results_dfs.append(up_res_fail)
+                up_res_all.append(up_res_fail)
+            return up_res_all
+        # Process results
+        results_dfs = []
+        for upgrade_id, up_res in upgrade_id_to_results.items():
+            logger.info(f'Processing upgrade {upgrade_id}')
+            # Drop all buildings that failed in the baseline run
+            up_res = up_res.filter(~pl.col('building_id').is_in(base_failed_ids))       
+            results_dfs.extend(_get_res_df(up_res))
 
         # Gather schema data for debugging on failed concatenation
         results_df_schemas = {}
         for results_df in results_dfs:
-            pattern_util_rate_name = re.compile(r'utility_bills.*_rate.*_name')
-            pattern_util_cost = re.compile(r'utility_bills.*_rate.*_bill_dollars')
             for col, dt in results_df.schema.items():
                 if col in results_df_schemas:
                     results_df_schemas[col].append(dt)

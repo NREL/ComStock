@@ -87,7 +87,7 @@ $ pip install --upgrade pip
 
 Install the libraries needed for this repository:
 ```
-$ pip install -e .[dev]
+$ pip install -e .[dev/]
 ```
 
 ## Usage
