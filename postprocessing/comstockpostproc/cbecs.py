@@ -70,8 +70,10 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             self.add_energy_rate_columns()
             # Calculate weighted area and energy consumption columns
             self.add_weighted_area_and_energy_columns()
-            # Add comstock primary hvac system type
-            self.add_primary_system_type_column()
+            #TODO remove if statement and add HVAC systems types once they are avialable in CBECS 2018 data
+            if cbecs_year == 2012:
+                # Add comstock primary hvac system type
+                self.add_primary_system_type_column()
 
         logger.debug('\nCBECS columns after adding all data')
         for c in self.data.columns:
