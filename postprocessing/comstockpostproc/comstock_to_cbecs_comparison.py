@@ -18,7 +18,7 @@ from comstockpostproc.comstock import ComStock
 logger = logging.getLogger(__name__)
 
 class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
-    def __init__(self, comstock_list: List[ComStock], cbecs_list: List[CBECS], upgrade_id=0, image_type='jpg', name=None, make_comparison_plots=True):
+    def __init__(self, comstock_list: List[ComStock], cbecs_list: List[CBECS], upgrade_id=0, image_type='jpg', name=None, make_comparison_plots=True, make_hvac_plots = False):
         """
         Creates the ComStock to CBECS comaprison plots.
 
@@ -104,25 +104,32 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
 
         # Make ComStock to CBECS comparison plots
         if make_comparison_plots:
-            self.make_plots(self.data, self.column_for_grouping, self.color_map, self.output_dir)
+            self.make_plots(self.data, self.column_for_grouping, self.color_map, self.output_dir, make_hvac_plots)
+            #TODO remove if statement and make HVAC plots once HVAC systems types are avialable in CBECS 2018 data
             # QOI plots can only be made with comstock data because CBECS data do not have QOI columns
             self.make_qoi_plots(comstock_df, self.column_for_grouping, comstock_color_map, self.output_dir)
         else:
             logger.info("make_comparison_plots is set to false, so not plots were created. Set make_comparison_plots to True for plots.")
 
-    def make_plots(self, df, column_for_grouping, color_map, output_dir):
+    def make_plots(self, df, column_for_grouping, color_map, output_dir, make_hvac_plots):
+        #TODO remove if statement and make HVAC plots once HVAC systems types are avialable in CBECS 2018 data
         # Make plots comparing the datasets
+
 
         logger.info('Making comparison plots')
         self.plot_floor_area_and_energy_totals(df, column_for_grouping, color_map, output_dir)
-        self.plot_eui_boxplots(df, column_for_grouping, color_map, output_dir)
+        #TODO remove if statement and make HVAC plots once HVAC systems types are avialable in CBECS 2018 data
+        self.plot_eui_boxplots(df, column_for_grouping, color_map, output_dir, make_hvac_plots)
         self.plot_floor_area_and_energy_totals_by_building_type(df, column_for_grouping, color_map, output_dir)
-        self.plot_floor_area_and_energy_totals_by_hvac_type(df, column_for_grouping, color_map, output_dir)
-        self.plot_eui_boxplots_by_hvac_type(df, column_for_grouping, color_map, output_dir)
         self.plot_end_use_totals_by_building_type(df, column_for_grouping, color_map, output_dir)
         self.plot_eui_histograms_by_building_type(df, column_for_grouping, color_map, output_dir)
         self.plot_eui_boxplots_by_building_type(df, column_for_grouping, color_map, output_dir)
         self.plot_energy_rate_boxplots(df, column_for_grouping, color_map, output_dir)
+
+        if make_hvac_plots:
+            self.plot_floor_area_and_energy_totals_by_hvac_type(df, column_for_grouping, color_map, output_dir)
+            self.plot_floor_area_and_energy_totals_grouped_hvac(df, column_for_grouping, color_map, output_dir)
+            self.plot_eui_boxplots_by_hvac_type(df, column_for_grouping, color_map, output_dir)
 
     def make_qoi_plots(self, df, column_for_grouping, color_map, output_dir):
         self.plot_qoi_timing(df, column_for_grouping, color_map, output_dir)
