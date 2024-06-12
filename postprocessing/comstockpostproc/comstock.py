@@ -461,13 +461,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         results_paths = glob.glob(os.path.join(self.data_dir, 'results_up*.parquet'))
         results_paths.sort()
 
-        def _process_up_res(results_path):
+        def _process_up_res(results_path, failure_summaries=failure_summaries):
             upgrade_id = np.int64(os.path.basename(results_path).replace('results_up', '').replace('.parquet', ''))
-
             # Skip specified upgrades
             if upgrade_id in self.upgrade_ids_to_skip:
                 logger.info(f'Skipping upgrade {upgrade_id}')
-                yield None
+                return None
 
             # Load upgrade results
             logger.info(f'Reading results_up{upgrade_id}')
@@ -581,7 +580,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 (pl.col('apply_upgrade.upgrade_name').filter(pl.col(VERIFIED_COMP_STATUS) == ST_SUCCESS))
             )
             upgrade_name = up_res_success.get_column('apply_upgrade.upgrade_name').head(1).to_list()[0]
-
             # Summarize the failure status counts
             fs = up_res.get_column(VERIFIED_COMP_STATUS).value_counts()
             dat = [fs.get_column('count').to_list()]
@@ -639,20 +637,23 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             fs = fs.with_columns([pl.lit(len(failed_in_base_success_in_up)).cast(pl.Int64).alias(ST_SUCCESS_UP_FAIL_BASE)])
 
             fs = fs.select(sorted(fs.columns))
+            # print(fs, "fs")
             failure_summaries.append(fs)
 
             if drop_failed_runs:
                 # Drop failed baseline runs
                 up_res = up_res.filter(~pl.col('building_id').is_in(base_failed_ids))
-            yield up_res
+            return up_res
 
         for results_path in results_paths:
             up_res = _process_up_res(results_path)
+
             upgrade_id = np.int64(os.path.basename(results_path).replace('results_up', '').replace('.parquet', ''))
             if up_res is not None:
                 upgrade_id_to_results[upgrade_id] = up_res
+                
 
-        def generate_failure_summary():
+        def _generate_failure_summary(failure_summaries=failure_summaries):
             failure_summaries = pl.concat(failure_summaries, how='diagonal')
             fs_cols = [
                 self.UPGRADE_ID,
@@ -677,7 +678,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             failure_summaries.write_csv(file_path)
         
         # Save failure summary
-        generate_failure_summary()
+        _generate_failure_summary()
 
         # Get the baseline results
         base_res = upgrade_id_to_results[0]
