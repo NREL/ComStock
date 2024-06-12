@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 def main():
     # ComStock run
     comstock = cspp.ComStock(
-        s3_base_dir='eulp/comstock_fy22',  # If run not on S3, download results_up**.parquet manually
+        s3_base_dir='eulp/euss_com',  # If run not on S3, download results_up**.parquet manually
         comstock_run_name='pv_10k_3',  # Name of the run on S3
         comstock_run_version='pv_10k_3',  # Use whatever you want to see in plot and folder names. This must align with Athena tables for timeseries plots.
         comstock_year=2018,  # Typically don't change this

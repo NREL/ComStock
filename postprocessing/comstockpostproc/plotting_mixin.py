@@ -2136,7 +2136,9 @@ class PlottingMixin():
                                                                 enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
                                                                 #restrict=[(('build_existing_model.building_type', [self.BLDG_TYPE_TO_SNAKE_CASE[btype]])), ('build_existing_model.county_id', [f"{county}"])],
                                                                 #restrict=[('state_id', [f"{state}"])],
-                                                                restrict=[('build_existing_model.county_id', [f"{state}"])],
+                                                                #restrict=[('build_existing_model.county_id', [f"{state}"])],
+                                                                #restrict=[(('build_existing_model.building_type', [self.BLDG_TYPE_TO_SNAKE_CASE[btype]])), ('state_abbreviation', [f"{county}"])],
+                                                                restrict=[('state_abbreviation', [f"{state}"])],
                                                                 timestamp_grouping_func='hour',
                                                                 get_query_only=False
                                                                 )
@@ -2147,7 +2149,9 @@ class PlottingMixin():
                                                                 enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
                                                                 #restrict=[(('build_existing_model.building_type', [self.BLDG_TYPE_TO_SNAKE_CASE[btype]])), ('build_existing_model.county_id', [f"{county}"])],
                                                                 #restrict=[('state_id', [f"{state}"])],
-                                                                restrict=[('build_existing_model.county_id', [f"{state}"])],
+                                                                #restrict=[('build_existing_model.county_id', [f"{state}"])],
+                                                                #restrict=[(('build_existing_model.building_type', [self.BLDG_TYPE_TO_SNAKE_CASE[btype]])), ('state_abbreviation', [f"{county}"])],
+                                                                restrict=[('state_abbreviation', [f"{state}"])],
                                                                 timestamp_grouping_func='hour',
                                                                 get_query_only=False
                                                                 )
@@ -2229,19 +2233,21 @@ class PlottingMixin():
 
     def plot_measure_timeseries_peak_week_by_state(self, df, output_dir, comstock_run_name): #, df, region, building_type, color_map, output_dir
 
-        states = {
-                    'G2500250':'Boston, MA (Suffolk County)',
-                    #'G2700530':'Minneapolis, MN (Hennepin County)',
-                    #'G2200710':'New Orleans, LA (Orleans Parish County)'
-                    }
-
         #states = {
-        #    'MA':'Massachuessetts',
-        #    'LA': 'Louisiana',
-        #    'AZ': 'Arizona',
-        #    'OR': 'Oregon',
-        #    'MN': 'Minnesota'
-        #}
+        #            'G2500250':'Boston, MA (Suffolk County)',
+        #            #'G2700530':'Minneapolis, MN (Hennepin County)',
+        #            #'G2200710':'New Orleans, LA (Orleans Parish County)'
+        #            }
+        #            'LA':'Louisianna',
+        #        }
+
+        states = {
+            'MA':'Massachuessetts',
+            'LA': 'Louisiana',
+            'AZ': 'Arizona',
+            'OR': 'Oregon',
+            'MN': 'Minnesota'
+        }
 
         # run crawler
         run_data = BuildStockQuery('eulp',
@@ -2400,19 +2406,21 @@ class PlottingMixin():
 
     def plot_measure_timeseries_season_average_by_state(self, df, output_dir, comstock_run_name):
 
-        states = {
-            'G2500250':'Boston, MA (Suffolk County)',
-            #'G2700530':'Minneapolis, MN (Hennepin County)',
-            #'G2200710':'New Orleans, LA (Orleans Parish County)'
-        }
-
         #states = {
-        #    'MA':'Massachuessetts',
-        #    'LA': 'Louisiana',
-        #    'AZ': 'Arizona',
-        #    'OR': 'Oregon',
-        #    'MN': 'Minnesota'
+        #    'G2500250':'Boston, MA (Suffolk County)',
+        #    #'G2700530':'Minneapolis, MN (Hennepin County)',
+        #    #'G2200710':'New Orleans, LA (Orleans Parish County)'
         #}
+        #            'LA':'Louisianna',
+        #        }
+
+        states = {
+            'MA':'Massachuessetts',
+            'LA': 'Louisiana',
+            'AZ': 'Arizona',
+            'OR': 'Oregon',
+            'MN': 'Minnesota'
+        }
 
         # run crawler
         run_data = BuildStockQuery('eulp',
@@ -2590,10 +2598,3 @@ class PlottingMixin():
 
             fig.write_image(fig_path, scale=10)
             fig.write_html(fig_path_html)
-
-
-
-
-
-
-
