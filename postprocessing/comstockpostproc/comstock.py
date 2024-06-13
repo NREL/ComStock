@@ -173,11 +173,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
             # Import columns from buildstock, results.csv, and other files
             up_lazyframes = []
+            upgradIdcount = {}
+            upgrade_ids.sort()
             for upgrade_id in upgrade_ids:
                 self.data = None
                 # Change this to only load 1 upgrade
                 self.load_data(upgrade_id, acceptable_failure_percentage, drop_failed_runs)
-
                 self.add_buildstock_csv_columns()
                 self.add_geospatial_columns()  # TODO remove geospatial join once reliably in buildstock.csv
                 self.add_ejscreen_columns()
@@ -204,14 +205,19 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.add_enduse_group_columns()
                 self.add_addressable_segments_columns()
                 self.combine_emissions_cols()
-                self.add_metadata_index_col()
+
+                if upgrade_id not in upgradIdcount:
+                    upgradIdcount[upgrade_id] = self.data.filter(pl.col(self.UPGRADE_ID) == upgrade_id).shape[0] 
+
+                self.add_metadata_index_col(upgradIdcount)
                 self.get_comstock_unscaled_monthly_energy_consumption()
                 # Downselect the self.data to just the upgrade
                 self.data = self.data.filter(pl.col(self.UPGRADE_ID) == upgrade_id)
                 # Write self.data to parquet file
-                file_name = f'NEW ComStock wide upgrade{upgrade_id}.parquet'
+                file_name = f'NEW_ComStock_wide_upgrade{upgrade_id}.parquet'
                 file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
                 logger.info(f'Exporting to: {file_path}')
+                self.reorder_data_columns()
                 self.data.write_parquet(file_path)
                 up_lazyframes.append(pl.scan_parquet(file_path))
 
@@ -2148,16 +2154,22 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.data = self.data.join(up_pct_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
 
 
-    def add_metadata_index_col(self):
+    def add_metadata_index_col(self, upgradIdcount: dict):
         # Adds a column from 0 to the number of rows across all upgrades
         # For example, 350k rows * (1 baseline + 1 upgrades) = 0 to 749,999
 
-        n_rows = self.data.shape[0]
-        idx_vals = [*range(0, n_rows, 1)]
-        self.data = self.data.with_columns([
-            pl.Series(name=self.META_IDX, values=idx_vals)
-        ])
-
+        offset = sum(upgradIdcount[x] for x in upgradIdcount.keys() if x != max(upgradIdcount.keys()))
+        upgrades = sorted(self.data[self.UPGRADE_NAME].unique())
+        # self.data = self.data.with_columns([
+        #     pl.Series(name=self.META_IDX, values=idx_vals)
+        # ])
+        df_baseline = self.data.filter(pl.col(self.UPGRADE_NAME) == "0").with_columns(pl.arange(0, pl.len()).alias(self.META_IDX))
+        if len(upgrades) > 1:
+            df_upgrade = self.data.filter(pl.col(self.UPGRADE_NAME) == upgrades[1]).with_columns(pl.arange(offset, offset + pl.len()).alias(self.META_IDX))
+            self.data = pl.concat([df_baseline, df_upgrade])
+        else:
+            self.data = df_baseline
+        
     def remove_sightglass_column_units(self):
         # SightGlass requires that the energy_consumption, energy_consumption_intensity,
         # energy_savings, and energy_savings_intensity columns have no units on the
