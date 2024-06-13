@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>create_bar_from_building_type_ratios</name>
   <uid>6e3a14f8-c3c7-4e03-bc51-bef8a52e1a05</uid>
-  <version_id>baa5cadf-850c-4bc0-a18a-03cf12a1e8c0</version_id>
-  <version_modified>2024-05-15T16:55:50Z</version_modified>
+  <version_id>5edae2f1-83ce-48ed-ad90-252bb45dd03d</version_id>
+  <version_modified>2024-06-13T19:58:24Z</version_modified>
   <xml_checksum>2AF3A68E</xml_checksum>
   <class_name>CreateBarFromBuildingTypeRatios</class_name>
   <display_name>Create Bar From Building Type Ratios</display_name>
@@ -291,6 +291,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>1</default_value>
+      <min_value>0</min_value>
     </argument>
     <argument>
       <name>bldg_type_b</name>
@@ -582,6 +583,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>1</default_value>
+      <min_value>0</min_value>
     </argument>
     <argument>
       <name>bldg_type_c</name>
@@ -873,6 +875,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>1</default_value>
+      <min_value>0</min_value>
     </argument>
     <argument>
       <name>bldg_type_d</name>
@@ -1164,6 +1167,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>1</default_value>
+      <min_value>0</min_value>
     </argument>
     <argument>
       <name>single_floor_area</name>
@@ -1454,7 +1458,6 @@
       <model_dependent>false</model_dependent>
       <default_value>0</default_value>
       <min_value>0.000000</min_value>
-      <max_value>1.000000</max_value>
     </argument>
     <argument>
       <name>perim_mult</name>
@@ -2003,19 +2006,25 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>5E8C134F</checksum>
+      <checksum>72977C0A</checksum>
     </file>
     <file>
       <filename>create_bar_from_building_type_ratios_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>A15EC5CF</checksum>
+      <checksum>74AC622A</checksum>
     </file>
     <file>
       <filename>example_model.osm</filename>
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
       <checksum>5343410C</checksum>
+    </file>
+    <file>
+      <filename>example_model_no_surf.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>74614705</checksum>
     </file>
   </files>
 </measure>
