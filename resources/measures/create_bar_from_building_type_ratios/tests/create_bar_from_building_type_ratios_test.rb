@@ -794,8 +794,6 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
 
     # Ensure that building additional properties are preserved
     props = model.getBuilding.additionalProperties
-    puts "hello 5"
-    puts props
     assert(props.featureNames.size == 4)
     assert_equal(props.getFeatureAsString('string').get, 'some_string')
     assert_equal(props.getFeatureAsDouble('double').get, 99.99)
