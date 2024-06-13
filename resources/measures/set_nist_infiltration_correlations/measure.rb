@@ -469,15 +469,15 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
       end
     else
       hvac_schedule = model.getScheduleByName(hvac_schedule)
-      unless schedule_object.is_initialized
-        runner.registerError("HVAC schedule argument #{hvac_schedule} not found in the model. IT may have been removed by another measure.")
+      unless hvac_schedule.is_initialized
+        runner.registerError("HVAC schedule argument #{hvac_schedule} not found in the model. It may have been removed by another measure.")
         return false
       end
       hvac_schedule = hvac_schedule.get
-      if hvac_schedule.get.to_ScheduleRuleset.is_initialized
-        hvac_schedule = hvac_schedule.get.to_ScheduleRuleset.get
-      elsif hvac_schedule.get.to_ScheduleConstant.is_initialized
-        hvac_schedule = hvac_schedule.get.to_ScheduleConstant.get
+      if hvac_schedule.to_ScheduleRuleset.is_initialized
+        hvac_schedule = hvac_schedule.to_ScheduleRuleset.get
+      elsif hvac_schedule.to_ScheduleConstant.is_initialized
+        hvac_schedule = hvac_schedule.to_ScheduleConstant.get
       else
         runner.registerError("HVAC schedule argument #{hvac_schedule} is not a Schedule Constant or Schedule Ruleset object.")
         return false
@@ -490,18 +490,18 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
     if hvac_schedule.nil?
       runner.registerWarning('Unable to determine the HVAC schedule. Treating the building as if there is no HVAC system with outdoor air.  If this is not the case, input a schedule argument, or assign one to an air loop in the model.')
       on_schedule = OpenStudio::Model::ScheduleConstant.new(model)
-      on_schedule.setName("Infiltration HVAC On Schedule")
+      on_schedule.setName('Infiltration HVAC On Schedule')
       on_schedule.setValue(0.0)
       off_schedule = OpenStudio::Model::ScheduleConstant.new(model)
-      off_schedule.setName("Infiltration HVAC Off Schedule")
+      off_schedule.setName('Infiltration HVAC Off Schedule')
       off_schedule.setValue(1.0)
     elsif hvac_schedule.to_ScheduleConstant.is_initialized
       hvac_schedule = hvac_schedule.to_ScheduleConstant.get
       on_schedule = OpenStudio::Model::ScheduleConstant.new(model)
-      on_schedule.setName("Infiltration HVAC On Schedule")
+      on_schedule.setName('Infiltration HVAC On Schedule')
       on_schedule.setValue(hvac_schedule.value)
       off_schedule = OpenStudio::Model::ScheduleConstant.new(model)
-      off_schedule.setName("Infiltration HVAC Off Schedule")
+      off_schedule.setName('Infiltration HVAC Off Schedule')
       if hvac_schedule.value > 0
         off_schedule.setValue(0.0)
       else
@@ -510,7 +510,7 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
     elsif hvac_schedule.to_ScheduleRuleset.is_initialized
       hvac_schedule = hvac_schedule.to_ScheduleRuleset.get
       on_schedule = hvac_schedule.clone.to_ScheduleRuleset.get
-      on_schedule.setName("Infiltration HVAC On Schedule")
+      on_schedule.setName('Infiltration HVAC On Schedule')
       off_schedule = invert_schedule_ruleset(hvac_schedule, 'Infiltration HVAC Off Schedule')
     end
 
