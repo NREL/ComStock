@@ -84,7 +84,7 @@ def extract_models_from_simulation_output(yml_path, up_id='up00', output_vars=[]
         job_id = tar_path.split('_')[-1].split('.')[0].replace('job', '')
 
         # make a scratch directory including username, project name, and jobid to untar files into
-        scratch_untar_dir = os.path.join('/tmp/scratch', username, project_name, job_id)
+        scratch_untar_dir = os.path.join(os.getenv("TMPDIR"), project_name, job_id)
         print(f"untarring job_{job_id} for the following zips: {zip_list}")
         if not os.path.isdir(scratch_untar_dir):
             os.makedirs(scratch_untar_dir)
