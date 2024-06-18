@@ -110,6 +110,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.include_upgrades = include_upgrades
         self.upgrade_ids_to_skip = upgrade_ids_to_skip
         self.upgrade_ids_for_comparison = upgrade_ids_for_comparison
+        self.cached_parquet = [] # List of parquet files to reload and export
         self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
         if self.athena_table_name is not None:
             self.athena_client = BuildStockQuery(workgroup='eulp',
@@ -214,8 +215,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 # Downselect the self.data to just the upgrade
                 self.data = self.data.filter(pl.col(self.UPGRADE_ID) == upgrade_id)
                 # Write self.data to parquet file
-                file_name = f'NEW_ComStock_wide_upgrade{upgrade_id}.parquet'
+                file_name = f'cached_ComStock_wide_upgrade{upgrade_id}.parquet'
                 file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
+                self.cached_parquet.append((upgrade_id, file_path))
                 logger.info(f'Exporting to: {file_path}')
                 self.reorder_data_columns()
                 self.data.write_parquet(file_path)
@@ -2155,14 +2157,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
 
     def add_metadata_index_col(self, upgradIdcount: dict):
-        # Adds a column from 0 to the number of rows across all upgrades
-        # For example, 350k rows * (1 baseline + 1 upgrades) = 0 to 749,999
-
+        # Add a metadata index column to the data
+        # updradeIdcount is a dictionary of the number of upgrades for each building: <building_id>: <number of upgrades>
+        # If there is only one upgrade, the metadata index is the same as the building ID
+    
         offset = sum(upgradIdcount[x] for x in upgradIdcount.keys() if x != max(upgradIdcount.keys()))
         upgrades = sorted(self.data[self.UPGRADE_NAME].unique())
-        # self.data = self.data.with_columns([
-        #     pl.Series(name=self.META_IDX, values=idx_vals)
-        # ])
         df_baseline = self.data.filter(pl.col(self.UPGRADE_NAME) == "0").with_columns(pl.arange(0, pl.len()).alias(self.META_IDX))
         if len(upgrades) > 1:
             df_upgrade = self.data.filter(pl.col(self.UPGRADE_NAME) == upgrades[1]).with_columns(pl.arange(offset, offset + pl.len()).alias(self.META_IDX))
@@ -2400,14 +2400,15 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Reorder the columns before exporting
         self.reorder_data_columns()
-
-        up_ids = self.data.get_column(self.UPGRADE_ID).unique().to_list()
+        assert isinstance(self.data, pl.LazyFrame)
+        # up_ids = self.data.get_column(self.UPGRADE_ID).unique().to_list()
+        up_ids = [up_id for (up_id, parque_path) in self.cached_parquet]
         up_ids.sort()
         for up_id in up_ids:
             file_name = f'ComStock wide upgrade{up_id}.csv'
             file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
             logger.info(f'Exporting to: {file_path}')
-            self.data.filter(pl.col(self.UPGRADE_ID) == up_id).write_csv(file_path)
+            self.data.filter(pl.col(self.UPGRADE_ID) == up_id).sink_csv(file_path)
 
         # Export dictionaries corresponding to the exported columns
         self.export_data_and_enumeration_dictionary()
@@ -2417,14 +2418,15 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Reorder the columns before exporting
         self.reorder_data_columns()
-
-        up_ids = self.data.get_column(self.UPGRADE_ID).unique().to_list()
+        logger.info(f'self.data type is {type(self.data)}')
+        assert isinstance(self.data, pl.LazyFrame)
+        up_ids = [up_id for (up_id, parque_path) in self.cached_parquet]        
         up_ids.sort()
         for up_id in up_ids:
             file_name = f'ComStock wide upgrade{up_id}.parquet'
             file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
             logger.info(f'Exporting to: {file_path}')
-            self.data.filter(pl.col(self.UPGRADE_ID) == up_id).write_parquet(file_path)
+            self.data.filter(pl.col(self.UPGRADE_ID) == up_id).sink_parquet(file_path)
 
         # Export dictionaries corresponding to the exported columns
         self.export_data_and_enumeration_dictionary()
@@ -2523,15 +2525,22 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.create_long_energy_data()
 
         # Save files - separate building energy from characteristics for file size
-        up_ids = self.data.get_column(self.UPGRADE_ID).unique().to_list()
-        up_ids.sort()
-        logger.error(f'Got here {up_ids}')
-        for up_id in up_ids:
-            logger.error('Got here')
-            file_name = f'upgrade{up_id:02d}_energy_long.csv'
+        # up_ids = self.data.get_column(self.UPGRADE_ID).unique().to_list()
+        # up_ids.sort()
+        # logger.error(f'Got here {up_ids}')
+        # for up_id in up_ids:
+        #     logger.error('Got here')
+        #     file_name = f'upgrade{up_id:02d}_energy_long.csv'
+        #     file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
+        #     logger.info(f'Exporting to: {file_path}')
+        #     self.data.filter(pl.col(self.UPGRADE_ID) == up_id).write_csv(file_path)
+
+        for cached_parquet in self.cached_parquet:
+            file_name = f'{cached_parquet}_energy_long.csv'
             file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
             logger.info(f'Exporting to: {file_path}')
-            self.data.filter(pl.col(self.UPGRADE_ID) == up_id).write_csv(file_path)
+            self.data_long.write_csv(file_path)
+
 
     def combine_emissions_cols(self):
         # Create combined emissions columns
@@ -2587,6 +2596,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 logger.info(f"-- Converted units from {orig_units} to {new_units} by multiplying by {cf}")
 
     def export_data_and_enumeration_dictionary(self):
+
+        assert isinstance(self.data, pl.LazyFrame)
+
         # Read column definitions
         col_def_path = os.path.join(RESOURCE_DIR, COLUMN_DEFINITION_FILE_NAME)
         col_defs = pl.read_csv(col_def_path)
@@ -2611,7 +2623,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             col_enums = []
             if col_def['data_type'] == 'string':
                 str_enums = []
-                for enum in self.data.select(col).unique().to_series().to_list():
+                for enum in self.data.columns:
                     if enum is None:
                         continue  # Don't define blank enumerations
                     try:
@@ -2651,7 +2663,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 'enumeration': enum,
                 'enumeration_description': enum_def['enumeration_description']
             })
-        enum_dictionary = pl.from_dicts(enum_dicts)
+
+        if enum_dicts:
+            enum_dictionary = pl.from_dicts(enum_dicts)
+        else:
+            enum_dictionary = pl.DataFrame()
 
         # Save files
         file_name = f'data_dictionary.tsv'
