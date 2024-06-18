@@ -4,7 +4,7 @@
 
 Clone [buildstockbatch](https://github.com/NREL/buildstockbatch) onto your computer
 
-Switch to the `comstock-integration-tests` branch **TODO remove this step once this branch is merged into buildstockbatch**
+Switch to the `rhorsey/comstock-23-10-upgrade` branch **TODO remove this step once this branch is merged into buildstockbatch**
 
 Create a new conda environment with **python 3.9** or above (only need to do this once):
 ```
