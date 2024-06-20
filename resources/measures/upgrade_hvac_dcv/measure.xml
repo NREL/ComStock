@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>hvacdcv</name>
   <uid>680178e8-0356-45d1-94ff-89260586f36b</uid>
-  <version_id>f866e134-93b3-4259-b8c2-4066140f412e</version_id>
-  <version_modified>2024-08-12T16:45:45Z</version_modified>
+  <version_id>2d888386-cc83-4d5e-bad5-ad26d471b7c3</version_id>
+  <version_modified>2024-06-20T18:58:43Z</version_modified>
   <xml_checksum>356BE47F</xml_checksum>
   <class_name>HVACDCV</class_name>
   <display_name>HVAC DCV</display_name>
@@ -48,7 +48,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>4EE98F18</checksum>
+      <checksum>57B8E308</checksum>
     </file>
     <file>
       <filename>hvac_dcv_test.rb</filename>

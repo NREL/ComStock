@@ -876,7 +876,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       # get design plug load power
       zone_electric_equipment_power_w = 0.0
       floor_area_m2 = 0.0
-      space_type = std.thermal_zone_majority_space_type(zone)
+      space_type = OpenstudioStandards::ThermalZone.thermal_zone_get_space_type(zone)
       if space_type.is_initialized
         space_type = space_type.get
         floor_area_m2 = zone.floorArea * zone.multiplier
@@ -1301,8 +1301,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     building_zone_area_m2 = 0.0
     model.getThermalZones.sort.each do |zone|
       building_zone_area_m2 += zone.floorArea * zone.multiplier
-      building_heated_zone_area_m2 += zone.floorArea * zone.multiplier if std.thermal_zone_heated?(zone)
-      building_cooled_zone_area_m2 += zone.floorArea * zone.multiplier if std.thermal_zone_cooled?(zone)
+      building_heated_zone_area_m2 += zone.floorArea * zone.multiplier if OpenstudioStandards::ThermalZone.thermal_zone_heated?(zone)
+      building_cooled_zone_area_m2 += zone.floorArea * zone.multiplier if OpenstudioStandards::ThermalZone.thermal_zone_cooled?(zone)
     end
 
     # Fraction of building heated
@@ -1329,7 +1329,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         if thermostat_heating_schedule.to_ScheduleRuleset.is_initialized
           puts("--- Ruleset schedule")
           thermostat_heating_schedule = thermostat_heating_schedule.to_ScheduleRuleset.get
-          cool_min_max = std.schedule_ruleset_annual_min_max_value(thermostat_heating_schedule)
+          cool_min_max = OpenstudioStandards::Schedules.schedule_ruleset_get_min_max(thermostat_heating_schedule)
           weighted_thermostat_heating_min_c += cool_min_max['min'] * floor_area_m2
           weighted_thermostat_heating_max_c += cool_min_max['max'] * floor_area_m2
           weighted_thermostat_heating_area_m2 += floor_area_m2
@@ -1346,7 +1346,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         end
         # next unless thermostat_heating_schedule.to_ScheduleRuleset.is_initialized
         # thermostat_heating_schedule = thermostat_heating_schedule.to_ScheduleRuleset.get
-        # heat_min_max = std.schedule_ruleset_annual_min_max_value(thermostat_heating_schedule)
+        # heat_min_max = OpenstudioStandards::Schedules.schedule_ruleset_get_min_max(thermostat_heating_schedule)
         # weighted_thermostat_heating_min_c += heat_min_max['min'] * floor_area_m2
         # weighted_thermostat_heating_max_c += heat_min_max['max'] * floor_area_m2
         # weighted_thermostat_heating_area_m2 += floor_area_m2
@@ -1356,7 +1356,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         if thermostat_cooling_schedule.to_ScheduleRuleset.is_initialized
           puts("--- Ruleset schedule")
           thermostat_cooling_schedule = thermostat_cooling_schedule.to_ScheduleRuleset.get
-          cool_min_max = std.schedule_ruleset_annual_min_max_value(thermostat_cooling_schedule)
+          cool_min_max = OpenstudioStandards::Schedules.schedule_ruleset_get_min_max(thermostat_cooling_schedule)
           weighted_thermostat_cooling_min_c += cool_min_max['min'] * floor_area_m2
           weighted_thermostat_cooling_max_c += cool_min_max['max'] * floor_area_m2
           weighted_thermostat_cooling_area_m2 += floor_area_m2

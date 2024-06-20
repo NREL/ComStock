@@ -174,7 +174,7 @@ class HVACExhaustAirEnergyOrHeatRecovery < OpenStudio::Measure::ModelMeasure
     end
 
     # get climate full string and classification (i.e. "5A")
-    climate_zone = std.model_standards_climate_zone(model)
+    climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
     climate_zone_classification = climate_zone.split('-')[-1]
 
     # DOAS temperature supply settings - colder cooling discharge air for humid climates

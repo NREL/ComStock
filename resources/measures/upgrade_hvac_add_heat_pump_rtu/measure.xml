@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>add_heat_pump_rtu</name>
   <uid>f4567a68-27f2-4a15-ae91-ba0f35cd08c7</uid>
-  <version_id>171451de-03e8-4151-82f4-bd68bd76a5d3</version_id>
-  <version_modified>2024-08-12T16:45:26Z</version_modified>
+  <version_id>c79da2da-d01f-4411-ac26-a2c52885fa2d</version_id>
+  <version_modified>2024-06-20T18:58:43Z</version_modified>
   <xml_checksum>5E2576E4</xml_checksum>
   <class_name>AddHeatPumpRtu</class_name>
   <display_name>add_heat_pump_rtu</display_name>

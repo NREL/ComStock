@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>advanced_rtu_control</name>
   <uid>b3e18436-f7da-4b62-bbce-c21e2f9d5ad4</uid>
-  <version_id>4c94a1e8-ceed-431e-8a33-9c4e4b232a33</version_id>
-  <version_modified>2024-08-12T16:45:06Z</version_modified>
+  <version_id>448850ef-51fe-4380-b919-c1b0dd52f2bd</version_id>
+  <version_modified>2024-06-20T18:58:41Z</version_modified>
   <xml_checksum>B3180F38</xml_checksum>
   <class_name>AdvancedRTUControl</class_name>
   <display_name>Advanced RTU Control</display_name>
@@ -113,7 +113,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>1DE87BA6</checksum>
+      <checksum>AF9B3C61</checksum>
     </file>
     <file>
       <filename>advanced_rtu_control_test.rb</filename>
