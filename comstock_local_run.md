@@ -27,6 +27,12 @@ Install the libraries needed for the buildstockbatch repository:
 $ python -m pip install -e .
 ```
 
+Install GHEDesigner and PySAM
+```
+$ pip install GHEDesigner==1.0
+$ pip install NREL-PySAM==4.2.0
+```
+
 Install the correct version of [openstudio](https://github.com/NREL/OpenStudio/releases) for ComStock. You can determine the correct version by looking at the [Dockerfile](https://github.com/NREL/ComStock/blob/develop/build/Dockerfile#L5) on the `develop` branch of ComStock.
 
 [Look up](https://github.com/NREL/OpenStudio/wiki/OpenStudio-SDK-Version-Compatibility-Matrix) the version of Ruby (X.Y.Z) compatible with the selected OpenStudio version.
