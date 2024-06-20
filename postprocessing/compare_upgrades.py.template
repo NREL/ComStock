@@ -56,7 +56,7 @@ def main():
     # comstock.export_to_csv_long()  # Long format useful for stacking end uses and fuels
 
     # Create measure run comparisons; only use if run has measures
-    comparison = cspp.ComStockMeasureComparison(comstock, make_comparison_plots=True, make_timeseries_plots=True)
+    comparison = cspp.ComStockMeasureComparison(comstock, states=comstock.states, make_comparison_plots=True, make_timeseries_plots=True)
 
 # Code to execute the script
 if __name__=="__main__":
