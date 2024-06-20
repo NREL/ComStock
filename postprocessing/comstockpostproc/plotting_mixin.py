@@ -2123,6 +2123,10 @@ class PlottingMixin():
         """
         #btype_list = ['Hospital', 'LargeHotel']
         btype_list = df[self.BLDG_TYPE].unique()
+
+        applic_bldgs_list = list(df.loc[(df[self.UPGRADE_NAME] == upgrade_name) & (df[self.UPGRADE_APPL]==True), self.BLDG_ID])
+        applic_bldgs_list = [int(x) for x in applic_bldgs_list]
+
         dfs_base=[]
         dfs_up=[]
         for btype in btype_list:
@@ -2134,11 +2138,10 @@ class PlottingMixin():
             df_base_ts_agg = run_data.agg.aggregate_timeseries(
                                                                 upgrade_id=0,
                                                                 enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
-                                                                #restrict=[(('build_existing_model.building_type', [self.BLDG_TYPE_TO_SNAKE_CASE[btype]])), ('build_existing_model.county_id', [f"{county}"])],
-                                                                #restrict=[('state_id', [f"{state}"])],
-                                                                #restrict=[('build_existing_model.county_id', [f"{state}"])],
-                                                                #restrict=[(('build_existing_model.building_type', [self.BLDG_TYPE_TO_SNAKE_CASE[btype]])), ('state_abbreviation', [f"{county}"])],
-                                                                restrict=[('state_abbreviation', [f"{state}"])],
+                                                                restrict=[(('build_existing_model.building_type', [self.BLDG_TYPE_TO_SNAKE_CASE[btype]])),
+                                                                          ('state_abbreviation', [f"{state}"]),
+                                                                          ('building_id', applic_bldgs_list),
+                                                                          ],
                                                                 timestamp_grouping_func='hour',
                                                                 get_query_only=False
                                                                 )
@@ -2147,11 +2150,9 @@ class PlottingMixin():
             upgrade_ts_agg = run_data.agg.aggregate_timeseries(
                                                                 upgrade_id=upgrade_num.astype(str),
                                                                 enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
-                                                                #restrict=[(('build_existing_model.building_type', [self.BLDG_TYPE_TO_SNAKE_CASE[btype]])), ('build_existing_model.county_id', [f"{county}"])],
-                                                                #restrict=[('state_id', [f"{state}"])],
-                                                                #restrict=[('build_existing_model.county_id', [f"{state}"])],
-                                                                #restrict=[(('build_existing_model.building_type', [self.BLDG_TYPE_TO_SNAKE_CASE[btype]])), ('state_abbreviation', [f"{county}"])],
-                                                                restrict=[('state_abbreviation', [f"{state}"])],
+                                                                restrict=[(('build_existing_model.building_type', [self.BLDG_TYPE_TO_SNAKE_CASE[btype]])),
+                                                                          ('state_abbreviation', [f"{state}"])
+                                                                          ],
                                                                 timestamp_grouping_func='hour',
                                                                 get_query_only=False
                                                                 )
@@ -2231,23 +2232,7 @@ class PlottingMixin():
     # Convert color codes to RGBA with opacity 1.0
     plotly_color_dict = {key: f"rgba({int(mcolors.to_rgba(value, alpha=1.0)[0]*255)},{int(mcolors.to_rgba(value, alpha=1.0)[1]*255)},{int(mcolors.to_rgba(value, alpha=1.0)[2]*255)},{mcolors.to_rgba(value, alpha=1.0)[3]})" for key, value in color_dict.items()}
 
-    def plot_measure_timeseries_peak_week_by_state(self, df, output_dir, comstock_run_name): #, df, region, building_type, color_map, output_dir
-
-        #states = {
-        #            'G2500250':'Boston, MA (Suffolk County)',
-        #            #'G2700530':'Minneapolis, MN (Hennepin County)',
-        #            #'G2200710':'New Orleans, LA (Orleans Parish County)'
-        #            }
-        #            'LA':'Louisianna',
-        #        }
-
-        states = {
-            'MA':'Massachuessetts',
-            'LA': 'Louisiana',
-            'AZ': 'Arizona',
-            'OR': 'Oregon',
-            'MN': 'Minnesota'
-        }
+    def plot_measure_timeseries_peak_week_by_state(self, df, output_dir, states, comstock_run_name): #, df, region, building_type, color_map, output_dir
 
         # run crawler
         run_data = BuildStockQuery('eulp',
@@ -2378,7 +2363,7 @@ class PlottingMixin():
                                     y=-0.35,  # Adjust this value as needed to place the title correctly
                                     xref='paper',
                                     yref='paper',
-                                    text=f"{season} Peak Week - {state_name}",
+                                    text=f"{season} Peak Week, Applicable Buildings - {state_name}",
                                     showarrow=False,
                                     font=dict(
                                         size=16
@@ -2404,23 +2389,7 @@ class PlottingMixin():
             dfs_merged.to_csv(f"{fig_sub_dir}/timeseries_data_{state_name}.csv")
 
 
-    def plot_measure_timeseries_season_average_by_state(self, df, output_dir, comstock_run_name):
-
-        #states = {
-        #    'G2500250':'Boston, MA (Suffolk County)',
-        #    #'G2700530':'Minneapolis, MN (Hennepin County)',
-        #    #'G2200710':'New Orleans, LA (Orleans Parish County)'
-        #}
-        #            'LA':'Louisianna',
-        #        }
-
-        states = {
-            'MA':'Massachuessetts',
-            'LA': 'Louisiana',
-            'AZ': 'Arizona',
-            'OR': 'Oregon',
-            'MN': 'Minnesota'
-        }
+    def plot_measure_timeseries_season_average_by_state(self, df, output_dir, states, comstock_run_name):
 
         # run crawler
         run_data = BuildStockQuery('eulp',
@@ -2569,7 +2538,7 @@ class PlottingMixin():
 
             # Update layout
             fig.update_layout(
-                title=f"Seasonal Average - {state_name}</b>",
+                title=f"Seasonal Average, Applicable Buildings - {state_name}</b>",
                 title_x=0.04,  # Align title to the left
                 title_y=0.97,  # Move title to the bottom
                 title_xanchor='left',
@@ -2598,3 +2567,175 @@ class PlottingMixin():
 
             fig.write_image(fig_path, scale=10)
             fig.write_html(fig_path_html)
+
+    def plot_measure_timeseries_annual_average_by_state_and_enduse(self, df, output_dir, states, color_map, comstock_run_name):
+
+        # run crawler
+        run_data = BuildStockQuery('eulp', 'enduse', self.comstock_run_name, buildstock_type='comstock', skip_reports=False)
+
+        # get upgrade ID
+        df_upgrade = df.loc[df[self.UPGRADE_ID] != 0, :]
+        upgrade_num = df_upgrade[self.UPGRADE_ID].iloc[0]
+        upgrade_name = df_upgrade[self.UPGRADE_NAME].iloc[0]
+
+        # get weights
+        dict_wgts = df_upgrade.groupby(self.BLDG_TYPE)[self.BLDG_WEIGHT].mean().to_dict()
+
+        # apply queries and weighting
+        for state, state_name in states.items():
+            dfs_base_combined, dfs_upgrade_combined = self.wgt_by_btype(df, run_data, dict_wgts, upgrade_num, state, upgrade_name)
+
+            # merge into single dataframe
+            dfs_merged = pd.concat([dfs_base_combined, dfs_upgrade_combined], ignore_index=True)
+
+            # set index
+            dfs_merged.set_index("time", inplace=True)
+            dfs_merged['Month'] = dfs_merged.index.month
+
+            def map_to_season(month):
+                if 3 <= month <= 5 or 9 <= month <= 11:
+                    return 'Shoulder'
+                elif 6 <= month <= 8:
+                    return 'Summer'
+                else:
+                    return 'Winter'
+
+            def map_to_dow(dow):
+                if dow < 5:
+                    return 'Weekday'
+                else:
+                    return 'Weekend'
+
+            # Apply the mapping function to create the "Season" column
+            dfs_merged['Season'] = dfs_merged['Month'].apply(map_to_season)
+            dfs_merged['Week_of_Year'] = dfs_merged.index.isocalendar().week
+            dfs_merged['Day_of_Year'] = dfs_merged.index.dayofyear
+            dfs_merged['Hour_of_Day'] = dfs_merged.index.hour
+            dfs_merged['Day_of_Week'] = dfs_merged.index.dayofweek
+            dfs_merged['Day_Type'] = dfs_merged['Day_of_Week'].apply(map_to_dow)
+            dfs_merged['Year'] = dfs_merged.index.year
+
+            # make Dec 31st last week of year
+            dfs_merged.loc[dfs_merged['Day_of_Year'] == 365, 'Week_of_Year'] = 55
+            dfs_merged = dfs_merged.loc[dfs_merged['Year'] == 2018, :]
+            dfs_merged_gb = dfs_merged.groupby(['in.upgrade_name', 'Season', 'Hour_of_Day'])[dfs_merged.loc[:, dfs_merged.columns.str.contains('_kwh')].columns].mean().reset_index()
+            max_peak = dfs_merged_gb.loc[:, 'total_site_electricity_kwh_weighted'].max()
+
+            # rename columns, convert units
+            dfs_merged_gb.columns = dfs_merged_gb.columns.str.replace("electricity_", "")
+            dfs_merged_gb.columns = dfs_merged_gb.columns.str.replace("_kwh_weighted", "")
+
+            # find peak week by season
+            seasons = ['Summer', 'Shoulder', 'Winter']
+
+            enduses_to_subplot = {
+                'heat_recovery': 1,
+                'heat_rejection': 2,
+                'pumps': 3,
+                'refrigeration': 4,
+                'water_systems': 5,
+                'heating': 6,
+                'cooling': 7,
+                'exterior_lighting': 8,
+                'interior_lighting': 9,
+                'fans': 10,
+                'interior_equipment': 11
+            }
+
+            # Generate subplot titles dynamically
+            subplot_titles = []
+            for enduse, row in enduses_to_subplot.items():
+                for season in seasons:
+                    subplot_titles.append(f"{season}: {enduse}")
+
+            fig = make_subplots(
+                rows=11, cols=3,
+                subplot_titles=subplot_titles,
+                shared_xaxes=True, shared_yaxes=True, vertical_spacing=0.02)
+
+            for enduse in self.order_list:
+                for i, season in enumerate(seasons):
+                    row = enduses_to_subplot[enduse]
+                    col = i + 1
+
+                    # filter to the week
+                    dfs_merged_gb_season = dfs_merged_gb.loc[(dfs_merged_gb["Season"] == season), :].copy()
+                    dfs_merged_gb_season.reset_index(inplace=True)
+
+                    # sort for hour of day
+                    dfs_merged_gb_season = dfs_merged_gb_season.sort_values('Hour_of_Day')
+
+                    # add legend to first entry
+                    showlegend = False
+                    if row == 1 and col == 1:
+                        showlegend = True
+
+                    # add upgrade
+                    dfs_merged_gb_season_up = dfs_merged_gb_season.loc[dfs_merged_gb_season['in.upgrade_name'] != 'baseline', :]
+                    trace = go.Scatter(
+                        x=dfs_merged_gb_season_up['Hour_of_Day'],
+                        y=dfs_merged_gb_season_up[enduse] / 1000,
+                        mode='lines',
+                        line=dict(color=color_map[upgrade_name], width=2),
+                        name=f"{upgrade_name}",
+                        showlegend=showlegend
+                    )
+                    fig.add_trace(trace, row=row, col=col)
+
+                    # add baseline load
+                    dfs_merged_gb_season_base = dfs_merged_gb_season.loc[dfs_merged_gb_season['in.upgrade_name'] == "baseline"]
+                    baseline_trace = go.Scatter(
+                        x=dfs_merged_gb_season_base['Hour_of_Day'],
+                        y=dfs_merged_gb_season_base[enduse] / 1000,
+                        mode='lines',
+                        line=dict(color="Black", width=2, dash='dash'),
+                        name='Baseline',
+                        showlegend=showlegend
+                    )
+                    fig.add_trace(baseline_trace, row=row, col=col)
+
+                    # update axes for subplot
+                    if row == 6 and col == 2:
+                        fig.update_xaxes(title_text=None, showline=True, linewidth=2, linecolor='black', row=row, col=col, mirror=True, tickvals=[0, 6, 12, 18, 23], ticktext=["12 AM", "6 AM", "12 PM", "6 PM", "12 AM"])
+                    else:
+                        fig.update_xaxes(showline=True, linewidth=2, linecolor='black', row=row, col=col, mirror=True, tickvals=[0, 6, 12, 18, 23], ticktext=["12 AM", "6 AM", "12 PM", "6 PM", "12 AM"])
+
+                    if col == 1 and row == 6:
+                        fig.update_yaxes(title_text='Electricity Demand (MW)', showline=True, linewidth=2, linecolor='black', row=row, col=col, mirror=True)  # , range=[0, max_peak/1000]
+                    else:
+                        fig.update_yaxes(showline=True, linewidth=2, linecolor='black', row=row, col=col, mirror=True)
+
+            # Update layout
+            fig.update_layout(
+                title=f"Seasonal Average, Applicable Buildings - {state_name}</b>",
+                title_x=0.04,  # Align title to the left
+                title_y=0.97,  # Move title to the bottom
+                title_xanchor='left',
+                title_yanchor='bottom',
+                legend_traceorder="reversed",
+                showlegend=True,
+                legend=dict(
+                    font=dict(
+                        size=16  # Increase the font size of the legend
+                    )
+                ),
+                template='simple_white',
+                # width=300,
+                height=1400
+            )
+
+            fig.update_annotations(font_size=10)
+
+            # Save fig
+            title = "seasonal_average_enduse"
+            fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+            fig_name_html = f'{title.replace(" ", "_").lower()}.html'
+            fig_sub_dir = os.path.abspath(os.path.join(output_dir, f"timeseries/{state_name}"))
+            if not os.path.exists(fig_sub_dir):
+                os.makedirs(fig_sub_dir)
+            fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
+            fig_path_html = os.path.abspath(os.path.join(fig_sub_dir, fig_name_html))
+
+            fig.write_image(fig_path, scale=10)
+            fig.write_html(fig_path_html)
+

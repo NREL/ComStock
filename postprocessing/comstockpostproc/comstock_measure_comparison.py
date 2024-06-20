@@ -13,7 +13,7 @@ from comstockpostproc.plotting_mixin import PlottingMixin
 logger = logging.getLogger(__name__)
 
 class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
-    def __init__(self, comstock_object, image_type='jpg', name=None, make_comparison_plots=True):
+    def __init__(self, comstock_object, states, image_type='jpg', name=None, make_comparison_plots=True, make_timeseries_plots=True):
 
         # Initialize members
         self.data = comstock_object.data.to_pandas()
@@ -28,6 +28,8 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
         self.dict_measure_dir = {} # this can be called to determine output directory
         self.upgrade_ids_for_comparison = comstock_object.upgrade_ids_for_comparison
         self.comstock_run_name = comstock_object.comstock_run_name
+        self.states = states
+        self.make_timeseries_plots = make_timeseries_plots
 
         # Ensure that the comstock object has savings columns included
         if not comstock_object.include_upgrades:
@@ -62,7 +64,7 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
 
                 # make consumption plots for upgrades if requested by user
                 if make_comparison_plots:
-                    self.make_plots(df_upgrade, self.column_for_grouping, color_map, self.dict_measure_dir[upgrade])
+                    self.make_plots(df_upgrade, self.column_for_grouping, states, make_timeseries_plots, color_map, self.dict_measure_dir[upgrade])
                 else:
                     logger.info("make_comparison_plots is set to false, so not plots were created. Set make_comparison_plots to True for plots.")
 
@@ -97,7 +99,7 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
                     logger.info("make_comparison_plots is set to false, so not plots were created. Set make_comparison_plots to True for plots.")
 
 
-    def make_plots(self, df, column_for_grouping, color_map, output_dir):
+    def make_plots(self, df, column_for_grouping, states, make_timeseries_plots, color_map, output_dir):
         # Make plots comparing the upgrades
 
         logger.info(f'Making comparison plots for upgrade')
@@ -116,10 +118,11 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
         #self.plot_qoi_max_use(df, column_for_grouping, color_map, output_dir)
         #self.plot_qoi_min_use(df, column_for_grouping, color_map, output_dir)
 
-        # new timeseries plots
-        self.plot_measure_timeseries_peak_week_by_state(df, output_dir, comstock_run_name=self.comstock_run_name) #, df, color_map, output_dir
-        self.plot_measure_timeseries_season_average_by_state(df, output_dir, comstock_run_name=self.comstock_run_name) #, df, color_map, output_dir
-        #self.plot_measure_timeseries_averages_by_county()
+        if make_timeseries_plots==True:
+            # new timeseries plots
+            self.plot_measure_timeseries_peak_week_by_state(df, output_dir, states, comstock_run_name=self.comstock_run_name)
+            self.plot_measure_timeseries_season_average_by_state(df, output_dir, states, comstock_run_name=self.comstock_run_name)
+            self.plot_measure_timeseries_annual_average_by_state_and_enduse(df, output_dir, states, color_map, comstock_run_name=self.comstock_run_name)
 
     def make_comparative_plots(self, df, column_for_grouping, color_map, output_dir):
         # Make plots comparing the upgrades
