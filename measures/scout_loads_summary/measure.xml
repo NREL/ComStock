@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>scout_loads_summary</name>
   <uid>10373121-03aa-4e48-a9ea-e51b4c09f771</uid>
-  <version_id>4875183e-e850-4912-9538-950527eb5ac8</version_id>
-  <version_modified>2023-10-16T20:22:23Z</version_modified>
+  <version_id>09b4bfd0-4365-4cb6-9ca1-d02f1abf96b6</version_id>
+  <version_modified>2024-06-20T18:59:04Z</version_modified>
   <xml_checksum>72C8354A</xml_checksum>
   <class_name>ScoutLoadsSummary</class_name>
   <display_name>Scout Loads Summary</display_name>
@@ -201,7 +201,7 @@
       <filename>Measure_Test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>82E86DF3</checksum>
+      <checksum>05C505BD</checksum>
     </file>
     <file>
       <filename>SCn.osm</filename>
