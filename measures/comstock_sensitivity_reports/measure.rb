@@ -1011,7 +1011,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     economizer_statistics = []
     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
       # check if unitary system
-      if std.air_loop_hvac_unitary_system?(air_loop_hvac)
+      if OpenstudioStandards::HVAC.air_loop_hvac_unitary_system?(air_loop_hvac)
         runner.registerWarning("Air loop hvac '#{air_loop_hvac.name}' is a unitary system; fan properties recorded under zone hvac.")
       end
 
@@ -1049,7 +1049,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
            runner.registerWarning("Supply Fan type not recognized for air loop hvac '#{air_loop_hvac.name}'.")
         end
       else
-        runner.registerWarning("Supply Fan not available for air loop hvac '#{air_loop_hvac.name}'.") unless std.air_loop_hvac_unitary_system?(air_loop_hvac)
+        runner.registerWarning("Supply Fan not available for air loop hvac '#{air_loop_hvac.name}'.") unless OpenstudioStandards::HVAC.air_loop_hvac_unitary_system?(air_loop_hvac)
       end
 
       # record economizer details

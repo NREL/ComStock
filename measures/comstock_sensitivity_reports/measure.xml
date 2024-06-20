@@ -10,8 +10,8 @@ C:/Users/ccaradon/Documents/GitHub/ComStock/measures/comstock_sensitivity_report
 C:/Users/ccaradon/Documents/GitHub/ComStock/measures/comstock_sensitivity_reports/measure.rb:3140: syntax error, unexpected `end', expecting end-of-input</error>
   <name>com_stock_sensitivity_reports</name>
   <uid>aeb81242-de7e-4613-af47-c1faf19d286a</uid>
-  <version_id>6aefa296-01c7-47fc-a83b-0ddbf4c660d5</version_id>
-  <version_modified>2024-08-12T16:48:30Z</version_modified>
+  <version_id>a5d5be84-cb27-4742-8b2c-dcd418065439</version_id>
+  <version_modified>2024-06-20T20:17:12Z</version_modified>
   <xml_checksum>A0069B90</xml_checksum>
   <class_name>ComStockSensitivityReports</class_name>
   <display_name>ComStock_Sensitivity_Reports</display_name>
@@ -83,7 +83,7 @@ C:/Users/ccaradon/Documents/GitHub/ComStock/measures/comstock_sensitivity_report
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>19065474</checksum>
+      <checksum>C96D73B9</checksum>
     </file>
     <file>
       <filename>Variable List.xlsx</filename>
