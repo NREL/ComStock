@@ -4,7 +4,7 @@ import os
 import logging
 
 import numpy as np
-
+import polars as pl
 from comstockpostproc.naming_mixin import NamingMixin
 from comstockpostproc.units_mixin import UnitsMixin
 from comstockpostproc.plotting_mixin import PlottingMixin
@@ -17,6 +17,7 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
 
         # Initialize members
         self.data = comstock_object.data.to_pandas()
+        assert isinstance(self.data, pl.LazyFrame) "Data must be a pandas DataFrame"
         self.color_map = {}
         self.image_type = image_type
         self.name = name
