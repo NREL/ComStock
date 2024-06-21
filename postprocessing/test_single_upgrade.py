@@ -9,13 +9,13 @@ import comstockpostproc as cspp
 logging.basicConfig(level='INFO', force=True)  # Use DEBUG, INFO, or WARNING
 logger = logging.getLogger(__name__)
 
-@profile
+# @profile
 def main():
     # ComStock run
     comstock = cspp.ComStock(
         s3_base_dir='eulp/euss_com',  # If run not on S3, download results_up**.parquet manually
-        comstock_run_name='cycle3_euss_10k_df_2',  # Name of the run on S3
-        comstock_run_version='cycle3_euss_10k_df_2',  # Use whatever you want to see in plot and folder names
+        comstock_run_name='pv_10k_3',  # Name of the run on S3
+        comstock_run_version='pv_10k_3',  # Use whatever you want to see in plot and folder names
         comstock_year=2018,  # Typically don't change this
         truth_data_version='v01',  # Typically don't change this
         buildstock_csv_name='buildstock.csv',  # Download buildstock.csv manually
@@ -53,8 +53,9 @@ def main():
     # comstock.export_to_csv_wide()  # May comment this out if CSV output isn't needed
     # comstock.export_to_csv_long()  # May comment this out if CSV output isn't needed
     comstock.export_to_parquet_wide()
+    comstock.export_to_csv_wide()
     # Create measure run comparisons; only use if run has measures
-    # comparison = cspp.ComStockMeasureComparison(comstock, make_comparison_plots=True)
+    comparison = cspp.ComStockMeasureComparison(comstock, make_comparison_plots=True)
 
     # Export the comparison data to wide format for Tableau
     # comparison.export_to_csv_wide()
