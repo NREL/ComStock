@@ -2126,14 +2126,27 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_fan = OpenStudio::Model::FanVariableVolume.new(model, always_on)
       new_fan.setAvailabilitySchedule(supply_fan_avail_sched)
       new_fan.setName("#{air_loop_hvac.name} VFD Fan")
-      new_fan.setFanTotalEfficiency(0.63) # from PNNL
       new_fan.setMotorEfficiency(fan_mot_eff) # from Daikin Rebel E+ file
-      new_fan.setFanPowerCoefficient1(0.242469) # from Daikin Rebel E+ file
-      new_fan.setFanPowerCoefficient2(-1.46455) # from Daikin Rebel E+ file
-      new_fan.setFanPowerCoefficient3(4.496391) # from Daikin Rebel E+ file
-      new_fan.setFanPowerCoefficient4(-3.6426) # from Daikin Rebel E+ file
-      new_fan.setFanPowerCoefficient5(1.301203) # from Daikin Rebel E+ file
       new_fan.setFanPowerMinimumFlowRateInputMethod('Fraction')
+
+
+      # set fan total efficiency, which determines fan power
+      if std_perf
+        #new_fan.setFanTotalEfficiency(0.57) # from PNNL
+        std.fan_change_motor_efficiency(new_fan, fan_mot_eff)
+        new_fan.setFanPowerCoefficient1(0.0013) # from Daikin Rebel E+ file
+        new_fan.setFanPowerCoefficient2(0.147) # from Daikin Rebel E+ file
+        new_fan.setFanPowerCoefficient3(0.9506) # from Daikin Rebel E+ file
+        new_fan.setFanPowerCoefficient4(-0.0998) # from Daikin Rebel E+ file
+        new_fan.setFanPowerCoefficient5(0) # from Daikin Rebel E+ file
+      else
+        new_fan.setFanTotalEfficiency(0.63) # from PNNL
+        new_fan.setFanPowerCoefficient1(0.242469) # from Daikin Rebel E+ file
+        new_fan.setFanPowerCoefficient2(-1.46455) # from Daikin Rebel E+ file
+        new_fan.setFanPowerCoefficient3(4.496391) # from Daikin Rebel E+ file
+        new_fan.setFanPowerCoefficient4(-3.6426) # from Daikin Rebel E+ file
+        new_fan.setFanPowerCoefficient5(1.301203) # from Daikin Rebel E+ file
+      end
 
       # set minimum fan power flow fraction to the higher of 0.40 or the min flow fraction
       if min_airflow_ratio > min_flow
