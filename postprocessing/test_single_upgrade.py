@@ -23,7 +23,7 @@ def main():
         drop_failed_runs=True,  # False if you want to evaluate which runs failed in raw output data
         color_hex='#0072B2',  # Color used to represent this run in plots
         skip_missing_columns=True,  # False if you want to ensure you have all data specified for export
-        reload_from_csv=False, # True if CSV already made and want faster reload times
+        reload_from_csv=True, # True if CSV already made and want faster reload times
         include_upgrades=True,  # False if not looking at upgrades
         athena_table_name=None,
         upgrade_ids_to_skip=[],

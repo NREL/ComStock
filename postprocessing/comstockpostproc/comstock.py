@@ -217,7 +217,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 # Write self.data to parquet file
                 file_name = f'cached_ComStock_wide_upgrade{upgrade_id}.parquet'
                 file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
-                self.cached_parquet.append((upgrade_id, file_path))
+                self.cached_parquet.append((upgrade_id, file_path)) #cached_parquet is a list of parquets used to export and reload
                 logger.info(f'Exporting to: {file_path}')
                 self.reorder_data_columns()
                 self.data.write_parquet(file_path)
