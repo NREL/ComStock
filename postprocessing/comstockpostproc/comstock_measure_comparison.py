@@ -16,8 +16,9 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
     def __init__(self, comstock_object, states, make_comparison_plots, make_timeseries_plots, image_type='jpg', name=None):
 
         # Initialize members
-        self.data = comstock_object.data.to_pandas()
-        assert isinstance(self.data, pl.LazyFrame) "Data must be a pandas DataFrame"
+        assert isinstance(comstock_object.data, pl.LazyFrame)
+        self.data = comstock_object.data.clone() #cheap, not really a deep copy, only schema is copied but not data.
+        assert isinstance(self.data, pl.LazyFrame)
         self.color_map = {}
         self.image_type = image_type
         self.name = name
