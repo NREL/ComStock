@@ -1,1 +1,1 @@
-build_singularity.sh eol=lf
+build_apptainer.sh eol=lf
