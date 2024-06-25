@@ -496,7 +496,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             up_res = up_res.with_columns([
                 pl.lit(upgrade_id).alias(self.UPGRADE_ID)
             ])
-
             # Set a few columns for the baseline
             if upgrade_id == 0:
                 up_res = up_res.with_columns([pl.lit(self.BASE_NAME).alias('apply_upgrade.upgrade_name')])
@@ -874,7 +873,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Combine applicable, not applicable, and failed-replaced-with-baseline results from all upgrades
         self.data = pl.concat(results_dfs, how='diagonal')
-
         # Reduce DF memory by converting some columns to boolean or category
         self.data = self.reduce_df_memory(self.data)
 
@@ -2162,12 +2160,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Add a metadata index column to the data
         # updradeIdcount is a dictionary of the number of upgrades for each building: <building_id>: <number of upgrades>
         # If there is only one upgrade, the metadata index is the same as the building ID
-    
         offset = sum(upgradIdcount[x] for x in upgradIdcount.keys() if x != max(upgradIdcount.keys()))
-        upgrades = sorted(self.data[self.UPGRADE_NAME].unique())
-        df_baseline = self.data.filter(pl.col(self.UPGRADE_NAME) == "0").with_columns(pl.arange(0, pl.len()).alias(self.META_IDX))
+        upgrades = sorted(self.data[self.UPGRADE_ID].unique())
+        df_baseline = self.data.filter(pl.col(self.UPGRADE_ID) == 0).with_columns(pl.arange(0, pl.len()).alias(self.META_IDX))
         if len(upgrades) > 1:
-            df_upgrade = self.data.filter(pl.col(self.UPGRADE_NAME) == upgrades[1]).with_columns(pl.arange(offset, offset + pl.len()).alias(self.META_IDX))
+            df_upgrade = self.data.filter(pl.col(self.UPGRADE_ID) == upgrades[1]).with_columns(pl.arange(offset, offset + pl.len()).alias(self.META_IDX))
             self.data = pl.concat([df_baseline, df_upgrade])
         else:
             self.data = df_baseline
