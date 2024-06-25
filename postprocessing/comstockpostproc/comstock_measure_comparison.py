@@ -3,7 +3,7 @@
 import os
 import logging
 
-import numpy as np
+import pandas as pd
 import polars as pl
 from comstockpostproc.naming_mixin import NamingMixin
 from comstockpostproc.units_mixin import UnitsMixin
@@ -71,6 +71,11 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 #convert all lazyframes to dataframes
                 self.data = self.data.collect().to_pandas()
                 df_upgrade = df_upgrade.collect().to_pandas()
+
+                # take the adventage of lazy frame, and use pandas dataframe to draw the plots                
+
+                assert isinstance(df_upgrade, pd.DataFrame)
+                assert isinstance(self.data, pd.DataFrame)
 
                 # make consumption plots for upgrades if requested by user
                 if make_comparison_plots:
