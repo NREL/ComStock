@@ -18,6 +18,7 @@ temp_data
 .aws_docker_image
 weather
 __pycache__/
+*.sif
 *.simg
 baseline_test_output/
 lib/

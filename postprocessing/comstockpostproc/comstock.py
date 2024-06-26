@@ -63,7 +63,7 @@ def basic_metadata_columns():
 class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixin):
     def __init__(self, s3_base_dir, comstock_run_name, comstock_run_version, comstock_year, athena_table_name,
         truth_data_version, buildstock_csv_name = 'buildstock.csv', acceptable_failure_percentage=0.01, drop_failed_runs=True,
-        color_hex=NamingMixin.COLOR_COMSTOCK_BEFORE, weighted_energy_units='tbtu', weighted_ghg_units='co2e_mmt', skip_missing_columns=False,
+        color_hex=NamingMixin.COLOR_COMSTOCK_BEFORE, weighted_energy_units='tbtu', weighted_ghg_units='co2e_mmt', weighted_utility_units='billion_usd', skip_missing_columns=False,
         reload_from_csv=False, make_comparison_plots=True, include_upgrades=True, upgrade_ids_to_skip=[], upgrade_ids_for_comparison={}, rename_upgrades=False):
         """
         A class to load and transform ComStock data for export, analysis, and comparison.
@@ -105,6 +105,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.building_type_weights = None
         self.weighted_energy_units = weighted_energy_units
         self.weighted_ghg_units = weighted_ghg_units
+        self.weighted_utility_units = weighted_utility_units
         self.skip_missing_columns = skip_missing_columns
         self.include_upgrades = include_upgrades
         self.upgrade_ids_to_skip = upgrade_ids_to_skip
@@ -167,6 +168,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # Calculate/generate columns based on imported columns
             # self.add_aeo_nems_building_type_column()  # TODO POLARS figure out apply function
             self.add_missing_energy_columns()
+            self.combine_utility_cols()
             self.add_enduse_total_energy_columns()
             self.add_energy_intensity_columns()
             self.add_bill_intensity_columns()
@@ -1566,7 +1568,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
     def add_bill_intensity_columns(self):
         # Create bill per area column for each annual utility bill column
-        for bill_col in self.COLS_UTIL_BILLS:
+        for bill_col in self.COLS_UTIL_BILLS + [
+                                                self.UTIL_BILL_TOTAL_MEAN,
+                                                'out.utility_bills.electricity_bill_max..usd',
+                                                'out.utility_bills.electricity_bill_median..usd',
+                                                'out.utility_bills.electricity_bill_min..usd']:
             # Put in np.nan for bill columns that aren't part of ComStock
             if not bill_col in self.data:
                 self.data = self.data.with_columns([pl.lit(None).alias(bill_col)])
@@ -1851,6 +1857,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 logger.info('Energy savings columns already in data')
             else:
                 self.add_weighted_energy_savings_columns()
+                self.add_weighted_utility_savings_columns()
 
         # Adding weighting factors to the monthly data
         self.get_scaled_comstock_monthly_consumption_by_state()
@@ -1869,6 +1876,20 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             new_col = self.col_name_to_weighted(col, self.weighted_ghg_units)
             old_units = self.units_from_col_name(col)
             new_units = self.weighted_ghg_units
+            conv_fact = self.conv_fact(old_units, new_units)
+            self.data = self.data.with_columns(
+                (pl.col(col) * pl.col(self.BLDG_WEIGHT) * conv_fact).alias(new_col))
+
+        # Utility Bills
+        for col in (self.COLS_UTIL_BILLS + [
+                                            self.UTIL_BILL_TOTAL_MEAN,
+                                            'out.utility_bills.electricity_bill_max..usd',
+                                            'out.utility_bills.electricity_bill_median..usd',
+                                            'out.utility_bills.electricity_bill_min..usd']):
+            # Weight and convert to million USD
+            new_col = self.col_name_to_weighted(col, self.weighted_utility_units)
+            old_units = self.units_from_col_name(col)
+            new_units = self.weighted_utility_units
             conv_fact = self.conv_fact(old_units, new_units)
             self.data = self.data.with_columns(
                 (pl.col(col) * pl.col(self.BLDG_WEIGHT) * conv_fact).alias(new_col))
@@ -2009,6 +2030,93 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Join the savings columns onto the results
         self.data = self.data.join(up_abs_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
         self.data = self.data.join(up_pct_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
+
+
+    def add_weighted_utility_savings_columns(self):
+        # Select energy columns to calculate savings for
+        engy_cols = []
+        abs_svgs_cols = {}
+        pct_svgs_cols = {}
+        wtd_pct_svgs_cols_to_drop = []
+
+        for col in (self.COLS_UTIL_BILLS + [
+                                            self.UTIL_BILL_TOTAL_MEAN,
+                                            'out.utility_bills.electricity_bill_max..usd',
+                                            'out.utility_bills.electricity_bill_median..usd',
+                                            'out.utility_bills.electricity_bill_min..usd']):
+
+            for wtg_method in ['weighted', 'unweighted']:
+                if wtg_method == 'weighted':
+                    wtd_col = self.col_name_to_weighted(col, self.weighted_utility_units)
+                    engy_cols.append(wtd_col)
+                    abs_svgs_cols[wtd_col] = self.col_name_to_weighted_savings(col, self.weighted_utility_units)
+                    pct_svgs_cols[wtd_col] = self.col_name_to_weighted_percent_savings(col, 'percent')
+                    wtd_pct_svgs_cols_to_drop.append(self.col_name_to_weighted_percent_savings(col, 'percent'))
+                else:
+                    # for non eui columns
+                    engy_cols.append(col)
+                    abs_svgs_cols[col] = self.col_name_to_savings(col, None)
+                    pct_svgs_cols[col] = self.col_name_to_percent_savings(col, 'percent')
+                    # add eui savings for all unweighted eui columns
+                    eui_col = self.col_name_to_area_intensity(col)
+                    engy_cols.append(eui_col)
+                    abs_svgs_cols[eui_col] = self.col_name_to_savings(eui_col, None)
+                    pct_svgs_cols[eui_col] = self.col_name_to_percent_savings(eui_col, 'percent')
+
+        # Keep the building ID and upgrade name columns to use as the index
+        engy_and_id_cols = engy_cols + [self.BLDG_ID, self.UPGRADE_NAME]
+
+        # Get the baseline results
+        base_engy = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).select(engy_and_id_cols).sort(self.BLDG_ID).clone()
+
+        # Caculate the savings for each upgrade, including the baseline
+        up_abs_svgs = []
+        up_pct_svgs = []
+
+        for upgrade_name, up_res in self.data.groupby(self.UPGRADE_NAME):
+
+            up_engy = up_res.select(engy_and_id_cols).sort(self.BLDG_ID).clone()
+
+            # Check that building_ids have same order in both DataFrames before division
+            base_engy_ids = base_engy.get_column(self.BLDG_ID)
+            up_engy_ids = up_engy.get_column(self.BLDG_ID)
+            assert up_engy_ids.to_list() == base_engy_ids.to_list()
+
+            # Calculate the absolute and percent energy savings
+            abs_svgs = (base_engy[engy_cols] - up_engy[engy_cols])
+
+            pct_svgs = ((base_engy[engy_cols] - up_engy[engy_cols]) / base_engy[engy_cols])
+            pct_svgs = pct_svgs.fill_null(0.0)
+            pct_svgs = pct_svgs.fill_nan(0.0)
+
+            abs_svgs = abs_svgs.with_columns([
+                base_engy_ids,
+                pl.lit(upgrade_name).alias(self.UPGRADE_NAME)
+            ])
+            abs_svgs = abs_svgs.with_columns(pl.col(self.UPGRADE_NAME).cast(pl.Categorical))
+
+            pct_svgs = pct_svgs.with_columns([
+                base_engy_ids,
+                pl.lit(upgrade_name).alias(self.UPGRADE_NAME)
+            ])
+            pct_svgs = pct_svgs.with_columns(pl.col(self.UPGRADE_NAME).cast(pl.Categorical))
+
+            abs_svgs = abs_svgs.rename(abs_svgs_cols)
+            pct_svgs = pct_svgs.rename(pct_svgs_cols)
+
+            # Drop the weighted percent savings columns
+            pct_svgs = pct_svgs.drop(wtd_pct_svgs_cols_to_drop)
+
+            up_abs_svgs.append(abs_svgs)
+            up_pct_svgs.append(pct_svgs)
+
+        up_abs_svgs = pl.concat(up_abs_svgs)
+        up_pct_svgs = pl.concat(up_pct_svgs)
+
+        # Join the savings columns onto the results
+        self.data = self.data.join(up_abs_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
+        self.data = self.data.join(up_pct_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
+
 
     def add_metadata_index_col(self):
         # Adds a column from 0 to the number of rows across all upgrades
@@ -2397,6 +2505,21 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         col_names = [self.ANN_GHG_EGRID, self.ANN_GHG_CAMBIUM]
         self.convert_units(col_names)
+
+    def combine_utility_cols(self):
+        # Create combined utility column for mean electricity rate
+
+        ## Fill empty emissions columns with zeroes before summing
+        #for c in self.data.columns:
+        #    if 'out.emissions.' in c:
+        #        self.data = self.data.with_columns([pl.col(c).fill_null(0.0)])
+
+        # Create two combined emissions columns
+        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_UTIL_BILLS).alias(self.UTIL_BILL_TOTAL_MEAN))
+
+        col_names = [self.UTIL_BILL_TOTAL_MEAN]
+        self.convert_units(col_names)
+
 
     def convert_units(self, col_names):
         # Read the column definitions

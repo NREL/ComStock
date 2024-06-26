@@ -28,7 +28,7 @@ and the [Department of Energy's Building Technology Office](https://www.energy.g
 ongoing support of and investment in building energy modeling software.
 
 ## Directories
-- [**`/build`**](https://github.com/NREL/ComStock/tree/main/build) contains instructions for building Singularity images for running ComStock on HPC systems.
+- [**`/build`**](https://github.com/NREL/ComStock/tree/main/build) contains instructions for building Apptainer images for running ComStock on HPC systems.
 - [**`/documentation`**](https://github.com/NREL/ComStock/tree/main/documentation) contains LaTeX documentation and instructions for building the documentation.
 - [**`/measures`**](https://github.com/NREL/ComStock/tree/main/measures) contains the high-level "meta" measures used to call other measures, and the reporting measures used to summarize outputs.
 - [**`/national`**](https://github.com/NREL/ComStock/tree/main/national) contains seed directories necessary for a ComStock run using buildstockbatch.
@@ -41,3 +41,40 @@ ongoing support of and investment in building energy modeling software.
 ## Usage
 ComStock is under an open source license. See [LICENSE.txt](https://github.com/NREL/ComStock/blob/develop/LICENSE.txt) in this directory.
 You are welcome to use this repository for your own use. However, we do not provide technical support. Please refer to our [technical assistance documentation](https://nrel.github.io/ComStock.github.io/docs/resources/resources.html) instead. We strongly suggest and support using the public datasets instead of attempting to run millions of building energy models yourself.
+
+## Developer Installation
+This is needed if you are a developer making changes to `openstudio-standards` or `openstudio-geb` gems or are running simulations locally using [BuildStock Batch](https://buildstockbatch.readthedocs.io/en/stable/).
+
+1. Install the [latest version of OpenStudio](https://github.com/NREL/OpenStudio/releases). ComStock requires **OpenStudio 3.8.0** or newer.
+2. Install the Ruby version that corresponds to your OpenStudio install. See the [OpenStudio SDK Version Compatibility Matrix](https://github.com/NREL/OpenStudio/wiki/OpenStudio-SDK-Version-Compatibility-Matrix).
+      1. **On Mac**:
+      2. Install Ruby 3.2.2 using [rbenv](http://octopress.org/docs/setup/rbenv/) (`ruby -v` from command prompt to check installed version).
+      3. **On Windows**:
+      4. Install [Ruby+Devkit 3.2.2](https://rubyinstaller.org/downloads/archives) (`ruby -v` from command prompt to check installed version).
+
+3. Connect Ruby to OpenStudio:
+	1. **On Mac**:
+	2. Create a file called `openstudio.rb`
+	3. Contents: `require "/Applications/openstudio-3.8.0/Ruby/openstudio.rb"` Modify `3.8.0` to the version you installed.
+	4. Save it here: `/usr/lib/ruby/site_ruby/openstudio.rb`
+	5. **On Windows**:
+	6. Create a file called `openstudio.rb`
+	7. Contents: `require "C:/openstudio-3.8.0/Ruby/openstudio.rb"`  Modify `3.8.0` to the version you installed.
+	8. Save it here: `C:/Ruby32-x64/lib/ruby/site_ruby/openstudio.rb`
+
+4. `gem install bundler` This installs the `bundler` ruby gem.
+5. Install [Git](https://git-scm.com/).
+6. Install [GitHub desktop](https://desktop.github.com/) or another GUI that makes Git easier to use.
+7. Clone the [ComStock source code](https://github.com/NREL/ComStock.git) using GitHub desktop (easier) or Git (harder).
+8. Run all commands below from the top level `/ComStock` directory
+13. `mkdir .custom_gems` This makes a temp directory to install required gems inside.
+13. `copy /Y .\resources\Gemfile .\.custom_gems\Gemfile` This copies the Gemfile to the temp directory.
+13. `gem install bundler:2.4.10` This installs the version of bundler needed by OpenStudio.
+13. `bundle _2.4.10_ install --path "C:/GitRepos/ComStock/.custom_gems" --gemfile "C:/GitRepos/ComStock/.custom_gems/Gemfile" --without test` This will install all ruby gems necessary to develop this code.
+14. If running simulations locally, install [BuildStock Batch](https://buildstockbatch.readthedocs.io/en/stable/installation.html#local)
+15. Add the following additional Python packages into your `buildstockbatch` environment:
+```bash
+conda activate buildstockbatch
+pip install GHEDesigner==1.0
+pip install NREL-PySAM==4.2.0
+```

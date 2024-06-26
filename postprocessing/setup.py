@@ -54,7 +54,7 @@ setup(
         'botocore',
         'pyyaml',
         'joblib',
-        'polars>=0.19.16',
+        'polars==0.20.7',
         'buildstock_query @ git+https://github.com/NREL/buildstock-query'
     ],
     extras_require={

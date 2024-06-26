@@ -149,6 +149,9 @@ class NamingMixin():
         UTIL_BILL_PROPANE
     ]
 
+    # Combined utility bills
+    UTIL_BILL_TOTAL_MEAN = 'calc.utility_bills.total_mean_bill..usd'
+
     # GHG emissions columns
     ANN_GHG_EGRID = 'calc.emissions.total_with_egrid..co2e_kg'
     ANN_GHG_CAMBIUM = 'calc.emissions.total_with_cambium_mid_case_15y..co2e_kg'
@@ -581,7 +584,10 @@ class NamingMixin():
         return units
 
     def col_name_to_weighted(self, col_name, new_units=None):
-        col_name = col_name.replace('in.', 'out.')
+
+        # 'if' statement to avoid "min." inclusion in "in." replace
+        if col_name.startswith('in.'):
+            col_name = col_name.replace('in.', 'out.')
         col_name = col_name.replace('out.', 'calc.')
         col_name = col_name.replace('calc.', 'calc.weighted.')
         if not new_units is None:
@@ -598,6 +604,7 @@ class NamingMixin():
 
     def col_name_to_savings(self, col_name, new_units=None):
         col_name = col_name.replace('.energy_consumption', '.energy_savings')
+        col_name = col_name.replace('_bill_', '_bill_savings_')
         return col_name
 
     def col_name_to_weighted_percent_savings(self, col_name, new_units=None):
@@ -632,6 +639,9 @@ class NamingMixin():
     def col_name_to_area_intensity(self, col_name):
         units = self.units_from_col_name(col_name)
         col_name = col_name.replace('bill_mean..usd', 'bill_intensity..usd')
+        col_name = col_name.replace('bill_min..usd', 'bill_min_intensity..usd')
+        col_name = col_name.replace('bill_max..usd', 'bill_max_intensity..usd')
+        col_name = col_name.replace('bill_median..usd', 'bill_median_intensity..usd')
         col_name = col_name.replace('bill..usd', 'bill_intensity..usd')
         area_units = 'ft2'
         intensity_units = f'{units}_per_{area_units}'

@@ -117,7 +117,7 @@ class SetInteriorLightingBPR < OpenStudio::Measure::ModelMeasure
         new_times << time
       end
     end
-    
+
     # set new time/value pairs in schedule
     day_sch.clearValues
     new_vals.zip(new_times).each do |val, time|
@@ -196,7 +196,7 @@ class SetInteriorLightingBPR < OpenStudio::Measure::ModelMeasure
       # adjust schedule to meet user-specified BPR value
       new_ltg_sch = ltg_sch.clone(model).to_ScheduleRuleset.get
       new_ltg_sch.setName("#{ltg_sch.name} BPR Adjusted")
-      new_ltg_sch.defaultDaySchedule.setInterpolatetoTimestep(false)
+      new_ltg_sch.defaultDaySchedule.setInterpolatetoTimestep('No')
       original_ltg_new_schs[ltg_sch] = new_ltg_sch
       new_ltg_sch.to_ScheduleRuleset.get
 

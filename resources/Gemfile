@@ -1,41 +1,22 @@
-# gems in this file are packaged into openstudio.exe
-# gems listed here should not have binary components
-# gems listed here must be able to read resource files from the embedded files location
-# need to adjust hard coded paths in embedded_help.rb when adding new gems
 source 'http://rubygems.org'
-ruby "~> 2.7.0"
-
-# Specify gem's dependencies in openstudio-gems.gemspec, this is what consumers of the gem will read
-# gemspec
-
-# Specify specific gem source/location (e.g. github branch) for running bundle in this directory
-# This is needed if the version of the gem you want to use is not on rubygems
+ruby "~> 3.2.0"
 
 # Bug in addressable to 2.8.1 and patched version has an issue https://github.com/NREL/OpenStudio/issues/4870
 gem 'addressable', '= 2.8.1'
 
-gem 'openstudio-extension', '= 0.7.0'
-gem 'openstudio-workflow', '= 2.3.1'
-gem 'openstudio-standards', '= 0.5.0'
-# gem 'openstudio-standards', git: 'https://github.com/NREL/openstudio-standards.git', ref: '971514ee0a64262a9c81788fd85fc60d8dd69980'
-# gem 'openstudio-standards', path: "C:/GitRepos/openstudio-standards" # Use this format when testing openstudio-standards changes locally
-gem 'tbd', :github => 'rd2/tbd', :ref => 'v3.2.3'
-gem 'openstudio_measure_tester', '= 0.3.2'
-gem 'json_schemer', '= 2.0.0'
+# This removes the rubocop runtime dependency on 'json ~> 2.3'.
+gem 'rubocop', :github => 'jmarrec/rubocop', :ref => '1.50.0-no_json'
 
-group :native_ext do
-  gem 'pycall', '= 1.2.1', :github => 'NREL/pycall.rb', :ref => '5d60b274ac646cdb422a436aad98b40ef8b902b8'
-  gem 'jaro_winkler', '= 1.5.4', :github => 'jmarrec/jaro_winkler', :ref => 'f1ca425fdef06603e5c65b09c5b681f805e1e297'
-  gem 'sqlite3', :github => 'jmarrec/sqlite3-ruby', :ref => 'MSVC_support'
-  # You need ragel available (version 6.x, eg `ragel_installer/6.10@bincrafters/stable` from conan)
-  gem 'oga', '3.2'
-  # gem 'cbor', '0.5.9.6' # Cbor will require a ton of patching, so disabling it in favor of msgpack (cbor is a fork of msgpack anyways)
-  gem 'msgpack', '1.4.2'
-end
+gem 'bcl', "= 0.8.0"
+gem 'openstudio-extension', '= 0.8.0'
+gem 'openstudio-workflow', '= 2.4.0'
+# gem 'openstudio-standards', '= 0.6.1'
+gem 'openstudio-standards', git: 'https://github.com/NREL/openstudio-standards.git', ref: '40f794b0401cbbb500b70b76ea04c523084c02c7'
+# gem 'openstudio-standards', path: "C:/GitRepos/openstudio-standards" # Use this format when testing openstudio-standards changes locally
+gem 'tbd', '= 3.4.1'
+gem 'openstudio-geb', '= 0.4.0',:github => 'LBNL-ETA/Openstudio-GEB-gem', :ref => 'a18e023936dd5c92be7dbf354f6331f60a965828'
+
 group :test do
   gem 'minitest-reporters', '= 1.4.3'
   gem 'minitest-junit', '= 1.1.0'
 end
-
-# leave this line in for now as we may try to get nokogiri to compile correctly on windows
-# gem 'nokogiri', '= 1.11.0.rc1.20200331222433', :github => 'jmarrec/nokogiri', :ref => 'MSVC_support' # master of 2020-03-31 + gemspec commit

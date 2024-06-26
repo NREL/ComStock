@@ -9,7 +9,7 @@ Pull request overview
 
 This pull request makes changes to (select all the apply):
  - [ ] Documentation
- - [ ] Infrastructure (includes singularity image, buildstock batch, dependencies, continuous integration tests)
+ - [ ] Infrastructure (includes apptainer image, buildstock batch, dependencies, continuous integration tests)
  - [ ] Sampling
  - [ ] Workflow Measures
  - [ ] Upgrade Measures

@@ -3,7 +3,7 @@
 
 # Helper methods related to having a meta-measure
 
-def apply_measures(measures_dir, measures, runner, model, workflow_json=nil, osw_out=nil, show_measure_calls=true)
+def apply_measures(measures_dirs, measures, runner, model, workflow_json=nil, osw_out=nil, show_measure_calls=true)
   require 'openstudio'
 
   workflow_order = []
@@ -53,8 +53,20 @@ def apply_measures(measures_dir, measures, runner, model, workflow_json=nil, osw
   all_measure_results = []
   workflow_order.each do |measure_subdir|
     # Gather measure arguments and call measure
-    full_measure_path = File.join(measures_dir, measure_subdir, "measure.rb")
-    check_file_exists(full_measure_path, runner)
+
+    # Find the full measure path in one of the measures directories
+    full_measure_path = nil
+    measures_dirs.each do |measures_dir|
+      potential_measure_path = File.join(measures_dir, measure_subdir, "measure.rb")
+      if File.exist?(potential_measure_path)
+        full_measure_path = potential_measure_path
+        break
+      end
+    end
+    if full_measure_path.nil?
+      register_error("Could not find #{measure_subdir} in any of #{measures_dirs}", runner)
+    end
+
     measure_instance = get_measure_instance(full_measure_path)
     measures[measure_subdir].each do |args|
       argument_map = get_argument_map(model, measure_instance, args, nil, measure_subdir, runner)
