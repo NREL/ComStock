@@ -5,6 +5,7 @@ import csv
 import os
 import glob
 import logging
+import json
 from collections import namedtuple, deque
 
 from datetime import datetime
@@ -13,32 +14,11 @@ import tarfile
 
 logging.basicConfig(level='INFO')  # Use DEBUG, INFO, or WARNING
 
-KEY_REGEX_MATCH = {
-    "stateStart": r"\[(\d{2}:\d{2}:\d{2}\.\d{6}) \w+\] Next state will be: '([^']+)'",
-    "stateEnd": r"\[(\d{2}:\d{2}:\d{2}\.\d{6}) \w+\] Current state: '([^']+)'",
-    "measureStart": r"\[(\d{2}:\d{2}:\d{2}\.\d{6}) \w+\] Calling (\w+) measure with(?: arguments| no arguments\.)",
-    "measureEnd": r"\[(\d{2}:\d{2}:\d{2}\.\d{6}) \w+\] (\w+) runtime: ([\d.]+) seconds",
-    "sizingStart": r"\[(\d{2}:\d{2}:\d{2}\.\d{6}) \w+\] Started simulation (.*?) at (\d{2}:\d{2}:\d{2}\.\d{3})",
-    "sizingEnd": r"\[(\d{2}:\d{2}:\d{2}\.\d{6}) \w+\] Finished simulation (.*?) at (\d{2}:\d{2}:\d{2}.\d{3})",
-    "workflowItemMeasureStart": r"\[(\d{2}:\d{2}:\d{2}\.\d{6}) \w+\] Calling (\w+(?:\.\w+)?) for '(.*?)'",
-    "workflowItemMeasureEnd": r"\[(\d{2}:\d{2}:\d{2}\.\d{6}) \w+\] Finished (\w+(?:\.\w+)?) for '(.*?)'",
-}
-
-PROFILING_SUMMARY_DIR = "profiling_summary"
-STATE_START = namedtuple('stateStart', ['timestamp', 'state'])
-STATE_END = namedtuple('stateEnd', ['timestamp', 'state'])
-MEASURE_START = namedtuple('measureStart', ['timestamp', 'measure'])
-MEASURE_END = namedtuple('measureEnd', ['timestamp', 'measure', 'runtime'])
-SIZING_START = namedtuple('sizingStart', ['timestamp', 'sizingRunPath'])
-SIZING_END = namedtuple('sizingEnd', ['timestamp'])
-WORKFLOW_ITEM_MEASURE_START = namedtuple('workflowItemMeasureStart', [
-    'timestamp', 'method', 'workflow'])
-WORKFLOW_ITEM_MEASURE_END = namedtuple('workflowItemMeasureEnd', [
-    'timestamp', 'method', 'workflow'])
-
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+PROFILING_SUMMARY_DIR = "profiling_summary"
 
-def main(path):
+def main(path, selecting_run=None):
     """
     main function:
     - read the log file from tar.gz
@@ -48,160 +28,39 @@ def main(path):
     logger.info("Analyzing log files from {}".format(path))
     count = 0
     for logpath, log in __extract_running_log(path):
-        if count % 100 == 0:
-            logger.info("Analyzing log path: {}, which is the {} th log.".format(
-                logpath, count))
-        count += 1
-        infomrationLines = cleanup_oringinal_log(log)
+        informationLines = cleanup_original_log(log)
 
-        if not infomrationLines:
-            logger.info(">>>>>>> This is Empty >>>>>> ", path, logpath)
+        #logpath example: ./up00/bldg0000001/out.osw
+        if logpath.split("/")[1] not in selecting_run:
             continue
 
-        timeDeltaFromCleanedLog = generate_nest_log_from_namedtuple(infomrationLines)
+        count += 1
+        if count % 10 == 0:
+            logger.info(f"Analyzing log path: {logpath}")
+            logger.info(f"processed {count} logs")
+
+        if not informationLines:
+            logger.info(f">>>>>>> This is Empty >>>>>>  in path: {path}, logpath: {logpath}")
+            continue
+
+
+        # timeDeltaFromCleanedLog = generate_nest_log_from_namedtuple(informationLines)
+        timeDeltaFromCleanedLog = _generate_printable_log(informationLines)
         timeDeltaFromCleanedLog['logpath'] = logpath
         generatingReport(timeDeltaFromCleanedLog, path)
-
-def aggregate_csv(path):
-    """
-    After all the csv are generated, aggregate the csvs from each run.
-    """
-    summaryPath = os.path.join(os.path.dirname(path), PROFILING_SUMMARY_DIR)
-    with open(summaryPath + '/' + 'aggregate_profiling.csv', 'w') as fout:
-        wout = csv.writer(fout, delimiter=',')
-        interesting_files = glob.glob(summaryPath + "/" + "*tar_gz.csv")
-        print(interesting_files)
-        h = True
-        for filename in interesting_files:
-            # Open and process file
-            logger.info("Aggregating {}".format(filename))
-            with open(filename, 'r') as fin:
-                if h:
-                    h = False
-                else:
-                    next(fin) # Skip header
-                for line in csv.reader(fin):
-                    wout.writerow(line)
+    aggregate_csv(path)
 
 def __compute_delta(timestamps):
     """
     helper function: calculate the time usage for an action.
     """
-    format = "%H:%M:%S.%f"
-    return int(abs((datetime.strptime(timestamps[0], format) - datetime.strptime(timestamps[1], format)).total_seconds()))
-
-
-def __flat_dict_into_list(input, path=None):
-    """
-    helper function: flat the nested log to easier print into csv.
-    input data is a nested log:
-    {
-    actionA: {subactionB: [timestamp 1, timestamp 2]}
-    }
-    output data is flatted out
-    [actionA, [subactionB, (timestamp 1, timestamp 2)]] for better data handling.
-    """
-    path = [] if path is None else path
-    res = []
-
-    def _flat_dict(inputDict, path: list) -> list:
-
-        if not isinstance(inputDict, dict):
-            path.append(inputDict)
-            res.append(path[:])
-            path.pop()
-            return
-
-        for key in inputDict.keys():
-            path.append(key)
-            _flat_dict(inputDict.get(key), path)
-            path.pop()
-    _flat_dict(input, path)
-    return res
-
-
-def __create_state_sweepline(nestedLog: dict) -> list:
-    """
-    helper function: generate [(startName, state start time)] sorted by aceseding.
-    Inorder to detect which measure is belong to which state.
-    """
-    stateStartTime = []
     try:
-        for state, (startime, endtime) in nestedLog.get('state', {}).items():
-            if state in ['initialization', 'translator', 'ep_measures', 'simulation', 'postprocess']:
-                continue
-            else:
-                stateStartTime.append(
-                    (state, datetime.strptime(startime, "%H:%M:%S.%f")))
-        stateStartTime.sort(key=lambda x: x[1], reverse=True)
-    except Exception as ex:
-        logger.info(ex.__class__.__name__ + " under " + "create_state_sweepline")
-        logger.info(nestedLog.get('state'))
-    return stateStartTime
-
-
-def __get_state_from_workflow_measure(timestamp: list, stateSweepLine: list):
-    """
-    Pass a measure's timestamps of start and end, return state its belong to.
-    Since the state sweepline is sorted, we just need do it in one pass.
-    """
-    WorkFlowstarttime = datetime.strptime(timestamp[0], "%H:%M:%S.%f")
-    for state, starttime in stateSweepLine:
-        if WorkFlowstarttime > starttime:
-            return state
-    return None
-
-
-def __uniform_sizing_json(nestedLog: dict):
-    """
-    uniform sizing log with other logs. Since sizing log has no sizing name mention in the end logging at beginning.
-    """
-    sizingDict = nestedLog.get('sizing', [])
-    newSizingDict = {}
-
-    for sizingPath, starttime, endTime in sizingDict:
-        newSizingDict[sizingPath] = [starttime, endTime]
-    nestedLog['sizing'] = newSizingDict
-
-
-def __is_sizing_included(sizingTimeStamps: tuple, workflowStartTime: str, workflowEndTime: str) -> bool:
-    """
-    Detect whether a sizing is included in a workflow step.
-    """
-    format = "%H:%M:%S.%f"
-    return datetime.strptime(sizingTimeStamps[0], format) > datetime.strptime(workflowStartTime, format) and datetime.strptime(sizingTimeStamps[1], format) < datetime.strptime(workflowEndTime, format)
-
-
-
-
-def __create_workflow_measure_sweepLine(workflowFromNestedLog: dict) -> list:
-    """
-    helper function: use workflow information from nested log to created a sorted timestamp list of workflow
-    in order to detect the inclusion of workflow and measure step.
-    """
-    workFlowMeasures = []
-    for state, var in workflowFromNestedLog.items():
-        for idx, timestamp in enumerate(var):
-            if idx % 2 == 0:
-                try:
-                    workFlowMeasures.append(
-                        (state, datetime.strptime(timestamp, "%H:%M:%S.%f")))
-                except Exception:
-                    logger.info("work flow create sweepline error")
-                    logger.info(timestamp)
-
-    workFlowMeasures.sort(key=lambda x: x[1], reverse=True)
-    return workFlowMeasures
-
-
-def __filted_sizing_name(sizingPath: str) -> str:
-    """
-    helper function:
-    Change sizing name from /var/simdata/openstudio/run/000_BuildExistingModel/set_hvac_template_SR to set_hvac_template_SR
-    for better indication.
-    """
-    return '_'.join([st for st in sizingPath.split('/')[-1].split('_') if ('SR') not in st])
-
+        format = "%H:%M:%S.%f"
+        return int(abs((datetime.strptime(timestamps[0], format) - datetime.strptime(timestamps[1], format)).total_seconds()))
+    except ValueError: #the osw.out's start_time and end_time mixed with two kinds of formats.
+        end_format = "%Y-%m-%dT%H:%M:%S.%f"
+        start_format = "%Y%m%dT%H%M%SZ"
+        return int(abs((datetime.strptime(timestamps[0], start_format) - datetime.strptime(timestamps[1], start_format)).total_seconds()))
 
 def __extract_running_log(tar_path):
     """
@@ -209,150 +68,241 @@ def __extract_running_log(tar_path):
     """
     with tarfile.open(tar_path, 'r') as t:
         for member in t.getmembers():
+            if "SR" in member.name: #in this approach, I will only extract the log from the
+                #highest level (which is not the sizing run)
+                continue
+            if "out.osw" in member.name:
+                logfile = t.extractfile(member)
+                try:
+                    outoswjson = json.loads(logfile.read())
+                    yield (member.name, outoswjson)
+                except Exception as e:
+                    logging.info(f"the log file {member.name} is not a valid json file due to {e}")
+                    continue
 
-            if "singularity_output.log" in member.name:
-                logfile = t.extractfile(member).readlines()
-                yield (member.name, logfile)
+def _generate_printable_log(nestedLog: dict) -> dict:
+    """
+    Generate a printable log from a nested log dictionary.
 
-def cleanup_oringinal_log(originalLog):
+    Args:
+        nestedLog (dict): A nested log dictionary containing performance information.
+
+    Returns:
+        dict: A printable log dictionary.
+
     """
-    Parsing the log lines and generate the nested log.
-    for example:
-    [timestamp A] action A start.
-    [timestamp B] action A finished.
-    Should be parsed into a namedtuple with actionname, action start time, action end time like
-    (action name: action A, action start time: timestamp A, action end time: timestamp B)
-    """
-    res = []
-    for line in originalLog:
-        line = line.decode()
-        for k, match in KEY_REGEX_MATCH.items():
-            currentMatch = re.search(match, line)
-            if not currentMatch:
+    res = {}
+    _id = nestedLog.get("id")
+    building_id, upgrade_id = _id.split("up")[0], "up"+_id.split("up")[1]
+    temp =[
+    {
+        'upgrade_id': upgrade_id,
+        'building_id': building_id,
+        'type': 'total',
+        'measure_dir': 'total',
+        'workflow_substate': 'total',
+        'name': 'total',
+        'measure_state': 'total',
+        'time': nestedLog.get("total_time")
+    }]
+
+    for tuple in nestedLog.get("step_info"):
+
+        if len(tuple) == 2:
+            detail = tuple[0].split(".")
+            if "result.total" in tuple[0]:
+
+                temp.append({
+                    'upgrade_id': upgrade_id,
+                    'building_id': building_id,
+                    'type': 'step_detail',
+                    'measure_dir': detail[1],
+                    'workflow_substate': 'step',
+                    'name': "total",
+                    'measure_state': 'total',
+                    'time': tuple[1]
+                })
                 continue
 
-            if "stateStart" == k:
-                res.append(STATE_START(
-                    currentMatch.group(1), currentMatch.group(2).lower()))
+            measure_total = tuple[1]
 
-            if "stateEnd" == k:
-                res.append(
-                    STATE_END(currentMatch.group(1), currentMatch.group(2).lower()))
+            for existed in temp:
+                if existed['upgrade_id'] == upgrade_id \
+                    and existed['measure_dir'] == detail[1] \
+                    and existed['measure_state'] == 'total' \
+                    and existed['type'] == 'step_detail':
+                    existed['time'] -= measure_total
+            temp.append({
+            'upgrade_id': upgrade_id,
+            'building_id': building_id,
+            'type': 'measure_detail',
+            'measure_dir': detail[1],
+            'workflow_substate': 'measure',
+            'name': detail[-1],
+            'measure_state': 'total',
+            'time': measure_total
+            })
 
-            if "measureStart" == k:
-                res.append(MEASURE_START(
-                    currentMatch.group(1), currentMatch.group(2).lower()))
+        else:
+            measure_detail = tuple.pop(0).split(".")
+            measure_total = tuple.pop()
+            for existed in temp:
+                if existed['upgrade_id'] == upgrade_id \
+                    and existed['measure_dir'] == detail[1] \
+                    and existed['measure_state'] == 'total' \
+                    and existed['type'] == 'step_detail':
+                    existed['time'] -= measure_total
 
-            if "measureEnd" == k:
-                res.append(MEASURE_END(currentMatch.group(
-                    1), currentMatch.group(2).lower(), currentMatch.group(3).lower()))
+            measure_datum = {
+                'upgrade_id': upgrade_id,
+                'building_id': building_id,
+                'type': 'measure_detail',
+                'measure_dir': measure_detail[1],
+                'workflow_substate': 'measure',
+                'name': detail[-1],
+                'measure_state': 'runtime',
+                'time': measure_total
+            }
 
-            # TODO: fixing the data structure of sizing, since the log comes with sizing detail.
-            if "sizingStart" == k:
-                sizingPath = currentMatch.group(2)
-                res.append(SIZING_START(currentMatch.group(
-                    3), __filted_sizing_name(sizingPath)))
+            sizing_total = 0
+            for sr in tuple:
+                sr_detail = sr[0].split(".")
+                sr_total = sr[1]
+                sizing_total += sr_total
+                temp.append({
+                    'upgrade_id': upgrade_id,
+                    'building_id': building_id,
+                    'type': 'measure_detail',
+                    'measure_dir': sr_detail[1],
+                    'workflow_substate': 'sizing',
+                    'name': sr_detail[-1],
+                    'measure_state': 'runtime',
+                    'time': sr_total
+                })
+            measure_datum['time'] = measure_total - sizing_total
+            temp.append(measure_datum)
+    res['log_detail'] = temp
 
-            if "sizingEnd" == k:
-                res.append(SIZING_END(currentMatch.group(3)))
-
-            if "workflowItemMeasureStart" == k:
-                res.append(WORKFLOW_ITEM_MEASURE_START(
-                    currentMatch.group(1), currentMatch.group(2).lower(),
-                    currentMatch.group(3).lower()))
-
-            if "workflowItemMeasureEnd" == k:
-                res.append(WORKFLOW_ITEM_MEASURE_END(
-                    currentMatch.group(1),
-                    currentMatch.group(2).lower(),
-                    currentMatch.group(3).lower()))
     return res
 
-
-def generate_nest_log_from_namedtuple(cleanedLog: list):
+def cleanup_original_log(originalLog: dict) -> dict:
     """
-    Convert nametuple data into nested dictionary for further cleanup.
+    read the original log and filter out the useful information.
+    the input dict should be the result from out.osw
     """
-    queue = deque(cleanedLog)
-    startLog = queue.popleft()
-    endLog = queue.pop()
+    res = {}
+    # print(originalLog.get("completed_status"))
+    if originalLog.get("completed_status") != "Success":
+        logger.debug(f"the log is not successfully completed: {originalLog.get('completed_status')}")
+        return res
 
-    result = {'state': {}, 'measure': {}, 'sizing': [], 'workflowmeasure': {}}
+    if not originalLog.get("steps"):
+        logger.debug("the log is empty")
+        return res
+    if not originalLog.get("started_at") or not originalLog.get("completed_at"):
+        logger.debug("the log is empty")
+        return res
+    if not originalLog.get("id"):
+        logging.debug("the log is lack of id information")
+        return res
 
-    for item in queue:
-        if type(item) is STATE_START:
-            if not result['state'].get(item.state):
-                result['state'][item.state] = []
-            result['state'][item.state].append(item.timestamp)
+    res["total_time"] = __compute_delta([originalLog.get("started_at") , originalLog.get("completed_at")])
+    res['step_info'] = __cleanup_step_logs(originalLog.get("steps", []))
+    res['id'] = originalLog['id']
+    return res
 
-        if type(item) is STATE_END:
-            if not result['state'].get(item.state):
-                result['state'][item.state] = []
-            result['state'][item.state].append(item.timestamp)
+def __cleanup_step_logs(log: list) -> list:
+    """
+    helper function: filter out the useful information from the log.
+    """
+    step_info = []
+    keyWord = {"Calling", "runtime", "Started simulation", "Finished simulation"}
+    for idx, item in enumerate(log):
+        #use the 'measure_dir_name' as the key to identify the step
+        for k, v in __flatten_dict(item, parent_key=f"step.{item.get('measure_dir_name')}.{idx}").items():
 
-        if type(item) is MEASURE_START:
-            if not result['measure'].get(item.measure):
-                result['measure'][item.measure] = []
-            result['measure'][item.measure].append(item.timestamp)
+            if any(char in k for char in {"result.started_at", "result.completed_at"}):
+                step_info.append((k, idx, v))
 
-        if type(item) is MEASURE_END:
+            if "step_info" in k:
+                for idx, logline in enumerate(v):
+                    if any(char in logline for char in keyWord):
+                        step_info.append((k, idx, logline.split("\n")[0]))
+    res = __build_namedtuple_from_log(step_info)
 
-            # Hacky bypass.
-            # TODO: fix the logic to publish the logging.
-            if item.measure == "setnistinfiltrationcorrelations":
-                item = item._replace(
-                    measure="set_nist_infiltration_correlations")
+    return res
 
-            if not result['measure'].get(item.measure):
-                result['measure'][item.measure] = []
-            result['measure'][item.measure].append(item.timestamp)
+def __build_namedtuple_from_log(step_log: list) -> list:
+    """
+    Builds a namedtuple from the given step log.
 
-        # since sizing log end doesnt comes with any key word for the sizing file
-        # we could use the last sizing start timestamp as best bet.
-        if type(item) is SIZING_START:
-            result['sizing'].append([item.sizingRunPath, item.timestamp])
+    Args:
+        step_log (list): A list of tuples representing the step log.
 
-        if type(item) is SIZING_END:
-            if result['sizing']:
-                result['sizing'][-1].append(item.timestamp)
+    Returns:
+        list: A list containing the built namedtuple objects.
+    """
+    queue = deque([])
 
-        if type(item) is WORKFLOW_ITEM_MEASURE_START:
-            if not result['workflowmeasure'].get(item.workflow + '.'+item.method):
-                result['workflowmeasure'][item.workflow + '.' + item.method] = []
-            result['workflowmeasure'][item.workflow +
-                                      "."+item.method].append(item.timestamp)
+    measure = []
+    step_time = {}
+    for key, _, logline in step_log:
 
-        if type(item) is WORKFLOW_ITEM_MEASURE_END:
-            if not result['workflowmeasure'].get(item.workflow+"."+item.method):
-                result['workflowmeasure'][item.workflow + "." + item.method] = []
-            result['workflowmeasure'][item.workflow + "." + item.method].append(
-                item.timestamp)
+        if "step" in key and "result.completed_at" in key:
+            step_index = ".".join(key.split(".")[:3])
+            step_time[step_index] = logline
 
-    result['total'] = [startLog.timestamp, endLog.timestamp]
-    return result
+        if "step" in key and "result.started_at" in key:
+            step_index = ".".join(key.split(".")[:3])
+            queue.append([step_index + ".result.total", __compute_delta([logline, step_time[step_index]])])
+
+        if "Calling" in logline:
+            measure.append(key + "." + logline.split(" ")[1])
+
+        if "runtime" in logline:
+            runtime = float(logline.split(" ")[-2])
+            # queue.append(MEASURE_END(timestamp=queue.pop().timestamp, measure=measure[0], runtime=runtime))
+            measure.append(runtime)
+            queue.append(measure)
+            measure = []
+
+        if "Started simulation" in logline:
+            log = logline.split(" ")
+            sr_name = log[-3].split("/")[-1]
+            sr_time = log[-1]
+            measure.append([key+".sizing."+sr_name, sr_time])
+
+        if "Finished simulation" in logline:
+            log = logline.split(" ")
+            sr_name = log[-3].split("/")[-1]
+            sr_time = log[-1]
+            for tuple in measure:
+                if sr_name in tuple[0]:
+                    starttime = tuple[1]
+                    delta = __compute_delta([starttime, sr_time])
+                    tuple[1] = delta
+    return queue
+
+
+def __flatten_dict(d, parent_key='', sep='.'):
+    items = []
+    for k, v in d.items():
+        new_key = f"{parent_key}{sep}{k}" if parent_key else k
+        if isinstance(v, dict):
+            items.extend((__flatten_dict(v, new_key, sep=sep).items()))
+        else:
+            items.append((new_key, v))
+    return dict(items)
 
 def generatingReport(nestedLog: dict, path: str):
     """
     After nested log is generated, read the nested log and generate csv file.
     """
-    __uniform_sizing_json(nestedLog)
     logpath = nestedLog.get('logpath')
     upgrade_id = logpath.split("/")[1]
     building_id = logpath.split('/')[2].replace('bldg', '')[-4:]
 
-    del nestedLog['logpath']
-
-    totalTime = __compute_delta(nestedLog.get('total'))
-    del nestedLog['total']
-
-    field_names = ['building_id', 'upgrade_id',
-                   'type', 'workflow_state', 'workflow_substate',
-                   'measure_name', 'measure_state', 'time']
-
-    workFlowMeasureSweepLine = __create_workflow_measure_sweepLine(
-        nestedLog.get("workflowmeasure", {}))
-    stateStartTime = __create_state_sweepline(nestedLog=nestedLog)
-    sizingDetail = nestedLog.get('sizing', {})
+    field_names = nestedLog.get("log_detail")[0].keys()
 
     summaryPath = os.path.join(os.path.dirname(path), "profiling_summary")
     if not os.path.exists(summaryPath):
@@ -364,120 +314,26 @@ def generatingReport(nestedLog: dict, path: str):
         writer = csv.DictWriter(file, fieldnames=field_names)
         if not file.tell():
             writer.writeheader()
-        writer.writerow({
-            'upgrade_id': upgrade_id,
-            'building_id': building_id,
-            'type': 'total',
-            'workflow_state': 'total',
-            'workflow_substate': 'total',
-            'measure_name': 'total',
-            'measure_state': 'total',
-            'time': totalTime
-        })
 
-        seen = set()
-        for majorType, *vals in __flat_dict_into_list(nestedLog):
-            datrum = {}
-            if majorType != 'sizing' and len(vals[1]) % 2 != 0:
-                datrum = {
-                    'upgrade_id': upgrade_id,
-                    'building_id': building_id,
-                    'type': 'detail',
-                    'workflow_state': "ERROR",
-                    'workflow_substate': "ERROR",
-                    'measure_name': "ERROR",
-                    'measure_state': "ERROR",
-                    'time': "ERROR"
-                }
-                writer.writerow(datrum)
-                continue
+        for log in nestedLog.get("log_detail"):
+            writer.writerow(log)
 
-            if majorType == 'state':
-                state, time = vals[0], __compute_delta(vals[1])
-                if state in ['initialization', 'translator', 'ep_measures', 'simulation', 'postprocess']:
-                    datrum = {
-                        'upgrade_id': upgrade_id,
-                        'building_id': building_id,
-                        'type': 'detail',
-                        'workflow_state': state,
-                        'workflow_substate': state,
-                        'measure_name': state,
-                        'measure_state': state,
-                        'time': time
-                    }
-                    writer.writerow(datrum)
-
-            if majorType == 'workflowmeasure':
-                for k in range(len(vals[1])//2):
-                    measureStartTime, measureEndTime = vals[1][2 *
-                                                               k], vals[1][2 * k + 1]
-                    state, time = __get_state_from_workflow_measure(
-                        (measureStartTime, measureEndTime), stateStartTime), __compute_delta((measureStartTime, measureEndTime))
-                    measureName = vals[0].split('.')[0]
-                    workflowSubState = '.'.join(vals[0].split('.')[-2:])
-                    measureState = vals[0].split('.')[-1]
-                    sizingTime = 0
-
-                    for sizingPath, sizingTimeStamp in sizingDetail.items():
-
-                        if __is_sizing_included(sizingTimeStamp, measureStartTime, measureEndTime):
-                            datrum = {
-                                'upgrade_id': upgrade_id,
-                                'building_id': building_id,
-                                'type': 'detail',
-                                'workflow_state': state,
-                                'workflow_substate': workflowSubState,
-                                'measure_name': measureName + "." + sizingPath,
-                                'measure_state': "sizing",
-                                'time': __compute_delta(sizingTimeStamp)
-                            }
-                            sizingTime += __compute_delta(sizingTimeStamp)
-                            seen.add(sizingPath)
-                            writer.writerow(datrum)
-
-                    # workflow measure
-                    datrum = {}
-                    datrum = {
-                        'upgrade_id': upgrade_id,
-                        'building_id': building_id,
-                        'type': 'detail',
-                        'workflow_state': state,
-                        'workflow_substate': workflowSubState,
-                        'measure_name': measureName,
-                        'measure_state': measureState,
-                        'time': time
-                    }
-                    if ("." not in measureName) and (measureName == "buildexistingmodel") and (workflowSubState == "measure.run") and (measureState == "run"):
-                        continue
-                    writer.writerow(datrum)
-
-            elif majorType == 'measure':
-                starttime, endtime = vals[1]
-                measure_name, time = vals[0], __compute_delta(
-                    (starttime, endtime))
-                measure_starttime = datetime.strptime(
-                    vals[1][0], "%H:%M:%S.%f")
-                for (workflow_measure, workflow_measure_starttime) in workFlowMeasureSweepLine:
-                    if measure_starttime > workflow_measure_starttime:
-                        father_workflow_measure = workflow_measure
-                        break
-                workflow_state = __get_state_from_workflow_measure(
-                    (starttime, endtime), stateStartTime)
-
-                sizingTime = 0
-                for sizingPath, sizingTimeStamp in sizingDetail.items():
-                    if __is_sizing_included(sizingTimeStamp, starttime, endtime):
-                        sizingTime += __compute_delta(sizingTimeStamp)
-
-                datrum = {
-                    'upgrade_id': upgrade_id,
-                    'building_id': building_id,
-                    'type': 'detail',
-                    'workflow_state': workflow_state,
-                    'workflow_substate': '.'.join(father_workflow_measure.split('.')[1:]),
-                    'measure_name': father_workflow_measure.split('.')[0] + '.'+measure_name,
-                    'measure_state': father_workflow_measure.split('.')[-1],
-                    'time': time - sizingTime
-                }
-
-                writer.writerow(datrum)
+def aggregate_csv(path: str):
+    """
+    After all the csv are generated, aggregate the csvs from each run.
+    """
+    summaryPath = os.path.join(os.path.dirname(path), PROFILING_SUMMARY_DIR)
+    with open(summaryPath + '/' + 'aggregate_profiling.csv', 'w') as fout:
+        wout = csv.writer(fout, delimiter=',')
+        interesting_files = glob.glob(summaryPath + "/" + "*tar_gz.csv")
+        h = True
+        for filename in interesting_files:
+            # Open and process file
+            logger.info("Aggregating {}".format(filename))
+            with open(filename, 'r') as fin:
+                if h:
+                    h = False
+                else:
+                    next(fin) # Skip header
+                for line in csv.reader(fin):
+                    wout.writerow(line)

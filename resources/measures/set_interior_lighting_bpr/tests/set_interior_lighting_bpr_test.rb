@@ -269,7 +269,7 @@ class MeasureTest < Minitest::Test
           case lt_sch.name.get.to_s
           when "Warehouse Bldg Light BPR Adjusted"
             ltg_sch = lt_sch.to_ScheduleRuleset.get
-            ltg_sch.defaultDaySchedule.setInterpolatetoTimestep(false)
+            ltg_sch.defaultDaySchedule.setInterpolatetoTimestep('No')
             expected_hrly_vals = [
                 [2, 0],
                 [10, 0.9],
@@ -312,7 +312,7 @@ class MeasureTest < Minitest::Test
           case lt_sch.name.get.to_s
           when "Warehouse Bldg Light BPR Adjusted"
             ltg_sch = lt_sch.to_ScheduleRuleset.get
-            ltg_sch.defaultDaySchedule.setInterpolatetoTimestep(false)
+            ltg_sch.defaultDaySchedule.setInterpolatetoTimestep('No')
             expected_hrly_vals = [
                 [2, 0.81],
                 [10, 0.9],
@@ -379,7 +379,7 @@ class MeasureTest < Minitest::Test
           case lt_sch.name.get.to_s
           when "Retail Bldg Light BPR Adjusted"
             ltg_sch = lt_sch.to_ScheduleRuleset.get
-            ltg_sch.defaultDaySchedule.setInterpolatetoTimestep(false)
+            ltg_sch.defaultDaySchedule.setInterpolatetoTimestep('No')
             expected_hrly_vals = [
                 [2, 0],
                 [12, 0.9],
@@ -421,7 +421,7 @@ class MeasureTest < Minitest::Test
           case lt_sch.name.get.to_s
           when "Retail Bldg Light BPR Adjusted"
             ltg_sch = lt_sch.to_ScheduleRuleset.get
-            ltg_sch.defaultDaySchedule.setInterpolatetoTimestep(false)
+            ltg_sch.defaultDaySchedule.setInterpolatetoTimestep('No')
             expected_hrly_vals = [
                 [2, 0.81],
                 [15, 0.9],
@@ -488,7 +488,7 @@ class MeasureTest < Minitest::Test
           case lt_sch.name.get.to_s
           when "FullServiceRestaurant Bldg Light BPR Adjusted"
             ltg_sch = lt_sch.to_ScheduleRuleset.get
-            ltg_sch.defaultDaySchedule.setInterpolatetoTimestep(false)
+            ltg_sch.defaultDaySchedule.setInterpolatetoTimestep('No')
             expected_hrly_vals = [
                 [4, 0.0],
                 [6, 0.63],
@@ -531,7 +531,7 @@ class MeasureTest < Minitest::Test
           case lt_sch.name.get.to_s
           when "FullServiceRestaurant Bldg Light BPR Adjusted"
             ltg_sch = lt_sch.to_ScheduleRuleset.get
-            ltg_sch.defaultDaySchedule.setInterpolatetoTimestep(false)
+            ltg_sch.defaultDaySchedule.setInterpolatetoTimestep('No')
             expected_hrly_vals = [
                 [4, 0.81],
                 [12, 0.9],
