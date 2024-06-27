@@ -13,7 +13,7 @@ from comstockpostproc.plotting_mixin import PlottingMixin
 logger = logging.getLogger(__name__)
 
 class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
-    def __init__(self, comstock_object, states, image_type='jpg', name=None, make_comparison_plots=True, make_timeseries_plots=True):
+    def __init__(self, comstock_object, states, make_comparison_plots, make_timeseries_plots, image_type='jpg', name=None):
 
         # Initialize members
         self.data = comstock_object.data.to_pandas()
@@ -92,9 +92,10 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
                     else:
                         print(f"up_id {up_id} not found in self.dict_upid_to_upname")
 
+                print(color_map)
                 # make consumption plots for upgrades if requested by user
                 if make_comparison_plots:
-                    self.make_comparative_plots(df_upgrade, self.column_for_grouping, color_map, comp_output_dir)
+                    self.make_comparative_plots(df_upgrade, self.column_for_grouping, states, make_timeseries_plots, color_map, comp_output_dir)
                 else:
                     logger.info("make_comparison_plots is set to false, so not plots were created. Set make_comparison_plots to True for plots.")
 
@@ -103,38 +104,45 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
         # Make plots comparing the upgrades
 
         logger.info(f'Making comparison plots for upgrade')
-        self.plot_energy_by_enduse_and_fuel_type(df, column_for_grouping, color_map, output_dir)
-        self.plot_emissions_by_fuel_type(df, column_for_grouping, color_map, output_dir)
-        self.plot_floor_area_and_energy_totals(df, column_for_grouping, color_map, output_dir)
-        #self.plot_floor_area_and_energy_totals_by_building_type(df, column_for_grouping, color_map, output_dir)
-        #self.plot_end_use_totals_by_building_type(df, column_for_grouping, color_map, output_dir)
-        #self.plot_eui_histograms_by_building_type(df, column_for_grouping, color_map, output_dir)
-        #self.plot_eui_boxplots_by_building_type(df, column_for_grouping, color_map, output_dir)
-        self.plot_measure_savings_distributions_enduse_and_fuel(df, output_dir)
-        self.plot_measure_savings_distributions_by_building_type(df, output_dir)
-        self.plot_measure_savings_distributions_by_climate_zone(df, output_dir)
-        self.plot_measure_savings_distributions_by_hvac_system_type(df, output_dir)
-        self.plot_measure_utility_savings_distributions_by_fuel(df, output_dir)
-        self.plot_measure_utility_savings_distributions_by_building_type(df, output_dir)
-        self.plot_measure_utility_savings_distributions_by_climate_zone(df, output_dir)
-        self.plot_measure_utility_savings_distributions_by_hvac_system(df, output_dir)
-        #self.plot_qoi_timing(df, column_for_grouping, color_map, output_dir)
-        #self.plot_qoi_max_use(df, column_for_grouping, color_map, output_dir)
-        #self.plot_qoi_min_use(df, column_for_grouping, color_map, output_dir)
+        #self.plot_energy_by_enduse_and_fuel_type(df, column_for_grouping, color_map, output_dir)
+        #self.plot_emissions_by_fuel_type(df, column_for_grouping, color_map, output_dir)
+        #self.plot_utility_bills_by_fuel_type(df, column_for_grouping, color_map, output_dir)
+        #self.plot_floor_area_and_energy_totals(df, column_for_grouping, color_map, output_dir)
+        ##self.plot_floor_area_and_energy_totals_by_building_type(df, column_for_grouping, color_map, output_dir)
+        ##self.plot_end_use_totals_by_building_type(df, column_for_grouping, color_map, output_dir)
+        ##self.plot_eui_histograms_by_building_type(df, column_for_grouping, color_map, output_dir)
+        ##self.plot_eui_boxplots_by_building_type(df, column_for_grouping, color_map, output_dir)
+        #self.plot_measure_savings_distributions_enduse_and_fuel(df, output_dir)
+        #self.plot_measure_savings_distributions_by_building_type(df, output_dir)
+        #self.plot_measure_savings_distributions_by_climate_zone(df, output_dir)
+        #self.plot_measure_savings_distributions_by_hvac_system_type(df, output_dir)
+        #self.plot_measure_utility_savings_distributions_by_fuel(df, output_dir)
+        #self.plot_measure_utility_savings_distributions_by_building_type(df, output_dir)
+        #self.plot_measure_utility_savings_distributions_by_climate_zone(df, output_dir)
+        #self.plot_measure_utility_savings_distributions_by_hvac_system(df, output_dir)
+        ##self.plot_qoi_timing(df, column_for_grouping, color_map, output_dir)
+        ##self.plot_qoi_max_use(df, column_for_grouping, color_map, output_dir)
+        ##self.plot_qoi_min_use(df, column_for_grouping, color_map, output_dir)
 
         if make_timeseries_plots==True:
             # new timeseries plots
-            self.plot_measure_timeseries_peak_week_by_state(df, output_dir, states, comstock_run_name=self.comstock_run_name)
+            self.plot_measure_timeseries_peak_week_by_state(df, output_dir, states, color_map, comstock_run_name=self.comstock_run_name)
             self.plot_measure_timeseries_season_average_by_state(df, output_dir, states, comstock_run_name=self.comstock_run_name)
-            self.plot_measure_timeseries_annual_average_by_state_and_enduse(df, output_dir, states, color_map, comstock_run_name=self.comstock_run_name)
+        #    self.plot_measure_timeseries_annual_average_by_state_and_enduse(df, output_dir, states, color_map, comstock_run_name=self.comstock_run_name)
 
-    def make_comparative_plots(self, df, column_for_grouping, color_map, output_dir):
+    def make_comparative_plots(self, df, column_for_grouping, states, make_timeseries_plots, color_map, output_dir):
         # Make plots comparing the upgrades
 
         logger.info(f'Making comparison plots for upgrade groupings')
-        self.plot_energy_by_enduse_and_fuel_type(df, column_for_grouping, color_map, output_dir)
-        self.plot_emissions_by_fuel_type(df, column_for_grouping, color_map, output_dir)
-        self.plot_utility_bills_by_fuel_type(df, column_for_grouping, color_map, output_dir)
-        self.plot_floor_area_and_energy_totals(df, column_for_grouping, color_map, output_dir)
+        #self.plot_energy_by_enduse_and_fuel_type(df, column_for_grouping, color_map, output_dir)
+        #self.plot_emissions_by_fuel_type(df, column_for_grouping, color_map, output_dir)
+        #self.plot_utility_bills_by_fuel_type(df, column_for_grouping, color_map, output_dir)
+        #self.plot_floor_area_and_energy_totals(df, column_for_grouping, color_map, output_dir)
+
+        #if make_timeseries_plots==True:
+            # new timeseries plots
+            #self.plot_measure_timeseries_peak_week_by_state(df, output_dir, states, color_map, comstock_run_name=self.comstock_run_name)
+            #self.plot_measure_timeseries_season_average_by_state(df, output_dir, states, color_map, comstock_run_name=self.comstock_run_name)
+            #self.plot_measure_timeseries_annual_average_by_state_and_enduse(df, output_dir, states, color_map, comstock_run_name=self.comstock_run_name)
 
 

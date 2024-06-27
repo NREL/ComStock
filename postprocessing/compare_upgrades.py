@@ -13,8 +13,8 @@ def main():
     # ComStock run
     comstock = cspp.ComStock(
         s3_base_dir='eulp/euss_com',  # If run not on S3, download results_up**.parquet manually
-        comstock_run_name='pv_10k_3',  # Name of the run on S3
-        comstock_run_version='pv_10k_3',  # Use whatever you want to see in plot and folder names. This must align with Athena tables for timeseries plots.
+        comstock_run_name='hprtu_stdperf_fan_test_10k',  # Name of the run on S3
+        comstock_run_version='hprtu_stdperf_fan_test_10k',  # Use whatever you want to see in plot and folder names
         comstock_year=2018,  # Typically don't change this
         athena_table_name=None,  # Typically don't change this
         truth_data_version='v01',  # Typically don't change this
@@ -25,8 +25,18 @@ def main():
         skip_missing_columns=True,  # False if you want to ensure you have all data specified for export
         reload_from_csv=False, # True if CSV already made and want faster reload times
         include_upgrades=True,  # False if not looking at upgrades
-        upgrade_ids_to_skip=[2,3], # Use [1, 3] etc. to exclude certain upgrades
-        upgrade_ids_for_comparison={} # Use {'<Name you want for comparison run folder>':[0,1,2]}; add as many upgrade IDs as needed, but plots look strange over 5
+        upgrade_ids_to_skip=[], # Use [1, 3] etc. to exclude certain upgrades
+        make_timeseries_plots=True,
+        states={
+                'MN': 'Minnesota',  # specify state to use for timeseries plots in dictionary format. State ID must correspond correctly.
+                #'CA': 'California',
+                #'MA':'Massachusetts',
+                #'OR': 'Oregon',
+                #'LA': 'Louisiana',
+                #'AZ': 'Arizona',
+                #'TN': 'Tennessee'
+                },
+        upgrade_ids_for_comparison={"comparison":[0,1,2]} # Use {'<Name you want for comparison run folder>':[0,1,2]}; add as many upgrade IDs as needed, but plots look strange over 5
         )
 
     # CBECS
@@ -47,7 +57,7 @@ def main():
     # comstock.export_to_csv_long()  # Long format useful for stacking end uses and fuels
 
     # Create measure run comparisons; only use if run has measures
-    comparison = cspp.ComStockMeasureComparison(comstock, make_comparison_plots=True)
+    comparison = cspp.ComStockMeasureComparison(comstock, states=comstock.states, make_comparison_plots = comstock.make_comparison_plots, make_timeseries_plots = comstock.make_timeseries_plots)
 
 # Code to execute the script
 if __name__=="__main__":
