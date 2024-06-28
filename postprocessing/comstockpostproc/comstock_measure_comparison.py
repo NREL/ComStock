@@ -22,8 +22,10 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
         self.color_map = {}
         self.image_type = image_type
         self.name = name
-        upgrade_name_mapping = self.data.select('upgrade', 'in.upgrade_name').unique().collect().to_dict(as_series=False)
-        self.dict_upid_to_upname = dict(zip(upgrade_name_mapping['upgrade'], upgrade_name_mapping['in.upgrade_name']))
+
+        upgrade_name_mapping = self.data.select(self.UPGRADE_ID, self.UPGRADE_NAME).unique().collect().to_dict(as_series=False)
+        self.dict_upid_to_upname = dict(zip(upgrade_name_mapping[self.UPGRADE_ID], upgrade_name_mapping[self.UPGRADE_NAME]))
+
         current_dir = os.path.dirname(os.path.abspath(__file__))
         self.dataset_name = comstock_object.dataset_name
         self.output_dir = os.path.join(current_dir, '..', 'output', self.dataset_name, 'measure_runs')
