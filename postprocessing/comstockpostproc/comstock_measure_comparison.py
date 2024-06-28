@@ -3,8 +3,8 @@
 import os
 import logging
 
-import numpy as np
-
+import pandas as pd
+import polars as pl
 from comstockpostproc.naming_mixin import NamingMixin
 from comstockpostproc.units_mixin import UnitsMixin
 from comstockpostproc.plotting_mixin import PlottingMixin
@@ -16,11 +16,16 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
     def __init__(self, comstock_object, image_type='jpg', name=None, make_comparison_plots=True):
 
         # Initialize members
-        self.data = comstock_object.data.to_pandas()
+        assert isinstance(comstock_object.data, pl.LazyFrame)
+        self.data = comstock_object.data.clone() #cheap, not really a deep copy, only schema is copied but not data.
+        assert isinstance(self.data, pl.LazyFrame)
         self.color_map = {}
         self.image_type = image_type
         self.name = name
-        self.dict_upid_to_upname = dict(zip(self.data[self.UPGRADE_ID], self.data[self.UPGRADE_NAME]))
+
+        upgrade_name_mapping = self.data.select(self.UPGRADE_ID, self.UPGRADE_NAME).unique().collect().to_dict(as_series=False)
+        self.dict_upid_to_upname = dict(zip(upgrade_name_mapping[self.UPGRADE_ID], upgrade_name_mapping[self.UPGRADE_NAME]))
+
         current_dir = os.path.dirname(os.path.abspath(__file__))
         self.dataset_name = comstock_object.dataset_name
         self.output_dir = os.path.join(current_dir, '..', 'output', self.dataset_name, 'measure_runs')
@@ -48,16 +53,28 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 # filter dataset to upgrade and baseline only
                 up_base_id = '00'
                 upgrade_id = upgrade
-                if self.data.dtypes[self.UPGRADE_ID] == np.int64:
+                if self.data.select(self.UPGRADE_ID).dtypes == [pl.Int64]: # in test run it's pl.Int64
                     up_base_id = 0
                     upgrade_id = int(upgrade)
+                
 
                 # convert grouping column from cat to str to avoid processing errors with more than 2 measures
-                self.data[self.column_for_grouping] = self.data[self.column_for_grouping].astype(str)
+                self.data = self.data.with_columns(pl.col(self.UPGRADE_NAME).cast(str))
+                assert self.data.select(self.column_for_grouping).dtypes == [pl.String]
 
-                df_upgrade = self.data.loc[(self.data[self.UPGRADE_ID]==upgrade_id) | (self.data[self.UPGRADE_ID]==up_base_id), :]
+                # df_upgrade = self.data.loc[(self.data[self.UPGRADE_ID]==upgrade_id) | (self.data[self.UPGRADE_ID]==up_base_id), :]
+                df_upgrade = self.data.filter((pl.col(self.UPGRADE_ID) == upgrade_id) | (pl.col(self.UPGRADE_ID) == up_base_id))
 
                 color_map = {'Baseline': self.COLOR_COMSTOCK_BEFORE, upgrade_name: self.COLOR_COMSTOCK_AFTER}
+
+                #convert all lazyframes to dataframes
+                self.data = self.data.collect().to_pandas()
+                df_upgrade = df_upgrade.collect().to_pandas()
+
+                # take the adventage of lazy frame, and use pandas dataframe to draw the plots                
+
+                assert isinstance(df_upgrade, pd.DataFrame)
+                assert isinstance(self.data, pd.DataFrame)
 
                 # make consumption plots for upgrades if requested by user
                 if make_comparison_plots:
