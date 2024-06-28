@@ -5,6 +5,7 @@ import os
 import logging
 
 import pandas as pd
+import polars as pl
 from typing import List
 
 from comstockpostproc.naming_mixin import NamingMixin
@@ -19,6 +20,9 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
     def __init__(self, comstock_object:ComStock, ami_object:AMI, image_type='jpg', name=None, make_comparison_plots=True):
 
         # Initialize members
+
+        assert isinstance(comstock_object.data, pl.LazyFrame)
+
         self.comstock_object = comstock_object
         self.ami_object = ami_object
         self.ami_timeseries_data = None
