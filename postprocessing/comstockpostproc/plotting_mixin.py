@@ -3270,7 +3270,7 @@ class PlottingMixin():
                             y=dfs_merged_gb_season_up[enduse]/1000,
                             mode='lines',
                             line=dict(color=color_map[upgrade_name[0]], width=2),
-                            name=f"{upgrade_name}",
+                            name=f"{upgrade_name[0]}",
                             showlegend=showlegend
                         )
                         fig.add_trace(trace, row=row, col=col)
