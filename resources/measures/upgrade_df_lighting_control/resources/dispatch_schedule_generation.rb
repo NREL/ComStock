@@ -846,7 +846,7 @@ end
 def find_daily_peak_window(daily_load, peak_len, num_timesteps_in_hr, peak_window_strategy)
   maxload_ind = daily_load.index(daily_load.max)
   # maxload = daily_load.max
-  if peak_window_strategy == 'max energy savings'
+  if peak_window_strategy == 'max savings'
     # peak_sum = (0...peak_len).map { |i| load[maxload_ind - i, peak_len].sum }
     peak_sum = (0..peak_len*num_timesteps_in_hr-1).map do |i|
       daily_load[(maxload_ind - i)..(maxload_ind - i + peak_len*num_timesteps_in_hr - 1)].sum

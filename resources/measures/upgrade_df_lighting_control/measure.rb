@@ -90,9 +90,9 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     peak_lag.setDefaultValue(2)
     args << peak_lag
 
-    choices_strate = ['max energy savings', 'start with peak', 'end with peak', 'center with peak']
+    choices_strate = ['max savings', 'start with peak', 'end with peak', 'center with peak']
     peak_window_strategy = OpenStudio::Ruleset::OSArgument.makeChoiceArgument('peak_window_strategy', choices_strate, true)
-    peak_window_strategy.setDisplayName("Method of determining peak windows (max energy savings, start with peak, end with peak, center with peak)")
+    peak_window_strategy.setDisplayName("Method of determining peak windows (max savings, start with peak, end with peak, center with peak)")
     peak_window_strategy.setDefaultValue('center with peak')
     args << peak_window_strategy
 
@@ -273,7 +273,9 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
       "OfL",
       "OfS",
       "Office",
-      "Warehouse"
+      "Warehouse",
+      "PrimarySchool",
+      "SecondarySchool"
     ]
     if isapplicable_buildingtype(model,runner,applicable_building_types)
       puts("--- building type applicability passed")
