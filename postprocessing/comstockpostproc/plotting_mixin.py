@@ -57,21 +57,8 @@ class PlottingMixin():
             df_emi_gb_long['End Use'] = df_emi_gb_long['End Use'].str.replace('_', ' ', regex=True)
             df_emi_gb_long['End Use'] = df_emi_gb_long['End Use'].str.title()
 
-            # add OS color map
-            color_dict = {'Heating':'#EF1C21',
-            'Cooling':'#0071BD',
-            'Interior Lighting':'#F7DF10',
-            'Exterior Lighting':'#DEC310',
-            'Interior Equipment':'#4A4D4A',
-            'Exterior Equipment':'#B5B2B5',
-            'Fans':'#FF79AD',
-            'Pumps':'#632C94',
-            'Heat Rejection':'#F75921',
-            'Humidification':'#293094',
-            'Heat Recovery': '#CE5921',
-            'Water Systems': '#FFB239',
-            'Refrigeration': '#29AAE7',
-            'Generators': '#8CC739'}
+            ## add OS color map
+            color_dict = self.ENDUSE_COLOR_DICT
 
             # set patterns by fuel type
             pattern_dict = {
@@ -2728,20 +2715,6 @@ class PlottingMixin():
                 'heat_recovery',
                 ]
 
-    color_dict = {
-                'heating':'#EF1C21',
-                'cooling':'#0071BD',
-                'interior_lighting':'#F7DF10',
-                'exterior_lighting':'#DEC310',
-                'interior_equipment':'#4A4D4A',
-                'exterior_equipment':'#B5B2B5',
-                'fans':'#FF79AD',
-                'pumps':'#632C94',
-                'heat_rejection':'#F75921',
-                'heat_recovery': '#CE5921',
-                'water_systems': '#FFB239',
-                'refrigeration': '#29AAE7'}
-
     def map_to_season(month):
         if 3 <= month <= 5:
             return 'Spring'
@@ -2751,9 +2724,6 @@ class PlottingMixin():
             return 'Fall'
         else:
             return 'Winter'
-
-    # Convert color codes to RGBA with opacity 1.0
-    plotly_color_dict = {key: f"rgba({int(mcolors.to_rgba(value, alpha=1.0)[0]*255)},{int(mcolors.to_rgba(value, alpha=1.0)[1]*255)},{int(mcolors.to_rgba(value, alpha=1.0)[2]*255)},{mcolors.to_rgba(value, alpha=1.0)[3]})" for key, value in color_dict.items()}
 
     def plot_measure_timeseries_peak_week_by_state(self, df, output_dir, states, color_map, comstock_run_name): #, df, region, building_type, color_map, output_dir
 
@@ -2840,9 +2810,9 @@ class PlottingMixin():
                             x=dfs_merged_pw_up['time'],
                             y=dfs_merged_pw_up[enduse],
                             fill='tonexty',
-                            fillcolor=self.plotly_color_dict[enduse],
+                            fillcolor=self.PLOTLY_ENDUSE_COLOR_DICT[enduse.replace('_'," ").title()],
                             mode='none',
-                            line=dict(color=self.plotly_color_dict[enduse], width=0.5),
+                            line=dict(color=self.PLOTLY_ENDUSE_COLOR_DICT[enduse.replace('_'," ").title()], width=0.5),
                             name=enduse,
                             stackgroup='stack'
                         )
@@ -3045,9 +3015,9 @@ class PlottingMixin():
                                 x=dfs_merged_pw_up['Hour_of_Day'],
                                 y=dfs_merged_pw_up[enduse],
                                 fill='tonexty',
-                                fillcolor=self.plotly_color_dict[enduse],
+                                fillcolor=self.PLOTLY_ENDUSE_COLOR_DICT[enduse.replace('_'," ").title()],
                                 mode='none',
-                                line=dict(color=self.plotly_color_dict[enduse], width=0.5),
+                                line=dict(color=self.PLOTLY_ENDUSE_COLOR_DICT[enduse.replace('_'," ").title()], width=0.5),
                                 name=enduse,
                                 stackgroup='stack',
                                 showlegend=showlegend
