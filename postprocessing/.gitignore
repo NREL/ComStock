@@ -8,3 +8,4 @@ comstockpostproc/__pycache__
 comstockpostproc/utils/__pycache__
 __pycache__
 test/__pycache__
+*.pkl
