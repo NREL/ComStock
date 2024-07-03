@@ -378,12 +378,15 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     puts("### Applicability check...")
     applicable_building_types = [
       # "Hotel",
-      # "SmallOffice",
-      # "MediumOffice",
+      "SmallOffice",
+      "MediumOffice",
       "LargeOffice",
       "OfL",
       "OfS",
-      "Office"
+      "Office",
+      "Warehouse",
+      "PrimarySchool",
+      "SecondarySchool"
     ]
     if isapplicable_buildingtype(model,runner,applicable_building_types)
       puts("--- building type applicability passed")
