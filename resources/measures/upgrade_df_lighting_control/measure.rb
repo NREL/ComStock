@@ -309,7 +309,9 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
       "OfL",
       "OfS",
       "Office",
-      "Warehouse"
+      "Warehouse",
+      "PrimarySchool",
+      "SecondarySchool"
     ]
     if isapplicable_buildingtype(model,runner,applicable_building_types)
       puts("--- building type applicability passed")
