@@ -123,7 +123,7 @@ class PlottingMixin():
                             categoryorder='array', categoryarray=np.array(list(color_map.keys())))
             fig.update_yaxes(mirror=True, showgrid=False, showline=True, ticks='outside', linewidth=1, linecolor='black', rangemode="tozero")
             fig.update_layout(title=None,  margin=dict(l=20, r=20, t=27, b=20), width=plot_width, legend_title=None, legend_traceorder="reversed",
-                            uniformtext_minsize=7, uniformtext_mode='hide', bargap=0.05)
+                            uniformtext_minsize=8, uniformtext_mode='hide', bargap=0.05)
             fig.update_layout(
                 font=dict(
                     size=12)
@@ -207,7 +207,10 @@ class PlottingMixin():
         for scenario in electricity_scenarios:
 
             # filter to grid scenario plus on-site combustion fuels
-            df_scenario = df_emi_gb_long.loc[(df_emi_gb_long['variable']==scenario) | (df_emi_gb_long['variable'].isin(['Natural Gas', 'Fuel Oil', 'Propane']))]
+            df_scenario = df_emi_gb_long.loc[(df_emi_gb_long['variable']==scenario) | (df_emi_gb_long['variable'].isin(['Natural Gas', 'Fuel Oil', 'Propane']))].copy()
+
+            # force measure ordering
+            df_scenario['in.upgrade_name'] = pd.Categorical(df_scenario['in.upgrade_name'], categories=order_map, ordered=True)
 
             # Pivot the DataFrame to prepare for the stacked bars
             pivot_df = df_scenario.pivot(index='in.upgrade_name', columns='variable', values='Annual GHG Emissions (MMT CO2e)')
@@ -279,6 +282,145 @@ class PlottingMixin():
             os.makedirs(fig_sub_dir)
         fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
         plt.savefig(fig_path, dpi=600, bbox_inches = 'tight')
+
+
+
+    # plot for GHG emissions by fuel type for baseline and upgrade
+    def plot_utility_bills_by_fuel_type(self, df, column_for_grouping, color_map, output_dir):
+
+        # ghg columns; uses Cambium low renewable energy cost 15-year for electricity
+        util_cols = self.COLS_UTIL_BILLS + ['out.utility_bills.electricity_bill_max..usd', 'out.utility_bills.electricity_bill_min..usd']
+        wtd_util_cols = [self.col_name_to_weighted(c, 'billion_usd') for c in util_cols]
+
+        # groupby and long format for plotting
+        df_emi_gb = (df.groupby(column_for_grouping, observed=True)[wtd_util_cols].sum()).reset_index()
+        df_emi_gb_long = df_emi_gb.melt(id_vars=[column_for_grouping], value_name='Annual Utility Bill (Billion USD)').sort_values(by='Annual Utility Bill (Billion USD)', ascending=False)
+        df_emi_gb_long.loc[:, 'in.upgrade_name'] = df_emi_gb_long['in.upgrade_name'].astype(str)
+
+        # naming for plotting
+        df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('calc.weighted.', '', regex=True)
+        df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('utility_bills.', '', regex=True)
+        df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('..billion_usd', '', regex=True)
+        df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('_', ' ', regex=True)
+        df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.title()
+        df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace(' Bill', '', regex=True)
+        df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('Electricity', 'Electricity Rate', regex=True)
+        df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('Electricity Rate Max', 'With Max Electricity Rate', regex=True)
+        df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('Electricity Rate Min', 'With Min Electricity Rate', regex=True)
+        df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('Electricity Rate Mean', 'With Mean Electricity Rate', regex=True)
+
+        # plot
+        order_map = list(color_map.keys()) # this will set baseline first in plots
+        color_palette = sns.color_palette("colorblind")
+
+        # update plot width based on number of upgrades
+        upgrade_count = df_emi_gb_long[column_for_grouping].nunique()
+        plot_width=9
+        if upgrade_count <= 2:
+            plot_width = 9
+        else:
+            extra_elements = upgrade_count - 2
+            plot_width = 9 * (1 + 0.40 * extra_elements)
+
+        # Create three vertical subplots with shared y-axis
+        fig, axes = plt.subplots(1, 3, figsize=(plot_width, 3.4), sharey=True, gridspec_kw={'top': 1.2})
+        plt.rcParams['axes.facecolor'] = 'white'
+        # list of electricity grid scenarios
+        electricity_scenarios = list(df_emi_gb_long[df_emi_gb_long['variable'].str.contains('electricity', case=False)]['variable'].unique())
+
+        # loop through grid scenarios
+        ax_position = 0
+        for scenario in electricity_scenarios:
+
+            # filter to grid scenario plus on-site combustion fuels
+            df_scenario = df_emi_gb_long.loc[(df_emi_gb_long['variable']==scenario) | (df_emi_gb_long['variable'].isin(['Natural Gas', 'Fuel Oil', 'Propane']))].copy()
+
+            # force measure ordering
+            df_scenario['in.upgrade_name'] = pd.Categorical(df_scenario['in.upgrade_name'], categories=order_map, ordered=True)
+
+            # Pivot the DataFrame to prepare for the stacked bars
+            pivot_df = df_scenario.pivot(index='in.upgrade_name', columns='variable', values='Annual Utility Bill (Billion USD)')
+
+            # Sort the columns by the sum in descending order
+            pivot_df = pivot_df[pivot_df.sum().sort_values(ascending=False).index]
+            pivot_df = pivot_df.reindex(['Baseline'] + [idx for idx in pivot_df.index if idx != 'Baseline'])
+
+            # # Set the color palette; colorblind friendly
+            sns.set_palette(color_palette)
+
+            # Create plot
+            pivot_df.plot(kind='bar', stacked=True, ax=axes[ax_position], width=0.5)
+
+            # Set the title for the specific subplot
+            axes[ax_position].set_title(scenario.replace('Electricity:', ''))
+            axes[ax_position].set_xticklabels(axes[ax_position].get_xticklabels())
+            for ax in axes:
+                for label in ax.get_xticklabels():
+                    label.set_horizontalalignment('left')
+                    label.set_rotation(-30)  # Rotate the labels for better visibility
+
+            # remove x label
+            axes[ax_position].set_xlabel(None)
+            # Increase font size for text labels
+            axes[ax_position].tick_params(axis='both', labelsize=12)
+            # Add text labels to the bars for bars taller than a threshold
+            threshold = 20  # Adjust this threshold as needed
+            for bar in axes[ax_position].containers:
+                if bar.datavalues.sum() > threshold:
+                    axes[ax_position].bar_label(bar, fmt='%.0f', padding=2, label_type='center')
+
+            # Add aggregate values above the bars
+            for i, v in enumerate(pivot_df.sum(axis=1)):
+                # Display percentage savings only on the second bar
+                if i != 0:
+                    # Calculate percentage savings versus the first bar (baseline)
+                    savings = (v - pivot_df.sum(axis=1).iloc[0]) / pivot_df.sum(axis=1).iloc[0] * 100
+                    axes[ax_position].text(i, v + 2, f'{v:.0f} ({savings:.0f}%)', ha='center', va='bottom')
+                else:
+                    axes[ax_position].text(i, v + 2, f'{v:.0f}', ha='center', va='bottom')
+
+            # increase axes position
+            ax_position+=1
+
+
+        # Calculate the maximum value among aggregate values
+        max_aggregate_value = max(pivot_df.sum(axis=1))
+
+        # Add a buffer to the maximum value
+        buffer = 50  # You can adjust this buffer as needed
+        max_y_value = max_aggregate_value + buffer
+
+        # Set the same y-axis limits for all subplots
+        for ax in axes:
+            ax.set_ylim(0, max_y_value)
+
+        # Create single plot legend
+        handles, labels = axes[2].get_legend_handles_labels()
+        # Modify the labels to simplify them
+        labels = [label.replace('With Min Electricity Rate', 'Electricity') for label in labels]
+        # Create a legend at the top of the plot, above the subplot titles
+        fig.legend(handles, labels, title=None, loc='upper center', bbox_to_anchor=(0.5, 1.4), ncol=4)
+        # Hide legends in the other subplots
+        for ax in axes[:]:
+            ax.get_legend().remove()
+        # y label name
+        axes[0].set_ylabel('Annual Utility Bill (Billion USD, 2022)', fontsize=14)
+
+        # Add black boxes around the plot areas
+        for ax in axes:
+            for spine in ax.spines.values():
+                spine.set_edgecolor('black')
+        # Adjust spacing between subplots and reduce white space
+        plt.subplots_adjust(wspace=0.25, hspace=0.2, bottom=0.15)
+        # figure name and save
+        title=f"Utility_Bills_{order_map[1]}"
+        fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+        fig_sub_dir = os.path.join(output_dir)
+        if not os.path.exists(fig_sub_dir):
+            os.makedirs(fig_sub_dir)
+        fig_path = os.path.join(fig_sub_dir, fig_name)
+        plt.savefig(fig_path, dpi=600, bbox_inches = 'tight')
+
 
     # Plot for GHG emissions by fuel for baseline and EIA data
     def plot_annual_emissions_comparison(self, df, column_for_grouping, color_map, output_dir):
@@ -1122,6 +1264,282 @@ class PlottingMixin():
 
         return
 
+    def plot_measure_utility_savings_distributions_by_building_type(self, df, output_dir):
+
+        # remove baseline; not needed
+        df_upgrade = df.loc[df[self.UPGRADE_ID]!=0, :]
+
+        # get upgrade name and id for labeling
+        upgrade_num = df_upgrade[self.UPGRADE_ID].iloc[0]
+        upgrade_name = df_upgrade[self.UPGRADE_NAME].iloc[0]
+
+        # group column
+        col_group = self.BLDG_TYPE
+
+        # energy column
+        en_col = self.UTIL_BILL_TOTAL_MEAN
+
+        # set grouping list
+        li_group = sorted(list(df_upgrade[col_group].drop_duplicates().astype(str)), reverse=True)
+
+        # create dictionary with the plot labels and columns to loop through
+        dict_saving = {}
+        dict_saving['Utility Bill Savings Intensity by Building Type (usd/sqft/year, 2022)'] = self.col_name_to_savings(self.col_name_to_area_intensity(en_col))
+        dict_saving['Percent Utility Bill Savings by Building Type (%)'] = self.col_name_to_percent_savings(en_col, 'percent')
+
+        # # loop through plot types
+        for group_name, energy_col in dict_saving.items():
+
+            # remove unit from group_name
+            group_name_wo_unit = group_name.rsplit(" ", 1)[0]
+
+            # filter to group and energy column
+            df_upgrade_plt = df_upgrade.loc[:, [col_group, energy_col]]
+
+            # apply method for filtering percent savings; this will not affect EUI
+            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 1)
+
+            # create figure template
+            fig = go.Figure()
+
+            # loop through groups, i.e. building type etc.
+            for group in li_group:
+
+                # get data for enduse; remove 0s and na values
+                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & ((df_upgrade_plt[col_group]==group)), energy_col]
+
+                # add traces to plot
+                fig.add_trace(go.Violin(
+                    x=df_enduse,
+                    y=np.array(group),
+                    orientation = 'h',
+                    box_visible=True,
+                    points='outliers',
+                    pointpos=1,
+                    spanmode='hard',
+                    marker_size=1,
+                    showlegend=False,
+                    name=str(group) + f' (n={len(df_enduse)})',
+                    meanline_visible=True,
+                    line=dict(width=0.7),
+                    fillcolor=color_violin,
+                    box_fillcolor=color_interquartile,
+                    line_color='black',
+                    width=0.95
+                ))
+
+            fig.add_annotation(
+                align="right",
+                font_size=12,
+                showarrow=False,
+                text=f"Upgrade {str(upgrade_num).zfill(2)}: {upgrade_name} (unweighted)",
+                x=1,
+                xanchor="right",
+                xref="x domain",
+                y=1.01,
+                yanchor="bottom",
+                yref="y domain",
+            )
+
+            title = group_name_wo_unit
+            # formatting and saving image
+            fig.update_layout(template='simple_white', margin=dict(l=20, r=20, t=20, b=20), width=800)
+            fig.update_xaxes(mirror=True, showgrid=True, zeroline=True, nticks=20, title=group_name)
+            fig.update_yaxes(mirror=True, showgrid=True, type='category', dtick=1)
+            fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+            fig_name = fig_name.replace(r'_(usd/sqft/year,', '')
+            fig_sub_dir = os.path.join(output_dir, 'savings_distributions')
+            if not os.path.exists(fig_sub_dir):
+                os.makedirs(fig_sub_dir)
+            fig_path = os.path.join(fig_sub_dir, fig_name)
+            fig.write_image(fig_path, scale=10)
+
+        return
+
+    def plot_measure_utility_savings_distributions_by_climate_zone(self, df, output_dir):
+
+        # remove baseline; not needed
+        df_upgrade = df.loc[df[self.UPGRADE_ID]!=0, :]
+
+        # get upgrade name and id for labeling
+        upgrade_num = df_upgrade[self.UPGRADE_ID].iloc[0]
+        upgrade_name = df_upgrade[self.UPGRADE_NAME].iloc[0]
+
+        # group column
+        col_group = self.CZ_ASHRAE
+
+        # energy column
+        en_col = self.UTIL_BILL_TOTAL_MEAN
+
+        # set grouping list
+        li_group = sorted(list(df_upgrade[col_group].drop_duplicates().astype(str)), reverse=True)
+
+        # create dictionary with the plot labels and columns to loop through
+        dict_saving = {}
+        dict_saving['Utility Bill Savings Intensity by Climate (usd/sqft/year, 2022)'] = self.col_name_to_savings(self.col_name_to_area_intensity(en_col))
+        dict_saving['Percent Utility Bill Savings by Climate (%)'] = self.col_name_to_percent_savings(en_col, 'percent')
+
+        # # loop through plot types
+        for group_name, energy_col in dict_saving.items():
+
+            # remove unit from group_name
+            group_name_wo_unit = group_name.rsplit(" ", 1)[0]
+
+            # filter to group and energy column
+            df_upgrade_plt = df_upgrade.loc[:, [col_group, energy_col]]
+
+            # apply method for filtering percent savings; this will not affect EUI
+            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 1)
+
+            # create figure template
+            fig = go.Figure()
+
+            # loop through groups, i.e. building type etc.
+            for group in li_group:
+
+                # get data for enduse; remove 0s and na values
+                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & ((df_upgrade_plt[col_group]==group)), energy_col]
+
+                # add traces to plot
+                fig.add_trace(go.Violin(
+                    x=df_enduse,
+                    y=np.array(group),
+                    orientation = 'h',
+                    box_visible=True,
+                    points='outliers',
+                    pointpos=1,
+                    spanmode='hard',
+                    marker_size=1,
+                    showlegend=False,
+                    name=str(group) + f' (n={len(df_enduse)})',
+                    meanline_visible=True,
+                    line=dict(width=0.7),
+                    fillcolor=color_violin,
+                    box_fillcolor=color_interquartile,
+                    line_color='black',
+                    width=0.95
+                ))
+
+            fig.add_annotation(
+                align="right",
+                font_size=12,
+                showarrow=False,
+                text=f"Upgrade {str(upgrade_num).zfill(2)}: {upgrade_name} (unweighted)",
+                x=1,
+                xanchor="right",
+                xref="x domain",
+                y=1.01,
+                yanchor="bottom",
+                yref="y domain",
+            )
+
+            title = group_name_wo_unit
+            # formatting and saving image
+            fig.update_layout(template='simple_white', margin=dict(l=20, r=20, t=20, b=20), width=800)
+            fig.update_xaxes(mirror=True, showgrid=True, zeroline=True, nticks=20, title=group_name)
+            fig.update_yaxes(mirror=True, showgrid=True, type='category', dtick=1)
+            fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+            fig_name = fig_name.replace(r'_(usd/sqft/year,', '')
+            fig_sub_dir = os.path.join(output_dir, 'savings_distributions')
+            if not os.path.exists(fig_sub_dir):
+                os.makedirs(fig_sub_dir)
+            fig_path = os.path.join(fig_sub_dir, fig_name)
+            fig.write_image(fig_path, scale=10)
+
+        return
+
+    def plot_measure_utility_savings_distributions_by_hvac_system(self, df, output_dir):
+
+        # remove baseline; not needed
+        df_upgrade = df.loc[df[self.UPGRADE_ID]!=0, :]
+
+        # get upgrade name and id for labeling
+        upgrade_num = df_upgrade[self.UPGRADE_ID].iloc[0]
+        upgrade_name = df_upgrade[self.UPGRADE_NAME].iloc[0]
+
+        # group column
+        col_group = self.HVAC_SYS
+
+        # energy column
+        en_col = self.UTIL_BILL_TOTAL_MEAN
+
+        # set grouping list
+        li_group = sorted(list(df_upgrade[col_group].drop_duplicates().astype(str)), reverse=True)
+
+        # create dictionary with the plot labels and columns to loop through
+        dict_saving = {}
+        dict_saving['Utility Bill Savings Intensity by HVAC (usd/sqft/year, 2022)'] = self.col_name_to_savings(self.col_name_to_area_intensity(en_col))
+        dict_saving['Percent Utility Bill Savings by HVAC (%)'] = self.col_name_to_percent_savings(en_col, 'percent')
+
+        # # loop through plot types
+        for group_name, energy_col in dict_saving.items():
+
+            # remove unit from group_name
+            group_name_wo_unit = group_name.rsplit(" ", 1)[0]
+
+            # filter to group and energy column
+            df_upgrade_plt = df_upgrade.loc[:, [col_group, energy_col]]
+
+            # apply method for filtering percent savings; this will not affect EUI
+            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 1)
+
+            # create figure template
+            fig = go.Figure()
+
+            # loop through groups, i.e. building type etc.
+            for group in li_group:
+
+                # get data for enduse; remove 0s and na values
+                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & ((df_upgrade_plt[col_group]==group)), energy_col]
+
+                # add traces to plot
+                fig.add_trace(go.Violin(
+                    x=df_enduse,
+                    y=np.array(group),
+                    orientation = 'h',
+                    box_visible=True,
+                    points='outliers',
+                    pointpos=1,
+                    spanmode='hard',
+                    marker_size=1,
+                    showlegend=False,
+                    name=str(group) + f' (n={len(df_enduse)})',
+                    meanline_visible=True,
+                    line=dict(width=0.7),
+                    fillcolor=color_violin,
+                    box_fillcolor=color_interquartile,
+                    line_color='black',
+                    width=0.95
+                ))
+
+            fig.add_annotation(
+                align="right",
+                font_size=12,
+                showarrow=False,
+                text=f"Upgrade {str(upgrade_num).zfill(2)}: {upgrade_name} (unweighted)",
+                x=1,
+                xanchor="right",
+                xref="x domain",
+                y=1.01,
+                yanchor="bottom",
+                yref="y domain",
+            )
+
+            title = group_name_wo_unit
+            # formatting and saving image
+            fig.update_layout(template='simple_white', margin=dict(l=20, r=20, t=20, b=20), width=800)
+            fig.update_xaxes(mirror=True, showgrid=True, zeroline=True, nticks=20, title=group_name)
+            fig.update_yaxes(mirror=True, showgrid=True, type='category', dtick=1)
+            fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+            fig_name = fig_name.replace(r'_(usd/sqft/year,', '')
+            fig_sub_dir = os.path.join(output_dir, 'savings_distributions')
+            if not os.path.exists(fig_sub_dir):
+                os.makedirs(fig_sub_dir)
+            fig_path = os.path.join(fig_sub_dir, fig_name)
+            fig.write_image(fig_path, scale=10)
+
+        return
+
     def plot_measure_savings_distributions_by_climate_zone(self, df, output_dir):
 
         # remove baseline; not needed
@@ -1336,6 +1754,7 @@ class PlottingMixin():
         # loop through plot types
         for savings_name, col_list in dict_saving.items():
 
+
             # remove unit from savings_name
             savings_name_wo_unit = savings_name.rsplit(" ", 1)[0]
 
@@ -1398,6 +1817,104 @@ class PlottingMixin():
                 os.makedirs(fig_sub_dir)
             fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
             fig.write_image(fig_path, scale=10)
+
+
+    ######
+    def plot_measure_utility_savings_distributions_by_fuel(self, df, output_dir):
+
+        # remove baseline; not needed
+        df_upgrade = df.loc[df[self.UPGRADE_ID]!=0, :]
+
+        # get upgrade name and id for labeling;
+        upgrade_num = df_upgrade[self.UPGRADE_ID].iloc[1]
+        upgrade_name = df_upgrade[self.UPGRADE_NAME].iloc[1]
+
+        # make lists of columns; these savings columns should exist in dataframe
+        dict_saving = {}
+        li_eui_svgs_fuel_cols = [self.col_name_to_savings(self.col_name_to_area_intensity(c)) for c in ([self.UTIL_BILL_TOTAL_MEAN] + self.COLS_UTIL_BILLS)]
+        dict_saving['Utility Bill Savings Intensity by Fuel (usd/sqft/year, 2022)'] = li_eui_svgs_fuel_cols
+        li_pct_svgs_fuel_cols = [self.col_name_to_percent_savings(c, 'percent') for c in ([self.UTIL_BILL_TOTAL_MEAN] + self.COLS_UTIL_BILLS)]
+        dict_saving['Percent Utility Bill Savings by Fuel (%)'] = li_pct_svgs_fuel_cols
+
+        # loop through plot types
+        for savings_name, col_list in dict_saving.items():
+
+            # remove unit from savings_name
+            savings_name_wo_unit = savings_name.rsplit(" ", 1)[0]
+
+            # apply method for filtering percent savings; this will not affect EUI
+            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade[col_list], 1.5)
+
+            # create figure template
+            fig = go.Figure()
+
+            # loop through enduses
+            for enduse_col in col_list:
+
+                # get data for enduse; remove 0s and na values
+                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[enduse_col]!=0), enduse_col]
+
+                # column name
+                col_name = self.col_name_to_nice_saving_name(df_enduse.name)
+                # manually add "total"
+                col_name = col_name.replace('Utility Bills  Mean Bill  Intensity', 'Utility Bills Total Bill Intensity')
+                col_name = col_name.replace('Bill  Intensity', 'Bill Intensity')
+                col_name = col_name.replace('Utility Bills ', '')
+                col_name = col_name.replace('Electricity Bill', 'Electricity Bill w/ Mean Rate')
+                col_name = col_name.replace('Total Bill', 'Total Bill w/ Mean Electricity Rate')
+                col_name = col_name.replace('Mean Bill', 'Total Bill w/ Mean Electricity Rate')
+                col_name = col_name.replace('Mean Rate Mean', 'Mean Rate')
+                col_name = col_name.replace(' Intensity', '')
+
+
+                # add traces to plot
+                fig.add_trace(go.Violin(
+                    x=df_enduse,
+                    y=np.array(col_name),
+                    orientation = 'h',
+                    box_visible=True,
+                    points='outliers',
+                    pointpos=1,
+                    spanmode='hard',
+                    marker_size=1,
+                    showlegend=False,
+                    name=str(col_name) + f'(n={len(df_enduse)})',
+                    meanline_visible=True,
+                    line=dict(width=0.7),
+                    fillcolor=color_violin,
+                    box_fillcolor=color_interquartile,
+                    line_color='black',
+                    width=0.95
+                ))
+
+            fig.add_annotation(
+                align="right",
+                font_size=12,
+                showarrow=False,
+                text=f"Upgrade {str(upgrade_num).zfill(2)}: {upgrade_name} (unweighted)",
+                x=1,
+                xanchor="right",
+                xref="x domain",
+                y=1.01,
+                yanchor="bottom",
+                yref="y domain",
+            )
+
+            title = savings_name_wo_unit
+            # formatting and saving image
+            fig.update_layout(template='simple_white', margin=dict(l=20, r=20, t=20, b=20), width=800)
+            fig.update_xaxes(mirror=True, showgrid=True, zeroline=True, nticks=16, title=savings_name)
+            fig.update_yaxes(mirror=True, showgrid=True, nticks=len(li_pct_svgs_fuel_cols), type='category', dtick=1)
+            fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+            fig_name = fig_name.replace(r'_(usd/sqft/year,', '')
+            fig_sub_dir = os.path.join(output_dir, 'savings_distributions')
+            if not os.path.exists(fig_sub_dir):
+                os.makedirs(fig_sub_dir)
+            fig_path = os.path.join(fig_sub_dir, fig_name)
+            fig.write_image(fig_path, scale=10)
+
+
+    ######
 
     def plot_qoi_timing(self, df, column_for_grouping, color_map, output_dir):
 
@@ -1522,6 +2039,9 @@ class PlottingMixin():
 
         # multiply by 100 to get percent savings
         df_2.loc[:, cols] = df_2[cols] * 100
+
+        # filter out % savings values greater than 100%
+        df_2.loc[:, cols] = df_2[cols].mask(df_2[cols] > 100, np.nan)
 
         return df_2
 
