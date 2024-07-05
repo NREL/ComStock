@@ -11,6 +11,9 @@ from matplotlib import ticker
 import plotly.express as px
 import seaborn as sns
 import plotly.graph_objects as go
+from buildstock_query import BuildStockQuery
+import matplotlib.colors as mcolors
+from plotly.subplots import make_subplots
 
 matplotlib.use('Agg')
 logger = logging.getLogger(__name__)
@@ -123,7 +126,7 @@ class PlottingMixin():
                             categoryorder='array', categoryarray=np.array(list(color_map.keys())))
             fig.update_yaxes(mirror=True, showgrid=False, showline=True, ticks='outside', linewidth=1, linecolor='black', rangemode="tozero")
             fig.update_layout(title=None,  margin=dict(l=20, r=20, t=27, b=20), width=plot_width, legend_title=None, legend_traceorder="reversed",
-                            uniformtext_minsize=7, uniformtext_mode='hide', bargap=0.05)
+                            uniformtext_minsize=8, uniformtext_mode='hide', bargap=0.05)
             fig.update_layout(
                 font=dict(
                     size=12)
@@ -207,7 +210,10 @@ class PlottingMixin():
         for scenario in electricity_scenarios:
 
             # filter to grid scenario plus on-site combustion fuels
-            df_scenario = df_emi_gb_long.loc[(df_emi_gb_long['variable']==scenario) | (df_emi_gb_long['variable'].isin(['Natural Gas', 'Fuel Oil', 'Propane']))]
+            df_scenario = df_emi_gb_long.loc[(df_emi_gb_long['variable']==scenario) | (df_emi_gb_long['variable'].isin(['Natural Gas', 'Fuel Oil', 'Propane']))].copy()
+
+            # force measure ordering
+            df_scenario['in.upgrade_name'] = pd.Categorical(df_scenario['in.upgrade_name'], categories=order_map, ordered=True)
 
             # Pivot the DataFrame to prepare for the stacked bars
             pivot_df = df_scenario.pivot(index='in.upgrade_name', columns='variable', values='Annual GHG Emissions (MMT CO2e)')
@@ -279,6 +285,145 @@ class PlottingMixin():
             os.makedirs(fig_sub_dir)
         fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
         plt.savefig(fig_path, dpi=600, bbox_inches = 'tight')
+
+
+
+    # plot for GHG emissions by fuel type for baseline and upgrade
+    def plot_utility_bills_by_fuel_type(self, df, column_for_grouping, color_map, output_dir):
+
+        # ghg columns; uses Cambium low renewable energy cost 15-year for electricity
+        util_cols = self.COLS_UTIL_BILLS + ['out.utility_bills.electricity_bill_max..usd', 'out.utility_bills.electricity_bill_min..usd']
+        wtd_util_cols = [self.col_name_to_weighted(c, 'billion_usd') for c in util_cols]
+
+        # groupby and long format for plotting
+        df_emi_gb = (df.groupby(column_for_grouping, observed=True)[wtd_util_cols].sum()).reset_index()
+        df_emi_gb_long = df_emi_gb.melt(id_vars=[column_for_grouping], value_name='Annual Utility Bill (Billion USD)').sort_values(by='Annual Utility Bill (Billion USD)', ascending=False)
+        df_emi_gb_long.loc[:, 'in.upgrade_name'] = df_emi_gb_long['in.upgrade_name'].astype(str)
+
+        # naming for plotting
+        df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('calc.weighted.', '', regex=True)
+        df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('utility_bills.', '', regex=True)
+        df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('..billion_usd', '', regex=True)
+        df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('_', ' ', regex=True)
+        df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.title()
+        df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace(' Bill', '', regex=True)
+        df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('Electricity', 'Electricity Rate', regex=True)
+        df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('Electricity Rate Max', 'With Max Electricity Rate', regex=True)
+        df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('Electricity Rate Min', 'With Min Electricity Rate', regex=True)
+        df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('Electricity Rate Mean', 'With Mean Electricity Rate', regex=True)
+
+        # plot
+        order_map = list(color_map.keys()) # this will set baseline first in plots
+        color_palette = sns.color_palette("colorblind")
+
+        # update plot width based on number of upgrades
+        upgrade_count = df_emi_gb_long[column_for_grouping].nunique()
+        plot_width=9
+        if upgrade_count <= 2:
+            plot_width = 9
+        else:
+            extra_elements = upgrade_count - 2
+            plot_width = 9 * (1 + 0.40 * extra_elements)
+
+        # Create three vertical subplots with shared y-axis
+        fig, axes = plt.subplots(1, 3, figsize=(plot_width, 3.4), sharey=True, gridspec_kw={'top': 1.2})
+        plt.rcParams['axes.facecolor'] = 'white'
+        # list of electricity grid scenarios
+        electricity_scenarios = list(df_emi_gb_long[df_emi_gb_long['variable'].str.contains('electricity', case=False)]['variable'].unique())
+
+        # loop through grid scenarios
+        ax_position = 0
+        for scenario in electricity_scenarios:
+
+            # filter to grid scenario plus on-site combustion fuels
+            df_scenario = df_emi_gb_long.loc[(df_emi_gb_long['variable']==scenario) | (df_emi_gb_long['variable'].isin(['Natural Gas', 'Fuel Oil', 'Propane']))].copy()
+
+            # force measure ordering
+            df_scenario['in.upgrade_name'] = pd.Categorical(df_scenario['in.upgrade_name'], categories=order_map, ordered=True)
+
+            # Pivot the DataFrame to prepare for the stacked bars
+            pivot_df = df_scenario.pivot(index='in.upgrade_name', columns='variable', values='Annual Utility Bill (Billion USD)')
+
+            # Sort the columns by the sum in descending order
+            pivot_df = pivot_df[pivot_df.sum().sort_values(ascending=False).index]
+            pivot_df = pivot_df.reindex(['Baseline'] + [idx for idx in pivot_df.index if idx != 'Baseline'])
+
+            # # Set the color palette; colorblind friendly
+            sns.set_palette(color_palette)
+
+            # Create plot
+            pivot_df.plot(kind='bar', stacked=True, ax=axes[ax_position], width=0.5)
+
+            # Set the title for the specific subplot
+            axes[ax_position].set_title(scenario.replace('Electricity:', ''))
+            axes[ax_position].set_xticklabels(axes[ax_position].get_xticklabels())
+            for ax in axes:
+                for label in ax.get_xticklabels():
+                    label.set_horizontalalignment('left')
+                    label.set_rotation(-30)  # Rotate the labels for better visibility
+
+            # remove x label
+            axes[ax_position].set_xlabel(None)
+            # Increase font size for text labels
+            axes[ax_position].tick_params(axis='both', labelsize=12)
+            # Add text labels to the bars for bars taller than a threshold
+            threshold = 20  # Adjust this threshold as needed
+            for bar in axes[ax_position].containers:
+                if bar.datavalues.sum() > threshold:
+                    axes[ax_position].bar_label(bar, fmt='%.0f', padding=2, label_type='center')
+
+            # Add aggregate values above the bars
+            for i, v in enumerate(pivot_df.sum(axis=1)):
+                # Display percentage savings only on the second bar
+                if i != 0:
+                    # Calculate percentage savings versus the first bar (baseline)
+                    savings = (v - pivot_df.sum(axis=1).iloc[0]) / pivot_df.sum(axis=1).iloc[0] * 100
+                    axes[ax_position].text(i, v + 2, f'{v:.0f} ({savings:.0f}%)', ha='center', va='bottom')
+                else:
+                    axes[ax_position].text(i, v + 2, f'{v:.0f}', ha='center', va='bottom')
+
+            # increase axes position
+            ax_position+=1
+
+
+        # Calculate the maximum value among aggregate values
+        max_aggregate_value = max(pivot_df.sum(axis=1))
+
+        # Add a buffer to the maximum value
+        buffer = 50  # You can adjust this buffer as needed
+        max_y_value = max_aggregate_value + buffer
+
+        # Set the same y-axis limits for all subplots
+        for ax in axes:
+            ax.set_ylim(0, max_y_value)
+
+        # Create single plot legend
+        handles, labels = axes[2].get_legend_handles_labels()
+        # Modify the labels to simplify them
+        labels = [label.replace('With Min Electricity Rate', 'Electricity') for label in labels]
+        # Create a legend at the top of the plot, above the subplot titles
+        fig.legend(handles, labels, title=None, loc='upper center', bbox_to_anchor=(0.5, 1.4), ncol=4)
+        # Hide legends in the other subplots
+        for ax in axes[:]:
+            ax.get_legend().remove()
+        # y label name
+        axes[0].set_ylabel('Annual Utility Bill (Billion USD, 2022)', fontsize=14)
+
+        # Add black boxes around the plot areas
+        for ax in axes:
+            for spine in ax.spines.values():
+                spine.set_edgecolor('black')
+        # Adjust spacing between subplots and reduce white space
+        plt.subplots_adjust(wspace=0.25, hspace=0.2, bottom=0.15)
+        # figure name and save
+        title=f"Utility_Bills_{order_map[1]}"
+        fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+        fig_sub_dir = os.path.join(output_dir)
+        if not os.path.exists(fig_sub_dir):
+            os.makedirs(fig_sub_dir)
+        fig_path = os.path.join(fig_sub_dir, fig_name)
+        plt.savefig(fig_path, dpi=600, bbox_inches = 'tight')
+
 
     # Plot for GHG emissions by fuel for baseline and EIA data
     def plot_annual_emissions_comparison(self, df, column_for_grouping, color_map, output_dir):
@@ -1122,6 +1267,282 @@ class PlottingMixin():
 
         return
 
+    def plot_measure_utility_savings_distributions_by_building_type(self, df, output_dir):
+
+        # remove baseline; not needed
+        df_upgrade = df.loc[df[self.UPGRADE_ID]!=0, :]
+
+        # get upgrade name and id for labeling
+        upgrade_num = df_upgrade[self.UPGRADE_ID].iloc[0]
+        upgrade_name = df_upgrade[self.UPGRADE_NAME].iloc[0]
+
+        # group column
+        col_group = self.BLDG_TYPE
+
+        # energy column
+        en_col = self.UTIL_BILL_TOTAL_MEAN
+
+        # set grouping list
+        li_group = sorted(list(df_upgrade[col_group].drop_duplicates().astype(str)), reverse=True)
+
+        # create dictionary with the plot labels and columns to loop through
+        dict_saving = {}
+        dict_saving['Utility Bill Savings Intensity by Building Type (usd/sqft/year, 2022)'] = self.col_name_to_savings(self.col_name_to_area_intensity(en_col))
+        dict_saving['Percent Utility Bill Savings by Building Type (%)'] = self.col_name_to_percent_savings(en_col, 'percent')
+
+        # # loop through plot types
+        for group_name, energy_col in dict_saving.items():
+
+            # remove unit from group_name
+            group_name_wo_unit = group_name.rsplit(" ", 1)[0]
+
+            # filter to group and energy column
+            df_upgrade_plt = df_upgrade.loc[:, [col_group, energy_col]]
+
+            # apply method for filtering percent savings; this will not affect EUI
+            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 1)
+
+            # create figure template
+            fig = go.Figure()
+
+            # loop through groups, i.e. building type etc.
+            for group in li_group:
+
+                # get data for enduse; remove 0s and na values
+                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & ((df_upgrade_plt[col_group]==group)), energy_col]
+
+                # add traces to plot
+                fig.add_trace(go.Violin(
+                    x=df_enduse,
+                    y=np.array(group),
+                    orientation = 'h',
+                    box_visible=True,
+                    points='outliers',
+                    pointpos=1,
+                    spanmode='hard',
+                    marker_size=1,
+                    showlegend=False,
+                    name=str(group) + f' (n={len(df_enduse)})',
+                    meanline_visible=True,
+                    line=dict(width=0.7),
+                    fillcolor=color_violin,
+                    box_fillcolor=color_interquartile,
+                    line_color='black',
+                    width=0.95
+                ))
+
+            fig.add_annotation(
+                align="right",
+                font_size=12,
+                showarrow=False,
+                text=f"Upgrade {str(upgrade_num).zfill(2)}: {upgrade_name} (unweighted)",
+                x=1,
+                xanchor="right",
+                xref="x domain",
+                y=1.01,
+                yanchor="bottom",
+                yref="y domain",
+            )
+
+            title = group_name_wo_unit
+            # formatting and saving image
+            fig.update_layout(template='simple_white', margin=dict(l=20, r=20, t=20, b=20), width=800)
+            fig.update_xaxes(mirror=True, showgrid=True, zeroline=True, nticks=20, title=group_name)
+            fig.update_yaxes(mirror=True, showgrid=True, type='category', dtick=1)
+            fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+            fig_name = fig_name.replace(r'_(usd/sqft/year,', '')
+            fig_sub_dir = os.path.join(output_dir, 'savings_distributions')
+            if not os.path.exists(fig_sub_dir):
+                os.makedirs(fig_sub_dir)
+            fig_path = os.path.join(fig_sub_dir, fig_name)
+            fig.write_image(fig_path, scale=10)
+
+        return
+
+    def plot_measure_utility_savings_distributions_by_climate_zone(self, df, output_dir):
+
+        # remove baseline; not needed
+        df_upgrade = df.loc[df[self.UPGRADE_ID]!=0, :]
+
+        # get upgrade name and id for labeling
+        upgrade_num = df_upgrade[self.UPGRADE_ID].iloc[0]
+        upgrade_name = df_upgrade[self.UPGRADE_NAME].iloc[0]
+
+        # group column
+        col_group = self.CZ_ASHRAE
+
+        # energy column
+        en_col = self.UTIL_BILL_TOTAL_MEAN
+
+        # set grouping list
+        li_group = sorted(list(df_upgrade[col_group].drop_duplicates().astype(str)), reverse=True)
+
+        # create dictionary with the plot labels and columns to loop through
+        dict_saving = {}
+        dict_saving['Utility Bill Savings Intensity by Climate (usd/sqft/year, 2022)'] = self.col_name_to_savings(self.col_name_to_area_intensity(en_col))
+        dict_saving['Percent Utility Bill Savings by Climate (%)'] = self.col_name_to_percent_savings(en_col, 'percent')
+
+        # # loop through plot types
+        for group_name, energy_col in dict_saving.items():
+
+            # remove unit from group_name
+            group_name_wo_unit = group_name.rsplit(" ", 1)[0]
+
+            # filter to group and energy column
+            df_upgrade_plt = df_upgrade.loc[:, [col_group, energy_col]]
+
+            # apply method for filtering percent savings; this will not affect EUI
+            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 1)
+
+            # create figure template
+            fig = go.Figure()
+
+            # loop through groups, i.e. building type etc.
+            for group in li_group:
+
+                # get data for enduse; remove 0s and na values
+                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & ((df_upgrade_plt[col_group]==group)), energy_col]
+
+                # add traces to plot
+                fig.add_trace(go.Violin(
+                    x=df_enduse,
+                    y=np.array(group),
+                    orientation = 'h',
+                    box_visible=True,
+                    points='outliers',
+                    pointpos=1,
+                    spanmode='hard',
+                    marker_size=1,
+                    showlegend=False,
+                    name=str(group) + f' (n={len(df_enduse)})',
+                    meanline_visible=True,
+                    line=dict(width=0.7),
+                    fillcolor=color_violin,
+                    box_fillcolor=color_interquartile,
+                    line_color='black',
+                    width=0.95
+                ))
+
+            fig.add_annotation(
+                align="right",
+                font_size=12,
+                showarrow=False,
+                text=f"Upgrade {str(upgrade_num).zfill(2)}: {upgrade_name} (unweighted)",
+                x=1,
+                xanchor="right",
+                xref="x domain",
+                y=1.01,
+                yanchor="bottom",
+                yref="y domain",
+            )
+
+            title = group_name_wo_unit
+            # formatting and saving image
+            fig.update_layout(template='simple_white', margin=dict(l=20, r=20, t=20, b=20), width=800)
+            fig.update_xaxes(mirror=True, showgrid=True, zeroline=True, nticks=20, title=group_name)
+            fig.update_yaxes(mirror=True, showgrid=True, type='category', dtick=1)
+            fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+            fig_name = fig_name.replace(r'_(usd/sqft/year,', '')
+            fig_sub_dir = os.path.join(output_dir, 'savings_distributions')
+            if not os.path.exists(fig_sub_dir):
+                os.makedirs(fig_sub_dir)
+            fig_path = os.path.join(fig_sub_dir, fig_name)
+            fig.write_image(fig_path, scale=10)
+
+        return
+
+    def plot_measure_utility_savings_distributions_by_hvac_system(self, df, output_dir):
+
+        # remove baseline; not needed
+        df_upgrade = df.loc[df[self.UPGRADE_ID]!=0, :]
+
+        # get upgrade name and id for labeling
+        upgrade_num = df_upgrade[self.UPGRADE_ID].iloc[0]
+        upgrade_name = df_upgrade[self.UPGRADE_NAME].iloc[0]
+
+        # group column
+        col_group = self.HVAC_SYS
+
+        # energy column
+        en_col = self.UTIL_BILL_TOTAL_MEAN
+
+        # set grouping list
+        li_group = sorted(list(df_upgrade[col_group].drop_duplicates().astype(str)), reverse=True)
+
+        # create dictionary with the plot labels and columns to loop through
+        dict_saving = {}
+        dict_saving['Utility Bill Savings Intensity by HVAC (usd/sqft/year, 2022)'] = self.col_name_to_savings(self.col_name_to_area_intensity(en_col))
+        dict_saving['Percent Utility Bill Savings by HVAC (%)'] = self.col_name_to_percent_savings(en_col, 'percent')
+
+        # # loop through plot types
+        for group_name, energy_col in dict_saving.items():
+
+            # remove unit from group_name
+            group_name_wo_unit = group_name.rsplit(" ", 1)[0]
+
+            # filter to group and energy column
+            df_upgrade_plt = df_upgrade.loc[:, [col_group, energy_col]]
+
+            # apply method for filtering percent savings; this will not affect EUI
+            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 1)
+
+            # create figure template
+            fig = go.Figure()
+
+            # loop through groups, i.e. building type etc.
+            for group in li_group:
+
+                # get data for enduse; remove 0s and na values
+                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & ((df_upgrade_plt[col_group]==group)), energy_col]
+
+                # add traces to plot
+                fig.add_trace(go.Violin(
+                    x=df_enduse,
+                    y=np.array(group),
+                    orientation = 'h',
+                    box_visible=True,
+                    points='outliers',
+                    pointpos=1,
+                    spanmode='hard',
+                    marker_size=1,
+                    showlegend=False,
+                    name=str(group) + f' (n={len(df_enduse)})',
+                    meanline_visible=True,
+                    line=dict(width=0.7),
+                    fillcolor=color_violin,
+                    box_fillcolor=color_interquartile,
+                    line_color='black',
+                    width=0.95
+                ))
+
+            fig.add_annotation(
+                align="right",
+                font_size=12,
+                showarrow=False,
+                text=f"Upgrade {str(upgrade_num).zfill(2)}: {upgrade_name} (unweighted)",
+                x=1,
+                xanchor="right",
+                xref="x domain",
+                y=1.01,
+                yanchor="bottom",
+                yref="y domain",
+            )
+
+            title = group_name_wo_unit
+            # formatting and saving image
+            fig.update_layout(template='simple_white', margin=dict(l=20, r=20, t=20, b=20), width=800)
+            fig.update_xaxes(mirror=True, showgrid=True, zeroline=True, nticks=20, title=group_name)
+            fig.update_yaxes(mirror=True, showgrid=True, type='category', dtick=1)
+            fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+            fig_name = fig_name.replace(r'_(usd/sqft/year,', '')
+            fig_sub_dir = os.path.join(output_dir, 'savings_distributions')
+            if not os.path.exists(fig_sub_dir):
+                os.makedirs(fig_sub_dir)
+            fig_path = os.path.join(fig_sub_dir, fig_name)
+            fig.write_image(fig_path, scale=10)
+
+        return
+
     def plot_measure_savings_distributions_by_climate_zone(self, df, output_dir):
 
         # remove baseline; not needed
@@ -1336,6 +1757,7 @@ class PlottingMixin():
         # loop through plot types
         for savings_name, col_list in dict_saving.items():
 
+
             # remove unit from savings_name
             savings_name_wo_unit = savings_name.rsplit(" ", 1)[0]
 
@@ -1398,6 +1820,104 @@ class PlottingMixin():
                 os.makedirs(fig_sub_dir)
             fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
             fig.write_image(fig_path, scale=10)
+
+
+    ######
+    def plot_measure_utility_savings_distributions_by_fuel(self, df, output_dir):
+
+        # remove baseline; not needed
+        df_upgrade = df.loc[df[self.UPGRADE_ID]!=0, :]
+
+        # get upgrade name and id for labeling;
+        upgrade_num = df_upgrade[self.UPGRADE_ID].iloc[1]
+        upgrade_name = df_upgrade[self.UPGRADE_NAME].iloc[1]
+
+        # make lists of columns; these savings columns should exist in dataframe
+        dict_saving = {}
+        li_eui_svgs_fuel_cols = [self.col_name_to_savings(self.col_name_to_area_intensity(c)) for c in ([self.UTIL_BILL_TOTAL_MEAN] + self.COLS_UTIL_BILLS)]
+        dict_saving['Utility Bill Savings Intensity by Fuel (usd/sqft/year, 2022)'] = li_eui_svgs_fuel_cols
+        li_pct_svgs_fuel_cols = [self.col_name_to_percent_savings(c, 'percent') for c in ([self.UTIL_BILL_TOTAL_MEAN] + self.COLS_UTIL_BILLS)]
+        dict_saving['Percent Utility Bill Savings by Fuel (%)'] = li_pct_svgs_fuel_cols
+
+        # loop through plot types
+        for savings_name, col_list in dict_saving.items():
+
+            # remove unit from savings_name
+            savings_name_wo_unit = savings_name.rsplit(" ", 1)[0]
+
+            # apply method for filtering percent savings; this will not affect EUI
+            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade[col_list], 1.5)
+
+            # create figure template
+            fig = go.Figure()
+
+            # loop through enduses
+            for enduse_col in col_list:
+
+                # get data for enduse; remove 0s and na values
+                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[enduse_col]!=0), enduse_col]
+
+                # column name
+                col_name = self.col_name_to_nice_saving_name(df_enduse.name)
+                # manually add "total"
+                col_name = col_name.replace('Utility Bills  Mean Bill  Intensity', 'Utility Bills Total Bill Intensity')
+                col_name = col_name.replace('Bill  Intensity', 'Bill Intensity')
+                col_name = col_name.replace('Utility Bills ', '')
+                col_name = col_name.replace('Electricity Bill', 'Electricity Bill w/ Mean Rate')
+                col_name = col_name.replace('Total Bill', 'Total Bill w/ Mean Electricity Rate')
+                col_name = col_name.replace('Mean Bill', 'Total Bill w/ Mean Electricity Rate')
+                col_name = col_name.replace('Mean Rate Mean', 'Mean Rate')
+                col_name = col_name.replace(' Intensity', '')
+
+
+                # add traces to plot
+                fig.add_trace(go.Violin(
+                    x=df_enduse,
+                    y=np.array(col_name),
+                    orientation = 'h',
+                    box_visible=True,
+                    points='outliers',
+                    pointpos=1,
+                    spanmode='hard',
+                    marker_size=1,
+                    showlegend=False,
+                    name=str(col_name) + f'(n={len(df_enduse)})',
+                    meanline_visible=True,
+                    line=dict(width=0.7),
+                    fillcolor=color_violin,
+                    box_fillcolor=color_interquartile,
+                    line_color='black',
+                    width=0.95
+                ))
+
+            fig.add_annotation(
+                align="right",
+                font_size=12,
+                showarrow=False,
+                text=f"Upgrade {str(upgrade_num).zfill(2)}: {upgrade_name} (unweighted)",
+                x=1,
+                xanchor="right",
+                xref="x domain",
+                y=1.01,
+                yanchor="bottom",
+                yref="y domain",
+            )
+
+            title = savings_name_wo_unit
+            # formatting and saving image
+            fig.update_layout(template='simple_white', margin=dict(l=20, r=20, t=20, b=20), width=800)
+            fig.update_xaxes(mirror=True, showgrid=True, zeroline=True, nticks=16, title=savings_name)
+            fig.update_yaxes(mirror=True, showgrid=True, nticks=len(li_pct_svgs_fuel_cols), type='category', dtick=1)
+            fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+            fig_name = fig_name.replace(r'_(usd/sqft/year,', '')
+            fig_sub_dir = os.path.join(output_dir, 'savings_distributions')
+            if not os.path.exists(fig_sub_dir):
+                os.makedirs(fig_sub_dir)
+            fig_path = os.path.join(fig_sub_dir, fig_name)
+            fig.write_image(fig_path, scale=10)
+
+
+    ######
 
     def plot_qoi_timing(self, df, column_for_grouping, color_map, output_dir):
 
@@ -1522,6 +2042,9 @@ class PlottingMixin():
 
         # multiply by 100 to get percent savings
         df_2.loc[:, cols] = df_2[cols] * 100
+
+        # filter out % savings values greater than 100%
+        df_2.loc[:, cols] = df_2[cols].mask(df_2[cols] > 100, np.nan)
 
         return df_2
 
@@ -2110,3 +2633,629 @@ class PlottingMixin():
         filename = region['source_name'] + '_' + ami_data_label.lower().replace(' ', '') + '_' + building_type + '_load_duration_curve_top_' + str(zoom_in_hours) + '_hours.png'
         output_path = os.path.abspath(os.path.join(output_dir, filename))
         plt.savefig(output_path, bbox_inches='tight')
+
+
+    # get weighted load profiles
+    def wgt_by_btype(self, df, run_data, dict_wgts, upgrade_num, state, upgrade_name):
+        """
+        This method weights the timeseries profiles.
+        Returns dataframe with weighted kWh columns.
+        """
+        #btype_list = ['Hospital', 'LargeHotel']
+        btype_list = df[self.BLDG_TYPE].unique()
+
+        applic_bldgs_list = list(df.loc[(df[self.UPGRADE_NAME] == upgrade_name) & (df[self.UPGRADE_APPL]==True), self.BLDG_ID])
+        applic_bldgs_list = [int(x) for x in applic_bldgs_list]
+
+        dfs_base=[]
+        dfs_up=[]
+        for btype in btype_list:
+
+            # get building weights
+            btype_wgt = dict_wgts[btype]
+
+            # baseline load data - aggregate electricity total only
+            df_base_ts_agg = run_data.agg.aggregate_timeseries(
+                                                                upgrade_id=0,
+                                                                enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
+                                                                restrict=[(('build_existing_model.building_type', [self.BLDG_TYPE_TO_SNAKE_CASE[btype]])),
+                                                                          ('state_abbreviation', [f"{state}"]),
+                                                                          ('building_id', applic_bldgs_list),
+                                                                          ],
+                                                                timestamp_grouping_func='hour',
+                                                                get_query_only=False
+                                                                )
+
+            # upgrade load data - all enduses
+            upgrade_ts_agg = run_data.agg.aggregate_timeseries(
+                                                                upgrade_id=upgrade_num.astype(str),
+                                                                enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
+                                                                restrict=[(('build_existing_model.building_type', [self.BLDG_TYPE_TO_SNAKE_CASE[btype]])),
+                                                                          ('state_abbreviation', [f"{state}"])
+                                                                          ],
+                                                                timestamp_grouping_func='hour',
+                                                                get_query_only=False
+                                                                )
+
+            # apply weights by building type
+            def apply_wgts(df):
+                # Identify columns that contain 'kwh' in their names
+                kwh_columns = [col for col in df.columns if 'kwh' in col]
+
+                # Apply the weight and add the suffix 'weighted'
+                weighted_df = df[kwh_columns].apply(lambda x: x * btype_wgt).rename(columns=lambda x: x + '_weighted')
+                # Concatenate the new weighted columns with the original DataFrame without the unweighted 'kwh' columns
+                df_wgt = pd.concat([df.drop(columns=kwh_columns), weighted_df], axis=1)
+
+                return df_wgt
+
+            # add baseline data
+            df_base_ts_agg_weighted = apply_wgts(df_base_ts_agg)
+            dfs_base.append(df_base_ts_agg_weighted)
+
+            # add upgrade data
+            df_upgrade_ts_agg_weighted = apply_wgts(upgrade_ts_agg)
+            dfs_up.append(df_upgrade_ts_agg_weighted)
+
+
+        # concatinate and combine baseline data
+        dfs_base_combined = pd.concat(dfs_base, join='outer', ignore_index=True)
+        dfs_base_combined = dfs_base_combined.groupby(['time'], as_index=False)[dfs_base_combined.loc[:, dfs_base_combined.columns.str.contains('_kwh')].columns].sum()
+        dfs_base_combined[self.UPGRADE_NAME] = 'baseline'
+
+        # concatinate and combine upgrade data
+        dfs_upgrade_combined = pd.concat(dfs_up, join='outer', ignore_index=True)
+        dfs_upgrade_combined = dfs_upgrade_combined.groupby(['time'], as_index=False)[dfs_upgrade_combined.loc[:, dfs_upgrade_combined.columns.str.contains('_kwh')].columns].sum()
+        dfs_upgrade_combined[self.UPGRADE_NAME] = upgrade_name
+
+        return dfs_base_combined, dfs_upgrade_combined
+
+    # plot
+    order_list = [
+                'interior_equipment',
+                'fans',
+                'interior_lighting',
+                'exterior_lighting',
+                'cooling',
+                'heating',
+                'water_systems',
+                'refrigeration',
+                'pumps',
+                'heat_rejection',
+                'heat_recovery',
+                ]
+
+    color_dict = {
+                'heating':'#EF1C21',
+                'cooling':'#0071BD',
+                'interior_lighting':'#F7DF10',
+                'exterior_lighting':'#DEC310',
+                'interior_equipment':'#4A4D4A',
+                'exterior_equipment':'#B5B2B5',
+                'fans':'#FF79AD',
+                'pumps':'#632C94',
+                'heat_rejection':'#F75921',
+                'heat_recovery': '#CE5921',
+                'water_systems': '#FFB239',
+                'refrigeration': '#29AAE7'}
+
+    def map_to_season(month):
+        if 3 <= month <= 5:
+            return 'Spring'
+        elif 6 <= month <= 8:
+            return 'Summer'
+        elif 9 <= month <= 11:
+            return 'Fall'
+        else:
+            return 'Winter'
+
+    # Convert color codes to RGBA with opacity 1.0
+    plotly_color_dict = {key: f"rgba({int(mcolors.to_rgba(value, alpha=1.0)[0]*255)},{int(mcolors.to_rgba(value, alpha=1.0)[1]*255)},{int(mcolors.to_rgba(value, alpha=1.0)[2]*255)},{mcolors.to_rgba(value, alpha=1.0)[3]})" for key, value in color_dict.items()}
+
+    def plot_measure_timeseries_peak_week_by_state(self, df, output_dir, states, comstock_run_name): #, df, region, building_type, color_map, output_dir
+
+        # run crawler
+        run_data = BuildStockQuery('eulp',
+                                   'enduse',
+                                   self.comstock_run_name,
+                                   buildstock_type='comstock',
+                                   skip_reports=False)
+
+        # get upgrade ID
+        df_upgrade = df.loc[df[self.UPGRADE_ID]!=0, :]
+        upgrade_num = df_upgrade[self.UPGRADE_ID].iloc[0]
+        upgrade_name = df_upgrade[self.UPGRADE_NAME].iloc[0]
+
+        # get weights
+        dict_wgts = df_upgrade.groupby(self.BLDG_TYPE)[self.BLDG_WEIGHT].mean().to_dict()
+
+        # apply queries and weighting
+        for state, state_name in states.items():
+            dfs_base_combined, dfs_upgrade_combined = self.wgt_by_btype(df, run_data, dict_wgts, upgrade_num, state, upgrade_name)
+
+            # merge into single dataframe
+            dfs_merged = pd.concat([dfs_base_combined, dfs_upgrade_combined], ignore_index=True)
+
+            # set index
+            dfs_merged.set_index("time", inplace=True)
+            dfs_merged['Month'] = dfs_merged.index.month
+
+            def map_to_season(month):
+                if 3 <= month <= 5:
+                    return 'Spring'
+                elif 6 <= month <= 8:
+                    return 'Summer'
+                elif 9 <= month <= 11:
+                    return 'Fall'
+                else:
+                    return 'Winter'
+
+            # Apply the mapping function to create the "Season" column
+            dfs_merged['Season'] = dfs_merged['Month'].apply(map_to_season)
+            dfs_merged['Week_of_Year'] = dfs_merged.index.isocalendar().week
+            dfs_merged['Day_of_Year'] = dfs_merged.index.dayofyear
+            dfs_merged['Day_of_Week'] = dfs_merged.index.dayofweek
+            dfs_merged['Hour_of_Day'] = dfs_merged.index.hour
+            dfs_merged['Year'] = dfs_merged.index.year
+            # make dec 31st last week of year
+            dfs_merged.loc[dfs_merged['Day_of_Year']==365, 'Week_of_Year'] = 55
+            dfs_merged = dfs_merged.loc[dfs_merged['Year']==2018, :]
+            max_peak = dfs_merged.loc[:, 'total_site_electricity_kwh_weighted'].max()
+
+            # find peak week by season
+            seasons = ['Spring', 'Summer', 'Fall', 'Winter']
+            for season in seasons:
+                peak_week = dfs_merged.loc[dfs_merged['Season']==season, ["total_site_electricity_kwh_weighted", "Week_of_Year"]]
+                peak_week = peak_week.loc[peak_week["total_site_electricity_kwh_weighted"] == peak_week["total_site_electricity_kwh_weighted"].max(), "Week_of_Year"][0]
+
+
+                # filter to the week
+                dfs_merged_pw = dfs_merged.loc[dfs_merged["Week_of_Year"]==peak_week, :].copy()
+                #dfs_merged_pw = dfs_merged_pw.loc[:, dfs_merged_pw.columns.str.contains("electricity")]
+                dfs_merged_pw.reset_index(inplace=True)
+                dfs_merged_pw = dfs_merged_pw.sort_values('time')
+
+                # rename columns
+                dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace("electricity_", "")
+                dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace("_kwh_weighted", "")
+
+                # convert hourly kWH to 15 minute MW
+                dfs_merged_pw.loc[:, self.order_list] = dfs_merged_pw.loc[:, self.order_list]/1000
+                dfs_merged_pw.loc[:, "total_site"] = dfs_merged_pw.loc[:, "total_site"]/1000
+
+                # Create traces for area plot
+                traces = []
+                dfs_merged_pw_up = dfs_merged_pw.loc[dfs_merged_pw['in.upgrade_name']!="baseline"]
+                for enduse in self.order_list:
+                    trace = go.Scatter(
+                        x=dfs_merged_pw_up['time'],
+                        y=dfs_merged_pw_up[enduse],
+                        fill='tonexty',
+                        fillcolor=self.plotly_color_dict[enduse],
+                        mode='none',
+                        line=dict(color=self.plotly_color_dict[enduse], width=0.5),
+                        name=enduse,
+                        stackgroup='stack'
+                    )
+                    traces.append(trace)
+
+                # add aggregate measure load
+                dfs_merged_pw_up = dfs_merged_pw.loc[dfs_merged_pw['in.upgrade_name'] != "baseline"]
+                dfs_merged_pw_up.columns = dfs_merged_pw_up.columns.str.replace("total_site", "Measure Total")
+
+                # Create a trace for the baseline load
+                upgrade_trace = go.Scatter(
+                    x=dfs_merged_pw_up['time'],
+                    y=dfs_merged_pw_up['Measure Total'],
+                    mode='lines',
+                    line=dict(color='black', width=1.8, dash='solid'),
+                    name='Measure Total',
+                )
+                traces.append(upgrade_trace)
+
+                # add baseline load
+                dfs_merged_pw_base = dfs_merged_pw.loc[dfs_merged_pw['in.upgrade_name']=="baseline"]
+                dfs_merged_pw_base.columns = dfs_merged_pw_base.columns.str.replace("total_site", "Baseline Total")
+                # Create a trace for the baseline load
+                baseline_trace = go.Scatter(
+                    x=dfs_merged_pw_base['time'],
+                    y=dfs_merged_pw_base['Baseline Total'],
+                    mode='lines',
+                    #line=dict(color='black', width=1.75),
+                    line=dict(color='black', width=1.8, dash='dot'),
+                    name='Baseline Total'
+                )
+                traces.append(baseline_trace)
+
+                # Create the layout
+                layout = go.Layout(
+                    #title=f"{season} Peak Week - {state_name}",
+                    xaxis=dict(mirror=True, title=None, showline=True),
+                    yaxis=dict(mirror=True, title='Electricity Demand (MW)', range=[0, max_peak/1000], showline=True),
+                    legend=dict(font=dict(size=8), y=1.02, xanchor="left", x=0.0, orientation="h", yanchor="bottom", itemwidth=30),
+                    legend_traceorder="reversed",
+                    showlegend=True,
+                    template='simple_white',
+                    width=650,
+                    height=400,
+                    annotations=[
+                                dict(x=-0.1,  # Centered on the x-axis
+                                    y=-0.35,  # Adjust this value as needed to place the title correctly
+                                    xref='paper',
+                                    yref='paper',
+                                    text=f"{season} Peak Week, Applicable Buildings - {state_name}",
+                                    showarrow=False,
+                                    font=dict(
+                                        size=16
+                                    ))]
+                )
+
+                # Create the figure
+                fig = go.Figure(data=traces, layout=layout)
+
+                # Save fig
+                title = f"{season}_peak_week"
+                fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+                fig_name_html = f'{title.replace(" ", "_").lower()}.html'
+                fig_sub_dir = os.path.abspath(os.path.join(output_dir, f"timeseries/{state_name}"))
+                if not os.path.exists(fig_sub_dir):
+                    os.makedirs(fig_sub_dir)
+                fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
+                fig_path_html = os.path.abspath(os.path.join(fig_sub_dir, fig_name_html))
+
+                fig.write_image(fig_path, scale=10)
+                fig.write_html(fig_path_html)
+
+            dfs_merged.to_csv(f"{fig_sub_dir}/timeseries_data_{state_name}.csv")
+
+
+    def plot_measure_timeseries_season_average_by_state(self, df, output_dir, states, comstock_run_name):
+
+        # run crawler
+        run_data = BuildStockQuery('eulp',
+                                'enduse',
+                                self.comstock_run_name,
+                                buildstock_type='comstock',
+                                skip_reports=False)
+
+        # get upgrade ID
+        df_upgrade = df.loc[df[self.UPGRADE_ID]!=0, :]
+        upgrade_num = df_upgrade[self.UPGRADE_ID].iloc[0]
+        upgrade_name = df_upgrade[self.UPGRADE_NAME].iloc[0]
+
+        # get weights
+        dict_wgts = df_upgrade.groupby(self.BLDG_TYPE)[self.BLDG_WEIGHT].mean().to_dict()
+
+        # apply queries and weighting
+        for state, state_name in states.items():
+            dfs_base_combined, dfs_upgrade_combined = self.wgt_by_btype(df, run_data, dict_wgts, upgrade_num, state, upgrade_name)
+
+            # merge into single dataframe
+            dfs_merged = pd.concat([dfs_base_combined, dfs_upgrade_combined], ignore_index=True)
+
+            # set index
+            dfs_merged.set_index("time", inplace=True)
+            dfs_merged['Month'] = dfs_merged.index.month
+
+            def map_to_season(month):
+                if 3 <= month <= 5 or 9 <= month <= 11:
+                    return 'Shoulder'
+                elif 6 <= month <= 8:
+                    return 'Summer'
+                else:
+                    return 'Winter'
+
+            def map_to_dow(dow):
+                if dow < 5:
+                    return 'Weekday'
+                else:
+                    return 'Weekend'
+
+            # Apply the mapping function to create the "Season" column
+            dfs_merged['Season'] = dfs_merged['Month'].apply(map_to_season)
+            dfs_merged['Week_of_Year'] = dfs_merged.index.isocalendar().week
+            dfs_merged['Day_of_Year'] = dfs_merged.index.dayofyear
+            dfs_merged['Hour_of_Day'] = dfs_merged.index.hour
+            dfs_merged['Day_of_Week'] = dfs_merged.index.dayofweek
+            dfs_merged['Day_Type'] = dfs_merged['Day_of_Week'].apply(map_to_dow)
+            dfs_merged['Year'] = dfs_merged.index.year
+
+            # make dec 31st last week of year
+            dfs_merged.loc[dfs_merged['Day_of_Year']==365, 'Week_of_Year'] = 55
+            dfs_merged = dfs_merged.loc[dfs_merged['Year']==2018, :]
+            dfs_merged_gb = dfs_merged.groupby(['in.upgrade_name', 'Season', 'Day_Type', 'Hour_of_Day'])[dfs_merged.loc[:, dfs_merged.columns.str.contains('_kwh')].columns].mean().reset_index()
+            max_peak = dfs_merged_gb.loc[:, 'total_site_electricity_kwh_weighted'].max()
+
+            # find peak week by season
+            seasons = ['Summer', 'Shoulder', 'Winter']
+            day_types = ['Weekday', 'Weekend']
+            fig = make_subplots(rows=3, cols=2, subplot_titles=[f"{season} - {day_type}" for season in seasons for day_type in day_types], vertical_spacing=0.10)
+
+            season_to_subplot = {
+                ('Summer', 'Weekday'): (1, 1),
+                ('Summer', 'Weekend'): (1, 2),
+                ('Shoulder', 'Weekday'): (2, 1),
+                ('Shoulder', 'Weekend'): (2, 2),
+                ('Winter', 'Weekday'): (3, 1),
+                ('Winter', 'Weekend'): (3, 2),
+            }
+
+            legend_entries = set()
+            for season in seasons:
+                for day_type in day_types:
+                    row, col = season_to_subplot[(season, day_type)]
+                    # filter to the week
+                    dfs_merged_pw = dfs_merged_gb.loc[(dfs_merged_gb["Season"] == season) & (dfs_merged_gb["Day_Type"] == day_type), :].copy()
+                    dfs_merged_pw.reset_index(inplace=True)
+
+                    # rename columns
+                    dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace("electricity_", "")
+                    dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace("_kwh_weighted", "")
+
+                    # convert hourly kWH to 15 minute MW
+                    dfs_merged_pw.loc[:, self.order_list] = dfs_merged_pw.loc[:, self.order_list]/1000
+                    dfs_merged_pw.loc[:, "total_site"] = dfs_merged_pw.loc[:, "total_site"]/1000
+                    dfs_merged_pw = dfs_merged_pw.sort_values('Hour_of_Day')
+
+                    # Create traces for area plot
+                    for enduse in self.order_list:
+                        dfs_merged_pw_up = dfs_merged_pw.loc[dfs_merged_pw['in.upgrade_name'] != 'baseline', :]
+
+                        showlegend = enduse not in legend_entries
+                        legend_entries.add(enduse)
+
+                        trace = go.Scatter(
+                            x=dfs_merged_pw_up['Hour_of_Day'],
+                            y=dfs_merged_pw_up[enduse],
+                            fill='tonexty',
+                            fillcolor=self.plotly_color_dict[enduse],
+                            mode='none',
+                            line=dict(color=self.plotly_color_dict[enduse], width=0.5),
+                            name=enduse,
+                            stackgroup='stack',
+                            showlegend=showlegend
+                        )
+                        fig.add_trace(trace, row=row, col=col)
+
+                    # add aggregate measure load
+                    dfs_merged_pw_up = dfs_merged_pw.loc[dfs_merged_pw['in.upgrade_name'] != "baseline"]
+                    dfs_merged_pw_up.columns = dfs_merged_pw_up.columns.str.replace("total_site", "Measure Total")
+
+                    showlegend = 'Measure Total' not in legend_entries
+                    legend_entries.add('Measure Total')
+
+                    # Create a trace for the baseline load
+                    upgrade_trace = go.Scatter(
+                        x=dfs_merged_pw_up['Hour_of_Day'],
+                        y=dfs_merged_pw_up['Measure Total'],
+                        mode='lines',
+                        line=dict(color='black', width=3, dash='solid'),
+                        name='Measure Total',
+                        showlegend=showlegend
+                    )
+                    fig.add_trace(upgrade_trace, row=row, col=col)
+
+                    # add baseline load
+                    dfs_merged_pw_base = dfs_merged_pw.loc[dfs_merged_pw['in.upgrade_name'] == "baseline"]
+                    dfs_merged_pw_base.columns = dfs_merged_pw_base.columns.str.replace("total_site", "Baseline Total")
+
+                    showlegend = 'Baseline Total' not in legend_entries
+                    legend_entries.add('Baseline Total')
+
+                    # Create a trace for the baseline load
+                    baseline_trace = go.Scatter(
+                        x=dfs_merged_pw_base['Hour_of_Day'],
+                        y=dfs_merged_pw_base['Baseline Total'],
+                        mode='lines',
+                        line=dict(color='black', width=3, dash='dash'),
+                        name='Baseline Total',
+                        showlegend=showlegend
+                    )
+                    fig.add_trace(baseline_trace, row=row, col=col)
+
+                    fig.update_xaxes(title_text='Hour of Day', showline=True, linewidth=2, linecolor='black', row=row, col=col, mirror=True, tickvals=[0, 6, 12, 18, 23], ticktext=["12 AM", "6 AM", "12 PM", "6 PM", "12 AM"])
+                    fig.update_yaxes(title_text='Electricity Demand (MW)', showline=True, linewidth=2, linecolor='black', row=row, col=col, mirror=True, range=[0, max_peak/1000])
+
+            # Update layout
+            fig.update_layout(
+                title=f"Seasonal Average, Applicable Buildings - {state_name}</b>",
+                title_x=0.04,  # Align title to the left
+                title_y=0.97,  # Move title to the bottom
+                title_xanchor='left',
+                title_yanchor='bottom',
+                legend_traceorder="reversed",
+                showlegend=True,
+                legend=dict(
+                font=dict(
+                    size=16  # Increase the font size of the legend
+                    )
+                ),
+                template='simple_white',
+                width=1200,
+                height=1200
+            )
+
+            # Save fig
+            title = "seasonal_average_subplot"
+            fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+            fig_name_html = f'{title.replace(" ", "_").lower()}.html'
+            fig_sub_dir = os.path.abspath(os.path.join(output_dir, f"timeseries/{state_name}"))
+            if not os.path.exists(fig_sub_dir):
+                os.makedirs(fig_sub_dir)
+            fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
+            fig_path_html = os.path.abspath(os.path.join(fig_sub_dir, fig_name_html))
+
+            fig.write_image(fig_path, scale=10)
+            fig.write_html(fig_path_html)
+
+    def plot_measure_timeseries_annual_average_by_state_and_enduse(self, df, output_dir, states, color_map, comstock_run_name):
+
+        # run crawler
+        run_data = BuildStockQuery('eulp', 'enduse', self.comstock_run_name, buildstock_type='comstock', skip_reports=False)
+
+        # get upgrade ID
+        df_upgrade = df.loc[df[self.UPGRADE_ID] != 0, :]
+        upgrade_num = df_upgrade[self.UPGRADE_ID].iloc[0]
+        upgrade_name = df_upgrade[self.UPGRADE_NAME].iloc[0]
+
+        # get weights
+        dict_wgts = df_upgrade.groupby(self.BLDG_TYPE)[self.BLDG_WEIGHT].mean().to_dict()
+
+        # apply queries and weighting
+        for state, state_name in states.items():
+            dfs_base_combined, dfs_upgrade_combined = self.wgt_by_btype(df, run_data, dict_wgts, upgrade_num, state, upgrade_name)
+
+            # merge into single dataframe
+            dfs_merged = pd.concat([dfs_base_combined, dfs_upgrade_combined], ignore_index=True)
+
+            # set index
+            dfs_merged.set_index("time", inplace=True)
+            dfs_merged['Month'] = dfs_merged.index.month
+
+            def map_to_season(month):
+                if 3 <= month <= 5 or 9 <= month <= 11:
+                    return 'Shoulder'
+                elif 6 <= month <= 8:
+                    return 'Summer'
+                else:
+                    return 'Winter'
+
+            def map_to_dow(dow):
+                if dow < 5:
+                    return 'Weekday'
+                else:
+                    return 'Weekend'
+
+            # Apply the mapping function to create the "Season" column
+            dfs_merged['Season'] = dfs_merged['Month'].apply(map_to_season)
+            dfs_merged['Week_of_Year'] = dfs_merged.index.isocalendar().week
+            dfs_merged['Day_of_Year'] = dfs_merged.index.dayofyear
+            dfs_merged['Hour_of_Day'] = dfs_merged.index.hour
+            dfs_merged['Day_of_Week'] = dfs_merged.index.dayofweek
+            dfs_merged['Day_Type'] = dfs_merged['Day_of_Week'].apply(map_to_dow)
+            dfs_merged['Year'] = dfs_merged.index.year
+
+            # make Dec 31st last week of year
+            dfs_merged.loc[dfs_merged['Day_of_Year'] == 365, 'Week_of_Year'] = 55
+            dfs_merged = dfs_merged.loc[dfs_merged['Year'] == 2018, :]
+            dfs_merged_gb = dfs_merged.groupby(['in.upgrade_name', 'Season', 'Hour_of_Day'])[dfs_merged.loc[:, dfs_merged.columns.str.contains('_kwh')].columns].mean().reset_index()
+            max_peak = dfs_merged_gb.loc[:, 'total_site_electricity_kwh_weighted'].max()
+
+            # rename columns, convert units
+            dfs_merged_gb.columns = dfs_merged_gb.columns.str.replace("electricity_", "")
+            dfs_merged_gb.columns = dfs_merged_gb.columns.str.replace("_kwh_weighted", "")
+
+            # find peak week by season
+            seasons = ['Summer', 'Shoulder', 'Winter']
+
+            enduses_to_subplot = {
+                'heat_recovery': 1,
+                'heat_rejection': 2,
+                'pumps': 3,
+                'refrigeration': 4,
+                'water_systems': 5,
+                'heating': 6,
+                'cooling': 7,
+                'exterior_lighting': 8,
+                'interior_lighting': 9,
+                'fans': 10,
+                'interior_equipment': 11
+            }
+
+            # Generate subplot titles dynamically
+            subplot_titles = []
+            for enduse, row in enduses_to_subplot.items():
+                for season in seasons:
+                    subplot_titles.append(f"{season}: {enduse}")
+
+            fig = make_subplots(
+                rows=11, cols=3,
+                subplot_titles=subplot_titles,
+                shared_xaxes=True, shared_yaxes=True, vertical_spacing=0.02)
+
+            for enduse in self.order_list:
+                for i, season in enumerate(seasons):
+                    row = enduses_to_subplot[enduse]
+                    col = i + 1
+
+                    # filter to the week
+                    dfs_merged_gb_season = dfs_merged_gb.loc[(dfs_merged_gb["Season"] == season), :].copy()
+                    dfs_merged_gb_season.reset_index(inplace=True)
+
+                    # sort for hour of day
+                    dfs_merged_gb_season = dfs_merged_gb_season.sort_values('Hour_of_Day')
+
+                    # add legend to first entry
+                    showlegend = False
+                    if row == 1 and col == 1:
+                        showlegend = True
+
+                    # add upgrade
+                    dfs_merged_gb_season_up = dfs_merged_gb_season.loc[dfs_merged_gb_season['in.upgrade_name'] != 'baseline', :]
+                    trace = go.Scatter(
+                        x=dfs_merged_gb_season_up['Hour_of_Day'],
+                        y=dfs_merged_gb_season_up[enduse] / 1000,
+                        mode='lines',
+                        line=dict(color=color_map[upgrade_name], width=2),
+                        name=f"{upgrade_name}",
+                        showlegend=showlegend
+                    )
+                    fig.add_trace(trace, row=row, col=col)
+
+                    # add baseline load
+                    dfs_merged_gb_season_base = dfs_merged_gb_season.loc[dfs_merged_gb_season['in.upgrade_name'] == "baseline"]
+                    baseline_trace = go.Scatter(
+                        x=dfs_merged_gb_season_base['Hour_of_Day'],
+                        y=dfs_merged_gb_season_base[enduse] / 1000,
+                        mode='lines',
+                        line=dict(color="Black", width=2, dash='dash'),
+                        name='Baseline',
+                        showlegend=showlegend
+                    )
+                    fig.add_trace(baseline_trace, row=row, col=col)
+
+                    # update axes for subplot
+                    if row == 6 and col == 2:
+                        fig.update_xaxes(title_text=None, showline=True, linewidth=2, linecolor='black', row=row, col=col, mirror=True, tickvals=[0, 6, 12, 18, 23], ticktext=["12 AM", "6 AM", "12 PM", "6 PM", "12 AM"])
+                    else:
+                        fig.update_xaxes(showline=True, linewidth=2, linecolor='black', row=row, col=col, mirror=True, tickvals=[0, 6, 12, 18, 23], ticktext=["12 AM", "6 AM", "12 PM", "6 PM", "12 AM"])
+
+                    if col == 1 and row == 6:
+                        fig.update_yaxes(title_text='Electricity Demand (MW)', showline=True, linewidth=2, linecolor='black', row=row, col=col, mirror=True)  # , range=[0, max_peak/1000]
+                    else:
+                        fig.update_yaxes(showline=True, linewidth=2, linecolor='black', row=row, col=col, mirror=True)
+
+            # Update layout
+            fig.update_layout(
+                title=f"Seasonal Average, Applicable Buildings - {state_name}</b>",
+                title_x=0.04,  # Align title to the left
+                title_y=0.97,  # Move title to the bottom
+                title_xanchor='left',
+                title_yanchor='bottom',
+                legend_traceorder="reversed",
+                showlegend=True,
+                legend=dict(
+                    font=dict(
+                        size=16  # Increase the font size of the legend
+                    )
+                ),
+                template='simple_white',
+                # width=300,
+                height=1400
+            )
+
+            fig.update_annotations(font_size=10)
+
+            # Save fig
+            title = "seasonal_average_enduse"
+            fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+            fig_name_html = f'{title.replace(" ", "_").lower()}.html'
+            fig_sub_dir = os.path.abspath(os.path.join(output_dir, f"timeseries/{state_name}"))
+            if not os.path.exists(fig_sub_dir):
+                os.makedirs(fig_sub_dir)
+            fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
+            fig_path_html = os.path.abspath(os.path.join(fig_sub_dir, fig_name_html))
+
+            fig.write_image(fig_path, scale=10)
+            fig.write_html(fig_path_html)
+

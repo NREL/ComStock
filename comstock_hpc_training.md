@@ -40,7 +40,7 @@ To just access files, use WinSCP:
 ## ComStock
  - Run documents for ComStock-funded projects located in ```/kfs2/projects/cscore/``` or ```/kfs2/projects/eusscom/```
    - If using ComStock for another project, you may need to use another folder depending on what allocation is being used
- - Exception: openstudio-standards singularity containers located in ```/kfs2/shared-projects/buildstock/apptainer_images/```
+ - Exception: openstudio-standards apptainer containers located in ```/kfs2/shared-projects/buildstock/apptainer_images/```
  - The cscore and eusscom Kestrel folders contain:
    - ```envs```
      - buildstockbatch conda environment
@@ -51,6 +51,8 @@ To just access files, use WinSCP:
      - ```comstock```. All measures and resources related to ComStock
      - ```vizstock-upload```. Process and upload ComStock results from Kestrel for use in VizStock
    - ```samples```. Contains all the *buildstock.csv* files
+   - ```apptainer_images```. openstudio-standards apptainer containers
+     - buildstockbatch conda environment
    - ```weather```. Zip folders of weather files
      - *!!!Must contain an empty.ddy, empty.epw, and empty.stat file!!!*
    - ```ymls```. yml files outlining conditions for simulation
@@ -61,12 +63,12 @@ To just access files, use WinSCP:
   - Clone the repo you are working in using this command: git clone [http://github.com/nrel/\*repo-name\*.git](http://github.com/nrel/*repo-name*.git)
   - If there are multiple ComStock runs going at once, especially from different branches, use caution and communicate with the team members because checking out another branch it will affect other runs
   - Instead, you can clone multiple versions of the same repo, therefore multiple people can run tests simultaneously off of separate branches (e.g. name the folder comstock_your_name, checkout your branch here, and use this for your personal testing)
-- samples 
+- samples
   - Inside the samples folder, put your buildstock samples within the correct project folder, or create a new project folder. This will make it easier to find samples. Label the samples with the version of the TSVs that were used to generate the sample.
 - runs
   - Inside the runs folder, output your runs into the correct project folder, or create a new project folder. This will limit the number of folders in the /cscore/runs or /eusscom/runs directory
   - Try to keep a standard naming convention for your runs
-  - Recommend making sub-folders for different types of test runs so that you can easily find your output folder. 
+  - Recommend making sub-folders for different types of test runs so that you can easily find your output folder.
 - ymls
   - Inside the ymls folder, put your yml file into the correct project folder, or create a new project folder. This will make it easier to find yml files.
   - Make sure everything if you are copying an old yml file that you update the folder locations as necessary.
@@ -197,7 +199,6 @@ Notes:
     module load python
     source /kfs2/shared-projects/buildstock/envs/bsb-2024.01.0-ry/bin/activate
     ```
-
  2. Check to make sure you are using the latest singularity image and that your yml points to this image:
     - Located in ```/kfs2/shared-projects/buildstock/apptainer_images```
  3. Make sure you commit all of your changes, push them to github, and pull changes onto Kestrel
@@ -236,11 +237,11 @@ Notes:
   - If you need to rerun the postprocessing for certain run (e.g. the results.csv files did not populate), you can rerun only the post processing:
     - ```buildstock_kestrel --postprocessonly name_of_yml.yml```
   - [Monitoring your runs]
-    - Commands for check status of jobs, estimated start time, queue length, cancel jobs, etc. can be found at (https://www.nrel.gov/hpc/eagle-monitor-control-commands.html). Kestrel documentation is not out yet but the commands should be the same. 
+    - Commands for check status of jobs, estimated start time, queue length, cancel jobs, etc. can be found at (https://www.nrel.gov/hpc/eagle-monitor-control-commands.html). Kestrel documentation is not out yet but the commands should be the same.
     - Navigate to your run output folder and open the job.out files
       - Shows number of simulations that have completed, elapsed time, etc.
   -  [Manually killing a job]
-    - Sometimes (especially in really large runs), a few buildings can get stuck during the simulation (e.g. something is not converging or stuck in a loop).  
+    - Sometimes (especially in really large runs), a few buildings can get stuck during the simulation (e.g. something is not converging or stuck in a loop).
     - If the job reaches its maximum time and a few buildings did not finish, it will wipe the results for all buildings in that job.
     - To avoid this, we can manually go into the job and kill the openstudio task, forcing the hanging buildings to fail and the job completes without wiping all the simulations.
     - Note that this issue has been mostly avoided thourgh the addition of the max_minutes_per_sim field in the yml file, but there still could be reason for you to cancel a job.
@@ -271,7 +272,7 @@ Notes:
         - example: jobid = 1, buildingid = 12, upgrade = 01
           - ```tar xvzf simulations_job1.tar.gz ./up01/bldg0000012```
   - weather folder – contains weather files used
- 
+
 ## Debugging jobs on Kestrel
 
 Kestrel uses [Slurm](https://slurm.schedmd.com/overview.html) for it's job scheduling and cluster management. This software package provides a number of commands than can be run on the command line to submit, inspect, change, and cancel jobs. All of these commands begin with the letter `s` for Slurm, such as `sinfo`, `scancel`, or `squeue`.
