@@ -214,7 +214,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
                 self.add_metadata_index_col(upgradIdcount)
                 self.get_comstock_unscaled_monthly_energy_consumption()
-                self._add_unweighted_energy_savings_columns()
+                self.add_weighted_energy_savings_columns()
+                self.add_weighted_utility_savings_columns()                
+                self.add_weighted_area_and_energy_columns()
                 # Downselect the self.data to just the upgrade
                 self.data = self.data.filter(pl.col(self.UPGRADE_ID) == upgrade_id)
                 # Write self.data to parquet file
@@ -1817,12 +1819,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
     def add_national_scaling_weights(self, cbecs: CBECS, remove_non_comstock_bldg_types_from_cbecs: bool):
         # Remove CBECS entries for building types not included in the ComStock run
         # comstock_bldg_types = self.data[self.BLDG_TYPE].unique()
+        assert isinstance(self.data, pl.LazyFrame)
         comstock_bldg_types: pl.DataFrame = self.data.select(self.BLDG_TYPE).unique().collect()
 
-        bldg_types_to_keep = []
+        bldg_types_to_keep = [] #if the bldg types in both CBECS and ComStock, keep them.
         for bt in cbecs.data[self.BLDG_TYPE].unique():
             if bt in comstock_bldg_types:
                 bldg_types_to_keep.append(bt)
+
         if remove_non_comstock_bldg_types_from_cbecs:
             # Modify CBECS to remove building types not covered by ComStock
             cbecs.data = cbecs.data[cbecs.data[self.BLDG_TYPE].isin(bldg_types_to_keep)]
@@ -1841,6 +1845,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         logger.debug('CBECS floor area by building type')
         logger.debug(cbecs_bldg_type_sqft)
 
+        logger.info("DEBUGGGGING")
         # Total sqft of each building type, ComStock
         baseline_data: pl.LazyFrame = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).clone()
         comstock_bldg_type_sqft: pl.DataFrame = baseline_data.group_by(self.BLDG_TYPE).agg([pl.col(self.FLR_AREA).sum()]).collect()
@@ -1892,25 +1897,19 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.building_type_weights = bldg_type_scale_factors
         self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_scale_factors, default=None)).alias(self.BLDG_WEIGHT))
 
-        # Apply the weight to scale the area and energy columns
-        self.add_weighted_area_and_energy_columns()
-
         # After adding weighted energy columns, calculate savings
         if self.include_upgrades:
             # Skip if savings columns are already in the data, which can happen when load_from_csv=True
             wtg_tot_engy_col = self.col_name_to_weighted_savings(self.ANN_TOT_ENGY_KBTU, self.weighted_energy_units)
             if wtg_tot_engy_col in self.data.columns:
                 logger.info('Energy savings columns already in data')
-            else:
-                self.add_weighted_energy_savings_columns()
-                self.add_weighted_utility_savings_columns()
-
         # Adding weighting factors to the monthly data
         self.get_scaled_comstock_monthly_consumption_by_state()
-
         return bldg_type_scale_factors
 
     def add_weighted_area_and_energy_columns(self):
+
+        assert isinstance(self.data, pl.DataFrame)
         # Area - create weighted column
         new_area_col = self.col_name_to_weighted(self.FLR_AREA)
         self.data = self.data.with_columns(
@@ -1998,87 +1997,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     .alias(enduse_gp_ghg_col)
                 ])
 
-    def _add_unweighted_energy_savings_columns(self):
-        # Select energy columns to calculate savings for
-        engy_cols = []
-        abs_svgs_cols = {}
-        pct_svgs_cols = {}
-        wtd_pct_svgs_cols_to_drop = []
-
-        for col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY):
-            for wtg_method in ['weighted', 'unweighted']:
-                if wtg_method == 'weighted':
-                    wtd_col = self.col_name_to_weighted(col, self.weighted_energy_units)
-                    engy_cols.append(wtd_col)
-                    abs_svgs_cols[wtd_col] = self.col_name_to_weighted_savings(col, self.weighted_energy_units)
-                    pct_svgs_cols[wtd_col] = self.col_name_to_weighted_percent_savings(col, 'percent')
-                    wtd_pct_svgs_cols_to_drop.append(self.col_name_to_weighted_percent_savings(col, 'percent'))
-                else:
-                    # for non eui columns
-                    engy_cols.append(col)
-                    abs_svgs_cols[col] = self.col_name_to_savings(col, None)
-                    pct_svgs_cols[col] = self.col_name_to_percent_savings(col, 'percent')
-                    # add eui savings for all unweighted eui columns
-                    eui_col = self.col_name_to_eui(col)
-                    engy_cols.append(eui_col)
-                    abs_svgs_cols[eui_col] = self.col_name_to_savings(eui_col, None)
-                    pct_svgs_cols[eui_col] = self.col_name_to_percent_savings(eui_col, 'percent')
-
-        # Keep the building ID and upgrade name columns to use as the index
-        engy_and_id_cols = engy_cols + [self.BLDG_ID, self.UPGRADE_NAME]
-
-        # Get the baseline results
-        base_engy = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).select(engy_and_id_cols).sort(self.BLDG_ID).clone()
-
-        # Caculate the savings for each upgrade, including the baseline
-        up_abs_svgs = []
-        up_pct_svgs = []
-
-        for upgrade_name, up_res in self.data.groupby(self.UPGRADE_NAME):
-
-            up_engy = up_res.select(engy_and_id_cols).sort(self.BLDG_ID).clone()
-
-            # Check that building_ids have same order in both DataFrames before division
-            base_engy_ids = base_engy.get_column(self.BLDG_ID)
-            up_engy_ids = up_engy.get_column(self.BLDG_ID)
-            assert up_engy_ids.to_list() == base_engy_ids.to_list()
-
-            # Calculate the absolute and percent energy savings
-            abs_svgs = (base_engy[engy_cols] - up_engy[engy_cols])
-
-            pct_svgs = ((base_engy[engy_cols] - up_engy[engy_cols]) / base_engy[engy_cols])
-            pct_svgs = pct_svgs.fill_null(0.0)
-            pct_svgs = pct_svgs.fill_nan(0.0)
-
-            abs_svgs = abs_svgs.with_columns([
-                base_engy_ids,
-                pl.lit(upgrade_name).alias(self.UPGRADE_NAME)
-            ])
-            abs_svgs = abs_svgs.with_columns(pl.col(self.UPGRADE_NAME).cast(pl.Categorical))
-
-            pct_svgs = pct_svgs.with_columns([
-                base_engy_ids,
-                pl.lit(upgrade_name).alias(self.UPGRADE_NAME)
-            ])
-            pct_svgs = pct_svgs.with_columns(pl.col(self.UPGRADE_NAME).cast(pl.Categorical))
-
-            abs_svgs = abs_svgs.rename(abs_svgs_cols)
-            pct_svgs = pct_svgs.rename(pct_svgs_cols)
-
-            # Drop the weighted percent savings columns
-            pct_svgs = pct_svgs.drop(wtd_pct_svgs_cols_to_drop)
-
-            up_abs_svgs.append(abs_svgs)
-            up_pct_svgs.append(pct_svgs)
-
-        up_abs_svgs = pl.concat(up_abs_svgs)
-        up_pct_svgs = pl.concat(up_pct_svgs)
-
-        # Join the savings columns onto the results
-        self.data = self.data.join(up_abs_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
-        self.data = self.data.join(up_pct_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
     def add_weighted_energy_savings_columns(self):
         # Select energy columns to calculate savings for
+
+        assert isinstance(self.data, pl.DataFrame)
+
         engy_cols = []
         abs_svgs_cols = {}
         pct_svgs_cols = {}
@@ -2159,6 +2082,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
 
     def add_weighted_utility_savings_columns(self):
+        assert isinstance(self.data, pl.DataFrame)
         # Select energy columns to calculate savings for
         engy_cols = []
         abs_svgs_cols = {}
