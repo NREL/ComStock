@@ -27,9 +27,17 @@ def main():
         include_upgrades=True,  # False if not looking at upgrades
         athena_table_name=None,
         upgrade_ids_to_skip=[],
+        states={
+                #'MN': 'Minnesota',  # specify state to use for timeseries plots in dictionary format. State ID must correspond correctly.
+                'MA':'Massachusetts',
+                'OR': 'Oregon',
+                'LA': 'Louisiana',
+                #'AZ': 'Arizona',
+                #'TN': 'Tennessee'
+                },
         # upgrade_ids_to_skip=[3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32],
         # upgrade_ids_to_skip=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32]
-        # upgrade_ids_for_comparison={'Andrew test': [0,1,2]} # Use {'<Name you want for comparison run folder>':[0,1,2]}
+        upgrade_ids_for_comparison={} # Use {'<Name you want for comparison run folder>':[0,1,2]}
         )
 
     # CBECS
@@ -56,7 +64,7 @@ def main():
     comstock.export_to_parquet_wide()
     comstock.export_to_csv_wide()
     # Create measure run comparisons; only use if run has measures
-    comparison = cspp.ComStockMeasureComparison(comstock, make_comparison_plots=True)
+    comparison = cspp.ComStockMeasureComparison(comstock, states=comstock.states, make_comparison_plots=True,make_timeseries_plots=False)
 
     # Export the comparison data to wide format for Tableau
     # comparison.export_to_csv_wide()

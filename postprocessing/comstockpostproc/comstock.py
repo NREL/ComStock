@@ -1821,7 +1821,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # comstock_bldg_types = self.data[self.BLDG_TYPE].unique()
         assert isinstance(self.data, pl.LazyFrame)
         comstock_bldg_types: pl.DataFrame = self.data.select(self.BLDG_TYPE).unique().collect()
-
+                
         bldg_types_to_keep = [] #if the bldg types in both CBECS and ComStock, keep them.
         for bt in cbecs.data[self.BLDG_TYPE].unique():
             if bt in comstock_bldg_types:

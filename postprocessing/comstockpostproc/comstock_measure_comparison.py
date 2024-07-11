@@ -18,6 +18,7 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
         # Initialize members
         assert isinstance(comstock_object.data, pl.LazyFrame)
         self.data = comstock_object.data.clone() #not really a deep copy, only schema is copied but not data.
+        logger.info(f"self.data type is {type(self.data)}, {isinstance(self.data, pl.lazyframe.frame.LazyFrame)}")
         assert isinstance(self.data, pl.LazyFrame)
         self.color_map = {}
         self.image_type = image_type
@@ -56,6 +57,7 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 # filter dataset to upgrade and baseline only
                 up_base_id = '00'
                 upgrade_id = upgrade
+                logger.info(f'self.data type is {type(self.data)}')
                 if self.data.select(self.UPGRADE_ID).dtypes == [pl.Int64]: # in test run it's pl.Int64
                     up_base_id = 0
                     upgrade_id = int(upgrade)
@@ -69,15 +71,8 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 df_upgrade = self.data.filter((pl.col(self.UPGRADE_ID) == upgrade_id) | (pl.col(self.UPGRADE_ID) == up_base_id))
 
                 color_map = {'Baseline': self.COLOR_COMSTOCK_BEFORE, upgrade_name: self.COLOR_COMSTOCK_AFTER}
-
-                #convert all lazyframes to dataframes
-                self.data = self.data.collect().to_pandas()
                 df_upgrade = df_upgrade.collect().to_pandas()
-
-                # take the adventage of lazy frame, and use pandas dataframe to draw the plots                
-
                 assert isinstance(df_upgrade, pd.DataFrame)
-                assert isinstance(self.data, pd.DataFrame)
 
                 # make consumption plots for upgrades if requested by user
                 if make_comparison_plots:
@@ -118,7 +113,6 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
 
     def make_plots(self, df, column_for_grouping, states, make_timeseries_plots, color_map, output_dir):
         # Make plots comparing the upgrades
-
         logger.info(f'Making comparison plots for upgrade')
         self.plot_energy_by_enduse_and_fuel_type(df, column_for_grouping, color_map, output_dir)
         self.plot_emissions_by_fuel_type(df, column_for_grouping, color_map, output_dir)
