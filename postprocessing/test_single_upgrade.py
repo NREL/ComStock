@@ -33,16 +33,16 @@ def main():
         )
 
     # CBECS
-    # cbecs = cspp.CBECS(
-    #     cbecs_year=2018,  # 2012 and 2018 currently available
-    #     truth_data_version='v01',  # Typically don't change this
-    #     color_hex='#009E73',  # Color used to represent CBECS in plots
-    #     reload_from_csv=False  # True if CSV already made and want faster reload times
-    #     )
+    cbecs = cspp.CBECS(
+        cbecs_year=2018,  # 2012 and 2018 currently available
+        truth_data_version='v01',  # Typically don't change this
+        color_hex='#009E73',  # Color used to represent CBECS in plots
+        reload_from_csv=False  # True if CSV already made and want faster reload times
+        )
 
     # Scale ComStock run to CBECS 2018 AND remove non-ComStock buildings from CBECS
     # This is how weights in the models are set to represent national energy consumption
-    # comstock.add_national_scaling_weights(cbecs, remove_non_comstock_bldg_types_from_cbecs=True)
+    comstock.add_national_scaling_weights(cbecs, remove_non_comstock_bldg_types_from_cbecs=True)
 
     # Uncomment this to correct gas consumption for a ComStock run to match CBECS
     # Don't typically want to do this
@@ -52,6 +52,7 @@ def main():
     # cbecs.export_to_csv_wide()  # May comment this out if CSV output isn't needed
     # comstock.export_to_csv_wide()  # May comment this out if CSV output isn't needed
     # comstock.export_to_csv_long()  # May comment this out if CSV output isn't needed
+    # comstock.add_national_scaling_weights()
     comstock.export_to_parquet_wide()
     comstock.export_to_csv_wide()
     # Create measure run comparisons; only use if run has measures
