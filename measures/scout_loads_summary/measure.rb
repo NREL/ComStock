@@ -72,6 +72,13 @@ class ScoutLoadsSummary < OpenStudio::Measure::ReportingMeasure
     end
     model = model.get
 
+    # model.getThermalZones.each do |zone|
+    #   density_var = "Output:Variable,#{zone.name.get} Zone Air Node, System Node Current Density, #{freq};"
+    #   sp_heat_var = "Output:Variable,#{zone.name.get} Zone Air Node, System Node Specific Heat, #{freq};"
+    #   result << OpenStudio::IdfObject.load(density_var).get
+    #   result << OpenStudio::IdfObject.load(sp_heat_var).get
+    # end
+
     # Request the unique set of outputs
     runner.registerInfo("Requesting custom meters for HVAC and other end uses")
     bldg_meters = OsLib::Scout::BuildingMeters::BuildingMeterSet.new(num_ts=1) # initialize values to a 1-item array for speed
@@ -79,6 +86,10 @@ class ScoutLoadsSummary < OpenStudio::Measure::ReportingMeasure
     bldg_meters.all_supply_meter_idf_objects(model).each do |meter_idf|
       result << meter_idf
     end
+
+    # result << OpenStudio::IdfObject.load("Output:Diagnostics, DisplayZoneAirHeatBalanceOffBalance;").get
+    # result << OpenStudio::IdfObject.load("Output:Diagnostics, DisplayZoneAirHeatBalanceOffBalance, DisplayExtraWarnings;").get
+    # result << OpenStudio::IdfObject.load("Output:Diagnostics, DisplayAdvancedReportVariables;").get
 
     result
   end
@@ -206,7 +217,9 @@ class ScoutLoadsSummary < OpenStudio::Measure::ReportingMeasure
     total_building_calculated_energy_balance = Vector.elements(Array.new(num_ts, 0.0))
     total_building_true_energy_balance = Vector.elements(Array.new(num_ts, 0.0))
     model.getThermalZones.each do |zone|
-      # Get the heat transfer broken out by component
+      # REMOVE
+      # next unless zone == model.getThermalZones.first
+
       heat_transfer_vectors = OsLib_HeatTransfer.thermal_zone_heat_transfer_vectors(runner, zone, sql, freq, debug_mode)
 
       # Save zone level heat transfer vectors for debugging
@@ -351,13 +364,43 @@ class ScoutLoadsSummary < OpenStudio::Measure::ReportingMeasure
       end
 
       # Write zone vectors to file
-      CSV.open('./zone_timeseries_with_datetime_index.csv', 'w') do |csv|
-        debug_bldg_heat_transfer_vectors.transpose.each_with_index do |row,i|
-          i == 0 ? idx = 'datetime_index' : idx = start_dt + 3600.0 * (24.0 + (i.to_f/4))
-          row = row.unshift(idx)
+      CSV.open('./zone_timeseries_dview.csv', 'w') do |csv|
+        # write in DVIEW format for easy viewing
+        num_columns = debug_bldg_heat_transfer_vectors.length
+        num_rows = debug_bldg_heat_transfer_vectors.first.length
+        # specification
+        csv << ['wxDVFileHeaderVer.1']
+        # series names
+        csv << debug_bldg_heat_transfer_vectors.map(&:first)
+        # start time
+        csv << Array.new(num_columns, 0.25)
+        # time interval
+        csv << Array.new(num_columns, 8760.0/(num_rows-1).round(2))
+        # units
+        units = debug_bldg_heat_transfer_vectors.map do |col|
+          if col.first.include?'Error'
+            '%'
+          elsif col.first.include? 'Temperature'
+            'C'
+          else 'J'
+          end
+        end
+        csv << units
+        # data
+        (1...num_rows).each do |row_index|
+          row = debug_bldg_heat_transfer_vectors.map { |col| col[row_index] }
           csv << row
         end
       end
+
+      # original
+      # CSV.open('./zone_timeseries_with_datetime_index.csv', 'w') do |csv|
+        # debug_bldg_heat_transfer_vectors.transpose.each_with_index do |row,i|
+        #   i == 0 ? idx = 'datetime_index' : idx = start_dt + 3600.0 * (24.0 + (i.to_f/4))
+        #   row = row.unshift(idx)
+        #   csv << row
+        # end
+      # end
     else
       runner.registerInfo("Timeseries data .csvs not requested.")
     end
