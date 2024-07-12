@@ -7,6 +7,7 @@ import botocore
 import logging
 import numpy as np
 import pandas as pd
+import polars as pl
 
 from comstockpostproc.naming_mixin import NamingMixin
 from comstockpostproc.units_mixin import UnitsMixin
@@ -75,6 +76,12 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         logger.debug('\nCBECS columns after adding all data')
         for c in self.data.columns:
             logger.debug(c)
+
+        assert isinstance(self.data, pd.DataFrame)
+        logging.info(f'Created {self.dataset_name} with {len(self.data)} rows')
+        self.data = self.data.astype(str)
+        self.data = pl.from_pandas(self.data).lazy()
+        assert isinstance(self.data, pl.LazyFrame)
 
     def download_data(self):
         # CBECS microdata

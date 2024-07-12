@@ -45,31 +45,35 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         dataset_names = []
         comstock_color_map = {}
         for dataset in (cbecs_list + comstock_list):
-
+            assert isinstance(dataset.data, pl.LazyFrame)
             # remove measure data from ComStock
             if isinstance(dataset, ComStock):
                 dataset.add_sightglass_column_units()  # Add units to SightGlass columns if missing
+                valid_upgrade_id = dataset.data.select(dataset.UPGRADE_ID).unique().collect().to_series().to_list()
+                valid_upgrades_name = dataset.data.select(dataset.UPGRADE_NAME).unique().collect().to_series().to_list()
+                up_name_map = dict(zip(valid_upgrade_id, valid_upgrades_name))
+                logger.info(f"Valid upgrades for {dataset.dataset_name}: {valid_upgrade_id} with names {valid_upgrades_name}")
                 if upgrade_id == 'All':
-                    df_data = dataset.data.to_pandas()
+                    # df_data: pl.LazyFrame = dataset.data
                     # df_data[dataset.DATASET] = df_data[dataset.DATASET] + ' - ' + df_data['upgrade_name']
-                    comstock_dfs_to_concat.append(df_data)
-                    df_data[dataset.DATASET] = df_data[dataset.DATASET].astype(str) + ' - ' + df_data[dataset.UPGRADE_NAME].astype(str)
-                    dfs_to_concat.append(df_data)
-                    up_name_map = dict(zip(df_data[dataset.UPGRADE_ID].unique(), df_data[dataset.UPGRADE_NAME].unique()))
-                    upgrade_list = list(df_data[dataset.UPGRADE_ID].unique())
-                    color_dict = self.linear_gradient(dataset.COLOR_COMSTOCK_BEFORE, dataset.COLOR_COMSTOCK_AFTER, len(upgrade_list))
-                    for idx, upgrade_id in enumerate(upgrade_list):
+                    comstock_dfs_to_concat.append(dataset.data)
+                    # df_data[dataset.DATASET] = df_data[dataset.DATASET].astype(str) + ' - ' + df_data[dataset.UPGRADE_NAME].astype(str)
+                    dataset.data = dataset.data.with_columns((pl.col(dataset.DATASET).cast(pl.Utf8) + ' - ' + pl.col(dataset.UPGRADE_NAME).cast(pl.Utf8)).alias(dataset.DATASET))        
+                    dfs_to_concat.append(dataset.data)
+                    # up_name_map = dict(zip(df_data[dataset.UPGRADE_ID].unique(), df_data[dataset.UPGRADE_NAME].unique()))
+                    # upgrade_list = list(df_data[dataset.UPGRADE_ID].unique())
+                    color_dict = self.linear_gradient(dataset.COLOR_COMSTOCK_BEFORE, dataset.COLOR_COMSTOCK_AFTER, len(valid_upgrade_id))
+                    for idx, upgrade_id in enumerate(valid_upgrade_id):
                         dataset_name = dataset.dataset_name + ' - ' + up_name_map[upgrade_id]
                         dataset_names.append(dataset_name)
                         comstock_color_map[dataset_name] = color_dict['hex'][idx]
                         self.color_map[dataset_name] = color_dict['hex'][idx]
-                elif upgrade_id not in dataset.data[dataset.UPGRADE_ID]:
+                elif upgrade_id not in valid_upgrade_id:
                     logger.error(f"Upgrade {upgrade_id} not found in {dataset.dataset_name}. Enter a valid upgrade ID in the ComStockToCBECSComparison constructor or \"All\" to include all upgrades.")
                 else:
-                    # df_data = dataset.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).to_pandas()
-                    df_data = dataset.data.filter(pl.col(dataset.UPGRADE_ID) == upgrade_id).to_pandas()
-                    df_data[dataset.DATASET] = df_data[dataset.DATASET].astype(str) + ' - ' + df_data[dataset.UPGRADE_NAME].astype(str)
-                    dataset_name = dataset.dataset_name + ' - ' + df_data.iloc[0][dataset.UPGRADE_NAME]
+                    df_data = dataset.data.filter(pl.col(dataset.UPGRADE_ID) == upgrade_id)
+                    df_data = df_data.with_columns((pl.col(dataset.DATASET).cast(pl.Utf8) + ' - ' + pl.col(dataset.UPGRADE_NAME).cast(pl.Utf8)).alias(dataset.DATASET)) 
+                    dataset_name = dataset.dataset_name + " - " + up_name_map[upgrade_id]
                     comstock_dfs_to_concat.append(df_data)
                     dfs_to_concat.append(df_data)
                     comstock_color_map[dataset_name] = dataset.color
@@ -84,23 +88,42 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         # Name the comparison
         if self.name is None:
             if len(dataset_names) > 2:
-                self.name = ' vs '.join(sorted(dataset_names,key=len)[:2]) + ' and Upgrades'
+                self.name = ' vs '.join(sorted(dataset_names, key=len)[:2]) + ' and Upgrades'
             else:
                 self.name = ' vs '.join(sorted(dataset_names))
 
         # Combine into a single dataframe for convenience
-        self.data = pd.concat(dfs_to_concat, join='inner', ignore_index=True)
+        # self.data = pd.concat(dfs_to_concat, join='inner', ignore_index=True)
+        
+        #There is no such a join='inner' in polars.concat, implement it mannualy
+        common_columns = set(dfs_to_concat[0].columns)
+        for df in dfs_to_concat:
+            common_columns = common_columns.intersection(set(df.columns))
+        dfs_to_concat = [df.select(common_columns) for df in dfs_to_concat]
+        self.data: pl.LazyFrame = pl.concat(dfs_to_concat, how="vertical_relaxed")
         current_dir = os.path.dirname(os.path.abspath(__file__))
 
         # Combine just comstock runs into single dataframe for QOI plots
-        comstock_df = pd.concat(comstock_dfs_to_concat, join='inner', ignore_index=True)
-        comstock_df = comstock_df[[self.DATASET] + self.QOI_MAX_DAILY_TIMING_COLS + self.QOI_MAX_USE_COLS + self.QOI_MIN_USE_COLS + self.QOI_MAX_USE_COLS_NORMALIZED + self.QOI_MIN_USE_COLS_NORMALIZED]
-
+        comstock_df = pl.concat(comstock_dfs_to_concat, how="vertical_relaxed")
+        # comstock_df = comstock_df[[self.DATASET] + self.QOI_MAX_DAILY_TIMING_COLS + self.QOI_MAX_USE_COLS + self.QOI_MIN_USE_COLS + self.QOI_MAX_USE_COLS_NORMALIZED + self.QOI_MIN_USE_COLS_NORMALIZED]
+        comstock_qoi_columns = [self.DATASET] + self.QOI_MAX_DAILY_TIMING_COLS + self.QOI_MAX_USE_COLS + self.QOI_MIN_USE_COLS + self.QOI_MAX_USE_COLS_NORMALIZED + self.QOI_MIN_USE_COLS_NORMALIZED 
+        comstock_df: pl.LazyFrame = comstock_df.select(comstock_qoi_columns)
+        
         # Make directories
         self.output_dir = os.path.join(current_dir, '..', 'output', self.name)
         for p in [self.output_dir]:
             if not os.path.exists(p):
                 os.makedirs(p)
+        
+        logger.info(f"type of self.data columns: {self.data.columns, self.data.dtypes, len(self.data.columns), len(self.data.dtypes)}")
+        logger.info(f"type of comstock_df columns: {comstock_df.columns, comstock_df.dtypes}")
+
+        assert isinstance(self.data, pl.LazyFrame)
+        assert isinstance(comstock_df, pl.LazyFrame)
+        self.data: pd.DataFrame = self.data.collect().to_pandas()
+        comstock_df: pd.DataFrame = comstock_df.collect().to_pandas()
+        assert isinstance(self.data, pd.DataFrame)
+        assert isinstance(comstock_df, pd.DataFrame)
 
         # Make ComStock to CBECS comparison plots
         if make_comparison_plots:

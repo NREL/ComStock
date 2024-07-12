@@ -18,8 +18,8 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
         # Initialize members
         assert isinstance(comstock_object.data, pl.LazyFrame)
         self.data = comstock_object.data.clone() #not really a deep copy, only schema is copied but not data.
-        logger.info(f"self.data type is {type(self.data)}, {isinstance(self.data, pl.lazyframe.frame.LazyFrame)}")
         assert isinstance(self.data, pl.LazyFrame)
+
         self.color_map = {}
         self.image_type = image_type
         self.name = name

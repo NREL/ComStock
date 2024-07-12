@@ -231,7 +231,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # Now, we have self.data is one huge LazyFrame
             # which is exactly like self.data was before because it includes all upgrades
             self.data = pl.concat(up_lazyframes)
-
+            logger.info(f'comstock data schema: {self.data.dtypes()}')
             # logger.debug('\nComStock columns after adding all data:')
             # for c in self.data.columns:
             #     logger.debug(c)
@@ -1821,7 +1821,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # comstock_bldg_types = self.data[self.BLDG_TYPE].unique()
         assert isinstance(self.data, pl.LazyFrame)
         comstock_bldg_types: pl.DataFrame = self.data.select(self.BLDG_TYPE).unique().collect()
-                
+        
+        cbecs.data = cbecs.data.collect().to_pandas()
+        assert isinstance(cbecs.data, pd.DataFrame)
         bldg_types_to_keep = [] #if the bldg types in both CBECS and ComStock, keep them.
         for bt in cbecs.data[self.BLDG_TYPE].unique():
             if bt in comstock_bldg_types:
@@ -1830,10 +1832,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         if remove_non_comstock_bldg_types_from_cbecs:
             # Modify CBECS to remove building types not covered by ComStock
             cbecs.data = cbecs.data[cbecs.data[self.BLDG_TYPE].isin(bldg_types_to_keep)]
-            cbecs = cbecs.data.copy(deep=True)
+            cbecsData = cbecs.data.copy(deep=True)
         else:
             # Make a copy of CBECS, leaving the original unchanged
-            cbecs = cbecs.data[cbecs.data[self.BLDG_TYPE].isin(bldg_types_to_keep)].copy(deep=True)
+            cbecsData = cbecs.data[cbecs.data[self.BLDG_TYPE].isin(bldg_types_to_keep)].copy(deep=True)
 
         # Calculate scaling factors used to scale ComStock results to CBECS square footages
         # Only includes successful ComStock simulations, so the failure rate will
@@ -1841,7 +1843,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Total sqft of each building type, CBECS
         wt_area_col = self.col_name_to_weighted(self.FLR_AREA)
-        cbecs_bldg_type_sqft = cbecs[[wt_area_col, self.BLDG_TYPE]].groupby([self.BLDG_TYPE]).sum()
+        cbecs_bldg_type_sqft = cbecsData[[wt_area_col, self.BLDG_TYPE]].groupby([self.BLDG_TYPE]).sum()
         logger.debug('CBECS floor area by building type')
         logger.debug(cbecs_bldg_type_sqft)
 
@@ -1905,6 +1907,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 logger.info('Energy savings columns already in data')
         # Adding weighting factors to the monthly data
         self.get_scaled_comstock_monthly_consumption_by_state()
+        
+        assert isinstance(cbecs.data, pd.DataFrame)
+        cbecs.data = pl.from_pandas(cbecs.data).lazy()
+        assert isinstance(cbecs.data, pl.LazyFrame)
         return bldg_type_scale_factors
 
     def add_weighted_area_and_energy_columns(self):
