@@ -582,6 +582,7 @@ module OsLib_HeatTransfer
         # Add to total for this internal mass
         vect = -1.0 * Vector.elements(ht_transfer_vals) # reverse sign of vector
         heat_transfer_vectors['Zone Internal Mass Convection Heat Transfer Energy'] += vect
+        # puts heat_transfer_vectors['Zone Internal Mass Convection Heat Transfer Energy'].to_a.sum
         total_surface_convection += vect
 
         # add surface area of internal mass
@@ -693,8 +694,10 @@ module OsLib_HeatTransfer
       'Zone Internal Surface Convection Heat Transfer Energy'
     ]
     interior_convection_terms.each do |term|
-      correction = -1 * heat_transfer_vectors[term]
-      heat_transfer_vectors[term] += correction
+      # correction = -1 * heat_transfer_vectors[term]
+      correction = heat_transfer_vectors[term]
+      # heat_transfer_vectors[term] += correction
+      heat_transfer_vectors[term] -= correction
       zone_surface_areas.each do |k, v|
         next unless k.include? 'Exterior'
         ext_surface_fraction = v / total_zone_exterior_surface_area
@@ -715,6 +718,9 @@ module OsLib_HeatTransfer
           heat_transfer_vectors['Zone Exterior Door Convection Heat Transfer Energy'] += ext_surface_fraction * correction
         end
       end
+
+      final_sum = heat_transfer_vectors[term].to_a.sum
+      raise "#{term} not reallocated correctly: ended up with total: #{final_sum}" unless final_sum == 0.0
     end
 
     # Re-attributed delayed solar, delayed internal gains, and internal surface convection to exterior surfaces
@@ -838,6 +844,9 @@ module OsLib_HeatTransfer
     heat_transfer_vectors['Error in Energy Balance'] = total_zone_energy_balance_error
     heat_transfer_vectors["#{zone_name}: Annual Gain Error in Total Energy Balance"] = total_zone_energy_balance_annual_gain_error
     heat_transfer_vectors["#{zone_name}: Annual Loss Error in Total Energy Balance"] = total_zone_energy_balance_annual_loss_error
+    # heat_transfer_vectors["Zone Air Temperature"] = Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Mean Air Temperature', zone_name, num_ts, celsius))
+    # heat_transfer_vectors["Zone Air Density"] = Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'System Node Current Density', "#{zone_name} Zone Air Node", num_ts, 'kg/m3'))
+    # heat_transfer_vectors["Zone Air Specific Heat"] = Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'System Node Specific Heat', "#{zone_name} Zone Air Node", num_ts, 'J/kg-K'))
 
     return heat_transfer_vectors
   end
