@@ -470,8 +470,8 @@ module OsLib_HeatTransfer
     # include timeseries checks if in debug mode
     if debug_mode
       # window validation variables
-      heat_transfer_vectors['Zone Windows Total Heat Gain'] = sec_per_step * Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Windows Total Heat Gain Rate', zone_name, num_ts, watts))
-      heat_transfer_vectors['Zone Windows Total Heat Loss'] = sec_per_step * Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Windows Total Heat Loss Rate', zone_name, num_ts, watts))
+      heat_transfer_vectors['Zone Windows Total Heat Gain'] = Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Windows Total Heat Gain Energy', zone_name, num_ts, joules))
+      heat_transfer_vectors['Zone Windows Total Heat Loss'] = Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Windows Total Heat Loss Energy', zone_name, num_ts, joules))
     end
 
     # NET SURFACE CONVECTION
