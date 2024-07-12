@@ -306,8 +306,12 @@ module OsLib_HeatTransfer
     # RTS values = amount of earlier solar radiation heat gain that becomes convective heat gain during the current hour (0 = current hr)
     #   ASHRAE HOF 2013 Chapter 18 Table 20: Representative Solar RTS Values for Light to Heavy Construction
     #   Medium Construction, 50% glass, with carpet
-    # hrs = [0,    1,    2,    3,    4,    5,    6,    7,    8,    9,    10,   11,   12,   13,   14,   15,   16,   17,   18,   19,  20,  21,  22,  23]
-    rts = [0.54, 0.16, 0.08, 0.04, 0.03, 0.02, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.0, 0.0, 0.0, 0.0, 0.0]
+    hrs = [0,    1,    2,    3,    4,    5,    6,    7,    8,    9,    10,   11,   12,   13,   14,   15,   16,   17,   18,   19,  20,  21,  22,  23]
+    # rts = [0.54, 0.16, 0.08, 0.04, 0.03, 0.02, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.0, 0.0, 0.0, 0.0, 0.0]
+    #   ASHRAE HOF 2013 Chapter 18 Table 19: Representative Nonsolar RTS Values for Light to Heavy Construction
+    #   Medium Construction, 50% glass, with carpet
+
+    rts = [0.49, 0.17, 0.09, 0.05, 0.03, 0.02, 0.02, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.0, 0.00, 0.00, 0.00]
     # These numbers are roughly accurate, but change depending on several characteristics.
     # Using a pulse of radiant gain in EnergyPlus gives slightly different values:
     # adjusted_rts = [0.605, 0.106, 0.063, 0.053, 0.048, 0.042, 0.038, 0.030, 0.015, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.0, 0.0, 0.0, 0.0, 0.0]
