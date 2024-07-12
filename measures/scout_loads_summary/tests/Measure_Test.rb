@@ -10,13 +10,17 @@ require_relative '../../../test/helpers/minitest_helper'
 
 require 'fileutils'
 
-class ScoutLoadsSummary_Test < MiniTest::Test
+class ScoutLoadsSummary_Test < Minitest::Test
   def epw_path_default
     # make sure we have a weather data location
     epw = nil
     epw = OpenStudio::Path.new("#{__dir__}/USA_CO_Golden-NREL.724666_TMY3.epw")
     assert(File.exist?(epw.to_s))
     return epw.to_s
+  end
+
+  def debug
+    return true
   end
 
   def run_dir(test_name)
@@ -160,12 +164,17 @@ class ScoutLoadsSummary_Test < MiniTest::Test
     start_dir = Dir.pwd
     begin
       Dir.chdir(run_dir(test_name))
-
+      $stdout.reopen('test_output.txt', 'w')
+      $stdout.sync = true
       # run the measure
       measure.run(runner, argument_map)
       result = runner.result
       show_output(result)
+
+
       assert_equal('Success', result.value.valueName)
+
+      $stdout = STDOUT
 
     ensure
       Dir.chdir(start_dir)
@@ -181,9 +190,9 @@ class ScoutLoadsSummary_Test < MiniTest::Test
 
     # Set the arguments to test
     args_hash = {
-        'report_timeseries_data' => false,
+        'report_timeseries_data' => true,
         'enable_supply_side_reporting' => false,
-        'debug_mode' => false
+        'debug_mode' => debug
     }
 
     # Run the measure
@@ -201,7 +210,7 @@ class ScoutLoadsSummary_Test < MiniTest::Test
     args_hash = {
         'report_timeseries_data' => false,
         'enable_supply_side_reporting' => true,
-        'debug_mode' => false
+        'debug_mode' => debug
     }
 
     # Run the measure
@@ -219,7 +228,7 @@ class ScoutLoadsSummary_Test < MiniTest::Test
     args_hash = {
         'report_timeseries_data' => true,
         'enable_supply_side_reporting' => true,
-        'debug_mode' => true
+        'debug_mode' => debug
     }
 
     # Run the measure
@@ -237,7 +246,7 @@ class ScoutLoadsSummary_Test < MiniTest::Test
     args_hash = {
         'report_timeseries_data' => true,
         'enable_supply_side_reporting' => true,
-        'debug_mode' => true
+        'debug_mode' => debug
     }
 
     # Run the measure
@@ -255,7 +264,7 @@ class ScoutLoadsSummary_Test < MiniTest::Test
     args_hash = {
         'report_timeseries_data' => true,
         'enable_supply_side_reporting' => true,
-        'debug_mode' => true
+        'debug_mode' => debug
     }
 
     # Run the measure
@@ -273,7 +282,7 @@ class ScoutLoadsSummary_Test < MiniTest::Test
     args_hash = {
         'report_timeseries_data' => true,
         'enable_supply_side_reporting' => true,
-        'debug_mode' => true
+        'debug_mode' => debug
     }
 
     # Run the measure
@@ -295,7 +304,7 @@ class ScoutLoadsSummary_Test < MiniTest::Test
     args_hash = {
         'report_timeseries_data' => true,
         'enable_supply_side_reporting' => true,
-        'debug_mode' => true
+        'debug_mode' => debug
     }
 
     # Run the measure
@@ -313,7 +322,7 @@ class ScoutLoadsSummary_Test < MiniTest::Test
     args_hash = {
         'report_timeseries_data' => true,
         'enable_supply_side_reporting' => true,
-        'debug_mode' => true
+        'debug_mode' => debug
     }
 
     # Run the measure
@@ -331,7 +340,7 @@ class ScoutLoadsSummary_Test < MiniTest::Test
     args_hash = {
         'report_timeseries_data' => true,
         'enable_supply_side_reporting' => false,
-        'debug_mode' => true
+        'debug_mode' => debug
     }
 
     # Run the measure
@@ -349,7 +358,7 @@ class ScoutLoadsSummary_Test < MiniTest::Test
     args_hash = {
         'report_timeseries_data' => true,
         'enable_supply_side_reporting' => false,
-        'debug_mode' => true
+        'debug_mode' => debug
     }
 
     # Run the measure
@@ -367,7 +376,7 @@ class ScoutLoadsSummary_Test < MiniTest::Test
     args_hash = {
         'report_timeseries_data' => true,
         'enable_supply_side_reporting' => false,
-        'debug_mode' => true
+        'debug_mode' => debug
     }
 
     # Run the measure
@@ -385,7 +394,7 @@ class ScoutLoadsSummary_Test < MiniTest::Test
     args_hash = {
         'report_timeseries_data' => false,
         'enable_supply_side_reporting' => false,
-        'debug_mode' => false
+        'debug_mode' => debug
     }
 
     # Run the measure
@@ -401,9 +410,9 @@ class ScoutLoadsSummary_Test < MiniTest::Test
 
     # Set the arguments to test
     args_hash = {
-        'report_timeseries_data' => false,
-        'enable_supply_side_reporting' => false,
-        'debug_mode' => false
+        'report_timeseries_data' => true,
+        'enable_supply_side_reporting' => true,
+        'debug_mode' => debug
     }
 
     # Run the measure
