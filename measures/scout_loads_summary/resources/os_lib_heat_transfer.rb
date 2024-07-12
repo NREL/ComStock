@@ -249,6 +249,9 @@ module OsLib_HeatTransfer
       puts "Calculating heat transfer vectors for #{zone_name}"
     end
 
+    # space name for enclosure variables, see: https://github.com/NREL/EnergyPlus/issues/10552
+    space_name = zone.spaces.first.name.get
+
     # Get the annual run period
     ann_env_pd = nil
     sql.availableEnvPeriods.each do |env_pd|
@@ -425,7 +428,7 @@ module OsLib_HeatTransfer
     # solar radiation and current timestep conduction from the temperature difference between the ground/floor and the soil/zone below.
 
     # Solar radiation gain (always positive)
-    wind_solar_rad_vals = Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Windows Total Transmitted Solar Radiation Energy', zone_name, num_ts, joules))
+    wind_solar_rad_vals = Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Windows Total Transmitted Solar Radiation Energy', space_name, num_ts, joules))
     heat_transfer_vectors['Zone Windows Total Transmitted Solar Radiation Energy'] = wind_solar_rad_vals
 
     # RTS solar radiation energy per timestep for past 24 hrs
