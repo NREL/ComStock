@@ -671,10 +671,12 @@ module OsLib_HeatTransfer
         heat_transfer_vectors['Zone Interior Floor Convection Heat Transfer Energy'] -= surface_fraction * total_delayed_internal_gains
       when 'Interior Ceiling'
         heat_transfer_vectors['Zone Interior Ceiling Convection Heat Transfer Energy'] -= surface_fraction * total_delayed_internal_gains
-      when 'Interior Mass'
+      when 'Internal Mass'
         heat_transfer_vectors['Zone Internal Mass Convection Heat Transfer Energy'] -= surface_fraction * total_delayed_internal_gains
       when 'Internal Surface'
         heat_transfer_vectors['Zone Internal Surface Convection Heat Transfer Energy'] -= surface_fraction * total_delayed_internal_gains
+      else
+        puts "what is #{k}??"
       end
       if debug_mode
         runner.registerInfo("For zone #{zone_name}, #{surface_fraction.round(3)} #{k} surface fraction.")
