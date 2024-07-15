@@ -245,7 +245,7 @@ class AdjustSupplyAirTemperatureTest < Minitest::Test
 
     # load the test model
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = "#{File.dirname(__FILE__)}/secondar_school_vav_system_comstock"
+    path = "#{File.dirname(__FILE__)}/secondar_school_vav_system_comstock.osm"
     model = translator.loadModel(path)
     assert(!model.empty?)
     model = model.get
@@ -330,4 +330,5 @@ class AdjustSupplyAirTemperatureTest < Minitest::Test
    assert(result.value.valueName == 'Success')
 
  end
+
 end
