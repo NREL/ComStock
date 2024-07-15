@@ -29,7 +29,7 @@ class AdjustSupplyAirTemperature < OpenStudio::Measure::ModelMeasure
     sat = OpenStudio::Measure::OSArgument.makeDoubleArgument('sat', true)
     sat.setDisplayName('Minimum Cooling Supply Air Temperature')
     sat.setDefaultValue(55.0)
-    sat.setMinValue(52.0)
+    sat.setMinValue(40.0)
     args << sat
 
     # apply/not apply measure
@@ -63,7 +63,8 @@ class AdjustSupplyAirTemperature < OpenStudio::Measure::ModelMeasure
       runner.registerAsNotApplicable('Measure not applied based on user input.')
       return true
     end
-
+    require 'openstudio-standards'
+    std = Standard.build('90.1-2013')
 
     applicable_cz = []
     (1..4).each do |num|
@@ -75,12 +76,6 @@ class AdjustSupplyAirTemperature < OpenStudio::Measure::ModelMeasure
     props = model.getBuilding.additionalProperties
     ct = 0
     climate_zone_feature = props.getFeatureAsString('climate_zone')
-
-
-
-
-
-
 
     if climate_zone_feature.is_initialized && applicable_cz.any? { |cz| climate_zone_feature.get.include?(cz) }
       # Code to be executed if climate zone is included in applicable_cz list
