@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>adjust_supply_air_temperature</name>
   <uid>36339b8e-7e14-43f8-aa8b-46e77ee75fe4</uid>
-  <version_id>95985cb4-0688-44d8-bff4-d453d62d11ee</version_id>
-  <version_modified>2024-07-08T20:41:52Z</version_modified>
+  <version_id>86def6ee-5685-4aae-adda-9499c6d9e92b</version_id>
+  <version_modified>2024-07-15T17:26:45Z</version_modified>
   <xml_checksum>049B79A2</xml_checksum>
   <class_name>AdjustSupplyAirTemperature</class_name>
   <display_name>adjust_min_cooling_supply_air_temperature</display_name>
@@ -18,7 +18,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>55</default_value>
-      <min_value>52.000000</min_value>
+      <min_value>40.000000</min_value>
     </argument>
     <argument>
       <name>apply_measure</name>
@@ -108,19 +108,25 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>CDEF1101</checksum>
+      <checksum>B322AB58</checksum>
     </file>
     <file>
-      <filename>adjust_vav_min_damper_position_test.rb</filename>
+      <filename>adjust_supply_air_temp_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>E6BDFBA4</checksum>
+      <checksum>3DA0E482</checksum>
     </file>
     <file>
       <filename>example_model.osm</filename>
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
       <checksum>53D14E69</checksum>
+    </file>
+    <file>
+      <filename>secondar_school_vav_system_comstock.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>FD465459</checksum>
     </file>
     <file>
       <filename>secondar_school_vav_system_comstock.osm</filename>
