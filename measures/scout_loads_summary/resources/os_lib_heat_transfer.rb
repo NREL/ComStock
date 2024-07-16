@@ -676,10 +676,10 @@ module OsLib_HeatTransfer
       'Zone Internal Surface Convection Heat Transfer Energy'
     ]
     interior_convection_terms.each do |term|
-      correction = -1 * heat_transfer_vectors[term]
-      # correction = heat_transfer_vectors[term]
-      heat_transfer_vectors[term] += correction
-      # heat_transfer_vectors[term] -= correction
+      # correction = -1 * heat_transfer_vectors[term]
+      correction = heat_transfer_vectors[term]
+      # heat_transfer_vectors[term] += correction
+      heat_transfer_vectors[term] -= correction
       zone_surface_areas.each do |k, v|
         next unless k.include? 'Exterior'
         ext_surface_fraction = v / total_zone_exterior_surface_area
