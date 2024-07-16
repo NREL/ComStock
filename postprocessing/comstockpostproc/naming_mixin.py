@@ -1,6 +1,7 @@
 # ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 import re
+import matplotlib.colors as mcolors
 
 class NamingMixin():
     # Column aliases for code readability
@@ -149,6 +150,9 @@ class NamingMixin():
         UTIL_BILL_PROPANE
     ]
 
+    # Combined utility bills
+    UTIL_BILL_TOTAL_MEAN = 'calc.utility_bills.total_mean_bill..usd'
+
     # GHG emissions columns
     ANN_GHG_EGRID = 'calc.emissions.total_with_egrid..co2e_kg'
     ANN_GHG_CAMBIUM = 'calc.emissions.total_with_cambium_mid_case_15y..co2e_kg'
@@ -201,14 +205,15 @@ class NamingMixin():
 
     # Addressable segment columns
     SEG_A = 'A: Non Food-Service Buildings with Small Packaged Units'
-    SEG_B = 'B: Food-Service, Freestanding and in Strip Malls with Small Packaged Units'
-    SEG_C = 'C: Buildings with Hydronically Heated Multizone Systems'
-    SEG_D = 'D: Lodging with Zone-by-Zone Systems'
-    SEG_E = 'E: Buildings with Electric Resistance Multizone Systems'
-    SEG_F = 'F: Buildings with Furnace-Based Multizone Systems'
-    SEG_G = 'G: Buildings with Residential Style Central Systems'
-    SEG_H = 'H: Non-Lodging Buildings with Zone-by-Zone Systems'
-    SEG_I = 'I: Other'
+    SEG_B = 'B: Food-Service Buildings with Small Packaged Units'
+    SEG_C = 'C: Strip Malls with some Food-Service with Small Packaged Units'
+    SEG_D = 'D: Buildings with Hydronically Heated Multizone Systems'
+    SEG_E = 'E: Lodging with Zone-by-Zone Systems'
+    SEG_F = 'F: Buildings with Electric Resistance Multizone Systems'
+    SEG_G = 'G: Buildings with Furnace-Based Multizone Systems'
+    SEG_H = 'H: Buildings with Residential Style Central Systems'
+    SEG_I = 'I: Non-Lodging Buildings with Zone-by-Zone Systems'
+    SEG_J = 'J: Other'
 
     # List of addressable segments
     COLS_SEGMENTS = [
@@ -220,7 +225,8 @@ class NamingMixin():
         SEG_F,
         SEG_G,
         SEG_H,
-        SEG_I
+        SEG_I,
+        SEG_J
     ]
 
     # List of total annual energy columns
@@ -452,6 +458,27 @@ class NamingMixin():
     COLOR_EIA = '#D55E00'
     COLOR_AMI = '#CC79A7'
 
+    # standard end use colors for plotting
+    ENDUSE_COLOR_DICT = {
+                'Heating':'#EF1C21',
+                'Cooling':'#0071BD',
+                'Interior Lighting':'#F7DF10',
+                'Exterior Lighting':'#DEC310',
+                'Interior Equipment':'#4A4D4A',
+                'Exterior Equipment':'#B5B2B5',
+                'Fans':'#FF79AD',
+                'Pumps':'#632C94',
+                'Heat Rejection':'#F75921',
+                'Humidification':'#293094',
+                'Heat Recovery': '#CE5921',
+                'Water Systems': '#FFB239',
+                'Refrigeration': '#29AAE7',
+                'Generators': '#8CC739'
+                }
+
+    # Convert color codes to RGBA with opacity 1.0
+    PLOTLY_ENDUSE_COLOR_DICT = {key: f"rgba({int(mcolors.to_rgba(value, alpha=1.0)[0]*255)},{int(mcolors.to_rgba(value, alpha=1.0)[1]*255)},{int(mcolors.to_rgba(value, alpha=1.0)[2]*255)},{mcolors.to_rgba(value, alpha=1.0)[3]})" for key, value in ENDUSE_COLOR_DICT.items()}
+
     # Define ordering for some categorical variables to make plots easier to interpret
     ORDERED_CATEGORIES = {
         FLR_AREA_CAT:
@@ -579,7 +606,10 @@ class NamingMixin():
         return units
 
     def col_name_to_weighted(self, col_name, new_units=None):
-        col_name = col_name.replace('in.', 'out.')
+
+        # 'if' statement to avoid "min." inclusion in "in." replace
+        if col_name.startswith('in.'):
+            col_name = col_name.replace('in.', 'out.')
         col_name = col_name.replace('out.', 'calc.')
         col_name = col_name.replace('calc.', 'calc.weighted.')
         if not new_units is None:
@@ -596,6 +626,7 @@ class NamingMixin():
 
     def col_name_to_savings(self, col_name, new_units=None):
         col_name = col_name.replace('.energy_consumption', '.energy_savings')
+        col_name = col_name.replace('_bill_', '_bill_savings_')
         return col_name
 
     def col_name_to_weighted_percent_savings(self, col_name, new_units=None):
@@ -630,6 +661,9 @@ class NamingMixin():
     def col_name_to_area_intensity(self, col_name):
         units = self.units_from_col_name(col_name)
         col_name = col_name.replace('bill_mean..usd', 'bill_intensity..usd')
+        col_name = col_name.replace('bill_min..usd', 'bill_min_intensity..usd')
+        col_name = col_name.replace('bill_max..usd', 'bill_max_intensity..usd')
+        col_name = col_name.replace('bill_median..usd', 'bill_median_intensity..usd')
         col_name = col_name.replace('bill..usd', 'bill_intensity..usd')
         area_units = 'ft2'
         intensity_units = f'{units}_per_{area_units}'

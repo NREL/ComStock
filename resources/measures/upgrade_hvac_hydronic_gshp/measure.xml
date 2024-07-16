@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>hvac_hydronic_gshp</name>
   <uid>adf35b50-ba8d-416a-b6a2-b23a9ef8df0e</uid>
-  <version_id>8dbdac5e-e3d5-45d3-8243-5de6f88c1311</version_id>
-  <version_modified>2024-01-30T23:14:46Z</version_modified>
+  <version_id>f5fb594a-9e05-49f3-98a2-a36ff77f6124</version_id>
+  <version_modified>2024-03-19T20:30:35Z</version_modified>
   <xml_checksum>F0147A36</xml_checksum>
   <class_name>HVACHydronicGSHP</class_name>
   <display_name>Replace Boiler and Chiller with Hydronic GSHP</display_name>
@@ -169,7 +169,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>67EBF176</checksum>
+      <checksum>899E311F</checksum>
     </file>
     <file>
       <filename>Carrier_30WG_90kW_clg.csv</filename>
@@ -193,7 +193,7 @@
       <filename>borefield_defaults.json</filename>
       <filetype>json</filetype>
       <usage_type>resource</usage_type>
-      <checksum>998238A3</checksum>
+      <checksum>2D839C82</checksum>
     </file>
     <file>
       <filename>performance_curves.rb</filename>
@@ -205,7 +205,7 @@
       <filename>hydronic_gthp_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>C90B773E</checksum>
+      <checksum>AC78E80B</checksum>
     </file>
   </files>
 </measure>

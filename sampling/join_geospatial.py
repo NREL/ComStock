@@ -49,9 +49,9 @@ def manual_fips_update(df_buildstock):
     These counties include (2010 Census): Bedford City County, Shannon County and Wrangell-Petersburg County
     """
     county_fips_map = {
-        'G5105150': 'G5100190'          # Bedford City County changed to Bedford County
-        # 'G4601130': 'G4601020',       TODO: Look into Shannon County changing to Oglala Lakota County
-        # 'G0202800': '??'              TODO: Look into Wrangell-Petersburg County; ComStock includes Petersburg Census Area in the cluster mapping
+        'G5105150': 'G5100190',         # Bedford City County changed to Bedford County
+        'G4601130': 'G4601020',         # Shannon County, SD changed to Oglala Lakota County
+        'G0202800': 'G0202750'          # Wrangell County, AK maps to Wrangell City and Borough
     }
 
     df_buildstock.replace({'county_id': county_fips_map}, inplace=True)

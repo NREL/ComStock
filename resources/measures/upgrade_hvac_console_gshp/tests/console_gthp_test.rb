@@ -43,6 +43,8 @@ require 'fileutils'
 require 'minitest/autorun'
 require 'open3'
 require_relative '../measure.rb'
+require_relative '../../../../test/helpers/minitest_helper'
+
 
 class ConsoleGTHPTest < Minitest::Test
 
@@ -300,7 +302,7 @@ class ConsoleGTHPTest < Minitest::Test
     # Apply the measure and check if before/after results are identical
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
   end
-  
+
   # test a few non-applicable system types
   def test_direct_evap_coolers_baseboard_gas_boiler
     osm_name = 'Direct_evap_coolers_boiler.osm'
@@ -325,7 +327,7 @@ class ConsoleGTHPTest < Minitest::Test
     # Apply the measure and check if before/after results are identical
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
   end
-  
+
   def test_pvav_gas_heat_electric_reheat
     osm_name = 'PVAV_gas_heat_electric_reheat.osm'
     epw_name = 'NY_New_York_John_F_Ke_744860_16.epw'

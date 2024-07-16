@@ -115,7 +115,7 @@ class NighttimeOAControls < OpenStudio::Measure::ModelMeasure
 
     # # report final condition of model
     # runner.registerFinalCondition("The building finished with #{model.getSpaces.size} spaces.")
-	
+
 	template = 'ComStock 90.1-2013'
     std = Standard.build(template)
 
@@ -159,22 +159,28 @@ class NighttimeOAControls < OpenStudio::Measure::ModelMeasure
     li_unitary_systems.sort.each do |air_loop_hvac|
 
       # change night OA schedule to match hvac operation schedule for no night OA
-        # Schedule to control whether or not unit ventilates at night - clone hvac availability schedule
-        next unless air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.is_initialized
-        air_loop_vent_sch = air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.get
-        air_loop_vent_sch.setName("#{air_loop_hvac.name}_night_novent_schedule")
-        next unless air_loop_hvac.airLoopHVACOutdoorAirSystem.is_initialized
-        air_loop_oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get.getControllerOutdoorAir
-        next unless air_loop_oa_system.minimumOutdoorAirSchedule.is_initialized
-        air_loop_oa_system.setMinimumOutdoorAirSchedule(air_loop_vent_sch)
-        oa_schd_op_count += 1
-      end
-	  
-	   # change fan operation schedule to new clone of hvac operation schedule to ensure night cycling of fans (removing any constant schedules)
-        # Schedule to control whether or not unit ventilates at night - clone hvac availability schedule
-        next unless air_loop_hvac.availabilitySchedule.to_ScheduleRuleset.is_initialized
-        air_loop_fan_sch = air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.get
-        air_loop_fan_sch.setName("#{air_loop_hvac.name}_night_fancycle_schedule")
+      # Schedule to control whether or not unit ventilates at night - clone hvac availability schedule
+      next unless air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.is_initialized
+
+      air_loop_vent_sch = air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.get
+      air_loop_vent_sch.setName("#{air_loop_hvac.name}_night_novent_schedule")
+
+      next unless air_loop_hvac.airLoopHVACOutdoorAirSystem.is_initialized
+
+      air_loop_oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get.getControllerOutdoorAir
+
+      next unless air_loop_oa_system.minimumOutdoorAirSchedule.is_initialized
+
+      air_loop_oa_system.setMinimumOutdoorAirSchedule(air_loop_vent_sch)
+      oa_schd_op_count += 1
+    end
+
+    # change fan operation schedule to new clone of hvac operation schedule to ensure night cycling of fans (removing any constant schedules)
+    # Schedule to control whether or not unit ventilates at night - clone hvac availability schedule
+    next unless air_loop_hvac.availabilitySchedule.to_ScheduleRuleset.is_initialized
+
+    air_loop_fan_sch = air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.get
+    air_loop_fan_sch.setName("#{air_loop_hvac.name}_night_fancycle_schedule")
         # Schedule to control the airloop fan operation schedule
         air_loop_hvac.supplyComponents.each do |component|
           obj_type = component.iddObjectType.valueName.to_s
