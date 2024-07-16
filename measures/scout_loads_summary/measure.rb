@@ -220,7 +220,7 @@ class ScoutLoadsSummary < OpenStudio::Measure::ReportingMeasure
       # REMOVE
       # next unless zone == model.getThermalZones.first
 
-      heat_transfer_vectors = OsLib_HeatTransfer.thermal_zone_heat_transfer_vectors(runner, zone, sql, freq, debug_mode)
+      heat_transfer_vectors = OsLib_HeatTransfer.thermal_zone_heat_transfer_vectors(runner, zone, sql, freq, ann_env_pd, debug_mode)
 
       # Save zone level heat transfer vectors for debugging
       heat_transfer_vectors.each do |vector_name, vector_vals|

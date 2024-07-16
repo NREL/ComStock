@@ -237,7 +237,7 @@ module OsLib_HeatTransfer
   end
 
   # Calculates
-  def self.thermal_zone_heat_transfer_vectors(runner, zone, sql, freq, debug_mode)
+  def self.thermal_zone_heat_transfer_vectors(runner, zone, sql, freq, ann_env_pd, debug_mode)
     # Define variables
     joules = 'J'
     watts = 'W'
@@ -251,21 +251,6 @@ module OsLib_HeatTransfer
 
     # space name for enclosure variables, see: https://github.com/NREL/EnergyPlus/issues/10552
     space_name = zone.spaces.first.name.get
-
-    # Get the annual run period
-    ann_env_pd = nil
-    sql.availableEnvPeriods.each do |env_pd|
-      env_type = sql.environmentType(env_pd)
-      next unless env_type.is_initialized
-
-      if env_type.get == OpenStudio::EnvironmentType.new('WeatherRunPeriod')
-        ann_env_pd = env_pd
-      end
-    end
-
-    unless ann_env_pd
-      runner.registerError('An annual simulation was not run. Cannot get annual timeseries data')
-    end
 
     # Get the timestep length
     steps_per_hour = if zone.model.getSimulationControl.timestep.is_initialized
@@ -290,16 +275,16 @@ module OsLib_HeatTransfer
     heat_transfer_vectors = {}
 
     # Empty vectors for subtotals
-    total_instant_internal_gains = Vector.elements(Array.new(num_ts, 0.0))
-    total_instant_refrigeration_gains = Vector.elements(Array.new(num_ts, 0.0))
-    total_delayed_internal_gains = Vector.elements(Array.new(num_ts, 0.0))
-    total_window_radiation = Vector.elements(Array.new(num_ts, 0.0))
-    total_surface_convection = Vector.elements(Array.new(num_ts, 0.0))
-    total_infiltration_gains = Vector.elements(Array.new(num_ts, 0.0))
-    total_ventilation_gains = Vector.elements(Array.new(num_ts, 0.0))
-    total_interzone_air_gains = Vector.elements(Array.new(num_ts, 0.0))
-    total_exfiltration_gains = Vector.elements(Array.new(num_ts, 0.0))
-    total_exhaust_air_gains = Vector.elements(Array.new(num_ts, 0.0))
+    total_instant_internal_gains = Vector.zero(num_ts)
+    total_instant_refrigeration_gains = Vector.zero(num_ts)
+    total_delayed_internal_gains = Vector.zero(num_ts)
+    total_window_radiation = Vector.zero(num_ts)
+    total_surface_convection = Vector.zero(num_ts)
+    total_infiltration_gains = Vector.zero(num_ts)
+    total_ventilation_gains = Vector.zero(num_ts)
+    total_interzone_air_gains = Vector.zero(num_ts)
+    total_exfiltration_gains = Vector.zero(num_ts)
+    total_exhaust_air_gains = Vector.zero(num_ts)
 
     # RADIANT DELAY FACTORS
     # Window transmitted solar radiation and internal load radiation are absorbed by zone surfaces and appear as convective loads later on.
@@ -370,7 +355,7 @@ module OsLib_HeatTransfer
         load_rad_rts = 0.0
         hr_i = 0
         prev_24hr_vals.each_slice(steps_per_hour) do |vals_in_hr|
-          avg_per_ts_in_hr = vals_in_hr.to_a.inject(:+).to_f / vals_in_hr.size
+          avg_per_ts_in_hr = vals_in_hr.sum / vals_in_hr.size
           rad_rts = avg_per_ts_in_hr * rts[hr_i]
           load_rad_rts += rad_rts
           hr_i += 1
@@ -383,8 +368,8 @@ module OsLib_HeatTransfer
       total_delayed_internal_gains += load_rad_vals
 
       # Check that the annual sum of RTS radiant matches the annual sum of the radiant
-      ann_rad = vals.to_a.inject(:+).to_f
-      ann_rts_rad = load_rad_vals.to_a.inject(:+).to_f
+      ann_rad = vals.sum
+      ann_rts_rad = rad_ary.sum
       if ((ann_rts_rad - ann_rad)/ann_rad).abs > 0.01
         runner.registerError("#{delayed_name} RTS calculations had an error: annual radiant = #{ann_rad}, but annual RTS = #{ann_rts_rad}; they should be identical")
       end
@@ -427,8 +412,8 @@ module OsLib_HeatTransfer
     # This means that temperature of the ground/floor (which results in convection) is caused by a combination of previously absorbed
     # solar radiation and current timestep conduction from the temperature difference between the ground/floor and the soil/zone below.
 
-    # Solar radiation gain (always positive)
-    wind_solar_rad_vals = Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Windows Total Transmitted Solar Radiation Energy', space_name, num_ts, joules))
+    # # Solar radiation gain (always positive)
+    wind_solar_rad_vals = OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Windows Total Transmitted Solar Radiation Energy', space_name, num_ts, joules)
     heat_transfer_vectors['Zone Windows Total Transmitted Solar Radiation Energy'] = wind_solar_rad_vals
 
     # RTS solar radiation energy per timestep for past 24 hrs
@@ -438,7 +423,7 @@ module OsLib_HeatTransfer
       # Get the values from the current hr to 23hrs in the past
       prev_24hr_vals = []
       (0...num_ts_24hr).each do |ts|
-        prev_24hr_vals << wind_solar_rad_vals.to_a.fetch(i - ts)
+        prev_24hr_vals << wind_solar_rad_vals.fetch(i - ts)
       end
       # puts "\ni: #{i}, prev_24hr_vals: #{prev_24hr_vals.join(', ')}"
 
@@ -446,7 +431,7 @@ module OsLib_HeatTransfer
       solar_rad_rts = 0.0
       hr_i = 0
       prev_24hr_vals.each_slice(steps_per_hour) do |vals_in_hr|
-        avg_per_ts_in_hr = vals_in_hr.to_a.inject(:+).to_f / vals_in_hr.size
+        avg_per_ts_in_hr = vals_in_hr.sum / vals_in_hr.size
         hrly_solar_rad_rts = avg_per_ts_in_hr * rts[hr_i]
         solar_rad_rts += hrly_solar_rad_rts
         # puts "-- hr #{hr_i} RTS = #{hrly_solar_rad_rts.round(2)} = #{rts[hr_i]} * (#{vals_in_hr.join(' + ')}) / #{vals_in_hr.size}"
@@ -455,14 +440,15 @@ module OsLib_HeatTransfer
       rts_solar_rad_ary << solar_rad_rts
       # puts "24 hr RTS = #{solar_rad_rts}"
     end
+    heat_transfer_vectors['Zone Windows Total Transmitted Solar Radiation Energy'] = Vector.elements(wind_solar_rad_vals)
     wind_rts_solar_rad_vals = Vector.elements(rts_solar_rad_ary)
     heat_transfer_vectors['Zone Windows Radiation Heat Transfer Energy'] = wind_rts_solar_rad_vals
     total_window_radiation = wind_rts_solar_rad_vals
 
     # Check that the annual sum of RTS solar matches the annual sum of the instantaneous solar radiation
     # to ensure that calculation was done correctly
-    ann_solar_rad = wind_solar_rad_vals.to_a.inject(:+).to_f
-    ann_rts_solar_rad = wind_rts_solar_rad_vals.to_a.inject(:+).to_f
+    ann_solar_rad = wind_solar_rad_vals.sum
+    ann_rts_solar_rad = rts_solar_rad_ary.sum
     if ((ann_rts_solar_rad - ann_solar_rad)/ann_solar_rad).abs > 0.01
       runner.registerError("Solar radiation RTS calculations had an error: annual instantaneous solar = #{ann_solar_rad}, but annual RTS solar = #{ann_rts_solar_rad}; they should be identical")
     end
@@ -477,18 +463,19 @@ module OsLib_HeatTransfer
     # NET SURFACE CONVECTION
 
     # Surface and SubSurface heat gains or losses, depending on sign
-    heat_transfer_vectors['Zone Exterior Wall Convection Heat Transfer Energy'] = Vector.elements(Array.new(num_ts, 0.0))
-    heat_transfer_vectors['Zone Exterior Foundation Wall Convection Heat Transfer Energy'] = Vector.elements(Array.new(num_ts, 0.0))
-    heat_transfer_vectors['Zone Exterior Roof Convection Heat Transfer Energy'] = Vector.elements(Array.new(num_ts, 0.0))
-    heat_transfer_vectors['Zone Exterior Floor Convection Heat Transfer Energy'] = Vector.elements(Array.new(num_ts, 0.0))
-    heat_transfer_vectors['Zone Exterior Ground Convection Heat Transfer Energy'] = Vector.elements(Array.new(num_ts, 0.0))
-    heat_transfer_vectors['Zone Exterior Window Convection Heat Transfer Energy'] = Vector.elements(Array.new(num_ts, 0.0))
-    heat_transfer_vectors['Zone Exterior Door Convection Heat Transfer Energy'] = Vector.elements(Array.new(num_ts, 0.0))
-    heat_transfer_vectors['Zone Interior Wall Convection Heat Transfer Energy'] = Vector.elements(Array.new(num_ts, 0.0))
-    heat_transfer_vectors['Zone Interior Floor Convection Heat Transfer Energy'] = Vector.elements(Array.new(num_ts, 0.0))
-    heat_transfer_vectors['Zone Interior Ceiling Convection Heat Transfer Energy'] = Vector.elements(Array.new(num_ts, 0.0))
-    heat_transfer_vectors['Zone Internal Mass Convection Heat Transfer Energy'] = Vector.elements(Array.new(num_ts, 0.0))
-    heat_transfer_vectors['Zone Internal Surface Convection Heat Transfer Energy'] = Vector.elements(Array.new(num_ts, 0.0))
+    heat_transfer_vectors['Zone Exterior Wall Convection Heat Transfer Energy'] = Vector.zero(num_ts)
+    heat_transfer_vectors['Zone Exterior Foundation Wall Convection Heat Transfer Energy'] = Vector.zero(num_ts)
+    heat_transfer_vectors['Zone Exterior Roof Convection Heat Transfer Energy'] = Vector.zero(num_ts)
+    heat_transfer_vectors['Zone Exterior Floor Convection Heat Transfer Energy'] = Vector.zero(num_ts)
+    heat_transfer_vectors['Zone Exterior Ground Convection Heat Transfer Energy'] = Vector.zero(num_ts)
+    heat_transfer_vectors['Zone Exterior Window Convection Heat Transfer Energy'] = Vector.zero(num_ts)
+    heat_transfer_vectors['Zone Exterior Door Convection Heat Transfer Energy'] = Vector.zero(num_ts)
+    heat_transfer_vectors['Zone Interior Wall Convection Heat Transfer Energy'] = Vector.zero(num_ts)
+    heat_transfer_vectors['Zone Interior Floor Convection Heat Transfer Energy'] = Vector.zero(num_ts)
+    heat_transfer_vectors['Zone Interior Ceiling Convection Heat Transfer Energy'] = Vector.zero(num_ts)
+    heat_transfer_vectors['Zone Internal Mass Convection Heat Transfer Energy'] = Vector.zero(num_ts)
+    heat_transfer_vectors['Zone Internal Surface Convection Heat Transfer Energy'] = Vector.zero(num_ts)
+
 
     # Sign convention for this variable:
     # + = heat flowing into surface (loss to zone)
@@ -543,11 +530,6 @@ module OsLib_HeatTransfer
 
         # Add to total for this surface type
         vect = -1.0 * Vector.elements(ht_transfer_vals) # reverse sign of vector
-        ht_vect_size = heat_transfer_vectors["Zone #{surface_type} Convection Heat Transfer Energy"].size
-        unless vect.size == ht_vect_size
-          runner.registerError("For #{zone.name}, #{space.name}, #{surface.name}:  vect.size = #{vect.size}, but ht_vect_size = #{ht_vect_size}")
-          next
-        end
         heat_transfer_vectors["Zone #{surface_type} Convection Heat Transfer Energy"] += vect
         total_surface_convection += vect
 
@@ -694,10 +676,10 @@ module OsLib_HeatTransfer
       'Zone Internal Surface Convection Heat Transfer Energy'
     ]
     interior_convection_terms.each do |term|
-      # correction = -1 * heat_transfer_vectors[term]
-      correction = heat_transfer_vectors[term]
-      # heat_transfer_vectors[term] += correction
-      heat_transfer_vectors[term] -= correction
+      correction = -1 * heat_transfer_vectors[term]
+      # correction = heat_transfer_vectors[term]
+      heat_transfer_vectors[term] += correction
+      # heat_transfer_vectors[term] -= correction
       zone_surface_areas.each do |k, v|
         next unless k.include? 'Exterior'
         ext_surface_fraction = v / total_zone_exterior_surface_area
@@ -792,6 +774,9 @@ module OsLib_HeatTransfer
       heat_transfer_vectors['Error Interzone Air Gains'] = interzone_air_error
       heat_transfer_vectors["#{zone_name}: Annual Gain Error in Interzone Air Gains"] = interzone_air_annual_gain_error
       heat_transfer_vectors["#{zone_name}: Annual Loss Error in Interzone Air Gains"] = interzone_air_annual_loss_error
+      heat_transfer_vectors["Zone Air Temperature"] = Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Mean Air Temperature', zone_name, num_ts, celsius))
+      heat_transfer_vectors["Zone Air Density"] = Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'System Node Current Density', "#{zone_name} Zone Air Node", num_ts, 'kg/m3'))
+      heat_transfer_vectors["Zone Air Specific Heat"] = Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'System Node Specific Heat', "#{zone_name} Zone Air Node", num_ts, 'J/kg-K'))
     end
 
     # Ventilation gains
@@ -844,9 +829,7 @@ module OsLib_HeatTransfer
     heat_transfer_vectors['Error in Energy Balance'] = total_zone_energy_balance_error
     heat_transfer_vectors["#{zone_name}: Annual Gain Error in Total Energy Balance"] = total_zone_energy_balance_annual_gain_error
     heat_transfer_vectors["#{zone_name}: Annual Loss Error in Total Energy Balance"] = total_zone_energy_balance_annual_loss_error
-    # heat_transfer_vectors["Zone Air Temperature"] = Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Mean Air Temperature', zone_name, num_ts, celsius))
-    # heat_transfer_vectors["Zone Air Density"] = Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'System Node Current Density', "#{zone_name} Zone Air Node", num_ts, 'kg/m3'))
-    # heat_transfer_vectors["Zone Air Specific Heat"] = Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'System Node Specific Heat', "#{zone_name} Zone Air Node", num_ts, 'J/kg-K'))
+
 
     return heat_transfer_vectors
   end
