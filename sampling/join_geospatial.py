@@ -22,7 +22,7 @@ def download_data(state):
     bucket_name = 'eulp'
 
     s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
-    
+
     # Check if file exists, if it doesn't query from s3
     if not os.path.exists(local_path):
         print('Downloading %s from s3...' % file_name)
@@ -106,7 +106,7 @@ def the_func(state, df_buildstock):
                 ra_dist = np.random.triangular(left, mode, right, size=size)
             else:
                 ra_dist = [row.ra_median]
-            
+
             large_count = sum(i >= 100000 for i in ra_dist)
             not_large_count = len(ra_dist) - large_count
             df_tract.loc[df_tract.index == i, 'large_count'] = large_count
@@ -122,7 +122,7 @@ def the_func(state, df_buildstock):
 
         # Pull tracts within the given county and for the given building type
         df_tract_group = df_tract.loc[(df_tract.gisjoin.str.contains(county)) & (df_tract.prototype == btype)].copy()
-        
+
         # Calculate probabilities for all building types in the county for use when there aren't building types available for the given tract
         df_tract_all_buildings = df_tract.loc[df_tract.gisjoin.str.contains(county)].copy()
         total_count_all = df_tract_all_buildings.large_count.agg('sum') + df_tract_all_buildings.not_large_count.agg('sum')
@@ -172,7 +172,7 @@ def main():
     args = parse_arguments()
     for arg in vars(args):
         logger.debug(f'{arg} = {getattr(args, arg)}')
-    
+
     # Create directory if output directory does not exist
     if not os.path.exists(os.path.join('output-buildstocks', 'final')):
         os.makedirs(os.path.join('output-buildstocks', 'final'))
@@ -186,13 +186,13 @@ def main():
 
     # Import buildstock.csv
     df_buildstock = pd.read_csv(os.path.join('output-buildstocks', 'intermediate', args.buildstock_name), index_col='Building', na_filter=False)
-    
+
     # Manually update select FIPS codes due to Census year differences
     df_buildstock = manual_fips_update(df_buildstock)
-    
+
     df_nan = df_buildstock.loc[df_buildstock['rentable_area'].isna()]
     df_buildstock = df_buildstock.loc[~df_buildstock['rentable_area'].isna()]
-    
+
     state_fips = [
         '01', '02', '04', '05', '06', '08', '09', '10', '11', '12', '13', '15', '16', '17', '18', '19',
         '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35',
