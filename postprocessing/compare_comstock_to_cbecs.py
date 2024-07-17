@@ -12,8 +12,8 @@ def main():
     # ComStock run
     comstock = cspp.ComStock(
         s3_base_dir='eulp/euss_com',  # If run not on S3, download results_up**.parquet manually
-        comstock_run_name='baseline_vav_mdp_vav_only',  # Name of the run on S3
-        comstock_run_version='baseline_vav_mdp_vav_only_nationally_scaled',  # Use whatever you want to see in plot and folder names
+        comstock_run_name='lower_sat_stpt_10k_v2',  # Name of the run on S3
+        comstock_run_version='lower_sat_stpt_10k_v2',  # Use whatever you want to see in plot and folder names
         comstock_year=2018,  # Typically don't change this
         athena_table_name= None,  # Typically same as comstock_run_name or None
         truth_data_version='v01',  # Typically don't change this
