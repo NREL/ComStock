@@ -93,12 +93,6 @@ class AdjustSupplyAirTemperatureTest < Minitest::Test
       sql = runner.lastEnergyPlusSqlFile.get
       model.setSqlFile(sql)
 
-      # #get annual energy from seed model
-      # std = Standard.build('90.1-2013')
-      # annual_gas_use_seed = std.model_annual_energy_by_fuel_and_enduse(model, 'Natural Gas', 'Heating')
-      # puts 'Annual Heating Gas Use Seed = ' + annual_gas_use_seed.to_s
-      # annual_electricity_use_seed = std.model_annual_energy_by_fuel_and_enduse(model, 'Electricity','Cooling')
-      # puts 'Annual Cooling Electricity Use Seed = ' + annual_electricity_use_seed.to_s
     end
     # change back directory
     Dir.chdir(start_dir)
@@ -146,30 +140,6 @@ class AdjustSupplyAirTemperatureTest < Minitest::Test
       runner.setLastEnergyPlusSqlFilePath(OpenStudio::Path.new(sql_path(test_name)))
       sql = runner.lastEnergyPlusSqlFile.get
       model.setSqlFile(sql)
-
-      # get annual energy use post measure
-      annual_gas_use_post = std.model_annual_energy_by_fuel_and_enduse(model, 'Natural Gas', 'Heating')
-      puts 'Annual Heating Gas Energy Post = ' + annual_gas_use_post.to_s
-      annual_electricity_use_post = std.model_annual_energy_by_fuel_and_enduse(model, 'Electricity','Cooling')
-      puts 'Annual Cooling Electricity Energy Post = ' + annual_electricity_use_post.to_s
-      annual_energy_post = annual_electricity_use_post + annual_gas_use_post
-      puts 'Annual Heating and Cooling Energy Post = ' + annual_energy_post.to_s
-      annual_energy_seed = annual_electricity_use_seed + annual_gas_use_seed
-      puts 'Annual Heating and Cooling Energy Seed = ' + annual_energy_seed.to_s
-
-      # check if heating energy was increased
-      if annual_gas_use_post > annual_gas_use_seed
-        puts "For #{test_name} there was an increase in heating energy consumption. Either model is not suitable for heat recovery chillers or error in inputs occured."
-      else
-        puts "For #{test_name} annual gas use was decreased. Heat recovery chiller saves gas energy."
-      end
-
-      # check if cooling energy was increased
-      if annual_electricity_use_post > annual_electricity_use_seed
-        puts "For #{test_name} there was a decrease in cooling energy. This is not expected in heat recovery operation. Troubleshoot model or inputs."
-      else
-        puts "For #{test_name} there was either no change or an increase in cooling energy as anticipated."
-      end
     end
     # change back directory
     Dir.chdir(start_dir)
