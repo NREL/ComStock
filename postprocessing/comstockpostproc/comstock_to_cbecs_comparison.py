@@ -45,9 +45,10 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         dataset_names = []
         comstock_color_map = {}
         for dataset in (cbecs_list + comstock_list):
-            assert isinstance(dataset.data, pl.LazyFrame)
             # remove measure data from ComStock
-            if isinstance(dataset, ComStock):
+            if isinstance(dataset, ComStock): #dataset is ComStock
+                assert isinstance(dataset.data, pl.LazyFrame)
+
                 dataset.add_sightglass_column_units()  # Add units to SightGlass columns if missing
                 valid_upgrade_id = dataset.data.select(dataset.UPGRADE_ID).unique().collect().to_series().to_list()
                 valid_upgrades_name = dataset.data.select(dataset.UPGRADE_NAME).unique().collect().to_series().to_list()
@@ -79,7 +80,8 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
                     comstock_color_map[dataset_name] = dataset.color
                     self.color_map[dataset_name] = dataset.color
                     dataset_names.append(dataset_name)
-            else:
+            else: #dataset is CBECS
+                assert isinstance(dataset.data, pl.LazyFrame)
                 df_data = dataset.data
                 dfs_to_concat.append(df_data)
                 self.color_map[dataset.dataset_name] = dataset.color

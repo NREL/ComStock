@@ -109,12 +109,13 @@ class EIA(NamingMixin, UnitsMixin, S3UtilitiesMixin):
                  raise FileNotFoundError(
                     f'Cannot find {file_path} to reload data, set reload_from_csv=False to create CSV.')
             logger.info(f'Reloading from CSV: {file_path}')
-            self.monthly_data = pd.read_csv(file_path, low_memory=False)
+            self.monthly_data = pl.read_csv(file_path, low_memory=False).lazy()
         else:
             self.convert_eia_natural_gas_volumes_to_energy()
             self.get_eia_monthly_consumption_by_state()
             self.get_eia_annual_emissions_by_fuel()
 
+        assert isinstance(self.monthly_data, pl.LazyFrame)        
 
     def download_truth_data(self):
         # Monthly electricity by state
@@ -314,4 +315,5 @@ class EIA(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         eia_emissions = eia_emissions.with_columns([pl.lit(self.dataset_name).alias(self.DATASET)])
 
         # Assign data to an attribute
-        self.emissions_data = eia_emissions
+        self.emissions_data: pl.LazyFrame = eia_emissions.lazy()
+        assert isinstance(self.emissions_data, pl.LazyFrame)
