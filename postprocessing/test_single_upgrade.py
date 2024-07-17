@@ -64,8 +64,10 @@ def main():
     comstock.export_to_parquet_wide()
     comstock.export_to_csv_wide()
     # Create measure run comparisons; only use if run has measures
-    comparison = cspp.ComStockMeasureComparison(comstock, states=comstock.states, make_comparison_plots=True,make_timeseries_plots=False)
 
+
+    # comparison = cspp.ComStockMeasureComparison(comstock, states=comstock.states, make_comparison_plots=True,make_timeseries_plots=False)
+    c = cspp.ComStockToCBECSComparison([comstock], [cbecs], upgrade_id=0)
     # Export the comparison data to wide format for Tableau
     # comparison.export_to_csv_wide()
 
