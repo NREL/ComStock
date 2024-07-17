@@ -27,7 +27,7 @@ class AdjustSupplyAirTemperature < OpenStudio::Measure::ModelMeasure
 
     # make an argument for minimum damper position
     sat = OpenStudio::Measure::OSArgument.makeDoubleArgument('sat', true)
-    sat.setDisplayName('Minimum Cooling Supply Air Temperature')
+    sat.setDisplayName('Minimum Cooling Supply Air Temperature degree F')
     sat.setDefaultValue(55.0)
     sat.setMinValue(40.0)
     args << sat
@@ -89,7 +89,7 @@ class AdjustSupplyAirTemperature < OpenStudio::Measure::ModelMeasure
             sat_sch = OpenStudio::Model::ScheduleRuleset.new(model)
             sat_sch.setName('Supply Air Temp')
             sat_sch.defaultDaySchedule.setName(air_loop.name.to_s + " Setpoint Manager #{sat}F")
-            sat_sch.defaultDaySchedule.addValue(OpenStudio::Time.new(0, 24, 0, 0), sat)
+            sat_sch.defaultDaySchedule.addValue(OpenStudio::Time.new(0, 24, 0, 0), OpenStudio.convert(sat, 'F', 'C').get)
             scheduled_setpoint_manager = setpoint_manager.to_SetpointManagerScheduled.get
             scheduled_setpoint_manager.setSchedule(sat_sch)
             ct+= 1
