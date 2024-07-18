@@ -179,9 +179,9 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     result << OpenStudio::IdfObject.load("Output:Variable,*,Water Heater Propane Energy,RunPeriod;").get # J
     result << OpenStudio::IdfObject.load('Output:Variable,*,Water Heater Heating Energy,RunPeriod;').get # J
     result << OpenStudio::IdfObject.load('Output:Variable,*,Water Heater Unmet Demand Heat Transfer Energy,RunPeriod;').get # J
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Unitary System DX Coil Cycling Ratio,RunPeriod;').get # -
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Unitary System Sensible Cooling Rate,RunPeriod;').get # W
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Unitary System Sensible Heating Rate,RunPeriod;').get # W
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Unitary System DX Coil Cycling Ratio,Timestep;').get # -
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Unitary System Sensible Cooling Rate,Timestep;').get # W
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Unitary System Sensible Heating Rate,Timestep;').get # W
     if model.version > OpenStudio::VersionString.new('3.3.0')
       result << OpenStudio::IdfObject.load('Output:Variable,*,Cooling Coil Total Water Heating Energy,RunPeriod;').get # J
       result << OpenStudio::IdfObject.load('Output:Variable,*,Cooling Coil Water Heating Electricity Energy,RunPeriod;').get # J
