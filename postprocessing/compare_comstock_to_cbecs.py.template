@@ -29,7 +29,7 @@ def main():
 
     # CBECS
     cbecs = cspp.CBECS(
-        cbecs_year=2018,  # 2012 and 2018 currently available
+        cbecs_year=2012,  # 2012 and 2018 currently available
         truth_data_version='v01',  # Typically don't change this
         color_hex='#009E73',  # Color used to represent CBECS in plots
         reload_from_csv=False  # True if CSV already made and want faster reload times
