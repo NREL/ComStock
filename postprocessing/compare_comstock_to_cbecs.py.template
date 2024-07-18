@@ -12,10 +12,10 @@ def main():
     # ComStock run
     comstock = cspp.ComStock(
         s3_base_dir='eulp/euss_com',  # If run not on S3, download results_up**.parquet manually
-        comstock_run_name='baseline_vav_mdp_adjust2',  # Name of the run on S3
-        comstock_run_version='baseline_vav_mdp_adjust2',  # Use whatever you want to see in plot and folder names
+        comstock_run_name='lower_sat_stpt_10k_v3',  # Name of the run on S3
+        comstock_run_version='lower_sat_stpt_10k_v3',  # Use whatever you want to see in plot and folder names
         comstock_year=2018,  # Typically don't change this
-        athena_table_name='baseline_vav_mdp_adjust2',  # Typically same as comstock_run_name or None
+        athena_table_name='lower_sat_stpt_10k_v3',  # Typically same as comstock_run_name or None
         truth_data_version='v01',  # Typically don't change this
         buildstock_csv_name='buildstock.csv', # Download buildstock.csv manually
         acceptable_failure_percentage=0.9,  # Can increase this when testing and high failure are OK
