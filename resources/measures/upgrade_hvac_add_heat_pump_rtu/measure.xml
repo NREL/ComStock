@@ -4,8 +4,8 @@
   <error>Failed to infer measure name from 'C:/Users/alebar/Documents/GitHub/ComStock/resources/measures/upgrade_hvac_add_heat_pump_rtu/measure.rb'</error>
   <name>add_heat_pump_rtu</name>
   <uid>f4567a68-27f2-4a15-ae91-ba0f35cd08c7</uid>
-  <version_id>91b61f54-e92c-4eba-913b-607ff94750b4</version_id>
-  <version_modified>2024-02-23T22:20:35Z</version_modified>
+  <version_id>9f1f4c81-0273-4a7f-84b3-b53527ce7574</version_id>
+  <version_modified>2024-03-26T21:29:46Z</version_modified>
   <xml_checksum>5E2576E4</xml_checksum>
   <class_name>AddHeatPumpRtu</class_name>
   <display_name>add_heat_pump_rtu</display_name>
@@ -260,25 +260,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>9D5A7608</checksum>
-    </file>
-    <file>
-      <filename>performance_map_CCHP_v1.json</filename>
-      <filetype>json</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>2DBE2A84</checksum>
-    </file>
-    <file>
-      <filename>performance_map_CCHP_v2.json</filename>
-      <filetype>json</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>57D66A30</checksum>
-    </file>
-    <file>
-      <filename>performance_map_CCHP_v3.json</filename>
-      <filetype>json</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>949E08DC</checksum>
+      <checksum>49CBFBB3</checksum>
     </file>
     <file>
       <filename>performance_maps_hprtu_std.json</filename>

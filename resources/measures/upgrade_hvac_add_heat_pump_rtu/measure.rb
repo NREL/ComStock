@@ -1972,7 +1972,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # add stage data: create stage 1
         new_dx_heating_coil_speed1 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
         new_dx_heating_coil_speed1.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[1])
-        new_dx_heating_coil_speed1.setGrossRatedHeatingCOP(4.96)
+        new_dx_heating_coil_speed1.setGrossRatedHeatingCOP(5.51)
         new_dx_heating_coil_speed1.setRatedAirFlowRate(hash_htg_airflow_stgs[1])
         new_dx_heating_coil_speed1.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed1.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft1)
@@ -1985,7 +1985,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # add stage data: create stage 2
         new_dx_heating_coil_speed2 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
         new_dx_heating_coil_speed2.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[2])
-        new_dx_heating_coil_speed2.setGrossRatedHeatingCOP(4.24)
+        new_dx_heating_coil_speed2.setGrossRatedHeatingCOP(4.71)
         new_dx_heating_coil_speed2.setRatedAirFlowRate(hash_htg_airflow_stgs[2])
         new_dx_heating_coil_speed2.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed2.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft2)
@@ -1998,7 +1998,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # add stage data: create stage 3
         new_dx_heating_coil_speed3 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
         new_dx_heating_coil_speed3.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[3])
-        new_dx_heating_coil_speed3.setGrossRatedHeatingCOP(3.59)
+        new_dx_heating_coil_speed3.setGrossRatedHeatingCOP(3.98)
         new_dx_heating_coil_speed3.setRatedAirFlowRate(hash_htg_airflow_stgs[3])
         new_dx_heating_coil_speed3.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed3.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft3)
@@ -2011,7 +2011,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # add stage data: create stage 4
         new_dx_heating_coil_speed4 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
         new_dx_heating_coil_speed4.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[4])
-        new_dx_heating_coil_speed4.setGrossRatedHeatingCOP(3.42)
+        new_dx_heating_coil_speed4.setGrossRatedHeatingCOP(3.80)
         new_dx_heating_coil_speed4.setRatedAirFlowRate(hash_htg_airflow_stgs[4])
         new_dx_heating_coil_speed4.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed4.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft4)
@@ -2077,17 +2077,28 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_air_to_air_heatpump.setAvailabilitySchedule(unitary_availability_sched)
       new_air_to_air_heatpump.setDehumidificationControlType(dehumid_type)
       new_air_to_air_heatpump.setSupplyAirFanOperatingModeSchedule(supply_fan_op_sched)
-      new_air_to_air_heatpump.setControlType('Load') ##cc-tmp
+      new_air_to_air_heatpump.setControlType('Load') ## cc-tmp
       new_air_to_air_heatpump.setName("#{thermal_zone.name} RTU SZ-VAV Heat Pump")
       new_air_to_air_heatpump.setMaximumSupplyAirTemperature(50)
       new_air_to_air_heatpump.setDXHeatingCoilSizingRatio(1+performance_oversizing_factor)
-      # set cooling design flow rate
-      new_air_to_air_heatpump.setSupplyAirFlowRateDuringCoolingOperation(hash_clg_airflow_stgs[4])
-      # set heating design flow rate
-      new_air_to_air_heatpump.setSupplyAirFlowRateDuringHeatingOperation(hash_htg_airflow_stgs[4])
-      # set no load design flow rate
-      new_air_to_air_heatpump.resetSupplyAirFlowRateMethodWhenNoCoolingorHeatingisRequired
-      new_air_to_air_heatpump.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_airflow_m3_per_s)
+
+      # handle deprecated methods for OS Version 3.7.0
+      if model.version < OpenStudio::VersionString.new('3.7.0')
+        # set cooling design flow rate
+        new_air_to_air_heatpump.setSupplyAirFlowRateDuringCoolingOperation(hash_clg_airflow_stgs[4])
+        # set heating design flow rate
+        new_air_to_air_heatpump.setSupplyAirFlowRateDuringHeatingOperation(hash_htg_airflow_stgs[4])
+        # set no load design flow rate
+        new_air_to_air_heatpump.resetSupplyAirFlowRateMethodWhenNoCoolingorHeatingisRequired
+        new_air_to_air_heatpump.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_airflow_m3_per_s)
+      else
+         # set cooling design flow rate
+         new_air_to_air_heatpump.setSupplyAirFlowRateDuringCoolingOperation(hash_clg_airflow_stgs[4])
+         # set heating design flow rate
+         new_air_to_air_heatpump.setSupplyAirFlowRateDuringHeatingOperation(hash_htg_airflow_stgs[4])
+         # set no load design flow rate
+         new_air_to_air_heatpump.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_airflow_m3_per_s)
+      end
 
       # new_air_to_air_heatpump.setDOASDXCoolingCoilLeavingMinimumAirTemperature(7.5) # set minimum discharge temp to 45F, required for VAV operation
 
@@ -2100,7 +2111,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       end
 
       # add economizer
-      if econ==true
+      if econ == true
         # set parameters
         oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
         controller_oa = oa_system.getControllerOutdoorAir

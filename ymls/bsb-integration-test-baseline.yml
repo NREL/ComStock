@@ -23,9 +23,6 @@ workflow_generator:
     - measure_dir_name: comstock_sensitivity_reports
     - measure_dir_name: emissions_reporting
     - measure_dir_name: qoi_report
-    - measure_dir_name: la_100_qaqc
-      arguments:
-        run_qaqc: false
     - measure_dir_name: simulation_settings_check
       arguments:
         run_sim_settings_checks: true

@@ -362,9 +362,16 @@ class Replace_boiler_by_heatpump < OpenStudio::Measure::ModelMeasure
     unitarys.each do |unit|
       flowmethod = unit.supplyAirFlowRateMethodDuringHeatingOperation
       runner.registerInfo("flow method is #{flowmethod} ")
-      if flowmethod == ''
-        unit.setSupplyAirFlowRateMethodDuringHeatingOperation('SupplyAirFlowRate')
-        runner.registerInfo("SupplyAirFlowRateMethodDuringHeatingOperation is resetted to use 'SupplyAirFlowRate' method")
+      if model.version < OpenStudio::VersionString.new('3.7.0')
+        if flowmethod == ''
+          unit.setSupplyAirFlowRateMethodDuringHeatingOperation('SupplyAirFlowRate')
+          runner.registerInfo("SupplyAirFlowRateMethodDuringHeatingOperation is reset to use 'SupplyAirFlowRate' method")
+        end
+      else
+        if flowmethod == ''
+          unit.autosizeSupplyAirFlowRateDuringHeatingOperation
+          runner.registerInfo("SupplyAirFlowRateMethodDuringHeatingOperation is reset to use 'SupplyAirFlowRate' method")
+        end
       end
     end
     #------------------------------------------------

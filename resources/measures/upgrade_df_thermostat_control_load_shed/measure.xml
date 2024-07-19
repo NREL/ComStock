@@ -2,14 +2,14 @@
 <measure>
   <schema_version>3.1</schema_version>
   <name>df_thermostat_control_load_shed</name>
-  <uid>0fdd58b3-9943-40b9-a47f-3db37228b200</uid>
-  <version_id>92e64f75-6a35-4b21-90f2-660c3caebe83</version_id>
-  <version_modified>2024-01-08T23:37:34Z</version_modified>
+  <uid>f4372ee0-7caa-4db1-8838-31c886e60881</uid>
+  <version_id>d45ceb7f-d7c2-4106-823c-c2cc6b00d3d8</version_id>
+  <version_modified>2024-02-23T06:32:18Z</version_modified>
   <xml_checksum>D7E77FC2</xml_checksum>
   <class_name>DfThermostatControlLoadShed</class_name>
   <display_name>demand flexibility - thermostat control load shed</display_name>
-  <description>tbd</description>
-  <modeler_description>tbd</modeler_description>
+  <description>This measure implements demand flexibility measure on daily thermostat control with load shed strategy, by adjusting thermostat setpoints (increasing the deadband) corresponding to the peak schedule based on daily peak load prediction.</description>
+  <modeler_description>This measure performs load prediction based on options of full baseline run, bin-sample method and par year bin-sample method. It generates daily peak schedule based on the load prediction, and then iterates through all applicable (electric) thermostats to adjust the cooling and heating setpoints for daily peak window.</modeler_description>
   <arguments>
     <argument>
       <name>peak_len</name>
@@ -123,19 +123,19 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>A6B14FD8</checksum>
+      <checksum>BDB69C75</checksum>
     </file>
     <file>
       <filename>dispatch_schedule_generation.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>F8949348</checksum>
+      <checksum>A337CB51</checksum>
     </file>
     <file>
       <filename>df_thermostat_control_load_shed_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>5CA1EB77</checksum>
+      <checksum>C476980C</checksum>
     </file>
   </files>
 </measure>

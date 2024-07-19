@@ -39,7 +39,7 @@ def main():
         acceptable_failure_percentage=0.05,  # Can increase this when testing and high failure are OK
         drop_failed_runs=True,  # False if you want to evaluate which runs failed in raw output data
         color_hex='#56B4E9',  # Color used to represent this run in plots
-        skip_missing_columns=False,  # False if you want to ensure you have all data specified for export
+        skip_missing_columns=True,  # False if you want to ensure you have all data specified for export
         reload_from_csv=False,  # True if CSV already made and want faster reload times
         include_upgrades=False  # False if not looking at upgrades
         )

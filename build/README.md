@@ -1,8 +1,7 @@
-# NREL Staff Instructions for Building Custom Singularity Images for HPC usage
+# NREL Staff Instructions for Building Custom Apptainer Images for HPC usage
 
 ## *NOTE: REQUIREMENTS:
 * OPENSTUDIO VERSIONS > 3.0
-* (as of 2/7/24) Docker Engine <= 24.0.6
 
 ## Modify the Dockerfile to change OpenStudio version
 
@@ -14,18 +13,18 @@
 
 * Save the Gemfile.
 
-## Creating Singularity Image
+## Creating Apptainer Image
 
-* Build Singularity/Docker Image
+* Build Apptainer/Docker Image
 
     ```bash
     cd C:\path\to\comstock
     ```
 
-* Build Singularity/Docker Image
+* Build Apptainer/Docker Image
 
     ```bash
-    docker build -t singularity -f build/singularity/Dockerfile ./build
+    docker build -t apptainer -f build/apptainer/Dockerfile ./build
     ```
 
 * Pull and deploy registry image
@@ -51,32 +50,32 @@
 
     ```bash
     # Mac/Linux:
-    docker run -it --rm --privileged -v $(pwd):/root/build -v /var/run/docker.sock:/var/run/docker.sock --network container:registry singularity /root/build/singularity/build_singularity.sh
+    docker run -it --rm --privileged -v $(pwd):/root/build -v /var/run/docker.sock:/var/run/docker.sock --network container:registry apptainer /root/build/apptainer/build_apptainer.sh
 
     # Windows:
-    docker run -it --rm --privileged -v %CD%:/root/build -v /var/run/docker.sock:/var/run/docker.sock --network container:registry singularity /root/build/singularity/build_singularity.sh
+    docker run -it --rm --privileged -v %CD%:/root/build -v /var/run/docker.sock:/var/run/docker.sock --network container:registry apptainer /root/build/apptainer/build_apptainer.sh
     ```
 
-* The singularity image should be at `C:\path\to\comstock\build docker-openstudio.simg`. Hop inside the singularity container to test the new image
+* The apptainer image should be at `C:\path\to\comstock\build docker-openstudio.sif`. Hop inside the apptainer container to test the new image
 
     ```bash
     # Start the docker container
 
     # Mac/Linux:
-    docker run -it --privileged --rm -v $(pwd):/root/build singularity /bin/bash
+    docker run -it --privileged --rm -v $(pwd):/root/build apptainer /bin/bash
 
     # Windows:
-    docker run -it --privileged --rm -v %CD%:/root/build singularity /bin/bash
+    docker run -it --privileged --rm -v %CD%:/root/build apptainer /bin/bash
     ```
 
     ```bash
-    # Load the singularity image inside this docker container
+    # Load the apptainer image inside this docker container
 
     # Mac/Linux:
-    singularity shell -B $(pwd):/singtest docker-openstudio.simg
+    apptainer shell -B $(pwd):/singtest docker-openstudio.sif
 
     # Windows:
-    singularity shell docker-openstudio.simg
+    apptainer shell docker-openstudio.sif
     ```
 
     ```bash
@@ -113,44 +112,44 @@
                                                                                               ^^^^SHA HERE^^^^
     ```
 
-* If the above returned the expected OpenStudio Standards version, push rename the simg file and push it to Eagle. [`SIMG_VERSION_NAME` and `SIMG_VERSION_SHA`](https://buildstockbatch.readthedocs.io/en/latest/project_defn.html#openstudio-version-overrides) should be set to a unique combination for each new singularity image. This provides the means of specifying this singularity image in the ComStock project YAML. See also the [ComStock HPC Training document.](../comstock_hpc_training.md#example-yml-file-contents-documentation). __`SIMG_VERSION_SHA` must be the SHA of the version of OpenStudio included, NOT the SHA of openstudio-standards.__ To signify a custom version of openstudio-standards, set the `SIMG_VERSION_NAME` to something meaningful. Something like: `SIMG_VERSION_NAME=os_340_stds_b50172b4cc18` and `SIMG_VERSION_SHA=4bd816f785`.
+* If the above returned the expected OpenStudio Standards version, push rename the sif file and push it to Eagle. [`SIF_VERSION_NAME` and `SIF_VERSION_SHA`](https://buildstockbatch.readthedocs.io/en/latest/project_defn.html#openstudio-version-overrides) should be set to a unique combination for each new apptainer image. This provides the means of specifying this apptainer image in the ComStock project YAML. See also the [ComStock HPC Training document.](../comstock_hpc_training.md#example-yml-file-contents-documentation). __`SIF_VERSION_SHA` must be the SHA of the version of OpenStudio included, NOT the SHA of openstudio-standards.__ To signify a custom version of openstudio-standards, set the `SIF_VERSION_NAME` to something meaningful. Something like: `SIF_VERSION_NAME=os_340_stds_b50172b4cc18` and `SIF_VERSION_SHA=4bd816f785`.
 
     ```bash
     # Rename the container
 
     # Mac/Linux:
-    export SIMG_VERSION_NAME=example-v1
-    export SIMG_VERSION_SHA=0123456789
-    mv docker-openstudio.simg OpenStudio-$SIMG_VERSION_NAME.$SIMG_VERSION_SHA-Singularity.simg
+    export SIF_VERSION_NAME=example-v1
+    export SIF_VERSION_SHA=0123456789
+    mv docker-openstudio.sif OpenStudio-$SIF_VERSION_NAME.$SIF_VERSION_SHA-Apptainer.sif
 
     # Windows:
-    # In your file explorer, rename docker-openstudio.simg
+    # In your file explorer, rename docker-openstudio.sif
     # to:
-    # OpenStudio-SIMG_VERSION_NAME.SIMG_VERSION_SHA-Singularity.simg
+    # OpenStudio-SIF_VERSION_NAME.SIF_VERSION_SHA-Apptainer.sif
     ```
 
-* Next: copy the singularity image to your home directory on eagle using the tool of your choice.
+* Next: copy the apptainer image to your home directory on eagle using the tool of your choice.
 
-* Record the details of the Singularity image, including the openstudio-standards SHA and the version of OpenStudio used, in the Singularity Images tab of the Run Dashboard spreadsheet.
+* Record the details of the Apptainer image, including the openstudio-standards SHA and the version of OpenStudio used, in the Apptainer Images tab of the Run Dashboard spreadsheet.
 
-* The final step is moving the container from your home directory on eagle to the [singularity image directory](../comstock_hpc_training.md#example-yml-file-contents), typically `/shared-projects/buildstock/singularity_images` or `/project/my-project/singularity-images`.
+* The final step is moving the container from your home directory on eagle to the [apptainer image directory](../comstock_hpc_training.md#example-yml-file-contents), typically `/shared-projects/buildstock/apptainer_images` or `/project/my-project/apptainer-images`.
 
 * You're now ready to update your YAML and run!
 
-## Using Singularity Container outside of Buildstock Batch
+## Using Apptainer Container outside of Buildstock Batch
 
-* Download singularity image from S3
+* Download apptainer image from S3
 
     ```bash
-    curl -SLO https://s3.amazonaws.com/openstudio-builds/2.6.0/OpenStudio-2.6.0.ac20db5eff-Singularity.simg
+    curl -SLO https://s3.amazonaws.com/openstudio-builds/2.6.0/OpenStudio-2.6.0.ac20db5eff-Apptainer.sif
     ```
 
-* Run singularity container
+* Run apptainer container
 
     ```bash
-    module load singularity-container
+    module load apptainer-container
     # Mount /scratch for analysis
-    singularity shell -B /scratch:/scratch OpenStudio-2.6.0.ac20db5eff-Singularity.simg
+    apptainer shell -B /scratch:/scratch OpenStudio-2.6.0.ac20db5eff-Apptainer.sif
 
     # Call bash (without --norc) for now until LANG is fixed
     bash
@@ -158,8 +157,8 @@
     openstudio --version
     ```
 
-* Running singularity in line
+* Running apptainer in line
 
     ```bash
-    singularity exec -B /scratch:/var/simdata/openstudio OpenStudio-2.6.0.ac20db5eff-Singularity.simg openstudio run -w in.osw
+    apptainer exec -B /scratch:/var/simdata/openstudio OpenStudio-2.6.0.ac20db5eff-Apptainer.sif openstudio run -w in.osw
     ```

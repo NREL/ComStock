@@ -8,6 +8,7 @@ from .comstock_to_cbecs_comparison import ComStockToCBECSComparison
 from .comstock_measure_comparison import ComStockMeasureComparison
 from .comstock_to_eia_comparison import ComStockToEIAComparison
 from .comstock_to_ami_comparison import ComStockToAMIComparison
+from .comstock_to_eia_comparison import ComStockToEIAComparison
 from .resstock import ResStock
 from .utils.hpc import *
 

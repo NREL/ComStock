@@ -54,8 +54,8 @@ setup(
         'botocore',
         'pyyaml',
         'joblib',
-        'polars>=0.19.16',
-        'buildstock_query @ git+https://github.com/NREL/buildstock-query'
+        'polars==0.20.7',
+        'buildstock_query @ git+https://github.com/NREL/buildstock-query@feature/add_buildstock_csv'
     ],
     extras_require={
         'dev': [
@@ -76,7 +76,7 @@ setup(
             'kaleido==0.1.0',  # kaleido version for Linux
         ],
         ':sys_platform == "darwin"': [
-            'kaleido==0.1.0',  # kaleido version for MacOS
+            'kaleido==0.2.0',  # kaleido version for MacOS
         ],
 
     }
