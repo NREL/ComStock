@@ -383,7 +383,7 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     ############################################
     puts("### ============================================================")
     puts("### Creating lighting factor values...")
-    light_factor_values = light_factor_hourly_based_on_sch(peak_schedule_clg, light_adjustment)
+    light_factor_values = light_factor_hourly_based_on_sch(peak_schedule_clg, light_adjustment_method, light_adjustment)
     puts("### Updating lighting schedule...")
     nl, nla = adjust_lighting_sch(model,runner,light_factor_values)
     # puts("--- light_factor_values = #{light_factor_values}")

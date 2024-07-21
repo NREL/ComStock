@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>df_lighting_control</name>
   <uid>8de4bbcc-0430-4f71-8131-0467cbb6f9a4</uid>
-  <version_id>c87ff6b4-f776-4686-94ce-0509bd67fecb</version_id>
-  <version_modified>2024-05-13T19:10:00Z</version_modified>
+  <version_id>000bc550-8634-42dd-a3fc-1266214232e1</version_id>
+  <version_modified>2024-07-19T20:44:29Z</version_modified>
   <xml_checksum>D7E77FC2</xml_checksum>
   <class_name>DFLightingControl</class_name>
   <display_name>demand flexibility - lighting control</display_name>
@@ -18,6 +18,24 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>4</default_value>
+    </argument>
+    <argument>
+      <name>light_adjustment_method</name>
+      <display_name>Method of lighting dimming (absolute change, relative change)</display_name>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>absolute change</default_value>
+      <choices>
+        <choice>
+          <value>absolute change</value>
+          <display_name>absolute change</display_name>
+        </choice>
+        <choice>
+          <value>relative change</value>
+          <display_name>relative change</display_name>
+        </choice>
+      </choices>
     </argument>
     <argument>
       <name>light_adjustment</name>
@@ -72,6 +90,32 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>2</default_value>
+    </argument>
+    <argument>
+      <name>peak_window_strategy</name>
+      <display_name>Method of determining peak windows (max savings, start with peak, end with peak, center with peak)</display_name>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>center with peak</default_value>
+      <choices>
+        <choice>
+          <value>max savings</value>
+          <display_name>max savings</display_name>
+        </choice>
+        <choice>
+          <value>start with peak</value>
+          <display_name>start with peak</display_name>
+        </choice>
+        <choice>
+          <value>end with peak</value>
+          <display_name>end with peak</display_name>
+        </choice>
+        <choice>
+          <value>center with peak</value>
+          <display_name>center with peak</display_name>
+        </choice>
+      </choices>
     </argument>
   </arguments>
   <outputs />
@@ -131,19 +175,19 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>6F52A666</checksum>
+      <checksum>E5E28DB0</checksum>
     </file>
     <file>
       <filename>dispatch_schedule_generation.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>F12C9CA4</checksum>
+      <checksum>E1C5D101</checksum>
     </file>
     <file>
       <filename>df_lighting_control_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>1E696C5C</checksum>
+      <checksum>F62E5DE8</checksum>
     </file>
   </files>
 </measure>

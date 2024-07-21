@@ -195,24 +195,34 @@ class DFLightingControlTest < Minitest::Test
       argument_map['peak_len'] = peak_len
 
       # set arguments:
-      light_adjustment = arguments[1].clone
+      light_adjustment_method = arguments[1].clone
+      assert(light_adjustment_method.setValue('absolute change'))
+      argument_map['light_adjustment_method'] = light_adjustment_method
+
+      # set arguments:
+      light_adjustment = arguments[2].clone
       assert(light_adjustment.setValue(30.0))
       argument_map['light_adjustment'] = light_adjustment
 
       # set arguments:
-      num_timesteps_in_hr = arguments[2].clone
+      num_timesteps_in_hr = arguments[3].clone
       assert(num_timesteps_in_hr.setValue(4))
       argument_map['num_timesteps_in_hr'] = num_timesteps_in_hr
 
       # set arguments:
-      load_prediction_method = arguments[3].clone
+      load_prediction_method = arguments[4].clone
       assert(load_prediction_method.setValue('full baseline'))#'bin sample''part year bin sample'
       argument_map['load_prediction_method'] = load_prediction_method
 
       # set arguments:
-      peak_lag = arguments[4].clone
+      peak_lag = arguments[5].clone
       assert(peak_lag.setValue(2))
       argument_map['peak_lag'] = peak_lag
+
+      # set arguments:
+      peak_window_strategy = arguments[6].clone
+      assert(peak_window_strategy.setValue('center with peak'))#'bin sample''part year bin sample'
+      argument_map['peak_window_strategy'] = peak_window_strategy
 
       # apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
