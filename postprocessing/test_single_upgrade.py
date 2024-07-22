@@ -6,7 +6,7 @@ import logging
 import comstockpostproc as cspp
 
 
-logging.basicConfig(level='INFO', force=True)  # Use DEBUG, INFO, or WARNING
+logging.basicConfig(level='DEBUG', force=True)  # Use DEBUG, INFO, or WARNING
 logger = logging.getLogger(__name__)
 
 # @profile

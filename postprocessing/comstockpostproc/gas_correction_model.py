@@ -20,7 +20,6 @@ class GasCorrectionModelMixin():
         # Correction is done by summing CBECS and ComStock each by building type
         # and census division, then computing the ratio and applying that
         # ratio to ComStock natural gas end uses.
-
         self.data = self.data.to_pandas()  # TODO POLARS rewrite
 
         ### Add gas interior equipment to buildings with other gas usage ###
