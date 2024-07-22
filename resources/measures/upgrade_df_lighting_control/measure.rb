@@ -75,6 +75,12 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     peak_len.setDefaultValue(4)
     args << peak_len
 
+    light_adjustment_choices = ['absolute change', 'relative change']
+    light_adjustment_method = OpenStudio::Ruleset::OSArgument.makeChoiceArgument('light_adjustment_method', light_adjustment_choices, true)
+    light_adjustment_method.setDisplayName("Method of lighting dimming (absolute change, relative change)")
+    light_adjustment_method.setDefaultValue('absolute change')
+    args << light_adjustment_method
+
     light_adjustment = OpenStudio::Measure::OSArgument.makeDoubleArgument('light_adjustment', true)
     light_adjustment.setDisplayName("Percentage to decrease light dimming/LPD by (0-100)")
     light_adjustment.setDefaultValue(30.0)
@@ -147,6 +153,7 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     ############################################
     demand_flexibility_objective = runner.getStringArgumentValue("demand_flexibility_objective",user_arguments)
     peak_len = runner.getIntegerArgumentValue("peak_len",user_arguments)
+    light_adjustment_method = runner.getStringArgumentValue("light_adjustment_method",user_arguments)
     light_adjustment = runner.getDoubleArgumentValue('light_adjustment', user_arguments)
     num_timesteps_in_hr = runner.getIntegerArgumentValue("num_timesteps_in_hr",user_arguments)
     load_prediction_method = runner.getStringArgumentValue("load_prediction_method",user_arguments)
@@ -154,8 +161,14 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     peak_window_strategy = runner.getStringArgumentValue("peak_window_strategy",user_arguments)
     cambium_scenario = runner.getStringArgumentValue("cambium_scenario",user_arguments)
 
-    def light_factor_hourly_based_on_sch(peak_sch, light_adjustment)
-      light_factor_values = peak_sch.map{|a| 1-light_adjustment/100.0*a}
+    def light_factor_hourly_based_on_sch(peak_sch, light_adjustment_method, light_adjustment)
+      if light_adjustment_method == 'absolute change'
+        light_factor_values = peak_sch.map{|a| [a-light_adjustment/100.0, 0].max}
+      elsif light_adjustment_method == 'relative change'
+        light_factor_values = peak_sch.map{|a| (1-light_adjustment/100.0)*a}
+      else
+        raise "Not supported light adjustment method"
+      end
       return light_factor_values
     end
     
@@ -429,7 +442,7 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     ############################################
     puts("### ============================================================")
     puts("### Creating lighting factor values...")
-    light_factor_values = light_factor_hourly_based_on_sch(peak_schedule_clg, light_adjustment)
+    light_factor_values = light_factor_hourly_based_on_sch(peak_schedule_clg, light_adjustment_method, light_adjustment)
     puts("### Updating lighting schedule...")
     nl, nla = adjust_lighting_sch(model,runner,light_factor_values)
     # puts("--- light_factor_values = #{light_factor_values}")
