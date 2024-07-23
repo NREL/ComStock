@@ -6,7 +6,11 @@ import logging
 import comstockpostproc as cspp
 
 
-logging.basicConfig(level='DEBUG', force=True)  # Use DEBUG, INFO, or WARNING
+# logging.basicConfig(level='DEBUG', force=True)  # Use DEBUG, INFO, or WARNING
+logging.basicConfig(
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    level=logging.DEBUG,
+    datefmt='%Y-%m-%d %H:%M:%S', force=True)
 logger = logging.getLogger(__name__)
 
 # @profile

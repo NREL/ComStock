@@ -1820,15 +1820,16 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Remove CBECS entries for building types not included in the ComStock run
         # comstock_bldg_types = self.data[self.BLDG_TYPE].unique()
         assert isinstance(self.data, pl.LazyFrame)
-        comstock_bldg_types: pl.DataFrame = self.data.select(self.BLDG_TYPE).unique().collect()
+        comstock_bldg_types: set = set(self.data.select(self.BLDG_TYPE).unique().collect().to_pandas()[self.BLDG_TYPE].tolist())
         
-        cbecs.data = cbecs.data.collect().to_pandas()
+        cbecs.data: pd.DataFrame = cbecs.data.collect().to_pandas()
         assert isinstance(cbecs.data, pd.DataFrame)
         bldg_types_to_keep = [] #if the bldg types in both CBECS and ComStock, keep them.
         for bt in cbecs.data[self.BLDG_TYPE].unique():
             if bt in comstock_bldg_types:
                 bldg_types_to_keep.append(bt)
-
+        
+        logger.debug("Building types to keep: ", bldg_types_to_keep)
         if remove_non_comstock_bldg_types_from_cbecs:
             # Modify CBECS to remove building types not covered by ComStock
             cbecs.data = cbecs.data[cbecs.data[self.BLDG_TYPE].isin(bldg_types_to_keep)]
@@ -1843,8 +1844,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Total sqft of each building type, CBECS
         wt_area_col = self.col_name_to_weighted(self.FLR_AREA)
+        cbecsData[wt_area_col] = cbecsData[wt_area_col].astype(float)
         cbecs_bldg_type_sqft = cbecsData[[wt_area_col, self.BLDG_TYPE]].groupby([self.BLDG_TYPE]).sum()
-
+        # logger.debug(f"cbecs_bldg_type_sqft: {cbecsData[[wt_area_col, self.BLDG_TYPE]]}")
         logger.debug('CBECS floor area by building type')
         logger.debug(cbecs_bldg_type_sqft)
 
@@ -1858,7 +1860,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Calculate scaling factor for each building type based on floor area (not building/model count)
         sf = pd.concat([cbecs_bldg_type_sqft, comstock_bldg_type_sqft], axis = 1)
         logger.info("sf wt_area_col shape: ", sf[wt_area_col].shape)
-        sf[self.BLDG_WEIGHT] = sf[wt_area_col]/sf[self.FLR_AREA]
+        sf[self.BLDG_WEIGHT] = sf[wt_area_col].astype(float) / sf[self.FLR_AREA].astype(float)
         bldg_type_scale_factors = sf[self.BLDG_WEIGHT].to_dict()
         if np.nan in bldg_type_scale_factors:
             wrn_msg = (f'A NaN value was found in the scaling factors, which means that a building type was missing '
