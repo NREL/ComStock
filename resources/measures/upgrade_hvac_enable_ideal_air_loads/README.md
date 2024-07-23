@@ -2,7 +2,7 @@
 
 ###### (Automatically generated documentation)
 
-# EnableIdealAirLoadsForAllZones
+# UpgradeHvacEnableIdealAirLoads
 
 ## Description
 

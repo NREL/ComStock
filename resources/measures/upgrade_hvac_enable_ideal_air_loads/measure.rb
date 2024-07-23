@@ -1,26 +1,12 @@
-# *******************************************************************************
-# OpenStudio(R), Copyright (c) Alliance for Sustainable Energy, LLC.
-# See also https://openstudio.net/license
-# *******************************************************************************
-
-# see the URL below for information on how to write OpenStudio measures
-# http://openstudio.nrel.gov/openstudio-measure-writing-guide
-
-# see the URL below for information on using life cycle cost objects in OpenStudio
-# http://openstudio.nrel.gov/openstudio-life-cycle-examples
-
-# see the URL below for access to C++ documentation on model objects (click on "model" in the main window to view model objects)
-# http://openstudio.nrel.gov/sites/openstudio.nrel.gov/files/nv_data/cpp_documentation_it/model/html/namespaces.html
-
 # dependencies
 require 'openstudio-standards'
 
 # start the measure
-class EnableIdealAirLoadsForAllZones < OpenStudio::Measure::ModelMeasure
+class UpgradeHvacEnableIdealAirLoads < OpenStudio::Measure::ModelMeasure
   # define the name that a user will see, this method may be deprecated as
   # the display name in PAT comes from the name field in measure.xml
   def name
-    return 'EnableIdealAirLoadsForAllZones'
+    return 'UpgradeHvacEnableIdealAirLoads'
   end
 
   # define the arguments that the user will input
@@ -39,87 +25,67 @@ class EnableIdealAirLoadsForAllZones < OpenStudio::Measure::ModelMeasure
       return false
     end
 
+    # check which zone already include ideal air loads
+    existing_ideal_loads = model.getZoneHVACIdealLoadsAirSystems
+    runner.registerInitialCondition("The model has #{existing_ideal_loads.size} ideal air loads objects.")
+
     # dummy standard to access methods in openstudio-standards
     std = Standard.build('90.1-2013')
 
     # remove existing HVAC
     runner.registerInfo('Removing existing HVAC systems from the model')
-    std.model_remove_prm_hvac(model)
+    std.remove_hvac(model)
 
-    # array of zones initially using ideal air loads
-    startingIdealAir = []
-
-    # remove zone equipment except for exhaust and natural ventilation
-    zone_hvac_ideal_found = false
-    model.getZoneHVACComponents.each do |component|
-      next if component.to_FanZoneExhaust.is_initialized
-      component.remove
+    # add zone hvac ideal load air system objects
+    conditioned_zones = []
+    model.getThermalZones.each do |zone|
+      next if std.thermal_zone_plenum?(zone)
+      next if !std.thermal_zone_heated?(zone) && !std.thermal_zone_cooled?(zone)
+      conditioned_zones << zone
     end
 
-    thermalZones = model.getThermalZones
-    thermalZones.each do |zone|
-      # TODO: - need to also look for ZoneHVACIdealLoadsAirSystem
-      if zone.useIdealAirLoads
-        startingIdealAir << zone
-      else
-
-        if zone_hvac_ideal_found == true
-          startingIdealAir << zone
-        else
-
-          next if !zone.thermostatSetpointDualSetpoint.is_initialized
-          ideal_loads = OpenStudio::Model::ZoneHVACIdealLoadsAirSystem.new(model)
-          ideal_loads.setMinimumCoolingSupplyAirTemperature(13) #55.4F
-          ideal_loads.setMaximumHeatingSupplyAirTemperature(50) #122F
-          ideal_loads.setDehumidificationControlType('ConstantSensibleHeatRatio')
-          ideal_loads.setCoolingSensibleHeatRatio(0.7)
-          ideal_loads.addToThermalZone(zone)
-
-
-          # modify design outdoor air object to follow occupancy
-          sch_ruleset = std.thermal_zones_get_occupancy_schedule(thermal_zones=[zone],
-                                                            occupied_percentage_threshold:0.05)
-          zone.spaces.each do |space|
-            next unless space.designSpecificationOutdoorAir.is_initialized
-            dsn_oa = space.designSpecificationOutdoorAir.get
-            dsn_oa.setOutdoorAirFlowRateFractionSchedule(sch_ruleset)
-          end
-        end
+    # modify design outdoor air object to follow occupancy; ComStock DSOA objects do not have schedules by default
+    conditioned_zones.each do |zone|
+      sch_ruleset = std.thermal_zones_get_occupancy_schedule(thermal_zones=[zone],
+      occupied_percentage_threshold:0.05)
+      zone.spaces.each do |space|
+        next unless space.designSpecificationOutdoorAir.is_initialized
+        dsn_oa = space.designSpecificationOutdoorAir.get
+        dsn_oa.setOutdoorAirFlowRateFractionSchedule(sch_ruleset)
       end
     end
 
-    # remove air and plant loops not used for SWH
-    model.getAirLoopHVACs.each(&:remove)
+    # add ideal air loads
+    ideal_loads_objects = std.model_add_ideal_air_loads(model,
+                                                        conditioned_zones,
+                                                        hvac_op_sch: nil,
+                                                        heat_avail_sch: nil,
+                                                        cool_avail_sch: nil,
+                                                        heat_limit_type: 'NoLimit',
+                                                        cool_limit_type: 'NoLimit',
+                                                        dehumid_limit_type: 'ConstantSensibleHeatRatio',
+                                                        cool_sensible_heat_ratio: 0.75,
+                                                        humid_ctrl_type: 'None',
+                                                        include_outdoor_air: true,
+                                                        enable_dcv: false,
+                                                        econo_ctrl_mthd: 'NoEconomizer',
+                                                        heat_recovery_type: 'None',
+                                                        heat_recovery_sensible_eff: 0.7,
+                                                        heat_recovery_latent_eff: 0.65,
+                                                        add_output_meters: false)
 
-    # see if plant loop is swh or not and take proper action (booter loop doesn't have water use equipment)
-    model.getPlantLoops.each do |plant_loop|
-      is_swh_loop = false
-      plant_loop.supplyComponents.each do |component|
-        if component.to_WaterHeaterMixed.is_initialized
-          is_swh_loop = true
-          next
-        end
-      end
-      if is_swh_loop == false
-        plant_loop.remove
-      end
+    # validity checks
+    unless ideal_loads_objects
+      runner.registerError('Failure in creating ideal loads objects.  See logs from [openstudio.model.Model]. Likely cause is an invalid schedule input or schedule removed from by another measure.')
+      return false
     end
 
-    # reporting initial condition of model
-    runner.registerInitialCondition("In the initial model #{startingIdealAir.size} zones use ideal air loads.")
-
-    # reporting final condition of model
-    finalIdealAir = []
-    thermalZones.each do |zone|
-      if zone.useIdealAirLoads
-        finalIdealAir << zone
-      end
-    end
-    runner.registerFinalCondition("In the final model #{finalIdealAir.size} zones use ideal air loads.")
+    # runner register final conditions of model
+    runner.registerFinalCondition("The model has #{ideal_loads_objects.size} ideal air loads objects.")
 
     return true
   end
 end
 
 # this allows the measure to be use by the application
-EnableIdealAirLoadsForAllZones.new.registerWithApplication
+UpgradeHvacEnableIdealAirLoads.new.registerWithApplication

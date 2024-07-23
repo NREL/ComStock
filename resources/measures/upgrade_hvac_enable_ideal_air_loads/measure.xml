@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <measure>
   <schema_version>3.1</schema_version>
-  <name>enable_ideal_air_loads_for_all_zones</name>
+  <name>upgrade_hvac_enable_ideal_air_loads</name>
   <uid>f70d4a3d-8b93-4fef-b679-858fe1e05acc</uid>
-  <version_id>05ed43c9-77dc-4b26-a660-d1df2ebb041d</version_id>
-  <version_modified>2024-07-22T14:47:57Z</version_modified>
+  <version_id>a0e3eacb-5341-4b71-9a05-fa253a922db1</version_id>
+  <version_modified>2024-07-23T14:05:58Z</version_modified>
   <xml_checksum>4435983D</xml_checksum>
-  <class_name>EnableIdealAirLoadsForAllZones</class_name>
-  <display_name>EnableIdealAirLoadsForAllZones</display_name>
+  <class_name>UpgradeHvacEnableIdealAirLoads</class_name>
+  <display_name>UpgradeHvacEnableIdealAirLoads</display_name>
   <description>This will enable Ideal Air Loads for all thermal zones in the model. This will result in disconnecting any pre-existing HVAC systems from the zones.</description>
   <modeler_description>This doesn't clean up any air or plant loops that are left. It was developed to use on models without HVAC. If you use it in another way you may have to clean up remaining objects prior to running a simulation.</modeler_description>
   <arguments />
@@ -39,7 +39,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>99E5F2C0</checksum>
+      <checksum>C42F73C4</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -56,7 +56,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>DCA017AE</checksum>
+      <checksum>5AD9FD94</checksum>
     </file>
     <file>
       <filename>EnableIdealAirLoadsForAllZones_Test.rb</filename>
