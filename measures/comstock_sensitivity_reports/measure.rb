@@ -47,6 +47,9 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     return 'ComStock_Sensitivity_Reports'
   end
 
+  # timestep for timeseries data processing
+  TS_TIMESTEP = 'Hourly'
+
   # human readable description
   def description
     return 'In order to train the surrogate model for ComStock, we need to have more summary information about the
@@ -179,9 +182,9 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     result << OpenStudio::IdfObject.load("Output:Variable,*,Water Heater Propane Energy,RunPeriod;").get # J
     result << OpenStudio::IdfObject.load('Output:Variable,*,Water Heater Heating Energy,RunPeriod;').get # J
     result << OpenStudio::IdfObject.load('Output:Variable,*,Water Heater Unmet Demand Heat Transfer Energy,RunPeriod;').get # J
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Unitary System DX Coil Cycling Ratio,Timestep;').get # -
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Unitary System Sensible Cooling Rate,Timestep;').get # W
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Unitary System Sensible Heating Rate,Timestep;').get # W
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Unitary System DX Coil Cycling Ratio,#{TS_TIMESTEP};").get # -
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Unitary System Sensible Cooling Rate,#{TS_TIMESTEP};").get # W
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Unitary System Sensible Heating Rate,#{TS_TIMESTEP};").get # W
     if model.version > OpenStudio::VersionString.new('3.3.0')
       result << OpenStudio::IdfObject.load('Output:Variable,*,Cooling Coil Total Water Heating Energy,RunPeriod;').get # J
       result << OpenStudio::IdfObject.load('Output:Variable,*,Cooling Coil Water Heating Electricity Energy,RunPeriod;').get # J
@@ -256,6 +259,24 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       return false
     end
     return dependent_var_val
+  end
+
+  def convert_timeseries_to_list(timeseries)
+    if timeseries.is_initialized
+      ts_list = []
+      vals = timeseries.get.values
+      for i in 0..(vals.size - 1)
+        ts_list << vals[i]
+      end
+    end
+    return ts_list
+  end
+
+  def get_average_from_array(array)
+    sum = array.sum
+    count = array.size
+    average = sum.to_f / count
+    return average
   end
 
   # define what happens when the measure is run
@@ -2462,6 +2483,39 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       dx_heating_fraction_electric_defrost = dx_heating_defrost_energy_j / (dx_heating_total_supplemental_load_electric_j + dx_heating_defrost_energy_j + dx_heating_total_dx_electric_j)
     end
     runner.registerValue('com_report_hvac_dx_heating_fraction_electric_defrost', dx_heating_fraction_electric_defrost)
+
+    # cycling ratio for unitary system
+    # initialize variables
+    com_report_unitary_sys_cycling_ratio_cooling_weighted_sum = 0.0
+    com_report_unitary_sys_cycling_ratio_heating_weighted_sum = 0.0
+    total_floor_area = 0.0
+    # loop through airloophvac unitary systems
+    model.getAirLoopHVACUnitarySystems.each do |airloopunisys|
+      # get timeseries data
+      ts_unitary_sys_cycling_ratio = sql.timeSeries(ann_env_pd, TS_TIMESTEP, 'Unitary System DX Coil Cycling Ratio', airloopunisys.name.to_s.upcase) # dimensionless
+      ts_unitary_sys_cycling_ratio = convert_timeseries_to_list(ts_unitary_sys_cycling_ratio)
+      ts_unitary_sys_sen_cooling_rate = sql.timeSeries(ann_env_pd, TS_TIMESTEP, 'Unitary System Sensible Cooling Rate', airloopunisys.name.to_s.upcase) # W
+      ts_unitary_sys_sen_cooling_rate = convert_timeseries_to_list(ts_unitary_sys_sen_cooling_rate)
+      ts_unitary_sys_sen_heating_rate = sql.timeSeries(ann_env_pd, TS_TIMESTEP, 'Unitary System Sensible Heating Rate', airloopunisys.name.to_s.upcase) # W
+      ts_unitary_sys_sen_heating_rate = convert_timeseries_to_list(ts_unitary_sys_sen_heating_rate)
+      # calculate average cycling ratio
+      ts_unitary_sys_cycling_ratio_cooling = ts_unitary_sys_cycling_ratio.zip(ts_unitary_sys_sen_cooling_rate).select { |a, b| b != 0 }.map { |a, b| a }
+      avg_unitary_sys_cycling_ratio_cooling = get_average_from_array(ts_unitary_sys_cycling_ratio_cooling)
+      ts_unitary_sys_cycling_ratio_heating = ts_unitary_sys_cycling_ratio.zip(ts_unitary_sys_sen_heating_rate).select { |a, b| b != 0 }.map { |a, b| a }
+      avg_unitary_sys_cycling_ratio_heating = get_average_from_array(ts_unitary_sys_cycling_ratio_heating)
+      # get floor area served
+      corresponding_thermal_zone = airloopunisys.thermalZone.get
+      corresponding_floor_area_m_2 = corresponding_thermal_zone.floorArea
+      total_floor_area += corresponding_floor_area_m_2
+      # calculate weighted sum
+      com_report_unitary_sys_cycling_ratio_cooling_weighted_sum += avg_unitary_sys_cycling_ratio_cooling * corresponding_floor_area_m_2
+      com_report_unitary_sys_cycling_ratio_heating_weighted_sum += avg_unitary_sys_cycling_ratio_heating * corresponding_floor_area_m_2
+    end
+    # calculate weighted average
+    com_report_unitary_sys_cycling_ratio_cooling = total_floor_area > 0.0 ? com_report_unitary_sys_cycling_ratio_cooling_weighted_sum / total_floor_area : 0.0
+    com_report_unitary_sys_cycling_ratio_heating = total_floor_area > 0.0 ? com_report_unitary_sys_cycling_ratio_heating_weighted_sum / total_floor_area : 0.0
+    runner.registerValue('com_report_unitary_sys_cycling_ratio_cooling', com_report_unitary_sys_cycling_ratio_cooling)
+    runner.registerValue('com_report_unitary_sys_cycling_ratio_heating', com_report_unitary_sys_cycling_ratio_heating)
 
     # Get the outdoor air temp timeseries and calculate heating and cooling degree days
     # Per ISO 15927-6, "Accumulated hourly temperature differences shall be calculated according to 4.4 when hourly data are available. When hourly data are not available, the approximate method given in 4.5, based on the maximum and minimum temperatures each day, may be used."
