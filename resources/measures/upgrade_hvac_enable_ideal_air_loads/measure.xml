@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>enable_ideal_air_loads_for_all_zones</name>
   <uid>f70d4a3d-8b93-4fef-b679-858fe1e05acc</uid>
-  <version_id>c518354e-ccbb-45fe-8caa-04a5d7f7c389</version_id>
-  <version_modified>2024-02-28T18:28:40Z</version_modified>
+  <version_id>05ed43c9-77dc-4b26-a660-d1df2ebb041d</version_id>
+  <version_modified>2024-07-22T14:47:57Z</version_modified>
   <xml_checksum>4435983D</xml_checksum>
   <class_name>EnableIdealAirLoadsForAllZones</class_name>
   <display_name>EnableIdealAirLoadsForAllZones</display_name>
@@ -56,7 +56,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>8B6C54D2</checksum>
+      <checksum>DCA017AE</checksum>
     </file>
     <file>
       <filename>EnableIdealAirLoadsForAllZones_Test.rb</filename>

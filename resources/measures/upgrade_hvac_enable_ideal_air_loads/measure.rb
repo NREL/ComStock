@@ -69,11 +69,22 @@ class EnableIdealAirLoadsForAllZones < OpenStudio::Measure::ModelMeasure
 
           next if !zone.thermostatSetpointDualSetpoint.is_initialized
           ideal_loads = OpenStudio::Model::ZoneHVACIdealLoadsAirSystem.new(model)
+          ideal_loads.setMinimumCoolingSupplyAirTemperature(13) #55.4F
+          ideal_loads.setMaximumHeatingSupplyAirTemperature(50) #122F
+          ideal_loads.setDehumidificationControlType('ConstantSensibleHeatRatio')
+          ideal_loads.setCoolingSensibleHeatRatio(0.7)
           ideal_loads.addToThermalZone(zone)
-          # Set the ideal loads properties
-          # ideal_loads.setMinimumCoolingTemperature(0.0)
-        end
 
+
+          # modify design outdoor air object to follow occupancy
+          sch_ruleset = std.thermal_zones_get_occupancy_schedule(thermal_zones=[zone],
+                                                            occupied_percentage_threshold:0.05)
+          zone.spaces.each do |space|
+            next unless space.designSpecificationOutdoorAir.is_initialized
+            dsn_oa = space.designSpecificationOutdoorAir.get
+            dsn_oa.setOutdoorAirFlowRateFractionSchedule(sch_ruleset)
+          end
+        end
       end
     end
 
