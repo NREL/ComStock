@@ -669,6 +669,9 @@ module OsLib
           # Interior equipment
           when 'OS_ElectricEquipment'
             vars << "Electric Equipment #{elec} Energy"
+          # Gas Equipment
+          when 'OS_GasEquipment'
+            vars << "Gas Equipment #{gas} Energy"
           # Refrigeration
           when 'OS_Refrigeration_Compressor'
             vars << "Refrigeration Compressor #{elec} Energy"
