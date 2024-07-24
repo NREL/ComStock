@@ -208,15 +208,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.add_enduse_group_columns()
                 self.add_addressable_segments_columns()
                 self.combine_emissions_cols()
-
                 if upgrade_id not in upgradIdcount:
-                    upgradIdcount[upgrade_id] = self.data.filter(pl.col(self.UPGRADE_ID) == upgrade_id).shape[0] 
-
+                    upgradIdcount[upgrade_id] = self.data.filter(pl.col(self.UPGRADE_ID) == upgrade_id).shape[0]
                 self.add_metadata_index_col(upgradIdcount)
                 self.get_comstock_unscaled_monthly_energy_consumption()
                 self.add_weighted_energy_savings_columns()
-                self.add_weighted_utility_savings_columns()                
-                self.add_weighted_area_and_energy_columns()
+                self.add_weighted_utility_savings_columns()
                 # Downselect the self.data to just the upgrade
                 self.data = self.data.filter(pl.col(self.UPGRADE_ID) == upgrade_id)
                 # Write self.data to parquet file
@@ -1821,14 +1818,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # comstock_bldg_types = self.data[self.BLDG_TYPE].unique()
         assert isinstance(self.data, pl.LazyFrame)
         comstock_bldg_types: set = set(self.data.select(self.BLDG_TYPE).unique().collect().to_pandas()[self.BLDG_TYPE].tolist())
-        
+
         cbecs.data: pd.DataFrame = cbecs.data.collect().to_pandas()
         assert isinstance(cbecs.data, pd.DataFrame)
         bldg_types_to_keep = [] #if the bldg types in both CBECS and ComStock, keep them.
         for bt in cbecs.data[self.BLDG_TYPE].unique():
             if bt in comstock_bldg_types:
                 bldg_types_to_keep.append(bt)
-        
+
         logger.debug("Building types to keep: ", bldg_types_to_keep)
         if remove_non_comstock_bldg_types_from_cbecs:
             # Modify CBECS to remove building types not covered by ComStock
@@ -1910,7 +1907,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 logger.info('Energy savings columns already in data')
         # Adding weighting factors to the monthly data
         self.get_scaled_comstock_monthly_consumption_by_state()
-        
+
+        # Apply the newly-added weights to the columns
+        self.add_weighted_area_and_energy_columns()
+
         assert isinstance(cbecs.data, pd.DataFrame)
         cbecs.data = pl.from_pandas(cbecs.data).lazy()
         assert isinstance(cbecs.data, pl.LazyFrame)
@@ -1918,7 +1918,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
     def add_weighted_area_and_energy_columns(self):
 
-        assert isinstance(self.data, pl.DataFrame)
+        assert isinstance(self.data, pl.LazyFrame)
         # Area - create weighted column
         new_area_col = self.col_name_to_weighted(self.FLR_AREA)
         self.data = self.data.with_columns(
@@ -2089,7 +2089,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.data = self.data.join(up_abs_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
         self.data = self.data.join(up_pct_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
 
-
     def add_weighted_utility_savings_columns(self):
         assert isinstance(self.data, pl.DataFrame)
         # Select energy columns to calculate savings for
@@ -2189,7 +2188,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.data = pl.concat([df_baseline, df_upgrade])
         else:
             self.data = df_baseline
-        
+
     def remove_sightglass_column_units(self):
         # SightGlass requires that the energy_consumption, energy_consumption_intensity,
         # energy_savings, and energy_savings_intensity columns have no units on the
@@ -2440,7 +2439,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.reorder_data_columns()
         logger.info(f'self.data type is {type(self.data)}')
         assert isinstance(self.data, pl.LazyFrame)
-        up_ids = [up_id for (up_id, parque_path) in self.cached_parquet]        
+        up_ids = [up_id for (up_id, parque_path) in self.cached_parquet]
         up_ids.sort()
         for up_id in up_ids:
             file_name = f'ComStock wide upgrade{up_id}.parquet'
