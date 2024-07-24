@@ -24,6 +24,7 @@ from comstockpostproc.s3_utilities_mixin import S3UtilitiesMixin
 from buildstock_query import BuildStockQuery
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 COLUMN_DEFINITION_FILE_NAME = 'comstock_column_definitions.csv'
@@ -101,6 +102,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.monthly_data_gap = None
         self.ami_timeseries_data = None
         self.data_long = None
+        self.loads_data_long = None
         self.color = color_hex
         self.building_type_weights = None
         self.weighted_energy_units = weighted_energy_units
@@ -170,11 +172,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # Calculate/generate columns based on imported columns
             # self.add_aeo_nems_building_type_column()  # TODO POLARS figure out apply function
             self.add_missing_energy_columns()
-            self.combine_utility_cols()
+            # self.combine_utility_cols()
             self.add_enduse_total_energy_columns()
             self.add_energy_intensity_columns()
-            self.add_bill_intensity_columns()
-            self.add_energy_rate_columns()
+            # self.add_bill_intensity_columns()
+            # self.add_energy_rate_columns()
+            self.add_load_component_indensity_columns()
             self.add_normalized_qoi_columns()
             self.add_vintage_column()
             self.add_dataset_column()
@@ -1414,6 +1417,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         out_qoi = []
         out_params = []
         calc = []
+        loads = []
 
         for c in oth_cols:
             if c.startswith('applicability.'):
@@ -1444,10 +1448,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                   or c.endswith('.energy_savings_intensity')
                   or c.endswith('.energy_savings_intensity..kwh_per_ft2')):
                 out_intensity.append(c)
+            elif c.startswith('out.loads'):
+                loads.append(c)
             else:
                 logger.error(f'Didnt find an order for column: {c}')
 
-        sorted_cols = front_cols + applicability + geogs + ins + out_engy_cons_svgs + out_peak + out_intensity + out_qoi + out_emissions + out_utility + out_params + calc
+        sorted_cols = front_cols + applicability + geogs + ins + out_engy_cons_svgs + out_peak + out_intensity + out_qoi + out_emissions + out_utility + out_params + calc + loads
 
         self.data = self.data.select(sorted_cols)
 
@@ -1583,6 +1589,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             per_area_col = self.col_name_to_area_intensity(bill_col)
             self.data = self.data.with_columns(
                 (pl.col(bill_col) / pl.col(self.FLR_AREA)).alias(per_area_col))
+
+    def add_load_component_indensity_columns(self):
+        for load_col in self.load_component_cols():
+            # Divid energy by area to create intensity
+            lui_col = self.col_name_to_area_intensity(load_col).replace('out.','calc.')
+            self.data = self.data.with_columns(
+                (pl.col(load_col) / pl.col(self.FLR_AREA)).alias(lui_col))
 
     def add_energy_rate_columns(self):
         # Create energy rate column for each annual utility bill column
@@ -1772,6 +1785,31 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_groups, default=None)).alias(self.BLDG_TYPE_GROUP))
         self.data = self.data.with_columns(pl.col(self.BLDG_TYPE_GROUP).cast(pl.Categorical))
 
+    def add_climate_zone_group(self):
+        cz_groups = {
+            '1A': 'Hot (Zones 1-3)',
+            '2A': 'Hot (Zones 1-3)',
+            '2B': 'Hot (Zones 1-3)',
+            '3A': 'Hot (Zones 1-3)',
+            '3B': 'Hot (Zones 1-3)',
+            '3C': 'Hot (Zones 1-3)',
+            '4A': 'Mixed (Zone 4)',
+            '4B': 'Mixed (Zone 4)',
+            '4C': 'Mixed (Zone 4)',
+            '5A': 'Cold (Zones 5-8)',
+            '5B': 'Cold (Zones 5-8)',
+            '6A': 'Cold (Zones 5-8)',
+            '6B': 'Cold (Zones 5-8)',
+            '7':  'Cold (Zones 5-8)',
+            '7A': 'Cold (Zones 5-8)',
+            '7B': 'Cold (Zones 5-8)',
+            '8': 'Cold (Zones 5-8)',
+            '8A': 'Cold (Zones 5-8)',
+        }
+
+        self.data = self.data.with_columns((pl.col(self.CZ_ASHRAE).cast(pl.Utf8).replace(cz_groups, default=None)).alias('Climate Zone Group'))
+        self.data = self.data.with_columns(pl.col('Climate Zone Group').cast(pl.Categorical))
+
     def add_national_scaling_weights(self, cbecs: CBECS, remove_non_comstock_bldg_types_from_cbecs: bool):
         # Remove CBECS entries for building types not included in the ComStock run
         comstock_bldg_types = self.data[self.BLDG_TYPE].unique()
@@ -1864,6 +1902,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Adding weighting factors to the monthly data
         self.get_scaled_comstock_monthly_consumption_by_state()
 
+        # Adding weighing factors to the load component data
+        # self.add_weighted_load_component_columns()
+
         return bldg_type_scale_factors
 
     def add_weighted_area_and_energy_columns(self):
@@ -1883,18 +1924,18 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 (pl.col(col) * pl.col(self.BLDG_WEIGHT) * conv_fact).alias(new_col))
 
         # Utility Bills
-        for col in (self.COLS_UTIL_BILLS + [
-                                            self.UTIL_BILL_TOTAL_MEAN,
-                                            'out.utility_bills.electricity_bill_max..usd',
-                                            'out.utility_bills.electricity_bill_median..usd',
-                                            'out.utility_bills.electricity_bill_min..usd']):
-            # Weight and convert to million USD
-            new_col = self.col_name_to_weighted(col, self.weighted_utility_units)
-            old_units = self.units_from_col_name(col)
-            new_units = self.weighted_utility_units
-            conv_fact = self.conv_fact(old_units, new_units)
-            self.data = self.data.with_columns(
-                (pl.col(col) * pl.col(self.BLDG_WEIGHT) * conv_fact).alias(new_col))
+        # for col in (self.COLS_UTIL_BILLS + [
+        #                                     self.UTIL_BILL_TOTAL_MEAN,
+        #                                     'out.utility_bills.electricity_bill_max..usd',
+        #                                     'out.utility_bills.electricity_bill_median..usd',
+        #                                     'out.utility_bills.electricity_bill_min..usd']):
+        #     # Weight and convert to million USD
+        #     new_col = self.col_name_to_weighted(col, self.weighted_utility_units)
+        #     old_units = self.units_from_col_name(col)
+        #     new_units = self.weighted_utility_units
+        #     conv_fact = self.conv_fact(old_units, new_units)
+        #     self.data = self.data.with_columns(
+        #         (pl.col(col) * pl.col(self.BLDG_WEIGHT) * conv_fact).alias(new_col))
 
         # Energy
         for col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY):
@@ -1953,6 +1994,15 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     .otherwise(0.0)
                     .alias(enduse_gp_ghg_col)
                 ])
+
+    def add_weighted_load_component_columns(self):
+        # load components
+        load_columns = self.load_component_cols()
+        for col in load_columns:
+            new_col = self.col_name_to_weighted(col, 'kbtu')
+            self.data = self.data.with_columns(
+                (pl.col(col) * pl.col(self.BLDG_WEIGHT)).alias(new_col))
+
     def add_weighted_energy_savings_columns(self):
         # Select energy columns to calculate savings for
         engy_cols = []
@@ -2476,6 +2526,34 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Assign
         self.data_long = engy_emis
 
+    def create_long_loads_data(self):
+        # add climate zone groups
+        self.add_climate_zone_group()
+
+        # convert load component data to long format, with a row for each fuel/enduse/load component group combo
+        load_cols = self.load_component_cols()
+        load_intensity_cols = []
+        for col in load_cols:
+            intensity_col = self.col_name_to_area_intensity(col).replace('out.','calc.')
+            load_intensity_cols.append(intensity_col)
+
+        oa_col = 'out.params.average_outdoor_air_fraction'
+
+        load_var_col = 'calc.loads.fuel.period.demand_intensity.component..units'
+        load_val_col = 'calc.loads.component_load_intensity..kbtu_per_ft2'
+        pre = 'calc.loads.'
+        loads_long = self.data.melt(id_vars=[self.BLDG_ID, self.UPGRADE_ID, 'Climate Zone Group', self.BLDG_TYPE_GROUP, oa_col], value_vars=load_intensity_cols, variable_name=load_var_col, value_name=load_val_col)
+        loads_long = loads_long.with_columns(
+            pl.col(load_var_col).str.strip_prefix(pre).str.split('.').list.get(0).alias('fuel'),
+            pl.col(load_var_col).str.strip_prefix(pre).str.split('.').list.get(1).alias('period'),
+            pl.col(load_var_col).str.strip_prefix(pre).str.split('.').list.get(3).alias('component')
+        )
+
+        loads_long = loads_long.drop(load_var_col)
+        loads_long = loads_long.sort(by=self.BLDG_ID)
+        print(loads_long.head)
+        self.loads_data_long = loads_long
+
     def export_to_csv_long(self):
         # Exports comstock data to CSV in long format, with rows for each fuel/enduse group combo
 
@@ -2491,7 +2569,21 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             file_name = f'upgrade{up_id:02d}_energy_long.csv'
             file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
             logger.info(f'Exporting to: {file_path}')
-            self.data.filter(pl.col(self.UPGRADE_ID) == up_id).write_csv(file_path)
+            self.data_long.filter(pl.col(self.UPGRADE_ID) == up_id).write_csv(file_path)
+
+    def export_loads_to_csv_long(self):
+
+        if self.loads_data_long is None:
+            self.create_long_loads_data()
+
+        up_ids = self.data.get_column(self.UPGRADE_ID).unique().to_list()
+        up_ids.sort()
+        logger.error(f'Exporting Loads')
+        for up_id in up_ids:
+            file_name = f'upgrade{up_id:02d}_loads_long.csv'
+            file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
+            logger.info(f'Exporting to: {file_path}')
+            self.loads_data_long.filter(pl.col(self.UPGRADE_ID) == up_id).write_csv(file_path)
 
     def combine_emissions_cols(self):
         # Create combined emissions columns
