@@ -482,7 +482,7 @@ module OsLib
         end
       end
 
-      # A set of SubEndUseMeters for each 
+      # A set of SubEndUseMeters for each
       # possible combination of:
       # fuel type > end use > supply/demand > sub end use
       class MeterSet
@@ -532,7 +532,7 @@ module OsLib
         when 'district_cooling'
           'DistrictCooling'
         when 'district_heating'
-          'DistrictHeating'
+          'DistrictHeatingWater'
         when 'solar_energy'
           'SolarEnergy'
         when 'propane_gas'
@@ -571,7 +571,7 @@ module OsLib
         when 'district_cooling'
           'DistrictCooling'
         when 'district_heating'
-          'DistrictHeating'
+          'DistrictHeatingWater'
         when 'solar_energy'
           'SolarEnergy'
         when 'propane_gas'
@@ -601,7 +601,7 @@ module OsLib
         end
       end
 
-      # Convert the Scout end use name into 
+      # Convert the Scout end use name into
       # the EnergyPlus end use name
       def self.energyplus_end_use_type_for_meter_name_map(end_use)
         case end_use
