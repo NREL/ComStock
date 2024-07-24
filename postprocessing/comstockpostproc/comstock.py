@@ -2643,7 +2643,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             col_enums = []
             if col_def['data_type'] == 'string':
                 str_enums = []
-                for enum in self.data.columns:
+                for enum in self.data.select(col).unique().collect().to_series().to_list():
                     if enum is None:
                         continue  # Don't define blank enumerations
                     try:
