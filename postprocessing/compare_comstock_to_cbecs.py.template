@@ -29,7 +29,7 @@ def main():
 
     # CBECS
     cbecs = cspp.CBECS(
-        cbecs_year=2012,  # 2012 and 2018 currently available
+        cbecs_year=2018,  # 2012 and 2018 currently available
         truth_data_version='v01',  # Typically don't change this
         color_hex='#009E73',  # Color used to represent CBECS in plots
         reload_from_csv=False  # True if CSV already made and want faster reload times
@@ -55,7 +55,7 @@ def main():
 
     # Scale ComStock run to CBECS 2018 AND remove non-ComStock buildings from CBECS
     comstock.add_national_scaling_weights(cbecs, remove_non_comstock_bldg_types_from_cbecs=True,
-                                          use_hard_coded_scaling_weights=True,
+                                          use_hard_coded_scaling_weights=False, #Typically use False. True utilizes the scaling factors above for runs that might not be accurately scaled.
                                           scaling_factors=national_scaling_factors)
 
     comstock.export_to_csv_wide()
@@ -67,7 +67,7 @@ def main():
                                           comstock_list=[comstock],
                                           upgrade_id='All',
                                           make_comparison_plots=True,
-                                          make_hvac_plots=True) #Only works with CBECS 2012
+                                          make_hvac_plots=False) #Only works with CBECS 2012
 
     # HVAC plots only work for CBECS 2012 TODO - remove this once HVAC.SYS types are available for CBECS 2018
 
