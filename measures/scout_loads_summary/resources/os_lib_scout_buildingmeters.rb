@@ -559,22 +559,33 @@ module OsLib
         # Get the output variables comprising the energy consumption
         # recorded for each type of object
         def energy_consumption_output_variables(component)
-            # Get the object type
+
+          # Handle fuel output variables that changed in EnergyPlus version 9.4 (Openstudio version >= 3.1)
+          elec = 'Electric'
+          gas = 'Gas'
+          fuel_oil = 'FuelOil#2'
+          if component.model.version > OpenStudio::VersionString.new('3.0.1')
+            elec = 'Electricity'
+            gas = 'NaturalGas'
+            fuel_oil = 'FuelOilNo2'
+          end
+
+           # Get the object type
           obj_type = component.iddObjectType.valueName.to_s
           vars = []
           case obj_type
           # HVAC equipment
           when 'OS_Boiler_HotWater', 'OS_Boiler_Steam'
             if component.fuelType == 'NaturalGas'
-              vars << 'Boiler Gas Energy'
+              vars << "Boiler #{gas} Energy"
             else
-              vars << 'Boiler Electric Energy'
+              vars << "Boiler #{elec} Energy"
             end
           when 'OS_WaterHeater_Mixed', 'OS_WaterHeater_Stratified'
             if component.heaterFuelType == 'NaturalGas'
-              vars << 'Water Heater Gas Energy'
+              vars << "Water Heater #{gas} Energy"
             else
-              vars << 'Water Heater Electric Energy'
+              vars << "Water Heater #{elec} Energy"
             end
           when 'OS_WaterHeater_HeatPump', 'OS_WaterHeater_WrappedCondenser'
             # TODO: confirm what object (coil or tank) is returned by OpenStudio
@@ -585,38 +596,38 @@ module OsLib
             vars << 'Baseboard Electric Energy'
           when 'OS_ZoneHVAC_HighTemperatureRadiant'
             if component.fuelType == 'NaturalGas'
-              vars << 'Zone Radiant HVAC Gas Energy'
+              vars << "Zone Radiant HVAC #{gas} Energy"
             else
-              vars << 'Zone Radiant HVAC Electric Energy'
+              vars << "Zone Radiant HVAC #{electric} Energy"
             end
           when 'OS_ZoneHVAC_LowTemperatureRadiant_Electric'
-            vars << 'Zone Radiant HVAC Electric Energy'
+            vars << "Zone Radiant HVAC #{elec} Energy"
           when 'OS_DistrictHeating' # Assume district heating is provided by a gas boiler
             vars << 'District Heating Hot Water Energy'
           when 'OS_DistrictCooling' # Assume district cooling energy is provided by an electric chiller
             vars << 'District Cooling Chilled Water Energy'
           when 'OS_Chiller_Electric_EIR', 'OS_Chiller_Absorption', 'OS_Chiller_Absorption_Indirect'
-            vars << 'Chiller Electric Energy'
+            vars << "Chiller #{elec} Energy"
           when 'OS_Coil_Heating_Gas', 'OS_Coil_Heating_Gas_MultiStage'
-            vars << 'Heating Coil Gas Energy'
+            vars << "Heating Coil #{gas} Energy"
           when 'OS_Coil_Heating_DX_VariableRefrigerantFlow'
             puts "ERROR - No variable listed in I/O ref for #{obj_type}"
             vars << 'no_eplus_var_defined'
           when 'OS_Coil_WaterHeating_AirToWaterHeatPump', 'OS_Coil_WaterHeating_Desuperheater'
-            vars << 'Cooling Coil Water Heating Electric Energy'
+            vars << "Cooling Coil Water Heating #{elec} Energy"
           when 'OS_Refrigeration_AirChiller'
-            vars << 'Refrigeration Zone Air Chiller Total Electric Energy'
+            vars << "Refrigeration Zone Air Chiller Total #{elec} Energy"
           when 'OS_Coil_Heating_WaterToAirHeatPump_EquationFit',
               'OS_Coil_Heating_WaterToAirHeatPump_VariableSpeed_EquationFit',
               'OS_Coil_Heating_Desuperheater',
               'OS_Coil_Heating_Electric'
-            vars << 'Heating Coil Electric Energy'
+            vars << "Heating Coil #{elec} Energy"
           when 'OS_Coil_Heating_DX_MultiSpeed',
               'OS_Coil_Heating_DX_SingleSpeed',
               'OS_Coil_Heating_DX_VariableSpeed'
-            vars << 'Heating Coil Electric Energy'
-            vars << 'Heating Coil Defrost Electric Energy'
-            vars << 'Heating Coil Crankcase Heater Electric Energy'
+            vars << "Heating Coil #{elec} Energy"
+            vars << "Heating Coil Defrost #{elec} Energy"
+            vars << "Heating Coil Crankcase Heater #{elec} Energy"
           when 'OS_Coil_Cooling_DX_MultiSpeed',
               'OS_Coil_Cooling_DX_SingleSpeed',
               'OS_Coil_Cooling_DX_TwoSpeed',
@@ -625,7 +636,7 @@ module OsLib
               'OS_Coil_Cooling_DX_VariableSpeed',
               'OS_Coil_Cooling_WaterToAirHeatPump_EquationFit',
               'OS_Coil_Cooling_WaterToAirHeatPump_VariableSpeed_EquationFit'
-            vars << 'Cooling Coil Electric Energy'
+            vars << "Cooling Coil #{elec} Energy"
           when 'OS_CoolingTower_SingleSpeed',
               'OS_CoolingTower_TwoSpeed',
               'OS_CoolingTower_VariableSpeed',
@@ -633,60 +644,57 @@ module OsLib
               'OS_EvaporativeFluidCooler_TwoSpeed',
               'OS_FluidCooler_SingleSpeed',
               'OS_FluidCooler_TwoSpeed'
-            vars << 'Cooling Tower Fan Electric Energy'
+            vars << "Cooling Tower Fan #{elec} Energy"
           when 'OS_EvaporativeCooler_Direct_ResearchSpecial', 'OS_EvaporativeCooler_Indirect_ResearchSpecial'
-            vars << 'Evaporative Cooler Electric Energy'
+            vars << "Evaporative Cooler #{elec} Energy"
           when 'OS_HeatPump_WaterToWater_EquationFit_Cooling'
-            vars << 'Water to Water Heat Pump Electric Energy'
+            vars << "Water to Water Heat Pump #{elec} Energy"
           # Pumps
           when 'OS_Pump_ConstantSpeed',
               'OS_Pump_VariableSpeed',
               'OS_HeaderedPumps_ConstantSpeed',
               'OS_HeaderedPumps_VariableSpeed'
-            vars << 'Pump Electric Energy'
+            vars << "Pump #{elec} Energy"
           # Fans
           when 'OS_Fan_ConstantVolume',
               'OS_Fan_OnOff',
               'OS_Fan_VariableVolume'
-            vars << 'Fan Electric Energy'
+            vars << "Fan #{elec} Energy"
           # Interior lights
           when 'OS_Lights'
-            vars << 'Lights Electric Energy'
+            vars << "Lights #{elec} Energy"
           # Exterior lights
           when 'OS_Exterior_Lights'
-            vars << 'Exterior Lights Electric Energy'
+            vars << "Exterior Lights #{elec} Energy"
           # Interior equipment
           when 'OS_ElectricEquipment'
-            vars << 'Electric Equipment Electric Energy'
+            vars << "Electric Equipment #{elec} Energy"
+          # Gas Equipment
+          when 'OS_GasEquipment'
+            vars << "Gas Equipment #{gas} Energy"
           # Refrigeration
           when 'OS_Refrigeration_Compressor'
-            vars << 'Refrigeration Compressor Electric Energy'
+            vars << "Refrigeration Compressor #{elec} Energy"
           when 'OS_Refrigeration_Condenser_AirCooled'
-            vars << 'Refrigeration System Condenser Fan Electric Energy'
+            vars << "Refrigeration System Condenser Fan #{elec} Energy"
           when 'OS_Refrigeration_Case'
-            vars << 'Refrigeration Case Evaporator Fan Electric Energy'
-            vars << 'Refrigeration Case Lighting Electric Energy'
+            vars << "Refrigeration Case Evaporator Fan #{elec} Energy"
+            vars << "Refrigeration Case Lighting #{elec} Energy"
             unless component.antiSweatHeaterControlType == 'None'
-              vars << 'Refrigeration Case Anti Sweat Electric Energy'
+              vars << "Refrigeration Case Anti Sweat #{elec} Energy"
             end
             if ['Electric', 'ElectricWithTemperatureTermination'].include?(component.caseDefrostType)
-              vars << 'Refrigeration Case Defrost Electric Energy'
+              vars << "Refrigeration Case Defrost #{elec} Energy"
             end
           when 'OS_Refrigeration_WalkIn'
-            vars << 'Refrigeration Walk In Fan Electric Energy'
-            vars << 'Refrigeration Walk In Lighting Electric Energy'
-            vars << 'Refrigeration Walk In Heater Electric Energy'
+            vars << "Refrigeration Walk In Fan #{elec} Energy"
+            vars << "Refrigeration Walk In Lighting #{elec} Energy"
+            vars << "Refrigeration Walk In Heater #{elec} Energy"
             if component.defrostType == 'Electric'
-              vars << 'Refrigeration Walk In Defrost Electric Energy'
+              vars << "Refrigeration Walk In Defrost #{elec} Energy"
             end
           else
             vars << "energy_output_variable_not_defined_for_#{obj_type}"
-          end
-
-          if component.model.version > OpenStudio::VersionString.new('3.0.1')
-            vars.each do |var|
-              var.gsub!('Electric Energy', 'Electricity Energy')
-            end
           end
 
           return vars
@@ -696,13 +704,13 @@ module OsLib
         # into the Scout fuel types
         def scout_fuel_type_from_energyplus_fuel_type(energyplus_fuel_type)
           case energyplus_fuel_type
-          when 'NaturalGas'
+          when 'NaturalGas', 'Gas'
             'natural_gas'
-          when 'Electricity'
+          when 'Electricity', 'Electric'
             'electricity'
           when 'DistrictCooling'
             'district_cooling'
-          when 'DistrictHeating'
+          when 'DistrictHeating', 'DistrictHeatingWater', 'DistrictHeatingSteam'
             'district_heating'
           when 'SolarEnergy'
             'solar_energy'
