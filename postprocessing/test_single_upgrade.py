@@ -27,7 +27,7 @@ def main():
         drop_failed_runs=True,  # False if you want to evaluate which runs failed in raw output data
         color_hex='#0072B2',  # Color used to represent this run in plots
         skip_missing_columns=True,  # False if you want to ensure you have all data specified for export
-        reload_from_csv=True, # True if CSV already made and want faster reload times
+        reload_from_csv=False, # True if CSV already made and want faster reload times
         include_upgrades=True,  # False if not looking at upgrades
         athena_table_name=None,
         upgrade_ids_to_skip=[],
@@ -55,7 +55,12 @@ def main():
     # Scale ComStock run to CBECS 2018 AND remove non-ComStock buildings from CBECS
     # This is how weights in the models are set to represent national energy consumption
     comstock.add_national_scaling_weights(cbecs, remove_non_comstock_bldg_types_from_cbecs=True)
+    comstock.add_weighted_energy_savings_columns()
+    comstock.add_weighted_utility_savings_columns()
+    comstock.add_weighted_area_and_energy_columns()
+    comstock.reorder_data_columns()
 
+    raise Exception("Stop here")
     # Uncomment this to correct gas consumption for a ComStock run to match CBECS
     # Don't typically want to do this
     # comstock_a.correct_comstock_gas_to_match_cbecs(cbecs)
