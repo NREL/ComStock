@@ -157,11 +157,29 @@ module OsLib
                 end
               end
 
+              # Gas equipment assigned to space directly
+              space.gasEquipment.each do |component|
+                ft = 'natural_gas'
+                seu = scout_gas_equipment_type(component)
+                energy_consumption_output_variables(component).each do |var|
+                  self.end_use.supply(eu).sub_end_use(seu, ft).eplus_key_var_pairs << ["#{component.name}", var]
+                end
+              end
+
               # Electric equipment assigned to space type are metered at the space
               next if space.spaceType.empty?
               space.spaceType.get.electricEquipment.each do |component|
                 ft = 'electricity'
                 seu = scout_electric_equipment_type(component)
+                energy_consumption_output_variables(component).each do |var|
+                  self.end_use.supply(eu).sub_end_use(seu, ft).eplus_key_var_pairs << ["#{space.name} #{component.name}", var]
+                end
+              end
+
+              # Gas equipment assigned to space type are metered at the space
+              space.spaceType.get.gasEquipment.each do |component|
+                ft = 'natural_gas'
+                seu = scout_gas_equipment_type(component)
                 energy_consumption_output_variables(component).each do |var|
                   self.end_use.supply(eu).sub_end_use(seu, ft).eplus_key_var_pairs << ["#{space.name} #{component.name}", var]
                 end
@@ -383,6 +401,11 @@ module OsLib
           end
 
           return st
+        end
+
+        # Assign Scout natural gas equipment enumeration based on OpenStudio component type
+        def scout_gas_equipment_type(component)
+          return 'general'
         end
 
         # Assign Scout refrigeration enumeration based on OpenStudio component type
