@@ -178,6 +178,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # self.add_bill_intensity_columns()
             # self.add_energy_rate_columns()
             self.add_load_component_indensity_columns()
+                    # add climate zone groups
+            self.add_climate_zone_group()
             self.add_normalized_qoi_columns()
             self.add_vintage_column()
             self.add_dataset_column()
@@ -1903,7 +1905,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.get_scaled_comstock_monthly_consumption_by_state()
 
         # Adding weighing factors to the load component data
-        # self.add_weighted_load_component_columns()
+        self.add_weighted_load_component_columns()
 
         return bldg_type_scale_factors
 
@@ -2527,6 +2529,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.data_long = engy_emis
 
     def create_long_loads_data(self):
+
+        total_area = self.data['calc.weighted.sqft'].sum()
+        logger.info(f'Total Area: {total_area}')
+
         # add climate zone groups
         self.add_climate_zone_group()
 
@@ -2537,19 +2543,39 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             intensity_col = self.col_name_to_area_intensity(col).replace('out.','calc.')
             load_intensity_cols.append(intensity_col)
 
-        oa_col = 'out.params.average_outdoor_air_fraction'
 
+        # convert load intensity columns to long format
         load_var_col = 'calc.loads.fuel.period.demand_intensity.component..units'
         load_val_col = 'calc.loads.component_load_intensity..kbtu_per_ft2'
         pre = 'calc.loads.'
-        loads_long = self.data.melt(id_vars=[self.BLDG_ID, self.UPGRADE_ID, 'Climate Zone Group', self.BLDG_TYPE_GROUP, oa_col], value_vars=load_intensity_cols, variable_name=load_var_col, value_name=load_val_col)
-        loads_long = loads_long.with_columns(
+        loads_int_long = self.data.melt(id_vars=[self.BLDG_ID, self.UPGRADE_ID, 'Climate Zone Group', self.BLDG_TYPE_GROUP], value_vars=load_intensity_cols, variable_name=load_var_col, value_name=load_val_col)
+        loads_int_long = loads_int_long.with_columns(
             pl.col(load_var_col).str.strip_prefix(pre).str.split('.').list.get(0).alias('fuel'),
             pl.col(load_var_col).str.strip_prefix(pre).str.split('.').list.get(1).alias('period'),
             pl.col(load_var_col).str.strip_prefix(pre).str.split('.').list.get(3).alias('component')
         )
 
-        loads_long = loads_long.drop(load_var_col)
+        # convert weighted load columns to long format
+        weighted_load_cols = []
+        for col in load_cols:
+            weighted_col = self.col_name_to_weighted(col, 'kbtu')
+            weighted_load_cols.append(weighted_col)
+
+        var_col = 'calc.weighted.loads.fuel.period.deamnd.component..units'
+        val_col = 'calc.weighted.loads.component_load..kbtu'
+        pre = 'calc.weighted.loads.'
+        loads_long = self.data.melt(id_vars=[self.BLDG_ID, self.UPGRADE_ID, 'Climate Zone Group', self.BLDG_TYPE_GROUP], value_vars=weighted_load_cols, variable_name=var_col, value_name=val_col)
+        loads_long = loads_long.with_columns(
+            pl.col(var_col).str.strip_prefix(pre).str.split('.').list.get(0).alias('fuel'),
+            pl.col(var_col).str.strip_prefix(pre).str.split('.').list.get(1).alias('period'),
+            pl.col(var_col).str.strip_prefix(pre).str.split('.').list.get(3).alias('component')
+        )
+
+        # join intensity and loads cols
+        join_cols = [self.BLDG_ID, self.UPGRADE_ID, 'Climate Zone Group', self.BLDG_TYPE_GROUP, 'fuel', 'period', 'component']
+
+        loads_long = loads_long.join(loads_int_long, how='left', on=join_cols)
+        loads_long = loads_long.select(join_cols + [load_val_col, val_col])
         loads_long = loads_long.sort(by=self.BLDG_ID)
         print(loads_long.head)
         self.loads_data_long = loads_long
@@ -2578,7 +2604,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         up_ids = self.data.get_column(self.UPGRADE_ID).unique().to_list()
         up_ids.sort()
-        logger.error(f'Exporting Loads')
+        logger.info(f'Exporting Loads')
         for up_id in up_ids:
             file_name = f'upgrade{up_id:02d}_loads_long.csv'
             file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
