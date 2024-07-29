@@ -93,6 +93,19 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     std_perf.setDefaultValue(false)
     args << std_perf
 
+    # make list of cchpc scenarios
+    li_cchpc_scenarios = ['false', 'scenario_1', 'scenario_2', 'scenario_3', 'scenario_4', 'scenario_5', 'scenario_6', 'scenario_7']
+    v_li_cchpc_scenarios = OpenStudio::StringVector.new
+    li_cchpc_scenarios.each do |option|
+      v_li_cchpc_scenarios << option
+    end
+    # add cold climate heat pump challenge hp rtu scenario arguments
+    cchpc = OpenStudio::Measure::OSArgument.makeChoiceArgument('cchpc', v_li_cchpc_scenarios, true)
+    cchpc.setDisplayName('Model HP RTU using CCHPC curves?')
+    cchpc.setDescription('Model standard performance HP-RTU and use performance curves developed for the Cold Climate Heat Pump Challenge (FEB 2024).')
+    cchpc.setDefaultValue('false')
+    args << cchpc
+
     # add heat recovery option
     hr = OpenStudio::Measure::OSArgument.makeBoolArgument('hr', true)
     hr.setDisplayName('Add Energy Recovery?')
@@ -437,6 +450,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     htg_to_clg_hp_ratio = runner.getDoubleArgumentValue('htg_to_clg_hp_ratio', user_arguments)
     hp_min_comp_lockout_temp_f = runner.getDoubleArgumentValue('hp_min_comp_lockout_temp_f', user_arguments)
     std_perf = runner.getBoolArgumentValue('std_perf', user_arguments)
+    cchpc = runner.getStringArgumentValue('cchpc', user_arguments)
     hr = runner.getBoolArgumentValue('hr', user_arguments)
     dcv = runner.getBoolArgumentValue('dcv', user_arguments)
     econ = runner.getBoolArgumentValue('econ', user_arguments)
@@ -816,9 +830,28 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     h_cap_allstages_ff = nil
     h_eir_allstages_ff = nil
     if std_perf
-      # read performance data
-      path_data_curve = "#{File.dirname(__FILE__)}/resources/performance_maps_hprtu_std.json"
-      custom_data_json = JSON.parse(File.read(path_data_curve))
+      # if cchpc scenarios are set, use those curves. else, use the standard performance curves
+      if (cchpc=='scenario_1') || (cchpc=='scenario_4')
+        # read performance data
+        path_data_curve = "#{File.dirname(__FILE__)}/resources/performance_map_CCHP_v1.json"
+        custom_data_json = JSON.parse(File.read(path_data_curve))
+      elsif (cchpc=='scenario_2') || (cchpc=='scenario_5')
+        # read performance data
+        path_data_curve = "#{File.dirname(__FILE__)}/resources/performance_map_CCHP_v2.json"
+        custom_data_json = JSON.parse(File.read(path_data_curve))
+      elsif (cchpc=='scenario_3') || (cchpc=='scenario_6')
+        # read performance data
+        path_data_curve = "#{File.dirname(__FILE__)}/resources/performance_map_CCHP_v3.json"
+        custom_data_json = JSON.parse(File.read(path_data_curve))
+      elsif (cchpc=='scenario_7')
+        # read performance data
+        path_data_curve = "#{File.dirname(__FILE__)}/resources/performance_map_CCHP_v4.json"
+        custom_data_json = JSON.parse(File.read(path_data_curve))
+      else
+        # read performance data
+        path_data_curve = "#{File.dirname(__FILE__)}/resources/performance_maps_hprtu_std.json"
+        custom_data_json = JSON.parse(File.read(path_data_curve))
+      end
 
       # cooling performances function of temperatures
       c_cap_high_T = model_add_curve(model, 'c_cap_high_T', custom_data_json, std)
@@ -1872,7 +1905,20 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed1 = OpenStudio::Model::CoilCoolingDXMultiSpeedStageData.new(model)
       new_dx_cooling_coil_speed1.setGrossRatedTotalCoolingCapacity(hash_clg_cap_stgs[1])
       new_dx_cooling_coil_speed1.setGrossRatedSensibleHeatRatio(0.872821200315651)
-      new_dx_cooling_coil_speed1.setGrossRatedCoolingCOP(final_rated_cooling_cop)
+
+      # if cchpc scenarios are set, use fixed cop. else, use the default cop.
+      if cchpc != 'false'
+        if (cchpc == 'scenario_1') || (cchpc == 'scenario_2') || (cchpc == 'scenario_3') || (cchpc == 'scenario_7')
+          rated_cop_fit = 3.60
+        elsif (cchpc == 'scenario_4') || (cchpc == 'scenario_5') || (cchpc == 'scenario_6')
+          rated_cop_fit = 4.00
+        end
+        new_dx_cooling_coil_speed1.setGrossRatedCoolingCOP(rated_cop_fit)
+        runner.registerInfo("--- (cchpc) for air loop (#{air_loop_hvac.name}), stage 1 rated_cop_cooling = #{rated_cop_fit}")
+      else
+        new_dx_cooling_coil_speed1.setGrossRatedCoolingCOP(final_rated_cooling_cop)
+      end
+
       new_dx_cooling_coil_speed1.setRatedAirFlowRate(hash_clg_airflow_stgs[1])
       new_dx_cooling_coil_speed1.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
       new_dx_cooling_coil_speed1.setTotalCoolingCapacityFunctionofTemperatureCurve(cool_cap_ft1)
@@ -1898,7 +1944,18 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed2 = OpenStudio::Model::CoilCoolingDXMultiSpeedStageData.new(model)
       new_dx_cooling_coil_speed2.setGrossRatedTotalCoolingCapacity(hash_clg_cap_stgs[2])
       new_dx_cooling_coil_speed2.setGrossRatedSensibleHeatRatio(0.80463149283227)
-      new_dx_cooling_coil_speed2.setGrossRatedCoolingCOP(final_rated_cooling_cop)
+      # if cchpc scenarios are set, use fixed cop. else, use the default cop
+      if cchpc != 'false'
+        if (cchpc == 'scenario_1') || (cchpc == 'scenario_2') || (cchpc == 'scenario_3') || (cchpc == 'scenario_7')
+          rated_cop_fit = 3.60
+        elsif (cchpc == 'scenario_4') || (cchpc == 'scenario_5') || (cchpc == 'scenario_6')
+          rated_cop_fit = 4.00
+        end
+        new_dx_cooling_coil_speed2.setGrossRatedCoolingCOP(rated_cop_fit)
+        runner.registerInfo("--- (cchpc) for air loop (#{air_loop_hvac.name}), stage 2 rated_cop_cooling = #{rated_cop_fit}")
+      else
+        new_dx_cooling_coil_speed2.setGrossRatedCoolingCOP(final_rated_cooling_cop)
+      end
       new_dx_cooling_coil_speed2.setRatedAirFlowRate(hash_clg_airflow_stgs[2])
       new_dx_cooling_coil_speed2.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
       new_dx_cooling_coil_speed2.setTotalCoolingCapacityFunctionofTemperatureCurve(cool_cap_ft2)
@@ -1924,7 +1981,20 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed3 = OpenStudio::Model::CoilCoolingDXMultiSpeedStageData.new(model)
       new_dx_cooling_coil_speed3.setGrossRatedTotalCoolingCapacity(hash_clg_cap_stgs[3])
       new_dx_cooling_coil_speed3.setGrossRatedSensibleHeatRatio(0.79452681573034)
-      new_dx_cooling_coil_speed3.setGrossRatedCoolingCOP(final_rated_cooling_cop)
+      # if cchpc scenarios are set, use fixed cop. else, use the standard performance regression method
+      if std_perf
+        if (cchpc == 'scenario_1') || (cchpc == 'scenario_2') || (cchpc == 'scenario_3') || (cchpc == 'scenario_7')
+          rated_cop_fit = 3.60
+        elsif (cchpc == 'scenario_4') || (cchpc == 'scenario_5') || (cchpc == 'scenario_6')
+          rated_cop_fit = 4.00
+        else
+          rated_cop_fit = get_rated_cop_cooling(air_loop_hvac, hash_clg_airflow_stgs[3], hash_clg_cap_stgs[3])
+        end
+        new_dx_cooling_coil_speed3.setGrossRatedCoolingCOP(rated_cop_fit)
+        runner.registerInfo("--- (cchpc) for air loop (#{air_loop_hvac.name}), stage 3 rated_cop_cooling = #{rated_cop_fit}")
+      else
+        new_dx_cooling_coil_speed3.setGrossRatedCoolingCOP(final_rated_cooling_cop)
+      end
       new_dx_cooling_coil_speed3.setRatedAirFlowRate(hash_clg_airflow_stgs[3])
       new_dx_cooling_coil_speed3.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
       new_dx_cooling_coil_speed3.setTotalCoolingCapacityFunctionofTemperatureCurve(cool_cap_ft3)
@@ -1958,7 +2028,20 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil_speed4 = OpenStudio::Model::CoilCoolingDXMultiSpeedStageData.new(model)
       new_dx_cooling_coil_speed4.setGrossRatedTotalCoolingCapacity(hash_clg_cap_stgs[4])
       new_dx_cooling_coil_speed4.setGrossRatedSensibleHeatRatio(0.784532541812955)
-      new_dx_cooling_coil_speed4.setGrossRatedCoolingCOP(final_rated_cooling_cop)
+      # if cchpc scenarios are set, use fixed cop. else, use the standard performance regression method
+      if std_perf
+        if (cchpc == 'scenario_1') || (cchpc == 'scenario_2') || (cchpc == 'scenario_3') || (cchpc == 'scenario_7')
+          rated_cop_fit = 3.60
+        elsif (cchpc == 'scenario_4') || (cchpc == 'scenario_5') || (cchpc == 'scenario_6')
+            rated_cop_fit = 4.00
+        else
+          rated_cop_fit = get_rated_cop_cooling(air_loop_hvac, hash_clg_airflow_stgs[4], hash_clg_cap_stgs[4])
+        end
+        new_dx_cooling_coil_speed4.setGrossRatedCoolingCOP(rated_cop_fit)
+        runner.registerInfo("--- (standard performance or cchpc) for air loop (#{air_loop_hvac.name}), stage 4 rated_cop_cooling = #{rated_cop_fit}")
+      else
+        new_dx_cooling_coil_speed4.setGrossRatedCoolingCOP(final_rated_cooling_cop)
+      end
       new_dx_cooling_coil_speed4.setRatedAirFlowRate(hash_clg_airflow_stgs[4])
       new_dx_cooling_coil_speed4.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
       new_dx_cooling_coil_speed4.setTotalCoolingCapacityFunctionofTemperatureCurve(cool_cap_ft4)
@@ -2006,6 +2089,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       end
 
       # add new multispeed heating coil
+      # if cchpc scenarios are set, use compressor lockout temperatures (-15F, -13F, 5F). else, use the standard performance lockout temperature (0F)
+      compress_lockout_temp = nil
       if std_perf
         new_dx_heating_coil = OpenStudio::Model::CoilHeatingDXSingleSpeed.new(model)
         new_dx_heating_coil.setName("#{air_loop_hvac.name} Heat Pump Coil")
@@ -2028,6 +2113,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         new_dx_heating_coil.setEnergyInputRatioFunctionofTemperatureCurve(heat_eir_ft4)
         new_dx_heating_coil.setEnergyInputRatioFunctionofFlowFractionCurve(heat_eir_fff_all_stages)
         new_dx_heating_coil.setPartLoadFractionCorrelationCurve(heat_plf_fplr_all_stages)
+
+        # set crankcase heater capacity and operating temperature
+        new_dx_heating_coil.setCrankcaseHeaterCapacity(50)
+        new_dx_heating_coil.setMaximumOutdoorDryBulbTemperatureforCrankcaseHeaterOperation(4.4)
       else
         new_dx_heating_coil = OpenStudio::Model::CoilHeatingDXMultiSpeed.new(model)
         new_dx_heating_coil.setName("#{air_loop_hvac.name} Heat Pump Coil")

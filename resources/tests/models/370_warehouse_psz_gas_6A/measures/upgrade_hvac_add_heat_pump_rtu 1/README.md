@@ -2,13 +2,13 @@
 
 ###### (Automatically generated documentation)
 
-#
+# add_heat_pump_rtu
 
 ## Description
-
+Measure replaces existing packaged single-zone RTU system types with heat pump RTUs. Not applicable for water coil systems.
 
 ## Modeler Description
-
+Modeler has option to set backup heat source, prevelence of heat pump oversizing, heat pump oversizing limit, and addition of energy recovery. This measure will work on unitary PSZ systems as well as single-zone, constant air volume air loop PSZ systems.
 
 ## Measure Type
 ModelMeasure
@@ -68,15 +68,6 @@ At rated conditions, a compressor will generally have slightly more cooling capa
 **Model Dependent:** false
 
 
-### Minimum outdoor air temperature that locks out heat pump compressor, F
-Specifies minimum outdoor air temperature for locking out heat pump compressor. Heat pump heating does not operated below this temperature and backup heating will operate if heating is still needed.
-**Name:** hp_min_comp_lockout_temp_f,
-**Type:** Double,
-**Units:** ,
-**Required:** true,
-**Model Dependent:** false
-
-
 ### Model standard performance HP RTU?
 Standard performance refers to the followings: manufacturer claimed as standard efficiency (as of OCT 2023), direct drive supply fan, two stages of heat pump cooling, single stage heat pump heating (i.e., all compressors running at the same time), heat pump minimum lockout temperature of 0°F (-17.8°C), backup electric resistance heating, backup heating runs at the same time as heat pump heating, heat pump heating locking out below minimum operating temperature, IEER in between 11-13, and HSPF in between 8-8.9.
 **Name:** std_perf,
@@ -84,6 +75,17 @@ Standard performance refers to the followings: manufacturer claimed as standard 
 **Units:** ,
 **Required:** true,
 **Model Dependent:** false
+
+
+### Model HP RTU using CCHPC curves?
+Model standard performance HP-RTU and use performance curves developed for the Cold Climate Heat Pump Challenge (FEB 2024).
+**Name:** cchpc,
+**Type:** Choice,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+**Choice Display Names** ["false", "scenario_1", "scenario_2", "scenario_3", "scenario_4", "scenario_5", "scenario_6"]
 
 
 ### Add Energy Recovery?
@@ -114,7 +116,6 @@ Standard performance refers to the followings: manufacturer claimed as standard 
 
 
 
-This measure does not have any user arguments
 
 
 
