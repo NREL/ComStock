@@ -281,6 +281,246 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     return average
   end
 
+  def get_cooling_coil_capacity_and_cop(runner, model, coil)
+
+    capacity_w = 0.0
+    coil_design_cop = 0.0
+
+    if coil.to_CoilCoolingDXSingleSpeed.is_initialized
+      coil = coil.to_CoilCoolingDXSingleSpeed.get
+
+      # capacity
+      if coil.ratedTotalCoolingCapacity.is_initialized
+        capacity_w = coil.ratedTotalCoolingCapacity.get
+      elsif coil.autosizedRatedTotalCoolingCapacity.is_initialized
+        capacity_w = coil.autosizedRatedTotalCoolingCapacity.get
+      else
+        runner.registerWarning("Cooling coil capacity not available for coil '#{coil.name}'.")
+      end
+
+      # cop
+      if model.version > OpenStudio::VersionString.new('3.4.0')
+        coil_design_cop = coil.ratedCOP
+      else
+        if coil.ratedCOP.is_initialized
+          coil_design_cop = coil.ratedCOP.get
+        else
+          runner.registerWarning("'Rated COP' not available for DX coil '#{coil.name}'.")
+        end
+      end
+    elsif coil.to_CoilCoolingDXTwoSpeed.is_initialized
+      coil = coil.to_CoilCoolingDXTwoSpeed.get
+
+      # capacity
+      if coil.ratedHighSpeedTotalCoolingCapacity.is_initialized
+        capacity_w = coil.ratedHighSpeedTotalCoolingCapacity.get
+      elsif coil.autosizedRatedHighSpeedTotalCoolingCapacity.is_initialized
+        capacity_w = coil.autosizedRatedHighSpeedTotalCoolingCapacity.get
+      else
+        runner.registerWarning("Cooling coil capacity not available for coil '#{coil.name}'.")
+      end
+
+      # cop, use high speed cop
+      if model.version > OpenStudio::VersionString.new('3.4.0')
+        coil_design_cop = coil.ratedHighSpeedCOP
+      else
+        if coil.ratedHighSpeedCOP.is_initialized
+          coil_design_cop = coil.ratedHighSpeedCOP.get
+        else
+          runner.registerWarning("'Rated High Speed COP' not available for DX coil '#{coil.name}'.")
+        end
+      end
+    elsif coil.to_CoilCoolingDXMultiSpeed.is_initialized
+      coil = coil.to_CoilCoolingDXMultiSpeed.get
+
+      # capacity and cop, use cop at highest capacity
+      temp_capacity_w = 0.0
+      coil.stages.each do |stage|
+        if stage.grossRatedTotalCoolingCapacity.is_initialized
+          temp_capacity_w = stage.grossRatedTotalCoolingCapacity.get
+        elsif stage.autosizedGrossRatedTotalCoolingCapacity.is_initialized
+          temp_capacity_w = stage.autosizedGrossRatedTotalCoolingCapacity.get
+        else
+          runner.registerWarning("Cooling coil capacity not available for coil stage '#{stage.name}'.")
+        end
+
+        # update cop if highest capacity
+        temp_coil_design_cop = stage.grossRatedCoolingCOP
+        coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
+
+        # update if highest capacity
+        capacity_w = temp_capacity_w if temp_capacity_w > capacity_w
+      end
+    elsif coil.to_CoilCoolingDXVariableSpeed.is_initialized
+      coil = coil.to_CoilCoolingDXVariableSpeed.get
+
+      # capacity and cop, use cop at highest capacity
+      temp_capacity_w = 0.0
+      coil.speeds.each do |speed|
+        temp_capacity_w = speed.referenceUnitGrossRatedTotalCoolingCapacity
+
+        # update cop if highest capacity
+        temp_coil_design_cop = speed.referenceUnitGrossRatedCoolingCOP
+        coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
+
+        # update if highest capacity
+        capacity_w = temp_capacity_w if temp_capacity_w > capacity_w
+      end
+    else
+      runner.registerWarning('Design capacity is only available for DX cooling coil types CoilCoolingDXSingleSpeed, CoilCoolingDXTwoSpeed, CoilCoolingDXMultiSpeed, CoilCoolingDXVariableSpeed.')
+    end
+
+    return capacity_w, coil_design_cop
+  end
+
+  def get_heating_coil_capacity_and_cop(runner, model, coil)
+    # get coil rated capacity and cop
+    capacity_w = 0.0
+    capacity_17F_w = 0.0
+    capacity_5F_w = 0.0
+    capacity_0F_w = 0.0
+    coil_design_cop = 0.0
+    coil_design_cop_17F = 0.0
+    coil_design_cop_5F = 0.0
+    coil_design_cop_0F = 0.0
+    if coil.to_CoilHeatingDXSingleSpeed.is_initialized
+      coil = coil.to_CoilHeatingDXSingleSpeed.get
+      if coil.ratedTotalHeatingCapacity.is_initialized
+        capacity_w = coil.ratedTotalHeatingCapacity.get
+      elsif coil.autosizedRatedTotalHeatingCapacity.is_initialized
+        capacity_w = coil.autosizedRatedTotalHeatingCapacity.get
+      else
+        runner.registerWarning("Heating coil capacity not available for coil '#{coil.name}'.")
+      end
+
+      # get rated capacity and capacity at lower temperatures
+      cap_curve = coil.totalHeatingCapacityFunctionofTemperatureCurve
+      if cap_curve.to_CurveCubic.is_initialized
+        coil_cap_17F = cap_curve.evaluate(OpenStudio.convert(17.0,'F','C').get)
+        capacity_17F_w = capacity_w * coil_cap_17F
+        coil_cap_5F =  cap_curve.evaluate(OpenStudio.convert(5.0,'F','C').get)
+        capacity_5F_w = capacity_w * coil_cap_5F
+        coil_cap_0F =  cap_curve.evaluate(OpenStudio.convert(0.0,'F','C').get)
+        capacity_0F_w = capacity_w * coil_cap_0F
+      else
+        runner.registerWarning("Heating coil capacity at lower temperatures not available for coil '#{coil.name}' with given curve.")
+      end
+
+      # get rated cop and cop at lower temperatures
+      coil_design_cop = coil.ratedCOP
+      eir_curve = coil.energyInputRatioFunctionofTemperatureCurve
+      if eir_curve.to_CurveCubic.is_initialized
+        coil_eir_17F = eir_curve.evaluate(OpenStudio.convert(17.0,'F','C').get)
+        coil_design_cop_17F = coil_design_cop / coil_eir_17F
+        coil_eir_5F =  eir_curve.evaluate(OpenStudio.convert(5.0,'F','C').get)
+        coil_design_cop_5F = coil_design_cop / coil_eir_5F
+        coil_eir_0F =  eir_curve.evaluate(OpenStudio.convert(0.0,'F','C').get)
+        coil_design_cop_0F = coil_design_cop / coil_eir_0F
+      else
+        runner.registerWarning("Coil COP at non-design temperatures not available for coil '#{coil.name}'.")
+      end
+    elsif coil.to_CoilHeatingDXMultiSpeed.is_initialized
+      coil = coil.to_CoilHeatingDXMultiSpeed.get
+      temp_capacity_w = 0.0
+      coil.stages.each do |stage|
+        if stage.grossRatedHeatingCapacity.is_initialized
+          temp_capacity_w = stage.grossRatedHeatingCapacity.get
+        elsif stage.autosizedGrossRatedHeatingCapacity.is_initialized
+          temp_capacity_w = stage.autosizedGrossRatedHeatingCapacity.get
+        else
+          runner.registerWarning("Heating coil capacity not available for coil stage '#{stage.name}'.")
+        end
+
+        # get capacity and capacity at lower temperatures
+        cap_curve = stage.heatingCapacityFunctionofTemperatureCurve
+        if cap_curve.to_CurveCubic.is_initialized
+          coil_cap_17F = cap_curve.evaluate(OpenStudio.convert(17.0,'F','C').get)
+          capacity_17F_w = capacity_w * coil_cap_17F if temp_capacity_w >= capacity_w
+          coil_cap_5F =  cap_curve.evaluate(OpenStudio.convert(5.0,'F','C').get)
+          capacity_5F_w = capacity_w * coil_cap_5F if temp_capacity_w >= capacity_w
+          coil_cap_0F =  cap_curve.evaluate(OpenStudio.convert(0.0,'F','C').get)
+          capacity_0F_w = capacity_w * coil_cap_0F if temp_capacity_w >= capacity_w
+        elsif cap_curve.to_CurveBiquadratic.is_initialized
+          coil_cap_17F = cap_curve.evaluate(OpenStudio.convert(70.0,'F','C').get, OpenStudio.convert(17.0,'F','C').get)
+          capacity_17F_w = capacity_w * coil_cap_17F if temp_capacity_w >= capacity_w
+          coil_cap_5F =  cap_curve.evaluate(OpenStudio.convert(70.0,'F','C').get, OpenStudio.convert(5.0,'F','C').get)
+          capacity_5F_w = capacity_w * coil_cap_5F if temp_capacity_w >= capacity_w
+          coil_cap_0F =  cap_curve.evaluate(OpenStudio.convert(70.0,'F','C').get, OpenStudio.convert(0.0,'F','C').get)
+          capacity_0F_w = capacity_w * coil_cap_0F if temp_capacity_w >= capacity_w
+        else
+          runner.registerWarning("Heating coil capacity at lower temperatures not available for coil '#{coil.name}' with given curve.")
+        end
+
+        # get cop and cop at lower temperatures
+        # pick cop at highest capacity
+        temp_coil_design_cop = stage.grossRatedHeatingCOP
+        coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
+        eir_curve = stage.energyInputRatioFunctionofTemperatureCurve
+        if eir_curve.to_CurveCubic.is_initialized
+          coil_eir_17F = eir_curve.evaluate(OpenStudio.convert(17.0,'F','C').get)
+          coil_design_cop_17F = coil_design_cop / coil_eir_17F if temp_capacity_w >= capacity_w
+          coil_eir_5F =  eir_curve.evaluate(OpenStudio.convert(5.0,'F','C').get)
+          coil_design_cop_5F = coil_design_cop / coil_eir_5F if temp_capacity_w >= capacity_w
+          coil_eir_0F =  eir_curve.evaluate(OpenStudio.convert(0.0,'F','C').get)
+          coil_design_cop_0F = coil_design_cop / coil_eir_0F if temp_capacity_w >= capacity_w
+        elsif cap_curve.to_CurveBiquadratic.is_initialized
+          coil_eir_17F = eir_curve.evaluate(OpenStudio.convert(70.0,'F','C').get, OpenStudio.convert(17.0,'F','C').get)
+          coil_design_cop_17F = coil_design_cop / coil_eir_17F if temp_capacity_w >= capacity_w
+          coil_eir_5F =  eir_curve.evaluate(OpenStudio.convert(70.0,'F','C').get, OpenStudio.convert(5.0,'F','C').get)
+          coil_design_cop_5F = coil_design_cop / coil_eir_5F if temp_capacity_w >= capacity_w
+          coil_eir_0F =  eir_curve.evaluate(OpenStudio.convert(70.0,'F','C').get, OpenStudio.convert(0.0,'F','C').get)
+          coil_design_cop_0F = coil_design_cop / coil_eir_0F if temp_capacity_w >= capacity_w
+        else
+          runner.registerWarning("Coil COP at non-design temperatures not available for coil '#{coil.name}'.")
+        end
+
+        # update if highest capacity
+        capacity_w = temp_capacity_w if temp_capacity_w > capacity_w
+      end
+    elsif coil.to_CoilHeatingDXVariableSpeed.is_initialized
+      coil = coil.to_CoilHeatingDXVariableSpeed.get
+      coil.speeds.each do |speed|
+        temp_capacity_w = speed.referenceUnitGrossRatedHeatingCapacity
+
+        # get capacity and capacity at lower temperatures
+        cap_curve = stage.heatingCapacityFunctionofTemperatureCurve
+        if cap_curve.to_CurveCubic.is_initialized
+          coil_cap_17F = cap_curve.evaluate(OpenStudio.convert(17.0,'F','C').get)
+          capacity_17F_w = capacity_w * coil_cap_17F if temp_capacity_w >= capacity_w
+          coil_cap_5F =  cap_curve.evaluate(OpenStudio.convert(5.0,'F','C').get)
+          capacity_5F_w = capacity_w * coil_cap_5F if temp_capacity_w >= capacity_w
+          coil_cap_0F =  cap_curve.evaluate(OpenStudio.convert(0.0,'F','C').get)
+          capacity_0F_w = capacity_w * coil_cap_0F if temp_capacity_w >= capacity_w
+        else
+          runner.registerWarning("Heating coil capacity at lower temperatures not available for coil '#{coil.name}' with given curve.")
+        end
+
+        # get cop and cop at lower temperatures
+        # pick cop at highest capacity
+        temp_coil_design_cop = speed.referenceUnitGrossRatedHeatingCOP
+        coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
+        eir_curve = speed.energyInputRatioFunctionofTemperatureCurve
+        if eir_curve.to_CurveCubic.is_initialized
+          coil_eir_17F = eir_curve.evaluate(OpenStudio.convert(17.0,'F','C').get)
+          coil_design_cop_17F = coil_design_cop / coil_eir_17F if temp_capacity_w >= capacity_w
+          coil_eir_5F =  eir_curve.evaluate(OpenStudio.convert(5.0,'F','C').get)
+          coil_design_cop_5F = coil_design_cop / coil_eir_5F if temp_capacity_w >= capacity_w
+          coil_eir_0F =  eir_curve.evaluate(OpenStudio.convert(0.0,'F','C').get)
+          coil_design_cop_0F = coil_design_cop / coil_eir_0F if temp_capacity_w >= capacity_w
+        else
+          runner.registerWarning("Coil COP at non-design temperatures not available for coil '#{coil.name}'.")
+        end
+
+        # update if highest capacity
+        capacity_w = temp_capacity_w if temp_capacity_w > capacity_w
+      end
+    else
+      runner.registerWarning('Design COP and capacity for DX heating coil unavailable because of unrecognized coil type.')
+    end
+
+    return capacity_w, capacity_0F_w, capacity_5F_w, capacity_17F_w, coil_design_cop, coil_design_cop_0F, coil_design_cop_5F, coil_design_cop_17F
+  end
+
   # define what happens when the measure is run
   def run(runner, user_arguments)
     super(runner, user_arguments)
@@ -1820,91 +2060,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     model.getCoilCoolingDXVariableSpeeds.each { |c| dx_cooling_coils << c }
     dx_cooling_coils.sort.each do |coil|
       # get dx cooling capacity and cop
-      capacity_w = 0.0
-      coil_design_cop = 0.0
-      if coil.to_CoilCoolingDXSingleSpeed.is_initialized
-        coil = coil.to_CoilCoolingDXSingleSpeed.get
-
-        # capacity
-        if coil.ratedTotalCoolingCapacity.is_initialized
-          capacity_w = coil.ratedTotalCoolingCapacity.get
-        elsif coil.autosizedRatedTotalCoolingCapacity.is_initialized
-          capacity_w = coil.autosizedRatedTotalCoolingCapacity.get
-        else
-          runner.registerWarning("Cooling coil capacity not available for coil '#{coil.name}'.")
-        end
-
-        # cop
-        if model.version > OpenStudio::VersionString.new('3.4.0')
-          coil_design_cop = coil.ratedCOP
-        else
-          if coil.ratedCOP.is_initialized
-            coil_design_cop = coil.ratedCOP.get
-          else
-            runner.registerWarning("'Rated COP' not available for DX coil '#{coil.name}'.")
-          end
-        end
-      elsif coil.to_CoilCoolingDXTwoSpeed.is_initialized
-        coil = coil.to_CoilCoolingDXTwoSpeed.get
-
-        # capacity
-        if coil.ratedHighSpeedTotalCoolingCapacity.is_initialized
-          capacity_w = coil.ratedHighSpeedTotalCoolingCapacity.get
-        elsif coil.autosizedRatedHighSpeedTotalCoolingCapacity.is_initialized
-          capacity_w = coil.autosizedRatedHighSpeedTotalCoolingCapacity.get
-        else
-          runner.registerWarning("Cooling coil capacity not available for coil '#{coil.name}'.")
-        end
-
-        # cop, use high speed cop
-        if model.version > OpenStudio::VersionString.new('3.4.0')
-          coil_design_cop = coil.ratedHighSpeedCOP
-        else
-          if coil.ratedHighSpeedCOP.is_initialized
-            coil_design_cop = coil.ratedHighSpeedCOP.get
-          else
-            runner.registerWarning("'Rated High Speed COP' not available for DX coil '#{coil.name}'.")
-          end
-        end
-      elsif coil.to_CoilCoolingDXMultiSpeed.is_initialized
-        coil = coil.to_CoilCoolingDXMultiSpeed.get
-
-        # capacity and cop, use cop at highest capacity
-        temp_capacity_w = 0.0
-        coil.stages.each do |stage|
-          if stage.grossRatedTotalCoolingCapacity.is_initialized
-            temp_capacity_w = stage.grossRatedTotalCoolingCapacity.get
-          elsif stage.autosizedGrossRatedTotalCoolingCapacity.is_initialized
-            temp_capacity_w = stage.autosizedGrossRatedTotalCoolingCapacity.get
-          else
-            runner.registerWarning("Cooling coil capacity not available for coil stage '#{stage.name}'.")
-          end
-
-          # update cop if highest capacity
-          temp_coil_design_cop = stage.grossRatedCoolingCOP
-          coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
-
-          # update if highest capacity
-          capacity_w = temp_capacity_w if temp_capacity_w > capacity_w
-        end
-      elsif coil.to_CoilCoolingDXVariableSpeed.is_initialized
-        coil = coil.to_CoilCoolingDXVariableSpeed.get
-
-        # capacity and cop, use cop at highest capacity
-        temp_capacity_w = 0.0
-        coil.speeds.each do |speed|
-          temp_capacity_w = speed.referenceUnitGrossRatedTotalCoolingCapacity
-
-          # update cop if highest capacity
-          temp_coil_design_cop = speed.referenceUnitGrossRatedCoolingCOP
-          coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
-
-          # update if highest capacity
-          capacity_w = temp_capacity_w if temp_capacity_w > capacity_w
-        end
-      else
-        runner.registerWarning('Design capacity is only available for DX cooling coil types CoilCoolingDXSingleSpeed, CoilCoolingDXTwoSpeed, CoilCoolingDXMultiSpeed, CoilCoolingDXVariableSpeed.')
-      end
+      capacity_w, coil_design_cop = get_cooling_coil_capacity_and_cop(runner, model, coil)
       dx_cooling_total_capacity_w += capacity_w
 
       # get DX Cooling Coil efficiency ratings
@@ -2068,149 +2224,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     model.getCoilHeatingDXMultiSpeeds.each { |c| dx_heating_coils << c }
     model.getCoilHeatingDXVariableSpeeds.each { |c| dx_heating_coils << c }
     dx_heating_coils.sort.each do |coil|
-      # get coil rated capacity and cop
-      capacity_w = 0.0
-      capacity_17F_w = 0.0
-      capacity_5F_w = 0.0
-      capacity_0F_w = 0.0
-      coil_design_cop = 0.0
-      coil_design_cop_17F = 0.0
-      coil_design_cop_5F = 0.0
-      coil_design_cop_0F = 0.0
-      if coil.to_CoilHeatingDXSingleSpeed.is_initialized
-        coil = coil.to_CoilHeatingDXSingleSpeed.get
-        if coil.ratedTotalHeatingCapacity.is_initialized
-          capacity_w = coil.ratedTotalHeatingCapacity.get
-        elsif coil.autosizedRatedTotalHeatingCapacity.is_initialized
-          capacity_w = coil.autosizedRatedTotalHeatingCapacity.get
-        else
-          runner.registerWarning("Heating coil capacity not available for coil '#{coil.name}'.")
-        end
-
-        # get rated capacity and capacity at lower temperatures
-        cap_curve = coil.totalHeatingCapacityFunctionofTemperatureCurve
-        if cap_curve.to_CurveCubic.is_initialized
-          coil_cap_17F = cap_curve.evaluate(OpenStudio.convert(17.0,'F','C').get)
-          capacity_17F_w = capacity_w * coil_cap_17F
-          coil_cap_5F =  cap_curve.evaluate(OpenStudio.convert(5.0,'F','C').get)
-          capacity_5F_w = capacity_w * coil_cap_5F
-          coil_cap_0F =  cap_curve.evaluate(OpenStudio.convert(0.0,'F','C').get)
-          capacity_0F_w = capacity_w * coil_cap_0F
-        else
-          runner.registerWarning("Heating coil capacity at lower temperatures not available for coil '#{coil.name}' with given curve.")
-        end
-
-        # get rated cop and cop at lower temperatures
-        coil_design_cop = coil.ratedCOP
-        eir_curve = coil.energyInputRatioFunctionofTemperatureCurve
-        if eir_curve.to_CurveCubic.is_initialized
-          coil_eir_17F = eir_curve.evaluate(OpenStudio.convert(17.0,'F','C').get)
-          coil_design_cop_17F = coil_design_cop / coil_eir_17F
-          coil_eir_5F =  eir_curve.evaluate(OpenStudio.convert(5.0,'F','C').get)
-          coil_design_cop_5F = coil_design_cop / coil_eir_5F
-          coil_eir_0F =  eir_curve.evaluate(OpenStudio.convert(0.0,'F','C').get)
-          coil_design_cop_0F = coil_design_cop / coil_eir_0F
-        else
-          runner.registerWarning("Coil COP at non-design temperatures not available for coil '#{coil.name}'.")
-        end
-      elsif coil.to_CoilHeatingDXMultiSpeed.is_initialized
-        coil = coil.to_CoilHeatingDXMultiSpeed.get
-        temp_capacity_w = 0.0
-        coil.stages.each do |stage|
-          if stage.grossRatedHeatingCapacity.is_initialized
-            temp_capacity_w = stage.grossRatedHeatingCapacity.get
-          elsif stage.autosizedGrossRatedHeatingCapacity.is_initialized
-            temp_capacity_w = stage.autosizedGrossRatedHeatingCapacity.get
-          else
-            runner.registerWarning("Heating coil capacity not available for coil stage '#{stage.name}'.")
-          end
-
-          # get capacity and capacity at lower temperatures
-          cap_curve = stage.heatingCapacityFunctionofTemperatureCurve
-          if cap_curve.to_CurveCubic.is_initialized
-            coil_cap_17F = cap_curve.evaluate(OpenStudio.convert(17.0,'F','C').get)
-            capacity_17F_w = capacity_w * coil_cap_17F if temp_capacity_w >= capacity_w
-            coil_cap_5F =  cap_curve.evaluate(OpenStudio.convert(5.0,'F','C').get)
-            capacity_5F_w = capacity_w * coil_cap_5F if temp_capacity_w >= capacity_w
-            coil_cap_0F =  cap_curve.evaluate(OpenStudio.convert(0.0,'F','C').get)
-            capacity_0F_w = capacity_w * coil_cap_0F if temp_capacity_w >= capacity_w
-          elsif cap_curve.to_CurveBiquadratic.is_initialized
-            coil_cap_17F = cap_curve.evaluate(OpenStudio.convert(70.0,'F','C').get, OpenStudio.convert(17.0,'F','C').get)
-            capacity_17F_w = capacity_w * coil_cap_17F if temp_capacity_w >= capacity_w
-            coil_cap_5F =  cap_curve.evaluate(OpenStudio.convert(70.0,'F','C').get, OpenStudio.convert(5.0,'F','C').get)
-            capacity_5F_w = capacity_w * coil_cap_5F if temp_capacity_w >= capacity_w
-            coil_cap_0F =  cap_curve.evaluate(OpenStudio.convert(70.0,'F','C').get, OpenStudio.convert(0.0,'F','C').get)
-            capacity_0F_w = capacity_w * coil_cap_0F if temp_capacity_w >= capacity_w
-          else
-            runner.registerWarning("Heating coil capacity at lower temperatures not available for coil '#{coil.name}' with given curve.")
-          end
-
-          # get cop and cop at lower temperatures
-          # pick cop at highest capacity
-          temp_coil_design_cop = stage.grossRatedHeatingCOP
-          coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
-          eir_curve = stage.energyInputRatioFunctionofTemperatureCurve
-          if eir_curve.to_CurveCubic.is_initialized
-            coil_eir_17F = eir_curve.evaluate(OpenStudio.convert(17.0,'F','C').get)
-            coil_design_cop_17F = coil_design_cop / coil_eir_17F if temp_capacity_w >= capacity_w
-            coil_eir_5F =  eir_curve.evaluate(OpenStudio.convert(5.0,'F','C').get)
-            coil_design_cop_5F = coil_design_cop / coil_eir_5F if temp_capacity_w >= capacity_w
-            coil_eir_0F =  eir_curve.evaluate(OpenStudio.convert(0.0,'F','C').get)
-            coil_design_cop_0F = coil_design_cop / coil_eir_0F if temp_capacity_w >= capacity_w
-          elsif cap_curve.to_CurveBiquadratic.is_initialized
-            coil_eir_17F = eir_curve.evaluate(OpenStudio.convert(70.0,'F','C').get, OpenStudio.convert(17.0,'F','C').get)
-            coil_design_cop_17F = coil_design_cop / coil_eir_17F if temp_capacity_w >= capacity_w
-            coil_eir_5F =  eir_curve.evaluate(OpenStudio.convert(70.0,'F','C').get, OpenStudio.convert(5.0,'F','C').get)
-            coil_design_cop_5F = coil_design_cop / coil_eir_5F if temp_capacity_w >= capacity_w
-            coil_eir_0F =  eir_curve.evaluate(OpenStudio.convert(70.0,'F','C').get, OpenStudio.convert(0.0,'F','C').get)
-            coil_design_cop_0F = coil_design_cop / coil_eir_0F if temp_capacity_w >= capacity_w
-          else
-            runner.registerWarning("Coil COP at non-design temperatures not available for coil '#{coil.name}'.")
-          end
-
-          # update if highest capacity
-          capacity_w = temp_capacity_w if temp_capacity_w > capacity_w
-        end
-      elsif coil.to_CoilHeatingDXVariableSpeed.is_initialized
-        coil = coil.to_CoilHeatingDXVariableSpeed.get
-        coil.speeds.each do |speed|
-          temp_capacity_w = speed.referenceUnitGrossRatedHeatingCapacity
-
-          # get capacity and capacity at lower temperatures
-          cap_curve = stage.heatingCapacityFunctionofTemperatureCurve
-          if cap_curve.to_CurveCubic.is_initialized
-            coil_cap_17F = cap_curve.evaluate(OpenStudio.convert(17.0,'F','C').get)
-            capacity_17F_w = capacity_w * coil_cap_17F if temp_capacity_w >= capacity_w
-            coil_cap_5F =  cap_curve.evaluate(OpenStudio.convert(5.0,'F','C').get)
-            capacity_5F_w = capacity_w * coil_cap_5F if temp_capacity_w >= capacity_w
-            coil_cap_0F =  cap_curve.evaluate(OpenStudio.convert(0.0,'F','C').get)
-            capacity_0F_w = capacity_w * coil_cap_0F if temp_capacity_w >= capacity_w
-          else
-            runner.registerWarning("Heating coil capacity at lower temperatures not available for coil '#{coil.name}' with given curve.")
-          end
-
-          # get cop and cop at lower temperatures
-          # pick cop at highest capacity
-          temp_coil_design_cop = speed.referenceUnitGrossRatedHeatingCOP
-          coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
-          eir_curve = speed.energyInputRatioFunctionofTemperatureCurve
-          if eir_curve.to_CurveCubic.is_initialized
-            coil_eir_17F = eir_curve.evaluate(OpenStudio.convert(17.0,'F','C').get)
-            coil_design_cop_17F = coil_design_cop / coil_eir_17F if temp_capacity_w >= capacity_w
-            coil_eir_5F =  eir_curve.evaluate(OpenStudio.convert(5.0,'F','C').get)
-            coil_design_cop_5F = coil_design_cop / coil_eir_5F if temp_capacity_w >= capacity_w
-            coil_eir_0F =  eir_curve.evaluate(OpenStudio.convert(0.0,'F','C').get)
-            coil_design_cop_0F = coil_design_cop / coil_eir_0F if temp_capacity_w >= capacity_w
-          else
-            runner.registerWarning("Coil COP at non-design temperatures not available for coil '#{coil.name}'.")
-          end
-
-          # update if highest capacity
-          capacity_w = temp_capacity_w if temp_capacity_w > capacity_w
-        end
-      else
-        runner.registerWarning('Design COP and capacity for DX heating coil unavailable because of unrecognized coil type.')
-      end
+      capacity_w, capacity_0F_w, capacity_5F_w, capacity_17F_w, coil_design_cop, coil_design_cop_0F, coil_design_cop_5F, coil_design_cop_17F = get_heating_coil_capacity_and_cop(runner, model, coil)
       dx_heating_total_capacity_w += capacity_w
       dx_heating_total_capacity_17F_w += capacity_17F_w
       dx_heating_total_capacity_5F_w += capacity_5F_w
@@ -2490,7 +2504,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     # initialize variables
     com_report_unitary_sys_cycling_ratio_cooling_weighted_sum = 0.0
     com_report_unitary_sys_cycling_ratio_heating_weighted_sum = 0.0
-    total_floor_area = 0.0
+    total_capacity_w_cooling = 0.0
+    total_capacity_w_heating = 0.0
     # loop through airloophvac unitary systems
     model.getAirLoopHVACUnitarySystems.each do |airloopunisys|
       # get timeseries data
@@ -2505,17 +2520,25 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       avg_unitary_sys_cycling_ratio_cooling = get_average_from_array(ts_unitary_sys_cycling_ratio_cooling)
       ts_unitary_sys_cycling_ratio_heating = ts_unitary_sys_cycling_ratio.zip(ts_unitary_sys_sen_heating_rate).select { |a, b| b != 0 }.map { |a, b| a }
       avg_unitary_sys_cycling_ratio_heating = get_average_from_array(ts_unitary_sys_cycling_ratio_heating)
-      # get floor area served
-      corresponding_thermal_zone = airloopunisys.thermalZone.get
-      corresponding_floor_area_m_2 = corresponding_thermal_zone.floorArea
-      total_floor_area += corresponding_floor_area_m_2
+      # get cooling coil capacity
+      if airloopunisys.coolingCoil.is_initialized
+        coil_cooling = airloopunisys.coolingCoil.get
+        capacity_w_cooling, _ = get_cooling_coil_capacity_and_cop(runner, model, coil_cooling)
+        total_capacity_w_cooling += capacity_w_cooling
+      end
+      # get heating coil capacity
+      if airloopunisys.heatingCoil.is_initialized
+        coil_heating = airloopunisys.heatingCoil.get
+        capacity_w_heating, _, _, _, _, _, _, _ = get_heating_coil_capacity_and_cop(runner, model, coil_heating)
+        total_capacity_w_heating += capacity_w_heating
+      end
       # calculate weighted sum
-      com_report_unitary_sys_cycling_ratio_cooling_weighted_sum += avg_unitary_sys_cycling_ratio_cooling * corresponding_floor_area_m_2
-      com_report_unitary_sys_cycling_ratio_heating_weighted_sum += avg_unitary_sys_cycling_ratio_heating * corresponding_floor_area_m_2
+      com_report_unitary_sys_cycling_ratio_cooling_weighted_sum += avg_unitary_sys_cycling_ratio_cooling * capacity_w_cooling
+      com_report_unitary_sys_cycling_ratio_heating_weighted_sum += avg_unitary_sys_cycling_ratio_heating * capacity_w_heating
     end
     # calculate weighted average
-    com_report_unitary_sys_cycling_ratio_cooling = total_floor_area > 0.0 ? com_report_unitary_sys_cycling_ratio_cooling_weighted_sum / total_floor_area : 0.0
-    com_report_unitary_sys_cycling_ratio_heating = total_floor_area > 0.0 ? com_report_unitary_sys_cycling_ratio_heating_weighted_sum / total_floor_area : 0.0
+    com_report_unitary_sys_cycling_ratio_cooling = total_capacity_w_cooling > 0.0 ? com_report_unitary_sys_cycling_ratio_cooling_weighted_sum / total_capacity_w_cooling : 0.0
+    com_report_unitary_sys_cycling_ratio_heating = total_capacity_w_heating > 0.0 ? com_report_unitary_sys_cycling_ratio_heating_weighted_sum / total_capacity_w_heating : 0.0
     runner.registerValue('com_report_unitary_sys_cycling_ratio_cooling', com_report_unitary_sys_cycling_ratio_cooling)
     runner.registerValue('com_report_unitary_sys_cycling_ratio_heating', com_report_unitary_sys_cycling_ratio_heating)
 
