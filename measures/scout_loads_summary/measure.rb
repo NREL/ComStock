@@ -174,10 +174,11 @@ class ScoutLoadsSummary < OpenStudio::Measure::ReportingMeasure
     bldg_meters.populate_supply_meter_timeseries(runner, sql, ann_env_pd, freq, num_ts, joules)
 
     # Get the annual heating & cooling timeseries total per fuel type
-    tot_tses = {
-        'heating' => Vector.elements(Array.new(num_ts, 0.0)),
-        'cooling' => Vector.elements(Array.new(num_ts, 0.0))
-    }
+    # tot_tses = {
+    #     'heating' => Vector.elements(Array.new(num_ts, 0.0)),
+    #     'cooling' => Vector.elements(Array.new(num_ts, 0.0))
+    # }
+    total_total = Vector.elements(Array.new(num_ts, 0.0))
     fuel_type_tses = {
         ['heating', 'electricity'] => Vector.elements(Array.new(num_ts, 0.0)),
         ['heating', 'natural_gas'] => Vector.elements(Array.new(num_ts, 0.0)),
@@ -191,18 +192,21 @@ class ScoutLoadsSummary < OpenStudio::Measure::ReportingMeasure
     ['heating', 'cooling'].each do |end_use|
       ['electricity', 'natural_gas', 'district_heating', 'district_cooling'].each do |fuel_type|
         bldg_meters.end_use.supply(end_use).sub_end_use.each do |meter|
-          tot_tses[end_use] += Vector.elements(meter.vals)
+          # tot_tses[end_use] += Vector.elements(meter.vals)
+          total_total += Vector.elements(meter.vals)
           fuel_type_tses[[end_use, meter.fuel_type]] += Vector.elements(meter.vals)
         end
       end
     end
+    debug_bldg_heat_transfer_vectors = []
 
     # Calculate heating & cooling timeseries percentage by fuel type
     fuel_type_pct_tses = {}
     fuel_type_tses.each_pair do |end_use_fuel_type, fuel_type_ts|
       end_use = end_use_fuel_type[0]
       ann_pcts = []
-      fuel_type_ts.to_a.zip(tot_tses[end_use].to_a).each do |ft_val, tot_val|
+      # fuel_type_ts.to_a.zip(tot_tses[end_use].to_a).each do |ft_val, tot_val|
+      fuel_type_ts.to_a.zip(total_total.to_a).each do |ft_val, tot_val|
         if tot_val.zero?
           ann_pcts << 0.0
         else
@@ -210,15 +214,14 @@ class ScoutLoadsSummary < OpenStudio::Measure::ReportingMeasure
         end
       end
       fuel_type_pct_tses[end_use_fuel_type] = ann_pcts
+      # debug_bldg_heat_transfer_vectors << ["#{end_use_fuel_type.join('_')} Percent"] + ann_pcts
     end
 
     # Get Scout demand side totals, which are heating/cooling demand by component (walls, roofs, etc.)
-    debug_bldg_heat_transfer_vectors = []
+
     total_building_calculated_energy_balance = Vector.elements(Array.new(num_ts, 0.0))
     total_building_true_energy_balance = Vector.elements(Array.new(num_ts, 0.0))
     model.getThermalZones.each do |zone|
-      # REMOVE
-      # next unless zone == model.getThermalZones.first
 
       heat_transfer_vectors = OsLib_HeatTransfer.thermal_zone_heat_transfer_vectors(runner, zone, sql, freq, ann_env_pd, debug_mode)
 
@@ -373,7 +376,7 @@ class ScoutLoadsSummary < OpenStudio::Measure::ReportingMeasure
         # series names
         csv << debug_bldg_heat_transfer_vectors.map(&:first)
         # start time
-        csv << Array.new(num_columns, 0.25)
+        csv << Array.new(num_columns, 8760.0/(num_rows-1).round(2))
         # time interval
         csv << Array.new(num_columns, 8760.0/(num_rows-1).round(2))
         # units
