@@ -27,10 +27,15 @@ class ScoutLoadsSummary_Test < Minitest::Test
 
   def debug
     # return true
-    return false
+    return true
   end
 
   def timeseries
+    # return true
+    return true
+  end
+
+  def supply
     # return true
     return false
   end
@@ -203,7 +208,7 @@ class ScoutLoadsSummary_Test < Minitest::Test
     # Set the arguments to test
     args_hash = {
         'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => false,
+        'enable_supply_side_reporting' => supply,
         'debug_mode' => debug
     }
 
@@ -221,7 +226,7 @@ class ScoutLoadsSummary_Test < Minitest::Test
     # Set the arguments to test
     args_hash = {
         'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => true,
+        'enable_supply_side_reporting' => supply,
         'debug_mode' => debug
     }
 
@@ -239,7 +244,7 @@ class ScoutLoadsSummary_Test < Minitest::Test
     # Set the arguments to test
     args_hash = {
         'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => true,
+        'enable_supply_side_reporting' => supply,
         'debug_mode' => debug
     }
 
@@ -257,7 +262,7 @@ class ScoutLoadsSummary_Test < Minitest::Test
     # Set the arguments to test
     args_hash = {
         'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => true,
+        'enable_supply_side_reporting' => supply,
         'debug_mode' => debug
     }
 
@@ -275,7 +280,7 @@ class ScoutLoadsSummary_Test < Minitest::Test
     # Set the arguments to test
     args_hash = {
         'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => true,
+        'enable_supply_side_reporting' => supply,
         'debug_mode' => debug
     }
 
@@ -293,7 +298,7 @@ class ScoutLoadsSummary_Test < Minitest::Test
     # Set the arguments to test
     args_hash = {
         'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => true,
+        'enable_supply_side_reporting' => supply,
         'debug_mode' => debug
     }
 
@@ -315,7 +320,7 @@ class ScoutLoadsSummary_Test < Minitest::Test
     # Set the arguments to test
     args_hash = {
         'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => true,
+        'enable_supply_side_reporting' => supply,
         'debug_mode' => debug
     }
 
@@ -333,7 +338,7 @@ class ScoutLoadsSummary_Test < Minitest::Test
     # Set the arguments to test
     args_hash = {
         'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => true,
+        'enable_supply_side_reporting' => supply,
         'debug_mode' => debug
     }
 
@@ -351,7 +356,7 @@ class ScoutLoadsSummary_Test < Minitest::Test
     # Set the arguments to test
     args_hash = {
         'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => false,
+        'enable_supply_side_reporting' => supply,
         'debug_mode' => debug
     }
 
@@ -369,7 +374,7 @@ class ScoutLoadsSummary_Test < Minitest::Test
     # Set the arguments to test
     args_hash = {
         'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => false,
+        'enable_supply_side_reporting' => supply,
         'debug_mode' => debug
     }
 
@@ -387,7 +392,7 @@ class ScoutLoadsSummary_Test < Minitest::Test
     # Set the arguments to test
     args_hash = {
         'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => false,
+        'enable_supply_side_reporting' => supply,
         'debug_mode' => debug
     }
 
@@ -405,7 +410,7 @@ class ScoutLoadsSummary_Test < Minitest::Test
     # Set the arguments to test
     args_hash = {
         'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => false,
+        'enable_supply_side_reporting' => supply,
         'debug_mode' => debug
     }
 
@@ -423,7 +428,7 @@ class ScoutLoadsSummary_Test < Minitest::Test
     # Set the arguments to test
     args_hash = {
         'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => true,
+        'enable_supply_side_reporting' => supply,
         'debug_mode' => debug
     }
 
@@ -441,7 +446,7 @@ class ScoutLoadsSummary_Test < Minitest::Test
     # Set the arguments to test
     args_hash = {
         'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => false,
+        'enable_supply_side_reporting' => supply,
         'debug_mode' => debug
     }
 
@@ -459,7 +464,7 @@ class ScoutLoadsSummary_Test < Minitest::Test
     # Set the arguments to test
     args_hash = {
         'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => false,
+        'enable_supply_side_reporting' => supply,
         'debug_mode' => debug
     }
 
@@ -477,7 +482,7 @@ class ScoutLoadsSummary_Test < Minitest::Test
     # Set the arguments to test
     args_hash = {
         'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => false,
+        'enable_supply_side_reporting' => supply,
         'debug_mode' => debug
     }
 
@@ -495,7 +500,7 @@ class ScoutLoadsSummary_Test < Minitest::Test
     # Set the arguments to test
     args_hash = {
         'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => false,
+        'enable_supply_side_reporting' => supply,
         'debug_mode' => debug
     }
 
@@ -513,7 +518,7 @@ class ScoutLoadsSummary_Test < Minitest::Test
     # Set the arguments to test
     args_hash = {
         'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => false,
+        'enable_supply_side_reporting' => supply,
         'debug_mode' => debug
     }
 
@@ -531,7 +536,7 @@ class ScoutLoadsSummary_Test < Minitest::Test
     # Set the arguments to test
     args_hash = {
         'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => false,
+        'enable_supply_side_reporting' => supply,
         'debug_mode' => debug
     }
 
@@ -549,7 +554,7 @@ class ScoutLoadsSummary_Test < Minitest::Test
     # Set the arguments to test
     args_hash = {
         'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => false,
+        'enable_supply_side_reporting' => supply,
         'debug_mode' => debug
     }
 
