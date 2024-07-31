@@ -1899,21 +1899,25 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.building_type_weights = bldg_type_scale_factors
         self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_scale_factors, default=None)).alias(self.BLDG_WEIGHT))
 
+        # Apply the newly-added weights to the columns
+        self.add_weighted_area_and_energy_columns()
+
         # After adding weighted energy columns, calculate savings
         if self.include_upgrades:
             # Skip if savings columns are already in the data, which can happen when load_from_csv=True
             wtg_tot_engy_col = self.col_name_to_weighted_savings(self.ANN_TOT_ENGY_KBTU, self.weighted_energy_units)
             if wtg_tot_engy_col in self.data.columns:
                 logger.info('Energy savings columns already in data')
-        # Adding weighting factors to the monthly data
+            else:
+                self.add_weighted_energy_savings_columns()
+                self.add_weighted_utility_savings_columns()        # Adding weighting factors to the monthly data
+        
         self.get_scaled_comstock_monthly_consumption_by_state()
-
-        # Apply the newly-added weights to the columns
-        self.add_weighted_area_and_energy_columns()
 
         assert isinstance(cbecs.data, pd.DataFrame)
         cbecs.data = pl.from_pandas(cbecs.data).lazy()
         assert isinstance(cbecs.data, pl.LazyFrame)
+
         return bldg_type_scale_factors
 
     def add_weighted_area_and_energy_columns(self):
@@ -2041,9 +2045,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Get the baseline results
         base_engy: pl.DataFrame = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).select(engy_and_id_cols).sort(self.BLDG_ID).clone().collect()
 
-        # select out all the columns need to be calcuated
-        energy_sub_data: pl.LazyFrame = self.data.select([x for x in engy_and_id_cols if x not in wtd_pct_svgs_cols_to_drop]).clone()
-
         def calc_savings(up_res: pl.DataFrame) -> (pl.LazyFrame, pl.LazyFrame):
             # Caculate the savings for each upgrade, including the baseline
             up_abs_svgs = []
@@ -2092,10 +2093,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         
             return (up_abs_svgs, up_pct_svgs)
         # Join the savings columns onto the results DataFrame
-        upgrade_names: list[str] = energy_sub_data.select(self.UPGRADE_NAME).unique().collect().to_series().to_list()
+        upgrade_names: list[str] = self.data.select(self.UPGRADE_NAME).unique().collect().to_series().to_list()
 
         for upgrade_name in upgrade_names:
-            up_res = energy_sub_data.filter(pl.col(self.UPGRADE_NAME) == upgrade_name).collect()
+            up_res = self.data.select([x for x in engy_and_id_cols if x not in wtd_pct_svgs_cols_to_drop]).filter(pl.col(self.UPGRADE_NAME) == upgrade_name).clone().collect()
             # logger.debug(f"Calculating savings for upgrade: {upgrade_name}")
             up_abs_svgs, up_pct_svgs = calc_savings(up_res)
             self.data = self.data.join(up_abs_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
