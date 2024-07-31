@@ -176,10 +176,20 @@ module OsLib
                 end
               end
 
+              # Gas equipment assigned to space directly
+              space.gasEquipment.each do |component|
+                ft = 'natural_gas'
+                seu = 'general'
+                energy_consumption_output_variables(component).each do |var|
+                  self.end_use.supply(eu).sub_end_use(seu, ft).eplus_key_var_pairs << ["#{component.name}", var]
+                end
+              end
+
               # Gas equipment assigned to space type are metered at the space
+              next if space.spaceType.empty?
               space.spaceType.get.gasEquipment.each do |component|
                 ft = 'natural_gas'
-                seu = scout_gas_equipment_type(component)
+                seu = 'general'
                 energy_consumption_output_variables(component).each do |var|
                   self.end_use.supply(eu).sub_end_use(seu, ft).eplus_key_var_pairs << ["#{space.name} #{component.name}", var]
                 end
