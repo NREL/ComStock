@@ -185,8 +185,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     result << OpenStudio::IdfObject.load('Output:Variable,*,Water Heater Heating Energy,RunPeriod;').get # J
     result << OpenStudio::IdfObject.load('Output:Variable,*,Water Heater Unmet Demand Heat Transfer Energy,RunPeriod;').get # J
     result << OpenStudio::IdfObject.load("Output:Variable,*,Unitary System DX Coil Cycling Ratio,#{timeseries_timestep};").get # -
-    result << OpenStudio::IdfObject.load("Output:Variable,*,Unitary System Sensible Cooling Rate,#{timeseries_timestep};").get # W
-    result << OpenStudio::IdfObject.load("Output:Variable,*,Unitary System Sensible Heating Rate,#{timeseries_timestep};").get # W
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Unitary System Total Cooling Rate,#{timeseries_timestep};").get # W
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Unitary System Total Heating Rate,#{timeseries_timestep};").get # W
     if model.version > OpenStudio::VersionString.new('3.3.0')
       result << OpenStudio::IdfObject.load('Output:Variable,*,Cooling Coil Total Water Heating Energy,RunPeriod;').get # J
       result << OpenStudio::IdfObject.load('Output:Variable,*,Cooling Coil Water Heating Electricity Energy,RunPeriod;').get # J
@@ -2511,9 +2511,9 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       # get timeseries data
       ts_unitary_sys_cycling_ratio = sql.timeSeries(ann_env_pd, timeseries_timestep, 'Unitary System DX Coil Cycling Ratio', airloopunisys.name.to_s.upcase) # dimensionless
       ts_unitary_sys_cycling_ratio = convert_timeseries_to_list(ts_unitary_sys_cycling_ratio)
-      ts_unitary_sys_sen_cooling_rate = sql.timeSeries(ann_env_pd, timeseries_timestep, 'Unitary System Sensible Cooling Rate', airloopunisys.name.to_s.upcase) # W
+      ts_unitary_sys_sen_cooling_rate = sql.timeSeries(ann_env_pd, timeseries_timestep, 'Unitary System Total Cooling Rate', airloopunisys.name.to_s.upcase) # W
       ts_unitary_sys_sen_cooling_rate = convert_timeseries_to_list(ts_unitary_sys_sen_cooling_rate)
-      ts_unitary_sys_sen_heating_rate = sql.timeSeries(ann_env_pd, timeseries_timestep, 'Unitary System Sensible Heating Rate', airloopunisys.name.to_s.upcase) # W
+      ts_unitary_sys_sen_heating_rate = sql.timeSeries(ann_env_pd, timeseries_timestep, 'Unitary System Total Heating Rate', airloopunisys.name.to_s.upcase) # W
       ts_unitary_sys_sen_heating_rate = convert_timeseries_to_list(ts_unitary_sys_sen_heating_rate)
       # calculate average cycling ratio
       ts_unitary_sys_cycling_ratio_cooling = ts_unitary_sys_cycling_ratio.zip(ts_unitary_sys_sen_cooling_rate).select { |a, b| b != 0 }.map { |a, b| a }
