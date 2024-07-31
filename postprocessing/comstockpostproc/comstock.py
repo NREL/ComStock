@@ -111,6 +111,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.upgrade_ids_to_skip = upgrade_ids_to_skip
         self.upgrade_ids_for_comparison = upgrade_ids_for_comparison
         self.states = states
+        self.unwegited_weighted_map = {}
         self.cached_parquet = [] # List of parquet files to reload and export
         self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
         if self.athena_table_name is not None:
@@ -212,9 +213,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     upgradIdcount[upgrade_id] = self.data.filter(pl.col(self.UPGRADE_ID) == upgrade_id).shape[0]
                 self.add_metadata_index_col(upgradIdcount)
                 self.get_comstock_unscaled_monthly_energy_consumption()
-                self.add_weighted_energy_savings_columns()
-                self.add_weighted_utility_savings_columns()
-                # Downselect the self.data to just the upgrade
+                self.add_unweighted_energy_savings_columns()
+                self.add_unweighted_utility_savings_columns()
+               # Downselect the self.data to just the upgrade
                 self.data = self.data.filter(pl.col(self.UPGRADE_ID) == upgrade_id)
                 # Write self.data to parquet file
                 file_name = f'cached_ComStock_wide_upgrade{upgrade_id}.parquet'
@@ -1812,11 +1813,18 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_groups, default=None)).alias(self.BLDG_TYPE_GROUP))
         self.data = self.data.with_columns(pl.col(self.BLDG_TYPE_GROUP).cast(pl.Categorical))
+        
 
     def add_national_scaling_weights(self, cbecs: CBECS, remove_non_comstock_bldg_types_from_cbecs: bool):
         # Remove CBECS entries for building types not included in the ComStock run
         # comstock_bldg_types = self.data[self.BLDG_TYPE].unique()
         assert isinstance(self.data, pl.LazyFrame)
+        
+        logger.debug(self.unwegited_weighted_map)
+        # Create the weighted columns, following the self.unwegited_weighted_map pattern
+        for unweighted_col, weighted_col in self.unwegited_weighted_map.items():
+            self.data = self.data.with_columns(pl.col(unweighted_col)).alias(weighted_col)
+
         comstock_bldg_types: set = set(self.data.select(self.BLDG_TYPE).unique().collect().to_pandas()[self.BLDG_TYPE].tolist())
 
         cbecs.data: pd.DataFrame = cbecs.data.collect().to_pandas()
@@ -2006,9 +2014,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     .alias(enduse_gp_ghg_col)
                 ])
 
-    def add_weighted_energy_savings_columns(self):
-        # Select energy columns to calculate savings for
-
+    def add_unweighted_energy_savings_columns(self):
+        
         assert isinstance(self.data, pl.DataFrame)
 
         engy_cols = []
@@ -2017,24 +2024,22 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         wtd_pct_svgs_cols_to_drop = []
 
         for col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY):
-            for wtg_method in ['weighted', 'unweighted']:
-                if wtg_method == 'weighted':
-                    wtd_col = self.col_name_to_weighted(col, self.weighted_energy_units)
-                    engy_cols.append(wtd_col)
-                    abs_svgs_cols[wtd_col] = self.col_name_to_weighted_savings(col, self.weighted_energy_units)
-                    pct_svgs_cols[wtd_col] = self.col_name_to_weighted_percent_savings(col, 'percent')
-                    wtd_pct_svgs_cols_to_drop.append(self.col_name_to_weighted_percent_savings(col, 'percent'))
-                else:
-                    # for non eui columns
-                    engy_cols.append(col)
-                    abs_svgs_cols[col] = self.col_name_to_savings(col, None)
-                    pct_svgs_cols[col] = self.col_name_to_percent_savings(col, 'percent')
-                    # add eui savings for all unweighted eui columns
-                    eui_col = self.col_name_to_eui(col)
-                    engy_cols.append(eui_col)
-                    abs_svgs_cols[eui_col] = self.col_name_to_savings(eui_col, None)
-                    pct_svgs_cols[eui_col] = self.col_name_to_percent_savings(eui_col, 'percent')
-
+            # for non eui columns
+            engy_cols.append(col)
+            abs_svgs_cols[col] = self.col_name_to_savings(col, None)
+            pct_svgs_cols[col] = self.col_name_to_percent_savings(col, 'percent')
+            # add eui savings for all unweighted eui columns
+            eui_col = self.col_name_to_eui(col)
+            engy_cols.append(eui_col)
+            abs_svgs_cols[eui_col] = self.col_name_to_savings(eui_col, None)
+            pct_svgs_cols[eui_col] = self.col_name_to_percent_savings(eui_col, 'percent')
+        
+            #save the weighted - unweighted columns name mapping
+            self.unwegited_weighted_map.update({
+                self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_energy_units),
+                self.col_name_to_percent_savings(col, 'percent'): self.col_name_to_weighted_percent_savings(col, 'percent')
+                })
+            
         # Keep the building ID and upgrade name columns to use as the index
         engy_and_id_cols = engy_cols + [self.BLDG_ID, self.UPGRADE_NAME]
 
@@ -2089,7 +2094,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.data = self.data.join(up_abs_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
         self.data = self.data.join(up_pct_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
 
-    def add_weighted_utility_savings_columns(self):
+    def add_unweighted_utility_savings_columns(self):
         assert isinstance(self.data, pl.DataFrame)
         # Select energy columns to calculate savings for
         engy_cols = []
@@ -2103,24 +2108,20 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                             'out.utility_bills.electricity_bill_median..usd',
                                             'out.utility_bills.electricity_bill_min..usd']):
 
-            for wtg_method in ['weighted', 'unweighted']:
-                if wtg_method == 'weighted':
-                    wtd_col = self.col_name_to_weighted(col, self.weighted_utility_units)
-                    engy_cols.append(wtd_col)
-                    abs_svgs_cols[wtd_col] = self.col_name_to_weighted_savings(col, self.weighted_utility_units)
-                    pct_svgs_cols[wtd_col] = self.col_name_to_weighted_percent_savings(col, 'percent')
-                    wtd_pct_svgs_cols_to_drop.append(self.col_name_to_weighted_percent_savings(col, 'percent'))
-                else:
-                    # for non eui columns
-                    engy_cols.append(col)
-                    abs_svgs_cols[col] = self.col_name_to_savings(col, None)
-                    pct_svgs_cols[col] = self.col_name_to_percent_savings(col, 'percent')
-                    # add eui savings for all unweighted eui columns
-                    eui_col = self.col_name_to_area_intensity(col)
-                    engy_cols.append(eui_col)
-                    abs_svgs_cols[eui_col] = self.col_name_to_savings(eui_col, None)
-                    pct_svgs_cols[eui_col] = self.col_name_to_percent_savings(eui_col, 'percent')
-
+            engy_cols.append(col)
+            abs_svgs_cols[col] = self.col_name_to_savings(col, None)
+            pct_svgs_cols[col] = self.col_name_to_percent_savings(col, 'percent')
+            # add eui savings for all unweighted eui columns
+            eui_col = self.col_name_to_area_intensity(col)
+            engy_cols.append(eui_col)
+            abs_svgs_cols[eui_col] = self.col_name_to_savings(eui_col, None)
+            pct_svgs_cols[eui_col] = self.col_name_to_percent_savings(eui_col, 'percent')
+        
+            #save the weighted - unweighted columns name mapping
+            self.unwegited_weighted_map.update({
+                self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_energy_units),
+                self.col_name_to_percent_savings(col, 'percent'): self.col_name_to_weighted_percent_savings(col, 'percent')
+            })
         # Keep the building ID and upgrade name columns to use as the index
         engy_and_id_cols = engy_cols + [self.BLDG_ID, self.UPGRADE_NAME]
 
@@ -2174,8 +2175,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Join the savings columns onto the results
         self.data = self.data.join(up_abs_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
         self.data = self.data.join(up_pct_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
-
-
+    
     def add_metadata_index_col(self, upgradIdcount: dict):
         # Add a metadata index column to the data
         # updradeIdcount is a dictionary of the number of upgrades for each building: <building_id>: <number of upgrades>
