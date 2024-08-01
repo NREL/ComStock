@@ -1,6 +1,7 @@
 # ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 import re
+import matplotlib.colors as mcolors
 
 class NamingMixin():
     # Column aliases for code readability
@@ -456,6 +457,27 @@ class NamingMixin():
     COLOR_CBECS_2018 = '#16f0b4'
     COLOR_EIA = '#D55E00'
     COLOR_AMI = '#CC79A7'
+
+    # standard end use colors for plotting
+    ENDUSE_COLOR_DICT = {
+                'Heating':'#EF1C21',
+                'Cooling':'#0071BD',
+                'Interior Lighting':'#F7DF10',
+                'Exterior Lighting':'#DEC310',
+                'Interior Equipment':'#4A4D4A',
+                'Exterior Equipment':'#B5B2B5',
+                'Fans':'#FF79AD',
+                'Pumps':'#632C94',
+                'Heat Rejection':'#F75921',
+                'Humidification':'#293094',
+                'Heat Recovery': '#CE5921',
+                'Water Systems': '#FFB239',
+                'Refrigeration': '#29AAE7',
+                'Generators': '#8CC739'
+                }
+
+    # Convert color codes to RGBA with opacity 1.0
+    PLOTLY_ENDUSE_COLOR_DICT = {key: f"rgba({int(mcolors.to_rgba(value, alpha=1.0)[0]*255)},{int(mcolors.to_rgba(value, alpha=1.0)[1]*255)},{int(mcolors.to_rgba(value, alpha=1.0)[2]*255)},{mcolors.to_rgba(value, alpha=1.0)[3]})" for key, value in ENDUSE_COLOR_DICT.items()}
 
     # Define ordering for some categorical variables to make plots easier to interpret
     ORDERED_CATEGORIES = {
