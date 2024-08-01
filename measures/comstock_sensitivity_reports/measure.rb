@@ -2695,12 +2695,6 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       cycling_ratio_heating_weighted_sum += avg_cycling_ratio_heating * capacity_w_heating
       cycling_excess_electricity_used_cooling_pcnt += avg_excess_electricity_used_in_pcnt_c * capacity_w_cooling
       cycling_excess_electricity_used_heating_pcnt += avg_excess_electricity_used_in_pcnt_h * capacity_w_heating
-      puts('### DEBUGGING: --------------------------------------------------------------')
-      puts("### DEBUGGING: airloopunisys.name = #{airloopunisys.name}")
-      puts("### DEBUGGING: avg_cycling_ratio_cooling = #{avg_cycling_ratio_cooling}")
-      puts("### DEBUGGING: avg_excess_electricity_used_in_pcnt_c = #{avg_excess_electricity_used_in_pcnt_c}")
-      puts("### DEBUGGING: avg_cycling_ratio_heating = #{avg_cycling_ratio_heating}")
-      puts("### DEBUGGING: avg_excess_electricity_used_in_pcnt_h = #{avg_excess_electricity_used_in_pcnt_h}")
     end
     # calculate weighted average
     com_report_unitary_sys_cycling_ratio_cooling = total_capacity_w_cooling > 0.0 ? cycling_ratio_cooling_weighted_sum / total_capacity_w_cooling : 0.0
@@ -2713,11 +2707,6 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
                         com_report_unitary_sys_cycling_excess_electricity_cooling_pcnt)
     runner.registerValue('com_report_unitary_sys_cycling_excess_electricity_heating_pcnt',
                         com_report_unitary_sys_cycling_excess_electricity_heating_pcnt)
-    puts('### DEBUGGING: ==============================================================')
-    puts("### DEBUGGING: com_report_unitary_sys_cycling_ratio_cooling = #{com_report_unitary_sys_cycling_ratio_cooling}")
-    puts("### DEBUGGING: com_report_unitary_sys_cycling_ratio_heating = #{com_report_unitary_sys_cycling_ratio_heating}")
-    puts("### DEBUGGING: com_report_unitary_sys_cycling_excess_electricity_cooling_pcnt = #{com_report_unitary_sys_cycling_excess_electricity_cooling_pcnt}")
-    puts("### DEBUGGING: com_report_unitary_sys_cycling_excess_electricity_heating_pcnt = #{com_report_unitary_sys_cycling_excess_electricity_heating_pcnt}")
 
     # Get the outdoor air temp timeseries and calculate heating and cooling degree days
     # Per ISO 15927-6, "Accumulated hourly temperature differences shall be calculated according to 4.4 when hourly data are available. When hourly data are not available, the approximate method given in 4.5, based on the maximum and minimum temperatures each day, may be used."
