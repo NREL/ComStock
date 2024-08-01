@@ -1,7 +1,7 @@
 
 OS:Version,
-  {c2de434e-1942-469f-9d96-b707cdb13fe2}, !- Handle
-  3.7.0;                                  !- Version Identifier
+  {d7354a6d-0c99-47df-a991-0cb5d73bf31d}, !- Handle
+  3.8.0;                                  !- Version Identifier
 
 OS:Facility,
   {69b2f039-6b22-43dc-9b18-7171a57e0297}; !- Handle
@@ -3207,7 +3207,7 @@ OS:Schedule:Day,
   {2bf62154-0ad7-4a84-af4e-e31ca941ad34}, !- Handle
   Clothing Schedule Default Winter Clothes, !- Name
   {5ef11ca8-2f97-4f43-a700-df347a04af96}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -3235,7 +3235,7 @@ OS:Schedule:Day,
   {cecc4e09-affe-4290-8e5b-0f9afad57bf8}, !- Handle
   Clothing Schedule Summer Clothes,       !- Name
   {5ef11ca8-2f97-4f43-a700-df347a04af96}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0.5;                                    !- Value Until Time 1
@@ -3258,7 +3258,7 @@ OS:Schedule:Day,
   {d5e8414d-0452-42b3-8066-e5cd152f73f8}, !- Handle
   Air Velocity Schedule Default,          !- Name
   {2e7704db-c2a7-4e46-91b2-1e4241f630da}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0.2;                                    !- Value Until Time 1
@@ -3281,7 +3281,7 @@ OS:Schedule:Day,
   {5e4c2025-d162-4ee8-9773-c22512791559}, !- Handle
   Work Efficiency Schedule Default,       !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -3379,7 +3379,7 @@ OS:Schedule:Day,
   {366ed804-aa77-4a4a-979a-4e47d339ceda}, !- Handle
   OfficeSmall BLDG_OCC_SCH Default,       !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   6,                                      !- Hour 1
   15,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -3391,7 +3391,7 @@ OS:Schedule:Day,
   {5476b21e-5ff9-4850-86fc-e61bf3b3f942}, !- Handle
   OfficeSmall BLDG_OCC_SCH Winter Design Day, !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -3400,7 +3400,7 @@ OS:Schedule:Day,
   {168d25d0-87ce-44b8-b641-e159a41e9a23}, !- Handle
   OfficeSmall BLDG_OCC_SCH Summer Design Day, !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -3428,7 +3428,7 @@ OS:Schedule:Day,
   {9953700c-79e8-427b-b950-679f32f81b5d}, !- Handle
   OfficeSmall BLDG_OCC_SCH Wkdy Day,      !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   2,                                      !- Hour 1
   15,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -3565,7 +3565,7 @@ OS:Schedule:Day,
   {96f36d86-20b1-4565-adf7-1774952510af}, !- Handle
   OfficeSmall ACTIVITY_SCH Default,       !- Name
   {a6189b0b-4011-4942-a55e-25f2e0cf8639}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   120;                                    !- Value Until Time 1
@@ -3574,7 +3574,7 @@ OS:Schedule:Day,
   {35b3f55b-60f6-47e0-bc9e-7e15b6edf2c9}, !- Handle
   OfficeSmall ACTIVITY_SCH Winter Design Day, !- Name
   {a6189b0b-4011-4942-a55e-25f2e0cf8639}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   120;                                    !- Value Until Time 1
@@ -3583,7 +3583,7 @@ OS:Schedule:Day,
   {324f6fa8-8451-4bf4-a5c5-6f7fedaceeb9}, !- Handle
   OfficeSmall ACTIVITY_SCH Summer Design Day, !- Name
   {a6189b0b-4011-4942-a55e-25f2e0cf8639}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   120;                                    !- Value Until Time 1
@@ -3608,7 +3608,7 @@ OS:Schedule:Day,
   {0d5ea041-ea61-4d25-bd7c-7caadd32280a}, !- Handle
   Office BLDG_LIGHT_EndUseData Default,   !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   0,                                      !- Hour 1
   15,                                     !- Minute 1
   0.0441485384615385,                     !- Value Until Time 1
@@ -3927,7 +3927,7 @@ OS:Schedule:Day,
   {46f01da4-5d81-46f3-af2d-f54f6a184fe5}, !- Handle
   Office BLDG_LIGHT_EndUseData Sat Day,   !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   0,                                      !- Hour 1
   15,                                     !- Minute 1
   0.0427230224619675,                     !- Value Until Time 1
@@ -4116,7 +4116,7 @@ OS:Schedule:Day,
   {2753008f-e20d-4179-8b84-1c95d3a4788b}, !- Handle
   Office BLDG_LIGHT_EndUseData Summer Design Day, !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -4144,7 +4144,7 @@ OS:Schedule:Day,
   {95fcef70-9773-4e80-b70c-4eb4c9ac8971}, !- Handle
   Office BLDG_LIGHT_EndUseData Sun Day,   !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   0,                                      !- Hour 1
   15,                                     !- Minute 1
   0.0640160587066667,                     !- Value Until Time 1
@@ -4438,7 +4438,7 @@ OS:Schedule:Day,
   {6824a0c6-acd1-4b5a-b495-163ab4c81528}, !- Handle
   Office BLDG_LIGHT_EndUseData Winter Design Day, !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -4455,7 +4455,7 @@ OS:Schedule:Day,
   {55c05954-ae24-4df6-ab75-4aa2e1743f1c}, !- Handle
   Office BLDG_EQUIP_EndUseData Default,   !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   0,                                      !- Hour 1
   15,                                     !- Minute 1
   0.5374,                                 !- Value Until Time 1
@@ -4774,7 +4774,7 @@ OS:Schedule:Day,
   {f266302d-8bee-424f-8df3-e385a91f34a7}, !- Handle
   Office BLDG_EQUIP_EndUseData Sat Day,   !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   0,                                      !- Hour 1
   15,                                     !- Minute 1
   0.310345,                               !- Value Until Time 1
@@ -5068,7 +5068,7 @@ OS:Schedule:Day,
   {4c8be69f-d3f0-4f16-9628-a4413b732520}, !- Handle
   Office BLDG_EQUIP_EndUseData Summer Design Day, !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -5096,7 +5096,7 @@ OS:Schedule:Day,
   {00707a5e-be97-45ac-bc01-2db12809833c}, !- Handle
   Office BLDG_EQUIP_EndUseData Sun Day,   !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   0,                                      !- Hour 1
   15,                                     !- Minute 1
   0.310345,                               !- Value Until Time 1
@@ -5390,7 +5390,7 @@ OS:Schedule:Day,
   {b6050c98-dd2f-476f-b5bd-7e0ddeb38dcb}, !- Handle
   Office BLDG_EQUIP_EndUseData Winter Design Day, !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -5407,7 +5407,7 @@ OS:Schedule:Day,
   {27b761bc-f1c8-49f8-91a6-57f1c470b418}, !- Handle
   OfficeSmall INFIL_QUARTER_ON_SCH Default, !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -5416,7 +5416,7 @@ OS:Schedule:Day,
   {17611a08-d650-4bf6-98d7-9229319d59cc}, !- Handle
   OfficeSmall INFIL_QUARTER_ON_SCH Summer Design Day, !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   7,                                      !- Hour 1
   0,                                      !- Minute 1
   1,                                      !- Value Until Time 1
@@ -5450,7 +5450,7 @@ OS:Schedule:Day,
   {1940de2a-1694-450d-822d-b4ed0a0be40f}, !- Handle
   OfficeSmall INFIL_QUARTER_ON_SCH SmrDsn|Wkdy Day, !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   7,                                      !- Hour 1
   0,                                      !- Minute 1
   1,                                      !- Value Until Time 1
@@ -5465,7 +5465,7 @@ OS:Schedule:Day,
   {c1f5384e-e5a5-4c80-87d1-e46797f33d70}, !- Handle
   OfficeSmall INFIL_QUARTER_ON_SCH Winter Design Day, !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   7,                                      !- Hour 1
   0,                                      !- Minute 1
   1,                                      !- Value Until Time 1
@@ -5499,7 +5499,7 @@ OS:Schedule:Day,
   {9b387420-de9e-4962-8951-899431126f61}, !- Handle
   OfficeSmall INFIL_QUARTER_ON_SCH WntrDsn|Sat Day, !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   7,                                      !- Hour 1
   0,                                      !- Minute 1
   1,                                      !- Value Until Time 1
@@ -6156,7 +6156,7 @@ OS:Schedule:Day,
   {3e3ba64f-c5b3-400e-b48b-39bd13279951}, !- Handle
   Schedule Day 11,                        !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   0,                                      !- Minute 1
   0,                                      !- Value Until Time 1
@@ -6232,7 +6232,7 @@ OS:Schedule:Day,
   {4443a67f-d7f7-4872-8d6e-6068d42fdf0a}, !- Handle
   OfficeSmall BLDG_SWH_SCH Default,       !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   6,                                      !- Hour 1
   15,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -6244,7 +6244,7 @@ OS:Schedule:Day,
   {11a06cd3-162d-4525-b8cc-1d148f5ed64c}, !- Handle
   OfficeSmall BLDG_SWH_SCH Winter Design Day, !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   7,                                      !- Hour 1
   0,                                      !- Minute 1
   0,                                      !- Value Until Time 1
@@ -6292,7 +6292,7 @@ OS:Schedule:Day,
   {b501f6b3-653f-4369-9fc6-2144f1cbb536}, !- Handle
   OfficeSmall BLDG_SWH_SCH Summer Design Day, !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   7,                                      !- Hour 1
   0,                                      !- Minute 1
   0,                                      !- Value Until Time 1
@@ -6359,7 +6359,7 @@ OS:Schedule:Day,
   {c6afd0c5-a52c-4348-9694-016dba736471}, !- Handle
   OfficeSmall BLDG_SWH_SCH WntrDsn|SmrDsn|Wkdy Day, !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   3,                                      !- Hour 1
   15,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -6589,7 +6589,7 @@ OS:Schedule:Day,
   {66968975-3ea3-480f-9436-285df786ca0d}, !- Handle
   Fraction Sensible - 0.2 Default,        !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0.2;                                    !- Value Until Time 1
@@ -6604,7 +6604,7 @@ OS:Schedule:Day,
   {ffecf2e0-b379-4efe-b352-6e7b0146752f}, !- Handle
   Fraction Latent - 0.05 Default,         !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0.05;                                   !- Value Until Time 1
@@ -6619,7 +6619,7 @@ OS:Schedule:Day,
   {2c932bfd-3e7c-41e2-8d56-e7de84ce4955}, !- Handle
   Mixed Water At Faucet Temp - 140F Default, !- Name
   {81866912-42ff-433b-a883-a464b460ca86}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   60.0000000000001;                       !- Value Until Time 1
@@ -6813,7 +6813,7 @@ OS:Schedule:Day,
   {0fe4a857-8a7c-4c74-a4ef-b4190f111cce}, !- Handle
   Service Water Loop Temp - 140F Default, !- Name
   {33ecfe58-18dd-4d87-ba48-ebff005e526d}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   60.0000000000001;                       !- Value Until Time 1
@@ -6945,7 +6945,7 @@ OS:Schedule:Day,
   {3b0edb68-1002-4101-aff7-2eda7de6d975}, !- Handle
   Water Heater Ambient Temp Schedule - 70.0f Default, !- Name
   {e64e8fe5-9b7c-4f21-a181-adb4640a12ac}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   21.1111111111111;                       !- Value Until Time 1
@@ -6991,7 +6991,7 @@ OS:Schedule:Day,
   {ebeb401f-db27-4c34-9291-58a09729e6d4}, !- Handle
   Office Shared Service Water Loop Piping Air Velocity - 0.67mph Default, !- Name
   {81866912-42ff-433b-a883-a464b460ca86}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0.3;                                    !- Value Until Time 1
@@ -7276,7 +7276,7 @@ OS:Schedule:Day,
   {a82a9740-7ba2-4cbe-92c1-d016715f2b8d}, !- Handle
   OfficeSmall HTGSETP_SCH_NO_OPTIMUM Default, !- Name
   {81866912-42ff-433b-a883-a464b460ca86}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   6,                                      !- Hour 1
   15,                                     !- Minute 1
   16.6666666666667,                       !- Value Until Time 1
@@ -7307,7 +7307,7 @@ OS:Schedule:Day,
   {71369d68-54a8-4249-8e08-bc302b7d5093}, !- Handle
   OfficeSmall HTGSETP_SCH_NO_OPTIMUM Wkdy Day, !- Name
   {81866912-42ff-433b-a883-a464b460ca86}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   2,                                      !- Hour 1
   45,                                     !- Minute 1
   16.6666666666667,                       !- Value Until Time 1
@@ -7330,7 +7330,7 @@ OS:Schedule:Day,
   {9803b41f-e5c2-4662-bd59-ae3674ffd8c5}, !- Handle
   OfficeSmall CLGSETP_SCH_NO_OPTIMUM Default, !- Name
   {81866912-42ff-433b-a883-a464b460ca86}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   6,                                      !- Hour 1
   15,                                     !- Minute 1
   22.7777777777778,                       !- Value Until Time 1
@@ -7361,7 +7361,7 @@ OS:Schedule:Day,
   {f47ed6b3-d6fe-45e3-8b9b-1afa96293946}, !- Handle
   OfficeSmall CLGSETP_SCH_NO_OPTIMUM Wkdy Day, !- Name
   {81866912-42ff-433b-a883-a464b460ca86}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   2,                                      !- Hour 1
   45,                                     !- Minute 1
   22.7777777777778,                       !- Value Until Time 1
@@ -7586,7 +7586,7 @@ OS:Schedule:Day,
   {3953ba29-26c5-4ed2-9918-3eda0beae1c5}, !- Handle
   Chilled Water Loop Temp - 44F Default,  !- Name
   {81866912-42ff-433b-a883-a464b460ca86}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   6.66666666666669;                       !- Value Until Time 1
@@ -8078,7 +8078,7 @@ OS:Schedule:Day,
   {cca07980-8d06-4896-85ff-d95ffdcd2293}, !- Handle
   Supply Air Temp - 55.0F Default,        !- Name
   {81866912-42ff-433b-a883-a464b460ca86}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   12.7777777777778;                       !- Value Until Time 1
@@ -9482,7 +9482,7 @@ OS:Schedule:Day,
   {c69d9a4d-57c9-4640-9dfd-96745b9954f7}, !- Handle
   Building Hours of Operation NonResidential Default, !- Name
   {88faa711-cbea-4809-abc8-f479198f4f13}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   4,                                      !- Hour 1
   45,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -9513,7 +9513,7 @@ OS:Schedule:Day,
   {1e1df610-6107-4a1f-b416-170d035a58cd}, !- Handle
   Building Hours of Operation NonResidential Winter Design Day, !- Name
   {88faa711-cbea-4809-abc8-f479198f4f13}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -9522,7 +9522,7 @@ OS:Schedule:Day,
   {78b35aef-fa04-427f-a452-e38f3dc28f84}, !- Handle
   Building Hours of Operation NonResidential Summer Design Day, !- Name
   {88faa711-cbea-4809-abc8-f479198f4f13}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -9550,7 +9550,7 @@ OS:Schedule:Day,
   {ce723b2a-edb5-4725-a324-0e620401d352}, !- Handle
   Building Hours of Operation NonResidential Sunday, !- Name
   {88faa711-cbea-4809-abc8-f479198f4f13}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   15,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -10166,7 +10166,7 @@ OS:Schedule:Day,
   {987d3fd6-965c-409f-8d42-ad3d6a382896}, !- Handle
   autogen OfficeSmall ACTIVITY_SCH 0_day_sch, !- Name
   {a6189b0b-4011-4942-a55e-25f2e0cf8639}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   120;                                    !- Value Until Time 1
@@ -10418,7 +10418,7 @@ OS:Schedule:Day,
   {dcc4086c-2760-4f0a-967b-61e94b345baa}, !- Handle
   autogen Supply Air Temp - 55.0F 0_day_sch, !- Name
   {81866912-42ff-433b-a883-a464b460ca86}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   12.7777777777778;                       !- Value Until Time 1
@@ -10451,7 +10451,7 @@ OS:Schedule:Day,
   {05e78645-b121-453e-81a6-c881e9a9aac4}, !- Handle
   9 Zone PVAV with PFP Boxes and Reheat Occ Sch Default, !- Name
   {88faa711-cbea-4809-abc8-f479198f4f13}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   3,                                      !- Hour 1
   30,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -10482,7 +10482,7 @@ OS:Schedule:Day,
   {548d0b95-e6ea-4b41-af01-f6980741437d}, !- Handle
   9 Zone PVAV with PFP Boxes and Reheat Occ Sch Winter Design Day, !- Name
   {88faa711-cbea-4809-abc8-f479198f4f13}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -10491,7 +10491,7 @@ OS:Schedule:Day,
   {5d8f073a-44b8-40a6-a06e-62d065c23286}, !- Handle
   9 Zone PVAV with PFP Boxes and Reheat Occ Sch Summer Design Day, !- Name
   {88faa711-cbea-4809-abc8-f479198f4f13}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -10519,7 +10519,7 @@ OS:Schedule:Day,
   {b12f0f66-93b0-47c3-929a-f113bb258e19}, !- Handle
   9 Zone PVAV with PFP Boxes and Reheat Occ Sch Sunday, !- Name
   {88faa711-cbea-4809-abc8-f479198f4f13}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -11069,7 +11069,7 @@ OS:Schedule:Day,
   {2ea8fa67-a34c-4675-9e3f-fd1c1c11f7c9}, !- Handle
   Office BLDG_LIGHT_EndUseData Summer Design Day 1, !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -11078,7 +11078,7 @@ OS:Schedule:Day,
   {11b355d0-807b-4713-a241-a087f18457a3}, !- Handle
   Office BLDG_LIGHT_EndUseData Winter Design Day 1, !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -11106,7 +11106,7 @@ OS:Schedule:Day,
   {dc231f58-bb8f-4aae-9415-4a2bc1ed998c}, !- Handle
   Office BLDG_LIGHT_EndUseData Sun Day 1, !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   0,                                      !- Hour 1
   15,                                     !- Minute 1
   0.0640160587066667,                     !- Value Until Time 1
@@ -11435,7 +11435,7 @@ OS:Schedule:Day,
   {83335cd1-3a90-4eb6-b743-c37c77891acd}, !- Handle
   Office BLDG_LIGHT_EndUseData Sat Day 1, !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   0,                                      !- Hour 1
   15,                                     !- Minute 1
   0.064225024,                            !- Value Until Time 1
@@ -11977,7 +11977,7 @@ OS:Schedule:Day,
   {b2c59ca3-6350-491c-81e6-f8b5e547e11d}, !- Handle
   Office BLDG_EQUIP_EndUseData Summer Design Day 1, !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -11986,7 +11986,7 @@ OS:Schedule:Day,
   {35eff8ec-dbc7-4226-8c5c-93262eef1a4c}, !- Handle
   Office BLDG_EQUIP_EndUseData Winter Design Day 1, !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -12014,7 +12014,7 @@ OS:Schedule:Day,
   {8183968e-c592-4876-bc54-778eb8c3da78}, !- Handle
   Office BLDG_EQUIP_EndUseData Sun Day 1, !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   0,                                      !- Hour 1
   15,                                     !- Minute 1
   0.452494666666667,                      !- Value Until Time 1
@@ -12343,7 +12343,7 @@ OS:Schedule:Day,
   {9b029506-9949-41c1-87c7-2c0e2050d3ee}, !- Handle
   Office BLDG_EQUIP_EndUseData Sat Day 1, !- Name
   {d6320315-8c0b-4dd5-867e-f137757efc69}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   0,                                      !- Hour 1
   15,                                     !- Minute 1
   0.449876,                               !- Value Until Time 1
@@ -12947,7 +12947,7 @@ OS:Schedule:Day,
   {c140117e-93f3-4527-a3cc-34b951821c37}, !- Handle
   Schedule Day 1,                         !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   22.7777777777778;                       !- Value Until Time 1
@@ -12956,7 +12956,7 @@ OS:Schedule:Day,
   {111b665a-7cf7-4b3e-b437-0eb1f15123a6}, !- Handle
   Schedule Day 12,                        !- Name
   {81866912-42ff-433b-a883-a464b460ca86}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   22.7777777777778;                       !- Value Until Time 1
@@ -12965,7 +12965,7 @@ OS:Schedule:Day,
   {41d9655e-1d9d-4008-8ae1-ec5c5c1bccb9}, !- Handle
   Schedule Day 13,                        !- Name
   {81866912-42ff-433b-a883-a464b460ca86}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   22.7777777777778;                       !- Value Until Time 1
@@ -12974,7 +12974,7 @@ OS:Schedule:Day,
   {1a5f8488-4d7b-4eed-b808-7f80a5ee8a5a}, !- Handle
   Schedule Day 2,                         !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   20.0000000000001;                       !- Value Until Time 1
@@ -12983,7 +12983,7 @@ OS:Schedule:Day,
   {a781b051-328d-4923-8189-b8a1c769ce33}, !- Handle
   Schedule Day 14,                        !- Name
   {81866912-42ff-433b-a883-a464b460ca86}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   20.0000000000001;                       !- Value Until Time 1
@@ -12992,7 +12992,7 @@ OS:Schedule:Day,
   {8b0a2ec3-530b-4345-8b12-0bb735d8f300}, !- Handle
   Schedule Day 15,                        !- Name
   {81866912-42ff-433b-a883-a464b460ca86}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   20.0000000000001;                       !- Value Until Time 1

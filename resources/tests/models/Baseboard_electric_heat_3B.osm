@@ -1,7 +1,7 @@
 
 OS:Version,
-  {2a50bf32-eb1d-418f-970a-aecfc1b53375}, !- Handle
-  2.9.1;                                  !- Version Identifier
+  {5fa4bd98-64a4-4480-9e00-9dc2c5ae9f49}, !- Handle
+  3.8.0;                                  !- Version Identifier
 
 OS:RunPeriodControl:DaylightSavingTime,
   {5e663d15-0a05-475f-b12b-2d907b7dfc5c}, !- Handle
@@ -53,79 +53,83 @@ OS:SizingPeriod:DesignDay,
   CA_LOS-ANGELES-DOWNTOWN- Ann Clg .4% Condns DB=>MWB 1, !- Name
   32.8,                                   !- Maximum Dry-Bulb Temperature {C}
   9.7,                                    !- Daily Dry-Bulb Temperature Range {deltaC}
-  18.9,                                   !- Humidity Indicating Conditions at Maximum Dry-Bulb
   100654,                                 !- Barometric Pressure {Pa}
   1.5,                                    !- Wind Speed {m/s}
   0,                                      !- Wind Direction {deg}
   0,                                      !- Sky Clearness
-  0,                                      !- Rain Indicator
-  0,                                      !- Snow Indicator
+  No,                                     !- Rain Indicator
+  No,                                     !- Snow Indicator
   21,                                     !- Day of Month
   8,                                      !- Month
   SummerDesignDay,                        !- Day Type
-  0,                                      !- Daylight Saving Time Indicator
-  Wetbulb,                                !- Humidity Indicating Type
-  ,                                       !- Humidity Indicating Day Schedule Name
+  No,                                     !- Daylight Saving Time Indicator
+  Wetbulb,                                !- Humidity Condition Type
+  ,                                       !- Humidity Condition Day Schedule Name
+  18.9,                                   !- Wetbulb or DewPoint at Maximum Dry-Bulb {C}
+  ,                                       !- Humidity Ratio at Maximum Dry-Bulb {kgWater/kgDryAir}
+  ,                                       !- Enthalpy at Maximum Dry-Bulb {J/kg}
   DefaultMultipliers,                     !- Dry-Bulb Temperature Range Modifier Type
-  ,                                       !- Dry-Bulb Temperature Range Modifier Schedule Name
+  ,                                       !- Dry-Bulb Temperature Range Modifier Day Schedule Name
   ASHRAETau,                              !- Solar Model Indicator
   ,                                       !- Beam Solar Day Schedule Name
   ,                                       !- Diffuse Solar Day Schedule Name
-  0.361,                                  !- ASHRAE Taub {dimensionless}
-  2.436;                                  !- ASHRAE Taud {dimensionless}
+  0.361,                                  !- ASHRAE Clear Sky Optical Depth for Beam Irradiance {dimensionless}
+  2.436;                                  !- ASHRAE Clear Sky Optical Depth for Diffuse Irradiance {dimensionless}
 
 OS:SizingPeriod:DesignDay,
   {ff5f58a6-746d-4267-ba1e-cb5538c05ae2}, !- Handle
   CA_LOS-ANGELES-DOWNTOWN- Ann Clg .4% Condns WB=>MDB 1, !- Name
   29.2,                                   !- Maximum Dry-Bulb Temperature {C}
   9.7,                                    !- Daily Dry-Bulb Temperature Range {deltaC}
-  22,                                     !- Humidity Indicating Conditions at Maximum Dry-Bulb
   100654,                                 !- Barometric Pressure {Pa}
   1.5,                                    !- Wind Speed {m/s}
   0,                                      !- Wind Direction {deg}
   0,                                      !- Sky Clearness
-  0,                                      !- Rain Indicator
-  0,                                      !- Snow Indicator
+  No,                                     !- Rain Indicator
+  No,                                     !- Snow Indicator
   21,                                     !- Day of Month
   8,                                      !- Month
   SummerDesignDay,                        !- Day Type
-  0,                                      !- Daylight Saving Time Indicator
-  Wetbulb,                                !- Humidity Indicating Type
-  ,                                       !- Humidity Indicating Day Schedule Name
+  No,                                     !- Daylight Saving Time Indicator
+  Wetbulb,                                !- Humidity Condition Type
+  ,                                       !- Humidity Condition Day Schedule Name
+  22,                                     !- Wetbulb or DewPoint at Maximum Dry-Bulb {C}
+  ,                                       !- Humidity Ratio at Maximum Dry-Bulb {kgWater/kgDryAir}
+  ,                                       !- Enthalpy at Maximum Dry-Bulb {J/kg}
   DefaultMultipliers,                     !- Dry-Bulb Temperature Range Modifier Type
-  ,                                       !- Dry-Bulb Temperature Range Modifier Schedule Name
+  ,                                       !- Dry-Bulb Temperature Range Modifier Day Schedule Name
   ASHRAETau,                              !- Solar Model Indicator
   ,                                       !- Beam Solar Day Schedule Name
   ,                                       !- Diffuse Solar Day Schedule Name
-  0.361,                                  !- ASHRAE Taub {dimensionless}
-  2.436;                                  !- ASHRAE Taud {dimensionless}
+  0.361,                                  !- ASHRAE Clear Sky Optical Depth for Beam Irradiance {dimensionless}
+  2.436;                                  !- ASHRAE Clear Sky Optical Depth for Diffuse Irradiance {dimensionless}
 
 OS:SizingPeriod:DesignDay,
   {dab19397-8507-4687-a479-dd9cbdf32f4d}, !- Handle
   CA_LOS-ANGELES-DOWNTOWN- Ann Htg 99.6% Condns DB 1, !- Name
   6.2,                                    !- Maximum Dry-Bulb Temperature {C}
   0,                                      !- Daily Dry-Bulb Temperature Range {deltaC}
-  6.2,                                    !- Humidity Indicating Conditions at Maximum Dry-Bulb
   100654,                                 !- Barometric Pressure {Pa}
   0.2,                                    !- Wind Speed {m/s}
   0,                                      !- Wind Direction {deg}
   0,                                      !- Sky Clearness
-  0,                                      !- Rain Indicator
-  0,                                      !- Snow Indicator
+  No,                                     !- Rain Indicator
+  No,                                     !- Snow Indicator
   21,                                     !- Day of Month
   12,                                     !- Month
   WinterDesignDay,                        !- Day Type
-  0,                                      !- Daylight Saving Time Indicator
-  Wetbulb,                                !- Humidity Indicating Type
-  ,                                       !- Humidity Indicating Day Schedule Name
+  No,                                     !- Daylight Saving Time Indicator
+  Wetbulb,                                !- Humidity Condition Type
+  ,                                       !- Humidity Condition Day Schedule Name
+  6.2,                                    !- Wetbulb or DewPoint at Maximum Dry-Bulb {C}
+  ,                                       !- Humidity Ratio at Maximum Dry-Bulb {kgWater/kgDryAir}
+  ,                                       !- Enthalpy at Maximum Dry-Bulb {J/kg}
   DefaultMultipliers,                     !- Dry-Bulb Temperature Range Modifier Type
-  ,                                       !- Dry-Bulb Temperature Range Modifier Schedule Name
+  ,                                       !- Dry-Bulb Temperature Range Modifier Day Schedule Name
   ASHRAEClearSky;                         !- Solar Model Indicator
 
 OS:ClimateZones,
   {5f0fd175-9175-4683-b66f-f2a9c27d9c29}, !- Handle
-  ,                                       !- Active Institution
-  ,                                       !- Active Year
   CEC,                                    !- Climate Zone Institution Name 1
   California Climate Zone Descriptions,   !- Climate Zone Document Name 1
   1995,                                   !- Climate Zone Document Year 1
@@ -315,7 +319,6 @@ OS:Node,
 
 OS:Connection,
   {44b7f6c3-3f76-4ee5-ab07-a3ff69dacbde}, !- Handle
-  {c7f6443e-df86-41dd-a0b2-79d538928078}, !- Name
   {434efb0f-ca37-4db7-9947-319b889ca015}, !- Source Object
   11,                                     !- Outlet Port
   {fec029b7-03e2-4f58-a619-5fcd683c6776}, !- Target Object
@@ -323,17 +326,14 @@ OS:Connection,
 
 OS:PortList,
   {42746b8f-b67d-4446-8502-5930dc0fb20f}, !- Handle
-  {47e5ca86-1231-499d-b702-459beb115506}, !- Name
   {434efb0f-ca37-4db7-9947-319b889ca015}; !- HVAC Component
 
 OS:PortList,
   {e20916c1-21ed-4943-8222-86ee8554881a}, !- Handle
-  {cee6e12c-e819-4520-9e71-652ba39f6d70}, !- Name
   {434efb0f-ca37-4db7-9947-319b889ca015}; !- HVAC Component
 
 OS:PortList,
   {e323c32e-c966-4e3e-a6b5-55778022c12e}, !- Handle
-  {0b0a2668-34e0-4e8d-a3ef-aaa9f918d198}, !- Name
   {434efb0f-ca37-4db7-9947-319b889ca015}; !- HVAC Component
 
 OS:Sizing:Zone,
@@ -359,12 +359,17 @@ OS:Sizing:Zone,
   ,                                       !- Heating Maximum Air Flow per Zone Floor Area {m3/s-m2}
   ,                                       !- Heating Maximum Air Flow {m3/s}
   ,                                       !- Heating Maximum Air Flow Fraction
-  ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
-  ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
 
 OS:ZoneHVAC:EquipmentList,
   {02a18a08-cfc9-48c1-9102-e8869051a48f}, !- Handle
@@ -523,7 +528,6 @@ OS:Node,
 
 OS:Connection,
   {bbfd85a2-7903-4ded-bdd1-ac132618d879}, !- Handle
-  {6333b9d5-d0b9-41a9-a6fb-31c012dc7cbc}, !- Name
   {e96bf526-468a-487d-8b2c-13ada667daba}, !- Source Object
   11,                                     !- Outlet Port
   {bcfbbab0-d3b6-4c99-9c6f-d405a84a76f9}, !- Target Object
@@ -531,17 +535,14 @@ OS:Connection,
 
 OS:PortList,
   {2135bc31-e085-4547-b7a0-c41e6e00cad9}, !- Handle
-  {55ecfe01-7c94-491d-961a-7530d767a3e5}, !- Name
   {e96bf526-468a-487d-8b2c-13ada667daba}; !- HVAC Component
 
 OS:PortList,
   {2da17eb9-3089-4bfa-bad2-975c480899e3}, !- Handle
-  {63b9bc12-6904-45ef-adfe-5949c142ed16}, !- Name
   {e96bf526-468a-487d-8b2c-13ada667daba}; !- HVAC Component
 
 OS:PortList,
   {d399e2af-de31-4e15-8517-f2e16b3ff1f3}, !- Handle
-  {10d82274-f4ec-42a3-9ca9-18e8ee88b892}, !- Name
   {e96bf526-468a-487d-8b2c-13ada667daba}; !- HVAC Component
 
 OS:Sizing:Zone,
@@ -567,12 +568,17 @@ OS:Sizing:Zone,
   ,                                       !- Heating Maximum Air Flow per Zone Floor Area {m3/s-m2}
   ,                                       !- Heating Maximum Air Flow {m3/s}
   ,                                       !- Heating Maximum Air Flow Fraction
-  ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
-  ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
 
 OS:ZoneHVAC:EquipmentList,
   {879a0a85-19a3-4c26-936e-f39d4db00cbd}, !- Handle
@@ -731,7 +737,6 @@ OS:Node,
 
 OS:Connection,
   {adabe138-6a95-46a0-8138-48f9791d1670}, !- Handle
-  {1c7d0fa5-9aa0-4e36-88fb-bba0ef7a7f75}, !- Name
   {1dd1cb47-dcbd-45ba-ab07-faa133365998}, !- Source Object
   11,                                     !- Outlet Port
   {b1823f43-edb1-4f07-aef3-a8d682e4c5ac}, !- Target Object
@@ -739,17 +744,14 @@ OS:Connection,
 
 OS:PortList,
   {9efbd81e-3c21-4ad7-8bce-3316e0f1996f}, !- Handle
-  {69300041-4d25-4324-b1cc-c3957834dc95}, !- Name
   {1dd1cb47-dcbd-45ba-ab07-faa133365998}; !- HVAC Component
 
 OS:PortList,
   {ba6c9190-8bc0-4fd3-9c17-9a2f7c9c999a}, !- Handle
-  {c19a6f3a-6f36-48e0-80aa-09f0acc3286d}, !- Name
   {1dd1cb47-dcbd-45ba-ab07-faa133365998}; !- HVAC Component
 
 OS:PortList,
   {3536015b-bb4d-4a5a-8fb0-978d024a1c24}, !- Handle
-  {7baa9199-1d48-4f86-abd0-a4201679333f}, !- Name
   {1dd1cb47-dcbd-45ba-ab07-faa133365998}; !- HVAC Component
 
 OS:Sizing:Zone,
@@ -775,12 +777,17 @@ OS:Sizing:Zone,
   ,                                       !- Heating Maximum Air Flow per Zone Floor Area {m3/s-m2}
   ,                                       !- Heating Maximum Air Flow {m3/s}
   ,                                       !- Heating Maximum Air Flow Fraction
-  ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
-  ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
 
 OS:ZoneHVAC:EquipmentList,
   {a710c129-849b-427b-baf8-cac91fda6d8d}, !- Handle
@@ -939,7 +946,6 @@ OS:Node,
 
 OS:Connection,
   {71266439-671f-41f9-886c-434f4c928eaf}, !- Handle
-  {93a30fd9-048e-4faf-a13d-4e29c725abe3}, !- Name
   {a0bbf69b-95d7-4554-a60b-bcb084ceec14}, !- Source Object
   11,                                     !- Outlet Port
   {1aaf36f0-6528-4206-b659-bba906fa77c0}, !- Target Object
@@ -947,17 +953,14 @@ OS:Connection,
 
 OS:PortList,
   {335344d3-2837-4bee-a89a-84ee63e33af6}, !- Handle
-  {66b83423-db3d-4f21-ae6e-90afb66321be}, !- Name
   {a0bbf69b-95d7-4554-a60b-bcb084ceec14}; !- HVAC Component
 
 OS:PortList,
   {d9384a08-2829-460c-8571-8aab9665e68c}, !- Handle
-  {f0ade971-a438-4913-82bb-6e6255b0507f}, !- Name
   {a0bbf69b-95d7-4554-a60b-bcb084ceec14}; !- HVAC Component
 
 OS:PortList,
   {79c56a8f-f3de-45c9-b23f-451cffa73abf}, !- Handle
-  {f5285cb2-c0cf-4835-8f02-e66249ef8ec6}, !- Name
   {a0bbf69b-95d7-4554-a60b-bcb084ceec14}; !- HVAC Component
 
 OS:Sizing:Zone,
@@ -983,12 +986,17 @@ OS:Sizing:Zone,
   ,                                       !- Heating Maximum Air Flow per Zone Floor Area {m3/s-m2}
   ,                                       !- Heating Maximum Air Flow {m3/s}
   ,                                       !- Heating Maximum Air Flow Fraction
-  ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
-  ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
 
 OS:ZoneHVAC:EquipmentList,
   {77203e93-80f3-4564-a96f-281399b28fdb}, !- Handle
@@ -1147,7 +1155,6 @@ OS:Node,
 
 OS:Connection,
   {b91065ab-b440-49b5-b651-5db0a0be0924}, !- Handle
-  {3a38f528-ac41-4e6a-bdb9-3a7ce35e3ac4}, !- Name
   {b7e7e1e3-ca59-4252-9552-65d16da978b1}, !- Source Object
   11,                                     !- Outlet Port
   {f24007d1-7bad-46e2-bca4-85838b7b7838}, !- Target Object
@@ -1155,17 +1162,14 @@ OS:Connection,
 
 OS:PortList,
   {d2a70b6f-8e1d-4097-99f8-169ee39a5b31}, !- Handle
-  {de0e20d1-5e31-4e45-bf16-1c6f1835a60b}, !- Name
   {b7e7e1e3-ca59-4252-9552-65d16da978b1}; !- HVAC Component
 
 OS:PortList,
   {b6aeb184-0eec-460f-baa8-bfbfa4b6bf85}, !- Handle
-  {151ca723-9c92-4aa6-a0e6-c4a2a89836a6}, !- Name
   {b7e7e1e3-ca59-4252-9552-65d16da978b1}; !- HVAC Component
 
 OS:PortList,
   {35bd5f0c-ae55-4318-8ad4-f45ffd6f6525}, !- Handle
-  {adf69d86-cde5-4d6a-bb05-dc396ee75611}, !- Name
   {b7e7e1e3-ca59-4252-9552-65d16da978b1}; !- HVAC Component
 
 OS:Sizing:Zone,
@@ -1191,12 +1195,17 @@ OS:Sizing:Zone,
   ,                                       !- Heating Maximum Air Flow per Zone Floor Area {m3/s-m2}
   ,                                       !- Heating Maximum Air Flow {m3/s}
   ,                                       !- Heating Maximum Air Flow Fraction
-  ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
-  ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
 
 OS:ZoneHVAC:EquipmentList,
   {475e4961-ec90-4e95-ae61-dc1e90ff59a2}, !- Handle
@@ -1355,7 +1364,6 @@ OS:Node,
 
 OS:Connection,
   {b16505a4-0dca-443f-ab57-5f54436a206b}, !- Handle
-  {201c2d47-c7d4-417d-a5b1-3d897355c6a1}, !- Name
   {3b6ec6b4-a548-49ba-9786-806294737fca}, !- Source Object
   11,                                     !- Outlet Port
   {c84e178a-7c7b-46a0-bfed-c8da4c4f30d1}, !- Target Object
@@ -1363,17 +1371,14 @@ OS:Connection,
 
 OS:PortList,
   {d523d9c8-8dac-4383-b428-58eb56ae75d1}, !- Handle
-  {67b3e8ff-0fd2-4fd2-a9d2-2e78978a40c0}, !- Name
   {3b6ec6b4-a548-49ba-9786-806294737fca}; !- HVAC Component
 
 OS:PortList,
   {49d7cf6a-0ba4-421f-b275-69f5822a376b}, !- Handle
-  {0dffc382-3c30-4929-af0d-d61f166dc946}, !- Name
   {3b6ec6b4-a548-49ba-9786-806294737fca}; !- HVAC Component
 
 OS:PortList,
   {4422d033-36ef-4390-ba88-eb689d9d46c1}, !- Handle
-  {9f0b5264-1201-4087-ae65-29b006911362}, !- Name
   {3b6ec6b4-a548-49ba-9786-806294737fca}; !- HVAC Component
 
 OS:Sizing:Zone,
@@ -1399,12 +1404,17 @@ OS:Sizing:Zone,
   ,                                       !- Heating Maximum Air Flow per Zone Floor Area {m3/s-m2}
   ,                                       !- Heating Maximum Air Flow {m3/s}
   ,                                       !- Heating Maximum Air Flow Fraction
-  ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
-  ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
 
 OS:ZoneHVAC:EquipmentList,
   {f63ed11d-497b-4728-92e6-2b619909e60e}, !- Handle
@@ -1563,7 +1573,6 @@ OS:Node,
 
 OS:Connection,
   {94fa7693-f3e7-4236-8aa5-0df2af65bbe6}, !- Handle
-  {b2855681-aced-4470-9ea9-71a7b46cac93}, !- Name
   {0af6751f-533a-4f4d-a68f-bd24771db149}, !- Source Object
   11,                                     !- Outlet Port
   {e58a8954-15d4-46ae-b1b4-9b4266b90eb3}, !- Target Object
@@ -1571,17 +1580,14 @@ OS:Connection,
 
 OS:PortList,
   {fba1124e-0a93-401d-b4ce-e6378f1ccf4d}, !- Handle
-  {1b671555-38c8-445c-9310-38702cf44aac}, !- Name
   {0af6751f-533a-4f4d-a68f-bd24771db149}; !- HVAC Component
 
 OS:PortList,
   {5034c0f9-b119-4126-ba33-156d3def6975}, !- Handle
-  {9d45af1b-d26d-4cb9-98b3-7c7bac096006}, !- Name
   {0af6751f-533a-4f4d-a68f-bd24771db149}; !- HVAC Component
 
 OS:PortList,
   {9800d009-a231-4ef1-96ab-c0906adc853f}, !- Handle
-  {8ee65948-2f4d-4222-a058-82180bfe0a8d}, !- Name
   {0af6751f-533a-4f4d-a68f-bd24771db149}; !- HVAC Component
 
 OS:Sizing:Zone,
@@ -1607,12 +1613,17 @@ OS:Sizing:Zone,
   ,                                       !- Heating Maximum Air Flow per Zone Floor Area {m3/s-m2}
   ,                                       !- Heating Maximum Air Flow {m3/s}
   ,                                       !- Heating Maximum Air Flow Fraction
-  ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
-  ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
 
 OS:ZoneHVAC:EquipmentList,
   {85f5cf03-d3b5-4437-8700-a4ebb4a185ca}, !- Handle
@@ -1771,7 +1782,6 @@ OS:Node,
 
 OS:Connection,
   {6893d7d4-2ff4-4e2a-8668-658b62e5479a}, !- Handle
-  {a84aa052-822e-4d34-83e4-8b3b01929db9}, !- Name
   {9a38bb2b-ad00-45b1-adb9-a7709ad16156}, !- Source Object
   11,                                     !- Outlet Port
   {8a6e6c76-36ef-49d5-81d9-359727a66eef}, !- Target Object
@@ -1779,17 +1789,14 @@ OS:Connection,
 
 OS:PortList,
   {0341312e-34d0-445b-9d5e-b4ba80bda626}, !- Handle
-  {5ec19fe1-d742-4982-9451-e3181aa02afc}, !- Name
   {9a38bb2b-ad00-45b1-adb9-a7709ad16156}; !- HVAC Component
 
 OS:PortList,
   {abc57788-45c3-4420-93e8-a9d8225f86a7}, !- Handle
-  {5d1ccbd0-97bc-4c88-a468-55b7cf028b37}, !- Name
   {9a38bb2b-ad00-45b1-adb9-a7709ad16156}; !- HVAC Component
 
 OS:PortList,
   {20ae50b8-f2cd-4d14-9dbf-e9e1fd4e9922}, !- Handle
-  {34f551ec-9bfe-459f-bf28-195bd793a90a}, !- Name
   {9a38bb2b-ad00-45b1-adb9-a7709ad16156}; !- HVAC Component
 
 OS:Sizing:Zone,
@@ -1815,12 +1822,17 @@ OS:Sizing:Zone,
   ,                                       !- Heating Maximum Air Flow per Zone Floor Area {m3/s-m2}
   ,                                       !- Heating Maximum Air Flow {m3/s}
   ,                                       !- Heating Maximum Air Flow Fraction
-  ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
-  ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
 
 OS:ZoneHVAC:EquipmentList,
   {c297279e-3f35-4d8e-8ec3-676e0bc6ab68}, !- Handle
@@ -1979,7 +1991,6 @@ OS:Node,
 
 OS:Connection,
   {361abc13-f697-4c74-b7af-b4cafc37f510}, !- Handle
-  {4a57bd3c-cba8-4965-8fcc-3f81a590ed8d}, !- Name
   {19f8a5cb-1969-4a81-af91-422de44125c6}, !- Source Object
   11,                                     !- Outlet Port
   {07b13abd-ee34-4322-86ba-7619b3706619}, !- Target Object
@@ -1987,17 +1998,14 @@ OS:Connection,
 
 OS:PortList,
   {d2a4018f-8fc8-434b-a2b1-b43f0699a6bc}, !- Handle
-  {8e2a7cc8-3dec-441f-b7be-dd3ea2d494c6}, !- Name
   {19f8a5cb-1969-4a81-af91-422de44125c6}; !- HVAC Component
 
 OS:PortList,
   {c4782a22-0002-4c16-a2cd-408770d2057a}, !- Handle
-  {b5345030-3ff3-43cc-9c17-16464e5a5787}, !- Name
   {19f8a5cb-1969-4a81-af91-422de44125c6}; !- HVAC Component
 
 OS:PortList,
   {c56e4a75-56c1-49e0-8f43-ce79b5795f63}, !- Handle
-  {6d07ece7-2e5a-42a9-b7a2-04d3e0a238d7}, !- Name
   {19f8a5cb-1969-4a81-af91-422de44125c6}; !- HVAC Component
 
 OS:Sizing:Zone,
@@ -2023,12 +2031,17 @@ OS:Sizing:Zone,
   ,                                       !- Heating Maximum Air Flow per Zone Floor Area {m3/s-m2}
   ,                                       !- Heating Maximum Air Flow {m3/s}
   ,                                       !- Heating Maximum Air Flow Fraction
-  ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
-  ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   No,                                     !- Account for Dedicated Outdoor Air System
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
-  autosize;                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005;                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
 
 OS:ZoneHVAC:EquipmentList,
   {7a580997-9c8b-4c90-81b5-9cd620d9d4fb}, !- Handle
@@ -2049,7 +2062,6 @@ OS:SubSurface,
   {398b4200-a399-4fd1-ba0d-799ee139c421}, !- Surface Name
   ,                                       !- Outside Boundary Condition Object
   ,                                       !- View Factor to Ground
-  ,                                       !- Shading Control Name
   ,                                       !- Frame and Divider Name
   ,                                       !- Multiplier
   ,                                       !- Number of Vertices
@@ -2066,7 +2078,6 @@ OS:SubSurface,
   {fafb7632-3e66-4293-96f9-9c56f9d2a264}, !- Surface Name
   ,                                       !- Outside Boundary Condition Object
   ,                                       !- View Factor to Ground
-  ,                                       !- Shading Control Name
   ,                                       !- Frame and Divider Name
   ,                                       !- Multiplier
   ,                                       !- Number of Vertices
@@ -2083,7 +2094,6 @@ OS:SubSurface,
   {9f01cb3a-766a-4426-b22d-6ab56300d2e0}, !- Surface Name
   ,                                       !- Outside Boundary Condition Object
   ,                                       !- View Factor to Ground
-  ,                                       !- Shading Control Name
   ,                                       !- Frame and Divider Name
   ,                                       !- Multiplier
   ,                                       !- Number of Vertices
@@ -2100,7 +2110,6 @@ OS:SubSurface,
   {c05606d1-a720-4617-a78c-9625751aa83e}, !- Surface Name
   ,                                       !- Outside Boundary Condition Object
   ,                                       !- View Factor to Ground
-  ,                                       !- Shading Control Name
   ,                                       !- Frame and Divider Name
   ,                                       !- Multiplier
   ,                                       !- Number of Vertices
@@ -2117,7 +2126,6 @@ OS:SubSurface,
   {1f12ada0-547e-4b27-bd7d-6e6a25616433}, !- Surface Name
   ,                                       !- Outside Boundary Condition Object
   ,                                       !- View Factor to Ground
-  ,                                       !- Shading Control Name
   ,                                       !- Frame and Divider Name
   ,                                       !- Multiplier
   ,                                       !- Number of Vertices
@@ -2134,7 +2142,6 @@ OS:SubSurface,
   {b5a355a1-371d-4eab-9c6d-4c2e3b30603e}, !- Surface Name
   ,                                       !- Outside Boundary Condition Object
   ,                                       !- View Factor to Ground
-  ,                                       !- Shading Control Name
   ,                                       !- Frame and Divider Name
   ,                                       !- Multiplier
   ,                                       !- Number of Vertices
@@ -2151,7 +2158,6 @@ OS:SubSurface,
   {60635eef-18b2-4d80-b5d7-9166d0eabcb5}, !- Surface Name
   ,                                       !- Outside Boundary Condition Object
   ,                                       !- View Factor to Ground
-  ,                                       !- Shading Control Name
   ,                                       !- Frame and Divider Name
   ,                                       !- Multiplier
   ,                                       !- Number of Vertices
@@ -2168,7 +2174,6 @@ OS:SubSurface,
   {4b920e43-1995-49bc-9a66-fe69f5e90a04}, !- Surface Name
   ,                                       !- Outside Boundary Condition Object
   ,                                       !- View Factor to Ground
-  ,                                       !- Shading Control Name
   ,                                       !- Frame and Divider Name
   ,                                       !- Multiplier
   ,                                       !- Number of Vertices
@@ -2185,7 +2190,6 @@ OS:SubSurface,
   {8b265da0-de0e-4973-8139-13907db4524d}, !- Surface Name
   ,                                       !- Outside Boundary Condition Object
   ,                                       !- View Factor to Ground
-  ,                                       !- Shading Control Name
   ,                                       !- Frame and Divider Name
   ,                                       !- Multiplier
   ,                                       !- Number of Vertices
@@ -2202,7 +2206,6 @@ OS:SubSurface,
   {add0919e-34ee-4de2-816f-00f9fc512138}, !- Surface Name
   ,                                       !- Outside Boundary Condition Object
   ,                                       !- View Factor to Ground
-  ,                                       !- Shading Control Name
   ,                                       !- Frame and Divider Name
   ,                                       !- Multiplier
   ,                                       !- Number of Vertices
@@ -2219,7 +2222,6 @@ OS:SubSurface,
   {2d2a9653-abbb-4d4c-b666-62d953e6844c}, !- Surface Name
   ,                                       !- Outside Boundary Condition Object
   ,                                       !- View Factor to Ground
-  ,                                       !- Shading Control Name
   ,                                       !- Frame and Divider Name
   ,                                       !- Multiplier
   ,                                       !- Number of Vertices
@@ -2236,7 +2238,6 @@ OS:SubSurface,
   {74a297fa-3e59-4897-94e5-aa69cfb27c7e}, !- Surface Name
   ,                                       !- Outside Boundary Condition Object
   ,                                       !- View Factor to Ground
-  ,                                       !- Shading Control Name
   ,                                       !- Frame and Divider Name
   ,                                       !- Multiplier
   ,                                       !- Number of Vertices
@@ -2330,7 +2331,7 @@ OS:Schedule:Day,
   {466f8aa6-2e9e-490b-88ab-66fcd0b672f2}, !- Handle
   Clothing Schedule Default Winter Clothes, !- Name
   {6e763a82-e623-46cf-9550-98c1c3d6e2d6}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -2348,7 +2349,6 @@ OS:Schedule:Rule,
   ,                                       !- Apply Thursday
   ,                                       !- Apply Friday
   ,                                       !- Apply Saturday
-  ,                                       !- Apply Holiday
   DateRange,                              !- Date Specification Type
   5,                                      !- Start Month
   1,                                      !- Start Day
@@ -2359,7 +2359,7 @@ OS:Schedule:Day,
   {28f0beb7-f4a7-4681-bf51-fd00bf705f70}, !- Handle
   Clothing Schedule Summer Clothes,       !- Name
   {6e763a82-e623-46cf-9550-98c1c3d6e2d6}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0.5;                                    !- Value Until Time 1
@@ -2382,7 +2382,7 @@ OS:Schedule:Day,
   {c7738f48-982f-432f-9ec6-0d4005b61c1c}, !- Handle
   Air Velocity Schedule Default,          !- Name
   {d112be24-9703-4d42-a35d-9949285a3a70}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0.2;                                    !- Value Until Time 1
@@ -2405,7 +2405,7 @@ OS:Schedule:Day,
   {cfb0a832-a4c0-4ac3-9ae3-06c670273d12}, !- Handle
   Work Efficiency Schedule Default,       !- Name
   {d4eeb177-b00d-48e8-aeda-310e21fcf5f5}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -2509,7 +2509,7 @@ OS:Schedule:Day,
   {695fe52b-d128-4e91-8445-a2520ffaba2d}, !- Handle
   D_SCn_All_Occup_Yr Default,             !- Name
   {d4eeb177-b00d-48e8-aeda-310e21fcf5f5}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   7,                                      !- Hour 1
   45,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -2572,7 +2572,7 @@ OS:Schedule:Day,
   {ebb33d70-ce97-4e16-93dc-089db9557268}, !- Handle
   D_SCn_All_Occup_Yr Summer Design Day,   !- Name
   {d4eeb177-b00d-48e8-aeda-310e21fcf5f5}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -2581,7 +2581,7 @@ OS:Schedule:Day,
   {6e1b2674-931b-4610-aa5d-558b59dfac26}, !- Handle
   D_SCn_All_Occup_Yr Winter Design Day,   !- Name
   {d4eeb177-b00d-48e8-aeda-310e21fcf5f5}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -2598,7 +2598,7 @@ OS:Schedule:Day,
   {50153e8b-1e07-4c82-91dd-fd6d7076ff6c}, !- Handle
   DEER Activity 220W/person Default,      !- Name
   {a0ff8ea0-346a-4077-ad90-834ca049f0be}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   2,                                      !- Hour 1
   15,                                     !- Minute 1
   220,                                    !- Value Until Time 1
@@ -2610,7 +2610,7 @@ OS:Schedule:Day,
   {ac279b51-6b75-4de0-987f-e98fba3f435d}, !- Handle
   DEER Activity 220W/person Winter Design Day, !- Name
   {a0ff8ea0-346a-4077-ad90-834ca049f0be}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   220;                                    !- Value Until Time 1
@@ -2619,7 +2619,7 @@ OS:Schedule:Day,
   {c64e4cea-98cf-4ed1-8180-412a964f1559}, !- Handle
   DEER Activity 220W/person Summer Design Day, !- Name
   {a0ff8ea0-346a-4077-ad90-834ca049f0be}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   220;                                    !- Value Until Time 1
@@ -2644,7 +2644,7 @@ OS:Schedule:Day,
   {81f88301-02bc-4a12-9968-bdf8d2501289}, !- Handle
   D17_SCn_WhCond_LF_Yr Default,           !- Name
   {d4eeb177-b00d-48e8-aeda-310e21fcf5f5}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   10,                                     !- Hour 1
   15,                                     !- Minute 1
   0.145,                                  !- Value Until Time 1
@@ -2659,7 +2659,7 @@ OS:Schedule:Day,
   {4e3d38a3-fe0c-4634-8903-12ce34209056}, !- Handle
   D17_SCn_WhCond_LF_Yr Summer Design Day, !- Name
   {d4eeb177-b00d-48e8-aeda-310e21fcf5f5}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -2677,7 +2677,6 @@ OS:Schedule:Rule,
   ,                                       !- Apply Thursday
   ,                                       !- Apply Friday
   Yes,                                    !- Apply Saturday
-  ,                                       !- Apply Holiday
   DateRange,                              !- Date Specification Type
   1,                                      !- Start Month
   1,                                      !- Start Day
@@ -2688,7 +2687,7 @@ OS:Schedule:Day,
   {b9cedfbe-b6fe-4697-8d6c-d362ea617836}, !- Handle
   D17_SCn_WhCond_LF_Yr Wknd|Hol Day,      !- Name
   {d4eeb177-b00d-48e8-aeda-310e21fcf5f5}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   2,                                      !- Hour 1
   15,                                     !- Minute 1
   0.145,                                  !- Value Until Time 1
@@ -2700,7 +2699,7 @@ OS:Schedule:Day,
   {5225eb0a-10fc-4789-84d7-ce3d58c2b323}, !- Handle
   D17_SCn_WhCond_LF_Yr Winter Design Day, !- Name
   {d4eeb177-b00d-48e8-aeda-310e21fcf5f5}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -2717,7 +2716,7 @@ OS:Schedule:Day,
   {1d00f43a-254b-46b6-b3a9-55d5a4333e19}, !- Handle
   D_SCn_All_Misc_Yr Default,              !- Name
   {d4eeb177-b00d-48e8-aeda-310e21fcf5f5}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   8,                                      !- Hour 1
   45,                                     !- Minute 1
   0.4,                                    !- Value Until Time 1
@@ -2867,7 +2866,7 @@ OS:Schedule:Day,
   {9883ba55-f96a-413e-b1f5-26df57585495}, !- Handle
   D_SCn_All_Misc_Yr Summer Design Day,    !- Name
   {d4eeb177-b00d-48e8-aeda-310e21fcf5f5}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -2885,7 +2884,6 @@ OS:Schedule:Rule,
   ,                                       !- Apply Thursday
   ,                                       !- Apply Friday
   Yes,                                    !- Apply Saturday
-  ,                                       !- Apply Holiday
   DateRange,                              !- Date Specification Type
   1,                                      !- Start Month
   1,                                      !- Start Day
@@ -2896,7 +2894,7 @@ OS:Schedule:Day,
   {0820a88b-6b26-40b2-b217-d9a5c0918376}, !- Handle
   D_SCn_All_Misc_Yr Wknd|Hol Day,         !- Name
   {d4eeb177-b00d-48e8-aeda-310e21fcf5f5}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   2,                                      !- Hour 1
   15,                                     !- Minute 1
   0.4,                                    !- Value Until Time 1
@@ -2908,7 +2906,7 @@ OS:Schedule:Day,
   {bbd1c0a5-1967-4aa7-a3ef-e8ea9b446e17}, !- Handle
   D_SCn_All_Misc_Yr Winter Design Day,    !- Name
   {d4eeb177-b00d-48e8-aeda-310e21fcf5f5}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -2925,7 +2923,7 @@ OS:Schedule:Day,
   {d2c5800d-ac79-4135-a7c4-b5128b756952}, !- Handle
   D_SCn_All_C_Inf_Yr Default,             !- Name
   {d4eeb177-b00d-48e8-aeda-310e21fcf5f5}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   0,                                      !- Minute 1
   1,                                      !- Value Until Time 1
@@ -2949,7 +2947,6 @@ OS:Schedule:Rule,
   Yes,                                    !- Apply Thursday
   Yes,                                    !- Apply Friday
   ,                                       !- Apply Saturday
-  ,                                       !- Apply Holiday
   DateRange,                              !- Date Specification Type
   1,                                      !- Start Month
   1,                                      !- Start Day
@@ -2960,7 +2957,7 @@ OS:Schedule:Day,
   {a360eba5-91bc-480c-8512-5db56e04638c}, !- Handle
   D_SCn_All_C_Inf_Yr Default|Wkdy Day,    !- Name
   {d4eeb177-b00d-48e8-aeda-310e21fcf5f5}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   0,                                      !- Minute 1
   1,                                      !- Value Until Time 1
@@ -2975,7 +2972,7 @@ OS:Schedule:Day,
   {f786eb55-88ee-4558-ad2a-625ecc2ec740}, !- Handle
   D_SCn_All_C_Inf_Yr Summer Design Day,   !- Name
   {d4eeb177-b00d-48e8-aeda-310e21fcf5f5}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   0,                                      !- Minute 1
   1,                                      !- Value Until Time 1
@@ -2999,7 +2996,6 @@ OS:Schedule:Rule,
   ,                                       !- Apply Thursday
   ,                                       !- Apply Friday
   Yes,                                    !- Apply Saturday
-  ,                                       !- Apply Holiday
   DateRange,                              !- Date Specification Type
   1,                                      !- Start Month
   1,                                      !- Start Day
@@ -3010,7 +3006,7 @@ OS:Schedule:Day,
   {f985e475-30de-48ad-8d36-b46037ce4e4c}, !- Handle
   D_SCn_All_C_Inf_Yr Wknd Day,            !- Name
   {d4eeb177-b00d-48e8-aeda-310e21fcf5f5}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   0,                                      !- Minute 1
   1,                                      !- Value Until Time 1
@@ -3025,7 +3021,7 @@ OS:Schedule:Day,
   {6dec686f-20ba-4207-b45c-0af70938bdf3}, !- Handle
   D_SCn_All_C_Inf_Yr Winter Design Day,   !- Name
   {d4eeb177-b00d-48e8-aeda-310e21fcf5f5}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   0,                                      !- Minute 1
   1,                                      !- Value Until Time 1
@@ -3726,7 +3722,7 @@ OS:Schedule:Day,
   {98d06f04-9d19-4966-ba5c-44ac9e82c282}, !- Handle
   D_SCn_All_DHW_DHW_Yr Default,           !- Name
   {d4eeb177-b00d-48e8-aeda-310e21fcf5f5}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   7,                                      !- Hour 1
   45,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -3789,7 +3785,7 @@ OS:Schedule:Day,
   {fa74d7d3-a10a-434a-92e9-1672b88d61e3}, !- Handle
   D_SCn_All_DHW_DHW_Yr Summer Design Day, !- Name
   {d4eeb177-b00d-48e8-aeda-310e21fcf5f5}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   0,                                      !- Minute 1
   0,                                      !- Value Until Time 1
@@ -3819,7 +3815,6 @@ OS:Schedule:Rule,
   ,                                       !- Apply Thursday
   ,                                       !- Apply Friday
   Yes,                                    !- Apply Saturday
-  ,                                       !- Apply Holiday
   DateRange,                              !- Date Specification Type
   1,                                      !- Start Month
   1,                                      !- Start Day
@@ -3830,7 +3825,7 @@ OS:Schedule:Day,
   {c90473d3-9588-4b38-bb60-9040ae0ffddc}, !- Handle
   D_SCn_All_DHW_DHW_Yr Wknd Day,          !- Name
   {d4eeb177-b00d-48e8-aeda-310e21fcf5f5}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   2,                                      !- Hour 1
   15,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -3842,7 +3837,7 @@ OS:Schedule:Day,
   {4beb6138-6337-4515-b0b3-46a194a293b4}, !- Handle
   D_SCn_All_DHW_DHW_Yr Winter Design Day, !- Name
   {d4eeb177-b00d-48e8-aeda-310e21fcf5f5}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   0,                                      !- Minute 1
   0,                                      !- Value Until Time 1
@@ -3892,7 +3887,7 @@ OS:Schedule:Day,
   {026d5f6a-a8f3-4fbb-a992-e1b428b8d61c}, !- Handle
   Fraction Sensible - 0.2 Default,        !- Name
   {d4eeb177-b00d-48e8-aeda-310e21fcf5f5}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0.2;                                    !- Value Until Time 1
@@ -3907,7 +3902,7 @@ OS:Schedule:Day,
   {29383ee6-5140-499b-afc9-7cbbb37f0f9b}, !- Handle
   Fraction Latent - 0.05 Default,         !- Name
   {d4eeb177-b00d-48e8-aeda-310e21fcf5f5}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0.05;                                   !- Value Until Time 1
@@ -3922,7 +3917,7 @@ OS:Schedule:Day,
   {b164b290-0ffa-483c-a782-c85aa93e6926}, !- Handle
   Mixed Water At Faucet Temp - 135F Default, !- Name
   {7bf042cc-539c-42a1-b4b0-ab7b5c4d9c83}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   57.2222222222223;                       !- Value Until Time 1
@@ -4012,7 +4007,6 @@ OS:Connector:Splitter,
 
 OS:Connection,
   {7d77d7e6-3b7a-485a-9faa-4a36f536c0cd}, !- Handle
-  {94a90454-8e69-4a43-b91c-15d9349dd47c}, !- Name
   {2c0cc4ce-eb63-4368-8f6e-61bd565627e6}, !- Source Object
   14,                                     !- Outlet Port
   {f6febfd3-41a3-4eb0-b010-5d24d26171fe}, !- Target Object
@@ -4020,7 +4014,6 @@ OS:Connection,
 
 OS:Connection,
   {e171ca42-ae59-49c4-bee9-b85184f1bca7}, !- Handle
-  {ed886898-3587-4d4e-a1c3-50ba7bf720a9}, !- Name
   {bf44eaae-2e37-422c-9bb7-352c7f5eb6f5}, !- Source Object
   3,                                      !- Outlet Port
   {ffb9a625-b164-4bd7-bef6-d575f44c9162}, !- Target Object
@@ -4028,7 +4021,6 @@ OS:Connection,
 
 OS:Connection,
   {e14c5846-2f82-48e1-869b-d26334b46897}, !- Handle
-  {fb770939-697d-44f2-8be6-8c684cca8c81}, !- Name
   {7ac2dd0c-b19a-4f33-8701-4a021297fce5}, !- Source Object
   3,                                      !- Outlet Port
   {2c0cc4ce-eb63-4368-8f6e-61bd565627e6}, !- Target Object
@@ -4068,7 +4060,6 @@ OS:Connector:Splitter,
 
 OS:Connection,
   {eb0f7ffa-52a6-4ca0-ab0c-e9e2cac9ef2b}, !- Handle
-  {45eb8a1b-f3be-4894-9156-b37ddee3645c}, !- Name
   {2c0cc4ce-eb63-4368-8f6e-61bd565627e6}, !- Source Object
   17,                                     !- Outlet Port
   {88a87cc6-6f01-4d81-ab78-e162e951839c}, !- Target Object
@@ -4076,7 +4067,6 @@ OS:Connection,
 
 OS:Connection,
   {c41fea14-162e-4aaa-ad9a-1a02b2122b16}, !- Handle
-  {12aaac27-c2df-424f-a418-288939c0fd78}, !- Name
   {5aa1f39f-3096-44a2-bae1-2b557a874d6a}, !- Source Object
   3,                                      !- Outlet Port
   {2af01800-211c-459d-865a-d690120b5d6b}, !- Target Object
@@ -4084,7 +4074,6 @@ OS:Connection,
 
 OS:Connection,
   {23e5fbfe-9895-4e14-bb2d-15fa74bc42aa}, !- Handle
-  {c09a7850-4553-465d-9efe-3a1b4c1e70ae}, !- Name
   {1e1f5d09-2552-4560-abc2-3eb0ade75968}, !- Source Object
   3,                                      !- Outlet Port
   {2c0cc4ce-eb63-4368-8f6e-61bd565627e6}, !- Target Object
@@ -4122,7 +4111,7 @@ OS:Schedule:Day,
   {b96c3b87-9b29-45ba-a4ac-2903fbba8d1a}, !- Handle
   Service Water Loop Temp - 140F Default, !- Name
   {b2ca32b6-258e-4645-b305-e9a7eb2af2f8}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   60.0000000000001;                       !- Value Until Time 1
@@ -4174,7 +4163,6 @@ OS:Node,
 
 OS:Connection,
   {e97d15e5-e68d-4ed4-857d-43a6b8ce0299}, !- Handle
-  {683544ce-7110-49f5-80ec-38cdec75e02b}, !- Name
   {f6febfd3-41a3-4eb0-b010-5d24d26171fe}, !- Source Object
   3,                                      !- Outlet Port
   {faacd270-ccd5-4e09-9fcc-8e59f2ba6763}, !- Target Object
@@ -4182,7 +4170,6 @@ OS:Connection,
 
 OS:Connection,
   {44b7fc3e-355a-48b5-b561-eeb3ea03667b}, !- Handle
-  {fb2effc2-6f4e-4b9a-9df0-41912912233c}, !- Name
   {faacd270-ccd5-4e09-9fcc-8e59f2ba6763}, !- Source Object
   3,                                      !- Outlet Port
   {62069b27-b8f6-4def-9ff6-cb86fc4c0306}, !- Target Object
@@ -4190,7 +4177,6 @@ OS:Connection,
 
 OS:Connection,
   {7c7c9ce5-fdb6-43fe-9afd-c22d12f15499}, !- Handle
-  {d02ed42c-264b-4442-abea-ea7177d3dd16}, !- Name
   {62069b27-b8f6-4def-9ff6-cb86fc4c0306}, !- Source Object
   3,                                      !- Outlet Port
   {bf44eaae-2e37-422c-9bb7-352c7f5eb6f5}, !- Target Object
@@ -4249,6 +4235,14 @@ OS:WaterHeater:Mixed,
   ,                                       !- Indirect Alternate Setpoint Temperature Schedule Name
   General;                                !- End-Use Subcategory
 
+OS:WaterHeater:Sizing,
+  {84e85028-244f-43ec-91f8-962e66c75c50}, !- Handle
+  {a717081b-c103-4b83-976b-b6b77f27253c}, !- WaterHeater Name
+  PeakDraw,                               !- Design Mode
+  0.538503,                               !- Time Storage Can Meet Peak Draw {hr}
+  0,                                      !- Time for Tank Recovery {hr}
+  1;                                      !- Nominal Tank Volume for Autosizing Plant Connections {m3}
+
 OS:Schedule:Ruleset,
   {906acd5e-a92d-4a31-8a1f-425ff3b79e2a}, !- Handle
   Water Heater Ambient Temp Schedule - 70F, !- Name
@@ -4259,7 +4253,7 @@ OS:Schedule:Day,
   {6e6c3df3-ff47-4bff-bcd8-1abc90a3d458}, !- Handle
   Water Heater Ambient Temp Schedule - 70F Default, !- Name
   {db77226a-ab22-4538-b198-a83863ea3d08}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   21.1111111111111;                       !- Value Until Time 1
@@ -4272,7 +4266,6 @@ OS:Node,
 
 OS:Connection,
   {fba3ab43-4d5d-40cd-96e8-833b4e01c2e9}, !- Handle
-  {a3677719-6644-4fc8-87f5-da3c24f05506}, !- Name
   {ffb9a625-b164-4bd7-bef6-d575f44c9162}, !- Source Object
   3,                                      !- Outlet Port
   {a717081b-c103-4b83-976b-b6b77f27253c}, !- Target Object
@@ -4280,7 +4273,6 @@ OS:Connection,
 
 OS:Connection,
   {2772de63-e16c-4685-827d-24ce8f619d8a}, !- Handle
-  {ea04b2a6-662a-4013-b811-a52c05998d7c}, !- Name
   {a717081b-c103-4b83-976b-b6b77f27253c}, !- Source Object
   32,                                     !- Outlet Port
   {8c50d0ea-78fa-41f2-b53b-fb7f307234f1}, !- Target Object
@@ -4288,7 +4280,6 @@ OS:Connection,
 
 OS:Connection,
   {dc1db1db-697b-4fe1-ad16-0d39a96da325}, !- Handle
-  {8398c554-c39f-4cd4-9d80-26c32443af1b}, !- Name
   {8c50d0ea-78fa-41f2-b53b-fb7f307234f1}, !- Source Object
   3,                                      !- Outlet Port
   {ab05bca9-7f06-443f-983e-26f04682c739}, !- Target Object
@@ -4308,7 +4299,7 @@ OS:Schedule:Day,
   {8f2e8c0a-7d56-4382-a563-960d246510bc}, !- Handle
   SCn Shared Service Water Loop Piping Air Temp - 70F Default, !- Name
   {7bf042cc-539c-42a1-b4b0-ab7b5c4d9c83}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   21.1111;                                !- Value Until Time 1
@@ -4323,7 +4314,7 @@ OS:Schedule:Day,
   {91a7cfce-672c-4cb1-900f-54f598cd14c6}, !- Handle
   SCn Shared Service Water Loop Piping Air Velocity - 0.67mph Default, !- Name
   {7bf042cc-539c-42a1-b4b0-ab7b5c4d9c83}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0.3;                                    !- Value Until Time 1
@@ -4367,7 +4358,6 @@ OS:Node,
 
 OS:Connection,
   {4332a4e2-fde3-4e67-a2dc-5b261285a3b8}, !- Handle
-  {aae8e930-1b14-416f-a6a6-b5966386b7d2}, !- Name
   {88a87cc6-6f01-4d81-ab78-e162e951839c}, !- Source Object
   3,                                      !- Outlet Port
   {3a6cfc68-ff6b-4fca-ae1e-66f7b6102c56}, !- Target Object
@@ -4375,7 +4365,6 @@ OS:Connection,
 
 OS:Connection,
   {621d7794-f1cb-4a49-8bd5-d84db2776770}, !- Handle
-  {bb4cc0a2-f533-451d-af60-5c1637ce2fff}, !- Name
   {3a6cfc68-ff6b-4fca-ae1e-66f7b6102c56}, !- Source Object
   4,                                      !- Outlet Port
   {a4ad0c94-a0e4-4da4-a98b-08c170348dbe}, !- Target Object
@@ -4383,7 +4372,6 @@ OS:Connection,
 
 OS:Connection,
   {0704d1e6-947e-4cce-a1ea-f7eb00061b38}, !- Handle
-  {a13d5276-4715-4f87-86a2-fc5396e1f8ae}, !- Name
   {a4ad0c94-a0e4-4da4-a98b-08c170348dbe}, !- Source Object
   3,                                      !- Outlet Port
   {5aa1f39f-3096-44a2-bae1-2b557a874d6a}, !- Target Object
@@ -4403,7 +4391,6 @@ OS:Node,
 
 OS:Connection,
   {826e9c0e-60ce-480c-a8ca-6635a66d7b9a}, !- Handle
-  {7171d89e-a7a4-4092-9402-a235670105ef}, !- Name
   {bf44eaae-2e37-422c-9bb7-352c7f5eb6f5}, !- Source Object
   4,                                      !- Outlet Port
   {e88a32e6-d498-4ed5-bd50-d8b45eb82a7c}, !- Target Object
@@ -4417,7 +4404,6 @@ OS:Node,
 
 OS:Connection,
   {fb6ac4e9-7308-46f4-9645-434e1efeb8c6}, !- Handle
-  {352da353-dcc0-45a9-b57e-f9d774b7927c}, !- Name
   {e88a32e6-d498-4ed5-bd50-d8b45eb82a7c}, !- Source Object
   3,                                      !- Outlet Port
   {2c9d3752-4979-4d23-83ca-392524c6ca13}, !- Target Object
@@ -4425,7 +4411,6 @@ OS:Connection,
 
 OS:Connection,
   {7961a94f-f3b8-47ed-a0e4-5de73a2eddaf}, !- Handle
-  {93af4097-47e4-487a-ac3d-b1bea1010664}, !- Name
   {2c9d3752-4979-4d23-83ca-392524c6ca13}, !- Source Object
   3,                                      !- Outlet Port
   {21e37d79-0859-4879-9636-a7824a2faf49}, !- Target Object
@@ -4433,7 +4418,6 @@ OS:Connection,
 
 OS:Connection,
   {5ff8641b-81d0-46c7-8a6f-475b91f0f7e0}, !- Handle
-  {059f65fa-3477-4ec4-abd9-d33293289560}, !- Name
   {21e37d79-0859-4879-9636-a7824a2faf49}, !- Source Object
   3,                                      !- Outlet Port
   {ab05bca9-7f06-443f-983e-26f04682c739}, !- Target Object
@@ -4453,7 +4437,6 @@ OS:Node,
 
 OS:Connection,
   {11eb3c56-6e4c-42b0-b452-2c1dd8f72072}, !- Handle
-  {4bb5db82-69d9-4c89-b0d5-c1a3b9cc0f13}, !- Name
   {2af01800-211c-459d-865a-d690120b5d6b}, !- Source Object
   3,                                      !- Outlet Port
   {3d6fcf2d-a71f-47c0-9973-3ef31b5f6393}, !- Target Object
@@ -4461,7 +4444,6 @@ OS:Connection,
 
 OS:Connection,
   {9d528d33-07ee-4c85-ad86-75a307757c70}, !- Handle
-  {5ef9bb5b-2a76-40b3-ac5a-bda4012ed876}, !- Name
   {3d6fcf2d-a71f-47c0-9973-3ef31b5f6393}, !- Source Object
   3,                                      !- Outlet Port
   {6201a668-c206-4583-880f-f848632fb816}, !- Target Object
@@ -4469,7 +4451,6 @@ OS:Connection,
 
 OS:Connection,
   {c4e49e9c-87e3-463d-ab26-4f2fda2a614c}, !- Handle
-  {bfbec32c-bfed-4704-b24e-72253271f202}, !- Name
   {6201a668-c206-4583-880f-f848632fb816}, !- Source Object
   3,                                      !- Outlet Port
   {ade47e7b-34cb-4f0d-86d5-e0df1b996b9e}, !- Target Object
@@ -4489,7 +4470,6 @@ OS:Node,
 
 OS:Connection,
   {23ec4243-7520-475e-9cef-935c73f805d8}, !- Handle
-  {177900f4-cceb-41d8-80ab-a00eaaae2911}, !- Name
   {ab05bca9-7f06-443f-983e-26f04682c739}, !- Source Object
   2,                                      !- Outlet Port
   {242d506e-a584-4ac7-ab4c-5d98ed6c62f1}, !- Target Object
@@ -4497,7 +4477,6 @@ OS:Connection,
 
 OS:Connection,
   {3d54e398-d9ba-42fa-9d8a-048424d72ef9}, !- Handle
-  {2b23cfe5-3ba4-404c-a720-1de030311892}, !- Name
   {242d506e-a584-4ac7-ab4c-5d98ed6c62f1}, !- Source Object
   3,                                      !- Outlet Port
   {8e9474f2-e923-43e5-ba66-600db36eb0c9}, !- Target Object
@@ -4505,7 +4484,6 @@ OS:Connection,
 
 OS:Connection,
   {d0ed33d9-9bbb-4db5-bb79-266af8ba295e}, !- Handle
-  {9158e501-4005-46d2-a11e-e20c95ed6b0e}, !- Name
   {8e9474f2-e923-43e5-ba66-600db36eb0c9}, !- Source Object
   3,                                      !- Outlet Port
   {7ac2dd0c-b19a-4f33-8701-4a021297fce5}, !- Target Object
@@ -4525,7 +4503,6 @@ OS:Node,
 
 OS:Connection,
   {fc3c3453-e7f5-42fe-bdb0-e577f379911e}, !- Handle
-  {0d44ab07-3a18-40ce-b44f-5533d14d077b}, !- Name
   {ade47e7b-34cb-4f0d-86d5-e0df1b996b9e}, !- Source Object
   2,                                      !- Outlet Port
   {e7c293e4-c474-4795-8a2c-52b1cab4e762}, !- Target Object
@@ -4533,7 +4510,6 @@ OS:Connection,
 
 OS:Connection,
   {f789d550-53ab-429d-afe8-a4fe7cae1dfb}, !- Handle
-  {10d18091-72ba-4a94-bc45-5251ec6a98db}, !- Name
   {e7c293e4-c474-4795-8a2c-52b1cab4e762}, !- Source Object
   3,                                      !- Outlet Port
   {df5a7e7a-2c00-40aa-addd-56dc27f305e5}, !- Target Object
@@ -4541,7 +4517,6 @@ OS:Connection,
 
 OS:Connection,
   {b39eb112-0c40-4cc6-912d-d7111047bb78}, !- Handle
-  {d3207539-93fc-4fb1-9956-ee090de200eb}, !- Name
   {df5a7e7a-2c00-40aa-addd-56dc27f305e5}, !- Source Object
   3,                                      !- Outlet Port
   {1e1f5d09-2552-4560-abc2-3eb0ade75968}, !- Target Object
@@ -4555,7 +4530,6 @@ OS:Node,
 
 OS:Connection,
   {56657d86-184d-415e-ad95-2b6c96d561c9}, !- Handle
-  {7bc417d9-ae04-4499-b227-6d3c29e8b634}, !- Name
   {5aa1f39f-3096-44a2-bae1-2b557a874d6a}, !- Source Object
   4,                                      !- Outlet Port
   {22319ce6-543d-412f-b679-f13ad30f069d}, !- Target Object
@@ -4569,7 +4543,6 @@ OS:Node,
 
 OS:Connection,
   {d3834a75-3d45-45b2-9eb4-f853dba637bc}, !- Handle
-  {95b41c0e-bca3-4225-8123-8f5d4a24a1be}, !- Name
   {22319ce6-543d-412f-b679-f13ad30f069d}, !- Source Object
   3,                                      !- Outlet Port
   {237f6b7b-388f-4904-b38d-fd3ec5490209}, !- Target Object
@@ -4577,7 +4550,6 @@ OS:Connection,
 
 OS:Connection,
   {759ad4b0-eb53-4d12-900d-7890715c8f57}, !- Handle
-  {6a6973fe-5ad7-4593-87f8-eb22879edc40}, !- Name
   {237f6b7b-388f-4904-b38d-fd3ec5490209}, !- Source Object
   3,                                      !- Outlet Port
   {98f97f56-5dd9-4707-9188-db83d05babf4}, !- Target Object
@@ -4585,7 +4557,6 @@ OS:Connection,
 
 OS:Connection,
   {c842f8c8-5ac8-4e36-8ed2-b541d4976106}, !- Handle
-  {390d9e62-dff4-4157-9b26-84fc54f7d518}, !- Name
   {98f97f56-5dd9-4707-9188-db83d05babf4}, !- Source Object
   3,                                      !- Outlet Port
   {ade47e7b-34cb-4f0d-86d5-e0df1b996b9e}, !- Target Object
@@ -4609,7 +4580,7 @@ OS:Schedule:Day,
   {722b6bb6-9ff5-4c26-a874-e42a5e160c3f}, !- Handle
   D_SCn_All_HTemp_Yr Default,             !- Name
   {7bf042cc-539c-42a1-b4b0-ab7b5c4d9c83}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   2,                                      !- Hour 1
   15,                                     !- Minute 1
   21.1,                                   !- Value Until Time 1
@@ -4621,7 +4592,7 @@ OS:Schedule:Day,
   {ed8e9444-7827-4a53-8300-86a35ee83c2d}, !- Handle
   D_SCn_All_HTemp_Yr Summer Design Day,   !- Name
   {7bf042cc-539c-42a1-b4b0-ab7b5c4d9c83}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   21.1;                                   !- Value Until Time 1
@@ -4639,7 +4610,6 @@ OS:Schedule:Rule,
   ,                                       !- Apply Thursday
   ,                                       !- Apply Friday
   Yes,                                    !- Apply Saturday
-  ,                                       !- Apply Holiday
   DateRange,                              !- Date Specification Type
   1,                                      !- Start Month
   1,                                      !- Start Day
@@ -4650,7 +4620,7 @@ OS:Schedule:Day,
   {32209342-8f3e-4794-a528-43bc7bc41061}, !- Handle
   D_SCn_All_HTemp_Yr Wknd Day,            !- Name
   {7bf042cc-539c-42a1-b4b0-ab7b5c4d9c83}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   2,                                      !- Hour 1
   15,                                     !- Minute 1
   21.1,                                   !- Value Until Time 1
@@ -4662,7 +4632,7 @@ OS:Schedule:Day,
   {d9da2afb-955e-4cc4-ad36-9a375ade928d}, !- Handle
   D_SCn_All_HTemp_Yr Winter Design Day,   !- Name
   {7bf042cc-539c-42a1-b4b0-ab7b5c4d9c83}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   21.1;                                   !- Value Until Time 1
@@ -4679,7 +4649,7 @@ OS:Schedule:Day,
   {b4703b72-2869-4a5a-8b1e-c6fe4c938576}, !- Handle
   D_SCn_All_CTemp_Yr Default,             !- Name
   {7bf042cc-539c-42a1-b4b0-ab7b5c4d9c83}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   2,                                      !- Hour 1
   15,                                     !- Minute 1
   24.4,                                   !- Value Until Time 1
@@ -4691,7 +4661,7 @@ OS:Schedule:Day,
   {653811d3-c9c4-48ef-adb5-c8cf5ab41c52}, !- Handle
   D_SCn_All_CTemp_Yr Summer Design Day,   !- Name
   {7bf042cc-539c-42a1-b4b0-ab7b5c4d9c83}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   24.4;                                   !- Value Until Time 1
@@ -4709,7 +4679,6 @@ OS:Schedule:Rule,
   ,                                       !- Apply Thursday
   ,                                       !- Apply Friday
   Yes,                                    !- Apply Saturday
-  ,                                       !- Apply Holiday
   DateRange,                              !- Date Specification Type
   1,                                      !- Start Month
   1,                                      !- Start Day
@@ -4720,7 +4689,7 @@ OS:Schedule:Day,
   {6b6392a8-544c-406c-94fd-683e9f6ac645}, !- Handle
   D_SCn_All_CTemp_Yr Wknd Day,            !- Name
   {7bf042cc-539c-42a1-b4b0-ab7b5c4d9c83}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   2,                                      !- Hour 1
   15,                                     !- Minute 1
   24.4,                                   !- Value Until Time 1
@@ -4732,7 +4701,7 @@ OS:Schedule:Day,
   {3a5d954d-561f-4f4b-b25d-1f38a730653b}, !- Handle
   D_SCn_All_CTemp_Yr Winter Design Day,   !- Name
   {7bf042cc-539c-42a1-b4b0-ab7b5c4d9c83}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   24.4;                                   !- Value Until Time 1
@@ -4860,7 +4829,7 @@ OS:Schedule:Day,
   {0e7276cf-2511-4329-9720-10dd5c877824}, !- Handle
   Building Hours of Operation NonResidential Default, !- Name
   {a8307806-8a5c-44f5-b687-de880618bdf8}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   8,                                      !- Hour 1
   15,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -4891,7 +4860,7 @@ OS:Schedule:Day,
   {b0eae9ef-2fc1-4847-b1ff-4bef99c50503}, !- Handle
   Building Hours of Operation NonResidential Winter Design Day, !- Name
   {a8307806-8a5c-44f5-b687-de880618bdf8}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -4900,7 +4869,7 @@ OS:Schedule:Day,
   {248f4abb-3f17-409b-9821-a9c065874408}, !- Handle
   Building Hours of Operation NonResidential Summer Design Day, !- Name
   {a8307806-8a5c-44f5-b687-de880618bdf8}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -5358,8 +5327,16 @@ OS:Facility,
 
 OS:ShadowCalculation,
   {f0195523-7a33-44ce-bf6d-086d41d9499c}, !- Handle
-  20,                                     !- Calculation Frequency
-  15000;                                  !- Maximum Figures in Shadow Overlap Calculations
+  PolygonClipping,                        !- Shading Calculation Method
+  ,                                       !- Shading Calculation Update Frequency Method
+  20,                                     !- Shading Calculation Update Frequency
+  15000,                                  !- Maximum Figures in Shadow Overlap Calculations
+  ,                                       !- Polygon Clipping Algorithm
+  512,                                    !- Pixel Counting Resolution
+  ,                                       !- Sky Diffuse Modeling Algorithm
+  No,                                     !- Output External Shading Calculation Results
+  No,                                     !- Disable Self-Shading Within Shading Zone Groups
+  No;                                     !- Disable Self-Shading From Shading Zone Groups to Other Zones
 
 OS:HeatBalanceAlgorithm,
   {cf7fe21f-1083-4315-b62b-1fe93ff3f345}, !- Handle
