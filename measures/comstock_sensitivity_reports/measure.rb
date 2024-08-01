@@ -185,6 +185,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     result << OpenStudio::IdfObject.load('Output:Variable,*,Water Heater Heating Energy,RunPeriod;').get # J
     result << OpenStudio::IdfObject.load('Output:Variable,*,Water Heater Unmet Demand Heat Transfer Energy,RunPeriod;').get # J
     result << OpenStudio::IdfObject.load("Output:Variable,*,Unitary System DX Coil Cycling Ratio,#{timeseries_timestep};").get # -
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Unitary System Cycling Ratio,#{timeseries_timestep};").get # -
     result << OpenStudio::IdfObject.load("Output:Variable,*,Unitary System Part Load Ratio,#{timeseries_timestep};").get # -
     result << OpenStudio::IdfObject.load("Output:Variable,*,Unitary System Total Cooling Rate,#{timeseries_timestep};").get # W
     result << OpenStudio::IdfObject.load("Output:Variable,*,Unitary System Total Heating Rate,#{timeseries_timestep};").get # W
@@ -2585,8 +2586,10 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       avg_excess_electricity_used_in_pcnt_c = 0.0
       avg_excess_electricity_used_in_pcnt_h = 0.0
       # get timeseries data from unitary system
-      ts_cycling_ratio = sql.timeSeries(ann_env_pd, timeseries_timestep, 'Unitary System DX Coil Cycling Ratio', airloopunisys.name.to_s.upcase) # dimensionless
-      ts_cycling_ratio = convert_timeseries_to_list(ts_cycling_ratio)
+      ts_cycling_ratio_multi_spd = sql.timeSeries(ann_env_pd, timeseries_timestep, 'Unitary System DX Coil Cycling Ratio', airloopunisys.name.to_s.upcase) # dimensionless
+      ts_cycling_ratio_multi_spd = convert_timeseries_to_list(ts_cycling_ratio_multi_spd)
+      ts_cycling_ratio_two_spd = sql.timeSeries(ann_env_pd, timeseries_timestep, 'Unitary System Cycling Ratio', airloopunisys.name.to_s.upcase) # dimensionless
+      ts_cycling_ratio_two_spd = convert_timeseries_to_list(ts_cycling_ratio_two_spd)
       ts_part_load_ratio = sql.timeSeries(ann_env_pd, timeseries_timestep, 'Unitary System Part Load Ratio', airloopunisys.name.to_s.upcase) # dimensionless
       ts_part_load_ratio = convert_timeseries_to_list(ts_part_load_ratio)
       ts_tot_cooling_rate = sql.timeSeries(ann_env_pd, timeseries_timestep, 'Unitary System Total Cooling Rate', airloopunisys.name.to_s.upcase) # W
@@ -2596,84 +2599,108 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       ts_tot_electricity_rate = sql.timeSeries(ann_env_pd, timeseries_timestep, 'Unitary System Electricity Rate', airloopunisys.name.to_s.upcase) # W
       ts_tot_electricity_rate = convert_timeseries_to_list(ts_tot_electricity_rate)
 
-      # caculation on cooling side
-      if !ts_cycling_ratio.nil? | ts_tot_cooling_rate.nil? && airloopunisys.coolingCoil.is_initialized
+      if airloopunisys.coolingCoil.is_initialized
         # get coil object
         coil_cooling = airloopunisys.coolingCoil.get
-        # get coil capacity and cop
-        capacity_w_cooling, = get_cooling_coil_capacity_and_cop(runner, model, coil_cooling)
-        total_capacity_w_cooling += capacity_w_cooling
-        # get part load fraction correlation curve
-        curve_plr_to_plf_c = get_cooling_coil_curves(runner, coil_cooling)
-        # filter cycling ratio when cooling and calculate average
-        ts_cycling_ratio_filtered = ts_cycling_ratio.zip(ts_tot_cooling_rate).select do |_ai, bi|
-          bi.positive?
-        end.map(&:first)
-        avg_cycling_ratio_cooling = get_average_from_array(ts_cycling_ratio_filtered)
-        # filter part load ratio when cooling
-        ts_part_load_ratio_filtered = ts_part_load_ratio.zip(ts_tot_cooling_rate).select do |_ai, bi|
-          bi.positive?
-        end.map(&:first)
-        # filter electricity used (W) when cooling
-        ts_tot_electricity_rate_filtered = ts_tot_electricity_rate.zip(ts_tot_cooling_rate).select do |_ai, bi|
-          bi.positive?
-        end.map(&:first)
-        # get part load fraction from part load ratio
-        ts_part_load_fraction_filtered = ts_part_load_ratio_filtered.map do |value|
-          curve_plr_to_plf_c.evaluate(value)
+        # get appropriate cycling ratio timeseries depending on coil type
+        ts_cycling_ratio = nil
+        if coil_cooling.to_CoilCoolingDXTwoSpeed.is_initialized
+          ts_cycling_ratio = ts_cycling_ratio_two_spd
+        elsif coil_cooling.to_CoilCoolingDXMultiSpeed.is_initialized
+          ts_cycling_ratio = ts_cycling_ratio_multi_spd
         end
-        # calculate excessive electricity used due to cycling
-        ts_excess_electricity_rate_filtered = ts_tot_electricity_rate_filtered.zip(ts_part_load_fraction_filtered).map do |ai, bi|
-          ai * (1 - bi)
+        # caculation on cooling side
+        if !ts_cycling_ratio.nil? | ts_tot_cooling_rate.nil?
+          # get coil capacity and cop
+          capacity_w_cooling, = get_cooling_coil_capacity_and_cop(runner, model, coil_cooling)
+          total_capacity_w_cooling += capacity_w_cooling
+          # get part load fraction correlation curve
+          curve_plr_to_plf_c = get_cooling_coil_curves(runner, coil_cooling)
+          # filter cycling ratio when cooling and calculate average
+          ts_cycling_ratio_filtered = ts_cycling_ratio.zip(ts_tot_cooling_rate).select do |_ai, bi|
+            bi.positive?
+          end.map(&:first)
+          avg_cycling_ratio_cooling = get_average_from_array(ts_cycling_ratio_filtered)
+          # filter part load ratio when cooling
+          ts_part_load_ratio_filtered = ts_part_load_ratio.zip(ts_tot_cooling_rate).select do |_ai, bi|
+            bi.positive?
+          end.map(&:first)
+          # filter electricity used (W) when cooling
+          ts_tot_electricity_rate_filtered = ts_tot_electricity_rate.zip(ts_tot_cooling_rate).select do |_ai, bi|
+            bi.positive?
+          end.map(&:first)
+          # get part load fraction from part load ratio
+          ts_part_load_fraction_filtered = ts_part_load_ratio_filtered.map do |value|
+            curve_plr_to_plf_c.evaluate(value)
+          end
+          # calculate excessive electricity used due to cycling
+          ts_excess_electricity_rate_filtered = ts_tot_electricity_rate_filtered.zip(ts_part_load_fraction_filtered).map do |ai, bi|
+            ai * (1 - bi)
+          end
+          # calculate excessive electricity used due to cycling in % and calculate average
+          ts_excess_electricity_pcnt_filtered = ts_excess_electricity_rate_filtered.zip(ts_tot_electricity_rate_filtered).map do |ai, bi|
+            ai / bi.to_f * 100
+          end
+          avg_excess_electricity_used_in_pcnt_c = get_average_from_array(ts_excess_electricity_pcnt_filtered)
         end
-        # calculate excessive electricity used due to cycling in % and calculate average
-        ts_excess_electricity_pcnt_filtered = ts_excess_electricity_rate_filtered.zip(ts_tot_electricity_rate_filtered).map do |ai, bi|
-          ai / bi.to_f * 100
-        end
-        avg_excess_electricity_used_in_pcnt_c = get_average_from_array(ts_excess_electricity_pcnt_filtered)
       end
 
       # caculation on heating side
-      if !ts_cycling_ratio.nil? | ts_tot_heating_rate.nil? && airloopunisys.heatingCoil.is_initialized
+      if airloopunisys.heatingCoil.is_initialized
         # get coil object
         coil_heating = airloopunisys.heatingCoil.get
-        # get coil capacity and cop
-        capacity_w_heating, = get_heating_coil_capacity_and_cop(runner, model, coil_heating)
-        total_capacity_w_heating += capacity_w_heating
-        # get part load fraction correlation curve
-        curve_plr_to_plf_h = get_heating_coil_curves(runner, coil_heating)
-        # filter cycling ratio when cooling and calculate average
-        ts_cycling_ratio_filtered = ts_cycling_ratio.zip(ts_tot_heating_rate).select do |_ai, bi|
-          bi.positive?
-        end.map(&:first)
-        avg_cycling_ratio_heating = get_average_from_array(ts_cycling_ratio_filtered)
-        # filter part load ratio when cooling
-        ts_part_load_ratio_filtered = ts_part_load_ratio.zip(ts_tot_heating_rate).select do |_ai, bi|
-          bi.positive?
-        end.map(&:first)
-        # filter electricity used (W) when cooling
-        ts_tot_electricity_rate_filtered = ts_tot_electricity_rate.zip(ts_tot_heating_rate).select do |_ai, bi|
-          bi.positive?
-        end.map(&:first)
-        # get part load fraction from part load ratio
-        ts_part_load_fraction_filtered = ts_part_load_ratio_filtered.map do |value|
-          curve_plr_to_plf_h.evaluate(value)
+        # get appropriate cycling ratio timeseries depending on coil type
+        ts_cycling_ratio = nil
+        if coil_cooling.to_CoilCoolingDXTwoSpeed.is_initialized
+          ts_cycling_ratio = ts_cycling_ratio_two_spd
+        elsif coil_cooling.to_CoilCoolingDXMultiSpeed.is_initialized
+          ts_cycling_ratio = ts_cycling_ratio_multi_spd
         end
-        # calculate excessive electricity used due to cycling
-        ts_excess_electricity_rate_filtered = ts_tot_electricity_rate_filtered.zip(ts_part_load_fraction_filtered).map do |ai, bi|
-          ai * (1 - bi)
+        if !ts_cycling_ratio.nil? | ts_tot_heating_rate.nil?
+          # get coil capacity and cop
+          capacity_w_heating, = get_heating_coil_capacity_and_cop(runner, model, coil_heating)
+          total_capacity_w_heating += capacity_w_heating
+          # get part load fraction correlation curve
+          curve_plr_to_plf_h = get_heating_coil_curves(runner, coil_heating)
+          # filter cycling ratio when cooling and calculate average
+          ts_cycling_ratio_filtered = ts_cycling_ratio.zip(ts_tot_heating_rate).select do |_ai, bi|
+            bi.positive?
+          end.map(&:first)
+          avg_cycling_ratio_heating = get_average_from_array(ts_cycling_ratio_filtered)
+          # filter part load ratio when cooling
+          ts_part_load_ratio_filtered = ts_part_load_ratio.zip(ts_tot_heating_rate).select do |_ai, bi|
+            bi.positive?
+          end.map(&:first)
+          # filter electricity used (W) when cooling
+          ts_tot_electricity_rate_filtered = ts_tot_electricity_rate.zip(ts_tot_heating_rate).select do |_ai, bi|
+            bi.positive?
+          end.map(&:first)
+          # get part load fraction from part load ratio
+          ts_part_load_fraction_filtered = ts_part_load_ratio_filtered.map do |value|
+            curve_plr_to_plf_h.evaluate(value)
+          end
+          # calculate excessive electricity used due to cycling
+          ts_excess_electricity_rate_filtered = ts_tot_electricity_rate_filtered.zip(ts_part_load_fraction_filtered).map do |ai, bi|
+            ai * (1 - bi)
+          end
+          # calculate excessive electricity used due to cycling in % and calculate average
+          ts_excess_electricity_pcnt_filtered = ts_excess_electricity_rate_filtered.zip(ts_tot_electricity_rate_filtered).map do |ai, bi|
+            ai / bi.to_f * 100
+          end
+          avg_excess_electricity_used_in_pcnt_h = get_average_from_array(ts_excess_electricity_pcnt_filtered)
         end
-        # calculate excessive electricity used due to cycling in % and calculate average
-        ts_excess_electricity_pcnt_filtered = ts_excess_electricity_rate_filtered.zip(ts_tot_electricity_rate_filtered).map do |ai, bi|
-          ai / bi.to_f * 100
-        end
-        avg_excess_electricity_used_in_pcnt_h = get_average_from_array(ts_excess_electricity_pcnt_filtered)
       end
       # calculate weighted sum
       cycling_ratio_cooling_weighted_sum += avg_cycling_ratio_cooling * capacity_w_cooling
       cycling_ratio_heating_weighted_sum += avg_cycling_ratio_heating * capacity_w_heating
       cycling_excess_electricity_used_cooling_pcnt += avg_excess_electricity_used_in_pcnt_c * capacity_w_cooling
       cycling_excess_electricity_used_heating_pcnt += avg_excess_electricity_used_in_pcnt_h * capacity_w_heating
+      puts('### DEBUGGING: --------------------------------------------------------------')
+      puts("### DEBUGGING: airloopunisys.name = #{airloopunisys.name}")
+      puts("### DEBUGGING: avg_cycling_ratio_cooling = #{avg_cycling_ratio_cooling}")
+      puts("### DEBUGGING: avg_excess_electricity_used_in_pcnt_c = #{avg_excess_electricity_used_in_pcnt_c}")
+      puts("### DEBUGGING: avg_cycling_ratio_heating = #{avg_cycling_ratio_heating}")
+      puts("### DEBUGGING: avg_excess_electricity_used_in_pcnt_h = #{avg_excess_electricity_used_in_pcnt_h}")
     end
     # calculate weighted average
     com_report_unitary_sys_cycling_ratio_cooling = total_capacity_w_cooling > 0.0 ? cycling_ratio_cooling_weighted_sum / total_capacity_w_cooling : 0.0
@@ -2686,6 +2713,11 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
                         com_report_unitary_sys_cycling_excess_electricity_cooling_pcnt)
     runner.registerValue('com_report_unitary_sys_cycling_excess_electricity_heating_pcnt',
                         com_report_unitary_sys_cycling_excess_electricity_heating_pcnt)
+    puts('### DEBUGGING: ==============================================================')
+    puts("### DEBUGGING: com_report_unitary_sys_cycling_ratio_cooling = #{com_report_unitary_sys_cycling_ratio_cooling}")
+    puts("### DEBUGGING: com_report_unitary_sys_cycling_ratio_heating = #{com_report_unitary_sys_cycling_ratio_heating}")
+    puts("### DEBUGGING: com_report_unitary_sys_cycling_excess_electricity_cooling_pcnt = #{com_report_unitary_sys_cycling_excess_electricity_cooling_pcnt}")
+    puts("### DEBUGGING: com_report_unitary_sys_cycling_excess_electricity_heating_pcnt = #{com_report_unitary_sys_cycling_excess_electricity_heating_pcnt}")
 
     # Get the outdoor air temp timeseries and calculate heating and cooling degree days
     # Per ISO 15927-6, "Accumulated hourly temperature differences shall be calculated according to 4.4 when hourly data are available. When hourly data are not available, the approximate method given in 4.5, based on the maximum and minimum temperatures each day, may be used."
