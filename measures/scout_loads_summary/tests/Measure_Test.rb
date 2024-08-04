@@ -13,6 +13,7 @@ require 'fileutils'
 
 
 class ScoutLoadsSummary_Test < Minitest::Test
+
   def epw_path_default
     # make sure we have a weather data location
     epw = nil
@@ -200,367 +201,672 @@ class ScoutLoadsSummary_Test < Minitest::Test
     return model
   end
 
-  def test_large_office
-    test_name = 'test_large_office'
-    test_model_name = 'large_office_pthp.osm'
-    test_model_path = "#{__dir__}/#{test_model_name}"
+  # def test_large_office
+  #   test_name = 'test_large_office'
+  #   test_model_name = 'large_office_pthp.osm'
+  #   test_model_path = "#{__dir__}/#{test_model_name}"
 
-    # Set the arguments to test
+  #   # Set the arguments to test
+  #   args_hash = {
+  #       'report_timeseries_data' => timeseries,
+  #       'enable_supply_side_reporting' => supply,
+  #       'debug_mode' => debug
+  #   }
+
+  #   # Run the measure
+  #   model = run_measure(test_name, test_model_path, args_hash)
+
+  #   return true
+  # end
+
+  # def test_large_office_vav
+  #   test_name = 'test_large_office_vav'
+  #   test_model_name = 'LargeOffice-90.1-2013-ASHRAE 169-2013-4A.osm'
+  #   test_model_path = "#{__dir__}/#{test_model_name}"
+
+  #   # Set the arguments to test
+  #   args_hash = {
+  #       'report_timeseries_data' => timeseries,
+  #       'enable_supply_side_reporting' => supply,
+  #       'debug_mode' => debug
+  #   }
+
+  #   # Run the measure
+  #   model = run_measure(test_name, test_model_path, args_hash)
+
+  #   return true
+  # end
+
+  # def test_medium_office
+  #   test_name = 'test_medium_office'
+  #   test_model_name = 'medium_office.osm'
+  #   test_model_path = "#{__dir__}/#{test_model_name}"
+
+  #   # Set the arguments to test
+  #   args_hash = {
+  #       'report_timeseries_data' => timeseries,
+  #       'enable_supply_side_reporting' => supply,
+  #       'debug_mode' => debug
+  #   }
+
+  #   # Run the measure
+  #   model = run_measure(test_name, test_model_path, args_hash)
+
+  #   return true
+  # end
+
+  # def test_small_office
+  #   test_name = 'test_small_office'
+  #   test_model_name = 'small_office_pthp.osm'
+  #   test_model_path = "#{__dir__}/#{test_model_name}"
+
+  #   # Set the arguments to test
+  #   args_hash = {
+  #       'report_timeseries_data' => timeseries,
+  #       'enable_supply_side_reporting' => supply,
+  #       'debug_mode' => debug
+  #   }
+
+  #   # Run the measure
+  #   model = run_measure(test_name, test_model_path, args_hash)
+
+  #   return true
+  # end
+
+  # def test_small_office_high_loads
+  #   test_name = 'test_small_office_high_loads'
+  #   test_model_name = 'small_office_pthp_high_loads.osm'
+  #   test_model_path = "#{__dir__}/#{test_model_name}"
+
+  #   # Set the arguments to test
+  #   args_hash = {
+  #       'report_timeseries_data' => timeseries,
+  #       'enable_supply_side_reporting' => supply,
+  #       'debug_mode' => debug
+  #   }
+
+  #   # Run the measure
+  #   model = run_measure(test_name, test_model_path, args_hash)
+
+  #   return true
+  # end
+
+  # def test_small_office_no_windows
+  #   test_name = 'test_small_office_no_windows'
+  #   test_model_name = 'small_office_pthp_no_windows.osm'
+  #   test_model_path = "#{__dir__}/#{test_model_name}"
+
+  #   # Set the arguments to test
+  #   args_hash = {
+  #       'report_timeseries_data' => timeseries,
+  #       'enable_supply_side_reporting' => supply,
+  #       'debug_mode' => debug
+  #   }
+
+  #   # Run the measure
+  #   model = run_measure(test_name, test_model_path, args_hash)
+
+  #   return true
+  # end
+
+  # # no windows
+  # # no internal mass
+  # # no infiltration
+  # # constant thermostat setpoints
+  # def test_small_office_basic
+  #   test_name = 'test_small_office_basic'
+  #   test_model_name = 'small_office_pthp_basic.osm'
+  #   test_model_path = "#{__dir__}/#{test_model_name}"
+
+  #   # Set the arguments to test
+  #   args_hash = {
+  #       'report_timeseries_data' => timeseries,
+  #       'enable_supply_side_reporting' => supply,
+  #       'debug_mode' => debug
+  #   }
+
+  #   # Run the measure
+  #   model = run_measure(test_name, test_model_path, args_hash)
+
+  #   return true
+  # end
+
+  # def test_restaurant
+  #   test_name = 'test_restaurant'
+  #   test_model_name = 'full_restaurant_psz.osm'
+  #   test_model_path = "#{__dir__}/#{test_model_name}"
+
+  #   # Set the arguments to test
+  #   args_hash = {
+  #       'report_timeseries_data' => timeseries,
+  #       'enable_supply_side_reporting' => supply,
+  #       'debug_mode' => debug
+  #   }
+
+  #   # Run the measure
+  #   model = run_measure(test_name, test_model_path, args_hash)
+
+  #   return true
+  # end
+
+  # def test_simple_restaurant
+  #   test_name = 'test_simple_restaurant'
+  #   test_model_name = 'Restaurant_5B.osm'
+  #   test_model_path = "#{__dir__}/#{test_model_name}"
+
+  #   # Set the arguments to test
+  #   args_hash = {
+  #       'report_timeseries_data' => timeseries,
+  #       'enable_supply_side_reporting' => supply,
+  #       'debug_mode' => debug
+  #   }
+
+  #   # Run the measure
+  #   model = run_measure(test_name, test_model_path, args_hash)
+
+  #   return true
+  # end
+
+  # def test_prototype_restaurant
+  #   test_name = 'test_prototype_restaurant'
+  #   test_model_name = 'prototype_restaurant.osm'
+  #   test_model_path = "#{__dir__}/#{test_model_name}"
+
+  #   # Set the arguments to test
+  #   args_hash = {
+  #       'report_timeseries_data' => timeseries,
+  #       'enable_supply_side_reporting' => supply,
+  #       'debug_mode' => debug
+  #   }
+
+  #   # Run the measure
+  #   model = run_measure(test_name, test_model_path, args_hash)
+
+  #   return true
+  # end
+
+  # def test_prototype_restaurant_no_exhaust
+  #   test_name = 'test_prototype_restaurant_no_exhaust'
+  #   test_model_name = 'prototype_restaurant_no_exhaust.osm'
+  #   test_model_path = "#{__dir__}/#{test_model_name}"
+
+  #   # Set the arguments to test
+  #   args_hash = {
+  #       'report_timeseries_data' => timeseries,
+  #       'enable_supply_side_reporting' => supply,
+  #       'debug_mode' => debug
+  #   }
+
+  #   # Run the measure
+  #   model = run_measure(test_name, test_model_path, args_hash)
+
+  #   return true
+  # end
+
+  # def test_secondary_school
+  #   test_name = 'test_secondary_school'
+  #   test_model_name = 'SecondarySchool-90.1-2013-ASHRAE 169-2013-4A.osm'
+  #   test_model_path = "#{__dir__}/#{test_model_name}"
+
+  #   # Set the arguments to test
+  #   args_hash = {
+  #       'report_timeseries_data' => timeseries,
+  #       'enable_supply_side_reporting' => supply,
+  #       'debug_mode' => debug
+  #   }
+
+  #   # Run the measure
+  #   model = run_measure(test_name, test_model_path, args_hash)
+
+  #   return true
+  # end
+
+  # def test_warehouse
+  #   test_name = 'test_warehouse'
+  #   test_model_name = 'Warehouse_ComStock_90.1-2007_7A.osm'
+  #   test_model_path = "#{__dir__}/#{test_model_name}"
+
+  #   # Set the arguments to test
+  #   args_hash = {
+  #       'report_timeseries_data' => timeseries,
+  #       'enable_supply_side_reporting' => supply,
+  #       'debug_mode' => debug
+  #   }
+
+  #   # Run the measure
+  #   model = run_measure(test_name, test_model_path, args_hash)
+
+  #   return true
+  # end
+
+  # def test_mfm
+  #   test_name = 'test_mfm'
+  #   test_model_name = 'MFm.osm'
+  #   test_model_path = "#{__dir__}/#{test_model_name}"
+
+  #   # Set the arguments to test
+  #   args_hash = {
+  #       'report_timeseries_data' => timeseries,
+  #       'enable_supply_side_reporting' => supply,
+  #       'debug_mode' => debug
+  #   }
+
+  #   # Run the measure
+  #   model = run_measure(test_name, test_model_path, args_hash)
+
+  #   return true
+  # end
+
+  # def test_scn
+  #   test_name = 'test_scn'
+  #   test_model_name = 'SCn.osm'
+  #   test_model_path = "#{__dir__}/#{test_model_name}"
+
+  #   # Set the arguments to test
+  #   args_hash = {
+  #       'report_timeseries_data' => timeseries,
+  #       'enable_supply_side_reporting' => supply,
+  #       'debug_mode' => debug
+  #   }
+
+  #   # Run the measure
+  #   model = run_measure(test_name, test_model_path, args_hash)
+
+  #   return true
+  # end
+
+  # def test_district_heating
+  #   test_name = 'test_district_heating'
+  #   test_model_name = 'district_heating.osm'
+  #   test_model_path = "#{__dir__}/#{test_model_name}"
+
+  #   # Set the arguments to test
+  #   args_hash = {
+  #       'report_timeseries_data' => timeseries,
+  #       'enable_supply_side_reporting' => supply,
+  #       'debug_mode' => debug
+  #   }
+
+  #   # Run the measure
+  #   model = run_measure(test_name, test_model_path, args_hash)
+
+  #   return true
+  # end
+
+  # def test_district_cooling
+  #   test_name = 'test_district_cooling'
+  #   test_model_name = 'district_cooling.osm'
+  #   test_model_path = "#{__dir__}/#{test_model_name}"
+
+  #   # Set the arguments to test
+  #   args_hash = {
+  #       'report_timeseries_data' => timeseries,
+  #       'enable_supply_side_reporting' => supply,
+  #       'debug_mode' => debug
+  #   }
+
+  #   # Run the measure
+  #   model = run_measure(test_name, test_model_path, args_hash)
+
+  #   return true
+  # end
+
+  # def test_baseboard_electric
+  #   test_name = 'test_baseboard_electric'
+  #   test_model_name = 'baseboard_electric.osm'
+  #   test_model_path = "#{__dir__}/#{test_model_name}"
+
+  #   # Set the arguments to test
+  #   args_hash = {
+  #       'report_timeseries_data' => timeseries,
+  #       'enable_supply_side_reporting' => supply,
+  #       'debug_mode' => debug
+  #   }
+
+  #   # Run the measure
+  #   model = run_measure(test_name, test_model_path, args_hash)
+
+  #   return true
+  # end
+
+  # def test_doas_with_vrf
+  #   test_name = 'test_doas_with_vrf'
+  #   test_model_name = 'doas_with_vrf.osm'
+  #   test_model_path = "#{__dir__}/#{test_model_name}"
+
+  #   # Set the arguments to test
+  #   args_hash = {
+  #       'report_timeseries_data' => timeseries,
+  #       'enable_supply_side_reporting' => supply,
+  #       'debug_mode' => debug
+  #   }
+
+  #   # Run the measure
+  #   model = run_measure(test_name, test_model_path, args_hash)
+
+  #   return true
+  # end
+
+  # def test_research_special
+  #   test_name = 'test_research_special'
+  #   test_model_name = 'research_special.osm'
+  #   test_model_path = "#{__dir__}/#{test_model_name}"
+
+  #   # Set the arguments to test
+  #   args_hash = {
+  #       'report_timeseries_data' => timeseries,
+  #       'enable_supply_side_reporting' => supply,
+  #       'debug_mode' => debug
+  #   }
+
+  #   # Run the measure
+  #   model = run_measure(test_name, test_model_path, args_hash)
+
+  #   return true
+  # end
+
+  def test_cz1A_warehouse
+    test_name = 'test_cz1A_warehouse'
+    test_model_name = 'CZ1A_warehouse_10001_25000_PTHP.osm'
+    test_model_path =  "#{__dir__}/#{test_model_name}"
+    epw_path = "#{__dir__}/G1200860.epw"
+
+    # set the arguments to test
     args_hash = {
-        'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => supply,
-        'debug_mode' => debug
+      'report_timeseries_data' => timeseries,
+      'enable_supply_side_reporting' => supply,
+      'debug_mode' => debug
     }
 
-    # Run the measure
-    model = run_measure(test_name, test_model_path, args_hash)
+    # run the measure
+    model = run_measure(test_name, test_model_path, args_hash, epw_path)
 
     return true
   end
 
-  def test_large_office_vav
-    test_name = 'test_large_office_vav'
-    test_model_name = 'LargeOffice-90.1-2013-ASHRAE 169-2013-4A.osm'
-    test_model_path = "#{__dir__}/#{test_model_name}"
+  def test_cz2A_warehouse
+    test_name = 'test_cz2A_warehouse'
+    test_model_name = 'CZ2A_warehouse_10001_25000_PSZ-AC with electric coil.osm'
+    test_model_path =  "#{__dir__}/#{test_model_name}"
+    epw_path = "#{__dir__}/G1200210.epw"
 
-    # Set the arguments to test
+    # set the arguments to test
     args_hash = {
-        'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => supply,
-        'debug_mode' => debug
+      'report_timeseries_data' => timeseries,
+      'enable_supply_side_reporting' => supply,
+      'debug_mode' => debug
     }
 
-    # Run the measure
-    model = run_measure(test_name, test_model_path, args_hash)
+    # run the measure
+    model = run_measure(test_name, test_model_path, args_hash, epw_path)
 
     return true
   end
 
-  def test_medium_office
-    test_name = 'test_medium_office'
-    test_model_name = 'medium_office.osm'
-    test_model_path = "#{__dir__}/#{test_model_name}"
+  def test_cz2B_full_service_restaurant
+    test_name = 'test_cz2B_full_service_restaurant'
+    test_model_name = 'CZ2B_full_service_restaurant_10001_25000_PSZ-AC with electric coil.osm'
+    test_model_path =  "#{__dir__}/#{test_model_name}"
+    epw_path = "#{__dir__}/G0400130.epw"
 
-    # Set the arguments to test
+    # set the arguments to test
     args_hash = {
-        'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => supply,
-        'debug_mode' => debug
+      'report_timeseries_data' => timeseries,
+      'enable_supply_side_reporting' => supply,
+      'debug_mode' => debug
     }
 
-    # Run the measure
-    model = run_measure(test_name, test_model_path, args_hash)
+    # run the measure
+    model = run_measure(test_name, test_model_path, args_hash, epw_path)
 
     return true
   end
 
-  def test_small_office
-    test_name = 'test_small_office'
-    test_model_name = 'small_office_pthp.osm'
-    test_model_path = "#{__dir__}/#{test_model_name}"
+  def test_cz3A_strip_mall
+    test_name = 'test_cz3A_strip_mall'
+    test_model_name = 'CZ3A_strip_mall_10001_25000_PVAV with gas boiler reheat.osm'
+    test_model_path =  "#{__dir__}/#{test_model_name}"
+    epw_path = "#{__dir__}/G4801810.epw"
 
-    # Set the arguments to test
+    # set the arguments to test
     args_hash = {
-        'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => supply,
-        'debug_mode' => debug
+      'report_timeseries_data' => timeseries,
+      'enable_supply_side_reporting' => supply,
+      'debug_mode' => debug
     }
 
-    # Run the measure
-    model = run_measure(test_name, test_model_path, args_hash)
+    # run the measure
+    model = run_measure(test_name, test_model_path, args_hash, epw_path)
 
     return true
   end
 
-  def test_small_office_high_loads
-    test_name = 'test_small_office_high_loads'
-    test_model_name = 'small_office_pthp_high_loads.osm'
-    test_model_path = "#{__dir__}/#{test_model_name}"
+  def test_cz3B_warehouse
+    test_name = 'test_cz3B_warehouse'
+    test_model_name = 'CZ3B_warehouse_200001_500000_PVAV with gas boiler reheat.osm'
+    test_model_path =  "#{__dir__}/#{test_model_name}"
+    epw_path = "#{__dir__}/G0600710.epw"
 
-    # Set the arguments to test
+    # set the arguments to test
     args_hash = {
-        'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => supply,
-        'debug_mode' => debug
+      'report_timeseries_data' => timeseries,
+      'enable_supply_side_reporting' => supply,
+      'debug_mode' => debug
     }
 
-    # Run the measure
-    model = run_measure(test_name, test_model_path, args_hash)
+    # run the measure
+    model = run_measure(test_name, test_model_path, args_hash, epw_path)
 
     return true
   end
 
-  def test_small_office_no_windows
-    test_name = 'test_small_office_no_windows'
-    test_model_name = 'small_office_pthp_no_windows.osm'
-    test_model_path = "#{__dir__}/#{test_model_name}"
+  def test_cz3C_small_office
+    test_name = 'test_cz3C_small_office'
+    test_model_name = 'CZ3C_small_office_10001_25000_PTHP.osm'
+    test_model_path =  "#{__dir__}/#{test_model_name}"
+    epw_path = "#{__dir__}/G0600530.epw"
 
-    # Set the arguments to test
+    # set the arguments to test
     args_hash = {
-        'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => supply,
-        'debug_mode' => debug
+      'report_timeseries_data' => timeseries,
+      'enable_supply_side_reporting' => supply,
+      'debug_mode' => debug
     }
 
-    # Run the measure
-    model = run_measure(test_name, test_model_path, args_hash)
+    # run the measure
+    model = run_measure(test_name, test_model_path, args_hash, epw_path)
 
     return true
   end
 
-  # no windows
-  # no internal mass
-  # no infiltration
-  # constant thermostat setpoints
-  def test_small_office_basic
-    test_name = 'test_small_office_basic'
-    test_model_name = 'small_office_pthp_basic.osm'
-    test_model_path = "#{__dir__}/#{test_model_name}"
+  def test_cz4A_outpatient
+    test_name = 'test_cz4A_outpatient'
+    test_model_name = 'CZ4A_outpatient_25001_50000_PSZ-AC with gas boiler.osm'
+    test_model_path =  "#{__dir__}/#{test_model_name}"
+    epw_path = "#{__dir__}/G2405100.epw"
 
-    # Set the arguments to test
+    # set the arguments to test
     args_hash = {
-        'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => supply,
-        'debug_mode' => debug
+      'report_timeseries_data' => timeseries,
+      'enable_supply_side_reporting' => supply,
+      'debug_mode' => debug
     }
 
-    # Run the measure
-    model = run_measure(test_name, test_model_path, args_hash)
+    # run the measure
+    model = run_measure(test_name, test_model_path, args_hash, epw_path)
 
     return true
   end
 
-  def test_restaurant
-    test_name = 'test_restaurant'
-    test_model_name = 'full_restaurant_psz.osm'
-    test_model_path = "#{__dir__}/#{test_model_name}"
+  def test_cz4B_retail
+    test_name = 'test_cz4B_retail'
+    test_model_name = 'CZ4B_retail_10001_25000_PSZ-AC with gas coil.osm'
+    test_model_path =  "#{__dir__}/#{test_model_name}"
+    epw_path = "#{__dir__}/G3500010.epw"
 
-    # Set the arguments to test
+    # set the arguments to test
     args_hash = {
-        'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => supply,
-        'debug_mode' => debug
+      'report_timeseries_data' => timeseries,
+      'enable_supply_side_reporting' => supply,
+      'debug_mode' => debug
     }
 
-    # Run the measure
-    model = run_measure(test_name, test_model_path, args_hash)
+    # run the measure
+    model = run_measure(test_name, test_model_path, args_hash, epw_path)
 
     return true
   end
 
-  def test_simple_restaurant
-    test_name = 'test_simple_restaurant'
-    test_model_name = 'Restaurant_5B.osm'
-    test_model_path = "#{__dir__}/#{test_model_name}"
+  def test_cz4C_warehouse
+    test_name = 'test_cz4C_warehouse'
+    test_model_name = 'CZ4C_warehouse_100001_200000_PVAV with PFP boxes.osm'
+    test_model_path =  "#{__dir__}/#{test_model_name}"
+    epw_path = "#{__dir__}/G5300670.epw"
 
-    # Set the arguments to test
+    # set the arguments to test
     args_hash = {
-        'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => supply,
-        'debug_mode' => debug
+      'report_timeseries_data' => timeseries,
+      'enable_supply_side_reporting' => supply,
+      'debug_mode' => debug
     }
 
-    # Run the measure
-    model = run_measure(test_name, test_model_path, args_hash)
+    # run the measure
+    model = run_measure(test_name, test_model_path, args_hash, epw_path)
 
     return true
   end
 
-  def test_prototype_restaurant
-    test_name = 'test_prototype_restaurant'
-    test_model_name = 'prototype_restaurant.osm'
-    test_model_path = "#{__dir__}/#{test_model_name}"
+  def test_cz5A_outpatient
+    test_name = 'test_cz5A_outpatient'
+    test_model_name = 'CZ5A_outpatient_5001_10000_PSZ-AC with gas boiler.osm'
+    test_model_path =  "#{__dir__}/#{test_model_name}"
+    epw_path = "#{__dir__}/G4200970.epw"
 
-    # Set the arguments to test
+    # set the arguments to test
     args_hash = {
-        'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => supply,
-        'debug_mode' => debug
+      'report_timeseries_data' => timeseries,
+      'enable_supply_side_reporting' => supply,
+      'debug_mode' => debug
     }
 
-    # Run the measure
-    model = run_measure(test_name, test_model_path, args_hash)
+    # run the measure
+    model = run_measure(test_name, test_model_path, args_hash, epw_path)
 
     return true
   end
 
-  def test_prototype_restaurant_no_exhaust
-    test_name = 'test_prototype_restaurant_no_exhaust'
-    test_model_name = 'prototype_restaurant_no_exhaust.osm'
-    test_model_path = "#{__dir__}/#{test_model_name}"
+  def test_cz5B_strip_mall
+    test_name = 'test_cz5B_strip_mall'
+    test_model_name = 'CZ5B_strip_mall_5001_10000_PVAV with PFP boxes.osm'
+    test_model_path =  "#{__dir__}/#{test_model_name}"
+    epw_path = "#{__dir__}/G0800310.epw"
 
-    # Set the arguments to test
+    # set the arguments to test
     args_hash = {
-        'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => supply,
-        'debug_mode' => debug
+      'report_timeseries_data' => timeseries,
+      'enable_supply_side_reporting' => supply,
+      'debug_mode' => debug
     }
 
-    # Run the measure
-    model = run_measure(test_name, test_model_path, args_hash)
+    # run the measure
+    model = run_measure(test_name, test_model_path, args_hash, epw_path)
 
     return true
   end
 
-  def test_secondary_school
-    test_name = 'test_secondary_school'
-    test_model_name = 'SecondarySchool-90.1-2013-ASHRAE 169-2013-4A.osm'
-    test_model_path = "#{__dir__}/#{test_model_name}"
+  def test_cz6B_strip_mall
+    test_name = 'test_cz6B_strip_mall'
+    test_model_name = 'CZ6B_strip_mall_50001_100000_PSZ-AC with gas coil.osm'
+    test_model_path =  "#{__dir__}/#{test_model_name}"
+    epw_path = "#{__dir__}/G3000410.epw"
 
-    # Set the arguments to test
+    # set the arguments to test
     args_hash = {
-        'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => supply,
-        'debug_mode' => debug
+      'report_timeseries_data' => timeseries,
+      'enable_supply_side_reporting' => supply,
+      'debug_mode' => debug
     }
 
-    # Run the measure
-    model = run_measure(test_name, test_model_path, args_hash)
+    # run the measure
+    model = run_measure(test_name, test_model_path, args_hash, epw_path)
 
     return true
   end
 
-  def test_warehouse
-    test_name = 'test_warehouse'
-    test_model_name = 'Warehouse_ComStock_90.1-2007_7A.osm'
-    test_model_path = "#{__dir__}/#{test_model_name}"
+  def test_cz7_secondary_school
+    test_name = 'test_cz7_secondary_school'
+    test_model_name = 'CZ7_secondary_school_10001_25000_PVAV with district hot water reheat.osm'
+    test_model_path =  "#{__dir__}/#{test_model_name}"
+    epw_path = "#{__dir__}/G0200130.epw"
 
-    # Set the arguments to test
+    # set the arguments to test
     args_hash = {
-        'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => supply,
-        'debug_mode' => debug
+      'report_timeseries_data' => timeseries,
+      'enable_supply_side_reporting' => supply,
+      'debug_mode' => debug
     }
 
-    # Run the measure
-    model = run_measure(test_name, test_model_path, args_hash)
+    # run the measure
+    model = run_measure(test_name, test_model_path, args_hash, epw_path)
 
     return true
   end
 
-  def test_mfm
-    test_name = 'test_mfm'
-    test_model_name = 'MFm.osm'
-    test_model_path = "#{__dir__}/#{test_model_name}"
+  def test_cz7A_strip_mall
+    test_name = 'test_cz7A_strip_mall'
+    test_model_name = 'CZ7A_strip_mall_25001_50000_PVAV with gas boiler reheat.osm'
+    test_model_path =  "#{__dir__}/#{test_model_name}"
+    epw_path = "#{__dir__}/G3800170.epw"
 
-    # Set the arguments to test
+    # set the arguments to test
     args_hash = {
-        'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => supply,
-        'debug_mode' => debug
+      'report_timeseries_data' => timeseries,
+      'enable_supply_side_reporting' => supply,
+      'debug_mode' => debug
     }
 
-    # Run the measure
-    model = run_measure(test_name, test_model_path, args_hash)
+    # run the measure
+    model = run_measure(test_name, test_model_path, args_hash, epw_path)
 
     return true
   end
 
-  def test_scn
-    test_name = 'test_scn'
-    test_model_name = 'SCn.osm'
-    test_model_path = "#{__dir__}/#{test_model_name}"
+  def test_cz7B_secondary_school
+    test_name = 'test_cz7B_secondary_school'
+    test_model_name = 'CZ7B_secondary_school_10001_25000_VAV air-cooled chiller with gas boiler reheat.osm'
+    test_model_path =  "#{__dir__}/#{test_model_name}"
+    epw_path = "#{__dir__}/G0801050.epw"
 
-    # Set the arguments to test
+    # set the arguments to test
     args_hash = {
-        'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => supply,
-        'debug_mode' => debug
+      'report_timeseries_data' => timeseries,
+      'enable_supply_side_reporting' => supply,
+      'debug_mode' => debug
     }
 
-    # Run the measure
-    model = run_measure(test_name, test_model_path, args_hash)
+    # run the measure
+    model = run_measure(test_name, test_model_path, args_hash, epw_path)
 
     return true
   end
 
-  def test_district_heating
-    test_name = 'test_district_heating'
-    test_model_name = 'district_heating.osm'
-    test_model_path = "#{__dir__}/#{test_model_name}"
+  def test_cz8_large_office
+    test_name = 'test_cz8_large_office'
+    test_model_name = 'CZ8_large_office_10001_25000_VAV chiller with gas boiler reheat.osm'
+    test_model_path =  "#{__dir__}/#{test_model_name}"
+    epw_path = "#{__dir__}/G0200900.epw"
 
-    # Set the arguments to test
+    # set the arguments to test
     args_hash = {
-        'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => supply,
-        'debug_mode' => debug
+      'report_timeseries_data' => timeseries,
+      'enable_supply_side_reporting' => supply,
+      'debug_mode' => debug
     }
 
-    # Run the measure
-    model = run_measure(test_name, test_model_path, args_hash)
+    # run the measure
+    model = run_measure(test_name, test_model_path, args_hash, epw_path)
 
     return true
   end
 
-  def test_district_cooling
-    test_name = 'test_district_cooling'
-    test_model_name = 'district_cooling.osm'
-    test_model_path = "#{__dir__}/#{test_model_name}"
-
-    # Set the arguments to test
-    args_hash = {
-        'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => supply,
-        'debug_mode' => debug
-    }
-
-    # Run the measure
-    model = run_measure(test_name, test_model_path, args_hash)
-
-    return true
-  end
-
-  def test_baseboard_electric
-    test_name = 'test_baseboard_electric'
-    test_model_name = 'baseboard_electric.osm'
-    test_model_path = "#{__dir__}/#{test_model_name}"
-
-    # Set the arguments to test
-    args_hash = {
-        'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => supply,
-        'debug_mode' => debug
-    }
-
-    # Run the measure
-    model = run_measure(test_name, test_model_path, args_hash)
-
-    return true
-  end
-
-  def test_doas_with_vrf
-    test_name = 'test_doas_with_vrf'
-    test_model_name = 'doas_with_vrf.osm'
-    test_model_path = "#{__dir__}/#{test_model_name}"
-
-    # Set the arguments to test
-    args_hash = {
-        'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => supply,
-        'debug_mode' => debug
-    }
-
-    # Run the measure
-    model = run_measure(test_name, test_model_path, args_hash)
-
-    return true
-  end
-
-  def test_research_special
-    test_name = 'test_research_special'
-    test_model_name = 'research_special.osm'
-    test_model_path = "#{__dir__}/#{test_model_name}"
-
-    # Set the arguments to test
-    args_hash = {
-        'report_timeseries_data' => timeseries,
-        'enable_supply_side_reporting' => supply,
-        'debug_mode' => debug
-    }
-
-    # Run the measure
-    model = run_measure(test_name, test_model_path, args_hash)
-
-    return true
-  end
 end
