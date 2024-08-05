@@ -46,7 +46,7 @@ require_relative '../measure.rb'
 # only necessary to include here if annual simulation request and the measure doesn't require openstudio-standards
 require 'openstudio-standards'
 
-class Test_AddBlindsToSelectedWindows < Minitest::Test
+class UpperCamelCaseClassName_Test < Minitest::Test
   # all tests are a sub definition of this class, e.g.:
   # def test_new_kind_of_test
   #   # test content
@@ -58,15 +58,16 @@ class Test_AddBlindsToSelectedWindows < Minitest::Test
     puts "\n######\nTEST:#{test_name}\n######\n"
 
     # create an instance of the measure
-    measure = AddBlindsToSelectedWindows.new
+    measure = UpperCamelCaseClassName.new
 
     # make an empty model
     model = OpenStudio::Model::Model.new
 
     # get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(1, arguments.size)
-    assert_equal('add_blinds', arguments[0].name)
+    assert_equal(2, arguments.size)
+    assert_equal('argument_name', arguments[0].name)
+    assert_equal('another_argument_name', arguments[1].name)
   end
 
   # return file paths to test models in test directory
@@ -178,7 +179,7 @@ class Test_AddBlindsToSelectedWindows < Minitest::Test
   # create an array of hashes with model name, weather, and expected result
   def models_to_test
     test_sets = []
-    test_sets << { model: 'example_OfL_model', weather: 'example_OfL_model', result: 'Success' }
+    test_sets << { model: 'PSZ-AC_with_gas_coil_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
     return test_sets
   end
 
@@ -197,7 +198,7 @@ class Test_AddBlindsToSelectedWindows < Minitest::Test
       epw_path = epw_path[0]
 
       # create an instance of the measure
-      measure = AddBlindsToSelectedWindows.new
+      measure = UpperCamelCaseClassName.new
 
       # load the model; only used here for populating arguments
       model = load_model(osm_path)
@@ -206,47 +207,16 @@ class Test_AddBlindsToSelectedWindows < Minitest::Test
       arguments = measure.arguments(model)
       argument_map = OpenStudio::Measure::OSArgumentMap.new
 
-      # Example of setting up arguments
-      arguments.each do |arg|
-        temp_arg_var = arg.clone
-        if arg.name == 'add_blinds'
-          assert(temp_arg_var.setValue(true))
-        end
-        argument_map[arg.name] = temp_arg_var
-      end
-
       # apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
 
       # check the measure result; result values will equal Success, Fail, or Not Applicable
       # also check the amount of warnings, info, and error messages
       # use if or case statements to change expected assertion depending on model characteristics
-      # assert that it ran correctly
-      puts "Result value: #{result.value.valueName}"
-      puts "Result warnings: #{result.warnings.size}"
-      result.warnings.each { |warning| puts warning.logMessage }
-      puts "Result errors: #{result.errors.size}"
-      result.errors.each { |error| puts error.logMessage }
-
-      assert(result.value.valueName == "Success")
-      assert(result.warnings.size == 0)
-      assert(result.errors.size == 0)
+      assert(result.value.valueName == set[:result])
 
       # to check that something changed in the model, load the model and the check the objects match expected new value
       model = load_model(model_output_path(instance_test_name))
-      # check that blinds were added to the model
-      blinds_area = 0
-      model.getSubSurfaces.sort.each do |sub_surface|
-        next unless sub_surface.subSurfaceType == 'FixedWindow' || sub_surface.subSurfaceType == 'OperableWindow'
-        next unless sub_surface.outsideBoundaryCondition == 'Outdoors' && sub_surface.surface.get.surfaceType == 'Wall'
-        blinds_area += sub_surface.grossArea unless sub_surface.shadingControl.empty?
-      end
-      if argument_map['add_blinds'].valueAsBool
-        assert(blinds_area > 0)
-      else
-        assert(blinds_area.zero?)
-      end
-      assert(result.value.valueName == set[:result])
     end
   end
 

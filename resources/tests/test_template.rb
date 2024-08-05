@@ -217,6 +217,10 @@ class UpperCamelCaseClassName_Test < Minitest::Test
 
       # to check that something changed in the model, load the model and the check the objects match expected new value
       model = load_model(model_output_path(instance_test_name))
+
+      # add additional tests here to check model outputs
+
+
     end
   end
 
