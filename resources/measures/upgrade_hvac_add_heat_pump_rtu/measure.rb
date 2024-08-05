@@ -380,10 +380,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
   # get rated cooling COP from fitted regression - for advanced HP RTU (from Daikin Rebel data)
   def get_rated_cop_cooling_adv(rated_capacity_w)
-    intercept = 4.022497
-    coef_1 = -0.007361
-    min_cop = 3.24
-    max_cop = 4.17
+    intercept = 4.140806
+    coef_1 = -0.007577
+    min_cop = 3.34
+    max_cop = 4.29
     rated_capacity_kw = rated_capacity_w / 1000 # W to kW
     rated_cop_cooling = intercept + (coef_1 * rated_capacity_kw)
     rated_cop_cooling.clamp(min_cop, max_cop)
