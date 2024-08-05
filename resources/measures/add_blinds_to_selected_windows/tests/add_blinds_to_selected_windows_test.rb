@@ -206,7 +206,7 @@ class Test_AddBlindsToSelectedWindows < Minitest::Test
       arguments = measure.arguments(model)
       argument_map = OpenStudio::Measure::OSArgumentMap.new
 
-      # Example of setting up arguments
+      # set the argument map
       arguments.each do |arg|
         temp_arg_var = arg.clone
         if arg.name == 'add_blinds'
