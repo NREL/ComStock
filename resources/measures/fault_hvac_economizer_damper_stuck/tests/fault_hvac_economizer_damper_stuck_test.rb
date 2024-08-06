@@ -42,13 +42,37 @@ require 'openstudio/measure/ShowRunnerOutput'
 require 'fileutils'
 require 'minitest/autorun'
 require_relative '../measure.rb'
-require_relative '../../../../test/helpers/minitest_helper'
-
 
 # only necessary to include here if annual simulation request and the measure doesn't require openstudio-standards
-# require 'openstudio-standards'
+require 'openstudio-standards'
 
 class FaultHvacEconomizerDamperStuckTest < Minitest::Test
+  # all tests are a sub definition of this class, e.g.:
+  # def test_new_kind_of_test
+  #   # test content
+  # end
+
+  def test_number_of_arguments_and_argument_names
+    # this test ensures that the current test is matched to the measure inputs
+    test_name = 'test_number_of_arguments_and_argument_names'
+    puts "\n######\nTEST:#{test_name}\n######\n"
+
+    # create an instance of the measure
+    measure = FaultHvacEconomizerDamperStuck.new
+
+    # make an empty model
+    model = OpenStudio::Model::Model.new
+
+    # Get arguments and test that they are what we are expecting
+    arguments = measure.arguments(model)
+    assert_equal(6, arguments.size)
+    assert_equal('econ_choice', arguments[0].name)
+    assert_equal('start_month', arguments[1].name)
+    assert_equal('start_day', arguments[2].name)
+    assert_equal('duration_days', arguments[3].name)
+    assert_equal('damper_pos', arguments[4].name)
+    assert_equal('apply_measure', arguments[5].name)
+  end
 
   # return file paths to test models in test directory
   def models_for_tests
@@ -143,7 +167,7 @@ class FaultHvacEconomizerDamperStuckTest < Minitest::Test
     if run_model && result_success
       puts "\nRUNNING MODEL..."
 
-      std = Standard.build('90.1-2013')
+      std = Standard.build('ComStock DEER 2020')
       std.model_run_simulation_and_log_errors(model, run_dir(test_name))
 
       # check that the model ran successfully
@@ -156,56 +180,22 @@ class FaultHvacEconomizerDamperStuckTest < Minitest::Test
     return result
   end
 
-  def test_number_of_arguments_and_argument_names
-    # This test ensures that the current test is matched to the measure inputs
-    test_name = 'test_number_of_arguments_and_argument_names'
-    puts "\n######\nTEST:#{test_name}\n######\n"
-
-    # Create an instance of the measure
-    measure = FaultHvacEconomizerDamperStuck.new
-
-    # Make an empty model
-    model = OpenStudio::Model::Model.new
-
-    # Get arguments and test that they are what we are expecting
-    arguments = measure.arguments(model)
-    assert_equal(6, arguments.size)
-    assert_equal('econ_choice', arguments[0].name)
-    assert_equal('start_month', arguments[1].name)
-    assert_equal('start_day', arguments[2].name)
-    assert_equal('duration_days', arguments[3].name)
-    assert_equal('damper_pos', arguments[4].name)
-    assert_equal('apply_measure', arguments[5].name)
-  end
-
   # create an array of hashes with model name, weather, and expected result
   def models_to_test
     test_sets = []
 
     # test: building with no economizer
-    test_sets << {
-      model: '361_Small_Office_PSZ_Gas_3a',
-      weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
-      result: 'NA'
-    }
+    test_sets << { model: 'PTAC_with_gas_boiler', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'NA' }
+
     # test: building with economizers with fixed drybulb control only
-    test_sets << {
-      model: '361_Small_Office_PSZ_Gas_3a_economizer_allfdb',
-      weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
-      result: 'Success'
-    }
+    test_sets << { model: 'PSZ-AC_with_gas_coil_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+
     # test: building with economizers with some fixed drybulb control
-    test_sets << {
-      model: '361_Small_Office_PSZ_Gas_3a_economizer_notallfdb',
-      weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
-      result: 'Success'
-    }
+    test_sets << { model: 'Stripmall_Pre1980_8A_new_OA', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+
     # test: building with economizers with no fixed drybulb control
-    test_sets << {
-      model: '361_Small_Office_PSZ_Gas_3a_economizer_nofdb',
-      weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
-      result: 'Success'
-    }
+    test_sets << { model: 'PVAV_with_gas_boiler_reheat', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+
     return test_sets
   end
 
@@ -266,7 +256,7 @@ class FaultHvacEconomizerDamperStuckTest < Minitest::Test
       # apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
 
-      # check the measure result; result values will equal Success, Fail, or Not Applicable (NA)
+      # check the measure result; result values will equal Success, Fail, or Not Applicable
       # also check the amount of warnings, info, and error messages
       # use if or case statements to change expected assertion depending on model characteristics
       assert(result.value.valueName == set[:result])
@@ -274,6 +264,10 @@ class FaultHvacEconomizerDamperStuckTest < Minitest::Test
       # to check that something changed in the model, load the model and the check the objects match expected new value
       model = load_model(model_output_path(instance_test_name))
 
+      # add additional tests here to check model outputs
+
+
     end
   end
+
 end
