@@ -111,7 +111,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.upgrade_ids_to_skip = upgrade_ids_to_skip
         self.upgrade_ids_for_comparison = upgrade_ids_for_comparison
         self.states = states
-        self.unwegited_weighted_map = {}
+        self.unweighted_weighted_map = {}
         self.dropping_columns = []
         self.cached_parquet = [] # List of parquet files to reload and export
         self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
@@ -214,8 +214,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     upgradIdcount[upgrade_id] = self.data.filter(pl.col(self.UPGRADE_ID) == upgrade_id).shape[0]
                 self.add_metadata_index_col(upgradIdcount)
                 self.get_comstock_unscaled_monthly_energy_consumption()
-                self.add_unweighted_energy_savings_columns()
                 self.add_unweighted_utility_savings_columns()
+                self.add_unweighted_energy_savings_columns()
                # Downselect the self.data to just the upgrade
                 self.data = self.data.filter(pl.col(self.UPGRADE_ID) == upgrade_id)
                 # Write self.data to parquet file
@@ -1822,10 +1822,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # assert "calc.weighted.utility_bills.total_mean_bill..billion_usd" in self.data.columns
         assert isinstance(self.data, pl.LazyFrame)
 
-        # assert "calc.weighted.savings.utility_bills.electricity_bill_max..billion_usd" not in self.data.columns
-        
-        logger.debug(self.unwegited_weighted_map)
-
         comstock_bldg_types: set = set(self.data.select(self.BLDG_TYPE).unique().collect().to_pandas()[self.BLDG_TYPE].tolist())
 
         cbecs.data: pd.DataFrame = cbecs.data.collect().to_pandas()
@@ -1909,28 +1905,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_scale_factors, default=None)).alias(self.BLDG_WEIGHT))
 
         # Apply the newly-added weights to the columns
-        self.add_weighted_area_and_energy_columns() #compute out the weighted value, based on the unweighted columns and the weights.
-        assert "calc.weighted.utility_bills.total_mean_bill..billion_usd" in self.data.columns
-        # assert "calc.weighted.savings.utility_bills.electricity_bill_max..billion_usd" not in self.data.columns
-
-        # # After adding weighted energy columns, calculate savings
-        # if self.include_upgrades:
-        #     # Skip if savings columns are already in the data, which can happen when load_from_csv=True
-        #     wtg_tot_engy_col = self.col_name_to_weighted_savings(self.ANN_TOT_ENGY_KBTU, self.weighted_energy_units)
-        #     if wtg_tot_engy_col in self.data.columns:
-        #         logger.info('Energy savings columns already in data')
-        #         # Create the weighted columns, following the self.unwegited_weighted_map pattern
-        #     else:
-        #         # for unweighted_col, weighted_col in self.unwegited_weighted_map.items():
-        #             # if weighted_col in self.dropping_columns or weighted_col in self.data.columns:
-        #             #     continue
-        #             # if "calc.weighted.savings.utility_bills.electricity_bill_max..billion_usd" == weighted_col: 
-        #             #     # raise Exception(f"Added columns {weighted_col}, from col {unweighted_col} values") 
-        #             #     continue
-        #             # self.data = self.data.with_columns([pl.col(unweighted_col).alias(weighted_col)])
-        # self.add_weighted_area_and_energy_columns()
-        logger.debug(f"unweighted weighted mapping value is : {self.unwegited_weighted_map}")
-        # Adding weighting factors to the monthly data
+        self.add_weighted_area_energy_savings_columns() #compute out the weighted value, based on the unweighted columns and the weights.
         self.get_scaled_comstock_monthly_consumption_by_state()
         assert isinstance(self.data, pl.LazyFrame)
 
@@ -1939,7 +1914,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         assert isinstance(cbecs.data, pl.LazyFrame)
         return bldg_type_scale_factors
 
-    def add_weighted_area_and_energy_columns(self):
+    def add_weighted_area_energy_savings_columns(self):
 
         assert isinstance(self.data, pl.LazyFrame)
         # Area - create weighted column
@@ -1947,20 +1922,18 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.data = self.data.with_columns(
                 (pl.col(self.FLR_AREA) * pl.col(self.BLDG_WEIGHT)).alias(new_area_col))
 
-        #generate the weighted columns with coventions. 
+        #generate the weighted columns with coventions for Emission, Utility, Energy Enduse group. 
         old_unit_to_new_unit = {
             'co2e_kg': self.weighted_ghg_units, #Emission, default : co2e_kg -> co2e_mmt 
             'usd': self.weighted_utility_units, #Utility, default : usd -> billion_usd
             'kwh': self.weighted_energy_units, #Energy and Enduse Groups, default : kwh -> tbtu
         }
         
-        processed = []
-
-
         for col in (self.GHG_FUEL_COLS + [self.ANN_GHG_EGRID, self.ANN_GHG_CAMBIUM] 
                     + self.COLS_UTIL_BILLS + [self.UTIL_BILL_TOTAL_MEAN, 'out.utility_bills.electricity_bill_max..usd', 'out.utility_bills.electricity_bill_median..usd', 'out.utility_bills.electricity_bill_min..usd']
                     + self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY + 
                     self.COLS_ENDUSE_GROUP_TOT_ANN_ENGY + self.COLS_ENDUSE_GROUP_ANN_ENGY):
+            
             assert col in self.data.columns
             #based on the unit, we use different conv factor and convert the value to the new column
             old_unit = self.units_from_col_name(col)
@@ -1969,39 +1942,22 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 raise Exception("The unit is not in the old_unit_to_new_unit mapping")
             
             new_col = self.col_name_to_weighted(col, old_unit_to_new_unit[old_unit])
-            processed.append((col, new_col))
             conv_fact = self.conv_fact(old_unit, old_unit_to_new_unit[old_unit])
             self.data = self.data.with_columns(
                 (pl.col(col) * pl.col(self.BLDG_WEIGHT) * conv_fact).alias(new_col))
-            
-        # logger.info(f"weighted to unweighted mapping value is : {self.unwegited_weighted_map}")
-
-
-        # logger.debug(f"processed columns are {processed}")
-        # raise Exception
-        # for k,v in self.unwegited_weighted_map.items():
-        #     if v == "calc.weighted.savings.utility_bills.total_mean_bill..billion_usd":
-        #         logger.debug(f"for column : calc.weighted.savings.utility_bills.total_mean_bill..billion_usd the original column is {k}")
-        #         break
-        # raise Exception("debugg")
-        # Generate saving columns from unweighted saving columns 
+        
+        #based on the unweighted savings columns, generate the weighted savings columns
         if self.include_upgrades:
-            for col, new_col in self.unwegited_weighted_map.items():
-                # if col in processed:
-                #     continue
-
-                if new_col in self.dropping_columns:
+            for unweighted_saving_cols, weighted_saving_cols in self.unweighted_weighted_map.items():
+                if weighted_saving_cols in self.dropping_columns:
+                    continue
+                if weighted_saving_cols in self.data.columns:
                     continue
                 
-                if new_col in self.data.columns:
-                    continue
-                
-                old_unit = self.units_from_col_name(col)
-                new_unit = self.units_from_col_name(new_col)
+                old_unit = self.units_from_col_name(unweighted_saving_cols)
+                new_unit = self.units_from_col_name(weighted_saving_cols)
                 conv_fact = self.conv_fact(old_unit, new_unit)
-                self.data: pl.LazyFrame = self.data.with_columns((pl.col(col) * pl.col(self.BLDG_WEIGHT) * conv_fact).alias(new_col))
-        # raise Exception
-        # logger.info(f"columns are : {[x for x in self.data.columns if 'total_mean' in x]}")
+                self.data: pl.LazyFrame = self.data.with_columns((pl.col(unweighted_saving_cols) * pl.col(self.BLDG_WEIGHT) * conv_fact).alias(weighted_saving_cols))
 
         # logger.debug(f"summary of column calc.weighted.savings.utility_bills.total_mean_bill..billion_usd is {self.data.select('calc.weighted.savings.utility_bills.total_mean_bill..billion_usd').describe()}")
         # raise Exception("Stop here")
@@ -2067,7 +2023,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.dropping_columns.append(self.col_name_to_weighted_percent_savings(col, 'percent')) 
 
             #save the unweighted - weighted colmns to  columns name mapping
-            self.unwegited_weighted_map.update({
+            self.unweighted_weighted_map.update({
                 self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_energy_units),
                 self.col_name_to_percent_savings(col, 'percent'): self.col_name_to_weighted_percent_savings(col, 'percent')
                 })
@@ -2150,7 +2106,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             pct_svgs_cols[eui_col] = self.col_name_to_percent_savings(eui_col, 'percent')
         
             #save the unweighted - weighted columns name mapping
-            self.unwegited_weighted_map.update({
+            self.unweighted_weighted_map.update({
                 self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_utility_units),
                 self.col_name_to_percent_savings(col, 'percent'): self.col_name_to_weighted_percent_savings(col, 'percent')
             })
