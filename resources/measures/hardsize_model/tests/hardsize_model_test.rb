@@ -42,9 +42,31 @@ require 'openstudio/measure/ShowRunnerOutput'
 require 'fileutils'
 require 'minitest/autorun'
 require_relative '../measure.rb'
-require_relative '../../../../test/helpers/minitest_helper'
+
+# only necessary to include here if annual simulation request and the measure doesn't require openstudio-standards
+require 'openstudio-standards'
 
 class HardsizeModelTest < Minitest::Test
+  # all tests are a sub definition of this class, e.g.:
+  # def test_new_kind_of_test
+  #   # test content
+  # end
+
+  def test_number_of_arguments_and_argument_names
+    # this test ensures that the current test is matched to the measure inputs
+    test_name = 'test_number_of_arguments_and_argument_names'
+    puts "\n######\nTEST:#{test_name}\n######\n"
+
+    # create an instance of the measure
+    measure = HardsizeModel.new
+
+    # make an empty model
+    model = OpenStudio::Model::Model.new
+
+    # get arguments and test that they are what we are expecting
+    arguments = measure.arguments(model)
+    assert_equal(1, arguments.size)
+  end
 
   # return file paths to test models in test directory
   def models_for_tests
@@ -73,14 +95,6 @@ class HardsizeModelTest < Minitest::Test
     return "#{File.dirname(__FILE__)}/output/#{test_name}"
   end
 
-  def model_input_path(osm_name)
-    return File.join(File.dirname(__FILE__), '../../../tests/models', osm_name)
-  end
-
-  def epw_input_path(epw_name)
-    return File.join(File.dirname(__FILE__), '../../../tests/weather', epw_name)
-  end
-
   def model_output_path(test_name)
     return "#{run_dir(test_name)}/#{test_name}.osm"
   end
@@ -93,27 +107,8 @@ class HardsizeModelTest < Minitest::Test
     return "#{run_dir(test_name)}/reports/eplustbl.html"
   end
 
-  def populate_argument_map(measure, osm_path, args_hash)
-    # Load the model; only used here for populating arguments
-    model = load_model(osm_path)
-    arguments = measure.arguments(model)
-    argument_map = OpenStudio::Measure::OSArgumentMap.new
-
-    # populate argument with specified hash value if specified
-    arguments.each do |arg|
-      temp_arg_var = arg.clone
-      if args_hash.key?(arg.name)
-        assert(temp_arg_var.setValue(args_hash[arg.name]))
-      end
-      argument_map[arg.name] = temp_arg_var
-    end
-
-    return argument_map
-  end
-
-  # Runs the model, applies the measure, reruns the model, and checks that
-  # before/after annual energy consumption results are identical
-  def apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false, model: nil)
+  # applies the measure and then runs the model
+  def apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false)
     assert(File.exist?(osm_path))
     assert(File.exist?(epw_path))
 
@@ -144,9 +139,8 @@ class HardsizeModelTest < Minitest::Test
     runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
 
     # load the test model
-    if model.nil?
-      model = load_model(new_osm_path)
-    end
+    model = load_model(new_osm_path)
+
 
     # set model weather file
     epw_file = OpenStudio::EpwFile.new(OpenStudio::Path.new(new_epw_path))
@@ -161,6 +155,10 @@ class HardsizeModelTest < Minitest::Test
     run_period.setEndDayOfMonth(15)
     run_period.setNumTimePeriodRepeats(1)
 
+    # Set the year description
+    year_description = model.getYearDescription
+    year_description.setCalendarYear(2023) # Set to the desired year
+
     # Run the model before applying the measure and get annual energy consumption
     std = Standard.build('90.1-2013')
     if run_model
@@ -169,16 +167,16 @@ class HardsizeModelTest < Minitest::Test
     end
     tot_engy_bef = model.sqlFile.get.totalSiteEnergy.get
 
-    # Run the measure
+    # run the measure
     puts "\nAPPLYING MEASURE..."
     measure.run(model, runner, argument_map)
     result = runner.result
     result_success = result.value.valueName == 'Success'
 
-    # Show the output
+    # show the output
     show_output(result)
 
-    # Save model
+    # save model
     model.save(model_output_path(test_name), true)
 
     # Run the model after applying the measure and get annual energy consumption
@@ -192,105 +190,76 @@ class HardsizeModelTest < Minitest::Test
     # hard-sizing the model.
     assert_equal(tot_engy_bef, tot_engy_aft)
 
+
     # change back directory
     Dir.chdir(start_dir)
 
     return result
   end
 
-  def dont_test_number_of_arguments_and_argument_names
-    # Create an instance of the measure
-    measure = HardsizeModel.new
+  # create an array of hashes with model name, weather, and expected result
+  def models_to_test
+    test_sets = []
+    test_sets << { model: 'Outpatient_VAV_chiller_PFP_boxes', weather: 'Outpatient_VAV_chiller_PFP_boxes', result: 'Success' }
+    test_sets << { model: 'LargeOffice_VAV_district_chw_hw', weather: 'LargeOffice_VAV_district_chw_hw', result: 'Success' }
+    test_sets << { model: 'LargeOffice_VAV_chiller_boiler', weather: 'LargeOffice_VAV_district_chw_hw', result: 'Success' }
+    test_sets << { model: 'LargeOffice_VAV_chiller_boiler_2', weather: 'LargeOffice_VAV_district_chw_hw', result: 'Success' }
+    test_sets << { model: 'Retail_PVAV_gas_ht_elec_rht', weather: 'Retail_PVAV_gas_ht_elec_rht', result: 'Success' }
+    test_sets << { model: 'SecondarySchool_PTHP', weather: 'SecondarySchool_PTHP', result: 'Success' }
+    test_sets << { model: 'Retail_PSZ-AC', weather: 'Retail_PSZ-AC', result: 'Success' }
 
-    # Make an empty model
-    model = OpenStudio::Model::Model.new
-
-    # Get arguments and test that they are what we are expecting
-    arguments = measure.arguments(model)
-    assert_equal(1, arguments.size)
+    return test_sets
   end
 
-  def test_outpatient_vav_chiller_pfp_boxes
-    osm_name = 'Outpatient_VAV_chiller_PFP_boxes.osm'
-    epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
-    osm_path = model_input_path(osm_name)
-    epw_path = epw_input_path(epw_name)
-    measure = HardsizeModel.new
-    args_hash = {'apply_hardsize' => true}
-    argument_map = populate_argument_map(measure, osm_path, args_hash)
-    # Apply the measure and check if before/after results are identical
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
+  def test_models
+    test_name = 'test_models'
+    puts "\n######\nTEST:#{test_name}\n######\n"
+
+    models_to_test.each do |set|
+      instance_test_name = set[:model]
+      puts "instance test name: #{instance_test_name}"
+      osm_path = models_for_tests.select { |x| set[:model] == File.basename(x, '.osm') }
+      epw_path = epws_for_tests.select { |x| set[:weather] == File.basename(x, '.epw') }
+      assert(!osm_path.empty?)
+      assert(!epw_path.empty?)
+      osm_path = osm_path[0]
+      epw_path = epw_path[0]
+dfxgsf
+      measure = HardsizeModel.new
+
+      # load the model; only used here for populating arguments
+      model = load_model(osm_path)
+
+      # set arguments here; will vary by measure
+      arguments = measure.arguments(model)
+      argument_map = OpenStudio::Measure::OSArgumentMap.new
+
+      args_hash = {'apply_hardsize' => true}
+      # populate argument with specified hash value if specified
+      arguments.each do |arg|
+        temp_arg_var = arg.clone
+        if args_hash.key?(arg.name)
+          assert(temp_arg_var.setValue(args_hash[arg.name]))
+        end
+        argument_map[arg.name] = temp_arg_var
+      end
+
+
+      # apply the measure to the model and optionally run the model
+      result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: true)
+
+      # check the measure result; result values will equal Success, Fail, or Not Applicable
+      # also check the amount of warnings, info, and error messages
+      # use if or case statements to change expected assertion depending on model characteristics
+      assert(result.value.valueName == set[:result])
+
+      # to check that something changed in the model, load the model and the check the objects match expected new value
+      model = load_model(model_output_path(instance_test_name))
+
+      # add additional tests here to check model outputs
+
+
+    end
   end
 
-  def test_largeoffice_vav_district_chw_hw
-    osm_name = 'LargeOffice_VAV_district_chw_hw.osm'
-    epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
-    osm_path = model_input_path(osm_name)
-    epw_path = epw_input_path(epw_name)
-    measure = HardsizeModel.new
-    args_hash = {'apply_hardsize' => true}
-    argument_map = populate_argument_map(measure, osm_path, args_hash)
-    # Apply the measure and check if before/after results are identical
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
-  end
-
-  def test_largeoffice_vav_chiller_boiler
-    osm_name = 'LargeOffice_VAV_chiller_boiler.osm'
-    epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
-    osm_path = model_input_path(osm_name)
-    epw_path = epw_input_path(epw_name)
-    measure = HardsizeModel.new
-    args_hash = {'apply_hardsize' => true}
-    argument_map = populate_argument_map(measure, osm_path, args_hash)
-    # Apply the measure and check if before/after results are identical
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
-  end
-
-  def test_largeoffice_vav_chiller_boiler_2
-    osm_name = 'LargeOffice_VAV_chiller_boiler_2.osm'
-    epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
-    osm_path = model_input_path(osm_name)
-    epw_path = epw_input_path(epw_name)
-    measure = HardsizeModel.new
-    args_hash = {'apply_hardsize' => true}
-    argument_map = populate_argument_map(measure, osm_path, args_hash)
-    # Apply the measure and check if before/after results are identical
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
-  end
-
-  def test_retail_pvav_gas_ht_elec_rht
-    osm_name = 'Retail_PVAV_gas_ht_elec_rht.osm'
-    epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
-    osm_path = model_input_path(osm_name)
-    epw_path = epw_input_path(epw_name)
-    measure = HardsizeModel.new
-    args_hash = {'apply_hardsize' => true}
-    argument_map = populate_argument_map(measure, osm_path, args_hash)
-    # Apply the measure and check if before/after results are identical
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
-  end
-
-  def test_secondaryschool_pthp
-    osm_name = 'SecondarySchool_PTHP.osm'
-    epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
-    osm_path = model_input_path(osm_name)
-    epw_path = epw_input_path(epw_name)
-    measure = HardsizeModel.new
-    args_hash = {'apply_hardsize' => true}
-    argument_map = populate_argument_map(measure, osm_path, args_hash)
-    # Apply the measure and check if before/after results are identical
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
-  end
-
-  def test_retail_psz_ac
-    osm_name = 'Retail_PSZ-AC.osm'
-    epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
-    osm_path = model_input_path(osm_name)
-    epw_path = epw_input_path(epw_name)
-    measure = HardsizeModel.new
-    args_hash = {'apply_hardsize' => true}
-    argument_map = populate_argument_map(measure, osm_path, args_hash)
-    # Apply the measure and check if before/after results are identical
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
-  end
 end
