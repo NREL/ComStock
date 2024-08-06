@@ -41,13 +41,15 @@ require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
 require 'fileutils'
 require 'minitest/autorun'
-require_relative '../../../../test/helpers/minitest_helper'
 require_relative '../measure.rb'
 
-class ReplaceBaselineWindowsTest < Minitest::Test
+# only necessary to include here if annual simulation request and the measure doesn't require openstudio-standards
+require 'openstudio-standards'
+
+class ReplaceBaselineWindows_Test < Minitest::Test
   # all tests are a sub definition of this class, e.g.:
   # def test_new_kind_of_test
-  #  test content
+  #   # test content
   # end
 
   def test_number_of_arguments_and_argument_names
@@ -56,7 +58,7 @@ class ReplaceBaselineWindowsTest < Minitest::Test
     puts "\n######\nTEST:#{test_name}\n######\n"
 
     # create an instance of the measure
-    measure = ReplaceBaselineWindowsTest.new
+    measure = ReplaceBaselineWindows.new
 
     # make an empty model
     model = OpenStudio::Model::Model.new
@@ -179,14 +181,14 @@ class ReplaceBaselineWindowsTest < Minitest::Test
   # create an array of hashes with model name, weather, and expected result
   def models_to_test
     test_sets = []
-    test_sets << { model: 'Warehouse_5A', weather: 'MI_DETROIT_725375_12', result: 'Success' }
-    test_sets << { model: 'Retail_7', weather: 'MN_Cloquet_Carlton_Co_726558_16', result: 'Success' }
-    test_sets << { model: 'Small_Office_2A', weather: 'TX_Port_Arthur_Jeffers_722410_16', result: 'Success' }
+    test_sets << { model: 'Warehouse_5A', weather: 'Warehouse_5A', result: 'Success' }
+    test_sets << { model: 'Retail_7', weather: 'Retail_7', result: 'Success' }
+    test_sets << { model: 'Small_Office_2A', weather: 'Small_Office_2A', result: 'Success' }
     return test_sets
   end
 
-  def test_doe_models
-    test_name = 'test_doe_models'
+  def test_models
+    test_name = 'test_models'
     puts "\n######\nTEST:#{test_name}\n######\n"
 
     models_to_test.each do |set|
@@ -204,9 +206,37 @@ class ReplaceBaselineWindowsTest < Minitest::Test
 
       # load the model; only used here for populating arguments
       model = load_model(osm_path)
+
+      # set arguments here; will vary by measure
       arguments = measure.arguments(model)
       argument_map = OpenStudio::Measure::OSArgumentMap.new
 
+      window_pane_type = arguments[0].clone
+      assert(window_pane_type.setValue('Double - LowE - Clear - Aluminum'))
+      argument_map['window_pane_type'] = window_pane_type
+
+      u_value_ip = arguments[1].clone
+      assert(u_value_ip.setValue(0.62))
+      argument_map['u_value_ip'] = u_value_ip
+
+      shgc = arguments[2].clone
+      assert(shgc.setValue(0.67))
+      argument_map['shgc'] = shgc
+
+      vlt = arguments[3].clone
+      assert(vlt.setValue(0.71))
+      argument_map['vlt'] = vlt
+      # apply the measure to the model and optionally run the model
+      result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+
+      # check the measure result; result values will equal Success, Fail, or Not Applicable
+      # also check the amount of warnings, info, and error messages
+      # use if or case statements to change expected assertion depending on model characteristics
+
+      # to check that something changed in the model, load the model and the check the objects match expected new value
+      model = load_model(model_output_path(instance_test_name))
+
+      # add additional tests here to check model outputs
       ############### BEGIN CUSTOMIZE ##################
       model.getSubSurfaces.each do |sub_surface|
         if sub_surface.subSurfaceType.include?('Window')
@@ -218,13 +248,7 @@ class ReplaceBaselineWindowsTest < Minitest::Test
       end
       ################ END CUSTOMIZE ####################
 
-      # set U-value argument
-      window_pane_type = arguments[0].clone
-      assert(window_pane_type.setValue('Double'))
-      argument_map['window_pane_type'] = window_pane_type
-      argument_map['u_value_ip'] = window_pane_type
-      argument_map['shgc'] = window_pane_type
-      argument_map['vlt'] = window_pane_type
+
 
       # apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
@@ -245,7 +269,8 @@ class ReplaceBaselineWindowsTest < Minitest::Test
           assert((expected_vlt - model_vlt).abs < 0.001)
         end
       end
-      ################ END CUSTOMIZE ####################
+      assert(result.value.valueName == set[:result])
     end
   end
+
 end
