@@ -111,6 +111,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.upgrade_ids_to_skip = upgrade_ids_to_skip
         self.upgrade_ids_for_comparison = upgrade_ids_for_comparison
         self.states = states
+        self.unweighted_weighted_map = {}
+        self.dropping_columns = []
+        self.cached_parquet = [] # List of parquet files to reload and export
         self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
         if self.athena_table_name is not None:
             self.athena_client = BuildStockQuery(workgroup='eulp',
@@ -147,48 +150,87 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         logger.info(f'Skipping reload for upgrade {up_id}')
                         continue
                     logger.info(f'Reloading data from: {file_path}')
-                    upgrade_dfs.append(pl.read_parquet(file_path))
+                    upgrade_dfs.append(pl.scan_parquet(file_path))
                 self.data = pl.concat(upgrade_dfs)
             elif os.path.exists(os.path.join(self.output_dir, 'ComStock wide.csv')):
                 file_path = os.path.join(self.output_dir, 'ComStock wide.csv')
                 logger.info(f'Reloading data from: {file_path}')
-                self.data = pl.read_csv(file_path, dtypes={self.UPGRADE_ID: pl.Int64}, infer_schema_length=10000)
+                self.data = pl.scan_csv(file_path, dtypes={self.UPGRADE_ID: pl.Int64}, infer_schema_length=10000)
                 self.data = self.reduce_df_memory(self.data)
             else:
                 raise FileNotFoundError(
                 f'Cannot find wide .csv or .parquet in {self.output_dir} to reload data, set reload_from_csv=False.')
         else:
-            # Import columns from buildstock, results.csv, and other files
-            self.load_data(acceptable_failure_percentage, drop_failed_runs)
-            self.add_buildstock_csv_columns()
-            self.add_geospatial_columns()  # TODO remove geospatial join once reliably in buildstock.csv
-            self.add_ejscreen_columns()
-            self.add_cejst_columns()
-            self.data = self.downselect_imported_columns(self.data)
-            self.rename_columns_and_convert_units()
-            self.set_column_data_types()
-            # Calculate/generate columns based on imported columns
-            # self.add_aeo_nems_building_type_column()  # TODO POLARS figure out apply function
-            self.add_missing_energy_columns()
-            self.combine_utility_cols()
-            self.add_enduse_total_energy_columns()
-            self.add_energy_intensity_columns()
-            self.add_bill_intensity_columns()
-            self.add_energy_rate_columns()
-            self.add_normalized_qoi_columns()
-            self.add_vintage_column()
-            self.add_dataset_column()
-            # self.add_upgrade_building_id_column()  # TODO POLARS figure out apply function
-            self.add_hvac_metadata()
-            self.add_building_type_group()
-            self.data = self.reduce_df_memory(self.data)
-            self.add_enduse_fuel_group_columns()
-            self.add_enduse_group_columns()
-            self.add_addressable_segments_columns()
-            self.combine_emissions_cols()
-            self.add_metadata_index_col()
-            self.get_comstock_unscaled_monthly_energy_consumption()
 
+            # Get upgrades to process based on available results parquet files
+            upgrade_ids = []
+            results_paths = glob.glob(os.path.join(self.data_dir, 'results_up*.parquet'))
+            results_paths.sort()
+            for results_path in results_paths:
+                upgrade_id = np.int64(os.path.basename(results_path).replace('results_up', '').replace('.parquet', ''))
+
+                # Skip specified upgrades
+                if upgrade_id in self.upgrade_ids_to_skip:
+                    logger.info(f'Skipping upgrade {upgrade_id}')
+                    continue
+
+                upgrade_ids.append(upgrade_id)
+
+            # Import columns from buildstock, results.csv, and other files
+            up_lazyframes = []
+            upgradIdcount = {}
+            upgrade_ids.sort()
+            for upgrade_id in upgrade_ids:
+                self.data = None
+                # Change this to only load 1 upgrade
+                self.load_data(upgrade_id, acceptable_failure_percentage, drop_failed_runs)
+                self.add_buildstock_csv_columns()
+                self.add_geospatial_columns()  # TODO remove geospatial join once reliably in buildstock.csv
+                self.add_ejscreen_columns()
+                self.add_cejst_columns()
+                self.data = self.downselect_imported_columns(self.data)
+                self.rename_columns_and_convert_units()
+                self.set_column_data_types()
+                # Calculate/generate columns based on imported columns
+                # self.add_aeo_nems_building_type_column()  # TODO POLARS figure out apply function
+                self.add_missing_energy_columns()
+                self.combine_utility_cols()
+                self.add_enduse_total_energy_columns()
+                self.add_energy_intensity_columns()
+                self.add_bill_intensity_columns()
+                self.add_energy_rate_columns()
+                self.add_normalized_qoi_columns()
+                self.add_vintage_column()
+                self.add_dataset_column()
+                # self.add_upgrade_building_id_column()  # TODO POLARS figure out apply function
+                self.add_hvac_metadata()
+                self.add_building_type_group()
+                self.data = self.reduce_df_memory(self.data)
+                self.add_enduse_fuel_group_columns()
+                self.add_enduse_group_columns()
+                self.add_addressable_segments_columns()
+                self.combine_emissions_cols()
+                if upgrade_id not in upgradIdcount:
+                    upgradIdcount[upgrade_id] = self.data.filter(pl.col(self.UPGRADE_ID) == upgrade_id).shape[0]
+                self.add_metadata_index_col(upgradIdcount)
+                self.get_comstock_unscaled_monthly_energy_consumption()
+                self.add_unweighted_utility_savings_columns()
+                self.add_unweighted_energy_savings_columns()
+               # Downselect the self.data to just the upgrade
+                self.data = self.data.filter(pl.col(self.UPGRADE_ID) == upgrade_id)
+                # Write self.data to parquet file
+                file_name = f'cached_ComStock_wide_upgrade{upgrade_id}.parquet'
+                file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
+                self.cached_parquet.append((upgrade_id, file_path)) #cached_parquet is a list of parquets used to export and reload
+                logger.info(f'Exporting to: {file_path}')
+                self.reorder_data_columns()
+                self.data.write_parquet(file_path)
+                up_lazyframes.append(pl.scan_parquet(file_path))
+
+            # Now, we have self.data is one huge LazyFrame
+            # which is exactly like self.data was before because it includes all upgrades
+            self.data = pl.concat(up_lazyframes)
+            # logger.info(f'comstock data schema: {self.data.dtypes()}')
             # logger.debug('\nComStock columns after adding all data:')
             # for c in self.data.columns:
             #     logger.debug(c)
@@ -232,6 +274,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                             data.to_parquet(results_data_path)
 
         # buildstock.csv
+        #TODO: handle the missing buildstock.csv in a more robust way
+        #1. check the file in the data_dir
+        #2. if not found, download from S3
+        #3. if not found in S3, raise an error
+
         buildstock_csv_path = os.path.join(self.data_dir, self.buildstock_file_name)
         if not os.path.exists(buildstock_csv_path):
             raise FileNotFoundError(
@@ -423,7 +470,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         return df
 
-    def load_data(self, acceptable_failure_percentage=0.01, drop_failed_runs=True):
+    def load_data(self, upgrade_id, acceptable_failure_percentage=0.01, drop_failed_runs=True):
         # Ensure that the baseline results exist
         data_file_path = os.path.join(self.data_dir, self.results_file_name)
         if not os.path.exists(data_file_path):
@@ -442,10 +489,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         failure_summaries = []
 
         # Load results, identify failed runs
-        results_paths = glob.glob(os.path.join(self.data_dir, 'results_up*.parquet'))
-        results_paths.sort()
-        for results_path in results_paths:
-            upgrade_id = np.int64(os.path.basename(results_path).replace('results_up', '').replace('.parquet', ''))
+        for upgrade_id in [0, upgrade_id]:
 
             # Skip specified upgrades
             if upgrade_id in self.upgrade_ids_to_skip:
@@ -453,12 +497,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 continue
 
             # Load upgrade results
+            results_path = os.path.join(self.data_dir, f'results_up{str(upgrade_id).zfill(2)}.parquet')
             logger.info(f'Reading results_up{upgrade_id}')
             up_res = pl.read_parquet(results_path)
             up_res = up_res.with_columns([
                 pl.lit(upgrade_id).alias(self.UPGRADE_ID)
             ])
-
             # Set a few columns for the baseline
             if upgrade_id == 0:
                 up_res = up_res.with_columns([pl.lit(self.BASE_NAME).alias('apply_upgrade.upgrade_name')])
@@ -836,7 +880,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Combine applicable, not applicable, and failed-replaced-with-baseline results from all upgrades
         self.data = pl.concat(results_dfs, how='diagonal')
-
         # Reduce DF memory by converting some columns to boolean or category
         self.data = self.reduce_df_memory(self.data)
 
@@ -1771,21 +1814,31 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_groups, default=None)).alias(self.BLDG_TYPE_GROUP))
         self.data = self.data.with_columns(pl.col(self.BLDG_TYPE_GROUP).cast(pl.Categorical))
+        
 
     def add_national_scaling_weights(self, cbecs: CBECS, remove_non_comstock_bldg_types_from_cbecs: bool):
         # Remove CBECS entries for building types not included in the ComStock run
-        comstock_bldg_types = self.data[self.BLDG_TYPE].unique()
-        bldg_types_to_keep = []
+        # comstock_bldg_types = self.data[self.BLDG_TYPE].unique()
+        # assert "calc.weighted.utility_bills.total_mean_bill..billion_usd" in self.data.columns
+        assert isinstance(self.data, pl.LazyFrame)
+
+        comstock_bldg_types: set = set(self.data.select(self.BLDG_TYPE).unique().collect().to_pandas()[self.BLDG_TYPE].tolist())
+
+        cbecs.data: pd.DataFrame = cbecs.data.collect().to_pandas()
+        assert isinstance(cbecs.data, pd.DataFrame)
+        bldg_types_to_keep = [] #if the bldg types in both CBECS and ComStock, keep them.
         for bt in cbecs.data[self.BLDG_TYPE].unique():
             if bt in comstock_bldg_types:
                 bldg_types_to_keep.append(bt)
+
+        logger.debug("Building types to keep: ", bldg_types_to_keep)
         if remove_non_comstock_bldg_types_from_cbecs:
             # Modify CBECS to remove building types not covered by ComStock
             cbecs.data = cbecs.data[cbecs.data[self.BLDG_TYPE].isin(bldg_types_to_keep)]
-            cbecs = cbecs.data.copy(deep=True)
+            cbecsData = cbecs.data.copy(deep=True)
         else:
             # Make a copy of CBECS, leaving the original unchanged
-            cbecs = cbecs.data[cbecs.data[self.BLDG_TYPE].isin(bldg_types_to_keep)].copy(deep=True)
+            cbecsData = cbecs.data[cbecs.data[self.BLDG_TYPE].isin(bldg_types_to_keep)].copy(deep=True)
 
         # Calculate scaling factors used to scale ComStock results to CBECS square footages
         # Only includes successful ComStock simulations, so the failure rate will
@@ -1793,20 +1846,23 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Total sqft of each building type, CBECS
         wt_area_col = self.col_name_to_weighted(self.FLR_AREA)
-        cbecs_bldg_type_sqft = cbecs[[wt_area_col, self.BLDG_TYPE]].groupby([self.BLDG_TYPE]).sum()
+        cbecsData[wt_area_col] = cbecsData[wt_area_col].astype(float)
+        cbecs_bldg_type_sqft = cbecsData[[wt_area_col, self.BLDG_TYPE]].groupby([self.BLDG_TYPE]).sum()
+        # logger.debug(f"cbecs_bldg_type_sqft: {cbecsData[[wt_area_col, self.BLDG_TYPE]]}")
         logger.debug('CBECS floor area by building type')
         logger.debug(cbecs_bldg_type_sqft)
 
         # Total sqft of each building type, ComStock
-        baseline_data = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).clone()
-        comstock_bldg_type_sqft = baseline_data.group_by(self.BLDG_TYPE).agg([pl.col(self.FLR_AREA).sum()])
-        comstock_bldg_type_sqft = comstock_bldg_type_sqft.to_pandas().set_index(self.BLDG_TYPE)
+        baseline_data: pl.LazyFrame = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).clone()
+        comstock_bldg_type_sqft: pl.DataFrame = baseline_data.group_by(self.BLDG_TYPE).agg([pl.col(self.FLR_AREA).sum()]).collect()
+        comstock_bldg_type_sqft: pd.DataFrame = comstock_bldg_type_sqft.to_pandas().set_index(self.BLDG_TYPE)
         logger.debug('ComStock Baseline floor area by building type')
         logger.debug(comstock_bldg_type_sqft)
 
         # Calculate scaling factor for each building type based on floor area (not building/model count)
         sf = pd.concat([cbecs_bldg_type_sqft, comstock_bldg_type_sqft], axis = 1)
-        sf[self.BLDG_WEIGHT] = sf[wt_area_col]/sf[self.FLR_AREA]
+        logger.info("sf wt_area_col shape: ", sf[wt_area_col].shape)
+        sf[self.BLDG_WEIGHT] = sf[wt_area_col].astype(float) / sf[self.FLR_AREA].astype(float)
         bldg_type_scale_factors = sf[self.BLDG_WEIGHT].to_dict()
         if np.nan in bldg_type_scale_factors:
             wrn_msg = (f'A NaN value was found in the scaling factors, which means that a building type was missing '
@@ -1848,74 +1904,63 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.building_type_weights = bldg_type_scale_factors
         self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_scale_factors, default=None)).alias(self.BLDG_WEIGHT))
 
-        # Apply the weight to scale the area and energy columns
-        self.add_weighted_area_and_energy_columns()
-
-        # After adding weighted energy columns, calculate savings
-        if self.include_upgrades:
-            # Skip if savings columns are already in the data, which can happen when load_from_csv=True
-            wtg_tot_engy_col = self.col_name_to_weighted_savings(self.ANN_TOT_ENGY_KBTU, self.weighted_energy_units)
-            if wtg_tot_engy_col in self.data.columns:
-                logger.info('Energy savings columns already in data')
-            else:
-                self.add_weighted_energy_savings_columns()
-                self.add_weighted_utility_savings_columns()
-
-        # Adding weighting factors to the monthly data
+        # Apply the newly-added weights to the columns
+        self.add_weighted_area_energy_savings_columns() #compute out the weighted value, based on the unweighted columns and the weights.
         self.get_scaled_comstock_monthly_consumption_by_state()
+        assert isinstance(self.data, pl.LazyFrame)
 
+        assert isinstance(cbecs.data, pd.DataFrame)
+        cbecs.data = pl.from_pandas(cbecs.data).lazy()
+        assert isinstance(cbecs.data, pl.LazyFrame)
         return bldg_type_scale_factors
 
-    def add_weighted_area_and_energy_columns(self):
+    def add_weighted_area_energy_savings_columns(self):
+
+        assert isinstance(self.data, pl.LazyFrame)
         # Area - create weighted column
         new_area_col = self.col_name_to_weighted(self.FLR_AREA)
         self.data = self.data.with_columns(
                 (pl.col(self.FLR_AREA) * pl.col(self.BLDG_WEIGHT)).alias(new_area_col))
 
-        # Emissions
-        for col in (self.GHG_FUEL_COLS + [self.ANN_GHG_EGRID, self.ANN_GHG_CAMBIUM]):
-            # Weight and convert to MMT
-            new_col = self.col_name_to_weighted(col, self.weighted_ghg_units)
-            old_units = self.units_from_col_name(col)
-            new_units = self.weighted_ghg_units
-            conv_fact = self.conv_fact(old_units, new_units)
+        #generate the weighted columns with coventions for Emission, Utility, Energy Enduse group. 
+        old_unit_to_new_unit = {
+            'co2e_kg': self.weighted_ghg_units, #Emission, default : co2e_kg -> co2e_mmt 
+            'usd': self.weighted_utility_units, #Utility, default : usd -> billion_usd
+            'kwh': self.weighted_energy_units, #Energy and Enduse Groups, default : kwh -> tbtu
+        }
+        
+        for col in (self.GHG_FUEL_COLS + [self.ANN_GHG_EGRID, self.ANN_GHG_CAMBIUM] 
+                    + self.COLS_UTIL_BILLS + [self.UTIL_BILL_TOTAL_MEAN, 'out.utility_bills.electricity_bill_max..usd', 'out.utility_bills.electricity_bill_median..usd', 'out.utility_bills.electricity_bill_min..usd']
+                    + self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY + 
+                    self.COLS_ENDUSE_GROUP_TOT_ANN_ENGY + self.COLS_ENDUSE_GROUP_ANN_ENGY):
+            
+            assert col in self.data.columns
+            #based on the unit, we use different conv factor and convert the value to the new column
+            old_unit = self.units_from_col_name(col)
+
+            if old_unit not in old_unit_to_new_unit.keys():
+                raise Exception("The unit is not in the old_unit_to_new_unit mapping")
+            
+            new_col = self.col_name_to_weighted(col, old_unit_to_new_unit[old_unit])
+            conv_fact = self.conv_fact(old_unit, old_unit_to_new_unit[old_unit])
             self.data = self.data.with_columns(
                 (pl.col(col) * pl.col(self.BLDG_WEIGHT) * conv_fact).alias(new_col))
+        
+        #based on the unweighted savings columns, generate the weighted savings columns
+        if self.include_upgrades:
+            for unweighted_saving_cols, weighted_saving_cols in self.unweighted_weighted_map.items():
+                if weighted_saving_cols in self.dropping_columns:
+                    continue
+                if weighted_saving_cols in self.data.columns:
+                    continue
+                
+                old_unit = self.units_from_col_name(unweighted_saving_cols)
+                new_unit = self.units_from_col_name(weighted_saving_cols)
+                conv_fact = self.conv_fact(old_unit, new_unit)
+                self.data: pl.LazyFrame = self.data.with_columns((pl.col(unweighted_saving_cols) * pl.col(self.BLDG_WEIGHT) * conv_fact).alias(weighted_saving_cols))
 
-        # Utility Bills
-        for col in (self.COLS_UTIL_BILLS + [
-                                            self.UTIL_BILL_TOTAL_MEAN,
-                                            'out.utility_bills.electricity_bill_max..usd',
-                                            'out.utility_bills.electricity_bill_median..usd',
-                                            'out.utility_bills.electricity_bill_min..usd']):
-            # Weight and convert to million USD
-            new_col = self.col_name_to_weighted(col, self.weighted_utility_units)
-            old_units = self.units_from_col_name(col)
-            new_units = self.weighted_utility_units
-            conv_fact = self.conv_fact(old_units, new_units)
-            self.data = self.data.with_columns(
-                (pl.col(col) * pl.col(self.BLDG_WEIGHT) * conv_fact).alias(new_col))
-
-        # Energy
-        for col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY):
-            # Weight and convert to TBtu
-            new_col = self.col_name_to_weighted(col, self.weighted_energy_units)
-            old_units = self.units_from_col_name(col)
-            new_units = self.weighted_energy_units
-            conv_fact = self.conv_fact(old_units, new_units)
-            self.data = self.data.with_columns(
-                (pl.col(col) * pl.col(self.BLDG_WEIGHT) * conv_fact).alias(new_col))
-
-        # Enduse Groups
-        for col in (self.COLS_ENDUSE_GROUP_TOT_ANN_ENGY + self.COLS_ENDUSE_GROUP_ANN_ENGY):
-            # Weight and convert to TBtu
-            new_col = self.col_name_to_weighted(col, self.weighted_energy_units)
-            old_units = self.units_from_col_name(col)
-            new_units = self.weighted_energy_units
-            conv_fact = self.conv_fact(old_units, new_units)
-            self.data = self.data.with_columns(
-                (pl.col(col) * pl.col(self.BLDG_WEIGHT) * conv_fact).alias(new_col))
-
+        # logger.debug(f"summary of column calc.weighted.savings.utility_bills.total_mean_bill..billion_usd is {self.data.select('calc.weighted.savings.utility_bills.total_mean_bill..billion_usd').describe()}")
+        # raise Exception("Stop here")
         # Create weighted emissions for each enduse group
         # TODO once end-use emissions are reported, sum those columns directly
         for col in (self.COLS_ENDUSE_GROUP_ANN_ENGY + self.COLS_ENDUSE_GROUP_TOT_ANN_ENGY):
@@ -1953,32 +1998,36 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     .otherwise(0.0)
                     .alias(enduse_gp_ghg_col)
                 ])
-    def add_weighted_energy_savings_columns(self):
-        # Select energy columns to calculate savings for
+
+    def add_unweighted_energy_savings_columns(self):
+        
+        assert isinstance(self.data, pl.DataFrame)
+
         engy_cols = []
         abs_svgs_cols = {}
         pct_svgs_cols = {}
         wtd_pct_svgs_cols_to_drop = []
 
         for col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY):
-            for wtg_method in ['weighted', 'unweighted']:
-                if wtg_method == 'weighted':
-                    wtd_col = self.col_name_to_weighted(col, self.weighted_energy_units)
-                    engy_cols.append(wtd_col)
-                    abs_svgs_cols[wtd_col] = self.col_name_to_weighted_savings(col, self.weighted_energy_units)
-                    pct_svgs_cols[wtd_col] = self.col_name_to_weighted_percent_savings(col, 'percent')
-                    wtd_pct_svgs_cols_to_drop.append(self.col_name_to_weighted_percent_savings(col, 'percent'))
-                else:
-                    # for non eui columns
-                    engy_cols.append(col)
-                    abs_svgs_cols[col] = self.col_name_to_savings(col, None)
-                    pct_svgs_cols[col] = self.col_name_to_percent_savings(col, 'percent')
-                    # add eui savings for all unweighted eui columns
-                    eui_col = self.col_name_to_eui(col)
-                    engy_cols.append(eui_col)
-                    abs_svgs_cols[eui_col] = self.col_name_to_savings(eui_col, None)
-                    pct_svgs_cols[eui_col] = self.col_name_to_percent_savings(eui_col, 'percent')
+            # for non eui columns
+            engy_cols.append(col)
+            abs_svgs_cols[col] = self.col_name_to_savings(col, None)
+            pct_svgs_cols[col] = self.col_name_to_percent_savings(col, 'percent')
+            # add eui savings for all unweighted eui columns
+            eui_col = self.col_name_to_eui(col)
+            engy_cols.append(eui_col)
+            abs_svgs_cols[eui_col] = self.col_name_to_savings(eui_col, None)
+            pct_svgs_cols[eui_col] = self.col_name_to_percent_savings(eui_col, 'percent')
 
+            #save the dropping columns:
+            self.dropping_columns.append(self.col_name_to_weighted_percent_savings(col, 'percent')) 
+
+            #save the unweighted - weighted colmns to  columns name mapping
+            self.unweighted_weighted_map.update({
+                self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_energy_units),
+                self.col_name_to_percent_savings(col, 'percent'): self.col_name_to_weighted_percent_savings(col, 'percent')
+                })
+            
         # Keep the building ID and upgrade name columns to use as the index
         engy_and_id_cols = engy_cols + [self.BLDG_ID, self.UPGRADE_NAME]
 
@@ -2033,8 +2082,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.data = self.data.join(up_abs_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
         self.data = self.data.join(up_pct_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
 
-
-    def add_weighted_utility_savings_columns(self):
+    def add_unweighted_utility_savings_columns(self):
+        assert isinstance(self.data, pl.DataFrame)
         # Select energy columns to calculate savings for
         engy_cols = []
         abs_svgs_cols = {}
@@ -2047,24 +2096,21 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                             'out.utility_bills.electricity_bill_median..usd',
                                             'out.utility_bills.electricity_bill_min..usd']):
 
-            for wtg_method in ['weighted', 'unweighted']:
-                if wtg_method == 'weighted':
-                    wtd_col = self.col_name_to_weighted(col, self.weighted_utility_units)
-                    engy_cols.append(wtd_col)
-                    abs_svgs_cols[wtd_col] = self.col_name_to_weighted_savings(col, self.weighted_utility_units)
-                    pct_svgs_cols[wtd_col] = self.col_name_to_weighted_percent_savings(col, 'percent')
-                    wtd_pct_svgs_cols_to_drop.append(self.col_name_to_weighted_percent_savings(col, 'percent'))
-                else:
-                    # for non eui columns
-                    engy_cols.append(col)
-                    abs_svgs_cols[col] = self.col_name_to_savings(col, None)
-                    pct_svgs_cols[col] = self.col_name_to_percent_savings(col, 'percent')
-                    # add eui savings for all unweighted eui columns
-                    eui_col = self.col_name_to_area_intensity(col)
-                    engy_cols.append(eui_col)
-                    abs_svgs_cols[eui_col] = self.col_name_to_savings(eui_col, None)
-                    pct_svgs_cols[eui_col] = self.col_name_to_percent_savings(eui_col, 'percent')
-
+            engy_cols.append(col)
+            abs_svgs_cols[col] = self.col_name_to_savings(col, None)
+            pct_svgs_cols[col] = self.col_name_to_percent_savings(col, 'percent')
+            # add eui savings for all unweighted eui columns
+            eui_col = self.col_name_to_area_intensity(col)
+            engy_cols.append(eui_col)
+            abs_svgs_cols[eui_col] = self.col_name_to_savings(eui_col, None)
+            pct_svgs_cols[eui_col] = self.col_name_to_percent_savings(eui_col, 'percent')
+        
+            #save the unweighted - weighted columns name mapping
+            self.unweighted_weighted_map.update({
+                self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_utility_units),
+                self.col_name_to_percent_savings(col, 'percent'): self.col_name_to_weighted_percent_savings(col, 'percent')
+            })
+            self.dropping_columns.append(self.col_name_to_weighted_percent_savings(col, 'percent'))
         # Keep the building ID and upgrade name columns to use as the index
         engy_and_id_cols = engy_cols + [self.BLDG_ID, self.UPGRADE_NAME]
 
@@ -2074,7 +2120,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Caculate the savings for each upgrade, including the baseline
         up_abs_svgs = []
         up_pct_svgs = []
-
+        logger.debug(f"columns are {self.data.columns}, {'weighted' in self.data.columns}")
         for upgrade_name, up_res in self.data.groupby(self.UPGRADE_NAME):
 
             up_engy = up_res.select(engy_and_id_cols).sort(self.BLDG_ID).clone()
@@ -2118,17 +2164,19 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Join the savings columns onto the results
         self.data = self.data.join(up_abs_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
         self.data = self.data.join(up_pct_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
-
-
-    def add_metadata_index_col(self):
-        # Adds a column from 0 to the number of rows across all upgrades
-        # For example, 350k rows * (1 baseline + 1 upgrades) = 0 to 749,999
-
-        n_rows = self.data.shape[0]
-        idx_vals = [*range(0, n_rows, 1)]
-        self.data = self.data.with_columns([
-            pl.Series(name=self.META_IDX, values=idx_vals)
-        ])
+    
+    def add_metadata_index_col(self, upgradIdcount: dict):
+        # Add a metadata index column to the data
+        # updradeIdcount is a dictionary of the number of upgrades for each building: <building_id>: <number of upgrades>
+        # If there is only one upgrade, the metadata index is the same as the building ID
+        offset = sum(upgradIdcount[x] for x in upgradIdcount.keys() if x != max(upgradIdcount.keys()))
+        upgrades = sorted(self.data[self.UPGRADE_ID].unique())
+        df_baseline = self.data.filter(pl.col(self.UPGRADE_ID) == 0).with_columns(pl.arange(0, pl.len()).alias(self.META_IDX))
+        if len(upgrades) > 1:
+            df_upgrade = self.data.filter(pl.col(self.UPGRADE_ID) == upgrades[1]).with_columns(pl.arange(offset, offset + pl.len()).alias(self.META_IDX))
+            self.data = pl.concat([df_baseline, df_upgrade])
+        else:
+            self.data = df_baseline
 
     def remove_sightglass_column_units(self):
         # SightGlass requires that the energy_consumption, energy_consumption_intensity,
@@ -2360,14 +2408,15 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Reorder the columns before exporting
         self.reorder_data_columns()
-
-        up_ids = self.data.get_column(self.UPGRADE_ID).unique().to_list()
+        assert isinstance(self.data, pl.LazyFrame)
+        # up_ids = self.data.get_column(self.UPGRADE_ID).unique().to_list()
+        up_ids = [up_id for (up_id, parque_path) in self.cached_parquet]
         up_ids.sort()
         for up_id in up_ids:
             file_name = f'ComStock wide upgrade{up_id}.csv'
             file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
             logger.info(f'Exporting to: {file_path}')
-            self.data.filter(pl.col(self.UPGRADE_ID) == up_id).write_csv(file_path)
+            self.data.filter(pl.col(self.UPGRADE_ID) == up_id).sink_csv(file_path)
 
         # Export dictionaries corresponding to the exported columns
         self.export_data_and_enumeration_dictionary()
@@ -2377,14 +2426,15 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Reorder the columns before exporting
         self.reorder_data_columns()
-
-        up_ids = self.data.get_column(self.UPGRADE_ID).unique().to_list()
+        logger.info(f'self.data type is {type(self.data)}')
+        assert isinstance(self.data, pl.LazyFrame)
+        up_ids = [up_id for (up_id, parque_path) in self.cached_parquet]
         up_ids.sort()
         for up_id in up_ids:
             file_name = f'ComStock wide upgrade{up_id}.parquet'
             file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
             logger.info(f'Exporting to: {file_path}')
-            self.data.filter(pl.col(self.UPGRADE_ID) == up_id).write_parquet(file_path)
+            self.data.filter(pl.col(self.UPGRADE_ID) == up_id).sink_parquet(file_path)
 
         # Export dictionaries corresponding to the exported columns
         self.export_data_and_enumeration_dictionary()
@@ -2483,15 +2533,22 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.create_long_energy_data()
 
         # Save files - separate building energy from characteristics for file size
-        up_ids = self.data.get_column(self.UPGRADE_ID).unique().to_list()
-        up_ids.sort()
-        logger.error(f'Got here {up_ids}')
-        for up_id in up_ids:
-            logger.error('Got here')
-            file_name = f'upgrade{up_id:02d}_energy_long.csv'
+        # up_ids = self.data.get_column(self.UPGRADE_ID).unique().to_list()
+        # up_ids.sort()
+        # logger.error(f'Got here {up_ids}')
+        # for up_id in up_ids:
+        #     logger.error('Got here')
+        #     file_name = f'upgrade{up_id:02d}_energy_long.csv'
+        #     file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
+        #     logger.info(f'Exporting to: {file_path}')
+        #     self.data.filter(pl.col(self.UPGRADE_ID) == up_id).write_csv(file_path)
+
+        for cached_parquet in self.cached_parquet:
+            file_name = f'{cached_parquet}_energy_long.csv'
             file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
             logger.info(f'Exporting to: {file_path}')
-            self.data.filter(pl.col(self.UPGRADE_ID) == up_id).write_csv(file_path)
+            self.data_long.write_csv(file_path)
+
 
     def combine_emissions_cols(self):
         # Create combined emissions columns
@@ -2547,6 +2604,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 logger.info(f"-- Converted units from {orig_units} to {new_units} by multiplying by {cf}")
 
     def export_data_and_enumeration_dictionary(self):
+
+        assert isinstance(self.data, pl.LazyFrame)
+
         # Read column definitions
         col_def_path = os.path.join(RESOURCE_DIR, COLUMN_DEFINITION_FILE_NAME)
         col_defs = pl.read_csv(col_def_path)
@@ -2571,7 +2631,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             col_enums = []
             if col_def['data_type'] == 'string':
                 str_enums = []
-                for enum in self.data.select(col).unique().to_series().to_list():
+                for enum in self.data.select(col).unique().collect().to_series().to_list():
                     if enum is None:
                         continue  # Don't define blank enumerations
                     try:
@@ -2611,7 +2671,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 'enumeration': enum,
                 'enumeration_description': enum_def['enumeration_description']
             })
-        enum_dictionary = pl.from_dicts(enum_dicts)
+
+        if enum_dicts:
+            enum_dictionary = pl.from_dicts(enum_dicts)
+        else:
+            enum_dictionary = pl.DataFrame()
 
         # Save files
         file_name = f'data_dictionary.tsv'

@@ -625,9 +625,16 @@ class NamingMixin():
         return col_name
 
     def col_name_to_savings(self, col_name, new_units=None):
-        col_name = col_name.replace('.energy_consumption', '.energy_savings')
-        col_name = col_name.replace('_bill_', '_bill_savings_')
-        return col_name
+        converted_col_name = col_name.replace('.energy_consumption', '.energy_savings')
+        if "_bill_" in converted_col_name:
+            converted_col_name = converted_col_name.replace('_bill_', '_bill_savings_')
+        elif "_bill.." in converted_col_name:
+            converted_col_name = converted_col_name.replace('_bill..', '_bill_savings..')
+            
+        if converted_col_name == col_name:
+            raise ValueError(f"Cannot convert column name {col_name} to savings column") 
+        
+        return converted_col_name
 
     def col_name_to_weighted_percent_savings(self, col_name, new_units=None):
         col_name = self.col_name_to_weighted(col_name, new_units)

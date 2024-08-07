@@ -48,11 +48,12 @@ class ComStockToEIAComparison(NamingMixin, UnitsMixin, PlottingMixin):
         # for dataset in (comstock_list + eia_list):
             logger.info(f'Adding dataset: {dataset.dataset_name}')
             dataset_names.append(dataset.dataset_name)
-            if isinstance(dataset, ComStock):
+            if isinstance(dataset, ComStock): #dataset is ComStock
+                assert isinstance(dataset.data, pl.LazyFrame)
                 # Annual emissions
                 annual_upgrade_ids = [upgrade_id]
                 if upgrade_id == 'All':
-                    annual_upgrade_ids = dataset.data.get_column('upgrade').unique().to_list()
+                    annual_upgrade_ids = dataset.data.select(pl.col('upgrade')).unique().collect().to_list()
                 annual_data = dataset.data.filter(pl.col('upgrade').is_in(annual_upgrade_ids))
                 if not annual_upgrade_ids == [0]:
                     annual_data = annual_data.with_columns(
@@ -61,7 +62,8 @@ class ComStockToEIAComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 color_dict = self.linear_gradient(dataset.COLOR_COMSTOCK_BEFORE, dataset.COLOR_COMSTOCK_AFTER, len(annual_upgrade_ids))
                 for idx, dataset_upgrade_name in enumerate(annual_data.get_column(dataset.DATASET).unique().sort().to_list()):
                     self.color_map[dataset_upgrade_name] = color_dict['hex'][idx]
-                annual_dfs_to_concat.append(annual_data.to_pandas())
+                assert isinstance(annual_data, pl.LazyFrame)
+                annual_dfs_to_concat.append(annual_data)
 
                 # Monthly energy
                 if dataset.monthly_data is None:
@@ -79,9 +81,10 @@ class ComStockToEIAComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 for idx, dataset_upgrade_name in enumerate(monthly_data.get_column(dataset.DATASET).unique().sort().to_list()):
                     self.monthly_color_map[dataset_upgrade_name] = color_dict['hex'][idx]
                 monthly_dfs_to_concat.append(monthly_data.to_pandas())
-            else:
+            else:  #dataset is EIA
+                assert isinstance(dataset.emissions_data, pl.LazyFrame)
                 # Annual emissions
-                annual_dfs_to_concat.append(dataset.emissions_data.to_pandas())
+                annual_dfs_to_concat.append(dataset.emissions_data)
                 self.color_map[dataset.dataset_name] = dataset.color
 
                 # Monthly energy
@@ -93,8 +96,24 @@ class ComStockToEIAComparison(NamingMixin, UnitsMixin, PlottingMixin):
             self.name = ' vs '.join(sorted(dataset_names,key=len)[:2])
 
         # Combine into a single dataframe for convenience
-        self.monthly_data = pd.concat(monthly_dfs_to_concat, join='outer', ignore_index=True)
-        self.data = pd.concat(annual_dfs_to_concat, join='inner', ignore_index=True)
+        # self.monthly_data = pl.concat(monthly_dfs_to_concat, join='outer', ignore_index=True)
+        self.monthly_data = pl.concat(monthly_dfs_to_concat, how="vertical_relaxed")
+        assert isinstance(self.monthly_data, pl.LazyFrame)
+
+        # self.data = pl.concat(annual_dfs_to_concat, join='inner', ignore_index=True)
+        common_columns = set(annual_dfs_to_concat[0].columns)
+        for df in annual_dfs_to_concat:
+            common_columns = common_columns.intersection(set(df.columns))
+        dfs_to_concat = [df.select(common_columns) for df in annual_dfs_to_concat]
+        self.data: pl.LazyFrame = pl.concat(dfs_to_concat, how="vertical_relaxed")
+        assert isinstance(self.data, pl.LazyFrame)
+
+        self.data = self.data.collect().to_pandas()
+        self.monthly_data = self.monthly_data.collect().to_pandas()
+
+        assert isinstance(self.data, pd.DataFrame) 
+        assert isinstance(self.monthly_data, pd.DataFrame)
+
         current_dir = os.path.dirname(os.path.abspath(__file__))
 
         # Make directories
