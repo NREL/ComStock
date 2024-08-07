@@ -102,6 +102,12 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     peak_window_strategy.setDefaultValue('center with peak')
     args << peak_window_strategy
 
+    # apply_measure = OpenStudio::Measure::OSArgument.makeBoolArgument('apply_measure', true)
+    # apply_measure.setDisplayName('Apply measure?')
+    # apply_measure.setDescription('')
+    # apply_measure.setDefaultValue(true)
+    # args << apply_measure
+
     return args
   end
 
@@ -124,16 +130,11 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     load_prediction_method = runner.getStringArgumentValue("load_prediction_method",user_arguments)
     peak_lag = runner.getIntegerArgumentValue("peak_lag",user_arguments)
     peak_window_strategy = runner.getStringArgumentValue("peak_window_strategy",user_arguments)
+    # apply_measure = runner.getBoolArgumentValue('apply_measure', user_arguments)
 
-    def light_factor_hourly_based_on_sch(peak_sch, light_adjustment_method, light_adjustment)
-      if light_adjustment_method == 'absolute change'
-        light_factor_values = peak_sch.map{|a| [a-light_adjustment/100.0, 0].max}
-      elsif light_adjustment_method == 'relative change'
-        light_factor_values = peak_sch.map{|a| (1-light_adjustment/100.0)*a}
-      else
-        raise "Not supported light adjustment method"
-      end
-      return light_factor_values
+    def light_adj_based_on_sch(peak_sch, light_adjustment)
+      light_adj_values = peak_sch.map{|a| 1-light_adjustment/100.0*a}
+      return light_adj_values
     end
     
     def get_hourly_schedule_from_schedule_ruleset(model, schedule_ruleset)
@@ -195,7 +196,7 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
       return values
     end
 
-    def adjust_lighting_sch(model,runner,light_factor_values)
+    def adjust_lighting_sch(model,runner,light_adjustment_method,light_adj_values)
       yd = model.getYearDescription
       start_date = yd.makeDate(1, 1)
       lights = model.getLightss
@@ -217,10 +218,16 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
             schedule = schedule.to_Schedule.get
             # convert old sch to time series
             schedule_ts = get_hourly_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get)
-            if schedule_ts.size <= light_factor_values.size
-              new_schedule_ts = schedule_ts.map.with_index { |val, ind| val * light_factor_values[ind] }
+            if light_adjustment_method == 'absolute change'
+              new_schedule_ts = schedule_ts.map.with_index { |val, ind| [val-(1.0-light_adj_values[ind]), 0].max}
+            elsif light_adjustment_method == 'relative change'
+              if schedule_ts.size <= light_adj_values.size
+                new_schedule_ts = schedule_ts.map.with_index { |val, ind| val * light_adj_values[ind] }
+              else
+                new_schedule_ts = light_adj_values.map.with_index { |val, ind| val * schedule_ts[ind] }
+              end
             else
-              new_schedule_ts = light_factor_values.map.with_index { |val, ind| val * schedule_ts[ind] }
+              raise "Not supported light adjustment method"
             end
             schedule_values = OpenStudio::Vector.new(new_schedule_ts.length, 0.0)
             new_schedule_ts.each_with_index do |val,i|
@@ -273,6 +280,21 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
       end
     end
 
+    # adding output variables (for debugging)
+    out_vars = [
+      'Lights Electricity Energy',
+      'Lights Electricity Rate',
+      'Zone Lights Electricity Energy',
+      'Zone Lights Electricity Rate',
+      'Schedule Value'
+    ]
+    out_vars.each do |out_var_name|
+        ov = OpenStudio::Model::OutputVariable.new('ov', model)
+        ov.setKeyValue('*')
+        ov.setReportingFrequency('timestep')
+        ov.setVariableName(out_var_name)
+    end
+
     ############################################
     # Applicability check
     ############################################
@@ -296,6 +318,12 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
       return true
     end
     runner.registerInitialCondition("The building is applicable for this measure.")
+
+    # # applicability: don't apply measure if specified in input
+    # if apply_measure == false
+    #   runner.registerAsNotApplicable('Measure is not applied based on user input.')
+    #   return true
+    # end
 
     ############################################
     # Load prediction
@@ -367,26 +395,26 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
         end
       end
       puts "--- cz = #{cz}"
-      peak_schedule_clg, peak_schedule_htg = peak_schedule_generation_fix(cz, oat, rebound_len=0, prepeak_len=0, season='all')
+      peak_schedule, peak_schedule_htg = peak_schedule_generation_fix(cz, oat, rebound_len=0, prepeak_len=0, season='all')
     elsif load_prediction_method == 'oat'
       puts("### OAT-based schedule...")
-      peak_schedule_clg, peak_schedule_htg = peak_schedule_generation_oat(oat, peak_len, peak_lag=peak_lag, rebound_len=rebound_len, prepeak_len=0, season='all')
+      peak_schedule, peak_schedule_htg = peak_schedule_generation_oat(oat, peak_len, peak_lag=peak_lag, rebound_len=rebound_len, prepeak_len=0, season='all')
     else
       puts("### Predictive schedule...")
-      peak_schedule_clg = peak_schedule_generation(annual_load, oat, peak_len, num_timesteps_in_hr=num_timesteps_in_hr, peak_window_strategy=peak_window_strategy, rebound_len=0, prepeak_len=0, season='all')
+      peak_schedule = peak_schedule_generation(annual_load, oat, peak_len, num_timesteps_in_hr=num_timesteps_in_hr, peak_window_strategy=peak_window_strategy, rebound_len=0, prepeak_len=0, season='all')
     end
-    # puts("--- peak_schedule = #{peak_schedule_clg}")
-    puts("--- peak_schedule.size = #{peak_schedule_clg.size}")
+    # puts("--- peak_schedule = #{peak_schedule}")
+    puts("--- peak_schedule.size = #{peak_schedule.size}")
 
     ############################################
     # Update lighting schedule 
     ############################################
     puts("### ============================================================")
     puts("### Creating lighting factor values...")
-    light_factor_values = light_factor_hourly_based_on_sch(peak_schedule_clg, light_adjustment_method, light_adjustment)
+    light_adj_values = light_adj_based_on_sch(peak_schedule, light_adjustment)
+    # puts("--- light_adj_values = #{light_adj_values}")
     puts("### Updating lighting schedule...")
-    nl, nla = adjust_lighting_sch(model,runner,light_factor_values)
-    # puts("--- light_factor_values = #{light_factor_values}")
+    nl, nla = adjust_lighting_sch(model,runner,light_adjustment_method,light_adj_values)
 
     runner.registerFinalCondition("Updated #{nla}/#{nl} lighting schedules")
     return true

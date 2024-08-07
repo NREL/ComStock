@@ -58,6 +58,16 @@ class DFLightingControlTest < Minitest::Test
       weather: 'MN_Cloquet_Carlton_Co_726558_16',
       result: 'Success'
     }
+    test_sets << {
+      model: '3340',
+      weather: '3340',
+      result: 'Success'
+    }
+    test_sets << {
+      model: '4774',
+      weather: '4774',
+      result: 'Success'
+    }
     # test: not applicable building type
     test_sets << {
       model: 'Outpatient_VAV_chiller_PFP_boxes',

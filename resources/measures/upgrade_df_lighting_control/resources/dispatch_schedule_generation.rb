@@ -82,7 +82,7 @@ def read_epw(model, epw_path=nil)
   if weather_ts.is_initialized
     weather_ts = weather_ts.get
   else
-    puts "FAIL, could not retrieve field: #{field} from #{epw_file}"
+    raise "FAIL, could not retrieve field: #{field} from #{epw_file}"
   end
   # Put dateTimes into array
   times = []
@@ -686,9 +686,9 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path=nil, run_
   end_month_orig = model.getRunPeriod.getEndMonth
   end_day_orig = model.getRunPeriod.getEndDayOfMonth
   num_timesteps_in_hr_orig = model.getTimestep.numberOfTimestepsPerHour
-  zonesizing_orig = model.getSimulationControl.doZoneSizingCalculation
-  syssizing_orig = model.getSimulationControl.doSystemSizingCalculation
-  plantsizing_orig = model.getSimulationControl.doPlantSizingCalculation
+  # zonesizing_orig = model.getSimulationControl.doZoneSizingCalculation
+  # syssizing_orig = model.getSimulationControl.doSystemSizingCalculation
+  # plantsizing_orig = model.getSimulationControl.doPlantSizingCalculation
   ### reference: SetRunPeriod measure on BCL
   model.getRunPeriod.setBeginMonth(1)
   model.getRunPeriod.setBeginDayOfMonth(1)
@@ -697,16 +697,17 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path=nil, run_
   if num_timesteps_in_hr != 4
     model.getTimestep.setNumberOfTimestepsPerHour(num_timesteps_in_hr)
   end
-  model.getSimulationControl.setDoZoneSizingCalculation(false)
-  model.getSimulationControl.setDoSystemSizingCalculation(false)
-  model.getSimulationControl.setDoPlantSizingCalculation(false)
+  # model.getSimulationControl.setDoZoneSizingCalculation(false)
+  # model.getSimulationControl.setDoSystemSizingCalculation(false)
+  # model.getSimulationControl.setDoPlantSizingCalculation(false)
   osm_path = OpenStudio::Path.new("#{run_dir}/#{osm_name}")
   osw_path = OpenStudio::Path.new("#{run_dir}/#{osw_name}")
   model.save(osm_path, true)
   # Set up the simulation
   # Find the weather file
   if epw_path==nil
-    epw_path = std.model_get_full_weather_file_path(model)
+  #   epw_path = std.model_get_full_weather_file_path(model)
+    epw_path = model.weatherFile.get.path
     if epw_path.empty?
       return false
     end
@@ -836,9 +837,9 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path=nil, run_
   model.getRunPeriod.setEndMonth(end_month_orig)
   model.getRunPeriod.setEndDayOfMonth(end_day_orig)
   model.getTimestep.setNumberOfTimestepsPerHour(num_timesteps_in_hr_orig)
-  model.getSimulationControl.setDoZoneSizingCalculation(zonesizing_orig)
-  model.getSimulationControl.setDoSystemSizingCalculation(syssizing_orig)
-  model.getSimulationControl.setDoPlantSizingCalculation(plantsizing_orig)
+  # model.getSimulationControl.setDoZoneSizingCalculation(zonesizing_orig)
+  # model.getSimulationControl.setDoSystemSizingCalculation(syssizing_orig)
+  # model.getSimulationControl.setDoPlantSizingCalculation(plantsizing_orig)
   return vals
 end
 
