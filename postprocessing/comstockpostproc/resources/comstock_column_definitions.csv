@@ -1026,6 +1026,165 @@ results.csv,qoi_report.total_electricity_use_nov_kwh,out.electricity.total.nov.e
 results.csv,qoi_report.total_electricity_use_dec_kwh,out.electricity.total.dec.energy_consumption,TRUE,FALSE,float,kwh,kwh,Total electricity energy consumption during December
 results.csv,run_directory_cleanup.applicable,,FALSE,FALSE,boolean,,,Specifies if directory cleanup was applied to model
 results.csv,run_name,,FALSE,FALSE,string,,,Name of original ComStock run sometimes manually added when combining multiple ComStock runs
+results.csv,scout_loads_summary.applicable,,,,,,,
+results.csv,scout_loads_summary.building_annual_energy_balance_gain_error_pct,,,,,,,
+results.csv,scout_loads_summary.building_annual_energy_balance_loss_error_pct,,,,,,,
+results.csv,scout_loads_summary.district_cooling_999_cooling_999_demand_999_doors_conduction_gj,out.loads.district_cooling.cooling.demand.doors_conduction,TRUE,TRUE,float,gj,kbtu,Doors Conduction demand met by District Cooling during cooling
+results.csv,scout_loads_summary.district_cooling_999_cooling_999_demand_999_equipment_gain_gj,out.loads.district_cooling.cooling.demand.equipment_gain,TRUE,TRUE,float,gj,kbtu,Equipment Gain demand met by District Cooling during cooling
+results.csv,scout_loads_summary.district_cooling_999_cooling_999_demand_999_floor_gj,out.loads.district_cooling.cooling.demand.floor,TRUE,TRUE,float,gj,kbtu,Floor demand met by District Cooling during cooling
+results.csv,scout_loads_summary.district_cooling_999_cooling_999_demand_999_foundation_wall_gj,out.loads.district_cooling.cooling.demand.foundation_wall,TRUE,TRUE,float,gj,kbtu,Foundation Wall demand met by District Cooling during cooling
+results.csv,scout_loads_summary.district_cooling_999_cooling_999_demand_999_ground_gj,out.loads.district_cooling.cooling.demand.ground,TRUE,TRUE,float,gj,kbtu,Ground demand met by District Cooling during cooling
+results.csv,scout_loads_summary.district_cooling_999_cooling_999_demand_999_infiltration_gj,out.loads.district_cooling.cooling.demand.infiltration,TRUE,TRUE,float,gj,kbtu,Infiltration demand met by District Cooling during cooling
+results.csv,scout_loads_summary.district_cooling_999_cooling_999_demand_999_lighting_gain_gj,out.loads.district_cooling.cooling.demand.lighting_gain,TRUE,TRUE,float,gj,kbtu,Lighting Gain demand met by District Cooling during cooling
+results.csv,scout_loads_summary.district_cooling_999_cooling_999_demand_999_people_gain_gj,out.loads.district_cooling.cooling.demand.people_gain,TRUE,TRUE,float,gj,kbtu,People Gain demand met by District Cooling during cooling
+results.csv,scout_loads_summary.district_cooling_999_cooling_999_demand_999_roof_gj,out.loads.district_cooling.cooling.demand.roof,TRUE,TRUE,float,gj,kbtu,Roof demand met by District Cooling during cooling
+results.csv,scout_loads_summary.district_cooling_999_cooling_999_demand_999_ventilation_gj,out.loads.district_cooling.cooling.demand.ventilation,TRUE,TRUE,float,gj,kbtu,Ventilation demand met by District Cooling during cooling
+results.csv,scout_loads_summary.district_cooling_999_cooling_999_demand_999_wall_gj,out.loads.district_cooling.cooling.demand.wall,TRUE,TRUE,float,gj,kbtu,Wall demand met by District Cooling during cooling
+results.csv,scout_loads_summary.district_cooling_999_cooling_999_demand_999_windows_conduction_gj,out.loads.district_cooling.cooling.demand.windows_conduction,TRUE,TRUE,float,gj,kbtu,Windows Conduction demand met by District Cooling during cooling
+results.csv,scout_loads_summary.district_cooling_999_cooling_999_demand_999_windows_solar_gj,out.loads.district_cooling.cooling.demand.windows_solar,TRUE,TRUE,float,gj,kbtu,Windows Solar demand met by District Cooling during cooling
+results.csv,scout_loads_summary.district_cooling_999_floating_999_demand_999_doors_conduction_gj,out.loads.district_cooling.floating.demand.doors_conduction,TRUE,TRUE,float,gj,kbtu,Doors Conduction demand met by District Cooling during floating
+results.csv,scout_loads_summary.district_cooling_999_floating_999_demand_999_equipment_gain_gj,out.loads.district_cooling.floating.demand.equipment_gain,TRUE,TRUE,float,gj,kbtu,Equipment Gain demand met by District Cooling during floating
+results.csv,scout_loads_summary.district_cooling_999_floating_999_demand_999_floor_gj,out.loads.district_cooling.floating.demand.floor,TRUE,TRUE,float,gj,kbtu,Floor demand met by District Cooling during floating
+results.csv,scout_loads_summary.district_cooling_999_floating_999_demand_999_foundation_wall_gj,out.loads.district_cooling.floating.demand.foundation_wall,TRUE,TRUE,float,gj,kbtu,Foundation Wall demand met by District Cooling during floating
+results.csv,scout_loads_summary.district_cooling_999_floating_999_demand_999_ground_gj,out.loads.district_cooling.floating.demand.ground,TRUE,TRUE,float,gj,kbtu,Ground demand met by District Cooling during floating
+results.csv,scout_loads_summary.district_cooling_999_floating_999_demand_999_infiltration_gj,out.loads.district_cooling.floating.demand.infiltration,TRUE,TRUE,float,gj,kbtu,Infiltration demand met by District Cooling during floating
+results.csv,scout_loads_summary.district_cooling_999_floating_999_demand_999_lighting_gain_gj,out.loads.district_cooling.floating.demand.lighting_gain,TRUE,TRUE,float,gj,kbtu,Lighting Gain demand met by District Cooling during floating
+results.csv,scout_loads_summary.district_cooling_999_floating_999_demand_999_people_gain_gj,out.loads.district_cooling.floating.demand.people_gain,TRUE,TRUE,float,gj,kbtu,People Gain demand met by District Cooling during floating
+results.csv,scout_loads_summary.district_cooling_999_floating_999_demand_999_roof_gj,out.loads.district_cooling.floating.demand.roof,TRUE,TRUE,float,gj,kbtu,Roof demand met by District Cooling during floating
+results.csv,scout_loads_summary.district_cooling_999_floating_999_demand_999_ventilation_gj,out.loads.district_cooling.floating.demand.ventilation,TRUE,TRUE,float,gj,kbtu,Ventilation demand met by District Cooling during floating
+results.csv,scout_loads_summary.district_cooling_999_floating_999_demand_999_wall_gj,out.loads.district_cooling.floating.demand.wall,TRUE,TRUE,float,gj,kbtu,Wall demand met by District Cooling during floating
+results.csv,scout_loads_summary.district_cooling_999_floating_999_demand_999_windows_conduction_gj,out.loads.district_cooling.floating.demand.windows_conduction,TRUE,TRUE,float,gj,kbtu,Windows Conduction demand met by District Cooling during floating
+results.csv,scout_loads_summary.district_cooling_999_floating_999_demand_999_windows_solar_gj,out.loads.district_cooling.floating.demand.windows_solar,TRUE,TRUE,float,gj,kbtu,Windows Solar demand met by District Cooling during floating
+results.csv,scout_loads_summary.district_cooling_999_heating_999_demand_999_doors_conduction_gj,out.loads.district_cooling.heating.demand.doors_conduction,TRUE,TRUE,float,gj,kbtu,Doors Conduction demand met by District Cooling during heating
+results.csv,scout_loads_summary.district_cooling_999_heating_999_demand_999_equipment_gain_gj,out.loads.district_cooling.heating.demand.equipment_gain,TRUE,TRUE,float,gj,kbtu,Equipment Gain demand met by District Cooling during heating
+results.csv,scout_loads_summary.district_cooling_999_heating_999_demand_999_floor_gj,out.loads.district_cooling.heating.demand.floor,TRUE,TRUE,float,gj,kbtu,Floor demand met by District Cooling during heating
+results.csv,scout_loads_summary.district_cooling_999_heating_999_demand_999_foundation_wall_gj,out.loads.district_cooling.heating.demand.foundation_wall,TRUE,TRUE,float,gj,kbtu,Foundation Wall demand met by District Cooling during heating
+results.csv,scout_loads_summary.district_cooling_999_heating_999_demand_999_ground_gj,out.loads.district_cooling.heating.demand.ground,TRUE,TRUE,float,gj,kbtu,Ground demand met by District Cooling during heating
+results.csv,scout_loads_summary.district_cooling_999_heating_999_demand_999_infiltration_gj,out.loads.district_cooling.heating.demand.infiltration,TRUE,TRUE,float,gj,kbtu,Infiltration demand met by District Cooling during heating
+results.csv,scout_loads_summary.district_cooling_999_heating_999_demand_999_lighting_gain_gj,out.loads.district_cooling.heating.demand.lighting_gain,TRUE,TRUE,float,gj,kbtu,Lighting Gain demand met by District Cooling during heating
+results.csv,scout_loads_summary.district_cooling_999_heating_999_demand_999_people_gain_gj,out.loads.district_cooling.heating.demand.people_gain,TRUE,TRUE,float,gj,kbtu,People Gain demand met by District Cooling during heating
+results.csv,scout_loads_summary.district_cooling_999_heating_999_demand_999_roof_gj,out.loads.district_cooling.heating.demand.roof,TRUE,TRUE,float,gj,kbtu,Roof demand met by District Cooling during heating
+results.csv,scout_loads_summary.district_cooling_999_heating_999_demand_999_ventilation_gj,out.loads.district_cooling.heating.demand.ventilation,TRUE,TRUE,float,gj,kbtu,Ventilation demand met by District Cooling during heating
+results.csv,scout_loads_summary.district_cooling_999_heating_999_demand_999_wall_gj,out.loads.district_cooling.heating.demand.wall,TRUE,TRUE,float,gj,kbtu,Wall demand met by District Cooling during heating
+results.csv,scout_loads_summary.district_cooling_999_heating_999_demand_999_windows_conduction_gj,out.loads.district_cooling.heating.demand.windows_conduction,TRUE,TRUE,float,gj,kbtu,Windows Conduction demand met by District Cooling during heating
+results.csv,scout_loads_summary.district_cooling_999_heating_999_demand_999_windows_solar_gj,out.loads.district_cooling.heating.demand.windows_solar,TRUE,TRUE,float,gj,kbtu,Windows Solar demand met by District Cooling during heating
+results.csv,scout_loads_summary.district_heating_999_cooling_999_demand_999_doors_conduction_gj,out.loads.district_heating.cooling.demand.doors_conduction,TRUE,TRUE,float,gj,kbtu,Doors Conduction demand met by District Heating during cooling
+results.csv,scout_loads_summary.district_heating_999_cooling_999_demand_999_equipment_gain_gj,out.loads.district_heating.cooling.demand.equipment_gain,TRUE,TRUE,float,gj,kbtu,Equipment Gain demand met by District Heating during cooling
+results.csv,scout_loads_summary.district_heating_999_cooling_999_demand_999_floor_gj,out.loads.district_heating.cooling.demand.floor,TRUE,TRUE,float,gj,kbtu,Floor demand met by District Heating during cooling
+results.csv,scout_loads_summary.district_heating_999_cooling_999_demand_999_foundation_wall_gj,out.loads.district_heating.cooling.demand.foundation_wall,TRUE,TRUE,float,gj,kbtu,Foundation Wall demand met by District Heating during cooling
+results.csv,scout_loads_summary.district_heating_999_cooling_999_demand_999_ground_gj,out.loads.district_heating.cooling.demand.ground,TRUE,TRUE,float,gj,kbtu,Ground demand met by District Heating during cooling
+results.csv,scout_loads_summary.district_heating_999_cooling_999_demand_999_infiltration_gj,out.loads.district_heating.cooling.demand.infiltration,TRUE,TRUE,float,gj,kbtu,Infiltration demand met by District Heating during cooling
+results.csv,scout_loads_summary.district_heating_999_cooling_999_demand_999_lighting_gain_gj,out.loads.district_heating.cooling.demand.lighting_gain,TRUE,TRUE,float,gj,kbtu,Lighting Gain demand met by District Heating during cooling
+results.csv,scout_loads_summary.district_heating_999_cooling_999_demand_999_people_gain_gj,out.loads.district_heating.cooling.demand.people_gain,TRUE,TRUE,float,gj,kbtu,People Gain demand met by District Heating during cooling
+results.csv,scout_loads_summary.district_heating_999_cooling_999_demand_999_roof_gj,out.loads.district_heating.cooling.demand.roof,TRUE,TRUE,float,gj,kbtu,Roof demand met by District Heating during cooling
+results.csv,scout_loads_summary.district_heating_999_cooling_999_demand_999_ventilation_gj,out.loads.district_heating.cooling.demand.ventilation,TRUE,TRUE,float,gj,kbtu,Ventilation demand met by District Heating during cooling
+results.csv,scout_loads_summary.district_heating_999_cooling_999_demand_999_wall_gj,out.loads.district_heating.cooling.demand.wall,TRUE,TRUE,float,gj,kbtu,Wall demand met by District Heating during cooling
+results.csv,scout_loads_summary.district_heating_999_cooling_999_demand_999_windows_conduction_gj,out.loads.district_heating.cooling.demand.windows_conduction,TRUE,TRUE,float,gj,kbtu,Windows Conduction demand met by District Heating during cooling
+results.csv,scout_loads_summary.district_heating_999_cooling_999_demand_999_windows_solar_gj,out.loads.district_heating.cooling.demand.windows_solar,TRUE,TRUE,float,gj,kbtu,Windows Solar demand met by District Heating during cooling
+results.csv,scout_loads_summary.district_heating_999_floating_999_demand_999_doors_conduction_gj,out.loads.district_heating.floating.demand.doors_conduction,TRUE,TRUE,float,gj,kbtu,Doors Conduction demand met by District Heating during floating
+results.csv,scout_loads_summary.district_heating_999_floating_999_demand_999_equipment_gain_gj,out.loads.district_heating.floating.demand.equipment_gain,TRUE,TRUE,float,gj,kbtu,Equipment Gain demand met by District Heating during floating
+results.csv,scout_loads_summary.district_heating_999_floating_999_demand_999_floor_gj,out.loads.district_heating.floating.demand.floor,TRUE,TRUE,float,gj,kbtu,Floor demand met by District Heating during floating
+results.csv,scout_loads_summary.district_heating_999_floating_999_demand_999_foundation_wall_gj,out.loads.district_heating.floating.demand.foundation_wall,TRUE,TRUE,float,gj,kbtu,Foundation Wall demand met by District Heating during floating
+results.csv,scout_loads_summary.district_heating_999_floating_999_demand_999_ground_gj,out.loads.district_heating.floating.demand.ground,TRUE,TRUE,float,gj,kbtu,Ground demand met by District Heating during floating
+results.csv,scout_loads_summary.district_heating_999_floating_999_demand_999_infiltration_gj,out.loads.district_heating.floating.demand.infiltration,TRUE,TRUE,float,gj,kbtu,Infiltration demand met by District Heating during floating
+results.csv,scout_loads_summary.district_heating_999_floating_999_demand_999_lighting_gain_gj,out.loads.district_heating.floating.demand.lighting_gain,TRUE,TRUE,float,gj,kbtu,Lighting Gain demand met by District Heating during floating
+results.csv,scout_loads_summary.district_heating_999_floating_999_demand_999_people_gain_gj,out.loads.district_heating.floating.demand.people_gain,TRUE,TRUE,float,gj,kbtu,People Gain demand met by District Heating during floating
+results.csv,scout_loads_summary.district_heating_999_floating_999_demand_999_roof_gj,out.loads.district_heating.floating.demand.roof,TRUE,TRUE,float,gj,kbtu,Roof demand met by District Heating during floating
+results.csv,scout_loads_summary.district_heating_999_floating_999_demand_999_ventilation_gj,out.loads.district_heating.floating.demand.ventilation,TRUE,TRUE,float,gj,kbtu,Ventilation demand met by District Heating during floating
+results.csv,scout_loads_summary.district_heating_999_floating_999_demand_999_wall_gj,out.loads.district_heating.floating.demand.wall,TRUE,TRUE,float,gj,kbtu,Wall demand met by District Heating during floating
+results.csv,scout_loads_summary.district_heating_999_floating_999_demand_999_windows_conduction_gj,out.loads.district_heating.floating.demand.windows_conduction,TRUE,TRUE,float,gj,kbtu,Windows Conduction demand met by District Heating during floating
+results.csv,scout_loads_summary.district_heating_999_floating_999_demand_999_windows_solar_gj,out.loads.district_heating.floating.demand.windows_solar,TRUE,TRUE,float,gj,kbtu,Windows Solar demand met by District Heating during floating
+results.csv,scout_loads_summary.district_heating_999_heating_999_demand_999_doors_conduction_gj,out.loads.district_heating.heating.demand.doors_conduction,TRUE,TRUE,float,gj,kbtu,Doors Conduction demand met by District Heating during heating
+results.csv,scout_loads_summary.district_heating_999_heating_999_demand_999_equipment_gain_gj,out.loads.district_heating.heating.demand.equipment_gain,TRUE,TRUE,float,gj,kbtu,Equipment Gain demand met by District Heating during heating
+results.csv,scout_loads_summary.district_heating_999_heating_999_demand_999_floor_gj,out.loads.district_heating.heating.demand.floor,TRUE,TRUE,float,gj,kbtu,Floor demand met by District Heating during heating
+results.csv,scout_loads_summary.district_heating_999_heating_999_demand_999_foundation_wall_gj,out.loads.district_heating.heating.demand.foundation_wall,TRUE,TRUE,float,gj,kbtu,Foundation Wall demand met by District Heating during heating
+results.csv,scout_loads_summary.district_heating_999_heating_999_demand_999_ground_gj,out.loads.district_heating.heating.demand.ground,TRUE,TRUE,float,gj,kbtu,Ground demand met by District Heating during heating
+results.csv,scout_loads_summary.district_heating_999_heating_999_demand_999_infiltration_gj,out.loads.district_heating.heating.demand.infiltration,TRUE,TRUE,float,gj,kbtu,Infiltration demand met by District Heating during heating
+results.csv,scout_loads_summary.district_heating_999_heating_999_demand_999_lighting_gain_gj,out.loads.district_heating.heating.demand.lighting_gain,TRUE,TRUE,float,gj,kbtu,Lighting Gain demand met by District Heating during heating
+results.csv,scout_loads_summary.district_heating_999_heating_999_demand_999_people_gain_gj,out.loads.district_heating.heating.demand.people_gain,TRUE,TRUE,float,gj,kbtu,People Gain demand met by District Heating during heating
+results.csv,scout_loads_summary.district_heating_999_heating_999_demand_999_roof_gj,out.loads.district_heating.heating.demand.roof,TRUE,TRUE,float,gj,kbtu,Roof demand met by District Heating during heating
+results.csv,scout_loads_summary.district_heating_999_heating_999_demand_999_ventilation_gj,out.loads.district_heating.heating.demand.ventilation,TRUE,TRUE,float,gj,kbtu,Ventilation demand met by District Heating during heating
+results.csv,scout_loads_summary.district_heating_999_heating_999_demand_999_wall_gj,out.loads.district_heating.heating.demand.wall,TRUE,TRUE,float,gj,kbtu,Wall demand met by District Heating during heating
+results.csv,scout_loads_summary.district_heating_999_heating_999_demand_999_windows_conduction_gj,out.loads.district_heating.heating.demand.windows_conduction,TRUE,TRUE,float,gj,kbtu,Windows Conduction demand met by District Heating during heating
+results.csv,scout_loads_summary.district_heating_999_heating_999_demand_999_windows_solar_gj,out.loads.district_heating.heating.demand.windows_solar,TRUE,TRUE,float,gj,kbtu,Windows Solar demand met by District Heating during heating
+results.csv,scout_loads_summary.electricity_999_cooling_999_demand_999_doors_conduction_gj,out.loads.electricity.cooling.demand.doors_conduction,TRUE,TRUE,float,gj,kbtu,Doors Conduction demand met by Electricity during cooling
+results.csv,scout_loads_summary.electricity_999_cooling_999_demand_999_equipment_gain_gj,out.loads.electricity.cooling.demand.equipment_gain,TRUE,TRUE,float,gj,kbtu,Equipment Gain demand met by Electricity during cooling
+results.csv,scout_loads_summary.electricity_999_cooling_999_demand_999_floor_gj,out.loads.electricity.cooling.demand.floor,TRUE,TRUE,float,gj,kbtu,Floor demand met by Electricity during cooling
+results.csv,scout_loads_summary.electricity_999_cooling_999_demand_999_foundation_wall_gj,out.loads.electricity.cooling.demand.foundation_wall,TRUE,TRUE,float,gj,kbtu,Foundation Wall demand met by Electricity during cooling
+results.csv,scout_loads_summary.electricity_999_cooling_999_demand_999_ground_gj,out.loads.electricity.cooling.demand.ground,TRUE,TRUE,float,gj,kbtu,Ground demand met by Electricity during cooling
+results.csv,scout_loads_summary.electricity_999_cooling_999_demand_999_infiltration_gj,out.loads.electricity.cooling.demand.infiltration,TRUE,TRUE,float,gj,kbtu,Infiltration demand met by Electricity during cooling
+results.csv,scout_loads_summary.electricity_999_cooling_999_demand_999_lighting_gain_gj,out.loads.electricity.cooling.demand.lighting_gain,TRUE,TRUE,float,gj,kbtu,Lighting Gain demand met by Electricity during cooling
+results.csv,scout_loads_summary.electricity_999_cooling_999_demand_999_people_gain_gj,out.loads.electricity.cooling.demand.people_gain,TRUE,TRUE,float,gj,kbtu,People Gain demand met by Electricity during cooling
+results.csv,scout_loads_summary.electricity_999_cooling_999_demand_999_roof_gj,out.loads.electricity.cooling.demand.roof,TRUE,TRUE,float,gj,kbtu,Roof demand met by Electricity during cooling
+results.csv,scout_loads_summary.electricity_999_cooling_999_demand_999_ventilation_gj,out.loads.electricity.cooling.demand.ventilation,TRUE,TRUE,float,gj,kbtu,Ventilation demand met by Electricity during cooling
+results.csv,scout_loads_summary.electricity_999_cooling_999_demand_999_wall_gj,out.loads.electricity.cooling.demand.wall,TRUE,TRUE,float,gj,kbtu,Wall demand met by Electricity during cooling
+results.csv,scout_loads_summary.electricity_999_cooling_999_demand_999_windows_conduction_gj,out.loads.electricity.cooling.demand.windows_conduction,TRUE,TRUE,float,gj,kbtu,Windows Conduction demand met by Electricity during cooling
+results.csv,scout_loads_summary.electricity_999_cooling_999_demand_999_windows_solar_gj,out.loads.electricity.cooling.demand.windows_solar,TRUE,TRUE,float,gj,kbtu,Windows Solar demand met by Electricity during cooling
+results.csv,scout_loads_summary.electricity_999_floating_999_demand_999_doors_conduction_gj,out.loads.electricity.floating.demand.doors_conduction,TRUE,TRUE,float,gj,kbtu,Doors Conduction demand met by Electricity during floating
+results.csv,scout_loads_summary.electricity_999_floating_999_demand_999_equipment_gain_gj,out.loads.electricity.floating.demand.equipment_gain,TRUE,TRUE,float,gj,kbtu,Equipment Gain demand met by Electricity during floating
+results.csv,scout_loads_summary.electricity_999_floating_999_demand_999_floor_gj,out.loads.electricity.floating.demand.floor,TRUE,TRUE,float,gj,kbtu,Floor demand met by Electricity during floating
+results.csv,scout_loads_summary.electricity_999_floating_999_demand_999_foundation_wall_gj,out.loads.electricity.floating.demand.foundation_wall,TRUE,TRUE,float,gj,kbtu,Foundation Wall demand met by Electricity during floating
+results.csv,scout_loads_summary.electricity_999_floating_999_demand_999_ground_gj,out.loads.electricity.floating.demand.ground,TRUE,TRUE,float,gj,kbtu,Ground demand met by Electricity during floating
+results.csv,scout_loads_summary.electricity_999_floating_999_demand_999_infiltration_gj,out.loads.electricity.floating.demand.infiltration,TRUE,TRUE,float,gj,kbtu,Infiltration demand met by Electricity during floating
+results.csv,scout_loads_summary.electricity_999_floating_999_demand_999_lighting_gain_gj,out.loads.electricity.floating.demand.lighting_gain,TRUE,TRUE,float,gj,kbtu,Lighting Gain demand met by Electricity during floating
+results.csv,scout_loads_summary.electricity_999_floating_999_demand_999_people_gain_gj,out.loads.electricity.floating.demand.people_gain,TRUE,TRUE,float,gj,kbtu,People Gain demand met by Electricity during floating
+results.csv,scout_loads_summary.electricity_999_floating_999_demand_999_roof_gj,out.loads.electricity.floating.demand.roof,TRUE,TRUE,float,gj,kbtu,Roof demand met by Electricity during floating
+results.csv,scout_loads_summary.electricity_999_floating_999_demand_999_ventilation_gj,out.loads.electricity.floating.demand.ventilation,TRUE,TRUE,float,gj,kbtu,Ventilation demand met by Electricity during floating
+results.csv,scout_loads_summary.electricity_999_floating_999_demand_999_wall_gj,out.loads.electricity.floating.demand.wall,TRUE,TRUE,float,gj,kbtu,Wall demand met by Electricity during floating
+results.csv,scout_loads_summary.electricity_999_floating_999_demand_999_windows_conduction_gj,out.loads.electricity.floating.demand.windows_conduction,TRUE,TRUE,float,gj,kbtu,Windows Conduction demand met by Electricity during floating
+results.csv,scout_loads_summary.electricity_999_floating_999_demand_999_windows_solar_gj,out.loads.electricity.floating.demand.windows_solar,TRUE,TRUE,float,gj,kbtu,Windows Solar demand met by Electricity during floating
+results.csv,scout_loads_summary.electricity_999_heating_999_demand_999_doors_conduction_gj,out.loads.electricity.heating.demand.doors_conduction,TRUE,TRUE,float,gj,kbtu,Doors Conduction demand met by Electricity during heating
+results.csv,scout_loads_summary.electricity_999_heating_999_demand_999_equipment_gain_gj,out.loads.electricity.heating.demand.equipment_gain,TRUE,TRUE,float,gj,kbtu,Equipment Gain demand met by Electricity during heating
+results.csv,scout_loads_summary.electricity_999_heating_999_demand_999_floor_gj,out.loads.electricity.heating.demand.floor,TRUE,TRUE,float,gj,kbtu,Floor demand met by Electricity during heating
+results.csv,scout_loads_summary.electricity_999_heating_999_demand_999_foundation_wall_gj,out.loads.electricity.heating.demand.foundation_wall,TRUE,TRUE,float,gj,kbtu,Foundation Wall demand met by Electricity during heating
+results.csv,scout_loads_summary.electricity_999_heating_999_demand_999_ground_gj,out.loads.electricity.heating.demand.ground,TRUE,TRUE,float,gj,kbtu,Ground demand met by Electricity during heating
+results.csv,scout_loads_summary.electricity_999_heating_999_demand_999_infiltration_gj,out.loads.electricity.heating.demand.infiltration,TRUE,TRUE,float,gj,kbtu,Infiltration demand met by Electricity during heating
+results.csv,scout_loads_summary.electricity_999_heating_999_demand_999_lighting_gain_gj,out.loads.electricity.heating.demand.lighting_gain,TRUE,TRUE,float,gj,kbtu,Lighting Gain demand met by Electricity during heating
+results.csv,scout_loads_summary.electricity_999_heating_999_demand_999_people_gain_gj,out.loads.electricity.heating.demand.people_gain,TRUE,TRUE,float,gj,kbtu,People Gain demand met by Electricity during heating
+results.csv,scout_loads_summary.electricity_999_heating_999_demand_999_roof_gj,out.loads.electricity.heating.demand.roof,TRUE,TRUE,float,gj,kbtu,Roof demand met by Electricity during heating
+results.csv,scout_loads_summary.electricity_999_heating_999_demand_999_ventilation_gj,out.loads.electricity.heating.demand.ventilation,TRUE,TRUE,float,gj,kbtu,Ventilation demand met by Electricity during heating
+results.csv,scout_loads_summary.electricity_999_heating_999_demand_999_wall_gj,out.loads.electricity.heating.demand.wall,TRUE,TRUE,float,gj,kbtu,Wall demand met by Electricity during heating
+results.csv,scout_loads_summary.electricity_999_heating_999_demand_999_windows_conduction_gj,out.loads.electricity.heating.demand.windows_conduction,TRUE,TRUE,float,gj,kbtu,Windows Conduction demand met by Electricity during heating
+results.csv,scout_loads_summary.electricity_999_heating_999_demand_999_windows_solar_gj,out.loads.electricity.heating.demand.windows_solar,TRUE,TRUE,float,gj,kbtu,Windows Solar demand met by Electricity during heating
+results.csv,scout_loads_summary.natural_gas_999_cooling_999_demand_999_doors_conduction_gj,out.loads.natural_gas.cooling.demand.doors_conduction,TRUE,TRUE,float,gj,kbtu,Doors Conduction demand met by Natural Gas during cooling
+results.csv,scout_loads_summary.natural_gas_999_cooling_999_demand_999_equipment_gain_gj,out.loads.natural_gas.cooling.demand.equipment_gain,TRUE,TRUE,float,gj,kbtu,Equipment Gain demand met by Natural Gas during cooling
+results.csv,scout_loads_summary.natural_gas_999_cooling_999_demand_999_floor_gj,out.loads.natural_gas.cooling.demand.floor,TRUE,TRUE,float,gj,kbtu,Floor demand met by Natural Gas during cooling
+results.csv,scout_loads_summary.natural_gas_999_cooling_999_demand_999_foundation_wall_gj,out.loads.natural_gas.cooling.demand.foundation_wall,TRUE,TRUE,float,gj,kbtu,Foundation Wall demand met by Natural Gas during cooling
+results.csv,scout_loads_summary.natural_gas_999_cooling_999_demand_999_ground_gj,out.loads.natural_gas.cooling.demand.ground,TRUE,TRUE,float,gj,kbtu,Ground demand met by Natural Gas during cooling
+results.csv,scout_loads_summary.natural_gas_999_cooling_999_demand_999_infiltration_gj,out.loads.natural_gas.cooling.demand.infiltration,TRUE,TRUE,float,gj,kbtu,Infiltration demand met by Natural Gas during cooling
+results.csv,scout_loads_summary.natural_gas_999_cooling_999_demand_999_lighting_gain_gj,out.loads.natural_gas.cooling.demand.lighting_gain,TRUE,TRUE,float,gj,kbtu,Lighting Gain demand met by Natural Gas during cooling
+results.csv,scout_loads_summary.natural_gas_999_cooling_999_demand_999_people_gain_gj,out.loads.natural_gas.cooling.demand.people_gain,TRUE,TRUE,float,gj,kbtu,People Gain demand met by Natural Gas during cooling
+results.csv,scout_loads_summary.natural_gas_999_cooling_999_demand_999_roof_gj,out.loads.natural_gas.cooling.demand.roof,TRUE,TRUE,float,gj,kbtu,Roof demand met by Natural Gas during cooling
+results.csv,scout_loads_summary.natural_gas_999_cooling_999_demand_999_ventilation_gj,out.loads.natural_gas.cooling.demand.ventilation,TRUE,TRUE,float,gj,kbtu,Ventilation demand met by Natural Gas during cooling
+results.csv,scout_loads_summary.natural_gas_999_cooling_999_demand_999_wall_gj,out.loads.natural_gas.cooling.demand.wall,TRUE,TRUE,float,gj,kbtu,Wall demand met by Natural Gas during cooling
+results.csv,scout_loads_summary.natural_gas_999_cooling_999_demand_999_windows_conduction_gj,out.loads.natural_gas.cooling.demand.windows_conduction,TRUE,TRUE,float,gj,kbtu,Windows Conduction demand met by Natural Gas during cooling
+results.csv,scout_loads_summary.natural_gas_999_cooling_999_demand_999_windows_solar_gj,out.loads.natural_gas.cooling.demand.windows_solar,TRUE,TRUE,float,gj,kbtu,Windows Solar demand met by Natural Gas during cooling
+results.csv,scout_loads_summary.natural_gas_999_floating_999_demand_999_doors_conduction_gj,out.loads.natural_gas.floating.demand.doors_conduction,TRUE,TRUE,float,gj,kbtu,Doors Conduction demand met by Natural Gas during floating
+results.csv,scout_loads_summary.natural_gas_999_floating_999_demand_999_equipment_gain_gj,out.loads.natural_gas.floating.demand.equipment_gain,TRUE,TRUE,float,gj,kbtu,Equipment Gain demand met by Natural Gas during floating
+results.csv,scout_loads_summary.natural_gas_999_floating_999_demand_999_floor_gj,out.loads.natural_gas.floating.demand.floor,TRUE,TRUE,float,gj,kbtu,Floor demand met by Natural Gas during floating
+results.csv,scout_loads_summary.natural_gas_999_floating_999_demand_999_foundation_wall_gj,out.loads.natural_gas.floating.demand.foundation_wall,TRUE,TRUE,float,gj,kbtu,Foundation Wall demand met by Natural Gas during floating
+results.csv,scout_loads_summary.natural_gas_999_floating_999_demand_999_ground_gj,out.loads.natural_gas.floating.demand.ground,TRUE,TRUE,float,gj,kbtu,Ground demand met by Natural Gas during floating
+results.csv,scout_loads_summary.natural_gas_999_floating_999_demand_999_infiltration_gj,out.loads.natural_gas.floating.demand.infiltration,TRUE,TRUE,float,gj,kbtu,Infiltration demand met by Natural Gas during floating
+results.csv,scout_loads_summary.natural_gas_999_floating_999_demand_999_lighting_gain_gj,out.loads.natural_gas.floating.demand.lighting_gain,TRUE,TRUE,float,gj,kbtu,Lighting Gain demand met by Natural Gas during floating
+results.csv,scout_loads_summary.natural_gas_999_floating_999_demand_999_people_gain_gj,out.loads.natural_gas.floating.demand.people_gain,TRUE,TRUE,float,gj,kbtu,People Gain demand met by Natural Gas during floating
+results.csv,scout_loads_summary.natural_gas_999_floating_999_demand_999_roof_gj,out.loads.natural_gas.floating.demand.roof,TRUE,TRUE,float,gj,kbtu,Roof demand met by Natural Gas during floating
+results.csv,scout_loads_summary.natural_gas_999_floating_999_demand_999_ventilation_gj,out.loads.natural_gas.floating.demand.ventilation,TRUE,TRUE,float,gj,kbtu,Ventilation demand met by Natural Gas during floating
+results.csv,scout_loads_summary.natural_gas_999_floating_999_demand_999_wall_gj,out.loads.natural_gas.floating.demand.wall,TRUE,TRUE,float,gj,kbtu,Wall demand met by Natural Gas during floating
+results.csv,scout_loads_summary.natural_gas_999_floating_999_demand_999_windows_conduction_gj,out.loads.natural_gas.floating.demand.windows_conduction,TRUE,TRUE,float,gj,kbtu,Windows Conduction demand met by Natural Gas during floating
+results.csv,scout_loads_summary.natural_gas_999_floating_999_demand_999_windows_solar_gj,out.loads.natural_gas.floating.demand.windows_solar,TRUE,TRUE,float,gj,kbtu,Windows Solar demand met by Natural Gas during floating
+results.csv,scout_loads_summary.natural_gas_999_heating_999_demand_999_doors_conduction_gj,out.loads.natural_gas.heating.demand.doors_conduction,TRUE,TRUE,float,gj,kbtu,Doors Conduction demand met by Natural Gas during heating
+results.csv,scout_loads_summary.natural_gas_999_heating_999_demand_999_equipment_gain_gj,out.loads.natural_gas.heating.demand.equipment_gain,TRUE,TRUE,float,gj,kbtu,Equipment Gain demand met by Natural Gas during heating
+results.csv,scout_loads_summary.natural_gas_999_heating_999_demand_999_floor_gj,out.loads.natural_gas.heating.demand.floor,TRUE,TRUE,float,gj,kbtu,Floor demand met by Natural Gas during heating
+results.csv,scout_loads_summary.natural_gas_999_heating_999_demand_999_foundation_wall_gj,out.loads.natural_gas.heating.demand.foundation_wall,TRUE,TRUE,float,gj,kbtu,Foundation Wall demand met by Natural Gas during heating
+results.csv,scout_loads_summary.natural_gas_999_heating_999_demand_999_ground_gj,out.loads.natural_gas.heating.demand.ground,TRUE,TRUE,float,gj,kbtu,Ground demand met by Natural Gas during heating
+results.csv,scout_loads_summary.natural_gas_999_heating_999_demand_999_infiltration_gj,out.loads.natural_gas.heating.demand.infiltration,TRUE,TRUE,float,gj,kbtu,Infiltration demand met by Natural Gas during heating
+results.csv,scout_loads_summary.natural_gas_999_heating_999_demand_999_lighting_gain_gj,out.loads.natural_gas.heating.demand.lighting_gain,TRUE,TRUE,float,gj,kbtu,Lighting Gain demand met by Natural Gas during heating
+results.csv,scout_loads_summary.natural_gas_999_heating_999_demand_999_people_gain_gj,out.loads.natural_gas.heating.demand.people_gain,TRUE,TRUE,float,gj,kbtu,People Gain demand met by Natural Gas during heating
+results.csv,scout_loads_summary.natural_gas_999_heating_999_demand_999_roof_gj,out.loads.natural_gas.heating.demand.roof,TRUE,TRUE,float,gj,kbtu,Roof demand met by Natural Gas during heating
+results.csv,scout_loads_summary.natural_gas_999_heating_999_demand_999_ventilation_gj,out.loads.natural_gas.heating.demand.ventilation,TRUE,TRUE,float,gj,kbtu,Ventilation demand met by Natural Gas during heating
+results.csv,scout_loads_summary.natural_gas_999_heating_999_demand_999_wall_gj,out.loads.natural_gas.heating.demand.wall,TRUE,TRUE,float,gj,kbtu,Wall demand met by Natural Gas during heating
+results.csv,scout_loads_summary.natural_gas_999_heating_999_demand_999_windows_conduction_gj,out.loads.natural_gas.heating.demand.windows_conduction,TRUE,TRUE,float,gj,kbtu,Windows Conduction demand met by Natural Gas during heating
+results.csv,scout_loads_summary.natural_gas_999_heating_999_demand_999_windows_solar_gj,out.loads.natural_gas.heating.demand.windows_solar,TRUE,TRUE,float,gj,kbtu,Windows Solar demand met by Natural Gas during heating
 results.csv,simulation_output_report.annual_peak_electric_demand_kw,out.electricity.total.peak_demand,TRUE,FALSE,float,kw,kw,Building annual peak electric demand
 results.csv,simulation_output_report.applicable,,FALSE,FALSE,boolean,,,Specifies if simulation output reporting is applicable
 results.csv,simulation_output_report.district_cooling_cooling_therm,out.district_cooling.cooling.energy_consumption,TRUE,FALSE,float,therm,kwh,Building annual district cooling energy consumption for cooling end use
@@ -1642,3 +1801,159 @@ calculated,calc.weighted.utility_bills.fuel_oil_bill,calc.weighted.utility_bills
 calculated,calc.weighted.utility_bills.natural_gas_bill,calc.weighted.utility_bills.natural_gas_bill,TRUE,FALSE,float,billion_usd,billion_usd,
 calculated,calc.weighted.utility_bills.propane_bill,calc.weighted.utility_bills.propane_bill,TRUE,FALSE,float,billion_usd,billion_usd,
 calculated,calc.weighted.utility_bills.total_mean_bill,calc.weighted.utility_bills.total_mean_bill,TRUE,FALSE,float,billion_usd,billion_usd,
+calculated,calc.loads.district_cooling.cooling.demand_intensity.doors_conduction,calc.loads.district_cooling.cooling.demand_intensity.doors_conduction,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.cooling.demand_intensity.equipment_gain,calc.loads.district_cooling.cooling.demand_intensity.equipment_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.cooling.demand_intensity.floor,calc.loads.district_cooling.cooling.demand_intensity.floor,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.cooling.demand_intensity.foundation_wall,calc.loads.district_cooling.cooling.demand_intensity.foundation_wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.cooling.demand_intensity.ground,calc.loads.district_cooling.cooling.demand_intensity.ground,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.cooling.demand_intensity.infiltration,calc.loads.district_cooling.cooling.demand_intensity.infiltration,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.cooling.demand_intensity.lighting_gain,calc.loads.district_cooling.cooling.demand_intensity.lighting_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.cooling.demand_intensity.people_gain,calc.loads.district_cooling.cooling.demand_intensity.people_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.cooling.demand_intensity.roof,calc.loads.district_cooling.cooling.demand_intensity.roof,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.cooling.demand_intensity.ventilation,calc.loads.district_cooling.cooling.demand_intensity.ventilation,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.cooling.demand_intensity.wall,calc.loads.district_cooling.cooling.demand_intensity.wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.cooling.demand_intensity.windows_conduction,calc.loads.district_cooling.cooling.demand_intensity.windows_conduction,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.cooling.demand_intensity.windows_solar,calc.loads.district_cooling.cooling.demand_intensity.windows_solar,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.floating.demand_intensity.doors_conduction,calc.loads.district_cooling.floating.demand_intensity.doors_conduction,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.floating.demand_intensity.equipment_gain,calc.loads.district_cooling.floating.demand_intensity.equipment_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.floating.demand_intensity.floor,calc.loads.district_cooling.floating.demand_intensity.floor,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.floating.demand_intensity.foundation_wall,calc.loads.district_cooling.floating.demand_intensity.foundation_wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.floating.demand_intensity.ground,calc.loads.district_cooling.floating.demand_intensity.ground,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.floating.demand_intensity.infiltration,calc.loads.district_cooling.floating.demand_intensity.infiltration,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.floating.demand_intensity.lighting_gain,calc.loads.district_cooling.floating.demand_intensity.lighting_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.floating.demand_intensity.people_gain,calc.loads.district_cooling.floating.demand_intensity.people_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.floating.demand_intensity.roof,calc.loads.district_cooling.floating.demand_intensity.roof,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.floating.demand_intensity.ventilation,calc.loads.district_cooling.floating.demand_intensity.ventilation,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.floating.demand_intensity.wall,calc.loads.district_cooling.floating.demand_intensity.wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.floating.demand_intensity.windows_conduction,calc.loads.district_cooling.floating.demand_intensity.windows_conduction,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.floating.demand_intensity.windows_solar,calc.loads.district_cooling.floating.demand_intensity.windows_solar,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.heating.demand_intensity.doors_conduction,calc.loads.district_cooling.heating.demand_intensity.doors_conduction,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.heating.demand_intensity.equipment_gain,calc.loads.district_cooling.heating.demand_intensity.equipment_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.heating.demand_intensity.floor,calc.loads.district_cooling.heating.demand_intensity.floor,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.heating.demand_intensity.foundation_wall,calc.loads.district_cooling.heating.demand_intensity.foundation_wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.heating.demand_intensity.ground,calc.loads.district_cooling.heating.demand_intensity.ground,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.heating.demand_intensity.infiltration,calc.loads.district_cooling.heating.demand_intensity.infiltration,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.heating.demand_intensity.lighting_gain,calc.loads.district_cooling.heating.demand_intensity.lighting_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.heating.demand_intensity.people_gain,calc.loads.district_cooling.heating.demand_intensity.people_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.heating.demand_intensity.roof,calc.loads.district_cooling.heating.demand_intensity.roof,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.heating.demand_intensity.ventilation,calc.loads.district_cooling.heating.demand_intensity.ventilation,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.heating.demand_intensity.wall,calc.loads.district_cooling.heating.demand_intensity.wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.heating.demand_intensity.windows_conduction,calc.loads.district_cooling.heating.demand_intensity.windows_conduction,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_cooling.heating.demand_intensity.windows_solar,calc.loads.district_cooling.heating.demand_intensity.windows_solar,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.cooling.demand_intensity.doors_conduction,calc.loads.district_heating.cooling.demand_intensity.doors_conduction,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.cooling.demand_intensity.equipment_gain,calc.loads.district_heating.cooling.demand_intensity.equipment_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.cooling.demand_intensity.floor,calc.loads.district_heating.cooling.demand_intensity.floor,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.cooling.demand_intensity.foundation_wall,calc.loads.district_heating.cooling.demand_intensity.foundation_wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.cooling.demand_intensity.ground,calc.loads.district_heating.cooling.demand_intensity.ground,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.cooling.demand_intensity.infiltration,calc.loads.district_heating.cooling.demand_intensity.infiltration,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.cooling.demand_intensity.lighting_gain,calc.loads.district_heating.cooling.demand_intensity.lighting_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.cooling.demand_intensity.people_gain,calc.loads.district_heating.cooling.demand_intensity.people_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.cooling.demand_intensity.roof,calc.loads.district_heating.cooling.demand_intensity.roof,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.cooling.demand_intensity.ventilation,calc.loads.district_heating.cooling.demand_intensity.ventilation,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.cooling.demand_intensity.wall,calc.loads.district_heating.cooling.demand_intensity.wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.cooling.demand_intensity.windows_conduction,calc.loads.district_heating.cooling.demand_intensity.windows_conduction,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.cooling.demand_intensity.windows_solar,calc.loads.district_heating.cooling.demand_intensity.windows_solar,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.floating.demand_intensity.doors_conduction,calc.loads.district_heating.floating.demand_intensity.doors_conduction,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.floating.demand_intensity.equipment_gain,calc.loads.district_heating.floating.demand_intensity.equipment_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.floating.demand_intensity.floor,calc.loads.district_heating.floating.demand_intensity.floor,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.floating.demand_intensity.foundation_wall,calc.loads.district_heating.floating.demand_intensity.foundation_wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.floating.demand_intensity.ground,calc.loads.district_heating.floating.demand_intensity.ground,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.floating.demand_intensity.infiltration,calc.loads.district_heating.floating.demand_intensity.infiltration,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.floating.demand_intensity.lighting_gain,calc.loads.district_heating.floating.demand_intensity.lighting_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.floating.demand_intensity.people_gain,calc.loads.district_heating.floating.demand_intensity.people_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.floating.demand_intensity.roof,calc.loads.district_heating.floating.demand_intensity.roof,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.floating.demand_intensity.ventilation,calc.loads.district_heating.floating.demand_intensity.ventilation,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.floating.demand_intensity.wall,calc.loads.district_heating.floating.demand_intensity.wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.floating.demand_intensity.windows_conduction,calc.loads.district_heating.floating.demand_intensity.windows_conduction,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.floating.demand_intensity.windows_solar,calc.loads.district_heating.floating.demand_intensity.windows_solar,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.heating.demand_intensity.doors_conduction,calc.loads.district_heating.heating.demand_intensity.doors_conduction,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.heating.demand_intensity.equipment_gain,calc.loads.district_heating.heating.demand_intensity.equipment_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.heating.demand_intensity.floor,calc.loads.district_heating.heating.demand_intensity.floor,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.heating.demand_intensity.foundation_wall,calc.loads.district_heating.heating.demand_intensity.foundation_wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.heating.demand_intensity.ground,calc.loads.district_heating.heating.demand_intensity.ground,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.heating.demand_intensity.infiltration,calc.loads.district_heating.heating.demand_intensity.infiltration,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.heating.demand_intensity.lighting_gain,calc.loads.district_heating.heating.demand_intensity.lighting_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.heating.demand_intensity.people_gain,calc.loads.district_heating.heating.demand_intensity.people_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.heating.demand_intensity.roof,calc.loads.district_heating.heating.demand_intensity.roof,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.heating.demand_intensity.ventilation,calc.loads.district_heating.heating.demand_intensity.ventilation,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.heating.demand_intensity.wall,calc.loads.district_heating.heating.demand_intensity.wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.heating.demand_intensity.windows_conduction,calc.loads.district_heating.heating.demand_intensity.windows_conduction,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.district_heating.heating.demand_intensity.windows_solar,calc.loads.district_heating.heating.demand_intensity.windows_solar,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.cooling.demand_intensity.doors_conduction,calc.loads.electricity.cooling.demand_intensity.doors_conduction,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.cooling.demand_intensity.equipment_gain,calc.loads.electricity.cooling.demand_intensity.equipment_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.cooling.demand_intensity.floor,calc.loads.electricity.cooling.demand_intensity.floor,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.cooling.demand_intensity.foundation_wall,calc.loads.electricity.cooling.demand_intensity.foundation_wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.cooling.demand_intensity.ground,calc.loads.electricity.cooling.demand_intensity.ground,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.cooling.demand_intensity.infiltration,calc.loads.electricity.cooling.demand_intensity.infiltration,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.cooling.demand_intensity.lighting_gain,calc.loads.electricity.cooling.demand_intensity.lighting_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.cooling.demand_intensity.people_gain,calc.loads.electricity.cooling.demand_intensity.people_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.cooling.demand_intensity.roof,calc.loads.electricity.cooling.demand_intensity.roof,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.cooling.demand_intensity.ventilation,calc.loads.electricity.cooling.demand_intensity.ventilation,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.cooling.demand_intensity.wall,calc.loads.electricity.cooling.demand_intensity.wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.cooling.demand_intensity.windows_conduction,calc.loads.electricity.cooling.demand_intensity.windows_conduction,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.cooling.demand_intensity.windows_solar,calc.loads.electricity.cooling.demand_intensity.windows_solar,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.floating.demand_intensity.doors_conduction,calc.loads.electricity.floating.demand_intensity.doors_conduction,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.floating.demand_intensity.equipment_gain,calc.loads.electricity.floating.demand_intensity.equipment_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.floating.demand_intensity.floor,calc.loads.electricity.floating.demand_intensity.floor,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.floating.demand_intensity.foundation_wall,calc.loads.electricity.floating.demand_intensity.foundation_wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.floating.demand_intensity.ground,calc.loads.electricity.floating.demand_intensity.ground,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.floating.demand_intensity.infiltration,calc.loads.electricity.floating.demand_intensity.infiltration,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.floating.demand_intensity.lighting_gain,calc.loads.electricity.floating.demand_intensity.lighting_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.floating.demand_intensity.people_gain,calc.loads.electricity.floating.demand_intensity.people_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.floating.demand_intensity.roof,calc.loads.electricity.floating.demand_intensity.roof,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.floating.demand_intensity.ventilation,calc.loads.electricity.floating.demand_intensity.ventilation,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.floating.demand_intensity.wall,calc.loads.electricity.floating.demand_intensity.wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.floating.demand_intensity.windows_conduction,calc.loads.electricity.floating.demand_intensity.windows_conduction,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.floating.demand_intensity.windows_solar,calc.loads.electricity.floating.demand_intensity.windows_solar,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.heating.demand_intensity.doors_conduction,calc.loads.electricity.heating.demand_intensity.doors_conduction,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.heating.demand_intensity.equipment_gain,calc.loads.electricity.heating.demand_intensity.equipment_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.heating.demand_intensity.floor,calc.loads.electricity.heating.demand_intensity.floor,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.heating.demand_intensity.foundation_wall,calc.loads.electricity.heating.demand_intensity.foundation_wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.heating.demand_intensity.ground,calc.loads.electricity.heating.demand_intensity.ground,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.heating.demand_intensity.infiltration,calc.loads.electricity.heating.demand_intensity.infiltration,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.heating.demand_intensity.lighting_gain,calc.loads.electricity.heating.demand_intensity.lighting_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.heating.demand_intensity.people_gain,calc.loads.electricity.heating.demand_intensity.people_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.heating.demand_intensity.roof,calc.loads.electricity.heating.demand_intensity.roof,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.heating.demand_intensity.ventilation,calc.loads.electricity.heating.demand_intensity.ventilation,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.heating.demand_intensity.wall,calc.loads.electricity.heating.demand_intensity.wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.heating.demand_intensity.windows_conduction,calc.loads.electricity.heating.demand_intensity.windows_conduction,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.electricity.heating.demand_intensity.windows_solar,calc.loads.electricity.heating.demand_intensity.windows_solar,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.cooling.demand_intensity.doors_conduction,calc.loads.natural_gas.cooling.demand_intensity.doors_conduction,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.cooling.demand_intensity.equipment_gain,calc.loads.natural_gas.cooling.demand_intensity.equipment_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.cooling.demand_intensity.floor,calc.loads.natural_gas.cooling.demand_intensity.floor,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.cooling.demand_intensity.foundation_wall,calc.loads.natural_gas.cooling.demand_intensity.foundation_wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.cooling.demand_intensity.ground,calc.loads.natural_gas.cooling.demand_intensity.ground,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.cooling.demand_intensity.infiltration,calc.loads.natural_gas.cooling.demand_intensity.infiltration,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.cooling.demand_intensity.lighting_gain,calc.loads.natural_gas.cooling.demand_intensity.lighting_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.cooling.demand_intensity.people_gain,calc.loads.natural_gas.cooling.demand_intensity.people_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.cooling.demand_intensity.roof,calc.loads.natural_gas.cooling.demand_intensity.roof,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.cooling.demand_intensity.ventilation,calc.loads.natural_gas.cooling.demand_intensity.ventilation,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.cooling.demand_intensity.wall,calc.loads.natural_gas.cooling.demand_intensity.wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.cooling.demand_intensity.windows_conduction,calc.loads.natural_gas.cooling.demand_intensity.windows_conduction,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.cooling.demand_intensity.windows_solar,calc.loads.natural_gas.cooling.demand_intensity.windows_solar,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.floating.demand_intensity.doors_conduction,calc.loads.natural_gas.floating.demand_intensity.doors_conduction,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.floating.demand_intensity.equipment_gain,calc.loads.natural_gas.floating.demand_intensity.equipment_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.floating.demand_intensity.floor,calc.loads.natural_gas.floating.demand_intensity.floor,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.floating.demand_intensity.foundation_wall,calc.loads.natural_gas.floating.demand_intensity.foundation_wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.floating.demand_intensity.ground,calc.loads.natural_gas.floating.demand_intensity.ground,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.floating.demand_intensity.infiltration,calc.loads.natural_gas.floating.demand_intensity.infiltration,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.floating.demand_intensity.lighting_gain,calc.loads.natural_gas.floating.demand_intensity.lighting_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.floating.demand_intensity.people_gain,calc.loads.natural_gas.floating.demand_intensity.people_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.floating.demand_intensity.roof,calc.loads.natural_gas.floating.demand_intensity.roof,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.floating.demand_intensity.ventilation,calc.loads.natural_gas.floating.demand_intensity.ventilation,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.floating.demand_intensity.wall,calc.loads.natural_gas.floating.demand_intensity.wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.floating.demand_intensity.windows_conduction,calc.loads.natural_gas.floating.demand_intensity.windows_conduction,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.floating.demand_intensity.windows_solar,calc.loads.natural_gas.floating.demand_intensity.windows_solar,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.heating.demand_intensity.doors_conduction,calc.loads.natural_gas.heating.demand_intensity.doors_conduction,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.heating.demand_intensity.equipment_gain,calc.loads.natural_gas.heating.demand_intensity.equipment_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.heating.demand_intensity.floor,calc.loads.natural_gas.heating.demand_intensity.floor,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.heating.demand_intensity.foundation_wall,calc.loads.natural_gas.heating.demand_intensity.foundation_wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.heating.demand_intensity.ground,calc.loads.natural_gas.heating.demand_intensity.ground,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.heating.demand_intensity.infiltration,calc.loads.natural_gas.heating.demand_intensity.infiltration,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.heating.demand_intensity.lighting_gain,calc.loads.natural_gas.heating.demand_intensity.lighting_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.heating.demand_intensity.people_gain,calc.loads.natural_gas.heating.demand_intensity.people_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.heating.demand_intensity.roof,calc.loads.natural_gas.heating.demand_intensity.roof,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.heating.demand_intensity.ventilation,calc.loads.natural_gas.heating.demand_intensity.ventilation,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.heating.demand_intensity.wall,calc.loads.natural_gas.heating.demand_intensity.wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.heating.demand_intensity.windows_conduction,calc.loads.natural_gas.heating.demand_intensity.windows_conduction,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
+calculated,calc.loads.natural_gas.heating.demand_intensity.windows_solar,calc.loads.natural_gas.heating.demand_intensity.windows_solar,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,
