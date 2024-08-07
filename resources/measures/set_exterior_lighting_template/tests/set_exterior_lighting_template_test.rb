@@ -226,12 +226,6 @@ class SetExteriorLightingTemplate_Test < Minitest::Test
       arguments = measure.arguments(model)
       argument_map = OpenStudio::Measure::OSArgumentMap.new
 
-
-      args_hash = {}
-      args_hash['as_constructed_template'] = 'DEER 1985'
-      args_hash['template'] = 'ComStock DEER 2020'
-      args_hash['climate_zone'] = 'CEC T24-CEC6'
-
       # populate argument with specified hash value if specified
       # Set up the user arguments
       args_hash = set[:arg_hash]
