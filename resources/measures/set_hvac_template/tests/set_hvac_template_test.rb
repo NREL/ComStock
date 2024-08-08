@@ -220,7 +220,6 @@ class SetHVACTemplate_Test < Minitest::Test
 
       # populate argument with specified hash value if specified
       # Set up the user arguments
-
       args_hash = set[:arg_hash]
       args_hash.each do |arg_name, arg_value|
         arg = arguments.find { |a| a.name == arg_name }
