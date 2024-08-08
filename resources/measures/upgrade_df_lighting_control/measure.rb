@@ -161,15 +161,9 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     peak_window_strategy = runner.getStringArgumentValue("peak_window_strategy",user_arguments)
     cambium_scenario = runner.getStringArgumentValue("cambium_scenario",user_arguments)
 
-    def light_factor_hourly_based_on_sch(peak_sch, light_adjustment_method, light_adjustment)
-      if light_adjustment_method == 'absolute change'
-        light_factor_values = peak_sch.map{|a| [a-light_adjustment/100.0, 0].max}
-      elsif light_adjustment_method == 'relative change'
-        light_factor_values = peak_sch.map{|a| (1-light_adjustment/100.0)*a}
-      else
-        raise "Not supported light adjustment method"
-      end
-      return light_factor_values
+    def light_adj_based_on_sch(peak_sch, light_adjustment)
+      light_adj_values = peak_sch.map{|a| 1-light_adjustment/100.0*a}
+      return light_adj_values
     end
     
     def get_hourly_schedule_from_schedule_ruleset(model, schedule_ruleset)
@@ -231,7 +225,7 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
       return values
     end
 
-    def adjust_lighting_sch(model,runner,light_factor_values)
+    def adjust_lighting_sch(model,runner,light_adjustment_method,light_adj_values)
       yd = model.getYearDescription
       start_date = yd.makeDate(1, 1)
       lights = model.getLightss
@@ -253,10 +247,16 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
             schedule = schedule.to_Schedule.get
             # convert old sch to time series
             schedule_ts = get_hourly_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get)
-            if schedule_ts.size <= light_factor_values.size
-              new_schedule_ts = schedule_ts.map.with_index { |val, ind| val * light_factor_values[ind] }
+            if light_adjustment_method == 'absolute change'
+              new_schedule_ts = schedule_ts.map.with_index { |val, ind| [val-(1.0-light_adj_values[ind]), 0].max}
+            elsif light_adjustment_method == 'relative change'
+              if schedule_ts.size <= light_adj_values.size
+                new_schedule_ts = schedule_ts.map.with_index { |val, ind| val * light_adj_values[ind] }
+              else
+                new_schedule_ts = light_adj_values.map.with_index { |val, ind| val * schedule_ts[ind] }
+              end
             else
-              new_schedule_ts = light_factor_values.map.with_index { |val, ind| val * schedule_ts[ind] }
+              raise "Not supported light adjustment method"
             end
             schedule_values = OpenStudio::Vector.new(new_schedule_ts.length, 0.0)
             new_schedule_ts.each_with_index do |val,i|
@@ -442,10 +442,10 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     ############################################
     puts("### ============================================================")
     puts("### Creating lighting factor values...")
-    light_factor_values = light_factor_hourly_based_on_sch(peak_schedule_clg, light_adjustment_method, light_adjustment)
+    light_adj_values = light_adj_based_on_sch(peak_schedule, light_adjustment)
+    # puts("--- light_adj_values = #{light_adj_values}")
     puts("### Updating lighting schedule...")
-    nl, nla = adjust_lighting_sch(model,runner,light_factor_values)
-    # puts("--- light_factor_values = #{light_factor_values}")
+    nl, nla = adjust_lighting_sch(model,runner,light_adjustment_method,light_adj_values)
 
     runner.registerFinalCondition("Updated #{nla}/#{nl} lighting schedules")
     return true
