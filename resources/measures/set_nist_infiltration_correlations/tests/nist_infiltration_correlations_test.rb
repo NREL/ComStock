@@ -1,7 +1,8 @@
 # ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
+
 # *******************************************************************************
-# OpenStudio(R), Copyright (c) 2008-2023, Alliance for Sustainable Energy, LLC.
+# OpenStudio(R), Copyright (c) 2008-2018, Alliance for Sustainable Energy, LLC.
 # All rights reserved.
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -35,44 +36,24 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # *******************************************************************************
 
+# dependencies
 require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
-require 'minitest/autorun'
-require_relative '../../../../test/helpers/minitest_helper'
-require_relative '../measure.rb'
 require 'fileutils'
+require 'minitest/autorun'
+require_relative '../measure.rb'
 
-class SetNISTInfiltrationCorrelationsTest < Minitest::Test
+# only necessary to include here if annual simulation request and the measure doesn't require openstudio-standards
+require 'openstudio-standards'
 
-  def run_test(model, args_hash)
-    # create an instance of the measure
-    measure = SetNISTInfiltrationCorrelations.new
-
-    # create runner with empty OSW
-    osw = OpenStudio::WorkflowJSON.new
-    runner = OpenStudio::Measure::OSRunner.new(osw)
-
-    # get arguments
-    arguments = measure.arguments(model)
-    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
-
-    # populate argument with specified hash value if specified
-    arguments.each do |arg|
-      temp_arg_var = arg.clone
-      if args_hash.key?(arg.name)
-        assert(temp_arg_var.setValue(args_hash[arg.name]))
-      end
-      argument_map[arg.name] = temp_arg_var
-    end
-
-    # run the measure
-    measure.run(model, runner, argument_map)
-    result = runner.result
-
-    return result
-  end
+class SetNISTInfiltrationCorrelations_Test < Minitest::Test
+  # all tests are a sub definition of this class, e.g.:
+  # def test_new_kind_of_test
+  #   # test content
+  # end
 
   def test_number_of_arguments_and_argument_names
+    # this test ensures that the current test is matched to the measure inputs
     test_name = 'test_number_of_arguments_and_argument_names'
     puts "\n######\nTEST:#{test_name}\n######\n"
 
@@ -94,447 +75,178 @@ class SetNISTInfiltrationCorrelationsTest < Minitest::Test
     assert_equal('building_type', arguments[6].name)
   end
 
-  def test_bad_airtightness_value
-    test_name = 'test_bad_airtightness_value'
-    puts "\n######\nTEST:#{test_name}\n######\n"
-
-    # make an empty model
-    model = OpenStudio::Model::Model.new
-
-    # create hash of argument values
-    args_hash = {}
-    args_hash['airtightness_value'] = -1.0
-
-    result = run_test(model, args_hash)
-
-    # show the output
-    show_output(result)
-
-    # assert that it ran correctly
-    assert_equal('Fail', result.value.valueName)
+  # return file paths to test models in test directory
+  def models_for_tests
+    paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/models/*.osm'))
+    paths = paths.map { |path| File.expand_path(path) }
+    return paths
   end
 
-  def test_bldg03_smalloffice_pszac
-    test_name = 'test_bldg03_smalloffice_pszac'
-    puts "\n######\nTEST:#{test_name}\n######\n"
+  # return file paths to epw files in test directory
+  def epws_for_tests
+    paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/weather/*.epw'))
+    paths = paths.map { |path| File.expand_path(path) }
+    return paths
+  end
 
-    # load the test model
+  def load_model(osm_path)
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = "#{File.dirname(__FILE__)}/bldg0000003.osm"
-    model = translator.loadModel(path)
+    model = translator.loadModel(OpenStudio::Path.new(osm_path))
     assert(!model.empty?)
     model = model.get
-    args_hash = {}
-
-    result = run_test(model, args_hash)
-
-    # show the output
-    show_output(result)
-
-    # assert that it ran correctly
-    assert_equal('Success', result.value.valueName)
-
-    # check that the infiltration schedules sum to 1
-    infil_on_schedule = model.getScheduleByName('Infiltration HVAC On Schedule').get
-    infil_off_schedule = model.getScheduleByName('Infiltration HVAC Off Schedule').get
-    on_day_value = infil_on_schedule.to_ScheduleConstant.get.value
-    off_day_value = infil_off_schedule.to_ScheduleConstant.get.value
-    assert((on_day_value + off_day_value - 1.0) < 0.001)
-
-    # save the model to test output directory
-    output_file_path = "#{File.dirname(__FILE__)}//output/bldg0000003_infil_adj.osm"
-    model.save(output_file_path, true)
+    return model
   end
 
-  def test_bldg04_retail_pszacnoheat
-    test_name = 'test_bldg04_retail_pszacnoheat'
-    puts "\n######\nTEST:#{test_name}\n######\n"
+  def run_dir(test_name)
+    # always generate test output in specially named 'output' directory so result files are not made part of the measure
+    return "#{File.dirname(__FILE__)}/output/#{test_name}"
+  end
+
+  def model_output_path(test_name)
+    return "#{run_dir(test_name)}/#{test_name}.osm"
+  end
+
+  def sql_path(test_name)
+    return "#{run_dir(test_name)}/run/eplusout.sql"
+  end
+
+  def report_path(test_name)
+    return "#{run_dir(test_name)}/reports/eplustbl.html"
+  end
+
+  # applies the measure and then runs the model
+  def apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+    assert(File.exist?(osm_path))
+    assert(File.exist?(epw_path))
+
+    # create run directory if it does not exist
+    if !File.exist?(run_dir(test_name))
+      FileUtils.mkdir_p(run_dir(test_name))
+    end
+    assert(File.exist?(run_dir(test_name)))
+
+    # change into run directory for tests
+    start_dir = Dir.pwd
+    Dir.chdir run_dir(test_name)
+
+    # remove prior runs if they exist
+    if File.exist?(model_output_path(test_name))
+      FileUtils.rm(model_output_path(test_name))
+    end
+    if File.exist?(report_path(test_name))
+      FileUtils.rm(report_path(test_name))
+    end
+
+    # copy the osm and epw to the test directory
+    new_osm_path = "#{run_dir(test_name)}/#{File.basename(osm_path)}"
+    FileUtils.cp(osm_path, new_osm_path)
+    new_epw_path = "#{run_dir(test_name)}/#{File.basename(epw_path)}"
+    FileUtils.cp(epw_path, new_epw_path)
+    # create an instance of a runner
+    runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
 
     # load the test model
-    translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = "#{File.dirname(__FILE__)}/bldg0000004.osm"
-    model = translator.loadModel(path)
-    assert(!model.empty?)
-    model = model.get
-    args_hash = {}
-    args_hash['climate_zone'] = '5B'
-    args_hash['building_type'] = 'RetailStandalone'
+    model = load_model(new_osm_path)
 
-    result = run_test(model, args_hash)
+    # set model weather file
+    epw_file = OpenStudio::EpwFile.new(OpenStudio::Path.new(new_epw_path))
+    OpenStudio::Model::WeatherFile.setWeatherFile(model, epw_file)
+    assert(model.weatherFile.is_initialized)
+
+    # run the measure
+    puts "\nAPPLYING MEASURE..."
+    measure.run(model, runner, argument_map)
+    result = runner.result
+    result_success = result.value.valueName == 'Success'
 
     # show the output
     show_output(result)
 
-    # assert that it ran correctly
-    assert_equal('Success', result.value.valueName)
+    # save model
+    model.save(model_output_path(test_name), true)
 
-    # check that the infiltration schedules sum to 1
-    infil_on_schedule = model.getScheduleByName('Infiltration HVAC On Schedule').get
-    infil_off_schedule = model.getScheduleByName('Infiltration HVAC Off Schedule').get
-    on_day = infil_on_schedule.to_ScheduleRuleset.get.defaultDaySchedule
-    off_day = infil_off_schedule.to_ScheduleRuleset.get.defaultDaySchedule
-    sum_arr = on_day.values + off_day.values
-    assert((sum_arr.min - 1.0) < 0.001)
-    assert((sum_arr.max - 1.0) < 0.001)
+    if run_model && result_success
+      puts "\nRUNNING MODEL..."
 
-    # save the model to test output directory
-    output_file_path = "#{File.dirname(__FILE__)}//output/bldg0000004_infil_adj.osm"
-    model.save(output_file_path, true)
+      std = Standard.build('ComStock DEER 2020')
+      std.model_run_simulation_and_log_errors(model, run_dir(test_name))
+
+      # check that the model ran successfully
+      assert(File.exist?(sql_path(test_name)))
+    end
+
+    # change back directory
+    Dir.chdir(start_dir)
+
+    return result
   end
 
-  def test_bldg05_ca_rts
-    test_name = 'test_bldg05_ca_rts'
+  # create an array of hashes with model name, weather, and expected result
+  def models_to_test
+    test_sets = []
+    test_sets << { model: 'Small_Office_psz_gas_3a', weather: 'Small_Office_psz_gas_3a', result: 'Success',
+      arg_hash: {}
+    }
+
+    test_sets << { model: 'Residential_forced_air_3B', weather: 'Residential_forced_air_3B', result: 'Success',
+      arg_hash: { 'climate_zone' => '3B', 'airtightness_value' => '10.0', 'airtightness_pressure' => '50', 'airtightness_area' => '6-sided'}
+    }
+
+    test_sets << { model: 'Residential_forced_air_3B', weather: 'Residential_forced_air_3B', result: 'Success',
+        arg_hash: { 'climate_zone' => '3B', 'airtightness_value' => '10.0', 'airtightness_pressure' => '50', 'airtightness_area' => '6-sided',  'air_barrier' => 'true'}
+    }
+    return test_sets
+  end
+
+  def test_models
+    test_name = 'test_models'
     puts "\n######\nTEST:#{test_name}\n######\n"
 
-    # load the test model
-    translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = "#{File.dirname(__FILE__)}/bldg0000005.osm"
-    model = translator.loadModel(path)
-    assert(!model.empty?)
-    model = model.get
-    args_hash = {}
+    models_to_test.each do |set|
+      instance_test_name = set[:model]
+      puts "instance test name: #{instance_test_name}"
+      osm_path = models_for_tests.select { |x| set[:model] == File.basename(x, '.osm') }
+      epw_path = epws_for_tests.select { |x| set[:weather] == File.basename(x, '.epw') }
+      assert(!osm_path.empty?)
+      assert(!epw_path.empty?)
+      osm_path = osm_path[0]
+      epw_path = epw_path[0]
 
-    result = run_test(model, args_hash)
+      # create an instance of the measure
+      measure = SetNISTInfiltrationCorrelations.new
 
-    # show the output
-    show_output(result)
+      # load the model; only used here for populating arguments
+      model = load_model(osm_path)
 
-    # assert that it ran correctly
-    assert_equal('Success', result.value.valueName)
+      # set arguments here; will vary by measure
+      arguments = measure.arguments(model)
+      argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
-    # check that the infiltration schedules sum to 1
-    infil_on_schedule = model.getScheduleByName('Infiltration HVAC On Schedule').get
-    infil_off_schedule = model.getScheduleByName('Infiltration HVAC Off Schedule').get
-    on_day_value = infil_on_schedule.to_ScheduleConstant.get.value
-    off_day_value = infil_off_schedule.to_ScheduleConstant.get.value
-    assert((on_day_value + off_day_value - 1.0) < 0.001)
+      # populate argument with specified hash value if specified
+      # set up the user arguments
+      args_hash = set[:arg_hash]
+      args_hash.each do |arg_name, arg_value|
+        arg = arguments.find { |a| a.name == arg_name }
+        raise "Argument #{arg_name} not found" if arg.nil?
+        assert(arg.setValue(arg_value))
+        argument_map[arg_name] = arg
+      end
 
-    # save the model to test output directory
-    output_file_path = "#{File.dirname(__FILE__)}//output/bldg0000005_infil_adj.osm"
-    model.save(output_file_path, true)
+      # apply the measure to the model and optionally run the model
+      result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+
+      # check the measure result; result values will equal Success, Fail, or Not Applicable
+      # also check the amount of warnings, info, and error messages
+      # use if or case statements to change expected assertion depending on model characteristics
+      assert(result.value.valueName == set[:result])
+
+      # to check that something changed in the model, load the model and the check the objects match expected new value
+      model = load_model(model_output_path(instance_test_name))
+
+      # add additional tests here to check model outputs
+
+
+    end
   end
 
-  def test_bldg25_retail_resforcedair
-    test_name = 'test_bldg25_retail_resforcedair'
-    puts "\n######\nTEST:#{test_name}\n######\n"
-
-    # load the test model
-    translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = "#{File.dirname(__FILE__)}/bldg0000025.osm"
-    model = translator.loadModel(path)
-    assert(!model.empty?)
-    model = model.get
-
-    # create hash of argument values
-    args_hash = {}
-    args_hash['airtightness_value'] = 10.0
-    args_hash['airtightness_pressure'] = 50
-    args_hash['airtightness_area'] = '6-sided'
-
-    result = run_test(model, args_hash)
-
-    # show the output
-    show_output(result)
-
-    # assert that it ran correctly
-    assert_equal('Success', result.value.valueName)
-
-    # check that the infiltration schedules sum to 1
-    infil_on_schedule = model.getScheduleByName('Infiltration HVAC On Schedule').get
-    infil_off_schedule = model.getScheduleByName('Infiltration HVAC Off Schedule').get
-    on_day = infil_on_schedule.to_ScheduleRuleset.get.defaultDaySchedule
-    off_day = infil_off_schedule.to_ScheduleRuleset.get.defaultDaySchedule
-    sum_arr = on_day.values + off_day.values
-    assert((sum_arr.min - 1.0) < 0.001)
-    assert((sum_arr.max - 1.0) < 0.001)
-
-    # save the model to test output directory
-    output_file_path = "#{File.dirname(__FILE__)}//output/bldg0000025_infil_adj.osm"
-    model.save(output_file_path, true)
-  end
-
-  def test_bldg25_retail_resforcedair_air_barrier
-    test_name = 'test_bldg25_retail_resforcedair_air_barrier'
-    puts "\n######\nTEST:#{test_name}\n######\n"
-
-    # load the test model
-    translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = "#{File.dirname(__FILE__)}/bldg0000025.osm"
-    model = translator.loadModel(path)
-    assert(!model.empty?)
-    model = model.get
-
-    # create hash of argument values
-    args_hash = {}
-    args_hash['airtightness_value'] = 5.0
-    args_hash['airtightness_pressure'] = 50
-    args_hash['airtightness_area'] = '6-sided'
-    args_hash['air_barrier'] = true
-
-    result = run_test(model, args_hash)
-
-    # show the output
-    show_output(result)
-
-    # assert that it ran correctly
-    assert_equal('Success', result.value.valueName)
-
-    # check that the infiltration schedules sum to 1
-    infil_on_schedule = model.getScheduleByName('Infiltration HVAC On Schedule').get
-    infil_off_schedule = model.getScheduleByName('Infiltration HVAC Off Schedule').get
-    on_day = infil_on_schedule.to_ScheduleRuleset.get.defaultDaySchedule
-    off_day = infil_off_schedule.to_ScheduleRuleset.get.defaultDaySchedule
-    sum_arr = on_day.values + off_day.values
-    assert((sum_arr.min - 1.0) < 0.001)
-    assert((sum_arr.max - 1.0) < 0.001)
-
-    # save the model to test output directory
-    output_file_path = "#{File.dirname(__FILE__)}//output/bldg0000025_infil_adj.osm"
-    model.save(output_file_path, true)
-  end
-
-  def test_bldg31_quick_service_restaurant_pthp
-    test_name = 'test_bldg31_quick_service_restaurant_pthp'
-    puts "\n######\nTEST:#{test_name}\n######\n"
-
-    # load the test model
-    translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = "#{File.dirname(__FILE__)}/bldg0000031.osm"
-    model = translator.loadModel(path)
-    assert(!model.empty?)
-    model = model.get
-    args_hash = {}
-
-    result = run_test(model, args_hash)
-
-    # show the output
-    show_output(result)
-
-    # assert that it ran correctly
-    assert_equal('Success', result.value.valueName)
-    assert(result.warnings.size == 1)
-
-    # check that the infiltration schedules sum to 1
-    infil_on_schedule = model.getScheduleByName('Infiltration HVAC On Schedule').get
-    infil_off_schedule = model.getScheduleByName('Infiltration HVAC Off Schedule').get
-    on_day = infil_on_schedule.to_ScheduleRuleset.get.defaultDaySchedule
-    off_day = infil_off_schedule.to_ScheduleRuleset.get.defaultDaySchedule
-    sum_arr = on_day.values + off_day.values
-    assert((sum_arr.min - 1.0) < 0.001)
-    assert((sum_arr.max - 1.0) < 0.001)
-
-    # save the model to test output directory
-    output_file_path = "#{File.dirname(__FILE__)}//output/bldg0000031_infil_adj.osm"
-    model.save(output_file_path, true)
-  end
-
-  def test_bldg31_quick_service_restaurant_pthp_air_barrier
-    test_name = 'test_bldg31_quick_service_restaurant_pthp_air_barrier'
-    puts "\n######\nTEST:#{test_name}\n######\n"
-
-    # load the test model
-    translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = "#{File.dirname(__FILE__)}/bldg0000031.osm"
-    model = translator.loadModel(path)
-    assert(!model.empty?)
-    model = model.get
-    args_hash = {}
-    args_hash['air_barrier'] = true
-
-    result = run_test(model, args_hash)
-
-    # show the output
-    show_output(result)
-
-    # assert that it ran correctly
-    assert_equal('Success', result.value.valueName)
-    assert(result.warnings.size == 1)
-
-    # check that the infiltration schedules sum to 1
-    infil_on_schedule = model.getScheduleByName('Infiltration HVAC On Schedule').get
-    infil_off_schedule = model.getScheduleByName('Infiltration HVAC Off Schedule').get
-    on_day = infil_on_schedule.to_ScheduleRuleset.get.defaultDaySchedule
-    off_day = infil_off_schedule.to_ScheduleRuleset.get.defaultDaySchedule
-    sum_arr = on_day.values + off_day.values
-    assert((sum_arr.min - 1.0) < 0.001)
-    assert((sum_arr.max - 1.0) < 0.001)
-
-    # save the model to test output directory
-    output_file_path = "#{File.dirname(__FILE__)}//output/bldg0000031_infil_adj.osm"
-    model.save(output_file_path, true)
-  end
-
-  def test_bldg43_warehouse_baseboardelec
-    test_name = 'test_bldg43_warehouse_baseboardelec'
-    puts "\n######\nTEST:#{test_name}\n######\n"
-
-    # load the test model
-    translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = "#{File.dirname(__FILE__)}/bldg0000043.osm"
-    model = translator.loadModel(path)
-    assert(!model.empty?)
-    model = model.get
-    args_hash = {}
-
-    result = run_test(model, args_hash)
-
-    # show the output
-    show_output(result)
-
-    # assert that it ran correctly
-    assert_equal('Success', result.value.valueName)
-    assert(result.warnings.size == 2)
-
-    # check that the infiltration schedules sum to 1
-    infil_on_schedule = model.getScheduleByName('Infiltration HVAC On Schedule').get
-    infil_off_schedule = model.getScheduleByName('Infiltration HVAC Off Schedule').get
-    on_day = infil_on_schedule.to_ScheduleRuleset.get.defaultDaySchedule
-    off_day = infil_off_schedule.to_ScheduleRuleset.get.defaultDaySchedule
-    sum_arr = on_day.values + off_day.values
-    assert((sum_arr.min - 1.0) < 0.001)
-    assert((sum_arr.max - 1.0) < 0.001)
-
-    # save the model to test output directory
-    output_file_path = "#{File.dirname(__FILE__)}//output/bldg0000043_infil_adj.osm"
-    model.save(output_file_path, true)
-  end
-
-  def test_bldg45_stripmall_windowac
-    test_name = 'test_bldg45_stripmall_windowac'
-    puts "\n######\nTEST:#{test_name}\n######\n"
-
-    # load the test model
-    translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = "#{File.dirname(__FILE__)}/bldg0000045.osm"
-    model = translator.loadModel(path)
-    assert(!model.empty?)
-    model = model.get
-    args_hash = {}
-
-    result = run_test(model, args_hash)
-
-    # show the output
-    show_output(result)
-
-    # assert that it ran correctly
-    assert_equal('Success', result.value.valueName)
-
-    # check that the infiltration schedules sum to 1
-    infil_on_schedule = model.getScheduleByName('Infiltration HVAC On Schedule').get
-    infil_off_schedule = model.getScheduleByName('Infiltration HVAC Off Schedule').get
-    on_day = infil_on_schedule.to_ScheduleRuleset.get.defaultDaySchedule
-    off_day = infil_off_schedule.to_ScheduleRuleset.get.defaultDaySchedule
-    sum_arr = on_day.values + off_day.values
-    assert((sum_arr.min - 1.0) < 0.001)
-    assert((sum_arr.max - 1.0) < 0.001)
-
-    # save the model to test output directory
-    output_file_path = "#{File.dirname(__FILE__)}//output/bldg0000045_infil_adj.osm"
-    model.save(output_file_path, true)
-  end
-
-  def test_bldg53_smallhotel_pszac
-    test_name = 'test_bldg53_smallhotel_pszac'
-    puts "\n######\nTEST:#{test_name}\n######\n"
-
-    # load the test model
-    translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = "#{File.dirname(__FILE__)}/bldg0000053.osm"
-    model = translator.loadModel(path)
-    assert(!model.empty?)
-    model = model.get
-    args_hash = {}
-    args_hash['airtightness_area'] = '6-sided'
-
-    result = run_test(model, args_hash)
-
-    # show the output
-    show_output(result)
-
-    # assert that it ran correctly
-    assert_equal('Success', result.value.valueName)
-
-    # check that the infiltration schedules sum to 1
-    infil_on_schedule = model.getScheduleByName('Infiltration HVAC On Schedule').get
-    infil_off_schedule = model.getScheduleByName('Infiltration HVAC Off Schedule').get
-    on_day = infil_on_schedule.to_ScheduleRuleset.get.defaultDaySchedule
-    off_day = infil_off_schedule.to_ScheduleRuleset.get.defaultDaySchedule
-    sum_arr = on_day.values + off_day.values
-    assert((sum_arr.min - 1.0) < 0.001)
-    assert((sum_arr.max - 1.0) < 0.001)
-
-    # save the model to test output directory
-    output_file_path = "#{File.dirname(__FILE__)}//output/bldg0000053_infil_adj.osm"
-    model.save(output_file_path, true)
-  end
-
-  def test_bldg53_smallhotel_pszac_air_barrier
-    test_name = 'test_bldg53_smallhotel_pszac_air_barrier'
-    puts "\n######\nTEST:#{test_name}\n######\n"
-
-    # load the test model
-    translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = "#{File.dirname(__FILE__)}/bldg0000053.osm"
-    model = translator.loadModel(path)
-    assert(!model.empty?)
-    model = model.get
-    args_hash = {}
-    args_hash['airtightness_area'] = '6-sided'
-    args_hash['air_barrier'] = true
-
-    result = run_test(model, args_hash)
-
-    # show the output
-    show_output(result)
-
-    # assert that it ran correctly
-    assert_equal('Success', result.value.valueName)
-
-    # check that the infiltration schedules sum to 1
-    infil_on_schedule = model.getScheduleByName('Infiltration HVAC On Schedule').get
-    infil_off_schedule = model.getScheduleByName('Infiltration HVAC Off Schedule').get
-    on_day = infil_on_schedule.to_ScheduleRuleset.get.defaultDaySchedule
-    off_day = infil_off_schedule.to_ScheduleRuleset.get.defaultDaySchedule
-    sum_arr = on_day.values + off_day.values
-    assert((sum_arr.min - 1.0) < 0.001)
-    assert((sum_arr.max - 1.0) < 0.001)
-
-    # save the model to test output directory
-    output_file_path = "#{File.dirname(__FILE__)}//output/bldg0000053_infil_adj.osm"
-    model.save(output_file_path, true)
-  end
-
-  def test_bldg82_hospitalvav
-    test_name = 'test_bldg82_hospitalvav'
-    puts "\n######\nTEST:#{test_name}\n######\n"
-
-    # load the test model
-    translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = "#{File.dirname(__FILE__)}/bldg0000082.osm"
-    model = translator.loadModel(path)
-    assert(!model.empty?)
-    model = model.get
-    args_hash = {}
-
-    result = run_test(model, args_hash)
-
-    # show the output
-    show_output(result)
-
-    # assert that it ran correctly
-    assert_equal('Success', result.value.valueName)
-
-    # check that the infiltration schedules sum to 1
-    infil_on_schedule = model.getScheduleByName('Infiltration HVAC On Schedule').get
-    infil_off_schedule = model.getScheduleByName('Infiltration HVAC Off Schedule').get
-    on_day = infil_on_schedule.to_ScheduleRuleset.get.defaultDaySchedule
-    off_day = infil_off_schedule.to_ScheduleRuleset.get.defaultDaySchedule
-    sum_arr = on_day.values + off_day.values
-    assert((sum_arr.min - 1.0) < 0.001)
-    assert((sum_arr.max - 1.0) < 0.001)
-
-    # save the model to test output directory
-    output_file_path = "#{File.dirname(__FILE__)}//output/bldg0000082_infil_adj.osm"
-    model.save(output_file_path, true)
-  end
 end
