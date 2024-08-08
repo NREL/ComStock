@@ -31,20 +31,20 @@ class PlottingMixin():
         cols_enduse_ann_en = self.COLS_ENDUSE_ANN_ENGY
         wtd_cols_enduse_ann_en = [self.col_name_to_weighted(c, 'tbtu') for c in cols_enduse_ann_en]
 
-
         # plots for both applicable and total stock
         for applicable_scenario in ['stock', 'applicable_only']:
 
             df_scen = df.copy()
 
-
             if applicable_scenario == 'applicable_only':
                 applic_bldgs = df_scen.loc[(df_scen[self.UPGRADE_NAME]!='Baseline') & (df_scen['applicability']==True), self.BLDG_ID]
+                #psz_hvac_sys = ["PSZ-AC with gas coil", "PSZ-AC with electric coil"]
+                #applic_bldgs = df_scen.loc[(df_scen[self.UPGRADE_NAME]!='Baseline') & (df_scen[self.HVAC_SYS].isin(psz_hvac_sys)), self.BLDG_ID]
                 df_scen = df_scen.loc[df_scen[self.BLDG_ID].isin(applic_bldgs), :]
 
             # groupby and long format for plotting
             df_emi_gb = (df_scen.groupby(column_for_grouping, observed=True)[wtd_cols_enduse_ann_en].sum()).reset_index()
-            df_emi_gb = df_emi_gb.loc[:, (df_emi_gb !=0).any(axis=0)]
+            df_emi_gb = df_emi_gb.loc[:, (df_emi_gb !=0).any(axis=0)].reset_index()
             df_emi_gb_long = df_emi_gb.melt(id_vars=[column_for_grouping], value_name='Annual Energy Consumption (TBtu)').sort_values(by='Annual Energy Consumption (TBtu)', ascending=False)
 
             # naming for plotting
@@ -2636,6 +2636,51 @@ class PlottingMixin():
         applic_bldgs_list = list(df.loc[(df[self.UPGRADE_NAME].isin(upgrade_name)) & (df[self.UPGRADE_APPL]==True), self.BLDG_ID])
         applic_bldgs_list = [int(x) for x in applic_bldgs_list]
 
+        ## Check unique values in cambium_grid_region column
+        #unique_values = df['in.cambium_grid_region'].unique()
+        #print("Unique values in cambium_grid_region column:")
+        #print(unique_values)
+
+        ## baseline load data - aggregate electricity total only
+        #df_base_ts_agg = run_data.agg.aggregate_timeseries(
+                                                            #upgrade_id=0,
+                                                            #enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_sit#e_electricity_kwh"]),
+                                                            #timestamp_grouping_func='month',
+                                                            #get_query_only=False
+                                                            #)
+
+        #test_df = run_data.get_results_csv(get_query_only=False)
+        
+        ## Define the file path where you want to save the CSV
+        #file_path = 'C:/Users/mprapros/Documents/GitHub/ComStock/postprocessing/output/ComStock #gto_all_measures_10k_3/measure_runs/up04_Comprehensive G/timeseries/athena_table.csv'
+
+        ## Save the DataFrame to a CSV file
+        #test_df.to_csv(file_path, index=False)
+
+        #print(f"DataFrame saved to {file_path}")
+
+        ## Print the DataFrame to inspect its structure
+        #print("DataFrame structure:")
+        #print(test_df.head())  # Print the first few rows to get an overview
+        #print("\nDataFrame columns:")
+        #print(test_df.columns)  # Print all column names to ensure 'cambium_grid_region' is present
+
+        ## Check and print unique values in the 'cambium_grid_region' column
+        #if 'cambium_grid_region' in test_df.columns:
+            #unique_values = test_df['cambium_grid_region'].unique()
+            #print("\nUnique values in 'cambium_grid_region' column:")
+            #print(unique_values)
+        #else:
+            #print("\nColumn 'cambium_grid_region' not found in the DataFrame.")
+            
+        ## Check and print unique values in the 'cambium_grid_region' column
+        #if 'cluster_name' in test_df.columns:
+            #unique_values = test_df['cluster_name'].unique()
+            #print("\nUnique values in 'cluster_name' column:")
+            #print(unique_values)
+        #else:
+            #print("\nColumn 'cambium_grid_region' not found in the DataFrame.")
+
         dfs_base=[]
         dfs_up=[]
         for btype in btype_list:
@@ -2660,13 +2705,21 @@ class PlottingMixin():
                                                                 upgrade_id=0,
                                                                 enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
                                                                 restrict=[(('build_existing_model.building_type', [self.BLDG_TYPE_TO_SNAKE_CASE[btype]])),
-                                                                          ('state_abbreviation', [f"{state}"]),
+                                                                          ('county_id', [f"{state}"]),
                                                                           (run_data.bs_bldgid_column, applic_bldgs_list),
                                                                           ],
                                                                 timestamp_grouping_func='hour',
                                                                 get_query_only=False
                                                                 )
 
+            # Debug statements
+            print(f"Length of df_base_ts_agg for {btype} and {state}: {len(df_base_ts_agg)}")
+            if len(df_base_ts_agg) == 0:
+                print(f"No data found for building type {btype} in region {state}.")
+            else:
+                print(f"Sample of df_base_ts_agg for {btype} and {state}:")
+                print(df_base_ts_agg.head())
+            
             # add baseline data
             df_base_ts_agg_weighted = apply_wgts(df_base_ts_agg)
             df_base_ts_agg_weighted[self.UPGRADE_NAME] = 'baseline'
@@ -2678,7 +2731,7 @@ class PlottingMixin():
                                                                     upgrade_id=upgrade.astype(str),
                                                                     enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
                                                                     restrict=[(('build_existing_model.building_type', [self.BLDG_TYPE_TO_SNAKE_CASE[btype]])),
-                                                                            ('state_abbreviation', [f"{state}"]),
+                                                                            ('county_id', [f"{state}"]),
                                                                             ],
                                                                     timestamp_grouping_func='hour',
                                                                     get_query_only=False
@@ -2693,10 +2746,14 @@ class PlottingMixin():
         # concatinate and combine baseline data
         dfs_base_combined = pd.concat(dfs_base, join='outer', ignore_index=True)
         dfs_base_combined = dfs_base_combined.groupby(['time', self.UPGRADE_NAME], as_index=False)[dfs_base_combined.loc[:, dfs_base_combined.columns.str.contains('_kwh')].columns].sum()
+        
+        #print("length of dfs_base_combined =", {len(dfs_base_combined)})
 
         # concatinate and combine upgrade data
         dfs_upgrade_combined = pd.concat(dfs_up, join='outer', ignore_index=True)
         dfs_upgrade_combined = dfs_upgrade_combined.groupby(['time', self.UPGRADE_NAME], as_index=False)[dfs_upgrade_combined.loc[:, dfs_upgrade_combined.columns.str.contains('_kwh')].columns].sum()
+        
+        #print("length of dfs_upgrade_combined =", {len(dfs_upgrade_combined)})
 
         return dfs_base_combined, dfs_upgrade_combined
 
