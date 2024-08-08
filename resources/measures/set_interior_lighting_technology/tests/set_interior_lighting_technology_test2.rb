@@ -46,7 +46,7 @@ require_relative '../measure.rb'
 # only necessary to include here if annual simulation request and the measure doesn't require openstudio-standards
 require 'openstudio-standards'
 
-class PrototypeSpaceTypeAssignment_Test < Minitest::Test
+class SetInteriorLightingTechnology_Test < Minitest::Test
   # all tests are a sub definition of this class, e.g.:
   # def test_new_kind_of_test
   #   # test content
@@ -58,14 +58,15 @@ class PrototypeSpaceTypeAssignment_Test < Minitest::Test
     puts "\n######\nTEST:#{test_name}\n######\n"
 
     # create an instance of the measure
-    measure = PrototypeSpaceTypeAssignment.new
+    measure = SetInteriorLightingTechnology.new
 
     # make an empty model
     model = OpenStudio::Model::Model.new
 
     # get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(0, arguments.size)
+    assert_equal(1, arguments.size)
+    assert_equal('lighting_generation', arguments[0].name)
   end
 
   # return file paths to test models in test directory
@@ -177,9 +178,9 @@ class PrototypeSpaceTypeAssignment_Test < Minitest::Test
   # create an array of hashes with model name, weather, and expected result
   def models_to_test
     test_sets = []
-    test_sets << { model: 'SecondarySchool_PTHP', weather: 'SecondarySchool_PTHP', result: 'Success' }
-    test_sets << { model: 'Outpatient_VAV_chiller_PFP_boxes', weather: 'Outpatient_VAV_chiller_PFP_boxes', result: 'Success' }
-    test_sets << { model: 'Small_Office_2A', weather: 'Small_Office_2A', result: 'Success' }
+    test_sets << { model: 'SecondarySchool_PTHP', weather: 'SecondarySchool_PTHP', result: 'Success', arg_hash: { 'lighting_generation' => 'gen2_t8_halogen'} }
+    test_sets << { model: 'Outpatient_VAV_chiller_PFP_boxes', weather: 'Outpatient_VAV_chiller_PFP_boxes', result: 'Success', arg_hash: { 'lighting_generation' => 'gen4_led'} }
+    test_sets << { model: 'Small_Office_2A', weather: 'Small_Office_2A', result: 'Success', arg_hash: { 'lighting_generation' => 'gen2_t8_halogen'}  }
     return test_sets
   end
 
@@ -198,7 +199,7 @@ class PrototypeSpaceTypeAssignment_Test < Minitest::Test
       epw_path = epw_path[0]
 
       # create an instance of the measure
-      measure = PrototypeSpaceTypeAssignment.new
+      measure = SetInteriorLightingTechnology.new
 
       # load the model; only used here for populating arguments
       model = load_model(osm_path)
@@ -207,6 +208,17 @@ class PrototypeSpaceTypeAssignment_Test < Minitest::Test
       arguments = measure.arguments(model)
       argument_map = OpenStudio::Measure::OSArgumentMap.new
 
+      # populate argument with specified hash value if specified
+      # set up the user arguments
+      args_hash = set[:arg_hash]
+      args_hash.each do |arg_name, arg_value|
+        arg = arguments.find { |a| a.name == arg_name }
+        raise "Argument #{arg_name} not found" if arg.nil?
+        assert(arg.setValue(arg_value))
+        argument_map[arg_name] = arg
+      end
+
+
       # apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
 
@@ -214,6 +226,19 @@ class PrototypeSpaceTypeAssignment_Test < Minitest::Test
       # also check the amount of warnings, info, and error messages
       # use if or case statements to change expected assertion depending on model characteristics
       assert(result.value.valueName == set[:result])
+
+      if set[:model] == 'SecondarySchool_PTHP'
+        # make sure it assigned a high bay fixture to the gym spaces
+        model.getSpaceTypes.each do |space_type|
+          next unless space_type.name.to_s == 'SecondarySchool Gym'
+          space_type.lights.each do |light|
+            next unless light.name.to_s == 'SecondarySchool Gym General Lighting'
+            light_definition = light.lightsDefinition
+            lighting_technology = light_definition.additionalProperties.getFeatureAsString('lighting_technology').to_s
+            assert_equal(lighting_technology, 'HID High Bay Metal Halide')
+          end
+        end
+      end
 
       # to check that something changed in the model, load the model and the check the objects match expected new value
       model = load_model(model_output_path(instance_test_name))
