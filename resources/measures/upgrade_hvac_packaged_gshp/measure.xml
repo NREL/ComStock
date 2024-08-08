@@ -1,10 +1,11 @@
 <?xml version="1.0"?>
 <measure>
   <schema_version>3.1</schema_version>
+  <error>Failed to infer measure name from 'C:/Users/mdahlhau/Documents/GitHub/NREL/comstock/resources/measures/upgrade_hvac_packaged_gshp/measure.rb'</error>
   <name>add_packaged_gshp</name>
   <uid>8a5eb1ff-89e5-4fca-9ea3-398ae357bfc7</uid>
-  <version_id>7474e1b5-c92e-4450-8db9-eaf8e22901a2</version_id>
-  <version_modified>2024-01-18T22:22:51Z</version_modified>
+  <version_id>957330cd-495a-4cc0-8eba-7034acb9bdd4</version_id>
+  <version_modified>2024-06-20T18:58:45Z</version_modified>
   <xml_checksum>5E2576E4</xml_checksum>
   <class_name>AddPackagedGSHP</class_name>
   <display_name>add_packaged_gshp</display_name>
@@ -114,7 +115,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>80A839EB</checksum>
+      <checksum>37FAA78F</checksum>
     </file>
     <file>
       <filename>Ground Loop Heat Pump Performance Data.xlsx</filename>
@@ -204,7 +205,7 @@
       <filename>packaged_gthp_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>A5591A85</checksum>
+      <checksum>D3ACCF4A</checksum>
     </file>
   </files>
 </measure>

@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>utility_bills</name>
   <uid>2a3442c1-944d-4e91-9e11-11e0cf368c64</uid>
-  <version_id>7ec10982-2213-4b46-a686-2febd9cdd3d7</version_id>
-  <version_modified>2024-01-12T22:12:35Z</version_modified>
+  <version_id>3835ce49-df43-471c-8439-6bb22b89f8a5</version_id>
+  <version_modified>2024-06-20T19:00:14Z</version_modified>
   <xml_checksum>15BF4E57</xml_checksum>
   <class_name>UtilityBills</class_name>
   <display_name>Utility Bills</display_name>
@@ -63844,12 +63844,6 @@
       <filetype>stat</filetype>
       <usage_type>test</usage_type>
       <checksum>E2C3F063</checksum>
-    </file>
-    <file>
-      <filename>bad_rates.txt</filename>
-      <filetype>txt</filetype>
-      <usage_type>test</usage_type>
-      <checksum>10DD9EBE</checksum>
     </file>
     <file>
       <filename>test_electricity_hourly.csv</filename>

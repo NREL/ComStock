@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>electrify_kitchen_equipment</name>
   <uid>005867a6-dcb5-4333-a880-d11037cb605c</uid>
-  <version_id>5304054f-8456-4d0f-9da3-e841d4243cc1</version_id>
-  <version_modified>2024-01-02T22:14:28Z</version_modified>
+  <version_id>edfb406f-31ac-4b83-a868-b92256b8d965</version_id>
+  <version_modified>2024-06-20T18:58:46Z</version_modified>
   <xml_checksum>0C204E3D</xml_checksum>
   <class_name>ElectrifyKitchenEquipment</class_name>
   <display_name>electrify_kitchen_equipment</display_name>
@@ -68,12 +68,6 @@
       <checksum>703C9964</checksum>
     </file>
     <file>
-      <filename>.gitkeep</filename>
-      <filetype>gitkeep</filetype>
-      <usage_type>doc</usage_type>
-      <checksum>00000000</checksum>
-    </file>
-    <file>
       <version>
         <software_program>OpenStudio</software_program>
         <identifier>2.9.1</identifier>
@@ -82,7 +76,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>C15D2822</checksum>
+      <checksum>9F500E3A</checksum>
     </file>
     <file>
       <filename>example_model.osm</filename>
@@ -94,7 +88,7 @@
       <filename>kitchen_equip_measure_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>4317A3F7</checksum>
+      <checksum>CBFEF368</checksum>
     </file>
   </files>
 </measure>

@@ -96,7 +96,7 @@ class EnvSecondaryWindows < OpenStudio::Measure::ModelMeasure
     template = 'ComStock 90.1-2013'
     std = Standard.build(template)
     # get climate zone value
-    climate_zone = std.model_standards_climate_zone(model)
+    climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
     runner.registerInfo("climate zone = #{climate_zone}")
 
     # For each window construction, make a clone

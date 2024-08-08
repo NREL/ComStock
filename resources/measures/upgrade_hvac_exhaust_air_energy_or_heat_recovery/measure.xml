@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>hvac_exhaust_air_energy_or_heat_recovery</name>
   <uid>8860830d-8741-4b5f-ac9c-3d011a523b96</uid>
-  <version_id>9c00d18b-f022-4119-97eb-a316899bc3d2</version_id>
-  <version_modified>2023-10-16T20:24:57Z</version_modified>
+  <version_id>2bb6a892-048a-4737-9d05-eba9309be33f</version_id>
+  <version_modified>2024-06-20T18:58:44Z</version_modified>
   <xml_checksum>215F538B</xml_checksum>
   <class_name>HVACExhaustAirEnergyOrHeatRecovery</class_name>
   <display_name>HVAC Exhaust Air Energy or Heat Recovery</display_name>
@@ -75,13 +75,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>D320A019</checksum>
+      <checksum>2715438A</checksum>
     </file>
     <file>
       <filename>hvac_exhaust_air_energy_or_heat_recovery_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>8BFA353A</checksum>
+      <checksum>FBB9D0D5</checksum>
     </file>
   </files>
 </measure>

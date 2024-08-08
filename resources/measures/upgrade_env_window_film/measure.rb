@@ -521,7 +521,7 @@ class EnvWindowFilm < OpenStudio::Measure::ModelMeasure
     puts '### initialize window performance replacement'
     ################################################################
 
-    # initialize hash for old construction name - new construction name 
+    # initialize hash for old construction name - new construction name
     new_construction_hash = {}
 
     # build standard to use OS standards methods
@@ -529,7 +529,7 @@ class EnvWindowFilm < OpenStudio::Measure::ModelMeasure
     std = Standard.build(template)
 
     # get climate zone
-    climate_zone = std.model_standards_climate_zone(model)
+    climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
     puts "--- climate_zone = #{climate_zone}"
     if climate_zone.empty?
       runner.registerError('Unable to determine climate zone for model. Cannot apply window film without climate zone information.')
@@ -588,13 +588,13 @@ class EnvWindowFilm < OpenStudio::Measure::ModelMeasure
           next
         end
         puts "--- found values in the map with key \"#{simple_glazing_name}\""
-        
+
         # check availability of values for the climate zone in the map
         if map_window[simple_glazing_name][climate_zone_num_iecc] == []
           puts "--- values for climate zone #{climate_zone_num_iecc} not available in performance map. skipping.."
           next
         end
-        puts "--- found values in the map with climate zone #{climate_zone_num_iecc}"        
+        puts "--- found values in the map with climate zone #{climate_zone_num_iecc}"
 
         # get old values
         puts "--- get existing window properties"
@@ -658,7 +658,7 @@ class EnvWindowFilm < OpenStudio::Measure::ModelMeasure
           new_construction_hash[construction] = new_construction
           puts "--- create simple glazing system (#{new_simple_glazing.name.get}) for this construction"
 
-          
+
         end
 
         # loop over fenestration surfaces and add new construction

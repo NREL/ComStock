@@ -7,7 +7,7 @@ require 'openstudio-standards'
 require 'csv'
 
 # require all .rb files in resources folder
-Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }  
+Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }
 
 # resource file modules
 include Make_Performance_Curves
@@ -45,7 +45,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     template = 'ComStock 90.1-2019'
     std = Standard.build(template)
     # get climate zone value
-    climate_zone = std.model_standards_climate_zone(model)
+    climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
 
     # determine if the air loop is residential (checks to see if there is outdoor air system object)
     # measure will be applicable to residential AC/residential furnace systems
@@ -109,7 +109,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     # if a thermal zone started out with no equipment (aka it is unconditioned), skip this zone
     model.getThermalZones.each do |thermal_zone|
       if thermal_zone.equipment.empty?
-        unconditioned_zones << thermal_zone.name.get 
+        unconditioned_zones << thermal_zone.name.get
       # if original zone is typically conditioned with baseboards or unit heaters (as opposed to primary system), maintain zone equipment in this space
       elsif ['Bulk', 'Entry', 'WarehouseUnCond'].any? { |word| (thermal_zone.name.get).include?(word) }
         zones_to_skip << thermal_zone.name.get
@@ -143,7 +143,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
       end
 
       # check for baseboard electric and add to array of zone equipment to delete
-      # if there are PTACs or PTHPs in the building, skips zones with baseboards 
+      # if there are PTACs or PTHPs in the building, skips zones with baseboards
       model.getThermalZones.each do |thermal_zone|
         thermal_zone.equipment.each do |equip|
           next unless equip.to_ZoneHVACBaseboardConvectiveElectric.is_initialized
@@ -490,14 +490,14 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
       preheat_coil_setpoint_manager.addToNode(preheat_sm_location)
     end
 
-    # for zones that got skipped, check if there are already baseboards. if not, add them. 
+    # for zones that got skipped, check if there are already baseboards. if not, add them.
     model.getThermalZones.each do |thermal_zone|
       if unconditioned_zones.include? thermal_zone.name.get
         runner.registerInfo("Thermal zone #{thermal_zone.name} was unconditioned in the baseline, and will not receive a packaged GHP.")
       elsif zones_to_skip.include? thermal_zone.name.get
         #if thermal_zone.equipment.empty? || thermal_zone.equipment.none? { |equip| equip.iddObjectType == OpenStudio::Model::ZoneHVACBaseboardConvectiveElectric.iddObjectType }
         if thermal_zone.equipment.empty?
-          runner.registerInfo("Thermal zone #{thermal_zone.name} will not receive a packaged GHP and will receive electric baseboards instead.")  
+          runner.registerInfo("Thermal zone #{thermal_zone.name} will not receive a packaged GHP and will receive electric baseboards instead.")
           baseboard = OpenStudio::Model::ZoneHVACBaseboardConvectiveElectric.new(model)
           baseboard.setName("#{thermal_zone.name} Electric Baseboard")
           baseboard.setEfficiency(1.0)

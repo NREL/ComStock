@@ -9,6 +9,11 @@ LABEL maintainer="Henry (Ry) Horsey henry.horsey@nrel.gov"
 # Copy the Gemfile from the ComStock Repo into the container
 COPY /resources/Gemfile /var/oscli/
 
+# Install NREL root certs
+RUN curl -fsSLk -o /usr/local/share/ca-certificates/nrel_root.crt https://raw.github.nrel.gov/TADA/nrel-certs/v20180329/certs/nrel_root.pem && \
+  curl -fsSLk -o /usr/local/share/ca-certificates/nrel_xca1.crt https://raw.github.nrel.gov/TADA/nrel-certs/v20180329/certs/nrel_xca1.pem && \
+  update-ca-certificates
+
 # Install custom gems
 ENV BUNDLE_WITHOUT=
 RUN bundle config set git.allow_insecure true \

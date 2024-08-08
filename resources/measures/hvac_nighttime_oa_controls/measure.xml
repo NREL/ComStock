@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <measure>
   <schema_version>3.1</schema_version>
-  <error>/App/Comstock/resources/measures/hvac_nighttime_oa_controls/measure.rb:180: Invalid next</error>
+  <error>Failed to infer measure name from 'C:/Users/mdahlhau/Documents/GitHub/NREL/comstock/resources/measures/hvac_nighttime_oa_controls/measure.rb'</error>
   <name>new_measure</name>
   <uid>e6960929-a4a7-4447-8dc6-d9dfc6b92765</uid>
-  <version_id>45b31a96-bf2e-4d1b-bf92-98e12cc4ef66</version_id>
-  <version_modified>2024-03-07T19:16:12Z</version_modified>
+  <version_id>ab523b68-ad4a-40b5-94a2-691aa0a13c98</version_id>
+  <version_modified>2024-06-20T18:58:39Z</version_modified>
   <xml_checksum>B3180F38</xml_checksum>
   <class_name>NewMeasure</class_name>
   <display_name>New Measure</display_name>

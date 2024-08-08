@@ -4,7 +4,7 @@
 
 Clone [buildstockbatch](https://github.com/NREL/buildstockbatch) onto your computer
 
-Switch to the `comstock-integration-tests` branch **TODO remove this step once this branch is merged into buildstockbatch**
+Switch to the `rhorsey/comstock-23-10-upgrade` branch **TODO remove this step once this branch is merged into buildstockbatch**
 
 Create a new conda environment with **python 3.9** or above (only need to do this once):
 ```
@@ -25,6 +25,12 @@ $ pip install --upgrade pip
 Install the libraries needed for the buildstockbatch repository:
 ```
 $ python -m pip install -e .
+```
+
+Install GHEDesigner and PySAM
+```
+$ pip install GHEDesigner==1.0
+$ pip install NREL-PySAM==4.2.0
 ```
 
 Install the correct version of [openstudio](https://github.com/NREL/OpenStudio/releases) for ComStock. You can determine the correct version by looking at the [Dockerfile](https://github.com/NREL/ComStock/blob/develop/build/Dockerfile#L5) on the `develop` branch of ComStock.

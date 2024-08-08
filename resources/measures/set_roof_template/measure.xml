@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>set_roof_template</name>
   <uid>0b13c46d-123f-4d6c-b5d8-65a23acf1141</uid>
-  <version_id>4b849afd-6e19-42c7-9120-828d6348aee7</version_id>
-  <version_modified>2023-10-16T20:24:52Z</version_modified>
+  <version_id>3f9d5a8d-5986-4beb-bfbe-b87310d67228</version_id>
+  <version_modified>2024-06-20T18:58:40Z</version_modified>
   <xml_checksum>66CE07BA</xml_checksum>
   <class_name>SetRoofTemplate</class_name>
   <display_name>Set Roof Template</display_name>
@@ -542,7 +542,7 @@
       <filename>measure_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>7C2C2140</checksum>
+      <checksum>B6C88F42</checksum>
     </file>
   </files>
 </measure>

@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>create_bar_from_building_type_ratios</name>
   <uid>6e3a14f8-c3c7-4e03-bc51-bef8a52e1a05</uid>
-  <version_id>6979ba1b-b955-40ce-b3d5-3a005a8d1644</version_id>
-  <version_modified>2023-10-16T20:24:52Z</version_modified>
+  <version_id>5edae2f1-83ce-48ed-ad90-252bb45dd03d</version_id>
+  <version_modified>2024-06-13T19:58:24Z</version_modified>
   <xml_checksum>2AF3A68E</xml_checksum>
   <class_name>CreateBarFromBuildingTypeRatios</class_name>
   <display_name>Create Bar From Building Type Ratios</display_name>
@@ -106,6 +106,14 @@
         <choice>
           <value>SmallDataCenterHighITE</value>
           <display_name>SmallDataCenterHighITE</display_name>
+        </choice>
+        <choice>
+          <value>Courthouse</value>
+          <display_name>Courthouse</display_name>
+        </choice>
+        <choice>
+          <value>College</value>
+          <display_name>College</display_name>
         </choice>
         <choice>
           <value>Asm</value>
@@ -283,6 +291,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>1</default_value>
+      <min_value>0</min_value>
     </argument>
     <argument>
       <name>bldg_type_b</name>
@@ -379,6 +388,14 @@
         <choice>
           <value>SmallDataCenterHighITE</value>
           <display_name>SmallDataCenterHighITE</display_name>
+        </choice>
+        <choice>
+          <value>Courthouse</value>
+          <display_name>Courthouse</display_name>
+        </choice>
+        <choice>
+          <value>College</value>
+          <display_name>College</display_name>
         </choice>
         <choice>
           <value>Asm</value>
@@ -555,6 +572,8 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>0</default_value>
+      <min_value>0.000000</min_value>
+      <max_value>1.000000</max_value>
     </argument>
     <argument>
       <name>bldg_type_b_num_units</name>
@@ -564,6 +583,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>1</default_value>
+      <min_value>0</min_value>
     </argument>
     <argument>
       <name>bldg_type_c</name>
@@ -660,6 +680,14 @@
         <choice>
           <value>SmallDataCenterHighITE</value>
           <display_name>SmallDataCenterHighITE</display_name>
+        </choice>
+        <choice>
+          <value>Courthouse</value>
+          <display_name>Courthouse</display_name>
+        </choice>
+        <choice>
+          <value>College</value>
+          <display_name>College</display_name>
         </choice>
         <choice>
           <value>Asm</value>
@@ -836,6 +864,8 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>0</default_value>
+      <min_value>0.000000</min_value>
+      <max_value>1.000000</max_value>
     </argument>
     <argument>
       <name>bldg_type_c_num_units</name>
@@ -845,6 +875,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>1</default_value>
+      <min_value>0</min_value>
     </argument>
     <argument>
       <name>bldg_type_d</name>
@@ -941,6 +972,14 @@
         <choice>
           <value>SmallDataCenterHighITE</value>
           <display_name>SmallDataCenterHighITE</display_name>
+        </choice>
+        <choice>
+          <value>Courthouse</value>
+          <display_name>Courthouse</display_name>
+        </choice>
+        <choice>
+          <value>College</value>
+          <display_name>College</display_name>
         </choice>
         <choice>
           <value>Asm</value>
@@ -1117,6 +1156,8 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>0</default_value>
+      <min_value>0.000000</min_value>
+      <max_value>1.000000</max_value>
     </argument>
     <argument>
       <name>bldg_type_d_num_units</name>
@@ -1126,6 +1167,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>1</default_value>
+      <min_value>0</min_value>
     </argument>
     <argument>
       <name>single_floor_area</name>
@@ -1136,6 +1178,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>0</default_value>
+      <min_value>0.000000</min_value>
     </argument>
     <argument>
       <name>total_bldg_floor_area</name>
@@ -1155,6 +1198,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>0</default_value>
+      <min_value>0.000000</min_value>
     </argument>
     <argument>
       <name>custom_height_bar</name>
@@ -1182,6 +1226,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>1</default_value>
+      <min_value>1.000000</min_value>
     </argument>
     <argument>
       <name>num_stories_below_grade</name>
@@ -1190,6 +1235,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>0</default_value>
+      <min_value>0</min_value>
     </argument>
     <argument>
       <name>building_rotation</name>
@@ -1411,6 +1457,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>0</default_value>
+      <min_value>0.000000</min_value>
     </argument>
     <argument>
       <name>perim_mult</name>
@@ -1420,6 +1467,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>0</default_value>
+      <min_value>0.000000</min_value>
     </argument>
     <argument>
       <name>bar_width</name>
@@ -1430,6 +1478,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>0</default_value>
+      <min_value>0.000000</min_value>
     </argument>
     <argument>
       <name>bar_sep_dist_mult</name>
@@ -1448,6 +1497,8 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>0</default_value>
+      <min_value>0.000000</min_value>
+      <max_value>1.000000</max_value>
     </argument>
     <argument>
       <name>party_wall_fraction</name>
@@ -1457,6 +1508,8 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>0</default_value>
+      <min_value>0.000000</min_value>
+      <max_value>1.000000</max_value>
     </argument>
     <argument>
       <name>party_wall_stories_north</name>
@@ -1466,6 +1519,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>0</default_value>
+      <min_value>0</min_value>
     </argument>
     <argument>
       <name>party_wall_stories_south</name>
@@ -1475,6 +1529,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>0</default_value>
+      <min_value>0</min_value>
     </argument>
     <argument>
       <name>party_wall_stories_east</name>
@@ -1484,6 +1539,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>0</default_value>
+      <min_value>0</min_value>
     </argument>
     <argument>
       <name>party_wall_stories_west</name>
@@ -1493,6 +1549,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>0</default_value>
+      <min_value>0</min_value>
     </argument>
     <argument>
       <name>neighbor_height_method</name>
@@ -1532,6 +1589,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>0</default_value>
+      <min_value>0.000000</min_value>
     </argument>
     <argument>
       <name>neighbor_height_south</name>
@@ -1542,6 +1600,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>0</default_value>
+      <min_value>0.000000</min_value>
     </argument>
     <argument>
       <name>neighbor_height_east</name>
@@ -1552,6 +1611,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>0</default_value>
+      <min_value>0.000000</min_value>
     </argument>
     <argument>
       <name>neighbor_height_west</name>
@@ -1562,6 +1622,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>0</default_value>
+      <min_value>0.000000</min_value>
     </argument>
     <argument>
       <name>neighbor_offset_north</name>
@@ -1572,6 +1633,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>0</default_value>
+      <min_value>0.000000</min_value>
     </argument>
     <argument>
       <name>neighbor_offset_south</name>
@@ -1582,6 +1644,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>0</default_value>
+      <min_value>0.000000</min_value>
     </argument>
     <argument>
       <name>neighbor_offset_east</name>
@@ -1592,6 +1655,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>0</default_value>
+      <min_value>0.000000</min_value>
     </argument>
     <argument>
       <name>neighbor_offset_west</name>
@@ -1602,6 +1666,7 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>0</default_value>
+      <min_value>0.000000</min_value>
     </argument>
     <argument>
       <name>bottom_story_ground_exposed_floor</name>
@@ -1941,43 +2006,25 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>3337F652</checksum>
-    </file>
-    <file>
-      <filename>os_lib_geometry.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>AB364C18</checksum>
-    </file>
-    <file>
-      <filename>os_lib_helper_methods.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>5E061809</checksum>
-    </file>
-    <file>
-      <filename>os_lib_model_generation.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>2499BB8C</checksum>
-    </file>
-    <file>
-      <filename>os_lib_model_simplification.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>76A7902F</checksum>
+      <checksum>72977C0A</checksum>
     </file>
     <file>
       <filename>create_bar_from_building_type_ratios_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>F568B1AB</checksum>
+      <checksum>74AC622A</checksum>
     </file>
     <file>
       <filename>example_model.osm</filename>
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
       <checksum>5343410C</checksum>
+    </file>
+    <file>
+      <filename>example_model_no_surf.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>74614705</checksum>
     </file>
   </files>
 </measure>

@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>set_heating_fuel</name>
   <uid>cfa30f59-6e2a-49ec-8d82-52f95c514135</uid>
-  <version_id>adfc24a9-97c1-4119-a3ec-1058439f18d6</version_id>
-  <version_modified>2023-10-16T20:24:56Z</version_modified>
+  <version_id>b4394bcb-1f69-45fe-8da3-84a12acb2ae2</version_id>
+  <version_modified>2024-06-20T18:58:39Z</version_modified>
   <xml_checksum>FFEC3760</xml_checksum>
   <class_name>SetHeatingFuel</class_name>
   <display_name>set_heating_fuel</display_name>
@@ -98,7 +98,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>A6609476</checksum>
+      <checksum>A0090F01</checksum>
     </file>
     <file>
       <filename>full_service_restaurant_gas_ht.osm</filename>
@@ -110,7 +110,7 @@
       <filename>measure_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>5482805B</checksum>
+      <checksum>AE19B37E</checksum>
     </file>
     <file>
       <filename>retail_propane_and_gas.osm</filename>

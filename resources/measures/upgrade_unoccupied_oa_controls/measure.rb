@@ -221,7 +221,7 @@ class UnoccupiedOAControls < OpenStudio::Measure::ModelMeasure
         air_loop_vent_sch.setName("#{air_loop_hvac.name}_night_novent_schedule")
       end
       if air_loop_hvac.availabilitySchedule.clone.to_ScheduleConstant.is_initialized
-        sch_ruleset = std.thermal_zones_get_occupancy_schedule(thermal_zones = air_loop_hvac.thermalZones,
+        sch_ruleset = OpenstudioStandards::ThermalZone.thermal_zones_get_occupancy_schedule(thermal_zones = air_loop_hvac.thermalZones,
                                                                occupied_percentage_threshold: 0.05)
         # set air loop availability controls and night cycle manager, after oa system added
         sch_ruleset.setName("#{air_loop_hvac.name}_night_fancycle_novent_schedule")
@@ -267,7 +267,7 @@ class UnoccupiedOAControls < OpenStudio::Measure::ModelMeasure
         air_loop_vent_sch.setName("#{air_loop_hvac.name}_night_novent_schedule")
       end
       if air_loop_hvac.availabilitySchedule.clone.to_ScheduleConstant.is_initialized # handle constant schedule
-        sch_ruleset = std.thermal_zones_get_occupancy_schedule(thermal_zones = air_loop_hvac.thermalZones,
+        sch_ruleset = OpenstudioStandards::ThermalZone.thermal_zones_get_occupancy_schedule(thermal_zones = air_loop_hvac.thermalZones,
                                                                occupied_percentage_threshold: 0.05)
         # set air loop availability controls and night cycle manager, after oa system added
         air_loop_hvac.setAvailabilitySchedule(sch_ruleset)

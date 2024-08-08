@@ -5,7 +5,7 @@
 # env_window_film
 
 ## Description
-Adds window film to ComStock's existing baseline windows.
+Adds window film to ComStock's existing baseline windows. Applicability is coded inside of the measure for selecting appropriate windows for an window film upgrade.
 
 ## Modeler Description
 First gets all building detailed fenestration surfaces. Loops over all detailed fenestration surfaces and checks to see if the surface type is a window. If the surface type is a window then it gets the corresponding construction objects. A hard-coded map is used to update the window performances (U-factor, SHGC, VLT) in relevant construction objects by leveraging ComStock's glazing system name and climate zone number as keys.

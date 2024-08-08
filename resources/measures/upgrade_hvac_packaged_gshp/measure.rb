@@ -8,7 +8,7 @@ require_relative '../upgrade_hvac_dcv/measure.rb'
 require_relative '../upgrade_hvac_economizer/measure.rb'
 
 # require all .rb files in resources folder
-Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }  
+Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }
 
 # resource file modules
 include Make_Performance_Curves
@@ -126,7 +126,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     served_by_district_energy = true unless district_energy_types.empty?
     served_by_district_energy
   end
-    
+
   # Define the main method that will be called by the OpenStudio application
   def run(model, runner, user_arguments)
     super(model, runner, user_arguments)
@@ -135,7 +135,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     template = 'ComStock 90.1-2019'
     std = Standard.build(template)
     # get climate zone value
-    climate_zone = std.model_standards_climate_zone(model)
+    climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
 
     # assign user inputs to variables
     dcv = runner.getBoolArgumentValue('dcv', user_arguments)
@@ -147,7 +147,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
       runner.registerAsNotApplicable("Model already contains a GroundHeatExchanger:Vertical, upgrade is not applicable.")
       return true
     end
-    
+
     # check if model has airloops, if not register not applicable
     all_air_loops = model.getAirLoopHVACs
     if all_air_loops.empty?
@@ -172,7 +172,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     model.getThermalZones.each do |thermal_zone|
       # if original zone has no equipment (unconditioned), skip this zone entirely
       if thermal_zone.equipment.empty?
-        unconditioned_zones << thermal_zone.name.get 
+        unconditioned_zones << thermal_zone.name.get
       # if original zone is typically conditioned with baseboards (as opposed to an RTU), maintain this
       elsif ['Bulk', 'Entry'].any? { |word| (thermal_zone.name.get).include?(word) }
         zones_to_skip << thermal_zone.name.get
@@ -213,7 +213,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
         next unless air_loop_hvac.airLoopHVACOutdoorAirSystem.is_initialized
         # skip if evaporative cooling systems
         next if air_loop_evaporative_cooler?(air_loop_hvac)
-        
+
         #look for PVAV and VAV systems (some might only have 1 zone per air loop)
         if %w[PVAV].any? { |word| air_loop_hvac.name.get.include?(word) }
           air_loop_hvac.supplyComponents.each do |component|
@@ -223,7 +223,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
               return true
             end
           end
-          runner.registerInfo("Model has a PVAV system, measure will be applicable.") 
+          runner.registerInfo("Model has a PVAV system, measure will be applicable.")
           pvav_air_loops << air_loop_hvac
         elsif %w[VAV].any? { |word| air_loop_hvac.name.get.include?(word) }
           runner.registerAsNotApplicable("Model has VAV system, measure is not applicable.")
@@ -243,7 +243,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
               return true
             end
           end
-          runner.registerInfo("Model has a PVAV system, measure will be applicable.") 
+          runner.registerInfo("Model has a PVAV system, measure will be applicable.")
           pvav_air_loops << air_loop_hvac
         elsif %w[VAV].any? { |word| air_loop_hvac.name.get.include?(word) }
           runner.registerAsNotApplicable("Model has VAV system, measure is not applicable.")
@@ -663,15 +663,15 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
       # get outlet node of preheat coil to place setpoint manager
       preheat_sm_location = preheat_coil.outletModelObject.get.to_Node.get
       preheat_coil_setpoint_manager.addToNode(preheat_sm_location)
-    
+
     end
 
-    # for zones that got skipped, check if there are already baseboards. if not, add them. 
+    # for zones that got skipped, check if there are already baseboards. if not, add them.
     model.getThermalZones.each do |thermal_zone|
       if unconditioned_zones.include? thermal_zone.name.get
         runner.registerInfo("Thermal zone #{thermal_zone} was unconditioned in the baseline, and will not receive a packaged GHP.")
       elsif zones_to_skip.include? thermal_zone.name.get
-        if thermal_zone.equipment.empty? 
+        if thermal_zone.equipment.empty?
           baseboard = OpenStudio::Model::ZoneHVACBaseboardConvectiveElectric.new(model)
           baseboard.setName("#{thermal_zone.name} Electric Baseboard")
           baseboard.setEfficiency(1.0)
@@ -720,7 +720,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
         'Toilet',
         'MechElecRoom',
       ]
-    
+
       no_outdoor_air_loops = 0
       no_per_person_rates_loops = 0
       constant_volume_doas_loops = 0
@@ -729,7 +729,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
       ineligible_space_types = 0
       selected_air_loops = []
       model.getAirLoopHVACs.each do |air_loop_hvac|
-        
+
         # check for prevelance of OA system in air loop; skip if none
         oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem
         if oa_system.is_initialized
@@ -794,7 +794,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
           ineligible_space_types += 1
           next
         end
-        
+
         runner.registerInfo("Air loop '#{air_loop_hvac.name}' does not have existing demand control ventilation.  This measure will enable it.")
         selected_air_loops << air_loop_hvac
       end
@@ -805,7 +805,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
           runner.registerInfo("Building is a hotel. DCV measure is not applicable.")
       elsif ((model.getBuilding.name.to_s.include?("restaurant") || model.getBuilding.name.to_s.include?("Restaurant") || model.getBuilding.name.to_s.include?("RSD") || model.getBuilding.name.to_s.include?("RFF"))) && !(model.getBuilding.name.to_s.include?("Strip") || model.getBuilding.name.to_s.include?("strip"))
           runner.registerInfo("Building is a restaurant or strip mall. DCV measure is not applicable.")
-      else 
+      else
         #get path to DCV measure
         dcv_measure_path = Dir.glob(File.join(__dir__, '../upgrade_hvac_dcv'))
         # Load dcv measure
@@ -1050,7 +1050,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     end
 
     # add timeseries ground loads to array
-    ground_loads_ts = sql.timeSeries(ann_env_pd, 'Hourly', 'Plant Temperature Source Component Heat Transfer Rate','GROUND LOOP TEMPERATURE SOURCE (GROUND HEAT EXCHANGER PLACEHOLDER)')              
+    ground_loads_ts = sql.timeSeries(ann_env_pd, 'Hourly', 'Plant Temperature Source Component Heat Transfer Rate','GROUND LOOP TEMPERATURE SOURCE (GROUND HEAT EXCHANGER PLACEHOLDER)')
     if ground_loads_ts.is_initialized
       ground_loads = []
       vals = ground_loads_ts.get.values

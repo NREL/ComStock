@@ -239,7 +239,7 @@ class HVACEconomizer_Test < Minitest::Test
 
     # Find the weather file
     if epw_path==nil
-      epw_path = std.model_get_full_weather_file_path(model)
+      epw_path = OpenstudioStandards::Weather.model_get_full_weather_file_path(model)
       if epw_path.empty?
         return false
       end
