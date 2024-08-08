@@ -760,7 +760,7 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path=nil, run_
   # Set up the simulation
   # Find the weather file
   if epw_path==nil
-  #   epw_path = std.model_get_full_weather_file_path(model)
+    # epw_path = std.model_get_full_weather_file_path(model)
     epw_path = model.weatherFile.get.path
     if epw_path.empty?
       return false
