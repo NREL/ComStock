@@ -55,6 +55,7 @@ Measures are added to the workflow in order they first appear in the [`options_l
 | add_thermostat_setpoint_variability      | Modifies the heating and cooling setpoints and setbacks/setups. |
 | set_primary_kitchen_equipment            | Replaces kitchen equiment with discrete equipment assumptions |
 | replace_baseline_windows                 | Replaces windows in model (originally based on code) with windows of a specific technology type (single-pane, double-pane, etc.) |
+| thermal_bridging_derating                | Derates opaque constructions thermal resistance to account for thermal bridging |
 | adjust_occupancy_schedule                | Reduced the values of all occupancy schedules in the model by a specified percentage |
 | hardsize_model                           | Do a sizing run, which populates the SQL file with the EnergyPlus-calculated capacities and flows |
 |                                          | Hard-size HVAC and SWH equipment in the model based on EnergyPlus-calculated capacities and flows. No model changes from here forward will be reflected in the sizing of HVAC equipment unless done intentionally as part of an upgrade. |

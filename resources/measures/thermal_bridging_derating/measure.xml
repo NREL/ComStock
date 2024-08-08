@@ -1,0 +1,224 @@
+<?xml version="1.0"?>
+<measure>
+  <schema_version>3.1</schema_version>
+  <name>thermal_bridging_derating</name>
+  <uid>e80a588e-f52d-4244-888a-3c95bd845604</uid>
+  <version_id>393d3a57-9d3d-441f-bf6d-b0e117f68de5</version_id>
+  <version_modified>2024-08-08T21:48:54Z</version_modified>
+  <xml_checksum>D69419EB</xml_checksum>
+  <class_name>ThermalBridgingDerating</class_name>
+  <display_name>Thermal Bridging Derating</display_name>
+  <description>Derates opaque construction thermal resistance for major thermal bridges.</description>
+  <modeler_description>This measure is adapted from the Thermal Bridging and Derating measure. Details, including default psi value sets, are avialble at rd2.github.io/tbd</modeler_description>
+  <arguments>
+    <argument>
+      <name>option</name>
+      <display_name>Default thermal bridge set</display_name>
+      <description>e.g. '90.1.22|steel.m|unmitigated'</description>
+      <type>Choice</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>poor (BETBG)</default_value>
+      <choices>
+        <choice>
+          <value>poor (BETBG)</value>
+          <display_name>poor (BETBG)</display_name>
+        </choice>
+        <choice>
+          <value>regular (BETBG)</value>
+          <display_name>regular (BETBG)</display_name>
+        </choice>
+        <choice>
+          <value>efficient (BETBG)</value>
+          <display_name>efficient (BETBG)</display_name>
+        </choice>
+        <choice>
+          <value>spandrel (BETBG)</value>
+          <display_name>spandrel (BETBG)</display_name>
+        </choice>
+        <choice>
+          <value>spandrel HP (BETBG)</value>
+          <display_name>spandrel HP (BETBG)</display_name>
+        </choice>
+        <choice>
+          <value>code (Quebec)</value>
+          <display_name>code (Quebec)</display_name>
+        </choice>
+        <choice>
+          <value>uncompliant (Quebec)</value>
+          <display_name>uncompliant (Quebec)</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|steel.m|default</value>
+          <display_name>90.1.22|steel.m|default</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|steel.m|unmitigated</value>
+          <display_name>90.1.22|steel.m|unmitigated</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|mass.ex|default</value>
+          <display_name>90.1.22|mass.ex|default</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|mass.ex|unmitigated</value>
+          <display_name>90.1.22|mass.ex|unmitigated</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|mass.in|default</value>
+          <display_name>90.1.22|mass.in|default</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|mass.in|unmitigated</value>
+          <display_name>90.1.22|mass.in|unmitigated</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|wood.fr|default</value>
+          <display_name>90.1.22|wood.fr|default</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|wood.fr|unmitigated</value>
+          <display_name>90.1.22|wood.fr|unmitigated</display_name>
+        </choice>
+        <choice>
+          <value>(non thermal bridging)</value>
+          <display_name>(non thermal bridging)</display_name>
+        </choice>
+      </choices>
+    </argument>
+  </arguments>
+  <outputs />
+  <provenances />
+  <tags>
+    <tag>Envelope.Opaque</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Model Articulation</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Calibration</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Sensitivity Analysis</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>New Construction EE</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Retrofit EE</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Measure Language</name>
+      <value>Ruby</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Model Articulation</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Calibration</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Sensitivity Analysis</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>New Construction EE</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Retrofit EE</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>LICENSE.md</filename>
+      <filetype>md</filetype>
+      <usage_type>license</usage_type>
+      <checksum>5C9BFB50</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>02396931</checksum>
+    </file>
+    <file>
+      <filename>README.md.erb</filename>
+      <filetype>erb</filetype>
+      <usage_type>readmeerb</usage_type>
+      <checksum>703C9964</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.9.1</identifier>
+        <min_compatible>2.9.1</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>660DE5F4</checksum>
+    </file>
+    <file>
+      <filename>thermal_bridging_derating_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>FDCBB810</checksum>
+    </file>
+  </files>
+</measure>
