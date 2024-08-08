@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>env_roof_insul_aedg</name>
   <uid>8afedac6-d5b8-4ee6-80d9-107c5cd77b0e</uid>
-  <version_id>cdd6193d-3d57-4745-bee5-7c6b92bca198</version_id>
-  <version_modified>2024-06-10T18:33:57Z</version_modified>
+  <version_id>b6a38311-43a5-4d9d-bd43-be9ca961b969</version_id>
+  <version_modified>2024-08-08T21:47:44Z</version_modified>
   <xml_checksum>A465C8A5</xml_checksum>
   <class_name>EnvRoofInsulAedg</class_name>
   <display_name>Roof Insulation AEDG</display_name>
@@ -81,13 +81,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>2B8B62D1</checksum>
+      <checksum>EC730BCB</checksum>
     </file>
     <file>
-      <filename>env_roof_insul_aedg_test.rb</filename>
+      <filename>upgrade_env_roof_insul_aedg_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>E22EA670</checksum>
+      <checksum>2C804AFF</checksum>
     </file>
   </files>
 </measure>

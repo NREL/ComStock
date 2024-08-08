@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>exterior_wall_insulation</name>
   <uid>7eecb48f-34ea-4cf7-af27-8568580dead6</uid>
-  <version_id>956b0265-19fb-4df0-8fa3-280a7feca955</version_id>
-  <version_modified>2024-06-10T18:33:39Z</version_modified>
+  <version_id>1dcb94e0-7ac6-421d-a949-b2d9fce065db</version_id>
+  <version_modified>2024-08-08T21:49:00Z</version_modified>
   <xml_checksum>4E797983</xml_checksum>
   <class_name>ExteriorWallInsulation</class_name>
   <display_name>Exterior Wall Insulation</display_name>
@@ -54,13 +54,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>2770D359</checksum>
+      <checksum>C2C42C74</checksum>
     </file>
     <file>
-      <filename>measure_test.rb</filename>
+      <filename>upgrade_env_exterior_wall_insulation_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>09A58639</checksum>
+      <checksum>978E759C</checksum>
     </file>
   </files>
 </measure>

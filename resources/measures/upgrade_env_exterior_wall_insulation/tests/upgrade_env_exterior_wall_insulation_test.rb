@@ -106,10 +106,6 @@ class ExteriorWallInsulationTest < Minitest::Test
     end
     assert(File.exist?(run_dir(test_name)))
 
-    # change into run directory for tests
-    start_dir = Dir.pwd
-    Dir.chdir run_dir(test_name)
-
     # remove prior runs if they exist
     if File.exist?(model_output_path(test_name))
       FileUtils.rm(model_output_path(test_name))
@@ -118,21 +114,16 @@ class ExteriorWallInsulationTest < Minitest::Test
       FileUtils.rm(report_path(test_name))
     end
 
-    # copy the osm and epw to the test directory
-    new_osm_path = "#{run_dir(test_name)}/#{File.basename(osm_path)}"
-    FileUtils.cp(osm_path, new_osm_path)
-    new_epw_path = "#{run_dir(test_name)}/#{File.basename(epw_path)}"
-    FileUtils.cp(epw_path, new_epw_path)
     # create an instance of a runner
     runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
 
     # load the test model
     if model.nil?
-      model = load_model(new_osm_path)
+      model = load_model(osm_path)
     end
 
     # set model weather file
-    epw_file = OpenStudio::EpwFile.new(OpenStudio::Path.new(new_epw_path))
+    epw_file = OpenStudio::EpwFile.new(OpenStudio::Path.new(epw_path))
     OpenStudio::Model::WeatherFile.setWeatherFile(model, epw_file)
     assert(model.weatherFile.is_initialized)
 
@@ -157,9 +148,6 @@ class ExteriorWallInsulationTest < Minitest::Test
       # Check that the model ran successfully
       assert(File.exist?(sql_path(test_name)))
     end
-
-    # change back directory
-    Dir.chdir(start_dir)
 
     return result
   end
@@ -243,6 +231,66 @@ class ExteriorWallInsulationTest < Minitest::Test
   def test_r_value_cz_7
     osm_name = 'Retail_7.osm'
     epw_name = 'MN_Cloquet_Carlton_Co_726558_16.epw'
+
+    # Test expectations
+    target_r_value_ip = 21.0 # 7
+
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+
+    # Create an instance of the measure
+    measure = ExteriorWallInsulation.new
+
+    # Load the model; only used here for populating arguments
+    model = load_model(osm_path)
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure::OSArgumentMap.new
+
+    # Check that the starting R-value is less than the target
+    old_r_val_ip = 0
+    old_ext_surf_material = nil
+    model.getSurfaces.each do |surface|
+      next unless (surface.outsideBoundaryCondition == 'Outdoors') && (surface.surfaceType == 'Wall')
+      surf_const = surface.construction.get.to_LayeredConstruction.get
+      old_r_val_si = 1 / surface.thermalConductance.to_f
+      old_r_val_ip = OpenStudio.convert(old_r_val_si, 'm^2*K/W', 'ft^2*h*R/Btu').get
+      old_ext_surf_material = surf_const.getLayer(0)
+      break
+    end
+    assert(old_r_val_ip < target_r_value_ip)
+
+    # Apply the measure to the model and optionally run the model
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+
+    model = load_model(model_output_path(__method__))
+    model.getSurfaces.each do |surface|
+      next unless (surface.outsideBoundaryCondition == 'Outdoors') && (surface.surfaceType == 'Wall')
+      surf_const = surface.construction.get.to_LayeredConstruction.get
+      new_r_val_si = 1.0 / surface.thermalConductance.to_f
+      new_r_val_ip = OpenStudio.convert(new_r_val_si, 'm^2*K/W', 'ft^2*h*R/Btu').get
+      new_ext_surf_material = surf_const.getLayer(0)
+      insul = surf_const.insulation.get
+      insul_thick_in = OpenStudio.convert(insul.thickness, 'm', 'in').get
+
+      # Check that original R-value was below target threshold
+      assert(old_r_val_ip < new_r_val_ip, "For surface #{surface.name.get}, the new R-value #{new_r_val_ip.round(2)} ft^2*h*R/Btu is less than or equal to the old R-value #{old_r_val_ip.round(2)} ft^2*h*R/Btu.")
+
+      # Check that exterior surface material doesn't change
+      assert_equal(old_ext_surf_material.name.get.to_s, new_ext_surf_material.name.get.to_s)
+
+      # Check that the new R-value matches the target
+      tolerance = 5.0 * 0.5 # R-5/inch * max 1/2 inch off from rounding to nearest inch
+      assert_in_delta(target_r_value_ip, new_r_val_ip, tolerance)
+
+      # Check that the thickness of the added insulation is rounded to nearest inch
+      assert_in_epsilon(1.0, insul_thick_in, 0.001)
+      break
+    end
+  end
+
+  def test_existing_thermal_bridging
+    osm_name = 'thermal_bridging_applied.osm'
+    epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
 
     # Test expectations
     target_r_value_ip = 21.0 # 7

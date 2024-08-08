@@ -72,11 +72,14 @@ class ExteriorWallInsulation < OpenStudio::Measure::ModelMeasure
       return false
     end
 
-    # build standard to use OS standards methods
-    template = 'ComStock 90.1-2013'
-    std = Standard.build(template)
-    # get climate zone to set target_r_val_ip
-    climate_zone = std.model_standards_climate_zone(model)
+    # get climate zone
+    # @todo update to OpenstudioStandards::Weather.model_get_climate_zone(model) after stds update past 0.6.1
+    cz = model.getClimateZones.climateZones[0]
+    if cz.institution == 'ASHRAE'
+      climate_zone = "ASHRAE 169-2013-#{cz.value}"
+    elsif cz.institution == 'CEC'
+      climate_zone = "CEC T24-CEC#{cz.value}"
+    end
 
     # apply target R-value by climate zone
     if climate_zone.include?("ASHRAE 169-2013-1") || climate_zone.include?("ASHRAE 169-2013-2") || climate_zone.include?("CEC15")
@@ -131,7 +134,7 @@ class ExteriorWallInsulation < OpenStudio::Measure::ModelMeasure
       next if surface.construction.empty?
 
       # remove hard assigned constructions from thermal bridging measure
-      surface.construction.get.remove
+      surface.resetConstruction
 
       next if surface.construction.empty?
       wall_constructions << surface.construction.get
@@ -236,7 +239,7 @@ class ExteriorWallInsulation < OpenStudio::Measure::ModelMeasure
       default_wall_constructions[wall_construction.name] = wall_construction.getNetArea
     end
     default_wall_construction_name = Hash[default_wall_constructions.sort_by{ |k,v| v }].keys[-1]
-    default_wall_construction = model.getConstructionBaseByName(default_wall_construction_name).get
+    default_wall_construction = model.getConstructionBaseByName(default_wall_construction_name.get).get
     const_type = default_wall_construction.standardsInformation.standardsConstructionType
     case const_type
     when 'Mass'

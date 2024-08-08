@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>thermal_bridging_derating</name>
   <uid>e80a588e-f52d-4244-888a-3c95bd845604</uid>
-  <version_id>fd2637cf-36e7-4c89-84bb-724296aff5f2</version_id>
-  <version_modified>2024-06-10T18:34:20Z</version_modified>
+  <version_id>393d3a57-9d3d-441f-bf6d-b0e117f68de5</version_id>
+  <version_modified>2024-08-08T21:48:54Z</version_modified>
   <xml_checksum>D69419EB</xml_checksum>
   <class_name>ThermalBridgingDerating</class_name>
   <display_name>Thermal Bridging Derating</display_name>
@@ -47,6 +47,38 @@
         <choice>
           <value>uncompliant (Quebec)</value>
           <display_name>uncompliant (Quebec)</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|steel.m|default</value>
+          <display_name>90.1.22|steel.m|default</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|steel.m|unmitigated</value>
+          <display_name>90.1.22|steel.m|unmitigated</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|mass.ex|default</value>
+          <display_name>90.1.22|mass.ex|default</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|mass.ex|unmitigated</value>
+          <display_name>90.1.22|mass.ex|unmitigated</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|mass.in|default</value>
+          <display_name>90.1.22|mass.in|default</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|mass.in|unmitigated</value>
+          <display_name>90.1.22|mass.in|unmitigated</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|wood.fr|default</value>
+          <display_name>90.1.22|wood.fr|default</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|wood.fr|unmitigated</value>
+          <display_name>90.1.22|wood.fr|unmitigated</display_name>
         </choice>
         <choice>
           <value>(non thermal bridging)</value>
@@ -186,7 +218,7 @@
       <filename>thermal_bridging_derating_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>E102BECC</checksum>
+      <checksum>FDCBB810</checksum>
     </file>
   </files>
 </measure>

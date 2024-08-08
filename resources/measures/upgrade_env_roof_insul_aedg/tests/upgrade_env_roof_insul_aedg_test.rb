@@ -116,9 +116,6 @@ class EnvRoofInsulAedgTest < Minitest::Test
     end
     assert(File.exist?(run_dir(test_name)))
 
-    # change into run directory for tests
-    start_dir = Dir.pwd
-    Dir.chdir run_dir(test_name)
 
     # remove prior runs if they exist
     if File.exist?(model_output_path(test_name))
@@ -128,19 +125,14 @@ class EnvRoofInsulAedgTest < Minitest::Test
       FileUtils.rm(report_path(test_name))
     end
 
-    # copy the osm and epw to the test directory
-    new_osm_path = "#{run_dir(test_name)}/#{File.basename(osm_path)}"
-    FileUtils.cp(osm_path, new_osm_path)
-    new_epw_path = "#{run_dir(test_name)}/#{File.basename(epw_path)}"
-    FileUtils.cp(epw_path, new_epw_path)
     # create an instance of a runner
     runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
 
     # load the test model
-    model = load_model(new_osm_path)
+    model = load_model(osm_path)
 
     # set model weather file
-    epw_file = OpenStudio::EpwFile.new(OpenStudio::Path.new(new_epw_path))
+    epw_file = OpenStudio::EpwFile.new(OpenStudio::Path.new(epw_path))
     OpenStudio::Model::WeatherFile.setWeatherFile(model, epw_file)
     assert(model.weatherFile.is_initialized)
 
@@ -165,9 +157,6 @@ class EnvRoofInsulAedgTest < Minitest::Test
       # check that the model ran successfully
       assert(File.exist?(sql_path(test_name)))
     end
-
-    # change back directory
-    Dir.chdir(start_dir)
 
     return result
   end
