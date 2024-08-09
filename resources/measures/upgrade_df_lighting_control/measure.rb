@@ -171,14 +171,19 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
       return light_adj_values
     end
     
-    def get_hourly_schedule_from_schedule_ruleset(model, schedule_ruleset)
+    def get_interval_schedule_from_schedule_ruleset(model, schedule_ruleset, size)
       # https://github.com/NREL/openstudio-standards/blob/9e6bdf751baedfe73567f532007fefe6656f5abf/lib/openstudio-standards/standards/Standards.ScheduleRuleset.rb#L696
       yd = model.getYearDescription
       start_date = yd.makeDate(1, 1)
       end_date = yd.makeDate(12, 31)
       values = []#OpenStudio::Vector.new
-      interval = OpenStudio::Time.new(1.0 / 24.0 / 4.0)#15min interval
-      # interval = OpenStudio::Time.new(1.0 / 24.0)#1h interval
+      if size == 8760 || size == 8784
+        interval = OpenStudio::Time.new(1.0 / 24.0)#1h interval
+      elsif size == 35040 || size == 35136
+        interval = OpenStudio::Time.new(1.0 / 24.0 / 4.0)#15min interval
+      else
+        raise "Interval not supported"
+      end
       day_schedules = schedule_ruleset.getDaySchedules(start_date, end_date)
       # Make new array of day schedules for year
       day_sched_array = []
@@ -251,7 +256,7 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
             schedule = light_sch.get.clone(model)
             schedule = schedule.to_Schedule.get
             # convert old sch to time series
-            schedule_ts = get_hourly_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get)
+            schedule_ts = get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get, size=light_adj_values.size)
             if light_adjustment_method == 'absolute change'
               new_schedule_ts = schedule_ts.map.with_index { |val, ind| [val-(1.0-light_adj_values[ind]), 0].max}
             elsif light_adjustment_method == 'relative change'
@@ -407,15 +412,17 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     ############################################
     # Emission prediction
     ############################################
-    puts("### ============================================================")
-    puts("### Predicting emission...")
+    
     if demand_flexibility_objective == 'emission'
+      puts("### ============================================================")
+      puts("### Predicting emission...")
       egrid_co2e_kg_per_mwh, cambium_co2e_kg_per_mwh = read_emission_factors(model, scenario=cambium_scenario)
       if cambium_co2e_kg_per_mwh == []
         hourly_emissions_kg = emission_prediction(annual_load, factor=egrid_co2e_kg_per_mwh, num_timesteps_in_hr=num_timesteps_in_hr)
       else
         hourly_emissions_kg = emission_prediction(annual_load, factor=cambium_co2e_kg_per_mwh, num_timesteps_in_hr=num_timesteps_in_hr)
       end
+      puts("--- hourly_emissions_kg.size = #{hourly_emissions_kg.size}")
     end
 
     ############################################
@@ -455,7 +462,7 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
       end
     elsif demand_flexibility_objective == 'emission'
       puts("### Creating peak schedule for emission reduction...")
-      peak_schedule_clg = peak_schedule_generation(hourly_emissions_kg, oat, peak_len, num_timesteps_in_hr=1, peak_window_strategy=peak_window_strategy, rebound_len=0, prepeak_len=0, season='all')
+      peak_schedule = peak_schedule_generation(hourly_emissions_kg, oat, peak_len, num_timesteps_in_hr=1, peak_window_strategy=peak_window_strategy, rebound_len=0, prepeak_len=0, season='all')
     else
       runner.registerError('Not supported objective.')
     end
@@ -470,6 +477,7 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     puts("### Creating lighting factor values...")
     light_adj_values = light_adj_based_on_sch(peak_schedule, light_adjustment)
     # puts("--- light_adj_values = #{light_adj_values}")
+    puts("--- light_adj_values.size = #{light_adj_values.size}")
     puts("### Updating lighting schedule...")
     nl, nla = adjust_lighting_sch(model,runner,light_adjustment_method,light_adj_values)
 
