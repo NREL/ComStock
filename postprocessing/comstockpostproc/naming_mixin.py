@@ -2,7 +2,6 @@
 # See top level LICENSE.txt file for license terms.
 import re
 import matplotlib.colors as mcolors
-
 class NamingMixin():
     # Column aliases for code readability
     # Add to this list for commonly-used columns
