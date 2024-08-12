@@ -943,7 +943,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     # puts('### obtain user inputs')
     ######################################################
     apply_measure = runner.getBoolArgumentValue('apply_measure', user_arguments)
-    vrf_defrost_strategy = runner.getStringArgumentValue('vrf_defrost_strategy', user_arguments)    
+    vrf_defrost_strategy = runner.getStringArgumentValue('vrf_defrost_strategy', user_arguments)
     disable_defrost = runner.getBoolArgumentValue('disable_defrost', user_arguments)
     upsizing_allowance_pct = runner.getDoubleArgumentValue('upsizing_allowance_pct', user_arguments)
 
@@ -1358,7 +1358,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       runner.registerAsNotApplicable('this building model is not applicable for the upgrade')
       return true
     end
-    
+
     # get applicable thermal zones from applicable air loops
     app_tz = []
     applicable_air_loops.each do |air_loop_hvac|
@@ -1518,7 +1518,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           zones_served << zone_hvac.thermalZone.get
         end
       end
-    
+
       # Delete the coil is not connected to anything
       next unless ((zones_served.empty?) && (airloops_served.empty?))
       # remove
@@ -1814,7 +1814,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       story = first_space.buildingStory.get
       z_coord = story.nominalZCoordinate.get
       thermal_zones = applicable_thermalzone_per_floor[z_coord]
-      max_equiv_distance, max_net_vert_distance = get_max_vrf_pipe_lengths(model, thermal_zones) 
+      max_equiv_distance, max_net_vert_distance = get_max_vrf_pipe_lengths(model, thermal_zones)
       vrf_outdoor_unit.setEquivalentPipingLengthusedforPipingCorrectionFactorinCoolingMode(max_equiv_distance)
       vrf_outdoor_unit.setEquivalentPipingLengthusedforPipingCorrectionFactorinHeatingMode(max_equiv_distance)
       vrf_outdoor_unit.setVerticalHeightusedforPipingCorrectionFactor(max_net_vert_distance)
@@ -1903,7 +1903,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
         puts("### OU name = #{ou.name}")
         capacity_outdoor_unit_new = 0
         ou.terminals.each do |iu|
-          
+
           # get coil from indoor unit
           coil_cooling = iu.coolingCoil.get
           coil_heating = iu.heatingCoil.get
@@ -1953,7 +1953,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           column_name = 'Supply Fan Air Heat Gain at Ideal Loads Peak'
           fan_heat_gain = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_cooling, column_name).to_f
           puts("--- #{coil_cooling.name} | fan_heat_gain = #{fan_heat_gain} W")
-    
+
           # get rated_capacity_modifier
           column_name = 'Coil Off-Rating Capacity Modifier at Ideal Loads Peak'
           rated_capacity_modifier = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_cooling, column_name).to_f
@@ -1986,10 +1986,10 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
             capacity_final_rated = capacity_original_rated
           end
           puts("--- #{coil_cooling.name} | capacity_final_rated = #{capacity_final_rated}")
-          
 
-          # get CFM/ton 
-          design_air_flow_rate_cfm = design_air_flow_rate_m_3_per_sec * 2118.88 
+
+          # get CFM/ton
+          design_air_flow_rate_cfm = design_air_flow_rate_m_3_per_sec * 2118.88
           puts("--- #{coil_cooling.name} | design_air_flow_rate_cfm = #{design_air_flow_rate_cfm} CFM")
           capacity_upsized_rated_ton = capacity_final_rated * 0.000284345
           puts("--- #{coil_cooling.name} | capacity_upsized_rated_ton = #{capacity_upsized_rated_ton} ton")
@@ -2100,11 +2100,11 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       air_loop_hvac.thermalZones.each do |thermal_zone|
         space = thermal_zone.spaces[0]
         # get zone area
-        fa = thermal_zone.floorArea
+        fa = thermal_zone.floorArea * thermal_zone.multiplier
         # get zone volume
-        vol = thermal_zone.airVolume
+        vol = thermal_zone.airVolume * thermal_zone.multiplier
         # get zone design people
-        num_people = thermal_zone.numberOfPeople
+        num_people = thermal_zone.numberOfPeople * thermal_zone.multiplier
         if space.designSpecificationOutdoorAir.is_initialized
           dsn_spec_oa = space.designSpecificationOutdoorAir.get
           # add floor area component
@@ -2182,7 +2182,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           sf = component.to_FanConstantVolume.get
           std.prototype_fan_apply_prototype_fan_efficiency(sf)
         elsif component.to_AirLoopHVACUnitarySystem.is_initialized
-          # unitary systems 
+          # unitary systems
           unitary_sys = component.to_AirLoopHVACUnitarySystem.get
           if unitary_sys.coolingCoil.is_initialized
             clg_coil = unitary_sys.coolingCoil.get

@@ -95,13 +95,13 @@ require 'openstudio-standards'
 
     # Find common variables for the new space
     spaces.each do |space|
-      floor_area = space.floorArea
+      floor_area = space.floorArea * space.multiplier
       sum_floor_area += floor_area
 
-      number_of_people = space.numberOfPeople
+      number_of_people = space.numberOfPeople * space.multiplier
       sum_number_of_people += number_of_people
 
-      volume = space.volume
+      volume = space.volume * space.multiplier
       sum_volume += volume
 
       dsn_oa = space.designSpecificationOutdoorAir
@@ -457,8 +457,8 @@ def run(model, runner, user_arguments)
 			# set design specification outdoor air objects to sum
 			dsn_oa.setOutdoorAirMethod('Sum')
 			# Get the space properties
-			floor_area = space.floorArea
-			number_of_people = space.numberOfPeople
+			floor_area = space.floorArea * space.multiplier
+			number_of_people = space.numberOfPeople * space.multiplier
 			people_per_m2 = space.peoplePerFloorArea
 
 			# Sum up the total OA from all sources
