@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>advanced_rtu_control</name>
   <uid>b3e18436-f7da-4b62-bbce-c21e2f9d5ad4</uid>
-  <version_id>a0963351-d433-4cc5-8dbf-6fe63773ea7a</version_id>
-  <version_modified>2024-02-12T18:18:00Z</version_modified>
+  <version_id>4c94a1e8-ceed-431e-8a33-9c4e4b232a33</version_id>
+  <version_modified>2024-08-12T16:45:06Z</version_modified>
   <xml_checksum>B3180F38</xml_checksum>
   <class_name>AdvancedRTUControl</class_name>
   <display_name>Advanced RTU Control</display_name>
@@ -113,13 +113,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>22968503</checksum>
+      <checksum>1DE87BA6</checksum>
     </file>
     <file>
       <filename>advanced_rtu_control_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>B8D467CB</checksum>
+      <checksum>D6FF26E2</checksum>
     </file>
     <file>
       <filename>example_model.osm</filename>
@@ -132,12 +132,6 @@
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
       <checksum>B5B31B25</checksum>
-    </file>
-    <file>
-      <filename>models/361_Small_Office_PSZ_Gas_3a.osm</filename>
-      <filetype>osm</filetype>
-      <usage_type>test</usage_type>
-      <checksum>073BEAE6</checksum>
     </file>
   </files>
 </measure>

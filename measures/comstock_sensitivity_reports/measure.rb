@@ -787,7 +787,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     model.getInternalMasss.sort.each do |mass|
       space = mass.space.get
       space_area_m2 = space.floorArea * space.multiplier
-      num_people = space.numberOfPeople
+      num_people = space.numberOfPeople * space.multiplier
       surface_area_m2 = mass.surfaceArea.is_initialized ? mass.surfaceArea.get : 0.0
       surface_area_per_floor_area_m2 = mass.surfaceAreaPerFloorArea.is_initialized ? mass.surfaceAreaPerFloorArea.get : 0.0
       surface_area_per_person_m2 = mass.surfaceAreaPerPerson.is_initialized ? mass.surfaceAreaPerPerson.get : 0.0
@@ -880,7 +880,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       if space_type.is_initialized
         space_type = space_type.get
         floor_area_m2 = zone.floorArea * zone.multiplier
-        num_people = zone.numberOfPeople
+        num_people = zone.numberOfPeople * zone.multiplier
         equip_w = space_type.getElectricEquipmentDesignLevel(floor_area_m2, num_people)
         # equip_per_area_w and equip_per_person_w are not included in equip_w call
         # equip_per_area_w = space_type.getElectricEquipmentPowerPerFloorArea(floor_area_m2, num_people) * floor_area_m2
@@ -978,8 +978,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
         # get the space properties
         floor_area_m2 = space.floorArea * space.multiplier
-        number_of_people = space.numberOfPeople
-        volume_m3 = space.volume
+        number_of_people = space.numberOfPeople * space.multiplier
+        volume_m3 = space.volume * space.multiplier
 
         # get outdoor air values
         oa_for_people = number_of_people * dsn_oa.outdoorAirFlowperPerson
