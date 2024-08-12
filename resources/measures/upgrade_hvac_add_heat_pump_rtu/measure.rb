@@ -1621,9 +1621,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # get maximum heating capacity based on max cooling capacity and heating-to-cooling ratio
       max_heat_cap_w_upsize = autosized_tot_clg_cap_upsized * (performance_oversizing_factor + 1) * htg_to_clg_hp_ratio
 
-      # set derate factor to 0 if less than 0F (-17.778 C)
-      hp_derate_factor_at_user_dsn = 0 if wntr_design_day_temp_c < -17.7778
-
       # cooling capacity
       cool_cap = req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn / htg_to_clg_hp_ratio
       cool_cap_oversize_pct_actual = (((autosized_tot_clg_cap_upsized - cool_cap) / autosized_tot_clg_cap_upsized).abs * 100).round(2)
