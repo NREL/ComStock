@@ -179,7 +179,7 @@ class UpperCamelCaseClassName_Test < Minitest::Test
   # create an array of hashes with model name, weather, and expected result
   def models_to_test
     test_sets = []
-    test_sets << { model: 'PSZ-AC_with_gas_coil_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+    test_sets << { model: 'PSZ-AC_with_gas_coil_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success', arg_hash: { 'arg_1' => true, 'arg_2' => false } }
     return test_sets
   end
 
@@ -206,6 +206,21 @@ class UpperCamelCaseClassName_Test < Minitest::Test
       # set arguments here; will vary by measure
       arguments = measure.arguments(model)
       argument_map = OpenStudio::Measure::OSArgumentMap.new
+
+      # set default arguments
+      arguments.each do |arg|
+        temp_arg_var = arg.clone
+        argument_map[arg.name] = temp_arg_var # Add argument to map with default value
+      end
+
+      # override with values from arg_hash
+      args_hash = set[:arg_hash]
+      args_hash.each do |arg_name, arg_value|
+        arg = arguments.find { |a| a.name == arg_name }
+        raise "Argument #{arg_name} not found" if arg.nil?
+        assert(arg.setValue(arg_value)) # Override with value from arg_hash
+        argument_map[arg_name] = arg
+      end
 
       # apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
