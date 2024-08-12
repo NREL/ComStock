@@ -1,23 +1,77 @@
 # ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
+# *******************************************************************************
+# OpenStudio(R), Copyright (c) 2008-2018, Alliance for Sustainable Energy, LLC.
+# All rights reserved.
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# (1) Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.
+#
+# (2) Redistributions in binary form must reproduce the above copyright notice,
+# this list of conditions and the following disclaimer in the documentation
+# and/or other materials provided with the distribution.
+#
+# (3) Neither the name of the copyright holder nor the names of any contributors
+# may be used to endorse or promote products derived from this software without
+# specific prior written permission from the respective party.
+#
+# (4) Other than as required in clauses (1) and (2), distributions in any form
+# of modifications or other derivative works may not use the "OpenStudio"
+# trademark, "OS", "os", or any other confusingly similar designation without
+# specific prior written permission from Alliance for Sustainable Energy, LLC.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER(S) AND ANY CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+# THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER(S), ANY CONTRIBUTORS, THE
+# UNITED STATES GOVERNMENT, OR THE UNITED STATES DEPARTMENT OF ENERGY, NOR ANY OF
+# THEIR EMPLOYEES, BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
+# OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+# STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# *******************************************************************************
+
+# dependencies
 require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
+require 'fileutils'
 require 'minitest/autorun'
 require_relative '../measure.rb'
-require 'fileutils'
-require_relative '../../../../test/helpers/minitest_helper'
 
+# only necessary to include here if annual simulation request and the measure doesn't require openstudio-standards
+require 'openstudio-standards'
 
-# require all .rb files in resources folder
-Dir[File.dirname(__FILE__) + '../resources/*.rb'].each { |file| require file }
-
-class DfThermostatControlLoadShedTest < Minitest::Test
-  # def setup
+class DfThermostatControlLoadShed_Test < Minitest::Test
+  # all tests are a sub definition of this class, e.g.:
+  # def test_new_kind_of_test
+  #   # test content
   # end
 
-  # def teardown
-  # end
+  def test_number_of_arguments_and_argument_names
+    # this test ensures that the current test is matched to the measure inputs
+    test_name = 'test_number_of_arguments_and_argument_names'
+    puts "\n######\nTEST:#{test_name}\n######\n"
+
+    # create an instance of the measure
+    measure = DfThermostatControlLoadShed.new
+
+    # make an empty model
+    model = OpenStudio::Model::Model.new
+
+    # get arguments and test that they are what we are expecting
+    arguments = measure.arguments(model)
+    assert_equal(5, arguments.size)
+    assert_equal('peak_len', arguments[0].name)
+    assert_equal('rebound_len', arguments[1].name)
+    assert_equal('sp_adjustment', arguments[2].name)
+    assert_equal('num_timesteps_in_hr', arguments[3].name)
+    assert_equal('load_prediction_method', arguments[4].name)
+  end
 
   # return file paths to test models in test directory
   def models_for_tests
@@ -33,40 +87,6 @@ class DfThermostatControlLoadShedTest < Minitest::Test
     return paths
   end
 
-  # create an array of hashes with model name, weather, and expected result
-  def models_to_test
-    test_sets = []
-
-    # test: not applicable building type
-    test_sets << {
-      model: '361_Medium_Office_PSZ_HP',
-      weather: 'CO_FortCollins_16',
-      result: 'NA'
-    }
-    # test_sets << {
-    #   model: 'LargeOffice_VAV_chiller_boiler',#LargeOffice_VAV_district_chw_hw
-    #   weather: 'CO_FortCollins_16',
-    #   result: 'Success'
-    # }
-    # test_sets << {
-    #   model: 'LargeOffice_VAV_chiller_boiler_2',
-    #   weather: 'CO_FortCollins_16',
-    #   result: 'Success'
-    # }
-    # test_sets << {
-    #   model: 'LargeOffice_VAV_district_chw_hw',
-    #   weather: 'CO_FortCollins_16',
-    #   result: 'NA'
-    # }
-    test_sets << {
-      model: '529',
-      weather: 'CO_FortCollins_16',
-      result: 'NA'
-    }
-
-    return test_sets
-  end
-
   def load_model(osm_path)
     translator = OpenStudio::OSVersion::VersionTranslator.new
     model = translator.loadModel(OpenStudio::Path.new(osm_path))
@@ -80,17 +100,12 @@ class DfThermostatControlLoadShedTest < Minitest::Test
     return "#{File.dirname(__FILE__)}/output/#{test_name}"
   end
 
-  def model_input_path(osm_name)
-    # return models_for_tests.select { |x| set[:model] == osm_name }
-    return File.join(File.dirname(__FILE__), '../../../tests/models', osm_name)
-  end
-
-  def epw_input_path(epw_name)
-    return File.join(File.dirname(__FILE__), '../../../tests/weather', epw_name)
-  end
-
   def model_output_path(test_name)
     return "#{run_dir(test_name)}/#{test_name}.osm"
+  end
+
+  def sql_path(test_name)
+    return "#{run_dir(test_name)}/run/eplusout.sql"
   end
 
   def report_path(test_name)
@@ -151,7 +166,7 @@ class DfThermostatControlLoadShedTest < Minitest::Test
     if run_model && result_success
       puts "\nRUNNING MODEL..."
 
-      std = Standard.build('90.1-2013')
+      std = Standard.build('ComStock DEER 2020')
       std.model_run_simulation_and_log_errors(model, run_dir(test_name))
 
       # check that the model ran successfully
@@ -162,6 +177,14 @@ class DfThermostatControlLoadShedTest < Minitest::Test
     Dir.chdir(start_dir)
 
     return result
+  end
+
+  # create an array of hashes with model name, weather, and expected result
+  def models_to_test
+    test_sets = []
+    test_sets << { model: 'PSZ-AC_with_gas_coil_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'NA', arg_hash: {} }
+
+    return test_sets
   end
 
   def test_models
@@ -184,158 +207,44 @@ class DfThermostatControlLoadShedTest < Minitest::Test
       # load the model; only used here for populating arguments
       model = load_model(osm_path)
 
-      # set arguments here; will vary by measure
+      # retrieve arguments for the measure
       arguments = measure.arguments(model)
       argument_map = OpenStudio::Measure::OSArgumentMap.new
 
-      # set arguments:
-      peak_len = arguments[0].clone
-      assert(peak_len.setValue(4))
-      argument_map['peak_len'] = peak_len
+      # set default arguments
+      arguments.each do |arg|
+        temp_arg_var = arg.clone
+        if arg.name == 'add_blinds'
+          assert(temp_arg_var.setValue(true)) # Set 'add_blinds' to true
+        end
+        argument_map[arg.name] = temp_arg_var # Add argument to map with default value
+      end
 
-      # set arguments:
-      rebound_len = arguments[1].clone
-      assert(rebound_len.setValue(2))
-      argument_map['rebound_len'] = rebound_len
-
-      # set arguments:
-      sp_adjustment = arguments[2].clone
-      assert(sp_adjustment.setValue(2.0))
-      argument_map['sp_adjustment'] = sp_adjustment
-
-      # set arguments:
-      num_timesteps_in_hr = arguments[3].clone
-      assert(num_timesteps_in_hr.setValue(4))
-      argument_map['num_timesteps_in_hr'] = num_timesteps_in_hr
-
-      # set arguments:
-      load_prediction_method = arguments[4].clone
-      assert(load_prediction_method.setValue('part year bin sample'))#'bin sample''full baseline'
-      argument_map['load_prediction_method'] = load_prediction_method
+      # override with values from arg_hash
+      args_hash = set[:arg_hash]
+      args_hash.each do |arg_name, arg_value|
+        arg = arguments.find { |a| a.name == arg_name }
+        raise "Argument #{arg_name} not found" if arg.nil?
+        assert(arg.setValue(arg_value)) # Override with value from arg_hash
+        argument_map[arg_name] = arg
+      end
 
       # apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
 
-      # check the measure result; result values will equal Success, Fail, or Not Applicable (NA)
+      # check the measure result; result values will equal Success, Fail, or Not Applicable
       # also check the amount of warnings, info, and error messages
       # use if or case statements to change expected assertion depending on model characteristics
+      print(result.value.valueName)
       assert(result.value.valueName == set[:result])
 
       # to check that something changed in the model, load the model and the check the objects match expected new value
       model = load_model(model_output_path(instance_test_name))
 
+      # add additional tests here to check model outputs
+
+
     end
   end
-
-  # def dispatch_gen_create_binsamples_test
-  #   oat_harcoded = []
-  #   bins_hardcoded =
-  #   selectdays_hardcoded =
-  #   ns_hardcoded =
-
-  #   puts("### ============================================================")
-  #   puts("### Creating bins...")
-  #   bins, selectdays, ns = create_binsamples(oat_harcoded)
-  #   puts("--- bins = #{bins}")
-  #   puts("--- selectdays = #{selectdays}")
-  #   puts("--- ns = #{ns}")
-
-  #   assert(bins == bins_hardcoded)
-  #   assert(selectdays == selectdays_hardcoded)
-  #   assert(ns == ns_hardcoded)
-  # end
-
-  # def dispatch_gen_run_samples_test(model)
-  #   year_hardcoded =
-  #   selectdays_hardcoded =
-  #   num_timesteps_in_hr_hardcoded =
-  #   y_seed_harcoded =
-
-  #   puts("### ============================================================")
-  #   puts("### Running simulation on samples...")
-  #   y_seed = run_samples(model, year, selectdays, num_timesteps_in_hr)
-
-  #   assert(y_seed == y_seed_hardcoded)
-  # end
-
-  # def test_dispatch_gen_small_run
-  #   osm_name = '361_Medium_Office_PSZ_HP.osm'
-  #   # osm_name = 'LargeOffice_VAV_chiller_boiler_2.osm'
-  #   epw_name = 'CO_FortCollins_16.epw'
-  #   osm_path = model_input_path(osm_name)
-  #   epw_path = epw_input_path(epw_name)
-  #   model = load_model(osm_path)
-
-  #   oat_harcoded = []
-  #   bins_hardcoded = {
-  #     'ext-hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'hot' => { 'morning' => [], 'noon' => [], 'afternoon' => Array(1..365), 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'cool-mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'cool' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'cold' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] }
-  #   }
-  #   selectdays_hardcoded = {
-  #     'ext-hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [200], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'cool-mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'cool' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'cold' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] }
-  #   }
-  #   ns_hardcoded = 1
-  #   year_hardcoded = 2018
-  #   num_timesteps_in_hr_hardcoded = 4
-  #   y_seed_harcoded = {
-  #     'ext-hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'cool-mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'cool' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'cold' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] }
-  #   }
-
-  #   puts("============================================================")
-  #   puts("### Reading weather file...")
-  #   year, oat = read_epw(model, epw_path)
-  #   puts("--- year = #{year}")
-  #   puts("--- oat.size = #{oat.size}")
-
-  #   puts("============================================================")
-  #   puts("### Creating bins...")
-  #   bins, selectdays, ns, max_doy = create_binsamples(oat)
-  #   puts("--- bins = #{bins}")
-  #   puts("--- selectdays = #{selectdays}")
-  #   puts("--- ns = #{ns}")
-  #   # assert(bins == bins_hardcoded)
-  #   # assert(selectdays == selectdays_hardcoded)
-
-  #   # puts("============================================================")
-  #   # puts("### Running simulation on samples...")
-  #   # y_seed = run_samples(model, year=year_hardcoded, selectdays=selectdays_hardcoded, num_timesteps_in_hr=num_timesteps_in_hr_hardcoded, epw_path=epw_path)
-  #   # puts("--- y_seed = #{y_seed}")
-  #   # # assert(y_seed == y_seed_harcoded)
-
-  #   puts("============================================================")
-  #   puts("### Running simulation on part year samples...")
-  #   y_seed = run_part_year_samples(model, year=year_hardcoded, max_doy=max_doy, selectdays=selectdays_hardcoded, num_timesteps_in_hr=num_timesteps_in_hr_hardcoded, epw_path=epw_path)
-  #   puts("--- y_seed = #{y_seed}")
-  #   # assert(y_seed == y_seed_harcoded)
-
-  #   puts("============================================================")
-  #   puts("### Creating annual prediction...")
-  #   annual_load = load_prediction_from_sample(y_seed, bins=bins_hardcoded)
-  #   # puts("--- annual_load = #{annual_load}")
-  #   puts("--- annual_load.class = #{annual_load.class}")
-  #   puts("--- annual_load.size = #{annual_load.size}")
-
-  #   puts("============================================================")
-  #   puts("### Creating peak schedule...")
-  #   peak_schedule = peak_schedule_generation(annual_load, peak_len=4, rebound_len=2)
-  #   # puts("--- peak_schedule = #{peak_schedule}")
-  #   puts("--- peak_schedule.size = #{peak_schedule.size}")
-
-  #   # assert()
-  # end
 
 end
