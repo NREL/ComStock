@@ -296,7 +296,7 @@ def run(model, runner, user_arguments)
 	  template = 'ComStock 90.1-2019'
 	  std = Standard.build(template)
 	  # get climate zone
-	  climate_zone = std.model_standards_climate_zone(model)
+	  climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
 	  #runner.registerInfo("initial read of climate zone = #{climate_zone}")
 	  if climate_zone.empty?
 	    runner.registerError('Unable to determine climate zone for model. Cannot apply economizer without climate zone information.')

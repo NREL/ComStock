@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>scout_loads_summary</name>
   <uid>10373121-03aa-4e48-a9ea-e51b4c09f771</uid>
-  <version_id>9d020ef1-36ff-4fc0-81c1-02a51e532373</version_id>
-  <version_modified>2024-08-12T16:43:38Z</version_modified>
+  <version_id>bacfb665-a819-4902-836d-b038c92cc04f</version_id>
+  <version_modified>2024-08-13T17:27:20Z</version_modified>
   <xml_checksum>72C8354A</xml_checksum>
   <class_name>ScoutLoadsSummary</class_name>
   <display_name>Scout Loads Summary</display_name>

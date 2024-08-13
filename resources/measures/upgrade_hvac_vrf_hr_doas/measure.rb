@@ -1286,7 +1286,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           if %w[kitchen KITCHEN Kitchen Dining dining].any? { |word| (tz.name.get).include?(word) }
             airloop_na_tz << tz
           # skip non-conditioned thermal zones
-          elsif !std.thermal_zone_heated?(tz) && !std.thermal_zone_cooled?(tz)
+          elsif !OpenstudioStandards::ThermalZone.thermal_zone_heated?(tz) && !OpenstudioStandards::ThermalZone.thermal_zone_cooled?(tz)
             airloop_na_tz << tz
           else
             airloop_applicable_tz << tz
@@ -1566,7 +1566,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     # puts("### modify DOAS systems")
     ######################################################
     # get climate full string and classification (i.e. "5A")
-    climate_zone = std.model_standards_climate_zone(model)
+    climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
     climate_zone_classification = climate_zone.split('-')[-1]
 
     # DOAS temperature supply settings - colder cooling discharge air for humid climates
@@ -1591,7 +1591,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
 
       # set availability schedule for DOAS
       # get schedule for DOAS and add system
-      sch_ruleset = std.thermal_zones_get_occupancy_schedule(thermal_zones=air_loop_hvac.thermalZones,
+      sch_ruleset = OpenstudioStandards::ThermalZone.thermal_zones_get_occupancy_schedule(thermal_zones=air_loop_hvac.thermalZones,
                                                             occupied_percentage_threshold:0.05)
       # set air loop availability controls and night cycle manager, after oa system added
       air_loop_hvac.setAvailabilitySchedule(sch_ruleset)
@@ -2157,7 +2157,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
 
       # # set availability schedule for DOAS
       # # get schedule for DOAS and add system
-      # sch_ruleset = std.thermal_zones_get_occupancy_schedule(thermal_zones=thermal_zones,
+      # sch_ruleset = OpenstudioStandards::ThermalZone.thermal_zones_get_occupancy_schedule(thermal_zones=thermal_zones,
       #                                                       occupied_percentage_threshold:0.05)
       # # set air loop availability controls and night cycle manager, after oa system added
       # air_loop_hvac.setAvailabilitySchedule(sch_ruleset)

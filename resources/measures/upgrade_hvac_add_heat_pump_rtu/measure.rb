@@ -789,7 +789,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     template = 'ComStock 90.1-2019'
     std = Standard.build(template)
     # get climate zone value
-    climate_zone = OpenstudioStandards::Weather.std.model_get_climate_zone(model)
+    climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
 
     # get applicable psz hvac air loops
     selected_air_loops = []
@@ -873,9 +873,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # skip if water heating or cooled system
       next if is_water_coil == true
       # skip if space is not heated and cooled
-      unless std.thermal_zone_heated?(air_loop_hvac.thermalZones[0]) && std.thermal_zone_cooled?(air_loop_hvac.thermalZones[0])
-        next
-      end
+      next unless (OpenstudioStandards::ThermalZone.thermal_zone_heated?(air_loop_hvac.thermalZones[0])) && (OpenstudioStandards::ThermalZone.thermal_zone_cooled?(air_loop_hvac.thermalZones[0]))
       # next if no heating coil
       next if has_heating_coil == false
 
@@ -1104,7 +1102,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     end
 
     # get climate full string and classification (i.e. "5A")
-    climate_zone = std.model_standards_climate_zone(model)
+    climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
     climate_zone_classification = climate_zone.split('-')[-1]
 
     # Get ER/HR type from climate zone

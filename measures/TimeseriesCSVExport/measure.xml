@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>timeseries_csv_export</name>
   <uid>2a3442c1-944d-4e91-9e11-11e0cf368c64</uid>
-  <version_id>5f1a0e5d-c215-48cb-8b01-7edc46eb468d</version_id>
-  <version_modified>2023-10-17T11:28:50Z</version_modified>
+  <version_id>c1346c08-a2ee-4b36-b24b-b649db3f68e1</version_id>
+  <version_modified>2024-06-20T18:59:05Z</version_modified>
   <xml_checksum>15BF4E57</xml_checksum>
   <class_name>TimeseriesCSVExport</class_name>
   <display_name>Timeseries CSV Export</display_name>
@@ -82,7 +82,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>C2E61D02</checksum>
+      <checksum>D90C8B49</checksum>
     </file>
     <file>
       <filename>ReadVarsESO</filename>
@@ -184,7 +184,7 @@
       <filename>Measure_Test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>5148A41E</checksum>
+      <checksum>B38420A5</checksum>
     </file>
     <file>
       <filename>Retail.osm</filename>
