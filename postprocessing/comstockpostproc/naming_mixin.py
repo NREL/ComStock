@@ -2,6 +2,7 @@
 # See top level LICENSE.txt file for license terms.
 import re
 import matplotlib.colors as mcolors
+import polars as pl
 class NamingMixin():
     # Column aliases for code readability
     # Add to this list for commonly-used columns
@@ -30,6 +31,19 @@ class NamingMixin():
     SEG_NAME = 'calc.segment'
     COMP_STATUS = 'completed_status'
     META_IDX = 'metadata_index'
+
+
+    # Column Name type mapping for pandas DataFrame:
+    COL_TYPE_SCHEMA = {
+        CEN_DIV: "string",
+        STATE_NAME: "string",
+        CEN_REG: "string",
+        STATE_ABBRV: "category",
+        BLDG_TYPE: "category",
+        BLDG_TYPE_GROUP: "category",
+        VINTAGE: "category",
+        "dataset": "category",
+    }
 
     # Total annual energy
     ANN_TOT_ENGY_KBTU = 'out.site_energy.total.energy_consumption..kwh'

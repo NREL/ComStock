@@ -527,7 +527,8 @@ class PlottingMixin():
 
                 # Summarize the data
                 if group_by is None:
-
+                    # assert isinstance(df, pd.DataFrame)
+                    # raise Exception
                     # No group-by
                     g = sns.catplot(
                         data=df,

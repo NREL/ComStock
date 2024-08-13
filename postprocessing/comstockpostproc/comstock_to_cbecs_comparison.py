@@ -14,6 +14,7 @@ from comstockpostproc.plotting_mixin import PlottingMixin
 from comstockpostproc.cbecs import CBECS
 from comstockpostproc.comstock import ComStock
 
+from comstockpostproc.lazyframeplotter import LazyFramePlotter
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,8 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         self.image_type = image_type
         self.name = name
         self.column_for_grouping = self.DATASET
+
+        self.lazyframe_plotter: LazyFramePlotter = LazyFramePlotter()
 
         # Concatenate the datasets and create a color map
         dfs_to_concat = []
@@ -122,10 +125,10 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
 
         assert isinstance(self.data, pl.LazyFrame)
         assert isinstance(comstock_df, pl.LazyFrame)
-        self.data: pd.DataFrame = self.data.collect().to_pandas()
-        comstock_df: pd.DataFrame = comstock_df.collect().to_pandas()
-        assert isinstance(self.data, pd.DataFrame)
-        assert isinstance(comstock_df, pd.DataFrame)
+        # self.data: pd.DataFrame = self.data.collect().to_pandas()
+        # comstock_df: pd.DataFrame = comstock_df.collect().to_pandas()
+        # assert isinstance(self.data, pd.DataFrame)
+        # assert isinstance(comstock_df, pd.DataFrame)
 
         # Make ComStock to CBECS comparison plots
         if make_comparison_plots:
@@ -135,22 +138,65 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         else:
             logger.info("make_comparison_plots is set to false, so not plots were created. Set make_comparison_plots to True for plots.")
 
-    def make_plots(self, df, column_for_grouping, color_map, output_dir):
+    def make_plots(self, lazy_frame: pl.LazyFrame, column_for_grouping, color_map, output_dir):
         # Make plots comparing the datasets
 
+        BASIC_PARAMS = {
+            'column_for_grouping': column_for_grouping,
+            'color_map': color_map,
+            'output_dir': output_dir
+        }
         logger.info('Making comparison plots')
-        self.plot_floor_area_and_energy_totals(df, column_for_grouping, color_map, output_dir)
-        self.plot_eui_boxplots(df, column_for_grouping, color_map, output_dir)
-        self.plot_floor_area_and_energy_totals_by_building_type(df, column_for_grouping, color_map, output_dir)
-        self.plot_end_use_totals_by_building_type(df, column_for_grouping, color_map, output_dir)
-        self.plot_eui_histograms_by_building_type(df, column_for_grouping, color_map, output_dir)
-        self.plot_eui_boxplots_by_building_type(df, column_for_grouping, color_map, output_dir)
-        self.plot_energy_rate_boxplots(df, column_for_grouping, color_map, output_dir)
 
-    def make_qoi_plots(self, df, column_for_grouping, color_map, output_dir):
-        self.plot_qoi_timing(df, column_for_grouping, color_map, output_dir)
-        self.plot_qoi_max_use(df, column_for_grouping, color_map, output_dir)
-        self.plot_qoi_min_use(df, column_for_grouping, color_map, output_dir)
+       
+        LazyFramePlotter.plot_with_lazy(
+            plot_method=self.plot_floor_area_and_energy_totals,
+            lazy_frame=lazy_frame.clone(),
+            columns=(self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE +  [column_for_grouping]))(**BASIC_PARAMS)
+
+        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_eui_boxplots,
+                                        lazy_frame=lazy_frame.clone(), columns=( [column_for_grouping] + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.BLDG_TYPE]))(**BASIC_PARAMS)
+ 
+        LazyFramePlotter.plot_with_lazy(
+            plot_method=self.plot_floor_area_and_energy_totals_by_building_type,
+            lazy_frame=lazy_frame.clone(),
+            columns=( [column_for_grouping] + self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE))(**BASIC_PARAMS)
+        LazyFramePlotter.plot_with_lazy(
+            plot_method=self.plot_end_use_totals_by_building_type,
+            lazy_frame=lazy_frame.clone(),
+            columns=( [column_for_grouping] + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE + [self.BLDG_TYPE, self.CEN_DIV]))(**BASIC_PARAMS)
+
+        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_eui_histograms_by_building_type,
+                                        lazy_frame=lazy_frame.clone(), columns=( [column_for_grouping] + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.BLDG_TYPE]))(**BASIC_PARAMS)
+        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_eui_boxplots_by_building_type,
+                                        lazy_frame=lazy_frame.clone(), columns=( [column_for_grouping] + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.CEN_DIV, self.BLDG_TYPE]))(**BASIC_PARAMS)
+
+        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_energy_rate_boxplots,
+                                        lazy_frame=lazy_frame.clone(), 
+                                        columns=(self.lazyframe_plotter.SUMMARIZE_COLUMNS + [column_for_grouping, self.CEN_DIV, self.BLDG_TYPE]))(**BASIC_PARAMS)
+        # self.plot_floor_area_and_energy_totals(df, column_for_grouping, color_map, output_dir)
+        # self.plot_eui_boxplots(df, column_for_grouping, color_map, output_dir)
+        # self.plot_floor_area_and_energy_totals_by_building_type(df, column_for_grouping, color_map, output_dir)
+        # self.plot_end_use_totals_by_building_type(df, column_for_grouping, color_map, output_dir)
+        # self.plot_eui_histograms_by_building_type(df, column_for_grouping, color_map, output_dir)
+        # self.plot_eui_boxplots_by_building_type(df, column_for_grouping, color_map, output_dir)
+        # self.plot_energy_rate_boxplots(df, column_for_grouping, color_map, output_dir)
+
+    def make_qoi_plots(self, lazy_frame, column_for_grouping, color_map, output_dir):
+        BASIC_PARAMS = {
+            'column_for_grouping': column_for_grouping,
+            'color_map': color_map,
+            'output_dir': output_dir
+        }
+        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_qoi_timing, lazy_frame=lazy_frame.clone(),
+                                        columns=(self.lazyframe_plotter.QOI_COLUMNS + [column_for_grouping]))(**BASIC_PARAMS)
+        # self.plot_qoi_timing(df, column_for_grouping, color_map, output_dir)
+        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_qoi_max_use, lazy_frame=lazy_frame.clone(),
+                                        columns=(self.lazyframe_plotter.QOI_COLUMNS + [column_for_grouping]))(**BASIC_PARAMS)
+        # self.plot_qoi_max_use(df, column_for_grouping, color_map, output_dir)
+        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_qoi_min_use, lazy_frame=lazy_frame.clone(),
+                                        columns=(self.lazyframe_plotter.QOI_COLUMNS + [column_for_grouping]))(**BASIC_PARAMS)
+        # self.plot_qoi_min_use(df, column_for_grouping, color_map, output_dir)
 
     def export_to_csv_wide(self):
         # Exports comparison data to CSV in wide format
