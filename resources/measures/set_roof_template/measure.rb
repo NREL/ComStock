@@ -198,49 +198,58 @@ class SetRoofTemplate < OpenStudio::Measure::ModelMeasure
     reset_log
     standard = Standard.build("#{template}")
 
-    # Apply standard constructions to this model at the surface-by-surface level,
-    # which will override default contruction sets for the surface types being updated,
-    # which is not all surface types.
-    types_to_modify = []
-    types_to_modify << ['Outdoors', 'RoofCeiling']
+    # Check that a default construction set is defined
+    bldg_def_const_set = model.getBuilding.defaultConstructionSet
+    unless bldg_def_const_set.is_initialized
+      runner.registerError('Model does not have a default construction set.')
+      return false
+    end
+    bldg_def_const_set = bldg_def_const_set.get
 
-    # Find just those surfaces
-    surfaces_to_modify = []
-    types_to_modify.each do |boundary_condition, surface_type|
-      # Surfaces
-      model.getSurfaces.sort.each do |surf|
-        next unless surf.outsideBoundaryCondition == boundary_condition
-        next unless surf.surfaceType == surface_type
+    # Check that a default exterior construction set is defined
+    ext_surf_consts = bldg_def_const_set.defaultExteriorSurfaceConstructions
+    unless ext_surf_consts.is_initialized
+      runner.registerError("Default construction set '#{bldg_def_const_set.name}' has no default exterior surface constructions.")
+      return false
+    end
+    ext_surf_consts = ext_surf_consts.get
 
-        surfaces_to_modify << surf
-      end
+    # Check that a default exterior roof is defined
+    unless ext_surf_consts.roofCeilingConstruction.is_initialized
+      runner.registerError("Default surface construction set #{ext_surf_consts.name} has no default exterior roof construction.")
+      return false
+    end
+    old_construction = ext_surf_consts.roofCeilingConstruction.get
+    standards_info = old_construction.standardsInformation
 
-      # SubSurfaces
-      model.getSubSurfaces.sort.each do |surf|
-        next unless surf.outsideBoundaryCondition == boundary_condition
-        next unless surf.subSurfaceType == surface_type
-
-        surfaces_to_modify << surf
-      end
+    # Get the old roof construction type
+    if standards_info.standardsConstructionType.empty?
+      old_roof_construction_type = 'Not defined'
+    else
+      old_roof_construction_type = standards_info.standardsConstructionType.get
     end
 
-    # Modify these surfaces
-    prev_created_consts = {}
-    surfaces_to_modify.sort.each do |surf|
-      prev_created_consts = standard.planar_surface_apply_standard_construction(surf, climate_zone, prev_created_consts)
+    # Get the building occupancy type
+    if model.getBuilding.standardsBuildingType.is_initialized
+      model_building_type = model.getBuilding.standardsBuildingType.get
+    else
+      model_building_type = ''
     end
-
-    # List the unique array of constructions
-    prev_created_consts.each do |surf_type, construction|
-      runner.registerInfo("For #{surf_type.join(' ')}, applied #{construction.name}.")
+    if ['SmallHotel', 'LargeHotel', 'MidriseApartment', 'HighriseApartment'].include?(model_building_type)
+      occ_type = 'Residential'
+    else
+      occ_type = 'Nonresidential'
     end
+    climate_zone_set = standard.model_find_climate_zone_set(model, climate_zone)
+    new_construction = standard.model_find_and_add_construction(model,
+                                                                climate_zone_set,
+                                                                'ExteriorRoof',
+                                                                old_roof_construction_type,
+                                                                occ_type)
+    ext_surf_consts.setRoofCeilingConstruction(new_construction)
 
     log_messages_to_runner(runner, debug = false)
     reset_log
-
-    if prev_created_consts.size.zero?
-      runner.registerAsNotApplicable("Found no #{surf_type.join(' ')} surfaces in the model to update")
-    end
 
     return true
   end

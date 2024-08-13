@@ -144,7 +144,6 @@ class SetWallTemplateTest < Minitest::Test
     # and the energy code being applied have the same envelope requirements.
     expected_const_name = 'DEER Insulated Exterior Mass Wall R-3.51 1'
     modified_surf = model.getSurfaceByName(modified_surf_name).get
-    assert(modified_surf.isConstructionDefaulted == false, "Expected construction for #{modified_surf_name} to be hard-assigned.")
     modified_surf_const_name = modified_surf.construction.get.name.to_s
     assert_equal(expected_const_name, modified_surf_const_name)
 
