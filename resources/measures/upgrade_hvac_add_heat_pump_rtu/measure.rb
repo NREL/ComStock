@@ -511,7 +511,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       selected_air_loops << air_loop_hvac
       # add area served by air loop
       thermal_zone = air_loop_hvac.thermalZones[0]
-      applicable_area_m2+=thermal_zone.floorArea
+      applicable_area_m2 += thermal_zone.floorArea * thermal_zone.multiplier
 
       ############# Determine if equipment has been hardsized to avoid sizing run
       oa_flow_m3_per_s = nil
@@ -664,7 +664,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         runner.registerWarning("Air loop #{air_loop_hvac.name} has night cycling operations and an outdoor air ratio of #{min_oa_flow_ratio.round(2)} which exceeds the maximum allowable limit of #{oa_ration_allowance} (due to an EnergyPlus night cycling bug with multispeed coils) making this RTU not applicable at this time.")
         # remove air loop from applicable list
         selected_air_loops.delete(air_loop_hvac)
-        applicable_area_m2 -= thermal_zone.floorArea
+        applicable_area_m2 -= thermal_zone.floorArea * thermal_zone.multiplier
         # remove area served by air loop from applicability
       end
     end
@@ -2096,13 +2096,13 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
             space = thermal_zone.spaces[0]
 
             # get zone area
-            fa = thermal_zone.floorArea
+            fa = thermal_zone.floorArea * thermal_zone.multiplier
 
             # get zone volume
-            vol = thermal_zone.airVolume
+            vol = thermal_zone.airVolume * thermal_zone.multiplier
 
             # get zone design people
-            num_people = thermal_zone.numberOfPeople
+            num_people = thermal_zone.numberOfPeople * thermal_zone.multiplier
 
             if space.designSpecificationOutdoorAir.is_initialized
               dsn_spec_oa = space.designSpecificationOutdoorAir.get
