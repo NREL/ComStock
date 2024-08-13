@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>light_led</name>
   <uid>b95347e2-de50-4c7f-96c8-7651ad650339</uid>
-  <version_id>1919fb0e-d2ec-4c2b-9cb2-61735e331415</version_id>
-  <version_modified>2024-06-20T18:58:46Z</version_modified>
+  <version_id>3b309efc-0848-4ced-aa40-48f1fad4ec74</version_id>
+  <version_modified>2024-08-13T17:28:08Z</version_modified>
   <xml_checksum>398F827A</xml_checksum>
   <class_name>LightLED</class_name>
   <display_name>light_led</display_name>
@@ -125,7 +125,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>3F3E2683</checksum>
+      <checksum>B7012029</checksum>
     </file>
     <file>
       <filename>lighting_technology.csv</filename>
