@@ -95,17 +95,18 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     #args << std_perf
 
     # make list of cchpc scenarios
-    li_cchpc_scenarios = ['two_speed_standard_eff', 'variable_speed_high_eff', 'cchpc_2027_spec']
-    v_li_cchpc_scenarios = OpenStudio::StringVector.new
-    li_cchpc_scenarios.each do |option|
-      v_li_cchpc_scenarios << option
+    li_hprtu_scenarios = ['two_speed_standard_eff', 'variable_speed_high_eff', 'cchpc_2027_spec']
+    v_li_hprtu_scenarios = OpenStudio::StringVector.new
+    li_hprtu_scenarios.each do |option|
+      v_li_hprtu_scenarios << option
+
     end
     # add cold climate heat pump challenge hp rtu scenario arguments
-    cchpc = OpenStudio::Measure::OSArgument.makeChoiceArgument('cchpc', v_li_cchpc_scenarios, true)
-    cchpc.setDisplayName('Heat Pump RTU Performance Type')
-    cchpc.setDescription('Determines performance assumptions. two_speed_standard_eff is a standard efficiency system with 2 staged compressors. variable_speed_high_eff is a higher efficiency variable speed system. cchpc_2027_spec is a hypothetical 4-stage unit intended to meet the requirements of the cold climate heat pump RTU challenge 2027 specification.  ')
-    cchpc.setDefaultValue('two_speed_standard_eff')
-    args << cchpc
+    hprtu_scenario = OpenStudio::Measure::OSArgument.makeChoiceArgument('hprtu_scenario', v_li_hprtu_scenarios, true)
+    hprtu_scenario.setDisplayName('Heat Pump RTU Performance Type')
+    hprtu_scenario.setDescription('Determines performance assumptions. two_speed_standard_eff is a standard efficiency system with 2 staged compressors. variable_speed_high_eff is a higher efficiency variable speed system. cchpc_2027_spec is a hypothetical 4-stage unit intended to meet the requirements of the cold climate heat pump RTU challenge 2027 specification.  ')
+    hprtu_scenario.setDefaultValue('two_speed_standard_eff')
+    args << hprtu_scenario
 
     # add heat recovery option
     hr = OpenStudio::Measure::OSArgument.makeBoolArgument('hr', true)
@@ -487,6 +488,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     m_3_per_s_per_w_min = OpenStudio.convert(OpenStudio.convert(cfm_per_ton_min, 'cfm', 'm^3/s').get, 'W', 'ton').get
     m_3_per_s_per_w_max = OpenStudio.convert(OpenStudio.convert(cfm_per_ton_max, 'cfm', 'm^3/s').get, 'W', 'ton').get
 
+    puts heating_or_cooling
+
     # determine capacities for each stage
     # this is based on user-input capacities for each stage and any upsizing applied
     # Flow per ton will be maintained between 300 CFM/Ton and 450 CFM/Ton
@@ -502,9 +505,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # Calculate the flow per ton
       flow_per_ton = airflow / stage_capacity
 
-      puts heating_or_cooling
-      puts "Stage: #{stage}"
-      puts "flow_per_ton: #{flow_per_ton}"
+      puts "stage_flow_fractions: #{stage_flow_fractions}"
 
       # If flow/ton is less than minimum, increase airflow of stage to meet minimum
       if (flow_per_ton.round(8) < (m_3_per_s_per_w_min - tolerance*m_3_per_s_per_w_min).round(8)) && !(stage >= rated_stage_num)
@@ -518,14 +519,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         runner.registerWarning("For airloop #{air_loop_hvac.name}, #{heating_or_cooling} stage #{stage} airflow/capacity ratio is too low with a value of #{(flow_per_ton).round(8)} m3/s/watt, which exceeds the minimum allowable value of 4.03e-05 m3/s/watt. The airflow of the stage will be increased from #{airflow.round(3)} m3/s to #{new_stage_airflow.round(3)} m3/s.")
       # If flow/ton is greater than maximum, decrease the airflow
       elsif (flow_per_ton.round(8) > (m_3_per_s_per_w_max + tolerance*m_3_per_s_per_w_max).round(8)) && !(stage >= rated_stage_num)
-        puts "flow_per_ton.round(8): #{flow_per_ton.round(8)}"
-        puts "(m_3_per_s_per_w_max - tolerance*m_3_per_s_per_w_max).round(8): #{(m_3_per_s_per_w_max - tolerance*m_3_per_s_per_w_max).round(8)}"
-        puts "(flow_per_ton.round(8) > (m_3_per_s_per_w_max - tolerance*m_3_per_s_per_w_max).round(8)) :#{(flow_per_ton.round(8) > (m_3_per_s_per_w_max - tolerance*m_3_per_s_per_w_max).round(8))}"
         # reduce airflow of stage without violating minimum flow or outdoor air requirements
         # if maximum flow/ton ratio cannot be accommodated without violating minimum airflow ratios
-        # if cfm/ton limit can't be met by reducing airflow, allow increase capacity of up to 50% range between capacities
+        # if cfm/ton limit can't be met by reducing airflow, allow increase capacity of up to 65% range between capacities
         # calculate maximum allowable ratio, no more than 50% increase between specified stages
-        ratio_allowance_50_pct = ratio + (stage_cap_fractions[stage+1] - ratio) * 0.5
+        ratio_allowance_50_pct = ratio + (stage_cap_fractions[stage+1] - ratio) * 0.65
         required_stage_cap_ratio = airflow / m_3_per_s_per_w_max / (stage_cap_fractions[rated_stage_num] * dx_rated_cap_applied)
         if ((m_3_per_s_per_w_max * stage_capacity) / old_terminal_sa_flow_m3_per_s) >= min_airflow_ratio
           # calculate new stage airflow
@@ -566,7 +564,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
   def set_cooling_coil_stages(model, runner, stage_flows_cooling, stage_caps_cooling, num_cooling_stages, final_rated_cooling_cop, cool_cap_ft_curve_stages, cool_eir_ft_curve_stages,
                               cool_cap_ff_curve_stages, cool_eir_ff_curve_stages, cool_plf_fplr1, stage_rated_cop_frac_cooling, stage_GrossRatedSensibleHeatRatio_cooling,
-                              rated_stage_num_cooling, enable_cycling_losses_above_lowest_speed, air_loop_hvac, always_on)
+                              rated_stage_num_cooling, enable_cycling_losses_above_lowest_speed, air_loop_hvac, always_on, stage_caps_heating)
 
                               stage_rated_cop_frac_cooling
 
@@ -648,7 +646,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         dx_coil_speed_data.autosizedRatedEvaporativeCondenserPumpPowerConsumption
 
         # add speed data to multispeed coil object
-        new_dx_cooling_coil.addStage(dx_coil_speed_data)
+        new_dx_cooling_coil.addStage(dx_coil_speed_data) unless (stage_caps_heating[stage]==false)
       end
     end
     return new_dx_cooling_coil
@@ -656,8 +654,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
 
   def set_heating_coil_stages(model, runner, stage_flows_heating, stage_caps_heating, num_heating_stages, final_rated_heating_cop, heat_cap_ft_curve_stages, heat_eir_ft_curve_stages,
-    heat_cap_ff_curve_stages, heat_eir_ff_curve_stages, heat_plf_fplr1, defrost_eir, stage_rated_cop_frac_heating, rated_stage_num_heating, air_loop_hvac, hp_min_comp_lockout_temp_f, enable_cycling_losses_above_lowest_speed,
-     always_on)
+    heat_cap_ff_curve_stages, heat_eir_ff_curve_stages, heat_plf_fplr1, defrost_eir, stage_rated_cop_frac_heating, rated_stage_num_heating, air_loop_hvac, hp_min_comp_lockout_temp_f,
+    enable_cycling_losses_above_lowest_speed, always_on, stage_caps_cooling)
 
     # validate number of stages
     if (stage_flows_heating.values.count(&:itself)) == ( stage_caps_heating.values.count(&:itself))
@@ -733,7 +731,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         dx_coil_speed_data.setEnergyInputRatioFunctionofFlowFractionCurve(heat_eir_ff_curve_stages[stage])
         dx_coil_speed_data.setPartLoadFractionCorrelationCurve(heat_plf_fplr1)
         # add speed data to multispeed coil object
-        new_dx_heating_coil.addStage(dx_coil_speed_data)
+        new_dx_heating_coil.addStage(dx_coil_speed_data) unless (stage_caps_cooling[stage]==false)
       end
     end
     return new_dx_heating_coil
@@ -757,7 +755,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     clg_oversizing_estimate = runner.getDoubleArgumentValue('clg_oversizing_estimate', user_arguments)
     htg_to_clg_hp_ratio = runner.getDoubleArgumentValue('htg_to_clg_hp_ratio', user_arguments)
     hp_min_comp_lockout_temp_f = runner.getDoubleArgumentValue('hp_min_comp_lockout_temp_f', user_arguments)
-    cchpc = runner.getStringArgumentValue('cchpc', user_arguments)
+    hprtu_scenario = runner.getStringArgumentValue('hprtu_scenario', user_arguments)
     hr = runner.getBoolArgumentValue('hr', user_arguments)
     dcv = runner.getBoolArgumentValue('dcv', user_arguments)
     econ = runner.getBoolArgumentValue('econ', user_arguments)
@@ -791,7 +789,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     template = 'ComStock 90.1-2019'
     std = Standard.build(template)
     # get climate zone value
-    climate_zone = std.model_standards_climate_zone(model)
+    climate_zone = OpenstudioStandards::Weather.std.model_get_climate_zone(model)
 
     # get applicable psz hvac air loops
     selected_air_loops = []
@@ -1124,15 +1122,15 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # ---------------------------------------------------------
     custom_data_json = nil
     # if cchpc scenarios are set, use those curves. else, use the standard performance curves
-    if (cchpc=='cchpc_2027_spec')
+    if (hprtu_scenario=='cchpc_2027_spec')
       # read performance data
       path_data_curve = "#{File.dirname(__FILE__)}/resources/performance_map_CCHP_spec_2027.json"
       custom_data_json = JSON.parse(File.read(path_data_curve))
-    elsif (cchpc=='variable_speed_high_eff')
+    elsif (hprtu_scenario=='variable_speed_high_eff')
       # read performance data
       path_data_curve = "#{File.dirname(__FILE__)}/resources/performance_maps_hprtu_variable_speed.json"
       custom_data_json = JSON.parse(File.read(path_data_curve))
-    elsif (cchpc=='two_speed_standard_eff')
+    elsif (hprtu_scenario=='two_speed_standard_eff')
       # read performance data
       path_data_curve = "#{File.dirname(__FILE__)}/resources/performance_maps_hprtu_std.json"
       custom_data_json = JSON.parse(File.read(path_data_curve))
@@ -1149,17 +1147,17 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     cool_cap_ft4 = nil
     cool_cap_ft_curve_stages=nil
     # add curve data
-    if cchpc=='variable_speed_high_eff'
+    if hprtu_scenario=='variable_speed_high_eff'
       cool_cap_ft1 = model_add_curve(model, 'cool_cap_ft1', custom_data_json, std)
       cool_cap_ft2 = model_add_curve(model, 'cool_cap_ft2', custom_data_json, std)
       cool_cap_ft3 = model_add_curve(model, 'cool_cap_ft3', custom_data_json, std)
       cool_cap_ft4 = model_add_curve(model, 'cool_cap_ft4', custom_data_json, std)
       cool_cap_ft_curve_stages = {1=>cool_cap_ft1, 2=>cool_cap_ft2, 3=>cool_cap_ft3, 4=>cool_cap_ft4}
-    elsif cchpc=='two_speed_standard_eff'
+    elsif hprtu_scenario=='two_speed_standard_eff'
       cool_cap_ft1 =  model_add_curve(model, 'c_cap_low_T', custom_data_json, std)
       cool_cap_ft2 = model_add_curve(model, 'c_cap_high_T', custom_data_json, std)
       cool_cap_ft_curve_stages = {1=>cool_cap_ft1, 2=>cool_cap_ft2}
-    elsif cchpc=='cchpc_2027_spec'
+    elsif hprtu_scenario=='cchpc_2027_spec'
       cool_cap_ft1 =  model_add_curve(model, 'c_cap_low_T', custom_data_json, std)
       cool_cap_ft2 = model_add_curve(model, 'c_cap_high_T', custom_data_json, std)
       cool_cap_ft_curve_stages = {1=>cool_cap_ft1, 2=>cool_cap_ft2}
@@ -1172,17 +1170,17 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     cool_eir_ft4 = nil
     cool_eir_ft_curve_stages=nil
     # add curve data
-    if cchpc=='variable_speed_high_eff'
+    if hprtu_scenario=='variable_speed_high_eff'
       cool_eir_ft1 = model_add_curve(model, 'cool_eir_ft1', custom_data_json, std)
       cool_eir_ft2 = model_add_curve(model, 'cool_eir_ft2', custom_data_json, std)
       cool_eir_ft3 = model_add_curve(model, 'cool_eir_ft3', custom_data_json, std)
       cool_eir_ft4 = model_add_curve(model, 'cool_eir_ft4', custom_data_json, std)
       cool_eir_ft_curve_stages = {1=>cool_eir_ft1, 2=>cool_eir_ft2, 3=>cool_eir_ft3, 4=>cool_eir_ft4}
-    elsif cchpc=='two_speed_standard_eff'
+    elsif hprtu_scenario=='two_speed_standard_eff'
       cool_eir_ft1 =  model_add_curve(model, 'c_eir_low_T', custom_data_json, std)
       cool_eir_ft2 = model_add_curve(model, 'c_eir_high_T', custom_data_json, std)
       cool_eir_ft_curve_stages = {1=>cool_eir_ft1, 2=>cool_eir_ft2}
-    elsif cchpc=='cchpc_2027_spec'
+    elsif hprtu_scenario=='cchpc_2027_spec'
       cool_eir_ft1 =  model_add_curve(model, 'c_eir_low_T', custom_data_json, std)
       cool_eir_ft2 = model_add_curve(model, 'c_eir_high_T', custom_data_json, std)
       cool_eir_ft_curve_stages = {1=>cool_eir_ft1, 2=>cool_eir_ft2}
@@ -1193,14 +1191,14 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     cool_cap_ff2 = nil
     cool_cap_ff_curve_stages=nil
     # add curve data
-    if cchpc=='variable_speed_high_eff'
+    if hprtu_scenario=='variable_speed_high_eff'
       cool_cap_ff1 = model_add_curve(model, 'cool_cap_ff1', custom_data_json, std)
       cool_cap_ff_curve_stages = {1=>cool_cap_ff1, 2=>cool_cap_ff1, 3=>cool_cap_ff1, 4=>cool_cap_ff1}
-    elsif cchpc=='two_speed_standard_eff'
+    elsif hprtu_scenario=='two_speed_standard_eff'
       cool_cap_ff1 = model_add_curve(model, 'c_cap_low_ff', custom_data_json, std)
       cool_cap_ff2 = model_add_curve(model, 'c_cap_high_ff', custom_data_json, std)
       cool_cap_ff_curve_stages = {1=>cool_cap_ff1, 2=>cool_cap_ff2}
-    elsif cchpc=='cchpc_2027_spec'
+    elsif hprtu_scenario=='cchpc_2027_spec'
       cool_cap_ff1 = model_add_curve(model, 'c_cap_low_ff', custom_data_json, std)
       cool_cap_ff2 = model_add_curve(model, 'c_cap_high_ff', custom_data_json, std)
       cool_cap_ff_curve_stages = {1=>cool_cap_ff1, 2=>cool_cap_ff2}
@@ -1211,14 +1209,14 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     cool_eir_ff2 = nil
     cool_eir_ff_curve_stages=nil
     # add curve data
-    if cchpc=='variable_speed_high_eff'
+    if hprtu_scenario=='variable_speed_high_eff'
       cool_eir_ff1 = model_add_curve(model, 'cool_eir_ff1', custom_data_json, std)
       cool_eir_ff_curve_stages = {1=>cool_eir_ff1, 2=>cool_eir_ff1, 3=>cool_eir_ff1, 4=>cool_eir_ff1}
-    elsif cchpc=='two_speed_standard_eff'
+    elsif hprtu_scenario=='two_speed_standard_eff'
       cool_eir_ff1 = model_add_curve(model, 'c_eir_low_ff', custom_data_json, std)
       cool_eir_ff2 = model_add_curve(model, 'c_eir_high_ff', custom_data_json, std)
       cool_eir_ff_curve_stages = {1=>cool_eir_ff1, 2=>cool_eir_ff2}
-    elsif cchpc=='cchpc_2027_spec'
+    elsif hprtu_scenario=='cchpc_2027_spec'
       cool_eir_ff1 = model_add_curve(model, 'c_eir_low_ff', custom_data_json, std)
       cool_eir_ff2 = model_add_curve(model, 'c_eir_high_ff', custom_data_json, std)
       cool_eir_ff_curve_stages = {1=>cool_eir_ff1, 2=>cool_eir_ff2}
@@ -1226,11 +1224,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
     # Curve Import - Cooling efficiency as a function of part load ratio
     cool_plf_fplr1 = nil
-    if cchpc=='variable_speed_high_eff'
+    if hprtu_scenario=='variable_speed_high_eff'
       cool_plf_fplr1 = model_add_curve(model, 'cool_plf_plr1', custom_data_json, std)
-    elsif cchpc=='two_speed_standard_eff'
+    elsif hprtu_scenario=='two_speed_standard_eff'
       cool_plf_fplr1 = model_add_curve(model, 'cool_plf_plr1', custom_data_json, std)
-    elsif cchpc=='cchpc_2027_spec'
+    elsif hprtu_scenario=='cchpc_2027_spec'
       cool_plf_fplr1 = model_add_curve(model, 'cool_plf_plr1', custom_data_json, std)
     end
 
@@ -1245,16 +1243,16 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     heat_cap_ft4 = nil
     heat_cap_ft_curve_stages=nil
     # add curve data
-    if cchpc=='variable_speed_high_eff'
+    if hprtu_scenario=='variable_speed_high_eff'
       heat_cap_ft1 = model_add_curve(model, 'heat_cap_ft1', custom_data_json, std)
       heat_cap_ft2 = model_add_curve(model, 'heat_cap_ft1', custom_data_json, std)
       heat_cap_ft3 = model_add_curve(model, 'heat_cap_ft1', custom_data_json, std)
       heat_cap_ft4 = model_add_curve(model, 'heat_cap_ft1', custom_data_json, std)
       heat_cap_ft_curve_stages = {1=>heat_cap_ft1, 2=>heat_cap_ft2, 3=>heat_cap_ft3, 4=>heat_cap_ft4}
-    elsif cchpc=='two_speed_standard_eff'
+    elsif hprtu_scenario=='two_speed_standard_eff'
       heat_cap_ft1 = model_add_curve(model, 'h_cap_T', custom_data_json, std)
       heat_cap_ft_curve_stages = {1=>heat_cap_ft1}
-    elsif cchpc=='cchpc_2027_spec'
+    elsif hprtu_scenario=='cchpc_2027_spec'
       heat_cap_ft1 = model_add_curve(model, 'h_cap_T', custom_data_json, std)
       heat_cap_ft_curve_stages = {1=>heat_cap_ft1}
     end
@@ -1267,16 +1265,16 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     heat_eir_ft4 = nil
     heat_eir_ft_curve_stages=nil
     # add curve data
-    if cchpc=='variable_speed_high_eff'
+    if hprtu_scenario=='variable_speed_high_eff'
       heat_eir_ft1 = model_add_curve(model, 'heat_eir_ft1', custom_data_json, std)
       heat_eir_ft2 = model_add_curve(model, 'heat_eir_ft2', custom_data_json, std)
       heat_eir_ft3 = model_add_curve(model, 'heat_eir_ft3', custom_data_json, std)
       heat_eir_ft4 = model_add_curve(model, 'heat_eir_ft4', custom_data_json, std)
       heat_eir_ft_curve_stages = {1=>heat_eir_ft1, 2=>heat_eir_ft2, 3=>heat_eir_ft3, 4=>heat_eir_ft4}
-    elsif cchpc=='two_speed_standard_eff'
+    elsif hprtu_scenario=='two_speed_standard_eff'
       heat_eir_ft1 =  model_add_curve(model, 'h_eir_T', custom_data_json, std)
       heat_eir_ft_curve_stages = {1=>heat_eir_ft1}
-    elsif cchpc=='cchpc_2027_spec'
+    elsif hprtu_scenario=='cchpc_2027_spec'
       heat_eir_ft1 =  model_add_curve(model, 'h_eir_T', custom_data_json, std)
       heat_eir_ft_curve_stages = {1=>heat_eir_ft1}
     end
@@ -1285,13 +1283,13 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     heat_cap_ff1 = nil
     heat_cap_ff_curve_stages=nil
     # add curve data
-    if cchpc=='variable_speed_high_eff'
+    if hprtu_scenario=='variable_speed_high_eff'
       heat_cap_ff1 = model_add_curve(model, 'heat_cap_ff1', custom_data_json, std)
       heat_cap_ff_curve_stages = {1=>heat_cap_ff1, 2=>heat_cap_ff1, 3=>heat_cap_ff1, 4=>heat_cap_ff1}
-    elsif cchpc=='two_speed_standard_eff'
+    elsif hprtu_scenario=='two_speed_standard_eff'
       heat_cap_ff1 = model_add_curve(model, 'h_cap_allstages_ff', custom_data_json, std)
       heat_cap_ff_curve_stages = {1=>heat_cap_ff1}
-    elsif cchpc=='cchpc_2027_spec'
+    elsif hprtu_scenario=='cchpc_2027_spec'
       heat_cap_ff1 = model_add_curve(model, 'h_cap_allstages_ff', custom_data_json, std)
       heat_cap_ff_curve_stages = {1=>heat_cap_ff1}
     end
@@ -1300,34 +1298,34 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     heat_eir_ff1 = nil
     heat_eir_ff_curve_stages=nil
     # add curve data
-    if cchpc=='variable_speed_high_eff'
+    if hprtu_scenario=='variable_speed_high_eff'
       heat_eir_ff1 = model_add_curve(model, 'heat_eir_ff1', custom_data_json, std)
       heat_eir_ff_curve_stages = {1=>heat_eir_ff1, 2=>heat_eir_ff1, 3=>heat_eir_ff1, 4=>heat_eir_ff1}
-    elsif cchpc=='two_speed_standard_eff'
+    elsif hprtu_scenario=='two_speed_standard_eff'
       heat_eir_ff1 = model_add_curve(model, 'h_eir_allstages_ff', custom_data_json, std)
       heat_eir_ff_curve_stages = {1=>heat_eir_ff1}
-    elsif cchpc=='cchpc_2027_spec'
+    elsif hprtu_scenario=='cchpc_2027_spec'
       heat_eir_ff1 = model_add_curve(model, 'h_eir_allstages_ff', custom_data_json, std)
       heat_eir_ff_curve_stages = {1=>heat_eir_ff1}
     end
 
     # Curve Import - Heating efficiency as a function of part load ratio
     heat_plf_fplr1 = nil
-    if cchpc=='variable_speed_high_eff'
+    if hprtu_scenario=='variable_speed_high_eff'
       heat_plf_fplr1 = model_add_curve(model, 'heat_plf_plr1', custom_data_json, std)
-    elsif cchpc=='two_speed_standard_eff'
+    elsif hprtu_scenario=='two_speed_standard_eff'
       heat_plf_fplr1 = model_add_curve(model, 'heat_plf_plr1', custom_data_json, std)
-    elsif cchpc=='cchpc_2027_spec'
+    elsif hprtu_scenario=='cchpc_2027_spec'
       heat_plf_fplr1 = model_add_curve(model, 'heat_plf_plr1', custom_data_json, std)
     end
 
     # Curve Import - Defrost energy as a function of temperature
     defrost_eir = nil
-    if cchpc=='variable_speed_high_eff'
+    if hprtu_scenario=='variable_speed_high_eff'
       defrost_eir = model_add_curve(model, 'defrost_eir', custom_data_json, std)
-    elsif cchpc=='two_speed_standard_eff'
+    elsif hprtu_scenario=='two_speed_standard_eff'
       defrost_eir = model_add_curve(model, 'defrost_eir', custom_data_json, std)
-    elsif cchpc=='cchpc_2027_spec'
+    elsif hprtu_scenario=='cchpc_2027_spec'
       defrost_eir = model_add_curve(model, 'defrost_eir', custom_data_json, std)
     end
     #################################### End of defining Performance Curves
@@ -1785,7 +1783,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
                                                                                                                                                               air_loop_hvac,
                                                                                                                                                               heating_or_cooling='heating',
                                                                                                                                                               runner,
-                                                                                                                                                              tolerance=0.02
+                                                                                                                                                              tolerance=0.01
                                                                                                                                                               )
       # cooling - align stage CFM/ton bounds where possible
       # this may remove some lower stages
@@ -1800,7 +1798,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
                                                                                                                                                               air_loop_hvac,
                                                                                                                                                               heating_or_cooling='cooling',
                                                                                                                                                               runner,
-                                                                                                                                                              tolerance=0.02
+                                                                                                                                                              tolerance=0.01
                                                                                                                                                               )
 
 
@@ -1836,7 +1834,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
                                                     rated_stage_num_cooling,
                                                     enable_cycling_losses_above_lowest_speed,
                                                     air_loop_hvac,
-                                                    always_on
+                                                    always_on,
+                                                    stage_caps_heating
                                                     )
       # ---------------------------------------------------------
       # heating curve assignments
@@ -1871,7 +1870,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
                                                     air_loop_hvac,
                                                     hp_min_comp_lockout_temp_f,
                                                     enable_cycling_losses_above_lowest_speed,
-                                                    always_on
+                                                    always_on,
+                                                    stage_caps_cooling
                                                     )
 
       puts "new_dx_heating_coil: #{new_dx_heating_coil}"
@@ -1903,7 +1903,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_fan.setFanPowerMinimumFlowRateInputMethod('Fraction')
 
       # set fan total efficiency, which determines fan power
-      if cchpc == 'variable_speed_high_eff'
+      if hprtu_scenario == 'variable_speed_high_eff'
         # new_fan.setFanTotalEfficiency(0.57) # from PNNL
         std.fan_change_motor_efficiency(new_fan, fan_mot_eff)
         new_fan.setFanPowerCoefficient1(0.259905264) # from Daikin Rebel E+ file
