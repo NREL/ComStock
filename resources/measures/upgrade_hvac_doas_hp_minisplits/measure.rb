@@ -167,9 +167,11 @@ class HvacDoasHpMinisplits < OpenStudio::Measure::ModelMeasure
     prim_ht_fuel_type = 'electric' # we assume electric unless we find a gas coil in any air loop
     model.getAirLoopHVACs.each do |air_loop_hvac|
       # skip units that are not single zone
-      next if air_loop_hvac.thermalZones.length() > 1
+      next if air_loop_hvac.thermalZones.length > 1
+
       # add area
-      total_area_m2 +=air_loop_hvac.thermalZones[0].floorArea
+      thermal_zone = air_loop_hvac.thermalZones[0]
+      total_area_m2 += thermal_zone.floorArea * thermal_zone.multiplier
       # skip DOAS units; check sizing for all OA and for DOAS in name
       sizing_system = air_loop_hvac.sizingSystem
       next if sizing_system.allOutdoorAirinCooling && sizing_system.allOutdoorAirinHeating && (air_loop_res?(air_loop_hvac) == false) && (air_loop_hvac.name.to_s.include?("DOAS") || air_loop_hvac.name.to_s.include?("doas"))
@@ -241,7 +243,7 @@ class HvacDoasHpMinisplits < OpenStudio::Measure::ModelMeasure
       selected_air_loops << air_loop_hvac
       # add area served by air loop
       thermal_zone = air_loop_hvac.thermalZones[0]
-      applicable_area_m2+=thermal_zone.floorArea
+      applicable_area_m2 += thermal_zone.floorArea * thermal_zone.multiplier
     end
 
     # fraction of conditioned floorspace
@@ -548,13 +550,13 @@ class HvacDoasHpMinisplits < OpenStudio::Measure::ModelMeasure
         space = thermal_zone.spaces[0]
 
         # get zone area
-        fa = thermal_zone.floorArea
+        fa = thermal_zone.floorArea * thermal_zone.multiplier
 
         # get zone volume
-        vol = thermal_zone.airVolume
+        vol = thermal_zone.airVolume * thermal_zone.multiplier
 
         # get zone design people
-        num_people = thermal_zone.numberOfPeople
+        num_people = thermal_zone.numberOfPeople * thermal_zone.multiplier
 
         dsn_oa_m3_per_s= 0
         if space.designSpecificationOutdoorAir.is_initialized

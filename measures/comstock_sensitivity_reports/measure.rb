@@ -318,7 +318,6 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     end
 
     # calculate exterior surface properties
-    # TODO may need to adjust for zone multipliers
     smallest_space_m2 = 9999.0
     num_surfaces = 0
     roof_absorptance_times_area = 0
@@ -328,22 +327,22 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     exterior_wall_area_m2 = 0.0
     spaces = model.getSpaces
     spaces.sort.each do |space|
-      floor_area_m2 = space.floorArea
+      floor_area_m2 = space.floorArea * space.multiplier
       smallest_space_m2 = floor_area_m2 if floor_area_m2 < smallest_space_m2
       space.surfaces.sort.each do |surface|
-        num_surfaces += 1
+        num_surfaces += 1 * space.multiplier
         next if surface.outsideBoundaryCondition != 'Outdoors'
         if surface.surfaceType.to_s == 'RoofCeiling'
           surface_absorptance = surface.exteriorVisibleAbsorptance.is_initialized ? surface.exteriorVisibleAbsorptance.get : 0.0
           surface_u_value_si = surface.uFactor.is_initialized ? surface.uFactor.get : 0.0
-          surface_area_m2 = surface.netArea
+          surface_area_m2 = surface.netArea * space.multiplier
           surface_ua_si = surface_u_value_si * surface_area_m2
           roof_absorptance_times_area += surface_absorptance * surface_area_m2
           roof_ua_si += surface_ua_si
           roof_area_m2 += surface_area_m2
         elsif surface.surfaceType.to_s == 'Wall'
           surface_u_value_si = surface.uFactor.is_initialized ? surface.uFactor.get : 0.0
-          surface_area_m2 = surface.netArea
+          surface_area_m2 = surface.netArea * space.multiplier
           surface_ua_si = surface_u_value_si * surface_area_m2
           exterior_wall_ua_si += surface_ua_si
           exterior_wall_area_m2 += surface_area_m2
@@ -352,11 +351,16 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     end
 
     # total number of zones
-    num_zones = model.getThermalZones.size
+    num_zones = 0
+    zones = model.getThermalZones
+    zones.each { |z| num_zones += z.multiplier }
+    runner.registerValue('com_report_number_of_model_zones', zones.size)
     runner.registerValue('com_report_number_of_zones', num_zones)
 
     # total number of spaces
-    num_spaces = spaces.size
+    num_spaces = 0
+    spaces.each { |s| num_spaces += s.multiplier }
+    runner.registerValue('com_report_number_of_model_spaces', spaces.size)
     runner.registerValue('com_report_number_of_spaces', num_spaces)
 
     # smallest space size
@@ -447,8 +451,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     total_space_area_m2 = 0.0
     model.getInternalMasss.sort.each do |mass|
       space = mass.space.get
-      space_area_m2 = space.floorArea
-      num_people = space.numberOfPeople
+      space_area_m2 = space.floorArea * space.multiplier
+      num_people = space.numberOfPeople * space.multiplier
       surface_area_m2 = mass.surfaceArea.is_initialized ? mass.surfaceArea.get : 0.0
       surface_area_per_floor_area_m2 = mass.surfaceAreaPerFloorArea.is_initialized ? mass.surfaceAreaPerFloorArea.get : 0.0
       surface_area_per_person_m2 = mass.surfaceAreaPerPerson.is_initialized ? mass.surfaceAreaPerPerson.get : 0.0
@@ -462,7 +466,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     weighted_daylight_control_area_m2 = 0.0
     total_zone_area_m2 = 0.0
     model.getThermalZones.sort.each do |zone|
-      zone_area_m2 = zone.floorArea
+      zone_area_m2 = zone.floorArea * zone.multiplier
       primary_fraction = zone.primaryDaylightingControl.is_initialized ? zone.fractionofZoneControlledbyPrimaryDaylightingControl : 0.0
       secondary_fraction = zone.secondaryDaylightingControl.is_initialized ? zone.fractionofZoneControlledbySecondaryDaylightingControl : 0.0
       total_fraction = (primary_fraction + secondary_fraction) > 1.0 ? 1.0 : (primary_fraction + secondary_fraction)
@@ -540,8 +544,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       space_type = std.thermal_zone_majority_space_type(zone)
       if space_type.is_initialized
         space_type = space_type.get
-        floor_area_m2 = zone.floorArea
-        num_people = zone.numberOfPeople
+        floor_area_m2 = zone.floorArea * zone.multiplier
+        num_people = zone.numberOfPeople * zone.multiplier
         equip_w = space_type.getElectricEquipmentDesignLevel(floor_area_m2, num_people)
         # equip_per_area_w and equip_per_person_w are not included in equip_w call
         # equip_per_area_w = space_type.getElectricEquipmentPowerPerFloorArea(floor_area_m2, num_people) * floor_area_m2
@@ -611,10 +615,10 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     total_zone_design_ppl = 0.0
     total_zone_ppl_count = 0
     model.getThermalZones.sort.each do |zone|
-      total_zone_occupant_area_m2 += zone.floorArea
-      total_zone_design_ppl += zone.numberOfPeople
+      total_zone_occupant_area_m2 += zone.floorArea * zone.multiplier
+      total_zone_design_ppl += zone.numberOfPeople * zone.multiplier
       zone_ppl_count = sql_get_report_variable_data_double(runner, sql, zone, 'Zone People Occupant Count')
-      total_zone_ppl_count += zone_ppl_count
+      total_zone_ppl_count += zone_ppl_count * zone.multiplier
     end
 
     # Average occupant density
@@ -638,9 +642,9 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         dsn_oa = space.designSpecificationOutdoorAir.get
 
         # get the space properties
-        floor_area_m2 = space.floorArea
-        number_of_people = space.numberOfPeople
-        volume_m3 = space.volume
+        floor_area_m2 = space.floorArea * space.multiplier
+        number_of_people = space.numberOfPeople * space.multiplier
+        volume_m3 = space.volume * space.multiplier
 
         # get outdoor air values
         oa_for_people = number_of_people * dsn_oa.outdoorAirFlowperPerson
@@ -961,9 +965,9 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     building_cooled_zone_area_m2 = 0.0
     building_zone_area_m2 = 0.0
     model.getThermalZones.sort.each do |zone|
-      building_zone_area_m2 += zone.floorArea
-      building_heated_zone_area_m2 += zone.floorArea if std.thermal_zone_heated?(zone)
-      building_cooled_zone_area_m2 += zone.floorArea if std.thermal_zone_cooled?(zone)
+      building_zone_area_m2 += zone.floorArea * zone.multiplier
+      building_heated_zone_area_m2 += zone.floorArea * zone.multiplier if std.thermal_zone_heated?(zone)
+      building_cooled_zone_area_m2 += zone.floorArea * zone.multiplier if std.thermal_zone_cooled?(zone)
     end
 
     # Fraction of building heated
@@ -983,7 +987,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     weighted_thermostat_cooling_area_m2 = 0.0
     model.getThermalZones.sort.each do |zone|
       next unless zone.thermostatSetpointDualSetpoint.is_initialized
-      floor_area_m2 = zone.floorArea
+      floor_area_m2 = zone.floorArea * zone.multiplier
       thermostat = zone.thermostatSetpointDualSetpoint.get
       if thermostat.heatingSetpointTemperatureSchedule.is_initialized
         thermostat_heating_schedule = thermostat.heatingSetpointTemperatureSchedule.get
@@ -1107,7 +1111,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       # air loop area
       air_loop_area_m2 = 0.0
       air_loop_hvac.thermalZones.sort.each do |zone|
-        air_loop_area_m2 += zone.floorArea
+        air_loop_area_m2 += zone.floorArea * zone.multiplier
       end
 
       number_of_air_loops += 1.0
@@ -1193,7 +1197,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       vrf.terminals.each do |terminal|
         if terminal.thermalZone.is_initialized
           zone = terminal.thermalZone.get
-          vrf_area_m2 += zone.floorArea
+          vrf_area_m2 += zone.floorArea * zone.multiplier
         end
 
         # get terminal cooling capacity

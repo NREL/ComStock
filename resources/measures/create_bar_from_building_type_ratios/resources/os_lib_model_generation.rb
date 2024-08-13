@@ -906,11 +906,11 @@ module OsLib_ModelGeneration
     elsif building_type == 'Rt3'
       hash['RetailSales'] = { ratio: 1.0, space_type_gen: true, default: true }
     elsif building_type == 'RtL'
-      hash['OfficeGeneral'] = { ratio: 0.0359, space_type_gen: true, default: false }
-      hash['Work'] = { ratio: 0.04, space_type_gen: true, default: false }
-      hash['StockRoom'] = { ratio: 0.091, space_type_gen: true, default: false }
-      hash['RetailSales'] = { ratio: 0.8219, space_type_gen: true, default: true }
-      hash['Kitchen'] = { ratio: 0.0113, space_type_gen: true, default: false }
+      hash['OfficeGeneral'] = { ratio: 0.0363, space_type_gen: true, default: false }
+      hash['Work'] = { ratio: 0.0405, space_type_gen: true, default: false }
+      hash['StockRoom'] = { ratio: 0.0920, space_type_gen: true, default: false }
+      hash['RetailSales'] = { ratio: 0.8312, space_type_gen: true, default: true }
+      # hash['Kitchen'] = { ratio: 0.0113, space_type_gen: true, default: false }
     elsif building_type == 'RtS'
       hash['RetailSales'] = { ratio: 0.8, space_type_gen: true, default: true }
       hash['StockRoom'] = { ratio: 0.2, space_type_gen: true, default: false }
