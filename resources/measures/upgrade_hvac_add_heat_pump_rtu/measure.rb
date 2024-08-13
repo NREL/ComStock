@@ -87,13 +87,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     hp_min_comp_lockout_temp_f.setDescription('Specifies minimum outdoor air temperature for locking out heat pump compressor. Heat pump heating does not operated below this temperature and backup heating will operate if heating is still needed.')
     args << hp_min_comp_lockout_temp_f
 
-    ## model standard performance hp rtu
-    #std_perf = OpenStudio::Measure::OSArgument.makeBoolArgument('std_perf', true)
-    #std_perf.setDisplayName('Model standard performance HP RTU?')
-    #std_perf.setDescription('Standard performance refers to the followings: manufacturer claimed as standard efficiency (as of OCT 2023), direct drive supply fan, two stages of heat pump cooling, single stage heat pump heating (i.e., all compressors running at the same time), heat pump minimum lockout temperature of 0°F (-17.8°C), backup electric resistance heating, backup heating runs at the same time as heat pump heating, heat pump heating locking out below minimum operating temperature, IEER in between 11-13, and HSPF in between 8-8.9.')
-    #std_perf.setDefaultValue(false)
-    #args << std_perf
-
     # make list of cchpc scenarios
     li_hprtu_scenarios = ['two_speed_standard_eff', 'variable_speed_high_eff', 'cchpc_2027_spec']
     v_li_hprtu_scenarios = OpenStudio::StringVector.new
@@ -104,7 +97,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # add cold climate heat pump challenge hp rtu scenario arguments
     hprtu_scenario = OpenStudio::Measure::OSArgument.makeChoiceArgument('hprtu_scenario', v_li_hprtu_scenarios, true)
     hprtu_scenario.setDisplayName('Heat Pump RTU Performance Type')
-    hprtu_scenario.setDescription('Determines performance assumptions. two_speed_standard_eff is a standard efficiency system with 2 staged compressors. variable_speed_high_eff is a higher efficiency variable speed system. cchpc_2027_spec is a hypothetical 4-stage unit intended to meet the requirements of the cold climate heat pump RTU challenge 2027 specification.  ')
+    hprtu_scenario.setDescription('Determines performance assumptions. two_speed_standard_eff is a standard efficiency system with 2 staged compressors (2 stages cooling, 1 stage heating). variable_speed_high_eff is a higher efficiency variable speed system. cchpc_2027_spec is a hypothetical 4-stage unit intended to meet the requirements of the cold climate heat pump RTU challenge 2027 specification.  ')
     hprtu_scenario.setDefaultValue('two_speed_standard_eff')
     args << hprtu_scenario
 
@@ -488,8 +481,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     m_3_per_s_per_w_min = OpenStudio.convert(OpenStudio.convert(cfm_per_ton_min, 'cfm', 'm^3/s').get, 'W', 'ton').get
     m_3_per_s_per_w_max = OpenStudio.convert(OpenStudio.convert(cfm_per_ton_max, 'cfm', 'm^3/s').get, 'W', 'ton').get
 
-    puts heating_or_cooling
-
     # determine capacities for each stage
     # this is based on user-input capacities for each stage and any upsizing applied
     # Flow per ton will be maintained between 300 CFM/Ton and 450 CFM/Ton
@@ -504,8 +495,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       stage_capacity = dx_rated_cap_applied * ratio
       # Calculate the flow per ton
       flow_per_ton = airflow / stage_capacity
-
-      puts "stage_flow_fractions: #{stage_flow_fractions}"
 
       # If flow/ton is less than minimum, increase airflow of stage to meet minimum
       if (flow_per_ton.round(8) < (m_3_per_s_per_w_min - tolerance*m_3_per_s_per_w_min).round(8)) && !(stage >= rated_stage_num)
@@ -1891,7 +1880,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
                                                     always_on,
                                                     stage_caps_cooling
                                                     )
-      puts "new_dx_heating_coil: #{new_dx_heating_coil}"
 
       #################################### End performance curve assignment
 

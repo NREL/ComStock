@@ -458,7 +458,7 @@
                     "stage_flow_fractions_cooling": "{2=>1, 1=>0.59}",
                     "stage_rated_cop_frac_heating": "{1 => 1}",
                     "stage_rated_cop_frac_cooling": "{2 => 1, 1 => 1}",
-                    "stage_GrossRatedSensibleHeatRatio_cooling": "{2 => 1, 1 => 1.08}",
+                    "stage_GrossRatedSensibleHeatRatio_cooling": "{2 => 0.77, 1 => 0.82}",
                     "enable_cycling_losses_above_lowest_speed": true,
                     "reference_cooling_cfm_per_ton": 404.0,
                     "reference_heating_cfm_per_ton": 420.0
