@@ -145,7 +145,7 @@ class LightLED < OpenStudio::Measure::ModelMeasure
       return true
     else
       runner.registerInfo("Initial lighting power density '#{initial_lpd_w_per_ft2.round(3)} is greater than new lighting power density #{new_lpd_w_per_ft2.round(3)} for Lights Definition #{lights_definition.name} with lighting system type #{lighting_system_type}. Changing lights.")
-      
+
       # set new properties on existing lights definition
       lights_definition.setWattsperSpaceFloorArea(OpenStudio.convert(new_lpd_w_per_ft2, 'W/ft^2', 'W/m^2').get)
       lights_definition.setReturnAirFraction(return_air_fraction)
@@ -214,7 +214,7 @@ class LightLED < OpenStudio::Measure::ModelMeasure
 
       space_type_volume = 0.0
       space_type.spaces.each do |space|
-        space_type_volume += space.volume
+        space_type_volume += space.volume * space.multiplier
       end
 
       if space_type_volume.zero?
@@ -304,8 +304,8 @@ class LightLED < OpenStudio::Measure::ModelMeasure
       # log initial lighting technologies and power in spaces
       spaces_lights_definitions = []
       space_type.spaces.each do |space|
-        space_floor_area = space.floorArea
-        space_number_of_people = space.numberOfPeople
+        space_floor_area = space.floorArea * space.multiplier
+        space_number_of_people = space.numberOfPeople * space.multiplier
         space.lights.sort.each do |light|
           lights_definition = light.lightsDefinition
           spaces_lights_definitions << lights_definition
@@ -332,8 +332,8 @@ class LightLED < OpenStudio::Measure::ModelMeasure
 
       # log final lighting technologies and power in spaces
       space_type.spaces.each do |space|
-        space_floor_area = space.floorArea
-        space_number_of_people = space.numberOfPeople
+        space_floor_area = space.floorArea * space.multiplier
+        space_number_of_people = space.numberOfPeople * space.multiplier
         space.lights.sort.each do |light|
           lights_definition = light.lightsDefinition
           has_lighting_technology = lights_definition.additionalProperties.hasFeature('lighting_technology')
@@ -350,7 +350,7 @@ class LightLED < OpenStudio::Measure::ModelMeasure
           final_lighting_technologies << {"#{final_light_lighting_technology}": final_lighting_power_w}
         end
       end
-    
+
       ending_space_type_lighting_power = space_type.getLightingPower(space_type_floor_area, space_type_number_of_people)
       ending_building_lighting_power += ending_space_type_lighting_power
 
