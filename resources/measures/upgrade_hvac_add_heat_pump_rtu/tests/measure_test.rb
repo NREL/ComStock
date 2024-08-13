@@ -285,19 +285,17 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # check performance category
     result.stepValues.each do |input_arg|
-      next unless input_arg.name == 'std_perf'
+      next unless input_arg.name == 'hprtu_scenario'
 
-      performance_category = if input_arg.valueAsBoolean == true
-                               'standard'
-                             else
-                               'advanced'
-                             end
+      performance_category = input_arg.valueAsString
+	  
+	  puts performance_category
     end
     # puts("### DEBUGGING: performance_category = #{performance_category}")
     refute_equal(performance_category, nil)
 
     # loop through coils and check cfm/ton values
-    if performance_category.include?('advanced')
+    if performance_category.include?('high_eff')
 
       calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
       calc_cfm_per_ton_multispdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
@@ -481,11 +479,17 @@ class AddHeatPumpRtuTest < Minitest::Test
     # get arguments
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
-
-    # populate argument with specified hash value if specified
-    arguments.each do |arg|
+	
+	# populate argument with specified hash value if specified
+    arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      argument_map[arg.name] = temp_arg_var
+      if arg.name == 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
+        argument_map[arg.name] = hprtu_scenario
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
     end
 
     test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
@@ -513,9 +517,15 @@ class AddHeatPumpRtuTest < Minitest::Test
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
     # populate argument with specified hash value if specified
-    arguments.each do |arg|
+    arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      argument_map[arg.name] = temp_arg_var
+      if arg.name == 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
+        argument_map[arg.name] = hprtu_scenario
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
     end
 
     test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
@@ -542,10 +552,16 @@ class AddHeatPumpRtuTest < Minitest::Test
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
-    # populate argument with specified hash value if specified
-    arguments.each do |arg|
+	# populate argument with specified hash value if specified
+    arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      argument_map[arg.name] = temp_arg_var
+      if arg.name == 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
+        argument_map[arg.name] = hprtu_scenario
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
     end
 
     test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
@@ -573,9 +589,15 @@ class AddHeatPumpRtuTest < Minitest::Test
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
     # populate argument with specified hash value if specified
-    arguments.each do |arg|
+    arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      argument_map[arg.name] = temp_arg_var
+      if arg.name == 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
+        argument_map[arg.name] = hprtu_scenario
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
     end
 
     test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
@@ -603,9 +625,15 @@ class AddHeatPumpRtuTest < Minitest::Test
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
     # populate argument with specified hash value if specified
-    arguments.each do |arg|
+    arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      argument_map[arg.name] = temp_arg_var
+      if arg.name == 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
+        argument_map[arg.name] = hprtu_scenario
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
     end
 
     # get initial number of applicable air loops
@@ -711,10 +739,10 @@ class AddHeatPumpRtuTest < Minitest::Test
     # populate argument with specified hash value if specified
     arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      if arg.name == 'std_perf'
-        std_perf = arguments[idx].clone
-        std_perf.setValue(true) # override std_perf arg
-        argument_map[arg.name] = std_perf
+      if arg.name == 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('two_speed_standard_eff') # override std_perf arg
+        argument_map[arg.name] = hprtu_scenario
       else
         argument_map[arg.name] = temp_arg_var
       end
@@ -828,9 +856,15 @@ class AddHeatPumpRtuTest < Minitest::Test
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
     # populate argument with specified hash value if specified
-    arguments.each do |arg|
+    arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      argument_map[arg.name] = temp_arg_var
+      if arg.name == 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
+        argument_map[arg.name] = hprtu_scenario
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
     end
 
     # Apply the measure to the model and optionally run the model
@@ -860,9 +894,15 @@ class AddHeatPumpRtuTest < Minitest::Test
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
     # populate argument with specified hash value if specified
-    arguments.each do |arg|
+    arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      argument_map[arg.name] = temp_arg_var
+      if arg.name == 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
+        argument_map[arg.name] = hprtu_scenario
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
     end
 
     # Apply the measure to the model and optionally run the model
@@ -892,9 +932,15 @@ class AddHeatPumpRtuTest < Minitest::Test
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
     # populate argument with specified hash value if specified
-    arguments.each do |arg|
+    arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      argument_map[arg.name] = temp_arg_var
+      if arg.name == 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
+        argument_map[arg.name] = hprtu_scenario
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
     end
 
     # get baseline ERVs
@@ -932,9 +978,15 @@ class AddHeatPumpRtuTest < Minitest::Test
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
     # populate argument with specified hash value if specified
-    arguments.each do |arg|
+    arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      argument_map[arg.name] = temp_arg_var
+      if arg.name == 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
+        argument_map[arg.name] = hprtu_scenario
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
     end
 
     # get baseline ERVs
