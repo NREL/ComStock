@@ -208,13 +208,13 @@ class HVACExhaustAirEnergyOrHeatRecovery < OpenStudio::Measure::ModelMeasure
         space = thermal_zone.spaces[0]
 
         # get zone area
-        fa = thermal_zone.floorArea
+        fa = thermal_zone.floorArea * thermal_zone.multiplier
 
         # get zone volume
-        vol = thermal_zone.airVolume
+        vol = thermal_zone.airVolume * thermal_zone.multiplier
 
         # get zone design people
-        num_people = thermal_zone.numberOfPeople
+        num_people = thermal_zone.numberOfPeople * thermal_zone.multiplier
 
         if space.designSpecificationOutdoorAir.is_initialized
           dsn_spec_oa = space.designSpecificationOutdoorAir.get
