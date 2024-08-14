@@ -4,12 +4,12 @@
 import logging
 
 import comstockpostproc as cspp
-
+import polars
 
 # logging.basicConfig(level='DEBUG', force=True)  # Use DEBUG, INFO, or WARNING
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
-    level=logging.DEBUG,
+    level=logging.INFO,
     datefmt='%Y-%m-%d %H:%M:%S', force=True)
 logger = logging.getLogger(__name__)
 
@@ -27,9 +27,9 @@ def main():
         drop_failed_runs=True,  # False if you want to evaluate which runs failed in raw output data
         color_hex='#0072B2',  # Color used to represent this run in plots
         skip_missing_columns=True,  # False if you want to ensure you have all data specified for export
-        reload_from_csv=True, # True if CSV already made and want faster reload times
+        reload_from_csv=False, # True if CSV already made and want faster reload times
         include_upgrades=True,  # False if not looking at upgrades
-        athena_table_name=None,
+        athena_table_name='ami_comparison',
         upgrade_ids_to_skip=[],
         states={
                 #'MN': 'Minnesota',  # specify state to use for timeseries plots in dictionary format. State ID must correspond correctly.
@@ -41,9 +41,9 @@ def main():
                 },
         # upgrade_ids_to_skip=[3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32],
         # upgrade_ids_to_skip=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32]
-        upgrade_ids_for_comparison={} # Use {'<Name you want for comparison run folder>':[0,1,2]}
+        upgrade_ids_for_comparison={"compare_1" : [0, 1]} # Use {'<Name you want for comparison run folder>':[0,1,2]}
         )
-
+    
     # CBECS
     cbecs = cspp.CBECS(
         cbecs_year=2018,  # 2012 and 2018 currently available
@@ -51,10 +51,25 @@ def main():
         color_hex='#009E73',  # Color used to represent CBECS in plots
         reload_from_csv=False  # True if CSV already made and want faster reload times
         )
+    comstock.add_national_scaling_weights(cbecs, remove_non_comstock_bldg_types_from_cbecs=True)
 
+    # logger.info(f"comstock.COLS_ENDUSE_ANN_ENGY is {comstock.COLS_ENDUSE_ANN_ENGY}")
+    # missing_cols = []
+    # for col in comstock.COLS_ENDUSE_ANN_ENGY:
+    #     if col not in comstock.data.columns:
+    #         missing_cols.append(col)
+
+    # logger.info(f"length of COL_ENDUSE_ANN_ENGY is {len(comstock.COLS_ENDUSE_ANN_ENGY)} {'out.electricity.fans.energy_consumption..kwh' in comstock.data.columns}")
+    # # logger.info(f{'out.electricity.fans.energy_consumption..kwh' in comstock.data.columns})
+    # logger.info(f"missing cols are {missing_cols}, missing cols length is {len(missing_cols)}") 
+    # logger.info(f"comstock.data shape: {comstock.data.describe()}")
+
+    # raise NotImplementedError("This script is not yet complete. Please check the code and update as needed.")
     # Scale ComStock run to CBECS 2018 AND remove non-ComStock buildings from CBECS
     # This is how weights in the models are set to represent national energy consumption
-    comstock.add_national_scaling_weights(cbecs, remove_non_comstock_bldg_types_from_cbecs=True)
+
+    # assert isinstance(comstock.data, pl.LazyFrame)
+    # assert isinstance(cbecs.data, pl.LazyFrame)
 
     # Uncomment this to correct gas consumption for a ComStock run to match CBECS
     # Don't typically want to do this
@@ -68,10 +83,32 @@ def main():
     comstock.export_to_parquet_wide()
     comstock.export_to_csv_wide()
     # Create measure run comparisons; only use if run has measures
+    
+    # cspp.ComStockMeasureComparison(comstock, states=comstock.states, make_comparison_plots=True, make_timeseries_plots=False)
+    # cspp.ComStockToCBECSComparison([comstock], [cbecs], upgrade_id=0)
+    
+    # ami = cspp.AMI(
+    #     truth_data_version='v01',
+    #     reload_from_csv=False
+    # )
+    # comstock.download_timeseries_data_for_ami_comparison(ami, reload_from_csv=True, save_individual_regions=False)
 
-    raise Exception('Stop here for now')
-    # comparison = cspp.ComStockMeasureComparison(comstock, states=comstock.states, make_comparison_plots=True,make_timeseries_plots=False)
-    c = cspp.ComStockToCBECSComparison([comstock], [cbecs], upgrade_id=0)
+
+    # EIA
+    eia = cspp.EIA(
+        year=2018,
+        truth_data_version="v01",
+        reload_from_csv=False # True if CSV already made and want faster reload times
+    )
+    
+    comp = cspp.ComStockToEIAComparison(eia_list=[eia], comstock_list=[comstock], upgrade_id='All',make_comparison_plots=True)
+
+    comp.export_to_csv_wide()
+
+    # comparison
+    # comparison = cspp.ComStockToAMIComparison(comstock, ami, make_comparison_plots=True)
+    # comparison.export_plot_data_to_csv_wide()
+    
     # Export the comparison data to wide format for Tableau
     # comparison.export_to_csv_wide()
 

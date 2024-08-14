@@ -75,9 +75,10 @@ class LazyFramePlotter(NamingMixin):
                 else:
                     # lazy_frame.cast({col: NamingMixin.COL_TYPE_SCHEMA[col]}).clone().collect()
                     pandas_df = pandas_df.astype({col: NamingMixin.COL_TYPE_SCHEMA[col]})
-
             except Exception as e:
                 false_list.append((col, e))
+            finally:
+                pass
         
         types = pandas_df.dtypes
         if false_list:

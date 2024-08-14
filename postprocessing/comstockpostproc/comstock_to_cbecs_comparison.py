@@ -174,14 +174,6 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         LazyFramePlotter.plot_with_lazy(plot_method=self.plot_energy_rate_boxplots,
                                         lazy_frame=lazy_frame.clone(), 
                                         columns=(self.lazyframe_plotter.SUMMARIZE_COLUMNS + [column_for_grouping, self.CEN_DIV, self.BLDG_TYPE]))(**BASIC_PARAMS)
-        # self.plot_floor_area_and_energy_totals(df, column_for_grouping, color_map, output_dir)
-        # self.plot_eui_boxplots(df, column_for_grouping, color_map, output_dir)
-        # self.plot_floor_area_and_energy_totals_by_building_type(df, column_for_grouping, color_map, output_dir)
-        # self.plot_end_use_totals_by_building_type(df, column_for_grouping, color_map, output_dir)
-        # self.plot_eui_histograms_by_building_type(df, column_for_grouping, color_map, output_dir)
-        # self.plot_eui_boxplots_by_building_type(df, column_for_grouping, color_map, output_dir)
-        # self.plot_energy_rate_boxplots(df, column_for_grouping, color_map, output_dir)
-
     def make_qoi_plots(self, lazy_frame, column_for_grouping, color_map, output_dir):
         BASIC_PARAMS = {
             'column_for_grouping': column_for_grouping,

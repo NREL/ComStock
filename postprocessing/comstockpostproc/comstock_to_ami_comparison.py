@@ -5,7 +5,6 @@ import os
 import logging
 
 import pandas as pd
-import polars as pl
 from typing import List
 
 from comstockpostproc.naming_mixin import NamingMixin
@@ -20,10 +19,6 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
     def __init__(self, comstock_object:ComStock, ami_object:AMI, image_type='jpg', name=None, make_comparison_plots=True):
 
         # Initialize members
-
-        assert isinstance(comstock_object.data, pl.LazyFrame)
-        assert isinstance(ami_object.ami_timeseries_data, pl.LazyFrame)
-
         self.comstock_object = comstock_object
         self.ami_object = ami_object
         self.ami_timeseries_data = None
@@ -40,17 +35,17 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 logger.warning(f'No timeseries data was available for {dataset.dataset_name}, unable to make AMI comparison.')
                 continue
             if isinstance(dataset, ComStock):
-                df: pl.LazyFrame = dataset.data
-                df = df.with_column(pl.lit(self.comstock_object.dataset_name).alias('run'))
-                df = df.with_column(pl.lit(self.comstock_object.year).alias('year'))
+                df = dataset.ami_timeseries_data
+                df['run'] = self.comstock_object.dataset_name
+                df['year'] = self.comstock_object.year
                 dfs_to_concat.append(df)
+                df.iloc[0:0]
             elif isinstance(dataset, AMI):
-                df: pl.LazyFrame = dataset.ami_timeseries_data
-                # df['run'] = self.ami_object.dataset_name
-                df = df.with_columns(pl.lit(self.ami_object.dataset_name).alias('run'))
-                # df['enduse'] = 'total'
-                df = df.with_column(pl.lit('total').alias('enduse'))
+                df = dataset.ami_timeseries_data
+                df['run'] = self.ami_object.dataset_name
+                df['enduse'] = 'total'
                 dfs_to_concat.append(df)
+                df.iloc[0:0]
             self.color_map[dataset.dataset_name] = dataset.color
             dataset_names.append(dataset.dataset_name)
 
@@ -59,7 +54,7 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
             self.name = ' vs '.join(dataset_names)
 
         # Combine into a single dataframe for convenience
-        self.ami_timeseries_data = pl.concat(dfs_to_concat, how='vertical_relaxed')
+        self.ami_timeseries_data = pd.concat(dfs_to_concat, join='outer')
 
         # Make directories
         current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -97,11 +92,7 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
         # for each region
         dfs_to_concat = []
         for region in self.ami_object.ami_region_map:
-            assert isinstance(self.ami_timeseries_data, pl.LazyFrame)
-            region_df: pd.DataFrame = self.ami_timeseries_data.filter(pl.col('region_name') == region['source_name']).collect().to_pandas()
-            assert isinstance(region_df, pd.DataFrame)
-
-            # region_df = self.ami_timeseries_data.loc[self.ami_timeseries_data['region_name'] == region['source_name']]
+            region_df = self.ami_timeseries_data.loc[self.ami_timeseries_data['region_name'] == region['source_name']]
 
             # for each building type
             for building_type in self.ami_object.building_types:
@@ -111,8 +102,9 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
                     os.makedirs(bldg_type_output_dir)
 
                 # check that both ami and comstock data have values defined
-                ami_check = type_region_df[type_region_df['run'] == ami_data_label]
-                comstock_check = type_region_df[type_region_df['run'] == comstock_data_label]
+                ami_check : pd.DataFrame= type_region_df[type_region_df['run'] == ami_data_label]
+                comstock_check : pd.DataFrame = type_region_df[type_region_df['run'] == comstock_data_label]
+
                 if ami_check.empty:
                     logger.debug(f"dataset does not contain {building_type} buildings in {ami_data_label} for region {region['source_name']}. Skipping building specific graphics.")
                     continue
@@ -124,7 +116,6 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 ami_min_count = int(ami_check['bldg_count'].min())
                 if ami_min_count < 3:
                     print(f"dataset contains fewer than 3 {building_type} buildings in {ami_data_label} for region {region['source_name']}. Skipping building specific graphics.")
-                    logger.debug(f"dataset contains fewer than 3 {building_type} buildings in {ami_data_label} for region {region['source_name']}. Skipping building specific graphics.")
                     continue
 
                 type_region_plot_data = self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, self.color_map, bldg_type_output_dir)
@@ -132,6 +123,5 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, self.color_map, bldg_type_output_dir, normalization='Daytype')
                 self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, self.color_map, bldg_type_output_dir, normalization='Annual')
                 self.plot_load_duration_curve(type_region_df, region, building_type, self.color_map, bldg_type_output_dir)
-
         # combine plot data
         self.ami_plot_data = pd.concat(dfs_to_concat, join='outer', ignore_index=True)

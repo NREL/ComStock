@@ -31,7 +31,7 @@ class NamingMixin():
     SEG_NAME = 'calc.segment'
     COMP_STATUS = 'completed_status'
     META_IDX = 'metadata_index'
-
+    DIVISION = 'Division'
 
     # Column Name type mapping for pandas DataFrame:
     COL_TYPE_SCHEMA = {
@@ -42,7 +42,11 @@ class NamingMixin():
         BLDG_TYPE: "category",
         BLDG_TYPE_GROUP: "category",
         VINTAGE: "category",
-        "dataset": "category",
+        DATASET: "category",
+        UPGRADE_NAME: "string",
+        CZ_ASHRAE: "category",
+        HVAC_SYS: "category",
+        DIVISION: "category"
     }
 
     # Total annual energy

@@ -407,8 +407,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # size get data
         # note that this is a Polars dataframe, not a Pandas dataframe
         self.data = self.data.with_columns([pl.col('in.nhgis_county_gisjoin').cast(pl.Utf8)])
-        size_df = self.data.filter(self.data['in.nhgis_county_gisjoin'].is_in(county_ids))
-        size_df = size_df.select(['in.comstock_building_type', 'in.sqft', 'calc.weighted.sqft'])
+        # size_df = self.data.filter(self.data['in.nhgis_county_gisjoin'].is_in(county_ids))
+        size_df = self.data.clone().filter(pl.col('in.nhgis_county_gisjoin').is_in(county_ids))
+        size_df = size_df.select(['in.comstock_building_type', 'in.sqft', 'calc.weighted.sqft']).collect()
 
         # Cast columns to match dtype of lists
         size_df = size_df.with_columns([
@@ -2341,7 +2342,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         monthly = self.monthly_data
 
         # Get the scaling factors to take the results of this ComStock run to the national scale
-        comstock_scaling_factors = self.data.group_by(self.BLDG_TYPE).agg(pl.col(self.BLDG_WEIGHT).mean())
+        comstock_scaling_factors: pl.LazyFrame = self.data.clone().group_by(self.BLDG_TYPE).agg(pl.col(self.BLDG_WEIGHT).mean()).collect()
+        #comstock_scaling_factors only have two columns. not costly.
         comstock_scaling_factors = dict(comstock_scaling_factors.iter_rows())
 
         # Assign the correct per-building-type scaling factor to ComStock monthly data
