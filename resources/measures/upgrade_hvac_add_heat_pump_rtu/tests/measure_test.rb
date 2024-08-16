@@ -495,11 +495,11 @@ class AddHeatPumpRtuTest < Minitest::Test
     test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
   end
 
-  def test_370_small_office_psz_gas_coil_7A
-    osm_name = '370_small_office_psz_gas_coil_7A.osm'
+  def test_380_small_office_psz_gas_coil_7A
+    osm_name = '380_small_office_psz_gas_coil_7A.osm'
     epw_name = 'NE_Kearney_Muni_725526_16.epw'
 
-    test_name = 'test_370_small_office_psz_gas_coil_7A'
+    test_name = 'test_380_small_office_psz_gas_coil_7A'
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
 
@@ -531,11 +531,11 @@ class AddHeatPumpRtuTest < Minitest::Test
     test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
   end
 
-  def test_370_warehouse_psz_gas_6A
-    osm_name = '370_warehouse_psz_gas_6A.osm'
+  def test_380_warehouse_psz_gas_6A
+    osm_name = '380_warehouse_psz_gas_6A.osm'
     epw_name = 'MI_DETROIT_725375_12.epw'
 
-    test_name = 'test_370_warehouse_psz_gas_6A'
+    test_name = 'test_380_warehouse_psz_gas_6A'
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
 
@@ -567,11 +567,11 @@ class AddHeatPumpRtuTest < Minitest::Test
     test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
   end
 
-  def test_370_retail_psz_gas_6B
-    osm_name = '370_retail_psz_gas_6B.osm'
+  def test_380_retail_psz_gas_6B
+    osm_name = '380_retail_psz_gas_6B.osm'
     epw_name = 'NE_Kearney_Muni_725526_16.epw'
 
-    test_name = 'test_370_retail_psz_gas_6B'
+    test_name = 'test_380_retail_psz_gas_6B'
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
 
