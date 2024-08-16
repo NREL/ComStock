@@ -53,10 +53,12 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 assert isinstance(dataset.data, pl.LazyFrame)
 
                 dataset.add_sightglass_column_units()  # Add units to SightGlass columns if missing
-                valid_upgrade_id = dataset.data.select(dataset.UPGRADE_ID).unique().collect().to_series().to_list()
-                valid_upgrades_name = dataset.data.select(dataset.UPGRADE_NAME).unique().collect().to_series().to_list()
-                up_name_map = dict(zip(valid_upgrade_id, valid_upgrades_name))
-                logger.info(f"Valid upgrades for {dataset.dataset_name}: {valid_upgrade_id} with names {valid_upgrades_name}")
+                up_id_name: list = dataset.data.select(dataset.UPGRADE_ID, dataset.UPGRADE_NAME).collect().unique().to_numpy().tolist()
+                up_name_map = {k: v for k, v in up_id_name}
+                valid_upgrade_id = [x for x in up_name_map.keys()]
+                valid_upgrade_name = [up_name_map[x] for x in valid_upgrade_id]
+
+                logger.info(f"Valid upgrades for {dataset.dataset_name}: {valid_upgrade_id} with names {up_name_map}")
                 if upgrade_id == 'All':
                     # df_data: pl.LazyFrame = dataset.data
                     # df_data[dataset.DATASET] = df_data[dataset.DATASET] + ' - ' + df_data['upgrade_name']
@@ -72,6 +74,7 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
                         dataset_names.append(dataset_name)
                         comstock_color_map[dataset_name] = color_dict['hex'][idx]
                         self.color_map[dataset_name] = color_dict['hex'][idx]
+                        
                 elif upgrade_id not in valid_upgrade_id:
                     logger.error(f"Upgrade {upgrade_id} not found in {dataset.dataset_name}. Enter a valid upgrade ID in the ComStockToCBECSComparison constructor or \"All\" to include all upgrades.")
                 else:
@@ -89,7 +92,7 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 dfs_to_concat.append(df_data)
                 self.color_map[dataset.dataset_name] = dataset.color
                 dataset_names.append(dataset.dataset_name)
-
+        
         # Name the comparison
         if self.name is None:
             if len(dataset_names) > 2:
@@ -138,7 +141,7 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         else:
             logger.info("make_comparison_plots is set to false, so not plots were created. Set make_comparison_plots to True for plots.")
 
-    def make_plots(self, lazy_frame: pl.LazyFrame, column_for_grouping, color_map, output_dir):
+    def make_plots(self, lazy_frame: pl.LazyFrame, column_for_grouping, color_map: dict, output_dir):
         # Make plots comparing the datasets
 
         BASIC_PARAMS = {
@@ -156,7 +159,7 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
 
         LazyFramePlotter.plot_with_lazy(plot_method=self.plot_eui_boxplots,
                                         lazy_frame=lazy_frame.clone(), columns=( [column_for_grouping] + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.BLDG_TYPE]))(**BASIC_PARAMS)
- 
+
         LazyFramePlotter.plot_with_lazy(
             plot_method=self.plot_floor_area_and_energy_totals_by_building_type,
             lazy_frame=lazy_frame.clone(),

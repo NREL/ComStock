@@ -90,13 +90,14 @@ class ComStockToEIAComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 # logger.info(f"monthly_data shape: {monthly_data.columns} , {monthly_data.to_pandas().shape}")
                 monthly_dfs_to_concat.append(monthly_data.lazy())
             else:  #dataset is EIA
-                assert isinstance(dataset.emissions_data, pl.DataFrame)
+                assert isinstance(dataset, EIA), f"dataset is not EIA, it is {type(dataset)}"
+                assert isinstance(dataset.emissions_data, pl.DataFrame), f"type of dataset.emissions_data is {type(dataset.emissions_data)}, if it's None, check EIA reload flag"
                 # Annual emissions
                 annual_dfs_to_concat.append(dataset.emissions_data.lazy())
                 self.color_map[dataset.dataset_name] = dataset.color
 
                 # Monthly energy
-                assert isinstance(dataset.monthly_data, pd.DataFrame)
+                assert isinstance(dataset.monthly_data, pd.DataFrame), f"type of dataset.monthly_data is {type(dataset.monthly_data)}"
                 monthly_dfs_to_concat.append(pl.from_pandas(dataset.monthly_data).lazy())
                 self.monthly_color_map[dataset.dataset_name] = dataset.color
         

@@ -103,6 +103,7 @@ class EIA(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         # Load and transform data, preserving all columns
         self.download_truth_data()
         if reload_from_csv:
+            # TODO: this case didn't handle .emissions_data attribute.
             file_name = f'EIA wide.csv'
             file_path = os.path.join(self.output_dir, file_name)
             if not os.path.exists(file_path):

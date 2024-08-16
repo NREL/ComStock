@@ -32,6 +32,7 @@ class NamingMixin():
     COMP_STATUS = 'completed_status'
     META_IDX = 'metadata_index'
     DIVISION = 'Division'
+    MONTH = 'Month'
 
     # Column Name type mapping for pandas DataFrame:
     COL_TYPE_SCHEMA = {
@@ -46,7 +47,8 @@ class NamingMixin():
         UPGRADE_NAME: "string",
         CZ_ASHRAE: "category",
         HVAC_SYS: "category",
-        DIVISION: "category"
+        DIVISION: "category",
+        MONTH: "Int8"
     }
 
     # Total annual energy

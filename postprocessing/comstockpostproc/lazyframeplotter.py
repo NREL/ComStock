@@ -70,10 +70,8 @@ class LazyFramePlotter(NamingMixin):
         for col in columns:
             try:
                 if col not in NamingMixin.COL_TYPE_SCHEMA:
-                    # lazy_frame.cast({col: pl.Float64}).clone().collect()
                     pandas_df = pandas_df.astype({col: 'float64'})
                 else:
-                    # lazy_frame.cast({col: NamingMixin.COL_TYPE_SCHEMA[col]}).clone().collect()
                     pandas_df = pandas_df.astype({col: NamingMixin.COL_TYPE_SCHEMA[col]})
             except Exception as e:
                 false_list.append((col, e))
@@ -83,7 +81,6 @@ class LazyFramePlotter(NamingMixin):
         types = pandas_df.dtypes
         if false_list:
             raise Exception(f"Columns {false_list} \n are not castable to float64 {lazy_frame.select(columns).schema} \n {types}")
-        # raise Exception(f"Columns {false_list} \n are not castable to float64 {lazy_frame.select(columns).schema} \n {types}")
         return pandas_df
 
     @staticmethod

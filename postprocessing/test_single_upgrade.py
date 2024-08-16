@@ -51,8 +51,7 @@ def main():
         color_hex='#009E73',  # Color used to represent CBECS in plots
         reload_from_csv=False  # True if CSV already made and want faster reload times
         )
-    comstock.add_national_scaling_weights(cbecs, remove_non_comstock_bldg_types_from_cbecs=True)
-
+    
     # logger.info(f"comstock.COLS_ENDUSE_ANN_ENGY is {comstock.COLS_ENDUSE_ANN_ENGY}")
     # missing_cols = []
     # for col in comstock.COLS_ENDUSE_ANN_ENGY:
@@ -67,6 +66,7 @@ def main():
     # raise NotImplementedError("This script is not yet complete. Please check the code and update as needed.")
     # Scale ComStock run to CBECS 2018 AND remove non-ComStock buildings from CBECS
     # This is how weights in the models are set to represent national energy consumption
+    comstock.add_national_scaling_weights(cbecs, remove_non_comstock_bldg_types_from_cbecs=True)
 
     # assert isinstance(comstock.data, pl.LazyFrame)
     # assert isinstance(cbecs.data, pl.LazyFrame)
@@ -84,15 +84,8 @@ def main():
     comstock.export_to_csv_wide()
     # Create measure run comparisons; only use if run has measures
     
-    # cspp.ComStockMeasureComparison(comstock, states=comstock.states, make_comparison_plots=True, make_timeseries_plots=False)
-    # cspp.ComStockToCBECSComparison([comstock], [cbecs], upgrade_id=0)
-    
-    # ami = cspp.AMI(
-    #     truth_data_version='v01',
-    #     reload_from_csv=False
-    # )
-    # comstock.download_timeseries_data_for_ami_comparison(ami, reload_from_csv=True, save_individual_regions=False)
-
+    cspp.ComStockMeasureComparison(comstock, states=comstock.states, make_comparison_plots=True, make_timeseries_plots=False)
+    cspp.ComStockToCBECSComparison([comstock], [cbecs], upgrade_id=0)
 
     # EIA
     eia = cspp.EIA(
@@ -101,16 +94,21 @@ def main():
         reload_from_csv=False # True if CSV already made and want faster reload times
     )
     
-    comp = cspp.ComStockToEIAComparison(eia_list=[eia], comstock_list=[comstock], upgrade_id='All',make_comparison_plots=True)
-
-    comp.export_to_csv_wide()
+    ami = cspp.AMI(
+        truth_data_version='v01',
+        reload_from_csv=False
+    )
+    comstock.download_timeseries_data_for_ami_comparison(ami, reload_from_csv=False, save_individual_regions=False)
 
     # comparison
-    # comparison = cspp.ComStockToAMIComparison(comstock, ami, make_comparison_plots=True)
-    # comparison.export_plot_data_to_csv_wide()
-    
+    comparison = cspp.ComStockToAMIComparison(comstock, ami, make_comparison_plots=True)
+    comparison.export_plot_data_to_csv_wide()
+
+    #comparison of EIA
+    comp = cspp.ComStockToEIAComparison(eia_list=[eia], comstock_list=[comstock], upgrade_id='All',make_comparison_plots=True)
+    comp.export_to_csv_wide()
     # Export the comparison data to wide format for Tableau
-    # comparison.export_to_csv_wide()
+    comparison.export_to_csv_wide()
 
 # Code to execute the script
 if __name__=="__main__":
