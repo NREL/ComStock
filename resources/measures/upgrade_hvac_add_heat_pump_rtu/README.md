@@ -78,7 +78,7 @@ Specifies minimum outdoor air temperature for locking out heat pump compressor. 
 
 
 ### Heat Pump RTU Performance Type
-Determines performance assumptions. two_speed_standard_eff is a standard efficiency system with 2 staged compressors. variable_speed_high_eff is a higher efficiency variable speed system. cchpc_2027_spec is a hypothetical 4-stage unit intended to meet the requirements of the cold climate heat pump RTU challenge 2027 specification.  
+Determines performance assumptions. two_speed_standard_eff is a standard efficiency system with 2 staged compressors (2 stages cooling, 1 stage heating). variable_speed_high_eff is a higher efficiency variable speed system. cchpc_2027_spec is a hypothetical 4-stage unit intended to meet the requirements of the cold climate heat pump RTU challenge 2027 specification.  
 **Name:** hprtu_scenario,
 **Type:** Choice,
 **Units:** ,
