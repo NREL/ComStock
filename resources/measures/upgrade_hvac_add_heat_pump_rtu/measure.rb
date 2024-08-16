@@ -1722,7 +1722,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       runner.registerInfo("sizing air loop (#{air_loop_hvac.name}): minimum heating capacity threshold W = #{(autosized_tot_clg_cap_upsized * htg_to_clg_hp_ratio).round(2)}")
       runner.registerInfo("sizing air loop (#{air_loop_hvac.name}): maximum heating capacity threshold W = #{max_heat_cap_w_upsize.round(2)}")
       runner.registerInfo("sizing air loop (#{air_loop_hvac.name}): required rated heating capacity to meet design heating load W = #{req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn.round(2)}")
-      runner.registerInfo("sizing air loop (#{air_loop_hvac.name}): heat pump heating sizing temperature F = #{OpenStudio.convert(hp_sizing_temp_c, 'C', 'F').get.round(0)}")
+      runner.registerInfo("sizing air loop (#{air_loop_hvac.name}): heat pump heating sizing temperature F = #{OpenStudio.convert(
+        hp_sizing_temp_c, 'C', 'F'
+      ).get.round(0)}")
       runner.registerInfo("sizing air loop (#{air_loop_hvac.name}): heating capacity derating factor at design temperature = #{hp_derate_factor_at_user_dsn.round(3)}")
       runner.registerInfo("sizing air loop (#{air_loop_hvac.name}): upsized rated heating capacity W = #{dx_rated_htg_cap_applied.round(2)}")
       runner.registerInfo("sizing air loop (#{air_loop_hvac.name}): upsized rated cooling capacity W = #{dx_rated_clg_cap_applied.round(2)}")
@@ -1848,7 +1850,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # adjust rated heating cop
       final_rated_heating_cop = nil
 
-      #puts('### adjust rated COP: HEATING')
+      # puts('### adjust rated COP: HEATING')
       if std_perf
         final_rated_heating_cop = adjust_rated_cop_from_ref_cfm_per_ton(hash_htg_airflow_stgs[4],
                                                                         420.0,
