@@ -59,11 +59,6 @@ class DFLightingControlTest < Minitest::Test
     #   result: 'Success'
     # }
     test_sets << {
-      model: '3340',
-      weather: '3340',
-      result: 'Success'
-    }
-    test_sets << {
       model: '3340', # small office
       weather: '3340',
       result: 'Success'

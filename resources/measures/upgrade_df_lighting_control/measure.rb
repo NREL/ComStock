@@ -108,12 +108,6 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     peak_window_strategy.setDefaultValue('center with peak')
     args << peak_window_strategy
 
-    # apply_measure = OpenStudio::Measure::OSArgument.makeBoolArgument('apply_measure', true)
-    # apply_measure.setDisplayName('Apply measure?')
-    # apply_measure.setDescription('')
-    # apply_measure.setDefaultValue(true)
-    # args << apply_measure
-
     choices_scenarios = [
       'AER_95DecarbBy2035',
       'AER_95DecarbBy2050',
@@ -142,6 +136,12 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     cambium_scenario.setDefaultValue('LRMER_MidCase_30')
     args << cambium_scenario
 
+    # apply_measure = OpenStudio::Measure::OSArgument.makeBoolArgument('apply_measure', true)
+    # apply_measure.setDisplayName('Apply measure?')
+    # apply_measure.setDescription('')
+    # apply_measure.setDefaultValue(true)
+    # args << apply_measure
+
     return args
   end
 
@@ -165,6 +165,7 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     load_prediction_method = runner.getStringArgumentValue("load_prediction_method",user_arguments)
     peak_lag = runner.getIntegerArgumentValue("peak_lag",user_arguments)
     peak_window_strategy = runner.getStringArgumentValue("peak_window_strategy",user_arguments)
+    cambium_scenario = runner.getStringArgumentValue("cambium_scenario",user_arguments)
 
     def light_adj_based_on_sch(peak_sch, light_adjustment)
       light_adj_values = peak_sch.map{|a| 1-light_adjustment/100.0*a}
