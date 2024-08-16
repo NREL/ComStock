@@ -459,11 +459,11 @@ class AddHeatPumpRtuTest < Minitest::Test
   # 5) coil speeds capacities and flow rates are ascending
   # 6) coil speeds fall within E+ specified cfm/ton ranges
 
-  def test_370_Small_Office_PSZ_Gas_2A
-    osm_name = '370_small_office_psz_gas_2A.osm'
+  def test_380_Small_Office_PSZ_Gas_2A
+    osm_name = '380_Small_Office_PSZ_Gas_2A.osm'
     epw_name = 'SC_Columbia_Metro_723100_12.epw'
 
-    test_name = 'test_370_Small_Office_PSZ_Gas_2A'
+    test_name = 'test_380_Small_Office_PSZ_Gas_2A'
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
 
