@@ -480,7 +480,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 	
-	# populate argument with specified hash value if specified
+	  # populate argument with specified hash value if specified
     arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
       if arg.name == 'hprtu_scenario'
@@ -552,7 +552,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
-	# populate argument with specified hash value if specified
+	  # populate argument with specified hash value if specified
     arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
       if arg.name == 'hprtu_scenario'
