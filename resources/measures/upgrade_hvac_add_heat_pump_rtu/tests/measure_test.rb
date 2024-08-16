@@ -288,8 +288,8 @@ class AddHeatPumpRtuTest < Minitest::Test
       next unless input_arg.name == 'hprtu_scenario'
 
       performance_category = input_arg.valueAsString
-	  
-	  puts performance_category
+
+      puts performance_category
     end
     # puts("### DEBUGGING: performance_category = #{performance_category}")
     refute_equal(performance_category, nil)
@@ -450,7 +450,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     nil
   end
 
-  # ##This section tests proper application of measure on fully applicable models
+  # This section tests proper application of measure on fully applicable models
   # tests include:
   # 1) running model to ensure succesful completion
   # 2) checking user-specified electric backup heating is applied
@@ -479,8 +479,8 @@ class AddHeatPumpRtuTest < Minitest::Test
     # get arguments
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
-	
-	  # populate argument with specified hash value if specified
+
+    # populate argument with specified hash value if specified
     arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
       if arg.name == 'hprtu_scenario'
@@ -552,7 +552,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
-	  # populate argument with specified hash value if specified
+    # populate argument with specified hash value if specified
     arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
       if arg.name == 'hprtu_scenario'
@@ -604,7 +604,7 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   ###########################################################################
-  ###This section tests proper classification of partially-applicable building types
+  # This section tests proper classification of partially-applicable building types
   def test_370_full_service_restaurant_psz_gas_coil
     osm_name = '370_full_service_restaurant_psz_gas_coil.osm'
     epw_name = 'GA_ROBINS_AFB_722175_12.epw'
@@ -716,7 +716,7 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   ###########################################################################
-  ###This test is for cfm/ton check for standard performance unit
+  # This test is for cfm/ton check for standard performance unit
   def test_370_full_service_restaurant_psz_gas_coil_std_perf
     osm_name = '370_full_service_restaurant_psz_gas_coil.osm'
     epw_name = 'GA_ROBINS_AFB_722175_12.epw'
@@ -758,7 +758,7 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   ###########################################################################
-  ###This test is for cfm/ton check for upsized unit
+  # This test is for cfm/ton check for upsized unit
   def test_370_full_service_restaurant_psz_gas_coil_upsizing
     osm_name = '370_full_service_restaurant_psz_gas_coil.osm'
     epw_name = 'GA_ROBINS_AFB_722175_12.epw'
@@ -800,7 +800,7 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   ###########################################################################
-  # ###This section tests proper classification of non applicable HVAC systems
+  # #This section tests proper classification of non applicable HVAC systems
 
   # assert that non applicable HVAC system registers as NA
   def x_test_370_StripMall_Residential_AC_with_residential_forced_air_furnace_2A
