@@ -1807,19 +1807,19 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # adjust rated cooling cop
       final_rated_cooling_cop = nil
       if hprtu_scenario == "two_speed_standard_eff"
-        final_rated_cooling_cop = adjust_rated_cop_from_ref_cfm_per_ton(hash_clg_airflow_stgs[4],
-                                                                        404.0,
-                                                                        hash_clg_cap_stgs[4],
-                                                                        get_rated_cop_cooling(hash_clg_cap_stgs[4]),
-                                                                        c_eir_high_ff)
-        runner.registerInfo("rated cooling COP (for standard performance HPRTU) adjusted from #{get_rated_cop_cooling(hash_clg_cap_stgs[4]).round(3)} to #{final_rated_cooling_cop.round(3)} based on reference cfm/ton of 404 (i.e., average value of actual products)")
+        final_rated_cooling_cop = adjust_rated_cop_from_ref_cfm_per_ton(stage_flows_cooling[rated_stage_num_cooling],
+                                                                        reference_cooling_cfm_per_ton,
+                                                                        stage_caps_cooling[rated_stage_num_cooling],
+                                                                        get_rated_cop_cooling(stage_caps_cooling[rated_stage_num_cooling]),
+                                                                        cool_eir_ff_curve_stages[rated_stage_num_cooling])
+        runner.registerInfo("rated cooling COP (for standard performance HPRTU) adjusted from #{get_rated_cop_cooling(stage_caps_cooling[rated_stage_num_cooling]).round(3)} to #{final_rated_cooling_cop.round(3)} based on reference cfm/ton of 404 (i.e., average value of actual products)")
       elsif hprtu_scenario == "variable_speed_high_eff"
-        final_rated_cooling_cop = adjust_rated_cop_from_ref_cfm_per_ton(hash_clg_airflow_stgs[4],
-                                                                        365.0,
-                                                                        hash_clg_cap_stgs[4],
-                                                                        get_rated_cop_cooling_adv(hash_clg_cap_stgs[4]),
-                                                                        cool_eir_fff_all_stages)
-        runner.registerInfo("rated cooling COP (for advanced performance HPRTU) adjusted from #{get_rated_cop_cooling_adv(hash_clg_cap_stgs[4]).round(3)} to #{final_rated_cooling_cop.round(3)} based on reference cfm/ton of 365 (i.e., average value of actual products)")
+        final_rated_cooling_cop = adjust_rated_cop_from_ref_cfm_per_ton(stage_flows_cooling[rated_stage_num_cooling],
+                                                                        reference_cooling_cfm_per_ton,
+                                                                        stage_caps_cooling[rated_stage_num_cooling],
+                                                                        get_rated_cop_cooling_adv(stage_caps_cooling[rated_stage_num_cooling]),
+                                                                        cool_eir_ff_curve_stages[rated_stage_num_cooling])
+        runner.registerInfo("rated cooling COP (for advanced performance HPRTU) adjusted from #{get_rated_cop_cooling_adv(stage_caps_cooling[rated_stage_num_cooling]).round(3)} to #{final_rated_cooling_cop.round(3)} based on reference cfm/ton of 365 (i.e., average value of actual products)")
       end
 
       # define new cooling coil
@@ -1849,22 +1849,20 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # ---------------------------------------------------------
       # adjust rated heating cop
       final_rated_heating_cop = nil
-
-      # puts('### adjust rated COP: HEATING')
       if hprtu_scenario == "two_speed_standard_eff"
-        final_rated_heating_cop = adjust_rated_cop_from_ref_cfm_per_ton(hash_htg_airflow_stgs[4],
-                                                                        420.0,
-                                                                        hash_htg_cap_stgs[4],
-                                                                        get_rated_cop_heating(hash_htg_cap_stgs[4]),
-                                                                        heat_eir_fff_all_stages)
-        runner.registerInfo("rated heating COP (for standard performance HPRTU) adjusted from #{get_rated_cop_heating(hash_htg_cap_stgs[4]).round(3)} to #{final_rated_heating_cop.round(3)} based on reference cfm/ton of 420 (i.e., average value of actual products)")
+        final_rated_heating_cop = adjust_rated_cop_from_ref_cfm_per_ton(stage_flows_heating[rated_stage_num_heating],
+                                                                        reference_heating_cfm_per_ton,
+                                                                        stage_caps_heating[rated_stage_num_heating],
+                                                                        get_rated_cop_heating(stage_caps_heating[rated_stage_num_heating]),
+                                                                        heat_eir_ff_curve_stages[rated_stage_num_heating])
+        runner.registerInfo("rated heating COP (for standard performance HPRTU) adjusted from #{get_rated_cop_heating(stage_caps_heating[rated_stage_num_heating]).round(3)} to #{final_rated_heating_cop.round(3)} based on reference cfm/ton of 420 (i.e., average value of actual products)")
       elsif hprtu_scenario == "variable_speed_high_eff"
-        final_rated_heating_cop = adjust_rated_cop_from_ref_cfm_per_ton(hash_htg_airflow_stgs[4],
-                                                                        411.0,
-                                                                        hash_htg_cap_stgs[4],
-                                                                        get_rated_cop_heating_adv(hash_htg_cap_stgs[4]),
-                                                                        heat_eir_fff_all_stages)
-        runner.registerInfo("rated heating COP (for advanced performance HPRTU) adjusted from #{get_rated_cop_heating_adv(hash_htg_cap_stgs[4]).round(3)} to #{final_rated_heating_cop.round(3)} based on reference cfm/ton of 420 (i.e., average value of actual products)")
+        final_rated_heating_cop = adjust_rated_cop_from_ref_cfm_per_ton(stage_flows_heating[rated_stage_num_heating],
+                                                                        reference_heating_cfm_per_ton,
+                                                                        stage_caps_heating[rated_stage_num_heating],
+                                                                        get_rated_cop_heating_adv(stage_caps_heating[rated_stage_num_heating]),
+                                                                        heat_eir_ff_curve_stages[rated_stage_num_heating])
+        runner.registerInfo("rated heating COP (for advanced performance HPRTU) adjusted from #{get_rated_cop_heating_adv(stage_caps_heating[rated_stage_num_heating]).round(3)} to #{final_rated_heating_cop.round(3)} based on reference cfm/ton of 420 (i.e., average value of actual products)")
       end
 
       # define new heating coil
