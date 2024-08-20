@@ -206,7 +206,7 @@ class DFLightingControlTest < Minitest::Test
 
       # set arguments:
       light_adjustment_method = arguments[1].clone
-      assert(light_adjustment_method.setValue('absolute change'))
+      assert(light_adjustment_method.setValue('absolute change'))#'relative change'
       argument_map['light_adjustment_method'] = light_adjustment_method
 
       # set arguments:
@@ -221,7 +221,7 @@ class DFLightingControlTest < Minitest::Test
 
       # set arguments:
       load_prediction_method = arguments[4].clone
-      assert(load_prediction_method.setValue('full baseline'))#'bin sample''part year bin sample'
+      assert(load_prediction_method.setValue('full baseline'))#'bin sample''part year bin sample''fix'
       argument_map['load_prediction_method'] = load_prediction_method
 
       # set arguments:

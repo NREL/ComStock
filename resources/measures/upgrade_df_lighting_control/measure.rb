@@ -133,64 +133,85 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     # apply_measure = runner.getBoolArgumentValue('apply_measure', user_arguments)
 
     def light_adj_based_on_sch(peak_sch, light_adjustment)
-      light_adj_values = peak_sch.map{|a| 1-light_adjustment/100.0*a}
+      light_adj_values = peak_sch.map{|a| light_adjustment/100.0*a}
       return light_adj_values
     end
     
-    def get_hourly_schedule_from_schedule_ruleset(model, schedule_ruleset)
+    def get_interval_schedule_from_schedule_ruleset(model, schedule_ruleset, size)
       # https://github.com/NREL/openstudio-standards/blob/9e6bdf751baedfe73567f532007fefe6656f5abf/lib/openstudio-standards/standards/Standards.ScheduleRuleset.rb#L696
+      # https://github.com/NREL/openstudio-standards/blob/8f948207d6af73165a2a8232559804b93d8e50c2/lib/openstudio-standards/schedules/information.rb#L338 
       yd = model.getYearDescription
       start_date = yd.makeDate(1, 1)
       end_date = yd.makeDate(12, 31)
       values = []#OpenStudio::Vector.new
-      interval = OpenStudio::Time.new(1.0 / 24.0 / 4.0)#15min interval
-      # interval = OpenStudio::Time.new(1.0 / 24.0)#1h interval
-      day_schedules = schedule_ruleset.getDaySchedules(start_date, end_date)
-      # Make new array of day schedules for year
-      day_sched_array = []
-      day_schedules.each do |day_schedule|
-        day_sched_array << day_schedule
+      if size == 8760 || size == 8784
+        interval = OpenStudio::Time.new(1.0 / 24.0) # 1h interval
+        num_timesteps_in_hr = 1
+      elsif size == 35040 || size == 35136
+        interval = OpenStudio::Time.new(1.0 / 24.0 / 4.0) # 15min interval
+        num_timesteps_in_hr = 4
+      else
+        raise "Interval not supported"
       end
-      day_sched_array.each do |day_schedule|
-        current_hour = interval
-        time_values = day_schedule.times
-        num_times = time_values.size
-        value_sum = 0
-        value_count = 0
-        time_values.each do |until_hr|
-          if until_hr < current_hour
-            # Add to tally for next hour average
-            value_sum += day_schedule.getValue(until_hr).to_f
-            value_count += 1
-          elsif until_hr >= current_hour + interval
-            # Loop through hours to catch current hour up to until_hr
-            while current_hour <= until_hr
-              values << day_schedule.getValue(until_hr).to_f
-              current_hour += interval
-            end
-            if (current_hour - until_hr) < interval
-              # This means until_hr is not an even hour break
-              # i.e. there is a sub-hour time step
-              # Increment the sum for averaging
+      num_timesteps = model.getTimestep.numberOfTimestepsPerHour
+      day_schedules = schedule_ruleset.getDaySchedules(start_date, end_date)
+      # # Make new array of day schedules for year
+      # day_sched_array = []
+      # day_schedules.each do |day_schedule|
+      #   day_sched_array << day_schedule
+      # end
+      day_schedules.each do |day_schedule|
+        if model.version.str < '3.8.0'
+          current_hour = interval
+          time_values = day_schedule.times
+          num_times = time_values.size
+          value_sum = 0
+          value_count = 0
+          time_values.each do |until_hr|
+            if until_hr < current_hour
+              # Add to tally for next hour average
               value_sum += day_schedule.getValue(until_hr).to_f
               value_count += 1
-            end
-          else
-            # Add to tally for this hour average
-            value_sum += day_schedule.getValue(until_hr).to_f
-            value_count += 1
-            # Calc hour average
-            if value_count > 0
-              value_avg = value_sum / value_count
+            elsif until_hr >= current_hour + interval
+              # Loop through hours to catch current hour up to until_hr
+              while current_hour <= until_hr
+                values << day_schedule.getValue(until_hr).to_f
+                current_hour += interval
+              end
+              if (current_hour - until_hr) < interval
+                # This means until_hr is not an even hour break
+                # i.e. there is a sub-hour time step
+                # Increment the sum for averaging
+                value_sum += day_schedule.getValue(until_hr).to_f
+                value_count += 1
+              end
             else
-              value_avg = 0
+              # Add to tally for this hour average
+              value_sum += day_schedule.getValue(until_hr).to_f
+              value_count += 1
+              # Calc hour average
+              if value_count > 0
+                value_avg = value_sum / value_count
+              else
+                value_avg = 0
+              end
+              values << value_avg
+              # setup for next hour
+              value_sum = 0
+              value_count = 0
+              current_hour += interval
             end
-            values << value_avg
-            # setup for next hour
-            value_sum = 0
-            value_count = 0
-            current_hour += interval
           end
+        else
+          day_timeseries  = day_schedule.timeSeries.values.to_a
+          if num_timesteps == 4 && num_timesteps_in_hr == 1
+            daily_intervals_values = day_timeseries.each_slice(4).map { |slice| slice.sum / slice.size.to_f }
+          elsif num_timesteps == num_timesteps_in_hr
+            daily_intervals_values = day_timeseries
+          else
+            raise "Not supported time intervals"
+          end
+          values += daily_intervals_values
         end
       end
       return values
@@ -217,18 +238,20 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
             schedule = light_sch.get.clone(model)
             schedule = schedule.to_Schedule.get
             # convert old sch to time series
-            schedule_ts = get_hourly_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get)
+            schedule_ts = get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get, light_adj_values.size)
+            # puts("--- schedule_ts.size = #{schedule_ts.size}")
             if light_adjustment_method == 'absolute change'
-              new_schedule_ts = schedule_ts.map.with_index { |val, ind| [val-(1.0-light_adj_values[ind]), 0].max}
+              new_schedule_ts = schedule_ts.map.with_index { |val, ind| [val-light_adj_values[ind], 0].max}
             elsif light_adjustment_method == 'relative change'
               if schedule_ts.size <= light_adj_values.size
-                new_schedule_ts = schedule_ts.map.with_index { |val, ind| val * light_adj_values[ind] }
+                new_schedule_ts = schedule_ts.map.with_index { |val, ind| val * (1.0-light_adj_values[ind]) }
               else
-                new_schedule_ts = light_adj_values.map.with_index { |val, ind| val * schedule_ts[ind] }
+                new_schedule_ts = light_adj_values.map.with_index { |val, ind| (1.0-val) * schedule_ts[ind] }
               end
             else
               raise "Not supported light adjustment method"
             end
+            # puts("--- new_schedule_ts.size = #{new_schedule_ts.size}")
             schedule_values = OpenStudio::Vector.new(new_schedule_ts.length, 0.0)
             new_schedule_ts.each_with_index do |val,i|
               schedule_values[i] = val
@@ -377,9 +400,7 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     puts("### Creating peak schedule...")
     if load_prediction_method == 'fix'
       puts("### Fixed schedule...")
-      template = 'ComStock 90.1-2019'
-      std = Standard.build(template)
-      climate_zone = std.model_standards_climate_zone(model)
+      climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
       runner.registerInfo("climate zone = #{climate_zone}")
       if climate_zone.empty?
         runner.registerError('Unable to determine climate zone for model. Cannot apply window film without climate zone information.')
@@ -412,6 +433,7 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     puts("### ============================================================")
     puts("### Creating lighting factor values...")
     light_adj_values = light_adj_based_on_sch(peak_schedule, light_adjustment)
+    puts("--- light_adj_values.size = #{light_adj_values.size}")
     # puts("--- light_adj_values = #{light_adj_values}")
     puts("### Updating lighting schedule...")
     nl, nla = adjust_lighting_sch(model,runner,light_adjustment_method,light_adj_values)

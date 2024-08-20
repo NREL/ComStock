@@ -143,113 +143,157 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
       return sp_adjustment_values
     end
 
-    def get_hourly_schedule_from_schedule_ruleset(model, schedule_ruleset)
+    def get_interval_schedule_from_schedule_ruleset(model, schedule_ruleset, size)
       # https://github.com/NREL/openstudio-standards/blob/9e6bdf751baedfe73567f532007fefe6656f5abf/lib/openstudio-standards/standards/Standards.ScheduleRuleset.rb#L696
+      # https://github.com/NREL/openstudio-standards/blob/8f948207d6af73165a2a8232559804b93d8e50c2/lib/openstudio-standards/schedules/information.rb#L338 
       yd = model.getYearDescription
       start_date = yd.makeDate(1, 1)
       end_date = yd.makeDate(12, 31)
       values = []#OpenStudio::Vector.new
-      interval = OpenStudio::Time.new(1.0 / 24.0 / 4.0)#15min interval
-      # interval = OpenStudio::Time.new(1.0 / 24.0)#1h interval
-      day_schedules = schedule_ruleset.getDaySchedules(start_date, end_date)
-      # Make new array of day schedules for year
-      day_sched_array = []
-      day_schedules.each do |day_schedule|
-        day_sched_array << day_schedule
+      if size == 8760 || size == 8784
+        interval = OpenStudio::Time.new(1.0 / 24.0) # 1h interval
+        num_timesteps_in_hr = 1
+      elsif size == 35040 || size == 35136
+        interval = OpenStudio::Time.new(1.0 / 24.0 / 4.0) # 15min interval
+        num_timesteps_in_hr = 4
+      else
+        raise "Interval not supported"
       end
+      num_timesteps = model.getTimestep.numberOfTimestepsPerHour
+      day_schedules = schedule_ruleset.getDaySchedules(start_date, end_date)
+      # # Make new array of day schedules for year
+      # day_sched_array = []
+      # day_schedules.each do |day_schedule|
+      #   day_sched_array << day_schedule
+      # end
       day_sched_array.each do |day_schedule|
-        current_hour = interval
-        time_values = day_schedule.times
-        num_times = time_values.size
-        value_sum = 0
-        value_count = 0
-        time_values.each do |until_hr|
-          if until_hr < current_hour
-            # Add to tally for next hour average
-            value_sum += day_schedule.getValue(until_hr).to_f
-            value_count += 1
-          elsif until_hr >= current_hour + interval
-            # Loop through hours to catch current hour up to until_hr
-            while current_hour <= until_hr
-              values << day_schedule.getValue(until_hr).to_f
-              current_hour += interval
-            end
-            if (current_hour - until_hr) < interval
-              # This means until_hr is not an even hour break
-              # i.e. there is a sub-hour time step
-              # Increment the sum for averaging
+        if model.version.str < '3.8.0'
+          current_hour = interval
+          time_values = day_schedule.times
+          num_times = time_values.size
+          value_sum = 0
+          value_count = 0
+          time_values.each do |until_hr|
+            if until_hr < current_hour
+              # Add to tally for next hour average
               value_sum += day_schedule.getValue(until_hr).to_f
               value_count += 1
-            end
-          else
-            # Add to tally for this hour average
-            value_sum += day_schedule.getValue(until_hr).to_f
-            value_count += 1
-            # Calc hour average
-            if value_count > 0
-              value_avg = value_sum / value_count
+            elsif until_hr >= current_hour + interval
+              # Loop through hours to catch current hour up to until_hr
+              while current_hour <= until_hr
+                values << day_schedule.getValue(until_hr).to_f
+                current_hour += interval
+              end
+              if (current_hour - until_hr) < interval
+                # This means until_hr is not an even hour break
+                # i.e. there is a sub-hour time step
+                # Increment the sum for averaging
+                value_sum += day_schedule.getValue(until_hr).to_f
+                value_count += 1
+              end
             else
-              value_avg = 0
+              # Add to tally for this hour average
+              value_sum += day_schedule.getValue(until_hr).to_f
+              value_count += 1
+              # Calc hour average
+              if value_count > 0
+                value_avg = value_sum / value_count
+              else
+                value_avg = 0
+              end
+              values << value_avg
+              # setup for next hour
+              value_sum = 0
+              value_count = 0
+              current_hour += interval
             end
-            values << value_avg
-            # setup for next hour
-            value_sum = 0
-            value_count = 0
-            current_hour += interval
           end
+        else
+          day_timeseries  = day_schedule.timeSeries.values.to_a
+          if num_timesteps == 4 && num_timesteps_in_hr == 1
+            daily_intervals_values = day_timeseries.each_slice(4).map { |slice| slice.sum / slice.size.to_f }
+          elsif num_timesteps == num_timesteps_in_hr
+            daily_intervals_values = day_timeseries
+          else
+            raise "Not supported time intervals"
+          end
+          values += daily_intervals_values
         end
       end
       return values
     end
 
-    def get_reference_schedule_from_schedule_ruleset(model, schedule_ruleset, step=4, max_or_avg='max')
+    def get_reference_schedule_from_schedule_ruleset(model, schedule_ruleset, size)
       yd = model.getYearDescription
       start_date = yd.makeDate(1, 1)
       end_date = yd.makeDate(12, 31)
       values = []#OpenStudio::Vector.new
-      interval = OpenStudio::Time.new(1.0 / 24.0 / step)
+      if size == 8760 || size == 8784
+        interval = OpenStudio::Time.new(1.0 / 24.0) # 1h interval
+        num_timesteps_in_hr = 1
+      elsif size == 35040 || size == 35136
+        interval = OpenStudio::Time.new(1.0 / 24.0 / 4.0) # 15min interval
+        num_timesteps_in_hr = 4
+      else
+        raise "Interval not supported"
+      end
       day_schedules = schedule_ruleset.getDaySchedules(start_date, end_date)
       day_sched_array = []
       day_schedules.each do |day_schedule|
         day_sched_array << day_schedule
       end
       day_sched_array.each do |day_schedule|
-        current_hour = interval
-        time_values = day_schedule.times
-        num_times = time_values.size
-        value_sum = []
-        time_values.each do |until_hr|
-          if until_hr < current_hour
-            # Add to tally for next step
-            value_sum << day_schedule.getValue(until_hr).to_f
-          elsif until_hr >= current_hour + interval
-            # Loop through hours to catch current step up to until_step
-            while current_hour <= until_hr
-              values << day_schedule.getValue(until_hr).to_f
+        if model.version.str < '3.8.0'
+          current_hour = interval
+          time_values = day_schedule.times
+          num_times = time_values.size
+          value_sum = 0
+          value_count = 0
+          time_values.each do |until_hr|
+            if until_hr < current_hour
+              # Add to tally for next hour average
+              value_sum += day_schedule.getValue(until_hr).to_f
+              value_count += 1
+            elsif until_hr >= current_hour + interval
+              # Loop through hours to catch current hour up to until_hr
+              while current_hour <= until_hr
+                values << day_schedule.getValue(until_hr).to_f
+                current_hour += interval
+              end
+              if (current_hour - until_hr) < interval
+                # This means until_hr is not an even hour break
+                # i.e. there is a sub-hour time step
+                # Increment the sum for averaging
+                value_sum += day_schedule.getValue(until_hr).to_f
+                value_count += 1
+              end
+            else
+              # Add to tally for this hour average
+              value_sum += day_schedule.getValue(until_hr).to_f
+              value_count += 1
+              # Calc hour average
+              if value_count > 0
+                value_avg = value_sum / value_count
+              else
+                value_avg = 0
+              end
+              values << value_avg
+              # setup for next hour
+              value_sum = 0
+              value_count = 0
               current_hour += interval
             end
-            if (current_hour - until_hr) < interval
-              value_sum << day_schedule.getValue(until_hr).to_f
-            end
-          else
-            # Add to tally for this step average
-            value_sum << day_schedule.getValue(until_hr).to_f
-            # Calc step max or average
-            if value_sum.size > 0
-              value_max = value_sum.max
-              value_avg = value_sum.sum / value_sum.length.to_f
-            else
-              value_max = 0
-            end
-            if max_or_avg == 'max'
-              values << value_max
-            else
-              values << value_avg
-            end
-            # setup for next step
-            value_sum = []
-            current_hour += interval
           end
+        else
+          day_timeseries  = day_schedule.timeSeries.values.to_a
+          if num_timesteps == 4 && num_timesteps_in_hr == 1
+            daily_intervals_values = day_timeseries.each_slice(4).map { |slice| slice.sum / slice.size.to_f }
+          elsif num_timesteps == num_timesteps_in_hr
+            daily_intervals_values = day_timeseries
+          else
+            raise "Not supported time intervals"
+          end
+          values += daily_intervals_values
         end
       end
       designdays = model.getDesignDays
@@ -273,7 +317,7 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
           val = vals[0]
         end
         # replace sp values with design day sch on design days
-        values[((doy-1)*step*24), (step*24)] = [val] * (step*24)
+        values[((doy-1)*num_timesteps_in_hr*24), (num_timesteps_in_hr*24)] = [val] * (num_timesteps_in_hr*24)
       end
       return values
     end
@@ -296,8 +340,8 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
             schedule = schedule.to_Schedule.get
             schedule_heat = heat_set_sch.get.clone(model)
             schedule_heat = schedule_heat.to_Schedule.get
-            schedule_8760 = get_hourly_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get)
-            schedule_35040_heat = get_reference_schedule_from_schedule_ruleset(model, schedule_heat.to_ScheduleRuleset.get, step=4, max_or_avg='max') # use hourly max instead of hourly average to avoid optimium start spikes
+            schedule_8760 = get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get, clgsp_adjustment_values.size)
+            schedule_35040_heat = get_reference_schedule_from_schedule_ruleset(model, schedule_heat.to_ScheduleRuleset.get, clgsp_adjustment_values.size) # use hourly max instead of hourly average to avoid optimium start spikes
             # schedule_8760_heat_max = []
             # schedule_35040_heat.each_slice(4) do |hrval|
             #   schedule_8760_heat_max << hrval.max
@@ -367,7 +411,7 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
             # new
             schedule = heat_set_sch.get.clone(model)
             schedule = schedule.to_Schedule.get
-            schedule_8760 = get_hourly_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get)
+            schedule_8760 = get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get, heatsp_adjustment_values.size)
             if schedule_8760.size != heatsp_adjustment_values.size
               msize = [schedule_8760.size, heatsp_adjustment_values.size].min
               nums = [schedule_8760.take(msize), heatsp_adjustment_values.take(msize)]
@@ -563,9 +607,7 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
     puts("### Creating peak schedule...")
     if load_prediction_method == 'fix'
       puts("### Fixed schedule...")
-      template = 'ComStock 90.1-2019'
-      std = Standard.build(template)
-      climate_zone = std.model_standards_climate_zone(model)
+      climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
       runner.registerInfo("climate zone = #{climate_zone}")
       if climate_zone.empty?
         runner.registerError('Unable to determine climate zone for model. Cannot apply window film without climate zone information.')
