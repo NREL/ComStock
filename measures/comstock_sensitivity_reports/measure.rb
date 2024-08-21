@@ -167,6 +167,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     result << OpenStudio::IdfObject.load("Output:Variable,*,Heating Coil #{elec} Energy,RunPeriod;").get # J
     result << OpenStudio::IdfObject.load("Output:Variable,*,Heating Coil #{gas} Energy,RunPeriod;").get # J
     result << OpenStudio::IdfObject.load("Output:Variable,*,Heating Coil Defrost #{elec} Energy,RunPeriod;").get # J
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Heating Coil Crankcase Heater #{elec} Energy,RunPeriod;").get # J
     result << OpenStudio::IdfObject.load('Output:Variable,*,Heating Coil Heating Energy,RunPeriod;').get # J
     result << OpenStudio::IdfObject.load('Output:Variable,*,Cooling Coil Total Cooling Energy,RunPeriod;').get # J
     result << OpenStudio::IdfObject.load('Output:Variable,*,Zone VRF Air Terminal Total Heating Energy,RunPeriod;').get # J
@@ -652,7 +653,6 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     end
 
     # calculate exterior surface properties
-    # TODO may need to adjust for zone multipliers
     smallest_space_m2 = 9999.0
     num_surfaces = 0
     roof_absorptance_times_area = 0
@@ -662,22 +662,22 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     exterior_wall_area_m2 = 0.0
     spaces = model.getSpaces
     spaces.sort.each do |space|
-      floor_area_m2 = space.floorArea
+      floor_area_m2 = space.floorArea * space.multiplier
       smallest_space_m2 = floor_area_m2 if floor_area_m2 < smallest_space_m2
       space.surfaces.sort.each do |surface|
-        num_surfaces += 1
+        num_surfaces += 1 * space.multiplier
         next if surface.outsideBoundaryCondition != 'Outdoors'
         if surface.surfaceType.to_s == 'RoofCeiling'
           surface_absorptance = surface.exteriorVisibleAbsorptance.is_initialized ? surface.exteriorVisibleAbsorptance.get : 0.0
           surface_u_value_si = surface.uFactor.is_initialized ? surface.uFactor.get : 0.0
-          surface_area_m2 = surface.netArea
+          surface_area_m2 = surface.netArea * space.multiplier
           surface_ua_si = surface_u_value_si * surface_area_m2
           roof_absorptance_times_area += surface_absorptance * surface_area_m2
           roof_ua_si += surface_ua_si
           roof_area_m2 += surface_area_m2
         elsif surface.surfaceType.to_s == 'Wall'
           surface_u_value_si = surface.uFactor.is_initialized ? surface.uFactor.get : 0.0
-          surface_area_m2 = surface.netArea
+          surface_area_m2 = surface.netArea * space.multiplier
           surface_ua_si = surface_u_value_si * surface_area_m2
           exterior_wall_ua_si += surface_ua_si
           exterior_wall_area_m2 += surface_area_m2
@@ -686,11 +686,16 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     end
 
     # total number of zones
-    num_zones = model.getThermalZones.size
+    num_zones = 0
+    zones = model.getThermalZones
+    zones.each { |z| num_zones += z.multiplier }
+    runner.registerValue('com_report_number_of_model_zones', zones.size)
     runner.registerValue('com_report_number_of_zones', num_zones)
 
     # total number of spaces
-    num_spaces = spaces.size
+    num_spaces = 0
+    spaces.each { |s| num_spaces += s.multiplier }
+    runner.registerValue('com_report_number_of_model_spaces', spaces.size)
     runner.registerValue('com_report_number_of_spaces', num_spaces)
 
     # smallest space size
@@ -781,8 +786,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     total_space_area_m2 = 0.0
     model.getInternalMasss.sort.each do |mass|
       space = mass.space.get
-      space_area_m2 = space.floorArea
-      num_people = space.numberOfPeople
+      space_area_m2 = space.floorArea * space.multiplier
+      num_people = space.numberOfPeople * space.multiplier
       surface_area_m2 = mass.surfaceArea.is_initialized ? mass.surfaceArea.get : 0.0
       surface_area_per_floor_area_m2 = mass.surfaceAreaPerFloorArea.is_initialized ? mass.surfaceAreaPerFloorArea.get : 0.0
       surface_area_per_person_m2 = mass.surfaceAreaPerPerson.is_initialized ? mass.surfaceAreaPerPerson.get : 0.0
@@ -796,7 +801,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     weighted_daylight_control_area_m2 = 0.0
     total_zone_area_m2 = 0.0
     model.getThermalZones.sort.each do |zone|
-      zone_area_m2 = zone.floorArea
+      zone_area_m2 = zone.floorArea * zone.multiplier
       primary_fraction = zone.primaryDaylightingControl.is_initialized ? zone.fractionofZoneControlledbyPrimaryDaylightingControl : 0.0
       secondary_fraction = zone.secondaryDaylightingControl.is_initialized ? zone.fractionofZoneControlledbySecondaryDaylightingControl : 0.0
       total_fraction = (primary_fraction + secondary_fraction) > 1.0 ? 1.0 : (primary_fraction + secondary_fraction)
@@ -871,11 +876,11 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       # get design plug load power
       zone_electric_equipment_power_w = 0.0
       floor_area_m2 = 0.0
-      space_type = std.thermal_zone_majority_space_type(zone)
+      space_type = OpenstudioStandards::ThermalZone.thermal_zone_get_space_type(zone)
       if space_type.is_initialized
         space_type = space_type.get
-        floor_area_m2 = zone.floorArea
-        num_people = zone.numberOfPeople
+        floor_area_m2 = zone.floorArea * zone.multiplier
+        num_people = zone.numberOfPeople * zone.multiplier
         equip_w = space_type.getElectricEquipmentDesignLevel(floor_area_m2, num_people)
         # equip_per_area_w and equip_per_person_w are not included in equip_w call
         # equip_per_area_w = space_type.getElectricEquipmentPowerPerFloorArea(floor_area_m2, num_people) * floor_area_m2
@@ -945,10 +950,10 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     total_zone_design_ppl = 0.0
     total_zone_ppl_count = 0
     model.getThermalZones.sort.each do |zone|
-      total_zone_occupant_area_m2 += zone.floorArea
-      total_zone_design_ppl += zone.numberOfPeople
+      total_zone_occupant_area_m2 += zone.floorArea * zone.multiplier
+      total_zone_design_ppl += zone.numberOfPeople * zone.multiplier
       zone_ppl_count = sql_get_report_variable_data_double(runner, sql, zone, 'Zone People Occupant Count')
-      total_zone_ppl_count += zone_ppl_count
+      total_zone_ppl_count += zone_ppl_count * zone.multiplier
     end
 
     # Average occupant density
@@ -972,9 +977,9 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         dsn_oa = space.designSpecificationOutdoorAir.get
 
         # get the space properties
-        floor_area_m2 = space.floorArea
-        number_of_people = space.numberOfPeople
-        volume_m3 = space.volume
+        floor_area_m2 = space.floorArea * space.multiplier
+        number_of_people = space.numberOfPeople * space.multiplier
+        volume_m3 = space.volume * space.multiplier
 
         # get outdoor air values
         oa_for_people = number_of_people * dsn_oa.outdoorAirFlowperPerson
@@ -1295,9 +1300,9 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     building_cooled_zone_area_m2 = 0.0
     building_zone_area_m2 = 0.0
     model.getThermalZones.sort.each do |zone|
-      building_zone_area_m2 += zone.floorArea
-      building_heated_zone_area_m2 += zone.floorArea if std.thermal_zone_heated?(zone)
-      building_cooled_zone_area_m2 += zone.floorArea if std.thermal_zone_cooled?(zone)
+      building_zone_area_m2 += zone.floorArea * zone.multiplier
+      building_heated_zone_area_m2 += zone.floorArea * zone.multiplier if OpenstudioStandards::ThermalZone.thermal_zone_heated?(zone)
+      building_cooled_zone_area_m2 += zone.floorArea * zone.multiplier if OpenstudioStandards::ThermalZone.thermal_zone_cooled?(zone)
     end
 
     # Fraction of building heated
@@ -1317,14 +1322,14 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     weighted_thermostat_cooling_area_m2 = 0.0
     model.getThermalZones.sort.each do |zone|
       next unless zone.thermostatSetpointDualSetpoint.is_initialized
-      floor_area_m2 = zone.floorArea
+      floor_area_m2 = zone.floorArea * zone.multiplier
       thermostat = zone.thermostatSetpointDualSetpoint.get
       if thermostat.heatingSetpointTemperatureSchedule.is_initialized
         thermostat_heating_schedule = thermostat.heatingSetpointTemperatureSchedule.get
         if thermostat_heating_schedule.to_ScheduleRuleset.is_initialized
           puts("--- Ruleset schedule")
           thermostat_heating_schedule = thermostat_heating_schedule.to_ScheduleRuleset.get
-          cool_min_max = std.schedule_ruleset_annual_min_max_value(thermostat_heating_schedule)
+          cool_min_max = OpenstudioStandards::Schedules.schedule_ruleset_get_min_max(thermostat_heating_schedule)
           weighted_thermostat_heating_min_c += cool_min_max['min'] * floor_area_m2
           weighted_thermostat_heating_max_c += cool_min_max['max'] * floor_area_m2
           weighted_thermostat_heating_area_m2 += floor_area_m2
@@ -1341,7 +1346,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         end
         # next unless thermostat_heating_schedule.to_ScheduleRuleset.is_initialized
         # thermostat_heating_schedule = thermostat_heating_schedule.to_ScheduleRuleset.get
-        # heat_min_max = std.schedule_ruleset_annual_min_max_value(thermostat_heating_schedule)
+        # heat_min_max = OpenstudioStandards::Schedules.schedule_ruleset_get_min_max(thermostat_heating_schedule)
         # weighted_thermostat_heating_min_c += heat_min_max['min'] * floor_area_m2
         # weighted_thermostat_heating_max_c += heat_min_max['max'] * floor_area_m2
         # weighted_thermostat_heating_area_m2 += floor_area_m2
@@ -1351,7 +1356,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         if thermostat_cooling_schedule.to_ScheduleRuleset.is_initialized
           puts("--- Ruleset schedule")
           thermostat_cooling_schedule = thermostat_cooling_schedule.to_ScheduleRuleset.get
-          cool_min_max = std.schedule_ruleset_annual_min_max_value(thermostat_cooling_schedule)
+          cool_min_max = OpenstudioStandards::Schedules.schedule_ruleset_get_min_max(thermostat_cooling_schedule)
           weighted_thermostat_cooling_min_c += cool_min_max['min'] * floor_area_m2
           weighted_thermostat_cooling_max_c += cool_min_max['max'] * floor_area_m2
           weighted_thermostat_cooling_area_m2 += floor_area_m2
@@ -1441,7 +1446,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       # air loop area
       air_loop_area_m2 = 0.0
       air_loop_hvac.thermalZones.sort.each do |zone|
-        air_loop_area_m2 += zone.floorArea
+        air_loop_area_m2 += zone.floorArea * zone.multiplier
       end
 
       number_of_air_loops += 1.0
@@ -1527,7 +1532,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       vrf.terminals.each do |terminal|
         if terminal.thermalZone.is_initialized
           zone = terminal.thermalZone.get
-          vrf_area_m2 += zone.floorArea
+          vrf_area_m2 += zone.floorArea * zone.multiplier
         end
 
         # get terminal cooling capacity
@@ -2257,6 +2262,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     dx_heating_total_supplemental_load_gas_j = 0.0
     dx_heating_total_supplemental_electric_j = 0.0
     dx_heating_total_supplemental_gas_j = 0.0
+    dx_heating_total_crankcase_electric_j = 0.0
     dx_heating_defrost_energy_j = 0.0
     dx_heating_0_to_30_kbtuh_total_load_j = 0.0
     dx_heating_30_to_65_kbtuh_total_load_j = 0.0
@@ -2276,6 +2282,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     dx_heating_total_supplemental_capacity_w = 0.0
     dx_heating_total_supplemental_capacity_electric_w = 0.0
     dx_heating_total_supplemental_capacity_gas_w = 0.0
+    dx_heating_total_crankcase_capacity_w = 0.0
     dx_heating_capacity_weighted_min_temp_w_c = 0.0
     dx_heating_count_0_to_30_kbtuh = 0.0
     dx_heating_count_30_to_65_kbtuh = 0.0
@@ -2301,6 +2308,9 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       # get minimum temperature
       minimum_temp_c = coil.minimumOutdoorDryBulbTemperatureforCompressorOperation
       dx_heating_capacity_weighted_min_temp_w_c += capacity_w * minimum_temp_c
+
+      # get crankcase heater total capacity
+      dx_heating_total_crankcase_capacity_w += coil.crankcaseHeaterCapacity
 
       # get supplemental heating coil
       supplemental_coil = nil
@@ -2429,15 +2439,21 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       # get Heating Coil Defrost Electric Energy
       coil_defrost_electric_energy_j = sql_get_report_variable_data_double(runner, sql, coil, "Heating Coil Defrost #{elec} Energy")
 
+      # get heating coil crankcase heater Electric Energy
+      coil_crankcase_heater_electric_energy_j = sql_get_report_variable_data_double(runner, sql, coil, "Heating Coil Crankcase Heater #{elec} Energy")
+      #puts "coil_crankcase_heater_electric_energy_j: #{coil_crankcase_heater_electric_energy_j}"
+      #coil_crankcase_heater_electric_energy_j = 5000000
+
       # add to weighted load cop
       total_heating_j = coil_heating_energy_j + supplemental_coil_heating_energy_j
-      total_energy_input_j = coil_electric_energy_j + supplemental_electric_j + supplemental_gas_j + coil_defrost_electric_energy_j
+      total_energy_input_j = coil_electric_energy_j + supplemental_electric_j + supplemental_gas_j + coil_defrost_electric_energy_j + coil_crankcase_heater_electric_energy_j
       coil_annual_cop = coil_heating_energy_j > 0.0 ? coil_heating_energy_j / coil_electric_energy_j : 0.0
       annual_total_cop = total_heating_j > 0.0 ? total_heating_j / total_energy_input_j : 0.0
       dx_heating_total_dx_electric_j += coil_electric_energy_j
       dx_heating_total_dx_load_j += coil_heating_energy_j
       dx_heating_total_load_j += total_heating_j
       dx_heating_defrost_energy_j += coil_defrost_electric_energy_j
+      dx_heating_total_crankcase_electric_j += coil_crankcase_heater_electric_energy_j
       dx_heating_load_weighted_cop += coil_heating_energy_j * coil_annual_cop
       dx_heating_load_weighted_total_cop += total_heating_j * annual_total_cop
       dx_heating_load_weighted_design_cop += coil_heating_energy_j * coil_design_cop
@@ -2517,6 +2533,10 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     runner.registerValue('com_report_hvac_count_dx_heating_65_to_135_kbtuh', dx_heating_count_65_to_135_kbtuh)
     runner.registerValue('com_report_hvac_count_dx_heating_135_to_240_kbtuh', dx_heating_count_135_to_240_kbtuh)
     runner.registerValue('com_report_hvac_count_dx_heating_240_plus_kbtuh', dx_heating_count_240_plus_kbtuh)
+
+    # report out crankcase heater capacities
+    dx_heating_total_crankcase_capacity_kbtuh = OpenStudio.convert(dx_heating_total_crankcase_capacity_w, 'W', 'kBtu/h').get
+    runner.registerValue('com_report_hvac_dx_heating_crankcase_heater_capacity_kbtuh', dx_heating_total_crankcase_capacity_kbtuh)
 
     # report out DX heating load and electric
     runner.registerValue('com_report_hvac_dx_heating_total_dx_electric_j', dx_heating_total_dx_electric_j)

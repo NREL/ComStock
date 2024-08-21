@@ -140,7 +140,7 @@ class SetInteriorLightingTechnology < OpenStudio::Measure::ModelMeasure
 
       space_type_volume = 0.0
       space_type.spaces.each do |space|
-        space_type_volume += space.volume
+        space_type_volume += space.volume * space.multiplier
       end
 
       if space_type_volume.zero?
@@ -229,7 +229,7 @@ class SetInteriorLightingTechnology < OpenStudio::Measure::ModelMeasure
         general_lights_definition.setFractionVisible(general_lighting_technology[:visible_fraction].to_f)
         general_lights_definition.additionalProperties.setFeature('lighting_technology', general_lighting_technology_name)
         general_lights_definition.additionalProperties.setFeature('lighting_system_type', 'general')
-        
+
         # general lighting object
         general_lights = OpenStudio::Model::Lights.new(general_lights_definition)
         general_lights.setName("#{space_type.name} General Lighting")
@@ -256,7 +256,7 @@ class SetInteriorLightingTechnology < OpenStudio::Measure::ModelMeasure
         task_lights_definition.setFractionVisible(task_lighting_technology[:visible_fraction].to_f)
         task_lights_definition.additionalProperties.setFeature('lighting_technology', task_lighting_technology_name)
         task_lights_definition.additionalProperties.setFeature('lighting_system_type', 'task')
-        
+
         # task lighting object
         task_lights = OpenStudio::Model::Lights.new(task_lights_definition)
         task_lights.setName("#{space_type.name} Task Lighting")
@@ -283,7 +283,7 @@ class SetInteriorLightingTechnology < OpenStudio::Measure::ModelMeasure
         supplemental_lights_definition.setFractionVisible(supplemental_lighting_technology[:visible_fraction].to_f)
         supplemental_lights_definition.additionalProperties.setFeature('lighting_technology', supplemental_lighting_technology_name)
         supplemental_lights_definition.additionalProperties.setFeature('lighting_system_type', 'supplemental')
-        
+
         # supplemental lighting object
         supplemental_lights = OpenStudio::Model::Lights.new(supplemental_lights_definition)
         supplemental_lights.setName("#{space_type.name} Supplemental Lighting")
@@ -310,13 +310,13 @@ class SetInteriorLightingTechnology < OpenStudio::Measure::ModelMeasure
         wall_wash_lights_definition.setFractionVisible(wall_wash_lighting_technology[:visible_fraction].to_f)
         wall_wash_lights_definition.additionalProperties.setFeature('lighting_technology', wall_wash_lighting_technology_name)
         wall_wash_lights_definition.additionalProperties.setFeature('lighting_system_type', 'wall_wash')
-        
+
         # wall wash lighting object
         wall_wash_lights = OpenStudio::Model::Lights.new(wall_wash_lights_definition)
         wall_wash_lights.setName("#{space_type.name} Wall Wash Lighting")
         wall_wash_lights.setSpaceType(space_type)
       end
-      
+
       ending_space_type_lighting_power = space_type.getLightingPower(space_type_floor_area, space_type_number_of_people)
       ending_building_lighting_power += ending_space_type_lighting_power
 

@@ -173,7 +173,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert_equal('clg_oversizing_estimate', arguments[3].name)
     assert_equal('htg_to_clg_hp_ratio', arguments[4].name)
     assert_equal('hp_min_comp_lockout_temp_f', arguments[5].name)
-    assert_equal('std_perf', arguments[6].name)
+    assert_equal('hprtu_scenario', arguments[6].name)
     assert_equal('hr', arguments[7].name)
     assert_equal('dcv', arguments[8].name)
     assert_equal('econ', arguments[9].name)
@@ -285,19 +285,17 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # check performance category
     result.stepValues.each do |input_arg|
-      next unless input_arg.name == 'std_perf'
+      next unless input_arg.name == 'hprtu_scenario'
 
-      performance_category = if input_arg.valueAsBoolean == true
-                               'standard'
-                             else
-                               'advanced'
-                             end
+      performance_category = input_arg.valueAsString
+
+      puts performance_category
     end
     # puts("### DEBUGGING: performance_category = #{performance_category}")
     refute_equal(performance_category, nil)
 
     # loop through coils and check cfm/ton values
-    if performance_category.include?('advanced')
+    if performance_category.include?('high_eff')
 
       calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
       calc_cfm_per_ton_multispdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
@@ -452,7 +450,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     nil
   end
 
-  # ##This section tests proper application of measure on fully applicable models
+  # This section tests proper application of measure on fully applicable models
   # tests include:
   # 1) running model to ensure succesful completion
   # 2) checking user-specified electric backup heating is applied
@@ -461,11 +459,11 @@ class AddHeatPumpRtuTest < Minitest::Test
   # 5) coil speeds capacities and flow rates are ascending
   # 6) coil speeds fall within E+ specified cfm/ton ranges
 
-  def test_370_Small_Office_PSZ_Gas_2A
-    osm_name = '370_small_office_psz_gas_2A.osm'
+  def test_380_Small_Office_PSZ_Gas_2A
+    osm_name = '380_Small_Office_PSZ_Gas_2A.osm'
     epw_name = 'SC_Columbia_Metro_723100_12.epw'
 
-    test_name = 'test_370_Small_Office_PSZ_Gas_2A'
+    test_name = 'test_380_Small_Office_PSZ_Gas_2A'
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
 
@@ -483,19 +481,25 @@ class AddHeatPumpRtuTest < Minitest::Test
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
     # populate argument with specified hash value if specified
-    arguments.each do |arg|
+    arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      argument_map[arg.name] = temp_arg_var
+      if arg.name == 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
+        argument_map[arg.name] = hprtu_scenario
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
     end
 
     test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
   end
 
-  def test_370_small_office_psz_gas_coil_7A
-    osm_name = '370_small_office_psz_gas_coil_7A.osm'
+  def test_380_small_office_psz_gas_coil_7A
+    osm_name = '380_small_office_psz_gas_coil_7A.osm'
     epw_name = 'NE_Kearney_Muni_725526_16.epw'
 
-    test_name = 'test_370_small_office_psz_gas_coil_7A'
+    test_name = 'test_380_small_office_psz_gas_coil_7A'
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
 
@@ -513,19 +517,25 @@ class AddHeatPumpRtuTest < Minitest::Test
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
     # populate argument with specified hash value if specified
-    arguments.each do |arg|
+    arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      argument_map[arg.name] = temp_arg_var
+      if arg.name == 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
+        argument_map[arg.name] = hprtu_scenario
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
     end
 
     test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
   end
 
-  def test_370_warehouse_psz_gas_6A
-    osm_name = '370_warehouse_psz_gas_6A.osm'
+  def test_380_warehouse_psz_gas_6A
+    osm_name = '380_warehouse_psz_gas_6A.osm'
     epw_name = 'MI_DETROIT_725375_12.epw'
 
-    test_name = 'test_370_warehouse_psz_gas_6A'
+    test_name = 'test_380_warehouse_psz_gas_6A'
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
 
@@ -543,19 +553,25 @@ class AddHeatPumpRtuTest < Minitest::Test
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
     # populate argument with specified hash value if specified
-    arguments.each do |arg|
+    arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      argument_map[arg.name] = temp_arg_var
+      if arg.name == 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
+        argument_map[arg.name] = hprtu_scenario
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
     end
 
     test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
   end
 
-  def test_370_retail_psz_gas_6B
-    osm_name = '370_retail_psz_gas_6B.osm'
+  def test_380_retail_psz_gas_6B
+    osm_name = '380_retail_psz_gas_6B.osm'
     epw_name = 'NE_Kearney_Muni_725526_16.epw'
 
-    test_name = 'test_370_retail_psz_gas_6B'
+    test_name = 'test_380_retail_psz_gas_6B'
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
 
@@ -573,18 +589,24 @@ class AddHeatPumpRtuTest < Minitest::Test
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
     # populate argument with specified hash value if specified
-    arguments.each do |arg|
+    arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      argument_map[arg.name] = temp_arg_var
+      if arg.name == 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
+        argument_map[arg.name] = hprtu_scenario
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
     end
 
     test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
   end
 
-  ###########################################################################
-  ###This section tests proper classification of partially-applicable building types
-  def test_370_full_service_restaurant_psz_gas_coil
-    osm_name = '370_full_service_restaurant_psz_gas_coil.osm'
+  ##########################################################################
+  # This section tests proper classification of partially-applicable building types
+  def test_380_full_service_restaurant_psz_gas_coil
+    osm_name = '380_full_service_restaurant_psz_gas_coil.osm'
     epw_name = 'GA_ROBINS_AFB_722175_12.epw'
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
@@ -603,9 +625,15 @@ class AddHeatPumpRtuTest < Minitest::Test
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
     # populate argument with specified hash value if specified
-    arguments.each do |arg|
+    arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      argument_map[arg.name] = temp_arg_var
+      if arg.name == 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
+        argument_map[arg.name] = hprtu_scenario
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
     end
 
     # get initial number of applicable air loops
@@ -688,9 +716,9 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   ###########################################################################
-  ###This test is for cfm/ton check for standard performance unit
-  def test_370_full_service_restaurant_psz_gas_coil_std_perf
-    osm_name = '370_full_service_restaurant_psz_gas_coil.osm'
+  # This test is for cfm/ton check for standard performance unit
+  def test_380_full_service_restaurant_psz_gas_coil_std_perf
+    osm_name = '380_full_service_restaurant_psz_gas_coil.osm'
     epw_name = 'GA_ROBINS_AFB_722175_12.epw'
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
@@ -711,10 +739,10 @@ class AddHeatPumpRtuTest < Minitest::Test
     # populate argument with specified hash value if specified
     arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      if arg.name == 'std_perf'
-        std_perf = arguments[idx].clone
-        std_perf.setValue(true) # override std_perf arg
-        argument_map[arg.name] = std_perf
+      if arg.name == 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('two_speed_standard_eff') # override std_perf arg
+        argument_map[arg.name] = hprtu_scenario
       else
         argument_map[arg.name] = temp_arg_var
       end
@@ -730,9 +758,9 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   ###########################################################################
-  ###This test is for cfm/ton check for upsized unit
-  def test_370_full_service_restaurant_psz_gas_coil_upsizing
-    osm_name = '370_full_service_restaurant_psz_gas_coil.osm'
+  # This test is for cfm/ton check for upsized unit
+  def test_380_full_service_restaurant_psz_gas_coil_upsizing
+    osm_name = '380_full_service_restaurant_psz_gas_coil.osm'
     epw_name = 'GA_ROBINS_AFB_722175_12.epw'
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
@@ -772,12 +800,11 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   ###########################################################################
-  # ###This section tests proper classification of non applicable HVAC systems
-
+  # This section tests proper classification of non applicable HVAC systems
   # assert that non applicable HVAC system registers as NA
-  def test_370_StripMall_Residential_AC_with_residential_forced_air_furnace_2A
+  def test_380_StripMall_Residential_AC_with_residential_forced_air_furnace_2A
     # this makes sure measure registers an na for non applicable model
-    osm_name = '370_StripMall_Residential AC with residential forced air furnace_2A.osm'
+    osm_name = '380_StripMall_Residential AC with residential forced air furnace_2A.osm'
     epw_name = 'TN_KNOXVILLE_723260_12.epw'
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
@@ -807,9 +834,9 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   # assert that non applicable HVAC system registers as NA
-  def test_370_warehouse_pvav_gas_boiler_reheat_2A
+  def test_380_warehouse_pvav_gas_boiler_reheat_2A
     # this makes sure measure registers an na for non applicable model
-    osm_name = '370_warehouse_pvav_gas_boiler_reheat_2A.osm'
+    osm_name = '380_warehouse_pvav_gas_boiler_reheat_2A.osm'
     epw_name = 'TN_KNOXVILLE_723260_12.epw'
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
@@ -828,9 +855,15 @@ class AddHeatPumpRtuTest < Minitest::Test
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
     # populate argument with specified hash value if specified
-    arguments.each do |arg|
+    arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      argument_map[arg.name] = temp_arg_var
+      if arg.name == 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
+        argument_map[arg.name] = hprtu_scenario
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
     end
 
     # Apply the measure to the model and optionally run the model
@@ -839,9 +872,9 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   # assert that non applicable HVAC system registers as NA
-  def test_370_medium_office_doas_fan_coil_acc_boiler_3A
+  def test_380_medium_office_doas_fan_coil_acc_boiler_3A
     # this makes sure measure registers an na for non applicable model
-    osm_name = '370_medium_office_doas_fan_coil_acc_boiler_3A.osm'
+    osm_name = '380_medium_office_doas_fan_coil_acc_boiler_3A.osm'
     epw_name = 'TN_KNOXVILLE_723260_12.epw'
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
@@ -860,10 +893,16 @@ class AddHeatPumpRtuTest < Minitest::Test
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
     # populate argument with specified hash value if specified
-    arguments.each do |arg|
+    arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      argument_map[arg.name] = temp_arg_var
-    end
+      if arg.name == 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
+        argument_map[arg.name] = hprtu_scenario
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
+    end    
 
     # Apply the measure to the model and optionally run the model
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
@@ -871,9 +910,9 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   # test that ERVs do no impact existing ERVs when ERV argument is NOT toggled
-  def test_370_full_service_restaurant_psz_gas_coil_single_erv_3A
+  def test_380_full_service_restaurant_psz_gas_coil_single_erv_3A
     # this makes sure measure registers an na for non applicable model
-    osm_name = '370_full_service_restaurant_psz_gas_coil_single_erv_3A.osm'
+    osm_name = '380_full_service_restaurant_psz_gas_coil_single_erv_3A.osm'
     epw_name = 'SC_Columbia_Metro_723100_12.epw'
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
@@ -892,9 +931,15 @@ class AddHeatPumpRtuTest < Minitest::Test
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
     # populate argument with specified hash value if specified
-    arguments.each do |arg|
+    arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      argument_map[arg.name] = temp_arg_var
+      if arg.name == 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
+        argument_map[arg.name] = hprtu_scenario
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
     end
 
     # get baseline ERVs
@@ -911,9 +956,9 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   # test that ERVs do no impact non-applicable building types
-  def test_370_full_service_restaurant_psz_gas_coil_single_erv_3A_na
+  def test_380_full_service_restaurant_psz_gas_coil_single_erv_3A_na
     # this makes sure measure registers an na for non applicable model
-    osm_name = '370_full_service_restaurant_psz_gas_coil_single_erv_3A.osm'
+    osm_name = '380_full_service_restaurant_psz_gas_coil_single_erv_3A.osm'
     epw_name = 'SC_Columbia_Metro_723100_12.epw'
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
@@ -932,9 +977,15 @@ class AddHeatPumpRtuTest < Minitest::Test
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
     # populate argument with specified hash value if specified
-    arguments.each do |arg|
+    arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      argument_map[arg.name] = temp_arg_var
+      if arg.name == 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
+        argument_map[arg.name] = hprtu_scenario
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
     end
 
     # get baseline ERVs
