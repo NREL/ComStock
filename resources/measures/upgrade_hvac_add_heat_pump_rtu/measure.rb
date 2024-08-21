@@ -118,6 +118,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     econ.setDefaultValue(false)
     args << econ
 
+    # do a sizing run for sizing?
+    sizing_run = OpenStudio::Measure::OSArgument.makeBoolArgument('sizing_run', true)
+    sizing_run.setDisplayName('Do a sizing run for informing sizing instead of using hard-sized model parameters?')
+    sizing_run.setDefaultValue(false)
+    args << sizing_run
+
     args
   end
 
@@ -716,7 +722,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
     # assign the user inputs to variables
     backup_ht_fuel_scheme = runner.getStringArgumentValue('backup_ht_fuel_scheme', user_arguments)
-    # prim_ht_fuel_type = runner.getStringArgumentValue('prim_ht_fuel_type', user_arguments)
     performance_oversizing_factor = runner.getDoubleArgumentValue('performance_oversizing_factor', user_arguments)
     htg_sizing_option = runner.getStringArgumentValue('htg_sizing_option', user_arguments)
     clg_oversizing_estimate = runner.getDoubleArgumentValue('clg_oversizing_estimate', user_arguments)
@@ -726,6 +731,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     hr = runner.getBoolArgumentValue('hr', user_arguments)
     dcv = runner.getBoolArgumentValue('dcv', user_arguments)
     econ = runner.getBoolArgumentValue('econ', user_arguments)
+    sizing_run = runner.getBoolArgumentValue('sizing_run', user_arguments)
 
     # adding output variables (for debugging)
     # out_vars = [
@@ -908,7 +914,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     end
 
     # do sizing run with new equipment to set sizing-specific features
-    if is_sizing_run_needed == true
+    if (is_sizing_run_needed == true) || (sizing_run == true)
       runner.registerInfo('Sizing run needed')
       return false if std.model_run_sizing_run(model, "#{Dir.pwd}/SR1") == false
     end
@@ -1437,20 +1443,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # change sizing parameter to vav
       sizing = air_loop_hvac.sizingSystem
       sizing.setCentralCoolingCapacityControlMethod('VAV') # CC-TMP
-      # # change discharge air temperature to 105F to represent lower heat pump temps
-      # hp_htg_sa_temp_c = OpenStudio.convert(105.00000000000000, 'F', 'C').get #CC-TMP
-      # sizing.setCentralHeatingDesignSupplyAirTemperature(hp_htg_sa_temp_c)
-      # # change discharge air temperature in thermal zone
-      # zone_sizing = thermal_zone.sizingZone
-      # zone_sizing.setZoneHeatingDesignSupplyAirTemperature(hp_htg_sa_temp_c)
-      # # check if setpoint manager is present at supply outlet
-      # # this will work for single zone reheat setpoint managers only
-      # model.getSetpointManagerSingleZoneReheats.sort.each do |sp_manager|
-      #   if air_loop_hvac.supplyOutletNode == sp_manager.setpointNode.get
-      #     # for current setpoint managet, change supply outlet temp to 105F
-      #     sp_manager.setMaximumSupplyAirTemperature(hp_htg_sa_temp_c)
-      #   end
-      # end
 
       # replace any CV terminal box with no reheat VAV terminal box
       # get old terminal box
@@ -1565,13 +1557,14 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # Sizing decision based on heating load level
       heating_load_category = ''
       # If ratio of required heating capacity at rated conditions to cooling capacity is less than specified heating to cooling ratio, then size everything based on cooling
+      # If heating load requires upsizing, but is below user-input cooling upsizing limit, then size based on design heating load
+      # Else, size to maximum oversizing factor
       if (req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn / autosized_tot_clg_cap_upsized) <= htg_to_clg_hp_ratio
         heating_load_category = 'Small heating load'
         # set rated heating capacity equal to upsized cooling capacity times the user-specified heating to cooling sizing ratio
         dx_rated_htg_cap_applied = autosized_tot_clg_cap_upsized * htg_to_clg_hp_ratio
         # set rated cooling capacity
         dx_rated_clg_cap_applied = autosized_tot_clg_cap_upsized
-        # If heating load requires upsizing, but is below user-input cooling upsizing limit
       elsif req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn <= max_heat_cap_w_upsize
         heating_load_category = 'Moderate heating load'
         # set rated heating coil equal to desired sized value, which should be below the suer-input limit
