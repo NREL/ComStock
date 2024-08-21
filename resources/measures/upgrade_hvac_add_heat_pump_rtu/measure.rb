@@ -711,6 +711,18 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     new_dx_heating_coil
   end
 
+  def get_tabular_data(model, sql, report_name, report_for_string, table_name, row_name, column_name)
+    result = OpenStudio::OptionalDouble.new
+    var_val_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName = '#{report_name}' AND ReportForString = '#{report_for_string}' AND TableName = '#{table_name}' AND RowName = '#{row_name}' AND ColumnName = '#{column_name}'"
+    val = sql.execAndReturnFirstDouble(var_val_query)
+    if val.is_initialized
+      result = OpenStudio::OptionalDouble.new(val.get)
+    else
+      puts("Cannot query: #{report_name} | #{report_for_string} | #{table_name} | #{row_name} | #{column_name}")
+    end
+    result
+  end
+
   #### End predefined functions
 
   # define what happens when the measure is run
@@ -917,6 +929,20 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     if (is_sizing_run_needed == true) || (sizing_run == true)
       runner.registerInfo('Sizing run needed')
       return false if std.model_run_sizing_run(model, "#{Dir.pwd}/SR1") == false
+    end
+
+    # get sql from sizing run
+    sql = nil
+    if sizing_run == true
+      # get sql (for extracting sizing information)
+      sql = model.sqlFile
+      if sql.empty?
+        runner.registerError('Cannot find last sql file.')
+        return false
+      end
+      if sql.is_initialized
+        sql = sql.get
+      end
     end
 
     #########################################################################################################
@@ -1531,6 +1557,39 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       stage_flow_fractions_heating, stage_cap_fractions_cooling, stage_flow_fractions_cooling, stage_rated_cop_frac_heating,
       stage_rated_cop_frac_cooling, stage_GrossRatedSensibleHeatRatio_cooling, enable_cycling_losses_above_lowest_speed, reference_cooling_cfm_per_ton,
       reference_heating_cfm_per_ton) = assign_staging_data(custom_data_json, std)
+
+      # get appropriate design heating load
+      if sizing_run
+
+        # get thermal zones for the air loop
+        thermal_zones = air_loop_hvac.thermalZones
+        if thermal_zones.size != 1
+          runner.registerError("The airloop (#{air_loop_hvac.name.to_s}) includes multiple (#{thermal_zones.size}) thermal zones instead of just a single zone.")
+        end
+
+        # get design airflow rate for heating with sizing factor applied from design day simulation
+        report_name = 'HVACSizingSummary'
+        table_name = 'Zone Sensible Heating'
+        column_name = 'User Design Air Flow'
+        design_air_flow_from_zone_sizing_heating_m_3_per_s = nil
+        row_name = thermal_zones.first.name.to_s.upcase
+        design_air_flow_from_zone_sizing_heating_m_3_per_s = get_tabular_data(model, sql, report_name, 'Entire Facility', table_name, row_name, column_name)
+        runner.registerInfo("### DEBUGGING: air_loop_hvac = #{air_loop_hvac.name} | row_name = #{row_name} | design_air_flow_from_zone_sizing_heating_m_3_per_s = #{design_air_flow_from_zone_sizing_heating_m_3_per_s}")
+        if design_air_flow_from_zone_sizing_heating_m_3_per_s == nil
+          runner.registerError("Cannot get design_air_flow_from_zone_sizing_heating_m_3_per_s for airloop: #{air_loop_hvac.name.to_s}")
+        end
+
+        # get temperature (Tin from the delta T)
+
+        # get temperature (Tout from the delta T)
+
+        # get air density
+
+        # get heat capacity
+
+        # override design heating load with Q = vdot * rho * cp * (Tout - Tin)
+        # orig_htg_coil_gross_cap = 
+      end
 
       # determine heating load curve; y=mx+b
       # assumes 0 load at 60F (15.556 C)
