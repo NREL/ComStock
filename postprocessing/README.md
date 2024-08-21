@@ -64,10 +64,15 @@ Create a new conda environment with **python 3.9** or above (only need to do thi
 $ conda create -y -n comstockpostproc python=3.9 pip
 $ conda activate comstockpostproc
 
-# HPC (NREL Staff)
+# HPC Eagle (NREL Staff)
 $ module load conda
 $ conda create -y --prefix /projects/cscore/envs/comstockpostproc_<myname> -c conda-forge "python=3.9"
 $ conda activate /projects/cscore/envs/comstockpostproc_<myname>
+
+# HPC Kestrel (NREL Staff)
+$ module load python
+$ python -m venv --clear --upgrade-deps --prompt "comstockpostproc_<myname>" "/kfs2/projects/cscore/envs/comstockpostproc_<myname>"
+$ source "/kfs2/projects/cscore/envs/comstockpostproc_<myname>/bin/activate"
 ```
 
 Navigate to the `/postprocessing` directory of this repo:

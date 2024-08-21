@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
-    def __init__(self, cbecs_year, truth_data_version, color_hex=NamingMixin.COLOR_CBECS_2012, weighted_energy_units='tbtu', reload_from_csv=False):
+    def __init__(self, cbecs_year, truth_data_version, color_hex=NamingMixin.COLOR_CBECS_2012, weighted_energy_units='tbtu', weighted_utility_units='billion_usd', reload_from_csv=False):
         """
         A class to load and transform CBECS data for export, analysis, and comparison.
         Args:
@@ -40,6 +40,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         self.data = None
         self.color = color_hex
         self.weighted_energy_units = weighted_energy_units
+        self.weighted_utility_units = weighted_utility_units
         self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
         logger.info(f'Creating {self.dataset_name}')
 
@@ -96,6 +97,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         if not os.path.exists(file_path):
             s3_file_path = f'truth_data/{self.truth_data_version}/EIA/CBECS/{file_name}'
             self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
+    
 
     def load_data(self):
         # Load raw microdata and codebook and decode numeric keys to strings using codebook
@@ -107,7 +109,6 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         # Load microdata codebook
         file_path = os.path.join(self.truth_data_dir, self.data_codebook_file_name)
         codebook = pd.read_csv(file_path, index_col='File order', low_memory=False)
-
         # Make a dict of column names (e.g. PBA) to labels (e.g. Principal building activity)
         # and a dict of numeric enumerations to strings for non-numeric variables
         var_name_to_label = {}

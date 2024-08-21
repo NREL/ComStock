@@ -511,7 +511,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       selected_air_loops << air_loop_hvac
       # add area served by air loop
       thermal_zone = air_loop_hvac.thermalZones[0]
-      applicable_area_m2+=thermal_zone.floorArea
+      applicable_area_m2 += thermal_zone.floorArea * thermal_zone.multiplier
 
       ############# Determine if equipment has been hardsized to avoid sizing run
       oa_flow_m3_per_s = nil
@@ -664,7 +664,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         runner.registerWarning("Air loop #{air_loop_hvac.name} has night cycling operations and an outdoor air ratio of #{min_oa_flow_ratio.round(2)} which exceeds the maximum allowable limit of #{oa_ration_allowance} (due to an EnergyPlus night cycling bug with multispeed coils) making this RTU not applicable at this time.")
         # remove air loop from applicable list
         selected_air_loops.delete(air_loop_hvac)
-        applicable_area_m2 -= thermal_zone.floorArea
+        applicable_area_m2 -= thermal_zone.floorArea * thermal_zone.multiplier
         # remove area served by air loop from applicability
       end
     end
@@ -1989,17 +1989,28 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_air_to_air_heatpump.setAvailabilitySchedule(unitary_availability_sched)
       new_air_to_air_heatpump.setDehumidificationControlType(dehumid_type)
       new_air_to_air_heatpump.setSupplyAirFanOperatingModeSchedule(supply_fan_op_sched)
-      new_air_to_air_heatpump.setControlType('Load') ##cc-tmp
+      new_air_to_air_heatpump.setControlType('Load') ## cc-tmp
       new_air_to_air_heatpump.setName("#{thermal_zone.name} RTU SZ-VAV Heat Pump")
       new_air_to_air_heatpump.setMaximumSupplyAirTemperature(50)
       new_air_to_air_heatpump.setDXHeatingCoilSizingRatio(1+performance_oversizing_factor)
-      # set cooling design flow rate
-      new_air_to_air_heatpump.setSupplyAirFlowRateDuringCoolingOperation(hash_clg_airflow_stgs[4])
-      # set heating design flow rate
-      new_air_to_air_heatpump.setSupplyAirFlowRateDuringHeatingOperation(hash_htg_airflow_stgs[4])
-      # set no load design flow rate
-      new_air_to_air_heatpump.resetSupplyAirFlowRateMethodWhenNoCoolingorHeatingisRequired
-      new_air_to_air_heatpump.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_airflow_m3_per_s)
+
+      # handle deprecated methods for OS Version 3.7.0
+      if model.version < OpenStudio::VersionString.new('3.7.0')
+        # set cooling design flow rate
+        new_air_to_air_heatpump.setSupplyAirFlowRateDuringCoolingOperation(hash_clg_airflow_stgs[4])
+        # set heating design flow rate
+        new_air_to_air_heatpump.setSupplyAirFlowRateDuringHeatingOperation(hash_htg_airflow_stgs[4])
+        # set no load design flow rate
+        new_air_to_air_heatpump.resetSupplyAirFlowRateMethodWhenNoCoolingorHeatingisRequired
+        new_air_to_air_heatpump.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_airflow_m3_per_s)
+      else
+         # set cooling design flow rate
+         new_air_to_air_heatpump.setSupplyAirFlowRateDuringCoolingOperation(hash_clg_airflow_stgs[4])
+         # set heating design flow rate
+         new_air_to_air_heatpump.setSupplyAirFlowRateDuringHeatingOperation(hash_htg_airflow_stgs[4])
+         # set no load design flow rate
+         new_air_to_air_heatpump.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_airflow_m3_per_s)
+      end
 
       # new_air_to_air_heatpump.setDOASDXCoolingCoilLeavingMinimumAirTemperature(7.5) # set minimum discharge temp to 45F, required for VAV operation
 
@@ -2012,7 +2023,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       end
 
       # add economizer
-      if econ==true
+      if econ == true
         # set parameters
         oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
         controller_oa = oa_system.getControllerOutdoorAir
@@ -2085,13 +2096,13 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
             space = thermal_zone.spaces[0]
 
             # get zone area
-            fa = thermal_zone.floorArea
+            fa = thermal_zone.floorArea * thermal_zone.multiplier
 
             # get zone volume
-            vol = thermal_zone.airVolume
+            vol = thermal_zone.airVolume * thermal_zone.multiplier
 
             # get zone design people
-            num_people = thermal_zone.numberOfPeople
+            num_people = thermal_zone.numberOfPeople * thermal_zone.multiplier
 
             if space.designSpecificationOutdoorAir.is_initialized
               dsn_spec_oa = space.designSpecificationOutdoorAir.get

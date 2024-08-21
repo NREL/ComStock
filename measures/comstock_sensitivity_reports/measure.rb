@@ -79,18 +79,27 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
   # helper method to access report variable data
   def sql_get_report_variable_data_double(runner, sql, object, variable_name)
     value = 0.0
-    var_data_id_query = "SELECT ReportVariableDataDictionaryIndex FROM ReportVariableDataDictionary WHERE VariableName = '#{variable_name}' AND ReportingFrequency = 'Run Period' AND KeyValue = '#{object.name.get.to_s.upcase}'"
+    # See if object input is the actual object or just a string and handle appropriately
+    if object.respond_to?('name')
+      var_data_id_query = "SELECT ReportVariableDataDictionaryIndex FROM ReportVariableDataDictionary WHERE VariableName = '#{variable_name}' AND ReportingFrequency = 'Run Period' AND KeyValue = '#{object.name.get.to_s.upcase}'"
+    else
+      var_data_id_query = "SELECT ReportVariableDataDictionaryIndex FROM ReportVariableDataDictionary WHERE VariableName = '#{variable_name}' AND ReportingFrequency = 'Run Period' AND KeyValue = '#{object.upcase}'"
+    end
     var_data_id = sql.execAndReturnFirstDouble(var_data_id_query)
     if var_data_id.is_initialized
       var_val_query = "SELECT VariableValue FROM ReportVariableData WHERE ReportVariableDataDictionaryIndex = '#{var_data_id.get}'"
       val = sql.execAndReturnFirstDouble(var_val_query)
       if val.is_initialized
         value = val.get
-      else
+      elsif object.respond_to?('name')
         runner.registerWarning("'#{variable_name}' not available for #{object.iddObjectType} '#{object.name}'.")
+      else
+        runner.registerWarning("'#{variable_name}' not available for #{object}'.")
       end
-    else
+    elsif object.respond_to?('name')
       runner.registerWarning("'#{variable_name}' not available for #{object.iddObjectType} '#{object.name}'.")
+    else
+    runner.registerWarning("'#{variable_name}' not available for #{object}'.")
     end
     return value
   end
@@ -177,6 +186,34 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       result << OpenStudio::IdfObject.load('Output:Variable,*,Heating Coil Total Water Heating Energy,RunPeriod;').get # J
       result << OpenStudio::IdfObject.load('Output:Variable,*,Heating Coil Water Heating Electricity Energy,RunPeriod;').get # J
     end
+
+    # request zoneHVACComponents mixed air and outdoor air nodes mass flow rate
+    model.getZoneHVACComponents.sort.each do |zone_hvac_component|
+      # cast the zone_hvac_component down to its child object
+      obj_type = zone_hvac_component.iddObjectType.valueName
+      obj_type_name = obj_type.gsub('OS_','').gsub('_','')
+      method_name = "to_#{obj_type_name}"
+      if zone_hvac_component.respond_to?(method_name)
+        actual_zone_hvac = zone_hvac_component.method(method_name).call
+        if !actual_zone_hvac.empty?
+          actual_zone_hvac = actual_zone_hvac.get
+        end
+      end
+
+      next if actual_zone_hvac.airLoopHVAC.is_initialized || !actual_zone_hvac.respond_to?('supplyAirFan')
+
+      base_obj_name = actual_zone_hvac.name.get
+      outlet_node = actual_zone_hvac.outletNode.get
+      result << OpenStudio::IdfObject.load("Output:Variable, #{outlet_node.name.get}, System Node Mass Flow Rate,RunPeriod;").get # kg/s
+      if actual_zone_hvac.respond_to?('outdoorAirMixerName')
+        result << OpenStudio::IdfObject.load("Output:Variable,#{base_obj_name} OA Node, System Node Mass Flow Rate,RunPeriod;").get # kg/s
+      elsif actual_zone_hvac.respond_to?('vrfSystem')
+        result << OpenStudio::IdfObject.load("Output:Variable,#{base_obj_name} Outdoor Air Node, System Node Mass Flow Rate,RunPeriod;").get # kg/s
+      else
+        next
+      end
+    end
+
 
     #result << OpenStudio::IdfObject.load("Output:Variable,*,Fan #{elec} Energy,RunPeriod;").get # J
     #result << OpenStudio::IdfObject.load("Output:Variable,*,Humidifier #{elec} Energy,RunPeriod;").get # J
@@ -281,7 +318,6 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     end
 
     # calculate exterior surface properties
-    # TODO may need to adjust for zone multipliers
     smallest_space_m2 = 9999.0
     num_surfaces = 0
     roof_absorptance_times_area = 0
@@ -291,22 +327,22 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     exterior_wall_area_m2 = 0.0
     spaces = model.getSpaces
     spaces.sort.each do |space|
-      floor_area_m2 = space.floorArea
+      floor_area_m2 = space.floorArea * space.multiplier
       smallest_space_m2 = floor_area_m2 if floor_area_m2 < smallest_space_m2
       space.surfaces.sort.each do |surface|
-        num_surfaces += 1
+        num_surfaces += 1 * space.multiplier
         next if surface.outsideBoundaryCondition != 'Outdoors'
         if surface.surfaceType.to_s == 'RoofCeiling'
           surface_absorptance = surface.exteriorVisibleAbsorptance.is_initialized ? surface.exteriorVisibleAbsorptance.get : 0.0
           surface_u_value_si = surface.uFactor.is_initialized ? surface.uFactor.get : 0.0
-          surface_area_m2 = surface.netArea
+          surface_area_m2 = surface.netArea * space.multiplier
           surface_ua_si = surface_u_value_si * surface_area_m2
           roof_absorptance_times_area += surface_absorptance * surface_area_m2
           roof_ua_si += surface_ua_si
           roof_area_m2 += surface_area_m2
         elsif surface.surfaceType.to_s == 'Wall'
           surface_u_value_si = surface.uFactor.is_initialized ? surface.uFactor.get : 0.0
-          surface_area_m2 = surface.netArea
+          surface_area_m2 = surface.netArea * space.multiplier
           surface_ua_si = surface_u_value_si * surface_area_m2
           exterior_wall_ua_si += surface_ua_si
           exterior_wall_area_m2 += surface_area_m2
@@ -315,11 +351,16 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     end
 
     # total number of zones
-    num_zones = model.getThermalZones.size
+    num_zones = 0
+    zones = model.getThermalZones
+    zones.each { |z| num_zones += z.multiplier }
+    runner.registerValue('com_report_number_of_model_zones', zones.size)
     runner.registerValue('com_report_number_of_zones', num_zones)
 
     # total number of spaces
-    num_spaces = spaces.size
+    num_spaces = 0
+    spaces.each { |s| num_spaces += s.multiplier }
+    runner.registerValue('com_report_number_of_model_spaces', spaces.size)
     runner.registerValue('com_report_number_of_spaces', num_spaces)
 
     # smallest space size
@@ -410,8 +451,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     total_space_area_m2 = 0.0
     model.getInternalMasss.sort.each do |mass|
       space = mass.space.get
-      space_area_m2 = space.floorArea
-      num_people = space.numberOfPeople
+      space_area_m2 = space.floorArea * space.multiplier
+      num_people = space.numberOfPeople * space.multiplier
       surface_area_m2 = mass.surfaceArea.is_initialized ? mass.surfaceArea.get : 0.0
       surface_area_per_floor_area_m2 = mass.surfaceAreaPerFloorArea.is_initialized ? mass.surfaceAreaPerFloorArea.get : 0.0
       surface_area_per_person_m2 = mass.surfaceAreaPerPerson.is_initialized ? mass.surfaceAreaPerPerson.get : 0.0
@@ -425,7 +466,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     weighted_daylight_control_area_m2 = 0.0
     total_zone_area_m2 = 0.0
     model.getThermalZones.sort.each do |zone|
-      zone_area_m2 = zone.floorArea
+      zone_area_m2 = zone.floorArea * zone.multiplier
       primary_fraction = zone.primaryDaylightingControl.is_initialized ? zone.fractionofZoneControlledbyPrimaryDaylightingControl : 0.0
       secondary_fraction = zone.secondaryDaylightingControl.is_initialized ? zone.fractionofZoneControlledbySecondaryDaylightingControl : 0.0
       total_fraction = (primary_fraction + secondary_fraction) > 1.0 ? 1.0 : (primary_fraction + secondary_fraction)
@@ -503,8 +544,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       space_type = std.thermal_zone_majority_space_type(zone)
       if space_type.is_initialized
         space_type = space_type.get
-        floor_area_m2 = zone.floorArea
-        num_people = zone.numberOfPeople
+        floor_area_m2 = zone.floorArea * zone.multiplier
+        num_people = zone.numberOfPeople * zone.multiplier
         equip_w = space_type.getElectricEquipmentDesignLevel(floor_area_m2, num_people)
         # equip_per_area_w and equip_per_person_w are not included in equip_w call
         # equip_per_area_w = space_type.getElectricEquipmentPowerPerFloorArea(floor_area_m2, num_people) * floor_area_m2
@@ -574,10 +615,10 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     total_zone_design_ppl = 0.0
     total_zone_ppl_count = 0
     model.getThermalZones.sort.each do |zone|
-      total_zone_occupant_area_m2 += zone.floorArea
-      total_zone_design_ppl += zone.numberOfPeople
+      total_zone_occupant_area_m2 += zone.floorArea * zone.multiplier
+      total_zone_design_ppl += zone.numberOfPeople * zone.multiplier
       zone_ppl_count = sql_get_report_variable_data_double(runner, sql, zone, 'Zone People Occupant Count')
-      total_zone_ppl_count += zone_ppl_count
+      total_zone_ppl_count += zone_ppl_count * zone.multiplier
     end
 
     # Average occupant density
@@ -601,9 +642,9 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         dsn_oa = space.designSpecificationOutdoorAir.get
 
         # get the space properties
-        floor_area_m2 = space.floorArea
-        number_of_people = space.numberOfPeople
-        volume_m3 = space.volume
+        floor_area_m2 = space.floorArea * space.multiplier
+        number_of_people = space.numberOfPeople * space.multiplier
+        volume_m3 = space.volume * space.multiplier
 
         # get outdoor air values
         oa_for_people = number_of_people * dsn_oa.outdoorAirFlowperPerson
@@ -717,7 +758,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       air_system_weighted_fan_efficiency += fan_efficiency * air_loop_mass_flow_rate_kg_s
     end
     average_outdoor_air_fraction = air_system_total_mass_flow_kg_s > 0.0 ? air_system_total_oa_mass_flow_kg_s / air_system_total_mass_flow_kg_s : 0.0
-    runner.registerValue('com_report_average_outdoor_air_fraction', average_outdoor_air_fraction)
+    runner.registerValue('com_report_air_system_average_outdoor_air_fraction', average_outdoor_air_fraction)
     air_system_fan_power_minimum_flow_fraction = air_system_total_mass_flow_kg_s > 0.0 ? air_system_weighted_fan_power_minimum_flow_fraction / air_system_total_mass_flow_kg_s : 0.0
     runner.registerValue('com_report_air_system_fan_power_minimum_flow_fraction', air_system_fan_power_minimum_flow_fraction)
     air_system_fan_static_pressure = air_system_total_mass_flow_kg_s > 0.0 ? air_system_weighted_fan_static_pressure / air_system_total_mass_flow_kg_s : 0.0
@@ -765,6 +806,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     runner.registerValue('com_report_hvac_economizer_high_limit_enthalpy_j_per_kg', weighted_economizer_high_limit_enthalpy_j_per_kg)
 
     # Zone HVAC properties
+    zone_hvac_total_mass_flow_kg_s = 0.0
+    zone_hvac_total_oa_mass_flow_kg_s = 0.0
     zone_hvac_fan_total_air_flow_m3_per_s = 0.0
     zone_hvac_weighted_fan_power_minimum_flow_fraction = 0.0
     zone_hvac_weighted_fan_static_pressure = 0.0
@@ -857,27 +900,74 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
           next
         end
 
+        # add to weighted
         zone_hvac_fan_total_air_flow_m3_per_s += max_air_flow_rate_m3_per_s
         zone_hvac_weighted_fan_power_minimum_flow_fraction += fan_minimum_flow_frac * max_air_flow_rate_m3_per_s
         zone_hvac_weighted_fan_static_pressure += fan_static_pressure * max_air_flow_rate_m3_per_s
         zone_hvac_weighted_fan_efficiency += fan_efficiency * max_air_flow_rate_m3_per_s
       end
+
+      # cast zone_hvac_component down to its child object
+      obj_type = zone_hvac_component.iddObjectType.valueName
+      obj_type_name = obj_type.gsub('OS_','').gsub('_','')
+      method_name = "to_#{obj_type_name}"
+      if zone_hvac_component.respond_to?(method_name)
+        actual_zone_hvac = zone_hvac_component.method(method_name).call
+        if !actual_zone_hvac.empty?
+          actual_zone_hvac = actual_zone_hvac.get
+        end
+      end
+
+      oa_node_exists = false
+      next if actual_zone_hvac.airLoopHVAC.is_initialized || !actual_zone_hvac.respond_to?('supplyAirFan')
+
+      base_obj_name = actual_zone_hvac.name.get
+      outlet_node = actual_zone_hvac.outletNode.get
+      zone_equip_mass_flow_rate_kg_s = sql_get_report_variable_data_double(runner, sql, outlet_node, 'System Node Mass Flow Rate')
+      if actual_zone_hvac.respond_to?('outdoorAirMixerName')
+        oa_node_exists = true
+        oa_node = "#{base_obj_name} OA Node"
+      elsif actual_zone_hvac.respond_to?('vrfSystem')
+        oa_node_exists = true
+        oa_node = "#{base_obj_name} Outdoor Air Node"
+      end
+
+      if oa_node_exists
+        zone_equip_oa_mass_flow_rate_kg_s = sql_get_report_variable_data_double(runner, sql, oa_node, 'System Node Mass Flow Rate')
+      else
+        zone_equip_oa_mass_flow_rate_kg_s = 0.0
+      end
+
+      # add to weighted
+      zone_hvac_total_mass_flow_kg_s += zone_equip_mass_flow_rate_kg_s
+      zone_hvac_total_oa_mass_flow_kg_s += zone_equip_oa_mass_flow_rate_kg_s
     end
+
+    runner.registerValue('com_report_zone_hvac_total_mass_flow_rate', zone_hvac_total_mass_flow_kg_s, 'kg/s')
+    runner.registerValue('com_report_zone_hvac_total_outdoor_air_mass_flow_rate', zone_hvac_total_oa_mass_flow_kg_s, 'kg/s')
+    zone_hvac_average_outdoor_air_fraction = zone_hvac_total_mass_flow_kg_s > 0.0 ? zone_hvac_total_oa_mass_flow_kg_s / zone_hvac_total_mass_flow_kg_s : 0.0
+    runner.registerValue('com_report_zone_hvac_average_outdoor_air_fraction', zone_hvac_average_outdoor_air_fraction)
     zone_hvac_fan_power_minimum_flow_fraction = zone_hvac_fan_total_air_flow_m3_per_s > 0.0 ? zone_hvac_weighted_fan_power_minimum_flow_fraction / zone_hvac_fan_total_air_flow_m3_per_s : 0.0
     runner.registerValue('com_report_zone_hvac_fan_power_minimum_flow_fraction', zone_hvac_fan_power_minimum_flow_fraction)
     zone_hvac_fan_static_pressure = zone_hvac_fan_total_air_flow_m3_per_s > 0.0 ? zone_hvac_weighted_fan_static_pressure / zone_hvac_fan_total_air_flow_m3_per_s : 0.0
     runner.registerValue('com_report_zone_hvac_fan_static_pressure', zone_hvac_fan_static_pressure ,'Pa')
     zone_hvac_fan_total_efficiency = zone_hvac_fan_total_air_flow_m3_per_s > 0.0 ? zone_hvac_weighted_fan_efficiency / zone_hvac_fan_total_air_flow_m3_per_s : 0.0
     runner.registerValue('com_report_zone_hvac_fan_total_efficiency', zone_hvac_fan_total_efficiency)
+    total_building_avg_mass_flow_rate_kg_s = zone_hvac_total_mass_flow_kg_s + air_system_total_mass_flow_kg_s
+    runner.registerValue('com_report_total_building_average_mass_flow_rate', total_building_avg_mass_flow_rate_kg_s, 'kg/s')
+    total_building_avg_oa_mass_flow_rate_kg_s = zone_hvac_total_oa_mass_flow_kg_s + air_system_total_oa_mass_flow_kg_s
+    runner.registerValue('com_report_total_building_average_oa_mass_flow_rate', total_building_avg_oa_mass_flow_rate_kg_s, 'kg/s')
+    total_building_avg_oa_fraction = total_building_avg_oa_mass_flow_rate_kg_s/total_building_avg_mass_flow_rate_kg_s
+    runner.registerValue('com_report_total_building_average_outdoor_air_fraction', total_building_avg_oa_fraction)
 
     # calculate building heating and cooling
     building_heated_zone_area_m2 = 0.0
     building_cooled_zone_area_m2 = 0.0
     building_zone_area_m2 = 0.0
     model.getThermalZones.sort.each do |zone|
-      building_zone_area_m2 += zone.floorArea
-      building_heated_zone_area_m2 += zone.floorArea if std.thermal_zone_heated?(zone)
-      building_cooled_zone_area_m2 += zone.floorArea if std.thermal_zone_cooled?(zone)
+      building_zone_area_m2 += zone.floorArea * zone.multiplier
+      building_heated_zone_area_m2 += zone.floorArea * zone.multiplier if std.thermal_zone_heated?(zone)
+      building_cooled_zone_area_m2 += zone.floorArea * zone.multiplier if std.thermal_zone_cooled?(zone)
     end
 
     # Fraction of building heated
@@ -897,7 +987,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     weighted_thermostat_cooling_area_m2 = 0.0
     model.getThermalZones.sort.each do |zone|
       next unless zone.thermostatSetpointDualSetpoint.is_initialized
-      floor_area_m2 = zone.floorArea
+      floor_area_m2 = zone.floorArea * zone.multiplier
       thermostat = zone.thermostatSetpointDualSetpoint.get
       if thermostat.heatingSetpointTemperatureSchedule.is_initialized
         thermostat_heating_schedule = thermostat.heatingSetpointTemperatureSchedule.get
@@ -1021,7 +1111,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       # air loop area
       air_loop_area_m2 = 0.0
       air_loop_hvac.thermalZones.sort.each do |zone|
-        air_loop_area_m2 += zone.floorArea
+        air_loop_area_m2 += zone.floorArea * zone.multiplier
       end
 
       number_of_air_loops += 1.0
@@ -1107,7 +1197,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       vrf.terminals.each do |terminal|
         if terminal.thermalZone.is_initialized
           zone = terminal.thermalZone.get
-          vrf_area_m2 += zone.floorArea
+          vrf_area_m2 += zone.floorArea * zone.multiplier
         end
 
         # get terminal cooling capacity
@@ -1181,11 +1271,11 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
             supplemental_coil = supplemental_coil.to_CoilHeatingElectric.get
             supplemental_electric_j = sql_get_report_variable_data_double(runner, sql, supplemental_coil, "Heating Coil #{elec} Energy")
-            
+
           elsif supplemental_coil.to_CoilHeatingGas.is_initialized
             # supplemental load is sourced from gas
             vrf_total_heating_supplemental_load_gas_j += supplemental_coil_heating_energy_j
-            
+
             supplemental_coil = supplemental_coil.to_CoilHeatingGas.get
             supplemental_gas_j = sql_get_report_variable_data_double(runner, sql, supplemental_coil, "Heating Coil #{gas} Energy")
           else
@@ -1248,7 +1338,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
       # get VRF Heat Pump Cooling Electricity Energy
       vrf_cooling_electric_j = sql_get_report_variable_data_double(runner, sql, vrf, 'VRF Heat Pump Cooling Electricity Energy')
-  
+
       # get VRF Heat Pump Heating Electricity Energy
       vrf_heating_electric_j = sql_get_report_variable_data_double(runner, sql, vrf, 'VRF Heat Pump Heating Electricity Energy')
 
@@ -1260,7 +1350,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
       # get VRF Heat Pump Heat Recovery Energy
       vrf_heat_recovery_j = sql_get_report_variable_data_double(runner, sql, vrf, 'VRF Heat Pump Heat Recovery Energy')
-      
+
       # VRF design cops
       vrf_cooling_design_cop = vrf.grossRatedCoolingCOP
       vrf_heating_design_cop = vrf.ratedHeatingCOP
@@ -1287,8 +1377,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       cooling_eir_low_temp_curve = nil
       cooling_eir_high_temp_curve = nil
       if vrf.coolingEnergyInputRatioModifierFunctionofLowTemperatureCurve.is_initialized
-        cooling_eir_low_temp_curve = vrf.coolingEnergyInputRatioModifierFunctionofLowTemperatureCurve.get 
-      end   
+        cooling_eir_low_temp_curve = vrf.coolingEnergyInputRatioModifierFunctionofLowTemperatureCurve.get
+      end
       if vrf.coolingEnergyInputRatioModifierFunctionofHighTemperatureCurve.is_initialized
         cooling_eir_high_temp_curve = vrf.coolingEnergyInputRatioModifierFunctionofHighTemperatureCurve.get
       end
@@ -1360,8 +1450,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       heating_eir_low_temp_curve = nil
       heating_eir_high_temp_curve = nil
       if vrf.heatingEnergyInputRatioModifierFunctionofLowTemperatureCurve.is_initialized
-        heating_eir_low_temp_curve = vrf.heatingEnergyInputRatioModifierFunctionofLowTemperatureCurve.get 
-      end   
+        heating_eir_low_temp_curve = vrf.heatingEnergyInputRatioModifierFunctionofLowTemperatureCurve.get
+      end
       if vrf.heatingEnergyInputRatioModifierFunctionofHighTemperatureCurve.is_initialized
         heating_eir_high_temp_curve = vrf.heatingEnergyInputRatioModifierFunctionofHighTemperatureCurve.get
       end
@@ -1604,7 +1694,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       end
       wa_hp_cooling_total_capacity_w += capacity_w
 
-      coil_design_cop = coil.ratedCoolingCoefficientofPerformance 
+      coil_design_cop = coil.ratedCoolingCoefficientofPerformance
 
       # get Cooling Coil Total Cooling Energy
       coil_cooling_energy_j = sql_get_report_variable_data_double(runner, sql, coil, 'Cooling Coil Total Cooling Energy')
@@ -1648,7 +1738,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       end
       wa_hp_heating_total_capacity_w += capacity_w
 
-      coil_design_cop = coil.ratedHeatingCoefficientofPerformance 
+      coil_design_cop = coil.ratedHeatingCoefficientofPerformance
 
       # get Heating Coil Heating Energy
       coil_heating_energy_j = sql_get_report_variable_data_double(runner, sql, coil, 'Heating Coil Heating Energy')
@@ -1734,7 +1824,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         end
       elsif coil.to_CoilCoolingDXTwoSpeed.is_initialized
         coil = coil.to_CoilCoolingDXTwoSpeed.get
-        
+
         # capacity
         if coil.ratedHighSpeedTotalCoolingCapacity.is_initialized
           capacity_w = coil.ratedHighSpeedTotalCoolingCapacity.get
@@ -1756,7 +1846,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         end
       elsif coil.to_CoilCoolingDXMultiSpeed.is_initialized
         coil = coil.to_CoilCoolingDXMultiSpeed.get
-        
+
         # capacity and cop, use cop at highest capacity
         temp_capacity_w = 0.0
         coil.stages.each do |stage|
@@ -2198,7 +2288,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       supplemental_gas_j = 0.0
       unless supplemental_coil.nil?
         runner.registerInfo("'#{supplemental_coil.name}' is the supplemental heating coil for DX heating coil '#{coil.name}'")
-        
+
         # supplemental heating coil heating energy
         supplemental_coil_heating_energy_j = sql_get_report_variable_data_double(runner, sql, supplemental_coil, 'Heating Coil Heating Energy')
 
@@ -2374,7 +2464,10 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     end
     runner.registerValue('com_report_hvac_dx_heating_fraction_electric_defrost', dx_heating_fraction_electric_defrost)
 
-    # Get the outdoor air temp timeseries
+    # Get the outdoor air temp timeseries and calculate heating and cooling degree days
+    # Per ISO 15927-6, "Accumulated hourly temperature differences shall be calculated according to 4.4 when hourly data are available. When hourly data are not available, the approximate method given in 4.5, based on the maximum and minimum temperatures each day, may be used."
+    # Method 4.4 is used here, summing hour values over/under a threshold and then dividing by 24
+    # Method 4.5 is commonly used elsewhere, averaging the minimum and maximum daily values, and differencing versus the threshold.
     hours_below_minus_20_F = -999
     hours_below_0_F = -999
     hours_below_5_F = -999
@@ -2719,55 +2812,132 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     runner.registerValue('com_report_hvac_hot_water_loop_boiler_fraction', hot_water_loop_boiler_fraction)
     runner.registerValue('com_report_hvac_hot_water_loop_heat_pump_fraction', hot_water_loop_heat_pump_fraction)
 
-    # Average gas coil efficiency
-    gas_coil_capacity_weighted_efficiency = 0.0
-    gas_coil_total_capacity_w = 0.0
-    gas_count_0_to_30_kbtuh = 0.0
-    gas_count_30_to_65_kbtuh = 0.0
-    gas_count_65_to_135_kbtuh = 0.0
-    gas_count_135_to_240_kbtuh = 0.0
-    gas_count_240_plus_kbtuh = 0.0
-    model.getCoilHeatingGass.sort.each do |coil|
-      # get gas coil capacity
-      capacity_w = 0.0
-      if coil.nominalCapacity.is_initialized
-        capacity_w = coil.nominalCapacity.get
-      elsif coil.autosizedNominalCapacity.is_initialized
-        capacity_w = coil.autosizedNominalCapacity.get
-      else
-        runner.registerWarning("Gas heating coil capacity not available for '#{coil.name}'.")
-      end
-      gas_coil_total_capacity_w += capacity_w
-      gas_coil_capacity_weighted_efficiency += capacity_w * coil.gasBurnerEfficiency
+    # Average primary gas coil efficiency
+    primary_gas_coil_capacity_weighted_efficiency = 0.0
+    primary_gas_coil_total_capacity_w = 0.0
+    primary_gas_count_0_to_30_kbtuh = 0.0
+    primary_gas_count_30_to_65_kbtuh = 0.0
+    primary_gas_count_65_to_135_kbtuh = 0.0
+    primary_gas_count_135_to_240_kbtuh = 0.0
+    primary_gas_count_240_plus_kbtuh = 0.0
 
-      # log count of sizes
-      capacity_kbtuh = OpenStudio.convert(capacity_w, 'W', 'kBtu/h').get
-      if capacity_kbtuh < 30
-        gas_count_0_to_30_kbtuh += 1
-      elsif capacity_kbtuh < 65
-        gas_count_30_to_65_kbtuh += 1
-      elsif capacity_kbtuh < 135
-        gas_count_65_to_135_kbtuh += 1
-      elsif capacity_kbtuh < 240
-        gas_count_135_to_240_kbtuh += 1
-      else # capacity is over 240 kbtuh
-        gas_count_240_plus_kbtuh += 1
+    # Average supplemental gas coil efficiency
+    supplemental_gas_coil_capacity_weighted_efficiency = 0.0
+    supplemental_gas_coil_total_capacity_w = 0.0
+    supplemental_gas_count_0_to_30_kbtuh = 0.0
+    supplemental_gas_count_30_to_65_kbtuh = 0.0
+    supplemental_gas_count_65_to_135_kbtuh = 0.0
+    supplemental_gas_count_135_to_240_kbtuh = 0.0
+    supplemental_gas_count_240_plus_kbtuh = 0.0
+
+    # iterate through each model to get all of the gas coils and check if they are supplemental coils for Unitary HVAC Objects and count each seperately.
+    model.getCoilHeatingGass.sort.each do |coil|
+
+      # get gas coil capacity
+      supplemental_capacity_w = 0.0
+
+      # default coil type unless proven otherwise
+      supplemental_coil = false
+
+      #check if coil is contained by an unitary equipment and cast the hvac component to its child types
+      if coil.containingHVACComponent.is_initialized
+        hvac_comp = coil.containingHVACComponent.get
+        obj_type = hvac_comp.iddObjectType.valueName
+        obj_type_name = obj_type.gsub('OS_','').gsub('_','')
+        method_name = "to_#{obj_type_name}"
+        if hvac_comp.respond_to?(method_name)
+          unitary_equip = hvac_comp.method(method_name).call
+          if !unitary_equip.empty?
+            unitary_equip = unitary_equip.get
+          end
+        end
+      end
+
+      #test if the coil is a supplemental coil on the unitary equipment
+      if unitary_equip.respond_to?("supplementalHeatingCoil") && unitary_equip.supplementalHeatingCoil.is_initialized && unitary_equip.supplementalHeatingCoil.get == coil
+        supplemental_coil = true
+      end
+
+      #get supplemental gas coil capacity
+      if supplemental_coil
+        if coil.nominalCapacity.is_initialized
+          supplemental_capacity_w = coil.nominalCapacity.get
+        elsif coil.autosizedNominalCapacity.is_initialized
+          supplemental_capacity_w = coil.autosizedNominalCapacity.get
+        else
+          runner.registerWarning("Gas heating coil capacity not available for '#{coil.name}'.")
+        end
+        supplemental_gas_coil_total_capacity_w += supplemental_capacity_w
+        supplemental_gas_coil_capacity_weighted_efficiency += supplemental_capacity_w * coil.gasBurnerEfficiency
+
+        # log count of sizes
+        supplemental_capacity_kbtuh = OpenStudio.convert(supplemental_capacity_w, 'W', 'kBtu/h').get
+        if supplemental_capacity_kbtuh < 30
+          supplemental_gas_count_0_to_30_kbtuh += 1
+        elsif supplemental_capacity_kbtuh < 65
+          supplemental_gas_count_30_to_65_kbtuh += 1
+        elsif supplemental_capacity_kbtuh < 135
+          supplemental_gas_count_65_to_135_kbtuh += 1
+        elsif supplemental_capacity_kbtuh < 240
+          supplemental_gas_count_135_to_240_kbtuh += 1
+        else # capacity is over 240 kbtuh
+          supplemental_gas_count_240_plus_kbtuh += 1
+        end
+      else
+
+        # get primary gas coil capacity
+        primary_capacity_w = 0.0
+        if coil.nominalCapacity.is_initialized
+          primary_capacity_w = coil.nominalCapacity.get
+        elsif coil.autosizedNominalCapacity.is_initialized
+          primary_capacity_w = coil.autosizedNominalCapacity.get
+        else
+          runner.registerWarning("Gas heating coil capacity not available for '#{coil.name}'.")
+        end
+        primary_gas_coil_total_capacity_w += primary_capacity_w
+        primary_gas_coil_capacity_weighted_efficiency += primary_capacity_w * coil.gasBurnerEfficiency
+
+        # log count of sizes
+        primary_capacity_kbtuh = OpenStudio.convert(primary_capacity_w, 'W', 'kBtu/h').get
+        if primary_capacity_kbtuh < 30
+          primary_gas_count_0_to_30_kbtuh += 1
+        elsif primary_capacity_kbtuh < 65
+          primary_gas_count_30_to_65_kbtuh += 1
+        elsif primary_capacity_kbtuh < 135
+          primary_gas_count_65_to_135_kbtuh += 1
+        elsif primary_capacity_kbtuh < 240
+          primary_gas_count_135_to_240_kbtuh += 1
+        else # capacity is over 240 kbtuh
+          primary_gas_count_240_plus_kbtuh += 1
+        end
       end
     end
-    capacity_weighted_gas_coil_efficiency = gas_coil_total_capacity_w > 0.0 ? gas_coil_capacity_weighted_efficiency / gas_coil_total_capacity_w : 0.0
-    gas_coil_total_capacity_kbuth = OpenStudio.convert(gas_coil_total_capacity_w, 'W', 'kBtu/h').get
-    runner.registerValue('com_report_hvac_capacity_weighted_gas_coil_efficiency', capacity_weighted_gas_coil_efficiency)
-    runner.registerValue('com_report_hvac_furnace_capacity_kbtuh', gas_coil_total_capacity_kbuth)
-    runner.registerValue('com_report_hvac_count_furnace_0_to_30_kbtuh', gas_count_0_to_30_kbtuh)
-    runner.registerValue('com_report_hvac_count_furnace_30_to_65_kbtuh', gas_count_30_to_65_kbtuh)
-    runner.registerValue('com_report_hvac_count_furnace_65_to_135_kbtuh', gas_count_65_to_135_kbtuh)
-    runner.registerValue('com_report_hvac_count_furnace_135_to_240_kbtuh', gas_count_135_to_240_kbtuh)
-    runner.registerValue('com_report_hvac_count_furnace_240_plus_kbtuh', gas_count_240_plus_kbtuh)
+    #report the primary gas coil counts, weight efficiency, and total capacity
+    primary_capacity_weighted_gas_coil_efficiency = primary_gas_coil_total_capacity_w > 0.0 ? primary_gas_coil_capacity_weighted_efficiency / primary_gas_coil_total_capacity_w : 0.0
+    primary_gas_coil_total_capacity_kbuth = OpenStudio.convert(primary_gas_coil_total_capacity_w, 'W', 'kBtu/h').get
+    runner.registerValue('com_report_hvac_capacity_weighted_primary_gas_coil_efficiency', primary_capacity_weighted_gas_coil_efficiency)
+    runner.registerValue('com_report_hvac_primary_gas_coil_capacity_kbtuh', primary_gas_coil_total_capacity_kbuth)
+    runner.registerValue('com_report_hvac_count_primary_gas_coil_0_to_30_kbtuh', primary_gas_count_0_to_30_kbtuh)
+    runner.registerValue('com_report_hvac_count_primary_gas_coil_30_to_65_kbtuh', primary_gas_count_30_to_65_kbtuh)
+    runner.registerValue('com_report_hvac_count_primary_gas_coil_65_to_135_kbtuh', primary_gas_count_65_to_135_kbtuh)
+    runner.registerValue('com_report_hvac_count_primary_gas_coil_135_to_240_kbtuh', primary_gas_count_135_to_240_kbtuh)
+    runner.registerValue('com_report_hvac_count_primary_gas_coil_240_plus_kbtuh', primary_gas_count_240_plus_kbtuh)
+
+    #report the supplemental gas coil counts, weight efficiency, and total capacity
+    supplemental_capacity_weighted_gas_coil_efficiency = supplemental_gas_coil_total_capacity_w > 0.0 ? supplemental_gas_coil_capacity_weighted_efficiency / supplemental_gas_coil_total_capacity_w : 0.0
+    supplemental_gas_coil_total_capacity_kbuth = OpenStudio.convert(supplemental_gas_coil_total_capacity_w, 'W', 'kBtu/h').get
+    runner.registerValue('com_report_hvac_supplemental_capacity_weighted_gas_coil_efficiency', supplemental_capacity_weighted_gas_coil_efficiency)
+    runner.registerValue('com_report_hvac_supplemental_gas_coil_capacity_kbtuh', supplemental_gas_coil_total_capacity_kbuth)
+    runner.registerValue('com_report_hvac_count_supplemental_gas_coil_0_to_30_kbtuh', supplemental_gas_count_0_to_30_kbtuh)
+    runner.registerValue('com_report_hvac_count_supplemental_gas_coil_30_to_65_kbtuh', supplemental_gas_count_30_to_65_kbtuh)
+    runner.registerValue('com_report_hvac_count_supplemental_gas_coil_65_to_135_kbtuh', supplemental_gas_count_65_to_135_kbtuh)
+    runner.registerValue('com_report_hvac_count_supplemental_gas_coil_135_to_240_kbtuh', supplemental_gas_count_135_to_240_kbtuh)
+    runner.registerValue('com_report_hvac_count_supplemental_gas_coil_240_plus_kbtuh', supplemental_gas_count_240_plus_kbtuh)
 
     # Sum of heating and cooling equipment capacity
     cooling_equipment_capacity_tons = chiller_total_capacity_tons + dx_cooling_total_capacity_tons
     runner.registerValue('com_report_hvac_cooling_equipment_tons', cooling_equipment_capacity_tons)
-    heating_equipment_capacity_kbtuh = dx_heating_total_capacity_kbtuh + boiler_total_capacity_kbtuh + heat_pump_heating_total_capacity_kbtuh + gas_coil_total_capacity_kbuth
+    heating_equipment_capacity_kbtuh = dx_heating_total_capacity_kbtuh + boiler_total_capacity_kbtuh + heat_pump_heating_total_capacity_kbtuh + primary_gas_coil_total_capacity_kbuth + supplemental_gas_coil_total_capacity_kbuth
     runner.registerValue('com_report_hvac_heating_equipment_kbtuh', heating_equipment_capacity_kbtuh)
 
     # Service water heating hot water use
@@ -2851,7 +3021,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       heat_pump_water_heater_total_volume_gal += volume_gal
       heat_pump_water_heater_count += 1.0
       if volume_gal == 0.0
-        runner.registerWarning("Heat pump water heater #{hpwh} has a zero gallon tank.")      
+        runner.registerWarning("Heat pump water heater #{hpwh} has a zero gallon tank.")
       elsif  volume_gal < 40.0
         heat_pump_water_heater_0_to_40_gal_total_volume_gal += volume_gal
         heat_pump_water_heater_0_to_40_gal_count += 1.0
@@ -2895,7 +3065,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       # get backup Water Heater Heating Energy
       tank_heating_energy_j = sql_get_report_variable_data_double(runner, sql, tank, 'Water Heater Heating Energy')
 
-      # get backup Water Heater Unmet Demand Heat Transfer Energy 
+      # get backup Water Heater Unmet Demand Heat Transfer Energy
       tank_unmet_demand_energy_j = sql_get_report_variable_data_double(runner, sql, tank, 'Water Heater Unmet Demand Heat Transfer Energy')
 
       # get Water Heater <Fuel Type> Energy
@@ -2942,7 +3112,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       heat_pump_water_heater_total_output_j += hpwh_total_output_energy_j
       heat_pump_water_heater_total_input_j += hpwh_total_input_energy_j
       if volume_gal == 0.0
-        runner.registerWarning("Heat pump water heater #{hpwh} has a zero gallon tank.")      
+        runner.registerWarning("Heat pump water heater #{hpwh} has a zero gallon tank.")
       elsif  volume_gal < 40.0
         heat_pump_water_heater_0_to_40_gal_capacity_w = heating_capacity_w * volume_gal
         heat_pump_water_heater_0_to_40_gal_cop += hpwh_cop * hpwh_total_output_energy_j
@@ -2988,7 +3158,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       water_heater_total_volume_gal += volume_gal
       water_heater_count += 1.0
       if volume_gal == 0.0
-        runner.registerWarning("Water heater #{wh} has a zero gallon tank.")      
+        runner.registerWarning("Water heater #{wh} has a zero gallon tank.")
       elsif  volume_gal < 40.0
         water_heater_0_to_40_gal_total_volume_gal += volume_gal
         water_heater_0_to_40_gal_count += 1.0
@@ -3003,7 +3173,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         water_heater_90_plus_gal_count += 1.0
       end
 
-      # get Water Heater Unmet Demand Heat Transfer Energy 
+      # get Water Heater Unmet Demand Heat Transfer Energy
       wh_unmet_demand_energy_j = sql_get_report_variable_data_double(runner, sql, wh, 'Water Heater Unmet Demand Heat Transfer Energy')
 
       # get Water Heater <Fuel Type> Energy

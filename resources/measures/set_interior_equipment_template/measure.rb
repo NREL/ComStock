@@ -218,6 +218,7 @@ class SetInteriorEquipmentTemplate < OpenStudio::Measure::ModelMeasure
 
     log_messages_to_runner(runner, debug = false)
     reset_log
+    return true
   end
 end
 

@@ -115,7 +115,7 @@ class HVACDCV < OpenStudio::Measure::ModelMeasure
       'Toilet',
       'MechElecRoom',
     ]
-  
+
     no_outdoor_air_loops = 0
     no_per_person_rates_loops = 0
     constant_volume_doas_loops = 0
@@ -124,7 +124,7 @@ class HVACDCV < OpenStudio::Measure::ModelMeasure
     ineligible_space_types = 0
     selected_air_loops = []
     model.getAirLoopHVACs.each do |air_loop_hvac|
-      
+
       # check for prevelance of OA system in air loop; skip if none
       oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem
       if oa_system.is_initialized
@@ -189,7 +189,7 @@ class HVACDCV < OpenStudio::Measure::ModelMeasure
         ineligible_space_types += 1
         next
       end
-      
+
       runner.registerInfo("Air loop '#{air_loop_hvac.name}' does not have existing demand control ventilation.  This measure will enable it.")
       selected_air_loops << air_loop_hvac
     end
@@ -217,8 +217,8 @@ class HVACDCV < OpenStudio::Measure::ModelMeasure
           dsn_oa.setOutdoorAirMethod('Sum')
 
           # Get the space properties
-          floor_area = space.floorArea
-          number_of_people = space.numberOfPeople
+          floor_area = space.floorArea * space.multiplier
+          number_of_people = space.numberOfPeople * space.multiplier
           people_per_m2 = space.peoplePerFloorArea
 
           # Sum up the total OA from all sources
@@ -239,12 +239,12 @@ class HVACDCV < OpenStudio::Measure::ModelMeasure
           # if both per-area and per-person are present, does not need to be modified
           if !dsn_oa.outdoorAirFlowperPerson.zero? & !dsn_oa.outdoorAirFlowperFloorArea.zero?
             next
-          
+
           # if both are zero, skip space
           elsif dsn_oa.outdoorAirFlowperPerson.zero? & dsn_oa.outdoorAirFlowperFloorArea.zero?
             runner.registerInfo("Space '#{space.name}' has 0 outdoor air per-person and per-area rates. DCV may be still be applied to this air loop, but it will not function on this space.")
             next
-          
+
           # if per-person or per-area values are zero, set to 10 cfm / person and allocate the rest to per-area
           elsif dsn_oa.outdoorAirFlowperPerson.zero? || dsn_oa.outdoorAirFlowperFloorArea.zero?
             # puts "========Before Per Person========="
