@@ -933,6 +933,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     if (is_sizing_run_needed == true) || (sizing_run == true)
       runner.registerInfo('Sizing run needed')
       return false if std.model_run_sizing_run(model, "#{Dir.pwd}/SR1") == false
+      model.applySizingValues
     end
 
     # get sql from sizing run
@@ -1564,8 +1565,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       orig_htg_coil_gross_cap_old = orig_htg_coil_gross_cap
       if sizing_run
 
-        runner.registerInfo('### DEBUGGING: --------------------------------------------------------------------')
-
         # get thermal zones for the air loop
         thermal_zones = air_loop_hvac.thermalZones
         if thermal_zones.size != 1
@@ -1579,10 +1578,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         row_name = thermal_zones.first.name.to_s.upcase
         design_air_flow_from_zone_sizing_heating_m_3_per_s = get_tabular_data(runner, model, sql, report_name,
                                                                               'Entire Facility', table_name, row_name, column_name).to_f
-        runner.registerInfo("### DEBUGGING: row_name = #{row_name} | design_air_flow_from_zone_sizing_heating_m_3_per_s = #{design_air_flow_from_zone_sizing_heating_m_3_per_s}")
-        if design_air_flow_from_zone_sizing_heating_m_3_per_s.nil?
-          runner.registerError("Cannot get design_air_flow_from_zone_sizing_heating_m_3_per_s for airloop: #{air_loop_hvac.name}")
-        end
 
         # get temperature (Tin from the delta T)
         report_name = 'CoilSizingDetails'
@@ -1591,10 +1586,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         row_name = orig_airloop_heating_coil_map[air_loop_hvac.name.to_s]
         coil_entering_temperature_c = get_tabular_data(runner, model, sql, report_name, 'Entire Facility', table_name,
                                                        row_name, column_name).to_f
-        runner.registerInfo("### DEBUGGING: row_name = #{row_name} | coil_entering_temperature_c = #{coil_entering_temperature_c}")
-        if coil_entering_temperature_c.nil?
-          runner.registerError("Cannot get coil_entering_temperature_c for airloop: #{air_loop_hvac.name}")
-        end
 
         # get temperature (Tout from the delta T)
         report_name = 'CoilSizingDetails'
@@ -1603,10 +1594,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         row_name = orig_airloop_heating_coil_map[air_loop_hvac.name.to_s]
         coil_leaving_temperature_c = get_tabular_data(runner, model, sql, report_name, 'Entire Facility', table_name, row_name,
                                                       column_name).to_f
-        runner.registerInfo("### DEBUGGING: row_name = #{row_name} | coil_leaving_temperature_c = #{coil_leaving_temperature_c}")
-        if coil_leaving_temperature_c.nil?
-          runner.registerError("Cannot get coil_leaving_temperature_c for airloop: #{air_loop_hvac.name}")
-        end
 
         # get air density
         report_name = 'CoilSizingDetails'
@@ -1615,10 +1602,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         row_name = orig_airloop_heating_coil_map[air_loop_hvac.name.to_s]
         air_density_kg_per_m_3 = get_tabular_data(runner, model, sql, report_name, 'Entire Facility', table_name, row_name,
                                                   column_name).to_f
-        runner.registerInfo("### DEBUGGING: row_name = #{row_name} | air_density_kg_per_m_3 = #{air_density_kg_per_m_3}")
-        if air_density_kg_per_m_3.nil?
-          runner.registerError("Cannot get air_density_kg_per_m_3 for airloop: #{air_loop_hvac.name}")
-        end
 
         # get heat capacity
         report_name = 'CoilSizingDetails'
@@ -1627,14 +1610,15 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         row_name = orig_airloop_heating_coil_map[air_loop_hvac.name.to_s]
         air_heat_capacity_j_per_kg_k = get_tabular_data(runner, model, sql, report_name, 'Entire Facility', table_name,
                                                         row_name, column_name).to_f
-        runner.registerInfo("### DEBUGGING: row_name = #{row_name} | air_heat_capacity_j_per_kg_k = #{air_heat_capacity_j_per_kg_k}")
-        if air_heat_capacity_j_per_kg_k.nil?
-          runner.registerError("Cannot get air_heat_capacity_j_per_kg_k for airloop: #{air_loop_hvac.name}")
-        end
 
         # override design heating load with Q = vdot * rho * cp * (Tout - Tin)
         orig_htg_coil_gross_cap = design_air_flow_from_zone_sizing_heating_m_3_per_s * air_density_kg_per_m_3 * air_heat_capacity_j_per_kg_k * (coil_leaving_temperature_c - coil_entering_temperature_c)
-        runner.registerInfo("original heating design load overriden from sizing run = #{orig_htg_coil_gross_cap.round(6)} W for airloop (#{air_loop_hvac.name})")
+        runner.registerInfo("original heating design load overriden from sizing run: #{orig_htg_coil_gross_cap_old.round(3)} W to  #{orig_htg_coil_gross_cap.round(3)} W for airloop (#{air_loop_hvac.name})")
+
+        # TODO: 
+        # need to add both epw and ddy in test scripts to properly vary weather
+        # derating factor value from evaluate method weird, check
+        # assign heating design air flow rate to heating coil design air flow rate
       end
 
       # determine heating load curve; y=mx+b
