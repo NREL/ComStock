@@ -450,6 +450,47 @@ class AddHeatPumpRtuTest < Minitest::Test
     nil
   end
 
+  def test_sizing_model_in_alaska
+    osm_name = 'small_office_psz_not_hard_sized.osm'
+    #epw_name = 'MN_Cloquet_Carlton_Co_726558_16.epw'
+    epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
+
+    test_name = 'test_sizing_model_in_alaska'
+
+    puts "\n######\nTEST:#{osm_name}\n######\n"
+
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+
+    # Create an instance of the measure
+    measure = AddHeatPumpRtu.new
+
+    # Load the model; only used here for populating arguments
+    model = load_model(osm_path)
+
+    # get arguments
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+
+    # populate argument with specified hash value if specified
+    arguments.each_with_index do |arg, idx|
+      temp_arg_var = arg.clone
+      if arg.name == 'sizing_run'
+        sizing_run = arguments[idx].clone
+        sizing_run.setValue(true)
+        argument_map[arg.name] = sizing_run
+      elsif arg.name == 'performance_oversizing_factor'
+        performance_oversizing_factor = arguments[idx].clone
+        performance_oversizing_factor.setValue(0.25)
+        argument_map[arg.name] = performance_oversizing_factor
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
+    end
+
+    test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
+  end
+
   # This section tests proper application of measure on fully applicable models
   # tests include:
   # 1) running model to ensure succesful completion
