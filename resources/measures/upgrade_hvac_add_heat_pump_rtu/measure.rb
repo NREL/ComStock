@@ -723,93 +723,94 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     result
   end
 
-  # interpolate from table data: two input arrays and one output array
+  def get_dep_var_from_lookup_table_with_interpolation(runner, lookup_table, input1, input2)
+    # Check if the lookup table only has two independent variables
+    if lookup_table.independentVariables.size == 2
+  
+      # Extract independent variable 1 (e.g., indoor air temperature data)
+      ind_var_1_obj = lookup_table.independentVariables[0]
+      ind_var_1_values = ind_var_1_obj.values.to_a
+  
+      # Extract independent variable 2 (e.g., outdoor air temperature data)
+      ind_var_2_obj = lookup_table.independentVariables[1]
+      ind_var_2_values = ind_var_2_obj.values.to_a
+  
+      # Extract output values (dependent variable)
+      dep_var = lookup_table.outputValues.to_a
+  
+      # Check for dimension mismatch
+      if ind_var_1_values.size * ind_var_2_values.size != dep_var.size
+        runner.registerError("Output values count does not match with value counts of variable 1 and 2 for TableLookup object: #{lookup_table.name}")
+        return false
+      end
+  
+      # Perform interpolation from the two independent variables
+      output_interpolated = interpolate_from_two_ind_vars(runner, ind_var_1_values, ind_var_2_values, dep_var, input1, input2)
+  
+      # Return interpolated value
+      return output_interpolated
+  
+    else
+      runner.registerError('This TableLookup is not based on two independent variables, so it is not supported with this method.')
+      return false
+    end
+  end
+  
   def interpolate_from_two_ind_vars(runner, ind_var_1, ind_var_2, dep_var, input1, input2)
     # Check if input1 is out of bounds
     if input1 < ind_var_1.first || input1 > ind_var_1.last
       runner.registerError("input1 (#{input1}) is out of bounds. It should be between #{ind_var_1.first} and #{ind_var_1.last}.")
+      return nil
     end
-
+  
     # Check if input2 is out of bounds
     if input2 < ind_var_2.first || input2 > ind_var_2.last
       runner.registerError("input2 (#{input2}) is out of bounds. It should be between #{ind_var_2.first} and #{ind_var_2.last}.")
+      return nil
     end
-
+  
     # Find the closest lower and upper bounds for input1 in ind_var_1
     i1_lower = ind_var_1.index { |val| val >= input1 } || ind_var_1.length - 1
     i1_upper = i1_lower.positive? ? i1_lower - 1 : 0
-
+  
     # Find the closest lower and upper bounds for input2 in ind_var_2
     i2_lower = ind_var_2.index { |val| val >= input2 } || ind_var_2.length - 1
     i2_upper = i2_lower.positive? ? i2_lower - 1 : 0
-
+  
     # Ensure i1_lower and i1_upper are correctly ordered
     if ind_var_1[i1_lower] < input1
       i1_upper = i1_lower
       i1_lower = [i1_lower + 1, ind_var_1.length - 1].min
     end
-
+  
     # Ensure i2_lower and i2_upper are correctly ordered
     if ind_var_2[i2_lower] < input2
       i2_upper = i2_lower
       i2_lower = [i2_lower + 1, ind_var_2.length - 1].min
     end
-
+  
     # Get the dep_var values at these indices
     v11 = dep_var[i1_upper * ind_var_2.length + i2_upper]
     v12 = dep_var[i1_upper * ind_var_2.length + i2_lower]
     v21 = dep_var[i1_lower * ind_var_2.length + i2_upper]
     v22 = dep_var[i1_lower * ind_var_2.length + i2_lower]
-
+  
     # If input1 or input2 exactly matches, no need for interpolation
     return v11 if input1 == ind_var_1[i1_upper] && input2 == ind_var_2[i2_upper]
-
+  
     # Interpolate between v11, v12, v21, and v22
     x1 = ind_var_1[i1_upper]
     x2 = ind_var_1[i1_lower]
     y1 = ind_var_2[i2_upper]
     y2 = ind_var_2[i2_lower]
-
-    (v11 * (x2 - input1) * (y2 - input2) +
+  
+    interpolated_value =
+      (v11 * (x2 - input1) * (y2 - input2) +
        v12 * (x2 - input1) * (input2 - y1) +
        v21 * (input1 - x1) * (y2 - input2) +
        v22 * (input1 - x1) * (input2 - y1)) / ((x2 - x1) * (y2 - y1))
-  end
-
-  # return dependent varible based on two independent variables from TableLookup
-  def get_dep_var_from_lookup_table_with_two_ind_vars(runner, lookup_table, ind_var_1, ind_var_2)
-    # check if the lookup only has two independent variables
-    if lookup_table.independentVariables.size == 2
-
-      # output
-      output_values = lookup_table.outputValues
-      output_values_count = output_values.size.to_i
-
-      # input 1: indoor air temperature data
-      ind_var_1_obj = lookup_table.independentVariables[0]
-      ind_var_1_values = ind_var_1_obj.values
-      ind_var_1_count = ind_var_1_values.size
-
-      # input 2: outdoor air temperature data
-      ind_var_2_obj = lookup_table.independentVariables[1]
-      ind_var_2_values = ind_var_2_obj.values
-      ind_var_2_count = ind_var_2_values.size
-
-      # raise error if inputs and outputs count does not match
-      if ind_var_1_count * ind_var_2_count != output_values_count
-        runner.registerError("output values count does not match with value counts of variable 1 and 2 for TableLookup object: #{lookup_table.name}")
-      end
-
-      # get interpolated dependent/output value
-      output_interpolated = interpolate_from_two_ind_vars(runner, ind_var_1_values.to_a, ind_var_2_values.to_a,
-                                                          output_values.to_a, ind_var_1, ind_var_2)
-
-    else
-      runner.registerError('This TableLookup is not based on two independent variables so not supported with this method.')
-      return false
-    end
-
-    output_interpolated
+  
+    interpolated_value
   end
 
   #### End predefined functions
@@ -1723,7 +1724,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       dns_htg_load_at_user_dsn_temp = htg_load_slope * hp_sizing_temp_c + htg_load_intercept
       if heat_cap_ft_curve_stages[rated_stage_num_heating].to_TableLookup.is_initialized
         table_lookup_obj = heat_cap_ft_curve_stages[rated_stage_num_heating].to_TableLookup.get
-        hp_derate_factor_at_user_dsn = get_dep_var_from_lookup_table_with_two_ind_vars(runner, table_lookup_obj,
+        hp_derate_factor_at_user_dsn = get_dep_var_from_lookup_table_with_interpolation(runner, table_lookup_obj,
                                                                                       ia_temp_c, oa_temp_c)
       else
         hp_derate_factor_at_user_dsn = heat_cap_ft_curve_stages[rated_stage_num_heating].evaluate(ia_temp_c, oa_temp_c)
