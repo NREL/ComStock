@@ -723,6 +723,37 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     result
   end
 
+  # return dependent varible based on two independent variables from TableMultiVariableLookup
+  # @param model [OpenStudio::Model::TableMultiVariableLookup] OpenStudio TableMultiVariableLookup object
+  # @param ind_var_1 [Double] independent variable 1
+  # @param ind_var_2 [Double] independent variable 2
+  # @return [Double] dependent variable value
+  def get_dep_var_from_lookup_table_with_two_ind_var(lookup_table, ind_var_1, ind_var_2)
+    unless lookup_table.to_TableMultiVariableLookup.is_initialized
+      runner.registerError("#{lookup_table.name} is not a OpenStudio::Model::TableMultiVariableLookup object.")
+      return false
+    end
+
+    # check if the lookup only has two independent variables
+    if lookup_table.numberofIndependentVariables == 2
+
+      # get independent variable 1 and 2 from table
+      array_ind_var_1 = lookup_table.xValues(0)
+      array_ind_var_2 = lookup_table.xValues(1)
+
+      # find the closest independent variable 1 and 2 from table based on method inputs
+      closest_ind_var_1 = array_ind_var_1.min_by{|x| (ind_var_1-x).abs}
+      closest_ind_var_2 = array_ind_var_2.min_by{|x| (ind_var_2-x).abs}
+
+      # grab dependent variable from the closest independent variables
+      dependent_var_val = lookup_table.yValue([closest_ind_var_1, closest_ind_var_2]).get
+    else
+      runner.registerError('This TableMultiVariableLookup is not based on two independent variables.')
+      return false
+    end
+    return dependent_var_val
+  end
+
   #### End predefined functions
 
   # define what happens when the measure is run
