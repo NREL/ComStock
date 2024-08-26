@@ -757,16 +757,23 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   end
   
   def interpolate_from_two_ind_vars(runner, ind_var_1, ind_var_2, dep_var, input1, input2)
-    # Check if input1 is out of bounds
-    if input1 < ind_var_1.first || input1 > ind_var_1.last
-      runner.registerError("input1 (#{input1}) is out of bounds. It should be between #{ind_var_1.first} and #{ind_var_1.last}.")
-      return nil
+
+    # Check input1 value
+    if input1 < ind_var_1.first
+      runner.registerWarning("input1 value (#{input1}) is lower than the minimum value in the data (#{ind_var_1.first}) thus replacing to minimum bound")
+      input1 = ind_var_1.first
+    elsif input1 > ind_var_1.last
+      runner.registerWarning("input1 value (#{input1}) is larger than the maximum value in the data (#{ind_var_1.last}) thus replacing to maximum bound")
+      input1 = ind_var_1.last
     end
-  
-    # Check if input2 is out of bounds
-    if input2 < ind_var_2.first || input2 > ind_var_2.last
-      runner.registerError("input2 (#{input2}) is out of bounds. It should be between #{ind_var_2.first} and #{ind_var_2.last}.")
-      return nil
+
+    # Check input2 value
+    if input2 < ind_var_2.first
+      runner.registerWarning("input2 value (#{input2}) is lower than the minimum value in the data (#{ind_var_2.first}) thus replacing to minimum bound")
+      input2 = ind_var_2.first
+    elsif input2 > ind_var_2.last
+      runner.registerWarning("input2 value (#{input2}) is larger than the maximum value in the data (#{ind_var_2.last}) thus replacing to maximum bound")
+      input2 = ind_var_2.last
     end
   
     # Find the closest lower and upper bounds for input1 in ind_var_1
