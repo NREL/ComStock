@@ -723,35 +723,93 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     result
   end
 
-  # return dependent varible based on two independent variables from TableMultiVariableLookup
-  # @param model [OpenStudio::Model::TableMultiVariableLookup] OpenStudio TableMultiVariableLookup object
-  # @param ind_var_1 [Double] independent variable 1
-  # @param ind_var_2 [Double] independent variable 2
-  # @return [Double] dependent variable value
-  def get_dep_var_from_lookup_table_with_two_ind_var(lookup_table, ind_var_1, ind_var_2)
-    unless lookup_table.to_TableMultiVariableLookup.is_initialized
-      runner.registerError("#{lookup_table.name} is not a OpenStudio::Model::TableMultiVariableLookup object.")
-      return false
+  # interpolate from table data: two input arrays and one output array
+  def interpolate_from_two_ind_vars(runner, ind_var_1, ind_var_2, dep_var, input1, input2)
+    # Check if input1 is out of bounds
+    if input1 < ind_var_1.first || input1 > ind_var_1.last
+      runner.registerError("input1 (#{input1}) is out of bounds. It should be between #{ind_var_1.first} and #{ind_var_1.last}.")
     end
 
+    # Check if input2 is out of bounds
+    if input2 < ind_var_2.first || input2 > ind_var_2.last
+      runner.registerError("input2 (#{input2}) is out of bounds. It should be between #{ind_var_2.first} and #{ind_var_2.last}.")
+    end
+
+    # Find the closest lower and upper bounds for input1 in ind_var_1
+    i1_lower = ind_var_1.index { |val| val >= input1 } || ind_var_1.length - 1
+    i1_upper = i1_lower.positive? ? i1_lower - 1 : 0
+
+    # Find the closest lower and upper bounds for input2 in ind_var_2
+    i2_lower = ind_var_2.index { |val| val >= input2 } || ind_var_2.length - 1
+    i2_upper = i2_lower.positive? ? i2_lower - 1 : 0
+
+    # Ensure i1_lower and i1_upper are correctly ordered
+    if ind_var_1[i1_lower] < input1
+      i1_upper = i1_lower
+      i1_lower = [i1_lower + 1, ind_var_1.length - 1].min
+    end
+
+    # Ensure i2_lower and i2_upper are correctly ordered
+    if ind_var_2[i2_lower] < input2
+      i2_upper = i2_lower
+      i2_lower = [i2_lower + 1, ind_var_2.length - 1].min
+    end
+
+    # Get the dep_var values at these indices
+    v11 = dep_var[i1_upper * ind_var_2.length + i2_upper]
+    v12 = dep_var[i1_upper * ind_var_2.length + i2_lower]
+    v21 = dep_var[i1_lower * ind_var_2.length + i2_upper]
+    v22 = dep_var[i1_lower * ind_var_2.length + i2_lower]
+
+    # If input1 or input2 exactly matches, no need for interpolation
+    return v11 if input1 == ind_var_1[i1_upper] && input2 == ind_var_2[i2_upper]
+
+    # Interpolate between v11, v12, v21, and v22
+    x1 = ind_var_1[i1_upper]
+    x2 = ind_var_1[i1_lower]
+    y1 = ind_var_2[i2_upper]
+    y2 = ind_var_2[i2_lower]
+
+    (v11 * (x2 - input1) * (y2 - input2) +
+       v12 * (x2 - input1) * (input2 - y1) +
+       v21 * (input1 - x1) * (y2 - input2) +
+       v22 * (input1 - x1) * (input2 - y1)) / ((x2 - x1) * (y2 - y1))
+  end
+
+  # return dependent varible based on two independent variables from TableLookup
+  def get_dep_var_from_lookup_table_with_two_ind_var(runner, lookup_table, ind_var_1, ind_var_2)
     # check if the lookup only has two independent variables
-    if lookup_table.numberofIndependentVariables == 2
+    if lookup_table.independentVariables.size == 2
 
-      # get independent variable 1 and 2 from table
-      array_ind_var_1 = lookup_table.xValues(0)
-      array_ind_var_2 = lookup_table.xValues(1)
+      # output
+      output_values = lookup_table.outputValues
+      output_values_count = output_values.size.to_i
 
-      # find the closest independent variable 1 and 2 from table based on method inputs
-      closest_ind_var_1 = array_ind_var_1.min_by{|x| (ind_var_1-x).abs}
-      closest_ind_var_2 = array_ind_var_2.min_by{|x| (ind_var_2-x).abs}
+      # input 1: indoor air temperature data
+      ind_var_1_obj = lookup_table.independentVariables[0]
+      ind_var_1_values = ind_var_1_obj.values
+      ind_var_1_count = ind_var_1_values.size
 
-      # grab dependent variable from the closest independent variables
-      dependent_var_val = lookup_table.yValue([closest_ind_var_1, closest_ind_var_2]).get
+      # input 2: outdoor air temperature data
+      ind_var_2_obj = lookup_table.independentVariables[1]
+      ind_var_2_values = ind_var_2_obj.values
+      ind_var_2_count = ind_var_2_values.size
+
+      # raise error if inputs and outputs count does not match
+      if ind_var_1_count * ind_var_2_count != output_values_count
+        runner.registerError("output values count does not match with value counts of variable 1 and 2 for TableLookup object: #{lookup_table.name}")
+      end
+
+      # get interpolated dependent/output value
+      output_interpolated = interpolate_from_two_ind_vars(runner, ind_var_1_values.to_a, ind_var_2_values.to_a,
+                                                          output_values.to_a, ind_var_1, ind_var_2)
+
     else
-      runner.registerError('This TableMultiVariableLookup is not based on two independent variables.')
+      runner.registerError('This TableLookup is not based on two independent variables so not supported with this method.')
       return false
     end
-    return dependent_var_val
+
+    output_interpolated
   end
 
   #### End predefined functions
@@ -1646,7 +1704,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         orig_htg_coil_gross_cap = design_air_flow_from_zone_sizing_heating_m_3_per_s * air_density_kg_per_m_3 * air_heat_capacity_j_per_kg_k * (coil_leaving_temperature_c - coil_entering_temperature_c)
         runner.registerInfo("original heating design load overriden from sizing run: #{orig_htg_coil_gross_cap_old.round(3)} W to  #{orig_htg_coil_gross_cap.round(3)} W for airloop (#{air_loop_hvac.name})")
 
-        # TODO: 
+        # TODO:
         # need to add both epw and ddy in test scripts to properly vary weather
         # derating factor value from evaluate method weird, check
         # assign heating design air flow rate to heating coil design air flow rate
@@ -1663,7 +1721,13 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # user-specified design
       oa_temp_c = hp_sizing_temp_c
       dns_htg_load_at_user_dsn_temp = htg_load_slope * hp_sizing_temp_c + htg_load_intercept
-      hp_derate_factor_at_user_dsn = heat_cap_ft_curve_stages[rated_stage_num_heating].evaluate(ia_temp_c, oa_temp_c)
+      if heat_cap_ft_curve_stages[rated_stage_num_heating].to_TableLookup.is_initialized
+        table_lookup_obj = heat_cap_ft_curve_stages[rated_stage_num_heating].to_TableLookup.get
+        hp_derate_factor_at_user_dsn = get_dep_var_from_lookup_table_with_two_ind_var(runner, table_lookup_obj,
+                                                                                      ia_temp_c, oa_temp_c)
+      else
+        hp_derate_factor_at_user_dsn = heat_cap_ft_curve_stages[rated_stage_num_heating].evaluate(ia_temp_c, oa_temp_c)
+      end
       req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn = dns_htg_load_at_user_dsn_temp / hp_derate_factor_at_user_dsn
 
       # determine heat pump system sizing based on user-specified sizing temperature and user-specified maximum upsizing limits
