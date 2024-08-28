@@ -87,7 +87,8 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
 
     choices = ['full baseline', 'bin sample', 'part year bin sample', 'fix', 'oat']
     load_prediction_method = OpenStudio::Ruleset::OSArgument.makeChoiceArgument('load_prediction_method', choices, true)
-    load_prediction_method.setDisplayName("Method of load prediction (full baseline run, bin sample, part year bin sample, fixed schedule, outdoor air temperature-based)")
+    load_prediction_method.setDisplayName("Method of load prediction or window determination reference")
+    load_prediction_method.setDescription("Load prediction based on full baseline run, load prediction based on bin sample simulation, load prediction base on part year bin sample simulation, predetermined fixed schedule (no prediction), load peak prediction based on outdoor air temperature)")
     load_prediction_method.setDefaultValue('full baseline')
     args << load_prediction_method
 
@@ -344,7 +345,7 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
 
     # # applicability: don't apply measure if specified in input
     # if apply_measure == false
-    #   runner.registerAsNotApplicable('Measure is not applied based on user input.')
+    #   runner.registerFinalCondition('Measure is not applied based on user input.')
     #   return true
     # end
 

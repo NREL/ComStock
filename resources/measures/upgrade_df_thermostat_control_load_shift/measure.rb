@@ -166,7 +166,7 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
       # day_schedules.each do |day_schedule|
       #   day_sched_array << day_schedule
       # end
-      day_sched_array.each do |day_schedule|
+      day_schedules.each do |day_schedule|
         if model.version.str < '3.8.0'
           current_hour = interval
           time_values = day_schedule.times
@@ -237,12 +237,13 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
       else
         raise "Interval not supported"
       end
+      num_timesteps = model.getTimestep.numberOfTimestepsPerHour
       day_schedules = schedule_ruleset.getDaySchedules(start_date, end_date)
-      day_sched_array = []
+      # day_sched_array = []
+      # day_schedules.each do |day_schedule|
+      #   day_sched_array << day_schedule
+      # end
       day_schedules.each do |day_schedule|
-        day_sched_array << day_schedule
-      end
-      day_sched_array.each do |day_schedule|
         if model.version.str < '3.8.0'
           current_hour = interval
           time_values = day_schedule.times
@@ -504,16 +505,18 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
       applicable_htg_thermostats = []
       thermostats = model.getThermostatSetpointDualSetpoints
       thermostats.each do |thermostat|
-        thermalzone = thermostat.to_Thermostat.get.thermalZone.get
-        clg_fueltypes = thermalzone.coolingFuelTypes.map(&:valueName).uniq
-        htg_fueltypes = thermalzone.heatingFuelTypes.map(&:valueName).uniq
-        # puts("### DEBUGGING: clg_fueltypes = #{clg_fueltypes}")
-        # puts("### DEBUGGING: htg_fueltypes = #{htg_fueltypes}")
-        if clg_fueltypes == ["Electricity"]
-          applicable_clg_thermostats << thermostat
-        end
-        if htg_fueltypes == ["Electricity"]
-          applicable_htg_thermostats << thermostat
+        if thermostat.to_Thermostat.get.thermalZone.is_initialized
+          thermalzone = thermostat.to_Thermostat.get.thermalZone.get
+          clg_fueltypes = thermalzone.coolingFuelTypes.map(&:valueName).uniq
+          htg_fueltypes = thermalzone.heatingFuelTypes.map(&:valueName).uniq
+          # puts("### DEBUGGING: clg_fueltypes = #{clg_fueltypes}")
+          # puts("### DEBUGGING: htg_fueltypes = #{htg_fueltypes}")
+          if clg_fueltypes == ["Electricity"]
+            applicable_clg_thermostats << thermostat
+          end
+          if htg_fueltypes == ["Electricity"]
+            applicable_htg_thermostats << thermostat
+          end
         end
       end
       return applicable_clg_thermostats, applicable_htg_thermostats, thermostats.size

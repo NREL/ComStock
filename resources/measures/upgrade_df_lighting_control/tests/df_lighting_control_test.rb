@@ -59,13 +59,13 @@ class DFLightingControlTest < Minitest::Test
       result: 'Success'
     }
     test_sets << {
-      model: '3340', # small office
-      weather: '3340',
+      model: '3340_small_office_OS38', # small office
+      weather: 'IL_Dupage_3340_18',
       result: 'Success'
     }
     test_sets << {
-      model: '4774', # secondary school
-      weather: '4774',
+      model: '4774_secondary_school_OS38', # secondary school
+      weather: 'MI_Tulip_City_4774_18',
       result: 'Success'
     }
     # test: not applicable building type
@@ -231,11 +231,16 @@ class DFLightingControlTest < Minitest::Test
 
       # set arguments:
       peak_window_strategy = arguments[6].clone
-      assert(peak_window_strategy.setValue('center with peak'))#'bin sample''part year bin sample'
+      assert(peak_window_strategy.setValue('center with peak'))
       argument_map['peak_window_strategy'] = peak_window_strategy
 
+      # # set arguments:
+      # apply_measure = arguments[7].clone
+      # assert(apply_measure.setValue(true))
+      # argument_map['apply_measure'] = apply_measure
+
       # apply the measure to the model and optionally run the model
-      result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+      result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: true)
 
       # check the measure result; result values will equal Success, Fail, or Not Applicable (NA)
       # also check the amount of warnings, info, and error messages
