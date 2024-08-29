@@ -512,7 +512,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # if maximum flow/ton ratio cannot be accommodated without violating minimum airflow ratios
         # if cfm/ton limit can't be met by reducing airflow, allow increase capacity of up to 65% range between capacities
         # calculate maximum allowable ratio, no more than 50% increase between specified stages
-        ratio_allowance_50_pct = ratio + (stage_cap_fractions[stage+1] - ratio) * 0.65
+        ratio_allowance_50_pct = ratio + (stage_cap_fractions[stage+1] - ratio) * 0.50
         required_stage_cap_ratio = airflow / m_3_per_s_per_w_max / (stage_cap_fractions[rated_stage_num] * dx_rated_cap_applied)
         if ((m_3_per_s_per_w_max * stage_capacity) / old_terminal_sa_flow_m3_per_s) >= min_airflow_ratio
           # calculate new stage airflow
@@ -635,7 +635,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         dx_coil_speed_data.autosizedRatedEvaporativeCondenserPumpPowerConsumption
 
         # add speed data to multispeed coil object
-        new_dx_cooling_coil.addStage(dx_coil_speed_data) unless (stage_caps_heating[stage]==false)
+        new_dx_cooling_coil.addStage(dx_coil_speed_data) #unless (stage_caps_heating[stage]==false)
       end
     end
     return new_dx_cooling_coil
@@ -720,7 +720,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         dx_coil_speed_data.setEnergyInputRatioFunctionofFlowFractionCurve(heat_eir_ff_curve_stages[stage])
         dx_coil_speed_data.setPartLoadFractionCorrelationCurve(heat_plf_fplr1)
         # add speed data to multispeed coil object
-        new_dx_heating_coil.addStage(dx_coil_speed_data) unless (stage_caps_cooling[stage]==false)
+        new_dx_heating_coil.addStage(dx_coil_speed_data) #unless (stage_caps_cooling[stage]==false)
       end
     end
     return new_dx_heating_coil
@@ -1147,7 +1147,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     elsif hprtu_scenario=='cchpc_2027_spec'
       cool_cap_ft1 =  model_add_curve(model, 'c_cap_low_T', custom_data_json, std)
       cool_cap_ft2 = model_add_curve(model, 'c_cap_high_T', custom_data_json, std)
-      cool_cap_ft_curve_stages = {1=>cool_cap_ft1, 2=>cool_cap_ft2}
+      # Modeled with 4 stages due to E+ bug that doesn't allow stage mismatch between heating and cooling
+      cool_cap_ft_curve_stages = {1=>cool_cap_ft1, 2=>cool_cap_ft1, 3=>cool_cap_ft2, 4=>cool_cap_ft2}
     end
 
     # Curve Import - Cooling efficiency as a function of temperature
@@ -1170,7 +1171,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     elsif hprtu_scenario=='cchpc_2027_spec'
       cool_eir_ft1 =  model_add_curve(model, 'c_eir_low_T', custom_data_json, std)
       cool_eir_ft2 = model_add_curve(model, 'c_eir_high_T', custom_data_json, std)
-      cool_eir_ft_curve_stages = {1=>cool_eir_ft1, 2=>cool_eir_ft2}
+      # Modeled with 4 stages due to E+ bug that doesn't allow stage mismatch between heating and cooling
+      cool_eir_ft_curve_stages = {1=>cool_eir_ft1, 2=>cool_eir_ft1, 3=>cool_eir_ft2, 4=>cool_eir_ft2}
     end
 
     # Curve Import - Cooling capacity as a function of flow rate
@@ -1188,7 +1190,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     elsif hprtu_scenario=='cchpc_2027_spec'
       cool_cap_ff1 = model_add_curve(model, 'c_cap_low_ff', custom_data_json, std)
       cool_cap_ff2 = model_add_curve(model, 'c_cap_high_ff', custom_data_json, std)
-      cool_cap_ff_curve_stages = {1=>cool_cap_ff1, 2=>cool_cap_ff2}
+      cool_cap_ff_curve_stages = {1=>cool_cap_ff1, 2=>cool_cap_ff1, 3=>cool_cap_ff2, 4=>cool_cap_ff2}
     end
 
     # Curve Import - Cooling efficiency as a function of flow rate
@@ -1206,7 +1208,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     elsif hprtu_scenario=='cchpc_2027_spec'
       cool_eir_ff1 = model_add_curve(model, 'c_eir_low_ff', custom_data_json, std)
       cool_eir_ff2 = model_add_curve(model, 'c_eir_high_ff', custom_data_json, std)
-      cool_eir_ff_curve_stages = {1=>cool_eir_ff1, 2=>cool_eir_ff2}
+      cool_eir_ff_curve_stages = {1=>cool_eir_ff1, 2=>cool_eir_ff1, 3=>cool_eir_ff2, 4=>cool_eir_ff2}
     end
 
     # Curve Import - Cooling efficiency as a function of part load ratio
@@ -1240,8 +1242,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       heat_cap_ft1 = model_add_curve(model, 'h_cap_T', custom_data_json, std)
       heat_cap_ft_curve_stages = {1=>heat_cap_ft1}
     elsif hprtu_scenario=='cchpc_2027_spec'
-      heat_cap_ft1 = model_add_curve(model, 'h_cap_T', custom_data_json, std)
-      heat_cap_ft_curve_stages = {1=>heat_cap_ft1}
+      heat_cap_ft1 = model_add_curve(model, 'h_cap_low', custom_data_json, std)
+      heat_cap_ft2 = model_add_curve(model, 'h_cap_medium', custom_data_json, std)
+      heat_cap_ft3 = model_add_curve(model, 'h_cap_high', custom_data_json, std)
+      heat_cap_ft4 = model_add_curve(model, 'h_cap_boost', custom_data_json, std)
+      heat_cap_ft_curve_stages = {1=>heat_cap_ft1, 2=>heat_cap_ft2, 3=>heat_cap_ft3, 4=>heat_cap_ft4}
     end
 
     # Curve Import - Heating efficiency as a function of temperature
@@ -1262,8 +1267,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       heat_eir_ft1 =  model_add_curve(model, 'h_eir_T', custom_data_json, std)
       heat_eir_ft_curve_stages = {1=>heat_eir_ft1}
     elsif hprtu_scenario=='cchpc_2027_spec'
-      heat_eir_ft1 =  model_add_curve(model, 'h_eir_T', custom_data_json, std)
-      heat_eir_ft_curve_stages = {1=>heat_eir_ft1}
+      heat_eir_ft1 = model_add_curve(model, 'h_eir_low', custom_data_json, std)
+      heat_eir_ft2 = model_add_curve(model, 'h_eir_medium', custom_data_json, std)
+      heat_eir_ft3 = model_add_curve(model, 'h_eir_high', custom_data_json, std)
+      heat_eir_ft4 = model_add_curve(model, 'h_eir_boost', custom_data_json, std)
+      heat_eir_ft_curve_stages = {1=>heat_eir_ft1, 2=>heat_eir_ft2, 3=>heat_eir_ft3, 4=>heat_eir_ft4}
     end
 
     # Curve Import - Heating capacity as a function of flow rate
@@ -1278,7 +1286,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       heat_cap_ff_curve_stages = {1=>heat_cap_ff1}
     elsif hprtu_scenario=='cchpc_2027_spec'
       heat_cap_ff1 = model_add_curve(model, 'h_cap_allstages_ff', custom_data_json, std)
-      heat_cap_ff_curve_stages = {1=>heat_cap_ff1}
+      heat_cap_ff_curve_stages = {1=>heat_cap_ff1, 2=>heat_cap_ff1, 3=>heat_cap_ff1, 4=>heat_cap_ff1}
     end
 
     # Curve Import - Heating efficiency as a function of flow rate
@@ -1293,7 +1301,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       heat_eir_ff_curve_stages = {1=>heat_eir_ff1}
     elsif hprtu_scenario=='cchpc_2027_spec'
       heat_eir_ff1 = model_add_curve(model, 'h_eir_allstages_ff', custom_data_json, std)
-      heat_eir_ff_curve_stages = {1=>heat_eir_ff1}
+      heat_eir_ff_curve_stages = {1=>heat_eir_ff1, 2=>heat_eir_ff1, 3=>heat_eir_ff1, 4=>heat_eir_ff1}
     end
 
     # Curve Import - Heating efficiency as a function of part load ratio
@@ -1770,7 +1778,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
                                                                                                                                                               air_loop_hvac,
                                                                                                                                                               heating_or_cooling='heating',
                                                                                                                                                               runner,
-                                                                                                                                                              tolerance=0.01
+                                                                                                                                                              tolerance=0.005
                                                                                                                                                               )
       # cooling - align stage CFM/ton bounds where possible
       # this may remove some lower stages
@@ -1785,7 +1793,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
                                                                                                                                                               air_loop_hvac,
                                                                                                                                                               heating_or_cooling='cooling',
                                                                                                                                                               runner,
-                                                                                                                                                              tolerance=0.01
+                                                                                                                                                              tolerance=0.005
                                                                                                                                                               )
 
 

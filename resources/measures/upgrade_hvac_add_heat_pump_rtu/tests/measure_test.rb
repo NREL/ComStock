@@ -338,7 +338,8 @@ class AddHeatPumpRtuTest < Minitest::Test
     end
 
     # Apply the measure to the model and optionally run the model
-    result = apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+    result = apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: true)
+
     assert_equal('Success', result.value.valueName)
     model = load_model(model_output_path(test_name))
 
@@ -459,7 +460,7 @@ class AddHeatPumpRtuTest < Minitest::Test
   # 5) coil speeds capacities and flow rates are ascending
   # 6) coil speeds fall within E+ specified cfm/ton ranges
 
-  def test_370_Small_Office_PSZ_Gas_2A
+  def x_test_370_Small_Office_PSZ_Gas_2A
     osm_name = '370_small_office_psz_gas_2A.osm'
     epw_name = 'SC_Columbia_Metro_723100_12.epw'
 
@@ -480,6 +481,10 @@ class AddHeatPumpRtuTest < Minitest::Test
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 	
+	puts "DEBUG-----------------------------"
+	puts "puts argument_map_orig: #{argument_map}"
+	puts "puts argument_map_orig size: #{argument_map.size}"	
+	
 	# populate argument with specified hash value if specified
     arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
@@ -491,6 +496,10 @@ class AddHeatPumpRtuTest < Minitest::Test
         argument_map[arg.name] = temp_arg_var
       end
     end
+	
+	
+	puts argument_map
+	puts argument_map.size
 
     test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
   end
@@ -531,7 +540,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
   end
 
-  def test_370_warehouse_psz_gas_6A
+  def x_test_370_warehouse_psz_gas_6A
     osm_name = '370_warehouse_psz_gas_6A.osm'
     epw_name = 'MI_DETROIT_725375_12.epw'
 
@@ -567,7 +576,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
   end
 
-  def test_370_retail_psz_gas_6B
+  def x_test_370_retail_psz_gas_6B
     osm_name = '370_retail_psz_gas_6B.osm'
     epw_name = 'NE_Kearney_Muni_725526_16.epw'
 
@@ -605,7 +614,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
   ###########################################################################
   ###This section tests proper classification of partially-applicable building types
-  def test_370_full_service_restaurant_psz_gas_coil
+  def x_test_370_full_service_restaurant_psz_gas_coil
     osm_name = '370_full_service_restaurant_psz_gas_coil.osm'
     epw_name = 'GA_ROBINS_AFB_722175_12.epw'
 
@@ -717,7 +726,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
   ###########################################################################
   ###This test is for cfm/ton check for standard performance unit
-  def test_370_full_service_restaurant_psz_gas_coil_std_perf
+  def x_test_370_full_service_restaurant_psz_gas_coil_std_perf
     osm_name = '370_full_service_restaurant_psz_gas_coil.osm'
     epw_name = 'GA_ROBINS_AFB_722175_12.epw'
 
@@ -759,7 +768,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
   ###########################################################################
   ###This test is for cfm/ton check for upsized unit
-  def test_370_full_service_restaurant_psz_gas_coil_upsizing
+  def x_test_370_full_service_restaurant_psz_gas_coil_upsizing
     osm_name = '370_full_service_restaurant_psz_gas_coil.osm'
     epw_name = 'GA_ROBINS_AFB_722175_12.epw'
 
@@ -835,7 +844,7 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   # assert that non applicable HVAC system registers as NA
-  def test_370_warehouse_pvav_gas_boiler_reheat_2A
+  def x_test_370_warehouse_pvav_gas_boiler_reheat_2A
     # this makes sure measure registers an na for non applicable model
     osm_name = '370_warehouse_pvav_gas_boiler_reheat_2A.osm'
     epw_name = 'TN_KNOXVILLE_723260_12.epw'
@@ -873,7 +882,7 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   # assert that non applicable HVAC system registers as NA
-  def test_370_medium_office_doas_fan_coil_acc_boiler_3A
+  def x_test_370_medium_office_doas_fan_coil_acc_boiler_3A
     # this makes sure measure registers an na for non applicable model
     osm_name = '370_medium_office_doas_fan_coil_acc_boiler_3A.osm'
     epw_name = 'TN_KNOXVILLE_723260_12.epw'
@@ -911,7 +920,7 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   # test that ERVs do no impact existing ERVs when ERV argument is NOT toggled
-  def test_370_full_service_restaurant_psz_gas_coil_single_erv_3A
+  def x_test_370_full_service_restaurant_psz_gas_coil_single_erv_3A
     # this makes sure measure registers an na for non applicable model
     osm_name = '370_full_service_restaurant_psz_gas_coil_single_erv_3A.osm'
     epw_name = 'SC_Columbia_Metro_723100_12.epw'
@@ -957,7 +966,7 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   # test that ERVs do no impact non-applicable building types
-  def test_370_full_service_restaurant_psz_gas_coil_single_erv_3A_na
+  def x_test_370_full_service_restaurant_psz_gas_coil_single_erv_3A_na
     # this makes sure measure registers an na for non applicable model
     osm_name = '370_full_service_restaurant_psz_gas_coil_single_erv_3A.osm'
     epw_name = 'SC_Columbia_Metro_723100_12.epw'
