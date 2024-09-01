@@ -4,6 +4,7 @@ buildstock.csv,american_housing_survey_region,in.american_housing_survey_region,
 buildstock.csv,aspect_ratio,,FALSE,FALSE,,,,
 buildstock.csv,baseline_window_type,,FALSE,FALSE,,,,
 buildstock.csv,baseline_hvac_sizing,,FALSE,FALSE,,,,
+buildstock.csv,building_area,,FALSE,FALSE,,,,
 buildstock.csv,building_shape,,FALSE,FALSE,,,,
 buildstock.csv,building_subtype,,FALSE,FALSE,,,,
 buildstock.csv,building_type,,FALSE,FALSE,,,,
@@ -68,13 +69,14 @@ buildstock.csv,plugload_sch_weekend_base_peak_ratio,,FALSE,FALSE,,,,
 buildstock.csv,purchase_input_responsibility,in.purchase_input_responsibility,TRUE,FALSE,string,,,Who has the most direct input on decisions regarding pruchases of energy-related equipment
 buildstock.csv,reeds_balancing_area,in.reeds_balancing_area,TRUE,FALSE,string,,,Balancing area ID for the NREL ReEDS modeling tool
 buildstock.csv,region,,FALSE,FALSE,,,,
-buildstock.csv,rentable_area,,FALSE,FALSE,,,,
 buildstock.csv,resstock_county_id,in.county_name,TRUE,TRUE,string,,,State abbreviation and county name
 buildstock.csv,resstock_custom_region,in.resstock_custom_region,FALSE,FALSE,string,,,
 buildstock.csv,resstock_puma_id,in.resstock_puma_id,FALSE,FALSE,string,,,State abbreviation and PUMA identifier
 buildstock.csv,rotation,,FALSE,FALSE,,,,
 buildstock.csv,sample_building_id,,FALSE,FALSE,,,,
-buildstock.csv,service_water_heating_fuel,,FALSE,FALSE,,,,
+buildstock.csv,sample_region,,FALSE,FALSE,,,,
+buildstock.csv,sampling_region,in.sampling_region_id,TRUE,FALSE,integer,,,Region assigned through the sampling process
+buildstock.csv,size_bin,in.size_bin_id,TRUE,FALSE,integer,,,Size bin assigned through the sampling process - this is a function of building type
 buildstock.csv,state_abbreviation,in.state,TRUE,TRUE,string,,,Postal abbreviation of state
 buildstock.csv,state_id,,FALSE,FALSE,,,,
 buildstock.csv,state_name,in.state_name,TRUE,TRUE,string,,,Full name of state
