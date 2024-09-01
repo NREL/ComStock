@@ -31,6 +31,18 @@ class NamingMixin():
     COMP_STATUS = 'completed_status'
     META_IDX = 'metadata_index'
 
+    # Variables needed by the apportionment sampling regime
+    SAMPLING_REGION = 'in.sampling_region_id'
+    COUNTY_ID = 'in.nhgis_county_gisjoin'
+    TRACT_ID = 'in.nhgis_tract_gisjoin'
+    PUMA_ID = 'in.nhgis_puma_gisjoin'
+    SH_FUEL = 'in.heating_fuel'
+    SIZE_BIN = 'in.size_bin_id'
+    STATE_ID = 'in.nhgis_state_gisjoin'
+    TOT_EUI = 'out.site_energy.total.energy_consumption_intensity..kwh_per_ft2'
+    SAMPLED_COLUMN_PREFIX = 'sampled.'
+    POST_APPO_SIM_COL_PREFIX = 'in.as_simulated_'
+
     # Total annual energy
     ANN_TOT_ENGY_KBTU = 'out.site_energy.total.energy_consumption..kwh'
     ANN_TOT_ELEC_KBTU = 'out.electricity.total.energy_consumption..kwh'
