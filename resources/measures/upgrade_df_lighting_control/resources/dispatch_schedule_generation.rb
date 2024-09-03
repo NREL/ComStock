@@ -921,8 +921,11 @@ def peak_schedule_generation(annual_load, oat, peak_len, num_timesteps_in_hr, pe
       end
     end
   end
+  peak_schedule.each_index do |i|
+    peak_schedule[i] = 0 if peak_schedule[i].nil?
+  end
   if peak_schedule.size < annual_load.size
-    peak_schedule.fill(0, peak_schedule.size...annual_load.size-1)
+    peak_schedule.fill(0, peak_schedule.size..annual_load.size-1)
   else
     peak_schedule = peak_schedule.take(annual_load.size)
   end
