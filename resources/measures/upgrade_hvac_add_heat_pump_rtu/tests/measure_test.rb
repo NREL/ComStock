@@ -242,6 +242,7 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   def calc_cfm_per_ton_multispdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
+
     # get relevant heating coils
     coils_heating = model.getCoilHeatingDXMultiSpeedStageDatas
 
@@ -268,6 +269,7 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   def calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
+
     # get cooling coils
     coils_cooling = model.getCoilCoolingDXMultiSpeedStageDatas
 
@@ -312,7 +314,6 @@ class AddHeatPumpRtuTest < Minitest::Test
 
       puts performance_category
     end
-    # puts("### DEBUGGING: performance_category = #{performance_category}")
     refute_equal(performance_category, nil)
 
     # loop through coils and check cfm/ton values
@@ -759,7 +760,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
   # ##########################################################################
   # This section tests upsizing algorithm
-  # tests include:
+  # tests compare:
   # 1) regularly sized model versus upsized model in cold region
   # 2) regularly sized model versus upsized model in hot region
   def test_sizing_model_in_alaska
@@ -810,9 +811,9 @@ class AddHeatPumpRtuTest < Minitest::Test
     end
 
     # Apply the measure to the model and optionally run the model
-    result = apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+    result = apply_measure_and_run(test_name + "_b", measure, argument_map, osm_path, epw_path, run_model: false)
     assert_equal('Success', result.value.valueName)
-    model = load_model(model_output_path(test_name))
+    model = load_model(model_output_path(test_name + "_b"))
 
     # get sizing info from regular sized model
     sizing_summary_reference = get_sizing_summary(model)
@@ -828,9 +829,9 @@ class AddHeatPumpRtuTest < Minitest::Test
     end
 
     # Apply the measure to the model and optionally run the model
-    result = apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+    result = apply_measure_and_run(test_name + "_a", measure, argument_map, osm_path, epw_path, run_model: false)
     assert_equal('Success', result.value.valueName)
-    model = load_model(model_output_path(test_name))
+    model = load_model(model_output_path(test_name + "_a"))
 
     # compare sizing summary of upsizing model with regular sized model
     check_sizing_results_upsizing(model, sizing_summary_reference)
@@ -884,9 +885,9 @@ class AddHeatPumpRtuTest < Minitest::Test
     end
 
     # Apply the measure to the model and optionally run the model
-    result = apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+    result = apply_measure_and_run(test_name + "_b", measure, argument_map, osm_path, epw_path, run_model: false)
     assert_equal('Success', result.value.valueName)
-    model = load_model(model_output_path(test_name))
+    model = load_model(model_output_path(test_name + "_b"))
 
     # get sizing info from regular sized model
     sizing_summary_reference = get_sizing_summary(model)
@@ -902,9 +903,9 @@ class AddHeatPumpRtuTest < Minitest::Test
     end
 
     # Apply the measure to the model and optionally run the model
-    result = apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+    result = apply_measure_and_run(test_name + "_a", measure, argument_map, osm_path, epw_path, run_model: false)
     assert_equal('Success', result.value.valueName)
-    model = load_model(model_output_path(test_name))
+    model = load_model(model_output_path(test_name + "_a"))
 
     # compare sizing summary of upsizing model with regular sized model
     check_sizing_results_no_upsizing(model, sizing_summary_reference)
@@ -1239,10 +1240,18 @@ class AddHeatPumpRtuTest < Minitest::Test
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
-    # populate argument with specified hash value if specified
+    # get arguments
     arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      if arg.name == 'performance_oversizing_factor'
+      if arg.name == 'sizing_run'
+        sizing_run = arguments[idx].clone
+        sizing_run.setValue(false)
+        argument_map[arg.name] = sizing_run
+      elsif arg.name == 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('variable_speed_high_eff') # variable_speed_high_eff, two_speed_standard_eff
+        argument_map[arg.name] = hprtu_scenario
+      elsif arg.name == 'performance_oversizing_factor'
         performance_oversizing_factor = arguments[idx].clone
         performance_oversizing_factor.setValue(0.25) # override performance_oversizing_factor arg
         argument_map[arg.name] = performance_oversizing_factor
