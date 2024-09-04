@@ -726,38 +726,37 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   def get_dep_var_from_lookup_table_with_interpolation(runner, lookup_table, input1, input2)
     # Check if the lookup table only has two independent variables
     if lookup_table.independentVariables.size == 2
-  
+
       # Extract independent variable 1 (e.g., indoor air temperature data)
       ind_var_1_obj = lookup_table.independentVariables[0]
       ind_var_1_values = ind_var_1_obj.values.to_a
-  
+
       # Extract independent variable 2 (e.g., outdoor air temperature data)
       ind_var_2_obj = lookup_table.independentVariables[1]
       ind_var_2_values = ind_var_2_obj.values.to_a
-  
+
       # Extract output values (dependent variable)
       dep_var = lookup_table.outputValues.to_a
-  
+
       # Check for dimension mismatch
       if ind_var_1_values.size * ind_var_2_values.size != dep_var.size
         runner.registerError("Output values count does not match with value counts of variable 1 and 2 for TableLookup object: #{lookup_table.name}")
         return false
       end
-  
+
       # Perform interpolation from the two independent variables
-      output_interpolated = interpolate_from_two_ind_vars(runner, ind_var_1_values, ind_var_2_values, dep_var, input1, input2)
-  
+      interpolate_from_two_ind_vars(runner, ind_var_1_values, ind_var_2_values, dep_var, input1,
+                                    input2)
+
       # Return interpolated value
-      return output_interpolated
-  
+
     else
       runner.registerError('This TableLookup is not based on two independent variables, so it is not supported with this method.')
-      return false
+      false
     end
   end
-  
-  def interpolate_from_two_ind_vars(runner, ind_var_1, ind_var_2, dep_var, input1, input2)
 
+  def interpolate_from_two_ind_vars(runner, ind_var_1, ind_var_2, dep_var, input1, input2)
     # Check input1 value
     if input1 < ind_var_1.first
       runner.registerWarning("input1 value (#{input1}) is lower than the minimum value in the data (#{ind_var_1.first}) thus replacing to minimum bound")
@@ -775,49 +774,46 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       runner.registerWarning("input2 value (#{input2}) is larger than the maximum value in the data (#{ind_var_2.last}) thus replacing to maximum bound")
       input2 = ind_var_2.last
     end
-  
+
     # Find the closest lower and upper bounds for input1 in ind_var_1
     i1_lower = ind_var_1.index { |val| val >= input1 } || ind_var_1.length - 1
     i1_upper = i1_lower.positive? ? i1_lower - 1 : 0
-  
+
     # Find the closest lower and upper bounds for input2 in ind_var_2
     i2_lower = ind_var_2.index { |val| val >= input2 } || ind_var_2.length - 1
     i2_upper = i2_lower.positive? ? i2_lower - 1 : 0
-  
+
     # Ensure i1_lower and i1_upper are correctly ordered
     if ind_var_1[i1_lower] < input1
       i1_upper = i1_lower
       i1_lower = [i1_lower + 1, ind_var_1.length - 1].min
     end
-  
+
     # Ensure i2_lower and i2_upper are correctly ordered
     if ind_var_2[i2_lower] < input2
       i2_upper = i2_lower
       i2_lower = [i2_lower + 1, ind_var_2.length - 1].min
     end
-  
+
     # Get the dep_var values at these indices
     v11 = dep_var[i1_upper * ind_var_2.length + i2_upper]
     v12 = dep_var[i1_upper * ind_var_2.length + i2_lower]
     v21 = dep_var[i1_lower * ind_var_2.length + i2_upper]
     v22 = dep_var[i1_lower * ind_var_2.length + i2_lower]
-  
+
     # If input1 or input2 exactly matches, no need for interpolation
     return v11 if input1 == ind_var_1[i1_upper] && input2 == ind_var_2[i2_upper]
-  
+
     # Interpolate between v11, v12, v21, and v22
     x1 = ind_var_1[i1_upper]
     x2 = ind_var_1[i1_lower]
     y1 = ind_var_2[i2_upper]
     y2 = ind_var_2[i2_lower]
-  
-    interpolated_value =
-      (v11 * (x2 - input1) * (y2 - input2) +
+
+    (v11 * (x2 - input1) * (y2 - input2) +
        v12 * (x2 - input1) * (input2 - y1) +
        v21 * (input1 - x1) * (y2 - input2) +
        v22 * (input1 - x1) * (input2 - y1)) / ((x2 - x1) * (y2 - y1))
-  
-    interpolated_value
   end
 
   #### End predefined functions
@@ -1030,6 +1026,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     if (is_sizing_run_needed == true) || (sizing_run == true)
       runner.registerInfo('Sizing run needed')
       return false if std.model_run_sizing_run(model, "#{Dir.pwd}/SR1") == false
+
       model.applySizingValues
     end
 
@@ -1660,6 +1657,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
       # get appropriate design heating load
       orig_htg_coil_gross_cap_old = orig_htg_coil_gross_cap
+      design_air_flow_from_zone_sizing_heating_m_3_per_s = old_terminal_sa_flow_m3_per_s
       if sizing_run
 
         # get thermal zones for the air loop
@@ -1711,11 +1709,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # override design heating load with Q = vdot * rho * cp * (Tout - Tin)
         orig_htg_coil_gross_cap = design_air_flow_from_zone_sizing_heating_m_3_per_s * air_density_kg_per_m_3 * air_heat_capacity_j_per_kg_k * (coil_leaving_temperature_c - coil_entering_temperature_c)
         runner.registerInfo("original heating design load overriden from sizing run: #{orig_htg_coil_gross_cap_old.round(3)} W to  #{orig_htg_coil_gross_cap.round(3)} W for airloop (#{air_loop_hvac.name})")
-
-        # TODO:
-        # need to add both epw and ddy in test scripts to properly vary weather
-        # derating factor value from evaluate method weird, check
-        # assign heating design air flow rate to heating coil design air flow rate
       end
 
       # determine heating load curve; y=mx+b
@@ -1732,7 +1725,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       if heat_cap_ft_curve_stages[rated_stage_num_heating].to_TableLookup.is_initialized
         table_lookup_obj = heat_cap_ft_curve_stages[rated_stage_num_heating].to_TableLookup.get
         hp_derate_factor_at_user_dsn = get_dep_var_from_lookup_table_with_interpolation(runner, table_lookup_obj,
-                                                                                      ia_temp_c, oa_temp_c)
+                                                                                        ia_temp_c, oa_temp_c)
       else
         hp_derate_factor_at_user_dsn = heat_cap_ft_curve_stages[rated_stage_num_heating].evaluate(ia_temp_c, oa_temp_c)
       end
@@ -1751,12 +1744,17 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # If ratio of required heating capacity at rated conditions to cooling capacity is less than specified heating to cooling ratio, then size everything based on cooling
       # If heating load requires upsizing, but is below user-input cooling upsizing limit, then size based on design heating load
       # Else, size to maximum oversizing factor
+      design_heating_airflow_m_3_per_s = nil
+      design_cooling_airflow_m_3_per_s = nil
       if (req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn / autosized_tot_clg_cap_upsized) <= htg_to_clg_hp_ratio
         heating_load_category = 'Small heating load'
         # set rated heating capacity equal to upsized cooling capacity times the user-specified heating to cooling sizing ratio
         dx_rated_htg_cap_applied = autosized_tot_clg_cap_upsized * htg_to_clg_hp_ratio
         # set rated cooling capacity
         dx_rated_clg_cap_applied = autosized_tot_clg_cap_upsized
+        # define design airflows
+        design_cooling_airflow_m_3_per_s = old_terminal_sa_flow_m3_per_s
+        design_heating_airflow_m_3_per_s = old_terminal_sa_flow_m3_per_s
       elsif req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn <= max_heat_cap_w_upsize
         heating_load_category = 'Moderate heating load'
         # set rated heating coil equal to desired sized value, which should be below the suer-input limit
@@ -1764,12 +1762,18 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # set cooling capacity to appropriate ratio based on heating capacity needs
         cool_cap = req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn / htg_to_clg_hp_ratio
         dx_rated_clg_cap_applied = cool_cap
+        # define design airflows
+        design_cooling_airflow_m_3_per_s = old_terminal_sa_flow_m3_per_s
+        design_heating_airflow_m_3_per_s = design_air_flow_from_zone_sizing_heating_m_3_per_s
       else
         heating_load_category = 'Large heating load'
         # set rated heating capacity to maximum allowable based on cooling capacity maximum limit
         dx_rated_htg_cap_applied = max_cool_cap_w_upsize * htg_to_clg_hp_ratio
         # set rated cooling capacity to maximum allowable based on oversizing limit
         dx_rated_clg_cap_applied = max_cool_cap_w_upsize
+        # define design airflows
+        design_cooling_airflow_m_3_per_s = old_terminal_sa_flow_m3_per_s
+        design_heating_airflow_m_3_per_s = design_air_flow_from_zone_sizing_heating_m_3_per_s
       end
       # sizing result summary output log using for measure documentation
       runner.registerInfo("sizing air loop (#{air_loop_hvac.name}): air_loop_hvac name  =  #{air_loop_hvac.name}")
@@ -1791,10 +1795,16 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # calculate applied upsizing factor
       upsize_factor = (dx_rated_htg_cap_applied - orig_clg_coil_gross_cap) / orig_clg_coil_gross_cap
 
+      # check values
+      design_airflow_for_sizing_m_3_per_s = if design_cooling_airflow_m_3_per_s < design_heating_airflow_m_3_per_s
+                                              design_heating_airflow_m_3_per_s * (1 + upsize_factor)
+                                            else
+                                              design_cooling_airflow_m_3_per_s * (1 + upsize_factor)
+                                            end
+
       # increase design airflow to accomodate upsizing
-      old_terminal_sa_flow_m3_per_s += (old_terminal_sa_flow_m3_per_s * upsize_factor)
-      air_loop_hvac.setDesignSupplyAirFlowRate(old_terminal_sa_flow_m3_per_s)
-      controller_oa.setMaximumOutdoorAirFlowRate(old_terminal_sa_flow_m3_per_s)
+      air_loop_hvac.setDesignSupplyAirFlowRate(design_airflow_for_sizing_m_3_per_s)
+      controller_oa.setMaximumOutdoorAirFlowRate(design_airflow_for_sizing_m_3_per_s)
 
       # set minimum flow rate to 0.40, or higher as needed to maintain outdoor air requirements
       min_flow = 0.40
@@ -1802,10 +1812,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       min_airflow_m3_per_s = nil
       if min_oa_flow_ratio > min_flow
         min_airflow_ratio = min_oa_flow_ratio
-        min_airflow_m3_per_s = min_oa_flow_ratio * old_terminal_sa_flow_m3_per_s
+        min_airflow_m3_per_s = min_oa_flow_ratio * design_airflow_for_sizing_m_3_per_s
       else
         min_airflow_ratio = min_flow
-        min_airflow_m3_per_s = min_airflow_ratio * old_terminal_sa_flow_m3_per_s
+        min_airflow_m3_per_s = min_airflow_ratio * design_airflow_for_sizing_m_3_per_s
       end
 
       # determine airflows for each stage of heating
@@ -1813,7 +1823,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # lower stages may be removed later if cfm/ton bounds cannot be maintained due to minimum OA limits
       stage_flows_heating = {}
       stage_flow_fractions_heating.each do |stage, ratio|
-        airflow = ratio * old_terminal_sa_flow_m3_per_s
+        airflow = ratio * design_heating_airflow_m_3_per_s
         stage_flows_heating[stage] = airflow >= min_airflow_m3_per_s ? airflow : min_airflow_m3_per_s
       end
 
@@ -1822,7 +1832,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # lower stages may be removed later if cfm/ton bounds cannot be maintained due to minimum OA limits
       stage_flows_cooling = {}
       stage_flow_fractions_cooling.each do |stage, ratio|
-        airflow = ratio * old_terminal_sa_flow_m3_per_s
+        airflow = ratio * design_cooling_airflow_m_3_per_s
         stage_flows_cooling[stage] = airflow >= min_airflow_m3_per_s ? airflow : min_airflow_m3_per_s
       end
 
@@ -1834,13 +1844,14 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         stage_flow_fractions_heating,
         dx_rated_htg_cap_applied,
         rated_stage_num_heating,
-        old_terminal_sa_flow_m3_per_s,
+        design_heating_airflow_m_3_per_s,
         min_airflow_ratio,
         air_loop_hvac,
         heating_or_cooling = 'heating',
         runner,
         tolerance = 0.01
       )
+
       # cooling - align stage CFM/ton bounds where possible
       # this may remove some lower stages
       stage_flows_cooling, stage_caps_cooling, _, _, num_cooling_stages = adjust_cfm_per_ton_per_limits(
@@ -1849,7 +1860,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         stage_flow_fractions_cooling,
         dx_rated_clg_cap_applied,
         rated_stage_num_cooling,
-        old_terminal_sa_flow_m3_per_s,
+        design_cooling_airflow_m_3_per_s,
         min_airflow_ratio,
         air_loop_hvac,
         heating_or_cooling = 'cooling',
