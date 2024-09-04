@@ -952,9 +952,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # skip if water heating or cooled system
       next if is_water_coil == true
       # skip if space is not heated and cooled
-      unless OpenstudioStandards::ThermalZone.thermal_zone_heated?(air_loop_hvac.thermalZones[0]) && OpenstudioStandards::ThermalZone.thermal_zone_cooled?(air_loop_hvac.thermalZones[0])
-        next
-      end
+      next unless (OpenstudioStandards::ThermalZone.thermal_zone_heated?(air_loop_hvac.thermalZones[0])) && (OpenstudioStandards::ThermalZone.thermal_zone_cooled?(air_loop_hvac.thermalZones[0]))
       # next if no heating coil
       next if has_heating_coil == false
 
@@ -1119,13 +1117,13 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
                           end
 
       # register as not applicable if OA limit exceeded and unit has night cycling schedules
-      next unless (min_oa_flow_ratio > oa_ration_allowance) && (unit_night_cycles == true)
-
-      runner.registerWarning("Air loop #{air_loop_hvac.name} has night cycling operations and an outdoor air ratio of #{min_oa_flow_ratio.round(2)} which exceeds the maximum allowable limit of #{oa_ration_allowance} (due to an EnergyPlus night cycling bug with multispeed coils) making this RTU not applicable at this time.")
-      # remove air loop from applicable list
-      selected_air_loops.delete(air_loop_hvac)
-      applicable_area_m2 -= thermal_zone.floorArea * thermal_zone.multiplier
-      # remove area served by air loop from applicability
+      if (min_oa_flow_ratio > oa_ration_allowance) && (unit_night_cycles==true)
+        runner.registerWarning("Air loop #{air_loop_hvac.name} has night cycling operations and an outdoor air ratio of #{min_oa_flow_ratio.round(2)} which exceeds the maximum allowable limit of #{oa_ration_allowance} (due to an EnergyPlus night cycling bug with multispeed coils) making this RTU not applicable at this time.")
+        # remove air loop from applicable list
+        selected_air_loops.delete(air_loop_hvac)
+        applicable_area_m2 -= thermal_zone.floorArea * thermal_zone.multiplier
+        # remove area served by air loop from applicability
+      end
     end
     ### End of temp section
     #########################################################################################################
