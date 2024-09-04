@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>light_led</name>
   <uid>b95347e2-de50-4c7f-96c8-7651ad650339</uid>
-  <version_id>e803ff61-d996-4201-aba6-611238bd9999</version_id>
-  <version_modified>2024-08-12T16:46:47Z</version_modified>
+  <version_id>3b309efc-0848-4ced-aa40-48f1fad4ec74</version_id>
+  <version_modified>2024-08-13T17:28:08Z</version_modified>
   <xml_checksum>398F827A</xml_checksum>
   <class_name>LightLED</class_name>
   <display_name>light_led</display_name>
