@@ -323,4 +323,20 @@ class ComStockSensitivityReportsTest < Minitest::Test
     epw_path = File.dirname(__FILE__) + '/USA_MN_Duluth.Intl.AP.727450_TMY.epw'
     assert(run_test(test_name, osm_path, epw_path))
   end
+
+  def test_8172d17_0000008
+    test_name = 'test_8172d17_0000008'
+    puts "\n######\nTEST:#{test_name}\n######\n"
+    osm_path = File.dirname(__FILE__) + '/8172d17_0000008.osm'
+    epw_path = File.dirname(__FILE__) + '/USA_AL_Mobile-Downtown.AP.722235_TMY3.epw'
+    assert(run_test(test_name, osm_path, epw_path))
+  end
+
+  def test_base_0000008
+    test_name = 'test_base_0000008'
+    puts "\n######\nTEST:#{test_name}\n######\n"
+    osm_path = File.dirname(__FILE__) + '/base_0000008.osm'
+    epw_path = File.dirname(__FILE__) + '/USA_AL_Mobile-Downtown.AP.722235_TMY3.epw'
+    assert(run_test(test_name, osm_path, epw_path))
+  end
 end

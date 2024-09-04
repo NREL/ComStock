@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>com_stock_sensitivity_reports</name>
   <uid>aeb81242-de7e-4613-af47-c1faf19d286a</uid>
-  <version_id>9fa90faa-6a7e-4f8f-8d60-308bcb539ffe</version_id>
-  <version_modified>2024-04-23T15:29:07Z</version_modified>
+  <version_id>b860dd26-1203-4a94-a016-3977d9751133</version_id>
+  <version_modified>2024-08-13T17:27:02Z</version_modified>
   <xml_checksum>A0069B90</xml_checksum>
   <class_name>ComStockSensitivityReports</class_name>
   <display_name>ComStock_Sensitivity_Reports</display_name>
@@ -76,13 +76,19 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>3CA79015</checksum>
+      <checksum>68E94534</checksum>
     </file>
     <file>
       <filename>Variable List.xlsx</filename>
       <filetype>xlsx</filetype>
       <usage_type>resource</usage_type>
-      <checksum>2987419A</checksum>
+      <checksum>5A105693</checksum>
+    </file>
+    <file>
+      <filename>8172d17_0000008.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>7D0A2C65</checksum>
     </file>
     <file>
       <filename>FortCollins2016.epw</filename>
@@ -143,6 +149,12 @@
       <filetype>epw</filetype>
       <usage_type>test</usage_type>
       <checksum>DA20B795</checksum>
+    </file>
+    <file>
+      <filename>base_0000008.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>7C87F8DD</checksum>
     </file>
     <file>
       <filename>bldg0000003.osm</filename>
@@ -220,7 +232,7 @@
       <filename>comstock_sensitivity_reports_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>0CC35CE4</checksum>
+      <checksum>4FA7F097</checksum>
     </file>
     <file>
       <filename>ground_heat_exchanger.osm</filename>
