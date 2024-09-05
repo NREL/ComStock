@@ -78,7 +78,7 @@ class HVACExhaustAirEnergyOrHeatRecovery < OpenStudio::Measure::ModelMeasure
 
     # applicability
     building_types_to_exclude = [
-      # "Rtl", 
+      # "Rtl",
       # "Rt3",
       # "RtS",
       "RFF",
@@ -109,9 +109,9 @@ class HVACExhaustAirEnergyOrHeatRecovery < OpenStudio::Measure::ModelMeasure
     if building_types_to_exclude.include?(model_building_type.downcase)
       runner.registerAsNotApplicable("Building type '#{model_building_type}' is not applicable to this measure.")
       return true
-    end 
+    end
 
-    # check 
+    # check
     applicable_air_loops = []
     no_oa_air_loops = 0
     na_space_type_air_loops = 0
@@ -174,7 +174,7 @@ class HVACExhaustAirEnergyOrHeatRecovery < OpenStudio::Measure::ModelMeasure
     end
 
     # get climate full string and classification (i.e. "5A")
-    climate_zone = std.model_standards_climate_zone(model)
+    climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
     climate_zone_classification = climate_zone.split('-')[-1]
 
     # DOAS temperature supply settings - colder cooling discharge air for humid climates
@@ -208,13 +208,13 @@ class HVACExhaustAirEnergyOrHeatRecovery < OpenStudio::Measure::ModelMeasure
         space = thermal_zone.spaces[0]
 
         # get zone area
-        fa = thermal_zone.floorArea
+        fa = thermal_zone.floorArea * thermal_zone.multiplier
 
         # get zone volume
-        vol = thermal_zone.airVolume
+        vol = thermal_zone.airVolume * thermal_zone.multiplier
 
         # get zone design people
-        num_people = thermal_zone.numberOfPeople
+        num_people = thermal_zone.numberOfPeople * thermal_zone.multiplier
 
         if space.designSpecificationOutdoorAir.is_initialized
           dsn_spec_oa = space.designSpecificationOutdoorAir.get
@@ -273,7 +273,7 @@ class HVACExhaustAirEnergyOrHeatRecovery < OpenStudio::Measure::ModelMeasure
             hx.setSensibleEffectivenessat100CoolingAirFlow(0.75*0.90)
             hx.setSensibleEffectivenessat75CoolingAirFlow(0.78*0.90)
             hx.setLatentEffectivenessat100CoolingAirFlow(0.55*0.90)
-            hx.setLatentEffectivenessat75CoolingAirFlow(0.60*0.90)  
+            hx.setLatentEffectivenessat75CoolingAirFlow(0.60*0.90)
           # set parameters for HRV
           elsif doas_type=='HRV'
             # set efficiencies; assumed 90% airflow returned to unit

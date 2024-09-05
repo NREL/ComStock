@@ -95,13 +95,13 @@ require 'openstudio-standards'
 
     # Find common variables for the new space
     spaces.each do |space|
-      floor_area = space.floorArea
+      floor_area = space.floorArea * space.multiplier
       sum_floor_area += floor_area
 
-      number_of_people = space.numberOfPeople
+      number_of_people = space.numberOfPeople * space.multiplier
       sum_number_of_people += number_of_people
 
-      volume = space.volume
+      volume = space.volume * space.multiplier
       sum_volume += volume
 
       dsn_oa = space.designSpecificationOutdoorAir
@@ -296,7 +296,7 @@ def run(model, runner, user_arguments)
 	  template = 'ComStock 90.1-2019'
 	  std = Standard.build(template)
 	  # get climate zone
-	  climate_zone = std.model_standards_climate_zone(model)
+	  climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
 	  #runner.registerInfo("initial read of climate zone = #{climate_zone}")
 	  if climate_zone.empty?
 	    runner.registerError('Unable to determine climate zone for model. Cannot apply economizer without climate zone information.')
@@ -457,8 +457,8 @@ def run(model, runner, user_arguments)
 			# set design specification outdoor air objects to sum
 			dsn_oa.setOutdoorAirMethod('Sum')
 			# Get the space properties
-			floor_area = space.floorArea
-			number_of_people = space.numberOfPeople
+			floor_area = space.floorArea * space.multiplier
+			number_of_people = space.numberOfPeople * space.multiplier
 			people_per_m2 = space.peoplePerFloorArea
 
 			# Sum up the total OA from all sources
