@@ -42,12 +42,14 @@ require 'openstudio/measure/ShowRunnerOutput'
 require 'fileutils'
 require 'minitest/autorun'
 require_relative '../measure.rb'
-require_relative '../../../../test/helpers/minitest_helper'
 
-class EnvRoofInsulAedgTest < Minitest::Test
+# only necessary to include here if annual simulation request and the measure doesn't require openstudio-standards
+require 'openstudio-standards'
+
+class EnvRoofInsulAedg_Test < Minitest::Test
   # all tests are a sub definition of this class, e.g.:
   # def test_new_kind_of_test
-  #  test content
+  #   # test content
   # end
 
   def test_number_of_arguments_and_argument_names
@@ -175,14 +177,15 @@ class EnvRoofInsulAedgTest < Minitest::Test
   # create an array of hashes with model name, weather, and expected result
   def models_to_test
     test_sets = []
-    test_sets << { model: 'Warehouse_5A', weather: 'MI_DETROIT_725375_12', result: 'Success', new_r: 33 }
-    test_sets << { model: 'Retail_7', weather: 'MN_Cloquet_Carlton_Co_726558_16', result: 'Success', new_r: 37}
-    test_sets << { model: 'Small_Office_2A', weather: 'TX_Port_Arthur_Jeffers_722410_16', result: 'Success', new_r: 26}
+    test_sets << { model: 'Warehouse_5A', weather: 'Warehouse_5A', result: 'Success', arg_hash: {}, new_r: 33 }
+    test_sets << { model: 'Retail_7', weather: 'Retail_7', result: 'Success', arg_hash: {}, new_r: 37 }
+    test_sets << { model: 'Small_Office_2A', weather: 'Small_Office_2A', result: 'Success', arg_hash: {}, new_r: 26 }
+
     return test_sets
   end
 
-  def test_doe_models
-    test_name = 'test_doe_models'
+  def test_models
+    test_name = 'test_models'
     puts "\n######\nTEST:#{test_name}\n######\n"
 
     models_to_test.each do |set|
@@ -200,10 +203,27 @@ class EnvRoofInsulAedgTest < Minitest::Test
 
       # load the model; only used here for populating arguments
       model = load_model(osm_path)
+
+      # set arguments here; will vary by measure
       arguments = measure.arguments(model)
       argument_map = OpenStudio::Measure::OSArgumentMap.new
 
-      ################## BEGIN CUSTOMIZE ########################
+      # set default arguments
+      arguments.each do |arg|
+        temp_arg_var = arg.clone
+        argument_map[arg.name] = temp_arg_var # Add argument to map with default value
+      end
+
+      # override with values from arg_hash
+      args_hash = set[:arg_hash]
+      args_hash.each do |arg_name, arg_value|
+        arg = arguments.find { |a| a.name == arg_name }
+        raise "Argument #{arg_name} not found" if arg.nil?
+        assert(arg.setValue(arg_value)) # Override with value from arg_hash
+        argument_map[arg_name] = arg
+      end
+
+
       old_r_val_ip = 0
       model.getSurfaces.sort.each do |surface|
         next unless (surface.outsideBoundaryCondition == 'Outdoors') && (surface.surfaceType == 'RoofCeiling')
@@ -212,23 +232,18 @@ class EnvRoofInsulAedgTest < Minitest::Test
         old_r_val_ip = OpenStudio.convert(old_r_val_si, 'm^2*K/W', 'ft^2*h*R/Btu').get
         break
       end
-      ################ END CUSTOMIZE #########################
-
-      # # set R-value argument
-      # r_val = arguments[0].clone
-      # assert(r_val.setValue(30.0))
-      # argument_map['r_val'] = r_val
-
-      # # set allow reduction argument
-      # allow_reduct = arguments[1].clone
-      # assert(allow_reduct.setValue(false))
-      # argument_map['allow_reduct'] = allow_reduct
-
       # apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
 
-      ################## BEGIN CUSTOMIZE ########################
+      # check the measure result; result values will equal Success, Fail, or Not Applicable
+      # also check the amount of warnings, info, and error messages
+      # use if or case statements to change expected assertion depending on model characteristics
+      assert(result.value.valueName == set[:result])
+
+      # to check that something changed in the model, load the model and the check the objects match expected new value
       model = load_model(model_output_path(instance_test_name))
+
+      # add additional tests here to check model outputs
       model.getSurfaces.sort.each do |surface|
         next unless (surface.outsideBoundaryCondition == 'Outdoors') && (surface.surfaceType == 'RoofCeiling')
         surface.construction.get
@@ -237,7 +252,8 @@ class EnvRoofInsulAedgTest < Minitest::Test
         assert(old_r_val_ip < new_r_val_ip)
         assert((new_r_val_ip - set[:new_r]).abs < 0.6)
       end
-      ################ END CUSTOMIZE #########################
+
     end
   end
+
 end
