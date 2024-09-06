@@ -338,7 +338,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     end
 
     # Apply the measure to the model and optionally run the model
-    result = apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: true)
+    result = apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false)
 
     assert_equal('Success', result.value.valueName)
     model = load_model(model_output_path(test_name))

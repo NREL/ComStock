@@ -390,6 +390,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     num_cooling_stages = staging_data['num_cooling_stages']
     rated_stage_num_heating = staging_data['rated_stage_num_heating']
     rated_stage_num_cooling = staging_data['rated_stage_num_cooling']
+    final_rated_cooling_cop = staging_data['final_rated_cooling_cop']
+    final_rated_heating_cop = staging_data['final_rated_heating_cop']
     stage_cap_fractions_heating = eval(staging_data['stage_cap_fractions_heating'])
     stage_flow_fractions_heating = eval(staging_data['stage_flow_fractions_heating'])
     stage_cap_fractions_cooling = eval(staging_data['stage_cap_fractions_cooling'])
@@ -402,7 +404,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     reference_heating_cfm_per_ton = staging_data['reference_cooling_cfm_per_ton']
 
     # Return assigned variables
-    return num_heating_stages, num_cooling_stages, rated_stage_num_heating, rated_stage_num_cooling, stage_cap_fractions_heating, stage_flow_fractions_heating,
+    return num_heating_stages, num_cooling_stages, rated_stage_num_heating, rated_stage_num_cooling, final_rated_cooling_cop, final_rated_heating_cop, stage_cap_fractions_heating, stage_flow_fractions_heating,
            stage_cap_fractions_cooling, stage_flow_fractions_cooling, stage_rated_cop_frac_heating, stage_rated_cop_frac_cooling, stage_GrossRatedSensibleHeatRatio_cooling,
            enable_cycling_losses_above_lowest_speed, reference_cooling_cfm_per_ton, reference_heating_cfm_per_ton
   end
@@ -512,7 +514,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # if maximum flow/ton ratio cannot be accommodated without violating minimum airflow ratios
         # if cfm/ton limit can't be met by reducing airflow, allow increase capacity of up to 65% range between capacities
         # calculate maximum allowable ratio, no more than 50% increase between specified stages
-        ratio_allowance_50_pct = ratio + (stage_cap_fractions[stage+1] - ratio) * 0.50
+        ratio_allowance_50_pct = ratio + (stage_cap_fractions[stage+1] - ratio) * 0.65
         required_stage_cap_ratio = airflow / m_3_per_s_per_w_max / (stage_cap_fractions[rated_stage_num] * dx_rated_cap_applied)
         if ((m_3_per_s_per_w_max * stage_capacity) / old_terminal_sa_flow_m3_per_s) >= min_airflow_ratio
           # calculate new stage airflow
@@ -1616,7 +1618,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       end
 
       ## define number of stages, and capacity/airflow fractions for each stage
-      (num_heating_stages, num_cooling_stages, rated_stage_num_heating, rated_stage_num_cooling, stage_cap_fractions_heating,
+      (num_heating_stages, num_cooling_stages, rated_stage_num_heating, rated_stage_num_cooling, final_rated_cooling_cop, final_rated_heating_cop, stage_cap_fractions_heating,
       stage_flow_fractions_heating, stage_cap_fractions_cooling, stage_flow_fractions_cooling, stage_rated_cop_frac_heating,
       stage_rated_cop_frac_cooling, stage_GrossRatedSensibleHeatRatio_cooling, enable_cycling_losses_above_lowest_speed, reference_cooling_cfm_per_ton,
       reference_heating_cfm_per_ton) = assign_staging_data(custom_data_json, std)
@@ -1803,12 +1805,15 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # cooling curve assignments
       # ---------------------------------------------------------
       # adjust rated cooling cop
-      final_rated_cooling_cop = adjust_rated_cop_from_ref_cfm_per_ton(stage_flows_cooling[rated_stage_num_cooling],
-                                                                      reference_cooling_cfm_per_ton,
-                                                                      stage_caps_cooling[rated_stage_num_cooling],
-                                                                      get_rated_cop_cooling(stage_caps_cooling[rated_stage_num_cooling]),
-                                                                      cool_eir_ff_curve_stages[rated_stage_num_cooling])
-      runner.registerInfo("rated cooling COP (for standard performance HPRTU) adjusted from #{get_rated_cop_cooling(stage_caps_cooling[rated_stage_num_cooling]).round(3)} to #{final_rated_cooling_cop.round(3)} based on reference cfm/ton of 404 (i.e., average value of actual products)")
+      if final_rated_cooling_cop == false
+        final_rated_cooling_cop = adjust_rated_cop_from_ref_cfm_per_ton(stage_flows_cooling[rated_stage_num_cooling],
+                                                                        reference_cooling_cfm_per_ton,
+                                                                        stage_caps_cooling[rated_stage_num_cooling],
+                                                                        get_rated_cop_cooling(stage_caps_cooling[rated_stage_num_cooling]),
+                                                                        cool_eir_ff_curve_stages[rated_stage_num_cooling])
+
+        runner.registerInfo("rated cooling COP (for standard performance HPRTU) adjusted from #{get_rated_cop_cooling(stage_caps_cooling[rated_stage_num_cooling]).round(3)} to #{final_rated_cooling_cop.round(3)} based on reference cfm/ton of 404 (i.e., average value of actual products)")
+      end
 
       # define new cooling coil
       # single speed is used for 1 stage units, otherwise multispeed is used.
@@ -1836,15 +1841,15 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # heating curve assignments
       # ---------------------------------------------------------
       # adjust rated heating cop
-      final_rated_heating_cop = nil
-      #puts('### adjust rated COP: HEATING')
-      final_rated_heating_cop = adjust_rated_cop_from_ref_cfm_per_ton(stage_flows_heating[rated_stage_num_heating],
-                                                                      reference_heating_cfm_per_ton,
-                                                                      stage_caps_heating[rated_stage_num_heating],
-                                                                      get_rated_cop_heating(stage_caps_heating[rated_stage_num_heating]),
-                                                                      heat_eir_ff_curve_stages[rated_stage_num_heating])
-      runner.registerInfo("rated heating COP (for standard performance HPRTU) adjusted from #{get_rated_cop_heating(stage_caps_heating[rated_stage_num_heating]).round(3)} to #{final_rated_heating_cop.round(3)} based on reference cfm/ton of 420 (i.e., average value of actual products)")
-
+      if final_rated_heating_cop == false
+        #puts('### adjust rated COP: HEATING')
+        final_rated_heating_cop = adjust_rated_cop_from_ref_cfm_per_ton(stage_flows_heating[rated_stage_num_heating],
+                                                                        reference_heating_cfm_per_ton,
+                                                                        stage_caps_heating[rated_stage_num_heating],
+                                                                        get_rated_cop_heating(stage_caps_heating[rated_stage_num_heating]),
+                                                                        heat_eir_ff_curve_stages[rated_stage_num_heating])
+        runner.registerInfo("rated heating COP (for standard performance HPRTU) adjusted from #{get_rated_cop_heating(stage_caps_heating[rated_stage_num_heating]).round(3)} to #{final_rated_heating_cop.round(3)} based on reference cfm/ton of 420 (i.e., average value of actual products)")
+      end
       # define new heating coil
       # single speed is used for 1 stage units, otherwise multispeed is used.
       new_dx_heating_coil = set_heating_coil_stages(
