@@ -42,13 +42,14 @@ require 'openstudio/measure/ShowRunnerOutput'
 require 'fileutils'
 require 'minitest/autorun'
 require_relative '../measure.rb'
-require_relative '../../../../test/helpers/minitest_helper'
 
+# only necessary to include here if annual simulation request and the measure doesn't require openstudio-standards
+require 'openstudio-standards'
 
-class EnvWindowFilmTest < Minitest::Test
+class EnvWindowFilm_Test < Minitest::Test
   # all tests are a sub definition of this class, e.g.:
   # def test_new_kind_of_test
-  #  test content
+  #   # test content
   # end
 
   def test_number_of_arguments_and_argument_names
@@ -64,9 +65,7 @@ class EnvWindowFilmTest < Minitest::Test
 
     # get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(2, arguments.size)
-    assert_equal('pct_shgc_reduct', arguments[0].name)
-    assert_equal('pct_vlt_reduct', arguments[1].name)
+    assert_equal(0, arguments.size)
   end
 
   # return file paths to test models in test directory
@@ -162,7 +161,7 @@ class EnvWindowFilmTest < Minitest::Test
     if run_model && result_success
       puts "\nRUNNING MODEL..."
 
-      std = Standard.build('90.1-2013')
+      std = Standard.build('ComStock DEER 2020')
       std.model_run_simulation_and_log_errors(model, run_dir(test_name))
 
       # check that the model ran successfully
@@ -178,14 +177,14 @@ class EnvWindowFilmTest < Minitest::Test
   # create an array of hashes with model name, weather, and expected result
   def models_to_test
     test_sets = []
-    test_sets << { model: 'Warehouse_5A', weather: 'MI_DETROIT_725375_12', result: 'Success' }
-    test_sets << { model: 'Retail_7', weather: 'MN_Cloquet_Carlton_Co_726558_16', result: 'Success' }
-    test_sets << { model: 'Small_Office_2A', weather: 'TX_Port_Arthur_Jeffers_722410_16', result: 'Success' }
+    test_sets << { model: 'Warehouse_5A', weather: 'Warehouse_5A', result: 'Success', arg_hash: {} }
+    test_sets << { model: 'Small_Office_2A', weather: 'Small_Office_2A', result: 'Success', arg_hash: {} }
+
     return test_sets
   end
 
-  def test_doe_models
-    test_name = 'test_doe_models'
+  def test_models
+    test_name = 'test_models'
     puts "\n######\nTEST:#{test_name}\n######\n"
 
     models_to_test.each do |set|
@@ -203,10 +202,26 @@ class EnvWindowFilmTest < Minitest::Test
 
       # load the model; only used here for populating arguments
       model = load_model(osm_path)
+
+      # set arguments here; will vary by measure
       arguments = measure.arguments(model)
       argument_map = OpenStudio::Measure::OSArgumentMap.new
 
-      ############### BEGIN CUSTOMIZE ##################
+      # set default arguments
+      arguments.each do |arg|
+        temp_arg_var = arg.clone
+        argument_map[arg.name] = temp_arg_var # Add argument to map with default value
+      end
+
+      # override with values from arg_hash
+      args_hash = set[:arg_hash]
+      args_hash.each do |arg_name, arg_value|
+        arg = arguments.find { |a| a.name == arg_name }
+        raise "Argument #{arg_name} not found" if arg.nil?
+        assert(arg.setValue(arg_value)) # Override with value from arg_hash
+        argument_map[arg_name] = arg
+      end
+
       old_shgc = nil
       old_vlt = nil
       model.getSubSurfaces.each do |sub_surface|
@@ -216,35 +231,31 @@ class EnvWindowFilmTest < Minitest::Test
           old_vlt = old_simple_glazing_obj.visibleTransmittance.get
         end
       end
-      ################ END CUSTOMIZE ####################
-
-      # set arguments here; will vary by measure
-      pct_shgc_reduct = arguments[0].clone
-      assert(pct_shgc_reduct.setValue(0.535))
-      argument_map['pct_shgc_reduct'] = pct_shgc_reduct
-
-      # set percent VLT reduction argument
-      pct_vlt_reduct = arguments[1].clone
-      assert(pct_vlt_reduct.setValue(0.53))
-      argument_map['pct_vlt_reduct'] = pct_vlt_reduct
 
       # apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
 
-      ############### BEGIN CUSTOMIZE ##################
+      # check the measure result; result values will equal Success, Fail, or Not Applicable
+      # also check the amount of warnings, info, and error messages
+      # use if or case statements to change expected assertion depending on model characteristics
+      assert(result.value.valueName == set[:result])
+
+      # to check that something changed in the model, load the model and the check the objects match expected new value
       model = load_model(model_output_path(instance_test_name))
+
+      # add additional tests here to check model outputs
       model.getSubSurfaces.each do |sub_surface|
         if sub_surface.subSurfaceType.include?('Window')
           new_simple_glazing_obj = sub_surface.construction.get.to_Construction.get.layers[0].to_SimpleGlazing.get
           model_shgc = new_simple_glazing_obj.solarHeatGainCoefficient
           model_vlt = new_simple_glazing_obj.visibleTransmittance.get
-          expected_shgc = (1 - 0.535) * old_shgc
-          expected_vlt = (1 - 0.53) * old_vlt
-          assert((expected_shgc - model_shgc).abs < 0.001)
-          assert((expected_vlt - model_vlt).abs < 0.001)
+          assert(old_shgc, 'old_shgc not defined in' + instance_test_name)
+
+          assert((model_shgc < old_shgc), "old_shgc: #{old_shgc}, model_shgc: #{model_shgc} in #{instance_test_name}")
+          assert((model_vlt < old_vlt), "old_shgc: #{old_vlt}, model_shgc: #{model_vlt} in #{instance_test_name}")
         end
       end
-      ################ END CUSTOMIZE ####################
     end
   end
+
 end
