@@ -77,6 +77,8 @@ buildstock.csv,sample_building_id,,FALSE,FALSE,,,,
 buildstock.csv,service_water_heating_fuel,,FALSE,FALSE,,,,
 buildstock.csv,state_abbreviation,in.state,TRUE,TRUE,string,,,Postal abbreviation of state
 buildstock.csv,state_id,,FALSE,FALSE,,,,
+buildstock.csv,sampling_region,in.sampling_region_id,TRUE,FALSE,integer,,,Region assigned through the sampling process
+buildstock.csv,size_bin,in.size_bin_id,TRUE,FALSE,integer,,,Size bin assigned through the sampling process - this is a function of building type
 buildstock.csv,state_name,in.state_name,TRUE,TRUE,string,,,Full name of state
 buildstock.csv,weather_file_2018,in.weather_file_2018,TRUE,FALSE,string,,,Weather file used for the 2018 AMY simulations
 buildstock.csv,weather_file_TMY3,in.weather_file_tmy3,TRUE,FALSE,string,,,Weather file used for the TMY3 simulations

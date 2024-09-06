@@ -19,6 +19,7 @@ from comstockpostproc.units_mixin import UnitsMixin
 from comstockpostproc.cbecs import CBECS
 from comstockpostproc.eia import EIA
 from comstockpostproc.ami import AMI
+from comstockpostproc.comstock_apportionment import Apportion
 from comstockpostproc.gas_correction_model import GasCorrectionModelMixin
 from comstockpostproc.s3_utilities_mixin import S3UtilitiesMixin
 from buildstock_query import BuildStockQuery
@@ -123,6 +124,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                                  skip_reports=True)
         self.make_comparison_plots = make_comparison_plots
         self.make_timeseries_plots = make_timeseries_plots
+        self.APPORTIONED = False # Including this for some basic control logic in which methods are allowed
         logger.info(f'Creating {self.dataset_name}')
 
         # Make directories
@@ -155,7 +157,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             elif os.path.exists(os.path.join(self.output_dir, 'ComStock wide.csv')):
                 file_path = os.path.join(self.output_dir, 'ComStock wide.csv')
                 logger.info(f'Reloading data from: {file_path}')
-                self.data = pl.scan_csv(file_path, dtypes={self.UPGRADE_ID: pl.Int64}, infer_schema_length=10000)
+                self.data = pl.scan_csv(file_path, dtypes={self.UPGRADE_ID: pl.Int64}, infer_schema_length=50000)
                 self.data = self.reduce_df_memory(self.data)
             else:
                 raise FileNotFoundError(
@@ -479,7 +481,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 f'Missing {data_file_path}, cannot load ComStock data')
 
         # Read the buildstock.csv to determine number of simulations expected
-        buildstock = pl.read_csv(os.path.join(self.data_dir, self.buildstock_file_name), infer_schema_length=10000)
+        buildstock = pl.read_csv(os.path.join(self.data_dir, self.buildstock_file_name), infer_schema_length=50000)
         buildstock.rename({'Building': 'sample_building_id'})
         buildstock_bldg_count = buildstock.shape[0]
         logger.info(f'{buildstock_bldg_count} models in buildstock.csv')
@@ -919,7 +921,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             else:
                 logger.warning(f'Column {c} requested but not found in buildstock.csv, removing from col_def_names')
 
-        buildstock = pl.read_csv(buildstock_csv_path, columns=cols_to_keep, infer_schema_length=10000)
+        buildstock = pl.read_csv(buildstock_csv_path, columns=cols_to_keep, infer_schema_length=50000)
 
         # For backwards compatibility
         buildstock = buildstock.rename({'Building': 'sample_building_id'})
@@ -1914,6 +1916,151 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         cbecs.data = pl.from_pandas(cbecs.data).lazy()
         assert isinstance(cbecs.data, pl.LazyFrame)
         return bldg_type_scale_factors
+
+    def add_weights_aportioned_by_stock_estimate(self, apportionment: Apportion, keep_n_per_apportionment_group=False):
+        # TODO this should live somewhere else - don't know where...
+        self.data = self.data.with_columns(
+            pl.col(self.COUNTY_ID).cast(str).str.slice(0, 4).alias(self.STATE_ID)
+        )
+        breakpoint()
+
+        # Pull the columns required to do the matching plus the annual energy total as a safety blanket
+        # TODO this is a superset for convienience - slim down later
+        csdf = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).select(pl.col(
+            self.BLDG_ID, self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.SAMPLING_REGION, self.CZ_ASHRAE,
+            self.BLDG_TYPE, self.HVAC_SYS, self.SH_FUEL, self.SIZE_BIN, self.FLR_AREA, self.TOT_EUI, self.CEN_DIV
+        ))
+
+        # If anything in this selection is null we're smoked so check twice and fail never
+        if csdf.null_count().collect().sum(axis=1).sum() != 0:
+            raise RuntimeError('Null data appears in the apportionment truth data polars frame. Please resolve')
+        
+        # Cast sqft to int32
+        csdf = csdf.with_columns(pl.col(self.FLR_AREA).cast(pl.Int32))
+
+        # Create the joined hvac system type and fuel type variable used for sampling bin generation and processing
+        csdf = csdf.with_columns(
+            pl.concat_str([pl.col(self.HVAC_SYS), pl.col(self.SH_FUEL)], separator='_').alias('hvac_and_fueltype')
+        )
+        
+        # Create a apportionment group id which will be shared for iteration by both the target (apportionment data) and
+        # domain (csdf data).
+        # TODO make the apportionment data object a lazy df nativly
+        apportionment.data.loc[:, 'hvac_and_fueltype'] = apportionment.data.loc[:, 'system_type'] + '_' + apportionment.data.loc[:, 'heating_fuel']
+        appo_group_df = apportionment.data.loc[:, ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']]
+        appo_group_df = appo_group_df.drop_duplicates(keep='first').sort_values(
+            by=['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
+        ).reset_index(drop=True).reset_index(names='appo_group_id')
+        appo_group_df = pl.DataFrame(appo_group_df).lazy()
+
+        # Join apportionment group id into comstock data
+        csdf = csdf.join(
+            appo_group_df,
+            left_on=[self.SAMPLING_REGION, self.BLDG_TYPE, self.SIZE_BIN, 'hvac_and_fueltype'],
+            right_on=['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
+        )
+        if csdf.select(pl.col('appo_group_id').is_null().any()).collect().item() != False:
+            raise RuntimeError('Not all combinations of sampling region, bt, and size bin could be matched.')
+        
+        # Join apportionment group id into comstock data
+        tdf = pl.DataFrame(apportionment.data).lazy()
+        tdf = tdf.join(appo_group_df, on=['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype'])
+
+        # Identify combination in the truth data not supported by the current sample.
+        csdf_groups = pl.Series(csdf.select(pl.col('appo_group_id')).unique().collect()).to_list()
+        truth_groups = pl.Series(appo_group_df.select(pl.col('appo_group_id')).unique().collect()).to_list()
+        missing_groups = set(truth_groups) - set(csdf_groups)
+        unable_to_match = tdf.filter(pl.col('appo_group_id').is_in(missing_groups)).select(pl.len()).collect().item()
+        total_to_match = tdf.select(pl.len()).collect().item()
+        logger.info(f'Unable to match {unable_to_match} out of {total_to_match} truth data.')
+
+        # Provide detailed additional info on missing buckets for review if desired
+        logger.info('The following is a breakdown of missing truth data buildings by bucket attributes:')
+        for attribute in ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']:
+            logger.info(f'{attribute}:')
+            logger.info(f'{
+                pl.Series(tdf.filter(pl.col('appo_group_id').is_in(missing_groups)).select(
+                    pl.col(attribute).value_counts(sort=True)
+                ).collect()).to_list()
+            }'.replace("}, {", '\n\t').replace('[{', '\t').replace('}]', ''))
+        logger.info('Writting QAQC / Debugging files to the home directory.')
+        attrs = ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
+        tdf.select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv('~/potential_apportionment_group_optimization.csv')
+        tdf.filter(pl.col('appo_group_id').is_in(missing_groups)).select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv('~/Desktop/debugging_missing_apportionment_groups.csv')
+    
+        # Drop unsupported truth data and add an index
+        tdf = tdf.filter(pl.col('appo_group_id').is_in(missing_groups).is_not())
+        tdf = tdf.with_row_index()
+
+        # Create a dictionary defining how many elements of which apportionment groups to sample
+        samples_per_group = tdf.groupby('appo_group_id').len().collect().to_pandas()
+        samples_per_group = samples_per_group.set_index('appo_group_id').to_dict()['len']
+
+        # Create a dictionary identifying the tdf indicies associated with each apportionment group
+        tdf_ids_per_group = tdf.select(pl.col('index'), pl.col('appo_group_id')).groupby(pl.col('appo_group_id')).agg(pl.col('index')).collect().to_pandas()
+        tdf_ids_per_group = tdf_ids_per_group.set_index('appo_group_id').to_dict()['index']
+
+        # Create a dictionary of which comstock building ids are associated with each apportionment group
+        cs_ids_per_group = csdf.select(pl.col(self.BLDG_ID), pl.col('appo_group_id')).groupby(pl.col('appo_group_id')).agg(pl.col(self.BLDG_ID)).collect().to_pandas()
+        cs_ids_per_group = cs_ids_per_group.set_index('appo_group_id').to_dict()[self.BLDG_ID]
+        assert(set(samples_per_group.keys()) == set(cs_ids_per_group.keys()))
+
+        # Iterativly sample the groups
+        # Keeping apportionment group id for debugging if needed later... Otherwise unnessecary
+        logger.info('Apportioning comstock building models for each building in the bootstrapped truth dataset')
+        sampled_appo_id = list()
+        sampled_td_id = list()
+        sampled_cs_id = list()
+        for group_id in samples_per_group.keys():
+            to_sample = samples_per_group[group_id]
+            sampled_appo_id.extend(np.repeat(group_id, to_sample).tolist())
+            sampled_td_id.extend(tdf_ids_per_group[group_id].tolist())
+            sampled_cs_id.extend(np.random.choice(cs_ids_per_group[group_id], to_sample).tolist())
+        
+        # Create the new sampled dataframe (foreign key table) including upgrades
+        upgrade_ids = pl.Series(self.data.select(pl.col(self.UPGRADE_ID)).unique().collect()).to_list()
+        fkdf = pd.DataFrame({'appo_group_id': sampled_appo_id, 'tdf_id': sampled_td_id, self.BLDG_ID: sampled_cs_id})
+        fkt = list()
+        for upgrade in upgrade_ids:
+            tmpdf = fkdf.copy(deep=True)
+            tmpdf.loc[:, self.UPGRADE_ID] = upgrade
+            fkt.append(tmpdf)
+        fkt = pd.concat(fkt)
+        fkt = pl.DataFrame(fkt).lazy()
+
+        # Join tdf onto the sampled results with all upgrades
+        logger.info('Joining truth dataset information onto the sampled forign key table')
+        fkt = fkt.join(tdf.select(
+            pl.col('index').alias('tdf_id').cast(pl.Int64),
+            pl.col('tract').alias(self.TRACT_ID),
+            pl.col('county').alias(self.COUNTY_ID),
+            pl.col('state').alias(self.STATE_ID),
+            pl.col('cz').alias(self.CZ_ASHRAE),
+            pl.col('sqft').alias('truth_sqft'),
+            pl.col('tract_assignment_type').alias('in.tract_assignment_type')
+        ), on=pl.col('tdf_id'))
+
+        # Pull in the sqft calculate weights
+        breakpoint()
+        fkt = fkt.join(self.data.select(pl.col(self.FLR_AREA), pl.col(self.BLDG_ID), pl.col(self.UPGRADE_ID)), on=[pl.col(self.BLDG_ID), pl.col(self.UPGRADE_ID)])
+        logger.info('Calculating apportioned weights')
+        bs_coef = apportionment.bootstrap_coefficient
+        fkt = fkt.with_columns((pl.col('truth_sqft') / (pl.col(self.FLR_AREA) * bs_coef)).alias('weight'))
+
+        # Return new self.data object - note this may still be normalized against cbecs
+        logger.info('Renaming existing self.data geospatial cols to prevent namespace collision')
+        self.data = self.data.rename({
+            self.TRACT_ID: self.TRACT_ID.replace('in.', self.POST_APPO_SIM_COL_PREFIX),
+            self.COUNTY_ID: self.COUNTY_ID.replace('in.', self.POST_APPO_SIM_COL_PREFIX),
+            self.STATE_ID: self.STATE_ID.replace('in.', self.POST_APPO_SIM_COL_PREFIX),
+            self.CZ_ASHRAE: self.CZ_ASHRAE.replace('in.', self.POST_APPO_SIM_COL_PREFIX),
+        })
+
+        # Drop unwanted columns from the foreign key table and persist
+        fkt = fkt.drop('tdf_id', 'appo_group_id', 'truth_sqft')
+        self.APPORTIONED = True
+        self.fkt = fkt
+        logger.info('Successfully completed the apportionment sampling postprocessing')
 
     def add_weighted_area_energy_savings_columns(self):
 
