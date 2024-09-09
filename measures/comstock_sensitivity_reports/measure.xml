@@ -1,17 +1,10 @@
 <?xml version="1.0"?>
 <measure>
   <schema_version>3.1</schema_version>
-  <error>C:/Users/ccaradon/Documents/GitHub/ComStock/measures/comstock_sensitivity_reports/measure.rb:2244: syntax error, unexpected constant, expecting `end'
-...Heater Electricity Energy") CC1
-...                            ^~~
-C:/Users/ccaradon/Documents/GitHub/ComStock/measures/comstock_sensitivity_reports/measure.rb:3138: Invalid return in class/module body
-    return true
-    ^~~~~~
-C:/Users/ccaradon/Documents/GitHub/ComStock/measures/comstock_sensitivity_reports/measure.rb:3140: syntax error, unexpected `end', expecting end-of-input</error>
   <name>com_stock_sensitivity_reports</name>
   <uid>aeb81242-de7e-4613-af47-c1faf19d286a</uid>
-  <version_id>b860dd26-1203-4a94-a016-3977d9751133</version_id>
-  <version_modified>2024-08-13T17:27:02Z</version_modified>
+  <version_id>06e89efd-22c2-4c76-99de-6d91b6176666</version_id>
+  <version_modified>2024-09-09T15:49:58Z</version_modified>
   <xml_checksum>A0069B90</xml_checksum>
   <class_name>ComStockSensitivityReports</class_name>
   <display_name>ComStock_Sensitivity_Reports</display_name>
@@ -66,7 +59,7 @@ C:/Users/ccaradon/Documents/GitHub/ComStock/measures/comstock_sensitivity_report
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>0B68E96D</checksum>
+      <checksum>16CEB2D0</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -83,13 +76,13 @@ C:/Users/ccaradon/Documents/GitHub/ComStock/measures/comstock_sensitivity_report
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>68E94534</checksum>
+      <checksum>2BC4B6F2</checksum>
     </file>
     <file>
       <filename>Variable List.xlsx</filename>
       <filetype>xlsx</filetype>
       <usage_type>resource</usage_type>
-      <checksum>5A105693</checksum>
+      <checksum>F0F0A194</checksum>
     </file>
     <file>
       <filename>8172d17_0000008.osm</filename>
@@ -239,7 +232,7 @@ C:/Users/ccaradon/Documents/GitHub/ComStock/measures/comstock_sensitivity_report
       <filename>comstock_sensitivity_reports_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>4FA7F097</checksum>
+      <checksum>041CC92E</checksum>
     </file>
     <file>
       <filename>ground_heat_exchanger.osm</filename>
