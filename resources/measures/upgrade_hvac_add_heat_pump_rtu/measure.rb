@@ -748,8 +748,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       interpolate_from_two_ind_vars(runner, ind_var_1_values, ind_var_2_values, dep_var, input1,
                                     input2)
 
-      # Return interpolated value
-
     else
       runner.registerError('This TableLookup is not based on two independent variables, so it is not supported with this method.')
       false
