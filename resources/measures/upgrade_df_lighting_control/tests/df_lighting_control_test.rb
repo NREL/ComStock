@@ -60,12 +60,12 @@ class DFLightingControlTest < Minitest::Test
     # }
     test_sets << {
       model: '3340', # small office
-      weather: '3340',
+      weather: 'IL_Dupage_3340_18',
       result: 'Success'
     }
     test_sets << {
       model: '4774', # secondary school
-      weather: '4774',
+      weather: 'MI_Tulip_City_4774_18',
       result: 'Success'
     }
     # test: not applicable building type
