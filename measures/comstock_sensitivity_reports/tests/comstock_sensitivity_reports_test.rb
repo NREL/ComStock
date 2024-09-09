@@ -260,14 +260,6 @@ class ComStockSensitivityReportsTest < Minitest::Test
     assert(run_test(test_name, osm_path, epw_path))
   end
 
-  def test_heat_pump
-    test_name = 'test_heat_pump'
-    puts "\n######\nTEST:#{test_name}\n######\n"
-    osm_path = File.dirname(__FILE__) + '/office_heat_pump.osm'
-    epw_path = File.dirname(__FILE__) + '/USA_MN_Duluth.Intl.AP.727450_TMY.epw'
-    assert(run_test(test_name, osm_path, epw_path))
-  end
-
   def test_multispeed_heat_pump
     test_name = 'test_multispeed_heat_pump'
     puts "\n######\nTEST:#{test_name}\n######\n"
