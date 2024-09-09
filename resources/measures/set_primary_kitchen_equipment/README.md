@@ -5,10 +5,10 @@
 # set_primary_kitchen_equipment
 
 ## Description
-Measure adds spceific  primary kitchen equipment to kitchen space type based on user inputs. Primary kitchen equipment includes griddles, ovens, fryers, steamers, ranges, and stoves. Equipment can be either gas or electric based on user-specified inputs. Exisiting kitchen equipment will be removed, but new equipment will follow the same schedule as the equipment originally in the model.
+Measure adds specific primary kitchen equipment to kitchen space type based on user inputs. Primary kitchen equipment includes griddles, ovens, fryers, steamers, ranges, and stoves. Equipment can be either gas or electric based on user-specified inputs. Exisiting kitchen equipment will be removed, but new equipment will follow the same schedule as the equipment originally in the model.
 
 ## Modeler Description
-Measure adds spceific  primary kitchen equipment to kitchen space type based on user inputs. Primary kitchen equipment includes griddles, ovens, fryers, steamers, ranges, and stoves. Equipment can be either gas or electric based on user-specified inputs. Exisiting kitchen equipment will be removed, but new equipment will follow the same schedule as the equipment originally in the model.
+Measure adds specific primary kitchen equipment to kitchen space type based on user inputs. Primary kitchen equipment includes griddles, ovens, fryers, steamers, ranges, and stoves. Equipment can be either gas or electric based on user-specified inputs. Exisiting kitchen equipment will be removed, but new equipment will follow the same schedule as the equipment originally in the model.
 
 ## Measure Type
 ModelMeasure

@@ -224,35 +224,106 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     return result
   end
 
-  # return dependent varible based on two independent variables from TableMultiVariableLookup
-  # @param model [OpenStudio::Model::TableMultiVariableLookup] OpenStudio TableMultiVariableLookup object
-  # @param ind_var_1 [Double] independent variable 1
-  # @param ind_var_2 [Double] independent variable 2
+  # return dependent varible based on two independent variables from TableLookup
+  # @param lookup_table [OpenStudio::Model::TableLookup] OpenStudio TableLookup object
+  # @param input1 [Double] independent variable 1
+  # @param input2 [Double] independent variable 2
   # @return [Double] dependent variable value
-  def get_dep_var_from_lookup_table_with_two_ind_var(lookup_table, ind_var_1, ind_var_2)
-    unless lookup_table.to_TableMultiVariableLookup.is_initialized
-      runner.registerError("#{lookup_table.name} is not a OpenStudio::Model::TableMultiVariableLookup object.")
-      return false
-    end
+  def get_dep_var_from_lookup_table_with_two_ind_var(runner, lookup_table, input1, input2)
+    # Check if the lookup table only has two independent variables
+    if lookup_table.independentVariables.size == 2
 
-    # check if the lookup only has two independent variables
-    if lookup_table.numberofIndependentVariables == 2
+      # Extract independent variable 1 (e.g., indoor air temperature data)
+      ind_var_1_obj = lookup_table.independentVariables[0]
+      ind_var_1_values = ind_var_1_obj.values.to_a
 
-      # get independent variable 1 and 2 from table
-      array_ind_var_1 = lookup_table.xValues(0)
-      array_ind_var_2 = lookup_table.xValues(1)
+      # Extract independent variable 2 (e.g., outdoor air temperature data)
+      ind_var_2_obj = lookup_table.independentVariables[1]
+      ind_var_2_values = ind_var_2_obj.values.to_a
 
-      # find the closest independent variable 1 and 2 from table based on method inputs
-      closest_ind_var_1 = array_ind_var_1.min_by{|x| (ind_var_1-x).abs}
-      closest_ind_var_2 = array_ind_var_2.min_by{|x| (ind_var_2-x).abs}
+      # Extract output values (dependent variable)
+      dep_var = lookup_table.outputValues.to_a
 
-      # grab dependent variable from the closest independent variables
-      dependent_var_val = lookup_table.yValue([closest_ind_var_1, closest_ind_var_2]).get
+      # Check for dimension mismatch
+      if ind_var_1_values.size * ind_var_2_values.size != dep_var.size
+        runner.registerError("Output values count does not match with value counts of variable 1 and 2 for TableLookup object: #{lookup_table.name}")
+        return false
+      end
+
+      # Perform interpolation from the two independent variables
+      interpolate_from_two_ind_vars(runner, ind_var_1_values, ind_var_2_values, dep_var, input1,
+                                    input2)
+
     else
-      runner.registerError('This TableMultiVariableLookup is not based on two independent variables.')
-      return false
+      runner.registerError('This TableLookup is not based on two independent variables, so it is not supported with this method.')
+      false
     end
-    return dependent_var_val
+  end
+
+  # lookup or interpolate dependent varible based on two independent variable arrays and one dependent variable array
+  # @param ind_var_1 [Array] independent variables 1
+  # @param ind_var_2 [Array] independent variables 2
+  # @param dep_var [Array] dependent variables 
+  # @param input1 [Double] independent variable 1
+  # @param input2 [Double] independent variable 2
+  def interpolate_from_two_ind_vars(runner, ind_var_1, ind_var_2, dep_var, input1, input2)
+    # Check input1 value
+    if input1 < ind_var_1.first
+      runner.registerWarning("input1 value (#{input1}) is lower than the minimum value in the data (#{ind_var_1.first}) thus replacing to minimum bound")
+      input1 = ind_var_1.first
+    elsif input1 > ind_var_1.last
+      runner.registerWarning("input1 value (#{input1}) is larger than the maximum value in the data (#{ind_var_1.last}) thus replacing to maximum bound")
+      input1 = ind_var_1.last
+    end
+
+    # Check input2 value
+    if input2 < ind_var_2.first
+      runner.registerWarning("input2 value (#{input2}) is lower than the minimum value in the data (#{ind_var_2.first}) thus replacing to minimum bound")
+      input2 = ind_var_2.first
+    elsif input2 > ind_var_2.last
+      runner.registerWarning("input2 value (#{input2}) is larger than the maximum value in the data (#{ind_var_2.last}) thus replacing to maximum bound")
+      input2 = ind_var_2.last
+    end
+
+    # Find the closest lower and upper bounds for input1 in ind_var_1
+    i1_lower = ind_var_1.index { |val| val >= input1 } || ind_var_1.length - 1
+    i1_upper = i1_lower.positive? ? i1_lower - 1 : 0
+
+    # Find the closest lower and upper bounds for input2 in ind_var_2
+    i2_lower = ind_var_2.index { |val| val >= input2 } || ind_var_2.length - 1
+    i2_upper = i2_lower.positive? ? i2_lower - 1 : 0
+
+    # Ensure i1_lower and i1_upper are correctly ordered
+    if ind_var_1[i1_lower] < input1
+      i1_upper = i1_lower
+      i1_lower = [i1_lower + 1, ind_var_1.length - 1].min
+    end
+
+    # Ensure i2_lower and i2_upper are correctly ordered
+    if ind_var_2[i2_lower] < input2
+      i2_upper = i2_lower
+      i2_lower = [i2_lower + 1, ind_var_2.length - 1].min
+    end
+
+    # Get the dep_var values at these indices
+    v11 = dep_var[i1_upper * ind_var_2.length + i2_upper]
+    v12 = dep_var[i1_upper * ind_var_2.length + i2_lower]
+    v21 = dep_var[i1_lower * ind_var_2.length + i2_upper]
+    v22 = dep_var[i1_lower * ind_var_2.length + i2_lower]
+
+    # If input1 or input2 exactly matches, no need for interpolation
+    return v11 if input1 == ind_var_1[i1_upper] && input2 == ind_var_2[i2_upper]
+
+    # Interpolate between v11, v12, v21, and v22
+    x1 = ind_var_1[i1_upper]
+    x2 = ind_var_1[i1_lower]
+    y1 = ind_var_2[i2_upper]
+    y2 = ind_var_2[i2_lower]
+
+    (v11 * (x2 - input1) * (y2 - input2) +
+       v12 * (x2 - input1) * (input2 - y1) +
+       v21 * (input1 - x1) * (y2 - input2) +
+       v22 * (input1 - x1) * (input2 - y1)) / ((x2 - x1) * (y2 - y1))
   end
 
   # define what happens when the measure is run
@@ -318,7 +389,6 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     end
 
     # calculate exterior surface properties
-    # TODO may need to adjust for zone multipliers
     smallest_space_m2 = 9999.0
     num_surfaces = 0
     roof_absorptance_times_area = 0
@@ -328,22 +398,22 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     exterior_wall_area_m2 = 0.0
     spaces = model.getSpaces
     spaces.sort.each do |space|
-      floor_area_m2 = space.floorArea
+      floor_area_m2 = space.floorArea * space.multiplier
       smallest_space_m2 = floor_area_m2 if floor_area_m2 < smallest_space_m2
       space.surfaces.sort.each do |surface|
-        num_surfaces += 1
+        num_surfaces += 1 * space.multiplier
         next if surface.outsideBoundaryCondition != 'Outdoors'
         if surface.surfaceType.to_s == 'RoofCeiling'
           surface_absorptance = surface.exteriorVisibleAbsorptance.is_initialized ? surface.exteriorVisibleAbsorptance.get : 0.0
           surface_u_value_si = surface.uFactor.is_initialized ? surface.uFactor.get : 0.0
-          surface_area_m2 = surface.netArea
+          surface_area_m2 = surface.netArea * space.multiplier
           surface_ua_si = surface_u_value_si * surface_area_m2
           roof_absorptance_times_area += surface_absorptance * surface_area_m2
           roof_ua_si += surface_ua_si
           roof_area_m2 += surface_area_m2
         elsif surface.surfaceType.to_s == 'Wall'
           surface_u_value_si = surface.uFactor.is_initialized ? surface.uFactor.get : 0.0
-          surface_area_m2 = surface.netArea
+          surface_area_m2 = surface.netArea * space.multiplier
           surface_ua_si = surface_u_value_si * surface_area_m2
           exterior_wall_ua_si += surface_ua_si
           exterior_wall_area_m2 += surface_area_m2
@@ -352,11 +422,16 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     end
 
     # total number of zones
-    num_zones = model.getThermalZones.size
+    num_zones = 0
+    zones = model.getThermalZones
+    zones.each { |z| num_zones += z.multiplier }
+    runner.registerValue('com_report_number_of_model_zones', zones.size)
     runner.registerValue('com_report_number_of_zones', num_zones)
 
     # total number of spaces
-    num_spaces = spaces.size
+    num_spaces = 0
+    spaces.each { |s| num_spaces += s.multiplier }
+    runner.registerValue('com_report_number_of_model_spaces', spaces.size)
     runner.registerValue('com_report_number_of_spaces', num_spaces)
 
     # smallest space size
@@ -447,8 +522,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     total_space_area_m2 = 0.0
     model.getInternalMasss.sort.each do |mass|
       space = mass.space.get
-      space_area_m2 = space.floorArea
-      num_people = space.numberOfPeople
+      space_area_m2 = space.floorArea * space.multiplier
+      num_people = space.numberOfPeople * space.multiplier
       surface_area_m2 = mass.surfaceArea.is_initialized ? mass.surfaceArea.get : 0.0
       surface_area_per_floor_area_m2 = mass.surfaceAreaPerFloorArea.is_initialized ? mass.surfaceAreaPerFloorArea.get : 0.0
       surface_area_per_person_m2 = mass.surfaceAreaPerPerson.is_initialized ? mass.surfaceAreaPerPerson.get : 0.0
@@ -462,7 +537,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     weighted_daylight_control_area_m2 = 0.0
     total_zone_area_m2 = 0.0
     model.getThermalZones.sort.each do |zone|
-      zone_area_m2 = zone.floorArea
+      zone_area_m2 = zone.floorArea * zone.multiplier
       primary_fraction = zone.primaryDaylightingControl.is_initialized ? zone.fractionofZoneControlledbyPrimaryDaylightingControl : 0.0
       secondary_fraction = zone.secondaryDaylightingControl.is_initialized ? zone.fractionofZoneControlledbySecondaryDaylightingControl : 0.0
       total_fraction = (primary_fraction + secondary_fraction) > 1.0 ? 1.0 : (primary_fraction + secondary_fraction)
@@ -537,11 +612,11 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       # get design plug load power
       zone_electric_equipment_power_w = 0.0
       floor_area_m2 = 0.0
-      space_type = std.thermal_zone_majority_space_type(zone)
+      space_type = OpenstudioStandards::ThermalZone.thermal_zone_get_space_type(zone)
       if space_type.is_initialized
         space_type = space_type.get
-        floor_area_m2 = zone.floorArea
-        num_people = zone.numberOfPeople
+        floor_area_m2 = zone.floorArea * zone.multiplier
+        num_people = zone.numberOfPeople * zone.multiplier
         equip_w = space_type.getElectricEquipmentDesignLevel(floor_area_m2, num_people)
         # equip_per_area_w and equip_per_person_w are not included in equip_w call
         # equip_per_area_w = space_type.getElectricEquipmentPowerPerFloorArea(floor_area_m2, num_people) * floor_area_m2
@@ -611,10 +686,10 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     total_zone_design_ppl = 0.0
     total_zone_ppl_count = 0
     model.getThermalZones.sort.each do |zone|
-      total_zone_occupant_area_m2 += zone.floorArea
-      total_zone_design_ppl += zone.numberOfPeople
+      total_zone_occupant_area_m2 += zone.floorArea * zone.multiplier
+      total_zone_design_ppl += zone.numberOfPeople * zone.multiplier
       zone_ppl_count = sql_get_report_variable_data_double(runner, sql, zone, 'Zone People Occupant Count')
-      total_zone_ppl_count += zone_ppl_count
+      total_zone_ppl_count += zone_ppl_count * zone.multiplier
     end
 
     # Average occupant density
@@ -638,9 +713,9 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         dsn_oa = space.designSpecificationOutdoorAir.get
 
         # get the space properties
-        floor_area_m2 = space.floorArea
-        number_of_people = space.numberOfPeople
-        volume_m3 = space.volume
+        floor_area_m2 = space.floorArea * space.multiplier
+        number_of_people = space.numberOfPeople * space.multiplier
+        volume_m3 = space.volume * space.multiplier
 
         # get outdoor air values
         oa_for_people = number_of_people * dsn_oa.outdoorAirFlowperPerson
@@ -961,9 +1036,9 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     building_cooled_zone_area_m2 = 0.0
     building_zone_area_m2 = 0.0
     model.getThermalZones.sort.each do |zone|
-      building_zone_area_m2 += zone.floorArea
-      building_heated_zone_area_m2 += zone.floorArea if std.thermal_zone_heated?(zone)
-      building_cooled_zone_area_m2 += zone.floorArea if std.thermal_zone_cooled?(zone)
+      building_zone_area_m2 += zone.floorArea * zone.multiplier
+      building_heated_zone_area_m2 += zone.floorArea * zone.multiplier if OpenstudioStandards::ThermalZone.thermal_zone_heated?(zone)
+      building_cooled_zone_area_m2 += zone.floorArea * zone.multiplier if OpenstudioStandards::ThermalZone.thermal_zone_cooled?(zone)
     end
 
     # Fraction of building heated
@@ -983,14 +1058,14 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     weighted_thermostat_cooling_area_m2 = 0.0
     model.getThermalZones.sort.each do |zone|
       next unless zone.thermostatSetpointDualSetpoint.is_initialized
-      floor_area_m2 = zone.floorArea
+      floor_area_m2 = zone.floorArea * zone.multiplier
       thermostat = zone.thermostatSetpointDualSetpoint.get
       if thermostat.heatingSetpointTemperatureSchedule.is_initialized
         thermostat_heating_schedule = thermostat.heatingSetpointTemperatureSchedule.get
         if thermostat_heating_schedule.to_ScheduleRuleset.is_initialized
           puts("--- Ruleset schedule")
           thermostat_heating_schedule = thermostat_heating_schedule.to_ScheduleRuleset.get
-          cool_min_max = std.schedule_ruleset_annual_min_max_value(thermostat_heating_schedule)
+          cool_min_max = OpenstudioStandards::Schedules.schedule_ruleset_get_min_max(thermostat_heating_schedule)
           weighted_thermostat_heating_min_c += cool_min_max['min'] * floor_area_m2
           weighted_thermostat_heating_max_c += cool_min_max['max'] * floor_area_m2
           weighted_thermostat_heating_area_m2 += floor_area_m2
@@ -1007,7 +1082,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         end
         # next unless thermostat_heating_schedule.to_ScheduleRuleset.is_initialized
         # thermostat_heating_schedule = thermostat_heating_schedule.to_ScheduleRuleset.get
-        # heat_min_max = std.schedule_ruleset_annual_min_max_value(thermostat_heating_schedule)
+        # heat_min_max = OpenstudioStandards::Schedules.schedule_ruleset_get_min_max(thermostat_heating_schedule)
         # weighted_thermostat_heating_min_c += heat_min_max['min'] * floor_area_m2
         # weighted_thermostat_heating_max_c += heat_min_max['max'] * floor_area_m2
         # weighted_thermostat_heating_area_m2 += floor_area_m2
@@ -1017,7 +1092,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         if thermostat_cooling_schedule.to_ScheduleRuleset.is_initialized
           puts("--- Ruleset schedule")
           thermostat_cooling_schedule = thermostat_cooling_schedule.to_ScheduleRuleset.get
-          cool_min_max = std.schedule_ruleset_annual_min_max_value(thermostat_cooling_schedule)
+          cool_min_max = OpenstudioStandards::Schedules.schedule_ruleset_get_min_max(thermostat_cooling_schedule)
           weighted_thermostat_cooling_min_c += cool_min_max['min'] * floor_area_m2
           weighted_thermostat_cooling_max_c += cool_min_max['max'] * floor_area_m2
           weighted_thermostat_cooling_area_m2 += floor_area_m2
@@ -1107,7 +1182,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       # air loop area
       air_loop_area_m2 = 0.0
       air_loop_hvac.thermalZones.sort.each do |zone|
-        air_loop_area_m2 += zone.floorArea
+        air_loop_area_m2 += zone.floorArea * zone.multiplier
       end
 
       number_of_air_loops += 1.0
@@ -1193,7 +1268,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       vrf.terminals.each do |terminal|
         if terminal.thermalZone.is_initialized
           zone = terminal.thermalZone.get
-          vrf_area_m2 += zone.floorArea
+          vrf_area_m2 += zone.floorArea * zone.multiplier
         end
 
         # get terminal cooling capacity
@@ -1401,30 +1476,30 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
           cooling_eir_85F_curve = OpenStudio.convert(85.0,'F','C').get > cooling_boundary_temperature_c ? cooling_eir_high_temp_curve : cooling_eir_low_temp_curve
           cooling_eir_110F_curve = OpenStudio.convert(110.0,'F','C').get > cooling_boundary_temperature_c ? cooling_eir_high_temp_curve : cooling_eir_low_temp_curve
         end
-        if cooling_eir_35F_curve.to_TableMultiVariableLookup.is_initialized
-          cooling_eir_35F_curve = cooling_eir_35F_curve.to_TableMultiVariableLookup.get
-          eir_35F = get_dep_var_from_lookup_table_with_two_ind_var(cooling_eir_35F_curve, cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(35.0,'F','C').get)
+        if cooling_eir_35F_curve.to_TableLookup.is_initialized
+          cooling_eir_35F_curve = cooling_eir_35F_curve.to_TableLookup.get
+          eir_35F = get_dep_var_from_lookup_table_with_two_ind_var(runner, cooling_eir_35F_curve, cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(35.0,'F','C').get)
           vrf_cooling_design_cop_35F = vrf_cooling_design_cop / eir_35F
         else
           vrf_cooling_design_cop_35F = vrf_cooling_design_cop / cooling_eir_35F_curve.evaluate(cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(35.0,'F','C').get)
         end
-        if cooling_eir_60F_curve.to_TableMultiVariableLookup.is_initialized
-          cooling_eir_60F_curve = cooling_eir_60F_curve.to_TableMultiVariableLookup.get
-          eir_60F = get_dep_var_from_lookup_table_with_two_ind_var(cooling_eir_60F_curve, cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(60.0,'F','C').get)
+        if cooling_eir_60F_curve.to_TableLookup.is_initialized
+          cooling_eir_60F_curve = cooling_eir_60F_curve.to_TableLookup.get
+          eir_60F = get_dep_var_from_lookup_table_with_two_ind_var(runner, cooling_eir_60F_curve, cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(60.0,'F','C').get)
           vrf_cooling_design_cop_60F = vrf_cooling_design_cop / eir_60F
         else
           vrf_cooling_design_cop_60F = vrf_cooling_design_cop / cooling_eir_60F_curve.evaluate(cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(60.0,'F','C').get)
         end
-        if cooling_eir_85F_curve.to_TableMultiVariableLookup.is_initialized
-          cooling_eir_85F_curve = cooling_eir_85F_curve.to_TableMultiVariableLookup.get
-          eir_85F = get_dep_var_from_lookup_table_with_two_ind_var(cooling_eir_85F_curve, cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(85.0,'F','C').get)
+        if cooling_eir_85F_curve.to_TableLookup.is_initialized
+          cooling_eir_85F_curve = cooling_eir_85F_curve.to_TableLookup.get
+          eir_85F = get_dep_var_from_lookup_table_with_two_ind_var(runner, cooling_eir_85F_curve, cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(85.0,'F','C').get)
           vrf_cooling_design_cop_85F = vrf_cooling_design_cop / eir_85F
         else
           vrf_cooling_design_cop_85F = vrf_cooling_design_cop / cooling_eir_85F_curve.evaluate(cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(85.0,'F','C').get)
         end
-        if cooling_eir_110F_curve.to_TableMultiVariableLookup.is_initialized
-          cooling_eir_110F_curve = cooling_eir_110F_curve.to_TableMultiVariableLookup.get
-          eir_110F = get_dep_var_from_lookup_table_with_two_ind_var(cooling_eir_110F_curve, cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(110.0,'F','C').get)
+        if cooling_eir_110F_curve.to_TableLookup.is_initialized
+          cooling_eir_110F_curve = cooling_eir_110F_curve.to_TableLookup.get
+          eir_110F = get_dep_var_from_lookup_table_with_two_ind_var(runner, cooling_eir_110F_curve, cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(110.0,'F','C').get)
           vrf_cooling_design_cop_110F = vrf_cooling_design_cop / eir_110F
         else
           vrf_cooling_design_cop_110F = vrf_cooling_design_cop / cooling_eir_110F_curve.evaluate(cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(110.0,'F','C').get)
@@ -1474,30 +1549,30 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
           heating_eir_20F_curve = OpenStudio.convert(20.0,'F','C').get > heating_boundary_temperature_c ? heating_eir_high_temp_curve : heating_eir_low_temp_curve
           heating_eir_40F_curve = OpenStudio.convert(40.0,'F','C').get > heating_boundary_temperature_c ? heating_eir_high_temp_curve : heating_eir_low_temp_curve
         end
-        if heating_eir_minus22F_curve.to_TableMultiVariableLookup.is_initialized
-          heating_eir_minus22F_curve = heating_eir_minus22F_curve.to_TableMultiVariableLookup.get
-          eir_minus22F = get_dep_var_from_lookup_table_with_two_ind_var(heating_eir_minus22F_curve, heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(-22.0,'F','C').get)
+        if heating_eir_minus22F_curve.to_TableLookup.is_initialized
+          heating_eir_minus22F_curve = heating_eir_minus22F_curve.to_TableLookup.get
+          eir_minus22F = get_dep_var_from_lookup_table_with_two_ind_var(runner, heating_eir_minus22F_curve, heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(-22.0,'F','C').get)
           vrf_heating_design_cop_minus22F = vrf_heating_design_cop / eir_minus22F
         else
           vrf_heating_design_cop_minus22F = vrf_heating_design_cop / heating_eir_minus22F_curve.evaluate(heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(-22.0,'F','C').get)
         end
-        if heating_eir_0F_curve.to_TableMultiVariableLookup.is_initialized
-          heating_eir_0F_curve = heating_eir_0F_curve.to_TableMultiVariableLookup.get
-          eir_0F = get_dep_var_from_lookup_table_with_two_ind_var(heating_eir_0F_curve, heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(0.0,'F','C').get)
+        if heating_eir_0F_curve.to_TableLookup.is_initialized
+          heating_eir_0F_curve = heating_eir_0F_curve.to_TableLookup.get
+          eir_0F = get_dep_var_from_lookup_table_with_two_ind_var(runner, heating_eir_0F_curve, heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(0.0,'F','C').get)
           vrf_heating_design_cop_0F = vrf_heating_design_cop / eir_0F
         else
           vrf_heating_design_cop_0F = vrf_heating_design_cop / heating_eir_0F_curve.evaluate(heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(0.0,'F','C').get)
         end
-        if heating_eir_20F_curve.to_TableMultiVariableLookup.is_initialized
-          heating_eir_20F_curve = heating_eir_20F_curve.to_TableMultiVariableLookup.get
-          eir_20F = get_dep_var_from_lookup_table_with_two_ind_var(heating_eir_20F_curve, heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(20.0,'F','C').get)
+        if heating_eir_20F_curve.to_TableLookup.is_initialized
+          heating_eir_20F_curve = heating_eir_20F_curve.to_TableLookup.get
+          eir_20F = get_dep_var_from_lookup_table_with_two_ind_var(runner, heating_eir_20F_curve, heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(20.0,'F','C').get)
           vrf_heating_design_cop_20F = vrf_heating_design_cop / eir_20F
         else
           vrf_heating_design_cop_20F = vrf_heating_design_cop / heating_eir_20F_curve.evaluate(heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(20.0,'F','C').get)
         end
-        if heating_eir_40F_curve.to_TableMultiVariableLookup.is_initialized
-          heating_eir_40F_curve = heating_eir_40F_curve.to_TableMultiVariableLookup.get
-          eir_40F = get_dep_var_from_lookup_table_with_two_ind_var(heating_eir_40F_curve, heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(40.0,'F','C').get)
+        if heating_eir_40F_curve.to_TableLookup.is_initialized
+          heating_eir_40F_curve = heating_eir_40F_curve.to_TableLookup.get
+          eir_40F = get_dep_var_from_lookup_table_with_two_ind_var(runner, heating_eir_40F_curve, heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(40.0,'F','C').get)
           vrf_heating_design_cop_40F = vrf_heating_design_cop / eir_40F
         else
           vrf_heating_design_cop_40F = vrf_heating_design_cop / heating_eir_40F_curve.evaluate(heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(40.0,'F','C').get)
