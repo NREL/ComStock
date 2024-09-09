@@ -224,35 +224,106 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     return result
   end
 
-  # return dependent varible based on two independent variables from TableMultiVariableLookup
-  # @param model [OpenStudio::Model::TableMultiVariableLookup] OpenStudio TableMultiVariableLookup object
-  # @param ind_var_1 [Double] independent variable 1
-  # @param ind_var_2 [Double] independent variable 2
+  # return dependent varible based on two independent variables from TableLookup
+  # @param lookup_table [OpenStudio::Model::TableLookup] OpenStudio TableLookup object
+  # @param input1 [Double] independent variable 1
+  # @param input2 [Double] independent variable 2
   # @return [Double] dependent variable value
-  def get_dep_var_from_lookup_table_with_two_ind_var(lookup_table, ind_var_1, ind_var_2)
-    unless lookup_table.to_TableMultiVariableLookup.is_initialized
-      runner.registerError("#{lookup_table.name} is not a OpenStudio::Model::TableMultiVariableLookup object.")
-      return false
-    end
+  def get_dep_var_from_lookup_table_with_two_ind_var(runner, lookup_table, input1, input2)
+    # Check if the lookup table only has two independent variables
+    if lookup_table.independentVariables.size == 2
 
-    # check if the lookup only has two independent variables
-    if lookup_table.numberofIndependentVariables == 2
+      # Extract independent variable 1 (e.g., indoor air temperature data)
+      ind_var_1_obj = lookup_table.independentVariables[0]
+      ind_var_1_values = ind_var_1_obj.values.to_a
 
-      # get independent variable 1 and 2 from table
-      array_ind_var_1 = lookup_table.xValues(0)
-      array_ind_var_2 = lookup_table.xValues(1)
+      # Extract independent variable 2 (e.g., outdoor air temperature data)
+      ind_var_2_obj = lookup_table.independentVariables[1]
+      ind_var_2_values = ind_var_2_obj.values.to_a
 
-      # find the closest independent variable 1 and 2 from table based on method inputs
-      closest_ind_var_1 = array_ind_var_1.min_by{|x| (ind_var_1-x).abs}
-      closest_ind_var_2 = array_ind_var_2.min_by{|x| (ind_var_2-x).abs}
+      # Extract output values (dependent variable)
+      dep_var = lookup_table.outputValues.to_a
 
-      # grab dependent variable from the closest independent variables
-      dependent_var_val = lookup_table.yValue([closest_ind_var_1, closest_ind_var_2]).get
+      # Check for dimension mismatch
+      if ind_var_1_values.size * ind_var_2_values.size != dep_var.size
+        runner.registerError("Output values count does not match with value counts of variable 1 and 2 for TableLookup object: #{lookup_table.name}")
+        return false
+      end
+
+      # Perform interpolation from the two independent variables
+      interpolate_from_two_ind_vars(runner, ind_var_1_values, ind_var_2_values, dep_var, input1,
+                                    input2)
+
     else
-      runner.registerError('This TableMultiVariableLookup is not based on two independent variables.')
-      return false
+      runner.registerError('This TableLookup is not based on two independent variables, so it is not supported with this method.')
+      false
     end
-    return dependent_var_val
+  end
+
+  # lookup or interpolate dependent varible based on two independent variable arrays and one dependent variable array
+  # @param ind_var_1 [Array] independent variables 1
+  # @param ind_var_2 [Array] independent variables 2
+  # @param dep_var [Array] dependent variables 
+  # @param input1 [Double] independent variable 1
+  # @param input2 [Double] independent variable 2
+  def interpolate_from_two_ind_vars(runner, ind_var_1, ind_var_2, dep_var, input1, input2)
+    # Check input1 value
+    if input1 < ind_var_1.first
+      runner.registerWarning("input1 value (#{input1}) is lower than the minimum value in the data (#{ind_var_1.first}) thus replacing to minimum bound")
+      input1 = ind_var_1.first
+    elsif input1 > ind_var_1.last
+      runner.registerWarning("input1 value (#{input1}) is larger than the maximum value in the data (#{ind_var_1.last}) thus replacing to maximum bound")
+      input1 = ind_var_1.last
+    end
+
+    # Check input2 value
+    if input2 < ind_var_2.first
+      runner.registerWarning("input2 value (#{input2}) is lower than the minimum value in the data (#{ind_var_2.first}) thus replacing to minimum bound")
+      input2 = ind_var_2.first
+    elsif input2 > ind_var_2.last
+      runner.registerWarning("input2 value (#{input2}) is larger than the maximum value in the data (#{ind_var_2.last}) thus replacing to maximum bound")
+      input2 = ind_var_2.last
+    end
+
+    # Find the closest lower and upper bounds for input1 in ind_var_1
+    i1_lower = ind_var_1.index { |val| val >= input1 } || ind_var_1.length - 1
+    i1_upper = i1_lower.positive? ? i1_lower - 1 : 0
+
+    # Find the closest lower and upper bounds for input2 in ind_var_2
+    i2_lower = ind_var_2.index { |val| val >= input2 } || ind_var_2.length - 1
+    i2_upper = i2_lower.positive? ? i2_lower - 1 : 0
+
+    # Ensure i1_lower and i1_upper are correctly ordered
+    if ind_var_1[i1_lower] < input1
+      i1_upper = i1_lower
+      i1_lower = [i1_lower + 1, ind_var_1.length - 1].min
+    end
+
+    # Ensure i2_lower and i2_upper are correctly ordered
+    if ind_var_2[i2_lower] < input2
+      i2_upper = i2_lower
+      i2_lower = [i2_lower + 1, ind_var_2.length - 1].min
+    end
+
+    # Get the dep_var values at these indices
+    v11 = dep_var[i1_upper * ind_var_2.length + i2_upper]
+    v12 = dep_var[i1_upper * ind_var_2.length + i2_lower]
+    v21 = dep_var[i1_lower * ind_var_2.length + i2_upper]
+    v22 = dep_var[i1_lower * ind_var_2.length + i2_lower]
+
+    # If input1 or input2 exactly matches, no need for interpolation
+    return v11 if input1 == ind_var_1[i1_upper] && input2 == ind_var_2[i2_upper]
+
+    # Interpolate between v11, v12, v21, and v22
+    x1 = ind_var_1[i1_upper]
+    x2 = ind_var_1[i1_lower]
+    y1 = ind_var_2[i2_upper]
+    y2 = ind_var_2[i2_lower]
+
+    (v11 * (x2 - input1) * (y2 - input2) +
+       v12 * (x2 - input1) * (input2 - y1) +
+       v21 * (input1 - x1) * (y2 - input2) +
+       v22 * (input1 - x1) * (input2 - y1)) / ((x2 - x1) * (y2 - y1))
   end
 
   # define what happens when the measure is run
@@ -1405,30 +1476,30 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
           cooling_eir_85F_curve = OpenStudio.convert(85.0,'F','C').get > cooling_boundary_temperature_c ? cooling_eir_high_temp_curve : cooling_eir_low_temp_curve
           cooling_eir_110F_curve = OpenStudio.convert(110.0,'F','C').get > cooling_boundary_temperature_c ? cooling_eir_high_temp_curve : cooling_eir_low_temp_curve
         end
-        if cooling_eir_35F_curve.to_TableMultiVariableLookup.is_initialized
-          cooling_eir_35F_curve = cooling_eir_35F_curve.to_TableMultiVariableLookup.get
-          eir_35F = get_dep_var_from_lookup_table_with_two_ind_var(cooling_eir_35F_curve, cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(35.0,'F','C').get)
+        if cooling_eir_35F_curve.to_TableLookup.is_initialized
+          cooling_eir_35F_curve = cooling_eir_35F_curve.to_TableLookup.get
+          eir_35F = get_dep_var_from_lookup_table_with_two_ind_var(runner, cooling_eir_35F_curve, cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(35.0,'F','C').get)
           vrf_cooling_design_cop_35F = vrf_cooling_design_cop / eir_35F
         else
           vrf_cooling_design_cop_35F = vrf_cooling_design_cop / cooling_eir_35F_curve.evaluate(cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(35.0,'F','C').get)
         end
-        if cooling_eir_60F_curve.to_TableMultiVariableLookup.is_initialized
-          cooling_eir_60F_curve = cooling_eir_60F_curve.to_TableMultiVariableLookup.get
-          eir_60F = get_dep_var_from_lookup_table_with_two_ind_var(cooling_eir_60F_curve, cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(60.0,'F','C').get)
+        if cooling_eir_60F_curve.to_TableLookup.is_initialized
+          cooling_eir_60F_curve = cooling_eir_60F_curve.to_TableLookup.get
+          eir_60F = get_dep_var_from_lookup_table_with_two_ind_var(runner, cooling_eir_60F_curve, cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(60.0,'F','C').get)
           vrf_cooling_design_cop_60F = vrf_cooling_design_cop / eir_60F
         else
           vrf_cooling_design_cop_60F = vrf_cooling_design_cop / cooling_eir_60F_curve.evaluate(cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(60.0,'F','C').get)
         end
-        if cooling_eir_85F_curve.to_TableMultiVariableLookup.is_initialized
-          cooling_eir_85F_curve = cooling_eir_85F_curve.to_TableMultiVariableLookup.get
-          eir_85F = get_dep_var_from_lookup_table_with_two_ind_var(cooling_eir_85F_curve, cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(85.0,'F','C').get)
+        if cooling_eir_85F_curve.to_TableLookup.is_initialized
+          cooling_eir_85F_curve = cooling_eir_85F_curve.to_TableLookup.get
+          eir_85F = get_dep_var_from_lookup_table_with_two_ind_var(runner, cooling_eir_85F_curve, cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(85.0,'F','C').get)
           vrf_cooling_design_cop_85F = vrf_cooling_design_cop / eir_85F
         else
           vrf_cooling_design_cop_85F = vrf_cooling_design_cop / cooling_eir_85F_curve.evaluate(cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(85.0,'F','C').get)
         end
-        if cooling_eir_110F_curve.to_TableMultiVariableLookup.is_initialized
-          cooling_eir_110F_curve = cooling_eir_110F_curve.to_TableMultiVariableLookup.get
-          eir_110F = get_dep_var_from_lookup_table_with_two_ind_var(cooling_eir_110F_curve, cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(110.0,'F','C').get)
+        if cooling_eir_110F_curve.to_TableLookup.is_initialized
+          cooling_eir_110F_curve = cooling_eir_110F_curve.to_TableLookup.get
+          eir_110F = get_dep_var_from_lookup_table_with_two_ind_var(runner, cooling_eir_110F_curve, cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(110.0,'F','C').get)
           vrf_cooling_design_cop_110F = vrf_cooling_design_cop / eir_110F
         else
           vrf_cooling_design_cop_110F = vrf_cooling_design_cop / cooling_eir_110F_curve.evaluate(cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(110.0,'F','C').get)
@@ -1478,30 +1549,30 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
           heating_eir_20F_curve = OpenStudio.convert(20.0,'F','C').get > heating_boundary_temperature_c ? heating_eir_high_temp_curve : heating_eir_low_temp_curve
           heating_eir_40F_curve = OpenStudio.convert(40.0,'F','C').get > heating_boundary_temperature_c ? heating_eir_high_temp_curve : heating_eir_low_temp_curve
         end
-        if heating_eir_minus22F_curve.to_TableMultiVariableLookup.is_initialized
-          heating_eir_minus22F_curve = heating_eir_minus22F_curve.to_TableMultiVariableLookup.get
-          eir_minus22F = get_dep_var_from_lookup_table_with_two_ind_var(heating_eir_minus22F_curve, heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(-22.0,'F','C').get)
+        if heating_eir_minus22F_curve.to_TableLookup.is_initialized
+          heating_eir_minus22F_curve = heating_eir_minus22F_curve.to_TableLookup.get
+          eir_minus22F = get_dep_var_from_lookup_table_with_two_ind_var(runner, heating_eir_minus22F_curve, heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(-22.0,'F','C').get)
           vrf_heating_design_cop_minus22F = vrf_heating_design_cop / eir_minus22F
         else
           vrf_heating_design_cop_minus22F = vrf_heating_design_cop / heating_eir_minus22F_curve.evaluate(heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(-22.0,'F','C').get)
         end
-        if heating_eir_0F_curve.to_TableMultiVariableLookup.is_initialized
-          heating_eir_0F_curve = heating_eir_0F_curve.to_TableMultiVariableLookup.get
-          eir_0F = get_dep_var_from_lookup_table_with_two_ind_var(heating_eir_0F_curve, heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(0.0,'F','C').get)
+        if heating_eir_0F_curve.to_TableLookup.is_initialized
+          heating_eir_0F_curve = heating_eir_0F_curve.to_TableLookup.get
+          eir_0F = get_dep_var_from_lookup_table_with_two_ind_var(runner, heating_eir_0F_curve, heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(0.0,'F','C').get)
           vrf_heating_design_cop_0F = vrf_heating_design_cop / eir_0F
         else
           vrf_heating_design_cop_0F = vrf_heating_design_cop / heating_eir_0F_curve.evaluate(heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(0.0,'F','C').get)
         end
-        if heating_eir_20F_curve.to_TableMultiVariableLookup.is_initialized
-          heating_eir_20F_curve = heating_eir_20F_curve.to_TableMultiVariableLookup.get
-          eir_20F = get_dep_var_from_lookup_table_with_two_ind_var(heating_eir_20F_curve, heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(20.0,'F','C').get)
+        if heating_eir_20F_curve.to_TableLookup.is_initialized
+          heating_eir_20F_curve = heating_eir_20F_curve.to_TableLookup.get
+          eir_20F = get_dep_var_from_lookup_table_with_two_ind_var(runner, heating_eir_20F_curve, heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(20.0,'F','C').get)
           vrf_heating_design_cop_20F = vrf_heating_design_cop / eir_20F
         else
           vrf_heating_design_cop_20F = vrf_heating_design_cop / heating_eir_20F_curve.evaluate(heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(20.0,'F','C').get)
         end
-        if heating_eir_40F_curve.to_TableMultiVariableLookup.is_initialized
-          heating_eir_40F_curve = heating_eir_40F_curve.to_TableMultiVariableLookup.get
-          eir_40F = get_dep_var_from_lookup_table_with_two_ind_var(heating_eir_40F_curve, heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(40.0,'F','C').get)
+        if heating_eir_40F_curve.to_TableLookup.is_initialized
+          heating_eir_40F_curve = heating_eir_40F_curve.to_TableLookup.get
+          eir_40F = get_dep_var_from_lookup_table_with_two_ind_var(runner, heating_eir_40F_curve, heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(40.0,'F','C').get)
           vrf_heating_design_cop_40F = vrf_heating_design_cop / eir_40F
         else
           vrf_heating_design_cop_40F = vrf_heating_design_cop / heating_eir_40F_curve.evaluate(heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(40.0,'F','C').get)
