@@ -1,6 +1,13 @@
 <?xml version="1.0"?>
 <measure>
   <schema_version>3.1</schema_version>
+  <error>C:/Users/ccaradon/Documents/GitHub/ComStock/measures/comstock_sensitivity_reports/measure.rb:2244: syntax error, unexpected constant, expecting `end'
+...Heater Electricity Energy") CC1
+...                            ^~~
+C:/Users/ccaradon/Documents/GitHub/ComStock/measures/comstock_sensitivity_reports/measure.rb:3138: Invalid return in class/module body
+    return true
+    ^~~~~~
+C:/Users/ccaradon/Documents/GitHub/ComStock/measures/comstock_sensitivity_reports/measure.rb:3140: syntax error, unexpected `end', expecting end-of-input</error>
   <name>com_stock_sensitivity_reports</name>
   <uid>aeb81242-de7e-4613-af47-c1faf19d286a</uid>
   <version_id>b860dd26-1203-4a94-a016-3977d9751133</version_id>
@@ -59,7 +66,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>16CEB2D0</checksum>
+      <checksum>0B68E96D</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
