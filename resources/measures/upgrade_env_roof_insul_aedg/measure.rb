@@ -75,14 +75,11 @@ class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure
     # set limit for minimum insulation in IP units -- this is used to limit input and for inferring insulation layer in construction
     min_exp_r_val_ip = 1.0
 
-    # get climate zone
-    # @todo update to OpenstudioStandards::Weather.model_get_climate_zone(model) after stds update past 0.6.1
-    cz = model.getClimateZones.climateZones[0]
-    if cz.institution == 'ASHRAE'
-      climate_zone = "ASHRAE 169-2013-#{cz.value}"
-    elsif cz.institution == 'CEC'
-      climate_zone = "CEC T24-CEC#{cz.value}"
-    end
+    # build standard to use OS standards methods
+    template = 'ComStock 90.1-2019'
+    std = Standard.build(template)
+    # get climate zone to set target_r_val_ip
+    climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
 
     # apply target R-value by climate zone
     if climate_zone.include?("ASHRAE 169-2013-1") || climate_zone.include?("CEC15")
@@ -118,11 +115,7 @@ class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure
     ext_surf_const_names = []
     roof_resist = []
     model.getSurfaces.each do |surface|
-      next unless (surface.outsideBoundaryCondition == 'Outdoors') && (surface.surfaceType == 'RoofCeiling')
-
-      # remove hard assigned constructions from thermal bridging measure
-      surface.resetConstruction
-
+      next unless (surface.outsideBoundaryCondition == 'Outdoors') && (surface.surfaceType == 'RoofCeiling') #which are outdoor roofs
       ext_surfs << surface
       roof_const = surface.construction.get
       # only add construction if it hasn't been added yet
@@ -329,38 +322,6 @@ class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure
       final_str << "#{final_const.name} (R-#{(format '%.1f', final_r_val_ip)})"
       area_changed_si += final_const.getNetArea
     end
-
-    # derate new roof insulation values to account for thermal bridging
-    # the TBD process will not derate constructions that have already been derated and have 'tbd' in the name
-    tbd_args = {}
-
-    # get largest default roof construction type to determine derating option type
-    default_roof_constructions = {}
-    model.getDefaultConstructionSets.sort.each do |const_set|
-      next unless const_set.defaultExteriorSurfaceConstructions.is_initialized
-      ext_surfs = const_set.defaultExteriorSurfaceConstructions.get
-      next unless ext_surfs.roofCeilingConstruction.is_initialized
-      roof_construction = ext_surfs.roofCeilingConstruction.get
-      default_roof_constructions[roof_construction.name] = roof_construction.getNetArea
-    end
-    default_roof_construction_name = Hash[default_roof_constructions.sort_by{ |k,v| v }].keys[-1]
-    default_roof_construction = model.getConstructionBaseByName(default_roof_construction_name.get).get
-    const_type = default_roof_construction.standardsInformation.standardsConstructionType
-    case const_type
-    when 'Mass'
-      tbd_args[:option] = '90.1.22|mass.in|unmitigated'
-    when 'WoodFramed'
-      tbd_args[:option] = '90.1.22|wood.fr|unmitigated'
-    when 'SteelFramed', 'Metal Building'
-      tbd_args[:option] = '90.1.22|steel.m|unmitigated'
-    else
-      # use steel frame as default
-      tbd_args[:option] = '90.1.22|steel.m|unmitigated'
-    end
-
-    # run TBD
-    tbd = TBD.process(model, tbd_args)
-    TBD.exit(runner, tbd_args)
 
     # add not applicable test if there were roof constructions but non of them were altered (already enough insulation or doesn't look like insulated roof)
     if area_changed_si == 0

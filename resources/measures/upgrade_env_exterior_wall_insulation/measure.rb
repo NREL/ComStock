@@ -72,14 +72,11 @@ class ExteriorWallInsulation < OpenStudio::Measure::ModelMeasure
       return false
     end
 
-    # get climate zone
-    # @todo update to OpenstudioStandards::Weather.model_get_climate_zone(model) after stds update past 0.6.1
-    cz = model.getClimateZones.climateZones[0]
-    if cz.institution == 'ASHRAE'
-      climate_zone = "ASHRAE 169-2013-#{cz.value}"
-    elsif cz.institution == 'CEC'
-      climate_zone = "CEC T24-CEC#{cz.value}"
-    end
+    # build standard to use OS standards methods
+    template = 'ComStock 90.1-2013'
+    std = Standard.build(template)
+    # get climate zone to set target_r_val_ip
+    climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
 
     # apply target R-value by climate zone
     if climate_zone.include?("ASHRAE 169-2013-1") || climate_zone.include?("ASHRAE 169-2013-2") || climate_zone.include?("CEC15")
@@ -131,11 +128,6 @@ class ExteriorWallInsulation < OpenStudio::Measure::ModelMeasure
     wall_constructions = []
     model.getSurfaces.each do |surface|
       next unless (surface.outsideBoundaryCondition == 'Outdoors') && (surface.surfaceType == 'Wall')
-      next if surface.construction.empty?
-
-      # remove hard assigned constructions from thermal bridging measure
-      surface.resetConstruction
-
       next if surface.construction.empty?
       wall_constructions << surface.construction.get
     end
@@ -224,38 +216,6 @@ class ExteriorWallInsulation < OpenStudio::Measure::ModelMeasure
       surface.setConstruction(wall_construction_plus_ins)
       area_of_insulation_added_si += surface.netArea
     end
-
-    # derate new wall insulation values to account for thermal bridging
-    # the TBD process will not derate constructions that have already been derated and have 'tbd' in the name
-    tbd_args = {}
-
-    # get largest default wall construction type to determine derating option type
-    default_wall_constructions = {}
-    model.getDefaultConstructionSets.sort.each do |const_set|
-      next unless const_set.defaultExteriorSurfaceConstructions.is_initialized
-      ext_surfs = const_set.defaultExteriorSurfaceConstructions.get
-      next unless ext_surfs.wallConstruction.is_initialized
-      wall_construction = ext_surfs.wallConstruction.get
-      default_wall_constructions[wall_construction.name] = wall_construction.getNetArea
-    end
-    default_wall_construction_name = Hash[default_wall_constructions.sort_by{ |k,v| v }].keys[-1]
-    default_wall_construction = model.getConstructionBaseByName(default_wall_construction_name.get).get
-    const_type = default_wall_construction.standardsInformation.standardsConstructionType
-    case const_type
-    when 'Mass'
-      tbd_args[:option] = '90.1.22|mass.in|unmitigated'
-    when 'WoodFramed'
-      tbd_args[:option] = '90.1.22|wood.fr|unmitigated'
-    when 'SteelFramed', 'Metal Building'
-      tbd_args[:option] = '90.1.22|steel.m|unmitigated'
-    else
-      # use steel frame as default
-      tbd_args[:option] = '90.1.22|steel.m|unmitigated'
-    end
-
-    # run TBD
-    tbd = TBD.process(model, tbd_args)
-    TBD.exit(runner, tbd_args)
 
     # This measure is not applicable if there are no exterior walls
     if area_of_insulation_added_si.zero?

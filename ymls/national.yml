@@ -31,8 +31,8 @@ baseline:
   n_buildings_represented: 57787
   custom_gems: True
 
-os_version: os_370_stds_050_deer_fixes
-os_sha: 51a6c20996ff
+os_version: os_380_stds_e61d7d4
+os_sha: f953b6fcaf
 max_minutes_per_sim: 360
 
 workflow_generator:

@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>set_roof_template</name>
   <uid>0b13c46d-123f-4d6c-b5d8-65a23acf1141</uid>
-  <version_id>689ee4d9-09f5-489b-912c-14189220f6f2</version_id>
-  <version_modified>2024-08-13T23:43:51Z</version_modified>
+  <version_id>3f9d5a8d-5986-4beb-bfbe-b87310d67228</version_id>
+  <version_modified>2024-06-20T18:58:40Z</version_modified>
   <xml_checksum>66CE07BA</xml_checksum>
   <class_name>SetRoofTemplate</class_name>
   <display_name>Set Roof Template</display_name>
@@ -530,7 +530,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>F5D033A6</checksum>
+      <checksum>ADEF285E</checksum>
     </file>
     <file>
       <filename>Rt3-DEER Pre-1975-DXEH-CEC T24-CEC1.osm</filename>
@@ -542,7 +542,7 @@
       <filename>measure_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>E7647EF2</checksum>
+      <checksum>B6C88F42</checksum>
     </file>
   </files>
 </measure>
