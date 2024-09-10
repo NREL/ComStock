@@ -2056,13 +2056,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Provide detailed additional info on missing buckets for review if desired
         logger.info('The following is a breakdown of missing truth data buildings by bucket attributes:')
+        APPO_GROUP_ID = "appo_group_id"
         for attribute in ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']:
             logger.info(f'{attribute}:')
-            logger.info(f'{
-                pl.Series(tdf.filter(pl.col('appo_group_id').is_in(missing_groups)).select(
-                    pl.col(attribute).value_counts(sort=True)
-                ).collect()).to_list()
-            }'.replace("}, {", '\n\t').replace('[{', '\t').replace('}]', ''))
+            logger.info(f'{pl.Series(tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups)).select(pl.col(attribute).value_counts(sort=True)).collect()).to_list()}'
+                        .replace("}, {", "\n\t").replace("[{", "\t").replace("}]", ""))
         logger.info('Writting QAQC / Debugging files to the home directory.')
         attrs = ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
         tdf.select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv('~/potential_apportionment_group_optimization.csv')
