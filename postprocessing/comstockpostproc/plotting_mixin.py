@@ -1848,8 +1848,8 @@ class PlottingMixin():
                 # column name
                 col_name = self.col_name_to_nice_saving_name(df_enduse.name)
                 # manually add "total"
-                col_name = col_name.replace('Utility Bills  Mean Bill  Intensity', 'Utility Bills Total Bill Intensity')
-                col_name = col_name.replace('Bill  Intensity', 'Bill Intensity')
+                col_name = col_name.replace('Utility Bills Mean Bill Intensity', 'Utility Bills Total Bill Intensity')
+                col_name = col_name.replace('Bill Intensity', 'Bill Intensity')
                 col_name = col_name.replace('Utility Bills ', '')
                 col_name = col_name.replace('Electricity Bill', 'Electricity Bill w/ Mean Rate')
                 col_name = col_name.replace('Total Bill', 'Total Bill w/ Mean Electricity Rate')
