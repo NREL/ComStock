@@ -149,7 +149,7 @@ climate_zone	8	ChangeBuildingLocation	climate_zone=ASHRAE 169-2013-8A
 		set_interior_equipment_template	climate_zone=ASHRAE 169-2013-8A
 		set_service_water_heating_template	climate_zone=ASHRAE 169-2013-8A
 		set_hvac_template	climate_zone=ASHRAE 169-2013-8A
-climate_zone	CEC1	ChangeBuildingLocation	climate_zone=CEC T24-CEC1
+climate_zone	CEC1	ChangeBuildingLocation	climate_zone=T24-CEC1
 		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
 		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC1
 		create_typical_building_from_model	climate_zone=CEC T24-CEC1
@@ -159,7 +159,7 @@ climate_zone	CEC1	ChangeBuildingLocation	climate_zone=CEC T24-CEC1
 		set_interior_equipment_template	climate_zone=CEC T24-CEC1
 		set_service_water_heating_template	climate_zone=CEC T24-CEC1
 		set_hvac_template	climate_zone=CEC T24-CEC1
-climate_zone	CEC2	ChangeBuildingLocation	climate_zone=CEC T24-CEC2
+climate_zone	CEC2	ChangeBuildingLocation	climate_zone=T24-CEC2
 		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
 		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC2
 		create_typical_building_from_model	climate_zone=CEC T24-CEC2
@@ -169,7 +169,7 @@ climate_zone	CEC2	ChangeBuildingLocation	climate_zone=CEC T24-CEC2
 		set_interior_equipment_template	climate_zone=CEC T24-CEC2
 		set_service_water_heating_template	climate_zone=CEC T24-CEC2
 		set_hvac_template	climate_zone=CEC T24-CEC2
-climate_zone	CEC3	ChangeBuildingLocation	climate_zone=CEC T24-CEC3
+climate_zone	CEC3	ChangeBuildingLocation	climate_zone=T24-CEC3
 		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
 		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC3
 		create_typical_building_from_model	climate_zone=CEC T24-CEC3
@@ -179,7 +179,7 @@ climate_zone	CEC3	ChangeBuildingLocation	climate_zone=CEC T24-CEC3
 		set_interior_equipment_template	climate_zone=CEC T24-CEC3
 		set_service_water_heating_template	climate_zone=CEC T24-CEC3
 		set_hvac_template	climate_zone=CEC T24-CEC3
-climate_zone	CEC4	ChangeBuildingLocation	climate_zone=CEC T24-CEC4
+climate_zone	CEC4	ChangeBuildingLocation	climate_zone=T24-CEC4
 		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
 		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC4
 		create_typical_building_from_model	climate_zone=CEC T24-CEC4
@@ -189,7 +189,7 @@ climate_zone	CEC4	ChangeBuildingLocation	climate_zone=CEC T24-CEC4
 		set_interior_equipment_template	climate_zone=CEC T24-CEC4
 		set_service_water_heating_template	climate_zone=CEC T24-CEC4
 		set_hvac_template	climate_zone=CEC T24-CEC4
-climate_zone	CEC5	ChangeBuildingLocation	climate_zone=CEC T24-CEC5
+climate_zone	CEC5	ChangeBuildingLocation	climate_zone=T24-CEC5
 		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
 		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC5
 		create_typical_building_from_model	climate_zone=CEC T24-CEC5
@@ -199,7 +199,7 @@ climate_zone	CEC5	ChangeBuildingLocation	climate_zone=CEC T24-CEC5
 		set_interior_equipment_template	climate_zone=CEC T24-CEC5
 		set_service_water_heating_template	climate_zone=CEC T24-CEC5
 		set_hvac_template	climate_zone=CEC T24-CEC5
-climate_zone	CEC6	ChangeBuildingLocation	climate_zone=CEC T24-CEC6
+climate_zone	CEC6	ChangeBuildingLocation	climate_zone=T24-CEC6
 		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
 		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC6
 		create_typical_building_from_model	climate_zone=CEC T24-CEC6
@@ -209,7 +209,7 @@ climate_zone	CEC6	ChangeBuildingLocation	climate_zone=CEC T24-CEC6
 		set_interior_equipment_template	climate_zone=CEC T24-CEC6
 		set_service_water_heating_template	climate_zone=CEC T24-CEC6
 		set_hvac_template	climate_zone=CEC T24-CEC6
-climate_zone	CEC7	ChangeBuildingLocation	climate_zone=CEC T24-CEC7
+climate_zone	CEC7	ChangeBuildingLocation	climate_zone=T24-CEC7
 		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
 		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC7
 		create_typical_building_from_model	climate_zone=CEC T24-CEC7
@@ -219,7 +219,7 @@ climate_zone	CEC7	ChangeBuildingLocation	climate_zone=CEC T24-CEC7
 		set_interior_equipment_template	climate_zone=CEC T24-CEC7
 		set_service_water_heating_template	climate_zone=CEC T24-CEC7
 		set_hvac_template	climate_zone=CEC T24-CEC7
-climate_zone	CEC8	ChangeBuildingLocation	climate_zone=CEC T24-CEC8
+climate_zone	CEC8	ChangeBuildingLocation	climate_zone=T24-CEC8
 		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
 		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC8
 		create_typical_building_from_model	climate_zone=CEC T24-CEC8
@@ -229,7 +229,7 @@ climate_zone	CEC8	ChangeBuildingLocation	climate_zone=CEC T24-CEC8
 		set_interior_equipment_template	climate_zone=CEC T24-CEC8
 		set_service_water_heating_template	climate_zone=CEC T24-CEC8
 		set_hvac_template	climate_zone=CEC T24-CEC8
-climate_zone	CEC9	ChangeBuildingLocation	climate_zone=CEC T24-CEC9
+climate_zone	CEC9	ChangeBuildingLocation	climate_zone=T24-CEC9
 		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
 		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC9
 		create_typical_building_from_model	climate_zone=CEC T24-CEC9
@@ -239,7 +239,7 @@ climate_zone	CEC9	ChangeBuildingLocation	climate_zone=CEC T24-CEC9
 		set_interior_equipment_template	climate_zone=CEC T24-CEC9
 		set_service_water_heating_template	climate_zone=CEC T24-CEC9
 		set_hvac_template	climate_zone=CEC T24-CEC9
-climate_zone	CEC10	ChangeBuildingLocation	climate_zone=CEC T24-CEC10
+climate_zone	CEC10	ChangeBuildingLocation	climate_zone=T24-CEC10
 		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
 		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC10
 		create_typical_building_from_model	climate_zone=CEC T24-CEC10
@@ -249,7 +249,7 @@ climate_zone	CEC10	ChangeBuildingLocation	climate_zone=CEC T24-CEC10
 		set_interior_equipment_template	climate_zone=CEC T24-CEC10
 		set_service_water_heating_template	climate_zone=CEC T24-CEC10
 		set_hvac_template	climate_zone=CEC T24-CEC10
-climate_zone	CEC11	ChangeBuildingLocation	climate_zone=CEC T24-CEC11
+climate_zone	CEC11	ChangeBuildingLocation	climate_zone=T24-CEC11
 		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
 		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC11
 		create_typical_building_from_model	climate_zone=CEC T24-CEC11
@@ -259,7 +259,7 @@ climate_zone	CEC11	ChangeBuildingLocation	climate_zone=CEC T24-CEC11
 		set_interior_equipment_template	climate_zone=CEC T24-CEC11
 		set_service_water_heating_template	climate_zone=CEC T24-CEC11
 		set_hvac_template	climate_zone=CEC T24-CEC11
-climate_zone	CEC12	ChangeBuildingLocation	climate_zone=CEC T24-CEC12
+climate_zone	CEC12	ChangeBuildingLocation	climate_zone=T24-CEC12
 		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
 		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC12
 		create_typical_building_from_model	climate_zone=CEC T24-CEC12
@@ -269,7 +269,7 @@ climate_zone	CEC12	ChangeBuildingLocation	climate_zone=CEC T24-CEC12
 		set_interior_equipment_template	climate_zone=CEC T24-CEC12
 		set_service_water_heating_template	climate_zone=CEC T24-CEC12
 		set_hvac_template	climate_zone=CEC T24-CEC12
-climate_zone	CEC13	ChangeBuildingLocation	climate_zone=CEC T24-CEC13
+climate_zone	CEC13	ChangeBuildingLocation	climate_zone=T24-CEC13
 		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
 		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC13
 		create_typical_building_from_model	climate_zone=CEC T24-CEC13
@@ -279,7 +279,7 @@ climate_zone	CEC13	ChangeBuildingLocation	climate_zone=CEC T24-CEC13
 		set_interior_equipment_template	climate_zone=CEC T24-CEC13
 		set_service_water_heating_template	climate_zone=CEC T24-CEC13
 		set_hvac_template	climate_zone=CEC T24-CEC13
-climate_zone	CEC14	ChangeBuildingLocation	climate_zone=CEC T24-CEC14
+climate_zone	CEC14	ChangeBuildingLocation	climate_zone=T24-CEC14
 		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
 		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC14
 		create_typical_building_from_model	climate_zone=CEC T24-CEC14
@@ -289,7 +289,7 @@ climate_zone	CEC14	ChangeBuildingLocation	climate_zone=CEC T24-CEC14
 		set_interior_equipment_template	climate_zone=CEC T24-CEC14
 		set_service_water_heating_template	climate_zone=CEC T24-CEC14
 		set_hvac_template	climate_zone=CEC T24-CEC14
-climate_zone	CEC15	ChangeBuildingLocation	climate_zone=CEC T24-CEC15
+climate_zone	CEC15	ChangeBuildingLocation	climate_zone=T24-CEC15
 		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
 		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC15
 		create_typical_building_from_model	climate_zone=CEC T24-CEC15
@@ -299,7 +299,7 @@ climate_zone	CEC15	ChangeBuildingLocation	climate_zone=CEC T24-CEC15
 		set_interior_equipment_template	climate_zone=CEC T24-CEC15
 		set_service_water_heating_template	climate_zone=CEC T24-CEC15
 		set_hvac_template	climate_zone=CEC T24-CEC15
-climate_zone	CEC16	ChangeBuildingLocation	climate_zone=CEC T24-CEC16
+climate_zone	CEC16	ChangeBuildingLocation	climate_zone=T24-CEC16
 		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
 		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC16
 		create_typical_building_from_model	climate_zone=CEC T24-CEC16
