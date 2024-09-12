@@ -527,7 +527,8 @@ class PlottingMixin():
 
                 # Summarize the data
                 if group_by is None:
-
+                    # assert isinstance(df, pd.DataFrame)
+                    # raise Exception
                     # No group-by
                     g = sns.catplot(
                         data=df,
@@ -789,7 +790,7 @@ class PlottingMixin():
 
     def plot_floor_area_and_energy_totals_by_building_type(self, df, column_for_grouping, color_map, output_dir):
         # Summarize square footage and energy totals by building type
-
+        
         # Columns to summarize
         cols_to_summarize = {
             self.col_name_to_weighted(self.FLR_AREA): np.sum,
