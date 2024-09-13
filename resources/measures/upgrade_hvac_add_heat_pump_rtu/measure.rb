@@ -442,7 +442,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   end
 
   # adjust rated COP based on reference CFM/ton
-  def adjust_rated_cop_from_ref_cfm_per_ton(airflow_sized_m_3_per_s, reference_cfm_per_ton, rated_capacity_w, original_rated_cop, eir_modifier_curve_flow)
+  def adjust_rated_cop_from_ref_cfm_per_ton(runner, airflow_sized_m_3_per_s, reference_cfm_per_ton, rated_capacity_w, original_rated_cop, eir_modifier_curve_flow)
     # define conversion factors
     conversion_factor_cfm_to_m_3_per_s = OpenStudio.convert(1.0, 'cfm', 'm^3/s').get
     conversion_factor_ton_to_w = OpenStudio.convert(1.0, 'ton', 'W').get
@@ -454,7 +454,13 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     flow_fraction = airflow_sized_m_3_per_s / airflow_reference_m_3_per_s
 
     # calculate modifiers
-    modifier_eir = eir_modifier_curve_flow.evaluate(flow_fraction)
+    if eir_modifier_curve_flow.to_CurveBiquadratic.is_initialized
+      modifier_eir = eir_modifier_curve_flow.evaluate(flow_fraction, 0)
+    elsif eir_modifier_curve_flow.to_CurveCubic.is_initialized
+      modifier_eir = eir_modifier_curve_flow.evaluate(flow_fraction)
+    else
+      runner.registerError("CurveBiquadratic and CurveCubic are only supported at the moment for modifier_eir (function of flow fraction) calculation: eir_modifier_curve_flow = #{eir_modifier_curve_flow.name}")
+    end
 
     # adjust rated COP (COP = 1 / EIR)
     original_rated_cop * (1.0 / modifier_eir)
@@ -952,7 +958,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # skip if water heating or cooled system
       next if is_water_coil == true
       # skip if space is not heated and cooled
-      next unless (OpenstudioStandards::ThermalZone.thermal_zone_heated?(air_loop_hvac.thermalZones[0])) && (OpenstudioStandards::ThermalZone.thermal_zone_cooled?(air_loop_hvac.thermalZones[0]))
+      unless OpenstudioStandards::ThermalZone.thermal_zone_heated?(air_loop_hvac.thermalZones[0]) && OpenstudioStandards::ThermalZone.thermal_zone_cooled?(air_loop_hvac.thermalZones[0])
+        next
+      end
       # next if no heating coil
       next if has_heating_coil == false
 
@@ -1117,13 +1125,13 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
                           end
 
       # register as not applicable if OA limit exceeded and unit has night cycling schedules
-      if (min_oa_flow_ratio > oa_ration_allowance) && (unit_night_cycles==true)
-        runner.registerWarning("Air loop #{air_loop_hvac.name} has night cycling operations and an outdoor air ratio of #{min_oa_flow_ratio.round(2)} which exceeds the maximum allowable limit of #{oa_ration_allowance} (due to an EnergyPlus night cycling bug with multispeed coils) making this RTU not applicable at this time.")
-        # remove air loop from applicable list
-        selected_air_loops.delete(air_loop_hvac)
-        applicable_area_m2 -= thermal_zone.floorArea * thermal_zone.multiplier
-        # remove area served by air loop from applicability
-      end
+      next unless (min_oa_flow_ratio > oa_ration_allowance) && (unit_night_cycles == true)
+
+      runner.registerWarning("Air loop #{air_loop_hvac.name} has night cycling operations and an outdoor air ratio of #{min_oa_flow_ratio.round(2)} which exceeds the maximum allowable limit of #{oa_ration_allowance} (due to an EnergyPlus night cycling bug with multispeed coils) making this RTU not applicable at this time.")
+      # remove air loop from applicable list
+      selected_air_loops.delete(air_loop_hvac)
+      applicable_area_m2 -= thermal_zone.floorArea * thermal_zone.multiplier
+      # remove area served by air loop from applicability
     end
     ### End of temp section
     #########################################################################################################
@@ -1875,14 +1883,14 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       final_rated_cooling_cop = nil
       case hprtu_scenario
       when 'two_speed_standard_eff'
-        final_rated_cooling_cop = adjust_rated_cop_from_ref_cfm_per_ton(stage_flows_cooling[rated_stage_num_cooling],
+        final_rated_cooling_cop = adjust_rated_cop_from_ref_cfm_per_ton(runner, stage_flows_cooling[rated_stage_num_cooling],
                                                                         reference_cooling_cfm_per_ton,
                                                                         stage_caps_cooling[rated_stage_num_cooling],
                                                                         get_rated_cop_cooling(stage_caps_cooling[rated_stage_num_cooling]),
                                                                         cool_eir_ff_curve_stages[rated_stage_num_cooling])
         runner.registerInfo("rated cooling COP (for standard performance HPRTU) adjusted from #{get_rated_cop_cooling(stage_caps_cooling[rated_stage_num_cooling]).round(3)} to #{final_rated_cooling_cop.round(3)} based on reference cfm/ton of 404 (i.e., average value of actual products)")
       when 'variable_speed_high_eff'
-        final_rated_cooling_cop = adjust_rated_cop_from_ref_cfm_per_ton(stage_flows_cooling[rated_stage_num_cooling],
+        final_rated_cooling_cop = adjust_rated_cop_from_ref_cfm_per_ton(runner, stage_flows_cooling[rated_stage_num_cooling],
                                                                         reference_cooling_cfm_per_ton,
                                                                         stage_caps_cooling[rated_stage_num_cooling],
                                                                         get_rated_cop_cooling_adv(stage_caps_cooling[rated_stage_num_cooling]),
@@ -1919,14 +1927,14 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       final_rated_heating_cop = nil
       case hprtu_scenario
       when 'two_speed_standard_eff'
-        final_rated_heating_cop = adjust_rated_cop_from_ref_cfm_per_ton(stage_flows_heating[rated_stage_num_heating],
+        final_rated_heating_cop = adjust_rated_cop_from_ref_cfm_per_ton(runner, stage_flows_heating[rated_stage_num_heating],
                                                                         reference_heating_cfm_per_ton,
                                                                         stage_caps_heating[rated_stage_num_heating],
                                                                         get_rated_cop_heating(stage_caps_heating[rated_stage_num_heating]),
                                                                         heat_eir_ff_curve_stages[rated_stage_num_heating])
         runner.registerInfo("rated heating COP (for standard performance HPRTU) adjusted from #{get_rated_cop_heating(stage_caps_heating[rated_stage_num_heating]).round(3)} to #{final_rated_heating_cop.round(3)} based on reference cfm/ton of 420 (i.e., average value of actual products)")
       when 'variable_speed_high_eff'
-        final_rated_heating_cop = adjust_rated_cop_from_ref_cfm_per_ton(stage_flows_heating[rated_stage_num_heating],
+        final_rated_heating_cop = adjust_rated_cop_from_ref_cfm_per_ton(runner, stage_flows_heating[rated_stage_num_heating],
                                                                         reference_heating_cfm_per_ton,
                                                                         stage_caps_heating[rated_stage_num_heating],
                                                                         get_rated_cop_heating_adv(stage_caps_heating[rated_stage_num_heating]),
