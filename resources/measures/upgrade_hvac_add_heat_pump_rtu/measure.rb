@@ -623,8 +623,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         dx_coil_speed_data.setNominalTimeforCondensateRemovaltoBegin(1000)
         dx_coil_speed_data.setRatioofInitialMoistureEvaporationRateandSteadyStateLatentCapacity(1.5)
         dx_coil_speed_data.setLatentCapacityTimeConstant(45)
-        dx_coil_speed_data.autosizedEvaporativeCondenserAirFlowRate
-        dx_coil_speed_data.autosizedRatedEvaporativeCondenserPumpPowerConsumption
+        dx_coil_speed_data.autosizeEvaporativeCondenserAirFlowRate
+        dx_coil_speed_data.autosizeRatedEvaporativeCondenserPumpPowerConsumption
 
         # add speed data to multispeed coil object
         new_dx_cooling_coil.addStage(dx_coil_speed_data) unless stage_caps_heating[stage] == false
@@ -1923,6 +1923,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         always_on,
         stage_caps_heating
       )
+
       # ---------------------------------------------------------
       # heating curve assignments
       # ---------------------------------------------------------
