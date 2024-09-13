@@ -454,12 +454,15 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     flow_fraction = airflow_sized_m_3_per_s / airflow_reference_m_3_per_s
 
     # calculate modifiers
+    modifier_eir = nil
     if eir_modifier_curve_flow.to_CurveBiquadratic.is_initialized
       modifier_eir = eir_modifier_curve_flow.evaluate(flow_fraction, 0)
     elsif eir_modifier_curve_flow.to_CurveCubic.is_initialized
       modifier_eir = eir_modifier_curve_flow.evaluate(flow_fraction)
+    elsif eir_modifier_curve_flow.to_CurveQuadratic.is_initialized
+      modifier_eir = eir_modifier_curve_flow.evaluate(flow_fraction)
     else
-      runner.registerError("CurveBiquadratic and CurveCubic are only supported at the moment for modifier_eir (function of flow fraction) calculation: eir_modifier_curve_flow = #{eir_modifier_curve_flow.name}")
+      runner.registerError("CurveBiquadratic|CurveQuadratic|CurveCubic are only supported at the moment for modifier_eir (function of flow fraction) calculation: eir_modifier_curve_flow = #{eir_modifier_curve_flow.name}")
     end
 
     # adjust rated COP (COP = 1 / EIR)
