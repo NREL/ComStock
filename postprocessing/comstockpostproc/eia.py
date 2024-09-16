@@ -103,18 +103,18 @@ class EIA(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         # Load and transform data, preserving all columns
         self.download_truth_data()
         if reload_from_csv:
+            # TODO: this case didn't handle .emissions_data attribute.
             file_name = f'EIA wide.csv'
             file_path = os.path.join(self.output_dir, file_name)
             if not os.path.exists(file_path):
                  raise FileNotFoundError(
                     f'Cannot find {file_path} to reload data, set reload_from_csv=False to create CSV.')
             logger.info(f'Reloading from CSV: {file_path}')
-            self.monthly_data = pd.read_csv(file_path, low_memory=False)
+            self.monthly_data = pl.read_csv(file_path, low_memory=False)
         else:
             self.convert_eia_natural_gas_volumes_to_energy()
             self.get_eia_monthly_consumption_by_state()
             self.get_eia_annual_emissions_by_fuel()
-
 
     def download_truth_data(self):
         # Monthly electricity by state
