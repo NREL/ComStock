@@ -115,6 +115,15 @@ Determines performance assumptions. two_speed_standard_eff is a standard efficie
 **Model Dependent:** false
 
 
+### Do a sizing run for informing sizing instead of using hard-sized model parameters?
+
+**Name:** sizing_run,
+**Type:** Boolean,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+
 
 
 
