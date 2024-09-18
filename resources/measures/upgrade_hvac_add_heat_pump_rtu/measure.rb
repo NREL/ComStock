@@ -475,10 +475,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
   def adjust_cfm_per_ton_per_limits(stage_cap_fractions, stage_flows, stage_flow_fractions, dx_rated_cap_applied, rated_stage_num, old_terminal_sa_flow_m3_per_s, min_airflow_ratio, air_loop_hvac, heating_or_cooling, runner, tolerance)
     # define cfm/ton bounds
-    cfm_per_ton_min = 300
-    cfm_per_ton_max = 450
-    m_3_per_s_per_w_min = OpenStudio.convert(OpenStudio.convert(cfm_per_ton_min, 'cfm', 'm^3/s').get, 'W', 'ton').get
-    m_3_per_s_per_w_max = OpenStudio.convert(OpenStudio.convert(cfm_per_ton_max, 'cfm', 'm^3/s').get, 'W', 'ton').get
+    m_3_per_s_per_w_min = 0.00004027 #300 cfm/ton
+    m_3_per_s_per_w_max = 0.00006041 #450 cfm/ton
 
     # determine capacities for each stage
     # this is based on user-input capacities for each stage and any upsizing applied
@@ -494,6 +492,14 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       stage_capacity = dx_rated_cap_applied * ratio
       # Calculate the flow per ton
       flow_per_ton = airflow / stage_capacity
+
+      puts "Debug*************************************************************"
+      puts "#{heating_or_cooling} Stage #{stage}"
+      puts "airflow: #{airflow}"
+      puts "stage_capacity: #{stage_capacity}"
+      puts "flow_per_ton: #{flow_per_ton}"
+      puts "m_3_per_s_per_w_max: #{m_3_per_s_per_w_max.round(8)}"
+      puts "In Bounds: #{(flow_per_ton.round(8) >= m_3_per_s_per_w_min.round(8)) && (flow_per_ton.round(8) <= m_3_per_s_per_w_max.round(8))}"
 
       # If flow/ton is less than minimum, increase airflow of stage to meet minimum
       if (flow_per_ton.round(8) < (m_3_per_s_per_w_min - tolerance * m_3_per_s_per_w_min).round(8)) && stage < rated_stage_num
@@ -848,29 +854,32 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     sizing_run = runner.getBoolArgumentValue('sizing_run', user_arguments)
 
     # adding output variables (for debugging)
-    # out_vars = [
-    #   'Air System Mixed Air Mass Flow Rate',
-    #   'Fan Air Mass Flow Rate',
-    #   'Cooling Coil Total Cooling Rate',
-    #   'Cooling Coil Electricity Rate',
-    #   'Cooling Coil Runtime Fraction',
-    #   'Heating Coil Heating Rate',
-    #   'Heating Coil Electricity Rate',
-    #   'Heating Coil Runtime Fraction',
-    #   'Unitary System DX Coil Cycling Ratio',
-    #   'Unitary System DX Coil Speed Ratio',
-    #   'Unitary System DX Coil Speed Level',
-    #   'Unitary System Total Cooling Rate',
-    #   'Unitary System Total Heating Rate',
-    #   'Unitary System Electricity Rate',
-    #   'Unitary System Ancillary Electricity Rate'
-    # ]
-    # out_vars.each do |out_var_name|
-    #     ov = OpenStudio::Model::OutputVariable.new('ov', model)
-    #     ov.setKeyValue('*')
-    #     ov.setReportingFrequency('timestep')
-    #     ov.setVariableName(out_var_name)
-    # end
+     out_vars = [
+       'Air System Mixed Air Mass Flow Rate',
+       'Fan Air Mass Flow Rate',
+       'Cooling Coil Total Cooling Rate',
+       'Cooling Coil Electricity Rate',
+       'Cooling Coil Runtime Fraction',
+       'Heating Coil Heating Rate',
+       'Heating Coil Electricity Rate',
+       'Heating Coil Runtime Fraction',
+       'Unitary System DX Coil Cycling Ratio',
+       'Unitary System DX Coil Speed Ratio',
+       'Unitary System DX Coil Speed Level',
+       'Unitary System Total Cooling Rate',
+       'Unitary System Total Heating Rate',
+       'Unitary System Electricity Rate',
+       'Unitary System Ancillary Electricity Rate',
+       'HVAC System Solver Iteration Count',
+       'Air System Solver Iteration Count',
+       'Site Outdoor Air Drybulb Temperature'
+     ]
+     out_vars.each do |out_var_name|
+         ov = OpenStudio::Model::OutputVariable.new('ov', model)
+         ov.setKeyValue('*')
+         ov.setReportingFrequency('timestep')
+         ov.setVariableName(out_var_name)
+     end
 
     # build standard to use OS standards methods
     template = 'ComStock 90.1-2019'
@@ -1866,7 +1875,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         air_loop_hvac,
         heating_or_cooling = 'heating',
         runner,
-        tolerance = 0.01
+        tolerance = 0.00000001
       )
 
       # cooling - align stage CFM/ton bounds where possible
@@ -1882,7 +1891,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         air_loop_hvac,
         heating_or_cooling = 'cooling',
         runner,
-        tolerance = 0.01
+        tolerance = 0.00000001
       )
 
       #################################### Start performance curve assignment
@@ -2033,73 +2042,71 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         new_air_to_air_heatpump.resetSupplyAirFlowRateMethodWhenNoCoolingorHeatingisRequired
       end
       # set cooling design flow rate
-      new_air_to_air_heatpump.setSupplyAirFlowRateDuringCoolingOperation(stage_flows_cooling[rated_stage_num_cooling])
+      new_air_to_air_heatpump.setSupplyAirFlowRateDuringCoolingOperation(stage_flows_cooling[num_cooling_stages])
       # set heating design flow rate
-      new_air_to_air_heatpump.setSupplyAirFlowRateDuringHeatingOperation(stage_flows_heating[rated_stage_num_heating])
+      new_air_to_air_heatpump.setSupplyAirFlowRateDuringHeatingOperation(stage_flows_heating[num_heating_stages])
       # set no load design flow rate
       new_air_to_air_heatpump.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_airflow_m3_per_s)
 
       # new_air_to_air_heatpump.setDOASDXCoolingCoilLeavingMinimumAirTemperature(7.5) # set minimum discharge temp to 45F, required for VAV operation
 
 
-      # EMS control for boost mode
-      unless boost_stage_num_and_max_temp_tuple.empty?
+      ## EMS control for boost mode
+      #unless boost_stage_num_and_max_temp_tuple.empty?
 
-        puts "DEBUGGING**********************************"
+      #  puts "DEBUGGING**********************************"
 
-        # set sensor for speed level
-        sens_speed_level = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Unitary System DX Coil Speed Level')
-        sens_speed_level.setName("sens_speed_level_#{new_air_to_air_heatpump.name.get.to_s.gsub("-", "")}")
-        sens_speed_level.setKeyName("#{new_air_to_air_heatpump.name.get}")
+      #  # set sensor for speed level
+      #  sens_speed_level = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Unitary System DX Coil Speed Level')
+      #  sens_speed_level.setName("sens_speed_level_#{new_air_to_air_heatpump.name.get.to_s.gsub("-", "")}")
+      #  sens_speed_level.setKeyName("#{new_air_to_air_heatpump.name.get}")
 
-        # set sensor for outdoor air temperature
-        sens_speed_level = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Site Outdoor Air Drybulb Temperature')
-        sens_speed_level.setName("sens_oa_temp_#{new_air_to_air_heatpump.name.get.to_s.gsub("-", "")}")
-        sens_speed_level.setKeyName("Environment")
+      #  # set sensor for outdoor air temperature
+      #  sens_speed_level = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Site Outdoor Air Drybulb Temperature')
+      #  sens_speed_level.setName("sens_oa_temp_#{new_air_to_air_heatpump.name.get.to_s.gsub("-", "")}")
+      #  sens_speed_level.setKeyName("Environment")
 
-        # set actuator - unitary system speed level
-        act_speed_level = OpenStudio::Model::EnergyManagementSystemActuator.new(new_air_to_air_heatpump,
-                                                                            'Coil Speed Control',
-                                                                            'Unitary System DX Coil Speed Value'
-                                                                            )
-        act_speed_level.setName("act_speed_level_#{new_air_to_air_heatpump.name.get.to_s.gsub("-", "")}")
+      #  # set actuator - unitary system speed level
+      #  act_speed_level = OpenStudio::Model::EnergyManagementSystemActuator.new(new_air_to_air_heatpump,
+      #                                                                      'Coil Speed Control',
+      #                                                                      'Unitary System DX Coil Speed Value'
+      #                                                                      )
+      #  act_speed_level.setName("act_speed_level_#{new_air_to_air_heatpump.name.get.to_s.gsub("-", "")}")
 
-        #### Program #####
-        # reset OA to min OA if there is a call for economizer but no cooling load
-        prgrm_hp_speed_override = model.getEnergyManagementSystemTrendVariableByName('hp_speed_override')
-        unless prgrm_hp_speed_override.is_initialized
-          prgrm_hp_speed_override = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
-          prgrm_hp_speed_override.setName("#{air_loop_hvac.name.get.to_s.gsub("-", "")}_program")
-          prgrm_hp_speed_override_body = <<-EMS
-          SET #{act_speed_level.handle} = #{act_speed_level.handle},
-          SET sens_speed_level = #{sens_speed_level.name},
-          SET boost_speed_level = #{boost_stage_num_and_max_temp_tuple[0]},
-          SET boost_speed_max_temp_c = #{boost_stage_num_and_max_temp_tuple[1]},
-          SET sens_oa_temp = #{sens_speed_level.name}
+      #  #### Program #####
+      #  # reset OA to min OA if there is a call for economizer but no cooling load
+      #  prgrm_hp_speed_override = model.getEnergyManagementSystemTrendVariableByName('hp_speed_override')
+      #  unless prgrm_hp_speed_override.is_initialized
+      #    prgrm_hp_speed_override = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
+      #    prgrm_hp_speed_override.setName("#{air_loop_hvac.name.get.to_s.gsub("-", "")}_program")
+      #    prgrm_hp_speed_override_body = <<-EMS
+      #    SET #{act_speed_level.handle} = #{act_speed_level.handle},
+      #    SET sens_speed_level = #{sens_speed_level.name},
+      #    SET boost_speed_level = #{boost_stage_num_and_max_temp_tuple[0]},
+      #    SET boost_speed_max_temp_c = #{boost_stage_num_and_max_temp_tuple[1]},
+      #    SET sens_oa_temp = #{sens_speed_level.name}
 
-          IF ((sens_oa_temp > boost_speed_max_temp_c) && (sens_speed_level >= (boost_speed_level-1))),
-            SET #{act_speed_level.handle} = (boost_speed_level-1),
-          ELSE,
-            SET #{act_speed_level.handle} = Null,
-          ENDIF
-          EMS
-          prgrm_hp_speed_override.setBody(prgrm_hp_speed_override_body)
-        end
-        programs_at_beginning_of_timestep = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
-        programs_at_beginning_of_timestep.setName("#{air_loop_hvac.name.get.to_s.gsub("-", "")}_Programs_InsideHVACSystemIterationLoop")
-        programs_at_beginning_of_timestep.setCallingPoint('InsideHVACSystemIterationLoop')
-        programs_at_beginning_of_timestep.addProgram(prgrm_hp_speed_override)
+      #    IF ((sens_oa_temp > boost_speed_max_temp_c) && (sens_speed_level >= (boost_speed_level-1))),
+      #      SET #{act_speed_level.handle} = (boost_speed_level-1),
+      #    ELSE,
+      #      SET #{act_speed_level.handle} = Null,
+      #    ENDIF
+      #    EMS
+      #    prgrm_hp_speed_override.setBody(prgrm_hp_speed_override_body)
+      #  end
+      #  programs_at_beginning_of_timestep = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
+      #  programs_at_beginning_of_timestep.setName("#{air_loop_hvac.name.get.to_s.gsub("-", "")}_Programs_InsideHVACSystemIterationLoop")
+      #  programs_at_beginning_of_timestep.setCallingPoint('InsideHVACSystemIterationLoop')
+      #  programs_at_beginning_of_timestep.addProgram(prgrm_hp_speed_override)
+      #end
 
-        puts "boost_stage_num_and_max_temp_tuple: #{boost_stage_num_and_max_temp_tuple}"
-      end
-
-      # add dcv to air loop if dcv flag is true
-      if dcv == true
-        oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
-        controller_oa = oa_system.getControllerOutdoorAir
-        controller_mv = controller_oa.controllerMechanicalVentilation
-        controller_mv.setDemandControlledVentilation(true)
-      end
+      ## add dcv to air loop if dcv flag is true
+      #if dcv == true
+      #  oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+      #  controller_oa = oa_system.getControllerOutdoorAir
+      #  controller_mv = controller_oa.controllerMechanicalVentilation
+      #  controller_mv.setDemandControlledVentilation(true)
+      #end
 
       # add economizer
       if econ == true
