@@ -97,14 +97,14 @@ class CommercialBaseSobolSampler(BuildStockSampler):
                 'owner_occupied', 'owner_type', 'purchasing_power', 'operator', 'occupied_by'
             ],
             [
-                'base_peak_ratio', 'heating_fuel', 'hvac_night', 'hvac_system', 'hvac_tst', 'rotation', 'duration',
-                'start_time', 'fault_economizer_damper_fully_closed', 'fault_economizer_db_limit',
+                'aspect_ratio', 'building_shape', 'base_peak_ratio', 'heating_fuel', 'hvac_night',
+                'hvac_system', 'hvac_tst', 'rotation', 'duration', 'start_time', 'number_stories',
+                'wall_construction_type', 'airtightness', 'fault_economizer_damper_fully_closed', 'fault_economizer_db_limit',
                 'energy_code_compliance_hvac', 'energy_code_in_force_during_last_hvac', 'energy_code_followed_during_last_hvac',
                 'year_bin_of_last_hvac'
             ],
             [
-                'cook', 'ground_thermal_conductivity', 'thermal_bridging', 'wall_construction', 'number_stories',
-                'aspect_ratio', 'building_shape', 'airtightness'
+                'cook', 'ground_thermal_conductivity'
             ],
             [
                 'energy_code_compliance_interior_lighting', 'energy_code_followed_during_last_interior_lighting',
@@ -130,7 +130,7 @@ class CommercialBaseSobolSampler(BuildStockSampler):
                     dependency_columns = [item for item in list(tsv_df) if 'Dependency=' in item]
                     tsv_df[dependency_columns] = tsv_df[dependency_columns].astype('str')
                     total_tsv_hash[tsv_file.replace('.tsv', '')] = tsv_df
-
+        
         for array in tsv_arrays:
             print(array)
             tsv_hash = {}
@@ -171,10 +171,10 @@ class CommercialBaseSobolSampler(BuildStockSampler):
         :param n_samples: Number of samples to calculate
         :return: Pandas DataFrame object which contains the low discrepancy result of the sobol algorithm
         """
-        sample = i4_sobol_generate(n_dims, n_samples, 0)
+        sample = i4_sobol_generate(n_dims, n_samples, 0)    
         projected_sample = np.mod(sample + [random.random() for _ in range(len(sample[0]))], 1)
         return pd.DataFrame(projected_sample)
-
+    
     @staticmethod
     def _com_order_tsvs(tsv_hash, tsv_arrays, total_tsv_hash, prev_results=None):
         """
@@ -213,7 +213,6 @@ class CommercialBaseSobolSampler(BuildStockSampler):
             elif max_iterations > 0:
                 max_iterations -= 1
             else:
-                breakpoint()
                 raise RuntimeError('Unable to resolve the dependency tree within the set iteration limit')
         return dependency_hash, attr_order
 
@@ -245,7 +244,7 @@ class CommercialBaseSobolSampler(BuildStockSampler):
             prev_arrays = list(set(prev_arrays))
             for prev_attr in total_tsv_hash.keys():
                 if any(item in prev_attr for item in prev_arrays):
-                    sample_dependency_hash[prev_attr] = [item.replace('Dependency=', '') for item in
+                    sample_dependency_hash[prev_attr] = [item.replace('Dependency=', '') for item in 
                                                          list(total_tsv_hash[prev_attr]) if 'Dependency=' in item]
         attr_order = []
         for attr in sample_dependency_hash.keys():
@@ -299,7 +298,7 @@ class CommercialBaseSobolSampler(BuildStockSampler):
                 option_values = [item.replace('Option=', '') for item in list(tsv_lkup.index.values) if 'Option=' in item]
                 attr_result = list(compress(option_values, tsv_lkup_cdf))[0]
             sample_dependency_hash[attr] = attr_result
-            results_dict[attr] = attr_result
+            results_dict[attr] = attr_result        
         return results_dict
 
 
