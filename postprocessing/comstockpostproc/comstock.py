@@ -2879,3 +2879,43 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
         logger.info(f'Exporting enumeration dictionary to: {file_path}')
         enum_dictionary.write_csv(file_path, separator='\t')
+
+
+    def _sightGlass_metadata_check(self, row_segment: pl.DataFrame):
+        # Check that the metadata columns are present in the data
+        # when the columns are in memory
+        err_log = "" 
+        upgrade_id = row_segment[self.UPGRADE_ID].unique().item()
+        
+        #check no na values in any columns
+        if row_segment.null_count().pipe(sum).item() > 0:
+            err_log += 'Null values found in data\n'
+
+        if self.BLDG_ID not in row_segment.columns:
+            err_log += f'{self.BLDG_ID} not found in data\n'
+
+        SIGHTGLASS_REQUIRED_COLS = [self.META_IDX, self.UPGRADE_ID, 
+                                    self.BLDG_WEIGHT, self.UPGRADE_APPL, self.FLR_AREA]
+        
+        for col in SIGHTGLASS_REQUIRED_COLS:
+            if col not in row_segment.columns:
+                err_log += f'{col} not found in data, which is needed for sightglass\n'
+        
+        for c in row_segment.columns:
+            if re.search('[^a-z0-9._]', c):
+                # (f'Column {c} violates name rules: may only contain . _ 0-9 lowercaseletters (no spaces)')
+                err_log += f'Column {c} violates name rules: may only contain . _ 0-9 lowercaseletters (no spaces)\n'
+
+        site_total_col, fuel_total_cols, enduse_cols = None, [], []
+        for c in row_segment.columns:
+            if ("out." in c) and (".energy_consumption" in c):
+                if "intensity" not in c:
+                    o, fuel, end_use, ec = c.split('.')
+                    if fuel == "site_energy":
+                        site_total_col = c
+                    elif end_use == "total":
+                        fuel_total_cols.append(c)
+                    else:
+                        enduse_cols.append(c)
+        
+        
