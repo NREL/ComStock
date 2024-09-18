@@ -98,6 +98,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.rename_upgrades_file_name = 'rename_upgrades.json'
         self.athena_table_name = athena_table_name
         self.data = None
+        self.plotting_data = None
         self.monthly_data = None
         self.monthly_data_gap = None
         self.ami_timeseries_data = None
@@ -125,6 +126,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.make_comparison_plots = make_comparison_plots
         self.make_timeseries_plots = make_timeseries_plots
         self.APPORTIONED = False # Including this for some basic control logic in which methods are allowed
+        self.CBECS_WEIGHTS_APPLIED = False # Including this for some additional control logic about method order
         logger.info(f'Creating {self.dataset_name}')
 
         # Make directories
@@ -1431,7 +1433,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # These geography columns should be close together for convenience
         # but have no obvious pattern to match against
         possible_geog_cols = [
-            'in.ashrae_iecc_climate_zone_2004',
+            'in.ashrae_iecc_climate_zone_2006',
             'in.building_america_climate_zone',
             'in.cambium_grid_region',
             'in.census_division_name',
@@ -1818,13 +1820,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_groups, default=None)).alias(self.BLDG_TYPE_GROUP))
         self.data = self.data.with_columns(pl.col(self.BLDG_TYPE_GROUP).cast(pl.Categorical))
         
-
     def add_national_scaling_weights(self, cbecs: CBECS, remove_non_comstock_bldg_types_from_cbecs: bool):
         # Remove CBECS entries for building types not included in the ComStock run
         # comstock_bldg_types = self.data[self.BLDG_TYPE].unique()
         # assert "calc.weighted.utility_bills.total_mean_bill..billion_usd" in self.data.columns
         assert isinstance(self.data, pl.LazyFrame)
-
         comstock_bldg_types: set = set(self.data.select(self.BLDG_TYPE).unique().collect().to_pandas()[self.BLDG_TYPE].tolist())
 
         cbecs.data: pd.DataFrame = cbecs.data.collect().to_pandas()
@@ -1856,9 +1856,19 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         logger.debug(cbecs_bldg_type_sqft)
 
         # Total sqft of each building type, ComStock
-        baseline_data: pl.LazyFrame = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).clone()
-        comstock_bldg_type_sqft: pl.DataFrame = baseline_data.group_by(self.BLDG_TYPE).agg([pl.col(self.FLR_AREA).sum()]).collect()
-        comstock_bldg_type_sqft: pd.DataFrame = comstock_bldg_type_sqft.to_pandas().set_index(self.BLDG_TYPE)
+        if self.APPORTIONED:
+            # Since this is a national calculation, groupby on building id and upgrade only in foreign key table
+            national_agg = self.fkt.filter(pl.col(self.UPGRADE_ID) == 0).clone()
+            national_agg = national_agg.select([pl.col(self.BLDG_WEIGHT), pl.col(self.BLDG_ID)]).groupby(pl.col(self.BLDG_ID)).sum()
+            cs_data = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).select([pl.col(self.BLDG_ID), pl.col(self.FLR_AREA), pl.col(self.BLDG_TYPE)]).clone()
+            national_agg = national_agg.join(cs_data, on=pl.col(self.BLDG_ID))
+            national_agg = national_agg.with_columns((pl.col(self.BLDG_WEIGHT) * pl.col(self.FLR_AREA)).alias(self.FLR_AREA))
+            national_agg = national_agg.select([pl.col(self.BLDG_TYPE), pl.col(self.FLR_AREA)]).groupby(pl.col(self.BLDG_TYPE)).sum().collect()
+            comstock_bldg_type_sqft: pd.DataFrame = national_agg.to_pandas().set_index(self.BLDG_TYPE)
+        else:
+            baseline_data: pl.LazyFrame = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).clone()
+            comstock_bldg_type_sqft: pl.DataFrame = baseline_data.group_by(self.BLDG_TYPE).agg([pl.col(self.FLR_AREA).sum()]).collect()
+            comstock_bldg_type_sqft: pd.DataFrame = comstock_bldg_type_sqft.to_pandas().set_index(self.BLDG_TYPE)
         logger.debug('ComStock Baseline floor area by building type')
         logger.debug(comstock_bldg_type_sqft)
 
@@ -1874,18 +1884,31 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             del bldg_type_scale_factors[np.nan]
 
         # Report any scaling factor greater than some threshold.
+        if self.APPORTIONED:
+            logger.info(f'{self.dataset_name} post-apportionment scaling factors to CBECS floor area:')
+            for bldg_type, scaling_factor in bldg_type_scale_factors.items():
+                logger.info(f'--- {bldg_type}: {round(scaling_factor, 2)}')
+                if scaling_factor > 1.3:
+                    wrn_msg = (f'The scaling factor for {bldg_type} is high, which indicates something unexpected '
+                        'in the apportionment step, except for Healthcare where this is expected. Please review.')
+                    logger.warning(wrn_msg)
+                elif scaling_factor < 0.6:
+                    wrn_msg = (f'The scaling factor for {bldg_type} is low, which indicates something unexpected '
+                        'in the apportionment step. Please review.')
+                    logger.warning(wrn_msg)
+        else:
         # In situations with high failure rates of a single building,
         # the scaling factor will be high, and the results are likely to be
         # heavily skewed toward the few successful simulations of that building type.
-        logger.info(f'{self.dataset_name} scaling factors - scale ComStock results to CBECS floor area')
-        for bldg_type, scaling_factor in bldg_type_scale_factors.items():
-            logger.info(f'--- {bldg_type}: {round(scaling_factor, 2)}')
-            if scaling_factor > 15:
-                wrn_msg = (f'The scaling factor for {bldg_type} is high, which indicates either a test run <350k models '
-                    f'or significant failed runs for this building type.  Comparisons to CBECS will likely be invalid.')
-                logger.warning(wrn_msg)
+            logger.info(f'{self.dataset_name} scaling factors - scale ComStock results to CBECS floor area')
+            for bldg_type, scaling_factor in bldg_type_scale_factors.items():
+                logger.info(f'--- {bldg_type}: {round(scaling_factor, 2)}')
+                if scaling_factor > 15:
+                    wrn_msg = (f'The scaling factor for {bldg_type} is high, which indicates either a test run <350k models '
+                        f'or significant failed runs for this building type.  Comparisons to CBECS will likely be invalid.')
+                    logger.warning(wrn_msg)
 
-        # For reference/comparison, here are the weights from the ComStock V1 runs
+        # For reference/comparison, here are the weights from the ComStock Pre-EUSS 2024R2 runs
         # PROD_V1_COMSTOCK_WEIGHTS = {
         #     'small_office': 9.625838016683277,
         #     'medium_office': 9.625838016683277,
@@ -1902,24 +1925,49 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         #     'strip_mall': 2.1106205675100735,
         #     'warehouse': 2.1086048544461304
         # }
+        # Here are the 'nominal' weights from Sampling V2 implementation (EUSS 2024 R2 on):
+        # TODO Add weights here
 
         # Assign scaling factors to each ComStock run
         self.building_type_weights = bldg_type_scale_factors
-        self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_scale_factors, default=None)).alias(self.BLDG_WEIGHT))
+        if self.APPORTIONED:
+            cbecs_weights = pl.LazyFrame({self.BLDG_TYPE: bldg_type_scale_factors.keys(), 'cbecs_weight': bldg_type_scale_factors.values()})
+            self.fkt = self.fkt.join(cbecs_weights, on=pl.col(self.BLDG_TYPE))
+            self.fkt = self.fkt.with_columns((pl.col(self.BLDG_WEIGHT) * pl.col('cbecs_weight')).alias(self.BLDG_WEIGHT))
+            self.fkt = self.fkt.drop(self.BLDG_TYPE, 'cbecs_weight')
+        else:
+            self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_scale_factors, default=None)).alias(self.BLDG_WEIGHT))
         assert isinstance(cbecs.data, pd.DataFrame)
         cbecs.data = pl.from_pandas(cbecs.data).lazy()
         assert isinstance(cbecs.data, pl.LazyFrame)
+        self.CBECS_WEIGHTS_APPLIED = True
         return bldg_type_scale_factors
 
 
     def _calculate_weighted_columnal_values(self, input_lf: pl.LazyFrame):
         # Apply the weights to the columns
-        input_lf = self.add_weighted_area_energy_savings_columns(input_lf) #compute out the weighted value, based on the unweighted columns and the weights.
-        assert isinstance(self.data, pl.LazyFrame)
+        #compute out the weighted value, based on the unweighted columns and the weights.
+        input_lf = self.add_weighted_area_energy_savings_columns(input_lf)
+        assert isinstance(input_lf, pl.LazyFrame)
         return input_lf
 
+    def create_plotting_lazyframe(self):
+        plotting_aggregation = self.fkt.clone()
+        plotting_aggregation = plotting_aggregation.select(
+            [pl.col(self.BLDG_WEIGHT), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(self.CEN_DIV)]
+        ).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(self.CEN_DIV)]).sum()
+        plotting_aggregation = plotting_aggregation.join(self.data, on=[pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)])
+        plotting_aggregation = self._calculate_weighted_columnal_values(plotting_aggregation)
+        plotting_aggregation = self.reorder_data_columns(plotting_aggregation)
+        plotting_aggregation = self.add_sightglass_column_units(plotting_aggregation)
+        assert isinstance(plotting_aggregation, pl.LazyFrame)
+        self.plotting_data = plotting_aggregation
+
     def create_national_aggregation(self):
-        national_aggregation = self.fkt.select([pl.col('weight'), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)]).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)]).sum()
+        national_aggregation = self.fkt.clone()
+        national_aggregation = national_aggregation.select(
+            [pl.col(self.BLDG_WEIGHT), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)]
+        ).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)]).sum()
         national_aggregation = national_aggregation.join(self.data, on=[pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)])
         national_aggregation = self._calculate_weighted_columnal_values(national_aggregation)
 
@@ -1928,7 +1976,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # self.get_scaled_comstock_monthly_consumption_by_state(national_aggregation)
 
         # Reorder the columns before exporting
-        # TODO works on self.data
         national_aggregation = self.reorder_data_columns(national_aggregation)
         assert isinstance(national_aggregation, pl.LazyFrame)
 
@@ -1961,13 +2008,22 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Export dictionaries corresponding to the exported columns
         self.export_data_and_enumeration_dictionary()
 
+        # Return the nationally aggregated dataframe for use by plotting, etc.
+        return national_aggregation
+
     def create_geospatially_resolved_aggregations(self, geographic_col_name, pretty_geo_col_name=False):
-        supported_geographies = [self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.CZ_ASHRAE]
+        # Ensure the geography is supported
+        supported_geographies = [self.CEN_DIV, self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.CZ_ASHRAE]
         if geographic_col_name not in [self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.CZ_ASHRAE]:
             logger.error(f'Requeted geographic aggregation {geographic_col_name} not in supported geographies.')
             logger.error(f'Currently supported geographies are {supported_geographies}')
             raise RuntimeError('Unsupported geography selected for geospatial aggregation')
-        spatial_aggregation = self.fkt.select([pl.col('weight'), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(geographic_col_name)]).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(geographic_col_name)]).sum()
+        
+        # Create the spatial aggregation
+        spatial_aggregation = self.fkt.clone()
+        spatial_aggregation = spatial_aggregation.select(
+            [pl.col('weight'), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(geographic_col_name)]
+        ).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(geographic_col_name)]).sum()
         spatial_aggregation = spatial_aggregation.join(self.data, on=[pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)])
         spatial_aggregation = self._calculate_weighted_columnal_values(spatial_aggregation)
         
@@ -1980,7 +2036,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         up_ids.sort()
         for up_id in up_ids:
             file_name = f'{self.UPGRADE_ID}={up_id}'
-            file_path = os.path.abspath(os.path.join(self.output_dir, 'geospatial_results', geographic_col_name.replace('in.', ''), file_name))
+            file_path = os.path.abspath(os.path.join(
+                self.output_dir, 'geospatial_results', geographic_col_name.replace('in.', ''), file_name
+            ))
             logger.info(f'Exporting to: {file_path}')
             to_write = spatial_aggregation.filter(pl.col(self.UPGRADE_ID) == up_id)
             if pretty_geo_col_name:
@@ -1992,13 +2050,21 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             logger.warn("ulimit -n 200000")
             logger.warn("ulimit -u 2048")
             logger.info("Attempting pottentially OSERROR triggering write:")
-            to_write.collect().write_parquet(file_path, use_pyarrow=True, pyarrow_options={"partition_cols": [pretty_geo_col_name], 'max_partitions': 3143})
+            to_write.collect().write_parquet(file_path, use_pyarrow=True, pyarrow_options={
+                "partition_cols": [pretty_geo_col_name], 'max_partitions': 3143
+            })
 
         # Export dictionaries corresponding to the exported columns
         self.export_data_and_enumeration_dictionary()
 
+        # Return the geospatially aggregated dataframe for use by plotting, etc.
+        return spatial_aggregation
 
     def add_weights_aportioned_by_stock_estimate(self, apportionment: Apportion, keep_n_per_apportionment_group=False):
+        # This function doesn't support already CBECS-weighted self.data - error out
+        if self.CBECS_WEIGHTS_APPLIED:
+            raise RuntimeError('Unable to apply apportionment weighting after CBECS weighting - reverse order.')
+        
         # TODO this should live somewhere else - don't know where...
         self.data = self.data.with_columns(
             pl.col(self.COUNTY_ID).cast(str).str.slice(0, 4).alias(self.STATE_ID)
@@ -2006,7 +2072,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Pull the columns required to do the matching plus the annual energy total as a safety blanket
         # TODO this is a superset for convienience - slim down later
-        csdf = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).select(pl.col(
+        csdf = self.data.clone().filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).select(pl.col(
             self.BLDG_ID, self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.SAMPLING_REGION, self.CZ_ASHRAE,
             self.BLDG_TYPE, self.HVAC_SYS, self.SH_FUEL, self.SIZE_BIN, self.FLR_AREA, self.TOT_EUI, self.CEN_DIV
         ))
@@ -2027,7 +2093,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # domain (csdf data).
         # TODO make the apportionment data object a lazy df nativly
         apportionment.data.loc[:, 'hvac_and_fueltype'] = apportionment.data.loc[:, 'system_type'] + '_' + apportionment.data.loc[:, 'heating_fuel']
-        appo_group_df = apportionment.data.loc[:, ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']]
+        appo_group_df = apportionment.data.copy(deep=True).loc[
+            :, ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
+        ]
         appo_group_df = appo_group_df.drop_duplicates(keep='first').sort_values(
             by=['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
         ).reset_index(drop=True).reset_index(names='appo_group_id')
@@ -2043,7 +2111,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             raise RuntimeError('Not all combinations of sampling region, bt, and size bin could be matched.')
         
         # Join apportionment group id into comstock data
-        tdf = pl.DataFrame(apportionment.data).lazy()
+        tdf = pl.DataFrame(apportionment.data.copy(deep=True)).lazy()
         tdf = tdf.join(appo_group_df, on=['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype'])
 
         # Identify combination in the truth data not supported by the current sample.
@@ -2114,8 +2182,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             pl.col('county').alias(self.COUNTY_ID),
             pl.col('state').alias(self.STATE_ID),
             pl.col('cz').alias(self.CZ_ASHRAE),
+            pl.col('cen_div').alias(self.CEN_DIV),
             pl.col('sqft').alias('truth_sqft'),
-            pl.col('tract_assignment_type').alias('in.tract_assignment_type')
+            pl.col('tract_assignment_type').alias('in.tract_assignment_type'),
+            pl.col('building_type').alias(self.BLDG_TYPE)
         ), on=pl.col('tdf_id'))
 
         # Pull in the sqft calculate weights
@@ -2130,11 +2200,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.TRACT_ID: self.TRACT_ID.replace('in.', self.POST_APPO_SIM_COL_PREFIX),
             self.COUNTY_ID: self.COUNTY_ID.replace('in.', self.POST_APPO_SIM_COL_PREFIX),
             self.STATE_ID: self.STATE_ID.replace('in.', self.POST_APPO_SIM_COL_PREFIX),
-            self.CZ_ASHRAE: self.CZ_ASHRAE.replace('in.', self.POST_APPO_SIM_COL_PREFIX),
+            self.CEN_DIV: self.CEN_DIV.replace('in.', self.POST_APPO_SIM_COL_PREFIX),
         })
 
         # Drop unwanted columns from the foreign key table and persist
-        fkt = fkt.drop('tdf_id', 'appo_group_id', 'truth_sqft', 'in.tract_assignment_type')
+        fkt = fkt.drop('tdf_id', 'appo_group_id', 'truth_sqft', 'in.tract_assignment_type', self.FLR_AREA)
         self.APPORTIONED = True
         self.fkt = fkt
         logger.info('Successfully completed the apportionment sampling postprocessing')
@@ -2442,7 +2512,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         self.data = self.data.rename(crnms)
 
-    def add_sightglass_column_units(self):
+    def add_sightglass_column_units(self, lazyframe):
         # SightGlass requires that the energy_consumption, energy_consumption_intensity,
         # energy_savings, and energy_savings_intensity columns have no units on the
         # column names. This method adds those units back to the appropriate column names,
@@ -2452,7 +2522,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             return c.replace(f'..{self.units_from_col_name(c)}', '')
 
         crnms = {}  # Column renames
-        og_cols = self.data.columns
+        og_cols = lazyframe.columns
         for col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY):
             # energy_consumption
             if rmv_units(col) in og_cols: crnms[rmv_units(col)] = col
@@ -2478,7 +2548,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             assert new.startswith(old)
             logger.debug(f'{old} -> {new}')
 
-        self.data = self.data.rename(crnms)
+        lazyframe = lazyframe.rename(crnms)
+        return lazyframe
 
     def get_comstock_unscaled_monthly_energy_consumption(self):
         """

@@ -89,8 +89,8 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
     CEN_DIV_LKUP={
         'G090': 'New England', 'G230': 'New England', 'G250': 'New England', 'G330': 'New England',
-        'G440': 'New England', 'G500': 'New England', 'G340': 'Mid-Atlantic', 'G360': 'Mid-Atlantic',
-        'G420': 'Mid-Atlantic', 'G180': 'East North Central', 'G170': 'East North Central',
+        'G440': 'New England', 'G500': 'New England', 'G340': 'Middle Atlantic', 'G360': 'Middle Atlantic',
+        'G420': 'Middle Atlantic', 'G180': 'East North Central', 'G170': 'East North Central',
         'G260': 'East North Central', 'G390': 'East North Central', 'G550': 'East North Central',
         'G190': 'West North Central', 'G200': 'West North Central', 'G270': 'West North Central',
         'G290': 'West North Central', 'G310': 'West North Central', 'G380': 'West North Central',

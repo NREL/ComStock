@@ -483,4 +483,9 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
         file_name = f'CBECS wide.csv'
         file_path = os.path.join(self.output_dir, file_name)
-        self.data.to_csv(file_path, index=False)
+        try:
+            self.data.sink_csv(file_path)
+        except pl.exceptions.InvalidOperationError:
+            logger.warn('Warning - sink_csv not supported for metadata write in current polars version')
+            logger.warn('Falling back to .collect.write_csv')
+            self.data.collect().write_csv(file_path)
