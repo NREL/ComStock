@@ -537,6 +537,7 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         hcols = [col.replace('Option=', '') for col in hsdf.columns if 'Option=' in col]
         hsdf.columns = [col.replace('Dependency=', '').replace('Option=', '') for col in hsdf.columns]
         hsdf.loc[:, 'building_type'] = hsdf.loc[:, 'building_type'].map(self.BUILDING_TYPE_NAME_MAPPER)
+        hsdf.loc[:, 'census_region'] = hsdf.loc[:, 'census_region'].replace('Mid-Atlantic', 'Middle Atlantic')
         df = df.merge(hsdf, left_on=['building_type', 'heating_fuel', 'cen_div'], right_on=['building_type', 'heating_fuel', 'census_region'])
 
         # Use the merged probabilities to sample in fuel type

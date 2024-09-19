@@ -1897,7 +1897,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Calculate scaling factor for each building type based on floor area (not building/model count)
         sf = pd.concat([cbecs_bldg_type_sqft, comstock_bldg_type_sqft], axis = 1)
-        logger.info("sf wt_area_col shape: ", sf[wt_area_col].shape)
         sf[self.BLDG_WEIGHT] = sf[wt_area_col].astype(float) / sf[self.FLR_AREA].astype(float)
         bldg_type_scale_factors = sf[self.BLDG_WEIGHT].to_dict()
         if np.nan in bldg_type_scale_factors:
