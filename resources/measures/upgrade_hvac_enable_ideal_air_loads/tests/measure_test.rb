@@ -204,8 +204,8 @@ class UpgradeEnableIdealAirLoads < Minitest::Test
     model = load_model(model_output_path(__method__))
     assert_equal('Success', result.value.valueName)
 
-	# verify objects in model
-	verify_ideal_air_loads(model)
+    # verify objects in model
+    verify_ideal_air_loads(model)
   end
 
   # test ideal air loads on doas fan coil
