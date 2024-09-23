@@ -6,8 +6,19 @@ class UpgradeHvacEnableIdealAirLoads < OpenStudio::Measure::ModelMeasure
   # define the name that a user will see, this method may be deprecated as
   # the display name in PAT comes from the name field in measure.xml
   def name
-    return 'UpgradeHvacEnableIdealAirLoads'
+    return 'Upgrade HVAC Enable Ideal Air Loads'
   end
+
+  # human readable description
+  def description
+    return 'Replaces all HVAC systems with conceptual ZoneHVACIdealLoadsAirSystems to model building thermal loads.'
+  end
+
+  # human readable description of modeling approach
+  def modeler_description
+    return 'All HVAC systems are removed and replaced with ZoneHVACIdealLoadsAirSystems objects. Outdoor ventilation air follows occupancy schedule, which may not align with the original HVAC ventilation schedule found in the baseline model. All thermostat schedules are held constant with baseline model. Energy from ZoneHVACIdealLoadsAirSystems is reported under district end uses, not necesarily aligning with the HVAC fuel type of the baseline model.'
+  end
+
 
   # define the arguments that the user will input
   def arguments(model)
@@ -44,6 +55,11 @@ class UpgradeHvacEnableIdealAirLoads < OpenStudio::Measure::ModelMeasure
       conditioned_zones << zone
     end
 
+    if conditioned_zones.empty?
+      runner.registerAsNotApplicable("No conditioned thermal zones found in model. Ideal air loads are not applicable to this model.")
+      return true
+    end
+
     # modify design outdoor air object to follow occupancy; ComStock DSOA objects do not have schedules by default
     conditioned_zones.each do |zone|
       sch_ruleset = std.thermal_zones_get_occupancy_schedule(thermal_zones=[zone],
@@ -75,7 +91,7 @@ class UpgradeHvacEnableIdealAirLoads < OpenStudio::Measure::ModelMeasure
                                                         add_output_meters: false)
 
     # validity checks
-    unless ideal_loads_objects
+    if ideal_air_loads.empty?
       runner.registerError('Failure in creating ideal loads objects.  See logs from [openstudio.model.Model]. Likely cause is an invalid schedule input or schedule removed from by another measure.')
       return false
     end
