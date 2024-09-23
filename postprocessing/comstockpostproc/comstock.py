@@ -2001,9 +2001,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # load components
         load_columns = self.load_component_cols()
         for col in load_columns:
-            new_col = self.col_name_to_weighted(col, 'kbtu')
+            old_units = 'kbtu'
+            new_units = 'tbtu'
+            new_col = self.col_name_to_weighted(col, new_units=new_units)
+            conv_fact = self.conv_fact(old_units, new_units)
             self.data = self.data.with_columns(
-                (pl.col(col) * pl.col(self.BLDG_WEIGHT)).alias(new_col))
+                (pl.col(col) * pl.col(self.BLDG_WEIGHT) * conv_fact).alias(new_col))
 
     def add_weighted_energy_savings_columns(self):
         # Select energy columns to calculate savings for
@@ -2561,7 +2564,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             weighted_col = self.col_name_to_weighted(col, 'kbtu')
             weighted_load_cols.append(weighted_col)
 
-        var_col = 'calc.weighted.loads.fuel.period.deamnd.component..units'
+        var_col = 'calc.weighted.loads.fuel.period.demand.component..units'
         val_col = 'calc.weighted.loads.component_load..kbtu'
         pre = 'calc.weighted.loads.'
         loads_long = self.data.melt(id_vars=[self.BLDG_ID, self.UPGRADE_ID, 'Climate Zone Group', self.BLDG_TYPE_GROUP], value_vars=weighted_load_cols, variable_name=var_col, value_name=val_col)
