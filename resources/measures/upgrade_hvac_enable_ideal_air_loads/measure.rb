@@ -50,8 +50,8 @@ class UpgradeHvacEnableIdealAirLoads < OpenStudio::Measure::ModelMeasure
     # add zone hvac ideal load air system objects
     conditioned_zones = []
     model.getThermalZones.each do |zone|
-      next if std.thermal_zone_plenum?(zone)
-      next if !std.thermal_zone_heated?(zone) && !std.thermal_zone_cooled?(zone)
+      next if zone.name.to_s.downcase.include?('plenum')
+      next if !OpenstudioStandards::ThermalZone.thermal_zone_heated?(zone) && !OpenstudioStandards::ThermalZone.thermal_zone_cooled?(zone)
       conditioned_zones << zone
     end
 
@@ -62,7 +62,7 @@ class UpgradeHvacEnableIdealAirLoads < OpenStudio::Measure::ModelMeasure
 
     # modify design outdoor air object to follow occupancy; ComStock DSOA objects do not have schedules by default
     conditioned_zones.each do |zone|
-      sch_ruleset = std.thermal_zones_get_occupancy_schedule(thermal_zones=[zone],
+      sch_ruleset = OpenstudioStandards::ThermalZone.thermal_zones_get_occupancy_schedule(thermal_zones=[zone],
       occupied_percentage_threshold:0.05)
       zone.spaces.each do |space|
         next unless space.designSpecificationOutdoorAir.is_initialized
@@ -91,7 +91,7 @@ class UpgradeHvacEnableIdealAirLoads < OpenStudio::Measure::ModelMeasure
                                                         add_output_meters: false)
 
     # validity checks
-    if ideal_air_loads.empty?
+    if ideal_loads_objects.empty?
       runner.registerError('Failure in creating ideal loads objects.  See logs from [openstudio.model.Model]. Likely cause is an invalid schedule input or schedule removed from by another measure.')
       return false
     end
