@@ -2,7 +2,7 @@
 # See top level LICENSE.txt file for license terms.
 import re
 import matplotlib.colors as mcolors
-
+import polars as pl
 class NamingMixin():
     # Column aliases for code readability
     # Add to this list for commonly-used columns
@@ -31,6 +31,37 @@ class NamingMixin():
     SEG_NAME = 'calc.segment'
     COMP_STATUS = 'completed_status'
     META_IDX = 'metadata_index'
+    DIVISION = 'Division'
+    MONTH = 'Month'
+
+    # Variables needed by the apportionment sampling regime
+    SAMPLING_REGION = 'in.sampling_region_id'
+    COUNTY_ID = 'in.nhgis_county_gisjoin'
+    TRACT_ID = 'in.nhgis_tract_gisjoin'
+    PUMA_ID = 'in.nhgis_puma_gisjoin'
+    SH_FUEL = 'in.heating_fuel'
+    SIZE_BIN = 'in.size_bin_id'
+    STATE_ID = 'in.nhgis_state_gisjoin'
+    TOT_EUI = 'out.site_energy.total.energy_consumption_intensity..kwh_per_ft2'
+    SAMPLED_COLUMN_PREFIX = 'sampled.'
+    POST_APPO_SIM_COL_PREFIX = 'in.as_simulated_'
+
+    # Column Name type mapping for pandas DataFrame:
+    COL_TYPE_SCHEMA = {
+        CEN_DIV: "string",
+        STATE_NAME: "string",
+        CEN_REG: "string",
+        STATE_ABBRV: "category",
+        BLDG_TYPE: "category",
+        BLDG_TYPE_GROUP: "category",
+        VINTAGE: "category",
+        DATASET: "category",
+        UPGRADE_NAME: "string",
+        CZ_ASHRAE: "category",
+        HVAC_SYS: "category",
+        DIVISION: "category",
+        MONTH: "Int8"
+    }
 
     # Total annual energy
     ANN_TOT_ENGY_KBTU = 'out.site_energy.total.energy_consumption..kwh'
@@ -621,14 +652,19 @@ class NamingMixin():
     def col_name_to_weighted_savings(self, col_name, new_units=None):
         col_name = self.col_name_to_weighted(col_name, new_units)
         col_name = col_name.replace('.weighted.', '.weighted.savings.')
-
         return col_name
 
     def col_name_to_savings(self, col_name, new_units=None):
-        col_name = col_name.replace('.energy_consumption', '.energy_savings')
-        col_name = col_name.replace('_bill_', '_bill_savings_')
-        return col_name
-
+        converted_col_name = col_name.replace('.energy_consumption', '.energy_savings')
+        if "_bill_" in converted_col_name:
+            converted_col_name = converted_col_name.replace('_bill_', '_bill_savings_')
+        elif "_bill.." in converted_col_name:
+            converted_col_name = converted_col_name.replace('_bill..', '_bill_savings..')
+            
+        if converted_col_name == col_name:
+            raise ValueError(f"Cannot convert column name {col_name} to savings column") 
+        
+        return converted_col_name
     def col_name_to_weighted_percent_savings(self, col_name, new_units=None):
         col_name = self.col_name_to_weighted(col_name, new_units)
         col_name = col_name.replace('.weighted.', '.weighted.percent_savings.')

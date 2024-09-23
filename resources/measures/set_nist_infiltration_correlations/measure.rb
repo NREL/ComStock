@@ -388,7 +388,7 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
 
       model.getAirLoopHVACs.each do |air_loop|
         air_loop_area = 0.0
-        air_loop.thermalZones.each { |tz| air_loop_area += tz.floorArea }
+        air_loop.thermalZones.each { |tz| air_loop_area += tz.floorArea * tz.multiplier }
         if air_loop_area > largest_area
           hvac_schedule = air_loop.availabilitySchedule
           largest_area = air_loop_area
@@ -397,7 +397,9 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
 
       model.getAirLoopHVACUnitarySystems.each do |unitary|
         next unless unitary.thermalZone.is_initialized
-        air_loop_area = unitary.thermalZone.get.floorArea
+
+        tz = unitary.thermalZone.get
+        air_loop_area = tz.floorArea * tz.multiplier
         if air_loop_area > largest_area
           if unitary.availabilitySchedule.is_initialized
             hvac_schedule = unitary.availabilitySchedule.get
@@ -410,7 +412,9 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
 
       model.getAirLoopHVACUnitaryHeatPumpAirToAirs.each do |unitary|
         next unless unitary.controllingZone.is_initialized
-        air_loop_area = unitary.controllingZone.get.floorArea
+
+        tz = unitary.controllingZone.get
+        air_loop_area = tz.floorArea * tz.multiplier
         if air_loop_area > largest_area
           hvac_schedule = unitary.availabilitySchedule.get
           largest_area = air_loop_area
@@ -419,7 +423,9 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
 
       model.getAirLoopHVACUnitaryHeatPumpAirToAirMultiSpeeds.each do |unitary|
         next unless unitary.controllingZoneorThermostatLocation.is_initialized
-        air_loop_area = unitary.controllingZoneorThermostatLocation.get.floorArea
+
+        tz = unitary.controllingZoneorThermostatLocation.get
+        air_loop_area = tz.floorArea * tz.multiplier
         if air_loop_area > largest_area
           if unitary.availabilitySchedule.is_initialized
             hvac_schedule = unitary.availabilitySchedule.get
@@ -432,7 +438,9 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
 
       model.getFanZoneExhausts.each do |fan|
         next unless fan.thermalZone.is_initialized
-        air_loop_area = fan.thermalZone.get.floorArea
+
+        tz = fan.thermalZone.get
+        air_loop_area = tz.floorArea * tz.multiplier
         if air_loop_area > largest_area
           if fan.availabilitySchedule.is_initialized
             hvac_schedule = fan.availabilitySchedule.get
