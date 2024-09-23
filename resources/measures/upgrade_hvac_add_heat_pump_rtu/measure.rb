@@ -493,13 +493,13 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # Calculate the flow per ton
       flow_per_ton = airflow / stage_capacity
 
-      puts "Debug*************************************************************"
-      puts "#{heating_or_cooling} Stage #{stage}"
-      puts "airflow: #{airflow}"
-      puts "stage_capacity: #{stage_capacity}"
-      puts "flow_per_ton: #{flow_per_ton}"
-      puts "m_3_per_s_per_w_max: #{m_3_per_s_per_w_max.round(8)}"
-      puts "In Bounds: #{(flow_per_ton.round(8) >= m_3_per_s_per_w_min.round(8)) && (flow_per_ton.round(8) <= m_3_per_s_per_w_max.round(8))}"
+      #puts "Debug*************************************************************"
+      #puts "#{heating_or_cooling} Stage #{stage}"
+      #puts "airflow: #{airflow}"
+      #puts "stage_capacity: #{stage_capacity}"
+      #puts "flow_per_ton: #{flow_per_ton}"
+      #puts "m_3_per_s_per_w_max: #{m_3_per_s_per_w_max.round(8)}"
+      #puts "In Bounds: #{(flow_per_ton.round(8) >= m_3_per_s_per_w_min.round(8)) && (flow_per_ton.round(8) <= m_3_per_s_per_w_max.round(8))}"
 
       # If flow/ton is less than minimum, increase airflow of stage to meet minimum
       if (flow_per_ton.round(8) < (m_3_per_s_per_w_min - tolerance * m_3_per_s_per_w_min).round(8)) && stage < rated_stage_num
@@ -655,6 +655,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       runner.registerError("For airloop #{air_loop_hvac.name}, the number of stages of heating capacity is different from number of stages of heating airflow. Revise measure as needed.")
     end
 
+    puts "stage_flows_heating: #{stage_flows_heating}"
+    puts "num_heating_stages: #{num_heating_stages}"
+    puts "stage_caps_heating: #{stage_caps_heating}"
+
     # use single speed DX heating coil if only 1 speed
     new_dx_heating_coil = nil
     if num_heating_stages == 1
@@ -692,6 +696,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_heating_coil.setMinimumOutdoorDryBulbTemperatureforCompressorOperation(OpenStudio.convert(hp_min_comp_lockout_temp_f, 'F', 'C').get)
       new_dx_heating_coil.setAvailabilitySchedule(always_on)
       new_dx_heating_coil.setApplyPartLoadFractiontoSpeedsGreaterthan1(enable_cycling_losses_above_lowest_speed)
+      new_dx_heating_coil.setFuelType('Electricity')
       # methods from "TECHNICAL SUPPORT DOCUMENT: ENERGY EFFICIENCY PROGRAM FOR CONSUMER PRODUCTS AND COMMERCIAL AND INDUSTRIAL EQUIPMENT AIR-COOLED COMMERCIAL UNITARY AIR CONDITIONERS AND COMMERCIAL UNITARY HEAT PUMPS"
       crankcase_heater_power = ((60 * (stage_caps_heating[rated_stage_num_heating] * 0.0002843451 / 10)**0.67))
       new_dx_heating_coil.setCrankcaseHeaterCapacity(crankcase_heater_power)
