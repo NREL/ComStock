@@ -1,6 +1,31 @@
 # ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 class UnitsMixin():
+    class UNIT:
+        class ENERGY:
+            KWH = 'kwh'
+            MWH = 'mwh'
+            TWH = 'twh'
+            KBTU = 'kbtu'
+            TBTU = 'tbtu'
+            THERM = 'therm'
+            GJ = 'gj'
+            MBTU = 'mbtu'
+            MILLION_BTU = 'million_btu'
+            USD = 'usd'
+
+        class CURRENCY:
+            USD = 'usd'
+            MILLION_USD = 'million_usd'
+            BILLION_USD = 'billion_usd'
+
+        class MASS:
+            CO2E_MMT = 'co2e_mmt'
+        
+        class DIMLESS:
+            PERCENT = 'percent'
+            PERCENT_SYMBOL = '%'
+
     # Constants for unit conversion
     # Created using OpenStudio unit conversion library
     UNIT_CONVERSIONS = {

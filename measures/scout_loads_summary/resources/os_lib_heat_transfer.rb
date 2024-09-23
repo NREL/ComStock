@@ -223,7 +223,7 @@ module OsLib_HeatTransfer
     return err.round(decimals)
   end
 
-  # Calculates 
+  # Calculates
   def self.thermal_zone_heat_transfer_vectors(runner, zone, sql, freq)
     # Define variables
     joules = 'J'
@@ -344,7 +344,7 @@ module OsLib_HeatTransfer
         load_rad_rts = 0.0
         hr_i = 0
         prev_24hr_vals.each_slice(steps_per_hour) do |vals_in_hr|
-          avg_per_ts_in_hr = vals_in_hr.to_a.inject(:+).to_f / vals_in_hr.size 
+          avg_per_ts_in_hr = vals_in_hr.to_a.inject(:+).to_f / vals_in_hr.size
           rad_rts = avg_per_ts_in_hr * rts[hr_i]
           load_rad_rts += rad_rts
           hr_i += 1
@@ -419,7 +419,7 @@ module OsLib_HeatTransfer
     true_total_outdoor_air_gains = sec_per_step * Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Air Heat Balance Outdoor Air Transfer Rate', zone_name, num_ts, watts))
     heat_transfer_vectors['Calc Outdoor Air Gains'] = total_outdoor_air_gains
     heat_transfer_vectors['True Outdoor Air Gains'] = true_total_outdoor_air_gains - true_interzone
-    heat_transfer_vectors['Diff Outdoor Air Gains'] = (true_total_outdoor_air_gains + true_interzone)- total_outdoor_air_gains 
+    heat_transfer_vectors['Diff Outdoor Air Gains'] = (true_total_outdoor_air_gains + true_interzone)- total_outdoor_air_gains
     heat_transfer_vectors['Error in Outdoor Air Gains'] = ts_error_between_vectors(total_outdoor_air_gains - true_interzone, true_total_outdoor_air_gains, 2)
     heat_transfer_vectors["#{zone_name}: Annual Gain Error in Outdoor Air Gains"] = annual_heat_gain_error_between_vectors(total_outdoor_air_gains - true_interzone, true_total_outdoor_air_gains, 2)
     heat_transfer_vectors["#{zone_name}: Annual Loss Error in Outdoor Air Gains"] = annual_heat_loss_error_between_vectors(total_outdoor_air_gains - true_interzone, true_total_outdoor_air_gains, 2)
@@ -529,9 +529,9 @@ module OsLib_HeatTransfer
         if int_mass.surfaceArea.is_initialized
           int_mass_area = int_mass.surfaceArea.get
         elsif int_mass.surfaceAreaPerFloorArea.is_initialized
-          int_mass_area = int_mass.surfaceAreaPerFloorArea.get * space.floorArea
+          int_mass_area = int_mass.surfaceAreaPerFloorArea.get * space.floorArea * space.multiplier
         elsif int_mass.surfaceAreaPerPerson.is_initialized
-          int_mass_area = int_mass.surfaceAreaPerPerson.get * space.numberOfPeople
+          int_mass_area = int_mass.surfaceAreaPerPerson.get * space.numberOfPeople * space.multiplier
         end
         zone_surface_areas["Internal Mass"] += int_mass_area
       end
@@ -658,7 +658,7 @@ module OsLib_HeatTransfer
       solar_rad_rts = 0.0
       hr_i = 0
       prev_24hr_vals.each_slice(steps_per_hour) do |vals_in_hr|
-        avg_per_ts_in_hr = vals_in_hr.to_a.inject(:+).to_f / vals_in_hr.size 
+        avg_per_ts_in_hr = vals_in_hr.to_a.inject(:+).to_f / vals_in_hr.size
         hrly_solar_rad_rts = avg_per_ts_in_hr * rts[hr_i]
         solar_rad_rts += hrly_solar_rad_rts
         # puts "-- hr #{hr_i} RTS = #{hrly_solar_rad_rts.round(2)} = #{rts[hr_i]} * (#{vals_in_hr.join(' + ')}) / #{vals_in_hr.size}"

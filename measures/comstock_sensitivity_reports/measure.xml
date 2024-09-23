@@ -10,8 +10,8 @@ C:/Users/ccaradon/Documents/GitHub/ComStock/measures/comstock_sensitivity_report
 C:/Users/ccaradon/Documents/GitHub/ComStock/measures/comstock_sensitivity_reports/measure.rb:3140: syntax error, unexpected `end', expecting end-of-input</error>
   <name>com_stock_sensitivity_reports</name>
   <uid>aeb81242-de7e-4613-af47-c1faf19d286a</uid>
-  <version_id>9fa90faa-6a7e-4f8f-8d60-308bcb539ffe</version_id>
-  <version_modified>2024-04-23T15:29:07Z</version_modified>
+  <version_id>4c7c7a10-065c-4d41-b9a8-956a3238bb24</version_id>
+  <version_modified>2024-09-09T20:06:55Z</version_modified>
   <xml_checksum>A0069B90</xml_checksum>
   <class_name>ComStockSensitivityReports</class_name>
   <display_name>ComStock_Sensitivity_Reports</display_name>
@@ -83,13 +83,19 @@ C:/Users/ccaradon/Documents/GitHub/ComStock/measures/comstock_sensitivity_report
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>3CA79015</checksum>
+      <checksum>0CCC1039</checksum>
     </file>
     <file>
       <filename>Variable List.xlsx</filename>
       <filetype>xlsx</filetype>
       <usage_type>resource</usage_type>
-      <checksum>2987419A</checksum>
+      <checksum>5A105693</checksum>
+    </file>
+    <file>
+      <filename>8172d17_0000008.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>7D0A2C65</checksum>
     </file>
     <file>
       <filename>FortCollins2016.epw</filename>
@@ -150,6 +156,12 @@ C:/Users/ccaradon/Documents/GitHub/ComStock/measures/comstock_sensitivity_report
       <filetype>epw</filetype>
       <usage_type>test</usage_type>
       <checksum>DA20B795</checksum>
+    </file>
+    <file>
+      <filename>base_0000008.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>7C87F8DD</checksum>
     </file>
     <file>
       <filename>bldg0000003.osm</filename>
@@ -227,7 +239,7 @@ C:/Users/ccaradon/Documents/GitHub/ComStock/measures/comstock_sensitivity_report
       <filename>comstock_sensitivity_reports_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>0CC35CE4</checksum>
+      <checksum>B8A37D2A</checksum>
     </file>
     <file>
       <filename>ground_heat_exchanger.osm</filename>
@@ -264,12 +276,6 @@ C:/Users/ccaradon/Documents/GitHub/ComStock/measures/comstock_sensitivity_report
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
       <checksum>F704D7FA</checksum>
-    </file>
-    <file>
-      <filename>office_heat_pump.osm</filename>
-      <filetype>osm</filetype>
-      <usage_type>test</usage_type>
-      <checksum>140D2BD1</checksum>
     </file>
     <file>
       <filename>vrf_cold_climate.osm</filename>

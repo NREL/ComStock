@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>df_thermostat_control_load_shed</name>
   <uid>f4372ee0-7caa-4db1-8838-31c886e60881</uid>
-  <version_id>d45ceb7f-d7c2-4106-823c-c2cc6b00d3d8</version_id>
-  <version_modified>2024-02-23T06:32:18Z</version_modified>
+  <version_id>32055dcf-139d-4556-a23d-c5b10b40112a</version_id>
+  <version_modified>2024-06-20T18:58:41Z</version_modified>
   <xml_checksum>D7E77FC2</xml_checksum>
   <class_name>DfThermostatControlLoadShed</class_name>
   <display_name>demand flexibility - thermostat control load shed</display_name>
@@ -123,19 +123,19 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>BDB69C75</checksum>
+      <checksum>1C50D2AC</checksum>
     </file>
     <file>
       <filename>dispatch_schedule_generation.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>A337CB51</checksum>
+      <checksum>D279CE58</checksum>
     </file>
     <file>
       <filename>df_thermostat_control_load_shed_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>C476980C</checksum>
+      <checksum>EECEC6B2</checksum>
     </file>
   </files>
 </measure>
