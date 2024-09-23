@@ -124,6 +124,15 @@ Determines performance assumptions. two_speed_standard_eff is a standard efficie
 **Model Dependent:** false
 
 
+### Print out detailed debugging logs if this parameter is true
+
+**Name:** debug_verbose,
+**Type:** Boolean,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+
 
 
 
