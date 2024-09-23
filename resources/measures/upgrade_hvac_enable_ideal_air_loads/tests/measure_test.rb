@@ -163,25 +163,25 @@ class UpgradeEnableIdealAirLoads < Minitest::Test
 
     return result
   end
-  
+
   def verify_ideal_air_loads(model)
-	# verify that ideal air loads objects exist
-	ideal_air_loads_objects = model.getZoneHVACIdealLoadsAirSystems
-	assert(ideal_air_loads_objects.size > 0)
-	
-	# verify OA objects have OA schedules
-	ideal_air_loads_objects.each do |ial|
-		assert(ial.designSpecificationOutdoorAirObject.is_initialized)
-		dsoa = ial.designSpecificationOutdoorAirObject.get
-		assert(dsoa.outdoorAirFlowRateFractionSchedule.is_initialized)
-	end
-	
-	# verify no fans
-	assert(model.getFanVariableVolumes.empty?, true)
-	assert(model.getFanConstantVolumes.empty?, true)
-	assert(model.getFanOnOffs.empty?, true)
-	# verify no air loops
-	assert(model.getAirLoopHVACs.empty?, true)
+    # verify that ideal air loads objects exist
+    ideal_air_loads_objects = model.getZoneHVACIdealLoadsAirSystems
+    assert(ideal_air_loads_objects.size > 0)
+
+    # verify OA objects have OA schedules
+    ideal_air_loads_objects.each do |ial|
+      assert(ial.designSpecificationOutdoorAirObject.is_initialized)
+      dsoa = ial.designSpecificationOutdoorAirObject.get
+      assert(dsoa.outdoorAirFlowRateFractionSchedule.is_initialized)
+    end
+
+    # verify no fans
+    assert_empty(model.getFanVariableVolumes)
+    assert_empty(model.getFanConstantVolumes)
+    assert_empty(model.getFanOnOffs)
+    # verify no air loops
+    assert_empty(model.getAirLoopHVACs)
   end
 
   # test ideal air loads on PSZ
@@ -203,11 +203,11 @@ class UpgradeEnableIdealAirLoads < Minitest::Test
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
     model = load_model(model_output_path(__method__))
     assert_equal('Success', result.value.valueName)
-	
+
 	# verify objects in model
 	verify_ideal_air_loads(model)
   end
-  
+
   # test ideal air loads on doas fan coil
   def test_doas_fc
     osm_name = '370_medium_office_doas_fan_coil_acc_boiler_3A.osm'
@@ -227,11 +227,11 @@ class UpgradeEnableIdealAirLoads < Minitest::Test
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
     model = load_model(model_output_path(__method__))
     assert_equal('Success', result.value.valueName)
-	
+
 	# verify objects in model
 	verify_ideal_air_loads(model)
   end
-  
+
   # test ideal air loads on vav
   def test_vav
     osm_name = '370_warehouse_pvav_gas_boiler_reheat_2A.osm'
@@ -251,11 +251,11 @@ class UpgradeEnableIdealAirLoads < Minitest::Test
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
     model = load_model(model_output_path(__method__))
     assert_equal('Success', result.value.valueName)
-	
+
 	# verify objects in model
 	verify_ideal_air_loads(model)
   end
-  
+
   # test ideal air loads on baseboard
   def test_baseboard
     osm_name = 'Baseboard_electric_heat_3B.osm'
@@ -275,12 +275,12 @@ class UpgradeEnableIdealAirLoads < Minitest::Test
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
     model = load_model(model_output_path(__method__))
     assert_equal('Success', result.value.valueName)
-	
+
 	# verify objects in model
 	verify_ideal_air_loads(model)
   end
-  
-  
 
-  
+
+
+
 end
