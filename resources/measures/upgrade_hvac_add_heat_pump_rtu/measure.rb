@@ -485,7 +485,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # If the highest speed is violated, the max airflow will be increased to accommodate.
     stage_caps = {}
     # Calculate and store each stage's capacity
-    stage_cap_fractions.each do |stage, ratio|
+    stage_cap_fractions.sort.each do |stage, ratio|
       # Calculate the airflow for the current stage
       airflow = stage_flows[stage]
       # Calculate the capacity for the current stage considering upsizing
@@ -495,6 +495,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
       #puts "Debug*************************************************************"
       #puts "#{heating_or_cooling} Stage #{stage}"
+      #puts "min_airflow_ratio: #{min_airflow_ratio}"
       #puts "airflow: #{airflow}"
       #puts "stage_capacity: #{stage_capacity}"
       #puts "flow_per_ton: #{flow_per_ton}"
@@ -517,6 +518,14 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # if maximum flow/ton ratio cannot be accommodated without violating minimum airflow ratios
         # if cfm/ton limit can't be met by reducing airflow, allow increase capacity of up to 65% range between capacities
         # calculate maximum allowable ratio, no more than 50% increase between specified stages
+
+        #puts "Debugging*************************************"
+        #puts "air_loop_hvac: #{air_loop_hvac.name}"
+        #puts "ratio: #{ratio}"
+        #puts "stage: #{stage}"
+        #puts "stage_cap_fractions: #{stage_cap_fractions}"
+        #puts "dx_rated_cap_applied: #{dx_rated_cap_applied}"
+
         ratio_allowance_50_pct = ratio + (stage_cap_fractions[stage + 1] - ratio) * 0.65
         required_stage_cap_ratio = airflow / m_3_per_s_per_w_max / (stage_cap_fractions[rated_stage_num] * dx_rated_cap_applied)
         if ((m_3_per_s_per_w_max * stage_capacity) / old_terminal_sa_flow_m3_per_s) >= min_airflow_ratio
@@ -655,9 +664,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       runner.registerError("For airloop #{air_loop_hvac.name}, the number of stages of heating capacity is different from number of stages of heating airflow. Revise measure as needed.")
     end
 
-    puts "stage_flows_heating: #{stage_flows_heating}"
-    puts "num_heating_stages: #{num_heating_stages}"
-    puts "stage_caps_heating: #{stage_caps_heating}"
+    #puts "stage_flows_heating: #{stage_flows_heating}"
+    #puts "num_heating_stages: #{num_heating_stages}"
+    #puts "stage_caps_heating: #{stage_caps_heating}"
 
     # use single speed DX heating coil if only 1 speed
     new_dx_heating_coil = nil
@@ -1071,6 +1080,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # add systems with high outdoor air ratios to a list for non-applicability
     oa_ration_allowance = 0.55
     selected_air_loops.each do |air_loop_hvac|
+
       thermal_zone = air_loop_hvac.thermalZones[0]
 
       # get the min OA flow rate for calculating unit OA fraction
@@ -1853,7 +1863,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # airflow for each stage will be the higher of the user-input stage ratio or the minimum OA
       # lower stages may be removed later if cfm/ton bounds cannot be maintained due to minimum OA limits
       stage_flows_heating = {}
-      stage_flow_fractions_heating.each do |stage, ratio|
+      stage_flow_fractions_heating.sort.each do |stage, ratio|
         airflow = ratio * design_heating_airflow_m_3_per_s
         stage_flows_heating[stage] = airflow >= min_airflow_m3_per_s ? airflow : min_airflow_m3_per_s
       end
@@ -1862,7 +1872,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # airflow for each stage will be the higher of the user-input stage ratio or the minimum OA
       # lower stages may be removed later if cfm/ton bounds cannot be maintained due to minimum OA limits
       stage_flows_cooling = {}
-      stage_flow_fractions_cooling.each do |stage, ratio|
+      stage_flow_fractions_cooling.sort.each do |stage, ratio|
         airflow = ratio * design_cooling_airflow_m_3_per_s
         stage_flows_cooling[stage] = airflow >= min_airflow_m3_per_s ? airflow : min_airflow_m3_per_s
       end
