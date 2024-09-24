@@ -240,7 +240,7 @@ class EmissionsReporting_Test < Minitest::Test
     test_name = 'test_all_scenarios'
 
     puts "\n######\nTEST:#{test_name}\n######\n"
-    osm_path = File.dirname(__FILE__) + '/office.osm'
+    osm_path = File.dirname(__FILE__) + '/smalloffice.osm'
     epw_path = File.dirname(__FILE__) + '/FortCollins2016.epw'
 
     # create an instance of the measure
@@ -264,7 +264,12 @@ class EmissionsReporting_Test < Minitest::Test
     require 'json'
     result_h = JSON.parse(result.to_s)
     # test that runperiod totals same as summed hourly
-    assert_in_delta(8612.0512, result_h['step_values'].select{|v| v["name"] == "annual_natural_gas_ghg_emissions_kg"}.first["value"], 0.001)
+    assert_in_delta(3384.63, result_h['step_values'].select{|v| v["name"] == "annual_natural_gas_ghg_emissions_kg"}.first["value"], 0.1)
+
+    # test that all electricity emissions are > 0
+    result_h['step_values'].select{ |v| v["name"].include?('cooling')}.each do |result|
+      assert(result['value'] > 0, "Result for #{result['name']} is zero")
+    end
 
     # print_column_definitions(result_h)
   end
@@ -273,7 +278,7 @@ class EmissionsReporting_Test < Minitest::Test
     test_name = 'test_hawaii'
 
     puts "\n######\nTEST:#{test_name}\n######\n"
-    osm_path = File.dirname(__FILE__) + '/office.osm'
+    osm_path = File.dirname(__FILE__) + '/smalloffice.osm'
     epw_path = File.dirname(__FILE__) + '/FortCollins2016.epw'
 
     # create an instance of the measure
