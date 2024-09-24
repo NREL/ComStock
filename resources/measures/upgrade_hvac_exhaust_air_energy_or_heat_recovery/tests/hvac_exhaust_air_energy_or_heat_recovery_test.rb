@@ -66,7 +66,7 @@ class HVACExhaustAirEnergyOrHeatRecoveryTest < Minitest::Test
 
     # get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-
+    assert_equal(0, arguments.size)
   end
 
   # return file paths to test models in test directory
