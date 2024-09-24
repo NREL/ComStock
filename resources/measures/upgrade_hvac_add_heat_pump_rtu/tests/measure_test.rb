@@ -98,8 +98,6 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert(File.exist?(osm_path))
     assert(File.exist?(epw_path))
     ddy_path = epw_path.gsub(".epw","") + ".ddy"
-    puts("### DEBUGGING: epw_path = #{epw_path}")
-    puts("### DEBUGGING: ddy_path = #{ddy_path}")
 
     # create run directory if it does not exist
     FileUtils.mkdir_p(run_dir(test_name)) unless File.exist?(run_dir(test_name))
