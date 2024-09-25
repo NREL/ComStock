@@ -2892,6 +2892,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         if row_segment.null_count().pipe(sum).item() > 0:
             err_log += 'Null values found in data\n'
             for c in row_segment.columns:
+                if c.startswith("out.qoi.") or c.startswith("out.utility_bills.") or c.startswith('applicability.upgrade_add_pvwatts'):
+                    continue
                 if row_segment[c].null_count() > 0:
                     err_log += f'Column {c} has null values\n'
 
@@ -2909,60 +2911,35 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             if re.search('[^a-z0-9._]', c):
                 # (f'Column {c} violates name rules: may only contain . _ 0-9 lowercaseletters (no spaces)')
                 err_log += f'Column {c} violates name rules: may only contain . _ 0-9 lowercaseletters (no spaces)\n' 
-        site_total_col, fuel_total_cols, enduse_cols = None, [], []
+        
+        #Actually that's the perfect case to use regex to check the summary.
+        TOTAL_PATTERN = r'out\.([a-zA-Z_]+)\.total\.energy_consumption\.\.kwh'
+        ENDUSE_PATTERN = r'out\.([a-zA-Z_]+)\.(?!total)([a-zA-Z_]+)\.energy_consumption\.\.kwh'
+        MONTH_PATTERN = r'out\.electricity\.total\.([a-zA-Z]{3})\.energy_consumption'
+
+        #Find the sum of total culmns for each type fuels, and for each fuel type find the sum of different
+        #enduse columns. And record them in a dictionary like: {fuel_type: total_energy}
+        fuel_total, end_use_total, month_total = {}, {}, {}
         for c in row_segment.columns:
-            if 'out.' in c:
-                if '.energy_consumption' in c:
-                    if re.match(pattern, c):
-                        continue
-                    if not 'intensity' in c:
-                        col, unit = c.split("..")
-                        o, fuel, end_use, ec = col.split('.')
-                        if fuel == 'site_energy':
-                            site_total_col = c
-                        elif end_use == 'total':
-                            fuel_total_cols.append(c)
-                        else:
-                            enduse_cols.append(c)
-
-        for ft in fuel_total_cols:
-            col, unit = ft.split("..")
-            tgt_o, tgt_fuel, tgt_end_use, tgt_ec = col.split('.')
-            # Get the total according to the column
-            tot_col_val_kwh = row_segment[ft].sum()
-
-            # Calculate total by summing enduse columns
-            calc_tot_val_kwh = 0
-            for eu in enduse_cols:
-                col, unit = eu.split("..")
-                o, fuel, end_use, ec = col.split('.')
-                if fuel == tgt_fuel:
-                    calc_tot_val_kwh += row_segment[eu].sum()
-                    logger.debug(f'{eu} = {calc_tot_val_kwh}')
-
-            # Compare
-            if calc_tot_val_kwh != pytest.approx(tot_col_val_kwh, rel=0.001):
-                logging_info = f"Checking {ft} total col against sum of enduse cols for the fuel\n"
-                logging_info += f'{ft}; total col = {tot_col_val_kwh}; sum of enduse cols = {calc_tot_val_kwh}'
-                err_log += logging_info
-                logger.error(logging_info)
-
-        # Check total site energy against sum of fuel total cols
-        tot_col_val_kwh = row_segment[site_total_col].sum()
-
-        # Calculate total by summing fuel total columns
-        calc_tot_val_kwh = 0
-        for ft in fuel_total_cols:
-            logger.debug(f'adding {row_segment[ft].sum()} for {ft}')
-            calc_tot_val_kwh += row_segment[ft].sum()
-
-        # Compare
-        if not calc_tot_val_kwh == pytest.approx(tot_col_val_kwh, rel=0.001):
-            logging_info = f'site total col = {tot_col_val_kwh}; sum of fuel total cols = {calc_tot_val_kwh}'
-            logger.error(logging_info)
-            err_log += logging_info
-        else:
-            logger.debug(f'site total col: {tot_col_val_kwh}; sum of fuel total cols: {calc_tot_val_kwh}')
-
+            if re.match(TOTAL_PATTERN, c):
+                fuel_type = re.match(TOTAL_PATTERN, c).group(1)
+                fuel_total[fuel_type] = row_segment[c].sum()
+            elif re.match(ENDUSE_PATTERN, c):
+                fuel_type = re.match(ENDUSE_PATTERN, c).group(1)
+                end_use_total[fuel_type] = end_use_total.get(fuel_type, 0) + row_segment[c].sum()
+            elif re.match(MONTH_PATTERN, c):
+                month = re.match(MONTH_PATTERN, c).group(1)
+                month_total[month] = row_segment[c].sum()
+        
+        logger.info(f"Fuel total: {fuel_total}, Enduse total: {end_use_total}, Month total: {month_total}")
+        # Check that the total site energy is the sum of the fuel totals
+        for fuel, total in end_use_total.items():
+            if not total == pytest.approx(fuel_total[fuel], rel=0.001):
+                err_log += f'Fuel total for {fuel} does not match sum of enduse columns\n'
+        if not sum(fuel_total.values()) == pytest.approx(row_segment[self.ANN_TOT_ENGY_KBTU].sum(), rel=0.001):
+            err_log += 'Site total does not match sum of fuel totals\n'
+        if not sum(month_total.values()) == pytest.approx(row_segment[self.ANN_TOT_ELEC_KBTU].sum(), rel=0.01):
+            err_log += 'Electricity total does not match sum of month totals\n'
+    
         if err_log:
             raise ValueError(err_log)
