@@ -13,6 +13,7 @@ import pandas as pd
 import polars as pl
 import re
 import datetime
+import pytest
 
 from comstockpostproc.naming_mixin import NamingMixin
 from comstockpostproc.units_mixin import UnitsMixin
@@ -226,6 +227,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.cached_parquet.append((upgrade_id, file_path)) #cached_parquet is a list of parquets used to export and reload
                 logger.info(f'Exporting to: {file_path}')
                 self.data = self.reorder_data_columns(self.data)
+                self._sightGlass_metadata_check(self.data)
                 self.data.write_parquet(file_path)
                 up_lazyframes.append(pl.scan_parquet(file_path))
 
@@ -2885,37 +2887,82 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Check that the metadata columns are present in the data
         # when the columns are in memory
         err_log = "" 
-        upgrade_id = row_segment[self.UPGRADE_ID].unique().item()
-        
+
         #check no na values in any columns
         if row_segment.null_count().pipe(sum).item() > 0:
             err_log += 'Null values found in data\n'
+            for c in row_segment.columns:
+                if row_segment[c].null_count() > 0:
+                    err_log += f'Column {c} has null values\n'
 
-        if self.BLDG_ID not in row_segment.columns:
-            err_log += f'{self.BLDG_ID} not found in data\n'
-
-        SIGHTGLASS_REQUIRED_COLS = [self.META_IDX, self.UPGRADE_ID, 
+        SIGHTGLASS_REQUIRED_COLS = [self.BLDG_ID, self.META_IDX, self.UPGRADE_ID, 
                                     self.BLDG_WEIGHT, self.UPGRADE_APPL, self.FLR_AREA]
         
         for col in SIGHTGLASS_REQUIRED_COLS:
             if col not in row_segment.columns:
                 err_log += f'{col} not found in data, which is needed for sightglass\n'
-        
+
+        #Skip pattern, may need delete later:
+        pattern = r'out\.electricity\.total\.[a-zA-Z]{3}\.energy_consumption'
+
         for c in row_segment.columns:
             if re.search('[^a-z0-9._]', c):
                 # (f'Column {c} violates name rules: may only contain . _ 0-9 lowercaseletters (no spaces)')
-                err_log += f'Column {c} violates name rules: may only contain . _ 0-9 lowercaseletters (no spaces)\n'
-
+                err_log += f'Column {c} violates name rules: may only contain . _ 0-9 lowercaseletters (no spaces)\n' 
         site_total_col, fuel_total_cols, enduse_cols = None, [], []
         for c in row_segment.columns:
-            if ("out." in c) and (".energy_consumption" in c):
-                if "intensity" not in c:
-                    o, fuel, end_use, ec = c.split('.')
-                    if fuel == "site_energy":
-                        site_total_col = c
-                    elif end_use == "total":
-                        fuel_total_cols.append(c)
-                    else:
-                        enduse_cols.append(c)
-        
-        
+            if 'out.' in c:
+                if '.energy_consumption' in c:
+                    if re.match(pattern, c):
+                        continue
+                    if not 'intensity' in c:
+                        col, unit = c.split("..")
+                        o, fuel, end_use, ec = col.split('.')
+                        if fuel == 'site_energy':
+                            site_total_col = c
+                        elif end_use == 'total':
+                            fuel_total_cols.append(c)
+                        else:
+                            enduse_cols.append(c)
+
+        for ft in fuel_total_cols:
+            col, unit = ft.split("..")
+            tgt_o, tgt_fuel, tgt_end_use, tgt_ec = col.split('.')
+            # Get the total according to the column
+            tot_col_val_kwh = row_segment[ft].sum()
+
+            # Calculate total by summing enduse columns
+            calc_tot_val_kwh = 0
+            for eu in enduse_cols:
+                col, unit = eu.split("..")
+                o, fuel, end_use, ec = col.split('.')
+                if fuel == tgt_fuel:
+                    calc_tot_val_kwh += row_segment[eu].sum()
+                    logger.debug(f'{eu} = {calc_tot_val_kwh}')
+
+            # Compare
+            if calc_tot_val_kwh != pytest.approx(tot_col_val_kwh, rel=0.001):
+                logging_info = f"Checking {ft} total col against sum of enduse cols for the fuel\n"
+                logging_info += f'{ft}; total col = {tot_col_val_kwh}; sum of enduse cols = {calc_tot_val_kwh}'
+                err_log += logging_info
+                logger.error(logging_info)
+
+        # Check total site energy against sum of fuel total cols
+        tot_col_val_kwh = row_segment[site_total_col].sum()
+
+        # Calculate total by summing fuel total columns
+        calc_tot_val_kwh = 0
+        for ft in fuel_total_cols:
+            logger.debug(f'adding {row_segment[ft].sum()} for {ft}')
+            calc_tot_val_kwh += row_segment[ft].sum()
+
+        # Compare
+        if not calc_tot_val_kwh == pytest.approx(tot_col_val_kwh, rel=0.001):
+            logging_info = f'site total col = {tot_col_val_kwh}; sum of fuel total cols = {calc_tot_val_kwh}'
+            logger.error(logging_info)
+            err_log += logging_info
+        else:
+            logger.debug(f'site total col: {tot_col_val_kwh}; sum of fuel total cols: {calc_tot_val_kwh}')
+
+        if err_log:
+            raise ValueError(err_log)
