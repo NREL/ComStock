@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>add_thermostat_setpoint_variability</name>
   <uid>963b67eb-e2f5-4d93-a448-253a8c156805</uid>
-  <version_id>6aa94b36-4348-47cc-9481-f61a7ff6fd3b</version_id>
-  <version_modified>2024-02-15T03:01:52Z</version_modified>
+  <version_id>1244ab09-ae48-4f92-b0d3-7a88b10051bb</version_id>
+  <version_modified>2024-09-26T13:46:03Z</version_modified>
   <xml_checksum>356BE47F</xml_checksum>
   <class_name>AddThermostatSetpointVariability</class_name>
   <display_name>add_thermostat_setpoint_variability</display_name>
@@ -121,7 +121,7 @@
       <filename>add_thermostat_setpoint_variability_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>9BAC8AAE</checksum>
+      <checksum>777FB607</checksum>
     </file>
     <file>
       <filename>example_model.osm</filename>
