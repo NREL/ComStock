@@ -297,7 +297,7 @@ class UpgradeEnableIdealAirLoads < Minitest::Test
     argument_map = OpenStudio::Measure::OSArgumentMap.new
 
     # Apply the measure to the model and optionally run the model
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
     model = load_model(model_output_path(__method__))
     assert_equal('Success', result.value.valueName)
 

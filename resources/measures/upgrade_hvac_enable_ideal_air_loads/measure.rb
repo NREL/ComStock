@@ -93,10 +93,17 @@ class UpgradeHvacEnableIdealAirLoads < OpenStudio::Measure::ModelMeasure
 
     # remove any EMS objects tied to ground HX; these will fail model since HVAC has been removed
     # get all EMS objects in the model
-    ems_objects = model.getEnergyManagementSystemSensors.to_a + model.getEnergyManagementSystemActuators.to_a + model.getEnergyManagementSystemPrograms.to_a + model.getEnergyManagementSystemProgramCallingManagers.to_a + model.getEnergyManagementSystemInternalVariables.to_a
+    ems_objects = model.getEnergyManagementSystemSensors.to_a +
+                  model.getEnergyManagementSystemActuators.to_a +
+                  model.getEnergyManagementSystemPrograms.to_a +
+                  model.getEnergyManagementSystemProgramCallingManagers.to_a +
+                  model.getEnergyManagementSystemInternalVariables.to_a
 
-    # Filter EMS objects that contain "pvav"
-    ems_objects_to_remove = ems_objects.select { |ems_object| ems_object.name.to_s.include?('Ground_HX') }
+    # Filter EMS objects that contain any of the strings in the list
+    ems_string_to_remove = ['Ground_HX', 'PVAV']
+    ems_objects_to_remove = ems_objects.select do |ems_object|
+      ems_string_to_remove.any? { |str| ems_object.name.to_s.include?(str) }
+    end
 
     # Remove each matching EMS object from the model
     ems_objects_to_remove.each do |object_to_remove|
