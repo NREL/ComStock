@@ -102,8 +102,9 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
                     os.makedirs(bldg_type_output_dir)
 
                 # check that both ami and comstock data have values defined
-                ami_check = type_region_df[type_region_df['run'] == ami_data_label]
-                comstock_check = type_region_df[type_region_df['run'] == comstock_data_label]
+                ami_check : pd.DataFrame= type_region_df[type_region_df['run'] == ami_data_label]
+                comstock_check : pd.DataFrame = type_region_df[type_region_df['run'] == comstock_data_label]
+
                 if ami_check.empty:
                     logger.debug(f"dataset does not contain {building_type} buildings in {ami_data_label} for region {region['source_name']}. Skipping building specific graphics.")
                     continue
@@ -115,7 +116,6 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 ami_min_count = int(ami_check['bldg_count'].min())
                 if ami_min_count < 3:
                     print(f"dataset contains fewer than 3 {building_type} buildings in {ami_data_label} for region {region['source_name']}. Skipping building specific graphics.")
-                    logger.debug(f"dataset contains fewer than 3 {building_type} buildings in {ami_data_label} for region {region['source_name']}. Skipping building specific graphics.")
                     continue
 
                 type_region_plot_data = self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, self.color_map, bldg_type_output_dir)
@@ -123,6 +123,5 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, self.color_map, bldg_type_output_dir, normalization='Daytype')
                 self.plot_day_type_comparison_stacked_by_enduse(type_region_df, region, building_type, self.color_map, bldg_type_output_dir, normalization='Annual')
                 self.plot_load_duration_curve(type_region_df, region, building_type, self.color_map, bldg_type_output_dir)
-
         # combine plot data
         self.ami_plot_data = pd.concat(dfs_to_concat, join='outer', ignore_index=True)
