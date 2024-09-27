@@ -499,7 +499,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # If the highest speed is violated, the max airflow will be increased to accommodate.
     stage_caps = {}
     # Calculate and store each stage's capacity
-    stage_cap_fractions.each do |stage, ratio|
+    stage_cap_fractions.sort.each do |stage, ratio|
 
       # define cfm/ton bounds
       cfm_per_ton_min = CFM_PER_TON_MIN_RATED
