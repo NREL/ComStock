@@ -90,6 +90,22 @@ class UpgradeHvacEnableIdealAirLoads < OpenStudio::Measure::ModelMeasure
                                                         heat_recovery_latent_eff: 0.65,
                                                         add_output_meters: false)
 
+
+    # remove any EMS objects tied to ground HX; these will fail model since HVAC has been removed
+    # get all EMS objects in the model
+    ems_objects = model.getEnergyManagementSystemSensors.to_a + model.getEnergyManagementSystemActuators.to_a + model.getEnergyManagementSystemPrograms.to_a + model.getEnergyManagementSystemProgramCallingManagers.to_a + model.getEnergyManagementSystemInternalVariables.to_a
+
+    # Filter EMS objects that contain "pvav"
+    ems_objects_to_remove = ems_objects.select { |ems_object| ems_object.name.to_s.include?('Ground_HX') }
+
+    # Remove each matching EMS object from the model
+    ems_objects_to_remove.each do |object_to_remove|
+      # Remove the EMS object from the model
+      runner.registerInfo("Removing unused PVAV EMS objects from the model.")
+      object_to_remove.remove
+    end
+
+
     # validity checks
     if ideal_loads_objects.empty?
       runner.registerError('Failure in creating ideal loads objects.  See logs from [openstudio.model.Model]. Likely cause is an invalid schedule input or schedule removed from by another measure.')

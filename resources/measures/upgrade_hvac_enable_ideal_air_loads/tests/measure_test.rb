@@ -280,7 +280,29 @@ class UpgradeEnableIdealAirLoads < Minitest::Test
     verify_ideal_air_loads(model)
   end
 
+  # test ideal air loads on gshp
+  # this addresses a failed model found during testing
+  def test_gshp
+    osm_name = '380_primary_school_gshp_2a.osm'
+    epw_name = 'Birmingham Muni.epw'
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
 
+    # Create an instance of the measure
+    measure = UpgradeHvacEnableIdealAirLoads.new
 
+    # Load the model; only used here for populating arguments
+    model = load_model(osm_path)
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure::OSArgumentMap.new
+
+    # Apply the measure to the model and optionally run the model
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+    model = load_model(model_output_path(__method__))
+    assert_equal('Success', result.value.valueName)
+
+    # verify objects in model
+    verify_ideal_air_loads(model)
+  end
 
 end
