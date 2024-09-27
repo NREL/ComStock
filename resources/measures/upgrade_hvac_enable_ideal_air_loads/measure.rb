@@ -101,7 +101,7 @@ class UpgradeHvacEnableIdealAirLoads < OpenStudio::Measure::ModelMeasure
     # Remove each matching EMS object from the model
     ems_objects_to_remove.each do |object_to_remove|
       # Remove the EMS object from the model
-      runner.registerInfo("Removing unused PVAV EMS objects from the model.")
+      runner.registerInfo("Removing unused GSHP objects from the model.")
       object_to_remove.remove
     end
 
