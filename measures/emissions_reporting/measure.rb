@@ -227,6 +227,14 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     ]
     return hvac_uses
   end
+
+  def seasons
+    return {
+        'winter' => [-1e9, 55],
+        'summer' => [70, 1e9],
+        'shoulder' => [55, 70]
+    }
+  end
   
   # define the arguments that the user will input
   def arguments(model = nil)
@@ -456,6 +464,18 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
       runner.registerInfo("Using state '#{egrid_state}' from user inputs.")
     end
 
+    # get hourly temperature values
+    temperature_query = "SELECT VariableValue FROM ReportVariableData WHERE ReportVariableDataDictionaryIndex IN (SELECT ReportVariableDataDictionaryIndex FROM ReportVariableDataDictionary WHERE VariableType='Avg' AND VariableName IN ('Site Outdoor Air Drybulb Temperature') AND ReportingFrequency='Hourly' AND VariableUnits='C') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
+    temperatures = sqlFile.execAndReturnVectorOfDouble(temperature_query).get
+    if temperatures.empty?
+      runner.registerError('Unable to get hourly temperature from the model. Cannot calculate seasonal emissions.')
+      return false
+    end
+    hourly_temperature_F = []
+    temperatures.each do |val|
+      hourly_temperature_F << OpenStudio.convert(val, 'C', 'F').get
+    end
+
     # get hourly electricity values
     env_period_ix_query = "SELECT EnvironmentPeriodIndex FROM EnvironmentPeriods WHERE EnvironmentName='#{ann_env_pd}'"
     env_period_ix = sqlFile.execAndReturnFirstInt(env_period_ix_query).get
@@ -590,6 +610,25 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
         runner.registerInfo("Annual eGRID #{year} subregion #{enduse_name} emissions CO2e kg: #{annual_egrid_enduse_emissions_co2e_kg.round(2)}")
         runner.registerValue("annual_#{enduse_name}_electricity_ghg_emissions_egrid_#{year}_subregion_kg", annual_egrid_enduse_emissions_co2e_kg)
       end
+
+      # seasonal for 2021
+      if year == 2021
+        seasonal_daily_vals_egrid = {'winter' => [], 'summer' => [], 'shoulder' => []}
+        hourly_electricity_mwh.each_slice(24).with_index do |mwhs, i|
+          temps = hourly_temperature_F[(24 * i)...(24 * i + 24)]
+          avg_temp = temps.inject { |sum, el| sum + el }.to_f / temps.size
+          seasons.each do |season, temperature_range|
+            if avg_temp > temperature_range[0] and avg_temp < temperature_range[1] # day is in this season
+              seasonal_daily_vals_egrid[season] << mwhs.sum * egrid_co2e_kg_per_mwh
+            end
+          end
+        end
+        seasonal_daily_vals_egrid.each do |season, daily_vals|
+          seasonal_daily_egrid_emissions_co2e_kg = daily_vals.sum.to_f / daily_vals.size
+          runner.registerInfo("Season #{season} daily average eGRID #{year} subregion emissions CO2e kg: #{seasonal_daily_egrid_emissions_co2e_kg.round(2)}")
+          runner.registerValue("#{season}_daily_average_electricity_ghg_emissions_egrid_#{year}_subregion_kg", seasonal_daily_egrid_emissions_co2e_kg)
+        end
+      end
     end
 
     # calculate eGRID state emissions
@@ -608,7 +647,7 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     [2018, 2019, 2020, 2021].each do |year|
       egrid_co2e_lb_per_mwh = egrid_state_hsh[0][:"#{year}"]
       egrid_co2e_kg_per_mwh = egrid_co2e_lb_per_mwh * lbm_to_kg
-      runner.registerInfo("eGRID #{year} emissions factor for '#{egrid_region}' is #{egrid_co2e_kg_per_mwh.round(2)} CO2e kg per MWh")
+      runner.registerInfo("eGRID #{year} emissions factor for '#{egrid_state}' is #{egrid_co2e_kg_per_mwh.round(2)} CO2e kg per MWh")
       annual_egrid_emissions_co2e_kg = (hourly_electricity_mwh.inject(:+)) * egrid_co2e_kg_per_mwh
       runner.registerInfo("Annual eGRID #{year} state emissions CO2e kg: #{annual_egrid_emissions_co2e_kg.round(2)}")
       runner.registerValue("annual_electricity_ghg_emissions_egrid_#{year}_state_kg", annual_egrid_emissions_co2e_kg)
@@ -619,6 +658,25 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
         annual_egrid_enduse_emissions_co2e_kg = enduse_array.sum * egrid_co2e_kg_per_mwh
         runner.registerInfo("Annual eGRID #{year} subregion #{enduse_name} emissions CO2e kg: #{annual_egrid_enduse_emissions_co2e_kg.round(2)}")
         runner.registerValue("annual_#{enduse_name}_electricity_ghg_emissions_egrid_#{year}_state_kg", annual_egrid_enduse_emissions_co2e_kg)
+      end
+
+      # seasonal for 2021
+      if year == 2021
+        seasonal_daily_vals_egrid = {'winter' => [], 'summer' => [], 'shoulder' => []}
+        hourly_electricity_mwh.each_slice(24).with_index do |mwhs, i|
+          temps = hourly_temperature_F[(24 * i)...(24 * i + 24)]
+          avg_temp = temps.inject { |sum, el| sum + el }.to_f / temps.size
+          seasons.each do |season, temperature_range|
+            if avg_temp > temperature_range[0] and avg_temp < temperature_range[1] # day is in this season
+              seasonal_daily_vals_egrid[season] << mwhs.sum * egrid_co2e_kg_per_mwh
+            end
+          end
+        end
+        seasonal_daily_vals_egrid.each do |season, daily_vals|
+          seasonal_daily_egrid_emissions_co2e_kg = daily_vals.sum.to_f / daily_vals.size
+          runner.registerInfo("Season #{season} daily average eGRID #{year} state emissions CO2e kg: #{seasonal_daily_egrid_emissions_co2e_kg.round(2)}")
+          runner.registerValue("#{season}_daily_average_electricity_ghg_emissions_egrid_#{year}_state_kg", seasonal_daily_egrid_emissions_co2e_kg)
+        end
       end
     end
 
@@ -688,6 +746,25 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
         annual_enduse_electricity_emisssions_co2e_kg = hourly_enduse_electricity_emissions_kg.sum
         runner.registerInfo("Annual hourly #{enduse_name} emissions for cambium scenario '#{scenario} (kg CO2e): #{annual_enduse_electricity_emisssions_co2e_kg.round(2)}")
         runner.registerValue("annual_#{enduse_name}_electricity_ghg_emissions_#{scenario}_kg", annual_enduse_electricity_emisssions_co2e_kg)
+      end
+
+      # seasonal for two selectec scenarios
+      if scenario == 'LRMER_HighRECost_30' or scenario == 'LRMER_LowRECost_30'
+        seasonal_daily_vals = {'winter' => [], 'summer' => [], 'shoulder' => []}
+        hourly_electricity_emissions_kg.each_slice(24).with_index do |co2es, i|
+          temps = hourly_temperature_F[(24 * i)...(24 * i + 24)]
+          avg_temp = temps.inject { |sum, el| sum + el }.to_f / temps.size
+          seasons.each do |season, temperature_range|
+            if avg_temp > temperature_range[0] and avg_temp < temperature_range[1] # day is in this season
+              seasonal_daily_vals[season] << co2es.sum
+            end
+          end
+        end
+        seasonal_daily_vals.each do |season, daily_vals|
+          seasonal_daily_emissions_co2e_kg = daily_vals.sum.to_f / daily_vals.size
+          runner.registerInfo("Season #{season} daily average emissions for cambium scenario '#{scenario}' (kg CO2e): #{seasonal_daily_emissions_co2e_kg.round(2)}")
+          runner.registerValue("#{season}_daily_average_electricity_ghg_emissions_#{scenario}_kg", seasonal_daily_emissions_co2e_kg)
+        end
       end
     end
 
