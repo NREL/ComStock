@@ -8,11 +8,11 @@ desc 'Perform tasks related to unit tests'
 namespace :unit_tests do
   desc 'Run measure tests'
   Rake::TestTask.new('measure_tests') do |t|
-    MEASURETESTS_PATH = "test/measure_tests.txt"
-    if File.exist?(MEASURETESTS_PATH)
+    measure_tests_path = 'test/measure_tests.txt'
+    if File.exist?(measure_tests_path)
       # load test files from file.
-      full_file_list = FileList.new(File.readlines(MEASURETESTS_PATH).map(&:chomp))
-      full_file_list.select! { |item| item.include?('rb')}
+      full_file_list = FileList.new(File.readlines(measure_tests_path).map(&:chomp))
+      full_file_list.select! { |item| item.include?('rb') }
       p full_file_list
 
     end
@@ -23,11 +23,11 @@ namespace :unit_tests do
   end
 
   Rake::TestTask.new('resource_measure_tests') do |t|
-    RESOURCE_MEASURETESTS_PATH = "test/resource_measure_tests.txt"
-    if File.exist?(RESOURCE_MEASURETESTS_PATH)
+    resource_measure_tests_path = 'test/resource_measure_tests.txt'
+    if File.exist?(resource_measure_tests_path)
       # load test files from file.
-      full_file_list = FileList.new(File.readlines(RESOURCE_MEASURETESTS_PATH).map(&:chomp))
-      full_file_list.select! { |item| item.include?('rb')  && File.exist?(item) }
+      full_file_list = FileList.new(File.readlines(resource_measure_tests_path).map(&:chomp))
+      full_file_list.select! { |item| item.include?('rb') && File.exist?(item) }
       p full_file_list
     end
     t.test_files = full_file_list.select do |file|
@@ -45,4 +45,19 @@ namespace :unit_tests do
     t.verbose = false
     t.warning = false
   end
+end
+
+# run rubocop
+require 'rubocop/rake_task'
+desc 'Check the code for style consistency'
+RuboCop::RakeTask.new(:rubocop) do |t|
+  # Make a folder for the output
+  out_dir = '.rubocop'
+  FileUtils.mkdir_p(out_dir)
+  # Output both XML (CheckStyle format) and HTML
+  t.options = ["--out=#{out_dir}/rubocop-results.xml", '--format=h', "--out=#{out_dir}/rubocop-results.html", '--format=offenses', "--out=#{out_dir}/rubocop-summary.txt"]
+  t.requires = ['rubocop/formatter/checkstyle_formatter']
+  t.formatters = ['RuboCop::Formatter::CheckstyleFormatter']
+  # don't abort rake on failure
+  t.fail_on_error = false
 end

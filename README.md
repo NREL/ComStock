@@ -78,3 +78,9 @@ conda activate buildstockbatch
 pip install GHEDesigner==1.0
 pip install NREL-PySAM==4.2.0
 ```
+
+## Running Rubocop
+1. Follow developer installation instructions above
+2. navigate to the `resources/` directory
+3. run `bundle exec rake rubocop` in terminal
+4. review results by opening the `rubocop-results.html` in the `.rubocop/` directory
