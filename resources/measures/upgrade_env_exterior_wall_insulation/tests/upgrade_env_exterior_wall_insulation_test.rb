@@ -183,9 +183,9 @@ class ExteriorWallInsulation_Test < Minitest::Test
     test_sets = []
     test_sets << { model: 'DOAS_VRF_3A', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success', test_name: 'test_cz_3a', arg_hash: {} }
     test_sets << { model: 'Retail_7', weather: 'Retail_7', result: 'Success', test_name: 'test_cz_7',  arg_hash: {} }
-    test_sets << { model: 'Retail_7', weather: 'Retail_7', result: 'NA', test_name: 'test_na_less_than_half_inch_insul_needed', arg_hash: {} }
-    test_sets << { model: 'Retail_7', weather: 'Retail_7', result: 'NA', test_name: 'test_na_no_insul_needed', arg_hash: {} }
-    test_sets << { model: 'Warehouse_5A', weather: 'Warehouse_5A', result: 'NA', test_name: 'test_na_metal_building', arg_hash: {} }
+    test_sets << { model: 'Outpatient_VAV_chiller_PFP_boxes', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success', test_name: 'test_less_than_half_inch_insul_needed', arg_hash: {} }
+    test_sets << { model: 'Small_Office_2A', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success', test_name: 'test_no_insul_needed', arg_hash: {} }
+    test_sets << { model: 'Warehouse_5A', weather: 'Warehouse_5A', result: 'Success', test_name: 'test_metal_building', arg_hash: {} }
 
     return test_sets
   end
@@ -355,7 +355,7 @@ class ExteriorWallInsulation_Test < Minitest::Test
       # check the measure result; result values will equal Success, Fail, or Not Applicable
       # also check the amount of warnings, info, and error messages
       # use if or case statements to change expected assertion depending on model characteristics
-      assert(result.value.valueName == set[:result])
+      assert(result.value.valueName == set[:result], "Expected result: #{set[:result]}, got #{result.value.valueName} in #{instance_test_name} #{set[:test_name]}")
 
       # to check that something changed in the model, load the model and the check the objects match expected new value
       model = load_model(model_output_path(instance_test_name))
