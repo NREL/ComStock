@@ -13,11 +13,8 @@ namespace :unit_tests do
       # load test files from file.
       full_file_list = FileList.new(File.readlines(MEASURETESTS_PATH).map(&:chomp))
       full_file_list.select! { |item| item.include?('rb')}
-      p full_file_list
-
     end
     t.test_files = full_file_list
-    p(full_file_list)
     t.verbose = false
     t.warning = false
   end
@@ -28,7 +25,6 @@ namespace :unit_tests do
       # load test files from file.
       full_file_list = FileList.new(File.readlines(RESOURCE_MEASURETESTS_PATH).map(&:chomp))
       full_file_list.select! { |item| item.include?('rb')  && File.exist?(item) }
-      p full_file_list
     end
     t.test_files = full_file_list.select do |file|
       begin
@@ -41,7 +37,6 @@ namespace :unit_tests do
         false
       end
     end
-    p(full_file_list)
     t.verbose = false
     t.warning = false
   end
