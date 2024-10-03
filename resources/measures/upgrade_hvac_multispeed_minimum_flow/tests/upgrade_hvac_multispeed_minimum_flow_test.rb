@@ -181,7 +181,7 @@ class MultispeedMinimumFlow_Test < Minitest::Test
   # create an array of hashes with model name, weather, and expected result
   def models_to_test
     test_sets = []
-    test_sets << { model: 'PSZ-AC_with_gas_coil_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success', arg_hash: {} }
+    test_sets << { model: 'Retail_PSZ-AC', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success', arg_hash: {} }
     return test_sets
   end
 
