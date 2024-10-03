@@ -187,7 +187,6 @@ class EnvNewAedgWindows_Test < Minitest::Test
     test_sets << { model: 'Stripmall_Pre1980_8A', weather: 'USA_CA_Fullerton.Muni.AP.722976_TMY3', result: 'Success', target_u_value_ip: 0.4, arg_hash: {}, test_name: "Stripmall_Pre1980_8A" }
     test_sets << { model: 'Retail_DEERPre1975_CEC16', weather: 'USA_CA_Fullerton.Muni.AP.722976_TMY3', result: 'Success', target_u_value_ip: 0.4, arg_hash: {}, test_name: "Retail_DEERPre1975_CEC16" }
 
-
     return test_sets
   end
 
@@ -230,7 +229,6 @@ class EnvNewAedgWindows_Test < Minitest::Test
         argument_map[arg_name] = arg
       end
 
-
       target_u_value_ip = set[:target_u_value_ip]
 
       # Check that the starting R-value is less than the target
@@ -250,6 +248,12 @@ class EnvNewAedgWindows_Test < Minitest::Test
       # Apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
 
+      # check the measure result; result values will equal Success, Fail, or Not Applicable
+      # also check the amount of warnings, info, and error messages
+      # use if or case statements to change expected assertion depending on model characteristics
+      assert(result.value.valueName == set[:result])
+
+      # to check that something changed in the model, load the model and the check the objects match expected new value
       model = load_model(model_output_path(instance_test_name))
       model.getSubSurfaces.each do |sub_surface|
         next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && (sub_surface.subSurfaceType.include?('Window'))
@@ -268,16 +272,5 @@ class EnvNewAedgWindows_Test < Minitest::Test
         break
       end
     end
-      # check the measure result; result values will equal Success, Fail, or Not Applicable
-      # also check the amount of warnings, info, and error messages
-      # use if or case statements to change expected assertion depending on model characteristics
-      assert(result.value.valueName == set[:result])
-
-      # to check that something changed in the model, load the model and the check the objects match expected new value
-      model = load_model(model_output_path(instance_test_name))
-
-      # add additional tests here to check model outputs
-
   end
-
 end
