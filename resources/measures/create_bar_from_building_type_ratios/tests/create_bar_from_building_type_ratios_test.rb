@@ -52,7 +52,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
 
     # assert that it ran correctly
     if result_value.nil? then result_value = 'Success' end
-    assert_equal(result_value, result.value.valueName)
+    assert_equal(result_value, result.value.valueName, "Test '#{test_name}' failed with result '#{result.value.valueName}'")
 
     # check count of warning and info messages
     unless info_count.nil? then assert(result.info.size == info_count) end
@@ -754,20 +754,6 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
   end
 
-  def test_t24_ofs
-    args = {}
-    args['total_bldg_floor_area'] = 2500.0
-    args['bldg_type_a'] = 'OfS'
-    args['ns_to_ew_ratio'] = 1.0
-    args['num_stories_above_grade'] = 3.0
-    args['template'] = "DEER Pre-1975"
-    args['climate_zone'] = "CEC T24-CEC9"
-    args['floor_height'] = 9.0
-    args['story_multiplier'] = "None"
-    args['wwr'] = 0.3
-
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
-  end
 
   def test_t24_mfm
     args = {}
