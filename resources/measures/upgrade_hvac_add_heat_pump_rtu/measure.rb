@@ -735,6 +735,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_heating_coil.setDefrostStrategy('ReverseCycle')
       new_dx_heating_coil.setDefrostControl('OnDemand')
       new_dx_heating_coil.setDefrostTimePeriodFraction(0.058333)
+      new_dx_heating_coil.setFuelType('Electricity')
 
       # loop through stages
       stage_caps_heating.sort.each do |stage, cap|
