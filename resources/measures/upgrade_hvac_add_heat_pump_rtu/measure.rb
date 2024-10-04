@@ -1351,9 +1351,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     case hprtu_scenario
     when 'variable_speed_high_eff'
       heat_cap_ft1 = model_add_curve(model, 'heat_cap_ft1', custom_data_json, std)
-      heat_cap_ft2 = model_add_curve(model, 'heat_cap_ft1', custom_data_json, std)
-      heat_cap_ft3 = model_add_curve(model, 'heat_cap_ft1', custom_data_json, std)
-      heat_cap_ft4 = model_add_curve(model, 'heat_cap_ft1', custom_data_json, std)
+      heat_cap_ft2 = model_add_curve(model, 'heat_cap_ft2', custom_data_json, std)
+      heat_cap_ft3 = model_add_curve(model, 'heat_cap_ft3', custom_data_json, std)
+      heat_cap_ft4 = model_add_curve(model, 'heat_cap_ft4', custom_data_json, std)
       heat_cap_ft_curve_stages = { 1 => heat_cap_ft1, 2 => heat_cap_ft2, 3 => heat_cap_ft3, 4 => heat_cap_ft4 }
     when 'two_speed_standard_eff'
       heat_cap_ft1 = model_add_curve(model, 'h_cap_T', custom_data_json, std)
