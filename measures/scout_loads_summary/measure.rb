@@ -94,6 +94,37 @@ class ScoutLoadsSummary < OpenStudio::Measure::ReportingMeasure
     result
   end
 
+  def to_dview_csv(data, save_name)
+    CSV.open("./#{save_name}.csv", 'w') do |csv|
+      num_cols = data.length
+      num_rows = data.first.length
+      # specification
+      csv << ['wxDVFileHeaderVer.1']
+      # series names
+      csv << data.map(&:first)
+      # start time
+      csv << Array.new(num_cols, 8760.0/(num_rows-1).round(2))
+      # time interval
+      csv << Array.new(num_cols, 8760.0/(num_rows-1).round(2))
+      # units
+      units = data.map do |col|
+        if col.first.include?'Error'
+          '%'
+        elsif col.first.include? 'Temperature'
+          'C'
+        else 'J'
+        end
+      end
+      csv << units
+      # ts_data.transpose.each do |row|
+      (1..num_rows).each do |row_index|
+        row = data.map { |col| col[row_index]}
+        csv << row
+      end
+    end
+    return true
+  end
+
   # define what happens when the measure is run
   def run(runner, user_arguments)
     super(runner, user_arguments)
@@ -360,41 +391,64 @@ class ScoutLoadsSummary < OpenStudio::Measure::ReportingMeasure
       end
 
       # Write to file
-      CSV.open('./scout_timeseries.csv', 'w') do |csv|
-        ts_data.transpose.each do |row|
-          csv << row
-        end
-      end
+      to_dview_csv(ts_data, 'scout_timeseries')
+      # CSV.open('./scout_timeseries.csv', 'w') do |csv|
+      #   num_cols = ts_data.length
+      #   num_rows = ts_data.first.length
+      #   # specification 
+      #   csv << ['wxDVFileHeaderVer.1']
+      #   # series names
+      #   csv << ts_data.map(&:first)
+      #   # start time
+      #   csv << Array.new(num_cols, 8760.0/(num_rows-1).round(2))
+      #   # time interval
+      #   csv << Array.new(num_cols, 8760.0/(num_rows-1).round(2))
+      #   # units
+      #   csv << Array.new(num_cols, 'J')
 
-      # Write zone vectors to file
-      CSV.open('./zone_timeseries_dview.csv', 'w') do |csv|
-        # write in DVIEW format for easy viewing
-        num_columns = debug_bldg_heat_transfer_vectors.length
-        num_rows = debug_bldg_heat_transfer_vectors.first.length
-        # specification
-        csv << ['wxDVFileHeaderVer.1']
-        # series names
-        csv << debug_bldg_heat_transfer_vectors.map(&:first)
-        # start time
-        csv << Array.new(num_columns, 8760.0/(num_rows-1).round(2))
-        # time interval
-        csv << Array.new(num_columns, 8760.0/(num_rows-1).round(2))
-        # units
-        units = debug_bldg_heat_transfer_vectors.map do |col|
-          if col.first.include?'Error'
-            '%'
-          elsif col.first.include? 'Temperature'
-            'C'
-          else 'J'
-          end
-        end
-        csv << units
-        # data
-        (1...num_rows).each do |row_index|
-          row = debug_bldg_heat_transfer_vectors.map { |col| col[row_index] }
-          csv << row
-        end
-      end
+      #   # ts_data.transpose.each do |row|
+      #   (1..num_rows).each do |row_index|
+      #     row = ts_data.map { |col| col[row_index]}
+      #     csv << row
+      #   end
+      # end
+
+      # Write zone vectors to files
+      totals_data, zones_data = debug_bldg_heat_transfer_vectors.partition {|arr| arr[0].include? 'Total Building' }
+      
+      zone_groups = zones_data.group_by { |arr| arr[0].split('|')[0]}
+      zone_groups.each { |zone_name, data| to_dview_csv(data, "#{zone_name}_loads_timeseries") }
+      to_dview_csv(totals_data, "total_building_heat_balance")
+
+      # # Write zone vectors to file
+      # CSV.open('./zone_timeseries_dview.csv', 'w') do |csv|
+      #   # write in DVIEW format for easy viewing
+      #   num_columns = debug_bldg_heat_transfer_vectors.length
+      #   num_rows = debug_bldg_heat_transfer_vectors.first.length
+      #   # specification
+      #   csv << ['wxDVFileHeaderVer.1']
+      #   # series names
+      #   csv << debug_bldg_heat_transfer_vectors.map(&:first)
+      #   # start time
+      #   csv << Array.new(num_columns, 8760.0/(num_rows-1).round(2))
+      #   # time interval
+      #   csv << Array.new(num_columns, 8760.0/(num_rows-1).round(2))
+      #   # units
+      #   units = debug_bldg_heat_transfer_vectors.map do |col|
+      #     if col.first.include?'Error'
+      #       '%'
+      #     elsif col.first.include? 'Temperature'
+      #       'C'
+      #     else 'J'
+      #     end
+      #   end
+      #   csv << units
+      #   # data
+      #   (1...num_rows).each do |row_index|
+      #     row = debug_bldg_heat_transfer_vectors.map { |col| col[row_index] }
+      #     csv << row
+      #   end
+      # end
 
       # original
       # CSV.open('./zone_timeseries_with_datetime_index.csv', 'w') do |csv|
