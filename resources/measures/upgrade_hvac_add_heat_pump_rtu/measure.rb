@@ -385,7 +385,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     stage_flow_fractions_cooling = eval(staging_data['stage_flow_fractions_cooling'])
     stage_rated_cop_frac_heating = eval(staging_data['stage_rated_cop_frac_heating'])
     stage_rated_cop_frac_cooling = eval(staging_data['stage_rated_cop_frac_cooling'])
-    boost_stage_num_and_max_temp_tuple = staging_data['boost_stage_num_and_max_temp_tuple']
+    boost_stage_num_and_max_temp_tuple = eval(staging_data['boost_stage_num_and_max_temp_tuple'])
     stage_GrossRatedSensibleHeatRatio_cooling = eval(staging_data['stage_GrossRatedSensibleHeatRatio_cooling'])
     enable_cycling_losses_above_lowest_speed = staging_data['enable_cycling_losses_above_lowest_speed']
     reference_cooling_cfm_per_ton = staging_data['reference_cooling_cfm_per_ton']
@@ -867,33 +867,34 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     econ = runner.getBoolArgumentValue('econ', user_arguments)
     sizing_run = runner.getBoolArgumentValue('sizing_run', user_arguments)
 
-    # adding output variables (for debugging)
-     out_vars = [
-       'Air System Mixed Air Mass Flow Rate',
-       'Fan Air Mass Flow Rate',
-       'Cooling Coil Total Cooling Rate',
-       'Cooling Coil Electricity Rate',
-       'Cooling Coil Runtime Fraction',
-       'Heating Coil Heating Rate',
-       'Heating Coil Electricity Rate',
-       'Heating Coil Runtime Fraction',
-       'Unitary System DX Coil Cycling Ratio',
-       'Unitary System DX Coil Speed Ratio',
-       'Unitary System DX Coil Speed Level',
-       'Unitary System Total Cooling Rate',
-       'Unitary System Total Heating Rate',
-       'Unitary System Electricity Rate',
-       'Unitary System Ancillary Electricity Rate',
-       'HVAC System Solver Iteration Count',
-       'Air System Solver Iteration Count',
-       'Site Outdoor Air Drybulb Temperature'
-     ]
-     out_vars.each do |out_var_name|
-         ov = OpenStudio::Model::OutputVariable.new('ov', model)
-         ov.setKeyValue('*')
-         ov.setReportingFrequency('timestep')
-         ov.setVariableName(out_var_name)
-     end
+    ## adding output variables (for debugging)
+    #out_vars = [
+    #   'Air System Mixed Air Mass Flow Rate',
+    #   'Fan Air Mass Flow Rate',
+    #   'Unitary System Predicted Sensible Load to Setpoint Heat Transfer Rate',
+    #   'Cooling Coil Total Cooling Rate',
+    #   'Cooling Coil Electricity Rate',
+    #   'Cooling Coil Runtime Fraction',
+    #   'Heating Coil Heating Rate',
+    #   'Heating Coil Electricity Rate',
+    #   'Heating Coil Runtime Fraction',
+    #   'Unitary System DX Coil Cycling Ratio',
+    #   'Unitary System DX Coil Speed Ratio',
+    #   'Unitary System DX Coil Speed Level',
+    #   'Unitary System Total Cooling Rate',
+    #   'Unitary System Total Heating Rate',
+    #   'Unitary System Electricity Rate',
+    #   'HVAC System Solver Iteration Count',
+    #   'Site Outdoor Air Drybulb Temperature',
+    #   'Heating Coil Crankcase Heater Electricity Rate',
+    #   'Heating Coil Defrost Electricity Rate'
+    # ]
+    # out_vars.each do |out_var_name|
+    #     ov = OpenStudio::Model::OutputVariable.new('ov', model)
+    #     ov.setKeyValue('*')
+    #     ov.setReportingFrequency('detailed')
+    #     ov.setVariableName(out_var_name)
+    # end
 
     # build standard to use OS standards methods
     template = 'ComStock 90.1-2019'
@@ -1336,9 +1337,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     case hprtu_scenario
     when 'variable_speed_high_eff'
       heat_cap_ft1 = model_add_curve(model, 'heat_cap_ft1', custom_data_json, std)
-      heat_cap_ft2 = model_add_curve(model, 'heat_cap_ft1', custom_data_json, std)
-      heat_cap_ft3 = model_add_curve(model, 'heat_cap_ft1', custom_data_json, std)
-      heat_cap_ft4 = model_add_curve(model, 'heat_cap_ft1', custom_data_json, std)
+      heat_cap_ft2 = model_add_curve(model, 'heat_cap_ft2', custom_data_json, std)
+      heat_cap_ft3 = model_add_curve(model, 'heat_cap_ft3', custom_data_json, std)
+      heat_cap_ft4 = model_add_curve(model, 'heat_cap_ft4', custom_data_json, std)
       heat_cap_ft_curve_stages = { 1 => heat_cap_ft1, 2 => heat_cap_ft2, 3 => heat_cap_ft3, 4 => heat_cap_ft4 }
     when 'two_speed_standard_eff'
       heat_cap_ft1 = model_add_curve(model, 'h_cap_T', custom_data_json, std)
@@ -1647,7 +1648,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       old_terminal.remove
       air_loop_hvac.removeBranchForZone(thermal_zone)
       # define new terminal box
-      new_terminal = OpenStudio::Model::AirTerminalSingleDuctConstantVolumeNoReheat.new(model, always_on)
+      #new_terminal = OpenStudio::Model::AirTerminalSingleDuctConstantVolumeNoReheat.new(model, always_on)
+      new_terminal = OpenStudio::Model::AirTerminalSingleDuctVAVHeatAndCoolNoReheat.new(model)
       # set name of terminal box and add
       new_terminal.setName("#{thermal_zone.name} VAV Terminal")
       air_loop_hvac.addBranchForZone(thermal_zone, new_terminal.to_StraightComponent)
@@ -2065,7 +2067,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
       # new_air_to_air_heatpump.setDOASDXCoolingCoilLeavingMinimumAirTemperature(7.5) # set minimum discharge temp to 45F, required for VAV operation
 
-
       ## EMS control for boost mode
       #unless boost_stage_num_and_max_temp_tuple.empty?
 
@@ -2081,12 +2082,21 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       #  sens_speed_level.setName("sens_oa_temp_#{new_air_to_air_heatpump.name.get.to_s.gsub("-", "")}")
       #  sens_speed_level.setKeyName("Environment")
 
+      #  # set sensor for predicted load
+      #  # this is used to determine heating or cooling mode
+      #  sens_predicted_load = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Unitary System Predicted Sensible Load to Setpoint Heat Transfer Rate')
+      #  sens_predicted_load.setName("sens_predicted_load_#{new_air_to_air_heatpump.name.get.to_s.gsub("-", "")}")
+      #  sens_predicted_load.setKeyName("#{new_air_to_air_heatpump.name.get}")
+
       #  # set actuator - unitary system speed level
       #  act_speed_level = OpenStudio::Model::EnergyManagementSystemActuator.new(new_air_to_air_heatpump,
       #                                                                      'Coil Speed Control',
       #                                                                      'Unitary System DX Coil Speed Value'
       #                                                                      )
       #  act_speed_level.setName("act_speed_level_#{new_air_to_air_heatpump.name.get.to_s.gsub("-", "")}")
+
+      #  puts "boost_speed_level: #{boost_stage_num_and_max_temp_tuple[0]}"
+      #  puts "boost_speed_max_temp_c: #{boost_stage_num_and_max_temp_tuple[1]}"
 
       #  #### Program #####
       #  # reset OA to min OA if there is a call for economizer but no cooling load
@@ -2100,8 +2110,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       #    SET boost_speed_level = #{boost_stage_num_and_max_temp_tuple[0]},
       #    SET boost_speed_max_temp_c = #{boost_stage_num_and_max_temp_tuple[1]},
       #    SET sens_oa_temp = #{sens_speed_level.name}
+      #    SET sens_predicted_load = #{sens_predicted_load.name}
 
-      #    IF ((sens_oa_temp > boost_speed_max_temp_c) && (sens_speed_level >= (boost_speed_level-1))),
+      #    IF ((sens_oa_temp > boost_speed_max_temp_c) && (sens_speed_level > (boost_speed_level-1)) && (sens_predicted_load > 0)),
       #      SET #{act_speed_level.handle} = (boost_speed_level-1),
       #    ELSE,
       #      SET #{act_speed_level.handle} = Null,
@@ -2115,13 +2126,13 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       #  programs_at_beginning_of_timestep.addProgram(prgrm_hp_speed_override)
       #end
 
-      ## add dcv to air loop if dcv flag is true
-      #if dcv == true
-      #  oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
-      #  controller_oa = oa_system.getControllerOutdoorAir
-      #  controller_mv = controller_oa.controllerMechanicalVentilation
-      #  controller_mv.setDemandControlledVentilation(true)
-      #end
+      # add dcv to air loop if dcv flag is true
+      if dcv == true
+        oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+        controller_oa = oa_system.getControllerOutdoorAir
+        controller_mv = controller_oa.controllerMechanicalVentilation
+        controller_mv.setDemandControlledVentilation(true)
+      end
 
       # add economizer
       if econ == true
@@ -2280,12 +2291,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       end
     end
 
-
-
-
-
     # report final condition of model
     runner.registerFinalCondition("The building finished with heat pump RTUs replacing the HVAC equipment for #{selected_air_loops.size} air loops.")
+
+    model.getOutputControlFiles.setOutputCSV(true)
 
     true
   end
