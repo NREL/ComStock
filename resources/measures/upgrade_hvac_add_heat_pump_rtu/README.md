@@ -68,13 +68,24 @@ At rated conditions, a compressor will generally have slightly more cooling capa
 **Model Dependent:** false
 
 
-### Model standard performance HP RTU?
-Standard performance refers to the followings: manufacturer claimed as standard efficiency (as of OCT 2023), direct drive supply fan, two stages of heat pump cooling, single stage heat pump heating (i.e., all compressors running at the same time), heat pump minimum lockout temperature of 0°F (-17.8°C), backup electric resistance heating, backup heating runs at the same time as heat pump heating, heat pump heating locking out below minimum operating temperature, IEER in between 11-13, and HSPF in between 8-8.9.
-**Name:** std_perf,
-**Type:** Boolean,
+### Minimum outdoor air temperature that locks out heat pump compressor, F
+Specifies minimum outdoor air temperature for locking out heat pump compressor. Heat pump heating does not operated below this temperature and backup heating will operate if heating is still needed.
+**Name:** hp_min_comp_lockout_temp_f,
+**Type:** Double,
 **Units:** ,
 **Required:** true,
 **Model Dependent:** false
+
+
+### Heat Pump RTU Performance Type
+Determines performance assumptions. two_speed_standard_eff is a standard efficiency system with 2 staged compressors (2 stages cooling, 1 stage heating). variable_speed_high_eff is a higher efficiency variable speed system. cchpc_2027_spec is a hypothetical 4-stage unit intended to meet the requirements of the cold climate heat pump RTU challenge 2027 specification.  
+**Name:** hprtu_scenario,
+**Type:** Choice,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+**Choice Display Names** ["two_speed_standard_eff", "variable_speed_high_eff", "cchpc_2027_spec"]
 
 
 ### Add Energy Recovery?
@@ -98,6 +109,24 @@ Standard performance refers to the followings: manufacturer claimed as standard 
 ### Add Economizer?
 
 **Name:** econ,
+**Type:** Boolean,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+
+### Do a sizing run for informing sizing instead of using hard-sized model parameters?
+
+**Name:** sizing_run,
+**Type:** Boolean,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+
+### Print out detailed debugging logs if this parameter is true
+
+**Name:** debug_verbose,
 **Type:** Boolean,
 **Units:** ,
 **Required:** true,

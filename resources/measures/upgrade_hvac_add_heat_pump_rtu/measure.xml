@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>add_heat_pump_rtu</name>
   <uid>f4567a68-27f2-4a15-ae91-ba0f35cd08c7</uid>
-  <version_id>d3cfab2d-b34a-4b75-bff0-e7c87eafc9ee</version_id>
-  <version_modified>2024-08-13T17:28:07Z</version_modified>
+  <version_id>a3980ff7-9ee8-4bc4-adb8-b0f486ab87c1</version_id>
+  <version_modified>2024-10-04T20:35:54Z</version_modified>
   <xml_checksum>5E2576E4</xml_checksum>
   <class_name>AddHeatPumpRtu</class_name>
   <display_name>add_heat_pump_rtu</display_name>
@@ -81,21 +81,34 @@
       <default_value>1</default_value>
     </argument>
     <argument>
-      <name>std_perf</name>
-      <display_name>Model standard performance HP RTU?</display_name>
-      <description>Standard performance refers to the followings: manufacturer claimed as standard efficiency (as of OCT 2023), direct drive supply fan, two stages of heat pump cooling, single stage heat pump heating (i.e., all compressors running at the same time), heat pump minimum lockout temperature of 0°F (-17.8°C), backup electric resistance heating, backup heating runs at the same time as heat pump heating, heat pump heating locking out below minimum operating temperature, IEER in between 11-13, and HSPF in between 8-8.9.</description>
-      <type>Boolean</type>
+      <name>hp_min_comp_lockout_temp_f</name>
+      <display_name>Minimum outdoor air temperature that locks out heat pump compressor, F</display_name>
+      <description>Specifies minimum outdoor air temperature for locking out heat pump compressor. Heat pump heating does not operated below this temperature and backup heating will operate if heating is still needed.</description>
+      <type>Double</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
-      <default_value>false</default_value>
+      <default_value>0</default_value>
+    </argument>
+    <argument>
+      <name>hprtu_scenario</name>
+      <display_name>Heat Pump RTU Performance Type</display_name>
+      <description>Determines performance assumptions. two_speed_standard_eff is a standard efficiency system with 2 staged compressors (2 stages cooling, 1 stage heating). variable_speed_high_eff is a higher efficiency variable speed system. cchpc_2027_spec is a hypothetical 4-stage unit intended to meet the requirements of the cold climate heat pump RTU challenge 2027 specification.  </description>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>two_speed_standard_eff</default_value>
       <choices>
         <choice>
-          <value>true</value>
-          <display_name>true</display_name>
+          <value>two_speed_standard_eff</value>
+          <display_name>two_speed_standard_eff</display_name>
         </choice>
         <choice>
-          <value>false</value>
-          <display_name>false</display_name>
+          <value>variable_speed_high_eff</value>
+          <display_name>variable_speed_high_eff</display_name>
+        </choice>
+        <choice>
+          <value>cchpc_2027_spec</value>
+          <display_name>cchpc_2027_spec</display_name>
         </choice>
       </choices>
     </argument>
@@ -138,6 +151,42 @@
     <argument>
       <name>econ</name>
       <display_name>Add Economizer?</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>sizing_run</name>
+      <display_name>Do a sizing run for informing sizing instead of using hard-sized model parameters?</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>debug_verbose</name>
+      <display_name>Print out detailed debugging logs if this parameter is true</display_name>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -197,7 +246,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>72525DF1</checksum>
+      <checksum>0B5F09AA</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -220,13 +269,49 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>24CC9FC8</checksum>
+      <checksum>4FE07904</checksum>
+    </file>
+    <file>
+      <filename>performance_map_CCHP_spec_2027.json</filename>
+      <filetype>json</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>2DBE2A84</checksum>
+    </file>
+    <file>
+      <filename>performance_map_CCHP_v1.json</filename>
+      <filetype>json</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>2DBE2A84</checksum>
+    </file>
+    <file>
+      <filename>performance_map_CCHP_v2.json</filename>
+      <filetype>json</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>57D66A30</checksum>
+    </file>
+    <file>
+      <filename>performance_map_CCHP_v3.json</filename>
+      <filetype>json</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>949E08DC</checksum>
+    </file>
+    <file>
+      <filename>performance_map_CCHP_v4.json</filename>
+      <filetype>json</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>01CE515E</checksum>
     </file>
     <file>
       <filename>performance_maps_hprtu_std.json</filename>
       <filetype>json</filetype>
       <usage_type>resource</usage_type>
-      <checksum>784F9499</checksum>
+      <checksum>8633D093</checksum>
+    </file>
+    <file>
+      <filename>performance_maps_hprtu_variable_speed.json</filename>
+      <filetype>json</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>A4B660CA</checksum>
     </file>
     <file>
       <filename>example_model.osm</filename>
@@ -238,7 +323,7 @@
       <filename>measure_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>1D21A7A0</checksum>
+      <checksum>236832C2</checksum>
     </file>
   </files>
 </measure>
