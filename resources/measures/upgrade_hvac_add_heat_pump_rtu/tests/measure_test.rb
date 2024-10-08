@@ -132,7 +132,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
       # remove all the Design Day objects that are in the file
       model.getObjectsByType('OS:SizingPeriod:DesignDay'.to_IddObjectType).each(&:remove)
-      
+
       # load ddy
       ddy_model = OpenStudio::EnergyPlus.loadAndTranslateIdf(ddy_path).get
 
@@ -149,14 +149,14 @@ class AddHeatPumpRtuTest < Minitest::Test
         ddy_list.each do |ddy_name_regex|
           if d.name.get.to_s.match?(ddy_name_regex)
             runner.registerInfo("Adding object #{d.name}")
-  
+
             # add the object to the existing model
             model.addObject(d.clone)
             break
           end
         end
       end
-  
+
       # assert
       assert_equal(false, model.getDesignDays.size.zero?)
     end
@@ -683,7 +683,7 @@ class AddHeatPumpRtuTest < Minitest::Test
       coil = airloophvacunisys.heatingCoil.get
       capacity_w, _, _, _, _, _, _, _ = get_heating_coil_capacity_and_cop(model, coil)
       sizing_summary['AirLoopHVACUnitarySystem'][name_obj]['heating_coil_capacity_w'] = capacity_w
-      
+
     end
     sizing_summary['AirLoopHVAC'] = {}
     model.getAirLoopHVACs.each do |airloophvac|
@@ -1097,6 +1097,10 @@ class AddHeatPumpRtuTest < Minitest::Test
         argument_map[arg.name] = temp_arg_var
       end
     end
+
+
+	puts argument_map
+	puts argument_map.size
 
     test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
   end
@@ -1628,7 +1632,7 @@ class AddHeatPumpRtuTest < Minitest::Test
       else
         argument_map[arg.name] = temp_arg_var
       end
-    end    
+    end
 
     # Apply the measure to the model and optionally run the model
     result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true, expected_results: 'NA')
