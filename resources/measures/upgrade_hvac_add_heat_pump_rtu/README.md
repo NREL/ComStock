@@ -47,7 +47,7 @@ Specifies temperature to size heating on. If design temperature for climate is h
 **Required:** true,
 **Model Dependent:** false
 
-**Choice Display Names** ["47F", "17F", "0F"]
+**Choice Display Names** ["47F", "17F", "0F", "-10F"]
 
 
 ### Cooling Upsizing Factor Estimate
