@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>add_blinds_to_selected_windows</name>
   <uid>307d2b26-734a-4571-ab0c-a4e68c8e811e</uid>
-  <version_id>4b94340a-fac0-4170-9302-1e9f36371fdd</version_id>
-  <version_modified>2024-09-26T13:45:58Z</version_modified>
+  <version_id>98b667fe-14a1-40e7-899a-1dbef26734de</version_id>
+  <version_modified>2024-10-09T18:52:27Z</version_modified>
   <xml_checksum>997AAE6E</xml_checksum>
   <class_name>AddBlindsToSelectedWindows</class_name>
   <display_name>Add Blinds to Selected Windows</display_name>
@@ -99,7 +99,7 @@
       <filename>add_blinds_to_selected_windows_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>F60F3019</checksum>
+      <checksum>EB94E66B</checksum>
     </file>
   </files>
 </measure>

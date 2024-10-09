@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>change_building_location</name>
   <uid>d4db4971-f5ba-11e3-a3ac-0800200c9a66</uid>
-  <version_id>6fb0b369-c51c-4c06-ac43-db84efdd5632</version_id>
-  <version_modified>2024-03-06T20:56:01Z</version_modified>
+  <version_id>9ba87580-d488-44c2-8f6e-ce216110b354</version_id>
+  <version_modified>2024-10-09T18:52:32Z</version_modified>
   <xml_checksum>057E8D9D</xml_checksum>
   <class_name>ChangeBuildingLocation</class_name>
   <display_name>ChangeBuildingLocation</display_name>
@@ -430,7 +430,7 @@
       <filename>change_building_location_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>2B466B1C</checksum>
+      <checksum>1779CB64</checksum>
     </file>
     <file>
       <filename>multiyear.ddy</filename>

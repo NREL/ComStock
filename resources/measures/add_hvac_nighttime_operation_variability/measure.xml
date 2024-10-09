@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>add_hvac_nighttime_operation_variability</name>
   <uid>d3f16ec3-96d1-4379-ba46-04c78dc04342</uid>
-  <version_id>87663d38-d77f-46fe-a419-8fcccfc023cb</version_id>
-  <version_modified>2024-09-26T13:46:01Z</version_modified>
+  <version_id>747b0ff3-bd7c-43ed-a37c-1170adf6587a</version_id>
+  <version_modified>2024-10-09T18:52:29Z</version_modified>
   <xml_checksum>356BE47F</xml_checksum>
   <class_name>AddHvacNighttimeOperationVariability</class_name>
   <display_name>add_hvac_nighttime_operation_variability</display_name>
@@ -106,7 +106,7 @@
       <filename>add_hvac_nighttime_operation_variability_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>42041482</checksum>
+      <checksum>357A07AE</checksum>
     </file>
     <file>
       <filename>example_model.osm</filename>
