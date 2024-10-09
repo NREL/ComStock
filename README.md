@@ -81,9 +81,8 @@ pip install NREL-PySAM==4.2.0
 To run measure tests ensure the following setup is performed (not performing these steps will result in all of the ground source measures to fail)
 1. Verify GHEDesigner==1.0 is installed in your local python packaged or environment
 2. Utilize pip list or conda list command to see the list of installed packaged
-3. If not installed locally or in your environment utilize the following command
-pip install GHEDesigner==1.0
-
+3. If not installed locally or in your environment utilize the following command:
+`pip install GHEDesigner==1.0`
 
 To run measure tests very setup above, then run the following rake command:
 `bundle exec rake unit_tests`, or `bundle exec rake unit_tests:measure_tests` or `bundle exec rake unit_tests:resource_measure_tests` for those measure directories individually.
