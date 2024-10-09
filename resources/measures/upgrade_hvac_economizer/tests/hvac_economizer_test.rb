@@ -88,7 +88,11 @@ class HVACEconomizer_Test < Minitest::Test
 
   def run_dir(test_name)
     # always generate test output in specially named 'output' directory so result files are not made part of the measure
-    return "#{File.dirname(__FILE__)}/output/#{test_name}"
+    path = "#{File.dirname(__FILE__)}/output/#{test_name}"
+    unless File.directory?(path)
+      FileUtils.mkdir_p(path)
+    end
+    return path
   end
 
   def model_output_path(test_name)
@@ -579,7 +583,7 @@ class HVACEconomizer_Test < Minitest::Test
     test_sets = []
     test_sets << { model: 'PVAV_gas_heat_electric_reheat_4A', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
     test_sets << { model: 'Baseboard_electric_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'NA' }
-    test_sets << { model: 'PSZ-AC_with_gas_coil_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+    test_sets << { model: 'PSZ-AC_with_gas_boiler', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
     test_sets << { model: 'Residential_AC_with_electric_baseboard_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'NA' }
     test_sets << { model: 'Residential_heat_pump_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'NA' }
     test_sets << { model: 'DOAS_wshp_gshp_3A', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'NA' }
@@ -621,7 +625,7 @@ class HVACEconomizer_Test < Minitest::Test
       # check the measure result; result values will equal Success, Fail, or Not Applicable
       # also check the amount of warnings, info, and error messages
       # use if or case statements to change expected assertion depending on model characteristics
-      assert(result.value.valueName == set[:result])
+      assert(result.value.valueName == set[:result], "Expected result is not achieved in #{instance_test_name}")
     end
   end
 end

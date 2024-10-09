@@ -66,7 +66,7 @@ class HVACExhaustAirEnergyOrHeatRecoveryTest < Minitest::Test
 
     # get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-
+    assert_equal(0, arguments.size)
   end
 
   # return file paths to test models in test directory
@@ -93,7 +93,11 @@ class HVACExhaustAirEnergyOrHeatRecoveryTest < Minitest::Test
 
   def run_dir(test_name)
     # always generate test output in specially named 'output' directory so result files are not made part of the measure
-    return "#{File.dirname(__FILE__)}/output/#{test_name}"
+    path = "#{File.dirname(__FILE__)}/output/#{test_name}"
+    unless File.directory?(path)
+      FileUtils.mkdir_p(path)
+    end
+    return path
   end
 
   def model_output_path(test_name)

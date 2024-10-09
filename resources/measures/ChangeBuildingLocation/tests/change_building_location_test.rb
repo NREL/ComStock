@@ -46,12 +46,12 @@ require 'minitest/autorun'
 
 class ChangeBuildingLocation_Test < Minitest::Test
   def run_dir(test_name)
-    # will make directory if it doesn't exist
-    output_dir = File.expand_path('output', File.dirname(__FILE__))
-    FileUtils.mkdir output_dir unless Dir.exist? output_dir
-
     # always generate test output in specially named 'output' directory so result files are not made part of the measure
-    "#{File.dirname(__FILE__)}/output/#{test_name}"
+    path = "#{File.dirname(__FILE__)}/output/#{test_name}"
+    unless File.directory?(path)
+      FileUtils.mkdir_p(path)
+    end
+    return path
   end
 
   # method to apply arguments, run measure, and assert results (only populate args hash with non-default argument values)

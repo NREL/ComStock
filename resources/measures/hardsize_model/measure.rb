@@ -143,7 +143,8 @@ class HardsizeModel < OpenStudio::Measure::ModelMeasure
         unitary.setSupplyAirFlowRateMethodDuringCoolingOperation('SupplyAirFlowRate')
         unitary.setSupplyAirFlowRateMethodDuringHeatingOperation('SupplyAirFlowRate')
       else
-        # unitary.applySizingValues
+        next if unitary.isSupplyAirFlowRateDuringCoolingOperationAutosized
+        unitary.applySizingValues
       end
 
     end

@@ -60,7 +60,7 @@ class SetHeatingFuel < OpenStudio::Measure::ModelMeasure
   def arguments(model)
     args = OpenStudio::Measure::OSArgumentVector.new
 
-    # Make argument for HVAC cooling source
+    # Make argument for HVAC heating source
     heating_fuel_chs = OpenStudio::StringVector.new
     heating_fuel_chs << 'NaturalGas'
     heating_fuel_chs << 'Electricity'
