@@ -133,7 +133,7 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     ]
     cambium_scenario = OpenStudio::Ruleset::OSArgument.makeChoiceArgument('cambium_scenario', choices_scenarios, true)
     cambium_scenario.setDisplayName("Cambium emission scenario")
-    cambium_scenario.setDefaultValue('LRMER_MidCase_30')
+    cambium_scenario.setDefaultValue('LRMER_MidCase_15')
     args << cambium_scenario
 
     # apply_measure = OpenStudio::Measure::OSArgument.makeBoolArgument('apply_measure', true)

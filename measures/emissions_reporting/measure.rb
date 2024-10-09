@@ -749,7 +749,7 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
       end
 
       # seasonal for two selectec scenarios
-      if scenario == 'LRMER_HighRECost_30' or scenario == 'LRMER_LowRECost_30'
+      if scenario == 'LRMER_HighRECost_15' or scenario == 'LRMER_LowRECost_15' or scenario == 'LRMER_MidCase_15'
         seasonal_daily_vals = {'winter' => [], 'summer' => [], 'shoulder' => []}
         hourly_electricity_emissions_kg.each_slice(24).with_index do |co2es, i|
           temps = hourly_temperature_F[(24 * i)...(24 * i + 24)]
