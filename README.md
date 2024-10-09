@@ -79,9 +79,12 @@ pip install NREL-PySAM==4.2.0
 ```
 ## Measure Tests
 To run measure tests ensure the following setup is performed (not performing these steps will result in all of the ground source measures to fail)
-1. Verify GHEDesigner==1.0 is installed in your local python packaged or environment
-2. Utilize pip list or conda list command to see the list of installed packaged
-3. If not installed locally or in your environment utilize the following command:
+1. In your command line or powershell navigate to the .\ComStock\resources folder in your repo.
+2. run `gem install bundler:2.4.10` This installs the version of bundler needed by OpenStudio.
+3. run `bundle _2.4.10_ install` this installs all required gems from the gemfile.
+4. Verify GHEDesigner==1.0 is installed in your local python packages or environment.
+5. Utilize pip list or conda list command to see the list of installed packaged.
+6. If not installed locally or in your environment utilize the following command:
 `pip install GHEDesigner==1.0`
 
 To run measure tests very setup above, then run the following rake command:
