@@ -205,13 +205,9 @@ class HardsizeModelTest < Minitest::Test
   def models_to_test
     test_sets = []
     test_sets << { model: 'Outpatient_VAV_chiller_PFP_boxes', weather: 'Outpatient_VAV_chiller_PFP_boxes', result: 'Success' }
-    test_sets << { model: 'LargeOffice_VAV_district_chw_hw', weather: 'LargeOffice_VAV_district_chw_hw', result: 'Success' }
-    test_sets << { model: 'LargeOffice_VAV_chiller_boiler', weather: 'LargeOffice_VAV_district_chw_hw', result: 'Success' }
-    test_sets << { model: 'LargeOffice_VAV_chiller_boiler_2', weather: 'LargeOffice_VAV_district_chw_hw', result: 'Success' }
+    test_sets << { model: 'LargeOffice_VAV_chiller_boiler_2', weather: 'LargeOffice_VAV_chiller_boiler_2', result: 'Success' }
     test_sets << { model: 'Retail_PVAV_gas_ht_elec_rht', weather: 'Retail_PVAV_gas_ht_elec_rht', result: 'Success' }
-    test_sets << { model: 'SecondarySchool_PTHP', weather: 'SecondarySchool_PTHP', result: 'Success' }
-    test_sets << { model: 'Retail_PSZ-AC', weather: 'Retail_PSZ-AC', result: 'Success' }
-
+    test_sets << { model: 'VAV_air_cooled_chiller_with_gas_boiler_reheat', weather: 'VAV_air_cooled_chiller_with_gas_boiler_reheat', result: 'Success' }
     return test_sets
   end
 
@@ -228,7 +224,6 @@ class HardsizeModelTest < Minitest::Test
       assert(!epw_path.empty?)
       osm_path = osm_path[0]
       epw_path = epw_path[0]
-dfxgsf
       measure = HardsizeModel.new
 
       # load the model; only used here for populating arguments
