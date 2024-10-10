@@ -16,7 +16,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   # reference: https://github.com/NREL/EnergyPlus/blob/337bfbadf019a80052578d1bad6112dca43036db/src/EnergyPlus/DataHVACGlobals.hh#L362-L368
   CFM_PER_TON_MIN_RATED = 300 * (1 + 0.08) # hard limit of 300 and tolerance of 8% (based on EP unit conversion mismatch plus more)
   CFM_PER_TON_MAX_RATED = 450 * (1 - 0.08) # hard limit of 450 and tolerance of 8% (based on EP unit conversion mismatch plus more)
-  # CFM_PER_TON_MIN_OPERATIONAL = 200 # hard limit of 200 for operational minimum threshold for both heating/cooling 
+  # CFM_PER_TON_MIN_OPERATIONAL = 200 # hard limit of 200 for operational minimum threshold for both heating/cooling
   # CFM_PER_TON_MAX_OPERATIONAL_HEATING = 600 # hard limit of 600 for operational maximum threshold for both heating
   # CFM_PER_TON_MAX_OPERATIONAL_COOLING = 500 # hard limit of 500 for operational maximum threshold for both cooling
 
@@ -361,7 +361,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       data_points = data.each.select { |key, _value| key.include? 'data_point' }
       data_points = data_points.sort_by { |item| item[1].split(',').map(&:to_f) } # sorting data in ascending order
       data_points.each do |_key, value|
-        var_dep = value.split(',')[2].to_f
+        var_dep = value.split(',')[num_ind_var].to_f
         table.addOutputValue(var_dep)
       end
       num_ind_var.times do |i|
@@ -1969,7 +1969,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # determine airflows for each stage of heating
       # airflow for each stage will be the higher of the user-input stage ratio or the minimum OA
       # lower stages may be removed later if cfm/ton bounds cannot be maintained due to minimum OA limits
-      # if oversizing is not specified (upsize_factor = 0.0), then use cooling design airflow 
+      # if oversizing is not specified (upsize_factor = 0.0), then use cooling design airflow
       stage_flows_heating = {}
       stage_flow_fractions_heating.each do |stage, ratio|
         if upsize_factor == 0.0
