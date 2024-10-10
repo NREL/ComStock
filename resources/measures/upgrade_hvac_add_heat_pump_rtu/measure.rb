@@ -2436,7 +2436,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # report final condition of model
     runner.registerFinalCondition("The building finished with heat pump RTUs replacing the HVAC equipment for #{selected_air_loops.size} air loops.")
 
-    model.getOutputControlFiles.setOutputCSV(true)
+    #model.getOutputControlFiles.setOutputCSV(true)
 
     true
   end
