@@ -40,7 +40,7 @@ class InjectIDFObjects_Test < MiniTest::Unit::TestCase
 
     # load the test model
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/base_new_vap_spd_hp1.osm")
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/in.osm")
     model = translator.loadModel(path)
     assert((not model.empty?))
     model = model.get

@@ -20,7 +20,12 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
 
         # Initialize members
         assert isinstance(comstock_object.data, pl.LazyFrame)
-        self.data = comstock_object.data.clone() #not really a deep copy, only schema is copied but not data.
+        # Instantiate the plotting data lazyframe if it doesn't yet exist:
+        if not isinstance(comstock_object.plotting_data, pl.LazyFrame):
+            logger.info(f'Instantiating plotting lazyframe for comstock dataset {comstock_object.dataset_name}.')
+            comstock_object.create_plotting_lazyframe()
+        assert isinstance(comstock_object.plotting_data, pl.LazyFrame)
+        self.data = comstock_object.plotting_data.clone() #not really a deep copy, only schema is copied but not data.
         assert isinstance(self.data, pl.LazyFrame)
 
         self.color_map = {}
