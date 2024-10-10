@@ -1543,6 +1543,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
           fan_static_pressure = supply_fan.pressureRise
           # get previous cooling coil capacity
           orig_clg_coil = unitary_sys.coolingCoil.get
+
+          # check for single speed DX cooling coil
           if orig_clg_coil.to_CoilCoolingDXSingleSpeed.is_initialized
             orig_clg_coil = orig_clg_coil.to_CoilCoolingDXSingleSpeed.get
             # get either autosized or specified cooling capacity
@@ -1553,7 +1555,20 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
             else
               runner.registerError("Original cooling coil capacity for #{air_loop_hvac.name} not found. Either it was not directly specified, or sizing run data is not available.")
             end
+          # check for two speed DX cooling coil
+          elsif orig_clg_coil.to_CoilCoolingDXTwoSpeed.is_initialized
+            orig_clg_coil = orig_clg_coil.to_CoilCoolingDXTwoSpeed.get
+            if orig_clg_coil.autosizedRatedHighSpeedTotalCoolingCapacity.is_initialized
+              orig_clg_coil_gross_cap = orig_clg_coil.autosizedRatedHighSpeedTotalCoolingCapacity.get
+            elsif orig_clg_coil.ratedHighSpeedTotalCoolingCapacity.is_initialized
+              orig_clg_coil_gross_cap = orig_clg_coil.ratedHighSpeedTotalCoolingCapacity.get
+            elsif
+              runner.registerError("Original cooling coil capacity for #{air_loop_hvac.name} not found. Either it was not directly specified, or sizing run data is not available.")
+            end
+          else
+            runner.registerError("Original cooling coil is of type #{orig_clg_coil.class} which is not currently supported by this measure.")
           end
+
           # get original heating coil capacity
           orig_htg_coil = unitary_sys.heatingCoil.get
           # get coil object if electric resistance
