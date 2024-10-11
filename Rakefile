@@ -1,54 +1,67 @@
-require 'rake'
 require 'rake/testtask'
-require 'minitest/reporters'  # Require the gem
+require 'minitest/reporters'
+require 'parallel'
+require 'rubocop/rake_task'
 
-# Configure the JUnit reporter
-
-desc 'Perform tasks related to unit tests'
+desc 'Run measure tests'
 namespace :unit_tests do
-  desc 'Run measure tests'
-  Rake::TestTask.new('measure_tests') do |t|
-    measure_tests_path = 'test/measure_tests.txt'
-    if File.exist?(measure_tests_path)
-      # load test files from file.
-      full_file_list = FileList.new(File.readlines(measure_tests_path).map(&:chomp))
-      full_file_list.select! { |item| item.include?('rb') }
-      p full_file_list
-
-    end
-    t.test_files = full_file_list
-    p(full_file_list)
-    t.verbose = false
-    t.warning = false
+  desc 'Run all measure tests'
+  task :all_tests => [:measure_tests, :workflow_measure_tests, :upgrade_measure_tests] do
+    puts 'Running all measure tests:'
   end
 
-  Rake::TestTask.new('resource_measure_tests') do |t|
-    resource_measure_tests_path = 'test/resource_measure_tests.txt'
-    if File.exist?(resource_measure_tests_path)
-      # load test files from file.
-      full_file_list = FileList.new(File.readlines(resource_measure_tests_path).map(&:chomp))
-      full_file_list.select! { |item| item.include?('rb') && File.exist?(item) }
-      p full_file_list
+  desc 'Run reporting measure tests'
+  task :reporting_measure_tests do
+    puts 'Running all reporting measure tests:'
+    # load test files from file
+    file_list = FileList.new(File.readlines('test/reporting_measure_tests.txt').map(&:chomp))
+    file_list.select! { |item| item.include?('rb') && File.exist?(item) }
+    Parallel.each(file_list, in_processes: Parallel.processor_count) do |file|
+      puts "Running test #{file} in process #{Process.pid}"
+      load file
+      true
+    rescue StandardError => e
+      puts "Error in #{file}: #{e.message}"
+      Minitest::Reporters.reporter.report_error(file, e)
+      false
     end
-    t.test_files = full_file_list.select do |file|
-      begin
-        # Try to load the file to check for syntax errors
-        load file
-        true
-      rescue Exception => e
-        puts "Error in #{file}: #{e.message}"
-        Minitest::Reporters.reporter.report_error(file, e)
-        false
-      end
+  end
+
+  desc 'Run workflow measure tests'
+  task :workflow_measure_tests do
+    puts 'Running all workflow measure tests:'
+    # load test files from file
+    file_list = FileList.new(File.readlines('test/workflow_measure_tests.txt').map(&:chomp))
+    file_list.select! { |item| item.include?('rb') && !item.include?('upgrade') && File.exist?(item) }
+    Parallel.each(file_list, in_processes: Parallel.processor_count) do |file|
+      puts "Running test #{file} in process #{Process.pid}"
+      load file
+      true
+    rescue StandardError => e
+      puts "Error in #{file}: #{e.message}"
+      Minitest::Reporters.reporter.report_error(file, e)
+      false
     end
-    p(full_file_list)
-    t.verbose = false
-    t.warning = false
+  end
+
+  desc 'Run upgrade measure tests'
+  task :upgrade_measure_tests do
+    puts 'Running all upgrade measure tests:'
+    # load test files from file
+    file_list = FileList.new(File.readlines('test/upgrade_measure_tests.txt').map(&:chomp))
+    file_list.select! { |item| item.include?('rb') && item.include?('upgrade') && File.exist?(item) }
+    Parallel.each(file_list, in_processes: Parallel.processor_count) do |file|
+      puts "Running test #{file} in process #{Process.pid}"
+      load file
+      true
+    rescue StandardError => e
+      puts "Error in #{file}: #{e.message}"
+      Minitest::Reporters.reporter.report_error(file, e)
+      false
+    end
   end
 end
 
-# run rubocop
-require 'rubocop/rake_task'
 desc 'Check the code for style consistency'
 RuboCop::RakeTask.new(:rubocop) do |t|
   # Make a folder for the output
@@ -60,4 +73,17 @@ RuboCop::RakeTask.new(:rubocop) do |t|
   t.formatters = ['RuboCop::Formatter::CheckstyleFormatter']
   # don't abort rake on failure
   t.fail_on_error = false
+end
+
+desc 'Show the rubocop output in a web browser'
+task 'rubocop:show' => [:rubocop] do
+  link = "#{__dir__}/.rubocop/rubocop-results.html"
+  case RbConfig::CONFIG['host_os']
+  when /mswin/, /mingw/, /cygwin/
+    system "start #{link}"
+  when /darwin/
+    system "open #{link}"
+  when /linux/, /bsd/
+    system "xdg-open #{link}"
+  end
 end
