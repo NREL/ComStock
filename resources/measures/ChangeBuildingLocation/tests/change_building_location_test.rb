@@ -36,22 +36,17 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # *******************************************************************************
 
+# dependencies
+require 'fileutils'
+require 'minitest/autorun'
 require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
-require_relative '../../../../test/helpers/minitest_helper'
-require 'fileutils'
+require_relative '../measure'
 
-require_relative '../measure.rb'
-require 'minitest/autorun'
-
-class ChangeBuildingLocation_Test < Minitest::Test
+class ChangeBuildingLocationTest < Minitest::Test
   def run_dir(test_name)
-    # will make directory if it doesn't exist
-    output_dir = File.expand_path('output', File.dirname(__FILE__))
-    FileUtils.mkdir output_dir unless Dir.exist? output_dir
-
     # always generate test output in specially named 'output' directory so result files are not made part of the measure
-    "#{File.dirname(__FILE__)}/output/#{test_name}"
+    return "#{__dir__}/output/#{test_name}"
   end
 
   # method to apply arguments, run measure, and assert results (only populate args hash with non-default argument values)
@@ -60,7 +55,7 @@ class ChangeBuildingLocation_Test < Minitest::Test
     measure = ChangeBuildingLocation.new
 
     # create an instance of a runner with OSW
-    osw_path = OpenStudio::Path.new(File.dirname(__FILE__) + '/test.osw')
+    osw_path = OpenStudio::Path.new("#{__dir__}/test.osw")
     osw = OpenStudio::WorkflowJSON.load(osw_path).get
     runner = OpenStudio::Measure::OSRunner.new(osw)
 
@@ -71,7 +66,7 @@ class ChangeBuildingLocation_Test < Minitest::Test
     else
       # load the test model
       translator = OpenStudio::OSVersion::VersionTranslator.new
-      path = OpenStudio::Path.new(File.dirname(__FILE__) + '/' + model_name)
+      path = OpenStudio::Path.new("#{__dir__}/#{model_name}.osw")
       model = translator.loadModel(path)
       assert(!model.empty?)
       model = model.get
@@ -93,9 +88,8 @@ class ChangeBuildingLocation_Test < Minitest::Test
     # temporarily change directory to the run directory and run the measure (because of sizing run)
     start_dir = Dir.pwd
     begin
-      unless Dir.exist?(run_dir(test_name))
-        Dir.mkdir(run_dir(test_name))
-      end
+      # create run directory if it does not exist
+      FileUtils.mkdir_p(run_dir(test_name))
       Dir.chdir(run_dir(test_name))
 
       # run the measure
@@ -103,9 +97,6 @@ class ChangeBuildingLocation_Test < Minitest::Test
       result = runner.result
     ensure
       Dir.chdir(start_dir)
-
-      # delete sizing run dir
-      FileUtils.rm_rf(run_dir(test_name))
     end
 
     # show the output
@@ -141,7 +132,7 @@ class ChangeBuildingLocation_Test < Minitest::Test
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'test.osm', nil, nil, nil, 3)
   end
 
-  def test_weather_file_WA_Renton
+  def test_weather_file_wa_renton
     args = {}
     args['year'] = '2018'
     args['weather_file_name'] = 'USA_WA_Renton.Muni.AP.727934_TMY3.epw' # seems to search directory of OSW even with empty file_paths
