@@ -26,6 +26,7 @@ lib/
 /sampling/truth_data
 *.pyc
 report.xml
+resources/Gemfile.lock
 
 # Rubocop output
 /.rubocop
