@@ -17,7 +17,7 @@ namespace :unit_tests do
       Parallel.each(full_file_list, in_processes: Parallel.processor_count) do |file|
         begin
           # Try to load the file to check for syntax errors
-          # load file
+          load file
           true
         rescue Exception => e
           puts "Error in #{file}: #{e.message}"
@@ -40,7 +40,7 @@ namespace :unit_tests do
         begin
           puts "Processing #{file} in process #{Process.pid}"
           # Try to load the file to check for syntax errors
-          # load file
+          load file
           true
         rescue Exception => e
           puts "Error in #{file}: #{e.message}"
