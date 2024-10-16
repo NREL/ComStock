@@ -42,6 +42,7 @@ require_relative '../measure.rb'
 require 'fileutils'
 require 'openstudio-standards'
 require_relative '../../../test/helpers/minitest_helper'
+require 'csv'
 
 class EmissionsReporting_Test < Minitest::Test
   def test_number_of_arguments_and_argument_names
@@ -84,54 +85,101 @@ class EmissionsReporting_Test < Minitest::Test
     return "#{run_dir(test_name)}/reports/eplustbl.html"
   end
 
-  def print_column_definitions(result_h)
-    # print output names for column definitions
-    regex = /annual_(.*)_(electricity|natural_gas|fuel_oil|propane)_ghg_emissions_?(.*)_kg/
+  def print_step_values(result_h)
+    CSV.open(File.join(run_dir('test_all_scenarios'),'step_vals.csv'), "w") do |csv|
+      result_h["step_values"].each do |h|
+        csv << [h["name"]]
+      end
+    end
+  end
+
+  # process output names and field descriptions for comstock_column_definitions.csv
+  def print_column_definitions(result_h, test_name)
+    regex = /annual_?(.*)_(electricity|natural_gas|fuel_oil|propane)_ghg_emissions_?(.*)_kg/
     result = ""
     result_h['step_values'].each do |h|
       result_string = "\nresults.csv,emissions_reporting."
       value_name = h["name"]
+      # make new col name
       result_string << "#{value_name},out.emissions"
-      # puts value_name
       captures = value_name.scan(regex).flatten
       next if captures.empty?
-      # puts captures
-      captures.each_with_index do |c,i|
-        if i == 2 && !c.empty?
-          if c.match?(/aer_/)
-            result_string << ".#{c}_from_2023"
-          elsif c.match?(/lrmer_/)
-            if c.match?(/_start_/)
-              result_string << ".#{c}"
-            else
-             result_string << ".#{c}_2023_start"
-            end
-          else result_string << ".#{c}"
-          end
-        else
-          result_string << ".#{c}" unless c.empty?
-        end
-
+      # fuel type
+      fuel_type = captures[1]
+      result_string << ".#{fuel_type}" unless fuel_type.empty?
+      # end use
+      end_use = captures[0]
+      if end_use.include?('hvac')
+        result_string << ".enduse_group.hvac"
+      else
+        result_string << ".#{end_use}" unless end_use.empty?
       end
-      result_string << ",TRUE,TRUE,float,co2e_kg,co2e_kg"
-      case
-      when captures[2].include?('egrid')
-        result_string << ",\"annual greehouse gas emissions from #{captures[0].gsub("_"," ")} #{captures[1].gsub("_"," ")} use, using #{captures[2].gsub("_"," ")} emissions intensity\""
-      when captures[2].include?('aer')
-        result_string << ",\"annual greehouse gas emissions from #{captures[0].gsub("_"," ")} #{captures[1].gsub("_"," ")} use, using Cambium 2022 #{captures[2]} non-levelized values from 2023\""
-      when captures[2].include?('lrmer')
-        if captures[2].match?(/_\d{2}_\d{4}_/)
-          matches = captures[2].scan(/_(\d{2})_(\d{4})_start/).flatten
-          result_string << ",\"annual greehouse gas emissions from #{captures[0].gsub("_"," ")} #{captures[1].gsub("_"," ")} use, using Cambium 2022 #{captures[2]} levelized over #{matches[0]} years starting in #{matches[1]}\""
+      # scenario
+      scenario = captures[2]
+
+      case 
+      when scenario.include?('egrid')
+        result_string << ".#{scenario}"
+        field_desc_string = "#{scenario.gsub('_',' ').gsub('egrid','eGRID')} emissions intensity values"
+      when scenario.include?('aer')
+        result_string << ".#{scenario}_from_2023"
+        field_desc_string = "Cambium 2022 #{scenario.gsub('_',' ').gsub('aer', 'Average Emissions Rate').gsub('re','renewable energy').gsub('95','95%')} non-levelized emissions intensity values from 2023"
+      when scenario.include?('lrmer')
+        field_desc_string = "Cambium 2022 #{scenario.gsub('_',' ').gsub('lrmer', 'Long-Range Marginal Emissions Rate').gsub('re','renewable energy').gsub('95','95%').gsub(/\s\d{2}$/,'').gsub(/\s\d{2}\s\d{4}\sstart/,'')} emissions intensity values "
+        if scenario.match?(/_\d{2}_\d{4}_/)
+          result_string << ".#{scenario}"
+          matches = scenario.scan(/_(\d{2})_(\d{4})_start/).flatten
+          field_desc_string << "levelized over #{matches[0]} years starting in #{matches[1]}"
         else
-          matches = captures[2].scan(/_\w{4}_(\d{2})/).flatten
-          result_string << ",\"annual greehouse gas emissions from #{captures[0].gsub("_"," ")} #{captures[1].gsub("_"," ")} use, using Cambium 2022 #{captures[2]} levelized over #{matches[0]} years starting in 2023\""
+          result_string << ".#{scenario}_2023_start"
+          matches = scenario.scan(/_\w{4}_(\d{2})/).flatten
+          field_desc_string << "levelized over #{matches[0]} years starting in 2023"
         end
-      else result_string << ",\"annual greenhouse gas emissions from on site #{captures[0].gsub("_"," ")} #{captures[1].gsub("_"," ")} use\""
+      end
+
+      # full_metadata, basic_metadata, data_type, original_units, new_units
+      result_string << ",TRUE,FALSE,float,co2e_kg,co2e_kg"
+
+      # if end_use.empty?
+      #   # include total emissions in basic metadata
+      #   result_string << ",TRUE,TRUE,float,co2e_kg,co2e_kg"
+      # else
+      #   # only include end-use emissions in full metadata
+      #   result_string << ",TRUE,FALSE,float,co2e_kg,co2e_kg"
+      # end
+
+      # process fuel string
+      if end_use.empty?
+        fuel_str = "total on-site #{fuel_type.gsub("_"," ")}"
+      else
+        fuel_str = "#{fuel_type.gsub("_"," ")}"
+      end
+
+      # end-use string
+      end_use_str = "on-site #{end_use.gsub('_',' ')}"
+
+      # construct field_description
+      if end_use.empty? && scenario.empty?
+        # total non-electric fuel
+        result_string << ",annual greenhouse gas emissions from #{fuel_str} use"
+      elsif end_use.empty?
+        # total electricity with case
+        result_string << ",annual greenhouse gas emissions from #{fuel_str} use using #{field_desc_string}"
+      elsif scenario.empty?
+        # non-elec fuel with end-use
+        result_string << ",annual greenhouse gas emissions from #{end_use_str} #{fuel_str} use"
+      else
+        # electricty end-use with case
+        result_string << ",annual greenhouse gas emissions from #{end_use_str} #{fuel_str} use with #{field_desc_string}"
       end
       result << result_string
     end
-    puts result
+
+    CSV.open(File.join(run_dir(test_name),'emissions_columns.csv'), "w") do |csv|
+      result.split("\n").each do |row|
+        csv << row.split(',')
+      end
+    end
   end
 
   def run_test(test_name, osm_path, epw_path, argument_map)
@@ -240,7 +288,7 @@ class EmissionsReporting_Test < Minitest::Test
     test_name = 'test_all_scenarios'
 
     puts "\n######\nTEST:#{test_name}\n######\n"
-    osm_path = File.dirname(__FILE__) + '/office.osm'
+    osm_path = File.dirname(__FILE__) + '/smalloffice.osm'
     epw_path = File.dirname(__FILE__) + '/FortCollins2016.epw'
 
     # create an instance of the measure
@@ -264,16 +312,22 @@ class EmissionsReporting_Test < Minitest::Test
     require 'json'
     result_h = JSON.parse(result.to_s)
     # test that runperiod totals same as summed hourly
-    assert_in_delta(8612.0512, result_h['step_values'].select{|v| v["name"] == "annual_natural_gas_ghg_emissions_kg"}.first["value"], 0.001)
+    assert_in_delta(3384.63, result_h['step_values'].select{|v| v["name"] == "annual_natural_gas_ghg_emissions_kg"}.first["value"], 0.1)
 
-    # print_column_definitions(result_h)
+    # test that all electricity emissions are > 0
+    result_h['step_values'].select{ |v| v["name"].include?('cooling_electricity')}.each do |result|
+      assert(result['value'] > 0, "Result for #{result['name']} is zero")
+    end
+
+    print_step_values(result_h)
+    print_column_definitions(result_h, test_name)
   end
 
   def test_hawaii
     test_name = 'test_hawaii'
 
     puts "\n######\nTEST:#{test_name}\n######\n"
-    osm_path = File.dirname(__FILE__) + '/office.osm'
+    osm_path = File.dirname(__FILE__) + '/smalloffice.osm'
     epw_path = File.dirname(__FILE__) + '/FortCollins2016.epw'
 
     # create an instance of the measure

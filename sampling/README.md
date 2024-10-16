@@ -18,6 +18,12 @@ This only needs to be done once because it will create a new environment called 
 $ conda activate comstock-sampling
 ```
 
+Install buildstockbatch in comstock-sampling environment: navigate to location of buildstock batch, e.g.:
+```
+$ cd /path/to/buildstockbatch
+$ python -m pip install -e .
+```
+
 ## AWS Access
 
 ### Non-NREL Staff
@@ -73,10 +79,15 @@ There are two types of samples you can generate:
     - From this directory, run the following command:
 
     ```
-    $ python tsv_resampling.py tsv_version sim_year n_samples hvac_sizing
+    $ python tsv_resampling.py tsv_version sim_year n_samples n_buckets hvac_sizing
     ```
 
-    - Where `tsv_version` is the version of tsv files to sample from (e.g., v16), `sim_year` is the simulation year (2015-2019), `n_samples` is the number of samples you wish to generate -- a typical full national sample is 350,000 samples -- and `hvac_sizing` dictates whether the HVAC systems in the models are autosized or hardsized (use "autosize" or "hardsize" for this argument).
+    - Where: 
+        - `tsv_version` is the version of tsv files to sample from (e.g., v99 TODO: Ry to change)
+        - `sim_year` is the simulation year (2015-2019)
+        - `n_samples` is the number of samples you wish to generate. A typical full national sample is 350,000 samples.
+        - 'n_buckets` is 1 (TODO: Ry to explain this)
+        - `hvac_sizing` dictates whether the HVAC systems in the models are autosized or hardsized (use "autosize" or "hardsize" for this argument).
     - This will generate a buildstock.csv file and save it to `.\output-buildstocks\intermediate`.
     - The name of the file will include the date, tsv version, simulation year, your username, and number of samples. For example: `buildstock_20221020_v17_2018_alebar_500.csv`.
 
