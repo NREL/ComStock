@@ -16,12 +16,12 @@
                     "coeff_4": -0.09527,
                     "coeff_5": 0.00134,
                     "coeff_6": 0.0009421,
-                    "minimum_independent_variable_1": 0,
-                    "maximum_independent_variable_1": 46.11,
-                    "minimum_independent_variable_2": 2.02,
-                    "maximum_independent_variable_2": 34.33,
-                    "minimum_dependent_variable_output": 0.01,
-                    "maximum_dependent_variable_output": 1.3
+                    "minimum_independent_variable_1": 14.444444444444445,
+                    "maximum_independent_variable_1": 24.444444444444443,
+                    "minimum_independent_variable_2": 29.444444444444443,
+                    "maximum_independent_variable_2": 51.666666666666664,
+                    "minimum_dependent_variable_output": 0.1,
+                    "maximum_dependent_variable_output": 1.5
                 },
                 {
                     "name": "cool_cap_ft2",
@@ -37,12 +37,12 @@
                     "coeff_4": -0.03907,
                     "coeff_5": 0.0005085,
                     "coeff_6": 0.0001078,
-                    "minimum_independent_variable_1": 0,
-                    "maximum_independent_variable_1": 46.11,
-                    "minimum_independent_variable_2": 2.02,
-                    "maximum_independent_variable_2": 34.33,
-                    "minimum_dependent_variable_output": 0.01,
-                    "maximum_dependent_variable_output": 1.3
+                    "minimum_independent_variable_1": 14.444444444444445,
+                    "maximum_independent_variable_1": 24.444444444444443,
+                    "minimum_independent_variable_2": 29.444444444444443,
+                    "maximum_independent_variable_2": 51.666666666666664,
+                    "minimum_dependent_variable_output": 0.1,
+                    "maximum_dependent_variable_output": 1.5
                 },
                 {
                     "name": "cool_cap_ft3",
@@ -58,12 +58,12 @@
                     "coeff_4": -0.002812,
                     "coeff_5": -2.59e-05,
                     "coeff_6": -0.0003764,
-                    "minimum_independent_variable_1": 0,
-                    "maximum_independent_variable_1": 46.11,
-                    "minimum_independent_variable_2": 2.02,
-                    "maximum_independent_variable_2": 34.33,
-                    "minimum_dependent_variable_output": 0.01,
-                    "maximum_dependent_variable_output": 1.3
+                    "minimum_independent_variable_1": 14.444444444444445,
+                    "maximum_independent_variable_1": 24.444444444444443,
+                    "minimum_independent_variable_2": 29.444444444444443,
+                    "maximum_independent_variable_2": 51.666666666666664,
+                    "minimum_dependent_variable_output": 0.1,
+                    "maximum_dependent_variable_output": 1.5
                 },
                 {
                     "name": "cool_cap_ft4",
@@ -79,12 +79,12 @@
                     "coeff_4": -0.000253799999999998,
                     "coeff_5": 4.604e-05,
                     "coeff_6": -0.000779,
-                    "minimum_independent_variable_1": 0,
-                    "maximum_independent_variable_1": 46.11,
-                    "minimum_independent_variable_2": 2.02,
-                    "maximum_independent_variable_2": 34.33,
-                    "minimum_dependent_variable_output": 0.01,
-                    "maximum_dependent_variable_output": 1.3
+                    "minimum_independent_variable_1": 14.444444444444445,
+                    "maximum_independent_variable_1": 24.444444444444443,
+                    "minimum_independent_variable_2": 29.444444444444443,
+                    "maximum_independent_variable_2": 51.666666666666664,
+                    "minimum_dependent_variable_output": 0.1,
+                    "maximum_dependent_variable_output": 1.5
                 },
                 {
                     "name": "cool_cap_ff1",
@@ -142,12 +142,12 @@
                     "coeff_4": 0.05435,
                     "coeff_5": 0.000283,
                     "coeff_6": -0.002057,
-                    "minimum_independent_variable_1": 0,
-                    "maximum_independent_variable_1": 46.11,
-                    "minimum_independent_variable_2": 2.02,
-                    "maximum_independent_variable_2": 34.33,
-                    "minimum_dependent_variable_output": 0.01,
-                    "maximum_dependent_variable_output": 1.3
+                    "minimum_independent_variable_1": 13.88888888888889,
+                    "maximum_independent_variable_1": 26.6667,
+                    "minimum_independent_variable_2": 15.5556,
+                    "maximum_independent_variable_2": 43.3333,
+                    "minimum_dependent_variable_output": 0.6,
+                    "maximum_dependent_variable_output": 3
                 },
                 {
                     "name": "cool_eir_ft2",
@@ -163,12 +163,12 @@
                     "coeff_4": 0.03196,
                     "coeff_5": 0.000638,
                     "coeff_6": -0.001948,
-                    "minimum_independent_variable_1": 0,
-                    "maximum_independent_variable_1": 46.11,
-                    "minimum_independent_variable_2": 2.02,
-                    "maximum_independent_variable_2": 34.33,
-                    "minimum_dependent_variable_output": 0.01,
-                    "maximum_dependent_variable_output": 1.3
+                    "minimum_independent_variable_1": 13.88888888888889,
+                    "maximum_independent_variable_1": 26.6667,
+                    "minimum_independent_variable_2": 15.5556,
+                    "maximum_independent_variable_2": 43.3333,
+                    "minimum_dependent_variable_output": 0.6,
+                    "maximum_dependent_variable_output": 3
                 },
                 {
                     "name": "cool_eir_ft3",
@@ -184,12 +184,12 @@
                     "coeff_4": 0.02595,
                     "coeff_5": 0.0006609,
                     "coeff_6": -0.001752,
-                    "minimum_independent_variable_1": 0,
-                    "maximum_independent_variable_1": 46.11,
-                    "minimum_independent_variable_2": 2.02,
-                    "maximum_independent_variable_2": 34.33,
-                    "minimum_dependent_variable_output": 0.01,
-                    "maximum_dependent_variable_output": 1.3
+                    "minimum_independent_variable_1": 13.88888888888889,
+                    "maximum_independent_variable_1": 26.6667,
+                    "minimum_independent_variable_2": 15.5556,
+                    "maximum_independent_variable_2": 43.3333,
+                    "minimum_dependent_variable_output": 0.6,
+                    "maximum_dependent_variable_output": 3
                 },
                 {
                     "name": "cool_eir_ft4",
@@ -205,12 +205,12 @@
                     "coeff_4": 0.008907,
                     "coeff_5": 0.0005665,
                     "coeff_6": -0.0006538,
-                    "minimum_independent_variable_1": 0,
-                    "maximum_independent_variable_1": 46.11,
-                    "minimum_independent_variable_2": 2.02,
-                    "maximum_independent_variable_2": 34.33,
-                    "minimum_dependent_variable_output": 0.01,
-                    "maximum_dependent_variable_output": 1.3
+                    "minimum_independent_variable_1": 13.88888888888889,
+                    "maximum_independent_variable_1": 26.6667,
+                    "minimum_independent_variable_2": 15.5556,
+                    "maximum_independent_variable_2": 43.3333,
+                    "minimum_dependent_variable_output": 0.6,
+                    "maximum_dependent_variable_output": 3
                 },
                 {
                     "name": "c_cap_high_ff",
@@ -321,7 +321,7 @@
                     "minimum_independent_variable_2": -26.11,
                     "maximum_independent_variable_2": 18.3333,
                     "minimum_dependent_variable_output": 0.01,
-                    "maximum_dependent_variable_output": 1.3
+                    "maximum_dependent_variable_output": 1.4
                 },
                 {
                     "name": "heat_cap_ft2",
@@ -342,7 +342,7 @@
                     "minimum_independent_variable_2": -26.11,
                     "maximum_independent_variable_2": 18.3333,
                     "minimum_dependent_variable_output": 0.01,
-                    "maximum_dependent_variable_output": 1.3
+                    "maximum_dependent_variable_output": 1.4
                 },
                 {
                     "name": "heat_cap_ft3",
@@ -363,7 +363,7 @@
                     "minimum_independent_variable_2": -26.11,
                     "maximum_independent_variable_2": 18.3333,
                     "minimum_dependent_variable_output": 0.01,
-                    "maximum_dependent_variable_output": 1.3
+                    "maximum_dependent_variable_output": 1.4
                 },
                 {
                     "name": "heat_cap_ft4",
@@ -384,7 +384,7 @@
                     "minimum_independent_variable_2": -26.11,
                     "maximum_independent_variable_2": 18.3333,
                     "minimum_dependent_variable_output": 0.01,
-                    "maximum_dependent_variable_output": 1.3
+                    "maximum_dependent_variable_output": 1.4
                 },
                 {
                     "name": "h_cap_allstages_ff",
