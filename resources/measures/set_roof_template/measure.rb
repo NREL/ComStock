@@ -185,8 +185,8 @@ class SetRoofTemplate < OpenStudio::Measure::ModelMeasure
 
     # set additional properties for building
     props = model.getBuilding.additionalProperties
-    props.setFeature('roof_as_constructed_template',"#{as_constructed_template}")
-    props.setFeature('roof_template',"#{template}")
+    props.setFeature('roof_as_constructed_template', as_constructed_template)
+    props.setFeature('roof_template', template)
 
     # Not applicable if the selected template matches the as-constructed template
     if template == as_constructed_template
@@ -196,7 +196,7 @@ class SetRoofTemplate < OpenStudio::Measure::ModelMeasure
 
     # Make a standard
     reset_log
-    standard = Standard.build("#{template}")
+    standard = Standard.build(template)
 
     # Apply standard constructions to this model at the surface-by-surface level,
     # which will override default contruction sets for the surface types being updated,
@@ -238,7 +238,7 @@ class SetRoofTemplate < OpenStudio::Measure::ModelMeasure
     log_messages_to_runner(runner, debug = false)
     reset_log
 
-    if prev_created_consts.size.zero?
+    if prev_created_consts.empty?
       runner.registerAsNotApplicable("Found no #{surf_type.join(' ')} surfaces in the model to update")
     end
 
