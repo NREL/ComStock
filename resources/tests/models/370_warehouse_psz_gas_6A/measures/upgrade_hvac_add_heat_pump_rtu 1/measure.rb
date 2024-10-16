@@ -443,7 +443,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     template = 'ComStock 90.1-2019'
     std = Standard.build(template)
     # get climate zone value
-    climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
+    climate_zone = std.model_standards_climate_zone(model)
 
     # get applicable psz hvac air loops
     selected_air_loops = []
@@ -518,14 +518,14 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # skip if water heating or cooled system
       next if is_water_coil==true
       # skip if space is not heated and cooled
-      next unless (OpenstudioStandards::ThermalZone.thermal_zone_heated?(air_loop_hvac.thermalZones[0])) && (OpenstudioStandards::ThermalZone.thermal_zone_cooled?(air_loop_hvac.thermalZones[0]))
+      next unless (std.thermal_zone_heated?(air_loop_hvac.thermalZones[0])) && (std.thermal_zone_cooled?(air_loop_hvac.thermalZones[0]))
       # next if no heating coil
       next if has_heating_coil == false
       # add applicable air loop to list
       selected_air_loops << air_loop_hvac
       # add area served by air loop
       thermal_zone = air_loop_hvac.thermalZones[0]
-      applicable_area_m2 += thermal_zone.floorArea * thermal_zone.multiplier
+      applicable_area_m2+=thermal_zone.floorArea
 
       ############# Determine if equipment has been hardsized to avoid sizing run
       oa_flow_m3_per_s = nil
@@ -678,7 +678,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         runner.registerWarning("Air loop #{air_loop_hvac.name} has night cycling operations and an outdoor air ratio of #{min_oa_flow_ratio.round(2)} which exceeds the maximum allowable limit of #{oa_ration_allowance} (due to an EnergyPlus night cycling bug with multispeed coils) making this RTU not applicable at this time.")
         # remove air loop from applicable list
         selected_air_loops.delete(air_loop_hvac)
-        applicable_area_m2 -= thermal_zone.floorArea * thermal_zone.multiplier
+        applicable_area_m2 -= thermal_zone.floorArea
         # remove area served by air loop from applicability
       end
     end
@@ -753,7 +753,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     end
 
     # get climate full string and classification (i.e. "5A")
-    climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
+    climate_zone = std.model_standards_climate_zone(model)
     climate_zone_classification = climate_zone.split('-')[-1]
 
     # Get ER/HR type from climate zone
@@ -1972,7 +1972,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # add stage data: create stage 1
         new_dx_heating_coil_speed1 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
         new_dx_heating_coil_speed1.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[1])
-        new_dx_heating_coil_speed1.setGrossRatedHeatingCOP(5.51)
+        new_dx_heating_coil_speed1.setGrossRatedHeatingCOP(4.96)
         new_dx_heating_coil_speed1.setRatedAirFlowRate(hash_htg_airflow_stgs[1])
         new_dx_heating_coil_speed1.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed1.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft1)
@@ -1985,7 +1985,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # add stage data: create stage 2
         new_dx_heating_coil_speed2 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
         new_dx_heating_coil_speed2.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[2])
-        new_dx_heating_coil_speed2.setGrossRatedHeatingCOP(4.71)
+        new_dx_heating_coil_speed2.setGrossRatedHeatingCOP(4.24)
         new_dx_heating_coil_speed2.setRatedAirFlowRate(hash_htg_airflow_stgs[2])
         new_dx_heating_coil_speed2.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed2.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft2)
@@ -1998,7 +1998,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # add stage data: create stage 3
         new_dx_heating_coil_speed3 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
         new_dx_heating_coil_speed3.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[3])
-        new_dx_heating_coil_speed3.setGrossRatedHeatingCOP(3.98)
+        new_dx_heating_coil_speed3.setGrossRatedHeatingCOP(3.59)
         new_dx_heating_coil_speed3.setRatedAirFlowRate(hash_htg_airflow_stgs[3])
         new_dx_heating_coil_speed3.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed3.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft3)
@@ -2011,7 +2011,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # add stage data: create stage 4
         new_dx_heating_coil_speed4 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
         new_dx_heating_coil_speed4.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[4])
-        new_dx_heating_coil_speed4.setGrossRatedHeatingCOP(3.80)
+        new_dx_heating_coil_speed4.setGrossRatedHeatingCOP(3.42)
         new_dx_heating_coil_speed4.setRatedAirFlowRate(hash_htg_airflow_stgs[4])
         new_dx_heating_coil_speed4.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
         new_dx_heating_coil_speed4.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft4)
@@ -2077,28 +2077,17 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_air_to_air_heatpump.setAvailabilitySchedule(unitary_availability_sched)
       new_air_to_air_heatpump.setDehumidificationControlType(dehumid_type)
       new_air_to_air_heatpump.setSupplyAirFanOperatingModeSchedule(supply_fan_op_sched)
-      new_air_to_air_heatpump.setControlType('Load') ## cc-tmp
+      new_air_to_air_heatpump.setControlType('Load') ##cc-tmp
       new_air_to_air_heatpump.setName("#{thermal_zone.name} RTU SZ-VAV Heat Pump")
       new_air_to_air_heatpump.setMaximumSupplyAirTemperature(50)
       new_air_to_air_heatpump.setDXHeatingCoilSizingRatio(1+performance_oversizing_factor)
-
-      # handle deprecated methods for OS Version 3.7.0
-      if model.version < OpenStudio::VersionString.new('3.7.0')
-        # set cooling design flow rate
-        new_air_to_air_heatpump.setSupplyAirFlowRateDuringCoolingOperation(hash_clg_airflow_stgs[4])
-        # set heating design flow rate
-        new_air_to_air_heatpump.setSupplyAirFlowRateDuringHeatingOperation(hash_htg_airflow_stgs[4])
-        # set no load design flow rate
-        new_air_to_air_heatpump.resetSupplyAirFlowRateMethodWhenNoCoolingorHeatingisRequired
-        new_air_to_air_heatpump.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_airflow_m3_per_s)
-      else
-         # set cooling design flow rate
-         new_air_to_air_heatpump.setSupplyAirFlowRateDuringCoolingOperation(hash_clg_airflow_stgs[4])
-         # set heating design flow rate
-         new_air_to_air_heatpump.setSupplyAirFlowRateDuringHeatingOperation(hash_htg_airflow_stgs[4])
-         # set no load design flow rate
-         new_air_to_air_heatpump.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_airflow_m3_per_s)
-      end
+      # set cooling design flow rate
+      new_air_to_air_heatpump.setSupplyAirFlowRateDuringCoolingOperation(hash_clg_airflow_stgs[4])
+      # set heating design flow rate
+      new_air_to_air_heatpump.setSupplyAirFlowRateDuringHeatingOperation(hash_htg_airflow_stgs[4])
+      # set no load design flow rate
+      new_air_to_air_heatpump.resetSupplyAirFlowRateMethodWhenNoCoolingorHeatingisRequired
+      new_air_to_air_heatpump.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_airflow_m3_per_s)
 
       # new_air_to_air_heatpump.setDOASDXCoolingCoilLeavingMinimumAirTemperature(7.5) # set minimum discharge temp to 45F, required for VAV operation
 
@@ -2111,7 +2100,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       end
 
       # add economizer
-      if econ == true
+      if econ==true
         # set parameters
         oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
         controller_oa = oa_system.getControllerOutdoorAir
@@ -2184,13 +2173,13 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
             space = thermal_zone.spaces[0]
 
             # get zone area
-            fa = thermal_zone.floorArea * thermal_zone.multiplier
+            fa = thermal_zone.floorArea
 
             # get zone volume
-            vol = thermal_zone.airVolume * thermal_zone.multiplier
+            vol = thermal_zone.airVolume
 
             # get zone design people
-            num_people = thermal_zone.numberOfPeople * thermal_zone.multiplier
+            num_people = thermal_zone.numberOfPeople
 
             if space.designSpecificationOutdoorAir.is_initialized
               dsn_spec_oa = space.designSpecificationOutdoorAir.get
