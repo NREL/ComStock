@@ -8,10 +8,11 @@ require_relative '../measure.rb'
 require 'fileutils'
 require_relative '../../../../test/helpers/minitest_helper'
 
+
 # require all .rb files in resources folder
 Dir[File.dirname(__FILE__) + '../resources/*.rb'].each { |file| require file }
 
-class DfThermostatControlLoadShiftTest < Minitest::Test
+class DFLightingControlTest < Minitest::Test
   # def setup
   # end
 
@@ -52,7 +53,11 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
       weather: 'NY_New_York_John_F_Ke_744860_16',
       result: 'Success'
     }
-    
+    test_sets << {
+      model: 'Warehouse_5A',
+      weather: 'MN_Cloquet_Carlton_Co_726558_16',
+      result: 'Success'
+    }
     test_sets << {
       model: '3340_small_office_OS38', # small office
       weather: 'IL_Dupage_3340_18',
@@ -67,12 +72,6 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
     test_sets << {
       model: 'Outpatient_VAV_chiller_PFP_boxes',
       weather: 'CO_FortCollins_16',
-      result: 'NA'
-    }
-    # test: not applicable hvac (non-electric)
-    test_sets << {
-      model: 'Warehouse_5A',
-      weather: 'MN_Cloquet_Carlton_Co_726558_16',
       result: 'NA'
     }
 
@@ -191,7 +190,7 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
       epw_path = epw_path[0]
 
       # create an instance of the measure
-      measure = DfThermostatControlLoadShift.new
+      measure = DFLightingControl.new
 
       # load the model; only used here for populating arguments
       model = load_model(osm_path)
@@ -206,14 +205,14 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
       argument_map['peak_len'] = peak_len
 
       # set arguments:
-      prepeak_len = arguments[1].clone
-      assert(prepeak_len.setValue(2))
-      argument_map['prepeak_len'] = prepeak_len
+      light_adjustment_method = arguments[1].clone
+      assert(light_adjustment_method.setValue('absolute change'))#'relative change'
+      argument_map['light_adjustment_method'] = light_adjustment_method
 
       # set arguments:
-      sp_adjustment = arguments[2].clone
-      assert(sp_adjustment.setValue(2.0))
-      argument_map['sp_adjustment'] = sp_adjustment
+      light_adjustment = arguments[2].clone
+      assert(light_adjustment.setValue(30.0))
+      argument_map['light_adjustment'] = light_adjustment
 
       # set arguments:
       num_timesteps_in_hr = arguments[3].clone
@@ -222,7 +221,7 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
 
       # set arguments:
       load_prediction_method = arguments[4].clone
-      assert(load_prediction_method.setValue('full baseline'))#'bin sample''part year bin sample'
+      assert(load_prediction_method.setValue('full baseline'))#'bin sample''part year bin sample''fix'
       argument_map['load_prediction_method'] = load_prediction_method
 
       # set arguments:
@@ -232,11 +231,16 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
 
       # set arguments:
       peak_window_strategy = arguments[6].clone
-      assert(peak_window_strategy.setValue('center with peak'))#'bin sample''part year bin sample'
+      assert(peak_window_strategy.setValue('center with peak'))
       argument_map['peak_window_strategy'] = peak_window_strategy
 
+      # # set arguments:
+      # apply_measure = arguments[7].clone
+      # assert(apply_measure.setValue(true))
+      # argument_map['apply_measure'] = apply_measure
+
       # apply the measure to the model and optionally run the model
-      result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+      result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: true)
 
       # check the measure result; result values will equal Success, Fail, or Not Applicable (NA)
       # also check the amount of warnings, info, and error messages
@@ -353,7 +357,7 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
 
   #   puts("============================================================")
   #   puts("### Creating peak schedule...")
-  #   peak_schedule = peak_schedule_generation(annual_load, peak_len=4, prepeak_len=2)
+  #   peak_schedule = peak_schedule_generation(annual_load, peak_len=4, rebound_len=2)
   #   # puts("--- peak_schedule = #{peak_schedule}")
   #   puts("--- peak_schedule.size = #{peak_schedule.size}")
 
