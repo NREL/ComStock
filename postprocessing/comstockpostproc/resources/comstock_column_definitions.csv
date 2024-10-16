@@ -629,6 +629,8 @@ results.csv,com_stock_sensitivity_reports.com_report_shw_non_hp_water_heater_gas
 results.csv,com_stock_sensitivity_reports.com_report_shw_non_hp_water_heater_other_fuel_j,out.params.non_hp_water_heater_other_fuel,TRUE,FALSE,float,j,j,other fuel energy use by non-heat pump water heaters
 results.csv,com_stock_sensitivity_reports.com_report_shw_non_hp_water_heater_total_volume_gal,out.params.non_hp_water_heater_total_volume_gal,TRUE,FALSE,float,gal,gal,combined volume of water heaters
 results.csv,com_stock_sensitivity_reports.com_report_shw_non_hp_water_heater_unmet_heat_transfer_demand_j,out.params.non_hp_water_heater_unmet_heat_transfer_demand,TRUE,FALSE,float,j,j,water heater unmet heat transfer demand
+results.csv,com_stock_sensitivity_reports.com_report_unitary_sys_cycling_ratio_cooling,out.params.unitary_sys_cycling_ratio_cooling,TRUE,FALSE,float,,,weighted average unitary system cycling ratio for cooling operation
+results.csv,com_stock_sensitivity_reports.com_report_unitary_sys_cycling_ratio_heating,out.params.unitary_sys_cycling_ratio_heating,TRUE,FALSE,float,,,weighted average unitary system cycling ratio for heating operation
 results.csv,com_stock_sensitivity_reports.com_report_window_area_m_2,out.params.ext_window_area,TRUE,FALSE,float,m2,m2,Sum window area
 results.csv,com_stock_sensitivity_reports.com_report_window_shgc,out.params.average_window_shgc,TRUE,FALSE,float,,,Solar heat gain coefficient of windows
 results.csv,com_stock_sensitivity_reports.com_report_window_u_value_si,out.params.average_window_u_value,TRUE,FALSE,float,w_per_m2_k,btu_per_ft2_f_hr,Conductivity of windows
@@ -637,8 +639,8 @@ results.csv,com_stock_sensitivity_reports.com_report_wwr,out.params.window_to_wa
 results.csv,com_stock_sensitivity_reports.com_report_zone_hvac_fan_power_minimum_flow_fraction,out.params.zone_hvac_fan_power_minimum_flow_fraction,TRUE,FALSE,float,,,Fan power minimum flow fraction for zone hvac equipment
 results.csv,com_stock_sensitivity_reports.com_report_zone_hvac_fan_static_pressure,out.params.zone_hvac_fan_static_pressure,TRUE,FALSE,float,pa,inwc,Fan static pressure in pascals for zone hvac equipment
 results.csv,com_stock_sensitivity_reports.com_report_zone_hvac_fan_total_efficiency,out.params.zone_hvac_fan_total_efficiency,TRUE,FALSE,float,,,Fan total efficiency for zone hvac equipment
-results.csv,com_stock_sensitivity_reports.com_report_number_of_zones,out.params.number_of_zones,TRUE,FALSE,integer,,,Number of ThermalZone objects in the building energy model
-results.csv,com_stock_sensitivity_reports.com_report_number_of_spaces,out.params.number_of_spaces,TRUE,FALSE,integer,,,Number of Space objects in the building energy model
+results.csv,com_stock_sensitivity_reports.com_report_number_of_zones,out.params.number_of_zones,TRUE,FALSE,integer,,,"Number of ThermalZone objects in the building energy model, including zone multipliers"
+results.csv,com_stock_sensitivity_reports.com_report_number_of_spaces,out.params.number_of_spaces,TRUE,FALSE,integer,,,"Number of Space objects in the building energy model, including space multipliers"
 results.csv,com_stock_sensitivity_reports.com_report_smallest_space_m_2,out.params.smallest_space_floor_area,TRUE,FALSE,float,m2,m2,Smallest Space by floor area in the building energy model
 results.csv,com_stock_sensitivity_reports.com_report_number_of_surfaces,out.params.number_of_surfaces,TRUE,FALSE,integer,,,Number of Surface objects in the building energy model
 results.csv,completed_at,,FALSE,FALSE,float,,,Simulation end time for model
