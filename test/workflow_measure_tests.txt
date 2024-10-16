@@ -9,7 +9,6 @@ resources/measures/create_typical_building_from_model/tests/test_hvac.rb
 resources/measures/fault_hvac_economizer_changeover_temperature/tests/measure_test.rb
 resources/measures/fault_hvac_economizer_damper_stuck/tests/measure_test.rb
 resources/measures/hardsize_model/tests/measure_test.rb
-resources/measures/hvac_nighttime_oa_controls/tests/new_measure_test.rb"
 resources/measures/prototype_space_type_assignment/tests/prototype_space_type_assignment_test.rb
 resources/measures/replace_baseline_windows/tests/replace_baseline_windows_test.rb
 resources/measures/set_electric_equipment_bpr/tests/set_electric_equipment_bpr_test.rb
