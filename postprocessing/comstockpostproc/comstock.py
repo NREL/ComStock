@@ -13,6 +13,7 @@ import pandas as pd
 import polars as pl
 import re
 import datetime
+import pytest
 
 from comstockpostproc.naming_mixin import NamingMixin
 from comstockpostproc.units_mixin import UnitsMixin
@@ -226,6 +227,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.cached_parquet.append((upgrade_id, file_path)) #cached_parquet is a list of parquets used to export and reload
                 logger.info(f'Exporting to: {file_path}')
                 self.data = self.reorder_data_columns(self.data)
+                self._sightGlass_metadata_check(self.data)
                 self.data.write_parquet(file_path)
                 up_lazyframes.append(pl.scan_parquet(file_path))
 
@@ -2056,13 +2058,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Provide detailed additional info on missing buckets for review if desired
         logger.info('The following is a breakdown of missing truth data buildings by bucket attributes:')
+        APPO_GROUP_ID = "appo_group_id"
         for attribute in ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']:
             logger.info(f'{attribute}:')
-            logger.info(f'{
-                pl.Series(tdf.filter(pl.col('appo_group_id').is_in(missing_groups)).select(
-                    pl.col(attribute).value_counts(sort=True)
-                ).collect()).to_list()
-            }'.replace("}, {", '\n\t').replace('[{', '\t').replace('}]', ''))
+            logger.info(f'{pl.Series(tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups)).select(pl.col(attribute).value_counts(sort=True)).collect()).to_list()}'
+                        .replace("}, {", "\n\t").replace("[{", "\t").replace("}]", ""))
         logger.info('Writting QAQC / Debugging files to the home directory.')
         attrs = ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
         tdf.select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv('~/potential_apportionment_group_optimization.csv')
@@ -2881,3 +2881,65 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
         logger.info(f'Exporting enumeration dictionary to: {file_path}')
         enum_dictionary.write_csv(file_path, separator='\t')
+
+
+    def _sightGlass_metadata_check(self, row_segment: pl.DataFrame):
+        # Check that the metadata columns are present in the data
+        # when the columns are in memory
+        err_log = "" 
+
+        #check no na values in any columns
+        if row_segment.null_count().pipe(sum).item() > 0:
+            err_log += 'Null values found in data\n'
+            for c in row_segment.columns:
+                if c.startswith("out.qoi.") or c.startswith("out.utility_bills.") or c.startswith('applicability.upgrade_add_pvwatts'):
+                    continue
+                if row_segment[c].null_count() > 0:
+                    err_log += f'Column {c} has null values\n'
+
+        SIGHTGLASS_REQUIRED_COLS = [self.BLDG_ID, self.META_IDX, self.UPGRADE_ID, 
+                                    self.BLDG_WEIGHT, self.UPGRADE_APPL, self.FLR_AREA]
+        
+        for col in SIGHTGLASS_REQUIRED_COLS:
+            if col not in row_segment.columns:
+                err_log += f'{col} not found in data, which is needed for sightglass\n'
+
+        #Skip pattern, may need delete later:
+        pattern = r'out\.electricity\.total\.[a-zA-Z]{3}\.energy_consumption'
+
+        for c in row_segment.columns:
+            if re.search('[^a-z0-9._]', c):
+                # (f'Column {c} violates name rules: may only contain . _ 0-9 lowercaseletters (no spaces)')
+                err_log += f'Column {c} violates name rules: may only contain . _ 0-9 lowercaseletters (no spaces)\n' 
+        
+        #Actually that's the perfect case to use regex to check the summary.
+        TOTAL_PATTERN = r'out\.([a-zA-Z_]+)\.total\.energy_consumption\.\.kwh'
+        ENDUSE_PATTERN = r'out\.([a-zA-Z_]+)\.(?!total)([a-zA-Z_]+)\.energy_consumption\.\.kwh'
+        MONTH_PATTERN = r'out\.electricity\.total\.([a-zA-Z]{3})\.energy_consumption'
+
+        #Find the sum of total culmns for each type fuels, and for each fuel type find the sum of different
+        #enduse columns. And record them in a dictionary like: {fuel_type: total_energy}
+        fuel_total, end_use_total, month_total = {}, {}, {}
+        for c in row_segment.columns:
+            if re.match(TOTAL_PATTERN, c):
+                fuel_type = re.match(TOTAL_PATTERN, c).group(1)
+                fuel_total[fuel_type] = row_segment[c].sum()
+            elif re.match(ENDUSE_PATTERN, c):
+                fuel_type = re.match(ENDUSE_PATTERN, c).group(1)
+                end_use_total[fuel_type] = end_use_total.get(fuel_type, 0) + row_segment[c].sum()
+            elif re.match(MONTH_PATTERN, c):
+                month = re.match(MONTH_PATTERN, c).group(1)
+                month_total[month] = row_segment[c].sum()
+        
+        logger.info(f"Fuel total: {fuel_total}, Enduse total: {end_use_total}, Month total: {month_total}")
+        # Check that the total site energy is the sum of the fuel totals
+        for fuel, total in end_use_total.items():
+            if not total == pytest.approx(fuel_total[fuel], rel=0.001):
+                err_log += f'Fuel total for {fuel} does not match sum of enduse columns\n'
+        if not sum(fuel_total.values()) == pytest.approx(row_segment[self.ANN_TOT_ENGY_KBTU].sum(), rel=0.001):
+            err_log += 'Site total does not match sum of fuel totals\n'
+        if not sum(month_total.values()) == pytest.approx(row_segment[self.ANN_TOT_ELEC_KBTU].sum(), rel=0.01):
+            err_log += 'Electricity total does not match sum of month totals\n'
+    
+        if err_log:
+            raise ValueError(err_log)

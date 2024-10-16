@@ -57,7 +57,7 @@ def leap_year?(year)
   end
 end
 
-### obtain oat profile from epw file 
+### obtain oat profile from epw file
 def read_epw(model, epw_path=nil)
   if epw_path==nil
     # get EPWFile class from model
@@ -304,7 +304,7 @@ def model_run_simulation_on_doy(model, doy, num_timesteps_in_hr, epw_path=nil, r
   # Set up the simulation
   # Find the weather file
   if epw_path==nil
-    epw_path = std.model_get_full_weather_file_path(model)
+    epw_path = OpenstudioStandards::Weather.model_get_full_weather_file_path(model)
     if epw_path.empty?
       return false
     end
@@ -363,10 +363,10 @@ def model_run_simulation_on_doy(model, doy, num_timesteps_in_hr, epw_path=nil, r
   end
   timeseriesname = 'Electricity:Facility'
   reportingfrequency = 'Hourly' #'Zone Timestep'
-  unless availableEnvPeriods.include?(envperiod) 
+  unless availableEnvPeriods.include?(envperiod)
     raise "envperiod of #{envperiod} not included in available options: #{availableEnvPeriods}"
   end
-  unless availableTimeSeries.include?(timeseriesname) 
+  unless availableTimeSeries.include?(timeseriesname)
     raise "timeseriesname of #{timeseriesname} not included in available options: #{availableTimeSeries}"
   end
   unless availableReportingFrequencies.include?(reportingfrequency)
@@ -481,7 +481,7 @@ def model_run_simulation_on_part_of_year(model, max_doy, num_timesteps_in_hr, ep
   # Set up the simulation
   # Find the weather file
   if epw_path==nil
-    epw_path = std.model_get_full_weather_file_path(model)
+    epw_path = OpenstudioStandards::Weather.model_get_full_weather_file_path(model)
     if epw_path.empty?
       return false
     end
@@ -536,10 +536,10 @@ def model_run_simulation_on_part_of_year(model, max_doy, num_timesteps_in_hr, ep
     raise "options for availableEnvPeriods are not just one: #{availableEnvPeriods}"
   end
   timeseriesname = 'Electricity:Facility'
-  unless availableEnvPeriods.include?(envperiod) 
+  unless availableEnvPeriods.include?(envperiod)
     raise "envperiod of #{envperiod} not included in available options: #{availableEnvPeriods}"
   end
-  unless availableTimeSeries.include?(timeseriesname) 
+  unless availableTimeSeries.include?(timeseriesname)
     raise "timeseriesname of #{timeseriesname} not included in available options: #{availableTimeSeries}"
   end
   reportingfrequency = 'Hourly' #'Zone Timestep'
@@ -642,7 +642,7 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path=nil, run_
   unless Dir.exist?(run_dir)
     FileUtils.mkdir_p(run_dir)
   end
-  
+
   template = 'ComStock 90.1-2019'
   std = Standard.build(template)
   # Save the model to energyplus idf
@@ -676,7 +676,7 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path=nil, run_
   # Set up the simulation
   # Find the weather file
   if epw_path==nil
-    epw_path = std.model_get_full_weather_file_path(model)
+    epw_path = OpenstudioStandards::Weather.model_get_full_weather_file_path(model)
     if epw_path.empty?
       return false
     end
@@ -731,10 +731,10 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path=nil, run_
     raise "options for availableEnvPeriods are not just one: #{availableEnvPeriods}"
   end
   timeseriesname = 'Electricity:Facility'
-  unless availableEnvPeriods.include?(envperiod) 
+  unless availableEnvPeriods.include?(envperiod)
     raise "envperiod of #{envperiod} not included in available options: #{availableEnvPeriods}"
   end
-  unless availableTimeSeries.include?(timeseriesname) 
+  unless availableTimeSeries.include?(timeseriesname)
     raise "timeseriesname of #{timeseriesname} not included in available options: #{availableTimeSeries}"
   end
   reportingfrequency = 'Hourly' #'Zone Timestep'

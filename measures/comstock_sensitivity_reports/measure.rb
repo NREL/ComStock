@@ -275,7 +275,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
   # lookup or interpolate dependent varible based on two independent variable arrays and one dependent variable array
   # @param ind_var_1 [Array] independent variables 1
   # @param ind_var_2 [Array] independent variables 2
-  # @param dep_var [Array] dependent variables
+  # @param dep_var [Array] dependent variables 
   # @param input1 [Double] independent variable 1
   # @param input2 [Double] independent variable 2
   def interpolate_from_two_ind_vars(runner, ind_var_1, ind_var_2, dep_var, input1, input2)

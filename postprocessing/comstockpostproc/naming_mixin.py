@@ -652,7 +652,6 @@ class NamingMixin():
     def col_name_to_weighted_savings(self, col_name, new_units=None):
         col_name = self.col_name_to_weighted(col_name, new_units)
         col_name = col_name.replace('.weighted.', '.weighted.savings.')
-
         return col_name
 
     def col_name_to_savings(self, col_name, new_units=None):
@@ -666,7 +665,6 @@ class NamingMixin():
             raise ValueError(f"Cannot convert column name {col_name} to savings column") 
         
         return converted_col_name
-
     def col_name_to_weighted_percent_savings(self, col_name, new_units=None):
         col_name = self.col_name_to_weighted(col_name, new_units)
         col_name = col_name.replace('.weighted.', '.weighted.percent_savings.')
