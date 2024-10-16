@@ -1,3 +1,6 @@
+# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# See top level LICENSE.txt file for license terms.
+
 import boto3
 import botocore
 from glob import glob
@@ -89,8 +92,8 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
     CEN_DIV_LKUP={
         'G090': 'New England', 'G230': 'New England', 'G250': 'New England', 'G330': 'New England',
-        'G440': 'New England', 'G500': 'New England', 'G340': 'Mid-Atlantic', 'G360': 'Mid-Atlantic',
-        'G420': 'Mid-Atlantic', 'G180': 'East North Central', 'G170': 'East North Central',
+        'G440': 'New England', 'G500': 'New England', 'G340': 'Middle Atlantic', 'G360': 'Middle Atlantic',
+        'G420': 'Middle Atlantic', 'G180': 'East North Central', 'G170': 'East North Central',
         'G260': 'East North Central', 'G390': 'East North Central', 'G550': 'East North Central',
         'G190': 'West North Central', 'G200': 'West North Central', 'G270': 'West North Central',
         'G290': 'West North Central', 'G310': 'West North Central', 'G380': 'West North Central',
@@ -534,6 +537,7 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         hcols = [col.replace('Option=', '') for col in hsdf.columns if 'Option=' in col]
         hsdf.columns = [col.replace('Dependency=', '').replace('Option=', '') for col in hsdf.columns]
         hsdf.loc[:, 'building_type'] = hsdf.loc[:, 'building_type'].map(self.BUILDING_TYPE_NAME_MAPPER)
+        hsdf.loc[:, 'census_region'] = hsdf.loc[:, 'census_region'].replace('Mid-Atlantic', 'Middle Atlantic')
         df = df.merge(hsdf, left_on=['building_type', 'heating_fuel', 'cen_div'], right_on=['building_type', 'heating_fuel', 'census_region'])
 
         # Use the merged probabilities to sample in fuel type
