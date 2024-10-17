@@ -25,4 +25,4 @@ resources/measures/set_service_water_heating_fuel/tests/set_service_water_heatin
 resources/measures/set_service_water_heating_template/tests/measure_test.rb
 resources/measures/set_space_type_load_subcategories/tests/set_space_type_load_subcategories_test.rb
 resources/measures/set_wall_template/tests/set_wall_template_test.rb
-resources/measures/simulation_settings/tests/measure_test.rb
+resources/measures/simulation_settings/tests/simulation_settings_test.rb
