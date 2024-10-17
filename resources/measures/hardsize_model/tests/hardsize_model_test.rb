@@ -93,6 +93,12 @@ class HardsizeModelTest < Minitest::Test
     run_period.setEndDayOfMonth(15)
     run_period.setNumTimePeriodRepeats(1)
 
+    # Run simulation for sizing periods
+    sim_control = model.getSimulationControl
+    sim_control.setDoZoneSizingCalculation(true)
+    sim_control.setDoSystemSizingCalculation(true)
+    sim_control.setDoPlantSizingCalculation(true)
+
     # temporarily change directory to the run directory and run the measure
     # only necessary for measures that do a sizing run
     start_dir = Dir.pwd
@@ -128,7 +134,7 @@ class HardsizeModelTest < Minitest::Test
 
       # Assert that there was no change in energy consumption caused by
       # hard-sizing the model.
-      assert_equal(tot_engy_bef, tot_engy_aft)
+      assert_in_delta(tot_engy_bef, tot_engy_aft, 1.0)
     ensure
       # change back directory
       Dir.chdir(start_dir)

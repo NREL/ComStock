@@ -98,14 +98,13 @@ class HardsizeModel < OpenStudio::Measure::ModelMeasure
     model.applySizingValues
 
     # Reset some fields to the previously-collected hard-sized values
-
-    # TODO: remove once this functionality is added to the OpenStudio C++ for hard sizing UnitarySystems
     model.getAirLoopHVACUnitarySystems.each do |unitary|
       if model.version < OpenStudio::VersionString.new('3.7.0')
         unitary.setSupplyAirFlowRateMethodDuringCoolingOperation('SupplyAirFlowRate')
         unitary.setSupplyAirFlowRateMethodDuringHeatingOperation('SupplyAirFlowRate')
+      else
+        unitary.applySizingValues
       end
-      # else unitary.applySizingValues
     end
 
     # TODO: remove once this functionality is added to the OpenStudio C++ for hard sizing Sizing:System
