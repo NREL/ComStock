@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>set_service_water_heating_template</name>
   <uid>8c402a06-45ca-4501-b7d7-a174077b1f6e</uid>
-  <version_id>162810c9-24e6-4b8d-8ac7-9caf355b8e3f</version_id>
-  <version_modified>2024-04-24T14:01:38Z</version_modified>
+  <version_id>650c14ab-18ac-4208-833c-6d88e11e613c</version_id>
+  <version_modified>2024-10-17T16:24:45Z</version_modified>
   <xml_checksum>F5F290C6</xml_checksum>
   <class_name>SetServiceWaterHeatingTemplate</class_name>
   <display_name>Set Service Water Heating Template</display_name>
@@ -540,7 +540,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>7D1D3E77</checksum>
+      <checksum>6F608D0D</checksum>
     </file>
     <file>
       <filename>deer_building_types.rb</filename>
@@ -549,16 +549,10 @@
       <checksum>2D01794A</checksum>
     </file>
     <file>
-      <filename>Rt3-DEER Pre-1975-DXEH-CEC T24-CEC1.osm</filename>
-      <filetype>osm</filetype>
-      <usage_type>test</usage_type>
-      <checksum>D0AEC51B</checksum>
-    </file>
-    <file>
-      <filename>measure_test.rb</filename>
+      <filename>set_service_water_heating_template_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>995F63C0</checksum>
+      <checksum>F0A5FFF3</checksum>
     </file>
   </files>
 </measure>

@@ -1,21 +1,18 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2024 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
-require 'openstudio'
-require 'openstudio/ruleset/ShowRunnerOutput'
-require 'minitest/autorun'
-require_relative '../measure.rb'
+# dependencies
 require 'fileutils'
-require_relative '../../../../test/helpers/minitest_helper'
+require 'minitest/autorun'
+require 'openstudio'
+require 'openstudio/measure/ShowRunnerOutput'
+require_relative '../measure'
 
 class AddHVACSystemTest < Minitest::Test
   def test_add_hvac_systems
-    # Get the original working directory
-    start_dir = Dir.pwd
-
     # Make the output directory if it doesn't exist
-    output_dir = File.expand_path('output', File.dirname(__FILE__))
-    FileUtils.mkdir output_dir unless Dir.exist? output_dir
+    output_dir = "#{__dir__}/output/"
+    FileUtils.mkdir_p(output_dir)
 
     # List all the HVAC system types to test
     # [system_type, allowable_htg_unmet_hrs, allowable_clg_unmet_hrs]
@@ -73,10 +70,12 @@ class AddHVACSystemTest < Minitest::Test
       ['Residential AC with no heat', 8760, 600],
       ['Residential AC with electric baseboard heat', 600, 600]
     ]
-
     template = '90.1-2013'
     building_type = 'SmallOffice'
     climate_zone = 'ASHRAE 169-2006-2A'
+
+    # Get the original working directory
+    start_dir = Dir.pwd
 
     # Add each HVAC system to the test model
     # and run a sizing run to ensure it simulates.
@@ -85,111 +84,110 @@ class AddHVACSystemTest < Minitest::Test
       reset_log
 
       model_dir = "#{output_dir}/#{system_type.delete('/')}"
-      FileUtils.mkdir model_dir unless Dir.exist? model_dir
-      Dir.chdir(model_dir)
+      FileUtils.mkdir_p model_dir
 
-      # Load the model if already created
-      if File.exist?("#{model_dir}/final.osm")
+      begin
+        Dir.chdir(model_dir)
 
-        puts "Already ran #{system_type}"
-        model = OpenStudio::Model::Model.new
-        sql = safe_load_sql("#{model_dir}/AR/run/eplusout.sql")
-        model.setSqlFile(sql)
+        # Load the model if already created
+        if File.exist?("#{model_dir}/final.osm")
+          puts "Already ran #{system_type}"
+          model = OpenStudio::Model::Model.new
+          sql = safe_load_sql("#{model_dir}/AR/run/eplusout.sql")
+          model.setSqlFile(sql)
+        else # make and run annual simulation
+          puts "Running #{system_type}"
 
-      # If not created, make and run annual simulation
-      else
-        puts "Running #{system_type}"
+          # Load the test model
+          model = safe_load_model("#{File.dirname(__FILE__)}/SmallOffice.osm")
 
-        # Load the test model
-        model = safe_load_model("#{File.dirname(__FILE__)}/SmallOffice.osm")
+          # Assign a weather file
+          model.add_design_days_and_weather_file(building_type, template, climate_zone, '')
 
-        # Assign a weather file
-        model.add_design_days_and_weather_file(building_type, template, climate_zone, '')
+          # Modify the unmet hours tolerance to a reasonable value
+          # of 1F
+          unmet_hrs_tol_r = 1
+          unmet_hrs_tol_k = OpenStudio.convert(unmet_hrs_tol_r, 'R', 'K').get
+          tol = model.getOutputControlReportingTolerances
+          tol.setToleranceforTimeHeatingSetpointNotMet(unmet_hrs_tol_k)
+          tol.setToleranceforTimeCoolingSetpointNotMet(unmet_hrs_tol_k)
 
-        # Modify the unmet hours tolerance to a reasonable value
-        # of 1F
-        unmet_hrs_tol_r = 1
-        unmet_hrs_tol_k = OpenStudio.convert(unmet_hrs_tol_r, 'R', 'K').get
-        tol = model.getOutputControlReportingTolerances
-        tol.setToleranceforTimeHeatingSetpointNotMet(unmet_hrs_tol_k)
-        tol.setToleranceforTimeCoolingSetpointNotMet(unmet_hrs_tol_k)
+          # create an instance of the measure
+          measure = CreateTypicalBuildingFromModel.new
 
-        # create an instance of the measure
-        measure = CreateTypicalBuildingFromModel.new
+          # create an instance of a runner
+          runner = OpenStudio::Ruleset::OSRunner.new
 
-        # create an instance of a runner
-        runner = OpenStudio::Ruleset::OSRunner.new
+          # get arguments
+          arguments = measure.arguments(model)
+          argument_map = OpenStudio::Ruleset.convertOSArgumentVectorToMap(arguments)
 
-        # get arguments
-        arguments = measure.arguments(model)
-        argument_map = OpenStudio::Ruleset.convertOSArgumentVectorToMap(arguments)
+          # create hash of argument values.
+          args_hash = {}
+          args_hash['system_type'] = system_type
+          args_hash['building_type'] = building_type
+          args_hash['template'] = template
+          args_hash['climate_zone'] = climate_zone
+          args_hash['add_elevators'] = false
+          args_hash['add_internal_mass'] = false
+          args_hash['add_exhaust'] = false
+          args_hash['add_exterior_lights'] = false
+          args_hash['add_swh'] = false
 
-        # create hash of argument values.
-        args_hash = {}
-        args_hash['system_type'] = system_type
-        args_hash['building_type'] = building_type
-        args_hash['template'] = template
-        args_hash['climate_zone'] = climate_zone
-        args_hash['add_elevators'] = false
-        args_hash['add_internal_mass'] = false
-        args_hash['add_exhaust'] = false
-        args_hash['add_exterior_lights'] = false
-        args_hash['add_swh'] = false
-
-        # populate argument with specified hash value if specified
-        arguments.each do |arg|
-          temp_arg_var = arg.clone
-          if args_hash[arg.name]
-            assert(temp_arg_var.setValue(args_hash[arg.name]), "Could not set #{arg.name} to #{args_hash[arg.name]}")
+          # populate argument with specified hash value if specified
+          arguments.each do |arg|
+            temp_arg_var = arg.clone
+            if args_hash[arg.name]
+              assert(temp_arg_var.setValue(args_hash[arg.name]), "Could not set #{arg.name} to #{args_hash[arg.name]}")
+            end
+            argument_map[arg.name] = temp_arg_var
           end
-          argument_map[arg.name] = temp_arg_var
+
+          # run the measure
+          measure.run(model, runner, argument_map)
+          result = runner.result
+
+          # show the output
+          show_output(result)
+
+          # assert that it ran correctly
+          # errs << "Failed on #{system_type}" unless result.value.valueName == "Success"
+
+          # Save the model
+          model.save("#{model_dir}/final.osm", true)
+
+          # Run the annual simulation
+          annual_run_success = model.run_simulation_and_log_errors("#{model_dir}/AR")
+
+          # Log the errors
+          log_messages_to_file("#{model_dir}/openstudio-standards.log", debug = false)
+
+          # Check that the annual simulation succeeded
+          errs << "For #{system_type} annual run failed" unless annual_run_success
         end
 
-        # run the measure
-        measure.run(model, runner, argument_map)
-        result = runner.result
+        # Check the conditioned floor area
+        errs << "For #{system_type} there was no conditioned area." if model.net_conditioned_floor_area == 0
 
-        # show the output
-        show_output(result)
+        # Check the unmet heating hours
+        unmet_htg_hrs = model.annual_occupied_unmet_heating_hours
+        if unmet_htg_hrs
+          errs << "For #{system_type} there were #{unmet_htg_hrs} unmet occupied heating hours, more than the limit of #{allowable_htg_unmet_hrs}." if unmet_htg_hrs > allowable_htg_unmet_hrs
+        else
+          errs << "For #{system_type} could not determine unmet heating hours; simulation may have failed."
+        end
 
-        # assert that it ran correctly
-        # errs << "Failed on #{system_type}" unless result.value.valueName == "Success"
-
-        # Save the model
-        model.save("#{model_dir}/final.osm", true)
-
-        # Run the annual simulation
-        annual_run_success = model.run_simulation_and_log_errors("#{model_dir}/AR")
-
-        # Log the errors
-        log_messages_to_file("#{model_dir}/openstudio-standards.log", debug = false)
-
-        # Check that the annual simulation succeeded
-        errs << "For #{system_type} annual run failed" unless annual_run_success
-
-      end
-
-      # Check the conditioned floor area
-      errs << "For #{system_type} there was no conditioned area." if model.net_conditioned_floor_area == 0
-
-      # Check the unmet heating hours
-      unmet_htg_hrs = model.annual_occupied_unmet_heating_hours
-      if unmet_htg_hrs
-        errs << "For #{system_type} there were #{unmet_htg_hrs} unmet occupied heating hours, more than the limit of #{allowable_htg_unmet_hrs}." if unmet_htg_hrs > allowable_htg_unmet_hrs
-      else
-        errs << "For #{system_type} could not determine unmet heating hours; simulation may have failed."
-      end
-
-      # Check the unmet cooling hours
-      unmet_clg_hrs = model.annual_occupied_unmet_cooling_hours
-      if unmet_clg_hrs
-        errs << "For #{system_type} there were #{unmet_clg_hrs} unmet occupied cooling hours, more than the limit of #{allowable_clg_unmet_hrs}." if unmet_clg_hrs > allowable_clg_unmet_hrs
-      else
-        errs << "For #{system_type} could not determine unmet cooling hours; simulation may have failed."
+        # Check the unmet cooling hours
+        unmet_clg_hrs = model.annual_occupied_unmet_cooling_hours
+        if unmet_clg_hrs
+          errs << "For #{system_type} there were #{unmet_clg_hrs} unmet occupied cooling hours, more than the limit of #{allowable_clg_unmet_hrs}." if unmet_clg_hrs > allowable_clg_unmet_hrs
+        else
+          errs << "For #{system_type} could not determine unmet cooling hours; simulation may have failed."
+        end
+      ensure
+        Dir.chdir(start_dir)
       end
     end
-
-    Dir.chdir(start_dir)
 
     # Expected error "Cannot find current Workflow Step"
     assert(errs.size < 2, errs.join("\n"))

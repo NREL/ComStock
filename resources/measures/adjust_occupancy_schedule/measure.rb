@@ -143,8 +143,6 @@ def schedule_ruleset_simple_value_adjust(schedule_ruleset, value, modification_t
   return schedule_ruleset
 end
 
-
-
 # start the measure
 class AdjustOccupancySchedule < OpenStudio::Measure::ModelMeasure
   # human readable name
@@ -178,7 +176,7 @@ class AdjustOccupancySchedule < OpenStudio::Measure::ModelMeasure
 
   # define what happens when the measure is run
   def run(model, runner, user_arguments)
-    super(model, runner, user_arguments)  # Do **NOT** remove this line
+    super(model, runner, user_arguments)
 
     # use the built-in error checking
     if !runner.validateUserArguments(arguments(model), user_arguments)
@@ -194,7 +192,7 @@ class AdjustOccupancySchedule < OpenStudio::Measure::ModelMeasure
     # get schedules from all people loads
     model.getPeoples.each do |ppl|
       # gather schedule info
-      sch_info = {area: 0, ppl_nom: 0}
+      sch_info = { area: 0, ppl_nom: 0 }
       num_sch = ppl.numberofPeopleSchedule.get.to_ScheduleRuleset.get
       load_def = ppl.peopleDefinition
       sch_info[:sch] = num_sch
@@ -206,11 +204,11 @@ class AdjustOccupancySchedule < OpenStudio::Measure::ModelMeasure
     end
 
     # get unique schedule names
-    sch_names = all_sch_info.map{|hash| hash.select{|k,_| k == :name}}.uniq
+    sch_names = all_sch_info.map { |hash| hash.select { |k, _| k == :name } }.uniq
 
     # calculate total nominal and schedule-adjusted occupancy
-    tot_ppl_nom = all_sch_info.inject(0){|sum,h| sum + h[:ppl_nom]}
-    tot_ppl_adj = all_sch_info.inject(0){|sum,h| sum + (h[:ppl_nom] * h[:max])}
+    tot_ppl_nom = all_sch_info.inject(0) { |sum, h| sum + h[:ppl_nom] }
+    tot_ppl_adj = all_sch_info.inject(0) { |sum, h| sum + (h[:ppl_nom] * h[:max]) }
 
     # report initial occupancy values
     runner.registerInitialCondition("#{sch_names.size} Unique occupancy schedules found. Initial total nominal occupancy: #{tot_ppl_nom}, initial peak schedule-adjusted occupancy: #{tot_ppl_adj}.")
@@ -236,8 +234,8 @@ class AdjustOccupancySchedule < OpenStudio::Measure::ModelMeasure
       final_info << sch_info
     end
 
-    final_ppl_nom = final_info.inject(0){|sum,h| sum + h[:ppl_nom]}
-    final_ppl_adj = final_info.inject(0){|sum,h| sum + (h[:ppl_nom] * h[:max])}
+    final_ppl_nom = final_info.inject(0) { |sum, h| sum + h[:ppl_nom] }
+    final_ppl_adj = final_info.inject(0) { |sum, h| sum + (h[:ppl_nom] * h[:max]) }
 
     runner.registerFinalCondition("Final total nominal occupancy: #{final_ppl_nom}; final peak schedule-adjusted occupancy: #{final_ppl_adj}.")
 

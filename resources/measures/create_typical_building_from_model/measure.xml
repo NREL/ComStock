@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>create_typical_building_from_model</name>
   <uid>339a2e3a-273c-4494-bb50-bfe586a0647c</uid>
-  <version_id>f379f3b9-d3d4-4834-9b1f-51839de112cd</version_id>
-  <version_modified>2024-06-20T18:58:36Z</version_modified>
+  <version_id>cb232409-0b6e-42fd-8d60-7e12a9a2a664</version_id>
+  <version_modified>2024-10-17T20:29:25Z</version_modified>
   <xml_checksum>EE13F09F</xml_checksum>
   <class_name>CreateTypicalBuildingFromModel</class_name>
   <display_name>Create Typical Building from Model</display_name>
@@ -1459,7 +1459,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>F36A5158</checksum>
+      <checksum>5E052863</checksum>
     </file>
     <file>
       <filename>LargeOffice04.osm</filename>
@@ -1513,7 +1513,7 @@
       <filename>create_typical_building_from_model_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>FB470189</checksum>
+      <checksum>22ED74F0</checksum>
     </file>
     <file>
       <filename>ecc.osm</filename>
@@ -1648,16 +1648,10 @@
       <checksum>58FF4052</checksum>
     </file>
     <file>
-      <filename>test.osw</filename>
-      <filetype>osw</filetype>
-      <usage_type>test</usage_type>
-      <checksum>6DB338FC</checksum>
-    </file>
-    <file>
       <filename>test_hvac.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>E98E4A57</checksum>
+      <checksum>EB670A0C</checksum>
     </file>
     <file>
       <filename>wrf.osm</filename>

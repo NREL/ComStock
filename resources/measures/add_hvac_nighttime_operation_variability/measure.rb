@@ -73,7 +73,7 @@ class AddHvacNighttimeOperationVariability < OpenStudio::Measure::ModelMeasure
   def air_loop_doas?(air_loop_hvac)
     is_doas = false
     sizing_system = air_loop_hvac.sizingSystem
-    if sizing_system.allOutdoorAirinCooling && sizing_system.allOutdoorAirinHeating && (air_loop_res?(air_loop_hvac) == false) && (air_loop_hvac.name.to_s.include?("DOAS") || air_loop_hvac.name.to_s.include?("doas"))
+    if sizing_system.allOutdoorAirinCooling && sizing_system.allOutdoorAirinHeating && (air_loop_res?(air_loop_hvac) == false) && air_loop_hvac.name.to_s.downcase.include?('doas')
       is_doas = true
     end
     return is_doas
@@ -123,8 +123,10 @@ class AddHvacNighttimeOperationVariability < OpenStudio::Measure::ModelMeasure
       next if air_loop_res?(air_loop_hvac)
       next if air_loop_evaporative_cooler?(air_loop_hvac)
       next if air_loop_doas?(air_loop_hvac)
+
       # skip data centers
-      next if ['Data Center', 'DataCenter', 'data center', 'datacenter', 'DATACENTER', 'DATA CENTER'].any? { |word| (air_loop_hvac.name.get).include?(word) }
+      next if ['datacenter', 'data center'].any? { |word| air_loop_hvac.name.get.downcase.include?(word) }
+
       # check unitary systems
       if air_loop_hvac_unitary_system?(air_loop_hvac)
         unitary_system_count += 1
@@ -151,17 +153,19 @@ class AddHvacNighttimeOperationVariability < OpenStudio::Measure::ModelMeasure
 
     # make changes to unitary systems
     li_unitary_systems.sort.each do |air_loop_hvac|
-
       # change night OA schedule to match hvac operation schedule for no night OA
       case rtu_night_mode
       when 'night_fancycle_novent'
         # Schedule to control whether or not unit ventilates at night - clone hvac availability schedule
         next unless air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.is_initialized
+
         air_loop_vent_sch = air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.get
         air_loop_vent_sch.setName("#{air_loop_hvac.name}_night_novent_schedule")
         next unless air_loop_hvac.airLoopHVACOutdoorAirSystem.is_initialized
+
         air_loop_oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get.getControllerOutdoorAir
         next unless air_loop_oa_system.minimumOutdoorAirSchedule.is_initialized
+
         air_loop_oa_system.setMinimumOutdoorAirSchedule(air_loop_vent_sch)
         oa_schd_op_count += 1
       end
@@ -174,8 +178,10 @@ class AddHvacNighttimeOperationVariability < OpenStudio::Measure::ModelMeasure
         air_loop_vent_sch.setName("#{air_loop_hvac.name}_night_ventcycle_schedule")
         air_loop_vent_sch.setValue(1)
         next unless air_loop_hvac.airLoopHVACOutdoorAirSystem.is_initialized
+
         air_loop_oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get.getControllerOutdoorAir
         next unless air_loop_oa_system.minimumOutdoorAirSchedule.is_initialized
+
         air_loop_oa_system.setMinimumOutdoorAirSchedule(air_loop_vent_sch)
         oa_schd_1_count += 1
       end
@@ -185,6 +191,7 @@ class AddHvacNighttimeOperationVariability < OpenStudio::Measure::ModelMeasure
       when 'night_fancycle_novent', 'night_fancycle_vent'
         # Schedule to control whether or not unit ventilates at night - clone hvac availability schedule
         next unless air_loop_hvac.availabilitySchedule.to_ScheduleRuleset.is_initialized
+
         air_loop_fan_sch = air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.get
         air_loop_fan_sch.setName("#{air_loop_hvac.name}_night_fancycle_schedule")
         # Schedule to control the airloop fan operation schedule
@@ -249,17 +256,19 @@ class AddHvacNighttimeOperationVariability < OpenStudio::Measure::ModelMeasure
 
     # make changes to non-unitary systems
     li_non_unitary_systems.sort.each do |air_loop_hvac|
-
       # change night OA schedule to match hvac operation schedule for no night OA
       case rtu_night_mode
       when 'night_fancycle_novent'
         # Schedule to control whether or not unit ventilates at night - clone hvac availability schedule
         next unless air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.is_initialized
+
         air_loop_vent_sch = air_loop_hvac.availabilitySchedule.clone.to_ScheduleRuleset.get
         air_loop_vent_sch.setName("#{air_loop_hvac.name}_night_novent_schedule")
         next unless air_loop_hvac.airLoopHVACOutdoorAirSystem.is_initialized
+
         air_loop_oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get.getControllerOutdoorAir
         next unless air_loop_oa_system.minimumOutdoorAirSchedule.is_initialized
+
         air_loop_oa_system.setMinimumOutdoorAirSchedule(air_loop_vent_sch)
         oa_schd_op_count += 1
       end
@@ -272,8 +281,10 @@ class AddHvacNighttimeOperationVariability < OpenStudio::Measure::ModelMeasure
         air_loop_vent_sch.setName("#{air_loop_hvac.name}_night_ventcycle_schedule")
         air_loop_vent_sch.setValue(1)
         next unless air_loop_hvac.airLoopHVACOutdoorAirSystem.is_initialized
+
         air_loop_oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get.getControllerOutdoorAir
         next unless air_loop_oa_system.minimumOutdoorAirSchedule.is_initialized
+
         air_loop_oa_system.setMinimumOutdoorAirSchedule(air_loop_vent_sch)
         oa_schd_1_count += 1
       end
