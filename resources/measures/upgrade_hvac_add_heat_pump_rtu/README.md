@@ -47,7 +47,7 @@ Specifies temperature to size heating on. If design temperature for climate is h
 **Required:** true,
 **Model Dependent:** false
 
-**Choice Display Names** ["47F", "17F", "0F"]
+**Choice Display Names** ["47F", "17F", "0F", "-10F"]
 
 
 ### Cooling Upsizing Factor Estimate
@@ -118,6 +118,15 @@ Determines performance assumptions. two_speed_standard_eff is a standard efficie
 ### Do a sizing run for informing sizing instead of using hard-sized model parameters?
 
 **Name:** sizing_run,
+**Type:** Boolean,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+
+### Print out detailed debugging logs if this parameter is true
+
+**Name:** debug_verbose,
 **Type:** Boolean,
 **Units:** ,
 **Required:** true,
