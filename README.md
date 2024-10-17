@@ -88,6 +88,6 @@ pip install NREL-PySAM==4.2.0
 
 ## Running Rubocop
 1. Follow the developer installation instructions above
-2. navigate to the `resources/` directory
+2. navigate to the `.custom_gems` directory
 3. run `bundle exec rake rubocop:show` in terminal
 4. review results by opening the `rubocop-results.html` in the `.rubocop/` directory
