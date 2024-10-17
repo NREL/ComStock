@@ -59,13 +59,12 @@ class CreateBarFromBuildingTypeRatiosTest < Minitest::Test
     assert_equal(result_value, result.value.valueName)
 
     # check count of warning and info messages
-
     assert_equal(info_count, result.info.size) unless info_count.nil?
     assert_equal(warnings_count, result.warnings.size) unless warnings_count.nil?
     result.warnings.each { |w| runner.registerWarning(w.logMessage) }
 
     # if 'Fail' passed in make sure at least one error message (while not typical there may be more than one message)
-    if result_value == 'Fail' then assert(result.errors.size >= 1) end
+    assert(result.errors.size >= 1) if result_value == 'Fail'
 
     # save the model to test output directory
     output_file_path = OpenStudio::Path.new("#{__dir__}/output/#{test_name}_out.osm")

@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>create_bar_from_building_type_ratios</name>
   <uid>6e3a14f8-c3c7-4e03-bc51-bef8a52e1a05</uid>
-  <version_id>1b69d24f-8897-414b-9d18-72f956620ca2</version_id>
-  <version_modified>2024-10-17T19:43:01Z</version_modified>
+  <version_id>6a5ff3d3-a3d4-4cc7-8543-7541b1839701</version_id>
+  <version_modified>2024-10-17T20:28:57Z</version_modified>
   <xml_checksum>2AF3A68E</xml_checksum>
   <class_name>CreateBarFromBuildingTypeRatios</class_name>
   <display_name>Create Bar From Building Type Ratios</display_name>
@@ -2012,7 +2012,7 @@
       <filename>create_bar_from_building_type_ratios_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>A71E7D6D</checksum>
+      <checksum>A90343C9</checksum>
     </file>
     <file>
       <filename>example_model_no_surf.osm</filename>
