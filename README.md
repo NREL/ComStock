@@ -62,19 +62,32 @@ This is needed if you are a developer making changes to `openstudio-standards` o
 	7. Contents: `require "C:/openstudio-3.8.0/Ruby/openstudio.rb"`  Modify `3.8.0` to the version you installed.
 	8. Save it here: `C:/Ruby32-x64/lib/ruby/site_ruby/openstudio.rb`
 
-4. `gem install bundler` This installs the `bundler` ruby gem.
+4. `gem install bundler:2.4.10` This installs the version of bundler needed for ComStock.
 5. Install [Git](https://git-scm.com/).
 6. Install [GitHub desktop](https://desktop.github.com/) or another GUI that makes Git easier to use.
 7. Clone the [ComStock source code](https://github.com/NREL/ComStock.git) using GitHub desktop (easier) or Git (harder).
 8. Run all commands below from the top level `/ComStock` directory
-13. `mkdir .custom_gems` This makes a temp directory to install required gems inside.
-13. `copy /Y .\resources\Gemfile .\.custom_gems\Gemfile` This copies the Gemfile to the temp directory.
-13. `gem install bundler:2.4.10` This installs the version of bundler needed by OpenStudio.
-13. `bundle _2.4.10_ install --path "C:/GitRepos/ComStock/.custom_gems" --gemfile "C:/GitRepos/ComStock/.custom_gems/Gemfile" --without test` This will install all ruby gems necessary to develop this code.
-14. If running simulations locally, install [BuildStock Batch](https://buildstockbatch.readthedocs.io/en/stable/installation.html#local)
-15. Add the following additional Python packages into your `buildstockbatch` environment:
+9. `mkdir .custom_gems` This makes a temp directory to install required gems inside.
+10. `copy /Y .\resources\Gemfile .\.custom_gems\Gemfile` This copies the Gemfile to the temp directory.
+11. `bundle _2.4.10_ install --path "C:/GitRepos/ComStock/.custom_gems" --gemfile "C:/GitRepos/ComStock/.custom_gems/Gemfile" --without test` This will install all ruby gems necessary to develop this code.
+12. If running simulations locally, install [BuildStock Batch](https://buildstockbatch.readthedocs.io/en/stable/installation.html#local)
+13. Add the following additional Python packages into your `buildstockbatch` environment:
 ```bash
 conda activate buildstockbatch
 pip install GHEDesigner==1.0
 pip install NREL-PySAM==4.2.0
 ```
+
+## Measure Tests
+1. Follow the developer installation instructions above. In particular, `GHEDesigner==1.0` must be installed with `pip install GHEDesigner==1.0`.
+2. Run the measure tests with the rake command:
+  - `bundle exec rake unit_tests:all_tests` to run all measure tests.
+  - `bundle exec rake unit_tests:reporting_measure_tests` to run all reporting measure tests.
+  - `bundle exec rake unit_tests:workflow_measure_tests` to run all workflow measure tests.
+	- `bundle exec rake unit_tests:upgrade_measure_tests` to run all `upgrade_` measure tests.
+
+## Running Rubocop
+1. Follow the developer installation instructions above
+2. navigate to the `resources/` directory
+3. run `bundle exec rake rubocop:show` in terminal
+4. review results by opening the `rubocop-results.html` in the `.rubocop/` directory
