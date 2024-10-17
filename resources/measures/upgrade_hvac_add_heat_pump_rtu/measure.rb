@@ -6,6 +6,7 @@
 # see the URL below for information on how to write OpenStudio measures
 # http://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/
 require 'openstudio-standards'
+require_relative '../upgrade_env_roof_insul_aedg/measure.rb'
 # require 'minitest/autorun'
 
 # start the measure
@@ -127,6 +128,13 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     econ.setDisplayName('Add Economizer?')
     econ.setDefaultValue(false)
     args << econ
+
+    # add roof insulation option
+    roof = OpenStudio::Measure::OSArgument.makeBoolArgument('roof', true)
+    roof.setDisplayName('Upgrade Roof Insulation?')
+    roof.setDescription('Upgrade roof insulation per AEDG recommendations.')
+    roof.setDefaultValue(false)
+    args << roof
 
     # do a sizing run for sizing?
     sizing_run = OpenStudio::Measure::OSArgument.makeBoolArgument('sizing_run', true)
@@ -908,6 +916,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     hr = runner.getBoolArgumentValue('hr', user_arguments)
     dcv = runner.getBoolArgumentValue('dcv', user_arguments)
     econ = runner.getBoolArgumentValue('econ', user_arguments)
+    roof = runner.getBoolArgumentValue('roof', user_arguments)
     sizing_run = runner.getBoolArgumentValue('sizing_run', user_arguments)
     debug_verbose = runner.getBoolArgumentValue('debug_verbose', user_arguments)
 
@@ -1097,6 +1106,31 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     if selected_air_loops.empty?
       runner.registerAsNotApplicable('No applicable air loops in model. No changes will be made.')
       return true
+    end
+
+    # call roof insulation measure based on user input
+    if (roof==true) && (!selected_air_loops.empty?)
+
+       #get path to economizer measure
+       econ_measure_path = Dir.glob(File.join(__dir__, '../upgrade_env_roof_insul_aedg'))
+       # Load economizer measure
+       measure = EnvRoofInsulAedg.new
+
+       # Apply economizer measure
+       result = measure.run(model, runner, OpenStudio::Measure::OSArgumentMap.new)
+       result = runner.result
+
+       # Check if the measure ran successfully
+       if result.value.valueName == 'Success'
+        runner.registerInfo('Roof insulation measure was applied successfully, as requested by user argument.')
+       elsif result.value.valueName == 'NA'
+        runner.registerInfo('Roof insulation measure was not applicable')
+        result = true
+       else
+        runner.registerError('Roof insulation measure failed.')
+        return  false
+       end
+
     end
 
     # do sizing run with new equipment to set sizing-specific features
