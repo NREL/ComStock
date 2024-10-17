@@ -1,16 +1,20 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2024 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
-require 'openstudio'
-require 'openstudio/ruleset/ShowRunnerOutput'
-require_relative '../../../../test/helpers/minitest_helper'
-require 'minitest/autorun'
-require_relative '../measure.rb'
+# dependencies
 require 'fileutils'
+require 'minitest/autorun'
+require 'openstudio'
+require 'openstudio/measure/ShowRunnerOutput'
+require_relative '../measure'
 
-class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
+class CreateBarFromBuildingTypeRatiosTest < Minitest::Test
   # method to apply arguments, run measure, and assert results (only populate args hash with non-default argument values)
-  def apply_measure_to_model(test_name, args, model_name = nil, result_value = 'Success', warnings_count = 0, info_count = nil)
+  def apply_measure_to_model(test_name, args,
+                             model_name: nil,
+                             result_value: 'Success',
+                             warnings_count: 0,
+                             info_count: nil)
     # create an instance of the measure
     measure = CreateBarFromBuildingTypeRatios.new
 
@@ -23,7 +27,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     else
       # load the test model
       translator = OpenStudio::OSVersion::VersionTranslator.new
-      path = OpenStudio::Path.new(File.dirname(__FILE__) + '/' + model_name)
+      path = OpenStudio::Path.new("#{__dir__}/#{model_name}")
       model = translator.loadModel(path)
       assert(!model.empty?)
       model = model.get
@@ -51,18 +55,20 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     show_output(result)
 
     # assert that it ran correctly
-    if result_value.nil? then result_value = 'Success' end
+    result_value = 'Success' if result_value.nil?
     assert_equal(result_value, result.value.valueName)
 
     # check count of warning and info messages
-    unless info_count.nil? then assert(result.info.size == info_count) end
-    unless warnings_count.nil? then assert(result.warnings.size == warnings_count, "warning count (#{result.warnings.size}) did not match expectation (#{warnings_count})") end
+
+    assert_equal(info_count, result.info.size) unless info_count.nil?
+    assert_equal(warnings_count, result.warnings.size) unless warnings_count.nil?
+    result.warnings.each { |w| runner.registerWarning(w.logMessage) }
 
     # if 'Fail' passed in make sure at least one error message (while not typical there may be more than one message)
     if result_value == 'Fail' then assert(result.errors.size >= 1) end
 
     # save the model to test output directory
-    output_file_path = OpenStudio::Path.new(File.dirname(__FILE__) + "/output/#{test_name}_test_output.osm")
+    output_file_path = OpenStudio::Path.new("#{__dir__}/output/#{test_name}_out.osm")
     model.save(output_file_path, true)
 
     return model
@@ -72,7 +78,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args = {}
     args['total_bldg_floor_area'] = 10000.0
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_no_multiplier
@@ -81,7 +87,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 5
     args['story_multiplier'] = 'None'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_smart_defaults
@@ -91,7 +97,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['floor_height'] = 0.0
     args['wwr'] = 0.0
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_bad_fraction
@@ -99,7 +105,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['total_bldg_floor_area'] = 10000.0
     args['bldg_type_b_fract_bldg_area'] = 2.0
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, 'Fail')
+    apply_measure_to_model(__method__, args, result_value: 'Fail')
   end
 
   def test_bad_positive
@@ -107,7 +113,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['total_bldg_floor_area'] = 10000.0
     args['bldg_type_a_num_units'] = -2
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, 'Fail')
+    apply_measure_to_model(__method__, args, result_value: 'Fail')
   end
 
   def test_bad_non_neg
@@ -115,7 +121,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['total_bldg_floor_area'] = 10000.0
     args['floor_height'] = -1.0
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, 'Fail')
+    apply_measure_to_model(__method__, args, result_value: 'Fail')
   end
 
   def test_bad_building_type_fractions
@@ -126,7 +132,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['bldg_type_d_fract_bldg_area'] = 0.4
     # using defaults values from measure.rb for other arguments
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, 'Fail')
+    apply_measure_to_model(__method__, args, result_value: 'Fail')
   end
 
   def test_non_zero_rotation_primary_school
@@ -137,7 +143,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['building_rotation'] = -90.0
     args['party_wall_stories_east'] = 2
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, 2)
+    apply_measure_to_model(__method__, args, warnings_count: 2)
   end
 
   def test_large_hotel_restaurant
@@ -148,7 +154,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['bldg_type_b'] = 'FullServiceRestaurant'
     args['bldg_type_b_fract_bldg_area'] = 0.1
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_warehouse_subtype
@@ -157,7 +163,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['bldg_type_a'] = 'Warehouse'
     args['bldg_subtype_a'] = 'warehouse_bulk100'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_largeoffice_subtype
@@ -166,7 +172,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['bldg_type_a'] = 'LargeOffice'
     args['bldg_subtype_a'] = 'largeoffice_nodatacenter'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_large_hotel_restaurant_multiplier
@@ -177,7 +183,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['bldg_type_b'] = 'FullServiceRestaurant'
     args['bldg_type_b_fract_bldg_area'] = 0.1
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_large_hotel_restaurant_multiplier_simple_slice
@@ -189,7 +195,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['bldg_type_b_fract_bldg_area'] = 0.1
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_large_hotel_restaurant_multiplier_party_wall
@@ -202,7 +208,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['party_wall_fraction'] = 0.25
     args['ns_to_ew_ratio'] = 2.15
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_large_hotel_restaurant_multiplier_party_big
@@ -216,7 +222,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['party_wall_fraction'] = 0.5
     args['ns_to_ew_ratio'] = 2.15
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_two_and_half_stories
@@ -226,7 +232,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 5.5
     args['bar_division_method'] = 'Single Space Type - Core and Perimeter'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_two_and_half_stories_simple_sliced
@@ -236,7 +242,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 5.5
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, 1)
+    apply_measure_to_model(__method__, args, warnings_count: 1)
   end
 
   def test_two_and_half_stories_individual_sliced
@@ -246,7 +252,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 5.5
     args['bar_division_method'] = 'Multiple Space Types - Individual Stories Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, 1)
+    apply_measure_to_model(__method__, args, warnings_count: 1)
   end
 
   def test_party_wall_stories_test_a
@@ -259,7 +265,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['party_wall_stories_north'] = 4
     args['party_wall_stories_south'] = 6
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args)
+    apply_measure_to_model(__method__, args)
   end
 
   # this test is failing intermittently due to unexpected warning
@@ -278,8 +284,6 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
   #   This planar surface shares the same SketchUp face as Surface 143.
   #       This error cannot be automatically fixed.  The surface will not be drawn.
   def test_mid_story_model
-    skip "For some reason this specific test locks up testing framework but passes in raw ruby test."
-
     args = {}
     args['total_bldg_floor_area'] = 40000.0
     args['bldg_type_a'] = 'MediumOffice'
@@ -288,9 +292,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['bottom_story_ground_exposed_floor'] = false
     args['top_story_exterior_exposed_roof'] = false
 
-    puts "starting bad test"
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args)
-    puts "finishing bad test"
+    apply_measure_to_model(__method__, args)
   end
 
   def test_mid_story_model_no_intersect
@@ -303,7 +305,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['top_story_exterior_exposed_roof'] = false
     args['make_mid_story_surfaces_adiabatic'] = true
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_same_bar_both_ends
@@ -314,7 +316,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 2
     # args["bar_division_method"] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, 8)
+    apply_measure_to_model(__method__, args, warnings_count: 8)
   end
 
   def test_rotation_45_party_wall_fraction
@@ -329,7 +331,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['bar_division_method'] = 'Single Space Type - Core and Perimeter'
 
     # 11 warning messages because using single space type division method with multi-space type building type
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, 13)
+    apply_measure_to_model(__method__, args, warnings_count: 13)
   end
 
   def test_fixed_single_floor_area
@@ -339,13 +341,14 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['ns_to_ew_ratio'] = 1.5
     args['num_stories_above_grade'] = 5.0
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args, warnings_count: 5)
   end
 
   def test_warehouse
     args = {}
     args['total_bldg_floor_area'] = 100000.0
     args['bldg_type_a'] = 'Warehouse'
+    apply_measure_to_model(__method__, args)
   end
 
   def test_neighboring_buildings
@@ -367,7 +370,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['neighbor_offset_west'] = 20
     args['bar_division_method'] = 'Single Space Type - Core and Perimeter'
 
-    model = apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    model = apply_measure_to_model(__method__, args, warnings_count: 13)
 
     # Assert that there is north, south, and west shading but no east shading
     north_shade = model.getShadingSurfaceByName('North Neighbor Shade')
@@ -404,7 +407,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['neighbor_offset_west'] = 20
     args['bar_division_method'] = 'Single Space Type - Core and Perimeter'
 
-    model = apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    model = apply_measure_to_model(__method__, args, warnings_count: 13)
 
     # Assert that there is north, south, east, and west shading
     north_shade = model.getShadingSurfaceByName('North Neighbor Shade')
@@ -457,7 +460,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['neighbor_offset_west'] = 20
     args['bar_division_method'] = 'Single Space Type - Core and Perimeter'
 
-    model = apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    model = apply_measure_to_model(__method__, args, warnings_count: 13)
 
     # Assert that there is north, south, east, and west shading
     north_shade = model.getShadingSurfaceByName('North Neighbor Shade')
@@ -498,7 +501,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 1
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_ecc
@@ -509,7 +512,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 5
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_epr
@@ -520,7 +523,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 2
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_erc
@@ -531,7 +534,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 1
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args, warnings_count: 1)
   end
 
   def test_ese
@@ -542,7 +545,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 5
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_eun
@@ -553,7 +556,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 9
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_gro
@@ -564,7 +567,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 1
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_hsp
@@ -575,7 +578,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 4
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_htl
@@ -586,7 +589,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 6
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_mbt
@@ -597,7 +600,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 1
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_mfm
@@ -608,7 +611,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 2
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_mli
@@ -619,7 +622,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 1
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_mtl
@@ -630,7 +633,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 2
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_nrs
@@ -641,7 +644,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 4
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_ofl
@@ -652,7 +655,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 3
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_ofs
@@ -663,7 +666,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 2
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_rff
@@ -674,7 +677,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 1
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_rsd
@@ -685,7 +688,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 1
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_rt3
@@ -696,7 +699,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 3
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_rtl
@@ -707,7 +710,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 1
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_rts
@@ -718,7 +721,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 1
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_scn
@@ -729,7 +732,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 1
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_sun
@@ -740,7 +743,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 1
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_wrf
@@ -751,7 +754,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 1
     args['bar_division_method'] = 'Multiple Space Types - Simple Sliced'
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_t24_ofs
@@ -760,13 +763,13 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['bldg_type_a'] = 'OfS'
     args['ns_to_ew_ratio'] = 1.0
     args['num_stories_above_grade'] = 3.0
-    args['template'] = "DEER Pre-1975"
-    args['climate_zone'] = "CEC T24-CEC9"
+    args['template'] = 'DEER Pre-1975'
+    args['climate_zone'] = 'CEC T24-CEC9'
     args['floor_height'] = 9.0
-    args['story_multiplier'] = "None"
+    args['story_multiplier'] = 'None'
     args['wwr'] = 0.3
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args)
   end
 
   def test_t24_mfm
@@ -775,13 +778,13 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['bldg_type_a'] = 'MFm'
     args['ns_to_ew_ratio'] = 1.0
     args['num_stories_above_grade'] = 9.0
-    args['template'] = "DEER Pre-1975"
-    args['climate_zone'] = "CEC T24-CEC9"
+    args['template'] = 'DEER Pre-1975'
+    args['climate_zone'] = 'CEC T24-CEC9'
     args['floor_height'] = 8.0
-    args['story_multiplier'] = "None"
+    args['story_multiplier'] = 'None'
     args['wwr'] = 0.3
 
-    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, nil, nil, nil)
+    apply_measure_to_model(__method__, args, warnings_count: 3)
   end
 
   def test_preserve_bldg_addl_props
@@ -790,7 +793,7 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     args['num_stories_above_grade'] = 5
     args['story_multiplier'] = 'None'
 
-    model = apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'example_model_no_surf.osm')
+    model = apply_measure_to_model(__method__, args, model_name: 'example_model_no_surf.osm')
 
     # Ensure that building additional properties are preserved
     props = model.getBuilding.additionalProperties
@@ -800,5 +803,4 @@ class CreateBarFromBuildingTypeRatios_Test < Minitest::Test
     assert_equal(props.getFeatureAsInteger('int').get, 99)
     assert(props.getFeatureAsBoolean('bool').get)
   end
-
 end
