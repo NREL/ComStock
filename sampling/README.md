@@ -86,7 +86,7 @@ There are two types of samples you can generate:
         - `tsv_version` is the version of tsv files to sample from (e.g., v99 TODO: Ry to change)
         - `sim_year` is the simulation year (2015-2019)
         - `n_samples` is the number of samples you wish to generate. A typical full national sample is 350,000 samples.
-        - 'n_buckets` is 1 (TODO: Ry to explain this)
+        - `n_buckets` is 1 (TODO: Ry to explain this)
         - `hvac_sizing` dictates whether the HVAC systems in the models are autosized or hardsized (use "autosize" or "hardsize" for this argument).
     - This will generate a buildstock.csv file and save it to `.\output-buildstocks\intermediate`.
     - The name of the file will include the date, tsv version, simulation year, your username, and number of samples. For example: `buildstock_20221020_v17_2018_alebar_500.csv`.
