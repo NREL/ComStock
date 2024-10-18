@@ -77,6 +77,8 @@ buildstock.csv,sample_building_id,,FALSE,FALSE,,,,
 buildstock.csv,service_water_heating_fuel,,FALSE,FALSE,,,,
 buildstock.csv,state_abbreviation,in.state,TRUE,TRUE,string,,,Postal abbreviation of state
 buildstock.csv,state_id,,FALSE,FALSE,,,,
+buildstock.csv,sampling_region,in.sampling_region_id,TRUE,FALSE,integer,,,Region assigned through the sampling process
+buildstock.csv,size_bin,in.size_bin_id,TRUE,FALSE,integer,,,Size bin assigned through the sampling process - this is a function of building type
 buildstock.csv,state_name,in.state_name,TRUE,TRUE,string,,,Full name of state
 buildstock.csv,weather_file_2018,in.weather_file_2018,TRUE,FALSE,string,,,Weather file used for the 2018 AMY simulations
 buildstock.csv,weather_file_TMY3,in.weather_file_tmy3,TRUE,FALSE,string,,,Weather file used for the TMY3 simulations
@@ -627,6 +629,8 @@ results.csv,com_stock_sensitivity_reports.com_report_shw_non_hp_water_heater_gas
 results.csv,com_stock_sensitivity_reports.com_report_shw_non_hp_water_heater_other_fuel_j,out.params.non_hp_water_heater_other_fuel,TRUE,FALSE,float,j,j,other fuel energy use by non-heat pump water heaters
 results.csv,com_stock_sensitivity_reports.com_report_shw_non_hp_water_heater_total_volume_gal,out.params.non_hp_water_heater_total_volume_gal,TRUE,FALSE,float,gal,gal,combined volume of water heaters
 results.csv,com_stock_sensitivity_reports.com_report_shw_non_hp_water_heater_unmet_heat_transfer_demand_j,out.params.non_hp_water_heater_unmet_heat_transfer_demand,TRUE,FALSE,float,j,j,water heater unmet heat transfer demand
+results.csv,com_stock_sensitivity_reports.com_report_unitary_sys_cycling_ratio_cooling,out.params.unitary_sys_cycling_ratio_cooling,TRUE,FALSE,float,,,weighted average unitary system cycling ratio for cooling operation
+results.csv,com_stock_sensitivity_reports.com_report_unitary_sys_cycling_ratio_heating,out.params.unitary_sys_cycling_ratio_heating,TRUE,FALSE,float,,,weighted average unitary system cycling ratio for heating operation
 results.csv,com_stock_sensitivity_reports.com_report_window_area_m_2,out.params.ext_window_area,TRUE,FALSE,float,m2,m2,Sum window area
 results.csv,com_stock_sensitivity_reports.com_report_window_shgc,out.params.average_window_shgc,TRUE,FALSE,float,,,Solar heat gain coefficient of windows
 results.csv,com_stock_sensitivity_reports.com_report_window_u_value_si,out.params.average_window_u_value,TRUE,FALSE,float,w_per_m2_k,btu_per_ft2_f_hr,Conductivity of windows
