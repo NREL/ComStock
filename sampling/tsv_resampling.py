@@ -62,7 +62,7 @@ class ComStockBaseSampler:
         self.n_buckets = n_buckets
         self.sobol = sobol
         self._process_sampling_inputs()
-        
+
         # Set up the directory structures required
         self._instantiate_folder_structures()
 
@@ -90,7 +90,7 @@ class ComStockBaseSampler:
         [
             'airtightness', 'aspect_ratio', 'building_shape', 'heating_fuel', 'hvac_system_type', 'rotation',
             'service_water_heating_fuel', 'wall_construction_type', 'weekday_duration', 'weekday_start_time',
-            'weekend_duration', 'weekend_start_time'
+            'weekend_duration', 'weekend_start_time', 'thermal_bridging'
         ],
         [
             'energy_code_compliance_hvac', 'energy_code_followed_during_last_hvac_replacement',
@@ -306,7 +306,7 @@ class ComStockBaseSampler:
             jsons = False
             if 'tract' in attrs_to_sample:
                 jsons = True
-                
+
             # load in previous result csv, if it exists, and pass through to _com_execute_sample
             # treat it like the sample matrix -- pull out index row number, and dump each key value pair from the row
             # from the previous sampling into the dependency hash
@@ -437,7 +437,7 @@ class ComStockBaseSampler:
         for prev_attr in prev_attrs:
             dependency_hash[prev_attr] = list()
         # Add all attributes that have no dependencies to the attribute order first, as they can be sampled / retrieved
-        # from previous samples in any order 
+        # from previous samples in any order
         attr_order = []
         for attr in dependency_hash.keys():
             if len(dependency_hash[attr]) == 0:
@@ -465,11 +465,11 @@ class ComStockBaseSampler:
                     'Unable to resolve the dependency tree within the set iteration limit. The following TSV files '\
                     f'were not resolved within 5 iterations: {set(dependency_hash.keys()) - set(attr_order)}'
                 )
-            
+
         # Return the dependency hash and attribute order
         return dependency_hash, attr_order
-        
-    
+
+
     @staticmethod
     def _com_execute_samples(tsv_hash, dependency_hash, attr_order, sample_dict, prev_results_dict):
         """Execute the lookup of values based on input TSV files, prior results, and samples for a given chunk.
@@ -555,7 +555,7 @@ class ComStockBaseSampler:
         :rtype: list
 
         """
-        
+
         res = list()
         prev_results_key_list = list(prev_results_dict.keys())
         for index in sample_dict.keys():
