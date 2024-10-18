@@ -2746,9 +2746,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         coil_heating = airloopunisys.heatingCoil.get
         # get appropriate cycling ratio timeseries depending on coil type
         ts_cycling_ratio = nil
-        if coil_heating.to_CoilCoolingDXTwoSpeed.is_initialized
-          ts_cycling_ratio = ts_cycling_ratio_two_spd
-        elsif coil_heating.to_CoilCoolingDXMultiSpeed.is_initialized
+        if coil_heating.to_CoilHeatingDXMultiSpeed.is_initialized
           ts_cycling_ratio = ts_cycling_ratio_multi_spd
         end
         if !ts_cycling_ratio.nil? | ts_tot_heating_rate.nil?
