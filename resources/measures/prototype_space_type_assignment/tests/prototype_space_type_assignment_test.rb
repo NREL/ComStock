@@ -1,14 +1,14 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2024 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
-require 'openstudio'
-require 'openstudio/ruleset/ShowRunnerOutput'
-require 'minitest/autorun'
-require_relative '../measure.rb'
-require_relative '../../../../test/helpers/minitest_helper'
+
+# dependencies
 require 'fileutils'
+require 'minitest/autorun'
+require 'openstudio'
+require 'openstudio/measure/ShowRunnerOutput'
+require_relative '../measure'
 
 class PrototypeSpaceTypeAssignmentTest < MiniTest::Test
-
   def test_number_of_arguments_and_argument_names
     # this test ensures that the current test is matched to the measure inputs
 
@@ -33,7 +33,7 @@ class PrototypeSpaceTypeAssignmentTest < MiniTest::Test
 
     # load the test model
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = "#{File.dirname(__FILE__)}/Outpatient.osm"
+    path = "#{__dir__}/Outpatient.osm"
     model = translator.loadModel(path)
     assert(!model.empty?)
     model = model.get
@@ -53,7 +53,7 @@ class PrototypeSpaceTypeAssignmentTest < MiniTest::Test
     assert_equal('Success', result.value.valueName)
 
     # save the model to test output directory
-    output_file_path = "#{File.dirname(__FILE__)}/output/test_outpatient.osm"
+    output_file_path = "#{__dir__}/output/test_outpatient.osm"
     model.save(output_file_path, true)
   end
 
@@ -67,7 +67,7 @@ class PrototypeSpaceTypeAssignmentTest < MiniTest::Test
 
     # load the test model
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = "#{File.dirname(__FILE__)}/Hospital.osm"
+    path = "#{__dir__}/Hospital.osm"
     model = translator.loadModel(path)
     assert(!model.empty?)
     model = model.get
@@ -87,7 +87,7 @@ class PrototypeSpaceTypeAssignmentTest < MiniTest::Test
     assert_equal('Success', result.value.valueName)
 
     # save the model to test output directory
-    output_file_path = "#{File.dirname(__FILE__)}/output/test_hospital.osm"
+    output_file_path = "#{__dir__}/output/test_hospital.osm"
     model.save(output_file_path, true)
   end
 
@@ -101,7 +101,7 @@ class PrototypeSpaceTypeAssignmentTest < MiniTest::Test
 
     # load the test model
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = "#{File.dirname(__FILE__)}/SecondarySchool.osm"
+    path = "#{__dir__}/SecondarySchool.osm"
     model = translator.loadModel(path)
     assert(!model.empty?)
     model = model.get
@@ -121,7 +121,7 @@ class PrototypeSpaceTypeAssignmentTest < MiniTest::Test
     assert_equal('Success', result.value.valueName)
 
     # save the model to test output directory
-    output_file_path = "#{File.dirname(__FILE__)}/output/test_secondary_school.osm"
+    output_file_path = "#{__dir__}/output/test_secondary_school.osm"
     model.save(output_file_path, true)
   end
 
@@ -135,7 +135,7 @@ class PrototypeSpaceTypeAssignmentTest < MiniTest::Test
 
     # load the test model
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = "#{File.dirname(__FILE__)}/SmallOffice.osm"
+    path = "#{__dir__}/SmallOffice.osm"
     model = translator.loadModel(path)
     assert(!model.empty?)
     model = model.get
@@ -155,11 +155,11 @@ class PrototypeSpaceTypeAssignmentTest < MiniTest::Test
     assert_equal('Success', result.value.valueName)
 
     # save the model to test output directory
-    output_file_path = "#{File.dirname(__FILE__)}/output/test_small_office.osm"
+    output_file_path = "#{__dir__}/output/test_small_office.osm"
     model.save(output_file_path, true)
   end
 
-  def test_RtL
+  def test_rtl
     # create an instance of the measure
     measure = PrototypeSpaceTypeAssignment.new
 
@@ -169,7 +169,7 @@ class PrototypeSpaceTypeAssignmentTest < MiniTest::Test
 
     # load the test model
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = "#{File.dirname(__FILE__)}/RtL.osm"
+    path = "#{__dir__}/RtL.osm"
     model = translator.loadModel(path)
     assert(!model.empty?)
     model = model.get
@@ -189,7 +189,7 @@ class PrototypeSpaceTypeAssignmentTest < MiniTest::Test
     assert_equal('Success', result.value.valueName)
 
     # save the model to test output directory
-    output_file_path = "#{File.dirname(__FILE__)}/output/test_RtL.osm"
+    output_file_path = "#{__dir__}/output/test_RtL.osm"
     model.save(output_file_path, true)
   end
 end

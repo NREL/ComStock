@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>fault_hvac_economizer_changeover_temperature</name>
   <uid>ba9893ba-e0f1-427a-becc-9484ab739681</uid>
-  <version_id>96594a91-39b0-40ab-9cd6-740fa266e97c</version_id>
-  <version_modified>2024-06-20T18:58:38Z</version_modified>
+  <version_id>2bd94882-378a-490e-ad1c-b5d95f37b01b</version_id>
+  <version_modified>2024-10-16T19:36:48Z</version_modified>
   <xml_checksum>3166FFDC</xml_checksum>
   <class_name>FaultHvacEconomizerChangeoverTemperature</class_name>
   <display_name>fault hvac economizer changeover temperature</display_name>
@@ -27,7 +27,7 @@
     </argument>
     <argument>
       <name>changeovertemp</name>
-      <display_name>Changeover temperature of the economizer's fixed dry-bulb controller.</display_name>
+      <display_name>'Changeover temperature of the economizer's fixed dry-bulb controller.</display_name>
       <type>Double</type>
       <required>false</required>
       <model_dependent>false</model_dependent>
@@ -166,13 +166,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>08929401</checksum>
+      <checksum>BCFA81EF</checksum>
     </file>
     <file>
-      <filename>measure_test.rb</filename>
+      <filename>fault_hvac_economizer_changeover_temperature_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>897AACE7</checksum>
+      <checksum>28307140</checksum>
     </file>
   </files>
 </measure>

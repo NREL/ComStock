@@ -1,44 +1,29 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2024 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
-require 'openstudio'
-require 'openstudio/ruleset/ShowRunnerOutput'
-require_relative '../../../../test/helpers/minitest_helper'
-require 'minitest/autorun'
-require_relative '../measure.rb'
+# dependencies
 require 'fileutils'
+require 'minitest/autorun'
+require 'openstudio'
+require 'openstudio/measure/ShowRunnerOutput'
+require_relative '../measure'
 
-class CreateTypicalBuildingFromModel_Test < Minitest::Test
+class CreateTypicalBuildingFromModelTest < Minitest::Test
   def run_dir(test_name)
-    # will make directory if it doesn't exist
-    output_dir = File.expand_path('output', File.dirname(__FILE__))
-    FileUtils.mkdir output_dir unless Dir.exist? output_dir
-
-    # always generate test output in specially named 'output' directory so result files are not made part of the measure
-    "#{File.dirname(__FILE__)}/output/#{test_name}"
+    return "#{__dir__}/output/#{test_name}"
   end
 
   # method to apply arguments, run measure, and assert results (only populate args hash with non-default argument values)
   def apply_measure_to_model(test_name, args, model_name = nil, result_value = 'Success', warnings_count = 0, info_count = nil)
-    # create an instance of the measure
-    measure = CreateTypicalBuildingFromModel.new
+    # create run directory if it does not exist
+    FileUtils.mkdir_p(run_dir(test_name))
 
-    # create an instance of a runner with OSW
-    osw_path = OpenStudio::Path.new(File.dirname(__FILE__) + '/test.osw')
-    osw = OpenStudio::WorkflowJSON.load(osw_path).get
-    runner = OpenStudio::Measure::OSRunner.new(osw)
-
-    if model_name.nil?
-      # make an empty model
-      model = OpenStudio::Model::Model.new
-    else
-      # load the test model
-      translator = OpenStudio::OSVersion::VersionTranslator.new
-      path = OpenStudio::Path.new(File.dirname(__FILE__) + '/' + model_name)
-      model = translator.loadModel(path)
-      assert(!model.empty?)
-      model = model.get
-    end
+    # load the test model
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new("#{__dir__}/#{model_name}")
+    model = translator.loadModel(path)
+    assert(!model.empty?)
+    model = model.get
 
     # set the weather file for the test model
     epw_file = OpenStudio::EpwFile.new("#{__dir__}/USA_TX_Houston-Bush.Intercontinental.AP.722430_TMY3.epw")
@@ -46,6 +31,12 @@ class CreateTypicalBuildingFromModel_Test < Minitest::Test
 
     # Set the day of week for start day
     model.getYearDescription.setDayofWeekforStartDay('Thursday')
+
+    # create an instance of the measure
+    measure = CreateTypicalBuildingFromModel.new
+
+    # create an instance of a runner
+    runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
 
     # get arguments
     arguments = measure.arguments(model)
@@ -63,9 +54,6 @@ class CreateTypicalBuildingFromModel_Test < Minitest::Test
     # temporarily change directory to the run directory and run the measure (because of sizing run)
     start_dir = Dir.pwd
     begin
-      unless Dir.exist?(run_dir(test_name))
-        Dir.mkdir(run_dir(test_name))
-      end
       Dir.chdir(run_dir(test_name))
 
       # run the measure
@@ -76,9 +64,6 @@ class CreateTypicalBuildingFromModel_Test < Minitest::Test
       log_messages_to_file(log_file_path, false)
     ensure
       Dir.chdir(start_dir)
-
-      # delete sizing run dir
-      # FileUtils.rm_rf(run_dir(test_name))
     end
 
     # show the output
@@ -86,23 +71,20 @@ class CreateTypicalBuildingFromModel_Test < Minitest::Test
     show_output(result)
 
     # assert that it ran correctly
-    if result_value.nil? then result_value = 'Success' end
+    result_value = 'Success' if result_value.nil?
     assert_equal(result_value, result.value.valueName)
 
     # check count of warning and info messages
-    unless info_count.nil? then assert(result.info.size == info_count) end
-    unless warnings_count.nil? then assert(result.warnings.size == warnings_count) end
+    assert_equal(info_count, result.info.size) unless info_count.nil?
+    assert_equal(warnings_count, result.warnings.size) unless warnings_count.nil?
+    result.warnings.each { |w| runner.registerWarning(w.logMessage) }
 
     # if 'Fail' passed in make sure at least one error message (while not typical there may be more than one message)
-    if result_value == 'Fail' then assert(result.errors.size >= 1) end
+    assert(result.errors.size >= 1) if result_value == 'Fail'
 
     # save the model to test output directory
-    output_file_path = OpenStudio::Path.new(File.dirname(__FILE__) + "/output/#{test_name}_test_output.osm")
+    output_file_path = OpenStudio::Path.new("#{__dir__}/output/#{test_name}_out.osm")
     model.save(output_file_path, true)
-
-    # standard = Standard.build('90.1-2004')
-    # success = standard.model_run_simulation_and_log_errors(model, File.dirname(__FILE__) + "/output/#{test_name}")
-    # assert(success, "")
 
     return model
   end
@@ -128,6 +110,7 @@ class CreateTypicalBuildingFromModel_Test < Minitest::Test
     model.getSurfaces.sort.each do |surf|
       next unless surf.outsideBoundaryCondition == 'Outdoors'
       next unless surf.surfaceType == 'Wall'
+
       construction = surf.construction.get
       standards_info = construction.standardsInformation
       const_type = standards_info.standardsConstructionType.get
@@ -144,6 +127,7 @@ class CreateTypicalBuildingFromModel_Test < Minitest::Test
     model.getSurfaces.sort.each do |surf|
       next unless surf.outsideBoundaryCondition == 'Outdoors'
       next unless surf.surfaceType == 'Wall'
+
       construction = surf.construction.get
       standards_info = construction.standardsInformation
       const_type = standards_info.standardsConstructionType.get
@@ -619,7 +603,7 @@ class CreateTypicalBuildingFromModel_Test < Minitest::Test
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'ofl.osm', nil, nil)
   end
 
-  #tests for doe models with unique climate zones (1, 7, 8)
+  # tests for doe models with unique climate zones (1, 7, 8)
   def test_small_office_1a_pre_1980
     args = {}
     args['template'] = 'ComStock DOE Ref Pre-1980'
@@ -627,6 +611,7 @@ class CreateTypicalBuildingFromModel_Test < Minitest::Test
     args['use_upstream_args'] = false
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'SmallOffice.osm', nil, nil)
   end
+
   def test_small_office_7a_pre_1980
     args = {}
     args['template'] = 'ComStock DOE Ref Pre-1980'
@@ -634,6 +619,7 @@ class CreateTypicalBuildingFromModel_Test < Minitest::Test
     args['use_upstream_args'] = false
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'SmallOffice.osm', nil, nil)
   end
+
   def test_small_office_8a_pre_1980
     args = {}
     args['template'] = 'ComStock DOE Ref Pre-1980'
@@ -641,6 +627,7 @@ class CreateTypicalBuildingFromModel_Test < Minitest::Test
     args['use_upstream_args'] = false
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'SmallOffice.osm', nil, nil)
   end
+
   def test_small_office_2a_pre_1980
     args = {}
     args['template'] = 'ComStock DOE Ref Pre-1980'
@@ -648,6 +635,7 @@ class CreateTypicalBuildingFromModel_Test < Minitest::Test
     args['use_upstream_args'] = false
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'SmallOffice.osm', nil, nil)
   end
+
   def test_small_office_1a_1980_2004
     args = {}
     args['template'] = 'ComStock DOE Ref 1980-2004'
@@ -655,6 +643,7 @@ class CreateTypicalBuildingFromModel_Test < Minitest::Test
     args['use_upstream_args'] = false
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'SmallOffice.osm', nil, nil)
   end
+
   def test_small_office_7a_1980_2004
     args = {}
     args['template'] = 'ComStock DOE Ref 1980-2004'
@@ -662,6 +651,7 @@ class CreateTypicalBuildingFromModel_Test < Minitest::Test
     args['use_upstream_args'] = false
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'SmallOffice.osm', nil, nil)
   end
+
   def test_small_office_8a_1980_2004
     args = {}
     args['template'] = 'ComStock DOE Ref 1980-2004'
@@ -669,6 +659,7 @@ class CreateTypicalBuildingFromModel_Test < Minitest::Test
     args['use_upstream_args'] = false
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'SmallOffice.osm', nil, nil)
   end
+
   def test_small_office_2a_1980_2004
     args = {}
     args['template'] = 'ComStock DOE Ref 1980-2004'

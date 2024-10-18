@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>add_blinds_to_selected_windows</name>
   <uid>307d2b26-734a-4571-ab0c-a4e68c8e811e</uid>
-  <version_id>eb03d3b7-13fb-44ad-86e9-ddda1f76c11f</version_id>
-  <version_modified>2024-06-20T18:58:33Z</version_modified>
+  <version_id>468994b5-f734-4bd2-8468-9db005025165</version_id>
+  <version_modified>2024-10-16T15:41:53Z</version_modified>
   <xml_checksum>997AAE6E</xml_checksum>
   <class_name>AddBlindsToSelectedWindows</class_name>
   <display_name>Add Blinds to Selected Windows</display_name>
@@ -87,7 +87,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>67145588</checksum>
+      <checksum>64A6093D</checksum>
     </file>
     <file>
       <filename>space_type_blinds_ratio.json</filename>
@@ -99,19 +99,7 @@
       <filename>add_blinds_to_selected_windows_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>E9725B94</checksum>
-    </file>
-    <file>
-      <filename>example_OfL_model.osm</filename>
-      <filetype>osm</filetype>
-      <usage_type>test</usage_type>
-      <checksum>1C838467</checksum>
-    </file>
-    <file>
-      <filename>weather_test.epw</filename>
-      <filetype>epw</filetype>
-      <usage_type>test</usage_type>
-      <checksum>E3652693</checksum>
+      <checksum>BA92F2DB</checksum>
     </file>
   </files>
 </measure>

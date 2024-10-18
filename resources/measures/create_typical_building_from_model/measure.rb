@@ -39,7 +39,6 @@ require 'openstudio-standards'
 
 # start the measure
 class CreateTypicalBuildingFromModel < OpenStudio::Measure::ModelMeasure
-
   # human readable name
   def name
     return 'Create Typical Building from Model'
@@ -484,10 +483,10 @@ class CreateTypicalBuildingFromModel < OpenStudio::Measure::ModelMeasure
 
     # assign the user inputs to variables
     args = runner.getArgumentValues(arguments(model), user_arguments)
-    args = Hash[args.collect{ |k, v| [k.to_s, v] }]
+    args = (args.collect { |k, v| [k.to_s, v] }).to_h
     if !args then return false end
 
-    # todo - need to make use of this before pass to standards
+    # TODO: need to make use of this before pass to standards
     use_upstream_args = args['use_upstream_args']
 
     # open channel to log messages
@@ -532,17 +531,16 @@ class CreateTypicalBuildingFromModel < OpenStudio::Measure::ModelMeasure
       unmet_hours_tolerance_r: args['unmet_hours_tolerance'],
       remove_objects: args['remove_objects'],
       user_hvac_mapping: nil, # not exposed in this measure yet?
-      sizing_run_directory: nil) # not exposed in user measure args
+      sizing_run_directory: nil # not exposed in user measure args
+    )
 
     # gather log
     log_messages_to_runner(runner, debug)
     reset_log
 
-    if result == false
-      return false
-    else
-      return true
-    end
+    return false if result == false
+
+    return true
   end
 end
 
