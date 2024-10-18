@@ -109,7 +109,7 @@ class HardsizeModelTest < Minitest::Test
       std = Standard.build('90.1-2013')
       if run_model
         puts "\nRUNNING MODEL BEFORE MEASURE..."
-        assert(std.model_run_simulation_and_log_errors(model, File.join(run_dir(test_name), 'run_autosized_before')))
+        assert(std.model_run_simulation_and_log_errors(model, File.join(run_dir(test_name), 'before')))
       end
       tot_engy_bef = model.sqlFile.get.totalSiteEnergy.get
 
@@ -128,7 +128,7 @@ class HardsizeModelTest < Minitest::Test
       if run_model && (result.value.valueName == 'Success')
         puts "\nRUNNING MODEL AFTER MEASURE..."
 
-        assert(std.model_run_simulation_and_log_errors(model, File.join(run_dir(test_name), 'run_hardsized_after')))
+        assert(std.model_run_simulation_and_log_errors(model, File.join(run_dir(test_name), 'after')))
         tot_engy_aft = model.sqlFile.get.totalSiteEnergy.get
       end
 
