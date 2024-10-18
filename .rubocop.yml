@@ -1,0 +1,25 @@
+
+AllCops:
+  Exclude:
+    - 'build/**/*'
+    - 'documentation/**/*'
+    - 'national/**/*'
+    - 'postprocessing/**/*'
+    - 'samples/**/*'
+    - 'sampling/**/*'
+    - 'test/**/*'
+    - 'ymls/**/*'
+  NewCops: enable
+
+inherit_from:
+  - http://s3.amazonaws.com/openstudio-resources/styles/rubocop.yml
+
+# custom edits to rubocop checks
+Metrics/AbcSize:
+  Max: 200
+
+Metrics/BlockLength:
+  Max: 100
+
+Style/FrozenStringLiteralComment:
+  Enabled: false
