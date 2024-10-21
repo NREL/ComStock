@@ -458,12 +458,12 @@ class HvacDoasHpMinisplits < OpenStudio::Measure::ModelMeasure
           new_hr.setHeatExchangerType('Plate')
           new_hr.setSensibleEffectivenessat100HeatingAirFlow(0.82)
           new_hr.setSensibleEffectivenessat75HeatingAirFlow(0.82)
-          new_hr.setLatentEffectivenessat100HeatingAirFlow(0)
-          new_hr.setLatentEffectivenessat75HeatingAirFlow(0)
+          new_hr.setLatentEffectivenessat100HeatingAirFlow(0.001)
+          new_hr.setLatentEffectivenessat75HeatingAirFlow(0.001)
           new_hr.setSensibleEffectivenessat100CoolingAirFlow(0.82)
           new_hr.setSensibleEffectivenessat75CoolingAirFlow(0.82)
-          new_hr.setLatentEffectivenessat100CoolingAirFlow(0)
-          new_hr.setLatentEffectivenessat75CoolingAirFlow(0)
+          new_hr.setLatentEffectivenessat100CoolingAirFlow(0.001)
+          new_hr.setLatentEffectivenessat75CoolingAirFlow(0.001)
         else
           # set efficiencies;
           # From p.96 of https://www.pnnl.gov/main/publications/external/technical_reports/PNNL-20405.pdf
