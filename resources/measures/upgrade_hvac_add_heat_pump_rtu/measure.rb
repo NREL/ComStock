@@ -573,7 +573,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
             runner.registerInfo("#{air_loop_hvac.name} | cfm/ton high limit violation | #{heating_or_cooling} | stage = #{stage} | cfm/ton after adjustment = #{m_3_per_sec_watts_to_cfm_per_ton(stage_flows[stage]/stage_caps[stage])}")
           end
         # when equal or less than 50% ratio allowance
-        elsif required_stage_cap_ratio <= ratio_allowance_50_pct # 
+        elsif required_stage_cap_ratio <= ratio_allowance_50_pct
           stage_cap_fractions[stage] = required_stage_cap_ratio
           stage_caps[stage] = required_stage_cap_ratio * (stage_cap_fractions[rated_stage_num] * dx_rated_cap_applied)
           if debug_verbose
