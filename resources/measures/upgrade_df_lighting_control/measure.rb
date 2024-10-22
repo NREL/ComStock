@@ -320,20 +320,20 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
       end
     end
 
-    # adding output variables (for debugging)
-    out_vars = [
-      'Lights Electricity Energy',
-      'Lights Electricity Rate',
-      'Zone Lights Electricity Energy',
-      'Zone Lights Electricity Rate',
-      'Schedule Value'
-    ]
-    out_vars.each do |out_var_name|
-        ov = OpenStudio::Model::OutputVariable.new('ov', model)
-        ov.setKeyValue('*')
-        ov.setReportingFrequency('timestep')
-        ov.setVariableName(out_var_name)
-    end
+    # # adding output variables (for debugging)
+    # out_vars = [
+    #   'Lights Electricity Energy',
+    #   'Lights Electricity Rate',
+    #   'Zone Lights Electricity Energy',
+    #   'Zone Lights Electricity Rate',
+    #   'Schedule Value'
+    # ]
+    # out_vars.each do |out_var_name|
+    #     ov = OpenStudio::Model::OutputVariable.new('ov', model)
+    #     ov.setKeyValue('*')
+    #     ov.setReportingFrequency('timestep')
+    #     ov.setVariableName(out_var_name)
+    # end
 
     ############################################
     # Applicability check

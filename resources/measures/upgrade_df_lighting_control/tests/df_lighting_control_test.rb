@@ -241,7 +241,7 @@ class DFLightingControlTest < Minitest::Test
 
       # set arguments:
       cambium_scenario = arguments[8].clone
-      assert(cambium_scenario.setValue('LRMER_LowRECost_30'))#
+      assert(cambium_scenario.setValue('LRMER_MidCase_15'))#
       argument_map['cambium_scenario'] = cambium_scenario
 
       # apply the measure to the model and optionally run the model
