@@ -82,9 +82,16 @@ class S3UtilitiesMixin:
             self.s3_client.download_file(bucket_name, s3_file_path, local_path)
 
         # Read file into memory
-        try:
-            df = pd.read_csv(local_path, delimiter=delimiter)
-        except UnicodeDecodeError:
-            df = pd.read_csv(local_path, delimiter=delimiter, encoding='latin-1')
+        if '.parquet' in local_path:
+            df = pd.read_parquet(local_path)
+        elif '.json' in local_path:
+            with open(local_path, 'r') as rfobj:
+                lkup = json.load(rfobj)
+            return lkup
+        else:
+            try:
+                df = pd.read_csv(local_path, delimiter=delimiter)
+            except UnicodeDecodeError:
+                df = pd.read_csv(local_path, delimiter=delimiter, encoding='latin-1')
 
         return df
