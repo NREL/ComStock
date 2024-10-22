@@ -547,7 +547,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         if debug_verbose
           runner.registerInfo("#{air_loop_hvac.name} | cfm/ton low limit violation | #{heating_or_cooling} | stage = #{stage} | cfm/ton after adjustment = #{m_3_per_sec_watts_to_cfm_per_ton(stage_flows[stage]/stage_caps[stage])}")
         end
-      # If flow/ton is greater than maximum,
+      # If flow/ton is greater than maximum, decrease the airflow
       elsif (flow_per_ton.round(8) > m_3_per_s_per_w_max.round(8)) && (stage < rated_stage_num)
         # reduce airflow of stage without violating minimum flow or outdoor air requirements
         # if maximum flow/ton ratio cannot be accommodated without violating minimum airflow ratios
@@ -563,17 +563,18 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
         ratio_allowance_50_pct = ratio + (stage_cap_fractions[stage + 1] - ratio) * 0.65
         required_stage_cap_ratio = airflow / m_3_per_s_per_w_max / (stage_cap_fractions[rated_stage_num] * dx_rated_cap_applied)
-        stage_airflow_limit_max = m_3_per_s_per_w_max * stage_capacity
-        # if not violating min airflow requirement
-        if (stage_airflow_limit_max / old_terminal_sa_flow_m3_per_s) >= min_airflow_ratio
-          stage_flows[stage] = stage_airflow_limit_max
-          stage_flow_fractions[stage] = stage_airflow_limit_max / old_terminal_sa_flow_m3_per_s
+        if ((m_3_per_s_per_w_max * stage_capacity) / old_terminal_sa_flow_m3_per_s) >= min_airflow_ratio
+          # calculate new stage airflow
+          new_stage_airflow = m_3_per_s_per_w_max * stage_capacity
+          # update stage airflow
+          stage_flows[stage] = new_stage_airflow
+          # update stage airflow ratio
+          stage_flow_fractions[stage] = new_stage_airflow / old_terminal_sa_flow_m3_per_s
           stage_caps[stage] = stage_capacity
           if debug_verbose
             runner.registerInfo("#{air_loop_hvac.name} | cfm/ton high limit violation | #{heating_or_cooling} | stage = #{stage} | cfm/ton after adjustment = #{m_3_per_sec_watts_to_cfm_per_ton(stage_flows[stage]/stage_caps[stage])}")
           end
-        # when equal or less than 50% ratio allowance
-        elsif required_stage_cap_ratio <= ratio_allowance_50_pct # 
+        elsif required_stage_cap_ratio <= ratio_allowance_50_pct
           stage_cap_fractions[stage] = required_stage_cap_ratio
           stage_caps[stage] = required_stage_cap_ratio * (stage_cap_fractions[rated_stage_num] * dx_rated_cap_applied)
           if debug_verbose
@@ -596,7 +597,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
             runner.registerInfo("#{air_loop_hvac.name} | cfm/ton high limit violation (removing stage) | #{heating_or_cooling} | stage = #{stage} | cfm/ton after adjustment = n/a")
           end
         end
-      # Do nothing if not violated
       else
         stage_caps[stage] = stage_capacity
         if debug_verbose
