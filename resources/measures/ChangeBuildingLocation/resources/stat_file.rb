@@ -59,17 +59,8 @@ require 'pathname'
 
 module EnergyPlus
   class StatFile
-    attr_accessor :path
-    attr_accessor :valid
-    attr_accessor :lat
-    attr_accessor :lon
-    attr_accessor :elevation
-    attr_accessor :gmt
-    attr_accessor :monthlyDB
-    attr_accessor :hdd18
-    attr_accessor :cdd18
-    attr_accessor :hdd10
-    attr_accessor :cdd10
+    attr_accessor :path, :valid, :lat, :lon, :elevation, :gmt,
+                  :monthly_dry_bulb, :hdd18, :cdd18, :hdd10, :cdd10
 
     def initialize(path)
       @path = Pathname.new(path)
@@ -93,12 +84,12 @@ module EnergyPlus
 
     # the mean of the mean monthly dry bulbs
     def mean_dry_bulb
-      if !@monthly_dry_bulb.empty?
+      if @monthly_dry_bulb.empty?
+        mean = ''
+      else
         sum = 0
         @monthly_dry_bulb.each { |db| sum += db }
         mean = sum / @monthly_dry_bulb.size
-      else
-        mean = ''
       end
 
       mean.to_f
@@ -106,10 +97,10 @@ module EnergyPlus
 
     # max - min of the mean monthly dry bulbs
     def delta_dry_bulb
-      if !@monthly_dry_bulb.empty?
-        delta_t = @monthly_dry_bulb.max - @monthly_dry_bulb.min
-      else
+      if @monthly_dry_bulb.empty?
         delta_t = ''
+      else
+        delta_t = @monthly_dry_bulb.max - @monthly_dry_bulb.min
       end
 
       delta_t.to_f
@@ -119,11 +110,11 @@ module EnergyPlus
 
     # initialize
     def init
-      if @path.exist?
-        File.open(@path) do |f|
-          text = f.read.force_encoding('iso-8859-1')
-          parse(text)
-        end
+      return unless @path.exist?
+
+      File.open(@path) do |f|
+        text = f.read.force_encoding('iso-8859-1')
+        parse(text)
       end
     end
 
@@ -133,15 +124,15 @@ module EnergyPlus
       match_data = text.match(regex)
       if match_data.nil?
         puts "Can't find lat/lon/gmt"
-        #return
+        # return
       else
 
-        @lat = match_data[2].to_f + match_data[3].to_f / 60.0
+        @lat = match_data[2].to_f + (match_data[3].to_f / 60.0)
         if match_data[1] == 'S'
           @lat = -@lat
         end
 
-        @lon = match_data[5].to_f + match_data[6].to_f / 60.0
+        @lon = match_data[5].to_f + (match_data[6].to_f / 60.0)
         if match_data[4] == 'W'
           @lon = -@lon
         end
@@ -154,7 +145,7 @@ module EnergyPlus
       match_data = text.match(regex)
       if match_data.nil?
         puts "Can't find elevation"
-        #return
+        # return
       else
         @elevation = match_data[1].to_f
         if match_data[2] == 'below'
@@ -163,38 +154,38 @@ module EnergyPlus
       end
 
       # get heating and cooling degree days
-      cdd10Regex = /-\s*(.*) annual.*cooling degree-days \(10.C baseline\)/
-      match_data = text.match(cdd10Regex)
+      cdd10regex = /-\s*(.*) annual.*cooling degree-days \(10.C baseline\)/
+      match_data = text.match(cdd10regex)
       if match_data.nil?
         puts "Can't find CDD 10"
-        #return
+        # return
       else
         @cdd10 = match_data[1].to_f
       end
 
-      hdd10Regex = /-\s*(.*) annual.*heating degree-days \(10.C baseline\)/
-      match_data = text.match(hdd10Regex)
+      hdd10regex = /-\s*(.*) annual.*heating degree-days \(10.C baseline\)/
+      match_data = text.match(hdd10regex)
       if match_data.nil?
         puts "Can't find HDD 10"
-        #return
+        # return
       else
         @hdd10 = match_data[1].to_f
       end
 
-      cdd18Regex = /-\s*(.*) annual.*cooling degree-days \(18.*C baseline\)/
-      match_data = text.match(cdd18Regex)
+      cdd18regex = /-\s*(.*) annual.*cooling degree-days \(18.*C baseline\)/
+      match_data = text.match(cdd18regex)
       if match_data.nil?
         puts "Can't find CDD 18"
-        #return
+        # return
       else
         @cdd18 = match_data[1].to_f
       end
 
-      hdd18Regex = /-\s*(.*) annual.*heating degree-days \(18.*C baseline\)/
-      match_data = text.match(hdd18Regex)
+      hdd18regex = /-\s*(.*) annual.*heating degree-days \(18.*C baseline\)/
+      match_data = text.match(hdd18regex)
       if match_data.nil?
         puts "Can't find HDD 18"
-        #return
+        # return
       else
         @hdd18 = match_data[1].to_f
       end
@@ -204,7 +195,7 @@ module EnergyPlus
       match_data = text.match(regex)
       if match_data.nil?
         puts "Can't find outdoor air temps"
-        #return
+        # return
       else
         # first match is outdoor air temps
         monthly_temps = match_data[1].strip.split(/\s+/)

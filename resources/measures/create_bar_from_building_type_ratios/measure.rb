@@ -43,14 +43,13 @@ require 'openstudio-standards'
 
 # start the measure
 class CreateBarFromBuildingTypeRatios < OpenStudio::Measure::ModelMeasure
-
   # list of building subtypes that are valid for get_space_types_from_building_type
-  # for general public use use extended = false
-  def get_building_subtypes(extended = false)
+  # for general public use use extended: false
+  def get_building_subtypes(extended: false)
     # get building_types
     if extended
-      doe = get_doe_building_subtypes(true)
-      deer = get_deer_building_subtypes(true)
+      doe = get_doe_building_subtypes(extended: true)
+      deer = get_deer_building_subtypes(extended: true)
     else
       doe = get_doe_building_subtypes
       deer = get_deer_building_subtypes
@@ -67,8 +66,8 @@ class CreateBarFromBuildingTypeRatios < OpenStudio::Measure::ModelMeasure
   end
 
   # get_doe_building_subtypes
-  # for general public use use extended = false
-  def get_doe_building_subtypes(extended = false)
+  # for general public use use extended: false
+  def get_doe_building_subtypes(extended: false)
     array = OpenStudio::StringVector.new
     array << ''
     array << 'NA'
@@ -87,9 +86,9 @@ class CreateBarFromBuildingTypeRatios < OpenStudio::Measure::ModelMeasure
   end
 
   # get_deer_building_subtypes
-  # for general public use use extended = false
+  # for general public use use extended: false
   # Empty for now; now subtypes in deer buildings
-  def get_deer_building_subtypes(extended = false)
+  def get_deer_building_subtypes(extended: false)
     array = OpenStudio::StringVector.new
 
     return array
@@ -509,7 +508,7 @@ class CreateBarFromBuildingTypeRatios < OpenStudio::Measure::ModelMeasure
     args << double_loaded_corridor
 
     # Make argument for space_type_sort_logic
-    # todo - fix size to work, seems to always do by building type, but just reverses the building order
+    # TODO: fix size to work, seems to always do by building type, but just reverses the building order
     choices = OpenStudio::StringVector.new
     choices << 'Size'
     choices << 'Building Type > Size'
@@ -525,7 +524,7 @@ class CreateBarFromBuildingTypeRatios < OpenStudio::Measure::ModelMeasure
     use_upstream_args.setDefaultValue(true)
     args << use_upstream_args
 
-    # TODO: - expose perimeter depth as an argument
+    # TODO: expose perimeter depth as an argument
 
     # Argument used to make ComStock tsv workflow run correctly
     cz_choices = OpenStudio::StringVector.new
@@ -582,10 +581,10 @@ class CreateBarFromBuildingTypeRatios < OpenStudio::Measure::ModelMeasure
 
     # assign the user inputs to variables
     args = runner.getArgumentValues(arguments(model), user_arguments)
-    args = Hash[args.collect{ |k, v| [k.to_sym, v] }]
+    args = (args.collect { |k, v| [k.to_sym, v] }).to_h
     if !args then return false end
 
-    # todo - need to make use of this before pass to standards
+    # TODO: need to make use of this before pass to standards
     use_upstream_args = args['use_upstream_args']
 
     # open channel to log messages
@@ -601,11 +600,9 @@ class CreateBarFromBuildingTypeRatios < OpenStudio::Measure::ModelMeasure
     log_messages_to_runner(runner, debug)
     reset_log
 
-    if result == false
-      return false
-    else
-      return true
-    end
+    return false if result == false
+
+    return true
   end
 end
 

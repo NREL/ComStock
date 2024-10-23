@@ -1,113 +1,24 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2024 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
+# dependencies
+require 'fileutils'
+require 'minitest/autorun'
 require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
-require 'minitest/autorun'
-require_relative '../measure.rb'
-require 'fileutils'
-require_relative '../../../../test/helpers/minitest_helper'
+require_relative '../measure'
 
 class AdjustOccupancyScheduleTest < Minitest::Test
-  # def setup
-  # end
-
-  # def teardown
-  # end
-  # applies the measure and then runs the model
-  def apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false)
-    assert(File.exist?(osm_path))
-    assert(File.exist?(epw_path))
-
-    # create run directory if it does not exist
-    if !File.exist?(run_dir(test_name))
-      FileUtils.mkdir_p(run_dir(test_name))
-    end
-    assert(File.exist?(run_dir(test_name)))
-
-    # change into run directory for tests
-    start_dir = Dir.pwd
-    Dir.chdir run_dir(test_name)
-
-    # remove prior runs if they exist
-    if File.exist?(model_output_path(test_name))
-      FileUtils.rm(model_output_path(test_name))
-    end
-    if File.exist?(report_path(test_name))
-      FileUtils.rm(report_path(test_name))
-    end
-
-    # copy the osm and epw to the test directory
-    new_osm_path = "#{run_dir(test_name)}/#{File.basename(osm_path)}"
-    FileUtils.cp_r(osm_path, new_osm_path)
-    new_epw_path = "#{run_dir(test_name)}/#{File.basename(epw_path)}"
-    FileUtils.cp(epw_path, new_epw_path)
-    # create an instance of a runner
-    runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
-
-    # load the test model
-    model = load_model(new_osm_path)
-
-    # set model weather file
-    epw_file = OpenStudio::EpwFile.new(OpenStudio::Path.new(new_epw_path))
-    OpenStudio::Model::WeatherFile.setWeatherFile(model, epw_file)
-    assert(model.weatherFile.is_initialized)
-
-    # run the measure
-    puts "\nAPPLYING MEASURE..."
-    measure.run(model, runner, argument_map)
-    result = runner.result
-    result_success = result.value.valueName == 'Success'
-
-    # show the output
-    show_output(result)
-
-    # save model
-    model.save(model_output_path(test_name), true)
-
-    if run_model && result_success
-      puts "\nRUNNING MODEL..."
-
-      std = Standard.build('ComStock DEER 2020')
-      std.model_run_simulation_and_log_errors(model, run_dir(test_name))
-
-      # check that the model ran successfully
-      assert(File.exist?(sql_path(test_name)))
-    end
-
-    # change back directory
-    Dir.chdir(start_dir)
-
-    return result
-  end
-
-  def test_number_of_arguments_and_argument_names
-    # this test ensures that the current test is matched to the measure inputs
-    test_name = 'test_number_of_arguments_and_argument_names'
-    puts "\n######\nTEST:#{test_name}\n######\n"
-
-    # create an instance of the measure
-    measure = AdjustOccupancySchedule.new
-
-    # make an empty model
-    model = OpenStudio::Model::Model.new
-
-    # get arguments and test that they are what we are expecting
-    arguments = measure.arguments(model)
-    assert_equal(1, arguments.size)
-    assert_equal('peak_occ_frac', arguments[0].name)
-  end
-
   # return file paths to test models in test directory
   def models_for_tests
-    paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/models/*.osm'))
+    paths = Dir.glob(File.join(__dir__, '../../../tests/models/*.osm'))
     paths = paths.map { |path| File.expand_path(path) }
     return paths
   end
 
   # return file paths to epw files in test directory
   def epws_for_tests
-    paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/weather/*.epw'))
+    paths = Dir.glob(File.join(__dir__, '../../../tests/weather/*.epw'))
     paths = paths.map { |path| File.expand_path(path) }
     return paths
   end
@@ -122,11 +33,11 @@ class AdjustOccupancyScheduleTest < Minitest::Test
 
   def run_dir(test_name)
     # always generate test output in specially named 'output' directory so result files are not made part of the measure
-    return "#{File.dirname(__FILE__)}/output/#{test_name}"
+    return "#{__dir__}/output/#{test_name}"
   end
 
   def model_output_path(test_name)
-    return "#{run_dir(test_name)}/#{test_name}.osm"
+    return "#{run_dir(test_name)}/out.osm"
   end
 
   def sql_path(test_name)
@@ -137,16 +48,85 @@ class AdjustOccupancyScheduleTest < Minitest::Test
     return "#{run_dir(test_name)}/reports/eplustbl.html"
   end
 
-  # create an array of hashes with model name, weather, and expected result
-  def models_to_test
-    test_sets = []
-    test_sets << { model: 'PSZ-AC_with_gas_coil_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
-    return test_sets
+  # applies the measure and then runs the model
+  def apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+    assert(File.exist?(osm_path))
+    assert(File.exist?(epw_path))
+
+    # remove prior runs if they exist
+    FileUtils.rm_f(model_output_path(test_name))
+    FileUtils.rm_f(sql_path(test_name))
+    FileUtils.rm_f(report_path(test_name))
+
+    # create run directory if it does not exist
+    FileUtils.mkdir_p(run_dir(test_name))
+
+    # create an instance of a runner with OSW
+    runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
+
+    # load the test model
+    model = load_model(osm_path)
+
+    # set model weather file
+    epw_file = OpenStudio::EpwFile.new(OpenStudio::Path.new(epw_path))
+    OpenStudio::Model::WeatherFile.setWeatherFile(model, epw_file)
+    assert(model.weatherFile.is_initialized)
+
+    # temporarily change directory to the run directory and run the measure
+    # only necessary for measures that do a sizing run
+    start_dir = Dir.pwd
+    begin
+      Dir.chdir(run_dir(test_name))
+
+      # run the measure
+      puts "\nAPPLYING MEASURE..."
+      measure.run(model, runner, argument_map)
+      result = runner.result
+    ensure
+      Dir.chdir(start_dir)
+    end
+
+    # show the output
+    show_output(result)
+
+    # save model
+    model.save(model_output_path(test_name), true)
+
+    if run_model && (result.value.valueName == 'Success')
+      puts "\nRUNNING MODEL..."
+
+      std = Standard.build('ComStock DEER 2020')
+      std.model_run_simulation_and_log_errors(model, run_dir(test_name))
+
+      # check that the model ran successfully
+      assert(File.exist?(sql_path(test_name)))
+    end
+
+    return result
+  end
+
+  def test_number_of_arguments_and_argument_names
+    # this test ensures that the current test is matched to the measure inputs
+    puts "\n######\nTEST:#{__method__}\n######\n"
+
+    # create an instance of the measure
+    measure = AdjustOccupancySchedule.new
+
+    # make an empty model
+    model = OpenStudio::Model::Model.new
+
+    # get arguments and test that they are what we are expecting
+    arguments = measure.arguments(model)
+    assert_equal(1, arguments.size)
+    assert_equal('peak_occ_frac', arguments[0].name)
   end
 
   def test_models
-    test_name = 'test_models'
-    puts "\n######\nTEST:#{test_name}\n######\n"
+    puts "\n######\nTEST:#{__method__}\n######\n"
+
+    # create an array of hashes with model name, weather, expected result, and any specific
+    models_to_test = []
+    models_to_test << { model: 'PSZ-AC_with_gas_coil_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
 
     models_to_test.each do |set|
       instance_test_name = set[:model]
@@ -176,12 +156,12 @@ class AdjustOccupancyScheduleTest < Minitest::Test
         peak_occ_frac = arguments[0].defaultValueAsDouble
       end
 
-
       # gather initial schedules
       initial_info = []
       model.getPeoples.each do |ppl|
         data = {}
-        next if initial_info.any?{ |hash| hash[:sch] == ppl.numberofPeopleSchedule.get }
+        next if initial_info.any? { |hash| hash[:sch] == ppl.numberofPeopleSchedule.get }
+
         data[:sch] = ppl.numberofPeopleSchedule.get.to_ScheduleRuleset.get
         initial_info << data
       end
@@ -207,5 +187,4 @@ class AdjustOccupancyScheduleTest < Minitest::Test
       end
     end
   end
-
 end

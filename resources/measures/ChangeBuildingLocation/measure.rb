@@ -39,10 +39,12 @@
 # Authors : Nicholas Long, David Goldwasser
 # Simple measure to load the EPW file and DDY file
 
+# dependencies
+require_relative 'resources/epw'
+require_relative 'resources/os_lib_helper_methods'
+require_relative 'resources/stat_file'
+
 class ChangeBuildingLocation < OpenStudio::Measure::ModelMeasure
-
-  Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }
-
   # resource file modules
   include OsLib_HelperMethods
 
@@ -88,7 +90,7 @@ class ChangeBuildingLocation < OpenStudio::Measure::ModelMeasure
 
     weather_file_name = OpenStudio::Measure::OSArgument.makeStringArgument('weather_file_name', true)
     weather_file_name.setDisplayName('Weather File Name')
-    weather_file_name.setDescription('Name of the weather file to change to. This is the filename with the extension (e.g. NewWeather.epw). Optionally this can inclucde the full file path, but for most use cases should just be file name.')
+    weather_file_name.setDescription('Name of the weather file to change to. This is the filename with the extension (e.g. NewWeather.epw). Optionally this can include the full file path, but for most use cases should just be file name.')
     args << weather_file_name
 
     year = OpenStudio::Measure::OSArgument.makeStringArgument('year', true)
@@ -147,7 +149,7 @@ class ChangeBuildingLocation < OpenStudio::Measure::ModelMeasure
     args << grid_region
 
     # make argument for soil conductivity (used for ground source heat pump modeling)
-    soil_conductivity = OpenStudio::Ruleset::OSArgument::makeDoubleArgument('soil_conductivity', true)
+    soil_conductivity = OpenStudio::Ruleset::OSArgument.makeDoubleArgument('soil_conductivity', true)
     soil_conductivity.setDisplayName('Soil Conductivity')
     soil_conductivity.setDefaultValue(1.5) # Default value, change as needed
     args << soil_conductivity
@@ -164,10 +166,10 @@ class ChangeBuildingLocation < OpenStudio::Measure::ModelMeasure
     if !args then return false end
 
     # create initial condition
-    if model.getWeatherFile.city != ''
-      runner.registerInitialCondition("The initial weather file is #{model.getWeatherFile.city} and the model has #{model.getDesignDays.size} design day objects")
-    else
+    if model.getWeatherFile.city == ''
       runner.registerInitialCondition("No weather file is set. The model has #{model.getDesignDays.size} design day objects")
+    else
+      runner.registerInitialCondition("The initial weather file is #{model.getWeatherFile.city} and the model has #{model.getDesignDays.size} design day objects")
     end
 
     # set grid region
@@ -204,7 +206,7 @@ class ChangeBuildingLocation < OpenStudio::Measure::ModelMeasure
     if model.version < OpenStudio::VersionString.new('3.0.0')
       weather_file.setString(10, "file:///#{epw_file.filename}")
     else
-      weather_file.setString(10, "#{epw_file.filename}")
+      weather_file.setString(10, epw_file.filename)
     end
     weather_name = "#{epw_file.city}_#{epw_file.state}_#{epw_file.country}"
     weather_lat = epw_file.lat
@@ -277,8 +279,8 @@ class ChangeBuildingLocation < OpenStudio::Measure::ModelMeasure
     ddy_model = OpenStudio::EnergyPlus.loadAndTranslateIdf(ddy_file).get
 
     # Warn if no design days are present in the ddy file
-    if ddy_model.getDesignDays.size.zero?
-      runner.registerWarning("No design days were found in the ddy file.")
+    if ddy_model.getDesignDays.empty?
+      runner.registerWarning('No design days were found in the ddy file.')
     end
 
     ddy_model.getDesignDays.sort.each do |d|
@@ -303,12 +305,12 @@ class ChangeBuildingLocation < OpenStudio::Measure::ModelMeasure
     end
 
     # Warn if no design days were added
-    if model.getDesignDays.size.zero?
-      runner.registerWarning("No design days were added to the model.")
+    if model.getDesignDays.empty?
+      runner.registerWarning('No design days were added to the model.')
     end
 
     # Set climate zone
-    climateZones = model.getClimateZones
+    climate_zones = model.getClimateZones
     if args['climate_zone'] == 'Lookup From Stat File'
 
       # get climate zone from stat file
@@ -330,13 +332,13 @@ class ChangeBuildingLocation < OpenStudio::Measure::ModelMeasure
 
     end
     # set climate zone
-    climateZones.clear
+    climate_zones.clear
     if args['climate_zone'].include?('CEC')
-      climateZones.setClimateZone('CEC', args['climate_zone'].gsub('T24-CEC', ''))
-      runner.registerInfo("Setting Climate Zone to #{climateZones.getClimateZones('CEC').first.value}")
+      climate_zones.setClimateZone('CEC', args['climate_zone'].gsub('T24-CEC', ''))
+      runner.registerInfo("Setting Climate Zone to #{climate_zones.getClimateZones('CEC').first.value}")
     else
-      climateZones.setClimateZone('ASHRAE', args['climate_zone'].gsub('ASHRAE 169-2006-', ''))
-      runner.registerInfo("Setting Climate Zone to #{climateZones.getClimateZones('ASHRAE').first.value}")
+      climate_zones.setClimateZone('ASHRAE', args['climate_zone'].gsub('ASHRAE 169-2006-', ''))
+      runner.registerInfo("Setting Climate Zone to #{climate_zones.getClimateZones('ASHRAE').first.value}")
     end
 
     # set soil properties as building additional properties for ground source heat pump modeling
@@ -347,43 +349,43 @@ class ChangeBuildingLocation < OpenStudio::Measure::ModelMeasure
     puts "climate zone = #{climate_zone}"
 
     undisturbed_ground_temps = {
-    'ASHRAE 169-2013-1A' => 25.9,
-    'ASHRAE 169-2013-2A' => 20.9,
-    'ASHRAE 169-2013-2B' => 25.0,
-    'T24-CEC15' => 25.0,
-    'ASHRAE 169-2013-3A' => 17.9,
-    'ASHRAE 169-2013-3B' => 19.7,
-    'T24-CEC7' => 19.7,
-    'T24-CEC8' => 19.7,
-    'T24-CEC9' => 19.7,
-    'T24-CEC10' => 19.7,
-    'T24-CEC11' => 19.7,
-    'T24-CEC12' => 19.7,
-    'T24-CEC13' => 19.7,
-    'T24-CEC14' => 19.7,
-    'ASHRAE 169-2013-3C' => 17.0,
-    'T24-CEC2' => 17.0,
-    'T24-CEC3' => 17.0,
-    'T24-CEC4' => 17.0,
-    'T24-CEC5' => 17.0,
-    'T24-CEC6' => 17.0,
-    'ASHRAE 169-2013-4A' => 14.7,
-    'ASHRAE 169-2013-4B' => 16.3,
-    'T24-CEC1' => 16.3,
-    'ASHRAE 169-2013-4C' => 13.3,
-    'ASHRAE 169-2013-5A' => 11.5,
-    'ASHRAE 169-2013-5B' => 12.9,
-    'T24-CEC16' => 12.9,
-    'ASHRAE 169-2013-6A' => 9.0,
-    'ASHRAE 169-2013-6B' => 9.3,
-    'ASHRAE 169-2013-7A' => 7.0,
-    'ASHRAE 169-2013-7B' => 6.5,
-    'ASHRAE 169-2013-7' => 5.4,
-    'ASHRAE 169-2013-8A' => 2.3,
-    'ASHRAE 169-2013-8' => 2.3
+      'ASHRAE 169-2013-1A' => 25.9,
+      'ASHRAE 169-2013-2A' => 20.9,
+      'ASHRAE 169-2013-2B' => 25.0,
+      'T24-CEC15' => 25.0,
+      'ASHRAE 169-2013-3A' => 17.9,
+      'ASHRAE 169-2013-3B' => 19.7,
+      'T24-CEC7' => 19.7,
+      'T24-CEC8' => 19.7,
+      'T24-CEC9' => 19.7,
+      'T24-CEC10' => 19.7,
+      'T24-CEC11' => 19.7,
+      'T24-CEC12' => 19.7,
+      'T24-CEC13' => 19.7,
+      'T24-CEC14' => 19.7,
+      'ASHRAE 169-2013-3C' => 17.0,
+      'T24-CEC2' => 17.0,
+      'T24-CEC3' => 17.0,
+      'T24-CEC4' => 17.0,
+      'T24-CEC5' => 17.0,
+      'T24-CEC6' => 17.0,
+      'ASHRAE 169-2013-4A' => 14.7,
+      'ASHRAE 169-2013-4B' => 16.3,
+      'T24-CEC1' => 16.3,
+      'ASHRAE 169-2013-4C' => 13.3,
+      'ASHRAE 169-2013-5A' => 11.5,
+      'ASHRAE 169-2013-5B' => 12.9,
+      'T24-CEC16' => 12.9,
+      'ASHRAE 169-2013-6A' => 9.0,
+      'ASHRAE 169-2013-6B' => 9.3,
+      'ASHRAE 169-2013-7A' => 7.0,
+      'ASHRAE 169-2013-7B' => 6.5,
+      'ASHRAE 169-2013-7' => 5.4,
+      'ASHRAE 169-2013-8A' => 2.3,
+      'ASHRAE 169-2013-8' => 2.3
     }
 
-    undisturbed_ground_temp = undisturbed_ground_temps[climate_zone] || runner.registerError("Climate zone not found.")
+    undisturbed_ground_temp = undisturbed_ground_temps[climate_zone] || runner.registerError('Climate zone not found.')
 
     # Add the values as additional properties to the building
     building = model.getBuilding

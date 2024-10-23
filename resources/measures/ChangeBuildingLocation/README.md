@@ -20,7 +20,7 @@ ModelMeasure
 
 
 ### Weather File Name
-Name of the weather file to change to. This is the filename with the extension (e.g. NewWeather.epw). Optionally this can inclucde the full file path, but for most use cases should just be file name.
+Name of the weather file to change to. This is the filename with the extension (e.g. NewWeather.epw). Optionally this can include the full file path, but for most use cases should just be file name.
 **Name:** weather_file_name,
 **Type:** String,
 **Units:** ,

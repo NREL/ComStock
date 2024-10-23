@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>change_building_location</name>
   <uid>d4db4971-f5ba-11e3-a3ac-0800200c9a66</uid>
-  <version_id>6fb0b369-c51c-4c06-ac43-db84efdd5632</version_id>
-  <version_modified>2024-03-06T20:56:01Z</version_modified>
+  <version_id>40d60c38-b6b0-429c-9f90-c4d6805efa7f</version_id>
+  <version_modified>2024-10-18T02:24:52Z</version_modified>
   <xml_checksum>057E8D9D</xml_checksum>
   <class_name>ChangeBuildingLocation</class_name>
   <display_name>ChangeBuildingLocation</display_name>
@@ -14,7 +14,7 @@
     <argument>
       <name>weather_file_name</name>
       <display_name>Weather File Name</display_name>
-      <description>Name of the weather file to change to. This is the filename with the extension (e.g. NewWeather.epw). Optionally this can inclucde the full file path, but for most use cases should just be file name.</description>
+      <description>Name of the weather file to change to. This is the filename with the extension (e.g. NewWeather.epw). Optionally this can include the full file path, but for most use cases should just be file name.</description>
       <type>String</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -317,7 +317,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>581A4C09</checksum>
+      <checksum>00DC5B6F</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -334,13 +334,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>ED117F7E</checksum>
+      <checksum>6EF801F5</checksum>
     </file>
     <file>
       <filename>epw.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>46A9A425</checksum>
+      <checksum>1874655D</checksum>
     </file>
     <file>
       <filename>os_lib_helper_methods.rb</filename>
@@ -352,7 +352,7 @@
       <filename>stat_file.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>1F6AC00B</checksum>
+      <checksum>45D7DE00</checksum>
     </file>
     <file>
       <filename>CA_LOS-ANGELES-IAP_722950S_12.ddy</filename>
@@ -430,7 +430,7 @@
       <filename>change_building_location_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>2B466B1C</checksum>
+      <checksum>7132F5C7</checksum>
     </file>
     <file>
       <filename>multiyear.ddy</filename>
@@ -449,18 +449,6 @@
       <filetype>stat</filetype>
       <usage_type>test</usage_type>
       <checksum>E715E1B9</checksum>
-    </file>
-    <file>
-      <filename>test.osm</filename>
-      <filetype>osm</filetype>
-      <usage_type>test</usage_type>
-      <checksum>0B8479BC</checksum>
-    </file>
-    <file>
-      <filename>test.osw</filename>
-      <filetype>osw</filetype>
-      <usage_type>test</usage_type>
-      <checksum>F5FABCCF</checksum>
     </file>
   </files>
 </measure>

@@ -153,13 +153,14 @@ class SetPrimaryKitchenEquipment < OpenStudio::Measure::ModelMeasure
     li_space_types_with_kitchens = []
     num_kitchens = 0
     model.getSpaces.sort.each do |space|
-      if ['kitchen', 'KITCHEN', 'Kitchen'].any? { |word| (space.name.get).include?(word) }
+      if ['kitchen', 'KITCHEN', 'Kitchen'].any? { |word| space.name.get.include?(word) }
         # append kitchen to list
         li_spaces_with_kitchens << space
-        num_kitchens+=1
+        num_kitchens += 1
         # get space type of kitchen and add to list if not already
         kitchen_space_type = space.spaceType.get
         next if li_space_types_with_kitchens.include? kitchen_space_type
+
         li_space_types_with_kitchens << kitchen_space_type
       end
     end
@@ -168,8 +169,8 @@ class SetPrimaryKitchenEquipment < OpenStudio::Measure::ModelMeasure
     if li_spaces_with_kitchens.empty?
       runner.registerAsNotApplicable('Model does not contain a kitchen spaces and will not be affected by this measure.')
       return false
-    elsif li_space_types_with_kitchens.length() > 1
-      runner.registerAsNotApplicable("Model contains #{li_space_types_with_kitchens.length()} kitchen space types. This measure only supports 1 kitchen space type, and therefore is not applicable.")
+    elsif li_space_types_with_kitchens.length > 1
+      runner.registerAsNotApplicable("Model contains #{li_space_types_with_kitchens.length} kitchen space types. This measure only supports 1 kitchen space type, and therefore is not applicable.")
       return false
     end
 
@@ -182,40 +183,40 @@ class SetPrimaryKitchenEquipment < OpenStudio::Measure::ModelMeasure
     # make list of equipment fuels
     li_appliance_fuel = [cook_fuel_broiler, cook_fuel_griddle, cook_fuel_fryer, cook_fuel_oven, cook_fuel_range, cook_fuel_steamer]
     # make hash of equipment type and fuels
-    appliance_fuel_hash = Hash[li_appliance_types.zip li_appliance_fuel]
+    appliance_fuel_hash = li_appliance_types.zip(li_appliance_fuel).to_h
     # make list of equipment quantities
     li_appliance_quantities = [cook_broilers_counts, cook_griddles_counts, cook_fryers_counts, cook_ovens_counts, cook_ranges_counts, cook_steamers_counts]
     # make hash of equipment quantities
-    appliance_quantity_hash = Hash[li_appliance_types.zip li_appliance_quantities]
+    appliance_quantity_hash = li_appliance_types.zip(li_appliance_quantities).to_h
     # make list of electric equipment power (in kW)
-    li_appliance_electric_power_kW = [10.815,17.116,14.009,12.104,21.014,26.964]
+    li_appliance_electric_power_kw = [10.815, 17.116, 14.009, 12.104, 21.014, 26.964]
     # make hash of electric equipment
-    appliance_electric_power_hash = Hash[li_appliance_types.zip li_appliance_electric_power_kW]
+    appliance_electric_power_hash = li_appliance_types.zip(li_appliance_electric_power_kw).to_h
     # make list of gas equipment power (in kW)
-    li_appliance_gas_power_kW = [28.136,26.377,23.447,12.896,42.497,58.617]
+    li_appliance_gas_power_kw = [28.136, 26.377, 23.447, 12.896, 42.497, 58.617]
     # make hash of gas equipment
-    appliance_gas_power_hash = Hash[li_appliance_types.zip li_appliance_gas_power_kW]
-   
+    appliance_gas_power_hash = li_appliance_types.zip(li_appliance_gas_power_kw).to_h
+
     # fraction latent always set to 0.1
     frac_latent = 0.1
     # make list of gas radiant fraction values
-    li_gas_frac_radiant = [0.12,0.18,0.23,0.08,0.11,0.1]
-    gas_fraction_radiant_hash = Hash[li_appliance_types.zip li_gas_frac_radiant]
+    li_gas_frac_radiant = [0.12, 0.18, 0.23, 0.08, 0.11, 0.1]
+    gas_fraction_radiant_hash = li_appliance_types.zip(li_gas_frac_radiant).to_h
     # make list of electric radiant fraction values
-    li_elec_frac_radiant = [0.35,0.39,0.36,0.22,0.1,0.1]
-    elec_fraction_radiant_hash = Hash[li_appliance_types.zip li_elec_frac_radiant]
+    li_elec_frac_radiant = [0.35, 0.39, 0.36, 0.22, 0.1, 0.1]
+    elec_fraction_radiant_hash = li_appliance_types.zip(li_elec_frac_radiant).to_h
     # make list of gas lost fraction values
-    li_gas_frac_lost = [0.68,0.62,0.57,0.72,0.69,0.7]
-    gas_fraction_lost_hash = Hash[li_appliance_types.zip li_gas_frac_lost]
+    li_gas_frac_lost = [0.68, 0.62, 0.57, 0.72, 0.69, 0.7]
+    gas_fraction_lost_hash = li_appliance_types.zip(li_gas_frac_lost).to_h
     # make list of electric lost fraction values
-    li_elec_frac_lost = [0.45,0.41,0.44,0.58,0.7,0.7]
-    elec_fraction_lost_hash = Hash[li_appliance_types.zip li_elec_frac_lost]
+    li_elec_frac_lost = [0.45, 0.41, 0.44, 0.58, 0.7, 0.7]
+    elec_fraction_lost_hash = li_appliance_types.zip(li_elec_frac_lost).to_h
 
     # make list of equipment to delete
-    li_euip_to_remove=[]
-    orig_gas_equip_count=0
+    li_euip_to_remove = []
+    orig_gas_equip_count = 0
     # get base gas equipment, if any
-    if kitchen_stype.gasEquipment.length() > 0
+    if !kitchen_stype.gasEquipment.empty?
       # get existing kitchen gas equipment in model
       gas_equip_orig = kitchen_stype.gasEquipment[0]
       # get existing gas equipment definition schedule
@@ -225,12 +226,12 @@ class SetPrimaryKitchenEquipment < OpenStudio::Measure::ModelMeasure
       # add equipment to list
       li_euip_to_remove << gas_equip_orig
       li_euip_to_remove << gas_equip_def_orig
-      orig_gas_equip_count+=1
+      orig_gas_equip_count += 1
     end
 
-    orig_electric_equip_count=0
+    orig_electric_equip_count = 0
     # get base electric equipment, if any
-    if kitchen_stype.electricEquipment.length() > 0
+    if !kitchen_stype.electricEquipment.empty?
       # get existing kitchen electric equipment in model
       electric_equip_orig = kitchen_stype.electricEquipment[0]
       # get existing electric equipment definition schedule
@@ -238,26 +239,28 @@ class SetPrimaryKitchenEquipment < OpenStudio::Measure::ModelMeasure
       # get existing electric equipment definition
       electric_equip_def_orig = electric_equip_orig.electricEquipmentDefinition
       # add equipment to list - we will not remove electric equipment, but will reduce it
-      orig_electric_equip_count+=1
-
+      orig_electric_equip_count += 1
     end
+
     # register initial model conditions
-    runner.registerInitialCondition("The building contains #{num_kitchens} applicable kitchen space(s).The original kitchen space type, #{kitchen_stype.name}, uses #{kitchen_stype.gasEquipmentPowerPerFloorArea()} W/m^2 of gas equipment and #{kitchen_stype.electricEquipmentPowerPerFloorArea()} W/m^2 of electric equipment. 60% of electric equipment, if any, will remain in model to account for misc. loads.")
+    runner.registerInitialCondition("The building contains #{num_kitchens} applicable kitchen space(s).The original kitchen space type, #{kitchen_stype.name}, uses #{kitchen_stype.gasEquipmentPowerPerFloorArea} W/m^2 of gas equipment and #{kitchen_stype.electricEquipmentPowerPerFloorArea} W/m^2 of electric equipment. 60% of electric equipment, if any, will remain in model to account for misc. loads.")
 
     # loop through equipment types and add to model
     li_appliance_types.each do |app|
       # skip equipment type if 0 quantity
       next unless appliance_quantity_hash[app] > 0
+
       # check fuel type for gas
       if appliance_fuel_hash[app] == 'Gas'
         # skip if no gas equipment existed in model
         next unless orig_gas_equip_count > 0
-        # create new gas equipment *definition*
+
+        # create new gas equipment definition
         equip_def_new = gas_equip_def_orig.clone.to_GasEquipmentDefinition.get
         equip_def_new.setName("gas_#{app}_equipment_definition_bldg_quantity=#{appliance_quantity_hash[app]}")
         # set aggregate equipment power; multiply quantity by power per unit; multiply by 1000 for kW to W
-        agg_power=appliance_quantity_hash[app]*appliance_gas_power_hash[app]
-        equip_def_new.setDesignLevel(agg_power*1000)
+        agg_power = appliance_quantity_hash[app] * appliance_gas_power_hash[app]
+        equip_def_new.setDesignLevel(agg_power * 1000)
         equip_def_new.setFractionLatent(frac_latent)
         frac_radiant = gas_fraction_radiant_hash[app]
         equip_def_new.setFractionRadiant(frac_radiant)
@@ -270,18 +273,19 @@ class SetPrimaryKitchenEquipment < OpenStudio::Measure::ModelMeasure
         # use original gas equipment schedule
         equip_new.setSchedule(gas_equip_sched_orig)
         # use multiplier to spread equipment across multiple kitchens
-        equip_new.setMultiplier(1.0/num_kitchens)
+        equip_new.setMultiplier(1.0 / num_kitchens)
         # register message for adding gas equipment to model
         runner.registerInfo("(#{appliance_quantity_hash[app]}) #{appliance_gas_power_hash[app]}kW gas #{app}(s) were added to model kitchen space(s).")
       elsif appliance_fuel_hash[app] == 'Electric'
         # skip if no electric equipment existed in model
         next unless orig_electric_equip_count > 0
-        # create new electric equipment *definition*
+
+        # create new electric equipment definition
         equip_def_new = electric_equip_def_orig.clone.to_ElectricEquipmentDefinition.get
         equip_def_new.setName("electric_#{app}_equipment_definition_bldg_quantity=#{appliance_quantity_hash[app]}")
         # set aggregate equipment power; multiply quantity by power per unit; multiply by 1000 for kW to W
-        agg_power=appliance_quantity_hash[app]*appliance_electric_power_hash[app]
-        equip_def_new.setDesignLevel(agg_power*1000)
+        agg_power = appliance_quantity_hash[app] * appliance_electric_power_hash[app]
+        equip_def_new.setDesignLevel(agg_power * 1000)
         equip_def_new.setFractionLatent(frac_latent)
         frac_radiant = elec_fraction_radiant_hash[app]
         equip_def_new.setFractionRadiant(frac_radiant)
@@ -295,11 +299,11 @@ class SetPrimaryKitchenEquipment < OpenStudio::Measure::ModelMeasure
         equip_new.setSchedule(gas_equip_sched_orig)
         # equip_new.setSchedule(gas_equip_sched_orig)
         # use multiplier to spread equipment across multiple kitchens
-        equip_new.setMultiplier(1.0/num_kitchens)
+        equip_new.setMultiplier(1.0 / num_kitchens)
         # register message for adding gas equipment to model
         runner.registerInfo("(#{appliance_quantity_hash[app]}) #{appliance_electric_power_hash[app]}kW electric #{app}(s) were added to model kitchen space(s).")
-        puts equip_new
-      else runner.registerWarning("Fuel type '#{appliance_fuel_hash[app]}' for #{app} appliance is not applicable. String must match either 'Gas' or 'Electric'. This equipment will be ignored.")
+      else
+        runner.registerWarning("Fuel type '#{appliance_fuel_hash[app]}' for #{app} appliance is not applicable. String must match either 'Gas' or 'Electric'. This equipment will be ignored.")
       end
     end
 
@@ -307,17 +311,17 @@ class SetPrimaryKitchenEquipment < OpenStudio::Measure::ModelMeasure
     li_euip_to_remove.each(&:remove)
 
     # set electric equipment to 60% of original value to account for misc.
-    if kitchen_stype.electricEquipment.length() > 0
+    if !kitchen_stype.electricEquipment.empty?
       # change name to misc. equipment
       electric_equip_orig.setName('misc_electric_kitchen_equipment')
       # change name to misc. equipment
       electric_equip_def_orig.setName('misc_electric_kitchen_equipment_definition')
       # get original power
-      original_power_per_area = electric_equip_orig.powerPerFloorArea().to_f
+      original_power_per_area = electric_equip_orig.powerPerFloorArea.to_f
       # change power per sf to 10% of original
-      new_power = original_power_per_area*0.1
+      new_power = original_power_per_area * 0.1
       electric_equip_def_orig.setWattsperSpaceFloorArea(new_power)
-      runner.registerInfo("The original kitchen electric load has been reduced to 10% of the original value from #{original_power_per_area.round()}W/m^2 to #{new_power.round()}W/m^2 to remove energy associated with major cooking appliances while retaining miscellaneous electric loads.")
+      runner.registerInfo("The original kitchen electric load has been reduced to 10% of the original value from #{original_power_per_area.round}W/m^2 to #{new_power.round}W/m^2 to remove energy associated with major cooking appliances while retaining miscellaneous electric loads.")
     end
 
     return true

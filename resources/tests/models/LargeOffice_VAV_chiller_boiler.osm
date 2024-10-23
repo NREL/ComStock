@@ -1,7 +1,7 @@
 
 OS:Version,
-  {8380d605-e2f9-44ba-ba1f-9ad89d24cba1}, !- Handle
-  3.4.0;                                  !- Version Identifier
+  {f480e8ce-55b2-4a8f-9d9b-a23149bd2b4f}, !- Handle
+  3.8.0;                                  !- Version Identifier
 
 OS:Facility,
   {232b95d5-16e4-4a9c-abab-deeb6dbbf65e}; !- Handle
@@ -1286,6 +1286,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -1494,6 +1503,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -1702,6 +1720,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -1910,6 +1937,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -2118,6 +2154,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -2326,6 +2371,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -2534,6 +2588,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -2742,6 +2805,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -2950,6 +3022,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -3158,6 +3239,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -3366,6 +3456,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -3574,6 +3673,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -3782,6 +3890,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -3990,6 +4107,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -4198,6 +4324,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -4415,6 +4550,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -4623,6 +4767,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -4831,6 +4984,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -5039,6 +5201,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -5247,6 +5418,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -5455,6 +5635,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -5663,6 +5852,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -5871,6 +6069,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -6079,6 +6286,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -6296,6 +6512,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -6504,6 +6729,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -6712,6 +6946,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -6920,6 +7163,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -7128,6 +7380,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -7336,6 +7597,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -7544,6 +7814,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -7752,6 +8031,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -7960,6 +8248,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -8177,6 +8474,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -8385,6 +8691,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -8593,6 +8908,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -8801,6 +9125,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -9009,6 +9342,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -9217,6 +9559,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -9425,6 +9776,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -9633,6 +9993,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -9841,6 +10210,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -10058,6 +10436,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -10266,6 +10653,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -10474,6 +10870,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -10682,6 +11087,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -10890,6 +11304,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -11098,6 +11521,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -11306,6 +11738,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -11514,6 +11955,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -11722,6 +12172,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -11939,6 +12398,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -12147,6 +12615,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -12355,6 +12832,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -12563,6 +13049,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -12771,6 +13266,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -12979,6 +13483,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -13187,6 +13700,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -13395,6 +13917,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -13603,6 +14134,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -13820,6 +14360,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -14028,6 +14577,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -14236,6 +14794,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -14444,6 +15011,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -14652,6 +15228,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -14860,6 +15445,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -15068,6 +15662,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -15276,6 +15879,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -15484,6 +16096,15 @@ OS:Sizing:Zone,
   NeutralSupplyAir,                       !- Dedicated Outdoor Air System Control Strategy
   autosize,                               !- Dedicated Outdoor Air Low Setpoint Temperature for Design {C}
   autosize,                               !- Dedicated Outdoor Air High Setpoint Temperature for Design {C}
+  Sensible Load Only No Latent Load,      !- Zone Load Sizing Method
+  HumidityRatioDifference,                !- Zone Latent Cooling Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Dehumidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Cooling Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  HumidityRatioDifference,                !- Zone Latent Heating Design Supply Air Humidity Ratio Input Method
+  ,                                       !- Zone Humidification Design Supply Air Humidity Ratio {kgWater/kgDryAir}
+  0.005,                                  !- Zone Humidification Design Supply Air Humidity Ratio Difference {kgWater/kgDryAir}
+  ,                                       !- Zone Humidistat Dehumidification Set Point Schedule Name
+  ,                                       !- Zone Humidistat Humidification Set Point Schedule Name
   ,                                       !- Design Zone Air Distribution Effectiveness in Cooling Mode
   ,                                       !- Design Zone Air Distribution Effectiveness in Heating Mode
   ,                                       !- Design Zone Secondary Recirculation Fraction {dimensionless}
@@ -16994,7 +17615,7 @@ OS:Schedule:Day,
   {f81d1060-1c6a-46a7-ad12-21e166dc8ad2}, !- Handle
   OfficeLarge BLDG_LIGHT_SCH Default,     !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   7,                                      !- Hour 1
   30,                                     !- Minute 1
   0.05,                                   !- Value Until Time 1
@@ -17025,7 +17646,7 @@ OS:Schedule:Day,
   {ba0e5f06-cf3f-4324-9ae2-646c4e7b82d0}, !- Handle
   OfficeLarge BLDG_LIGHT_SCH Sat Day,     !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   4,                                      !- Hour 1
   30,                                     !- Minute 1
   0.004572,                               !- Value Until Time 1
@@ -17265,7 +17886,7 @@ OS:Schedule:Day,
   {bc9e4b5e-cab8-4191-aaae-41500384217d}, !- Handle
   OfficeLarge BLDG_LIGHT_SCH Summer Design Day, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -17293,7 +17914,7 @@ OS:Schedule:Day,
   {8b671245-dcd5-4782-b00d-a920c77f0ef7}, !- Handle
   OfficeLarge BLDG_LIGHT_SCH Wkdy Day,    !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   4,                                      !- Hour 1
   15,                                     !- Minute 1
   0.0454034117647059,                     !- Value Until Time 1
@@ -17491,7 +18112,7 @@ OS:Schedule:Day,
   {ce8f53db-9bcc-4c78-8bb7-cbd2dfb1951a}, !- Handle
   OfficeLarge BLDG_LIGHT_SCH Winter Design Day, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -17515,7 +18136,7 @@ OS:Schedule:Day,
   {50d195b4-1350-4802-84ad-66f62d7026b9}, !- Handle
   OfficeLarge ALWAYS_ON Default,          !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -17524,7 +18145,7 @@ OS:Schedule:Day,
   {e985de79-dc4c-4f8e-8bc6-63be5d9698c7}, !- Handle
   OfficeLarge ALWAYS_ON Winter Design Day, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -17533,7 +18154,7 @@ OS:Schedule:Day,
   {df073aa0-a333-46bf-a426-7875b6dfdc2d}, !- Handle
   OfficeLarge ALWAYS_ON Summer Design Day, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -17644,7 +18265,7 @@ OS:Schedule:Day,
   {a3d7b7a3-2a65-4fd8-9d25-a8ae20d881c1}, !- Handle
   Clothing Schedule Default Winter Clothes, !- Name
   {813b9ba0-3867-4793-ad9e-733df0d83bea}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -17672,7 +18293,7 @@ OS:Schedule:Day,
   {99abb7f8-0d09-4dde-a8e0-b29a69b729cc}, !- Handle
   Clothing Schedule Summer Clothes,       !- Name
   {813b9ba0-3867-4793-ad9e-733df0d83bea}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0.5;                                    !- Value Until Time 1
@@ -17695,7 +18316,7 @@ OS:Schedule:Day,
   {3463d0c5-477b-4843-ae07-2092c1bdc31a}, !- Handle
   Air Velocity Schedule Default,          !- Name
   {1a928196-d7ae-4a7c-a6d6-0f1bfae8f73d}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0.2;                                    !- Value Until Time 1
@@ -17718,7 +18339,7 @@ OS:Schedule:Day,
   {2225f329-ca5a-4806-9a37-bd771713d3c3}, !- Handle
   Work Efficiency Schedule Default,       !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -17809,7 +18430,7 @@ OS:Schedule:Day,
   {db21e826-e5a8-45e4-b89b-b99114e0d31f}, !- Handle
   Large Office Bldg Occ Default,          !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   5,                                      !- Hour 1
   15,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -18062,7 +18683,7 @@ OS:Schedule:Day,
   {c5446093-ef5a-46a1-8286-9ea8ce53c195}, !- Handle
   Large Office Bldg Occ Sat Day,          !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   4,                                      !- Hour 1
   30,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -18263,7 +18884,7 @@ OS:Schedule:Day,
   {3476db11-9536-4127-90fd-f4475bf5a8cd}, !- Handle
   Large Office Bldg Occ Summer Design Day, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   0,                                      !- Minute 1
   0,                                      !- Value Until Time 1
@@ -18278,7 +18899,7 @@ OS:Schedule:Day,
   {d748375b-c457-45d9-a996-189253b08791}, !- Handle
   Large Office Bldg Occ Winter Design Day, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -18306,7 +18927,7 @@ OS:Schedule:Day,
   {1f0ef27a-b608-4142-ac84-d80f036d5153}, !- Handle
   Large Office Bldg Occ WntrDsn|Sun Day,  !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   7,                                      !- Hour 1
   30,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -18326,7 +18947,7 @@ OS:Schedule:Day,
   {f0eeb5bb-e591-4ff7-a953-139f2e1caae3}, !- Handle
   Large Office Activity Default,          !- Name
   {b9765be2-fd26-47f5-9552-71ca94bd9e63}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   120;                                    !- Value Until Time 1
@@ -18335,7 +18956,7 @@ OS:Schedule:Day,
   {44206d65-21a4-40e3-8695-d3c3f7ec5414}, !- Handle
   Large Office Activity Winter Design Day, !- Name
   {b9765be2-fd26-47f5-9552-71ca94bd9e63}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   120;                                    !- Value Until Time 1
@@ -18344,7 +18965,7 @@ OS:Schedule:Day,
   {6c44c85d-8e0e-4ffa-bcb4-30b78e356cd9}, !- Handle
   Large Office Activity Summer Design Day, !- Name
   {b9765be2-fd26-47f5-9552-71ca94bd9e63}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   120;                                    !- Value Until Time 1
@@ -18369,7 +18990,7 @@ OS:Schedule:Day,
   {4aa8e73c-a584-42f0-8c44-90011123d352}, !- Handle
   Office BLDG_LIGHT_EndUseData Default,   !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   0,                                      !- Hour 1
   10,                                     !- Minute 1
   0.0353795882352941,                     !- Value Until Time 1
@@ -18847,7 +19468,7 @@ OS:Schedule:Day,
   {e775d533-8225-425e-bf24-922224f3bd73}, !- Handle
   Office BLDG_LIGHT_EndUseData Sat Day,   !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   0,                                      !- Hour 1
   10,                                     !- Minute 1
   0.0224775052107074,                     !- Value Until Time 1
@@ -19432,7 +20053,7 @@ OS:Schedule:Day,
   {e1921d11-5e89-4ee2-9f5d-59bc9cd4dc6a}, !- Handle
   Office BLDG_LIGHT_EndUseData Summer Design Day, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -19460,7 +20081,7 @@ OS:Schedule:Day,
   {86dcc68f-d7c8-418a-b2a4-6d2c52e37a8c}, !- Handle
   Office BLDG_LIGHT_EndUseData Sun Day,   !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   0,                                      !- Hour 1
   10,                                     !- Minute 1
   0.058977053003427,                      !- Value Until Time 1
@@ -19961,7 +20582,7 @@ OS:Schedule:Day,
   {f49b90bb-20f4-473d-b51d-881a3d9a9637}, !- Handle
   Office BLDG_LIGHT_EndUseData Winter Design Day, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -19978,7 +20599,7 @@ OS:Schedule:Day,
   {94dbc122-1430-40c1-9aaa-7ac318bab79e}, !- Handle
   Office BLDG_EQUIP_EndUseData Default,   !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   0,                                      !- Hour 1
   10,                                     !- Minute 1
   0.580396078431372,                      !- Value Until Time 1
@@ -20456,7 +21077,7 @@ OS:Schedule:Day,
   {47c947ca-ba79-430f-83ab-05ca4ed83728}, !- Handle
   Office BLDG_EQUIP_EndUseData Sat Day,   !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   0,                                      !- Hour 1
   10,                                     !- Minute 1
   0.601182249240122,                      !- Value Until Time 1
@@ -21080,7 +21701,7 @@ OS:Schedule:Day,
   {2d32103d-7964-44d3-8f26-21cbccbbf016}, !- Handle
   Office BLDG_EQUIP_EndUseData Summer Design Day, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -21108,7 +21729,7 @@ OS:Schedule:Day,
   {cfcc50e8-f78c-4d95-b52e-c493a1160668}, !- Handle
   Office BLDG_EQUIP_EndUseData Sun Day,   !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   0,                                      !- Hour 1
   10,                                     !- Minute 1
   0.518548539246744,                      !- Value Until Time 1
@@ -21609,7 +22230,7 @@ OS:Schedule:Day,
   {1b956917-d2bc-450c-a7a7-b74cec5e4659}, !- Handle
   Office BLDG_EQUIP_EndUseData Winter Design Day, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -21626,7 +22247,7 @@ OS:Schedule:Day,
   {6abc37b8-2104-4498-9de0-5a872185eedf}, !- Handle
   Large Office Infil Quarter On Default,  !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   0,                                      !- Minute 1
   1,                                      !- Value Until Time 1
@@ -21641,7 +22262,7 @@ OS:Schedule:Day,
   {9e498730-91c9-4d33-a079-d7379d854e6c}, !- Handle
   Large Office Infil Quarter On Summer Design Day, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   0,                                      !- Minute 1
   1,                                      !- Value Until Time 1
@@ -21675,7 +22296,7 @@ OS:Schedule:Day,
   {4e082f04-8836-4815-be83-3cfb44fec66e}, !- Handle
   Large Office Infil Quarter On Sun Day,  !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -21684,7 +22305,7 @@ OS:Schedule:Day,
   {432d05d7-2588-4163-bb3a-8b73454c89ac}, !- Handle
   Large Office Infil Quarter On Winter Design Day, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   0,                                      !- Minute 1
   1,                                      !- Value Until Time 1
@@ -21718,7 +22339,7 @@ OS:Schedule:Day,
   {3680fcd2-136e-40d0-b5b5-eb782364c2e8}, !- Handle
   Large Office Infil Quarter On WntrDsn|Sat Day, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   0,                                      !- Minute 1
   1,                                      !- Value Until Time 1
@@ -23158,7 +23779,7 @@ OS:Schedule:Day,
   {bffa3d75-8ce2-4aa3-b23d-cf792b4f4f29}, !- Handle
   69 space(s) Occ Sch Default,            !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   5,                                      !- Hour 1
   0,                                      !- Minute 1
   0,                                      !- Value Until Time 1
@@ -23219,7 +23840,7 @@ OS:Schedule:Day,
   {ad5fde41-3963-408d-bbbd-a32a0ae16981}, !- Handle
   69 space(s) Occ Sch Winter Design Day,  !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -23228,7 +23849,7 @@ OS:Schedule:Day,
   {389638d2-079d-4eb8-ba62-2f3babcca307}, !- Handle
   69 space(s) Occ Sch Summer Design Day,  !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -23256,7 +23877,7 @@ OS:Schedule:Day,
   {b0914db4-bf82-4fb9-aca5-a5e9d9ce7eaf}, !- Handle
   69 space(s) Occ Sch Saturday,           !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   5,                                      !- Hour 1
   0,                                      !- Minute 1
   0,                                      !- Value Until Time 1
@@ -23308,7 +23929,7 @@ OS:Schedule:Day,
   {413518ad-e342-404e-ad4b-de17fd6f8105}, !- Handle
   69 space(s) Occ Sch Sunday,             !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -23350,7 +23971,7 @@ OS:Schedule:Day,
   {fbfd614f-4c1a-4577-9384-2ef19ce3c972}, !- Handle
   69 space(s) Occ Sch Default 1,          !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   3,                                      !- Hour 1
   45,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -23593,7 +24214,7 @@ OS:Schedule:Day,
   {781b2d86-c747-4cb2-b256-4b2f6baec158}, !- Handle
   69 space(s) Occ Sch Summer Design Day 1, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -23602,7 +24223,7 @@ OS:Schedule:Day,
   {7ddc8c87-ba09-4056-b342-46b888fac98c}, !- Handle
   69 space(s) Occ Sch Winter Design Day 1, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -23630,7 +24251,7 @@ OS:Schedule:Day,
   {2581319f-4f9b-4a8f-9b09-a6fe9ce2af9c}, !- Handle
   69 space(s) Occ Sch Sunday 1,           !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   7,                                      !- Hour 1
   30,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -23661,7 +24282,7 @@ OS:Schedule:Day,
   {8fdeb678-eca3-40c9-9898-6d18f369863d}, !- Handle
   69 space(s) Occ Sch Saturday 1,         !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   4,                                      !- Hour 1
   0,                                      !- Minute 1
   0,                                      !- Value Until Time 1
@@ -23856,7 +24477,7 @@ OS:Schedule:Day,
   {55dee81f-a68e-497e-812c-44500bad09ee}, !- Handle
   69 space(s) Occ Sch Default 2,          !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   5,                                      !- Hour 1
   0,                                      !- Minute 1
   0,                                      !- Value Until Time 1
@@ -23901,7 +24522,7 @@ OS:Schedule:Day,
   {58dae38e-f1d1-4cfb-9ddb-74d0889033b6}, !- Handle
   69 space(s) Occ Sch Summer Design Day 2, !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -23910,7 +24531,7 @@ OS:Schedule:Day,
   {55f72508-8269-48a3-893d-b8e7d037146e}, !- Handle
   69 space(s) Occ Sch Winter Design Day 2, !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -23938,7 +24559,7 @@ OS:Schedule:Day,
   {047d2f90-7d45-4dc1-9aa6-3adee4eddeab}, !- Handle
   69 space(s) Occ Sch Sunday 2,           !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -23966,7 +24587,7 @@ OS:Schedule:Day,
   {9622a372-0ef9-43e3-81e5-dfeddface913}, !- Handle
   69 space(s) Occ Sch Saturday 2,         !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   5,                                      !- Hour 1
   0,                                      !- Minute 1
   0,                                      !- Value Until Time 1
@@ -24023,7 +24644,7 @@ OS:Schedule:Day,
   {ea26cca2-5f21-4f76-bf01-ccba25347d7a}, !- Handle
   69 space(s) Occ Sch Default 3,          !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   5,                                      !- Hour 1
   0,                                      !- Minute 1
   0,                                      !- Value Until Time 1
@@ -24068,7 +24689,7 @@ OS:Schedule:Day,
   {cb7c469c-4ad1-43fd-b4cf-c01ee53d7e36}, !- Handle
   69 space(s) Occ Sch Summer Design Day 3, !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -24077,7 +24698,7 @@ OS:Schedule:Day,
   {b8ba5604-83b3-4c52-b1e5-fb0d0734ad83}, !- Handle
   69 space(s) Occ Sch Winter Design Day 3, !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -24105,7 +24726,7 @@ OS:Schedule:Day,
   {d350962a-a1f8-4fa6-8cd3-33fb62adf0ac}, !- Handle
   69 space(s) Occ Sch Sunday 3,           !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -24133,7 +24754,7 @@ OS:Schedule:Day,
   {f966ed0e-96f7-48af-901a-d10075bc751b}, !- Handle
   69 space(s) Occ Sch Saturday 3,         !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   5,                                      !- Hour 1
   0,                                      !- Minute 1
   0,                                      !- Value Until Time 1
@@ -24250,7 +24871,7 @@ OS:Schedule:Day,
   {83f08786-df39-4e62-94a3-076f2f37e829}, !- Handle
   OfficeLarge BLDG_SWH_SCH Default,       !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   4,                                      !- Hour 1
   0,                                      !- Minute 1
   0.04,                                   !- Value Until Time 1
@@ -24358,7 +24979,7 @@ OS:Schedule:Day,
   {c4e5c21d-ae10-4d5b-a25b-c3585d34dc36}, !- Handle
   OfficeLarge BLDG_SWH_SCH Summer Design Day, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   0,                                      !- Minute 1
   0,                                      !- Value Until Time 1
@@ -24437,7 +25058,7 @@ OS:Schedule:Day,
   {4aefbffd-3acb-46ad-9ea5-11fe857c90e8}, !- Handle
   OfficeLarge BLDG_SWH_SCH SmrDsn|Wkdy Day, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   5,                                      !- Hour 1
   15,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -24752,7 +25373,7 @@ OS:Schedule:Day,
   {528d6830-48d1-4fd8-bae9-456e2cc5232c}, !- Handle
   OfficeLarge BLDG_SWH_SCH Winter Design Day, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   0,                                      !- Minute 1
   0,                                      !- Value Until Time 1
@@ -24822,7 +25443,7 @@ OS:Schedule:Day,
   {e4ade28f-2ee3-49fe-8900-4f9ea2a12930}, !- Handle
   OfficeLarge BLDG_SWH_SCH WntrDsn|Sat Day, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   0,                                      !- Hour 1
   10,                                     !- Minute 1
   0.0496598639455782,                     !- Value Until Time 1
@@ -25412,7 +26033,7 @@ OS:Schedule:Day,
   {29dabf51-7613-4187-a87c-a9519db5ca6b}, !- Handle
   Fraction Sensible - 0.2 Default,        !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0.2;                                    !- Value Until Time 1
@@ -25427,7 +26048,7 @@ OS:Schedule:Day,
   {c27b68fd-b813-4d91-bcf8-2f987ada9f79}, !- Handle
   Fraction Latent - 0.05 Default,         !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0.05;                                   !- Value Until Time 1
@@ -25442,7 +26063,7 @@ OS:Schedule:Day,
   {d56aa3b4-3e63-4b7d-aef2-8e05f9695277}, !- Handle
   Mixed Water At Faucet Temp - 140F Default, !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   60.0000000000001;                       !- Value Until Time 1
@@ -25636,7 +26257,7 @@ OS:Schedule:Day,
   {fbbd3360-f4ee-43c7-be3d-1a6145e283f6}, !- Handle
   Service Water Loop Temp - 140F Default, !- Name
   {7f20f954-ae2f-448a-9857-cc2a2b6fb4fb}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   60.0000000000001;                       !- Value Until Time 1
@@ -25768,7 +26389,7 @@ OS:Schedule:Day,
   {bff1be8c-4071-4791-b6f0-f611224892e6}, !- Handle
   Water Heater Ambient Temp Schedule - 70.0f Default, !- Name
   {b3617052-d9bf-40ac-b379-26a229e3b92a}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   21.1111111111111;                       !- Value Until Time 1
@@ -25814,7 +26435,7 @@ OS:Schedule:Day,
   {9548a0dc-07f1-4141-b525-8e719e2df7ff}, !- Handle
   Office Shared Service Water Loop Piping Air Velocity - 0.67mph Default, !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0.3;                                    !- Value Until Time 1
@@ -26099,7 +26720,7 @@ OS:Schedule:Day,
   {bc2d0618-1827-470b-9c02-7783c580e8b7}, !- Handle
   OfficeLarge HTGSETP_DC_SCH Default,     !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   18;                                     !- Value Until Time 1
@@ -26108,7 +26729,7 @@ OS:Schedule:Day,
   {a64c6226-a0ed-4934-a2dd-617b9c543a5f}, !- Handle
   OfficeLarge HTGSETP_DC_SCH Winter Design Day, !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   18;                                     !- Value Until Time 1
@@ -26117,7 +26738,7 @@ OS:Schedule:Day,
   {cadfc24e-72f1-4e94-8f97-6d3c5de8c77a}, !- Handle
   OfficeLarge HTGSETP_DC_SCH Summer Design Day, !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   18;                                     !- Value Until Time 1
@@ -26134,7 +26755,7 @@ OS:Schedule:Day,
   {d471dbf8-78d8-42d0-8e59-1222db33b2c3}, !- Handle
   OfficeLarge CLGSETP_DC_SCH Default,     !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   27;                                     !- Value Until Time 1
@@ -26143,7 +26764,7 @@ OS:Schedule:Day,
   {9b3d94fe-6979-46e4-adf6-cf073552de82}, !- Handle
   OfficeLarge CLGSETP_DC_SCH Winter Design Day, !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   27;                                     !- Value Until Time 1
@@ -26152,7 +26773,7 @@ OS:Schedule:Day,
   {ffffe9eb-579b-4e44-a613-c1def64a51f0}, !- Handle
   OfficeLarge CLGSETP_DC_SCH Summer Design Day, !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   27;                                     !- Value Until Time 1
@@ -26223,7 +26844,7 @@ OS:Schedule:Day,
   {17897f60-52e3-426e-b062-524e4866e3d3}, !- Handle
   Large Office HtgSetp Default,           !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   5,                                      !- Hour 1
   45,                                     !- Minute 1
   20.5555555555556,                       !- Value Until Time 1
@@ -26257,7 +26878,7 @@ OS:Schedule:Day,
   {44a9cdbd-e2fb-463f-b725-4be979763d37}, !- Handle
   Large Office HtgSetp Sat Day,           !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   5,                                      !- Hour 1
   30,                                     !- Minute 1
   20.5555555555556,                       !- Value Until Time 1
@@ -26291,7 +26912,7 @@ OS:Schedule:Day,
   {d70ac231-1806-4b75-9052-761c1710f8fb}, !- Handle
   Large Office HtgSetp SmrDsn|Sun Day,    !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   7,                                      !- Hour 1
   30,                                     !- Minute 1
   20.5555555555556,                       !- Value Until Time 1
@@ -26303,7 +26924,7 @@ OS:Schedule:Day,
   {7ad8fde4-bf81-4879-93ce-5bd0b40231bb}, !- Handle
   Large Office HtgSetp Winter Design Day, !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   21;                                     !- Value Until Time 1
@@ -26320,7 +26941,7 @@ OS:Schedule:Day,
   {5f704dd1-5398-4ad2-93b9-17d8d2f9dcab}, !- Handle
   Large Office ClgSetp Default,           !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   5,                                      !- Hour 1
   45,                                     !- Minute 1
   25.0000000000001,                       !- Value Until Time 1
@@ -26354,7 +26975,7 @@ OS:Schedule:Day,
   {92a8faff-c80a-41ef-8022-14099f3250c9}, !- Handle
   Large Office ClgSetp Sat Day,           !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   5,                                      !- Hour 1
   30,                                     !- Minute 1
   25.0000000000001,                       !- Value Until Time 1
@@ -26369,7 +26990,7 @@ OS:Schedule:Day,
   {b7d63d48-0ed0-42dc-8bd8-b4f42db82b86}, !- Handle
   Large Office ClgSetp Winter Design Day, !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   26.7;                                   !- Value Until Time 1
@@ -26397,7 +27018,7 @@ OS:Schedule:Day,
   {02729782-4fa9-47b8-8476-4b61ae15fc1f}, !- Handle
   Large Office ClgSetp WntrDsn|Sun Day,   !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   7,                                      !- Hour 1
   30,                                     !- Minute 1
   25.0000000000001,                       !- Value Until Time 1
@@ -27075,7 +27696,7 @@ OS:Schedule:Day,
   {845b195c-8ae6-4e06-b1aa-cfd095c7d151}, !- Handle
   Hot Water Loop Temp - 180F Default,     !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   82.2222222222223;                       !- Value Until Time 1
@@ -27163,7 +27784,8 @@ OS:Boiler:HotWater,
   {bffc2880-c90f-4fd1-8810-15d22326d09f}, !- Boiler Water Outlet Node Name
   95.0000000000001,                       !- Water Outlet Upper Temperature Limit {C}
   LeavingSetpointModulated,               !- Boiler Flow Mode
-  0,                                      !- Parasitic Electric Load {W}
+  0,                                      !- On Cycle Parasitic Electric Load {W}
+  0,                                      !- Off Cycle Parasitic Fuel Load {W}
   1,                                      !- Sizing Factor
   General;                                !- End-Use Subcategory
 
@@ -28014,7 +28636,7 @@ OS:Schedule:Day,
   {e32b2870-61de-4e91-8780-8df56a0c465b}, !- Handle
   Chilled Water Loop Temp - 44F Default,  !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   6.66666666666669;                       !- Value Until Time 1
@@ -28600,7 +29222,7 @@ OS:Schedule:Day,
   {4c6a5dd9-2baf-456b-ab8a-16b338dd4b9e}, !- Handle
   Supply Air Temp - 55.0F Default,        !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   12.7777777777778;                       !- Value Until Time 1
@@ -28849,7 +29471,8 @@ OS:Controller:OutdoorAir,
   ,                                       !- Humidistat Control Zone Name
   ,                                       !- High Humidity Outdoor Air Flow Ratio
   ,                                       !- Control High Indoor Humidity Based on Outdoor Humidity Ratio
-  BypassWhenWithinEconomizerLimits;       !- Heat Recovery Bypass Control Type
+  BypassWhenWithinEconomizerLimits,       !- Heat Recovery Bypass Control Type
+  InterlockedWithMechanicalCooling;       !- Economizer Operation Staging
 
 OS:Controller:MechanicalVentilation,
   {35074fa7-294c-41eb-8fcb-56aeac212964}, !- Handle
@@ -31638,7 +32261,8 @@ OS:Controller:OutdoorAir,
   ,                                       !- Humidistat Control Zone Name
   ,                                       !- High Humidity Outdoor Air Flow Ratio
   ,                                       !- Control High Indoor Humidity Based on Outdoor Humidity Ratio
-  BypassWhenWithinEconomizerLimits;       !- Heat Recovery Bypass Control Type
+  BypassWhenWithinEconomizerLimits,       !- Heat Recovery Bypass Control Type
+  InterlockedWithMechanicalCooling;       !- Economizer Operation Staging
 
 OS:Controller:MechanicalVentilation,
   {9cc0fb5a-81aa-4f2e-b3bb-5f79fb639fb3}, !- Handle
@@ -33515,7 +34139,8 @@ OS:Controller:OutdoorAir,
   ,                                       !- Humidistat Control Zone Name
   ,                                       !- High Humidity Outdoor Air Flow Ratio
   ,                                       !- Control High Indoor Humidity Based on Outdoor Humidity Ratio
-  BypassWhenWithinEconomizerLimits;       !- Heat Recovery Bypass Control Type
+  BypassWhenWithinEconomizerLimits,       !- Heat Recovery Bypass Control Type
+  InterlockedWithMechanicalCooling;       !- Economizer Operation Staging
 
 OS:Controller:MechanicalVentilation,
   {edfdbe5b-5cd9-48aa-beed-c741a2f4d2d9}, !- Handle
@@ -35392,7 +36017,8 @@ OS:Controller:OutdoorAir,
   ,                                       !- Humidistat Control Zone Name
   ,                                       !- High Humidity Outdoor Air Flow Ratio
   ,                                       !- Control High Indoor Humidity Based on Outdoor Humidity Ratio
-  BypassWhenWithinEconomizerLimits;       !- Heat Recovery Bypass Control Type
+  BypassWhenWithinEconomizerLimits,       !- Heat Recovery Bypass Control Type
+  InterlockedWithMechanicalCooling;       !- Economizer Operation Staging
 
 OS:Controller:MechanicalVentilation,
   {71e7f1c6-db1f-4d66-aa46-2fd81497c74f}, !- Handle
@@ -37269,7 +37895,8 @@ OS:Controller:OutdoorAir,
   ,                                       !- Humidistat Control Zone Name
   ,                                       !- High Humidity Outdoor Air Flow Ratio
   ,                                       !- Control High Indoor Humidity Based on Outdoor Humidity Ratio
-  BypassWhenWithinEconomizerLimits;       !- Heat Recovery Bypass Control Type
+  BypassWhenWithinEconomizerLimits,       !- Heat Recovery Bypass Control Type
+  InterlockedWithMechanicalCooling;       !- Economizer Operation Staging
 
 OS:Controller:MechanicalVentilation,
   {e6cee5be-62d7-40ac-afad-8d5242939613}, !- Handle
@@ -39146,7 +39773,8 @@ OS:Controller:OutdoorAir,
   ,                                       !- Humidistat Control Zone Name
   ,                                       !- High Humidity Outdoor Air Flow Ratio
   ,                                       !- Control High Indoor Humidity Based on Outdoor Humidity Ratio
-  BypassWhenWithinEconomizerLimits;       !- Heat Recovery Bypass Control Type
+  BypassWhenWithinEconomizerLimits,       !- Heat Recovery Bypass Control Type
+  InterlockedWithMechanicalCooling;       !- Economizer Operation Staging
 
 OS:Controller:MechanicalVentilation,
   {702d4f42-9db2-4b6c-a76c-d2203a22822d}, !- Handle
@@ -41023,7 +41651,8 @@ OS:Controller:OutdoorAir,
   ,                                       !- Humidistat Control Zone Name
   ,                                       !- High Humidity Outdoor Air Flow Ratio
   ,                                       !- Control High Indoor Humidity Based on Outdoor Humidity Ratio
-  BypassWhenWithinEconomizerLimits;       !- Heat Recovery Bypass Control Type
+  BypassWhenWithinEconomizerLimits,       !- Heat Recovery Bypass Control Type
+  InterlockedWithMechanicalCooling;       !- Economizer Operation Staging
 
 OS:Controller:MechanicalVentilation,
   {9d2f111a-af76-4e02-9d1e-612ae1810e53}, !- Handle
@@ -42500,7 +43129,7 @@ OS:Schedule:Day,
   {a99ec346-9cae-42e4-8aab-f42ab151ff61}, !- Handle
   Building Hours of Operation NonResidential Default, !- Name
   {5621f155-8b02-4d16-abb7-993a779f8966}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   7,                                      !- Hour 1
   45,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -42531,7 +43160,7 @@ OS:Schedule:Day,
   {9e0fe800-7a56-4242-be22-6041120d46c3}, !- Handle
   Building Hours of Operation NonResidential Winter Design Day, !- Name
   {5621f155-8b02-4d16-abb7-993a779f8966}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -42540,7 +43169,7 @@ OS:Schedule:Day,
   {e4c857e4-708f-4c15-93b5-2914e707f562}, !- Handle
   Building Hours of Operation NonResidential Summer Design Day, !- Name
   {5621f155-8b02-4d16-abb7-993a779f8966}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -42568,7 +43197,7 @@ OS:Schedule:Day,
   {6d9af781-6782-4967-a0a8-c63caee013bc}, !- Handle
   Building Hours of Operation NonResidential Saturday, !- Name
   {5621f155-8b02-4d16-abb7-993a779f8966}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   7,                                      !- Hour 1
   30,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -42602,7 +43231,7 @@ OS:Schedule:Day,
   {71eed8fc-a4cf-4457-a892-08a439e4fb00}, !- Handle
   Building Hours of Operation NonResidential Sunday, !- Name
   {5621f155-8b02-4d16-abb7-993a779f8966}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   7,                                      !- Hour 1
   30,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -43374,7 +44003,7 @@ OS:Schedule:Day,
   {c00fb329-3b56-4237-be6a-37cea0950db9}, !- Handle
   autogen Large Office Activity 0_day_sch, !- Name
   {b9765be2-fd26-47f5-9552-71ca94bd9e63}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   120;                                    !- Value Until Time 1
@@ -43522,7 +44151,7 @@ OS:Schedule:Day,
   {e0de487a-12c0-440c-b3db-46fb7c68542a}, !- Handle
   autogen Large Office Activity 1_day_sch, !- Name
   {b9765be2-fd26-47f5-9552-71ca94bd9e63}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   120;                                    !- Value Until Time 1
@@ -43670,7 +44299,7 @@ OS:Schedule:Day,
   {c516a1ee-ed2f-434f-bacb-e786019310d1}, !- Handle
   autogen OfficeLarge ALWAYS_ON 0_day_sch, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -43818,7 +44447,7 @@ OS:Schedule:Day,
   {2c79c0a0-7952-4107-8a9e-11dd904c3428}, !- Handle
   autogen OfficeLarge ALWAYS_ON 1_day_sch, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -43966,7 +44595,7 @@ OS:Schedule:Day,
   {3553f8b5-63f4-4a24-8f94-9979e05ac85f}, !- Handle
   autogen OfficeLarge CLGSETP_DC_SCH 0_day_sch, !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   27;                                     !- Value Until Time 1
@@ -44114,7 +44743,7 @@ OS:Schedule:Day,
   {b3d62745-ace4-4d05-bf84-c65c35f6f059}, !- Handle
   autogen OfficeLarge CLGSETP_DC_SCH 1_day_sch, !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   27;                                     !- Value Until Time 1
@@ -44262,7 +44891,7 @@ OS:Schedule:Day,
   {d4a832aa-817e-4bdb-b761-a19c8eae9e49}, !- Handle
   autogen OfficeLarge HTGSETP_DC_SCH 0_day_sch, !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   18;                                     !- Value Until Time 1
@@ -44410,7 +45039,7 @@ OS:Schedule:Day,
   {2b100fbc-124b-43e9-990f-a5a87dd134f1}, !- Handle
   autogen OfficeLarge HTGSETP_DC_SCH 1_day_sch, !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   18;                                     !- Value Until Time 1
@@ -44558,7 +45187,7 @@ OS:Schedule:Day,
   {7be8d400-d1ee-4200-80f6-6cdf99436e99}, !- Handle
   autogen Supply Air Temp - 55.0F 0_day_sch, !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   12.7777777777778;                       !- Value Until Time 1
@@ -44706,7 +45335,7 @@ OS:Schedule:Day,
   {ce818051-1f80-42c7-8fac-60e313b0f8bd}, !- Handle
   autogen Supply Air Temp - 55.0F 1_day_sch, !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   12.7777777777778;                       !- Value Until Time 1
@@ -44739,7 +45368,7 @@ OS:Schedule:Day,
   {faf29590-a5e7-45b2-a3e7-2d67867ba8b5}, !- Handle
   9 Zone VAV Occ Sch Default,             !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   35,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -44770,7 +45399,7 @@ OS:Schedule:Day,
   {757e09f6-86b1-4c50-99cd-5de2c1647f2b}, !- Handle
   9 Zone VAV Occ Sch Winter Design Day,   !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -44779,7 +45408,7 @@ OS:Schedule:Day,
   {7b7d4f04-418b-4173-b5f2-8ef549376d6d}, !- Handle
   9 Zone VAV Occ Sch Summer Design Day,   !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -44807,7 +45436,7 @@ OS:Schedule:Day,
   {fce3f7d9-cc52-4da8-9c90-182d7a1a03a0}, !- Handle
   9 Zone VAV Occ Sch Saturday,            !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   40,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -44841,7 +45470,7 @@ OS:Schedule:Day,
   {2e2b4677-4fe2-4c5f-b14f-5c9294d09d78}, !- Handle
   9 Zone VAV Occ Sch Sunday,              !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -44858,7 +45487,7 @@ OS:Schedule:Day,
   {970b6b3b-fc04-4ee1-9a00-fa266b3a0c46}, !- Handle
   9 Zone VAV 1 Occ Sch Default,           !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   35,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -44889,7 +45518,7 @@ OS:Schedule:Day,
   {2d344b42-5c66-429f-bf85-bd55a703a913}, !- Handle
   9 Zone VAV 1 Occ Sch Winter Design Day, !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -44898,7 +45527,7 @@ OS:Schedule:Day,
   {6383f524-a835-4cfa-a1eb-56514238330d}, !- Handle
   9 Zone VAV 1 Occ Sch Summer Design Day, !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -44926,7 +45555,7 @@ OS:Schedule:Day,
   {e10dddfd-843a-4904-bc81-88198682967e}, !- Handle
   9 Zone VAV 1 Occ Sch Saturday,          !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   40,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -44960,7 +45589,7 @@ OS:Schedule:Day,
   {d3565677-f99b-42d0-9c6c-846a9145062c}, !- Handle
   9 Zone VAV 1 Occ Sch Sunday,            !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -44977,7 +45606,7 @@ OS:Schedule:Day,
   {e5009a7f-b14e-4c63-af03-98b34af80e81}, !- Handle
   9 Zone VAV 2 Occ Sch Default,           !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   35,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -45008,7 +45637,7 @@ OS:Schedule:Day,
   {6b616a4a-60ff-4d8d-aa73-ef4b2bb528cd}, !- Handle
   9 Zone VAV 2 Occ Sch Winter Design Day, !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -45017,7 +45646,7 @@ OS:Schedule:Day,
   {652a53aa-fd2a-442f-afcd-25bd26a3f996}, !- Handle
   9 Zone VAV 2 Occ Sch Summer Design Day, !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -45045,7 +45674,7 @@ OS:Schedule:Day,
   {f35c4094-226c-4bd3-8f16-c7bc5423f11d}, !- Handle
   9 Zone VAV 2 Occ Sch Saturday,          !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   40,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -45079,7 +45708,7 @@ OS:Schedule:Day,
   {eb7c85f9-f469-491e-8596-f7216a5f6505}, !- Handle
   9 Zone VAV 2 Occ Sch Sunday,            !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -45096,7 +45725,7 @@ OS:Schedule:Day,
   {b78f828e-c17a-469f-92bd-6f36d5d80bb0}, !- Handle
   9 Zone VAV 3 Occ Sch Default,           !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   35,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -45127,7 +45756,7 @@ OS:Schedule:Day,
   {01aeb9a0-aeac-4a04-9cc6-59d2e9124bc8}, !- Handle
   9 Zone VAV 3 Occ Sch Winter Design Day, !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -45136,7 +45765,7 @@ OS:Schedule:Day,
   {de9bce55-53f1-4e9c-baa3-7dadf5cfbb9e}, !- Handle
   9 Zone VAV 3 Occ Sch Summer Design Day, !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -45164,7 +45793,7 @@ OS:Schedule:Day,
   {9a69f5ef-8266-4ceb-bd04-5650361ee6c0}, !- Handle
   9 Zone VAV 3 Occ Sch Saturday,          !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   40,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -45198,7 +45827,7 @@ OS:Schedule:Day,
   {d825cede-9d08-43d8-906b-5927e8e60970}, !- Handle
   9 Zone VAV 3 Occ Sch Sunday,            !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -45215,7 +45844,7 @@ OS:Schedule:Day,
   {ce644db8-3acc-402e-9ff9-511973f25368}, !- Handle
   9 Zone VAV 4 Occ Sch Default,           !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   35,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -45246,7 +45875,7 @@ OS:Schedule:Day,
   {cdb18c3e-ef1c-4541-8929-80562c32b3d1}, !- Handle
   9 Zone VAV 4 Occ Sch Winter Design Day, !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -45255,7 +45884,7 @@ OS:Schedule:Day,
   {fafe0937-4e5b-4faa-afe1-2077f0655253}, !- Handle
   9 Zone VAV 4 Occ Sch Summer Design Day, !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -45283,7 +45912,7 @@ OS:Schedule:Day,
   {cfebd29d-3b1d-4933-b9fb-8257a3af107f}, !- Handle
   9 Zone VAV 4 Occ Sch Saturday,          !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   40,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -45317,7 +45946,7 @@ OS:Schedule:Day,
   {7ab92367-2868-40ad-85d1-5fc3246f5b61}, !- Handle
   9 Zone VAV 4 Occ Sch Sunday,            !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -45334,7 +45963,7 @@ OS:Schedule:Day,
   {6eefa8d7-81f2-4a9b-bdeb-9d016018a49a}, !- Handle
   9 Zone VAV 5 Occ Sch Default,           !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   35,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -45365,7 +45994,7 @@ OS:Schedule:Day,
   {e812513a-d914-4b04-ad21-f44087fc776f}, !- Handle
   9 Zone VAV 5 Occ Sch Winter Design Day, !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -45374,7 +46003,7 @@ OS:Schedule:Day,
   {21107ca3-6b80-4f99-9050-66673ecb5d7d}, !- Handle
   9 Zone VAV 5 Occ Sch Summer Design Day, !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -45402,7 +46031,7 @@ OS:Schedule:Day,
   {125266dc-ffe5-4888-9dfc-7798be35ad7c}, !- Handle
   9 Zone VAV 5 Occ Sch Saturday,          !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   6,                                      !- Hour 1
   40,                                     !- Minute 1
   0,                                      !- Value Until Time 1
@@ -45436,7 +46065,7 @@ OS:Schedule:Day,
   {f5f55f2c-10eb-4a02-b4a3-f21df38cb43c}, !- Handle
   9 Zone VAV 5 Occ Sch Sunday,            !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -46667,7 +47296,7 @@ OS:Schedule:Day,
   {563493b3-80b9-4d35-bc3e-9c370f33e590}, !- Handle
   Office BLDG_LIGHT_EndUseData Summer Design Day 1, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -46676,7 +47305,7 @@ OS:Schedule:Day,
   {371b6401-3a44-4b31-8839-d7df69340f77}, !- Handle
   Office BLDG_LIGHT_EndUseData Winter Design Day 1, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -46704,7 +47333,7 @@ OS:Schedule:Day,
   {fea148f9-bea0-4c80-a627-43a239d84e86}, !- Handle
   Office BLDG_LIGHT_EndUseData Sun Day 1, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   0,                                      !- Hour 1
   10,                                     !- Minute 1
   0.0618824158333333,                     !- Value Until Time 1
@@ -47240,7 +47869,7 @@ OS:Schedule:Day,
   {0fb12a56-045a-43d7-a3cc-c964f357ae30}, !- Handle
   Office BLDG_LIGHT_EndUseData Sat Day 1, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   0,                                      !- Hour 1
   10,                                     !- Minute 1
   0.0441284995,                           !- Value Until Time 1
@@ -47887,7 +48516,7 @@ OS:Schedule:Day,
   {ef552408-f0c6-4808-9e01-1e28ccfed1a5}, !- Handle
   OfficeLarge BLDG_LIGHT_SCH Summer Design Day 1, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -47896,7 +48525,7 @@ OS:Schedule:Day,
   {cc3e7156-5ab7-476a-9290-a2a949505258}, !- Handle
   OfficeLarge BLDG_LIGHT_SCH Winter Design Day 1, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -47924,7 +48553,7 @@ OS:Schedule:Day,
   {b6d3bee0-55d8-497b-9561-6dfb35222ada}, !- Handle
   OfficeLarge BLDG_LIGHT_SCH Wkdy Day 1,  !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   4,                                      !- Hour 1
   15,                                     !- Minute 1
   0.05,                                   !- Value Until Time 1
@@ -48157,7 +48786,7 @@ OS:Schedule:Day,
   {829306a7-cc5f-4336-bab1-7245bba1e646}, !- Handle
   OfficeLarge BLDG_LIGHT_SCH Sat Day 1,   !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   4,                                      !- Hour 1
   30,                                     !- Minute 1
   0.05,                                   !- Value Until Time 1
@@ -48909,7 +49538,7 @@ OS:Schedule:Day,
   {d2a75094-fa0b-47a7-84fb-7890e20d08da}, !- Handle
   Office BLDG_EQUIP_EndUseData Summer Design Day 1, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -48918,7 +49547,7 @@ OS:Schedule:Day,
   {2ae8cb50-a548-4d66-85fb-4fff0e0b7913}, !- Handle
   Office BLDG_EQUIP_EndUseData Winter Design Day 1, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   0;                                      !- Value Until Time 1
@@ -48946,7 +49575,7 @@ OS:Schedule:Day,
   {283c1970-b95a-4d8f-8187-c1705a612861}, !- Handle
   Office BLDG_EQUIP_EndUseData Sun Day 1, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   0,                                      !- Hour 1
   10,                                     !- Minute 1
   0.460633333333333,                      !- Value Until Time 1
@@ -49482,7 +50111,7 @@ OS:Schedule:Day,
   {22c1ad7e-ea89-4492-8dfe-fc2b4cddf488}, !- Handle
   Office BLDG_EQUIP_EndUseData Sat Day 1, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   0,                                      !- Hour 1
   10,                                     !- Minute 1
   0.5996,                                 !- Value Until Time 1
@@ -50168,7 +50797,7 @@ OS:Schedule:Day,
   {e2ed9a24-cfbf-4008-8310-df5e19743599}, !- Handle
   OfficeLarge ALWAYS_ON Summer Design Day 1, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -50177,7 +50806,7 @@ OS:Schedule:Day,
   {ce19a88d-caf3-4b62-9f23-4034fd19446c}, !- Handle
   OfficeLarge ALWAYS_ON Winter Design Day 1, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -50309,7 +50938,7 @@ OS:Schedule:Day,
   {9a72b666-8aa8-461d-ab8a-c15382b443d5}, !- Handle
   autogen OfficeLarge ALWAYS_ON 0_day_sch 1, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -50457,7 +51086,7 @@ OS:Schedule:Day,
   {ed6c9962-9903-45fa-a2c5-81251e552bee}, !- Handle
   autogen OfficeLarge ALWAYS_ON 1_day_sch 1, !- Name
   {08cce8e0-2535-4a3f-99b6-37f6e461203c}, !- Schedule Type Limits Name
-  Yes,                                    !- Interpolate to Timestep
+  Average,                                !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   1;                                      !- Value Until Time 1
@@ -50566,7 +51195,7 @@ OS:Schedule:Day,
   {33e95d40-46fe-469a-871d-5deb1b389d10}, !- Handle
   Schedule Day 1,                         !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   21.6666666666667;                       !- Value Until Time 1
@@ -50575,7 +51204,7 @@ OS:Schedule:Day,
   {10bb8a00-93ae-4a0c-bac5-b9f127d3df9d}, !- Handle
   Schedule Day 2,                         !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   21.6666666666667;                       !- Value Until Time 1
@@ -50584,7 +51213,7 @@ OS:Schedule:Day,
   {90ec06d2-3473-487b-bd34-42109107ecb5}, !- Handle
   Schedule Day 3,                         !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   21.6666666666667;                       !- Value Until Time 1
@@ -50593,7 +51222,7 @@ OS:Schedule:Day,
   {14f7f57c-ca73-4807-8221-bdcc1f87b1af}, !- Handle
   Schedule Day 4,                         !- Name
   ,                                       !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   20.5555555555556;                       !- Value Until Time 1
@@ -50602,7 +51231,7 @@ OS:Schedule:Day,
   {67449f06-cf00-408c-9ab2-2f474d8b145b}, !- Handle
   Schedule Day 5,                         !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   20.5555555555556;                       !- Value Until Time 1
@@ -50611,7 +51240,7 @@ OS:Schedule:Day,
   {2b2ebfe5-2fc5-48e1-971c-db1869888c75}, !- Handle
   Schedule Day 6,                         !- Name
   {25295d7a-adf4-4d47-a6d4-34be03c0321b}, !- Schedule Type Limits Name
-  ,                                       !- Interpolate to Timestep
+  No,                                     !- Interpolate to Timestep
   24,                                     !- Hour 1
   0,                                      !- Minute 1
   20.5555555555556;                       !- Value Until Time 1
