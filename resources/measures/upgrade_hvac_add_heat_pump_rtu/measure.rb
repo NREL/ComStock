@@ -679,19 +679,26 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
       # loop through stages
       stage_caps_cooling.sort.each do |stage, cap|
-        next unless cap != false
+
+        # use current stage if allowed; otherwise use highest available stage as "dummy"
+        # this is a temporary workaround until OS translator supports different numbers of speed levels between heating and cooling
+        # GitHub issue: https://github.com/NREL/OpenStudio/issues/5277
+        applied_stage = stage
+        if cap == false
+          applied_stage = stage_caps_cooling.select { |k, v| v != false }.keys.min
+        end
 
         # add speed data for each stage
         dx_coil_speed_data = OpenStudio::Model::CoilCoolingDXMultiSpeedStageData.new(model)
-        dx_coil_speed_data.setGrossRatedTotalCoolingCapacity(stage_caps_cooling[stage])
-        dx_coil_speed_data.setGrossRatedSensibleHeatRatio(stage_GrossRatedSensibleHeatRatio_cooling[stage])
-        dx_coil_speed_data.setRatedAirFlowRate(stage_flows_cooling[stage])
-        dx_coil_speed_data.setGrossRatedCoolingCOP(final_rated_cooling_cop * stage_rated_cop_frac_cooling[stage])
+        dx_coil_speed_data.setGrossRatedTotalCoolingCapacity(stage_caps_cooling[applied_stage])
+        dx_coil_speed_data.setGrossRatedSensibleHeatRatio(stage_GrossRatedSensibleHeatRatio_cooling[applied_stage])
+        dx_coil_speed_data.setRatedAirFlowRate(stage_flows_cooling[applied_stage])
+        dx_coil_speed_data.setGrossRatedCoolingCOP(final_rated_cooling_cop * stage_rated_cop_frac_cooling[applied_stage])
         dx_coil_speed_data.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
-        dx_coil_speed_data.setTotalCoolingCapacityFunctionofTemperatureCurve(cool_cap_ft_curve_stages[stage])
-        dx_coil_speed_data.setTotalCoolingCapacityFunctionofFlowFractionCurve(cool_cap_ff_curve_stages[stage])
-        dx_coil_speed_data.setEnergyInputRatioFunctionofTemperatureCurve(cool_eir_ft_curve_stages[stage])
-        dx_coil_speed_data.setEnergyInputRatioFunctionofFlowFractionCurve(cool_eir_ff_curve_stages[stage])
+        dx_coil_speed_data.setTotalCoolingCapacityFunctionofTemperatureCurve(cool_cap_ft_curve_stages[applied_stage])
+        dx_coil_speed_data.setTotalCoolingCapacityFunctionofFlowFractionCurve(cool_cap_ff_curve_stages[applied_stage])
+        dx_coil_speed_data.setEnergyInputRatioFunctionofTemperatureCurve(cool_eir_ft_curve_stages[applied_stage])
+        dx_coil_speed_data.setEnergyInputRatioFunctionofFlowFractionCurve(cool_eir_ff_curve_stages[applied_stage])
         dx_coil_speed_data.setPartLoadFractionCorrelationCurve(cool_plf_fplr1)
         dx_coil_speed_data.setEvaporativeCondenserEffectiveness(0.9)
         dx_coil_speed_data.setNominalTimeforCondensateRemovaltoBegin(1000)
@@ -777,23 +784,30 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # loop through stages
       stage_caps_heating.sort.each do |stage, cap|
 
-        next unless cap != false
+        # use current stage if allowed; otherwise use highest available stage as "dummy"
+        # the stage that is actually used to articulate the speed level is the 'applied_stage'
+        # this is a temporary workaround until OS translator supports different numbers of speed levels between heating and cooling
+        # GitHub issue: https://github.com/NREL/OpenStudio/issues/5277
+        applied_stage = stage
+        if cap == false
+          applied_stage = stage_caps_heating.select { |k, v| v != false }.keys.min
+        end
 
         # add speed data for each stage
         dx_coil_speed_data = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
-        dx_coil_speed_data.setGrossRatedHeatingCapacity(stage_caps_heating[stage])
-        dx_coil_speed_data.setGrossRatedHeatingCOP(final_rated_heating_cop  * _stage_rated_cop_frac_heating[stage])
-        dx_coil_speed_data.setRatedAirFlowRate(stage_flows_heating[stage])
+        dx_coil_speed_data.setGrossRatedHeatingCapacity(stage_caps_heating[applied_stage])
+        dx_coil_speed_data.setGrossRatedHeatingCOP(final_rated_heating_cop  * _stage_rated_cop_frac_heating[applied_stage])
+        dx_coil_speed_data.setRatedAirFlowRate(stage_flows_heating[applied_stage])
         dx_coil_speed_data.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
-        dx_coil_speed_data.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft_curve_stages[stage])
+        dx_coil_speed_data.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft_curve_stages[applied_stage])
         # set performance curves
-        dx_coil_speed_data.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft_curve_stages[stage])
-        dx_coil_speed_data.setHeatingCapacityFunctionofFlowFractionCurve(heat_cap_ff_curve_stages[stage])
-        dx_coil_speed_data.setEnergyInputRatioFunctionofTemperatureCurve(heat_eir_ft_curve_stages[stage])
-        dx_coil_speed_data.setEnergyInputRatioFunctionofFlowFractionCurve(heat_eir_ff_curve_stages[stage])
+        dx_coil_speed_data.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft_curve_stages[applied_stage])
+        dx_coil_speed_data.setHeatingCapacityFunctionofFlowFractionCurve(heat_cap_ff_curve_stages[applied_stage])
+        dx_coil_speed_data.setEnergyInputRatioFunctionofTemperatureCurve(heat_eir_ft_curve_stages[applied_stage])
+        dx_coil_speed_data.setEnergyInputRatioFunctionofFlowFractionCurve(heat_eir_ff_curve_stages[applied_stage])
         dx_coil_speed_data.setPartLoadFractionCorrelationCurve(heat_plf_fplr1)
         # add speed data to multispeed coil object
-        new_dx_heating_coil.addStage(dx_coil_speed_data) unless stage_caps_cooling[stage] == false # temporary 'unless' until bug fix for (https://github.com/NREL/OpenStudio/issues/5277)
+        new_dx_heating_coil.addStage(dx_coil_speed_data) #falseunless stage_caps_cooling[stage] == false # temporary 'unless' until bug fix for (https://github.com/NREL/OpenStudio/issues/5277)
       end
     end
     new_dx_heating_coil
