@@ -221,23 +221,50 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.add_unweighted_energy_savings_columns()
                # Downselect the self.data to just the upgrade
                 self.data = self.data.filter(pl.col(self.UPGRADE_ID) == upgrade_id)
+                self._sightGlass_metadata_check(self.data)
                 # Write self.data to parquet file
                 file_name = f'cached_ComStock_wide_upgrade{upgrade_id}.parquet'
                 file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
                 self.cached_parquet.append((upgrade_id, file_path)) #cached_parquet is a list of parquets used to export and reload
                 logger.info(f'Exporting to: {file_path}')
                 self.data = self.reorder_data_columns(self.data)
-                self._sightGlass_metadata_check(self.data)
                 self.data.write_parquet(file_path)
                 up_lazyframes.append(pl.scan_parquet(file_path))
 
             # Now, we have self.data is one huge LazyFrame
             # which is exactly like self.data was before because it includes all upgrades
             self.data = pl.concat(up_lazyframes)
+            self._aggregate_failure_summaries() 
             # logger.info(f'comstock data schema: {self.data.dtypes()}')
             # logger.debug('\nComStock columns after adding all data:')
             # for c in self.data.columns:
             #     logger.debug(c)
+    
+    def _aggregate_failure_summaries(self):
+        #sinece we are generating summary of falures based on
+        #each upgrade_id(in load_data()), we should aggregate
+        #the summary of failures for each upgrade_id into one
+
+        path = os.path.join(self.output_dir)
+
+        alLines = list()
+        #find all the failure_summary files like with failure_summary_0.csv
+        # failure_summary_1.csv ... failure_summary_k.csv
+        for file in os.listdir(path):
+            if file.startswith("failure_summary_") and file.endswith(".csv"):
+                #open the file and read the content
+                with open(os.path.join(path, file), 'r') as f:
+                    for line in f:
+                        if line not in alLines:
+                            alLines.append(line)
+                 #delete the file
+                os.remove(os.path.join(path, file))
+        
+        #write the aggregated summary of failures to a new file
+        with open(os.path.join(path, "failure_summary_aggregated.csv"), 'w') as f:
+            for line in alLines:
+                f.write(line)
+
 
     def download_data(self):
         # baseline/results_up00.parquet
@@ -715,7 +742,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             ST_FAIL_NO_STATUS,
         ]
         failure_summaries = failure_summaries.select(fs_cols)
-        file_name = f'failure_summary.csv'
+        file_name = f'failure_summary_{upgrade_id}.csv'
         file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
         logger.info(f'Exporting to: {file_path}')
         failure_summaries.write_csv(file_path)
@@ -1914,6 +1941,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         return bldg_type_scale_factors
 
 
+
     def _calculate_weighted_columnal_values(self, input_lf: pl.LazyFrame):
         # Apply the weights to the columns
         input_lf = self.add_weighted_area_energy_savings_columns(input_lf) #compute out the weighted value, based on the unweighted columns and the weights.
@@ -2898,7 +2926,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     err_log += f'Column {c} has null values\n'
 
         SIGHTGLASS_REQUIRED_COLS = [self.BLDG_ID, self.META_IDX, self.UPGRADE_ID, 
-                                    self.BLDG_WEIGHT, self.UPGRADE_APPL, self.FLR_AREA]
+                                     self.UPGRADE_APPL, self.FLR_AREA]
         
         for col in SIGHTGLASS_REQUIRED_COLS:
             if col not in row_segment.columns:
