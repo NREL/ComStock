@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>add_heat_pump_rtu</name>
   <uid>f4567a68-27f2-4a15-ae91-ba0f35cd08c7</uid>
-  <version_id>4b4cc6df-f273-4018-a82d-de69eff02fc0</version_id>
-  <version_modified>2024-10-23T15:21:52Z</version_modified>
+  <version_id>5f076b91-0d34-4f90-abd4-b9f446027f42</version_id>
+  <version_modified>2024-10-24T21:32:13Z</version_modified>
   <xml_checksum>5E2576E4</xml_checksum>
   <class_name>AddHeatPumpRtu</class_name>
   <display_name>add_heat_pump_rtu</display_name>
@@ -292,25 +292,25 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>57F835F9</checksum>
+      <checksum>4B37DF21</checksum>
     </file>
     <file>
       <filename>performance_map_CCHP_spec_2027.json</filename>
       <filetype>json</filetype>
       <usage_type>resource</usage_type>
-      <checksum>8C0F76FF</checksum>
+      <checksum>57B55228</checksum>
     </file>
     <file>
       <filename>performance_maps_hprtu_std.json</filename>
       <filetype>json</filetype>
       <usage_type>resource</usage_type>
-      <checksum>9ADE58EA</checksum>
+      <checksum>5733809B</checksum>
     </file>
     <file>
       <filename>performance_maps_hprtu_variable_speed.json</filename>
       <filetype>json</filetype>
       <usage_type>resource</usage_type>
-      <checksum>2A9EC727</checksum>
+      <checksum>8C2914D9</checksum>
     </file>
     <file>
       <filename>example_model.osm</filename>
