@@ -380,9 +380,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         table.addIndependentVariable(table_indvar)
       end
       table
-    else
-      # OpenStudio.logFree(OpenStudio::Error, 'openstudio.Model.Model', "#{curve_name}' has an invalid form: #{data['form']}', cannot create this curve.")
-      nil
     end
   end
 
@@ -1852,7 +1849,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
               orig_clg_coil_gross_cap = orig_clg_coil.autosizedRatedHighSpeedTotalCoolingCapacity.get
             elsif orig_clg_coil.ratedHighSpeedTotalCoolingCapacity.is_initialized
               orig_clg_coil_gross_cap = orig_clg_coil.ratedHighSpeedTotalCoolingCapacity.get
-            elsif runner.registerError("Original cooling coil capacity for #{air_loop_hvac.name} not found. Either it was not directly specified, or sizing run data is not available.")
+            else
+              runner.registerError("Original cooling coil capacity for #{air_loop_hvac.name} not found. Either it was not directly specified, or sizing run data is not available.")
             end
           else
             runner.registerError("Original cooling coil is of type #{orig_clg_coil.class} which is not currently supported by this measure.")
