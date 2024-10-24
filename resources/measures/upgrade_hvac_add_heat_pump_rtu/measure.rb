@@ -526,20 +526,24 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # Calculate the flow per ton
       flow_per_ton = airflow / stage_capacity
 
-      #puts "Debug*************************************************************"
-      #puts "air_loop_hvac: #{air_loop_hvac.name}"
-      #puts "#{heating_or_cooling} Stage #{stage}"
-      #puts "min_airflow_ratio: #{min_airflow_ratio}"
-      #puts "airflow: #{airflow}"
-      #puts "stage_capacity: #{stage_capacity}"
-      #puts "flow_per_ton: #{flow_per_ton}"
-      #puts "m_3_per_s_per_w_max: #{m_3_per_s_per_w_max.round(8)}"
-      #puts "In Bounds: #{(flow_per_ton.round(8) >= m_3_per_s_per_w_min.round(8)) && (flow_per_ton.round(8) <= m_3_per_s_per_w_max.round(8))}"
+      if debug_verbose
+        runner.registerInfo("Debug*************************************************************")
+        runner.registerInfo("air_loop_hvac: #{air_loop_hvac.name}")
+        runner.registerInfo("#{heating_or_cooling} Stage #{stage}")
+        runner.registerInfo("min_airflow_ratio: #{min_airflow_ratio}")
+        runner.registerInfo("airflow: #{airflow}")
+        runner.registerInfo("stage_capacity: #{stage_capacity}")
+        runner.registerInfo("flow_per_ton: #{flow_per_ton}")
+        runner.registerInfo("m_3_per_s_per_w_max: #{m_3_per_s_per_w_max.round(8)}")
+        runner.registerInfo("In Bounds: #{(flow_per_ton.round(8) >= m_3_per_s_per_w_min.round(8)) && (flow_per_ton.round(8) <= m_3_per_s_per_w_max.round(8))}")
+      end
 
       # If flow/ton is less than minimum, increase airflow of stage to meet minimum
       if (flow_per_ton.round(8) < m_3_per_s_per_w_min.round(8)) && (stage < rated_stage_num)
 
-        #puts "Entered flow/ton too low loop...."
+        if debug_verbose
+          runner.registerInfo("Entered flow/ton too low loop....")
+        end
         # calculate minimum airflow to achieve
         new_stage_airflow = m_3_per_s_per_w_min * stage_capacity
         # update airflow
@@ -557,14 +561,15 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # if cfm/ton limit can't be met by reducing airflow, allow increase capacity of up to 65% range between capacities
         # calculate maximum allowable ratio, no more than 50% increase between specified stages
 
-        #puts "Entered flow/ton too high loop...."
-
-        #puts "Debugging*************************************"
-        #puts "air_loop_hvac: #{air_loop_hvac.name}"
-        #puts "ratio: #{ratio}"
-        #puts "stage: #{stage}"
-        #puts "stage_cap_fractions: #{stage_cap_fractions}"
-        #puts "dx_rated_cap_applied: #{dx_rated_cap_applied}"
+        if debug_verbose
+          runner.registerInfo("Entered flow/ton too high loop....")
+          runner.registerInfo("Debugging*************************************")
+          runner.registerInfo("air_loop_hvac: #{air_loop_hvac.name}")
+          runner.registerInfo("ratio: #{ratio}")
+          runner.registerInfo("stage: #{stage}")
+          runner.registerInfo("stage_cap_fractions: #{stage_cap_fractions}")
+          runner.registerInfo("dx_rated_cap_applied: #{dx_rated_cap_applied}")
+        end
 
         ratio_allowance_50_pct = ratio + (stage_cap_fractions[stage + 1] - ratio) * 0.65
         required_stage_cap_ratio = airflow / m_3_per_s_per_w_max / (stage_cap_fractions[rated_stage_num] * dx_rated_cap_applied)
@@ -594,7 +599,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
           end
         # remove stage if maximum flow/ton ratio cannot be accommodated without violating minimum airflow ratios
         else
-          #puts "STAGE REMOVED!"
+          if debug_verbose
+            runner.registerInfo("STAGE REMOVED!")
+          end
           stage_flows[stage] = false
           stage_flow_fractions[stage] = false
           stage_caps[stage] = false
@@ -604,7 +611,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
           end
         end
       else
-        #puts "Entered no adjustment loop"
+        if debug_verbose
+          runner.registerInfo("Entered no adjustment loop")
+        end
         stage_caps[stage] = stage_capacity
         if debug_verbose
           runner.registerInfo("#{air_loop_hvac.name} | no cfm/ton violation | #{heating_or_cooling} | stage = #{stage} | cfm/ton = #{m_3_per_sec_watts_to_cfm_per_ton(stage_flows[stage]/stage_caps[stage])}")
@@ -721,17 +730,13 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # validate number of stages
     if (stage_flows_heating.values.count(&:itself)) == (stage_caps_heating.values.count(&:itself))
       num_heating_stages = stage_flows_heating.values.count(&:itself)
-      #puts "num_heating_stages: #{num_heating_stages}"
       if debug_verbose
+        runner.registerInfo("num_heating_stages: #{num_heating_stages}")
         runner.registerInfo("The final number of heating stages for #{air_loop_hvac.name} is #{num_heating_stages}.")
       end
     else
       runner.registerError("For airloop #{air_loop_hvac.name}, the number of stages of heating capacity is different from number of stages of heating airflow. Revise measure as needed.")
     end
-
-    #puts "stage_flows_heating: #{stage_flows_heating}"
-    #puts "num_heating_stages: #{num_heating_stages}"
-    #puts "stage_caps_heating: #{stage_caps_heating}"
 
     # use single speed DX heating coil if only 1 speed
     new_dx_heating_coil = nil
@@ -2192,13 +2197,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         design_heating_airflow_m_3_per_s = design_air_flow_from_zone_sizing_heating_m_3_per_s
       end
 
-      #puts "DEBUG****************"
-      #puts "air_loop_hvac: #{air_loop_hvac.name}"
-      #puts "oa_flow_m3_per_s: #{oa_flow_m3_per_s}"
-      #puts "old_terminal_sa_flow_m3_per_s: #{old_terminal_sa_flow_m3_per_s}"
-      #puts "design_cooling_airflow_m_3_per_s: #{design_cooling_airflow_m_3_per_s}"
-      #puts "design_heating_airflow_m_3_per_s: #{design_heating_airflow_m_3_per_s}"
-
       # sizing result summary output log using for measure documentation
       if debug_verbose
         runner.registerInfo("sizing summary: sizing air loop (#{air_loop_hvac.name}): air_loop_hvac name  =  #{air_loop_hvac.name}")
@@ -2226,9 +2224,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       design_heating_airflow_m_3_per_s = design_heating_airflow_m_3_per_s * (1 + upsize_factor)
       design_cooling_airflow_m_3_per_s = design_cooling_airflow_m_3_per_s * (1 + upsize_factor)
 
-      #puts "design_cooling_airflow_m_3_per_s (after upsize): #{design_cooling_airflow_m_3_per_s}"
-      #puts "design_heating_airflow_m_3_per_s (after upsize): #{design_heating_airflow_m_3_per_s}"
-
       if debug_verbose
         runner.registerInfo("sizing summary: before rated cfm/ton adjustmant")
         runner.registerInfo("sizing summary: dx_rated_htg_cap_applied = #{dx_rated_htg_cap_applied}")
@@ -2253,9 +2248,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       elsif cfm_per_ton_rated_cooling > CFM_PER_TON_MAX_RATED
         design_cooling_airflow_m_3_per_s = cfm_per_ton_to_m_3_per_sec_watts(CFM_PER_TON_MAX_RATED) * dx_rated_clg_cap_applied
       end
-
-      #puts "design_cooling_airflow_m_3_per_s (after cfm/ton): #{design_cooling_airflow_m_3_per_s}"
-      #puts "design_heating_airflow_m_3_per_s (after cfm/ton): #{design_heating_airflow_m_3_per_s}"
 
       if debug_verbose
         runner.registerInfo("sizing summary: after rated cfm/ton adjustmant")
@@ -2307,10 +2299,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # increase design airflow to accomodate upsizing
       air_loop_hvac.setDesignSupplyAirFlowRate(design_airflow_for_sizing_m_3_per_s)
       controller_oa.setMaximumOutdoorAirFlowRate(design_airflow_for_sizing_m_3_per_s)
-
-      #puts "min_airflow_m3_per_s: #{min_airflow_m3_per_s}"
-      #puts "design_cooling_airflow_m_3_per_s (final): #{design_cooling_airflow_m_3_per_s}"
-      #puts "design_heating_airflow_m_3_per_s (final): #{design_heating_airflow_m_3_per_s}"
 
       if debug_verbose
         runner.registerInfo("sizing summary: design_airflow_for_sizing_m_3_per_s = #{design_airflow_for_sizing_m_3_per_s}")
@@ -2366,10 +2354,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         runner,
         debug_verbose
       )
-
-      #puts "stage_flows_heating: #{stage_flows_heating}"
-      #puts "stage_caps_heating: #{stage_caps_heating}"
-      #puts "num_heating_stages: #{num_heating_stages}"
 
       # cooling - align stage CFM/ton bounds where possible
       # this may remove some lower stages
@@ -2470,10 +2454,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         debug_verbose
       )
 
-      #puts "new_dx_heating_coil 1: #{new_dx_heating_coil}"
-
-
-
       #################################### End performance curve assignment
 
       # add new supplemental heating coil
@@ -2521,8 +2501,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       end
       new_fan.setPressureRise(fan_static_pressure) # set from origial fan power; 0.5in will be added later if adding HR
 
-      #puts "new_dx_heating_coil 2: #{new_dx_heating_coil}"
-
       # add new unitary system object
       new_air_to_air_heatpump = OpenStudio::Model::AirLoopHVACUnitarySystem.new(model)
       new_air_to_air_heatpump.setName("#{air_loop_hvac.name} Unitary Heat Pump System")
@@ -2554,67 +2532,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_air_to_air_heatpump.setSupplyAirFlowRateDuringHeatingOperation(stage_flows_heating[num_heating_stages])
       # set no load design flow rate
       new_air_to_air_heatpump.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_airflow_m3_per_s)
-
-      # new_air_to_air_heatpump.setDOASDXCoolingCoilLeavingMinimumAirTemperature(7.5) # set minimum discharge temp to 45F, required for VAV operation
-
-      ## EMS control for boost mode
-      #unless boost_stage_num_and_max_temp_tuple.empty?
-
-      #  puts "DEBUGGING**********************************"
-
-      #  # set sensor for speed level
-      #  sens_speed_level = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Unitary System DX Coil Speed Level')
-      #  sens_speed_level.setName("sens_speed_level_#{new_air_to_air_heatpump.name.get.to_s.gsub("-", "")}")
-      #  sens_speed_level.setKeyName("#{new_air_to_air_heatpump.name.get}")
-
-      #  # set sensor for outdoor air temperature
-      #  sens_speed_level = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Site Outdoor Air Drybulb Temperature')
-      #  sens_speed_level.setName("sens_oa_temp_#{new_air_to_air_heatpump.name.get.to_s.gsub("-", "")}")
-      #  sens_speed_level.setKeyName("Environment")
-
-      #  # set sensor for predicted load
-      #  # this is used to determine heating or cooling mode
-      #  sens_predicted_load = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Unitary System Predicted Sensible Load to Setpoint Heat Transfer Rate')
-      #  sens_predicted_load.setName("sens_predicted_load_#{new_air_to_air_heatpump.name.get.to_s.gsub("-", "")}")
-      #  sens_predicted_load.setKeyName("#{new_air_to_air_heatpump.name.get}")
-
-      #  # set actuator - unitary system speed level
-      #  act_speed_level = OpenStudio::Model::EnergyManagementSystemActuator.new(new_air_to_air_heatpump,
-      #                                                                      'Coil Speed Control',
-      #                                                                      'Unitary System DX Coil Speed Value'
-      #                                                                      )
-      #  act_speed_level.setName("act_speed_level_#{new_air_to_air_heatpump.name.get.to_s.gsub("-", "")}")
-
-      #  puts "boost_speed_level: #{boost_stage_num_and_max_temp_tuple[0]}"
-      #  puts "boost_speed_max_temp_c: #{boost_stage_num_and_max_temp_tuple[1]}"
-
-      #  #### Program #####
-      #  # reset OA to min OA if there is a call for economizer but no cooling load
-      #  prgrm_hp_speed_override = model.getEnergyManagementSystemTrendVariableByName('hp_speed_override')
-      #  unless prgrm_hp_speed_override.is_initialized
-      #    prgrm_hp_speed_override = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
-      #    prgrm_hp_speed_override.setName("#{air_loop_hvac.name.get.to_s.gsub("-", "")}_program")
-      #    prgrm_hp_speed_override_body = <<-EMS
-      #    SET #{act_speed_level.handle} = #{act_speed_level.handle},
-      #    SET sens_speed_level = #{sens_speed_level.name},
-      #    SET boost_speed_level = #{boost_stage_num_and_max_temp_tuple[0]},
-      #    SET boost_speed_max_temp_c = #{boost_stage_num_and_max_temp_tuple[1]},
-      #    SET sens_oa_temp = #{sens_speed_level.name}
-      #    SET sens_predicted_load = #{sens_predicted_load.name}
-
-      #    IF ((sens_oa_temp > boost_speed_max_temp_c) && (sens_speed_level > (boost_speed_level-1)) && (sens_predicted_load > 0)),
-      #      SET #{act_speed_level.handle} = (boost_speed_level-1),
-      #    ELSE,
-      #      SET #{act_speed_level.handle} = Null,
-      #    ENDIF
-      #    EMS
-      #    prgrm_hp_speed_override.setBody(prgrm_hp_speed_override_body)
-      #  end
-      #  programs_at_beginning_of_timestep = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
-      #  programs_at_beginning_of_timestep.setName("#{air_loop_hvac.name.get.to_s.gsub("-", "")}_Programs_InsideHVACSystemIterationLoop")
-      #  programs_at_beginning_of_timestep.setCallingPoint('InsideHVACSystemIterationLoop')
-      #  programs_at_beginning_of_timestep.addProgram(prgrm_hp_speed_override)
-      #end
 
       # add dcv to air loop if dcv flag is true
       if dcv == true
