@@ -1,16 +1,95 @@
-\begin{table}[h]
-\small
-\centering
-\caption[Cooking Equipment Fuel Type Prevelance and Rater Power]{Cooking Equipment Fuel Type Prevelance and Rater Power}
-\label{tab:kitchen_prev_and_power}
-\begin{tabular}{|l|l|l|l|l|}
-\hline
-\textbf{Appliance} & \textbf{\% Gas} & \textbf{\% Electric} & \textbf{Rated Energy - Gas (BTU/hr)} & \textbf{Rated Energy - Electricity (kW)} \\ \hline
-Broiler            & 0.91            & 0.09                 & 88000                                & 11                                       \\ \hline
-Fryers             & 0.58            & 0.42                 & 164000                               & 22                                       \\ \hline
-Griddles           & 0.5             & 0.5                  & 70000                                & 12                                       \\ \hline
-Ovens              & 0.55            & 0.45                 & 56000                                & 15                                       \\ \hline
-Ranges             & 0.91            & 0.09                 & 179000                               & 12                                       \\ \hline
-Steamers           & 0.33            & 0.67                 & 210000                               & 24                                       \\ \hline
-\end{tabular}
-\end{table}
+% Please add the following required packages to your document preamble:
+% \usepackage{multirow}
+% \usepackage{graphicx}
+\begin{table}[]
+    \caption[Cooking Equipment Fuel Type Prevelance and Rater Power]{Cooking Equipment Fuel Type Prevelance and Rater Power}
+    \label{tab:kitchen_prev_and_power}
+    \resizebox{\columnwidth}{!}{%
+    \begin{tabular}{|l|ll|ll|ll|ll|ll|}
+    \hline
+    \multicolumn{1}{|c|}{\multirow{2}{*}{\textbf{Appliance}}} &
+      \multicolumn{2}{c|}{\textbf{Fuel Prevalence Fraction}} &
+      \multicolumn{2}{c|}{\textbf{Rated Power}} &
+      \multicolumn{2}{c|}{\textbf{Fraction Radiant}} &
+      \multicolumn{2}{c|}{\textbf{Fraction Latent}} &
+      \multicolumn{2}{c|}{\textbf{Fraction Lost}} \\ \cline{2-11} 
+    \multicolumn{1}{|c|}{} &
+      \multicolumn{1}{l|}{\textbf{Gas}} &
+      \textbf{Electric} &
+      \multicolumn{1}{l|}{\textbf{Gas (Btu/h)}} &
+      \textbf{Electric (kW)} &
+      \multicolumn{1}{l|}{\textbf{Gas}} &
+      \textbf{Electric} &
+      \multicolumn{1}{l|}{\textbf{Gas}} &
+      \textbf{Electric} &
+      \multicolumn{1}{l|}{\textbf{Gas}} &
+      \textbf{Electric} \\ \hline
+    Broiler &
+      \multicolumn{1}{l|}{0.91} &
+      0.09 &
+      \multicolumn{1}{l|}{96,000} &
+      10.8 &
+      \multicolumn{1}{l|}{0.12} &
+      0.35 &
+      \multicolumn{1}{l|}{0.1} &
+      0.1 &
+      \multicolumn{1}{l|}{0.68} &
+      0.45 \\ \hline
+    Griddle &
+      \multicolumn{1}{l|}{0.58} &
+      0.42 &
+      \multicolumn{1}{l|}{90,000} &
+      17.1 &
+      \multicolumn{1}{l|}{0.18} &
+      0.39 &
+      \multicolumn{1}{l|}{0.1} &
+      0.1 &
+      \multicolumn{1}{l|}{0.62} &
+      0.41 \\ \hline
+    Fryer &
+      \multicolumn{1}{l|}{0.5} &
+      0.5 &
+      \multicolumn{1}{l|}{80,000} &
+      14 &
+      \multicolumn{1}{l|}{0.23} &
+      0.36 &
+      \multicolumn{1}{l|}{0.1} &
+      0.1 &
+      \multicolumn{1}{l|}{0.57} &
+      0.44 \\ \hline
+    Oven &
+      \multicolumn{1}{l|}{0.55} &
+      0.45 &
+      \multicolumn{1}{l|}{44,000} &
+      12.1 &
+      \multicolumn{1}{l|}{0.08} &
+      0.22 &
+      \multicolumn{1}{l|}{0.1} &
+      0.1 &
+      \multicolumn{1}{l|}{0.72} &
+      0.58 \\ \hline
+    Range &
+      \multicolumn{1}{l|}{0.91} &
+      0.09 &
+      \multicolumn{1}{l|}{145,000} &
+      21 &
+      \multicolumn{1}{l|}{0.11} &
+      0.1 &
+      \multicolumn{1}{l|}{0.1} &
+      0.1 &
+      \multicolumn{1}{l|}{0.69} &
+      0.7 \\ \hline
+    Steamer &
+      \multicolumn{1}{l|}{0.33} &
+      0.67 &
+      \multicolumn{1}{l|}{200,000} &
+      27 &
+      \multicolumn{1}{l|}{0.1} &
+      0.1 &
+      \multicolumn{1}{l|}{0.1} &
+      0.1 &
+      \multicolumn{1}{l|}{0.7} &
+      0.7 \\ \hline
+    \end{tabular}%
+    }
+    \end{table}
