@@ -601,11 +601,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
           end
         end
       else
-        if debug_verbose
-          runner.registerInfo('Entered no adjustment loop')
-        end
         stage_caps[stage] = stage_capacity
         if debug_verbose
+          runner.registerInfo('Entered no adjustment loop')
           runner.registerInfo("#{air_loop_hvac.name} | no cfm/ton violation | #{heating_or_cooling} | stage = #{stage} | cfm/ton = #{m_3_per_sec_watts_to_cfm_per_ton(stage_flows[stage] / stage_caps[stage])}")
         end
       end
