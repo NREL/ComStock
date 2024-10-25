@@ -464,6 +464,8 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
       runner.registerInfo("Using state '#{egrid_state}' from user inputs.")
     end
 
+    env_period_ix_query = "SELECT EnvironmentPeriodIndex FROM EnvironmentPeriods WHERE EnvironmentName='#{ann_env_pd}'"
+    env_period_ix = sqlFile.execAndReturnFirstInt(env_period_ix_query).get
     # get hourly temperature values
     temperature_query = "SELECT VariableValue FROM ReportVariableData WHERE ReportVariableDataDictionaryIndex IN (SELECT ReportVariableDataDictionaryIndex FROM ReportVariableDataDictionary WHERE VariableType='Avg' AND VariableName IN ('Site Outdoor Air Drybulb Temperature') AND ReportingFrequency='Hourly' AND VariableUnits='C') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
     temperatures = sqlFile.execAndReturnVectorOfDouble(temperature_query).get
@@ -477,8 +479,6 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     end
 
     # get hourly electricity values
-    env_period_ix_query = "SELECT EnvironmentPeriodIndex FROM EnvironmentPeriods WHERE EnvironmentName='#{ann_env_pd}'"
-    env_period_ix = sqlFile.execAndReturnFirstInt(env_period_ix_query).get
     electricity_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='Electricity:Facility' AND ReportingFrequency='Hourly' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
     electricity_values = sqlFile.execAndReturnVectorOfDouble(electricity_query).get
     if electricity_values.empty?

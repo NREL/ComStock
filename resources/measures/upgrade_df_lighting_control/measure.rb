@@ -259,7 +259,7 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
             # convert old sch to time series
             schedule_ts = get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get, size=light_adj_values.size)
             if light_adjustment_method == 'absolute change'
-              new_schedule_ts = schedule_ts.map.with_index { |val, ind| [val-(1.0-light_adj_values[ind]), 0].max}
+              new_schedule_ts = schedule_ts.map.with_index { |val, ind| [val-(1.0-light_adj_values[ind]), 0.05].max}
             elsif light_adjustment_method == 'relative change'
               if schedule_ts.size <= light_adj_values.size
                 new_schedule_ts = schedule_ts.map.with_index { |val, ind| val * light_adj_values[ind] }
