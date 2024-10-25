@@ -1593,9 +1593,9 @@ class AddHeatPumpRtuTest < Minitest::Test
       end
     end
 
-    # Apply the measure to the model and optionally run the model
-    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true, expected_results: 'NA')
- end
+      # Apply the measure to the model and optionally run the model
+      result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true, expected_results: 'NA')
+  end
 
   # assert that non applicable HVAC system registers as NA
   def test_380_medium_office_doas_fan_coil_acc_boiler_3A
