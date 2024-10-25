@@ -2350,6 +2350,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
                                                                         get_rated_cop_cooling(stage_caps_cooling[rated_stage_num_cooling]),
                                                                         cool_eir_ff_curve_stages[rated_stage_num_cooling])
         runner.registerInfo("sizing summary: rated cooling COP adjusted from #{get_rated_cop_cooling(stage_caps_cooling[rated_stage_num_cooling]).round(3)} to #{final_rated_cooling_cop.round(3)} based on reference cfm/ton of #{reference_cooling_cfm_per_ton.round(0)} (i.e., average value of actual products)")
+        runner.registerInfo("sizing summary: sizing air loop (#{air_loop_hvac.name}): final rated cooling COP = #{final_rated_cooling_cop.round(3)}")
       end
 
       # define new cooling coil
@@ -2387,6 +2388,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
                                                                         get_rated_cop_heating(stage_caps_heating[rated_stage_num_heating]),
                                                                         heat_eir_ff_curve_stages[rated_stage_num_heating])
         runner.registerInfo("sizing summary: rated heating COP adjusted from #{get_rated_cop_heating(stage_caps_heating[rated_stage_num_heating]).round(3)} to #{final_rated_heating_cop.round(3)} based on reference cfm/ton of #{reference_heating_cfm_per_ton.round(0)} (i.e., average value of actual products)")
+        runner.registerInfo("sizing summary: sizing air loop (#{air_loop_hvac.name}): final rated heating COP = #{final_rated_heating_cop.round(3)}")
       end
 
       # define new heating coil
