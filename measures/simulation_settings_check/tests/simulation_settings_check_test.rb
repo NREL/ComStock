@@ -1,43 +1,40 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2024 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
+# dependencies
+require 'fileutils'
+require 'minitest/autorun'
 require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
-require 'minitest/autorun'
+require_relative '../measure'
 
-require_relative '../../../test/helpers/minitest_helper'
-require_relative '../measure.rb'
-
-require 'fileutils'
-
-class SimulationSettingsCheck_Test < MiniTest::Unit::TestCase
-
+class SimulationSettingsCheckTest < MiniTest::Unit::TestCase
   def model_in_path_default
-    return "#{File.dirname(__FILE__)}/MediumOffice.osm"
+    "#{__dir__}/MediumOffice.osm"
   end
 
   def epw_path_default
     # make sure we have a weather data location
-    epw = OpenStudio::Path.new(File.expand_path("#{File.dirname(__FILE__)}/USA_CO_Golden-NREL.724666_TMY3.epw"))
+    epw = OpenStudio::Path.new(File.expand_path("#{__dir__}/USA_CO_Golden-NREL.724666_TMY3.epw"))
     assert(File.exist?(epw.to_s))
-    return epw.to_s
+    epw.to_s
   end
 
   def run_dir(test_name)
     # always generate test output in specially named 'output' directory so result files are not made part of the measure
-    return "#{File.dirname(__FILE__)}/output/#{test_name}"
+    "#{__dir__}/output/#{test_name}"
   end
 
   def model_out_path(test_name)
-    return "#{run_dir(test_name)}/example_model.osm"
+    "#{run_dir(test_name)}/example_model.osm"
   end
 
   def sql_path(test_name)
-    return "#{run_dir(test_name)}/run/eplusout.sql"
+    "#{run_dir(test_name)}/run/eplusout.sql"
   end
 
   def report_path(test_name)
-    return "#{run_dir(test_name)}/report.html"
+    "#{run_dir(test_name)}/report.html"
   end
 
   # method for running the test simulation using OpenStudio 2.x API
@@ -58,42 +55,30 @@ class SimulationSettingsCheck_Test < MiniTest::Unit::TestCase
 
   # create test files if they do not exist when the test first runs
   def setup_test(test_name, idf_output_requests, model_in_path = model_in_path_default, epw_path = epw_path_default)
-
-    if !File.exist?(run_dir(test_name))
-      FileUtils.mkdir_p(run_dir(test_name))
-    end
+    FileUtils.mkdir_p(run_dir(test_name))
     assert(File.exist?(run_dir(test_name)))
-
-    if File.exist?(report_path(test_name))
-      FileUtils.rm(report_path(test_name))
-    end
-
+    FileUtils.rm_f(report_path(test_name))
     assert(File.exist?(model_in_path))
-
-    if File.exist?(model_out_path(test_name))
-      FileUtils.rm(model_out_path(test_name))
-    end
+    FileUtils.rm_f(model_out_path(test_name))
 
     # convert output requests to OSM for testing, OS App and PAT will add these to the E+ Idf
-    workspace = OpenStudio::Workspace.new("Draft".to_StrictnessLevel, "EnergyPlus".to_IddFileType)
+    workspace = OpenStudio::Workspace.new('Draft'.to_StrictnessLevel, 'EnergyPlus'.to_IddFileType)
     workspace.addObjects(idf_output_requests)
     rt = OpenStudio::EnergyPlus::ReverseTranslator.new
     request_model = rt.translateWorkspace(workspace)
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
     model = translator.loadModel(model_in_path)
-    assert((not model.empty?))
+    assert(!model.empty?)
     model = model.get
     model.addObjects(request_model.objects)
     model.save(model_out_path(test_name), true)
 
     setup_test_2(test_name, epw_path)
-
   end
 
   def test_med_off
-
-    test_name = "test_med_off"
+    test_name = 'test_med_off'
 
     # create an instance of the measure
     measure = SimulationSettingsCheck.new
@@ -103,7 +88,7 @@ class SimulationSettingsCheck_Test < MiniTest::Unit::TestCase
     runner = OpenStudio::Measure::OSRunner.new(osw)
 
     # get arguments
-    arguments = measure.arguments()
+    arguments = measure.arguments
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
     # create hash of argument values.
@@ -116,15 +101,13 @@ class SimulationSettingsCheck_Test < MiniTest::Unit::TestCase
     # populate argument with specified hash value if specified
     arguments.each do |arg|
       temp_arg_var = arg.clone
-      if args_hash.key?(arg.name)
-        assert(temp_arg_var.setValue(args_hash[arg.name]))
-      end
+      assert(temp_arg_var.setValue(args_hash[arg.name])) if args_hash.key?(arg.name)
       argument_map[arg.name] = temp_arg_var
     end
 
     # get the energyplus output requests, this will be done automatically by OS App and PAT
     idf_output_requests = measure.energyPlusOutputRequests(runner, argument_map)
-    #assert_equal(2, idf_output_requests.size)
+    # assert_equal(2, idf_output_requests.size)
 
     # mimic the process of running this measure in OS App or PAT. Optionally set custom model_in_path and custom epw_path.
     epw_path = epw_path_default
@@ -140,9 +123,7 @@ class SimulationSettingsCheck_Test < MiniTest::Unit::TestCase
     runner.setLastEnergyPlusSqlFilePath(OpenStudio::Path.new(sql_path(test_name)))
 
     # delete the output if it exists
-    if File.exist?(report_path(test_name))
-      FileUtils.rm(report_path(test_name))
-    end
+    FileUtils.rm_f(report_path(test_name))
     assert(!File.exist?(report_path(test_name)))
 
     # temporarily change directory to the run directory and run the measure
@@ -154,8 +135,8 @@ class SimulationSettingsCheck_Test < MiniTest::Unit::TestCase
       measure.run(runner, argument_map)
       result = runner.result
       show_output(result)
-      assert_equal("Success", result.value.valueName)
-      assert(result.warnings.size == 0)
+      assert_equal('Success', result.value.valueName)
+      assert(result.warnings.empty?)
     ensure
       Dir.chdir(start_dir)
     end
@@ -163,5 +144,4 @@ class SimulationSettingsCheck_Test < MiniTest::Unit::TestCase
     # make sure the report file exists
     assert(File.exist?(report_path(test_name)))
   end
-
 end
