@@ -201,7 +201,7 @@ class NamingMixin():
         'out.emissions.natural_gas..co2e_kg',
         'out.emissions.fuel_oil..co2e_kg',
         'out.emissions.propane..co2e_kg',
-        'out.emissions.electricity.lrmer_95_decarb_by_2035_15_2023_start..co2e_kg'
+        'out.emissions.electricity.lrmer_mid_case_15_2023_start..co2e_kg'
     ]
 
     # QOI COLS
