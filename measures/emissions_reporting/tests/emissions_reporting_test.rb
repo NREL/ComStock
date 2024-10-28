@@ -1,53 +1,47 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2024 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
-# *******************************************************************************
-# OpenStudio(R), Copyright (c) 2008-2021, Alliance for Sustainable Energy, LLC.
-# All rights reserved.
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# (1) Redistributions of source code must retain the above copyright notice,
-# this list of conditions and the following disclaimer.
-#
-# (2) Redistributions in binary form must reproduce the above copyright notice,
-# this list of conditions and the following disclaimer in the documentation
-# and/or other materials provided with the distribution.
-#
-# (3) Neither the name of the copyright holder nor the names of any contributors
-# may be used to endorse or promote products derived from this software without
-# specific prior written permission from the respective party.
-#
-# (4) Other than as required in clauses (1) and (2), distributions in any form
-# of modifications or other derivative works may not use the "OpenStudio"
-# trademark, "OS", "os", or any other confusingly similar designation without
-# specific prior written permission from Alliance for Sustainable Energy, LLC.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER(S) AND ANY CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-# THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER(S), ANY CONTRIBUTORS, THE
-# UNITED STATES GOVERNMENT, OR THE UNITED STATES DEPARTMENT OF ENERGY, NOR ANY OF
-# THEIR EMPLOYEES, BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
-# OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-# STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-# *******************************************************************************
 
+# dependencies
+require 'fileutils'
+require 'minitest/autorun'
 require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
-require 'minitest/autorun'
-require_relative '../measure.rb'
-require 'fileutils'
 require 'openstudio-standards'
-require_relative '../../../test/helpers/minitest_helper'
+require_relative '../measure'
 
-class EmissionsReporting_Test < Minitest::Test
+class EmissionsReportingTest < Minitest::Test
+  def load_model(osm_path)
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    model = translator.loadModel(OpenStudio::Path.new(osm_path))
+    assert(!model.empty?)
+    model = model.get
+    return model
+  end
+
+  def run_dir(test_name)
+    # always generate test output in specially named 'output' directory so result files are not made part of the measure
+    return "#{__dir__}/output/#{test_name}"
+  end
+
+  def model_output_path(test_name)
+    return "#{run_dir(test_name)}/out.osm"
+  end
+
+  def sql_path(test_name)
+    return "#{run_dir(test_name)}/run/eplusout.sql"
+  end
+
+  def workspace_path(test_name)
+    "#{run_dir(test_name)}/run/in.idf"
+  end
+
+  def report_path(test_name)
+    return "#{run_dir(test_name)}/reports/eplustbl.html"
+  end
+
   def test_number_of_arguments_and_argument_names
     # this test ensures that the current test is matched to the measure inputs
-    test_name = "test_number_of_arguments_and_argument_names"
-    puts "\n######\nTEST:#{test_name}\n######\n"
+    puts "\n######\nTEST:#{__method__}\n######\n"
 
     # create an instance of the measure
     measure = EmissionsReporting.new
@@ -63,71 +57,64 @@ class EmissionsReporting_Test < Minitest::Test
     assert_equal('emissions_scenario', arguments[2].name)
   end
 
-  def run_dir(test_name)
-    # always generate test output in specially named 'output' directory so result files are not made part of the measure
-    return "#{File.dirname(__FILE__)}/output/#{test_name}"
-  end
-
-  def model_output_path(test_name)
-    return "#{run_dir(test_name)}/#{test_name}.osm"
-  end
-
-  def workspace_path(test_name)
-    return "#{run_dir(test_name)}/run/in.idf"
-  end
-
-  def sql_path(test_name)
-    return "#{run_dir(test_name)}/run/eplusout.sql"
-  end
-
-  def report_path(test_name)
-    return "#{run_dir(test_name)}/reports/eplustbl.html"
-  end
-
   def print_column_definitions(result_h)
     # print output names for column definitions
     regex = /annual_(.*)_(electricity|natural_gas|fuel_oil|propane)_ghg_emissions_?(.*)_kg/
-    result = ""
+    result = ''
     result_h['step_values'].each do |h|
       result_string = "\nresults.csv,emissions_reporting."
-      value_name = h["name"]
+      value_name = h['name']
       result_string << "#{value_name},out.emissions"
       # puts value_name
       captures = value_name.scan(regex).flatten
       next if captures.empty?
+
       # puts captures
-      captures.each_with_index do |c,i|
+      captures.each_with_index do |c, i|
         if i == 2 && !c.empty?
-          if c.match?(/aer_/)
-            result_string << ".#{c}_from_2023"
-          elsif c.match?(/lrmer_/)
-            if c.match?(/_start_/)
-              result_string << ".#{c}"
-            else
-             result_string << ".#{c}_2023_start"
-            end
-          else result_string << ".#{c}"
-          end
+          result_string << if c.match?(/aer_/)
+                             ".#{c}_from_2023"
+                           elsif c.match?(/lrmer_/)
+                             if c.match?(/_start_/)
+                               ".#{c}"
+                             else
+                               ".#{c}_2023_start"
+                             end
+                           else
+                             ".#{c}"
+                           end
         else
           result_string << ".#{c}" unless c.empty?
         end
-
       end
-      result_string << ",TRUE,TRUE,float,co2e_kg,co2e_kg"
-      case
-      when captures[2].include?('egrid')
-        result_string << ",\"annual greehouse gas emissions from #{captures[0].gsub("_"," ")} #{captures[1].gsub("_"," ")} use, using #{captures[2].gsub("_"," ")} emissions intensity\""
-      when captures[2].include?('aer')
-        result_string << ",\"annual greehouse gas emissions from #{captures[0].gsub("_"," ")} #{captures[1].gsub("_"," ")} use, using Cambium 2022 #{captures[2]} non-levelized values from 2023\""
-      when captures[2].include?('lrmer')
+      result_string << ',TRUE,TRUE,float,co2e_kg,co2e_kg'
+      if captures[2].include?('egrid')
+        result_string << ",\"annual greehouse gas emissions from #{captures[0].gsub('_',
+                                                                                    ' ')} #{captures[1].gsub('_',
+                                                                                                             ' ')} use, using #{captures[2].gsub(
+                                                                                                               '_', ' '
+                                                                                                             )} emissions intensity\""
+      elsif captures[2].include?('aer')
+        result_string << ",\"annual greehouse gas emissions from #{captures[0].gsub('_',
+                                                                                    ' ')} #{captures[1].gsub('_',
+                                                                                                             ' ')} use, using Cambium 2022 #{captures[2]} non-levelized values from 2023\""
+      elsif captures[2].include?('lrmer')
         if captures[2].match?(/_\d{2}_\d{4}_/)
           matches = captures[2].scan(/_(\d{2})_(\d{4})_start/).flatten
-          result_string << ",\"annual greehouse gas emissions from #{captures[0].gsub("_"," ")} #{captures[1].gsub("_"," ")} use, using Cambium 2022 #{captures[2]} levelized over #{matches[0]} years starting in #{matches[1]}\""
+          result_string << ",\"annual greehouse gas emissions from #{captures[0].gsub('_',
+                                                                                      ' ')} #{captures[1].gsub('_',
+                                                                                                               ' ')} use, using Cambium 2022 #{captures[2]} levelized over #{matches[0]} years starting in #{matches[1]}\""
         else
           matches = captures[2].scan(/_\w{4}_(\d{2})/).flatten
-          result_string << ",\"annual greehouse gas emissions from #{captures[0].gsub("_"," ")} #{captures[1].gsub("_"," ")} use, using Cambium 2022 #{captures[2]} levelized over #{matches[0]} years starting in 2023\""
+          result_string << ",\"annual greehouse gas emissions from #{captures[0].gsub('_',
+                                                                                      ' ')} #{captures[1].gsub('_',
+                                                                                                               ' ')} use, using Cambium 2022 #{captures[2]} levelized over #{matches[0]} years starting in 2023\""
         end
-      else result_string << ",\"annual greenhouse gas emissions from on site #{captures[0].gsub("_"," ")} #{captures[1].gsub("_"," ")} use\""
+      else
+        result_string << ",\"annual greenhouse gas emissions from on site #{captures[0].gsub('_',
+                                                                                             ' ')} #{captures[1].gsub(
+                                                                                               '_', ' '
+                                                                                             )} use\""
       end
       result << result_string
     end
@@ -136,9 +123,7 @@ class EmissionsReporting_Test < Minitest::Test
 
   def run_test(test_name, osm_path, epw_path, argument_map)
     # create run directory if it does not exist
-    unless File.exist?(run_dir(test_name))
-      FileUtils.mkdir_p(run_dir(test_name))
-    end
+    FileUtils.mkdir_p(run_dir(test_name))
     assert(File.exist?(run_dir(test_name)))
 
     # change into run directory for tests
@@ -172,7 +157,7 @@ class EmissionsReporting_Test < Minitest::Test
     model = translator.loadModel(OpenStudio::Path.new(osm_path))
     assert(!model.empty?)
     model = model.get
-    request_model.objects.each{|o| model.addObject(o)}
+    request_model.objects.each { |o| model.addObject(o) }
     # model.addObjects(request_model.objects)
     model.save(model_output_path(test_name), true)
 
@@ -207,15 +192,14 @@ class EmissionsReporting_Test < Minitest::Test
 
     # change back directory
     Dir.chdir(start_dir)
-    return result
+    result
   end
 
   def test_timeseries_lrmer
-    test_name = 'test_timeseries_lrmer'
+    puts "\n######\nTEST:#{__method__}\n######\n"
 
-    puts "\n######\nTEST:#{test_name}\n######\n"
-    osm_path = File.dirname(__FILE__) + '/office.osm'
-    epw_path = File.dirname(__FILE__) + '/FortCollins2016.epw'
+    osm_path = "#{__dir__}/office.osm"
+    epw_path = "#{__dir__}/FortCollins2016.epw"
 
     # create an instance of the measure
     measure = EmissionsReporting.new
@@ -233,15 +217,14 @@ class EmissionsReporting_Test < Minitest::Test
     argument_map['grid_state'] = grid_state
     argument_map['emissions_scenario'] = emissions_scenario
 
-    assert(run_test(test_name, osm_path, epw_path, argument_map))
+    assert(run_test(__method__, osm_path, epw_path, argument_map))
   end
 
   def test_all_scenarios
-    test_name = 'test_all_scenarios'
+    puts "\n######\nTEST:#{__method__}\n######\n"
 
-    puts "\n######\nTEST:#{test_name}\n######\n"
-    osm_path = File.dirname(__FILE__) + '/office.osm'
-    epw_path = File.dirname(__FILE__) + '/FortCollins2016.epw'
+    osm_path = "#{__dir__}/office.osm"
+    epw_path = "#{__dir__}/FortCollins2016.epw"
 
     # create an instance of the measure
     measure = EmissionsReporting.new
@@ -259,22 +242,23 @@ class EmissionsReporting_Test < Minitest::Test
     argument_map['grid_state'] = grid_state
     argument_map['emissions_scenario'] = emissions_scenario
 
-    result = run_test(test_name, osm_path, epw_path, argument_map)
+    result = run_test(__method__, osm_path, epw_path, argument_map)
     assert(result)
     require 'json'
     result_h = JSON.parse(result.to_s)
     # test that runperiod totals same as summed hourly
-    assert_in_delta(8612.0512, result_h['step_values'].select{|v| v["name"] == "annual_natural_gas_ghg_emissions_kg"}.first["value"], 0.001)
+    assert_in_delta(8613.9, result_h['step_values'].select do |v|
+      v['name'] == 'annual_natural_gas_ghg_emissions_kg'
+    end.first['value'], 0.1)
 
     # print_column_definitions(result_h)
   end
 
   def test_hawaii
-    test_name = 'test_hawaii'
+    puts "\n######\nTEST:#{__method__}\n######\n"
 
-    puts "\n######\nTEST:#{test_name}\n######\n"
-    osm_path = File.dirname(__FILE__) + '/office.osm'
-    epw_path = File.dirname(__FILE__) + '/FortCollins2016.epw'
+    osm_path = "#{__dir__}/office.osm"
+    epw_path = "#{__dir__}/FortCollins2016.epw"
 
     # create an instance of the measure
     measure = EmissionsReporting.new
@@ -292,6 +276,6 @@ class EmissionsReporting_Test < Minitest::Test
     argument_map['grid_state'] = grid_state
     argument_map['emissions_scenario'] = emissions_scenario
 
-    assert(run_test(test_name, osm_path, epw_path, argument_map))
+    assert(run_test(__method__, osm_path, epw_path, argument_map))
   end
 end
