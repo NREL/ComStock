@@ -5,22 +5,19 @@ require 'openstudio'
 
 # start the measure
 class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
-
   # define the name that a user will see, this method may be deprecated as
   # the display name in PAT comes from the name field in measure.xml
   def name
-    return 'Simulation Output Report'
+    'Simulation Output Report'
   end
 
   def description
-    return 'Reports simulation outputs of interest.'
+    'Reports simulation outputs of interest.'
   end
 
   # define the arguments that the user will input
-  def arguments(model=nil)
-    args = OpenStudio::Ruleset::OSArgumentVector.new
-
-    return args
+  def arguments(_model = nil)
+    OpenStudio::Ruleset::OSArgumentVector.new
   end
 
   def outputs
@@ -68,7 +65,7 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
     buildstock_outputs.each do |output|
       result << OpenStudio::Measure::OSOutput.makeDoubleOutput(output)
     end
-    return result
+    result
   end
 
   # define what happens when the measure is run
@@ -76,9 +73,7 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
     super(runner, user_arguments)
 
     # use the built-in error checking
-    unless runner.validateUserArguments(arguments(), user_arguments)
-      return false
-    end
+    return false unless runner.validateUserArguments(arguments, user_arguments)
 
     # get the last model and sql file
     model = runner.lastOpenStudioModel
@@ -159,15 +154,15 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
     # OTHER FUEL (Propane and FuelOil#2 fall into this category)
     # Sum all other fuels for each end use
     end_uses = {
-      'Total End Uses'=> [],
-      'Heating'=> [],
-      'Interior Equipment'=> [],
-      'Water Systems'=> []
+      'Total End Uses' => [],
+      'Heating' => [],
+      'Interior Equipment' => [],
+      'Water Systems' => []
     }
     other_fuels = ['Gasoline', 'Diesel', 'Coal', 'Fuel Oil No 1', 'Fuel Oil No 2', 'Propane', 'Other Fuel 1', 'Other Fuel 2']
-    end_uses.keys.each do |end_use|
+    end_uses.each_key do |end_use|
       other_fuels.each do |fuel|
-        # TODO replace with built-in OS queries once https://github.com/NREL/OpenStudio/issues/4705 is fixed
+        # TODO: replace with built-in OS queries once https://github.com/NREL/OpenStudio/issues/4705 is fixed
         q = "SELECT Value
           FROM TabularDataWithStrings WHERE (reportname = 'AnnualBuildingUtilityPerformanceSummary')
           AND (ReportForString = 'Entire Facility')
@@ -207,12 +202,12 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
     runner.registerInfo("Registering #{cooling_capacity_w.round(2)} for hvac_cooling_capacity_w.")
 
     heating_capacity_lkup = {
-        'Coil:Heating:DX:SingleSpeed': 'Design Size Gross Rated Heating Capacity',
-        'AirLoopHVAC:UnitarySystem': 'Design Size Nominal Heating Capacity',
-        'Coil:Heating:Electric': 'Design Size Nominal Capacity',
-        'Coil:Heating:Fuel': 'Design Size Nominal Capacity',
-        'Coil:Heating:Water': 'Design Size Rated Capacity',
-        'ZONEHVAC:BASEBOARD:CONVECTIVE:ELECTRIC': 'Design Size Heating Design Capacity',
+      'Coil:Heating:DX:SingleSpeed': 'Design Size Gross Rated Heating Capacity',
+      'AirLoopHVAC:UnitarySystem': 'Design Size Nominal Heating Capacity',
+      'Coil:Heating:Electric': 'Design Size Nominal Capacity',
+      'Coil:Heating:Fuel': 'Design Size Nominal Capacity',
+      'Coil:Heating:Water': 'Design Size Rated Capacity',
+      'ZONEHVAC:BASEBOARD:CONVECTIVE:ELECTRIC': 'Design Size Heating Design Capacity'
     }
     # 'Boiler:HotWater': 'Design Size Nominal Capacity' <- this would double count boiler how water systems with boxes
     #  but would include baseboard gas boiler radiators
@@ -246,22 +241,24 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
     end
 
     # UPGRADE COSTS
-
     upgrade_cost_name = 'upgrade_cost_usd'
 
     # Get upgrade cost value/multiplier pairs from the upgrade measure
     cost_pairs = []
     for option_num in 1..200 # Sync with ApplyUpgrade measure
       for cost_num in 1..2 # Sync with ApplyUpgrade measure
-        cost_value = get_value_from_runner_past_results(runner, "option_#{option_num}_cost_#{cost_num}_value_to_apply", 'apply_upgrade', false)
-        next if cost_value.nil?
-        cost_mult_type = get_value_from_runner_past_results(runner, "option_#{option_num}_cost_#{cost_num}_multiplier_to_apply", 'apply_upgrade', false)
-        next if cost_mult_type.nil?
-        cost_pairs << [cost_value.to_f, cost_mult_type]
+        cost_value_result = get_value_from_runner_past_results(runner, "option_#{option_num}_cost_#{cost_num}_value_to_apply", 'apply_upgrade', false)
+        next if cost_value_result.nil?
+
+        cost_mult_type_result = get_value_from_runner_past_results(runner, "option_#{option_num}_cost_#{cost_num}_multiplier_to_apply", 'apply_upgrade', false)
+
+        next if cost_mult_type_result.nil?
+
+        cost_pairs << [cost_value_result.to_f, cost_mult_type_result]
       end
     end
 
-    if cost_pairs.size.zero?
+    if cost_pairs.empty?
       runner.registerValue(upgrade_cost_name, '')
       runner.registerInfo("Registering (blank) for #{upgrade_cost_name}.")
       return true
@@ -288,8 +285,10 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
           next if surface.outsideBoundaryCondition.downcase != 'ground'
           next unless surface.adjacentSurface.is_initialized
           next unless surface.adjacentSurface.get.space.is_initialized
+
           adjacent_space = surface.adjacentSurface.get.space.get
           next unless Geometry.space_is_finished(adjacent_space)
+
           floor_area += surface.grossArea
         end
         cost_mult = OpenStudio.convert(floor_area, 'm^2', 'ft^2').get
@@ -341,27 +340,21 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
         sql_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName='EnvelopeSummary' AND ReportForString='Entire Facility' AND TableName='Exterior Door' AND ColumnName='Gross Area' AND Units='m2'"
         sql_results = sql_file.execAndReturnVectorOfDouble(sql_query)
         if sql_results.is_initialized
-          sql_results.get.each do |sql_result|
-            cost_mult += OpenStudio.convert(sql_result, 'm^2', 'ft^2').get
+          sql_results.get.each do |sql_result_door|
+            cost_mult += OpenStudio.convert(sql_result_door, 'm^2', 'ft^2').get
           end
         end
 
       elsif cost_mult_type == 'Water Heater Tank Size (gal)'
         sql_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName='EquipmentSummary' AND ReportForString='Entire Facility' AND TableName='Service Water Heating' AND ColumnName='Storage Volume' AND Units='m3'"
         sql_result = sql_file.execAndReturnFirstDouble(sql_query)
-        if sql_result.is_initialized
-          cost_mult = OpenStudio.convert(sql_result.get, 'm^3', 'gal').get
-        end
+        cost_mult = OpenStudio.convert(sql_result.get, 'm^3', 'gal').get if sql_result.is_initialized
 
       elsif cost_mult_type == 'HVAC Cooling Capacity (kBtuh)'
-        if cooling_capacity_w.is_initialized
-          cost_mult = OpenStudio.convert(cooling_capacity_w.get, 'W', 'kBtu/h').get
-        end
+        cost_mult = OpenStudio.convert(cooling_capacity_w.get, 'W', 'kBtu/h').get if cooling_capacity_w.is_initialized
 
       elsif cost_mult_type == 'HVAC Heating Capacity (kBtuh)'
-        if heating_capacity_w.is_initialized
-          cost_mult = OpenStudio.convert(heating_capacity_w.get, 'W', 'kBtu/h').get
-        end
+        cost_mult = OpenStudio.convert(heating_capacity_w.get, 'W', 'kBtu/h').get if heating_capacity_w.is_initialized
 
       elsif cost_mult_type != ''
         runner.registerError("Unhandled cost multiplier: #{cost_mult_type}. Aborting...")
@@ -375,30 +368,30 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
     runner.registerValue(upgrade_cost_name, upgrade_cost_str)
     runner.registerInfo("Registering #{upgrade_cost_str} for #{upgrade_cost_name}.")
 
-    sql_file.close()
+    sql_file.close
 
     runner.registerFinalCondition('Report generated successfully.')
 
-    return true
+    true
   end
   # end the run method
 
-  def report_sim_output(runner, name, vals, os_units, desired_units, percent_of_val=1.0)
+  def report_sim_output(runner, name, vals, os_units, desired_units, percent_of_val = 1.0)
     total_val = 0.0
     vals.each do |val|
       next if val.empty?
+
       total_val += val.get * percent_of_val
     end
-    if os_units.nil? || desired_units.nil? || os_units == desired_units
-      val_in_units = total_val
-    else
-      val_in_units = OpenStudio.convert(total_val, os_units, desired_units).get
-    end
+    val_in_units = if os_units.nil? || desired_units.nil? || os_units == desired_units
+                     total_val
+                   else
+                     OpenStudio.convert(total_val, os_units, desired_units).get
+                   end
     runner.registerValue(name, val_in_units)
     runner.registerInfo("Registering #{val_in_units.round(2)} for #{name}.")
   end
-
-end # end the measure
+end
 
 # this allows the measure to be use by the application
 SimulationOutputReport.new.registerWithApplication
