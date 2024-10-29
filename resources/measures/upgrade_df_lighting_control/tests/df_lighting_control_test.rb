@@ -64,7 +64,7 @@ class DFLightingControlTest < Minitest::Test
       result: 'Success'
     }
     test_sets << {
-      model: '4774', # secondary school
+      model: '4774_secondary_school_OS38', # secondary school
       weather: 'MI_Tulip_City_4774_18',
       result: 'Success'
     }
@@ -245,7 +245,7 @@ class DFLightingControlTest < Minitest::Test
       argument_map['cambium_scenario'] = cambium_scenario
 
       # apply the measure to the model and optionally run the model
-      result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+      result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: true)
 
       # check the measure result; result values will equal Success, Fail, or Not Applicable (NA)
       # also check the amount of warnings, info, and error messages

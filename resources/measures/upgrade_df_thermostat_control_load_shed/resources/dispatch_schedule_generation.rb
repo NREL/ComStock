@@ -317,8 +317,6 @@ def model_run_simulation_on_doy(model, doy, num_timesteps_in_hr, epw_path=nil, r
   unless Dir.exist?(run_dir)
     FileUtils.mkdir_p(run_dir)
   end
-  template = 'ComStock 90.1-2019'
-  std = Standard.build(template)
   # Save the model to energyplus idf
   osm_name = 'in.osm'
   osw_name = 'in.osw'
@@ -358,7 +356,7 @@ def model_run_simulation_on_doy(model, doy, num_timesteps_in_hr, epw_path=nil, r
   # Set up the simulation
   # Find the weather file
   if epw_path==nil
-    epw_path = std.model_get_full_weather_file_path(model)
+    epw_path = model.weatherFile.get.path
     if epw_path.empty?
       return false
     end
@@ -514,8 +512,6 @@ def model_run_simulation_on_part_of_year(model, max_doy, num_timesteps_in_hr, ep
   unless Dir.exist?(run_dir)
     FileUtils.mkdir_p(run_dir)
   end
-  template = 'ComStock 90.1-2019'
-  std = Standard.build(template)
   # Save the model to energyplus idf
   osm_name = 'in.osm'
   osw_name = 'in.osw'
@@ -550,7 +546,7 @@ def model_run_simulation_on_part_of_year(model, max_doy, num_timesteps_in_hr, ep
   # Set up the simulation
   # Find the weather file
   if epw_path==nil
-    epw_path = std.model_get_full_weather_file_path(model)
+    epw_path = model.weatherFile.get.path
     if epw_path.empty?
       return false
     end
@@ -726,9 +722,6 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path=nil, run_
   unless Dir.exist?(run_dir)
     FileUtils.mkdir_p(run_dir)
   end
-  
-  template = 'ComStock 90.1-2019'
-  std = Standard.build(template)
   # Save the model to energyplus idf
   osm_name = 'in.osm'
   osw_name = 'in.osw'
@@ -760,7 +753,6 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path=nil, run_
   # Set up the simulation
   # Find the weather file
   if epw_path==nil
-    # epw_path = std.model_get_full_weather_file_path(model)
     epw_path = model.weatherFile.get.path
     if epw_path.empty?
       return false
@@ -1067,6 +1059,9 @@ def peak_schedule_generation(annual_load, oat, peak_len, num_timesteps_in_hr, pe
         end
       end
     end
+  end
+  peak_schedule.each_index do |i|
+    peak_schedule[i] = 0 if peak_schedule[i].nil?
   end
   if peak_schedule.size < annual_load.size
     peak_schedule.fill(0, peak_schedule.size..annual_load.size-1)
