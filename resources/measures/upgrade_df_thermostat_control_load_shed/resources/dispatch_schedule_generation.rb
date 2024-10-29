@@ -40,6 +40,63 @@ require 'openstudio'
 require 'date'
 require 'openstudio-standards'
 
+def cambium_emissions_scenarios
+  emissions_scenarios = [
+    'AER_95DecarbBy2035',
+    'AER_95DecarbBy2050',
+    'AER_HighRECost',
+    'AER_LowRECost',
+    'AER_MidCase',
+    'LRMER_95DecarbBy2035_15',
+    'LRMER_95DecarbBy2035_30',
+    'LRMER_95DecarbBy2035_15_2025start',
+    'LRMER_95DecarbBy2035_25_2025start',
+    'LRMER_95DecarbBy2050_15',
+    'LRMER_95DecarbBy2050_30',
+    'LRMER_HighRECost_15',
+    'LRMER_HighRECost_30',
+    'LRMER_LowRECost_15',
+    'LRMER_LowRECost_30',
+    'LRMER_LowRECost_15_2025start',
+    'LRMER_LowRECost_25_2025start',
+    'LRMER_MidCase_15',
+    'LRMER_MidCase_30',
+    'LRMER_MidCase_15_2025start',
+    'LRMER_MidCase_25_2025start'
+  ]
+  return emissions_scenarios
+end
+
+def grid_regions
+  grid_regions = [
+    'AZNMc',
+    'AKGD',
+    'AKMS',
+    'CAMXc',
+    'ERCTc',
+    'FRCCc',
+    'HIMS',
+    'HIOA',
+    'MROEc',
+    'MROWc',
+    'NEWEc',
+    'NWPPc',
+    'NYSTc',
+    'RFCEc',
+    'RFCMc',
+    'RFCWc',
+    'RMPAc',
+    'SPNOc',
+    'SPSOc',
+    'SRMVc',
+    'SRMWc',
+    'SRSOc',
+    'SRTVc',
+    'SRVCc'
+  ]
+  return grid_regions
+end
+
 ### convert day of year to month-day date
 def day_of_year_to_date(year, day_of_year)
   date = Date.new(year, 1, 1) + day_of_year - 1
@@ -57,7 +114,7 @@ def leap_year?(year)
   end
 end
 
-### obtain oat profile from epw file
+### obtain oat profile from epw file 
 def read_epw(model, epw_path=nil)
   if epw_path==nil
     # get EPWFile class from model
@@ -68,10 +125,10 @@ def read_epw(model, epw_path=nil)
       if weatherfile.file.is_initialized
         epw_file = weatherfile.file.get
       else
-        runner.registerError('Cannot find weather file from model using EPWFile class')
+        raise 'Cannot find weather file from model using EPWFile class'
       end
     else
-      runner.registerError('Cannot find weather file from model using weatherFile class')
+      raise 'Cannot find weather file from model using weatherFile class'
     end
   else
     puts("Override with given epw from #{epw_path}")
@@ -82,7 +139,7 @@ def read_epw(model, epw_path=nil)
   if weather_ts.is_initialized
     weather_ts = weather_ts.get
   else
-    puts "FAIL, could not retrieve field: #{field} from #{epw_file}"
+    raise "FAIL, could not retrieve field: #{field} from #{epw_file}"
   end
   # Put dateTimes into array
   times = []
@@ -222,8 +279,7 @@ def create_binsamples(oat,option)
         elsif option=='sort'
           selectdays[key][keykey] = combbins[key][keykey].sort.take(3).to_a
         else
-          runner.registerError('Wrong sampling option')
-          return false
+          raise 'Wrong sampling option'
         end
         ns += 3
       elsif combbins[key][keykey].length > 7
@@ -232,8 +288,7 @@ def create_binsamples(oat,option)
         elsif option=='sort'
           selectdays[key][keykey] = combbins[key][keykey].sort.take(2).to_a
         else
-          puts('Wrong sampling option')
-          return false
+          raise 'Wrong sampling option'
         end
         ns += 2
       elsif combbins[key][keykey].length > 0
@@ -242,8 +297,7 @@ def create_binsamples(oat,option)
         elsif option=='sort'
           selectdays[key][keykey] = combbins[key][keykey].sort.take(1).to_a
         else
-          puts('Wrong sampling option')
-          return false
+          raise 'Wrong sampling option'
         end
         ns += 1
       end
@@ -263,8 +317,6 @@ def model_run_simulation_on_doy(model, doy, num_timesteps_in_hr, epw_path=nil, r
   unless Dir.exist?(run_dir)
     FileUtils.mkdir_p(run_dir)
   end
-  template = 'ComStock 90.1-2019'
-  std = Standard.build(template)
   # Save the model to energyplus idf
   osm_name = 'in.osm'
   osw_name = 'in.osw'
@@ -363,10 +415,10 @@ def model_run_simulation_on_doy(model, doy, num_timesteps_in_hr, epw_path=nil, r
   end
   timeseriesname = 'Electricity:Facility'
   reportingfrequency = 'Hourly' #'Zone Timestep'
-  unless availableEnvPeriods.include?(envperiod)
+  unless availableEnvPeriods.include?(envperiod) 
     raise "envperiod of #{envperiod} not included in available options: #{availableEnvPeriods}"
   end
-  unless availableTimeSeries.include?(timeseriesname)
+  unless availableTimeSeries.include?(timeseriesname) 
     raise "timeseriesname of #{timeseriesname} not included in available options: #{availableTimeSeries}"
   end
   unless availableReportingFrequencies.include?(reportingfrequency)
@@ -460,8 +512,6 @@ def model_run_simulation_on_part_of_year(model, max_doy, num_timesteps_in_hr, ep
   unless Dir.exist?(run_dir)
     FileUtils.mkdir_p(run_dir)
   end
-  template = 'ComStock 90.1-2019'
-  std = Standard.build(template)
   # Save the model to energyplus idf
   osm_name = 'in.osm'
   osw_name = 'in.osw'
@@ -551,10 +601,10 @@ def model_run_simulation_on_part_of_year(model, max_doy, num_timesteps_in_hr, ep
     raise "options for availableEnvPeriods are not just one: #{availableEnvPeriods}"
   end
   timeseriesname = 'Electricity:Facility'
-  unless availableEnvPeriods.include?(envperiod)
+  unless availableEnvPeriods.include?(envperiod) 
     raise "envperiod of #{envperiod} not included in available options: #{availableEnvPeriods}"
   end
-  unless availableTimeSeries.include?(timeseriesname)
+  unless availableTimeSeries.include?(timeseriesname) 
     raise "timeseriesname of #{timeseriesname} not included in available options: #{availableTimeSeries}"
   end
   reportingfrequency = 'Hourly' #'Zone Timestep'
@@ -672,9 +722,6 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path=nil, run_
   unless Dir.exist?(run_dir)
     FileUtils.mkdir_p(run_dir)
   end
-
-  template = 'ComStock 90.1-2019'
-  std = Standard.build(template)
   # Save the model to energyplus idf
   osm_name = 'in.osm'
   osw_name = 'in.osw'
@@ -706,8 +753,7 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path=nil, run_
   # Set up the simulation
   # Find the weather file
   if epw_path==nil
-    # epw_path = OpenstudioStandards::Weather.model_get_full_weather_file_path(model)
-    epw_path = model.weatherFile.get.path
+    epw_path = OpenstudioStandards::Weather.model_get_full_weather_file_path(model)
     if epw_path.empty?
       return false
     end
@@ -762,10 +808,10 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path=nil, run_
     raise "options for availableEnvPeriods are not just one: #{availableEnvPeriods}"
   end
   timeseriesname = 'Electricity:Facility'
-  unless availableEnvPeriods.include?(envperiod)
+  unless availableEnvPeriods.include?(envperiod) 
     raise "envperiod of #{envperiod} not included in available options: #{availableEnvPeriods}"
   end
-  unless availableTimeSeries.include?(timeseriesname)
+  unless availableTimeSeries.include?(timeseriesname) 
     raise "timeseriesname of #{timeseriesname} not included in available options: #{availableTimeSeries}"
   end
   reportingfrequency = 'Zone Timestep'
@@ -841,6 +887,94 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path=nil, run_
   # model.getSimulationControl.setDoSystemSizingCalculation(syssizing_orig)
   # model.getSimulationControl.setDoPlantSizingCalculation(plantsizing_orig)
   return vals
+end
+
+### read cambium/egrid emission factors
+def read_emission_factors(model, scenario, year=2018)
+  lbm_to_kg = OpenStudio.convert(1.0, 'lb_m', 'kg').get
+  # set cambium and egrid regions
+  grid_region = model.getBuilding.additionalProperties.getFeatureAsString('grid_region')
+  unless grid_region.is_initialized
+    raise 'Unable to find grid region in model building additional properties'
+  end
+  grid_region = grid_region.get
+  puts("Using grid region #{grid_region} from model building additional properties.")
+  if ['AKMS', 'AKGD', 'HIMS', 'HIOA'].include? grid_region
+    cambium_grid_region = nil
+    egrid_region = grid_region
+    puts("Grid region '#{grid_region}' is not available in Cambium.  Using eGrid factors only for electricty related emissions.")
+  else
+    cambium_grid_region = grid_region
+    egrid_region = grid_region.chop
+  end
+  # read egrid factors
+  egrid_subregion_emissions_factors_csv = "#{File.dirname(__FILE__)}/egrid/egrid_subregion_emissions_factors.csv"
+  if not File.file?(egrid_subregion_emissions_factors_csv)
+    raise "Unable to find file: #{egrid_subregion_emissions_factors_csv}"
+  end
+  egrid_subregion_lkp = CSV.table(egrid_subregion_emissions_factors_csv)
+  egrid_subregion_hsh = egrid_subregion_lkp.map { |row| row.to_hash }
+  egrid_subregion_hsh = egrid_subregion_hsh.select { |r| (r[:subregion] == egrid_region) }
+  if egrid_subregion_hsh.empty?
+    raise "Unable to find eGRID data for subregion: #{egrid_region}"
+  end
+  if [2018, 2019, 2020, 2021].include?(year)
+    egrid_co2e_kg_per_mwh = egrid_subregion_hsh[0][:"#{year}"] * lbm_to_kg
+  elsif year == 'average'
+    egrid_co2e_kg_per_mwh = (egrid_subregion_hsh[0][:"2018"]+egrid_subregion_hsh[0][:"2019"]+egrid_subregion_hsh[0][:"2020"]+egrid_subregion_hsh[0][:"2021"]) / 4.0 * lbm_to_kg
+  else
+    raise "Unable to find eGRID data for year: #{year}"
+  end
+  # read cambium factors
+  cambium_co2e_kg_per_mwh = []
+  if !cambium_grid_region.nil?
+    if scenario.include? 'AER'
+      scenario_lookup = scenario + '_1'
+    else
+      scenario_lookup = scenario
+    end
+    emissions_csv = "#{File.dirname(__FILE__)}/cambium/#{scenario_lookup}/#{cambium_grid_region}.csv"
+    if not File.file?(emissions_csv)
+      raise "Unable to find file: #{emissions_csv}"
+    end
+    cambium_co2e_kg_per_mwh = CSV.read(emissions_csv, converters: :float).flatten
+  end
+  return egrid_co2e_kg_per_mwh, cambium_co2e_kg_per_mwh
+end
+
+### emission prediction based on emission factors and load prediction
+def emission_prediction(load, factor, num_timesteps_in_hr)
+  j_to_mwh = OpenStudio.convert(1.0, 'J', 'MWh').get
+  # convert to hourly load
+  if num_timesteps_in_hr > 1
+    hourly_load = []
+    load.each_slice(num_timesteps_in_hr) do |slice|
+      sum = slice.reduce(:+).to_f
+      hourly_load << sum
+    end
+  end
+  # convert load from J to mwh
+  hourly_load_mwh = []
+  hourly_load.each { |val| hourly_load_mwh << val * j_to_mwh }
+  # calculate emission
+  if factor.is_a?(Array)
+    # cambium factor
+    unless hourly_load_mwh.size == hourly_load_mwh.size
+      if hourly_load_mwh.size == 8784
+        # leap year, copy Feb 28 data for Feb 29
+        factor = factor[0..1415] + factor[1392..1415] + factor[1416..8759]
+      else
+        raise "Unable to calculate emissions for run periods not of length 8760 or 8784"
+      end
+    end
+    hourly_emissions_kg = hourly_load_mwh.zip(factor).map { |n, f| n * f }
+  elsif factor.is_a?(Numeric)
+    # egrid factor
+    hourly_emissions_kg = (hourly_load_mwh.inject(:+)) * factor
+  else
+    raise "Bad emission factors"
+  end
+  return hourly_emissions_kg
 end
 
 ### determine daily peak window based on daily load profile

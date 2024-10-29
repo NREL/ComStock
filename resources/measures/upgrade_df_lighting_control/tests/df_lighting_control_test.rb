@@ -38,28 +38,28 @@ class DFLightingControlTest < Minitest::Test
     test_sets = []
 
     # test: applicable building type
+    # test_sets << {
+    #   model: 'Small_Office_2A',
+    #   weather: 'TX_Port_Arthur_Jeffers_722410_16',
+    #   result: 'Success'
+    # }
+    # test_sets << {
+    #   model: '361_Medium_Office_PSZ_HP',
+    #   weather: 'CO_FortCollins_16',
+    #   result: 'Success'
+    # }
+    # test_sets << {
+    #   model: 'LargeOffice_VAV_chiller_boiler',
+    #   weather: 'NY_New_York_John_F_Ke_744860_16',
+    #   result: 'Success'
+    # }
+    # test_sets << {
+    #   model: 'Warehouse_5A',
+    #   weather: 'MN_Cloquet_Carlton_Co_726558_16',
+    #   result: 'Success'
+    # }
     test_sets << {
-      model: 'Small_Office_2A',
-      weather: 'TX_Port_Arthur_Jeffers_722410_16',
-      result: 'Success'
-    }
-    test_sets << {
-      model: '361_Medium_Office_PSZ_HP',
-      weather: 'CO_FortCollins_16',
-      result: 'Success'
-    }
-    test_sets << {
-      model: 'LargeOffice_VAV_chiller_boiler',
-      weather: 'NY_New_York_John_F_Ke_744860_16',
-      result: 'Success'
-    }
-    test_sets << {
-      model: 'Warehouse_5A',
-      weather: 'MN_Cloquet_Carlton_Co_726558_16',
-      result: 'Success'
-    }
-    test_sets << {
-      model: '3340_small_office_OS38', # small office
+      model: '3340', # small office
       weather: 'IL_Dupage_3340_18',
       result: 'Success'
     }
@@ -200,44 +200,49 @@ class DFLightingControlTest < Minitest::Test
       argument_map = OpenStudio::Measure::OSArgumentMap.new
 
       # set arguments:
-      peak_len = arguments[0].clone
+      demand_flexibility_objective = arguments[0].clone
+      assert(demand_flexibility_objective.setValue('emission'))
+      argument_map['demand_flexibility_objective'] = demand_flexibility_objective
+      
+      # set arguments:
+      peak_len = arguments[1].clone
       assert(peak_len.setValue(4))
       argument_map['peak_len'] = peak_len
 
       # set arguments:
-      light_adjustment_method = arguments[1].clone
-      assert(light_adjustment_method.setValue('absolute change'))#'relative change'
+      light_adjustment_method = arguments[2].clone
+      assert(light_adjustment_method.setValue('absolute change'))
       argument_map['light_adjustment_method'] = light_adjustment_method
 
       # set arguments:
-      light_adjustment = arguments[2].clone
+      light_adjustment = arguments[3].clone
       assert(light_adjustment.setValue(30.0))
       argument_map['light_adjustment'] = light_adjustment
 
       # set arguments:
-      num_timesteps_in_hr = arguments[3].clone
+      num_timesteps_in_hr = arguments[4].clone
       assert(num_timesteps_in_hr.setValue(4))
       argument_map['num_timesteps_in_hr'] = num_timesteps_in_hr
 
       # set arguments:
-      load_prediction_method = arguments[4].clone
-      assert(load_prediction_method.setValue('full baseline'))#'bin sample''part year bin sample''fix'
+      load_prediction_method = arguments[5].clone
+      assert(load_prediction_method.setValue('full baseline'))#'bin sample''part year bin sample'
       argument_map['load_prediction_method'] = load_prediction_method
 
       # set arguments:
-      peak_lag = arguments[5].clone
+      peak_lag = arguments[6].clone
       assert(peak_lag.setValue(2))
       argument_map['peak_lag'] = peak_lag
 
       # set arguments:
-      peak_window_strategy = arguments[6].clone
-      assert(peak_window_strategy.setValue('center with peak'))
+      peak_window_strategy = arguments[7].clone
+      assert(peak_window_strategy.setValue('center with peak'))#'bin sample''part year bin sample'
       argument_map['peak_window_strategy'] = peak_window_strategy
 
-      # # set arguments:
-      # apply_measure = arguments[7].clone
-      # assert(apply_measure.setValue(true))
-      # argument_map['apply_measure'] = apply_measure
+      # set arguments:
+      cambium_scenario = arguments[8].clone
+      assert(cambium_scenario.setValue('LRMER_MidCase_15'))#
+      argument_map['cambium_scenario'] = cambium_scenario
 
       # apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: true)

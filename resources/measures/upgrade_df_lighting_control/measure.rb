@@ -64,6 +64,12 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
   def arguments(model)
     args = OpenStudio::Measure::OSArgumentVector.new
 
+    choices_obj = ['peak load', 'emission', 'utility bill cost', 'operational cost']
+    demand_flexibility_objective = OpenStudio::Ruleset::OSArgument.makeChoiceArgument('demand_flexibility_objective', choices_obj, true)
+    demand_flexibility_objective.setDisplayName("Objective of demand flexibility control (peak load, emission, utility bill cost, operational cost)")
+    demand_flexibility_objective.setDefaultValue('peak load')
+    args << demand_flexibility_objective 
+
     peak_len = OpenStudio::Measure::OSArgument.makeIntegerArgument('peak_len', true)
     peak_len.setDisplayName("Length of dispatch window (hour)")
     peak_len.setDefaultValue(4)
@@ -103,6 +109,34 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     peak_window_strategy.setDefaultValue('center with peak')
     args << peak_window_strategy
 
+    choices_scenarios = [
+      'AER_95DecarbBy2035',
+      'AER_95DecarbBy2050',
+      'AER_HighRECost',
+      'AER_LowRECost',
+      'AER_MidCase',
+      'LRMER_95DecarbBy2035_15',
+      'LRMER_95DecarbBy2035_30',
+      'LRMER_95DecarbBy2035_15_2025start',
+      'LRMER_95DecarbBy2035_25_2025start',
+      'LRMER_95DecarbBy2050_15',
+      'LRMER_95DecarbBy2050_30',
+      'LRMER_HighRECost_15',
+      'LRMER_HighRECost_30',
+      'LRMER_LowRECost_15',
+      'LRMER_LowRECost_30',
+      'LRMER_LowRECost_15_2025start',
+      'LRMER_LowRECost_25_2025start',
+      'LRMER_MidCase_15',
+      'LRMER_MidCase_30',
+      'LRMER_MidCase_15_2025start',
+      'LRMER_MidCase_25_2025start'
+    ]
+    cambium_scenario = OpenStudio::Ruleset::OSArgument.makeChoiceArgument('cambium_scenario', choices_scenarios, true)
+    cambium_scenario.setDisplayName("Cambium emission scenario")
+    cambium_scenario.setDefaultValue('LRMER_MidCase_15')
+    args << cambium_scenario
+
     # apply_measure = OpenStudio::Measure::OSArgument.makeBoolArgument('apply_measure', true)
     # apply_measure.setDisplayName('Apply measure?')
     # apply_measure.setDescription('')
@@ -124,6 +158,7 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     ############################################
     # assign the user inputs to variables
     ############################################
+    demand_flexibility_objective = runner.getStringArgumentValue("demand_flexibility_objective",user_arguments)
     peak_len = runner.getIntegerArgumentValue("peak_len",user_arguments)
     light_adjustment_method = runner.getStringArgumentValue("light_adjustment_method",user_arguments)
     light_adjustment = runner.getDoubleArgumentValue('light_adjustment', user_arguments)
@@ -131,6 +166,7 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     load_prediction_method = runner.getStringArgumentValue("load_prediction_method",user_arguments)
     peak_lag = runner.getIntegerArgumentValue("peak_lag",user_arguments)
     peak_window_strategy = runner.getStringArgumentValue("peak_window_strategy",user_arguments)
+    cambium_scenario = runner.getStringArgumentValue("cambium_scenario",user_arguments)
     # apply_measure = runner.getBoolArgumentValue('apply_measure', user_arguments)
 
     def light_adj_based_on_sch(peak_sch, light_adjustment)
@@ -156,11 +192,6 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
       end
       num_timesteps = model.getTimestep.numberOfTimestepsPerHour
       day_schedules = schedule_ruleset.getDaySchedules(start_date, end_date)
-      # # Make new array of day schedules for year
-      # day_sched_array = []
-      # day_schedules.each do |day_schedule|
-      #   day_sched_array << day_schedule
-      # end
       day_schedules.each do |day_schedule|
         if model.version.str < '3.8.0'
           current_hour = interval
@@ -242,7 +273,7 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
             schedule_ts = get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get, light_adj_values.size)
             # puts("--- schedule_ts.size = #{schedule_ts.size}")
             if light_adjustment_method == 'absolute change'
-              new_schedule_ts = schedule_ts.map.with_index { |val, ind| [val-light_adj_values[ind], 0].max}
+              new_schedule_ts = schedule_ts.map.with_index { |val, ind| [val-light_adj_values[ind], [val, 0.05].min].max}
             elsif light_adjustment_method == 'relative change'
               if schedule_ts.size <= light_adj_values.size
                 new_schedule_ts = schedule_ts.map.with_index { |val, ind| val * (1.0-light_adj_values[ind]) }
@@ -304,20 +335,20 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
       end
     end
 
-    # adding output variables (for debugging)
-    out_vars = [
-      'Lights Electricity Energy',
-      'Lights Electricity Rate',
-      'Zone Lights Electricity Energy',
-      'Zone Lights Electricity Rate',
-      'Schedule Value'
-    ]
-    out_vars.each do |out_var_name|
-        ov = OpenStudio::Model::OutputVariable.new('ov', model)
-        ov.setKeyValue('*')
-        ov.setReportingFrequency('timestep')
-        ov.setVariableName(out_var_name)
-    end
+    # # adding output variables (for debugging)
+    # out_vars = [
+    #   'Lights Electricity Energy',
+    #   'Lights Electricity Rate',
+    #   'Zone Lights Electricity Energy',
+    #   'Zone Lights Electricity Rate',
+    #   'Schedule Value'
+    # ]
+    # out_vars.each do |out_var_name|
+    #     ov = OpenStudio::Model::OutputVariable.new('ov', model)
+    #     ov.setKeyValue('*')
+    #     ov.setReportingFrequency('timestep')
+    #     ov.setVariableName(out_var_name)
+    # end
 
     ############################################
     # Applicability check
@@ -395,36 +426,63 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     end
 
     ############################################
+    # Emission prediction
+    ############################################
+    
+    if demand_flexibility_objective == 'emission'
+      puts("### ============================================================")
+      puts("### Predicting emission...")
+      egrid_co2e_kg_per_mwh, cambium_co2e_kg_per_mwh = read_emission_factors(model, scenario=cambium_scenario)
+      if cambium_co2e_kg_per_mwh == []
+        hourly_emissions_kg = emission_prediction(annual_load, factor=egrid_co2e_kg_per_mwh, num_timesteps_in_hr=num_timesteps_in_hr)
+      else
+        hourly_emissions_kg = emission_prediction(annual_load, factor=cambium_co2e_kg_per_mwh, num_timesteps_in_hr=num_timesteps_in_hr)
+      end
+      puts("--- hourly_emissions_kg.size = #{hourly_emissions_kg.size}")
+    end
+
+    ############################################
     # Generate peak schedule
     ############################################
     puts("### ============================================================")
     puts("### Creating peak schedule...")
-    if load_prediction_method == 'fix'
-      puts("### Fixed schedule...")
-      climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
-      runner.registerInfo("climate zone = #{climate_zone}")
-      if climate_zone.empty?
-        runner.registerError('Unable to determine climate zone for model. Cannot apply window film without climate zone information.')
-      else
-        if climate_zone.include?("CEC")
-          climate_zone_num_ca = climate_zone.split("CEC")[-1]
-          puts "--- climate_zone_num_ca = #{climate_zone_num_ca}"
-          cz = map_cec_to_iecc[climate_zone_num_ca.to_i]
-        elsif climate_zone.include?("ASHRAE")
-          cz = climate_zone.split("-")[-1]
-        else
+    if demand_flexibility_objective == 'peak load'
+      puts("### Creating peak schedule for peak load reduction...")
+      if load_prediction_method == 'fix'
+        puts("### Fixed schedule...")
+        template = 'ComStock 90.1-2019'
+        std = Standard.build(template)
+        climate_zone = std.model_standards_climate_zone(model)
+        runner.registerInfo("climate zone = #{climate_zone}")
+        if climate_zone.empty?
           runner.registerError('Unable to determine climate zone for model. Cannot apply window film without climate zone information.')
+        else
+          if climate_zone.include?("CEC")
+            climate_zone_num_ca = climate_zone.split("CEC")[-1]
+            puts "--- climate_zone_num_ca = #{climate_zone_num_ca}"
+            cz = map_cec_to_iecc[climate_zone_num_ca.to_i]
+          elsif climate_zone.include?("ASHRAE")
+            cz = climate_zone.split("-")[-1]
+          else
+            runner.registerError('Unable to determine climate zone for model. Cannot apply window film without climate zone information.')
+          end
         end
+        puts "--- cz = #{cz}"
+        peak_schedule, peak_schedule_htg = peak_schedule_generation_fix(cz, oat, rebound_len=0, prepeak_len=0, season='all')
+      elsif load_prediction_method == 'oat'
+        puts("### OAT-based schedule...")
+        peak_schedule, peak_schedule_htg = peak_schedule_generation_oat(oat, peak_len, peak_lag=peak_lag, rebound_len=rebound_len, prepeak_len=0, season='all')
+      else
+        puts("### Predictive schedule...")
+        peak_schedule = peak_schedule_generation(annual_load, oat, peak_len, num_timesteps_in_hr=num_timesteps_in_hr, peak_window_strategy=peak_window_strategy, rebound_len=0, prepeak_len=0, season='all')
       end
-      puts "--- cz = #{cz}"
-      peak_schedule, peak_schedule_htg = peak_schedule_generation_fix(cz, oat, rebound_len=0, prepeak_len=0, season='all')
-    elsif load_prediction_method == 'oat'
-      puts("### OAT-based schedule...")
-      peak_schedule, peak_schedule_htg = peak_schedule_generation_oat(oat, peak_len, peak_lag=peak_lag, rebound_len=rebound_len, prepeak_len=0, season='all')
+    elsif demand_flexibility_objective == 'emission'
+      puts("### Creating peak schedule for emission reduction...")
+      peak_schedule = peak_schedule_generation(hourly_emissions_kg, oat, peak_len, num_timesteps_in_hr=1, peak_window_strategy=peak_window_strategy, rebound_len=0, prepeak_len=0, season='all')
     else
-      puts("### Predictive schedule...")
-      peak_schedule = peak_schedule_generation(annual_load, oat, peak_len, num_timesteps_in_hr=num_timesteps_in_hr, peak_window_strategy=peak_window_strategy, rebound_len=0, prepeak_len=0, season='all')
+      runner.registerError('Not supported objective.')
     end
+
     # puts("--- peak_schedule = #{peak_schedule}")
     puts("--- peak_schedule.size = #{peak_schedule.size}")
 
@@ -434,8 +492,8 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     puts("### ============================================================")
     puts("### Creating lighting factor values...")
     light_adj_values = light_adj_based_on_sch(peak_schedule, light_adjustment)
-    puts("--- light_adj_values.size = #{light_adj_values.size}")
     # puts("--- light_adj_values = #{light_adj_values}")
+    puts("--- light_adj_values.size = #{light_adj_values.size}")
     puts("### Updating lighting schedule...")
     nl, nla = adjust_lighting_sch(model,runner,light_adjustment_method,light_adj_values)
 
