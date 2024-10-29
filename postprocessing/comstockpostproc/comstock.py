@@ -549,13 +549,16 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # Fill Nulls in measure-within-upgrade applicability columns with False
             for c, dt in up_res.schema.items():
                 if 'applicable' in c:
-                    if dt == pl.Null:
+                    logger.info(f'For {c}: Nulls set to False in upgrade, and its type is {dt}')
+                    if dt == pl.Null or dt == pl.Boolean:
                         logger.debug(f'For {c}: Nulls set to False (Boolean) in baseline')
                         up_res = up_res.with_columns([pl.col(c).fill_null(pl.lit(False))])
                     elif dt == pl.Utf8:
                         logger.debug(f'For {c}: Nulls set to "False" (String) in baseline')
                         up_res = up_res.with_columns([pl.col(c).fill_null(pl.lit("False"))])
                         up_res = up_res.with_columns([pl.when(pl.col(c).str.lengths() == 0).then(pl.lit('False')).otherwise(pl.col(c)).keep_name()])
+                # make sure all columns contains no null values
+                    assert up_res.get_column(c).null_count() == 0, f'Column {c} contains null values' 
 
             # Convert columns with only 'True' and/or 'False' strings to Boolean
             for col, dt in up_res.schema.items():
@@ -2957,6 +2960,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         for c in comstock_data.columns:
             if re.match(TOTAL_PATTERN, c):
                 fuel_type = re.match(TOTAL_PATTERN, c).group(1)
+                if c == self.ANN_TOT_ENGY_KBTU: 
+                    #absolutely we don't need the total to be added into the 
+                    #sum again out.site_energy.total.energy_consumption..kwh should be the sum
+                    #of all the other energy's type sum.
+                    continue
                 fuel_total[fuel_type] = sum_table[c]
             elif re.match(ENDUSE_PATTERN, c):
                 fuel_type = re.match(ENDUSE_PATTERN, c).group(1)
@@ -2964,14 +2972,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             elif re.match(MONTH_PATTERN, c):
                 month = re.match(MONTH_PATTERN, c).group(1)
                 month_total[month] = sum_table[c]
-        
+            
         logger.info(f"Fuel total: {fuel_total}, Enduse total: {end_use_total}, Month total: {month_total}")
         # Check that the total site energy is the sum of the fuel totals
         for fuel, total in end_use_total.items():
             if not total == pytest.approx(fuel_total[fuel], rel=0.01):
                 err_log += f'Fuel total for {fuel} does not match sum of enduse columns\n'
         if not sum(fuel_total.values()) == pytest.approx(sum_table[self.ANN_TOT_ENGY_KBTU], rel=0.01):
-            err_log += 'Site total does not match sum of fuel totals\n'
+            err_log += f'Site total {sum(fuel_total.values())} does not match sum of fuel totals {sum_table[self.ANN_TOT_ENGY_KBTU]}\n'
         if not sum(month_total.values()) == pytest.approx(sum_table[self.ANN_TOT_ELEC_KBTU], rel=0.01):
             err_log += 'Electricity total does not match sum of month totals\n'
     
