@@ -64,7 +64,8 @@ def main():
     # comstock.create_geospatially_resolved_aggregations(comstock.COUNTY_ID, pretty_geo_col_name='county_id')
     # TODO Long is def not working as expected anymore...
     # comstock.export_to_csv_long()  # Long format useful for stacking end uses and fuels
-
+    comstock.sightGlass_metadata_check(comstock.data)
+    
     # Create measure run comparisons; only use if run has measures
     comparison = cspp.ComStockMeasureComparison(comstock, states=comstock.states, make_comparison_plots = comstock.make_comparison_plots, make_timeseries_plots = comstock.make_timeseries_plots)
 
