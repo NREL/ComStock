@@ -12,7 +12,6 @@ require 'open3'
 require 'rbconfig'
 require 'date'
 require 'time'
-# require "#{File.dirname(__FILE__)}/resources/weather"
 
 # start the measure
 class TimeseriesCSVExport < OpenStudio::Measure::ReportingMeasure
