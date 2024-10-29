@@ -47,7 +47,6 @@ require_relative '../measure'
 require_relative '../../../../test/helpers/minitest_helper'
 
 class AddHeatPumpRtuTest < Minitest::Test
-
   # return file paths to test models in test directory
   def models_for_tests
     paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/models/*.osm'))
@@ -97,7 +96,7 @@ class AddHeatPumpRtuTest < Minitest::Test
   def set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false, model: nil, apply: true, expected_results: 'Success')
     assert(File.exist?(osm_path))
     assert(File.exist?(epw_path))
-    ddy_path = epw_path.gsub(".epw","") + ".ddy"
+    ddy_path = "#{epw_path.gsub('.epw', '')}.ddy"
 
     # create run directory if it does not exist
     FileUtils.mkdir_p(run_dir(test_name)) unless File.exist?(run_dir(test_name))
@@ -216,7 +215,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert_equal('hr', arguments[7].name)
     assert_equal('dcv', arguments[8].name)
     assert_equal('econ', arguments[9].name)
-	  assert_equal('roof', arguments[10].name)
+    assert_equal('roof', arguments[10].name)
     assert_equal('sizing_run', arguments[11].name)
     assert_equal('debug_verbose', arguments[12].name)
   end
@@ -248,7 +247,6 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   def calc_cfm_per_ton_multispdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
-
     # get relevant heating coils
     coils_heating = model.getCoilHeatingDXMultiSpeedStageDatas
 
@@ -275,7 +273,6 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   def calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
-
     # get cooling coils
     coils_cooling = model.getCoilCoolingDXMultiSpeedStageDatas
 
@@ -337,19 +334,18 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   def _mimic_hardsize_model(model, test_dir)
-
     standard = Standard.build('ComStock DOE Ref Pre-1980')
 
     # Run a sizing run to determine equipment capacities and flow rates
-    if standard.model_run_sizing_run(model, "#{test_dir}") == false
-      puts("Sizing run for Hardsize model failed, cannot hard-size model.")
+    if standard.model_run_sizing_run(model, test_dir.to_s) == false
+      puts('Sizing run for Hardsize model failed, cannot hard-size model.')
       return false
     end
 
     # APPLY
     model.applySizingValues
 
-    # TODO remove once this functionality is added to the OpenStudio C++ for hard sizing UnitarySystems
+    # TODO: remove once this functionality is added to the OpenStudio C++ for hard sizing UnitarySystems
     model.getAirLoopHVACUnitarySystems.each do |unitary|
       if model.version < OpenStudio::VersionString.new('3.7.0')
         unitary.setSupplyAirFlowRateMethodDuringCoolingOperation('SupplyAirFlowRate')
@@ -357,11 +353,11 @@ class AddHeatPumpRtuTest < Minitest::Test
       else
         # unitary.applySizingValues
       end
-
     end
-    # TODO remove once this functionality is added to the OpenStudio C++ for hard sizing Sizing:System
+    # TODO: remove once this functionality is added to the OpenStudio C++ for hard sizing Sizing:System
     model.getSizingSystems.each do |sizing_system|
       next if sizing_system.isDesignOutdoorAirFlowRateAutosized
+
       sizing_system.setSystemOutdoorAirMethod('ZoneSum')
     end
 
@@ -369,7 +365,6 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   def verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
-
     # set weather file but not apply measure
     result = set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false, apply: false)
     model = load_model(model_output_path(test_name))
@@ -517,7 +512,6 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   def get_cooling_coil_capacity_and_cop(model, coil)
-
     capacity_w = 0.0
     coil_design_cop = 0.0
 
@@ -677,14 +671,13 @@ class AddHeatPumpRtuTest < Minitest::Test
 
       # get coil capacity: cooling
       coil = airloophvacunisys.coolingCoil.get
-      capacity_w, _ = get_cooling_coil_capacity_and_cop(model, coil)
+      capacity_w, = get_cooling_coil_capacity_and_cop(model, coil)
       sizing_summary['AirLoopHVACUnitarySystem'][name_obj]['cooling_coil_capacity_w'] = capacity_w
 
       # get coil capacity: heating
       coil = airloophvacunisys.heatingCoil.get
-      capacity_w, _, _, _, _, _, _, _ = get_heating_coil_capacity_and_cop(model, coil)
+      capacity_w, = get_heating_coil_capacity_and_cop(model, coil)
       sizing_summary['AirLoopHVACUnitarySystem'][name_obj]['heating_coil_capacity_w'] = capacity_w
-
     end
     sizing_summary['AirLoopHVAC'] = {}
     model.getAirLoopHVACs.each do |airloophvac|
@@ -724,15 +717,14 @@ class AddHeatPumpRtuTest < Minitest::Test
       # check capacity: cooling
       coil = airloophvacunisys.coolingCoil.get
       value_before = sizing_summary_reference['AirLoopHVACUnitarySystem'][name_obj]['cooling_coil_capacity_w']
-      value_after, _ = get_cooling_coil_capacity_and_cop(model, coil)
+      value_after, = get_cooling_coil_capacity_and_cop(model, coil)
       assert_in_epsilon(value_before, value_after, 0.000001, "values do not match: AirLoopHVACUnitarySystem | #{name_obj} | cooling_coil_capacity_w")
 
       # check capacity: heating
       coil = airloophvacunisys.heatingCoil.get
       value_before = sizing_summary_reference['AirLoopHVACUnitarySystem'][name_obj]['heating_coil_capacity_w']
-      value_after, _ = get_heating_coil_capacity_and_cop(model, coil)
+      value_after, = get_heating_coil_capacity_and_cop(model, coil)
       assert_in_epsilon(value_before, value_after, 0.000001, "values do not match: AirLoopHVACUnitarySystem | #{name_obj} | heating_coil_capacity_w")
-
     end
     model.getAirLoopHVACs.each do |airloophvac|
       name_obj = airloophvac.name.to_s
@@ -761,14 +753,14 @@ class AddHeatPumpRtuTest < Minitest::Test
       # check capacity: cooling
       coil = airloophvacunisys.coolingCoil.get
       value_before = sizing_summary_reference['AirLoopHVACUnitarySystem'][name_obj]['cooling_coil_capacity_w']
-      value_after, _ = get_cooling_coil_capacity_and_cop(model, coil)
+      value_after, = get_cooling_coil_capacity_and_cop(model, coil)
       relative_difference = (value_after - value_before) / value_before
       assert_in_epsilon(relative_difference, 0.25, 0.01, "values difference not close to threshold: AirLoopHVACUnitarySystem | #{name_obj} | cooling_coil_capacity_w")
 
       # check capacity: heating
       coil = airloophvacunisys.heatingCoil.get
       value_before = sizing_summary_reference['AirLoopHVACUnitarySystem'][name_obj]['heating_coil_capacity_w']
-      value_after, _ = get_heating_coil_capacity_and_cop(model, coil)
+      value_after, = get_heating_coil_capacity_and_cop(model, coil)
       relative_difference = (value_after - value_before) / value_before
       assert_in_epsilon(relative_difference, 0.25, 0.01, "values difference not close to threshold: AirLoopHVACUnitarySystem | #{name_obj} | heating_coil_capacity_w")
     end
@@ -819,7 +811,6 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   def calc_cfm_per_ton_multispdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
-
     # get relevant heating coils
     coils_heating = model.getCoilHeatingDXMultiSpeedStageDatas
 
@@ -846,7 +837,6 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   def calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
-
     # get cooling coils
     coils_cooling = model.getCoilCoolingDXMultiSpeedStageDatas
 
@@ -907,6 +897,70 @@ class AddHeatPumpRtuTest < Minitest::Test
     end
   end
 
+  # # ##########################################################################
+  # # Single building result examples
+  # def test_single_building_result_examples
+  #   osm_epw_pair = {
+  #     'example_model_AK_380.osm' => 'USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw',
+  #     'example_model_NM_380.osm' => 'USA_NM_Albuquerque.Intl.AP.723650_TMY3.epw',
+  #     'example_model_HI_380.osm' => 'USA_HI_Honolulu.Intl.AP.911820_TMY3.epw',
+  #   }
+
+  #   test_name = 'test_single_building_result_examples'
+
+  #   puts "\n######\nTEST:#{test_name}\n######\n"
+
+  #   osm_epw_pair.each_with_index do |(osm_name, epw_name), idx|
+
+  #     osm_path = model_input_path(osm_name)
+  #     epw_path = epw_input_path(epw_name)
+
+  #     puts("### DEBUGGING: ----------------------------------------------------------")
+  #     puts("### DEBUGGING: osm_path = #{osm_path}")
+  #     puts("### DEBUGGING: epw_path = #{epw_path}")
+
+  #     # Create an instance of the measure
+  #     measure = AddHeatPumpRtu.new
+
+  #     # Load the model; only used here for populating arguments
+  #     model = load_model(osm_path)
+
+  #     # get arguments
+  #     arguments = measure.arguments(model)
+  #     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+
+  #     # populate specific argument for testing
+  #     arguments.each_with_index do |arg, idx|
+  #       temp_arg_var = arg.clone
+  #       case arg.name
+  #       when 'sizing_run'
+  #         sizing_run = arguments[idx].clone
+  #         sizing_run.setValue(true)
+  #         argument_map[arg.name] = sizing_run
+  #       when 'hprtu_scenario'
+  #         hprtu_scenario = arguments[idx].clone
+  #         hprtu_scenario.setValue('variable_speed_high_eff') # variable_speed_high_eff, two_speed_standard_eff
+  #         argument_map[arg.name] = hprtu_scenario
+  #       when 'performance_oversizing_factor'
+  #         performance_oversizing_factor = arguments[idx].clone
+  #         performance_oversizing_factor.setValue(0.25)
+  #         argument_map[arg.name] = performance_oversizing_factor
+  #       when 'debug_verbose'
+  #         debug_verbose = arguments[idx].clone
+  #         debug_verbose.setValue(true)
+  #         argument_map[arg.name] = debug_verbose
+  #       else
+  #         argument_map[arg.name] = temp_arg_var
+  #       end
+  #     end
+
+  #     # Apply the measure to the model and optionally run the model
+  #     result = set_weather_and_apply_measure_and_run("#{test_name}_#{idx}", measure, argument_map, osm_path, epw_path, run_model: true, apply: true)
+  #     model = load_model(model_output_path("#{test_name}_#{idx}"))
+
+  #   end
+  # end
+
   # ##########################################################################
   # This section tests upsizing algorithm
   # tests compare:
@@ -936,11 +990,12 @@ class AddHeatPumpRtuTest < Minitest::Test
     # populate specific argument for testing
     arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      if arg.name == 'sizing_run'
+      case arg.name
+      when 'sizing_run'
         sizing_run = arguments[idx].clone
         sizing_run.setValue(true)
         argument_map[arg.name] = sizing_run
-      elsif arg.name == 'hprtu_scenario'
+      when 'hprtu_scenario'
         hprtu_scenario = arguments[idx].clone
         hprtu_scenario.setValue('two_speed_standard_eff') # variable_speed_high_eff, two_speed_standard_eff
         argument_map[arg.name] = hprtu_scenario
@@ -960,8 +1015,8 @@ class AddHeatPumpRtuTest < Minitest::Test
     end
 
     # Apply the measure to the model and optionally run the model
-    result = set_weather_and_apply_measure_and_run(test_name + "_b", measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
-    model = load_model(model_output_path(test_name + "_b"))
+    result = set_weather_and_apply_measure_and_run("#{test_name}_b", measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
+    model = load_model(model_output_path("#{test_name}_b"))
 
     # get sizing info from regular sized model
     sizing_summary_reference = get_sizing_summary(model)
@@ -977,8 +1032,8 @@ class AddHeatPumpRtuTest < Minitest::Test
     end
 
     # Apply the measure to the model and optionally run the model
-    result = set_weather_and_apply_measure_and_run(test_name + "_a", measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
-    model = load_model(model_output_path(test_name + "_a"))
+    result = set_weather_and_apply_measure_and_run("#{test_name}_a", measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
+    model = load_model(model_output_path("#{test_name}_a"))
 
     # compare sizing summary of upsizing model with regular sized model
     check_sizing_results_upsizing(model, sizing_summary_reference)
@@ -1008,11 +1063,12 @@ class AddHeatPumpRtuTest < Minitest::Test
     # populate specific argument for testing
     arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      if arg.name == 'sizing_run'
+      case arg.name
+      when 'sizing_run'
         sizing_run = arguments[idx].clone
         sizing_run.setValue(true)
         argument_map[arg.name] = sizing_run
-      elsif arg.name == 'hprtu_scenario'
+      when 'hprtu_scenario'
         hprtu_scenario = arguments[idx].clone
         hprtu_scenario.setValue('variable_speed_high_eff') # variable_speed_high_eff, two_speed_standard_eff
         argument_map[arg.name] = hprtu_scenario
@@ -1032,8 +1088,8 @@ class AddHeatPumpRtuTest < Minitest::Test
     end
 
     # Apply the measure to the model and optionally run the model
-    result = set_weather_and_apply_measure_and_run(test_name + "_b", measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
-    model = load_model(model_output_path(test_name + "_b"))
+    result = set_weather_and_apply_measure_and_run("#{test_name}_b", measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
+    model = load_model(model_output_path("#{test_name}_b"))
 
     # get sizing info from regular sized model
     sizing_summary_reference = get_sizing_summary(model)
@@ -1049,8 +1105,8 @@ class AddHeatPumpRtuTest < Minitest::Test
     end
 
     # Apply the measure to the model and optionally run the model
-    result = set_weather_and_apply_measure_and_run(test_name + "_a", measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
-    model = load_model(model_output_path(test_name + "_a"))
+    result = set_weather_and_apply_measure_and_run("#{test_name}_a", measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
+    model = load_model(model_output_path("#{test_name}_a"))
 
     # compare sizing summary of upsizing model with regular sized model
     check_sizing_results_no_upsizing(model, sizing_summary_reference)
@@ -1252,11 +1308,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     nonkitchen_htg_coils = []
     model.getAirLoopHVACUnitarySystems.sort.each do |unitary_sys|
       # skip kitchen spaces
-      thermal_zone_names_to_exclude = %w[
-        Kitchen
-        kitchen
-        KITCHEN
-      ]
+      thermal_zone_names_to_exclude = ['Kitchen', 'kitchen', 'KITCHEN']
       if thermal_zone_names_to_exclude.any? { |word| (unitary_sys.name.to_s).include?(word) }
         tz_kitchens << unitary_sys
 
@@ -1284,11 +1336,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     nonkitchen_htg_coils_final = []
     model.getAirLoopHVACUnitarySystems.sort.each do |unitary_sys|
       # skip kitchen spaces
-      thermal_zone_names_to_exclude = %w[
-        Kitchen
-        kitchen
-        KITCHEN
-      ]
+      thermal_zone_names_to_exclude = ['Kitchen', 'kitchen', 'KITCHEN']
       if thermal_zone_names_to_exclude.any? { |word| (unitary_sys.name.to_s).include?(word) }
         tz_kitchens_final << unitary_sys
 
@@ -1387,15 +1435,16 @@ class AddHeatPumpRtuTest < Minitest::Test
     # get arguments
     arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      if arg.name == 'sizing_run'
+      case arg.name
+      when 'sizing_run'
         sizing_run = arguments[idx].clone
         sizing_run.setValue(false)
         argument_map[arg.name] = sizing_run
-      elsif arg.name == 'hprtu_scenario'
+      when 'hprtu_scenario'
         hprtu_scenario = arguments[idx].clone
         hprtu_scenario.setValue('variable_speed_high_eff') # variable_speed_high_eff, two_speed_standard_eff
         argument_map[arg.name] = hprtu_scenario
-      elsif arg.name == 'performance_oversizing_factor'
+      when 'performance_oversizing_factor'
         performance_oversizing_factor = arguments[idx].clone
         performance_oversizing_factor.setValue(0.25) # override performance_oversizing_factor arg
         argument_map[arg.name] = performance_oversizing_factor
@@ -1435,15 +1484,16 @@ class AddHeatPumpRtuTest < Minitest::Test
     # populate specific argument for testing
     arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      if arg.name == 'sizing_run'
+      case arg.name
+      when 'sizing_run'
         sizing_run = arguments[idx].clone
         sizing_run.setValue(true)
         argument_map[arg.name] = sizing_run
-      elsif arg.name == 'hprtu_scenario'
+      when 'hprtu_scenario'
         hprtu_scenario = arguments[idx].clone
         hprtu_scenario.setValue('variable_speed_high_eff') # variable_speed_high_eff, two_speed_standard_eff
         argument_map[arg.name] = hprtu_scenario
-      elsif arg.name == 'debug_verbose'
+      when 'debug_verbose'
         debug_verbose = arguments[idx].clone
         debug_verbose.setValue(true)
         argument_map[arg.name] = debug_verbose
@@ -1492,15 +1542,16 @@ class AddHeatPumpRtuTest < Minitest::Test
     # populate specific argument for testing
     arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      if arg.name == 'sizing_run'
+      case arg.name
+      when 'sizing_run'
         sizing_run = arguments[idx].clone
         sizing_run.setValue(true)
         argument_map[arg.name] = sizing_run
-      elsif arg.name == 'hprtu_scenario'
+      when 'hprtu_scenario'
         hprtu_scenario = arguments[idx].clone
         hprtu_scenario.setValue('two_speed_standard_eff') # variable_speed_high_eff, two_speed_standard_eff
         argument_map[arg.name] = hprtu_scenario
-      elsif arg.name == 'debug_verbose'
+      when 'debug_verbose'
         debug_verbose = arguments[idx].clone
         debug_verbose.setValue(true)
         argument_map[arg.name] = debug_verbose
@@ -1595,7 +1646,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # Apply the measure to the model and optionally run the model
     result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true, expected_results: 'NA')
- end
+  end
 
   # assert that non applicable HVAC system registers as NA
   def test_380_medium_office_doas_fan_coil_acc_boiler_3A
