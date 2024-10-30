@@ -2929,7 +2929,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             if coln.startswith("out.qoi.") or coln.startswith("out.utility_bills.") or coln.startswith('applicability.upgrade_add_pvwatts'):
                 continue
             if null_count > 0:
-                err_log += f"Null values found in column {coln}\n"
+                err_log += f"Null values found in column {coln} with {null_count} null count.\n"
         
         SIGHTGLASS_REQUIRED_COLS = [self.BLDG_ID, self.META_IDX, self.UPGRADE_ID, 
                                      self.UPGRADE_APPL, self.FLR_AREA, self.BLDG_WEIGHT]
