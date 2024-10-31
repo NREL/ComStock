@@ -59,7 +59,7 @@ class DFLightingControlTest < Minitest::Test
     #   result: 'Success'
     # }
     test_sets << {
-      model: '3340', # small office
+      model: '3340_small_office_OS38', # small office
       weather: 'IL_Dupage_3340_18',
       result: 'Success'
     }
@@ -106,6 +106,10 @@ class DFLightingControlTest < Minitest::Test
 
   def report_path(test_name)
     return "#{run_dir(test_name)}/reports/eplustbl.html"
+  end
+
+  def sql_path(test_name)
+    return "#{run_dir(test_name)}/run/eplusout.sql"
   end
 
   # applies the measure and then runs the model

@@ -47,30 +47,32 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
       weather: 'CO_FortCollins_16',
       result: 'Success'
     }
-    # test_sets << {
-    #   model: 'LargeOffice_VAV_chiller_boiler',
-    #   weather: 'NY_New_York_John_F_Ke_744860_16',
-    #   result: 'Success'
-    # }
-    # test_sets << {
-    #   model: 'Warehouse_5A',
-    #   weather: 'MN_Cloquet_Carlton_Co_726558_16',
-    #   result: 'Success'
-    # }
-    # test_sets << {
-    #   model: '3340', # small office
-    #   weather: '3340',
-    #   result: 'Success'
-    # }
-    # test_sets << {
-    #   model: '4774', # secondary school
-    #   weather: '4774',
-    #   result: 'Success'
-    # }
+    test_sets << {
+      model: 'LargeOffice_VAV_chiller_boiler',
+      weather: 'NY_New_York_John_F_Ke_744860_16',
+      result: 'Success'
+    }
+    
+    test_sets << {
+      model: '3340_small_office_OS38', # small office
+      weather: 'IL_Dupage_3340_18',
+      result: 'Success'
+    }
+    test_sets << {
+      model: '4774_secondary_school_OS38', # secondary school
+      weather: 'MI_Tulip_City_4774_18',
+      result: 'Success'
+    }
     # test: not applicable building type
     test_sets << {
       model: 'Outpatient_VAV_chiller_PFP_boxes',
       weather: 'CO_FortCollins_16',
+      result: 'NA'
+    }
+    # test: not applicable hvac (non-electric)
+    test_sets << {
+      model: 'Warehouse_5A',
+      weather: 'MN_Cloquet_Carlton_Co_726558_16',
       result: 'NA'
     }
 
