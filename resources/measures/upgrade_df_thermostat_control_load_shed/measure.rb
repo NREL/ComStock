@@ -461,14 +461,17 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     applicable_building_types = [
       # "Hotel",
       "SmallOffice",
+      "OfS",
       "MediumOffice",
       "LargeOffice",
       "OfL",
-      "OfS",
       "Office",
       "Warehouse",
+      "SUn",
       "PrimarySchool",
-      "SecondarySchool"
+      "EPr",
+      "SecondarySchool",
+      "ESe",
     ]
     if isapplicable_buildingtype(model,runner,applicable_building_types)
       puts("--- building type applicability passed")
@@ -561,21 +564,18 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
       puts("### Creating peak schedule for peak load reduction...")
       if load_prediction_method == 'fix'
         puts("### Fixed schedule...")
-        template = 'ComStock 90.1-2019'
-        std = Standard.build(template)
-        climate_zone = std.model_standards_climate_zone(model)
+        # template = 'ComStock 90.1-2019'
+        # std = Standard.build(template)
+        # climate_zone = std.model_standards_climate_zone(model)
+        climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
         runner.registerInfo("climate zone = #{climate_zone}")
         if climate_zone.empty?
-          runner.registerError('Unable to determine climate zone for model. Cannot apply window film without climate zone information.')
+          runner.registerError('Unable to determine climate zone for model. Cannot apply fix option without climate zone information.')
         else
-          if climate_zone.include?("CEC")
-            climate_zone_num_ca = climate_zone.split("CEC")[-1]
-            puts "--- climate_zone_num_ca = #{climate_zone_num_ca}"
-            cz = map_cec_to_iecc[climate_zone_num_ca.to_i]
-          elsif climate_zone.include?("ASHRAE")
+          if climate_zone.include?("ASHRAE")
             cz = climate_zone.split("-")[-1]
           else
-            runner.registerError('Unable to determine climate zone for model. Cannot apply window film without climate zone information.')
+            runner.registerError('Unable to determine climate zone for model. Cannot apply fix option without ASHRAE climate zone information.')
           end
         end
         puts "--- cz = #{cz}"
