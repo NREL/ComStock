@@ -51,9 +51,13 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
             # remove measure data from ComStock
             if isinstance(dataset, ComStock): #dataset is ComStock
                 assert isinstance(dataset.data, pl.LazyFrame)
+                # Instantiate the plotting data lazyframe if it doesn't yet exist:
+                if not isinstance(dataset.plotting_data, pl.LazyFrame):
+                    logger.info(f'Instantiating plotting lazyframe for comstock dataset {dataset.dataset_name}.')
+                    dataset.create_plotting_lazyframe()
+                assert isinstance(dataset.plotting_data, pl.LazyFrame)
 
-                dataset.add_sightglass_column_units()  # Add units to SightGlass columns if missing
-                up_id_name: list = dataset.data.select(dataset.UPGRADE_ID, dataset.UPGRADE_NAME).collect().unique().to_numpy().tolist()
+                up_id_name: list = dataset.plotting_data.select(dataset.UPGRADE_ID, dataset.UPGRADE_NAME).collect().unique().to_numpy().tolist()
                 up_name_map = {k: v for k, v in up_id_name}
                 valid_upgrade_id = [x for x in up_name_map.keys()]
                 valid_upgrade_name = [up_name_map[x] for x in valid_upgrade_id]
@@ -62,10 +66,12 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 if upgrade_id == 'All':
                     # df_data: pl.LazyFrame = dataset.data
                     # df_data[dataset.DATASET] = df_data[dataset.DATASET] + ' - ' + df_data['upgrade_name']
-                    comstock_dfs_to_concat.append(dataset.data)
+                    comstock_dfs_to_concat.append(dataset.plotting_data)
                     # df_data[dataset.DATASET] = df_data[dataset.DATASET].astype(str) + ' - ' + df_data[dataset.UPGRADE_NAME].astype(str)
-                    dataset.data = dataset.data.with_columns((pl.col(dataset.DATASET).cast(pl.Utf8) + ' - ' + pl.col(dataset.UPGRADE_NAME).cast(pl.Utf8)).alias(dataset.DATASET))        
-                    dfs_to_concat.append(dataset.data)
+                    dataset.plotting_data = dataset.plotting_data.with_columns((
+                        pl.col(dataset.DATASET).cast(pl.Utf8) + ' - ' + pl.col(dataset.UPGRADE_NAME).cast(pl.Utf8)
+                    ).alias(dataset.DATASET))
+                    dfs_to_concat.append(dataset.plotting_data)
                     # up_name_map = dict(zip(df_data[dataset.UPGRADE_ID].unique(), df_data[dataset.UPGRADE_NAME].unique()))
                     # upgrade_list = list(df_data[dataset.UPGRADE_ID].unique())
                     color_dict = self.linear_gradient(dataset.COLOR_COMSTOCK_BEFORE, dataset.COLOR_COMSTOCK_AFTER, len(valid_upgrade_id))
@@ -78,7 +84,7 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 elif upgrade_id not in valid_upgrade_id:
                     logger.error(f"Upgrade {upgrade_id} not found in {dataset.dataset_name}. Enter a valid upgrade ID in the ComStockToCBECSComparison constructor or \"All\" to include all upgrades.")
                 else:
-                    df_data = dataset.data.filter(pl.col(dataset.UPGRADE_ID) == upgrade_id)
+                    df_data = dataset.plotting_data.filter(pl.col(dataset.UPGRADE_ID) == upgrade_id)
                     df_data = df_data.with_columns((pl.col(dataset.DATASET).cast(pl.Utf8) + ' - ' + pl.col(dataset.UPGRADE_NAME).cast(pl.Utf8)).alias(dataset.DATASET)) 
                     dataset_name = dataset.dataset_name + " - " + up_name_map[upgrade_id]
                     comstock_dfs_to_concat.append(df_data)
@@ -112,6 +118,12 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         current_dir = os.path.dirname(os.path.abspath(__file__))
 
         # Combine just comstock runs into single dataframe for QOI plots
+        common_columns = set(comstock_dfs_to_concat[0].columns)
+        all_columns = common_columns
+        for df in comstock_dfs_to_concat:
+            common_columns = common_columns & set(df.columns)
+        logger.info(f"Not including columns {all_columns - common_columns} in comstock only plots")
+        comstock_dfs_to_concat = [df.select(common_columns) for df in comstock_dfs_to_concat]
         comstock_df = pl.concat(comstock_dfs_to_concat, how="vertical_relaxed")
         # comstock_df = comstock_df[[self.DATASET] + self.QOI_MAX_DAILY_TIMING_COLS + self.QOI_MAX_USE_COLS + self.QOI_MIN_USE_COLS + self.QOI_MAX_USE_COLS_NORMALIZED + self.QOI_MIN_USE_COLS_NORMALIZED]
         comstock_qoi_columns = [self.DATASET] + self.QOI_MAX_DAILY_TIMING_COLS + self.QOI_MAX_USE_COLS + self.QOI_MIN_USE_COLS + self.QOI_MAX_USE_COLS_NORMALIZED + self.QOI_MIN_USE_COLS_NORMALIZED 
@@ -198,4 +210,9 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
 
         file_name = f'ComStock wide.csv'
         file_path = os.path.join(self.output_dir, file_name)
-        self.data.to_csv(file_path, index=False)
+        try:
+            self.data.sink_csv(file_path)
+        except pl.exceptions.InvalidOperationError:
+            logger.warn('Warning - sink_csv not supported for metadata write in current polars version')
+            logger.warn('Falling back to .collect.write_csv')
+            self.data.collect().write_csv(file_path)
