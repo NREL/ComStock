@@ -37,29 +37,40 @@ class DfThermostatControlLoadShedTest < Minitest::Test
   def models_to_test
     test_sets = []
 
+    # test: applicable building type
+    # test_sets << {
+    #   model: 'Small_Office_2A',
+    #   weather: 'TX_Port_Arthur_Jeffers_722410_16',
+    #   result: 'Success'
+    # }
+    # test_sets << {
+    #   model: '361_Medium_Office_PSZ_HP',
+    #   weather: 'CO_FortCollins_16',
+    #   result: 'Success'
+    # }
+    # test_sets << {
+    #   model: 'LargeOffice_VAV_chiller_boiler',
+    #   weather: 'NY_New_York_John_F_Ke_744860_16',
+    #   result: 'Success'
+    # }
+    # test_sets << {
+    #   model: 'Warehouse_5A',
+    #   weather: 'MN_Cloquet_Carlton_Co_726558_16',
+    #   result: 'Success'
+    # }
+    test_sets << {
+      model: '3340', # small office
+      weather: '3340',
+      result: 'Success'
+    }
+    test_sets << {
+      model: '4774', # secondary school
+      weather: '4774',
+      result: 'Success'
+    }
     # test: not applicable building type
     test_sets << {
-      model: '361_Medium_Office_PSZ_HP',
-      weather: 'CO_FortCollins_16',
-      result: 'NA'
-    }
-    # test_sets << {
-    #   model: 'LargeOffice_VAV_chiller_boiler',#LargeOffice_VAV_district_chw_hw
-    #   weather: 'CO_FortCollins_16',
-    #   result: 'Success'
-    # }
-    # test_sets << {
-    #   model: 'LargeOffice_VAV_chiller_boiler_2',
-    #   weather: 'CO_FortCollins_16',
-    #   result: 'Success'
-    # }
-    # test_sets << {
-    #   model: 'LargeOffice_VAV_district_chw_hw',
-    #   weather: 'CO_FortCollins_16',
-    #   result: 'NA'
-    # }
-    test_sets << {
-      model: '529',
+      model: 'Outpatient_VAV_chiller_PFP_boxes',
       weather: 'CO_FortCollins_16',
       result: 'NA'
     }
@@ -189,29 +200,49 @@ class DfThermostatControlLoadShedTest < Minitest::Test
       argument_map = OpenStudio::Measure::OSArgumentMap.new
 
       # set arguments:
-      peak_len = arguments[0].clone
+      demand_flexibility_objective = arguments[0].clone
+      assert(demand_flexibility_objective.setValue('emission'))
+      argument_map['demand_flexibility_objective'] = demand_flexibility_objective
+      
+      # set arguments:
+      peak_len = arguments[1].clone
       assert(peak_len.setValue(4))
       argument_map['peak_len'] = peak_len
 
       # set arguments:
-      rebound_len = arguments[1].clone
+      rebound_len = arguments[2].clone
       assert(rebound_len.setValue(2))
       argument_map['rebound_len'] = rebound_len
 
       # set arguments:
-      sp_adjustment = arguments[2].clone
+      sp_adjustment = arguments[3].clone
       assert(sp_adjustment.setValue(2.0))
       argument_map['sp_adjustment'] = sp_adjustment
 
       # set arguments:
-      num_timesteps_in_hr = arguments[3].clone
+      num_timesteps_in_hr = arguments[4].clone
       assert(num_timesteps_in_hr.setValue(4))
       argument_map['num_timesteps_in_hr'] = num_timesteps_in_hr
 
       # set arguments:
-      load_prediction_method = arguments[4].clone
-      assert(load_prediction_method.setValue('part year bin sample'))#'bin sample''full baseline'
+      load_prediction_method = arguments[5].clone
+      assert(load_prediction_method.setValue('full baseline'))#'bin sample''part year bin sample'
       argument_map['load_prediction_method'] = load_prediction_method
+
+      # set arguments:
+      peak_lag = arguments[6].clone
+      assert(peak_lag.setValue(2))
+      argument_map['peak_lag'] = peak_lag
+
+      # set arguments:
+      peak_window_strategy = arguments[7].clone
+      assert(peak_window_strategy.setValue('center with peak'))#'bin sample''part year bin sample'
+      argument_map['peak_window_strategy'] = peak_window_strategy
+
+      # set arguments:
+      cambium_scenario = arguments[8].clone
+      assert(cambium_scenario.setValue('LRMER_LowRECost_30'))#
+      argument_map['cambium_scenario'] = cambium_scenario
 
       # apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
