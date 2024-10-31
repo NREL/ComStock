@@ -4,8 +4,6 @@ require 'minitest/reporters'  # Require the gem
 
 # Configure the JUnit reporter
 
-#TEMP
-
 desc 'Perform tasks related to unit tests'
 namespace :unit_tests do
   desc 'Run measure tests'
