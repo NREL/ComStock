@@ -26,7 +26,3 @@ lib/
 /sampling/truth_data
 *.pyc
 report.xml
-
-# Rubocop output
-/.rubocop
-/.rubocop-http*
