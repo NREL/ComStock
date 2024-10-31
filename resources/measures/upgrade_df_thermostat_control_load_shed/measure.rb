@@ -323,7 +323,7 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
             # new
             schedule = heat_set_sch.get.clone(model)
             schedule = schedule.to_Schedule.get
-            schedule_8760 = get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get, clgsp_adjustment_values.size)
+            schedule_8760 = get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get, heatsp_adjustment_values.size)
             if schedule_8760.size != heatsp_adjustment_values.size
               msize = [schedule_8760.size, heatsp_adjustment_values.size].min
               nums = [schedule_8760.take(msize), heatsp_adjustment_values.take(msize)]

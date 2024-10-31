@@ -59,13 +59,13 @@ class DfThermostatControlLoadShedTest < Minitest::Test
     #   result: 'Success'
     # }
     test_sets << {
-      model: '3340', # small office
-      weather: '3340',
+      model: '3340_small_office_OS38', # small office
+      weather: 'IL_Dupage_3340_18',
       result: 'Success'
     }
     test_sets << {
-      model: '4774', # secondary school
-      weather: '4774',
+      model: '4774_secondary_school_OS38', # secondary school
+      weather: 'MI_Tulip_City_4774_18',
       result: 'Success'
     }
     # test: not applicable building type
@@ -106,6 +106,10 @@ class DfThermostatControlLoadShedTest < Minitest::Test
 
   def report_path(test_name)
     return "#{run_dir(test_name)}/reports/eplustbl.html"
+  end
+
+  def sql_path(test_name)
+    return "#{run_dir(test_name)}/run/eplusout.sql"
   end
 
   # applies the measure and then runs the model
@@ -201,7 +205,7 @@ class DfThermostatControlLoadShedTest < Minitest::Test
 
       # set arguments:
       demand_flexibility_objective = arguments[0].clone
-      assert(demand_flexibility_objective.setValue('emission'))
+      assert(demand_flexibility_objective.setValue('peak load'))
       argument_map['demand_flexibility_objective'] = demand_flexibility_objective
       
       # set arguments:
@@ -245,7 +249,7 @@ class DfThermostatControlLoadShedTest < Minitest::Test
       argument_map['cambium_scenario'] = cambium_scenario
 
       # apply the measure to the model and optionally run the model
-      result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+      result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: true)
 
       # check the measure result; result values will equal Success, Fail, or Not Applicable (NA)
       # also check the amount of warnings, info, and error messages
