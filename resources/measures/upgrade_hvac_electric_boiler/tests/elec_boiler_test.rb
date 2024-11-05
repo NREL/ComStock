@@ -162,7 +162,7 @@ class ElectricBoilerTest < Minitest::Test
     show_output(result)
 
     # Save model
-	puts "saving model to" + File.expand_path(model_output_path(test_name))
+	  puts "saving model to" + File.expand_path(model_output_path(test_name))
     model.save(File.expand_path(model_output_path(test_name)), true)
 
     if run_model && result_success
@@ -196,6 +196,51 @@ class ElectricBoilerTest < Minitest::Test
 
   def test_boiler_model
     osm_name = '370_warehouse_pvav_gas_boiler_reheat_2A.osm'
+    epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
+
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+
+    # Create an instance of the measure
+    measure = ElectricResistanceBoilers.new
+
+    # Load the model; only used here for populating arguments
+    model = load_model(osm_path)
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+    #put base case assertions here
+    # create hash of argument values
+    args_hash = {}
+    # populate argument with specified hash value if specified
+    arguments.each do |arg|
+      temp_arg_var = arg.clone
+      if args_hash.key?(arg.name)
+        assert(temp_arg_var.setValue(args_hash[arg.name]), "Could not set #{arg.name} to #{args_hash[arg.name]}")
+      end
+      argument_map[arg.name] = temp_arg_var
+    end
+
+    # Apply the measure to the model and optionally run the model
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+    assert_equal('Success', result.value.valueName)
+    model = load_model(File.expand_path(model_output_path(__method__)))
+	
+    #confirm that boilers in model are now electric
+    boilers = model.getBoilerHotWaters
+    if boilers.size > 0
+      boilers.each do |boiler|
+        boiler_fuel_type = boiler.fuelType
+        boiler_efficiency = boiler.nominalThermalEfficiency
+        assert(boiler_fuel_type = "Electricity")
+        assert(boiler_efficiency = 1.0)
+      end
+    else
+      runner.registerInfo("Model does not have any boilers. Measure not applicable.")
+    end
+  end
+
+  def test_wshp_model
+    osm_name = '380_wshp_boiler.osm'
     epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
 
     osm_path = model_input_path(osm_name)
