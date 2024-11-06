@@ -62,16 +62,17 @@ This is needed if you are a developer making changes to `openstudio-standards` o
 	7. Contents: `require "C:/openstudio-3.8.0/Ruby/openstudio.rb"`  Modify `3.8.0` to the version you installed.
 	8. Save it here: `C:/Ruby32-x64/lib/ruby/site_ruby/openstudio.rb`
 
-4. `gem install bundler:2.4.10` This installs the version of bundler needed for ComStock.
+4. `gem install bundler` This installs the `bundler` ruby gem.
 5. Install [Git](https://git-scm.com/).
 6. Install [GitHub desktop](https://desktop.github.com/) or another GUI that makes Git easier to use.
 7. Clone the [ComStock source code](https://github.com/NREL/ComStock.git) using GitHub desktop (easier) or Git (harder).
 8. Run all commands below from the top level `/ComStock` directory
-9. `mkdir .custom_gems` This makes a temp directory to install required gems inside.
-10. `copy /Y .\resources\Gemfile .\.custom_gems\Gemfile` This copies the Gemfile to the temp directory.
-11. `bundle _2.4.10_ install --path "C:/GitRepos/ComStock/.custom_gems" --gemfile "C:/GitRepos/ComStock/.custom_gems/Gemfile" --without test` This will install all ruby gems necessary to develop this code.
-12. If running simulations locally, install [BuildStock Batch](https://buildstockbatch.readthedocs.io/en/stable/installation.html#local)
-13. Add the following additional Python packages into your `buildstockbatch` environment:
+13. `mkdir .custom_gems` This makes a temp directory to install required gems inside.
+13. `copy /Y .\resources\Gemfile .\.custom_gems\Gemfile` This copies the Gemfile to the temp directory.
+13. `gem install bundler:2.4.10` This installs the version of bundler needed by OpenStudio.
+13. `bundle _2.4.10_ install --path "C:/GitRepos/ComStock/.custom_gems" --gemfile "C:/GitRepos/ComStock/.custom_gems/Gemfile" --without test` This will install all ruby gems necessary to develop this code.
+14. If running simulations locally, install [BuildStock Batch](https://buildstockbatch.readthedocs.io/en/stable/installation.html#local)
+15. Add the following additional Python packages into your `buildstockbatch` environment:
 ```bash
 conda activate buildstockbatch
 pip install GHEDesigner==1.0
