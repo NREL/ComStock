@@ -242,11 +242,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # Now, we have self.data is one huge LazyFrame
             # which is exactly like self.data was before because it includes all upgrades
             self.data = pl.concat(up_lazyframes)
+            self._aggregate_failure_summaries(self.output_dir) # duplicated passing the self.output_dir but emphasized for clarity
             # logger.info(f'comstock data schema: {self.data.dtypes()}')
             # logger.debug('\nComStock columns after adding all data:')
             # for c in self.data.columns:
             #     logger.debug(c)
-
+    
     def download_data(self):
         # Get data on the s3 resource to download data from:
         if self.s3_inpath is None:
@@ -545,14 +546,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # Fill Nulls in measure-within-upgrade applicability columns with False
             for c, dt in up_res.schema.items():
                 if 'applicable' in c:
-                    if dt == pl.Null:
+                    if dt == pl.Null or dt == pl.Boolean:
                         logger.debug(f'For {c}: Nulls set to False (Boolean) in baseline')
                         up_res = up_res.with_columns([pl.col(c).fill_null(pl.lit(False))])
                     elif dt == pl.Utf8:
                         logger.debug(f'For {c}: Nulls set to "False" (String) in baseline')
                         up_res = up_res.with_columns([pl.col(c).fill_null(pl.lit("False"))])
                         up_res = up_res.with_columns([pl.when(pl.col(c).str.lengths() == 0).then(pl.lit('False')).otherwise(pl.col(c)).keep_name()])
-
+                    assert up_res.get_column(c).null_count() == 0, f'Column {c} contains null values' 
             # Convert columns with only 'True' and/or 'False' strings to Boolean
             for col, dt in up_res.schema.items():
                 if not dt == pl.Utf8:
@@ -738,7 +739,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             ST_FAIL_NO_STATUS,
         ]
         failure_summaries = failure_summaries.select(fs_cols)
-        file_name = f'failure_summary.csv'
+        file_name = f'failure_summary_{upgrade_id}.csv'
         file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
         logger.info(f'Exporting to: {file_path}')
         failure_summaries.write_csv(file_path)
@@ -2972,3 +2973,43 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
         logger.info(f'Exporting enumeration dictionary to: {file_path}')
         enum_dictionary.write_csv(file_path, separator='\t')
+
+    def _aggregate_failure_summaries(self, output_dir):
+        #sinece we are generating summary of falures based on
+        #each upgrade_id(in load_data()), we should aggregate
+        #the summary of failures for each upgrade_id into one
+
+        path = os.path.join(output_dir)
+
+        #find all the failure_summary files like with failure_summary_0.csv
+        #failure_summary_1.csv ... failure_summary_k.csv
+        
+        # abstract out the update from the file name
+        # failure_summary_0.csv -> 0
+        def extract_upgrade_id(file):
+            return int(file.split("_")[2].split(".")[0])
+
+        summaries_per_upgrade = []
+        for file in os.listdir(path):
+            if file.startswith("failure_summary_") and file.endswith(".csv"):
+                #open the file and read the content
+                if "aggregated" in file:
+                    continue #skip the aggregated file
+                summaries_per_upgrade.append((extract_upgrade_id(file), file))
+
+        #use the upgrade_id as the key to sort the summaries,
+        #could handle the case ["1", "9", "12"] sorted as ["1", "12", "9"] 
+        summaries_per_upgrade.sort(key=lambda x: x[0]) 
+
+        #write the aggregated summary of failures to a new file
+        err_lines = []
+        for _, file_path in summaries_per_upgrade:
+            with open(os.path.join(path, file_path), 'r') as f:
+                for line in f:
+                    if line not in err_lines:
+                        err_lines.append(line)
+            os.remove(os.path.join(path, file_path)) #remove the file after reading
+
+        with open(os.path.join(path, "failure_summary_aggregated.csv"), 'w') as f:
+            for line in err_lines:
+                f.write(line)
