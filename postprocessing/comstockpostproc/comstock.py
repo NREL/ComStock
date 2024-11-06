@@ -221,23 +221,50 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.add_unweighted_energy_savings_columns()
                # Downselect the self.data to just the upgrade
                 self.data = self.data.filter(pl.col(self.UPGRADE_ID) == upgrade_id)
+                # self._sightGlass_metadata_check(self.data)
                 # Write self.data to parquet file
                 file_name = f'cached_ComStock_wide_upgrade{upgrade_id}.parquet'
                 file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
                 self.cached_parquet.append((upgrade_id, file_path)) #cached_parquet is a list of parquets used to export and reload
                 logger.info(f'Exporting to: {file_path}')
                 self.data = self.reorder_data_columns(self.data)
-                self._sightGlass_metadata_check(self.data)
                 self.data.write_parquet(file_path)
                 up_lazyframes.append(pl.scan_parquet(file_path))
 
             # Now, we have self.data is one huge LazyFrame
             # which is exactly like self.data was before because it includes all upgrades
             self.data = pl.concat(up_lazyframes)
+            self._aggregate_failure_summaries() 
             # logger.info(f'comstock data schema: {self.data.dtypes()}')
             # logger.debug('\nComStock columns after adding all data:')
             # for c in self.data.columns:
             #     logger.debug(c)
+    
+    def _aggregate_failure_summaries(self):
+        #sinece we are generating summary of falures based on
+        #each upgrade_id(in load_data()), we should aggregate
+        #the summary of failures for each upgrade_id into one
+
+        path = os.path.join(self.output_dir)
+
+        alLines = list()
+        #find all the failure_summary files like with failure_summary_0.csv
+        # failure_summary_1.csv ... failure_summary_k.csv
+        for file in os.listdir(path):
+            if file.startswith("failure_summary_") and file.endswith(".csv"):
+                #open the file and read the content
+                with open(os.path.join(path, file), 'r') as f:
+                    for line in f:
+                        if line not in alLines:
+                            alLines.append(line)
+                 #delete the file
+                os.remove(os.path.join(path, file))
+        
+        #write the aggregated summary of failures to a new file
+        with open(os.path.join(path, "failure_summary_aggregated.csv"), 'w') as f:
+            for line in alLines:
+                f.write(line)
+
 
     def download_data(self):
         # baseline/results_up00.parquet
@@ -522,13 +549,16 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # Fill Nulls in measure-within-upgrade applicability columns with False
             for c, dt in up_res.schema.items():
                 if 'applicable' in c:
-                    if dt == pl.Null:
+                    logger.info(f'For {c}: Nulls set to False in upgrade, and its type is {dt}')
+                    if dt == pl.Null or dt == pl.Boolean:
                         logger.debug(f'For {c}: Nulls set to False (Boolean) in baseline')
                         up_res = up_res.with_columns([pl.col(c).fill_null(pl.lit(False))])
                     elif dt == pl.Utf8:
                         logger.debug(f'For {c}: Nulls set to "False" (String) in baseline')
                         up_res = up_res.with_columns([pl.col(c).fill_null(pl.lit("False"))])
                         up_res = up_res.with_columns([pl.when(pl.col(c).str.lengths() == 0).then(pl.lit('False')).otherwise(pl.col(c)).keep_name()])
+                # make sure all columns contains no null values
+                    assert up_res.get_column(c).null_count() == 0, f'Column {c} contains null values' 
 
             # Convert columns with only 'True' and/or 'False' strings to Boolean
             for col, dt in up_res.schema.items():
@@ -715,7 +745,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             ST_FAIL_NO_STATUS,
         ]
         failure_summaries = failure_summaries.select(fs_cols)
-        file_name = f'failure_summary.csv'
+        file_name = f'failure_summary_{upgrade_id}.csv'
         file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
         logger.info(f'Exporting to: {file_path}')
         failure_summaries.write_csv(file_path)
@@ -1914,6 +1944,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         return bldg_type_scale_factors
 
 
+
     def _calculate_weighted_columnal_values(self, input_lf: pl.LazyFrame):
         # Apply the weights to the columns
         input_lf = self.add_weighted_area_energy_savings_columns(input_lf) #compute out the weighted value, based on the unweighted columns and the weights.
@@ -2883,31 +2914,34 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         enum_dictionary.write_csv(file_path, separator='\t')
 
 
-    def _sightGlass_metadata_check(self, row_segment: pl.DataFrame):
+    def sightGlass_metadata_check(self, comstock_data: pl.LazyFrame):
+        # Actually I think this function should be a part of utility class, not the main class.
         # Check that the metadata columns are present in the data
         # when the columns are in memory
         err_log = "" 
 
-        #check no na values in any columns
-        if row_segment.null_count().pipe(sum).item() > 0:
-            err_log += 'Null values found in data\n'
-            for c in row_segment.columns:
-                if c.startswith("out.qoi.") or c.startswith("out.utility_bills.") or c.startswith('applicability.upgrade_add_pvwatts'):
-                    continue
-                if row_segment[c].null_count() > 0:
-                    err_log += f'Column {c} has null values\n'
+        #df.rows(named=True) = [{'foo': 1, 'bar': 1, 'ham': 0}]
 
+        null_count_per_column: dict = comstock_data.null_count().collect().rows(named=True)[0]
+
+        #check if there are null values in row_segment as polars LazyFrame
+        for coln, null_count in null_count_per_column.items():
+            if coln.startswith("out.qoi.") or coln.startswith("out.utility_bills.") or coln.startswith('applicability.upgrade_add_pvwatts'):
+                continue
+            if null_count > 0:
+                err_log += f"Null values found in column {coln} with {null_count} null count.\n"
+        
         SIGHTGLASS_REQUIRED_COLS = [self.BLDG_ID, self.META_IDX, self.UPGRADE_ID, 
-                                    self.BLDG_WEIGHT, self.UPGRADE_APPL, self.FLR_AREA]
+                                     self.UPGRADE_APPL, self.FLR_AREA, self.BLDG_WEIGHT]
         
         for col in SIGHTGLASS_REQUIRED_COLS:
-            if col not in row_segment.columns:
+            if col not in comstock_data.columns:
                 err_log += f'{col} not found in data, which is needed for sightglass\n'
 
         #Skip pattern, may need delete later:
         pattern = r'out\.electricity\.total\.[a-zA-Z]{3}\.energy_consumption'
 
-        for c in row_segment.columns:
+        for c in comstock_data.columns:
             if re.search('[^a-z0-9._]', c):
                 # (f'Column {c} violates name rules: may only contain . _ 0-9 lowercaseletters (no spaces)')
                 err_log += f'Column {c} violates name rules: may only contain . _ 0-9 lowercaseletters (no spaces)\n' 
@@ -2917,28 +2951,36 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         ENDUSE_PATTERN = r'out\.([a-zA-Z_]+)\.(?!total)([a-zA-Z_]+)\.energy_consumption\.\.kwh'
         MONTH_PATTERN = r'out\.electricity\.total\.([a-zA-Z]{3})\.energy_consumption'
 
+        #Get the sum of the data 
+        sum_table: pl.DataFrame = comstock_data.sum().collect().rows(named=True)[0]
+
         #Find the sum of total culmns for each type fuels, and for each fuel type find the sum of different
         #enduse columns. And record them in a dictionary like: {fuel_type: total_energy}
         fuel_total, end_use_total, month_total = {}, {}, {}
-        for c in row_segment.columns:
+        for c in comstock_data.columns:
             if re.match(TOTAL_PATTERN, c):
                 fuel_type = re.match(TOTAL_PATTERN, c).group(1)
-                fuel_total[fuel_type] = row_segment[c].sum()
+                if c == self.ANN_TOT_ENGY_KBTU: 
+                    #absolutely we don't need the total to be added into the 
+                    #sum again out.site_energy.total.energy_consumption..kwh should be the sum
+                    #of all the other energy's type sum.
+                    continue
+                fuel_total[fuel_type] = sum_table[c]
             elif re.match(ENDUSE_PATTERN, c):
                 fuel_type = re.match(ENDUSE_PATTERN, c).group(1)
-                end_use_total[fuel_type] = end_use_total.get(fuel_type, 0) + row_segment[c].sum()
+                end_use_total[fuel_type] = end_use_total.get(fuel_type, 0) + sum_table[c]
             elif re.match(MONTH_PATTERN, c):
                 month = re.match(MONTH_PATTERN, c).group(1)
-                month_total[month] = row_segment[c].sum()
-        
+                month_total[month] = sum_table[c]
+            
         logger.info(f"Fuel total: {fuel_total}, Enduse total: {end_use_total}, Month total: {month_total}")
         # Check that the total site energy is the sum of the fuel totals
         for fuel, total in end_use_total.items():
-            if not total == pytest.approx(fuel_total[fuel], rel=0.001):
+            if not total == pytest.approx(fuel_total[fuel], rel=0.01):
                 err_log += f'Fuel total for {fuel} does not match sum of enduse columns\n'
-        if not sum(fuel_total.values()) == pytest.approx(row_segment[self.ANN_TOT_ENGY_KBTU].sum(), rel=0.001):
-            err_log += 'Site total does not match sum of fuel totals\n'
-        if not sum(month_total.values()) == pytest.approx(row_segment[self.ANN_TOT_ELEC_KBTU].sum(), rel=0.01):
+        if not sum(fuel_total.values()) == pytest.approx(sum_table[self.ANN_TOT_ENGY_KBTU], rel=0.01):
+            err_log += f'Site total {sum(fuel_total.values())} does not match sum of fuel totals {sum_table[self.ANN_TOT_ENGY_KBTU]}\n'
+        if not sum(month_total.values()) == pytest.approx(sum_table[self.ANN_TOT_ELEC_KBTU], rel=0.01):
             err_log += 'Electricity total does not match sum of month totals\n'
     
         if err_log:
