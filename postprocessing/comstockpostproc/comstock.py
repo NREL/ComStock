@@ -8,6 +8,7 @@ import botocore
 import glob
 import json
 import logging
+import botocore.exceptions
 import numpy as np
 import pandas as pd
 import polars as pl
@@ -98,6 +99,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.rename_upgrades_file_name = 'rename_upgrades.json'
         self.athena_table_name = athena_table_name
         self.data = None
+        self.plotting_data = None
         self.monthly_data = None
         self.monthly_data_gap = None
         self.ami_timeseries_data = None
@@ -115,7 +117,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.unweighted_weighted_map = {}
         self.dropping_columns = []
         self.cached_parquet = [] # List of parquet files to reload and export
+        # TODO our currect credential setup aren't playing well with this approach but does with the s3 ServiceResource
+        # We are currently unable to list the HeadObject for automatically uploaded data
+        # Consider migrating all usage to s3 ServiceResource instead.
         self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
+        self.s3_resource = boto3.resource('s3')
         if self.athena_table_name is not None:
             self.athena_client = BuildStockQuery(workgroup='eulp',
                                                  db_name='enduse',
@@ -125,6 +131,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.make_comparison_plots = make_comparison_plots
         self.make_timeseries_plots = make_timeseries_plots
         self.APPORTIONED = False # Including this for some basic control logic in which methods are allowed
+        self.CBECS_WEIGHTS_APPLIED = False # Including this for some additional control logic about method order
         logger.info(f'Creating {self.dataset_name}')
 
         # Make directories
@@ -135,7 +142,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # S3 location
         self.s3_inpath = None
         if s3_base_dir is not None:
-            self.s3_inpath = f"s3://{s3_base_dir}/{self.comstock_run_name}/{self.comstock_run_name}"
+            if self.athena_table_name:
+                self.s3_inpath = f"s3://{s3_base_dir}/{self.comstock_run_name}/{self.athena_table_name}"
+            else:
+                self.s3_inpath = f"s3://{s3_base_dir}/{self.comstock_run_name}/{self.comstock_run_name}"
 
         # Load and transform data, preserving all columns
         self.download_data()
@@ -220,6 +230,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.add_unweighted_energy_savings_columns()
                # Downselect the self.data to just the upgrade
                 self.data = self.data.filter(pl.col(self.UPGRADE_ID) == upgrade_id)
+                # self._sightGlass_metadata_check(self.data)
                 # Write self.data to parquet file
                 file_name = f'cached_ComStock_wide_upgrade{upgrade_id}.parquet'
                 file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
@@ -232,19 +243,59 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # Now, we have self.data is one huge LazyFrame
             # which is exactly like self.data was before because it includes all upgrades
             self.data = pl.concat(up_lazyframes)
+            self._aggregate_failure_summaries()
             # logger.info(f'comstock data schema: {self.data.dtypes()}')
             # logger.debug('\nComStock columns after adding all data:')
             # for c in self.data.columns:
             #     logger.debug(c)
 
+    def _aggregate_failure_summaries(self):
+        #sinece we are generating summary of falures based on
+        #each upgrade_id(in load_data()), we should aggregate
+        #the summary of failures for each upgrade_id into one
+
+        path = os.path.join(self.output_dir)
+
+        alLines = list()
+        #find all the failure_summary files like with failure_summary_0.csv
+        # failure_summary_1.csv ... failure_summary_k.csv
+        for file in os.listdir(path):
+            if file.startswith("failure_summary_") and file.endswith(".csv"):
+                #open the file and read the content
+                with open(os.path.join(path, file), 'r') as f:
+                    for line in f:
+                        if line not in alLines:
+                            alLines.append(line)
+                 #delete the file
+                os.remove(os.path.join(path, file))
+
+        #write the aggregated summary of failures to a new file
+        with open(os.path.join(path, "failure_summary_aggregated.csv"), 'w') as f:
+            for line in alLines:
+                f.write(line)
+
+
     def download_data(self):
+        # Get data on the s3 resource to download data from:
+        if self.s3_inpath is None:
+            logger.info('The s3 path provided in the ComStock object initalization is invalid.')
+        s3_path_items = self.s3_inpath.lstrip('s3://').split('/')
+        bucket_name = s3_path_items[0]
+        prfx = '/'.join(s3_path_items[1:])
+
         # baseline/results_up00.parquet
         results_data_path = os.path.join(self.data_dir, self.results_file_name)
         if not os.path.exists(results_data_path):
-            s3_path = f"{self.s3_inpath}/baseline/{self.results_file_name}"
-            logger.info(f'Downloading: {s3_path}')
-            data = pd.read_parquet(s3_path, engine="pyarrow")
-            data.to_parquet(results_data_path)
+            baseline_parquet_path = f"{prfx}/baseline/{self.results_file_name}"
+            try:
+                self.s3_resource.Object(bucket_name, baseline_parquet_path).load()
+            except botocore.exceptions.ClientError:
+                logger.error(f'Could not find results_up00.parquet at {baseline_parquet_path} in bucket {bucket_name}')
+                raise FileNotFoundError(
+                    f'Missing results_up00.parquet file. Manually download and place at {results_data_path}'
+                )
+            logger.info(f'Downloading {baseline_parquet_path} from the {bucket_name} bucket')
+            self.s3_resource.Object(bucket_name, baseline_parquet_path).download_file(results_data_path)
 
         # upgrades/upgrade=*/results_up*.parquet
         if self.include_upgrades:
@@ -253,13 +304,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     logger.info('The s3 path passed to the constructor is invalid, '
                                 'cannot check for results_up**.parquet files to download')
                 else:
-                    s3_path_items = self.s3_inpath.lstrip('s3://').split('/')
-                    bucket_name = s3_path_items[0]
-                    prfx = '/'.join(s3_path_items[1:])
-                    prfx = f'{prfx}/upgrades'
-                    resp = self.s3_client.list_objects_v2(Bucket=bucket_name, Prefix=prfx)
-                    for obj in resp.get("Contents"):
-                        obj_path = obj['Key']
+                    upgrade_parquet_path = f'{prfx}/upgrades'
+                    resp = self.s3_resource.Bucket(bucket_name).objects.filter(Prefix=upgrade_parquet_path).all()
+                    for obj in list(resp):
+                        obj_path = obj.key
                         obj_name = obj_path.split('/')[-1]
                         m = re.search('results_up(.*).parquet', obj_name)
                         if not m:
@@ -270,21 +318,26 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                             continue
                         results_data_path = os.path.join(self.data_dir, obj_name)
                         if not os.path.exists(results_data_path):
-                            s3_path = f"s3://{bucket_name}/{obj_path}"
-                            logger.info(f'Downloading: {s3_path}')
-                            data = pd.read_parquet(s3_path, engine="pyarrow")
-                            data.to_parquet(results_data_path)
+                            logger.info(f'Downloading {obj_path} from the {bucket_name} bucket')
+                            self.s3_resource.Object(bucket_name, obj_path).download_file(results_data_path)
 
         # buildstock.csv
-        #TODO: handle the missing buildstock.csv in a more robust way
         #1. check the file in the data_dir
         #2. if not found, download from S3
         #3. if not found in S3, raise an error
-
         buildstock_csv_path = os.path.join(self.data_dir, self.buildstock_file_name)
         if not os.path.exists(buildstock_csv_path):
-            raise FileNotFoundError(
-            f'Missing buildstock.csv file. Manually download and place in {os.path.abspath(self.data_dir)}')
+            s3_path = f"{self.s3_inpath}/buildstock_csv/buildstock.csv"
+            bldstk_s3_path = f'{prfx}/buildstock_csv/buildstock.csv'
+            try:
+                self.s3_resource.Object(bucket_name, bldstk_s3_path).load()
+            except botocore.exceptions.ClientError:
+                logger.error(f'Could not find buildstock.csv at {bldstk_s3_path} in bucket {bucket_name}')
+                raise FileNotFoundError(
+                    f'Missing buildstock.csv file. Manually download and place at {buildstock_csv_path}'
+                )
+            logger.info(f'Downloading {bldstk_s3_path} from the {bucket_name} bucket')
+            self.s3_resource.Object(bucket_name, bldstk_s3_path).download_file(buildstock_csv_path)
 
         # EJSCREEN
         ejscreen_data_path = os.path.join(self.truth_data_dir, self.ejscreen_file_name)
@@ -520,13 +573,16 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # Fill Nulls in measure-within-upgrade applicability columns with False
             for c, dt in up_res.schema.items():
                 if 'applicable' in c:
-                    if dt == pl.Null:
+                    logger.info(f'For {c}: Nulls set to False in upgrade, and its type is {dt}')
+                    if dt == pl.Null or dt == pl.Boolean:
                         logger.debug(f'For {c}: Nulls set to False (Boolean) in baseline')
                         up_res = up_res.with_columns([pl.col(c).fill_null(pl.lit(False))])
                     elif dt == pl.Utf8:
                         logger.debug(f'For {c}: Nulls set to "False" (String) in baseline')
                         up_res = up_res.with_columns([pl.col(c).fill_null(pl.lit("False"))])
                         up_res = up_res.with_columns([pl.when(pl.col(c).str.lengths() == 0).then(pl.lit('False')).otherwise(pl.col(c)).keep_name()])
+                # make sure all columns contains no null values
+                    assert up_res.get_column(c).null_count() == 0, f'Column {c} contains null values'
 
             # Convert columns with only 'True' and/or 'False' strings to Boolean
             for col, dt in up_res.schema.items():
@@ -713,7 +769,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             ST_FAIL_NO_STATUS,
         ]
         failure_summaries = failure_summaries.select(fs_cols)
-        file_name = f'failure_summary.csv'
+        file_name = f'failure_summary_{upgrade_id}.csv'
         file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
         logger.info(f'Exporting to: {file_path}')
         failure_summaries.write_csv(file_path)
@@ -1431,7 +1487,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # These geography columns should be close together for convenience
         # but have no obvious pattern to match against
         possible_geog_cols = [
-            'in.ashrae_iecc_climate_zone_2004',
+            'in.ashrae_iecc_climate_zone_2006',
             'in.building_america_climate_zone',
             'in.cambium_grid_region',
             'in.census_division_name',
@@ -1817,14 +1873,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_groups, default=None)).alias(self.BLDG_TYPE_GROUP))
         self.data = self.data.with_columns(pl.col(self.BLDG_TYPE_GROUP).cast(pl.Categorical))
-        
 
     def add_national_scaling_weights(self, cbecs: CBECS, remove_non_comstock_bldg_types_from_cbecs: bool):
         # Remove CBECS entries for building types not included in the ComStock run
         # comstock_bldg_types = self.data[self.BLDG_TYPE].unique()
         # assert "calc.weighted.utility_bills.total_mean_bill..billion_usd" in self.data.columns
         assert isinstance(self.data, pl.LazyFrame)
-
         comstock_bldg_types: set = set(self.data.select(self.BLDG_TYPE).unique().collect().to_pandas()[self.BLDG_TYPE].tolist())
 
         cbecs.data: pd.DataFrame = cbecs.data.collect().to_pandas()
@@ -1856,15 +1910,24 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         logger.debug(cbecs_bldg_type_sqft)
 
         # Total sqft of each building type, ComStock
-        baseline_data: pl.LazyFrame = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).clone()
-        comstock_bldg_type_sqft: pl.DataFrame = baseline_data.group_by(self.BLDG_TYPE).agg([pl.col(self.FLR_AREA).sum()]).collect()
-        comstock_bldg_type_sqft: pd.DataFrame = comstock_bldg_type_sqft.to_pandas().set_index(self.BLDG_TYPE)
+        if self.APPORTIONED:
+            # Since this is a national calculation, groupby on building id and upgrade only in foreign key table
+            national_agg = self.fkt.filter(pl.col(self.UPGRADE_ID) == 0).clone()
+            national_agg = national_agg.select([pl.col(self.BLDG_WEIGHT), pl.col(self.BLDG_ID)]).groupby(pl.col(self.BLDG_ID)).sum()
+            cs_data = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).select([pl.col(self.BLDG_ID), pl.col(self.FLR_AREA), pl.col(self.BLDG_TYPE)]).clone()
+            national_agg = national_agg.join(cs_data, on=pl.col(self.BLDG_ID))
+            national_agg = national_agg.with_columns((pl.col(self.BLDG_WEIGHT) * pl.col(self.FLR_AREA)).alias(self.FLR_AREA))
+            national_agg = national_agg.select([pl.col(self.BLDG_TYPE), pl.col(self.FLR_AREA)]).groupby(pl.col(self.BLDG_TYPE)).sum().collect()
+            comstock_bldg_type_sqft: pd.DataFrame = national_agg.to_pandas().set_index(self.BLDG_TYPE)
+        else:
+            baseline_data: pl.LazyFrame = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).clone()
+            comstock_bldg_type_sqft: pl.DataFrame = baseline_data.group_by(self.BLDG_TYPE).agg([pl.col(self.FLR_AREA).sum()]).collect()
+            comstock_bldg_type_sqft: pd.DataFrame = comstock_bldg_type_sqft.to_pandas().set_index(self.BLDG_TYPE)
         logger.debug('ComStock Baseline floor area by building type')
         logger.debug(comstock_bldg_type_sqft)
 
         # Calculate scaling factor for each building type based on floor area (not building/model count)
         sf = pd.concat([cbecs_bldg_type_sqft, comstock_bldg_type_sqft], axis = 1)
-        logger.info("sf wt_area_col shape: ", sf[wt_area_col].shape)
         sf[self.BLDG_WEIGHT] = sf[wt_area_col].astype(float) / sf[self.FLR_AREA].astype(float)
         bldg_type_scale_factors = sf[self.BLDG_WEIGHT].to_dict()
         if np.nan in bldg_type_scale_factors:
@@ -1874,18 +1937,31 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             del bldg_type_scale_factors[np.nan]
 
         # Report any scaling factor greater than some threshold.
+        if self.APPORTIONED:
+            logger.info(f'{self.dataset_name} post-apportionment scaling factors to CBECS floor area:')
+            for bldg_type, scaling_factor in bldg_type_scale_factors.items():
+                logger.info(f'--- {bldg_type}: {round(scaling_factor, 2)}')
+                if scaling_factor > 1.3:
+                    wrn_msg = (f'The scaling factor for {bldg_type} is high, which indicates something unexpected '
+                        'in the apportionment step, except for Healthcare where this is expected. Please review.')
+                    logger.warning(wrn_msg)
+                elif scaling_factor < 0.6:
+                    wrn_msg = (f'The scaling factor for {bldg_type} is low, which indicates something unexpected '
+                        'in the apportionment step. Please review.')
+                    logger.warning(wrn_msg)
+        else:
         # In situations with high failure rates of a single building,
         # the scaling factor will be high, and the results are likely to be
         # heavily skewed toward the few successful simulations of that building type.
-        logger.info(f'{self.dataset_name} scaling factors - scale ComStock results to CBECS floor area')
-        for bldg_type, scaling_factor in bldg_type_scale_factors.items():
-            logger.info(f'--- {bldg_type}: {round(scaling_factor, 2)}')
-            if scaling_factor > 15:
-                wrn_msg = (f'The scaling factor for {bldg_type} is high, which indicates either a test run <350k models '
-                    f'or significant failed runs for this building type.  Comparisons to CBECS will likely be invalid.')
-                logger.warning(wrn_msg)
+            logger.info(f'{self.dataset_name} scaling factors - scale ComStock results to CBECS floor area')
+            for bldg_type, scaling_factor in bldg_type_scale_factors.items():
+                logger.info(f'--- {bldg_type}: {round(scaling_factor, 2)}')
+                if scaling_factor > 15:
+                    wrn_msg = (f'The scaling factor for {bldg_type} is high, which indicates either a test run <350k models '
+                        f'or significant failed runs for this building type.  Comparisons to CBECS will likely be invalid.')
+                    logger.warning(wrn_msg)
 
-        # For reference/comparison, here are the weights from the ComStock V1 runs
+        # For reference/comparison, here are the weights from the ComStock Pre-EUSS 2024R2 runs
         # PROD_V1_COMSTOCK_WEIGHTS = {
         #     'small_office': 9.625838016683277,
         #     'medium_office': 9.625838016683277,
@@ -1902,24 +1978,50 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         #     'strip_mall': 2.1106205675100735,
         #     'warehouse': 2.1086048544461304
         # }
+        # Here are the 'nominal' weights from Sampling V2 implementation (EUSS 2024 R2 on):
+        # TODO Add weights here
 
         # Assign scaling factors to each ComStock run
         self.building_type_weights = bldg_type_scale_factors
-        self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_scale_factors, default=None)).alias(self.BLDG_WEIGHT))
+        if self.APPORTIONED:
+            cbecs_weights = pl.LazyFrame({self.BLDG_TYPE: bldg_type_scale_factors.keys(), 'cbecs_weight': bldg_type_scale_factors.values()})
+            self.fkt = self.fkt.join(cbecs_weights, on=pl.col(self.BLDG_TYPE))
+            self.fkt = self.fkt.with_columns((pl.col(self.BLDG_WEIGHT) * pl.col('cbecs_weight')).alias(self.BLDG_WEIGHT))
+            self.fkt = self.fkt.drop(self.BLDG_TYPE, 'cbecs_weight')
+        else:
+            self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_scale_factors, default=None)).alias(self.BLDG_WEIGHT))
         assert isinstance(cbecs.data, pd.DataFrame)
         cbecs.data = pl.from_pandas(cbecs.data).lazy()
         assert isinstance(cbecs.data, pl.LazyFrame)
+        self.CBECS_WEIGHTS_APPLIED = True
         return bldg_type_scale_factors
+
 
 
     def _calculate_weighted_columnal_values(self, input_lf: pl.LazyFrame):
         # Apply the weights to the columns
-        input_lf = self.add_weighted_area_energy_savings_columns(input_lf) #compute out the weighted value, based on the unweighted columns and the weights.
-        assert isinstance(self.data, pl.LazyFrame)
+        #compute out the weighted value, based on the unweighted columns and the weights.
+        input_lf = self.add_weighted_area_energy_savings_columns(input_lf)
+        assert isinstance(input_lf, pl.LazyFrame)
         return input_lf
 
+    def create_plotting_lazyframe(self):
+        plotting_aggregation = self.fkt.clone()
+        plotting_aggregation = plotting_aggregation.select(
+            [pl.col(self.BLDG_WEIGHT), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(self.CEN_DIV)]
+        ).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(self.CEN_DIV)]).sum()
+        plotting_aggregation = plotting_aggregation.join(self.data, on=[pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)])
+        plotting_aggregation = self._calculate_weighted_columnal_values(plotting_aggregation)
+        plotting_aggregation = self.reorder_data_columns(plotting_aggregation)
+        plotting_aggregation = self.add_sightglass_column_units(plotting_aggregation)
+        assert isinstance(plotting_aggregation, pl.LazyFrame)
+        self.plotting_data = plotting_aggregation
+
     def create_national_aggregation(self):
-        national_aggregation = self.fkt.select([pl.col('weight'), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)]).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)]).sum()
+        national_aggregation = self.fkt.clone()
+        national_aggregation = national_aggregation.select(
+            [pl.col(self.BLDG_WEIGHT), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)]
+        ).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)]).sum()
         national_aggregation = national_aggregation.join(self.data, on=[pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)])
         national_aggregation = self._calculate_weighted_columnal_values(national_aggregation)
 
@@ -1928,7 +2030,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # self.get_scaled_comstock_monthly_consumption_by_state(national_aggregation)
 
         # Reorder the columns before exporting
-        # TODO works on self.data
         national_aggregation = self.reorder_data_columns(national_aggregation)
         assert isinstance(national_aggregation, pl.LazyFrame)
 
@@ -1946,7 +2047,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 logger.warn('Warning - sink_csv not supported for metadata write in current polars version')
                 logger.warn('Falling back to .collect.write_csv')
                 national_aggregation.filter(pl.col(self.UPGRADE_ID) == up_id).collect().write_csv(file_path)
-            
+
             # Write Parquet version
             file_name = f'ComStock wide upgrade{up_id}.parquet'
             file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
@@ -1961,16 +2062,25 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Export dictionaries corresponding to the exported columns
         self.export_data_and_enumeration_dictionary()
 
+        # Return the nationally aggregated dataframe for use by plotting, etc.
+        return national_aggregation
+
     def create_geospatially_resolved_aggregations(self, geographic_col_name, pretty_geo_col_name=False):
-        supported_geographies = [self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.CZ_ASHRAE]
+        # Ensure the geography is supported
+        supported_geographies = [self.CEN_DIV, self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.CZ_ASHRAE]
         if geographic_col_name not in [self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.CZ_ASHRAE]:
             logger.error(f'Requeted geographic aggregation {geographic_col_name} not in supported geographies.')
             logger.error(f'Currently supported geographies are {supported_geographies}')
             raise RuntimeError('Unsupported geography selected for geospatial aggregation')
-        spatial_aggregation = self.fkt.select([pl.col('weight'), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(geographic_col_name)]).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(geographic_col_name)]).sum()
+
+        # Create the spatial aggregation
+        spatial_aggregation = self.fkt.clone()
+        spatial_aggregation = spatial_aggregation.select(
+            [pl.col('weight'), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(geographic_col_name)]
+        ).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(geographic_col_name)]).sum()
         spatial_aggregation = spatial_aggregation.join(self.data, on=[pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)])
         spatial_aggregation = self._calculate_weighted_columnal_values(spatial_aggregation)
-        
+
         # Reorder the columns before exporting
         spatial_aggregation = self.reorder_data_columns(spatial_aggregation)
         assert isinstance(spatial_aggregation, pl.LazyFrame)
@@ -1980,7 +2090,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         up_ids.sort()
         for up_id in up_ids:
             file_name = f'{self.UPGRADE_ID}={up_id}'
-            file_path = os.path.abspath(os.path.join(self.output_dir, 'geospatial_results', geographic_col_name.replace('in.', ''), file_name))
+            file_path = os.path.abspath(os.path.join(
+                self.output_dir, 'geospatial_results', geographic_col_name.replace('in.', ''), file_name
+            ))
             logger.info(f'Exporting to: {file_path}')
             to_write = spatial_aggregation.filter(pl.col(self.UPGRADE_ID) == up_id)
             if pretty_geo_col_name:
@@ -1992,13 +2104,21 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             logger.warn("ulimit -n 200000")
             logger.warn("ulimit -u 2048")
             logger.info("Attempting pottentially OSERROR triggering write:")
-            to_write.collect().write_parquet(file_path, use_pyarrow=True, pyarrow_options={"partition_cols": [pretty_geo_col_name], 'max_partitions': 3143})
+            to_write.collect().write_parquet(file_path, use_pyarrow=True, pyarrow_options={
+                "partition_cols": [pretty_geo_col_name], 'max_partitions': 3143
+            })
 
         # Export dictionaries corresponding to the exported columns
         self.export_data_and_enumeration_dictionary()
 
+        # Return the geospatially aggregated dataframe for use by plotting, etc.
+        return spatial_aggregation
 
     def add_weights_aportioned_by_stock_estimate(self, apportionment: Apportion, keep_n_per_apportionment_group=False):
+        # This function doesn't support already CBECS-weighted self.data - error out
+        if self.CBECS_WEIGHTS_APPLIED:
+            raise RuntimeError('Unable to apply apportionment weighting after CBECS weighting - reverse order.')
+
         # TODO this should live somewhere else - don't know where...
         self.data = self.data.with_columns(
             pl.col(self.COUNTY_ID).cast(str).str.slice(0, 4).alias(self.STATE_ID)
@@ -2006,7 +2126,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Pull the columns required to do the matching plus the annual energy total as a safety blanket
         # TODO this is a superset for convienience - slim down later
-        csdf = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).select(pl.col(
+        csdf = self.data.clone().filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).select(pl.col(
             self.BLDG_ID, self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.SAMPLING_REGION, self.CZ_ASHRAE,
             self.BLDG_TYPE, self.HVAC_SYS, self.SH_FUEL, self.SIZE_BIN, self.FLR_AREA, self.TOT_EUI, self.CEN_DIV
         ))
@@ -2014,7 +2134,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # If anything in this selection is null we're smoked so check twice and fail never
         if csdf.null_count().collect().sum(axis=1).sum() != 0:
             raise RuntimeError('Null data appears in the apportionment truth data polars frame. Please resolve')
-        
+
         # Cast sqft to int32
         csdf = csdf.with_columns(pl.col(self.FLR_AREA).cast(pl.Int32))
 
@@ -2022,12 +2142,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         csdf = csdf.with_columns(
             pl.concat_str([pl.col(self.HVAC_SYS), pl.col(self.SH_FUEL)], separator='_').alias('hvac_and_fueltype')
         )
-        
+
         # Create a apportionment group id which will be shared for iteration by both the target (apportionment data) and
         # domain (csdf data).
         # TODO make the apportionment data object a lazy df nativly
         apportionment.data.loc[:, 'hvac_and_fueltype'] = apportionment.data.loc[:, 'system_type'] + '_' + apportionment.data.loc[:, 'heating_fuel']
-        appo_group_df = apportionment.data.loc[:, ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']]
+        appo_group_df = apportionment.data.copy(deep=True).loc[
+            :, ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
+        ]
         appo_group_df = appo_group_df.drop_duplicates(keep='first').sort_values(
             by=['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
         ).reset_index(drop=True).reset_index(names='appo_group_id')
@@ -2041,9 +2163,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         )
         if csdf.select(pl.col('appo_group_id').is_null().any()).collect().item() != False:
             raise RuntimeError('Not all combinations of sampling region, bt, and size bin could be matched.')
-        
+
         # Join apportionment group id into comstock data
-        tdf = pl.DataFrame(apportionment.data).lazy()
+        tdf = pl.DataFrame(apportionment.data.copy(deep=True)).lazy()
         tdf = tdf.join(appo_group_df, on=['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype'])
 
         # Identify combination in the truth data not supported by the current sample.
@@ -2065,7 +2187,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         attrs = ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
         tdf.select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv('~/potential_apportionment_group_optimization.csv')
         tdf.filter(pl.col('appo_group_id').is_in(missing_groups)).select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv('~/Desktop/debugging_missing_apportionment_groups.csv')
-    
+
         # Drop unsupported truth data and add an index
         tdf = tdf.filter(pl.col('appo_group_id').is_in(missing_groups).is_not())
         tdf = tdf.with_row_index()
@@ -2094,7 +2216,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             sampled_appo_id.extend(np.repeat(group_id, to_sample).tolist())
             sampled_td_id.extend(tdf_ids_per_group[group_id].tolist())
             sampled_cs_id.extend(np.random.choice(cs_ids_per_group[group_id], to_sample).tolist())
-        
+
         # Create the new sampled dataframe (foreign key table) including upgrades
         upgrade_ids = pl.Series(self.data.select(pl.col(self.UPGRADE_ID)).unique().collect()).to_list()
         fkdf = pd.DataFrame({'appo_group_id': sampled_appo_id, 'tdf_id': sampled_td_id, self.BLDG_ID: sampled_cs_id})
@@ -2114,8 +2236,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             pl.col('county').alias(self.COUNTY_ID),
             pl.col('state').alias(self.STATE_ID),
             pl.col('cz').alias(self.CZ_ASHRAE),
+            pl.col('cen_div').alias(self.CEN_DIV),
             pl.col('sqft').alias('truth_sqft'),
-            pl.col('tract_assignment_type').alias('in.tract_assignment_type')
+            pl.col('tract_assignment_type').alias('in.tract_assignment_type'),
+            pl.col('building_type').alias(self.BLDG_TYPE)
         ), on=pl.col('tdf_id'))
 
         # Pull in the sqft calculate weights
@@ -2130,11 +2254,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.TRACT_ID: self.TRACT_ID.replace('in.', self.POST_APPO_SIM_COL_PREFIX),
             self.COUNTY_ID: self.COUNTY_ID.replace('in.', self.POST_APPO_SIM_COL_PREFIX),
             self.STATE_ID: self.STATE_ID.replace('in.', self.POST_APPO_SIM_COL_PREFIX),
-            self.CZ_ASHRAE: self.CZ_ASHRAE.replace('in.', self.POST_APPO_SIM_COL_PREFIX),
+            self.CEN_DIV: self.CEN_DIV.replace('in.', self.POST_APPO_SIM_COL_PREFIX),
         })
 
         # Drop unwanted columns from the foreign key table and persist
-        fkt = fkt.drop('tdf_id', 'appo_group_id', 'truth_sqft', 'in.tract_assignment_type')
+        fkt = fkt.drop('tdf_id', 'appo_group_id', 'truth_sqft', 'in.tract_assignment_type', self.FLR_AREA)
         self.APPORTIONED = True
         self.fkt = fkt
         logger.info('Successfully completed the apportionment sampling postprocessing')
@@ -2147,30 +2271,30 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         input_lf = input_lf.with_columns(
                 (pl.col(self.FLR_AREA) * pl.col(self.BLDG_WEIGHT)).alias(new_area_col))
 
-        #generate the weighted columns with coventions for Emission, Utility, Energy Enduse group. 
+        #generate the weighted columns with coventions for Emission, Utility, Energy Enduse group.
         old_unit_to_new_unit = {
-            'co2e_kg': self.weighted_ghg_units, #Emission, default : co2e_kg -> co2e_mmt 
+            'co2e_kg': self.weighted_ghg_units, #Emission, default : co2e_kg -> co2e_mmt
             'usd': self.weighted_utility_units, #Utility, default : usd -> billion_usd
             'kwh': self.weighted_energy_units, #Energy and Enduse Groups, default : kwh -> tbtu
         }
-        
-        for col in (self.GHG_FUEL_COLS + [self.ANN_GHG_EGRID, self.ANN_GHG_CAMBIUM] 
+
+        for col in (self.GHG_FUEL_COLS + [self.ANN_GHG_EGRID, self.ANN_GHG_CAMBIUM]
                     + self.COLS_UTIL_BILLS + [self.UTIL_BILL_TOTAL_MEAN, 'out.utility_bills.electricity_bill_max..usd', 'out.utility_bills.electricity_bill_median..usd', 'out.utility_bills.electricity_bill_min..usd']
-                    + self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY + 
+                    + self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY +
                     self.COLS_ENDUSE_GROUP_TOT_ANN_ENGY + self.COLS_ENDUSE_GROUP_ANN_ENGY):
-            
+
             assert col in input_lf.columns
             #based on the unit, we use different conv factor and convert the value to the new column
             old_unit = self.units_from_col_name(col)
 
             if old_unit not in old_unit_to_new_unit.keys():
                 raise Exception("The unit is not in the old_unit_to_new_unit mapping")
-            
+
             new_col = self.col_name_to_weighted(col, old_unit_to_new_unit[old_unit])
             conv_fact = self.conv_fact(old_unit, old_unit_to_new_unit[old_unit])
             input_lf = input_lf.with_columns(
                 (pl.col(col) * pl.col(self.BLDG_WEIGHT) * conv_fact).alias(new_col))
-        
+
         #based on the unweighted savings columns, generate the weighted savings columns
         if self.include_upgrades:
             for unweighted_saving_cols, weighted_saving_cols in self.unweighted_weighted_map.items():
@@ -2178,7 +2302,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     continue
                 if weighted_saving_cols in input_lf.columns:
                     continue
-                
+
                 old_unit = self.units_from_col_name(unweighted_saving_cols)
                 new_unit = self.units_from_col_name(weighted_saving_cols)
                 conv_fact = self.conv_fact(old_unit, new_unit)
@@ -2223,11 +2347,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     .otherwise(0.0)
                     .alias(enduse_gp_ghg_col)
                 ])
-        
+
         return input_lf
 
     def add_unweighted_energy_savings_columns(self):
-        
+
         assert isinstance(self.data, pl.DataFrame)
 
         engy_cols = []
@@ -2247,14 +2371,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             pct_svgs_cols[eui_col] = self.col_name_to_percent_savings(eui_col, 'percent')
 
             #save the dropping columns:
-            self.dropping_columns.append(self.col_name_to_weighted_percent_savings(col, 'percent')) 
+            self.dropping_columns.append(self.col_name_to_weighted_percent_savings(col, 'percent'))
 
             #save the unweighted - weighted colmns to  columns name mapping
             self.unweighted_weighted_map.update({
                 self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_energy_units),
                 self.col_name_to_percent_savings(col, 'percent'): self.col_name_to_weighted_percent_savings(col, 'percent')
                 })
-            
+
         # Keep the building ID and upgrade name columns to use as the index
         engy_and_id_cols = engy_cols + [self.BLDG_ID, self.UPGRADE_NAME]
 
@@ -2331,7 +2455,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             engy_cols.append(eui_col)
             abs_svgs_cols[eui_col] = self.col_name_to_savings(eui_col, None)
             pct_svgs_cols[eui_col] = self.col_name_to_percent_savings(eui_col, 'percent')
-        
+
             #save the unweighted - weighted columns name mapping
             self.unweighted_weighted_map.update({
                 self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_utility_units),
@@ -2391,7 +2515,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Join the savings columns onto the results
         self.data = self.data.join(up_abs_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
         self.data = self.data.join(up_pct_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
-    
+
     def add_metadata_index_col(self, upgradIdcount: dict):
         # Add a metadata index column to the data
         # updradeIdcount is a dictionary of the number of upgrades for each building: <building_id>: <number of upgrades>
@@ -2442,7 +2566,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         self.data = self.data.rename(crnms)
 
-    def add_sightglass_column_units(self):
+    def add_sightglass_column_units(self, lazyframe):
         # SightGlass requires that the energy_consumption, energy_consumption_intensity,
         # energy_savings, and energy_savings_intensity columns have no units on the
         # column names. This method adds those units back to the appropriate column names,
@@ -2452,7 +2576,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             return c.replace(f'..{self.units_from_col_name(c)}', '')
 
         crnms = {}  # Column renames
-        og_cols = self.data.columns
+        og_cols = lazyframe.columns
         for col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY):
             # energy_consumption
             if rmv_units(col) in og_cols: crnms[rmv_units(col)] = col
@@ -2478,7 +2602,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             assert new.startswith(old)
             logger.debug(f'{old} -> {new}')
 
-        self.data = self.data.rename(crnms)
+        lazyframe = lazyframe.rename(crnms)
+        return lazyframe
 
     def get_comstock_unscaled_monthly_energy_consumption(self):
         """
@@ -2879,3 +3004,76 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
         logger.info(f'Exporting enumeration dictionary to: {file_path}')
         enum_dictionary.write_csv(file_path, separator='\t')
+
+
+    def sightGlass_metadata_check(self, comstock_data: pl.LazyFrame):
+        # Actually I think this function should be a part of utility class, not the main class.
+        # Check that the metadata columns are present in the data
+        # when the columns are in memory
+        err_log = ""
+
+        #df.rows(named=True) = [{'foo': 1, 'bar': 1, 'ham': 0}]
+
+        null_count_per_column: dict = comstock_data.null_count().collect().rows(named=True)[0]
+
+        #check if there are null values in row_segment as polars LazyFrame
+        for coln, null_count in null_count_per_column.items():
+            if coln.startswith("out.qoi.") or coln.startswith("out.utility_bills.") or coln.startswith('applicability.upgrade_add_pvwatts'):
+                continue
+            if null_count > 0:
+                err_log += f"Null values found in column {coln} with {null_count} null count.\n"
+
+        SIGHTGLASS_REQUIRED_COLS = [self.BLDG_ID, self.META_IDX, self.UPGRADE_ID,
+                                     self.UPGRADE_APPL, self.FLR_AREA, self.BLDG_WEIGHT]
+
+        for col in SIGHTGLASS_REQUIRED_COLS:
+            if col not in comstock_data.columns:
+                err_log += f'{col} not found in data, which is needed for sightglass\n'
+
+        #Skip pattern, may need delete later:
+        pattern = r'out\.electricity\.total\.[a-zA-Z]{3}\.energy_consumption'
+
+        for c in comstock_data.columns:
+            if re.search('[^a-z0-9._]', c):
+                # (f'Column {c} violates name rules: may only contain . _ 0-9 lowercaseletters (no spaces)')
+                err_log += f'Column {c} violates name rules: may only contain . _ 0-9 lowercaseletters (no spaces)\n'
+
+        #Actually that's the perfect case to use regex to check the summary.
+        TOTAL_PATTERN = r'out\.([a-zA-Z_]+)\.total\.energy_consumption\.\.kwh'
+        ENDUSE_PATTERN = r'out\.([a-zA-Z_]+)\.(?!total)([a-zA-Z_]+)\.energy_consumption\.\.kwh'
+        MONTH_PATTERN = r'out\.electricity\.total\.([a-zA-Z]{3})\.energy_consumption'
+
+        #Get the sum of the data
+        sum_table: pl.DataFrame = comstock_data.sum().collect().rows(named=True)[0]
+
+        #Find the sum of total culmns for each type fuels, and for each fuel type find the sum of different
+        #enduse columns. And record them in a dictionary like: {fuel_type: total_energy}
+        fuel_total, end_use_total, month_total = {}, {}, {}
+        for c in comstock_data.columns:
+            if re.match(TOTAL_PATTERN, c):
+                fuel_type = re.match(TOTAL_PATTERN, c).group(1)
+                if c == self.ANN_TOT_ENGY_KBTU:
+                    #absolutely we don't need the total to be added into the
+                    #sum again out.site_energy.total.energy_consumption..kwh should be the sum
+                    #of all the other energy's type sum.
+                    continue
+                fuel_total[fuel_type] = sum_table[c]
+            elif re.match(ENDUSE_PATTERN, c):
+                fuel_type = re.match(ENDUSE_PATTERN, c).group(1)
+                end_use_total[fuel_type] = end_use_total.get(fuel_type, 0) + sum_table[c]
+            elif re.match(MONTH_PATTERN, c):
+                month = re.match(MONTH_PATTERN, c).group(1)
+                month_total[month] = sum_table[c]
+
+        logger.info(f"Fuel total: {fuel_total}, Enduse total: {end_use_total}, Month total: {month_total}")
+        # Check that the total site energy is the sum of the fuel totals
+        for fuel, total in end_use_total.items():
+            if not total == pytest.approx(fuel_total[fuel], rel=0.01):
+                err_log += f'Fuel total for {fuel} does not match sum of enduse columns\n'
+        if not sum(fuel_total.values()) == pytest.approx(sum_table[self.ANN_TOT_ENGY_KBTU], rel=0.01):
+            err_log += f'Site total {sum(fuel_total.values())} does not match sum of fuel totals {sum_table[self.ANN_TOT_ENGY_KBTU]}\n'
+        if not sum(month_total.values()) == pytest.approx(sum_table[self.ANN_TOT_ELEC_KBTU], rel=0.01):
+            err_log += 'Electricity total does not match sum of month totals\n'
+
+        if err_log:
+            raise ValueError(err_log)
