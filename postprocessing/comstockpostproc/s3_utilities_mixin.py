@@ -16,6 +16,7 @@ import boto3
 import logging
 import botocore
 import pandas as pd
+import json
 
 logger = logging.getLogger(__name__)
 
