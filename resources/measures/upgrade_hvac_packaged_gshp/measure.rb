@@ -192,7 +192,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     template = 'ComStock 90.1-2019'
     std = Standard.build(template)
     # get climate zone value
-    climate_zone = std.model_standards_climate_zone(model)
+    climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
 
     # assign user inputs to variables
     dcv = runner.getBoolArgumentValue('dcv', user_arguments)
