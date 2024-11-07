@@ -1,50 +1,15 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2024 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
-# *******************************************************************************
-# OpenStudio(R), Copyright (c) 2008-2018, Alliance for Sustainable Energy, LLC.
-# All rights reserved.
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# (1) Redistributions of source code must retain the above copyright notice,
-# this list of conditions and the following disclaimer.
-#
-# (2) Redistributions in binary form must reproduce the above copyright notice,
-# this list of conditions and the following disclaimer in the documentation
-# and/or other materials provided with the distribution.
-#
-# (3) Neither the name of the copyright holder nor the names of any contributors
-# may be used to endorse or promote products derived from this software without
-# specific prior written permission from the respective party.
-#
-# (4) Other than as required in clauses (1) and (2), distributions in any form
-# of modifications or other derivative works may not use the "OpenStudio"
-# trademark, "OS", "os", or any other confusingly similar designation without
-# specific prior written permission from Alliance for Sustainable Energy, LLC.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER(S) AND ANY CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-# THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER(S), ANY CONTRIBUTORS, THE
-# UNITED STATES GOVERNMENT, OR THE UNITED STATES DEPARTMENT OF ENERGY, NOR ANY OF
-# THEIR EMPLOYEES, BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
-# OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-# STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-# *******************************************************************************
-
+# dependencies
+require 'fileutils'
+require 'minitest/autorun'
+require 'open3'
 require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
-require 'fileutils'
-require 'open3'
+require_relative '../measure'
 
-require_relative '../measure.rb'
-require 'minitest/autorun'
-
-class UtilityBills_Test < Minitest::Test
+class UtilityBillsTest < Minitest::Test
   def epw_path_default
     # make sure we have a weather data location
     epw = nil
@@ -119,20 +84,19 @@ class UtilityBills_Test < Minitest::Test
 
   # create test files if they do not exist when the test first runs
   def setup_test(test_name, idf_output_requests, census_tract, state_abbrev, start_year, model_in_path, epw_path = epw_path_default)
-    if !File.exist?(run_dir(test_name))
-      FileUtils.mkdir_p(run_dir(test_name))
-    end
+    FileUtils.mkdir_p(run_dir(test_name))
+
     assert(File.exist?(run_dir(test_name)))
 
-    if File.exist?(report_path(test_name))
-      FileUtils.rm(report_path(test_name))
-    end
+
+    FileUtils.rm_f(report_path(test_name))
+
 
     assert(File.exist?(model_in_path))
 
-    if File.exist?(model_out_path(test_name))
-      FileUtils.rm(model_out_path(test_name))
-    end
+
+    FileUtils.rm_f(model_out_path(test_name))
+
 
     # convert output requests to OSM for testing, OS App and PAT will add these to the E+ Idf
     workspace = OpenStudio::Workspace.new('Draft'.to_StrictnessLevel, 'EnergyPlus'.to_IddFileType)
@@ -151,9 +115,9 @@ class UtilityBills_Test < Minitest::Test
     model.save(model_out_path(test_name), true)
 
     if ENV['OPENSTUDIO_TEST_NO_CACHE_SQLFILE']
-      if File.exist?(sql_path(test_name))
-        FileUtils.rm_f(sql_path(test_name))
-      end
+
+      FileUtils.rm_f(sql_path(test_name))
+
     end
 
     run_test_simulation(test_name, epw_path)
@@ -165,7 +129,7 @@ class UtilityBills_Test < Minitest::Test
     model_in_path = "#{File.dirname(__FILE__)}/1004_SmallHotel_a.osm"
     # This census tract has no EIA utility ID assigned
     census_tract = 'G0100470957000'
-    state_abbreviation ='AL'
+    state_abbreviation = 'AL'
     year = 1999
 
     # create an instance of the measure
@@ -180,7 +144,7 @@ class UtilityBills_Test < Minitest::Test
 
     # get the energyplus output requests, this will be done automatically by OS App and PAT
     idf_output_requests = measure.energyPlusOutputRequests(OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new), argument_map)
-    assert(idf_output_requests.size > 0, 'Expected IDF output requests, but none were found')
+    assert(!idf_output_requests.empty?, 'Expected IDF output requests, but none were found')
 
     # mimic the process of running this measure in OS App or PAT
     epw_path = epw_path_default
@@ -215,12 +179,12 @@ class UtilityBills_Test < Minitest::Test
       name_val = JSON.parse(value.string)
       rvs[name_val['name']] = name_val['value']
     end
-    assert(rvs.has_key?('electricity_rate_1_name'))
-    assert(rvs.has_key?('electricity_rate_1_bill_dollars'))
-    assert(rvs.has_key?('electricity_bill_mean_dollars'))
+    assert(rvs.key?('electricity_rate_1_name'))
+    assert(rvs.key?('electricity_rate_1_bill_dollars'))
+    assert(rvs.key?('electricity_bill_mean_dollars'))
 
     # Check that the statistics make sense (all should match b/c using the EIA rate only)
-    assert_equal(rvs['electricity_bill_min_dollars'],  rvs['electricity_bill_mean_dollars'])
+    assert_equal(rvs['electricity_bill_min_dollars'], rvs['electricity_bill_mean_dollars'])
     assert_equal(rvs['electricity_bill_min_dollars'], rvs['electricity_bill_median_dollars'])
     assert_equal(rvs['electricity_bill_min_dollars'], rvs['electricity_bill_max_dollars'])
     assert_equal(rvs['electricity_bill_number_of_rates'], 1)
@@ -240,7 +204,7 @@ class UtilityBills_Test < Minitest::Test
     # This census tract is assigned to EIA utility 17683,
     # which has no valid rates in URDB
     census_tract = 'G2800630950100'
-    state_abbreviation ='MS'
+    state_abbreviation = 'MS'
     year = 1999
 
     # create an instance of the measure
@@ -255,7 +219,7 @@ class UtilityBills_Test < Minitest::Test
 
     # get the energyplus output requests, this will be done automatically by OS App and PAT
     idf_output_requests = measure.energyPlusOutputRequests(OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new), argument_map)
-    assert(idf_output_requests.size > 0, 'Expected IDF output requests, but none were found')
+    assert(!idf_output_requests.empty?, 'Expected IDF output requests, but none were found')
 
     # mimic the process of running this measure in OS App or PAT
     epw_path = epw_path_default
@@ -290,12 +254,12 @@ class UtilityBills_Test < Minitest::Test
       name_val = JSON.parse(value.string)
       rvs[name_val['name']] = name_val['value']
     end
-    assert(rvs.has_key?('electricity_rate_1_name'))
-    assert(rvs.has_key?('electricity_rate_1_bill_dollars'))
-    assert(rvs.has_key?('electricity_bill_mean_dollars'))
+    assert(rvs.key?('electricity_rate_1_name'))
+    assert(rvs.key?('electricity_rate_1_bill_dollars'))
+    assert(rvs.key?('electricity_bill_mean_dollars'))
 
     # Check that the statistics make sense (all should match b/c using the EIA rate only)
-    assert_equal(rvs['electricity_bill_min_dollars'],  rvs['electricity_bill_mean_dollars'])
+    assert_equal(rvs['electricity_bill_min_dollars'], rvs['electricity_bill_mean_dollars'])
     assert_equal(rvs['electricity_bill_min_dollars'], rvs['electricity_bill_median_dollars'])
     assert_equal(rvs['electricity_bill_min_dollars'], rvs['electricity_bill_max_dollars'])
     assert_equal(rvs['electricity_bill_number_of_rates'], 1)
@@ -315,7 +279,7 @@ class UtilityBills_Test < Minitest::Test
     # Set census tract: G0600010400200 which matches
     # utility ID: 14328 (Pacific Gas & Electric Co.) with lots of rates
     census_tract = 'G0600010400200'
-    state_abbreviation ='CA'
+    state_abbreviation = 'CA'
     year = 1999
 
     # create an instance of the measure
@@ -330,7 +294,7 @@ class UtilityBills_Test < Minitest::Test
 
     # get the energyplus output requests, this will be done automatically by OS App and PAT
     idf_output_requests = measure.energyPlusOutputRequests(OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new), argument_map)
-    assert(idf_output_requests.size > 0, 'Expected IDF output requests, but none were found')
+    assert(!idf_output_requests.empty?, 'Expected IDF output requests, but none were found')
 
     # mimic the process of running this measure in OS App or PAT
     epw_path = epw_path_default
@@ -365,9 +329,9 @@ class UtilityBills_Test < Minitest::Test
       name_val = JSON.parse(value.string)
       rvs[name_val['name']] = name_val['value']
     end
-    assert(rvs.has_key?('electricity_rate_1_name'))
-    assert(rvs.has_key?('electricity_rate_1_bill_dollars'))
-    assert(rvs.has_key?('electricity_bill_mean_dollars'))
+    assert(rvs.key?('electricity_rate_1_name'))
+    assert(rvs.key?('electricity_rate_1_bill_dollars'))
+    assert(rvs.key?('electricity_bill_mean_dollars'))
 
     # Check that the statistics make sense
     assert(rvs['electricity_bill_min_dollars'] < rvs['electricity_bill_mean_dollars'])
@@ -394,7 +358,7 @@ class UtilityBills_Test < Minitest::Test
     # Set census tract: G0600010400200 which matches
     # utility ID: 14328 (Pacific Gas & Electric Co.) with lots of rates
     census_tract = 'G0600010400200'
-    state_abbreviation ='CA'
+    state_abbreviation = 'CA'
     year = 2018
 
     # create an instance of the measure
@@ -409,7 +373,7 @@ class UtilityBills_Test < Minitest::Test
 
     # get the energyplus output requests, this will be done automatically by OS App and PAT
     idf_output_requests = measure.energyPlusOutputRequests(OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new), argument_map)
-    assert(idf_output_requests.size > 0, 'Expected IDF output requests, but none were found')
+    assert(!idf_output_requests.empty?, 'Expected IDF output requests, but none were found')
 
     # mimic the process of running this measure in OS App or PAT
     epw_path = epw_path_default
@@ -444,9 +408,9 @@ class UtilityBills_Test < Minitest::Test
       name_val = JSON.parse(value.string)
       rvs[name_val['name']] = name_val['value']
     end
-    assert(rvs.has_key?('electricity_rate_1_name'))
-    assert(rvs.has_key?('electricity_rate_1_bill_dollars'))
-    assert(rvs.has_key?('electricity_bill_mean_dollars'))
+    assert(rvs.key?('electricity_rate_1_name'))
+    assert(rvs.key?('electricity_rate_1_bill_dollars'))
+    assert(rvs.key?('electricity_bill_mean_dollars'))
 
     # Check that the statistics make sense
     assert(rvs['electricity_bill_min_dollars'] < rvs['electricity_bill_mean_dollars'])
@@ -475,7 +439,7 @@ class UtilityBills_Test < Minitest::Test
     # Set census tract: G0900110693300 which matches
     # utility ID: 2089 (Bozrah Light & Power Company) with lots of rates
     census_tract = 'G0900110693300'
-    state_abbreviation ='CT'
+    state_abbreviation = 'CT'
     year = 1999
 
     # create an instance of the measure
@@ -490,7 +454,7 @@ class UtilityBills_Test < Minitest::Test
 
     # get the energyplus output requests, this will be done automatically by OS App and PAT
     idf_output_requests = measure.energyPlusOutputRequests(OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new), argument_map)
-    assert(idf_output_requests.size > 0, 'Expected IDF output requests, but none were found')
+    assert(!idf_output_requests.empty?, 'Expected IDF output requests, but none were found')
 
     # mimic the process of running this measure in OS App or PAT
     epw_path = epw_path_default
@@ -525,9 +489,9 @@ class UtilityBills_Test < Minitest::Test
       name_val = JSON.parse(value.string)
       rvs[name_val['name']] = name_val['value']
     end
-    assert(rvs.has_key?('electricity_rate_1_name'))
-    assert(rvs.has_key?('electricity_rate_1_bill_dollars'))
-    assert(rvs.has_key?('electricity_bill_mean_dollars'))
+    assert(rvs.key?('electricity_rate_1_name'))
+    assert(rvs.key?('electricity_rate_1_bill_dollars'))
+    assert(rvs.key?('electricity_bill_mean_dollars'))
 
     # Check that the statistics make sense
     assert(rvs['electricity_bill_min_dollars'] < rvs['electricity_bill_mean_dollars'])
@@ -555,7 +519,7 @@ class UtilityBills_Test < Minitest::Test
     calc_elec_bill_path = File.expand_path(File.join(File.dirname(__FILE__), '..', 'resources', 'calc_elec_bill.py'))
 
     # Find all the electric rates
-    all_elec_rates = Dir.glob(File.join(File.dirname(__FILE__), '..', "resources/elec_rates/**/*.json"))
+    all_elec_rates = Dir.glob(File.join(File.dirname(__FILE__), '..', 'resources/elec_rates/**/*.json'))
     rates_per_min = 5.0 * 60
     mins_est = all_elec_rates.size / rates_per_min
     puts("There are #{all_elec_rates.size} electric rates to check, test will take ~#{mins_est} minutes")
@@ -577,7 +541,7 @@ class UtilityBills_Test < Minitest::Test
         msg = "#{i} rate_path: #{rate_path}, stdout: #{stdout_str}, stderr: #{stderr_str}"
         begin
           pysam_out = JSON.parse(stdout_str)
-        rescue
+        rescue StandardError
           puts(msg)
         end
         assert(!pysam_out.nil?, msg)
@@ -597,6 +561,5 @@ class UtilityBills_Test < Minitest::Test
     broken_rate_paths.each do |brp|
       puts brp
     end
-
   end
 end
