@@ -1,6 +1,0 @@
-measures/qoi_report/tests/qoi_report_test.rb
-measures/simulation_settings_check/tests/measure_test.rb
-measures/emissions_reporting/tests/EmissionsReporting_Test.rb
-measures/TimeseriesCSVExport/tests/Measure_Test.rb
-measures/comstock_sensitivity_reports/tests/comstock_sensitivity_reports_test.rb
-measures/scout_loads_summary/tests/Measure_Test.rb

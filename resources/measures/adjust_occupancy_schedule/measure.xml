@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>adjust_occupancy_schedule</name>
   <uid>9ac623a1-fa43-4fa8-ae2c-589993698b5a</uid>
-  <version_id>20f77ce6-35e6-4693-8bf8-5596c37ef2c3</version_id>
-  <version_modified>2024-06-20T18:58:36Z</version_modified>
+  <version_id>15d57c81-9c01-4e76-852d-92cd09d0773f</version_id>
+  <version_modified>2024-10-16T19:11:25Z</version_modified>
   <xml_checksum>2EEF5D1F</xml_checksum>
   <class_name>AdjustOccupancySchedule</class_name>
   <display_name>adjust_occupancy_schedule</display_name>
@@ -71,13 +71,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>8D10B16D</checksum>
+      <checksum>C7FB8385</checksum>
     </file>
     <file>
       <filename>adjust_occupancy_schedule_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>417C5013</checksum>
+      <checksum>9BCE575D</checksum>
     </file>
   </files>
 </measure>
