@@ -45,7 +45,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     template = 'ComStock 90.1-2019'
     std = Standard.build(template)
     # get climate zone value
-    climate_zone = std.model_standards_climate_zone(model)
+    climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
 	standard_new_motor = Standard.build('90.1-2019') #to reflect new motors
 
     # determine if the air loop is residential (checks to see if there is outdoor air system object)
