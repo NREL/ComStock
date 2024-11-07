@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>emissions_reporting</name>
   <uid>acdba906-e08f-4c88-9aef-2f0b0cfbb9d1</uid>
-  <version_id>a72ac840-7b69-4322-9731-fca93d4f0e21</version_id>
-  <version_modified>2024-10-28T21:17:48Z</version_modified>
+  <version_id>0d9284e7-899d-4351-91c8-b1d1d162fa7d</version_id>
+  <version_modified>2024-11-07T22:17:56Z</version_modified>
   <xml_checksum>C46EF23F</xml_checksum>
   <class_name>EmissionsReporting</class_name>
   <display_name>Emissions Reporting</display_name>
@@ -489,7 +489,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>9A6FCBFB</checksum>
+      <checksum>633149BB</checksum>
     </file>
     <file>
       <filename>cambium/AER_95DecarbBy2035_1/AZNMc.csv</filename>
