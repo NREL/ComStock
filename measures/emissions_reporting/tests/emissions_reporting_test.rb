@@ -128,70 +128,72 @@ class EmissionsReportingTest < Minitest::Test
 
     # change into run directory for tests
     start_dir = Dir.pwd
-    Dir.chdir run_dir(test_name)
+    begin
+      Dir.chdir run_dir(test_name)
 
-    # create an instance of the measure
-    measure = EmissionsReporting.new
+      # create an instance of the measure
+      measure = EmissionsReporting.new
 
-    # create an instance of a runner
-    runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
+      # create an instance of a runner
+      runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
 
-    # Load the input model to set up runner, this will happen automatically when measure is run in PAT or OpenStudio
-    translator = OpenStudio::OSVersion::VersionTranslator.new
-    model = translator.loadModel(osm_path)
-    assert(model.is_initialized)
-    model = model.get
-    runner.setLastOpenStudioModel(model)
+      # Load the input model to set up runner, this will happen automatically when measure is run in PAT or OpenStudio
+      translator = OpenStudio::OSVersion::VersionTranslator.new
+      model = translator.loadModel(osm_path)
+      assert(model.is_initialized)
+      model = model.get
+      runner.setLastOpenStudioModel(model)
 
-    # get the energyplus output requests, this will be done automatically by OS App and PAT
-    idf_output_requests = measure.energyPlusOutputRequests(runner, argument_map)
+      # get the energyplus output requests, this will be done automatically by OS App and PAT
+      idf_output_requests = measure.energyPlusOutputRequests(runner, argument_map)
 
-    # convert output requests to OSM for testing, OS App and PAT will add these to the E+ Idf
-    workspace = OpenStudio::Workspace.new('Draft'.to_StrictnessLevel, 'EnergyPlus'.to_IddFileType)
-    workspace.addObjects(idf_output_requests)
-    rt = OpenStudio::EnergyPlus::ReverseTranslator.new
-    request_model = rt.translateWorkspace(workspace)
+      # convert output requests to OSM for testing, OS App and PAT will add these to the E+ Idf
+      workspace = OpenStudio::Workspace.new('Draft'.to_StrictnessLevel, 'EnergyPlus'.to_IddFileType)
+      workspace.addObjects(idf_output_requests)
+      rt = OpenStudio::EnergyPlus::ReverseTranslator.new
+      request_model = rt.translateWorkspace(workspace)
 
-    # load the test model and add output requests
-    translator = OpenStudio::OSVersion::VersionTranslator.new
-    model = translator.loadModel(OpenStudio::Path.new(osm_path))
-    assert(!model.empty?)
-    model = model.get
-    request_model.objects.each { |o| model.addObject(o) }
-    # model.addObjects(request_model.objects)
-    model.save(model_output_path(test_name), true)
+      # load the test model and add output requests
+      translator = OpenStudio::OSVersion::VersionTranslator.new
+      model = translator.loadModel(OpenStudio::Path.new(osm_path))
+      assert(!model.empty?)
+      model = model.get
+      request_model.objects.each { |o| model.addObject(o) }
+      # model.addObjects(request_model.objects)
+      model.save(model_output_path(test_name), true)
 
-    # set model weather file
-    assert(File.exist?(epw_path))
-    epw_file = OpenStudio::EpwFile.new(OpenStudio::Path.new(epw_path))
-    OpenStudio::Model::WeatherFile.setWeatherFile(model, epw_file)
-    assert(model.weatherFile.is_initialized)
+      # set model weather file
+      assert(File.exist?(epw_path))
+      epw_file = OpenStudio::EpwFile.new(OpenStudio::Path.new(epw_path))
+      OpenStudio::Model::WeatherFile.setWeatherFile(model, epw_file)
+      assert(model.weatherFile.is_initialized)
 
-    # run the simulation if necessary
-    unless File.exist?(sql_path(test_name))
-      puts "\nRUNNING ANNUAL RUN FOR #{test_name}..."
+      # run the simulation if necessary
+      unless File.exist?(sql_path(test_name))
+        puts "\nRUNNING ANNUAL RUN FOR #{test_name}..."
 
-      std = Standard.build('90.1-2013')
-      std.model_run_simulation_and_log_errors(model, run_dir(test_name))
+        std = Standard.build('90.1-2013')
+        std.model_run_simulation_and_log_errors(model, run_dir(test_name))
+      end
+      assert(File.exist?(model_output_path(test_name)))
+      assert(File.exist?(sql_path(test_name)))
+
+      # set up runner, this will happen automatically when measure is run in PAT or OpenStudio
+      runner.setLastOpenStudioModelPath(OpenStudio::Path.new(model_output_path(test_name)))
+      runner.setLastEnergyPlusWorkspacePath(OpenStudio::Path.new(workspace_path(test_name)))
+      runner.setLastEpwFilePath(epw_path)
+      runner.setLastEnergyPlusSqlFilePath(OpenStudio::Path.new(sql_path(test_name)))
+
+      # run the measure
+      puts "\nRUNNING MEASURE RUN FOR #{test_name}..."
+      measure.run(runner, argument_map)
+      result = runner.result
+      show_output(result)
+      assert_equal('Success', result.value.valueName)
+    ensure
+      # change back directory
+      Dir.chdir(start_dir)
     end
-    assert(File.exist?(model_output_path(test_name)))
-    assert(File.exist?(sql_path(test_name)))
-
-    # set up runner, this will happen automatically when measure is run in PAT or OpenStudio
-    runner.setLastOpenStudioModelPath(OpenStudio::Path.new(model_output_path(test_name)))
-    runner.setLastEnergyPlusWorkspacePath(OpenStudio::Path.new(workspace_path(test_name)))
-    runner.setLastEpwFilePath(epw_path)
-    runner.setLastEnergyPlusSqlFilePath(OpenStudio::Path.new(sql_path(test_name)))
-
-    # run the measure
-    puts "\nRUNNING MEASURE RUN FOR #{test_name}..."
-    measure.run(runner, argument_map)
-    result = runner.result
-    show_output(result)
-    assert_equal('Success', result.value.valueName)
-
-    # change back directory
-    Dir.chdir(start_dir)
     result
   end
 
