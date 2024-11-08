@@ -20,19 +20,19 @@ class TimeseriesCSVExportTest < Minitest::Test
   end
 
   def model_in_path_default
-    "#{File.dirname(__FILE__)}/ExampleModel.osm"
+    "#{__dir__}/ExampleModel.osm"
   end
 
   def epw_path_default
     # make sure we have a weather data location
-    epw = OpenStudio::Path.new("#{File.dirname(__FILE__)}/USA_CO_Golden-NREL.724666_TMY3.epw")
+    epw = OpenStudio::Path.new("#{__dir__}/USA_CO_Golden-NREL.724666_TMY3.epw")
     assert(File.exist?(epw.to_s))
     epw.to_s
   end
 
   def run_dir(test_name)
     # always generate test output in specially named 'output' directory so result files are not made part of the measure
-    "#{File.dirname(__FILE__)}/output/#{test_name}/run"
+    "#{__dir__}/output/#{test_name}/run"
   end
 
   def model_out_path(test_name)
@@ -172,7 +172,7 @@ class TimeseriesCSVExportTest < Minitest::Test
 
   def test_sm_hotel
     test_name = 'sm_hotel'
-    model_in_path = "#{File.dirname(__FILE__)}/1004_SmallHotel_a.osm"
+    model_in_path = "#{__dir__}/1004_SmallHotel_a.osm"
 
     # create an instance of the measure
     measure = TimeseriesCSVExport.new
@@ -247,7 +247,7 @@ class TimeseriesCSVExportTest < Minitest::Test
 
   def test_restaurant
     test_name = 'restaurant'
-    model_in_path = "#{File.dirname(__FILE__)}/FullServiceRestaurant.osm"
+    model_in_path = "#{__dir__}/FullServiceRestaurant.osm"
 
     # create an instance of the measure
     measure = TimeseriesCSVExport.new
@@ -371,7 +371,7 @@ class TimeseriesCSVExportTest < Minitest::Test
 
   def test_retail
     test_name = 'retail'
-    model_in_path = "#{File.dirname(__FILE__)}/Retail.osm"
+    model_in_path = "#{__dir__}/Retail.osm"
 
     # create an instance of the measure
     measure = TimeseriesCSVExport.new
