@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>utility_bills</name>
   <uid>2a3442c1-944d-4e91-9e11-11e0cf368c64</uid>
-  <version_id>4972c9d6-fc91-433e-baf7-707900da6178</version_id>
-  <version_modified>2024-11-07T22:52:00Z</version_modified>
+  <version_id>84ec9d20-c405-4e5d-a963-ffb8af035ada</version_id>
+  <version_modified>2024-11-09T01:00:33Z</version_modified>
   <xml_checksum>15BF4E57</xml_checksum>
   <class_name>UtilityBills</class_name>
   <display_name>Utility Bills</display_name>
@@ -33,7 +33,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>F0B5C3A2</checksum>
+      <checksum>A2522B2D</checksum>
     </file>
     <file>
       <filename>calc_elec_bill.py</filename>
@@ -63849,7 +63849,7 @@
       <filename>utility_bills_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>19BD118C</checksum>
+      <checksum>9E51273B</checksum>
     </file>
   </files>
 </measure>
