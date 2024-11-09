@@ -279,12 +279,16 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
   def energyPlusOutputRequests(runner, user_arguments)
     super(runner, user_arguments)
 
-    result = OpenStudio::IdfObjectVector.new
+
 
     # use the built-in error checking
     if !runner.validateUserArguments(arguments, user_arguments)
       return result
     end
+
+    # make a vector of output requests
+    result = OpenStudio::IdfObjectVector.new
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Site Outdoor Air Drybulb Temperature,Hourly;').get
 
     # Get model
     model = runner.lastOpenStudioModel
@@ -371,17 +375,17 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     end
     model = model.get
 
-    sqlFile = runner.lastEnergyPlusSqlFile
-    if sqlFile.empty?
+    sql_file = runner.lastEnergyPlusSqlFile
+    if sql_file.empty?
       runner.registerError('Cannot find last sql file.')
       return false
     end
-    sqlFile = sqlFile.get
-    model.setSqlFile(sqlFile)
+    sql_file = sql_file.get
+    model.setSqlFile(sql_file)
 
     ann_env_pd = nil
-    sqlFile.availableEnvPeriods.each do |env_pd|
-      env_type = sqlFile.environmentType(env_pd)
+    sql_file.availableEnvPeriods.each do |env_pd|
+      env_type = sql_file.environmentType(env_pd)
       if env_type.is_initialized && (env_type.get == (OpenStudio::EnvironmentType.new('WeatherRunPeriod')))
         ann_env_pd = env_pd
       end
@@ -463,21 +467,21 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     end
 
     env_period_ix_query = "SELECT EnvironmentPeriodIndex FROM EnvironmentPeriods WHERE EnvironmentName='#{ann_env_pd}'"
-    env_period_ix = sqlFile.execAndReturnFirstInt(env_period_ix_query).get
+    env_period_ix = sql_file.execAndReturnFirstInt(env_period_ix_query).get
     # get hourly temperature values
     temperature_query = "SELECT VariableValue FROM ReportVariableData WHERE ReportVariableDataDictionaryIndex IN (SELECT ReportVariableDataDictionaryIndex FROM ReportVariableDataDictionary WHERE VariableType='Avg' AND VariableName IN ('Site Outdoor Air Drybulb Temperature') AND ReportingFrequency='Hourly' AND VariableUnits='C') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
-    temperatures = sqlFile.execAndReturnVectorOfDouble(temperature_query).get
+    temperatures = sql_file.execAndReturnVectorOfDouble(temperature_query).get
     if temperatures.empty?
       runner.registerError('Unable to get hourly temperature from the model. Cannot calculate seasonal emissions.')
       return false
     end
-    hourly_temperature_F = temperatures.map do |val|
+    hourly_temperature_f = temperatures.map do |val|
       OpenStudio.convert(val, 'C', 'F').get
     end
 
     # get hourly electricity values
     electricity_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='Electricity:Facility' AND ReportingFrequency='Hourly' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
-    electricity_values = sqlFile.execAndReturnVectorOfDouble(electricity_query).get
+    electricity_values = sql_file.execAndReturnVectorOfDouble(electricity_query).get
     if electricity_values.empty?
       runner.registerError('Unable to get hourly timeseries facility electricity use from the model.  Cannot calculate emissions.')
       return false
@@ -490,7 +494,7 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     enduses.push(['TotalHVAC', 'CoolingHVAC']).flatten.each do |enduse|
       electricity_enduse_results["#{enduse}_mwh"] = []
       electricity_enduse_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex from ReportMeterDataDictionary WHERE VariableType='Sum' AND upper(VariableName)='#{enduse.upcase}:ELECTRICITY' AND ReportingFrequency='Hourly' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
-      electricity_enduse_values = sqlFile.execAndReturnVectorOfDouble(electricity_enduse_query).get
+      electricity_enduse_values = sql_file.execAndReturnVectorOfDouble(electricity_enduse_query).get
       if electricity_enduse_values.empty?
         runner.registerWarning("Unable to get hourly timeseries #{enduse} electricity use from the model. Cannot calculate results")
         electricity_enduse_results["#{enduse}_mwh"] << 0
@@ -502,7 +506,7 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     annual_natural_gas_emissions_co2e_kg = 0
     natural_gas_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='#{gas}:Facility' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
     puts natural_gas_query
-    natural_gas_values = sqlFile.execAndReturnVectorOfDouble(natural_gas_query).get
+    natural_gas_values = sql_file.execAndReturnVectorOfDouble(natural_gas_query).get
     if natural_gas_values.empty?
       runner.registerWarning('Unable to get hourly timeseries facility natural gas use from the model, the model may not use gas.  Cannot calculate emissions.')
     else
@@ -514,7 +518,7 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     # get run period fuel oil values
     annual_fuel_oil_emissions_co2e_kg = 0
     fuel_oil_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='#{fuel_oil}:Facility' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
-    fuel_oil_values = sqlFile.execAndReturnVectorOfDouble(fuel_oil_query).get
+    fuel_oil_values = sql_file.execAndReturnVectorOfDouble(fuel_oil_query).get
     if fuel_oil_values.empty?
       runner.registerWarning('Unable to get hourly timeseries facility fuel oil use from the model, the model may not use fuel oil.  Cannot calculate emissions.')
     else
@@ -526,7 +530,7 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     # get run period propane values
     annual_propane_emissions_co2e_kg = 0
     propane_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='Propane:Facility' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
-    propane_values = sqlFile.execAndReturnVectorOfDouble(propane_query).get
+    propane_values = sql_file.execAndReturnVectorOfDouble(propane_query).get
     if propane_values.empty?
       runner.registerWarning('Unable to get hourly timeseries facility propane use from the model, the model may not use propane.  Cannot calculate emissions.')
     else
@@ -541,7 +545,7 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
 
       # get run period natural gas end-use values
       gas_enduse_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex from ReportMeterDataDictionary WHERE VariableType='Sum' AND upper(VariableName)='#{enduse.upcase}:#{gas.upcase}' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
-      gas_enduse_values = sqlFile.execAndReturnVectorOfDouble(gas_enduse_query).get
+      gas_enduse_values = sql_file.execAndReturnVectorOfDouble(gas_enduse_query).get
       if gas_enduse_values.empty?
         runner.registerWarning("Unable to find annual #{enduse} natural gas use from the model, the model may not use gas for this end-use. Cannot calculate end-use emissions for this fuel.")
         total_enduse_gas_emissions_co2e_kg = 0
@@ -553,7 +557,7 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
 
       # get run period propane end-use values
       propane_enduse_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND upper(VariableName)='#{enduse.upcase}:PROPANE' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
-      propane_enduse_values = sqlFile.execAndReturnVectorOfDouble(propane_enduse_query).get
+      propane_enduse_values = sql_file.execAndReturnVectorOfDouble(propane_enduse_query).get
       if propane_enduse_values.empty?
         runner.registerWarning("Unable to find annual #{enduse} propane from the model, the model may not use propane for this end-use. Cannot calculate end-use emissions for this fuel.")
         total_enduse_propane_emissions_co2e_kg = 0
@@ -565,7 +569,7 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
 
       # get run period fuel oil end-use values
       fuel_oil_enduse_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND upper(VariableName)='#{enduse.upcase}:#{fuel_oil.upcase}' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
-      fuel_oil_enduse_values = sqlFile.execAndReturnVectorOfDouble(fuel_oil_enduse_query).get
+      fuel_oil_enduse_values = sql_file.execAndReturnVectorOfDouble(fuel_oil_enduse_query).get
       if fuel_oil_enduse_values.empty?
         runner.registerWarning("Unable to find annual #{enduse} fuel oil from the model, the model may not use propane for this end-use. Cannot calculate end-use emissions for this fuel.")
         total_enduse_fuel_oil_emissions_co2e_kg = 0
@@ -609,7 +613,7 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
       if year == 2021
         seasonal_daily_vals_egrid = { 'winter' => [], 'summer' => [], 'shoulder' => [] }
         hourly_electricity_mwh.each_slice(24).with_index do |mwhs, i|
-          temps = hourly_temperature_F[(24 * i)...((24 * i) + 24)]
+          temps = hourly_temperature_f[(24 * i)...((24 * i) + 24)]
           avg_temp = temps.inject { |sum, el| sum + el }.to_f / temps.size
           seasons.each do |season, temperature_range|
             if (avg_temp > temperature_range[0]) && (avg_temp < temperature_range[1]) # day is in this season
@@ -658,7 +662,7 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
       if year == 2021
         seasonal_daily_vals_egrid = { 'winter' => [], 'summer' => [], 'shoulder' => [] }
         hourly_electricity_mwh.each_slice(24).with_index do |mwhs, i|
-          temps = hourly_temperature_F[(24 * i)...((24 * i) + 24)]
+          temps = hourly_temperature_f[(24 * i)...((24 * i) + 24)]
           avg_temp = temps.inject { |sum, el| sum + el }.to_f / temps.size
           seasons.each do |season, temperature_range|
             if (avg_temp > temperature_range[0]) && (avg_temp < temperature_range[1]) # day is in this season
@@ -746,7 +750,7 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
       if (scenario == 'LRMER_HighRECost_15') || (scenario == 'LRMER_LowRECost_15') || (scenario == 'LRMER_MidCase_15')
         seasonal_daily_vals = { 'winter' => [], 'summer' => [], 'shoulder' => [] }
         hourly_electricity_emissions_kg.each_slice(24).with_index do |co2es, i|
-          temps = hourly_temperature_F[(24 * i)...((24 * i) + 24)]
+          temps = hourly_temperature_f[(24 * i)...((24 * i) + 24)]
           avg_temp = temps.inject { |sum, el| sum + el }.to_f / temps.size
           seasons.each do |season, temperature_range|
             if (avg_temp > temperature_range[0]) && (avg_temp < temperature_range[1]) # day is in this season
