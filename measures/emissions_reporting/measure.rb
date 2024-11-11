@@ -204,7 +204,12 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
 
   def enduses
     enduses = [
+      'Cooling',
       'Heating',
+      # 'Fans',
+      # 'Pumps',
+      # 'HeatRejection',
+      # 'HeatRecovery',
       'InteriorLights',
       'ExteriorLights',
       'InteriorEquipment',
@@ -217,12 +222,12 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
 
   def hvac_uses
     hvac_uses = [
-      'Heating',
       'Cooling',
+      'Heating',
       'Fans',
       'Pumps',
       'HeatRejection',
-      'Humidification',
+      # 'Humidification',
       'HeatRecovery'
     ]
     return hvac_uses
@@ -309,27 +314,23 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
       # add enduse meters
       enduses.each do |enduse|
         # lights, refrigeration only use electricity
-        next if (enduse.include?("Lights") || enduse.include?("Refrigeration")) && resource != "Electricity"
+        next if  (enduse.include?('Lights') || enduse.include?('Refrigeration')) && resource != 'Electricity'
         result << OpenStudio::IdfObject.load("Output:Meter,#{enduse}:#{resource},#{frequency};").get
       end
 
-      # custom meters for hvac
+      # custom meters for HVAC
       total_hvac_string = "Meter:Custom,TotalHVAC:#{resource},#{resource},"
-      
-      hvac_uses.each_with_index do |use,i|
-        if hvac_uses.size == i+1
+
+      hvac_uses.each_with_index do |use, i|
+        if hvac_uses.size == i + 1
           total_hvac_string << ",#{use}:#{resource};"
         else
           total_hvac_string << ",#{use}:#{resource},"
         end
       end
 
-      cooling_string = "Meter:Custom,CoolingHVAC:#{resource},#{resource},,Cooling:#{resource},,HeatRejection:#{resource};"
-
       result << OpenStudio::IdfObject.load(total_hvac_string).get
-      result << OpenStudio::IdfObject.load(cooling_string).get
       result << OpenStudio::IdfObject.load("Output:Meter,TotalHVAC:#{resource},#{frequency};").get
-      result << OpenStudio::IdfObject.load("Output:Meter,CoolingHVAC:#{resource},#{frequency};").get
 
     end
 
@@ -486,22 +487,19 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
       return false
     end
 
-    # hourly_electricity_kwh = []
-    hourly_electricity_mwh = []
-    # electricity_values.each { |val| hourly_electricity_kwh << val * j_to_kwh }
-    electricity_values.each { |val| hourly_electricity_mwh << val * j_to_mwh }
+    hourly_electricity_mwh = electricity_values.map{ |val| val * j_to_mwh }
 
     # get end-use electricity values
     electricity_enduse_results = {}
-    enduses.push(["TotalHVAC","CoolingHVAC"]).flatten.each do |enduse|
+    enduses.push(['TotalHVAC']).flatten.each do |enduse|
       electricity_enduse_results["#{enduse}_mwh"] = []
       electricity_enduse_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex from ReportMeterDataDictionary WHERE VariableType='Sum' AND upper(VariableName)='#{enduse.upcase}:ELECTRICITY' AND ReportingFrequency='Hourly' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
-      electricity_enduse_values = sqlFile.execAndReturnVectorOfDouble(electricity_enduse_query).get
+      electricity_enduse_values = sqlFile.execAndReturnVectorOfDouble(electricity_enduse_query).get.to_a
       if electricity_enduse_values.empty?
         runner.registerWarning("Unable to get hourly timeseries #{enduse} electricity use from the model. Cannot calculate results")
         electricity_enduse_results["#{enduse}_mwh"] << 0
       end
-      electricity_enduse_values.each { |val| electricity_enduse_results["#{enduse}_mwh"] << val * j_to_mwh}
+      electricity_enduse_values.each { |val| electricity_enduse_results["#{enduse}_mwh"] << val * j_to_mwh }
     end
 
     # get run period natural gas values
@@ -542,8 +540,8 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     runner.registerValue('annual_propane_ghg_emissions_kg', annual_propane_emissions_co2e_kg)
 
     # fuel end-use emissions
-    enduses.push("TotalHVAC").each do |enduse|
-      next if (enduse.include?("Lights") || enduse.include?("Refrigeration"))
+    enduses.push(['TotalHVAC']).flatten.each do |enduse|
+      next if (enduse.include?('Lights') || enduse.include?('Refrigeration'))
 
       # get run period natural gas end-use values
       gas_enduse_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex from ReportMeterDataDictionary WHERE VariableType='Sum' AND upper(VariableName)='#{enduse.upcase}:#{gas.upcase}' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
