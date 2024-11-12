@@ -6,7 +6,7 @@ require 'rubocop/rake_task'
 desc 'Run measure tests'
 namespace :unit_tests do
   desc 'Run all measure tests'
-  task all_tests: [:measure_tests, :workflow_measure_tests, :upgrade_measure_tests] do
+  task all_tests: [:reporting_measure_tests, :workflow_measure_tests, :upgrade_measure_tests] do
     puts 'Running all measure tests:'
   end
 
