@@ -60,7 +60,7 @@ RUN wget https://www.python.org/ftp/python/3.8.8/Python-3.8.8.tgz --no-check-cer
     rm -rf Python-3.8.8 && \
     rm -rf Python-3.8.8.tgz
 
-RUN python3.8 -m pip install GHEDesigner==1.0
+RUN python3.8 -m pip install git+https://github.com/betsrg/GHEDesigner.git@0436e75834255327fbc33372d2e230c5a7a50a49
 RUN python3.8 -m pip install NREL-PySAM==4.2.0
 
 RUN ghedesigner --help
