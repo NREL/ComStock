@@ -2567,7 +2567,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             abs_svgs_cols[col] = self.col_name_to_savings(col, None)
             pct_svgs_cols[col] = self.col_name_to_percent_savings(col, 'percent')
             # add eui savings for all unweighted eui columns
-            eui_col = self.col_name_to_area_intensity(col)
+            dict_cols_max = {self.QOI_MAX_SHOULDER_USE:self.QOI_MAX_SHOULDER_USE_NORMALIZED,
+                             self.QOI_MAX_SUMMER_USE:self.QOI_MAX_SUMMER_USE_NORMALIZED,
+                             self.QOI_MAX_WINTER_USE:self.QOI_MAX_WINTER_USE_NORMALIZED}
+            if col in dict_cols_max.keys():
+                eui_col = dict_cols_max[col]
+            else:
+                eui_col = self.col_name_to_area_intensity(col)
             engy_cols.append(eui_col)
             abs_svgs_cols[eui_col] = self.col_name_to_savings(eui_col, None)
             pct_svgs_cols[eui_col] = self.col_name_to_percent_savings(eui_col, 'percent')
@@ -2641,9 +2647,16 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         wtd_pct_svgs_cols_to_drop = []
 
         for col in (self.COLS_GHG_ELEC_SEASONAL_DAILY_EGRID + self.COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM + [
-                                                                                                            self.ANN_GHG_EGRID,
-                                                                                                            self.ANN_GHG_CAMBIUM
-                                                                                                            ]):
+            self.GHG_NATURAL_GAS,
+            self.GHG_FUEL_OIL,
+            self.GHG_PROPANE,
+            self.GHG_LRMER_LOW_RE_COST_15_ELEC,
+            self.GHG_LRMER_MID_CASE_15_ELEC,
+            self.GHG_LRMER_HIGH_RE_COST_15_ELEC,
+            self.GHG_ELEC_EGRID,
+            self.ANN_GHG_EGRID,
+            self.ANN_GHG_CAMBIUM
+            ]):
 
             engy_cols.append(col)
             abs_svgs_cols[col] = self.col_name_to_savings(col, None)
