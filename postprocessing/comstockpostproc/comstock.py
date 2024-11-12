@@ -212,6 +212,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.add_bill_intensity_columns()
                 self.add_energy_rate_columns()
                 self.add_normalized_qoi_columns()
+                self.add_peak_intensity_columns()
                 self.add_vintage_column()
                 self.add_dataset_column()
                 # self.add_upgrade_building_id_column()  # TODO POLARS figure out apply function
@@ -222,6 +223,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.add_enduse_group_columns()
                 self.add_addressable_segments_columns()
                 self.combine_emissions_cols()
+                self.add_emissions_intensity_columns()
                 if upgrade_id not in upgradIdcount:
                     upgradIdcount[upgrade_id] = self.data.filter(pl.col(self.UPGRADE_ID) == upgrade_id).shape[0]
                 self.add_metadata_index_col(upgradIdcount)
@@ -1529,7 +1531,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 ins.append(c)
             elif c.startswith('out.qoi.'):
                 out_qoi.append(c)
-            elif c.startswith('out.emissions.'):
+            elif (c.startswith('out.emissions.')
+                  or c.startswith('out.emissions_')):
                 out_emissions.append(c)
             elif c.startswith('out.utility_bills.'):
                 out_utility.append(c)
@@ -1727,6 +1730,32 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 # self.data[new] = (self.data[orig] / self.data[self.FLR_AREA]) * 1000
                 self.data = self.data.with_columns(
                     (pl.col(orig) / pl.col(self.FLR_AREA) * 1000).alias(new))
+    
+    def add_peak_intensity_columns(self):
+        # Create peak per area column for each peak column
+        for peak_col in (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK + self.COLS_QOI_MONTHLY_MED_DAILY_PEAK):
+            # Divide peak by area to create intensity
+            per_area_col = self.col_name_to_area_intensity(peak_col)
+            self.data = self.data.with_columns(
+                (pl.col(peak_col) / pl.col(self.FLR_AREA)).alias(per_area_col))
+            
+    def add_emissions_intensity_columns(self):
+        # Create emissions per area column for each emissions column
+        for emissions_col in (self.COLS_GHG_ELEC_SEASONAL_DAILY_EGRID + self.COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM + [
+            self.GHG_NATURAL_GAS,
+            self.GHG_FUEL_OIL,
+            self.GHG_PROPANE,
+            self.GHG_LRMER_LOW_RE_COST_15_ELEC,
+            self.GHG_LRMER_MID_CASE_15_ELEC,
+            self.GHG_LRMER_HIGH_RE_COST_15_ELEC,
+            self.GHG_ELEC_EGRID,
+            self.ANN_GHG_EGRID,
+            self.ANN_GHG_CAMBIUM
+            ]):
+            # Divide emissions by area to create intensity
+            per_area_col = self.col_name_to_area_intensity(emissions_col)
+            self.data = self.data.with_columns(
+                (pl.col(emissions_col) / pl.col(self.FLR_AREA)).alias(per_area_col))
 
     def add_aeo_nems_building_type_column(self):
         # Add the AEO and NEMS building type for each row of CBECS
@@ -2537,7 +2566,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             abs_svgs_cols[col] = self.col_name_to_savings(col, None)
             pct_svgs_cols[col] = self.col_name_to_percent_savings(col, 'percent')
             # add eui savings for all unweighted eui columns
-            eui_col = self.col_name_to_area_intensity(col)
+            dict_cols_max = {self.QOI_MAX_SHOULDER_USE:self.QOI_MAX_SHOULDER_USE_NORMALIZED,
+                             self.QOI_MAX_SUMMER_USE:self.QOI_MAX_SUMMER_USE_NORMALIZED,
+                             self.QOI_MAX_WINTER_USE:self.QOI_MAX_WINTER_USE_NORMALIZED}
+            if col in dict_cols_max.keys():
+                eui_col = dict_cols_max[col]
+            else:
+                eui_col = self.col_name_to_area_intensity(col)
             engy_cols.append(eui_col)
             abs_svgs_cols[eui_col] = self.col_name_to_savings(eui_col, None)
             pct_svgs_cols[eui_col] = self.col_name_to_percent_savings(eui_col, 'percent')
@@ -2611,9 +2646,16 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         wtd_pct_svgs_cols_to_drop = []
 
         for col in (self.COLS_GHG_ELEC_SEASONAL_DAILY_EGRID + self.COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM + [
-                                                                                                            self.ANN_GHG_EGRID,
-                                                                                                            self.ANN_GHG_CAMBIUM
-                                                                                                            ]):
+            self.GHG_NATURAL_GAS,
+            self.GHG_FUEL_OIL,
+            self.GHG_PROPANE,
+            self.GHG_LRMER_LOW_RE_COST_15_ELEC,
+            self.GHG_LRMER_MID_CASE_15_ELEC,
+            self.GHG_LRMER_HIGH_RE_COST_15_ELEC,
+            self.GHG_ELEC_EGRID,
+            self.ANN_GHG_EGRID,
+            self.ANN_GHG_CAMBIUM
+            ]):
 
             engy_cols.append(col)
             abs_svgs_cols[col] = self.col_name_to_savings(col, None)
