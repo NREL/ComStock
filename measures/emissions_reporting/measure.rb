@@ -284,8 +284,6 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
   def energyPlusOutputRequests(runner, user_arguments)
     super(runner, user_arguments)
 
-
-
     # use the built-in error checking
     if !runner.validateUserArguments(arguments, user_arguments)
       return result
@@ -293,7 +291,6 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
 
     # make a vector of output requests
     result = OpenStudio::IdfObjectVector.new
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Site Outdoor Air Drybulb Temperature,Hourly;').get
 
     # Get model
     model = runner.lastOpenStudioModel
@@ -302,6 +299,9 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
       return result
     end
     model = model.get
+
+    # add outdoor drybulb temperature request
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Site Outdoor Air Drybulb Temperature,Hourly;').get
 
     resources = resources(model)
     resources.each do |resource|
@@ -488,14 +488,14 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
       return false
     end
 
-    hourly_electricity_mwh = electricity_values.map{ |val| val * j_to_mwh }
+    hourly_electricity_mwh = electricity_values.map { |val| val * j_to_mwh }
 
     # get end-use electricity values
     electricity_enduse_results = {}
     enduses.push(['TotalHVAC']).flatten.each do |enduse|
       electricity_enduse_results["#{enduse}_mwh"] = []
       electricity_enduse_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex from ReportMeterDataDictionary WHERE VariableType='Sum' AND upper(VariableName)='#{enduse.upcase}:ELECTRICITY' AND ReportingFrequency='Hourly' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
-      electricity_enduse_values = sqlFile.execAndReturnVectorOfDouble(electricity_enduse_query).get.to_a
+      electricity_enduse_values = sql_file.execAndReturnVectorOfDouble(electricity_enduse_query).get.to_a
       if electricity_enduse_values.empty?
         runner.registerWarning("Unable to get hourly timeseries #{enduse} electricity use from the model. Cannot calculate results")
         electricity_enduse_results["#{enduse}_mwh"] << 0

@@ -4563,7 +4563,10 @@ OS:AdditionalProperties,
   {3356aedb-116e-430d-91d1-31f2b67492b4}, !- Object Name
   hvac_system_type,                       !- Feature Name 1
   String,                                 !- Feature Data Type 1
-  Inferred;                               !- Feature Value 1
+  Inferred,                               !- Feature Value 1
+  grid_region,                            !- Feature Name 2
+  String,                                 !- Feature Data Type 2
+  RMPAc;                                  !- Feature Value 2
 
 OS:Sizing:Parameters,
   {a71a048a-0bdd-4d4f-b611-81cbddb6f9b6}, !- Handle

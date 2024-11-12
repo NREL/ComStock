@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>emissions_reporting</name>
   <uid>acdba906-e08f-4c88-9aef-2f0b0cfbb9d1</uid>
-  <version_id>9e9bc9bb-88ce-420e-864f-77cbdaf1d4b6</version_id>
-  <version_modified>2024-10-14T14:42:11Z</version_modified>
+  <version_id>ac0521c5-cbfe-4b98-9575-ca95768b109a</version_id>
+  <version_modified>2024-11-12T18:35:04Z</version_modified>
   <xml_checksum>C46EF23F</xml_checksum>
   <class_name>EmissionsReporting</class_name>
   <display_name>Emissions Reporting</display_name>
@@ -489,7 +489,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>F4929A45</checksum>
+      <checksum>8863F753</checksum>
     </file>
     <file>
       <filename>cambium/AER_95DecarbBy2035_1/AZNMc.csv</filename>
@@ -3039,7 +3039,7 @@
       <filename>EmissionsReporting_Test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>F8D3563F</checksum>
+      <checksum>B7F240AB</checksum>
     </file>
     <file>
       <filename>FortCollins2016.epw</filename>
@@ -3048,16 +3048,10 @@
       <checksum>25EF7C9B</checksum>
     </file>
     <file>
-      <filename>office.osm</filename>
-      <filetype>osm</filetype>
-      <usage_type>test</usage_type>
-      <checksum>122E4E19</checksum>
-    </file>
-    <file>
       <filename>smalloffice.osm</filename>
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
-      <checksum>40A4F1D3</checksum>
+      <checksum>FF9261AA</checksum>
     </file>
   </files>
 </measure>

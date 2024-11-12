@@ -397,10 +397,10 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
         prices_path = File.join(File.dirname(__FILE__), 'resources', 'eia_com_gas_prices_dol_per_kbtu_2022.json')
         dollars_per_kbtu = JSON.parse(File.read(prices_path))[state_abbreviation]
         ng_bill_dollars = (tot_kbtu * dollars_per_kbtu).round.to_i
-        runner.registerValue("natural_gas_rate_name", "EIA 2022 Average Commercial Natural Gas Price for #{state_abbreviation}")
+        runner.registerValue('natural_gas_rate_name', "EIA 2022 Average Commercial Natural Gas Price for #{state_abbreviation}")
       end
     end
-    runner.registerValue("natural_gas_bill_dollars", ng_bill_dollars)
+    runner.registerValue('natural_gas_bill_dollars', ng_bill_dollars)
 
     # Propane Bill
     propane_bill_dollars = 0
@@ -410,10 +410,10 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
         prices_path = File.join(File.dirname(__FILE__), 'resources', 'eia_res_propane_prices_dol_per_kbtu_2022.json')
         dollars_per_kbtu = JSON.parse(File.read(prices_path))[state_abbreviation]
         propane_bill_dollars = (tot_kbtu * dollars_per_kbtu).round.to_i
-        runner.registerValue("propane_rate_name", "EIA 2022 Average Residential Propane Price for #{state_abbreviation}")
+        runner.registerValue('propane_rate_name', "EIA 2022 Average Residential Propane Price for #{state_abbreviation}")
       end
     end
-    runner.registerValue("propane_bill_dollars", propane_bill_dollars)
+    runner.registerValue('propane_bill_dollars', propane_bill_dollars)
 
     # Fuel Oil Bill
     fo_bill_dollars = 0
@@ -423,10 +423,10 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
         prices_path = File.join(File.dirname(__FILE__), 'resources', 'eia_res_fuel_oil_prices_dol_per_kbtu_2022.json')
         dollars_per_kbtu = JSON.parse(File.read(prices_path))[state_abbreviation]
         fo_bill_dollars = (tot_kbtu * dollars_per_kbtu).round.to_i
-        runner.registerValue("fuel_oil_rate_name", "EIA 2022 Average Residential Fuel Oil Price for #{state_abbreviation}")
+        runner.registerValue('fuel_oil_rate_name', "EIA 2022 Average Residential Fuel Oil Price for #{state_abbreviation}")
       end
     end
-    runner.registerValue("fuel_oil_bill_dollars", fo_bill_dollars)
+    runner.registerValue('fuel_oil_bill_dollars', fo_bill_dollars)
 
     # District Heating Bills
     # TODO have not found any source of rates beyond data for individual utilities
