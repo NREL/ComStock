@@ -1,22 +1,24 @@
 source 'http://rubygems.org'
-ruby "~> 3.2.0"
+ruby '~> 3.2.0'
 
 # Bug in addressable to 2.8.1 and patched version has an issue https://github.com/NREL/OpenStudio/issues/4870
 gem 'addressable', '= 2.8.1'
 
 # This removes the rubocop runtime dependency on 'json ~> 2.3'.
-gem 'rubocop', :github => 'jmarrec/rubocop', :ref => '1.50.0-no_json'
+gem 'rubocop', github: 'jmarrec/rubocop', ref: '1.50.0-no_json'
+gem 'rubocop-rake'
+gem 'rubocop-rspec'
 
-gem 'bcl', "= 0.8.0"
+gem 'bcl', '= 0.8.0'
 gem 'openstudio-extension', '= 0.8.0'
-gem 'openstudio-workflow', '= 2.4.0'
 gem 'openstudio-standards', '= 0.6.3'
-#gem 'openstudio-standards', git: 'https://github.com/NREL/openstudio-standards.git', ref: 'e61d7d41a0e285cc99c7c6ea4aff1fcdc0be3599'
+gem 'openstudio-workflow', '= 2.4.0'
+# gem 'openstudio-standards', git: 'https://github.com/NREL/openstudio-standards.git', ref: 'e61d7d41a0e285cc99c7c6ea4aff1fcdc0be3599'
 # gem 'openstudio-standards', path: "C:/GitRepos/openstudio-standards" # Use this format when testing openstudio-standards changes locally
+gem 'openstudio-geb', '= 0.4.0', github: 'LBNL-ETA/Openstudio-GEB-gem', ref: 'a18e023936dd5c92be7dbf354f6331f60a965828'
 gem 'tbd', '= 3.4.2'
-gem 'openstudio-geb', '= 0.4.0',:github => 'LBNL-ETA/Openstudio-GEB-gem', :ref => 'a18e023936dd5c92be7dbf354f6331f60a965828'
 
 group :test do
-  gem 'minitest-reporters', '= 1.4.3'
   gem 'minitest-junit', '= 1.1.0'
+  gem 'minitest-reporters', '= 1.4.3'
 end

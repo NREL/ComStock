@@ -334,12 +334,12 @@ class ComStockBaseSampler:
                 )
 
             if jsons:
-                res = Parallel(round(cpu_count()), verbose=5)(
+                res = Parallel(round(cpu_count()), verbose=5, prefer='threads')(
                     delayed(self._com_execute_json_samples)(
                         tsv_hash, dependency_hash, attr_order, sample_matrices[bucket], prev_results_list[bucket]
                     ) for bucket in range(self.n_buckets))
             else:
-                res = Parallel(round(cpu_count()), verbose=5)(
+                res = Parallel(round(cpu_count()), verbose=5, prefer='threads')(
                     delayed(self._com_execute_samples)(
                         tsv_hash, dependency_hash, attr_order, sample_matrices[bucket], prev_results_list[bucket]
                     ) for bucket in range(self.n_buckets)

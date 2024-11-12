@@ -1,20 +1,15 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2024 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
-
-# see the URL below for information on how to write OpenStudio measures
-# http://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/
 
 require 'csv'
 require 'date'
 require 'json'
 require 'open3'
 
-
-#start the measure
+# start the measure
 class UtilityBills < OpenStudio::Measure::ReportingMeasure
-
   def os
-    @os ||= (
+    @os ||= begin
       host_os = RbConfig::CONFIG['host_os']
       case host_os
       when /mswin|msys|mingw|cygwin|bccwin|wince|emc/
@@ -28,22 +23,22 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
       else
         raise Error::WebDriverError, "unknown os: #{host_os.inspect}"
       end
-    )
+    end
   end
 
   # human readable name
   def name
-    return "Utility Bills"
+    return 'Utility Bills'
   end
 
   # human readable description
   def description
-    return "Calculates utility bills for the model based on location."
+    return 'Calculates utility bills for the model based on location.'
   end
 
   # human readable description of modeling approach
   def modeler_description
-    return "Calculates utility bills using the PySAM API and commercial rates from the NREL Utility Rate Database or EIA data."
+    return 'Calculates utility bills using the PySAM API and commercial rates from the NREL Utility Rate Database or EIA data.'
   end
 
   # define the arguments that the user will input
@@ -60,7 +55,7 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     result = OpenStudio::IdfObjectVector.new
 
     # Request hourly data for fuel types with hourly bill calculations
-    result << OpenStudio::IdfObject.load("Output:Meter,Electricity:Facility,Hourly;").get
+    result << OpenStudio::IdfObject.load('Output:Meter,Electricity:Facility,Hourly;').get
 
     return result
   end
@@ -72,14 +67,14 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     # Get the last model and sql file
     model = runner.lastOpenStudioModel
     if model.empty?
-      runner.registerError("Could not load last OpenStudio model, cannot apply measure.")
+      runner.registerError('Could not load last OpenStudio model, cannot apply measure.')
       return false
     end
     model = model.get
 
     sql = runner.lastEnergyPlusSqlFile
     if sql.empty?
-      runner.registerError("Cannot find last sql file.")
+      runner.registerError('Cannot find last sql file.')
       return false
     end
     sql = sql.get
@@ -93,7 +88,7 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     elsif File.exist?(run_dir_comstock)
       run_dir = run_dir_comstock
     else
-      runner.registerError("Could not find directory with EnergyPlus output, cannot extract timeseries results")
+      runner.registerError('Could not find directory with EnergyPlus output, cannot extract timeseries results')
       return false
     end
 
@@ -115,10 +110,8 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     ann_env_pd = nil
     sql.availableEnvPeriods.each do |env_pd|
       env_type = sql.environmentType(env_pd)
-      if env_type.is_initialized
-        if env_type.get == OpenStudio::EnvironmentType.new('WeatherRunPeriod')
-          ann_env_pd = env_pd
-        end
+      if env_type.is_initialized && (env_type.get == (OpenStudio::EnvironmentType.new('WeatherRunPeriod')))
+        ann_env_pd = env_pd
       end
     end
     if ann_env_pd == false
@@ -131,7 +124,7 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     # Get hourly electricity timeseries
     elec_ts = sql.timeSeries(ann_env_pd, 'Hourly', 'Electricity:Facility', '')
     if elec_ts.empty?
-      runner.registerError("Could not get hourly electricity consumption, cannot calculate electricity bill")
+      runner.registerError('Could not get hourly electricity consumption, cannot calculate electricity bill')
       return false
     end
     elec_ts = elec_ts.get
@@ -145,7 +138,7 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     elec_ts.dateTimes.each_with_index do |date_time, i|
       # runner.registerInfo("timestamp index: #{i}, #{date_time.date.dayOfWeek.valueName} ,#{date_time}")
       if date_time.date.dayOfWeek.valueName == 'Monday'
-         # E+ timestamps are hour-ending, so a 00:00 timestamp represents 11-12pm the day prior
+        # E+ timestamps are hour-ending, so a 00:00 timestamp represents 11-12pm the day prior
         if date_time.time.hours.zero?
           first_monday_i = i + 1
         else
@@ -157,10 +150,9 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     end
 
     # Convert the timeseries vectors to Ruby arrays
-    orig_dts = []
-    elec_ts.dateTimes.each {|dt| orig_dts << dt}
+    orig_dts = elec_ts.dateTimes.map { |dt| dt }
     orig_vals = []
-    elec_ts.values.each {|val| orig_vals << val}
+    elec_ts.values.each { |val| orig_vals << val }
 
     # Shift values if necessary
     runner.registerInfo("Raw electric timeseries dates #{orig_dts[0]} to #{orig_dts[-1]}")
@@ -170,9 +162,9 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
       shifted_vals = orig_vals
     else
       # First monday through the end of the year, then first few pre-Monday days
-      runner.registerInfo("Shifting electric timeseries to Monday start for PySAM")
-      shifted_dts = orig_dts[first_monday_i..-1] + orig_dts[0..first_monday_i-1]
-      shifted_vals = orig_vals[first_monday_i..-1] + orig_vals[0..first_monday_i-1]
+      runner.registerInfo('Shifting electric timeseries to Monday start for PySAM')
+      shifted_dts = orig_dts[first_monday_i..] + orig_dts[0..first_monday_i - 1]
+      shifted_vals = orig_vals[first_monday_i..] + orig_vals[0..first_monday_i - 1]
       runner.registerInfo("Shifted electric timeseries dates #{shifted_dts[0]} to #{shifted_dts[-1]}")
     end
 
@@ -189,9 +181,8 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     end
 
     # Convert electricity to kWh
-    hourly_electricity_kwh = []
-    shifted_vals.each do |val|
-      hourly_electricity_kwh << OpenStudio.convert(val, 'J', 'kWh').get # hourly data
+    hourly_electricity_kwh = shifted_vals.map do |val|
+      OpenStudio.convert(val, 'J', 'kWh').get # hourly data
     end
 
     # Get min and peak demand for rates with qualifiers
@@ -224,22 +215,22 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
 
     # Look up the utility EIA ID based on the census tract
     elec_eia_id = tract_to_elec_util[census_tract]
-    unless elec_eia_id.nil?
-      runner.registerValue('electricity_utility_eia_id', elec_eia_id)
-    else
+    if elec_eia_id.nil?
       runner.registerWarning("No electric utility for census tract #{census_tract}, using EIA average electric price.")
+    else
+      runner.registerValue('electricity_utility_eia_id', elec_eia_id)
     end
 
     # Find all the electric rates for this utility
     all_rates = Dir.glob(File.join(File.dirname(__FILE__), "resources/elec_rates/#{elec_eia_id}/*.json"))
-    if all_rates.size > 0
-      runner.registerInfo("Found #{all_rates.size} URDB electric rates for EIA utility #{elec_eia_id}.")
-      use_urdb_rates = true
-    else
+    if all_rates.empty?
       unless elec_eia_id.nil?
         runner.registerWarning("No URDB electric rates found for EIA utility #{elec_eia_id}, using EIA average electric price.")
         use_urdb_rates = false
       end
+    else
+      runner.registerInfo("Found #{all_rates.size} URDB electric rates for EIA utility #{elec_eia_id}.")
+      use_urdb_rates = true
     end
 
     # Downselect to applicable rates based on kW and kWh limits
@@ -250,32 +241,24 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
       rate_name = rate['name']
       rate_id = rate['label']
 
-      if rate.has_key?('peakkwcapacitymin')
-        if min_kw < rate['peakkwcapacitymin']
-          runner.registerInfo("Rate #{rate_name} is not applicable because the building min demand of #{min_kw} kW is below minimum threshold of #{rate['peakkwcapacitymin']} kW.")
-          next
-        end
+      if rate.key?('peakkwcapacitymin') && (min_kw < (rate['peakkwcapacitymin']))
+        runner.registerInfo("Rate #{rate_name} is not applicable because the building min demand of #{min_kw} kW is below minimum threshold of #{rate['peakkwcapacitymin']} kW.")
+        next
       end
 
-      if rate.has_key?('peakkwcapacitymax')
-        if max_kw > rate['peakkwcapacitymax']
-          runner.registerInfo("Rate #{rate_name} is not applicable because the building max demand of #{max_kw} kW is above maximum threshold of #{rate['peakkwcapacitymax']} kW.")
-          next
-        end
+      if rate.key?('peakkwcapacitymax') && (max_kw > (rate['peakkwcapacitymax']))
+        runner.registerInfo("Rate #{rate_name} is not applicable because the building max demand of #{max_kw} kW is above maximum threshold of #{rate['peakkwcapacitymax']} kW.")
+        next
       end
 
-      if rate.has_key?('peakkwhusagemin')
-        if tot_elec_kwh < rate['peakkwhusagemin']
-          runner.registerInfo("Rate #{rate_name} is not applicable because the building annual energy #{tot_elec_kwh} kWh is below minimum threshold of #{rate['peakkwhusagemin']} kWh.")
-          next
-        end
+      if rate.key?('peakkwhusagemin') && (tot_elec_kwh < (rate['peakkwhusagemin']))
+        runner.registerInfo("Rate #{rate_name} is not applicable because the building annual energy #{tot_elec_kwh} kWh is below minimum threshold of #{rate['peakkwhusagemin']} kWh.")
+        next
       end
 
-      if rate.has_key?('peakkwhusagemax')
-        if tot_elec_kwh > rate['peakkwhusagemax']
-          runner.registerInfo("Rate #{rate_name} is not applicable because the building annual energy #{tot_elec_kwh} kWh is above maximum threshold of #{rate['peakkwhusagemax']} kWh.")
-          next
-        end
+      if rate.key?('peakkwhusagemax') && (tot_elec_kwh > (rate['peakkwhusagemax']))
+        runner.registerInfo("Rate #{rate_name} is not applicable because the building annual energy #{tot_elec_kwh} kWh is above maximum threshold of #{rate['peakkwhusagemax']} kWh.")
+        next
       end
 
       # Rate is applicable to this building
@@ -284,9 +267,9 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     end
 
     # Ensure at least one rate is applicable to this building
-    if all_rates.size > 0 && applicable_rates.size.zero?
+    if !all_rates.empty? && applicable_rates.empty?
       use_urdb_rates = false
-      runner.registerWarning("No URDB electric rates were applicable to this building, using EIA average electric price.")
+      runner.registerWarning('No URDB electric rates were applicable to this building, using EIA average electric price.')
     end
 
     # Calculate bills using either URDB rates or EIA average price
@@ -294,7 +277,7 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     if use_urdb_rates
       # Write the hourly kWh to CSV
       elec_csv_path = File.expand_path("#{run_dir}/electricity_hourly.csv")
-      CSV.open(elec_csv_path, "wb") do |csv|
+      CSV.open(elec_csv_path, 'wb') do |csv|
         hourly_electricity_kwh.each do |kwh|
           csv << [kwh.round(3)]
         end
@@ -320,7 +303,7 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
         end
 
         # Call calc_elec_bill.py
-        py = if (os == :windows || os == :macosx)
+        py = if os == :windows || os == :macosx
                'python' # Assumes running buildstockbatch from a Conda shell
              elsif os == :linux
                'python3.8' # Assumes running buildstockbatch from ComStock docker image
@@ -362,7 +345,7 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
 
       # Report bills for reasonable rates where: 0.25x_median < bill < 2x_median
       bills_sorted = rate_results.values.sort
-      median_bill = bills_sorted[(bills_sorted.length - 1) / 2] + bills_sorted[bills_sorted.length / 2] / 2.0
+      median_bill = bills_sorted[(bills_sorted.length - 1) / 2] + (bills_sorted[bills_sorted.length / 2] / 2.0)
       i = 1
       rate_results.each do |rate_name, bill|
         if bill < 0.25 * median_bill
@@ -381,8 +364,8 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
       elec_prices_path = File.join(File.dirname(__FILE__), 'resources', 'eia_com_elec_prices_dol_per_kwh_2022.json')
       elec_rate_dollars_per_kwh = JSON.parse(File.read(elec_prices_path))[state_abbreviation]
       total_elec_utility_bill_dollars = (tot_elec_kwh * elec_rate_dollars_per_kwh).round.to_i
-      runner.registerValue("electricity_rate_1_name", "EIA 2022 Average Commercial Electric Price for #{state_abbreviation}")
-      runner.registerValue("electricity_rate_1_bill_dollars", total_elec_utility_bill_dollars)
+      runner.registerValue('electricity_rate_1_name', "EIA 2022 Average Commercial Electric Price for #{state_abbreviation}")
+      runner.registerValue('electricity_rate_1_bill_dollars', total_elec_utility_bill_dollars)
       elec_bills << total_elec_utility_bill_dollars
     end
 
@@ -407,40 +390,43 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     runner.registerValue('electricity_bill_number_of_rates', n_bills)
 
     # Natural Gas Bill
+    ng_bill_dollars = 0
     if sql.naturalGasTotalEndUses.is_initialized
       tot_kbtu = OpenStudio.convert(sql.naturalGasTotalEndUses.get, 'GJ', 'kBtu').get
       if tot_kbtu > 0
         prices_path = File.join(File.dirname(__FILE__), 'resources', 'eia_com_gas_prices_dol_per_kbtu_2022.json')
         dollars_per_kbtu = JSON.parse(File.read(prices_path))[state_abbreviation]
-        utility_bill_dollars = (tot_kbtu * dollars_per_kbtu).round.to_i
-        runner.registerValue("natural_gas_rate_name", "EIA 2022 Average Commercial Natural Gas Price for #{state_abbreviation}")
-        runner.registerValue("natural_gas_bill_dollars", utility_bill_dollars)
+        ng_bill_dollars = (tot_kbtu * dollars_per_kbtu).round.to_i
+        runner.registerValue('natural_gas_rate_name', "EIA 2022 Average Commercial Natural Gas Price for #{state_abbreviation}")
       end
     end
+    runner.registerValue('natural_gas_bill_dollars', ng_bill_dollars)
 
     # Propane Bill
+    propane_bill_dollars = 0
     if sql.propaneTotalEndUses.is_initialized
       tot_kbtu = OpenStudio.convert(sql.propaneTotalEndUses.get, 'GJ', 'kBtu').get
       if tot_kbtu > 0
         prices_path = File.join(File.dirname(__FILE__), 'resources', 'eia_res_propane_prices_dol_per_kbtu_2022.json')
         dollars_per_kbtu = JSON.parse(File.read(prices_path))[state_abbreviation]
-        utility_bill_dollars = (tot_kbtu * dollars_per_kbtu).round.to_i
-        runner.registerValue("propane_rate_name", "EIA 2022 Average Residential Propane Price for #{state_abbreviation}")
-        runner.registerValue("propane_bill_dollars", utility_bill_dollars)
+        propane_bill_dollars = (tot_kbtu * dollars_per_kbtu).round.to_i
+        runner.registerValue('propane_rate_name', "EIA 2022 Average Residential Propane Price for #{state_abbreviation}")
       end
     end
+    runner.registerValue('propane_bill_dollars', propane_bill_dollars)
 
     # Fuel Oil Bill
+    fo_bill_dollars = 0
     if sql.fuelOilNo2TotalEndUses.is_initialized
       tot_kbtu = OpenStudio.convert(sql.fuelOilNo2TotalEndUses.get, 'GJ', 'kBtu').get
       if tot_kbtu > 0
         prices_path = File.join(File.dirname(__FILE__), 'resources', 'eia_res_fuel_oil_prices_dol_per_kbtu_2022.json')
         dollars_per_kbtu = JSON.parse(File.read(prices_path))[state_abbreviation]
-        utility_bill_dollars = (tot_kbtu * dollars_per_kbtu).round.to_i
-        runner.registerValue("fuel_oil_rate_name", "EIA 2022 Average Residential Fuel Oil Price for #{state_abbreviation}")
-        runner.registerValue("fuel_oil_bill_dollars", utility_bill_dollars)
+        fo_bill_dollars = (tot_kbtu * dollars_per_kbtu).round.to_i
+        runner.registerValue('fuel_oil_rate_name', "EIA 2022 Average Residential Fuel Oil Price for #{state_abbreviation}")
       end
     end
+    runner.registerValue('fuel_oil_bill_dollars', fo_bill_dollars)
 
     # District Heating Bills
     # TODO have not found any source of rates beyond data for individual utilities
@@ -465,7 +451,6 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
 
     return true
   end
-
 end
 
 # register the measure to be used by the application

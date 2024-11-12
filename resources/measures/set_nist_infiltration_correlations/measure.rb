@@ -89,7 +89,7 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
       else
         nist_building_type = 'MediumOffice'
       end
-    when 'LargeOffice'
+    when 'LargeOffice', 'Outpatient', 'OfL'
       nist_building_type = 'MediumOffice'
     when 'Retail'
       # map retal building type to RetailStripmall or RetailStandalone based on building name
@@ -99,30 +99,14 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
       else
         nist_building_type = 'RetailStripmall'
       end
-    when 'StripMall'
+    when 'StripMall', 'Warehouse', 'QuickServiceRestaurant', 'FullServiceRestaurant', 'RtS', 'RSD', 'RFF', 'SCn', 'SUn'
       nist_building_type = 'RetailStripmall'
-    when 'Warehouse'
-      nist_building_type = 'RetailStripmall'
-    when 'QuickServiceRestaurant'
-      nist_building_type = 'RetailStripmall'
-    when 'FullServiceRestaurant'
-      nist_building_type = 'RetailStripmall'
-    when 'Outpatient'
-      nist_building_type = 'MediumOffice'
-    when 'SuperMarket'
+    when 'SuperMarket', 'RtL',
       nist_building_type = 'RetailStandalone'
     when 'EPr'
       nist_building_type = 'PrimarySchool'
     when 'ESe'
       nist_building_type = 'SecondarySchool'
-    when 'RtL'
-      nist_building_type = 'RetailStandalone'
-    when 'RtS'
-      nist_building_type = 'RetailStripmall'
-    when 'RSD'
-      nist_building_type = 'RetailStripmall'
-    when 'RFF'
-      nist_building_type = 'RetailStripmall'
     when 'Mtl'
       nist_building_type = 'SmallHotel'
     when 'Htl'
@@ -131,10 +115,6 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
       nist_building_type = 'Hospital'
     when 'OfS'
       nist_building_type = 'SmallOffice'
-    when 'OfL'
-      nist_building_type = 'MediumOffice'
-    when 'SCn','SUn'
-      nist_building_type = 'RetailStripmall'
     else
       nist_building_type = model_building_type
     end
@@ -148,8 +128,8 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
 
   # method to invert a schedule day
   def invert_schedule_day(old_schedule_day, new_schedule_day, new_schedule_name)
-    new_schedule_day.setName("#{new_schedule_name}")
-    for index in 0..old_schedule_day.times.size-1
+    new_schedule_day.setName(new_schedule_name)
+    for index in 0..(old_schedule_day.times.size - 1)
       old_value = old_schedule_day.values[index]
       if old_value == 0
         new_value = 1
@@ -209,14 +189,14 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
     args = OpenStudio::Measure::OSArgumentVector.new
 
     # airtightness value
-    airtightness_value = OpenStudio::Measure::OSArgument::makeDoubleArgument('airtightness_value', false)
+    airtightness_value = OpenStudio::Measure::OSArgument.makeDoubleArgument('airtightness_value', false)
     airtightness_value.setDefaultValue(13.8)
     airtightness_value.setDisplayName('Airtightness design value (m^3/h-m^2)')
     airtightness_value.setDescription('The airtightness design value from a building pressurization test. Use 5.0 (m^3/h-m^2) as a default for buildings with air barriers. Convert (cfm/ft^2) to (m^3/h-m^2) by multiplying by 18.288 (m-min/ft-hr). (0.3048 m/ft)*(60 min/hr) = 18.288 (m-min/ft-hr).')
     args << airtightness_value
 
     # airtightness pressure
-    airtightness_pressure = OpenStudio::Measure::OSArgument::makeDoubleArgument('airtightness_pressure', false)
+    airtightness_pressure = OpenStudio::Measure::OSArgument.makeDoubleArgument('airtightness_pressure', false)
     airtightness_pressure.setDefaultValue(75.0)
     airtightness_pressure.setDisplayName('Airtightness design pressure (Pa)')
     airtightness_pressure.setDescription('The corresponding pressure for the airtightness design value, typically 75 Pa for commercial buildings and 50 Pa for residential buildings.')
@@ -236,7 +216,7 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
     args << airtightness_area
 
     # air barrier
-    air_barrier = OpenStudio::Measure::OSArgument::makeBoolArgument('air_barrier', false)
+    air_barrier = OpenStudio::Measure::OSArgument.makeBoolArgument('air_barrier', false)
     air_barrier.setDefaultValue(false)
     air_barrier.setDisplayName('Does the building have an air barrier?')
     air_barrier.setDescription('Buildings with air barriers use a different set of coefficients.')
@@ -257,7 +237,7 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
     model.getScheduleConstants.each { |sch| schedule_names << sch.name.to_s }
 
     # hvac operation schedule
-    hvac_schedule = OpenStudio::Measure::OSArgument::makeChoiceArgument('hvac_schedule', schedule_names, false, true)
+    hvac_schedule = OpenStudio::Measure::OSArgument.makeChoiceArgument('hvac_schedule', schedule_names, false, true)
     hvac_schedule.setDefaultValue('Lookup From Model')
     hvac_schedule.setDisplayName('HVAC Operating Schedule')
     hvac_schedule.setDescription('Choose the HVAC Operating Schedule for the building. The schedule must be a Schedule Constant or Schedule Ruleset object. Lookup From Model will use the operating schedule from the largest airloop by floor area served. If the largest airloop serves less than 5% of the building, the measure will attempt to use the Building Hours of Operation schedule instead.')
@@ -452,7 +432,7 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
       end
 
       building_area = model.getBuilding.floorArea
-      if largest_area < 0.05*building_area
+      if largest_area < (0.05 * building_area)
         runner.registerWarning("The largest airloop or HVAC system serves #{largest_area.round(1)} m^2, which is less than 5% of the building area #{building_area.round(1)} m^2. Attempting to use building hours of operation schedule instead.")
         default_schedule_set = model.getBuilding.defaultScheduleSet
         if default_schedule_set.is_initialized
@@ -462,11 +442,11 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
             hvac_schedule = hoo.get
             largest_area = building_area
           else
-            runner.registerWarning("Unable to determine building hours of operation schedule. Treating the building as if there is no HVAC system schedule.")
+            runner.registerWarning('Unable to determine building hours of operation schedule. Treating the building as if there is no HVAC system schedule.')
             hvac_schedule = nil
           end
         else
-          runner.registerWarning("Unable to determine building hours of operation schedule. Treating the building as if there is no HVAC system schedule.")
+          runner.registerWarning('Unable to determine building hours of operation schedule. Treating the building as if there is no HVAC system schedule.')
           hvac_schedule = nil
         end
       end
@@ -498,18 +478,18 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
     if hvac_schedule.nil?
       runner.registerWarning('Unable to determine the HVAC schedule. Treating the building as if there is no HVAC system with outdoor air.  If this is not the case, input a schedule argument, or assign one to an air loop in the model.')
       on_schedule = OpenStudio::Model::ScheduleConstant.new(model)
-      on_schedule.setName("Infiltration HVAC On Schedule")
+      on_schedule.setName('Infiltration HVAC On Schedule')
       on_schedule.setValue(0.0)
       off_schedule = OpenStudio::Model::ScheduleConstant.new(model)
-      off_schedule.setName("Infiltration HVAC Off Schedule")
+      off_schedule.setName('Infiltration HVAC Off Schedule')
       off_schedule.setValue(1.0)
     elsif hvac_schedule.to_ScheduleConstant.is_initialized
       hvac_schedule = hvac_schedule.to_ScheduleConstant.get
       on_schedule = OpenStudio::Model::ScheduleConstant.new(model)
-      on_schedule.setName("Infiltration HVAC On Schedule")
+      on_schedule.setName('Infiltration HVAC On Schedule')
       on_schedule.setValue(hvac_schedule.value)
       off_schedule = OpenStudio::Model::ScheduleConstant.new(model)
-      off_schedule.setName("Infiltration HVAC Off Schedule")
+      off_schedule.setName('Infiltration HVAC Off Schedule')
       if hvac_schedule.value > 0
         off_schedule.setValue(0.0)
       else
@@ -518,7 +498,7 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
     elsif hvac_schedule.to_ScheduleRuleset.is_initialized
       hvac_schedule = hvac_schedule.to_ScheduleRuleset.get
       on_schedule = hvac_schedule.clone.to_ScheduleRuleset.get
-      on_schedule.setName("Infiltration HVAC On Schedule")
+      on_schedule.setName('Infiltration HVAC On Schedule')
       off_schedule = invert_schedule_ruleset(hvac_schedule, 'Infiltration HVAC Off Schedule')
     end
 
@@ -527,21 +507,22 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
       climate_zone = ''
       model.getClimateZones.climateZones.each do |cz|
         next if cz.value == ''
+
         cz_institution = cz.institution
         if cz_institution == 'ASHRAE'
           climate_zone = cz.value
-          climate_zone = climate_zone.gsub('ASHRAE 169-2006-','')
-          climate_zone = climate_zone.gsub('ASHRAE 169-2013-','')
-          climate_zone = climate_zone.gsub('ASHRAE 169-2020-','')
-          climate_zone = climate_zone.gsub('ASHRAE 169-2021-','')
+          climate_zone = climate_zone.gsub('ASHRAE 169-2006-', '')
+          climate_zone = climate_zone.gsub('ASHRAE 169-2013-', '')
+          climate_zone = climate_zone.gsub('ASHRAE 169-2020-', '')
+          climate_zone = climate_zone.gsub('ASHRAE 169-2021-', '')
         elsif cz_institution == 'CEC'
-          california_cz = cz.value.gsub('CEC','')
+          california_cz = cz.value.gsub('CEC', '')
           case california_cz
           when '1'
             climate_zone = '4B'
-          when '2','3','4','5','6'
+          when '2', '3', '4', '5', '6'
             climate_zone = '3C'
-          when '7','8','9','10','11','12','13','14'
+          when '7', '8', '9', '10', '11', '12', '13', '14'
             climate_zone = '3B'
           when '15'
             climate_zone = '2B'
@@ -581,10 +562,10 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
       end
 
       # warn the user if the model building type is different from support nist building types
-      unless model_building_type == nist_building_type
-        runner.registerWarning("Using building type #{building_type} for model building type #{model_building_type}.")
-      else
+      if model_building_type == nist_building_type
         runner.registerInfo("Using building type #{building_type} from model.")
+      else
+        runner.registerWarning("Using building type #{building_type} for model building type #{model_building_type}.")
       end
     else
       runner.registerInfo("Using building type #{building_type} from user arguments.")
@@ -597,27 +578,27 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
 
     # load NIST infiltration correlations file and convert to hash table
     nist_infiltration_correlations_csv = "#{File.dirname(__FILE__)}/resources/Data-NISTInfiltrationCorrelations.csv"
-    if not File.file?(nist_infiltration_correlations_csv)
+    if !File.file?(nist_infiltration_correlations_csv)
       runner.registerError("Unable to find file: #{nist_infiltration_correlations_csv}")
       return nil
     end
     coefficients_tbl = CSV.table(nist_infiltration_correlations_csv)
-    coefficients_hsh = coefficients_tbl.map { |row| row.to_hash }
+    coefficients_hsh = coefficients_tbl.map(&:to_hash)
 
     # select down to building type and climate zone
     coefficients = coefficients_hsh.select { |r| (r[:building_type] == building_type) && (r[:climate_zone] == climate_zone_number) }
 
     # filter by air barrier
     if air_barrier
-      coefficients = coefficients.select { |r| r[:air_barrier] == 'yes'}
+      coefficients = coefficients.select { |r| r[:air_barrier] == 'yes' }
     else
-      coefficients = coefficients.select { |r| r[:air_barrier] == 'no'}
+      coefficients = coefficients.select { |r| r[:air_barrier] == 'no' }
     end
 
     # determine coefficients
     # if no off coefficients are defined, use 0 for a and the on coefficients for b and d
-    on_coefficients = coefficients.select { |r| r[:hvac_status] == 'on'}
-    off_coefficients = coefficients.select { |r| r[:hvac_status] == 'off'}
+    on_coefficients = coefficients.select { |r| r[:hvac_status] == 'on' }
+    off_coefficients = coefficients.select { |r| r[:hvac_status] == 'off' }
     a_on = on_coefficients[0][:a]
     b_on = on_coefficients[0][:b]
     d_on = on_coefficients[0][:d]
@@ -649,7 +630,6 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
       hvac_off_infiltration.setVelocitySquaredTermCoefficient(d_off)
       hvac_off_infiltration.setSpace(space)
       hvac_off_infiltration.setSchedule(off_schedule)
-
     end
 
     runner.registerFinalCondition("The modeled finished with #{model.getSpaceInfiltrationDesignFlowRates.size} infiltration objects.")

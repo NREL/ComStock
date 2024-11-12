@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>fault_hvac_economizer_damper_stuck</name>
   <uid>790eeac7-3689-4d63-ab6c-16ddb473905e</uid>
-  <version_id>0b53db6a-3d7d-43d1-9211-3ee32a8f0858</version_id>
-  <version_modified>2024-06-20T18:58:38Z</version_modified>
+  <version_id>8bd813cb-0d50-4a6e-bcca-a6d089294e5d</version_id>
+  <version_modified>2024-10-16T20:20:54Z</version_modified>
   <xml_checksum>D881B814</xml_checksum>
   <class_name>FaultHvacEconomizerDamperStuck</class_name>
   <display_name>fault hvac economizer damper stuck</display_name>
@@ -135,13 +135,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>D6C7AC49</checksum>
+      <checksum>B32CCACD</checksum>
     </file>
     <file>
-      <filename>measure_test.rb</filename>
+      <filename>fault_hvac_economizer_damper_stuck_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>3E82C0A6</checksum>
+      <checksum>F6CD96F8</checksum>
     </file>
   </files>
 </measure>

@@ -1,58 +1,23 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2024 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
-# *******************************************************************************
-# OpenStudio(R), Copyright (c) 2008-2018, Alliance for Sustainable Energy, LLC.
-# All rights reserved.
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# (1) Redistributions of source code must retain the above copyright notice,
-# this list of conditions and the following disclaimer.
-#
-# (2) Redistributions in binary form must reproduce the above copyright notice,
-# this list of conditions and the following disclaimer in the documentation
-# and/or other materials provided with the distribution.
-#
-# (3) Neither the name of the copyright holder nor the names of any contributors
-# may be used to endorse or promote products derived from this software without
-# specific prior written permission from the respective party.
-#
-# (4) Other than as required in clauses (1) and (2), distributions in any form
-# of modifications or other derivative works may not use the "OpenStudio"
-# trademark, "OS", "os", or any other confusingly similar designation without
-# specific prior written permission from Alliance for Sustainable Energy, LLC.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER(S) AND ANY CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-# THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER(S), ANY CONTRIBUTORS, THE
-# UNITED STATES GOVERNMENT, OR THE UNITED STATES DEPARTMENT OF ENERGY, NOR ANY OF
-# THEIR EMPLOYEES, BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
-# OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-# STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-# *******************************************************************************
 
 require 'csv'
 
 # start the measure
 class SetInteriorLightingTechnology < OpenStudio::Measure::ModelMeasure
-
   # human readable name
   def name
-    return "set_interior_lighting_technology"
+    return 'set_interior_lighting_technology'
   end
 
   # human readable description
   def description
-    return "This measure takes in lighting technology for different kinds of lighting and adds lighting to space types depending on the prototype lighting space type illuminance targets."
+    return 'This measure takes in lighting technology for different kinds of lighting and adds lighting to space types depending on the prototype lighting space type illuminance targets.'
   end
 
   # human readable description of modeling approach
   def modeler_description
-    return "This measure takes in lighting technology defined in lumens per watt for different kinds of lighting and adds lighting attached to OS:SpaceType objects depending on the horiztontal illumance target in lumens."
+    return 'This measure takes in lighting technology defined in lumens per watt for different kinds of lighting and adds lighting attached to OS:SpaceType objects depending on the horiztontal illumance target in lumens.'
   end
 
   # define the arguments that the user will input
@@ -101,21 +66,21 @@ class SetInteriorLightingTechnology < OpenStudio::Measure::ModelMeasure
 
     # load lookup file and convert to hash table
     prototype_lighting_space_type_csv = "#{File.dirname(__FILE__)}/resources/prototype_lighting_space_type.csv"
-    if not File.file?(prototype_lighting_space_type_csv)
+    if !File.file?(prototype_lighting_space_type_csv)
       runner.registerError("Unable to find file: #{prototype_lighting_space_type_csv}")
       return nil
     end
     prototype_lighting_space_type_tbl = CSV.table(prototype_lighting_space_type_csv)
-    prototype_lighting_space_type_hsh = prototype_lighting_space_type_tbl.map { |row| row.to_hash }
+    prototype_lighting_space_type_hsh = prototype_lighting_space_type_tbl.map(&:to_hash)
 
     # load lighting technology file and convert to hash table
     lighting_technology_csv = "#{File.dirname(__FILE__)}/resources/lighting_technology.csv"
-    if not File.file?(lighting_technology_csv)
+    if !File.file?(lighting_technology_csv)
       runner.registerError("Unable to find file: #{lighting_technology_csv}")
       return nil
     end
     lighting_technology_tbl = CSV.table(lighting_technology_csv)
-    lighting_technology_hsh = lighting_technology_tbl.map { |row| row.to_hash }
+    lighting_technology_hsh = lighting_technology_tbl.map(&:to_hash)
 
     # get lighting technology for the user-selected lighting generation
     lighting_technologies = lighting_technology_hsh.select { |r| (r[:lighting_generation] == lighting_generation) }
@@ -159,16 +124,16 @@ class SetInteriorLightingTechnology < OpenStudio::Measure::ModelMeasure
       space_type_number_of_people = space_type.getNumberOfPeople(space_type_floor_area)
 
       # get initial conditions
-      building_lighting_floor_area = building_lighting_floor_area + space_type_floor_area
+      building_lighting_floor_area += space_type_floor_area
       starting_space_type_lighting_power = space_type.getLightingPower(space_type_floor_area, space_type_number_of_people)
       starting_building_lighting_power += starting_space_type_lighting_power
 
       # remove existing lighting objects
-      space_type.lights.sort.each { |light| light.remove }
+      space_type.lights.sort.each(&:remove)
 
       # remove existing lighting objects from spaces
       space_type.spaces.each do |space|
-        space.lights.sort.each { |light| light.remove }
+        space.lights.sort.each(&:remove)
       end
 
       # get prototype lighting space type from the model
@@ -209,7 +174,7 @@ class SetInteriorLightingTechnology < OpenStudio::Measure::ModelMeasure
 
       # general lighting
       if general_lighting_fraction > 0
-        matching_objects = lighting_technologies.select { |r| (r[:lighting_system_type] == 'general')}
+        matching_objects = lighting_technologies.select { |r| (r[:lighting_system_type] == 'general') }
         matching_objects = matching_objects.reject { |r| space_type_average_height_ft.to_f.round(1) > r[:fixture_max_height_ft].to_f.round(1) }
         matching_objects = matching_objects.reject { |r| space_type_average_height_ft.to_f.round(1) <= r[:fixture_min_height_ft].to_f.round(1) }
         general_lighting_technology = matching_objects[0]
@@ -238,7 +203,7 @@ class SetInteriorLightingTechnology < OpenStudio::Measure::ModelMeasure
 
       # task lighting
       if task_lighting_fraction > 0
-        matching_objects = lighting_technologies.select { |r| (r[:lighting_system_type] == 'task')}
+        matching_objects = lighting_technologies.select { |r| (r[:lighting_system_type] == 'task') }
         task_lighting_technology = matching_objects[0]
         luminous_efficacy = task_lighting_technology[:source_efficacy_lumens_per_watt].to_f
         llf = task_lighting_technology[:lighting_loss_factor].to_f
@@ -265,7 +230,7 @@ class SetInteriorLightingTechnology < OpenStudio::Measure::ModelMeasure
 
       # supplemental lighting
       if supplemental_lighting_fraction > 0
-        matching_objects = lighting_technologies.select { |r| (r[:lighting_system_type] == 'supplemental')}
+        matching_objects = lighting_technologies.select { |r| (r[:lighting_system_type] == 'supplemental') }
         supplemental_lighting_technology = matching_objects[0]
         luminous_efficacy = supplemental_lighting_technology[:source_efficacy_lumens_per_watt].to_f
         llf = supplemental_lighting_technology[:lighting_loss_factor].to_f
@@ -292,7 +257,7 @@ class SetInteriorLightingTechnology < OpenStudio::Measure::ModelMeasure
 
       # wall wash lighting
       if wall_wash_lighting_fraction > 0
-        matching_objects = lighting_technologies.select { |r| (r[:lighting_system_type] == 'wall_wash')}
+        matching_objects = lighting_technologies.select { |r| (r[:lighting_system_type] == 'wall_wash') }
         wall_wash_lighting_technology = matching_objects[0]
         luminous_efficacy = wall_wash_lighting_technology[:source_efficacy_lumens_per_watt].to_f
         llf = wall_wash_lighting_technology[:lighting_loss_factor].to_f
@@ -335,7 +300,7 @@ class SetInteriorLightingTechnology < OpenStudio::Measure::ModelMeasure
       starting_building_lpd = OpenStudio.convert(starting_building_lighting_power / building_lighting_floor_area, 'W/m^2', 'W/ft^2').get
       ending_building_lpd = OpenStudio.convert(ending_building_lighting_power / building_lighting_floor_area, 'W/m^2', 'W/ft^2').get
     else
-      runner.registerWarning("Building lighting floor area is zero.  This can happen if space types are not assigned to spaces.  Unable to report out building level LPDs.")
+      runner.registerWarning('Building lighting floor area is zero. This can happen if space types are not assigned to spaces. Unable to report out building level LPDs.')
       starting_building_lpd = 0
       ending_building_lpd = 0
     end
