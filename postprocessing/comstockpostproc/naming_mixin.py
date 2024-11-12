@@ -224,6 +224,29 @@ class NamingMixin():
         'out.emissions.electricity.shoulder_daily_average.lrmer_mid_case_15_2023_start..co2e_kg'
     ]
 
+    # GHG emissions seasonal daily average from electricity consumption columns for eGrid
+    COLS_GHG_ELEC_SEASONAL_DAILY_EGRID = [
+        'out.emissions.electricity.winter_daily_average.egrid_2021_state..co2e_kg',
+        'out.emissions.electricity.winter_daily_average.egrid_2021_subregion..co2e_kg',
+        'out.emissions.electricity.summer_daily_average.egrid_2021_state..co2e_kg',
+        'out.emissions.electricity.summer_daily_average.egrid_2021_subregion..co2e_kg',
+        'out.emissions.electricity.shoulder_daily_average.egrid_2021_state..co2e_kg',
+        'out.emissions.electricity.shoulder_daily_average.egrid_2021_subregion..co2e_kg'
+    ]
+    
+    # GHG emissions seasonal daily average from electricity consumption columns for Cambium
+    COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM = [
+        'out.emissions.electricity.winter_daily_average.lrmer_high_re_cost_15_2023_start..co2e_kg',
+        'out.emissions.electricity.summer_daily_average.lrmer_high_re_cost_15_2023_start..co2e_kg',
+        'out.emissions.electricity.shoulder_daily_average.lrmer_high_re_cost_15_2023_start..co2e_kg',
+        'out.emissions.electricity.winter_daily_average.lrmer_low_re_cost_15_2023_start..co2e_kg',
+        'out.emissions.electricity.summer_daily_average.lrmer_low_re_cost_15_2023_start..co2e_kg',
+        'out.emissions.electricity.shoulder_daily_average.lrmer_low_re_cost_15_2023_start..co2e_kg',
+        'out.emissions.electricity.winter_daily_average.lrmer_mid_case_15_2023_start..co2e_kg',
+        'out.emissions.electricity.summer_daily_average.lrmer_mid_case_15_2023_start..co2e_kg',
+        'out.emissions.electricity.shoulder_daily_average.lrmer_mid_case_15_2023_start..co2e_kg'
+    ]
+
     # QOI COLS
     QOI_MAX_SHOULDER_HR = 'out.qoi.maximum_daily_timing_shoulder_hour..hr'
     QOI_MAX_SUMMER_HR = 'out.qoi.maximum_daily_timing_summer_hour..hr'
