@@ -82,7 +82,7 @@ There are two types of samples you can generate:
     $ python tsv_resampling.py tsv_version sim_year n_samples n_buckets hvac_sizing
     ```
 
-    - Where: 
+    - Where:
         - `tsv_version` is the version of tsv files to sample from (e.g., v99 TODO: Ry to change)
         - `sim_year` is the simulation year (2015-2019)
         - `n_samples` is the number of samples you wish to generate. A typical full national sample is 350,000 samples.
