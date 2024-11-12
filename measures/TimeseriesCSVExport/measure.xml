@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>timeseries_csv_export</name>
   <uid>2a3442c1-944d-4e91-9e11-11e0cf368c64</uid>
-  <version_id>c1346c08-a2ee-4b36-b24b-b649db3f68e1</version_id>
-  <version_modified>2024-06-20T18:59:05Z</version_modified>
+  <version_id>d76cda01-32f9-4465-a17e-80b7b7418acd</version_id>
+  <version_modified>2024-11-08T00:14:52Z</version_modified>
   <xml_checksum>15BF4E57</xml_checksum>
   <class_name>TimeseriesCSVExport</class_name>
   <display_name>Timeseries CSV Export</display_name>
@@ -82,7 +82,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>D90C8B49</checksum>
+      <checksum>807D1B31</checksum>
     </file>
     <file>
       <filename>ReadVarsESO</filename>
@@ -101,12 +101,6 @@
       <filetype>osx</filetype>
       <usage_type>resource</usage_type>
       <checksum>01852C1F</checksum>
-    </file>
-    <file>
-      <filename>constants.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>7709E8EB</checksum>
     </file>
     <file>
       <filename>convertESOMTR</filename>
@@ -145,30 +139,6 @@
       <checksum>1CFD34FF</checksum>
     </file>
     <file>
-      <filename>psychrometrics.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>ED356FFA</checksum>
-    </file>
-    <file>
-      <filename>unit_conversions.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>A38FF090</checksum>
-    </file>
-    <file>
-      <filename>util.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>BF6B439C</checksum>
-    </file>
-    <file>
-      <filename>weather.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>13F4EA8C</checksum>
-    </file>
-    <file>
       <filename>1004_SmallHotel_a.osm</filename>
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
@@ -179,12 +149,6 @@
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
       <checksum>2CBFE9B4</checksum>
-    </file>
-    <file>
-      <filename>Measure_Test.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>test</usage_type>
-      <checksum>B38420A5</checksum>
     </file>
     <file>
       <filename>Retail.osm</filename>
@@ -209,6 +173,12 @@
       <filetype>stat</filetype>
       <usage_type>test</usage_type>
       <checksum>E2C3F063</checksum>
+    </file>
+    <file>
+      <filename>timeseries_csv_export_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>EF59D34E</checksum>
     </file>
   </files>
 </measure>

@@ -30,7 +30,7 @@ Author pull request checklist:
  - [ ] Changes reflected in example `.yml` files
  - [ ] Changes reflected in `README.md` files
  - [ ] Added 'See ComStock License' language to first two lines of each code file
- - [ ] Implements corresponding measure tests and indexing path in `test/measure_tests.txt` or/and `test/resource_measure_tests.txt`
+ - [ ] Implements corresponding measure tests and indexing path in `test/reporting_measure_tests.txt`, `test/workflow_measure_tests.txt`, or `test/upgrade_measure_tests.txt`
  - [ ] All new and existing tests pass the CI
 
 ### Review Checklist
