@@ -1449,7 +1449,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             logger.info('\n\n\n Columns requested but not found:')
             for c in cols_missing:
                 logger.error(f'Missing "{c}" in data')
-            raise Exception(f'Columns requested for export are missing, see ERRORs and available columns above.')
+            # raise Exception(f'Columns requested for export are missing, see ERRORs and available columns above.')
 
         self.data = self.data.select(cols_to_keep)
 
