@@ -1453,7 +1453,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         self.data = self.data.select(cols_to_keep)
 
-        logger.debug(f'Memory after downselect_columns_for_metadata_export: {self.data.estimated_size()}')
+        # Do we need downselect? since we are using the lazyframe?
+        # logger.debug(f'Memory after downselect_columns_for_metadata_export: {self.data.estimated_size()}')
 
 
     def reorder_data_columns(self, input_df):
