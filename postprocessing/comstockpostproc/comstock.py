@@ -151,13 +151,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.download_data()
         pl.enable_string_cache()
         if reload_from_csv:
-            upgrade_pqts = glob.glob(os.path.join(self.output_dir, 'ComStock wide upgrade*.parquet'))
+            upgrade_pqts = glob.glob(os.path.join(self.output_dir, 'cached_ComStock_wide_upgrade*.parquet'))
+            print(f"DEBUG*****: #{upgrade_pqts} ")
             upgrade_pqts.sort()
             if len(upgrade_pqts) > 0:
                 upgrade_dfs = []
                 for file_path in upgrade_pqts:
                     bn = os.path.basename(file_path)
-                    up_id = int(bn.replace('ComStock wide upgrade', '').replace('.parquet', ''))
+                    up_id = int(bn.replace('cached_ComStock_wide_upgrade', '').replace('.parquet', ''))
                     if up_id in self.upgrade_ids_to_skip:
                         logger.info(f'Skipping reload for upgrade {up_id}')
                         continue
