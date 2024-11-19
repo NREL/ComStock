@@ -108,6 +108,12 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
     condensing_boiler_curve.setMinimumValueofy(0.05)
     condensing_boiler_curve.setMaximumValueofy(1.0)
 
+    sizing_systems = model.getSizingSystems
+    sizing_systems.each do |sizing_system|
+      runner.registerInfo("sizing system = #{sizing_system}")
+      sizing_system.autosizeHeatingDesignCapacity
+    end
+
     #set empty array for hot water coils
     hw_coils = []
 
@@ -118,7 +124,6 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
       existing_boiler_efficiency = boiler.nominalThermalEfficiency
       existing_boiler_capacity = boiler.nominalCapacity
       existing_boiler_name = boiler.name
-      puts "existing boiler name = #{existing_boiler_name}"
 
       runner.registerInfo("Existing boiler #{existing_boiler_name} has nominal efficiency #{existing_boiler_efficiency}, fuel type #{existing_boiler_fuel_type}, and nominal capacity #{existing_boiler_capacity} W.")
 
@@ -128,6 +133,7 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
       #set new performance curve
       boiler.setNormalizedBoilerEfficiencyCurve(condensing_boiler_curve)
       boiler.setEfficiencyCurveTemperatureEvaluationVariable('EnteringBoiler')
+      boiler.setWaterOutletUpperTemperatureLimit(hw_setpoint_c)
       
       #autosize the boiler capacity. should not make a difference if running standalone measure, but could downsize if run with other upgrades. 
       boiler.autosizeDesignWaterFlowRate
@@ -136,7 +142,6 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
       if existing_boiler_name.get.include?('Supplemental')
         # denotes boiler is a supplemental boiler located on a condenser loop. do not resize pump or reset loop temp.
         boiler.setName("Supplemental Condensing Boiler Thermal Eff 0.95")
-        boiler.setWaterOutletUpperTemperatureLimit(hw_setpoint_c) # set to 140F
       else  
         # get plant loop and set new supply temp and setpoint manager to 140F
         inlet = boiler.inletModelObject.get.to_Node.get
@@ -171,6 +176,7 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
       # get hot water coils and reset inlet and outlet temps and autosize
       coil.setRatedInletWaterTemperature(hw_setpoint_c)
       coil.setRatedOutletWaterTemperature(hw_return_temp_c)
+      coil.setRatedInletAirTemperature(12.8) #set to 55F
       coil.setRatedOutletAirTemperature(32.2) #set return air temp to 90F
       coil.autosizeMaximumWaterFlowRate
       coil.autosizeUFactorTimesAreaValue
