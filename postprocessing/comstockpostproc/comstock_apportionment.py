@@ -554,3 +554,52 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         df.loc[:, 'hvac_and_fueltype'] = df.loc[:, 'system_type'] + '_' + df.loc[:, 'heating_fuel']
 
         self.data = df.copy(deep=True)
+
+    def generate_sampling_input(self, n_samples):
+        """Do a thing"""
+
+        logger.info('Using the apportioned dataset to generate an input for sampling')
+        df = self.data.copy(deep=True)
+        df.loc[:, 'bucketid'] = df.sampling_region.astype(str) + '-' + df.building_type + '-' + df.size_bin.astype(str) + '-' + df.heating_fuel + '-' +  df.system_type
+        attrs = ['sampling_region', 'building_type', 'size_bin', 'heating_fuel', 'system_type']
+        possible_buckets = pd.DataFrame(df.loc[:, attrs].value_counts()).reset_index()
+        possible_buckets.loc[:, 'cumsum'] = possible_buckets.loc[:, 'count'].cumsum()
+        buckets = possible_buckets.loc[possible_buckets.loc[:, 'cumsum'] < df.shape[0]* 0.99, attrs]
+        needed_df_combos = df.loc[:, ['sampling_region', 'building_type', 'size_bin', 'heating_fuel']]
+        needed_df_combos = needed_df_combos.drop_duplicates(keep='first').to_dict(orient='index')
+        needed_df_combos = [tuple(needed_df_combos[k].values()) for k in needed_df_combos.keys()]
+        bucket_combos = buckets.loc[:, ['sampling_region', 'building_type', 'size_bin', 'heating_fuel']]
+        bucket_combos = bucket_combos.reset_index(drop=True).drop_duplicates(keep='first').to_dict(orient='index')
+        bucket_combos = [tuple(bucket_combos[k].values()) for k in bucket_combos.keys()]
+        to_add = list(set(needed_df_combos) - set(bucket_combos))
+        additional_buckets = list()
+        print(f'Including {len(to_add)} additional buckets')
+        print('This is expected to take ~15 minutes per 1,000 buckets')
+        for (sr, bt, sb, hf) in to_add:
+            bdict = dict()
+            bdict['sampling_region'] = sr
+            bdict['building_type'] = bt
+            bdict['size_bin'] = sb
+            bdict['heating_fuel'] = hf
+            bdict['system_type'] = df.loc[
+                (df.sampling_region == sr) &
+                (df.building_type == bt) &
+                (df.size_bin == sb) &
+                (df.heating_fuel == hf), 'system_type'
+            ].value_counts().index[0]
+            additional_buckets.append(bdict)
+        additional_buckets = pd.DataFrame(additional_buckets)
+        buckets = pd.concat([buckets, additional_buckets])
+        name_mapper = {v: k for k, v in self.BUILDING_TYPE_NAME_MAPPER.items()}
+        buckets.loc[:, 'building_type'] = buckets.building_type.map(name_mapper)
+        buckets = buckets.loc[buckets.index.repeat(n_samples), :]
+        # remove 103, hospital, size_bin 0
+        # remove 110, large_hotel, size_bin 1
+        print(buckets.loc[buckets.index.repeat(n_samples), :].value_counts().value_counts())
+        breakpoint()
+        buckets = buckets.rename(columns={'system_type': 'hvac_system_type'})
+        buckets = buckets.reset_index(drop=True)
+        out_file = os.path.join(
+            os.path.abspath(os.path.dirname(__file__)), '..', '..', 'sampling', f'sample_input_{buckets.shape[0]}.csv'
+        )
+        buckets.to_csv(out_file, index_label='Building')
