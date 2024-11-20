@@ -2603,7 +2603,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 FROM
                 (
                     SELECT
-                    EXTRACT(MONTH from from_unixtime("time"/1e9)) as "month",
+                    EXTRACT(MONTH from "time") as "month",
                     SUBSTRING("build_existing_model.county_id", 2, 2) AS "state_id",
                     "build_existing_model.create_bar_from_building_type_ratios_bldg_type_a" as "building_type",
                     "upgrade",
