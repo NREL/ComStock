@@ -226,11 +226,8 @@ class NamingMixin():
 
     # GHG emissions seasonal daily average from electricity consumption columns for eGrid
     COLS_GHG_ELEC_SEASONAL_DAILY_EGRID = [
-        'out.emissions.electricity.winter_daily_average.egrid_2021_state..co2e_kg',
         'out.emissions.electricity.winter_daily_average.egrid_2021_subregion..co2e_kg',
-        'out.emissions.electricity.summer_daily_average.egrid_2021_state..co2e_kg',
         'out.emissions.electricity.summer_daily_average.egrid_2021_subregion..co2e_kg',
-        'out.emissions.electricity.shoulder_daily_average.egrid_2021_state..co2e_kg',
         'out.emissions.electricity.shoulder_daily_average.egrid_2021_subregion..co2e_kg'
     ]
     
