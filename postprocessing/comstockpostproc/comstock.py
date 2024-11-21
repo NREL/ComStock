@@ -1747,12 +1747,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
     def add_emissions_intensity_columns(self):
         # Create emissions per area column for each emissions column
         for emissions_col in (self.COLS_GHG_ELEC_SEASONAL_DAILY_EGRID + self.COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM + [
-            self.GHG_NATURAL_GAS,
-            self.GHG_FUEL_OIL,
-            self.GHG_PROPANE,
-            self.GHG_LRMER_LOW_RE_COST_15_ELEC,
             self.GHG_LRMER_MID_CASE_15_ELEC,
-            self.GHG_LRMER_HIGH_RE_COST_15_ELEC,
             self.GHG_ELEC_EGRID,
             self.ANN_GHG_EGRID,
             self.ANN_GHG_CAMBIUM
@@ -2646,12 +2641,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         wtd_pct_svgs_cols_to_drop = []
 
         for col in (self.COLS_GHG_ELEC_SEASONAL_DAILY_EGRID + self.COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM + [
-            self.GHG_NATURAL_GAS,
-            self.GHG_FUEL_OIL,
-            self.GHG_PROPANE,
-            self.GHG_LRMER_LOW_RE_COST_15_ELEC,
             self.GHG_LRMER_MID_CASE_15_ELEC,
-            self.GHG_LRMER_HIGH_RE_COST_15_ELEC,
             self.GHG_ELEC_EGRID,
             self.ANN_GHG_EGRID,
             self.ANN_GHG_CAMBIUM
