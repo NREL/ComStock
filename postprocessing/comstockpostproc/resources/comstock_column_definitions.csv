@@ -68,7 +68,7 @@ buildstock.csv,plugload_sch_weekend_base_peak_ratio,,FALSE,FALSE,,,,
 buildstock.csv,purchase_input_responsibility,in.purchase_input_responsibility,TRUE,FALSE,string,,,Who has the most direct input on decisions regarding pruchases of energy-related equipment
 buildstock.csv,reeds_balancing_area,in.reeds_balancing_area,TRUE,FALSE,string,,,Balancing area ID for the NREL ReEDS modeling tool
 buildstock.csv,region,,FALSE,FALSE,,,,
-buildstock.csv,rentable_area,,FALSE,FALSE,,,,
+buildstock.csv,building_area,in.floor_area_category,TRUE,TRUE,string,,,Specifies the floor area range of the building
 buildstock.csv,resstock_county_id,in.county_name,TRUE,TRUE,string,,,State abbreviation and county name
 buildstock.csv,resstock_custom_region,in.resstock_custom_region,FALSE,FALSE,string,,,
 buildstock.csv,resstock_puma_id,in.resstock_puma_id,FALSE,FALSE,string,,,State abbreviation and PUMA identifier
@@ -269,7 +269,7 @@ results.csv,build_existing_model.number_stories,in.number_stories,TRUE,TRUE,stri
 results.csv,build_existing_model.plugload_sch_weekday_base_peak_ratio,,FALSE,FALSE,float,,,Specifies the ratio of weekday base power consumption to peak power consumption for plug load schedules
 results.csv,build_existing_model.plugload_sch_weekend_base_peak_ratio,,FALSE,FALSE,float,,,Specifies the ratio of weekend base power consumption to peak power consumption for plug load schedules
 results.csv,build_existing_model.prototype_space_type_assignment_applicable,,FALSE,FALSE,boolean,,,
-results.csv,build_existing_model.rentable_area,in.floor_area_category,TRUE,TRUE,string,,,Specifies the rentable area range of the building
+results.csv,build_existing_model.rentable_area,in.floor_area_category,FALSE,FALSE,string,,,Specifies the rentable area range of the building
 results.csv,build_existing_model.replace_baseline_windows_applicable,,FALSE,FALSE,boolean,,,
 results.csv,build_existing_model.replace_baseline_windows_shgc,,FALSE,FALSE,float,,,
 results.csv,build_existing_model.replace_baseline_windows_u_value_ip,,FALSE,FALSE,float,,,
@@ -411,7 +411,8 @@ results.csv,com_stock_sensitivity_reports.com_report_hvac_boiler_total_electric_
 results.csv,com_stock_sensitivity_reports.com_report_hvac_boiler_total_gas_j,out.params.boiler_gas,TRUE,FALSE,float,j,j,total boiler gas use
 results.csv,com_stock_sensitivity_reports.com_report_hvac_boiler_total_load_j,out.params.boiler_load,TRUE,FALSE,float,j,j,total boiler heating load served
 results.csv,com_stock_sensitivity_reports.com_report_hvac_boiler_total_other_fuel_j,out.params.boiler_other_fuel,TRUE,FALSE,float,j,j,total boiler other fuel use
-results.csv,com_stock_sensitivity_reports.com_report_hvac_capacity_weighted_gas_coil_efficiency,out.params.gas_coil_average_efficiency,TRUE,FALSE,float,,,capacity weighted nominal thermal efficiency
+results.csv,com_stock_sensitivity_reports.com_report_hvac_capacity_weighted_primary_gas_coil_efficiency,out.params.primary_gas_coil_average_efficiency,TRUE,FALSE,float,,,capacity weighted nominal thermal efficiency of primary gas equipment
+results.csv,com_stock_sensitivity_reports.com_report_hvac_supplemental_capacity_weighted_gas_coil_efficiency,out.params.supplemental_gas_coil_average_efficiency,TRUE,FALSE,float,,,capacity weighted nominal thermal efficiency of supplemental gas equipment
 results.csv,com_stock_sensitivity_reports.com_report_hvac_chiller_capacity_tons,out.params.chiller_capacity,TRUE,FALSE,float,tons,tons,Sum of chiller capacity
 results.csv,com_stock_sensitivity_reports.com_report_hvac_cooling_equipment_tons,out.params.cooling_equipment_capacity,TRUE,FALSE,float,tons,tons,Sum of cooling equipment capacity
 results.csv,com_stock_sensitivity_reports.com_report_hvac_count_boilers,out.params.hvac_count_boilers,TRUE,FALSE,float,,,Count of boilers
@@ -505,7 +506,8 @@ results.csv,com_stock_sensitivity_reports.com_report_hvac_fluid_heat_exchanger_w
 results.csv,com_stock_sensitivity_reports.com_report_hvac_fluid_heat_exchanger_weighted_demand_outlet_temperature_c,out.params.fluid_hx_demand_outlet_temp,TRUE,FALSE,float,c,c,fluid heat exchanger load weighted annual average demand outlet temperature
 results.csv,com_stock_sensitivity_reports.com_report_hvac_fluid_heat_exchanger_weighted_supply_inlet_temperature_c,out.params.fluid_hx_supply_inlet_temp,TRUE,FALSE,float,c,c,fluid heat exchanger load weighted annual average supply inlet temperature
 results.csv,com_stock_sensitivity_reports.com_report_hvac_fluid_heat_exchanger_weighted_supply_outlet_temperature_c,out.params.fluid_hx_supply_outlet_temp,TRUE,FALSE,float,c,c,fluid heat exchanger load weighted annual average supply outlet temperature
-results.csv,com_stock_sensitivity_reports.com_report_hvac_furnace_capacity_kbtuh,out.params.furnace_capacity,TRUE,FALSE,float,kbtu_per_hr,kbtu_per_hr,Sum of furnace capacity
+results.csv,com_stock_sensitivity_reports.com_report_hvac_primary_gas_coil_capacity_kbtuh,out.params.primary_gas_coil_capacity,TRUE,FALSE,float,kbtu_per_hr,kbtu_per_hr,Sum of primary gas coil capacity
+results.csv,com_stock_sensitivity_reports.com_report_hvac_supplemental_gas_coil_capacity_kbtuh,out.params.supplemental_gas_coil_capacity,TRUE,FALSE,float,kbtu_per_hr,kbtu_per_hr,Sum of supplemental gas coil capacity
 results.csv,com_stock_sensitivity_reports.com_report_hvac_ghx_average_borehole_depth_ft,out.params.ghx_borehole_depth,TRUE,FALSE,float,ft,ft,"average length of vertical ground heat exchangers, weighted by count"
 results.csv,com_stock_sensitivity_reports.com_report_hvac_ghx_num_boreholes,out.params.ghx_num_boreholes,TRUE,FALSE,float,,,number of vertical ground heat exchangers
 results.csv,com_stock_sensitivity_reports.com_report_hvac_heat_pump_cooling_average_cop,out.params.heat_pump_cooling_average_cop,TRUE,FALSE,float,cop,cop,load weighted average heat pump cop for cooling
@@ -923,6 +925,21 @@ results.csv,emissions_reporting.annual_water_systems_electricity_ghg_emissions_l
 results.csv,emissions_reporting.annual_water_systems_fuel_oil_ghg_emissions_kg,out.emissions.fuel_oil.water_systems,TRUE,FALSE,float,co2e_kg,co2e_kg,annual greenhouse gas emissions from on-site water systems fuel oil use
 results.csv,emissions_reporting.annual_water_systems_natural_gas_ghg_emissions_kg,out.emissions.natural_gas.water_systems,TRUE,FALSE,float,co2e_kg,co2e_kg,annual greenhouse gas emissions from on-site water systems natural gas use
 results.csv,emissions_reporting.annual_water_systems_propane_ghg_emissions_kg,out.emissions.propane.water_systems,TRUE,FALSE,float,co2e_kg,co2e_kg,annual greenhouse gas emissions from on-site water systems propane use
+results.csv,emissions_reporting.winter_daily_average_electricity_ghg_emissions_egrid_2021_state_kg,out.emissions.electricity.winter_daily_average.egrid_2021_state,TRUE,FALSE,float,co2e_kg,co2e_kg,"winter daily average greenhouse gas emissions from electricity use, using egrid 2021 state intensity"
+results.csv,emissions_reporting.winter_daily_average_electricity_ghg_emissions_egrid_2021_subregion_kg,out.emissions.electricity.winter_daily_average.egrid_2021_subregion,TRUE,FALSE,float,co2e_kg,co2e_kg,"winter daily average greenhouse gas emissions from electricity use, using egrid 2021 subregion intensity"
+results.csv,emissions_reporting.summer_daily_average_electricity_ghg_emissions_egrid_2021_state_kg,out.emissions.electricity.summer_daily_average.egrid_2021_state,TRUE,FALSE,float,co2e_kg,co2e_kg,"summer daily average greenhouse gas emissions from electricity use, using egrid 2021 state intensity"
+results.csv,emissions_reporting.summer_daily_average_electricity_ghg_emissions_egrid_2021_subregion_kg,out.emissions.electricity.summer_daily_average.egrid_2021_subregion,TRUE,FALSE,float,co2e_kg,co2e_kg,"summer daily average greenhouse gas emissions from electricity use, using egrid 2021 subregion intensity"
+results.csv,emissions_reporting.shoulder_daily_average_electricity_ghg_emissions_egrid_2021_state_kg,out.emissions.electricity.shoulder_daily_average.egrid_2021_state,TRUE,FALSE,float,co2e_kg,co2e_kg,"shoulder daily average greenhouse gas emissions from electricity use, using egrid 2021 state intensity"
+results.csv,emissions_reporting.shoulder_daily_average_electricity_ghg_emissions_egrid_2021_subregion_kg,out.emissions.electricity.shoulder_daily_average.egrid_2021_subregion,TRUE,FALSE,float,co2e_kg,co2e_kg,"shoulder daily average greenhouse gas emissions from electricity use, using egrid 2021 subregion intensity"
+results.csv,emissions_reporting.winter_daily_average_electricity_ghg_emissions_lrmer_high_re_cost_15_kg,out.emissions.electricity.winter_daily_average.lrmer_high_re_cost_15_2023_start,TRUE,FALSE,float,co2e_kg,co2e_kg,"winter daily average greenhouse gas emissions from electricity use, using Cambium 2022 lrmer_high_re_cost_15 levelized over 15 years starting in 2023"
+results.csv,emissions_reporting.summer_daily_average_electricity_ghg_emissions_lrmer_high_re_cost_15_kg,out.emissions.electricity.summer_daily_average.lrmer_high_re_cost_15_2023_start,TRUE,FALSE,float,co2e_kg,co2e_kg,"summer daily average greenhouse gas emissions from electricity use, using Cambium 2022 lrmer_high_re_cost_15 levelized over 15 years starting in 2023"
+results.csv,emissions_reporting.shoulder_daily_average_electricity_ghg_emissions_lrmer_high_re_cost_15_kg,out.emissions.electricity.shoulder_daily_average.lrmer_high_re_cost_15_2023_start,TRUE,FALSE,float,co2e_kg,co2e_kg,"shoulder daily average greenhouse gas emissions from electricity use, using Cambium 2022 lrmer_high_re_cost_15 levelized over 15 years starting in 2023"
+results.csv,emissions_reporting.winter_daily_average_electricity_ghg_emissions_lrmer_low_re_cost_15_kg,out.emissions.electricity.winter_daily_average.lrmer_low_re_cost_15_2023_start,TRUE,FALSE,float,co2e_kg,co2e_kg,"winter daily average greenhouse gas emissions from electricity use, using Cambium 2022 lrmer_low_re_cost_15 levelized over 15 years starting in 2023"
+results.csv,emissions_reporting.summer_daily_average_electricity_ghg_emissions_lrmer_low_re_cost_15_kg,out.emissions.electricity.summer_daily_average.lrmer_low_re_cost_15_2023_start,TRUE,FALSE,float,co2e_kg,co2e_kg,"summer daily average greenhouse gas emissions from electricity use, using Cambium 2022 lrmer_low_re_cost_15 levelized over 15 years starting in 2023"
+results.csv,emissions_reporting.shoulder_daily_average_electricity_ghg_emissions_lrmer_low_re_cost_15_kg,out.emissions.electricity.shoulder_daily_average.lrmer_low_re_cost_15_2023_start,TRUE,FALSE,float,co2e_kg,co2e_kg,"shoulder daily average greenhouse gas emissions from electricity use, using Cambium 2022 lrmer_low_re_cost_15 levelized over 15 years starting in 2023"
+results.csv,emissions_reporting.winter_daily_average_electricity_ghg_emissions_lrmer_mid_case_15_kg,out.emissions.electricity.winter_daily_average.lrmer_mid_case_15_2023_start,TRUE,FALSE,float,co2e_kg,co2e_kg,"winter daily average greenhouse gas emissions from electricity use, using Cambium 2022 lrmer_mid_case_15 levelized over 15 years starting in 2023"
+results.csv,emissions_reporting.summer_daily_average_electricity_ghg_emissions_lrmer_mid_case_15_kg,out.emissions.electricity.summer_daily_average.lrmer_mid_case_15_2023_start,TRUE,FALSE,float,co2e_kg,co2e_kg,"summer daily average greenhouse gas emissions from electricity use, using Cambium 2022 lrmer_mid_case_15 levelized over 15 years starting in 2023"
+results.csv,emissions_reporting.shoulder_daily_average_electricity_ghg_emissions_lrmer_mid_case_15_kg,out.emissions.electricity.shoulder_daily_average.lrmer_mid_case_15_2023_start,TRUE,FALSE,float,co2e_kg,co2e_kg,"shoulder daily average greenhouse gas emissions from electricity use, using Cambium 2022 lrmer_mid_case_15 levelized over 15 years starting in 2023"
 results.csv,emissions_reporting.applicable,,FALSE,FALSE,boolean,,,
 results.csv,emissions_reporting.emissions_scenario,,FALSE,FALSE,string,,,
 results.csv,emissions_reporting.grid_region,,FALSE,FALSE,string,,,
@@ -1035,9 +1052,9 @@ results.csv,run_name,,FALSE,FALSE,string,,,Name of original ComStock run sometim
 results.csv,simulation_output_report.annual_peak_electric_demand_kw,out.electricity.total.peak_demand,TRUE,FALSE,float,kw,kw,Building annual peak electric demand
 results.csv,simulation_output_report.applicable,,FALSE,FALSE,boolean,,,Specifies if simulation output reporting is applicable
 results.csv,simulation_output_report.district_cooling_cooling_therm,out.district_cooling.cooling.energy_consumption,TRUE,FALSE,float,therm,kwh,Building annual district cooling energy consumption for cooling end use
-results.csv,simulation_output_report.district_cooling_heating_therm,out.district_heating.cooling.energy_consumption,TRUE,FALSE,float,therm,kwh,Building annual district heating energy consumption for cooling end use
+results.csv,simulation_output_report.district_cooling_heating_therm,out.district_heating.cooling.energy_consumption,FALSE,FALSE,float,therm,kwh,Building annual district heating energy consumption for cooling end use
 results.csv,simulation_output_report.district_heating_heating_therm,out.district_heating.heating.energy_consumption,TRUE,FALSE,float,therm,kwh,Building annual district heating energy consumption for heating end use
-results.csv,simulation_output_report.district_heating_interior_equipment_therm,out.district_heating.interior_equipment.energy_consumption,TRUE,FALSE,float,therm,kwh,Building annual district heating energy consumption for interior equipment end use
+results.csv,simulation_output_report.district_heating_interior_equipment_therm,out.district_heating.interior_equipment.energy_consumption,FALSE,FALSE,float,therm,kwh,Building annual district heating energy consumption for interior equipment end use
 results.csv,simulation_output_report.district_heating_water_systems_therm,out.district_heating.water_systems.energy_consumption,TRUE,FALSE,float,therm,kwh,Building annual district service water heating energy consumption for water systems end use
 results.csv,simulation_output_report.electricity_cooling_kwh,out.electricity.cooling.energy_consumption,TRUE,FALSE,float,kwh,kwh,Building annual cooling electricity energy consumption
 results.csv,simulation_output_report.electricity_exterior_lighting_kwh,out.electricity.exterior_lighting.energy_consumption,TRUE,FALSE,float,kwh,kwh,Building annual exterior lighting electricity energy consumption
@@ -1064,7 +1081,7 @@ results.csv,simulation_output_report.natural_gas_interior_equipment_therm,out.na
 results.csv,simulation_output_report.natural_gas_water_systems_therm,out.natural_gas.water_systems.energy_consumption,TRUE,FALSE,float,therm,kwh,Building annual service water heating natural gas energy consumption
 results.csv,simulation_output_report.net_site_electricity_kwh,,FALSE,FALSE,float,kwh,kwh,Annual net site electricity in kWh
 results.csv,simulation_output_report.net_site_energy_mbtu,,FALSE,FALSE,float,million_btu,kwh,Annual net energy consumption in million BTUs
-results.csv,simulation_output_report.other_fuel_cooling_mbtu,out.other_fuel.cooling.energy_consumption,TRUE,FALSE,float,million_btu,kwh,Building annual cooling energy consumption for other fuels
+results.csv,simulation_output_report.other_fuel_cooling_mbtu,out.other_fuel.cooling.energy_consumption,FALSE,FALSE,float,million_btu,kwh,Building annual cooling energy consumption for other fuels
 results.csv,simulation_output_report.other_fuel_heating_mbtu,out.other_fuel.heating.energy_consumption,TRUE,FALSE,float,million_btu,kwh,Building annual heating energy consumption for other fuels
 results.csv,simulation_output_report.other_fuel_interior_equipment_mbtu,out.other_fuel.interior_equipment.energy_consumption,FALSE,FALSE,float,million_btu,kwh,Annual interior equipment energy consumption for other fuels in million BTUs
 results.csv,simulation_output_report.other_fuel_water_systems_mbtu,out.other_fuel.water_systems.energy_consumption,TRUE,FALSE,float,million_btu,kwh,Building annual service water heating energy consumption for other fuels
