@@ -2558,29 +2558,23 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         wtd_pct_svgs_cols_to_drop = []
 
         for col in (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK + self.COLS_QOI_MONTHLY_MED_DAILY_PEAK + [
-                                                                                                    self.QOI_MAX_SHOULDER_USE,
-                                                                                                    self.QOI_MAX_SUMMER_USE,
-                                                                                                    self.QOI_MAX_WINTER_USE
-                                                                                                    ]):
+            self.QOI_MAX_SHOULDER_USE,
+            self.QOI_MAX_SUMMER_USE,
+            self.QOI_MAX_WINTER_USE
+            ]):
 
             engy_cols.append(col)
             abs_svgs_cols[col] = self.col_name_to_savings(col, None)
             pct_svgs_cols[col] = self.col_name_to_percent_savings(col, 'percent')
             # add eui savings for all unweighted eui columns
-            dict_cols_max = {self.QOI_MAX_SHOULDER_USE:self.QOI_MAX_SHOULDER_USE_NORMALIZED,
-                             self.QOI_MAX_SUMMER_USE:self.QOI_MAX_SUMMER_USE_NORMALIZED,
-                             self.QOI_MAX_WINTER_USE:self.QOI_MAX_WINTER_USE_NORMALIZED}
-            if col in dict_cols_max.keys():
-                eui_col = dict_cols_max[col]
-            else:
-                eui_col = self.col_name_to_area_intensity(col)
+            eui_col = self.col_name_to_area_intensity(col)
             engy_cols.append(eui_col)
             abs_svgs_cols[eui_col] = self.col_name_to_savings(eui_col, None)
             pct_svgs_cols[eui_col] = self.col_name_to_percent_savings(eui_col, 'percent')
         
             #save the unweighted - weighted columns name mapping
             self.unweighted_weighted_map.update({
-                self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_utility_units),
+                self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_demand_units),
                 self.col_name_to_percent_savings(col, 'percent'): self.col_name_to_weighted_percent_savings(col, 'percent')
             })
             self.dropping_columns.append(self.col_name_to_weighted_percent_savings(col, 'percent'))
@@ -2669,7 +2663,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
             #save the unweighted - weighted columns name mapping
             self.unweighted_weighted_map.update({
-                self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_utility_units),
+                self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_ghg_units),
                 self.col_name_to_percent_savings(col, 'percent'): self.col_name_to_weighted_percent_savings(col, 'percent')
             })
             self.dropping_columns.append(self.col_name_to_weighted_percent_savings(col, 'percent'))
