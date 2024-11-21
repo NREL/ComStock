@@ -713,12 +713,12 @@ class NamingMixin():
             converted_col_name = converted_col_name.replace('_bill_', '_bill_savings_')
         elif "_bill.." in converted_col_name:
             converted_col_name = converted_col_name.replace('_bill..', '_bill_savings..')
-        elif "_peak_" in converted_col_name:
-            converted_col_name = converted_col_name.replace('_peak_', '_peak_savings_')
+        elif "peak_" in converted_col_name:
+            converted_col_name = converted_col_name.replace('peak_', 'peak_savings_')
         elif "maximum_daily_use_" in converted_col_name:
             converted_col_name = converted_col_name.replace('maximum_daily_use_', 'peak_savings_')
-        elif ".emissions" in converted_col_name:
-            converted_col_name = converted_col_name.replace('.emissions', '.emissions_savings')
+        elif ".emissions." in converted_col_name:
+            converted_col_name = converted_col_name.replace('.emissions.', '.emissions.savings.')
             
         if converted_col_name == col_name:
             raise ValueError(f"Cannot convert column name {col_name} to savings column") 
@@ -761,7 +761,8 @@ class NamingMixin():
         col_name = col_name.replace('bill_median..usd', 'bill_median_intensity..usd')
         col_name = col_name.replace('bill..usd', 'bill_intensity..usd')
         col_name = col_name.replace('_daily_peak_', '_daily_peak_intensity_')
-        col_name = col_name.replace('.emissions.', '.emissions_intensity.')
+        col_name = col_name.replace('maximum_daily_use_', 'peak_intensity_')
+        col_name = col_name.replace('.emissions.', '.emissions.intensity.')
         area_units = 'ft2'
         intensity_units = f'{units}_per_{area_units}'
         col_name = col_name.replace(f'..{units}', f'..{intensity_units}')

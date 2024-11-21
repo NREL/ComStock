@@ -65,7 +65,7 @@ def basic_metadata_columns():
 class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixin):
     def __init__(self, s3_base_dir, comstock_run_name, comstock_run_version, comstock_year, athena_table_name,
         truth_data_version, buildstock_csv_name = 'buildstock.csv', acceptable_failure_percentage=0.01, drop_failed_runs=True,
-        color_hex=NamingMixin.COLOR_COMSTOCK_BEFORE, weighted_energy_units='tbtu', weighted_ghg_units='co2e_mmt', weighted_utility_units='billion_usd', skip_missing_columns=False,
+        color_hex=NamingMixin.COLOR_COMSTOCK_BEFORE, weighted_energy_units='tbtu', weighted_demand_units='gw', weighted_ghg_units='co2e_mmt', weighted_utility_units='billion_usd', skip_missing_columns=False,
         reload_from_csv=False, make_comparison_plots=True, make_timeseries_plots=True, include_upgrades=True, upgrade_ids_to_skip=[], states={}, upgrade_ids_for_comparison={}, rename_upgrades=False):
         """
         A class to load and transform ComStock data for export, analysis, and comparison.
@@ -107,6 +107,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.color = color_hex
         self.building_type_weights = None
         self.weighted_energy_units = weighted_energy_units
+        self.weighted_demand_units = weighted_demand_units
         self.weighted_ghg_units = weighted_ghg_units
         self.weighted_utility_units = weighted_utility_units
         self.skip_missing_columns = skip_missing_columns
@@ -1733,7 +1734,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
     
     def add_peak_intensity_columns(self):
         # Create peak per area column for each peak column
-        for peak_col in (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK + self.COLS_QOI_MONTHLY_MED_DAILY_PEAK):
+        for peak_col in (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK + self.COLS_QOI_MONTHLY_MED_DAILY_PEAK + [
+            self.QOI_MAX_SHOULDER_USE,
+            self.QOI_MAX_SUMMER_USE,
+            self.QOI_MAX_WINTER_USE
+            ]):
             # Divide peak by area to create intensity
             per_area_col = self.col_name_to_area_intensity(peak_col)
             self.data = self.data.with_columns(
@@ -2308,6 +2313,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             'co2e_kg': self.weighted_ghg_units, #Emission, default : co2e_kg -> co2e_mmt
             'usd': self.weighted_utility_units, #Utility, default : usd -> billion_usd
             'kwh': self.weighted_energy_units, #Energy and Enduse Groups, default : kwh -> tbtu
+            'kw': self.weighted_demand_units, #(Peak) Demand, default : kw -> gw (gigawatt)
         }
 
         for col in (self.GHG_FUEL_COLS + [self.ANN_GHG_EGRID, self.ANN_GHG_CAMBIUM]
@@ -2557,29 +2563,23 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         wtd_pct_svgs_cols_to_drop = []
 
         for col in (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK + self.COLS_QOI_MONTHLY_MED_DAILY_PEAK + [
-                                                                                                    self.QOI_MAX_SHOULDER_USE,
-                                                                                                    self.QOI_MAX_SUMMER_USE,
-                                                                                                    self.QOI_MAX_WINTER_USE
-                                                                                                    ]):
+            self.QOI_MAX_SHOULDER_USE,
+            self.QOI_MAX_SUMMER_USE,
+            self.QOI_MAX_WINTER_USE
+            ]):
 
             engy_cols.append(col)
             abs_svgs_cols[col] = self.col_name_to_savings(col, None)
             pct_svgs_cols[col] = self.col_name_to_percent_savings(col, 'percent')
             # add eui savings for all unweighted eui columns
-            dict_cols_max = {self.QOI_MAX_SHOULDER_USE:self.QOI_MAX_SHOULDER_USE_NORMALIZED,
-                             self.QOI_MAX_SUMMER_USE:self.QOI_MAX_SUMMER_USE_NORMALIZED,
-                             self.QOI_MAX_WINTER_USE:self.QOI_MAX_WINTER_USE_NORMALIZED}
-            if col in dict_cols_max.keys():
-                eui_col = dict_cols_max[col]
-            else:
-                eui_col = self.col_name_to_area_intensity(col)
+            eui_col = self.col_name_to_area_intensity(col)
             engy_cols.append(eui_col)
             abs_svgs_cols[eui_col] = self.col_name_to_savings(eui_col, None)
             pct_svgs_cols[eui_col] = self.col_name_to_percent_savings(eui_col, 'percent')
         
             #save the unweighted - weighted columns name mapping
             self.unweighted_weighted_map.update({
-                self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_utility_units),
+                self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_demand_units),
                 self.col_name_to_percent_savings(col, 'percent'): self.col_name_to_weighted_percent_savings(col, 'percent')
             })
             self.dropping_columns.append(self.col_name_to_weighted_percent_savings(col, 'percent'))
@@ -2668,7 +2668,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         
             #save the unweighted - weighted columns name mapping
             self.unweighted_weighted_map.update({
-                self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_utility_units),
+                self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_ghg_units),
                 self.col_name_to_percent_savings(col, 'percent'): self.col_name_to_weighted_percent_savings(col, 'percent')
             })
             self.dropping_columns.append(self.col_name_to_weighted_percent_savings(col, 'percent'))
