@@ -1532,8 +1532,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 ins.append(c)
             elif c.startswith('out.qoi.'):
                 out_qoi.append(c)
-            elif (c.startswith('out.emissions.')
-                  or c.startswith('out.emissions_')):
+            elif c.startswith('out.emissions.'):
                 out_emissions.append(c)
             elif c.startswith('out.utility_bills.'):
                 out_utility.append(c)
