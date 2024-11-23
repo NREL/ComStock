@@ -2006,8 +2006,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.fkt = self.fkt.join(cbecs_weights, on=pl.col(self.BLDG_TYPE))
             self.fkt = self.fkt.with_columns((pl.col(self.BLDG_WEIGHT) * pl.col('cbecs_weight')).alias(self.BLDG_WEIGHT))
             self.fkt = self.fkt.drop(self.BLDG_TYPE, 'cbecs_weight')
-        else:
+        # else:
             self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_scale_factors, default=None)).alias(self.BLDG_WEIGHT))
+        
         assert isinstance(cbecs.data, pd.DataFrame)
         cbecs.data = pl.from_pandas(cbecs.data).lazy()
         assert isinstance(cbecs.data, pl.LazyFrame)
