@@ -27,7 +27,6 @@ from buildstock_query import BuildStockQuery
 
 logger = logging.getLogger(__name__)
 
-
 COLUMN_DEFINITION_FILE_NAME = 'comstock_column_definitions.csv'
 ENUM_DEFINITION_FILE_NAME = 'comstock_enumeration_definitions.csv'
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -1429,6 +1428,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         cols_to_keep = []
         cols_missing = []
+
+    
+        exempt_cols = ["in.window_type", "_daily_average"]
+
         for export_col_name, export_col_units in export_cols.iter_rows():
             expected_unitless_cols = [self.FLR_AREA, self.col_name_to_weighted(self.FLR_AREA)]
             if (export_col_units is None) or (export_col_name in expected_unitless_cols):
@@ -1441,14 +1444,28 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             else:
                 cols_missing.append(export_col_name_units)
 
+        #dumb way to filter out the columns not need to be corncerned.
+        filtered_columns = []
+        for c in cols_missing:
+            f = False
+            #if the column match any of the key word, we should not add to filtered_columns
+            for keyword in exempt_cols:
+                if keyword in c:
+                    f = True
+            if not f:
+                filtered_columns.append(c)
+
+        cols_missing = filtered_columns
         if len(cols_missing) > 0:
             logger.error(f'Columns requested for export in {COLUMN_DEFINITION_FILE_NAME} but not found in data:')
             logger.info('\n\n\n Columns found in data:')
             for c in self.data.columns:
                 logger.info(f'Found "{c}" in data')
-            logger.info('\n\n\n Columns requested but not found:')
+            logger.info(f'\n\n\n {len(cols_missing)} Columns requested but not found:')
             for c in cols_missing:
                 logger.error(f'Missing "{c}" in data')
+
+            logger.info(f"the columns missing are {cols_missing}")            
             # raise Exception(f'Columns requested for export are missing, see ERRORs and available columns above.')
 
         self.data = self.data.select(cols_to_keep)
