@@ -970,7 +970,7 @@ def emission_prediction(load, factor, num_timesteps_in_hr)
     hourly_emissions_kg = hourly_load_mwh.zip(factor).map { |n, f| n * f }
   elsif factor.is_a?(Numeric)
     # egrid factor
-    hourly_emissions_kg = (hourly_load_mwh.inject(:+)) * factor
+    hourly_emissions_kg = hourly_load_mwh.map {|n| n * factor}
   else
     raise "Bad emission factors"
   end
