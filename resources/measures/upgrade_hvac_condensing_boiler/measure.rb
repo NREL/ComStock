@@ -110,7 +110,6 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
 
     sizing_systems = model.getSizingSystems
     sizing_systems.each do |sizing_system|
-      runner.registerInfo("sizing system = #{sizing_system}")
       sizing_system.autosizeHeatingDesignCapacity
     end
 
@@ -171,6 +170,20 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
       end
     end
 
+    # re-autosize all supply fans on airloop
+    model.getAirLoopHVACs.each do |air_loop|
+      air_loop.supplyComponents.each do |sup_comp|
+        if sup_comp.to_FanConstantVolume.is_initialized
+          const_vol_fan = sup_comp.to_FanConstantVolume.get
+          const_vol_fan.autosizeMaximumFlowRate
+        elsif sup_comp.to_FanVariableVolume.is_initialized
+          var_vol_fan = sup_comp.to_FanVariableVolume.get
+          var_vol_fan.autosizeMaximumFlowRate
+        end
+      end
+    end
+    
+    # re-autosize traditional hot water coils
     hw_coils = model.getCoilHeatingWaters
     hw_coils.each do |coil|
       # get hot water coils and reset inlet and outlet temps and autosize
@@ -183,11 +196,31 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
       coil.autosizeRatedCapacity
     end
 
+    # also check for hot water baseboard coils
+    baseboard_hw_coils = model.getCoilHeatingWaterBaseboards
+    baseboard_hw_coils.each do |coil|
+      # get hot water baseboard coils and  autosize
+      coil.autosizeMaximumWaterFlowRate
+      coil.autosizeUFactorTimesAreaValue
+      coil.autosizeHeatingDesignCapacity
+    end
+
     thermal_zones = model.getThermalZones
     thermal_zones.each do |zone|
       zone_sizing = zone.sizingZone
       zone_sizing.setZoneHeatingDesignSupplyAirTemperature(32.2) #set return air temp to 90F
       zone_sizing.setZoneHeatingDesignSupplyAirTemperatureDifference(19.4) #set delta T to 32.2C-12.8C (90F-55F)
+      zone.equipment.each do |equip|
+        if equip.to_ZoneHVACFourPipeFanCoil.is_initialized
+          zone_fan_coil = equip.to_ZoneHVACFourPipeFanCoil.get
+          zone_fan_coil.autosizeMaximumSupplyAirFlowRate
+          zone_fan_coil.autosizeMaximumHotWaterFlowRate
+          if zone_fan_coil.supplyAirFan.to_FanOnOff.is_initialized
+            fan = zone_fan_coil.supplyAirFan.to_FanOnOff.get
+            fan.autosizeMaximumFlowRate
+          end
+        end
+      end
     end
 
     # Register final condition
