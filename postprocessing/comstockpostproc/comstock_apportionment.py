@@ -540,6 +540,27 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         hsdf.loc[:, 'census_region'] = hsdf.loc[:, 'census_region'].replace('Mid-Atlantic', 'Middle Atlantic')
         df = df.merge(hsdf, left_on=['building_type', 'heating_fuel', 'cen_div'], right_on=['building_type', 'heating_fuel', 'census_region'])
 
+        # Do a secondary true up for primary schools, size bin 0
+        # TODO get an HVAC TSV that supports size bins
+        # Create a version of the hvac TSV that supports only Andrew's spreadsheet allowed choices
+        ps_hsdf = hsdf.loc[hsdf.building_type == 'PrimarySchool', :].copy(deep=True)
+        allowed_hvac_types = ['PSZ-AC with electric coil', 'PSZ-HP', 'PSZ-AC with gas coil', 'PSZ-AC with gas boiler', 'PSZ-AC with district hot water']
+        hs_meta_cols = ['building_type', 'heating_fuel', 'census_region']
+        hs_numeric_cols = list(set(ps_hsdf) - set(hs_meta_cols))
+        ps_to_zero_cols = list(set(hs_numeric_cols) - set(allowed_hvac_types))
+        ps_hsdf.loc[:, ps_to_zero_cols] = 0.0
+        ps_hsdf.loc[:, hs_numeric_cols] = ps_hsdf.loc[:, hs_numeric_cols].div(ps_hsdf.loc[:, hs_numeric_cols].sum(axis=1), axis=0)
+        # Break df into primary school size bin zero and everything else - update the former and concat
+        initial_row_count = df.shape[0]
+        initial_column_count = df.shape[1]
+        indecies_to_update = (df.building_type == 'PrimarySchool') & (df.size_bin == 0)
+        to_update = df.loc[indecies_to_update, :].copy(deep=True)
+        to_update = to_update.drop(hs_numeric_cols + ['census_region'], axis=1)
+        to_update = to_update.merge(ps_hsdf, left_on=['building_type', 'heating_fuel', 'cen_div'], right_on=['building_type', 'heating_fuel', 'census_region'])
+        df = pd.concat([df.loc[~indecies_to_update, :], to_update])
+        assert(initial_row_count == df.shape[0])
+        assert(initial_column_count == df.shape[1])
+
         # Use the merged probabilities to sample in fuel type
         # Note this is system type agnostic due to the enumeration county and not readable - refer above for the idea
         # TODO can wenyi find a less dumb way to do this?
@@ -552,6 +573,10 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             calced_systems += [h]
         df = df.drop(hcols + ['hs_rand'], axis=1)
         df.loc[:, 'hvac_and_fueltype'] = df.loc[:, 'system_type'] + '_' + df.loc[:, 'heating_fuel']
+
+        # Confirm no unexpected nans
+        non_nan_cols = df.columns != 'tract_assignment_type'
+        assert(0 == df.loc[df.loc[:, non_nan_cols].isna().any(axis=1), non_nan_cols].shape[0])
 
         self.data = df.copy(deep=True)
 
