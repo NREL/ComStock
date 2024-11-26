@@ -194,7 +194,7 @@ class CondensingBoilerTest < Minitest::Test
     assert_equal(0, arguments.size)
   end
 
-  def test_boiler_model
+  def test_pvav_gas_boiler_model
     osm_name = '370_warehouse_pvav_gas_boiler_reheat_2A.osm'
     epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
 
@@ -241,9 +241,9 @@ class CondensingBoilerTest < Minitest::Test
     end
   end
 
-  def test_wshp_model
+  def test_wshp_boiler_model
     osm_name = '380_wshp_boiler.osm'
-    epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
+    epw_name = 'NE_Kearney_Muni_725526_16.epw'
 
     osm_path = model_input_path(osm_name)
     epw_path = epw_input_path(epw_name)
@@ -288,9 +288,291 @@ class CondensingBoilerTest < Minitest::Test
     end
   end
 
+  def test_ptac_boiler_model
+    osm_name = '380_ptac_with_gas_boiler.osm'
+    epw_name = 'NE_Kearney_Muni_725526_16.epw'
+
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+
+    # Create an instance of the measure
+    measure = CondensingBoilers.new
+
+    # Load the model; only used here for populating arguments
+    model = load_model(osm_path)
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+    #put base case assertions here
+    # create hash of argument values
+    args_hash = {}
+    # populate argument with specified hash value if specified
+    arguments.each do |arg|
+      temp_arg_var = arg.clone
+      if args_hash.key?(arg.name)
+        assert(temp_arg_var.setValue(args_hash[arg.name]), "Could not set #{arg.name} to #{args_hash[arg.name]}")
+      end
+      argument_map[arg.name] = temp_arg_var
+    end
+
+    # Apply the measure to the model and optionally run the model
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+    assert_equal('Success', result.value.valueName)
+    model = load_model(File.expand_path(model_output_path(__method__)))
+	
+    #confirm that boilers in model are now condensing (95% efficiency)
+    boilers = model.getBoilerHotWaters
+    if boilers.size > 0
+      boilers.each do |boiler|
+        boiler_fuel_type = boiler.fuelType
+        boiler_efficiency = boiler.nominalThermalEfficiency
+        boiler_name = boiler.name
+        assert_equal('NaturalGas', boiler_fuel_type)
+        assert_equal(0.95, boiler_efficiency)
+        assert(boiler_name.get.include?('Condensing'))
+      end
+    else
+      runner.registerInfo("Model does not have any boilers. Measure not applicable.")
+    end
+  end
+
+  def test_psz_ac_boiler_model
+    osm_name = '380_psz_ac_with_gas_boiler.osm'
+    epw_name = 'NE_Kearney_Muni_725526_16.epw'
+
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+
+    # Create an instance of the measure
+    measure = CondensingBoilers.new
+
+    # Load the model; only used here for populating arguments
+    model = load_model(osm_path)
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+    #put base case assertions here
+    # create hash of argument values
+    args_hash = {}
+    # populate argument with specified hash value if specified
+    arguments.each do |arg|
+      temp_arg_var = arg.clone
+      if args_hash.key?(arg.name)
+        assert(temp_arg_var.setValue(args_hash[arg.name]), "Could not set #{arg.name} to #{args_hash[arg.name]}")
+      end
+      argument_map[arg.name] = temp_arg_var
+    end
+
+    # Apply the measure to the model and optionally run the model
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+    assert_equal('Success', result.value.valueName)
+    model = load_model(File.expand_path(model_output_path(__method__)))
+	
+    #confirm that boilers in model are now condensing (95% efficiency)
+    boilers = model.getBoilerHotWaters
+    if boilers.size > 0
+      boilers.each do |boiler|
+        boiler_fuel_type = boiler.fuelType
+        boiler_efficiency = boiler.nominalThermalEfficiency
+        boiler_name = boiler.name
+        assert_equal('FuelOilNo2', boiler_fuel_type)
+        assert_equal(0.95, boiler_efficiency)
+        assert(boiler_name.get.include?('Condensing'))
+      end
+    else
+      runner.registerInfo("Model does not have any boilers. Measure not applicable.")
+    end
+  end
+
+  def test_vav_air_cooled_chiller_boiler_model
+    osm_name = '380_vav_air_cooled_chiller_with_gas_boiler_reheat.osm'
+    epw_name = 'NE_Kearney_Muni_725526_16.epw'
+
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+
+    # Create an instance of the measure
+    measure = CondensingBoilers.new
+
+    # Load the model; only used here for populating arguments
+    model = load_model(osm_path)
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+    #put base case assertions here
+    # create hash of argument values
+    args_hash = {}
+    # populate argument with specified hash value if specified
+    arguments.each do |arg|
+      temp_arg_var = arg.clone
+      if args_hash.key?(arg.name)
+        assert(temp_arg_var.setValue(args_hash[arg.name]), "Could not set #{arg.name} to #{args_hash[arg.name]}")
+      end
+      argument_map[arg.name] = temp_arg_var
+    end
+
+    # Apply the measure to the model and optionally run the model
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+    assert_equal('Success', result.value.valueName)
+    model = load_model(File.expand_path(model_output_path(__method__)))
+	
+    #confirm that boilers in model are now condensing (95% efficiency)
+    boilers = model.getBoilerHotWaters
+    if boilers.size > 0
+      boilers.each do |boiler|
+        boiler_fuel_type = boiler.fuelType
+        boiler_efficiency = boiler.nominalThermalEfficiency
+        boiler_name = boiler.name
+        assert_equal('NaturalGas', boiler_fuel_type)
+        assert_equal(0.95, boiler_efficiency)
+        assert(boiler_name.get.include?('Condensing'))
+      end
+    else
+      runner.registerInfo("Model does not have any boilers. Measure not applicable.")
+    end
+  end
+
+  def test_doas_fcu_chiller_boiler_model
+    osm_name = '380_doas_with_fan_coil_air_cooled_chiller_with_boiler.osm'
+    epw_name = 'Sheridan.epw'
+
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+
+    # Create an instance of the measure
+    measure = CondensingBoilers.new
+
+    # Load the model; only used here for populating arguments
+    model = load_model(osm_path)
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+    #put base case assertions here
+    # create hash of argument values
+    args_hash = {}
+    # populate argument with specified hash value if specified
+    arguments.each do |arg|
+      temp_arg_var = arg.clone
+      if args_hash.key?(arg.name)
+        assert(temp_arg_var.setValue(args_hash[arg.name]), "Could not set #{arg.name} to #{args_hash[arg.name]}")
+      end
+      argument_map[arg.name] = temp_arg_var
+    end
+
+    # Apply the measure to the model and optionally run the model
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+    assert_equal('Success', result.value.valueName)
+    model = load_model(File.expand_path(model_output_path(__method__)))
+	
+    #confirm that boilers in model are now condensing (95% efficiency)
+    boilers = model.getBoilerHotWaters
+    if boilers.size > 0
+      boilers.each do |boiler|
+        boiler_fuel_type = boiler.fuelType
+        boiler_efficiency = boiler.nominalThermalEfficiency
+        boiler_name = boiler.name
+        assert_equal('NaturalGas', boiler_fuel_type)
+        assert_equal(0.95, boiler_efficiency)
+        assert(boiler_name.get.include?('Condensing'))
+      end
+    else
+      runner.registerInfo("Model does not have any boilers. Measure not applicable.")
+    end
+  end
+  
+  def test_vav_chiller_boiler_model
+    osm_name = '380_vav_chiller_with_gas_boiler_reheat.osm'
+    epw_name = 'NE_Kearney_Muni_725526_16.epw'
+
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+
+    # Create an instance of the measure
+    measure = CondensingBoilers.new
+
+    # Load the model; only used here for populating arguments
+    model = load_model(osm_path)
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+    #put base case assertions here
+    # create hash of argument values
+    args_hash = {}
+    # populate argument with specified hash value if specified
+    arguments.each do |arg|
+      temp_arg_var = arg.clone
+      if args_hash.key?(arg.name)
+        assert(temp_arg_var.setValue(args_hash[arg.name]), "Could not set #{arg.name} to #{args_hash[arg.name]}")
+      end
+      argument_map[arg.name] = temp_arg_var
+    end
+
+    # Apply the measure to the model and optionally run the model
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+    assert_equal('Success', result.value.valueName)
+    model = load_model(File.expand_path(model_output_path(__method__)))
+	
+    #confirm that boilers in model are now condensing (95% efficiency)
+    boilers = model.getBoilerHotWaters
+    if boilers.size > 0
+      boilers.each do |boiler|
+        boiler_fuel_type = boiler.fuelType
+        boiler_efficiency = boiler.nominalThermalEfficiency
+        boiler_name = boiler.name
+        assert_equal('NaturalGas', boiler_fuel_type)
+        assert_equal(0.95, boiler_efficiency)
+        assert(boiler_name.get.include?('Condensing'))
+      end
+    else
+      runner.registerInfo("Model does not have any boilers. Measure not applicable.")
+    end
+  end
+
+  def test_baseboard_gas_boiler_model
+    osm_name = '380_direct_evap_cooler_baseboard_gas_boiler.osm'
+    epw_name = 'NE_Kearney_Muni_725526_16.epw'
+
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+
+    # Create an instance of the measure
+    measure = CondensingBoilers.new
+
+    # Load the model; only used here for populating arguments
+    model = load_model(osm_path)
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+    #put base case assertions here
+    # create hash of argument values
+    args_hash = {}
+    # populate argument with specified hash value if specified
+    arguments.each do |arg|
+      temp_arg_var = arg.clone
+      if args_hash.key?(arg.name)
+        assert(temp_arg_var.setValue(args_hash[arg.name]), "Could not set #{arg.name} to #{args_hash[arg.name]}")
+      end
+      argument_map[arg.name] = temp_arg_var
+    end
+
+    # Apply the measure to the model and optionally run the model
+    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+    assert_equal('Success', result.value.valueName)
+    model = load_model(File.expand_path(model_output_path(__method__)))
+	
+    #confirm that boilers in model are now condensing (95% efficiency)
+    boilers = model.getBoilerHotWaters
+    if boilers.size > 0
+      boilers.each do |boiler|
+        boiler_fuel_type = boiler.fuelType
+        boiler_efficiency = boiler.nominalThermalEfficiency
+        boiler_name = boiler.name
+        assert_equal('NaturalGas', boiler_fuel_type)
+        assert_equal(0.95, boiler_efficiency)
+        assert(boiler_name.get.include?('Condensing'))
+      end
+    else
+      runner.registerInfo("Model does not have any boilers. Measure not applicable.")
+    end
+  end
+
   def test_not_applicable_model
     osm_name = '361_Retail_PSZ_Gas_5a.osm'
-    epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
+    epw_name = 'NE_Kearney_Muni_725526_16.epw'
 
     osm_path = model_input_path(osm_name)
     epw_path = epw_input_path(epw_name)
