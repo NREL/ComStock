@@ -201,7 +201,47 @@ class NamingMixin():
         'out.emissions.natural_gas..co2e_kg',
         'out.emissions.fuel_oil..co2e_kg',
         'out.emissions.propane..co2e_kg',
-        'out.emissions.electricity.lrmer_95_decarb_by_2035_15_2023_start..co2e_kg'
+        'out.emissions.electricity.lrmer_mid_case_15_2023_start..co2e_kg'
+    ]
+
+    # GHG emissions seasonal daily average from electricity consumption columns for eGrid
+    COLS_GHG_ELEC_SEASONAL_DAILY_EGRID = [
+        'out.emissions.electricity.winter_daily_average.egrid_2021_subregion..co2e_kg',
+        'out.emissions.electricity.summer_daily_average.egrid_2021_subregion..co2e_kg',
+        'out.emissions.electricity.shoulder_daily_average.egrid_2021_subregion..co2e_kg'
+    ]
+    
+    # GHG emissions seasonal daily average from electricity consumption columns for Cambium
+    COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM = [
+        'out.emissions.electricity.winter_daily_average.lrmer_high_re_cost_15_2023_start..co2e_kg',
+        'out.emissions.electricity.summer_daily_average.lrmer_high_re_cost_15_2023_start..co2e_kg',
+        'out.emissions.electricity.shoulder_daily_average.lrmer_high_re_cost_15_2023_start..co2e_kg',
+        'out.emissions.electricity.winter_daily_average.lrmer_low_re_cost_15_2023_start..co2e_kg',
+        'out.emissions.electricity.summer_daily_average.lrmer_low_re_cost_15_2023_start..co2e_kg',
+        'out.emissions.electricity.shoulder_daily_average.lrmer_low_re_cost_15_2023_start..co2e_kg',
+        'out.emissions.electricity.winter_daily_average.lrmer_mid_case_15_2023_start..co2e_kg',
+        'out.emissions.electricity.summer_daily_average.lrmer_mid_case_15_2023_start..co2e_kg',
+        'out.emissions.electricity.shoulder_daily_average.lrmer_mid_case_15_2023_start..co2e_kg'
+    ]
+
+    # GHG emissions seasonal daily average from electricity consumption columns for eGrid
+    COLS_GHG_ELEC_SEASONAL_DAILY_EGRID = [
+        'out.emissions.electricity.winter_daily_average.egrid_2021_subregion..co2e_kg',
+        'out.emissions.electricity.summer_daily_average.egrid_2021_subregion..co2e_kg',
+        'out.emissions.electricity.shoulder_daily_average.egrid_2021_subregion..co2e_kg'
+    ]
+    
+    # GHG emissions seasonal daily average from electricity consumption columns for Cambium
+    COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM = [
+        'out.emissions.electricity.winter_daily_average.lrmer_high_re_cost_15_2023_start..co2e_kg',
+        'out.emissions.electricity.summer_daily_average.lrmer_high_re_cost_15_2023_start..co2e_kg',
+        'out.emissions.electricity.shoulder_daily_average.lrmer_high_re_cost_15_2023_start..co2e_kg',
+        'out.emissions.electricity.winter_daily_average.lrmer_low_re_cost_15_2023_start..co2e_kg',
+        'out.emissions.electricity.summer_daily_average.lrmer_low_re_cost_15_2023_start..co2e_kg',
+        'out.emissions.electricity.shoulder_daily_average.lrmer_low_re_cost_15_2023_start..co2e_kg',
+        'out.emissions.electricity.winter_daily_average.lrmer_mid_case_15_2023_start..co2e_kg',
+        'out.emissions.electricity.summer_daily_average.lrmer_mid_case_15_2023_start..co2e_kg',
+        'out.emissions.electricity.shoulder_daily_average.lrmer_mid_case_15_2023_start..co2e_kg'
     ]
 
     # QOI COLS
@@ -224,6 +264,36 @@ class NamingMixin():
     QOI_MIN_SHOULDER_USE_NORMALIZED = 'out.qoi.minimum_daily_use_shoulder_intensity..w_per_ft2'
     QOI_MIN_SUMMER_USE_NORMALIZED = 'out.qoi.minimum_daily_use_summer_intensity..w_per_ft2'
     QOI_MIN_WINTER_USE_NORMALIZED = 'out.qoi.minimum_daily_use_winter_intensity..w_per_ft2'
+
+    COLS_QOI_MONTHLY_MAX_DAILY_PEAK = [
+        'out.qoi.maximum_daily_peak_jan..kw',
+        'out.qoi.maximum_daily_peak_feb..kw',
+        'out.qoi.maximum_daily_peak_mar..kw',
+        'out.qoi.maximum_daily_peak_apr..kw',
+        'out.qoi.maximum_daily_peak_may..kw',
+        'out.qoi.maximum_daily_peak_jun..kw',
+        'out.qoi.maximum_daily_peak_jul..kw',
+        'out.qoi.maximum_daily_peak_aug..kw',
+        'out.qoi.maximum_daily_peak_sep..kw',
+        'out.qoi.maximum_daily_peak_oct..kw',
+        'out.qoi.maximum_daily_peak_nov..kw',
+        'out.qoi.maximum_daily_peak_dec..kw'
+    ]
+
+    COLS_QOI_MONTHLY_MED_DAILY_PEAK = [
+        'out.qoi.median_daily_peak_jan..kw',
+        'out.qoi.median_daily_peak_feb..kw',
+        'out.qoi.median_daily_peak_mar..kw',
+        'out.qoi.median_daily_peak_apr..kw',
+        'out.qoi.median_daily_peak_may..kw',
+        'out.qoi.median_daily_peak_jun..kw',
+        'out.qoi.median_daily_peak_jul..kw',
+        'out.qoi.median_daily_peak_aug..kw',
+        'out.qoi.median_daily_peak_sep..kw',
+        'out.qoi.median_daily_peak_oct..kw',
+        'out.qoi.median_daily_peak_nov..kw',
+        'out.qoi.median_daily_peak_dec..kw'
+    ]
 
     # Greenhouse gas emissions columns
     GHG_NATURAL_GAS = 'out.emissions.natural_gas..co2e_kg'
@@ -660,6 +730,12 @@ class NamingMixin():
             converted_col_name = converted_col_name.replace('_bill_', '_bill_savings_')
         elif "_bill.." in converted_col_name:
             converted_col_name = converted_col_name.replace('_bill..', '_bill_savings..')
+        elif "peak_" in converted_col_name:
+            converted_col_name = converted_col_name.replace('peak_', 'peak_savings_')
+        elif "maximum_daily_use_" in converted_col_name:
+            converted_col_name = converted_col_name.replace('maximum_daily_use_', 'peak_savings_')
+        elif ".emissions." in converted_col_name:
+            converted_col_name = converted_col_name.replace('.emissions.', '.emissions.savings.')
             
         if converted_col_name == col_name:
             raise ValueError(f"Cannot convert column name {col_name} to savings column") 
@@ -701,6 +777,9 @@ class NamingMixin():
         col_name = col_name.replace('bill_max..usd', 'bill_max_intensity..usd')
         col_name = col_name.replace('bill_median..usd', 'bill_median_intensity..usd')
         col_name = col_name.replace('bill..usd', 'bill_intensity..usd')
+        col_name = col_name.replace('_daily_peak_', '_daily_peak_intensity_')
+        col_name = col_name.replace('maximum_daily_use_', 'peak_intensity_')
+        col_name = col_name.replace('.emissions.', '.emissions.intensity.')
         area_units = 'ft2'
         intensity_units = f'{units}_per_{area_units}'
         col_name = col_name.replace(f'..{units}', f'..{intensity_units}')
