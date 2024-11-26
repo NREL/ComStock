@@ -15,6 +15,8 @@ from comstockpostproc.s3_utilities_mixin import S3UtilitiesMixin
 
 logger = logging.getLogger(__name__)
 
+# Use future pandas behavior, which we handled by casting column type after .replace() calls
+pd.set_option('future.no_silent_downcasting', True)
 
 class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
     def __init__(self, cbecs_year, truth_data_version, color_hex=NamingMixin.COLOR_CBECS_2012, weighted_energy_units='tbtu', weighted_utility_units='billion_usd', reload_from_csv=False):
@@ -104,7 +106,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         if not os.path.exists(file_path):
             s3_file_path = f'truth_data/{self.truth_data_version}/EIA/CBECS/{file_name}'
             self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
-    
+
 
     def load_data(self):
         # Load raw microdata and codebook and decode numeric keys to strings using codebook
