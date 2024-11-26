@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>qoi_report</name>
   <uid>be0bfc7f-25c6-435a-9acd-2f5fa8ac817d</uid>
-  <version_id>59d04c8d-045f-429b-88ed-2d048111c7a1</version_id>
-  <version_modified>2024-06-20T18:59:03Z</version_modified>
+  <version_id>b65aa025-169d-45af-b963-506a29271ca9</version_id>
+  <version_modified>2024-10-28T21:43:16Z</version_modified>
   <xml_checksum>15BF4E57</xml_checksum>
   <class_name>QOIReport</class_name>
   <display_name>QOI Report</display_name>
@@ -727,7 +727,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>1BD455E1</checksum>
+      <checksum>5FE6A05C</checksum>
     </file>
     <file>
       <filename>USA_MI_Detroit.City.725375_2012.epw</filename>
@@ -757,7 +757,7 @@
       <filename>qoi_report_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>5C52E7F4</checksum>
+      <checksum>45B35351</checksum>
     </file>
     <file>
       <filename>retail_2010.osm</filename>

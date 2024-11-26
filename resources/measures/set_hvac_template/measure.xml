@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>set_hvac_template</name>
   <uid>7e2eb386-560f-4bf4-a817-ea1317cb414d</uid>
-  <version_id>516fec77-5490-4876-aeec-351009ee06c2</version_id>
-  <version_modified>2024-04-24T14:02:37Z</version_modified>
+  <version_id>46367cd8-205c-42e3-bc7a-5372bd91710e</version_id>
+  <version_modified>2024-10-16T22:09:17Z</version_modified>
   <xml_checksum>8766A9E7</xml_checksum>
   <class_name>SetHVACTemplate</class_name>
   <display_name>Set HVAC Template</display_name>
@@ -525,7 +525,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>A7DED33D</checksum>
+      <checksum>86C7EB48</checksum>
     </file>
     <file>
       <filename>deer_building_types.rb</filename>
@@ -534,22 +534,10 @@
       <checksum>2D01794A</checksum>
     </file>
     <file>
-      <filename>Rt3-DEER Pre-1975-DXEH-CEC T24-CEC1.osm</filename>
-      <filetype>osm</filetype>
-      <usage_type>test</usage_type>
-      <checksum>D0AEC51B</checksum>
-    </file>
-    <file>
-      <filename>USA_CA_Arcata.AP.725945_TMY3.epw</filename>
-      <filetype>epw</filetype>
-      <usage_type>test</usage_type>
-      <checksum>99983B16</checksum>
-    </file>
-    <file>
-      <filename>measure_test.rb</filename>
+      <filename>set_hvac_template_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>5DC71D50</checksum>
+      <checksum>858FF2F8</checksum>
     </file>
   </files>
 </measure>

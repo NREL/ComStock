@@ -1,42 +1,5 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2024 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
-# *******************************************************************************
-# OpenStudio(R), Copyright (c) 2008-2018, Alliance for Sustainable Energy, LLC.
-# All rights reserved.
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# (1) Redistributions of source code must retain the above copyright notice,
-# this list of conditions and the following disclaimer.
-#
-# (2) Redistributions in binary form must reproduce the above copyright notice,
-# this list of conditions and the following disclaimer in the documentation
-# and/or other materials provided with the distribution.
-#
-# (3) Neither the name of the copyright holder nor the names of any contributors
-# may be used to endorse or promote products derived from this software without
-# specific prior written permission from the respective party.
-#
-# (4) Other than as required in clauses (1) and (2), distributions in any form
-# of modifications or other derivative works may not use the "OpenStudio"
-# trademark, "OS", "os", or any other confusingly similar designation without
-# specific prior written permission from Alliance for Sustainable Energy, LLC.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER(S) AND ANY CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-# THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER(S), ANY CONTRIBUTORS, THE
-# UNITED STATES GOVERNMENT, OR THE UNITED STATES DEPARTMENT OF ENERGY, NOR ANY OF
-# THEIR EMPLOYEES, BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
-# OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-# STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-# *******************************************************************************
-
-# see the URL below for information on how to write OpenStudio measures
-# http://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/
 
 # start the measure
 class SetHeatingFuel < OpenStudio::Measure::ModelMeasure
@@ -102,23 +65,23 @@ class SetHeatingFuel < OpenStudio::Measure::ModelMeasure
     # Map from input heating fuels to EnergyPlus fuel type enumerations
     # for EnergyPlus 9.3.0 / OpenStudio 3.0.0 or higher.
     eplus_htg_fuels = {
-        'NaturalGas'=> 'NaturalGas',
-        'Propane'=> 'Propane',
-        'FuelOil'=> 'FuelOilNo2',
-        'DistrictHeating' => 'DistrictHeatingWater'
+      'NaturalGas' => 'NaturalGas',
+      'Propane' => 'Propane',
+      'FuelOil' => 'FuelOilNo2',
+      'DistrictHeating' => 'DistrictHeatingWater'
     }
-
-    # Heating coils
 
     # Compatibility with earlier EnergyPlus versions with
     # inconsistent fuel enumerations between objects.
     if model.version < OpenStudio::VersionString.new('3.0.0')
       eplus_htg_fuels['FuelOil'] = 'FuelOil#2'
+      eplus_htg_fuels['Propane'] = 'PropaneGas'
     end
     if model.version < OpenStudio::VersionString.new('3.7.0')
       eplus_htg_fuels['DistrictHeating'] = 'DistrictHeating'
     end
 
+    # Heating coils
     htg_coils_changed = []
     target_fuel = eplus_htg_fuels[heating_fuel]
     model.getCoilHeatingGass.each do |htg_coil|
@@ -136,14 +99,6 @@ class SetHeatingFuel < OpenStudio::Measure::ModelMeasure
     end
 
     # Boilers
-
-    # Compatibility with earlier EnergyPlus versions with
-    # inconsistent fuel enumerations between objects.
-    if model.version < OpenStudio::VersionString.new('3.0.0')
-      eplus_htg_fuels['FuelOil'] = 'FuelOil#2'
-      eplus_htg_fuels['Propane'] = 'PropaneGas'
-    end
-
     boilers_changed = []
     target_fuel = eplus_htg_fuels[heating_fuel]
     model.getBoilerHotWaters.each do |boiler|
@@ -161,8 +116,8 @@ class SetHeatingFuel < OpenStudio::Measure::ModelMeasure
     end
 
     # If no heating coils or boilers were changed, measure is not applicable
-    if htg_coils_changed.size.zero? && boilers_changed.size.zero?
-      runner.registerAsNotApplicable("No heating coil or boiler fuels needed to be changed.")
+    if htg_coils_changed.empty? && boilers_changed.empty?
+      runner.registerAsNotApplicable('No heating coil or boiler fuels needed to be changed.')
       return true
     end
 
