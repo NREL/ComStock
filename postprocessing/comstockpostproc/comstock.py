@@ -2063,8 +2063,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             try:
                 national_aggregation.filter(pl.col(self.UPGRADE_ID) == up_id).sink_csv(file_path)
             except pl.exceptions.InvalidOperationError:
-                logger.warn('Warning - sink_csv not supported for metadata write in current polars version')
-                logger.warn('Falling back to .collect.write_csv')
+                logger.warning('Warning - sink_csv not supported for metadata write in current polars version')
+                logger.warning('Falling back to .collect.write_csv')
                 national_aggregation.filter(pl.col(self.UPGRADE_ID) == up_id).collect().write_csv(file_path)
 
             # Write Parquet version
@@ -2074,8 +2074,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             try:
                 national_aggregation.filter(pl.col(self.UPGRADE_ID) == up_id).sink_parquet(file_path)
             except pl.exceptions.InvalidOperationError:
-                logger.warn('Warning - sink_parquet not supported for metadata write in current polars version')
-                logger.warn('Falling back to .collect.write_parquet')
+                logger.warning('Warning - sink_parquet not supported for metadata write in current polars version')
+                logger.warning('Falling back to .collect.write_parquet')
                 national_aggregation.filter(pl.col(self.UPGRADE_ID) == up_id).collect().write_parquet(file_path)
 
         # Export dictionaries corresponding to the exported columns
@@ -2118,10 +2118,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 to_write = to_write.with_columns(pl.col(geographic_col_name).alias(pretty_geo_col_name))
             else:
                 pretty_geo_col_name = geographic_col_name
-            logger.warn("IF USING OSX AND YOU GET A '*** OSError: [Errno 24] Too many open files' DO THE FOLLOWING'")
-            logger.warn("Add the following two commands to your ~/.bash_profile and reboot your shell:")
-            logger.warn("ulimit -n 200000")
-            logger.warn("ulimit -u 2048")
+            logger.warning("IF USING OSX AND YOU GET A '*** OSError: [Errno 24] Too many open files' DO THE FOLLOWING'")
+            logger.warning("Add the following two commands to your ~/.bash_profile and reboot your shell:")
+            logger.warning("ulimit -n 200000")
+            logger.warning("ulimit -u 2048")
             logger.info("Attempting pottentially OSERROR triggering write:")
             to_write.collect().write_parquet(file_path, use_pyarrow=True, pyarrow_options={
                 "partition_cols": [pretty_geo_col_name], 'max_partitions': 3143
@@ -2165,13 +2165,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Create a apportionment group id which will be shared for iteration by both the target (apportionment data) and
         # domain (csdf data).
         # TODO make the apportionment data object a lazy df nativly
+        APPO_GROUP_ID = 'appo_group_id'
         apportionment.data.loc[:, 'hvac_and_fueltype'] = apportionment.data.loc[:, 'system_type'] + '_' + apportionment.data.loc[:, 'heating_fuel']
         appo_group_df = apportionment.data.copy(deep=True).loc[
             :, ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
         ]
         appo_group_df = appo_group_df.drop_duplicates(keep='first').sort_values(
             by=['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
-        ).reset_index(drop=True).reset_index(names='appo_group_id')
+        ).reset_index(drop=True).reset_index(names=APPO_GROUP_ID)
         appo_group_df = pl.DataFrame(appo_group_df).lazy()
 
         # Join apportionment group id into comstock data
@@ -2180,7 +2181,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             left_on=[self.SAMPLING_REGION, self.BLDG_TYPE, self.SIZE_BIN, 'hvac_and_fueltype'],
             right_on=['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
         )
-        if csdf.select(pl.col('appo_group_id').is_null().any()).collect().item() != False:
+        if csdf.select(pl.col(APPO_GROUP_ID).is_null().any()).collect().item() != False:
             raise RuntimeError('Not all combinations of sampling region, bt, and size bin could be matched.')
 
         # Join apportionment group id into comstock data
@@ -2188,16 +2189,15 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         tdf = tdf.join(appo_group_df, on=['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype'])
 
         # Identify combination in the truth data not supported by the current sample.
-        csdf_groups = pl.Series(csdf.select(pl.col('appo_group_id')).unique().collect()).to_list()
-        truth_groups = pl.Series(appo_group_df.select(pl.col('appo_group_id')).unique().collect()).to_list()
+        csdf_groups = pl.Series(csdf.select(pl.col(APPO_GROUP_ID)).unique().collect()).to_list()
+        truth_groups = pl.Series(appo_group_df.select(pl.col(APPO_GROUP_ID)).unique().collect()).to_list()
         missing_groups = set(truth_groups) - set(csdf_groups)
-        unable_to_match = tdf.filter(pl.col('appo_group_id').is_in(missing_groups)).select(pl.len()).collect().item()
+        unable_to_match = tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups)).select(pl.len()).collect().item()
         total_to_match = tdf.select(pl.len()).collect().item()
         logger.info(f'Unable to match {unable_to_match} out of {total_to_match} truth data.')
 
         # Provide detailed additional info on missing buckets for review if desired
         logger.info('The following is a breakdown of missing truth data buildings by bucket attributes:')
-        APPO_GROUP_ID = "appo_group_id"
         for attribute in ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']:
             logger.info(f'{attribute}:')
             logger.info(f'{pl.Series(tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups)).select(pl.col(attribute).value_counts(sort=True)).collect()).to_list()}'
@@ -2205,23 +2205,52 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         logger.info('Writting QAQC / Debugging files to the home directory.')
         attrs = ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
         tdf.select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv('~/potential_apportionment_group_optimization.csv')
-        tdf.filter(pl.col('appo_group_id').is_in(missing_groups)).select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv('~/Desktop/debugging_missing_apportionment_groups.csv')
+        tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups)).select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv('~/Desktop/debugging_missing_apportionment_groups.csv')
 
         # Drop unsupported truth data and add an index
-        tdf = tdf.filter(pl.col('appo_group_id').is_in(missing_groups).is_not())
+        tdf = tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups).is_not())
         tdf = tdf.with_row_index()
 
+        # Drop unsupported very-small schools while ensuring at least 3 samples per apportionment group
+        # Note we can just drop here because the csdf lazyframe isn't used elsewhere
+        # This returns all apportionment groups with three or more schools over 2k square feet, making them 'ok' to
+        # remove schools under 2k sqft from them.
+        row_count_before = csdf.select(pl.len()).collect().item()
+        appo_groups_to_apply_drop_to = pl.Series(
+            csdf.select(
+                self.BLDG_TYPE, APPO_GROUP_ID, self.FLR_AREA
+            ).filter(
+                (pl.col(self.BLDG_TYPE).is_in(['PrimarySchool', 'SecondarySchool'])) &
+                (pl.col(self.FLR_AREA) > 2001)
+            ).groupby(
+                APPO_GROUP_ID
+            ).count(
+            ).filter(
+                pl.col('count') > 2
+            ).select(
+                APPO_GROUP_ID
+            ).collect()
+        ).to_list()
+        # Keep all rows not in the list of above apportionment groups OR over 2k sqft
+        csdf = csdf.filter(
+            (~pl.col(APPO_GROUP_ID).is_in(appo_groups_to_apply_drop_to)) |
+            (pl.col(self.FLR_AREA) > 2001)
+        )
+        row_count_after = csdf.select(pl.len()).collect().item()
+        logger.info(f'Removed {row_count_before - row_count_after} very small schools from cs results')
+        breakpoint()
+
         # Create a dictionary defining how many elements of which apportionment groups to sample
-        samples_per_group = tdf.groupby('appo_group_id').len().collect().to_pandas()
-        samples_per_group = samples_per_group.set_index('appo_group_id').to_dict()['len']
+        samples_per_group = tdf.groupby(APPO_GROUP_ID).len().collect().to_pandas()
+        samples_per_group = samples_per_group.set_index(APPO_GROUP_ID).to_dict()['len']
 
         # Create a dictionary identifying the tdf indicies associated with each apportionment group
-        tdf_ids_per_group = tdf.select(pl.col('index'), pl.col('appo_group_id')).groupby(pl.col('appo_group_id')).agg(pl.col('index')).collect().to_pandas()
-        tdf_ids_per_group = tdf_ids_per_group.set_index('appo_group_id').to_dict()['index']
+        tdf_ids_per_group = tdf.select(pl.col('index'), pl.col(APPO_GROUP_ID)).groupby(pl.col(APPO_GROUP_ID)).agg(pl.col('index')).collect().to_pandas()
+        tdf_ids_per_group = tdf_ids_per_group.set_index(APPO_GROUP_ID).to_dict()['index']
 
         # Create a dictionary of which comstock building ids are associated with each apportionment group
-        cs_ids_per_group = csdf.select(pl.col(self.BLDG_ID), pl.col('appo_group_id')).groupby(pl.col('appo_group_id')).agg(pl.col(self.BLDG_ID)).collect().to_pandas()
-        cs_ids_per_group = cs_ids_per_group.set_index('appo_group_id').to_dict()[self.BLDG_ID]
+        cs_ids_per_group = csdf.select(pl.col(self.BLDG_ID), pl.col(APPO_GROUP_ID)).groupby(pl.col(APPO_GROUP_ID)).agg(pl.col(self.BLDG_ID)).collect().to_pandas()
+        cs_ids_per_group = cs_ids_per_group.set_index(APPO_GROUP_ID).to_dict()[self.BLDG_ID]
         assert(set(samples_per_group.keys()) == set(cs_ids_per_group.keys()))
 
         # Iterativly sample the groups
@@ -2238,7 +2267,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Create the new sampled dataframe (foreign key table) including upgrades
         upgrade_ids = pl.Series(self.data.select(pl.col(self.UPGRADE_ID)).unique().collect()).to_list()
-        fkdf = pd.DataFrame({'appo_group_id': sampled_appo_id, 'tdf_id': sampled_td_id, self.BLDG_ID: sampled_cs_id})
+        fkdf = pd.DataFrame({APPO_GROUP_ID: sampled_appo_id, 'tdf_id': sampled_td_id, self.BLDG_ID: sampled_cs_id})
         fkt = list()
         for upgrade in upgrade_ids:
             tmpdf = fkdf.copy(deep=True)
@@ -2277,7 +2306,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         })
 
         # Drop unwanted columns from the foreign key table and persist
-        fkt = fkt.drop('tdf_id', 'appo_group_id', 'truth_sqft', 'in.tract_assignment_type', self.FLR_AREA)
+        fkt = fkt.drop('tdf_id', APPO_GROUP_ID, 'truth_sqft', 'in.tract_assignment_type', self.FLR_AREA)
         self.APPORTIONED = True
         self.fkt = fkt
         logger.info('Successfully completed the apportionment sampling postprocessing')
@@ -2960,8 +2989,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             col = col.replace(f'..{self.units_from_col_name(col)}', '')
             try:
                 col_def = col_defs.row(by_predicate=(pl.col('new_col_name') == col), named=True)
-            except pl.exceptions.NoRowsReturnedError as nrrerr:
+            except pl.exceptions.NoRowsReturnedError:
                 logger.error(f'No definition for {col} in {col_def_path}')
+                continue
+            except pl.exceptions.TooManyRowsReturnedError:
+                logger.error(f'Multiple matches for {col} in {col_def_path}')
                 continue
 
             col_enums = []
