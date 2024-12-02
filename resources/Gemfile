@@ -15,7 +15,7 @@ gem 'openstudio-standards', '= 0.6.3'
 gem 'openstudio-workflow', '= 2.4.0'
 # gem 'openstudio-standards', git: 'https://github.com/NREL/openstudio-standards.git', ref: 'e61d7d41a0e285cc99c7c6ea4aff1fcdc0be3599'
 # gem 'openstudio-standards', path: "C:/GitRepos/openstudio-standards" # Use this format when testing openstudio-standards changes locally
-gem 'openstudio-geb', '= 0.4.0', github: 'LBNL-ETA/Openstudio-GEB-gem', ref: 'a18e023936dd5c92be7dbf354f6331f60a965828'
+gem 'openstudio-geb', '= 0.5.0', github: 'LBNL-ETA/Openstudio-GEB-gem', ref: 'e8081ee039b14a1ed554d24e3462bf21279e92a5'
 gem 'tbd', '= 3.4.1'
 
 group :test do
