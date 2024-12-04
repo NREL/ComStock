@@ -2,7 +2,8 @@ schema_version: '0.3'
 buildstock_directory: ../
 project_directory: national
 output_directory: ../baseline_test_output
-weather_files_url: https://data.nrel.gov/system/files/156/BuildStock_TMY3_FIPS.zip
+# weather_files_url: https://data.nrel.gov/system/files/156/BuildStock_TMY3_FIPS.zip
+weather_files_path: /tmp/ComStock/weather
 
 sampler:
   type: precomputed
@@ -13,8 +14,8 @@ baseline:
   n_buildings_represented: 10
   custom_gems: True
 
-os_version: 3.6.1
-os_sha: bb9481519e
+os_version: 3.8.0
+os_sha: f953b6fcaf
 workflow_generator:
   type: commercial_default
   args:
