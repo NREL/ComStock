@@ -2,12 +2,14 @@
 # See top level LICENSE.txt file for license terms.
 import os
 from functools import lru_cache
+from fsspec.core import url_to_fs
 
 import boto3
 import botocore
 import glob
 import json
 import logging
+import shutil
 import botocore.exceptions
 import numpy as np
 import pandas as pd
@@ -93,11 +95,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.ejscreen_file_name = 'EJSCREEN_Tract_2020_USPR.csv'
         self.egrid_file_name = 'egrid_emissions_2019.csv'
         self.cejst_file_name = '1.0-communities.csv'
+        self.geospatial_lookup_file_name = 'spatial_tract_lookup_table_publish_v6.csv'
         self.hvac_metadata_file_name = 'hvac_metadata.csv'
         self.rename_upgrades = rename_upgrades
         self.rename_upgrades_file_name = 'rename_upgrades.json'
         self.athena_table_name = athena_table_name
         self.data = None
+        self.fkt = None  # TODO verify that we should initialize this?
         self.plotting_data = None
         self.monthly_data = None
         self.monthly_data_gap = None
@@ -151,13 +155,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.download_data()
         pl.enable_string_cache()
         if reload_from_csv:
-            upgrade_pqts = glob.glob(os.path.join(self.output_dir, 'ComStock wide upgrade*.parquet'))
+            upgrade_pqts = glob.glob(os.path.join(self.output_dir, 'cached_ComStock_wide_upgrade*.parquet'))
             upgrade_pqts.sort()
             if len(upgrade_pqts) > 0:
                 upgrade_dfs = []
                 for file_path in upgrade_pqts:
                     bn = os.path.basename(file_path)
-                    up_id = int(bn.replace('ComStock wide upgrade', '').replace('.parquet', ''))
+                    up_id = int(bn.replace('cached_ComStock_wide_upgrade', '').replace('.parquet', ''))
                     if up_id in self.upgrade_ids_to_skip:
                         logger.info(f'Skipping reload for upgrade {up_id}')
                         continue
@@ -194,12 +198,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             upgrade_ids.sort()
             for upgrade_id in upgrade_ids:
                 self.data = None
-                # Change this to only load 1 upgrade
                 self.load_data(upgrade_id, acceptable_failure_percentage, drop_failed_runs)
                 self.add_buildstock_csv_columns()
-                self.add_geospatial_columns()  # TODO remove geospatial join once reliably in buildstock.csv
-                self.add_ejscreen_columns()
-                self.add_cejst_columns()
                 self.data = self.downselect_imported_columns(self.data)
                 self.rename_columns_and_convert_units()
                 self.set_column_data_types()
@@ -232,7 +232,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.add_unweighted_energy_savings_columns()
                 self.add_unweighted_peak_savings_columns()
                 self.add_unweighted_emissions_savings_columns()
-               # Downselect the self.data to just the upgrade
+                # Downselect the self.data to just the upgrade
                 self.data = self.data.filter(pl.col(self.UPGRADE_ID) == upgrade_id)
                 # self._sightGlass_metadata_check(self.data)
                 # Write self.data to parquet file
@@ -360,6 +360,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         if not os.path.exists(cejst_data_path):
             s3_file_path = f'truth_data/{self.truth_data_version}/EPA/CEJST/{self.cejst_file_name}'
             self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
+
+        # Geospatial data
+        geospatial_data_path = os.path.join(self.truth_data_dir, self.geospatial_lookup_file_name)
+        if not os.path.exists(geospatial_data_path):
+            sampling_file_path = os.path.abspath(os.path.join(__file__, '..', '..', '..', 'sampling', 'resources', self.geospatial_lookup_file_name))
+            logger.info(f'sampling_file_path: {sampling_file_path}')
+            if os.path.exists(sampling_file_path):
+                shutil.copy(sampling_file_path, geospatial_data_path)
 
     def download_timeseries_data_for_ami_comparison(self, ami, reload_from_csv=True, save_individual_regions=False):
         if reload_from_csv:
@@ -577,7 +585,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # Fill Nulls in measure-within-upgrade applicability columns with False
             for c, dt in up_res.schema.items():
                 if 'applicable' in c:
-                    logger.info(f'For {c}: Nulls set to False in upgrade, and its type is {dt}')
+                    logger.debug(f'For {c}: Nulls set to False in upgrade, and its type is {dt}')
                     if dt == pl.Null or dt == pl.Boolean:
                         logger.debug(f'For {c}: Nulls set to False (Boolean) in baseline')
                         up_res = up_res.with_columns([pl.col(c).fill_null(pl.lit(False))])
@@ -997,175 +1005,126 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Show the dataset size
         logger.debug(f'Memory after add_buildstock_csv_columns: {self.data.estimated_size()}')
 
-    def add_geospatial_columns(self):
-        # Skip this step if geospatial columns already present from buildstock.csv
-        if 'nhgis_tract_gisjoin' in self.data:
-            return True
-
-        # Join the geospatial columns added by Amy
-        file_name = 'results_up00_geospatial.csv.gz'
-        file_path = os.path.join(self.data_dir, file_name)
-
-        # Skip geospatial columns if the file doesn't exist
-        if not os.path.exists(file_path):
-            if self.skip_missing_columns:
-                return True
-            else:
-                err_msg = (f'The geospatial columns (nhgis_tract_gisjoin, nhgis_county_gisjoin, etc.) '
-                    f'were not found in the buildstock.csv. Either:'
-                    f'A) add these to the buildstock.csv, '
-                    f'B) add them to a separate file called results_up00_geospatial.csv.gz and put it into {self.data_dir}, '
-                    f'C) set these columns to FALSE in the full_metadata column of, '
-                    f'the {COLUMN_DEFINITION_FILE_NAME} file, or '
-                    f'D) set skip_missing_columns=True in the ComStock constructor.')
-                logger.error(err_msg)
-                raise Exception(err_msg)
-
-        geo_cols = [
-            'building_id',
-            'nhgis_tract_gisjoin',
-            'nhgis_county_gisjoin',
-            'nhgis_puma_gisjoin',
-            'state_name',
-            'state_abbreviation',
-            'census_division_name',
-            'census_region_name',
-            'census_division_name_recs',
-            'american_housing_survey_region',
-            'weather_file_2018',
-            'weather_file_TMY3',
-            'climate_zone_building_america',
-            'climate_zone_ashrae_2006',
-            'iso_region',
-            'reeds_balancing_area',
-            'resstock_county_id',
-            'resstock_puma_id',
-            'resstock_custom_region',
-        ]
-        comstock_geo = pl.read_csv(file_path, columns=geo_cols)
-        comstock_geo = self.reduce_df_memory(comstock_geo)
-
-        self.data = self.data.join(comstock_geo, on='building_id', how='left')
-
-        # Show the dataset size
-        logger.debug(f'Memory after add_geospatial_columns: {self.data.estimated_size()}')
-
-    def add_ejscreen_columns(self):
-        # Add the EJ Screen data
-        if not 'nhgis_tract_gisjoin' in self.data:
-            logger.warning(('Because the nhgis_tract_gisjoin column is missing '
-                'from the data, EJSCREEN characteristics cannot be joined.'))
-            return True
+    def add_geospatial_columns(self, input_lf: pl.LazyFrame):
+        # Join the geospatial data based on census tract
+        if not self.TRACT_ID in input_lf:
+            logger.info((f'Because the {self.TRACT_ID} column is missing '
+                'from the data, other geospatial characteristics cannot be joined.'))
+            return input_lf
 
         # Read the column definitions
         col_def_path = os.path.join(RESOURCE_DIR, COLUMN_DEFINITION_FILE_NAME)
         col_defs = pd.read_csv(col_def_path)
 
-        # Find all columns to export from EJSCREEN
+        # Find all geospatial columns to join
+        col_defs = col_defs[(col_defs['location'] == 'geospatial') & (col_defs['full_metadata'] == True)]
+        col_def_names = col_defs['original_col_name'].tolist()
+
+        file_path = os.path.join(self.truth_data_dir, self.geospatial_lookup_file_name)
+        geospatial_data = pl.scan_csv(file_path)
+        # TODO nhgis_county_gisjoin column should be added to the geospatial data file
+        geospatial_data = geospatial_data.with_columns(
+            pl.col('nhgis_county_gisjoin').cast(str).str.slice(0, 4).alias('nhgis_state_gisjoin')
+        )
+        geospatial_data = geospatial_data.select(col_def_names)
+        geospatial_data = self.rename_geospatial_columns(geospatial_data)
+
+        input_lf = input_lf.join(geospatial_data, on=self.TRACT_ID)
+
+        return input_lf
+
+    def add_ejscreen_columns(self, input_lf: pl.LazyFrame):
+        # Add the EJ Screen data
+        if not self.TRACT_ID in input_lf:
+            logger.info((f'Because the {self.TRACT_ID} column is missing '
+                'from the data, EJSCREEN characteristics cannot be joined.'))
+            return input_lf
+
+        # Read the column definitions
+        col_def_path = os.path.join(RESOURCE_DIR, COLUMN_DEFINITION_FILE_NAME)
+        col_defs = pd.read_csv(col_def_path)
+
+        # Find all columns to join from EJSCREEN
+        tract_col = 'ID'
         col_defs = col_defs[(col_defs['location'] == 'ejscreen') & (col_defs['full_metadata'] == True)]
         col_def_names = col_defs['original_col_name'].tolist()
         col_def_names.append('ID')  # Used for join only
 
         # Read the buildstock.csv and join columns onto annual results by building ID
-        file_name = 'EJSCREEN_Tract_2020_USPR.csv'
-        file_path = os.path.join(self.truth_data_dir, file_name)
-        ejscreen = pl.read_csv(file_path, columns=col_def_names, dtypes={'ID': str})
+        file_path = os.path.join(self.truth_data_dir, self.ejscreen_file_name)
+        ejscreen = pl.scan_csv(file_path).select(col_def_names)
 
         # Convert EJSCREEN census tract ID to gisjoin format
-        @lru_cache()
-        def nhgis_tract_gisjoin_from_census_id(id):
-            # STATE+COUNTY+TRACT
-            # 2+3+6=11
-            state = id[0:2]
-            county = id[2:5]
-            tract = id[5:11]
-            gisjoin = f'G{state}0{county}0{tract}'
-            # logger.debug(f'OG {id}')
-            # logger.debug(f'AP {state}{county}{tract}')
-            # logger.debug(f'N  {gisjoin}')
-            return gisjoin
-
-        # ejscreen['nhgis_tract_gisjoin'] = ejscreen.apply(lambda row: nhgis_tract_gisjoin_from_census_id(row['ID']))
-
-        ejscreen = ejscreen.with_columns(
-            pl.col('ID').map_elements(lambda x: nhgis_tract_gisjoin_from_census_id(x), return_dtype=pl.Utf8).alias('nhgis_tract_gisjoin'),
-        )
-
-        ejscreen = self.reduce_df_memory(ejscreen)
+        ejscreen = ejscreen.with_columns((
+                'G' +
+                pl.col(tract_col).str.slice(0, length=2) +
+                '0' +
+                pl.col(tract_col).str.slice(2, length=3) +
+                '0' +
+                pl.col(tract_col).str.slice(5, length=6)
+            ).alias(self.TRACT_ID))
+        ejscreen = ejscreen.drop([tract_col])
+        ejscreen = self.rename_geospatial_columns(ejscreen)
 
         # Merge in the EJSCREEN columns
-        self.data = self.data.join(ejscreen, on='nhgis_tract_gisjoin', how='left')
+        input_lf = input_lf.join(ejscreen, on=self.TRACT_ID, how='left')
 
         # Fill nulls in EJSCREEN columns with zeroes; not all tracts have an EJSCREEN mapping
-        for c in col_def_names:
-            self.data = self.data.with_columns([pl.col(c).fill_null(0.0)])
+        for c in ejscreen.columns:
+            if c == self.TRACT_ID:
+                continue
+            input_lf = input_lf.with_columns([pl.col(c).fill_null(0.0)])
 
-        # Show the dataset size
-        logger.debug(f'Memory after add_ejscreen_columns: {self.data.estimated_size()}')
+        assert isinstance(input_lf, pl.LazyFrame)
 
+        return input_lf
 
-    def add_cejst_columns(self):
+    def add_cejst_columns(self, input_lf):
         # Add the CEJST data
-        cejst_geo_column = 'Census tract 2010 ID'
-        tract_col = 'nhgis_tract_gisjoin'
-        if not tract_col in self.data:
-            logger.warning(('Because the nhgis_tract_gisjoin column is missing '
+        if not self.TRACT_ID in input_lf:
+            logger.info((f'Because the {self.TRACT_ID} column is missing '
                 'from the data, CEJST characteristics cannot be joined.'))
-            return True
+            return input_lf
 
         # Read the column definitions
         col_def_path = os.path.join(RESOURCE_DIR, COLUMN_DEFINITION_FILE_NAME)
         col_defs = pd.read_csv(col_def_path)
 
-        # Find all columns to export from CEJST
+        # Find all columns to join from CEJST
         # Pull all cejst columns listed for export in the comstock column definition csv file
+        tract_col = 'Census tract 2010 ID'
         col_defs = col_defs[(col_defs['location'] == 'cejst') & (col_defs['full_metadata'] == True)]
         col_def_names = col_defs['original_col_name'].tolist()
-        col_def_names.append(cejst_geo_column)
+        col_def_names.append(tract_col)
         col_def_types = {}
         for c in col_def_names:
             col_def_types[c] = str
 
         # Read the buildstock.csv and join columns onto annual results by building ID
-        file_name = self.cejst_file_name
-        file_path = os.path.join(self.truth_data_dir, file_name)
-        cejst = pl.read_csv(file_path, columns=col_def_names, dtypes=col_def_types)
+        file_path = os.path.join(self.truth_data_dir, self.cejst_file_name)
+        cejst = pl.scan_csv(file_path).select(col_def_names)
 
         # Convert CEJST census tract ID to gisjoin format
-        @lru_cache()
-        def nhgis_tract_gisjoin_from_census_id(id):
-            # STATE+COUNTY+TRACT
-            # 2+3+6=11
-            state = id[0:2]
-            county = id[2:5]
-            tract = id[5:11]
-            gisjoin = f'G{state}0{county}0{tract}'
-            # logger.debug(f'OG {id}')
-            # logger.debug(f'AP {state}{county}{tract}')
-            # logger.debug(f'N  {gisjoin}')
-            return gisjoin
-
-        cejst = cejst.with_columns(
-            pl.col(cejst_geo_column).map_elements(lambda x: nhgis_tract_gisjoin_from_census_id(x), return_dtype=pl.Utf8).alias(tract_col),
-        )
-
-        cejst = self.reduce_df_memory(cejst)
+        cejst = cejst.with_columns((
+                'G' +
+                pl.col(tract_col).str.slice(0, length=2) +
+                '0' +
+                pl.col(tract_col).str.slice(2, length=3) +
+                '0' +
+                pl.col(tract_col).str.slice(5, length=6)
+            ).alias(self.TRACT_ID))
+        cejst = cejst.drop([tract_col])
+        cejst = self.rename_geospatial_columns(cejst)
 
         # Merge in the CEJST columns
-        self.data = self.data.join(cejst, on=tract_col, how='left')
+        input_lf = input_lf.join(cejst, on=self.TRACT_ID, how='left')
 
-	    # Fill missing rows with false
-        self.data = self.data.with_columns(pl.col(tract_col).fill_null(False))
+	    # Fill nulls in CEJST data with False (assume NOT disadvantaged)
+        input_lf = input_lf.with_columns(pl.col(self.TRACT_ID).fill_null(False))
 
+        assert isinstance(input_lf, pl.LazyFrame)
 
-        # Check that no rows have null values
-        errs = self.data.select((pl.col(tract_col).filter(pl.col(tract_col).is_null()).count()))
-        num_errs = errs.get_column(tract_col).sum()
-        if num_errs > 0:
-            raise Exception(f'Errors in assigning CEJST data to {num_errs} buildings, fix logic.')
-
-        # Show the dataset size
-        logger.debug(f'Memory after add_cejst_columns: {self.data.estimated_size()}')
+        return input_lf
 
     def add_addressable_segments_columns(self):
         hvac_group_map = {
@@ -1376,7 +1335,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         logger.debug(f'Memory before downselect_columns: {df.estimated_size()}')
         col_defs_path = os.path.join(RESOURCE_DIR, COLUMN_DEFINITION_FILE_NAME)
         col_defs = pl.scan_csv(col_defs_path)
-        col_def_names = col_defs.filter((pl.col('full_metadata') == True) & (~pl.col('location').is_in(['calculated'])))
+        col_def_names = col_defs.filter(
+            (pl.col('full_metadata') == True) &
+            (~pl.col('location').is_in(['calculated', 'geospatial', 'cejst', 'ejscreen']))
+        )
         col_def_names = col_def_names.select('original_col_name').collect()
         col_def_names = col_def_names.to_series().to_list()
 
@@ -1397,7 +1359,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Check all available columns
         col_defs = pl.scan_csv(col_defs_path)
-        col_def_names = col_defs.filter(~pl.col('location').is_in(['calculated']))
+        col_def_names = col_defs.filter(~pl.col('location').is_in(['calculated', 'geospatial', 'cejst', 'ejscreen']))
         col_def_names = col_def_names.select('original_col_name').collect()
         col_def_names = col_def_names.to_series().to_list()
         for c in df.columns:
@@ -1419,12 +1381,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         return df
 
-    def downselect_columns_for_full_metadata_export(self, ):
+    def downselect_columns_for_full_metadata_export(self, input_lf):
         export_cols = full_metadata_columns()
 
         col_defs = pl.read_csv(os.path.join(RESOURCE_DIR, COLUMN_DEFINITION_FILE_NAME))
         all_cols = col_defs.select('new_col_name').to_series().to_list()
-        for c in self.data.columns:
+        for c in input_lf.columns:
             c = c.split('..')[0]  # column name without units
             if c.startswith('applicability.'):
                 continue  # measure-within-upgrade applicability column names are dynamic, don't check
@@ -1433,8 +1395,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         cols_to_keep = []
         cols_missing = []
-
-    
         exempt_cols = ["in.window_type", "_daily_average"]
 
         for export_col_name, export_col_units in export_cols.iter_rows():
@@ -1444,39 +1404,19 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             else:
                 export_col_name_units = f'{export_col_name}..{export_col_units}'
 
-            if export_col_name_units in self.data.columns:
+            if export_col_name_units in input_lf.columns:
                 cols_to_keep.append(export_col_name_units)
             else:
                 cols_missing.append(export_col_name_units)
 
-        #dumb way to filter out the columns not need to be corncerned.
-        filtered_columns = []
-        for c in cols_missing:
-            f = False
-            #if the column match any of the key word, we should not add to filtered_columns
-            for keyword in exempt_cols:
-                if keyword in c:
-                    f = True
-            if not f:
-                filtered_columns.append(c)
-
-        cols_missing = filtered_columns
         if len(cols_missing) > 0:
             logger.error(f'Columns requested for export in {COLUMN_DEFINITION_FILE_NAME} but not found in data:')
-            logger.info('\n\n\n Columns found in data:')
-            for c in self.data.columns:
-                logger.info(f'Found "{c}" in data')
-            logger.info(f'\n\n\n {len(cols_missing)} Columns requested but not found:')
             for c in cols_missing:
                 logger.error(f'Missing "{c}" in data')
 
-            logger.info(f"the columns missing are {cols_missing}")            
-            # raise Exception(f'Columns requested for export are missing, see ERRORs and available columns above.')
+        input_lf = input_lf.select(cols_to_keep)
 
-        self.data = self.data.select(cols_to_keep)
-
-        # Do we need downselect? since we are using the lazyframe?
-        # logger.debug(f'Memory after downselect_columns_for_metadata_export: {self.data.estimated_size()}')
+        return input_lf
 
 
     def reorder_data_columns(self, input_df):
@@ -1507,26 +1447,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         oth_cols = diff_lists(input_df.columns, front_cols)
         oth_cols.sort()
 
-        # These geography columns should be close together for convenience
-        # but have no obvious pattern to match against
-        possible_geog_cols = [
-            'in.ashrae_iecc_climate_zone_2006',
-            'in.building_america_climate_zone',
-            'in.cambium_grid_region',
-            'in.census_division_name',
-            'in.census_region_name',
-            'in.iso_rto_region',
-            'in.nhgis_county_gisjoin',
-            'in.nhgis_puma_gisjoin',
-            'in.nhgis_tract_gisjoin',
-            'in.reeds_balancing_area',
-            'in.county_name',
-            'in.state',
-            'in.state_name',
-            'in.cluster_id',
-            'in.cluster_name'
-        ]
-
         # Lists of columns
         applicability = []
         geogs = []
@@ -1543,7 +1463,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         for c in oth_cols:
             if c.startswith('applicability.'):
                 applicability.append(c)
-            elif c in possible_geog_cols:
+            elif c in self.COLS_GEOG:
                 geogs.append(c)
             elif c.startswith('in.'):
                 ins.append(c)
@@ -1583,7 +1503,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Read the column definitions
         col_defs = pl.read_csv(os.path.join(RESOURCE_DIR, COLUMN_DEFINITION_FILE_NAME))
-        col_defs = col_defs.filter((pl.col('full_metadata') == True) & (~pl.col('location').is_in(['calculated'])))
+        col_defs = col_defs.filter((pl.col('full_metadata') == True) &
+                                   (~pl.col('location').is_in(['calculated', 'geospatial', 'cejst', 'ejscreen'])))
         for col_def in col_defs.iter_rows(named=True):
             orig_name = col_def['original_col_name']
             new_name = col_def['new_col_name']
@@ -1645,13 +1566,73 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 f'Missing {rename_upgrades_path}. Either set rename_upgrades=False or add json with "old_name": "new_name" pairs.')
             with open(rename_upgrades_path, "r") as f:
                 upgrade2upgrade = json.load(f)
-                logger.info(f'Renaming upgrades')
+                logger.debug(f'Renaming upgrades')
                 for old, new in upgrade2upgrade.items():
                     logger.debug(f'{old} -> {new}')
                 self.data = self.data.with_columns((pl.col(self.UPGRADE_NAME).replace(upgrade2upgrade, default=None)).alias(self.UPGRADE_NAME))
                 self.data = self.data.with_columns(pl.col(self.UPGRADE_NAME).cast(pl.Categorical))
 
         logger.debug(f'Memory after rename_columns_and_convert_units: {self.data.estimated_size()}')
+
+    def rename_geospatial_columns(self, input_lf):
+        # Rename columns per comstock_column_definitions.csv
+        # TODO combine this with rename_columns_and_convert_units()
+
+        # Read the column definitions
+        col_defs = pl.read_csv(os.path.join(RESOURCE_DIR, COLUMN_DEFINITION_FILE_NAME))
+        col_defs = col_defs.filter(
+            (pl.col('full_metadata') == True) &
+            (pl.col('location').is_in(['geospatial', 'cejst', 'ejscreen'])))
+        input_lf_cols = input_lf.columns
+        for col_def in col_defs.iter_rows(named=True):
+            orig_name = col_def['original_col_name']
+            new_name = col_def['new_col_name']
+            orig_units = col_def['original_units']
+            new_units = col_def['new_units']
+
+            # Find the name with units
+            new_name_with_units = new_name
+            if not pd.isna(orig_units):
+                new_name_with_units = f'{new_name}..{new_units}'
+
+            # Skip already-renamed columns
+            if new_name_with_units in input_lf_cols:
+                logger.debug(f'Already renamed {new_name_with_units}')
+                continue
+
+            # Skip columns that don't exist
+            if not orig_name in input_lf_cols:
+                continue
+
+            if pd.isna(new_name):
+                err_msg = f'Requested export of column {orig_name}, but no new name was specified'
+                logger.error(err_msg)
+                raise Exception(err_msg)
+
+            logger.debug(f"Processing {orig_name}")
+
+            # Check for unit conversion
+            new_units = col_def['new_units']
+            if pd.isna(orig_units):
+                logger.debug('-- Unitless, no unit conversion necessary')
+            elif orig_units == new_units:
+                logger.debug(f"-- Keeping original units {orig_units}")
+            else:
+                # Convert the column
+                cf = self.conv_fact(orig_units, new_units)
+                input_lf = input_lf.with_columns([(pl.col(orig_name) * cf)])
+                logger.debug(f"-- Converted units from {orig_units} to {new_units} by multiplying by {cf}")
+
+            # Append new units to column name, using .. separator for easier parsing
+            if not pd.isna(orig_units):
+                new_name = f'{new_name}..{new_units}'
+
+            # Rename the column
+            logger.debug(f'-- {orig_name} -> {new_name}')
+            input_lf = input_lf.rename({orig_name: new_name})
+
+        assert isinstance(input_lf, pl.LazyFrame)
+        return input_lf
 
     def set_column_data_types(self):
         # Set dtypes for some columns
@@ -1697,9 +1678,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Create bill per area column for each annual utility bill column
         for bill_col in self.COLS_UTIL_BILLS + [
                                                 self.UTIL_BILL_TOTAL_MEAN,
-                                                'out.utility_bills.electricity_bill_max..usd',
-                                                'out.utility_bills.electricity_bill_median..usd',
-                                                'out.utility_bills.electricity_bill_min..usd']:
+                                                self.UTIL_BILL_ELEC_MAX,
+                                                self.UTIL_BILL_ELEC_MED,
+                                                self.UTIL_BILL_ELEC_MIN]:
             # Put in np.nan for bill columns that aren't part of ComStock
             if not bill_col in self.data:
                 self.data = self.data.with_columns([pl.lit(None).alias(bill_col)])
@@ -1747,7 +1728,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 # self.data[new] = (self.data[orig] / self.data[self.FLR_AREA]) * 1000
                 self.data = self.data.with_columns(
                     (pl.col(orig) / pl.col(self.FLR_AREA) * 1000).alias(new))
-    
+
     def add_peak_intensity_columns(self):
         # Create peak per area column for each peak column
         for peak_col in (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK + self.COLS_QOI_MONTHLY_MED_DAILY_PEAK + [
@@ -1759,7 +1740,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             per_area_col = self.col_name_to_area_intensity(peak_col)
             self.data = self.data.with_columns(
                 (pl.col(peak_col) / pl.col(self.FLR_AREA)).alias(per_area_col))
-            
+
     def add_emissions_intensity_columns(self):
         # Create emissions per area column for each emissions column
         for emissions_col in (self.COLS_GHG_ELEC_SEASONAL_DAILY_EGRID + self.COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM + [
@@ -2038,21 +2019,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.fkt = self.fkt.drop(self.BLDG_TYPE, 'cbecs_weight')
         # else:
             self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_scale_factors, default=None)).alias(self.BLDG_WEIGHT))
-        
+
         assert isinstance(cbecs.data, pd.DataFrame)
         cbecs.data = pl.from_pandas(cbecs.data).lazy()
         assert isinstance(cbecs.data, pl.LazyFrame)
         self.CBECS_WEIGHTS_APPLIED = True
         return bldg_type_scale_factors
-
-
-
-    def _calculate_weighted_columnal_values(self, input_lf: pl.LazyFrame):
-        # Apply the weights to the columns
-        #compute out the weighted value, based on the unweighted columns and the weights.
-        input_lf = self.add_weighted_area_energy_savings_columns(input_lf)
-        assert isinstance(input_lf, pl.LazyFrame)
-        return input_lf
 
     def create_plotting_lazyframe(self):
         plotting_aggregation = self.fkt.clone()
@@ -2060,7 +2032,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             [pl.col(self.BLDG_WEIGHT), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(self.CEN_DIV)]
         ).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(self.CEN_DIV)]).sum()
         plotting_aggregation = plotting_aggregation.join(self.data, on=[pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)])
-        plotting_aggregation = self._calculate_weighted_columnal_values(plotting_aggregation)
+        plotting_aggregation = self.add_weighted_area_energy_savings_columns(plotting_aggregation)
         plotting_aggregation = self.reorder_data_columns(plotting_aggregation)
         plotting_aggregation = self.add_sightglass_column_units(plotting_aggregation)
         assert isinstance(plotting_aggregation, pl.LazyFrame)
@@ -2072,7 +2044,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             [pl.col(self.BLDG_WEIGHT), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)]
         ).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)]).sum()
         national_aggregation = national_aggregation.join(self.data, on=[pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)])
-        national_aggregation = self._calculate_weighted_columnal_values(national_aggregation)
+        national_aggregation = self.add_weighted_area_energy_savings_columns(national_aggregation)
 
         # Calculate national monthly values for something
         # Todo rewrite this to use proper column names
@@ -2128,7 +2100,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             [pl.col('weight'), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(geographic_col_name)]
         ).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(geographic_col_name)]).sum()
         spatial_aggregation = spatial_aggregation.join(self.data, on=[pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)])
-        spatial_aggregation = self._calculate_weighted_columnal_values(spatial_aggregation)
+        spatial_aggregation = self.add_weighted_area_energy_savings_columns(spatial_aggregation)
 
         # Reorder the columns before exporting
         spatial_aggregation = self.reorder_data_columns(spatial_aggregation)
@@ -2162,6 +2134,190 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Return the geospatially aggregated dataframe for use by plotting, etc.
         return spatial_aggregation
+
+    def create_geospatial_slice_of_metadata(self, upgrade_id, geography_filters={}):
+
+        # Make a copy of the fkt to filter down
+        geo_data = self.fkt.clone()
+
+        # Filter to this upgrade
+        geo_data = geo_data.filter((pl.col(self.UPGRADE_ID) == upgrade_id))
+
+        # Filter to specified geography
+        if len(geography_filters) > 0:
+            geo_filter_exprs = [(pl.col(k) == v) for k, v in geography_filters.items()]
+            geo_data = geo_data.filter(geo_filter_exprs)
+
+        # Join the weights to the per-model metadata and annual results
+        logger.debug('Join the weights to the per-model metadata and annual results')
+        geo_data = geo_data.join(self.data, on=[pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)])
+
+        # Calculate the weighted columns
+        logger.debug('Calculate the weighted columns')
+        geo_data = self.add_weighted_area_energy_savings_columns(geo_data)
+
+        # Add geospatial data columns
+        geo_data = self.add_geospatial_columns(geo_data)
+        geo_data = self.add_cejst_columns(geo_data)
+        geo_data = self.add_ejscreen_columns(geo_data)
+
+        # Downselect columns for export
+        logger.debug('Downselect columns for export')
+        geo_data = self.downselect_columns_for_full_metadata_export(geo_data)
+
+        # Remove units from the column names used by SightGlass
+        # comstock.remove_sightglass_column_units()
+
+        # # Reorder the columns
+        # logger.debug('Reorder the columns')
+        # geo_data = comstock.reorder_data_columns(geo_data)
+
+        # Drop the dataset and completed_status columns
+        # since these aren't useful to the target audience
+        # TODO comstockpostproc should control these exports via comstock_column_definitions
+        # droping_list = [comstock.DATASET, comstock.COMP_STATUS] + ['out.district_heating.interior_equipment.energy_consumption',
+        #                                                             'out.district_heating.interior_equipment.energy_savings',
+        #                                                             'out.district_heating.interior_equipment.energy_consumption_intensity',
+        #                                                             'out.district_heating.interior_equipment.energy_savings_intensity',
+        #                                                             'calc.enduse_group.district_heating.interior_equipment.energy_consumption..kwh',
+        #                                                             'calc.percent_savings.district_heating.interior_equipment.energy_consumption..percent',
+        #                                                             'calc.percent_savings.district_heating.interior_equipment.energy_consumption_intensity..percent',
+        #                                                             'calc.weighted.district_heating.interior_equipment.energy_consumption..tbtu',
+        #                                                             'calc.weighted.savings.district_heating.interior_equipment.energy_consumption..tbtu']
+        # comstock.data = comstock.data.drop(droping_list)
+
+        # List the final set of columns
+        # logger.info('Final columns from create_geospatial_slice_of_metadata:')
+        # for c in geo_data.columns:
+        #     logger.info(c)
+
+        # Return the LazyFrame for use by plotting, etc.
+        assert isinstance(geo_data, pl.LazyFrame)
+        return geo_data
+
+    def export_metadata_and_annual_results(self, out_dir=None, aws_profile=None):
+
+        # Create fsspec paths for filesystem; writes locally or to S3
+        if out_dir is None:
+            out_dir = self.output_dir
+        out_fs, out_fs_path = url_to_fs(out_dir, profile=aws_profile)
+        out_location = {}
+        out_location['fs'], out_location['fs_path'] = out_fs, out_fs_path
+
+        # Define the geographic partitions to export
+        geo_exports = [
+            # {'geo_top_dir': 'national',
+            #     'partition_cols': {}
+            # },
+            {
+                'geo_top_dir': 'by_state',
+                'partition_cols': {self.STATE_ABBRV: 'state'}  # original name: short name
+            },
+            # {'geo_top_dir': 'by_state_and_county',
+            #     'partition_cols': {
+            #         self.STATE_ABBRV: 'state',
+            #         self.COUNTY_ID: 'county'
+            # }},
+        ]
+
+        # Get list of upgrade IDs
+        upgrade_ids = pl.Series(self.data.select(pl.col(self.UPGRADE_ID)).unique().collect()).to_list()
+        upgrade_ids.sort()
+
+        # Get a list of basic metadata columns
+        basic_cols = basic_metadata_columns().get_column('name_with_units').to_list()
+
+        # Export to all geographies
+        for ge in geo_exports:
+            geo_top_dir = ge['geo_top_dir']
+            partition_cols = ge['partition_cols']
+            data_types = ['full', 'basic']
+            # data_types = ['full']
+            logger.info(f'Exporting metadata_and_annual_results/{geo_top_dir}')
+            geo_col_names = list(partition_cols.keys())
+            logger.info(f'Partitioning by {geo_col_names}')
+
+            # Make a copy to filter down
+            geo_data = self.fkt.clone()
+
+            # Get the unique set of combinations of all geography column partitions
+            geo_combos = pl.DataFrame()
+            if len(geo_col_names) > 0:
+                geo_combos = geo_data.select(geo_col_names).unique().collect()
+                geo_combos = geo_combos.sort(by=geo_col_names)
+
+            # Make a directory for the geography type
+            full_geo_dir = f"{out_location['fs_path']}/metadata_and_annual_results/{geo_top_dir}"
+            out_location['fs'].mkdirs(full_geo_dir, exist_ok=True)
+
+            # Make a directory for each data type
+            for data_type in data_types:
+                data_type_dir = f'{full_geo_dir}/{data_type}'
+                out_location['fs'].mkdirs(data_type_dir, exist_ok=True)
+
+            # Write a file for each upgrade X geography combo
+            for upgrade_id in upgrade_ids:
+
+                # Make a directory for each combination of geography column values
+                # and write the subset of data for this combination to that directory
+                for geo_combo in geo_combos.iter_rows(named=True):
+
+                    geo_filters = {}
+                    geo_levels = []
+                    geo_prefixes = []
+                    for k, v in geo_combo.items():
+                        geo_filters[k] = v
+                        geo_levels.append(f'{partition_cols[k]}={v}')
+                        geo_prefixes.append(v)
+
+                    # Filter to this geography, downselect columns, create savings columns, etc.
+                    to_write = self.create_geospatial_slice_of_metadata(upgrade_id, geo_filters)
+
+                    # Rename the partition geography columns
+                    for orig_name, short_name in partition_cols.items():
+                        to_write = to_write.with_columns(pl.col(orig_name).alias(short_name))
+
+                    # Write the file for each data type
+                    for data_type in data_types:
+                        # Downselect to basic set of columns if necessary
+                        if data_type == 'basic':
+                        #     to_write = to_write.select(basic_cols)
+                            continue
+
+                        # print('Columns before write')
+                        # for c in to_write.columns:
+                        #     print(c)
+                        exit()
+
+                        # Collect the LazyFrame to a DataFrame
+                        to_write = to_write.collect()
+                        n_rows, n_cols = to_write.shape
+
+                        # Create the directory to write
+                        data_type_dir = os.path.join(full_geo_dir, data_type, '/'.join(geo_levels))
+                        out_location['fs'].mkdirs(data_type_dir, exist_ok=True)
+                        parquet_dir = os.path.join(full_geo_dir, data_type, '/'.join(geo_levels), 'parquet')
+                        out_location['fs'].mkdirs(parquet_dir, exist_ok=True)
+                        csv_dir = os.path.join(full_geo_dir, data_type, '/'.join(geo_levels), 'csv')
+                        out_location['fs'].mkdirs(csv_dir, exist_ok=True)
+                        # File name
+                        file_name = f'upgrade{upgrade_id:02d}'
+                        if upgrade_id == 0:
+                            file_name = 'baseline'
+                        # Add geography prefix to filename
+                        if len(geo_prefixes) > 0:
+                            geo_prefix = '_'.join(geo_prefixes)
+                            file_name = f'{geo_prefix}_{file_name}'
+                        # Add suffix
+                        if data_type == 'basic':
+                            file_name = f'{geo_prefix}_{data_type}'
+                        logger.info(f"Writing {file_name}: n_cols = {n_cols:,}, n_rows = {n_rows:,}")
+                        # Parquet
+                        file_path = os.path.abspath(os.path.join(parquet_dir, f'{file_name}.parquet'))
+                        to_write.write_parquet(file_path, use_pyarrow=True)
+                        # CSV
+                        file_path = os.path.abspath(os.path.join(csv_dir, f'{file_name}.csv'))
+                        to_write.write_csv(file_path)
 
     def add_weights_aportioned_by_stock_estimate(self, apportionment: Apportion, keep_n_per_apportionment_group=False):
         # This function doesn't support already CBECS-weighted self.data - error out
@@ -2232,10 +2388,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             logger.info(f'{attribute}:')
             logger.info(f'{pl.Series(tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups)).select(pl.col(attribute).value_counts(sort=True)).collect()).to_list()}'
                         .replace("}, {", "\n\t").replace("[{", "\t").replace("}]", ""))
-        logger.info('Writting QAQC / Debugging files to the home directory.')
+        logger.info(f'Writing QAQC / Debugging files to {os.path.abspath(self.output_dir)}')
         attrs = ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
-        tdf.select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv('~/potential_apportionment_group_optimization.csv')
-        tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups)).select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv('~/Desktop/debugging_missing_apportionment_groups.csv')
+        file_path = os.path.abspath(os.path.join(self.output_dir, 'potential_apportionment_group_optimization.csv'))
+        tdf.select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv(file_path)
+        file_path = os.path.abspath(os.path.join(self.output_dir, 'debugging_missing_apportionment_groups.csv'))
+        tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups)).select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv(file_path)
 
         # Drop unsupported truth data and add an index
         tdf = tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups).is_not())
@@ -2268,7 +2426,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         )
         row_count_after = csdf.select(pl.len()).collect().item()
         logger.info(f'Removed {row_count_before - row_count_after} very small schools from cs results')
-        breakpoint()
 
         # Create a dictionary defining how many elements of which apportionment groups to sample
         samples_per_group = tdf.groupby(APPO_GROUP_ID).len().collect().to_pandas()
@@ -2335,6 +2492,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.CEN_DIV: self.CEN_DIV.replace('in.', self.POST_APPO_SIM_COL_PREFIX),
         })
 
+        # Drop any remaining geography columns associated with the model creation
+        # Geographic data will joined after self.data and self.fkt have been joined
+        self.data = self.data.drop(self.COLS_GEOG)
+
         # Drop unwanted columns from the foreign key table and persist
         fkt = fkt.drop('tdf_id', APPO_GROUP_ID, 'truth_sqft', 'in.tract_assignment_type', self.FLR_AREA)
         self.APPORTIONED = True
@@ -2357,12 +2518,22 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             'kw': self.weighted_demand_units, #(Peak) Demand, default : kw -> gw (gigawatt)
         }
 
-        for col in (self.GHG_FUEL_COLS + [self.ANN_GHG_EGRID, self.ANN_GHG_CAMBIUM]
-                    + self.COLS_UTIL_BILLS + [self.UTIL_BILL_TOTAL_MEAN, 'out.utility_bills.electricity_bill_max..usd', 'out.utility_bills.electricity_bill_median..usd', 'out.utility_bills.electricity_bill_min..usd']
-                    + self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY +
-                    self.COLS_ENDUSE_GROUP_TOT_ANN_ENGY + self.COLS_ENDUSE_GROUP_ANN_ENGY):
+        # Get the list of existing column names
+        existing_col_names = input_lf.columns
+        logger.debug('Converting units in the weighted columns')
+        for col in (self.GHG_FUEL_COLS +
+                     [self.ANN_GHG_EGRID, self.ANN_GHG_CAMBIUM] +
+                    self.COLS_UTIL_BILLS +
+                    [self.UTIL_BILL_TOTAL_MEAN, self.UTIL_BILL_ELEC_MAX, self.UTIL_BILL_ELEC_MED, self.UTIL_BILL_ELEC_MIN] +
+                    self.COLS_TOT_ANN_ENGY +
+                    self.COLS_ENDUSE_ANN_ENGY +
+                    self.COLS_ENDUSE_GROUP_TOT_ANN_ENGY +
+                    self.COLS_ENDUSE_GROUP_ANN_ENGY):
 
-            assert col in input_lf.columns
+            if not col in existing_col_names:
+                logger.warning(f'Missing column needed for adding weighted columns: {col}')
+            # assert col in input_lf.columns, f'Missing column needed for adding weighted columns: {col}' # TODO ANDREW handle this
+
             #based on the unit, we use different conv factor and convert the value to the new column
             old_unit = self.units_from_col_name(col)
 
@@ -2373,24 +2544,33 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             conv_fact = self.conv_fact(old_unit, old_unit_to_new_unit[old_unit])
             input_lf = input_lf.with_columns(
                 (pl.col(col) * pl.col(self.BLDG_WEIGHT) * conv_fact).alias(new_col))
+            logger.debug(f'{col} * {self.BLDG_WEIGHT} * {conv_fact} -> {new_col}')
 
+        assert isinstance(input_lf, pl.LazyFrame)
+
+        logger.info('Adding weighted savings columns')
         #based on the unweighted savings columns, generate the weighted savings columns
         if self.include_upgrades:
             for unweighted_saving_cols, weighted_saving_cols in self.unweighted_weighted_map.items():
+                # logger.info(f'Handling {unweighted_saving_cols} to {weighted_saving_cols}')
                 if weighted_saving_cols in self.dropping_columns:
+                    logger.info(f'Skipping weighted savings column to be dropped: {weighted_saving_cols}')
                     continue
-                if weighted_saving_cols in input_lf.columns:
+                if weighted_saving_cols in existing_col_names:
+                    logger.info(f'Already added weighted savings column: {weighted_saving_cols}')
                     continue
 
                 old_unit = self.units_from_col_name(unweighted_saving_cols)
                 new_unit = self.units_from_col_name(weighted_saving_cols)
                 conv_fact = self.conv_fact(old_unit, new_unit)
                 input_lf: pl.LazyFrame = input_lf.with_columns((pl.col(unweighted_saving_cols) * pl.col(self.BLDG_WEIGHT) * conv_fact).alias(weighted_saving_cols))
+                logger.info(f'Adding {unweighted_saving_cols} * {self.BLDG_WEIGHT} * {conv_fact} -> {weighted_saving_cols}')
 
-        # logger.debug(f"summary of column calc.weighted.savings.utility_bills.total_mean_bill..billion_usd is {input_lf.select('calc.weighted.savings.utility_bills.total_mean_bill..billion_usd').describe()}")
-        # raise Exception("Stop here")
+        assert isinstance(input_lf, pl.LazyFrame)
+
         # Create weighted emissions for each enduse group
         # TODO once end-use emissions are reported, sum those columns directly
+        logger.debug('Adding enduse group emissions columns')
         for col in (self.COLS_ENDUSE_GROUP_ANN_ENGY + self.COLS_ENDUSE_GROUP_TOT_ANN_ENGY):
             fuel, enduse_gp = col.replace('calc.enduse_group.', '').replace('.energy_consumption..kwh', '').split('.')
             if fuel in ['district_heating', 'district_cooling']:
@@ -2426,6 +2606,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     .otherwise(0.0)
                     .alias(enduse_gp_ghg_col)
                 ])
+
+        assert isinstance(input_lf, pl.LazyFrame)
 
         return input_lf
 
@@ -2522,9 +2704,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         for col in (self.COLS_UTIL_BILLS + [
                                             self.UTIL_BILL_TOTAL_MEAN,
-                                            'out.utility_bills.electricity_bill_max..usd',
-                                            'out.utility_bills.electricity_bill_median..usd',
-                                            'out.utility_bills.electricity_bill_min..usd']):
+                                            self.UTIL_BILL_ELEC_MAX,
+                                            self.UTIL_BILL_ELEC_MED,
+                                            self.UTIL_BILL_ELEC_MIN]):
 
             engy_cols.append(col)
             abs_svgs_cols[col] = self.col_name_to_savings(col, None)
@@ -2617,7 +2799,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             engy_cols.append(eui_col)
             abs_svgs_cols[eui_col] = self.col_name_to_savings(eui_col, None)
             pct_svgs_cols[eui_col] = self.col_name_to_percent_savings(eui_col, 'percent')
-        
+
             #save the unweighted - weighted columns name mapping
             self.unweighted_weighted_map.update({
                 self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_demand_units),
@@ -2677,7 +2859,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Join the savings columns onto the results
         self.data = self.data.join(up_abs_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
         self.data = self.data.join(up_pct_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
-    
+
     def add_unweighted_emissions_savings_columns(self):
         assert isinstance(self.data, pl.DataFrame)
         # Select energy columns to calculate savings for
@@ -2762,7 +2944,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.data = self.data.join(up_abs_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
         self.data = self.data.join(up_pct_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
 
-    
+
     def add_metadata_index_col(self, upgradIdcount: dict):
         # Add a metadata index column to the data
         # updradeIdcount is a dictionary of the number of upgrades for each building: <building_id>: <number of upgrades>

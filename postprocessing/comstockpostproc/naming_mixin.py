@@ -63,6 +63,25 @@ class NamingMixin():
         MONTH: "Int8"
     }
 
+    # Geography-defining columns
+    COLS_GEOG = [
+        CZ_ASHRAE,
+        'in.building_america_climate_zone',
+        'in.cambium_grid_region',
+        CEN_DIV,
+        CEN_REG,
+        'in.iso_rto_region',
+        COUNTY_ID,
+        PUMA_ID,
+        TRACT_ID,
+        'in.reeds_balancing_area',
+        'in.county_name',
+        'in.state',
+        'in.state_name',
+        'in.cluster_id',
+        'in.cluster_name'
+    ]
+
     # Total annual energy
     ANN_TOT_ENGY_KBTU = 'out.site_energy.total.energy_consumption..kwh'
     ANN_TOT_ELEC_KBTU = 'out.electricity.total.energy_consumption..kwh'
@@ -169,6 +188,9 @@ class NamingMixin():
 
     # Utility bills
     UTIL_BILL_ELEC = 'out.utility_bills.electricity_bill_mean..usd'
+    UTIL_BILL_ELEC_MAX = 'out.utility_bills.electricity_bill_max..usd'
+    UTIL_BILL_ELEC_MED = 'out.utility_bills.electricity_bill_median..usd'
+    UTIL_BILL_ELEC_MIN = 'out.utility_bills.electricity_bill_min..usd'
     UTIL_BILL_GAS = 'out.utility_bills.natural_gas_bill..usd'
     UTIL_BILL_FUEL_OIL = 'out.utility_bills.fuel_oil_bill..usd'
     UTIL_BILL_PROPANE = 'out.utility_bills.propane_bill..usd'
@@ -210,7 +232,7 @@ class NamingMixin():
         'out.emissions.electricity.summer_daily_average.egrid_2021_subregion..co2e_kg',
         'out.emissions.electricity.shoulder_daily_average.egrid_2021_subregion..co2e_kg'
     ]
-    
+
     # GHG emissions seasonal daily average from electricity consumption columns for Cambium
     COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM = [
         'out.emissions.electricity.winter_daily_average.lrmer_high_re_cost_15_2023_start..co2e_kg',
@@ -230,7 +252,7 @@ class NamingMixin():
         'out.emissions.electricity.summer_daily_average.egrid_2021_subregion..co2e_kg',
         'out.emissions.electricity.shoulder_daily_average.egrid_2021_subregion..co2e_kg'
     ]
-    
+
     # GHG emissions seasonal daily average from electricity consumption columns for Cambium
     COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM = [
         'out.emissions.electricity.winter_daily_average.lrmer_high_re_cost_15_2023_start..co2e_kg',
@@ -674,6 +696,60 @@ class NamingMixin():
         'refrigeration': 'electricity_refrigeration_kwh'
     }
 
+    STATE_NHGIS_TO_ABBRV = {
+        'G010': 'AL',
+        'G020': 'AK',
+        'G040': 'AZ',
+        'G050': 'AR',
+        'G060': 'CA',
+        'G080': 'CO',
+        'G090': 'CT',
+        'G100': 'DE',
+        'G110': 'DC',
+        'G120': 'FL',
+        'G130': 'GA',
+        'G150': 'HI',
+        'G160': 'ID',
+        'G170': 'IL',
+        'G180': 'IN',
+        'G190': 'IA',
+        'G200': 'KS',
+        'G210': 'KY',
+        'G220': 'LA',
+        'G230': 'ME',
+        'G240': 'MD',
+        'G250': 'MA',
+        'G260': 'MI',
+        'G270': 'MN',
+        'G280': 'MS',
+        'G290': 'MO',
+        'G300': 'MT',
+        'G310': 'NE',
+        'G320': 'NV',
+        'G330': 'NH',
+        'G340': 'NJ',
+        'G350': 'NM',
+        'G360': 'NY',
+        'G370': 'NC',
+        'G380': 'ND',
+        'G390': 'OH',
+        'G400': 'OK',
+        'G410': 'OR',
+        'G420': 'PA',
+        'G440': 'RI',
+        'G450': 'SC',
+        'G460': 'SD',
+        'G470': 'TN',
+        'G480': 'TX',
+        'G490': 'UT',
+        'G500': 'VT',
+        'G510': 'VA',
+        'G530': 'WA',
+        'G540': 'WV',
+        'G550': 'WI',
+        'G560': 'WY',
+    }
+
     def end_use_group(self, end_use):
         # Add an End Use Group
         end_use_groups = {
@@ -736,10 +812,10 @@ class NamingMixin():
             converted_col_name = converted_col_name.replace('maximum_daily_use_', 'peak_savings_')
         elif ".emissions." in converted_col_name:
             converted_col_name = converted_col_name.replace('.emissions.', '.emissions.savings.')
-            
+
         if converted_col_name == col_name:
-            raise ValueError(f"Cannot convert column name {col_name} to savings column") 
-        
+            raise ValueError(f"Cannot convert column name {col_name} to savings column")
+
         return converted_col_name
     def col_name_to_weighted_percent_savings(self, col_name, new_units=None):
         col_name = self.col_name_to_weighted(col_name, new_units)
