@@ -9,5 +9,6 @@ s3_output_dir = 's3://oedi-data-lake/nrel-pds-building-stock/end-use-load-profil
 
 oedi_metadata_dir = 's3://eulp/euss_com/sdr_2024_r2_149325_combined/sdr_2024_r2_149325_combined/baseline/'
 
+output_dir = s3_output_dir
 # Extract model files from run and transfer to S3
 cspp.utils.hpc.transfer_model_files_to_s3(yml_path, output_dir, oedi_metadata_dir)
