@@ -7,7 +7,9 @@ yml_path = "/kfs2/projects/eusscom/ymls/euss_fy25/euss_2024_r2/full_runs/euss_20
 s3_output_dir = 's3://oedi-data-lake/nrel-pds-building-stock/end-use-load-profiles-for-us-building-stock/2024/comstock_amy2018_release_2/building_energy_models/'
 #oedi_metadata_dir = 's3://oedi-data-lake/nrel-pds-building-stock/end-use-load-profiles-for-us-building-stock/2023/comstock_amy2018_release_1/metadata/'
 
-oedi_metadata_dir = 's3://eulp/euss_com/sdr_2024_r2_149325_combined/sdr_2024_r2_149325_combined/baseline/'
+#oedi_metadata_dir = 's3://eulp/euss_com/sdr_2024_r2_149325_combined/sdr_2024_r2_149325_combined/baseline/'
+
+oedi_metadata_dir = 's3://com-sdr/euss_com/sdr_2024_r2_149325_combined/sdr_2024_r2_149325_combined/baseline/'
 
 output_dir = s3_output_dir
 # Extract model files from run and transfer to S3
