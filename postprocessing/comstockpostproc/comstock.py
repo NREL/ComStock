@@ -119,7 +119,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.upgrade_ids_for_comparison = upgrade_ids_for_comparison
         self.states = states
         self.unweighted_weighted_map = {}
-        self.dropping_columns = []
         self.cached_parquet = [] # List of parquet files to reload and export
         # TODO our currect credential setup aren't playing well with this approach but does with the s3 ServiceResource
         # We are currently unable to list the HeadObject for automatically uploaded data
@@ -2553,9 +2552,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         if self.include_upgrades:
             for unweighted_saving_cols, weighted_saving_cols in self.unweighted_weighted_map.items():
                 # logger.info(f'Handling {unweighted_saving_cols} to {weighted_saving_cols}')
-                if weighted_saving_cols in self.dropping_columns:
-                    logger.info(f'Skipping weighted savings column to be dropped: {weighted_saving_cols}')
-                    continue
                 if weighted_saving_cols in existing_col_names:
                     logger.info(f'Already added weighted savings column: {weighted_saving_cols}')
                     continue
@@ -2618,7 +2614,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         engy_cols = []
         abs_svgs_cols = {}
         pct_svgs_cols = {}
-        wtd_pct_svgs_cols_to_drop = []
 
         for col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY):
             # for non eui columns
@@ -2631,13 +2626,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             abs_svgs_cols[eui_col] = self.col_name_to_savings(eui_col, None)
             pct_svgs_cols[eui_col] = self.col_name_to_percent_savings(eui_col, 'percent')
 
-            #save the dropping columns:
-            self.dropping_columns.append(self.col_name_to_weighted_percent_savings(col, 'percent'))
-
             #save the unweighted - weighted colmns to  columns name mapping
             self.unweighted_weighted_map.update({
-                self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_energy_units),
-                self.col_name_to_percent_savings(col, 'percent'): self.col_name_to_weighted_percent_savings(col, 'percent')
+                self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_energy_units)
                 })
 
         # Keep the building ID and upgrade name columns to use as the index
@@ -2681,9 +2672,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             abs_svgs = abs_svgs.rename(abs_svgs_cols)
             pct_svgs = pct_svgs.rename(pct_svgs_cols)
 
-            # Drop the weighted percent savings columns
-            pct_svgs = pct_svgs.drop(wtd_pct_svgs_cols_to_drop)
-
             up_abs_svgs.append(abs_svgs)
             up_pct_svgs.append(pct_svgs)
 
@@ -2700,7 +2688,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         engy_cols = []
         abs_svgs_cols = {}
         pct_svgs_cols = {}
-        wtd_pct_svgs_cols_to_drop = []
 
         for col in (self.COLS_UTIL_BILLS + [
                                             self.UTIL_BILL_TOTAL_MEAN,
@@ -2719,10 +2706,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
             #save the unweighted - weighted columns name mapping
             self.unweighted_weighted_map.update({
-                self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_utility_units),
-                self.col_name_to_percent_savings(col, 'percent'): self.col_name_to_weighted_percent_savings(col, 'percent')
+                self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_utility_units)
             })
-            self.dropping_columns.append(self.col_name_to_weighted_percent_savings(col, 'percent'))
         # Keep the building ID and upgrade name columns to use as the index
         engy_and_id_cols = engy_cols + [self.BLDG_ID, self.UPGRADE_NAME]
 
@@ -2764,9 +2749,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             abs_svgs = abs_svgs.rename(abs_svgs_cols)
             pct_svgs = pct_svgs.rename(pct_svgs_cols)
 
-            # Drop the weighted percent savings columns
-            pct_svgs = pct_svgs.drop(wtd_pct_svgs_cols_to_drop)
-
             up_abs_svgs.append(abs_svgs)
             up_pct_svgs.append(pct_svgs)
 
@@ -2783,7 +2765,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         engy_cols = []
         abs_svgs_cols = {}
         pct_svgs_cols = {}
-        wtd_pct_svgs_cols_to_drop = []
 
         for col in (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK + self.COLS_QOI_MONTHLY_MED_DAILY_PEAK + [
             self.QOI_MAX_SHOULDER_USE,
@@ -2802,10 +2783,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
             #save the unweighted - weighted columns name mapping
             self.unweighted_weighted_map.update({
-                self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_demand_units),
-                self.col_name_to_percent_savings(col, 'percent'): self.col_name_to_weighted_percent_savings(col, 'percent')
+                self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_demand_units)
             })
-            self.dropping_columns.append(self.col_name_to_weighted_percent_savings(col, 'percent'))
         # Keep the building ID and upgrade name columns to use as the index
         engy_and_id_cols = engy_cols + [self.BLDG_ID, self.UPGRADE_NAME]
 
@@ -2847,9 +2826,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             abs_svgs = abs_svgs.rename(abs_svgs_cols)
             pct_svgs = pct_svgs.rename(pct_svgs_cols)
 
-            # Drop the weighted percent savings columns
-            pct_svgs = pct_svgs.drop(wtd_pct_svgs_cols_to_drop)
-
             up_abs_svgs.append(abs_svgs)
             up_pct_svgs.append(pct_svgs)
 
@@ -2866,7 +2842,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         engy_cols = []
         abs_svgs_cols = {}
         pct_svgs_cols = {}
-        wtd_pct_svgs_cols_to_drop = []
 
         for col in (self.COLS_GHG_ELEC_SEASONAL_DAILY_EGRID + self.COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM + [
             self.GHG_LRMER_MID_CASE_15_ELEC,
@@ -2886,10 +2861,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
             #save the unweighted - weighted columns name mapping
             self.unweighted_weighted_map.update({
-                self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_ghg_units),
-                self.col_name_to_percent_savings(col, 'percent'): self.col_name_to_weighted_percent_savings(col, 'percent')
+                self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_ghg_units)
             })
-            self.dropping_columns.append(self.col_name_to_weighted_percent_savings(col, 'percent'))
         # Keep the building ID and upgrade name columns to use as the index
         engy_and_id_cols = engy_cols + [self.BLDG_ID, self.UPGRADE_NAME]
 
@@ -2930,9 +2903,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
             abs_svgs = abs_svgs.rename(abs_svgs_cols)
             pct_svgs = pct_svgs.rename(pct_svgs_cols)
-
-            # Drop the weighted percent savings columns
-            pct_svgs = pct_svgs.drop(wtd_pct_svgs_cols_to_drop)
 
             up_abs_svgs.append(abs_svgs)
             up_pct_svgs.append(pct_svgs)
