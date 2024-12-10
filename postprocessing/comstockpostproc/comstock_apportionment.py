@@ -17,7 +17,7 @@ from comstockpostproc.s3_utilities_mixin import S3UtilitiesMixin
 logger = logging.getLogger(__name__)
 
 class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
-    def __init__(self, stock_estimation_version, truth_data_version, bootstrap_coefficient=3):
+    def __init__(self, stock_estimation_version, truth_data_version, bootstrap_coefficient=3, reload_from_cache=False):
         """
         A class to apportion the sampled data to the known set of buildings in the U.S.
         Args:
@@ -48,7 +48,7 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         self.space_heating_fuel_type_name = 'heating_fuel.tsv'
         self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
         logger.info(f'Creating {self.dataset_name}')
-        
+
         # Algorithmic specific parameters
         self.samples_per_model = 3
         self.sampling_breaks = ['sampling_region', 'prototype', 'floor_area_category']
@@ -60,13 +60,22 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
                 os.makedirs(p)
 
         # Load and transform truth data
-        self.download_data()
-        self.load_data()
-        self.infer_tracts()
-        self.add_sampling_regions()
-        self.add_sqft_bins()
-        self.normalize_building_type_values()
-        self.upsample_hvac_system_fuel_types()
+        file_path = os.path.join(self.output_dir, 'cached_ComStock_apportionment.parquet')
+        if reload_from_cache:
+            if not os.path.exists(file_path):
+                raise FileNotFoundError(
+                f'Cannot find wide .csv or .parquet in {file_path} to reload data, set reload_from_cache=False.')
+            logger.info(f'Reloading apportionment data from: {file_path}')
+            self.data = pd.read_parquet(file_path)
+        else:
+            self.download_data()
+            self.load_data()
+            self.infer_tracts()
+            self.add_sampling_regions()
+            self.add_sqft_bins()
+            self.normalize_building_type_values()
+            self.upsample_hvac_system_fuel_types()
+            self.data.to_parquet(file_path)
 
         logger.info('Finished processing Apportion class truth data')
         logger.debug('\nDesired Truth Data columns after adding all data')
@@ -108,56 +117,56 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
     }
 
     def download_data(self):
-        
+
         logger.info('Downloading data required for Apportionment class')
 
         # Expected buildings estimate from StockE V3 analysis
         file_path = os.path.join(self.truth_data_dir, self.data_file_name)
         if not os.path.exists(file_path):
             s3_file_path = f'truth_data/{self.truth_data_version}/StockE/{self.data_file_name}'
-            self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')    
+            self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
 
         # HVAC system size cuttof bins associated with the TSV files to define size bin levels in the building estimate
         file_path = os.path.join(self.truth_data_dir, self.hvac_size_bins_name)
         if not os.path.exists(file_path):
             s3_file_path = f'truth_data/{self.truth_data_version}/StockE/{self.hvac_size_bins_name}'
-            self.read_delimited_truth_data_file_from_S3(s3_file_path, '\t')    
+            self.read_delimited_truth_data_file_from_S3(s3_file_path, '\t')
 
         # Mapping of all allowable trackts within a given county, many tracts per county
         file_path = os.path.join(self.truth_data_dir, self.tract_list_name)
         if not os.path.exists(file_path):
             s3_file_path = f'truth_data/{self.truth_data_version}/StockE/{self.tract_list_name}'
-            self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')    
+            self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
 
         # Mapping of all non-CA counties to sampling regions
         file_path = os.path.join(self.truth_data_dir, self.sampling_regions_name)
         if not os.path.exists(file_path):
             s3_file_path = f'truth_data/{self.truth_data_version}/StockE/{self.sampling_regions_name}'
-            self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')    
+            self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
 
         # Mapping of all 2010 CA census tracts to CEC climate zones
         file_path = os.path.join(self.truth_data_dir, self.ca_cz_tract_2010_name)
         if not os.path.exists(file_path):
             s3_file_path = f'truth_data/{self.truth_data_version}/StockE/{self.ca_cz_tract_2010_name}'
-            self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')    
+            self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
 
         # Mapping of all 2020 CA census tracts to CEC climate zones
         file_path = os.path.join(self.truth_data_dir, self.ca_cz_tract_2020_name)
         if not os.path.exists(file_path):
             s3_file_path = f'truth_data/{self.truth_data_version}/StockE/{self.ca_cz_tract_2020_name}'
-            self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')    
+            self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
 
         # Probabilities of hvac system type as a function of heating fuel type, census division and building type
         file_path = os.path.join(self.truth_data_dir, self.hvac_system_type_name)
         if not os.path.exists(file_path):
             s3_file_path = f'truth_data/{self.truth_data_version}/StockE/{self.hvac_system_type_name}'
-            self.read_delimited_truth_data_file_from_S3(s3_file_path, '\t')    
+            self.read_delimited_truth_data_file_from_S3(s3_file_path, '\t')
 
         # Probabilities of heating fuel type as a function of county and building type
         file_path = os.path.join(self.truth_data_dir, self.space_heating_fuel_type_name)
         if not os.path.exists(file_path):
             s3_file_path = f'truth_data/{self.truth_data_version}/StockE/{self.space_heating_fuel_type_name}'
-            self.read_delimited_truth_data_file_from_S3(s3_file_path, '\t')    
+            self.read_delimited_truth_data_file_from_S3(s3_file_path, '\t')
 
     def load_data(self):
         # Load raw microdata and codebook and decode numeric keys to strings using codebook
@@ -200,7 +209,7 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
     @staticmethod
     def _generate_level1_distributions(full_tracts):
-        
+
         # To be used for assignment level 1.
 
         # Create distribution of buildings by building_type, county, and tract.
@@ -221,7 +230,7 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             .reset_index()
 
         # Normalize the building_tract_distributions. Calculate a cumulative sum of the probabilities
-        # for each prototype-county combination. 
+        # for each prototype-county combination.
         building_tract_distributions = building_tract_distributions.merge(
             building_county_distributions, on=['building_type', 'county']
         )
@@ -239,7 +248,7 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
     @staticmethod
     def _generate_level2_distributions(full_tracts):
-        
+
         # To be used for assignment level 2.
 
         # Create distribution  of buildings by county, and tract.
@@ -260,21 +269,21 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             .reset_index()
 
         # Normalize the tract_distributions. Calculate a cumulative sum of the probabilities
-        # for each county. 
+        # for each county.
         tract_distributions = tract_distributions.merge(county_distributions, on=['county'])
         tract_distributions['fraction'] = tract_distributions['tract_count']/tract_distributions['county_count']
         tract_distributions['cumsum_fraction'] = tract_distributions.groupby(['county'])['fraction'].cumsum()
         tract_distributions = tract_distributions.sort_values(['cumsum_fraction'])
         tract_distributions = tract_distributions[['county', 'last6', 'cumsum_fraction']]
-        
+
         return tract_distributions
 
     @staticmethod
     def _generate_level3_distributions(folder_path, use_raw_data=False):
-        
+
         # To be used for assignment level 3.
 
-        # Generate a list of tracts in each county. 
+        # Generate a list of tracts in each county.
         # This is to be used as a last fallback case for assigning tracts.
         # For example, if an unassigned building belongs in a county that has only that one building
         # then we cannot calculate distributions to assign a tract to it. Therefore we use this data to
@@ -297,7 +306,7 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             tract_list[['county', 'tract']].to_csv('tract_list.csv', index=False)
         else:
             tract_list = pd.read_csv(folder_path+"tract_list.csv") # This is a preprocessed file.
-            
+
         tract_list['last6'] = tract_list.tract.str[-6:]
         tract_list = tract_list[['county', 'tract', 'last6']]
         tract_list['dummy'] = 1
@@ -308,18 +317,18 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         tract_list['cumsum_fraction'] = tract_list['counter']/tract_list['number_of_tracts']
         tract_list = tract_list.sort_values('cumsum_fraction')
         tract_list = tract_list.drop(columns=['dummy', 'tract', 'counter', 'number_of_tracts'])
-        
+
         return tract_list
 
     @staticmethod
     def _assign_tracts(null_tracts, building_tract_distributions, tract_distributions, tract_list):
 
-        # The idea here is that the random number assinged to each row in null_tracts will be matched 
-        # to the closest forward value in the cumulative distribution (e.g, building_tract_distributions) 
-        # calculated above. The other keys (building_type, county) are matched exactly. Same idea for 
+        # The idea here is that the random number assinged to each row in null_tracts will be matched
+        # to the closest forward value in the cumulative distribution (e.g, building_tract_distributions)
+        # calculated above. The other keys (building_type, county) are matched exactly. Same idea for
         # level 2 and 3.
 
-        #Create a column with an indicator with the type of assignment, 
+        #Create a column with an indicator with the type of assignment,
         # 0 - Assignment level 0: Original assignment from raw data. No re-assignemnt.
         # 1 - Assignment level 1: through building type and county distributions.
         # 2 - Assignment level 2: through county-only distributions.
@@ -328,37 +337,37 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
         # Join the fallback level 1 option
         null_tracts = pd.merge_asof(
-            null_tracts, 
-            building_tract_distributions.rename(columns={'last6': 'last6_l1', 'cumsum_fraction': 'cumsum_fraction_l1'}), 
-            by=['building_type', 'county'], 
-            direction="forward", 
-            left_on="random_values", 
+            null_tracts,
+            building_tract_distributions.rename(columns={'last6': 'last6_l1', 'cumsum_fraction': 'cumsum_fraction_l1'}),
+            by=['building_type', 'county'],
+            direction="forward",
+            left_on="random_values",
             right_on="cumsum_fraction_l1"
         )
 
         # Join for level 2 option
         null_tracts = pd.merge_asof(
-            null_tracts, 
-            tract_distributions.rename(columns={'last6': 'last6_l2', 'cumsum_fraction': 'cumsum_fraction_l2'}), 
-            by=['county'], 
-            direction="forward", 
-            left_on="random_values", 
+            null_tracts,
+            tract_distributions.rename(columns={'last6': 'last6_l2', 'cumsum_fraction': 'cumsum_fraction_l2'}),
+            by=['county'],
+            direction="forward",
+            left_on="random_values",
             right_on="cumsum_fraction_l2"
         )
 
         # Join for level 3 option
         null_tracts = pd.merge_asof(
-            null_tracts, 
-            tract_list.rename(columns={'last6': 'last6_l3', 'cumsum_fraction': 'cumsum_fraction_l3'}), 
-            by=['county'], 
-            direction="forward", 
-            left_on="random_values", 
+            null_tracts,
+            tract_list.rename(columns={'last6': 'last6_l3', 'cumsum_fraction': 'cumsum_fraction_l3'}),
+            by=['county'],
+            direction="forward",
+            left_on="random_values",
             right_on="cumsum_fraction_l3"
         )
-        
+
         conditions = [
             null_tracts['last6_l1'].notnull(), null_tracts['last6_l2'].notnull(), null_tracts['last6_l3'].notnull()
-        ] 
+        ]
         choices = [
             null_tracts['county'] + null_tracts['last6_l1'], null_tracts['county'] + null_tracts['last6_l2'],
             null_tracts['county'] + null_tracts['last6_l3']
@@ -379,7 +388,7 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         # This wraps all other functions to run the tract-level resampling
         if ~any([na_tract in self.data['tract'].unique() for na_tract in [None, np.nan, '999999']]):
             return
-        
+
         # Impose manual checking of a failing expression as that's very much not expected at present...
         logger.info('Apportioning any missing tracts in truth data')
         print('Please confirm that there are unset tracts in the self.data building estimation:')
@@ -404,7 +413,7 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
         # Create the complement of full_tracts, i.e., a datafram with only null tracts.
         # Assign random values from 0 to 1 to each row. This will be used for assignment to actual tracts.
-        # The random values are then sorted because the join will be an "as_of" join that requires left 
+        # The random values are then sorted because the join will be an "as_of" join that requires left
         # and right dataframes to be sorted by the join keys.
         null_tracts = df.loc[df['tract'].isnull()]
         null_tracts['random_values'] = np.random.rand(len(null_tracts))
@@ -482,9 +491,9 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
     def add_sqft_bins(self):
         if 'size_bin' in list(self.data):
             return
-        
+
         raise NotImplementedError('This does not yet exist - if it is needed someone needs to write this...')
-    
+
     def normalize_building_type_values(self):
         """Change the building type names from nice snake_case to nasty UpperCamelCase eww"""
 
@@ -499,7 +508,7 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             logger.error(f'{leftovers}')
             breakpoint()
             raise RuntimeError('Unable to process the specified building type enumerations.')
-        
+
         self.data = df.copy(deep=True)
 
     def upsample_hvac_system_fuel_types(self):
