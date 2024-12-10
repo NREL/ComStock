@@ -53,12 +53,15 @@ def basic_metadata_columns():
         units = row['new_units']
         if col == 'calc.weighted.sqft':
             units = None  # Special case column
+        if col == 'in.sqft':
+            units = None  # Special case column
         # Build the full the column name (including units)
         if units is None:
             names_with_units.append(col)
         else:
             names_with_units.append(f'{col}..{units}')
     export_cols = export_cols.with_columns(pl.Series(name="name_with_units", values=names_with_units))
+    export_cols = export_cols.unique()
 
     return export_cols
 
@@ -1017,7 +1020,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         col_def_names = col_defs['original_col_name'].tolist()
 
         file_path = os.path.join(self.truth_data_dir, self.geospatial_lookup_file_name)
-        geospatial_data = pl.scan_csv(file_path)
+        geospatial_data = pl.scan_csv(file_path, infer_schema_length=None)
         # TODO nhgis_county_gisjoin column should be added to the geospatial data file
         geospatial_data = geospatial_data.with_columns(
             pl.col('nhgis_county_gisjoin').cast(str).str.slice(0, 4).alias('nhgis_state_gisjoin')
@@ -1049,6 +1052,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Read the buildstock.csv and join columns onto annual results by building ID
         file_path = os.path.join(self.truth_data_dir, self.ejscreen_file_name)
         ejscreen = pl.scan_csv(file_path).select(col_def_names)
+        ejscreen = ejscreen.with_columns([pl.col(tract_col).cast(pl.Utf8)])
 
         # Convert EJSCREEN census tract ID to gisjoin format
         ejscreen = ejscreen.with_columns((
@@ -1099,6 +1103,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Read the buildstock.csv and join columns onto annual results by building ID
         file_path = os.path.join(self.truth_data_dir, self.cejst_file_name)
         cejst = pl.scan_csv(file_path).select(col_def_names)
+        cejst = cejst.with_columns([pl.col(tract_col).cast(pl.Utf8)])
 
         # Convert CEJST census tract ID to gisjoin format
         cejst = cejst.with_columns((
@@ -1409,6 +1414,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             logger.error(f'Columns requested for export in {COLUMN_DEFINITION_FILE_NAME} but not found in data:')
             for c in cols_missing:
                 logger.error(f'Missing "{c}" in data')
+
+        cols_to_keep = list(set(cols_to_keep))
 
         input_lf = input_lf.select(cols_to_keep)
 
@@ -2144,9 +2151,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             geo_filter_exprs = [(pl.col(k) == v) for k, v in geography_filters.items()]
             geo_data = geo_data.filter(geo_filter_exprs)
 
-        # Drop all but the tract column after filtering
-        cols_to_drop = [self.COUNTY_ID, self.STATE_ID, self.STATE_ABBRV, self.CEN_DIV, self.CZ_ASHRAE]
-        geo_data = geo_data.drop(cols_to_drop)
+        # Combine weights for building IDs within each census tract
+        geo_data = geo_data.select(
+            [pl.col(self.BLDG_WEIGHT), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(self.TRACT_ID)]
+        ).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(self.TRACT_ID)]).sum()
 
         # Join the weights to the per-model metadata and annual results
         logger.debug('Join the weights to the per-model metadata and annual results')
@@ -2206,9 +2214,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Define the geographic partitions to export
         geo_exports = [
-            # {'geo_top_dir': 'national',
-            #     'partition_cols': {}
-            # },
+            {'geo_top_dir': 'national',
+                'partition_cols': {}
+            },
             {
                 'geo_top_dir': 'by_state',
                 'partition_cols': {self.STATE_ABBRV: 'state'}  # original name: short name
@@ -2232,7 +2240,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             geo_top_dir = ge['geo_top_dir']
             partition_cols = ge['partition_cols']
             data_types = ['full', 'basic']
-            # data_types = ['full']
             logger.info(f'Exporting metadata_and_annual_results/{geo_top_dir}')
             geo_col_names = list(partition_cols.keys())
             logger.info(f'Partitioning by {geo_col_names}')
@@ -2241,8 +2248,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             geo_data = self.fkt.clone()
 
             # Get the unique set of combinations of all geography column partitions
-            geo_combos = pl.DataFrame()
-            if len(geo_col_names) > 0:
+            if len(geo_col_names) == 0:
+                geo_combos = pl.DataFrame({'geography': ['national']})
+            else:
                 geo_combos = geo_data.select(geo_col_names).unique().collect()
                 geo_combos = geo_combos.sort(by=geo_col_names)
 
@@ -2266,9 +2274,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     geo_levels = []
                     geo_prefixes = []
                     for k, v in geo_combo.items():
-                        geo_filters[k] = v
-                        geo_levels.append(f'{partition_cols[k]}={v}')
-                        geo_prefixes.append(v)
+                        if k == 'geography' and v == 'national':
+                            pass
+                        else:
+                            geo_filters[k] = v
+                            geo_levels.append(f'{partition_cols[k]}={v}')
+                            geo_prefixes.append(v)
 
                     # Filter to this geography, downselect columns, create savings columns, etc.
                     to_write = self.create_geospatial_slice_of_metadata(upgrade_id, geo_filters)
@@ -2281,17 +2292,17 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     for data_type in data_types:
                         # Downselect to basic set of columns if necessary
                         if data_type == 'basic':
-                        #     to_write = to_write.select(basic_cols)
-                            continue
+                            to_write = to_write.select(basic_cols)
+
+                        # Collect the LazyFrame to a DataFrame
+                        if isinstance(to_write, pl.LazyFrame):
+                            to_write = to_write.collect()
+
+                        n_rows, n_cols = to_write.shape
 
                         # print('Columns before write')
                         # for c in to_write.columns:
                         #     print(c)
-                        exit()
-
-                        # Collect the LazyFrame to a DataFrame
-                        to_write = to_write.collect()
-                        n_rows, n_cols = to_write.shape
 
                         # Create the directory to write
                         data_type_dir = os.path.join(full_geo_dir, data_type, '/'.join(geo_levels))
@@ -2308,16 +2319,17 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         if len(geo_prefixes) > 0:
                             geo_prefix = '_'.join(geo_prefixes)
                             file_name = f'{geo_prefix}_{file_name}'
-                        # Add suffix
+                        # Add data_type suffix to filename
                         if data_type == 'basic':
-                            file_name = f'{geo_prefix}_{data_type}'
+                            file_name = f'{file_name}_{data_type}'
                         logger.info(f"Writing {file_name}: n_cols = {n_cols:,}, n_rows = {n_rows:,}")
                         # Parquet
                         file_path = os.path.abspath(os.path.join(parquet_dir, f'{file_name}.parquet'))
                         to_write.write_parquet(file_path, use_pyarrow=True)
                         # CSV
-                        file_path = os.path.abspath(os.path.join(csv_dir, f'{file_name}.csv'))
-                        to_write.write_csv(file_path)
+                        if not geo_top_dir == 'national':
+                            file_path = os.path.abspath(os.path.join(csv_dir, f'{file_name}.csv'))
+                            to_write.write_csv(file_path)
 
     def add_weights_aportioned_by_stock_estimate(self, apportionment: Apportion, keep_n_per_apportionment_group=False):
         # This function doesn't support already CBECS-weighted self.data - error out
