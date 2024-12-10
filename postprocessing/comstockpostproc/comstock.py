@@ -2383,12 +2383,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         logger.info(f'Unable to match {unable_to_match} out of {total_to_match} truth data.')
 
         # Provide detailed additional info on missing buckets for review if desired
-        logger.info('The following is a breakdown of missing truth data buildings by bucket attributes:')
-        for attribute in ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']:
-            logger.info(f'{attribute}:')
-            logger.info(f'{pl.Series(tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups)).select(pl.col(attribute).value_counts(sort=True)).collect()).to_list()}'
-                        .replace("}, {", "\n\t").replace("[{", "\t").replace("}]", ""))
         logger.info(f'Writing QAQC / Debugging files to {os.path.abspath(self.output_dir)}')
+        file_path = os.path.abspath(os.path.join(self.output_dir, 'missing_truth_data_buildings.log'))
+        with open(file_path, 'w') as f:
+            f.write('The following is a breakdown of missing truth data buildings by bucket attributes:\n')
+            for attribute in ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']:
+                f.write(f'\nAttribute: {attribute}:\n')
+                f.write(f'{pl.Series(tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups)).select(pl.col(attribute).value_counts(sort=True)).collect()).to_list()}'
+                    .replace("}, {", "\n\t").replace("[{", "\t").replace("}]", ""))
         attrs = ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
         file_path = os.path.abspath(os.path.join(self.output_dir, 'potential_apportionment_group_optimization.csv'))
         tdf.select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv(file_path)
@@ -2553,7 +2555,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         assert isinstance(input_lf, pl.LazyFrame)
 
-        logger.info('Adding weighted savings columns')
+        logger.debug('Adding weighted savings columns')
         #based on the unweighted savings columns, generate the weighted savings columns
         if self.include_upgrades:
             for unweighted_saving_cols, weighted_saving_cols in self.unweighted_weighted_map.items():
@@ -2566,7 +2568,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 new_unit = self.units_from_col_name(weighted_saving_cols)
                 conv_fact = self.conv_fact(old_unit, new_unit)
                 input_lf: pl.LazyFrame = input_lf.with_columns((pl.col(unweighted_saving_cols) * pl.col(self.BLDG_WEIGHT) * conv_fact).alias(weighted_saving_cols))
-                logger.info(f'Adding {unweighted_saving_cols} * {self.BLDG_WEIGHT} * {conv_fact} -> {weighted_saving_cols}')
+                logger.debug(f'Adding {unweighted_saving_cols} * {self.BLDG_WEIGHT} * {conv_fact} -> {weighted_saving_cols}')
 
         assert isinstance(input_lf, pl.LazyFrame)
 
