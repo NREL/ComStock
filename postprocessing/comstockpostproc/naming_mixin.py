@@ -79,7 +79,9 @@ class NamingMixin():
         'in.state',
         'in.state_name',
         'in.cluster_id',
-        'in.cluster_name'
+        'in.cluster_name',
+        'in.weather_file_2018',
+        'in.weather_file_tmy3'
     ]
 
     # Total annual energy

@@ -2016,7 +2016,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.fkt = self.fkt.join(cbecs_weights, on=pl.col(self.BLDG_TYPE))
             self.fkt = self.fkt.with_columns((pl.col(self.BLDG_WEIGHT) * pl.col('cbecs_weight')).alias(self.BLDG_WEIGHT))
             self.fkt = self.fkt.drop(self.BLDG_TYPE, 'cbecs_weight')
-        # else:
+        else:
             self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_scale_factors, default=None)).alias(self.BLDG_WEIGHT))
 
         assert isinstance(cbecs.data, pd.DataFrame)
@@ -2147,6 +2147,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             geo_filter_exprs = [(pl.col(k) == v) for k, v in geography_filters.items()]
             geo_data = geo_data.filter(geo_filter_exprs)
 
+        # Drop all but the tract column after filtering
+        cols_to_drop = [self.COUNTY_ID, self.STATE_ID, self.STATE_ABBRV, self.CEN_DIV, self.CZ_ASHRAE]
+        geo_data = geo_data.drop(cols_to_drop)
+
         # Join the weights to the per-model metadata and annual results
         logger.debug('Join the weights to the per-model metadata and annual results')
         geo_data = geo_data.join(self.data, on=[pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)])
@@ -2155,7 +2159,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         logger.debug('Calculate the weighted columns')
         geo_data = self.add_weighted_area_energy_savings_columns(geo_data)
 
-        # Add geospatial data columns
+        # Add geospatial data columns based on census tract
         geo_data = self.add_geospatial_columns(geo_data)
         geo_data = self.add_cejst_columns(geo_data)
         geo_data = self.add_ejscreen_columns(geo_data)
@@ -2490,6 +2494,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.STATE_ID: self.STATE_ID.replace('in.', self.POST_APPO_SIM_COL_PREFIX),
             self.CEN_DIV: self.CEN_DIV.replace('in.', self.POST_APPO_SIM_COL_PREFIX),
         })
+
+        # Add state abbreviations to the fkt for use in partitioning
+        fkt = fkt.with_columns(
+            pl.col(self.STATE_ID).replace(self.STATE_NHGIS_TO_ABBRV).alias(self.STATE_ABBRV)
+        )
 
         # Drop any remaining geography columns associated with the model creation
         # Geographic data will joined after self.data and self.fkt have been joined
