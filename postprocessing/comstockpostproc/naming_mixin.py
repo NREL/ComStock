@@ -842,6 +842,8 @@ class NamingMixin():
 
     def col_name_to_area_intensity(self, col_name):
         units = self.units_from_col_name(col_name)
+        col_name = col_name.replace('energy_consumption', 'energy_consumption_intensity')
+        col_name = col_name.replace('energy_savings', 'energy_savings_intensity')
         col_name = col_name.replace('bill_mean..usd', 'bill_intensity..usd')
         col_name = col_name.replace('bill_min..usd', 'bill_min_intensity..usd')
         col_name = col_name.replace('bill_max..usd', 'bill_max_intensity..usd')

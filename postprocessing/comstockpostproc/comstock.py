@@ -227,10 +227,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     upgradIdcount[upgrade_id] = self.data.filter(pl.col(self.UPGRADE_ID) == upgrade_id).shape[0]
                 self.add_metadata_index_col(upgradIdcount)
                 self.get_comstock_unscaled_monthly_energy_consumption()
-                self.add_unweighted_utility_savings_columns()
-                self.add_unweighted_energy_savings_columns()
-                self.add_unweighted_peak_savings_columns()
-                self.add_unweighted_emissions_savings_columns()
+                self.add_unweighted_savings_columns()
                 # Downselect the self.data to just the upgrade
                 self.data = self.data.filter(pl.col(self.UPGRADE_ID) == upgrade_id)
                 # self._sightGlass_metadata_check(self.data)
@@ -2616,313 +2613,120 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         return input_lf
 
-    def add_unweighted_energy_savings_columns(self):
+    def add_unweighted_savings_columns(self):
 
         assert isinstance(self.data, pl.DataFrame)
 
-        engy_cols = []
-        abs_svgs_cols = {}
-        pct_svgs_cols = {}
-
-        for col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY):
-            # for non eui columns
-            engy_cols.append(col)
-            abs_svgs_cols[col] = self.col_name_to_savings(col, None)
-            pct_svgs_cols[col] = self.col_name_to_percent_savings(col, 'percent')
-            # add eui savings for all unweighted eui columns
-            eui_col = self.col_name_to_eui(col)
-            engy_cols.append(eui_col)
-            abs_svgs_cols[eui_col] = self.col_name_to_savings(eui_col, None)
-            pct_svgs_cols[eui_col] = self.col_name_to_percent_savings(eui_col, 'percent')
-
-            #save the unweighted - weighted colmns to  columns name mapping
-            self.unweighted_weighted_map.update({
-                self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_energy_units)
-                })
-
-        # Keep the building ID and upgrade name columns to use as the index
-        engy_and_id_cols = engy_cols + [self.BLDG_ID, self.UPGRADE_NAME]
-
-        # Get the baseline results
-        base_engy = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).select(engy_and_id_cols).sort(self.BLDG_ID).clone()
-
-        # Caculate the savings for each upgrade, including the baseline
-        up_abs_svgs = []
-        up_pct_svgs = []
-
-        for upgrade_name, up_res in self.data.groupby(self.UPGRADE_NAME):
-
-            up_engy = up_res.select(engy_and_id_cols).sort(self.BLDG_ID).clone()
-
-            # Check that building_ids have same order in both DataFrames before division
-            base_engy_ids = base_engy.get_column(self.BLDG_ID)
-            up_engy_ids = up_engy.get_column(self.BLDG_ID)
-            assert up_engy_ids.to_list() == base_engy_ids.to_list()
-
-            # Calculate the absolute and percent energy savings
-            abs_svgs = (base_engy[engy_cols] - up_engy[engy_cols])
-
-            pct_svgs = ((base_engy[engy_cols] - up_engy[engy_cols]) / base_engy[engy_cols])
-            pct_svgs = pct_svgs.fill_null(0.0)
-            pct_svgs = pct_svgs.fill_nan(0.0)
-
-            abs_svgs = abs_svgs.with_columns([
-                base_engy_ids,
-                pl.lit(upgrade_name).alias(self.UPGRADE_NAME)
-            ])
-            abs_svgs = abs_svgs.with_columns(pl.col(self.UPGRADE_NAME).cast(pl.Categorical))
-
-            pct_svgs = pct_svgs.with_columns([
-                base_engy_ids,
-                pl.lit(upgrade_name).alias(self.UPGRADE_NAME)
-            ])
-            pct_svgs = pct_svgs.with_columns(pl.col(self.UPGRADE_NAME).cast(pl.Categorical))
-
-            abs_svgs = abs_svgs.rename(abs_svgs_cols)
-            pct_svgs = pct_svgs.rename(pct_svgs_cols)
-
-            up_abs_svgs.append(abs_svgs)
-            up_pct_svgs.append(pct_svgs)
-
-        up_abs_svgs = pl.concat(up_abs_svgs)
-        up_pct_svgs = pl.concat(up_pct_svgs)
-
-        # Join the savings columns onto the results
-        self.data = self.data.join(up_abs_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
-        self.data = self.data.join(up_pct_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
-
-    def add_unweighted_utility_savings_columns(self):
-        assert isinstance(self.data, pl.DataFrame)
-        # Select energy columns to calculate savings for
-        engy_cols = []
-        abs_svgs_cols = {}
-        pct_svgs_cols = {}
-
-        for col in (self.COLS_UTIL_BILLS + [
-                                            self.UTIL_BILL_TOTAL_MEAN,
-                                            self.UTIL_BILL_ELEC_MAX,
-                                            self.UTIL_BILL_ELEC_MED,
-                                            self.UTIL_BILL_ELEC_MIN]):
-
-            engy_cols.append(col)
-            abs_svgs_cols[col] = self.col_name_to_savings(col, None)
-            pct_svgs_cols[col] = self.col_name_to_percent_savings(col, 'percent')
-            # add eui savings for all unweighted eui columns
-            eui_col = self.col_name_to_area_intensity(col)
-            engy_cols.append(eui_col)
-            abs_svgs_cols[eui_col] = self.col_name_to_savings(eui_col, None)
-            pct_svgs_cols[eui_col] = self.col_name_to_percent_savings(eui_col, 'percent')
-
-            #save the unweighted - weighted columns name mapping
-            self.unweighted_weighted_map.update({
-                self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_utility_units)
-            })
-        # Keep the building ID and upgrade name columns to use as the index
-        engy_and_id_cols = engy_cols + [self.BLDG_ID, self.UPGRADE_NAME]
-
-        # Get the baseline results
-        base_engy = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).select(engy_and_id_cols).sort(self.BLDG_ID).clone()
-
-        # Caculate the savings for each upgrade, including the baseline
-        up_abs_svgs = []
-        up_pct_svgs = []
-        logger.debug(f"columns are {self.data.columns}, {'weighted' in self.data.columns}")
-        for upgrade_name, up_res in self.data.groupby(self.UPGRADE_NAME):
-
-            up_engy = up_res.select(engy_and_id_cols).sort(self.BLDG_ID).clone()
-
-            # Check that building_ids have same order in both DataFrames before division
-            base_engy_ids = base_engy.get_column(self.BLDG_ID)
-            up_engy_ids = up_engy.get_column(self.BLDG_ID)
-            assert up_engy_ids.to_list() == base_engy_ids.to_list()
-
-            # Calculate the absolute and percent energy savings
-            abs_svgs = (base_engy[engy_cols] - up_engy[engy_cols])
-
-            pct_svgs = ((base_engy[engy_cols] - up_engy[engy_cols]) / base_engy[engy_cols])
-            pct_svgs = pct_svgs.fill_null(0.0)
-            pct_svgs = pct_svgs.fill_nan(0.0)
-
-            abs_svgs = abs_svgs.with_columns([
-                base_engy_ids,
-                pl.lit(upgrade_name).alias(self.UPGRADE_NAME)
-            ])
-            abs_svgs = abs_svgs.with_columns(pl.col(self.UPGRADE_NAME).cast(pl.Categorical))
-
-            pct_svgs = pct_svgs.with_columns([
-                base_engy_ids,
-                pl.lit(upgrade_name).alias(self.UPGRADE_NAME)
-            ])
-            pct_svgs = pct_svgs.with_columns(pl.col(self.UPGRADE_NAME).cast(pl.Categorical))
-
-            abs_svgs = abs_svgs.rename(abs_svgs_cols)
-            pct_svgs = pct_svgs.rename(pct_svgs_cols)
-
-            up_abs_svgs.append(abs_svgs)
-            up_pct_svgs.append(pct_svgs)
-
-        up_abs_svgs = pl.concat(up_abs_svgs)
-        up_pct_svgs = pl.concat(up_pct_svgs)
-
-        # Join the savings columns onto the results
-        self.data = self.data.join(up_abs_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
-        self.data = self.data.join(up_pct_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
-
-    def add_unweighted_peak_savings_columns(self):
-        assert isinstance(self.data, pl.DataFrame)
-        # Select energy columns to calculate savings for
-        engy_cols = []
-        abs_svgs_cols = {}
-        pct_svgs_cols = {}
-
-        for col in (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK + self.COLS_QOI_MONTHLY_MED_DAILY_PEAK + [
-            self.QOI_MAX_SHOULDER_USE,
-            self.QOI_MAX_SUMMER_USE,
-            self.QOI_MAX_WINTER_USE
-            ]):
-
-            engy_cols.append(col)
-            abs_svgs_cols[col] = self.col_name_to_savings(col, None)
-            pct_svgs_cols[col] = self.col_name_to_percent_savings(col, 'percent')
-            # add eui savings for all unweighted eui columns
-            eui_col = self.col_name_to_area_intensity(col)
-            engy_cols.append(eui_col)
-            abs_svgs_cols[eui_col] = self.col_name_to_savings(eui_col, None)
-            pct_svgs_cols[eui_col] = self.col_name_to_percent_savings(eui_col, 'percent')
-
-            #save the unweighted - weighted columns name mapping
-            self.unweighted_weighted_map.update({
-                self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_demand_units)
-            })
-        # Keep the building ID and upgrade name columns to use as the index
-        engy_and_id_cols = engy_cols + [self.BLDG_ID, self.UPGRADE_NAME]
-
-        # Get the baseline results
-        base_engy = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).select(engy_and_id_cols).sort(self.BLDG_ID).clone()
-
-        # Caculate the savings for each upgrade, including the baseline
-        up_abs_svgs = []
-        up_pct_svgs = []
-        logger.debug(f"columns are {self.data.columns}, {'weighted' in self.data.columns}")
-        for upgrade_name, up_res in self.data.groupby(self.UPGRADE_NAME):
-
-            up_engy = up_res.select(engy_and_id_cols).sort(self.BLDG_ID).clone()
-
-            # Check that building_ids have same order in both DataFrames before division
-            base_engy_ids = base_engy.get_column(self.BLDG_ID)
-            up_engy_ids = up_engy.get_column(self.BLDG_ID)
-            assert up_engy_ids.to_list() == base_engy_ids.to_list()
-
-            # Calculate the absolute and percent energy savings
-            abs_svgs = (base_engy[engy_cols] - up_engy[engy_cols])
-
-            pct_svgs = ((base_engy[engy_cols] - up_engy[engy_cols]) / base_engy[engy_cols])
-            pct_svgs = pct_svgs.fill_null(0.0)
-            pct_svgs = pct_svgs.fill_nan(0.0)
-
-            abs_svgs = abs_svgs.with_columns([
-                base_engy_ids,
-                pl.lit(upgrade_name).alias(self.UPGRADE_NAME)
-            ])
-            abs_svgs = abs_svgs.with_columns(pl.col(self.UPGRADE_NAME).cast(pl.Categorical))
-
-            pct_svgs = pct_svgs.with_columns([
-                base_engy_ids,
-                pl.lit(upgrade_name).alias(self.UPGRADE_NAME)
-            ])
-            pct_svgs = pct_svgs.with_columns(pl.col(self.UPGRADE_NAME).cast(pl.Categorical))
-
-            abs_svgs = abs_svgs.rename(abs_svgs_cols)
-            pct_svgs = pct_svgs.rename(pct_svgs_cols)
-
-            up_abs_svgs.append(abs_svgs)
-            up_pct_svgs.append(pct_svgs)
-
-        up_abs_svgs = pl.concat(up_abs_svgs)
-        up_pct_svgs = pl.concat(up_pct_svgs)
-
-        # Join the savings columns onto the results
-        self.data = self.data.join(up_abs_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
-        self.data = self.data.join(up_pct_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
-
-    def add_unweighted_emissions_savings_columns(self):
-        assert isinstance(self.data, pl.DataFrame)
-        # Select energy columns to calculate savings for
-        engy_cols = []
-        abs_svgs_cols = {}
-        pct_svgs_cols = {}
-
-        for col in (self.COLS_GHG_ELEC_SEASONAL_DAILY_EGRID + self.COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM + [
-            self.GHG_LRMER_MID_CASE_15_ELEC,
-            self.GHG_ELEC_EGRID,
-            self.ANN_GHG_EGRID,
-            self.ANN_GHG_CAMBIUM
-            ]):
-
-            engy_cols.append(col)
-            abs_svgs_cols[col] = self.col_name_to_savings(col, None)
-            pct_svgs_cols[col] = self.col_name_to_percent_savings(col, 'percent')
-            # add eui savings for all unweighted eui columns
-            eui_col = self.col_name_to_area_intensity(col)
-            engy_cols.append(eui_col)
-            abs_svgs_cols[eui_col] = self.col_name_to_savings(eui_col, None)
-            pct_svgs_cols[eui_col] = self.col_name_to_percent_savings(eui_col, 'percent')
-
-            #save the unweighted - weighted columns name mapping
-            self.unweighted_weighted_map.update({
-                self.col_name_to_savings(col, None) :self.col_name_to_weighted_savings(col, self.weighted_ghg_units)
-            })
-        # Keep the building ID and upgrade name columns to use as the index
-        engy_and_id_cols = engy_cols + [self.BLDG_ID, self.UPGRADE_NAME]
-
-        # Get the baseline results
-        base_engy = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).select(engy_and_id_cols).sort(self.BLDG_ID).clone()
-
-        # Caculate the savings for each upgrade, including the baseline
-        up_abs_svgs = []
-        up_pct_svgs = []
-        logger.debug(f"columns are {self.data.columns}, {'weighted' in self.data.columns}")
-        for upgrade_name, up_res in self.data.groupby(self.UPGRADE_NAME):
-
-            up_engy = up_res.select(engy_and_id_cols).sort(self.BLDG_ID).clone()
-
-            # Check that building_ids have same order in both DataFrames before division
-            base_engy_ids = base_engy.get_column(self.BLDG_ID)
-            up_engy_ids = up_engy.get_column(self.BLDG_ID)
-            assert up_engy_ids.to_list() == base_engy_ids.to_list()
-
-            # Calculate the absolute and percent energy savings
-            abs_svgs = (base_engy[engy_cols] - up_engy[engy_cols])
-
-            pct_svgs = ((base_engy[engy_cols] - up_engy[engy_cols]) / base_engy[engy_cols])
-            pct_svgs = pct_svgs.fill_null(0.0)
-            pct_svgs = pct_svgs.fill_nan(0.0)
-
-            abs_svgs = abs_svgs.with_columns([
-                base_engy_ids,
-                pl.lit(upgrade_name).alias(self.UPGRADE_NAME)
-            ])
-            abs_svgs = abs_svgs.with_columns(pl.col(self.UPGRADE_NAME).cast(pl.Categorical))
-
-            pct_svgs = pct_svgs.with_columns([
-                base_engy_ids,
-                pl.lit(upgrade_name).alias(self.UPGRADE_NAME)
-            ])
-            pct_svgs = pct_svgs.with_columns(pl.col(self.UPGRADE_NAME).cast(pl.Categorical))
-
-            abs_svgs = abs_svgs.rename(abs_svgs_cols)
-            pct_svgs = pct_svgs.rename(pct_svgs_cols)
-
-            up_abs_svgs.append(abs_svgs)
-            up_pct_svgs.append(pct_svgs)
-
-        up_abs_svgs = pl.concat(up_abs_svgs)
-        up_pct_svgs = pl.concat(up_pct_svgs)
-
-        # Join the savings columns onto the results
-        self.data = self.data.join(up_abs_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
-        self.data = self.data.join(up_pct_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
+        col_groups = [
+            # Energy
+            {
+                'cols': self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY,
+                'weighted_units': self.weighted_energy_units
+            },
+            # Utility Bills
+            {
+                'cols': (self.COLS_UTIL_BILLS +
+                                [self.UTIL_BILL_TOTAL_MEAN,
+                                self.UTIL_BILL_ELEC_MAX,
+                                self.UTIL_BILL_ELEC_MED,
+                                self.UTIL_BILL_ELEC_MIN]),
+                'weighted_units': self.weighted_utility_units
+            },
+            # Peak Demand QOIs
+            {
+                'cols': (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK +
+                              self.COLS_QOI_MONTHLY_MED_DAILY_PEAK +
+                              [self.QOI_MAX_SHOULDER_USE,
+                              self.QOI_MAX_SUMMER_USE,
+                              self.QOI_MAX_WINTER_USE]),
+                'weighted_units': self.weighted_demand_units
+            },
+            # Emissions
+            {
+                'cols': (self.COLS_GHG_ELEC_SEASONAL_DAILY_EGRID +
+                              self.COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM +
+                              [self.GHG_LRMER_MID_CASE_15_ELEC,
+                              self.GHG_ELEC_EGRID,
+                              self.ANN_GHG_EGRID,
+                              self.ANN_GHG_CAMBIUM]),
+                'weighted_units': self.weighted_ghg_units
+            }
+        ]
+
+        # Calculate savings for each group of columns using the appropriate units
+        for col_group in col_groups:
+
+            val_cols = []
+            abs_svgs_cols = {}
+            pct_svgs_cols = {}
+
+            for col in col_group['cols']:
+                # Mapping from column name to raw savings column name
+                val_cols.append(col)
+                abs_svgs_cols[col] = self.col_name_to_savings(col, None)
+                pct_svgs_cols[col] = self.col_name_to_percent_savings(col, 'percent')
+                # Mapping for column name to intensity savings column name
+                intensity_col = self.col_name_to_area_intensity(col)
+                val_cols.append(intensity_col)
+                abs_svgs_cols[intensity_col] = self.col_name_to_savings(intensity_col, None)
+                pct_svgs_cols[intensity_col] = self.col_name_to_percent_savings(intensity_col, 'percent')
+
+                # Save a map of columns to create weighted savings for later in processing
+                # after weights are assigned.
+                self.unweighted_weighted_map.update({
+                    self.col_name_to_savings(col, None): self.col_name_to_weighted_savings(col, col_group['weighted_units'])
+                    })
+
+            # Keep the building ID and upgrade name columns to use as the index
+            val_and_id_cols = val_cols + [self.BLDG_ID, self.UPGRADE_NAME]
+
+            # Get the baseline results
+            base_vals = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).select(val_and_id_cols).sort(self.BLDG_ID).clone()
+
+            # Caculate the savings for each upgrade, including the baseline
+            up_abs_svgs = []
+            up_pct_svgs = []
+
+            for upgrade_name, up_res in self.data.groupby(self.UPGRADE_NAME):
+
+                up_vals = up_res.select(val_and_id_cols).sort(self.BLDG_ID).clone()
+
+                # Check that building_ids have same order in both DataFrames before division
+                base_val_ids = base_vals.get_column(self.BLDG_ID)
+                up_val_ids = up_vals.get_column(self.BLDG_ID)
+                assert up_val_ids.to_list() == base_val_ids.to_list()
+
+                # Calculate the absolute and percent savings
+                abs_svgs = (base_vals[val_cols] - up_vals[val_cols])
+
+                pct_svgs = ((base_vals[val_cols] - up_vals[val_cols]) / base_vals[val_cols])
+                pct_svgs = pct_svgs.fill_null(0.0)
+                pct_svgs = pct_svgs.fill_nan(0.0)
+
+                abs_svgs = abs_svgs.with_columns([
+                    base_val_ids,
+                    pl.lit(upgrade_name).alias(self.UPGRADE_NAME)
+                ])
+                abs_svgs = abs_svgs.with_columns(pl.col(self.UPGRADE_NAME).cast(pl.Categorical))
+
+                pct_svgs = pct_svgs.with_columns([
+                    base_val_ids,
+                    pl.lit(upgrade_name).alias(self.UPGRADE_NAME)
+                ])
+                pct_svgs = pct_svgs.with_columns(pl.col(self.UPGRADE_NAME).cast(pl.Categorical))
+
+                abs_svgs = abs_svgs.rename(abs_svgs_cols)
+                pct_svgs = pct_svgs.rename(pct_svgs_cols)
+
+                up_abs_svgs.append(abs_svgs)
+                up_pct_svgs.append(pct_svgs)
 
+            up_abs_svgs = pl.concat(up_abs_svgs)
+            up_pct_svgs = pl.concat(up_pct_svgs)
+
+            # Join the savings columns onto the results
+            self.data = self.data.join(up_abs_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
+            self.data = self.data.join(up_pct_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
 
     def add_metadata_index_col(self, upgradIdcount: dict):
         # Add a metadata index column to the data
