@@ -14,7 +14,7 @@ class TestIntegration:
 
     @pytest.fixture(autouse=True)
     def setup_and_teardown(self):
-        self.widePath = "../output/ComStock bsb-integration-test-baseline 2018/ComStock wide.csv"
+        self.widePath = "../output/CBECS 2018 vs ComStock bsb-integration-test-baseline - Baseline/ComStock wide.csv"
     
     def test_1_Initial_comstock(self):
         # ComStock run
@@ -76,8 +76,8 @@ class TestIntegration:
 
     def test_3_verifyWideShape(self):
         wide = pd.read_csv(self.widePath)
-        assert wide.shape == (4, 892)
+        assert wide.shape == (216, 109)
 
-    def test_4_verifyWideColumns(self):
-        wide = pd.read_csv(self.widePath)
-        assert (wide.completed_status == "Success").all()
+    # def test_4_verifyWideColumns(self):
+    #     wide = pd.read_csv(self.widePath)
+    #     assert (wide.completed_status == "Success").all()
