@@ -2240,6 +2240,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             geo_top_dir = ge['geo_top_dir']
             partition_cols = ge['partition_cols']
             data_types = ['full', 'basic']
+            file_types = ['csv', 'parquet']
             logger.info(f'Exporting metadata_and_annual_results/{geo_top_dir}')
             geo_col_names = list(partition_cols.keys())
             logger.info(f'Partitioning by {geo_col_names}')
@@ -2258,12 +2259,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             full_geo_dir = f"{out_location['fs_path']}/metadata_and_annual_results/{geo_top_dir}"
             out_location['fs'].mkdirs(full_geo_dir, exist_ok=True)
 
-            # Make a directory for each data type
+            # Make a directory for each data type X file type combo
             for data_type in data_types:
-                data_type_dir = f'{full_geo_dir}/{data_type}'
-                out_location['fs'].mkdirs(data_type_dir, exist_ok=True)
+                for file_type in file_types:
+                    out_location['fs'].mkdirs(f'{full_geo_dir}/{data_type}/{file_type}', exist_ok=True)
 
-            # Write a file for each upgrade X geography combo
+            # Write a file for each upgrade X geography combo for each file type
             for upgrade_id in upgrade_ids:
 
                 # Make a directory for each combination of geography column values
@@ -2304,32 +2305,30 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         # for c in to_write.columns:
                         #     print(c)
 
-                        # Create the directory to write
-                        data_type_dir = os.path.join(full_geo_dir, data_type, '/'.join(geo_levels))
-                        out_location['fs'].mkdirs(data_type_dir, exist_ok=True)
-                        parquet_dir = os.path.join(full_geo_dir, data_type, '/'.join(geo_levels), 'parquet')
-                        out_location['fs'].mkdirs(parquet_dir, exist_ok=True)
-                        csv_dir = os.path.join(full_geo_dir, data_type, '/'.join(geo_levels), 'csv')
-                        out_location['fs'].mkdirs(csv_dir, exist_ok=True)
-                        # File name
-                        file_name = f'upgrade{upgrade_id:02d}'
-                        if upgrade_id == 0:
-                            file_name = 'baseline'
-                        # Add geography prefix to filename
-                        if len(geo_prefixes) > 0:
-                            geo_prefix = '_'.join(geo_prefixes)
-                            file_name = f'{geo_prefix}_{file_name}'
-                        # Add data_type suffix to filename
-                        if data_type == 'basic':
-                            file_name = f'{file_name}_{data_type}'
-                        logger.info(f"Writing {file_name}: n_cols = {n_cols:,}, n_rows = {n_rows:,}")
-                        # Parquet
-                        file_path = os.path.abspath(os.path.join(parquet_dir, f'{file_name}.parquet'))
-                        to_write.write_parquet(file_path, use_pyarrow=True)
-                        # CSV
-                        if not geo_top_dir == 'national':
-                            file_path = os.path.abspath(os.path.join(csv_dir, f'{file_name}.csv'))
-                            to_write.write_csv(file_path)
+                        # Write all selected filetypes
+                        for file_type in file_types:
+                            # Make a directory for this geography
+                            geo_level_dir = os.path.join(full_geo_dir, data_type, file_type, '/'.join(geo_levels))
+                            out_location['fs'].mkdirs(geo_level_dir, exist_ok=True)
+                            # File name
+                            file_name = f'upgrade{upgrade_id:02d}'
+                            if upgrade_id == 0:
+                                file_name = 'baseline'
+                            # Add geography prefix to filename
+                            if len(geo_prefixes) > 0:
+                                geo_prefix = '_'.join(geo_prefixes)
+                                file_name = f'{geo_prefix}_{file_name}'
+                            # Add data_type suffix to filename
+                            if data_type == 'basic':
+                                file_name = f'{file_name}_{data_type}'
+                            logger.info(f"Writing {file_name}: n_cols = {n_cols:,}, n_rows = {n_rows:,}")
+                            file_path = os.path.abspath(os.path.join(geo_level_dir, f'{file_name}.{file_type}'))
+                            if file_type == 'csv':
+                                to_write.write_csv(file_path)
+                            elif file_type == 'parquet':
+                                to_write.write_parquet(file_path, use_pyarrow=True)
+                            else:
+                                raise RuntimeError(f'Unknown file type {file_type} requested in export_metadata_and_annual_results()')
 
     def add_weights_aportioned_by_stock_estimate(self, apportionment: Apportion, keep_n_per_apportionment_group=False):
         # This function doesn't support already CBECS-weighted self.data - error out
