@@ -577,7 +577,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     if dt == pl.Null or dt == pl.Boolean:
                         logger.debug(f'For {c}: Nulls set to False (Boolean) in baseline')
                         up_res = up_res.with_columns([pl.col(c).fill_null(pl.lit(False))])
-                    elif dt == pl.Utf8:
+                    elif dt == pl.Utf8 or dt == pl.Int64:
                         logger.debug(f'For {c}: Nulls set to "False" (String) in baseline')
                         up_res = up_res.with_columns([pl.col(c).fill_null(pl.lit("False"))])
                         up_res = up_res.with_columns([pl.when(pl.col(c).str.lengths() == 0).then(pl.lit('False')).otherwise(pl.col(c)).keep_name()])
@@ -2186,7 +2186,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         logger.info('Writting QAQC / Debugging files to the home directory.')
         attrs = ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
         tdf.select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv('~/potential_apportionment_group_optimization.csv')
-        tdf.filter(pl.col('appo_group_id').is_in(missing_groups)).select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv('~/Desktop/debugging_missing_apportionment_groups.csv')
+        tdf.filter(pl.col('appo_group_id').is_in(missing_groups)).select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv('~/debugging_missing_apportionment_groups.csv')
 
         # Drop unsupported truth data and add an index
         tdf = tdf.filter(pl.col('appo_group_id').is_in(missing_groups).is_not())
@@ -2891,6 +2891,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         #        self.data = self.data.with_columns([pl.col(c).fill_null(0.0)])
 
         # Create two combined emissions columns
+        if self.COLS_UTIL_BILLS not in self.data.columns:
+            return
+        
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_UTIL_BILLS).alias(self.UTIL_BILL_TOTAL_MEAN))
 
         col_names = [self.UTIL_BILL_TOTAL_MEAN]
