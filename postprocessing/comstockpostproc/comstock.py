@@ -2032,8 +2032,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
     def create_plotting_lazyframe(self):
         plotting_aggregation = self.fkt.clone()
         plotting_aggregation = plotting_aggregation.select(
-            [pl.col(self.BLDG_WEIGHT), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(self.CEN_DIV)]
-        ).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(self.CEN_DIV)]).sum()
+            [pl.col(self.BLDG_WEIGHT), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(self.CEN_DIV), pl.col(self.CZ_ASHRAE)]
+        ).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(self.CEN_DIV), pl.col(self.CZ_ASHRAE)]).sum()
         plotting_aggregation = plotting_aggregation.join(self.data, on=[pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)])
         plotting_aggregation = self.add_weighted_area_energy_savings_columns(plotting_aggregation)
         plotting_aggregation = self.reorder_data_columns(plotting_aggregation)
@@ -2214,9 +2214,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Define the geographic partitions to export
         geo_exports = [
-            {'geo_top_dir': 'national',
-                'partition_cols': {}
-            },
+            # {'geo_top_dir': 'national',
+            #     'partition_cols': {}
+            # },
             {
                 'geo_top_dir': 'by_state',
                 'partition_cols': {self.STATE_ABBRV: 'state'}  # original name: short name
