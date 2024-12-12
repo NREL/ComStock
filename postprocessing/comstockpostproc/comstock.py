@@ -2395,6 +2395,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                 if len(geo_prefixes) > 0:
                                     geo_prefix = '_'.join(geo_prefixes)
                                     file_name = f'{geo_prefix}_{file_name}'
+                                # Add aggregate suffix to filename
+                                if aggregation_level is not None:
+                                    file_name = f'{file_name}_agg'
                                 # Add data_type suffix to filename
                                 if data_type == 'basic':
                                     file_name = f'{file_name}_{data_type}'
