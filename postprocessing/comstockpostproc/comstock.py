@@ -2213,18 +2213,18 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 'partition_cols': {self.STATE_ABBRV: 'state'},  # original name: short name
                 'aggregation_levels': [None, self.STATE_ABBRV]
             },
-            # {'geo_top_dir': 'by_state_and_county',
-            #     'partition_cols': {
-            #         self.STATE_ABBRV: 'state',
-            #         self.COUNTY_ID: 'county',
-            #         'aggregation_levels': [None, self.STATE_ABBRV]
-            # }},
-            # {'geo_top_dir': 'by_state_and_puma',
-            #     'partition_cols': {
-            #         self.STATE_ABBRV: 'state',
-            #         self.PUMA_ID: 'puma',
-            #         'aggregation_levels': [self.PUMA_ID]
-            # }},
+            {'geo_top_dir': 'by_state_and_county',
+                'partition_cols': {
+                    self.STATE_ABBRV: 'state',
+                    self.COUNTY_ID: 'county',
+                    'aggregation_levels': [None, self.STATE_ABBRV]
+            }},
+            {'geo_top_dir': 'by_state_and_puma',
+                'partition_cols': {
+                    self.STATE_ABBRV: 'state',
+                    self.PUMA_ID: 'puma',
+                    'aggregation_levels': [self.PUMA_ID]
+            }},
         ]
 
         # Get list of upgrade IDs
