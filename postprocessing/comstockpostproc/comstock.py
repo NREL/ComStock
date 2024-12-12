@@ -974,12 +974,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Show the dataset size
         logger.debug(f'Memory after add_buildstock_csv_columns: {self.data.estimated_size()}')
 
-    def add_geospatial_columns(self, input_lf: pl.LazyFrame):
-        # Join the geospatial data based on census tract
-        if not self.TRACT_ID in input_lf:
-            logger.info((f'Because the {self.TRACT_ID} column is missing '
-                'from the data, other geospatial characteristics cannot be joined.'))
-            return input_lf
+    def add_geospatial_columns(self, input_lf: pl.LazyFrame, geography_to_join_on):
+        supported_geogs = [self.TRACT_ID, self.COUNTY_ID, self.PUMA_ID, self.STATE_ABBRV]
+        if geography_to_join_on not in supported_geogs:
+            raise RuntimeError(f'Unsupported geography_to_join_on {geography_to_join_on} input to add_geospatial_columns.')
 
         # Read the column definitions
         col_def_path = os.path.join(RESOURCE_DIR, COLUMN_DEFINITION_FILE_NAME)
@@ -998,7 +996,73 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         geospatial_data = geospatial_data.select(col_def_names)
         geospatial_data = self.rename_geospatial_columns(geospatial_data)
 
-        input_lf = input_lf.join(geospatial_data, on=self.TRACT_ID)
+        # Ran the following code once to find mappable columns.
+        # Rerun this if geospatial mapping changes.
+        # for key_col in [self.COUNTY_ID, self.PUMA_ID, self.STATE_ABBRV]:
+        #     # Find all the unique geographic mappings available from this input
+        #     mappable_cols = []
+        #     for val_col in geospatial_data.columns:
+        #         if val_col == key_col:
+        #             continue
+        #         # Downselect to the unique set of key-value pairs
+        #         df = geospatial_data.select([key_col, val_col]).unique()
+        #         has_one_to_one_mapping = True
+        #         for k, vals in df.group_by([key_col]):
+        #             if len(vals) > 1:
+        #                 has_one_to_one_mapping = False
+        #                 break
+        #         if has_one_to_one_mapping:
+        #             mappable_cols.append(val_col)
+        #     print(f'Columns mappable from {key_col}:')
+        #     print(mappable_cols)
+        # exit()
+
+        # Columns mappable from in.nhgis_county_gisjoin:
+        county_mappings = [
+            self.COUNTY_ID,  # include the column itself
+            self.STATE_ABBRV,
+            self.STATE_NAME,
+            self.STATE_ID,
+            self.CEN_DIV,
+            self.CEN_REG,
+            self.CZ_ASHRAE,
+            'in.building_america_climate_zone',
+            'in.iso_rto_region',
+            'in.reeds_balancing_area',
+            'in.cambium_grid_region',
+        ]
+
+        # Columns mappable from in.nhgis_puma_gisjoin:
+        puma_mappings = [
+            self.PUMA_ID,  # include the column itself
+            self.STATE_ABBRV,
+            self.STATE_NAME,
+            self.STATE_ID,
+            self.CEN_DIV,
+            self.CEN_REG,
+        ]
+
+        # Columns mappable from in.state:
+        state_mappings = [
+            self.STATE_ABBRV, # include the column itself
+            self.STATE_NAME,
+            self.STATE_ID,
+            self.CEN_DIV,
+            self.CEN_REG,
+        ]
+
+        # Downselect to mappable columns before joining
+        if geography_to_join_on == self.TRACT_ID:
+            pass  # No column downselection needed
+        elif geography_to_join_on == self.COUNTY_ID:
+            geospatial_data = geospatial_data.select(county_mappings).unique()
+        elif geography_to_join_on == self.PUMA_ID:
+            geospatial_data = geospatial_data.select(puma_mappings).unique()
+        elif geography_to_join_on == self.STATE_ABBRV:
+            geospatial_data = geospatial_data.select(state_mappings).unique()
+
+        # Join on the geospatial data
+        input_lf = input_lf.join(geospatial_data, on=geography_to_join_on)
 
         return input_lf
 
@@ -2152,10 +2216,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         logger.debug('Calculate the weighted columns')
         geo_data = self.add_weighted_area_energy_savings_columns(geo_data)
 
-        # Add geospatial data columns based on census tract
-        # TODO figure out how to join data onto other geographies
+        # Add geospatial data columns based on most informative geography column
+        geo_data = self.add_geospatial_columns(geo_data, geographic_aggregation_level)
         if geographic_aggregation_level == self.TRACT_ID:
-            geo_data = self.add_geospatial_columns(geo_data)
             geo_data = self.add_cejst_columns(geo_data)
             geo_data = self.add_ejscreen_columns(geo_data)
 
@@ -2214,7 +2277,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     self.STATE_ABBRV: 'state',
                     self.COUNTY_ID: 'county',
                 },
-                'aggregation_levels': [None, self.STATE_ABBRV]  # The only one by at full resolution (no agg)
+                'aggregation_levels': [None, self.COUNTY_ID]  # The only one by at full resolution (no agg)
             },
             {
                 'geo_top_dir': 'by_state',

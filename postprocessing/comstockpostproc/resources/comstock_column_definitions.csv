@@ -56,8 +56,8 @@ buildstock.csv,iso_region,in.iso_rto_region,TRUE,FALSE,string,,,Electric system 
 buildstock.csv,ltg_sch_base_peak_ratio_type,,FALSE,FALSE,,,,
 buildstock.csv,ltg_sch_weekday_base_peak_ratio,,FALSE,FALSE,,,,
 buildstock.csv,ltg_sch_weekend_base_peak_ratio,,FALSE,FALSE,,,,
-buildstock.csv,nhgis_county_gisjoin,in.nhgis_county_gisjoin,TRUE,FALSE,string,,,"County identifier for where the model was simulated, according to format of https://www.nhgis.org/geographic-crosswalks#details"
-buildstock.csv,nhgis_puma_gisjoin,in.nhgis_puma_gisjoin,TRUE,FALSE,string,,,"Census PUMA identifier for where the model was simulated, according to format of https://www.nhgis.org/geographic-crosswalks#details"
+buildstock.csv,nhgis_county_gisjoin,in.nhgis_county_gisjoin,TRUE,TRUE,string,,,"County identifier for where the model was simulated, according to format of https://www.nhgis.org/geographic-crosswalks#details"
+buildstock.csv,nhgis_puma_gisjoin,in.nhgis_puma_gisjoin,TRUE,TRUE,string,,,"Census PUMA identifier for where the model was simulated, according to format of https://www.nhgis.org/geographic-crosswalks#details"
 buildstock.csv,nhgis_tract_gisjoin,in.nhgis_tract_gisjoin,TRUE,TRUE,string,,,"Census tract identifier for where the model was simulated, according to format of https://www.nhgis.org/geographic-crosswalks#details"
 buildstock.csv,number_stories,,FALSE,FALSE,,,,
 buildstock.csv,ownership_status,in.ownership_type,TRUE,FALSE,string,,,Type of organization or legal entity that owns the building
@@ -98,8 +98,8 @@ buildstock.csv,year_bin_of_last_windows_replacement,,FALSE,FALSE,,,,
 buildstock.csv,year_bin_of_original_building_construction,,FALSE,FALSE,,,,
 buildstock.csv,year_built,in.year_built,TRUE,TRUE,string,,,Year of original building construction
 buildstock.csv,year_of_simulation,,FALSE,FALSE,,,,
-geospatial,nhgis_county_gisjoin,in.nhgis_county_gisjoin,TRUE,FALSE,string,,,"County identifier where the model is located, according to format of https://www.nhgis.org/geographic-crosswalks#details"
-geospatial,nhgis_puma_gisjoin,in.nhgis_puma_gisjoin,TRUE,FALSE,string,,,"Census PUMA identifier where the model is located, according to format of https://www.nhgis.org/geographic-crosswalks#details"
+geospatial,nhgis_county_gisjoin,in.nhgis_county_gisjoin,TRUE,TRUE,string,,,"County identifier where the model is located, according to format of https://www.nhgis.org/geographic-crosswalks#details"
+geospatial,nhgis_puma_gisjoin,in.nhgis_puma_gisjoin,TRUE,TRUE,string,,,"Census PUMA identifier where the model is located, according to format of https://www.nhgis.org/geographic-crosswalks#details"
 geospatial,nhgis_tract_gisjoin,in.nhgis_tract_gisjoin,TRUE,TRUE,string,,,"Census tract identifier where the model is located, according to format of https://www.nhgis.org/geographic-crosswalks#details"
 geospatial,nhgis_state_gisjoin,in.nhgis_state_gisjoin,TRUE,TRUE,string,,,"State tract identifier where the model is located, according to format of https://www.nhgis.org/geographic-crosswalks#details"
 geospatial,state_name,in.state_name,TRUE,TRUE,string,,,Full name of state
@@ -1311,8 +1311,8 @@ results.csv,utility_bills.natural_gas_bill_dollars,out.utility_bills.natural_gas
 results.csv,utility_bills.natural_gas_rate_name,out.utility_bills.natural_gas_rate_name,TRUE,FALSE,string,,,Name of the natural gas rate used
 results.csv,utility_bills.propane_bill_dollars,out.utility_bills.propane_bill,TRUE,TRUE,float,usd,usd,Propane bill from one applicable rate
 results.csv,utility_bills.propane_rate_name,out.utility_bills.propane_rate_name,TRUE,FALSE,string,,,Name of the propane rate used
-calculated,in.nhgis_county_gisjoin,in.nhgis_county_gisjoin,TRUE,FALSE,string,,,"County identifier where the model is located, according to format of https://www.nhgis.org/geographic-crosswalks#details"
-calculated,in.nhgis_puma_gisjoin,in.nhgis_puma_gisjoin,TRUE,FALSE,string,,,"Census PUMA identifier where the model is located, according to format of https://www.nhgis.org/geographic-crosswalks#details"
+calculated,in.nhgis_county_gisjoin,in.nhgis_county_gisjoin,TRUE,TRUE,string,,,"County identifier where the model is located, according to format of https://www.nhgis.org/geographic-crosswalks#details"
+calculated,in.nhgis_puma_gisjoin,in.nhgis_puma_gisjoin,TRUE,TRUE,string,,,"Census PUMA identifier where the model is located, according to format of https://www.nhgis.org/geographic-crosswalks#details"
 calculated,in.nhgis_tract_gisjoin,in.nhgis_tract_gisjoin,TRUE,TRUE,string,,,"Census tract identifier where the model is located, according to format of https://www.nhgis.org/geographic-crosswalks#details"
 calculated,in.nhgis_state_gisjoin,in.nhgis_state_gisjoin,TRUE,TRUE,string,,,"State tract identifier where the model is located, according to format of https://www.nhgis.org/geographic-crosswalks#details"
 calculated,calc.weighted.savings.utility_bills.electricity_bill_mean,calc.weighted.savings.utility_bills.electricity_bill_mean,TRUE,TRUE,float,billion_usd,billion_usd,Weighted mean electric bill savings across all applicable rates in billions of US Dollars
