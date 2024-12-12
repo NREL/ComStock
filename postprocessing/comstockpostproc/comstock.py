@@ -34,37 +34,6 @@ ENUM_DEFINITION_FILE_NAME = 'comstock_enumeration_definitions.csv'
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 RESOURCE_DIR = os.path.join(CURRENT_DIR, 'resources')
 
-#Find columns marked for full analysis metadata export in column definitions
-def full_metadata_columns():
-    col_defs = pl.scan_csv(os.path.join(RESOURCE_DIR, COLUMN_DEFINITION_FILE_NAME))
-    export_cols = col_defs.filter(pl.col('full_metadata') == True).select(['new_col_name', 'new_units'])
-    return export_cols.collect()
-
-# Find columns marked for basic metadata export in column definitions
-def basic_metadata_columns():
-    col_defs = pl.scan_csv(os.path.join(RESOURCE_DIR, COLUMN_DEFINITION_FILE_NAME))
-    export_cols = col_defs.filter(pl.col('basic_metadata') == True).select(['new_col_name', 'new_units'])
-    export_cols = export_cols.collect()
-
-    # Add a column that has full name including units
-    names_with_units = []
-    for row in export_cols.iter_rows(named=True):
-        col = row['new_col_name']
-        units = row['new_units']
-        if col == 'calc.weighted.sqft':
-            units = None  # Special case column
-        if col == 'in.sqft':
-            units = None  # Special case column
-        # Build the full the column name (including units)
-        if units is None:
-            names_with_units.append(col)
-        else:
-            names_with_units.append(f'{col}..{units}')
-    export_cols = export_cols.with_columns(pl.Series(name="name_with_units", values=names_with_units))
-    export_cols = export_cols.unique()
-
-    return export_cols
-
 # ComStock in a constructor class for processing ComStock results
 class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixin):
     def __init__(self, s3_base_dir, comstock_run_name, comstock_run_version, comstock_year, athena_table_name,
@@ -1382,10 +1351,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         return df
 
-    def downselect_columns_for_full_metadata_export(self, input_lf):
-        export_cols = full_metadata_columns()
-
+    def downselect_columns_for_metadata_export(self, input_lf, data_type='full'):
+        # Find columns marked for export in column definitions
+        if data_type not in ['full', 'basic']:
+            raise RuntimeError('Unsupported data_type input to downselect_columns_for_metadata_export')
         col_defs = pl.read_csv(os.path.join(RESOURCE_DIR, COLUMN_DEFINITION_FILE_NAME))
+        export_cols = col_defs.filter(pl.col(f'{data_type}_metadata') == True).select(['new_col_name', 'new_units'])
+        export_cols = export_cols.unique()
+
         all_cols = col_defs.select('new_col_name').to_series().to_list()
         for c in input_lf.columns:
             c = c.split('..')[0]  # column name without units
@@ -1394,10 +1367,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             if c not in all_cols:
                 logger.warning(f'No entry for {c} in {COLUMN_DEFINITION_FILE_NAME}')
 
+        # Check for missing columns
         cols_to_keep = []
         cols_missing = []
-        exempt_cols = ["in.window_type", "_daily_average"]
-
         for export_col_name, export_col_units in export_cols.iter_rows():
             expected_unitless_cols = [self.FLR_AREA, self.col_name_to_weighted(self.FLR_AREA)]
             if (export_col_units is None) or (export_col_name in expected_unitless_cols):
@@ -1408,7 +1380,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             if export_col_name_units in input_lf.columns:
                 cols_to_keep.append(export_col_name_units)
             else:
-                cols_missing.append(export_col_name_units)
+                if export_col_name_units in self.COLS_GEOG:
+                    # Some geography columns will be missing from aggregate files.
+                    # This is expected, do not count as a missing column.
+                    pass
+                else:
+                    cols_missing.append(export_col_name_units)
 
         if len(cols_missing) > 0:
             logger.error(f'Columns requested for export in {COLUMN_DEFINITION_FILE_NAME} but not found in data:')
@@ -2138,7 +2115,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Return the geospatially aggregated dataframe for use by plotting, etc.
         return spatial_aggregation
 
-    def create_geospatial_slice_of_metadata(self, upgrade_id, geography_filters={}):
+    def create_geospatial_slice_of_metadata(self,
+                                            upgrade_id,
+                                            geography_filters={},
+                                            geographic_aggregation_level=None,
+                                            column_downselection=None):
 
         # Make a copy of the fkt to filter down
         geo_data = self.fkt.clone()
@@ -2151,10 +2132,16 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             geo_filter_exprs = [(pl.col(k) == v) for k, v in geography_filters.items()]
             geo_data = geo_data.filter(geo_filter_exprs)
 
-        # Combine weights for building IDs within each census tract
+        # Determine the geography to aggregate to.
+        # At a minimum aggregate the identical building ID X upgrade IDs inside
+        # each census tract, which are a result of the bootstrapping process used for apportionment.
+        if geographic_aggregation_level is None:
+            geographic_aggregation_level = self.TRACT_ID
+
+        # Aggregate the weights for building IDs within each geography
         geo_data = geo_data.select(
-            [pl.col(self.BLDG_WEIGHT), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(self.TRACT_ID)]
-        ).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(self.TRACT_ID)]).sum()
+            [pl.col(self.BLDG_WEIGHT), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(geographic_aggregation_level)]
+        ).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(geographic_aggregation_level)]).sum()
 
         # Join the weights to the per-model metadata and annual results
         logger.debug('Join the weights to the per-model metadata and annual results')
@@ -2165,20 +2152,23 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         geo_data = self.add_weighted_area_energy_savings_columns(geo_data)
 
         # Add geospatial data columns based on census tract
-        geo_data = self.add_geospatial_columns(geo_data)
-        geo_data = self.add_cejst_columns(geo_data)
-        geo_data = self.add_ejscreen_columns(geo_data)
+        # TODO figure out how to join data onto other geographies
+        if geographic_aggregation_level == self.TRACT_ID:
+            geo_data = self.add_geospatial_columns(geo_data)
+            geo_data = self.add_cejst_columns(geo_data)
+            geo_data = self.add_ejscreen_columns(geo_data)
 
         # Downselect columns for export
-        logger.debug('Downselect columns for export')
-        geo_data = self.downselect_columns_for_full_metadata_export(geo_data)
+        if column_downselection is not None:
+            logger.debug('Downselect columns for export')
+            geo_data = self.downselect_columns_for_metadata_export(geo_data, column_downselection)
 
         # Remove units from the column names used by SightGlass
         # comstock.remove_sightglass_column_units()
 
-        # # Reorder the columns
-        # logger.debug('Reorder the columns')
-        # geo_data = comstock.reorder_data_columns(geo_data)
+        # Reorder the columns
+        logger.debug('Reorder the columns')
+        geo_data = self.reorder_data_columns(geo_data)
 
         # Drop the dataset and completed_status columns
         # since these aren't useful to the target audience
@@ -2215,16 +2205,25 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Define the geographic partitions to export
         geo_exports = [
             # {'geo_top_dir': 'national',
-            #     'partition_cols': {}
+            #     'partition_cols': {},
+            #     'aggregation_levels' = ['']
             # },
             {
                 'geo_top_dir': 'by_state',
-                'partition_cols': {self.STATE_ABBRV: 'state'}  # original name: short name
+                'partition_cols': {self.STATE_ABBRV: 'state'},  # original name: short name
+                'aggregation_levels': [None, self.STATE_ABBRV]
             },
             # {'geo_top_dir': 'by_state_and_county',
             #     'partition_cols': {
             #         self.STATE_ABBRV: 'state',
-            #         self.COUNTY_ID: 'county'
+            #         self.COUNTY_ID: 'county',
+            #         'aggregation_levels': [None, self.STATE_ABBRV]
+            # }},
+            # {'geo_top_dir': 'by_state_and_puma',
+            #     'partition_cols': {
+            #         self.STATE_ABBRV: 'state',
+            #         self.PUMA_ID: 'puma',
+            #         'aggregation_levels': [self.PUMA_ID]
             # }},
         ]
 
@@ -2232,18 +2231,18 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         upgrade_ids = pl.Series(self.data.select(pl.col(self.UPGRADE_ID)).unique().collect()).to_list()
         upgrade_ids.sort()
 
-        # Get a list of basic metadata columns
-        basic_cols = basic_metadata_columns().get_column('name_with_units').to_list()
-
         # Export to all geographies
+        logger.info(f'Exporting /metadata_and_annual_results and /metadata_and_annual_results_aggregates')
         for ge in geo_exports:
             geo_top_dir = ge['geo_top_dir']
             partition_cols = ge['partition_cols']
+            aggregation_levels = ge['aggregation_levels']
             data_types = ['full', 'basic']
             file_types = ['csv', 'parquet']
-            logger.info(f'Exporting metadata_and_annual_results/{geo_top_dir}')
             geo_col_names = list(partition_cols.keys())
-            logger.info(f'Partitioning by {geo_col_names}')
+            logger.info(f'Exporting: {geo_top_dir}. ')
+            logger.info(f'Partitioning by: {geo_col_names}')
+            logger.info(f'Geographic aggregation levels: {aggregation_levels}')
 
             # Make a copy to filter down
             geo_data = self.fkt.clone()
@@ -2264,6 +2263,15 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 for file_type in file_types:
                     out_location['fs'].mkdirs(f'{full_geo_dir}/{data_type}/{file_type}', exist_ok=True)
 
+            # Make an aggregates directory for the geography type
+            full_geo_agg_dir = f"{out_location['fs_path']}/metadata_and_annual_results_aggregates/{geo_top_dir}"
+            out_location['fs'].mkdirs(full_geo_agg_dir, exist_ok=True)
+
+            # Make a directory for each data type X file type combo
+            for data_type in data_types:
+                for file_type in file_types:
+                    out_location['fs'].mkdirs(f'{full_geo_agg_dir}/{data_type}/{file_type}', exist_ok=True)
+
             # Write a file for each upgrade X geography combo for each file type
             for upgrade_id in upgrade_ids:
 
@@ -2271,64 +2279,68 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 # and write the subset of data for this combination to that directory
                 for geo_combo in geo_combos.iter_rows(named=True):
 
-                    geo_filters = {}
-                    geo_levels = []
-                    geo_prefixes = []
-                    for k, v in geo_combo.items():
-                        if k == 'geography' and v == 'national':
-                            pass
-                        else:
-                            geo_filters[k] = v
-                            geo_levels.append(f'{partition_cols[k]}={v}')
-                            geo_prefixes.append(v)
+                    # Write raw data and all aggregation levels
+                    for aggregation_level in aggregation_levels:
 
-                    # Filter to this geography, downselect columns, create savings columns, etc.
-                    to_write = self.create_geospatial_slice_of_metadata(upgrade_id, geo_filters)
-
-                    # Rename the partition geography columns
-                    for orig_name, short_name in partition_cols.items():
-                        to_write = to_write.with_columns(pl.col(orig_name).alias(short_name))
-
-                    # Write the file for each data type
-                    for data_type in data_types:
-                        # Downselect to basic set of columns if necessary
-                        if data_type == 'basic':
-                            to_write = to_write.select(basic_cols)
-
-                        # Collect the LazyFrame to a DataFrame
-                        if isinstance(to_write, pl.LazyFrame):
-                            to_write = to_write.collect()
-
-                        n_rows, n_cols = to_write.shape
-
-                        # print('Columns before write')
-                        # for c in to_write.columns:
-                        #     print(c)
-
-                        # Write all selected filetypes
-                        for file_type in file_types:
-                            # Make a directory for this geography
-                            geo_level_dir = os.path.join(full_geo_dir, data_type, file_type, '/'.join(geo_levels))
-                            out_location['fs'].mkdirs(geo_level_dir, exist_ok=True)
-                            # File name
-                            file_name = f'upgrade{upgrade_id:02d}'
-                            if upgrade_id == 0:
-                                file_name = 'baseline'
-                            # Add geography prefix to filename
-                            if len(geo_prefixes) > 0:
-                                geo_prefix = '_'.join(geo_prefixes)
-                                file_name = f'{geo_prefix}_{file_name}'
-                            # Add data_type suffix to filename
-                            if data_type == 'basic':
-                                file_name = f'{file_name}_{data_type}'
-                            logger.info(f"Writing {file_name}: n_cols = {n_cols:,}, n_rows = {n_rows:,}")
-                            file_path = os.path.abspath(os.path.join(geo_level_dir, f'{file_name}.{file_type}'))
-                            if file_type == 'csv':
-                                to_write.write_csv(file_path)
-                            elif file_type == 'parquet':
-                                to_write.write_parquet(file_path, use_pyarrow=True)
+                        geo_filters = {}
+                        geo_levels = []
+                        geo_prefixes = []
+                        for k, v in geo_combo.items():
+                            if k == 'geography' and v == 'national':
+                                pass
                             else:
-                                raise RuntimeError(f'Unknown file type {file_type} requested in export_metadata_and_annual_results()')
+                                geo_filters[k] = v
+                                geo_levels.append(f'{partition_cols[k]}={v}')
+                                geo_prefixes.append(v)
+
+                        # Create raw data or aggregation and write the file for each data type
+                        for data_type in data_types:
+
+                            # Filter to this geography, downselect columns, create savings columns, and downselect columns
+                            to_write = self.create_geospatial_slice_of_metadata(upgrade_id, geo_filters, aggregation_level, data_type)
+
+                            # Rename the partition geography columns
+                            for orig_name, short_name in partition_cols.items():
+                                to_write = to_write.with_columns(pl.col(orig_name).alias(short_name))
+
+                            # Collect the LazyFrame to a DataFrame
+                            to_write = to_write.collect()
+                            n_rows, n_cols = to_write.shape
+
+                            # print('Columns before write')
+                            # for c in to_write.columns:
+                            #     print(c)
+
+                            # Write all selected filetypes
+                            for file_type in file_types:
+                                # Make a directory for this geography
+                                agg_level_dir = full_geo_agg_dir
+                                if aggregation_level is None:
+                                    agg_level_dir = full_geo_dir
+                                geo_level_dir = os.path.join(agg_level_dir, data_type, file_type, '/'.join(geo_levels))
+                                out_location['fs'].mkdirs(geo_level_dir, exist_ok=True)
+                                # File name
+                                file_name = f'upgrade{upgrade_id:02d}'
+                                if upgrade_id == 0:
+                                    file_name = 'baseline'
+                                # Add geography prefix to filename
+                                if len(geo_prefixes) > 0:
+                                    geo_prefix = '_'.join(geo_prefixes)
+                                    file_name = f'{geo_prefix}_{file_name}'
+                                # Add data_type suffix to filename
+                                if data_type == 'basic':
+                                    file_name = f'{file_name}_{data_type}'
+                                # Add the filetype extension to filename
+                                file_name = f'{file_name}.{file_type}'
+                                # Write the file, depending on filetype
+                                logger.info(f"Writing {agg_level_dir}/{data_type}/{file_name}: n_cols = {n_cols:,}, n_rows = {n_rows:,}")
+                                file_path = os.path.abspath(os.path.join(geo_level_dir, f'{file_name}'))
+                                if file_type == 'csv':
+                                    to_write.write_csv(file_path)
+                                elif file_type == 'parquet':
+                                    to_write.write_parquet(file_path, use_pyarrow=True)
+                                else:
+                                    raise RuntimeError(f'Unknown file type {file_type} requested in export_metadata_and_annual_results()')
 
     def add_weights_aportioned_by_stock_estimate(self, apportionment: Apportion, keep_n_per_apportionment_group=False):
         # This function doesn't support already CBECS-weighted self.data - error out

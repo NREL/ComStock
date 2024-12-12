@@ -76,12 +76,21 @@ class NamingMixin():
         TRACT_ID,
         'in.reeds_balancing_area',
         'in.county_name',
+        STATE_ID,
         'in.state',
         'in.state_name',
         'in.cluster_id',
         'in.cluster_name',
         'in.weather_file_2018',
-        'in.weather_file_tmy3'
+        'in.weather_file_tmy3',
+        'in.ejscreen_census_tract_percentile_for_demographic_index',
+        'in.ejscreen_census_tract_percentile_for_people_of_color',
+        'in.cejst_is_disadvantaged',
+        'in.ejscreen_census_tract_percentile_percent_people_under_5',
+        'in.ejscreen_census_tract_percentile_for_less_than_hs_educ',
+        'in.ejscreen_census_tract_percentile_for_low_income',
+        'in.ejscreen_census_tract_percentile_for_people_over_64',
+        'in.ejscreen_census_tract_percentile_for_people_in_ling_isol',
     ]
 
     # Total annual energy
@@ -668,6 +677,23 @@ class NamingMixin():
         'SmallHotel': 'small_hotel',
         'LargeHotel': 'large_hotel',
         'Warehouse': 'warehouse'
+    }
+
+    BLDG_TYPE_TO_ABBRV = {
+        'FullServiceRestaurant': 'FSR',
+        'QuickServiceRestaurant': 'QSR',
+        'RetailStripmall': 'RSM',
+        'RetailStandalone': 'RTL',
+        'SmallOffice': 'SMOFF',
+        'MediumOffice': 'MDOFF',
+        'LargeOffice': 'LGOFF',
+        'PrimarySchool': 'PRISCH',
+        'SecondarySchool': 'SECSCH',
+        'Outpatient': 'OUTPT',
+        'Hospital': 'HSP',
+        'SmallHotel': 'SMHOT',
+        'LargeHotel': 'LGHOT',
+        'Warehouse': 'WH'
     }
 
     END_USES = [
