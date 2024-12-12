@@ -7,6 +7,7 @@ from fsspec.core import url_to_fs
 import boto3
 import botocore
 import glob
+import gzip
 import json
 import logging
 import shutil
@@ -2208,23 +2209,27 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             #     'partition_cols': {},
             #     'aggregation_levels' = ['']
             # },
-            {
-                'geo_top_dir': 'by_state',
-                'partition_cols': {self.STATE_ABBRV: 'state'},  # original name: short name
-                'aggregation_levels': [None, self.STATE_ABBRV]
-            },
             {'geo_top_dir': 'by_state_and_county',
                 'partition_cols': {
                     self.STATE_ABBRV: 'state',
                     self.COUNTY_ID: 'county',
-                    'aggregation_levels': [None, self.STATE_ABBRV]
-            }},
+                },
+                'aggregation_levels': [None, self.STATE_ABBRV]  # The only one by at full resolution (no agg)
+            },
+            {
+                'geo_top_dir': 'by_state',
+                'partition_cols': {
+                    self.STATE_ABBRV: 'state'
+                },
+                'aggregation_levels': [self.STATE_ABBRV]
+            },
             {'geo_top_dir': 'by_state_and_puma',
                 'partition_cols': {
                     self.STATE_ABBRV: 'state',
                     self.PUMA_ID: 'puma',
-                    'aggregation_levels': [self.PUMA_ID]
-            }},
+                },
+                'aggregation_levels': [self.PUMA_ID]
+            },
         ]
 
         # Get list of upgrade IDs
@@ -2336,7 +2341,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                 logger.info(f"Writing {agg_level_dir}/{data_type}/{file_name}: n_cols = {n_cols:,}, n_rows = {n_rows:,}")
                                 file_path = os.path.abspath(os.path.join(geo_level_dir, f'{file_name}'))
                                 if file_type == 'csv':
-                                    to_write.write_csv(file_path)
+                                    with gzip.open(f'{file_path}.gz', 'wt') as gz_file:
+                                        to_write.write_csv(gz_file)
                                 elif file_type == 'parquet':
                                     to_write.write_parquet(file_path, use_pyarrow=True)
                                 else:
