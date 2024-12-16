@@ -144,7 +144,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 file_path = os.path.join(self.output_dir, 'ComStock wide.csv')
                 logger.info(f'Reloading data from: {file_path}')
                 self.data = pl.scan_csv(file_path, dtypes={self.UPGRADE_ID: pl.Int64}, infer_schema_length=50000)
-                self.data = self.reduce_df_memory(self.data)
             else:
                 raise FileNotFoundError(
                 f'Cannot find wide .csv or .parquet in {self.output_dir} to reload data, set reload_from_csv=False.')
@@ -190,7 +189,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 # self.add_upgrade_building_id_column()  # TODO POLARS figure out apply function
                 self.add_hvac_metadata()
                 self.add_building_type_group()
-                self.data = self.reduce_df_memory(self.data)
                 self.add_enduse_fuel_group_columns()
                 self.add_enduse_group_columns()
                 self.add_addressable_segments_columns()
@@ -475,37 +473,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             logger.info(f"Saved enduse timeseries in long format for {output_name} to {output_file_path}")
 
         return agg_df
-
-    def reduce_df_memory(self, df):
-
-        logger.debug(f'Memory before reduce_df_memory: {df.estimated_size()}')
-        # Set dtypes to reduce in-memory size
-
-        # Categorical
-        for col, dt in df.schema.items():
-            # Only consider categorizing string columns
-            # because they have the biggest memory footprint
-            if not dt == pl.Utf8:
-                continue
-            # Check the first value in the column
-            first_val = df.get_column(col).head(1).to_list()[0]
-            logger.debug(f'For {col}, first_val `{first_val}` is a {type(first_val)}')
-            # If the first value is None, don't categorize
-            if first_val is None:
-                continue
-            # If the first value is numeric, don't categorize
-            try:
-                if '_' in first_val:
-                    first_val = f'{first_val}_is_string_in_comstock'
-                float(first_val)
-            except ValueError as e:
-                # if len(df.get_column(col).unique()) < 20:
-                logger.debug(f'Converting {col} to Categorical, first_val `{first_val}` is a string')
-                df = df.with_columns(pl.col(col).cast(pl.Categorical))
-
-        logger.debug(f'Memory after reduce_df_memory: {df.estimated_size()}')
-
-        return df
 
     def load_data(self, upgrade_id, acceptable_failure_percentage=0.01, drop_failed_runs=True):
         # Ensure that the baseline results exist
@@ -920,8 +887,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Combine applicable, not applicable, and failed-replaced-with-baseline results from all upgrades
         self.data = pl.concat(results_dfs, how='diagonal')
-        # Reduce DF memory by converting some columns to boolean or category
-        self.data = self.reduce_df_memory(self.data)
 
         # Show the dataset size
         logger.debug(f'Memory after load_data: {self.data.estimated_size()}')
@@ -966,8 +931,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             if old in buildstock.columns:
                 logger.info(f'Found old column name {old} from buildstock.csv and replacing it to {new}')
                 buildstock = buildstock.rename({old: new})
-
-        buildstock = self.reduce_df_memory(buildstock)
 
         self.data = self.data.join(buildstock, left_on='building_id', right_on='sample_building_id', how='left')
 
@@ -1615,7 +1578,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 for old, new in upgrade2upgrade.items():
                     logger.debug(f'{old} -> {new}')
                 self.data = self.data.with_columns((pl.col(self.UPGRADE_NAME).replace(upgrade2upgrade, default=None)).alias(self.UPGRADE_NAME))
-                self.data = self.data.with_columns(pl.col(self.UPGRADE_NAME).cast(pl.Categorical))
+                self.data = self.data.with_columns(pl.col(self.UPGRADE_NAME))
 
         logger.debug(f'Memory after rename_columns_and_convert_units: {self.data.estimated_size()}')
 
@@ -1691,7 +1654,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # No in.foo column may be a bigint because python cannot serialize bigints to JSON
         # when determining unique in.foo values for SightGlass filters.
-        self.data = self.data.with_columns(pl.col(self.YEAR_BUILT).cast(pl.Utf8).cast(pl.Categorical))
+        self.data = self.data.with_columns(pl.col(self.YEAR_BUILT).cast(pl.Utf8))
 
     def add_missing_energy_columns(self):
         # Put in zeroes for end-use columns that aren't used in ComStock yet
@@ -1826,7 +1789,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         )
 
         # self.data[self.AEO_BLDG_TYPE] = self.data[self.AEO_BLDG_TYPE].astype('category')
-        self.data = self.data.with_columns(pl.col(self.AEO_BLDG_TYPE).cast(pl.Categorical))
+        self.data = self.data.with_columns(pl.col(self.AEO_BLDG_TYPE))
 
     def add_vintage_column(self):
     # Adds decadal vintage bins used in CBECS 2018
@@ -1857,7 +1820,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.data = self.data.with_columns(
             pl.col(self.YEAR_BUILT).map_elements(lambda x: vintage_bin_from_year(x), return_dtype=pl.Utf8).alias(self.VINTAGE),
         )
-        self.data = self.data.with_columns(pl.col(self.VINTAGE).cast(pl.Categorical))
+        self.data = self.data.with_columns(pl.col(self.VINTAGE))
 
     def add_floor_area_category_column(self):
     # Adds floor area bins used in CBECS 2018
@@ -1886,13 +1849,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.data = self.data.with_columns(
             pl.col(self.FLR_AREA).apply(lambda x: floor_area_bin_from_area(x)).alias(self.FLR_AREA_CAT),
         )
-        self.data = self.data.with_columns(pl.col(self.FLR_AREA).cast(pl.Categorical))
+        self.data = self.data.with_columns(pl.col(self.FLR_AREA))
 
     def add_dataset_column(self):
         self.data = self.data.with_columns([
             pl.lit(self.dataset_name).alias(self.DATASET)
         ])
-        self.data = self.data.with_columns(pl.col(self.DATASET).cast(pl.Categorical))
+        self.data = self.data.with_columns(pl.col(self.DATASET))
 
     def add_upgrade_building_id_column(self):
     # Adds column that combines building ID and upgrade ID for easier joins of wide and long data
@@ -1910,17 +1873,17 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # add column for ventilation
         dict_vent = dict(zip(hvac['system_type'], hvac['ventilation_type']))
         self.data = self.data.with_columns((pl.col('in.hvac_system_type').cast(pl.Utf8).replace(dict_vent, default=None)).alias('in.hvac_vent_type'))
-        self.data = self.data.with_columns(pl.col('in.hvac_vent_type').cast(pl.Categorical))
+        self.data = self.data.with_columns(pl.col('in.hvac_vent_type'))
 
         # add column for heating
         dict_heat = dict(zip(hvac['system_type'], hvac['primary_heating']))
         self.data = self.data.with_columns((pl.col('in.hvac_system_type').cast(pl.Utf8).replace(dict_heat, default=None)).alias('in.hvac_heat_type'))
-        self.data = self.data.with_columns(pl.col('in.hvac_heat_type').cast(pl.Categorical))
+        self.data = self.data.with_columns(pl.col('in.hvac_heat_type'))
 
         # add column for cooling
         dict_cool = dict(zip(hvac['system_type'], hvac['primary_cooling']))
         self.data = self.data.with_columns((pl.col('in.hvac_system_type').cast(pl.Utf8).replace(dict_cool, default=None)).alias('in.hvac_cool_type'))
-        self.data = self.data.with_columns(pl.col('in.hvac_cool_type').cast(pl.Categorical))
+        self.data = self.data.with_columns(pl.col('in.hvac_cool_type'))
 
         # hvac combined
         self.data = self.data.with_columns(pl.concat_str(['in.hvac_vent_type', 'in.hvac_heat_type', 'in.hvac_cool_type'], separator='_').alias('in.hvac_combined_type'))
@@ -1946,7 +1909,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         }
 
         self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_groups, default=None)).alias(self.BLDG_TYPE_GROUP))
-        self.data = self.data.with_columns(pl.col(self.BLDG_TYPE_GROUP).cast(pl.Categorical))
+        self.data = self.data.with_columns(pl.col(self.BLDG_TYPE_GROUP))
 
     def add_national_scaling_weights(self, cbecs: CBECS, remove_non_comstock_bldg_types_from_cbecs: bool):
         # Remove CBECS entries for building types not included in the ComStock run
@@ -2366,10 +2329,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
                             # Filter to this geography, downselect columns, create savings columns, and downselect columns
                             to_write = self.create_geospatial_slice_of_metadata(upgrade_id, geo_filters, aggregation_level, data_type)
-
-                            # Rename the partition geography columns
-                            for orig_name, short_name in partition_cols.items():
-                                to_write = to_write.with_columns(pl.col(orig_name).alias(short_name))
 
                             # Collect the LazyFrame to a DataFrame
                             to_write = to_write.collect()
@@ -2804,13 +2763,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     base_val_ids,
                     pl.lit(upgrade_name).alias(self.UPGRADE_NAME)
                 ])
-                abs_svgs = abs_svgs.with_columns(pl.col(self.UPGRADE_NAME).cast(pl.Categorical))
+                abs_svgs = abs_svgs.with_columns(pl.col(self.UPGRADE_NAME))
 
                 pct_svgs = pct_svgs.with_columns([
                     base_val_ids,
                     pl.lit(upgrade_name).alias(self.UPGRADE_NAME)
                 ])
-                pct_svgs = pct_svgs.with_columns(pl.col(self.UPGRADE_NAME).cast(pl.Categorical))
+                pct_svgs = pct_svgs.with_columns(pl.col(self.UPGRADE_NAME))
 
                 abs_svgs = abs_svgs.rename(abs_svgs_cols)
                 pct_svgs = pct_svgs.rename(pct_svgs_cols)
