@@ -1562,10 +1562,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     logger.debug(f'-- New name = {new_name}')
                     self.data = self.data.rename({orig_name: new_name})
 
-        # Remove the units from the floor area column for Sightglass compatibility
-        if 'in.sqft..ft2' in self.data.columns:
-            self.data = self.data.rename({'in.sqft..ft2': self.FLR_AREA})
-
         # Rename the upgrades if specified
         if self.rename_upgrades:
             rename_upgrades_path = os.path.join(self.data_dir, self.rename_upgrades_file_name)
