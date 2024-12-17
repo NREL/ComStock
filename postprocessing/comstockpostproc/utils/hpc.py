@@ -853,7 +853,7 @@ def transfer_model_files_to_s3(yml_path, s3_output_dir, oedi_metadata_dir):
                 upgrade_folder = os.path.join(model_files_dir, f"upgrade={upgrade_id}")
                 if not path.exists(upgrade_folder):
                     os.makedirs(upgrade_folder)
-                model_path_out = os.path.join(upgrade_folder,f"bldg{bldg_id.zfill(7)}-up{upgrade_id}.osm.gz")
+                model_path_out = os.path.join(upgrade_folder,f"bldg{str(bldg_id).zfill(7)}-up{upgrade_id}.osm.gz")
                 # read zip file and try to find osm file
                 datapoint_zip_bytes=tar.extractfile(tar_member).read()
                 with zipfile.ZipFile(io.BytesIO(datapoint_zip_bytes)) as zip:
@@ -867,7 +867,7 @@ def transfer_model_files_to_s3(yml_path, s3_output_dir, oedi_metadata_dir):
 
                         # file will be written, copied to new location, then deleted
                         s3_upgrade_folder = os.path.join(s3_output_dir, f"upgrade={upgrade_id}")
-                        s3_model_path = os.path.join(s3_upgrade_folder,f"bldg{bldg_id.zfill(7)}-up{upgrade_id}.osm.gz")
+                        s3_model_path = os.path.join(s3_upgrade_folder,f"bldg{str(bldg_id).zfill(7)}-up{upgrade_id}.osm.gz")
                         if not path.exists(s3_upgrade_folder):
                             os.makedirs(s3_upgrade_folder)
 
@@ -883,7 +883,7 @@ def transfer_model_files_to_s3(yml_path, s3_output_dir, oedi_metadata_dir):
                         else:
                             s3 = boto3.client("s3")
                             bucket = s3_output_dir.split("/")[2]
-                            key = "/".join(s3_output_dir.split("/")[3:]) + f"/upgrade={upgrade_id}/bldg{bldg_id.zfill(7)}-up{upgrade_id}.osm.gz"
+                            key = "/".join(s3_output_dir.split("/")[3:]) + f"/upgrade={upgrade_id}/bldg{str(bldg_id).zfill(7)}-up{upgrade_id}.osm.gz"
 
                             print(f"Transferring bucket={bucket} key={key}")
                             s3.upload_file(model_path_out, bucket, key) 
