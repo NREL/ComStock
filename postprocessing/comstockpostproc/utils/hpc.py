@@ -21,7 +21,7 @@ from joblib import Parallel, delayed, parallel_backend
 import numpy as np
 import pandas as pd
 
-PARALLEL_COUNT = 30
+PARALLEL_COUNT = 50
 
 def extract_models_from_simulation_output(yml_path, up_id='up00', output_vars=[]):
     """Extract individual models from a ComStock run for detailed debugging
@@ -885,7 +885,7 @@ def transfer_model_files_to_s3(yml_path, s3_output_dir, oedi_metadata_dir):
                         else:
                             s3 = boto3.client("s3")
                             bucket = s3_output_dir.split("/")[2]
-                            key = "/".join(s3_output_dir.split("/")[3:]) + f"/upgrade={upgrade_id}/bldg{str(bldg_id).zfill(7)}-up{upgrade_id}.osm.gz"
+                            key = "/".join(s3_output_dir.split("/")[3:]) + f"upgrade={upgrade_id}/bldg{str(bldg_id).zfill(7)}-up{upgrade_id}.osm.gz"
 
                             print(f"Transferring bucket={bucket} key={key}")
                             s3.upload_file(model_path_out, bucket, key) 
