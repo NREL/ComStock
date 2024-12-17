@@ -14,6 +14,7 @@ import zipfile
 import shutil
 import gzip
 import json
+import boto3
 
 # from dask.distributed import Client
 from joblib import Parallel, delayed, parallel_backend
@@ -786,6 +787,17 @@ def summarize_failures(yml_path, sort_order='upgrade'):
     # write combined summary
     write_sorted_dict(all_errors_dict, sort_order, os.path.join(fails_dir, f"failure_summary_{sort_order}.log"))
 
+
+def _if_s5cmd_installed():
+    """Check if s5cmd is available in the system."""
+    try:
+        result = subprocess.run(['s5cmd', '--version'], 
+                              stdout=subprocess.PIPE, 
+                              stderr=subprocess.PIPE)
+        return result.returncode == 0
+    except FileNotFoundError:
+        return False
+
 def transfer_model_files_to_s3(yml_path, s3_output_dir, oedi_metadata_dir):
     """Copies zipped .osm files from specified ComStock run on Eagle to specified S3 bucket.
 
@@ -860,9 +872,19 @@ def transfer_model_files_to_s3(yml_path, s3_output_dir, oedi_metadata_dir):
                             os.makedirs(s3_upgrade_folder)
 
                         # use s5cmd to transfer files to S3
-                        result = subprocess.run(['s5cmd', "cp", f'{model_path_out}', f'{s3_model_path}'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) #"--dry-run",
-                        #print(result.stdout)
-                        #print(result.stderr)
+                        # result = subprocess.run(['s5cmd', "cp", f'{model_path_out}', f'{s3_model_path}'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) #"--dry-run",
+                        
+                        if _if_s5cmd_installed():
+                            try:
+                                subprocess.run(["s5cmd", "cp", f"{model_path_out}", f'{s3_model_path}'],  stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+                            except subprocess.CalledProcessError as e:
+                                print(f"Error transferring {model_path_out} to {s3_model_path}: {e.stderr} with s5cmd.") 
+                             
+                        else:
+                            s3 = boto3.client("s3")
+                            bucket = s3_output_dir.split("/")[2]
+                            key = "/".join(s3_output_dir.split("/")[3:]) + f"/upgrade={upgrade_id}/bldg{bldg_id.zfill(7)}-up{upgrade_id}.osm.gz"
+                            s3.upload_file(model_path_out, bucket, key) 
 
                         # add file to list to be deleted
                         li_files_to_delete.append(model_path_out)
