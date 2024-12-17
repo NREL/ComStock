@@ -21,6 +21,8 @@ from joblib import Parallel, delayed, parallel_backend
 import numpy as np
 import pandas as pd
 
+PARALLEL_COUNT = 30
+
 def extract_models_from_simulation_output(yml_path, up_id='up00', output_vars=[]):
     """Extract individual models from a ComStock run for detailed debugging
 
@@ -210,7 +212,7 @@ def extract_models_from_simulation_output(yml_path, up_id='up00', output_vars=[]
     # Untar all jobs in parallel
     tar_paths = list(tar_to_zip_dict.keys())
     print(f'untarring {tar_paths}')
-    Parallel(n_jobs=-1, verbose=10) (delayed(model_extract)(tar_path, tar_to_zip_dict, tar_to_id_dict, bldgid_to_zip_dict, model_files_dir) for tar_path in tar_paths)
+    Parallel(n_jobs=PARALLEL_COUNT, verbose=10) (delayed(model_extract)(tar_path, tar_to_zip_dict, tar_to_id_dict, bldgid_to_zip_dict, model_files_dir) for tar_path in tar_paths)
     # Uncomment to run in series for debugging
     # for tar_path in tar_paths:
     #     model_extract(tar_path, tar_to_zip_dict, tar_to_id_dict, bldgid_to_zip_dict, model_files_dir)
