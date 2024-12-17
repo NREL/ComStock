@@ -836,6 +836,9 @@ def transfer_model_files_to_s3(yml_path, s3_output_dir, oedi_metadata_dir):
     model_files_dir = os.path.join(simulation_output_dir, 'temp_osm_files_for_transfer')
     if not path.exists(model_files_dir):
         os.makedirs(model_files_dir)
+        
+    s3 = boto3.client("s3")
+    bucket = s3_output_dir.split("/")[2]
 
     # define function to extract applicable models and send to new location
     def untar_file_to_zip(tar_path):
@@ -886,17 +889,19 @@ def transfer_model_files_to_s3(yml_path, s3_output_dir, oedi_metadata_dir):
 
                         # use s5cmd to transfer files to S3
                         # result = subprocess.run(['s5cmd', "cp", f'{model_path_out}', f'{s3_model_path}'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) #"--dry-run",
-                        
+                        key = "/".join(s3_output_dir.split("/")[3:]) + f"upgrade={upgrade_id}/bldg{str(bldg_id).zfill(7)}-up{upgrade_id}.osm.gz"
+
                         if _if_s5cmd_installed():
                             try:
-                                subprocess.run(["s5cmd", "cp", f"{model_path_out}", f'{s3_model_path}'],  stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+                                if _check_s3_file_exists(s3, bucket, key):
+                                    print(f"File already exists in S3: {key}")
+                                else:
+                                    print(f"Transferring {model_path_out} to {s3_model_path} with s5cmd.")
+                                    subprocess.run(["s5cmd", "cp", f"{model_path_out}", f'{s3_model_path}'],  stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
                             except subprocess.CalledProcessError as e:
                                 print(f"Error transferring {model_path_out} to {s3_model_path}: {e.stderr} with s5cmd.") 
                              
                         else:
-                            s3 = boto3.client("s3")
-                            bucket = s3_output_dir.split("/")[2]
-                            key = "/".join(s3_output_dir.split("/")[3:]) + f"upgrade={upgrade_id}/bldg{str(bldg_id).zfill(7)}-up{upgrade_id}.osm.gz"
 
                             print(f"checking the file {model_path_out} exists in S3 bucket={bucket} key={key}")
                             if _check_s3_file_exists(s3, bucket, key):
