@@ -836,12 +836,12 @@ def transfer_model_files_to_s3(yml_path, s3_output_dir, oedi_metadata_dir):
     model_files_dir = os.path.join(simulation_output_dir, 'temp_osm_files_for_transfer')
     if not path.exists(model_files_dir):
         os.makedirs(model_files_dir)
-        
-    s3 = boto3.client("s3")
-    bucket = s3_output_dir.split("/")[2]
+
 
     # define function to extract applicable models and send to new location
     def untar_file_to_zip(tar_path):
+        s3 = boto3.client("s3")
+        bucket = s3_output_dir.split("/")[2]
         li_files_to_delete = []
         job_id = re.search(r'.*simulations_job(\d+).tar.gz', tar_path).group(1)
         print(f"Extracting model files from job {job_id}...", flush=True)
