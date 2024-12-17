@@ -325,7 +325,7 @@ def run_extracted_models(yml_path, energyplus_version='22.1.0'):
     # Uncomment to run in series for debugging
     # for idf_path in idf_paths:
     #     run_idf(idf_path, energyplus_exe_path)
-    Parallel(n_jobs=-1, verbose=10) (delayed(run_idf)(idf_path, energyplus_exe_path) for idf_path in idf_paths)
+    Parallel(n_jobs=PARALLEL_COUNT, verbose=10) (delayed(run_idf)(idf_path, energyplus_exe_path) for idf_path in idf_paths)
 
 def get_simulation_output_dir_from_yml(yml_path):
     """Gets the simulation output directory from the YML file
@@ -632,7 +632,7 @@ def summarize_energyplus_error_files(yml_path):
 
     # Generalize and count errors per job and write to file
     err_paths = glob.glob(f'{errs_dir}/job*.err')
-    Parallel(n_jobs=-1, verbose=10) (delayed(count_job_errs)(err_path, errs_dir) for err_path in err_paths)
+    Parallel(n_jobs=PARALLEL_COUNT, verbose=10) (delayed(count_job_errs)(err_path, errs_dir) for err_path in err_paths)
 
     # Combine counts from all jobs
     warn_counts = {}
@@ -781,7 +781,7 @@ def summarize_failures(yml_path, sort_order='upgrade'):
 
     # Extract the failures per job and write to file
     tar_paths = glob.glob(f'{simulation_output_dir}/simulations_job*.tar.gz')
-    all_errors_list = Parallel(n_jobs=-1, verbose=10) (delayed(extract_errors_from_tar)(tar_path, fails_dir, sort_order) for tar_path in tar_paths)
+    all_errors_list = Parallel(n_jobs=PARALLEL_COUNT, verbose=10) (delayed(extract_errors_from_tar)(tar_path, fails_dir, sort_order) for tar_path in tar_paths)
 
     # merge errors dicts into one
     all_errors_dict = merge_error_dicts(*all_errors_list)
@@ -908,7 +908,7 @@ def transfer_model_files_to_s3(yml_path, s3_output_dir, oedi_metadata_dir):
     tar_paths = glob.glob(f'{simulation_output_dir}/simulations_job*.tar.gz')
 
     # run parallel processing
-    Parallel(n_jobs=-1, verbose=10) (delayed(untar_file_to_zip)(tar_path) for tar_path in tar_paths)
+    Parallel(n_jobs=PARALLEL_COUNT, verbose=10) (delayed(untar_file_to_zip)(tar_path) for tar_path in tar_paths)
 
     # delete temp folder after files moved to S3
     shutil.rmtree(model_files_dir)
