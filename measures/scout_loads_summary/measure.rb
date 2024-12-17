@@ -78,6 +78,9 @@ class ScoutLoadsSummary < OpenStudio::Measure::ReportingMeasure
     #   result << OpenStudio::IdfObject.load(density_var).get
     #   result << OpenStudio::IdfObject.load(sp_heat_var).get
     # end
+  
+    # request advanced reporting for window heat gain components
+    model.getOutputDiagnostics.addKey('DisplayAdvancedReportVariables')
 
     # Request the unique set of outputs
     runner.registerInfo("Requesting custom meters for HVAC and other end uses")
@@ -279,7 +282,7 @@ class ScoutLoadsSummary < OpenStudio::Measure::ReportingMeasure
           zone_meters.end_use.demand('heating').sub_end_use('roof').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Exterior Roof Convection Heat Transfer Energy'].to_a[i]
           zone_meters.end_use.demand('heating').sub_end_use('floor').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Exterior Floor Convection Heat Transfer Energy'].to_a[i]
           zone_meters.end_use.demand('heating').sub_end_use('ground').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Exterior Ground Convection Heat Transfer Energy'].to_a[i]
-          zone_meters.end_use.demand('heating').sub_end_use('windows_conduction').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Exterior Window Convection Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('heating').sub_end_use('windows_conduction').first.vals[i] = -1.0 * (heat_transfer_vectors['Zone Exterior Window Convection Heat Transfer Energy'].to_a[i] + heat_transfer_vectors['Zone Windows Net IR Heat Transfer Energy'].to_a[i])
           zone_meters.end_use.demand('heating').sub_end_use('doors_conduction').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Exterior Door Convection Heat Transfer Energy'].to_a[i]
           zone_meters.end_use.demand('heating').sub_end_use('windows_solar').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Windows Radiation Heat Transfer Energy'].to_a[i]
           zone_meters.end_use.demand('heating').sub_end_use('infiltration').first.vals[i] = -1.0 * heat_transfer_vectors['Zone Infiltration Gains'].to_a[i]
@@ -294,7 +297,7 @@ class ScoutLoadsSummary < OpenStudio::Measure::ReportingMeasure
           zone_meters.end_use.demand('cooling').sub_end_use('roof').first.vals[i] = heat_transfer_vectors['Zone Exterior Roof Convection Heat Transfer Energy'].to_a[i]
           zone_meters.end_use.demand('cooling').sub_end_use('floor').first.vals[i] = heat_transfer_vectors['Zone Exterior Floor Convection Heat Transfer Energy'].to_a[i]
           zone_meters.end_use.demand('cooling').sub_end_use('ground').first.vals[i] = heat_transfer_vectors['Zone Exterior Ground Convection Heat Transfer Energy'].to_a[i]
-          zone_meters.end_use.demand('cooling').sub_end_use('windows_conduction').first.vals[i] = heat_transfer_vectors['Zone Exterior Window Convection Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('cooling').sub_end_use('windows_conduction').first.vals[i] = heat_transfer_vectors['Zone Exterior Window Convection Heat Transfer Energy'].to_a[i] + heat_transfer_vectors['Zone Windows Net IR Heat Transfer Energy'].to_a[i]
           zone_meters.end_use.demand('cooling').sub_end_use('doors_conduction').first.vals[i] = heat_transfer_vectors['Zone Exterior Door Convection Heat Transfer Energy'].to_a[i]
           zone_meters.end_use.demand('cooling').sub_end_use('windows_solar').first.vals[i] = heat_transfer_vectors['Zone Windows Radiation Heat Transfer Energy'].to_a[i]
           zone_meters.end_use.demand('cooling').sub_end_use('infiltration').first.vals[i] = heat_transfer_vectors['Zone Infiltration Gains'].to_a[i]
@@ -310,7 +313,7 @@ class ScoutLoadsSummary < OpenStudio::Measure::ReportingMeasure
           zone_meters.end_use.demand('floating').sub_end_use('roof').first.vals[i] = heat_transfer_vectors['Zone Exterior Roof Convection Heat Transfer Energy'].to_a[i]
           zone_meters.end_use.demand('floating').sub_end_use('floor').first.vals[i] = heat_transfer_vectors['Zone Exterior Floor Convection Heat Transfer Energy'].to_a[i]
           zone_meters.end_use.demand('floating').sub_end_use('ground').first.vals[i] = heat_transfer_vectors['Zone Exterior Ground Convection Heat Transfer Energy'].to_a[i]
-          zone_meters.end_use.demand('floating').sub_end_use('windows_conduction').first.vals[i] = heat_transfer_vectors['Zone Exterior Window Convection Heat Transfer Energy'].to_a[i]
+          zone_meters.end_use.demand('floating').sub_end_use('windows_conduction').first.vals[i] = heat_transfer_vectors['Zone Exterior Window Convection Heat Transfer Energy'].to_a[i] + heat_transfer_vectors['Zone Windows Net IR Heat Transfer Energy'].to_a[i]
           zone_meters.end_use.demand('floating').sub_end_use('doors_conduction').first.vals[i] = heat_transfer_vectors['Zone Exterior Door Convection Heat Transfer Energy'].to_a[i]
           zone_meters.end_use.demand('floating').sub_end_use('windows_solar').first.vals[i] = heat_transfer_vectors['Zone Windows Radiation Heat Transfer Energy'].to_a[i]
           zone_meters.end_use.demand('floating').sub_end_use('infiltration').first.vals[i] = heat_transfer_vectors['Zone Infiltration Gains'].to_a[i]
@@ -420,6 +423,7 @@ class ScoutLoadsSummary < OpenStudio::Measure::ReportingMeasure
       zone_groups.each { |zone_name, data| to_dview_csv(data, "#{zone_name}_loads_timeseries") }
       to_dview_csv(totals_data, "total_building_heat_balance")
 
+      
       # # Write zone vectors to file
       # CSV.open('./zone_timeseries_dview.csv', 'w') do |csv|
       #   # write in DVIEW format for easy viewing
