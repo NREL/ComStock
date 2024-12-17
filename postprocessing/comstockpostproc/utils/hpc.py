@@ -21,7 +21,7 @@ from joblib import Parallel, delayed, parallel_backend
 import numpy as np
 import pandas as pd
 
-PARALLEL_COUNT = 50
+PARALLEL_COUNT = -1
 
 def extract_models_from_simulation_output(yml_path, up_id='up00', output_vars=[]):
     """Extract individual models from a ComStock run for detailed debugging
@@ -800,6 +800,17 @@ def _if_s5cmd_installed():
     except FileNotFoundError:
         return False
 
+
+def _check_s3_file_exists(s3_client, bucket: str, key: str) -> bool:
+    """Check if file exists in S3 bucket"""
+    try:
+        s3_client.head_object(Bucket=bucket, Key=key)
+        return True
+    except s3_client.exceptions.ClientError as e:
+        if e.response['Error']['Code'] == '404':
+            return False
+        raise
+
 def transfer_model_files_to_s3(yml_path, s3_output_dir, oedi_metadata_dir):
     """Copies zipped .osm files from specified ComStock run on Eagle to specified S3 bucket.
 
@@ -887,8 +898,12 @@ def transfer_model_files_to_s3(yml_path, s3_output_dir, oedi_metadata_dir):
                             bucket = s3_output_dir.split("/")[2]
                             key = "/".join(s3_output_dir.split("/")[3:]) + f"upgrade={upgrade_id}/bldg{str(bldg_id).zfill(7)}-up{upgrade_id}.osm.gz"
 
-                            print(f"Transferring bucket={bucket} key={key}")
-                            s3.upload_file(model_path_out, bucket, key) 
+                            print(f"checking the file {model_path_out} exists in S3 bucket={bucket} key={key}")
+                            if _check_s3_file_exists(s3, bucket, key):
+                                print(f"File already exists in S3: {key}")
+                            else:
+                                print(f"Transferring {model_path_out} bucket={bucket} key={key}")
+                                s3.upload_file(model_path_out, bucket, key) 
 
                         # add file to list to be deleted
                         li_files_to_delete.append(model_path_out)
