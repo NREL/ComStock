@@ -884,6 +884,8 @@ def transfer_model_files_to_s3(yml_path, s3_output_dir, oedi_metadata_dir):
                             s3 = boto3.client("s3")
                             bucket = s3_output_dir.split("/")[2]
                             key = "/".join(s3_output_dir.split("/")[3:]) + f"/upgrade={upgrade_id}/bldg{bldg_id.zfill(7)}-up{upgrade_id}.osm.gz"
+
+                            print(f"Transferring bucket={bucket} key={key}")
                             s3.upload_file(model_path_out, bucket, key) 
 
                         # add file to list to be deleted
