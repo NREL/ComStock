@@ -399,6 +399,7 @@ class ComStockBaseSampler:
 
         """
 
+        DeprecationWarning('This method is being removed in favor of pseudorandom numbers in the near future.')
         res = dict()
         for i in range(n_buckets):
             sample = i4_sobol_generate(n_dims, round(n_samples / n_buckets), 0)
