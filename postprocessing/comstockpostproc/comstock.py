@@ -2218,10 +2218,22 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
     def export_metadata_and_annual_results(self, out_dir=None, aws_profile=None):
 
-        # Create fsspec paths for filesystem; writes locally or to S3
+        # Default the output path if nothing is passed
         if out_dir is None:
             out_dir = self.output_dir
-        out_fs, out_fs_path = url_to_fs(out_dir, profile=aws_profile)
+
+        # Create fsspec paths for filesystem; writes locally or to S3
+        if 's3://' in out_dir:
+            # PyAthena >2.18.0 implements an s3 filesystem that replaces s3fs but does not implement file.open()
+            # Make fsspec use the s3fs s3 filesystem implementation for writing files to S3
+            import s3fs
+            from fsspec import register_implementation
+            register_implementation("s3", s3fs.S3FileSystem, clobber=True)
+            out_fs, out_fs_path = url_to_fs(out_dir, profile=aws_profile)
+            logger.info(f'out_fs filesystem type: {type(out_fs)}')
+        else:
+            out_fs, out_fs_path = url_to_fs(out_dir, profile=aws_profile)
+
         out_location = {}
         out_location['fs'], out_location['fs_path'] = out_fs, out_fs_path
 
@@ -2340,7 +2352,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                 agg_level_dir = full_geo_agg_dir
                                 if aggregation_level is None:
                                     agg_level_dir = full_geo_dir
-                                geo_level_dir = os.path.join(agg_level_dir, data_type, file_type, '/'.join(geo_levels))
+                                geo_level_dir = f'{agg_level_dir}/{data_type}/{file_type}/' + '/'.join(geo_levels)
                                 out_location['fs'].mkdirs(geo_level_dir, exist_ok=True)
                                 # File name
                                 file_name = f'upgrade{upgrade_id:02d}'
@@ -2359,13 +2371,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                 # Add the filetype extension to filename
                                 file_name = f'{file_name}.{file_type}'
                                 # Write the file, depending on filetype
-                                logger.info(f"Writing {agg_level_dir}/{data_type}/{file_name}: n_cols = {n_cols:,}, n_rows = {n_rows:,}")
-                                file_path = os.path.abspath(os.path.join(geo_level_dir, f'{file_name}'))
+                                file_path = f'{geo_level_dir}/{file_name}'
+                                logger.info(f"Writing {file_path}: n_cols = {n_cols:,}, n_rows = {n_rows:,}")
                                 if file_type == 'csv':
                                     with gzip.open(f'{file_path}.gz', 'wt') as gz_file:
                                         to_write.write_csv(gz_file)
                                 elif file_type == 'parquet':
-                                    to_write.write_parquet(file_path, use_pyarrow=True)
+                                    with out_location['fs'].open(file_path, "wb") as f:
+                                        to_write.write_parquet(f, use_pyarrow=True)
                                 else:
                                     raise RuntimeError(f'Unknown file type {file_type} requested in export_metadata_and_annual_results()')
 
