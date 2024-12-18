@@ -869,7 +869,10 @@ def transfer_model_files_to_s3(yml_path, s3_output_dir, oedi_metadata_dir):
                 upgrade_folder = os.path.join(model_files_dir, f"upgrade={upgrade_id}")
                 if not path.exists(upgrade_folder):
                     os.makedirs(upgrade_folder)
+
+                print(f"Extracting model for bldg{bldg_id} upgrade={upgrade_id}...", flush=True)
                 model_path_out = os.path.join(upgrade_folder,f"bldg{str(bldg_id).zfill(7)}-up{upgrade_id}.osm.gz")
+                print(f"model_path_out: {model_path_out}")
                 # read zip file and try to find osm file
                 datapoint_zip_bytes=tar.extractfile(tar_member).read()
                 with zipfile.ZipFile(io.BytesIO(datapoint_zip_bytes)) as zip:
