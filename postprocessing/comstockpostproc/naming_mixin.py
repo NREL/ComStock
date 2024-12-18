@@ -12,7 +12,7 @@ class NamingMixin():
     CEN_DIV = 'in.census_division_name'
     STATE_NAME = 'in.state_name'
     STATE_ABBRV = 'in.state'
-    FLR_AREA = 'in.sqft'
+    FLR_AREA = 'in.sqft..ft2'
     FLR_AREA_CAT = 'in.floor_area_category'
     CBECS_BLDG_TYPE = 'in.cbecs_building_type'
     YEAR_BUILT = 'in.year_built'
