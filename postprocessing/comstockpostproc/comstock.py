@@ -1945,7 +1945,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Total sqft of each building type, ComStock
         if self.APPORTIONED:
             # Since this is a national calculation, groupby on building id and upgrade only in foreign key table
-            national_agg = self.fkt.filter(pl.col(self.UPGRADE_ID) == 0).clone()
+            national_agg = self.fkt.clone()
             national_agg = national_agg.select([pl.col(self.BLDG_WEIGHT), pl.col(self.BLDG_ID)]).groupby(pl.col(self.BLDG_ID)).sum()
             cs_data = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).select([pl.col(self.BLDG_ID), pl.col(self.FLR_AREA), pl.col(self.BLDG_TYPE)]).clone()
             national_agg = national_agg.join(cs_data, on=pl.col(self.BLDG_ID))
@@ -2140,16 +2140,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         return spatial_aggregation
 
     def create_geospatial_slice_of_metadata(self,
-                                            upgrade_id,
+                                            geo_data,
+                                            meta_data,
                                             geography_filters={},
                                             geographic_aggregation_level=None,
                                             column_downselection=None):
-
-        # Make a copy of the fkt to filter down
-        geo_data = self.fkt.clone()
-
-        # Filter to this upgrade
-        geo_data = geo_data.filter((pl.col(self.UPGRADE_ID) == upgrade_id))
 
         # Filter to specified geography
         if len(geography_filters) > 0:
@@ -2168,11 +2163,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         ).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(geographic_aggregation_level)]).sum()
 
         # Join the weights to the per-model metadata and annual results
-        logger.debug('Join the weights to the per-model metadata and annual results')
-        geo_data = geo_data.join(self.data, on=[pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)])
+        geo_data = geo_data.join(meta_data, on=[pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)])
 
         # Calculate the weighted columns
-        logger.debug('Calculate the weighted columns')
         geo_data = self.add_weighted_area_energy_savings_columns(geo_data)
 
         # Add geospatial data columns based on most informative geography column
@@ -2183,14 +2176,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Downselect columns for export
         if column_downselection is not None:
-            logger.debug('Downselect columns for export')
             geo_data = self.downselect_columns_for_metadata_export(geo_data, column_downselection)
 
         # Remove units from the column names used by SightGlass
         # comstock.remove_sightglass_column_units()
 
         # Reorder the columns
-        logger.debug('Reorder the columns')
         geo_data = self.reorder_data_columns(geo_data)
 
         # Drop the dataset and completed_status columns
@@ -2283,14 +2274,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             logger.info(f'Partitioning by: {geo_col_names}')
             logger.info(f'Geographic aggregation levels: {aggregation_levels}')
 
-            # Make a copy to filter down
-            geo_data = self.fkt.clone()
-
             # Get the unique set of combinations of all geography column partitions
+            logger.debug('Get the unique set of combinations of all geography column partitions')
             if len(geo_col_names) == 0:
                 geo_combos = pl.DataFrame({'geography': ['national']})
             else:
-                geo_combos = geo_data.select(geo_col_names).unique().collect()
+                geo_combos = self.fkt.select(geo_col_names).unique().collect()
                 geo_combos = geo_combos.sort(by=geo_col_names)
 
             # Make a directory for the geography type
@@ -2313,6 +2302,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
             # Write a file for each upgrade X geography combo for each file type
             for upgrade_id in upgrade_ids:
+                # Get the fkt and self.data for this upgrade
+                up_geo_data = self.get_fkt_for_upgrade(upgrade_id)
+                up_data = self.data.filter((pl.col(self.UPGRADE_ID) == upgrade_id))  # .collect()
 
                 # Make a directory for each combination of geography column values
                 # and write the subset of data for this combination to that directory
@@ -2336,7 +2328,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         for data_type in data_types:
 
                             # Filter to this geography, downselect columns, create savings columns, and downselect columns
-                            to_write = self.create_geospatial_slice_of_metadata(upgrade_id, geo_filters, aggregation_level, data_type)
+                            to_write = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, geo_filters, aggregation_level, data_type)
 
                             # Collect the LazyFrame to a DataFrame
                             to_write = to_write.collect()
@@ -2517,16 +2509,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             sampled_td_id.extend(tdf_ids_per_group[group_id].tolist())
             sampled_cs_id.extend(np.random.choice(cs_ids_per_group[group_id], to_sample).tolist())
 
-        # Create the new sampled dataframe (foreign key table) including upgrades
-        upgrade_ids = pl.Series(self.data.select(pl.col(self.UPGRADE_ID)).unique().collect()).to_list()
+        # Create the new sampled dataframe (foreign key table)
         fkdf = pd.DataFrame({APPO_GROUP_ID: sampled_appo_id, 'tdf_id': sampled_td_id, self.BLDG_ID: sampled_cs_id})
-        fkt = list()
-        for upgrade in upgrade_ids:
-            tmpdf = fkdf.copy(deep=True)
-            tmpdf.loc[:, self.UPGRADE_ID] = upgrade
-            fkt.append(tmpdf)
-        fkt = pd.concat(fkt)
-        fkt = pl.DataFrame(fkt).lazy()
+        fkt = pl.DataFrame(fkdf).lazy()
 
         # Join tdf onto the sampled results with all upgrades
         logger.info('Joining truth dataset information onto the sampled forign key table')
@@ -2543,7 +2528,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         ), on=pl.col('tdf_id'))
 
         # Pull in the sqft calculate weights
-        fkt = fkt.join(self.data.select(pl.col(self.FLR_AREA), pl.col(self.BLDG_ID), pl.col(self.UPGRADE_ID)), on=[pl.col(self.BLDG_ID), pl.col(self.UPGRADE_ID)])
+        area_by_id = self.data.select(pl.col(self.FLR_AREA), pl.col(self.BLDG_ID), pl.col(self.UPGRADE_ID))
+        area_by_id = area_by_id.filter(pl.col(self.UPGRADE_ID) == 0).drop([self.UPGRADE_ID])
+        fkt = fkt.join(area_by_id, on=[pl.col(self.BLDG_ID)])
         logger.info('Calculating apportioned weights')
         bs_coef = apportionment.bootstrap_coefficient
         fkt = fkt.with_columns((pl.col('truth_sqft') / (pl.col(self.FLR_AREA) * bs_coef)).alias(self.BLDG_WEIGHT))
@@ -2571,6 +2558,23 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.APPORTIONED = True
         self.fkt = fkt
         logger.info('Successfully completed the apportionment sampling postprocessing')
+
+    def get_fkt_for_upgrade(self, upgrade_id):
+        if self.fkt is None:
+            raise Exception(f'self.fkt not initialized, call add_weights_aportioned_by_stock_estimate() first')
+
+        # Ensure this is a valid upgrade ID
+        avail_up_ids = pl.Series(self.data.select(pl.col(self.UPGRADE_ID)).unique().collect()).to_list()
+        if upgrade_id not in avail_up_ids:
+            raise Exception(f"Requested fkt for upgrade_id={upgrade_id} not in self.data. Choose from: {avail_up_ids}")
+
+        # Add the upgrade ID to the fkt, which is identical for every upgrade
+        up_fkt = self.fkt.clone()
+        up_fkt = up_fkt.with_columns([
+                pl.lit(upgrade_id).cast(pl.Int64).alias(self.UPGRADE_ID)
+            ])
+
+        return up_fkt
 
     def add_weighted_area_energy_savings_columns(self, input_lf):
 
