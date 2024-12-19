@@ -939,7 +939,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
     def add_geospatial_columns(self, input_lf: pl.LazyFrame, geography_to_join_on):
         supported_geogs = [self.TRACT_ID, self.COUNTY_ID, self.PUMA_ID, self.STATE_ABBRV]
         if geography_to_join_on not in supported_geogs:
-            raise RuntimeError(f'Unsupported geography_to_join_on {geography_to_join_on} input to add_geospatial_columns.')
+            logger.info(f'Cannot add more geospatial columns based on {geography_to_join_on}')
+            return input_lf
 
         # Read the column definitions
         col_def_path = os.path.join(RESOURCE_DIR, COLUMN_DEFINITION_FILE_NAME)
@@ -2030,16 +2031,32 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         return bldg_type_scale_factors
 
     def create_plotting_lazyframe(self):
-        plotting_aggregation = self.fkt.clone()
-        plotting_aggregation = plotting_aggregation.select(
-            [pl.col(self.BLDG_WEIGHT), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(self.CEN_DIV), pl.col(self.CZ_ASHRAE)]
-        ).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(self.CEN_DIV), pl.col(self.CZ_ASHRAE)]).sum()
-        plotting_aggregation = plotting_aggregation.join(self.data, on=[pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)])
-        plotting_aggregation = self.add_weighted_area_energy_savings_columns(plotting_aggregation)
-        plotting_aggregation = self.reorder_data_columns(plotting_aggregation)
-        plotting_aggregation = self.add_sightglass_column_units(plotting_aggregation)
-        assert isinstance(plotting_aggregation, pl.LazyFrame)
-        self.plotting_data = plotting_aggregation
+
+        # Get list of upgrade IDs
+        upgrade_ids = pl.Series(self.data.select(pl.col(self.UPGRADE_ID)).unique().collect()).to_list()
+        upgrade_ids.sort()
+
+        # Create an aggregation for each upgrade
+        up_aggs = []
+        agg_cols = [self.CZ_ASHRAE, self.CEN_DIV]
+        for upgrade_id in upgrade_ids:
+
+            # Get the fkt and self.data for this upgrade
+            up_geo_data = self.get_fkt_for_upgrade(upgrade_id)
+            up_data = self.data.filter((pl.col(self.UPGRADE_ID) == upgrade_id))  # .collect()
+
+            # Filter to this geography, downselect columns, create savings columns, and downselect columns
+            up_agg = self.create_geospatial_slice_of_metadata(up_geo_data,
+                                                              up_data,
+                                                              geography_filters={},
+                                                              geographic_aggregation_levels=agg_cols,
+                                                              column_downselection='full')
+            up_aggs.append(up_agg)
+
+        # Combine all upgrades into a single LazyFrame
+        self.plotting_data = pl.concat(up_aggs)
+
+        return self.plotting_data
 
     def create_national_aggregation(self):
         national_aggregation = self.fkt.clone()
@@ -2142,7 +2159,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                             geo_data,
                                             meta_data,
                                             geography_filters={},
-                                            geographic_aggregation_level=None,
+                                            geographic_aggregation_levels=[],
                                             column_downselection=None):
 
         # Filter to specified geography
@@ -2153,13 +2170,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Determine the geography to aggregate to.
         # At a minimum aggregate the identical building ID X upgrade IDs inside
         # each census tract, which are a result of the bootstrapping process used for apportionment.
-        if geographic_aggregation_level is None:
-            geographic_aggregation_level = self.TRACT_ID
+        if not geographic_aggregation_levels:
+            geographic_aggregation_levels = [self.TRACT_ID]
 
         # Aggregate the weights for building IDs within each geography
+        geo_agg_cols = [pl.col(c) for c in geographic_aggregation_levels]
         geo_data = geo_data.select(
-            [pl.col(self.BLDG_WEIGHT), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(geographic_aggregation_level)]
-        ).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(geographic_aggregation_level)]).sum()
+            [pl.col(self.BLDG_WEIGHT), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)] + geo_agg_cols
+        ).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)] + geo_agg_cols).sum()
 
         # Join the weights to the per-model metadata and annual results
         geo_data = geo_data.join(meta_data, on=[pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)])
@@ -2168,8 +2186,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         geo_data = self.add_weighted_area_energy_savings_columns(geo_data)
 
         # Add geospatial data columns based on most informative geography column
-        geo_data = self.add_geospatial_columns(geo_data, geographic_aggregation_level)
-        if geographic_aggregation_level == self.TRACT_ID:
+        geo_data = self.add_geospatial_columns(geo_data, geographic_aggregation_levels[0])
+        if geographic_aggregation_levels == [self.TRACT_ID]:
             geo_data = self.add_cejst_columns(geo_data)
             geo_data = self.add_ejscreen_columns(geo_data)
 
@@ -2519,7 +2537,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             pl.col('tract').alias(self.TRACT_ID),
             pl.col('county').alias(self.COUNTY_ID),
             pl.col('state').alias(self.STATE_ID),
-            pl.col('cz').alias(self.CZ_ASHRAE),
+            pl.col('cz').alias(self.CZ_ASHRAE_CEC_MIXED),
             pl.col('cen_div').alias(self.CEN_DIV),
             pl.col('sqft').alias('truth_sqft'),
             pl.col('tract_assignment_type').alias('in.tract_assignment_type'),
@@ -2546,6 +2564,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Add state abbreviations to the fkt for use in partitioning
         fkt = fkt.with_columns(
             pl.col(self.STATE_ID).replace(self.STATE_NHGIS_TO_ABBRV).alias(self.STATE_ABBRV)
+        )
+
+        # Map the mixed ASHRAE and CEC climate zones back to ASHRAE climate zones
+        fkt = fkt.with_columns(
+            pl.col(self.CZ_ASHRAE_CEC_MIXED).replace(self.MIXED_CZ_TO_ASHRAE_CZ).alias(self.CZ_ASHRAE)
         )
 
         # Drop any remaining geography columns associated with the model creation

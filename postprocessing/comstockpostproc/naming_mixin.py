@@ -22,6 +22,7 @@ class NamingMixin():
     AEO_BLDG_TYPE = 'in.aeo_and_nems_building_type'
     VINTAGE = 'in.vintage'
     CZ_ASHRAE = 'in.ashrae_iecc_climate_zone_2006'
+    CZ_ASHRAE_CEC_MIXED = 'in.ashrae_or_cec_climate_zone'
     UPGRADE_NAME = 'in.upgrade_name'
     UPGRADE_ID = 'upgrade'
     UPGRADE_APPL = 'applicability'
@@ -66,6 +67,7 @@ class NamingMixin():
     # Geography-defining columns
     COLS_GEOG = [
         CZ_ASHRAE,
+        CZ_ASHRAE_CEC_MIXED,
         'in.building_america_climate_zone',
         'in.cambium_grid_region',
         CEN_DIV,
@@ -776,6 +778,42 @@ class NamingMixin():
         'G540': 'WV',
         'G550': 'WI',
         'G560': 'WY',
+    }
+
+    MIXED_CZ_TO_ASHRAE_CZ = {
+            'CEC1': '4B',
+            'CEC2': '3C',
+            'CEC3': '3C',
+            'CEC4': '3C',
+            'CEC5': '3C',
+            'CEC6': '3C',
+            'CEC7': '3B',
+            'CEC8': '3B',
+            'CEC9': '3B',
+            'CEC10': '3B',
+            'CEC11': '3B',
+            'CEC12': '3B',
+            'CEC13': '3B',
+            'CEC14': '3B',
+            'CEC15': '2B',
+            'CEC16': '5B',
+            '1A':'1A',
+            '2A':'2A',
+            '2B':'2B',
+            '3A':'3A',
+            '3B':'3B',
+            '3C':'3C',
+            '4A':'4A',
+            '4B':'4B',
+            '4C':'4C',
+            '5A':'5A',
+            '5B':'5B',
+            '6A':'6A',
+            '6B':'6B',
+            '7A':'7',  # TODO remove 7A/7B from spatial_tract_lookup_table_publish_v6.csv?
+            '7B':'7',  # TODO remove 7A/7B from spatial_tract_lookup_table_publish_v6.csv?
+            '7':'7',
+            '8':'8',
     }
 
     def end_use_group(self, end_use):
