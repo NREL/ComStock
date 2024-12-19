@@ -485,7 +485,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         buildstock = pl.read_csv(os.path.join(self.data_dir, self.buildstock_file_name), infer_schema_length=50000)
         buildstock.rename({'Building': 'sample_building_id'})
         buildstock_bldg_count = buildstock.shape[0]
-        logger.info(f'{buildstock_bldg_count} models in buildstock.csv')
+        logger.debug(f'{buildstock_bldg_count} models in buildstock.csv')
 
         # Create a list of results to eventually combine
         base_failed_ids = set()
@@ -502,7 +502,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
             # Load upgrade results
             results_path = os.path.join(self.data_dir, f'results_up{str(upgrade_id).zfill(2)}.parquet')
-            logger.info(f'Reading results_up{upgrade_id}')
+            logger.debug(f'Reading results_up{upgrade_id}')
             up_res = pl.read_parquet(results_path)
             up_res = up_res.with_columns([
                 pl.lit(upgrade_id).alias(self.UPGRADE_ID)
@@ -719,7 +719,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         failure_summaries = failure_summaries.select(fs_cols)
         file_name = f'failure_summary_{upgrade_id}.csv'
         file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
-        logger.info(f'Exporting to: {file_path}')
         failure_summaries.write_csv(file_path)
 
         # Process results
@@ -902,7 +901,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # For backwards compatibility, add renamed columns here
         old_to_new = {
-            'climate_zone_ashrae_2004': 'climate_zone_ashrae_2006'
+            # 'climate_zone_ashrae_2004': 'climate_zone_ashrae_2006'
         }
         for old, new in old_to_new.items():
             if new in col_def_names:
@@ -2536,7 +2535,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         fkt = fkt.with_columns((pl.col('truth_sqft') / (pl.col(self.FLR_AREA) * bs_coef)).alias(self.BLDG_WEIGHT))
 
         # Return new self.data object - note this may still be normalized against cbecs
-        logger.info('Renaming existing self.data geospatial cols to prevent namespace collision')
+        logger.debug('Renaming existing self.data geospatial cols to prevent namespace collision')
         self.data = self.data.rename({
             self.TRACT_ID: self.TRACT_ID.replace('in.', self.POST_APPO_SIM_COL_PREFIX),
             self.COUNTY_ID: self.COUNTY_ID.replace('in.', self.POST_APPO_SIM_COL_PREFIX),
@@ -2896,7 +2895,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             comstock_monthly_consumption (pd.DataFrame): Table of natural gas and electricity consumption by state and month.
         """
         if self.athena_table_name is None:
-            logger.info('No athena_table_name was provided, not attempting to query monthly data from Athena.')
+            logger.debug('No athena_table_name was provided, not attempting to query monthly data from Athena.')
             return True
 
         # Load or query timeseries ComStock results by state and building type
