@@ -2050,7 +2050,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                                               up_data,
                                                               geography_filters={},
                                                               geographic_aggregation_levels=agg_cols,
-                                                              column_downselection='full')
+                                                              column_downselection=None)
             up_aggs.append(up_agg)
 
         # Combine all upgrades into a single LazyFrame
