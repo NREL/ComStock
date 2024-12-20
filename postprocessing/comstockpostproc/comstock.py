@@ -2174,7 +2174,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             geographic_aggregation_levels = [self.TRACT_ID]
 
         # Aggregate the weights for building IDs within each geography
-        geo_agg_cols = [pl.col(c) for c in geographic_aggregation_levels]
+        if geographic_aggregation_levels == ['national']:
+            # Handle national case because there is no "country" column in the dataset to filter on
+            geo_agg_cols = []
+        else:
+            geo_agg_cols = [pl.col(c) for c in geographic_aggregation_levels]
         geo_data = geo_data.select(
             [pl.col(self.BLDG_WEIGHT), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)] + geo_agg_cols
         ).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)] + geo_agg_cols).sum()
@@ -2186,6 +2190,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         geo_data = self.add_weighted_area_energy_savings_columns(geo_data)
 
         # Add geospatial data columns based on most informative geography column
+        logger.info(f'geographic_aggregation_levels[0] {geographic_aggregation_levels[0]}')
         geo_data = self.add_geospatial_columns(geo_data, geographic_aggregation_levels[0])
         if geographic_aggregation_levels == [self.TRACT_ID]:
             geo_data = self.add_cejst_columns(geo_data)
@@ -2224,7 +2229,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         assert isinstance(geo_data, pl.LazyFrame)
         return geo_data
 
-    def export_metadata_and_annual_results(self, out_dir=None, aws_profile=None):
+    def export_metadata_and_annual_results(self, geo_exports, out_dir=None, aws_profile=None):
 
         # Default the output path if nothing is passed
         if out_dir is None:
@@ -2245,34 +2250,41 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         out_location = {}
         out_location['fs'], out_location['fs_path'] = out_fs, out_fs_path
 
-        # Define the geographic partitions to export
-        geo_exports = [
-            # {'geo_top_dir': 'national',
-            #     'partition_cols': {},
-            #     'aggregation_levels' = ['']
-            # },
-            {'geo_top_dir': 'by_state_and_county',
-                'partition_cols': {
-                    self.STATE_ABBRV: 'state',
-                    self.COUNTY_ID: 'county',
-                },
-                'aggregation_levels': [None, self.COUNTY_ID]  # The only one by at full resolution (no agg)
-            },
-            {
-                'geo_top_dir': 'by_state',
-                'partition_cols': {
-                    self.STATE_ABBRV: 'state'
-                },
-                'aggregation_levels': [self.STATE_ABBRV]
-            },
-            {'geo_top_dir': 'by_state_and_puma',
-                'partition_cols': {
-                    self.STATE_ABBRV: 'state',
-                    self.PUMA_ID: 'puma',
-                },
-                'aggregation_levels': [self.PUMA_ID]
-            },
-        ]
+        # # Define the geographic partitions to export
+        # geo_exports = [
+        # {'geo_top_dir': 'national',
+        #     'partition_cols': {},
+        #     'aggregation_levels': ['national'],
+        #    'data_types': ['full', 'basic'],
+        #    'file_types': ['csv', 'parquet'],
+        # },
+        # {'geo_top_dir': 'by_state_and_county',
+        #     'partition_cols': {
+        #         comstock.STATE_ABBRV: 'state',
+        #         comstock.COUNTY_ID: 'county',
+        #     },
+        #     'aggregation_levels': [None, comstock.COUNTY_ID],  # The only one by at full resolution (no agg)
+        #     'data_types': ['full', 'basic'],
+        #     'file_types': ['csv', 'parquet'],
+        # },
+        # {
+        #     'geo_top_dir': 'by_state',
+        #     'partition_cols': {
+        #         comstock.STATE_ABBRV: 'state'
+        #     },
+        #     'aggregation_levels': [comstock.STATE_ABBRV],
+        #     'data_types': ['full', 'basic'],
+        #     'file_types': ['csv', 'parquet'],
+        # },
+        # {'geo_top_dir': 'by_state_and_puma',
+        #     'partition_cols': {
+        #         comstock.STATE_ABBRV: 'state',
+        #         comstock.PUMA_ID: 'puma',
+        #     },
+        #     'aggregation_levels': [comstock.PUMA_ID],
+        #     'data_types': ['full', 'basic'],
+        #     'file_types': ['csv', 'parquet'],
+        # },
 
         # Get list of upgrade IDs
         upgrade_ids = pl.Series(self.data.select(pl.col(self.UPGRADE_ID)).unique().collect()).to_list()
@@ -2284,8 +2296,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             geo_top_dir = ge['geo_top_dir']
             partition_cols = ge['partition_cols']
             aggregation_levels = ge['aggregation_levels']
-            data_types = ['full', 'basic']
-            file_types = ['csv', 'parquet']
+            data_types = ge['data_types']
+            file_types = ge['file_types']
             geo_col_names = list(partition_cols.keys())
             logger.info(f'Exporting: {geo_top_dir}. ')
             logger.info(f'Partitioning by: {geo_col_names}')
@@ -2343,9 +2355,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
                         # Create raw data or aggregation and write the file for each data type
                         for data_type in data_types:
-
+                            logger.info(f'Upgrade: {upgrade_id}')
                             # Filter to this geography, downselect columns, create savings columns, and downselect columns
-                            to_write = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, geo_filters, aggregation_level, data_type)
+                            to_write = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, geo_filters, [aggregation_level], data_type)
 
                             # Collect the LazyFrame to a DataFrame
                             to_write = to_write.collect()
