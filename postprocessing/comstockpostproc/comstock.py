@@ -61,7 +61,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.dataset_name = f'ComStock {self.comstock_run_version}'
         self.data_dir = os.path.join(CURRENT_DIR, '..', 'comstock_data', self.comstock_run_version)
         self.truth_data_dir = os.path.join(CURRENT_DIR, '..', 'truth_data', self.truth_data_version)
-        self.output_dir = os.path.join(CURRENT_DIR, '..', 'output', self.dataset_name)
+        self.output_dir = os.path.abspath(os.path.join(CURRENT_DIR, '..', 'output', self.dataset_name))
         self.results_file_name = 'results_up00.parquet'
         self.building_type_mapping_file_name = f'CBECS_2012_to_comstock_nems_aeo_building_types.csv'
         self.buildstock_file_name = buildstock_csv_name
@@ -2373,7 +2373,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                 agg_level_dir = full_geo_agg_dir
                                 if aggregation_level is None:
                                     agg_level_dir = full_geo_dir
-                                geo_level_dir = f'{agg_level_dir}/{data_type}/{file_type}/' + '/'.join(geo_levels)
+                                geo_level_dir = f'{agg_level_dir}/{data_type}/{file_type}'
+                                if len(geo_levels) > 0:
+                                    geo_level_dir = f'{geo_level_dir}/' + '/'.join(geo_levels)
                                 out_location['fs'].mkdirs(geo_level_dir, exist_ok=True)
                                 # File name
                                 file_name = f'upgrade{upgrade_id:02d}'
@@ -2395,8 +2397,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                 file_path = f'{geo_level_dir}/{file_name}'
                                 logger.info(f"Writing {file_path}: n_cols = {n_cols:,}, n_rows = {n_rows:,}")
                                 if file_type == 'csv':
-                                    with gzip.open(f'{file_path}.gz', 'wt') as gz_file:
-                                        to_write.write_csv(gz_file)
+                                    self.write_polars_csv_to_s3_or_local(to_write, out_location['fs'], file_path)
                                 elif file_type == 'parquet':
                                     with out_location['fs'].open(file_path, "wb") as f:
                                         to_write.write_parquet(f, use_pyarrow=True)
