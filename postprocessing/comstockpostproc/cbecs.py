@@ -56,7 +56,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         self.download_data()
         if reload_from_csv:
             file_name = f'CBECS wide.csv'
-            file_path = os.path.join(self.output_dir, file_name)
+            file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
             if not os.path.exists(file_path):
                  raise FileNotFoundError(
                     f'Cannot find {file_path} to reload data, set reload_from_csv=False to create CSV.')
