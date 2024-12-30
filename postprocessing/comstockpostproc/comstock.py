@@ -165,7 +165,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
             # Import columns from buildstock, results.csv, and other files
             up_lazyframes = []
-            upgradIdcount = {}
             upgrade_ids.sort()
             for upgrade_id in upgrade_ids:
                 self.data = None
@@ -194,9 +193,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.add_addressable_segments_columns()
                 self.combine_emissions_cols()
                 self.add_emissions_intensity_columns()
-                if upgrade_id not in upgradIdcount:
-                    upgradIdcount[upgrade_id] = self.data.filter(pl.col(self.UPGRADE_ID) == upgrade_id).shape[0]
-                self.add_metadata_index_col(upgradIdcount)
                 self.get_comstock_unscaled_monthly_energy_consumption()
                 self.add_unweighted_savings_columns()
                 # Downselect the self.data to just the upgrade
@@ -1440,7 +1436,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # These columns are required for SightGlass and should be at the front of the data
         special_cols = [
-            self.META_IDX,
             self.BLDG_ID,
             self.UPGRADE_ID,
             self.BLDG_WEIGHT,
@@ -2378,6 +2373,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                             # Downselect columns further if appropriate
                             if not data_type == starting_downselect:
                                 to_write = self.downselect_columns_for_metadata_export(to_write, data_type)
+                                to_write = self.reorder_data_columns(to_write)
 
                             n_rows, n_cols = to_write.shape
 
@@ -2878,19 +2874,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.data = self.data.join(up_abs_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
             self.data = self.data.join(up_pct_svgs, how='left', on=[self.UPGRADE_NAME, self.BLDG_ID])
 
-    def add_metadata_index_col(self, upgradIdcount: dict):
-        # Add a metadata index column to the data
-        # updradeIdcount is a dictionary of the number of upgrades for each building: <building_id>: <number of upgrades>
-        # If there is only one upgrade, the metadata index is the same as the building ID
-        offset = sum(upgradIdcount[x] for x in upgradIdcount.keys() if x != max(upgradIdcount.keys()))
-        upgrades = sorted(self.data[self.UPGRADE_ID].unique())
-        df_baseline = self.data.filter(pl.col(self.UPGRADE_ID) == 0).with_columns(pl.arange(0, pl.len()).alias(self.META_IDX))
-        if len(upgrades) > 1:
-            df_upgrade = self.data.filter(pl.col(self.UPGRADE_ID) == upgrades[1]).with_columns(pl.arange(offset, offset + pl.len()).alias(self.META_IDX))
-            self.data = pl.concat([df_baseline, df_upgrade])
-        else:
-            self.data = df_baseline
-
     def remove_sightglass_column_units(self):
         # SightGlass requires that the energy_consumption, energy_consumption_intensity,
         # energy_savings, and energy_savings_intensity columns have no units on the
@@ -3388,7 +3371,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             if null_count > 0:
                 err_log += f"Null values found in column {coln} with {null_count} null count.\n"
 
-        SIGHTGLASS_REQUIRED_COLS = [self.BLDG_ID, self.META_IDX, self.UPGRADE_ID,
+        SIGHTGLASS_REQUIRED_COLS = [self.BLDG_ID, self.UPGRADE_ID,
                                      self.UPGRADE_APPL, self.FLR_AREA, self.BLDG_WEIGHT]
 
         for col in SIGHTGLASS_REQUIRED_COLS:

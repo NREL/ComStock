@@ -31,7 +31,6 @@ class NamingMixin():
     HVAC_SYS = 'in.hvac_system_type'
     SEG_NAME = 'calc.segment'
     COMP_STATUS = 'completed_status'
-    META_IDX = 'metadata_index'
     DIVISION = 'Division'
     MONTH = 'Month'
 

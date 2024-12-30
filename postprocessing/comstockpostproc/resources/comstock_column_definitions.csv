@@ -1338,7 +1338,6 @@ timeseries,out.district_heating.total.energy_consumption,,FALSE,FALSE,float,kwh,
 timeseries,out.district_heating.water_systems.energy_consumption,,FALSE,FALSE,float,kwh,kwh,Building annual district heating energy consumption for the service water heating end use
 timeseries,timestamp,,FALSE,FALSE,timestamp,,,The timestamp associated with the energy consumption in Eastern Standard Time.
 calculated,dataset,dataset,TRUE,FALSE,string,,,The name of the ComStock run primarily for comparing multiple runs
-calculated,metadata_index,metadata_index,TRUE,FALSE,string,,,A unique number for this building ID and upgrade ID combination which can be used for loading databases in chunks
 calculated,weight,weight,TRUE,TRUE,float,,,The number of real buildings that this model represents in the U.S. building stock
 calculated,in.comstock_building_type_group,in.comstock_building_type_group,TRUE,TRUE,string,,,A building categorization that consolidates multiple ComStock building types into single categories
 calculated,in.hvac_category,in.hvac_category,TRUE,TRUE,string,,,A basic categorization of HVAC system typologies
