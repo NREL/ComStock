@@ -202,18 +202,21 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 # Downselect the self.data to just the upgrade
                 self.data = self.data.filter(pl.col(self.UPGRADE_ID) == upgrade_id)
                 # self._sightGlass_metadata_check(self.data)
-                # Write self.data to parquet file
+                # Write self.data to parquet file, hive partition on upgrade to make later processing faster
                 file_name = f'cached_ComStock_wide_upgrade{upgrade_id}.parquet'
-                file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
+                upgrade_dir = os.path.join(self.output_dir, 'cached_wide_by_upgrade', f'upgrade={upgrade_id}')
+                os.makedirs(upgrade_dir, exist_ok=True)
+                file_path = os.path.join(upgrade_dir, file_name)
                 self.cached_parquet.append((upgrade_id, file_path)) #cached_parquet is a list of parquets used to export and reload
-                logger.info(f'Exporting to: {file_path}')
+                logger.info(f'Caching to: {file_path}')
                 self.data = self.reorder_data_columns(self.data)
+                self.data = self.data.drop('upgrade')  # upgrade column will be read from hive partition dir name
                 self.data.write_parquet(file_path)
-                up_lazyframes.append(pl.scan_parquet(file_path))
+                up_lazyframes.append(file_path)
 
             # Now, we have self.data is one huge LazyFrame
             # which is exactly like self.data was before because it includes all upgrades
-            self.data = pl.concat(up_lazyframes)
+            self.data = pl.scan_parquet(up_lazyframes, hive_partitioning=True)
             self._aggregate_failure_summaries()
             # logger.info(f'comstock data schema: {self.data.dtypes()}')
             # logger.debug('\nComStock columns after adding all data:')
@@ -2190,7 +2193,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         geo_data = self.add_weighted_area_energy_savings_columns(geo_data)
 
         # Add geospatial data columns based on most informative geography column
-        logger.info(f'geographic_aggregation_levels[0] {geographic_aggregation_levels[0]}')
         geo_data = self.add_geospatial_columns(geo_data, geographic_aggregation_levels[0])
         if geographic_aggregation_levels == [self.TRACT_ID]:
             geo_data = self.add_cejst_columns(geo_data)
@@ -2293,6 +2295,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Export to all geographies
         logger.info(f'Exporting /metadata_and_annual_results and /metadata_and_annual_results_aggregates')
         for ge in geo_exports:
+            ge_tstart = datetime.datetime.now()
             geo_top_dir = ge['geo_top_dir']
             partition_cols = ge['partition_cols']
             aggregation_levels = ge['aggregation_levels']
@@ -2354,18 +2357,18 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                 geo_prefixes.append(v)
 
                         # Create raw data or aggregation and write the file for each data type
+                        # Filter to this geography, downselect columns, create savings columns, and downselect columns
+                        to_write = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, geo_filters, [aggregation_level], 'full')
+
+                        # Collect the LazyFrame to a DataFrame
+                        to_write = to_write.collect()
                         for data_type in data_types:
-                            logger.info(f'Upgrade: {upgrade_id}')
-                            # Filter to this geography, downselect columns, create savings columns, and downselect columns
-                            to_write = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, geo_filters, [aggregation_level], data_type)
 
-                            # Collect the LazyFrame to a DataFrame
-                            to_write = to_write.collect()
+                            # Dowselect to basic columns if aopropriate
+                            if data_type == 'basic':
+                                to_write = self.downselect_columns_for_metadata_export(to_write, data_type)
+
                             n_rows, n_cols = to_write.shape
-
-                            # print('Columns before write')
-                            # for c in to_write.columns:
-                            #     print(c)
 
                             # Write all selected filetypes
                             for file_type in file_types:
@@ -2404,7 +2407,16 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                 else:
                                     raise RuntimeError(f'Unknown file type {file_type} requested in export_metadata_and_annual_results()')
 
-    def add_weights_aportioned_by_stock_estimate(self, apportionment: Apportion, keep_n_per_apportionment_group=False):
+            ge_tend = datetime.datetime.now()
+            logger.info(f'Finished exporting: {geo_top_dir}. ')
+            logger.info(f'Partitioned by: {geo_col_names}')
+            logger.info(f'Geographic aggregation levels: {aggregation_levels}')
+            logger.info(f'Time elapsed: {(ge_tend - ge_tstart).total_seconds()} seconds')
+
+    def add_weights_aportioned_by_stock_estimate(self,
+                                                 apportionment: Apportion,
+                                                 keep_n_per_apportionment_group=False,
+                                                 reload_from_cache=False):
         # This function doesn't support already CBECS-weighted self.data - error out
         if self.CBECS_WEIGHTS_APPLIED:
             raise RuntimeError('Unable to apply apportionment weighting after CBECS weighting - reverse order.')
@@ -2414,156 +2426,193 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             pl.col(self.COUNTY_ID).cast(str).str.slice(0, 4).alias(self.STATE_ID)
         )
 
-        # Pull the columns required to do the matching plus the annual energy total as a safety blanket
-        # TODO this is a superset for convienience - slim down later
-        csdf = self.data.clone().filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).select(pl.col(
-            self.BLDG_ID, self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.SAMPLING_REGION, self.CZ_ASHRAE,
-            self.BLDG_TYPE, self.HVAC_SYS, self.SH_FUEL, self.SIZE_BIN, self.FLR_AREA, self.TOT_EUI, self.CEN_DIV
-        ))
+        # Path to cached fkt file
+        file_name = f'cached_ComStock_fkt.parquet'
+        fkt_file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
 
-        # If anything in this selection is null we're smoked so check twice and fail never
-        if csdf.null_count().collect().sum(axis=1).sum() != 0:
-            raise RuntimeError('Null data appears in the apportionment truth data polars frame. Please resolve')
+        if reload_from_cache:
+            # fkt creation is non-deterministic, so recreating it results in a different set of models
+            # being used, which is an issue if postprocessing is stopped and restarted.
+            # Reloading from cache ensures that the same set of models is used.
+            if os.path.exists(fkt_file_path):
+                logger.info(f'Reloading fkt from cache: {fkt_file_path}')
+                self.fkt = pl.scan_parquet(fkt_file_path)
+                self.APPORTIONED = True
+            else:
+                raise FileNotFoundError(
+                f'Cannot find {fkt_file_path} to reload fkt, set reload_from_cache=False.')
+        else:
+            # Pull the columns required to do the matching plus the annual energy total as a safety blanket
+            # TODO this is a superset for convienience - slim down later
+            csdf = self.data.clone().filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).select(pl.col(
+                self.BLDG_ID, self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.SAMPLING_REGION, self.CZ_ASHRAE,
+                self.BLDG_TYPE, self.HVAC_SYS, self.SH_FUEL, self.SIZE_BIN, self.FLR_AREA, self.TOT_EUI, self.CEN_DIV
+            ))
 
-        # Cast sqft to int32
-        csdf = csdf.with_columns(pl.col(self.FLR_AREA).cast(pl.Int32))
+            # If anything in this selection is null we're smoked so check twice and fail never
+            if csdf.null_count().collect().sum(axis=1).sum() != 0:
+                raise RuntimeError('Null data appears in the apportionment truth data polars frame. Please resolve')
 
-        # Create the joined hvac system type and fuel type variable used for sampling bin generation and processing
-        csdf = csdf.with_columns(
-            pl.concat_str([pl.col(self.HVAC_SYS), pl.col(self.SH_FUEL)], separator='_').alias('hvac_and_fueltype')
-        )
+            # Cast sqft to int32
+            csdf = csdf.with_columns(pl.col(self.FLR_AREA).cast(pl.Int32))
 
-        # Create a apportionment group id which will be shared for iteration by both the target (apportionment data) and
-        # domain (csdf data).
-        # TODO make the apportionment data object a lazy df nativly
-        APPO_GROUP_ID = 'appo_group_id'
-        apportionment.data.loc[:, 'hvac_and_fueltype'] = apportionment.data.loc[:, 'system_type'] + '_' + apportionment.data.loc[:, 'heating_fuel']
-        appo_group_df = apportionment.data.copy(deep=True).loc[
-            :, ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
-        ]
-        appo_group_df = appo_group_df.drop_duplicates(keep='first').sort_values(
-            by=['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
-        ).reset_index(drop=True).reset_index(names=APPO_GROUP_ID)
-        appo_group_df = pl.DataFrame(appo_group_df).lazy()
+            # Create the joined hvac system type and fuel type variable used for sampling bin generation and processing
+            csdf = csdf.with_columns(
+                pl.concat_str([pl.col(self.HVAC_SYS), pl.col(self.SH_FUEL)], separator='_').alias('hvac_and_fueltype')
+            )
 
-        # Join apportionment group id into comstock data
-        csdf = csdf.join(
-            appo_group_df,
-            left_on=[self.SAMPLING_REGION, self.BLDG_TYPE, self.SIZE_BIN, 'hvac_and_fueltype'],
-            right_on=['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
-        )
-        if csdf.select(pl.col(APPO_GROUP_ID).is_null().any()).collect().item() != False:
-            raise RuntimeError('Not all combinations of sampling region, bt, and size bin could be matched.')
+            # Create a apportionment group id which will be shared for iteration by both the target (apportionment data) and
+            # domain (csdf data).
+            # TODO make the apportionment data object a lazy df nativly
+            APPO_GROUP_ID = 'appo_group_id'
+            apportionment.data.loc[:, 'hvac_and_fueltype'] = apportionment.data.loc[:, 'system_type'] + '_' + apportionment.data.loc[:, 'heating_fuel']
+            appo_group_df = apportionment.data.copy(deep=True).loc[
+                :, ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
+            ]
+            appo_group_df = appo_group_df.drop_duplicates(keep='first').sort_values(
+                by=['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
+            ).reset_index(drop=True).reset_index(names=APPO_GROUP_ID)
+            appo_group_df = pl.DataFrame(appo_group_df).lazy()
 
-        # Join apportionment group id into comstock data
-        tdf = pl.DataFrame(apportionment.data.copy(deep=True)).lazy()
-        tdf = tdf.join(appo_group_df, on=['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype'])
+            # Join apportionment group id into comstock data
+            csdf = csdf.join(
+                appo_group_df,
+                left_on=[self.SAMPLING_REGION, self.BLDG_TYPE, self.SIZE_BIN, 'hvac_and_fueltype'],
+                right_on=['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
+            )
+            if csdf.select(pl.col(APPO_GROUP_ID).is_null().any()).collect().item() != False:
+                raise RuntimeError('Not all combinations of sampling region, bt, and size bin could be matched.')
 
-        # Identify combination in the truth data not supported by the current sample.
-        csdf_groups = pl.Series(csdf.select(pl.col(APPO_GROUP_ID)).unique().collect()).to_list()
-        truth_groups = pl.Series(appo_group_df.select(pl.col(APPO_GROUP_ID)).unique().collect()).to_list()
-        missing_groups = set(truth_groups) - set(csdf_groups)
-        unable_to_match = tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups)).select(pl.len()).collect().item()
-        total_to_match = tdf.select(pl.len()).collect().item()
-        logger.info(f'Unable to match {unable_to_match} out of {total_to_match} truth data.')
+            # Join apportionment group id into comstock data
+            tdf = pl.DataFrame(apportionment.data.copy(deep=True)).lazy()
+            tdf = tdf.join(appo_group_df, on=['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype'])
 
-        # Provide detailed additional info on missing buckets for review if desired
-        logger.info(f'Writing QAQC / Debugging files to {os.path.abspath(self.output_dir)}')
-        file_path = os.path.abspath(os.path.join(self.output_dir, 'missing_truth_data_buildings.log'))
-        with open(file_path, 'w') as f:
-            f.write('The following is a breakdown of missing truth data buildings by bucket attributes:\n')
-            for attribute in ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']:
-                f.write(f'\nAttribute: {attribute}:\n')
-                f.write(f'{pl.Series(tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups)).select(pl.col(attribute).value_counts(sort=True)).collect()).to_list()}'
-                    .replace("}, {", "\n\t").replace("[{", "\t").replace("}]", ""))
-        attrs = ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
-        file_path = os.path.abspath(os.path.join(self.output_dir, 'potential_apportionment_group_optimization.csv'))
-        tdf.select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv(file_path)
-        file_path = os.path.abspath(os.path.join(self.output_dir, 'debugging_missing_apportionment_groups.csv'))
-        tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups)).select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv(file_path)
+            # Identify combination in the truth data not supported by the current sample.
+            csdf_groups = pl.Series(csdf.select(pl.col(APPO_GROUP_ID)).unique().collect()).to_list()
+            truth_groups = pl.Series(appo_group_df.select(pl.col(APPO_GROUP_ID)).unique().collect()).to_list()
+            missing_groups = set(truth_groups) - set(csdf_groups)
+            unable_to_match = tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups)).select(pl.len()).collect().item()
+            total_to_match = tdf.select(pl.len()).collect().item()
+            logger.info(f'Unable to match {unable_to_match} out of {total_to_match} truth data.')
 
-        # Drop unsupported truth data and add an index
-        tdf = tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups).is_not())
-        tdf = tdf.with_row_index()
+            # Provide detailed additional info on missing buckets for review if desired
+            logger.info(f'Writing QAQC / Debugging files to {os.path.abspath(self.output_dir)}')
+            file_path = os.path.abspath(os.path.join(self.output_dir, 'missing_truth_data_buildings.log'))
+            with open(file_path, 'w') as f:
+                f.write('The following is a breakdown of missing truth data buildings by bucket attributes:\n')
+                for attribute in ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']:
+                    f.write(f'\nAttribute: {attribute}:\n')
+                    f.write(f'{pl.Series(tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups)).select(pl.col(attribute).value_counts(sort=True)).collect()).to_list()}'
+                        .replace("}, {", "\n\t").replace("[{", "\t").replace("}]", ""))
+            attrs = ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
+            file_path = os.path.abspath(os.path.join(self.output_dir, 'potential_apportionment_group_optimization.csv'))
+            tdf.select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv(file_path)
+            file_path = os.path.abspath(os.path.join(self.output_dir, 'debugging_missing_apportionment_groups.csv'))
+            tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups)).select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv(file_path)
 
-        # Drop unsupported very-small schools while ensuring at least 3 samples per apportionment group
-        # Note we can just drop here because the csdf lazyframe isn't used elsewhere
-        # This returns all apportionment groups with three or more schools over 2k square feet, making them 'ok' to
-        # remove schools under 2k sqft from them.
-        row_count_before = csdf.select(pl.len()).collect().item()
-        appo_groups_to_apply_drop_to = pl.Series(
-            csdf.select(
-                self.BLDG_TYPE, APPO_GROUP_ID, self.FLR_AREA
-            ).filter(
-                (pl.col(self.BLDG_TYPE).is_in(['PrimarySchool', 'SecondarySchool'])) &
+            # Drop unsupported truth data and add an index
+            tdf = tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups).is_not())
+            tdf = tdf.with_row_index()
+
+            # Drop unsupported very-small schools while ensuring at least 3 samples per apportionment group
+            # Note we can just drop here because the csdf lazyframe isn't used elsewhere
+            # This returns all apportionment groups with three or more schools over 2k square feet, making them 'ok' to
+            # remove schools under 2k sqft from them.
+            row_count_before = csdf.select(pl.len()).collect().item()
+            appo_groups_to_apply_drop_to = pl.Series(
+                csdf.select(
+                    self.BLDG_TYPE, APPO_GROUP_ID, self.FLR_AREA
+                ).filter(
+                    (pl.col(self.BLDG_TYPE).is_in(['PrimarySchool', 'SecondarySchool'])) &
+                    (pl.col(self.FLR_AREA) > 2001)
+                ).groupby(
+                    APPO_GROUP_ID
+                ).count(
+                ).filter(
+                    pl.col('count') > 2
+                ).select(
+                    APPO_GROUP_ID
+                ).collect()
+            ).to_list()
+            # Keep all rows not in the list of above apportionment groups OR over 2k sqft
+            csdf = csdf.filter(
+                (~pl.col(APPO_GROUP_ID).is_in(appo_groups_to_apply_drop_to)) |
                 (pl.col(self.FLR_AREA) > 2001)
-            ).groupby(
-                APPO_GROUP_ID
-            ).count(
-            ).filter(
-                pl.col('count') > 2
-            ).select(
-                APPO_GROUP_ID
-            ).collect()
-        ).to_list()
-        # Keep all rows not in the list of above apportionment groups OR over 2k sqft
-        csdf = csdf.filter(
-            (~pl.col(APPO_GROUP_ID).is_in(appo_groups_to_apply_drop_to)) |
-            (pl.col(self.FLR_AREA) > 2001)
-        )
-        row_count_after = csdf.select(pl.len()).collect().item()
-        logger.info(f'Removed {row_count_before - row_count_after} very small schools from cs results')
+            )
+            row_count_after = csdf.select(pl.len()).collect().item()
+            logger.info(f'Removed {row_count_before - row_count_after} very small schools from cs results')
 
-        # Create a dictionary defining how many elements of which apportionment groups to sample
-        samples_per_group = tdf.groupby(APPO_GROUP_ID).len().collect().to_pandas()
-        samples_per_group = samples_per_group.set_index(APPO_GROUP_ID).to_dict()['len']
+            # Create a dictionary defining how many elements of which apportionment groups to sample
+            samples_per_group = tdf.groupby(APPO_GROUP_ID).len().collect().to_pandas()
+            samples_per_group = samples_per_group.set_index(APPO_GROUP_ID).to_dict()['len']
 
-        # Create a dictionary identifying the tdf indicies associated with each apportionment group
-        tdf_ids_per_group = tdf.select(pl.col('index'), pl.col(APPO_GROUP_ID)).groupby(pl.col(APPO_GROUP_ID)).agg(pl.col('index')).collect().to_pandas()
-        tdf_ids_per_group = tdf_ids_per_group.set_index(APPO_GROUP_ID).to_dict()['index']
+            # Create a dictionary identifying the tdf indicies associated with each apportionment group
+            tdf_ids_per_group = tdf.select(pl.col('index'), pl.col(APPO_GROUP_ID)).groupby(pl.col(APPO_GROUP_ID)).agg(pl.col('index')).collect().to_pandas()
+            tdf_ids_per_group = tdf_ids_per_group.set_index(APPO_GROUP_ID).to_dict()['index']
 
-        # Create a dictionary of which comstock building ids are associated with each apportionment group
-        cs_ids_per_group = csdf.select(pl.col(self.BLDG_ID), pl.col(APPO_GROUP_ID)).groupby(pl.col(APPO_GROUP_ID)).agg(pl.col(self.BLDG_ID)).collect().to_pandas()
-        cs_ids_per_group = cs_ids_per_group.set_index(APPO_GROUP_ID).to_dict()[self.BLDG_ID]
-        assert(set(samples_per_group.keys()) == set(cs_ids_per_group.keys()))
+            # Create a dictionary of which comstock building ids are associated with each apportionment group
+            cs_ids_per_group = csdf.select(pl.col(self.BLDG_ID), pl.col(APPO_GROUP_ID)).groupby(pl.col(APPO_GROUP_ID)).agg(pl.col(self.BLDG_ID)).collect().to_pandas()
+            cs_ids_per_group = cs_ids_per_group.set_index(APPO_GROUP_ID).to_dict()[self.BLDG_ID]
+            assert(set(samples_per_group.keys()) == set(cs_ids_per_group.keys()))
 
-        # Iterativly sample the groups
-        # Keeping apportionment group id for debugging if needed later... Otherwise unnessecary
-        logger.info('Apportioning comstock building models for each building in the bootstrapped truth dataset')
-        sampled_appo_id = list()
-        sampled_td_id = list()
-        sampled_cs_id = list()
-        for group_id in samples_per_group.keys():
-            to_sample = samples_per_group[group_id]
-            sampled_appo_id.extend(np.repeat(group_id, to_sample).tolist())
-            sampled_td_id.extend(tdf_ids_per_group[group_id].tolist())
-            sampled_cs_id.extend(np.random.choice(cs_ids_per_group[group_id], to_sample).tolist())
+            # Iterativly sample the groups
+            # Keeping apportionment group id for debugging if needed later... Otherwise unnessecary
+            logger.info('Apportioning comstock building models for each building in the bootstrapped truth dataset')
+            sampled_appo_id = list()
+            sampled_td_id = list()
+            sampled_cs_id = list()
+            for group_id in samples_per_group.keys():
+                to_sample = samples_per_group[group_id]
+                sampled_appo_id.extend(np.repeat(group_id, to_sample).tolist())
+                sampled_td_id.extend(tdf_ids_per_group[group_id].tolist())
+                sampled_cs_id.extend(np.random.choice(cs_ids_per_group[group_id], to_sample).tolist())
 
-        # Create the new sampled dataframe (foreign key table)
-        fkdf = pd.DataFrame({APPO_GROUP_ID: sampled_appo_id, 'tdf_id': sampled_td_id, self.BLDG_ID: sampled_cs_id})
-        fkt = pl.DataFrame(fkdf).lazy()
+            # Create the new sampled dataframe (foreign key table)
+            fkdf = pd.DataFrame({APPO_GROUP_ID: sampled_appo_id, 'tdf_id': sampled_td_id, self.BLDG_ID: sampled_cs_id})
+            fkt = pl.DataFrame(fkdf).lazy()
 
-        # Join tdf onto the sampled results with all upgrades
-        logger.info('Joining truth dataset information onto the sampled forign key table')
-        fkt = fkt.join(tdf.select(
-            pl.col('index').alias('tdf_id').cast(pl.Int64),
-            pl.col('tract').alias(self.TRACT_ID),
-            pl.col('county').alias(self.COUNTY_ID),
-            pl.col('state').alias(self.STATE_ID),
-            pl.col('cz').alias(self.CZ_ASHRAE_CEC_MIXED),
-            pl.col('cen_div').alias(self.CEN_DIV),
-            pl.col('sqft').alias('truth_sqft'),
-            pl.col('tract_assignment_type').alias('in.tract_assignment_type'),
-            pl.col('building_type').alias(self.BLDG_TYPE)
-        ), on=pl.col('tdf_id'))
+            # Join tdf onto the sampled results with all upgrades
+            logger.info('Joining truth dataset information onto the sampled forign key table')
+            fkt = fkt.join(tdf.select(
+                pl.col('index').alias('tdf_id').cast(pl.Int64),
+                pl.col('tract').alias(self.TRACT_ID),
+                pl.col('county').alias(self.COUNTY_ID),
+                pl.col('state').alias(self.STATE_ID),
+                pl.col('cz').alias(self.CZ_ASHRAE_CEC_MIXED),
+                pl.col('cen_div').alias(self.CEN_DIV),
+                pl.col('sqft').alias('truth_sqft'),
+                pl.col('tract_assignment_type').alias('in.tract_assignment_type'),
+                pl.col('building_type').alias(self.BLDG_TYPE)
+            ), on=pl.col('tdf_id'))
 
-        # Pull in the sqft calculate weights
-        area_by_id = self.data.select(pl.col(self.FLR_AREA), pl.col(self.BLDG_ID), pl.col(self.UPGRADE_ID))
-        area_by_id = area_by_id.filter(pl.col(self.UPGRADE_ID) == 0).drop([self.UPGRADE_ID])
-        fkt = fkt.join(area_by_id, on=[pl.col(self.BLDG_ID)])
-        logger.info('Calculating apportioned weights')
-        bs_coef = apportionment.bootstrap_coefficient
-        fkt = fkt.with_columns((pl.col('truth_sqft') / (pl.col(self.FLR_AREA) * bs_coef)).alias(self.BLDG_WEIGHT))
+            # Pull in the sqft calculate weights
+            area_by_id = self.data.select(pl.col(self.FLR_AREA), pl.col(self.BLDG_ID), pl.col(self.UPGRADE_ID))
+            area_by_id = area_by_id.filter(pl.col(self.UPGRADE_ID) == 0).drop([self.UPGRADE_ID])
+            fkt = fkt.join(area_by_id, on=[pl.col(self.BLDG_ID)])
+            logger.info('Calculating apportioned weights')
+            bs_coef = apportionment.bootstrap_coefficient
+            fkt = fkt.with_columns((pl.col('truth_sqft') / (pl.col(self.FLR_AREA) * bs_coef)).alias(self.BLDG_WEIGHT))
+
+            # Add state abbreviations to the fkt for use in partitioning
+            fkt = fkt.with_columns(
+                pl.col(self.STATE_ID).replace(self.STATE_NHGIS_TO_ABBRV).alias(self.STATE_ABBRV)
+            )
+
+            # Map the mixed ASHRAE and CEC climate zones back to ASHRAE climate zones
+            fkt = fkt.with_columns(
+                pl.col(self.CZ_ASHRAE_CEC_MIXED).replace(self.MIXED_CZ_TO_ASHRAE_CZ).alias(self.CZ_ASHRAE)
+            )
+
+            # Drop unwanted columns from the foreign key table and persist
+            fkt = fkt.drop('tdf_id', APPO_GROUP_ID, 'truth_sqft', 'in.tract_assignment_type', self.FLR_AREA)
+
+            # Cache the fkt for reuse
+            fkt.collect().write_parquet(fkt_file_path)
+            logger.info(f'Caching fkt to: {fkt_file_path}')
+
+            # Scan the fkt
+            self.fkt = pl.scan_parquet(fkt_file_path)
+            self.APPORTIONED = True
 
         # Return new self.data object - note this may still be normalized against cbecs
         logger.debug('Renaming existing self.data geospatial cols to prevent namespace collision')
@@ -2574,24 +2623,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.CEN_DIV: self.CEN_DIV.replace('in.', self.POST_APPO_SIM_COL_PREFIX),
         })
 
-        # Add state abbreviations to the fkt for use in partitioning
-        fkt = fkt.with_columns(
-            pl.col(self.STATE_ID).replace(self.STATE_NHGIS_TO_ABBRV).alias(self.STATE_ABBRV)
-        )
-
-        # Map the mixed ASHRAE and CEC climate zones back to ASHRAE climate zones
-        fkt = fkt.with_columns(
-            pl.col(self.CZ_ASHRAE_CEC_MIXED).replace(self.MIXED_CZ_TO_ASHRAE_CZ).alias(self.CZ_ASHRAE)
-        )
-
         # Drop any remaining geography columns associated with the model creation
         # Geographic data will joined after self.data and self.fkt have been joined
         self.data = self.data.drop(self.COLS_GEOG)
 
-        # Drop unwanted columns from the foreign key table and persist
-        fkt = fkt.drop('tdf_id', APPO_GROUP_ID, 'truth_sqft', 'in.tract_assignment_type', self.FLR_AREA)
-        self.APPORTIONED = True
-        self.fkt = fkt
         logger.info('Successfully completed the apportionment sampling postprocessing')
 
     def get_fkt_for_upgrade(self, upgrade_id):
