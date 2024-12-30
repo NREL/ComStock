@@ -1384,8 +1384,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
     def downselect_columns_for_metadata_export(self, input_lf, data_type='full'):
         # Find columns marked for export in column definitions
-        if data_type not in ['full', 'basic']:
+        if data_type not in ['detailed', 'full', 'basic']:
             raise RuntimeError('Unsupported data_type input to downselect_columns_for_metadata_export')
+
+        # If 'detailed' is used, do no downselection
+        if data_type == 'detailed':
+            return input_lf
+
         col_defs = pl.read_csv(os.path.join(RESOURCE_DIR, COLUMN_DEFINITION_FILE_NAME))
         export_cols = col_defs.filter(pl.col(f'{data_type}_metadata') == True).select(['new_col_name', 'new_units'])
         export_cols = export_cols.unique()
@@ -2257,7 +2262,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # {'geo_top_dir': 'national',
         #     'partition_cols': {},
         #     'aggregation_levels': ['national'],
-        #    'data_types': ['full', 'basic'],
+        #    'data_types': ['detailed', 'full', 'basic'],
         #    'file_types': ['csv', 'parquet'],
         # },
         # {'geo_top_dir': 'by_state_and_county',
@@ -2358,14 +2363,20 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
                         # Create raw data or aggregation and write the file for each data type
                         # Filter to this geography, downselect columns, create savings columns, and downselect columns
-                        to_write = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, geo_filters, [aggregation_level], 'full')
+                        if 'detailed' in data_types:
+                            starting_downselect = 'detailed'
+                        elif 'full' in data_types:
+                            starting_downselect = 'full'
+                        elif 'basic' in data_types:
+                            starting_downselect = 'basic'
+                        to_write = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, geo_filters, [aggregation_level], starting_downselect)
 
                         # Collect the LazyFrame to a DataFrame
                         to_write = to_write.collect()
                         for data_type in data_types:
 
-                            # Dowselect to basic columns if aopropriate
-                            if data_type == 'basic':
+                            # Downselect columns further if appropriate
+                            if not data_type == starting_downselect:
                                 to_write = self.downselect_columns_for_metadata_export(to_write, data_type)
 
                             n_rows, n_cols = to_write.shape
