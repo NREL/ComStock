@@ -37,7 +37,7 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         self.dataset_name = f'Stock Estimation {self.stock_estimation_version}'
         self.truth_data_dir = os.path.join(current_dir, '..', 'truth_data', self.truth_data_version)
         self.resource_dir = os.path.join(current_dir, 'resources')
-        self.output_dir = os.path.join(current_dir, '..', 'output', self.dataset_name)
+        self.output_dir = os.path.abspath(os.path.join(current_dir, '..', 'output', self.dataset_name))
         self.data_file_name = f'{self.stock_estimation_version}_building_estimate.parquet'
         self.hvac_size_bins_name = f'{self.stock_estimation_version}_hvac_system_size_bin.tsv'
         self.tract_list_name = f'{self.stock_estimation_version}_tract_list.csv'
