@@ -107,9 +107,12 @@ class S3UtilitiesMixin:
         import s3fs
 
         # If local, write uncompressed CSV
-        if not isinstance(out_fs, s3fs.core.S3FileSystem):  # s3 doesn't need folder creation
+        if not isinstance(out_fs, s3fs.core.S3FileSystem):
             data.write_csv(out_path)
             return True
+
+        # Get filename from full path
+        file_name = out_path.split('/')[-1]
 
         # Create a tar archive in memory that contains the CSV
         tar_buffer = BytesIO()
@@ -120,41 +123,38 @@ class S3UtilitiesMixin:
             csv_buffer.seek(0)
 
             # Create a TarInfo object with file metadata
-            tarinfo = tarfile.TarInfo(name='output.csv')
+            tarinfo = tarfile.TarInfo(name=file_name)
             tarinfo.size = len(csv_buffer.getvalue())
 
             # Add the CSV data to the tar archive
             tar.addfile(tarinfo, csv_buffer)
 
-        file_name = out_path.split('/')[-1]
-        print(f'file_name: {file_name}')
-        # Compress the tar archive with gzip
+        # Compress the in memory tar archive with gzip
         tar_buffer.seek(0)
-        with open(f'{file_name}.csv.gz', 'wb') as f_out:
-            with gzip.GzipFile(filename=f'{file_name}.csv', mode='wb', fileobj=f_out) as gz:
-                gz.write(tar_buffer.getvalue())
+        gzip_buffer = BytesIO()
+        with gzip.GzipFile(filename=f'{file_name}', mode='wb', fileobj=gzip_buffer, compresslevel=9) as gz:
+            gz.write(tar_buffer.getvalue())
 
         # Upload directly to S3
         bucket_name = out_path.split('/')[0]
-        print(f'bucket_name: {bucket_name}')
         s3_key = '/'.join(out_path.split('/')[1:]) + '.gz'
-        print(f's3_key: {s3_key}')
         s3_client = boto3.client('s3')
         try:
-            tar_buffer.seek(0)
+            gzip_buffer.seek(0)
             s3_client.upload_fileobj(
-                tar_buffer,      # File-like object
+                gzip_buffer,      # File-like object
                 bucket_name,     # Bucket name
                 s3_key          # S3 object key
             )
-            print(f"Successfully uploaded to s3://{bucket_name}/{s3_key}")
         except Exception as e:
-            print(f"Upload failed: {str(e)}")
+            logger.error(f"S3 upload failed: {str(e)}")
         finally:
             # Clean up
             csv_buffer.close()
             tar_buffer.close()
+            gzip_buffer.close()
 
         # Clean up
         csv_buffer.close()
         tar_buffer.close()
+        gzip_buffer.close()
