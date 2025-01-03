@@ -168,7 +168,7 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
         
         # add to supply outlet node
         oa_reset_sp_mgr.addToNode(htg_loop.supplyOutletNode)
-        runner.registerInfo("Added outdoor air reset setpoint manager to hot water loop with 140°F for ≤20°F and 120°F for ≥50°F.")
+        runner.registerInfo("Added outdoor air reset setpoint manager to hot water loop with 140F for ≤20F and 120F for ≥50F.")
         
         # autosize boiler supply pump
         htg_loop.supplyComponents.each do |sup_comp|
