@@ -2338,44 +2338,60 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 up_geo_data = self.get_fkt_for_upgrade(upgrade_id)
                 up_data = self.data.filter((pl.col(self.UPGRADE_ID) == upgrade_id))  # .collect()
 
-                # Make a directory for each combination of geography column values
-                # and write the subset of data for this combination to that directory
-                for geo_combo in geo_combos.iter_rows(named=True):
+                # Write raw data and all aggregation levels
+                for aggregation_level in aggregation_levels:
 
-                    # Write raw data and all aggregation levels
-                    for aggregation_level in aggregation_levels:
+                    # Start with the most expansive set of columns, the downselect later as-needed.
+                    if 'detailed' in data_types:
+                        starting_downselect = 'detailed'
+                    elif 'full' in data_types:
+                        starting_downselect = 'full'
+                    elif 'basic' in data_types:
+                        starting_downselect = 'basic'
 
-                        geo_filters = {}
+                    # Get full dataframe with all geographies and savings columns, aggregated to the appropriate level.
+                    geo_filters = {}
+                    to_write = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, geo_filters, [aggregation_level], starting_downselect)
+
+                    # Collect the LazyFrame to a DataFrame once.
+                    to_write = to_write.collect()
+
+                    # Filter to each geography and downselect columns
+                    # Make a directory for each combination of geography column values
+                    # and write the subset of data for this combination to that directory
+                    for geo_combo in geo_combos.iter_rows(named=True):
+
+                        geo_filter_exprs = []
                         geo_levels = []
                         geo_prefixes = []
                         for k, v in geo_combo.items():
                             if k == 'geography' and v == 'national':
                                 pass
                             else:
-                                geo_filters[k] = v
+                                geo_filter_exprs.append((pl.col(k) == v))
                                 geo_levels.append(f'{partition_cols[k]}={v}')
                                 geo_prefixes.append(v)
 
-                        # Create raw data or aggregation and write the file for each data type
-                        # Filter to this geography, downselect columns, create savings columns, and downselect columns
-                        if 'detailed' in data_types:
-                            starting_downselect = 'detailed'
-                        elif 'full' in data_types:
-                            starting_downselect = 'full'
-                        elif 'basic' in data_types:
-                            starting_downselect = 'basic'
-                        to_write = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, geo_filters, [aggregation_level], starting_downselect)
+                        # Filter to specified geography
+                        if len(geo_filter_exprs) > 0:
+                            geo_data = to_write.filter(geo_filter_exprs)
+                        else:
+                            geo_data = to_write
 
-                        # Collect the LazyFrame to a DataFrame
-                        to_write = to_write.collect()
+                        # Sort by building ID
+                        geo_data = geo_data.sort(by=self.BLDG_ID)
+
+                        # Write each data type
+                        # NOTE: data_types must be specified from most columns to fewest
+                        # AKA ['detailed', 'full', 'basic'] to work properly.
                         for data_type in data_types:
 
                             # Downselect columns further if appropriate
                             if not data_type == starting_downselect:
-                                to_write = self.downselect_columns_for_metadata_export(to_write, data_type)
-                                to_write = self.reorder_data_columns(to_write)
+                                geo_data = self.downselect_columns_for_metadata_export(geo_data, data_type)
+                                geo_data = self.reorder_data_columns(geo_data)
 
-                            n_rows, n_cols = to_write.shape
+                            n_rows, n_cols = geo_data.shape
 
                             # Write all selected filetypes
                             for file_type in file_types:
@@ -2407,10 +2423,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                 file_path = f'{geo_level_dir}/{file_name}'
                                 logger.info(f"Writing {file_path}: n_cols = {n_cols:,}, n_rows = {n_rows:,}")
                                 if file_type == 'csv':
-                                    self.write_polars_csv_to_s3_or_local(to_write, out_location['fs'], file_path)
+                                    self.write_polars_csv_to_s3_or_local(geo_data, out_location['fs'], file_path)
                                 elif file_type == 'parquet':
                                     with out_location['fs'].open(file_path, "wb") as f:
-                                        to_write.write_parquet(f, use_pyarrow=True)
+                                        geo_data.write_parquet(f, use_pyarrow=True)
                                 else:
                                     raise RuntimeError(f'Unknown file type {file_type} requested in export_metadata_and_annual_results()')
 
