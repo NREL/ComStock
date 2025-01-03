@@ -153,8 +153,22 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
         htg_loop.autocalculatePlantLoopVolume
 
         htg_loop.supplyOutletNode.setpointManagers.each do |spm|
-          spm.to_SetpointManagerScheduled.get.setSchedule(new_setpoint_sched)
+          spm.remove
         end
+        
+        # original method: set sp manager to constant 140F
+        #spm.to_SetpointManagerScheduled.get.setSchedule(new_setpoint_sched)
+
+        # create new OA reset setpoint manager with settings: hw temp 140f for air temp <20F, hw temp 120F for air temp >50F
+        oa_reset_sp_mgr = OpenStudio::Model::SetpointManagerOutdoorAirReset.new(model)
+        oa_reset_sp_mgr.setSetpointatOutdoorHighTemperature(OpenStudio.convert(120, 'F', 'C').get)
+        oa_reset_sp_mgr.setOutdoorHighTemperature(OpenStudio.convert(50, 'F', 'C').get)
+        oa_reset_sp_mgr.setSetpointatOutdoorLowTemperature(OpenStudio.convert(140, 'F', 'C').get)
+        oa_reset_sp_mgr.setOutdoorLowTemperature(OpenStudio.convert(20, 'F', 'C').get)
+        
+        # add to supply outlet node
+        oa_reset_sp_mgr.addToNode(htg_loop.supplyOutletNode)
+        runner.registerInfo("Added outdoor air reset setpoint manager to hot water loop with 140°F for ≤20°F and 120°F for ≥50°F.")
         
         # autosize boiler supply pump
         htg_loop.supplyComponents.each do |sup_comp|
