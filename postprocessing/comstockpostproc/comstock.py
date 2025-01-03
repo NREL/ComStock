@@ -2350,35 +2350,47 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     elif 'basic' in data_types:
                         starting_downselect = 'basic'
 
-                    # Get full dataframe with all geographies and savings columns, aggregated to the appropriate level.
-                    geo_filters = {}
-                    to_write = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, geo_filters, [aggregation_level], starting_downselect)
+                    # Handle aggregated vs. non-aggregated differently because of memory usage
+                    if aggregation_level is None:
+                        # If there is no aggregation, wait and collect a dataframe for each geography
+                        # to avoid overwhelming the memory
+                        logger.info(f'Waiting to collect a dataframe for each geography')
+                    else:
+                        # If there is any aggregation, collect a single dataframe with all geographies and savings columns
+                        # Memory usage should work on most laptops
+                        geo_filters = {}
+                        to_write = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, geo_filters, [aggregation_level], starting_downselect)
+                        to_write = to_write.collect()
+                        logger.info(f'There are {to_write.shape[0]:,} total rows at the aggregation level {aggregation_level}')
 
-                    # Collect the LazyFrame to a DataFrame once.
-                    to_write = to_write.collect()
-                    logger.info(f'There are {to_write.shape[0]:,} total rows at the aggregation level {aggregation_level}')
-
-                    # Filter to each geography and downselect columns
+                    # Process each geography and downselect columns
                     # Make a directory for each combination of geography column values
                     # and write the subset of data for this combination to that directory
                     for geo_combo in geo_combos.iter_rows(named=True):
 
-                        geo_filter_exprs = []
+                        geo_filters = {}
                         geo_levels = []
                         geo_prefixes = []
                         for k, v in geo_combo.items():
                             if k == 'geography' and v == 'national':
                                 pass
                             else:
-                                geo_filter_exprs.append((pl.col(k) == v))
+                                geo_filters[k] = v
                                 geo_levels.append(f'{partition_cols[k]}={v}')
                                 geo_prefixes.append(v)
 
-                        # Filter to specified geography
-                        if len(geo_filter_exprs) > 0:
-                            geo_data = to_write.filter(geo_filter_exprs)
+                        # Handle aggregated vs. non-aggregated differently because of memory usage
+                        if aggregation_level is None:
+                            # If there is no aggregation, collect the partial dataframe for specified geography
+                            geo_data = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, geo_filters, [aggregation_level], starting_downselect)
+                            geo_data = geo_data.collect()
                         else:
-                            geo_data = to_write
+                            # If there is any aggregation, filter already-collected dataframe to specified geography
+                            if len(geo_filters) > 0:
+                                geo_filter_exprs = [(pl.col(k) == v) for k, v in geo_filters.items()]
+                                geo_data = to_write.filter(geo_filter_exprs)
+                            else:
+                                geo_data = to_write
 
                         # Sort by building ID
                         geo_data = geo_data.sort(by=self.BLDG_ID)
