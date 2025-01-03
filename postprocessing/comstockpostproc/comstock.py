@@ -2173,7 +2173,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Determine the geography to aggregate to.
         # At a minimum aggregate the identical building ID X upgrade IDs inside
         # each census tract, which are a result of the bootstrapping process used for apportionment.
-        if not geographic_aggregation_levels:
+        if (not geographic_aggregation_levels) or (geographic_aggregation_levels == [None]):
             geographic_aggregation_levels = [self.TRACT_ID]
 
         # Aggregate the weights for building IDs within each geography
@@ -2319,9 +2319,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             out_location['fs'].mkdirs(full_geo_dir, exist_ok=True)
 
             # Make a directory for each data type X file type combo
-            for data_type in data_types:
-                for file_type in file_types:
-                    out_location['fs'].mkdirs(f'{full_geo_dir}/{data_type}/{file_type}', exist_ok=True)
+            if None in aggregation_levels:
+                for data_type in data_types:
+                    for file_type in file_types:
+                        out_location['fs'].mkdirs(f'{full_geo_dir}/{data_type}/{file_type}', exist_ok=True)
 
             # Make an aggregates directory for the geography type
             full_geo_agg_dir = f"{out_location['fs_path']}/metadata_and_annual_results_aggregates/{geo_top_dir}"
@@ -2355,6 +2356,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
                     # Collect the LazyFrame to a DataFrame once.
                     to_write = to_write.collect()
+                    logger.info(f'There are {to_write.shape[0]:,} total rows at the aggregation level {aggregation_level}')
 
                     # Filter to each geography and downselect columns
                     # Make a directory for each combination of geography column values
@@ -2461,6 +2463,18 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 logger.info(f'Reloading fkt from cache: {fkt_file_path}')
                 self.fkt = pl.scan_parquet(fkt_file_path)
                 self.APPORTIONED = True
+
+                # Join on the missing PUMA ID
+                # TODO this should be done in the initial fkt creation
+                geo_cols = {
+                    'nhgis_tract_gisjoin': self.TRACT_ID,
+                    'nhgis_puma_gisjoin': self.PUMA_ID,
+                }
+                file_path = os.path.join(self.truth_data_dir, self.geospatial_lookup_file_name)
+                geospatial_data = pl.read_csv(file_path, columns=list(geo_cols.keys()), infer_schema_length=None)
+                geospatial_data = geospatial_data.rename(geo_cols)
+                geospatial_data = geospatial_data.lazy()
+                self.fkt = self.fkt.join(geospatial_data, on=self.TRACT_ID)
             else:
                 raise FileNotFoundError(
                 f'Cannot find {fkt_file_path} to reload fkt, set reload_from_cache=False.')
