@@ -248,6 +248,11 @@ class DfThermostatControlLoadShedTest < Minitest::Test
       assert(cambium_scenario.setValue('LRMER_LowRECost_30'))#
       argument_map['cambium_scenario'] = cambium_scenario
 
+      # # set arguments:
+      # apply_measure = arguments[9].clone
+      # assert(apply_measure.setValue(true))#
+      # argument_map['apply_measure'] = apply_measure
+
       # apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: true)
 
