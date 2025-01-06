@@ -97,16 +97,16 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
     # create biquadratic curve and set upper and lower limit
     condensing_boiler_curve = OpenStudio::Model::CurveBiquadratic.new(model)
     condensing_boiler_curve.setName("Condensing Boiler Biquadratic Curve")
-    condensing_boiler_curve.setCoefficient1Constant(108.9384)
-    condensing_boiler_curve.setCoefficient2x(-0.4389)
-    condensing_boiler_curve.setCoefficient3xPOW2(0.0019)
-    condensing_boiler_curve.setCoefficient4y(-2.3987)
-    condensing_boiler_curve.setCoefficient5yPOW2(-1.1556)
-    condensing_boiler_curve.setCoefficient6xTIMESY(0.0393)
-    condensing_boiler_curve.setMinimumValueofx(OpenStudio.convert(70, 'F', 'C').get)
-    condensing_boiler_curve.setMaximumValueofx(OpenStudio.convert(160, 'F', 'C').get)
-    condensing_boiler_curve.setMinimumValueofy(0.05)
-    condensing_boiler_curve.setMaximumValueofy(1.0)
+    condensing_boiler_curve.setCoefficient1Constant(1.144514)
+    condensing_boiler_curve.setCoefficient2x(-0.02399)
+    condensing_boiler_curve.setCoefficient3xPOW2(-0.01156)
+    condensing_boiler_curve.setCoefficient4y(-0.00439)
+    condensing_boiler_curve.setCoefficient5yPOW2(0.000019)
+    condensing_boiler_curve.setCoefficient6xTIMESY(0.000393)
+    condensing_boiler_curve.setMinimumValueofy(OpenStudio.convert(70, 'F', 'C').get)
+    condensing_boiler_curve.setMaximumValueofy(OpenStudio.convert(160, 'F', 'C').get)
+    condensing_boiler_curve.setMinimumValueofx(0.05)
+    condensing_boiler_curve.setMaximumValueofx(1.0)
 
     sizing_systems = model.getSizingSystems
     sizing_systems.each do |sizing_system|
