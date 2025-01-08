@@ -103,10 +103,11 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
     condensing_boiler_curve.setCoefficient4y(-0.00439)
     condensing_boiler_curve.setCoefficient5yPOW2(0.000019)
     condensing_boiler_curve.setCoefficient6xTIMESY(0.000393)
-    condensing_boiler_curve.setMinimumValueofy(OpenStudio.convert(70, 'F', 'C').get)
+    condensing_boiler_curve.setMinimumValueofy(OpenStudio.convert(90, 'F', 'C').get)
     condensing_boiler_curve.setMaximumValueofy(OpenStudio.convert(160, 'F', 'C').get)
     condensing_boiler_curve.setMinimumValueofx(0.05)
     condensing_boiler_curve.setMaximumValueofx(1.0)
+    condensing_boiler_curve.setMaximumCurveOutput(1.032)
 
     sizing_systems = model.getSizingSystems
     sizing_systems.each do |sizing_system|
@@ -203,8 +204,8 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
       # get hot water coils and reset inlet and outlet temps and autosize
       coil.setRatedInletWaterTemperature(hw_setpoint_c)
       coil.setRatedOutletWaterTemperature(hw_return_temp_c)
-      coil.setRatedInletAirTemperature(12.8) #set to 55F
-      coil.setRatedOutletAirTemperature(32.2) #set return air temp to 90F
+      #coil.setRatedInletAirTemperature(12.8) #set to 55F
+      #coil.setRatedOutletAirTemperature(32.2) #set return air temp to 90F
       coil.autosizeMaximumWaterFlowRate
       coil.autosizeUFactorTimesAreaValue
       coil.autosizeRatedCapacity
@@ -219,23 +220,23 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
       coil.autosizeHeatingDesignCapacity
     end
 
-    thermal_zones = model.getThermalZones
-    thermal_zones.each do |zone|
-      zone_sizing = zone.sizingZone
-      zone_sizing.setZoneHeatingDesignSupplyAirTemperature(32.2) #set return air temp to 90F
-      zone_sizing.setZoneHeatingDesignSupplyAirTemperatureDifference(19.4) #set delta T to 32.2C-12.8C (90F-55F)
-      zone.equipment.each do |equip|
-        if equip.to_ZoneHVACFourPipeFanCoil.is_initialized
-          zone_fan_coil = equip.to_ZoneHVACFourPipeFanCoil.get
-          zone_fan_coil.autosizeMaximumSupplyAirFlowRate
-          zone_fan_coil.autosizeMaximumHotWaterFlowRate
-          if zone_fan_coil.supplyAirFan.to_FanOnOff.is_initialized
-            fan = zone_fan_coil.supplyAirFan.to_FanOnOff.get
-            fan.autosizeMaximumFlowRate
-          end
-        end
-      end
-    end
+    # thermal_zones = model.getThermalZones
+    # thermal_zones.each do |zone|
+    #   zone_sizing = zone.sizingZone
+    #   #zone_sizing.setZoneHeatingDesignSupplyAirTemperature(32.2) #set return air temp to 90F
+    #   #zone_sizing.setZoneHeatingDesignSupplyAirTemperatureDifference(19.4) #set delta T to 32.2C-12.8C (90F-55F)
+    #   zone.equipment.each do |equip|
+    #     if equip.to_ZoneHVACFourPipeFanCoil.is_initialized
+    #       zone_fan_coil = equip.to_ZoneHVACFourPipeFanCoil.get
+    #       zone_fan_coil.autosizeMaximumSupplyAirFlowRate
+    #       zone_fan_coil.autosizeMaximumHotWaterFlowRate
+    #       if zone_fan_coil.supplyAirFan.to_FanOnOff.is_initialized
+    #         fan = zone_fan_coil.supplyAirFan.to_FanOnOff.get
+    #         fan.autosizeMaximumFlowRate
+    #       end
+    #     end
+    #   end
+    # end
 
     # Register final condition
     runner.registerFinalCondition("The building finished with #{num_boilers} condensing boilers.")
