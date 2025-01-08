@@ -232,7 +232,7 @@ class ElectricBoilerTest < Minitest::Test
         boiler_fuel_type = boiler.fuelType
         boiler_efficiency = boiler.nominalThermalEfficiency
         assert_equal('Electricity', boiler_fuel_type)
-        assert(1.0, boiler_efficiency)
+        assert_equal(1.0, boiler_efficiency)
       end
     else
       runner.registerInfo("Model does not have any boilers. Measure not applicable.")
@@ -277,7 +277,7 @@ class ElectricBoilerTest < Minitest::Test
         boiler_fuel_type = boiler.fuelType
         boiler_efficiency = boiler.nominalThermalEfficiency
         assert_equal('Electricity', boiler_fuel_type)
-        assert(1.0, boiler_efficiency)
+        assert_equal(1.0, boiler_efficiency)
       end
     else
       runner.registerInfo("Model does not have any boilers. Measure not applicable.")
