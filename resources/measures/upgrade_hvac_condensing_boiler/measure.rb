@@ -220,23 +220,30 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
       coil.autosizeHeatingDesignCapacity
     end
 
-    # thermal_zones = model.getThermalZones
-    # thermal_zones.each do |zone|
-    #   zone_sizing = zone.sizingZone
-    #   #zone_sizing.setZoneHeatingDesignSupplyAirTemperature(32.2) #set return air temp to 90F
-    #   #zone_sizing.setZoneHeatingDesignSupplyAirTemperatureDifference(19.4) #set delta T to 32.2C-12.8C (90F-55F)
-    #   zone.equipment.each do |equip|
-    #     if equip.to_ZoneHVACFourPipeFanCoil.is_initialized
-    #       zone_fan_coil = equip.to_ZoneHVACFourPipeFanCoil.get
-    #       zone_fan_coil.autosizeMaximumSupplyAirFlowRate
-    #       zone_fan_coil.autosizeMaximumHotWaterFlowRate
-    #       if zone_fan_coil.supplyAirFan.to_FanOnOff.is_initialized
-    #         fan = zone_fan_coil.supplyAirFan.to_FanOnOff.get
-    #         fan.autosizeMaximumFlowRate
-    #       end
-    #     end
-    #   end
-    # end
+    #re-autosize zone air terminals and fan coil units to accommodate for new air flow rates
+    thermal_zones = model.getThermalZones
+    thermal_zones.each do |zone|
+      zone.equipment.each do |equip|
+        if equip.to_ZoneHVACFourPipeFanCoil.is_initialized
+          zone_fan_coil = equip.to_ZoneHVACFourPipeFanCoil.get
+          zone_fan_coil.autosizeMaximumSupplyAirFlowRate
+          zone_fan_coil.autosizeMaximumHotWaterFlowRate
+          if zone_fan_coil.supplyAirFan.to_FanOnOff.is_initialized
+            fan = zone_fan_coil.supplyAirFan.to_FanOnOff.get
+            fan.autosizeMaximumFlowRate
+          end
+        elsif equip.to_AirTerminalSingleDuctVAVReheat.is_initialized
+          vav_terminal = equip.to_AirTerminalSingleDuctVAVReheat.get
+          vav_terminal.autosizeMaximumAirFlowRate
+          vav_terminal.autosizeConstantMinimumAirFlowFraction
+          vav_terminal.autosizeFixedMinimumAirFlowRate
+          vav_terminal.autosizeMaximumHotWaterOrSteamFlowRate
+        elsif equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
+          air_terminal = equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.get
+          air_terminal.autosizeMaximumAirFlowRate
+        end
+      end
+    end
 
     # Register final condition
     runner.registerFinalCondition("The building finished with #{num_boilers} condensing boilers.")
