@@ -2310,6 +2310,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             logger.debug('Get the unique set of combinations of all geography column partitions')
             if len(geo_col_names) == 0:
                 geo_combos = pl.DataFrame({'geography': ['national']})
+                first_geo_combos = pl.DataFrame({'geography': ['national']})
             else:
                 geo_combos = self.fkt.select(geo_col_names).unique().collect()
                 geo_combos = geo_combos.sort(by=geo_col_names)
@@ -2373,9 +2374,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         # print(f'first_geo_combo: {first_geo_combo}')
 
                         # Handle aggregated vs. non-aggregated differently because of memory usage
+                        first_geo_filters = {}
                         if aggregation_level is None:
                             # If there is no aggregation, collect the partial dataframe for the first level geography
-                            first_geo_filters = {k: v  for k, v in first_geo_combo.items()}
+                            for k, v in first_geo_combo.items():
+                                if k == 'geography' and v == 'national':
+                                    pass
+                                else:
+                                    first_geo_filters[k] = v
                             agg_lvl_list = [aggregation_level]
                             if isinstance(aggregation_level, list):
                                 agg_lvl_list = aggregation_level  # Pass list if a list is already supplied
@@ -2401,11 +2407,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                     geo_prefixes.append(v)
 
                             # Skip geo_combos that aren't in this first-level partitioning
-                            first_level_geo_combo_val = list(first_geo_filters.values())[0]
-                            geo_combo_val = list(geo_filters.values())[0]
-                            if not geo_combo_val == first_level_geo_combo_val:
-                                # logger.info(f'Skipping {geo_combo} because not in this partition ({geo_combo_val} != {first_level_geo_combo_val})')
-                                continue
+                            if first_geo_filters:
+                                first_level_geo_combo_val = list(first_geo_filters.values())[0]
+                                geo_combo_val = list(geo_filters.values())[0]
+                                if not geo_combo_val == first_level_geo_combo_val:
+                                    # logger.info(f'Skipping {geo_combo} because not in this partition ({geo_combo_val} != {first_level_geo_combo_val})')
+                                    continue
 
                             # Filter already-collected dataframe to specified geography
                             if len(geo_filters) > 0:
