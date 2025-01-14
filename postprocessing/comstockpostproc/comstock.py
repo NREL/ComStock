@@ -2361,7 +2361,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         # If there is any aggregation, collect a single dataframe with all geographies and savings columns
                         # Memory usage should work on most laptops
                         no_geo_filters = {}
-                        to_write = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, no_geo_filters, [aggregation_level], starting_downselect)
+                        agg_lvl_list = [aggregation_level]
+                        if isinstance(aggregation_level, list):
+                            agg_lvl_list = aggregation_level  # Pass list if a list is already supplied
+                        to_write = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, no_geo_filters, agg_lvl_list, starting_downselect)
                         to_write = to_write.collect()
                         logger.info(f'There are {to_write.shape[0]:,} total rows at the aggregation level {aggregation_level}')
 
@@ -2373,7 +2376,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         if aggregation_level is None:
                             # If there is no aggregation, collect the partial dataframe for the first level geography
                             first_geo_filters = {k: v  for k, v in first_geo_combo.items()}
-                            to_write = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, first_geo_filters, [aggregation_level], starting_downselect)
+                            agg_lvl_list = [aggregation_level]
+                            if isinstance(aggregation_level, list):
+                                agg_lvl_list = aggregation_level  # Pass list if a list is already supplied
+                            to_write = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, first_geo_filters, agg_lvl_list, starting_downselect)
                             to_write = to_write.collect()
                             logger.info(f'There are {to_write.shape[0]:,} total rows for {first_geo_filters}')
 
