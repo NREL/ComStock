@@ -1,5 +1,5 @@
 location,original_col_name,new_col_name,full_metadata,basic_metadata,data_type,original_units,new_units,field_description
-buildstock.csv,airtightness,in.airtightness,TRUE,FALSE,float,m3_per_m2_s,m3_per_m2_s,6-sided air leakage rate at 75 Pa
+buildstock.csv,airtightness,in.airtightness,TRUE,FALSE,float,m3_per_m2_h,m3_per_m2_h,6-sided air leakage rate at 75 Pa
 buildstock.csv,american_housing_survey_region,in.american_housing_survey_region,FALSE,FALSE,string,,,
 buildstock.csv,aspect_ratio,,FALSE,FALSE,,,,
 buildstock.csv,baseline_window_type,,FALSE,FALSE,,,,
