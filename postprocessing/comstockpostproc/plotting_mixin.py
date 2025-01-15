@@ -2029,7 +2029,7 @@ class PlottingMixin():
         df_2.loc[:, cols] = df_2[cols].mask(df[cols]<-max_fraction_change, np.nan)
 
         # multiply by 100 to get percent savings
-        df_2.loc[:, cols] = df_2[cols] * 100
+        df_2.loc[:, cols] = df_2[cols]
 
         # filter out % savings values greater than 100%
         df_2.loc[:, cols] = df_2[cols].mask(df_2[cols] > 100, np.nan)
