@@ -75,9 +75,6 @@ class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure
     # set limit for minimum insulation in IP units -- this is used to limit input and for inferring insulation layer in construction
     min_exp_r_val_ip = 1.0
 
-    # build standard to use OS standards methods
-    template = 'ComStock 90.1-2019'
-    std = Standard.build(template)
     # get climate zone to set target_r_val_ip
     climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
 
