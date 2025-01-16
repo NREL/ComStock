@@ -238,7 +238,7 @@ class PlottingMixin():
                 # Display percentage savings only on the second bar
                 if i != 0:
                     # Calculate percentage savings versus the first bar (baseline)
-                    savings = (v - pivot_df.sum(axis=1).iloc[0]) / pivot_df.sum(axis=1).iloc[0]
+                    savings = (v - pivot_df.sum(axis=1).iloc[0]) / pivot_df.sum(axis=1).iloc[0] * 100
                     axes[ax_position].text(i, v + 2, f'{v:.0f} ({savings:.0f}%)', ha='center', va='bottom')
                 else:
                     axes[ax_position].text(i, v + 2, f'{v:.0f}', ha='center', va='bottom')
