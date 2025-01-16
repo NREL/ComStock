@@ -1196,7 +1196,7 @@ class PlottingMixin():
             df_upgrade_plt = df_upgrade.loc[:, [col_group, energy_col]]
 
             # apply method for filtering percent savings; this will not affect EUI
-            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 1)
+            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 100)
 
             # create figure template
             fig = go.Figure()
@@ -1288,7 +1288,7 @@ class PlottingMixin():
             df_upgrade_plt = df_upgrade.loc[:, [col_group, energy_col]]
 
             # apply method for filtering percent savings; this will not affect EUI
-            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 1)
+            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 100)
 
             # create figure template
             fig = go.Figure()
@@ -1380,7 +1380,7 @@ class PlottingMixin():
             df_upgrade_plt = df_upgrade.loc[:, [col_group, energy_col]]
 
             # apply method for filtering percent savings; this will not affect EUI
-            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 1)
+            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 100)
 
             # create figure template
             fig = go.Figure()
@@ -1472,7 +1472,7 @@ class PlottingMixin():
             df_upgrade_plt = df_upgrade.loc[:, [col_group, energy_col]]
 
             # apply method for filtering percent savings; this will not affect EUI
-            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 1)
+            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 100)
 
             # create figure template
             fig = go.Figure()
@@ -1567,7 +1567,7 @@ class PlottingMixin():
             df_upgrade_plt = df_upgrade.loc[:, [col_group, energy_col]]
 
             # apply method for filtering percent savings; this will not affect EUI metrics
-            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 1)
+            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 100)
 
             # create figure template
             fig = go.Figure()
@@ -1661,7 +1661,7 @@ class PlottingMixin():
             df_upgrade_plt = df_upgrade.loc[:, [col_group, energy_col]]
 
             # apply method for filtering percent savings; this will not affect EUI
-            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 1)
+            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 100)
 
             # create figure template
             fig = go.Figure()
@@ -1750,7 +1750,7 @@ class PlottingMixin():
             savings_name_wo_unit = savings_name.rsplit(" ", 1)[0]
 
             # apply method for filtering percent savings; this will not affect EUI
-            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade[col_list], 1.5)
+            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade[col_list], 150)
 
             # create figure template
             fig = go.Figure()
@@ -1834,7 +1834,7 @@ class PlottingMixin():
             savings_name_wo_unit = savings_name.rsplit(" ", 1)[0]
 
             # apply method for filtering percent savings; this will not affect EUI
-            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade[col_list], 1.5)
+            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade[col_list], 150)
 
             # create figure template
             fig = go.Figure()
@@ -2027,9 +2027,6 @@ class PlottingMixin():
         # when plotting, nan values will be skipped
         df_2.loc[:, cols] = df_2[cols].mask(df[cols]>max_fraction_change, np.nan)
         df_2.loc[:, cols] = df_2[cols].mask(df[cols]<-max_fraction_change, np.nan)
-
-        # multiply by 100 to get percent savings
-        df_2.loc[:, cols] = df_2[cols]
 
         # filter out % savings values greater than 100%
         df_2.loc[:, cols] = df_2[cols].mask(df_2[cols] > 100, np.nan)
