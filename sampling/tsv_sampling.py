@@ -90,7 +90,7 @@ class ComStockBaseSampler:
         [
             'airtightness', 'aspect_ratio', 'building_shape', 'heating_fuel', 'hvac_system_type', 'rotation',
             'service_water_heating_fuel', 'wall_construction_type', 'weekday_duration', 'weekday_start_time',
-            'weekend_duration', 'weekend_start_time', 'thermal_bridging'
+            'weekend_duration', 'weekend_start_time'
         ],
         [
             'energy_code_compliance_hvac', 'energy_code_followed_during_last_hvac_replacement',
