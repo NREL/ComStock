@@ -2015,7 +2015,7 @@ class PlottingMixin():
         fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
         violin_qoi_timing.write_image(fig_path, scale=10)
 
-    def filter_outlier_pct_savings_values(self, df, max_fraction_change):
+    def filter_outlier_pct_savings_values(self, df, max_percentage_change):
 
         # get applicable columns
         cols = df.loc[:, df.columns.str.contains('percent_savings')].columns
@@ -2025,8 +2025,8 @@ class PlottingMixin():
 
         # filter out data that falls outside of user-input range by changing them to nan
         # when plotting, nan values will be skipped
-        df_2.loc[:, cols] = df_2[cols].mask(df[cols]>max_fraction_change, np.nan)
-        df_2.loc[:, cols] = df_2[cols].mask(df[cols]<-max_fraction_change, np.nan)
+        df_2.loc[:, cols] = df_2[cols].mask(df[cols]>max_percentage_change, np.nan)
+        df_2.loc[:, cols] = df_2[cols].mask(df[cols]<-max_percentage_change, np.nan)
 
         # filter out % savings values greater than 100%
         df_2.loc[:, cols] = df_2[cols].mask(df_2[cols] > 100, np.nan)
