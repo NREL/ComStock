@@ -107,11 +107,30 @@ module OsLib_HeatTransfer
     ]
   end
 
+  def self.window_gain_component_outputs
+    return [
+      # 'Zone Windows Total Heat Gain Rate',
+      # 'Surface Inside Face Convection Heat Gain Rate',
+      # 'Surface Window Net Heat Transfer Energy',
+      # 'Surface Window Net Heat Transfer Rate',
+      # 'Surface Window Transmitted Solar Radiation Energy',
+      # 'Surface Window Transmitted Solar Radiation Rate',
+      'Surface Window Inside Face Glazing Net Infrared Heat Transfer Rate',
+      'Surface Window Inside Face Shade Net Infrared Heat Transfer Rate',
+      # 'Surface Window Inside Face Frame and Divider Zone Heat Gain Rate',
+      # 'Surface Window Shortwave from Zone Back Out Window Heat Transfer Rate',
+      # 'Surface Inside Face Initial Transmitted Diffuse Transmitted Out Window Solar Radiation Rate',
+      # 'Surface Window Gap Convective Heat Transfer Rate',
+      # 'Surface Window Inside Face Shade Zone Convection Heat Gain Rate',
+      # 'Surface Window Inside Face Gap between Shade and Glazing Zone Convection Heat Gain Rate'
+    ]
+  end
+
   def self.window_gain_loss_outputs
     return [
       'Zone Windows Total Heat Gain Energy',
-      'Zone Windows Total Transmitted Solar Radiation Energy',
-      'Zone Windows Total Heat Loss Energy'
+      'Enclosure Windows Total Transmitted Solar Radiation Energy',
+      'Zone Windows Total Heat Loss Energy',
     ]
   end
 
@@ -172,6 +191,9 @@ module OsLib_HeatTransfer
 
     # surface convection outputs
     outputs += surface_convection_outputs
+
+    # window gain components
+    outputs += window_gain_component_outputs
 
     # window gain and loss outputs
     outputs += window_gain_loss_outputs
@@ -236,6 +258,48 @@ module OsLib_HeatTransfer
     return err.round(decimals)
   end
 
+  # applies the Radiant Time Series factors specified by rts_type to the input laod array
+  # at a given seconds per timestep
+  # to calculate the delayed rediant load 
+  def self.calculate_radiant_delay(load_array, steps_per_hour, rts_type)
+
+    # Radiant Time Series depending on the radiation type
+    
+    case rts_type
+    when 'solar'
+      # from ASHRAE HOF 2021 Chapter 18 Table 20: Representative Solar RTS Values for Light to Heavy Construction
+      # Medium Construction, 50% glass, with carpet
+      rts = [0.54, 0.16, 0.08, 0.04, 0.03, 0.02, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.0, 0.0, 0.0, 0.0, 0.0]
+    when 'nonsolar'
+      # from ASHRAE HOF 2021 Chapter 18 Table 19: Representative Nonsolar RTS Values for Light to Heavy Construction
+      # Medium Construction, 50% glass, with carpet
+      rts = [0.49, 0.17, 0.09, 0.05, 0.03, 0.02, 0.02, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.0, 0.00, 0.00, 0.00]
+    end
+
+    # apply RTS values to load array
+    delayed_load = []
+    num_ts_24hr = 24 * steps_per_hour
+    load_array.each_with_index do |val, i|
+      # get the values from the current hr to 23hrs in the past
+      prev_24hr_vals = []
+      (0...num_ts_24hr).each do |ts|
+        prev_24hr_vals << load_array.fetch(i - ts)
+      end
+
+      # calculate the RTS values for the current timestep
+      load_rad_rts = 0.0
+      prev_24hr_vals.each_slice(steps_per_hour).with_index do |vals_in_hr, hr|
+        avg_per_ts_in_hr = vals_in_hr.sum / vals_in_hr.size
+        rad_rts = avg_per_ts_in_hr * rts[hr]
+        load_rad_rts += rad_rts
+      end
+      delayed_load << load_rad_rts
+    end
+
+    return delayed_load
+  end
+
+    
   # Calculates
   def self.thermal_zone_heat_transfer_vectors(runner, zone, sql, freq, ann_env_pd, debug_mode)
     # Define variables
@@ -304,101 +368,6 @@ module OsLib_HeatTransfer
     # Using a pulse of radiant gain in EnergyPlus gives slightly different values:
     # adjusted_rts = [0.605, 0.106, 0.063, 0.053, 0.048, 0.042, 0.038, 0.030, 0.015, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.0, 0.0, 0.0, 0.0, 0.0]
 
-    # INTERNAL CONVECTIVE AND RADIANT GAINS
-
-    # Internal instant convective gains
-    # Internal gains include equipment (electric, gas, other), people, and lights
-    internal_convective_gain_outputs.each do |output|
-      vals = OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, output, zone_name, num_ts, joules)
-      vect = Vector.elements(vals)
-      heat_transfer_vectors[output] = vect
-      total_instant_internal_gains += vect
-    end
-
-    # Report out combined electric and gas equipment
-    heat_transfer_vectors['Zone Equipment Instantaneous Convective Internal Gains'] = heat_transfer_vectors['Zone Electric Equipment Convective Heating Energy']
-    heat_transfer_vectors['Zone Equipment Instantaneous Convective Internal Gains'] += heat_transfer_vectors['Zone Gas Equipment Convective Heating Energy']
-    heat_transfer_vectors['Zone Equipment Instantaneous Convective Internal Gains'] += heat_transfer_vectors['Zone Hot Water Equipment Convective Heating Energy']
-    heat_transfer_vectors['Zone Equipment Instantaneous Convective Internal Gains'] += heat_transfer_vectors['Zone Other Equipment Convective Heating Energy']
-
-    # Compare Internal gains to EnergyPlus zone air heat balance
-    true_total_internal_gains = sec_per_step * Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Total Internal Convective Heating Rate', zone_name, num_ts, watts))
-    interal_gains_difference = true_total_internal_gains - total_instant_internal_gains
-    internal_gains_error = ts_error_between_vectors(total_instant_internal_gains, true_total_internal_gains, 4)
-    internal_gains_annual_gain_error = annual_heat_gain_error_between_vectors(total_instant_internal_gains, true_total_internal_gains, 4)
-    internal_gains_annual_loss_error = annual_heat_loss_error_between_vectors(total_instant_internal_gains, true_total_internal_gains, 4)
-    runner.registerInfo("#{zone_name}: Annual Gain Error in Internal Gains is #{internal_gains_annual_gain_error * 100}%, Annual Loss Error in Internal Gains is #{internal_gains_annual_loss_error * 100}%")
-
-    # include timeseries checks if in debug mode
-    if debug_mode
-      heat_transfer_vectors['True Internal Gains'] = true_total_internal_gains
-      heat_transfer_vectors['Calc Internal Gains'] = total_instant_internal_gains
-      heat_transfer_vectors['Diff Internal Gains'] = interal_gains_difference
-      heat_transfer_vectors['Error in Internal Gains'] = internal_gains_error
-      heat_transfer_vectors["#{zone_name}: Annual Gain Error in Internal Gains"] = internal_gains_annual_gain_error
-      heat_transfer_vectors["#{zone_name}: Annual Loss Error in Internal Gains"] = internal_gains_annual_loss_error
-    end
-
-    # Calculate delayed component of internal gains
-    internal_radiant_gain_outputs.each do |output|
-      vals = OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, output, zone_name, num_ts, joules)
-      rad_ary = []
-      num_ts_24hr = 24 * steps_per_hour
-      vals.each_with_index do |val, i|
-        # Get the values from the current hr to 23hrs in the past
-        prev_24hr_vals = []
-        (0...num_ts_24hr).each do |ts|
-          prev_24hr_vals << vals.to_a.fetch(i - ts)
-        end
-
-        # calculate the RTS value for the current timestep
-        load_rad_rts = 0.0
-        hr_i = 0
-        prev_24hr_vals.each_slice(steps_per_hour) do |vals_in_hr|
-          avg_per_ts_in_hr = vals_in_hr.sum / vals_in_hr.size
-          rad_rts = avg_per_ts_in_hr * rts[hr_i]
-          load_rad_rts += rad_rts
-          hr_i += 1
-        end
-        rad_ary << load_rad_rts
-      end
-      load_rad_vals = Vector.elements(rad_ary)
-      delayed_name = output.gsub('Radiant', 'Delayed Convective')
-      heat_transfer_vectors[delayed_name] = load_rad_vals
-      total_delayed_internal_gains += load_rad_vals
-
-      # Check that the annual sum of RTS radiant matches the annual sum of the radiant
-      ann_rad = vals.sum
-      ann_rts_rad = rad_ary.sum
-      if ((ann_rts_rad - ann_rad)/ann_rad).abs > 0.01
-        runner.registerError("#{delayed_name} RTS calculations had an error: annual radiant = #{ann_rad}, but annual RTS = #{ann_rts_rad}; they should be identical")
-      end
-    end
-    heat_transfer_vectors['Zone Equipment Delayed Convective Internal Gains'] = heat_transfer_vectors['Zone Electric Equipment Delayed Convective Heating Energy']
-    heat_transfer_vectors['Zone Equipment Delayed Convective Internal Gains'] += heat_transfer_vectors['Zone Gas Equipment Delayed Convective Heating Energy']
-    heat_transfer_vectors['Zone Equipment Delayed Convective Internal Gains'] += heat_transfer_vectors['Zone Hot Water Equipment Delayed Convective Heating Energy']
-    heat_transfer_vectors['Zone Equipment Delayed Convective Internal Gains'] += heat_transfer_vectors['Zone Other Equipment Delayed Convective Heating Energy']
-
-    # include timeseries checks if in debug mode
-    if debug_mode
-      # Total internal gain variables for validation
-      heat_transfer_vectors['Calc Delayed Internal Gains'] = total_delayed_internal_gains
-      heat_transfer_vectors['Zone Air Heat Balance Internal Convective Heat Gain'] = sec_per_step * Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Air Heat Balance Internal Convective Heat Gain Rate', zone_name, num_ts, watts))
-      heat_transfer_vectors['Zone Total Internal Radiant Heating'] = sec_per_step * Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Total Internal Radiant Heating Rate', zone_name, num_ts, watts))
-      heat_transfer_vectors['Zone Total Internal Convective Heating'] = sec_per_step * Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Total Internal Convective Heating Rate', zone_name, num_ts, watts))
-      heat_transfer_vectors['Zone Total Internal Latent Gain'] = sec_per_step * Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Total Internal Latent Gain Rate', zone_name, num_ts, watts))
-      heat_transfer_vectors['Zone Total Internal Total Heating'] = sec_per_step * Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Total Internal Total Heating Rate', zone_name, num_ts, watts))
-    end
-
-    # REFRIGERATION
-
-    # Refrigeration includes cases and walk-ins
-    refrigeration_gains_outputs.each do |output|
-      vals = OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, output, zone_name, num_ts, joules)
-      vect = Vector.elements(vals)
-      heat_transfer_vectors[output] = vect
-      total_instant_refrigeration_gains += vect
-    end
 
     # WINDOW SOLAR RADIATION
 
@@ -413,33 +382,13 @@ module OsLib_HeatTransfer
     # solar radiation and current timestep conduction from the temperature difference between the ground/floor and the soil/zone below.
 
     # # Solar radiation gain (always positive)
-    wind_solar_rad_vals = OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Windows Total Transmitted Solar Radiation Energy', space_name, num_ts, joules)
+    window_radiant_var = 'Enclosure Windows Total Transmitted Solar Radiation Energy'
+    wind_solar_rad_vals = OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, window_radiant_var, space_name, num_ts, joules)
     heat_transfer_vectors['Zone Windows Total Transmitted Solar Radiation Energy'] = wind_solar_rad_vals
 
     # RTS solar radiation energy per timestep for past 24 hrs
-    rts_solar_rad_ary = []
-    num_ts_24hr = 24 * steps_per_hour
-    wind_solar_rad_vals.each_with_index do |val, i|
-      # Get the values from the current hr to 23hrs in the past
-      prev_24hr_vals = []
-      (0...num_ts_24hr).each do |ts|
-        prev_24hr_vals << wind_solar_rad_vals.fetch(i - ts)
-      end
-      # puts "\ni: #{i}, prev_24hr_vals: #{prev_24hr_vals.join(', ')}"
+    rts_solar_rad_ary = calculate_radiant_delay(wind_solar_rad_vals, steps_per_hour, 'solar')
 
-      # Calculate the RTS solar value for the current timestep
-      solar_rad_rts = 0.0
-      hr_i = 0
-      prev_24hr_vals.each_slice(steps_per_hour) do |vals_in_hr|
-        avg_per_ts_in_hr = vals_in_hr.sum / vals_in_hr.size
-        hrly_solar_rad_rts = avg_per_ts_in_hr * rts[hr_i]
-        solar_rad_rts += hrly_solar_rad_rts
-        # puts "-- hr #{hr_i} RTS = #{hrly_solar_rad_rts.round(2)} = #{rts[hr_i]} * (#{vals_in_hr.join(' + ')}) / #{vals_in_hr.size}"
-        hr_i += 1
-      end
-      rts_solar_rad_ary << solar_rad_rts
-      # puts "24 hr RTS = #{solar_rad_rts}"
-    end
     heat_transfer_vectors['Zone Windows Total Transmitted Solar Radiation Energy'] = Vector.elements(wind_solar_rad_vals)
     wind_rts_solar_rad_vals = Vector.elements(rts_solar_rad_ary)
     heat_transfer_vectors['Zone Windows Radiation Heat Transfer Energy'] = wind_rts_solar_rad_vals
@@ -475,7 +424,12 @@ module OsLib_HeatTransfer
     heat_transfer_vectors['Zone Interior Ceiling Convection Heat Transfer Energy'] = Vector.zero(num_ts)
     heat_transfer_vectors['Zone Internal Mass Convection Heat Transfer Energy'] = Vector.zero(num_ts)
     heat_transfer_vectors['Zone Internal Surface Convection Heat Transfer Energy'] = Vector.zero(num_ts)
+    
+    # collect shading gap convection separately - included in 'Internal Convective' ZAHB total
+    heat_transfer_vectors['Zone Shading Gap Convection Heat Transfer Energy'] = Vector.zero(num_ts)
 
+    # window and shade infrared
+    heat_transfer_vectors['Zone Windows Net IR Heat Transfer Energy'] = Vector.zero(num_ts)
 
     # Sign convention for this variable:
     # + = heat flowing into surface (loss to zone)
@@ -485,6 +439,10 @@ module OsLib_HeatTransfer
     zone_surface_areas = Hash.new(0.0)
     surfaces_adjacent_to_other_zones = Hash.new(0.0)
     surface_inside_convection_output = 'Surface Inside Face Convection Heat Gain Energy'
+    shade_convection_output = 'Surface Window Inside Face Gap between Shade and Glazing Zone Convection Heat Gain Rate'
+    window_infrared_var = 'Surface Window Inside Face Glazing Net Infrared Heat Transfer Rate'
+    shade_infrared_var = 'Surface Window Inside Face Shade Net Infrared Heat Transfer Rate'
+
     zone.spaces.sort.each do |space|
       space.surfaces.each do |surface|
         surface_name = surface.name.get
@@ -534,24 +492,55 @@ module OsLib_HeatTransfer
         total_surface_convection += vect
 
         # SubSurfaces
+        
+        # If no shades:
+        # Window net heat gain = convective, net transmitted solar, net IR
+        # - Window transmitted solar handled above
+        # - Surface Inside Face Convection Heat Gain = Surface Window Inside Face Glazing Zone Convection Heat Gain
+        # - Net IR needs to be approtioned as delayed to other surfaces
+        # With shades:
+        # Additional components from Gap between Window and Shade Convection and Shade Net IR
+        # - Surface Inside Face Convection Heat Gain = Surface Window Inside Face Shade Zone Convective Heat Gain
+        # - Gap between Shade and Glazing Zone Convection goes into Internal Convective Heat Gain in ZAHB
+        # - Shade Net IR needs to be approtioned as delayed gains to other surfaces
         surface.subSurfaces.each do |sub_surface|
           sub_surface_name = sub_surface.name.get
-          ht_transfer_vals = OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, surface_inside_convection_output, sub_surface_name, num_ts, joules)
 
           # Determine the subsurface type
           sub_surface_type =  if sub_surface.subSurfaceType.downcase.include? 'window'
-                            'Exterior Window'
-                          elsif sub_surface.subSurfaceType.downcase.include? 'door'
-                            'Exterior Door'
-                          else # assume others are subsurfaces that are interior to the building and face other zones
-                            'Internal Surface'
-                          end
+                                'Exterior Window'
+                              elsif sub_surface.subSurfaceType.downcase.include? 'door'
+                                'Exterior Door'
+                              else # assume others are subsurfaces that are interior to the building and face other zones
+                                'Internal Surface'
+                              end
           zone_surface_areas[sub_surface_type] += sub_surface.netArea
 
-          # Add to total for this surface type
+          ht_transfer_vals = OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, surface_inside_convection_output, sub_surface_name, num_ts, joules)
           vect = -1.0 * Vector.elements(ht_transfer_vals) # reverse sign of vector
+
+          # Add to total for this surface type
           heat_transfer_vectors["Zone #{sub_surface_type} Convection Heat Transfer Energy"] += vect
           total_surface_convection += vect
+          
+          # determine if shade is modeled
+          if sub_surface_type == 'Exterior Window' 
+            if !sub_surface.shadingControls.empty?
+              # add gap convection to internal gains
+              # only output is a rate 'to the zone', so don't flip the sign
+              shade_gap_conv_vals = sec_per_step * Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, shade_convection_output, sub_surface_name, num_ts, watts))
+              # add to window convective, but don't add to total_surface_convection because it's not included as such in the ZAHB
+              heat_transfer_vectors["Zone #{sub_surface_type} Convection Heat Transfer Energy"] += shade_gap_conv_vals
+              # this will get added to internal convection gains in the check against the ZAHB
+              heat_transfer_vectors['Zone Shading Gap Convection Heat Transfer Energy'] += shade_gap_conv_vals
+            end
+            # collect window/shade IR - these outputs are 'to the zone', so don't flip the sign
+            window_ir_vals = sec_per_step * Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, window_infrared_var, sub_surface_name, num_ts, watts))
+            shade_ir_vals = sec_per_step * Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, shade_infrared_var, sub_surface_name, num_ts, watts))
+            heat_transfer_vectors['Zone Windows Net IR Heat Transfer Energy'] += window_ir_vals
+            heat_transfer_vectors['Zone Windows Net IR Heat Transfer Energy'] += shade_ir_vals
+          end
+
         end
       end
 
@@ -579,6 +568,11 @@ module OsLib_HeatTransfer
       end
     end
 
+    # calculated delayed window radiant (IR)
+    window_delayed_ir_gain = calculate_radiant_delay(heat_transfer_vectors['Zone Windows Net IR Heat Transfer Energy'].to_a, steps_per_hour, 'nonsolar')
+    window_delayed_ir_gain_vect = Vector.elements(window_delayed_ir_gain)
+    heat_transfer_vectors['Zone Windows Delayed Net IR Heat Transfer Energy'] = window_delayed_ir_gain_vect
+
     # Check that the sum of surface convection matches the zone total surface convection rate
     true_total_surface_convection = sec_per_step * Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Air Heat Balance Surface Convection Rate', zone_name, num_ts, watts))
     total_surface_convection_difference = true_total_surface_convection - total_surface_convection
@@ -597,6 +591,81 @@ module OsLib_HeatTransfer
       heat_transfer_vectors["#{zone_name}: Annual Loss Error in Surface Convection"] = total_surface_convection_annual_loss_error
     end
 
+    # INTERNAL CONVECTIVE AND RADIANT GAINS
+
+    # Internal instant convective gains
+    # Internal gains include equipment (electric, gas, other), people, and lights
+    internal_convective_gain_outputs.each do |output|
+      vals = OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, output, zone_name, num_ts, joules)
+      vect = Vector.elements(vals)
+      heat_transfer_vectors[output] = vect
+      total_instant_internal_gains += vect
+    end
+
+    # add window shading convection to instant internal gains
+    total_instant_internal_gains += heat_transfer_vectors['Zone Shading Gap Convection Heat Transfer Energy']
+
+    # Report out combined electric and gas equipment
+    heat_transfer_vectors['Zone Equipment Instantaneous Convective Internal Gains'] = heat_transfer_vectors['Zone Electric Equipment Convective Heating Energy']
+    heat_transfer_vectors['Zone Equipment Instantaneous Convective Internal Gains'] += heat_transfer_vectors['Zone Gas Equipment Convective Heating Energy']
+    heat_transfer_vectors['Zone Equipment Instantaneous Convective Internal Gains'] += heat_transfer_vectors['Zone Hot Water Equipment Convective Heating Energy']
+    heat_transfer_vectors['Zone Equipment Instantaneous Convective Internal Gains'] += heat_transfer_vectors['Zone Other Equipment Convective Heating Energy']
+
+    # Compare Internal gains to EnergyPlus zone air heat balance
+    # true_total_internal_gains = sec_per_step * Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Total Internal Convective Heating Rate', zone_name, num_ts, watts))
+    true_total_internal_gains = sec_per_step * Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Air Heat Balance Internal Convective Heat Gain Rate', zone_name, num_ts, watts))
+    interal_gains_difference = true_total_internal_gains - total_instant_internal_gains
+    internal_gains_error = ts_error_between_vectors(total_instant_internal_gains, true_total_internal_gains, 4)
+    internal_gains_annual_gain_error = annual_heat_gain_error_between_vectors(total_instant_internal_gains, true_total_internal_gains, 4)
+    internal_gains_annual_loss_error = annual_heat_loss_error_between_vectors(total_instant_internal_gains, true_total_internal_gains, 4)
+    runner.registerInfo("#{zone_name}: Annual Gain Error in Internal Gains is #{internal_gains_annual_gain_error * 100}%, Annual Loss Error in Internal Gains is #{internal_gains_annual_loss_error * 100}%")
+
+    # include timeseries checks if in debug mode
+    if debug_mode
+      heat_transfer_vectors['True Internal Gains'] = true_total_internal_gains
+      heat_transfer_vectors['Calc Internal Gains'] = total_instant_internal_gains
+      heat_transfer_vectors['Diff Internal Gains'] = interal_gains_difference
+      heat_transfer_vectors['Error in Internal Gains'] = internal_gains_error
+      heat_transfer_vectors["#{zone_name}: Annual Gain Error in Internal Gains"] = internal_gains_annual_gain_error
+      heat_transfer_vectors["#{zone_name}: Annual Loss Error in Internal Gains"] = internal_gains_annual_loss_error
+    end
+
+    # Calculate delayed component of internal gains
+    internal_radiant_gain_outputs.each do |output|
+      vals = OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, output, zone_name, num_ts, joules)
+
+      rad_ary = calculate_radiant_delay(vals, steps_per_hour, 'nonsolar')
+
+      load_rad_vals = Vector.elements(rad_ary)
+      delayed_name = output.gsub('Radiant', 'Delayed Convective')
+      heat_transfer_vectors[delayed_name] = load_rad_vals
+      total_delayed_internal_gains += load_rad_vals
+
+      # Check that the annual sum of RTS radiant matches the annual sum of the radiant
+      ann_rad = vals.sum
+      ann_rts_rad = rad_ary.sum
+      if ((ann_rts_rad - ann_rad)/ann_rad).abs > 0.01
+        runner.registerError("#{delayed_name} RTS calculations had an error: annual radiant = #{ann_rad}, but annual RTS = #{ann_rts_rad}; they should be identical")
+      end
+    end
+    heat_transfer_vectors['Zone Equipment Delayed Convective Internal Gains'] = heat_transfer_vectors['Zone Electric Equipment Delayed Convective Heating Energy']
+    heat_transfer_vectors['Zone Equipment Delayed Convective Internal Gains'] += heat_transfer_vectors['Zone Gas Equipment Delayed Convective Heating Energy']
+    heat_transfer_vectors['Zone Equipment Delayed Convective Internal Gains'] += heat_transfer_vectors['Zone Hot Water Equipment Delayed Convective Heating Energy']
+    heat_transfer_vectors['Zone Equipment Delayed Convective Internal Gains'] += heat_transfer_vectors['Zone Other Equipment Delayed Convective Heating Energy']
+
+    # include timeseries checks if in debug mode
+    if debug_mode
+      # Total internal gain variables for validation
+      heat_transfer_vectors['Calc Delayed Internal Gains'] = total_delayed_internal_gains
+      # heat_transfer_vectors['Zone Air Heat Balance Internal Convective Heat Gain'] = sec_per_step * Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Air Heat Balance Internal Convective Heat Gain Rate', zone_name, num_ts, watts))
+      heat_transfer_vectors['Zone Air Heat Balance Internal Convective Heat Gain'] = true_total_internal_gains
+      heat_transfer_vectors['Zone Total Internal Radiant Heating'] = sec_per_step * Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Total Internal Radiant Heating Rate', zone_name, num_ts, watts))
+      heat_transfer_vectors['Zone Total Internal Convective Heating'] = sec_per_step * Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Total Internal Convective Heating Rate', zone_name, num_ts, watts))
+      heat_transfer_vectors['Zone Total Internal Latent Gain'] = sec_per_step * Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Total Internal Latent Gain Rate', zone_name, num_ts, watts))
+      heat_transfer_vectors['Zone Total Internal Total Heating'] = sec_per_step * Vector.elements(OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, 'Zone Total Internal Total Heating Rate', zone_name, num_ts, watts))
+    end
+
+    # SURFACE CONVECTION CORRECTION
     # calculate total zone surface area
     total_zone_surface_area = 0
     total_zone_exterior_surface_area = 0
@@ -631,33 +700,45 @@ module OsLib_HeatTransfer
     attributable_total_surface_convection -= wind_rts_solar_rad_vals
 
     # Subtract delayed internal loads from surface convection proportional to surface area
+    # subtract delayed glazing gain from non-window surface convection proportional to surface area
     zone_surface_areas.each do |k, v|
       surface_fraction = v / total_zone_surface_area
       case k
       when 'Exterior Wall'
         heat_transfer_vectors['Zone Exterior Wall Convection Heat Transfer Energy'] -= surface_fraction * total_delayed_internal_gains
+        heat_transfer_vectors['Zone Exterior Wall Convection Heat Transfer Energy'] -= surface_fraction * window_delayed_ir_gain_vect
       when 'Exterior Foundation Wall'
         heat_transfer_vectors['Zone Exterior Foundation Wall Convection Heat Transfer Energy'] -= surface_fraction * total_delayed_internal_gains
+        heat_transfer_vectors['Zone Exterior Foundation Wall Convection Heat Transfer Energy'] -= surface_fraction * window_delayed_ir_gain_vect
       when 'Exterior Roof'
         heat_transfer_vectors['Zone Exterior Roof Convection Heat Transfer Energy'] -= surface_fraction * total_delayed_internal_gains
+        heat_transfer_vectors['Zone Exterior Roof Convection Heat Transfer Energy'] -= surface_fraction * window_delayed_ir_gain_vect
       when 'Exterior Floor'
         heat_transfer_vectors['Zone Exterior Floor Convection Heat Transfer Energy'] -= surface_fraction * total_delayed_internal_gains
+        heat_transfer_vectors['Zone Exterior Floor Convection Heat Transfer Energy'] -= surface_fraction * window_delayed_ir_gain_vect
       when 'Exterior Ground'
         heat_transfer_vectors['Zone Exterior Ground Convection Heat Transfer Energy'] -= surface_fraction * total_delayed_internal_gains
+        heat_transfer_vectors['Zone Exterior Ground Convection Heat Transfer Energy'] -= surface_fraction * window_delayed_ir_gain_vect
       when 'Exterior Window'
         heat_transfer_vectors['Zone Exterior Window Convection Heat Transfer Energy'] -= surface_fraction * total_delayed_internal_gains
       when 'Exterior Door'
         heat_transfer_vectors['Zone Exterior Door Convection Heat Transfer Energy'] -= surface_fraction * total_delayed_internal_gains
+        heat_transfer_vectors['Zone Exterior Door Convection Heat Transfer Energy'] -= surface_fraction * window_delayed_ir_gain_vect
       when 'Interior Wall'
         heat_transfer_vectors['Zone Interior Wall Convection Heat Transfer Energy'] -= surface_fraction * total_delayed_internal_gains
+        heat_transfer_vectors['Zone Interior Wall Convection Heat Transfer Energy'] -= surface_fraction * window_delayed_ir_gain_vect
       when 'Interior Floor'
         heat_transfer_vectors['Zone Interior Floor Convection Heat Transfer Energy'] -= surface_fraction * total_delayed_internal_gains
+        heat_transfer_vectors['Zone Interior Floor Convection Heat Transfer Energy'] -= surface_fraction * window_delayed_ir_gain_vect
       when 'Interior Ceiling'
         heat_transfer_vectors['Zone Interior Ceiling Convection Heat Transfer Energy'] -= surface_fraction * total_delayed_internal_gains
+        heat_transfer_vectors['Zone Interior Ceiling Convection Heat Transfer Energy'] -= surface_fraction * window_delayed_ir_gain_vect
       when 'Internal Mass'
         heat_transfer_vectors['Zone Internal Mass Convection Heat Transfer Energy'] -= surface_fraction * total_delayed_internal_gains
+        heat_transfer_vectors['Zone Internal Mass Convection Heat Transfer Energy'] -= surface_fraction * window_delayed_ir_gain_vect
       when 'Internal Surface'
         heat_transfer_vectors['Zone Internal Surface Convection Heat Transfer Energy'] -= surface_fraction * total_delayed_internal_gains
+        heat_transfer_vectors['Zone Internal Surface Convection Heat Transfer Energy'] -= surface_fraction * window_delayed_ir_gain_vect
       else
         puts "what is #{k}??"
       end
@@ -666,7 +747,10 @@ module OsLib_HeatTransfer
       end
     end
     attributable_total_surface_convection -= total_delayed_internal_gains
+    attributable_total_surface_convection -= window_delayed_ir_gain_vect
 
+    
+    
     # redistribute Interior and Internal convection back to exterior surfaces
     interior_convection_terms = [
       'Zone Interior Wall Convection Heat Transfer Energy',
@@ -708,6 +792,16 @@ module OsLib_HeatTransfer
     # Re-attributed delayed solar, delayed internal gains, and internal surface convection to exterior surfaces
     # The remain convection value is attributable to exterior surface convection only
     heat_transfer_vectors['Calc Attributable Exterior Surface Convection'] = attributable_total_surface_convection
+
+    # REFRIGERATION
+
+    # Refrigeration includes cases and walk-ins
+    refrigeration_gains_outputs.each do |output|
+      vals = OsLib_SqlFile.get_timeseries_array(runner, sql, ann_env_pd, freq, output, zone_name, num_ts, joules)
+      vect = Vector.elements(vals)
+      heat_transfer_vectors[output] = vect
+      total_instant_refrigeration_gains += vect
+    end
 
     # INFILTRATION, AIR TRANSFER, AND VENTILATION LOADS
 
@@ -815,7 +909,7 @@ module OsLib_HeatTransfer
     true_total_energy_balance = hvac_systems_heat_transfer_energy + (2.0 * true_air_energy_storage)
 
     # Calculated zone heat transfer
-    total_zone_heat_transfer = total_instant_internal_gains + total_instant_refrigeration_gains + total_delayed_internal_gains + total_window_radiation + attributable_total_surface_convection + total_infiltration_gains + total_interzone_air_gains
+    total_zone_heat_transfer = total_instant_internal_gains + total_instant_refrigeration_gains + total_delayed_internal_gains + total_window_radiation + window_delayed_ir_gain_vect + attributable_total_surface_convection + total_infiltration_gains + total_interzone_air_gains
     total_zone_energy_balance_difference = true_total_energy_balance + total_zone_heat_transfer
     total_zone_energy_balance_error = ts_error_between_vectors(total_zone_heat_transfer, -1 * true_total_energy_balance, 4) # Reverse sign of one before comparing
     total_zone_energy_balance_annual_gain_error = annual_heat_gain_error_between_vectors(total_zone_heat_transfer, -1 * true_total_energy_balance, 4) # Reverse sign of one before comparing
