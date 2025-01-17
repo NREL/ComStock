@@ -12,8 +12,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   # defining global variable
   # adding tolerance because EnergyPlus unit conversion differs from manual conversion
   # reference: https://github.com/NREL/EnergyPlus/blob/337bfbadf019a80052578d1bad6112dca43036db/src/EnergyPlus/DataHVACGlobals.hh#L362-L368
-  CFM_PER_TON_MIN_RATED = 300 * (1 + 0.08) # hard limit of 300 and tolerance of 8% (based on EP unit conversion mismatch plus more)
-  CFM_PER_TON_MAX_RATED = 450 * (1 - 0.08) # hard limit of 450 and tolerance of 8% (based on EP unit conversion mismatch plus more)
+  CFM_PER_TON_MIN_RATED = 300 #* (1 + 0.08) # hard limit of 300 and tolerance of 8% (based on EP unit conversion mismatch plus more)
+  CFM_PER_TON_MAX_RATED = 450 #* (1 - 0.08) # hard limit of 450 and tolerance of 8% (based on EP unit conversion mismatch plus more)
   # CFM_PER_TON_MIN_OPERATIONAL = 200 # hard limit of 200 for operational minimum threshold for both heating/cooling
   # CFM_PER_TON_MAX_OPERATIONAL_HEATING = 600 # hard limit of 600 for operational maximum threshold for both heating
   # CFM_PER_TON_MAX_OPERATIONAL_COOLING = 500 # hard limit of 500 for operational maximum threshold for both cooling
@@ -1395,7 +1395,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       runner.registerInfo('sizing summary: sizing run needed')
       return false if std.model_run_sizing_run(model, "#{Dir.pwd}/SR1") == false
 
-      model.applySizingValues
+      if is_sizing_run_needed == true
+        model.applySizingValues
+      end
     end
 
     # get sql from sizing run
@@ -2188,8 +2190,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       upsize_factor = (dx_rated_htg_cap_applied - orig_clg_coil_gross_cap) / orig_clg_coil_gross_cap
 
       # upsize airflow accordingly
-      design_heating_airflow_m_3_per_s *= (1 + upsize_factor)
-      design_cooling_airflow_m_3_per_s *= (1 + upsize_factor)
+      # design_heating_airflow_m_3_per_s *= (1 + upsize_factor)
+      # design_cooling_airflow_m_3_per_s *= (1 + upsize_factor)
 
       if debug_verbose
         runner.registerInfo('sizing summary: before rated cfm/ton adjustmant')
