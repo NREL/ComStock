@@ -82,7 +82,7 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
     end
 
     # set new boiler supply temp to 140F to represent condensing boiler
-    hw_setpoint_f = 140
+    hw_setpoint_f = 180
     hw_setpoint_c = OpenStudio.convert(hw_setpoint_f, 'F', 'C').get
 
     # set delta T for hw loop to 22.2 C, which corresponds to 100 F return temp
@@ -111,7 +111,7 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
 
     sizing_systems = model.getSizingSystems
     sizing_systems.each do |sizing_system|
-      sizing_system.autosizeHeatingDesignCapacity
+      #sizing_system.autosizeHeatingDesignCapacity
     end
 
     #set empty array for hot water coils
@@ -136,8 +136,8 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
       boiler.setWaterOutletUpperTemperatureLimit(hw_setpoint_c)
       
       #autosize the boiler capacity. should not make a difference if running standalone measure, but could downsize if run with other upgrades. 
-      boiler.autosizeDesignWaterFlowRate
-      boiler.autosizeNominalCapacity
+      # boiler.autosizeDesignWaterFlowRate
+      # boiler.autosizeNominalCapacity
 
       if existing_boiler_name.get.include?('Supplemental')
         # denotes boiler is a supplemental boiler located on a condenser loop. do not resize pump or reset loop temp.
@@ -150,8 +150,8 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
         htg_loop_sizing = htg_loop.sizingPlant
         htg_loop_sizing.setDesignLoopExitTemperature(hw_setpoint_c)
         htg_loop_sizing.setLoopDesignTemperatureDifference(hw_delta_t_c)
-        htg_loop.autosizeMaximumLoopFlowRate
-        htg_loop.autocalculatePlantLoopVolume
+        #htg_loop.autosizeMaximumLoopFlowRate
+        #htg_loop.autocalculatePlantLoopVolume
 
         htg_loop.supplyOutletNode.setpointManagers.each do |spm|
           spm.remove
@@ -162,9 +162,9 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
 
         # create new OA reset setpoint manager with settings: hw temp 140f for air temp <20F, hw temp 120F for air temp >50F
         oa_reset_sp_mgr = OpenStudio::Model::SetpointManagerOutdoorAirReset.new(model)
-        oa_reset_sp_mgr.setSetpointatOutdoorHighTemperature(OpenStudio.convert(120, 'F', 'C').get)
+        oa_reset_sp_mgr.setSetpointatOutdoorHighTemperature(OpenStudio.convert(140, 'F', 'C').get)
         oa_reset_sp_mgr.setOutdoorHighTemperature(OpenStudio.convert(50, 'F', 'C').get)
-        oa_reset_sp_mgr.setSetpointatOutdoorLowTemperature(OpenStudio.convert(140, 'F', 'C').get)
+        oa_reset_sp_mgr.setSetpointatOutdoorLowTemperature(OpenStudio.convert(180, 'F', 'C').get)
         oa_reset_sp_mgr.setOutdoorLowTemperature(OpenStudio.convert(20, 'F', 'C').get)
         
         # add to supply outlet node
@@ -177,8 +177,8 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
 
           pump = sup_comp.to_PumpVariableSpeed.get
           # runner.registerInfo('at pump')
-          pump.autosizeRatedFlowRate
-          pump.autosizeRatedPowerConsumption
+          #pump.autosizeRatedFlowRate
+          #pump.autosizeRatedPowerConsumption
         end
 
         boiler.setName("Main Condensing Boiler Thermal Eff 0.95")
@@ -190,10 +190,10 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
       air_loop.supplyComponents.each do |sup_comp|
         if sup_comp.to_FanConstantVolume.is_initialized
           const_vol_fan = sup_comp.to_FanConstantVolume.get
-          const_vol_fan.autosizeMaximumFlowRate
+          # const_vol_fan.autosizeMaximumFlowRate
         elsif sup_comp.to_FanVariableVolume.is_initialized
           var_vol_fan = sup_comp.to_FanVariableVolume.get
-          var_vol_fan.autosizeMaximumFlowRate
+          # var_vol_fan.autosizeMaximumFlowRate
         end
       end
     end
@@ -206,18 +206,18 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
       coil.setRatedOutletWaterTemperature(hw_return_temp_c)
       #coil.setRatedInletAirTemperature(12.8) #set to 55F
       #coil.setRatedOutletAirTemperature(32.2) #set return air temp to 90F
-      coil.autosizeMaximumWaterFlowRate
-      coil.autosizeUFactorTimesAreaValue
-      coil.autosizeRatedCapacity
+      #coil.autosizeMaximumWaterFlowRate
+      #coil.autosizeUFactorTimesAreaValue
+      #coil.autosizeRatedCapacity
     end
 
     # also check for hot water baseboard coils
     baseboard_hw_coils = model.getCoilHeatingWaterBaseboards
     baseboard_hw_coils.each do |coil|
       # get hot water baseboard coils and  autosize
-      coil.autosizeMaximumWaterFlowRate
-      coil.autosizeUFactorTimesAreaValue
-      coil.autosizeHeatingDesignCapacity
+      #coil.autosizeMaximumWaterFlowRate
+      #coil.autosizeUFactorTimesAreaValue
+      #coil.autosizeHeatingDesignCapacity
     end
 
     #re-autosize zone air terminals and fan coil units to accommodate for new air flow rates
@@ -226,21 +226,21 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
       zone.equipment.each do |equip|
         if equip.to_ZoneHVACFourPipeFanCoil.is_initialized
           zone_fan_coil = equip.to_ZoneHVACFourPipeFanCoil.get
-          zone_fan_coil.autosizeMaximumSupplyAirFlowRate
-          zone_fan_coil.autosizeMaximumHotWaterFlowRate
+          #zone_fan_coil.autosizeMaximumSupplyAirFlowRate
+          #zone_fan_coil.autosizeMaximumHotWaterFlowRate
           if zone_fan_coil.supplyAirFan.to_FanOnOff.is_initialized
             fan = zone_fan_coil.supplyAirFan.to_FanOnOff.get
-            fan.autosizeMaximumFlowRate
+            #fan.autosizeMaximumFlowRate
           end
         elsif equip.to_AirTerminalSingleDuctVAVReheat.is_initialized
           vav_terminal = equip.to_AirTerminalSingleDuctVAVReheat.get
-          vav_terminal.autosizeMaximumAirFlowRate
-          vav_terminal.autosizeConstantMinimumAirFlowFraction
-          vav_terminal.autosizeFixedMinimumAirFlowRate
-          vav_terminal.autosizeMaximumHotWaterOrSteamFlowRate
+          #vav_terminal.autosizeMaximumAirFlowRate
+          #vav_terminal.autosizeConstantMinimumAirFlowFraction
+          #vav_terminal.autosizeFixedMinimumAirFlowRate
+          #vav_terminal.autosizeMaximumHotWaterOrSteamFlowRate
         elsif equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
           air_terminal = equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.get
-          air_terminal.autosizeMaximumAirFlowRate
+          #air_terminal.autosizeMaximumAirFlowRate
         end
       end
     end
