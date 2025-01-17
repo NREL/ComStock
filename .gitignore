@@ -26,3 +26,7 @@ lib/
 /sampling/truth_data
 *.pyc
 report.xml
+generated_files/
+reports/
+run/
+out.osw
