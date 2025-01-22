@@ -3,6 +3,7 @@
 import os
 from functools import lru_cache
 from fsspec.core import url_to_fs
+from joblib import Parallel, delayed
 
 import boto3
 import botocore
@@ -25,7 +26,7 @@ from comstockpostproc.eia import EIA
 from comstockpostproc.ami import AMI
 from comstockpostproc.comstock_apportionment import Apportion
 from comstockpostproc.gas_correction_model import GasCorrectionModelMixin
-from comstockpostproc.s3_utilities_mixin import S3UtilitiesMixin
+from comstockpostproc.s3_utilities_mixin import S3UtilitiesMixin, write_geo_data
 from buildstock_query import BuildStockQuery
 
 logger = logging.getLogger(__name__)
@@ -2287,6 +2288,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         #     'data_types': ['full', 'basic'],
         #     'file_types': ['csv', 'parquet'],
         # },
+        # NOTE: data_types must be specified from most columns to fewest
+        # AKA ['detailed', 'full', 'basic'] to work properly.
 
         # Get list of upgrade IDs
         upgrade_ids = pl.Series(self.data.select(pl.col(self.UPGRADE_ID)).unique().collect()).to_list()
@@ -2336,6 +2339,37 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 for file_type in file_types:
                     out_location['fs'].mkdirs(f'{full_geo_agg_dir}/{data_type}/{file_type}', exist_ok=True)
 
+            # Builds a file path for each aggregate based on name, file type, and aggregation level
+            def get_file_path(full_geo_agg_dir, full_geo_dir, geo_prefixes, geo_levels, file_type, aggregation_level):
+                # Start with either /metadata_and_annual_results or /metadata_and_annual_results_aggregates
+                agg_level_dir = full_geo_agg_dir
+                if aggregation_level is None:
+                    agg_level_dir = full_geo_dir
+                geo_level_dir = f'{agg_level_dir}/{data_type}/{file_type}'
+                if len(geo_levels) > 0:
+                    geo_level_dir = f'{geo_level_dir}/' + '/'.join(geo_levels)
+                out_location['fs'].mkdirs(geo_level_dir, exist_ok=True)
+                # File name includes either 'baseline' or 'upgradeXX'
+                file_name = f'upgrade{upgrade_id:02d}'
+                if upgrade_id == 0:
+                    file_name = 'baseline'
+                # Add geography prefix to filename
+                if len(geo_prefixes) > 0:
+                    geo_prefix = '_'.join(geo_prefixes)
+                    file_name = f'{geo_prefix}_{file_name}'
+                # Add aggregate suffix to filename
+                if aggregation_level is not None:
+                    file_name = f'{file_name}_agg'
+                # Add data_type suffix to filename
+                if data_type == 'basic':
+                    file_name = f'{file_name}_{data_type}'
+                # Add the filetype extension to filename
+                file_name = f'{file_name}.{file_type}'
+                # Write the file, depending on filetype
+                file_path = f'{geo_level_dir}/{file_name}'
+
+                return file_path
+
             # Write a file for each upgrade X geography combo for each file type
             for upgrade_id in upgrade_ids:
                 # Get the fkt and self.data for this upgrade
@@ -2355,43 +2389,94 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
                     # Handle aggregated vs. non-aggregated differently because of memory usage
                     if aggregation_level is None:
-                        # If there is no aggregation, wait and collect a dataframe for each first-level geography
-                        # to avoid overwhelming the memory
-                        logger.info(f'Waiting to collect a dataframe for each geography')
-                    else:
-                        # If there is any aggregation, collect a single dataframe with all geographies and savings columns
-                        # Memory usage should work on most laptops
-                        no_geo_filters = {}
-                        agg_lvl_list = [aggregation_level]
-                        if isinstance(aggregation_level, list):
-                            agg_lvl_list = aggregation_level  # Pass list if a list is already supplied
-                        to_write = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, no_geo_filters, agg_lvl_list, starting_downselect)
-                        to_write = to_write.collect()
-                        logger.info(f'There are {to_write.shape[0]:,} total rows at the aggregation level {aggregation_level}')
+                        # Iterate by first level of geographic partitioning, collecting the DataFrame
+                        # for this geography then writing files for all the sub-geographies within it.
+                        for first_geo_combo in first_geo_combos.iter_rows(named=True):
+                            print(f'first_geo_combo: {first_geo_combo}')
 
-                    # Iterate by first level of geographic partitioning
-                    for first_geo_combo in first_geo_combos.iter_rows(named=True):
-                        # print(f'first_geo_combo: {first_geo_combo}')
-
-                        # Handle aggregated vs. non-aggregated differently because of memory usage
-                        first_geo_filters = {}
-                        if aggregation_level is None:
-                            # If there is no aggregation, collect the partial dataframe for the first level geography
+                            # Get the filters for the first level geography
+                            first_geo_filters = {}
                             for k, v in first_geo_combo.items():
                                 if k == 'geography' and v == 'national':
-                                    pass
-                                else:
-                                    first_geo_filters[k] = v
-                            agg_lvl_list = [aggregation_level]
+                                    continue
+                                first_geo_filters[k] = v
+
+                            # Collect the dataframe for the first level geography
+                            agg_lvl_list = [aggregation_level] # TODO move handling of this inside create_geospatial_slice_of_metadata
                             if isinstance(aggregation_level, list):
                                 agg_lvl_list = aggregation_level  # Pass list if a list is already supplied
                             to_write = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, first_geo_filters, agg_lvl_list, starting_downselect)
                             to_write = to_write.collect()
                             logger.info(f'There are {to_write.shape[0]:,} total rows for {first_geo_filters}')
 
+                            # Queue writes for each geography
+                            combos_to_write = []
+                            for geo_combo in geo_combos.iter_rows(named=True):
+                                # print(f'geo_combo: {geo_combo}')
+
+                                # Get the filters for the geography
+                                geo_filters = {}
+                                geo_levels = []
+                                geo_prefixes = []
+                                for k, v in geo_combo.items():
+                                    if k == 'geography' and v == 'national':
+                                        continue
+                                    geo_filters[k] = v
+                                    geo_levels.append(f'{partition_cols[k]}={v}')
+                                    geo_prefixes.append(v)
+
+                                # Skip geo_combos that aren't in this first-level partitioning. e.g. counties not in a state
+                                first_level_geo_combo_val = list(first_geo_filters.values())[0]
+                                geo_combo_val = list(geo_filters.values())[0]
+                                if not geo_combo_val == first_level_geo_combo_val:
+                                    logger.info(f'Skipping {geo_combo} because not in this partition ({geo_combo_val} != {first_level_geo_combo_val})')
+                                    continue
+
+                                # Filter already-collected dataframe to specified geography
+                                if len(geo_filters) > 0:
+                                    geo_filter_exprs = [(pl.col(k) == v) for k, v in geo_filters.items()]
+                                    geo_data = to_write.filter(geo_filter_exprs)
+                                else:
+                                    geo_data = to_write
+
+                                # Sort by building ID
+                                geo_data = geo_data.sort(by=self.BLDG_ID)
+
+                                # Queue write for each data type
+                                for data_type in data_types:
+
+                                    # Downselect columns further if appropriate
+                                    if not data_type == starting_downselect:
+                                        geo_data = self.downselect_columns_for_metadata_export(geo_data, data_type)
+                                        geo_data = self.reorder_data_columns(geo_data)
+
+                                    # Queue write for all selected filetypes
+                                    n_rows, n_cols = geo_data.shape
+                                    for file_type in file_types:
+                                        file_path = get_file_path(full_geo_agg_dir, full_geo_dir, geo_prefixes, geo_levels, file_type, aggregation_level)
+                                        logger.info(f"Queuing {file_path}: n_cols = {n_cols:,}, n_rows = {n_rows:,}")
+                                        combo = (geo_data.clone(), out_location, file_type, file_path)
+                                        combos_to_write.append(combo)
+
+                            # Write files in parallel
+                            logger.info(f'Writing {len(combos_to_write)} files in parallel')
+                            logger.info(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                            Parallel(n_jobs=12)(delayed(write_geo_data)(combo) for combo in combos_to_write)
+                            logger.info(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+                    else:
+                        # If there is any aggregation, collect a single dataframe with all geographies and savings columns
+                        # Memory usage should work on most laptops
+                        no_geo_filters = {}
+                        agg_lvl_list = [aggregation_level] # TODO move handling of this inside create_geospatial_slice_of_metadata
+                        if isinstance(aggregation_level, list):
+                            agg_lvl_list = aggregation_level  # Pass list if a list is already supplied
+                        to_write = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, no_geo_filters, agg_lvl_list, starting_downselect)
+                        to_write = to_write.collect()
+                        logger.info(f'There are {to_write.shape[0]:,} total rows at the aggregation level {aggregation_level}')
+
                         # Process each geography and downselect columns
-                        # Make a directory for each combination of geography column values
-                        # and write the subset of data for this combination to that directory
+                        combos_to_write = []
                         for geo_combo in geo_combos.iter_rows(named=True):
                             # print(f'geo_combo: {geo_combo}')
 
@@ -2400,19 +2485,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                             geo_prefixes = []
                             for k, v in geo_combo.items():
                                 if k == 'geography' and v == 'national':
-                                    pass
-                                else:
-                                    geo_filters[k] = v
-                                    geo_levels.append(f'{partition_cols[k]}={v}')
-                                    geo_prefixes.append(v)
-
-                            # Skip geo_combos that aren't in this first-level partitioning
-                            if first_geo_filters:
-                                first_level_geo_combo_val = list(first_geo_filters.values())[0]
-                                geo_combo_val = list(geo_filters.values())[0]
-                                if not geo_combo_val == first_level_geo_combo_val:
-                                    # logger.info(f'Skipping {geo_combo} because not in this partition ({geo_combo_val} != {first_level_geo_combo_val})')
                                     continue
+                                geo_filters[k] = v
+                                geo_levels.append(f'{partition_cols[k]}={v}')
+                                geo_prefixes.append(v)
 
                             # Filter already-collected dataframe to specified geography
                             if len(geo_filters) > 0:
@@ -2424,9 +2500,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                             # Sort by building ID
                             geo_data = geo_data.sort(by=self.BLDG_ID)
 
-                            # Write each data type
-                            # NOTE: data_types must be specified from most columns to fewest
-                            # AKA ['detailed', 'full', 'basic'] to work properly.
+                            # Queue write for each data type
                             for data_type in data_types:
 
                                 # Downselect columns further if appropriate
@@ -2434,50 +2508,28 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                     geo_data = self.downselect_columns_for_metadata_export(geo_data, data_type)
                                     geo_data = self.reorder_data_columns(geo_data)
 
+                                # Queue write for all selected filetypes
                                 n_rows, n_cols = geo_data.shape
-
-                                # Write all selected filetypes
                                 for file_type in file_types:
-                                    # Make a directory for this geography
-                                    agg_level_dir = full_geo_agg_dir
-                                    if aggregation_level is None:
-                                        agg_level_dir = full_geo_dir
-                                    geo_level_dir = f'{agg_level_dir}/{data_type}/{file_type}'
-                                    if len(geo_levels) > 0:
-                                        geo_level_dir = f'{geo_level_dir}/' + '/'.join(geo_levels)
-                                    out_location['fs'].mkdirs(geo_level_dir, exist_ok=True)
-                                    # File name
-                                    file_name = f'upgrade{upgrade_id:02d}'
-                                    if upgrade_id == 0:
-                                        file_name = 'baseline'
-                                    # Add geography prefix to filename
-                                    if len(geo_prefixes) > 0:
-                                        geo_prefix = '_'.join(geo_prefixes)
-                                        file_name = f'{geo_prefix}_{file_name}'
-                                    # Add aggregate suffix to filename
-                                    if aggregation_level is not None:
-                                        file_name = f'{file_name}_agg'
-                                    # Add data_type suffix to filename
-                                    if data_type == 'basic':
-                                        file_name = f'{file_name}_{data_type}'
-                                    # Add the filetype extension to filename
-                                    file_name = f'{file_name}.{file_type}'
-                                    # Write the file, depending on filetype
-                                    file_path = f'{geo_level_dir}/{file_name}'
-                                    logger.info(f"Writing {file_path}: n_cols = {n_cols:,}, n_rows = {n_rows:,}")
-                                    if file_type == 'csv':
-                                        self.write_polars_csv_to_s3_or_local(geo_data, out_location['fs'], file_path)
-                                    elif file_type == 'parquet':
-                                        with out_location['fs'].open(file_path, "wb") as f:
-                                            geo_data.write_parquet(f, use_pyarrow=True)
-                                    else:
-                                        raise RuntimeError(f'Unknown file type {file_type} requested in export_metadata_and_annual_results()')
+                                    file_path = get_file_path(full_geo_agg_dir, full_geo_dir, geo_prefixes, geo_levels, file_type, aggregation_level)
+                                    logger.info(f"Queuing {file_path}: n_cols = {n_cols:,}, n_rows = {n_rows:,}")
+                                    combo = (geo_data.clone(), out_location, file_type, file_path)
+                                    combos_to_write.append(combo)
+
+                        # Write files in parallel
+                        logger.info(f'Writing {len(combos_to_write)} files in parallel')
+                        logger.info(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                        Parallel(n_jobs=12)(delayed(write_geo_data)(combo) for combo in combos_to_write)
+                        logger.info(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
             ge_tend = datetime.datetime.now()
             logger.info(f'Finished exporting: {geo_top_dir}. ')
             logger.info(f'Partitioned by: {geo_col_names}')
             logger.info(f'Geographic aggregation levels: {aggregation_levels}')
             logger.info(f'Time elapsed: {(ge_tend - ge_tstart).total_seconds()} seconds')
+
+        # Export dictionaries corresponding to the exported columns
+        self.export_data_and_enumeration_dictionary()
 
     def add_weights_aportioned_by_stock_estimate(self,
                                                  apportionment: Apportion,
