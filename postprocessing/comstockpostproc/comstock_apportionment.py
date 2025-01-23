@@ -455,6 +455,8 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         # Assign random values from 0 to 1 to each row. This will be used for assignment to actual tracts.
         # The random values are then sorted because the join will be an "as_of" join that requires left
         # and right dataframes to be sorted by the join keys.
+        # Set the numpy random seed to make the results more predictable - note this is bad for Ry and Hernan's work
+        np.random.seed(12345)
         null_tracts = df.loc[df['tract'].isnull()]
         null_tracts['random_values'] = np.random.rand(len(null_tracts))
         null_tracts = null_tracts.sort_values(['random_values'])
@@ -579,6 +581,8 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
         # Use the merged probabilities to sample in fuel type
         # Note this can be made fuel type enumeration agnostic by looping over fcols but it is very not readable
+        # Set the numpy random seed - note this is bad for Ry and Hernan's work
+        np.random.seed(54321)
         df.loc[: , 'ft_rand'] = np.random.rand(df.shape[0])
         df.loc[:, 'heating_fuel'] = 'DistrictHeating'
         df.loc[df.loc[:, 'ft_rand'] >= df.loc[:, 'DistrictHeating'], 'heating_fuel'] = 'Electricity'
