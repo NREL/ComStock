@@ -1,0 +1,19 @@
+from pyenergyplus.plugin import EnergyPlusPlugin
+
+class LoadSummary(EnergyPlusPlugin):
+
+    def __init__(self):
+
+        super().__init__()
+        self.need_to_get_handles = True
+
+    def get_handles(self, state):
+
+        self.need_to_get_handles = False
+
+    def on_end_of_zone_timestep_before_zone_reporting(self, state) -> int:
+
+        if self.need_to_get_handles:
+            self.get_handles(state)
+
+        return 0

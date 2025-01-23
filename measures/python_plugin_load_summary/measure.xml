@@ -3,9 +3,9 @@
   <schema_version>3.1</schema_version>
   <name>python_plugin_load_summary</name>
   <uid>43529957-d29b-4f5a-9ea2-8ca171569220</uid>
-  <version_id>38e285fc-72f8-40e0-8164-07f1c48af124</version_id>
-  <version_modified>2025-01-17T22:51:15Z</version_modified>
-  <xml_checksum>7B63CA0B</xml_checksum>
+  <version_id>676145b0-7378-4aff-b55e-0f19b449202f</version_id>
+  <version_modified>2025-01-23T15:45:14Z</version_modified>
+  <xml_checksum>10B76AB1</xml_checksum>
   <class_name>PythonPluginLoadSummary</class_name>
   <display_name>Python Plugin Loads Summary</display_name>
   <description>Breaks out the building load and HVAC by end-use</description>
@@ -19,7 +19,7 @@
   <attributes>
     <attribute>
       <name>Measure Type</name>
-      <value>ModelMeasure</value>
+      <value>ReportingMeasure</value>
       <datatype>string</datatype>
     </attribute>
     <attribute>
@@ -38,7 +38,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>8A872931</checksum>
+      <checksum>CC88F084</checksum>
+    </file>
+    <file>
+      <filename>python_plugin.py.erb</filename>
+      <filetype>erb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>931C3BBA</checksum>
     </file>
   </files>
 </measure>

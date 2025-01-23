@@ -1,8 +1,10 @@
 # ComStock, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
+require 'erb'
+
 # start the measure
-class PythonPluginLoadSummary < OpenStudio::Measure::ModelMeasure
+class PythonPluginLoadSummary < OpenStudio::Measure::ReportingMeasure
 
   # human readable name
   def name
@@ -21,22 +23,37 @@ class PythonPluginLoadSummary < OpenStudio::Measure::ModelMeasure
 
   # define the arguments that the user will input
   def arguments(model = nil)
+
     # create empty argument vector to add arguments to
     args = OpenStudio::Measure::OSArgumentVector.new
+
     return args
   end
 
-  # define what happens when the measure is run
-  def run(model, runner, usr_args)
+  def energyPlusOutputRequests(runner, usr_args)
 
     # call the parent class method
-    super(model, runner, usr_args)
+    super(runner, usr_args)
+
+    # define idf object vector
+    result = OpenStudio::IdfObjectVector.new
+
+    # get the model and zones
+    model = runner.lastOpenStudioModel
+    if model.empty?
+      runner.registerError('Cannot find last model')
+      return result
+    end
+    model = model.get
+    zones = model.getThermalZones
 
     # use the built-in error checking
-    return false unless runner.validateUserArguments(arguments(model), usr_args)
+    unless runner.validateUserArguments(arguments(model), usr_args)
+      return false
+    end
 
-    # define necessary E+ output variables
-    outputs = [
+    # define necessary e+ output variables
+    out_vars = [
       # internal gains, convective
       'Zone People Convective Heating Energy',
       'Zone Lights Convective Heating Energy',
@@ -84,84 +101,50 @@ class PythonPluginLoadSummary < OpenStudio::Measure::ModelMeasure
       'Zone Total Internal Total Heating Rate'
     ]
 
+    # trim to one output for testing
+    out_vars = ['Zone People Convective Heating Energy']
+
     # add outputs, fix frequency at runperiod
     # python plugin just needs variable to exist in the idf
     # setting to minimum frequency reduces runtime overhead
-    outputs.each do |o|
-      model.getThermalZones.each do |z|
-        out_var = OpenStudio::Model::OutputVariable.new(o, model)
-        out_var.setKeyValue(z.name.get)
-        out_var.setReportingFrequency('RunPeriod')
+    out_vars.each do |o|
+      zones.each do |z|
+        n = z.name.get
+        result << OpenStudio::IdfObject.load(
+          "Output:Variable,#{n},#{o},RunPeriod;"
+        ).get
       end
     end
 
-    # get path for python script
-    py_dir = ''
-    runner.workflow.absoluteFilePaths.each do |ap|
-      if ap.to_s[-15, 15] == 'generated_files'
-        py_dir = ap
-      end
+    # define resources path
+    rsrcs = "#{File.dirname(__FILE__)}/resources"
+
+    # define template path
+    temp_path = "#{rsrcs}/python_plugin.py.erb"
+
+    # read in template
+    template = ''
+    File.open(temp_path, 'r') do |f|
+      template = f.read
     end
 
-    # write python script
-    File.open("#{py_dir}/in.py", 'w') do |f|
-      f.puts('from pyenergyplus.plugin import EnergyPlusPlugin')
-      f.puts('')
-      f.puts('class LoadSummary(EnergyPlusPlugin):')
-      f.puts('')
-      f.puts('    def __init__(self):')
-      f.puts('')
-      f.puts('        super().__init__()')
-      f.puts('        self.need_to_get_handles = True')
-      f.puts('')
-      outputs.each do |o|
-        on = o.downcase.gsub(' ', '_')
-        model.getThermalZones.each do |z|
-          zn = z.name.get.downcase.gsub(' ', '_').gsub('-', '_')
-          f.puts("        self.#{on}_#{zn}_hndl = None")
-        end
+    # configure template with variable values
+    renderer = ERB.new(template)
+    py_out = renderer.result(binding)
+
+    # write python script to resources directory
+    File.open("#{rsrcs}/in.py", 'w') do |f|
+      f << py_out
+      # make sure data is written to the disk one way or the other
+      begin
+        f.fsync
+      rescue StandardError
+        f.flush
       end
-      f.puts('')
-      f.puts('    def get_handles(self, state):')
-      f.puts('')
-      outputs.each do |o|
-        on = o.downcase.gsub(' ', '_')
-        model.getThermalZones.each do |z|
-          zn = z.name.get.downcase.gsub(' ', '_').gsub('-', '_')
-          pp = 'self.api.exchange.get_variable_handle'
-          f.puts("        self.#{on}_#{zn}_hndl = #{pp}(")
-          f.puts('            state,')
-          f.puts("            \'#{o}\',")
-          f.puts("            \'#{z.name.get}\'")
-          f.puts('        )')
-          f.puts('')
-        end
-      end
-      f.puts('')
-      f.puts('        self.need_to_get_handles = False')
-      f.puts('')
-      f.puts('    def on_end_of_zone_timestep_before_zone_reporting(self, state) -> int:')
-      f.puts('')
-      f.puts('        if self.need_to_get_handles:')
-      f.puts('            self.get_handles(state)')
-      f.puts('')
-      outputs.each do |o|
-        on = o.downcase.gsub(' ', '_')
-        model.getThermalZones.each do |z|
-          zn = z.name.get.downcase.gsub(' ', '_').gsub('-', '_')
-          pp = 'self.api.exchange.get_variable_value'
-          f.puts("        self.#{on}_#{zn} = #{pp}(")
-          f.puts('            state,')
-          f.puts("            self.#{on}_#{zn}_hndl")
-          f.puts('        )')
-          f.puts('')
-        end
-      end
-      f.puts('        return 0')
     end
 
     # get python script as external file
-    py_path = runner.workflow.findFile("#{py_dir}/in.py")
+    py_path = runner.workflow.findFile("#{rsrcs}/in.py")
     if py_path.is_initialized
         py_file = OpenStudio::Model::ExternalFile::getExternalFile(
           model,
@@ -178,6 +161,38 @@ class PythonPluginLoadSummary < OpenStudio::Measure::ModelMeasure
       'LoadSummary'
     )
     py_inst.setName('Load Summary')
+
+    # add python plugin instance
+    result << OpenStudio::IdfObject.load(
+      'PythonPlugin:Instance,Load Summary,No,in,LoadSummary;'
+    ).get
+
+    # set python site packages base on ruby platform
+    pckg = ''
+    if (RUBY_PLATFORM =~ /linux/) != nil
+      pckg = '/usr/local/lib/python3.8/dist-packages'
+    elsif (RUBY_PLATFORM =~ /darwin/) != nil
+      lib = '/Library/Frameworks/Python.framework/Versions'
+      pckg = "#{lib}/3.8/lib/python3.8/site-packages"
+    elsif (RUBY_PLATFORM =~ /cygwin|mswin|mingw|bccwin|wince|emx/) != nil
+      home = ENV['USERPROFILE'].to_s.gsub('\\', '/')
+      lib = '/AppData/Local/Programs/Python/'
+      pckg = "#{home}/#{lib}/Python38/Lib/site-packages"
+    end
+
+    # add python plugin search paths
+    result << OpenStudio::IdfObject.load(
+      "PythonPlugin:SearchPaths,Py Paths,Yes,Yes,No,#{pckg},#{rsrcs};"
+    ).get
+
+    result
+  end
+
+  # define what happens when the measure is run
+  def run(runner, usr_args)
+
+    # call the parent class method
+    super(runner, usr_args)
 
     return true
   end
