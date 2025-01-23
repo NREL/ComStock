@@ -78,3 +78,17 @@ conda activate buildstockbatch
 pip install GHEDesigner==1.0
 pip install NREL-PySAM==4.2.0
 ```
+
+## Measure Tests
+1. Follow the developer installation instructions above. In particular, `GHEDesigner==1.0` must be installed with `pip install GHEDesigner==1.0`.
+2. Run the measure tests with the rake command:
+  - `bundle exec rake unit_tests:all_tests` to run all measure tests.
+  - `bundle exec rake unit_tests:reporting_measure_tests` to run all reporting measure tests.
+  - `bundle exec rake unit_tests:workflow_measure_tests` to run all workflow measure tests.
+	- `bundle exec rake unit_tests:upgrade_measure_tests` to run all `upgrade_` measure tests.
+
+## Running Rubocop
+1. Follow the developer installation instructions above
+2. navigate to the `.custom_gems` directory
+3. run `bundle exec rake rubocop:show` in terminal
+4. review results by opening the `rubocop-results.html` in the `.rubocop/` directory

@@ -16,8 +16,83 @@ import boto3
 import logging
 import botocore
 import pandas as pd
+import polars as pl
+import json
+import gzip
+import tarfile
+from io import BytesIO
 
 logger = logging.getLogger(__name__)
+
+# This function must be a global static function in order to work with parallel processing
+def write_geo_data(combo):
+    geo_data, out_location, file_type, file_path = combo
+    if file_type == 'csv':
+        write_polars_csv_to_s3_or_local(geo_data, out_location['fs'], file_path)
+    elif file_type == 'parquet':
+        with out_location['fs'].open(file_path, "wb") as f:
+            geo_data.write_parquet(f, use_pyarrow=True)
+    else:
+        raise RuntimeError(f'Unknown file type {file_type} requested in export_metadata_and_annual_results()')
+
+# This function must be a global static function in order to work with parallel processing
+def write_polars_csv_to_s3_or_local(data: pl.DataFrame, out_fs, out_path):
+    # s3_dir = 's3://oedi-data-lake/nrel-pds-building-stock/end-use-load-profiles-for-us-building-stock/2024/comstock_amy2018_release_2/junk_data/'
+
+    import s3fs
+
+    # If local, write uncompressed CSV
+    if not isinstance(out_fs, s3fs.core.S3FileSystem):
+        data.write_csv(out_path)
+        return True
+
+    # Get filename from full path
+    file_name = out_path.split('/')[-1]
+
+    # Create a tar archive in memory that contains the CSV
+    tar_buffer = BytesIO()
+    with tarfile.open(mode='w', fileobj=tar_buffer) as tar:
+        # Get CSV data
+        csv_buffer = BytesIO()
+        data.write_csv(csv_buffer)
+        csv_buffer.seek(0)
+
+        # Create a TarInfo object with file metadata
+        tarinfo = tarfile.TarInfo(name=file_name)
+        tarinfo.size = len(csv_buffer.getvalue())
+
+        # Add the CSV data to the tar archive
+        tar.addfile(tarinfo, csv_buffer)
+
+    # Compress the in memory tar archive with gzip
+    tar_buffer.seek(0)
+    gzip_buffer = BytesIO()
+    with gzip.GzipFile(filename=f'{file_name}', mode='wb', fileobj=gzip_buffer, compresslevel=9) as gz:
+        gz.write(tar_buffer.getvalue())
+
+    # Upload directly to S3
+    bucket_name = out_path.split('/')[0]
+    s3_key = '/'.join(out_path.split('/')[1:]) + '.gz'
+    s3_client = boto3.client('s3')
+    try:
+        gzip_buffer.seek(0)
+        s3_client.upload_fileobj(
+            gzip_buffer,      # File-like object
+            bucket_name,     # Bucket name
+            s3_key          # S3 object key
+        )
+    except Exception as e:
+        logger.error(f"S3 upload failed: {str(e)}")
+    finally:
+        # Clean up
+        csv_buffer.close()
+        tar_buffer.close()
+        gzip_buffer.close()
+
+    # Clean up
+    csv_buffer.close()
+    tar_buffer.close()
+    gzip_buffer.close()
 
 
 class S3UtilitiesMixin:

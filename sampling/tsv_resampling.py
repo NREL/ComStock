@@ -128,7 +128,7 @@ class ComStockBaseSampler:
             'energy_code_followed_during_last_windows_replacement', 'energy_code_in_force_during_last_roof_replacement',
             'energy_code_in_force_during_last_walls_replacement',
             'energy_code_in_force_during_last_windows_replacement', 'year_bin_of_last_roof_replacement',
-            'year_bin_of_last_walls_replacement', 'year_bin_of_last_windows_replacement'
+            'year_bin_of_last_walls_replacement', 'year_bin_of_last_windows_replacement', 'baseline_window_type'
         ]
     ]
     """List of lists of attributes / tsv (or json) files to sample iteratively. This list of lists must be manually
@@ -334,12 +334,12 @@ class ComStockBaseSampler:
                 )
 
             if jsons:
-                res = Parallel(round(cpu_count()), verbose=5)(
+                res = Parallel(round(cpu_count()), verbose=5, prefer='threads')(
                     delayed(self._com_execute_json_samples)(
                         tsv_hash, dependency_hash, attr_order, sample_matrices[bucket], prev_results_list[bucket]
                     ) for bucket in range(self.n_buckets))
             else:
-                res = Parallel(round(cpu_count()), verbose=5)(
+                res = Parallel(round(cpu_count()), verbose=5, prefer='threads')(
                     delayed(self._com_execute_samples)(
                         tsv_hash, dependency_hash, attr_order, sample_matrices[bucket], prev_results_list[bucket]
                     ) for bucket in range(self.n_buckets)
@@ -560,23 +560,29 @@ class ComStockBaseSampler:
         prev_results_key_list = list(prev_results_dict.keys())
         for index in sample_dict.keys():
             dep_hash = deepcopy(dependency_hash)
-            prev_results = prev_results_dict[prev_results_key_list[index]]
+            try:
+                prev_results = prev_results_dict[prev_results_key_list[index]]
+            except:
+                breakpoint()
             sample_vector = sample_dict[index]
             results_dict = dict()
             sample_vector_index = -1
             for attr in attr_order:
-                if attr in prev_results.keys():
-                    attr_result = prev_results[attr]
-                else:
-                    sample_vector_index += 1
-                    attr_dict = json_set[attr]
-                    tsv_dist_val = sample_vector[sample_vector_index]
-                    for dep in dep_hash[attr]:
-                        attr_dict = attr_dict[str(dep_hash[dep])]
-                    attr_series = pd.Series(attr_dict).astype(float)
-                    attr_result = attr_series[attr_series.values.cumsum() > tsv_dist_val].index[0].replace('Option=', '')
-                dep_hash[attr] = attr_result
-                results_dict[attr] = attr_result
+                try:
+                    if attr in prev_results.keys():
+                        attr_result = prev_results[attr]
+                    else:
+                        sample_vector_index += 1
+                        attr_dict = json_set[attr]
+                        tsv_dist_val = sample_vector[sample_vector_index]
+                        for dep in dep_hash[attr]:
+                            attr_dict = attr_dict[str(dep_hash[dep])]
+                        attr_series = pd.Series(attr_dict).astype(float)
+                        attr_result = attr_series[attr_series.values.cumsum() > tsv_dist_val].index[0].replace('Option=', '')
+                    dep_hash[attr] = attr_result
+                    results_dict[attr] = attr_result
+                except:
+                    breakpoint()
             results_dict['state_id'] = results_dict['tract'][:4]
             results_dict['county_id'] = results_dict['tract'][:8]
             res.append(results_dict)

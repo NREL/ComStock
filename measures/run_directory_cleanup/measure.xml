@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>run_directory_cleanup</name>
   <uid>3146d7e2-a2cc-4611-a8e1-cccd16e7143e</uid>
-  <version_id>eb4b3690-3714-4b6a-830d-aec68898a4f9</version_id>
-  <version_modified>2023-10-17T11:28:49Z</version_modified>
+  <version_id>c5ce8c82-6240-418b-9fa9-4de7d1db5f40</version_id>
+  <version_modified>2024-10-28T21:47:03Z</version_modified>
   <xml_checksum>5F1EDF75</xml_checksum>
   <class_name>RunDirectoryCleanup</class_name>
   <display_name>Run Directory Cleanup</display_name>
@@ -38,7 +38,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>91E9820E</checksum>
+      <checksum>86CC3616</checksum>
     </file>
   </files>
 </measure>
