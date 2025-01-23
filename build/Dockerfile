@@ -2,33 +2,38 @@
 # See top level LICENSE.txt file for license terms.
 
 # OpenStudio base image (https://hub.docker.com/r/nrel/openstudio/tags)
-FROM nrel/openstudio:3.7.0 as os-base
+FROM nrel/openstudio:3.8.0 as os-base
 
 LABEL maintainer="Henry (Ry) Horsey henry.horsey@nrel.gov"
 
 # Copy the Gemfile from the ComStock Repo into the container
 COPY /resources/Gemfile /var/oscli/
 
+# Install NREL root certs
+RUN curl -fsSLk -o /usr/local/share/ca-certificates/nrel_root.crt https://raw.github.nrel.gov/TADA/nrel-certs/v20180329/certs/nrel_root.pem && \
+  curl -fsSLk -o /usr/local/share/ca-certificates/nrel_xca1.crt https://raw.github.nrel.gov/TADA/nrel-certs/v20180329/certs/nrel_xca1.pem && \
+  update-ca-certificates
+
 # Install custom gems
 ENV BUNDLE_WITHOUT=
 RUN bundle config set git.allow_insecure true \
     && bundle config set path /var/oscli/gems/ \
-    && bundle config set without 'native_ext' \
+    && bundle config set without 'test' \
     && bundle install --gemfile /var/oscli/Gemfile \
-    && openstudio --verbose --bundle /var/oscli/Gemfile --bundle_path /var/oscli/gems --bundle_without native_ext  gem_list \
+    && openstudio --verbose --bundle /var/oscli/Gemfile --bundle_path /var/oscli/gems --bundle_without test  gem_list \
     && bundle config
 
 # Remove blobs from gems installed through git
-RUN rm -rf /var/oscli/gems/ruby/2.7.0/bundler/gems/**/.git \
-    /var/oscli/gems/ruby/2.7.0/bundler/gems/**/test \
-    /var/oscli/gems/ruby/2.7.0/cache/bundler
+RUN rm -rf /var/oscli/gems/ruby/3.2.0/bundler/gems/**/.git \
+    /var/oscli/gems/ruby/3.2.0/bundler/gems/**/test \
+    /var/oscli/gems/ruby/3.2.0/cache/bundler
 
 # Create a slimmer container without development libraries leftover by OpenStudio
 FROM ubuntu:20.04 AS os-comstock
 
-ARG OPENSTUDIO_VERSION=3.7.0
+ARG OPENSTUDIO_VERSION=3.8.0
 ARG OPENSTUDIO_VERSION_EXT=""
-ENV OPENSTUDIO_VERSION=3.7.0
+ENV OPENSTUDIO_VERSION=3.8.0
 
 # copy executable and energyplus from install
 COPY --from=os-base /usr/local/openstudio-${OPENSTUDIO_VERSION}${OPENSTUDIO_VERSION_EXT}/ /usr/local/openstudio-${OPENSTUDIO_VERSION}${OPENSTUDIO_VERSION_EXT}/

@@ -1,39 +1,5 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2024 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
-# *******************************************************************************
-# OpenStudio(R), Copyright (c) 2008-2018, Alliance for Sustainable Energy, LLC.
-# All rights reserved.
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# (1) Redistributions of source code must retain the above copyright notice,
-# this list of conditions and the following disclaimer.
-#
-# (2) Redistributions in binary form must reproduce the above copyright notice,
-# this list of conditions and the following disclaimer in the documentation
-# and/or other materials provided with the distribution.
-#
-# (3) Neither the name of the copyright holder nor the names of any contributors
-# may be used to endorse or promote products derived from this software without
-# specific prior written permission from the respective party.
-#
-# (4) Other than as required in clauses (1) and (2), distributions in any form
-# of modifications or other derivative works may not use the "OpenStudio"
-# trademark, "OS", "os", or any other confusingly similar designation without
-# specific prior written permission from Alliance for Sustainable Energy, LLC.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER(S) AND ANY CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-# THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER(S), ANY CONTRIBUTORS, THE
-# UNITED STATES GOVERNMENT, OR THE UNITED STATES DEPARTMENT OF ENERGY, NOR ANY OF
-# THEIR EMPLOYEES, BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
-# OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-# STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-# *******************************************************************************
 
 # start the measure
 class SetElectricEquipmentBPR < OpenStudio::Measure::ModelMeasure
@@ -80,7 +46,7 @@ class SetElectricEquipmentBPR < OpenStudio::Measure::ModelMeasure
   end
 
   # Method to find schedule transition points and adjust base values based on specified BPR.
-  def set_sch_bpr(runner, day_sch, bpr, modify_wknd_bpr=nil, new_wkdy_base=nil)
+  def set_sch_bpr(runner, day_sch, bpr, modify_wknd_bpr = nil, new_wkdy_base = nil)
     # skip schedules that are a constant value throughout the day
     if day_sch.values.length == 1
       runner.registerWarning("Rule '#{day_sch.name}' is a constant value throughout the day and won't be altered by this measure.")
@@ -93,10 +59,8 @@ class SetElectricEquipmentBPR < OpenStudio::Measure::ModelMeasure
     base = vals.min
     new_base = bpr * peak
     # if the new wknd base value is higher than the wkdy base value, adjust it
-    if modify_wknd_bpr
-      if new_wkdy_base < new_base
-        new_base = new_wkdy_base
-      end
+    if modify_wknd_bpr && (new_wkdy_base < new_base)
+      new_base = new_wkdy_base
     end
     sf = (new_base - base) / (peak - base)
     new_vals = []
@@ -109,7 +73,7 @@ class SetElectricEquipmentBPR < OpenStudio::Measure::ModelMeasure
       vals.zip(times).each_with_index do |val_time, j|
         val = val_time[0]
         time = val_time[1]
-        new_val = (peak - val) * sf + val
+        new_val = ((peak - val) * sf) + val
         if new_val < 0.0
           new_val = 0.0
         end
@@ -142,7 +106,7 @@ class SetElectricEquipmentBPR < OpenStudio::Measure::ModelMeasure
     wknd_bpr = runner.getDoubleArgumentValue('wknd_bpr', user_arguments)
 
     # return not applicable if the user-specified BPR is 'NA' for weekend and weekday schedules
-    if !modify_wkdy_bpr and !modify_wknd_bpr
+    if !modify_wkdy_bpr && !modify_wknd_bpr
       runner.registerAsNotApplicable("BPR is set to 'NA' for weekdays and weekends. This measure is not applicable.")
       return false
     end
@@ -157,6 +121,7 @@ class SetElectricEquipmentBPR < OpenStudio::Measure::ModelMeasure
       # confirm space type maps to a recognized standards type
       next unless space_type.standardsBuildingType.is_initialized
       next unless space_type.standardsSpaceType.is_initialized
+
       standards_building_type = space_type.standardsBuildingType.get
       standards_space_type = space_type.standardsSpaceType.get
       space_type_hash = {}
@@ -167,7 +132,7 @@ class SetElectricEquipmentBPR < OpenStudio::Measure::ModelMeasure
       space_type.electricEquipment.each do |equip|
         selected_equip_instances << equip
         if equip.schedule.is_initialized
-            equip_sch = equip.schedule.get
+          equip_sch = equip.schedule.get
           original_equip_schs << equip_sch
         end
       end
@@ -196,7 +161,7 @@ class SetElectricEquipmentBPR < OpenStudio::Measure::ModelMeasure
       # adjust schedule to meet user-specified BPR value
       new_equip_sch = equip_sch.clone(model).to_ScheduleRuleset.get
       new_equip_sch.setName("#{equip_sch.name} BPR Adjusted")
-      new_equip_sch.defaultDaySchedule.setInterpolatetoTimestep(false)
+      new_equip_sch.defaultDaySchedule.setInterpolatetoTimestep('No')
       original_equip_new_schs[equip_sch] = new_equip_sch
       new_equip_sch.to_ScheduleRuleset.get
 
@@ -225,12 +190,11 @@ class SetElectricEquipmentBPR < OpenStudio::Measure::ModelMeasure
             if sch_rule.applyMonday || sch_rule.applyTuesday || sch_rule.applyWednesday || sch_rule.applyThursday || sch_rule.applyFriday
               runner.registerWarning("Rule '#{sch_rule.name}' for schedule '#{new_equip_sch.name}' applies to both Weekends and Weekdays.  It has been treated as a Weekday schedule.")
             else
-              set_sch_bpr(runner, sch_rule.daySchedule, wknd_bpr, modify_wknd_bpr=modify_wknd_bpr, new_wkdy_base=min_wkdy_base_value)
+              set_sch_bpr(runner, sch_rule.daySchedule, wknd_bpr, modify_wknd_bpr = modify_wknd_bpr, new_wkdy_base = min_wkdy_base_value)
             end
           end
         end
       end
-
     end
 
     # loop through all electric equipment instances, replacing old electric equipment schedules with the BPR-adjusted schedules

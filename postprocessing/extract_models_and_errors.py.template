@@ -3,7 +3,10 @@ import comstockpostproc as cspp
 yml_path = '/projects/enduse/comstock/ymls/comstock_fy22/com_os340_newbsb_test.yml'
 
 # Extract and summarize failed runs
-cspp.utils.hpc.summarize_failures(yml_path)
+# sort_order = 'upgrade' sorts failure_summary first by upgrade_id, then building in upgrade_id
+# sort_order = 'building' sorts failure_summary first by building_id, then upgrade_id
+sort_order = 'upgrade'
+cspp.utils.hpc.summarize_failures(yml_path, sort_order)
 
 # Extract models - add building IDs to my_run_name/building_id_list.csv, header=building_id
 output_vars_to_add_to_idfs = [

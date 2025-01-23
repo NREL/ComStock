@@ -139,26 +139,6 @@ climate_zone	7	ChangeBuildingLocation	climate_zone=ASHRAE 169-2013-7A
 		set_interior_equipment_template	climate_zone=ASHRAE 169-2013-7A
 		set_service_water_heating_template	climate_zone=ASHRAE 169-2013-7A
 		set_hvac_template	climate_zone=ASHRAE 169-2013-7A
-climate_zone	7A	ChangeBuildingLocation	climate_zone=ASHRAE 169-2013-7A
-		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
-		create_bar_from_building_type_ratios	climate_zone=ASHRAE 169-2013-7A
-		create_typical_building_from_model	climate_zone=ASHRAE 169-2013-7A
-		set_wall_template	climate_zone=ASHRAE 169-2013-7A
-		set_roof_template	climate_zone=ASHRAE 169-2013-7A
-		set_exterior_lighting_template	climate_zone=ASHRAE 169-2013-7A
-		set_interior_equipment_template	climate_zone=ASHRAE 169-2013-7A
-		set_service_water_heating_template	climate_zone=ASHRAE 169-2013-7A
-		set_hvac_template	climate_zone=ASHRAE 169-2013-7A
-climate_zone	7B	ChangeBuildingLocation	climate_zone=ASHRAE 169-2013-7A
-		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
-		create_bar_from_building_type_ratios	climate_zone=ASHRAE 169-2013-7A
-		create_typical_building_from_model	climate_zone=ASHRAE 169-2013-7A
-		set_wall_template	climate_zone=ASHRAE 169-2013-7A
-		set_roof_template	climate_zone=ASHRAE 169-2013-7A
-		set_exterior_lighting_template	climate_zone=ASHRAE 169-2013-7A
-		set_interior_equipment_template	climate_zone=ASHRAE 169-2013-7A
-		set_service_water_heating_template	climate_zone=ASHRAE 169-2013-7A
-		set_hvac_template	climate_zone=ASHRAE 169-2013-7A
 climate_zone	8	ChangeBuildingLocation	climate_zone=ASHRAE 169-2013-8A
 		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
 		create_bar_from_building_type_ratios	climate_zone=ASHRAE 169-2013-8A
@@ -169,6 +149,166 @@ climate_zone	8	ChangeBuildingLocation	climate_zone=ASHRAE 169-2013-8A
 		set_interior_equipment_template	climate_zone=ASHRAE 169-2013-8A
 		set_service_water_heating_template	climate_zone=ASHRAE 169-2013-8A
 		set_hvac_template	climate_zone=ASHRAE 169-2013-8A
+climate_zone	CEC1	ChangeBuildingLocation	climate_zone=T24-CEC1
+		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
+		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC1
+		create_typical_building_from_model	climate_zone=CEC T24-CEC1
+		set_wall_template	climate_zone=CEC T24-CEC1
+		set_roof_template	climate_zone=CEC T24-CEC1
+		set_exterior_lighting_template	climate_zone=CEC T24-CEC1
+		set_interior_equipment_template	climate_zone=CEC T24-CEC1
+		set_service_water_heating_template	climate_zone=CEC T24-CEC1
+		set_hvac_template	climate_zone=CEC T24-CEC1
+climate_zone	CEC2	ChangeBuildingLocation	climate_zone=T24-CEC2
+		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
+		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC2
+		create_typical_building_from_model	climate_zone=CEC T24-CEC2
+		set_wall_template	climate_zone=CEC T24-CEC2
+		set_roof_template	climate_zone=CEC T24-CEC2
+		set_exterior_lighting_template	climate_zone=CEC T24-CEC2
+		set_interior_equipment_template	climate_zone=CEC T24-CEC2
+		set_service_water_heating_template	climate_zone=CEC T24-CEC2
+		set_hvac_template	climate_zone=CEC T24-CEC2
+climate_zone	CEC3	ChangeBuildingLocation	climate_zone=T24-CEC3
+		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
+		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC3
+		create_typical_building_from_model	climate_zone=CEC T24-CEC3
+		set_wall_template	climate_zone=CEC T24-CEC3
+		set_roof_template	climate_zone=CEC T24-CEC3
+		set_exterior_lighting_template	climate_zone=CEC T24-CEC3
+		set_interior_equipment_template	climate_zone=CEC T24-CEC3
+		set_service_water_heating_template	climate_zone=CEC T24-CEC3
+		set_hvac_template	climate_zone=CEC T24-CEC3
+climate_zone	CEC4	ChangeBuildingLocation	climate_zone=T24-CEC4
+		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
+		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC4
+		create_typical_building_from_model	climate_zone=CEC T24-CEC4
+		set_wall_template	climate_zone=CEC T24-CEC4
+		set_roof_template	climate_zone=CEC T24-CEC4
+		set_exterior_lighting_template	climate_zone=CEC T24-CEC4
+		set_interior_equipment_template	climate_zone=CEC T24-CEC4
+		set_service_water_heating_template	climate_zone=CEC T24-CEC4
+		set_hvac_template	climate_zone=CEC T24-CEC4
+climate_zone	CEC5	ChangeBuildingLocation	climate_zone=T24-CEC5
+		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
+		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC5
+		create_typical_building_from_model	climate_zone=CEC T24-CEC5
+		set_wall_template	climate_zone=CEC T24-CEC5
+		set_roof_template	climate_zone=CEC T24-CEC5
+		set_exterior_lighting_template	climate_zone=CEC T24-CEC5
+		set_interior_equipment_template	climate_zone=CEC T24-CEC5
+		set_service_water_heating_template	climate_zone=CEC T24-CEC5
+		set_hvac_template	climate_zone=CEC T24-CEC5
+climate_zone	CEC6	ChangeBuildingLocation	climate_zone=T24-CEC6
+		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
+		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC6
+		create_typical_building_from_model	climate_zone=CEC T24-CEC6
+		set_wall_template	climate_zone=CEC T24-CEC6
+		set_roof_template	climate_zone=CEC T24-CEC6
+		set_exterior_lighting_template	climate_zone=CEC T24-CEC6
+		set_interior_equipment_template	climate_zone=CEC T24-CEC6
+		set_service_water_heating_template	climate_zone=CEC T24-CEC6
+		set_hvac_template	climate_zone=CEC T24-CEC6
+climate_zone	CEC7	ChangeBuildingLocation	climate_zone=T24-CEC7
+		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
+		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC7
+		create_typical_building_from_model	climate_zone=CEC T24-CEC7
+		set_wall_template	climate_zone=CEC T24-CEC7
+		set_roof_template	climate_zone=CEC T24-CEC7
+		set_exterior_lighting_template	climate_zone=CEC T24-CEC7
+		set_interior_equipment_template	climate_zone=CEC T24-CEC7
+		set_service_water_heating_template	climate_zone=CEC T24-CEC7
+		set_hvac_template	climate_zone=CEC T24-CEC7
+climate_zone	CEC8	ChangeBuildingLocation	climate_zone=T24-CEC8
+		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
+		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC8
+		create_typical_building_from_model	climate_zone=CEC T24-CEC8
+		set_wall_template	climate_zone=CEC T24-CEC8
+		set_roof_template	climate_zone=CEC T24-CEC8
+		set_exterior_lighting_template	climate_zone=CEC T24-CEC8
+		set_interior_equipment_template	climate_zone=CEC T24-CEC8
+		set_service_water_heating_template	climate_zone=CEC T24-CEC8
+		set_hvac_template	climate_zone=CEC T24-CEC8
+climate_zone	CEC9	ChangeBuildingLocation	climate_zone=T24-CEC9
+		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
+		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC9
+		create_typical_building_from_model	climate_zone=CEC T24-CEC9
+		set_wall_template	climate_zone=CEC T24-CEC9
+		set_roof_template	climate_zone=CEC T24-CEC9
+		set_exterior_lighting_template	climate_zone=CEC T24-CEC9
+		set_interior_equipment_template	climate_zone=CEC T24-CEC9
+		set_service_water_heating_template	climate_zone=CEC T24-CEC9
+		set_hvac_template	climate_zone=CEC T24-CEC9
+climate_zone	CEC10	ChangeBuildingLocation	climate_zone=T24-CEC10
+		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
+		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC10
+		create_typical_building_from_model	climate_zone=CEC T24-CEC10
+		set_wall_template	climate_zone=CEC T24-CEC10
+		set_roof_template	climate_zone=CEC T24-CEC10
+		set_exterior_lighting_template	climate_zone=CEC T24-CEC10
+		set_interior_equipment_template	climate_zone=CEC T24-CEC10
+		set_service_water_heating_template	climate_zone=CEC T24-CEC10
+		set_hvac_template	climate_zone=CEC T24-CEC10
+climate_zone	CEC11	ChangeBuildingLocation	climate_zone=T24-CEC11
+		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
+		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC11
+		create_typical_building_from_model	climate_zone=CEC T24-CEC11
+		set_wall_template	climate_zone=CEC T24-CEC11
+		set_roof_template	climate_zone=CEC T24-CEC11
+		set_exterior_lighting_template	climate_zone=CEC T24-CEC11
+		set_interior_equipment_template	climate_zone=CEC T24-CEC11
+		set_service_water_heating_template	climate_zone=CEC T24-CEC11
+		set_hvac_template	climate_zone=CEC T24-CEC11
+climate_zone	CEC12	ChangeBuildingLocation	climate_zone=T24-CEC12
+		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
+		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC12
+		create_typical_building_from_model	climate_zone=CEC T24-CEC12
+		set_wall_template	climate_zone=CEC T24-CEC12
+		set_roof_template	climate_zone=CEC T24-CEC12
+		set_exterior_lighting_template	climate_zone=CEC T24-CEC12
+		set_interior_equipment_template	climate_zone=CEC T24-CEC12
+		set_service_water_heating_template	climate_zone=CEC T24-CEC12
+		set_hvac_template	climate_zone=CEC T24-CEC12
+climate_zone	CEC13	ChangeBuildingLocation	climate_zone=T24-CEC13
+		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
+		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC13
+		create_typical_building_from_model	climate_zone=CEC T24-CEC13
+		set_wall_template	climate_zone=CEC T24-CEC13
+		set_roof_template	climate_zone=CEC T24-CEC13
+		set_exterior_lighting_template	climate_zone=CEC T24-CEC13
+		set_interior_equipment_template	climate_zone=CEC T24-CEC13
+		set_service_water_heating_template	climate_zone=CEC T24-CEC13
+		set_hvac_template	climate_zone=CEC T24-CEC13
+climate_zone	CEC14	ChangeBuildingLocation	climate_zone=T24-CEC14
+		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
+		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC14
+		create_typical_building_from_model	climate_zone=CEC T24-CEC14
+		set_wall_template	climate_zone=CEC T24-CEC14
+		set_roof_template	climate_zone=CEC T24-CEC14
+		set_exterior_lighting_template	climate_zone=CEC T24-CEC14
+		set_interior_equipment_template	climate_zone=CEC T24-CEC14
+		set_service_water_heating_template	climate_zone=CEC T24-CEC14
+		set_hvac_template	climate_zone=CEC T24-CEC14
+climate_zone	CEC15	ChangeBuildingLocation	climate_zone=T24-CEC15
+		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
+		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC15
+		create_typical_building_from_model	climate_zone=CEC T24-CEC15
+		set_wall_template	climate_zone=CEC T24-CEC15
+		set_roof_template	climate_zone=CEC T24-CEC15
+		set_exterior_lighting_template	climate_zone=CEC T24-CEC15
+		set_interior_equipment_template	climate_zone=CEC T24-CEC15
+		set_service_water_heating_template	climate_zone=CEC T24-CEC15
+		set_hvac_template	climate_zone=CEC T24-CEC15
+climate_zone	CEC16	ChangeBuildingLocation	climate_zone=T24-CEC16
+		simulation_settings	timesteps_per_hr=4	enable_dst=true	dst_start=2nd Sunday in March	dst_end=1st Sunday in November	begin_month=1	begin_day=1	end_month=12	end_day=30
+		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC16
+		create_typical_building_from_model	climate_zone=CEC T24-CEC16
+		set_wall_template	climate_zone=CEC T24-CEC16
+		set_roof_template	climate_zone=CEC T24-CEC16
+		set_exterior_lighting_template	climate_zone=CEC T24-CEC16
+		set_interior_equipment_template	climate_zone=CEC T24-CEC16
+		set_service_water_heating_template	climate_zone=CEC T24-CEC16
+		set_hvac_template	climate_zone=CEC T24-CEC16
 cambium_grid_region	SRSOc	ChangeBuildingLocation	grid_region=SRSOc
 cambium_grid_region	AKMS	ChangeBuildingLocation	grid_region=AKMS
 cambium_grid_region	AKGD	ChangeBuildingLocation	grid_region=AKGD
@@ -269,6 +409,7 @@ county_id	G0200680	ChangeBuildingLocation	weather_file_name=G0200680.epw
 county_id	G0200700	ChangeBuildingLocation	weather_file_name=G0200700.epw
 county_id	G0200900	ChangeBuildingLocation	weather_file_name=G0200900.epw
 county_id	G0201000	ChangeBuildingLocation	weather_file_name=G0201100.epw
+county_id	G0201050	ChangeBuildingLocation	weather_file_name=G0201100.epw
 county_id	G0201100	ChangeBuildingLocation	weather_file_name=G0201100.epw
 county_id	G0201220	ChangeBuildingLocation	weather_file_name=G0201220.epw
 county_id	G0201300	ChangeBuildingLocation	weather_file_name=G0201300.epw
@@ -278,10 +419,14 @@ county_id	G0201700	ChangeBuildingLocation	weather_file_name=G0201700.epw
 county_id	G0201800	ChangeBuildingLocation	weather_file_name=G0201800.epw
 county_id	G0201850	ChangeBuildingLocation	weather_file_name=G0201850.epw
 county_id	G0201880	ChangeBuildingLocation	weather_file_name=G0201880.epw
+county_id	G0201950	ChangeBuildingLocation	weather_file_name=G0201880.epw
+county_id	G0201980	ChangeBuildingLocation	weather_file_name=G0201880.epw
 county_id	G0202200	ChangeBuildingLocation	weather_file_name=G0202200.epw
+county_id	G0202300	ChangeBuildingLocation	weather_file_name=G0202200.epw
 county_id	G0202400	ChangeBuildingLocation	weather_file_name=G0202400.epw
 county_id	G0202610	ChangeBuildingLocation	weather_file_name=G0202610.epw
 county_id	G0202700	ChangeBuildingLocation	weather_file_name=G0202610.epw
+county_id	G0202750	ChangeBuildingLocation	weather_file_name=G0202610.epw
 county_id	G0202800	ChangeBuildingLocation	weather_file_name=G0202610.epw
 county_id	G0202820	ChangeBuildingLocation	weather_file_name=G0202610.epw
 county_id	G0202900	ChangeBuildingLocation	weather_file_name=G0202610.epw
@@ -375,528 +520,64 @@ county_id	G0501430	ChangeBuildingLocation	weather_file_name=G0501430.epw
 county_id	G0501450	ChangeBuildingLocation	weather_file_name=G0501450.epw
 county_id	G0501470	ChangeBuildingLocation	weather_file_name=G0501450.epw
 county_id	G0501490	ChangeBuildingLocation	weather_file_name=G0501490.epw
-county_id	G0600010	ChangeBuildingLocation	weather_file_name=G0600010.epw	climate_zone=T24-CEC3
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC3
-		create_typical_building_from_model	climate_zone=CEC T24-CEC3
-		set_wall_template	climate_zone=CEC T24-CEC3
-		set_roof_template	climate_zone=CEC T24-CEC3
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC3
-		set_interior_equipment_template	climate_zone=CEC T24-CEC3
-		set_service_water_heating_template	climate_zone=CEC T24-CEC3
-		set_hvac_template	climate_zone=CEC T24-CEC3
-county_id	G0600030	ChangeBuildingLocation	weather_file_name=G0600030.epw	climate_zone=T24-CEC16
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC16
-		create_typical_building_from_model	climate_zone=CEC T24-CEC16
-		set_wall_template	climate_zone=CEC T24-CEC16
-		set_roof_template	climate_zone=CEC T24-CEC16
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC16
-		set_interior_equipment_template	climate_zone=CEC T24-CEC16
-		set_service_water_heating_template	climate_zone=CEC T24-CEC16
-		set_hvac_template	climate_zone=CEC T24-CEC16
-county_id	G0600050	ChangeBuildingLocation	weather_file_name=G0600050.epw	climate_zone=T24-CEC12
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC12
-		create_typical_building_from_model	climate_zone=CEC T24-CEC12
-		set_wall_template	climate_zone=CEC T24-CEC12
-		set_roof_template	climate_zone=CEC T24-CEC12
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC12
-		set_interior_equipment_template	climate_zone=CEC T24-CEC12
-		set_service_water_heating_template	climate_zone=CEC T24-CEC12
-		set_hvac_template	climate_zone=CEC T24-CEC12
-county_id	G0600070	ChangeBuildingLocation	weather_file_name=G0600070.epw	climate_zone=T24-CEC11
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC11
-		create_typical_building_from_model	climate_zone=CEC T24-CEC11
-		set_wall_template	climate_zone=CEC T24-CEC11
-		set_roof_template	climate_zone=CEC T24-CEC11
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC11
-		set_interior_equipment_template	climate_zone=CEC T24-CEC11
-		set_service_water_heating_template	climate_zone=CEC T24-CEC11
-		set_hvac_template	climate_zone=CEC T24-CEC11
-county_id	G0600090	ChangeBuildingLocation	weather_file_name=G0600090.epw	climate_zone=T24-CEC12
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC12
-		create_typical_building_from_model	climate_zone=CEC T24-CEC12
-		set_wall_template	climate_zone=CEC T24-CEC12
-		set_roof_template	climate_zone=CEC T24-CEC12
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC12
-		set_interior_equipment_template	climate_zone=CEC T24-CEC12
-		set_service_water_heating_template	climate_zone=CEC T24-CEC12
-		set_hvac_template	climate_zone=CEC T24-CEC12
-county_id	G0600110	ChangeBuildingLocation	weather_file_name=G0600110.epw	climate_zone=T24-CEC11
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC11
-		create_typical_building_from_model	climate_zone=CEC T24-CEC11
-		set_wall_template	climate_zone=CEC T24-CEC11
-		set_roof_template	climate_zone=CEC T24-CEC11
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC11
-		set_interior_equipment_template	climate_zone=CEC T24-CEC11
-		set_service_water_heating_template	climate_zone=CEC T24-CEC11
-		set_hvac_template	climate_zone=CEC T24-CEC11
-county_id	G0600130	ChangeBuildingLocation	weather_file_name=G0600130.epw	climate_zone=T24-CEC12
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC12
-		create_typical_building_from_model	climate_zone=CEC T24-CEC12
-		set_wall_template	climate_zone=CEC T24-CEC12
-		set_roof_template	climate_zone=CEC T24-CEC12
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC12
-		set_interior_equipment_template	climate_zone=CEC T24-CEC12
-		set_service_water_heating_template	climate_zone=CEC T24-CEC12
-		set_hvac_template	climate_zone=CEC T24-CEC12
-county_id	G0600150	ChangeBuildingLocation	weather_file_name=G0600150.epw	climate_zone=T24-CEC1
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC1
-		create_typical_building_from_model	climate_zone=CEC T24-CEC1
-		set_wall_template	climate_zone=CEC T24-CEC1
-		set_roof_template	climate_zone=CEC T24-CEC1
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC1
-		set_interior_equipment_template	climate_zone=CEC T24-CEC1
-		set_service_water_heating_template	climate_zone=CEC T24-CEC1
-		set_hvac_template	climate_zone=CEC T24-CEC1
-county_id	G0600170	ChangeBuildingLocation	weather_file_name=G0600170.epw	climate_zone=T24-CEC12
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC12
-		create_typical_building_from_model	climate_zone=CEC T24-CEC12
-		set_wall_template	climate_zone=CEC T24-CEC12
-		set_roof_template	climate_zone=CEC T24-CEC12
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC12
-		set_interior_equipment_template	climate_zone=CEC T24-CEC12
-		set_service_water_heating_template	climate_zone=CEC T24-CEC12
-		set_hvac_template	climate_zone=CEC T24-CEC12
-county_id	G0600190	ChangeBuildingLocation	weather_file_name=G0600190.epw	climate_zone=T24-CEC13
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC13
-		create_typical_building_from_model	climate_zone=CEC T24-CEC13
-		set_wall_template	climate_zone=CEC T24-CEC13
-		set_roof_template	climate_zone=CEC T24-CEC13
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC13
-		set_interior_equipment_template	climate_zone=CEC T24-CEC13
-		set_service_water_heating_template	climate_zone=CEC T24-CEC13
-		set_hvac_template	climate_zone=CEC T24-CEC13
-county_id	G0600210	ChangeBuildingLocation	weather_file_name=G0600210.epw	climate_zone=T24-CEC11
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC11
-		create_typical_building_from_model	climate_zone=CEC T24-CEC11
-		set_wall_template	climate_zone=CEC T24-CEC11
-		set_roof_template	climate_zone=CEC T24-CEC11
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC11
-		set_interior_equipment_template	climate_zone=CEC T24-CEC11
-		set_service_water_heating_template	climate_zone=CEC T24-CEC11
-		set_hvac_template	climate_zone=CEC T24-CEC11
-county_id	G0600230	ChangeBuildingLocation	weather_file_name=G0600230.epw	climate_zone=T24-CEC1
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC1
-		create_typical_building_from_model	climate_zone=CEC T24-CEC1
-		set_wall_template	climate_zone=CEC T24-CEC1
-		set_roof_template	climate_zone=CEC T24-CEC1
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC1
-		set_interior_equipment_template	climate_zone=CEC T24-CEC1
-		set_service_water_heating_template	climate_zone=CEC T24-CEC1
-		set_hvac_template	climate_zone=CEC T24-CEC1
-county_id	G0600250	ChangeBuildingLocation	weather_file_name=G0600250.epw	climate_zone=T24-CEC15
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC15
-		create_typical_building_from_model	climate_zone=CEC T24-CEC15
-		set_wall_template	climate_zone=CEC T24-CEC15
-		set_roof_template	climate_zone=CEC T24-CEC15
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC15
-		set_interior_equipment_template	climate_zone=CEC T24-CEC15
-		set_service_water_heating_template	climate_zone=CEC T24-CEC15
-		set_hvac_template	climate_zone=CEC T24-CEC15
-county_id	G0600270	ChangeBuildingLocation	weather_file_name=G0600270.epw	climate_zone=T24-CEC16
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC16
-		create_typical_building_from_model	climate_zone=CEC T24-CEC16
-		set_wall_template	climate_zone=CEC T24-CEC16
-		set_roof_template	climate_zone=CEC T24-CEC16
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC16
-		set_interior_equipment_template	climate_zone=CEC T24-CEC16
-		set_service_water_heating_template	climate_zone=CEC T24-CEC16
-		set_hvac_template	climate_zone=CEC T24-CEC16
-county_id	G0600290	ChangeBuildingLocation	weather_file_name=G0600290.epw	climate_zone=T24-CEC13
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC13
-		create_typical_building_from_model	climate_zone=CEC T24-CEC13
-		set_wall_template	climate_zone=CEC T24-CEC13
-		set_roof_template	climate_zone=CEC T24-CEC13
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC13
-		set_interior_equipment_template	climate_zone=CEC T24-CEC13
-		set_service_water_heating_template	climate_zone=CEC T24-CEC13
-		set_hvac_template	climate_zone=CEC T24-CEC13
-county_id	G0600310	ChangeBuildingLocation	weather_file_name=G0600310.epw	climate_zone=T24-CEC13
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC13
-		create_typical_building_from_model	climate_zone=CEC T24-CEC13
-		set_wall_template	climate_zone=CEC T24-CEC13
-		set_roof_template	climate_zone=CEC T24-CEC13
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC13
-		set_interior_equipment_template	climate_zone=CEC T24-CEC13
-		set_service_water_heating_template	climate_zone=CEC T24-CEC13
-		set_hvac_template	climate_zone=CEC T24-CEC13
-county_id	G0600330	ChangeBuildingLocation	weather_file_name=G0600330.epw	climate_zone=T24-CEC2
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC2
-		create_typical_building_from_model	climate_zone=CEC T24-CEC2
-		set_wall_template	climate_zone=CEC T24-CEC2
-		set_roof_template	climate_zone=CEC T24-CEC2
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC2
-		set_interior_equipment_template	climate_zone=CEC T24-CEC2
-		set_service_water_heating_template	climate_zone=CEC T24-CEC2
-		set_hvac_template	climate_zone=CEC T24-CEC2
-county_id	G0600350	ChangeBuildingLocation	weather_file_name=G0600350.epw	climate_zone=T24-CEC16
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC16
-		create_typical_building_from_model	climate_zone=CEC T24-CEC16
-		set_wall_template	climate_zone=CEC T24-CEC16
-		set_roof_template	climate_zone=CEC T24-CEC16
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC16
-		set_interior_equipment_template	climate_zone=CEC T24-CEC16
-		set_service_water_heating_template	climate_zone=CEC T24-CEC16
-		set_hvac_template	climate_zone=CEC T24-CEC16
-county_id	G0600370	ChangeBuildingLocation	weather_file_name=G0600370.epw	climate_zone=T24-CEC9
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC9
-		create_typical_building_from_model	climate_zone=CEC T24-CEC9
-		set_wall_template	climate_zone=CEC T24-CEC9
-		set_roof_template	climate_zone=CEC T24-CEC9
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC9
-		set_interior_equipment_template	climate_zone=CEC T24-CEC9
-		set_service_water_heating_template	climate_zone=CEC T24-CEC9
-		set_hvac_template	climate_zone=CEC T24-CEC9
-county_id	G0600390	ChangeBuildingLocation	weather_file_name=G0600390.epw	climate_zone=T24-CEC13
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC13
-		create_typical_building_from_model	climate_zone=CEC T24-CEC13
-		set_wall_template	climate_zone=CEC T24-CEC13
-		set_roof_template	climate_zone=CEC T24-CEC13
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC13
-		set_interior_equipment_template	climate_zone=CEC T24-CEC13
-		set_service_water_heating_template	climate_zone=CEC T24-CEC13
-		set_hvac_template	climate_zone=CEC T24-CEC13
-county_id	G0600410	ChangeBuildingLocation	weather_file_name=G0600410.epw	climate_zone=T24-CEC2
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC2
-		create_typical_building_from_model	climate_zone=CEC T24-CEC2
-		set_wall_template	climate_zone=CEC T24-CEC2
-		set_roof_template	climate_zone=CEC T24-CEC2
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC2
-		set_interior_equipment_template	climate_zone=CEC T24-CEC2
-		set_service_water_heating_template	climate_zone=CEC T24-CEC2
-		set_hvac_template	climate_zone=CEC T24-CEC2
-county_id	G0600430	ChangeBuildingLocation	weather_file_name=G0600430.epw	climate_zone=T24-CEC12
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC12
-		create_typical_building_from_model	climate_zone=CEC T24-CEC12
-		set_wall_template	climate_zone=CEC T24-CEC12
-		set_roof_template	climate_zone=CEC T24-CEC12
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC12
-		set_interior_equipment_template	climate_zone=CEC T24-CEC12
-		set_service_water_heating_template	climate_zone=CEC T24-CEC12
-		set_hvac_template	climate_zone=CEC T24-CEC12
-county_id	G0600450	ChangeBuildingLocation	weather_file_name=G0600450.epw	climate_zone=T24-CEC2
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC2
-		create_typical_building_from_model	climate_zone=CEC T24-CEC2
-		set_wall_template	climate_zone=CEC T24-CEC2
-		set_roof_template	climate_zone=CEC T24-CEC2
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC2
-		set_interior_equipment_template	climate_zone=CEC T24-CEC2
-		set_service_water_heating_template	climate_zone=CEC T24-CEC2
-		set_hvac_template	climate_zone=CEC T24-CEC2
-county_id	G0600470	ChangeBuildingLocation	weather_file_name=G0600470.epw	climate_zone=T24-CEC12
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC12
-		create_typical_building_from_model	climate_zone=CEC T24-CEC12
-		set_wall_template	climate_zone=CEC T24-CEC12
-		set_roof_template	climate_zone=CEC T24-CEC12
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC12
-		set_interior_equipment_template	climate_zone=CEC T24-CEC12
-		set_service_water_heating_template	climate_zone=CEC T24-CEC12
-		set_hvac_template	climate_zone=CEC T24-CEC12
-county_id	G0600490	ChangeBuildingLocation	weather_file_name=G0600490.epw	climate_zone=T24-CEC16
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC16
-		create_typical_building_from_model	climate_zone=CEC T24-CEC16
-		set_wall_template	climate_zone=CEC T24-CEC16
-		set_roof_template	climate_zone=CEC T24-CEC16
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC16
-		set_interior_equipment_template	climate_zone=CEC T24-CEC16
-		set_service_water_heating_template	climate_zone=CEC T24-CEC16
-		set_hvac_template	climate_zone=CEC T24-CEC16
-county_id	G0600510	ChangeBuildingLocation	weather_file_name=G0600510.epw	climate_zone=T24-CEC16
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC16
-		create_typical_building_from_model	climate_zone=CEC T24-CEC16
-		set_wall_template	climate_zone=CEC T24-CEC16
-		set_roof_template	climate_zone=CEC T24-CEC16
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC16
-		set_interior_equipment_template	climate_zone=CEC T24-CEC16
-		set_service_water_heating_template	climate_zone=CEC T24-CEC16
-		set_hvac_template	climate_zone=CEC T24-CEC16
-county_id	G0600530	ChangeBuildingLocation	weather_file_name=G0600530.epw	climate_zone=T24-CEC3
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC3
-		create_typical_building_from_model	climate_zone=CEC T24-CEC3
-		set_wall_template	climate_zone=CEC T24-CEC3
-		set_roof_template	climate_zone=CEC T24-CEC3
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC3
-		set_interior_equipment_template	climate_zone=CEC T24-CEC3
-		set_service_water_heating_template	climate_zone=CEC T24-CEC3
-		set_hvac_template	climate_zone=CEC T24-CEC3
-county_id	G0600550	ChangeBuildingLocation	weather_file_name=G0600550.epw	climate_zone=T24-CEC2
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC2
-		create_typical_building_from_model	climate_zone=CEC T24-CEC2
-		set_wall_template	climate_zone=CEC T24-CEC2
-		set_roof_template	climate_zone=CEC T24-CEC2
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC2
-		set_interior_equipment_template	climate_zone=CEC T24-CEC2
-		set_service_water_heating_template	climate_zone=CEC T24-CEC2
-		set_hvac_template	climate_zone=CEC T24-CEC2
-county_id	G0600570	ChangeBuildingLocation	weather_file_name=G0600570.epw	climate_zone=T24-CEC11
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC11
-		create_typical_building_from_model	climate_zone=CEC T24-CEC11
-		set_wall_template	climate_zone=CEC T24-CEC11
-		set_roof_template	climate_zone=CEC T24-CEC11
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC11
-		set_interior_equipment_template	climate_zone=CEC T24-CEC11
-		set_service_water_heating_template	climate_zone=CEC T24-CEC11
-		set_hvac_template	climate_zone=CEC T24-CEC11
-county_id	G0600590	ChangeBuildingLocation	weather_file_name=G0600590.epw	climate_zone=T24-CEC8
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC8
-		create_typical_building_from_model	climate_zone=CEC T24-CEC8
-		set_wall_template	climate_zone=CEC T24-CEC8
-		set_roof_template	climate_zone=CEC T24-CEC8
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC8
-		set_interior_equipment_template	climate_zone=CEC T24-CEC8
-		set_service_water_heating_template	climate_zone=CEC T24-CEC8
-		set_hvac_template	climate_zone=CEC T24-CEC8
-county_id	G0600610	ChangeBuildingLocation	weather_file_name=G0600610.epw	climate_zone=T24-CEC11
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC11
-		create_typical_building_from_model	climate_zone=CEC T24-CEC11
-		set_wall_template	climate_zone=CEC T24-CEC11
-		set_roof_template	climate_zone=CEC T24-CEC11
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC11
-		set_interior_equipment_template	climate_zone=CEC T24-CEC11
-		set_service_water_heating_template	climate_zone=CEC T24-CEC11
-		set_hvac_template	climate_zone=CEC T24-CEC11
-county_id	G0600630	ChangeBuildingLocation	weather_file_name=G0600630.epw	climate_zone=T24-CEC16
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC16
-		create_typical_building_from_model	climate_zone=CEC T24-CEC16
-		set_wall_template	climate_zone=CEC T24-CEC16
-		set_roof_template	climate_zone=CEC T24-CEC16
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC16
-		set_interior_equipment_template	climate_zone=CEC T24-CEC16
-		set_service_water_heating_template	climate_zone=CEC T24-CEC16
-		set_hvac_template	climate_zone=CEC T24-CEC16
-county_id	G0600650	ChangeBuildingLocation	weather_file_name=G0600650.epw	climate_zone=T24-CEC10
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC10
-		create_typical_building_from_model	climate_zone=CEC T24-CEC10
-		set_wall_template	climate_zone=CEC T24-CEC10
-		set_roof_template	climate_zone=CEC T24-CEC10
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC10
-		set_interior_equipment_template	climate_zone=CEC T24-CEC10
-		set_service_water_heating_template	climate_zone=CEC T24-CEC10
-		set_hvac_template	climate_zone=CEC T24-CEC10
-county_id	G0600670	ChangeBuildingLocation	weather_file_name=G0600670.epw	climate_zone=T24-CEC12
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC12
-		create_typical_building_from_model	climate_zone=CEC T24-CEC12
-		set_wall_template	climate_zone=CEC T24-CEC12
-		set_roof_template	climate_zone=CEC T24-CEC12
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC12
-		set_interior_equipment_template	climate_zone=CEC T24-CEC12
-		set_service_water_heating_template	climate_zone=CEC T24-CEC12
-		set_hvac_template	climate_zone=CEC T24-CEC12
-county_id	G0600690	ChangeBuildingLocation	weather_file_name=G0600690.epw	climate_zone=T24-CEC4
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC4
-		create_typical_building_from_model	climate_zone=CEC T24-CEC4
-		set_wall_template	climate_zone=CEC T24-CEC4
-		set_roof_template	climate_zone=CEC T24-CEC4
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC4
-		set_interior_equipment_template	climate_zone=CEC T24-CEC4
-		set_service_water_heating_template	climate_zone=CEC T24-CEC4
-		set_hvac_template	climate_zone=CEC T24-CEC4
-county_id	G0600710	ChangeBuildingLocation	weather_file_name=G0600710.epw	climate_zone=T24-CEC10
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC10
-		create_typical_building_from_model	climate_zone=CEC T24-CEC10
-		set_wall_template	climate_zone=CEC T24-CEC10
-		set_roof_template	climate_zone=CEC T24-CEC10
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC10
-		set_interior_equipment_template	climate_zone=CEC T24-CEC10
-		set_service_water_heating_template	climate_zone=CEC T24-CEC10
-		set_hvac_template	climate_zone=CEC T24-CEC10
-county_id	G0600730	ChangeBuildingLocation	weather_file_name=G0600730.epw	climate_zone=T24-CEC7
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC7
-		create_typical_building_from_model	climate_zone=CEC T24-CEC7
-		set_wall_template	climate_zone=CEC T24-CEC7
-		set_roof_template	climate_zone=CEC T24-CEC7
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC7
-		set_interior_equipment_template	climate_zone=CEC T24-CEC7
-		set_service_water_heating_template	climate_zone=CEC T24-CEC7
-		set_hvac_template	climate_zone=CEC T24-CEC7
-county_id	G0600750	ChangeBuildingLocation	weather_file_name=G0600750.epw	climate_zone=T24-CEC3
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC3
-		create_typical_building_from_model	climate_zone=CEC T24-CEC3
-		set_wall_template	climate_zone=CEC T24-CEC3
-		set_roof_template	climate_zone=CEC T24-CEC3
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC3
-		set_interior_equipment_template	climate_zone=CEC T24-CEC3
-		set_service_water_heating_template	climate_zone=CEC T24-CEC3
-		set_hvac_template	climate_zone=CEC T24-CEC3
-county_id	G0600770	ChangeBuildingLocation	weather_file_name=G0600770.epw	climate_zone=T24-CEC12
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC12
-		create_typical_building_from_model	climate_zone=CEC T24-CEC12
-		set_wall_template	climate_zone=CEC T24-CEC12
-		set_roof_template	climate_zone=CEC T24-CEC12
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC12
-		set_interior_equipment_template	climate_zone=CEC T24-CEC12
-		set_service_water_heating_template	climate_zone=CEC T24-CEC12
-		set_hvac_template	climate_zone=CEC T24-CEC12
-county_id	G0600790	ChangeBuildingLocation	weather_file_name=G0600790.epw	climate_zone=T24-CEC5
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC5
-		create_typical_building_from_model	climate_zone=CEC T24-CEC5
-		set_wall_template	climate_zone=CEC T24-CEC5
-		set_roof_template	climate_zone=CEC T24-CEC5
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC5
-		set_interior_equipment_template	climate_zone=CEC T24-CEC5
-		set_service_water_heating_template	climate_zone=CEC T24-CEC5
-		set_hvac_template	climate_zone=CEC T24-CEC5
-county_id	G0600810	ChangeBuildingLocation	weather_file_name=G0600810.epw	climate_zone=T24-CEC3
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC3
-		create_typical_building_from_model	climate_zone=CEC T24-CEC3
-		set_wall_template	climate_zone=CEC T24-CEC3
-		set_roof_template	climate_zone=CEC T24-CEC3
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC3
-		set_interior_equipment_template	climate_zone=CEC T24-CEC3
-		set_service_water_heating_template	climate_zone=CEC T24-CEC3
-		set_hvac_template	climate_zone=CEC T24-CEC3
-county_id	G0600830	ChangeBuildingLocation	weather_file_name=G0600830.epw	climate_zone=T24-CEC6
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC6
-		create_typical_building_from_model	climate_zone=CEC T24-CEC6
-		set_wall_template	climate_zone=CEC T24-CEC6
-		set_roof_template	climate_zone=CEC T24-CEC6
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC6
-		set_interior_equipment_template	climate_zone=CEC T24-CEC6
-		set_service_water_heating_template	climate_zone=CEC T24-CEC6
-		set_hvac_template	climate_zone=CEC T24-CEC6
-county_id	G0600850	ChangeBuildingLocation	weather_file_name=G0600850.epw	climate_zone=T24-CEC4
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC4
-		create_typical_building_from_model	climate_zone=CEC T24-CEC4
-		set_wall_template	climate_zone=CEC T24-CEC4
-		set_roof_template	climate_zone=CEC T24-CEC4
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC4
-		set_interior_equipment_template	climate_zone=CEC T24-CEC4
-		set_service_water_heating_template	climate_zone=CEC T24-CEC4
-		set_hvac_template	climate_zone=CEC T24-CEC4
-county_id	G0600870	ChangeBuildingLocation	weather_file_name=G0600870.epw	climate_zone=T24-CEC3
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC3
-		create_typical_building_from_model	climate_zone=CEC T24-CEC3
-		set_wall_template	climate_zone=CEC T24-CEC3
-		set_roof_template	climate_zone=CEC T24-CEC3
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC3
-		set_interior_equipment_template	climate_zone=CEC T24-CEC3
-		set_service_water_heating_template	climate_zone=CEC T24-CEC3
-		set_hvac_template	climate_zone=CEC T24-CEC3
-county_id	G0600890	ChangeBuildingLocation	weather_file_name=G0600890.epw	climate_zone=T24-CEC11
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC11
-		create_typical_building_from_model	climate_zone=CEC T24-CEC11
-		set_wall_template	climate_zone=CEC T24-CEC11
-		set_roof_template	climate_zone=CEC T24-CEC11
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC11
-		set_interior_equipment_template	climate_zone=CEC T24-CEC11
-		set_service_water_heating_template	climate_zone=CEC T24-CEC11
-		set_hvac_template	climate_zone=CEC T24-CEC11
-county_id	G0600910	ChangeBuildingLocation	weather_file_name=G0600910.epw	climate_zone=T24-CEC16
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC16
-		create_typical_building_from_model	climate_zone=CEC T24-CEC16
-		set_wall_template	climate_zone=CEC T24-CEC16
-		set_roof_template	climate_zone=CEC T24-CEC16
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC16
-		set_interior_equipment_template	climate_zone=CEC T24-CEC16
-		set_service_water_heating_template	climate_zone=CEC T24-CEC16
-		set_hvac_template	climate_zone=CEC T24-CEC16
-county_id	G0600930	ChangeBuildingLocation	weather_file_name=G0600930.epw	climate_zone=T24-CEC16
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC16
-		create_typical_building_from_model	climate_zone=CEC T24-CEC16
-		set_wall_template	climate_zone=CEC T24-CEC16
-		set_roof_template	climate_zone=CEC T24-CEC16
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC16
-		set_interior_equipment_template	climate_zone=CEC T24-CEC16
-		set_service_water_heating_template	climate_zone=CEC T24-CEC16
-		set_hvac_template	climate_zone=CEC T24-CEC16
-county_id	G0600950	ChangeBuildingLocation	weather_file_name=G0600950.epw	climate_zone=T24-CEC12
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC12
-		create_typical_building_from_model	climate_zone=CEC T24-CEC12
-		set_wall_template	climate_zone=CEC T24-CEC12
-		set_roof_template	climate_zone=CEC T24-CEC12
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC12
-		set_interior_equipment_template	climate_zone=CEC T24-CEC12
-		set_service_water_heating_template	climate_zone=CEC T24-CEC12
-		set_hvac_template	climate_zone=CEC T24-CEC12
-county_id	G0600970	ChangeBuildingLocation	weather_file_name=G0600970.epw	climate_zone=T24-CEC2
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC2
-		create_typical_building_from_model	climate_zone=CEC T24-CEC2
-		set_wall_template	climate_zone=CEC T24-CEC2
-		set_roof_template	climate_zone=CEC T24-CEC2
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC2
-		set_interior_equipment_template	climate_zone=CEC T24-CEC2
-		set_service_water_heating_template	climate_zone=CEC T24-CEC2
-		set_hvac_template	climate_zone=CEC T24-CEC2
-county_id	G0600990	ChangeBuildingLocation	weather_file_name=G0600990.epw	climate_zone=T24-CEC12
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC12
-		create_typical_building_from_model	climate_zone=CEC T24-CEC12
-		set_wall_template	climate_zone=CEC T24-CEC12
-		set_roof_template	climate_zone=CEC T24-CEC12
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC12
-		set_interior_equipment_template	climate_zone=CEC T24-CEC12
-		set_service_water_heating_template	climate_zone=CEC T24-CEC12
-		set_hvac_template	climate_zone=CEC T24-CEC12
-county_id	G0601010	ChangeBuildingLocation	weather_file_name=G0601010.epw	climate_zone=T24-CEC11
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC11
-		create_typical_building_from_model	climate_zone=CEC T24-CEC11
-		set_wall_template	climate_zone=CEC T24-CEC11
-		set_roof_template	climate_zone=CEC T24-CEC11
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC11
-		set_interior_equipment_template	climate_zone=CEC T24-CEC11
-		set_service_water_heating_template	climate_zone=CEC T24-CEC11
-		set_hvac_template	climate_zone=CEC T24-CEC11
-county_id	G0601030	ChangeBuildingLocation	weather_file_name=G0601030.epw	climate_zone=T24-CEC11
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC11
-		create_typical_building_from_model	climate_zone=CEC T24-CEC11
-		set_wall_template	climate_zone=CEC T24-CEC11
-		set_roof_template	climate_zone=CEC T24-CEC11
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC11
-		set_interior_equipment_template	climate_zone=CEC T24-CEC11
-		set_service_water_heating_template	climate_zone=CEC T24-CEC11
-		set_hvac_template	climate_zone=CEC T24-CEC11
-county_id	G0601050	ChangeBuildingLocation	weather_file_name=G0601050.epw	climate_zone=T24-CEC16
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC16
-		create_typical_building_from_model	climate_zone=CEC T24-CEC16
-		set_wall_template	climate_zone=CEC T24-CEC16
-		set_roof_template	climate_zone=CEC T24-CEC16
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC16
-		set_interior_equipment_template	climate_zone=CEC T24-CEC16
-		set_service_water_heating_template	climate_zone=CEC T24-CEC16
-		set_hvac_template	climate_zone=CEC T24-CEC16
-county_id	G0601070	ChangeBuildingLocation	weather_file_name=G0601070.epw	climate_zone=T24-CEC13
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC13
-		create_typical_building_from_model	climate_zone=CEC T24-CEC13
-		set_wall_template	climate_zone=CEC T24-CEC13
-		set_roof_template	climate_zone=CEC T24-CEC13
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC13
-		set_interior_equipment_template	climate_zone=CEC T24-CEC13
-		set_service_water_heating_template	climate_zone=CEC T24-CEC13
-		set_hvac_template	climate_zone=CEC T24-CEC13
-county_id	G0601090	ChangeBuildingLocation	weather_file_name=G0601090.epw	climate_zone=T24-CEC12
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC12
-		create_typical_building_from_model	climate_zone=CEC T24-CEC12
-		set_wall_template	climate_zone=CEC T24-CEC12
-		set_roof_template	climate_zone=CEC T24-CEC12
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC12
-		set_interior_equipment_template	climate_zone=CEC T24-CEC12
-		set_service_water_heating_template	climate_zone=CEC T24-CEC12
-		set_hvac_template	climate_zone=CEC T24-CEC12
-county_id	G0601110	ChangeBuildingLocation	weather_file_name=G0601110.epw	climate_zone=T24-CEC6
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC6
-		create_typical_building_from_model	climate_zone=CEC T24-CEC6
-		set_wall_template	climate_zone=CEC T24-CEC6
-		set_roof_template	climate_zone=CEC T24-CEC6
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC6
-		set_interior_equipment_template	climate_zone=CEC T24-CEC6
-		set_service_water_heating_template	climate_zone=CEC T24-CEC6
-		set_hvac_template	climate_zone=CEC T24-CEC6
-county_id	G0601130	ChangeBuildingLocation	weather_file_name=G0601130.epw	climate_zone=T24-CEC12
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC12
-		create_typical_building_from_model	climate_zone=CEC T24-CEC12
-		set_wall_template	climate_zone=CEC T24-CEC12
-		set_roof_template	climate_zone=CEC T24-CEC12
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC12
-		set_interior_equipment_template	climate_zone=CEC T24-CEC12
-		set_service_water_heating_template	climate_zone=CEC T24-CEC12
-		set_hvac_template	climate_zone=CEC T24-CEC12
-county_id	G0601150	ChangeBuildingLocation	weather_file_name=G0601150.epw	climate_zone=T24-CEC11
-		create_bar_from_building_type_ratios	climate_zone=CEC T24-CEC11
-		create_typical_building_from_model	climate_zone=CEC T24-CEC11
-		set_wall_template	climate_zone=CEC T24-CEC11
-		set_roof_template	climate_zone=CEC T24-CEC11
-		set_exterior_lighting_template	climate_zone=CEC T24-CEC11
-		set_interior_equipment_template	climate_zone=CEC T24-CEC11
-		set_service_water_heating_template	climate_zone=CEC T24-CEC11
-		set_hvac_template	climate_zone=CEC T24-CEC11
+county_id	G0600010	ChangeBuildingLocation	weather_file_name=G0600010.epw
+county_id	G0600030	ChangeBuildingLocation	weather_file_name=G0600030.epw
+county_id	G0600050	ChangeBuildingLocation	weather_file_name=G0600050.epw
+county_id	G0600070	ChangeBuildingLocation	weather_file_name=G0600070.epw
+county_id	G0600090	ChangeBuildingLocation	weather_file_name=G0600090.epw
+county_id	G0600110	ChangeBuildingLocation	weather_file_name=G0600110.epw
+county_id	G0600130	ChangeBuildingLocation	weather_file_name=G0600130.epw
+county_id	G0600150	ChangeBuildingLocation	weather_file_name=G0600150.epw
+county_id	G0600170	ChangeBuildingLocation	weather_file_name=G0600170.epw
+county_id	G0600190	ChangeBuildingLocation	weather_file_name=G0600190.epw
+county_id	G0600210	ChangeBuildingLocation	weather_file_name=G0600210.epw
+county_id	G0600230	ChangeBuildingLocation	weather_file_name=G0600230.epw
+county_id	G0600250	ChangeBuildingLocation	weather_file_name=G0600250.epw
+county_id	G0600270	ChangeBuildingLocation	weather_file_name=G0600270.epw
+county_id	G0600290	ChangeBuildingLocation	weather_file_name=G0600290.epw
+county_id	G0600310	ChangeBuildingLocation	weather_file_name=G0600310.epw
+county_id	G0600330	ChangeBuildingLocation	weather_file_name=G0600330.epw
+county_id	G0600350	ChangeBuildingLocation	weather_file_name=G0600350.epw
+county_id	G0600370	ChangeBuildingLocation	weather_file_name=G0600370.epw
+county_id	G0600390	ChangeBuildingLocation	weather_file_name=G0600390.epw
+county_id	G0600410	ChangeBuildingLocation	weather_file_name=G0600410.epw
+county_id	G0600430	ChangeBuildingLocation	weather_file_name=G0600430.epw
+county_id	G0600450	ChangeBuildingLocation	weather_file_name=G0600450.epw
+county_id	G0600470	ChangeBuildingLocation	weather_file_name=G0600470.epw
+county_id	G0600490	ChangeBuildingLocation	weather_file_name=G0600490.epw
+county_id	G0600510	ChangeBuildingLocation	weather_file_name=G0600510.epw
+county_id	G0600530	ChangeBuildingLocation	weather_file_name=G0600530.epw
+county_id	G0600550	ChangeBuildingLocation	weather_file_name=G0600550.epw
+county_id	G0600570	ChangeBuildingLocation	weather_file_name=G0600570.epw
+county_id	G0600590	ChangeBuildingLocation	weather_file_name=G0600590.epw
+county_id	G0600610	ChangeBuildingLocation	weather_file_name=G0600610.epw
+county_id	G0600630	ChangeBuildingLocation	weather_file_name=G0600630.epw
+county_id	G0600650	ChangeBuildingLocation	weather_file_name=G0600650.epw
+county_id	G0600670	ChangeBuildingLocation	weather_file_name=G0600670.epw
+county_id	G0600690	ChangeBuildingLocation	weather_file_name=G0600690.epw
+county_id	G0600710	ChangeBuildingLocation	weather_file_name=G0600710.epw
+county_id	G0600730	ChangeBuildingLocation	weather_file_name=G0600730.epw
+county_id	G0600750	ChangeBuildingLocation	weather_file_name=G0600750.epw
+county_id	G0600770	ChangeBuildingLocation	weather_file_name=G0600770.epw
+county_id	G0600790	ChangeBuildingLocation	weather_file_name=G0600790.epw
+county_id	G0600810	ChangeBuildingLocation	weather_file_name=G0600810.epw
+county_id	G0600830	ChangeBuildingLocation	weather_file_name=G0600830.epw
+county_id	G0600850	ChangeBuildingLocation	weather_file_name=G0600850.epw
+county_id	G0600870	ChangeBuildingLocation	weather_file_name=G0600870.epw
+county_id	G0600890	ChangeBuildingLocation	weather_file_name=G0600890.epw
+county_id	G0600910	ChangeBuildingLocation	weather_file_name=G0600910.epw
+county_id	G0600930	ChangeBuildingLocation	weather_file_name=G0600930.epw
+county_id	G0600950	ChangeBuildingLocation	weather_file_name=G0600950.epw
+county_id	G0600970	ChangeBuildingLocation	weather_file_name=G0600970.epw
+county_id	G0600990	ChangeBuildingLocation	weather_file_name=G0600990.epw
+county_id	G0601010	ChangeBuildingLocation	weather_file_name=G0601010.epw
+county_id	G0601030	ChangeBuildingLocation	weather_file_name=G0601030.epw
+county_id	G0601050	ChangeBuildingLocation	weather_file_name=G0601050.epw
+county_id	G0601070	ChangeBuildingLocation	weather_file_name=G0601070.epw
+county_id	G0601090	ChangeBuildingLocation	weather_file_name=G0601090.epw
+county_id	G0601110	ChangeBuildingLocation	weather_file_name=G0601110.epw
+county_id	G0601130	ChangeBuildingLocation	weather_file_name=G0601130.epw
+county_id	G0601150	ChangeBuildingLocation	weather_file_name=G0601150.epw
 county_id	G0800010	ChangeBuildingLocation	weather_file_name=G0800010.epw
 county_id	G0800030	ChangeBuildingLocation	weather_file_name=G0800030.epw
 county_id	G0800050	ChangeBuildingLocation	weather_file_name=G0800050.epw
@@ -3047,6 +2728,7 @@ county_id	G4600610	ChangeBuildingLocation	weather_file_name=G4600650.epw
 county_id	G4600630	ChangeBuildingLocation	weather_file_name=G4600650.epw
 county_id	G4600650	ChangeBuildingLocation	weather_file_name=G4600650.epw
 county_id	G4600670	ChangeBuildingLocation	weather_file_name=G4600670.epw
+county_id	G4600690	ChangeBuildingLocation	weather_file_name=G4600670.epw
 county_id	G4600710	ChangeBuildingLocation	weather_file_name=G4600730.epw
 county_id	G4600730	ChangeBuildingLocation	weather_file_name=G4600730.epw
 county_id	G4600750	ChangeBuildingLocation	weather_file_name=G4600750.epw
@@ -3574,6 +3256,7 @@ county_id	G5105500	ChangeBuildingLocation	weather_file_name=G5105500.epw
 county_id	G5105700	ChangeBuildingLocation	weather_file_name=G5105700.epw
 county_id	G5105800	ChangeBuildingLocation	weather_file_name=G5105800.epw
 county_id	G5105900	ChangeBuildingLocation	weather_file_name=G5105900.epw
+county_id	G5105950	ChangeBuildingLocation	weather_file_name=G5105900.epw
 county_id	G5106000	ChangeBuildingLocation	weather_file_name=G5106000.epw
 county_id	G5106100	ChangeBuildingLocation	weather_file_name=G5106100.epw
 county_id	G5106200	ChangeBuildingLocation	weather_file_name=G5106200.epw
@@ -4037,16 +3720,23 @@ aspect_ratio	3	create_bar_from_building_type_ratios	ns_to_ew_ratio=3
 aspect_ratio	4	create_bar_from_building_type_ratios	ns_to_ew_ratio=4
 aspect_ratio	5	create_bar_from_building_type_ratios	ns_to_ew_ratio=5
 aspect_ratio	6	create_bar_from_building_type_ratios	ns_to_ew_ratio=6
-rentable_area	_1000	create_bar_from_building_type_ratios	total_bldg_floor_area=1000
-rentable_area	1001_5000	create_bar_from_building_type_ratios	total_bldg_floor_area=3000
-rentable_area	5001_10000	create_bar_from_building_type_ratios	total_bldg_floor_area=7500
-rentable_area	10001_25000	create_bar_from_building_type_ratios	total_bldg_floor_area=17500
-rentable_area	25001_50000	create_bar_from_building_type_ratios	total_bldg_floor_area=37500
-rentable_area	50001_100000	create_bar_from_building_type_ratios	total_bldg_floor_area=75000
-rentable_area	100001_200000	create_bar_from_building_type_ratios	total_bldg_floor_area=150000
-rentable_area	200001_500000	create_bar_from_building_type_ratios	total_bldg_floor_area=350000
-rentable_area	500001_1mil	create_bar_from_building_type_ratios	total_bldg_floor_area=750000
-rentable_area	over_1mil	create_bar_from_building_type_ratios	total_bldg_floor_area=1000000
+building_area	_1000	create_bar_from_building_type_ratios	total_bldg_floor_area=1000
+building_area	1001_3000	create_bar_from_building_type_ratios	total_bldg_floor_area=2000
+building_area	3001_8000	create_bar_from_building_type_ratios	total_bldg_floor_area=5500
+building_area	8001_12000	create_bar_from_building_type_ratios	total_bldg_floor_area=10000
+building_area	12001_30000	create_bar_from_building_type_ratios	total_bldg_floor_area=21000
+building_area	30001_40000	create_bar_from_building_type_ratios	total_bldg_floor_area=35000
+building_area	40001_52000	create_bar_from_building_type_ratios	total_bldg_floor_area=46000
+building_area	52001_64000	create_bar_from_building_type_ratios	total_bldg_floor_area=58000
+building_area	64001_70000	create_bar_from_building_type_ratios	total_bldg_floor_area=67000
+building_area	70001_80000	create_bar_from_building_type_ratios	total_bldg_floor_area=75000
+building_area	80001_100000	create_bar_from_building_type_ratios	total_bldg_floor_area=90000
+building_area	100001_150000	create_bar_from_building_type_ratios	total_bldg_floor_area=125000
+building_area	150001_200000	create_bar_from_building_type_ratios	total_bldg_floor_area=175000
+building_area	200001_400000	create_bar_from_building_type_ratios	total_bldg_floor_area=300000
+building_area	400001_600000	create_bar_from_building_type_ratios	total_bldg_floor_area=500000
+building_area	600001_1mil	create_bar_from_building_type_ratios	total_bldg_floor_area=800000
+building_area	over_1mil	create_bar_from_building_type_ratios	total_bldg_floor_area=1100000
 service_water_heating_fuel	NaturalGas	create_typical_building_from_model	swh_src=NaturalGas
 		set_service_water_heating_fuel	service_water_heating_fuel=NaturalGas
 service_water_heating_fuel	FuelOil	create_typical_building_from_model	swh_src=NaturalGas
@@ -4970,17 +4660,35 @@ light_led	lighting_technology_gen5	upgrade_light_led	lighting_generation=gen5_le
 light_led	lighting_technology_gen6	upgrade_light_led	lighting_generation=gen6_led
 light_led	lighting_technology_gen7	upgrade_light_led	lighting_generation=gen7_led
 light_led	lighting_technology_gen8	upgrade_light_led	lighting_generation=gen8_led
-hvac_add_heat_pump_rtu	electric_backup_base	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hr=false	dcv=false	econ=false	std_perf=false
-hvac_add_heat_pump_rtu	electric_backup_no_oversize_no_hr	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hr=false	dcv=false	econ=false	std_perf=false
-hvac_add_heat_pump_rtu	electric_backup_25pct_oversize_no_hr	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0.25	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hr=false	dcv=false	econ=false	std_perf=false
-hvac_add_heat_pump_rtu	electric_backup_25pct_oversize_hr	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0.25	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hr=true	dcv=false	econ=false	std_perf=false
-hvac_add_heat_pump_rtu	electric_backup_no_oversize_hr	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hr=true	dcv=false	econ=false	std_perf=false
-hvac_add_heat_pump_rtu	orig_fuel_backup_base	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=match_original_primary_heating_fuel	performance_oversizing_factor=0	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hr=false	dcv=false	econ=false	std_perf=false
-hvac_add_heat_pump_rtu	orig_fuel_backup_no_oversize_no_hr	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=match_original_primary_heating_fuel	performance_oversizing_factor=0	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hr=false	dcv=false	econ=false	std_perf=false
-hvac_add_heat_pump_rtu	orig_fuel_backup_25pct_oversize_no_hr	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=match_original_primary_heating_fuel	performance_oversizing_factor=0.25	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hr=false	dcv=false	econ=false	std_perf=false
-hvac_add_heat_pump_rtu	orig_fuel_backup_25pct_oversize_hr	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=match_original_primary_heating_fuel	performance_oversizing_factor=0.25	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hr=true	dcv=false	econ=false	std_perf=false
-hvac_add_heat_pump_rtu	orig_fuel_backup_no_oversize_hr	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=match_original_primary_heating_fuel	performance_oversizing_factor=0	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hr=true	dcv=false	econ=false	std_perf=false
-hvac_add_heat_pump_rtu	standard_performance	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hr=false	dcv=false	econ=false	std_perf=true
+hvac_add_heat_pump_rtu	electric_backup_base	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=0	hprtu_scenario=variable_speed_high_eff	hr=false	dcv=false	econ=false	roof=false	sizing_run=false	debug_verbose=false
+hvac_add_heat_pump_rtu	electric_backup_w_roof	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=0	hprtu_scenario=variable_speed_high_eff	hr=false	dcv=false	econ=false	roof=true	sizing_run=false	debug_verbose=false
+hvac_add_heat_pump_rtu	electric_backup_no_oversize_no_hr	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=0	hprtu_scenario=variable_speed_high_eff	hr=false	dcv=false	econ=false	roof=false	sizing_run=false	debug_verbose=false
+hvac_add_heat_pump_rtu	electric_backup_25pct_oversize_no_hr	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0.25	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=0	hprtu_scenario=variable_speed_high_eff	hr=false	dcv=false	econ=false	roof=false	sizing_run=false	debug_verbose=false
+hvac_add_heat_pump_rtu	electric_backup_25pct_oversize_hr	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0.25	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=0	hprtu_scenario=variable_speed_high_eff	hr=true	dcv=false	econ=false	roof=false	sizing_run=false	debug_verbose=false
+hvac_add_heat_pump_rtu	electric_backup_no_oversize_hr	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=0	hprtu_scenario=variable_speed_high_eff	hr=true	dcv=false	econ=false	roof=false	sizing_run=false	debug_verbose=false
+hvac_add_heat_pump_rtu	orig_fuel_backup_base	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=match_original_primary_heating_fuel	performance_oversizing_factor=0	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=0	hprtu_scenario=variable_speed_high_eff	hr=false	dcv=false	econ=false	roof=false	sizing_run=false	debug_verbose=false
+hvac_add_heat_pump_rtu	orig_fuel_backup_no_oversize_no_hr	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=match_original_primary_heating_fuel	performance_oversizing_factor=0	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=0	hprtu_scenario=variable_speed_high_eff	hr=false	dcv=false	econ=false	roof=false	sizing_run=false	debug_verbose=false
+hvac_add_heat_pump_rtu	orig_fuel_backup_25pct_oversize_no_hr	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=match_original_primary_heating_fuel	performance_oversizing_factor=0.25	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=0	hprtu_scenario=variable_speed_high_eff	hr=false	dcv=false	econ=false	roof=false	sizing_run=false	debug_verbose=false
+hvac_add_heat_pump_rtu	orig_fuel_backup_25pct_oversize_hr	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=match_original_primary_heating_fuel	performance_oversizing_factor=0.25	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=0	hprtu_scenario=variable_speed_high_eff	hr=true	dcv=false	econ=false	roof=false	sizing_run=false	debug_verbose=false
+hvac_add_heat_pump_rtu	orig_fuel_backup_no_oversize_hr	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=match_original_primary_heating_fuel	performance_oversizing_factor=0	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=0	hprtu_scenario=variable_speed_high_eff	hr=true	dcv=false	econ=false	roof=false	sizing_run=false	debug_verbose=false
+hvac_add_heat_pump_rtu	standard_performance	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=0	hprtu_scenario=two_speed_standard_eff	hr=false	dcv=false	econ=false	roof=false	sizing_run=false	debug_verbose=false
+hvac_add_heat_pump_rtu	standard_performance_w_roof	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=0	hprtu_scenario=two_speed_standard_eff	hr=false	dcv=false	econ=false	roof=true	sizing_run=false	debug_verbose=false
+hvac_add_heat_pump_rtu	adv_electric_backup_5pct_oversize_no_hr	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0.05	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=0	hprtu_scenario=variable_speed_high_eff	hr=false	dcv=false	econ=false	roof=false	sizing_run=true	debug_verbose=false
+hvac_add_heat_pump_rtu	adv_electric_backup_10pct_oversize_no_hr	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0.10	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=0	hprtu_scenario=variable_speed_high_eff	hr=false	dcv=false	econ=false	roof=false	sizing_run=true	debug_verbose=false
+hvac_add_heat_pump_rtu	adv_electric_backup_15pct_oversize_no_hr	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0.15	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=0	hprtu_scenario=variable_speed_high_eff	hr=false	dcv=false	econ=false	roof=false	sizing_run=true	debug_verbose=false
+hvac_add_heat_pump_rtu	adv_electric_backup_20pct_oversize_no_hr	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0.20	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=0	hprtu_scenario=variable_speed_high_eff	hr=false	dcv=false	econ=false	roof=false	sizing_run=true	debug_verbose=false
+hvac_add_heat_pump_rtu	adv_electric_backup_25pct_oversize_no_hr	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0.25	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=0	hprtu_scenario=variable_speed_high_eff	hr=false	dcv=false	econ=false	roof=false	sizing_run=true	debug_verbose=false
+hvac_add_heat_pump_rtu	std_electric_backup_5pct_oversize_no_hr	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0.05	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=0	hprtu_scenario=two_speed_standard_eff	hr=false	dcv=false	econ=false	roof=false	sizing_run=true	debug_verbose=false
+hvac_add_heat_pump_rtu	std_electric_backup_10pct_oversize_no_hr	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0.10	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=0	hprtu_scenario=two_speed_standard_eff	hr=false	dcv=false	econ=false	roof=false	sizing_run=true	debug_verbose=false
+hvac_add_heat_pump_rtu	std_electric_backup_15pct_oversize_no_hr	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0.15	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=0	hprtu_scenario=two_speed_standard_eff	hr=false	dcv=false	econ=false	roof=false	sizing_run=true	debug_verbose=false
+hvac_add_heat_pump_rtu	std_electric_backup_20pct_oversize_no_hr	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0.20	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=0	hprtu_scenario=two_speed_standard_eff	hr=false	dcv=false	econ=false	roof=false	sizing_run=true	debug_verbose=false
+hvac_add_heat_pump_rtu	std_electric_backup_25pct_oversize_no_hr	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0.25	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=0	hprtu_scenario=two_speed_standard_eff	hr=false	dcv=false	econ=false	roof=false	sizing_run=true	debug_verbose=false
+hvac_add_heat_pump_rtu	compressor_lockout_5F	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=5	hprtu_scenario=two_speed_standard_eff	hr=false	dcv=false	econ=false	roof=false	sizing_run=false	debug_verbose=false
+hvac_add_heat_pump_rtu	compressor_lockout_10F	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=10	hprtu_scenario=two_speed_standard_eff	hr=false	dcv=false	econ=false	roof=false	sizing_run=false	debug_verbose=false
+hvac_add_heat_pump_rtu	compressor_lockout_17F	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=17	hprtu_scenario=two_speed_standard_eff	hr=false	dcv=false	econ=false	roof=false	sizing_run=false	debug_verbose=false
+hvac_add_heat_pump_rtu	compressor_lockout_32F	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=32	hprtu_scenario=two_speed_standard_eff	hr=false	dcv=false	econ=false	roof=false	sizing_run=false	debug_verbose=false
+hvac_add_heat_pump_rtu	cchpc_2027_spec	upgrade_hvac_add_heat_pump_rtu	backup_ht_fuel_scheme=electric_resistance_backup	performance_oversizing_factor=0	htg_sizing_option=0F	clg_oversizing_estimate=1	htg_to_clg_hp_ratio=1	hp_min_comp_lockout_temp_f=-10	hprtu_scenario=cchpc_2027_spec	hr=false	dcv=false	econ=false	roof=false	sizing_run=false	debug_verbose=false
+hvac_enable_ideal_air_loads	ideal_air_loads	upgrade_hvac_enable_ideal_air_loads
 ppl_electric_kitchen_equip	electric_kitchen_equip	upgrade_ppl_electric_kitchen_equipment
 hvac_add_multispeed_coil_min_flow	multispeed_min_flow_default	upgrade_hvac_multispeed_minimum_flow
 hvac_advanced_rtu_controls	advanced_rtu_no_dcv_no_econ	upgrade_advanced_rtu_control	add_econo=false	add_dcv=false
@@ -5018,23 +4726,35 @@ fault_economizer_damper_fully_closed	Fault oct	fault_hvac_economizer_damper_stuc
 fault_economizer_damper_fully_closed	Fault nov	fault_hvac_economizer_damper_stuck	apply_measure=true	econ_choice=all available economizer	start_month=11	start_day=1	duration_days=30	damper_pos=0.0
 fault_economizer_damper_fully_closed	Fault dec	fault_hvac_economizer_damper_stuck	apply_measure=true	econ_choice=all available economizer	start_month=12	start_day=1	duration_days=31	damper_pos=0.0
 fault_economizer_damper_fully_closed	dummy_option_does_nothing	fault_hvac_economizer_damper_stuck
-thermostat_control_load_shed	shed_full_baseline_15min	upgrade_df_thermostat_control_load_shed	peak_len=4	rebound_len=2	sp_adjustment=2.0	num_timesteps_in_hr=4	load_prediction_method=full baseline
-thermostat_control_load_shed	shed_full_baseline_60min	upgrade_df_thermostat_control_load_shed	peak_len=4	rebound_len=2	sp_adjustment=2.0	num_timesteps_in_hr=1	load_prediction_method=full baseline
-thermostat_control_load_shed	shed_bin_sample_15min	upgrade_df_thermostat_control_load_shed	peak_len=4	rebound_len=2	sp_adjustment=2.0	num_timesteps_in_hr=4	load_prediction_method=bin sample
-thermostat_control_load_shed	shed_bin_sample_60min	upgrade_df_thermostat_control_load_shed	peak_len=4	rebound_len=2	sp_adjustment=2.0	num_timesteps_in_hr=1	load_prediction_method=bin sample
-thermostat_control_load_shed	shed_part_year_15min	upgrade_df_thermostat_control_load_shed	peak_len=4	rebound_len=2	sp_adjustment=2.0	num_timesteps_in_hr=4	load_prediction_method=part year bin sample
-thermostat_control_load_shed	shed_part_year_60min	upgrade_df_thermostat_control_load_shed	peak_len=4	rebound_len=2	sp_adjustment=2.0	num_timesteps_in_hr=1	load_prediction_method=part year bin sample
-thermostat_control_load_shed	shed_part_year_15min_3hpeak	upgrade_df_thermostat_control_load_shed	peak_len=3	rebound_len=2	sp_adjustment=2.0	num_timesteps_in_hr=4	load_prediction_method=part year bin sample
-thermostat_control_load_shed	shed_part_year_15min_norebound	upgrade_df_thermostat_control_load_shed	peak_len=4	rebound_len=0	sp_adjustment=2.0	num_timesteps_in_hr=4	load_prediction_method=part year bin sample
-thermostat_control_load_shed	shed_part_year_15min_3cspa	upgrade_df_thermostat_control_load_shed	peak_len=4	rebound_len=2	sp_adjustment=3.0	num_timesteps_in_hr=4	load_prediction_method=part year bin sample
-thermostat_control_load_shed	shed_full_baseline_15min_3hpeak	upgrade_df_thermostat_control_load_shed	peak_len=3	rebound_len=2	sp_adjustment=2.0	num_timesteps_in_hr=4	load_prediction_method=full baseline
-thermostat_control_load_shed	shed_full_baseline_15min_norebound	upgrade_df_thermostat_control_load_shed	peak_len=4	rebound_len=0	sp_adjustment=2.0	num_timesteps_in_hr=4	load_prediction_method=full baseline
-thermostat_control_load_shed	shed_full_baseline_15min_3cspa	upgrade_df_thermostat_control_load_shed	peak_len=4	rebound_len=2	sp_adjustment=3.0	num_timesteps_in_hr=4	load_prediction_method=full baseline
-thermostat_control_load_shift	shift_full_baseline_15min	upgrade_df_thermostat_control_load_shift	peak_len=4	prepeak_len=2	sp_adjustment=1.0	num_timesteps_in_hr=4	load_prediction_method=full baseline
-thermostat_control_load_shift	shift_full_baseline_60min	upgrade_df_thermostat_control_load_shift	peak_len=4	prepeak_len=2	sp_adjustment=1.0	num_timesteps_in_hr=1	load_prediction_method=full baseline
-thermostat_control_load_shift	shift_full_baseline_15min_3hpeak	upgrade_df_thermostat_control_load_shift	peak_len=3	prepeak_len=2	sp_adjustment=1.0	num_timesteps_in_hr=4	load_prediction_method=full baseline
-thermostat_control_load_shift	shift_full_baseline_15min_1hprepeak	upgrade_df_thermostat_control_load_shift	peak_len=4	prepeak_len=1	sp_adjustment=1.0	num_timesteps_in_hr=4	load_prediction_method=full baseline
-thermostat_control_load_shift	shift_full_baseline_15min_2cspa	upgrade_df_thermostat_control_load_shift	peak_len=4	prepeak_len=2	sp_adjustment=2.0	num_timesteps_in_hr=4	load_prediction_method=full baseline
+thermostat_control_load_shed	shed_full_baseline_15min	upgrade_df_thermostat_control_load_shed	demand_flexibility_objective=peak load	peak_len=4	rebound_len=2	sp_adjustment=2.0	num_timesteps_in_hr=4	load_prediction_method=full baseline	peak_lag=2	peak_window_strategy=center with peak	cambium_scenario=LRMER_MidCase_15
+thermostat_control_load_shed	shed_full_baseline_60min	upgrade_df_thermostat_control_load_shed	demand_flexibility_objective=peak load	peak_len=4	rebound_len=2	sp_adjustment=2.0	num_timesteps_in_hr=1	load_prediction_method=full baseline	peak_lag=2	peak_window_strategy=center with peak	cambium_scenario=LRMER_MidCase_15
+thermostat_control_load_shed	shed_bin_sample_15min	upgrade_df_thermostat_control_load_shed	demand_flexibility_objective=peak load	peak_len=4	rebound_len=2	sp_adjustment=2.0	num_timesteps_in_hr=4	load_prediction_method=bin sample	peak_lag=2	peak_window_strategy=center with peak	cambium_scenario=LRMER_MidCase_15
+thermostat_control_load_shed	shed_bin_sample_60min	upgrade_df_thermostat_control_load_shed	demand_flexibility_objective=peak load	peak_len=4	rebound_len=2	sp_adjustment=2.0	num_timesteps_in_hr=1	load_prediction_method=bin sample	peak_lag=2	peak_window_strategy=center with peak	cambium_scenario=LRMER_MidCase_15
+thermostat_control_load_shed	shed_part_year_15min	upgrade_df_thermostat_control_load_shed	demand_flexibility_objective=peak load	peak_len=4	rebound_len=2	sp_adjustment=2.0	num_timesteps_in_hr=4	load_prediction_method=part year bin sample	peak_lag=2	peak_window_strategy=center with peak	cambium_scenario=LRMER_MidCase_15
+thermostat_control_load_shed	shed_part_year_60min	upgrade_df_thermostat_control_load_shed	demand_flexibility_objective=peak load	peak_len=4	rebound_len=2	sp_adjustment=2.0	num_timesteps_in_hr=1	load_prediction_method=part year bin sample	peak_lag=2	peak_window_strategy=center with peak	cambium_scenario=LRMER_MidCase_15
+thermostat_control_load_shed	shed_part_year_15min_3hpeak	upgrade_df_thermostat_control_load_shed	demand_flexibility_objective=peak load	peak_len=3	rebound_len=2	sp_adjustment=2.0	num_timesteps_in_hr=4	load_prediction_method=part year bin sample	peak_lag=2	peak_window_strategy=center with peak	cambium_scenario=LRMER_MidCase_15
+thermostat_control_load_shed	shed_part_year_15min_norebound	upgrade_df_thermostat_control_load_shed	demand_flexibility_objective=peak load	peak_len=4	rebound_len=0	sp_adjustment=2.0	num_timesteps_in_hr=4	load_prediction_method=part year bin sample	peak_lag=2	peak_window_strategy=center with peak	cambium_scenario=LRMER_MidCase_15
+thermostat_control_load_shed	shed_part_year_15min_3cspa	upgrade_df_thermostat_control_load_shed	demand_flexibility_objective=peak load	peak_len=4	rebound_len=2	sp_adjustment=3.0	num_timesteps_in_hr=4	load_prediction_method=part year bin sample	peak_lag=2	peak_window_strategy=center with peak	cambium_scenario=LRMER_MidCase_15
+thermostat_control_load_shed	shed_full_baseline_15min_3hpeak	upgrade_df_thermostat_control_load_shed	demand_flexibility_objective=peak load	peak_len=3	rebound_len=2	sp_adjustment=2.0	num_timesteps_in_hr=4	load_prediction_method=full baseline	peak_lag=2	peak_window_strategy=center with peak	cambium_scenario=LRMER_MidCase_15
+thermostat_control_load_shed	shed_full_baseline_15min_norebound	upgrade_df_thermostat_control_load_shed	demand_flexibility_objective=peak load	peak_len=4	rebound_len=0	sp_adjustment=2.0	num_timesteps_in_hr=4	load_prediction_method=full baseline	peak_lag=2	peak_window_strategy=center with peak	cambium_scenario=LRMER_MidCase_15
+thermostat_control_load_shed	shed_full_baseline_15min_3cspa	upgrade_df_thermostat_control_load_shed	demand_flexibility_objective=peak load	peak_len=4	rebound_len=2	sp_adjustment=3.0	num_timesteps_in_hr=4	load_prediction_method=full baseline	peak_lag=2	peak_window_strategy=center with peak	cambium_scenario=LRMER_MidCase_15
+thermostat_control_load_shift	shift_full_baseline_15min	upgrade_df_thermostat_control_load_shift	peak_len=4	prepeak_len=2	sp_adjustment=1.0	num_timesteps_in_hr=4	load_prediction_method=full baseline	peak_lag=2	peak_window_strategy=center with peak
+thermostat_control_load_shift	shift_full_baseline_60min	upgrade_df_thermostat_control_load_shift	peak_len=4	prepeak_len=2	sp_adjustment=1.0	num_timesteps_in_hr=1	load_prediction_method=full baseline	peak_lag=2	peak_window_strategy=center with peak
+thermostat_control_load_shift	shift_full_baseline_15min_3hpeak	upgrade_df_thermostat_control_load_shift	peak_len=3	prepeak_len=2	sp_adjustment=1.0	num_timesteps_in_hr=4	load_prediction_method=full baseline	peak_lag=2	peak_window_strategy=center with peak
+thermostat_control_load_shift	shift_full_baseline_15min_1hprepeak	upgrade_df_thermostat_control_load_shift	peak_len=4	prepeak_len=1	sp_adjustment=1.0	num_timesteps_in_hr=4	load_prediction_method=full baseline	peak_lag=2	peak_window_strategy=center with peak
+thermostat_control_load_shift	shift_full_baseline_15min_2cspa	upgrade_df_thermostat_control_load_shift	peak_len=4	prepeak_len=2	sp_adjustment=2.0	num_timesteps_in_hr=4	load_prediction_method=full baseline	peak_lag=2	peak_window_strategy=center with peak
+df_precooling	precooling_12to4pm_yearround	precooling	cooling_adjustment=-4.0	starttime_cooling=11:59:00	endtime_cooling=15:59:00	cooling_startdate=01-01	cooling_enddate=12-31	auto_date=false	alt_periods=false
+lighting_load_shed	light_shed_abs_30_15min	upgrade_df_lighting_control	demand_flexibility_objective=peak load	peak_len=4	light_adjustment_method=absolute change	light_adjustment=30.0	num_timesteps_in_hr=4	load_prediction_method=full baseline	peak_lag=2	peak_window_strategy=center with peak	cambium_scenario=LRMER_LowRECost_15	cambium_scenario=LRMER_MidCase_15
+lighting_load_shed	light_shed_abs_30_maxsavings_15min	upgrade_df_lighting_control	demand_flexibility_objective=peak load	peak_len=4	light_adjustment_method=absolute change	light_adjustment=30.0	num_timesteps_in_hr=4	load_prediction_method=full baseline	peak_lag=2	peak_window_strategy=max savings	cambium_scenario=LRMER_LowRECost_15	cambium_scenario=LRMER_MidCase_15
+lighting_load_shed	light_shed_abs_20_15min	upgrade_df_lighting_control	demand_flexibility_objective=peak load	peak_len=4	light_adjustment_method=absolute change	light_adjustment=20.0	num_timesteps_in_hr=4	load_prediction_method=full baseline	peak_lag=2	peak_window_strategy=center with peak	cambium_scenario=LRMER_LowRECost_15	cambium_scenario=LRMER_MidCase_15
+lighting_load_shed	light_shed_abs_50_15min	upgrade_df_lighting_control	demand_flexibility_objective=peak load	peak_len=4	light_adjustment_method=absolute change	light_adjustment=50.0	num_timesteps_in_hr=4	load_prediction_method=full baseline	peak_lag=2	peak_window_strategy=center with peak	cambium_scenario=LRMER_LowRECost_15	cambium_scenario=LRMER_MidCase_15
+lighting_load_shed	light_shed_rel_30_15min	upgrade_df_lighting_control	demand_flexibility_objective=peak load	peak_len=4	light_adjustment_method=relative change	light_adjustment=30.0	num_timesteps_in_hr=4	load_prediction_method=full baseline	peak_lag=2	peak_window_strategy=center with peak	cambium_scenario=LRMER_LowRECost_15	cambium_scenario=LRMER_MidCase_15
+lighting_load_shed	light_shed_rel_30_maxsavings_15min	upgrade_df_lighting_control	demand_flexibility_objective=peak load	peak_len=4	light_adjustment_method=relative change	light_adjustment=30.0	num_timesteps_in_hr=4	load_prediction_method=full baseline	peak_lag=2	peak_window_strategy=max savings	cambium_scenario=LRMER_LowRECost_15	cambium_scenario=LRMER_MidCase_15
+lighting_load_shed	light_shed_rel_20_15min	upgrade_df_lighting_control	demand_flexibility_objective=peak load	peak_len=4	light_adjustment_method=relative change	light_adjustment=20.0	num_timesteps_in_hr=4	load_prediction_method=full baseline	peak_lag=2	peak_window_strategy=center with peak	cambium_scenario=LRMER_LowRECost_15	cambium_scenario=LRMER_MidCase_15
+lighting_load_shed	light_shed_rel_50_15min	upgrade_df_lighting_control	demand_flexibility_objective=peak load	peak_len=4	light_adjustment_method=relative change	light_adjustment=50.0	num_timesteps_in_hr=4	load_prediction_method=full baseline	peak_lag=2	peak_window_strategy=center with peak	cambium_scenario=LRMER_MidCase_15	cambium_scenario=LRMER_LowRECost_15
+lighting_emission	light_emission_lowrecost15_15min	upgrade_df_lighting_control	demand_flexibility_objective=emission	peak_len=4	light_adjustment_method=absolute change	light_adjustment=30.0	num_timesteps_in_hr=4	load_prediction_method=full baseline	peak_lag=2	peak_window_strategy=max savings	cambium_scenario=LRMER_LowRECost_15
+lighting_emission	light_emission_highrecost15_15min	upgrade_df_lighting_control	demand_flexibility_objective=emission	peak_len=4	light_adjustment_method=absolute change	light_adjustment=30.0	num_timesteps_in_hr=4	load_prediction_method=full baseline	peak_lag=2	peak_window_strategy=max savings	cambium_scenario=LRMER_HighRECost_15
+lighting_emission	light_emission_midcase15_15min	upgrade_df_lighting_control	demand_flexibility_objective=emission	peak_len=4	light_adjustment_method=absolute change	light_adjustment=30.0	num_timesteps_in_hr=4	load_prediction_method=full baseline	peak_lag=2	peak_window_strategy=max savings	cambium_scenario=LRMER_MidCase_15
 state_id	*
 energy_code_compliance_during_original_building_construction	*
 energy_code_compliance_interior_lighting	*
@@ -5094,3 +4814,8 @@ resstock_puma_id	*
 resstock_custom_region	*
 cluster_id	*
 cluster_name	*
+sampling_region	*
+size_bin	*
+tract	*
+state_id	*
+census_region	*

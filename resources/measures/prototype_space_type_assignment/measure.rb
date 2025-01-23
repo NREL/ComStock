@@ -39,15 +39,14 @@ require 'csv'
 
 # start the measure
 class PrototypeSpaceTypeAssignment < OpenStudio::Measure::ModelMeasure
-
   # human readable name
   def name
-    return "Prototype Space Type Assignment"
+    return 'Prototype Space Type Assignment'
   end
 
   # human readable description
   def description
-    return "This measure adds prototype space type information to space types based on the original standards building type and standards space type fields."
+    return 'This measure adds prototype space type information to space types based on the original standards building type and standards space type fields.'
   end
 
   # human readable description of modeling approach
@@ -73,26 +72,27 @@ class PrototypeSpaceTypeAssignment < OpenStudio::Measure::ModelMeasure
 
     # load lookup file and convert to hash table
     prototype_space_type_lookup_csv = "#{File.dirname(__FILE__)}/resources/prototype_space_type_lookup.csv"
-    if not File.file?(prototype_space_type_lookup_csv)
+    if !File.file?(prototype_space_type_lookup_csv)
       runner.registerError("Unable to find file: #{prototype_space_type_lookup_csv}")
       return nil
     end
     prototype_space_type_lookup = CSV.table(prototype_space_type_lookup_csv)
-    prototype_space_type_lookup_hsh = prototype_space_type_lookup.map { |row| row.to_hash }
+    prototype_space_type_lookup_hsh = prototype_space_type_lookup.map(&:to_hash)
 
     # load space type properties lookup
     prototype_space_type_properties_lookup_csv = "#{File.dirname(__FILE__)}/resources/prototype_space_type_properties_lookup.csv"
-    if not File.file?(prototype_space_type_properties_lookup_csv)
+    if !File.file?(prototype_space_type_properties_lookup_csv)
       runner.registerError("Unable to find file: #{prototype_space_type_properties_lookup_csv}")
       return nil
     end
     prototype_space_type_properties_lookup = CSV.table(prototype_space_type_properties_lookup_csv)
-    prototype_space_type_properties_lookup_hsh = prototype_space_type_properties_lookup.map { |row| row.to_hash }
+    prototype_space_type_properties_lookup_hsh = prototype_space_type_properties_lookup.map(&:to_hash)
 
     # model get standards space types
     model.getSpaceTypes.each do |space_type|
       next unless space_type.standardsBuildingType.is_initialized
       next unless space_type.standardsSpaceType.is_initialized
+
       standards_building_type = space_type.standardsBuildingType.get
       standards_space_type = space_type.standardsSpaceType.get
 
@@ -100,7 +100,7 @@ class PrototypeSpaceTypeAssignment < OpenStudio::Measure::ModelMeasure
       row = prototype_space_type_lookup_hsh.select { |r| (r[:building_type] == standards_building_type) && (r[:space_type] == standards_space_type) }
       if row.empty?
         runner.registerError("Unable to find prototype space type for original standards type '#{standards_building_type} - #{standards_space_type}'")
-        break 
+        break
       end
       prototype_space_type = row[0][:prototype_space_type]
 
@@ -112,7 +112,7 @@ class PrototypeSpaceTypeAssignment < OpenStudio::Measure::ModelMeasure
       row = prototype_space_type_properties_lookup_hsh.select { |r| (r[:prototype_space_type] == prototype_space_type) }
       if row.empty?
         runner.registerError("Unable to find prototype space type properties for '#{prototype_space_type}'")
-        break 
+        break
       end
       prototype_space_type_properties = row[0]
 

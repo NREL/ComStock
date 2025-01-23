@@ -1,6 +1,7 @@
 .temp
 .idea
 .DS_Store
+.vs
 clusters
 data
 local_configuration.*
@@ -18,6 +19,7 @@ temp_data
 .aws_docker_image
 weather
 __pycache__/
+*.sif
 *.simg
 baseline_test_output/
 lib/
@@ -25,3 +27,8 @@ lib/
 /sampling/truth_data
 *.pyc
 report.xml
+resources/Gemfile.lock
+
+# Rubocop output
+/.rubocop
+/.rubocop-http*

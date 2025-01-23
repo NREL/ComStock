@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>utility_bills</name>
   <uid>2a3442c1-944d-4e91-9e11-11e0cf368c64</uid>
-  <version_id>7ec10982-2213-4b46-a686-2febd9cdd3d7</version_id>
-  <version_modified>2024-01-12T22:12:35Z</version_modified>
+  <version_id>a0333834-1c03-43a7-aed2-9f401e81e01b</version_id>
+  <version_modified>2024-11-12T18:33:53Z</version_modified>
   <xml_checksum>15BF4E57</xml_checksum>
   <class_name>UtilityBills</class_name>
   <display_name>Utility Bills</display_name>
@@ -33,7 +33,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>C5A9C741</checksum>
+      <checksum>EB001E86</checksum>
     </file>
     <file>
       <filename>calc_elec_bill.py</filename>
@@ -63822,12 +63822,6 @@
       <checksum>3F796846</checksum>
     </file>
     <file>
-      <filename>Measure_Test.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>test</usage_type>
-      <checksum>30EC3ADD</checksum>
-    </file>
-    <file>
       <filename>USA_CO_Golden-NREL.724666_TMY3.ddy</filename>
       <filetype>ddy</filetype>
       <usage_type>test</usage_type>
@@ -63846,16 +63840,16 @@
       <checksum>E2C3F063</checksum>
     </file>
     <file>
-      <filename>bad_rates.txt</filename>
-      <filetype>txt</filetype>
-      <usage_type>test</usage_type>
-      <checksum>10DD9EBE</checksum>
-    </file>
-    <file>
       <filename>test_electricity_hourly.csv</filename>
       <filetype>csv</filetype>
       <usage_type>test</usage_type>
       <checksum>E0B9A507</checksum>
+    </file>
+    <file>
+      <filename>utility_bills_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>9E51273B</checksum>
     </file>
   </files>
 </measure>

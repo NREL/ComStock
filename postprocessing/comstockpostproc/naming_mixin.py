@@ -1,7 +1,8 @@
 # ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 import re
-
+import matplotlib.colors as mcolors
+import polars as pl
 class NamingMixin():
     # Column aliases for code readability
     # Add to this list for commonly-used columns
@@ -30,6 +31,37 @@ class NamingMixin():
     SEG_NAME = 'calc.segment'
     COMP_STATUS = 'completed_status'
     META_IDX = 'metadata_index'
+    DIVISION = 'Division'
+    MONTH = 'Month'
+
+    # Variables needed by the apportionment sampling regime
+    SAMPLING_REGION = 'in.sampling_region_id'
+    COUNTY_ID = 'in.nhgis_county_gisjoin'
+    TRACT_ID = 'in.nhgis_tract_gisjoin'
+    PUMA_ID = 'in.nhgis_puma_gisjoin'
+    SH_FUEL = 'in.heating_fuel'
+    SIZE_BIN = 'in.size_bin_id'
+    STATE_ID = 'in.nhgis_state_gisjoin'
+    TOT_EUI = 'out.site_energy.total.energy_consumption_intensity..kwh_per_ft2'
+    SAMPLED_COLUMN_PREFIX = 'sampled.'
+    POST_APPO_SIM_COL_PREFIX = 'in.as_simulated_'
+
+    # Column Name type mapping for pandas DataFrame:
+    COL_TYPE_SCHEMA = {
+        CEN_DIV: "string",
+        STATE_NAME: "string",
+        CEN_REG: "string",
+        STATE_ABBRV: "category",
+        BLDG_TYPE: "category",
+        BLDG_TYPE_GROUP: "category",
+        VINTAGE: "category",
+        DATASET: "category",
+        UPGRADE_NAME: "string",
+        CZ_ASHRAE: "category",
+        HVAC_SYS: "category",
+        DIVISION: "category",
+        MONTH: "Int8"
+    }
 
     # Total annual energy
     ANN_TOT_ENGY_KBTU = 'out.site_energy.total.energy_consumption..kwh'
@@ -148,6 +180,9 @@ class NamingMixin():
         UTIL_BILL_FUEL_OIL,
         UTIL_BILL_PROPANE
     ]
+
+    # Combined utility bills
+    UTIL_BILL_TOTAL_MEAN = 'calc.utility_bills.total_mean_bill..usd'
 
     # GHG emissions columns
     ANN_GHG_EGRID = 'calc.emissions.total_with_egrid..co2e_kg'
@@ -454,6 +489,27 @@ class NamingMixin():
     COLOR_EIA = '#D55E00'
     COLOR_AMI = '#CC79A7'
 
+    # standard end use colors for plotting
+    ENDUSE_COLOR_DICT = {
+                'Heating':'#EF1C21',
+                'Cooling':'#0071BD',
+                'Interior Lighting':'#F7DF10',
+                'Exterior Lighting':'#DEC310',
+                'Interior Equipment':'#4A4D4A',
+                'Exterior Equipment':'#B5B2B5',
+                'Fans':'#FF79AD',
+                'Pumps':'#632C94',
+                'Heat Rejection':'#F75921',
+                'Humidification':'#293094',
+                'Heat Recovery': '#CE5921',
+                'Water Systems': '#FFB239',
+                'Refrigeration': '#29AAE7',
+                'Generators': '#8CC739'
+                }
+
+    # Convert color codes to RGBA with opacity 1.0
+    PLOTLY_ENDUSE_COLOR_DICT = {key: f"rgba({int(mcolors.to_rgba(value, alpha=1.0)[0]*255)},{int(mcolors.to_rgba(value, alpha=1.0)[1]*255)},{int(mcolors.to_rgba(value, alpha=1.0)[2]*255)},{mcolors.to_rgba(value, alpha=1.0)[3]})" for key, value in ENDUSE_COLOR_DICT.items()}
+
     # Define ordering for some categorical variables to make plots easier to interpret
     ORDERED_CATEGORIES = {
         FLR_AREA_CAT:
@@ -581,7 +637,10 @@ class NamingMixin():
         return units
 
     def col_name_to_weighted(self, col_name, new_units=None):
-        col_name = col_name.replace('in.', 'out.')
+
+        # 'if' statement to avoid "min." inclusion in "in." replace
+        if col_name.startswith('in.'):
+            col_name = col_name.replace('in.', 'out.')
         col_name = col_name.replace('out.', 'calc.')
         col_name = col_name.replace('calc.', 'calc.weighted.')
         if not new_units is None:
@@ -593,13 +652,19 @@ class NamingMixin():
     def col_name_to_weighted_savings(self, col_name, new_units=None):
         col_name = self.col_name_to_weighted(col_name, new_units)
         col_name = col_name.replace('.weighted.', '.weighted.savings.')
-
         return col_name
 
     def col_name_to_savings(self, col_name, new_units=None):
-        col_name = col_name.replace('.energy_consumption', '.energy_savings')
-        return col_name
-
+        converted_col_name = col_name.replace('.energy_consumption', '.energy_savings')
+        if "_bill_" in converted_col_name:
+            converted_col_name = converted_col_name.replace('_bill_', '_bill_savings_')
+        elif "_bill.." in converted_col_name:
+            converted_col_name = converted_col_name.replace('_bill..', '_bill_savings..')
+            
+        if converted_col_name == col_name:
+            raise ValueError(f"Cannot convert column name {col_name} to savings column") 
+        
+        return converted_col_name
     def col_name_to_weighted_percent_savings(self, col_name, new_units=None):
         col_name = self.col_name_to_weighted(col_name, new_units)
         col_name = col_name.replace('.weighted.', '.weighted.percent_savings.')
@@ -632,6 +697,9 @@ class NamingMixin():
     def col_name_to_area_intensity(self, col_name):
         units = self.units_from_col_name(col_name)
         col_name = col_name.replace('bill_mean..usd', 'bill_intensity..usd')
+        col_name = col_name.replace('bill_min..usd', 'bill_min_intensity..usd')
+        col_name = col_name.replace('bill_max..usd', 'bill_max_intensity..usd')
+        col_name = col_name.replace('bill_median..usd', 'bill_median_intensity..usd')
         col_name = col_name.replace('bill..usd', 'bill_intensity..usd')
         area_units = 'ft2'
         intensity_units = f'{units}_per_{area_units}'

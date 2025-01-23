@@ -977,7 +977,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     # puts('### obtain user inputs')
     ######################################################
     apply_measure = runner.getBoolArgumentValue('apply_measure', user_arguments)
-    vrf_defrost_strategy = runner.getStringArgumentValue('vrf_defrost_strategy', user_arguments)    
+    vrf_defrost_strategy = runner.getStringArgumentValue('vrf_defrost_strategy', user_arguments)
     disable_defrost = runner.getBoolArgumentValue('disable_defrost', user_arguments)
     upsizing_allowance_pct = runner.getDoubleArgumentValue('upsizing_allowance_pct', user_arguments)
 
@@ -1320,7 +1320,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           if %w[kitchen KITCHEN Kitchen Dining dining].any? { |word| (tz.name.get).include?(word) }
             airloop_na_tz << tz
           # skip non-conditioned thermal zones
-          elsif !std.thermal_zone_heated?(tz) && !std.thermal_zone_cooled?(tz)
+          elsif !OpenstudioStandards::ThermalZone.thermal_zone_heated?(tz) && !OpenstudioStandards::ThermalZone.thermal_zone_cooled?(tz)
             airloop_na_tz << tz
           else
             airloop_applicable_tz << tz
@@ -1392,7 +1392,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       runner.registerAsNotApplicable('this building model is not applicable for the upgrade')
       return true
     end
-    
+
     # get applicable thermal zones from applicable air loops
     app_tz = []
     applicable_air_loops.each do |air_loop_hvac|
@@ -1552,7 +1552,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           zones_served << zone_hvac.thermalZone.get
         end
       end
-    
+
       # Delete the coil is not connected to anything
       next unless ((zones_served.empty?) && (airloops_served.empty?))
       # remove
@@ -1600,7 +1600,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     # puts("### modify DOAS systems")
     ######################################################
     # get climate full string and classification (i.e. "5A")
-    climate_zone = std.model_standards_climate_zone(model)
+    climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
     climate_zone_classification = climate_zone.split('-')[-1]
 
     # DOAS temperature supply settings - colder cooling discharge air for humid climates
@@ -1625,7 +1625,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
 
       # set availability schedule for DOAS
       # get schedule for DOAS and add system
-      sch_ruleset = std.thermal_zones_get_occupancy_schedule(thermal_zones=air_loop_hvac.thermalZones,
+      sch_ruleset = OpenstudioStandards::ThermalZone.thermal_zones_get_occupancy_schedule(thermal_zones=air_loop_hvac.thermalZones,
                                                             occupied_percentage_threshold:0.05)
       # set air loop availability controls and night cycle manager, after oa system added
       air_loop_hvac.setAvailabilitySchedule(sch_ruleset)
@@ -1848,7 +1848,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       story = first_space.buildingStory.get
       z_coord = story.nominalZCoordinate.get
       thermal_zones = applicable_thermalzone_per_floor[z_coord]
-      max_equiv_distance, max_net_vert_distance = get_max_vrf_pipe_lengths(model, thermal_zones) 
+      max_equiv_distance, max_net_vert_distance = get_max_vrf_pipe_lengths(model, thermal_zones)
       vrf_outdoor_unit.setEquivalentPipingLengthusedforPipingCorrectionFactorinCoolingMode(max_equiv_distance)
       vrf_outdoor_unit.setEquivalentPipingLengthusedforPipingCorrectionFactorinHeatingMode(max_equiv_distance)
       vrf_outdoor_unit.setVerticalHeightusedforPipingCorrectionFactor(max_net_vert_distance)
@@ -1937,7 +1937,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
         # puts("### OU name = #{ou.name}")
         capacity_outdoor_unit_new = 0
         ou.terminals.each do |iu|
-          
+
           # get coil from indoor unit
           coil_cooling = iu.coolingCoil.get
           coil_heating = iu.heatingCoil.get
@@ -2173,11 +2173,11 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       air_loop_hvac.thermalZones.each do |thermal_zone|
         space = thermal_zone.spaces[0]
         # get zone area
-        fa = thermal_zone.floorArea
+        fa = thermal_zone.floorArea * thermal_zone.multiplier
         # get zone volume
-        vol = thermal_zone.airVolume
+        vol = thermal_zone.airVolume * thermal_zone.multiplier
         # get zone design people
-        num_people = thermal_zone.numberOfPeople
+        num_people = thermal_zone.numberOfPeople * thermal_zone.multiplier
         if space.designSpecificationOutdoorAir.is_initialized
           dsn_spec_oa = space.designSpecificationOutdoorAir.get
           # add floor area component
@@ -2230,7 +2230,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
 
       # # set availability schedule for DOAS
       # # get schedule for DOAS and add system
-      # sch_ruleset = std.thermal_zones_get_occupancy_schedule(thermal_zones=thermal_zones,
+      # sch_ruleset = OpenstudioStandards::ThermalZone.thermal_zones_get_occupancy_schedule(thermal_zones=thermal_zones,
       #                                                       occupied_percentage_threshold:0.05)
       # # set air loop availability controls and night cycle manager, after oa system added
       # air_loop_hvac.setAvailabilitySchedule(sch_ruleset)
@@ -2255,7 +2255,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           sf = component.to_FanConstantVolume.get
           std.prototype_fan_apply_prototype_fan_efficiency(sf)
         elsif component.to_AirLoopHVACUnitarySystem.is_initialized
-          # unitary systems 
+          # unitary systems
           unitary_sys = component.to_AirLoopHVACUnitarySystem.get
           if unitary_sys.coolingCoil.is_initialized
             clg_coil = unitary_sys.coolingCoil.get

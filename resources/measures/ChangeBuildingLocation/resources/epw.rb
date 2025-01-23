@@ -60,21 +60,9 @@ require 'csv'
 module OpenStudio
   module Weather
     class Epw
-      attr_accessor :filename
-      attr_reader :city
-      attr_reader :state
-      attr_reader :country
-      attr_accessor :data_type
-      attr_reader :wmo
-      attr_reader :lat
-      attr_reader :lon
-      attr_reader :gmt
-      attr_reader :elevation
-      attr_accessor :data_period
-
       # access to all the weather data in array of arrays
-      attr_reader :header_data
-      attr_accessor :weather_data
+      attr_accessor :filename, :data_type, :data_period, :weather_data
+      attr_reader :city, :state, :country, :wmo, :lat, :lon, :gmt, :elevation, :header_data
 
       def initialize(filename)
         @filename = filename
@@ -96,6 +84,7 @@ module OpenStudio
 
       def self.load(filename)
         raise "EPW file does not exist: #{filename}" unless File.file?(filename)
+
         f = OpenStudio::Weather::Epw.new(filename)
       end
 
@@ -129,8 +118,8 @@ module OpenStudio
       end
 
       def save_as(filename)
-        File.delete filename if File.exist? filename
-        FileUtils.mkdir_p(File.dirname(filename)) unless Dir.exist?(File.dirname(filename))
+        File.delete filename
+        FileUtils.mkdir_p(File.dirname(filename))
 
         CSV.open(filename, 'wb') do |csv|
           @header_data.each { |r| csv << r }

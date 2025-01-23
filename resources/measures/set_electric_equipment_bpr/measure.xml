@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>set_electric_equipment_bpr</name>
   <uid>bcfa4b28-104e-45e6-89bf-e6ff1e054935</uid>
-  <version_id>2635f362-59ff-4aa8-8ec1-4c37aa942ee7</version_id>
-  <version_modified>2023-10-16T20:24:55Z</version_modified>
+  <version_id>03697313-e9c1-4355-9423-5c06b1026317</version_id>
+  <version_modified>2024-10-16T21:08:44Z</version_modified>
   <xml_checksum>B2EAAD67</xml_checksum>
   <class_name>SetElectricEquipmentBPR</class_name>
   <display_name>Set Electric Equipment BPR</display_name>
@@ -101,13 +101,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>80BE13A2</checksum>
+      <checksum>B1FA0387</checksum>
     </file>
     <file>
       <filename>set_electric_equipment_bpr_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>75EB4B24</checksum>
+      <checksum>79E596F8</checksum>
     </file>
   </files>
 </measure>

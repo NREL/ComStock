@@ -140,6 +140,8 @@ class AMI(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             self.ami_timeseries_data = pd.read_csv(file_path, low_memory=False, index_col='timestamp', parse_dates=True)
         else:
             self.calculate_ami_aggregates()
+        
+        assert isinstance(self.ami_timeseries_data, pd.DataFrame)
 
     def download_truth_data(self):
         # AMI data

@@ -7,6 +7,7 @@ import botocore
 import logging
 import numpy as np
 import pandas as pd
+import polars as pl
 
 from comstockpostproc.naming_mixin import NamingMixin
 from comstockpostproc.units_mixin import UnitsMixin
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
-    def __init__(self, cbecs_year, truth_data_version, color_hex=NamingMixin.COLOR_CBECS_2012, weighted_energy_units='tbtu', reload_from_csv=False):
+    def __init__(self, cbecs_year, truth_data_version, color_hex=NamingMixin.COLOR_CBECS_2012, weighted_energy_units='tbtu', weighted_utility_units='billion_usd', reload_from_csv=False):
         """
         A class to load and transform CBECS data for export, analysis, and comparison.
         Args:
@@ -40,6 +41,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         self.data = None
         self.color = color_hex
         self.weighted_energy_units = weighted_energy_units
+        self.weighted_utility_units = weighted_utility_units
         self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
         logger.info(f'Creating {self.dataset_name}')
 
@@ -74,6 +76,12 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         logger.debug('\nCBECS columns after adding all data')
         for c in self.data.columns:
             logger.debug(c)
+
+        assert isinstance(self.data, pd.DataFrame)
+        logging.info(f'Created {self.dataset_name} with {len(self.data)} rows')
+        self.data = self.data.astype(str)
+        self.data = pl.from_pandas(self.data).lazy()
+        assert isinstance(self.data, pl.LazyFrame)
 
     def download_data(self):
         # CBECS microdata
@@ -475,4 +483,9 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
         file_name = f'CBECS wide.csv'
         file_path = os.path.join(self.output_dir, file_name)
-        self.data.to_csv(file_path, index=False)
+        try:
+            self.data.sink_csv(file_path)
+        except pl.exceptions.InvalidOperationError:
+            logger.warn('Warning - sink_csv not supported for metadata write in current polars version')
+            logger.warn('Falling back to .collect.write_csv')
+            self.data.collect().write_csv(file_path)

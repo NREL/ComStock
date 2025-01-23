@@ -40,6 +40,63 @@ require 'openstudio'
 require 'date'
 require 'openstudio-standards'
 
+def cambium_emissions_scenarios
+  emissions_scenarios = [
+    'AER_95DecarbBy2035',
+    'AER_95DecarbBy2050',
+    'AER_HighRECost',
+    'AER_LowRECost',
+    'AER_MidCase',
+    'LRMER_95DecarbBy2035_15',
+    'LRMER_95DecarbBy2035_30',
+    'LRMER_95DecarbBy2035_15_2025start',
+    'LRMER_95DecarbBy2035_25_2025start',
+    'LRMER_95DecarbBy2050_15',
+    'LRMER_95DecarbBy2050_30',
+    'LRMER_HighRECost_15',
+    'LRMER_HighRECost_30',
+    'LRMER_LowRECost_15',
+    'LRMER_LowRECost_30',
+    'LRMER_LowRECost_15_2025start',
+    'LRMER_LowRECost_25_2025start',
+    'LRMER_MidCase_15',
+    'LRMER_MidCase_30',
+    'LRMER_MidCase_15_2025start',
+    'LRMER_MidCase_25_2025start'
+  ]
+  return emissions_scenarios
+end
+
+def grid_regions
+  grid_regions = [
+    'AZNMc',
+    'AKGD',
+    'AKMS',
+    'CAMXc',
+    'ERCTc',
+    'FRCCc',
+    'HIMS',
+    'HIOA',
+    'MROEc',
+    'MROWc',
+    'NEWEc',
+    'NWPPc',
+    'NYSTc',
+    'RFCEc',
+    'RFCMc',
+    'RFCWc',
+    'RMPAc',
+    'SPNOc',
+    'SPSOc',
+    'SRMVc',
+    'SRMWc',
+    'SRSOc',
+    'SRTVc',
+    'SRVCc'
+  ]
+  return grid_regions
+end
+
 ### convert day of year to month-day date
 def day_of_year_to_date(year, day_of_year)
   date = Date.new(year, 1, 1) + day_of_year - 1
@@ -68,10 +125,10 @@ def read_epw(model, epw_path=nil)
       if weatherfile.file.is_initialized
         epw_file = weatherfile.file.get
       else
-        runner.registerError('Cannot find weather file from model using EPWFile class')
+        raise 'Cannot find weather file from model using EPWFile class'
       end
     else
-      runner.registerError('Cannot find weather file from model using weatherFile class')
+      raise 'Cannot find weather file from model using weatherFile class'
     end
   else
     puts("Override with given epw from #{epw_path}")
@@ -82,7 +139,7 @@ def read_epw(model, epw_path=nil)
   if weather_ts.is_initialized
     weather_ts = weather_ts.get
   else
-    puts "FAIL, could not retrieve field: #{field} from #{epw_file}"
+    raise "FAIL, could not retrieve field: #{field} from #{epw_file}"
   end
   # Put dateTimes into array
   times = []
@@ -122,7 +179,6 @@ def create_binsamples(oat,option)
     'cool' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
     'cold' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] }
   }
-
   (0..nd-1).each do |d|
     oatmax = oat[24*d..24*(d+1)-1].max
     oatmaxind = oat[24*d..24*(d+1)-1].index(oat[24*d..24*(d+1)-1].max)
@@ -212,7 +268,6 @@ def create_binsamples(oat,option)
       end
     end
   end
-
   ns = 0
   srand(42)
   max_doys = []
@@ -224,8 +279,7 @@ def create_binsamples(oat,option)
         elsif option=='sort'
           selectdays[key][keykey] = combbins[key][keykey].sort.take(3).to_a
         else
-          runner.registerError('Wrong sampling option')
-          return false
+          raise 'Wrong sampling option'
         end
         ns += 3
       elsif combbins[key][keykey].length > 7
@@ -234,8 +288,7 @@ def create_binsamples(oat,option)
         elsif option=='sort'
           selectdays[key][keykey] = combbins[key][keykey].sort.take(2).to_a
         else
-          puts('Wrong sampling option')
-          return false
+          raise 'Wrong sampling option'
         end
         ns += 2
       elsif combbins[key][keykey].length > 0
@@ -244,8 +297,7 @@ def create_binsamples(oat,option)
         elsif option=='sort'
           selectdays[key][keykey] = combbins[key][keykey].sort.take(1).to_a
         else
-          puts('Wrong sampling option')
-          return false
+          raise 'Wrong sampling option'
         end
         ns += 1
       end
@@ -265,9 +317,6 @@ def model_run_simulation_on_doy(model, doy, num_timesteps_in_hr, epw_path=nil, r
   unless Dir.exist?(run_dir)
     FileUtils.mkdir_p(run_dir)
   end
-  # puts("### DEBUGGING: run_dir = #{run_dir}")
-  template = 'ComStock 90.1-2019'
-  std = Standard.build(template)
   # Save the model to energyplus idf
   osm_name = 'in.osm'
   osw_name = 'in.osw'
@@ -307,7 +356,7 @@ def model_run_simulation_on_doy(model, doy, num_timesteps_in_hr, epw_path=nil, r
   # Set up the simulation
   # Find the weather file
   if epw_path==nil
-    epw_path = std.model_get_full_weather_file_path(model)
+    epw_path = model.weatherFile.get.path
     if epw_path.empty?
       return false
     end
@@ -388,7 +437,22 @@ def model_run_simulation_on_doy(model, doy, num_timesteps_in_hr, epw_path=nil, r
   end
   # raise if vals is empty
   if vals.empty?
-    raise 'load profile for the sample run returned empty'
+    puts("Hourly reporting frequency return empty data. Use Zone Timestep.")
+    reportingfrequency = 'Zone Timestep'
+    unless availableReportingFrequencies.include?(reportingfrequency)
+      raise "reportingfrequency of #{reportingfrequency} not included in available options: #{availableReportingFrequencies}"
+    end
+    electricity_results = sqlFile.timeSeries(envperiod,reportingfrequency,timeseriesname)
+    vals = []
+    electricity_results.each do |electricity_result|
+      elec_vals = electricity_result.values
+      for i in 0..(elec_vals.size - 1)
+        vals << elec_vals[i]
+      end
+    end
+    if vals.empty?
+      raise 'load profile for the sample run returned empty'
+    end
   end
   # reset model config for upgrade run
   model.getRunPeriod.setBeginMonth(begin_month_orig)
@@ -448,9 +512,6 @@ def model_run_simulation_on_part_of_year(model, max_doy, num_timesteps_in_hr, ep
   unless Dir.exist?(run_dir)
     FileUtils.mkdir_p(run_dir)
   end
-  # puts("### DEBUGGING: run_dir = #{run_dir}")
-  template = 'ComStock 90.1-2019'
-  std = Standard.build(template)
   # Save the model to energyplus idf
   osm_name = 'in.osm'
   osw_name = 'in.osw'
@@ -485,7 +546,7 @@ def model_run_simulation_on_part_of_year(model, max_doy, num_timesteps_in_hr, ep
   # Set up the simulation
   # Find the weather file
   if epw_path==nil
-    epw_path = std.model_get_full_weather_file_path(model)
+    epw_path = model.weatherFile.get.path
     if epw_path.empty?
       return false
     end
@@ -564,7 +625,22 @@ def model_run_simulation_on_part_of_year(model, max_doy, num_timesteps_in_hr, ep
   end
   # raise if vals is empty
   if vals.empty?
-    raise 'load profile for the sample run returned empty'
+    puts("Hourly reporting frequency return empty data. Use Zone Timestep.")
+    reportingfrequency = 'Zone Timestep'
+    unless availableReportingFrequencies.include?(reportingfrequency)
+      raise "reportingfrequency of #{reportingfrequency} not included in available options: #{availableReportingFrequencies}"
+    end
+    electricity_results = sqlFile.timeSeries(envperiod,reportingfrequency,timeseriesname)
+    vals = []
+    electricity_results.each do |electricity_result|
+      elec_vals = electricity_result.values
+      for i in 0..(elec_vals.size - 1)
+        vals << elec_vals[i]
+      end
+    end
+    if vals.empty?
+      raise 'load profile for the sample run returned empty'
+    end
   end
   # reset model config for upgrade run
   model.getRunPeriod.setBeginMonth(begin_month_orig)
@@ -646,9 +722,6 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path=nil, run_
   unless Dir.exist?(run_dir)
     FileUtils.mkdir_p(run_dir)
   end
-  
-  template = 'ComStock 90.1-2019'
-  std = Standard.build(template)
   # Save the model to energyplus idf
   osm_name = 'in.osm'
   osw_name = 'in.osw'
@@ -660,9 +733,9 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path=nil, run_
   end_month_orig = model.getRunPeriod.getEndMonth
   end_day_orig = model.getRunPeriod.getEndDayOfMonth
   num_timesteps_in_hr_orig = model.getTimestep.numberOfTimestepsPerHour
-  zonesizing_orig = model.getSimulationControl.doZoneSizingCalculation
-  syssizing_orig = model.getSimulationControl.doSystemSizingCalculation
-  plantsizing_orig = model.getSimulationControl.doPlantSizingCalculation
+  # zonesizing_orig = model.getSimulationControl.doZoneSizingCalculation
+  # syssizing_orig = model.getSimulationControl.doSystemSizingCalculation
+  # plantsizing_orig = model.getSimulationControl.doPlantSizingCalculation
   ### reference: SetRunPeriod measure on BCL
   model.getRunPeriod.setBeginMonth(1)
   model.getRunPeriod.setBeginDayOfMonth(1)
@@ -671,16 +744,16 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path=nil, run_
   if num_timesteps_in_hr != 4
     model.getTimestep.setNumberOfTimestepsPerHour(num_timesteps_in_hr)
   end
-  model.getSimulationControl.setDoZoneSizingCalculation(false)
-  model.getSimulationControl.setDoSystemSizingCalculation(false)
-  model.getSimulationControl.setDoPlantSizingCalculation(false)
+  # model.getSimulationControl.setDoZoneSizingCalculation(false)
+  # model.getSimulationControl.setDoSystemSizingCalculation(false)
+  # model.getSimulationControl.setDoPlantSizingCalculation(false)
   osm_path = OpenStudio::Path.new("#{run_dir}/#{osm_name}")
   osw_path = OpenStudio::Path.new("#{run_dir}/#{osw_name}")
   model.save(osm_path, true)
   # Set up the simulation
   # Find the weather file
   if epw_path==nil
-    epw_path = std.model_get_full_weather_file_path(model)
+    epw_path = model.weatherFile.get.path
     if epw_path.empty?
       return false
     end
@@ -705,7 +778,6 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path=nil, run_
     return false
   end
   workflow.setSeedFile(osm_name)
-  # puts osm_path
   workflow.setWeatherFile(epw_name)
   workflow.saveAs(File.absolute_path(osw_path.to_s))
   # 'touch' the weather file - for some odd reason this fixes the simulation not running issue we had on openstudio-server.
@@ -742,10 +814,10 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path=nil, run_
   unless availableTimeSeries.include?(timeseriesname) 
     raise "timeseriesname of #{timeseriesname} not included in available options: #{availableTimeSeries}"
   end
-  reportingfrequency = 'Hourly' #'Zone Timestep'
+  reportingfrequency = 'Zone Timestep'
   unless availableReportingFrequencies.include?(reportingfrequency)
-    puts("Hourly reporting frequency is not available. Use Zone Timestep.")
-    reportingfrequency = 'Zone Timestep'
+    puts("Zone Timestep reporting frequency is not available. Use Hourly.")
+    reportingfrequency = 'Hourly'
     unless availableReportingFrequencies.include?(reportingfrequency)
       raise "reportingfrequency of #{reportingfrequency} not included in available options: #{availableReportingFrequencies}"
     end
@@ -758,39 +830,187 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path=nil, run_
       vals << elec_vals[i]
     end
   end
-  # raise if vals is empty
   if vals.empty?
     raise 'load profile for the sample run returned empty'
   end
-  if num_timesteps_in_hr > 1
-    puts("Convert interval to hourly")
-    sums = []
-    vals.each_slice(num_timesteps_in_hr) do |slice|
-      sum = slice.reduce(:+).to_f
-      sums << sum
-    end
-    vals = sums
-  end
+  # reportingfrequency = 'Hourly' #'Zone Timestep'
+  # unless availableReportingFrequencies.include?(reportingfrequency)
+  #   puts("Hourly reporting frequency is not available. Use Zone Timestep.")
+  #   reportingfrequency = 'Zone Timestep'
+  #   unless availableReportingFrequencies.include?(reportingfrequency)
+  #     raise "reportingfrequency of #{reportingfrequency} not included in available options: #{availableReportingFrequencies}"
+  #   end
+  # end
+  # electricity_results = sqlFile.timeSeries(envperiod,reportingfrequency,timeseriesname)
+  # vals = []
+  # electricity_results.each do |electricity_result|
+  #   elec_vals = electricity_result.values
+  #   for i in 0..(elec_vals.size - 1)
+  #     vals << elec_vals[i]
+  #   end
+  # end
+  # # raise if vals is empty
+  # if vals.empty?
+  #   puts("Hourly reporting frequency return empty data. Use Zone Timestep.")
+  #   reportingfrequency = 'Zone Timestep'
+  #   unless availableReportingFrequencies.include?(reportingfrequency)
+  #     raise "reportingfrequency of #{reportingfrequency} not included in available options: #{availableReportingFrequencies}"
+  #   end
+  #   electricity_results = sqlFile.timeSeries(envperiod,reportingfrequency,timeseriesname)
+  #   vals = []
+  #   electricity_results.each do |electricity_result|
+  #     elec_vals = electricity_result.values
+  #     for i in 0..(elec_vals.size - 1)
+  #       vals << elec_vals[i]
+  #     end
+  #   end
+  #   if vals.empty?
+  #     raise 'load profile for the sample run returned empty'
+  #   end
+  # end
+  # if (reportingfrequency == 'Zone Timestep') && (vals.size != 8760 || vals.size != 8784)
+  #   puts("Convert interval to hourly with size=#{vals.size}")
+  #   sums = []
+  #   vals.each_slice(num_timesteps_in_hr) do |slice|
+  #     sum = slice.reduce(:+).to_f
+  #     sums << sum
+  #   end
+  #   vals = sums
+  # end
   # reset model config for upgrade run
   model.getRunPeriod.setBeginMonth(begin_month_orig)
   model.getRunPeriod.setBeginDayOfMonth(begin_day_orig)
   model.getRunPeriod.setEndMonth(end_month_orig)
   model.getRunPeriod.setEndDayOfMonth(end_day_orig)
   model.getTimestep.setNumberOfTimestepsPerHour(num_timesteps_in_hr_orig)
-  model.getSimulationControl.setDoZoneSizingCalculation(zonesizing_orig)
-  model.getSimulationControl.setDoSystemSizingCalculation(syssizing_orig)
-  model.getSimulationControl.setDoPlantSizingCalculation(plantsizing_orig)
+  # model.getSimulationControl.setDoZoneSizingCalculation(zonesizing_orig)
+  # model.getSimulationControl.setDoSystemSizingCalculation(syssizing_orig)
+  # model.getSimulationControl.setDoPlantSizingCalculation(plantsizing_orig)
   return vals
 end
 
+### read cambium/egrid emission factors
+def read_emission_factors(model, scenario, year=2018)
+  lbm_to_kg = OpenStudio.convert(1.0, 'lb_m', 'kg').get
+  # set cambium and egrid regions
+  grid_region = model.getBuilding.additionalProperties.getFeatureAsString('grid_region')
+  unless grid_region.is_initialized
+    raise 'Unable to find grid region in model building additional properties'
+  end
+  grid_region = grid_region.get
+  puts("Using grid region #{grid_region} from model building additional properties.")
+  if ['AKMS', 'AKGD', 'HIMS', 'HIOA'].include? grid_region
+    cambium_grid_region = nil
+    egrid_region = grid_region
+    puts("Grid region '#{grid_region}' is not available in Cambium.  Using eGrid factors only for electricty related emissions.")
+  else
+    cambium_grid_region = grid_region
+    egrid_region = grid_region.chop
+  end
+  # read egrid factors
+  egrid_subregion_emissions_factors_csv = "#{File.dirname(__FILE__)}/egrid/egrid_subregion_emissions_factors.csv"
+  if not File.file?(egrid_subregion_emissions_factors_csv)
+    raise "Unable to find file: #{egrid_subregion_emissions_factors_csv}"
+  end
+  egrid_subregion_lkp = CSV.table(egrid_subregion_emissions_factors_csv)
+  egrid_subregion_hsh = egrid_subregion_lkp.map { |row| row.to_hash }
+  egrid_subregion_hsh = egrid_subregion_hsh.select { |r| (r[:subregion] == egrid_region) }
+  if egrid_subregion_hsh.empty?
+    raise "Unable to find eGRID data for subregion: #{egrid_region}"
+  end
+  if [2018, 2019, 2020, 2021].include?(year)
+    egrid_co2e_kg_per_mwh = egrid_subregion_hsh[0][:"#{year}"] * lbm_to_kg
+  elsif year == 'average'
+    egrid_co2e_kg_per_mwh = (egrid_subregion_hsh[0][:"2018"]+egrid_subregion_hsh[0][:"2019"]+egrid_subregion_hsh[0][:"2020"]+egrid_subregion_hsh[0][:"2021"]) / 4.0 * lbm_to_kg
+  else
+    raise "Unable to find eGRID data for year: #{year}"
+  end
+  # read cambium factors
+  cambium_co2e_kg_per_mwh = []
+  if !cambium_grid_region.nil?
+    if scenario.include? 'AER'
+      scenario_lookup = scenario + '_1'
+    else
+      scenario_lookup = scenario
+    end
+    emissions_csv = "#{File.dirname(__FILE__)}/cambium/#{scenario_lookup}/#{cambium_grid_region}.csv"
+    if not File.file?(emissions_csv)
+      raise "Unable to find file: #{emissions_csv}"
+    end
+    cambium_co2e_kg_per_mwh = CSV.read(emissions_csv, converters: :float).flatten
+  end
+  return egrid_co2e_kg_per_mwh, cambium_co2e_kg_per_mwh
+end
+
+### emission prediction based on emission factors and load prediction
+def emission_prediction(load, factor, num_timesteps_in_hr)
+  j_to_mwh = OpenStudio.convert(1.0, 'J', 'MWh').get
+  # convert to hourly load
+  if num_timesteps_in_hr > 1
+    hourly_load = []
+    load.each_slice(num_timesteps_in_hr) do |slice|
+      sum = slice.reduce(:+).to_f
+      hourly_load << sum
+    end
+  end
+  # convert load from J to mwh
+  hourly_load_mwh = []
+  hourly_load.each { |val| hourly_load_mwh << val * j_to_mwh }
+  # calculate emission
+  if factor.is_a?(Array)
+    # cambium factor
+    unless hourly_load_mwh.size == hourly_load_mwh.size
+      if hourly_load_mwh.size == 8784
+        # leap year, copy Feb 28 data for Feb 29
+        factor = factor[0..1415] + factor[1392..1415] + factor[1416..8759]
+      else
+        raise "Unable to calculate emissions for run periods not of length 8760 or 8784"
+      end
+    end
+    hourly_emissions_kg = hourly_load_mwh.zip(factor).map { |n, f| n * f }
+  elsif factor.is_a?(Numeric)
+    # egrid factor
+    hourly_emissions_kg = (hourly_load_mwh.inject(:+)) * factor
+  else
+    raise "Bad emission factors"
+  end
+  return hourly_emissions_kg
+end
+
 ### determine daily peak window based on daily load profile
-def find_daily_peak_window(daily_load, peak_len)
+def find_daily_peak_window(daily_load, peak_len, num_timesteps_in_hr, peak_window_strategy)
   maxload_ind = daily_load.index(daily_load.max)
   # maxload = daily_load.max
-  peak_sum = (0..peak_len-1).map do |i|
-    daily_load[(maxload_ind - i)..(maxload_ind - i + peak_len - 1)].sum
+  if peak_window_strategy == 'max savings'
+    # peak_sum = (0...peak_len).map { |i| load[maxload_ind - i, peak_len].sum }
+    peak_sum = (0..peak_len*num_timesteps_in_hr-1).map do |i|
+      daily_load[(maxload_ind - i)..(maxload_ind - i + peak_len*num_timesteps_in_hr - 1)].sum
+    end
+    peak_ind = maxload_ind - peak_sum.index(peak_sum.max)
+  elsif peak_window_strategy == 'start with peak'
+    if maxload_ind >= 1
+      peak_ind = maxload_ind - 1
+    else
+      peak_ind = maxload_ind
+    end
+  elsif peak_window_strategy == 'end with peak'
+    if maxload_ind >= peak_len*num_timesteps_in_hr - 1
+      peak_ind = maxload_ind - peak_len*num_timesteps_in_hr + 1
+    else
+      peak_ind = 0
+    end
+  elsif peak_window_strategy == 'center with peak'
+    def round_down(number)
+      number.floor
+    end
+    if maxload_ind >= round_down(peak_len*num_timesteps_in_hr/2.0)
+      peak_ind = maxload_ind - round_down(peak_len*num_timesteps_in_hr/2.0)
+    else
+      peak_ind = 0
+    end
+  else
+    raise 'Not supported peak window strategy'
   end
-  peak_ind = maxload_ind - peak_sum.index(peak_sum.max)
   return peak_ind
 end
 
@@ -805,15 +1025,263 @@ def seasons
 end
 
 ### Generate peak schedule for whole year with rebound option ########################### NEED TO JUSTIFY PUTTING REBOUND OPTION HERE OR IN INDIVIDUAL DF MEASURES
-def peak_schedule_generation(annual_load, oat, peak_len, rebound_len=0, prepeak_len=0, season='all')
-  if annual_load.size == 8784
+def peak_schedule_generation(annual_load, oat, peak_len, num_timesteps_in_hr, peak_window_strategy, rebound_len=0, prepeak_len=0, season='all')
+  if annual_load.size == 8784 || annual_load.size == 35136
     nd = 366
-  elsif annual_load.size == 8760
+  elsif annual_load.size == 8760 || annual_load.size == 35040
+    nd = 365
+  else
+    raise 'annual load profile not hourly or 15min'
+  end
+  peak_schedule = Array.new(annual_load.size, 0)
+  temperature_range = seasons[season]
+  (0..nd-1).each do |d|
+    range_start = d * 24 * num_timesteps_in_hr
+    range_end = (d+1) * 24 * num_timesteps_in_hr - 1
+    temps = oat[d*24..d*24+23]
+    avg_temp = temps.inject { |sum, el| sum + el }.to_f / temps.size
+    if avg_temp > temperature_range[0] and avg_temp < temperature_range[1]
+      peak_ind = find_daily_peak_window(annual_load[range_start..range_end], peak_len, num_timesteps_in_hr, peak_window_strategy)
+      # peak and rebound schedule
+      if prepeak_len == 0
+        peak_schedule[(range_start + peak_ind)..(range_start + peak_ind + peak_len*num_timesteps_in_hr - 1)] = Array.new(peak_len*num_timesteps_in_hr, 1)
+        if rebound_len > 0
+          range_rebound_start = range_start + peak_ind + peak_len*num_timesteps_in_hr - 1
+          range_rebound_end = range_start + peak_ind + (peak_len + rebound_len)*num_timesteps_in_hr
+          peak_schedule[range_rebound_start..range_rebound_end] = (0..rebound_len*num_timesteps_in_hr + 1).map { |i| 1.0 - i.to_f / (rebound_len*num_timesteps_in_hr + 1) }
+        end
+      # prepeak schedule
+      else
+        if peak_ind >= prepeak_len
+          peak_schedule[(range_start + peak_ind - prepeak_len*num_timesteps_in_hr)..(range_start + peak_ind - 1)] = Array.new(prepeak_len*num_timesteps_in_hr, 1)
+        else
+          peak_schedule[(range_start)..(range_start + peak_ind - 1)] = Array.new(peak_ind, 1)
+        end
+      end
+    end
+  end
+  peak_schedule.each_index do |i|
+    peak_schedule[i] = 0 if peak_schedule[i].nil?
+  end
+  if peak_schedule.size < annual_load.size
+    peak_schedule.fill(0, peak_schedule.size..annual_load.size-1)
+  else
+    peak_schedule = peak_schedule.take(annual_load.size)
+  end
+  return peak_schedule
+end
+
+def peak_window_fix_based_on_climate_zone
+  return {
+    '2A'=> {
+      'wint_start'=> 18,
+      'wint_end'=> 21,
+      'wint_peak'=> 20,
+      'sum_start'=> 17,
+      'sum_end'=> 20,
+      'sum_peak'=> 19,
+    },
+    '2B'=> {
+      'wint_start'=> 18,
+      'wint_end'=> 21,
+      'wint_peak'=> 19,
+      'sum_start'=> 16,
+      'sum_end'=> 19,
+      'sum_peak'=> 17,
+    },
+    '3A'=> {
+      'wint_start'=> 17,
+      'wint_end'=> 20,
+      'wint_peak'=> 19,
+      'sum_start'=> 18,
+      'sum_end'=> 21,
+      'sum_peak'=> 19,
+    },
+    '3B'=> {
+      'wint_start'=> 18,
+      'wint_end'=> 21,
+      'wint_peak'=> 20,
+      'sum_start'=> 17,
+      'sum_end'=> 20,
+      'sum_peak'=> 19,
+    },
+    '3C'=> {
+      'wint_start'=> 17,
+      'wint_end'=> 20,
+      'wint_peak'=> 19,
+      'sum_start'=> 18,
+      'sum_end'=> 21,
+      'sum_peak'=> 21,
+    },
+    '4A'=> {
+      'wint_start'=> 17,
+      'wint_end'=> 20,
+      'wint_peak'=> 18,
+      'sum_start'=> 13,
+      'sum_end'=> 16,
+      'sum_peak'=> 14,
+    },
+    '4B'=> {
+      'wint_start'=> 18,
+      'wint_end'=> 21,
+      'wint_peak'=> 19,
+      'sum_start'=> 16,
+      'sum_end'=> 19,
+      'sum_peak'=> 17,
+    },
+    '4C'=> {
+      'wint_start'=> 17,
+      'wint_end'=> 20,
+      'wint_peak'=> 18,
+      'sum_start'=> 16,
+      'sum_end'=> 19,
+      'sum_peak'=> 17,
+    },
+    '5A'=> {
+      'wint_start'=> 17,
+      'wint_end'=> 20,
+      'wint_peak'=> 19,
+      'sum_start'=> 17,
+      'sum_end'=> 20,
+      'sum_peak'=> 18,
+    },
+    '5B'=> {
+      'wint_start'=> 17,
+      'wint_end'=> 20,
+      'wint_peak'=> 19,
+      'sum_start'=> 16,
+      'sum_end'=> 19,
+      'sum_peak'=> 17,
+    },
+    '5C'=> {
+      'wint_start'=> 17,
+      'wint_end'=> 20,
+      'wint_peak'=> 18,
+      'sum_start'=> 16,
+      'sum_end'=> 19,
+      'sum_peak'=> 17,
+    },
+    '6A'=> {
+      'wint_start'=> 17,
+      'wint_end'=> 20,
+      'wint_peak'=> 19,
+      'sum_start'=> 15,
+      'sum_end'=> 18,
+      'sum_peak'=> 17,
+    },
+    '6B'=> {
+      'wint_start'=> 17,
+      'wint_end'=> 20,
+      'wint_peak'=> 18,
+      'sum_start'=> 16,
+      'sum_end'=> 19,
+      'sum_peak'=> 17,
+    },
+    '7'=> {
+      'wint_start'=> 17,
+      'wint_end'=> 20,
+      'wint_peak'=> 19,
+      'sum_start'=> 15,
+      'sum_end'=> 18,
+      'sum_peak'=> 17,
+    },
+  }
+end
+
+def map_cec_to_iecc
+  return {
+    1=>"4B",
+    2=>"3C",
+    3=>"3C",
+    4=>"3C",
+    5=>"3C",
+    6=>"3C",
+    7=>"3B",
+    8=>"3B",
+    9=>"3B",
+    10=>"3B",
+    11=>"3B",
+    12=>"3B",
+    13=>"3B",
+    14=>"3B",
+    15=>"2B",
+    16=>"5B"
+  }
+end
+
+### Generate fixed peak schedules (cooling and heating respectively) for whole year with rebound option
+def peak_schedule_generation_fix(cz, oat, rebound_len=0, prepeak_len=0, season='all')
+  if oat.size == 8784
+    nd = 366
+  elsif oat.size == 8760
     nd = 365
   else
     raise 'annual load profile not hourly'
   end
-  peak_schedule = Array.new(nd * 24, 0)
+  peak_schedule_clg = Array.new(nd * 24, 0)
+  peak_schedule_htg = Array.new(nd * 24, 0)
+  temperature_range = seasons[season]
+  peak_start_clg = peak_window_fix_based_on_climate_zone[cz]['sum_start']-1
+  peak_end_clg = peak_window_fix_based_on_climate_zone[cz]['sum_end']-1
+  peak_start_htg = peak_window_fix_based_on_climate_zone[cz]['wint_start']-1
+  peak_end_htg = peak_window_fix_based_on_climate_zone[cz]['wint_end']-1
+  (0..nd-1).each do |d|
+    range_start = d * 24
+    range_end = d * 24 + 23
+    temps = oat[range_start..range_end]
+    avg_temp = temps.inject { |sum, el| sum + el }.to_f / temps.size
+    if avg_temp > temperature_range[0] and avg_temp < temperature_range[1]
+      # peak and rebound schedule
+      if prepeak_len == 0
+        peak_schedule_clg[(range_start + peak_start_clg)..(range_start + peak_end_clg)] = Array.new(peak_end_clg-peak_start_clg+1, 1)
+        peak_schedule_htg[(range_start + peak_start_htg)..(range_start + peak_end_htg)] = Array.new(peak_end_htg-peak_start_htg+1, 1)
+        if rebound_len > 0
+          range_rebound_start_clg = range_start + peak_end_clg
+          range_rebound_end_clg = range_start + peak_end_clg + 1 + rebound_len
+          peak_schedule_clg[range_rebound_start_clg..range_rebound_end_clg] = (0..rebound_len + 1).map { |i| 1.0 - i.to_f / (rebound_len + 1) }
+          range_rebound_start_htg = range_start + peak_end_htg
+          range_rebound_end_htg = range_start + peak_end_htg + 1 + rebound_len
+          peak_schedule_htg[range_rebound_start_htg..range_rebound_end_htg] = (0..rebound_len + 1).map { |i| 1.0 - i.to_f / (rebound_len + 1) }
+        end
+      # prepeak schedule
+      else
+        if peak_start_clg >= prepeak_len
+          peak_schedule_clg[(range_start + peak_start_clg - prepeak_len)..(range_start + peak_start_clg - 1)] = Array.new(prepeak_len, 1)
+        else
+          peak_schedule_clg[(range_start)..(range_start + peak_start_clg - 1)] = Array.new(peak_start_clg, 1)
+        end
+        if peak_start_htg >= prepeak_len
+          peak_schedule_htg[(range_start + peak_start_htg - prepeak_len)..(range_start + peak_start_htg - 1)] = Array.new(prepeak_len, 1)
+        else
+          peak_schedule_htg[(range_start)..(range_start + peak_start_htg - 1)] = Array.new(peak_start_htg, 1)
+        end
+      end
+    end
+  end
+  peak_schedule_clg = peak_schedule_clg.take(nd * 24)
+  peak_schedule_htg = peak_schedule_htg.take(nd * 24)
+  return peak_schedule_clg, peak_schedule_htg
+end
+
+### determine daily peak window based on daily temperature profile
+def find_daily_peak_window_based_on_oat(daily_temp, peak_len, peak_lag)
+  tmp = daily_temp.each_cons(peak_len).map { |slice| slice.sum }
+  peak_ind_clg = tmp.index(tmp.max) + peak_lag
+  peak_ind_htg = tmp.index(tmp.min) + peak_lag
+  return peak_ind_clg, peak_ind_htg
+end
+
+### Generate peak schedule for whole year with rebound option based on temperature
+def peak_schedule_generation_oat(oat, peak_len, peak_lag=0, rebound_len=0, prepeak_len=0, season='all')
+  if oat.size == 8784
+    nd = 366
+  elsif oat.size == 8760
+    nd = 365
+  else
+    raise 'annual load profile not hourly'
+  end
+  peak_schedule_clg = Array.new(nd * 24, 0)
+  peak_schedule_htg = Array.new(nd * 24, 0)
   temperature_range = seasons[season]
   (0..nd-1).each do |d|
     range_start = d * 24
@@ -821,25 +1289,37 @@ def peak_schedule_generation(annual_load, oat, peak_len, rebound_len=0, prepeak_
     temps = oat[range_start..range_end]
     avg_temp = temps.inject { |sum, el| sum + el }.to_f / temps.size
     if avg_temp > temperature_range[0] and avg_temp < temperature_range[1]
-      peak_ind = find_daily_peak_window(annual_load[range_start..range_end], peak_len)
+      peak_start_clg, peak_start_htg = find_daily_peak_window_based_on_oat(oat[range_start..range_end], peak_len, peak_lag)
+      peak_end_clg = peak_start_clg + peak_len - 1
+      peak_end_htg = peak_start_htg + peak_len - 1
       # peak and rebound schedule
       if prepeak_len == 0
-        peak_schedule[(range_start + peak_ind)..(range_start + peak_ind + peak_len - 1)] = Array.new(peak_len, 1)
+        peak_schedule_clg[(range_start + peak_start_clg)..(range_start + peak_end_clg)] = Array.new(peak_len, 1)
+        peak_schedule_htg[(range_start + peak_start_htg)..(range_start + peak_end_htg)] = Array.new(peak_len, 1)
         if rebound_len > 0
-          range_rebound_start = range_start + peak_ind + peak_len - 1
-          range_rebound_end = range_start + peak_ind + peak_len + rebound_len
-          peak_schedule[range_rebound_start..range_rebound_end] = (0..rebound_len + 1).map { |i| 1.0 - i.to_f / (rebound_len + 1) }
+          range_rebound_start_clg = range_start + peak_end_clg
+          range_rebound_end_clg = range_start + peak_end_clg + 1 + rebound_len
+          peak_schedule_clg[range_rebound_start_clg..range_rebound_end_clg] = (0..rebound_len + 1).map { |i| 1.0 - i.to_f / (rebound_len + 1) }
+          range_rebound_start_htg = range_start + peak_end_htg
+          range_rebound_end_htg = range_start + peak_end_htg + 1 + rebound_len
+          peak_schedule_htg[range_rebound_start_htg..range_rebound_end_htg] = (0..rebound_len + 1).map { |i| 1.0 - i.to_f / (rebound_len + 1) }
         end
       # prepeak schedule
       else
-        if peak_ind >= prepeak_len
-          peak_schedule[(range_start + peak_ind - prepeak_len)..(range_start + peak_ind - 1)] = Array.new(prepeak_len, 1)
+        if peak_start_clg >= prepeak_len
+          peak_schedule_clg[(range_start + peak_start_clg - prepeak_len)..(range_start + peak_start_clg - 1)] = Array.new(prepeak_len, 1)
         else
-          peak_schedule[(range_start)..(range_start + peak_ind - 1)] = Array.new(peak_ind, 1)
+          peak_schedule_clg[(range_start)..(range_start + peak_start_clg - 1)] = Array.new(peak_start_clg, 1)
+        end
+        if peak_start_htg >= prepeak_len
+          peak_schedule_htg[(range_start + peak_start_htg - prepeak_len)..(range_start + peak_start_htg - 1)] = Array.new(prepeak_len, 1)
+        else
+          peak_schedule_htg[(range_start)..(range_start + peak_start_htg - 1)] = Array.new(peak_start_htg, 1)
         end
       end
     end
   end
-  peak_schedule = peak_schedule.take(nd * 24)
-  return peak_schedule
+  peak_schedule_clg = peak_schedule_clg.take(nd * 24)
+  peak_schedule_htg = peak_schedule_htg.take(nd * 24)
+  return peak_schedule_clg, peak_schedule_htg
 end
