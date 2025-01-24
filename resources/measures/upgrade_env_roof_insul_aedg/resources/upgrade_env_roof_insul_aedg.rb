@@ -258,10 +258,14 @@ def upgrade_env_roof_insul_aedg(runner, model)
   end
 
   # Report the initial condition
-  runner.registerInitialCondition("The building had #{init_str.size} roof constructions: #{init_str.sort.join(', ')}")
+  condition_initial = "The building had #{init_str.size} roof constructions: #{init_str.sort.join(', ')}"
 
   # Report the final condition
-  runner.registerFinalCondition("The insulation for roofs was set to R-#{target_r_val_ip.round(1)} -- this was applied to #{area_changed_ip.round(2)} ft2 across #{final_str.size} roof constructions: #{final_str.sort.join(', ')}")
+  condition_final = "The insulation for roofs was set to R-#{target_r_val_ip.round(1)} -- this was applied to #{area_changed_ip.round(2)} ft2 across #{final_str.size} roof constructions: #{final_str.sort.join(', ')}"
+  
+  # register value
   runner.registerValue('env_roof_insul_roof_area_ft2', area_changed_ip.round(2), 'ft2')
+
+  return condition_initial, condition_final
 
 end

@@ -73,7 +73,9 @@ class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure
       return false
     end
 
-    upgrade_env_roof_insul_aedg(runner, model)
+    condition_initial, condition_final = upgrade_env_roof_insul_aedg(runner, model)
+    runner.registerInitialCondition(condition_initial)
+    runner.registerFinalCondition(condition_final)
     
     return true
   end
