@@ -1,3 +1,6 @@
+# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# See top level LICENSE.txt file for license terms.
+
 def upgrade_env_roof_insul_aedg(runner, model)
   # set limit for minimum insulation in IP units -- this is used to limit input and for inferring insulation layer in construction
   min_exp_r_val_ip = 1.0
