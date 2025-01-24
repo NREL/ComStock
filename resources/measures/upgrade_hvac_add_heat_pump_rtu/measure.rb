@@ -1255,7 +1255,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       runner.registerWarning('model.building.get.conditionedFloorArea() is empty; applicable floor area fraction will not be reported.')
       # report initial condition of model
       condition_initial_hprtu = "The building has #{selected_air_loops.size} applicable air loops (out of the total #{model.getAirLoopHVACs.size} airloops in the model) that will be replaced with heat pump RTUs, serving #{applicable_area_m2.round(0)} m2 of floor area. The remaning airloops were determined to be not applicable."
-      runner.registerInitialCondition([condition_initial_hprtu, condition_initial_roof, condition_initial_window].join(" | "))
+      condition_initial = [condition_initial_hprtu, condition_initial_roof, condition_initial_window].reject(&:empty?).join(" | ")
+      runner.registerInitialCondition(condition_initial)
     else
       total_area_m2 = model.building.get.conditionedFloorArea.get
 
@@ -1264,7 +1265,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
       # report initial condition of model
       condition_initial_hprtu = "The building has #{selected_air_loops.size} applicable air loops that will be replaced with heat pump RTUs, representing #{(applicable_floorspace_frac * 100).round(2)}% of the building floor area. #{condition_initial_roof}. #{condition_initial_window}."
-      runner.registerInitialCondition([condition_initial_hprtu, condition_initial_roof, condition_initial_window].join(" | "))
+      condition_initial = [condition_initial_hprtu, condition_initial_roof, condition_initial_window].reject(&:empty?).join(" | ")
+      runner.registerInitialCondition(condition_initial)
     end
 
     # applicability checks for heat recovery; building type
@@ -2407,7 +2409,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
     # report final condition of model
     condition_final_hprtu = "The building finished with heat pump RTUs replacing the HVAC equipment for #{selected_air_loops.size} air loops."
-    runner.registerFinalCondition([condition_final_hprtu, condition_final_roof, condition_final_window].join(" | "))
+    condition_final = [condition_final_hprtu, condition_final_roof, condition_final_window].reject(&:empty?).join(" | ")
+    runner.registerFinalCondition(condition_final)
 
     # model.getOutputControlFiles.setOutputCSV(true)
 
