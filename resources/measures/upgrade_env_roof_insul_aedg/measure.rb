@@ -38,18 +38,18 @@
 
 # dependencies
 require 'openstudio-standards'
-Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }
+Dir["#{File.dirname(__FILE__)}/resources/*.rb"].sort.each { |file| require file }
 
 # start the measure
 class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure
   # human readable name
   def name
-    return "Roof Insulation AEDG"
+    return 'Roof Insulation AEDG'
   end
 
   # human readable description
   def description
-    return "Roof Insulation is defined as sky facing horizontal surfaces, or surfaces sloped within 60 degrees of sky facing horizontal"
+    return 'Roof Insulation is defined as sky facing horizontal surfaces, or surfaces sloped within 60 degrees of sky facing horizontal'
   end
 
   # human readable description of modeling approach
@@ -73,10 +73,14 @@ class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure
       return false
     end
 
+    # apply upgraded roof
+    # note: whenever upgrade_env_roof_insul_aedg in resources.rb changes, the exact same file under upgrade_hvac_add_heat_pump_rtu measure should also be changed.
     condition_initial, condition_final = upgrade_env_roof_insul_aedg(runner, model)
+
+    # report initial/final conditions
     runner.registerInitialCondition(condition_initial)
     runner.registerFinalCondition(condition_final)
-    
+
     return true
   end
 end
