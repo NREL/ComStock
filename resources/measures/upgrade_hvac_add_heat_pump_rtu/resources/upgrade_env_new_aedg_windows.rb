@@ -1,3 +1,6 @@
+# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# See top level LICENSE.txt file for license terms.
+
 def upgrade_env_new_aedg_windows(runner, model)
   # create new construction hash
   # key = old const, value = new const
