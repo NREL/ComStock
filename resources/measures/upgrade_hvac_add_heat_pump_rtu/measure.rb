@@ -1125,14 +1125,18 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       return true
     end
 
-    # call roof insulation measure based on user input
-    if (roof == true) && !selected_air_loops.empty?
-      upgrade_env_roof_insul_aedg(runner, model)
-    end
-
-    # call window upgrade measure based on user input
-    if (window == true) && !selected_air_loops.empty?
-      upgrade_env_new_aedg_windows(runner, model)
+    # call roof and/or window upgrades based on user input
+    condition_initial_roof = ''
+    condition_final_roof = ''
+    condition_initial_window = ''
+    condition_final_window = ''
+    if !selected_air_loops.empty?
+      if roof == true
+        condition_initial_roof, condition_final_roof = upgrade_env_roof_insul_aedg(runner, model)
+      end
+      if window == true
+        condition_initial_window, condition_final_window = upgrade_env_new_aedg_windows(runner, model)
+      end
     end
 
     # do sizing run with new equipment to set sizing-specific features
@@ -1249,7 +1253,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     if model.building.get.conditionedFloorArea.empty?
       runner.registerWarning('model.building.get.conditionedFloorArea() is empty; applicable floor area fraction will not be reported.')
       # report initial condition of model
-      runner.registerInitialCondition("The building has #{selected_air_loops.size} applicable air loops (out of the total #{model.getAirLoopHVACs.size} airloops in the model) that will be replaced with heat pump RTUs, serving #{applicable_area_m2.round(0)} m2 of floor area. The remaning airloops were determined to be not applicable.")
+      condition_initial_hprtu = "The building has #{selected_air_loops.size} applicable air loops (out of the total #{model.getAirLoopHVACs.size} airloops in the model) that will be replaced with heat pump RTUs, serving #{applicable_area_m2.round(0)} m2 of floor area. The remaning airloops were determined to be not applicable."
+      runner.registerInitialCondition([condition_initial_hprtu, condition_initial_roof, condition_initial_window].join(" | "))
     else
       total_area_m2 = model.building.get.conditionedFloorArea.get
 
@@ -1257,7 +1262,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       applicable_floorspace_frac = applicable_area_m2 / total_area_m2
 
       # report initial condition of model
-      runner.registerInitialCondition("The building has #{selected_air_loops.size} applicable air loops that will be replaced with heat pump RTUs, representing #{(applicable_floorspace_frac * 100).round(2)}% of the building floor area.")
+      condition_initial_hprtu = "The building has #{selected_air_loops.size} applicable air loops that will be replaced with heat pump RTUs, representing #{(applicable_floorspace_frac * 100).round(2)}% of the building floor area. #{condition_initial_roof}. #{condition_initial_window}."
+      runner.registerInitialCondition([condition_initial_hprtu, condition_initial_roof, condition_initial_window].join(" | "))
     end
 
     # applicability checks for heat recovery; building type
@@ -2399,7 +2405,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     end
 
     # report final condition of model
-    runner.registerFinalCondition("The building finished with heat pump RTUs replacing the HVAC equipment for #{selected_air_loops.size} air loops.")
+    condition_final_hprtu = "The building finished with heat pump RTUs replacing the HVAC equipment for #{selected_air_loops.size} air loops."
+    runner.registerFinalCondition([condition_final_hprtu, condition_final_roof, condition_final_window].join(" | "))
 
     # model.getOutputControlFiles.setOutputCSV(true)
 
