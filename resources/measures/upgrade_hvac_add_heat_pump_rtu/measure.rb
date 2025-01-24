@@ -934,6 +934,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     dcv = runner.getBoolArgumentValue('dcv', user_arguments)
     econ = runner.getBoolArgumentValue('econ', user_arguments)
     roof = runner.getBoolArgumentValue('roof', user_arguments)
+    window = runner.getBoolArgumentValue('window', user_arguments)
     sizing_run = runner.getBoolArgumentValue('sizing_run', user_arguments)
     debug_verbose = runner.getBoolArgumentValue('debug_verbose', user_arguments)
 
