@@ -27,7 +27,7 @@ def upgrade_env_new_aedg_windows(runner, model)
 
   # For each window construction, make a clone
   # and add the secondary window by modifying the existing window properties.
-  condition_initial = ''
+  condition_initial = []
   constructions.uniq.each do |construction|
     construction = construction.to_Construction
     if construction.empty?
@@ -107,7 +107,7 @@ def upgrade_env_new_aedg_windows(runner, model)
     old_simple_glazing_vlt = simple_glazing.visibleTransmittance.get
 
     # register initial condition
-    condition_initial.append("Existing window #{simple_glazing.name.get} has U-#{old_simple_glazing_u.round(2)} W/m2-K, #{old_simple_glazing_shgc} SHGC, and #{old_simple_glazing_vlt} VLT.")
+    condition_initial += ["Existing window #{simple_glazing.name.get} has U-#{old_simple_glazing_u.round(2)} W/m2-K, #{old_simple_glazing_shgc} SHGC, and #{old_simple_glazing_vlt} VLT."]
 
     # calculate new values
     new_simple_glazing_u = u_val_target
@@ -165,7 +165,14 @@ def upgrade_env_new_aedg_windows(runner, model)
     return true
   end
 
-  # report final condition
+  # summarize initial condition
+  if condition_initial.length == 1
+    condition_initial = condition_initial[0]
+  else
+    condition_initial = condition_initial.join(" | ")
+  end
+
+  # summarize final condition
   condition_final = "Added secondary windows to #{area_changed_ft2.round(2)} ft2 of windows."
 
   # register value
