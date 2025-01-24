@@ -134,6 +134,13 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     roof.setDefaultValue(false)
     args << roof
 
+    # upgrade window option
+    window = OpenStudio::Measure::OSArgument.makeBoolArgument('window', true)
+    window.setDisplayName('Upgrade Windows?')
+    window.setDescription('Upgrade window per AEDG recommendations.')
+    window.setDefaultValue(false)
+    args << window
+
     # do a sizing run for sizing?
     sizing_run = OpenStudio::Measure::OSArgument.makeBoolArgument('sizing_run', true)
     sizing_run.setDisplayName('Do a sizing run for informing sizing instead of using hard-sized model parameters?')
@@ -1121,6 +1128,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # call roof insulation measure based on user input
     if (roof == true) && !selected_air_loops.empty?
       upgrade_env_roof_insul_aedg(runner, model)
+    end
+
+    # call window upgrade measure based on user input
+    if (window == true) && !selected_air_loops.empty?
+      upgrade_env_new_aedg_windows(runner, model)
     end
 
     # do sizing run with new equipment to set sizing-specific features
