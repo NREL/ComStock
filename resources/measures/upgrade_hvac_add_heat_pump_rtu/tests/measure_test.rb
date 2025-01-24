@@ -204,7 +204,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # Get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(13, arguments.size)
+    assert_equal(14, arguments.size)
     assert_equal('backup_ht_fuel_scheme', arguments[0].name)
     assert_equal('performance_oversizing_factor', arguments[1].name)
     assert_equal('htg_sizing_option', arguments[2].name)
@@ -216,8 +216,9 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert_equal('dcv', arguments[8].name)
     assert_equal('econ', arguments[9].name)
     assert_equal('roof', arguments[10].name)
-    assert_equal('sizing_run', arguments[11].name)
-    assert_equal('debug_verbose', arguments[12].name)
+    assert_equal('window', arguments[11].name)
+    assert_equal('sizing_run', arguments[12].name)
+    assert_equal('debug_verbose', arguments[13].name)
   end
 
   def calc_cfm_per_ton_singlespdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
