@@ -7,7 +7,29 @@ class LoadSummary(EnergyPlusPlugin):
         super().__init__()
         self.need_to_get_handles = True
 
+<% out_vars.each do |ov| -%>
+<%   ov_sub = ov.downcase.gsub(' ', '') -%>
+<%   zone_names.each do |zn| -%>
+<%     zn_sub = zn.downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
+<%=    "        self.#{ov_sub}_#{zn_sub}_hndl = None" %>
+<%   end -%>
+<% end -%>
+
     def get_handles(self, state):
+
+<% out_vars.each do |ov| -%>
+<%   ov_sub = ov.downcase.gsub(' ', '') -%>
+<%   zone_names.each do |zn| -%>
+<%     zn_sub = zn.downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
+<%     api = 'self.api.exchange.get_variable_handle' -%>
+<%=    "        self.#{ov_sub}_#{zn_sub}_hndl = #{api}(" %>
+<%=    '            state,' %>
+<%=    "            \'#{ov}\'," %>
+<%=    "            \'#{zn}\'," %>
+<%=    '        )' %>
+<%=    '' %>
+<%   end -%>
+<% end -%>
 
         self.need_to_get_handles = False
 
@@ -15,5 +37,21 @@ class LoadSummary(EnergyPlusPlugin):
 
         if self.need_to_get_handles:
             self.get_handles(state)
+
+<% out_vars.each do |ov| -%>
+<%   ov_sub = ov.downcase.gsub(' ', '') -%>
+<%   zone_names.each do |zn| -%>
+<%     zn_sub = zn.downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
+<%     api = 'self.api.exchange.get_variable_value' -%>
+<%=    "        if self.#{ov_sub}_#{zn_sub}_hndl != -1:" %>
+<%=    "            self.#{ov_sub}_#{zn_sub} = #{api}(" %>
+<%=    '                state,' %>
+<%=    "                self.#{ov_sub}_#{zn_sub}_hndl" %>
+<%=    '            )' %>
+<%=    '        else:' %>
+<%=    "            self.#{ov_sub}_#{zn_sub} = 0" %>
+<%=    '' %>
+<%   end -%>
+<% end -%>
 
         return 0

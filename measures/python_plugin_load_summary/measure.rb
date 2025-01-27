@@ -4,7 +4,7 @@
 require 'erb'
 
 # start the measure
-class PythonPluginLoadSummary < OpenStudio::Measure::ReportingMeasure
+class PythonPluginLoadSummary < OpenStudio::Measure::EnergyPlusMeasure
 
   # human readable name
   def name
@@ -13,16 +13,16 @@ class PythonPluginLoadSummary < OpenStudio::Measure::ReportingMeasure
 
   # human readable description
   def description
-    return 'Breaks out the building load and HVAC by end-use'
+    return 'Breaks out the building load and HVAC energy by end-use'
   end
 
   # human readable description of modeling approach
   def modeler_description
-    return 'Uses the Python plugin to report the load and HVAC by component'
+    return 'Python plugin to report building load and HVAC energy by component'
   end
 
   # define the arguments that the user will input
-  def arguments(model = nil)
+  def arguments(ws)
 
     # create empty argument vector to add arguments to
     args = OpenStudio::Measure::OSArgumentVector.new
@@ -30,29 +30,16 @@ class PythonPluginLoadSummary < OpenStudio::Measure::ReportingMeasure
     return args
   end
 
-  def energyPlusOutputRequests(runner, usr_args)
+  # define what happens when the measure is run
+  def run(ws, runner, usr_args)
 
     # call the parent class method
-    super(runner, usr_args)
-
-    # define idf object vector
-    result = OpenStudio::IdfObjectVector.new
-
-    # get the model and zones
-    model = runner.lastOpenStudioModel
-    if model.empty?
-      runner.registerError('Cannot find last model')
-      return result
-    end
-    model = model.get
-    zones = model.getThermalZones
+    super(ws, runner, usr_args)
 
     # use the built-in error checking
-    unless runner.validateUserArguments(arguments(model), usr_args)
-      return false
-    end
+    return false unless runner.validateUserArguments(arguments(ws), usr_args)
 
-    # define necessary e+ output variables
+    # define necessary energyplus output variables
     out_vars = [
       # internal gains, convective
       'Zone People Convective Heating Energy',
@@ -101,18 +88,31 @@ class PythonPluginLoadSummary < OpenStudio::Measure::ReportingMeasure
       'Zone Total Internal Total Heating Rate'
     ]
 
-    # trim to one output for testing
-    out_vars = ['Zone People Convective Heating Energy']
+    # trim to a few outputs for testing
+    # todo: remove this
+    # out_vars = [
+    #   'Zone Lights Convective Heating Energy',
+    #   'Zone Lights Radiant Heating Energy'
+    # ]
+
+    # populate array of zone names
+    zone_names = []
+    ot = 'Zone'
+    ws.getObjectsByType(ot.to_IddObjectType).each do |o|
+      zone_names << o.getString(0, false).get
+    end
 
     # add outputs, fix frequency at runperiod
     # python plugin just needs variable to exist in the idf
     # setting to minimum frequency reduces runtime overhead
-    out_vars.each do |o|
-      zones.each do |z|
-        n = z.name.get
-        result << OpenStudio::IdfObject.load(
-          "Output:Variable,#{n},#{o},RunPeriod;"
-        ).get
+    out_vars.each do |ov|
+      zone_names.each do |zn|
+        ot = 'Output_Variable'
+        no = OpenStudio::IdfObject.new(ot.to_IddObjectType)
+        no.setString(0, zn)
+        no.setString(1, ov)
+        no.setString(2, 'RunPeriod')
+        ws.addObject(no)
       end
     end
 
@@ -129,10 +129,10 @@ class PythonPluginLoadSummary < OpenStudio::Measure::ReportingMeasure
     end
 
     # configure template with variable values
-    renderer = ERB.new(template)
+    renderer = ERB.new(template, trim_mode: '-')
     py_out = renderer.result(binding)
 
-    # write python script to resources directory
+    # write python plugin script to resources directory
     File.open("#{rsrcs}/in.py", 'w') do |f|
       f << py_out
       # make sure data is written to the disk one way or the other
@@ -143,31 +143,7 @@ class PythonPluginLoadSummary < OpenStudio::Measure::ReportingMeasure
       end
     end
 
-    # get python script as external file
-    py_path = runner.workflow.findFile("#{rsrcs}/in.py")
-    if py_path.is_initialized
-        py_file = OpenStudio::Model::ExternalFile::getExternalFile(
-          model,
-          py_path.get.to_s
-        ).get
-    else
-      runner.registerError("Did not find #{py_path}")
-      return false
-    end
-
-    # add python plugin instance
-    py_inst = OpenStudio::Model::PythonPluginInstance.new(
-      py_file,
-      'LoadSummary'
-    )
-    py_inst.setName('Load Summary')
-
-    # add python plugin instance
-    result << OpenStudio::IdfObject.load(
-      'PythonPlugin:Instance,Load Summary,No,in,LoadSummary;'
-    ).get
-
-    # set python site packages base on ruby platform
+    # define python site packages base on ruby platform
     pckg = ''
     if (RUBY_PLATFORM =~ /linux/) != nil
       pckg = '/usr/local/lib/python3.8/dist-packages'
@@ -181,18 +157,61 @@ class PythonPluginLoadSummary < OpenStudio::Measure::ReportingMeasure
     end
 
     # add python plugin search paths
-    result << OpenStudio::IdfObject.load(
-      "PythonPlugin:SearchPaths,Py Paths,Yes,Yes,No,#{pckg},#{rsrcs};"
-    ).get
+    ot = 'PythonPlugin_SearchPaths'
+    no = OpenStudio::IdfObject.new(ot.to_IddObjectType)
+    no.setString(0, 'Python Plugin Search Paths')
+    no.setString(1, 'Yes')
+    no.setString(2, 'Yes')
+    no.setString(3, 'No')
+    no.setString(4, pckg)
+    no.setString(5, rsrcs)
+    ws.addObject(no)
 
-    result
-  end
+    # add python plugin instance
+    ot = 'PythonPlugin_Instance'
+    no = OpenStudio::IdfObject.new(ot.to_IddObjectType)
+    no.setString(0, 'Load Summary')
+    no.setString(1, 'No')
+    no.setString(2, 'in')
+    no.setString(3, 'LoadSummary')
+    ws.addObject(no)
 
-  # define what happens when the measure is run
-  def run(runner, usr_args)
+    # define python plugin global variables
+    # todo: complete, right now temporary for testing
+    py_vars = [
+      'conv_int_gains',
+      'rad_int_gains'
+    ]
 
-    # call the parent class method
-    super(runner, usr_args)
+    # add python plugin global variables
+    ot = 'PythonPlugin_Variables'
+    no = OpenStudio::IdfObject.new(ot.to_IddObjectType)
+    no.setString(0, 'Python Plugin Variables')
+    i = 1
+    py_vars.each do |v|
+      no.setString(i, v)
+      i+=1
+    end
+    ws.addObject(no)
+
+    # add python plugin output variable
+    py_vars.each do |pv|
+      ot = 'PythonPlugin_OutputVariable'
+      no = OpenStudio::IdfObject.new(ot.to_IddObjectType)
+      no.setString(0, pv)
+      no.setString(1, pv)
+      no.setString(2, 'Averaged')
+      no.setString(3, 'SystemTimestep')
+      no.setString(4, '')
+      ws.addObject(no)
+      # add corresponding energyplus output variable
+      ot = 'Output_Variable'
+      no = OpenStudio::IdfObject.new(ot.to_IddObjectType)
+      no.setString(0, pv)
+      no.setString(1, 'PythonPlugin:OutputVariable')
+      no.setString(2, 'Timestep')
+      ws.addObject(no)
+    end
 
     return true
   end
