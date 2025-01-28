@@ -1332,12 +1332,36 @@ class AddHeatPumpRtuTest < Minitest::Test
         hprtu_scenario = arguments[idx].clone
         hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
         argument_map[arg.name] = hprtu_scenario
+      elsif arg.name == 'window'
+        window = arguments[idx].clone
+        window.setValue(true)
+        argument_map[arg.name] = window
       else
         argument_map[arg.name] = temp_arg_var
       end
     end
 
     test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
+
+    # check roof/window measure implementation
+    roof_measure_implemented = false
+    window_measure_implemented = false
+    test_result = JSON.parse(test_result.to_s)
+    test_result['step_values'].each do |step_value|
+
+      # check if roof measure variable is available
+      if step_value['name'] == 'env_roof_insul_roof_area_ft_2'
+        roof_measure_implemented = true
+      end
+
+      # check if window measure variable is available
+      if step_value['name'] == 'env_secondary_window_fen_area_ft_2'
+        window_measure_implemented = true
+      end
+
+    end
+    assert_equal(roof_measure_implemented, false, "cannot find variable that was saved in roof upgrade measure via registerValue: env_roof_insul_roof_area_ft2")
+    assert_equal(window_measure_implemented, true, "cannot find variable that was saved in window upgrade measure via registerValue: env_secondary_window_fen_area_ft2")
   end
 
   ##########################################################################
