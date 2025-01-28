@@ -157,7 +157,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     pump_motor_eff_weighted_average = pump_rated_flow_total > 0.0 ? pump_motor_eff_weighted_sum / pump_rated_flow_total : 0.0
     pump_motor_bhp_weighted_average = pump_rated_flow_total > 0.0 ? pump_motor_bhp_weighted_sum / pump_rated_flow_total : 0.0
     
-    return pump_rated_flow_total, pump_motor_eff_weighted_average, pump_motor_bhp_weighted_average
+    return applicable_pumps, pump_rated_flow_total, pump_motor_eff_weighted_average, pump_motor_bhp_weighted_average
   end
     
 
