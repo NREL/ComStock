@@ -304,158 +304,163 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
       
       if elec_eia_ids.empty?
         runner.registerWarning("No EIA Utility IDs found for potential tracts in #{state_abbreviation}. Only state averages will be calculated.")
-    end
+      end
 
       elec_eia_ids.each do |elec_eia_id|
 
-    # Find all the electric rates for this utility
-    all_rates = Dir.glob(File.join(File.dirname(__FILE__), "resources/elec_rates/#{elec_eia_id}/*.json"))
-    if all_rates.empty?
-      unless elec_eia_id.nil?
-        runner.registerWarning("No URDB electric rates found for EIA utility #{elec_eia_id}, using EIA average electric price.")
-        use_urdb_rates = false
-      end
-    else
-      runner.registerInfo("Found #{all_rates.size} URDB electric rates for EIA utility #{elec_eia_id}.")
-      use_urdb_rates = true
-    end
+        # Find all the electric rates for this utility
+        all_rates = Dir.glob(File.join(File.dirname(__FILE__), "resources/elec_rates/#{elec_eia_id}/*.json"))
+        if all_rates.empty?
+          unless elec_eia_id.nil?
+            runner.registerWarning("No URDB electric rates found for EIA utility #{elec_eia_id}, using EIA average electric price.")
+            use_urdb_rates = false
+          end
+        else
+          runner.registerInfo("Found #{all_rates.size} URDB electric rates for EIA utility #{elec_eia_id}.")
+          use_urdb_rates = true
+        end
 
-    # Downselect to applicable rates based on kW and kWh limits
-    applicable_rates = []
-    all_rates.each_with_index do |rate_path, i|
-      # Load the rate data
-      rate = JSON.parse(File.read(rate_path))
-      rate_name = rate['name']
-      rate_id = rate['label']
+        # Downselect to applicable rates based on kW and kWh limits
+        applicable_rates = []
+        all_rates.each_with_index do |rate_path, i|
+          # Load the rate data
+          rate = JSON.parse(File.read(rate_path))
+          rate_name = rate['name']
+          rate_id = rate['label']
 
-      if rate.key?('peakkwcapacitymin') && (min_kw < (rate['peakkwcapacitymin']))
-        runner.registerInfo("Rate #{rate_name} is not applicable because the building min demand of #{min_kw} kW is below minimum threshold of #{rate['peakkwcapacitymin']} kW.")
-        next
-      end
+          if rate.key?('peakkwcapacitymin') && (min_kw < (rate['peakkwcapacitymin']))
+            runner.registerInfo("Rate #{rate_name} is not applicable because the building min demand of #{min_kw} kW is below minimum threshold of #{rate['peakkwcapacitymin']} kW.")
+            next
+          end
 
-      if rate.key?('peakkwcapacitymax') && (max_kw > (rate['peakkwcapacitymax']))
-        runner.registerInfo("Rate #{rate_name} is not applicable because the building max demand of #{max_kw} kW is above maximum threshold of #{rate['peakkwcapacitymax']} kW.")
-        next
-      end
+          if rate.key?('peakkwcapacitymax') && (max_kw > (rate['peakkwcapacitymax']))
+            runner.registerInfo("Rate #{rate_name} is not applicable because the building max demand of #{max_kw} kW is above maximum threshold of #{rate['peakkwcapacitymax']} kW.")
+            next
+          end
 
-      if rate.key?('peakkwhusagemin') && (tot_elec_kwh < (rate['peakkwhusagemin']))
-        runner.registerInfo("Rate #{rate_name} is not applicable because the building annual energy #{tot_elec_kwh} kWh is below minimum threshold of #{rate['peakkwhusagemin']} kWh.")
-        next
-      end
+          if rate.key?('peakkwhusagemin') && (tot_elec_kwh < (rate['peakkwhusagemin']))
+            runner.registerInfo("Rate #{rate_name} is not applicable because the building annual energy #{tot_elec_kwh} kWh is below minimum threshold of #{rate['peakkwhusagemin']} kWh.")
+            next
+          end
 
-      if rate.key?('peakkwhusagemax') && (tot_elec_kwh > (rate['peakkwhusagemax']))
-        runner.registerInfo("Rate #{rate_name} is not applicable because the building annual energy #{tot_elec_kwh} kWh is above maximum threshold of #{rate['peakkwhusagemax']} kWh.")
-        next
-      end
+          if rate.key?('peakkwhusagemax') && (tot_elec_kwh > (rate['peakkwhusagemax']))
+            runner.registerInfo("Rate #{rate_name} is not applicable because the building annual energy #{tot_elec_kwh} kWh is above maximum threshold of #{rate['peakkwhusagemax']} kWh.")
+            next
+          end
 
-      # Rate is applicable to this building
-      runner.registerInfo("Rate #{rate_name} is applicable.")
-      applicable_rates << File.expand_path(rate_path)
-    end
+          # Rate is applicable to this building
+          runner.registerInfo("Rate #{rate_name} is applicable.")
+          applicable_rates << File.expand_path(rate_path)
+        end
 
-    # Ensure at least one rate is applicable to this building
-    if !all_rates.empty? && applicable_rates.empty?
-      use_urdb_rates = false
+        # Ensure at least one rate is applicable to this building
+        if !all_rates.empty? && applicable_rates.empty?
+          use_urdb_rates = false
           runner.registerWarning("No URDB electric rates were applicable to this building for utility #{elec_eia_id} in #{state_abbreviation}, using EIA average electric price.")
-    end
+        end
 
         # Calculate bills using URDB rates
-    if use_urdb_rates
+        if use_urdb_rates
 
           electricity_bill_results += "|#{elec_eia_id}:"
 
-          elec_bills = []
+          elec_bills = {}
           # get annual percent increase for state
           state_elec_ann_incr = elec_ann_incr[state_abbreviation]
 
-      # Calculate the bills for each applicable electric rate using the PySAM API via python
-      rate_results = {}
-      calc_elec_bill_py_path = File.join(File.dirname(__FILE__), 'resources', 'calc_elec_bill.py')
-      applicable_rates.each_with_index do |rate_path, i|
-        # Load the rate data
-        rate = JSON.parse(File.read(rate_path))
-        rate_name = rate['name']
-        rate_start_date = rate['startdate']
-        if rate_start_date
-          rate_start_year = Time.at(rate_start_date).utc.to_datetime.to_date.year
-        else
-          rate_start_year = 2013
-          runner.registerWarning("#{rate_name} listed no start date, assuming #{rate_start_year}")
-        end
+          # Calculate the bills for each applicable electric rate using the PySAM API via python
+          rate_results = {}
+          calc_elec_bill_py_path = File.join(File.dirname(__FILE__), 'resources', 'calc_elec_bill.py')
+          applicable_rates.each_with_index do |rate_path, i|
+            # Load the rate data
+            rate = JSON.parse(File.read(rate_path))
+            rate_name = rate['name']
+            rate_label = rate['label']
+            rate_start_date = rate['startdate']
+            if rate_start_date
+              rate_start_year = Time.at(rate_start_date).utc.to_datetime.to_date.year
+            else
+              rate_start_year = 2013
+              runner.registerWarning("#{rate_name} listed no start date, assuming #{rate_start_year}")
+            end
 
-        # Call calc_elec_bill.py
-        py = if os == :windows || os == :macosx
-               'python' # Assumes running buildstockbatch from a Conda shell
-             elsif os == :linux
-               'python3.8' # Assumes running buildstockbatch from ComStock docker image
-             else
-               runner.registerError("Could not find python command for #{os}")
-               return false
-             end
+            # Call calc_elec_bill.py
+            py = if os == :windows || os == :macosx
+                'python' # Assumes running buildstockbatch from a Conda shell
+                # 'conda run -n pysam python' # for local testing 
+                elsif os == :linux
+                  'python3.8' # Assumes running buildstockbatch from ComStock docker image
+                else
+                  runner.registerError("Could not find python command for #{os}")
+                  return false
+                end
 
-        command = "#{py} #{calc_elec_bill_py_path} #{elec_csv_path} #{rate_path}"
-        stdout_str, stderr_str, status = Open3.capture3(command)
-        # Remove the warning string from the PySAM output if necessary.
-        # The bills are typically reasonable despite this warning.
-        rate_warn_a = 'Billing Demand Notice.'
-        rate_warn_b = 'This rate includes billing demand adjustments and/or demand ratchets that may not be accurately reflected in the data downloaded from the URDB. Please check the information in the Description under Description and Applicability and review the rate sheet to be sure the billing demand inputs are correct.'
-        stdout_str = stdout_str.gsub(rate_warn_a, '')
-        stdout_str = stdout_str.gsub(rate_warn_b, '')
-        stdout_str = stdout_str.strip
-        if status.success?
-          begin
-            pysam_out = JSON.parse(stdout_str)
-          rescue JSON::ParserError
-            runner.registerError("Error running PySAM: #{command}")
-            runner.registerError("stdout: #{stdout_str}")
-            return false
-          end
-          # Adjust the rate for price increases using state averages
+            command = "#{py} #{calc_elec_bill_py_path} #{elec_csv_path} #{rate_path}"
+            stdout_str, stderr_str, status = Open3.capture3(command)
+            # Remove the warning string from the PySAM output if necessary.
+            # The bills are typically reasonable despite this warning.
+            rate_warn_a = 'Billing Demand Notice.'
+            rate_warn_b = 'This rate includes billing demand adjustments and/or demand ratchets that may not be accurately reflected in the data downloaded from the URDB. Please check the information in the Description under Description and Applicability and review the rate sheet to be sure the billing demand inputs are correct.'
+            stdout_str = stdout_str.gsub(rate_warn_a, '')
+            stdout_str = stdout_str.gsub(rate_warn_b, '')
+            stdout_str = stdout_str.strip
+            if status.success?
+              begin
+                pysam_out = JSON.parse(stdout_str)
+              rescue JSON::ParserError
+                runner.registerError("Error running PySAM: #{command}")
+                runner.registerError("stdout: #{stdout_str}")
+                return false
+              end
+              # Adjust the rate for price increases using state averages
               pct_inc = ((2022 - rate_start_year) * state_elec_ann_incr).round(3)
-          total_utility_bill_dollars_base_yr = pysam_out['total_utility_bill_dollars'].round.to_i
-          total_utility_bill_dollars_2022 = (total_utility_bill_dollars_base_yr * (1.0 + pct_inc)).round.to_i
-          rate_results[rate_name] = total_utility_bill_dollars_2022
-          runner.registerInfo("Bill for #{rate_name}: $#{total_utility_bill_dollars_2022}, adjusted from #{rate_start_year} to 2022 assuming #{pct_inc} increase.")
-        else
-          runner.registerError("Error running PySAM: #{command}")
-          runner.registerError("stdout: #{stdout_str}")
-          runner.registerError("stderr: #{stderr_str}")
-          return false
-        end
-      end
+              total_utility_bill_dollars_base_yr = pysam_out['total_utility_bill_dollars'].round.to_i
+              total_utility_bill_dollars_2022 = (total_utility_bill_dollars_base_yr * (1.0 + pct_inc)).round.to_i
+              rate_results[rate_label] = total_utility_bill_dollars_2022
+              runner.registerInfo("Bill for #{rate_name}: $#{total_utility_bill_dollars_2022}, adjusted from #{rate_start_year} to 2022 assuming #{pct_inc} increase.")
+            else
+              runner.registerError("Error running PySAM: #{command}")
+              runner.registerError("stdout: #{stdout_str}")
+              runner.registerError("stderr: #{stderr_str}")
+              return false
+            end
+          end
 
-      # Report bills for reasonable rates where: 0.25x_median < bill < 2x_median
-      bills_sorted = rate_results.values.sort
-      median_bill = bills_sorted[(bills_sorted.length - 1) / 2] + (bills_sorted[bills_sorted.length / 2] / 2.0)
-      i = 1
-      rate_results.each do |rate_name, bill|
-        if bill < 0.25 * median_bill
-          runner.registerInfo("Removing #{rate_name}, because bill #{bill} < 0.25 x median #{median_bill}")
-        elsif bill > 2.0 * median_bill
-          runner.registerInfo("Removing #{rate_name}, because bill #{bill} > 2.0 x median #{median_bill}")
-        else
+          # Report bills for reasonable rates where: 0.25x_median < bill < 2x_median
+          bills_sorted = rate_results.values.sort
+          median_bill = bills_sorted[(bills_sorted.length - 1) / 2] + (bills_sorted[bills_sorted.length / 2] / 2.0)
+          i = 1
+          rate_results.each do |rate_label, bill|
+            if bill < 0.25 * median_bill
+              runner.registerInfo("Removing #{rate_label}, because bill #{bill} < 0.25 x median #{median_bill}")
+            elsif bill > 2.0 * median_bill
+              runner.registerInfo("Removing #{rate_label}, because bill #{bill} > 2.0 x median #{median_bill}")
+            else
               # include the bill result in bill result statistics
-          elec_bills << bill
-          i += 1
-        end
-    end
+              elec_bills[rate_label] = bill
+              i += 1
+            end
+          end
 
-    # Report bill statistics across all applicable electric rates
-    elec_bills = elec_bills.sort
-    runner.registerInfo("Bills sorted: #{elec_bills}")
-          min_bill = elec_bills.min.round.to_i
-          max_bill = elec_bills.max.round.to_i
-    mean_bill = (elec_bills.sum.to_f / elec_bills.length).round.to_i
-    lo_i = (elec_bills.length - 1) / 2
-    hi_i = elec_bills.length / 2
-    median_bill = ((elec_bills[lo_i] + elec_bills[hi_i]) / 2.0).round.to_i
-    n_bills = elec_bills.length
+          # Report bill statistics across all applicable electric rates
+          elec_bill_values = elec_bills.values
+          elec_bill_values = elec_bill_values.sort
+          runner.registerInfo("Bills sorted: #{elec_bill_values}")
+          min_bill = elec_bill_values.min
+          max_bill = elec_bill_values.max
+          mean_bill = (elec_bill_values.sum.to_f / elec_bill_values.length).round.to_i
+          lo_i = (elec_bill_values.length - 1) / 2
+          hi_i = elec_bill_values.length / 2
+          median_bill = ((elec_bill_values[lo_i] + elec_bill_values[hi_i]) / 2.0).round.to_i
+          n_bills = elec_bills.length
 
-          electricity_bill_results += "#{min_bill}:"
-          electricity_bill_results += "#{max_bill}:"
+          electricity_bill_results += "#{min_bill.round.to_i}:#{elec_bills.key(min_bill)}:"
+          electricity_bill_results += "#{max_bill.round.to_i}:#{elec_bills.key(max_bill)}:"
+          electricity_bill_results += "#{elec_bill_values[lo_i].round.to_i}:#{elec_bills.key(elec_bill_values[lo_i])}:"
+          electricity_bill_results += "#{elec_bill_values[hi_i].round.to_i}:#{elec_bills.key(elec_bill_values[hi_i])}:"
           electricity_bill_results += "#{mean_bill}:"
-          electricity_bill_results += "#{median_bill}:"
-          electricity_bill_results += "#{n_bills}:"
+          # electricity_bill_results += "#{median_bill}:"
+          electricity_bill_results += "#{n_bills}"
         end
       end
       
@@ -466,7 +471,7 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
       total_elec_utility_bill_dollars = (tot_elec_kwh * elec_rate_dollars_per_kwh).round.to_i
       state_avg_elec_results += "#{total_elec_utility_bill_dollars}"
 
-    # Natural Gas Bill
+      # Natural Gas Bill
       unless tot_ng_kbtu.zero?
         state_avg_ng_results += "|#{state_abbreviation}:"
         ng_dollars_per_kbtu = ng_prices[state_abbreviation]
@@ -474,7 +479,7 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
         state_avg_ng_results += "#{ng_bill_dollars}"
       end
 
-    # Propane Bill
+      # Propane Bill
       unless tot_propane_kbtu.zero?
         state_avg_propane_results += "|#{state_abbreviation}:"
         propane_dollars_per_kbtu = propane_prices[state_abbreviation]

@@ -353,15 +353,31 @@ class UtilityBillsTest < Minitest::Test
     assert_includes(rvs['electricity_utility_bill_results'].scan(utility_id_regexp).flatten, elec_util_from_file)
 
     # check that all results are populated with min, max, mean, med, num
-    results_regexp = "/\|#{elec_util_from_file}:(.+?):(.+?):(.+?):(.+?):(.+?):\|/"
+    results_regexp = "/\|#{elec_util_from_file}:(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?)\|/"
     bill_vals = rvs['electricity_utility_bill_results'].match(results_regexp).captures.map(&:to_i)
-    assert_equal(5, bill_vals.size)
-    assert(bill_vals[1] > bill_vals[0])
-    assert(bill_vals[0] < bill_vals[2])
-    assert(bill_vals[0] < bill_vals[3])
-    assert(bill_vals[1] > bill_vals[2])
-    assert(bill_vals[1] > bill_vals[3])
-    assert(bill_vals[4] < bill_vals[0])
+    assert_equal(10, bill_vals.size)
+    keys = [
+      'min_dollars',
+      'min_label',
+      'max_dollars',
+      'max_label',
+      'median_low_dollars',
+      'median_low_label',
+      'median_high_dollars',
+      'median_high_label',
+      'mean_dollars',
+      'num_rates'
+    ]
+    results_hash = Hash[keys.zip(bill_vals)]
+
+    assert(results_hash['max_dollars'] > results_hash['min_dollars'])
+    assert(results_hash['min_dollars'] <= results_hash['median_low_dollars'])
+    assert(results_hash['min_dollars'] <= results_hash['median_high_dollars'])
+    assert(results_hash['min_dollars'] <= results_hash['mean_dollars'])
+    assert(results_hash['max_dollars'] >= results_hash['median_low_dollars'])
+    assert(results_hash['max_dollars'] >= results_hash['median_high_dollars'])
+    assert(results_hash['max_dollars'] >= results_hash['mean_dollars'])
+
 
     # check that state average result has value
     state_avg_regexp = /\|([^:]+)/
@@ -446,15 +462,30 @@ class UtilityBillsTest < Minitest::Test
     assert_includes(rvs['electricity_utility_bill_results'].scan(utility_id_regexp).flatten, elec_util_from_file)
 
     # check that all results are populated with min, max, mean, med, num
-    results_regexp = "/\|#{elec_util_from_file}:(.+?):(.+?):(.+?):(.+?):(.+?):\|/"
+    results_regexp = "/\|#{elec_util_from_file}:(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?)\|/"
     bill_vals = rvs['electricity_utility_bill_results'].match(results_regexp).captures.map(&:to_i)
-    assert_equal(5, bill_vals.size)
-    assert(bill_vals[1] > bill_vals[0])
-    assert(bill_vals[0] < bill_vals[2])
-    assert(bill_vals[0] < bill_vals[3])
-    assert(bill_vals[1] > bill_vals[2])
-    assert(bill_vals[1] > bill_vals[3])
-    assert(bill_vals[4] < bill_vals[0])
+    assert_equal(10, bill_vals.size)
+    keys = [
+      'min_dollars',
+      'min_label',
+      'max_dollars',
+      'max_label',
+      'median_low_dollars',
+      'median_low_label',
+      'median_high_dollars',
+      'median_high_label',
+      'mean_dollars',
+      'num_rates'
+    ]
+    results_hash = Hash[keys.zip(bill_vals)]
+
+    assert(results_hash['max_dollars'] > results_hash['min_dollars'])
+    assert(results_hash['min_dollars'] <= results_hash['median_low_dollars'])
+    assert(results_hash['min_dollars'] <= results_hash['median_high_dollars'])
+    assert(results_hash['min_dollars'] <= results_hash['mean_dollars'])
+    assert(results_hash['max_dollars'] >= results_hash['median_low_dollars'])
+    assert(results_hash['max_dollars'] >= results_hash['median_high_dollars'])
+    assert(results_hash['max_dollars'] >= results_hash['mean_dollars'])
 
     # check that state average result has value
     state_avg_regexp = /\|([^:]+)/
@@ -541,15 +572,30 @@ class UtilityBillsTest < Minitest::Test
     assert_includes(rvs['electricity_utility_bill_results'].scan(utility_id_regexp).flatten, elec_util_from_file)
 
     # check that all results are populated with min, max, mean, med, num
-    results_regexp = "/\|#{elec_util_from_file}:(.+?):(.+?):(.+?):(.+?):(.+?):\|/"
+    results_regexp = "/\|#{elec_util_from_file}:(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?)\|/"
     bill_vals = rvs['electricity_utility_bill_results'].match(results_regexp).captures.map(&:to_i)
-    assert_equal(5, bill_vals.size)
-    assert(bill_vals[1] > bill_vals[0])
-    assert(bill_vals[0] < bill_vals[2])
-    assert(bill_vals[0] < bill_vals[3])
-    assert(bill_vals[1] > bill_vals[2])
-    assert(bill_vals[1] > bill_vals[3])
-    assert(bill_vals[4] < bill_vals[0])
+    assert_equal(10, bill_vals.size)
+    keys = [
+      'min_dollars',
+      'min_label',
+      'max_dollars',
+      'max_label',
+      'median_low_dollars',
+      'median_low_label',
+      'median_high_dollars',
+      'median_high_label',
+      'mean_dollars',
+      'num_rates'
+    ]
+    results_hash = Hash[keys.zip(bill_vals)]
+
+    assert(results_hash['max_dollars'] > results_hash['min_dollars'])
+    assert(results_hash['min_dollars'] <= results_hash['median_low_dollars'])
+    assert(results_hash['min_dollars'] <= results_hash['median_high_dollars'])
+    assert(results_hash['min_dollars'] <= results_hash['mean_dollars'])
+    assert(results_hash['max_dollars'] >= results_hash['median_low_dollars'])
+    assert(results_hash['max_dollars'] >= results_hash['median_high_dollars'])
+    assert(results_hash['max_dollars'] >= results_hash['mean_dollars'])
 
     # check that state average result has value
     state_avg_regexp = /\|([^:]+)/
