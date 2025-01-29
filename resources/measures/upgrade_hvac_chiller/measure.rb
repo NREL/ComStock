@@ -159,7 +159,243 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     
     return applicable_pumps, pump_rated_flow_total, pump_motor_eff_weighted_average, pump_motor_bhp_weighted_average
   end
-    
+
+  # Determine and set type of part load control type for heating and chilled
+  # modified from https://github.com/NREL/openstudio-standards/blob/412de97737369c3ee642237a83c8e5a6b1ab14be/lib/openstudio-standards/prototypes/common/objects/Prototype.PumpVariableSpeed.rb#L4-L37
+  def pump_variable_speed_control_type(runner, model, pump, debug_verbose)
+    # Get plant loop
+    plant_loop = pump.plantLoop.get
+
+    # Get plant loop type
+    plant_loop_type = plant_loop.sizingPlant.loopType
+    return false unless plant_loop_type == 'Heating' || plant_loop_type == 'Cooling'
+
+    # Get rated pump power
+    if pump.ratedPowerConsumption.is_initialized
+      pump_rated_power_w = pump.ratedPowerConsumption.get
+    elsif pump.autosizedRatedPowerConsumption.is_initialized
+      pump_rated_power_w = pump.autosizedRatedPowerConsumption.get
+    else
+      runner.registerError("could not find rated pump power consumption, cannot determine w per gpm correctly.")
+      return false
+    end
+
+    # Get nominal nameplate HP
+    pump_nominal_hp = pump_rated_power_w * pump.motorEfficiency / 745.7
+
+    # Assign peformance curves
+    control_type = pump_variable_speed_get_control_type(runner, model, pump, plant_loop_type, pump_nominal_hp, debug_verbose)
+
+    if debug_verbose
+      runner.registerInfo("### control_type = #{control_type}")
+    end
+
+    # Set pump part load performance curve coefficients
+    pump_variable_speed_set_control_type(runner, pump, control_type, debug_verbose) if control_type
+
+    return true
+  end
+
+  # Determine type of pump part load control type
+  # modified version from https://github.com/NREL/openstudio-standards/blob/412de97737369c3ee642237a83c8e5a6b1ab14be/lib/openstudio-standards/prototypes/ashrae_90_1/ashrae_90_1_2019/ashrae_90_1_2019.PumpVariableSpeed.rb#L11-L142
+  def pump_variable_speed_get_control_type(runner, model, pump, plant_loop_type, pump_nominal_hp, debug_verbose)
+    # Sizing factor to take into account that pumps
+    # are typically sized to handle a ~10% pressure
+    # increase and ~10% flow increase.
+    design_sizing_factor = 1.25
+
+    # Get climate zone
+    #climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
+    climate_zone = pump.plantLoop.get.model.getClimateZones.getClimateZone(0)
+    climate_zone = "#{climate_zone.value}"
+
+    # Get nameplate hp threshold:
+    # The thresholds below represent the nameplate
+    # hp one level lower than the threshold in the
+    # code. Motor size from table in section 10 are
+    # used as reference.
+    case plant_loop_type
+      when 'Heating'
+        case climate_zone
+          when 'ASHRAE 169-2006-7A',
+               'ASHRAE 169-2006-7B',
+               'ASHRAE 169-2006-8A',
+               'ASHRAE 169-2006-8B',
+               'ASHRAE 169-2013-7A',
+               'ASHRAE 169-2013-7B',
+               'ASHRAE 169-2013-8A',
+               'ASHRAE 169-2013-8B'
+            threshold = 3
+          when 'ASHRAE 169-2006-3C',
+               'ASHRAE 169-2006-5A',
+               'ASHRAE 169-2006-5C',
+               'ASHRAE 169-2006-6A',
+               'ASHRAE 169-2006-6B',
+               'ASHRAE 169-2013-3C',
+               'ASHRAE 169-2013-5A',
+               'ASHRAE 169-2013-5C',
+               'ASHRAE 169-2013-6A',
+               'ASHRAE 169-2013-6B'
+            threshold = 5
+          when 'ASHRAE 169-2006-4A',
+               'ASHRAE 169-2006-4C',
+               'ASHRAE 169-2006-5B',
+               'ASHRAE 169-2013-4A',
+               'ASHRAE 169-2013-4C',
+               'ASHRAE 169-2013-5B'
+            threshold = 7.5
+          when 'ASHRAE 169-2006-4B',
+               'ASHRAE 169-2013-4B'
+            threshold = 10
+          when 'ASHRAE 169-2006-2A',
+               'ASHRAE 169-2006-2B',
+               'ASHRAE 169-2006-3A',
+               'ASHRAE 169-2006-3B',
+               'ASHRAE 169-2013-2A',
+               'ASHRAE 169-2013-2B',
+               'ASHRAE 169-2013-3A',
+               'ASHRAE 169-2013-3B'
+            threshold = 20
+          when 'ASHRAE 169-2006-1B',
+               'ASHRAE 169-2013-1B'
+            threshold = 75
+          when 'ASHRAE 169-2006-0A',
+               'ASHRAE 169-2006-0B',
+               'ASHRAE 169-2006-1A',
+               'ASHRAE 169-2013-0A',
+               'ASHRAE 169-2013-0B',
+               'ASHRAE 169-2013-1A'
+            threshold = 150
+          else
+            runner.registerError("Pump flow control requirement missing for heating water pumps in climate zone: #{climate_zone}.")
+        end
+      when 'Cooling'
+        case climate_zone
+          when 'ASHRAE 169-2006-0A',
+               'ASHRAE 169-2006-0B',
+               'ASHRAE 169-2006-1A',
+               'ASHRAE 169-2006-1B',
+               'ASHRAE 169-2006-2B',
+               'ASHRAE 169-2013-0A',
+               'ASHRAE 169-2013-0B',
+               'ASHRAE 169-2013-1A',
+               'ASHRAE 169-2013-1B',
+               'ASHRAE 169-2013-2B'
+            threshold = 1.5
+          when 'ASHRAE 169-2006-2A',
+               'ASHRAE 169-2006-3B',
+               'ASHRAE 169-2013-2A',
+               'ASHRAE 169-2013-3B'
+            threshold = 2
+          when 'ASHRAE 169-2006-3A',
+               'ASHRAE 169-2006-3C',
+               'ASHRAE 169-2006-4A',
+               'ASHRAE 169-2006-4B',
+               'ASHRAE 169-2013-3A',
+               'ASHRAE 169-2013-3C',
+               'ASHRAE 169-2013-4A',
+               'ASHRAE 169-2013-4B'
+            threshold = 3
+          when 'ASHRAE 169-2006-4C',
+               'ASHRAE 169-2006-5A',
+               'ASHRAE 169-2006-5B',
+               'ASHRAE 169-2006-5C',
+               'ASHRAE 169-2006-6A',
+               'ASHRAE 169-2006-6B',
+               'ASHRAE 169-2013-4C',
+               'ASHRAE 169-2013-5A',
+               'ASHRAE 169-2013-5B',
+               'ASHRAE 169-2013-5C',
+               'ASHRAE 169-2013-6A',
+               'ASHRAE 169-2013-6B'
+            threshold = 5
+          when 'ASHRAE 169-2006-7A',
+               'ASHRAE 169-2006-7B',
+               'ASHRAE 169-2006-8A',
+               'ASHRAE 169-2006-8B',
+               'ASHRAE 169-2013-7A',
+               'ASHRAE 169-2013-7B',
+               'ASHRAE 169-2013-8A',
+               'ASHRAE 169-2013-8B'
+            threshold = 10
+          else
+            runner.registerError("Pump flow control requirement missing for chilled water pumps in climate zone: #{climate_zone}.")
+        end
+      else
+        runner.registerError("No pump flow requirement for #{plant_loop_type} plant loops.")
+        return false
+    end
+
+    if debug_verbose
+      runner.registerInfo('### ------------------------------------------------------')
+      runner.registerInfo("### os standards variable speed implementation")
+      runner.registerInfo("### plant_loop_type = #{plant_loop_type}")
+      runner.registerInfo("### climate_zone = #{climate_zone}")
+      runner.registerInfo("### pump_nominal_hp = #{pump_nominal_hp}")
+      runner.registerInfo("### design_sizing_factor = #{design_sizing_factor}")
+      runner.registerInfo("### threshold = #{threshold}")
+    end
+
+    return 'VSD DP Reset' if pump_nominal_hp * design_sizing_factor > threshold
+
+    # else
+    return 'Riding Curve'
+  end
+
+  # Set the pump curve coefficients based on the specified control type.
+  # modified from https://github.com/NREL/openstudio-standards/blob/412de97737369c3ee642237a83c8e5a6b1ab14be/lib/openstudio-standards/standards/Standards.PumpVariableSpeed.rb#L6-L53
+  def pump_variable_speed_set_control_type(runner, pump_variable_speed, control_type, debug_verbose)
+    # Determine the coefficients
+    coeff_a = nil
+    coeff_b = nil
+    coeff_c = nil
+    coeff_d = nil
+    case control_type
+    when 'Constant Flow'
+      coeff_a = 0.0
+      coeff_b = 1.0
+      coeff_c = 0.0
+      coeff_d = 0.0
+    when 'Riding Curve'
+      coeff_a = 0.0
+      coeff_b = 3.2485
+      coeff_c = -4.7443
+      coeff_d = 2.5294
+    when 'VSD No Reset'
+      coeff_a = 0.0
+      coeff_b = 0.5726
+      coeff_c = -0.301
+      coeff_d = 0.7347
+    when 'VSD DP Reset'
+      coeff_a = 0.0
+      coeff_b = 0.0205
+      coeff_c = 0.4101
+      coeff_d = 0.5753
+    else
+      runner.registerError("Pump control type '#{control_type}' not recognized, pump coefficients will not be changed.")
+      return false
+    end
+
+    if debug_verbose
+      runner.registerInfo("### coeff_a = #{coeff_a}")
+      runner.registerInfo("### coeff_b = #{coeff_b}")
+      runner.registerInfo("### coeff_c = #{coeff_c}")
+      runner.registerInfo("### coeff_d = #{coeff_d}")
+      runner.registerInfo('### ------------------------------------------------------')
+    end
+
+    # Set the coefficients
+    pump_variable_speed.setCoefficient1ofthePartLoadPerformanceCurve(coeff_a)
+    pump_variable_speed.setCoefficient2ofthePartLoadPerformanceCurve(coeff_b)
+    pump_variable_speed.setCoefficient3ofthePartLoadPerformanceCurve(coeff_c)
+    pump_variable_speed.setCoefficient4ofthePartLoadPerformanceCurve(coeff_d)
+    pump_variable_speed.setPumpControlType('Intermittent')
+
+    # Append the control type to the pump name
+    # self.setName("#{self.name} #{control_type}")
+
+    return true
+  end
 
   # define what happens when the measure is run
   def run(model, runner, user_arguments)
@@ -200,13 +436,11 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     applicable_pumps = []
     pumps_const_spd = model.getPumpConstantSpeeds
     pumps_var_spd = model.getPumpVariableSpeeds
-
     applicable_pumps, pump_rated_flow_total_c, pump_motor_eff_weighted_average_c, pump_motor_bhp_weighted_average_c = pump_specifications(applicable_pumps, pumps_const_spd, std)
     applicable_pumps, pump_rated_flow_total_v, pump_motor_eff_weighted_average_v, pump_motor_bhp_weighted_average_v = pump_specifications(applicable_pumps, pumps_var_spd, std)
-
     if debug_verbose
       runner.registerInfo('### ------------------------------------------------------')
-      runner.registerInfo('### pump (used in chiller systems) specs before upgrade')
+      runner.registerInfo('### pump (used for chillers) specs before upgrade')
       runner.registerInfo("### pump_rated_flow_total_c = #{pump_rated_flow_total_c.round(6)}")
       runner.registerInfo("### pump_motor_eff_weighted_average_c = #{pump_motor_eff_weighted_average_c.round(2)}")
       runner.registerInfo("### pump_motor_bhp_weighted_average_c = #{pump_motor_bhp_weighted_average_c.round(6)}")
@@ -237,9 +471,9 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     # ------------------------------------------------
     # replace pump
     # ------------------------------------------------
-    
-
-    # pump_variable_speed_control_type(pump)
+    applicable_pumps.each do |pump|
+      pump_variable_speed_control_type(runner, model, pump, debug_verbose)
+    end
 
     # ------------------------------------------------
     # get chiller specifications after upgrade
@@ -255,6 +489,27 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
       runner.registerInfo("### counts_chillers_wcc = #{counts_chillers_wcc}")
       runner.registerInfo("### capacity_total_w_wcc = #{capacity_total_w_wcc}")
       runner.registerInfo("### cop_weighted_average_wcc = #{cop_weighted_average_wcc}")
+      runner.registerInfo('### ------------------------------------------------------')
+    end
+
+    # ------------------------------------------------
+    # get pump specifications after upgrade
+    # ------------------------------------------------
+    dummy = []
+    pumps_const_spd = model.getPumpConstantSpeeds
+    pumps_var_spd = model.getPumpVariableSpeeds
+    _, pump_rated_flow_total_c, pump_motor_eff_weighted_average_c, pump_motor_bhp_weighted_average_c = pump_specifications(dummy, pumps_const_spd, std)
+    _, pump_rated_flow_total_v, pump_motor_eff_weighted_average_v, pump_motor_bhp_weighted_average_v = pump_specifications(dummy, pumps_var_spd, std)
+    if debug_verbose
+      runner.registerInfo('### ------------------------------------------------------')
+      runner.registerInfo('### pump (used for chillers) specs after upgrade')
+      runner.registerInfo("### pump_rated_flow_total_c = #{pump_rated_flow_total_c.round(6)}")
+      runner.registerInfo("### pump_motor_eff_weighted_average_c = #{pump_motor_eff_weighted_average_c.round(2)}")
+      runner.registerInfo("### pump_motor_bhp_weighted_average_c = #{pump_motor_bhp_weighted_average_c.round(6)}")
+      runner.registerInfo("### pump_rated_flow_total_v = #{pump_rated_flow_total_v.round(6)}")
+      runner.registerInfo("### pump_motor_eff_weighted_average_v = #{pump_motor_eff_weighted_average_v.round(2)}")
+      runner.registerInfo("### pump_motor_bhp_weighted_average_v = #{pump_motor_bhp_weighted_average_v.round(6)}")
+      runner.registerInfo("### total count of applicable pumps = #{applicable_pumps.size}")
       runner.registerInfo('### ------------------------------------------------------')
     end
 
