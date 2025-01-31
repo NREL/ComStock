@@ -68,7 +68,7 @@ buildstock.csv,plugload_sch_weekend_base_peak_ratio,,FALSE,FALSE,,,,
 buildstock.csv,purchase_input_responsibility,in.purchase_input_responsibility,TRUE,FALSE,string,,,Who has the most direct input on decisions regarding pruchases of energy-related equipment
 buildstock.csv,reeds_balancing_area,in.reeds_balancing_area,TRUE,FALSE,string,,,Balancing area ID for the NREL ReEDS modeling tool
 buildstock.csv,region,,FALSE,FALSE,,,,
-buildstock.csv,building_area,in.floor_area_category,TRUE,TRUE,string,,,Specifies the floor area range of the building
+buildstock.csv,rentable_area,,FALSE,FALSE,,,,
 buildstock.csv,resstock_county_id,in.county_name,TRUE,TRUE,string,,,State abbreviation and county name
 buildstock.csv,resstock_custom_region,in.resstock_custom_region,FALSE,FALSE,string,,,
 buildstock.csv,resstock_puma_id,in.resstock_puma_id,FALSE,FALSE,string,,,State abbreviation and PUMA identifier
@@ -1121,6 +1121,11 @@ results.csv,simulation_settings_check.run_sim_settings_checks,,FALSE,FALSE,boole
 results.csv,started_at,,FALSE,FALSE,float,,,Simulation start time for model
 results.csv,upgrade,upgrade,TRUE,TRUE,string,,,ID of upgrade including 00 for Baseline
 results.csv,utility_bills.applicable,,FALSE,FALSE,boolean,,,Specifies if the utility bill calculation was applied to model
+results.csv,utility_bills.electricity_utility_bill_results,out.utility_bills.electricity_utility_bill_results,TRUE,TRUE,string,,,String with all potential electricity rate outputs. Schema is: |utility_id:min_bill_dollars:max_bill_dollars:mean_bill_dollars:median_bill_dollars:n_bills|
+results.csv,utility_bills.state_avg_electricity_cost_results,out.utility_bills.state_average_electricity_cost_results,TRUE,TRUE,string,,,String with all potential state average electricity bills. Schema is: |state_abbreviation:total_dollars|
+results.csv,utility_bills.state_avg_naturalgas_cost_results,out.utility_bills.state_average_natural_gas_cost_results,TRUE,TRUE,string,,,String with all potential state average natural gas bills. Schema: |state_abbreviation:total_dollars|
+results.csv,utility_bills.state_avg_propane_cost_results,out.utility_bills.state_average_propane_cost_results,TRUE,TRUE,string,,,String with all potential state average propane bills. Schema: |state_abbreviation:total_bill_dollars|
+results.csv,utility_bills.state_avg_fueloil_cost_results,out.utility_bills.state_average_fueloil_cost_results,TRUE,TRUE,string,,,String with all potential state average fuel oil bills. Schema: |state_abbreviation:total_bill_dollars|
 results.csv,utility_bills.electricity_rate_2_bill_dollars,out.utility_bills.electricity_rate_2_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
 results.csv,utility_bills.electricity_rate_2_name,out.utility_bills.electricity_rate_2_name,FALSE,FALSE,string,,,Name of one applicable electric rate
 results.csv,utility_bills.electricity_rate_3_bill_dollars,out.utility_bills.electricity_rate_3_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
@@ -1302,33 +1307,19 @@ results.csv,utility_bills.electricity_rate_89_name,out.utility_bills.electricity
 results.csv,utility_bills.electricity_utility_eia_id,out.utility_bills.electricity_utility_eia_id,TRUE,FALSE,integer,,,The EIA ID of the electric utility for this building
 results.csv,utility_bills.electricity_bill_min_dollars,out.utility_bills.electricity_bill_min,TRUE,FALSE,float,usd,usd,Minimum electric bill across all applicable rates
 results.csv,utility_bills.electricity_bill_max_dollars,out.utility_bills.electricity_bill_max,TRUE,FALSE,float,usd,usd,Maximum electric bill maximum across all applicable rates
-results.csv,utility_bills.electricity_bill_mean_dollars,out.utility_bills.electricity_bill_mean,TRUE,TRUE,float,usd,usd,Mean electric bill across all applicable rates
 results.csv,utility_bills.electricity_bill_median_dollars,out.utility_bills.electricity_bill_median,TRUE,FALSE,float,usd,usd,Median electric bill across all applicable rates
 results.csv,utility_bills.electricity_bill_number_of_rates,out.utility_bills.electricity_bill_number_of_rates,TRUE,FALSE,float,usd,usd,Number of applicable electric rates
-results.csv,utility_bills.fuel_oil_bill_dollars,out.utility_bills.fuel_oil_bill,TRUE,TRUE,float,usd,usd,Fuel oil bill
 results.csv,utility_bills.fuel_oil_rate_name,out.utility_bills.fuel_oil_rate_name,TRUE,FALSE,string,,,Name of the fuel oil rate used
-results.csv,utility_bills.natural_gas_bill_dollars,out.utility_bills.natural_gas_bill,TRUE,TRUE,float,usd,usd,Natural gas bill
 results.csv,utility_bills.natural_gas_rate_name,out.utility_bills.natural_gas_rate_name,TRUE,FALSE,string,,,Name of the natural gas rate used
-results.csv,utility_bills.propane_bill_dollars,out.utility_bills.propane_bill,TRUE,TRUE,float,usd,usd,Propane bill from one applicable rate
 results.csv,utility_bills.propane_rate_name,out.utility_bills.propane_rate_name,TRUE,FALSE,string,,,Name of the propane rate used
 calculated,in.nhgis_county_gisjoin,in.nhgis_county_gisjoin,TRUE,TRUE,string,,,"County identifier where the model is located, according to format of https://www.nhgis.org/geographic-crosswalks#details"
 calculated,in.nhgis_puma_gisjoin,in.nhgis_puma_gisjoin,TRUE,TRUE,string,,,"Census PUMA identifier where the model is located, according to format of https://www.nhgis.org/geographic-crosswalks#details"
 calculated,in.nhgis_tract_gisjoin,in.nhgis_tract_gisjoin,TRUE,TRUE,string,,,"Census tract identifier where the model is located, according to format of https://www.nhgis.org/geographic-crosswalks#details"
 calculated,in.nhgis_state_gisjoin,in.nhgis_state_gisjoin,TRUE,TRUE,string,,,"State tract identifier where the model is located, according to format of https://www.nhgis.org/geographic-crosswalks#details"
-calculated,calc.weighted.savings.utility_bills.electricity_bill_mean,calc.weighted.savings.utility_bills.electricity_bill_mean,TRUE,TRUE,float,billion_usd,billion_usd,Weighted mean electric bill savings across all applicable rates in billions of US Dollars
 calculated,calc.weighted.savings.utility_bills.electricity_bill_median,calc.weighted.savings.utility_bills.electricity_bill_median,TRUE,FALSE,float,billion_usd,billion_usd,Weighted median electric bill savings across all applicable rates in billions of US Dollars
-calculated,calc.weighted.savings.utility_bills.electricity_bill_min,calc.weighted.savings.utility_bills.electricity_bill_min,TRUE,TRUE,float,billion_usd,billion_usd,Weighted minimum electric bill savings across all applicable rates in billions of US Dollars
-calculated,calc.weighted.savings.utility_bills.electricity_bill_max,calc.weighted.savings.utility_bills.electricity_bill_max,TRUE,TRUE,float,billion_usd,billion_usd,Weighted maximum electric bill savings across all applicable rates in billions of US Dollars
-calculated,calc.weighted.savings.utility_bills.fuel_oil_bill,calc.weighted.savings.utility_bills.fuel_oil_bill,TRUE,TRUE,float,billion_usd,billion_usd,Weighted fuel oil bill savings in billions of US Dollars
-calculated,calc.weighted.savings.utility_bills.natural_gas_bill,calc.weighted.savings.utility_bills.natural_gas_bill,TRUE,TRUE,float,billion_usd,billion_usd,Weighted natural gas bill savings in billions of US Dollars
-calculated,calc.weighted.savings.utility_bills.propane_bill,calc.weighted.savings.utility_bills.propane_bill,TRUE,TRUE,float,billion_usd,billion_usd,Weighted propane bill savings in billions of US Dollars
-calculated,calc.weighted.utility_bills.electricity_bill_mean,calc.weighted.utility_bills.electricity_bill_mean,TRUE,TRUE,float,billion_usd,billion_usd,Weighted mean electric bill across all applicable rates in billions of US Dollars
 calculated,calc.weighted.utility_bills.electricity_bill_median,calc.weighted.utility_bills.electricity_bill_median,TRUE,FALSE,float,billion_usd,billion_usd,Weighted median electric bill across all applicable rates in billions of US Dollars
 calculated,calc.weighted.utility_bills.electricity_bill_min,calc.weighted.utility_bills.electricity_bill_min,TRUE,FALSE,float,billion_usd,billion_usd,Weighted minimum electric bill across all applicable rates in billions of US Dollars
 calculated,calc.weighted.utility_bills.electricity_bill_max,calc.weighted.utility_bills.electricity_bill_max,TRUE,FALSE,float,billion_usd,billion_usd,Weighted maximum electric bill across all applicable rates in billions of US Dollars
-calculated,calc.weighted.utility_bills.fuel_oil_bill,calc.weighted.utility_bills.fuel_oil_bill,TRUE,TRUE,float,billion_usd,billion_usd,Weighted fuel oil bill in billions of US Dollars
-calculated,calc.weighted.utility_bills.natural_gas_bill,calc.weighted.utility_bills.natural_gas_bill,TRUE,TRUE,float,billion_usd,billion_usd,Weighted natural gas bill in billions of US Dollars
-calculated,calc.weighted.utility_bills.propane_bill,calc.weighted.utility_bills.propane_bill,TRUE,TRUE,float,billion_usd,billion_usd,Weighted propane bill in billions of US Dollars
 timeseries,floor_area_represented,,FALSE,FALSE,float,ft2,ft2,The scaled square footage represented by the buildings included in this aggregate timeseries profile
 timeseries,models_used,,FALSE,FALSE,float,,,The number of energy models used to represent the results in this aggregate timeseries profile
 timeseries,out.district_cooling.cooling.energy_consumption,,FALSE,FALSE,float,kwh,kwh,Building annual district cooling energy consumption for cooling end use

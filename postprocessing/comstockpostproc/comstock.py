@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+'# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.'
 # See top level LICENSE.txt file for license terms.
 import os
 from functools import lru_cache
@@ -70,6 +70,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.egrid_file_name = 'egrid_emissions_2019.csv'
         self.cejst_file_name = '1.0-communities.csv'
         self.geospatial_lookup_file_name = 'spatial_tract_lookup_table_publish_v6.csv'
+        self.tract_to_util_map_file_name = 'tract_to_elec_util.csv'
         self.hvac_metadata_file_name = 'hvac_metadata.csv'
         self.rename_upgrades = rename_upgrades
         self.rename_upgrades_file_name = 'rename_upgrades.json'
@@ -177,11 +178,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 # Calculate/generate columns based on imported columns
                 # self.add_aeo_nems_building_type_column()  # TODO POLARS figure out apply function
                 self.add_missing_energy_columns()
-                self.combine_utility_cols()
+                # self.combine_utility_cols()
                 self.add_enduse_total_energy_columns()
                 self.add_energy_intensity_columns()
-                self.add_bill_intensity_columns()
-                self.add_energy_rate_columns()
+                # self.add_bill_intensity_columns()
+                # self.add_energy_rate_columns()
                 self.add_normalized_qoi_columns()
                 self.add_peak_intensity_columns()
                 self.add_vintage_column()
@@ -335,6 +336,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             logger.info(f'sampling_file_path: {sampling_file_path}')
             if os.path.exists(sampling_file_path):
                 shutil.copy(sampling_file_path, geospatial_data_path)
+
+        # Electric Utility Data
+        elec_util_data_path = os.path.join(self.truth_data_dir, self.tract_to_util_map_file_name)
+        if not os.path.exists(elec_util_data_path):
+            s3_file_path = f'truth_data/{self.truth_data_version}/{self.tract_to_util_map_file_name}'
+            self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
 
     def download_timeseries_data_for_ami_comparison(self, ami, reload_from_csv=True, save_individual_regions=False):
         if reload_from_csv:
@@ -1530,8 +1537,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # Skip missing columns if specified
             if self.skip_missing_columns:
                 if not orig_name in self.data.columns:
-                    if 'utility_bills.' in orig_name:
-                        continue
+                    # if 'utility_bills.' in orig_name:
+                    #     continue
                     logger.warning(f'Column {orig_name} was requested as an input but not found in data, skipping')
                     continue
 
@@ -2177,6 +2184,65 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         if (not geographic_aggregation_levels) or (geographic_aggregation_levels == [None]):
             geographic_aggregation_levels = [self.TRACT_ID]
 
+        # At this point the geo_data has a tract for each building (row)
+        # Join the utility bill columns with data about all utilites onto this
+        
+        print("--->>>Here is where to add utility bills<<<---")
+        import time
+
+        util_results_cols = [pl.col(c) for c in self.COLS_UTIL_BILL_RESULTS]
+        util_results = meta_data.select(
+            [pl.col(self.BLDG_ID)] + util_results_cols
+        )
+        
+        geo_data = geo_data.join(util_results, on=self.BLDG_ID, how='left')
+
+        for col in geo_data.columns:
+            print(col)
+        
+        print(geo_data.collect())
+    
+        file_path = os.path.join(self.truth_data_dir, self.tract_to_util_map_file_name)
+        tract_to_util_map = pl.scan_csv(file_path)
+        geo_data = geo_data.join(tract_to_util_map, on=self.TRACT_ID, how='left')
+        for col in geo_data.columns:
+            print(col)
+        
+        tic = time.perf_counter()
+        print(geo_data.collect())
+        toc = time.perf_counter()
+        print(f"first collect in {toc - tic:0.4f} seconds")
+
+        bills_expr = r"\|{}:(.+?):(.+?):(.+?):(.+?):(.+?):\|"
+        # bills_expr = r"\|{}:(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?)\|"
+        exprs = []
+        for i, column in enumerate(self.UTIL_ELEC_BILL_VALS):
+            exprs.append(pl.col(self.UTIL_BILL_ELEC_RESULTS).str.extract(pl.format(bills_expr, pl.col(self.UTIL_BILL_EIA_ID)), i+1).alias(column))
+
+        geo_data = geo_data.with_columns(exprs)
+        
+        tic = time.perf_counter()
+        print(geo_data.collect())
+        toc = time.perf_counter()
+        print(f"second collect in {toc - tic:0.4f} seconds")
+
+        exit()
+
+        # For each row, select the utility bill based on the ID based on the tract
+        # Now, we have a unique weight and a unique utility bill (elec, gas, etc.) value (min/median/mean/max) for each row
+        # When we aggregate:
+        # Weights get summed
+        #
+        # 1. Calculate the weighted utility bill columns directly on the fkt
+        # 2. Sum those (just like summing the weights) when doing the aggregation
+        # 3. Remove the utility bills from the add_weighted_columns calculations
+        # 4. If we wanted to, go back and calculate the "average" per-building value by dividing the weighted bill columns by the weight
+        # Later on, the weights get multiplied by the energy numbers to calculate weighted energy consumption, savings, etc.
+        # This only works because the energy consumption for a give building ID is the same regardless of where it is located.
+        # For the utility bills, we have to calculate a weighted value for each row NOW while each building
+        # weight has it's own associated utility bill for that location.
+
+        print("--->>>Aggregating the weights for building IDs<<<---")
         # Aggregate the weights for building IDs within each geography
         if geographic_aggregation_levels == ['national']:
             # Handle national case because there is no "country" column in the dataset to filter on
@@ -2187,18 +2253,22 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             [pl.col(self.BLDG_WEIGHT), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)] + geo_agg_cols
         ).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)] + geo_agg_cols).sum()
 
+        print("--->>>Joining the weightes to metadata<<<---")
         # Join the weights to the per-model metadata and annual results
         geo_data = geo_data.join(meta_data, on=[pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)])
 
+        print("--->>>Calculate the weighted columns<<<---")
         # Calculate the weighted columns
         geo_data = self.add_weighted_area_energy_savings_columns(geo_data)
 
+        print("--->>>Add geospatial data columns based on most informative geography column<<<---")
         # Add geospatial data columns based on most informative geography column
         geo_data = self.add_geospatial_columns(geo_data, geographic_aggregation_levels[0])
         if geographic_aggregation_levels == [self.TRACT_ID]:
             geo_data = self.add_cejst_columns(geo_data)
             geo_data = self.add_ejscreen_columns(geo_data)
 
+        print("--->>>Downselect columns for export<<<---")
         # Downselect columns for export
         if column_downselection is not None:
             geo_data = self.downselect_columns_for_metadata_export(geo_data, column_downselection)
@@ -2206,6 +2276,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Remove units from the column names used by SightGlass
         # comstock.remove_sightglass_column_units()
 
+        print("--->>>Reorder the columns<<<---")
         # Reorder the columns
         geo_data = self.reorder_data_columns(geo_data)
 
@@ -2472,7 +2543,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         if isinstance(aggregation_level, list):
                             agg_lvl_list = aggregation_level  # Pass list if a list is already supplied
                         to_write = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, no_geo_filters, agg_lvl_list, starting_downselect)
-                        to_write = to_write.collect()
+                        # print(to_write)
+                        # exit()
+                        to_write = to_write.collect(streaming=True)
                         logger.info(f'There are {to_write.shape[0]:,} total rows at the aggregation level {aggregation_level}')
 
                         # Process each geography and downselect columns
@@ -2797,8 +2870,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         logger.debug('Converting units in the weighted columns')
         for col in (self.GHG_FUEL_COLS +
                      [self.ANN_GHG_EGRID, self.ANN_GHG_CAMBIUM] +
-                    self.COLS_UTIL_BILLS +
-                    [self.UTIL_BILL_TOTAL_MEAN, self.UTIL_BILL_ELEC_MAX, self.UTIL_BILL_ELEC_MED, self.UTIL_BILL_ELEC_MIN] +
+                    # self.COLS_UTIL_BILLS +
+                    # [self.UTIL_BILL_TOTAL_MEAN, self.UTIL_BILL_ELEC_MAX, self.UTIL_BILL_ELEC_MED, self.UTIL_BILL_ELEC_MIN] +
                     self.COLS_TOT_ANN_ENGY +
                     self.COLS_ENDUSE_ANN_ENGY +
                     self.COLS_ENDUSE_GROUP_TOT_ANN_ENGY +
@@ -2893,14 +2966,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 'weighted_units': self.weighted_energy_units
             },
             # Utility Bills
-            {
-                'cols': (self.COLS_UTIL_BILLS +
-                                [self.UTIL_BILL_TOTAL_MEAN,
-                                self.UTIL_BILL_ELEC_MAX,
-                                self.UTIL_BILL_ELEC_MED,
-                                self.UTIL_BILL_ELEC_MIN]),
-                'weighted_units': self.weighted_utility_units
-            },
+            # {
+            #     'cols': (self.COLS_UTIL_BILLS +
+            #                     [self.UTIL_BILL_TOTAL_MEAN,
+            #                     self.UTIL_BILL_ELEC_MAX,
+            #                     self.UTIL_BILL_ELEC_MED,
+            #                     self.UTIL_BILL_ELEC_MIN]),
+            #     'weighted_units': self.weighted_utility_units
+            # },
             # Peak Demand QOIs
             {
                 'cols': (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK +

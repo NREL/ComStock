@@ -215,6 +215,37 @@ class NamingMixin():
         UTIL_BILL_PROPANE
     ]
 
+    UTIL_BILL_EIA_ID = 'in.electric_utility_eia_code'
+    UTIL_BILL_ELEC_RESULTS = 'out.utility_bills.electricity_utility_bill_results'
+    UTIL_BILL_STATE_ELEC_RESULTS = 'out.utility_bills.state_average_electricity_cost_results'
+    UTIL_BILL_STATE_GAS_RESULTS = 'out.utility_bills.state_average_natural_gas_cost_results'
+    UTIL_BILL_STATE_PROPANE_RESULTS = 'out.utility_bills.state_average_propane_cost_results'
+    UTIL_BILL_STATE_FUEL_OIL_RESULTS = 'out.utility_bills.state_average_fueloil_cost_results'
+
+    # Utility bills full results columms
+    COLS_UTIL_BILL_RESULTS = [
+        UTIL_BILL_ELEC_RESULTS,
+        UTIL_BILL_STATE_ELEC_RESULTS,
+        UTIL_BILL_STATE_GAS_RESULTS,
+        UTIL_BILL_STATE_PROPANE_RESULTS,
+        UTIL_BILL_STATE_FUEL_OIL_RESULTS
+    ]
+
+    # utility bills extracted columns
+    UTIL_ELEC_BILL_VALS = [
+        'out.utility_bills.electricity_bill_min..usd',
+        # 'out.utility_bills.electricity_bill_min_label',
+        'out.utility_bills.electricity_bill_max..usd',
+        # 'out.utility_bills.electricity_bill_max_label',
+        # 'out.utility_bills.electricity_bill_median_low_dollars..usd',
+        # 'out.utility_bills.electricity_bill_median_low_label',
+        # 'out.utility_bills.electricity_bill_median_high_dollars..usd',
+        # 'out.utility_bills.electricity_bill_median_high_label',
+        'out.utility_bills.electricity_bill_median_dollars..usd',
+        'out.utility_bills.electricity_bill_mean_dollars..usd',
+        'out.utility_bills.electricity_bill_num_bills'
+    ]
+
     # Combined utility bills
     UTIL_BILL_TOTAL_MEAN = 'calc.utility_bills.total_mean_bill..usd'
 
