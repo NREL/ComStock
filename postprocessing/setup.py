@@ -69,6 +69,12 @@ setup(
             # 'awscli',
             # 'colorama==0.4.3'
         ],
+        'gap': [
+            'shapely',
+            'geopandas',
+            'scikit-learn',
+            'openpyxl'
+        ],
         ':sys_platform == "win32"': [
             'kaleido==0.1.0post1',  # kaleido version for Windows
         ],
