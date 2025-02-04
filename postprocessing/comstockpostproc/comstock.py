@@ -2200,40 +2200,85 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         for col in geo_data.columns:
             print(col)
         
-        print(geo_data.collect())
-    
+        # print(geo_data.collect())
+
+        # load tract to utility mapping
         file_path = os.path.join(self.truth_data_dir, self.tract_to_util_map_file_name)
         tract_to_util_map = pl.scan_csv(file_path)
-        geo_data = geo_data.join(tract_to_util_map, on=self.TRACT_ID, how='left')
-        for col in geo_data.columns:
-            print(col)
-        
-        tic = time.perf_counter()
-        print(geo_data.collect())
-        toc = time.perf_counter()
-        print(f"first collect in {toc - tic:0.4f} seconds")
 
-        bills_expr = r"\|{}:(.+?):(.+?):(.+?):(.+?):(.+?):\|"
-        # bills_expr = r"\|{}:(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?)\|"
+        # add eia id
+        geo_data = geo_data.join(tract_to_util_map, on=self.TRACT_ID, how='left')
+
+        # for col in geo_data.columns:
+        #     print(col)
+        
+        # util_results = geo_data.select(self.COLS_UTIL_BILL_RESULTS).collect()
+        # print(util_results)
+
+        # For each row, select the utility bill based on the ID based on the tract
+        # bills_expr = r"\|{}:(.+?):(.+?):(.+?):(.+?):(.+?):\|"
+        bills_expr = r"\|{}:(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?)\|"
         exprs = []
         for i, column in enumerate(self.UTIL_ELEC_BILL_VALS):
             exprs.append(pl.col(self.UTIL_BILL_ELEC_RESULTS).str.extract(pl.format(bills_expr, pl.col(self.UTIL_BILL_EIA_ID)), i+1).alias(column))
 
         geo_data = geo_data.with_columns(exprs)
+        # elec_vals = geo_data.select([self.UTIL_BILL_EIA_ID] + self.UTIL_ELEC_BILL_VALS).collect()
+        # print(elec_vals)
         
-        tic = time.perf_counter()
-        print(geo_data.collect())
-        toc = time.perf_counter()
-        print(f"second collect in {toc - tic:0.4f} seconds")
+        # for each row, select the state average utility cost based on the state abbreviation
+        state_expr = r"\|{}:(.+?)\|"
+        exprs = []
+        for result, column in dict(zip(self.COLS_STATE_UTIL_RESULTS, self.COST_STATE_UTIL_COSTS)).items():
+            exprs.append(pl.col(result).str.extract(pl.format(state_expr, pl.col(self.STATE_ABBRV)), 1).cast(pl.Int32).alias(column))
+        
+        geo_data = geo_data.with_columns(exprs)
+        # state_vals = geo_data.select([self.STATE_ABBRV] + self.COST_STATE_UTIL_COSTS).collect()
+        # print(state_vals)
 
-        exit()
 
-        # For each row, select the utility bill based on the ID based on the tract
         # Now, we have a unique weight and a unique utility bill (elec, gas, etc.) value (min/median/mean/max) for each row
         # When we aggregate:
         # Weights get summed
         #
         # 1. Calculate the weighted utility bill columns directly on the fkt
+        # bill_label_cols = [col for col in self.UTIL_ELEC_BILL_VALS if '_label' in col]
+        # elec_bill_numeric_cols = list(set(self.UTIL_ELEC_BILL_VALS) - set(bill_label_cols))
+        # print(elec_bill_numeric_cols)
+
+        # weighted_util_cols = []
+        exprs = []
+        conv_fact = self.conv_fact('usd', self.weighted_utility_units)
+        for col in (self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS):
+            # multiply by weight and convert unit
+            weighted_col_name = self.col_name_to_weighted(col, self.weighted_utility_units)
+            self.unweighted_weighted_map.update({col: weighted_col_name})
+            exprs.append(pl.col(col).cast(pl.Int32).mul(pl.col(self.BLDG_WEIGHT)).mul(conv_fact).alias(weighted_col_name))
+            # weighted_util_cols.append(weighted_col_name)
+
+        # weight number of bills
+        exprs.append(pl.col(self.UTIL_ELEC_BILL_NUM_BILLS).cast(pl.Int32).mul(pl.col(self.BLDG_WEIGHT)).alias(self.col_name_to_weighted(self.UTIL_ELEC_BILL_NUM_BILLS)))
+        self.unweighted_weighted_map.update({self.UTIL_ELEC_BILL_NUM_BILLS: self.col_name_to_weighted(self.UTIL_ELEC_BILL_NUM_BILLS)})
+        # weighted_util_cols.append(self.col_name_to_weighted(self.UTIL_ELEC_BILL_NUM_BILLS))
+
+        # add columns
+        geo_data = geo_data.with_columns(exprs)
+        # weighted = geo_data.select(weighted_util_cols).collect()
+        # print(weighted)
+        # geo_data.collect().write_csv(os.path.abspath(os.path.join(self.output_dir, 'test_geo_data_before_agg.csv')))
+
+        # cache the baseline fkt at this point to use for savings calculations
+        if self.UPGRADE_NAME == self.BASE_NAME:
+            baseline_fkt_plus = geo_data
+        else:
+            baseline_fkt_plus = None
+
+        # exit()
+
+        # do weighted savings calcs now, before aggregation
+        if baseline_fkt_plus is not None:
+            geo_data = self.add_average_utility_cost_and_savings_columns(geo_data, baseline_fkt_plus)
+
         # 2. Sum those (just like summing the weights) when doing the aggregation
         # 3. Remove the utility bills from the add_weighted_columns calculations
         # 4. If we wanted to, go back and calculate the "average" per-building value by dividing the weighted bill columns by the weight
@@ -2249,9 +2294,21 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             geo_agg_cols = []
         else:
             geo_agg_cols = [pl.col(c) for c in geographic_aggregation_levels]
+
+        # aggregate weighted util cols and savings cols
+        weighted_util_cols = [self.unweighted_weighted_map[col] for col in (self.UTIL_ELEC_BILL_COSTS + [self.UTIL_ELEC_BILL_NUM_BILLS])]
         geo_data = geo_data.select(
-            [pl.col(self.BLDG_WEIGHT), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)] + geo_agg_cols
-        ).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)] + geo_agg_cols).sum()
+            [pl.col(self.BLDG_WEIGHT), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)] + geo_agg_cols + self.UTIL_ELEC_BILL_LABEL + weighted_util_cols
+        ).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)] + geo_agg_cols).agg([
+            pl.col([self.BLDG_WEIGHT] + geographic_aggregation_levels + weighted_util_cols).sum(),
+            pl.col(self.UTIL_ELEC_BILL_LABEL).first() # undo this - only get label at tract level (otherwise they are combined)
+        ])
+
+        # print(geo_data.select(bill_label_cols).collect())
+        geo_data.collect().write_csv(os.path.abspath(os.path.join(self.output_dir, 'test_geo_data_after_agg.csv')))
+        for k,v in self.unweighted_weighted_map.items():
+            print(f"{k}:{v}")
+        exit()
 
         print("--->>>Joining the weightes to metadata<<<---")
         # Join the weights to the per-model metadata and annual results
@@ -2260,6 +2317,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         print("--->>>Calculate the weighted columns<<<---")
         # Calculate the weighted columns
         geo_data = self.add_weighted_area_energy_savings_columns(geo_data)
+
+
+        
 
         print("--->>>Add geospatial data columns based on most informative geography column<<<---")
         # Add geospatial data columns based on most informative geography column
@@ -2301,7 +2361,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Return the LazyFrame for use by plotting, etc.
         assert isinstance(geo_data, pl.LazyFrame)
-        return geo_data
+        return [geo_data, baseline_fkt_plus]
 
     def export_metadata_and_annual_results(self, geo_exports, out_dir=None, aws_profile=None):
 
@@ -2954,6 +3014,20 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         assert isinstance(input_lf, pl.LazyFrame)
 
         return input_lf
+
+    def add_average_utility_cost_and_savings_columns(self, input_lf):
+        # the data contains the weighted extracted utility bills for the apportioned tract
+        # This method will calculate the 'average' (unweighted, i.e. per-building) utility bill results - min, median_low, median_high, mean, max
+        # and 
+        
+        assert isinstance(input_lf, pl.LazyFrame)
+
+        col_groups =  {
+            'cols': (self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS)
+        }
+
+
+
 
     def add_unweighted_savings_columns(self):
 

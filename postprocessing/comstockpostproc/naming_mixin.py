@@ -222,28 +222,47 @@ class NamingMixin():
     UTIL_BILL_STATE_PROPANE_RESULTS = 'out.utility_bills.state_average_propane_cost_results'
     UTIL_BILL_STATE_FUEL_OIL_RESULTS = 'out.utility_bills.state_average_fueloil_cost_results'
 
-    # Utility bills full results columms
-    COLS_UTIL_BILL_RESULTS = [
-        UTIL_BILL_ELEC_RESULTS,
+    COLS_STATE_UTIL_RESULTS = [
         UTIL_BILL_STATE_ELEC_RESULTS,
         UTIL_BILL_STATE_GAS_RESULTS,
         UTIL_BILL_STATE_PROPANE_RESULTS,
         UTIL_BILL_STATE_FUEL_OIL_RESULTS
     ]
 
+    # Utility bills full results columms
+    COLS_UTIL_BILL_RESULTS = [
+        UTIL_BILL_ELEC_RESULTS
+    ] + COLS_STATE_UTIL_RESULTS
+
     # utility bills extracted columns
     UTIL_ELEC_BILL_VALS = [
         'out.utility_bills.electricity_bill_min..usd',
-        # 'out.utility_bills.electricity_bill_min_label',
+        'out.utility_bills.electricity_bill_min_label',
         'out.utility_bills.electricity_bill_max..usd',
-        # 'out.utility_bills.electricity_bill_max_label',
-        # 'out.utility_bills.electricity_bill_median_low_dollars..usd',
-        # 'out.utility_bills.electricity_bill_median_low_label',
-        # 'out.utility_bills.electricity_bill_median_high_dollars..usd',
-        # 'out.utility_bills.electricity_bill_median_high_label',
-        'out.utility_bills.electricity_bill_median_dollars..usd',
+        'out.utility_bills.electricity_bill_max_label',
+        'out.utility_bills.electricity_bill_median_low_dollars..usd',
+        'out.utility_bills.electricity_bill_median_low_label',
+        'out.utility_bills.electricity_bill_median_high_dollars..usd',
+        'out.utility_bills.electricity_bill_median_high_label',
+        # 'out.utility_bills.electricity_bill_median_dollars..usd',
         'out.utility_bills.electricity_bill_mean_dollars..usd',
         'out.utility_bills.electricity_bill_num_bills'
+    ]
+
+    UTIL_ELEC_BILL_COSTS = [col for col in UTIL_ELEC_BILL_VALS if 'usd' in col]
+    UTIL_ELEC_BILL_LABEL = [col for col in UTIL_ELEC_BILL_VALS if 'label' in col]
+    UTIL_ELEC_BILL_NUM_BILLS = UTIL_ELEC_BILL_VALS[-1]
+
+    UTIL_STATE_AVG_ELEC_COST = 'out.utility_bills.electricity_state_average..usd'
+    UTIL_STATE_AVG_GAS_COST = 'out.utility_bills.natural_gas_state_average..usd'
+    UTIL_STATE_AVG_PROP_COST = 'out.utility_bills.propane_state_average..usd'
+    UTIL_STATE_AVG_FUEL_COST = 'out.utility_bills.fuel_oil_state_average..usd'
+
+    COST_STATE_UTIL_COSTS = [
+        UTIL_STATE_AVG_ELEC_COST,
+        UTIL_STATE_AVG_GAS_COST,
+        UTIL_STATE_AVG_PROP_COST,
+        UTIL_STATE_AVG_FUEL_COST
     ]
 
     # Combined utility bills
