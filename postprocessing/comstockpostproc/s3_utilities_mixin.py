@@ -55,15 +55,15 @@ class S3UtilitiesMixin:
         # Perform upload
         self.s3_client.upload_file(file_path, bucket_name, s3_file_path)
 
-    def read_delimited_truth_data_file_from_S3(self, s3_file_path, delimiter):
+    def download_truth_data_file(self, s3_file_path):
         """
-        Read a delimited truth data file from AWS S3.
-
+        Download a file from s3 to local truth data directory. 
+        
         Args:
-            s3_file_path (string): File path on AWS S3 without the bucket name
-            delimiter (string): The delimiter to use with pd.read_csv(...)
-        Return:
-            df (pd.DataFrame): DataFrame read from the s3_file_path
+            s3_file_path (string): File path on AWS S3 without bucket name
+
+        Returns:
+            local_path (string): the full local path of the downloaded file
         """
         # Get inputs
         s3_file_path = s3_file_path.replace('\\', '/')
@@ -81,6 +81,37 @@ class S3UtilitiesMixin:
             # Download file
             bucket_name = 'eulp'
             self.s3_client.download_file(bucket_name, s3_file_path, local_path)
+        
+        return local_path
+
+    def read_delimited_truth_data_file_from_S3(self, s3_file_path, delimiter):
+        """
+        Read a delimited truth data file from AWS S3.
+
+        Args:
+            s3_file_path (string): File path on AWS S3 without the bucket name
+            delimiter (string): The delimiter to use with pd.read_csv(...)
+        Return:
+            df (pd.DataFrame): DataFrame read from the s3_file_path
+        """
+        # # Get inputs
+        # s3_file_path = s3_file_path.replace('\\', '/')
+        # filename = s3_file_path.split('/')[-1]
+        # local_path = os.path.join(
+        #     os.path.abspath(os.path.dirname(__file__)), '..',
+        #     'truth_data',
+        #     self.truth_data_version,
+        #     filename
+        # )
+
+        # # Check if file exists, if it doesn't query from s3
+        # if not os.path.exists(local_path):
+        #     logger.info('Downloading %s from s3...' % filename)
+        #     # Download file
+        #     bucket_name = 'eulp'
+        #     self.s3_client.download_file(bucket_name, s3_file_path, local_path)
+
+        local_path = self.download_truth_data_file(s3_file_path)
 
         # Read file into memory
         if '.parquet' in local_path:
@@ -96,3 +127,4 @@ class S3UtilitiesMixin:
                 df = pd.read_csv(local_path, delimiter=delimiter, encoding='latin-1')
 
         return df
+
