@@ -30,3 +30,7 @@ def test_eia_861():
     present = ['COMMERCIAL', 'Sales']
     assert(all(any(item in col for col in annual_com_sales.data.columns) for item in present))
     assert(os.path.exists(os.path.join(annual_com_sales.processed_dir, 'eia861_Annual_2018_Commercial_Sales.csv')))
+
+    # monthly, all data
+    monthly_all = comstockpostproc.gap.eia861.EIA861(freq='Monthly', year='All')
+    assert(os.path.exists(os.path.join(annual_all.processed_dir, 'eia861_Monthly_All_All_All.csv')))

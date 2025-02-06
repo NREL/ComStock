@@ -51,8 +51,6 @@ class EIA861(S3UtilitiesMixin):
         self.output_dir = os.path.join(current_dir, 'output')
         self.segment = segment
         self.measure = measure
-        # self.monthly_data = None
-        # self.annual_data = None
         self.processed_filename = f'eia861_{self.frequency}_{self.year}_{self.segment}_{self.measure}.csv'
 
         # initialize s3 client
@@ -63,39 +61,33 @@ class EIA861(S3UtilitiesMixin):
             if not os.path.exists(p):
                 os.makedirs(p)
         
-        # reload from csv
+        # get data, either by loading pre-processed csv or downloading and processing truth data
         if self.reload_from_csv:
             logger.info('Reloading data from CSV')
             processed_path = os.path.join(self.processed_dir, self.processed_filename)
             if os.path.exists(processed_path):
-                self.data = pd.read_csv(processed_path)
+                self.data = pd.read_csv(processed_path, index_col=0)
             else:
                 logger.warning(f'No processed data found for {self.processed_filename}. Processing from truth data.')
                 self.load_truth_data()
         else:
             self.load_truth_data()
 
-    def download_truth_data(self, truth_data_filename):
-        local_path = os.path.join(self.truth_data_dir, truth_data_filename)
-        if not os.path.exists(local_path):
-            logger.info('Downloading %s from s3...' % truth_data_filename)
-            s3_file_path = f'truth_data/{self.truth_data_version}/EIA/EIA Form 861/{self.year}/{truth_data_filename}'
-            print(s3_file_path)
-            self.s3_client.download_file('eulp', s3_file_path, local_path)
-
     def load_truth_data(self):
         if self.frequency == 'Annual':
             truth_data_filename = f'Sales_Ult_Cust_{self.year}.xlsx'
-            self.download_truth_data(truth_data_filename)
+            s3_file_path =f'truth_data/{self.truth_data_version}/EIA/EIA Form 861/{self.year}/{truth_data_filename}'
+            self.download_truth_data_file(s3_file_path)
             self.data = self.process_annual_data(os.path.join(self.truth_data_dir, truth_data_filename))
 
         elif self.frequency == 'Monthly':
             if self.year == 'All':
-                for year, filename in FILE_DICT.items():
-                    self.download_truth_data(truth_data_filename)
+                for year, truth_data_filename in FILE_DICT.items():
+                    s3_file_path = f'truth_data/{self.truth_data_version}/EIA/EIA Form 861/{year}/{truth_data_filename}'
+                    self.download_truth_data_file(s3_file_path)
             else:
-                truth_data_filename = FILE_DICT[self.year]
-                self.download_truth_data(truth_data_filename)
+                s3_file_path = f'truth_data/{self.truth_data_version}/EIA/EIA Form 861/{self.year}/{FILE_DICT[self.year]}'
+                self.download_truth_data_file(s3_file_path)
             self.data = self.process_monthly_data()
         else:
             logger.error(f'Frequency argument value {self.frequency} not supported')
@@ -136,7 +128,7 @@ class EIA861(S3UtilitiesMixin):
         
         # filter according to input parameters
         data_cols = list(set(df.columns) - set(desc_cols))
-        print(data_cols)
+        
         if self.segment != 'All':
             segment_cols = [col for col in data_cols if self.segment.upper() in col]
             data_cols = segment_cols
@@ -147,6 +139,8 @@ class EIA861(S3UtilitiesMixin):
 
         df = df[desc_cols + data_cols]
         df[data_cols] = df[data_cols].fillna(0.0)
+
+        df.to_csv(os.path.join(self.processed_dir, self.processed_filename))
 
         return df
     
@@ -192,5 +186,7 @@ class EIA861(S3UtilitiesMixin):
             totals.reset_index(drop=True, inplace=True)
 
             df = pd.concat([df, totals], axis=0)
-        
+            
+        df.to_csv(os.path.join(self.processed_dir, self.processed_filename))
+
         return df
