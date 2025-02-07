@@ -24,6 +24,9 @@ FILE_DICT = {
     2023: 'sales_ult_cust_2023.xlsx'
 }
 
+SEGMENTS = ['Commercial', 'Residential', 'Industrial', 'Transportation', 'Total']
+MEASURES = ['Revenues', 'Sales', 'Customers']
+
 class EIA861(S3UtilitiesMixin):
     def __init__(self, truth_data_version='v01', freq='Annual', year=2018, reload_from_csv=False, segment='All', measure='All'):
         """
@@ -34,9 +37,8 @@ class EIA861(S3UtilitiesMixin):
             year (Int or String): The reporting year. Ignored if freq='Annual' (defaults to 2018). 
                 If freq='Monthly', available years are 2013-2023 or 'All' to receive all.
             reload_from_csv (Bool): reload from processed data if available
-            segment (String): one of ['Commercial', 'Residential', 'Industrial', 'Transportation', 'Total', 'All']
-            measure (String): onr of ['Revenues', 'Sales', 'Customers', 'All']
-        
+            segment (List, String): any of ['Commercial', 'Residential', 'Industrial', 'Transportation', 'Total'], or 'All'
+            measure (List, String): any of ['Revenues', 'Sales', 'Customers'], or 'All'        
         """
         # initialize members
         self.truth_data_version = truth_data_version
@@ -49,9 +51,33 @@ class EIA861(S3UtilitiesMixin):
         print(self.truth_data_dir)
         self.processed_dir = os.path.join(self.truth_data_dir, 'gap_processed')
         self.output_dir = os.path.join(current_dir, 'output')
-        self.segment = segment
-        self.measure = measure
-        self.processed_filename = f'eia861_{self.frequency}_{self.year}_{self.segment}_{self.measure}.csv'
+
+        # process input choices
+        segment_str = segment
+        if segment == 'All':
+            self.segment = SEGMENTS
+        elif isinstance(segment, str) & (segment in SEGMENTS):
+            self.segment = [segment]
+        elif isinstance(segment, list) & all(string in SEGMENTS for string in segment):
+            self.segment = segment
+            segment_str = '_'.join(segment)
+        else:
+            logger.error(f"Segment input should be 'All' or one of {SEGMENTS}. Received: {segment}.")
+            exit()
+
+        measure_str = measure
+        if measure == 'All':
+            self.measure = MEASURES
+        elif isinstance(measure, str) & (measure in MEASURES):
+            self.measure = [measure]
+        elif isinstance(measure, list) & all(string in MEASURES for string in measure):
+            self.measure = measure
+            measure_str = '_'.join(measure)
+        else:
+            logger.error(f"Measure input should be 'All' or any of {MEASURES}. Received: {measure}.")
+            exit()
+
+        self.processed_filename = f'eia861_{self.frequency}_{self.year}_{segment_str}_{measure_str}.csv'
 
         # initialize s3 client
         self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
@@ -129,13 +155,11 @@ class EIA861(S3UtilitiesMixin):
         # filter according to input parameters
         data_cols = list(set(df.columns) - set(desc_cols))
         
-        if self.segment != 'All':
-            segment_cols = [col for col in data_cols if self.segment.upper() in col]
-            data_cols = segment_cols
+        segment_cols = [col for col in data_cols if any(seg.upper() in col for seg in self.segment)]
+        data_cols = segment_cols
             
-        if self.measure != 'All':
-            measure_cols = [col for col in data_cols if self.measure in col]
-            data_cols = measure_cols
+        measure_cols = [col for col in data_cols if any(part in col for part in self.measure)]
+        data_cols = measure_cols
 
         df = df[desc_cols + data_cols]
         df[data_cols] = df[data_cols].fillna(0.0)

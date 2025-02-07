@@ -31,6 +31,15 @@ def test_eia_861():
     assert(all(any(item in col for col in annual_com_sales.data.columns) for item in present))
     assert(os.path.exists(os.path.join(annual_com_sales.processed_dir, 'eia861_Annual_2018_Commercial_Sales.csv')))
 
+    # annual, commercial and residential sales and customers
+    annual = comstockpostproc.gap.eia861.EIA861(freq='Annual', segment=['Commercial', 'Residential'], measure=['Sales', 'Customers'])
+    missing = ['INDUSTRIAL', 'TOTAL', 'Revenues']
+    assert(all(any(item not in col for col in annual.data.columns) for item in missing))
+    present = ['COMMERCIAL', 'RESIDENTIAL', 'Sales', 'Customers']
+    assert(all(any(item in col for col in annual.data.columns) for item in present))
+    assert(os.path.exists(os.path.join(annual.processed_dir, 'eia861_Annual_2018_Commercial_Residential_Sales_Customers.csv')))
+
+def test_monthly():
     # monthly, all data
     monthly_all = comstockpostproc.gap.eia861.EIA861(freq='Monthly', year='All')
-    assert(os.path.exists(os.path.join(annual_all.processed_dir, 'eia861_Monthly_All_All_All.csv')))
+    assert(os.path.exists(os.path.join(monthly_all.processed_dir, 'eia861_Monthly_All_All_All.csv')))
