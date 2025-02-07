@@ -916,6 +916,9 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     	cooling_water_flow = 0
     	fan_air_flow = 0
 
+      #set maximum supply air temperature back to 40C because sizing may have changed it
+      unitary_sys.setMaximumSupplyAirTemperature(40.0)
+
     	# heating coil
     	if unitary_sys.heatingCoil.is_initialized
     		if unitary_sys.heatingCoil.get.to_CoilHeatingWaterToAirHeatPumpEquationFit.is_initialized
