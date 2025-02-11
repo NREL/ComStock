@@ -24,16 +24,17 @@ FILE_DICT = {
     2023: 'sales_ult_cust_2023.xlsx'
 }
 
+TYPES = ['Annual', 'Monthly', 'Short']
 SEGMENTS = ['Commercial', 'Residential', 'Industrial', 'Transportation', 'Total']
 MEASURES = ['Revenues', 'Sales', 'Customers']
 
 class EIA861(S3UtilitiesMixin):
-    def __init__(self, truth_data_version='v01', freq='Annual', year=2018, reload_from_csv=False, segment='All', measure='All'):
+    def __init__(self, truth_data_version='v01', type='Annual', year=2018, reload_from_csv=False, segment='All', measure='All'):
         """
         A class to load and process EIA 861 Annual and Monthly electricity sales data reported from EIA Form 861
         Args:
             truth_data_version (string): The version of EIA truth data. 'v01'
-            freq (String): one of 'Annual', 'Monthly'. Default 'Annual'
+            type (String): one of 'Annual', 'Monthly' or 'Short'. Default 'Annual'
             year (Int or String): The reporting year. Ignored if freq='Annual' (defaults to 2018). 
                 If freq='Monthly', available years are 2013-2023 or 'All' to receive all.
             reload_from_csv (Bool): reload from processed data if available
@@ -42,7 +43,7 @@ class EIA861(S3UtilitiesMixin):
         """
         # initialize members
         self.truth_data_version = truth_data_version
-        self.frequency = freq
+        self.type = type
         self.year = year
         self.reload_from_csv = reload_from_csv
         current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -77,7 +78,7 @@ class EIA861(S3UtilitiesMixin):
             logger.error(f"Measure input should be 'All' or any of {MEASURES}. Received: {measure}.")
             exit()
 
-        self.processed_filename = f'eia861_{self.frequency}_{self.year}_{segment_str}_{measure_str}.csv'
+        self.processed_filename = f'eia861_{self.type}_{self.year}_{segment_str}_{measure_str}.csv'
 
         # initialize s3 client
         self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
@@ -100,13 +101,13 @@ class EIA861(S3UtilitiesMixin):
             self.load_truth_data()
 
     def load_truth_data(self):
-        if self.frequency == 'Annual':
+        if self.type == 'Annual':
             truth_data_filename = f'Sales_Ult_Cust_{self.year}.xlsx'
             s3_file_path =f'truth_data/{self.truth_data_version}/EIA/EIA Form 861/{self.year}/{truth_data_filename}'
             self.download_truth_data_file(s3_file_path)
             self.data = self.process_annual_data(os.path.join(self.truth_data_dir, truth_data_filename))
 
-        elif self.frequency == 'Monthly':
+        elif self.type == 'Monthly':
             if self.year == 'All':
                 for year, truth_data_filename in FILE_DICT.items():
                     s3_file_path = f'truth_data/{self.truth_data_version}/EIA/EIA Form 861/{year}/{truth_data_filename}'
@@ -115,8 +116,14 @@ class EIA861(S3UtilitiesMixin):
                 s3_file_path = f'truth_data/{self.truth_data_version}/EIA/EIA Form 861/{self.year}/{FILE_DICT[self.year]}'
                 self.download_truth_data_file(s3_file_path)
             self.data = self.process_monthly_data()
+
+        elif self.type == 'Short':
+            truth_data_filename = f'Short_Form_{self.year}.xlsx'  
+            s3_file_path = f'truth_data/{self.truth_data_version}/EIA/EIA Form 861/{self.year}/{truth_data_filename}'
+            self.download_truth_data_file(s3_file_path)
+            self.data = self.process_short_data(os.path.join(self.truth_data_dir, truth_data_filename))
         else:
-            logger.error(f'Frequency argument value {self.frequency} not supported')
+            logger.error(f'Type argument value {self.type} not supported')
             exit()
         
     def rename_columns(self, df):
@@ -169,6 +176,7 @@ class EIA861(S3UtilitiesMixin):
         return df
     
     def process_monthly_data(self):
+
         if self.year == 'All':
             file_dict = FILE_DICT
         else:
@@ -213,4 +221,14 @@ class EIA861(S3UtilitiesMixin):
             
         df.to_csv(os.path.join(self.processed_dir, self.processed_filename))
 
+        return df
+    
+    def process_short_data(self, truth_data_path):
+        df = pd.read_excel(truth_data_path, sheet_name='861S', na_values=['.'])
+        df.dropna(subset='Utility Number', inplace=True)
+
+        df = df.astype({'Utility Number': int})
+
+        df.to_csv(os.path.join(self.processed_dir, self.processed_filename))
+        
         return df
