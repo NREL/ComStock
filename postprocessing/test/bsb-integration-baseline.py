@@ -14,7 +14,7 @@ class TestIntegration:
 
     @pytest.fixture(autouse=True)
     def setup_and_teardown(self):
-        self.widePath = "../output/metadata_and_annual_results/national/full/csv/baseline.csv"
+        self.widePath = "./output/ComStock bsb-integration-test-baseline/metadata_and_annual_results_aggregates/national/full/csv/baseline_agg.csv"
         
 
     def test_1_Initial_comstock(self):
@@ -72,13 +72,13 @@ class TestIntegration:
         # Export the results
         comstock.export_metadata_and_annual_results(geo_exports)
 
-    # def test_2_verifyExistance(self):
-    #     assert os.path.isfile(self.widePath)
+    def test_2_verifyExistance(self):
+        assert os.path.isfile(self.widePath)
 
-    # def test_3_verifyWideShape(self):
-    #     wide = pd.read_csv(self.widePath)
-    #     assert wide.shape == (4, 892)
+    def test_3_verifyWideShape(self):
+        wide = pd.read_csv(self.widePath)
+        assert wide.shape == (33446, 1032)
 
-    # def test_4_verifyWideColumns(self):
-    #     wide = pd.read_csv(self.widePath)
-    #     assert (wide.completed_status == "Success").all()
+    def test_4_verifyWideColumns(self):
+        wide = pd.read_csv(self.widePath)
+        assert (wide.completed_status == "Success").all()
