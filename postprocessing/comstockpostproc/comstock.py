@@ -192,7 +192,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.add_enduse_group_columns()
                 self.add_addressable_segments_columns()
                 self.combine_emissions_cols()
-                self.add_emissions_intensity_columns()
+                # self.add_emissions_intensity_columns()
                 self.get_comstock_unscaled_monthly_energy_consumption()
                 self.add_unweighted_savings_columns()
                 # Downselect the self.data to just the upgrade
@@ -528,6 +528,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         logger.debug(f'For {c}: Nulls set to "False" (String) in baseline')
                         up_res = up_res.with_columns([pl.col(c).fill_null(pl.lit("False"))])
                         up_res = up_res.with_columns([pl.when(pl.col(c).str.lengths() == 0).then(pl.lit('False')).otherwise(pl.col(c)).keep_name()])
+                    elif dt == pl.Int64:
+                        logger.debug(f'For {c}: Nulls set to "False" (Int64) in baseline')
+                        up_res = up_res.with_columns([pl.col(c).fill_null(pl.lit(False))])
                 # make sure all columns contains no null values
                     assert up_res.get_column(c).null_count() == 0, f'Column {c} contains null values'
 
@@ -2859,15 +2862,15 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 'weighted_units': self.weighted_demand_units
             },
             # Emissions
-            {
-                'cols': (self.COLS_GHG_ELEC_SEASONAL_DAILY_EGRID +
-                              self.COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM +
-                              [self.GHG_LRMER_MID_CASE_15_ELEC,
-                              self.GHG_ELEC_EGRID,
-                              self.ANN_GHG_EGRID,
-                              self.ANN_GHG_CAMBIUM]),
-                'weighted_units': self.weighted_ghg_units
-            }
+            # {
+            #     'cols': (self.COLS_GHG_ELEC_SEASONAL_DAILY_EGRID +
+            #                   self.COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM +
+            #                   [self.GHG_LRMER_MID_CASE_15_ELEC,
+            #                   self.GHG_ELEC_EGRID,
+            #                   self.ANN_GHG_EGRID,
+            #                   self.ANN_GHG_CAMBIUM]),
+            #     'weighted_units': self.weighted_ghg_units
+            # }
         ]
 
         # Calculate savings for each group of columns using the appropriate units
