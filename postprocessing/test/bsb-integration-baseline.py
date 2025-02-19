@@ -44,7 +44,7 @@ class TestIntegration:
             reload_from_csv=False  # True if CSV already made and want faster reload times
             )
 
-        reload_flag = True #set to True only for development, turn to False when running CI.
+        reload_flag = False #set to True only for development, turn to False when running CI.
 
         # Stock Estimation for Apportionment:
         stock_estimate = cspp.Apportion(
