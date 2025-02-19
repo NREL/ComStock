@@ -14,7 +14,7 @@ class TestIntegration:
 
     @pytest.fixture(autouse=True)
     def setup_and_teardown(self):
-        self.widePath = "../output/metadata_and_annual_results/national/full/csv/baseline.csv"
+        self.widePath = "./output/ComStock bsb-integration-test-baseline/metadata_and_annual_results_aggregates/national/full/csv/baseline_agg.csv"
         
 
     def test_1_Initial_comstock(self):
@@ -44,7 +44,7 @@ class TestIntegration:
             reload_from_csv=False  # True if CSV already made and want faster reload times
             )
 
-        reload_flag = True #set to True only for development, turn to False when running CI.
+        reload_flag = False #set to True only for development, turn to False when running CI.
 
         # Stock Estimation for Apportionment:
         stock_estimate = cspp.Apportion(
@@ -72,13 +72,21 @@ class TestIntegration:
         # Export the results
         comstock.export_metadata_and_annual_results(geo_exports)
 
-    # def test_2_verifyExistance(self):
-    #     assert os.path.isfile(self.widePath)
+    def test_2_verifyExistance(self):
+        assert os.path.isfile(self.widePath)
 
-    # def test_3_verifyWideShape(self):
-    #     wide = pd.read_csv(self.widePath)
-    #     assert wide.shape == (4, 892)
-
-    # def test_4_verifyWideColumns(self):
-    #     wide = pd.read_csv(self.widePath)
-    #     assert (wide.completed_status == "Success").all()
+    def test_3_verifyWideShape(self):
+        wide = pd.read_csv(self.widePath)
+        expected_rows, expected_cols = 33446, 1032
+        actual_rows, actual_cols = wide.shape
+        
+        # Calculate allowed ranges (±5%)
+        row_tolerance = expected_rows * 0.05
+        col_tolerance = expected_cols * 0.05
+        
+        assert abs(actual_rows - expected_rows) <= row_tolerance, f"Row count {actual_rows} outside 5% tolerance of {expected_rows}"
+        assert abs(actual_cols - expected_cols) <= col_tolerance, f"Column count {actual_cols} outside 5% tolerance of {expected_cols}"
+    
+    def test_4_verifyWideColumns(self):
+        wide = pd.read_csv(self.widePath)
+        assert (wide.completed_status == "Success").all()
