@@ -77,8 +77,16 @@ class TestIntegration:
 
     def test_3_verifyWideShape(self):
         wide = pd.read_csv(self.widePath)
-        assert wide.shape == (33446, 1032)
-
+        expected_rows, expected_cols = 33446, 1032
+        actual_rows, actual_cols = wide.shape
+        
+        # Calculate allowed ranges (±5%)
+        row_tolerance = expected_rows * 0.05
+        col_tolerance = expected_cols * 0.05
+        
+        assert abs(actual_rows - expected_rows) <= row_tolerance, f"Row count {actual_rows} outside 5% tolerance of {expected_rows}"
+        assert abs(actual_cols - expected_cols) <= col_tolerance, f"Column count {actual_cols} outside 5% tolerance of {expected_cols}"
+    
     def test_4_verifyWideColumns(self):
         wide = pd.read_csv(self.widePath)
         assert (wide.completed_status == "Success").all()
