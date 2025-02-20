@@ -55,7 +55,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
             libglib2.0-dev \
             wget \
             build-essential \
+            curl \
+            ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /usr/local/share/ca-certificates && \
+    curl -fsSLk -o /usr/local/share/ca-certificates/nrel_root.crt https://raw.github.nrel.gov/TADA/nrel-certs/v20180329/certs/nrel_root.pem && \
+    curl -fsSLk -o /usr/local/share/ca-certificates/nrel_xca1.crt https://raw.github.nrel.gov/TADA/nrel-certs/v20180329/certs/nrel_xca1.pem && \
+    update-ca-certificates
+
 
 RUN apt-get update && apt-get install -y \
     software-properties-common tzdata && \
