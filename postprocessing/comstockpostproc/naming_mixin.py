@@ -139,6 +139,10 @@ class NamingMixin():
     ANN_OTHER_SWH_GROUP_KBTU = 'calc.enduse_group.other_fuel.water_systems.energy_consumption..kwh'
     ANN_OTHER_INTEQUIP_GROUP_KBTU = 'calc.enduse_group.other_fuel.interior_equipment.energy_consumption..kwh'
 
+    # Unmet hours columns
+    COOLING_HOURS_UNMET = 'out.params.hours_cooling_setpoint_not_met..hr'
+    HEATING_HOURS_UNMET = 'out.params.hours_heating_setpoint_not_met..hr'
+
     # List of total annual energy end use group columns
     COLS_ENDUSE_GROUP_TOT_ANN_ENGY = [
         ANN_HVAC_GROUP_KBTU,
@@ -479,6 +483,11 @@ class NamingMixin():
         #GHG_LRMER_MID_CASE_15_ELEC,
         GHG_LRMER_HIGH_RE_COST_15_ELEC,
         GHG_ELEC_EGRID
+    ]
+
+    UNMET_HOURS_COLS = [
+        COOLING_HOURS_UNMET,
+        HEATING_HOURS_UNMET,
     ]
 
     # Colors from https://davidmathlogic.com/colorblind Bang Wong color palette
