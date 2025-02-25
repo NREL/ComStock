@@ -397,7 +397,7 @@ class BAGeography(S3UtilitiesMixin):
                 df = pd.read_parquet(processed_path)
                 return df
             else:
-                logger.warning(f'No processed data found for {processed_filename}. Processing from truth data')
+                logger.info(f'No processed data found for {processed_filename}. Processing from truth data.')
 
         logger.info('Processing Balancing Authority Building Areas from truth data')
 
@@ -449,6 +449,24 @@ class BAGeography(S3UtilitiesMixin):
                 ba_tract_areas = pd.concat([ba_tract_areas, pivot])
         
         ba_tract_areas.index = ba_tract_areas.index.set_levels(ba_tract_areas.index.levels[0].astype(str), level=0)
+        
+        ba_tract_areas.to_parquet(processed_path)
+
+        return ba_tract_areas
+
+    def balancing_authority_bldg_area_fracs_data(self):
+
+        processed_filename = 'ba_tract_fracs.parquet'
+        processed_path = os.path.join(self.processed_dir, processed_filename)
+        if self.reload_from_saved:
+            if os.path.exists(processed_path):
+                logger.info('Reloading Balancing Authority Building Area Fractions from saved parquet')
+                df = pd.read_parquet(processed_path)
+                return df
+            else:
+                logger.info(f'No processed data found for {processed_filename}. Processing from truth data.')
+
+        ba_tract_areas = self.balancing_authority_bldg_areas_data()
 
         tract_totals = ba_tract_areas.groupby(['CENSUSCODE']).sum()
 
@@ -457,7 +475,6 @@ class BAGeography(S3UtilitiesMixin):
         ba_tract_fracs.to_parquet(processed_path)
 
         return ba_tract_fracs
-
 
 
 
