@@ -59,7 +59,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
   end
 
   # get chiller specifications
-  def chiller_specifications(chillers)
+  def self.chiller_specifications(chillers)
     # initialize variables
     cop_weighted_sum_acc = 0
     capacity_total_w_acc = 0
@@ -107,16 +107,18 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
   end
 
   # get pump specifications
-  def pump_specifications(applicable_pumps, pumps, std)
-
+  def self.pump_specifications(applicable_pumps, pumps, std)
     # initialize variables
-    pump_motor_eff_weighted_sum = 0
-    pump_motor_bhp_weighted_sum = 0
-    pump_rated_flow_total = 0
+    pump_motor_eff_weighted_sum = 0.0
+    pump_motor_bhp_weighted_sum = 0.0
+    pump_rated_flow_total = 0.0
+    pump_var_part_load_curve_coeff1_weighted_sum = 0.0
+    pump_var_part_load_curve_coeff2_weighted_sum = 0.0
+    pump_var_part_load_curve_coeff3_weighted_sum = 0.0
+    pump_var_part_load_curve_coeff4_weighted_sum = 0.0
 
     # get pump specs
     pumps.each do |pump|
-
       # get rated flow
       rated_flow_m_3_per_s = 0
       if pump.ratedFlowRate.is_initialized
@@ -141,8 +143,16 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
           chiller_pump = true
         end
       end
-      
+
       next if chiller_pump == false
+
+      # get partload curve coefficients from variable speed pump
+      if pump.to_PumpVariableSpeed.is_initialized
+        pump_var_part_load_curve_coeff1_weighted_sum += pump.coefficient1ofthePartLoadPerformanceCurve * rated_flow_m_3_per_s
+        pump_var_part_load_curve_coeff2_weighted_sum += pump.coefficient2ofthePartLoadPerformanceCurve * rated_flow_m_3_per_s
+        pump_var_part_load_curve_coeff3_weighted_sum += pump.coefficient3ofthePartLoadPerformanceCurve * rated_flow_m_3_per_s
+        pump_var_part_load_curve_coeff4_weighted_sum += pump.coefficient4ofthePartLoadPerformanceCurve * rated_flow_m_3_per_s
+      end
 
       # add pump to applicable pump list
       applicable_pumps << pump
@@ -156,11 +166,17 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     # calc weghted averages
     pump_motor_eff_weighted_average = pump_rated_flow_total > 0.0 ? pump_motor_eff_weighted_sum / pump_rated_flow_total : 0.0
     pump_motor_bhp_weighted_average = pump_rated_flow_total > 0.0 ? pump_motor_bhp_weighted_sum / pump_rated_flow_total : 0.0
-    
-    return applicable_pumps, pump_rated_flow_total, pump_motor_eff_weighted_average, pump_motor_bhp_weighted_average
+    pump_var_part_load_curve_coeff1_weighted_avg = pump_rated_flow_total > 0.0 ? pump_var_part_load_curve_coeff1_weighted_sum / pump_rated_flow_total : 0.0
+    pump_var_part_load_curve_coeff2_weighted_avg = pump_rated_flow_total > 0.0 ? pump_var_part_load_curve_coeff2_weighted_sum / pump_rated_flow_total : 0.0
+    pump_var_part_load_curve_coeff3_weighted_avg = pump_rated_flow_total > 0.0 ? pump_var_part_load_curve_coeff3_weighted_sum / pump_rated_flow_total : 0.0
+    pump_var_part_load_curve_coeff4_weighted_avg = pump_rated_flow_total > 0.0 ? pump_var_part_load_curve_coeff4_weighted_sum / pump_rated_flow_total : 0.0
+
+    return applicable_pumps, pump_rated_flow_total, pump_motor_eff_weighted_average, pump_motor_bhp_weighted_average, pump_var_part_load_curve_coeff1_weighted_avg, pump_var_part_load_curve_coeff2_weighted_avg, pump_var_part_load_curve_coeff3_weighted_avg, pump_var_part_load_curve_coeff4_weighted_avg
   end
 
+  # TODO: revert this back to OS Std methods
   # Determine and set type of part load control type for heating and chilled
+  # note code_sections [90.1-2019_6.5.4.2]
   # modified from https://github.com/NREL/openstudio-standards/blob/412de97737369c3ee642237a83c8e5a6b1ab14be/lib/openstudio-standards/prototypes/common/objects/Prototype.PumpVariableSpeed.rb#L4-L37
   def pump_variable_speed_control_type(runner, model, pump, debug_verbose)
     # Get plant loop
@@ -176,7 +192,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     elsif pump.autosizedRatedPowerConsumption.is_initialized
       pump_rated_power_w = pump.autosizedRatedPowerConsumption.get
     else
-      runner.registerError("could not find rated pump power consumption, cannot determine w per gpm correctly.")
+      runner.registerError('could not find rated pump power consumption, cannot determine w per gpm correctly.')
       return false
     end
 
@@ -196,7 +212,9 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     return true
   end
 
+  # TODO: revert this back to OS Std methods
   # Determine type of pump part load control type
+  # note code_sections [90.1-2019_6.5.4.2]
   # modified version from https://github.com/NREL/openstudio-standards/blob/412de97737369c3ee642237a83c8e5a6b1ab14be/lib/openstudio-standards/prototypes/ashrae_90_1/ashrae_90_1_2019/ashrae_90_1_2019.PumpVariableSpeed.rb#L11-L142
   def pump_variable_speed_get_control_type(runner, model, pump, plant_loop_type, pump_nominal_hp, debug_verbose)
     # Sizing factor to take into account that pumps
@@ -205,9 +223,8 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     design_sizing_factor = 1.25
 
     # Get climate zone
-    #climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
     climate_zone = pump.plantLoop.get.model.getClimateZones.getClimateZone(0)
-    climate_zone = "#{climate_zone.value}"
+    climate_zone = climate_zone.value.to_s
 
     # Get nameplate hp threshold:
     # The thresholds below represent the nameplate
@@ -328,7 +345,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
 
     if debug_verbose
       runner.registerInfo('### ------------------------------------------------------')
-      runner.registerInfo("### os standards variable speed implementation")
+      runner.registerInfo('### os standards variable speed implementation')
       runner.registerInfo("### plant_loop_type = #{plant_loop_type}")
       runner.registerInfo("### climate_zone = #{climate_zone}")
       runner.registerInfo("### pump_nominal_hp = #{pump_nominal_hp}")
@@ -342,7 +359,9 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     return 'Riding Curve'
   end
 
+  # TODO: revert this back to OS Std methods
   # Set the pump curve coefficients based on the specified control type.
+  # note code_sections [90.1-2019_6.5.4.2]
   # modified from https://github.com/NREL/openstudio-standards/blob/412de97737369c3ee642237a83c8e5a6b1ab14be/lib/openstudio-standards/standards/Standards.PumpVariableSpeed.rb#L6-L53
   def pump_variable_speed_set_control_type(runner, pump_variable_speed, control_type, debug_verbose)
     # Determine the coefficients
@@ -417,7 +436,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     # get chiller specifications before upgrade
     # ------------------------------------------------
     applicable_chillers = model.getChillerElectricEIRs
-    counts_chillers_acc, capacity_total_w_acc, cop_weighted_average_acc, counts_chillers_wcc, capacity_total_w_wcc, cop_weighted_average_wcc = chiller_specifications(applicable_chillers)
+    counts_chillers_acc, capacity_total_w_acc, cop_weighted_average_acc, counts_chillers_wcc, capacity_total_w_wcc, cop_weighted_average_wcc = UpgradeHvacChiller.chiller_specifications(applicable_chillers)
     if debug_verbose
       runner.registerInfo('### ------------------------------------------------------')
       runner.registerInfo('### chiller specs before upgrade')
@@ -436,8 +455,8 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     applicable_pumps = []
     pumps_const_spd = model.getPumpConstantSpeeds
     pumps_var_spd = model.getPumpVariableSpeeds
-    applicable_pumps, pump_rated_flow_total_c, pump_motor_eff_weighted_average_c, pump_motor_bhp_weighted_average_c = pump_specifications(applicable_pumps, pumps_const_spd, std)
-    applicable_pumps, pump_rated_flow_total_v, pump_motor_eff_weighted_average_v, pump_motor_bhp_weighted_average_v = pump_specifications(applicable_pumps, pumps_var_spd, std)
+    applicable_pumps, pump_rated_flow_total_c, pump_motor_eff_weighted_average_c, pump_motor_bhp_weighted_average_c, = UpgradeHvacChiller.pump_specifications(applicable_pumps, pumps_const_spd, std)
+    applicable_pumps, pump_rated_flow_total_v, pump_motor_eff_weighted_average_v, pump_motor_bhp_weighted_average_v, pump_var_part_load_curve_coeff1_weighted_avg, pump_var_part_load_curve_coeff2_weighted_avg, pump_var_part_load_curve_coeff3_weighted_avg, pump_var_part_load_curve_coeff4_weighted_avg = UpgradeHvacChiller.pump_specifications(applicable_pumps, pumps_var_spd, std)
     if debug_verbose
       runner.registerInfo('### ------------------------------------------------------')
       runner.registerInfo('### pump (used for chillers) specs before upgrade')
@@ -447,6 +466,10 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
       runner.registerInfo("### pump_rated_flow_total_v = #{pump_rated_flow_total_v.round(6)}")
       runner.registerInfo("### pump_motor_eff_weighted_average_v = #{pump_motor_eff_weighted_average_v.round(2)}")
       runner.registerInfo("### pump_motor_bhp_weighted_average_v = #{pump_motor_bhp_weighted_average_v.round(6)}")
+      runner.registerInfo("### pump_var_part_load_curve_coeff1_weighted_avg = #{pump_var_part_load_curve_coeff1_weighted_avg}")
+      runner.registerInfo("### pump_var_part_load_curve_coeff2_weighted_avg = #{pump_var_part_load_curve_coeff2_weighted_avg}")
+      runner.registerInfo("### pump_var_part_load_curve_coeff3_weighted_avg = #{pump_var_part_load_curve_coeff3_weighted_avg}")
+      runner.registerInfo("### pump_var_part_load_curve_coeff4_weighted_avg = #{pump_var_part_load_curve_coeff4_weighted_avg}")
       runner.registerInfo("### total count of applicable pumps = #{applicable_pumps.size}")
       runner.registerInfo('### ------------------------------------------------------')
     end
@@ -469,17 +492,21 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     # ------------------------------------------------
 
     # ------------------------------------------------
-    # replace pump
+    # replace variable pump based on ASHRAE 90.1-2019
     # ------------------------------------------------
+    # TODO:
+    # do we want to replace constant spd pump to variable spd pump? probs yes
     applicable_pumps.each do |pump|
-      pump_variable_speed_control_type(runner, model, pump, debug_verbose)
+      if pump.to_PumpVariableSpeed.is_initialized
+        pump_variable_speed_control_type(runner, model, pump, debug_verbose)
+      end
     end
 
     # ------------------------------------------------
     # get chiller specifications after upgrade
     # ------------------------------------------------
     upgraded_chillers = model.getChillerElectricEIRs
-    counts_chillers_acc, capacity_total_w_acc, cop_weighted_average_acc, counts_chillers_wcc, capacity_total_w_wcc, cop_weighted_average_wcc = chiller_specifications(upgraded_chillers)
+    counts_chillers_acc, capacity_total_w_acc, cop_weighted_average_acc, counts_chillers_wcc, capacity_total_w_wcc, cop_weighted_average_wcc = UpgradeHvacChiller.chiller_specifications(upgraded_chillers)
     if debug_verbose
       runner.registerInfo('### ------------------------------------------------------')
       runner.registerInfo('### chiller specs after upgrade')
@@ -488,7 +515,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
       runner.registerInfo("### cop_weighted_average_acc = #{cop_weighted_average_acc}")
       runner.registerInfo("### counts_chillers_wcc = #{counts_chillers_wcc}")
       runner.registerInfo("### capacity_total_w_wcc = #{capacity_total_w_wcc}")
-      runner.registerInfo("### cop_weighted_average_wcc = #{cop_weighted_average_wcc}")
+      runner.registerInfo("### cop_weihted_average_wcc = #{cop_weighted_average_wcc}")
       runner.registerInfo('### ------------------------------------------------------')
     end
 
@@ -498,8 +525,8 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     dummy = []
     pumps_const_spd = model.getPumpConstantSpeeds
     pumps_var_spd = model.getPumpVariableSpeeds
-    _, pump_rated_flow_total_c, pump_motor_eff_weighted_average_c, pump_motor_bhp_weighted_average_c = pump_specifications(dummy, pumps_const_spd, std)
-    _, pump_rated_flow_total_v, pump_motor_eff_weighted_average_v, pump_motor_bhp_weighted_average_v = pump_specifications(dummy, pumps_var_spd, std)
+    _, pump_rated_flow_total_c, pump_motor_eff_weighted_average_c, pump_motor_bhp_weighted_average_c, = UpgradeHvacChiller.pump_specifications(dummy, pumps_const_spd, std)
+    _, pump_rated_flow_total_v, pump_motor_eff_weighted_average_v, pump_motor_bhp_weighted_average_v, pump_var_part_load_curve_coeff1_weighted_avg, pump_var_part_load_curve_coeff2_weighted_avg, pump_var_part_load_curve_coeff3_weighted_avg, pump_var_part_load_curve_coeff4_weighted_avg = UpgradeHvacChiller.pump_specifications(dummy, pumps_var_spd, std)
     if debug_verbose
       runner.registerInfo('### ------------------------------------------------------')
       runner.registerInfo('### pump (used for chillers) specs after upgrade')
@@ -509,6 +536,10 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
       runner.registerInfo("### pump_rated_flow_total_v = #{pump_rated_flow_total_v.round(6)}")
       runner.registerInfo("### pump_motor_eff_weighted_average_v = #{pump_motor_eff_weighted_average_v.round(2)}")
       runner.registerInfo("### pump_motor_bhp_weighted_average_v = #{pump_motor_bhp_weighted_average_v.round(6)}")
+      runner.registerInfo("### pump_var_part_load_curve_coeff1_weighted_avg = #{pump_var_part_load_curve_coeff1_weighted_avg}")
+      runner.registerInfo("### pump_var_part_load_curve_coeff2_weighted_avg = #{pump_var_part_load_curve_coeff2_weighted_avg}")
+      runner.registerInfo("### pump_var_part_load_curve_coeff3_weighted_avg = #{pump_var_part_load_curve_coeff3_weighted_avg}")
+      runner.registerInfo("### pump_var_part_load_curve_coeff4_weighted_avg = #{pump_var_part_load_curve_coeff4_weighted_avg}")
       runner.registerInfo("### total count of applicable pumps = #{applicable_pumps.size}")
       runner.registerInfo('### ------------------------------------------------------')
     end
