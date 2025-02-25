@@ -1,11 +1,8 @@
 import os
-import json
 import boto3
 import logging
 import botocore
 import calendar
-import datetime
-import numpy as np
 import pandas as pd
 from better.model import InverseModel
 from buildstock_query import BuildStockQuery
@@ -42,6 +39,10 @@ class ResidentialProfile(S3UtilitiesMixin):
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
         self.truth_data_dir = os.path.join(current_dir, '..', '..', 'truth_data', self.truth_data_version)
+
+        # initialize s3 client
+        self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
+
         self.processed_dir = os.path.join(self.truth_data_dir, 'gap_processed')
         self.output_dir = os.path.join(current_dir, 'output')
 
