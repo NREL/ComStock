@@ -531,10 +531,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             for c, dt in up_res.schema.items():
                 if 'applicable' in c:
                     logger.debug(f'For {c}: Nulls set to False in upgrade, and its type is {dt}')
-                    if dt == pl.Null or dt == pl.Boolean or dt == pl.Int64:
+                    #If the data type is something not String
+                    if dt in (pl.Null, pl.Boolean, 
+                              pl.Int8, pl.Int16, pl.Int32, pl.Int64,
+                              pl.UInt8, pl.UInt16, pl.UInt32, pl.UInt64, pl.Float32, pl.Float64): 
                         logger.debug(f'For {c}: Nulls set to False (Boolean) in baseline')
                         up_res = up_res.with_columns([pl.col(c).fill_null(pl.lit(False))])
-                    elif dt == pl.Utf8:
+                    elif dt in (pl.Utf8, pl.Categorical):
                         logger.debug(f'For {c}: Nulls set to "False" (String) in baseline')
                         up_res = up_res.with_columns([pl.col(c).fill_null(pl.lit("False"))])
                         up_res = up_res.with_columns([pl.when(pl.col(c).str.lengths() == 0).then(pl.lit('False')).otherwise(pl.col(c)).keep_name()])
