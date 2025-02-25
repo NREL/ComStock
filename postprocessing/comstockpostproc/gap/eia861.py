@@ -29,7 +29,7 @@ SEGMENTS = ['Commercial', 'Residential', 'Industrial', 'Transportation', 'Total'
 MEASURES = ['Revenues', 'Sales', 'Customers']
 
 class EIA861(S3UtilitiesMixin):
-    def __init__(self, truth_data_version='v01', type='Annual', year=2018, reload_from_csv=False, segment='All', measure='All'):
+    def __init__(self, truth_data_version='v01', type='Annual', year=2018, reload_from_csv=True, segment='All', measure='All'):
         """
         A class to load and process EIA 861 Annual and Monthly electricity sales data reported from EIA Form 861
         Args:
@@ -47,9 +47,7 @@ class EIA861(S3UtilitiesMixin):
         self.year = year
         self.reload_from_csv = reload_from_csv
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        print(current_dir)
         self.truth_data_dir = os.path.join(current_dir, '..', '..', 'truth_data', self.truth_data_version)
-        print(self.truth_data_dir)
         self.processed_dir = os.path.join(self.truth_data_dir, 'gap_processed')
         self.output_dir = os.path.join(current_dir, 'output')
 
@@ -171,6 +169,8 @@ class EIA861(S3UtilitiesMixin):
         df = df[desc_cols + data_cols]
         df[data_cols] = df[data_cols].fillna(0.0)
 
+        df = df.astype({'Utility Number': int})
+
         df.to_csv(os.path.join(self.processed_dir, self.processed_filename))
 
         return df
@@ -207,12 +207,12 @@ class EIA861(S3UtilitiesMixin):
             # filter according to input parameters
             data_cols = numeric_cols
             if self.segment != 'All':
-                data_cols = [col for col in numeric_cols if self.segment.upper() in col]
+                data_cols = [col for col in numeric_cols if any(seg.upper() in col for seg in self.segment)]
             
             if self.measure != 'All':
-                data_cols = [col for col in numeric_cols if self.measure in col]
+                data_cols = [col for col in data_cols if any(part in col for part in self.measure)]
             
-            totals = totals[['Year', 'Month', 'Utility Name'] + data_cols]
+            totals = totals[['Year', 'Month', 'State'] + data_cols]
             totals[data_cols] = totals[data_cols].fillna(0.0)
 
             totals.reset_index(drop=True, inplace=True)
