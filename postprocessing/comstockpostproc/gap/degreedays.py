@@ -30,16 +30,19 @@ class DegreeDays(S3UtilitiesMixin):
         Attributes:
             data (DataFrame): processed dataframe. 
                 Freq of 'Daily' will produce a dataframe with DateTime index at frequency 'day', with column headers as tuples of (state abbrev, 'cdd/hdd'). Only includes CONUS states and DC.
-                e.g.: 
+                e.g.:
+
                 |                     |   ('AL', 'cdd') |   ('AR', 'cdd') |   ('AZ', 'cdd') |
                 |:--------------------|----------------:|----------------:|----------------:|
                 | 2013-01-01 00:00:00 |               0 |               0 |               0 |
                 | 2013-01-02 00:00:00 |               0 |               0 |               0 |
                 | 2013-01-03 00:00:00 |               0 |               0 |               0 |
 
-                Freq of 'Monthly' will produce a dataframe with tuple of ('year', 'month') as index and cols of tuples of ('MONTH', 'cdd/hdd'). Includes all states and DC as 'DISTRICT COLUMBIA'.
+                
+                Freq of 'Monthly' will produce a dataframe with tuple of ('year', 'month') as index and cols of tuples of (state abbrev, 'cdd/hdd'). Includes all states and DC.
                 e.g.:
-                |            |   ('ALABAMA', 'cdd') |   ('ALASKA', 'cdd') |   ('ARIZONA', 'cdd') |
+
+                |            |     ('AL', 'cdd')    |     ('AK', 'cdd')   |    ('AZ', 'cdd')     |
                 |:-----------|---------------------:|--------------------:|---------------------:|
                 | (2013, 4)  |                  166 |                1122 |                   82 |
                 | (2013, 8)  |                    0 |                 216 |                    0 |
@@ -101,6 +104,9 @@ class DegreeDays(S3UtilitiesMixin):
 
 
     def load_and_process_truth_data(self):
+        """
+        Loads data from local truth data or downloads from S3. Depending on 'freq' input, will process return daily or monthly population-weighted degree days by state.
+        """
         if self.freq == 'Daily':
             degree_days = pd.DataFrame()
 
@@ -178,7 +184,7 @@ class DegreeDays(S3UtilitiesMixin):
                         if mode == 'Cooling':
                             dd = 'cdd'
                         else:
-                            dd == 'hdd'
+                            dd = 'hdd'
                         
                         # read file
                         lines = infile.readlines()
@@ -201,6 +207,13 @@ class DegreeDays(S3UtilitiesMixin):
 
             df = pd.DataFrame.from_dict(all_data, orient='index')
             df.index.set_names(['year', 'month'], inplace=True)
+
+            # rename col labels to state abbrevs
+            state_labels = self.read_delimited_truth_data_file_from_S3(f'truth_data/{self.truth_data_version}/national_state2020.txt', '|')
+            state_labels['name_upper'] = state_labels['STATE_NAME'].str.upper().str.replace('DISTRICT OF', 'DISTRCT')
+            name_abbrev_map = dict(zip(state_labels['name_upper'], state_labels['STATE']))
+
+            df.rename(columns=name_abbrev_map, level=0, inplace=True)
 
             logger.info(f'Saving processed data to {self.processed_dir}/{self.processed_filename}')
             df.to_csv(os.path.join(self.processed_dir, self.processed_filename))
