@@ -55,7 +55,7 @@ setup(
         'pyyaml',
         'joblib',
         'polars==0.20.7',
-        'buildstock_query @ git+https://github.com/NREL/buildstock-query@feature/add_buildstock_csv'
+        'buildstock_query @ git+https://github.com/NREL/buildstock-query@main'
     ],
     extras_require={
         'dev': [
@@ -72,8 +72,12 @@ setup(
         'gap': [
             'shapely',
             'geopandas',
+            'folium',
+            'matplotlib',
+            'mapclassify',
             'scikit-learn',
-            'openpyxl'
+            'openpyxl',
+            'better @ git+https://github.com/LBNL-JCI-ICF/better@packageready'
         ],
         ':sys_platform == "win32"': [
             'kaleido==0.1.0post1',  # kaleido version for Windows
