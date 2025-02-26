@@ -47,7 +47,7 @@ class ResidentialProfile(S3UtilitiesMixin):
         self.output_dir = os.path.join(current_dir, 'output')
 
         # calculate BA profiles
-        self.data = self.ba_res_profiles()
+        self.data = self.res_ba_profiles()
 
     def resstock_net_elec_timestep(self):
         """
@@ -95,7 +95,7 @@ class ResidentialProfile(S3UtilitiesMixin):
 
     def resstock_net_elec_hourly(self):
         """
-        Queries resstock for ending-hour total net energy by state. 
+        Queries resstock for ending-hour total net electricity by state. 
         """
 
         run = BuildStockQuery(workgroup='eulp',
@@ -155,7 +155,7 @@ class ResidentialProfile(S3UtilitiesMixin):
 
         local_path = os.path.join(self.truth_data_dir, f'{self.resstock_profiles_filename}.parquet')
         if os.path.exists(local_path):
-            logger.info('Reloading ResStock timestep county profiles from truth data')
+            logger.info('Reloading ResStock timestep state profiles from truth data')
             res_load = pd.read_parquet(local_path)
         else:
             # res_county_load = self.resstock_net_elec_timestep()
@@ -321,7 +321,7 @@ class ResidentialProfile(S3UtilitiesMixin):
 
         return resstock_hourly_by_state_corrected
 
-    def ba_res_profiles(self):
+    def res_ba_profiles(self):
         """
         Apportions the adjusted ResStock profiles to Balancing Authorities by dividing load based on the fraction of total residential building area found in each territory from the 
         Structures data. This assumes that residential-coded structures areas are equally proportional to electricity use nationwide (in each state). 
@@ -375,7 +375,7 @@ class ResidentialProfile(S3UtilitiesMixin):
         for idx, row in res_ba_areas.iterrorws():
             res_ba_state_profiles_data[idx] = res_hourly_by_state_corrected[idx[0]].mul(row['area_frac'])
 
-        res_ba_profiles = pd.DataFrame(res_ba_state_profiles_data)
+        res_ba_state_profiles = pd.DataFrame(res_ba_state_profiles_data)
 
         # convert from kWh to MWh
         res_ba_state_profiles = res_ba_state_profiles / 1e3

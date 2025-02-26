@@ -55,7 +55,7 @@ setup(
         'pyyaml',
         'joblib',
         'polars==0.20.7',
-        'buildstock_query @ git+https://github.com/NREL/buildstock-query@main'
+        'buildstock_query @ git+https://github.com/NREL/buildstock-query@comstock-oedi'
     ],
     extras_require={
         'dev': [
