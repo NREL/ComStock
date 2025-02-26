@@ -652,23 +652,23 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     # ------------------------------------------------
     applicable_chillers = model.getChillerElectricEIRs
     results_before = UpgradeHvacChiller.chiller_specifications(applicable_chillers)
-    counts_chillers_acc = results_before[0]
-    capacity_total_w_acc = results_before[1]
-    cop_weighted_average_acc = results_before[2]
-    counts_chillers_wcc = results_before[3]
-    capacity_total_w_wcc = results_before[4]
-    cop_weighted_average_wcc = results_before[5]
-    curve_summary = results_before[6]
+    counts_chillers_acc_b = results_before[0]
+    capacity_total_w_acc_b = results_before[1]
+    cop_weighted_average_acc_b = results_before[2]
+    counts_chillers_wcc_b = results_before[3]
+    capacity_total_w_wcc_b = results_before[4]
+    cop_weighted_average_wcc_b = results_before[5]
+    curve_summary_b = results_before[6]
     if debug_verbose
       runner.registerInfo('### ------------------------------------------------------')
       runner.registerInfo('### chiller specs before upgrade')
-      runner.registerInfo("### counts_chillers_acc = #{counts_chillers_acc}")
-      runner.registerInfo("### capacity_total_w_acc= #{capacity_total_w_acc}")
-      runner.registerInfo("### cop_weighted_average_acc = #{cop_weighted_average_acc}")
-      runner.registerInfo("### counts_chillers_wcc = #{counts_chillers_wcc}")
-      runner.registerInfo("### capacity_total_w_wcc = #{capacity_total_w_wcc}")
-      runner.registerInfo("### cop_weighted_average_wcc = #{cop_weighted_average_wcc}")
-      runner.registerInfo("### curve_summary = #{curve_summary}")
+      runner.registerInfo("### counts_chillers_acc = #{counts_chillers_acc_b}")
+      runner.registerInfo("### capacity_total_w_acc= #{capacity_total_w_acc_b}")
+      runner.registerInfo("### cop_weighted_average_acc = #{cop_weighted_average_acc_b}")
+      runner.registerInfo("### counts_chillers_wcc = #{counts_chillers_wcc_b}")
+      runner.registerInfo("### capacity_total_w_wcc = #{capacity_total_w_wcc_b}")
+      runner.registerInfo("### cop_weighted_average_wcc = #{cop_weighted_average_wcc_b}")
+      runner.registerInfo("### curve_summary = #{curve_summary_b}")
       runner.registerInfo('### ------------------------------------------------------')
     end
 
@@ -700,7 +700,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     # ------------------------------------------------
     # applicability
     # ------------------------------------------------
-    if (counts_chillers_acc.size == 0) & (counts_chillers_wcc.size == 0)
+    if (counts_chillers_acc_b.size == 0) & (counts_chillers_wcc_b.size == 0)
       runner.registerAsNotApplicable('no chillers are found in the model.')
       return false
     end
@@ -708,7 +708,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     # ------------------------------------------------
     # report initial condition
     # ------------------------------------------------
-    runner.registerInitialCondition("found #{counts_chillers_acc}/#{counts_chillers_wcc} air-cooled/water-cooled chillers with total capacity of #{capacity_total_w_acc.round(0)}/#{capacity_total_w_wcc.round(0)} W and capacity-weighted average COP of #{cop_weighted_average_acc.round(2)}/#{cop_weighted_average_wcc.round(2)}.")
+    runner.registerInitialCondition("found #{counts_chillers_acc_b}/#{counts_chillers_wcc_b} air-cooled/water-cooled chillers with total capacity of #{capacity_total_w_acc_b.round(0)}/#{capacity_total_w_wcc_b.round(0)} W and capacity-weighted average COP of #{cop_weighted_average_acc_b.round(2)}/#{cop_weighted_average_wcc_b.round(2)}.")
 
     # ------------------------------------------------
     # replace chiller
@@ -737,12 +737,14 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
 
       # get performance curve data
       custom_data_json = ''
+      cop_full_load = nil
       if chiller_condenser_type == 'AirCooled'
         # 150ton_screw_variablespd_acc
         path_data_curve = "#{File.dirname(__FILE__)}/resources/150ton_screw_variablespd_acc/results.json"
         custom_data_json = JSON.parse(File.read(path_data_curve))
+        cop_full_load = 3.17
       elsif chiller_condenser_type == 'WaterCooled'
-        if capacity_ton < 300
+        if capacity_ton < 150
           # 100ton_centrifugal_variablespd_wcc
           path_data_curve = "#{File.dirname(__FILE__)}/resources/100ton_centrifugal_variablespd_wcc/results.json"
           custom_data_json = JSON.parse(File.read(path_data_curve))
@@ -751,6 +753,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
           path_data_curve = "#{File.dirname(__FILE__)}/resources/1500ton_centrifugal_variablespd_wcc/results.json"
           custom_data_json = JSON.parse(File.read(path_data_curve))
         end
+        cop_full_load = 6.83
       else
         runner.registerError("#{chiller_condenser_type} chiller not supported in this measure. exiting...")
         return false
@@ -782,6 +785,9 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
       chiller.setCoolingCapacityFunctionOfTemperature(curve_cap_f_t)
       chiller.setElectricInputToCoolingOutputRatioFunctionOfTemperature(curve_eir_f_t)
       chiller.setElectricInputToCoolingOutputRatioFunctionOfPLR(curve_eir_f_plr)
+
+      # set reference COPs
+      chiller.setReferenceCOP(cop_full_load)
     end
 
     # ------------------------------------------------
@@ -800,16 +806,23 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     # ------------------------------------------------
     upgraded_chillers = model.getChillerElectricEIRs
     results_after = UpgradeHvacChiller.chiller_specifications(upgraded_chillers)
+    counts_chillers_acc_a = results_after[0]
+    capacity_total_w_acc_a = results_after[1]
+    cop_weighted_average_acc_a = results_after[2]
+    counts_chillers_wcc_a = results_after[3]
+    capacity_total_w_wcc_a = results_after[4]
+    cop_weighted_average_wcc_a = results_after[5]
+    curve_summary_a = results_after[6]
     if debug_verbose
       runner.registerInfo('### ------------------------------------------------------')
       runner.registerInfo('### chiller specs after upgrade')
-      runner.registerInfo("### counts_chillers_acc = #{results_after[0]}")
-      runner.registerInfo("### capacity_total_w_acc= #{results_after[1]}")
-      runner.registerInfo("### cop_weighted_average_acc = #{results_after[2]}")
-      runner.registerInfo("### counts_chillers_wcc = #{results_after[3]}")
-      runner.registerInfo("### capacity_total_w_wcc = #{results_after[4]}")
-      runner.registerInfo("### cop_weihted_average_wcc = #{results_after[5]}")
-      runner.registerInfo("### curve_summary = #{results_after[6]}")
+      runner.registerInfo("### counts_chillers_acc = #{counts_chillers_acc_a}")
+      runner.registerInfo("### capacity_total_w_acc= #{capacity_total_w_acc_a}")
+      runner.registerInfo("### cop_weighted_average_acc = #{cop_weighted_average_acc_a}")
+      runner.registerInfo("### counts_chillers_wcc = #{counts_chillers_wcc_a}")
+      runner.registerInfo("### capacity_total_w_wcc = #{capacity_total_w_wcc_a}")
+      runner.registerInfo("### cop_weighted_average_wcc = #{cop_weighted_average_wcc_a}")
+      runner.registerInfo("### curve_summary = #{curve_summary_a}")
       runner.registerInfo('### ------------------------------------------------------')
     end
 
@@ -841,7 +854,26 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     # ------------------------------------------------
     # report final condition
     # ------------------------------------------------
-    runner.registerFinalCondition("found #{counts_chillers_acc}/#{counts_chillers_wcc} air-cooled/water-cooled chillers with total capacity of #{capacity_total_w_acc.round(0)}/#{capacity_total_w_wcc.round(0)} W and capacity-weighted average COP of #{cop_weighted_average_acc.round(2)}/#{cop_weighted_average_wcc.round(2)}.")
+    if counts_chillers_acc_b == 0
+      msg_acc = 'No air-cooled chillers are upgraded in this building model.'
+    else
+      msg_acc = "Upgraded air-cooled chillers: count = #{counts_chillers_acc_b} -> #{counts_chillers_acc_a}\n \
+      Upgraded air-cooled chillers: total capacity = #{capacity_total_w_acc_b} W -> #{capacity_total_w_acc_a}\n \
+      Upgraded air-cooled chillers: full load COP = #{cop_weighted_average_acc_b} -> #{cop_weighted_average_acc_a}\n \
+      Upgraded air-cooled chillers: curves before upgrade = #{curve_summary_b}\n \
+      Upgraded air-cooled chillers: curves after upgrade = #{curve_summary_a}"
+    end
+    if counts_chillers_wcc_b == 0
+      msg_wcc = 'No water-cooled chillers are upgraded in this building model.'
+    else
+      msg_wcc = "Upgraded water-cooled chillers: count = #{counts_chillers_wcc_b} -> #{counts_chillers_wcc_a}\n \
+      Upgraded water-cooled chillers: total capacity = #{capacity_total_w_wcc_b} W -> #{capacity_total_w_wcc_a}\n \
+      Upgraded water-cooled chillers: average weighted full load COP = #{cop_weighted_average_wcc_b} -> #{cop_weighted_average_wcc_a}\n \
+      Upgraded water-cooled chillers: curves before upgrade = #{curve_summary_b}\n \
+      Upgraded water-cooled chillers: curves after upgrade = #{curve_summary_a}"
+    end
+    msg_final_condition = "#{msg_acc}\n #{msg_wcc}"
+    runner.registerFinalCondition(msg_final_condition)
 
     return true
   end
