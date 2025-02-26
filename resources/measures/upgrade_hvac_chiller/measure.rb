@@ -107,15 +107,15 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
       cap_f_t = chiller.coolingCapacityFunctionOfTemperature
       eir_f_t = chiller.electricInputToCoolingOutputRatioFunctionOfTemperature
       eir_f_plr = chiller.electricInputToCoolingOutputRatioFunctionOfPLR
-      curve_summary["#{chiller.name.to_s}"] = {}
-      curve_summary["#{chiller.name.to_s}"]['cap_f_t'] = "#{cap_f_t.name.to_s}"
-      curve_summary["#{chiller.name.to_s}"]['eir_f_t'] = "#{eir_f_t.name.to_s}"
-      curve_summary["#{chiller.name.to_s}"]['eir_f_plr'] = "#{eir_f_plr.name.to_s}"
+      curve_summary[chiller.name.to_s] = {}
+      curve_summary[chiller.name.to_s]['cap_f_t'] = cap_f_t.name.to_s
+      curve_summary[chiller.name.to_s]['eir_f_t'] = eir_f_t.name.to_s
+      curve_summary[chiller.name.to_s]['eir_f_plr'] = eir_f_plr.name.to_s
     end
     cop_weighted_average_acc = capacity_total_w_acc > 0.0 ? cop_weighted_sum_acc / capacity_total_w_acc : 0.0
     cop_weighted_average_wcc = capacity_total_w_wcc > 0.0 ? cop_weighted_sum_wcc / capacity_total_w_wcc : 0.0
 
-    results = [
+    [
       counts_chillers_acc,
       capacity_total_w_acc,
       cop_weighted_average_acc,
@@ -124,7 +124,6 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
       cop_weighted_average_wcc,
       curve_summary
     ]
-    results
   end
 
   # get pump specifications
@@ -197,7 +196,6 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
 
   # method to search through a hash for an object that meets the name criteria
   def model_find_object(copper_curve_data, curve_name)
-
     # initialize variable
     curve_found = nil
 
@@ -326,66 +324,66 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
         curve.setMaximumCurveOutput(data['out_max'])
       end
       curve
-    # when 'BiLinear'
-    #   curve = OpenStudio::Model::CurveBiquadratic.new(model)
-    #   curve.setName(data['out_var'])
-    #   curve.setCoefficient1Constant(data['coeff1'])
-    #   curve.setCoefficient2x(data['coeff2'])
-    #   curve.setCoefficient4y(data['coeff3'])
-    #   curve.setMinimumValueofx(data['x_min']) if data['x_min']
-    #   curve.setMaximumValueofx(data['x_max']) if data['x_max']
-    #   curve.setMinimumValueofy(data['y_min']) if data['y_min']
-    #   curve.setMaximumValueofy(data['y_max']) if data['y_max']
-    #   if data['out_min']
-    #     curve.setMinimumCurveOutput(data['out_min'])
-    #   end
-    #   if data['out_max']
-    #     curve.setMaximumCurveOutput(data['out_max'])
-    #   end
-    #   curve
-    # when 'QuadLinear'
-    #   curve = OpenStudio::Model::CurveQuadLinear.new(model)
-    #   curve.setName(data['out_var'])
-    #   curve.setCoefficient1Constant(data['coeff1'])
-    #   curve.setCoefficient2w(data['coeff2'])
-    #   curve.setCoefficient3x(data['coeff3'])
-    #   curve.setCoefficient4y(data['coeff4'])
-    #   curve.setCoefficient5z(data['coeff5'])
-    #   curve.setMinimumValueofw(data['minimum_independent_variable_w'])
-    #   curve.setMaximumValueofw(data['maximum_independent_variable_w'])
-    #   curve.setMinimumValueofx(data['minimum_independent_variable_x'])
-    #   curve.setMaximumValueofx(data['maximum_independent_variable_x'])
-    #   curve.setMinimumValueofy(data['minimum_independent_variable_y'])
-    #   curve.setMaximumValueofy(data['maximum_independent_variable_y'])
-    #   curve.setMinimumValueofz(data['minimum_independent_variable_z'])
-    #   curve.setMaximumValueofz(data['maximum_independent_variable_z'])
-    #   curve.setMinimumCurveOutput(data['out_min'])
-    #   curve.setMaximumCurveOutput(data['out_max'])
-    #   curve
-    # when 'MultiVariableLookupTable'
-    #   num_ind_var = data['number_independent_variables'].to_i
-    #   table = OpenStudio::Model::TableLookup.new(model)
-    #   table.setName(data['out_var'])
-    #   table.setNormalizationDivisor(data['normalization_reference'].to_f)
-    #   table.setOutputUnitType(data['output_unit_type'])
-    #   data_points = data.each.select { |key, _value| key.include? 'data_point' }
-    #   data_points = data_points.sort_by { |item| item[1].split(',').map(&:to_f) } # sorting data in ascending order
-    #   data_points.each do |_key, value|
-    #     var_dep = value.split(',')[num_ind_var].to_f
-    #     table.addOutputValue(var_dep)
-    #   end
-    #   num_ind_var.times do |i|
-    #     table_indvar = OpenStudio::Model::TableIndependentVariable.new(model)
-    #     table_indvar.setName(data['out_var'] + "_ind_#{i + 1}")
-    #     table_indvar.setInterpolationMethod(data['interpolation_method'])
-    #     table_indvar.setMinimumValue(data["minimum_independent_variable_#{i + 1}"].to_f)
-    #     table_indvar.setMaximumValue(data["maximum_independent_variable_#{i + 1}"].to_f)
-    #     table_indvar.setUnitType(data["input_unit_type_x#{i + 1}"].to_s)
-    #     var_ind_unique = data_points.map { |_key, value| value.split(',')[i].to_f }.uniq
-    #     var_ind_unique.each { |var_ind| table_indvar.addValue(var_ind) }
-    #     table.addIndependentVariable(table_indvar)
-    #   end
-    #   table
+      # when 'BiLinear'
+      #   curve = OpenStudio::Model::CurveBiquadratic.new(model)
+      #   curve.setName(data['out_var'])
+      #   curve.setCoefficient1Constant(data['coeff1'])
+      #   curve.setCoefficient2x(data['coeff2'])
+      #   curve.setCoefficient4y(data['coeff3'])
+      #   curve.setMinimumValueofx(data['x_min']) if data['x_min']
+      #   curve.setMaximumValueofx(data['x_max']) if data['x_max']
+      #   curve.setMinimumValueofy(data['y_min']) if data['y_min']
+      #   curve.setMaximumValueofy(data['y_max']) if data['y_max']
+      #   if data['out_min']
+      #     curve.setMinimumCurveOutput(data['out_min'])
+      #   end
+      #   if data['out_max']
+      #     curve.setMaximumCurveOutput(data['out_max'])
+      #   end
+      #   curve
+      # when 'QuadLinear'
+      #   curve = OpenStudio::Model::CurveQuadLinear.new(model)
+      #   curve.setName(data['out_var'])
+      #   curve.setCoefficient1Constant(data['coeff1'])
+      #   curve.setCoefficient2w(data['coeff2'])
+      #   curve.setCoefficient3x(data['coeff3'])
+      #   curve.setCoefficient4y(data['coeff4'])
+      #   curve.setCoefficient5z(data['coeff5'])
+      #   curve.setMinimumValueofw(data['minimum_independent_variable_w'])
+      #   curve.setMaximumValueofw(data['maximum_independent_variable_w'])
+      #   curve.setMinimumValueofx(data['minimum_independent_variable_x'])
+      #   curve.setMaximumValueofx(data['maximum_independent_variable_x'])
+      #   curve.setMinimumValueofy(data['minimum_independent_variable_y'])
+      #   curve.setMaximumValueofy(data['maximum_independent_variable_y'])
+      #   curve.setMinimumValueofz(data['minimum_independent_variable_z'])
+      #   curve.setMaximumValueofz(data['maximum_independent_variable_z'])
+      #   curve.setMinimumCurveOutput(data['out_min'])
+      #   curve.setMaximumCurveOutput(data['out_max'])
+      #   curve
+      # when 'MultiVariableLookupTable'
+      #   num_ind_var = data['number_independent_variables'].to_i
+      #   table = OpenStudio::Model::TableLookup.new(model)
+      #   table.setName(data['out_var'])
+      #   table.setNormalizationDivisor(data['normalization_reference'].to_f)
+      #   table.setOutputUnitType(data['output_unit_type'])
+      #   data_points = data.each.select { |key, _value| key.include? 'data_point' }
+      #   data_points = data_points.sort_by { |item| item[1].split(',').map(&:to_f) } # sorting data in ascending order
+      #   data_points.each do |_key, value|
+      #     var_dep = value.split(',')[num_ind_var].to_f
+      #     table.addOutputValue(var_dep)
+      #   end
+      #   num_ind_var.times do |i|
+      #     table_indvar = OpenStudio::Model::TableIndependentVariable.new(model)
+      #     table_indvar.setName(data['out_var'] + "_ind_#{i + 1}")
+      #     table_indvar.setInterpolationMethod(data['interpolation_method'])
+      #     table_indvar.setMinimumValue(data["minimum_independent_variable_#{i + 1}"].to_f)
+      #     table_indvar.setMaximumValue(data["maximum_independent_variable_#{i + 1}"].to_f)
+      #     table_indvar.setUnitType(data["input_unit_type_x#{i + 1}"].to_s)
+      #     var_ind_unique = data_points.map { |_key, value| value.split(',')[i].to_f }.uniq
+      #     var_ind_unique.each { |var_ind| table_indvar.addValue(var_ind) }
+      #     table.addIndependentVariable(table_indvar)
+      #   end
+      #   table
     end
   end
 
@@ -720,7 +718,6 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
 
     # get chillers
     applicable_chillers.each do |chiller|
-
       # get chiller type
       chiller_condenser_type = chiller.condenserType
 
@@ -738,12 +735,13 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
       # get performance curve data
       custom_data_json = ''
       cop_full_load = nil
-      if chiller_condenser_type == 'AirCooled'
+      case chiller_condenser_type
+      when 'AirCooled'
         # 150ton_screw_variablespd_acc
         path_data_curve = "#{File.dirname(__FILE__)}/resources/150ton_screw_variablespd_acc/results.json"
         custom_data_json = JSON.parse(File.read(path_data_curve))
         cop_full_load = 3.17
-      elsif chiller_condenser_type == 'WaterCooled'
+      when 'WaterCooled'
         if capacity_ton < 150
           # 100ton_centrifugal_variablespd_wcc
           path_data_curve = "#{File.dirname(__FILE__)}/resources/100ton_centrifugal_variablespd_wcc/results.json"
@@ -759,7 +757,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
         return false
       end
       if custom_data_json == ''
-        runner.registerError("found empty performance map. exiting...")
+        runner.registerError('found empty performance map. exiting...')
         return false
       end
 
