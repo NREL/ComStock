@@ -67,11 +67,13 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     cop_weighted_sum_wcc = 0
     capacity_total_w_wcc = 0
     counts_chillers_wcc = 0
+    curve_summary = {}
 
     # loop through chillers and get specifications
     chillers.each do |chiller|
       condenser_type = chiller.condenserType
 
+      # get performance specs
       case condenser_type
       when 'AirCooled'
         capacity_w = 0
@@ -100,10 +102,29 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
         cop_weighted_sum_wcc += cop * capacity_w
         counts_chillers_wcc += 1
       end
+
+      # get curves
+      cap_f_t = chiller.coolingCapacityFunctionOfTemperature
+      eir_f_t = chiller.electricInputToCoolingOutputRatioFunctionOfTemperature
+      eir_f_plr = chiller.electricInputToCoolingOutputRatioFunctionOfPLR
+      curve_summary["#{chiller.name.to_s}"] = {}
+      curve_summary["#{chiller.name.to_s}"]['cap_f_t'] = "#{cap_f_t.name.to_s}"
+      curve_summary["#{chiller.name.to_s}"]['eir_f_t'] = "#{eir_f_t.name.to_s}"
+      curve_summary["#{chiller.name.to_s}"]['eir_f_plr'] = "#{eir_f_plr.name.to_s}"
     end
     cop_weighted_average_acc = capacity_total_w_acc > 0.0 ? cop_weighted_sum_acc / capacity_total_w_acc : 0.0
     cop_weighted_average_wcc = capacity_total_w_wcc > 0.0 ? cop_weighted_sum_wcc / capacity_total_w_wcc : 0.0
-    return counts_chillers_acc, capacity_total_w_acc, cop_weighted_average_acc, counts_chillers_wcc, capacity_total_w_wcc, cop_weighted_average_wcc
+
+    results = [
+      counts_chillers_acc,
+      capacity_total_w_acc,
+      cop_weighted_average_acc,
+      counts_chillers_wcc,
+      capacity_total_w_wcc,
+      cop_weighted_average_wcc,
+      curve_summary
+    ]
+    results
   end
 
   # get pump specifications
@@ -172,6 +193,200 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     pump_var_part_load_curve_coeff4_weighted_avg = pump_rated_flow_total > 0.0 ? pump_var_part_load_curve_coeff4_weighted_sum / pump_rated_flow_total : 0.0
 
     return applicable_pumps, pump_rated_flow_total, pump_motor_eff_weighted_average, pump_motor_bhp_weighted_average, pump_var_part_load_curve_coeff1_weighted_avg, pump_var_part_load_curve_coeff2_weighted_avg, pump_var_part_load_curve_coeff3_weighted_avg, pump_var_part_load_curve_coeff4_weighted_avg
+  end
+
+  # method to search through a hash for an object that meets the name criteria
+  def model_find_object(copper_curve_data, curve_name)
+
+    # initialize variable
+    curve_found = nil
+
+    # find curve
+    copper_curve_data['results'].each do |curve_entry|
+      if curve_entry['out_var'] == curve_name
+        curve_found = curve_entry
+      end
+    end
+
+    # return
+    curve_found
+  end
+
+  # load curve to model from json
+  # modified version from OS Standards to read from custom json file
+  def model_add_curve(model, curve_name, copper_curve_data, std)
+    # First check model and return curve if it already exists
+    existing_curves = []
+    existing_curves += model.getCurveLinears
+    existing_curves += model.getCurveCubics
+    existing_curves += model.getCurveQuadratics
+    existing_curves += model.getCurveBicubics
+    existing_curves += model.getCurveBiquadratics
+    existing_curves += model.getCurveQuadLinears
+    existing_curves.sort.each do |curve|
+      if curve.name.get.to_s == curve_name
+        return curve
+      end
+    end
+
+    # Find curve data
+    data = model_find_object(copper_curve_data, curve_name)
+    if data.nil?
+      return nil
+    end
+
+    # Make the correct type of curve
+    case data['type']
+    # when 'Linear'
+    #   curve = OpenStudio::Model::CurveLinear.new(model)
+    #   curve.setName(data['out_var'])
+    #   curve.setCoefficient1Constant(data['coeff1'])
+    #   curve.setCoefficient2x(data['coeff2'])
+    #   curve.setMinimumValueofx(data['x_min']) if data['x_min']
+    #   curve.setMaximumValueofx(data['x_max']) if data['x_max']
+    #   if data['out_min']
+    #     curve.setMinimumCurveOutput(data['out_min'])
+    #   end
+    #   if data['out_max']
+    #     curve.setMaximumCurveOutput(data['out_max'])
+    #   end
+    #   curve
+    # when 'Cubic'
+    #   curve = OpenStudio::Model::CurveCubic.new(model)
+    #   curve.setName(data['out_var'])
+    #   curve.setCoefficient1Constant(data['coeff1'])
+    #   curve.setCoefficient2x(data['coeff2'])
+    #   curve.setCoefficient3xPOW2(data['coeff3'])
+    #   curve.setCoefficient4xPOW3(data['coeff4'])
+    #   curve.setMinimumValueofx(data['x_min']) if data['x_min']
+    #   curve.setMaximumValueofx(data['x_max']) if data['x_max']
+    #   if data['out_min']
+    #     curve.setMinimumCurveOutput(data['out_min'])
+    #   end
+    #   if data['out_max']
+    #     curve.setMaximumCurveOutput(data['out_max'])
+    #   end
+    #   curve
+    when 'quad'
+      curve = OpenStudio::Model::CurveQuadratic.new(model)
+      curve.setName(data['out_var'])
+      curve.setCoefficient1Constant(data['coeff1'])
+      curve.setCoefficient2x(data['coeff2'])
+      curve.setCoefficient3xPOW2(data['coeff3'])
+      curve.setMinimumValueofx(data['x_min']) if data['x_min']
+      curve.setMaximumValueofx(data['x_max']) if data['x_max']
+      if data['out_min']
+        curve.setMinimumCurveOutput(data['out_min'])
+      end
+      if data['out_max']
+        curve.setMaximumCurveOutput(data['out_max'])
+      end
+      curve
+    # when 'BiCubic'
+    #   curve = OpenStudio::Model::CurveBicubic.new(model)
+    #   curve.setName(data['out_var'])
+    #   curve.setCoefficient1Constant(data['coeff1'])
+    #   curve.setCoefficient2x(data['coeff2'])
+    #   curve.setCoefficient3xPOW2(data['coeff3'])
+    #   curve.setCoefficient4y(data['coeff4'])
+    #   curve.setCoefficient5yPOW2(data['coeff5'])
+    #   curve.setCoefficient6xTIMESY(data['coeff6'])
+    #   curve.setCoefficient7xPOW3(data['coeff_7'])
+    #   curve.setCoefficient8yPOW3(data['coeff_8'])
+    #   curve.setCoefficient9xPOW2TIMESY(data['coeff_9'])
+    #   curve.setCoefficient10xTIMESYPOW2(data['coeff_10'])
+    #   curve.setMinimumValueofx(data['x_min']) if data['x_min']
+    #   curve.setMaximumValueofx(data['x_max']) if data['x_max']
+    #   curve.setMinimumValueofy(data['y_min']) if data['y_min']
+    #   curve.setMaximumValueofy(data['y_max']) if data['y_max']
+    #   if data['out_min']
+    #     curve.setMinimumCurveOutput(data['out_min'])
+    #   end
+    #   if data['out_max']
+    #     curve.setMaximumCurveOutput(data['out_max'])
+    #   end
+    #   curve
+    when 'bi_quad'
+      curve = OpenStudio::Model::CurveBiquadratic.new(model)
+      curve.setName(data['out_var'])
+      curve.setCoefficient1Constant(data['coeff1'])
+      curve.setCoefficient2x(data['coeff2'])
+      curve.setCoefficient3xPOW2(data['coeff3'])
+      curve.setCoefficient4y(data['coeff4'])
+      curve.setCoefficient5yPOW2(data['coeff5'])
+      curve.setCoefficient6xTIMESY(data['coeff6'])
+      curve.setMinimumValueofx(data['x_min']) if data['x_min']
+      curve.setMaximumValueofx(data['x_max']) if data['x_max']
+      curve.setMinimumValueofy(data['y_min']) if data['y_min']
+      curve.setMaximumValueofy(data['y_max']) if data['y_max']
+      if data['out_min']
+        curve.setMinimumCurveOutput(data['out_min'])
+      end
+      if data['out_max']
+        curve.setMaximumCurveOutput(data['out_max'])
+      end
+      curve
+    # when 'BiLinear'
+    #   curve = OpenStudio::Model::CurveBiquadratic.new(model)
+    #   curve.setName(data['out_var'])
+    #   curve.setCoefficient1Constant(data['coeff1'])
+    #   curve.setCoefficient2x(data['coeff2'])
+    #   curve.setCoefficient4y(data['coeff3'])
+    #   curve.setMinimumValueofx(data['x_min']) if data['x_min']
+    #   curve.setMaximumValueofx(data['x_max']) if data['x_max']
+    #   curve.setMinimumValueofy(data['y_min']) if data['y_min']
+    #   curve.setMaximumValueofy(data['y_max']) if data['y_max']
+    #   if data['out_min']
+    #     curve.setMinimumCurveOutput(data['out_min'])
+    #   end
+    #   if data['out_max']
+    #     curve.setMaximumCurveOutput(data['out_max'])
+    #   end
+    #   curve
+    # when 'QuadLinear'
+    #   curve = OpenStudio::Model::CurveQuadLinear.new(model)
+    #   curve.setName(data['out_var'])
+    #   curve.setCoefficient1Constant(data['coeff1'])
+    #   curve.setCoefficient2w(data['coeff2'])
+    #   curve.setCoefficient3x(data['coeff3'])
+    #   curve.setCoefficient4y(data['coeff4'])
+    #   curve.setCoefficient5z(data['coeff5'])
+    #   curve.setMinimumValueofw(data['minimum_independent_variable_w'])
+    #   curve.setMaximumValueofw(data['maximum_independent_variable_w'])
+    #   curve.setMinimumValueofx(data['minimum_independent_variable_x'])
+    #   curve.setMaximumValueofx(data['maximum_independent_variable_x'])
+    #   curve.setMinimumValueofy(data['minimum_independent_variable_y'])
+    #   curve.setMaximumValueofy(data['maximum_independent_variable_y'])
+    #   curve.setMinimumValueofz(data['minimum_independent_variable_z'])
+    #   curve.setMaximumValueofz(data['maximum_independent_variable_z'])
+    #   curve.setMinimumCurveOutput(data['out_min'])
+    #   curve.setMaximumCurveOutput(data['out_max'])
+    #   curve
+    # when 'MultiVariableLookupTable'
+    #   num_ind_var = data['number_independent_variables'].to_i
+    #   table = OpenStudio::Model::TableLookup.new(model)
+    #   table.setName(data['out_var'])
+    #   table.setNormalizationDivisor(data['normalization_reference'].to_f)
+    #   table.setOutputUnitType(data['output_unit_type'])
+    #   data_points = data.each.select { |key, _value| key.include? 'data_point' }
+    #   data_points = data_points.sort_by { |item| item[1].split(',').map(&:to_f) } # sorting data in ascending order
+    #   data_points.each do |_key, value|
+    #     var_dep = value.split(',')[num_ind_var].to_f
+    #     table.addOutputValue(var_dep)
+    #   end
+    #   num_ind_var.times do |i|
+    #     table_indvar = OpenStudio::Model::TableIndependentVariable.new(model)
+    #     table_indvar.setName(data['out_var'] + "_ind_#{i + 1}")
+    #     table_indvar.setInterpolationMethod(data['interpolation_method'])
+    #     table_indvar.setMinimumValue(data["minimum_independent_variable_#{i + 1}"].to_f)
+    #     table_indvar.setMaximumValue(data["maximum_independent_variable_#{i + 1}"].to_f)
+    #     table_indvar.setUnitType(data["input_unit_type_x#{i + 1}"].to_s)
+    #     var_ind_unique = data_points.map { |_key, value| value.split(',')[i].to_f }.uniq
+    #     var_ind_unique.each { |var_ind| table_indvar.addValue(var_ind) }
+    #     table.addIndependentVariable(table_indvar)
+    #   end
+    #   table
+    end
   end
 
   # TODO: revert this back to OS Std methods
@@ -436,7 +651,14 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     # get chiller specifications before upgrade
     # ------------------------------------------------
     applicable_chillers = model.getChillerElectricEIRs
-    counts_chillers_acc, capacity_total_w_acc, cop_weighted_average_acc, counts_chillers_wcc, capacity_total_w_wcc, cop_weighted_average_wcc = UpgradeHvacChiller.chiller_specifications(applicable_chillers)
+    results_before = UpgradeHvacChiller.chiller_specifications(applicable_chillers)
+    counts_chillers_acc = results_before[0]
+    capacity_total_w_acc = results_before[1]
+    cop_weighted_average_acc = results_before[2]
+    counts_chillers_wcc = results_before[3]
+    capacity_total_w_wcc = results_before[4]
+    cop_weighted_average_wcc = results_before[5]
+    curve_summary = results_before[6]
     if debug_verbose
       runner.registerInfo('### ------------------------------------------------------')
       runner.registerInfo('### chiller specs before upgrade')
@@ -446,6 +668,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
       runner.registerInfo("### counts_chillers_wcc = #{counts_chillers_wcc}")
       runner.registerInfo("### capacity_total_w_wcc = #{capacity_total_w_wcc}")
       runner.registerInfo("### cop_weighted_average_wcc = #{cop_weighted_average_wcc}")
+      runner.registerInfo("### curve_summary = #{curve_summary}")
       runner.registerInfo('### ------------------------------------------------------')
     end
 
@@ -491,6 +714,76 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     # replace chiller
     # ------------------------------------------------
 
+    # initialize os standards
+    template = 'ComStock 90.1-2019'
+    std = Standard.build(template)
+
+    # get chillers
+    applicable_chillers.each do |chiller|
+
+      # get chiller type
+      chiller_condenser_type = chiller.condenserType
+
+      # get chiller tonnage
+      if chiller.referenceCapacity.is_initialized
+        capacity_w = chiller.referenceCapacity.get
+      elsif chiller.autosizedReferenceCapacity.is_initialized
+        capacity_w = chiller.autosizedReferenceCapacity.get
+      else
+        runner.registerError("Chiller capacity not available for chiller '#{chiller.name}'.")
+        return false
+      end
+      capacity_ton = OpenStudio.convert(capacity_w, 'ton', 'W').get
+
+      # get performance curve data
+      custom_data_json = ''
+      if chiller_condenser_type == 'AirCooled'
+        # 150ton_screw_variablespd_acc
+        path_data_curve = "#{File.dirname(__FILE__)}/resources/150ton_screw_variablespd_acc/results.json"
+        custom_data_json = JSON.parse(File.read(path_data_curve))
+      elsif chiller_condenser_type == 'WaterCooled'
+        if capacity_ton < 300
+          # 100ton_centrifugal_variablespd_wcc
+          path_data_curve = "#{File.dirname(__FILE__)}/resources/100ton_centrifugal_variablespd_wcc/results.json"
+          custom_data_json = JSON.parse(File.read(path_data_curve))
+        else
+          # 1500ton_centrifugal_variablespd_wcc
+          path_data_curve = "#{File.dirname(__FILE__)}/resources/1500ton_centrifugal_variablespd_wcc/results.json"
+          custom_data_json = JSON.parse(File.read(path_data_curve))
+        end
+      else
+        runner.registerError("#{chiller_condenser_type} chiller not supported in this measure. exiting...")
+        return false
+      end
+      if custom_data_json == ''
+        runner.registerError("found empty performance map. exiting...")
+        return false
+      end
+
+      # get curve objects
+      curve_cap_f_t = model_add_curve(model, 'cap-f-t', custom_data_json, std)
+      curve_eir_f_t = model_add_curve(model, 'eir-f-t', custom_data_json, std)
+      curve_eir_f_plr = model_add_curve(model, 'eir-f-plr', custom_data_json, std)
+
+      # report
+      if debug_verbose
+        runner.registerInfo('### ------------------------------------------------------')
+        runner.registerInfo("### chiller name = #{chiller.name}")
+        runner.registerInfo("### chiller_condenser_type = #{chiller_condenser_type}")
+        runner.registerInfo("### capacity_ton = #{capacity_ton.round(0)}")
+        runner.registerInfo("### capacity_w = #{capacity_w.round(0)}")
+        runner.registerInfo("### curve_cap_f_t = #{curve_cap_f_t}")
+        runner.registerInfo("### curve_eir_f_t = #{curve_eir_f_t}")
+        runner.registerInfo("### curve_eir_f_plr = #{curve_eir_f_plr}")
+        runner.registerInfo('### ------------------------------------------------------')
+      end
+
+      # assign curves
+      chiller.setCoolingCapacityFunctionOfTemperature(curve_cap_f_t)
+      chiller.setElectricInputToCoolingOutputRatioFunctionOfTemperature(curve_eir_f_t)
+      chiller.setElectricInputToCoolingOutputRatioFunctionOfPLR(curve_eir_f_plr)
+    end
+
     # ------------------------------------------------
     # replace variable pump based on ASHRAE 90.1-2019
     # ------------------------------------------------
@@ -506,16 +799,17 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     # get chiller specifications after upgrade
     # ------------------------------------------------
     upgraded_chillers = model.getChillerElectricEIRs
-    counts_chillers_acc, capacity_total_w_acc, cop_weighted_average_acc, counts_chillers_wcc, capacity_total_w_wcc, cop_weighted_average_wcc = UpgradeHvacChiller.chiller_specifications(upgraded_chillers)
+    results_after = UpgradeHvacChiller.chiller_specifications(upgraded_chillers)
     if debug_verbose
       runner.registerInfo('### ------------------------------------------------------')
       runner.registerInfo('### chiller specs after upgrade')
-      runner.registerInfo("### counts_chillers_acc = #{counts_chillers_acc}")
-      runner.registerInfo("### capacity_total_w_acc= #{capacity_total_w_acc}")
-      runner.registerInfo("### cop_weighted_average_acc = #{cop_weighted_average_acc}")
-      runner.registerInfo("### counts_chillers_wcc = #{counts_chillers_wcc}")
-      runner.registerInfo("### capacity_total_w_wcc = #{capacity_total_w_wcc}")
-      runner.registerInfo("### cop_weihted_average_wcc = #{cop_weighted_average_wcc}")
+      runner.registerInfo("### counts_chillers_acc = #{results_after[0]}")
+      runner.registerInfo("### capacity_total_w_acc= #{results_after[1]}")
+      runner.registerInfo("### cop_weighted_average_acc = #{results_after[2]}")
+      runner.registerInfo("### counts_chillers_wcc = #{results_after[3]}")
+      runner.registerInfo("### capacity_total_w_wcc = #{results_after[4]}")
+      runner.registerInfo("### cop_weihted_average_wcc = #{results_after[5]}")
+      runner.registerInfo("### curve_summary = #{results_after[6]}")
       runner.registerInfo('### ------------------------------------------------------')
     end
 
