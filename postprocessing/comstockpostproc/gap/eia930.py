@@ -89,8 +89,8 @@ class EIA930(S3UtilitiesMixin):
             df['local_time'] = df.index.tz_localize('UTC').tz_convert(timezone)
 
             # extract local annual profile
-            mask = (df['local_time'] >= f'{self.year}-01-01 00:00:00') & \
-                (df['local_time'] <= f'{self.year}-12-31 23:00:00')
+            mask = (df['local_time'] > f'{self.year}-01-01 00:00:00') & \
+                (df['local_time'] <= f'{self.year + 1}-01-01 00:00:00')
             
             try:
                 df = df.loc[mask]
@@ -103,7 +103,7 @@ class EIA930(S3UtilitiesMixin):
             regional_profiles[profile] = df['value']
 
         # construct new tz-naive date range for index to avoid DST adjustments
-        new_index = pd.date_range(f'{self.year}-01-01 00:00:00', f'{self.year}-12-31 23:00:00', freq='h')
+        new_index = pd.date_range(f'{self.year}-01-01 01:00:00', f'{self.year + 1}-01-01 00:00:00', freq='h')
 
         df = pd.DataFrame(regional_profiles)
         df.set_index(new_index, inplace=True)
