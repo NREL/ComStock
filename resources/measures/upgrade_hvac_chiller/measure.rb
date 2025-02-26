@@ -786,6 +786,11 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
 
       # set reference COPs
       chiller.setReferenceCOP(cop_full_load)
+
+      # set reference operating conditions
+      # AHRI Standard 550/590 at an air on condenser temperature of 95°F and a leaving chilled water temperature of 44°F
+      chiller.setReferenceLeavingChilledWaterTemperature(6.67) # 44F
+      chiller.setReferenceEnteringCondenserFluidTemperature(35.0) # 95F
     end
 
     # ------------------------------------------------
