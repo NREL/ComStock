@@ -60,7 +60,7 @@ class UpgradeHvacChillerTest < Minitest::Test
       epw_path = epw_path[0]
 
       # apply measure to model
-      apply_model(osm_path)
+      apply_model(osm_path, instance_test_name)
     end
   end
 
@@ -68,7 +68,7 @@ class UpgradeHvacChillerTest < Minitest::Test
   # measure application result
   # initial/final condition check
   # variable speed pump coefficient check
-  def apply_model(path)
+  def apply_model(path, instance_test_name)
     # build standard
     template = 'ComStock 90.1-2019'
     std = Standard.build(template)
@@ -197,8 +197,8 @@ class UpgradeHvacChillerTest < Minitest::Test
       refute_equal(name_eir_f_plr_b, name_eir_f_plr_a)
     end
 
-    # save the model to test output directory
-    # output_file_path = "#{File.dirname(__FILE__)}/output/test_output.osm"
+    # # save the model to test output directory
+    # output_file_path = "#{File.dirname(__FILE__)}/output/#{instance_test_name}.osm"
     # model.save(output_file_path, true)
   end
 
