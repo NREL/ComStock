@@ -857,22 +857,22 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     if counts_chillers_acc_b == 0
       msg_acc = 'No air-cooled chillers are upgraded in this building model.'
     else
-      msg_acc = "Upgraded air-cooled chillers: count = #{counts_chillers_acc_b} -> #{counts_chillers_acc_a}\n \
-      Upgraded air-cooled chillers: total capacity = #{capacity_total_w_acc_b} W -> #{capacity_total_w_acc_a}\n \
-      Upgraded air-cooled chillers: full load COP = #{cop_weighted_average_acc_b} -> #{cop_weighted_average_acc_a}\n \
-      Upgraded air-cooled chillers: curves before upgrade = #{curve_summary_b}\n \
+      msg_acc = "Upgraded air-cooled chillers: count = #{counts_chillers_acc_b} -> #{counts_chillers_acc_a}\n\
+      Upgraded air-cooled chillers: total capacity = #{capacity_total_w_acc_b} W -> #{capacity_total_w_acc_a}\n\
+      Upgraded air-cooled chillers: full load COP = #{cop_weighted_average_acc_b} -> #{cop_weighted_average_acc_a}\n\
+      Upgraded air-cooled chillers: curves before upgrade = #{curve_summary_b}\n\
       Upgraded air-cooled chillers: curves after upgrade = #{curve_summary_a}"
     end
     if counts_chillers_wcc_b == 0
       msg_wcc = 'No water-cooled chillers are upgraded in this building model.'
     else
-      msg_wcc = "Upgraded water-cooled chillers: count = #{counts_chillers_wcc_b} -> #{counts_chillers_wcc_a}\n \
-      Upgraded water-cooled chillers: total capacity = #{capacity_total_w_wcc_b} W -> #{capacity_total_w_wcc_a}\n \
-      Upgraded water-cooled chillers: average weighted full load COP = #{cop_weighted_average_wcc_b} -> #{cop_weighted_average_wcc_a}\n \
-      Upgraded water-cooled chillers: curves before upgrade = #{curve_summary_b}\n \
+      msg_wcc = "Upgraded water-cooled chillers: count = #{counts_chillers_wcc_b} -> #{counts_chillers_wcc_a}\n\
+      Upgraded water-cooled chillers: total capacity = #{capacity_total_w_wcc_b} W -> #{capacity_total_w_wcc_a}\n\
+      Upgraded water-cooled chillers: average weighted full load COP = #{cop_weighted_average_wcc_b} -> #{cop_weighted_average_wcc_a}\n\
+      Upgraded water-cooled chillers: curves before upgrade = #{curve_summary_b}\n\
       Upgraded water-cooled chillers: curves after upgrade = #{curve_summary_a}"
     end
-    msg_final_condition = "#{msg_acc}\n #{msg_wcc}"
+    msg_final_condition = "#{msg_acc}\n#{msg_wcc}"
     runner.registerFinalCondition(msg_final_condition)
 
     return true
