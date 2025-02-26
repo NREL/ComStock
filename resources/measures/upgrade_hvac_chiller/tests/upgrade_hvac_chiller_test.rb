@@ -8,7 +8,6 @@ require 'openstudio-standards'
 require_relative '../measure'
 
 class UpgradeHvacChillerTest < Minitest::Test
-
   def test_number_of_arguments_and_argument_names
     # create an instance of the measure
     measure = UpgradeHvacChiller.new
@@ -23,7 +22,6 @@ class UpgradeHvacChillerTest < Minitest::Test
   end
 
   def test_models
-
     # test models
     test_sets = []
     # test: 380_doas_with_fan_coil_air_cooled_chiller_with_boiler
@@ -63,7 +61,6 @@ class UpgradeHvacChillerTest < Minitest::Test
 
       # apply measure to model
       apply_model(osm_path)
-
     end
   end
 
@@ -72,11 +69,10 @@ class UpgradeHvacChillerTest < Minitest::Test
   # initial/final condition check
   # variable speed pump coefficient check
   def apply_model(path)
-
     # build standard
     template = 'ComStock 90.1-2019'
     std = Standard.build(template)
-    
+
     # create an instance of the measure
     measure = UpgradeHvacChiller.new
 
@@ -115,7 +111,14 @@ class UpgradeHvacChillerTest < Minitest::Test
 
     # get chiller specs before measure
     chillers = model.getChillerElectricEIRs
-    counts_chillers_acc_b, capacity_total_w_acc_b, cop_acc_b, counts_chillers_wcc_b, capacity_total_w_wcc_b, cop_wcc_b = UpgradeHvacChiller.chiller_specifications(chillers)
+    results_b = UpgradeHvacChiller.chiller_specifications(chillers)
+    counts_chillers_acc_b = results_b[0]
+    capacity_total_w_acc_b = results_b[1]
+    cop_acc_b = results_b[2]
+    counts_chillers_wcc_b = results_b[3]
+    capacity_total_w_wcc_b = results_b[4]
+    cop_wcc_b = results_b[5]
+    curve_summary_b = results_b[6]
 
     # get pump specs before measure
     # pumps_const_spd = model.getPumpConstantSpeeds
@@ -129,7 +132,14 @@ class UpgradeHvacChillerTest < Minitest::Test
 
     # get chiller specs after measure
     chillers = model.getChillerElectricEIRs
-    counts_chillers_acc_a, capacity_total_w_acc_a, cop_acc_a, counts_chillers_wcc_a, capacity_total_w_wcc_a, cop_wcc_a = UpgradeHvacChiller.chiller_specifications(chillers)
+    results_a = UpgradeHvacChiller.chiller_specifications(chillers)
+    counts_chillers_acc_a = results_a[0]
+    capacity_total_w_acc_a = results_a[1]
+    cop_acc_a = results_a[2]
+    counts_chillers_wcc_a = results_a[3]
+    capacity_total_w_wcc_a = results_a[4]
+    cop_wcc_a = results_a[5]
+    curve_summary_a = results_a[6]
 
     # get pump specs after measure
     # pumps_const_spd = model.getPumpConstantSpeeds
@@ -164,11 +174,28 @@ class UpgradeHvacChillerTest < Minitest::Test
     end
     assert_equal(counts_chillers_acc_b, counts_chillers_acc_a)
     assert_equal(capacity_total_w_acc_b, capacity_total_w_acc_a)
-    assert_equal(cop_acc_b, cop_acc_a)
+    unless cop_acc_b == 0 # COP equal to zero means case when there is no ACC
+      refute_equal(cop_acc_b, cop_acc_a)
+    end
     assert_equal(counts_chillers_wcc_b, counts_chillers_wcc_a)
     assert_equal(capacity_total_w_wcc_b, capacity_total_w_wcc_a)
-    assert_equal(cop_wcc_b, cop_wcc_a)
+    unless cop_wcc_b == 0 # COP equal to zero means case when there is no WCC
+      refute_equal(cop_wcc_b, cop_wcc_a)
+    end
     assert_equal(true, coefficient_set_different)
+
+    # check curve name changes
+    curve_summary_b.keys.each do |chiller_name|
+      name_cap_f_t_b = curve_summary_b[chiller_name]['cap_f_t']
+      name_eir_f_t_b = curve_summary_b[chiller_name]['eir_f_t']
+      name_eir_f_plr_b = curve_summary_b[chiller_name]['eir_f_plr']
+      name_cap_f_t_a = curve_summary_a[chiller_name]['cap_f_t']
+      name_eir_f_t_a = curve_summary_a[chiller_name]['eir_f_t']
+      name_eir_f_plr_a = curve_summary_a[chiller_name]['eir_f_plr']
+      refute_equal(name_cap_f_t_b, name_cap_f_t_a)
+      refute_equal(name_eir_f_t_b, name_eir_f_t_a)
+      refute_equal(name_eir_f_plr_b, name_eir_f_plr_a)
+    end
 
     # save the model to test output directory
     # output_file_path = "#{File.dirname(__FILE__)}/output/test_output.osm"
