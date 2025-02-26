@@ -372,7 +372,7 @@ class ResidentialProfile(S3UtilitiesMixin):
 
         # multiply State BA fractions by State profiles to get State BA profiles
         res_ba_state_profiles_data = {}
-        for idx, row in res_ba_areas.iterrorws():
+        for idx, row in res_ba_areas.iterrows():
             res_ba_state_profiles_data[idx] = res_hourly_by_state_corrected[idx[0]].mul(row['area_frac'])
 
         res_ba_state_profiles = pd.DataFrame(res_ba_state_profiles_data)
