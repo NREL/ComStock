@@ -1937,7 +1937,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             if bt in comstock_bldg_types:
                 bldg_types_to_keep.append(bt)
 
-        logger.debug("Building types to keep: ", bldg_types_to_keep)
+        logger.debug(f"Building types to keep: {bldg_types_to_keep}")
         if remove_non_comstock_bldg_types_from_cbecs:
             # Modify CBECS to remove building types not covered by ComStock
             cbecs.data = cbecs.data[cbecs.data[self.BLDG_TYPE].isin(bldg_types_to_keep)]
