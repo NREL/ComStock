@@ -7,7 +7,7 @@ require 'openstudio-standards'
 require 'csv'
 
 # require all .rb files in resources folder
-Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }
+Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }  
 
 # resource file modules
 include Make_Performance_Curves
@@ -46,6 +46,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     std = Standard.build(template)
     # get climate zone value
     climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
+	standard_new_motor = Standard.build('90.1-2019') #to reflect new motors
 
     # determine if the air loop is residential (checks to see if there is outdoor air system object)
     # measure will be applicable to residential AC/residential furnace systems
@@ -105,11 +106,22 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     unconditioned_zones = []
     zones_to_skip = []
     all_air_loops = model.getAirLoopHVACs
+	
+   ##apply sizing run to get fan autosizing. confirm if this is necessary for comstock. 	
+   if model.sqlFile.empty?
+	 #runner.registerInfo('Model had no sizing values--running size run')
+	 if std.model_run_sizing_run(model, "#{Dir.pwd}/advanced_rtu_control") == false
+		 runner.registerError('Sizing run for Hardsize model failed, cannot hard-size model.')
+		 return false
+     end
+	 model.applySizingValues
+  end
+
 
     # if a thermal zone started out with no equipment (aka it is unconditioned), skip this zone
     model.getThermalZones.each do |thermal_zone|
       if thermal_zone.equipment.empty?
-        unconditioned_zones << thermal_zone.name.get
+        unconditioned_zones << thermal_zone.name.get 
       # if original zone is typically conditioned with baseboards or unit heaters (as opposed to primary system), maintain zone equipment in this space
       elsif ['Bulk', 'Entry', 'WarehouseUnCond'].any? { |word| (thermal_zone.name.get).include?(word) }
         zones_to_skip << thermal_zone.name.get
@@ -120,6 +132,8 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
       runner.registerAsNotApplicable("Entire building is made up of non-applicable space types. Measure is not applicable.")
       return true
     end
+	
+	zone_fan_data=Hash.new 
 
     if all_air_loops.empty?
       runner.registerInfo("Model does not have any air loops. Get list of PTAC, PTHP, Unit Heater, or Baseboard Electric equipment to delete.")
@@ -130,6 +144,20 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
           next unless equip.to_ZoneHVACPackagedTerminalAirConditioner.is_initialized
           ptacs << equip.to_ZoneHVACPackagedTerminalAirConditioner.get
           equip_to_delete << equip.to_ZoneHVACPackagedTerminalAirConditioner.get
+		  ptac_unit = equip.to_ZoneHVACPackagedTerminalAirConditioner.get
+		   sup_fan=ptac_unit.supplyAirFan
+		   if sup_fan.to_FanOnOff.is_initialized
+				  sup_fan = sup_fan.to_FanOnOff.get
+				  pressure_rise = sup_fan.pressureRise
+				  zone_fan_data[thermal_zone.name.to_s] = Hash.new 
+				  zone_fan_data[thermal_zone.name.to_s]['pressure_rise'] = pressure_rise
+				  motor_hp = std.fan_motor_horsepower(sup_fan) #based on existing fan
+				  motor_bhp = std.fan_brake_horsepower(sup_fan)	
+				  fan_motor_eff = std.fan_standard_minimum_motor_efficiency_and_size(sup_fan, motor_bhp)[0] 
+				  zone_fan_data[thermal_zone.name.to_s]['fan_motor_eff']= fan_motor_eff
+				  fan_eff = std.fan_baseline_impeller_efficiency(sup_fan)
+				  zone_fan_data[thermal_zone.name.to_s]['fan_eff']= fan_eff
+		  end 
         end
       end
 
@@ -139,11 +167,26 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
           next unless equip.to_ZoneHVACPackagedTerminalHeatPump.is_initialized
           pthps << equip.to_ZoneHVACPackagedTerminalHeatPump.get
           equip_to_delete << equip.to_ZoneHVACPackagedTerminalHeatPump.get
+		  pthp_unit = equip.to_ZoneHVACPackagedTerminalHeatPump.get
+		  sup_fan=pthp_unit.supplyAirFan
+          if sup_fan.to_FanOnOff.is_initialized
+				  sup_fan = sup_fan.to_FanOnOff.get
+				  pressure_rise = sup_fan.pressureRise
+				  zone_fan_data[thermal_zone.name.to_s] = Hash.new 
+				  zone_fan_data[thermal_zone.name.to_s]['pressure_rise'] = pressure_rise
+				  motor_hp = std.fan_motor_horsepower(sup_fan) #based on existing fan
+				  motor_bhp = std.fan_brake_horsepower(sup_fan)	
+				  fan_motor_eff = std.fan_standard_minimum_motor_efficiency_and_size(sup_fan, motor_bhp)[0] 
+				  zone_fan_data[thermal_zone.name.to_s]['fan_motor_eff']= fan_motor_eff
+				  fan_eff = std.fan_baseline_impeller_efficiency(sup_fan)
+				  zone_fan_data[thermal_zone.name.to_s]['fan_eff']= fan_eff
+		  end 
         end
       end
+	  
 
       # check for baseboard electric and add to array of zone equipment to delete
-      # if there are PTACs or PTHPs in the building, skips zones with baseboards
+      # if there are PTACs or PTHPs in the building, skips zones with baseboards 
       model.getThermalZones.each do |thermal_zone|
         thermal_zone.equipment.each do |equip|
           next unless equip.to_ZoneHVACBaseboardConvectiveElectric.is_initialized
@@ -202,9 +245,11 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
         end
       end
     end
+	
+	# delete equipment from original loop
+    equip_to_delete.each(&:remove) 
 
-    # delete equipment from original loop
-    equip_to_delete.each(&:remove)
+
 
     # get plant loops and remove
     # only relevant for direct evap coolers with baseboard gas boiler
@@ -326,9 +371,9 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
       air_loop_hvac.remove
     end
 
+
     # Loop through each thermal zone and remove old PTAC/PTHP and replace it with a water-to-air ground source heat pump
     model.getThermalZones.each do |thermal_zone|
-
       #skip if it has baseboards in baseline
       next if zones_to_skip.include? thermal_zone.name.get
       next if unconditioned_zones.include? thermal_zone.name.get
@@ -396,20 +441,30 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
       # new_heating_coil.setHeatingPowerConsumptionCoefficient5(-0.103079864171839)
       condenser_loop.addDemandBranchForComponent(new_heating_coil)
 
-      #add supply fan
-      fan = OpenStudio::Model::FanConstantVolume.new(model)
-      fan.setName("#{thermal_zone.name} Fan")
-      fan.setFanEfficiency(0.63) # from PNNL
-      fan.setPressureRise(50.0) #Pascal
-      fan.setMotorEfficiency(0.29)
-
       # Create a new water-to-air ground source heat pump system
       unitary_system = OpenStudio::Model::AirLoopHVACUnitarySystem.new(model)
       unitary_system.setControlType('Setpoint')
       unitary_system.setCoolingCoil(new_cooling_coil)
       unitary_system.setHeatingCoil(new_heating_coil)
       unitary_system.setControllingZoneorThermostatLocation(thermal_zone)
-      unitary_system.setSupplyFan(fan)
+	  #add supply fan
+	  #check for existing fan data
+	  if  zone_fan_data.key?(thermal_zone.name.to_s) #[thermal_zone.name.to_s].exists?
+		  fan = OpenStudio::Model::FanConstantVolume.new(model)
+		  fan.setName("#{thermal_zone.name} Fan")
+		  fan.setMotorEfficiency(zone_fan_data[thermal_zone.name.to_s]['fan_motor_eff']) #Setting assuming similar size to previous fan, but new and subject to current standards 
+		  fan_eff = 0.55 #since console unit fans would be considered small, set efficiency based on small fan 
+		  fan.setFanEfficiency(fan_eff)
+		  fan.setFanTotalEfficiency(fan_eff*zone_fan_data[thermal_zone.name.to_s]['fan_motor_eff'])
+		  #Set pressure rise based on previous fan, assuming similar pressure drops to before 
+		  fan.setPressureRise(zone_fan_data[thermal_zone.name.to_s]['pressure_rise'])
+	 else #case where there was not a fan present previously 
+		  fan = OpenStudio::Model::FanConstantVolume.new(model)
+		  fan.setName("#{thermal_zone.name} Fan")
+          #autosize other attributes for now, and then set fan and motor efficiencies based on sizing 
+	  
+	  end 
+	  unitary_system.setSupplyFan(fan)
       unitary_system.setFanPlacement('DrawThrough')
       if model.version < OpenStudio::VersionString.new('3.7.0')
         unitary_system.setSupplyAirFlowRateMethodDuringCoolingOperation('SupplyAirFlowRate')
@@ -489,15 +544,18 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
       preheat_sm_location = preheat_coil.outletModelObject.get.to_Node.get
       preheat_coil_setpoint_manager.addToNode(preheat_sm_location)
     end
+	
+	 # delete equipment from original loop
+     # equip_to_delete.each(&:remove) 
 
-    # for zones that got skipped, check if there are already baseboards. if not, add them.
+    # for zones that got skipped, check if there are already baseboards. if not, add them. 
     model.getThermalZones.each do |thermal_zone|
       if unconditioned_zones.include? thermal_zone.name.get
         runner.registerInfo("Thermal zone #{thermal_zone.name} was unconditioned in the baseline, and will not receive a packaged GHP.")
       elsif zones_to_skip.include? thermal_zone.name.get
         #if thermal_zone.equipment.empty? || thermal_zone.equipment.none? { |equip| equip.iddObjectType == OpenStudio::Model::ZoneHVACBaseboardConvectiveElectric.iddObjectType }
         if thermal_zone.equipment.empty?
-          runner.registerInfo("Thermal zone #{thermal_zone.name} will not receive a packaged GHP and will receive electric baseboards instead.")
+          runner.registerInfo("Thermal zone #{thermal_zone.name} will not receive a packaged GHP and will receive electric baseboards instead.")  
           baseboard = OpenStudio::Model::ZoneHVACBaseboardConvectiveElectric.new(model)
           baseboard.setName("#{thermal_zone.name} Electric Baseboard")
           baseboard.setEfficiency(1.0)
@@ -614,6 +672,18 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
           # air flow
           if fan.maximumFlowRate.is_initialized
             fan_air_flow = fan.maximumFlowRate.get
+		  if zone_fan_data.empty? #case where no fan present previously, need to set efficiencies based on sizing
+			  motor_hp = std.fan_motor_horsepower(fan) 
+              motor_bhp = std.fan_brake_horsepower(fan)			  
+			  fan_motor_eff = std.fan_standard_minimum_motor_efficiency_and_size(fan, motor_bhp)[0] 
+			  fan.setMotorEfficiency(fan_motor_eff)
+			  fan_eff = 0.55 #based on "small fan" status 
+			  fan.setFanEfficiency(fan_eff)
+			  fan.setFanTotalEfficiency(fan_eff * fan_motor_eff)
+			  #Set pressure rise based on assumption in OS standards for PTACs, a similar unit style 
+			  fan.setPressureRise(330.96) #setting to same value as PTACs in prototype, in PA 
+
+		  end 
           else
             runner.registerError("Unable to retrieve maximum air flow for fan (#{fan.name})")
             return false
