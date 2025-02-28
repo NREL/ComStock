@@ -716,9 +716,9 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     template = 'ComStock 90.1-2019'
     std = Standard.build(template)
 
-    # get chillers
+    # loop through chillers
     applicable_chillers.each do |chiller|
-      # get chiller type
+      # get chiller condenser type
       chiller_condenser_type = chiller.condenserType
 
       # get chiller tonnage
@@ -796,8 +796,6 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     # ------------------------------------------------
     # replace variable pump based on ASHRAE 90.1-2019
     # ------------------------------------------------
-    # TODO:
-    # do we want to replace constant spd pump to variable spd pump? probs yes
     applicable_pumps.each do |pump|
       if pump.to_PumpVariableSpeed.is_initialized
         pump_variable_speed_control_type(runner, model, pump, debug_verbose)
