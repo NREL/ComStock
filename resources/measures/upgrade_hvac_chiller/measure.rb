@@ -737,21 +737,21 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
       cop_full_load = nil
       case chiller_condenser_type
       when 'AirCooled'
-        # 150ton_screw_variablespd_acc
+        # 150ton_screw_variablespd_acc, curve representing IPLV EER of 16.4
         path_data_curve = "#{File.dirname(__FILE__)}/resources/150ton_screw_variablespd_acc/results.json"
         custom_data_json = JSON.parse(File.read(path_data_curve))
-        cop_full_load = 3.17
+        cop_full_load = 3.17 # equivalent to full load EER of 10.8
       when 'WaterCooled'
         if capacity_ton < 150
-          # 100ton_centrifugal_variablespd_wcc
+          # 100ton_centrifugal_variablespd_wcc, curve representing IPLV EER of 24.8
           path_data_curve = "#{File.dirname(__FILE__)}/resources/100ton_centrifugal_variablespd_wcc/results.json"
           custom_data_json = JSON.parse(File.read(path_data_curve))
         else
-          # 1500ton_centrifugal_variablespd_wcc
+          # 1500ton_centrifugal_variablespd_wcc, curve representing IPLV EER of 24.8
           path_data_curve = "#{File.dirname(__FILE__)}/resources/1500ton_centrifugal_variablespd_wcc/results.json"
           custom_data_json = JSON.parse(File.read(path_data_curve))
         end
-        cop_full_load = 6.83
+        cop_full_load = 6.83 # equivalent to full load EER of 23.3
       else
         runner.registerError("#{chiller_condenser_type} chiller not supported in this measure. exiting...")
         return false
