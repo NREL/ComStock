@@ -1,7 +1,7 @@
 ###This code is meant to process small to moderate amounts of ResStock data from the 2024.2 data release, for any purpose but especially for use in generating standard figures for TA
 # First Author: Elaina Present. Started Q2 FY25.
 # Additional Contributors:
-# Latest edits: 2025-02-26
+# Latest edits: 2025-02-28
 
 import os
 from textwrap import indent
@@ -45,9 +45,7 @@ class process_ResStock_2024_2():
             print ("These columns are not in the data and will be added, with NaNs:")
             print (cols_not_in_data)
         #remake data in standard order and with cols of NAs so that all files have the same columns
-        for col in cols_not_in_data:
-            self.data[col] = np.nan
-        self.data = self.data[cols_in_plan]
+        self.data = self.data.reindex(columns = cols_in_plan, fill_value = np.nan)
         #create lists of columns for use in pivoting and trimming data
         self.cols_to_remove = self.col_plan.loc[self.col_plan['plan']=='remove', 'column'].tolist()
         self.cols_wide = self.col_plan.loc[self.col_plan['plan']=='keep', 'column'].tolist()
@@ -74,25 +72,40 @@ class process_ResStock_2024_2():
                 self.cols_wide = self.cols_wide + [row['column']]
             else:
                 self.cols_to_remove = self.cols_to_remove + [row['column']]
-        plan_for_new_cols_df = self.rate_inputs_df.drop(['fixed monthly cost', 'variable cost per kwh', 'col list for scaling'], axis = 1)
-        self.col_plan = pd.concat([self.col_plan, plan_for_new_cols_df], axis = 0, ignore_index=True)
-    
-    def add_first_costs(self, first_costs_inputs_df):
+        #recalculate energy affordability (fairly hard-coded here, assumes variable neames)
+        self.data["Energy Affordability Ratio"] = self.data["out.bills_local.all_fuels.total.usd"]/self.data["in.representative_income"]
+        #add new cols to col plan (so they will be pivoted or not)
+        plan_for_new_cols_df = rate_inputs_df.drop(['fixed monthly cost', 'variable cost per kwh', 'col list for scaling'], axis = 1)
+        ear_col_plan = pd.DataFrame({'column': ['Energy Affordability Ration'], 
+                                                'col_type': ['unique'], 
+                                                'plan': ['keep'], 
+                                                'Result Type': ['Energy Affordability'],
+                                                'Fuel': ['Energy'], 
+                                                'End Use': ['NA'], 
+                                                'End Use Category':['NA']})
+        self.col_plan = pd.concat([self.col_plan, plan_for_new_cols_df, ear_col_plan], axis = 0, ignore_index=True)
+        self.cols_wide = self.cols_wide + ['Energy Affordability Ratio']
+
+    def add_first_costs(self, first_costs_inputs_df, npv_discount_rate, npv_analysis_period, one_year_bill_savings_col):
         #Add first costs, SPP, and NPV to the dataset
         #(Optional), (Required) for any first cost or NPV results
-        cost_inputs_filepath = os.path.join(self.cost_inputs_folder, self.cost_inputs_filename)
-        cost_inputs = pd.read_csv(cost_inputs_filepath, engine = "pyarrow")
         up_costs = []
+        ssns = []
         for index, row in self.data.iterrows():
             cost = 0
+            ssn = 'NA'
             upgrade = row["upgrade"]
+            #no cost for baseline models
             if upgrade == 0:
                 up_costs.append(cost)
+                ssns.append(ssn)
+            #no cost for models where the upgrade wasn't applicable
             elif (row['applicability']!=True):
                 up_costs.append(cost)
-            else:     #actually calculate costs          
-                #extract necessary data
-                location = row[cost_inputs['Location Field Match'][0]] #just using whatever geographic resolution the first row of Cost Inputs has, for now
+                ssns.append(ssn)
+            #if it's an upgrade and applicable, calculate the cost
+            else:
+                #extract necessary data from this row of model results                
                 climate_zone = int(row["in.ashrae_iecc_climate_zone_2004"][0]) #just the number, not the letter
                 hp_size_btuh = row["out.params.size_heating_system_primary_k_btu_h"]
                 hp_size_tons = (hp_size_btuh *1000)/12000
@@ -102,100 +115,184 @@ class process_ResStock_2024_2():
                 HPWH_gal = row["out.params.size_water_heater_gal"]
                 pool_heater_tons = 1 #proxy for all pool heaters, based loosely on looking at availability at Home Depot website
                 spa_heater_tons = 1 #proxy for all spa heaters
-                applicability_criteria_1 = row[cost_inputs['Applicability Criteria Field1'][0]]#for now this only works if there's just one applicability critiera field that's constant for the whole cost inputs dataset
-
-                # look up sum spec name on upgrade, location, and applicability criteria
-                if row['upgrade'] ==16: #there's no applicability critieria for this one
-                    selected_index = cost_inputs[np.logical_and(cost_inputs['Location Value Match'] == location, 
-                                            cost_inputs["Upgrade"] == upgrade)].index.values.astype(int)[0]
+                location = row[first_costs_inputs_df["Location Field Match"]].iloc[0]#currently assuming the location field (state, county, PUMA, etc. is the same for the entire cost inputs file)
+                #per email received 2025-02-10, this is "a flag to confirm that the home's existing system is not an ASHP"
+                #which is a different thing that it's label, which just asks whether the existing home is ducted
+                #this may need editing in the future
+                if "ashp" in str(row["in.hvac_heating_efficiency"]).lower():
+                    existing_system_ducted = True
                 else:
-                    selected_index = cost_inputs[np.logical_and(np.logical_and(cost_inputs['Location Value Match'] == location, 
-                                            cost_inputs["Upgrade"] == upgrade),
-                                            cost_inputs['Applicability Criteria Values1'] == applicability_criteria_1)].index.values.astype(int)[0]
-                    #print(selected_index)
-            
-                hp_cost_per_ton = cost_inputs.loc[selected_index, "HP Cost Per Ton"]
-                hpwh_cost_per_gal = cost_inputs.loc[selected_index, "HPWH Cost Per Gallon"]
-                pool_heater_cost_per_ton = cost_inputs.loc[selected_index, "Pool Heater Cost Per Ton"]
-                spa_heater_cost_per_ton = cost_inputs.loc[selected_index, "Spa Heater Cost Per Ton"]
-                calc1_constant = cost_inputs.loc[selected_index, "Calc1 Constant"]
-                calc2_constant1 = cost_inputs.loc[selected_index, "Calc2 Constant1"]
-                calc2_constant2 = cost_inputs.loc[selected_index, "Calc2 Constant2"]
-                calc3_constant1 = cost_inputs.loc[selected_index, "Calc3 Constant1"]
-                calc3_constant2 = cost_inputs.loc[selected_index, "Calc3 Constant2"]
-                calc4_constant1 = cost_inputs.loc[selected_index, "Calc4 Constant1"]
-                calc4_constant2 = cost_inputs.loc[selected_index, "Calc4 Constant2"]
-                calc1_coeff = cost_inputs.loc[selected_index, "Calc1 Coeff"]
-                calc2_coeff = cost_inputs.loc[selected_index, "Calc2 Coeff"]
-                calc3_coeff = cost_inputs.loc[selected_index, "Calc3 Coeff"]
-                calc4_coeff = cost_inputs.loc[selected_index, "Calc4 Coeff"]
-                fixed_costs_demo = cost_inputs.loc[selected_index, "Fixed Costs Demo"]
-                fixed_costs_install = cost_inputs.loc[selected_index, "Fixed Costs Install"]
-                #print(hp_cost_per_ton, hpwh_cost_per_gal, pool_heater_cost_per_ton, spa_heater_cost_per_ton, calc1_constant, calc2_constant1,
-                #      calc2_constant2, calc3_constant1, calc3_constant2, calc4_constant1, calc4_constant2, calc1_coeff, calc2_coeff, calc3_coeff, 
-                #      calc4_coeff, fixed_costs_demo, fixed_costs_install)
-                #do the algabraic cost calc
-                calc1 = attic_floor_area_sf * calc1_constant * calc1_coeff
-                calc2 = (num_exterior_doors * calc2_constant1 + num_windows * calc2_constant2) * calc2_coeff
-                if climate_zone < 4:
-                    calc3 = calc3_constant1 * attic_floor_area_sf
+                    existing_system_ducted = False
+                ##get the cost data's appropriate Measure Package code and Sum Spec Name for this row of model results
+                (mp, ssn) = self.get_mp_and_ssn(row) 
+                ##find the correct cost inputs based on location, measure package, and sum spec name
+                cost_inputs_this_row = first_costs_inputs_df[np.logical_and(
+                    np.logical_and(first_costs_inputs_df['Measure Package']==mp,
+                    first_costs_inputs_df['Sum Spec Name']==ssn),
+                    first_costs_inputs_df['Location Value Match'] == location)]
+                #this should always result in a dataframe with one row. If not, throw an error.
+                if len(cost_inputs_this_row) != 1:
+                    print("Error! Matching cost data rows found: ", len(cost_inputs_this_row), ", should be 1")
+                ##extract the first (only) value for each multiplier and coefficient in the ICF cost data
+                hp_cost_per_ton = cost_inputs_this_row["HP Cost (Cost Per Ton)"].iloc[0]
+                hpwh_cost_per_gal = cost_inputs_this_row["HPHW Cost Per Gallon"].iloc[0] #note the ICF col name uses HPHW not HPWH
+                pool_heater_cost_per_ton = cost_inputs_this_row["Pool Heater Cost Per Ton"].iloc[0]
+                spa_heater_cost_per_ton = cost_inputs_this_row["Spa Heater Cost Per Ton"].iloc[0]
+                calc1_coeff = cost_inputs_this_row["Calc1_Coeff - Removal Cost of Insulation"].iloc[0]
+                calc2_coeff = cost_inputs_this_row["Calc2_Coeff - Removal & Install of Caulking"].iloc[0]
+                calc3_coeff = cost_inputs_this_row["Calc3_Coeff - R30 Attic Insulation Installation"].iloc[0]
+                calc4_coeff = cost_inputs_this_row["Calc4_Coeff - R19 Attic Insulation Installation"].iloc[0]
+                calc5_coeff = cost_inputs_this_row["Calc5_Coeff - Demo AC"].iloc[0]
+                calc6_coeff = cost_inputs_this_row["Calc6_Coeff - Remove Refrigerant"].iloc[0]
+                calc7_coeff = cost_inputs_this_row["Calc7_Coeff - Demo AC Labor"].iloc[0]
+                calc8_coeff = cost_inputs_this_row["Calc8_Coeff - Pool Install of Electric"].iloc[0]
+                calc9_coeff = cost_inputs_this_row["Calc9_Coeff - Pool R&R Labor"].iloc[0]
+                calc10_coeff = cost_inputs_this_row["Calc10_Coeff - Spa Install of Electric"].iloc[0]
+                calc11_coeff = cost_inputs_this_row["Calc11_Coeff - Spa R&R Labor"].iloc[0]
+                fixed_costs_demo = cost_inputs_this_row["Offset / Fixed Costs Demo"].iloc[0]
+                fixed_costs_install = cost_inputs_this_row["Offset / Fixed Costs Install"].iloc[0]
+                ##calculate intermediate values needed in cost calculation
+                #note there are a lot of constants hard-coded in here! Double check they are correct for each location
+                #calc1 "CF Removal of Attic Insulation"
+                calc1 = attic_floor_area_sf/2
+                #calc2 "LF of Caulking"
+                calc2 = num_exterior_doors * 20 + num_windows * 18
+                #calc3 "SF of R30 Attic Insulation"
+                if climate_zone <4:
+                    calc3 = attic_floor_area_sf
                 else:
-                    calc3 = calc3_constant2 * attic_floor_area_sf
-                if (climate_zone > 1 and climate_zone) < 4:
-                    calc4 = calc4_constant1 * attic_floor_area_sf
+                    calc3 = 2*attic_floor_area_sf
+                #calc4 "SF of R19 Attic Insulation"
+                if np.logical_and(climate_zone>1, climate_zone<4):
+                    calc4 = attic_floor_area_sf
                 else:
-                    calc4 = calc4_constant2 * attic_floor_area_sf
-                cost = cost + (hp_size_tons * hp_cost_per_ton) + ( #coeffs are 0 where not applicable
-                    HPWH_gal * hpwh_cost_per_gal) + (
-                        pool_heater_tons * pool_heater_cost_per_ton) + (
-                            spa_heater_tons * spa_heater_cost_per_ton) + (
-                                calc1 * calc1_coeff) + (
-                                    calc2 * calc2_coeff) + (
-                                        calc3 * calc3_coeff) + (
-                                            calc4 * calc4_coeff) + (
-                                                fixed_costs_demo + fixed_costs_install)
+                    calc4 = 0
+                #calc5 "Demo AC"
+                if existing_system_ducted == True:
+                    calc5 = 1
+                else:
+                    calc5 = 0
+                #calc6 "Remove refrigerant"
+                if calc5 ==1:
+                    calc6 = 20
+                else:
+                    calc6 = 0
+                #calc7 "Demo AC labor"
+                if calc5 == 1:
+                    calc7 = 3
+                else:
+                    calc7 = 0
+                #calc8 "Pool Install of Electric"
+                if pool_heater_tons > 0:
+                    calc8 = 1
+                else:
+                    calc8 = 0
+                #calc9 "Pool R&R Labor"
+                if pool_heater_tons > 0:
+                    calc9 = 3
+                else:
+                    calc9 = 0
+                #calc10 "Spa Install of Electric"
+                if spa_heater_tons > 0:
+                    calc10 = 1
+                else:
+                    calc10 = 0
+                #calc11 "Spa R&R Labor"
+                if spa_heater_tons > 0:
+                    calc11 = 3
+                else:
+                    calc11 = 0                
+                #calculate the cost, additively
+                #add the fixed_costs
+                cost = cost + fixed_costs_demo + fixed_costs_install
+                #add any heat pump costs
+                #note: have not checked if this works for GHPs
+                #note: this does not round up the HP size to the next "real" size
+                if "pump" in str(row['upgrade.hvac_cooling_efficiency']).lower():
+                    cost = cost + (hp_cost_per_ton * hp_size_tons) + (
+                        calc5 * calc5_coeff #only for some upgrades but coeffs will be 0 when calcs 5-7 these aren't applicable
+                        + calc6 * calc6_coeff
+                        + calc7 * calc7_coeff
+                    )
+                #add any HPWH costs
+                if "pump" in str(row['upgrade.water_heater_efficiency']).lower():
+                    cost = cost + (hpwh_cost_per_gal * HPWH_gal)
+                #add any pool heater costs
+                if "electricity" in str(row['upgrade.misc_pool_heater']).lower():
+                    cost = cost + (pool_heater_cost_per_ton * pool_heater_tons) + (
+                        calc8 * calc8_coeff
+                        + calc9 * calc9_coeff
+                    )
+                #add any spa heater costs
+                if "electricity" in str(row['upgrade.misc_hot_tub_spa']).lower():
+                    cost = cost + (spa_heater_cost_per_ton * spa_heater_tons) + (
+                        calc10 * calc10_coeff
+                        + calc11 * calc11_coeff
+                    )
+                #add any attic insulation costs
+                if "r-" in str(row['upgrade.insulation_ceiling']).lower():
+                    cost = cost + (
+                        calc1 * calc1_coeff #removal of attic insulation
+                        + calc3 * calc3_coeff #SF of R30 attic insulation
+                        + calc4 * calc4_coeff #SF of R19 attic insulation
+                    )
+                #add any air sealing costs
+                if "%" in str(row['upgrade.infiltration_reduction']).lower():
+                    cost = cost + (
+                        calc2 * calc2_coeff #caulking
+                    )
+                #add any new dryer costs
+                #(placeholder) currently these costs are built into the fixed costs for MPs 11-15 so are included in every model in those packages
+                if "electric" in str(row['upgrade.clothes_dryer']).lower():
+                    cost = cost
+                #add any new cooking equipment costs
+                #(placeholder) currently these costs are built into the fixed costs for MPs 11-15 so are included in every model in those packages
+                if "electric" in str(row['upgrade.cooking_range']).lower():
+                    cost = cost
+                #add this cost to the list of costs
                 up_costs.append(float(cost))
-            #print (upgrade)
-            #print (cost)
+                ssns.append(ssn)
         #assign new column of first costs
         self.data['out.first_costs.usd'] = up_costs
-        #assign new column of simple payback periods. Note this is currently not robust at all, assumes there is a column called "out.bills_local.all_fuels.total.usd.savings" which there won't always be (e.g. if you are using direct ResStock bill calcs)
-        self.data['out.simple_payback_period'] = self.data['out.first_costs.usd']/self.data[self.one_year_bill_savings_col]
+        self.data['sum spec name'] = ssns
+        #assign new column of simple payback periods
+        self.data['out.simple_payback_period'] = self.data['out.first_costs.usd']/self.data[one_year_bill_savings_col]
         #calculate NPV
         npv_list = []
-        for id_cost, id_savings in zip(self.data['out.first_costs.usd'], self.data[self.one_year_bill_savings_col]):
-            cost_array = [0]*(self.npv_analysis_period + 1)
+        for id_cost, id_savings in zip(self.data['out.first_costs.usd'], self.data[one_year_bill_savings_col]):
+            cost_array = [0]*(npv_analysis_period + 1)
             cost_array[0] = id_cost
-            savings_array = id_savings * (self.npv_analysis_period + 1)
+            savings_array = id_savings * (npv_analysis_period + 1)
             cash_flows = list(np.array(savings_array)-np.array(cost_array))
             npv = 0
-            for year in range(0, self.npv_analysis_period + 1):
-                npv += (1/((1+self.npv_discount_rate)**year)) * cash_flows[year]
+            for year in range(0, npv_analysis_period + 1):
+                npv += (1/((1+npv_discount_rate)**year)) * cash_flows[year]
             npv_list.append(npv)
         self.data['out.net_present_value'] = npv_list
         #add new cost-related to columns to the list of columns to be kept wide (not pivoted)
-        self.cols_wide = self.cols_wide + ['out.first_costs.usd', 'out.simple_payback_period', 'out.net_present_value']
+        self.cols_wide = self.cols_wide + ['out.first_costs.usd', 'out.simple_payback_period', 'out.net_present_value', 'sum spec name']
         #add new cost-related columns to the column plan
-        first_costs_col_plan = pd.DataFrame({'column': ['out.first_costs.usd', 'out.simple_payback_period', 'out.net_present_value'], 
-                                                'col_type': ['unique', 'unique', 'unique'], 'plan': ['keep', 'keep', 'keep'], 
-                                'Result Type': ['First Cost', 'Simple Payback Period', 'Net Present Value'],
-                                    'Fuel': ['NA', 'NA', 'NA'], 'End Use': ['NA', 'NA', 'NA'], 'End Use Category':['NA', 'NA', 'NA']})
+        first_costs_col_plan = pd.DataFrame({'column': ['out.first_costs.usd', 'out.simple_payback_period', 'out.net_present_value', 'sum spec name'], 
+                                                'col_type': ['unique', 'unique', 'unique', 'unique'], 
+                                                'plan': ['keep', 'keep', 'keep', 'keep'], 
+                                                'Result Type': ['First Cost', 'Simple Payback Period', 'Net Present Value', 'Cost Code'],
+                                                'Fuel': ['NA', 'NA', 'NA', 'NA'], 
+                                                'End Use': ['NA', 'NA', 'NA','NA'], 
+                                                'End Use Category':['NA', 'NA', 'NA', 'NA']})
         self.col_plan = pd.concat([self.col_plan, first_costs_col_plan], axis = 0, ignore_index=True)
-    
-    def add_additional_wide_fields(self, addl_wide_fields_df):
-        #TODO
+
+    def add_additional_wide_fields(self, wide_resstock_merge_fields, wide_newdata_merge_fields, addl_wide_fields_df, addl_wide_fields_col_plan):
         #merge additional wide fields in and add them to the column plan
         #(Optional)
-        for dfw, wide_mergeon_field, wide_merge_col, wide_merge_newname, wide_col_plan in zip(
-            self.dfs_for_wide_fields, self.wide_mergeon_fields, self.wide_merge_cols, self.wide_merge_newnames, self.wide_col_plans):
-            self.data = self.data.merge(dfw, [[wide_mergeon_field, wide_merge_col]], on = wide_mergeon_field, how = "left")
-            self.data.rename(columns = {wide_merge_col:wide_merge_newname}, inplace = True)
-            if self.wide_col_plan == 'pivot':
-                self.cols_to_pivot = self.cols_to_pivot + [wide_merge_newname]
-            elif self.wide_col_plan == 'keep':
-                self.cols_wide = self.cols_wide + [wide_merge_newname]
-            else:
-                self.cols_to_remove = self.cols_to_remove + [wide_merge_newname]
+        self.data = pd.merge(left = self.data,
+                             right = addl_wide_fields_df,
+                             how = 'left',
+                             left_on = wide_resstock_merge_fields,
+                             right_on = wide_newdata_merge_fields)
+        self.col_plan = pd.concat(self.col_plan, addl_wide_fields_col_plan)
+        self.cols_to_pivot = self.cols_to_pivot + addl_wide_fields_col_plan[addl_wide_fields_col_plan["plan"]=="pivot"]
+        self.cols_wide = self.cols_wide + addl_wide_fields_col_plan[addl_wide_fields_col_plan['plan']=='keep']
+        self.cols_to_remove = self.cols_to_remove + addl_wide_fields_col_plan[addl_wide_fields_col_plan['plan']=='remove']
 
     def downselect_columns(self, additional_columns_to_remove):
         self.cols_to_remove = self.cols_to_remove + additional_columns_to_remove
@@ -212,8 +309,12 @@ class process_ResStock_2024_2():
             value_name = "Value"
         )
 
-    def add_additional_long_fields(self, addl_long_fields_df):
-        #TODO
+    def add_additional_long_fields(self, long_resstock_merge_fields, long_newdata_merge_fields, addl_long_fields_df):
+        self.data_long = pd.merge(left= self.data_long,
+                             right = addl_long_fields_df,
+                             how = 'left',
+                             left_on = long_resstock_merge_fields,
+                             right_on = long_newdata_merge_fields)
 
     def categorize_outputs(self):
         #use mappings to get the output categorizations
@@ -229,3 +330,172 @@ class process_ResStock_2024_2():
 
     def add_weighted_values_column(self):
         self.data_long['Weighted Value'] = self.data_long['Value']*self.data_long['weight']
+
+###helper functions below here###
+    def assess_shared_ducts(self, row):
+        #some of the ICF costs are different for units with existing shared ducts. This is EKP's logic to assess which units those are.
+        if np.logical_and((row['in.hvac_has_shared_system'] == 'Heating Only'), (row['in.hvac_heating_type'] == 'Ducted Heating')):
+            return(True)
+        elif np.logical_and((row['in.hvac_has_shared_system'] == 'Heating Only'), (row['in.hvac_heating_type'] == 'Ducted Heat Pump')):
+            return(True)
+        elif np.logical_and((row['in.hvac_has_shared_system'] == 'Heating and Cooling'), (row['in.hvac_heating_type'] == 'Ducted Heating')):
+            return(True)
+        elif np.logical_and((row['in.hvac_has_shared_system'] == 'Heating and Cooling'), (row['in.hvac_heating_type'] == 'Ducted Heat Pump')):
+            return(True)
+        elif np.logical_and((row['in.hvac_has_shared_system'] == 'Heating and Cooling'), (row['in.hvac_cooling_type'] == 'Central AC')):
+            return(True)
+        elif np.logical_and((row['in.hvac_has_shared_system'] == 'Cooling Only'), (row['in.hvac_cooling_type'] == 'central AC')):
+            return(True)
+        else:
+            return(False)
+    
+    def get_mp_and_ssn(self, row):
+        #returns the measure package code and "sum spec name" for each row of modeled data, to allow for matching with the correct ICF data inputs
+        if row["upgrade"] == 1:
+            mp = 'MP1'
+            if row['upgrade.hvac_cooling_efficiency'].lower() == 'ducted heat pump':
+                ssn = 'eASHP'
+            elif row['upgrade.hvac_cooling_efficiency'].lower() == 'non-ducted heat pump':
+                shared_ducts = self.assess_shared_ducts(row)
+                if shared_ducts == True:
+                    ssn = 'eNDMSHPD'
+                else:
+                    ssn = 'eNDMSHP'
+            else:
+                ssn = 'Error'
+        elif row["upgrade"] == 2:
+            mp = 'MP2'
+            if row['upgrade.hvac_cooling_efficiency'].lower() == 'ducted heat pump':
+                ssn = 'hASHP'
+            elif row['upgrade.hvac_cooling_efficiency'].lower() == 'non-ducted heat pump':
+                shared_ducts = self.assess_shared_ducts(row)
+                if shared_ducts == True:
+                    ssn = 'hNDMSHPD'
+                else:
+                    ssn = 'hNDMSHP'
+            else:
+                ssn = 'Error'
+        elif row["upgrade"] == 3:
+            mp = 'MP3'
+            if row['upgrade.hvac_cooling_efficiency'].lower() == 'ducted heat pump':
+                ssn = 'uASHP'
+            elif row['upgrade.hvac_cooling_efficiency'].lower() == 'non-ducted heat pump':
+                shared_ducts = self.assess_shared_ducts(row)
+                if shared_ducts == True:
+                    ssn = 'uNDMSHPD'
+                else:
+                    ssn = 'uNDMSHP'
+            else:
+                ssn = 'Error'
+        elif row["upgrade"] == 4:
+            mp = 'MP4'
+            if row['upgrade.hvac_cooling_efficiency'].lower() == 'ducted heat pump':
+                ssn = 'eASHP'
+            elif row['upgrade.hvac_cooling_efficiency'].lower() == 'non-ducted heat pump':
+                ssn = 'eNDMSHP'
+            else:
+                ssn = 'Error'
+        elif row["upgrade"] == 5:
+            mp = 'MP5'
+            ssn = 'eGHP'
+        elif row["upgrade"] == 6:
+            mp = 'MP6'
+            if row['upgrade.hvac_cooling_efficiency'].lower() == 'ducted heat pump':
+                ssn = 'eASHPwLTE'
+            elif row['upgrade.hvac_cooling_efficiency'].lower() == 'non-ducted heat pump':
+                shared_ducts = self.assess_shared_ducts(row)
+                if shared_ducts == True:
+                    ssn = 'eNDMSHPDwLTE'
+                else:
+                    ssn = 'eNDMSHPwLTE'
+            else:
+                ssn = 'Error'
+        elif row["upgrade"] == 7:
+            mp = 'MP7'
+            if row['upgrade.hvac_cooling_efficiency'].lower() == 'ducted heat pump':
+                ssn = 'hASHPwLTE'
+            elif row['upgrade.hvac_cooling_efficiency'].lower() == 'non-ducted heat pump':
+                shared_ducts = self.assess_shared_ducts(row)
+                if shared_ducts == True:
+                    ssn = 'hNDMSHPDwLTE'
+                else:
+                    ssn = 'hNDMSHPwLTE'
+            else:
+                ssn = 'Error'
+        elif row["upgrade"] == 8:
+            mp = 'MP8'
+            if row['upgrade.hvac_cooling_efficiency'].lower() == 'ducted heat pump':
+                ssn = 'uASHPwLTE'
+            elif row['upgrade.hvac_cooling_efficiency'].lower() == 'non-ducted heat pump':
+                shared_ducts = self.assess_shared_ducts(row)
+                if shared_ducts == True:
+                    ssn = 'uNDMSHPDwLTE'
+                else:
+                    ssn = 'uNDMSHPwLTE'
+            else:
+                ssn = 'Error'
+        elif row["upgrade"] == 9:
+            mp = 'MP9'
+            if row['upgrade.hvac_cooling_efficiency'].lower() == 'ducted heat pump':
+                ssn = 'eASHPwLTE'
+            elif row['upgrade.hvac_cooling_efficiency'].lower() == 'non-ducted heat pump':
+                ssn = 'eNDMSHPwLTE'
+            else:
+                ssn = 'Error'
+        elif row["upgrade"] == 10:
+            mp = 'MP10'
+            ssn = 'eGHPwLTE'
+        elif row["upgrade"] == 11:
+            mp = 'MP11'
+            if row['upgrade.hvac_cooling_efficiency'].lower() == 'ducted heat pump':
+                ssn = 'eASHPwLTEwFA'
+            elif row['upgrade.hvac_cooling_efficiency'].lower() == 'non-ducted heat pump':
+                shared_ducts = self.assess_shared_ducts(row)
+                if shared_ducts == True:
+                    ssn = 'eNDMSHPDwLTEwFA'
+                else:
+                    ssn = 'eNDMSHPwLTEwFA'
+            else:
+                ssn = 'Error'
+        elif row["upgrade"] == 12:
+            mp = 'MP12'
+            if row['upgrade.hvac_cooling_efficiency'].lower() == 'ducted heat pump':
+                ssn = 'hASHPwLTEwFA'
+            elif row['upgrade.hvac_cooling_efficiency'].lower() == 'non-ducted heat pump':
+                shared_ducts = self.assess_shared_ducts(row)
+                if shared_ducts == True:
+                    ssn = 'hNDMSHPDwLTEwFA'
+                else:
+                    ssn = 'hNDMSHPwLTEwFA'
+            else:
+                ssn = 'Error'
+        elif row["upgrade"] == 13:
+            mp = 'MP13'
+            if row['upgrade.hvac_cooling_efficiency'].lower() == 'ducted heat pump':
+                ssn = 'uASHPwLTEwFA'
+            elif row['upgrade.hvac_cooling_efficiency'].lower() == 'non-ducted heat pump':
+                shared_ducts = self.assess_shared_ducts(row)
+                if shared_ducts == True:
+                    ssn = 'uNDMSHPDwLTEwFA'
+                else:
+                    ssn = 'uNDMSHPwLTEwFA'
+            else:
+                ssn = 'Error'
+        elif row["upgrade"] == 14:
+            mp = 'MP14'
+            if row['upgrade.hvac_cooling_efficiency'].lower() == 'ducted heat pump':
+                ssn = 'eASHPwLTEwFA'
+            elif row['upgrade.hvac_cooling_efficiency'].lower() == 'non-ducted heat pump':
+                ssn = 'eNDMSHPwLTEwFA'
+            else:
+                ssn = 'Error'
+        elif row["upgrade"] == 15:
+            mp = 'MP15'
+            ssn = 'eGHPwLTEwFA'
+        elif row["upgrade"] == 16:
+            mp = 'MP16'
+            ssn = "LTE"
+        else:
+            mp = 'Error'
+            ssn = 'Error'
+        return(mp, ssn)
