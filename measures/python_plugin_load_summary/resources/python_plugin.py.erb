@@ -7,27 +7,60 @@ class LoadSummary(EnergyPlusPlugin):
         super().__init__()
         self.need_to_get_handles = True
 
+        # zone name and shortened zone name dictionary
+        zone_dict = {
+<% zone_names.each do |zn| -%>
+<%   zn_sub = zn.downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
+<%=    "            \'#{zn_sub}\': \'#{zn}\'," %>
+<% end -%>
+        }
+
+        # output variable handles
 <% out_vars.each do |ov| -%>
-<%   ov_sub = ov.downcase.gsub(' ', '') -%>
+<%   ov_sub = ov[0].downcase.gsub(' ', '') -%>
 <%   zone_names.each do |zn| -%>
 <%     zn_sub = zn.downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
 <%=    "        self.#{ov_sub}_#{zn_sub}_hndl = None" %>
 <%   end -%>
 <% end -%>
 
+        # global variable handles
+<% op_modes.each do |om| -%>
+<%   py_vars.each do |pv| -%>
+<%=    "        self.#{om}_#{pv}_hndl = None" %>
+<%   end -%>
+<% end -%>
+
     def get_handles(self, state):
 
+        # get output variable handles
 <% out_vars.each do |ov| -%>
-<%   ov_sub = ov.downcase.gsub(' ', '') -%>
+<%   ov_sub = ov[0].downcase.gsub(' ', '') -%>
 <%   zone_names.each do |zn| -%>
 <%     zn_sub = zn.downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
 <%     api = 'self.api.exchange.get_variable_handle' -%>
 <%=    "        self.#{ov_sub}_#{zn_sub}_hndl = #{api}(" %>
 <%=    '            state,' %>
-<%=    "            \'#{ov}\'," %>
+<%=    "            \'#{ov[0]}\'," %>
 <%=    "            \'#{zn}\'," %>
 <%=    '        )' %>
-<%=    '' %>
+<%     unless zn == zone_names[-1] -%>
+<%=      '' %>
+<%     end -%>
+<%   end -%>
+<% end -%>
+
+        # get global handles
+<% op_modes.each do |om| -%>
+<%   py_vars.each do |pv| -%>
+<%     api = 'self.api.exchange.get_global_handle' -%>
+<%=    "        self.#{om}_#{pv}_hndl = #{api}(" %>
+<%=    '            state,' %>
+<%=    "            \'#{om}_#{pv}\'," %>
+<%=    '        )' %>
+<%     unless pv == py_vars[-1] -%>
+<%=      '' %>
+<%     end -%>
 <%   end -%>
 <% end -%>
 
@@ -38,8 +71,9 @@ class LoadSummary(EnergyPlusPlugin):
         if self.need_to_get_handles:
             self.get_handles(state)
 
+        # get output variable values
 <% out_vars.each do |ov| -%>
-<%   ov_sub = ov.downcase.gsub(' ', '') -%>
+<%   ov_sub = ov[0].downcase.gsub(' ', '') -%>
 <%   zone_names.each do |zn| -%>
 <%     zn_sub = zn.downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
 <%     api = 'self.api.exchange.get_variable_value' -%>
@@ -50,7 +84,83 @@ class LoadSummary(EnergyPlusPlugin):
 <%=    '            )' %>
 <%=    '        else:' %>
 <%=    "            self.#{ov_sub}_#{zn_sub} = 0" %>
-<%=    '' %>
+<%     unless zn == zone_names[-1] -%>
+<%=      '' %>
+<%     end -%>
+<%   end -%>
+<% end -%>
+
+        # variable lists
+<% op_modes.each do |om| -%>
+<%   py_vars.each do |pv| -%>
+<%=    "        self.#{om}_#{pv}_list = []" %>
+<%   end -%>
+<% end -%>
+
+        # determine mode
+        mode = 'heating'
+
+        # populate lists
+        if mode == 'heating':
+<% out_vars.each do |ov| -%>
+<%   ov_sub = ov[0].downcase.gsub(' ', '') -%>
+<%   zone_names.each do |zn| -%>
+<%     zn_sub = zn.downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
+<%     py_vars.each do |pv| -%>
+<%       if pv == ov[1] -%>
+<%=        "            self.heating_#{pv}_list.append(" %>
+<%=        "                self.#{ov_sub}_#{zn_sub}" %>
+<%=        '            )' %>
+<%=        "            self.cooling_#{pv}_list.append(0)" %>
+<%=        "            self.floating_#{pv}_list.append(0)" %>
+<%       end -%>
+<%     end -%>
+<%   end -%>
+<% end -%>
+        elif mode == 'cooling':
+<% out_vars.each do |ov| -%>
+<%   ov_sub = ov[0].downcase.gsub(' ', '') -%>
+<%   zone_names.each do |zn| -%>
+<%     zn_sub = zn.downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
+<%     py_vars.each do |pv| -%>
+<%       if pv == ov[1] -%>
+<%=        "            self.heating_#{pv}_list.append(0)" %>
+<%=        "            self.cooling_#{pv}_list.append(" %>
+<%=        "                self.#{ov_sub}_#{zn_sub}" %>
+<%=        '            )' %>
+<%=        "            self.floating_#{pv}_list.append(0)" %>
+<%       end -%>
+<%     end -%>
+<%   end -%>
+<% end -%>
+        elif mode == 'floating':
+<% out_vars.each do |ov| -%>
+<%   ov_sub = ov[0].downcase.gsub(' ', '') -%>
+<%   zone_names.each do |zn| -%>
+<%     zn_sub = zn.downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
+<%     py_vars.each do |pv| -%>
+<%       if pv == ov[1] -%>
+<%=        "            self.heating_#{pv}_list.append(0)" %>
+<%=        "            self.cooling_#{pv}_list.append(0)" %>
+<%=        "            self.floating_#{pv}_list.append(" %>
+<%=        "                self.#{ov_sub}_#{zn_sub}" %>
+<%=        '            )' %>
+<%       end -%>
+<%     end -%>
+<%   end -%>
+<% end -%>
+
+        # set global values
+<% op_modes.each do |om| -%>
+<%   py_vars.each do |pv| -%>
+<%=    '        self.api.exchange.set_global_value(' %>
+<%=    '            state,' %>
+<%=    "            self.#{om}_#{pv}_hndl," %>
+<%=    "            sum(self.#{om}_#{pv}_list)" %>
+<%=    '        )' %>
+<%     unless pv == py_vars[-1] -%>
+<%=      '' %>
+<%     end -%>
 <%   end -%>
 <% end -%>
 
