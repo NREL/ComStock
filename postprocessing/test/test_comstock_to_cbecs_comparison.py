@@ -43,7 +43,7 @@ def test_cbecs_plot_generation():
     stock_estimate = comstockpostproc.comstock_apportionment.Apportion(
         stock_estimation_version='2024R2',  # Only updated when a new stock estimate is published
         truth_data_version='v01',  # Typically don't change this
-        reload_from_cache=True
+        reload_from_cache=False
     )
 
 
