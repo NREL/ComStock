@@ -1983,9 +1983,9 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     chiller_count_150_to_300_tons = 0.0
     chiller_count_300_to_600_tons = 0.0
     chiller_count_600_plus_tons = 0.0
-    chiller_acc_capapcity_fraction_weighted_sum = 0.0
-    chiller_wcc_capapcity_fraction_weighted_sum = 0.0
-    chiller_ecc_capapcity_fraction_weighted_sum = 0.0
+    chiller_acc_capacity_fraction_weighted_sum = 0.0
+    chiller_wcc_capacity_fraction_weighted_sum = 0.0
+    chiller_ecc_capacity_fraction_weighted_sum = 0.0
     model.getChillerElectricEIRs.sort.each do |chiller|
       # get chiller capacity
       if chiller.referenceCapacity.is_initialized
@@ -2014,11 +2014,11 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
       # log condenser type fraction
       if chiller.condenserType == "AirCooled"
-        chiller_acc_capapcity_fraction_weighted_sum += capacity_w
+        chiller_acc_capacity_fraction_weighted_sum += capacity_w
       elsif chiller.condenserType == "WaterCooled"
-        chiller_wcc_capapcity_fraction_weighted_sum += capacity_w
+        chiller_wcc_capacity_fraction_weighted_sum += capacity_w
       elsif chiller.condenserType == "EvaporativelyCooled"
-        chiller_ecc_capapcity_fraction_weighted_sum += capacity_w
+        chiller_ecc_capacity_fraction_weighted_sum += capacity_w
       else
         runner.registerError("Chiller condenser type not available for chiller '#{chiller.name}'.")
         return false
@@ -2049,12 +2049,12 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     runner.registerValue('com_report_hvac_count_chillers_150_to_300_tons', chiller_count_150_to_300_tons)
     runner.registerValue('com_report_hvac_count_chillers_300_to_600_tons', chiller_count_300_to_600_tons)
     runner.registerValue('com_report_hvac_count_chillers_600_plus_tons', chiller_count_600_plus_tons)
-    chiller_acc_capapcity_fraction = chiller_total_capacity_w > 0.0 ? chiller_acc_capapcity_fraction_weighted_sum / chiller_total_capacity_w : 0.0
-    chiller_wcc_capapcity_fraction = chiller_total_capacity_w > 0.0 ? chiller_wcc_capapcity_fraction_weighted_sum / chiller_total_capacity_w : 0.0
-    chiller_ecc_capapcity_fraction = chiller_total_capacity_w > 0.0 ? chiller_ecc_capapcity_fraction_weighted_sum / chiller_total_capacity_w : 0.0
-    runner.registerValue('com_report_hvac_chiller_acc_capapcity_fraction', chiller_acc_capapcity_fraction)
-    runner.registerValue('com_report_hvac_chiller_wcc_capapcity_fraction', chiller_wcc_capapcity_fraction)
-    runner.registerValue('com_report_hvac_chiller_ecc_capapcity_fraction', chiller_ecc_capapcity_fraction)
+    chiller_acc_capacity_fraction = chiller_total_capacity_w > 0.0 ? chiller_acc_capacity_fraction_weighted_sum / chiller_total_capacity_w : 0.0
+    chiller_wcc_capacity_fraction = chiller_total_capacity_w > 0.0 ? chiller_wcc_capacity_fraction_weighted_sum / chiller_total_capacity_w : 0.0
+    chiller_ecc_capacity_fraction = chiller_total_capacity_w > 0.0 ? chiller_ecc_capacity_fraction_weighted_sum / chiller_total_capacity_w : 0.0
+    runner.registerValue('com_report_hvac_chiller_acc_capacity_fraction', chiller_acc_capacity_fraction)
+    runner.registerValue('com_report_hvac_chiller_wcc_capacity_fraction', chiller_wcc_capacity_fraction)
+    runner.registerValue('com_report_hvac_chiller_ecc_capacity_fraction', chiller_ecc_capacity_fraction)
 
     # water to air heat pump cooling capacity, load, and efficiencies
     wa_hp_cooling_total_electric_j = 0.0
