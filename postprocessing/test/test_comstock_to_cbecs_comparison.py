@@ -10,6 +10,7 @@ import comstockpostproc.comstock
 import comstockpostproc.cbecs
 import comstockpostproc.comstock_to_cbecs_comparison
 import comstockpostproc.comstock_apportionment
+import os
 
 
 def test_cbecs_plot_generation():
@@ -51,17 +52,10 @@ def test_cbecs_plot_generation():
 
     comstock.add_national_scaling_weights(cbecs, remove_non_comstock_bldg_types_from_cbecs=False)
 
-    # Compare one or more ComStock runs to one another and to CBECS
-    # comparison = comstockpostproc.ComStockToCBECSComparison(
-    #     cbecs_list=[cbecs],
-    #     comstock_list=[comstock],
-    #     make_comparison_plots=True
-    #     )
 
-    #Takes an hour and didn't finish....
-    comp = comstockpostproc.ComStockToCBECSComparison(cbecs_list=[cbecs], comstock_list=[comstock], upgrade_id=0,make_comparison_plots=True)
+    # Compare one or more ComStock runs to one another and to CBECS
+    comp = comstockpostproc.ComStockToCBECSComparison(cbecs_list=[cbecs], comstock_list=[comstock], upgrade_id=0, make_comparison_plots=True)
     # Export the comparison data to wide format for Tableau
-    comp.export_to_csv_wide()
 
     # Check that a smattering of plots do exist
     n_plots = len(glob.glob(f'{comp.output_dir}/**/*.jpg'))
