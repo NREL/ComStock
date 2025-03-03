@@ -437,7 +437,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
 
     # Get climate zone
     climate_zone = pump.plantLoop.get.model.getClimateZones.getClimateZone(0)
-    climate_zone = climate_zone.value.to_s
+    climate_zone = climate_zone.value.to_s # this is the modified part compared to the original line
 
     # Get nameplate hp threshold:
     # The thresholds below represent the nameplate
