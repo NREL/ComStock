@@ -121,3 +121,25 @@ To add a new TSV file follow these steps:
 5. Open the tsv_sampling.py file and go to the `TSV_ARRAYS` class variable
 6. Add the name of the new TSV file to the array of arrays following all dependencies in the TSV. i.e. if the TSV depends on `building_type` and `weekday_start_time` add the new TSV name as a string immediatly following `weekday_start_time`.
 7. Do a test run of the `tsv_sampling.py` script to ensure the TSV addition works as expected.
+
+## Special Instructions if changing `hvac_system_type.tsv`, `hvac_system_size_bin.tsv`, or `heating_fuel.tsv`
+Both the HVAC System Type and Heating Fuel distributions are used in postprocessing as well as sampling. In addition, these files are used to define the model sample segments which are defined in the `bucket_definition_file` input to the `tsv_sampling.py`. As such, when either of these files are updated the new files must be uploaded to S3, the `bucket_definition_file`(s) updated, and then the output of `tsv_sampling.py` validated against the updated files. These steps are addressed in order.
+
+### Uploading the new files to S3
+Both of these files live in the `s3://eulp/truth_data/v01/StockE/` folder in the resbldg account. In that folder both files are versioned (seperately from the TSV file version or EUSS version) and each new added file needs to be added as ther sequential version of said file. For example, if `hvac_system_type_v1.tsv`, `hvac_system_type_v2.tsv`, and `hvac_system_type_v3.tsv` already exist then the updated file should be uploaded as `hvac_system_type_v4.tsv`. Upload the new file(s) with updated version identifiers.
+
+### Updating the `bucket_definition_file`s
+The three files discussed in this section are used in the segmentation apportionment sampling process. To support this, slight updates / changes must be made to the `comstock_apportionment.py` file in the postprocessing folder. First, the relevant file names that have been updated and loaded to S3 must be updated in the `Aportion` class' `__init__` method. Ensure each file has the correct updated version identifier and save changes before proceeding.
+
+Next, the `Apportionment` class needs to be loaded and the `generate_sampling_input` method used to create new input bucket definition files. The method is setup to automatically generate files for 1 and 12 samples per segment / bucket, which is the standard at time of writing for test runs and production runs respectivly. To run this code the following must be run in a python interperter which has comstockpostproc installed.
+
+```py
+import comstockpostproc as cspp
+stock_estimate = cspp.Apportion(
+    stock_estimation_version='2024R2',  # Only updated when a new stock estimate is published
+    truth_data_version='v01'  # Typically don't change this
+)
+stock_estimate.generate_sampling_input()
+```
+
+This will write two files to this sampling directory, 
