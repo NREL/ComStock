@@ -74,6 +74,9 @@ RUN apt-get update && apt-get install -y \
     python3.11 get-pip.py && \
     rm get-pip.py
 
+RUN apt-get update && apt-get install -y git
+RUN python3.11 -m pip install --upgrade pip
+RUN python3.11 -m pip install git+https://github.com/betsrg/GHEDesigner.git@0436e75834255327fbc33372d2e230c5a7a50a49
 RUN python3.11 -m pip install "numpy<2"
 RUN python3.11 -m pip install GHEDesigner==1.0
 RUN python3.11 -m pip install NREL-PySAM==4.2.0
