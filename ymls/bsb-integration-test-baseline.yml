@@ -13,20 +13,23 @@ baseline:
   n_buildings_represented: 10
   custom_gems: True
 
-os_version: 3.6.1
-os_sha: bb9481519e
+os_version: 3.8.0
+os_sha: f953b6fcaf
 workflow_generator:
   type: commercial_default
   args:
     reporting_measures:
     - measure_dir_name: SimulationOutputReport
     - measure_dir_name: comstock_sensitivity_reports
-    - measure_dir_name: emissions_reporting
     - measure_dir_name: qoi_report
+      arguments:
+        run_qaqc: false
     - measure_dir_name: simulation_settings_check
       arguments:
         run_sim_settings_checks: true
+    - measure_dir_name: emissions_reporting
+    - measure_dir_name: utility_bills
     - measure_dir_name: run_directory_cleanup
     timeseries_csv_export:
-       reporting_frequency: Timestep
-       inc_output_variables: false
+        reporting_frequency: Timestep
+        inc_output_variables: false

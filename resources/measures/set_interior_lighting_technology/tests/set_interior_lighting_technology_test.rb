@@ -1,14 +1,14 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2024 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
-require 'openstudio'
-require 'openstudio/ruleset/ShowRunnerOutput'
-require 'minitest/autorun'
-require_relative '../measure.rb'
-require_relative '../../../../test/helpers/minitest_helper'
+
+# dependencies
 require 'fileutils'
+require 'minitest/autorun'
+require 'openstudio'
+require 'openstudio/measure/ShowRunnerOutput'
+require_relative '../measure'
 
 class SetInteriorLightingTechnologyTest < MiniTest::Test
-
   def test_number_of_arguments_and_argument_names
     # this test ensures that the current test is matched to the measure inputs
 
@@ -136,8 +136,10 @@ class SetInteriorLightingTechnologyTest < MiniTest::Test
     # make sure it assigned a high bay fixture to the gym spaces
     model.getSpaceTypes.each do |space_type|
       next unless space_type.name.to_s == 'SecondarySchool Gym'
+
       space_type.lights.each do |light|
         next unless light.name.to_s == 'SecondarySchool Gym General Lighting'
+
         light_definition = light.lightsDefinition
         lighting_technology = light_definition.additionalProperties.getFeatureAsString('lighting_technology').to_s
         assert_equal(lighting_technology, 'HID High Bay Metal Halide')
@@ -225,7 +227,7 @@ class SetInteriorLightingTechnologyTest < MiniTest::Test
     model.save(output_file_path, true)
   end
 
-  def test_RtL
+  def test_rtl
     # create an instance of the measure
     measure = SetInteriorLightingTechnology.new
 
@@ -262,5 +264,4 @@ class SetInteriorLightingTechnologyTest < MiniTest::Test
     output_file_path = "#{File.dirname(__FILE__)}/output/test_RtL.osm"
     model.save(output_file_path, true)
   end
-
 end

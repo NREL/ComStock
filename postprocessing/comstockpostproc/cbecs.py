@@ -15,6 +15,8 @@ from comstockpostproc.s3_utilities_mixin import S3UtilitiesMixin
 
 logger = logging.getLogger(__name__)
 
+# Use future pandas behavior, which we handled by casting column type after .replace() calls
+pd.set_option('future.no_silent_downcasting', True)
 
 class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
     def __init__(self, cbecs_year, truth_data_version, color_hex=NamingMixin.COLOR_CBECS_2012, weighted_energy_units='tbtu', weighted_utility_units='billion_usd', reload_from_csv=False):
@@ -54,7 +56,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         self.download_data()
         if reload_from_csv:
             file_name = f'CBECS wide.csv'
-            file_path = os.path.join(self.output_dir, file_name)
+            file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
             if not os.path.exists(file_path):
                  raise FileNotFoundError(
                     f'Cannot find {file_path} to reload data, set reload_from_csv=False to create CSV.')
@@ -79,8 +81,30 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
         assert isinstance(self.data, pd.DataFrame)
         logging.info(f'Created {self.dataset_name} with {len(self.data)} rows')
+
         self.data = self.data.astype(str)
+        #Convert columns with name in self.FLR_AREA or weight to numeric 
+        numeric_patterns = [
+            self.FLR_AREA,
+            self.BLDG_WEIGHT,
+            'weight',
+            'energy_consumption',
+            'calc.weighted',
+            'sqft',
+            'intensity'
+        ]
+
+        for col in self.data.columns:
+            if any(pattern in col for pattern in numeric_patterns):
+                try:
+                    self.data[col] = pd.to_numeric(self.data[col], errors='coerce')
+                except:
+                    # If conversion fails, keep as string
+                    pass
+
+        # Then convert to polars with schema overrides
         self.data = pl.from_pandas(self.data).lazy()
+
         assert isinstance(self.data, pl.LazyFrame)
 
     def download_data(self):
@@ -104,7 +128,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         if not os.path.exists(file_path):
             s3_file_path = f'truth_data/{self.truth_data_version}/EIA/CBECS/{file_name}'
             self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
-    
+
 
     def load_data(self):
         # Load raw microdata and codebook and decode numeric keys to strings using codebook
@@ -483,4 +507,9 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
         file_name = f'CBECS wide.csv'
         file_path = os.path.join(self.output_dir, file_name)
-        self.data.to_csv(file_path, index=False)
+        try:
+            self.data.sink_csv(file_path)
+        except pl.exceptions.InvalidOperationError:
+            logger.warn('Warning - sink_csv not supported for metadata write in current polars version')
+            logger.warn('Falling back to .collect.write_csv')
+            self.data.collect().write_csv(file_path)

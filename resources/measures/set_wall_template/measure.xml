@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>set_wall_template</name>
   <uid>3d02e4de-a6ad-4d83-8331-078f9fd5bb6f</uid>
-  <version_id>1cfe28de-1c49-4751-b51d-55c42a4594b0</version_id>
-  <version_modified>2024-06-20T18:58:41Z</version_modified>
+  <version_id>5a9d06f9-a5c3-48c4-a905-733ddfac7ecf</version_id>
+  <version_modified>2024-11-12T20:38:45Z</version_modified>
   <xml_checksum>66CE07BA</xml_checksum>
   <class_name>SetWallTemplate</class_name>
   <display_name>Set Wall Template</display_name>
@@ -530,19 +530,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>924C20FA</checksum>
+      <checksum>82CC940E</checksum>
     </file>
     <file>
-      <filename>Rt3-DEER Pre-1975-DXEH-CEC T24-CEC1.osm</filename>
-      <filetype>osm</filetype>
-      <usage_type>test</usage_type>
-      <checksum>D0AEC51B</checksum>
-    </file>
-    <file>
-      <filename>measure_test.rb</filename>
+      <filename>set_wall_template_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>7A9D265F</checksum>
+      <checksum>D345E09E</checksum>
     </file>
   </files>
 </measure>
