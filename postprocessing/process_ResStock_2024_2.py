@@ -76,7 +76,7 @@ class process_ResStock_2024_2():
         self.data["Energy Affordability Ratio"] = self.data["out.bills_local.all_fuels.total.usd"]/self.data["in.representative_income"]
         #add new cols to col plan (so they will be pivoted or not)
         plan_for_new_cols_df = rate_inputs_df.drop(['fixed monthly cost', 'variable cost per kwh', 'col list for scaling'], axis = 1)
-        ear_col_plan = pd.DataFrame({'column': ['Energy Affordability Ration'], 
+        ear_col_plan = pd.DataFrame({'column': ['Energy Affordability Ratio'], 
                                                 'col_type': ['unique'], 
                                                 'plan': ['keep'], 
                                                 'Result Type': ['Energy Affordability'],
@@ -262,7 +262,8 @@ class process_ResStock_2024_2():
         for id_cost, id_savings in zip(self.data['out.first_costs.usd'], self.data[one_year_bill_savings_col]):
             cost_array = [0]*(npv_analysis_period + 1)
             cost_array[0] = id_cost
-            savings_array = id_savings * (npv_analysis_period + 1)
+            savings_array = [id_savings] * (npv_analysis_period + 1)
+            savings_array[0] = 0
             cash_flows = list(np.array(savings_array)-np.array(cost_array))
             npv = 0
             for year in range(0, npv_analysis_period + 1):
@@ -289,10 +290,13 @@ class process_ResStock_2024_2():
                              how = 'left',
                              left_on = wide_resstock_merge_fields,
                              right_on = wide_newdata_merge_fields)
-        self.col_plan = pd.concat(self.col_plan, addl_wide_fields_col_plan)
-        self.cols_to_pivot = self.cols_to_pivot + addl_wide_fields_col_plan[addl_wide_fields_col_plan["plan"]=="pivot"]
-        self.cols_wide = self.cols_wide + addl_wide_fields_col_plan[addl_wide_fields_col_plan['plan']=='keep']
-        self.cols_to_remove = self.cols_to_remove + addl_wide_fields_col_plan[addl_wide_fields_col_plan['plan']=='remove']
+        self.col_plan = pd.concat([self.col_plan, addl_wide_fields_col_plan], axis = 0, ignore_index = True)
+        addl_wide_cols_to_pivot = addl_wide_fields_col_plan[addl_wide_fields_col_plan["plan"]=="pivot"]['column'].tolist()
+        addl_wide_cols_to_keep = addl_wide_fields_col_plan[addl_wide_fields_col_plan["plan"]=="keep"]['column'].tolist()
+        addl_wide_cols_to_remove = addl_wide_fields_col_plan[addl_wide_fields_col_plan["plan"]=="remove"]['column'].tolist()
+        self.cols_to_pivot = self.cols_to_pivot + addl_wide_cols_to_pivot
+        self.cols_wide = self.cols_wide + addl_wide_cols_to_keep
+        self.cols_to_remove = self.cols_to_remove + addl_wide_cols_to_remove
 
     def downselect_columns(self, additional_columns_to_remove):
         self.cols_to_remove = self.cols_to_remove + additional_columns_to_remove
