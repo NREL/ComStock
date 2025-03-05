@@ -3,7 +3,7 @@ require 'minitest/reporters'
 require 'parallel'
 require 'rubocop/rake_task'
 
-# Add this configuration here
+# generate the xml reports from tests.
 Minitest::Reporters.use! [
   Minitest::Reporters::DefaultReporter.new,
   Minitest::Reporters::JUnitReporter.new("test/reports")
