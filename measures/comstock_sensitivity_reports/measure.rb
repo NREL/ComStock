@@ -1977,6 +1977,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     chiller_total_load_j = 0.0
     chiller_load_weighted_cop = 0.0
     chiller_load_weighted_design_cop = 0.0
+    chiller_load_weighted_iplv_eer = 0.0
     chiller_total_capacity_w = 0.0
     chiller_count_0_to_75_tons = 0.0
     chiller_count_75_to_150_tons = 0.0
@@ -2033,10 +2034,20 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       # get chiller design cop
       chiller_design_cop = chiller.referenceCOP
 
+      # get chiller IPLV
+      var_val_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName = 'EquipmentSummary' AND ReportForString = 'Entire Facility' AND TableName = 'Chillers' AND RowName = '#{chiller.name.to_s.upcase}' AND ColumnName = 'IPLV in IP Units [Btu/W-h]'"
+      val = sql.execAndReturnFirstDouble(var_val_query)
+      if val.is_initialized
+        chiller_iplv_eer = val.get
+      else
+        runner.registerWarning('Chiller IPLV EER not available.')
+      end
+
       # add to weighted load cop
       chiller_total_load_j += chiller_load_j
       chiller_load_weighted_cop += chiller_load_j * chiller_annual_cop
       chiller_load_weighted_design_cop += chiller_load_j * chiller_design_cop
+      chiller_load_weighted_iplv_eer += chiller_load_j * chiller_iplv_eer
     end
     average_chiller_cop = chiller_total_load_j > 0.0 ? chiller_load_weighted_cop / chiller_total_load_j : 0.0
     runner.registerValue('com_report_hvac_average_chiller_cop', average_chiller_cop)
@@ -2055,6 +2066,12 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     runner.registerValue('com_report_hvac_chiller_acc_capacity_fraction', chiller_acc_capacity_fraction)
     runner.registerValue('com_report_hvac_chiller_wcc_capacity_fraction', chiller_wcc_capacity_fraction)
     runner.registerValue('com_report_hvac_chiller_ecc_capacity_fraction', chiller_ecc_capacity_fraction)
+    chiller_iplv_eer = chiller_total_load_j > 0.0 ? chiller_load_weighted_iplv_eer / chiller_total_load_j : 0.0
+    runner.registerValue('com_report_hvac_chiller_iplv_eer', chiller_iplv_eer)
+
+    runner.registerInfo("### DEBUGGING: ---------------------------------------------------")
+    runner.registerInfo("### DEBUGGING: chiller_iplv_eer = #{chiller_iplv_eer}")
+    runner.registerInfo("### DEBUGGING: ---------------------------------------------------")
 
     # water to air heat pump cooling capacity, load, and efficiencies
     wa_hp_cooling_total_electric_j = 0.0
