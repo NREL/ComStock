@@ -31,6 +31,12 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     chw_oat_reset.setDefaultValue(true)
     args << chw_oat_reset
 
+    # add outdoor air temperature reset for condenser water temperature
+    cw_oat_reset = OpenStudio::Measure::OSArgument.makeBoolArgument('cw_oat_reset', true)
+    cw_oat_reset.setDisplayName('Add outdoor air temperature reset for condenser water temperature?')
+    cw_oat_reset.setDefaultValue(true)
+    args << cw_oat_reset
+
     # print out details?
     debug_verbose = OpenStudio::Measure::OSArgument.makeBoolArgument('debug_verbose', true)
     debug_verbose.setDisplayName('Print out detailed debugging logs if this parameter is true')
@@ -678,6 +684,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
 
     # read input arguments
     chw_oat_reset = runner.getBoolArgumentValue('chw_oat_reset', user_arguments)
+    cw_oat_reset = runner.getBoolArgumentValue('cw_oat_reset', user_arguments)
     debug_verbose = runner.getBoolArgumentValue('debug_verbose', user_arguments)
 
     # build standard
@@ -855,10 +862,15 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     # ------------------------------------------------
     # control upgrades
     # ------------------------------------------------
-    if chw_oat_reset
+    if chw_oat_reset || cw_oat_reset
       plant_loops = model.getPlantLoops
       plant_loops.each do |plant_loop|
-        std.plant_loop_enable_supply_water_temperature_reset(plant_loop)
+        if chw_oat_reset
+          std.plant_loop_enable_supply_water_temperature_reset(plant_loop)
+        end
+        if cw_oat_reset
+          std.plant_loop_apply_prm_baseline_condenser_water_temperatures(plant_loop)
+        end
       end
     end
 
