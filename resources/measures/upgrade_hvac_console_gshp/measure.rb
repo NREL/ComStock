@@ -34,6 +34,32 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
   def arguments(model)
     args = OpenStudio::Measure::OSArgumentVector.new
 
+    # add options for envelope and lighting measures for measure packages
+    # add wall insulation option
+    walls = OpenStudio::Measure::OSArgument.makeBoolArgument('walls', true)
+    walls.setDisplayName('Upgrade Wall Insulation?')
+    walls.setDefaultValue(false)
+    args << walls
+
+    # add roof insulation option
+    roof = OpenStudio::Measure::OSArgument.makeBoolArgument('roof', true)
+    roof.setDisplayName('Upgrade Roof Insulation?')
+    roof.setDefaultValue(false)
+    args << roof
+
+    # add new windows option
+    windows = OpenStudio::Measure::OSArgument.makeBoolArgument('windows', true)
+    windows.setDisplayName('Upgrade to New Windows?')
+    windows.setDefaultValue(false)
+    args << windows
+
+    # add LED lighting option
+    lighting = OpenStudio::Measure::OSArgument.makeBoolArgument('lighting', true)
+    lighting.setDisplayName('Upgrade to LED Lighting?')
+    lighting.setDefaultValue(false)
+    args << lighting
+
+
     return args
   end
 
@@ -41,12 +67,17 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
   def run(model, runner, user_arguments)
     super(model, runner, user_arguments)
 
+    walls = runner.getBoolArgumentValue('walls', user_arguments)
+    roof = runner.getBoolArgumentValue('roof', user_arguments)
+    windows = runner.getBoolArgumentValue('windows', user_arguments)
+    lighting = runner.getBoolArgumentValue('lighting', user_arguments)
+
     # build standard to use OS standards methods
     template = 'ComStock 90.1-2019'
     std = Standard.build(template)
     # get climate zone value
     climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
-	standard_new_motor = Standard.build('90.1-2019') #to reflect new motors
+	  standard_new_motor = Standard.build('90.1-2019') #to reflect new motors
 
     # determine if the air loop is residential (checks to see if there is outdoor air system object)
     # measure will be applicable to residential AC/residential furnace systems
@@ -268,6 +299,31 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     if pthps.empty? && ptacs.empty? && baseboards.empty? && unit_heaters.empty? && selected_air_loops.empty?
       runner.registerAsNotApplicable('HVAC system in model is not compatible with console GSHP upgrade.')
       return true
+    end
+
+    # after finished checking for non applicable models, run envelope measures as package if user arguments are true
+    # run wall insulation measure if user argument is true
+    if walls == true
+      runner.registerInfo("Running Wall Insulation measure....")
+      call_walls(model, runner)
+    end
+
+    # run roof insulation measure if user argument is true
+    if roof == true
+      runner.registerInfo("Running Roof Insulation measure....")
+      call_roof(model, runner)
+    end
+
+    # run new windows measure if user argument is true
+    if windows == true
+      runner.registerInfo("Running New Windows measure....")
+      call_windows(model, runner)
+    end
+        
+    # run new windows measure if user argument is true
+    if lighting == true
+      runner.registerInfo("Running LED Lighting measure....")
+      call_lighting(model, runner)
     end
 
     cond_loop_setpoint_c = 18.3 #65F

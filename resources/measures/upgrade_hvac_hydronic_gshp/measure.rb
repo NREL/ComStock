@@ -133,6 +133,31 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     cop.setDefaultValue(2.85)
     args << cop
 
+    # add options for envelope and lighting measures for measure packages
+    # add wall insulation option
+    walls = OpenStudio::Measure::OSArgument.makeBoolArgument('walls', true)
+    walls.setDisplayName('Upgrade Wall Insulation?')
+    walls.setDefaultValue(false)
+    args << walls
+
+    # add roof insulation option
+    roof = OpenStudio::Measure::OSArgument.makeBoolArgument('roof', true)
+    roof.setDisplayName('Upgrade Roof Insulation?')
+    roof.setDefaultValue(false)
+    args << roof
+
+    # add new windows option
+    windows = OpenStudio::Measure::OSArgument.makeBoolArgument('windows', true)
+    windows.setDisplayName('Upgrade to New Windows?')
+    windows.setDefaultValue(false)
+    args << windows
+
+    # add LED lighting option
+    lighting = OpenStudio::Measure::OSArgument.makeBoolArgument('lighting', true)
+    lighting.setDisplayName('Upgrade to LED Lighting?')
+    lighting.setDefaultValue(false)
+    args << lighting
+
     args
   end
 
@@ -233,6 +258,10 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     hp_des_cap_htg = runner.getDoubleArgumentValue('hp_des_cap_htg', user_arguments)
     hp_des_cap_clg = runner.getDoubleArgumentValue('hp_des_cap_clg', user_arguments)
     cop = runner.getDoubleArgumentValue('cop', user_arguments)
+    walls = runner.getBoolArgumentValue('walls', user_arguments)
+    roof = runner.getBoolArgumentValue('roof', user_arguments)
+    windows = runner.getBoolArgumentValue('windows', user_arguments)
+    lighting = runner.getBoolArgumentValue('lighting', user_arguments)
 
     # Get chw setpoint
     chw_setpoint_c = OpenStudio.convert(chw_setpoint_F, 'F', 'C').get
@@ -380,6 +409,31 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
           end
         end
       end
+    end
+
+    # after finished checking for non applicable models, run envelope measures as package if user arguments are true
+    # run wall insulation measure if user argument is true
+    if walls == true
+      runner.registerInfo("Running Wall Insulation measure....")
+      call_walls(model, runner)
+    end
+
+    # run roof insulation measure if user argument is true
+    if roof == true
+      runner.registerInfo("Running Roof Insulation measure....")
+      call_roof(model, runner)
+    end
+
+    # run new windows measure if user argument is true
+    if windows == true
+      runner.registerInfo("Running New Windows measure....")
+      call_windows(model, runner)
+    end
+        
+    # run new windows measure if user argument is true
+    if lighting == true
+      runner.registerInfo("Running LED Lighting measure....")
+      call_lighting(model, runner)
     end
 
     # change to model.getBoilers....
