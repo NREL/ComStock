@@ -169,7 +169,10 @@ def call_lighting(model, runner)
     lighting_measure = LightLED.new
     runner_lighting = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
 
+    lighting_measure_args = lighting_measure.arguments(model)
     lighting_arg_map = OpenStudio::Measure::OSArgumentMap.new
+    lighting_generation = lighting_measure_args[0].clone
+    lighting_arg_map['lighting_generation'] = lighting_generation
     puts("******arg map******* = #{lighting_arg_map}")
 
     lighting_measure.run(model, runner_lighting, lighting_arg_map)
@@ -182,7 +185,6 @@ def call_lighting(model, runner)
         runner.registerInfo('LED Lighting measure was not applicable.')
     else
         runner.registerError('LED Lighting measure failed.')
-        return true
-        exit
+        return false
     end
 end
