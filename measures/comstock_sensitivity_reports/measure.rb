@@ -2050,6 +2050,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       if val.is_initialized
         chiller_iplv_eer = val.get
       else
+        chiller_iplv_eer = 0.0
         runner.registerWarning('Chiller IPLV EER not available.')
       end
 
