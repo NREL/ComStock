@@ -2035,7 +2035,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       chiller_design_cop = chiller.referenceCOP
 
       # get chiller IPLV
-      var_val_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName = 'EquipmentSummary' AND ReportForString = 'Entire Facility' AND TableName = 'Chillers' AND RowName = '#{chiller.name.to_s.upcase}' AND ColumnName = 'IPLV in IP Units [Btu/W-h]'"
+      var_val_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName = 'EquipmentSummary' AND ReportForString = 'Entire Facility' AND TableName = 'Central Plant' AND RowName = '#{chiller.name.to_s.upcase}' AND ColumnName = 'IPLV in IP Units' AND Units = 'Btu/W-h'"
       val = sql.execAndReturnFirstDouble(var_val_query)
       if val.is_initialized
         chiller_iplv_eer = val.get
@@ -2069,10 +2069,6 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     runner.registerValue('com_report_hvac_chiller_ecc_capacity_fraction', chiller_ecc_capacity_fraction)
     chiller_iplv_eer = chiller_total_load_j > 0.0 ? chiller_load_weighted_iplv_eer / chiller_total_load_j : 0.0
     runner.registerValue('com_report_hvac_chiller_iplv_eer', chiller_iplv_eer)
-
-    runner.registerInfo("### DEBUGGING: ---------------------------------------------------")
-    runner.registerInfo("### DEBUGGING: chiller_iplv_eer = #{chiller_iplv_eer}")
-    runner.registerInfo("### DEBUGGING: ---------------------------------------------------")
 
     # water to air heat pump cooling capacity, load, and efficiencies
     wa_hp_cooling_total_electric_j = 0.0
