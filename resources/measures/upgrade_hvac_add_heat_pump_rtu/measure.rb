@@ -1775,10 +1775,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 		  elsif htg_schedule.get.to_ScheduleRuleset.empty?
 			runner.registerWarning("Schedule '#{htg_schedule.get.name.get}' is not a ScheduleRuleset, will not be adjusted")
 			next 
-		 else
+		  else
 			htg_schedule = htg_schedule.get.to_ScheduleRuleset.get
-	  	  for tstat_rule in updated_tstat_schedule.scheduleRules
+		   end 
+	  	for tstat_rule in updated_tstat_schedule.scheduleRules
 			   tstat_profile = tstat_rule.daySchedule ##AA confirm one profile per rule 
+			   tstat_profile_size = tstat_profile.values.uniq.size
 		  if tstat_profile_size == 2 # profile is square wave (2 setpoints, occupied vs unoccupied) #disregarding flat profile for now, no existing setbacks 
 			 tstat_profile.values.each_with_index do |value, i| #iterate thru profile and modify values as needed 
 				  if value == tstat_profile_min
@@ -1800,6 +1802,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 			end 
 		 end 
 	  end 
+	 end 
       # for unitary systems
       if air_loop_hvac_unitary_system?(air_loop_hvac)
 
