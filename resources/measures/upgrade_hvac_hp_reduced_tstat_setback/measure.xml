@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>hp_reduced_tstat_setback</name>
   <uid>9e72165d-3ca5-4278-bfcf-da4558a23f94</uid>
-  <version_id>932c04e0-04d5-42cb-a0e0-e894716787b9</version_id>
-  <version_modified>2025-02-26T21:32:02Z</version_modified>
+  <version_id>5f854d8c-195e-47be-b661-c147456b5027</version_id>
+  <version_modified>2025-03-04T19:00:41Z</version_modified>
   <xml_checksum>DF46FBEA</xml_checksum>
   <class_name>HPReducedTstatSetback</class_name>
   <display_name>Heat_Pump_Reduced_Thermostat_Setback</display_name>
@@ -77,7 +77,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>31911FF7</checksum>
+      <checksum>248A30C9</checksum>
     </file>
     <file>
       <filename>example_model.osm</filename>
