@@ -2982,7 +2982,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 # Calculate the absolute and percent savings
                 abs_svgs = (base_vals[val_cols] - up_vals[val_cols])
 
-                pct_svgs = ((base_vals[val_cols] - up_vals[val_cols]) / base_vals[val_cols])
+                pct_svgs = ((base_vals[val_cols] - up_vals[val_cols]) / base_vals[val_cols]) * 100
                 pct_svgs = pct_svgs.fill_null(0.0)
                 pct_svgs = pct_svgs.fill_nan(0.0)
 
