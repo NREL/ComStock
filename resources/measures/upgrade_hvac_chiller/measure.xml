@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>upgrade_hvac_chiller</name>
   <uid>54c1432f-b483-4700-95fd-a11c570a5391</uid>
-  <version_id>b05318d6-784c-4afb-a6ab-925690bf2af3</version_id>
-  <version_modified>2025-03-05T15:17:15Z</version_modified>
+  <version_id>08c185f0-a837-46b8-9f12-fd68088f15be</version_id>
+  <version_modified>2025-03-05T16:32:35Z</version_modified>
   <xml_checksum>7B6EEA4F</xml_checksum>
   <class_name>UpgradeHvacChiller</class_name>
   <display_name>upgrade_hvac_chiller</display_name>
@@ -152,7 +152,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>19B33D64</checksum>
+      <checksum>F1876DB9</checksum>
     </file>
     <file>
       <filename>100ton_centrifugal_variablespd_wcc/results.idf</filename>
@@ -194,7 +194,7 @@
       <filename>upgrade_hvac_chiller_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>0E550E04</checksum>
+      <checksum>1BABA37A</checksum>
     </file>
   </files>
 </measure>
