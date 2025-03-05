@@ -1781,6 +1781,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 	  	for tstat_rule in htg_schedule.scheduleRules
 			   tstat_profile = tstat_rule.daySchedule ##AA confirm one profile per rule 
 			   tstat_profile_size = tstat_profile.values.uniq.size
+			   tstat_profile_min = tstat_profile.values.min
+			   tstat_profile_max = tstat_profile.values.max
 		  if tstat_profile_size == 2 # profile is square wave (2 setpoints, occupied vs unoccupied) #disregarding flat profile for now, no existing setbacks 
 			 tstat_profile.values.each_with_index do |value, i| #iterate thru profile and modify values as needed 
 				  if value == tstat_profile_min
