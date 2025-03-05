@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>upgrade_hvac_chiller</name>
   <uid>54c1432f-b483-4700-95fd-a11c570a5391</uid>
-  <version_id>e1553443-8fd8-43a8-b1b9-77192e6c6c1b</version_id>
-  <version_modified>2025-03-05T14:54:01Z</version_modified>
+  <version_id>b05318d6-784c-4afb-a6ab-925690bf2af3</version_id>
+  <version_modified>2025-03-05T15:17:15Z</version_modified>
   <xml_checksum>7B6EEA4F</xml_checksum>
   <class_name>UpgradeHvacChiller</class_name>
   <display_name>upgrade_hvac_chiller</display_name>
@@ -14,6 +14,24 @@
     <argument>
       <name>chw_oat_reset</name>
       <display_name>Add outdoor air temperature reset for chilled water supply temperature?</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>true</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>cw_oat_reset</name>
+      <display_name>Add outdoor air temperature reset for condenser water temperature?</display_name>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -111,7 +129,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>D26DA187</checksum>
+      <checksum>805D0218</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -134,7 +152,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>B1EEC10C</checksum>
+      <checksum>19B33D64</checksum>
     </file>
     <file>
       <filename>100ton_centrifugal_variablespd_wcc/results.idf</filename>

@@ -28,6 +28,15 @@ ModelMeasure
 **Model Dependent:** false
 
 
+### Add outdoor air temperature reset for condenser water temperature?
+
+**Name:** cw_oat_reset,
+**Type:** Boolean,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+
 ### Print out detailed debugging logs if this parameter is true
 
 **Name:** debug_verbose,
