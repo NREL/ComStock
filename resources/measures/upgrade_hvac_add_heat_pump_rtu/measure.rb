@@ -1765,7 +1765,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 	  
 	  ##implement updated setbacks 
 	  zones = air_loop_hvac.thermalZones
-	  for zone in zones:
+	  zones.sort.each do |thermal_zone|
 	      next unless thermal_zone.thermostatSetpointDualSetpoint.is_initialized
 		  zone_thermostat = thermal_zone.thermostatSetpointDualSetpoint.get
 		  htg_schedule = zone_thermostat.heatingSetpointTemperatureSchedule
