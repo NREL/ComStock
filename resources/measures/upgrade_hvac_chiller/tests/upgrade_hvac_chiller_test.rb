@@ -17,8 +17,10 @@ class UpgradeHvacChillerTest < Minitest::Test
 
     # get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(1, arguments.size)
-    assert_equal('debug_verbose', arguments[0].name)
+    assert_equal(3, arguments.size)
+    assert_equal('chw_oat_reset', arguments[0].name)
+    assert_equal('cw_oat_reset', arguments[1].name)
+    assert_equal('debug_verbose', arguments[2].name)
   end
 
   def test_models
@@ -100,10 +102,19 @@ class UpgradeHvacChillerTest < Minitest::Test
     # populate argument with specified hash value if specified
     arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      if arg.name == 'debug_verbose'
+      case arg.name
+      when 'debug_verbose'
         debug_verbose = arguments[idx].clone
         debug_verbose.setValue(true)
         argument_map[arg.name] = debug_verbose
+      when 'chw_oat_reset'
+        chw_oat_reset = arguments[idx].clone
+        chw_oat_reset.setValue(true)
+        argument_map[arg.name] = chw_oat_reset
+      when 'cw_oat_reset'
+        cw_oat_reset = arguments[idx].clone
+        cw_oat_reset.setValue(true)
+        argument_map[arg.name] = cw_oat_reset
       else
         argument_map[arg.name] = temp_arg_var
       end
@@ -126,6 +137,9 @@ class UpgradeHvacChillerTest < Minitest::Test
     # _, pump_rated_flow_total_c, _, _, = UpgradeHvacChiller.pump_specifications(applicable_pumps, pumps_const_spd, std)
     _, _, _, _, coeff1_b, coeff2_b, coeff3_b, coeff4_b = UpgradeHvacChiller.pump_specifications([], pumps_var_spd, std)
 
+    # get control specs before measure
+    fraction_chw_oat_reset_enabled_b, fraction_cw_oat_reset_enabled_b = UpgradeHvacChiller.control_specifications(model)
+
     # run the measure
     measure.run(model, runner, argument_map)
     result = runner.result
@@ -146,6 +160,9 @@ class UpgradeHvacChillerTest < Minitest::Test
     pumps_var_spd = model.getPumpVariableSpeeds
     # _, pump_rated_flow_total_c, _, _, = UpgradeHvacChiller.pump_specifications(applicable_pumps, pumps_const_spd, std)
     _, _, _, _, coeff1_a, coeff2_a, coeff3_a, coeff4_a = UpgradeHvacChiller.pump_specifications([], pumps_var_spd, std)
+
+    # get control specs after measure
+    fraction_chw_oat_reset_enabled_a, fraction_cw_oat_reset_enabled_a = UpgradeHvacChiller.control_specifications(model)
 
     # show the output
     show_output(result)
@@ -195,6 +212,16 @@ class UpgradeHvacChillerTest < Minitest::Test
       refute_equal(name_cap_f_t_b, name_cap_f_t_a)
       refute_equal(name_eir_f_t_b, name_eir_f_t_a)
       refute_equal(name_eir_f_plr_b, name_eir_f_plr_a)
+    end
+
+    # check control specs
+    puts("### DEBUGGING: fraction_chw_oat_reset_enabled_b = #{fraction_chw_oat_reset_enabled_b} | fraction_chw_oat_reset_enabled_a = #{fraction_chw_oat_reset_enabled_a}")
+    puts("### DEBUGGING: fraction_cw_oat_reset_enabled_b = #{fraction_cw_oat_reset_enabled_b} | fraction_cw_oat_reset_enabled_a = #{fraction_cw_oat_reset_enabled_a}")
+    refute_equal(fraction_chw_oat_reset_enabled_b, fraction_chw_oat_reset_enabled_a)
+    if counts_chillers_wcc_b == 0
+      assert_equal(fraction_cw_oat_reset_enabled_a, 0.0)
+    else
+      assert_equal(fraction_cw_oat_reset_enabled_a, 1.0)
     end
 
     # # save the model to test output directory
