@@ -173,7 +173,6 @@ def call_lighting(model, runner)
     lighting_arg_map = OpenStudio::Measure::OSArgumentMap.new
     lighting_generation = lighting_measure_args[0].clone
     lighting_arg_map['lighting_generation'] = lighting_generation
-    puts("******arg map******* = #{lighting_arg_map}")
 
     lighting_measure.run(model, runner_lighting, lighting_arg_map)
     lighting_result = runner_lighting.result
