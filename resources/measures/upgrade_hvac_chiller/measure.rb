@@ -208,34 +208,49 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
 
   # get control specifications
   def self.control_specifications(model)
-
     # initialize variables
-    total_count_spm = 0.0
+    total_count_spm_chw = 0.0
+    total_count_spm_cw = 0.0
     fraction_chw_oat_reset_enabled_sum = 0.0
+    fraction_cw_oat_reset_enabled_sum = 0.0
 
     # get plant loops
     plant_loops = model.getPlantLoops
 
     # get pump specs
     plant_loops.each do |plant_loop|
+      # get loop type
+      sizing_plant = plant_loop.sizingPlant
+      loop_type = sizing_plant.loopType
 
       # get setpoint managers
       spms = plant_loop.supplyOutletNode.setpointManagers
 
-      # get control specifications
-      spms.each do |spm|
-        total_count_spm += 1
-        if spm.to_SetpointManagerOutdoorAirReset.is_initialized
-          fraction_chw_oat_reset_enabled_sum += 1
+      case loop_type
+      when 'Cooling'
+        # get control specifications
+        spms.each do |spm|
+          total_count_spm_chw += 1
+          if spm.to_SetpointManagerOutdoorAirReset.is_initialized
+            fraction_chw_oat_reset_enabled_sum += 1
+          end
+        end
+      when 'Condenser'
+        # get control specifications
+        spms.each do |spm|
+          total_count_spm_cw += 1
+          if spm.to_SetpointManagerFollowOutdoorAirTemperature.is_initialized
+            fraction_cw_oat_reset_enabled_sum += 1
+          end
         end
       end
-      
     end
 
     # calculate fractions
-    fraction_chw_oat_reset_enabled = total_count_spm > 0.0 ? fraction_chw_oat_reset_enabled_sum / total_count_spm : 0.0
+    fraction_chw_oat_reset_enabled = total_count_spm_chw > 0.0 ? fraction_chw_oat_reset_enabled_sum / total_count_spm_chw : 0.0
+    fraction_cw_oat_reset_enabled = total_count_spm_cw > 0.0 ? fraction_cw_oat_reset_enabled_sum / total_count_spm_cw : 0.0
 
-    return fraction_chw_oat_reset_enabled
+    return fraction_chw_oat_reset_enabled, fraction_cw_oat_reset_enabled
   end
 
   # method to search through a hash for an object that meets the name criteria
@@ -845,7 +860,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
       chiller.setReferenceCOP(cop_full_load)
 
       # set reference operating conditions
-      # AHRI Standard 550/590 at an air on condenser temperature of 95°F and a leaving chilled water temperature of 44°F
+      # AHRI Standard 550/590 at an air on condenser temperature of 95F and a leaving chilled water temperature of 44F
       chiller.setReferenceLeavingChilledWaterTemperature(6.67) # 44F
       chiller.setReferenceEnteringCondenserFluidTemperature(35.0) # 95F
     end
