@@ -438,6 +438,7 @@ results.csv,com_stock_sensitivity_reports.com_report_hvac_boiler_total_other_fue
 results.csv,com_stock_sensitivity_reports.com_report_hvac_capacity_weighted_primary_gas_coil_efficiency,out.params.primary_gas_coil_average_efficiency,TRUE,FALSE,float,,,capacity weighted nominal thermal efficiency of primary gas equipment
 results.csv,com_stock_sensitivity_reports.com_report_hvac_supplemental_capacity_weighted_gas_coil_efficiency,out.params.supplemental_gas_coil_average_efficiency,TRUE,FALSE,float,,,capacity weighted nominal thermal efficiency of supplemental gas equipment
 results.csv,com_stock_sensitivity_reports.com_report_hvac_chiller_capacity_tons,out.params.chiller_capacity,TRUE,FALSE,float,tons,tons,Sum of chiller capacity
+results.csv,com_stock_sensitivity_reports.com_report_hvac_cooling_tower_water_use_m3,out.params.cooling_tower_water_use,TRUE,FALSE,float,m3,m3,"total water use from cooling towers includeing evaporation, drift, and blowdown"
 results.csv,com_stock_sensitivity_reports.com_report_hvac_cooling_equipment_tons,out.params.cooling_equipment_capacity,TRUE,FALSE,float,tons,tons,Sum of cooling equipment capacity
 results.csv,com_stock_sensitivity_reports.com_report_hvac_count_boilers,out.params.hvac_count_boilers,TRUE,FALSE,float,,,Count of boilers
 results.csv,com_stock_sensitivity_reports.com_report_hvac_count_boilers_0_to_300_kbtuh,out.params.hvac_count_boilers_0_to_300_kbtuh,TRUE,FALSE,float,,,Count of boilers in size range
