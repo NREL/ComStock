@@ -46,6 +46,32 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
   def arguments(_model)
     args = OpenStudio::Measure::OSArgumentVector.new
 
+    # add options for envelope and lighting measures for measure packages
+    # add wall insulation option
+    walls = OpenStudio::Measure::OSArgument.makeBoolArgument('walls', true)
+    walls.setDisplayName('Upgrade Wall Insulation?')
+    walls.setDefaultValue(false)
+    args << walls
+
+    # add roof insulation option
+    roof = OpenStudio::Measure::OSArgument.makeBoolArgument('roof', true)
+    roof.setDisplayName('Upgrade Roof Insulation?')
+    roof.setDefaultValue(false)
+    args << roof
+
+    # add new windows option
+    windows = OpenStudio::Measure::OSArgument.makeBoolArgument('windows', true)
+    windows.setDisplayName('Upgrade to New Windows?')
+    windows.setDefaultValue(false)
+    args << windows
+
+    # add LED lighting option
+    lighting = OpenStudio::Measure::OSArgument.makeBoolArgument('lighting', true)
+    lighting.setDisplayName('Upgrade to LED Lighting?')
+    lighting.setDefaultValue(false)
+    args << lighting
+
+    # add options for efficiency measures to be combined with GHP
     # add dcv option
     dcv = OpenStudio::Measure::OSArgument.makeBoolArgument('dcv', true)
     dcv.setDisplayName('Add Demand Control Ventilation?')
@@ -194,7 +220,10 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     # assign user inputs to variables
     dcv = runner.getBoolArgumentValue('dcv', user_arguments)
     econ = runner.getBoolArgumentValue('econ', user_arguments)
-
+    walls = runner.getBoolArgumentValue('walls', user_arguments)
+    roof = runner.getBoolArgumentValue('roof', user_arguments)
+    windows = runner.getBoolArgumentValue('windows', user_arguments)
+    lighting = runner.getBoolArgumentValue('lighting', user_arguments)
 
     # check if GroundHeatExchanger:Vertical is present (for package runs)
     if model.getObjectsByType(OpenStudio::Model::GroundHeatExchangerVertical.iddObjectType).size > 0
@@ -308,10 +337,35 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
       end
     end
 
-    # Check if there are any packaged single zone systems in the model
+    # check if there are any packaged single zone systems in the model
     if (psz_air_loops.size == 0) && (pvav_air_loops.size == 0)
       runner.registerAsNotApplicable('Model has no applicable air loops, measure is not applicable.')
       return true
+    end
+
+    # after finished checking for non applicable models, run envelope measures as package if user arguments are true
+    # run wall insulation measure if user argument is true
+    if walls == true
+      runner.registerInfo("Running Wall Insulation measure....")
+      call_walls(model, runner)
+    end
+
+    # run roof insulation measure if user argument is true
+    if roof == true
+      runner.registerInfo("Running Roof Insulation measure....")
+      call_roof(model, runner)
+    end
+
+    # run new windows measure if user argument is true
+    if windows == true
+      runner.registerInfo("Running New Windows measure....")
+      call_windows(model, runner)
+    end
+        
+    # run new windows measure if user argument is true
+    if lighting == true
+      runner.registerInfo("Running LED Lighting measure....")
+      call_lighting(model, runner)
     end
 
     # remove existing plant loops from model
@@ -933,55 +987,14 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
 
     # add dcv to air loop if dcv arg is true
     if dcv == true
-      require_relative '../upgrade_hvac_dcv/measure.rb'
-
-      #get path to DCV measure
-      dcv_measure_path = Dir.glob(File.join(__dir__, '../upgrade_hvac_dcv'))
-      
-      # Load dcv measure
-      dcv_measure = HVACDCV.new
-
-      # Apply dcv measure
-      runner_child_dcv = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
-      dcv_result = dcv_measure.run(model, runner_child_dcv, OpenStudio::Measure::OSArgumentMap.new)
-      dcv_result = runner.result
-
-      # Check if the measure ran successfully
-      if dcv_result.value.valueName == 'Success'
-        runner_child_dcv.registerInfo('DCV measure was applied successfully.')
-      elsif dcv_result.value.valueName == 'NA'
-        runner_child_dcv.registerInfo('DCV measure was not applicable.')
-      else
-        runner_child_dcv.registerError('DCV measure failed.')
-        return  false
-      end
+      runner.registerInfo("Calling DCV measure....")
+      call_dcv(model, runner)
     end
 
     # add economizer if economizer arg is true
     if econ == true
-      require_relative '../upgrade_hvac_economizer/measure.rb'
-
-      #get path to economizer measure
-      econ_measure_path = Dir.glob(File.join(__dir__, '../upgrade_hvac_economizer'))
-      
-      # Load economizer measure
-      econ_measure = HVACEconomizer.new
-
-      # Apply economizer measure
-      runner_child_economizer = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
-      econ_result = econ_measure.run(model, runner_child_economizer, OpenStudio::Measure::OSArgumentMap.new)
-      econ_result = runner.result
-
-      # Check if the measure ran successfully
-      if econ_result.value.valueName == 'Success'
-        runner_child_economizer.registerInfo('Economizer measure was applied successfully.')
-      elsif result.value.valueName == 'NA'
-        runner_child_economizer.registerInfo('Economizer measure was not applicable.')
-        econ_result = true
-      else
-        runner_child_economizer.registerError('Economizer measure failed.')
-        return  false
-      end
+      runner.registerInfo("Calling Economizer measure....")
+      call_economizer(model, runner)
     end
 
     # do sizing run to get coil capacities to scale coil performance data
