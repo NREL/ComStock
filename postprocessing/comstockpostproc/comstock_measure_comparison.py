@@ -52,7 +52,7 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
             logger.error(f'Cannot compare upgrades for {comstock_object.dataset_name}, retry with include_upgrades=True')
             return
 
-        start_time = pd.Timestamp.now() 
+        start_time = pd.Timestamp.now()
         # make output directories; create dictionary to store upgrade ID as key and upgrade name as value
         for upgrade, upgrade_name in self.dict_upid_to_upname.items():
 
@@ -72,7 +72,7 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 if self.data.select(self.UPGRADE_ID).dtypes == [pl.Int64]: # in test run it's pl.Int64
                     up_base_id = 0
                     upgrade_id = int(upgrade)
-                
+
                 # convert grouping column from cat to str to avoid processing errors with more than 2 measures
                 self.data = self.data.with_columns(pl.col(self.UPGRADE_NAME).cast(str))
                 assert self.data.select(self.column_for_grouping).dtypes == [pl.String]
@@ -89,7 +89,7 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
                     self.make_plots(df_upgrade, self.column_for_grouping, states, make_timeseries_plots, color_map, self.dict_measure_dir[upgrade])
                 else:
                     logger.info("make_comparison_plots is set to false, so not plots were created. Set make_comparison_plots to True for plots.")
-    
+
 
         # make plots comparing multiple upgrades together
         for comp_name, comp_up_ids in self.upgrade_ids_for_comparison.items():
@@ -106,7 +106,7 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
 
                 # filter to requested upgrades
                 df_upgrade: pl.LazyFrame = self.data.filter(pl.col(self.UPGRADE_ID).is_in(comp_up_ids))
-                
+
                 ## set color map for colors and measure ordering in plots
                 color_dict = self.linear_gradient(self.COLOR_COMSTOCK_BEFORE, self.COLOR_COMSTOCK_AFTER, len(comp_up_ids))
                 color_map = {}
@@ -184,6 +184,9 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
 
         LazyFramePlotter.plot_with_lazy(plot_method=self.plot_qoi_min_use, lazy_frame=lazy_frame.clone(),
                                         columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.QOI_COLUMNS))(**BASIC_PARAMS)
+
+        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_unmet_hours, lazy_frame=lazy_frame.clone(),
+                                        columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.UNMET_HOURS_COLS))(**BASIC_PARAMS)
 
         if make_timeseries_plots:
             TIMESERIES_PARAMS = {'comstock_run_name': self.comstock_run_name, 'states': states, 'color_map': color_map,

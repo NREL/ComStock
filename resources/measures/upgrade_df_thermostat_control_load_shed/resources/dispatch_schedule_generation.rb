@@ -890,7 +890,7 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path=nil, run_
 end
 
 ### read cambium/egrid emission factors
-def read_emission_factors(model, scenario, year=2018)
+def read_emission_factors(model, scenario, year=2021)
   lbm_to_kg = OpenStudio.convert(1.0, 'lb_m', 'kg').get
   # set cambium and egrid regions
   grid_region = model.getBuilding.additionalProperties.getFeatureAsString('grid_region')
@@ -970,7 +970,7 @@ def emission_prediction(load, factor, num_timesteps_in_hr)
     hourly_emissions_kg = hourly_load_mwh.zip(factor).map { |n, f| n * f }
   elsif factor.is_a?(Numeric)
     # egrid factor
-    hourly_emissions_kg = (hourly_load_mwh.inject(:+)) * factor
+    hourly_emissions_kg = hourly_load_mwh.map {|n| n * factor}
   else
     raise "Bad emission factors"
   end

@@ -167,6 +167,7 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     peak_lag = runner.getIntegerArgumentValue("peak_lag",user_arguments)
     peak_window_strategy = runner.getStringArgumentValue("peak_window_strategy",user_arguments)
     cambium_scenario = runner.getStringArgumentValue("cambium_scenario",user_arguments)
+    # apply_measure = runner.getBoolArgumentValue('apply_measure', user_arguments)
 
     def leap_year?(year)
       if (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
@@ -423,35 +424,37 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
       applicable_htg_thermostats = []
       thermostats = model.getThermostatSetpointDualSetpoints
       thermostats.each do |thermostat|
-        thermalzone = thermostat.to_Thermostat.get.thermalZone.get
-        clg_fueltypes = thermalzone.coolingFuelTypes.map(&:valueName).uniq
-        htg_fueltypes = thermalzone.heatingFuelTypes.map(&:valueName).uniq
-        # puts("### DEBUGGING: clg_fueltypes = #{clg_fueltypes}")
-        # puts("### DEBUGGING: htg_fueltypes = #{htg_fueltypes}")
-        if clg_fueltypes == ["Electricity"]
-          applicable_clg_thermostats << thermostat
-        end
-        if htg_fueltypes == ["Electricity"]
-          applicable_htg_thermostats << thermostat
+        if thermostat.to_Thermostat.get.thermalZone.is_initialized
+          thermalzone = thermostat.to_Thermostat.get.thermalZone.get
+          clg_fueltypes = thermalzone.coolingFuelTypes.map(&:valueName).uniq
+          htg_fueltypes = thermalzone.heatingFuelTypes.map(&:valueName).uniq
+          # puts("### DEBUGGING: clg_fueltypes = #{clg_fueltypes}")
+          # puts("### DEBUGGING: htg_fueltypes = #{htg_fueltypes}")
+          if clg_fueltypes == ["Electricity"]
+            applicable_clg_thermostats << thermostat
+          end
+          if htg_fueltypes == ["Electricity"]
+            applicable_htg_thermostats << thermostat
+          end
         end
       end
       return applicable_clg_thermostats, applicable_htg_thermostats, thermostats.size
     end
 
-    # adding output variables (for debugging)
-    out_vars = [
-      'Lights Electricity Energy',
-      'Lights Electricity Rate',
-      'Zone Lights Electricity Energy',
-      'Zone Lights Electricity Rate',
-      'Schedule Value'
-    ]
-    out_vars.each do |out_var_name|
-        ov = OpenStudio::Model::OutputVariable.new('ov', model)
-        ov.setKeyValue('*')
-        ov.setReportingFrequency('timestep')
-        ov.setVariableName(out_var_name)
-    end
+    # # adding output variables (for debugging)
+    # out_vars = [
+    #   'Lights Electricity Energy',
+    #   'Lights Electricity Rate',
+    #   'Zone Lights Electricity Energy',
+    #   'Zone Lights Electricity Rate',
+    #   'Schedule Value'
+    # ]
+    # out_vars.each do |out_var_name|
+    #     ov = OpenStudio::Model::OutputVariable.new('ov', model)
+    #     ov.setKeyValue('*')
+    #     ov.setReportingFrequency('timestep')
+    #     ov.setVariableName(out_var_name)
+    # end
 
     ############################################
     # Applicability check
@@ -492,7 +495,13 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
       return true
     end
     runner.registerInitialCondition("The building initially has #{nts} thermostats, of which #{applicable_clg_thermostats.size} are associated with electric cooling and #{applicable_htg_thermostats.size} are associated with electric heating.")
-    
+  
+    # # applicability: don't apply measure if specified in input
+    # if apply_measure == false
+    #   runner.registerFinalCondition('Measure is not applied based on user input.')
+    #   return true
+    # end
+
     ############################################
     # Load prediction
     ############################################
@@ -585,7 +594,7 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
         peak_schedule, peak_schedule_htg = peak_schedule_generation_oat(oat, peak_len, peak_lag=peak_lag, rebound_len=rebound_len, prepeak_len=0, season='all')
       else
         puts("### Predictive schedule...")
-        peak_schedule = peak_schedule_generation(annual_load, oat, peak_len, num_timesteps_in_hr=num_timesteps_in_hr, peak_window_strategy=peak_window_strategy, rebound_len=0, prepeak_len=0, season='all')
+        peak_schedule = peak_schedule_generation(annual_load, oat, peak_len, num_timesteps_in_hr=num_timesteps_in_hr, peak_window_strategy=peak_window_strategy, rebound_len=rebound_len, prepeak_len=0, season='all')
       end
     elsif demand_flexibility_objective == 'emission'
       puts("### Creating peak schedule for emission reduction...")
