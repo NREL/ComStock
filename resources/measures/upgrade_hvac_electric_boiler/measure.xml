@@ -1,9 +1,10 @@
+<?xml version="1.0"?>
 <measure>
   <schema_version>3.1</schema_version>
   <name>electric_resistance_boilers</name>
   <uid>e5661219-4641-4140-8c83-a9d602e45ca7</uid>
-  <version_id>78a167ef-6398-4e10-8249-474c2e476940</version_id>
-  <version_modified>2024-10-21T21:55:36Z</version_modified>
+  <version_id>ab4fa166-dea1-4ba3-b3da-7c95a728fbb2</version_id>
+  <version_modified>2025-03-06T21:30:51Z</version_modified>
   <xml_checksum>F0147A36</xml_checksum>
   <class_name>ElectricResistanceBoilers</class_name>
   <display_name>electric_resistance_boilers</display_name>
@@ -80,19 +81,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>769357CA</checksum>
+      <checksum>05E54321</checksum>
     </file>
     <file>
-      <filename>SmallHotel-2A.osm</filename>
-      <filetype>osm</filetype>
-      <usage_type>test</usage_type>
-      <checksum>EB637B7E</checksum>
-    </file>
-    <file>
-      <filename>add_hpwh_test.rb</filename>
+      <filename>elec_boiler_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>1E82A175</checksum>
+      <checksum>6730F461</checksum>
     </file>
   </files>
 </measure>

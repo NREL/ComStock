@@ -40,59 +40,55 @@ require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
 require 'fileutils'
 require 'minitest/autorun'
-require_relative '../measure.rb'
+require_relative '../measure'
 require_relative '../../../../test/helpers/minitest_helper'
 
 class ElectricBoilerTest < Minitest::Test
-
   # return file paths to test models in test directory
   def models_for_tests
     paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/models/*.osm'))
-    paths = paths.map { |path| File.expand_path(path) }
-    return paths
+    paths.map { |path| File.expand_path(path) }
   end
 
   # return file paths to epw files in test directory
   def epws_for_tests
     paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/weather/*.epw'))
-    paths = paths.map { |path| File.expand_path(path) }
-    return paths
+    paths.map { |path| File.expand_path(path) }
   end
 
   def load_model(osm_path)
     translator = OpenStudio::OSVersion::VersionTranslator.new
     model = translator.loadModel(OpenStudio::Path.new(osm_path))
     assert(!model.empty?)
-    model = model.get
-    return model
+    model.get
   end
 
   def run_dir(test_name)
     # always generate test output in specially named 'output' directory so result files are not made part of the measure
-	puts "run dir expanded=" + "#{File.expand_path(File.join(File.dirname(__FILE__),'output', test_name.to_s))}"
-    return File.join(File.dirname(__FILE__),"output","#{test_name}")
+    puts 'run dir expanded=' + "#{File.expand_path(File.join(File.dirname(__FILE__), 'output', test_name.to_s))}"
+    File.join(File.dirname(__FILE__), 'output', "#{test_name}")
   end
 
   def model_input_path(osm_name)
     # return models_for_tests.select { |x| set[:model] == osm_name }
-	puts (File.expand_path(File.dirname(__FILE__))) #expands path relative to current wd, passing abs path back
-    return File.expand_path(File.join(File.dirname(__FILE__), '../../../tests/models', osm_name))
+    puts(__dir__) # expands path relative to current wd, passing abs path back
+    File.expand_path(File.join(File.dirname(__FILE__), '../../../tests/models', osm_name))
   end
 
   def epw_input_path(epw_name)
-    return File.join(File.dirname(__FILE__), '../../../tests/weather', epw_name)
+    File.join(File.dirname(__FILE__), '../../../tests/weather', epw_name)
   end
 
   def model_output_path(test_name)
-    return "#{run_dir(test_name)}/#{test_name}.osm"
+    "#{run_dir(test_name)}/#{test_name}.osm"
   end
 
   def sql_path(test_name)
-    return "#{run_dir(test_name)}/run/eplusout.sql"
+    "#{run_dir(test_name)}/run/eplusout.sql"
   end
 
   def report_path(test_name)
-    return "#{run_dir(test_name)}/reports/eplustbl.html"
+    "#{run_dir(test_name)}/reports/eplustbl.html"
   end
 
   # applies the measure and then runs the model
@@ -101,25 +97,21 @@ class ElectricBoilerTest < Minitest::Test
     assert(File.exist?(epw_path))
 
     # create run directory if it does not exist
-    if !File.exist?(run_dir(test_name))
-      FileUtils.mkdir_p(run_dir(test_name))
-    end
+    FileUtils.mkdir_p(run_dir(test_name)) unless File.exist?(run_dir(test_name))
     assert(File.exist?(run_dir(test_name)))
 
     # remove prior runs if they exist
     # if File.exist?(model_output_path(test_name))
-      # FileUtils.rm(model_output_path(test_name))
+    # FileUtils.rm(model_output_path(test_name))
     # end
-    if File.exist?(report_path(test_name))
-      FileUtils.rm(report_path(test_name))
-    end
+    FileUtils.rm(report_path(test_name)) if File.exist?(report_path(test_name))
 
     # copy the osm and epw to the test directory
-	#osm_path = File.expand_path(osm_path)
-	puts(osm_path)
+    # osm_path = File.expand_path(osm_path)
+    puts(osm_path)
     new_osm_path = "#{run_dir(test_name)}/#{File.basename(osm_path)}"
-	new_osm_path = File.expand_path(new_osm_path)
-	puts(new_osm_path)
+    new_osm_path = File.expand_path(new_osm_path)
+    puts(new_osm_path)
     FileUtils.cp(osm_path, new_osm_path)
     new_epw_path = File.expand_path("#{run_dir(test_name)}/#{File.basename(epw_path)}")
     FileUtils.cp(epw_path, new_epw_path)
@@ -127,9 +119,7 @@ class ElectricBoilerTest < Minitest::Test
     runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
 
     # load the test model
-    if model.nil?
-      model = load_model(new_osm_path)
-    end
+    model = load_model(new_osm_path) if model.nil?
 
     # set model weather file
     epw_file = OpenStudio::EpwFile.new(OpenStudio::Path.new(new_epw_path))
@@ -142,7 +132,7 @@ class ElectricBoilerTest < Minitest::Test
       std = Standard.build('90.1-2013')
       std.model_run_sizing_run(model, run_dir(test_name))
     end
-    assert(File.exist?(File.join(run_dir(test_name), "in.osm")))
+    assert(File.exist?(File.join(run_dir(test_name), 'in.osm')))
     assert(File.exist?(sql_path(test_name)))
 
     # change into run directory for tests
@@ -155,14 +145,14 @@ class ElectricBoilerTest < Minitest::Test
     result = runner.result
     result_success = result.value.valueName == 'Success'
 
-	# change back directory
+    # change back directory
     Dir.chdir(start_dir)
 
     # Show the output
     show_output(result)
 
     # Save model
-	  puts "saving model to" + File.expand_path(model_output_path(test_name))
+    puts 'saving model to' + File.expand_path(model_output_path(test_name))
     model.save(File.expand_path(model_output_path(test_name)), true)
 
     if run_model && result_success
@@ -175,7 +165,7 @@ class ElectricBoilerTest < Minitest::Test
       assert(File.exist?(sql_path(test_name)))
     end
 
-    return result
+    result
   end
 
   def test_number_of_arguments_and_argument_names
@@ -208,7 +198,7 @@ class ElectricBoilerTest < Minitest::Test
     model = load_model(osm_path)
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
-    #put base case assertions here
+    # put base case assertions here
     # create hash of argument values
     args_hash = {}
     # populate argument with specified hash value if specified
@@ -224,8 +214,8 @@ class ElectricBoilerTest < Minitest::Test
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
     assert_equal('Success', result.value.valueName)
     model = load_model(File.expand_path(model_output_path(__method__)))
-	
-    #confirm that boilers in model are now electric
+
+    # confirm that boilers in model are now electric
     boilers = model.getBoilerHotWaters
     if boilers.size > 0
       boilers.each do |boiler|
@@ -235,7 +225,7 @@ class ElectricBoilerTest < Minitest::Test
         assert_equal(1.0, boiler_efficiency)
       end
     else
-      runner.registerInfo("Model does not have any boilers. Measure not applicable.")
+      runner.registerInfo('Model does not have any boilers. Measure not applicable.')
     end
   end
 
@@ -253,7 +243,7 @@ class ElectricBoilerTest < Minitest::Test
     model = load_model(osm_path)
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
-    #put base case assertions here
+    # put base case assertions here
     # create hash of argument values
     args_hash = {}
     # populate argument with specified hash value if specified
@@ -269,8 +259,8 @@ class ElectricBoilerTest < Minitest::Test
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
     assert_equal('Success', result.value.valueName)
     model = load_model(File.expand_path(model_output_path(__method__)))
-	
-    #confirm that boilers in model are now electric
+
+    # confirm that boilers in model are now electric
     boilers = model.getBoilerHotWaters
     if boilers.size > 0
       boilers.each do |boiler|
@@ -280,7 +270,7 @@ class ElectricBoilerTest < Minitest::Test
         assert_equal(1.0, boiler_efficiency)
       end
     else
-      runner.registerInfo("Model does not have any boilers. Measure not applicable.")
+      runner.registerInfo('Model does not have any boilers. Measure not applicable.')
     end
   end
 
@@ -298,13 +288,12 @@ class ElectricBoilerTest < Minitest::Test
     model = load_model(osm_path)
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
-     #put base case assertions here
+    # put base case assertions here
     # create hash of argument values
-    args_hash = {}
 
     # Apply the measure to the model and optionally run the model
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
     assert_equal('NA', result.value.valueName)
-    model = load_model(File.expand_path(model_output_path(__method__)))
+    load_model(File.expand_path(model_output_path(__method__)))
   end
 end
