@@ -803,8 +803,7 @@ class AddHeatPumpRtuTest < Minitest::Test
       # check airflow
       value_before = sizing_summary_reference['AirLoopHVAC'][name_obj]['designSupplyAirFlowRate']
       value_after = airloophvac.designSupplyAirFlowRate.get
-      relative_difference = (value_after - value_before) / value_before
-      assert_in_epsilon(relative_difference, 0.25, 0.01, "values difference not close to threshold: AirLoopHVAC | #{name_obj} | designSupplyAirFlowRate")
+      assert_in_epsilon(value_after, value_before, 0.01, "values difference not within threshold: AirLoopHVAC | #{name_obj} | designSupplyAirFlowRate")
     end
     model.getControllerOutdoorAirs.each do |ctrloa|
       name_obj = ctrloa.name.to_s
@@ -812,8 +811,7 @@ class AddHeatPumpRtuTest < Minitest::Test
       # check airflow
       value_before = sizing_summary_reference['ControllerOutdoorAir'][name_obj]['maximumOutdoorAirFlowRate']
       value_after = ctrloa.maximumOutdoorAirFlowRate.get
-      relative_difference = (value_after - value_before) / value_before
-      assert_in_epsilon(relative_difference, 0.25, 0.01, "values difference not close to threshold: AirLoopHVAC | #{name_obj} | maximumOutdoorAirFlowRate")
+      assert_in_epsilon(value_after, value_before, 0.01, "values difference not within threshold: AirLoopHVAC | #{name_obj} | maximumOutdoorAirFlowRate")
     end
   end
 
@@ -930,7 +928,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     end
   end
 
-  # # ##########################################################################
+  # ##########################################################################
   # # Single building result examples
   # def test_single_building_result_examples
   #   osm_epw_pair = {
