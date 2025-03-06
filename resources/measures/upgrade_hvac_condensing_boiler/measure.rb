@@ -44,26 +44,23 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
   # human readable name
   def name
     # Measure name should be the title case of the class name.
-    return 'condensing_boilers'
+    'condensing_boilers'
   end
 
   # human readable description
   def description
     'This measure replaces an exising natural gas boiler with a condensing gas boiler.'
-
   end
 
   # human readable description of modeling approach
   def modeler_description
-    return 'This measure replaces an exising natural gas boiler with a condensing gas boiler. The measure loops through existing boiler objects and increases the efficiency, lowers the water supply temperature, and modifies the performance curve to represent condensing boilers.'
+    'This measure replaces an exising natural gas boiler with a condensing gas boiler. The measure loops through existing boiler objects and increases the efficiency, lowers the water supply temperature, and modifies the performance curve to represent condensing boilers.'
   end
 
   ## USER ARGS ---------------------------------------------------------------------------------------------------------
   # define the arguments that the user will input
-  def arguments(model)
-    args = OpenStudio::Measure::OSArgumentVector.new
-
-    args
+  def arguments(_model)
+    OpenStudio::Measure::OSArgumentVector.new
   end
   ## END USER ARGS -----------------------------------------------------------------------------------------------------
 
@@ -73,11 +70,11 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
 
     # report initial condition of model
     num_boilers = model.getBoilerHotWaters.size
-    runner.registerInitialCondition("The building started with #{num_boilers} hot water boilers." )
+    runner.registerInitialCondition("The building started with #{num_boilers} hot water boilers.")
 
     # check for existence of water heater boiler
     if model.getBoilerHotWaters.empty?
-      runner.registerAsNotApplicable("No hot water boilers found in the model. Measure not applicable ")
+      runner.registerAsNotApplicable('No hot water boilers found in the model. Measure not applicable ')
       return true
     end
 
@@ -96,7 +93,7 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
 
     # create biquadratic curve and set upper and lower limit
     condensing_boiler_curve = OpenStudio::Model::CurveBiquadratic.new(model)
-    condensing_boiler_curve.setName("Condensing Boiler Biquadratic Curve")
+    condensing_boiler_curve.setName('Condensing Boiler Biquadratic Curve')
     condensing_boiler_curve.setCoefficient1Constant(1.144514)
     condensing_boiler_curve.setCoefficient2x(-0.02399)
     condensing_boiler_curve.setCoefficient3xPOW2(-0.01156)
@@ -111,15 +108,14 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
 
     sizing_systems = model.getSizingSystems
     sizing_systems.each do |sizing_system|
-      #sizing_system.autosizeHeatingDesignCapacity
+      # sizing_system.autosizeHeatingDesignCapacity
     end
 
-    #set empty array for hot water coils
-    hw_coils = []
+    # set empty array for hot water coils
 
     boilers = model.getBoilerHotWaters
     boilers.each do |boiler|
-      #get existing fuel type and efficiency
+      # get existing fuel type and efficiency
       existing_boiler_fuel_type = boiler.fuelType
       existing_boiler_efficiency = boiler.nominalThermalEfficiency
       existing_boiler_capacity = boiler.nominalCapacity
@@ -127,38 +123,38 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
 
       runner.registerInfo("Existing boiler #{existing_boiler_name} has nominal efficiency #{existing_boiler_efficiency}, fuel type #{existing_boiler_fuel_type}, and nominal capacity #{existing_boiler_capacity} W.")
 
-      #set efficiency to 0.95 to reflect condensing boiler
+      # set efficiency to 0.95 to reflect condensing boiler
       boiler.setNominalThermalEfficiency(0.95)
-      
-      #set new performance curve
+
+      # set new performance curve
       boiler.setNormalizedBoilerEfficiencyCurve(condensing_boiler_curve)
       boiler.setEfficiencyCurveTemperatureEvaluationVariable('EnteringBoiler')
       boiler.setWaterOutletUpperTemperatureLimit(hw_setpoint_c)
-      
-      #autosize the boiler capacity. should not make a difference if running standalone measure, but could downsize if run with other upgrades. 
+
+      # autosize the boiler capacity. should not make a difference if running standalone measure, but could downsize if run with other upgrades.
       # boiler.autosizeDesignWaterFlowRate
       # boiler.autosizeNominalCapacity
 
       if existing_boiler_name.get.include?('Supplemental')
         # denotes boiler is a supplemental boiler located on a condenser loop. do not resize pump or reset loop temp.
-        boiler.setName("Supplemental Condensing Boiler Thermal Eff 0.95")
-      else  
+        boiler.setName('Supplemental Condensing Boiler Thermal Eff 0.95')
+      else
         # get plant loop and set new supply temp and setpoint manager to 140F
-        inlet = boiler.inletModelObject.get.to_Node.get
-        outlet = boiler.outletModelObject.get.to_Node.get
+        boiler.inletModelObject.get.to_Node.get
+        boiler.outletModelObject.get.to_Node.get
         htg_loop = boiler.plantLoop.get
         htg_loop_sizing = htg_loop.sizingPlant
         htg_loop_sizing.setDesignLoopExitTemperature(hw_setpoint_c)
         htg_loop_sizing.setLoopDesignTemperatureDifference(hw_delta_t_c)
-        #htg_loop.autosizeMaximumLoopFlowRate
-        #htg_loop.autocalculatePlantLoopVolume
+        # htg_loop.autosizeMaximumLoopFlowRate
+        # htg_loop.autocalculatePlantLoopVolume
 
         htg_loop.supplyOutletNode.setpointManagers.each do |spm|
           spm.remove
         end
-        
+
         # original method: set sp manager to constant 140F
-        #spm.to_SetpointManagerScheduled.get.setSchedule(new_setpoint_sched)
+        # spm.to_SetpointManagerScheduled.get.setSchedule(new_setpoint_sched)
 
         # create new OA reset setpoint manager with settings: hw temp 140f for air temp <20F, hw temp 120F for air temp >50F
         oa_reset_sp_mgr = OpenStudio::Model::SetpointManagerOutdoorAirReset.new(model)
@@ -166,22 +162,22 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
         oa_reset_sp_mgr.setOutdoorHighTemperature(OpenStudio.convert(50, 'F', 'C').get)
         oa_reset_sp_mgr.setSetpointatOutdoorLowTemperature(OpenStudio.convert(180, 'F', 'C').get)
         oa_reset_sp_mgr.setOutdoorLowTemperature(OpenStudio.convert(20, 'F', 'C').get)
-        
+
         # add to supply outlet node
         oa_reset_sp_mgr.addToNode(htg_loop.supplyOutletNode)
-        runner.registerInfo("Added outdoor air reset setpoint manager to hot water loop with 140F for ≤20F and 120F for ≥50F.")
-        
+        runner.registerInfo('Added outdoor air reset setpoint manager to hot water loop with 140F for ≤20F and 120F for ≥50F.')
+
         # autosize boiler supply pump
         htg_loop.supplyComponents.each do |sup_comp|
           next unless sup_comp.to_PumpVariableSpeed.is_initialized
 
-          pump = sup_comp.to_PumpVariableSpeed.get
+          sup_comp.to_PumpVariableSpeed.get
           # runner.registerInfo('at pump')
-          #pump.autosizeRatedFlowRate
-          #pump.autosizeRatedPowerConsumption
+          # pump.autosizeRatedFlowRate
+          # pump.autosizeRatedPowerConsumption
         end
 
-        boiler.setName("Main Condensing Boiler Thermal Eff 0.95")
+        boiler.setName('Main Condensing Boiler Thermal Eff 0.95')
       end
     end
 
@@ -189,58 +185,58 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
     model.getAirLoopHVACs.each do |air_loop|
       air_loop.supplyComponents.each do |sup_comp|
         if sup_comp.to_FanConstantVolume.is_initialized
-          const_vol_fan = sup_comp.to_FanConstantVolume.get
+          sup_comp.to_FanConstantVolume.get
           # const_vol_fan.autosizeMaximumFlowRate
         elsif sup_comp.to_FanVariableVolume.is_initialized
-          var_vol_fan = sup_comp.to_FanVariableVolume.get
+          sup_comp.to_FanVariableVolume.get
           # var_vol_fan.autosizeMaximumFlowRate
         end
       end
     end
-    
+
     # re-autosize traditional hot water coils
     hw_coils = model.getCoilHeatingWaters
     hw_coils.each do |coil|
       # get hot water coils and reset inlet and outlet temps and autosize
       coil.setRatedInletWaterTemperature(hw_setpoint_c)
       coil.setRatedOutletWaterTemperature(hw_return_temp_c)
-      #coil.setRatedInletAirTemperature(12.8) #set to 55F
-      #coil.setRatedOutletAirTemperature(32.2) #set return air temp to 90F
-      #coil.autosizeMaximumWaterFlowRate
-      #coil.autosizeUFactorTimesAreaValue
-      #coil.autosizeRatedCapacity
+      # coil.setRatedInletAirTemperature(12.8) #set to 55F
+      # coil.setRatedOutletAirTemperature(32.2) #set return air temp to 90F
+      # coil.autosizeMaximumWaterFlowRate
+      # coil.autosizeUFactorTimesAreaValue
+      # coil.autosizeRatedCapacity
     end
 
     # also check for hot water baseboard coils
     baseboard_hw_coils = model.getCoilHeatingWaterBaseboards
     baseboard_hw_coils.each do |coil|
       # get hot water baseboard coils and  autosize
-      #coil.autosizeMaximumWaterFlowRate
-      #coil.autosizeUFactorTimesAreaValue
-      #coil.autosizeHeatingDesignCapacity
+      # coil.autosizeMaximumWaterFlowRate
+      # coil.autosizeUFactorTimesAreaValue
+      # coil.autosizeHeatingDesignCapacity
     end
 
-    #re-autosize zone air terminals and fan coil units to accommodate for new air flow rates
+    # re-autosize zone air terminals and fan coil units to accommodate for new air flow rates
     thermal_zones = model.getThermalZones
     thermal_zones.each do |zone|
       zone.equipment.each do |equip|
         if equip.to_ZoneHVACFourPipeFanCoil.is_initialized
           zone_fan_coil = equip.to_ZoneHVACFourPipeFanCoil.get
-          #zone_fan_coil.autosizeMaximumSupplyAirFlowRate
-          #zone_fan_coil.autosizeMaximumHotWaterFlowRate
+          # zone_fan_coil.autosizeMaximumSupplyAirFlowRate
+          # zone_fan_coil.autosizeMaximumHotWaterFlowRate
           if zone_fan_coil.supplyAirFan.to_FanOnOff.is_initialized
-            fan = zone_fan_coil.supplyAirFan.to_FanOnOff.get
-            #fan.autosizeMaximumFlowRate
+            zone_fan_coil.supplyAirFan.to_FanOnOff.get
+            # fan.autosizeMaximumFlowRate
           end
         elsif equip.to_AirTerminalSingleDuctVAVReheat.is_initialized
-          vav_terminal = equip.to_AirTerminalSingleDuctVAVReheat.get
-          #vav_terminal.autosizeMaximumAirFlowRate
-          #vav_terminal.autosizeConstantMinimumAirFlowFraction
-          #vav_terminal.autosizeFixedMinimumAirFlowRate
-          #vav_terminal.autosizeMaximumHotWaterOrSteamFlowRate
+          equip.to_AirTerminalSingleDuctVAVReheat.get
+          # vav_terminal.autosizeMaximumAirFlowRate
+          # vav_terminal.autosizeConstantMinimumAirFlowFraction
+          # vav_terminal.autosizeFixedMinimumAirFlowRate
+          # vav_terminal.autosizeMaximumHotWaterOrSteamFlowRate
         elsif equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
-          air_terminal = equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.get
-          #air_terminal.autosizeMaximumAirFlowRate
+          equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.get
+          # air_terminal.autosizeMaximumAirFlowRate
         end
       end
     end

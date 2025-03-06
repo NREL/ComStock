@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>condensing_boilers</name>
   <uid>e7cff13c-fffa-4c6c-9494-938e27f7f335</uid>
-  <version_id>4122aa79-0c88-40b6-9587-9792fc3d46be</version_id>
-  <version_modified>2025-01-16T19:12:53Z</version_modified>
+  <version_id>6274fb08-ca34-4191-94bf-de685201a80d</version_id>
+  <version_modified>2025-03-06T21:37:24Z</version_modified>
   <xml_checksum>0ACE1945</xml_checksum>
   <class_name>CondensingBoilers</class_name>
   <display_name>condensing_boilers</display_name>
@@ -71,13 +71,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>5E439B3C</checksum>
+      <checksum>5172D57D</checksum>
     </file>
     <file>
       <filename>condensing_boiler_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>72DE7B1C</checksum>
+      <checksum>FE8C4D0B</checksum>
     </file>
   </files>
 </measure>
