@@ -2092,7 +2092,7 @@ class PlottingMixin():
 
         return fig
 
-    def filter_outlier_pct_savings_values(self, df, max_fraction_change):
+    def filter_outlier_pct_savings_values(self, df, max_percentage_change):
 
         # get applicable columns
         cols = df.loc[:, df.columns.str.contains('percent_savings')].columns
