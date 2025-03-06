@@ -72,9 +72,6 @@ class ExteriorWallInsulation < OpenStudio::Measure::ModelMeasure
       return false
     end
 
-    # build standard to use OS standards methods
-    template = 'ComStock 90.1-2013'
-    std = Standard.build(template)
     # get climate zone to set target_r_val_ip
     climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
 

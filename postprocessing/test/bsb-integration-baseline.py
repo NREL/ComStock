@@ -14,8 +14,9 @@ class TestIntegration:
 
     @pytest.fixture(autouse=True)
     def setup_and_teardown(self):
-        self.widePath = "../output/ComStock bsb-integration-test-baseline 2018/ComStock wide.csv"
-    
+        self.widePath = "./output/ComStock bsb-integration-test-baseline/metadata_and_annual_results_aggregates/national/full/csv/baseline_agg.csv"
+        
+
     def test_1_Initial_comstock(self):
         # ComStock run
         logging.info('Running ComStock...')
@@ -43,36 +44,49 @@ class TestIntegration:
             reload_from_csv=False  # True if CSV already made and want faster reload times
             )
 
-        # Scale both ComStock runs to CBECS 2018 AND remove non-ComStock buildings from CBECS
-        # This is how weights in the models are set to represent national energy consumption
+        reload_flag = False #set to True only for development, turn to False when running CI.
+
+        # Stock Estimation for Apportionment:
+        stock_estimate = cspp.Apportion(
+            stock_estimation_version='2024R2',  # Only updated when a new stock estimate is published
+            truth_data_version='v01',  # Typically don't change this
+            reload_from_cache=reload_flag
+        )
+
+        # Scale ComStock runs to the 'truth data' from StockE V3 estimates using bucket-based apportionment
+        comstock.add_weights_aportioned_by_stock_estimate(apportionment=stock_estimate, reload_from_cache=reload_flag)
+        # Scale ComStock run to CBECS 2018 AND remove non-ComStock buildings from CBECS
         comstock.add_national_scaling_weights(cbecs, remove_non_comstock_bldg_types_from_cbecs=True)
 
-        # Uncomment this to correct gas consumption for a ComStock run to match CBECS
-        # Don't typically want to do this
-        # comstock_a.correct_comstock_gas_to_match_cbecs(cbecs)
 
-        # Export CBECS and ComStock data to wide and long formats for Tableau and to skip processing later
-        cbecs.export_to_csv_wide()  # May comment this out if CSV output isn't needed
-        comstock.export_to_csv_wide()  # May comment this out if CSV output isn't needed
-        # comstock_a.export_to_csv_long()  # Long format useful for stacking end uses and fuels
+        # Define the geographic partitions to export
+        geo_exports = [
+            {'geo_top_dir': 'national',
+                'partition_cols': {},
+                'aggregation_levels': [comstock.TRACT_ID],
+                'data_types': ['full'],
+                'file_types': ['csv'],
+            },
+        ]
 
-        # Compare multiple ComStock runs to one another and to CBECS
-        comparison = cspp.ComStockToCBECSComparison(
-            cbecs_list=[cbecs],
-            comstock_list = [comstock],
-            make_comparison_plots=True
-            )
-
-        # Export the comparison data to wide format for Tableau
-        comparison.export_to_csv_wide()
+        # Export the results
+        comstock.export_metadata_and_annual_results(geo_exports)
 
     def test_2_verifyExistance(self):
         assert os.path.isfile(self.widePath)
 
     def test_3_verifyWideShape(self):
         wide = pd.read_csv(self.widePath)
-        assert wide.shape == (4, 892)
-
+        expected_rows, expected_cols = 33446, 1032
+        actual_rows, actual_cols = wide.shape
+        
+        # Calculate allowed ranges (±5%)
+        row_tolerance = expected_rows * 0.05
+        col_tolerance = expected_cols * 0.05
+        
+        assert abs(actual_rows - expected_rows) <= row_tolerance, f"Row count {actual_rows} outside 5% tolerance of {expected_rows}"
+        assert abs(actual_cols - expected_cols) <= col_tolerance, f"Column count {actual_cols} outside 5% tolerance of {expected_cols}"
+    
     def test_4_verifyWideColumns(self):
         wide = pd.read_csv(self.widePath)
         assert (wide.completed_status == "Success").all()

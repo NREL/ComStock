@@ -113,6 +113,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     result << OpenStudio::IdfObject.load('Output:Variable,*,Water Use Connections Hot Water Volume,RunPeriod;').get
 
     # request coil and fan energy use for HVAC equipment
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Cooling Tower Make Up Water Volume,RunPeriod;').get # m3
     result << OpenStudio::IdfObject.load('Output:Variable,*,Chiller COP,RunPeriod;').get
     result << OpenStudio::IdfObject.load('Output:Variable,*,Chiller Evaporator Cooling Energy,RunPeriod;').get # J
     result << OpenStudio::IdfObject.load('Output:Variable,*,Boiler Heating Energy,RunPeriod;').get # J
@@ -1362,22 +1363,18 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       if thermostat.heatingSetpointTemperatureSchedule.is_initialized
         thermostat_heating_schedule = thermostat.heatingSetpointTemperatureSchedule.get
         if thermostat_heating_schedule.to_ScheduleRuleset.is_initialized
-          puts('--- Ruleset schedule')
           thermostat_heating_schedule = thermostat_heating_schedule.to_ScheduleRuleset.get
           cool_min_max = OpenstudioStandards::Schedules.schedule_ruleset_get_min_max(thermostat_heating_schedule)
           weighted_thermostat_heating_min_c += cool_min_max['min'] * floor_area_m2
           weighted_thermostat_heating_max_c += cool_min_max['max'] * floor_area_m2
           weighted_thermostat_heating_area_m2 += floor_area_m2
         elsif thermostat_heating_schedule.to_ScheduleInterval.is_initialized
-          puts('--- Interval schedule')
           thermostat_heating_schedule = thermostat_heating_schedule.to_ScheduleInterval.get
           ts = thermostat_heating_schedule.timeSeries
           interval_values_array = ts.values
           weighted_thermostat_heating_min_c += interval_values_array.min * floor_area_m2
           weighted_thermostat_heating_max_c += interval_values_array.max * floor_area_m2
           weighted_thermostat_heating_area_m2 += floor_area_m2
-        else
-          puts('--- Not supported schedule')
         end
         # next unless thermostat_heating_schedule.to_ScheduleRuleset.is_initialized
         # thermostat_heating_schedule = thermostat_heating_schedule.to_ScheduleRuleset.get
@@ -1389,22 +1386,18 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       if thermostat.coolingSetpointTemperatureSchedule.is_initialized
         thermostat_cooling_schedule = thermostat.coolingSetpointTemperatureSchedule.get
         if thermostat_cooling_schedule.to_ScheduleRuleset.is_initialized
-          puts('--- Ruleset schedule')
           thermostat_cooling_schedule = thermostat_cooling_schedule.to_ScheduleRuleset.get
           cool_min_max = OpenstudioStandards::Schedules.schedule_ruleset_get_min_max(thermostat_cooling_schedule)
           weighted_thermostat_cooling_min_c += cool_min_max['min'] * floor_area_m2
           weighted_thermostat_cooling_max_c += cool_min_max['max'] * floor_area_m2
           weighted_thermostat_cooling_area_m2 += floor_area_m2
         elsif thermostat_cooling_schedule.to_ScheduleInterval.is_initialized
-          puts('--- Interval schedule')
           thermostat_cooling_schedule = thermostat_cooling_schedule.to_ScheduleInterval.get
           ts = thermostat_cooling_schedule.timeSeries
           interval_values_array = ts.values
           weighted_thermostat_cooling_min_c += interval_values_array.min * floor_area_m2
           weighted_thermostat_cooling_max_c += interval_values_array.max * floor_area_m2
           weighted_thermostat_cooling_area_m2 += floor_area_m2
-        else
-          puts('--- Not supported schedule')
         end
       end
     end
@@ -1983,6 +1976,17 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     runner.registerValue('com_report_hvac_vrf_total_heating_supplemental_electric_j', vrf_total_heating_supplemental_electric_j)
     runner.registerValue('com_report_hvac_vrf_total_heating_supplemental_gas_j', vrf_total_heating_supplemental_gas_j)
 
+    # Cooling tower water use
+    cooling_towers = model.getCoolingTowerSingleSpeeds.map { |c| c }
+    model.getCoolingTowerTwoSpeeds.each { |c| cooling_towers << c }
+    model.getCoolingTowerVariableSpeeds.each { |c| cooling_towers << c }
+    cooling_tower_total_water_use_m3 = 0.0
+    cooling_towers.sort.each do |cooling_tower|
+      water_use_m3 = sql_get_report_variable_data_double(runner, sql, cooling_tower, 'Cooling Tower Make Up Water Volume')
+      cooling_tower_total_water_use_m3 += water_use_m3
+    end
+    runner.registerValue('com_report_hvac_cooling_tower_water_use_m3', cooling_tower_total_water_use_m3)
+
     # Design and annual average chiller efficiency
     chiller_total_load_j = 0.0
     chiller_load_weighted_cop = 0.0
@@ -2474,8 +2478,6 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
       # get heating coil crankcase heater Electric Energy
       coil_crankcase_heater_electric_energy_j = sql_get_report_variable_data_double(runner, sql, coil, "Heating Coil Crankcase Heater #{elec} Energy")
-      # puts "coil_crankcase_heater_electric_energy_j: #{coil_crankcase_heater_electric_energy_j}"
-      # coil_crankcase_heater_electric_energy_j = 5000000
 
       # add to weighted load cop
       total_heating_j = coil_heating_energy_j + supplemental_coil_heating_energy_j

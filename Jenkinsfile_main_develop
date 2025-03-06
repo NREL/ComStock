@@ -1,6 +1,6 @@
 #!/usr/bin/groovy
 
-@Library('cbci_shared_libs@comstock-dev') _
+@Library('cbci_shared_libs@master') _
 
 
 // Build for PR to main branch only.

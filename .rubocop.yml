@@ -1,4 +1,3 @@
-
 AllCops:
   Exclude:
     - 'build/**/*'
@@ -14,12 +13,22 @@ AllCops:
 inherit_from:
   - http://s3.amazonaws.com/openstudio-resources/styles/rubocop.yml
 
-# custom edits to rubocop checks
+# =============== ComStock Specific ===========
 Metrics/AbcSize:
   Max: 200
 
 Metrics/BlockLength:
   Max: 100
 
+Naming/MethodName:
+  AllowedPatterns:
+  - 'energyPlusOutputRequests'
+
 Style/FrozenStringLiteralComment:
+  Enabled: false
+
+Style/HashSyntax:
+  EnforcedShorthandSyntax: either
+
+Style/HashEachMethods:
   Enabled: false
