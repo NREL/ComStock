@@ -1201,6 +1201,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # out_vars = [
     #   'Air System Mixed Air Mass Flow Rate',
     #   'Fan Air Mass Flow Rate',
+    #   'Fan Electricity Rate',
     #   'Unitary System Predicted Sensible Load to Setpoint Heat Transfer Rate',
     #   'Cooling Coil Total Cooling Rate',
     #   'Cooling Coil Electricity Rate',
@@ -1217,7 +1218,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     #   'HVAC System Solver Iteration Count',
     #   'Site Outdoor Air Drybulb Temperature',
     #   'Heating Coil Crankcase Heater Electricity Rate',
-    #   'Heating Coil Defrost Electricity Rate'
+    #   'Heating Coil Defrost Electricity Rate',
+    #   'System Node Temperature',
+    #   'System Node Mass Flow Rate'
     # ]
     # out_vars.each do |out_var_name|
     #     ov = OpenStudio::Model::OutputVariable.new('ov', model)
