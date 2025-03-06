@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>add_packaged_gshp</name>
   <uid>8a5eb1ff-89e5-4fca-9ea3-398ae357bfc7</uid>
-  <version_id>bf1cb3a5-1442-4ec7-a9bb-470c5c9b9973</version_id>
-  <version_modified>2025-03-05T18:13:37Z</version_modified>
+  <version_id>4a912578-48bc-45c0-83df-851d657f28e4</version_id>
+  <version_modified>2025-03-06T19:21:21Z</version_modified>
   <xml_checksum>5E2576E4</xml_checksum>
   <class_name>AddPackagedGSHP</class_name>
   <display_name>add_packaged_gshp</display_name>
@@ -186,7 +186,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>5015E717</checksum>
+      <checksum>50ECABBC</checksum>
     </file>
     <file>
       <filename>Ground Loop Heat Pump Performance Data.xlsx</filename>
@@ -264,13 +264,13 @@
       <filename>call_other_measures.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>56D6DE11</checksum>
+      <checksum>F4BC617E</checksum>
     </file>
     <file>
       <filename>performance_curves.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>A9B749E5</checksum>
+      <checksum>F6B7372C</checksum>
     </file>
     <file>
       <filename>example_model.osm</filename>
@@ -282,7 +282,7 @@
       <filename>packaged_gthp_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>D3ACCF4A</checksum>
+      <checksum>5FEE0F14</checksum>
     </file>
   </files>
 </measure>
