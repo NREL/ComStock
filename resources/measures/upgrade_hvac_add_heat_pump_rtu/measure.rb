@@ -1764,6 +1764,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       equip_to_delete = []
 	  
 	  ##implement updated setbacks 
+	  setback_value = 2
 	  zones = air_loop_hvac.thermalZones
 	  zones.sort.each do |thermal_zone|
 	      next unless thermal_zone.thermostatSetpointDualSetpoint.is_initialized
@@ -1778,11 +1779,16 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 		  else
 			htg_schedule = htg_schedule.get.to_ScheduleRuleset.get
 		   end 
-	  	for tstat_rule in htg_schedule.scheduleRules
-			   tstat_profile = tstat_rule.daySchedule ##AA confirm one profile per rule 
+		  profiles = [htg_schedule.defaultDaySchedule]
+          htg_schedule.scheduleRules.each { |rule| profiles << rule.daySchedule }
+		  runner.registerInfo("profiles type #{profiles.class.to_s}") #array 
+	  	profiles.sort.each do |tstat_profile|
+			   #tstat_profile = tstat_rule.daySchedule ##AA confirm one profile per rule 
 			   tstat_profile_size = tstat_profile.values.uniq.size
 			   tstat_profile_min = tstat_profile.values.min
 			   tstat_profile_max = tstat_profile.values.max
+			   time_h = tstat_profile.times
+		  runner.registerInfo("tstat profile name : #{tstat_profile.name}")    
 		  if tstat_profile_size == 2 # profile is square wave (2 setpoints, occupied vs unoccupied) #disregarding flat profile for now, no existing setbacks 
 			 tstat_profile.values.each_with_index do |value, i| #iterate thru profile and modify values as needed 
 				  if value == tstat_profile_min
@@ -1803,7 +1809,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 			  end 
 			end 
 		 end 
-	  end 
+	    end 
 	 end 
       # for unitary systems
       if air_loop_hvac_unitary_system?(air_loop_hvac)
