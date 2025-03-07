@@ -170,6 +170,10 @@ class NamingMixin():
     ANN_OTHER_SWH_GROUP_KBTU = 'calc.enduse_group.other_fuel.water_systems.energy_consumption..kwh'
     ANN_OTHER_INTEQUIP_GROUP_KBTU = 'calc.enduse_group.other_fuel.interior_equipment.energy_consumption..kwh'
 
+    # Unmet hours columns
+    COOLING_HOURS_UNMET = 'out.params.hours_cooling_setpoint_not_met..hr'
+    HEATING_HOURS_UNMET = 'out.params.hours_heating_setpoint_not_met..hr'
+
     # List of total annual energy end use group columns
     COLS_ENDUSE_GROUP_TOT_ANN_ENGY = [
         ANN_HVAC_GROUP_KBTU,
@@ -286,26 +290,7 @@ class NamingMixin():
         'out.emissions.fuel_oil..co2e_kg',
         'out.emissions.propane..co2e_kg',
         'out.emissions.electricity.lrmer_mid_case_15_2023_start..co2e_kg'
-    ]
 
-    # GHG emissions seasonal daily average from electricity consumption columns for eGrid
-    COLS_GHG_ELEC_SEASONAL_DAILY_EGRID = [
-        'out.emissions.electricity.winter_daily_average.egrid_2021_subregion..co2e_kg',
-        'out.emissions.electricity.summer_daily_average.egrid_2021_subregion..co2e_kg',
-        'out.emissions.electricity.shoulder_daily_average.egrid_2021_subregion..co2e_kg'
-    ]
-
-    # GHG emissions seasonal daily average from electricity consumption columns for Cambium
-    COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM = [
-        'out.emissions.electricity.winter_daily_average.lrmer_high_re_cost_15_2023_start..co2e_kg',
-        'out.emissions.electricity.summer_daily_average.lrmer_high_re_cost_15_2023_start..co2e_kg',
-        'out.emissions.electricity.shoulder_daily_average.lrmer_high_re_cost_15_2023_start..co2e_kg',
-        'out.emissions.electricity.winter_daily_average.lrmer_low_re_cost_15_2023_start..co2e_kg',
-        'out.emissions.electricity.summer_daily_average.lrmer_low_re_cost_15_2023_start..co2e_kg',
-        'out.emissions.electricity.shoulder_daily_average.lrmer_low_re_cost_15_2023_start..co2e_kg',
-        'out.emissions.electricity.winter_daily_average.lrmer_mid_case_15_2023_start..co2e_kg',
-        'out.emissions.electricity.summer_daily_average.lrmer_mid_case_15_2023_start..co2e_kg',
-        'out.emissions.electricity.shoulder_daily_average.lrmer_mid_case_15_2023_start..co2e_kg'
     ]
 
     # GHG emissions seasonal daily average from electricity consumption columns for eGrid
@@ -633,6 +618,11 @@ class NamingMixin():
         #GHG_LRMER_MID_CASE_15_ELEC,
         GHG_LRMER_HIGH_RE_COST_15_ELEC,
         GHG_ELEC_EGRID
+    ]
+
+    UNMET_HOURS_COLS = [
+        COOLING_HOURS_UNMET,
+        HEATING_HOURS_UNMET,
     ]
 
     # Colors from https://davidmathlogic.com/colorblind Bang Wong color palette

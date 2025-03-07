@@ -389,7 +389,7 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
                 'python' # Assumes running buildstockbatch from a Conda shell
                 # 'conda run -n pysam python' # for local testing 
                 elsif os == :linux
-                  'python3.8' # Assumes running buildstockbatch from ComStock docker image
+                  'python3.11' # Assumes running buildstockbatch from ComStock docker image
                 else
                   runner.registerError("Could not find python command for #{os}")
                   return false

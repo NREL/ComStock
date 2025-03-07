@@ -1,5 +1,43 @@
-# ComStock™, Copyright (c) 2024 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
+
+# *******************************************************************************
+# OpenStudio(R), Copyright (c) 2008-2018, Alliance for Sustainable Energy, LLC.
+# All rights reserved.
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# (1) Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.
+#
+# (2) Redistributions in binary form must reproduce the above copyright notice,
+# this list of conditions and the following disclaimer in the documentation
+# and/or other materials provided with the distribution.
+#
+# (3) Neither the name of the copyright holder nor the names of any contributors
+# may be used to endorse or promote products derived from this software without
+# specific prior written permission from the respective party.
+#
+# (4) Other than as required in clauses (1) and (2), distributions in any form
+# of modifications or other derivative works may not use the "OpenStudio"
+# trademark, "OS", "os", or any other confusingly similar designation without
+# specific prior written permission from Alliance for Sustainable Energy, LLC.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER(S) AND ANY CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+# THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER(S), ANY CONTRIBUTORS, THE
+# UNITED STATES GOVERNMENT, OR THE UNITED STATES DEPARTMENT OF ENERGY, NOR ANY OF
+# THEIR EMPLOYEES, BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
+# OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+# STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# *******************************************************************************
+
+# see the URL below for information on how to write OpenStudio measures
+# http://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/
 
 # start the measure
 class SetWallTemplate < OpenStudio::Measure::ModelMeasure
@@ -147,8 +185,8 @@ class SetWallTemplate < OpenStudio::Measure::ModelMeasure
 
     # set additional properties for building
     props = model.getBuilding.additionalProperties
-    props.setFeature('wall_as_constructed_template', as_constructed_template)
-    props.setFeature('wall_template', template)
+    props.setFeature('wall_as_constructed_template',"#{as_constructed_template}")
+    props.setFeature('wall_template',"#{template}")
 
     # Not applicable if the selected template matches the as-constructed template
     if template == as_constructed_template
@@ -158,51 +196,60 @@ class SetWallTemplate < OpenStudio::Measure::ModelMeasure
 
     # Make a standard
     reset_log
-    standard = Standard.build(template)
+    standard = Standard.build("#{template}")
 
-    # Apply standard constructions to this model at the surface-by-surface level,
-    # which will override default contruction sets for the surface types being updated,
-    # which is not all surface types.
-    types_to_modify = []
-    types_to_modify << ['Outdoors', 'Wall']
+    # Check that a default construction set is defined
+    bldg_def_const_set = model.getBuilding.defaultConstructionSet
+    unless bldg_def_const_set.is_initialized
+      runner.registerError('Model does not have a default construction set.')
+      return false
+    end
+    bldg_def_const_set = bldg_def_const_set.get
 
-    # Find just those surfaces
-    surfaces_to_modify = []
-    types_to_modify.each do |boundary_condition, surface_type|
-      # Surfaces
-      model.getSurfaces.sort.each do |surf|
-        next unless surf.outsideBoundaryCondition == boundary_condition
-        next unless surf.surfaceType == surface_type
+    # Check that a default exterior construction set is defined
+    ext_surf_consts = bldg_def_const_set.defaultExteriorSurfaceConstructions
+    unless ext_surf_consts.is_initialized
+      runner.registerError("Default construction set '#{bldg_def_const_set.name}' has no default exterior surface constructions.")
+      return false
+    end
+    ext_surf_consts = ext_surf_consts.get
 
-        surfaces_to_modify << surf
-      end
+    # Check that a default exterior wall is defined
+    unless ext_surf_consts.wallConstruction.is_initialized
+      runner.registerError("Default surface construction set #{ext_surf_consts.name} has no default exterior wall construction.")
+      return false
+    end
+    old_construction = ext_surf_consts.wallConstruction.get
+    standards_info = old_construction.standardsInformation
 
-      # SubSurfaces
-      model.getSubSurfaces.sort.each do |surf|
-        next unless surf.outsideBoundaryCondition == boundary_condition
-        next unless surf.subSurfaceType == surface_type
-
-        surfaces_to_modify << surf
-      end
+    # Get the old wall construction type
+    if standards_info.standardsConstructionType.empty?
+      old_wall_construction_type = 'Not defined'
+    else
+      old_wall_construction_type = standards_info.standardsConstructionType.get
     end
 
-    # Modify these surfaces
-    prev_created_consts = {}
-    surfaces_to_modify.sort.each do |surf|
-      prev_created_consts = standard.planar_surface_apply_standard_construction(surf, climate_zone, prev_created_consts)
+    # Get the building occupancy type
+    if model.getBuilding.standardsBuildingType.is_initialized
+      model_building_type = model.getBuilding.standardsBuildingType.get
+    else
+      model_building_type = ''
     end
-
-    # List the unique array of constructions
-    prev_created_consts.each do |surf_type, construction|
-      runner.registerInfo("For #{surf_type.join(' ')}, applied #{construction.name}.")
+    if ['SmallHotel', 'LargeHotel', 'MidriseApartment', 'HighriseApartment'].include?(model_building_type)
+      occ_type = 'Residential'
+    else
+      occ_type = 'Nonresidential'
     end
+    climate_zone_set = standard.model_find_climate_zone_set(model, climate_zone)
+    new_construction = standard.model_find_and_add_construction(model,
+                                                                climate_zone_set,
+                                                                'ExteriorWall',
+                                                                old_wall_construction_type,
+                                                                occ_type)
+    ext_surf_consts.setWallConstruction(new_construction)
 
     log_messages_to_runner(runner, debug = false)
     reset_log
-
-    if prev_created_consts.empty?
-      runner.registerAsNotApplicable("Found no #{surf_type.join(' ')} surfaces in the model to update")
-    end
 
     return true
   end

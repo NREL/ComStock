@@ -248,9 +248,38 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
 
     def download_data(self):
+
+        # EJSCREEN
+        ejscreen_data_path = os.path.join(self.truth_data_dir, self.ejscreen_file_name)
+        if not os.path.exists(ejscreen_data_path):
+            s3_file_path = f'truth_data/{self.truth_data_version}/EPA/EJSCREEN/{self.ejscreen_file_name}'
+            self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
+
+        # egrid emissions factors
+        egrid_data_path = os.path.join(self.truth_data_dir, self.egrid_file_name)
+        if not os.path.exists(egrid_data_path):
+            s3_file_path = f'truth_data/{self.truth_data_version}/EPA/eGRID/{self.egrid_file_name}'
+            self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
+
+        # CEJST (CEQ's official EJ/J40 designations)
+        cejst_data_path = os.path.join(self.truth_data_dir, self.cejst_file_name)
+        if not os.path.exists(cejst_data_path):
+            s3_file_path = f'truth_data/{self.truth_data_version}/EPA/CEJST/{self.cejst_file_name}'
+            self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
+
+        # Geospatial data
+        geospatial_data_path = os.path.join(self.truth_data_dir, self.geospatial_lookup_file_name)
+        if not os.path.exists(geospatial_data_path):
+            sampling_file_path = os.path.abspath(os.path.join(__file__, '..', '..', '..', 'sampling', 'resources', self.geospatial_lookup_file_name))
+            logger.info(f'sampling_file_path: {sampling_file_path}')
+            if os.path.exists(sampling_file_path):
+                shutil.copy(sampling_file_path, geospatial_data_path)
+
         # Get data on the s3 resource to download data from:
         if self.s3_inpath is None:
             logger.info('The s3 path provided in the ComStock object initalization is invalid.')
+            return #skip the strip calling.
+
         s3_path_items = self.s3_inpath.lstrip('s3://').split('/')
         bucket_name = s3_path_items[0]
         prfx = '/'.join(s3_path_items[1:])
@@ -311,31 +340,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             logger.info(f'Downloading {bldstk_s3_path} from the {bucket_name} bucket')
             self.s3_resource.Object(bucket_name, bldstk_s3_path).download_file(buildstock_csv_path)
 
-        # EJSCREEN
-        ejscreen_data_path = os.path.join(self.truth_data_dir, self.ejscreen_file_name)
-        if not os.path.exists(ejscreen_data_path):
-            s3_file_path = f'truth_data/{self.truth_data_version}/EPA/EJSCREEN/{self.ejscreen_file_name}'
-            self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
-
-        # egrid emissions factors
-        egrid_data_path = os.path.join(self.truth_data_dir, self.egrid_file_name)
-        if not os.path.exists(egrid_data_path):
-            s3_file_path = f'truth_data/{self.truth_data_version}/EPA/eGRID/{self.egrid_file_name}'
-            self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
-
-        # CEJST (CEQ's official EJ/J40 designations)
-        cejst_data_path = os.path.join(self.truth_data_dir, self.cejst_file_name)
-        if not os.path.exists(cejst_data_path):
-            s3_file_path = f'truth_data/{self.truth_data_version}/EPA/CEJST/{self.cejst_file_name}'
-            self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
-
-        # Geospatial data
-        geospatial_data_path = os.path.join(self.truth_data_dir, self.geospatial_lookup_file_name)
-        if not os.path.exists(geospatial_data_path):
-            sampling_file_path = os.path.abspath(os.path.join(__file__, '..', '..', '..', 'sampling', 'resources', self.geospatial_lookup_file_name))
-            logger.info(f'sampling_file_path: {sampling_file_path}')
-            if os.path.exists(sampling_file_path):
-                shutil.copy(sampling_file_path, geospatial_data_path)
 
         # Electric Utility Data
         elec_util_data_path = os.path.join(self.truth_data_dir, self.tract_to_util_map_file_name)
@@ -490,7 +494,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Read the buildstock.csv to determine number of simulations expected
         buildstock = pl.read_csv(os.path.join(self.data_dir, self.buildstock_file_name), infer_schema_length=50000)
-        buildstock.rename({'Building': 'sample_building_id'})
+        buildstock = buildstock.rename({'Building': 'sample_building_id'})
+        
+
+        # if "sample_building_id" not in buildstock:
+
+        #     raise Exception(f"the csv path is {os.path.join(self.data_dir, self.buildstock_file_name)}")
         buildstock_bldg_count = buildstock.shape[0]
         logger.debug(f'{buildstock_bldg_count} models in buildstock.csv')
 
@@ -529,10 +538,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             for c, dt in up_res.schema.items():
                 if 'applicable' in c:
                     logger.debug(f'For {c}: Nulls set to False in upgrade, and its type is {dt}')
-                    if dt == pl.Null or dt == pl.Boolean:
+                    #If the data type is something not String
+                    if dt in (pl.Null, pl.Boolean, 
+                              pl.Int8, pl.Int16, pl.Int32, pl.Int64,
+                              pl.UInt8, pl.UInt16, pl.UInt32, pl.UInt64, pl.Float32, pl.Float64): 
                         logger.debug(f'For {c}: Nulls set to False (Boolean) in baseline')
                         up_res = up_res.with_columns([pl.col(c).fill_null(pl.lit(False))])
-                    elif dt == pl.Utf8:
+                    elif dt in (pl.Utf8, pl.Categorical):
                         logger.debug(f'For {c}: Nulls set to "False" (String) in baseline')
                         up_res = up_res.with_columns([pl.col(c).fill_null(pl.lit("False"))])
                         up_res = up_res.with_columns([pl.when(pl.col(c).str.lengths() == 0).then(pl.lit('False')).otherwise(pl.col(c)).keep_name()])
@@ -564,7 +576,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 logger.warning("    Run    tail -n 5 job.out-*    inside the project directory to review the job.out files.")
 
                 # Add building IDs that are missing to the list of "failed" buildings
-                missing_ids = [id for id in buildstock['sample_building_id'] if id not in up_res.index]
+                assert type(up_res) is pl.DataFrame
+                missing_ids = [id for id in buildstock['sample_building_id'] if id not in up_res.get_column("building_id").to_list()]
                 base_failed_ids.update(missing_ids)
 
             # Determine the verified success/failure/NA status
@@ -939,7 +952,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 buildstock = buildstock.rename({old: new})
 
         self.data = self.data.join(buildstock, left_on='building_id', right_on='sample_building_id', how='left')
-
         # Show the dataset size
         logger.debug(f'Memory after add_buildstock_csv_columns: {self.data.estimated_size()}')
 
@@ -1932,7 +1944,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             if bt in comstock_bldg_types:
                 bldg_types_to_keep.append(bt)
 
-        logger.debug("Building types to keep: ", bldg_types_to_keep)
+        logger.debug(f"Building types to keep: {bldg_types_to_keep}")
         if remove_non_comstock_bldg_types_from_cbecs:
             # Modify CBECS to remove building types not covered by ComStock
             cbecs.data = cbecs.data[cbecs.data[self.BLDG_TYPE].isin(bldg_types_to_keep)]
@@ -2746,6 +2758,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.BLDG_ID, self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.SAMPLING_REGION, self.CZ_ASHRAE,
                 self.BLDG_TYPE, self.HVAC_SYS, self.SH_FUEL, self.SIZE_BIN, self.FLR_AREA, self.TOT_EUI, self.CEN_DIV
             ))
+            
+            # raise Exception(f"columns in self.data are {list(self.data.columns)} and we are looking for {list([self.BLDG_ID, self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.SAMPLING_REGION, self.CZ_ASHRAE, self.BLDG_TYPE, self.HVAC_SYS, self.SH_FUEL, self.SIZE_BIN, self.FLR_AREA, self.TOT_EUI, self.CEN_DIV])}")
 
             # If anything in this selection is null we're smoked so check twice and fail never
             if csdf.null_count().collect().sum(axis=1).sum() != 0:
@@ -3198,7 +3212,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 # Calculate the absolute and percent savings
                 abs_svgs = (base_vals[val_cols] - up_vals[val_cols])
 
-                pct_svgs = ((base_vals[val_cols] - up_vals[val_cols]) / base_vals[val_cols])
+                pct_svgs = ((base_vals[val_cols] - up_vals[val_cols]) / base_vals[val_cols]) * 100
                 pct_svgs = pct_svgs.fill_null(0.0)
                 pct_svgs = pct_svgs.fill_nan(0.0)
 
