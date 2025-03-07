@@ -2169,6 +2169,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
     def create_geospatial_slice_of_metadata(self,
                                             geo_data,
                                             meta_data,
+                                            baseline_fkt_plus,
                                             geography_filters={},
                                             geographic_aggregation_levels=[],
                                             column_downselection=None):
@@ -2186,108 +2187,96 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # At this point the geo_data has a tract for each building (row)
         # Join the utility bill columns with data about all utilites onto this
-        
-        print("--->>>Here is where to add utility bills<<<---")
-        import time
-
-        util_results_cols = [pl.col(c) for c in self.COLS_UTIL_BILL_RESULTS]
+        # Include building floor area for utility cost intenstity calcs
+        util_results_cols = [pl.col(c) for c in self.COLS_UTIL_BILL_RESULTS] + [self.FLR_AREA]
         util_results = meta_data.select(
-            [pl.col(self.BLDG_ID)] + util_results_cols
+            [pl.col(self.BLDG_ID), pl.col(self.UPGRADE_NAME)] + util_results_cols
         )
         
         geo_data = geo_data.join(util_results, on=self.BLDG_ID, how='left')
 
-        for col in geo_data.columns:
-            print(col)
-        
-        # print(geo_data.collect())
-
-        # load tract to utility mapping
+        # load tract to utility mapping 
         file_path = os.path.join(self.truth_data_dir, self.tract_to_util_map_file_name)
         tract_to_util_map = pl.scan_csv(file_path)
 
-        # add eia id
+        # add eia utility id
         geo_data = geo_data.join(tract_to_util_map, on=self.TRACT_ID, how='left')
 
-        # for col in geo_data.columns:
-        #     print(col)
-        
-        # util_results = geo_data.select(self.COLS_UTIL_BILL_RESULTS).collect()
-        # print(util_results)
-
-        # For each row, select the utility bill based on the ID based on the tract
-        # bills_expr = r"\|{}:(.+?):(.+?):(.+?):(.+?):(.+?):\|"
+        # For each row, select the utility bill based on the ID based on the allocated tract
         bills_expr = r"\|{}:(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?)\|"
-        exprs = []
-        for i, column in enumerate(self.UTIL_ELEC_BILL_VALS):
-            exprs.append(pl.col(self.UTIL_BILL_ELEC_RESULTS).str.extract(pl.format(bills_expr, pl.col(self.UTIL_BILL_EIA_ID)), i+1).alias(column))
 
-        geo_data = geo_data.with_columns(exprs)
-        # elec_vals = geo_data.select([self.UTIL_BILL_EIA_ID] + self.UTIL_ELEC_BILL_VALS).collect()
-        # print(elec_vals)
+        geo_data = geo_data.with_columns(
+            [pl.col(self.UTIL_BILL_ELEC_RESULTS)
+               .str
+               .extract(pl.format(bills_expr, pl.col(self.UTIL_BILL_EIA_ID)), i+1)
+               .alias(column)
+            for i, column in enumerate(self.UTIL_ELEC_BILL_VALS)]
+        )
         
-        # for each row, select the state average utility cost based on the state abbreviation
+        # for each row, select the state average utility cost based on the allocated state
         state_expr = r"\|{}:(.+?)\|"
-        exprs = []
-        for result, column in dict(zip(self.COLS_STATE_UTIL_RESULTS, self.COST_STATE_UTIL_COSTS)).items():
-            exprs.append(pl.col(result).str.extract(pl.format(state_expr, pl.col(self.STATE_ABBRV)), 1).cast(pl.Int32).alias(column))
+
+        geo_data = geo_data.with_columns(
+            [pl.col(result)
+               .str
+               .extract(pl.format(state_expr, pl.col(self.STATE_ABBRV)), 1)
+               .cast(pl.Int32)
+               .alias(column)
+            for result, column in dict(zip(self.COLS_STATE_UTIL_RESULTS, self.COST_STATE_UTIL_COSTS)).items()]
+        )
+
+        # fill missing utility bill costs with state average
+        geo_data = geo_data.with_columns(
+            [pl.when('usd' in column)
+               .then(pl.col(column)
+                       .fill_null(pl.col(self.UTIL_STATE_AVG_ELEC_COST))
+                    )
+               .when('label' in column)
+               .then(pl.col(column)
+                       .fill_null('state_average_rate')
+                    )
+            for column in self.UTIL_ELEC_BILL_VALS]
+        )
         
-        geo_data = geo_data.with_columns(exprs)
-        # state_vals = geo_data.select([self.STATE_ABBRV] + self.COST_STATE_UTIL_COSTS).collect()
-        # print(state_vals)
-
-
-        # Now, we have a unique weight and a unique utility bill (elec, gas, etc.) value (min/median/mean/max) for each row
-        # When we aggregate:
-        # Weights get summed
-        #
-        # 1. Calculate the weighted utility bill columns directly on the fkt
-        # bill_label_cols = [col for col in self.UTIL_ELEC_BILL_VALS if '_label' in col]
-        # elec_bill_numeric_cols = list(set(self.UTIL_ELEC_BILL_VALS) - set(bill_label_cols))
-        # print(elec_bill_numeric_cols)
-
-        # weighted_util_cols = []
-        exprs = []
+        # calculate the weighted utility bill columns directly on the fkt
         conv_fact = self.conv_fact('usd', self.weighted_utility_units)
-        for col in (self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS):
-            # multiply by weight and convert unit
+        cost_cols = (self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS)
+        for col in cost_cols:
+            # get weighted col name
             weighted_col_name = self.col_name_to_weighted(col, self.weighted_utility_units)
             self.unweighted_weighted_map.update({col: weighted_col_name})
-            exprs.append(pl.col(col).cast(pl.Int32).mul(pl.col(self.BLDG_WEIGHT)).mul(conv_fact).alias(weighted_col_name))
-            # weighted_util_cols.append(weighted_col_name)
+        
+        # calculate weighted utility costs
+        geo_data = geo_data.with_columns(
+            [pl.col(col)
+               .cast(pl.Int32)
+               .mul(pl.col(self.BLDG_WEIGHT))
+               .mul(conv_fact)
+               .alias(self.unweighted_weighted_map[col])
+               for col in cost_cols
+            ]
+        )
 
-        # weight number of bills
-        exprs.append(pl.col(self.UTIL_ELEC_BILL_NUM_BILLS).cast(pl.Int32).mul(pl.col(self.BLDG_WEIGHT)).alias(self.col_name_to_weighted(self.UTIL_ELEC_BILL_NUM_BILLS)))
+        # weight number of bills TODO: do we want this?
+        geo_data = geo_data.with_columns(
+            pl.col(self.UTIL_ELEC_BILL_NUM_BILLS)
+              .cast(pl.Int32)
+              .mul(pl.col(self.BLDG_WEIGHT))
+              .alias(self.col_name_to_weighted(self.UTIL_ELEC_BILL_NUM_BILLS))
+        )
+        # update name dict
         self.unweighted_weighted_map.update({self.UTIL_ELEC_BILL_NUM_BILLS: self.col_name_to_weighted(self.UTIL_ELEC_BILL_NUM_BILLS)})
-        # weighted_util_cols.append(self.col_name_to_weighted(self.UTIL_ELEC_BILL_NUM_BILLS))
 
-        # add columns
-        geo_data = geo_data.with_columns(exprs)
-        # weighted = geo_data.select(weighted_util_cols).collect()
-        # print(weighted)
-        # geo_data.collect().write_csv(os.path.abspath(os.path.join(self.output_dir, 'test_geo_data_before_agg.csv')))
+        # get upgrade ID
+        upgrade_id_frame = geo_data.collect().select(pl.col(self.UPGRADE_ID)).cast(pl.Int32).unique()
+        # should be a single value
+        assert upgrade_id_frame.select(pl.len()).item() == 1
+        upgrade_id = upgrade_id_frame.item()
 
-        # cache the baseline fkt at this point to use for savings calculations
-        if self.UPGRADE_NAME == self.BASE_NAME:
-            baseline_fkt_plus = geo_data
-        else:
-            baseline_fkt_plus = None
+        logger.info(f'Creating geospatial slice for upgrade: {upgrade_id}')
 
-        # exit()
+        # geo_data.collect().write_csv(os.path.abspath(os.path.join(self.output_dir, f'{upgrade_id}_test_geo_data_before_agg.csv')))
 
-        # do weighted savings calcs now, before aggregation
-        if baseline_fkt_plus is not None:
-            geo_data = self.add_average_utility_cost_and_savings_columns(geo_data, baseline_fkt_plus)
-
-        # 2. Sum those (just like summing the weights) when doing the aggregation
-        # 3. Remove the utility bills from the add_weighted_columns calculations
-        # 4. If we wanted to, go back and calculate the "average" per-building value by dividing the weighted bill columns by the weight
-        # Later on, the weights get multiplied by the energy numbers to calculate weighted energy consumption, savings, etc.
-        # This only works because the energy consumption for a give building ID is the same regardless of where it is located.
-        # For the utility bills, we have to calculate a weighted value for each row NOW while each building
-        # weight has it's own associated utility bill for that location.
-
-        print("--->>>Aggregating the weights for building IDs<<<---")
         # Aggregate the weights for building IDs within each geography
         if geographic_aggregation_levels == ['national']:
             # Handle national case because there is no "country" column in the dataset to filter on
@@ -2295,31 +2284,67 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         else:
             geo_agg_cols = [pl.col(c) for c in geographic_aggregation_levels]
 
-        # aggregate weighted util cols and savings cols
-        weighted_util_cols = [self.unweighted_weighted_map[col] for col in (self.UTIL_ELEC_BILL_COSTS + [self.UTIL_ELEC_BILL_NUM_BILLS])]
+        # get weighted util cols to aggregate
+        weighted_util_cols = [self.unweighted_weighted_map[col] for col in (cost_cols + [self.UTIL_ELEC_BILL_NUM_BILLS])]
+
+        # aggregate the fkt weights (and and weighted utility bill results) to input geospatial resolutions
         geo_data = geo_data.select(
-            [pl.col(self.BLDG_WEIGHT), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)] + geo_agg_cols + self.UTIL_ELEC_BILL_LABEL + weighted_util_cols
-        ).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)] + geo_agg_cols).agg([
-            pl.col([self.BLDG_WEIGHT] + geographic_aggregation_levels + weighted_util_cols).sum(),
-            pl.col(self.UTIL_ELEC_BILL_LABEL).first() # undo this - only get label at tract level (otherwise they are combined)
-        ])
+            [
+                pl.col(self.BLDG_WEIGHT), 
+                pl.col(self.UPGRADE_ID), 
+                pl.col(self.BLDG_ID),
+                pl.col(self.FLR_AREA)
+            ]
+            + geo_agg_cols
+            + weighted_util_cols
+        ).groupby(
+            [
+                pl.col(self.UPGRADE_ID), 
+                pl.col(self.BLDG_ID)
+            ] 
+            + geo_agg_cols
+        ).agg(
+            [
+                pl.col([self.BLDG_WEIGHT] + geographic_aggregation_levels + weighted_util_cols).sum(),
+                pl.col(self.FLR_AREA).first()
+            ]
+        )
 
-        # print(geo_data.select(bill_label_cols).collect())
-        geo_data.collect().write_csv(os.path.abspath(os.path.join(self.output_dir, 'test_geo_data_after_agg.csv')))
-        for k,v in self.unweighted_weighted_map.items():
-            print(f"{k}:{v}")
-        exit()
+        logger.info('Geospatial aggregation Complete')
 
-        print("--->>>Joining the weightes to metadata<<<---")
+        # calculate as average 'unweighted' utility intensity, e.g. (sum of weighted bills) / (sum of weights * building area)
+        geo_data = geo_data.with_columns(
+            [pl.col(self.unweighted_weighted_map[col]) # sum of (utility cost per building * tract-level weights) in billion usd
+               .truediv(
+                   pl.col(self.FLR_AREA) # single building area
+                     .mul(pl.col(self.BLDG_WEIGHT)) # sum of tract-level weights
+                     .mul(conv_fact) # usd to billion usd
+               )
+               .alias(self.col_name_to_area_intensity(col))
+            for col in cost_cols]
+        )
+
+        # calculate aggregate savings cols
+        geo_data = self.add_weighted_utility_cost_savings_columns(geo_data, baseline_fkt_plus, geo_agg_cols)
+
+        # cache the baseline fkt at this point to use for savings calculations
+        if upgrade_id == 0:
+            baseline_fkt_plus = geo_data
+
+
+        logger.info("Joining the aggregated weights to simulation results")
         # Join the weights to the per-model metadata and annual results
-        geo_data = geo_data.join(meta_data, on=[pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)])
+        geo_data = geo_data.select(pl.all().exclude(self.FLR_AREA)).join(meta_data, on=[pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)])
 
-        print("--->>>Calculate the weighted columns<<<---")
+        # remove utility cols from unweighted_weighted_map
+        for col in (cost_cols + [self.UTIL_ELEC_BILL_NUM_BILLS]):
+            self.unweighted_weighted_map.pop(col, None)
+
+        geo_data.collect().write_csv(os.path.abspath(os.path.join(self.output_dir, f'{upgrade_id}_test_geo_data_with_savings_joined.csv')))
+        
+        logger.info("Calculating weighted energy savings columns")
         # Calculate the weighted columns
         geo_data = self.add_weighted_area_energy_savings_columns(geo_data)
-
-
-        
 
         print("--->>>Add geospatial data columns based on most informative geography column<<<---")
         # Add geospatial data columns based on most informative geography column
@@ -2336,7 +2361,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Remove units from the column names used by SightGlass
         # comstock.remove_sightglass_column_units()
 
-        print("--->>>Reorder the columns<<<---")
         # Reorder the columns
         geo_data = self.reorder_data_columns(geo_data)
 
@@ -2501,6 +2525,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
                 return file_path
 
+            # cached baseline fkt with utility data for savings calcs
+            baseline_fkt_plus = None
+
             # Write a file for each upgrade X geography combo for each file type
             for upgrade_id in upgrade_ids:
                 # Get the fkt and self.data for this upgrade
@@ -2536,9 +2563,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                             agg_lvl_list = [aggregation_level] # TODO move handling of this inside create_geospatial_slice_of_metadata
                             if isinstance(aggregation_level, list):
                                 agg_lvl_list = aggregation_level  # Pass list if a list is already supplied
-                            to_write = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, first_geo_filters, agg_lvl_list, starting_downselect)
+                            processed_dfs = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, baseline_fkt_plus, first_geo_filters, agg_lvl_list, starting_downselect)
+                            to_write = processed_dfs[0]
                             to_write = to_write.collect()
                             logger.info(f'There are {to_write.shape[0]:,} total rows for {first_geo_filters}')
+
+                            # cache baseline fkt with utilities for utility bill savings
+                            baseline_fkt_plus = processed_dfs[1]
 
                             # Queue writes for each geography
                             combos_to_write = []
@@ -2602,11 +2633,15 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         agg_lvl_list = [aggregation_level] # TODO move handling of this inside create_geospatial_slice_of_metadata
                         if isinstance(aggregation_level, list):
                             agg_lvl_list = aggregation_level  # Pass list if a list is already supplied
-                        to_write = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, no_geo_filters, agg_lvl_list, starting_downselect)
+                        processed_dfs = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, baseline_fkt_plus, no_geo_filters, agg_lvl_list, starting_downselect)
+                        to_write = processed_dfs[0]
                         # print(to_write)
                         # exit()
-                        to_write = to_write.collect(streaming=True)
+                        to_write = to_write.collect()
                         logger.info(f'There are {to_write.shape[0]:,} total rows at the aggregation level {aggregation_level}')
+
+                        # cache baseline fkt with utilities for utility bill savings
+                        baseline_fkt_plus = processed_dfs[1]
 
                         # Process each geography and downselect columns
                         combos_to_write = []
@@ -3015,19 +3050,70 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         return input_lf
 
-    def add_average_utility_cost_and_savings_columns(self, input_lf):
+    def add_weighted_utility_cost_savings_columns(self, input_lf, baseline_lf, geo_agg_cols):
         # the data contains the weighted extracted utility bills for the apportioned tract
-        # This method will calculate the 'average' (unweighted, i.e. per-building) utility bill results - min, median_low, median_high, mean, max
-        # and 
-        
+        # This method will calculate the weighted utility cost savings by each metric - min, median_low, median_high, mean, max, and state average
+
+        logger.debug('Adding weighted utility cost savings')
+
         assert isinstance(input_lf, pl.LazyFrame)
 
-        col_groups =  {
-            'cols': (self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS)
-        }
+        result_cols = self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS
+        abs_svgs_cols = {}
+        pct_svgs_cols = {}
 
+        val_cols = []
 
+        for col in result_cols:
+            weighted_col = self.unweighted_weighted_map[col]
+            val_cols.append(weighted_col)
+            abs_svgs_cols[weighted_col] = self.col_name_to_savings(weighted_col, None)
+            pct_svgs_cols[weighted_col] = self.col_name_to_percent_savings(weighted_col, 'percent')
+            # mapping for column name to intensity savings column name
+            intensity_col = self.col_name_to_area_intensity(col)
+            val_cols.append(intensity_col)
+            abs_svgs_cols[intensity_col] = self.col_name_to_savings(intensity_col, None)
+            pct_svgs_cols[intensity_col] = self.col_name_to_percent_savings(intensity_col, 'percent')
 
+        if baseline_lf is None:
+            # this is baseline data, add empty savings cols and return
+            for weighted_col in (list(abs_svgs_cols.values()) + list(pct_svgs_cols.values())):
+                input_lf = input_lf.with_columns(pl.lit(0.0).alias(weighted_col))
+            return input_lf
+        
+
+        val_and_id_cols = val_cols + geo_agg_cols + [self.BLDG_ID]
+        # for col in val_and_id_cols:
+        #     print(col)
+
+        base_vals = baseline_lf.select(val_and_id_cols).sort([self.BLDG_ID] + geo_agg_cols).clone()
+        base_vals = base_vals.rename(lambda col_name: col_name + '_base')
+
+        up_vals = input_lf.select(val_and_id_cols).sort([self.BLDG_ID] + geo_agg_cols).clone()
+
+        # absolute savings
+        abs_svgs = pl.concat([up_vals, base_vals], how='horizontal').with_columns(
+            [pl.col(f'{col}_base') - pl.col(col) for col in val_cols]
+        ).select(up_vals.columns)
+
+        # percent savings
+        pct_svgs = pl.concat([up_vals, base_vals], how='horizontal').with_columns(
+            [(pl.col(f'{col}_base') - pl.col(col)) / pl.col(f'{col}_base') for col in val_cols]
+        ).select(up_vals.columns)
+
+        pct_svgs = pct_svgs.fill_null(0.0)
+        pct_svgs = pct_svgs.fill_nan(0.0)
+
+        # abs_svgs = abs_svgs.rename(abs_svgs_cols).cast({self.BLDG_ID: pl.Int64})
+        # pct_svgs = pct_svgs.rename(pct_svgs_cols).cast({self.BLDG_ID: pl.Int64})
+
+        abs_svgs = abs_svgs.rename(abs_svgs_cols)
+        pct_svgs = pct_svgs.rename(pct_svgs_cols)
+
+        input_lf = input_lf.join(abs_svgs, how='left', on=[self.BLDG_ID] + geo_agg_cols)
+        input_lf = input_lf.join(pct_svgs, how='left', on=[self.BLDG_ID] + geo_agg_cols)
+
+        return input_lf
 
     def add_unweighted_savings_columns(self):
 
