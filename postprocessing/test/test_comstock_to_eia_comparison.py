@@ -35,14 +35,14 @@ def test_eia_plot_generation():
         cbecs_year = 2018,
         truth_data_version='v01',
         color_hex='#009E73',
-        reload_from_csv=True, # True since CSV already made and want faster reload times
+        reload_from_csv=False, # True since CSV already made and want faster reload times
         )
 
     # EIA
     eia = comstockpostproc.eia.EIA(
         year=2018,
         truth_data_version="v01",
-        reload_from_csv=True
+        reload_from_csv=False
     )
 
     # save cbecs csv

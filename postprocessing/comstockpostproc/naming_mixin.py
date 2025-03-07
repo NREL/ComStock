@@ -12,7 +12,7 @@ class NamingMixin():
     CEN_DIV = 'in.census_division_name'
     STATE_NAME = 'in.state_name'
     STATE_ABBRV = 'in.state'
-    FLR_AREA = 'in.sqft'
+    FLR_AREA = 'in.sqft..ft2'
     FLR_AREA_CAT = 'in.floor_area_category'
     CBECS_BLDG_TYPE = 'in.cbecs_building_type'
     YEAR_BUILT = 'in.year_built'
@@ -22,6 +22,7 @@ class NamingMixin():
     AEO_BLDG_TYPE = 'in.aeo_and_nems_building_type'
     VINTAGE = 'in.vintage'
     CZ_ASHRAE = 'in.ashrae_iecc_climate_zone_2006'
+    CZ_ASHRAE_CEC_MIXED = 'in.ashrae_or_cec_climate_zone'
     UPGRADE_NAME = 'in.upgrade_name'
     UPGRADE_ID = 'upgrade'
     UPGRADE_APPL = 'applicability'
@@ -30,7 +31,6 @@ class NamingMixin():
     HVAC_SYS = 'in.hvac_system_type'
     SEG_NAME = 'calc.segment'
     COMP_STATUS = 'completed_status'
-    META_IDX = 'metadata_index'
     DIVISION = 'Division'
     MONTH = 'Month'
 
@@ -62,6 +62,37 @@ class NamingMixin():
         DIVISION: "category",
         MONTH: "Int8"
     }
+
+    # Geography-defining columns
+    COLS_GEOG = [
+        CZ_ASHRAE,
+        CZ_ASHRAE_CEC_MIXED,
+        'in.building_america_climate_zone',
+        'in.cambium_grid_region',
+        CEN_DIV,
+        CEN_REG,
+        'in.iso_rto_region',
+        COUNTY_ID,
+        PUMA_ID,
+        TRACT_ID,
+        'in.reeds_balancing_area',
+        'in.county_name',
+        STATE_ID,
+        'in.state',
+        'in.state_name',
+        'in.cluster_id',
+        'in.cluster_name',
+        'in.weather_file_2018',
+        'in.weather_file_tmy3',
+        'in.ejscreen_census_tract_percentile_for_demographic_index',
+        'in.ejscreen_census_tract_percentile_for_people_of_color',
+        'in.cejst_is_disadvantaged',
+        'in.ejscreen_census_tract_percentile_percent_people_under_5',
+        'in.ejscreen_census_tract_percentile_for_less_than_hs_educ',
+        'in.ejscreen_census_tract_percentile_for_low_income',
+        'in.ejscreen_census_tract_percentile_for_people_over_64',
+        'in.ejscreen_census_tract_percentile_for_people_in_ling_isol',
+    ]
 
     # Total annual energy
     ANN_TOT_ENGY_KBTU = 'out.site_energy.total.energy_consumption..kwh'
@@ -139,6 +170,10 @@ class NamingMixin():
     ANN_OTHER_SWH_GROUP_KBTU = 'calc.enduse_group.other_fuel.water_systems.energy_consumption..kwh'
     ANN_OTHER_INTEQUIP_GROUP_KBTU = 'calc.enduse_group.other_fuel.interior_equipment.energy_consumption..kwh'
 
+    # Unmet hours columns
+    COOLING_HOURS_UNMET = 'out.params.hours_cooling_setpoint_not_met..hr'
+    HEATING_HOURS_UNMET = 'out.params.hours_heating_setpoint_not_met..hr'
+
     # List of total annual energy end use group columns
     COLS_ENDUSE_GROUP_TOT_ANN_ENGY = [
         ANN_HVAC_GROUP_KBTU,
@@ -169,6 +204,9 @@ class NamingMixin():
 
     # Utility bills
     UTIL_BILL_ELEC = 'out.utility_bills.electricity_bill_mean..usd'
+    UTIL_BILL_ELEC_MAX = 'out.utility_bills.electricity_bill_max..usd'
+    UTIL_BILL_ELEC_MED = 'out.utility_bills.electricity_bill_median..usd'
+    UTIL_BILL_ELEC_MIN = 'out.utility_bills.electricity_bill_min..usd'
     UTIL_BILL_GAS = 'out.utility_bills.natural_gas_bill..usd'
     UTIL_BILL_FUEL_OIL = 'out.utility_bills.fuel_oil_bill..usd'
     UTIL_BILL_PROPANE = 'out.utility_bills.propane_bill..usd'
@@ -201,7 +239,28 @@ class NamingMixin():
         'out.emissions.natural_gas..co2e_kg',
         'out.emissions.fuel_oil..co2e_kg',
         'out.emissions.propane..co2e_kg',
-        'out.emissions.electricity.lrmer_95_decarb_by_2035_15_2023_start..co2e_kg'
+        'out.emissions.electricity.lrmer_mid_case_15_2023_start..co2e_kg'
+
+    ]
+
+    # GHG emissions seasonal daily average from electricity consumption columns for eGrid
+    COLS_GHG_ELEC_SEASONAL_DAILY_EGRID = [
+        'out.emissions.electricity.winter_daily_average.egrid_2021_subregion..co2e_kg',
+        'out.emissions.electricity.summer_daily_average.egrid_2021_subregion..co2e_kg',
+        'out.emissions.electricity.shoulder_daily_average.egrid_2021_subregion..co2e_kg'
+    ]
+
+    # GHG emissions seasonal daily average from electricity consumption columns for Cambium
+    COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM = [
+        'out.emissions.electricity.winter_daily_average.lrmer_high_re_cost_15_2023_start..co2e_kg',
+        'out.emissions.electricity.summer_daily_average.lrmer_high_re_cost_15_2023_start..co2e_kg',
+        'out.emissions.electricity.shoulder_daily_average.lrmer_high_re_cost_15_2023_start..co2e_kg',
+        'out.emissions.electricity.winter_daily_average.lrmer_low_re_cost_15_2023_start..co2e_kg',
+        'out.emissions.electricity.summer_daily_average.lrmer_low_re_cost_15_2023_start..co2e_kg',
+        'out.emissions.electricity.shoulder_daily_average.lrmer_low_re_cost_15_2023_start..co2e_kg',
+        'out.emissions.electricity.winter_daily_average.lrmer_mid_case_15_2023_start..co2e_kg',
+        'out.emissions.electricity.summer_daily_average.lrmer_mid_case_15_2023_start..co2e_kg',
+        'out.emissions.electricity.shoulder_daily_average.lrmer_mid_case_15_2023_start..co2e_kg'
     ]
 
     # QOI COLS
@@ -224,6 +283,36 @@ class NamingMixin():
     QOI_MIN_SHOULDER_USE_NORMALIZED = 'out.qoi.minimum_daily_use_shoulder_intensity..w_per_ft2'
     QOI_MIN_SUMMER_USE_NORMALIZED = 'out.qoi.minimum_daily_use_summer_intensity..w_per_ft2'
     QOI_MIN_WINTER_USE_NORMALIZED = 'out.qoi.minimum_daily_use_winter_intensity..w_per_ft2'
+
+    COLS_QOI_MONTHLY_MAX_DAILY_PEAK = [
+        'out.qoi.maximum_daily_peak_jan..kw',
+        'out.qoi.maximum_daily_peak_feb..kw',
+        'out.qoi.maximum_daily_peak_mar..kw',
+        'out.qoi.maximum_daily_peak_apr..kw',
+        'out.qoi.maximum_daily_peak_may..kw',
+        'out.qoi.maximum_daily_peak_jun..kw',
+        'out.qoi.maximum_daily_peak_jul..kw',
+        'out.qoi.maximum_daily_peak_aug..kw',
+        'out.qoi.maximum_daily_peak_sep..kw',
+        'out.qoi.maximum_daily_peak_oct..kw',
+        'out.qoi.maximum_daily_peak_nov..kw',
+        'out.qoi.maximum_daily_peak_dec..kw'
+    ]
+
+    COLS_QOI_MONTHLY_MED_DAILY_PEAK = [
+        'out.qoi.median_daily_peak_jan..kw',
+        'out.qoi.median_daily_peak_feb..kw',
+        'out.qoi.median_daily_peak_mar..kw',
+        'out.qoi.median_daily_peak_apr..kw',
+        'out.qoi.median_daily_peak_may..kw',
+        'out.qoi.median_daily_peak_jun..kw',
+        'out.qoi.median_daily_peak_jul..kw',
+        'out.qoi.median_daily_peak_aug..kw',
+        'out.qoi.median_daily_peak_sep..kw',
+        'out.qoi.median_daily_peak_oct..kw',
+        'out.qoi.median_daily_peak_nov..kw',
+        'out.qoi.median_daily_peak_dec..kw'
+    ]
 
     # Greenhouse gas emissions columns
     GHG_NATURAL_GAS = 'out.emissions.natural_gas..co2e_kg'
@@ -481,6 +570,11 @@ class NamingMixin():
         GHG_ELEC_EGRID
     ]
 
+    UNMET_HOURS_COLS = [
+        COOLING_HOURS_UNMET,
+        HEATING_HOURS_UNMET,
+    ]
+
     # Colors from https://davidmathlogic.com/colorblind Bang Wong color palette
     COLOR_COMSTOCK_BEFORE = '#0072B2'
     COLOR_COMSTOCK_AFTER = '#56B4E9'
@@ -576,6 +670,23 @@ class NamingMixin():
         'Warehouse': 'warehouse'
     }
 
+    BLDG_TYPE_TO_ABBRV = {
+        'FullServiceRestaurant': 'FSR',
+        'QuickServiceRestaurant': 'QSR',
+        'RetailStripmall': 'RSM',
+        'RetailStandalone': 'RTL',
+        'SmallOffice': 'SMOFF',
+        'MediumOffice': 'MDOFF',
+        'LargeOffice': 'LGOFF',
+        'PrimarySchool': 'PRISCH',
+        'SecondarySchool': 'SECSCH',
+        'Outpatient': 'OUTPT',
+        'Hospital': 'HSP',
+        'SmallHotel': 'SMHOT',
+        'LargeHotel': 'LGHOT',
+        'Warehouse': 'WH'
+    }
+
     END_USES = [
         'exterior_lighting',
         'interior_lighting',
@@ -602,6 +713,96 @@ class NamingMixin():
         'fans': 'electricity_fans_kwh',
         'pumps': 'electricity_pumps_kwh',
         'refrigeration': 'electricity_refrigeration_kwh'
+    }
+
+    STATE_NHGIS_TO_ABBRV = {
+        'G010': 'AL',
+        'G020': 'AK',
+        'G040': 'AZ',
+        'G050': 'AR',
+        'G060': 'CA',
+        'G080': 'CO',
+        'G090': 'CT',
+        'G100': 'DE',
+        'G110': 'DC',
+        'G120': 'FL',
+        'G130': 'GA',
+        'G150': 'HI',
+        'G160': 'ID',
+        'G170': 'IL',
+        'G180': 'IN',
+        'G190': 'IA',
+        'G200': 'KS',
+        'G210': 'KY',
+        'G220': 'LA',
+        'G230': 'ME',
+        'G240': 'MD',
+        'G250': 'MA',
+        'G260': 'MI',
+        'G270': 'MN',
+        'G280': 'MS',
+        'G290': 'MO',
+        'G300': 'MT',
+        'G310': 'NE',
+        'G320': 'NV',
+        'G330': 'NH',
+        'G340': 'NJ',
+        'G350': 'NM',
+        'G360': 'NY',
+        'G370': 'NC',
+        'G380': 'ND',
+        'G390': 'OH',
+        'G400': 'OK',
+        'G410': 'OR',
+        'G420': 'PA',
+        'G440': 'RI',
+        'G450': 'SC',
+        'G460': 'SD',
+        'G470': 'TN',
+        'G480': 'TX',
+        'G490': 'UT',
+        'G500': 'VT',
+        'G510': 'VA',
+        'G530': 'WA',
+        'G540': 'WV',
+        'G550': 'WI',
+        'G560': 'WY',
+    }
+
+    MIXED_CZ_TO_ASHRAE_CZ = {
+            'CEC1': '4B',
+            'CEC2': '3C',
+            'CEC3': '3C',
+            'CEC4': '3C',
+            'CEC5': '3C',
+            'CEC6': '3C',
+            'CEC7': '3B',
+            'CEC8': '3B',
+            'CEC9': '3B',
+            'CEC10': '3B',
+            'CEC11': '3B',
+            'CEC12': '3B',
+            'CEC13': '3B',
+            'CEC14': '3B',
+            'CEC15': '2B',
+            'CEC16': '5B',
+            '1A':'1A',
+            '2A':'2A',
+            '2B':'2B',
+            '3A':'3A',
+            '3B':'3B',
+            '3C':'3C',
+            '4A':'4A',
+            '4B':'4B',
+            '4C':'4C',
+            '5A':'5A',
+            '5B':'5B',
+            '6A':'6A',
+            '6B':'6B',
+            '7A':'7',  # TODO remove 7A/7B from spatial_tract_lookup_table_publish_v6.csv?
+            '7B':'7',  # TODO remove 7A/7B from spatial_tract_lookup_table_publish_v6.csv?
+            '7':'7',
+            '8':'8',
     }
 
     def end_use_group(self, end_use):
@@ -660,19 +861,17 @@ class NamingMixin():
             converted_col_name = converted_col_name.replace('_bill_', '_bill_savings_')
         elif "_bill.." in converted_col_name:
             converted_col_name = converted_col_name.replace('_bill..', '_bill_savings..')
-            
-        if converted_col_name == col_name:
-            raise ValueError(f"Cannot convert column name {col_name} to savings column") 
-        
-        return converted_col_name
-    def col_name_to_weighted_percent_savings(self, col_name, new_units=None):
-        col_name = self.col_name_to_weighted(col_name, new_units)
-        col_name = col_name.replace('.weighted.', '.weighted.percent_savings.')
-        if not new_units is None:
-            old_units = self.units_from_col_name(col_name)
-            col_name = col_name.replace(f'..{old_units}', f'..{new_units}')
+        elif "peak_" in converted_col_name:
+            converted_col_name = converted_col_name.replace('peak_', 'peak_savings_')
+        elif "maximum_daily_use_" in converted_col_name:
+            converted_col_name = converted_col_name.replace('maximum_daily_use_', 'peak_savings_')
+        elif ".emissions." in converted_col_name:
+            converted_col_name = converted_col_name.replace('.emissions.', '.emissions.savings.')
 
-        return col_name
+        if converted_col_name == col_name:
+            raise ValueError(f"Cannot convert column name {col_name} to savings column")
+
+        return converted_col_name
 
     def col_name_to_percent_savings(self, col_name, new_units=None):
         # col_name = self.col_name_to_savings(col_name)
@@ -696,11 +895,16 @@ class NamingMixin():
 
     def col_name_to_area_intensity(self, col_name):
         units = self.units_from_col_name(col_name)
+        col_name = col_name.replace('energy_consumption', 'energy_consumption_intensity')
+        col_name = col_name.replace('energy_savings', 'energy_savings_intensity')
         col_name = col_name.replace('bill_mean..usd', 'bill_intensity..usd')
         col_name = col_name.replace('bill_min..usd', 'bill_min_intensity..usd')
         col_name = col_name.replace('bill_max..usd', 'bill_max_intensity..usd')
         col_name = col_name.replace('bill_median..usd', 'bill_median_intensity..usd')
         col_name = col_name.replace('bill..usd', 'bill_intensity..usd')
+        col_name = col_name.replace('_daily_peak_', '_daily_peak_intensity_')
+        col_name = col_name.replace('maximum_daily_use_', 'peak_intensity_')
+        col_name = col_name.replace('.emissions.', '.emissions.intensity.')
         area_units = 'ft2'
         intensity_units = f'{units}_per_{area_units}'
         col_name = col_name.replace(f'..{units}', f'..{intensity_units}')
