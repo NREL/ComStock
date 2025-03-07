@@ -240,12 +240,12 @@ class NamingMixin():
         'out.utility_bills.electricity_bill_min_label',
         'out.utility_bills.electricity_bill_max..usd',
         'out.utility_bills.electricity_bill_max_label',
-        'out.utility_bills.electricity_bill_median_low_dollars..usd',
+        'out.utility_bills.electricity_bill_median_low..usd',
         'out.utility_bills.electricity_bill_median_low_label',
-        'out.utility_bills.electricity_bill_median_high_dollars..usd',
+        'out.utility_bills.electricity_bill_median_high..usd',
         'out.utility_bills.electricity_bill_median_high_label',
         # 'out.utility_bills.electricity_bill_median_dollars..usd',
-        'out.utility_bills.electricity_bill_mean_dollars..usd',
+        'out.utility_bills.electricity_bill_mean..usd',
         'out.utility_bills.electricity_bill_num_bills'
     ]
 
@@ -253,10 +253,10 @@ class NamingMixin():
     UTIL_ELEC_BILL_LABEL = [col for col in UTIL_ELEC_BILL_VALS if 'label' in col]
     UTIL_ELEC_BILL_NUM_BILLS = UTIL_ELEC_BILL_VALS[-1]
 
-    UTIL_STATE_AVG_ELEC_COST = 'out.utility_bills.electricity_state_average..usd'
-    UTIL_STATE_AVG_GAS_COST = 'out.utility_bills.natural_gas_state_average..usd'
-    UTIL_STATE_AVG_PROP_COST = 'out.utility_bills.propane_state_average..usd'
-    UTIL_STATE_AVG_FUEL_COST = 'out.utility_bills.fuel_oil_state_average..usd'
+    UTIL_STATE_AVG_ELEC_COST = 'out.utility_bills.electricity_bill_state_average..usd'
+    UTIL_STATE_AVG_GAS_COST = 'out.utility_bills.natural_gas_bill_state_average..usd'
+    UTIL_STATE_AVG_PROP_COST = 'out.utility_bills.propane_bill_state_average..usd'
+    UTIL_STATE_AVG_FUEL_COST = 'out.utility_bills.fuel_oil_bill_state_average..usd'
 
     COST_STATE_UTIL_COSTS = [
         UTIL_STATE_AVG_ELEC_COST,
@@ -957,11 +957,13 @@ class NamingMixin():
         units = self.units_from_col_name(col_name)
         col_name = col_name.replace('energy_consumption', 'energy_consumption_intensity')
         col_name = col_name.replace('energy_savings', 'energy_savings_intensity')
-        col_name = col_name.replace('bill_mean..usd', 'bill_intensity..usd')
-        col_name = col_name.replace('bill_min..usd', 'bill_min_intensity..usd')
-        col_name = col_name.replace('bill_max..usd', 'bill_max_intensity..usd')
-        col_name = col_name.replace('bill_median..usd', 'bill_median_intensity..usd')
-        col_name = col_name.replace('bill..usd', 'bill_intensity..usd')
+        col_name = col_name.replace('bill_state_average', 'bill_state_average_intensity')
+        col_name = col_name.replace('bill_min', 'bill_min_intensity')
+        col_name = col_name.replace('bill_max', 'bill_max_intensity')
+        # col_name = col_name.replace('bill_median..usd', 'bill_median_intensity..usd')
+        col_name = col_name.replace('bill_median_low', 'bill_median_low_intensity')
+        col_name = col_name.replace('bill_median_high', 'bill_median_high_intensity')
+        col_name = col_name.replace('bill_mean', 'bill_mean_intensity')
         col_name = col_name.replace('_daily_peak_', '_daily_peak_intensity_')
         col_name = col_name.replace('maximum_daily_use_', 'peak_intensity_')
         col_name = col_name.replace('.emissions.', '.emissions.intensity.')
