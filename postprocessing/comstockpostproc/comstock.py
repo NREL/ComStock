@@ -3104,11 +3104,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         pct_svgs = pct_svgs.fill_null(0.0)
         pct_svgs = pct_svgs.fill_nan(0.0)
 
-        # abs_svgs = abs_svgs.rename(abs_svgs_cols).cast({self.BLDG_ID: pl.Int64})
-        # pct_svgs = pct_svgs.rename(pct_svgs_cols).cast({self.BLDG_ID: pl.Int64})
-
-        abs_svgs = abs_svgs.rename(abs_svgs_cols)
-        pct_svgs = pct_svgs.rename(pct_svgs_cols)
+        abs_svgs = abs_svgs.rename(abs_svgs_cols).cast({self.BLDG_ID: pl.Int64})
+        pct_svgs = pct_svgs.rename(pct_svgs_cols).cast({self.BLDG_ID: pl.Int64})
 
         input_lf = input_lf.join(abs_svgs, how='left', on=[self.BLDG_ID] + geo_agg_cols)
         input_lf = input_lf.join(pct_svgs, how='left', on=[self.BLDG_ID] + geo_agg_cols)
