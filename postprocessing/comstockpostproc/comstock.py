@@ -2287,8 +2287,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         logger.info(f'Creating geospatial slice for upgrade: {upgrade_id}')
 
-        # geo_data.collect().write_csv(os.path.abspath(os.path.join(self.output_dir, f'{upgrade_id}_test_geo_data_before_agg.csv')))
-
         # Aggregate the weights for building IDs within each geography
         if geographic_aggregation_levels == ['national']:
             # Handle national case because there is no "country" column in the dataset to filter on
@@ -2351,8 +2349,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # remove utility cols from unweighted_weighted_map
         for col in (cost_cols + [self.UTIL_ELEC_BILL_NUM_BILLS]):
             self.unweighted_weighted_map.pop(col, None)
-
-        geo_data.collect().write_csv(os.path.abspath(os.path.join(self.output_dir, f'{upgrade_id}_test_geo_data_with_savings_joined.csv')))
         
         logger.info("Calculating weighted energy savings columns")
         # Calculate the weighted columns
