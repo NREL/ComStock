@@ -976,6 +976,30 @@ def emission_prediction(load, factor, num_timesteps_in_hr)
   return hourly_emissions_kg
 end
 
+### load prediction based on grid load data
+def load_prediction_from_grid_data(model, scenario='Load_MidCase_2035')
+  grid_region = model.getBuilding.additionalProperties.getFeatureAsString('grid_region')
+  unless grid_region.is_initialized
+    raise 'Unable to find grid region in model building additional properties'
+  end
+  grid_region = grid_region.get
+  puts("Using grid region #{grid_region} from model building additional properties.")
+  # if ['AKMS', 'AKGD', 'HIMS', 'HIOA'].include? grid_region
+  #   cambium_grid_region = nil
+  #   egrid_region = grid_region
+  #   puts("Grid region '#{grid_region}' is not available in Cambium.  Using eGrid factors only for electricty related emissions.")
+  # else
+  #   cambium_grid_region = grid_region
+  #   egrid_region = grid_region.chop
+  # end
+  load_csv = "#{File.dirname(__FILE__)}/cambium/#{scenario}/#{grid_region}.csv"
+  if not File.file?(load_csv)
+    raise "Unable to find file: #{load_csv}"
+  end
+  net_load_mwh = CSV.read(load_csv, converters: :float).flatten
+  return net_load_mwh
+end
+
 ### determine daily peak window based on daily load profile
 def find_daily_peak_window(daily_load, peak_len, num_timesteps_in_hr, peak_window_strategy)
   maxload_ind = daily_load.index(daily_load.max)
