@@ -341,29 +341,35 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
       return true
     end
 
+    # initialize variables for reporting
+    condition_final_wall = ''
+    condition_final_roof = ''
+    condition_final_window = ''
+    condition_final_lighting = ''
+
     # after finished checking for non applicable models, run envelope measures as package if user arguments are true
     # run wall insulation measure if user argument is true
     if walls == true
       runner.registerInfo('Running Wall Insulation measure....')
-      call_walls(model, runner)
+      _, condition_final_wall = call_walls(model, runner)
     end
 
     # run roof insulation measure if user argument is true
     if roof == true
       runner.registerInfo('Running Roof Insulation measure....')
-      call_roof(model, runner)
+      _, condition_final_roof = call_roof(model, runner)
     end
 
     # run new windows measure if user argument is true
     if windows == true
       runner.registerInfo('Running New Windows measure....')
-      call_windows(model, runner)
+      _, condition_final_window = call_windows(model, runner)
     end
 
     # run new windows measure if user argument is true
     if lighting == true
       runner.registerInfo('Running LED Lighting measure....')
-      call_lighting(model, runner)
+      _, condition_final_lighting = call_lighting(model, runner)
     end
 
     # remove existing plant loops from model
@@ -1328,7 +1334,10 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     ground_loop.removeSupplyBranchWithComponent(ground_temp_source)
     runner.registerInfo("Replaced temporary ground temperature source with vertical ground heat exchanger #{ghx}.")
 
-    runner.registerFinalCondition("Replaced #{psz_air_loops.size} packaged single zone RTUs  and #{pvav_air_loops.size} PVAVs with packaged water-to-air ground source heat pumps.")
+    # report final condition
+    condition_final_gshp = "Replaced #{psz_air_loops.size} packaged single zone RTUs  and #{pvav_air_loops.size} PVAVs with packaged water-to-air ground source heat pumps."
+    condition_final = [condition_final_gshp, condition_final_wall, condition_final_roof, condition_final_window, condition_final_lighting].reject(&:empty?).join(" | ")
+    runner.registerFinalCondition(condition_final)
     true
   end
 end

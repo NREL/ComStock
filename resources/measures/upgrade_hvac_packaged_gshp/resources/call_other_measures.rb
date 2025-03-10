@@ -60,6 +60,8 @@ def call_dcv(model, runner)
     runner.registerError('DCV measure failed.')
     false
   end
+
+  return dcv_result.stepInitialCondition.get, dcv_result.stepFinalCondition.get
 end
 
 def call_economizer(model, runner)
@@ -84,6 +86,8 @@ def call_economizer(model, runner)
     runner.registerError('Economizer measure failed.')
     false
   end
+
+  return econ_result.stepInitialCondition.get, econ_result.stepFinalCondition.get
 end
 
 def call_walls(model, runner)
@@ -108,6 +112,8 @@ def call_walls(model, runner)
     runner.registerError('Wall Insulation measure failed.')
     false
   end
+
+  return walls_result.stepInitialCondition.get, walls_result.stepFinalCondition.get
 end
 
 def call_roof(model, runner)
@@ -132,6 +138,8 @@ def call_roof(model, runner)
     runner.registerError('Roof Insulation measure failed.')
     false
   end
+
+  return roof_result.stepInitialCondition.get, roof_result.stepFinalCondition.get
 end
 
 def call_windows(model, runner)
@@ -156,6 +164,8 @@ def call_windows(model, runner)
     runner.registerError('New Windows measure failed.')
     false
   end
+
+  return windows_result.stepInitialCondition.get, windows_result.stepFinalCondition.get
 end
 
 def call_lighting(model, runner)
@@ -186,4 +196,6 @@ def call_lighting(model, runner)
     runner.registerError('LED Lighting measure failed.')
     false
   end
+
+  return lighting_result.stepInitialCondition.get, lighting_result.stepFinalCondition.get
 end
