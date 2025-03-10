@@ -181,8 +181,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 # self.combine_utility_cols()
                 self.add_enduse_total_energy_columns()
                 self.add_energy_intensity_columns()
-                # self.add_bill_intensity_columns()
-                # self.add_energy_rate_columns()
                 self.add_normalized_qoi_columns()
                 self.add_peak_intensity_columns()
                 self.add_vintage_column()
@@ -1700,41 +1698,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             eui_col = self.col_name_to_eui(engy_col)
             self.data = self.data.with_columns(
                 (pl.col(engy_col) / pl.col(self.FLR_AREA)).alias(eui_col))
-
-    def add_bill_intensity_columns(self):
-        # Create bill per area column for each annual utility bill column
-        for bill_col in self.COLS_UTIL_BILLS + [
-                                                self.UTIL_BILL_TOTAL_MEAN,
-                                                self.UTIL_BILL_ELEC_MAX,
-                                                self.UTIL_BILL_ELEC_MED,
-                                                self.UTIL_BILL_ELEC_MIN]:
-            # Put in np.nan for bill columns that aren't part of ComStock
-            if not bill_col in self.data:
-                self.data = self.data.with_columns([pl.lit(None).alias(bill_col)])
-
-            # Divide bill by area to create intensity
-            per_area_col = self.col_name_to_area_intensity(bill_col)
-            self.data = self.data.with_columns(
-                (pl.col(bill_col) / pl.col(self.FLR_AREA)).alias(per_area_col))
-
-    def add_energy_rate_columns(self):
-        # Create energy rate column for each annual utility bill column
-        for bill_col in self.COLS_UTIL_BILLS:
-            # Get the corresponding energy consumption column
-            bill_to_engy_col = {
-                self.UTIL_BILL_ELEC: self.ANN_TOT_ELEC_KBTU,
-                self.UTIL_BILL_GAS: self.ANN_TOT_GAS_KBTU,
-                self.UTIL_BILL_FUEL_OIL: None,
-                self.UTIL_BILL_PROPANE: None
-            }
-            # Only create rate columns for fuels with bills and annual consumption
-            engy_col = bill_to_engy_col[bill_col]
-            if not engy_col:
-                continue
-            # Divide bill by consumption to create rate
-            rate_col = self.col_name_to_energy_rate(bill_col)
-            self.data = self.data.with_columns(
-                (pl.col(bill_col) / pl.col(engy_col)).alias(rate_col))
 
     def add_normalized_qoi_columns(self):
         dict_cols = []
