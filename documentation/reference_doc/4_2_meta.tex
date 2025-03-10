@@ -1,5 +1,5 @@
-\section{Location, Type, Age, Space Programming, Energy Code, and Change Over Time}[!ht]
-\subsection{Location}
+\section{Location, Type, Age, Space Programming, Energy Code, and Change Over Time}
+\subsection{Location} \label{sec:location}
 
 ComStock has four levels of location granularity for its building models: ASHRAE Standard 169 - 2006 climate zone, census division, state, and county. During sampling, each model is first assigned a climate zone, then a county, then a state and census division. The climate zone and county probability distributions come from the CoStar and HIFLD data provided by the Homeland Security Infrastructure Program (HSIP) on a building count basis. The state and census division are assigned using a lookup table that is based on the model's sampled county. The location metadata impacts numerous characteristics in the model, such as weather file, building type, building geometry characteristics (e.g., number of stories and rentable area), and energy code applicability. Table  \ref{tab:census_division_models_table} shows the number of models used in each census division.
 
