@@ -446,7 +446,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     end
   end
 
-  # TODO: revert this back to OS Std methods
+  # TODO: revert this back to OS Std methods (if works)
   # Determine and set type of part load control type for heating and chilled
   # note code_sections [90.1-2019_6.5.4.2]
   # modified from https://github.com/NREL/openstudio-standards/blob/412de97737369c3ee642237a83c8e5a6b1ab14be/lib/openstudio-standards/prototypes/common/objects/Prototype.PumpVariableSpeed.rb#L4-L37
@@ -484,7 +484,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     return true
   end
 
-  # TODO: revert this back to OS Std methods
+  # TODO: revert this back to OS Std methods (if works)
   # Determine type of pump part load control type
   # note code_sections [90.1-2019_6.5.4.2]
   # modified version from https://github.com/NREL/openstudio-standards/blob/412de97737369c3ee642237a83c8e5a6b1ab14be/lib/openstudio-standards/prototypes/ashrae_90_1/ashrae_90_1_2019/ashrae_90_1_2019.PumpVariableSpeed.rb#L11-L142
@@ -631,7 +631,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     return 'Riding Curve'
   end
 
-  # TODO: revert this back to OS Std methods
+  # TODO: revert this back to OS Std methods (if works)
   # Set the pump curve coefficients based on the specified control type.
   # note code_sections [90.1-2019_6.5.4.2]
   # modified from https://github.com/NREL/openstudio-standards/blob/412de97737369c3ee642237a83c8e5a6b1ab14be/lib/openstudio-standards/standards/Standards.PumpVariableSpeed.rb#L6-L53
@@ -857,7 +857,11 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
       chiller.setElectricInputToCoolingOutputRatioFunctionOfPLR(curve_eir_f_plr)
 
       # set reference COPs
-      chiller.setReferenceCOP(cop_full_load)
+      if cop_full_load > chiller.referenceCOP
+        chiller.setReferenceCOP(cop_full_load)
+      else
+        runner.registerInfo("Existing chiller COP (#{chiller.referenceCOP.round(2)}) already higher/better than COP from measure (#{cop_full_load.round(2)}). So, not replacing COP..")
+      end
 
       # set reference operating conditions
       # AHRI Standard 550/590 at an air on condenser temperature of 95F and a leaving chilled water temperature of 44F
