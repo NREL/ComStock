@@ -1134,11 +1134,15 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     if !selected_air_loops.empty?
       if roof == true
         runner.registerInfo('Running Roof Insulation measure....')
-        condition_initial_roof, condition_final_roof = call_roof(model, runner)
+        results_roof, runner = call_roof(model, runner)
+        condition_initial_roof = results_roof.stepInitialCondition.get
+        condition_final_roof = results_roof.stepFinalCondition.get
       end
       if window == true
         runner.registerInfo('Running New Windows measure....')
-        condition_initial_window, condition_final_window = call_windows(model, runner)
+        results_window, runner = call_windows(model, runner)
+        condition_initial_window = results_window.stepInitialCondition.get
+        condition_final_window = results_window.stepFinalCondition.get
       end
     end
 

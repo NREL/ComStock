@@ -36,9 +36,46 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # *******************************************************************************
 
+# pass relevant messages/results/variables to parent runner
+def child_to_parent_runner_logging(runner_parent, measure_name, results_child, registered_var_list = [])
+
+  # Register values from child runner to parent runner
+  registered_var_list.each do |registered_var|
+    puts("### DEBUGGING: finding #{registered_var}")
+    JSON.parse(results_child.to_s)['step_values'].each do |step_value|
+      if step_value['name'].to_s == registered_var
+        puts("### DEBUGGING: found #{registered_var}")
+        runner_parent.registerValue(registered_var, step_value['value'], step_value['units'])
+      end
+    end
+  end
+
+  # Log warnings/infos/errors
+  results_child.warnings.each do |warning|
+    runner_parent.registerWarning(warning.logMessage)
+  end
+  results_child.info.each do |info|
+    runner_parent.registerInfo(info.logMessage)
+  end
+  results_child.errors.each do |error|
+    runner_parent.registerError(error.logMessage)
+  end
+
+  # Check if the measure ran successfully
+  if results_child.value.valueName == 'Success'
+    runner_parent.registerInfo("Child measure (#{measure_name}) was applied successfully.")
+  elsif results_child.value.valueName == 'NA'
+    runner_parent.registerInfo("Child measure (#{measure_name}) was not applicable.")
+  else
+    runner_parent.registerError("Child measure (#{measure_name}) failed.")
+    false
+  end
+
+  runner_parent
+end
+
 # create methods to call other measures for package runs
 # putting this code in a resource file prevents issues with the OS app parsing
-
 def call_roof(model, runner)
   roof_measure_path = File.join(__dir__, '../../upgrade_env_roof_insul_aedg/measure.rb')
   unless File.exist?(roof_measure_path)
@@ -52,17 +89,9 @@ def call_roof(model, runner)
   roof_measure.run(model, runner_roof, OpenStudio::Measure::OSArgumentMap.new)
   roof_result = runner_roof.result
 
-  # Check if the measure ran successfully
-  if roof_result.value.valueName == 'Success'
-    runner.registerInfo('Roof Insulation measure was applied successfully.')
-  elsif roof_result.value.valueName == 'NA'
-    runner.registerInfo('Roof Insulation measure was not applicable.')
-  else
-    runner.registerError('Roof Insulation measure failed.')
-    false
-  end
+  runner = child_to_parent_runner_logging(runner, roof_measure.name.to_s, roof_result, registered_var_list = ['env_roof_insul_roof_area_ft_2'])
 
-  return roof_result.stepInitialCondition.get, roof_result.stepFinalCondition.get
+  return roof_result, runner
 end
 
 def call_windows(model, runner)
@@ -78,15 +107,7 @@ def call_windows(model, runner)
   windows_measure.run(model, runner_windows, OpenStudio::Measure::OSArgumentMap.new)
   windows_result = runner_windows.result
 
-  # Check if the measure ran successfully
-  if windows_result.value.valueName == 'Success'
-    runner.registerInfo('New Windows measure was applied successfully.')
-  elsif windows_result.value.valueName == 'NA'
-    runner.registerInfo('New Windows measure was not applicable.')
-  else
-    runner.registerError('New Windows measure failed.')
-    false
-  end
+  runner = child_to_parent_runner_logging(runner, windows_measure.name.to_s, windows_result, registered_var_list = ['env_secondary_window_fen_area_ft_2'])
 
-  return windows_result.stepInitialCondition.get, windows_result.stepFinalCondition.get
+  return windows_result, runner
 end
