@@ -1133,10 +1133,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     condition_final_window = ''
     if !selected_air_loops.empty?
       if roof == true
-        condition_initial_roof, condition_final_roof = upgrade_env_roof_insul_aedg(runner, model)
+        runner.registerInfo('Running Roof Insulation measure....')
+        condition_initial_roof, condition_final_roof = call_roof(model, runner)
       end
       if window == true
-        condition_initial_window, condition_final_window = upgrade_env_new_aedg_windows(runner, model)
+        runner.registerInfo('Running New Windows measure....')
+        condition_initial_window, condition_final_window = call_windows(model, runner)
       end
     end
 
