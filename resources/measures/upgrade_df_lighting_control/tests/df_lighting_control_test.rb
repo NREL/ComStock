@@ -205,7 +205,7 @@ class DFLightingControlTest < Minitest::Test
 
       # set arguments:
       demand_flexibility_objective = arguments[0].clone
-      assert(demand_flexibility_objective.setValue('emission'))
+      assert(demand_flexibility_objective.setValue('grid peak load'))
       argument_map['demand_flexibility_objective'] = demand_flexibility_objective
       
       # set arguments:
