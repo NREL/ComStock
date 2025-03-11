@@ -64,9 +64,9 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
   def arguments(model)
     args = OpenStudio::Measure::OSArgumentVector.new
 
-    choices_obj = ['peak load', 'emission', 'utility bill cost', 'operational cost']
+    choices_obj = ['peak load', 'grid peak load', 'emission', 'utility bill cost', 'operational cost']
     demand_flexibility_objective = OpenStudio::Ruleset::OSArgument.makeChoiceArgument('demand_flexibility_objective', choices_obj, true)
-    demand_flexibility_objective.setDisplayName("Objective of demand flexibility control (peak load, emission, utility bill cost, operational cost)")
+    demand_flexibility_objective.setDisplayName("Objective of demand flexibility control (peak load, grid peak load, emission, utility bill cost, operational cost)")
     demand_flexibility_objective.setDefaultValue('peak load')
     args << demand_flexibility_objective 
 
@@ -461,6 +461,19 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     ############################################
     puts("### ============================================================")
     puts("### Applicability check...")
+    if demand_flexibility_objective == 'grid peak load'
+      grid_region = model.getBuilding.additionalProperties.getFeatureAsString('grid_region')
+      unless grid_region.is_initialized
+        raise 'Unable to find grid region in model building additional properties'
+      end
+      grid_region = grid_region.get
+      if ['AKMS', 'AKGD', 'HIMS', 'HIOA'].include? grid_region
+        runner.registerAsNotApplicable("applicability not passed for grid load data availability")
+        return true
+      else
+        puts("--- grid load data applicability passed")
+      end
+    end
     applicable_building_types = [
       # "Hotel",
       "SmallOffice",
@@ -479,6 +492,7 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     if isapplicable_buildingtype(model,runner,applicable_building_types)
       puts("--- building type applicability passed")
     else
+      runner.registerAsNotApplicable("applicability not passed for building type")
       return true
     end
     applicable_clg_thermostats, applicable_htg_thermostats, nts = applicable_thermostats(model)
@@ -509,43 +523,50 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     puts("### Reading weather file...")
     oat = read_epw(model)
     puts("--- oat.size = #{oat.size}")
-    if load_prediction_method == 'full baseline'
+    if demand_flexibility_objective == 'grid peak load'
       puts("### ============================================================")
-      puts("### Running full baseline for load prediction...")
-      annual_load = load_prediction_from_full_run(model, num_timesteps_in_hr=num_timesteps_in_hr)
-      # puts("--- annual_load = #{annual_load}")
-      puts("--- annual_load.size = #{annual_load.size}")
-    elsif load_prediction_method.include?('bin sample')
-      puts("### ============================================================")
-      if load_prediction_method == 'bin sample'
-        puts("### Creating bins...")
-        bins, selectdays, ns, max_doy = create_binsamples(oat,'random')
-        # puts("--- bins = #{bins}")
-        # puts("--- selectdays = #{selectdays}")
-        # puts("--- ns = #{ns}")
-        puts("### ============================================================")
-        puts("### Running simulation on samples...")
-        y_seed = run_samples(model, year, selectdays, num_timesteps_in_hr)
-        # puts("--- y_seed = #{y_seed}")
-      elsif load_prediction_method == 'part year bin sample'
-        puts("### Creating bins...")
-        bins, selectdays, ns, max_doy = create_binsamples(oat,'sort')
-        # puts("--- bins = #{bins}")
-        # puts("--- selectdays = #{selectdays}")
-        # puts("--- ns = #{ns}")
-        puts("============================================================")
-        puts("### Running simulation on part year samples...")
-        y_seed = run_part_year_samples(model, max_doy=max_doy, selectdays=selectdays, num_timesteps_in_hr=num_timesteps_in_hr)#, epw_path=epw_path)
-        # puts("--- y_seed = #{y_seed}")
-      end
-      puts("### ============================================================")
-      puts("### Creating annual prediction...")
-      annual_load = load_prediction_from_sample(model, y_seed, bins)
-      # puts("--- annual_load = #{annual_load}")
+      puts("### Reading Cambium load data for load prediction...")
+      annual_load = load_prediction_from_grid_data(model)
       puts("--- annual_load.size = #{annual_load.size}")
     else
-      puts("### ============================================================")
-      puts("### No load prediction needed...")
+      if load_prediction_method == 'full baseline'
+        puts("### ============================================================")
+        puts("### Running full baseline for load prediction...")
+        annual_load = load_prediction_from_full_run(model, num_timesteps_in_hr=num_timesteps_in_hr)
+        # puts("--- annual_load = #{annual_load}")
+        puts("--- annual_load.size = #{annual_load.size}")
+      elsif load_prediction_method.include?('bin sample')
+        puts("### ============================================================")
+        if load_prediction_method == 'bin sample'
+          puts("### Creating bins...")
+          bins, selectdays, ns, max_doy = create_binsamples(oat,'random')
+          # puts("--- bins = #{bins}")
+          # puts("--- selectdays = #{selectdays}")
+          # puts("--- ns = #{ns}")
+          puts("### ============================================================")
+          puts("### Running simulation on samples...")
+          y_seed = run_samples(model, year, selectdays, num_timesteps_in_hr)
+          # puts("--- y_seed = #{y_seed}")
+        elsif load_prediction_method == 'part year bin sample'
+          puts("### Creating bins...")
+          bins, selectdays, ns, max_doy = create_binsamples(oat,'sort')
+          # puts("--- bins = #{bins}")
+          # puts("--- selectdays = #{selectdays}")
+          # puts("--- ns = #{ns}")
+          puts("============================================================")
+          puts("### Running simulation on part year samples...")
+          y_seed = run_part_year_samples(model, max_doy=max_doy, selectdays=selectdays, num_timesteps_in_hr=num_timesteps_in_hr)#, epw_path=epw_path)
+          # puts("--- y_seed = #{y_seed}")
+        end
+        puts("### ============================================================")
+        puts("### Creating annual prediction...")
+        annual_load = load_prediction_from_sample(model, y_seed, bins)
+        # puts("--- annual_load = #{annual_load}")
+        puts("--- annual_load.size = #{annual_load.size}")
+      else
+        puts("### ============================================================")
+        puts("### No load prediction needed...")
+      end
     end
 
     ############################################
@@ -596,6 +617,9 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
         puts("### Predictive schedule...")
         peak_schedule = peak_schedule_generation(annual_load, oat, peak_len, num_timesteps_in_hr=num_timesteps_in_hr, peak_window_strategy=peak_window_strategy, rebound_len=rebound_len, prepeak_len=0, season='all')
       end
+    elsif demand_flexibility_objective == 'grid peak load'
+      puts("### Grid predictive schedule...")
+      peak_schedule = peak_schedule_generation(annual_load, oat, peak_len, num_timesteps_in_hr=1, peak_window_strategy=peak_window_strategy, rebound_len=rebound_len, prepeak_len=0, season='all')
     elsif demand_flexibility_objective == 'emission'
       puts("### Creating peak schedule for emission reduction...")
       peak_schedule = peak_schedule_generation(hourly_emissions_kg, oat, peak_len, num_timesteps_in_hr=1, peak_window_strategy=peak_window_strategy, rebound_len=0, prepeak_len=0, season='all')
