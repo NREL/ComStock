@@ -1420,6 +1420,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Check for missing columns
         cols_to_keep = []
         cols_missing = []
+        expected_missing = (
+            self.COLS_GEOG
+            + self.COLS_UTIL_BILL_RESULTS
+        )
         for export_col_name, export_col_units in export_cols.iter_rows():
             expected_unitless_cols = [self.FLR_AREA, self.col_name_to_weighted(self.FLR_AREA)]
             if (export_col_units is None) or (export_col_name in expected_unitless_cols):
@@ -1430,8 +1434,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             if export_col_name_units in input_lf.columns:
                 cols_to_keep.append(export_col_name_units)
             else:
-                if export_col_name_units in self.COLS_GEOG:
-                    # Some geography columns will be missing from aggregate files.
+                if export_col_name_units in expected_missing:
+                    # Some geography columns and utility measures results will be missing from aggregate files.
                     # This is expected, do not count as a missing column.
                     pass
                 else:
@@ -2306,6 +2310,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
 
         logger.info("Joining the aggregated weights to simulation results")
+        # drop measure results cols from meta data
+        meta_data = meta_data.drop(self.COLS_UTIL_BILL_RESULTS)
         # Join the weights to the per-model metadata and annual results
         geo_data = geo_data.select(pl.all().exclude(self.FLR_AREA)).join(meta_data, on=[pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)])
 
