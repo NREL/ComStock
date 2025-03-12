@@ -219,7 +219,7 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
 
       # set arguments:
       sp_adjustment = arguments[3].clone
-      assert(sp_adjustment.setValue(2.0))
+      assert(sp_adjustment.setValue(1.0))
       argument_map['sp_adjustment'] = sp_adjustment
 
       # set arguments:
