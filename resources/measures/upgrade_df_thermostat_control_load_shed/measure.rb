@@ -64,9 +64,9 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
   def arguments(model)
     args = OpenStudio::Measure::OSArgumentVector.new
 
-    choices_obj = ['peak load', 'grid peak load', 'emission', 'utility bill cost', 'operational cost']
+    choices_obj = ['peak load', 'grid peak load', 'emissions', 'utility bill cost', 'operational cost']
     demand_flexibility_objective = OpenStudio::Ruleset::OSArgument.makeChoiceArgument('demand_flexibility_objective', choices_obj, true)
-    demand_flexibility_objective.setDisplayName("Objective of demand flexibility control (peak load, grid peak load, emission, utility bill cost, operational cost)")
+    demand_flexibility_objective.setDisplayName("Objective of demand flexibility control (peak load, grid peak load, emissions, utility bill cost, operational cost)")
     demand_flexibility_objective.setDefaultValue('peak load')
     args << demand_flexibility_objective 
 
@@ -570,17 +570,17 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     end
 
     ############################################
-    # Emission prediction
+    # Emissions prediction
     ############################################
     
-    if demand_flexibility_objective == 'emission'
+    if demand_flexibility_objective == 'emissions'
       puts("### ============================================================")
-      puts("### Predicting emission...")
+      puts("### Predicting emissions...")
       egrid_co2e_kg_per_mwh, cambium_co2e_kg_per_mwh = read_emission_factors(model, scenario=cambium_scenario)
       if cambium_co2e_kg_per_mwh == []
-        hourly_emissions_kg = emission_prediction(annual_load, factor=egrid_co2e_kg_per_mwh, num_timesteps_in_hr=num_timesteps_in_hr)
+        hourly_emissions_kg = emissions_prediction(annual_load, factor=egrid_co2e_kg_per_mwh, num_timesteps_in_hr=num_timesteps_in_hr)
       else
-        hourly_emissions_kg = emission_prediction(annual_load, factor=cambium_co2e_kg_per_mwh, num_timesteps_in_hr=num_timesteps_in_hr)
+        hourly_emissions_kg = emissions_prediction(annual_load, factor=cambium_co2e_kg_per_mwh, num_timesteps_in_hr=num_timesteps_in_hr)
       end
       puts("--- hourly_emissions_kg.size = #{hourly_emissions_kg.size}")
     end
@@ -620,8 +620,8 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     elsif demand_flexibility_objective == 'grid peak load'
       puts("### Grid predictive schedule...")
       peak_schedule = peak_schedule_generation(annual_load, oat, peak_len, num_timesteps_in_hr=1, peak_window_strategy=peak_window_strategy, rebound_len=rebound_len, prepeak_len=0, season='all')
-    elsif demand_flexibility_objective == 'emission'
-      puts("### Creating peak schedule for emission reduction...")
+    elsif demand_flexibility_objective == 'emissions'
+      puts("### Creating peak schedule for emissions reduction...")
       peak_schedule = peak_schedule_generation(hourly_emissions_kg, oat, peak_len, num_timesteps_in_hr=1, peak_window_strategy=peak_window_strategy, rebound_len=0, prepeak_len=0, season='all')
     else
       runner.registerError('Not supported objective.')

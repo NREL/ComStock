@@ -64,9 +64,9 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
   def arguments(model)
     args = OpenStudio::Measure::OSArgumentVector.new
 
-    choices_obj = ['peak load', 'grid peak load', 'emission', 'utility bill cost', 'operational cost']
+    choices_obj = ['peak load', 'grid peak load', 'emissions', 'utility bill cost', 'operational cost']
     demand_flexibility_objective = OpenStudio::Ruleset::OSArgument.makeChoiceArgument('demand_flexibility_objective', choices_obj, true)
-    demand_flexibility_objective.setDisplayName("Objective of demand flexibility control (peak load, grid peak load, emission, utility bill cost, operational cost)")
+    demand_flexibility_objective.setDisplayName("Objective of demand flexibility control (peak load, grid peak load, emissions, utility bill cost, operational cost)")
     demand_flexibility_objective.setDefaultValue('peak load')
     args << demand_flexibility_objective 
     
