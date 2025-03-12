@@ -942,8 +942,8 @@ def read_emission_factors(model, scenario, year=2021)
   return egrid_co2e_kg_per_mwh, cambium_co2e_kg_per_mwh
 end
 
-### emission prediction based on emission factors and load prediction
-def emission_prediction(load, factor, num_timesteps_in_hr)
+### emissions prediction based on emission factors and load prediction
+def emissions_prediction(load, factor, num_timesteps_in_hr)
   j_to_mwh = OpenStudio.convert(1.0, 'J', 'MWh').get
   # convert to hourly load
   if num_timesteps_in_hr > 1
@@ -956,7 +956,7 @@ def emission_prediction(load, factor, num_timesteps_in_hr)
   # convert load from J to mwh
   hourly_load_mwh = []
   hourly_load.each { |val| hourly_load_mwh << val * j_to_mwh }
-  # calculate emission
+  # calculate emissions
   if factor.is_a?(Array)
     # cambium factor
     unless hourly_load_mwh.size == hourly_load_mwh.size
