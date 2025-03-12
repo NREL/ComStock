@@ -53,6 +53,11 @@ class DfThermostatControlLoadShedTest < Minitest::Test
     #   weather: 'NY_New_York_John_F_Ke_744860_16',
     #   result: 'Success'
     # }
+    # test_sets << {
+    #   model: 'Warehouse_5A',
+    #   weather: 'MN_Cloquet_Carlton_Co_726558_16',
+    #   result: 'Success'
+    # }
     test_sets << {
       model: '3340_small_office_OS38', # small office
       weather: 'IL_Dupage_3340_18',
@@ -67,12 +72,6 @@ class DfThermostatControlLoadShedTest < Minitest::Test
     test_sets << {
       model: 'Outpatient_VAV_chiller_PFP_boxes',
       weather: 'CO_FortCollins_16',
-      result: 'NA'
-    }
-    # test: not applicable hvac (non-electric)
-    test_sets << {
-      model: 'Warehouse_5A',
-      weather: 'MN_Cloquet_Carlton_Co_726558_16',
       result: 'NA'
     }
 
