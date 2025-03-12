@@ -105,7 +105,7 @@ class process_ResStock_2024_2():
                 ssns.append(ssn)
             #if it's an upgrade and applicable, calculate the cost
             else:
-                #extract necessary data from this row of model results                
+                ##extract necessary data from this row of model results                
                 climate_zone = int(row["in.ashrae_iecc_climate_zone_2004"][0]) #just the number, not the letter
                 hp_size_btuh = row["out.params.size_heating_system_primary_k_btu_h"]
                 hp_size_tons = (hp_size_btuh *1000)/12000
@@ -145,10 +145,12 @@ class process_ResStock_2024_2():
                 calc5_coeff = cost_inputs_this_row["Calc5_Coeff - Demo AC"].iloc[0]
                 calc6_coeff = cost_inputs_this_row["Calc6_Coeff - Remove Refrigerant"].iloc[0]
                 calc7_coeff = cost_inputs_this_row["Calc7_Coeff - Demo AC Labor"].iloc[0]
-                calc8_coeff = cost_inputs_this_row["Calc8_Coeff - Pool Install of Electric"].iloc[0]
-                calc9_coeff = cost_inputs_this_row["Calc9_Coeff - Pool R&R Labor"].iloc[0]
-                calc10_coeff = cost_inputs_this_row["Calc10_Coeff - Spa Install of Electric"].iloc[0]
-                calc11_coeff = cost_inputs_this_row["Calc11_Coeff - Spa R&R Labor"].iloc[0]
+                calc8_coeff = cost_inputs_this_row["Calc8_Coeff - Dryer R&R"].iloc[0]
+                cacl9_coeff = cost_inputs_this_row["Calc9_Coeff - Range R&R"].iloc[0]
+                calc10_coeff = cost_inputs_this_row["Calc10_Coeff - Pool Install of Electric"].iloc[0]
+                calc11_coeff = cost_inputs_this_row["Calc11_Coeff - Pool R&R Labor"].iloc[0]
+                calc12_coeff = cost_inputs_this_row["Calc12_Coeff - Spa Install of Electric"].iloc[0]
+                calc13_coeff = cost_inputs_this_row["Calc13_Coeff - Spa R&R Labor"].iloc[0]
                 fixed_costs_demo = cost_inputs_this_row["Offset / Fixed Costs Demo"].iloc[0]
                 fixed_costs_install = cost_inputs_this_row["Offset / Fixed Costs Install"].iloc[0]
                 ##calculate intermediate values needed in cost calculation
@@ -182,32 +184,34 @@ class process_ResStock_2024_2():
                     calc7 = 3
                 else:
                     calc7 = 0
-                #calc8 "Pool Install of Electric"
+                #calc8 "Dryer R&R": dealt with directly below based on whether new dryer installed
+                #calc9 "Range R&R": dealt with directly below based on whether new cooking range installed
+                #calc10 "Pool Install of Electric"
                 if pool_heater_tons > 0:
-                    calc8 = 1
-                else:
-                    calc8 = 0
-                #calc9 "Pool R&R Labor"
-                if pool_heater_tons > 0:
-                    calc9 = 3
-                else:
-                    calc9 = 0
-                #calc10 "Spa Install of Electric"
-                if spa_heater_tons > 0:
                     calc10 = 1
                 else:
                     calc10 = 0
-                #calc11 "Spa R&R Labor"
-                if spa_heater_tons > 0:
+                #calc11 "Pool R&R Labor"
+                if pool_heater_tons > 0:
                     calc11 = 3
                 else:
-                    calc11 = 0                
+                    calc11 = 0
+                #calc12 "Spa Install of Electric"
+                if spa_heater_tons > 0:
+                    calc12 = 1
+                else:
+                    calc12 = 0
+                #calc13 "Spa R&R Labor"
+                if spa_heater_tons > 0:
+                    calc13 = 3
+                else:
+                    calc13 = 0                
                 #calculate the cost, additively
                 #add the fixed_costs
                 cost = cost + fixed_costs_demo + fixed_costs_install
                 #add any heat pump costs
                 #note: have not checked if this works for GHPs
-                #note: this does not round up the HP size to the next "real" size
+                #note: this does not round up the HP size to the next "real" size, uses the exact size as output by ResStock
                 if "pump" in str(row['upgrade.hvac_cooling_efficiency']).lower():
                     cost = cost + (hp_cost_per_ton * hp_size_tons) + (
                         calc5 * calc5_coeff #only for some upgrades but coeffs will be 0 when calcs 5-7 these aren't applicable
@@ -220,14 +224,14 @@ class process_ResStock_2024_2():
                 #add any pool heater costs
                 if "electricity" in str(row['upgrade.misc_pool_heater']).lower():
                     cost = cost + (pool_heater_cost_per_ton * pool_heater_tons) + (
-                        calc8 * calc8_coeff
-                        + calc9 * calc9_coeff
+                        calc10 * calc10_coeff
+                        + calc11 * calc11_coeff
                     )
                 #add any spa heater costs
                 if "electricity" in str(row['upgrade.misc_hot_tub_spa']).lower():
                     cost = cost + (spa_heater_cost_per_ton * spa_heater_tons) + (
-                        calc10 * calc10_coeff
-                        + calc11 * calc11_coeff
+                        calc12 * calc12_coeff
+                        + calc13 * calc13_coeff
                     )
                 #add any attic insulation costs
                 if "r-" in str(row['upgrade.insulation_ceiling']).lower():
@@ -244,11 +248,11 @@ class process_ResStock_2024_2():
                 #add any new dryer costs
                 #(placeholder) currently these costs are built into the fixed costs for MPs 11-15 so are included in every model in those packages
                 if "electric" in str(row['upgrade.clothes_dryer']).lower():
-                    cost = cost
+                    cost = cost + (1*calc8_coeff)
                 #add any new cooking equipment costs
                 #(placeholder) currently these costs are built into the fixed costs for MPs 11-15 so are included in every model in those packages
                 if "electric" in str(row['upgrade.cooking_range']).lower():
-                    cost = cost
+                    cost = cost + (1*cacl9_coeff)
                 #add this cost to the list of costs
                 up_costs.append(float(cost))
                 ssns.append(ssn)
