@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>df_lighting_control</name>
   <uid>8de4bbcc-0430-4f71-8131-0467cbb6f9a4</uid>
-  <version_id>35311cd8-20b4-493a-a618-3242a787b9d6</version_id>
-  <version_modified>2025-03-11T16:56:14Z</version_modified>
+  <version_id>7f6f7cae-832d-4faf-9b02-d49ea42b03a5</version_id>
+  <version_modified>2025-03-12T17:56:27Z</version_modified>
   <xml_checksum>D7E77FC2</xml_checksum>
   <class_name>DFLightingControl</class_name>
   <display_name>demand flexibility - lighting control</display_name>
@@ -13,7 +13,7 @@
   <arguments>
     <argument>
       <name>demand_flexibility_objective</name>
-      <display_name>Objective of demand flexibility control (peak load, emission, utility bill cost, operational cost)</display_name>
+      <display_name>Objective of demand flexibility control (peak load, grid peak load, emission, utility bill cost, operational cost)</display_name>
       <type>Choice</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -22,6 +22,10 @@
         <choice>
           <value>peak load</value>
           <display_name>peak load</display_name>
+        </choice>
+        <choice>
+          <value>grid peak load</value>
+          <display_name>grid peak load</display_name>
         </choice>
         <choice>
           <value>emission</value>
@@ -296,7 +300,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>682B7C62</checksum>
+      <checksum>932FC729</checksum>
     </file>
     <file>
       <filename>cambium/LRMER_HighRECost_15/AZNMc.csv</filename>
@@ -812,7 +816,7 @@
       <filename>df_lighting_control_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>1504DB81</checksum>
+      <checksum>A8727E90</checksum>
     </file>
   </files>
 </measure>
