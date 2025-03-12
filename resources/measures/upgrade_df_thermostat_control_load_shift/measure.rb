@@ -64,6 +64,12 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
   def arguments(model)
     args = OpenStudio::Measure::OSArgumentVector.new
 
+    choices_obj = ['peak load', 'grid peak load', 'emission', 'utility bill cost', 'operational cost']
+    demand_flexibility_objective = OpenStudio::Ruleset::OSArgument.makeChoiceArgument('demand_flexibility_objective', choices_obj, true)
+    demand_flexibility_objective.setDisplayName("Objective of demand flexibility control (peak load, grid peak load, emission, utility bill cost, operational cost)")
+    demand_flexibility_objective.setDefaultValue('peak load')
+    args << demand_flexibility_objective 
+    
     peak_len = OpenStudio::Measure::OSArgument.makeIntegerArgument('peak_len', true)
     peak_len.setDisplayName("Length of dispatch window (hour)")
     peak_len.setDefaultValue(4)
@@ -118,6 +124,7 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
     ############################################
     # assign the user inputs to variables
     ############################################
+    demand_flexibility_objective = runner.getStringArgumentValue("demand_flexibility_objective",user_arguments)
     peak_len = runner.getIntegerArgumentValue("peak_len",user_arguments)
     prepeak_len = runner.getIntegerArgumentValue("prepeak_len",user_arguments)
     sp_adjustment = runner.getDoubleArgumentValue('sp_adjustment', user_arguments)
@@ -567,43 +574,50 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
     puts("### Reading weather file...")
     oat = read_epw(model)
     puts("--- oat.size = #{oat.size}")
-    if load_prediction_method == 'full baseline'
+    if demand_flexibility_objective == 'grid peak load'
       puts("### ============================================================")
-      puts("### Running full baseline for load prediction...")
-      annual_load = load_prediction_from_full_run(model, num_timesteps_in_hr=num_timesteps_in_hr)
-      # puts("--- annual_load = #{annual_load}")
-      puts("--- annual_load.size = #{annual_load.size}")
-    elsif load_prediction_method.include?('bin sample')
-      puts("### ============================================================")
-      if load_prediction_method == 'bin sample'
-        puts("### Creating bins...")
-        bins, selectdays, ns, max_doy = create_binsamples(oat,'random')
-        # puts("--- bins = #{bins}")
-        # puts("--- selectdays = #{selectdays}")
-        # puts("--- ns = #{ns}")
-        puts("### ============================================================")
-        puts("### Running simulation on samples...")
-        y_seed = run_samples(model, year, selectdays, num_timesteps_in_hr)
-        # puts("--- y_seed = #{y_seed}")
-      elsif load_prediction_method == 'part year bin sample'
-        puts("### Creating bins...")
-        bins, selectdays, ns, max_doy = create_binsamples(oat,'sort')
-        # puts("--- bins = #{bins}")
-        # puts("--- selectdays = #{selectdays}")
-        # puts("--- ns = #{ns}")
-        puts("============================================================")
-        puts("### Running simulation on part year samples...")
-        y_seed = run_part_year_samples(model, max_doy=max_doy, selectdays=selectdays, num_timesteps_in_hr=num_timesteps_in_hr)#, epw_path=epw_path)
-        # puts("--- y_seed = #{y_seed}")
-      end
-      puts("### ============================================================")
-      puts("### Creating annual prediction...")
-      annual_load = load_prediction_from_sample(model, y_seed, bins)
-      # puts("--- annual_load = #{annual_load}")
+      puts("### Reading Cambium load data for load prediction...")
+      annual_load = load_prediction_from_grid_data(model)
       puts("--- annual_load.size = #{annual_load.size}")
     else
-      puts("### ============================================================")
-      puts("### No load prediction needed...")
+      if load_prediction_method == 'full baseline'
+        puts("### ============================================================")
+        puts("### Running full baseline for load prediction...")
+        annual_load = load_prediction_from_full_run(model, num_timesteps_in_hr=num_timesteps_in_hr)
+        # puts("--- annual_load = #{annual_load}")
+        puts("--- annual_load.size = #{annual_load.size}")
+      elsif load_prediction_method.include?('bin sample')
+        puts("### ============================================================")
+        if load_prediction_method == 'bin sample'
+          puts("### Creating bins...")
+          bins, selectdays, ns, max_doy = create_binsamples(oat,'random')
+          # puts("--- bins = #{bins}")
+          # puts("--- selectdays = #{selectdays}")
+          # puts("--- ns = #{ns}")
+          puts("### ============================================================")
+          puts("### Running simulation on samples...")
+          y_seed = run_samples(model, year, selectdays, num_timesteps_in_hr)
+          # puts("--- y_seed = #{y_seed}")
+        elsif load_prediction_method == 'part year bin sample'
+          puts("### Creating bins...")
+          bins, selectdays, ns, max_doy = create_binsamples(oat,'sort')
+          # puts("--- bins = #{bins}")
+          # puts("--- selectdays = #{selectdays}")
+          # puts("--- ns = #{ns}")
+          puts("============================================================")
+          puts("### Running simulation on part year samples...")
+          y_seed = run_part_year_samples(model, max_doy=max_doy, selectdays=selectdays, num_timesteps_in_hr=num_timesteps_in_hr)#, epw_path=epw_path)
+          # puts("--- y_seed = #{y_seed}")
+        end
+        puts("### ============================================================")
+        puts("### Creating annual prediction...")
+        annual_load = load_prediction_from_sample(model, y_seed, bins)
+        # puts("--- annual_load = #{annual_load}")
+        puts("--- annual_load.size = #{annual_load.size}")
+      else
+        puts("### ============================================================")
+        puts("### No load prediction needed...")
+      end
     end
 
     ############################################
@@ -611,27 +625,35 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
     ############################################
     puts("### ============================================================")
     puts("### Creating peak schedule...")
-    if load_prediction_method == 'fix'
-      puts("### Fixed schedule...")
-      climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
-      runner.registerInfo("climate zone = #{climate_zone}")
-      if climate_zone.empty?
-        runner.registerError('Unable to determine climate zone for model. Cannot apply fix option without climate zone information.')
-      else
-        if climate_zone.include?("ASHRAE")
-          cz = climate_zone.split("-")[-1]
+    if demand_flexibility_objective == 'peak load'
+      puts("### Creating peak schedule for peak load reduction...")
+      if load_prediction_method == 'fix'
+        puts("### Fixed schedule...")
+        climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
+        runner.registerInfo("climate zone = #{climate_zone}")
+        if climate_zone.empty?
+          runner.registerError('Unable to determine climate zone for model. Cannot apply fix option without climate zone information.')
         else
-          runner.registerError('Unable to determine climate zone for model. Cannot apply fix option without ASHRAE climate zone information.')
+          if climate_zone.include?("ASHRAE")
+            cz = climate_zone.split("-")[-1]
+          else
+            runner.registerError('Unable to determine climate zone for model. Cannot apply fix option without ASHRAE climate zone information.')
+          end
         end
+        puts "--- cz = #{cz}"
+        prepeak_schedule, peak_schedule_htg = peak_schedule_generation_fix(cz, oat, rebound_len=0, prepeak_len=prepeak_len, season='all')
+      elsif load_prediction_method == 'oat'
+        puts("### OAT-based schedule...")
+        prepeak_schedule, peak_schedule_htg = peak_schedule_generation_oat(oat, peak_len, peak_lag=peak_lag, rebound_len=rebound_len, prepeak_len=prepeak_len, season='all')
+      else
+        puts("### Predictive schedule...")
+        prepeak_schedule = peak_schedule_generation(annual_load, oat, peak_len, num_timesteps_in_hr=num_timesteps_in_hr, peak_window_strategy=peak_window_strategy, rebound_len=0, prepeak_len=prepeak_len, season='all')
       end
-      puts "--- cz = #{cz}"
-      prepeak_schedule, peak_schedule_htg = peak_schedule_generation_fix(cz, oat, rebound_len=0, prepeak_len=prepeak_len, season='all')
-    elsif load_prediction_method == 'oat'
-      puts("### OAT-based schedule...")
-      prepeak_schedule, peak_schedule_htg = peak_schedule_generation_oat(oat, peak_len, peak_lag=peak_lag, rebound_len=rebound_len, prepeak_len=prepeak_len, season='all')
+    elsif demand_flexibility_objective == 'grid peak load'
+      puts("### Grid predictive schedule...")
+      prepeak_schedule = peak_schedule_generation(annual_load, oat, peak_len, num_timesteps_in_hr=1, peak_window_strategy=peak_window_strategy, rebound_len=0, prepeak_len=prepeak_len, season='all')
     else
-      puts("### Predictive schedule...")
-      prepeak_schedule = peak_schedule_generation(annual_load, oat, peak_len, num_timesteps_in_hr=num_timesteps_in_hr, peak_window_strategy=peak_window_strategy, rebound_len=0, prepeak_len=prepeak_len, season='all')
+      runner.registerError('Not supported objective.')
     end
     # puts("--- prepeak_schedule = #{prepeak_schedule}")
     puts("--- prepeak_schedule.size = #{prepeak_schedule.size}")
