@@ -418,4 +418,5 @@ end
 class Version
     ComStock_Version = '0.0.1' # Version of ComStock
     BuildStockBatch_Version = '2023.10.0' # Minimum required version of BuildStockBatch
+    WorkflowGenerator_Version = '2024.07.18'
 end
