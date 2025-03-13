@@ -185,9 +185,10 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
   def resources(model)
     resources = [
       'Electricity',
-      'Propane'
-      # 'DistrictHeating',
-      # 'DistrictCooling'
+      'Propane',
+      'DistrictHeatingWater',
+      'DistrictHeatingSteam',
+      'DistrictCooling'
     ]
 
     # Handle fuel output variables that changed in EnergyPlus version 9.4 (Openstudio version >= 3.1)
@@ -426,6 +427,14 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     propane_emissions_factor_co2e_lb_per_mmbtu = 177.8
     propane_emissions_factor_co2e_kg_per_kbtu = propane_emissions_factor_co2e_lb_per_mmbtu * (1 / 1000.0) * lbm_to_kg
 
+    # district energy emissions factors
+    # from: Energy Star Portfolio Manager Technical Reference https://portfoliomanager.energystar.gov/pdf/reference/Emissions.pdf
+    # does not account for system loss or leakage
+    # steam and hot water
+    district_heating_emissions_factor_co2e_kg_per_kbtu = 66.40 / 1000.0
+    # electric driver chiller
+    district_cooling_emissions_factor_co2e_kg_per_kbtu = 52.70 / 1000.0
+
     # set cambium and egrid regions
     if grid_region == 'Lookup from model'
       grid_region = model.getBuilding.additionalProperties.getFeatureAsString('grid_region')
@@ -484,7 +493,7 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     electricity_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='Electricity:Facility' AND ReportingFrequency='Hourly' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
     electricity_values = sql_file.execAndReturnVectorOfDouble(electricity_query).get
     if electricity_values.empty?
-      runner.registerError('Unable to get hourly timeseries facility electricity use from the model.  Cannot calculate emissions.')
+      runner.registerError('Unable to get hourly timeseries facility electricity use from the model. Cannot calculate emissions.')
       return false
     end
 
@@ -509,9 +518,9 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     puts natural_gas_query
     natural_gas_values = sql_file.execAndReturnVectorOfDouble(natural_gas_query).get
     if natural_gas_values.empty?
-      runner.registerWarning('Unable to get hourly timeseries facility natural gas use from the model, the model may not use gas.  Cannot calculate emissions.')
+      runner.registerWarning('Unable to get hourly timeseries facility natural gas use from the model, the model may not use gas. Cannot calculate emissions.')
     else
-      annual_natural_gas_emissions_co2e_kg = natural_gas_values.map { |v| v * j_to_kbtu * natural_gas_emissions_factor_co2e_kg_per_kbtu }.sum
+      annual_natural_gas_emissions_co2e_kg += natural_gas_values.map { |v| v * j_to_kbtu * natural_gas_emissions_factor_co2e_kg_per_kbtu }.sum
     end
     runner.registerInfo("Annual hourly natural gas emissions (kg CO2e): #{annual_natural_gas_emissions_co2e_kg.round(2)}")
     runner.registerValue('annual_natural_gas_ghg_emissions_kg', annual_natural_gas_emissions_co2e_kg)
@@ -521,9 +530,9 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     fuel_oil_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='#{fuel_oil}:Facility' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
     fuel_oil_values = sql_file.execAndReturnVectorOfDouble(fuel_oil_query).get
     if fuel_oil_values.empty?
-      runner.registerWarning('Unable to get hourly timeseries facility fuel oil use from the model, the model may not use fuel oil.  Cannot calculate emissions.')
+      runner.registerWarning('Unable to get hourly timeseries facility fuel oil use from the model, the model may not use fuel oil. Cannot calculate emissions.')
     else
-      annual_fuel_oil_emissions_co2e_kg = fuel_oil_values.map { |v| v * j_to_kbtu * fuel_oil_emissions_factor_co2e_kg_per_kbtu }.sum
+      annual_fuel_oil_emissions_co2e_kg += fuel_oil_values.map { |v| v * j_to_kbtu * fuel_oil_emissions_factor_co2e_kg_per_kbtu }.sum
     end
     runner.registerInfo("Annual hourly fuel oil emissions (kg CO2e): #{annual_fuel_oil_emissions_co2e_kg.round(2)}")
     runner.registerValue('annual_fuel_oil_ghg_emissions_kg', annual_fuel_oil_emissions_co2e_kg)
@@ -533,23 +542,54 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     propane_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='Propane:Facility' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
     propane_values = sql_file.execAndReturnVectorOfDouble(propane_query).get
     if propane_values.empty?
-      runner.registerWarning('Unable to get hourly timeseries facility propane use from the model, the model may not use propane.  Cannot calculate emissions.')
+      runner.registerWarning('Unable to get hourly timeseries facility propane use from the model, the model may not use propane. Cannot calculate emissions.')
     else
-      annual_propane_emissions_co2e_kg = propane_values.map { |val| val * j_to_kbtu * propane_emissions_factor_co2e_kg_per_kbtu }.sum
+      annual_propane_emissions_co2e_kg += propane_values.map { |val| val * j_to_kbtu * propane_emissions_factor_co2e_kg_per_kbtu }.sum
     end
     runner.registerInfo("Annual hourly propane emissions (kg CO2e): #{annual_propane_emissions_co2e_kg.round(2)}")
     runner.registerValue('annual_propane_ghg_emissions_kg', annual_propane_emissions_co2e_kg)
+
+    # get run period district cooling values
+    annual_district_cooling_emissions_co2e_kg = 0
+    district_cooling_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='DistrictCooling:Facility' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
+    district_cooling_values = sql_file.execAndReturnVectorOfDouble(district_cooling_query).get
+    if district_cooling_values.empty?
+      runner.registerWarning('Unable to get hourly timeseries facility district cooling use from the model, the model may not use district cooling. Cannot calculate emissions.')
+    else
+      annual_district_cooling_emissions_co2e_kg += district_cooling_values.map { |val| val * j_to_kbtu * district_cooling_emissions_factor_co2e_kg_per_kbtu }.sum
+    end
+    runner.registerInfo("Annual hourly district cooling emissions (kg CO2e): #{annual_district_cooling_emissions_co2e_kg.round(2)}")
+    runner.registerValue('annual_district_cooling_ghg_emissions_kg', annual_district_cooling_emissions_co2e_kg)
+
+    # get run period district heating values
+    annual_district_heating_emissions_co2e_kg = 0
+    district_heating_water_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='DistrictHeatingWater:Facility' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
+    district_heating_steam_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='DistrictHeatingSteam:Facility' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
+    district_heating_water_values = sql_file.execAndReturnVectorOfDouble(district_heating_water_query).get
+    district_heating_steam_values = sql_file.execAndReturnVectorOfDouble(district_heating_steam_query).get
+    if district_heating_water_values.empty?
+      runner.registerWarning('Unable to get hourly timeseries facility district heating water use from the model, the model may not use district heating water. Cannot calculate emissions.')
+    else
+      annual_district_heating_emissions_co2e_kg += district_heating_water_values.map { |val| val * j_to_kbtu * district_heating_emissions_factor_co2e_kg_per_kbtu }.sum
+    end
+    if district_heating_steam_values.empty?
+      runner.registerWarning('Unable to get hourly timeseries facility district heating steam use from the model, the model may not use district steam water. Cannot calculate emissions.')
+    else
+      annual_district_heating_emissions_co2e_kg += district_heating_steam_values.map { |val| val * j_to_kbtu * district_heating_emissions_factor_co2e_kg_per_kbtu }.sum
+    end
+    runner.registerInfo("Annual hourly district heating emissions (kg CO2e): #{annual_district_heating_emissions_co2e_kg.round(2)}")
+    runner.registerValue('annual_district_heating_ghg_emissions_kg', annual_district_heating_emissions_co2e_kg)
 
     # fuel end-use emissions
     enduses.push(['TotalHVAC']).flatten.each do |enduse|
       next if enduse.include?('Lights') || enduse.include?('Refrigeration')
 
       # get run period natural gas end-use values
+      total_enduse_gas_emissions_co2e_kg = 0
       gas_enduse_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex from ReportMeterDataDictionary WHERE VariableType='Sum' AND upper(VariableName)='#{enduse.upcase}:#{gas.upcase}' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
       gas_enduse_values = sql_file.execAndReturnVectorOfDouble(gas_enduse_query).get
       if gas_enduse_values.empty?
-        runner.registerWarning("Unable to find annual #{enduse} natural gas use from the model, the model may not use gas for this end-use. Cannot calculate end-use emissions for this fuel.")
-        total_enduse_gas_emissions_co2e_kg = 0
+        runner.registerWarning("Unable to find annual #{enduse} natural gas use from the model, the model may not use nautral gas for this end-use. Cannot calculate end-use emissions for this fuel.")
       else
         total_enduse_gas_emissions_co2e_kg = gas_enduse_values.map { |val| val * j_to_kbtu * natural_gas_emissions_factor_co2e_kg_per_kbtu }.sum
       end
@@ -557,11 +597,11 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
       runner.registerValue("annual_#{enduse.underscore}_natural_gas_ghg_emissions_kg", total_enduse_gas_emissions_co2e_kg)
 
       # get run period propane end-use values
+      total_enduse_propane_emissions_co2e_kg = 0
       propane_enduse_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND upper(VariableName)='#{enduse.upcase}:PROPANE' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
       propane_enduse_values = sql_file.execAndReturnVectorOfDouble(propane_enduse_query).get
       if propane_enduse_values.empty?
         runner.registerWarning("Unable to find annual #{enduse} propane from the model, the model may not use propane for this end-use. Cannot calculate end-use emissions for this fuel.")
-        total_enduse_propane_emissions_co2e_kg = 0
       else
         total_enduse_propane_emissions_co2e_kg = propane_enduse_values.map { |val| val * j_to_kbtu * propane_emissions_factor_co2e_kg_per_kbtu }.sum
       end
@@ -569,16 +609,47 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
       runner.registerValue("annual_#{enduse.underscore}_propane_ghg_emissions_kg", total_enduse_propane_emissions_co2e_kg)
 
       # get run period fuel oil end-use values
+      total_enduse_fuel_oil_emissions_co2e_kg = 0
       fuel_oil_enduse_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND upper(VariableName)='#{enduse.upcase}:#{fuel_oil.upcase}' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
       fuel_oil_enduse_values = sql_file.execAndReturnVectorOfDouble(fuel_oil_enduse_query).get
       if fuel_oil_enduse_values.empty?
-        runner.registerWarning("Unable to find annual #{enduse} fuel oil from the model, the model may not use propane for this end-use. Cannot calculate end-use emissions for this fuel.")
-        total_enduse_fuel_oil_emissions_co2e_kg = 0
+        runner.registerWarning("Unable to find annual #{enduse} fuel oil from the model, the model may not use fuel oil for this end-use. Cannot calculate end-use emissions for this fuel.")
       else
         total_enduse_fuel_oil_emissions_co2e_kg = fuel_oil_enduse_values.map { |val| val * j_to_kbtu * fuel_oil_emissions_factor_co2e_kg_per_kbtu }.sum
       end
       runner.registerInfo("Annual total fuel oil #{enduse} emissions (kg CO2e): #{total_enduse_fuel_oil_emissions_co2e_kg.round(2)}.")
       runner.registerValue("annual_#{enduse.underscore}_fuel_oil_ghg_emissions_kg", total_enduse_fuel_oil_emissions_co2e_kg)
+
+      # get run period district cooling end-use values
+      total_enduse_district_cooling_emissions_co2e_kg = 0
+      district_cooling_enduse_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND upper(VariableName)='#{enduse.upcase}:DISTRICTCOOLING' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
+      district_cooling_enduse_values = sql_file.execAndReturnVectorOfDouble(district_cooling_enduse_query).get
+      if district_cooling_enduse_values.empty?
+        runner.registerWarning("Unable to find annual #{enduse} district cooling from the model, the model may not use district cooling for this end-use. Cannot calculate end-use emissions for this fuel.")
+      else
+        total_enduse_district_cooling_emissions_co2e_kg = district_cooling_enduse_values.map { |val| val * j_to_kbtu * district_cooling_emissions_factor_co2e_kg_per_kbtu }.sum
+      end
+      runner.registerInfo("Annual total district cooling #{enduse} emissions (kg CO2e): #{total_enduse_district_cooling_emissions_co2e_kg.round(2)}.")
+      runner.registerValue("annual_#{enduse.underscore}_district_cooling_ghg_emissions_kg", total_enduse_district_cooling_emissions_co2e_kg)
+
+      # get run period district heating end-use values
+      total_enduse_district_heating_emissions_co2e_kg = 0
+      district_heating_water_enduse_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND upper(VariableName)='#{enduse.upcase}:DISTRICTHEATINGWATER' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
+      district_heating_steam_enduse_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND upper(VariableName)='#{enduse.upcase}:DISTRICTHEATINGSTEAM' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
+      district_heating_water_enduse_values = sql_file.execAndReturnVectorOfDouble(district_heating_water_enduse_query).get
+      district_heating_steam_enduse_values = sql_file.execAndReturnVectorOfDouble(district_heating_steam_enduse_query).get
+      if district_heating_water_enduse_values.empty?
+        runner.registerWarning("Unable to find annual #{enduse} district heating water from the model, the model may not use district heating water for this end-use. Cannot calculate end-use emissions for this fuel.")
+      else
+        total_enduse_district_heating_emissions_co2e_kg += district_heating_water_enduse_values.map { |val| val * j_to_kbtu * district_heating_emissions_factor_co2e_kg_per_kbtu }.sum
+      end
+      if district_heating_steam_enduse_values.empty?
+        runner.registerWarning("Unable to find annual #{enduse} district heating steam from the model, the model may not use district heating steam for this end-use. Cannot calculate end-use emissions for this fuel.")
+      else
+        total_enduse_district_heating_emissions_co2e_kg += district_heating_steam_enduse_values.map { |val| val * j_to_kbtu * district_heating_emissions_factor_co2e_kg_per_kbtu }.sum
+      end
+      runner.registerInfo("Annual total district heating #{enduse} emissions (kg CO2e): #{total_enduse_district_heating_emissions_co2e_kg.round(2)}.")
+      runner.registerValue("annual_#{enduse.underscore}_district_heating_ghg_emissions_kg", total_enduse_district_heating_emissions_co2e_kg)
     end
 
     # calculate eGRID subregion emissions
