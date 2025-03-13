@@ -4,7 +4,7 @@
 require 'openstudio'
 
 # start the measure
-class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
+class SimulationOutputReport < OpenStudio::Measure::ReportingMeasure
   # define the name that a user will see, this method may be deprecated as
   # the display name in PAT comes from the name field in measure.xml
   def name
@@ -16,14 +16,18 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
   end
 
   # define the arguments that the user will input
-  def arguments(_model = nil)
-    OpenStudio::Ruleset::OSArgumentVector.new
+  def arguments(model = nil)
+    args = OpenStudio::Measure::OSArgumentVector.new
+    # this measure does not require any user arguments, return an empty list
+    return args
   end
 
   def outputs
     buildstock_outputs = ['total_site_energy_mbtu',
                           'total_site_electricity_kwh',
                           'total_site_natural_gas_therm',
+                          'total_site_fuel_oil_no2_mbtu',
+                          'total_site_propane_mbtu',
                           'total_site_district_cooling_therm',
                           'total_site_district_heating_therm',
                           'total_site_other_fuel_mbtu',
@@ -48,12 +52,21 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
                           'natural_gas_interior_equipment_therm',
                           'natural_gas_water_systems_therm',
                           'natural_gas_generators_therm',
+                          'fuel_oil_no2_heating_mbtu',
+                          'fuel_oil_no2_interior_equipment_mbtu',
+                          'fuel_oil_no2_water_systems_mbtu',
+                          'fuel_oil_no2_generators_mbtu',
+                          'propane_heating_mbtu',
+                          'propane_interior_equipment_mbtu',
+                          'propane_water_systems_mbtu',
+                          'propane_generators_mbtu',
                           'district_cooling_cooling_therm',
                           'district_heating_heating_therm',
                           'district_heating_water_systems_therm',
                           'other_fuel_heating_mbtu',
                           'other_fuel_interior_equipment_mbtu',
                           'other_fuel_water_systems_mbtu',
+                          'other_fuel_generators_mbtu',
                           'hours_heating_setpoint_not_met',
                           'hours_cooling_setpoint_not_met',
                           'hvac_cooling_capacity_w',
@@ -92,7 +105,7 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
     model.setSqlFile(sql_file)
 
     # Load buildstock_file
-    resources_dir = File.absolute_path(File.join(File.dirname(__FILE__), '..', '..', 'lib', 'resources'))
+    resources_dir = File.absolute_path(File.join(__dir__, '..', '..', 'resources'))
     buildstock_file = File.join(resources_dir, 'buildstock.rb')
     require File.join(File.dirname(buildstock_file), File.basename(buildstock_file, File.extname(buildstock_file)))
 
@@ -142,6 +155,20 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
     report_sim_output(runner, 'natural_gas_water_systems_therm', [sql_file.naturalGasWaterSystems], 'GJ', gas_site_units)
     report_sim_output(runner, 'natural_gas_generators_therm', [sql_file.naturalGasGenerators], 'GJ', gas_site_units)
 
+    # FUEL OIL NO2
+    report_sim_output(runner, 'total_site_fuel_oil_no2_mbtu', [sql_file.fuelOilNo2TotalEndUses], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'fuel_oil_no2_heating_mbtu', [sql_file.fuelOilNo2Heating], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'fuel_oil_no2_interior_equipment_mbtu', [sql_file.fuelOilNo2InteriorEquipment], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'fuel_oil_no2_water_systems_mbtu', [sql_file.fuelOilNo2WaterSystems], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'fuel_oil_no2_generators_mbtu', [sql_file.fuelOilNo2Generators], 'GJ', other_fuel_site_units)
+
+    # PROPANE
+    report_sim_output(runner, 'total_site_propane_mbtu', [sql_file.propaneTotalEndUses], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'propane_heating_mbtu', [sql_file.propaneHeating], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'propane_interior_equipment_mbtu', [sql_file.propaneInteriorEquipment], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'propane_water_systems_mbtu', [sql_file.propaneWaterSystems], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'propane_generators_mbtu', [sql_file.propaneGenerators], 'GJ', other_fuel_site_units)
+
     # DISTRICT COOLING
     report_sim_output(runner, 'total_site_district_cooling_therm', [sql_file.districtCoolingTotalEndUses], 'GJ', district_cooling_site_units)
     report_sim_output(runner, 'district_cooling_cooling_therm', [sql_file.districtCoolingCooling], 'GJ', district_cooling_site_units)
@@ -151,32 +178,12 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
     report_sim_output(runner, 'district_heating_heating_therm', [sql_file.districtHeatingHeating], 'GJ', district_heating_site_units)
     report_sim_output(runner, 'district_heating_water_systems_therm', [sql_file.districtHeatingWaterSystems], 'GJ', district_heating_site_units)
 
-    # OTHER FUEL (Propane and FuelOil#2 fall into this category)
-    # Sum all other fuels for each end use
-    end_uses = {
-      'Total End Uses' => [],
-      'Heating' => [],
-      'Interior Equipment' => [],
-      'Water Systems' => []
-    }
-    other_fuels = ['Gasoline', 'Diesel', 'Coal', 'Fuel Oil No 1', 'Fuel Oil No 2', 'Propane', 'Other Fuel 1', 'Other Fuel 2']
-    end_uses.each_key do |end_use|
-      other_fuels.each do |fuel|
-        # TODO: replace with built-in OS queries once https://github.com/NREL/OpenStudio/issues/4705 is fixed
-        q = "SELECT Value
-          FROM TabularDataWithStrings WHERE (reportname = 'AnnualBuildingUtilityPerformanceSummary')
-          AND (ReportForString = 'Entire Facility')
-          AND (TableName = 'End Uses'  )
-          AND (ColumnName ='#{fuel}')
-          AND (RowName ='#{end_use}')
-          AND (Units = 'GJ')"
-        end_uses[end_use] << sql_file.execAndReturnFirstDouble(q)
-      end
-    end
-    report_sim_output(runner, 'total_site_other_fuel_mbtu', end_uses['Total End Uses'], 'GJ', other_fuel_site_units)
-    report_sim_output(runner, 'other_fuel_heating_mbtu', end_uses['Heating'], 'GJ', other_fuel_site_units)
-    report_sim_output(runner, 'other_fuel_interior_equipment_mbtu', end_uses['Interior Equipment'], 'GJ', other_fuel_site_units)
-    report_sim_output(runner, 'other_fuel_water_systems_mbtu', end_uses['Water Systems'], 'GJ', other_fuel_site_units)
+    # OTHER FUELS (Gasoline, Diesel, Coal, Fuel Oil No1, Other Fuel 1, Other Fuel 2)
+    report_sim_output(runner, 'total_site_other_fuel_mbtu', [sql_file.gasolineTotalEndUses, sql_file.dieselTotalEndUses, sql_file.coalTotalEndUses, sql_file.fuelOilNo1TotalEndUses, sql_file.otherFuel1TotalEndUses, sql_file.otherFuel2TotalEndUses], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'other_fuel_heating_mbtu', [sql_file.gasolineHeating, sql_file.dieselHeating, sql_file.coalHeating, sql_file.fuelOilNo1Heating, sql_file.otherFuel1Heating, sql_file.otherFuel2Heating], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'other_fuel_interior_equipment_mbtu', [sql_file.gasolineInteriorEquipment, sql_file.dieselInteriorEquipment, sql_file.coalInteriorEquipment, sql_file.fuelOilNo1InteriorEquipment, sql_file.otherFuel1InteriorEquipment, sql_file.otherFuel2InteriorEquipment], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'other_fuel_water_systems_mbtu', [sql_file.gasolineWaterSystems, sql_file.dieselWaterSystems, sql_file.coalWaterSystems, sql_file.fuelOilNo1WaterSystems, sql_file.otherFuel1WaterSystems, sql_file.otherFuel2WaterSystems], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'other_fuel_generators_mbtu', [sql_file.gasolineGenerators, sql_file.dieselGenerators, sql_file.coalGenerators, sql_file.fuelOilNo1Generators, sql_file.otherFuel1Generators, sql_file.otherFuel2Generators], 'GJ', other_fuel_site_units)
 
     # LOADS NOT MET
     report_sim_output(runner, 'hours_heating_setpoint_not_met', [sql_file.hoursHeatingSetpointNotMet], nil, nil)
