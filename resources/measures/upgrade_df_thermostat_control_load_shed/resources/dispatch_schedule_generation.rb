@@ -942,8 +942,8 @@ def read_emission_factors(model, scenario, year=2021)
   return egrid_co2e_kg_per_mwh, cambium_co2e_kg_per_mwh
 end
 
-### emission prediction based on emission factors and load prediction
-def emission_prediction(load, factor, num_timesteps_in_hr)
+### emissions prediction based on emission factors and load prediction
+def emissions_prediction(load, factor, num_timesteps_in_hr)
   j_to_mwh = OpenStudio.convert(1.0, 'J', 'MWh').get
   # convert to hourly load
   if num_timesteps_in_hr > 1
@@ -956,7 +956,7 @@ def emission_prediction(load, factor, num_timesteps_in_hr)
   # convert load from J to mwh
   hourly_load_mwh = []
   hourly_load.each { |val| hourly_load_mwh << val * j_to_mwh }
-  # calculate emission
+  # calculate emissions
   if factor.is_a?(Array)
     # cambium factor
     unless hourly_load_mwh.size == hourly_load_mwh.size
@@ -975,6 +975,30 @@ def emission_prediction(load, factor, num_timesteps_in_hr)
     raise "Bad emission factors"
   end
   return hourly_emissions_kg
+end
+
+### load prediction based on grid load data
+def load_prediction_from_grid_data(model, scenario='Load_MidCase_2035')
+  grid_region = model.getBuilding.additionalProperties.getFeatureAsString('grid_region')
+  unless grid_region.is_initialized
+    raise 'Unable to find grid region in model building additional properties'
+  end
+  grid_region = grid_region.get
+  puts("Using grid region #{grid_region} from model building additional properties.")
+  # if ['AKMS', 'AKGD', 'HIMS', 'HIOA'].include? grid_region
+  #   cambium_grid_region = nil
+  #   egrid_region = grid_region
+  #   puts("Grid region '#{grid_region}' is not available in Cambium.  Using eGrid factors only for electricty related emissions.")
+  # else
+  #   cambium_grid_region = grid_region
+  #   egrid_region = grid_region.chop
+  # end
+  load_csv = "#{File.dirname(__FILE__)}/cambium/#{scenario}/#{grid_region}.csv"
+  if not File.file?(load_csv)
+    raise "Unable to find file: #{load_csv}"
+  end
+  net_load_mwh = CSV.read(load_csv, converters: :float).flatten
+  return net_load_mwh
 end
 
 ### determine daily peak window based on daily load profile
