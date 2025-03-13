@@ -68,7 +68,7 @@ buildstock.csv,plugload_sch_weekend_base_peak_ratio,,FALSE,FALSE,,,,
 buildstock.csv,purchase_input_responsibility,in.purchase_input_responsibility,TRUE,FALSE,string,,,Who has the most direct input on decisions regarding pruchases of energy-related equipment
 buildstock.csv,reeds_balancing_area,in.reeds_balancing_area,TRUE,FALSE,string,,,Balancing area ID for the NREL ReEDS modeling tool
 buildstock.csv,region,,FALSE,FALSE,,,,
-buildstock.csv,building_area,in.floor_area_category,TRUE,TRUE,string,,,Specifies the floor area range of the building
+buildstock.csv,rentable_area,,FALSE,FALSE,,,,
 buildstock.csv,resstock_county_id,in.county_name,TRUE,TRUE,string,,,State abbreviation and county name
 buildstock.csv,resstock_custom_region,in.resstock_custom_region,FALSE,FALSE,string,,,
 buildstock.csv,resstock_puma_id,in.resstock_puma_id,FALSE,FALSE,string,,,State abbreviation and PUMA identifier
@@ -1122,214 +1122,39 @@ results.csv,simulation_settings_check.run_sim_settings_checks,,FALSE,FALSE,boole
 results.csv,started_at,,FALSE,FALSE,float,,,Simulation start time for model
 results.csv,upgrade,upgrade,TRUE,TRUE,string,,,ID of upgrade including 00 for Baseline
 results.csv,utility_bills.applicable,,FALSE,FALSE,boolean,,,Specifies if the utility bill calculation was applied to model
-results.csv,utility_bills.electricity_rate_2_bill_dollars,out.utility_bills.electricity_rate_2_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_2_name,out.utility_bills.electricity_rate_2_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_3_bill_dollars,out.utility_bills.electricity_rate_3_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_3_name,out.utility_bills.electricity_rate_3_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_4_bill_dollars,out.utility_bills.electricity_rate_4_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_4_name,out.utility_bills.electricity_rate_4_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_5_bill_dollars,out.utility_bills.electricity_rate_5_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_5_name,out.utility_bills.electricity_rate_5_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_6_bill_dollars,out.utility_bills.electricity_rate_6_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_6_name,out.utility_bills.electricity_rate_6_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_7_bill_dollars,out.utility_bills.electricity_rate_7_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_7_name,out.utility_bills.electricity_rate_7_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_8_bill_dollars,out.utility_bills.electricity_rate_8_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_8_name,out.utility_bills.electricity_rate_8_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_9_bill_dollars,out.utility_bills.electricity_rate_9_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_9_name,out.utility_bills.electricity_rate_9_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_10_bill_dollars,out.utility_bills.electricity_rate_10_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_10_name,out.utility_bills.electricity_rate_10_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_11_bill_dollars,out.utility_bills.electricity_rate_11_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_11_name,out.utility_bills.electricity_rate_11_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_12_bill_dollars,out.utility_bills.electricity_rate_12_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_12_name,out.utility_bills.electricity_rate_12_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_13_bill_dollars,out.utility_bills.electricity_rate_13_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_13_name,out.utility_bills.electricity_rate_13_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_14_bill_dollars,out.utility_bills.electricity_rate_14_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_14_name,out.utility_bills.electricity_rate_14_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_15_bill_dollars,out.utility_bills.electricity_rate_15_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_15_name,out.utility_bills.electricity_rate_15_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_16_bill_dollars,out.utility_bills.electricity_rate_16_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_16_name,out.utility_bills.electricity_rate_16_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_17_bill_dollars,out.utility_bills.electricity_rate_17_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_17_name,out.utility_bills.electricity_rate_17_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_18_bill_dollars,out.utility_bills.electricity_rate_18_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_18_name,out.utility_bills.electricity_rate_18_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_19_bill_dollars,out.utility_bills.electricity_rate_19_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_19_name,out.utility_bills.electricity_rate_19_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_1_bill_dollars,out.utility_bills.electricity_rate_1_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_1_name,out.utility_bills.electricity_rate_1_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_20_bill_dollars,out.utility_bills.electricity_rate_20_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_20_name,out.utility_bills.electricity_rate_20_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_21_bill_dollars,out.utility_bills.electricity_rate_21_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_21_name,out.utility_bills.electricity_rate_21_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_22_bill_dollars,out.utility_bills.electricity_rate_22_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_22_name,out.utility_bills.electricity_rate_22_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_23_bill_dollars,out.utility_bills.electricity_rate_23_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_23_name,out.utility_bills.electricity_rate_23_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_24_bill_dollars,out.utility_bills.electricity_rate_24_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_24_name,out.utility_bills.electricity_rate_24_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_25_bill_dollars,out.utility_bills.electricity_rate_25_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_25_name,out.utility_bills.electricity_rate_25_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_26_bill_dollars,out.utility_bills.electricity_rate_26_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_26_name,out.utility_bills.electricity_rate_26_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_27_bill_dollars,out.utility_bills.electricity_rate_27_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_27_name,out.utility_bills.electricity_rate_27_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_28_bill_dollars,out.utility_bills.electricity_rate_28_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_28_name,out.utility_bills.electricity_rate_28_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_29_bill_dollars,out.utility_bills.electricity_rate_29_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_29_name,out.utility_bills.electricity_rate_29_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_30_bill_dollars,out.utility_bills.electricity_rate_30_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_30_name,out.utility_bills.electricity_rate_30_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_31_bill_dollars,out.utility_bills.electricity_rate_31_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_31_name,out.utility_bills.electricity_rate_31_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_32_bill_dollars,out.utility_bills.electricity_rate_32_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_32_name,out.utility_bills.electricity_rate_32_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_33_bill_dollars,out.utility_bills.electricity_rate_33_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_33_name,out.utility_bills.electricity_rate_33_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_34_bill_dollars,out.utility_bills.electricity_rate_34_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_34_name,out.utility_bills.electricity_rate_34_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_35_bill_dollars,out.utility_bills.electricity_rate_35_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_35_name,out.utility_bills.electricity_rate_35_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_36_bill_dollars,out.utility_bills.electricity_rate_36_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_36_name,out.utility_bills.electricity_rate_36_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_37_bill_dollars,out.utility_bills.electricity_rate_37_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_37_name,out.utility_bills.electricity_rate_37_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_38_bill_dollars,out.utility_bills.electricity_rate_38_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_38_name,out.utility_bills.electricity_rate_38_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_39_bill_dollars,out.utility_bills.electricity_rate_39_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_39_name,out.utility_bills.electricity_rate_39_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_40_bill_dollars,out.utility_bills.electricity_rate_40_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_40_name,out.utility_bills.electricity_rate_40_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_41_bill_dollars,out.utility_bills.electricity_rate_41_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_41_name,out.utility_bills.electricity_rate_41_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_42_bill_dollars,out.utility_bills.electricity_rate_42_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_42_name,out.utility_bills.electricity_rate_42_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_43_bill_dollars,out.utility_bills.electricity_rate_43_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_43_name,out.utility_bills.electricity_rate_43_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_44_bill_dollars,out.utility_bills.electricity_rate_44_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_44_name,out.utility_bills.electricity_rate_44_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_45_bill_dollars,out.utility_bills.electricity_rate_45_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_45_name,out.utility_bills.electricity_rate_45_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_46_bill_dollars,out.utility_bills.electricity_rate_46_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_46_name,out.utility_bills.electricity_rate_46_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_47_bill_dollars,out.utility_bills.electricity_rate_47_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_47_name,out.utility_bills.electricity_rate_47_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_48_bill_dollars,out.utility_bills.electricity_rate_48_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_48_name,out.utility_bills.electricity_rate_48_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_49_bill_dollars,out.utility_bills.electricity_rate_49_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_49_name,out.utility_bills.electricity_rate_49_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_50_bill_dollars,out.utility_bills.electricity_rate_50_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_50_name,out.utility_bills.electricity_rate_50_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_51_bill_dollars,out.utility_bills.electricity_rate_51_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_51_name,out.utility_bills.electricity_rate_51_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_52_bill_dollars,out.utility_bills.electricity_rate_52_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_52_name,out.utility_bills.electricity_rate_52_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_53_bill_dollars,out.utility_bills.electricity_rate_53_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_53_name,out.utility_bills.electricity_rate_53_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_54_bill_dollars,out.utility_bills.electricity_rate_54_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_54_name,out.utility_bills.electricity_rate_54_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_55_bill_dollars,out.utility_bills.electricity_rate_55_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_55_name,out.utility_bills.electricity_rate_55_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_56_bill_dollars,out.utility_bills.electricity_rate_56_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_56_name,out.utility_bills.electricity_rate_56_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_57_bill_dollars,out.utility_bills.electricity_rate_57_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_57_name,out.utility_bills.electricity_rate_57_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_58_bill_dollars,out.utility_bills.electricity_rate_58_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_58_name,out.utility_bills.electricity_rate_58_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_59_bill_dollars,out.utility_bills.electricity_rate_59_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_59_name,out.utility_bills.electricity_rate_59_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_60_bill_dollars,out.utility_bills.electricity_rate_60_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_60_name,out.utility_bills.electricity_rate_60_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_61_bill_dollars,out.utility_bills.electricity_rate_61_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_61_name,out.utility_bills.electricity_rate_61_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_62_bill_dollars,out.utility_bills.electricity_rate_62_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_62_name,out.utility_bills.electricity_rate_62_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_63_bill_dollars,out.utility_bills.electricity_rate_63_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_63_name,out.utility_bills.electricity_rate_63_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_64_bill_dollars,out.utility_bills.electricity_rate_64_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_64_name,out.utility_bills.electricity_rate_64_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_65_bill_dollars,out.utility_bills.electricity_rate_65_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_65_name,out.utility_bills.electricity_rate_65_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_66_bill_dollars,out.utility_bills.electricity_rate_66_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_66_name,out.utility_bills.electricity_rate_66_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_67_bill_dollars,out.utility_bills.electricity_rate_67_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_67_name,out.utility_bills.electricity_rate_67_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_68_bill_dollars,out.utility_bills.electricity_rate_68_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_68_name,out.utility_bills.electricity_rate_68_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_69_bill_dollars,out.utility_bills.electricity_rate_69_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_69_name,out.utility_bills.electricity_rate_69_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_70_bill_dollars,out.utility_bills.electricity_rate_70_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_70_name,out.utility_bills.electricity_rate_70_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_71_bill_dollars,out.utility_bills.electricity_rate_71_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_71_name,out.utility_bills.electricity_rate_71_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_72_bill_dollars,out.utility_bills.electricity_rate_72_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_72_name,out.utility_bills.electricity_rate_72_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_73_bill_dollars,out.utility_bills.electricity_rate_73_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_73_name,out.utility_bills.electricity_rate_73_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_74_bill_dollars,out.utility_bills.electricity_rate_74_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_74_name,out.utility_bills.electricity_rate_74_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_75_bill_dollars,out.utility_bills.electricity_rate_75_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_75_name,out.utility_bills.electricity_rate_75_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_76_bill_dollars,out.utility_bills.electricity_rate_76_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_76_name,out.utility_bills.electricity_rate_76_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_77_bill_dollars,out.utility_bills.electricity_rate_77_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_77_name,out.utility_bills.electricity_rate_77_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_78_bill_dollars,out.utility_bills.electricity_rate_78_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_78_name,out.utility_bills.electricity_rate_78_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_79_bill_dollars,out.utility_bills.electricity_rate_79_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_79_name,out.utility_bills.electricity_rate_79_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_80_bill_dollars,out.utility_bills.electricity_rate_80_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_80_name,out.utility_bills.electricity_rate_80_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_81_bill_dollars,out.utility_bills.electricity_rate_81_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_81_name,out.utility_bills.electricity_rate_81_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_82_bill_dollars,out.utility_bills.electricity_rate_82_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_82_name,out.utility_bills.electricity_rate_82_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_83_bill_dollars,out.utility_bills.electricity_rate_83_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_83_name,out.utility_bills.electricity_rate_83_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_84_bill_dollars,out.utility_bills.electricity_rate_84_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_84_name,out.utility_bills.electricity_rate_84_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_85_bill_dollars,out.utility_bills.electricity_rate_85_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_85_name,out.utility_bills.electricity_rate_85_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_86_bill_dollars,out.utility_bills.electricity_rate_86_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_86_name,out.utility_bills.electricity_rate_86_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_87_bill_dollars,out.utility_bills.electricity_rate_87_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_87_name,out.utility_bills.electricity_rate_87_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_88_bill_dollars,out.utility_bills.electricity_rate_88_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_88_name,out.utility_bills.electricity_rate_88_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_rate_89_bill_dollars,out.utility_bills.electricity_rate_89_bill,FALSE,FALSE,float,usd,usd,Electric bill from one applicable rate
-results.csv,utility_bills.electricity_rate_89_name,out.utility_bills.electricity_rate_89_name,FALSE,FALSE,string,,,Name of one applicable electric rate
-results.csv,utility_bills.electricity_utility_eia_id,out.utility_bills.electricity_utility_eia_id,TRUE,FALSE,integer,,,The EIA ID of the electric utility for this building
-results.csv,utility_bills.electricity_bill_min_dollars,out.utility_bills.electricity_bill_min,TRUE,FALSE,float,usd,usd,Minimum electric bill across all applicable rates
-results.csv,utility_bills.electricity_bill_max_dollars,out.utility_bills.electricity_bill_max,TRUE,FALSE,float,usd,usd,Maximum electric bill maximum across all applicable rates
-results.csv,utility_bills.electricity_bill_mean_dollars,out.utility_bills.electricity_bill_mean,TRUE,TRUE,float,usd,usd,Mean electric bill across all applicable rates
-results.csv,utility_bills.electricity_bill_median_dollars,out.utility_bills.electricity_bill_median,TRUE,FALSE,float,usd,usd,Median electric bill across all applicable rates
-results.csv,utility_bills.electricity_bill_number_of_rates,out.utility_bills.electricity_bill_number_of_rates,TRUE,FALSE,float,usd,usd,Number of applicable electric rates
-results.csv,utility_bills.fuel_oil_bill_dollars,out.utility_bills.fuel_oil_bill,TRUE,TRUE,float,usd,usd,Fuel oil bill
-results.csv,utility_bills.fuel_oil_rate_name,out.utility_bills.fuel_oil_rate_name,TRUE,FALSE,string,,,Name of the fuel oil rate used
-results.csv,utility_bills.natural_gas_bill_dollars,out.utility_bills.natural_gas_bill,TRUE,TRUE,float,usd,usd,Natural gas bill
-results.csv,utility_bills.natural_gas_rate_name,out.utility_bills.natural_gas_rate_name,TRUE,FALSE,string,,,Name of the natural gas rate used
-results.csv,utility_bills.propane_bill_dollars,out.utility_bills.propane_bill,TRUE,TRUE,float,usd,usd,Propane bill from one applicable rate
-results.csv,utility_bills.propane_rate_name,out.utility_bills.propane_rate_name,TRUE,FALSE,string,,,Name of the propane rate used
+results.csv,utility_bills.electricity_utility_bill_results,out.utility_bills.electricity_utility_bill_results,TRUE,TRUE,string,,,String with all potential electricity rate outputs. Schema is: |utility_id:min_bill_dollars:max_bill_dollars:mean_bill_dollars:median_bill_dollars:n_bills|
+results.csv,utility_bills.state_avg_electricity_cost_results,out.utility_bills.state_average_electricity_cost_results,TRUE,TRUE,string,,,String with all potential state average electricity bills. Schema is: |state_abbreviation:total_dollars|
+results.csv,utility_bills.state_avg_naturalgas_cost_results,out.utility_bills.state_average_natural_gas_cost_results,TRUE,TRUE,string,,,String with all potential state average natural gas bills. Schema: |state_abbreviation:total_dollars|
+results.csv,utility_bills.state_avg_propane_cost_results,out.utility_bills.state_average_propane_cost_results,TRUE,TRUE,string,,,String with all potential state average propane bills. Schema: |state_abbreviation:total_bill_dollars|
+results.csv,utility_bills.state_avg_fueloil_cost_results,out.utility_bills.state_average_fueloil_cost_results,TRUE,TRUE,string,,,String with all potential state average fuel oil bills. Schema: |state_abbreviation:total_bill_dollars|
 calculated,in.nhgis_county_gisjoin,in.nhgis_county_gisjoin,TRUE,TRUE,string,,,"County identifier where the model is located, according to format of https://www.nhgis.org/geographic-crosswalks#details"
 calculated,in.nhgis_puma_gisjoin,in.nhgis_puma_gisjoin,TRUE,TRUE,string,,,"Census PUMA identifier where the model is located, according to format of https://www.nhgis.org/geographic-crosswalks#details"
 calculated,in.nhgis_tract_gisjoin,in.nhgis_tract_gisjoin,TRUE,TRUE,string,,,"Census tract identifier where the model is located, according to format of https://www.nhgis.org/geographic-crosswalks#details"
 calculated,in.nhgis_state_gisjoin,in.nhgis_state_gisjoin,TRUE,TRUE,string,,,"State tract identifier where the model is located, according to format of https://www.nhgis.org/geographic-crosswalks#details"
-calculated,calc.weighted.savings.utility_bills.electricity_bill_mean,calc.weighted.savings.utility_bills.electricity_bill_mean,TRUE,TRUE,float,billion_usd,billion_usd,Weighted mean electric bill savings across all applicable rates in billions of US Dollars
-calculated,calc.weighted.savings.utility_bills.electricity_bill_median,calc.weighted.savings.utility_bills.electricity_bill_median,TRUE,FALSE,float,billion_usd,billion_usd,Weighted median electric bill savings across all applicable rates in billions of US Dollars
-calculated,calc.weighted.savings.utility_bills.electricity_bill_min,calc.weighted.savings.utility_bills.electricity_bill_min,TRUE,TRUE,float,billion_usd,billion_usd,Weighted minimum electric bill savings across all applicable rates in billions of US Dollars
-calculated,calc.weighted.savings.utility_bills.electricity_bill_max,calc.weighted.savings.utility_bills.electricity_bill_max,TRUE,TRUE,float,billion_usd,billion_usd,Weighted maximum electric bill savings across all applicable rates in billions of US Dollars
-calculated,calc.weighted.savings.utility_bills.fuel_oil_bill,calc.weighted.savings.utility_bills.fuel_oil_bill,TRUE,TRUE,float,billion_usd,billion_usd,Weighted fuel oil bill savings in billions of US Dollars
-calculated,calc.weighted.savings.utility_bills.natural_gas_bill,calc.weighted.savings.utility_bills.natural_gas_bill,TRUE,TRUE,float,billion_usd,billion_usd,Weighted natural gas bill savings in billions of US Dollars
-calculated,calc.weighted.savings.utility_bills.propane_bill,calc.weighted.savings.utility_bills.propane_bill,TRUE,TRUE,float,billion_usd,billion_usd,Weighted propane bill savings in billions of US Dollars
-calculated,calc.weighted.utility_bills.electricity_bill_mean,calc.weighted.utility_bills.electricity_bill_mean,TRUE,TRUE,float,billion_usd,billion_usd,Weighted mean electric bill across all applicable rates in billions of US Dollars
-calculated,calc.weighted.utility_bills.electricity_bill_median,calc.weighted.utility_bills.electricity_bill_median,TRUE,FALSE,float,billion_usd,billion_usd,Weighted median electric bill across all applicable rates in billions of US Dollars
-calculated,calc.weighted.utility_bills.electricity_bill_min,calc.weighted.utility_bills.electricity_bill_min,TRUE,FALSE,float,billion_usd,billion_usd,Weighted minimum electric bill across all applicable rates in billions of US Dollars
-calculated,calc.weighted.utility_bills.electricity_bill_max,calc.weighted.utility_bills.electricity_bill_max,TRUE,FALSE,float,billion_usd,billion_usd,Weighted maximum electric bill across all applicable rates in billions of US Dollars
-calculated,calc.weighted.utility_bills.fuel_oil_bill,calc.weighted.utility_bills.fuel_oil_bill,TRUE,TRUE,float,billion_usd,billion_usd,Weighted fuel oil bill in billions of US Dollars
-calculated,calc.weighted.utility_bills.natural_gas_bill,calc.weighted.utility_bills.natural_gas_bill,TRUE,TRUE,float,billion_usd,billion_usd,Weighted natural gas bill in billions of US Dollars
-calculated,calc.weighted.utility_bills.propane_bill,calc.weighted.utility_bills.propane_bill,TRUE,TRUE,float,billion_usd,billion_usd,Weighted propane bill in billions of US Dollars
+calculated,out.utility_bills.electricity_bill_min,out.utility_bills.electricity_bill_min,FALSE,FALSE,float,usd,usd,Minimum utility bill result for applicable utility rates. If no utility ID or applicable rates found this is same as state average rate bill.
+calculated,out.utility_bills.electricity_bill_min_label,out.utility_bills.electricity_bill_min_label,FALSE,FALSE,string,,,Minimum applicable utility rate label. If not utility ID or applicable rates found this will be state_average_rate.
+calculated,out.utility_bills.electricity_bill_max,out.utility_bills.electricity_bill_max,FALSE,FALSE,float,usd,usd,Maximum utility bill result for applicable utility rates. If no utility ID or applicable rates found this is same as state average rate bill.
+calculated,out.utility_bills.electricity_bill_max_label,out.utility_bills.electricity_bill_max_label,FALSE,FALSE,string,,,Maximum applicable utility rate label. If not utility ID or applicable rates found this will be state_average_rate.
+calculated,out.utility_bills.electricity_bill_median_low,out.utility_bills.electricity_bill_median_low,FALSE,FALSE,float,usd,usd,"Median value of utility bill results for applicable utility rates if number of results is odd, otherwise the lower of the two middle values. If no utility ID or applicable rates found this is same as state average rate bill."
+calculated,out.utility_bills.electricity_bill_median_low_label,out.utility_bills.electricity_bill_median_low_label,FALSE,FALSE,string,,,Median (or lower middle) applicable utility rate label. If not utility ID or applicable rates found this will be state_average_rate.
+calculated,out.utility_bills.electricity_bill_median_high,out.utility_bills.electricity_bill_median_high,FALSE,FALSE,float,usd,usd,"Median value of utility bill results for applicable utility rates if number of results is odd, otherwise the higher of the two middle values. If no utility ID or applicable rates found this is same as state average rate bill."
+calculated,out.utility_bills.electricity_bill_median_high_label,out.utility_bills.electricity_bill_median_high_label,FALSE,FALSE,string,,,Median (or higher middle) applicable utility rate label. If not utility ID or applicable rates found this will be state_average_rate.
+calculated,out.utility_bills.electricity_bill_mean,out.utility_bills.electricity_bill_mean,FALSE,FALSE,float,usd,usd,Mean utility bill result for applicable utility rates. If no utility ID or applicable rates found this is same as state average rate bill.
+calculated,out.utility_bills.electricity_bill_num_bills,out.utility_bills.electricity_bill_num_bills,FALSE,FALSE,float,,,Number of applicable utility rates found
+calculated,out.utility_bills.electricity_bill_state_average,out.utility_bills.electricity_bill_state_average,FALSE,FALSE,float,,,Electricity bill using state average electricity rate
+calculated,out.utility_bills.natural_gas_bill_state_average,out.utility_bills.natural_gas_bill_state_average,FALSE,FALSE,float,,,Natural gas bill using state average natural gas rate
+calculated,out.utility_bills.propane_bill_state_average,out.utility_bills.propane_bill_state_average,FALSE,FALSE,float,,,Propane bill using state average propane rate
+calculated,out.utility_bills.fuel_oil_bill_state_average,out.utility_bills.fuel_oil_bill_state_average,FALSE,FALSE,float,,,Fuel oil bill using state average fuel oil rate
+calculated,calc.weighted.utility_bills.electricity_bill_max,calc.weighted.utility_bills.electricity_bill_max,TRUE,TRUE,float,billion_usd,billion_usd,Weighted maximum utility bill result for applicable utility rates. If no utility ID or applicable rates found this is same as weighted state average rate bill.
+calculated,calc.weighted.utility_bills.electricity_bill_mean,calc.weighted.utility_bills.electricity_bill_mean,TRUE,TRUE,float,billion_usd,billion_usd,Weighted mean utility bill result for applicable utility rates. If no utility ID or applicable rates found this is same as weighted state average rate bill.
+calculated,calc.weighted.utility_bills.electricity_bill_median_low,calc.weighted.utility_bills.electricity_bill_median_low,TRUE,TRUE,float,billion_usd,billion_usd,"Weighted median value of utility bill results for applicable utility rates if number of results is odd, otherwise the lower of the two middle values. If no utility ID or applicable rates found this is same as state average rate bill."
+calculated,calc.weighted.utility_bills.electricity_bill_median_high,calc.weighted.utility_bills.electricity_bill_median_high,TRUE,TRUE,float,billion_usd,billion_usd,"Weighted median value of utility bill results for applicable utility rates if number of results is odd, otherwise the higher of the two middle values. If no utility ID or applicable rates found this is same as state average rate bill."
+calculated,calc.weighted.utility_bills.electricity_bill_min,calc.weighted.utility_bills.electricity_bill_min,TRUE,TRUE,float,billion_usd,billion_usd,Weighted minimum utility bill result for applicable utility rates. If no utility ID or applicable rates found this is same as weighted state average rate bill.
+calculated,calc.weighted.utility_bills.electricity_bill_state_average,calc.weighted.utility_bills.electricity_bill_state_average,TRUE,TRUE,float,billion_usd,billion_usd,Weighted electricity bill using state average electricity rate
+calculated,calc.weighted.utility_bills.fuel_oil_bill_state_average,calc.weighted.utility_bills.fuel_oil_bill_state_average,TRUE,TRUE,float,billion_usd,billion_usd,Weighted fuel oil bill using state average fuel oil rate
+calculated,calc.weighted.utility_bills.natural_gas_bill_state_average,calc.weighted.utility_bills.natural_gas_bill_state_average,TRUE,TRUE,float,billion_usd,billion_usd,Weighted natural gas bill using state average natural gas rate
+calculated,calc.weighted.utility_bills.propane_bill_state_average,calc.weighted.utility_bills.propane_bill_state_average,TRUE,TRUE,float,billion_usd,billion_usd,Weighted propane bill using state average propane rate
+calculated,calc.weighted.utility_bills.electricity_bill_num_bills,calc.weighted.utility_bills.electricity_bill_num_bills,TRUE,TRUE,float,,,Weighted number of applicable utility rates found
 timeseries,floor_area_represented,,FALSE,FALSE,float,ft2,ft2,The scaled square footage represented by the buildings included in this aggregate timeseries profile
 timeseries,models_used,,FALSE,FALSE,float,,,The number of energy models used to represent the results in this aggregate timeseries profile
 timeseries,out.district_cooling.cooling.energy_consumption,,FALSE,FALSE,float,kwh,kwh,Building annual district cooling energy consumption for cooling end use
@@ -1652,12 +1477,6 @@ calculated,out.qoi.maximum_daily_use_winter_normalized_w_per_ft2,out.qoi.maximum
 calculated,out.qoi.minimum_daily_use_shoulder_normalized_w_per_ft2,out.qoi.minimum_daily_use_shoulder_intensity,TRUE,FALSE,float,w_per_ft2,w_per_ft2,Average hourly minimum daily electric load during shoulder season on an area normalized basis
 calculated,out.qoi.minimum_daily_use_summer_normalized_w_per_ft2,out.qoi.minimum_daily_use_summer_intensity,TRUE,FALSE,float,w_per_ft2,w_per_ft2,Average hourly minimum daily electric load during summer on an area normalized basis
 calculated,out.qoi.minimum_daily_use_winter_normalized_w_per_ft2,out.qoi.minimum_daily_use_winter_intensity,TRUE,FALSE,float,w_per_ft2,w_per_ft2,Average hourly minimum daily electric load during winter on an area normalized basis
-calculated,out.utility_bills.electricity_energy_rate,out.utility_bills.electricity_energy_rate,TRUE,FALSE,float,usd_per_kwh,usd_per_kwh,Total electric bill per kWh of electricity consumption
-calculated,out.utility_bills.natural_gas_energy_rate,out.utility_bills.natural_gas_energy_rate,TRUE,FALSE,float,usd_per_kwh,usd_per_kwh,Total natural gas bill per kWh of natural consumption. Note atypical consumption units for natural gas.
-calculated,out.utility_bills.electricity_bill_intensity,out.utility_bills.electricity_bill_intensity,TRUE,FALSE,float,usd_per_ft2,usd_per_ft2,Total electric bill per floor area
-calculated,out.utility_bills.natural_gas_bill_intensity,out.utility_bills.natural_gas_bill_intensity,TRUE,FALSE,float,usd_per_ft2,usd_per_ft2,Total natural gas bill per floor area
-calculated,out.utility_bills.propane_bill_intensity,out.utility_bills.propane_bill_intensity,TRUE,FALSE,float,usd_per_ft2,usd_per_ft2,Total propane bill per floor area
-calculated,out.utility_bills.fuel_oil_bill_intensity,out.utility_bills.fuel_oil_bill_intensity,TRUE,FALSE,float,usd_per_ft2,usd_per_ft2,Total fuel oil bill per floor area
 calculated,out.qoi.maximum_daily_peak_intensity_jan,out.qoi.maximum_daily_peak_intensity_jan,FALSE,FALSE,float,kw_per_ft2,kw_per_ft2,Maximum hourly daily electric load peak per floor area during January
 calculated,out.qoi.maximum_daily_peak_intensity_feb,out.qoi.maximum_daily_peak_intensity_feb,FALSE,FALSE,float,kw_per_ft2,kw_per_ft2,Maximum hourly daily electric load peak per floor area during Febuary
 calculated,out.qoi.maximum_daily_peak_intensity_mar,out.qoi.maximum_daily_peak_intensity_mar,FALSE,FALSE,float,kw_per_ft2,kw_per_ft2,Maximum hourly daily electric load peak per floor area during March
@@ -1900,59 +1719,51 @@ calculated,calc.percent_savings.emissions.intensity.electricity.shoulder_daily_a
 calculated,calc.percent_savings.emissions.intensity.electricity.shoulder_daily_average.lrmer_high_re_cost_15_2023_start,calc.percent_savings.emissions.intensity.electricity.shoulder_daily_average.lrmer_high_re_cost_15_2023_start,FALSE,FALSE,float,percent,percent,"Percent savings of daily average greenhouse gas emissions per floor area during shoulder season from electricity use, using Cambium 2022 Long-Range Marginal Emissions Rate high renewable energy cost emissions intensity values levelized over 15 years starting in 2023"
 calculated,calc.percent_savings.emissions.intensity.electricity.shoulder_daily_average.lrmer_low_re_cost_15_2023_start,calc.percent_savings.emissions.intensity.electricity.shoulder_daily_average.lrmer_low_re_cost_15_2023_start,FALSE,FALSE,float,percent,percent,"Percent savings of daily average greenhouse gas emissions per floor area during shoulder season from electricity use, using Cambium 2022 Long-Range Marginal Emissions Rate low renewable energy cost emissions intensity values levelized over 15 years starting in 2023"
 calculated,calc.percent_savings.emissions.intensity.electricity.shoulder_daily_average.lrmer_mid_case_15_2023_start,calc.percent_savings.emissions.intensity.electricity.shoulder_daily_average.lrmer_mid_case_15_2023_start,FALSE,FALSE,float,percent,percent,"Percent savings of daily average greenhouse gas emissions per floor area during shoulder season from electricity use, using Cambium 2022 Long-Range Marginal Emissions Rate mid case emissions intensity values levelized over 15 years starting in 2023"
-calculated,calc.utility_bills.total_mean_bill,calc.utility_bills.total_mean_bill,TRUE,FALSE,float,usd,usd,Total utility bill across all fuel types using mean electricity costs across all electricity utility rates for the model.
-calculated,calc.utility_bills.total_mean_bill_savings,calc.utility_bills.total_mean_bill_savings,TRUE,FALSE,float,usd,usd,Savings of total utility bill across all fuel types using mean electricity costs across all electricity utility rates for the model.
-calculated,out.utility_bills.electricity_bill_max_intensity,out.utility_bills.electricity_bill_max_intensity,FALSE,FALSE,float,usd_per_ft2,usd_per_ft2,Electricity bill intensity in 2022 usd/sqft for the maximum applicable electricity rate for the model.
-calculated,out.utility_bills.electricity_bill_median_intensity,out.utility_bills.electricity_bill_median_intensity,FALSE,FALSE,float,usd_per_ft2,usd_per_ft2,Electricity bill intensity in 2022 usd/sqft for the median applicable electricity rate for the model.
 calculated,out.utility_bills.electricity_bill_min_intensity,out.utility_bills.electricity_bill_min_intensity,FALSE,FALSE,float,usd_per_ft2,usd_per_ft2,Electricity bill intensity in 2022 usd/sqft for the minimum applicable electricity rate for the model.
-calculated,out.utility_bills.electricity_bill_savings_intensity,out.utility_bills.electricity_bill_savings_intensity,FALSE,FALSE,float,usd_per_ft2,usd_per_ft2,Electricity bill savings intensity in 2022 usd/sqft.
-calculated,out.utility_bills.electricity_bill_savings_max,out.utility_bills.electricity_bill_savings_max,FALSE,FALSE,float,usd,usd,Electricity bill savings in 2022 usd using the maximum applicable electricity rate.
-calculated,out.utility_bills.electricity_bill_savings_max_intensity,out.utility_bills.electricity_bill_savings_max_intensity,FALSE,FALSE,float,usd_per_ft2,usd_per_ft2,Electricity bill savings intensity in 2022 usd/sqft using the maximum applicable electricity rate.
-calculated,out.utility_bills.electricity_bill_savings_mean,out.utility_bills.electricity_bill_savings_mean,TRUE,FALSE,float,usd,usd,Electricity bill savings in 2022 usd using the mean applicable electricity rate.
-calculated,out.utility_bills.electricity_bill_savings_median,out.utility_bills.electricity_bill_savings_median,FALSE,FALSE,float,usd,usd,Electricity bill savings in 2022 usd using the median applicable electricity rate.
-calculated,out.utility_bills.electricity_bill_savings_median_intensity,out.utility_bills.electricity_bill_savings_median_intensity,FALSE,FALSE,float,usd_per_ft2,usd_per_ft2,Electricity bill savings intensity in 2022 usd/sqft using the median applicable electricity rate.
-calculated,out.utility_bills.electricity_bill_savings_min,out.utility_bills.electricity_bill_savings_min,FALSE,FALSE,float,usd,usd,Electricity bill savings in 2022 usd using the minimum applicable electricity rate.
-calculated,out.utility_bills.electricity_bill_savings_min_intensity,out.utility_bills.electricity_bill_savings_min_intensity,FALSE,FALSE,float,usd_per_ft2,usd_per_ft2,Electricity bill savings intensity in 2022 usd/sqft using the minimum applicable electricity rate.
-calculated,out.utility_bills.fuel_oil_bill_savings,out.utility_bills.fuel_oil_bill_savings,TRUE,FALSE,float,usd,usd,Total fuel oil bill savings
-calculated,out.utility_bills.natural_gas_bill_savings,out.utility_bills.natural_gas_bill_savings,TRUE,FALSE,float,usd,usd,Total natural gas bill savings
-calculated,out.utility_bills.propane_bill_savings,out.utility_bills.propane_bill_savings,TRUE,FALSE,float,usd,usd,Total propane bill savings
-calculated,out.utility_bills.fuel_oil_bill_savings_intensity,out.utility_bills.fuel_oil_bill_savings_intensity,TRUE,FALSE,float,usd_per_ft2,usd_per_ft2,Total fuel oil bill savings per floor area
-calculated,out.utility_bills.natural_gas_bill_savings_intensity,out.utility_bills.natural_gas_bill_savings_intensity,TRUE,FALSE,float,usd_per_ft2,usd_per_ft2,Total natural gas bill savings per floor area
-calculated,out.utility_bills.propane_bill_savings_intensity,out.utility_bills.propane_bill_savings_intensity,TRUE,FALSE,float,usd_per_ft2,usd_per_ft2,Total propane bill savings per floor area
-calculated,calc.percent_savings.utility_bills.electricity_bill_intensity,calc.percent_savings.utility_bills.electricity_bill_intensity,FALSE,FALSE,float,percent,percent,Percent savings of electricity bill intensity
-calculated,calc.percent_savings.utility_bills.electricity_bill_max,calc.percent_savings.utility_bills.electricity_bill_max,FALSE,FALSE,float,percent,percent,Percent savings of electricity bill for the maximum applicable rate for the model
-calculated,calc.percent_savings.utility_bills.electricity_bill_max_intensity,calc.percent_savings.utility_bills.electricity_bill_max_intensity,FALSE,FALSE,float,percent,percent,Percent savings of electricity bill intensity for the maximum applicable rate for the model
-calculated,calc.percent_savings.utility_bills.electricity_bill_mean,calc.percent_savings.utility_bills.electricity_bill_mean,TRUE,FALSE,float,percent,percent,Percent savings of electricity bill for the mean applicable rate for the model
-calculated,calc.percent_savings.utility_bills.electricity_bill_median,calc.percent_savings.utility_bills.electricity_bill_median,FALSE,FALSE,float,percent,percent,Percent savings of electricity bill for the median applicable rate for the model
-calculated,calc.percent_savings.utility_bills.electricity_bill_median_intensity,calc.percent_savings.utility_bills.electricity_bill_median_intensity,FALSE,FALSE,float,percent,percent,Percent savings of electricity bill intensity for the median applicable rate for the model
-calculated,calc.percent_savings.utility_bills.electricity_bill_min,calc.percent_savings.utility_bills.electricity_bill_min,FALSE,FALSE,float,percent,percent,Percent savings of electricity bill for the minimum applicable rate for the model
-calculated,calc.percent_savings.utility_bills.electricity_bill_min_intensity,calc.percent_savings.utility_bills.electricity_bill_min_intensity,FALSE,FALSE,float,percent,percent,Percent savings of electricity bill intensity for the minimum applicable rate for the model
-calculated,calc.percent_savings.utility_bills.fuel_oil_bill,calc.percent_savings.utility_bills.fuel_oil_bill,TRUE,FALSE,float,percent,percent,
-calculated,calc.percent_savings.utility_bills.fuel_oil_bill_intensity,calc.percent_savings.utility_bills.fuel_oil_bill_intensity,FALSE,FALSE,float,percent,percent,
-calculated,calc.percent_savings.utility_bills.natural_gas_bill,calc.percent_savings.utility_bills.natural_gas_bill,TRUE,FALSE,float,percent,percent,
-calculated,calc.percent_savings.utility_bills.natural_gas_bill_intensity,calc.percent_savings.utility_bills.natural_gas_bill_intensity,FALSE,FALSE,float,percent,percent,
-calculated,calc.percent_savings.utility_bills.propane_bill,calc.percent_savings.utility_bills.propane_bill,TRUE,FALSE,float,percent,percent,
-calculated,calc.percent_savings.utility_bills.propane_bill_intensity,calc.percent_savings.utility_bills.propane_bill_intensity,FALSE,FALSE,float,percent,percent,
-calculated,calc.percent_savings.utility_bills.total_mean_bill,calc.percent_savings.utility_bills.total_mean_bill,TRUE,FALSE,float,percent,percent,
-calculated,calc.percent_savings.utility_bills.total_mean_bill_intensity,calc.percent_savings.utility_bills.total_mean_bill_intensity,FALSE,FALSE,float,percent,percent,
-calculated,calc.utility_bills.total_mean_bill_intensity,calc.utility_bills.total_mean_bill_intensity,TRUE,FALSE,float,usd_per_ft2,usd_per_ft2,
-calculated,calc.utility_bills.total_mean_bill_savings_intensity,calc.utility_bills.total_mean_bill_savings_intensity,TRUE,FALSE,float,usd_per_ft2,usd_per_ft2,
-calculated,calc.weighted.savings.utility_bills.electricity_bill_max,calc.weighted.savings.utility_bills.electricity_bill_max,FALSE,FALSE,float,billion_usd,billion_usd,
-calculated,calc.weighted.savings.utility_bills.electricity_bill_mean,calc.weighted.savings.utility_bills.electricity_bill_mean,TRUE,FALSE,float,billion_usd,billion_usd,
-calculated,calc.weighted.savings.utility_bills.electricity_bill_median,calc.weighted.savings.utility_bills.electricity_bill_median,FALSE,FALSE,float,billion_usd,billion_usd,
-calculated,calc.weighted.savings.utility_bills.electricity_bill_min,calc.weighted.savings.utility_bills.electricity_bill_min,FALSE,FALSE,float,billion_usd,billion_usd,
-calculated,calc.weighted.savings.utility_bills.fuel_oil_bill,calc.weighted.savings.utility_bills.fuel_oil_bill,TRUE,FALSE,float,billion_usd,billion_usd,
-calculated,calc.weighted.savings.utility_bills.natural_gas_bill,calc.weighted.savings.utility_bills.natural_gas_bill,TRUE,FALSE,float,billion_usd,billion_usd,
-calculated,calc.weighted.savings.utility_bills.propane_bill,calc.weighted.savings.utility_bills.propane_bill,TRUE,FALSE,float,billion_usd,billion_usd,
-calculated,calc.weighted.savings.utility_bills.total_mean_bill,calc.weighted.savings.utility_bills.total_mean_bill,TRUE,FALSE,float,billion_usd,billion_usd,
-calculated,calc.weighted.utility_bills.electricity_bill_max,calc.weighted.utility_bills.electricity_bill_max,TRUE,FALSE,float,billion_usd,billion_usd,
-calculated,calc.weighted.utility_bills.electricity_bill_mean,calc.weighted.utility_bills.electricity_bill_mean,TRUE,FALSE,float,billion_usd,billion_usd,
-calculated,calc.weighted.utility_bills.electricity_bill_median,calc.weighted.utility_bills.electricity_bill_median,TRUE,FALSE,float,billion_usd,billion_usd,
-calculated,calc.weighted.utility_bills.electricity_bill_min,calc.weighted.utility_bills.electricity_bill_min,TRUE,FALSE,float,billion_usd,billion_usd,
-calculated,calc.weighted.utility_bills.fuel_oil_bill,calc.weighted.utility_bills.fuel_oil_bill,TRUE,FALSE,float,billion_usd,billion_usd,
-calculated,calc.weighted.utility_bills.natural_gas_bill,calc.weighted.utility_bills.natural_gas_bill,TRUE,FALSE,float,billion_usd,billion_usd,
-calculated,calc.weighted.utility_bills.propane_bill,calc.weighted.utility_bills.propane_bill,TRUE,FALSE,float,billion_usd,billion_usd,
-calculated,calc.weighted.utility_bills.total_mean_bill,calc.weighted.utility_bills.total_mean_bill,TRUE,FALSE,float,billion_usd,billion_usd,
+calculated,out.utility_bills.electricity_bill_max_intensity,out.utility_bills.electricity_bill_max_intensity,FALSE,FALSE,float,usd_per_ft2,usd_per_ft2,Electricity bill intensity in 2022 usd/sqft for the maximum applicable electricity rate for the model.
+calculated,out.utility_bills.electricity_bill_median_low_intensity,out.utility_bills.electricity_bill_median_low_intensity,FALSE,FALSE,float,usd_per_ft2,usd_per_ft2,Electricity bill intensity in 2022 usd/sqft for the median (or lower middle) applicable electricity rate for the model.
+calculated,out.utility_bills.electricity_bill_median_high_intensity,out.utility_bills.electricity_bill_median_high_intensity,FALSE,FALSE,float,usd_per_ft2,usd_per_ft2,Electricity bill intensity in 2022 usd/sqft for the median (or upper middle) applicable electricity rate for the model.
+calculated,out.utility_bills.electricity_bill_mean_intensity,out.utility_bills.electricity_bill_mean_intensity,TRUE,FALSE,float,usd_per_ft2,usd_per_ft2,Electricity bill intensity in 2022 usd/sqft for the mean applicable electricity rate for the model.
+calculated,out.utility_bills.electricity_bill_state_average_intensity,out.utility_bills.electricity_bill_state_average_intensity,FALSE,FALSE,float,usd_per_ft2,usd_per_ft2,Electricity bill intensity in 2022 usd/sqft for the state average electricity rate bill.
+calculated,out.utility_bills.natural_gas_bill_state_average_intensity,out.utility_bills.natural_gas_bill_state_average_intensity,TRUE,FALSE,float,usd_per_ft2,usd_per_ft2,Electricity bill intensity in 2022 usd/sqft for the state average natural gas rate bill.
+calculated,out.utility_bills.propane_bill_state_average_intensity,out.utility_bills.propane_bill_state_average_intensity,TRUE,FALSE,float,usd_per_ft2,usd_per_ft2,Electricity bill intensity in 2022 usd/sqft for the state average propane rate bill.
+calculated,out.utility_bills.fuel_oil_bill_state_average_intensity,out.utility_bills.fuel_oil_bill_state_average_intensity,TRUE,FALSE,float,usd_per_ft2,usd_per_ft2,Electricity bill intensity in 2022 usd/sqft for the state average fuel oil rate bill.
+calculated,calc.weighted.utility_bills.electricity_bill_savings_min,calc.weighted.utility_bills.electricity_bill_savings_min,FALSE,FALSE,float,billion_usd,billion_usd,
+calculated,calc.weighted.utility_bills.electricity_bill_savings_max,calc.weighted.utility_bills.electricity_bill_savings_max,FALSE,FALSE,float,billion_usd,billion_usd,
+calculated,calc.weighted.utility_bills.electricity_bill_savings_median_low,calc.weighted.utility_bills.electricity_bill_savings_median_low,FALSE,FALSE,float,billion_usd,billion_usd,
+calculated,calc.weighted.utility_bills.electricity_bill_savings_median_high,calc.weighted.utility_bills.electricity_bill_savings_median_high,FALSE,FALSE,float,billion_usd,billion_usd,
+calculated,calc.weighted.utility_bills.electricity_bill_savings_mean,calc.weighted.utility_bills.electricity_bill_savings_mean,TRUE,FALSE,float,billion_usd,billion_usd,
+calculated,calc.weighted.utility_bills.electricity_bill_savings_state_average,calc.weighted.utility_bills.electricity_bill_savings_state_average,FALSE,FALSE,float,billion_usd,billion_usd,
+calculated,calc.weighted.utility_bills.natural_gas_bill_savings_state_average,calc.weighted.utility_bills.natural_gas_bill_savings_state_average,TRUE,FALSE,float,billion_usd,billion_usd,
+calculated,calc.weighted.utility_bills.propane_bill_savings_state_average,calc.weighted.utility_bills.propane_bill_savings_state_average,TRUE,FALSE,float,billion_usd,billion_usd,
+calculated,calc.weighted.utility_bills.fuel_oil_bill_savings_state_average,calc.weighted.utility_bills.fuel_oil_bill_savings_state_average,TRUE,FALSE,float,billion_usd,billion_usd,
+calculated,out.utility_bills.electricity_bill_savings_min_intensity,out.utility_bills.electricity_bill_savings_min_intensity,FALSE,FALSE,float,usd_per_ft2,usd_per_ft2,
+calculated,out.utility_bills.electricity_bill_savings_max_intensity,out.utility_bills.electricity_bill_savings_max_intensity,FALSE,FALSE,float,usd_per_ft2,usd_per_ft2,
+calculated,out.utility_bills.electricity_bill_savings_median_low_intensity,out.utility_bills.electricity_bill_savings_median_low_intensity,FALSE,FALSE,float,usd_per_ft2,usd_per_ft2,
+calculated,out.utility_bills.electricity_bill_savings_median_high_intensity,out.utility_bills.electricity_bill_savings_median_high_intensity,FALSE,FALSE,float,usd_per_ft2,usd_per_ft2,
+calculated,out.utility_bills.electricity_bill_savings_mean_intensity,out.utility_bills.electricity_bill_savings_mean_intensity,TRUE,FALSE,float,usd_per_ft2,usd_per_ft2,
+calculated,out.utility_bills.electricity_bill_savings_state_average_intensity,out.utility_bills.electricity_bill_savings_state_average_intensity,FALSE,FALSE,float,usd_per_ft2,usd_per_ft2,
+calculated,out.utility_bills.natural_gas_bill_savings_state_average_intensity,out.utility_bills.natural_gas_bill_savings_state_average_intensity,TRUE,FALSE,float,usd_per_ft2,usd_per_ft2,
+calculated,out.utility_bills.propane_bill_savings_state_average_intensity,out.utility_bills.propane_bill_savings_state_average_intensity,TRUE,FALSE,float,usd_per_ft2,usd_per_ft2,
+calculated,out.utility_bills.fuel_oil_bill_savings_state_average_intensity,out.utility_bills.fuel_oil_bill_savings_state_average_intensity,TRUE,FALSE,float,usd_per_ft2,usd_per_ft2,
+calculated,calc.percent_savings.weighted.utility_bills.electricity_bill_min,calc.percent_savings.weighted.utility_bills.electricity_bill_min,FALSE,FALSE,float,percent,percent,Percent savings of weighted electricity bill for the minimum applicable rate bill for the model
+calculated,calc.percent_savings.weighted.utility_bills.electricity_bill_max,calc.percent_savings.weighted.utility_bills.electricity_bill_max,FALSE,FALSE,float,percent,percent,Percent savings of weighted electricity bill for the maximum applicable rate bill for the model
+calculated,calc.percent_savings.weighted.utility_bills.electricity_bill_median_low,calc.percent_savings.weighted.utility_bills.electricity_bill_median_low,FALSE,FALSE,float,percent,percent,Percent savings of weighted electricity bill for the median (or lower middle) applicable rate bill for the model
+calculated,calc.percent_savings.weighted.utility_bills.electricity_bill_median_high,calc.percent_savings.weighted.utility_bills.electricity_bill_median_high,FALSE,FALSE,float,percent,percent,Percent savings of weighted electricity bill for the median (or upper middle) applicable rate bill for the model
+calculated,calc.percent_savings.weighted.utility_bills.electricity_bill_mean,calc.percent_savings.weighted.utility_bills.electricity_bill_mean,TRUE,FALSE,float,percent,percent,Percent savings of weighted electricity bill for the mean applicable rate bill for the model
+calculated,calc.percent_savings.weighted.utility_bills.electricity_bill_state_average,calc.percent_savings.weighted.utility_bills.electricity_bill_state_average,FALSE,FALSE,float,percent,percent,Percent savings of weighted electricity bill for the state average electricity rate bill for the model
+calculated,calc.percent_savings.weighted.utility_bills.natural_gas_bill_state_average,calc.percent_savings.weighted.utility_bills.natural_gas_bill_state_average,TRUE,FALSE,float,percent,percent,Percent savings of weighted electricity bill for the state average natural gas rate bill for the model
+calculated,calc.percent_savings.weighted.utility_bills.propane_bill_state_average,calc.percent_savings.weighted.utility_bills.propane_bill_state_average,TRUE,FALSE,float,percent,percent,Percent savings of weighted electricity bill for the state average propane rate bill for the model
+calculated,calc.percent_savings.weighted.utility_bills.fuel_oil_bill_state_average,calc.percent_savings.weighted.utility_bills.fuel_oil_bill_state_average,TRUE,FALSE,float,percent,percent,Percent savings of weighted electricity bill for the state average fuel oil rate bill for the model
+calculated,calc.percent_savings.utility_bills.electricity_bill_min_intensity,calc.percent_savings.utility_bills.electricity_bill_min_intensity,FALSE,FALSE,float,percent,percent,Percent savings of weighted electricity bill intensity for the minimum applicable rate bill for the model
+calculated,calc.percent_savings.utility_bills.electricity_bill_max_intensity,calc.percent_savings.utility_bills.electricity_bill_max_intensity,FALSE,FALSE,float,percent,percent,Percent savings of weighted electricity bill intensity for the maximum applicable rate bill for the model
+calculated,calc.percent_savings.utility_bills.electricity_bill_median_low_intensity,calc.percent_savings.utility_bills.electricity_bill_median_low_intensity,FALSE,FALSE,float,percent,percent,Percent savings of weighted electricity bill intensity for the median (or lower middle) applicable rate bill for the model
+calculated,calc.percent_savings.utility_bills.electricity_bill_median_high_intensity,calc.percent_savings.utility_bills.electricity_bill_median_high_intensity,FALSE,FALSE,float,percent,percent,Percent savings of weighted electricity bill intensity for the median (or upper middle) applicable rate bill for the model
+calculated,calc.percent_savings.utility_bills.electricity_bill_mean_intensity,calc.percent_savings.utility_bills.electricity_bill_mean_intensity,TRUE,FALSE,float,percent,percent,Percent savings of weighted electricity bill intensity for the mean applicable rate bill for the model
+calculated,calc.percent_savings.utility_bills.electricity_bill_state_average_intensity,calc.percent_savings.utility_bills.electricity_bill_state_average_intensity,FALSE,FALSE,float,percent,percent,Percent savings of weighted electricity bill intensity for the state average electricity rate bill for the model
+calculated,calc.percent_savings.utility_bills.natural_gas_bill_state_average_intensity,calc.percent_savings.utility_bills.natural_gas_bill_state_average_intensity,TRUE,FALSE,float,percent,percent,Percent savings of weighted electricity bill intensity for the state average natural gas rate bill for the model
+calculated,calc.percent_savings.utility_bills.propane_bill_state_average_intensity,calc.percent_savings.utility_bills.propane_bill_state_average_intensity,TRUE,FALSE,float,percent,percent,Percent savings of weighted electricity bill intensity for the state average propane rate bill for the model
+calculated,calc.percent_savings.utility_bills.fuel_oil_bill_state_average_intensity,calc.percent_savings.utility_bills.fuel_oil_bill_state_average_intensity,TRUE,FALSE,float,percent,percent,Percent savings of weighted electricity bill intensity for the state average fuel oil rate bill for the model
 calculated,in.as_simulated_census_division_name,in.as_simulated_census_division_name,TRUE,FALSE,string,,,Full name of state where the model was simulated
 calculated,in.as_simulated_nhgis_county_gisjoin,in.as_simulated_nhgis_county_gisjoin,TRUE,FALSE,string,,,"County identifier where the model was simulated, according to format of https://www.nhgis.org/geographic-crosswalks#details"
 calculated,in.as_simulated_nhgis_tract_gisjoin,in.as_simulated_nhgis_tract_gisjoin,TRUE,FALSE,string,,,"Census tract identifier where the model was simulated, according to format of https://www.nhgis.org/geographic-crosswalks#details"
