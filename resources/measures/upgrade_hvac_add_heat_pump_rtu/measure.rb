@@ -1195,24 +1195,25 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
     # Get holiday schedule and append to end of values array
     day_schedule_holiday = nil
-    schedule_ruleset.to_ScheduleRuleset.get.scheduleRules.each do |week_rule|
+    #schedule_ruleset.to_ScheduleRuleset.get.scheduleRules.each do |week_rule|
       # If a holiday day type is defined, then store the schedule object for the first occurrence
-      # For now this is not implemented into the 8760 array
       # if week_rule.applyHoliday
-      #  day_schedule_holiday = week_rule.daySchedule
-      #  break
+       # day_schedule_holiday = week_rule.daySchedule
+       # break
       # end
-    end
-    if day_schedule_holiday.nil?
-      day_schedule_holiday = schedule_ruleset.to_ScheduleRuleset.get.defaultDaySchedule
-    end
+    # end
+
     # Currently holidaySchedule is not working in SDK in ScheduleRuleset object
     # TODO: enable the following lines when holidaySchedule is available
-    # if !schedule_ruleset.isHolidayScheduleDefaulted
-    #   day_schedule = schedule_ruleset.to_ScheduleRuleset.get.holidaySchedule
-    # else
-    #  day_schedule = schedule_ruleset.to_ScheduleRuleset.get.defaultSchedule
-    # end
+    if !schedule_ruleset.isHolidayScheduleDefaulted
+      day_schedule = schedule_ruleset.to_ScheduleRuleset.get.holidaySchedule
+    else
+     day_schedule = schedule_ruleset.to_ScheduleRuleset.get.defaultDaySchedule ##AA updated to "default day schedule"
+    end
+	
+	if day_schedule_holiday.nil? ##AA modified order of this chunk after commenting back in the above 
+      day_schedule_holiday = schedule_ruleset.to_ScheduleRuleset.get.defaultDaySchedule
+    end
 
     # Make new array of day schedules for year, and add holiday day schedule to end
     day_sched_array = []
@@ -1471,6 +1472,21 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # Last day in values array is the holiday schedule
       # @todo add holiday schedule when implemented in OpenStudio SDK
     end
+	
+	#Handle holiday 
+	# Create the schedules for the holiday ##AA added 
+    holiday_sch = OpenStudio::Model::ScheduleDay.new(model)
+	hr = (values.length() - 24) 
+    holiday_sch.setName("#{sch_name} Holiday")
+    (0..23).each do |ihr|
+      #hr_of_yr = ihr_max + ihr
+      #next if values[hr_of_yr] == values[hr_of_yr + 1]
+      holiday_sch.addValue(OpenStudio::Time.new(0, ihr + 1, 0, 0), values[hr])
+	  hr = hr + 1 
+    end
+	sch_ruleset.setHolidaySchedule(holiday_sch)
+	
+	## 
 
     # Need to handle design days
     # Find schedule with the most operating hours in a day,
@@ -2217,16 +2233,18 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 		     sch_zone_occ = OpenstudioStandards::ThermalZone.thermal_zones_get_occupancy_schedule(thermal_zones = [thermal_zone], occupied_percentage_threshold: 0.05) #schedule ruleset 
 			 sch_zone_occ_annual_profile = get_8760_values_from_schedule_ruleset(model, sch_zone_occ)
 			 htg_schedule_annual_profile = get_8760_values_from_schedule_ruleset(model, htg_schedule)
-			 runner.registerInfo("htg sched annual #{htg_schedule_annual_profile.first(10)}")
+			 #runner.registerInfo("htg sched annual #{htg_schedule_annual_profile.first(10)}")
 			 #adjust annual profile of heating shcedule # need to make sure dealing with DDs and holidays appropriately
 			 htg_schedule_annual_profile_updated = htg_schedule_annual_profile.map.with_index do |item, index|
 			     adjust_setpoint(item, index, sch_zone_occ_annual_profile, setback_value, tstat_profile_max)
 		     end 
-			 runner.registerInfo("orig profile #{htg_schedule_annual_profile.first(24)}")
-			 runner.registerInfo("updated profile #{htg_schedule_annual_profile_updated.first(24)}")
+			 #runner.registerInfo("orig profile #{htg_schedule_annual_profile.first(24)}")
+			 #runner.registerInfo("updated profile #{htg_schedule_annual_profile_updated.first(24)}")
 			 #convert back to a schedule: ruleset
 			 #get schedule type limits from previous schedule 
 			 htg_tstat_sch_limits =  OpenStudio::Model::ScheduleTypeLimits.new(model)
+			 htg_tstat_sch_limits.setUnitType("Temperature") 
+			 htg_tstat_sch_limits.setNumericType("Continuous")
 			 htg_sch_new = make_ruleset_sched_from_8760(model, htg_schedule_annual_profile_updated, "Heating Schedule with Modified Setpoints", htg_tstat_sch_limits)
 			 zone_thermostat.setHeatingSchedule(htg_sch_new) 
 			 

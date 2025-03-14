@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>add_heat_pump_rtu</name>
   <uid>f4567a68-27f2-4a15-ae91-ba0f35cd08c7</uid>
-  <version_id>4cf5bd5c-a940-4dc5-83d1-e17104a0bf06</version_id>
-  <version_modified>2024-10-29T14:28:52Z</version_modified>
+  <version_id>0a48aad3-ffb8-43bc-8f64-10d8d15f2bed</version_id>
+  <version_modified>2025-03-14T21:56:24Z</version_modified>
   <xml_checksum>5E2576E4</xml_checksum>
   <class_name>AddHeatPumpRtu</class_name>
   <display_name>add_heat_pump_rtu</display_name>
@@ -225,6 +225,14 @@
         </choice>
       </choices>
     </argument>
+    <argument>
+      <name>setback_value</name>
+      <display_name>Amount by which temperatures are set back during unoccupied periods in heating mode</display_name>
+      <type>Double</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>2</default_value>
+    </argument>
   </arguments>
   <outputs />
   <provenances />
@@ -269,7 +277,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>FD925C06</checksum>
+      <checksum>B93DC5B2</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -292,7 +300,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>4FEEEBF8</checksum>
+      <checksum>3518C78A</checksum>
     </file>
     <file>
       <filename>performance_map_CCHP_spec_2027.json</filename>
@@ -322,7 +330,7 @@
       <filename>measure_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>8F68BD89</checksum>
+      <checksum>E2A3BA36</checksum>
     </file>
   </files>
 </measure>

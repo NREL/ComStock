@@ -142,6 +142,15 @@ Upgrade roof insulation per AEDG recommendations.
 **Model Dependent:** false
 
 
+### Amount by which temperatures are set back during unoccupied periods in heating mode
+
+**Name:** setback_value,
+**Type:** Double,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+
 
 
 
