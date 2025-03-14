@@ -64,6 +64,8 @@ class PlottingMixin():
             pattern_dict = {
                 'Electricity': "",
                 'Natural Gas':"/",
+                'Propane': 'p',
+                'Fuel Oil No 2': '$',
                 'District Cooling':"x",
                 'District Heating':".",
                 'Other Fuel':'+'
@@ -85,6 +87,8 @@ class PlottingMixin():
                 'Fuel Type': [
                             'Electricity',
                             'Natural Gas',
+                            'Propane',
+                            'Fuel Oil No 2'
                             'District Cooling',
                             'District Heating',
                             'Other Fuel',
