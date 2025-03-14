@@ -488,7 +488,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Read the buildstock.csv to determine number of simulations expected
         buildstock = pl.read_csv(os.path.join(self.data_dir, self.buildstock_file_name), infer_schema_length=50000)
         buildstock = buildstock.rename({'Building': 'sample_building_id'})
-        
+
 
         # if "sample_building_id" not in buildstock:
 
@@ -532,9 +532,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 if 'applicable' in c:
                     logger.debug(f'For {c}: Nulls set to False in upgrade, and its type is {dt}')
                     #If the data type is something not String
-                    if dt in (pl.Null, pl.Boolean, 
+                    if dt in (pl.Null, pl.Boolean,
                               pl.Int8, pl.Int16, pl.Int32, pl.Int64,
-                              pl.UInt8, pl.UInt16, pl.UInt32, pl.UInt64, pl.Float32, pl.Float64): 
+                              pl.UInt8, pl.UInt16, pl.UInt32, pl.UInt64, pl.Float32, pl.Float64):
                         logger.debug(f'For {c}: Nulls set to False (Boolean) in baseline')
                         up_res = up_res.with_columns([pl.col(c).fill_null(pl.lit(False))])
                     elif dt in (pl.Utf8, pl.Categorical):
@@ -1298,9 +1298,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # HVAC columns
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_ELEC_ENDUSE).alias(self.ANN_ELEC_HVAC_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_GAS_ENDUSE).alias(self.ANN_GAS_HVAC_GROUP_KBTU))
+        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_PROPANE_ENDUSE).alias(self.ANN_PROPANE_HVAC_GROUP_KBTU))
+        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_FUELOIL_ENDUSE).alias(self.ANN_FUELOIL_HVAC_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_DISTHTG_ENDUSE).alias(self.ANN_DISTHTG_HVAC_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_DISTCLG_ENDUSE).alias(self.ANN_DISTCLG_HVAC_GROUP_KBTU))
-        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_OTHER_ENDUSE).alias(self.ANN_OTHER_HVAC_GROUP_KBTU))
 
         # Lighting column
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_LTG_ELEC_ENDUSE).alias(self.ANN_ELEC_LTG_GROUP_KBTU))
@@ -1308,8 +1309,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Interior equipment columns
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_INTEQUIP_ELEC_ENDUSE).alias(self.ANN_ELEC_INTEQUIP_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_INTEQUIP_GAS_ENDUSE).alias(self.ANN_GAS_INTEQUIP_GROUP_KBTU))
+        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_INTEQUIP_PROPANE_ENDUSE).alias(self.ANN_PROPANE_INTEQUIP_GROUP_KBTU))
+        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_INTEQUIP_FUELOIL_ENDUSE).alias(self.ANN_FUELOIL_INTEQUIP_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_INTEQUIP_DISTHTG_ENDUSE).alias(self.ANN_DISTHTG_INTEQUIP_GROUP_KBTU))
-        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_INTEQUIP_OTHER_ENDUSE).alias(self.ANN_OTHER_INTEQUIP_GROUP_KBTU))
 
         # Refrigeration columns
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_REFRIG_ELEC_ENDUSE).alias(self.ANN_ELEC_REFRIG_GROUP_KBTU))
@@ -1317,25 +1319,29 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # SWH columns
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_SWH_ELEC_ENDUSE).alias(self.ANN_ELEC_SWH_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_SWH_GAS_ENDUSE).alias(self.ANN_GAS_SWH_GROUP_KBTU))
+        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_SWH_PROPANE_ENDUSE).alias(self.ANN_PROPANE_SWH_GROUP_KBTU))
+        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_SWH_FUELOIL_ENDUSE).alias(self.ANN_FUELOIL_SWH_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_SWH_DISTHTG_ENDUSE).alias(self.ANN_DISTHTG_SWH_GROUP_KBTU))
-        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_SWH_OTHER_ENDUSE).alias(self.ANN_OTHER_SWH_GROUP_KBTU))
 
         col_names = [
             self.ANN_ELEC_HVAC_GROUP_KBTU,
             self.ANN_GAS_HVAC_GROUP_KBTU,
+            self.ANN_PROPANE_HVAC_GROUP_KBTU,
+            self.ANN_FUELOIL_HVAC_GROUP_KBTU,
             self.ANN_DISTHTG_HVAC_GROUP_KBTU,
             self.ANN_DISTCLG_HVAC_GROUP_KBTU,
-            self.ANN_OTHER_HVAC_GROUP_KBTU,
             self.ANN_ELEC_LTG_GROUP_KBTU,
             self.ANN_ELEC_INTEQUIP_GROUP_KBTU,
             self.ANN_DISTHTG_INTEQUIP_GROUP_KBTU,
-            self.ANN_OTHER_INTEQUIP_GROUP_KBTU,
             self.ANN_GAS_INTEQUIP_GROUP_KBTU,
+            self.ANN_PROPANE_INTEQUIP_GROUP_KBTU,
+            self.ANN_FUELOIL_INTEQUIP_GROUP_KBTU,
             self.ANN_ELEC_REFRIG_GROUP_KBTU,
             self.ANN_ELEC_SWH_GROUP_KBTU,
             self.ANN_GAS_SWH_GROUP_KBTU,
-            self.ANN_DISTHTG_SWH_GROUP_KBTU,
-            self.ANN_OTHER_SWH_GROUP_KBTU
+            self.ANN_PROPANE_SWH_GROUP_KBTU,
+            self.ANN_FUELOIL_SWH_GROUP_KBTU,
+            self.ANN_DISTHTG_SWH_GROUP_KBTU
         ]
 
         self.convert_units(col_names)
@@ -2590,7 +2596,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.BLDG_ID, self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.SAMPLING_REGION, self.CZ_ASHRAE,
                 self.BLDG_TYPE, self.HVAC_SYS, self.SH_FUEL, self.SIZE_BIN, self.FLR_AREA, self.TOT_EUI, self.CEN_DIV
             ))
-            
+
             # raise Exception(f"columns in self.data are {list(self.data.columns)} and we are looking for {list([self.BLDG_ID, self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.SAMPLING_REGION, self.CZ_ASHRAE, self.BLDG_TYPE, self.HVAC_SYS, self.SH_FUEL, self.SIZE_BIN, self.FLR_AREA, self.TOT_EUI, self.CEN_DIV])}")
 
             # If anything in this selection is null we're smoked so check twice and fail never
