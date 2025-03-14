@@ -133,10 +133,20 @@ class UpgradeHvacChillerTest < Minitest::Test
     curve_summary_b = results_b[6]
 
     # get pump specs before measure
-    # pumps_const_spd = model.getPumpConstantSpeeds
+    pumps_const_spd = model.getPumpConstantSpeeds
+    pump_specs_cst_spd_before = UpgradeHvacChiller.pump_specifications([], pumps_const_spd, std)
+    pump_rated_flow_total_c_before = pump_specs_cst_spd_before[1]
+    pump_motor_eff_weighted_average_c_before = pump_specs_cst_spd_before[2]
+    pump_motor_bhp_weighted_average_c_before = pump_specs_cst_spd_before[3]
     pumps_var_spd = model.getPumpVariableSpeeds
-    # _, pump_rated_flow_total_c, _, _, = UpgradeHvacChiller.pump_specifications(applicable_pumps, pumps_const_spd, std)
-    _, _, _, _, coeff1_b, coeff2_b, coeff3_b, coeff4_b = UpgradeHvacChiller.pump_specifications([], pumps_var_spd, std)
+    pump_specs_var_spd_before = UpgradeHvacChiller.pump_specifications([], pumps_var_spd, std)
+    pump_rated_flow_total_v_before = pump_specs_var_spd_before[1]
+    pump_motor_eff_weighted_average_v_before = pump_specs_var_spd_before[2]
+    pump_motor_bhp_weighted_average_v_before = pump_specs_var_spd_before[3]
+    pump_var_part_load_curve_coeff1_weighted_avg_before = pump_specs_var_spd_before[4]
+    pump_var_part_load_curve_coeff2_weighted_avg_before = pump_specs_var_spd_before[5]
+    pump_var_part_load_curve_coeff3_weighted_avg_before = pump_specs_var_spd_before[6]
+    pump_var_part_load_curve_coeff4_weighted_avg_before = pump_specs_var_spd_before[7]
 
     # get control specs before measure
     fraction_chw_oat_reset_enabled_b, fraction_cw_oat_reset_enabled_b = UpgradeHvacChiller.control_specifications(model)
@@ -157,10 +167,20 @@ class UpgradeHvacChillerTest < Minitest::Test
     curve_summary_a = results_a[6]
 
     # get pump specs after measure
-    # pumps_const_spd = model.getPumpConstantSpeeds
+    pumps_const_spd = model.getPumpConstantSpeeds
+    pump_specs_cst_spd_after = UpgradeHvacChiller.pump_specifications([], pumps_const_spd, std)
+    pump_rated_flow_total_c_after = pump_specs_cst_spd_after[1]
+    pump_motor_eff_weighted_average_c_after = pump_specs_cst_spd_after[2]
+    pump_motor_bhp_weighted_average_c_after = pump_specs_cst_spd_after[3]
     pumps_var_spd = model.getPumpVariableSpeeds
-    # _, pump_rated_flow_total_c, _, _, = UpgradeHvacChiller.pump_specifications(applicable_pumps, pumps_const_spd, std)
-    _, _, _, _, coeff1_a, coeff2_a, coeff3_a, coeff4_a = UpgradeHvacChiller.pump_specifications([], pumps_var_spd, std)
+    pump_specs_var_spd_after = UpgradeHvacChiller.pump_specifications([], pumps_var_spd, std)
+    pump_rated_flow_total_v_after = pump_specs_var_spd_after[1]
+    pump_motor_eff_weighted_average_v_after = pump_specs_var_spd_after[2]
+    pump_motor_bhp_weighted_average_v_after = pump_specs_var_spd_after[3]
+    pump_var_part_load_curve_coeff1_weighted_avg_after = pump_specs_var_spd_after[4]
+    pump_var_part_load_curve_coeff2_weighted_avg_after = pump_specs_var_spd_after[5]
+    pump_var_part_load_curve_coeff3_weighted_avg_after = pump_specs_var_spd_after[6]
+    pump_var_part_load_curve_coeff4_weighted_avg_after = pump_specs_var_spd_after[7]
 
     # get control specs after measure
     fraction_chw_oat_reset_enabled_a, fraction_cw_oat_reset_enabled_a = UpgradeHvacChiller.control_specifications(model)
@@ -182,20 +202,26 @@ class UpgradeHvacChillerTest < Minitest::Test
     puts("### DEBUGGING: counts_chillers_wcc_b = #{counts_chillers_wcc_b} | counts_chillers_wcc_a = #{counts_chillers_wcc_a}")
     puts("### DEBUGGING: capacity_total_w_wcc_b = #{capacity_total_w_wcc_b} | capacity_total_w_wcc_a = #{capacity_total_w_wcc_a}")
     puts("### DEBUGGING: cop_wcc_b = #{cop_wcc_b} | cop_wcc_a = #{cop_wcc_a}")
-    puts("### DEBUGGING: coeff1_b = #{coeff1_b} | coeff1_a = #{coeff1_a}")
-    puts("### DEBUGGING: coeff2_b = #{coeff2_b} | coeff2_a = #{coeff2_a}")
-    puts("### DEBUGGING: coeff3_b = #{coeff3_b} | coeff3_a = #{coeff3_a}")
-    puts("### DEBUGGING: coeff4_b = #{coeff4_b} | coeff4_a = #{coeff4_a}")
+    puts("### DEBUGGING: pump_motor_eff_weighted_average_c_before = #{pump_motor_eff_weighted_average_c_before} | pump_motor_eff_weighted_average_c_after = #{pump_motor_eff_weighted_average_c_after}")
+    puts("### DEBUGGING: pump_motor_bhp_weighted_average_c_before = #{pump_motor_bhp_weighted_average_c_before} | pump_motor_bhp_weighted_average_c_after = #{pump_motor_bhp_weighted_average_c_after}")
+    puts("### DEBUGGING: pump_motor_eff_weighted_average_v_before = #{pump_motor_eff_weighted_average_v_before} | pump_motor_eff_weighted_average_v_after = #{pump_motor_eff_weighted_average_v_after}")
+    puts("### DEBUGGING: pump_motor_bhp_weighted_average_v_before = #{pump_motor_bhp_weighted_average_v_before} | pump_motor_bhp_weighted_average_v_after = #{pump_motor_bhp_weighted_average_v_after}")
+    puts("### DEBUGGING: pump part load curve coeffi 1 = #{pump_var_part_load_curve_coeff1_weighted_avg_before} | coeff1_a = #{pump_var_part_load_curve_coeff1_weighted_avg_after}")
+    puts("### DEBUGGING: pump part load curve coeffi 2 = #{pump_var_part_load_curve_coeff2_weighted_avg_before} | coeff2_a = #{pump_var_part_load_curve_coeff2_weighted_avg_after}")
+    puts("### DEBUGGING: pump part load curve coeffi 3 = #{pump_var_part_load_curve_coeff3_weighted_avg_before} | coeff3_a = #{pump_var_part_load_curve_coeff3_weighted_avg_after}")
+    puts("### DEBUGGING: pump part load curve coeffi 4 = #{pump_var_part_load_curve_coeff4_weighted_avg_before} | coeff4_a = #{pump_var_part_load_curve_coeff4_weighted_avg_after}")
     coefficient_set_different = false
-    if (coeff1_b != coeff1_a) || (coeff2_b != coeff2_a) || (coeff3_b != coeff3_a) || (coeff4_b != coeff4_a)
+    if (pump_var_part_load_curve_coeff1_weighted_avg_before != pump_var_part_load_curve_coeff1_weighted_avg_after) ||
+       (pump_var_part_load_curve_coeff2_weighted_avg_before != pump_var_part_load_curve_coeff2_weighted_avg_after) ||
+       (pump_var_part_load_curve_coeff3_weighted_avg_before != pump_var_part_load_curve_coeff3_weighted_avg_after) ||
+       (pump_var_part_load_curve_coeff4_weighted_avg_before != pump_var_part_load_curve_coeff4_weighted_avg_after)
       coefficient_set_different = true
     end
+
     assert_equal(counts_chillers_acc_b, counts_chillers_acc_a)
     assert_equal(capacity_total_w_acc_b, capacity_total_w_acc_a)
-    unless cop_acc_b == 0 # COP equal to zero means case when there is no ACC
-      unless cop_acc_b > 5.32 # this if statement was added because of this: https://github.com/NREL/openstudio-standards/issues/1904
-        refute_equal(cop_acc_b, cop_acc_a)
-      end
+    if cop_acc_b != 0 && cop_acc_b <= 5.32 # this if statement was added because of this: https://github.com/NREL/openstudio-standards/issues/1904
+      refute_equal(cop_acc_b, cop_acc_a)
     end
     assert_equal(counts_chillers_wcc_b, counts_chillers_wcc_a)
     assert_equal(capacity_total_w_wcc_b, capacity_total_w_wcc_a)
