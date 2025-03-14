@@ -218,6 +218,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert_equal('roof', arguments[10].name)
     assert_equal('sizing_run', arguments[11].name)
     assert_equal('debug_verbose', arguments[12].name)
+	assert_equal('setback_value', arguments[13].name)
   end
 
   def calc_cfm_per_ton_singlespdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
