@@ -52,30 +52,6 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     return args
   end
 
-  # check if certain hvac type is applicable for chiller upgrade
-  def applicable_hvac_type(hvac_system_type)
-    # applicable hvac types for chiller upgrade
-    list_of_applicable_hvac_types = [
-      'DOAS with fan coil air-cooled chiller with baseboard electric',
-      'DOAS with fan coil air-cooled chiller with boiler',
-      'DOAS with fan coil air-cooled chiller with district hot water',
-      'DOAS with fan coil chiller with baseboard electric',
-      'VAV air-cooled chiller with PFP boxes',
-      'VAV air-cooled chiller with district hot water reheat',
-      'VAV air-cooled chiller with gas boiler reheat',
-      'DOAS with fan coil chiller with baseboard electric',
-      'DOAS with fan coil chiller with boiler',
-      'DOAS with fan coil chiller with district hot water',
-      'DOAS with fan coil chiller with baseboard electric',
-      'VAV chiller with PFP boxes',
-      'VAV chiller with district hot water reheat',
-      'VAV chiller with gas boiler reheat'
-    ]
-
-    # return result
-    return true if list_of_applicable_hvac_types.include?(hvac_system_type)
-  end
-
   # get chiller specifications
   def self.chiller_specifications(chillers)
     # initialize variables
