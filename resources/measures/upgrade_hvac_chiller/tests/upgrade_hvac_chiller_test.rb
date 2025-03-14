@@ -17,10 +17,11 @@ class UpgradeHvacChillerTest < Minitest::Test
 
     # get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(3, arguments.size)
-    assert_equal('chw_oat_reset', arguments[0].name)
-    assert_equal('cw_oat_reset', arguments[1].name)
-    assert_equal('debug_verbose', arguments[2].name)
+    assert_equal(4, arguments.size)
+    assert_equal('upgrade_pump', arguments[0].name)
+    assert_equal('chw_oat_reset', arguments[1].name)
+    assert_equal('cw_oat_reset', arguments[2].name)
+    assert_equal('debug_verbose', arguments[3].name)
   end
 
   def test_models
@@ -192,7 +193,9 @@ class UpgradeHvacChillerTest < Minitest::Test
     assert_equal(counts_chillers_acc_b, counts_chillers_acc_a)
     assert_equal(capacity_total_w_acc_b, capacity_total_w_acc_a)
     unless cop_acc_b == 0 # COP equal to zero means case when there is no ACC
-      refute_equal(cop_acc_b, cop_acc_a)
+      unless cop_acc_b > 5.32 # this if statement was added because of this: https://github.com/NREL/openstudio-standards/issues/1904
+        refute_equal(cop_acc_b, cop_acc_a)
+      end
     end
     assert_equal(counts_chillers_wcc_b, counts_chillers_wcc_a)
     assert_equal(capacity_total_w_wcc_b, capacity_total_w_wcc_a)
