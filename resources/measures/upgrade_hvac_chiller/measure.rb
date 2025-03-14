@@ -25,6 +25,12 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
   def arguments(model)
     args = OpenStudio::Measure::OSArgumentVector.new
 
+    # upgrade pumps
+    upgrade_pump = OpenStudio::Measure::OSArgument.makeBoolArgument('upgrade_pump', true)
+    upgrade_pump.setDisplayName('Update pump specifications based on the latest 90.1 standards?')
+    upgrade_pump.setDefaultValue(true)
+    args << upgrade_pump
+
     # add outdoor air temperature reset for chilled water supply temperature
     chw_oat_reset = OpenStudio::Measure::OSArgument.makeBoolArgument('chw_oat_reset', true)
     chw_oat_reset.setDisplayName('Add outdoor air temperature reset for chilled water supply temperature?')
@@ -698,6 +704,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     end
 
     # read input arguments
+    upgrade_pump = runner.getBoolArgumentValue('upgrade_pump', user_arguments)
     chw_oat_reset = runner.getBoolArgumentValue('chw_oat_reset', user_arguments)
     cw_oat_reset = runner.getBoolArgumentValue('cw_oat_reset', user_arguments)
     debug_verbose = runner.getBoolArgumentValue('debug_verbose', user_arguments)
@@ -870,11 +877,21 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     end
 
     # ------------------------------------------------
-    # replace variable pump based on ASHRAE 90.1-2019
+    # pump upgrades
     # ------------------------------------------------
-    applicable_pumps.each do |pump|
-      if pump.to_PumpVariableSpeed.is_initialized
-        pump_variable_speed_control_type(runner, model, pump, debug_verbose)
+    if upgrade_pump
+      applicable_pumps.each do |pump|
+        # update pump efficiencies
+        model.getPumpConstantSpeeds.sort.each { |obj| std.pump_apply_standard_minimum_motor_efficiency(obj) }
+        model.getPumpVariableSpeeds.sort.each { |obj| std.pump_apply_standard_minimum_motor_efficiency(obj) }
+        model.getHeaderedPumpsConstantSpeeds.sort.each { |obj| std.pump_apply_standard_minimum_motor_efficiency(obj) }
+        model.getHeaderedPumpsVariableSpeeds.sort.each { |obj| std.pump_apply_standard_minimum_motor_efficiency(obj) }
+        
+        # update part load performance (for variable speed pumps)
+        # this didn't work when using the same method directly from the standards, thus, hard-coded in the measure
+        if pump.to_PumpVariableSpeed.is_initialized
+          pump_variable_speed_control_type(runner, model, pump, debug_verbose)
+        end
       end
     end
 
