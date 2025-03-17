@@ -29,7 +29,7 @@ class process_ResStock_2024_2():
         self.data=self.data.head(testing_size)
     
     def load_and_process_column_plan(self, col_plan_folder, col_plan_name):
-    #assign a plan for each column in the dataset, from a premade csv (required)
+    #assign a plan for each column in the dataset, from a premade csv (required) #TODO: would reccomend stating what this "premade csv" is
         plan_file_path = os.path.join(col_plan_folder, col_plan_name)
         self.col_plan = pd.read_csv(plan_file_path, engine = "pyarrow")
         #flag columns in the data that aren't in the column plan
@@ -330,6 +330,7 @@ class process_ResStock_2024_2():
         out_cats = self.col_plan.drop(self.col_plan[["col_type", "plan"]], axis = 1, inplace = False)
         self.data_long = self.data_long.merge(out_cats, left_on = 'Output', right_on = "column", how = 'left')
 
+    #TODO: Can you explain the reason behind transforming the data many times? 
     def wide_fields_also_long(self, wide_cols_also_long, wide_cols_also_long_names):
         merge_data_cols = ["bldg_id"] + wide_cols_also_long
         self.data_long = self.data_long.merge(self.data[merge_data_cols], on = "bldg_id", how = "left")
@@ -358,6 +359,7 @@ class process_ResStock_2024_2():
             return(False)
     
     def get_mp_and_ssn(self, row):
+        #TODO: I am wondering how to best comsolidate these below. some info variations but a lot if things are repeated and could be condense
         #returns the measure package code and "sum spec name" for each row of modeled data, to allow for matching with the correct ICF data inputs
         if row["upgrade"] == 1:
             mp = 'MP1'
