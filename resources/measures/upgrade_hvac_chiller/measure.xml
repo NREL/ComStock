@@ -3,14 +3,32 @@
   <schema_version>3.1</schema_version>
   <name>upgrade_hvac_chiller</name>
   <uid>54c1432f-b483-4700-95fd-a11c570a5391</uid>
-  <version_id>08c185f0-a837-46b8-9f12-fd68088f15be</version_id>
-  <version_modified>2025-03-05T16:32:35Z</version_modified>
+  <version_id>0ac1fd50-1519-4889-ab11-3b740c4b3d90</version_id>
+  <version_modified>2025-03-17T20:10:43Z</version_modified>
   <xml_checksum>7B6EEA4F</xml_checksum>
   <class_name>UpgradeHvacChiller</class_name>
   <display_name>upgrade_hvac_chiller</display_name>
   <description>tbd</description>
   <modeler_description>tbd</modeler_description>
   <arguments>
+    <argument>
+      <name>upgrade_pump</name>
+      <display_name>Update pump specifications based on the latest 90.1 standards?</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>true</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
     <argument>
       <name>chw_oat_reset</name>
       <display_name>Add outdoor air temperature reset for chilled water supply temperature?</display_name>
@@ -129,7 +147,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>805D0218</checksum>
+      <checksum>78FC88EF</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -152,49 +170,49 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>F1876DB9</checksum>
+      <checksum>CE9B460E</checksum>
     </file>
     <file>
       <filename>100ton_centrifugal_variablespd_wcc/results.idf</filename>
       <filetype>idf</filetype>
       <usage_type>resource</usage_type>
-      <checksum>EB468ED6</checksum>
+      <checksum>D1E3BE23</checksum>
     </file>
     <file>
       <filename>100ton_centrifugal_variablespd_wcc/results.json</filename>
       <filetype>json</filetype>
       <usage_type>resource</usage_type>
-      <checksum>B57762AB</checksum>
+      <checksum>28814290</checksum>
     </file>
     <file>
       <filename>1500ton_centrifugal_variablespd_wcc/results.idf</filename>
       <filetype>idf</filetype>
       <usage_type>resource</usage_type>
-      <checksum>0D44E5A9</checksum>
+      <checksum>D3593CEA</checksum>
     </file>
     <file>
       <filename>1500ton_centrifugal_variablespd_wcc/results.json</filename>
       <filetype>json</filetype>
       <usage_type>resource</usage_type>
-      <checksum>946B4AE8</checksum>
+      <checksum>5E69381A</checksum>
     </file>
     <file>
       <filename>150ton_screw_variablespd_acc/results.idf</filename>
       <filetype>idf</filetype>
       <usage_type>resource</usage_type>
-      <checksum>28FDD15F</checksum>
+      <checksum>C357E4F3</checksum>
     </file>
     <file>
       <filename>150ton_screw_variablespd_acc/results.json</filename>
       <filetype>json</filetype>
       <usage_type>resource</usage_type>
-      <checksum>93AA9CA1</checksum>
+      <checksum>3F1118EB</checksum>
     </file>
     <file>
       <filename>upgrade_hvac_chiller_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>1BABA37A</checksum>
+      <checksum>A25264D4</checksum>
     </file>
   </files>
 </measure>
