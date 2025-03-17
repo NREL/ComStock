@@ -8,70 +8,51 @@ require 'openstudio-standards'
 require_relative '../measure'
 
 class UpgradeHvacChillerTest < Minitest::Test
-  def test_number_of_arguments_and_argument_names
-    # create an instance of the measure
-    measure = UpgradeHvacChiller.new
-
-    # make an empty model
-    model = OpenStudio::Model::Model.new
-
-    # get arguments and test that they are what we are expecting
-    arguments = measure.arguments(model)
-    assert_equal(4, arguments.size)
-    assert_equal('upgrade_pump', arguments[0].name)
-    assert_equal('chw_oat_reset', arguments[1].name)
-    assert_equal('cw_oat_reset', arguments[2].name)
-    assert_equal('debug_verbose', arguments[3].name)
+  # supporting method: return file paths to test models in test directory
+  def models_for_tests
+    paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/models/*.osm'))
+    paths = paths.map { |path| File.expand_path(path) }
+    return paths
   end
 
-  def test_models
-    # test models
-    test_sets = []
-    # test: 380_doas_with_fan_coil_air_cooled_chiller_with_boiler
-    test_sets << {
-      model: '380_doas_with_fan_coil_air_cooled_chiller_with_boiler',
-      weather: 'USA_NY_New.York-Central.Park.725033_TMY3', # weather file does not matter with current tests
-      result: 'Success'
-    }
-    # test: 380_doas_with_fan_coil_chiller_with_boiler
-    test_sets << {
-      model: '380_doas_with_fan_coil_chiller_with_boiler',
-      weather: 'USA_NY_New.York-Central.Park.725033_TMY3', # weather file does not matter with current tests
-      result: 'Success'
-    }
-    # test: 380_vav_air_cooled_chiller_with_gas_boiler_reheat
-    test_sets << {
-      model: '380_vav_air_cooled_chiller_with_gas_boiler_reheat',
-      weather: 'USA_NY_New.York-Central.Park.725033_TMY3', # weather file does not matter with current tests
-      result: 'Success'
-    }
-    # test: 380_vav_chiller_with_gas_boiler_reheat
-    test_sets << {
-      model: '380_vav_chiller_with_gas_boiler_reheat',
-      weather: 'USA_NY_New.York-Central.Park.725033_TMY3', # weather file does not matter with current tests
-      result: 'Success'
-    }
-
-    test_sets.each do |set|
-      instance_test_name = set[:model]
-      puts "instance test name: #{instance_test_name}"
-      osm_path = models_for_tests.select { |x| set[:model] == File.basename(x, '.osm') }
-      epw_path = epws_for_tests.select { |x| set[:weather] == File.basename(x, '.epw') }
-      assert(!osm_path.empty?)
-      assert(!epw_path.empty?)
-      osm_path = osm_path[0]
-      epw_path = epw_path[0]
-
-      # apply measure to model
-      apply_model(osm_path, instance_test_name)
-    end
+  # supporting method: return file paths to epw files in test directory
+  def epws_for_tests
+    paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/weather/*.epw'))
+    paths = paths.map { |path| File.expand_path(path) }
+    return paths
   end
 
-  # apply measure to model and test,
-  # measure application result
-  # initial/final condition check
-  # variable speed pump coefficient check
-  def apply_model(path, instance_test_name)
+  # supporting method: load model from osm path
+  def load_model(osm_path)
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    model = translator.loadModel(OpenStudio::Path.new(osm_path))
+    assert(!model.empty?)
+    model.get
+  end
+
+  # supporting method: return model output path
+  def model_output_path(test_name)
+    "#{run_dir(test_name)}/#{test_name}.osm"
+  end
+
+  # supporting method: return run path
+  def run_dir(test_name)
+    # always generate test output in specially named 'output' directory so result files are not made part of the measure
+    "#{File.dirname(__FILE__)}/output/#{test_name}"
+  end
+
+  # supporting method: return results html path
+  def report_path(test_name)
+    "#{run_dir(test_name)}/reports/eplustbl.html"
+  end
+
+  # supporting method: get sql file path
+  def sql_path(test_name)
+    "#{run_dir(test_name)}/run/eplusout.sql"
+  end
+
+  # supporting method: apply measure to model and test,
+  def apply_and_test_model(path, instance_test_name)
     # build standard
     template = 'ComStock 90.1-2019'
     std = Standard.build(template)
@@ -258,17 +239,313 @@ class UpgradeHvacChillerTest < Minitest::Test
     # model.save(output_file_path, true)
   end
 
-  # return file paths to test models in test directory
-  def models_for_tests
-    paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/models/*.osm'))
-    paths = paths.map { |path| File.expand_path(path) }
-    return paths
+  # supporting method: hard-size model
+  def _mimic_hardsize_model(model, test_dir)
+    standard = Standard.build('ComStock DOE Ref Pre-1980')
+
+    # Run a sizing run to determine equipment capacities and flow rates
+    if standard.model_run_sizing_run(model, test_dir.to_s) == false
+      puts('Sizing run for Hardsize model failed, cannot hard-size model.')
+      return false
+    end
+
+    # APPLY
+    model.applySizingValues
+
+    # TODO: remove once this functionality is added to the OpenStudio C++ for hard sizing UnitarySystems
+    model.getAirLoopHVACUnitarySystems.each do |unitary|
+      if model.version < OpenStudio::VersionString.new('3.7.0')
+        unitary.setSupplyAirFlowRateMethodDuringCoolingOperation('SupplyAirFlowRate')
+        unitary.setSupplyAirFlowRateMethodDuringHeatingOperation('SupplyAirFlowRate')
+      else
+        # unitary.applySizingValues
+      end
+    end
+    # TODO: remove once this functionality is added to the OpenStudio C++ for hard sizing Sizing:System
+    model.getSizingSystems.each do |sizing_system|
+      next if sizing_system.isDesignOutdoorAirFlowRateAutosized
+
+      sizing_system.setSystemOutdoorAirMethod('ZoneSum')
+    end
+
+    return model
   end
 
-  # return file paths to epw files in test directory
-  def epws_for_tests
-    paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/weather/*.epw'))
-    paths = paths.map { |path| File.expand_path(path) }
-    return paths
+  # supporting method: set weather, apply/not-apply measure, run/not-run simulation
+  def set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false, model: nil, apply: true, expected_results: 'Success')
+    assert(File.exist?(osm_path))
+    assert(File.exist?(epw_path))
+    ddy_path = "#{epw_path.gsub('.epw', '')}.ddy"
+
+    # create run directory if it does not exist
+    FileUtils.mkdir_p(run_dir(test_name)) unless File.exist?(run_dir(test_name))
+    assert(File.exist?(run_dir(test_name)))
+
+    # change into run directory for tests
+    start_dir = Dir.pwd
+    Dir.chdir run_dir(test_name)
+
+    # remove prior runs if they exist
+    FileUtils.rm(model_output_path(test_name)) if File.exist?(model_output_path(test_name))
+    FileUtils.rm(report_path(test_name)) if File.exist?(report_path(test_name))
+
+    # copy the osm and epw to the test directory
+    new_osm_path = "#{run_dir(test_name)}/#{File.basename(osm_path)}"
+    FileUtils.cp(osm_path, new_osm_path)
+    new_epw_path = "#{run_dir(test_name)}/#{File.basename(epw_path)}"
+    FileUtils.cp(epw_path, new_epw_path)
+
+    # create an instance of a runner
+    runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
+
+    # load the test model
+    model = load_model(new_osm_path) if model.nil?
+
+    # set model weather file
+    epw_file = OpenStudio::EpwFile.new(OpenStudio::Path.new(new_epw_path))
+    OpenStudio::Model::WeatherFile.setWeatherFile(model, epw_file)
+    assert(model.weatherFile.is_initialized)
+
+    # set design days
+    if File.exist?(ddy_path)
+
+      # remove all the Design Day objects that are in the file
+      model.getObjectsByType('OS:SizingPeriod:DesignDay'.to_IddObjectType).each(&:remove)
+
+      # load ddy
+      ddy_model = OpenStudio::EnergyPlus.loadAndTranslateIdf(ddy_path).get
+
+      ddy_model.getDesignDays.sort.each do |d|
+        # grab only the ones that matter
+        ddy_list = [
+          /Htg 99.6. Condns DB/, # Annual heating 99.6%
+          /Clg .4. Condns WB=>MDB/, # Annual humidity (for cooling towers and evap coolers)
+          /Clg .4. Condns DB=>MWB/, # Annual cooling
+          /August .4. Condns DB=>MCWB/, # Monthly cooling DB=>MCWB (to handle solar-gain-driven cooling)
+          /September .4. Condns DB=>MCWB/,
+          /October .4. Condns DB=>MCWB/
+        ]
+        ddy_list.each do |ddy_name_regex|
+          if d.name.get.to_s.match?(ddy_name_regex)
+            runner.registerInfo("Adding object #{d.name}")
+
+            # add the object to the existing model
+            model.addObject(d.clone)
+            break
+          end
+        end
+      end
+
+      # assert
+      assert_equal(false, model.getDesignDays.size.zero?)
+    end
+
+    # hardsize model
+    model = _mimic_hardsize_model(model, "#{run_dir(test_name)}/SR")
+
+    # adding output variables (for debugging)
+    out_vars = [
+      'Site Outdoor Air Drybulb Temperature',
+      'Chiller Cycling Ratio',
+      'Chiller Electricity Rate',
+      'Chiller Evaporator Outlet Temperature',
+      'Chiller COP',
+      'Pump Electricity Rate',
+      'Pump Mass Flow Rate',
+      'Pump Outlet Temperature',
+      'Cooling Tower Fan Electricity Rate',
+      'Cooling Tower Outlet Temperature'
+    ]
+    out_vars.each do |out_var_name|
+        ov = OpenStudio::Model::OutputVariable.new('ov', model)
+        ov.setKeyValue('*')
+        ov.setReportingFrequency('timestep')
+        ov.setVariableName(out_var_name)
+    end
+    model.getOutputControlFiles.setOutputCSV(true)
+
+    if apply
+      # run the measure
+      puts "\nAPPLYING MEASURE..."
+      measure.run(model, runner, argument_map)
+      result = runner.result
+      result_success = result.value.valueName == 'Success'
+      assert_equal(expected_results, result.value.valueName)
+
+      # Show the output
+      show_output(result)
+    end
+
+    # Save model
+    model.save(model_output_path(test_name), true)
+
+    if run_model
+      puts "\nRUNNING MODEL..."
+
+      std = Standard.build('90.1-2013')
+      std.model_run_simulation_and_log_errors(model, run_dir(test_name))
+
+      # Check that the model ran successfully
+      assert(File.exist?(sql_path(test_name)))
+    end
+
+    # change back directory
+    Dir.chdir(start_dir)
+
+    result
+  end
+
+  # supporting method: define measure and arguments and simulate models with and without measure
+  def apply_measure_and_run_simulations(osm_path, epw_path, test_name)
+
+    # Create an instance of the measure
+    measure = UpgradeHvacChiller.new
+
+    # Load the model; only used here for populating arguments
+    model = load_model(osm_path)
+
+    # get arguments
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+
+    # populate specific argument for testing
+    arguments.each_with_index do |arg, idx|
+      temp_arg_var = arg.clone
+      case arg.name
+      when 'upgrade_pump'
+        upgrade_pump = arguments[idx].clone
+        upgrade_pump.setValue(true)
+        argument_map[arg.name] = upgrade_pump
+      when 'chw_oat_reset'
+        chw_oat_reset = arguments[idx].clone
+        chw_oat_reset.setValue(true)
+        argument_map[arg.name] = chw_oat_reset
+      when 'cw_oat_reset'
+        cw_oat_reset = arguments[idx].clone
+        cw_oat_reset.setValue(true)
+        argument_map[arg.name] = cw_oat_reset
+      when 'debug_verbose'
+        debug_verbose = arguments[idx].clone
+        debug_verbose.setValue(true)
+        argument_map[arg.name] = debug_verbose
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
+    end
+
+    # # # populate specific argument for testing: regular sizing scenario
+    # # arguments.each_with_index do |arg, idx|
+    # #   temp_arg_var = arg.clone
+    # #   if arg.name == 'performance_oversizing_factor'
+    # #     performance_oversizing_factor = arguments[idx].clone
+    # #     performance_oversizing_factor.setValue(0.0)
+    # #     argument_map[arg.name] = performance_oversizing_factor
+    # #   end
+    # # end
+
+    # Apply the measure to the model and optionally run the model
+    result = set_weather_and_apply_measure_and_run("#{test_name}_b", measure, argument_map, osm_path, epw_path, run_model: true, apply: false)
+    model = load_model(model_output_path("#{test_name}_b"))
+
+    # # # populate specific argument for testing: upsizing scenario
+    # # arguments.each_with_index do |arg, idx|
+    # #   temp_arg_var = arg.clone
+    # #   if arg.name == 'performance_oversizing_factor'
+    # #     performance_oversizing_factor = arguments[idx].clone
+    # #     performance_oversizing_factor.setValue(0.25)
+    # #     argument_map[arg.name] = performance_oversizing_factor
+    # #   end
+    # # end
+
+    # Apply the measure to the model and optionally run the model
+    result = set_weather_and_apply_measure_and_run("#{test_name}_a", measure, argument_map, osm_path, epw_path, run_model: true, apply: true)
+    model = load_model(model_output_path("#{test_name}_a"))
+  end
+
+  # test 1: check measure arguments
+  def test_number_of_arguments_and_argument_names
+    # create an instance of the measure
+    measure = UpgradeHvacChiller.new
+
+    # make an empty model
+    model = OpenStudio::Model::Model.new
+
+    # get arguments and test that they are what we are expecting
+    arguments = measure.arguments(model)
+    assert_equal(4, arguments.size)
+    assert_equal('upgrade_pump', arguments[0].name)
+    assert_equal('chw_oat_reset', arguments[1].name)
+    assert_equal('cw_oat_reset', arguments[2].name)
+    assert_equal('debug_verbose', arguments[3].name)
+  end
+
+  # test 2: check model without simulation
+  def test_models_without_simulations
+    # test models
+    test_sets = []
+    # test: 380_doas_with_fan_coil_air_cooled_chiller_with_boiler
+    test_sets << {
+      model: '380_doas_with_fan_coil_air_cooled_chiller_with_boiler',
+      weather: 'USA_NY_New.York-Central.Park.725033_TMY3', # weather file does not matter with current tests
+      result: 'Success'
+    }
+    # test: 380_doas_with_fan_coil_chiller_with_boiler
+    test_sets << {
+      model: '380_doas_with_fan_coil_chiller_with_boiler',
+      weather: 'USA_NY_New.York-Central.Park.725033_TMY3', # weather file does not matter with current tests
+      result: 'Success'
+    }
+    # test: 380_vav_air_cooled_chiller_with_gas_boiler_reheat
+    test_sets << {
+      model: '380_vav_air_cooled_chiller_with_gas_boiler_reheat',
+      weather: 'USA_NY_New.York-Central.Park.725033_TMY3', # weather file does not matter with current tests
+      result: 'Success'
+    }
+    # test: 380_vav_chiller_with_gas_boiler_reheat
+    test_sets << {
+      model: '380_vav_chiller_with_gas_boiler_reheat',
+      weather: 'USA_NY_New.York-Central.Park.725033_TMY3', # weather file does not matter with current tests
+      result: 'Success'
+    }
+
+    test_sets.each do |set|
+      instance_test_name = set[:model]
+      puts "instance test name: #{instance_test_name}"
+      osm_path = models_for_tests.select { |x| set[:model] == File.basename(x, '.osm') }
+      epw_path = epws_for_tests.select { |x| set[:weather] == File.basename(x, '.epw') }
+      assert(!osm_path.empty?)
+      assert(!epw_path.empty?)
+      osm_path = osm_path[0]
+      epw_path = epw_path[0]
+
+      # apply measure to model
+      apply_and_test_model(osm_path, instance_test_name)
+    end
+  end
+
+  # test 3: check model with simulation
+  def test_models_with_simulations
+    # test models
+    test_sets = []
+    # test: 380_vav_chiller_with_gas_boiler_reheat
+    test_sets << {
+      model: '380_vav_chiller_with_gas_boiler_reheat',
+      weather: 'USA_HI_Honolulu.Intl.AP.911820_TMY3', # weather file does not matter with current tests
+      result: 'Success'
+    }
+
+    test_sets.each do |set|
+      instance_test_name = set[:model]
+      puts "instance test name: #{instance_test_name}"
+      osm_path = models_for_tests.select { |x| set[:model] == File.basename(x, '.osm') }
+      epw_path = epws_for_tests.select { |x| set[:weather] == File.basename(x, '.epw') }
+      assert(!osm_path.empty?)
+      assert(!epw_path.empty?)
+      osm_path = osm_path[0]
+      epw_path = epw_path[0]
+
+      # apply measure to model
+      result = apply_measure_and_run_simulations(osm_path, epw_path, instance_test_name)
+    end
   end
 end
