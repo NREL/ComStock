@@ -433,33 +433,13 @@ class UpgradeHvacChillerTest < Minitest::Test
       end
     end
 
-    # # # populate specific argument for testing: regular sizing scenario
-    # # arguments.each_with_index do |arg, idx|
-    # #   temp_arg_var = arg.clone
-    # #   if arg.name == 'performance_oversizing_factor'
-    # #     performance_oversizing_factor = arguments[idx].clone
-    # #     performance_oversizing_factor.setValue(0.0)
-    # #     argument_map[arg.name] = performance_oversizing_factor
-    # #   end
-    # # end
-
-    # Apply the measure to the model and optionally run the model
+    # Don't apply the measure to the model and run the model: baseline model
     result = set_weather_and_apply_measure_and_run("#{test_name}_b", measure, argument_map, osm_path, epw_path, run_model: true, apply: false)
     model = load_model(model_output_path("#{test_name}_b"))
 
-    # # # populate specific argument for testing: upsizing scenario
-    # # arguments.each_with_index do |arg, idx|
-    # #   temp_arg_var = arg.clone
-    # #   if arg.name == 'performance_oversizing_factor'
-    # #     performance_oversizing_factor = arguments[idx].clone
-    # #     performance_oversizing_factor.setValue(0.25)
-    # #     argument_map[arg.name] = performance_oversizing_factor
-    # #   end
-    # # end
-
-    # Apply the measure to the model and optionally run the model
-    result = set_weather_and_apply_measure_and_run("#{test_name}_a", measure, argument_map, osm_path, epw_path, run_model: true, apply: true)
-    model = load_model(model_output_path("#{test_name}_a"))
+    # Apply the measure to the model and run the model: upgrade model
+    result = set_weather_and_apply_measure_and_run("#{test_name}_u", measure, argument_map, osm_path, epw_path, run_model: true, apply: true)
+    model = load_model(model_output_path("#{test_name}_u"))
   end
 
   # test 1: check measure arguments
