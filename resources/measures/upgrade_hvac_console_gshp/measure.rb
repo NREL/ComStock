@@ -306,29 +306,63 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
       return true
     end
 
+    # initialize variables for reporting
+    condition_initial_walls = ''
+    condition_final_walls = ''
+    condition_initial_roof = ''
+    condition_final_roof = ''
+    condition_initial_windows = ''
+    condition_final_windows = ''
+    condition_initial_lighting = ''
+    condition_final_lighting = ''
+
     # after finished checking for non applicable models, run envelope measures as package if user arguments are true
     # run wall insulation measure if user argument is true
     if walls == true
       runner.registerInfo('Running Wall Insulation measure....')
-      call_walls(model, runner)
+      results_walls, runner = call_walls(model, runner)
+      if results_walls.stepInitialCondition.is_initialized
+        condition_initial_walls = results_walls.stepInitialCondition.get
+      end
+      if results_walls.stepFinalCondition.is_initialized
+        condition_final_walls = results_walls.stepFinalCondition.get
+      end
     end
 
     # run roof insulation measure if user argument is true
     if roof == true
       runner.registerInfo('Running Roof Insulation measure....')
-      call_roof(model, runner)
+      results_roof, runner = call_roof(model, runner)
+      if results_roof.stepInitialCondition.is_initialized
+        condition_initial_roof = results_roof.stepInitialCondition.get
+      end
+      if results_roof.stepFinalCondition.is_initialized
+        condition_final_roof = results_roof.stepFinalCondition.get
+      end
     end
 
     # run new windows measure if user argument is true
     if windows == true
       runner.registerInfo('Running New Windows measure....')
-      call_windows(model, runner)
+      results_windows, runner = call_windows(model, runner)
+      if results_windows.stepInitialCondition.is_initialized
+        condition_initial_windows = results_windows.stepInitialCondition.get
+      end
+      if results_windows.stepFinalCondition.is_initialized
+        condition_final_windows = results_windows.stepFinalCondition.get
+      end
     end
 
-    # run new windows measure if user argument is true
+    # run lighting measure if user argument is true
     if lighting == true
       runner.registerInfo('Running LED Lighting measure....')
-      call_lighting(model, runner)
+      results_lighting, runner = call_lighting(model, runner)
+      if results_lighting.stepInitialCondition.is_initialized
+        condition_initial_lighting = results_lighting.stepInitialCondition.get
+      end
+      if results_lighting.stepFinalCondition.is_initialized
+        condition_final_lighting = results_lighting.stepFinalCondition.get
+      end
     end
 
     cond_loop_setpoint_c = 18.3 # 65F

@@ -36,56 +36,46 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # *******************************************************************************
 
+# pass relevant messages/results/variables to parent runner
+def child_to_parent_runner_logging(runner_parent, measure_name, results_child, registered_var_list = [])
+  # Register values from child runner to parent runner
+  unless registered_var_list.empty?
+    registered_var_list.each do |registered_var|
+      JSON.parse(results_child.to_s)['step_values'].each do |step_value|
+        if step_value['name'].to_s == registered_var
+          runner_parent.registerValue(registered_var, step_value['value'], step_value['units'])
+        end
+      end
+    end
+  end
+
+  # Log warnings/infos/errors
+  results_child.warnings.each do |warning|
+    runner_parent.registerWarning(warning.logMessage)
+  end
+  results_child.info.each do |info|
+    runner_parent.registerInfo(info.logMessage)
+  end
+  results_child.errors.each do |error|
+    runner_parent.registerError(error.logMessage)
+  end
+
+  # Check if the measure ran successfully
+  case results_child.value.valueName
+  when 'Success'
+    runner_parent.registerInfo("Child measure (#{measure_name}) was applied successfully.")
+  when 'NA'
+    runner_parent.registerInfo("Child measure (#{measure_name}) was not applicable.")
+  else
+    runner_parent.registerError("Child measure (#{measure_name}) failed.")
+    false
+  end
+
+  runner_parent
+end
+
 # create methods to call other measures for package runs
 # putting this code in a resource file prevents issues with the OS app parsing
-def call_dcv(model, runner)
-  dcv_measure_path = File.join(__dir__, '../../upgrade_hvac_dcv/measure.rb')
-  unless File.exist?(dcv_measure_path)
-    runner.registerError('DCV measure not found. Check that this measure exists in your file structure and modify the measure path if necessary.')
-    return false
-  end
-  require dcv_measure_path
-
-  dcv_measure = HVACDCV.new
-  runner_dcv = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
-  dcv_measure.run(model, runner_dcv, OpenStudio::Measure::OSArgumentMap.new)
-  dcv_result = runner_dcv.result
-
-  # Check if the measure ran successfully
-  if dcv_result.value.valueName == 'Success'
-    runner.registerInfo('DCV measure was applied successfully.')
-  elsif dcv_result.value.valueName == 'NA'
-    runner.registerInfo('DCV measure was not applicable.')
-  else
-    runner.registerError('DCV measure failed.')
-    false
-  end
-end
-
-def call_economizer(model, runner)
-  econ_measure_path = File.join(__dir__, '../../upgrade_hvac_economizer/measure.rb')
-  unless File.exist?(econ_measure_path)
-    runner.registerError('Economizer measure not found. Check that this measure exists in your file structure and modify the measure path if necessary.')
-    return false
-  end
-  require econ_measure_path
-
-  econ_measure = HVACEconomizer.new
-  runner_econ = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
-  econ_measure.run(model, runner_econ, OpenStudio::Measure::OSArgumentMap.new)
-  econ_result = runner_econ.result
-
-  # Check if the measure ran successfully
-  if econ_result.value.valueName == 'Success'
-    runner.registerInfo('Economizer measure was applied successfully.')
-  elsif econ_result.value.valueName == 'NA'
-    runner.registerInfo('Economizer measure was not applicable.')
-  else
-    runner.registerError('Economizer measure failed.')
-    false
-  end
-end
-
 def call_walls(model, runner)
   walls_measure_path = File.join(__dir__, '../../upgrade_env_exterior_wall_insulation/measure.rb')
   unless File.exist?(walls_measure_path)
@@ -99,15 +89,9 @@ def call_walls(model, runner)
   walls_measure.run(model, runner_walls, OpenStudio::Measure::OSArgumentMap.new)
   walls_result = runner_walls.result
 
-  # Check if the measure ran successfully
-  if walls_result.value.valueName == 'Success'
-    runner.registerInfo('Wall Insulation measure was applied successfully.')
-  elsif walls_result.value.valueName == 'NA'
-    runner.registerInfo('Wall Insulation measure was not applicable.')
-  else
-    runner.registerError('Wall Insulation measure failed.')
-    false
-  end
+  runner = child_to_parent_runner_logging(runner, walls_measure.name.to_s, walls_result, registered_var_list = ['env_exterior_wall_insulation_area_ft2'])
+
+  return walls_result, runner
 end
 
 def call_roof(model, runner)
@@ -123,15 +107,9 @@ def call_roof(model, runner)
   roof_measure.run(model, runner_roof, OpenStudio::Measure::OSArgumentMap.new)
   roof_result = runner_roof.result
 
-  # Check if the measure ran successfully
-  if roof_result.value.valueName == 'Success'
-    runner.registerInfo('Roof Insulation measure was applied successfully.')
-  elsif roof_result.value.valueName == 'NA'
-    runner.registerInfo('Roof Insulation measure was not applicable.')
-  else
-    runner.registerError('Roof Insulation measure failed.')
-    false
-  end
+  runner = child_to_parent_runner_logging(runner, roof_measure.name.to_s, roof_result, registered_var_list = ['env_roof_insul_roof_area_ft_2'])
+
+  return roof_result, runner
 end
 
 def call_windows(model, runner)
@@ -147,15 +125,9 @@ def call_windows(model, runner)
   windows_measure.run(model, runner_windows, OpenStudio::Measure::OSArgumentMap.new)
   windows_result = runner_windows.result
 
-  # Check if the measure ran successfully
-  if windows_result.value.valueName == 'Success'
-    runner.registerInfo('New Windows measure was applied successfully.')
-  elsif windows_result.value.valueName == 'NA'
-    runner.registerInfo('New Windows measure was not applicable.')
-  else
-    runner.registerError('New Windows measure failed.')
-    false
-  end
+  runner = child_to_parent_runner_logging(runner, windows_measure.name.to_s, windows_result, registered_var_list = ['env_secondary_window_fen_area_ft_2'])
+
+  return windows_result, runner
 end
 
 def call_lighting(model, runner)
@@ -177,13 +149,8 @@ def call_lighting(model, runner)
   lighting_measure.run(model, runner_lighting, lighting_arg_map)
   lighting_result = runner_lighting.result
 
-  # Check if the measure ran successfully
-  if lighting_result.value.valueName == 'Success'
-    runner.registerInfo('LED Lighting measure was applied successfully.')
-  elsif lighting_result.value.valueName == 'NA'
-    runner.registerInfo('LED Lighting measure was not applicable.')
-  else
-    runner.registerError('LED Lighting measure failed.')
-    false
-  end
+  runner = child_to_parent_runner_logging(runner, lighting_measure.name.to_s, lighting_result, registered_var_list = ['light_lighting_technology_initial_lighting_power','light_lighting_technology_initial_lighting_power_density','light_lighting_technology_final_lighting_power', 'light_lighting_technology_final_lighting_power_density'])
+
+  return lighting_result, runner
 end
+

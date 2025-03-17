@@ -93,7 +93,6 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     hw_setpoint_F.setDefaultValue(140)
     args << hw_setpoint_F
 
-
     chw_setpoint_F = OpenStudio::Measure::OSArgument.makeDoubleArgument('chw_setpoint_F', true)
     chw_setpoint_F.setDisplayName('Chilled water setpoint')
     chw_setpoint_F.setUnits('F')
@@ -107,7 +106,6 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     autosize_hc.setDescription('Applicable only if user chooses to change the hot water setpoint')
     autosize_hc.setDefaultValue(true)
     args << autosize_hc
-
 
     # Max design heat pump capacity at the design condition.
     # Default is 1500MBH (439kW) based on Trane Ascend air-to-water heat pump series
@@ -271,13 +269,10 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
 
     # high level assumptions # per Mescher et al
 
-
     runner.registerInfo("Start time: #{Time.now} ")
 
     # check for measure applicability
     # check for different types of chillers in measure as well
-
-
     if hw_setpoint_F > 145
       runner.registerWarning("#{hw_setpoint_F}F is above or near the limit of the HP performance curves. If the " \
                             'simulation fails with cooling capacity less than 0, you have exceeded performance ' \
@@ -287,17 +282,13 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     # use openstudio-standards utility methods, choice of standard does not impact results
     std = Standard.build('NREL ZNE Ready 2017')
 
-
     hpwh_eir_plr_coefficient1constant = 1.25
     hpwh_eir_plr_coefficient2x = -0.25
     hpwh_eir_plr_coefficient3xPOW2 = 0
 
-
     cooling_hp_plr_coeff1constant = 0.5203969
     cooling_hp_plr_coeff2x = -0.77759
     cooling_hp_plr_coeff3xPOW2 = 1.255394
-
-
 
     if keep_setpoint == false
       # sched = OpenStudio::Model::ScheduleRuleset.new(model, hw_setpoint_c)
@@ -309,7 +300,6 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     end
 
     # Create offset schedules for intermediate loops
-
     sched_htg_intermed = OpenStudio::Model::ScheduleConstant.new(model) # , hw_setpoint_c)
     sched_htg_intermed.setValue(hw_setpoint_c + 2)
     sched_htg_intermed.setName('Intermediate Heating Loop Temperature Setpoint')
@@ -318,10 +308,8 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     sched_clg_intermed.setValue(chw_setpoint_c - 2)
     sched_clg_intermed.setName('Intermediate Cooling Loop Temperature Setpoint')
 
-
     # Find all hot water loops in the model
     # boilers = []
-
     no_ht_pump_htg_coils = model.getCoilHeatingWaterToAirHeatPumpEquationFits.size
     no_ht_pump_clg_coils = model.getCoilCoolingWaterToAirHeatPumpEquationFits.size
 
@@ -404,29 +392,63 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
       end
     end
 
+    # initialize variables for reporting
+    condition_initial_walls = ''
+    condition_final_walls = ''
+    condition_initial_roof = ''
+    condition_final_roof = ''
+    condition_initial_windows = ''
+    condition_final_windows = ''
+    condition_initial_lighting = ''
+    condition_final_lighting = ''
+
     # after finished checking for non applicable models, run envelope measures as package if user arguments are true
     # run wall insulation measure if user argument is true
     if walls == true
       runner.registerInfo('Running Wall Insulation measure....')
-      call_walls(model, runner)
+      results_walls, runner = call_walls(model, runner)
+      if results_walls.stepInitialCondition.is_initialized
+        condition_initial_walls = results_walls.stepInitialCondition.get
+      end
+      if results_walls.stepFinalCondition.is_initialized
+        condition_final_walls = results_walls.stepFinalCondition.get
+      end
     end
 
     # run roof insulation measure if user argument is true
     if roof == true
       runner.registerInfo('Running Roof Insulation measure....')
-      call_roof(model, runner)
+      results_roof, runner = call_roof(model, runner)
+      if results_roof.stepInitialCondition.is_initialized
+        condition_initial_roof = results_roof.stepInitialCondition.get
+      end
+      if results_roof.stepFinalCondition.is_initialized
+        condition_final_roof = results_roof.stepFinalCondition.get
+      end
     end
 
     # run new windows measure if user argument is true
     if windows == true
       runner.registerInfo('Running New Windows measure....')
-      call_windows(model, runner)
+      results_windows, runner = call_windows(model, runner)
+      if results_windows.stepInitialCondition.is_initialized
+        condition_initial_windows = results_windows.stepInitialCondition.get
+      end
+      if results_windows.stepFinalCondition.is_initialized
+        condition_final_windows = results_windows.stepFinalCondition.get
+      end
     end
 
-    # run new windows measure if user argument is true
+    # run lighting measure if user argument is true
     if lighting == true
       runner.registerInfo('Running LED Lighting measure....')
-      call_lighting(model, runner)
+      results_lighting, runner = call_lighting(model, runner)
+      if results_lighting.stepInitialCondition.is_initialized
+        condition_initial_lighting = results_lighting.stepInitialCondition.get
+      end
+      if results_lighting.stepFinalCondition.is_initialized
+        condition_final_lighting = results_lighting.stepFinalCondition.get
+      end
     end
 
     # change to model.getBoilers....
