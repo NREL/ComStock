@@ -635,6 +635,7 @@ class UpgradeHvacChillerTest < Minitest::Test
   end
 
   # test 3: check model with simulation
+  # this test is also used for single building model testing section in measure documentation
   def test_models_with_simulations
     # test models
     test_sets = []
