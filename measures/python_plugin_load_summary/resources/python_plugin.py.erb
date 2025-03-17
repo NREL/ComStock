@@ -18,9 +18,16 @@ class LoadSummary(EnergyPlusPlugin):
         # output variable handles
 <% out_vars.each do |ov| -%>
 <%   ov_sub = ov[0].downcase.gsub(' ', '') -%>
-<%   zone_names.each do |zn| -%>
-<%     zn_sub = zn.downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
-<%=    "        self.#{ov_sub}_#{zn_sub}_hndl = None" %>
+<%   if ov[0] == 'Surface Inside Face Convection Heat Gain Energy' -%>
+<%     surf_names.each do |sn| -%>
+<%       sn_sub = sn[0].downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
+<%=      "        self.#{ov_sub}_#{sn_sub}_hndl = None" %>
+<%     end -%>
+<%   else -%>
+<%     zone_names.each do |zn| -%>
+<%       zn_sub = zn.downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
+<%=      "        self.#{ov_sub}_#{zn_sub}_hndl = None" %>
+<%     end -%>
 <%   end -%>
 <% end -%>
 
@@ -36,16 +43,28 @@ class LoadSummary(EnergyPlusPlugin):
         # get output variable handles
 <% out_vars.each do |ov| -%>
 <%   ov_sub = ov[0].downcase.gsub(' ', '') -%>
-<%   zone_names.each do |zn| -%>
-<%     zn_sub = zn.downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
-<%     api = 'self.api.exchange.get_variable_handle' -%>
-<%=    "        self.#{ov_sub}_#{zn_sub}_hndl = #{api}(" %>
-<%=    '            state,' %>
-<%=    "            \'#{ov[0]}\'," %>
-<%=    "            \'#{zn}\'," %>
-<%=    '        )' %>
-<%     unless zn == zone_names[-1] -%>
-<%=      '' %>
+<%   if ov[0] == 'Surface Inside Face Convection Heat Gain Energy' -%>
+<%     surf_names.each do |sn| -%>
+<%       sn_sub = sn[0].downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
+<%       api = 'self.api.exchange.get_variable_handle' -%>
+<%=      "        self.#{ov_sub}_#{sn_sub}_hndl = #{api}(" %>
+<%=      '            state,' %>
+<%=      "            \'#{ov[0]}\'," %>
+<%=      "            \'#{sn[0]}\'," %>
+<%=      '        )' %>
+<%     end -%>
+<%   else -%>
+<%     zone_names.each do |zn| -%>
+<%       zn_sub = zn.downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
+<%       api = 'self.api.exchange.get_variable_handle' -%>
+<%=      "        self.#{ov_sub}_#{zn_sub}_hndl = #{api}(" %>
+<%=      '            state,' %>
+<%=      "            \'#{ov[0]}\'," %>
+<%=      "            \'#{zn}\'," %>
+<%=      '        )' %>
+<%       unless zn == zone_names[-1] -%>
+<%=        '' %>
+<%       end -%>
 <%     end -%>
 <%   end -%>
 <% end -%>
@@ -74,18 +93,32 @@ class LoadSummary(EnergyPlusPlugin):
         # get output variable values
 <% out_vars.each do |ov| -%>
 <%   ov_sub = ov[0].downcase.gsub(' ', '') -%>
-<%   zone_names.each do |zn| -%>
-<%     zn_sub = zn.downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
-<%     api = 'self.api.exchange.get_variable_value' -%>
-<%=    "        if self.#{ov_sub}_#{zn_sub}_hndl != -1:" %>
-<%=    "            self.#{ov_sub}_#{zn_sub} = #{api}(" %>
-<%=    '                state,' %>
-<%=    "                self.#{ov_sub}_#{zn_sub}_hndl" %>
-<%=    '            )' %>
-<%=    '        else:' %>
-<%=    "            self.#{ov_sub}_#{zn_sub} = 0" %>
-<%     unless zn == zone_names[-1] -%>
-<%=      '' %>
+<%   if ov[0] == 'Surface Inside Face Convection Heat Gain Energy' -%>
+<%     surf_names.each do |sn| -%>
+<%       sn_sub = sn[0].downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
+<%       api = 'self.api.exchange.get_variable_value' -%>
+<%=      "        if self.#{ov_sub}_#{sn_sub}_hndl != -1:" %>
+<%=      "            self.#{ov_sub}_#{sn_sub} = #{api}(" %>
+<%=      '                state,' %>
+<%=      "                self.#{ov_sub}_#{sn_sub}_hndl" %>
+<%=      '            )' %>
+<%=      '        else:' %>
+<%=      "            self.#{ov_sub}_#{sn_sub} = 0" %>
+<%     end -%>
+<%   else -%>
+<%     zone_names.each do |zn| -%>
+<%       zn_sub = zn.downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
+<%       api = 'self.api.exchange.get_variable_value' -%>
+<%=      "        if self.#{ov_sub}_#{zn_sub}_hndl != -1:" %>
+<%=      "            self.#{ov_sub}_#{zn_sub} = #{api}(" %>
+<%=      '                state,' %>
+<%=      "                self.#{ov_sub}_#{zn_sub}_hndl" %>
+<%=      '            )' %>
+<%=      '        else:' %>
+<%=      "            self.#{ov_sub}_#{zn_sub} = 0" %>
+<%       unless zn == zone_names[-1] -%>
+<%=        '' %>
+<%       end -%>
 <%     end -%>
 <%   end -%>
 <% end -%>
@@ -103,48 +136,99 @@ class LoadSummary(EnergyPlusPlugin):
         # populate lists
         if mode == 'heating':
 <% out_vars.each do |ov| -%>
-<%   ov_sub = ov[0].downcase.gsub(' ', '') -%>
-<%   zone_names.each do |zn| -%>
-<%     zn_sub = zn.downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
-<%     py_vars.each do |pv| -%>
-<%       if pv == ov[1] -%>
-<%=        "            self.heating_#{pv}_list.append(" %>
-<%=        "                self.#{ov_sub}_#{zn_sub}" %>
-<%=        '            )' %>
-<%=        "            self.cooling_#{pv}_list.append(0)" %>
-<%=        "            self.floating_#{pv}_list.append(0)" %>
+<%   unless ov[1] == '' -%>
+<%     ov_sub = ov[0].downcase.gsub(' ', '') -%>
+<%     if ov[0] == 'Surface Inside Face Convection Heat Gain Energy' -%>
+<%       surf_names.each do |sn| -%>
+<%         sn_sub = sn[0].downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
+<%         py_vars.each do |pv| -%>
+<%           if pv == ov[1] -%>
+<%=            "            self.heating_#{pv}_list.append(" %>
+<%=            "                self.#{ov_sub}_#{sn_sub}" %>
+<%=            '            )' %>
+<%=            "            self.cooling_#{pv}_list.append(0)" %>
+<%=            "            self.floating_#{pv}_list.append(0)" %>
+<%           end -%>
+<%         end -%>
+<%       end -%>
+<%     else -%>
+<%       zone_names.each do |zn| -%>
+<%         zn_sub = zn.downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
+<%         py_vars.each do |pv| -%>
+<%           if pv == ov[1] -%>
+<%=            "            self.heating_#{pv}_list.append(" %>
+<%=            "                self.#{ov_sub}_#{zn_sub}" %>
+<%=            '            )' %>
+<%=            "            self.cooling_#{pv}_list.append(0)" %>
+<%=            "            self.floating_#{pv}_list.append(0)" %>
+<%           end -%>
+<%         end -%>
 <%       end -%>
 <%     end -%>
 <%   end -%>
 <% end -%>
         elif mode == 'cooling':
 <% out_vars.each do |ov| -%>
-<%   ov_sub = ov[0].downcase.gsub(' ', '') -%>
-<%   zone_names.each do |zn| -%>
-<%     zn_sub = zn.downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
-<%     py_vars.each do |pv| -%>
-<%       if pv == ov[1] -%>
-<%=        "            self.heating_#{pv}_list.append(0)" %>
-<%=        "            self.cooling_#{pv}_list.append(" %>
-<%=        "                self.#{ov_sub}_#{zn_sub}" %>
-<%=        '            )' %>
-<%=        "            self.floating_#{pv}_list.append(0)" %>
+<%   unless ov[1] == '' -%>
+<%     ov_sub = ov[0].downcase.gsub(' ', '') -%>
+<%     if ov[0] == 'Surface Inside Face Convection Heat Gain Energy' -%>
+<%       surf_names.each do |sn| -%>
+<%         sn_sub = sn[0].downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
+<%         py_vars.each do |pv| -%>
+<%           if pv == ov[1] -%>
+<%=            "            self.heating_#{pv}_list.append(0)" %>
+<%=            "            self.cooling_#{pv}_list.append(" %>
+<%=            "                self.#{ov_sub}_#{sn_sub}" %>
+<%=            '            )' %>
+<%=            "            self.floating_#{pv}_list.append(0)" %>
+<%           end -%>
+<%         end -%>
+<%       end -%>
+<%     else -%>
+<%       zone_names.each do |zn| -%>
+<%         zn_sub = zn.downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
+<%         py_vars.each do |pv| -%>
+<%           if pv == ov[1] -%>
+<%=            "            self.heating_#{pv}_list.append(0)" %>
+<%=            "            self.cooling_#{pv}_list.append(" %>
+<%=            "                self.#{ov_sub}_#{zn_sub}" %>
+<%=            '            )' %>
+<%=            "            self.floating_#{pv}_list.append(0)" %>
+<%           end -%>
+<%         end -%>
 <%       end -%>
 <%     end -%>
 <%   end -%>
 <% end -%>
         elif mode == 'floating':
 <% out_vars.each do |ov| -%>
-<%   ov_sub = ov[0].downcase.gsub(' ', '') -%>
-<%   zone_names.each do |zn| -%>
-<%     zn_sub = zn.downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
-<%     py_vars.each do |pv| -%>
-<%       if pv == ov[1] -%>
-<%=        "            self.heating_#{pv}_list.append(0)" %>
-<%=        "            self.cooling_#{pv}_list.append(0)" %>
-<%=        "            self.floating_#{pv}_list.append(" %>
-<%=        "                self.#{ov_sub}_#{zn_sub}" %>
-<%=        '            )' %>
+<%   unless ov[1] == '' -%>
+<%     ov_sub = ov[0].downcase.gsub(' ', '') -%>
+<%     if ov[0] == 'Surface Inside Face Convection Heat Gain Energy' -%>
+<%       surf_names.each do |sn| -%>
+<%         sn_sub = sn[0].downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
+<%         py_vars.each do |pv| -%>
+<%           if pv == ov[1] -%>
+<%=            "            self.heating_#{pv}_list.append(0)" %>
+<%=            "            self.cooling_#{pv}_list.append(0)" %>
+<%=            "            self.floating_#{pv}_list.append(" %>
+<%=            "                self.#{ov_sub}_#{sn_sub}" %>
+<%=            '            )' %>
+<%           end -%>
+<%         end -%>
+<%       end -%>
+<%     else -%>
+<%       zone_names.each do |zn| -%>
+<%         zn_sub = zn.downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
+<%         py_vars.each do |pv| -%>
+<%           if pv == ov[1] -%>
+<%=            "            self.heating_#{pv}_list.append(0)" %>
+<%=            "            self.cooling_#{pv}_list.append(0)" %>
+<%=            "            self.floating_#{pv}_list.append(" %>
+<%=            "                self.#{ov_sub}_#{zn_sub}" %>
+<%=            '            )' %>
+<%           end -%>
+<%         end -%>
 <%       end -%>
 <%     end -%>
 <%   end -%>

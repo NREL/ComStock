@@ -115,6 +115,24 @@ class PythonPluginLoadSummary < OpenStudio::Measure::EnergyPlusMeasure
       zone_names << o.getString(0, false).get
     end
 
+    # populate array of surface names
+    # first building surfaces
+    surf_names = []
+    ot = 'BuildingSurface_Detailed'
+    ws.getObjectsByType(ot.to_IddObjectType).each do |o|
+      surf_names << [
+        o.getString(0, false).get, o.getString(3, false).get, 'bld'
+      ]
+    end
+
+    # then add fenestration surfaces
+    ot = 'FenestrationSurface_Detailed'
+    ws.getObjectsByType(ot.to_IddObjectType).each do |o|
+      surf_names << [
+        o.getString(0, false).get, o.getString(3, false).get, 'fen'
+      ]
+    end
+
     # add outputs, fix frequency at runperiod
     # python plugin just needs variable to exist in the idf
     # setting to minimum frequency reduces runtime overhead
