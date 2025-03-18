@@ -421,7 +421,6 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     # factors given in lb/10^6 scf, divide by 1020 to get lb/MMBtu, divide by 1000 to get lb/kBtu
     natural_gas_emissions_factor_nox_kg_per_kbtu = 100 * (1 / 1020.0) * (1 / 1000.0) * lbm_to_kg
     natural_gas_emissions_factor_co_kg_per_kbtu = 84 * (1 / 1020.0) * (1 / 1000.0) * lbm_to_kg
-    natural_gas_emissions_factor_lead_kg_per_kbtu = 0.0005 * (1 / 1020.0) * (1 / 1000.0) * lbm_to_kg
     natural_gas_emissions_factor_pm_kg_per_kbtu = 7.6 * (1 / 1020.0) * (1 / 1000.0) * lbm_to_kg
     natural_gas_emissions_factor_so2_kg_per_kbtu = 0.6 * (1 / 1020.0) * (1 / 1000.0) * lbm_to_kg
 
@@ -434,7 +433,6 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     # factors in lb/10^3 gal, 140*10^6 Btu / 10^3 gal
     fuel_oil_emissions_factor_nox_kg_per_kbtu = 24 * (1 / 140.0) * (1 / 1000.00) * lbm_to_kg
     fuel_oil_emissions_factor_co_kg_per_kbtu = 5 * (1 / 140.0) * (1 / 1000.00) * lbm_to_kg
-    fuel_oil_emissions_factor_lead_kg_per_kbtu = 0.00151 * (1 / 140.0) * (1 / 1000.00) * lbm_to_kg
     fuel_oil_emissions_factor_pm_kg_per_kbtu = 2 * (1 / 140.0) * (1 / 1000.00) * lbm_to_kg
     fuel_oil_emissions_factor_so2_kg_per_kbtu = 142 * (1 / 140.0) * (1 / 1000.00) * lbm_to_kg
 
@@ -445,11 +443,10 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     # propane criteria pollutants
     # from: US EPA AP 42, Fifth Edition, Volume I Chapter 1: External Combustion Sources
     # factors in lb/10^3 gal, 9.15*10^6 Btu / 10^3 gal
-    propane_emissions_factor_nox_kg_per_kbtu = 15 * (1 / 91.5) * (1 / 1000.00) * lbm_to_kg
-    propane_emissions_factor_co_kg_per_kbtu = 8.4 * (1 / 91.5) * (1 / 1000.00) * lbm_to_kg
-    propane_emissions_factor_lead_kg_per_kbtu = 0.0
-    propane_emissions_factor_pm_kg_per_kbtu = 0.8 * (1 / 91.5) * (1 / 1000.00) * lbm_to_kg
-    propane_emissions_factor_so2_kg_per_kbtu = 0.09 * (1 / 91.5) * (1 / 1000.00) * lbm_to_kg
+    propane_emissions_factor_nox_kg_per_kbtu = 13 * (1 / 91.5) * (1 / 1000.00) * lbm_to_kg
+    propane_emissions_factor_co_kg_per_kbtu = 7.5 * (1 / 91.5) * (1 / 1000.00) * lbm_to_kg
+    propane_emissions_factor_pm_kg_per_kbtu = 0.7 * (1 / 91.5) * (1 / 1000.00) * lbm_to_kg
+    propane_emissions_factor_so2_kg_per_kbtu = 0.10 * (1 / 91.5) * (1 / 1000.00) * lbm_to_kg
 
     # district energy emissions factors
     # from: Energy Star Portfolio Manager Technical Reference https://portfoliomanager.energystar.gov/pdf/reference/Emissions.pdf
@@ -540,7 +537,6 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     annual_natural_gas_emissions_co2e_kg = 0.0
     annual_natural_gas_emissions_nox_kg = 0.0
     annual_natural_gas_emissions_co_kg = 0.0
-    annual_natural_gas_emissions_lead_kg = 0.0
     annual_natural_gas_emissions_pm_kg = 0.0
     annual_natural_gas_emissions_so2_kg = 0.0
     natural_gas_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='#{gas}:Facility' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
@@ -552,7 +548,6 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
       annual_natural_gas_emissions_co2e_kg += natural_gas_values.map { |v| v * j_to_kbtu * natural_gas_emissions_factor_co2e_kg_per_kbtu }.sum
       annual_natural_gas_emissions_nox_kg += natural_gas_values.map { |v| v * j_to_kbtu * natural_gas_emissions_factor_nox_kg_per_kbtu }.sum
       annual_natural_gas_emissions_co_kg += natural_gas_values.map { |v| v * j_to_kbtu * natural_gas_emissions_factor_co_kg_per_kbtu }.sum
-      annual_natural_gas_emissions_lead_kg += natural_gas_values.map { |v| v * j_to_kbtu * natural_gas_emissions_factor_lead_kg_per_kbtu }.sum
       annual_natural_gas_emissions_pm_kg += natural_gas_values.map { |v| v * j_to_kbtu * natural_gas_emissions_factor_pm_kg_per_kbtu }.sum
       annual_natural_gas_emissions_so2_kg += natural_gas_values.map { |v| v * j_to_kbtu * natural_gas_emissions_factor_so2_kg_per_kbtu }.sum
     end
@@ -562,8 +557,6 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     runner.registerValue('annual_natural_gas_nox_emissions_kg', annual_natural_gas_emissions_nox_kg)
     runner.registerInfo("Annual hourly natural gas CO emissions (kg): #{annual_natural_gas_emissions_co_kg}")
     runner.registerValue('annual_natural_gas_co_emissions_kg', annual_natural_gas_emissions_co_kg)
-    runner.registerInfo("Annual hourly natural gas lead emissions (kg): #{annual_natural_gas_emissions_lead_kg}")
-    runner.registerValue('annual_natural_gas_lead_emissions_kg', annual_natural_gas_emissions_lead_kg)
     runner.registerInfo("Annual hourly natural gas PM emissions (kg): #{annual_natural_gas_emissions_pm_kg}")
     runner.registerValue('annual_natural_gas_pm_emissions_kg', annual_natural_gas_emissions_pm_kg)
     runner.registerInfo("Annual hourly natural gas SO2 emissions (kg): #{annual_natural_gas_emissions_so2_kg}")
@@ -573,7 +566,6 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     annual_fuel_oil_emissions_co2e_kg = 0.0
     annual_fuel_oil_emissions_nox_kg = 0.0
     annual_fuel_oil_emissions_co_kg = 0.0
-    annual_fuel_oil_emissions_lead_kg = 0.0
     annual_fuel_oil_emissions_pm_kg = 0.0
     annual_fuel_oil_emissions_so2_kg = 0.0
     fuel_oil_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='#{fuel_oil}:Facility' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
@@ -584,7 +576,6 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
       annual_fuel_oil_emissions_co2e_kg += fuel_oil_values.map { |v| v * j_to_kbtu * fuel_oil_emissions_factor_co2e_kg_per_kbtu }.sum
       annual_fuel_oil_emissions_nox_kg += fuel_oil_values.map { |v| v * j_to_kbtu * fuel_oil_emissions_factor_nox_kg_per_kbtu }.sum
       annual_fuel_oil_emissions_co_kg += fuel_oil_values.map { |v| v * j_to_kbtu * fuel_oil_emissions_factor_co_kg_per_kbtu }.sum
-      annual_fuel_oil_emissions_lead_kg += fuel_oil_values.map { |v| v * j_to_kbtu * fuel_oil_emissions_factor_lead_kg_per_kbtu }.sum
       annual_fuel_oil_emissions_pm_kg += fuel_oil_values.map { |v| v * j_to_kbtu * fuel_oil_emissions_factor_pm_kg_per_kbtu }.sum
       annual_fuel_oil_emissions_so2_kg += fuel_oil_values.map { |v| v * j_to_kbtu * fuel_oil_emissions_factor_so2_kg_per_kbtu }.sum
     end
@@ -594,8 +585,6 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     runner.registerValue('annual_fuel_oil_nox_emissions_kg', annual_fuel_oil_emissions_nox_kg)
     runner.registerInfo("Annual hourly fuel oil CO emissions (kg): #{annual_fuel_oil_emissions_co_kg}")
     runner.registerValue('annual_fuel_oil_co_emissions_kg', annual_fuel_oil_emissions_co_kg)
-    runner.registerInfo("Annual hourly fuel oil lead emissions (kg): #{annual_fuel_oil_emissions_lead_kg}")
-    runner.registerValue('annual_fuel_oil_lead_emissions_kg', annual_fuel_oil_emissions_lead_kg)
     runner.registerInfo("Annual hourly fuel oil PM emissions (kg): #{annual_fuel_oil_emissions_pm_kg}")
     runner.registerValue('annual_fuel_oil_pm_emissions_kg', annual_fuel_oil_emissions_pm_kg)
     runner.registerInfo("Annual hourly fuel oil SO2 emissions (kg): #{annual_fuel_oil_emissions_so2_kg}")
@@ -605,7 +594,6 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     annual_propane_emissions_co2e_kg = 0.0
     annual_propane_emissions_nox_kg = 0.0
     annual_propane_emissions_co_kg = 0.0
-    annual_propane_emissions_lead_kg = 0.0
     annual_propane_emissions_pm_kg = 0.0
     annual_propane_emissions_so2_kg = 0.0
     propane_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='Propane:Facility' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
@@ -616,7 +604,6 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
       annual_propane_emissions_co2e_kg += propane_values.map { |val| val * j_to_kbtu * propane_emissions_factor_co2e_kg_per_kbtu }.sum
       annual_propane_emissions_nox_kg += propane_values.map { |val| val * j_to_kbtu * propane_emissions_factor_nox_kg_per_kbtu }.sum
       annual_propane_emissions_co_kg += propane_values.map { |val| val * j_to_kbtu * propane_emissions_factor_co_kg_per_kbtu }.sum
-      annual_propane_emissions_lead_kg += propane_values.map { |val| val * j_to_kbtu * propane_emissions_factor_lead_kg_per_kbtu }.sum
       annual_propane_emissions_pm_kg += propane_values.map { |val| val * j_to_kbtu * propane_emissions_factor_pm_kg_per_kbtu }.sum
       annual_propane_emissions_so2_kg += propane_values.map { |val| val * j_to_kbtu * propane_emissions_factor_so2_kg_per_kbtu }.sum
     end
@@ -626,8 +613,6 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     runner.registerValue('annual_propane_nox_emissions_kg', annual_propane_emissions_nox_kg)
     runner.registerInfo("Annual hourly propane CO emissions (kg): #{annual_propane_emissions_co_kg}")
     runner.registerValue('annual_propane_co_emissions_kg', annual_propane_emissions_co_kg)
-    runner.registerInfo("Annual hourly propane lead emissions (kg): #{annual_propane_emissions_lead_kg}")
-    runner.registerValue('annual_propane_lead_emissions_kg', annual_propane_emissions_lead_kg)
     runner.registerInfo("Annual hourly propane PM emissions (kg): #{annual_propane_emissions_pm_kg}")
     runner.registerValue('annual_propane_pm_emissions_kg', annual_propane_emissions_pm_kg)
     runner.registerInfo("Annual hourly propane SO2 emissions (kg): #{annual_propane_emissions_so2_kg}")
