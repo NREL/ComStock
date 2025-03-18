@@ -228,7 +228,8 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             'Annual major fuel consumption (thous Btu)': self.ANN_TOT_ENGY_KBTU,
             'Annual electricity consumption (thous Btu)': self.ANN_TOT_ELEC_KBTU,
             'Annual natural gas consumption (thous Btu)': self.ANN_TOT_GAS_KBTU,
-            'Annual fuel oil consumption (thous Btu)': self.ANN_TOT_OTHFUEL_KBTU,
+            'Annual fuel oil consumption (thous Btu)': self.ANN_TOT_FUELOIL_KBTU,
+            'Annual propane consumption (thous Btu)': self.ANN_TOT_PROPANE_KBTU,
             'Annual district heat consumption (thous Btu)': self.ANN_TOT_DISTHTG_KBTU,
             # End use energy - electricity
             'Electricity heating use (thous Btu)': self.ANN_ELEC_HEAT_KBTU,

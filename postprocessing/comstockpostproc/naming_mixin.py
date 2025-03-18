@@ -417,7 +417,8 @@ class NamingMixin():
         ANN_TOT_ENGY_KBTU,
         ANN_TOT_ELEC_KBTU,
         ANN_TOT_GAS_KBTU,
-        ANN_TOT_OTHFUEL_KBTU,
+        ANN_TOT_FUELOIL_KBTU,
+        ANN_TOT_PROPANE_KBTU,
         ANN_TOT_DISTHTG_KBTU,
         ANN_TOT_DISTCLG_KBTU
     ]
