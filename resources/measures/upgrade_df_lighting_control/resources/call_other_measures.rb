@@ -38,8 +38,8 @@
 
 # pass relevant messages/results/variables to parent runner
 def child_to_parent_runner_logging(runner_parent, measure_name, results_child, registered_var_list = [])
-
-    # Register values from child runner to parent runner
+  # Register values from child runner to parent runner
+  unless registered_var_list.empty?
     registered_var_list.each do |registered_var|
       JSON.parse(results_child.to_s)['step_values'].each do |step_value|
         if step_value['name'].to_s == registered_var
@@ -47,53 +47,55 @@ def child_to_parent_runner_logging(runner_parent, measure_name, results_child, r
         end
       end
     end
-  
-    # Log warnings/infos/errors
-    results_child.warnings.each do |warning|
-      runner_parent.registerWarning(warning.logMessage)
-    end
-    results_child.info.each do |info|
-      runner_parent.registerInfo(info.logMessage)
-    end
-    results_child.errors.each do |error|
-      runner_parent.registerError(error.logMessage)
-    end
-  
-    # Check if the measure ran successfully
-    if results_child.value.valueName == 'Success'
-      runner_parent.registerInfo("Child measure (#{measure_name}) was applied successfully.")
-    elsif results_child.value.valueName == 'NA'
-      runner_parent.registerInfo("Child measure (#{measure_name}) was not applicable.")
-    else
-      runner_parent.registerError("Child measure (#{measure_name}) failed.")
-      false
-    end
-  
-    runner_parent
   end
-  
-  # create methods to call other measures for package runs
-  # putting this code in a resource file prevents issues with the OS app parsing
-  def call_pv(model, runner)
-    pv_measure_path = File.join(__dir__, '../../upgrade_add_pvwatts/measure.rb')
-    unless File.exist?(pv_measure_path)
-      runner.registerError('PV measure not found. Check that this measure exists in your file structure and modify the measure path if necessary.')
-      return false
-    end
-    require pv_measure_path
-  
-    pv_measure = UpgradeAddPvwatts.new
-    runner_pv = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
 
-    pv_measure_args = pv_measure.arguments(model)
-    pv_arg_map = OpenStudio::Measure::OSArgumentMap.new
-    pv_area_fraction = pv_measure_args[0].clone
-    pv_arg_map['pv_area_fraction'] = pv_area_fraction
-
-    pv_measure.run(model, runner_pv, pv_arg_map)
-    pv_result = runner_pv.result
-  
-    runner = child_to_parent_runner_logging(runner, pv_measure.name.to_s, pv_result)
-  
-    return pv_result, runner
+  # Log warnings/infos/errors
+  results_child.warnings.each do |warning|
+    runner_parent.registerWarning(warning.logMessage)
   end
+  results_child.info.each do |info|
+    runner_parent.registerInfo(info.logMessage)
+  end
+  results_child.errors.each do |error|
+    runner_parent.registerError(error.logMessage)
+  end
+
+  # Check if the measure ran successfully
+  case results_child.value.valueName
+  when 'Success'
+    runner_parent.registerInfo("Child measure (#{measure_name}) was applied successfully.")
+  when 'NA'
+    runner_parent.registerInfo("Child measure (#{measure_name}) was not applicable.")
+  else
+    runner_parent.registerError("Child measure (#{measure_name}) failed.")
+    false
+  end
+
+  runner_parent
+end
+
+# create methods to call other measures for package runs
+# putting this code in a resource file prevents issues with the OS app parsing
+def call_pv(model, runner)
+  pv_measure_path = File.join(__dir__, '../../upgrade_add_pvwatts/measure.rb')
+  unless File.exist?(pv_measure_path)
+    runner.registerError('PV measure not found. Check that this measure exists in your file structure and modify the measure path if necessary.')
+    return false
+  end
+  require pv_measure_path
+
+  pv_measure = UpgradeAddPvwatts.new
+  runner_pv = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
+
+  pv_measure_args = pv_measure.arguments(model)
+  pv_arg_map = OpenStudio::Measure::OSArgumentMap.new
+  pv_area_fraction = pv_measure_args[0].clone
+  pv_arg_map['pv_area_fraction'] = pv_area_fraction
+
+  pv_measure.run(model, runner_pv, pv_arg_map)
+  pv_result = runner_pv.result
+
+  runner = child_to_parent_runner_logging(runner, pv_measure.name.to_s, pv_result)
+
+  return pv_result, runner
+end
