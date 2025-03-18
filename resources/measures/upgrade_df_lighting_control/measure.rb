@@ -285,7 +285,7 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
             return false
           end
           new_light_sch = new_light_sch.get
-          new_light_sch.setName("#{light_sch.get.name} new")
+          new_light_sch.setName("#{light_sch.get.name} df adjusted")
           # add to the hash
           light_schedules[light_sch.get.name.to_s] = new_light_sch
         end
