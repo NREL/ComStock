@@ -264,12 +264,12 @@ class DFLightingControlTest < Minitest::Test
       nla = 0
       lights.each do |light|
         light_sch_name = light.schedule.get.name.to_s
-        nla += 1 if light_sch_name.include?(' new')
+        nla += 1 if light_sch_name.include?(' df_adjusted')
         nl += 1
       end
-      puts("--- Detected #{nla}/#{nl} new lighting schedules")
-      puts('=================================================================')
+      puts("--- Detected #{nla}/#{nl} df_adjusted lighting schedules")
       assert(nl == nla) if set[:result] == 'Success'
+      puts('=================================================================')
     end
   end
 
