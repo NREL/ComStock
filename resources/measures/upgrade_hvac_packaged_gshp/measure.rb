@@ -388,7 +388,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
       end
     end
 
-    # run new windows measure if user argument is true
+    # run lighting measure if user argument is true
     if lighting == true
       runner.registerInfo('Running LED Lighting measure....')
       results_lighting, runner = call_lighting(model, runner)
@@ -1381,8 +1381,8 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     runner.registerInfo("Replaced temporary ground temperature source with vertical ground heat exchanger #{ghx}.")
 
     # report final condition
-    condition_final_gshp = "Replaced #{psz_air_loops.size} packaged single zone RTUs  and #{pvav_air_loops.size} PVAVs with packaged water-to-air ground source heat pumps."
-    condition_final = [condition_final_gshp, condition_final_wall, condition_final_roof, condition_final_window, condition_final_lighting].reject(&:empty?).join(" | ")
+    condition_final_ghp = "Replaced #{psz_air_loops.size} packaged single zone RTUs  and #{pvav_air_loops.size} PVAVs with packaged water-to-air ground source heat pumps."
+    condition_final = [condition_final_ghp, condition_final_walls, condition_final_roof, condition_final_windows, condition_final_lighting].reject(&:empty?).join(" | ")
     runner.registerFinalCondition(condition_final)
     true
   end
