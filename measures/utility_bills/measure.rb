@@ -223,14 +223,6 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
 
     runner.registerInfo("For sampling region #{sampling_region}, potential states are #{potential_state_abbrevs}")
 
-    # Get the state abbreviation
-    state_abbreviation = model.getBuilding.additionalProperties.getFeatureAsString('state_abbreviation')
-    if state_abbreviation.empty?
-      runner.registerError('Cannot find state_abbreviation for building, cannot calculate electricity bills.')
-      return false
-    end
-    state_abbreviation = state_abbreviation.get
-
     # Load the tract to electric utility EIA ID mapping
     tract_to_elec_util_path = File.join(File.dirname(__FILE__), 'resources', 'tract_to_elec_util.csv')
     tract_to_elec_util = {}
