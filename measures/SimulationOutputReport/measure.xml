@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>simulation_output_report</name>
   <uid>fc337100-8634-404e-8966-01243d292a79</uid>
-  <version_id>36d94631-be7e-406b-84f4-6bc0e56a35af</version_id>
-  <version_modified>2025-03-13T18:20:54Z</version_modified>
+  <version_id>fb07379c-943a-4de1-a7d5-0157236e6b9b</version_id>
+  <version_modified>2025-03-18T22:23:04Z</version_modified>
   <xml_checksum>2C8A3EEF</xml_checksum>
   <class_name>SimulationOutputReport</class_name>
   <display_name>Simulation Output Report</display_name>
@@ -34,9 +34,9 @@
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>total_site_fuel_oil_no2_mbtu</name>
-      <display_name>total_site_fuel_oil_no2_mbtu</display_name>
-      <short_name>total_site_fuel_oil_no2_mbtu</short_name>
+      <name>total_site_fuel_oil_mbtu</name>
+      <display_name>total_site_fuel_oil_mbtu</display_name>
+      <short_name>total_site_fuel_oil_mbtu</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
@@ -216,30 +216,30 @@
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>fuel_oil_no2_heating_mbtu</name>
-      <display_name>fuel_oil_no2_heating_mbtu</display_name>
-      <short_name>fuel_oil_no2_heating_mbtu</short_name>
+      <name>fuel_oil_heating_mbtu</name>
+      <display_name>fuel_oil_heating_mbtu</display_name>
+      <short_name>fuel_oil_heating_mbtu</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>fuel_oil_no2_interior_equipment_mbtu</name>
-      <display_name>fuel_oil_no2_interior_equipment_mbtu</display_name>
-      <short_name>fuel_oil_no2_interior_equipment_mbtu</short_name>
+      <name>fuel_oil_interior_equipment_mbtu</name>
+      <display_name>fuel_oil_interior_equipment_mbtu</display_name>
+      <short_name>fuel_oil_interior_equipment_mbtu</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>fuel_oil_no2_water_systems_mbtu</name>
-      <display_name>fuel_oil_no2_water_systems_mbtu</display_name>
-      <short_name>fuel_oil_no2_water_systems_mbtu</short_name>
+      <name>fuel_oil_water_systems_mbtu</name>
+      <display_name>fuel_oil_water_systems_mbtu</display_name>
+      <short_name>fuel_oil_water_systems_mbtu</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>fuel_oil_no2_generators_mbtu</name>
-      <display_name>fuel_oil_no2_generators_mbtu</display_name>
-      <short_name>fuel_oil_no2_generators_mbtu</short_name>
+      <name>fuel_oil_generators_mbtu</name>
+      <display_name>fuel_oil_generators_mbtu</display_name>
+      <short_name>fuel_oil_generators_mbtu</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
@@ -396,7 +396,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>04C0B4F8</checksum>
+      <checksum>9250DFBE</checksum>
     </file>
     <file>
       <filename>USA_MD_Baltimore-Washington.Intl.AP.724060_TMY3.epw</filename>

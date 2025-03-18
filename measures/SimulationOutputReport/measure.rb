@@ -26,7 +26,7 @@ class SimulationOutputReport < OpenStudio::Measure::ReportingMeasure
     buildstock_outputs = ['total_site_energy_mbtu',
                           'total_site_electricity_kwh',
                           'total_site_natural_gas_therm',
-                          'total_site_fuel_oil_no2_mbtu',
+                          'total_site_fuel_oil_mbtu',
                           'total_site_propane_mbtu',
                           'total_site_district_cooling_therm',
                           'total_site_district_heating_therm',
@@ -52,10 +52,10 @@ class SimulationOutputReport < OpenStudio::Measure::ReportingMeasure
                           'natural_gas_interior_equipment_therm',
                           'natural_gas_water_systems_therm',
                           'natural_gas_generators_therm',
-                          'fuel_oil_no2_heating_mbtu',
-                          'fuel_oil_no2_interior_equipment_mbtu',
-                          'fuel_oil_no2_water_systems_mbtu',
-                          'fuel_oil_no2_generators_mbtu',
+                          'fuel_oil_heating_mbtu',
+                          'fuel_oil_interior_equipment_mbtu',
+                          'fuel_oil_water_systems_mbtu',
+                          'fuel_oil_generators_mbtu',
                           'propane_heating_mbtu',
                           'propane_interior_equipment_mbtu',
                           'propane_water_systems_mbtu',
@@ -81,6 +81,44 @@ class SimulationOutputReport < OpenStudio::Measure::ReportingMeasure
     result
   end
 
+  def get_value_from_runner_past_results(runner, key_lookup, measure_name, error_if_missing=true)
+    key_lookup = OpenStudio::toUnderscoreCase(key_lookup)
+    success_value = OpenStudio::StepResult.new("Success")
+    runner.workflow.workflowSteps.each do |step|
+        next if not step.result.is_initialized
+        step_result = step.result.get
+        next if not step_result.measureName.is_initialized
+        next if step_result.measureName.get != measure_name
+        next if step_result.value != success_value
+        step_result.stepValues.each do |step_value|
+            next if step_value.name != key_lookup
+            return step_value.valueAsString
+        end
+    end
+    if error_if_missing
+        register_error("Could not find past value for '#{key_lookup}'.", runner)
+    end
+    return nil
+  end
+
+  def get_multi_measure_upgrade_applicability_from_runner_past_results(runner)
+      applics = []
+      success_value = OpenStudio::StepResult.new("Success")
+      runner.workflow.workflowSteps.each do |step|
+          next if not step.result.is_initialized
+          step_result = step.result.get
+          next if not step_result.measureName.is_initialized
+          next if step_result.measureName.get != 'apply_upgrade'
+          next if step_result.value != success_value
+          step_result.stepValues.each do |step_value|
+              next unless step_value.name.include?('_applicable')
+              applics << {'name' => step_value.name, 'applicable' => step_value.valueAsBoolean}
+          end
+      end
+
+      return applics
+  end
+
   # define what happens when the measure is run
   def run(runner, user_arguments)
     super(runner, user_arguments)
@@ -104,11 +142,7 @@ class SimulationOutputReport < OpenStudio::Measure::ReportingMeasure
     sql_file = sql_file.get
     model.setSqlFile(sql_file)
 
-    # Load buildstock_file
-    resources_dir = File.absolute_path(File.join(__dir__, '..', '..', 'resources'))
-    buildstock_file = File.join(resources_dir, 'buildstock.rb')
-    require File.join(File.dirname(buildstock_file), File.basename(buildstock_file, File.extname(buildstock_file)))
-
+    # set units
     total_site_units = 'MBtu'
     elec_site_units = 'kWh'
     gas_site_units = 'therm'
@@ -156,11 +190,11 @@ class SimulationOutputReport < OpenStudio::Measure::ReportingMeasure
     report_sim_output(runner, 'natural_gas_generators_therm', [sql_file.naturalGasGenerators], 'GJ', gas_site_units)
 
     # FUEL OIL NO2
-    report_sim_output(runner, 'total_site_fuel_oil_no2_mbtu', [sql_file.fuelOilNo2TotalEndUses], 'GJ', other_fuel_site_units)
-    report_sim_output(runner, 'fuel_oil_no2_heating_mbtu', [sql_file.fuelOilNo2Heating], 'GJ', other_fuel_site_units)
-    report_sim_output(runner, 'fuel_oil_no2_interior_equipment_mbtu', [sql_file.fuelOilNo2InteriorEquipment], 'GJ', other_fuel_site_units)
-    report_sim_output(runner, 'fuel_oil_no2_water_systems_mbtu', [sql_file.fuelOilNo2WaterSystems], 'GJ', other_fuel_site_units)
-    report_sim_output(runner, 'fuel_oil_no2_generators_mbtu', [sql_file.fuelOilNo2Generators], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'total_site_fuel_oil_mbtu', [sql_file.fuelOilNo2TotalEndUses], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'fuel_oil_heating_mbtu', [sql_file.fuelOilNo2Heating], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'fuel_oil_interior_equipment_mbtu', [sql_file.fuelOilNo2InteriorEquipment], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'fuel_oil_water_systems_mbtu', [sql_file.fuelOilNo2WaterSystems], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'fuel_oil_generators_mbtu', [sql_file.fuelOilNo2Generators], 'GJ', other_fuel_site_units)
 
     # PROPANE
     report_sim_output(runner, 'total_site_propane_mbtu', [sql_file.propaneTotalEndUses], 'GJ', other_fuel_site_units)

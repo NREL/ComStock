@@ -99,7 +99,7 @@ class NamingMixin():
     ANN_TOT_ELEC_KBTU = 'out.electricity.total.energy_consumption..kwh'
     ANN_TOT_GAS_KBTU = 'out.natural_gas.total.energy_consumption..kwh'
     ANN_TOT_PROPANE_KBTU = 'out.propane.total.energy_consumption..kwh'
-    ANN_TOT_FUELOIL_KBTU = 'out.fuel_oil_no2.total.energy_consumption..kwh'
+    ANN_TOT_FUELOIL_KBTU = 'out.fuel_oil.total.energy_consumption..kwh'
     ANN_TOT_DISTHTG_KBTU = 'out.district_heating.total.energy_consumption..kwh'
     ANN_TOT_DISTCLG_KBTU = 'out.district_cooling.total.energy_consumption..kwh'
 
@@ -128,9 +128,9 @@ class NamingMixin():
     ANN_PROPANE_SWH_KBTU = 'out.propane.water_systems.energy_consumption..kwh'
 
     # End use energy - fuel oil no 2
-    ANN_FUELOIL_HEAT_KBTU = 'out.fuel_oil_no2.heating.energy_consumption..kwh'
-    ANN_FUELOIL_INTEQUIP_KBTU = 'out.fuel_oil_no2.interior_equipment.energy_consumption..kwh'
-    ANN_FUELOIL_SWH_KBTU = 'out.fuel_oil_no2.water_systems.energy_consumption..kwh'
+    ANN_FUELOIL_HEAT_KBTU = 'out.fuel_oil.heating.energy_consumption..kwh'
+    ANN_FUELOIL_INTEQUIP_KBTU = 'out.fuel_oil.interior_equipment.energy_consumption..kwh'
+    ANN_FUELOIL_SWH_KBTU = 'out.fuel_oil.water_systems.energy_consumption..kwh'
 
     # End use energy - district cooling
     ANN_DISTCLG_COOL_KBTU = 'out.district_cooling.cooling.energy_consumption..kwh'
@@ -168,9 +168,9 @@ class NamingMixin():
     ANN_PROPANE_INTEQUIP_GROUP_KBTU = 'calc.enduse_group.propane.interior_equipment.energy_consumption..kwh'
 
     # End use group energy - fuel oil
-    ANN_FUELOIL_HVAC_GROUP_KBTU = 'calc.enduse_group.fuel_oil_no2.heating.energy_consumption..kwh'
-    ANN_FUELOIL_SWH_GROUP_KBTU = 'calc.enduse_group.fuel_oil_no2.water_systems.energy_consumption..kwh'
-    ANN_FUELOIL_INTEQUIP_GROUP_KBTU = 'calc.enduse_group.fuel_oil_no2.interior_equipment.energy_consumption..kwh'
+    ANN_FUELOIL_HVAC_GROUP_KBTU = 'calc.enduse_group.fuel_oil.heating.energy_consumption..kwh'
+    ANN_FUELOIL_SWH_GROUP_KBTU = 'calc.enduse_group.fuel_oil.water_systems.energy_consumption..kwh'
+    ANN_FUELOIL_INTEQUIP_GROUP_KBTU = 'calc.enduse_group.fuel_oil.interior_equipment.energy_consumption..kwh'
 
     # End use group energy - district heating
     ANN_DISTHTG_HVAC_GROUP_KBTU = 'calc.enduse_group.district_heating.hvac.energy_consumption..kwh'
