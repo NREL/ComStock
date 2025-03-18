@@ -491,7 +491,7 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
       unless tot_fueloil_kbtu.zero?
         state_avg_fueloil_results += "|#{state_abbreviation}:"
         fo_dollars_per_kbtu = fueloil_prices[state_abbreviation]
-        fo_dollars = (tot_fo_kbtu * fo_dollars_per_kbtu).round.to_i
+        fo_dollars = (tot_fueloil_kbtu * fo_dollars_per_kbtu).round.to_i
         state_avg_fueloil_results += "#{fo_dollars}"
       end
     end
