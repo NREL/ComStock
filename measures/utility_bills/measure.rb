@@ -351,8 +351,8 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
 
         # Calculate bills using URDB rates
         if use_urdb_rates
-
-          electricity_bill_results += "|#{elec_eia_id}:"
+          electricity_bill_results += '|' if electricity_bill_results.empty?
+          electricity_bill_results += "#{elec_eia_id}:"
 
           elec_bills = {}
           # get annual percent increase for state
@@ -450,47 +450,51 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
           electricity_bill_results += "#{elec_bill_values[hi_i].round.to_i}:#{elec_bills.key(elec_bill_values[hi_i])}:"
           electricity_bill_results += "#{mean_bill}:"
           # electricity_bill_results += "#{median_bill}:"
-          electricity_bill_results += n_bills.to_s
+          electricity_bill_results += "#{n_bills}|"
         end
       end
 
       # calculate state averages
       # Electricity bill
-      state_avg_elec_results += "|#{state_abbreviation}:"
+      state_avg_elec_results += '|' if state_avg_elec_results.empty?
+      state_avg_elec_results += "#{state_abbreviation}:"
       elec_rate_dollars_per_kwh = elec_prices[state_abbreviation]
       total_elec_utility_bill_dollars = (tot_elec_kwh * elec_rate_dollars_per_kwh).round.to_i
-      state_avg_elec_results += total_elec_utility_bill_dollars.to_s
+      state_avg_elec_results += "#{total_elec_utility_bill_dollars}|"
 
       # Natural Gas Bill
       unless tot_ng_kbtu.zero?
-        state_avg_ng_results += "|#{state_abbreviation}:"
+        state_avg_ng_results += '|' if state_avg_ng_results.empty?
+        state_avg_ng_results += "#{state_abbreviation}:"
         ng_dollars_per_kbtu = ng_prices[state_abbreviation]
         ng_bill_dollars = (tot_ng_kbtu * ng_dollars_per_kbtu).round.to_i
-        state_avg_ng_results += ng_bill_dollars.to_s
+        state_avg_ng_results += "#{ng_bill_dollars}|"
       end
 
       # Propane Bill
       unless tot_propane_kbtu.zero?
-        state_avg_propane_results += "|#{state_abbreviation}:"
+        state_avg_propane_results += '|' if state_avg_propane_results.empty?
+        state_avg_propane_results += "#{state_abbreviation}:"
         propane_dollars_per_kbtu = propane_prices[state_abbreviation]
         propane_bill_dollars = (tot_propane_kbtu * propane_dollars_per_kbtu).round.to_i
-        state_avg_propane_results += propane_bill_dollars.to_s
+        state_avg_propane_results += "#{propane_bill_dollars}|"
       end
 
       # fuel oil bill
       unless tot_fueloil_kbtu.zero?
-        state_avg_fueloil_results += "|#{state_abbreviation}:"
+        state_avg_fueloil_results += '|' if state_avg_fueloil_results.empty?
+        state_avg_fueloil_results += "#{state_abbreviation}:"
         fo_dollars_per_kbtu = fueloil_prices[state_abbreviation]
         fo_dollars = (tot_fueloil_kbtu * fo_dollars_per_kbtu).round.to_i
-        state_avg_fueloil_results += fo_dollars.to_s
+        state_avg_fueloil_results += "#{fo_dollars}|"
       end
     end
 
-    runner.registerValue('electricity_utility_bill_results', "#{electricity_bill_results}|")
-    runner.registerValue('state_avg_electricity_cost_results', "#{state_avg_elec_results}|")
-    runner.registerValue('state_avg_naturalgas_cost_results', "#{state_avg_ng_results}|")
-    runner.registerValue('state_avg_propane_cost_results', "#{state_avg_propane_results}|")
-    runner.registerValue('state_avg_fueloil_cost_results', "#{state_avg_fueloil_results}|")
+    runner.registerValue('electricity_utility_bill_results', "#{electricity_bill_results}")
+    runner.registerValue('state_avg_electricity_cost_results', "#{state_avg_elec_results}")
+    runner.registerValue('state_avg_naturalgas_cost_results', "#{state_avg_ng_results}")
+    runner.registerValue('state_avg_propane_cost_results', "#{state_avg_propane_results}")
+    runner.registerValue('state_avg_fueloil_cost_results', "#{state_avg_fueloil_results}")
 
     # District Heating Bills
     # TODO have not found any source of rates beyond data for individual utilities
