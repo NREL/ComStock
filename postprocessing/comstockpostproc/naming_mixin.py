@@ -231,6 +231,8 @@ class NamingMixin():
         'out.emissions.natural_gas..co2e_kg',
         'out.emissions.fuel_oil..co2e_kg',
         'out.emissions.propane..co2e_kg',
+        'out.emissions.district_cooling..co2e_kg',
+        'out.emissions.district_heating..co2e_kg',
         'out.emissions.electricity.egrid_2021_subregion..co2e_kg'
     ]
 
@@ -239,6 +241,8 @@ class NamingMixin():
         'out.emissions.natural_gas..co2e_kg',
         'out.emissions.fuel_oil..co2e_kg',
         'out.emissions.propane..co2e_kg',
+        'out.emissions.district_cooling..co2e_kg',
+        'out.emissions.district_heating..co2e_kg',
         'out.emissions.electricity.lrmer_mid_case_15_2023_start..co2e_kg'
 
     ]
