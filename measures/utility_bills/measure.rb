@@ -215,11 +215,11 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     potential_tracts = region_to_tract_map[sampling_region]
     runner.registerInfo("For sampling region #{sampling_region}, there are #{potential_tracts.size} potential tracts")
 
-    state_fips_from_tract = ->(gisjoin) { gisjoin[1,2] }
+    state_fips_from_tract = ->(gisjoin) { gisjoin[1, 2] }
 
     potential_state_fips = potential_tracts.map { |tract| state_fips_from_tract.call(tract) }.uniq
     state_abbrev_to_fips = JSON.parse(File.read(File.join(File.dirname(__FILE__), 'resources', 'state_abbrev_to_fips.json')))
-    potential_state_abbrevs = potential_state_fips.map { |f| state_abbrev_to_fips.key(f)}
+    potential_state_abbrevs = potential_state_fips.map { |f| state_abbrev_to_fips.key(f) }
 
     runner.registerInfo("For sampling region #{sampling_region}, potential states are #{potential_state_abbrevs}")
 
@@ -231,12 +231,12 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     end
 
     # Look up the utility EIA IDs based on the potential census tracts for the sampling region
-    state_eia_map = Hash.new { |h,k| h[k] = Array.new }
+    state_eia_map = Hash.new { |h, k| h[k] = [] }
     elec_eia_ids = []
     potential_tracts.each do |tract|
       state_abbrev = state_abbrev_to_fips.key(state_fips_from_tract.call(tract))
       elec_util_id = tract_to_elec_util[tract]
-      state_eia_map[state_abbrev] << elec_util_id unless (state_eia_map[state_abbrev].include?(elec_util_id) || elec_util_id.nil?)
+      state_eia_map[state_abbrev] << elec_util_id unless state_eia_map[state_abbrev].include?(elec_util_id) || elec_util_id.nil?
     end
 
     # load files
@@ -283,15 +283,14 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     end
 
     # concatenated output strings
-    electricity_bill_results = ""
-    state_avg_elec_results = ""
-    state_avg_ng_results = ""
-    state_avg_propane_results = ""
-    state_avg_fueloil_results = ""
+    electricity_bill_results = ''
+    state_avg_elec_results = ''
+    state_avg_ng_results = ''
+    state_avg_propane_results = ''
+    state_avg_fueloil_results = ''
 
 
     state_eia_map.keys.each do |state_abbreviation|
-
       elec_eia_ids = state_eia_map[state_abbreviation]
       
       if elec_eia_ids.empty?
@@ -299,7 +298,6 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
       end
 
       elec_eia_ids.each do |elec_eia_id|
-
         # Find all the electric rates for this utility
         all_rates = Dir.glob(File.join(File.dirname(__FILE__), "resources/elec_rates/#{elec_eia_id}/*.json"))
         if all_rates.empty?
@@ -452,7 +450,7 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
           electricity_bill_results += "#{elec_bill_values[hi_i].round.to_i}:#{elec_bills.key(elec_bill_values[hi_i])}:"
           electricity_bill_results += "#{mean_bill}:"
           # electricity_bill_results += "#{median_bill}:"
-          electricity_bill_results += "#{n_bills}"
+          electricity_bill_results += n_bills.to_s
         end
       end
       
@@ -461,14 +459,14 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
       state_avg_elec_results += "|#{state_abbreviation}:"
       elec_rate_dollars_per_kwh = elec_prices[state_abbreviation]
       total_elec_utility_bill_dollars = (tot_elec_kwh * elec_rate_dollars_per_kwh).round.to_i
-      state_avg_elec_results += "#{total_elec_utility_bill_dollars}"
+      state_avg_elec_results += total_elec_utility_bill_dollars.to_s
 
       # Natural Gas Bill
       unless tot_ng_kbtu.zero?
         state_avg_ng_results += "|#{state_abbreviation}:"
         ng_dollars_per_kbtu = ng_prices[state_abbreviation]
         ng_bill_dollars = (tot_ng_kbtu * ng_dollars_per_kbtu).round.to_i
-        state_avg_ng_results += "#{ng_bill_dollars}"
+        state_avg_ng_results += ng_bill_dollars.to_s
       end
 
       # Propane Bill
@@ -476,7 +474,7 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
         state_avg_propane_results += "|#{state_abbreviation}:"
         propane_dollars_per_kbtu = propane_prices[state_abbreviation]
         propane_bill_dollars = (tot_propane_kbtu * propane_dollars_per_kbtu).round.to_i
-        state_avg_propane_results += "#{propane_bill_dollars}"
+        state_avg_propane_results += propane_bill_dollars.to_s
       end
 
       # fuel oil bill
@@ -484,7 +482,7 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
         state_avg_fueloil_results += "|#{state_abbreviation}:"
         fo_dollars_per_kbtu = fueloil_prices[state_abbreviation]
         fo_dollars = (tot_fueloil_kbtu * fo_dollars_per_kbtu).round.to_i
-        state_avg_fueloil_results += "#{fo_dollars}"
+        state_avg_fueloil_results += fo_dollars.to_s
       end
     end
 
