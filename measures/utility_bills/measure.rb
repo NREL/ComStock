@@ -499,8 +499,8 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     runner.registerValue('electricity_utility_bill_results', "#{electricity_bill_results}|")
     runner.registerValue('state_avg_electricity_cost_results', "#{state_avg_elec_results}|")
     runner.registerValue('state_avg_naturalgas_cost_results', "#{state_avg_ng_results}|")
-    runner.registerValue('state_avg_propane_cost_results', "#{state_avg_propane_results}")
-    runner.registerValue('state_avg_fueloil_cost_results', "#{state_avg_fueloil_results}")
+    runner.registerValue('state_avg_propane_cost_results', "#{state_avg_propane_results}|")
+    runner.registerValue('state_avg_fueloil_cost_results', "#{state_avg_fueloil_results}|")
 
     # District Heating Bills
     # TODO have not found any source of rates beyond data for individual utilities
