@@ -292,7 +292,7 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
 
     state_eia_map.keys.each do |state_abbreviation|
       elec_eia_ids = state_eia_map[state_abbreviation]
-      
+
       if elec_eia_ids.empty?
         runner.registerWarning("No EIA Utility IDs found for potential tracts in #{state_abbreviation}. Only state averages will be calculated.")
       end
@@ -376,14 +376,14 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
 
             # Call calc_elec_bill.py
             py = if os == :windows || os == :macosx
-                'python' # Assumes running buildstockbatch from a Conda shell
-                # 'conda run -n pysam python' # for local testing 
-                elsif os == :linux
-                  'python3.11' # Assumes running buildstockbatch from ComStock docker image
-                else
-                  runner.registerError("Could not find python command for #{os}")
-                  return false
-                end
+                   'python' # Assumes running buildstockbatch from a Conda shell
+                 # 'conda run -n pysam python' # for local testing
+                 elsif os == :linux
+                   'python3.11' # Assumes running buildstockbatch from ComStock docker image
+                 else
+                   runner.registerError("Could not find python command for #{os}")
+                   return false
+                 end
 
             command = "#{py} #{calc_elec_bill_py_path} #{elec_csv_path} #{rate_path}"
             stdout_str, stderr_str, status = Open3.capture3(command)
@@ -453,7 +453,7 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
           electricity_bill_results += n_bills.to_s
         end
       end
-      
+
       # calculate state averages
       # Electricity bill
       state_avg_elec_results += "|#{state_abbreviation}:"
