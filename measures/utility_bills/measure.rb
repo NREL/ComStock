@@ -215,21 +215,13 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     potential_tracts = region_to_tract_map[sampling_region]
     runner.registerInfo("For sampling region #{sampling_region}, there are #{potential_tracts.size} potential tracts")
 
-    state_fips_from_tract = ->(gisjoin) { gisjoin[1,2] }
+    state_fips_from_tract = ->(gisjoin) { gisjoin[1, 2] }
 
     potential_state_fips = potential_tracts.map { |tract| state_fips_from_tract.call(tract) }.uniq
     state_abbrev_to_fips = JSON.parse(File.read(File.join(File.dirname(__FILE__), 'resources', 'state_abbrev_to_fips.json')))
-    potential_state_abbrevs = potential_state_fips.map { |f| state_abbrev_to_fips.key(f)}
+    potential_state_abbrevs = potential_state_fips.map { |f| state_abbrev_to_fips.key(f) }
 
     runner.registerInfo("For sampling region #{sampling_region}, potential states are #{potential_state_abbrevs}")
-
-    # Get the state abbreviation
-    state_abbreviation = model.getBuilding.additionalProperties.getFeatureAsString('state_abbreviation')
-    if state_abbreviation.empty?
-      runner.registerError('Cannot find state_abbreviation for building, cannot calculate electricity bills.')
-      return false
-    end
-    state_abbreviation = state_abbreviation.get
 
     # Load the tract to electric utility EIA ID mapping
     tract_to_elec_util_path = File.join(File.dirname(__FILE__), 'resources', 'tract_to_elec_util.csv')
@@ -239,12 +231,12 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     end
 
     # Look up the utility EIA IDs based on the potential census tracts for the sampling region
-    state_eia_map = Hash.new { |h,k| h[k] = Array.new }
+    state_eia_map = Hash.new { |h, k| h[k] = [] }
     elec_eia_ids = []
     potential_tracts.each do |tract|
       state_abbrev = state_abbrev_to_fips.key(state_fips_from_tract.call(tract))
       elec_util_id = tract_to_elec_util[tract]
-      state_eia_map[state_abbrev] << elec_util_id unless (state_eia_map[state_abbrev].include?(elec_util_id) || elec_util_id.nil?)
+      state_eia_map[state_abbrev] << elec_util_id unless state_eia_map[state_abbrev].include?(elec_util_id) || elec_util_id.nil?
     end
 
     # load files
@@ -291,23 +283,21 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     end
 
     # concatenated output strings
-    electricity_bill_results = ""
-    state_avg_elec_results = ""
-    state_avg_ng_results = ""
-    state_avg_propane_results = ""
-    state_avg_fueloil_results = ""
+    electricity_bill_results = ''
+    state_avg_elec_results = ''
+    state_avg_ng_results = ''
+    state_avg_propane_results = ''
+    state_avg_fueloil_results = ''
 
 
     state_eia_map.keys.each do |state_abbreviation|
-
       elec_eia_ids = state_eia_map[state_abbreviation]
-      
+
       if elec_eia_ids.empty?
         runner.registerWarning("No EIA Utility IDs found for potential tracts in #{state_abbreviation}. Only state averages will be calculated.")
       end
 
       elec_eia_ids.each do |elec_eia_id|
-
         # Find all the electric rates for this utility
         all_rates = Dir.glob(File.join(File.dirname(__FILE__), "resources/elec_rates/#{elec_eia_id}/*.json"))
         if all_rates.empty?
@@ -361,8 +351,8 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
 
         # Calculate bills using URDB rates
         if use_urdb_rates
-
-          electricity_bill_results += "|#{elec_eia_id}:"
+          electricity_bill_results += '|' if electricity_bill_results.empty?
+          electricity_bill_results += "#{elec_eia_id}:"
 
           elec_bills = {}
           # get annual percent increase for state
@@ -386,14 +376,14 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
 
             # Call calc_elec_bill.py
             py = if os == :windows || os == :macosx
-                'python' # Assumes running buildstockbatch from a Conda shell
-                # 'conda run -n pysam python' # for local testing 
-                elsif os == :linux
-                  'python3.11' # Assumes running buildstockbatch from ComStock docker image
-                else
-                  runner.registerError("Could not find python command for #{os}")
-                  return false
-                end
+                   'python' # Assumes running buildstockbatch from a Conda shell
+                 # 'conda run -n pysam python' # for local testing
+                 elsif os == :linux
+                   'python3.11' # Assumes running buildstockbatch from ComStock docker image
+                 else
+                   runner.registerError("Could not find python command for #{os}")
+                   return false
+                 end
 
             command = "#{py} #{calc_elec_bill_py_path} #{elec_csv_path} #{rate_path}"
             stdout_str, stderr_str, status = Open3.capture3(command)
@@ -460,45 +450,49 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
           electricity_bill_results += "#{elec_bill_values[hi_i].round.to_i}:#{elec_bills.key(elec_bill_values[hi_i])}:"
           electricity_bill_results += "#{mean_bill}:"
           # electricity_bill_results += "#{median_bill}:"
-          electricity_bill_results += "#{n_bills}"
+          electricity_bill_results += "#{n_bills}|"
         end
       end
-      
+
       # calculate state averages
       # Electricity bill
-      state_avg_elec_results += "|#{state_abbreviation}:"
+      state_avg_elec_results += '|' if state_avg_elec_results.empty?
+      state_avg_elec_results += "#{state_abbreviation}:"
       elec_rate_dollars_per_kwh = elec_prices[state_abbreviation]
       total_elec_utility_bill_dollars = (tot_elec_kwh * elec_rate_dollars_per_kwh).round.to_i
-      state_avg_elec_results += "#{total_elec_utility_bill_dollars}"
+      state_avg_elec_results += "#{total_elec_utility_bill_dollars}|"
 
       # Natural Gas Bill
       unless tot_ng_kbtu.zero?
-        state_avg_ng_results += "|#{state_abbreviation}:"
+        state_avg_ng_results += '|' if state_avg_ng_results.empty?
+        state_avg_ng_results += "#{state_abbreviation}:"
         ng_dollars_per_kbtu = ng_prices[state_abbreviation]
         ng_bill_dollars = (tot_ng_kbtu * ng_dollars_per_kbtu).round.to_i
-        state_avg_ng_results += "#{ng_bill_dollars}"
+        state_avg_ng_results += "#{ng_bill_dollars}|"
       end
 
       # Propane Bill
       unless tot_propane_kbtu.zero?
-        state_avg_propane_results += "|#{state_abbreviation}:"
+        state_avg_propane_results += '|' if state_avg_propane_results.empty?
+        state_avg_propane_results += "#{state_abbreviation}:"
         propane_dollars_per_kbtu = propane_prices[state_abbreviation]
         propane_bill_dollars = (tot_propane_kbtu * propane_dollars_per_kbtu).round.to_i
-        state_avg_propane_results += "#{propane_bill_dollars}"
+        state_avg_propane_results += "#{propane_bill_dollars}|"
       end
 
       # fuel oil bill
       unless tot_fueloil_kbtu.zero?
-        state_avg_fueloil_results += "|#{state_abbreviation}:"
+        state_avg_fueloil_results += '|' if state_avg_fueloil_results.empty?
+        state_avg_fueloil_results += "#{state_abbreviation}:"
         fo_dollars_per_kbtu = fueloil_prices[state_abbreviation]
-        fo_dollars = (tot_fo_kbtu * fo_dollars_per_kbtu).round.to_i
-        state_avg_fueloil_results += "#{fo_dollars}"
+        fo_dollars = (tot_fueloil_kbtu * fo_dollars_per_kbtu).round.to_i
+        state_avg_fueloil_results += "#{fo_dollars}|"
       end
     end
 
-    runner.registerValue('electricity_utility_bill_results', "#{electricity_bill_results}|")
-    runner.registerValue('state_avg_electricity_cost_results', "#{state_avg_elec_results}|")
-    runner.registerValue('state_avg_naturalgas_cost_results', "#{state_avg_ng_results}|")
+    runner.registerValue('electricity_utility_bill_results', "#{electricity_bill_results}")
+    runner.registerValue('state_avg_electricity_cost_results', "#{state_avg_elec_results}")
+    runner.registerValue('state_avg_naturalgas_cost_results', "#{state_avg_ng_results}")
     runner.registerValue('state_avg_propane_cost_results', "#{state_avg_propane_results}")
     runner.registerValue('state_avg_fueloil_cost_results', "#{state_avg_fueloil_results}")
 
