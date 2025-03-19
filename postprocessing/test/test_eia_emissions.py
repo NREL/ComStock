@@ -34,7 +34,7 @@ def test_eia_emissions():
         cbecs_year = 2018,
         truth_data_version='v01',
         color_hex='#009E73',
-        reload_from_csv=True, # True since CSV already made and want faster reload times
+        reload_from_csv=False, # True since CSV already made and want faster reload times
         )
 
     eia = comstockpostproc.eia.EIA(
