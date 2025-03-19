@@ -354,7 +354,13 @@ class UpgradeHvacChillerTest < Minitest::Test
       'Pump Mass Flow Rate',
       'Pump Outlet Temperature',
       'Cooling Tower Fan Electricity Rate',
-      'Cooling Tower Outlet Temperature'
+      'Cooling Tower Inlet Temperature',
+      'Cooling Tower Outlet Temperature',
+      'Cooling Tower Heat Transfer Rate',
+      'Cooling Tower Mass Flow Rate',
+      'Cooling Tower Fan Part Load Ratio',
+      'Cooling Tower Air Flow Rate Ratio',
+      'Cooling Tower Operating Cells Count'
     ]
     out_vars.each do |out_var_name|
         ov = OpenStudio::Model::OutputVariable.new('ov', model)
