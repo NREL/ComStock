@@ -551,15 +551,15 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
       annual_natural_gas_emissions_pm_kg += natural_gas_values.map { |v| v * j_to_kbtu * natural_gas_emissions_factor_pm_kg_per_kbtu }.sum
       annual_natural_gas_emissions_so2_kg += natural_gas_values.map { |v| v * j_to_kbtu * natural_gas_emissions_factor_so2_kg_per_kbtu }.sum
     end
-    runner.registerInfo("Annual hourly natural gas emissions (kg CO2e): #{annual_natural_gas_emissions_co2e_kg.round(2)}")
+    runner.registerInfo("Annual natural gas emissions (kg CO2e): #{annual_natural_gas_emissions_co2e_kg.round(2)}")
     runner.registerValue('annual_natural_gas_ghg_emissions_kg', annual_natural_gas_emissions_co2e_kg)
-    runner.registerInfo("Annual hourly natural gas NOx emissions (kg): #{annual_natural_gas_emissions_nox_kg}")
+    runner.registerInfo("Annual natural gas NOx emissions (kg): #{annual_natural_gas_emissions_nox_kg}")
     runner.registerValue('annual_natural_gas_nox_emissions_kg', annual_natural_gas_emissions_nox_kg)
-    runner.registerInfo("Annual hourly natural gas CO emissions (kg): #{annual_natural_gas_emissions_co_kg}")
+    runner.registerInfo("Annual natural gas CO emissions (kg): #{annual_natural_gas_emissions_co_kg}")
     runner.registerValue('annual_natural_gas_co_emissions_kg', annual_natural_gas_emissions_co_kg)
-    runner.registerInfo("Annual hourly natural gas PM emissions (kg): #{annual_natural_gas_emissions_pm_kg}")
+    runner.registerInfo("Annual natural gas PM emissions (kg): #{annual_natural_gas_emissions_pm_kg}")
     runner.registerValue('annual_natural_gas_pm_emissions_kg', annual_natural_gas_emissions_pm_kg)
-    runner.registerInfo("Annual hourly natural gas SO2 emissions (kg): #{annual_natural_gas_emissions_so2_kg}")
+    runner.registerInfo("Annual natural gas SO2 emissions (kg): #{annual_natural_gas_emissions_so2_kg}")
     runner.registerValue('annual_natural_gas_so2_emissions_kg', annual_natural_gas_emissions_so2_kg)
 
     # get run period fuel oil values
@@ -579,15 +579,15 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
       annual_fuel_oil_emissions_pm_kg += fuel_oil_values.map { |v| v * j_to_kbtu * fuel_oil_emissions_factor_pm_kg_per_kbtu }.sum
       annual_fuel_oil_emissions_so2_kg += fuel_oil_values.map { |v| v * j_to_kbtu * fuel_oil_emissions_factor_so2_kg_per_kbtu }.sum
     end
-    runner.registerInfo("Annual hourly fuel oil emissions (kg CO2e): #{annual_fuel_oil_emissions_co2e_kg.round(2)}")
+    runner.registerInfo("Annual fuel oil emissions (kg CO2e): #{annual_fuel_oil_emissions_co2e_kg.round(2)}")
     runner.registerValue('annual_fuel_oil_ghg_emissions_kg', annual_fuel_oil_emissions_co2e_kg)
-    runner.registerInfo("Annual hourly fuel oil NOx emissions (kg): #{annual_fuel_oil_emissions_nox_kg}")
+    runner.registerInfo("Annual fuel oil NOx emissions (kg): #{annual_fuel_oil_emissions_nox_kg}")
     runner.registerValue('annual_fuel_oil_nox_emissions_kg', annual_fuel_oil_emissions_nox_kg)
-    runner.registerInfo("Annual hourly fuel oil CO emissions (kg): #{annual_fuel_oil_emissions_co_kg}")
+    runner.registerInfo("Annual fuel oil CO emissions (kg): #{annual_fuel_oil_emissions_co_kg}")
     runner.registerValue('annual_fuel_oil_co_emissions_kg', annual_fuel_oil_emissions_co_kg)
-    runner.registerInfo("Annual hourly fuel oil PM emissions (kg): #{annual_fuel_oil_emissions_pm_kg}")
+    runner.registerInfo("Annual fuel oil PM emissions (kg): #{annual_fuel_oil_emissions_pm_kg}")
     runner.registerValue('annual_fuel_oil_pm_emissions_kg', annual_fuel_oil_emissions_pm_kg)
-    runner.registerInfo("Annual hourly fuel oil SO2 emissions (kg): #{annual_fuel_oil_emissions_so2_kg}")
+    runner.registerInfo("Annual fuel oil SO2 emissions (kg): #{annual_fuel_oil_emissions_so2_kg}")
     runner.registerValue('annual_fuel_oil_so2_emissions_kg', annual_fuel_oil_emissions_so2_kg)
 
     # get run period propane values
@@ -607,15 +607,15 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
       annual_propane_emissions_pm_kg += propane_values.map { |val| val * j_to_kbtu * propane_emissions_factor_pm_kg_per_kbtu }.sum
       annual_propane_emissions_so2_kg += propane_values.map { |val| val * j_to_kbtu * propane_emissions_factor_so2_kg_per_kbtu }.sum
     end
-    runner.registerInfo("Annual hourly propane emissions (kg CO2e): #{annual_propane_emissions_co2e_kg.round(2)}")
+    runner.registerInfo("Annual propane emissions (kg CO2e): #{annual_propane_emissions_co2e_kg.round(2)}")
     runner.registerValue('annual_propane_ghg_emissions_kg', annual_propane_emissions_co2e_kg)
-    runner.registerInfo("Annual hourly propane NOx emissions (kg): #{annual_propane_emissions_nox_kg}")
+    runner.registerInfo("Annual propane NOx emissions (kg): #{annual_propane_emissions_nox_kg}")
     runner.registerValue('annual_propane_nox_emissions_kg', annual_propane_emissions_nox_kg)
-    runner.registerInfo("Annual hourly propane CO emissions (kg): #{annual_propane_emissions_co_kg}")
+    runner.registerInfo("Annual propane CO emissions (kg): #{annual_propane_emissions_co_kg}")
     runner.registerValue('annual_propane_co_emissions_kg', annual_propane_emissions_co_kg)
-    runner.registerInfo("Annual hourly propane PM emissions (kg): #{annual_propane_emissions_pm_kg}")
+    runner.registerInfo("Annual propane PM emissions (kg): #{annual_propane_emissions_pm_kg}")
     runner.registerValue('annual_propane_pm_emissions_kg', annual_propane_emissions_pm_kg)
-    runner.registerInfo("Annual hourly propane SO2 emissions (kg): #{annual_propane_emissions_so2_kg}")
+    runner.registerInfo("Annual propane SO2 emissions (kg): #{annual_propane_emissions_so2_kg}")
     runner.registerValue('annual_propane_so2_emissions_kg', annual_propane_emissions_so2_kg)
 
     # get run period district cooling values
