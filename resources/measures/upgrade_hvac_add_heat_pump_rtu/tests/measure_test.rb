@@ -903,9 +903,9 @@ class AddHeatPumpRtuTest < Minitest::Test
   # # Single building result examples
   # def test_single_building_result_examples
   #   osm_epw_pair = {
-  #     'example_model_AK_380.osm' => 'USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw',
-  #     'example_model_NM_380.osm' => 'USA_NM_Albuquerque.Intl.AP.723650_TMY3.epw',
-  #     'example_model_HI_380.osm' => 'USA_HI_Honolulu.Intl.AP.911820_TMY3.epw',
+  #     # '380_Small_Office_psz_gas_1zone_4a.osm' => 'USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw',
+  #     # '380_Small_Office_psz_gas_1zone_4a.osm' => 'USA_NM_Albuquerque.Intl.AP.723650_TMY3.epw',
+  #     '380_Small_Office_psz_gas_1zone_4a.osm' => 'USA_HI_Honolulu.Intl.AP.911820_TMY3.epw',
   #   }
 
   #   test_name = 'test_single_building_result_examples'
@@ -916,10 +916,6 @@ class AddHeatPumpRtuTest < Minitest::Test
 
   #     osm_path = model_input_path(osm_name)
   #     epw_path = epw_input_path(epw_name)
-
-  #     puts("### DEBUGGING: ----------------------------------------------------------")
-  #     puts("### DEBUGGING: osm_path = #{osm_path}")
-  #     puts("### DEBUGGING: epw_path = #{epw_path}")
 
   #     # Create an instance of the measure
   #     measure = AddHeatPumpRtu.new
@@ -941,12 +937,16 @@ class AddHeatPumpRtuTest < Minitest::Test
   #         argument_map[arg.name] = sizing_run
   #       when 'hprtu_scenario'
   #         hprtu_scenario = arguments[idx].clone
-  #         hprtu_scenario.setValue('variable_speed_high_eff') # variable_speed_high_eff, two_speed_standard_eff
+  #         hprtu_scenario.setValue('two_speed_standard_eff') # variable_speed_high_eff, two_speed_standard_eff
   #         argument_map[arg.name] = hprtu_scenario
   #       when 'performance_oversizing_factor'
   #         performance_oversizing_factor = arguments[idx].clone
-  #         performance_oversizing_factor.setValue(0.25)
+  #         performance_oversizing_factor.setValue(0.0)
   #         argument_map[arg.name] = performance_oversizing_factor
+  #       when 'window'
+  #         window = arguments[idx].clone
+  #         window.setValue(false)
+  #         argument_map[arg.name] = window
   #       when 'debug_verbose'
   #         debug_verbose = arguments[idx].clone
   #         debug_verbose.setValue(true)
