@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>utility_bills</name>
   <uid>2a3442c1-944d-4e91-9e11-11e0cf368c64</uid>
-  <version_id>a0333834-1c03-43a7-aed2-9f401e81e01b</version_id>
-  <version_modified>2024-11-12T18:33:53Z</version_modified>
+  <version_id>d856ffb4-a81f-4a36-92e9-f0437584ef01</version_id>
+  <version_modified>2025-03-07T21:05:19Z</version_modified>
   <xml_checksum>15BF4E57</xml_checksum>
   <class_name>UtilityBills</class_name>
   <display_name>Utility Bills</display_name>
@@ -33,7 +33,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>EB001E86</checksum>
+      <checksum>7AB7FFF3</checksum>
     </file>
     <file>
       <filename>calc_elec_bill.py</filename>
@@ -63810,6 +63810,36 @@
       <checksum>44BC4CEF</checksum>
     </file>
     <file>
+      <filename>sampling_region_to_tracts.json</filename>
+      <filetype>json</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>DC447719</checksum>
+    </file>
+    <file>
+      <filename>sampling_region_utils.ipynb</filename>
+      <filetype>ipynb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>5B808B9F</checksum>
+    </file>
+    <file>
+      <filename>sampling_regions_v1.json</filename>
+      <filetype>json</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>DA8E0F7C</checksum>
+    </file>
+    <file>
+      <filename>state_abbrev_to_fips.json</filename>
+      <filetype>json</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>48EEC65F</checksum>
+    </file>
+    <file>
+      <filename>tract.json</filename>
+      <filetype>json</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>A6C009BA</checksum>
+    </file>
+    <file>
       <filename>tract_to_elec_util.csv</filename>
       <filetype>csv</filetype>
       <usage_type>resource</usage_type>
@@ -63849,7 +63879,7 @@
       <filename>utility_bills_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>9E51273B</checksum>
+      <checksum>1DD293FB</checksum>
     </file>
   </files>
 </measure>
