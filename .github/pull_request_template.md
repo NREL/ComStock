@@ -23,7 +23,8 @@ Author pull request checklist:
  - [ ] Updated measure .xml(s)
  - [ ] Register values added to `comstock_column_definitions.csv`
  - [ ] Both `options_lookup.tsv` files updated
- - [ ] 10k+ test run and check failure rate to make sure no new errors were introduced
+ - [ ] 10k+ test run
+ - [ ] Failure rate from test run (X%). Check that no new errors were introduced.
  - [ ] Change documentation written
  - [ ] Measure documentation written
  - [ ] ComStock documentation updated
