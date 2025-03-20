@@ -245,7 +245,7 @@ class DfThermostatControlLoadShedTest < Minitest::Test
 
       # set arguments:
       cambium_scenario = arguments[8].clone
-      assert(cambium_scenario.setValue('LRMER_LowRECost_30'))#
+      assert(cambium_scenario.setValue('LRMER_MidCase_15'))#
       argument_map['cambium_scenario'] = cambium_scenario
 
       # # set arguments:
@@ -264,18 +264,21 @@ class DfThermostatControlLoadShedTest < Minitest::Test
       # to check that something changed in the model, load the model and the check the objects match expected new value
       model = load_model(model_output_path(instance_test_name))
 
-      thermostats = model.getThermostatSetpointDualSetpoints
-      nts_clg = 0
-      nts_htg = 0
-      thermostats.each do |thermostat|
-        clg_sch_name = thermostat.coolingSetpointTemperatureSchedule.get.name.to_s
-        nts_clg += 1 if clg_sch_name.include?(' df_adjusted')
-        heat_sch_name = thermostat.heatingSetpointTemperatureSchedule.get.name.to_s
-        nts_htg += 1 if heat_sch_name.include?(' df_adjusted')
+      # quick check on schedule update
+      if set[:result] == 'Success'
+        thermostats = model.getThermostatSetpointDualSetpoints
+        nts_clg = 0
+        nts_htg = 0
+        thermostats.each do |thermostat|
+          clg_sch_name = thermostat.coolingSetpointTemperatureSchedule.get.name.to_s
+          nts_clg += 1 if clg_sch_name.include?(' df_adjusted')
+          heat_sch_name = thermostat.heatingSetpointTemperatureSchedule.get.name.to_s
+          nts_htg += 1 if heat_sch_name.include?(' df_adjusted')
+        end
+        puts("--- Detected #{nts_clg} df adjusted cooling schedules and #{nts_htg} df adjusted heating schedules")
+        assert(nts_clg + nts_htg > 0)
+        puts('=================================================================')
       end
-      puts("--- Detected #{nts_clg} df adjusted cooling schedules and #{nts_htg} df adjusted heating schedules")
-      assert(nts_clg + nts_htg > 0) if set[:result] == 'Success'
-      puts('=================================================================')
     end
   end
 

@@ -384,14 +384,11 @@ def model_run_simulation_on_doy(model, doy, num_timesteps_in_hr, epw_path = nil,
   # Run the sizing run
   OpenstudioStandards.run_command(cmd)
   OpenStudio.logFree(OpenStudio::Info, 'openstudio.model.Model', "Finished simulation #{run_dir} at #{Time.now.strftime('%T.%L')}")
-  sql_path = OpenStudio::Path.new("#{run_dir}/run/eplusout.sql")
   # get sql
+  sql_path = OpenStudio::Path.new("#{run_dir}/run/eplusout.sql")
+  raise 'sql file not found.' unless File.exist?(sql_path.to_s)
   sql_file = OpenStudio::SqlFile.new(sql_path)
-  raise 'sql file not initialized.' unless sql_file.is_initialized
 
-  # if sql_file.is_initialized
-  #   sql_file = sql_file.get
-  # end
   # check available timeseries extraction options
   available_env_periods = sql_file.availableEnvPeriods.to_a
   available_time_series = sql_file.availableTimeSeries.to_a
@@ -569,10 +566,10 @@ def model_run_simulation_on_part_of_year(model, max_doy, num_timesteps_in_hr, ep
   # Run the sizing run
   OpenstudioStandards.run_command(cmd)
   OpenStudio.logFree(OpenStudio::Info, 'openstudio.model.Model', "Finished simulation #{run_dir} at #{Time.now.strftime('%T.%L')}")
-  sql_path = OpenStudio::Path.new("#{run_dir}/run/eplusout.sql")
   # get sql
+  sql_path = OpenStudio::Path.new("#{run_dir}/run/eplusout.sql")
+  raise 'sql file not found.' unless File.exist?(sql_path.to_s)
   sql_file = OpenStudio::SqlFile.new(sql_path)
-  raise 'sql file not initialized.' unless sql_file.is_initialized
 
   # check available timeseries extraction options
   available_env_periods = sql_file.availableEnvPeriods.to_a
@@ -770,10 +767,10 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path = nil, ru
   # Run the sizing run
   OpenstudioStandards.run_command(cmd)
   OpenStudio.logFree(OpenStudio::Info, 'openstudio.model.Model', "Finished simulation #{run_dir} at #{Time.now.strftime('%T.%L')}")
-  sql_path = OpenStudio::Path.new("#{run_dir}/run/eplusout.sql")
   # get sql
+  sql_path = OpenStudio::Path.new("#{run_dir}/run/eplusout.sql")
+  raise 'sql file not found.' unless File.exist?(sql_path.to_s)
   sql_file = OpenStudio::SqlFile.new(sql_path)
-  raise 'sql file not initialized.' unless sql_file.is_initialized
 
   # check available timeseries extraction options
   available_env_periods = sql_file.availableEnvPeriods.to_a

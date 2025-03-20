@@ -259,17 +259,21 @@ class DFLightingControlTest < Minitest::Test
       # to check that something changed in the model, load the model and the check the objects match expected new value
       model = load_model(model_output_path(instance_test_name))
       
-      lights = model.getLightss
-      nl = 0
-      nla = 0
-      lights.each do |light|
-        light_sch_name = light.schedule.get.name.to_s
-        nla += 1 if light_sch_name.include?(' df_adjusted')
-        nl += 1
+      # quick check on schedule update
+      if set[:result] == 'Success'
+        lights = model.getLightss
+        nl = 0
+        nla = 0
+        lights.each do |light|
+          light_sch_name = light.schedule.get.name.to_s
+          puts("light schedule: #{light_sch_name}")
+          nla += 1 if light_sch_name.include?(' df_adjusted')
+          nl += 1
+        end
+        puts("--- Detected #{nla}/#{nl} df adjusted lighting schedules")
+        assert(nl == nla)
+        puts('=================================================================')
       end
-      puts("--- Detected #{nla}/#{nl} df_adjusted lighting schedules")
-      assert(nl == nla) if set[:result] == 'Success'
-      puts('=================================================================')
     end
   end
 
