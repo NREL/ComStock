@@ -285,7 +285,7 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
       # setup new cooling setpoint schedule
       heat_set_sch = thermostat.heatingSetpointTemperatureSchedule
       if heat_set_sch.empty?
-        runner.registerWarning("Thermostat '#{thermostat.name}' doesn't have a cooling setpoint schedule")
+        runner.registerWarning("Thermostat '#{thermostat.name}' doesn't have a heating setpoint schedule")
       else
         # clone of not already in hash
         if heat_set_schs.key?(heat_set_sch.get.name.to_s)
