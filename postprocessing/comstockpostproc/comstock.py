@@ -2177,10 +2177,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         util_results = meta_data.select(
             [pl.col(self.BLDG_ID), pl.col(self.UPGRADE_NAME)] + util_results_cols
         )
-        
+
         geo_data = geo_data.join(util_results, on=self.BLDG_ID, how='left')
 
-        # load tract to utility mapping 
+        # load tract to utility mapping
         file_path = os.path.join(self.truth_data_dir, self.tract_to_util_map_file_name)
         tract_to_util_map = pl.scan_csv(file_path)
 
@@ -2197,7 +2197,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                .alias(column)
             for i, column in enumerate(self.UTIL_ELEC_BILL_VALS)]
         )
-        
+
         # for each row, select the state average utility cost based on the allocated state
         state_expr = r"\|{}:(.+?)\|"
 
@@ -2222,7 +2222,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     )
             for column in self.UTIL_ELEC_BILL_VALS]
         )
-        
+
         # calculate the weighted utility bill columns directly on the fkt
         conv_fact = self.conv_fact('usd', self.weighted_utility_units)
         cost_cols = (self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS)
@@ -2230,7 +2230,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # get weighted col name
             weighted_col_name = self.col_name_to_weighted(col, self.weighted_utility_units)
             self.unweighted_weighted_map.update({col: weighted_col_name})
-        
+
         # calculate weighted utility costs
         geo_data = geo_data.with_columns(
             [pl.col(col)
@@ -2273,8 +2273,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # aggregate the fkt weights (and and weighted utility bill results) to input geospatial resolutions
         geo_data = geo_data.select(
             [
-                pl.col(self.BLDG_WEIGHT), 
-                pl.col(self.UPGRADE_ID), 
+                pl.col(self.BLDG_WEIGHT),
+                pl.col(self.UPGRADE_ID),
                 pl.col(self.BLDG_ID),
                 pl.col(self.FLR_AREA)
             ]
@@ -2282,9 +2282,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             + weighted_util_cols
         ).groupby(
             [
-                pl.col(self.UPGRADE_ID), 
+                pl.col(self.UPGRADE_ID),
                 pl.col(self.BLDG_ID)
-            ] 
+            ]
             + geo_agg_cols
         ).agg(
             [
@@ -2324,7 +2324,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # remove utility cols from unweighted_weighted_map
         for col in (cost_cols + [self.UTIL_ELEC_BILL_NUM_BILLS]):
             self.unweighted_weighted_map.pop(col, None)
-        
+
         logger.info("Calculating weighted energy savings columns")
         # Calculate the weighted columns
         geo_data = self.add_weighted_area_energy_savings_columns(geo_data)
@@ -3065,7 +3065,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             for weighted_col in (list(abs_svgs_cols.values()) + list(pct_svgs_cols.values())):
                 input_lf = input_lf.with_columns(pl.lit(0.0).alias(weighted_col))
             return input_lf
-        
+
 
         val_and_id_cols = val_cols + geo_agg_cols + [self.BLDG_ID]
         # for col in val_and_id_cols:
