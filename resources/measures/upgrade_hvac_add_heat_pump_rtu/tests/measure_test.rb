@@ -193,7 +193,8 @@ class AddHeatPumpRtuTest < Minitest::Test
       'HVAC System Solver Iteration Count',
       'Site Outdoor Air Drybulb Temperature',
       'Heating Coil Crankcase Heater Electricity Rate',
-      'Heating Coil Defrost Electricity Rate'
+      'Heating Coil Defrost Electricity Rate',
+      'Zone Windows Total Transmitted Solar Radiation Rate',
     ]
     out_vars.each do |out_var_name|
         ov = OpenStudio::Model::OutputVariable.new('ov', model)
@@ -933,8 +934,8 @@ class AddHeatPumpRtuTest < Minitest::Test
   # # Single building result examples
   # def test_single_building_result_examples
   #   osm_epw_pair = {
-  #     '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' => 'USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw',
-  #     # '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' => 'USA_NM_Albuquerque.Intl.AP.723650_TMY3.epw',
+  #     # '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' => 'USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw',
+  #     '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' => 'USA_GA_Atlanta-Hartsfield-Jackson.Intl.AP.722190_TMY3.epw',
   #     # '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' => 'USA_HI_Honolulu.Intl.AP.911820_TMY3.epw',
   #   }
 
