@@ -114,7 +114,12 @@ class ReplaceBaselineWindows < OpenStudio::Measure::ModelMeasure
       # get old values
       old_simple_glazing_u = old_simple_glazing.uFactor
       old_simple_glazing_shgc = old_simple_glazing.solarHeatGainCoefficient
-      old_simple_glazing_vlt = old_simple_glazing.visibleTransmittance.get
+
+      if old_simple_glazing.visibleTransmittance.is_initialized
+        old_simple_glazing_vlt = old_simple_glazing.visibleTransmittance.get
+      else
+        old_simple_glazing_vlt = old_simple_glazing_shgc # if vlt is blank, E+ uses shgc
+      end
 
       # register initial condition
       runner.registerInfo("Existing windows have #{old_simple_glazing_u.round(2)} W/m2-K U-value , #{old_simple_glazing_shgc} SHGC, and #{old_simple_glazing_vlt} VLT.")
