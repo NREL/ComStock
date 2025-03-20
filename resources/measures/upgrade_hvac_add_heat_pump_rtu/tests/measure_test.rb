@@ -173,10 +173,40 @@ class AddHeatPumpRtuTest < Minitest::Test
       show_output(result)
     end
 
+    # adding output variables (for debugging)
+    out_vars = [
+      'Air System Mixed Air Mass Flow Rate',
+      'Fan Air Mass Flow Rate',
+      'Unitary System Predicted Sensible Load to Setpoint Heat Transfer Rate',
+      'Cooling Coil Total Cooling Rate',
+      'Cooling Coil Electricity Rate',
+      'Cooling Coil Runtime Fraction',
+      'Heating Coil Heating Rate',
+      'Heating Coil Electricity Rate',
+      'Heating Coil Runtime Fraction',
+      'Unitary System DX Coil Cycling Ratio',
+      'Unitary System DX Coil Speed Ratio',
+      'Unitary System DX Coil Speed Level',
+      'Unitary System Total Cooling Rate',
+      'Unitary System Total Heating Rate',
+      'Unitary System Electricity Rate',
+      'HVAC System Solver Iteration Count',
+      'Site Outdoor Air Drybulb Temperature',
+      'Heating Coil Crankcase Heater Electricity Rate',
+      'Heating Coil Defrost Electricity Rate'
+    ]
+    out_vars.each do |out_var_name|
+        ov = OpenStudio::Model::OutputVariable.new('ov', model)
+        ov.setKeyValue('*')
+        ov.setReportingFrequency('hourly')
+        ov.setVariableName(out_var_name)
+    end
+    model.getOutputControlFiles.setOutputCSV(true)
+
     # Save model
     model.save(model_output_path(test_name), true)
 
-    if run_model && result_success
+    if run_model
       puts "\nRUNNING MODEL..."
 
       std = Standard.build('90.1-2013')
@@ -903,16 +933,16 @@ class AddHeatPumpRtuTest < Minitest::Test
   # # Single building result examples
   # def test_single_building_result_examples
   #   osm_epw_pair = {
-  #     # '380_Small_Office_psz_gas_1zone_4a.osm' => 'USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw',
-  #     # '380_Small_Office_psz_gas_1zone_4a.osm' => 'USA_NM_Albuquerque.Intl.AP.723650_TMY3.epw',
-  #     '380_Small_Office_psz_gas_1zone_4a.osm' => 'USA_HI_Honolulu.Intl.AP.911820_TMY3.epw',
+  #     '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' => 'USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw',
+  #     # '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' => 'USA_NM_Albuquerque.Intl.AP.723650_TMY3.epw',
+  #     # '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' => 'USA_HI_Honolulu.Intl.AP.911820_TMY3.epw',
   #   }
 
   #   test_name = 'test_single_building_result_examples'
 
   #   puts "\n######\nTEST:#{test_name}\n######\n"
 
-  #   osm_epw_pair.each_with_index do |(osm_name, epw_name), idx|
+  #   osm_epw_pair.each_with_index do |(osm_name, epw_name), idx_run|
 
   #     osm_path = model_input_path(osm_name)
   #     epw_path = epw_input_path(epw_name)
@@ -945,7 +975,7 @@ class AddHeatPumpRtuTest < Minitest::Test
   #         argument_map[arg.name] = performance_oversizing_factor
   #       when 'window'
   #         window = arguments[idx].clone
-  #         window.setValue(false)
+  #         window.setValue(true)
   #         argument_map[arg.name] = window
   #       when 'debug_verbose'
   #         debug_verbose = arguments[idx].clone
@@ -956,9 +986,13 @@ class AddHeatPumpRtuTest < Minitest::Test
   #       end
   #     end
 
-  #     # Apply the measure to the model and optionally run the model
-  #     result = set_weather_and_apply_measure_and_run("#{test_name}_#{idx}", measure, argument_map, osm_path, epw_path, run_model: true, apply: true)
-  #     model = load_model(model_output_path("#{test_name}_#{idx}"))
+  #     # Don't apply the measure to the model and run the model
+  #     result = set_weather_and_apply_measure_and_run("#{test_name}_#{idx_run}_b", measure, argument_map, osm_path, epw_path, run_model: true, apply: false)
+  #     model = load_model(model_output_path("#{test_name}_#{idx_run}_b"))
+
+  #     # Apply the measure to the model and run the model
+  #     result = set_weather_and_apply_measure_and_run("#{test_name}_#{idx_run}_u", measure, argument_map, osm_path, epw_path, run_model: true, apply: true)
+  #     model = load_model(model_output_path("#{test_name}_#{idx_run}_u"))
 
   #   end
   # end
