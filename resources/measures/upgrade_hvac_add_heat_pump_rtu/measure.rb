@@ -938,35 +938,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     sizing_run = runner.getBoolArgumentValue('sizing_run', user_arguments)
     debug_verbose = runner.getBoolArgumentValue('debug_verbose', user_arguments)
 
-    # # adding output variables (for debugging)
-    # out_vars = [
-    #   'Air System Mixed Air Mass Flow Rate',
-    #   'Fan Air Mass Flow Rate',
-    #   'Unitary System Predicted Sensible Load to Setpoint Heat Transfer Rate',
-    #   'Cooling Coil Total Cooling Rate',
-    #   'Cooling Coil Electricity Rate',
-    #   'Cooling Coil Runtime Fraction',
-    #   'Heating Coil Heating Rate',
-    #   'Heating Coil Electricity Rate',
-    #   'Heating Coil Runtime Fraction',
-    #   'Unitary System DX Coil Cycling Ratio',
-    #   'Unitary System DX Coil Speed Ratio',
-    #   'Unitary System DX Coil Speed Level',
-    #   'Unitary System Total Cooling Rate',
-    #   'Unitary System Total Heating Rate',
-    #   'Unitary System Electricity Rate',
-    #   'HVAC System Solver Iteration Count',
-    #   'Site Outdoor Air Drybulb Temperature',
-    #   'Heating Coil Crankcase Heater Electricity Rate',
-    #   'Heating Coil Defrost Electricity Rate'
-    # ]
-    # out_vars.each do |out_var_name|
-    #     ov = OpenStudio::Model::OutputVariable.new('ov', model)
-    #     ov.setKeyValue('*')
-    #     ov.setReportingFrequency('hourly')
-    #     ov.setVariableName(out_var_name)
-    # end
-
     # build standard to use OS standards methods
     template = 'ComStock 90.1-2019'
     std = Standard.build(template)
@@ -2425,8 +2396,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     condition_final_hprtu = "The building finished with heat pump RTUs replacing the HVAC equipment for #{selected_air_loops.size} air loops."
     condition_final = [condition_final_hprtu, condition_final_roof, condition_final_window].reject(&:empty?).join(" | ")
     runner.registerFinalCondition(condition_final)
-
-    # model.getOutputControlFiles.setOutputCSV(true)
 
     true
   end
