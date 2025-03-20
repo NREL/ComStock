@@ -163,14 +163,14 @@ class NamingMixin():
     ANN_GAS_SWH_GROUP_KBTU = 'calc.enduse_group.natural_gas.water_systems.energy_consumption..kwh'
 
     # End use group energy - propane
-    ANN_PROPANE_HVAC_GROUP_KBTU = 'calc.enduse_group.propane.heating.energy_consumption..kwh'
-    ANN_PROPANE_SWH_GROUP_KBTU = 'calc.enduse_group.propane.water_systems.energy_consumption..kwh'
-    ANN_PROPANE_INTEQUIP_GROUP_KBTU = 'calc.enduse_group.propane.interior_equipment.energy_consumption..kwh'
+    ANN_PROPANE_HVAC_GROUP_KBTU = 'out.propane.heating.energy_consumption..kwh'
+    ANN_PROPANE_SWH_GROUP_KBTU = 'out.propane.water_systems.energy_consumption..kwh'
+    ANN_PROPANE_INTEQUIP_GROUP_KBTU = 'out.propane.interior_equipment.energy_consumption..kwh'
 
     # End use group energy - fuel oil
-    ANN_FUELOIL_HVAC_GROUP_KBTU = 'calc.enduse_group.fuel_oil.heating.energy_consumption..kwh'
-    ANN_FUELOIL_SWH_GROUP_KBTU = 'calc.enduse_group.fuel_oil.water_systems.energy_consumption..kwh'
-    ANN_FUELOIL_INTEQUIP_GROUP_KBTU = 'calc.enduse_group.fuel_oil.interior_equipment.energy_consumption..kwh'
+    ANN_FUELOIL_HVAC_GROUP_KBTU = 'out.fuel_oil.heating.energy_consumption..kwh'
+    ANN_FUELOIL_SWH_GROUP_KBTU = 'out.fuel_oil.water_systems.energy_consumption..kwh'
+    ANN_FUELOIL_INTEQUIP_GROUP_KBTU = 'out.fuel_oil.interior_equipment.energy_consumption..kwh'
 
     # End use group energy - district heating
     ANN_DISTHTG_HVAC_GROUP_KBTU = 'calc.enduse_group.district_heating.hvac.energy_consumption..kwh'
