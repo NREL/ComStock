@@ -204,7 +204,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # Get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(13, arguments.size)
+    assert_equal(15, arguments.size)
     assert_equal('backup_ht_fuel_scheme', arguments[0].name)
     assert_equal('performance_oversizing_factor', arguments[1].name)
     assert_equal('htg_sizing_option', arguments[2].name)
@@ -217,7 +217,9 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert_equal('econ', arguments[9].name)
     assert_equal('roof', arguments[10].name)
     assert_equal('sizing_run', arguments[11].name)
-    assert_equal('debug_verbose', arguments[12].name)
+    assert_equal('debug_verbose', arguments[12].name, 
+	assert_equal('modify_setbacks', arguments[13].name)
+    assert_equal('setback_value', arguments[14].name))
   end
 
   def calc_cfm_per_ton_singlespdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
@@ -1773,5 +1775,95 @@ class AddHeatPumpRtuTest < Minitest::Test
     # assert no difference in ERVs in upgrade model
     ervs_upgrade = model.getHeatExchangerAirToAirSensibleAndLatents
     assert_equal(ervs_baseline, ervs_upgrade)
+  end
+  
+  def test_confirm_heating_setback_change
+    # confirm that any heating setbacks are now 2F
+    # osm_name = '380_small_office_psz_gas_coil_7A.osm'#error with this
+    osm_name = 'Retail_PSZ-AC.osm'
+    epw_name = 'NE_Kearney_Muni_725526_16.epw'
+
+    test_name = 'confirm_heating_setback_change'
+
+    puts "\n######\nTEST:#{test_name}\n######\n"
+
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+
+    # Create an instance of the measure
+    measure = AddHeatPumpRtu.new
+
+    # Load the model
+    model = load_model(osm_path)
+
+    # get arguments
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+
+    # populate argument with specified hash value if specified
+    arguments.each_with_index do |arg, idx|
+      temp_arg_var = arg.clone
+      if arg.name == 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
+        argument_map[arg.name] = hprtu_scenario
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
+    end
+
+    # run the measure
+    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path,
+                                                   run_model: true)
+    assert_equal('Success', result.value.valueName)
+    model = load_model(model_output_path(__method__))
+
+
+    puts "model class #{model.class}"
+
+    schedule_deltas = [] # keep track of differences between min and max values in schedules
+    expected_deltas = [0, 2]
+
+    # Loop thru zones and look at temp setbacks
+    model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+      puts "loop class #{air_loop_hvac.class}"
+      zones = air_loop_hvac.thermalZones
+
+
+      zones.sort.each do |thermal_zone|
+        puts "zone class #{thermal_zone.class}"
+        next unless thermal_zone.thermostatSetpointDualSetpoint.is_initialized
+
+        zone_thermostat = thermal_zone.thermostatSetpointDualSetpoint.get
+        htg_schedule = zone_thermostat.heatingSetpointTemperatureSchedule
+        if htg_schedule.empty?
+          puts("Heating setpoint schedule not found for zone '#{zone.name.get}'")
+          next
+        elsif htg_schedule.get.to_ScheduleRuleset.empty?
+          puts("Schedule '#{htg_schedule.get.name.get}' is not a ScheduleRuleset, will not be adjusted")
+          next
+        else
+          htg_schedule = htg_schedule.get.to_ScheduleRuleset.get
+        end
+        profiles = [htg_schedule.defaultDaySchedule]
+        htg_schedule.scheduleRules.each { |rule| profiles << rule.daySchedule }
+        puts("profiles type #{profiles.class}") # array
+        profiles.sort.each do |tstat_profile|
+          tstat_profile.values.uniq.size
+          tstat_profile_min = tstat_profile.values.min
+          tstat_profile_max = tstat_profile.values.max
+          schedule_deltas << tstat_profile_max - tstat_profile_min # assuming that any changes in the schedule during the day represent nighttime setbacks
+        end
+      end
+    end
+
+    # Check if any of the deltas are different than the expected values
+    diff = schedule_deltas - expected_deltas
+
+    return false if diff.any?
+
+    # appear to be setbacks other than a constant setpoint or a 2F setback
+
+    true
   end
 end
