@@ -600,27 +600,6 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         hsdf.loc[:, 'census_region'] = hsdf.loc[:, 'census_region'].replace('Mid-Atlantic', 'Middle Atlantic')
         df = df.merge(hsdf, left_on=['building_type', 'size_bin', 'heating_fuel', 'cen_div'], right_on=['building_type', 'size_bin', 'heating_fuel', 'census_region'])
 
-        # Do a secondary true up for primary schools, size bin 0
-        # TODO get an HVAC TSV that supports size bins
-        # Create a version of the hvac TSV that supports only Andrew's spreadsheet allowed choices
-        ps_hsdf = hsdf.loc[hsdf.building_type == 'PrimarySchool', :].copy(deep=True)
-        allowed_hvac_types = ['PSZ-AC with electric coil', 'PSZ-HP', 'PSZ-AC with gas coil', 'PSZ-AC with gas boiler', 'PSZ-AC with district hot water']
-        hs_meta_cols = ['building_type', 'heating_fuel', 'census_region']
-        hs_numeric_cols = list(set(ps_hsdf) - set(hs_meta_cols))
-        ps_to_zero_cols = list(set(hs_numeric_cols) - set(allowed_hvac_types))
-        ps_hsdf.loc[:, ps_to_zero_cols] = 0.0
-        ps_hsdf.loc[:, hs_numeric_cols] = ps_hsdf.loc[:, hs_numeric_cols].div(ps_hsdf.loc[:, hs_numeric_cols].sum(axis=1), axis=0)
-        # Break df into primary school size bin zero and everything else - update the former and concat
-        initial_row_count = df.shape[0]
-        initial_column_count = df.shape[1]
-        indecies_to_update = (df.building_type == 'PrimarySchool') & (df.size_bin == 0)
-        to_update = df.loc[indecies_to_update, :].copy(deep=True)
-        to_update = to_update.drop(hs_numeric_cols + ['census_region'], axis=1)
-        to_update = to_update.merge(ps_hsdf, left_on=['building_type', 'heating_fuel', 'cen_div'], right_on=['building_type', 'heating_fuel', 'census_region'])
-        df = pd.concat([df.loc[~indecies_to_update, :], to_update])
-        assert(initial_row_count == df.shape[0])
-        assert(initial_column_count == df.shape[1])
-
         # Use the merged probabilities to sample in fuel type
         # Note this is system type agnostic due to the enumeration county and not readable - refer above for the idea
         # TODO can wenyi find a less dumb way to do this?
@@ -684,14 +663,31 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         buckets = pd.concat([buckets, additional_buckets])
         name_mapper = {v: k for k, v in self.BUILDING_TYPE_NAME_MAPPER.items()}
         buckets.loc[:, 'building_type'] = buckets.building_type.map(name_mapper)
-        buckets = buckets.loc[buckets.index.repeat(n_samples), :]
+        if not buckets.drop_duplicates(keep='first').shape[0] == buckets.shape[0]:
+            raise RuntimeError('Duplicates in bucket specification. Please debug.')
+        now = datetime.now()
+        date = now.strftime("%Y%m%d-%H%m")
+
+        # Remove buggy CA problem children:
         # remove 103, hospital, size_bin 0
+        buckets = buckets.loc[~(
+            (buckets.sampling_region == 103) & (buckets.building_type == 'hospital') & (buckets.size_bin == 0)
+        ), :]
         # remove 110, large_hotel, size_bin 1
-        print(buckets.loc[buckets.index.repeat(n_samples), :].value_counts().value_counts())
-        breakpoint()
-        buckets = buckets.rename(columns={'system_type': 'hvac_system_type'})
+        buckets = buckets.loc[~(
+            (buckets.sampling_region == 110) & (buckets.building_type == 'large_hotel') & (buckets.size_bin == 1)
+        ), :]
+
         buckets = buckets.reset_index(drop=True)
-        out_file = os.path.join(
-            os.path.abspath(os.path.dirname(__file__)), '..', '..', 'sampling', f'sample_input_{buckets.shape[0]}.csv'
-        )
-        buckets.to_csv(out_file, index_label='Building')
+
+        for n_sample in n_samples:
+            to_write = buckets.loc[buckets.index.repeat(n_sample), :]
+            print('Number of copies of each row groupbed by count - if multiple enteries there is an error:')
+            print(to_write.loc[to_write.index.repeat(n_sample), :].value_counts().value_counts())
+            to_write = to_write.rename(columns={'system_type': 'hvac_system_type'})
+            to_write = to_write.reset_index(drop=True)
+            out_file = os.path.join(
+                os.path.abspath(os.path.dirname(__file__)), '..', '..', 'sampling',
+                f'sample_input_{date}_{to_write.shape[0]}.csv'
+            )
+            to_write.to_csv(out_file, index_label='Building')
