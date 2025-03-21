@@ -45,6 +45,7 @@ require 'fileutils'
 require 'minitest/autorun'
 require_relative '../measure'
 require_relative '../../../../test/helpers/minitest_helper'
+require 'json'
 
 class AddHeatPumpRtuTest < Minitest::Test
   # return file paths to test models in test directory
@@ -172,10 +173,41 @@ class AddHeatPumpRtuTest < Minitest::Test
       show_output(result)
     end
 
+    # adding output variables (for debugging)
+    out_vars = [
+      'Air System Mixed Air Mass Flow Rate',
+      'Fan Air Mass Flow Rate',
+      'Unitary System Predicted Sensible Load to Setpoint Heat Transfer Rate',
+      'Cooling Coil Total Cooling Rate',
+      'Cooling Coil Electricity Rate',
+      'Cooling Coil Runtime Fraction',
+      'Heating Coil Heating Rate',
+      'Heating Coil Electricity Rate',
+      'Heating Coil Runtime Fraction',
+      'Unitary System DX Coil Cycling Ratio',
+      'Unitary System DX Coil Speed Ratio',
+      'Unitary System DX Coil Speed Level',
+      'Unitary System Total Cooling Rate',
+      'Unitary System Total Heating Rate',
+      'Unitary System Electricity Rate',
+      'HVAC System Solver Iteration Count',
+      'Site Outdoor Air Drybulb Temperature',
+      'Heating Coil Crankcase Heater Electricity Rate',
+      'Heating Coil Defrost Electricity Rate',
+      'Zone Windows Total Transmitted Solar Radiation Rate',
+    ]
+    out_vars.each do |out_var_name|
+        ov = OpenStudio::Model::OutputVariable.new('ov', model)
+        ov.setKeyValue('*')
+        ov.setReportingFrequency('hourly')
+        ov.setVariableName(out_var_name)
+    end
+    model.getOutputControlFiles.setOutputCSV(true)
+
     # Save model
     model.save(model_output_path(test_name), true)
 
-    if run_model && result_success
+    if run_model
       puts "\nRUNNING MODEL..."
 
       std = Standard.build('90.1-2013')
@@ -204,7 +236,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # Get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(13, arguments.size)
+    assert_equal(14, arguments.size)
     assert_equal('backup_ht_fuel_scheme', arguments[0].name)
     assert_equal('performance_oversizing_factor', arguments[1].name)
     assert_equal('htg_sizing_option', arguments[2].name)
@@ -216,8 +248,9 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert_equal('dcv', arguments[8].name)
     assert_equal('econ', arguments[9].name)
     assert_equal('roof', arguments[10].name)
-    assert_equal('sizing_run', arguments[11].name)
-    assert_equal('debug_verbose', arguments[12].name)
+    assert_equal('window', arguments[11].name)
+    assert_equal('sizing_run', arguments[12].name)
+    assert_equal('debug_verbose', arguments[13].name)
   end
 
   def calc_cfm_per_ton_singlespdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
@@ -508,7 +541,7 @@ class AddHeatPumpRtuTest < Minitest::Test
       assert(clg_coil_spd3.grossRatedTotalCoolingCapacity.get > clg_coil_spd2.grossRatedTotalCoolingCapacity.get)
       assert(clg_coil_spd2.grossRatedTotalCoolingCapacity.get > clg_coil_spd1.grossRatedTotalCoolingCapacity.get)
     end
-    nil
+    result
   end
 
   def get_cooling_coil_capacity_and_cop(model, coil)
@@ -901,23 +934,19 @@ class AddHeatPumpRtuTest < Minitest::Test
   # # Single building result examples
   # def test_single_building_result_examples
   #   osm_epw_pair = {
-  #     'example_model_AK_380.osm' => 'USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw',
-  #     'example_model_NM_380.osm' => 'USA_NM_Albuquerque.Intl.AP.723650_TMY3.epw',
-  #     'example_model_HI_380.osm' => 'USA_HI_Honolulu.Intl.AP.911820_TMY3.epw',
+  #     # '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' => 'USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw',
+  #     '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' => 'USA_GA_Atlanta-Hartsfield-Jackson.Intl.AP.722190_TMY3.epw',
+  #     # '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' => 'USA_HI_Honolulu.Intl.AP.911820_TMY3.epw',
   #   }
 
   #   test_name = 'test_single_building_result_examples'
 
   #   puts "\n######\nTEST:#{test_name}\n######\n"
 
-  #   osm_epw_pair.each_with_index do |(osm_name, epw_name), idx|
+  #   osm_epw_pair.each_with_index do |(osm_name, epw_name), idx_run|
 
   #     osm_path = model_input_path(osm_name)
   #     epw_path = epw_input_path(epw_name)
-
-  #     puts("### DEBUGGING: ----------------------------------------------------------")
-  #     puts("### DEBUGGING: osm_path = #{osm_path}")
-  #     puts("### DEBUGGING: epw_path = #{epw_path}")
 
   #     # Create an instance of the measure
   #     measure = AddHeatPumpRtu.new
@@ -939,12 +968,16 @@ class AddHeatPumpRtuTest < Minitest::Test
   #         argument_map[arg.name] = sizing_run
   #       when 'hprtu_scenario'
   #         hprtu_scenario = arguments[idx].clone
-  #         hprtu_scenario.setValue('variable_speed_high_eff') # variable_speed_high_eff, two_speed_standard_eff
+  #         hprtu_scenario.setValue('two_speed_standard_eff') # variable_speed_high_eff, two_speed_standard_eff
   #         argument_map[arg.name] = hprtu_scenario
   #       when 'performance_oversizing_factor'
   #         performance_oversizing_factor = arguments[idx].clone
-  #         performance_oversizing_factor.setValue(0.25)
+  #         performance_oversizing_factor.setValue(0.0)
   #         argument_map[arg.name] = performance_oversizing_factor
+  #       when 'window'
+  #         window = arguments[idx].clone
+  #         window.setValue(true)
+  #         argument_map[arg.name] = window
   #       when 'debug_verbose'
   #         debug_verbose = arguments[idx].clone
   #         debug_verbose.setValue(true)
@@ -954,9 +987,13 @@ class AddHeatPumpRtuTest < Minitest::Test
   #       end
   #     end
 
-  #     # Apply the measure to the model and optionally run the model
-  #     result = set_weather_and_apply_measure_and_run("#{test_name}_#{idx}", measure, argument_map, osm_path, epw_path, run_model: true, apply: true)
-  #     model = load_model(model_output_path("#{test_name}_#{idx}"))
+  #     # Don't apply the measure to the model and run the model
+  #     result = set_weather_and_apply_measure_and_run("#{test_name}_#{idx_run}_b", measure, argument_map, osm_path, epw_path, run_model: true, apply: false)
+  #     model = load_model(model_output_path("#{test_name}_#{idx_run}_b"))
+
+  #     # Apply the measure to the model and run the model
+  #     result = set_weather_and_apply_measure_and_run("#{test_name}_#{idx_run}_u", measure, argument_map, osm_path, epw_path, run_model: true, apply: true)
+  #     model = load_model(model_output_path("#{test_name}_#{idx_run}_u"))
 
   #   end
   # end
@@ -1121,6 +1158,7 @@ class AddHeatPumpRtuTest < Minitest::Test
   # 4) all air loops contain multispeed heating coil
   # 5) coil speeds capacities and flow rates are ascending
   # 6) coil speeds fall within E+ specified cfm/ton ranges
+  # 7) check roof/window measure related variables are saved or not saved in model
 
   def test_380_Small_Office_PSZ_Gas_2A
     osm_name = '380_Small_Office_PSZ_Gas_2A.osm'
@@ -1150,11 +1188,39 @@ class AddHeatPumpRtuTest < Minitest::Test
         hprtu_scenario = arguments[idx].clone
         hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
         argument_map[arg.name] = hprtu_scenario
+      elsif arg.name == 'roof'
+        roof = arguments[idx].clone
+        roof.setValue(true)
+        argument_map[arg.name] = roof
+      elsif arg.name == 'window'
+        window = arguments[idx].clone
+        window.setValue(true)
+        argument_map[arg.name] = window
       else
         argument_map[arg.name] = temp_arg_var
       end
     end
     test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
+    
+    # check roof/window measure implementation
+    roof_measure_implemented = false
+    window_measure_implemented = false
+    test_result = JSON.parse(test_result.to_s)
+    test_result['step_values'].each do |step_value|
+
+      # check if roof measure variable is available
+      if step_value['name'] == 'env_roof_insul_roof_area_ft_2'
+        roof_measure_implemented = true
+      end
+
+      # check if window measure variable is available
+      if step_value['name'] == 'env_secondary_window_fen_area_ft_2'
+        window_measure_implemented = true
+      end
+
+    end
+    assert_equal(roof_measure_implemented, true, "cannot find variable that was saved in roof upgrade measure via registerValue: env_roof_insul_roof_area_ft_2")
+    assert_equal(window_measure_implemented, true, "cannot find variable that was saved in window upgrade measure via registerValue: env_secondary_window_fen_area_ft_2")
   end
 
   def test_380_small_office_psz_gas_coil_7A
@@ -1191,6 +1257,26 @@ class AddHeatPumpRtuTest < Minitest::Test
     end
 
     test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
+
+    # check roof/window measure implementation
+    roof_measure_implemented = false
+    window_measure_implemented = false
+    test_result = JSON.parse(test_result.to_s)
+    test_result['step_values'].each do |step_value|
+
+      # check if roof measure variable is available
+      if step_value['name'] == 'env_roof_insul_roof_area_ft_2'
+        roof_measure_implemented = true
+      end
+
+      # check if window measure variable is available
+      if step_value['name'] == 'env_secondary_window_fen_area_ft_2'
+        window_measure_implemented = true
+      end
+
+    end
+    assert_equal(roof_measure_implemented, false, "cannot find variable that was saved in roof upgrade measure via registerValue: env_roof_insul_roof_area_ft_2")
+    assert_equal(window_measure_implemented, false, "cannot find variable that was saved in window upgrade measure via registerValue: env_secondary_window_fen_area_ft_2")
   end
 
   def test_small_office_psz_not_hard_sized
@@ -1221,12 +1307,36 @@ class AddHeatPumpRtuTest < Minitest::Test
         hprtu_scenario = arguments[idx].clone
         hprtu_scenario.setValue('variable_speed_high_eff')
         argument_map[arg.name] = hprtu_scenario
+      elsif arg.name == 'roof'
+        roof = arguments[idx].clone
+        roof.setValue(true)
+        argument_map[arg.name] = roof
       else
         argument_map[arg.name] = temp_arg_var
       end
     end
 
     test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
+
+    # check roof/window measure implementation
+    roof_measure_implemented = false
+    window_measure_implemented = false
+    test_result = JSON.parse(test_result.to_s)
+    test_result['step_values'].each do |step_value|
+
+      # check if roof measure variable is available
+      if step_value['name'] == 'env_roof_insul_roof_area_ft_2'
+        roof_measure_implemented = true
+      end
+
+      # check if window measure variable is available
+      if step_value['name'] == 'env_secondary_window_fen_area_ft_2'
+        window_measure_implemented = true
+      end
+
+    end
+    assert_equal(roof_measure_implemented, true, "cannot find variable that was saved in roof upgrade measure via registerValue: env_roof_insul_roof_area_ft_2")
+    assert_equal(window_measure_implemented, false, "cannot find variable that was saved in window upgrade measure via registerValue: env_secondary_window_fen_area_ft_2")
   end
 
   def test_380_retail_psz_gas_6B
@@ -1257,12 +1367,36 @@ class AddHeatPumpRtuTest < Minitest::Test
         hprtu_scenario = arguments[idx].clone
         hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
         argument_map[arg.name] = hprtu_scenario
+      elsif arg.name == 'window'
+        window = arguments[idx].clone
+        window.setValue(true)
+        argument_map[arg.name] = window
       else
         argument_map[arg.name] = temp_arg_var
       end
     end
 
     test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
+
+    # check roof/window measure implementation
+    roof_measure_implemented = false
+    window_measure_implemented = false
+    test_result = JSON.parse(test_result.to_s)
+    test_result['step_values'].each do |step_value|
+
+      # check if roof measure variable is available
+      if step_value['name'] == 'env_roof_insul_roof_area_ft_2'
+        roof_measure_implemented = true
+      end
+
+      # check if window measure variable is available
+      if step_value['name'] == 'env_secondary_window_fen_area_ft_2'
+        window_measure_implemented = true
+      end
+
+    end
+    assert_equal(roof_measure_implemented, false, "cannot find variable that was saved in roof upgrade measure via registerValue: env_roof_insul_roof_area_ft_2")
+    assert_equal(window_measure_implemented, true, "cannot find variable that was saved in window upgrade measure via registerValue: env_secondary_window_fen_area_ft_2")
   end
 
   ##########################################################################
