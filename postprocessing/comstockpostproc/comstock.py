@@ -493,7 +493,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Read the buildstock.csv to determine number of simulations expected
         buildstock = pl.read_csv(os.path.join(self.data_dir, self.buildstock_file_name), infer_schema_length=50000)
         buildstock = buildstock.rename({'Building': 'sample_building_id'})
-        
+
 
         # if "sample_building_id" not in buildstock:
 
@@ -537,9 +537,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 if 'applicable' in c:
                     logger.debug(f'For {c}: Nulls set to False in upgrade, and its type is {dt}')
                     #If the data type is something not String
-                    if dt in (pl.Null, pl.Boolean, 
+                    if dt in (pl.Null, pl.Boolean,
                               pl.Int8, pl.Int16, pl.Int32, pl.Int64,
-                              pl.UInt8, pl.UInt16, pl.UInt32, pl.UInt64, pl.Float32, pl.Float64): 
+                              pl.UInt8, pl.UInt16, pl.UInt32, pl.UInt64, pl.Float32, pl.Float64):
                         logger.debug(f'For {c}: Nulls set to False (Boolean) in baseline')
                         up_res = up_res.with_columns([pl.col(c).fill_null(pl.lit(False))])
                     elif dt in (pl.Utf8, pl.Categorical):
@@ -2171,10 +2171,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         util_results = meta_data.select(
             [pl.col(self.BLDG_ID), pl.col(self.UPGRADE_NAME)] + util_results_cols
         )
-        
+
         geo_data = geo_data.join(util_results, on=self.BLDG_ID, how='left')
 
-        # load tract to utility mapping 
+        # load tract to utility mapping
         file_path = os.path.join(self.truth_data_dir, self.tract_to_util_map_file_name)
         tract_to_util_map = pl.scan_csv(file_path)
 
@@ -2191,7 +2191,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                .alias(column)
             for i, column in enumerate(self.UTIL_ELEC_BILL_VALS)]
         )
-        
+
         # for each row, select the state average utility cost based on the allocated state
         state_expr = r"\|{}:(.+?)\|"
 
@@ -2216,7 +2216,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     )
             for column in self.UTIL_ELEC_BILL_VALS]
         )
-        
+
         # calculate the weighted utility bill columns directly on the fkt
         conv_fact = self.conv_fact('usd', self.weighted_utility_units)
         cost_cols = (self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS)
@@ -2224,7 +2224,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # get weighted col name
             weighted_col_name = self.col_name_to_weighted(col, self.weighted_utility_units)
             self.unweighted_weighted_map.update({col: weighted_col_name})
-        
+
         # calculate weighted utility costs
         geo_data = geo_data.with_columns(
             [pl.col(col)
@@ -2247,10 +2247,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.unweighted_weighted_map.update({self.UTIL_ELEC_BILL_NUM_BILLS: self.col_name_to_weighted(self.UTIL_ELEC_BILL_NUM_BILLS)})
 
         # get upgrade ID
-        upgrade_id_frame = geo_data.collect().select(pl.col(self.UPGRADE_ID)).cast(pl.Int32).unique()
+        up_id_list = geo_data.select([pl.col(self.UPGRADE_ID)]).collect().get_column(self.UPGRADE_ID).unique().to_list()
         # should be a single value
-        assert upgrade_id_frame.select(pl.len()).item() == 1
-        upgrade_id = upgrade_id_frame.item()
+        assert len(up_id_list) == 1
+        upgrade_id = int(up_id_list[0])
 
         logger.info(f'Creating geospatial slice for upgrade: {upgrade_id}')
 
@@ -2267,8 +2267,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # aggregate the fkt weights (and and weighted utility bill results) to input geospatial resolutions
         geo_data = geo_data.select(
             [
-                pl.col(self.BLDG_WEIGHT), 
-                pl.col(self.UPGRADE_ID), 
+                pl.col(self.BLDG_WEIGHT),
+                pl.col(self.UPGRADE_ID),
                 pl.col(self.BLDG_ID),
                 pl.col(self.FLR_AREA)
             ]
@@ -2276,9 +2276,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             + weighted_util_cols
         ).groupby(
             [
-                pl.col(self.UPGRADE_ID), 
+                pl.col(self.UPGRADE_ID),
                 pl.col(self.BLDG_ID)
-            ] 
+            ]
             + geo_agg_cols
         ).agg(
             [
@@ -2318,7 +2318,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # remove utility cols from unweighted_weighted_map
         for col in (cost_cols + [self.UTIL_ELEC_BILL_NUM_BILLS]):
             self.unweighted_weighted_map.pop(col, None)
-        
+
         logger.info("Calculating weighted energy savings columns")
         # Calculate the weighted columns
         geo_data = self.add_weighted_area_energy_savings_columns(geo_data)
@@ -2723,7 +2723,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.BLDG_ID, self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.SAMPLING_REGION, self.CZ_ASHRAE,
                 self.BLDG_TYPE, self.HVAC_SYS, self.SH_FUEL, self.SIZE_BIN, self.FLR_AREA, self.TOT_EUI, self.CEN_DIV
             ))
-            
+
             # raise Exception(f"columns in self.data are {list(self.data.columns)} and we are looking for {list([self.BLDG_ID, self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.SAMPLING_REGION, self.CZ_ASHRAE, self.BLDG_TYPE, self.HVAC_SYS, self.SH_FUEL, self.SIZE_BIN, self.FLR_AREA, self.TOT_EUI, self.CEN_DIV])}")
 
             # If anything in this selection is null we're smoked so check twice and fail never
@@ -2770,7 +2770,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             missing_groups = set(truth_groups) - set(csdf_groups)
             unable_to_match = tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups)).select(pl.len()).collect().item()
             total_to_match = tdf.select(pl.len()).collect().item()
-            logger.info(f'Unable to match {unable_to_match} out of {total_to_match} truth data.')
+            pct_unmatched = (unable_to_match / total_to_match) * 100
+            logger.info(f'Unable to match {unable_to_match:,} out of {total_to_match:,} truth data ({pct_unmatched:.2f}%).')
+            if pct_unmatched > 25:
+                logger.error(f'The percent of unmatched truth data is very high ({pct_unmatched:.2f}%), consider this when reviewing results.')
 
             # Provide detailed additional info on missing buckets for review if desired
             logger.info(f'Writing QAQC / Debugging files to {os.path.abspath(self.output_dir)}')
@@ -3059,7 +3062,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             for weighted_col in (list(abs_svgs_cols.values()) + list(pct_svgs_cols.values())):
                 input_lf = input_lf.with_columns(pl.lit(0.0).alias(weighted_col))
             return input_lf
-        
+
 
         val_and_id_cols = val_cols + geo_agg_cols + [self.BLDG_ID]
         # for col in val_and_id_cols:
