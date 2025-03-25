@@ -2202,23 +2202,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       orig_htg_coil_gross_cap = nil
 
       equip_to_delete = []
-
-      # for unitary systems
-      if air_loop_hvac_unitary_system?(air_loop_hvac)
-
-        # loop through each relevant component.
-        # store information needed as variable
-        # remove the existing equipment
-        air_loop_hvac.supplyComponents.each do |component|
-          # convert component to string name
-          obj_type = component.iddObjectType.valueName.to_s
-          # skip unless component is of relevant type
-          next unless %w[Fan Unitary Coil].any? { |word| obj_type.include?(word) }
-
-          # make list of equipment to delete
-          equip_to_delete << component
-
-          space_types_no_setback = [
+	  
+	  space_types_no_setback = [
             # 'Kitchen',
             # 'kitchen',
             'PatRm',
@@ -2251,7 +2236,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
           ]
 
           setback_value_c = setback_value * 5 / 9 # convert to c
-          if modify_setbacks # modify setbacks if argument set to true
+	  
+	  if modify_setbacks # modify setbacks if argument set to true
             zones = air_loop_hvac.thermalZones
             zones.sort.each do |thermal_zone|
               no_people_obj = false # flag for not having People object associated with it
@@ -2368,6 +2354,21 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
             end
 
           end
+
+      # for unitary systems
+      if air_loop_hvac_unitary_system?(air_loop_hvac)
+
+        # loop through each relevant component.
+        # store information needed as variable
+        # remove the existing equipment
+        air_loop_hvac.supplyComponents.each do |component|
+          # convert component to string name
+          obj_type = component.iddObjectType.valueName.to_s
+          # skip unless component is of relevant type
+          next unless %w[Fan Unitary Coil].any? { |word| obj_type.include?(word) }
+
+          # make list of equipment to delete
+          equip_to_delete << component
 
           # get information specifically from unitary system object
           next unless ['Unitary'].any? do |word|
