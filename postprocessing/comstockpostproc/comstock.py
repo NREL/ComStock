@@ -2167,12 +2167,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # At this point the geo_data has a tract for each building (row)
         # Join the utility bill columns with data about all utilites onto this
         # Include building floor area for utility cost intenstity calcs
-        util_results_cols = [pl.col(c) for c in self.COLS_UTIL_BILL_RESULTS] + [self.FLR_AREA]
-        util_results = meta_data.select(
-            [pl.col(self.BLDG_ID), pl.col(self.UPGRADE_NAME)] + util_results_cols
+        util_bills_by_eia_id = meta_data.select(
+            [self.BLDG_ID, self.UTIL_BILL_ELEC_RESULTS, self.FLR_AREA]
         )
-
-        geo_data = geo_data.join(util_results, on=self.BLDG_ID, how='left')
+        # util_bills_by_eia_id = util_bills_by_eia_id.collect().lazy()  # TODO may help memory pressure?
 
         # load tract to utility mapping
         file_path = os.path.join(self.truth_data_dir, self.tract_to_util_map_file_name)
@@ -2181,28 +2179,90 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # add eia utility id
         geo_data = geo_data.join(tract_to_util_map, on=self.TRACT_ID, how='left')
 
-        # For each row, select the utility bill based on the ID based on the allocated tract
-        bills_expr = r"\|{}:(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?)\|"
+        # Create a new row for each Building ID x EIA ID combination
+        util_bills_by_eia_id = util_bills_by_eia_id.with_columns(
+            pl.col(self.UTIL_BILL_ELEC_RESULTS).str.strip_chars_start('|').str.strip_chars_end('|').str.split('|')
+        ).explode(self.UTIL_BILL_ELEC_RESULTS)
 
-        geo_data = geo_data.with_columns(
-            [pl.col(self.UTIL_BILL_ELEC_RESULTS)
-               .str
-               .extract(pl.format(bills_expr, pl.col(self.UTIL_BILL_EIA_ID)), i+1)
-               .alias(column)
-            for i, column in enumerate(self.UTIL_ELEC_BILL_VALS)]
+        # Split the values into a temporary list column
+        tsc = 'tsc'
+        util_bills_by_eia_id = util_bills_by_eia_id.with_columns(
+            pl.col(self.UTIL_BILL_ELEC_RESULTS).str.split(":").alias(tsc)
         )
 
-        # for each row, select the state average utility cost based on the allocated state
-        state_expr = r"\|{}:(.+?)\|"
+        # Define column names based on  measure output
+        # NOTE: Column name order must match the order in utility_bills/measure.rb!
+        new_util_columns = [self.UTIL_BILL_EIA_ID] + self.UTIL_ELEC_BILL_VALS
+        util_bills_by_eia_id = util_bills_by_eia_id.with_columns(
+            pl.col(tsc).list.to_struct("max_width", new_util_columns)
+        ).unnest(tsc)
+        # NOTE: need to do this otherwise the lazyframe query optimization breaks down
+        util_bills_by_eia_id = util_bills_by_eia_id.collect().lazy()
 
-        geo_data = geo_data.with_columns(
-            [pl.col(result)
-               .str
-               .extract(pl.format(state_expr, pl.col(self.STATE_ABBRV)), 1)
-               .cast(pl.Int32)
-               .alias(column)
-            for result, column in dict(zip(self.COLS_STATE_UTIL_RESULTS, self.COST_STATE_UTIL_COSTS)).items()]
+        # Replace empty strings with nulls in the new columns
+        util_bills_by_eia_id = util_bills_by_eia_id.with_columns(
+            [pl.when(pl.col(new_col) == "")
+            .then(None)
+            .otherwise(pl.col(new_col))
+            .alias(new_col)
+            for new_col in new_util_columns]
         )
+
+        # Convert the EIA ID and bill column dtypes to integers
+        cols_to_int = [c for c in self.UTIL_ELEC_BILL_VALS if '..usd' in c]
+        cols_to_int.append(self.UTIL_BILL_EIA_ID)
+        util_bills_by_eia_id = util_bills_by_eia_id.with_columns(
+            [pl.col(column).cast(pl.Int64) for column in cols_to_int]
+        )
+
+        # Join the utility bills onto each building based on utility ID
+        geo_data = geo_data.join(util_bills_by_eia_id, on=[self.BLDG_ID, self.UTIL_BILL_EIA_ID], how='left')
+
+        # Loop through each fuel and assign state-level bills to each building
+        for col_state_util_result, col_state_util_bill in dict(zip(self.COLS_STATE_UTIL_RESULTS, self.COST_STATE_UTIL_COSTS)).items():
+
+            # Get the utility bills data for this fuel
+            util_bills_by_state = meta_data.select(
+                [self.BLDG_ID, col_state_util_result]
+            )
+            # util_bills_by_state = util_bills_by_state.collect().lazy()  # TODO may help memory pressure?
+
+            # Create a new row for each Building ID x State combination
+            util_bills_by_state = util_bills_by_state.with_columns(
+                pl.col(col_state_util_result).str.strip_chars_start('|').str.strip_chars_end('|').str.split('|')
+            ).explode(col_state_util_result)
+
+            # Split the values into a temporary list column
+            tsc = 'tsc'
+            util_bills_by_state = util_bills_by_state.with_columns(
+                pl.col(col_state_util_result).str.split(":").alias(tsc)
+            )
+
+            # Define column names based on  measure output
+            # NOTE: Column name order must match the order in utility_bills/measure.rb!
+            new_util_columns = [self.STATE_ABBRV, col_state_util_bill]
+            util_bills_by_state = util_bills_by_state.with_columns(
+                pl.col(tsc).list.to_struct("max_width", new_util_columns)
+            ).unnest(tsc)
+            # NOTE: need to do this otherwise the lazyframe query optimization breaks down
+            util_bills_by_state = util_bills_by_state.collect().lazy()
+
+            # Replace empty strings with nulls in the new columns
+            util_bills_by_state = util_bills_by_state.with_columns(
+                [pl.when(pl.col(new_col) == "")
+                .then(None)
+                .otherwise(pl.col(new_col))
+                .alias(new_col)
+                for new_col in new_util_columns]
+            )
+
+            # Convert the bill column dtype to integer
+            util_bills_by_state = util_bills_by_state.with_columns(
+                [pl.col(col_state_util_bill).cast(pl.Int64)]
+            )
+
+            # Join the utility bills onto each building based on utility ID
+            geo_data = geo_data.join(util_bills_by_state, on=[self.BLDG_ID, self.STATE_ABBRV], how='left')
 
         # fill missing utility bill costs with state average
         geo_data = geo_data.with_columns(
