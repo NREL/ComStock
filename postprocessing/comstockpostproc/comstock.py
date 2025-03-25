@@ -2034,6 +2034,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Create an aggregation for each upgrade
         up_aggs = []
         agg_cols = [self.CZ_ASHRAE, self.CEN_DIV]
+        baseline_fkt_plus = None
         for upgrade_id in upgrade_ids:
 
             # Get the fkt and self.data for this upgrade
@@ -2041,11 +2042,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             up_data = self.data.filter((pl.col(self.UPGRADE_ID) == upgrade_id))  # .collect()
 
             # Filter to this geography, downselect columns, create savings columns, and downselect columns
-            up_agg = self.create_geospatial_slice_of_metadata(up_geo_data,
-                                                              up_data,
-                                                              geography_filters={},
-                                                              geographic_aggregation_levels=agg_cols,
-                                                              column_downselection=None)
+            up_agg, baseline_fkt_plus = self.create_geospatial_slice_of_metadata(up_geo_data,
+                                                                                up_data,
+                                                                                baseline_fkt_plus,
+                                                                                geography_filters={},
+                                                                                geographic_aggregation_levels=agg_cols,
+                                                                                column_downselection=None)
             up_aggs.append(up_agg)
 
         # Combine all upgrades into a single LazyFrame

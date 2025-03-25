@@ -207,9 +207,9 @@ class NamingMixin():
     UTIL_BILL_ELEC_MAX = 'out.utility_bills.electricity_bill_max..usd'
     UTIL_BILL_ELEC_MED = 'out.utility_bills.electricity_bill_median..usd'
     UTIL_BILL_ELEC_MIN = 'out.utility_bills.electricity_bill_min..usd'
-    UTIL_BILL_GAS = 'out.utility_bills.natural_gas_bill..usd'
-    UTIL_BILL_FUEL_OIL = 'out.utility_bills.fuel_oil_bill..usd'
-    UTIL_BILL_PROPANE = 'out.utility_bills.propane_bill..usd'
+    UTIL_BILL_GAS = 'out.utility_bills.natural_gas_bill_state_average..usd'
+    UTIL_BILL_FUEL_OIL = 'out.utility_bills.fuel_oil_bill_state_average..usd'
+    UTIL_BILL_PROPANE = 'out.utility_bills.propane_bill_state_average..usd'
 
     # Utility bill columns
     COLS_UTIL_BILLS = [
