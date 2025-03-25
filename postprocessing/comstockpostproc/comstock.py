@@ -272,6 +272,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             logger.info(f'sampling_file_path: {sampling_file_path}')
             if os.path.exists(sampling_file_path):
                 shutil.copy(sampling_file_path, geospatial_data_path)
+            else:
+                logger.error(f'Could not find {self.geospatial_lookup_file_name} at {sampling_file_path}.')
+                raise FileNotFoundError(
+                    f'Could not find {self.geospatial_lookup_file_name} at {sampling_file_path}.'
+                )
 
         # Get data on the s3 resource to download data from:
         if self.s3_inpath is None:
