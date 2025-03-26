@@ -1276,7 +1276,7 @@ class PlottingMixin():
         # create dictionary with the plot labels and columns to loop through
         dict_saving = {}
         dict_saving['Utility Bill Savings Intensity by Building Type (usd/sqft/year, 2022)'] = self.col_name_to_savings(self.col_name_to_area_intensity(en_col))
-        dict_saving['Percent Utility Bill Savings by Building Type (%)'] = self.col_name_to_percent_savings(en_col, 'percent')
+        dict_saving['Percent Utility Bill Savings by Building Type (%)'] = self.col_name_to_percent_savings(self.col_name_to_weighted(en_col), 'percent')
 
         # # loop through plot types
         for group_name, energy_col in dict_saving.items():
@@ -1368,7 +1368,7 @@ class PlottingMixin():
         # create dictionary with the plot labels and columns to loop through
         dict_saving = {}
         dict_saving['Utility Bill Savings Intensity by Climate (usd/sqft/year, 2022)'] = self.col_name_to_savings(self.col_name_to_area_intensity(en_col))
-        dict_saving['Percent Utility Bill Savings by Climate (%)'] = self.col_name_to_percent_savings(en_col, 'percent')
+        dict_saving['Percent Utility Bill Savings by Climate (%)'] = self.col_name_to_percent_savings(self.col_name_to_weighted(en_col), 'percent')
 
         # # loop through plot types
         for group_name, energy_col in dict_saving.items():
@@ -1460,7 +1460,7 @@ class PlottingMixin():
         # create dictionary with the plot labels and columns to loop through
         dict_saving = {}
         dict_saving['Utility Bill Savings Intensity by HVAC (usd/sqft/year, 2022)'] = self.col_name_to_savings(self.col_name_to_area_intensity(en_col))
-        dict_saving['Percent Utility Bill Savings by HVAC (%)'] = self.col_name_to_percent_savings(en_col, 'percent')
+        dict_saving['Percent Utility Bill Savings by HVAC (%)'] = self.col_name_to_percent_savings(self.col_name_to_weighted(en_col), 'percent')
 
         # # loop through plot types
         for group_name, energy_col in dict_saving.items():
@@ -1824,7 +1824,7 @@ class PlottingMixin():
         dict_saving = {}
         li_eui_svgs_fuel_cols = [self.col_name_to_savings(self.col_name_to_area_intensity(c)) for c in ([self.UTIL_BILL_TOTAL_MEAN] + self.COLS_UTIL_BILLS)]
         dict_saving['Utility Bill Savings Intensity by Fuel (usd/sqft/year, 2022)'] = li_eui_svgs_fuel_cols
-        li_pct_svgs_fuel_cols = [self.col_name_to_percent_savings(c, 'percent') for c in ([self.UTIL_BILL_TOTAL_MEAN] + self.COLS_UTIL_BILLS)]
+        li_pct_svgs_fuel_cols = [self.col_name_to_percent_savings(self.col_name_to_weighted(c), 'percent') for c in ([self.UTIL_BILL_TOTAL_MEAN] + self.COLS_UTIL_BILLS)]
         dict_saving['Percent Utility Bill Savings by Fuel (%)'] = li_pct_svgs_fuel_cols
 
         # loop through plot types
@@ -3392,4 +3392,3 @@ class PlottingMixin():
 
             fig.write_image(fig_path, scale=10)
             fig.write_html(fig_path_html)
-

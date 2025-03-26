@@ -178,7 +178,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 # Calculate/generate columns based on imported columns
                 # self.add_aeo_nems_building_type_column()  # TODO POLARS figure out apply function
                 self.add_missing_energy_columns()
-                # self.combine_utility_cols()
                 self.add_enduse_total_energy_columns()
                 self.add_energy_intensity_columns()
                 self.add_normalized_qoi_columns()
@@ -2284,9 +2283,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             for column in self.UTIL_ELEC_BILL_VALS]
         )
 
+        # Create combined utility column for mean electricity rate
+        geo_data = geo_data.with_columns(pl.sum_horizontal(self.COLS_UTIL_BILLS).alias(self.UTIL_BILL_TOTAL_MEAN))
+
         # calculate the weighted utility bill columns directly on the fkt
         conv_fact = self.conv_fact('usd', self.weighted_utility_units)
-        cost_cols = (self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS)
+        cost_cols = (self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS + [self.UTIL_BILL_TOTAL_MEAN])
         for col in cost_cols:
             # get weighted col name
             weighted_col_name = self.col_name_to_weighted(col, self.weighted_utility_units)
@@ -2295,7 +2297,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # calculate weighted utility costs
         geo_data = geo_data.with_columns(
             [pl.col(col)
-               .cast(pl.Int32)
+               .cast(pl.Int64)
                .mul(pl.col(self.BLDG_WEIGHT))
                .mul(conv_fact)
                .alias(self.unweighted_weighted_map[col])
@@ -3107,7 +3109,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         assert isinstance(input_lf, pl.LazyFrame)
 
-        result_cols = self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS
+        result_cols = self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS + [self.UTIL_BILL_TOTAL_MEAN]
         abs_svgs_cols = {}
         pct_svgs_cols = {}
 
