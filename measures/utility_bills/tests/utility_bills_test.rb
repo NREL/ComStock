@@ -83,7 +83,7 @@ class UtilityBillsTest < Minitest::Test
   end
 
   def get_utility_for_tract(tract)
-    tract_to_elec_util_path = File.join(File.dirname(__FILE__), '..', 'resources', 'tract_to_elec_util.csv')
+    tract_to_elec_util_path = File.join(File.dirname(__FILE__), '..', 'resources', 'tract_to_elec_util_v2.csv')
     tract_to_elec_util = {}
     CSV.foreach(tract_to_elec_util_path) do |row|
       tract_to_elec_util[row[0]] = row[1]

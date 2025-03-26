@@ -224,7 +224,7 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     runner.registerInfo("For sampling region #{sampling_region}, potential states are #{potential_state_abbrevs}")
 
     # Load the tract to electric utility EIA ID mapping
-    tract_to_elec_util_path = File.join(File.dirname(__FILE__), 'resources', 'tract_to_elec_util.csv')
+    tract_to_elec_util_path = File.join(File.dirname(__FILE__), 'resources', 'tract_to_elec_util_v2.csv')
     tract_to_elec_util = {}
     CSV.foreach(tract_to_elec_util_path) do |row|
       tract_to_elec_util[row[0]] = row[1]
