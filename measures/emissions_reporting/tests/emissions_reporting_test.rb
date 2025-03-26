@@ -332,4 +332,28 @@ class EmissionsReportingTest < Minitest::Test
 
     assert(run_test(__method__, osm_path, epw_path, argument_map))
   end
+
+  def test_propane
+    puts "\n######\nTEST:#{__method__}\n######\n"
+    osm_path = "#{__dir__}/../../../resources/tests/models/Quick_Service_Restaurant_Pre1980_3A.osm"
+    epw_path = "#{__dir__}/FortCollins2016.epw"
+
+    # create an instance of the measure
+    measure = EmissionsReporting.new
+
+    # set arguments
+    arguments = measure.arguments(OpenStudio::Model::Model.new)
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+    grid_region = arguments[0].clone
+    grid_state = arguments[1].clone
+    emissions_scenario = arguments[2].clone
+    assert(grid_region.setValue('Lookup from model'))
+    assert(grid_state.setValue('Lookup from model'))
+    assert(emissions_scenario.setValue('LRMER_MidCase_15'))
+    argument_map['grid_region'] = grid_region
+    argument_map['grid_state'] = grid_state
+    argument_map['emissions_scenario'] = emissions_scenario
+
+    assert(run_test(__method__, osm_path, epw_path, argument_map))
+  end
 end
