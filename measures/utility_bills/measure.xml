@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>utility_bills</name>
   <uid>2a3442c1-944d-4e91-9e11-11e0cf368c64</uid>
-  <version_id>d856ffb4-a81f-4a36-92e9-f0437584ef01</version_id>
-  <version_modified>2025-03-07T21:05:19Z</version_modified>
+  <version_id>13ab0453-5926-4b8d-b4d5-c732c7a49dd9</version_id>
+  <version_modified>2025-03-26T21:06:45Z</version_modified>
   <xml_checksum>15BF4E57</xml_checksum>
   <class_name>UtilityBills</class_name>
   <display_name>Utility Bills</display_name>
@@ -33,7 +33,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>7AB7FFF3</checksum>
+      <checksum>93F26625</checksum>
     </file>
     <file>
       <filename>calc_elec_bill.py</filename>
@@ -63846,6 +63846,12 @@
       <checksum>DC03F74A</checksum>
     </file>
     <file>
+      <filename>tract_to_elec_util_v2.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>D491E87F</checksum>
+    </file>
+    <file>
       <filename>1004_SmallHotel_a.osm</filename>
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
@@ -63879,7 +63885,7 @@
       <filename>utility_bills_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>1DD293FB</checksum>
+      <checksum>D9BC32A6</checksum>
     </file>
   </files>
 </measure>
