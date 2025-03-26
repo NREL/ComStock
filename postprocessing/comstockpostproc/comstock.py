@@ -493,7 +493,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Read the buildstock.csv to determine number of simulations expected
         buildstock = pl.read_csv(os.path.join(self.data_dir, self.buildstock_file_name), infer_schema_length=50000)
         buildstock = buildstock.rename({'Building': 'sample_building_id'})
-        
+
 
         # if "sample_building_id" not in buildstock:
 
@@ -537,9 +537,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 if 'applicable' in c:
                     logger.debug(f'For {c}: Nulls set to False in upgrade, and its type is {dt}')
                     #If the data type is something not String
-                    if dt in (pl.Null, pl.Boolean, 
+                    if dt in (pl.Null, pl.Boolean,
                               pl.Int8, pl.Int16, pl.Int32, pl.Int64,
-                              pl.UInt8, pl.UInt16, pl.UInt32, pl.UInt64, pl.Float32, pl.Float64): 
+                              pl.UInt8, pl.UInt16, pl.UInt32, pl.UInt64, pl.Float32, pl.Float64):
                         logger.debug(f'For {c}: Nulls set to False (Boolean) in baseline')
                         up_res = up_res.with_columns([pl.col(c).fill_null(pl.lit(False))])
                     elif dt in (pl.Utf8, pl.Categorical):
@@ -1303,9 +1303,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # HVAC columns
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_ELEC_ENDUSE).alias(self.ANN_ELEC_HVAC_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_GAS_ENDUSE).alias(self.ANN_GAS_HVAC_GROUP_KBTU))
+        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_PROPANE_ENDUSE).alias(self.ANN_PROPANE_HVAC_GROUP_KBTU))
+        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_FUELOIL_ENDUSE).alias(self.ANN_FUELOIL_HVAC_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_DISTHTG_ENDUSE).alias(self.ANN_DISTHTG_HVAC_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_DISTCLG_ENDUSE).alias(self.ANN_DISTCLG_HVAC_GROUP_KBTU))
-        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_OTHER_ENDUSE).alias(self.ANN_OTHER_HVAC_GROUP_KBTU))
 
         # Lighting column
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_LTG_ELEC_ENDUSE).alias(self.ANN_ELEC_LTG_GROUP_KBTU))
@@ -1313,8 +1314,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Interior equipment columns
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_INTEQUIP_ELEC_ENDUSE).alias(self.ANN_ELEC_INTEQUIP_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_INTEQUIP_GAS_ENDUSE).alias(self.ANN_GAS_INTEQUIP_GROUP_KBTU))
+        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_INTEQUIP_PROPANE_ENDUSE).alias(self.ANN_PROPANE_INTEQUIP_GROUP_KBTU))
+        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_INTEQUIP_FUELOIL_ENDUSE).alias(self.ANN_FUELOIL_INTEQUIP_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_INTEQUIP_DISTHTG_ENDUSE).alias(self.ANN_DISTHTG_INTEQUIP_GROUP_KBTU))
-        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_INTEQUIP_OTHER_ENDUSE).alias(self.ANN_OTHER_INTEQUIP_GROUP_KBTU))
 
         # Refrigeration columns
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_REFRIG_ELEC_ENDUSE).alias(self.ANN_ELEC_REFRIG_GROUP_KBTU))
@@ -1322,25 +1324,29 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # SWH columns
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_SWH_ELEC_ENDUSE).alias(self.ANN_ELEC_SWH_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_SWH_GAS_ENDUSE).alias(self.ANN_GAS_SWH_GROUP_KBTU))
+        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_SWH_PROPANE_ENDUSE).alias(self.ANN_PROPANE_SWH_GROUP_KBTU))
+        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_SWH_FUELOIL_ENDUSE).alias(self.ANN_FUELOIL_SWH_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_SWH_DISTHTG_ENDUSE).alias(self.ANN_DISTHTG_SWH_GROUP_KBTU))
-        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_SWH_OTHER_ENDUSE).alias(self.ANN_OTHER_SWH_GROUP_KBTU))
 
         col_names = [
             self.ANN_ELEC_HVAC_GROUP_KBTU,
             self.ANN_GAS_HVAC_GROUP_KBTU,
+            self.ANN_PROPANE_HVAC_GROUP_KBTU,
+            self.ANN_FUELOIL_HVAC_GROUP_KBTU,
             self.ANN_DISTHTG_HVAC_GROUP_KBTU,
             self.ANN_DISTCLG_HVAC_GROUP_KBTU,
-            self.ANN_OTHER_HVAC_GROUP_KBTU,
             self.ANN_ELEC_LTG_GROUP_KBTU,
             self.ANN_ELEC_INTEQUIP_GROUP_KBTU,
             self.ANN_DISTHTG_INTEQUIP_GROUP_KBTU,
-            self.ANN_OTHER_INTEQUIP_GROUP_KBTU,
             self.ANN_GAS_INTEQUIP_GROUP_KBTU,
+            self.ANN_PROPANE_INTEQUIP_GROUP_KBTU,
+            self.ANN_FUELOIL_INTEQUIP_GROUP_KBTU,
             self.ANN_ELEC_REFRIG_GROUP_KBTU,
             self.ANN_ELEC_SWH_GROUP_KBTU,
             self.ANN_GAS_SWH_GROUP_KBTU,
-            self.ANN_DISTHTG_SWH_GROUP_KBTU,
-            self.ANN_OTHER_SWH_GROUP_KBTU
+            self.ANN_PROPANE_SWH_GROUP_KBTU,
+            self.ANN_FUELOIL_SWH_GROUP_KBTU,
+            self.ANN_DISTHTG_SWH_GROUP_KBTU
         ]
 
         self.convert_units(col_names)
@@ -2171,10 +2177,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         util_results = meta_data.select(
             [pl.col(self.BLDG_ID), pl.col(self.UPGRADE_NAME)] + util_results_cols
         )
-        
+
         geo_data = geo_data.join(util_results, on=self.BLDG_ID, how='left')
 
-        # load tract to utility mapping 
+        # load tract to utility mapping
         file_path = os.path.join(self.truth_data_dir, self.tract_to_util_map_file_name)
         tract_to_util_map = pl.scan_csv(file_path)
 
@@ -2191,7 +2197,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                .alias(column)
             for i, column in enumerate(self.UTIL_ELEC_BILL_VALS)]
         )
-        
+
         # for each row, select the state average utility cost based on the allocated state
         state_expr = r"\|{}:(.+?)\|"
 
@@ -2216,7 +2222,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     )
             for column in self.UTIL_ELEC_BILL_VALS]
         )
-        
+
         # calculate the weighted utility bill columns directly on the fkt
         conv_fact = self.conv_fact('usd', self.weighted_utility_units)
         cost_cols = (self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS)
@@ -2224,7 +2230,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # get weighted col name
             weighted_col_name = self.col_name_to_weighted(col, self.weighted_utility_units)
             self.unweighted_weighted_map.update({col: weighted_col_name})
-        
+
         # calculate weighted utility costs
         geo_data = geo_data.with_columns(
             [pl.col(col)
@@ -2267,8 +2273,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # aggregate the fkt weights (and and weighted utility bill results) to input geospatial resolutions
         geo_data = geo_data.select(
             [
-                pl.col(self.BLDG_WEIGHT), 
-                pl.col(self.UPGRADE_ID), 
+                pl.col(self.BLDG_WEIGHT),
+                pl.col(self.UPGRADE_ID),
                 pl.col(self.BLDG_ID),
                 pl.col(self.FLR_AREA)
             ]
@@ -2276,9 +2282,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             + weighted_util_cols
         ).groupby(
             [
-                pl.col(self.UPGRADE_ID), 
+                pl.col(self.UPGRADE_ID),
                 pl.col(self.BLDG_ID)
-            ] 
+            ]
             + geo_agg_cols
         ).agg(
             [
@@ -2318,7 +2324,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # remove utility cols from unweighted_weighted_map
         for col in (cost_cols + [self.UTIL_ELEC_BILL_NUM_BILLS]):
             self.unweighted_weighted_map.pop(col, None)
-        
+
         logger.info("Calculating weighted energy savings columns")
         # Calculate the weighted columns
         geo_data = self.add_weighted_area_energy_savings_columns(geo_data)
@@ -2723,7 +2729,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.BLDG_ID, self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.SAMPLING_REGION, self.CZ_ASHRAE,
                 self.BLDG_TYPE, self.HVAC_SYS, self.SH_FUEL, self.SIZE_BIN, self.FLR_AREA, self.TOT_EUI, self.CEN_DIV
             ))
-            
+
             # raise Exception(f"columns in self.data are {list(self.data.columns)} and we are looking for {list([self.BLDG_ID, self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.SAMPLING_REGION, self.CZ_ASHRAE, self.BLDG_TYPE, self.HVAC_SYS, self.SH_FUEL, self.SIZE_BIN, self.FLR_AREA, self.TOT_EUI, self.CEN_DIV])}")
 
             # If anything in this selection is null we're smoked so check twice and fail never
@@ -3059,7 +3065,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             for weighted_col in (list(abs_svgs_cols.values()) + list(pct_svgs_cols.values())):
                 input_lf = input_lf.with_columns(pl.lit(0.0).alias(weighted_col))
             return input_lf
-        
+
 
         val_and_id_cols = val_cols + geo_agg_cols + [self.BLDG_ID]
         # for col in val_and_id_cols:
