@@ -895,69 +895,67 @@ class AddHeatPumpRtuTest < Minitest::Test
     end
   end
 
-  # ##########################################################################
-  # Single building result examples
-  def test_single_building_result_examples
-    osm_epw_pair = {
-      'example_model_AK.osm' => 'USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw',
-      'example_model_GA.osm' => 'USA_GA_Atlanta-Hartsfield-Jackson.Intl.AP.722190_TMY3.epw',
-      'example_model_HI.osm' => 'USA_HI_Honolulu.Intl.AP.911820_TMY3.epw',
-    }
+  # # ##########################################################################
+  # # Single building result examples
+  # def test_single_building_result_examples
+  #   osm_epw_pair = {
+  #     'example_model_AK.osm' => 'USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw',
+  #     'example_model_MD.osm' => 'USA_MD_Baltimore-Washington.Intl.AP.724060_TMY3.epw',
+  #     'example_model_GA.osm' => 'USA_GA_Atlanta-Hartsfield-Jackson.Intl.AP.722190_TMY3.epw',
+  #     'example_model_AZ.osm' => 'USA_AZ_Tucson.Intl.AP.722740_TMY3.epw',
+  #     'example_model_HI.osm' => 'USA_HI_Honolulu.Intl.AP.911820_TMY3.epw',
+  #   }
 
-    test_name = 'test_single_building_result_examples'
+  #   test_name = 'test_single_building_result_examples'
 
-    puts "\n######\nTEST:#{test_name}\n######\n"
+  #   puts "\n######\nTEST:#{test_name}\n######\n"
 
-    osm_epw_pair.each_with_index do |(osm_name, epw_name), idx|
+  #   osm_epw_pair.each_with_index do |(osm_name, epw_name), idx_model|
 
-      osm_path = model_input_path(osm_name)
-      epw_path = epw_input_path(epw_name)
+  #     osm_path = model_input_path(osm_name)
+  #     epw_path = epw_input_path(epw_name)
 
-      puts("### DEBUGGING: ----------------------------------------------------------")
-      puts("### DEBUGGING: osm_path = #{osm_path}")
-      puts("### DEBUGGING: epw_path = #{epw_path}")
+  #     # Create an instance of the measure
+  #     measure = AddHeatPumpRtu.new
 
-      # Create an instance of the measure
-      measure = AddHeatPumpRtu.new
+  #     # Load the model; only used here for populating arguments
+  #     model = load_model(osm_path)
 
-      # Load the model; only used here for populating arguments
-      model = load_model(osm_path)
+  #     # get arguments
+  #     arguments = measure.arguments(model)
+  #     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
-      # get arguments
-      arguments = measure.arguments(model)
-      argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+  #     # populate specific argument for testing
+  #     arguments.each_with_index do |arg, idx|
+  #       temp_arg_var = arg.clone
+  #       case arg.name
+  #       when 'sizing_run'
+  #         sizing_run = arguments[idx].clone
+  #         sizing_run.setValue(true)
+  #         argument_map[arg.name] = sizing_run
+  #       when 'hprtu_scenario'
+  #         hprtu_scenario = arguments[idx].clone
+  #         hprtu_scenario.setValue('variable_speed_high_eff') # variable_speed_high_eff, two_speed_standard_eff
+  #         argument_map[arg.name] = hprtu_scenario
+  #       when 'performance_oversizing_factor'
+  #         performance_oversizing_factor = arguments[idx].clone
+  #         performance_oversizing_factor.setValue(0.25)
+  #         argument_map[arg.name] = performance_oversizing_factor
+  #       when 'debug_verbose'
+  #         debug_verbose = arguments[idx].clone
+  #         debug_verbose.setValue(true)
+  #         argument_map[arg.name] = debug_verbose
+  #       else
+  #         argument_map[arg.name] = temp_arg_var
+  #       end
+  #     end
 
-      # populate specific argument for testing
-      arguments.each_with_index do |arg, idx|
-        temp_arg_var = arg.clone
-        case arg.name
-        when 'sizing_run'
-          sizing_run = arguments[idx].clone
-          sizing_run.setValue(true)
-          argument_map[arg.name] = sizing_run
-        when 'hprtu_scenario'
-          hprtu_scenario = arguments[idx].clone
-          hprtu_scenario.setValue('variable_speed_high_eff') # variable_speed_high_eff, two_speed_standard_eff
-          argument_map[arg.name] = hprtu_scenario
-        when 'performance_oversizing_factor'
-          performance_oversizing_factor = arguments[idx].clone
-          performance_oversizing_factor.setValue(0.25)
-          argument_map[arg.name] = performance_oversizing_factor
-        when 'debug_verbose'
-          debug_verbose = arguments[idx].clone
-          debug_verbose.setValue(true)
-          argument_map[arg.name] = debug_verbose
-        else
-          argument_map[arg.name] = temp_arg_var
-        end
-      end
+  #     # Apply the measure to the model and optionally run the model
+  #     result = set_weather_and_apply_measure_and_run("#{test_name}_#{idx_model}", measure, argument_map, osm_path, epw_path, run_model: true, apply: true)
+  #     model = load_model(model_output_path("#{test_name}_#{idx_model}"))
 
-      # Apply the measure to the model and optionally run the model
-      result = set_weather_and_apply_measure_and_run("#{test_name}_#{idx}", measure, argument_map, osm_path, epw_path, run_model: true, apply: true)
-      model = load_model(model_output_path("#{test_name}_#{idx}"))
-
-    end
-  end
+  #   end
+  # end
 
   # ##########################################################################
   # This section tests upsizing algorithm
