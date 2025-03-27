@@ -853,8 +853,8 @@ class NamingMixin():
             '5B':'5B',
             '6A':'6A',
             '6B':'6B',
-            '7A':'7',  # TODO remove 7A/7B from spatial_tract_lookup_table_publish_v6.csv?
-            '7B':'7',  # TODO remove 7A/7B from spatial_tract_lookup_table_publish_v6.csv?
+            '7A':'7',  # TODO remove 7A/7B from spatial_tract_lookup_table_publish_vN.csv?
+            '7B':'7',  # TODO remove 7A/7B from spatial_tract_lookup_table_publish_vN.csv?
             '7':'7',
             '8':'8',
     }
