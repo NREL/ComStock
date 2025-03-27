@@ -2286,7 +2286,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
                   # Check for case where setpoint is adjusted for an optimum start, and skip
                   # if an optimum start is in progress, setpoint will be between min and max values for the schedule
                   # and the space will be occupied within the next 2 timesteps
-                  if (idx < htg_schedule_annual_profile.size - 2) and (htg_schedule_annual_profile[idx] > min_value && htg_schedule_annual_profile[idx] < max_value) && (sch_zone_occ_annual_profile[idx + 1] == 1 || sch_zone_occ_annual_profile[idx + 2] == 1)
+                  if (idx < htg_schedule_annual_profile.size - 2) && (htg_schedule_annual_profile[idx] > min_value && htg_schedule_annual_profile[idx] < max_value) && (sch_zone_occ_annual_profile[idx + 1] == 1 || sch_zone_occ_annual_profile[idx + 2] == 1)
                     next
                   end
 
@@ -2304,20 +2304,16 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
                 # Handle behavior on last day of year--above method makes a schedule ruleset that has a schedule with a specified day
                 # of week for 12/31 that isn't intended
                 # On leap years, need to correct separate rule made for 12/30 and 12/31
+				model_year = model.getYearDescription.assumedYear
+				dec_29_date = OpenStudio::Date.new(OpenStudio::MonthOfYear.new('December'), 29, model_year)
+				dec_30_date = OpenStudio::Date.new(OpenStudio::MonthOfYear.new('December'), 30, model_year)
+				dec_31_date = OpenStudio::Date.new(OpenStudio::MonthOfYear.new('December'), 31, model_year)
                 for tstat_rule in htg_sch_new.scheduleRules
-                  if (tstat_rule.endDate.get == OpenStudio::Date.new(OpenStudio::MonthOfYear.new('December'), 30,
-                                                                     model.getYearDescription.assumedYear)) || (tstat_rule.endDate.get == OpenStudio::Date.new(OpenStudio::MonthOfYear.new('December'), 29,
-                                                                                                                                                               model.getYearDescription.assumedYear))
-                    tstat_rule.setEndDate(OpenStudio::Date.new(OpenStudio::MonthOfYear.new('December'), 31,
-                                                               model.getYearDescription.assumedYear))
-                  end
-                  next unless ((tstat_rule.endDate.get == OpenStudio::Date.new(OpenStudio::MonthOfYear.new('December'), 31,
-                                                                               model.getYearDescription.assumedYear)) &&
-                                        (tstat_rule.startDate.get == OpenStudio::Date.new(OpenStudio::MonthOfYear.new('December'), 31,
-                                                                                          model.getYearDescription.assumedYear))) || ((tstat_rule.endDate.get == OpenStudio::Date.new(OpenStudio::MonthOfYear.new('December'), 31,
-                                                                                                                                                                                      model.getYearDescription.assumedYear)) and (tstat_rule.startDate.get == OpenStudio::Date.new(
-                                                                                                                                                                                        OpenStudio::MonthOfYear.new('December'), 30, model.getYearDescription.assumedYear
-                                                                                                                                                                                      )))
+                  if (tstat_rule.endDate.get == dec_30_date || (tstat_rule.endDate.get == dec_29_date))
+                    tstat_rule.setEndDate(dec_31_date)
+                 end
+                 next unless ((tstat_rule.endDate.get == dec_31_date) &&
+                                        (tstat_rule.startDate.get == dec_31_date)) || ((tstat_rule.endDate.get == dec_31_date) && (tstat_rule.startDate.get == dec_30_date))
 
                   tstat_rule.remove
                  end
