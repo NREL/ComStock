@@ -18,7 +18,7 @@ pd.set_option('mode.chained_assignment', None)
 
 def manual_fips_update(df_buildstock):
     """
-    Due to discrepancies between Census years, county FIPS in spatial_tract_lookup_published_v6.csv do not
+    Due to discrepancies between Census years, county FIPS in spatial_tract_lookup_published_v8.csv MAY not
     exactly match the counties sampled in ComStock. This function is a manual FIPS update for these counties
     to ensure every sample in ComStock receives the proper geospatial fields in the metadata. The introduction of
     spatial_tract_lookup_published_v7.csv should have fixed these issues but this is yet to be confirmed.
