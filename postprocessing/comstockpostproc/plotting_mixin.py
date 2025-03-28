@@ -1856,9 +1856,6 @@ class PlottingMixin():
                 col_name = col_name.replace('Mean Rate Mean', 'Mean Rate')
                 col_name = col_name.replace(' Intensity', '')
 
-                breakpoint()
-
-
                 # add traces to plot
                 fig.add_trace(go.Violin(
                     x=df_enduse,
