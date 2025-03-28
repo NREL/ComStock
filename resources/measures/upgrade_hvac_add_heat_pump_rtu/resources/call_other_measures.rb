@@ -38,7 +38,6 @@
 
 # pass relevant messages/results/variables to parent runner
 def child_to_parent_runner_logging(runner_parent, measure_name, results_child, registered_var_list = [])
-
   # Log warnings/infos/errors
   results_child.warnings.each do |warning|
     runner_parent.registerWarning(warning.logMessage)
