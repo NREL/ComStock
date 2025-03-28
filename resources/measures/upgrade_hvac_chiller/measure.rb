@@ -810,7 +810,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     # ------------------------------------------------
     if (counts_chillers_acc_b.size == 0) & (counts_chillers_wcc_b.size == 0)
       runner.registerAsNotApplicable('no chillers are found in the model.')
-      return false
+      return true
     end
 
     # ------------------------------------------------
