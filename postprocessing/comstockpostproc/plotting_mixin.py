@@ -298,6 +298,7 @@ class PlottingMixin():
         df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('Electricity Rate Max', 'With Max Electricity Rate', regex=True)
         df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('Electricity Rate Min', 'With Min Electricity Rate', regex=True)
         df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('Electricity Rate Mean', 'With Mean Electricity Rate', regex=True)
+        df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace(' State Average', '', regex=True)
 
         # plot
         order_map = list(color_map.keys()) # this will set baseline first in plots
@@ -403,12 +404,10 @@ class PlottingMixin():
         # Adjust spacing between subplots and reduce white space
         plt.subplots_adjust(wspace=0.25, hspace=0.2, bottom=0.15)
         # figure name and save
-        title=f"Utility_Bills_{order_map[1]}"
-        fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
         fig_sub_dir = os.path.join(output_dir)
         if not os.path.exists(fig_sub_dir):
             os.makedirs(fig_sub_dir)
-        fig_path = os.path.join(fig_sub_dir, fig_name)
+        fig_path = os.path.join(fig_sub_dir, "Annual Utility Bills by Fuel")
         plt.savefig(fig_path, dpi=600, bbox_inches = 'tight')
 
 
@@ -1856,6 +1855,8 @@ class PlottingMixin():
                 col_name = col_name.replace('Mean Bill', 'Total Bill w/ Mean Electricity Rate')
                 col_name = col_name.replace('Mean Rate Mean', 'Mean Rate')
                 col_name = col_name.replace(' Intensity', '')
+
+                breakpoint()
 
 
                 # add traces to plot
