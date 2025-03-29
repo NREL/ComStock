@@ -2283,6 +2283,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             for column in self.UTIL_ELEC_BILL_VALS]
         )
 
+        geo_data = geo_data.with_columns(
+            [pl.col(column).cast(pl.Int64) for column in self.UTIL_ELEC_BILL_COSTS]
+        )
+
         # Create combined utility column for mean electricity rate
         geo_data = geo_data.with_columns(pl.sum_horizontal(self.COLS_UTIL_BILLS).alias(self.UTIL_BILL_TOTAL_MEAN))
 
@@ -2377,7 +2381,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         if upgrade_id == 0:
             baseline_fkt_plus = geo_data
 
-
+        
         logger.info("Joining the aggregated weights to simulation results")
         # drop measure results cols from meta data
         meta_data = meta_data.drop(self.COLS_UTIL_BILL_RESULTS)
