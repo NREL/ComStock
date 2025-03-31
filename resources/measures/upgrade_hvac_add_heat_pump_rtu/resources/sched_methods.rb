@@ -40,88 +40,10 @@ require 'openstudio'
 require 'date'
 require 'openstudio-standards'
 
-def make_week_ruleset_sched_from_168(_model, sch_ruleset, values, start_date, end_date, sch_name)
-  one_day = OpenStudio::Time.new(1.0)
-  now_date = start_date - one_day
-  days_of_week = []
-  values_by_day = []
-  # Organize data into days
-  # create a 2-D array values_by_day[iday][ihr]
-  hr_of_wk = -1
-  (0..6).each do |_iday|
-    hr_values = []
-    (0..23).each do |_hr_of_day|
-      hr_of_wk += 1
-      hr_values << values[hr_of_wk]
-    end
-    values_by_day << hr_values
-    now_date += one_day
-    days_of_week << now_date.dayOfWeek.valueName
-  end
 
-  # Make list of unique day schedules
-  # First one is automatically unique
-  # Store indexes to days with the same sched in array of arrays
-  # day_sched_idays[0] << 0
-  day_sched = {}
-  day_sched['day_idx_list'] = [0]
-  day_sched['hr_values'] = values_by_day[0]
-  day_scheds = []
-  day_scheds << day_sched
-
-  # Check each day with the cumulative list of day_scheds and add new, if unique
-  (1..6).each do |iday|
-    match_was_found = false
-    day_scheds.each do |day_sched|
-      # Compare each jday to the current iday and check for a match
-      is_a_match = true
-      (0..23).each do |ihr|
-        next unless day_sched['hr_values'][ihr] != values_by_day[iday][ihr]
-
-        # this hour is not a match
-        is_a_match = false
-        break
-      end
-      next unless is_a_match
-
-      # Add the day index to the list for this day_sched
-      day_sched['day_idx_list'] << iday
-      match_was_found = true
-      break
-    end
-    next unless match_was_found == false
-
-    # Add a new day type
-    day_sched = {}
-    day_sched['day_idx_list'] = [iday]
-    day_sched['hr_values'] = values_by_day[iday]
-    day_scheds << day_sched
-  end
-
-  # Add the Rule and Day objects
-  sch_rules = []
-  iday_sch = 0
-  day_scheds.each do |day_sched|
-    iday_sch += 1
-
-    day_names = []
-    day_sched['day_idx_list'].each do |idx|
-      day_names << days_of_week[idx]
-    end
-    day_sch_name = "#{sch_name} Day #{iday_sch}"
-    day_sch_values = day_sched['hr_values']
-    sch_rule = OpenstudioStandards::Schedules.schedule_ruleset_add_rule(sch_ruleset, day_sch_values,
-                                                                        start_date: start_date,
-                                                                        end_date: end_date,
-                                                                        day_names: day_names,
-                                                                        rule_name: day_sch_name)
-    sch_rules << sch_rule
-  end
-
-  sch_rules
-end
 
 def get_8760_values_from_schedule_ruleset(model, schedule_ruleset)
+  std = Standard.build('90.1-2013') #build openstudio standards 
   yd = model.getYearDescription
   start_date = yd.makeDate(1, 1)
   end_date = yd.makeDate(12, 31)
@@ -212,6 +134,7 @@ def get_8760_values_from_schedule_ruleset(model, schedule_ruleset)
 end
 
 def make_ruleset_sched_from_8760(model, _runner, values, sch_name, sch_type_limits)
+   std = Standard.build('90.1-2013') #build openstudio standards 
   # Build array of arrays: each top element is a week, each sub element is an hour of week
   all_week_values = []
   hr_of_yr = -1
@@ -251,7 +174,7 @@ def make_ruleset_sched_from_8760(model, _runner, values, sch_name, sch_type_limi
   # Make week schedule for first week
   num_week_scheds = 1
   week_sch_name = "#{sch_name}_ws#{num_week_scheds}"
-  week_1_rules = make_week_ruleset_sched_from_168(model, sch_ruleset, all_week_values[1], start_date, end_date,
+  week_1_rules = std.make_week_ruleset_sched_from_168(model, sch_ruleset, all_week_values[1], start_date, end_date,
                                                   week_sch_name)
   week_n_rules = week_1_rules
   all_week_rules = []
@@ -285,7 +208,7 @@ def make_ruleset_sched_from_8760(model, _runner, values, sch_name, sch_type_limi
       # Create a new week schedule for this week
       num_week_scheds += 1
       week_sch_name = sch_name + '_ws' + num_week_scheds.to_s
-      week_n_rules = make_week_ruleset_sched_from_168(model, sch_ruleset, all_week_values[iweek], start_date,
+      week_n_rules = std.make_week_ruleset_sched_from_168(model, sch_ruleset, all_week_values[iweek], start_date,
                                                       end_date, week_sch_name)
       all_week_rules << week_n_rules
       # Set this week as the reference for subsequent weeks
