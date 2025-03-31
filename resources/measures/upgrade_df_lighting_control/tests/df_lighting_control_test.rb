@@ -205,7 +205,7 @@ class DFLightingControlTest < Minitest::Test
 
       # set arguments:
       demand_flexibility_objective = arguments[0].clone
-      assert(demand_flexibility_objective.setValue('emission'))
+      assert(demand_flexibility_objective.setValue('peak load'))
       argument_map['demand_flexibility_objective'] = demand_flexibility_objective
       
       # set arguments:
@@ -247,6 +247,11 @@ class DFLightingControlTest < Minitest::Test
       cambium_scenario = arguments[8].clone
       assert(cambium_scenario.setValue('LRMER_MidCase_15'))#
       argument_map['cambium_scenario'] = cambium_scenario
+
+      # set arguments:
+      pv = arguments[9].clone
+      assert(pv.setValue(true))#
+      argument_map['pv'] = pv
 
       # apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: true)
