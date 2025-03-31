@@ -170,6 +170,10 @@ class NamingMixin():
     ANN_OTHER_SWH_GROUP_KBTU = 'calc.enduse_group.other_fuel.water_systems.energy_consumption..kwh'
     ANN_OTHER_INTEQUIP_GROUP_KBTU = 'calc.enduse_group.other_fuel.interior_equipment.energy_consumption..kwh'
 
+    # Unmet hours columns
+    COOLING_HOURS_UNMET = 'out.params.hours_cooling_setpoint_not_met..hr'
+    HEATING_HOURS_UNMET = 'out.params.hours_heating_setpoint_not_met..hr'
+
     # List of total annual energy end use group columns
     COLS_ENDUSE_GROUP_TOT_ANN_ENGY = [
         ANN_HVAC_GROUP_KBTU,
@@ -203,9 +207,9 @@ class NamingMixin():
     UTIL_BILL_ELEC_MAX = 'out.utility_bills.electricity_bill_max..usd'
     UTIL_BILL_ELEC_MED = 'out.utility_bills.electricity_bill_median..usd'
     UTIL_BILL_ELEC_MIN = 'out.utility_bills.electricity_bill_min..usd'
-    UTIL_BILL_GAS = 'out.utility_bills.natural_gas_bill..usd'
-    UTIL_BILL_FUEL_OIL = 'out.utility_bills.fuel_oil_bill..usd'
-    UTIL_BILL_PROPANE = 'out.utility_bills.propane_bill..usd'
+    UTIL_BILL_GAS = 'out.utility_bills.natural_gas_bill_state_average..usd'
+    UTIL_BILL_FUEL_OIL = 'out.utility_bills.fuel_oil_bill_state_average..usd'
+    UTIL_BILL_PROPANE = 'out.utility_bills.propane_bill_state_average..usd'
 
     # Utility bill columns
     COLS_UTIL_BILLS = [
@@ -215,8 +219,58 @@ class NamingMixin():
         UTIL_BILL_PROPANE
     ]
 
+    UTIL_BILL_EIA_ID = 'in.electric_utility_eia_code'
+    UTIL_BILL_ELEC_RESULTS = 'out.utility_bills.electricity_utility_bill_results'
+    UTIL_BILL_STATE_ELEC_RESULTS = 'out.utility_bills.state_average_electricity_cost_results'
+    UTIL_BILL_STATE_GAS_RESULTS = 'out.utility_bills.state_average_natural_gas_cost_results'
+    UTIL_BILL_STATE_PROPANE_RESULTS = 'out.utility_bills.state_average_propane_cost_results'
+    UTIL_BILL_STATE_FUEL_OIL_RESULTS = 'out.utility_bills.state_average_fueloil_cost_results'
+
+    COLS_STATE_UTIL_RESULTS = [
+        UTIL_BILL_STATE_ELEC_RESULTS,
+        UTIL_BILL_STATE_GAS_RESULTS,
+        UTIL_BILL_STATE_PROPANE_RESULTS,
+        UTIL_BILL_STATE_FUEL_OIL_RESULTS
+    ]
+
+    # Utility bills full results columms
+    COLS_UTIL_BILL_RESULTS = [
+        UTIL_BILL_ELEC_RESULTS
+    ] + COLS_STATE_UTIL_RESULTS
+
+    # utility bills extracted columns
+    UTIL_ELEC_BILL_VALS = [
+        'out.utility_bills.electricity_bill_min..usd',
+        'out.utility_bills.electricity_bill_min_label',
+        'out.utility_bills.electricity_bill_max..usd',
+        'out.utility_bills.electricity_bill_max_label',
+        'out.utility_bills.electricity_bill_median_low..usd',
+        'out.utility_bills.electricity_bill_median_low_label',
+        'out.utility_bills.electricity_bill_median_high..usd',
+        'out.utility_bills.electricity_bill_median_high_label',
+        # 'out.utility_bills.electricity_bill_median_dollars..usd',
+        'out.utility_bills.electricity_bill_mean..usd',
+        'out.utility_bills.electricity_bill_num_bills'
+    ]
+
+    UTIL_ELEC_BILL_COSTS = [col for col in UTIL_ELEC_BILL_VALS if 'usd' in col]
+    UTIL_ELEC_BILL_LABEL = [col for col in UTIL_ELEC_BILL_VALS if 'label' in col]
+    UTIL_ELEC_BILL_NUM_BILLS = UTIL_ELEC_BILL_VALS[-1]
+
+    UTIL_STATE_AVG_ELEC_COST = 'out.utility_bills.electricity_bill_state_average..usd'
+    UTIL_STATE_AVG_GAS_COST = 'out.utility_bills.natural_gas_bill_state_average..usd'
+    UTIL_STATE_AVG_PROP_COST = 'out.utility_bills.propane_bill_state_average..usd'
+    UTIL_STATE_AVG_FUEL_COST = 'out.utility_bills.fuel_oil_bill_state_average..usd'
+
+    COST_STATE_UTIL_COSTS = [
+        UTIL_STATE_AVG_ELEC_COST,
+        UTIL_STATE_AVG_GAS_COST,
+        UTIL_STATE_AVG_PROP_COST,
+        UTIL_STATE_AVG_FUEL_COST
+    ]
+
     # Combined utility bills
-    UTIL_BILL_TOTAL_MEAN = 'calc.utility_bills.total_mean_bill..usd'
+    UTIL_BILL_TOTAL_MEAN = 'calc.utility_bills.total_bill_mean..usd'
 
     # GHG emissions columns
     ANN_GHG_EGRID = 'calc.emissions.total_with_egrid..co2e_kg'
@@ -227,6 +281,8 @@ class NamingMixin():
         'out.emissions.natural_gas..co2e_kg',
         'out.emissions.fuel_oil..co2e_kg',
         'out.emissions.propane..co2e_kg',
+        'out.emissions.district_cooling..co2e_kg',
+        'out.emissions.district_heating..co2e_kg',
         'out.emissions.electricity.egrid_2021_subregion..co2e_kg'
     ]
 
@@ -235,27 +291,10 @@ class NamingMixin():
         'out.emissions.natural_gas..co2e_kg',
         'out.emissions.fuel_oil..co2e_kg',
         'out.emissions.propane..co2e_kg',
+        'out.emissions.district_cooling..co2e_kg',
+        'out.emissions.district_heating..co2e_kg',
         'out.emissions.electricity.lrmer_mid_case_15_2023_start..co2e_kg'
-    ]
 
-    # GHG emissions seasonal daily average from electricity consumption columns for eGrid
-    COLS_GHG_ELEC_SEASONAL_DAILY_EGRID = [
-        'out.emissions.electricity.winter_daily_average.egrid_2021_subregion..co2e_kg',
-        'out.emissions.electricity.summer_daily_average.egrid_2021_subregion..co2e_kg',
-        'out.emissions.electricity.shoulder_daily_average.egrid_2021_subregion..co2e_kg'
-    ]
-
-    # GHG emissions seasonal daily average from electricity consumption columns for Cambium
-    COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM = [
-        'out.emissions.electricity.winter_daily_average.lrmer_high_re_cost_15_2023_start..co2e_kg',
-        'out.emissions.electricity.summer_daily_average.lrmer_high_re_cost_15_2023_start..co2e_kg',
-        'out.emissions.electricity.shoulder_daily_average.lrmer_high_re_cost_15_2023_start..co2e_kg',
-        'out.emissions.electricity.winter_daily_average.lrmer_low_re_cost_15_2023_start..co2e_kg',
-        'out.emissions.electricity.summer_daily_average.lrmer_low_re_cost_15_2023_start..co2e_kg',
-        'out.emissions.electricity.shoulder_daily_average.lrmer_low_re_cost_15_2023_start..co2e_kg',
-        'out.emissions.electricity.winter_daily_average.lrmer_mid_case_15_2023_start..co2e_kg',
-        'out.emissions.electricity.summer_daily_average.lrmer_mid_case_15_2023_start..co2e_kg',
-        'out.emissions.electricity.shoulder_daily_average.lrmer_mid_case_15_2023_start..co2e_kg'
     ]
 
     # GHG emissions seasonal daily average from electricity consumption columns for eGrid
@@ -585,6 +624,11 @@ class NamingMixin():
         GHG_ELEC_EGRID
     ]
 
+    UNMET_HOURS_COLS = [
+        COOLING_HOURS_UNMET,
+        HEATING_HOURS_UNMET,
+    ]
+
     # Colors from https://davidmathlogic.com/colorblind Bang Wong color palette
     COLOR_COMSTOCK_BEFORE = '#0072B2'
     COLOR_COMSTOCK_AFTER = '#56B4E9'
@@ -809,8 +853,8 @@ class NamingMixin():
             '5B':'5B',
             '6A':'6A',
             '6B':'6B',
-            '7A':'7',  # TODO remove 7A/7B from spatial_tract_lookup_table_publish_v6.csv?
-            '7B':'7',  # TODO remove 7A/7B from spatial_tract_lookup_table_publish_v6.csv?
+            '7A':'7',  # TODO remove 7A/7B from spatial_tract_lookup_table_publish_vN.csv?
+            '7B':'7',  # TODO remove 7A/7B from spatial_tract_lookup_table_publish_vN.csv?
             '7':'7',
             '8':'8',
     }
@@ -907,11 +951,13 @@ class NamingMixin():
         units = self.units_from_col_name(col_name)
         col_name = col_name.replace('energy_consumption', 'energy_consumption_intensity')
         col_name = col_name.replace('energy_savings', 'energy_savings_intensity')
-        col_name = col_name.replace('bill_mean..usd', 'bill_intensity..usd')
-        col_name = col_name.replace('bill_min..usd', 'bill_min_intensity..usd')
-        col_name = col_name.replace('bill_max..usd', 'bill_max_intensity..usd')
-        col_name = col_name.replace('bill_median..usd', 'bill_median_intensity..usd')
-        col_name = col_name.replace('bill..usd', 'bill_intensity..usd')
+        col_name = col_name.replace('bill_state_average', 'bill_state_average_intensity')
+        col_name = col_name.replace('bill_min', 'bill_min_intensity')
+        col_name = col_name.replace('bill_max', 'bill_max_intensity')
+        # col_name = col_name.replace('bill_median..usd', 'bill_median_intensity..usd')
+        col_name = col_name.replace('bill_median_low', 'bill_median_low_intensity')
+        col_name = col_name.replace('bill_median_high', 'bill_median_high_intensity')
+        col_name = col_name.replace('bill_mean', 'bill_mean_intensity')
         col_name = col_name.replace('_daily_peak_', '_daily_peak_intensity_')
         col_name = col_name.replace('maximum_daily_use_', 'peak_intensity_')
         col_name = col_name.replace('.emissions.', '.emissions.intensity.')

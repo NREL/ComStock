@@ -81,8 +81,30 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
         assert isinstance(self.data, pd.DataFrame)
         logging.info(f'Created {self.dataset_name} with {len(self.data)} rows')
+
         self.data = self.data.astype(str)
+        #Convert columns with name in self.FLR_AREA or weight to numeric 
+        numeric_patterns = [
+            self.FLR_AREA,
+            self.BLDG_WEIGHT,
+            'weight',
+            'energy_consumption',
+            'calc.weighted',
+            'sqft',
+            'intensity'
+        ]
+
+        for col in self.data.columns:
+            if any(pattern in col for pattern in numeric_patterns):
+                try:
+                    self.data[col] = pd.to_numeric(self.data[col], errors='coerce')
+                except:
+                    # If conversion fails, keep as string
+                    pass
+
+        # Then convert to polars with schema overrides
         self.data = pl.from_pandas(self.data).lazy()
+
         assert isinstance(self.data, pl.LazyFrame)
 
     def download_data(self):

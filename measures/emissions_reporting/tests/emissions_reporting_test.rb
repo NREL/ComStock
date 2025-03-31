@@ -60,7 +60,7 @@ class EmissionsReportingTest < Minitest::Test
 
   # process output names and field descriptions for comstock_column_definitions.csv
   def print_column_definitions(result_h, test_name)
-    regex = /annual_?(.*)_(electricity|natural_gas|fuel_oil|propane)_ghg_emissions_?(.*)_kg/
+    regex = /annual_?(.*)_(electricity|natural_gas|fuel_oil|propane|district_cooling|district_heating)_ghg_emissions_?(.*)_kg/
     result = ''
     result_h['step_values'].each do |h|
       result_string = "\nresults.csv,emissions_reporting."
@@ -300,6 +300,30 @@ class EmissionsReportingTest < Minitest::Test
     grid_state = arguments[1].clone
     emissions_scenario = arguments[2].clone
     assert(grid_region.setValue('HIMS'))
+    assert(grid_state.setValue('Lookup from model'))
+    assert(emissions_scenario.setValue('LRMER_MidCase_15'))
+    argument_map['grid_region'] = grid_region
+    argument_map['grid_state'] = grid_state
+    argument_map['emissions_scenario'] = emissions_scenario
+
+    assert(run_test(__method__, osm_path, epw_path, argument_map))
+  end
+
+  def test_district_energy
+    puts "\n######\nTEST:#{__method__}\n######\n"
+    osm_path = "#{__dir__}/../../../resources/tests/models/LargeOffice_VAV_district_chw_hw.osm"
+    epw_path = "#{__dir__}/FortCollins2016.epw"
+
+    # create an instance of the measure
+    measure = EmissionsReporting.new
+
+    # set arguments
+    arguments = measure.arguments(OpenStudio::Model::Model.new)
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+    grid_region = arguments[0].clone
+    grid_state = arguments[1].clone
+    emissions_scenario = arguments[2].clone
+    assert(grid_region.setValue('Lookup from model'))
     assert(grid_state.setValue('Lookup from model'))
     assert(emissions_scenario.setValue('LRMER_MidCase_15'))
     argument_map['grid_region'] = grid_region

@@ -298,6 +298,7 @@ class PlottingMixin():
         df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('Electricity Rate Max', 'With Max Electricity Rate', regex=True)
         df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('Electricity Rate Min', 'With Min Electricity Rate', regex=True)
         df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace('Electricity Rate Mean', 'With Mean Electricity Rate', regex=True)
+        df_emi_gb_long['variable'] = df_emi_gb_long['variable'].str.replace(' State Average', '', regex=True)
 
         # plot
         order_map = list(color_map.keys()) # this will set baseline first in plots
@@ -403,12 +404,10 @@ class PlottingMixin():
         # Adjust spacing between subplots and reduce white space
         plt.subplots_adjust(wspace=0.25, hspace=0.2, bottom=0.15)
         # figure name and save
-        title=f"Utility_Bills_{order_map[1]}"
-        fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
         fig_sub_dir = os.path.join(output_dir)
         if not os.path.exists(fig_sub_dir):
             os.makedirs(fig_sub_dir)
-        fig_path = os.path.join(fig_sub_dir, fig_name)
+        fig_path = os.path.join(fig_sub_dir, "Annual Utility Bills by Fuel")
         plt.savefig(fig_path, dpi=600, bbox_inches = 'tight')
 
 
@@ -790,7 +789,7 @@ class PlottingMixin():
 
     def plot_floor_area_and_energy_totals_by_building_type(self, df, column_for_grouping, color_map, output_dir):
         # Summarize square footage and energy totals by building type
-        
+
         # Columns to summarize
         cols_to_summarize = {
             self.col_name_to_weighted(self.FLR_AREA): np.sum,
@@ -1196,7 +1195,7 @@ class PlottingMixin():
             df_upgrade_plt = df_upgrade.loc[:, [col_group, energy_col]]
 
             # apply method for filtering percent savings; this will not affect EUI
-            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 1)
+            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 100)
 
             # create figure template
             fig = go.Figure()
@@ -1276,7 +1275,7 @@ class PlottingMixin():
         # create dictionary with the plot labels and columns to loop through
         dict_saving = {}
         dict_saving['Utility Bill Savings Intensity by Building Type (usd/sqft/year, 2022)'] = self.col_name_to_savings(self.col_name_to_area_intensity(en_col))
-        dict_saving['Percent Utility Bill Savings by Building Type (%)'] = self.col_name_to_percent_savings(en_col, 'percent')
+        dict_saving['Percent Utility Bill Savings by Building Type (%)'] = self.col_name_to_percent_savings(self.col_name_to_weighted(en_col), 'percent')
 
         # # loop through plot types
         for group_name, energy_col in dict_saving.items():
@@ -1288,7 +1287,7 @@ class PlottingMixin():
             df_upgrade_plt = df_upgrade.loc[:, [col_group, energy_col]]
 
             # apply method for filtering percent savings; this will not affect EUI
-            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 1)
+            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 100)
 
             # create figure template
             fig = go.Figure()
@@ -1368,7 +1367,7 @@ class PlottingMixin():
         # create dictionary with the plot labels and columns to loop through
         dict_saving = {}
         dict_saving['Utility Bill Savings Intensity by Climate (usd/sqft/year, 2022)'] = self.col_name_to_savings(self.col_name_to_area_intensity(en_col))
-        dict_saving['Percent Utility Bill Savings by Climate (%)'] = self.col_name_to_percent_savings(en_col, 'percent')
+        dict_saving['Percent Utility Bill Savings by Climate (%)'] = self.col_name_to_percent_savings(self.col_name_to_weighted(en_col), 'percent')
 
         # # loop through plot types
         for group_name, energy_col in dict_saving.items():
@@ -1380,7 +1379,7 @@ class PlottingMixin():
             df_upgrade_plt = df_upgrade.loc[:, [col_group, energy_col]]
 
             # apply method for filtering percent savings; this will not affect EUI
-            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 1)
+            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 100)
 
             # create figure template
             fig = go.Figure()
@@ -1460,7 +1459,7 @@ class PlottingMixin():
         # create dictionary with the plot labels and columns to loop through
         dict_saving = {}
         dict_saving['Utility Bill Savings Intensity by HVAC (usd/sqft/year, 2022)'] = self.col_name_to_savings(self.col_name_to_area_intensity(en_col))
-        dict_saving['Percent Utility Bill Savings by HVAC (%)'] = self.col_name_to_percent_savings(en_col, 'percent')
+        dict_saving['Percent Utility Bill Savings by HVAC (%)'] = self.col_name_to_percent_savings(self.col_name_to_weighted(en_col), 'percent')
 
         # # loop through plot types
         for group_name, energy_col in dict_saving.items():
@@ -1472,7 +1471,7 @@ class PlottingMixin():
             df_upgrade_plt = df_upgrade.loc[:, [col_group, energy_col]]
 
             # apply method for filtering percent savings; this will not affect EUI
-            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 1)
+            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 100)
 
             # create figure template
             fig = go.Figure()
@@ -1567,7 +1566,7 @@ class PlottingMixin():
             df_upgrade_plt = df_upgrade.loc[:, [col_group, energy_col]]
 
             # apply method for filtering percent savings; this will not affect EUI metrics
-            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 1)
+            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 100)
 
             # create figure template
             fig = go.Figure()
@@ -1661,7 +1660,7 @@ class PlottingMixin():
             df_upgrade_plt = df_upgrade.loc[:, [col_group, energy_col]]
 
             # apply method for filtering percent savings; this will not affect EUI
-            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 1)
+            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade_plt, 100)
 
             # create figure template
             fig = go.Figure()
@@ -1750,7 +1749,7 @@ class PlottingMixin():
             savings_name_wo_unit = savings_name.rsplit(" ", 1)[0]
 
             # apply method for filtering percent savings; this will not affect EUI
-            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade[col_list], 1.5)
+            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade[col_list], 150)
 
             # create figure template
             fig = go.Figure()
@@ -1824,7 +1823,7 @@ class PlottingMixin():
         dict_saving = {}
         li_eui_svgs_fuel_cols = [self.col_name_to_savings(self.col_name_to_area_intensity(c)) for c in ([self.UTIL_BILL_TOTAL_MEAN] + self.COLS_UTIL_BILLS)]
         dict_saving['Utility Bill Savings Intensity by Fuel (usd/sqft/year, 2022)'] = li_eui_svgs_fuel_cols
-        li_pct_svgs_fuel_cols = [self.col_name_to_percent_savings(c, 'percent') for c in ([self.UTIL_BILL_TOTAL_MEAN] + self.COLS_UTIL_BILLS)]
+        li_pct_svgs_fuel_cols = [self.col_name_to_percent_savings(self.col_name_to_weighted(c), 'percent') for c in ([self.UTIL_BILL_TOTAL_MEAN] + self.COLS_UTIL_BILLS)]
         dict_saving['Percent Utility Bill Savings by Fuel (%)'] = li_pct_svgs_fuel_cols
 
         # loop through plot types
@@ -1834,7 +1833,7 @@ class PlottingMixin():
             savings_name_wo_unit = savings_name.rsplit(" ", 1)[0]
 
             # apply method for filtering percent savings; this will not affect EUI
-            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade[col_list], 1.5)
+            df_upgrade_plt = self.filter_outlier_pct_savings_values(df_upgrade[col_list], 150)
 
             # create figure template
             fig = go.Figure()
@@ -1856,7 +1855,6 @@ class PlottingMixin():
                 col_name = col_name.replace('Mean Bill', 'Total Bill w/ Mean Electricity Rate')
                 col_name = col_name.replace('Mean Rate Mean', 'Mean Rate')
                 col_name = col_name.replace(' Intensity', '')
-
 
                 # add traces to plot
                 fig.add_trace(go.Violin(
@@ -2015,7 +2013,84 @@ class PlottingMixin():
         fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
         violin_qoi_timing.write_image(fig_path, scale=10)
 
-    def filter_outlier_pct_savings_values(self, df, max_fraction_change):
+
+    def plot_unmet_hours(self, df, column_for_grouping, color_map, output_dir):
+
+        # get applicable buildings
+        li_applic_blgs = df.loc[(df[self.UPGRADE_NAME] != 'Baseline') & (df['applicability']==1), self.BLDG_ID].unique().tolist()
+        df_applic = df.loc[df[self.BLDG_ID].isin(li_applic_blgs), :]
+
+        # Define colors for heating and cooling
+        colors = {"heating": "red", "cooling": "blue"}
+
+        # Create subplots (1 row, 2 columns)
+        fig = make_subplots(rows=1, cols=2, shared_yaxes=True, subplot_titles=["Heating Unmet Hours", "Cooling Unmet Hours"])
+
+        # Loop through heating and cooling unmet hours
+        for i, mode in enumerate(self.UNMET_HOURS_COLS):
+            mode_name = mode.split(".")[2]  # Extract readable title
+            color = colors["heating"] if "heating" in mode.lower() else colors["cooling"]
+            col_num = 1 if "heating" in mode.lower() else 2
+
+            # Add box plot - total distribution
+            fig.add_trace(
+                go.Box(
+                    x=df_applic[mode],
+                    y=df_applic[self.UPGRADE_NAME],
+                    marker=dict(color=color),
+                    boxpoints='outliers',
+                    marker_size=1,
+                    pointpos=1,
+                    name=mode_name,
+                    orientation="h"
+                ),
+                row=1, col=col_num
+            )
+
+        # Apply log scale to x-axes
+        fig.update_xaxes(title_text="Unmet Hours Count",
+                         showgrid=True,
+                         range=[0,4],
+                         nticks=14,
+                         exponentformat = 'power',
+                         tickfont=dict(size=8),
+                         mirror=True,
+                         type="log",
+                         row=1, col=1)
+        fig.update_xaxes(title_text="Unmet Hours Count",
+                         showgrid=True,
+                         range=[0,4],
+                         nticks=14,
+                         exponentformat = 'power',
+                         tickfont=dict(size=8),
+                         mirror=True,
+                         type="log",
+                         row=1, col=2)
+
+        # Update y-axis labels
+        fig.update_yaxes(mirror=True, row=1, col=1)
+        fig.update_yaxes(mirror=True, row=1, col=2)  # Hide y-axis label for second subplot title_text="",
+
+        # Adjust layout
+        fig.update_layout(
+            template="simple_white",
+            showlegend=False,
+            height=300,
+            margin=dict(l=20, r=20, t=20, b=20)
+        )
+
+        # Save the figure
+        title = "unmet_hours"
+        fig_name = f'{title}.{self.image_type}'
+        fig_name_html = f'{title.replace(" ", "_").lower()}.html'
+        fig_path = os.path.abspath(os.path.join(output_dir, fig_name))
+        fig_path_html = os.path.abspath(os.path.join(output_dir, fig_name_html))
+        fig.write_image(fig_path, scale=10)
+        fig.write_html(fig_path_html)
+
+        return fig
+
+    def filter_outlier_pct_savings_values(self, df, max_percentage_change):
 
         # get applicable columns
         cols = df.loc[:, df.columns.str.contains('percent_savings')].columns
@@ -2025,11 +2100,8 @@ class PlottingMixin():
 
         # filter out data that falls outside of user-input range by changing them to nan
         # when plotting, nan values will be skipped
-        df_2.loc[:, cols] = df_2[cols].mask(df[cols]>max_fraction_change, np.nan)
-        df_2.loc[:, cols] = df_2[cols].mask(df[cols]<-max_fraction_change, np.nan)
-
-        # multiply by 100 to get percent savings
-        df_2.loc[:, cols] = df_2[cols] * 100
+        df_2.loc[:, cols] = df_2[cols].mask(df[cols]>max_percentage_change, np.nan)
+        df_2.loc[:, cols] = df_2[cols].mask(df[cols]<-max_percentage_change, np.nan)
 
         # filter out % savings values greater than 100%
         df_2.loc[:, cols] = df_2[cols].mask(df_2[cols] > 100, np.nan)
@@ -2119,6 +2191,7 @@ class PlottingMixin():
                 fig_path = os.path.abspath(os.path.join(output_dir, fig_name))
                 plt.savefig(fig_path, bbox_inches = 'tight')
                 plt.close()
+
 
     def plot_monthly_energy_consumption_for_eia(self, df, color_map, output_dir):
         # Columns to summarize
@@ -3317,4 +3390,3 @@ class PlottingMixin():
 
             fig.write_image(fig_path, scale=10)
             fig.write_html(fig_path_html)
-

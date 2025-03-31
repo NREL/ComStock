@@ -3,6 +3,7 @@
 
 import boto3
 import botocore
+from datetime import datetime
 from glob import glob
 import json
 import logging
@@ -26,6 +27,8 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             is produced through the StockE process and underlies the distributions represented in the TSVs.
             truth_data_version (str): The version/location to retrieve truth/starting data. Truth data
             may change for certain data sources over time, although unlikely for CBECS.
+            bootstrap_coefficient (int): The number of samples to bootstrap for each building in the stock truth dataset estimate. This should never be less than three, however the virtues of larger numbers is not yet well understood and may never be unless we have reason to spend a fair bit of effort on this.
+
         """
 
         # Initialize members
@@ -39,13 +42,13 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         self.resource_dir = os.path.join(current_dir, 'resources')
         self.output_dir = os.path.abspath(os.path.join(current_dir, '..', 'output', self.dataset_name))
         self.data_file_name = f'{self.stock_estimation_version}_building_estimate.parquet'
-        self.hvac_size_bins_name = f'{self.stock_estimation_version}_hvac_system_size_bin.tsv'
+        self.hvac_size_bins_name = 'hvac_system_size_bin_v1.tsv'
         self.tract_list_name = f'{self.stock_estimation_version}_tract_list.csv'
         self.sampling_regions_name = 'sampling_regions_v1.json'
         self.ca_cz_tract_2010_name = 'cec_cz_by_tract_2010_lkup.json'
         self.ca_cz_tract_2020_name = 'cec_cz_by_tract_2020_lkup.json'
-        self.hvac_system_type_name = 'hvac_system_type.tsv'
-        self.space_heating_fuel_type_name = 'heating_fuel.tsv'
+        self.hvac_system_type_name = 'hvac_system_type_v2.tsv'
+        self.space_heating_fuel_type_name = 'heating_fuel_v1.tsv'
         self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
         logger.info(f'Creating {self.dataset_name}')
 
@@ -98,6 +101,7 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         'primary_school': 'PrimarySchool',
         'secondary_school': 'SecondarySchool'
     }
+    """Mapping between snake_case and UpperCamelCase building type enumerations. """
 
     CEN_DIV_LKUP={
         'G090': 'New England', 'G230': 'New England', 'G250': 'New England', 'G330': 'New England',
@@ -115,8 +119,12 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         'G320': 'Mountain', 'G560': 'Mountain', 'G020': 'Pacific', 'G060': 'Pacific', 'G150': 'Pacific',
         'G410': 'Pacific', 'G530': 'Pacific'
     }
+    """
+    Mapping between state gisjoin codes and census division specifications. Note these are called regions elsewhere in ComStock due to a historic mixup from EULP days.
+    """
 
     def download_data(self):
+        """Download all data files associated with and needed for segment apportionment."""
 
         logger.info('Downloading data required for Apportionment class')
 
@@ -169,6 +177,8 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             self.read_delimited_truth_data_file_from_S3(s3_file_path, '\t')
 
     def load_data(self):
+        """Load all downloaded and / or cached data into memory for use by the segment apportionment methods."""
+
         # Load raw microdata and codebook and decode numeric keys to strings using codebook
         logger.info('Loading data required for Apportionment class')
 
@@ -209,6 +219,8 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
     @staticmethod
     def _generate_level1_distributions(full_tracts):
+        """This method attempts to create (building type, county) tract distributions for later inference.
+        """
 
         # To be used for assignment level 1.
 
@@ -248,6 +260,8 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
     @staticmethod
     def _generate_level2_distributions(full_tracts):
+        """This method attempts to create county tract distributions for later inference.
+        """
 
         # To be used for assignment level 2.
 
@@ -280,6 +294,8 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
     @staticmethod
     def _generate_level3_distributions(folder_path, use_raw_data=False):
+        """This method is the fallback for tract assignment as a last ditch effort.
+        """
 
         # To be used for assignment level 3.
 
@@ -322,6 +338,20 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
     @staticmethod
     def _assign_tracts(null_tracts, building_tract_distributions, tract_distributions, tract_list):
+        """This method assigns tracts to missing / invalid tracts in the input truth dataset.
+
+        :param null_tracts: input pandas dataframe where each row is missing a tract specification
+        :type null_tracts: pandas.DataFrame
+        :param building_tract_distributions: input pandas dataframe which serves as a tract inference engine for (building_type, county) tuples where they exist
+        :type building_tract_distributions: pandas.DataFrame
+        :param tract_distributions: input pandas dataframe which serves as a tract inference engine for county tuples where they exist
+        :type tract_distributions: pandas.DataFrame
+        :param tract_list: ordered tract list to be used as a last resort
+        :type tract_list: pandas.DataFrame
+        :return: an updated dataframe with a valid entry for the 'tract' column
+        :rtype: pandas.DataFrame
+
+        """
 
         # The idea here is that the random number assinged to each row in null_tracts will be matched
         # to the closest forward value in the cumulative distribution (e.g, building_tract_distributions)
@@ -338,7 +368,9 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         # Join the fallback level 1 option
         null_tracts = pd.merge_asof(
             null_tracts,
-            building_tract_distributions.rename(columns={'last6': 'last6_l1', 'cumsum_fraction': 'cumsum_fraction_l1'}),
+            building_tract_distributions.rename(
+                columns={'last6': 'last6_l1', 'cumsum_fraction': 'cumsum_fraction_l1'}
+            ),
             by=['building_type', 'county'],
             direction="forward",
             left_on="random_values",
@@ -385,8 +417,16 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         return null_tracts
 
     def infer_tracts(self):
+        """Generate and apply tract inference lookups for all self.data rows missing a tract.
+
+        This method wraps the logic for several methods used to infer tracts in the case of a self.data input missing one or more tracts. At the current moment this is very much not expected, as noted by the breakpoint and associated instructions. However, particularly when we finally upgrade to 2020 census tract definitions it will be nessecary to use this code again, possibly extensivly.
+
+        :return: an updated dataframe with a 'tract' defined for every row as well as enteries for the 'tract_assignment_type' indicating the tract asignment logic used - see _assign_tracts for the decoder
+        :rtype: pandas.DataFrame or maybe None - regardless self.data is updated
+
+        """
         # This wraps all other functions to run the tract-level resampling
-        if ~any([na_tract in self.data['tract'].unique() for na_tract in [None, np.nan, '999999']]):
+        if not any([na_tract in self.data['tract'].unique() for na_tract in [None, np.nan, '999999']]):
             return
 
         # Impose manual checking of a failing expression as that's very much not expected at present...
@@ -415,6 +455,8 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         # Assign random values from 0 to 1 to each row. This will be used for assignment to actual tracts.
         # The random values are then sorted because the join will be an "as_of" join that requires left
         # and right dataframes to be sorted by the join keys.
+        # Set the numpy random seed to make the results more predictable - note this is bad for Ry and Hernan's work
+        np.random.seed(12345)
         null_tracts = df.loc[df['tract'].isnull()]
         null_tracts['random_values'] = np.random.rand(len(null_tracts))
         null_tracts = null_tracts.sort_values(['random_values'])
@@ -489,6 +531,8 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         self.data = df.copy(deep=True)
 
     def add_sqft_bins(self):
+        """Check if size bins have been added to the file - if not error."""
+        # TODO implement this using the self.hvac_size_bins_name
         if 'size_bin' in list(self.data):
             return
 
@@ -512,7 +556,12 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         self.data = df.copy(deep=True)
 
     def upsample_hvac_system_fuel_types(self):
-        """Do a thing"""
+        """Apply fuel type and HVAC system type TSVs to the stock truth data estimate.
+
+        :return: an updated dataframe with 'heating_fuel', 'hvac_system_type', and 'hvac_and_fueltype' columns that represent the distributions defined by self.heating_fuel_type_prob and self.hvac_system_type_prob.
+        :rtype: pandas.DataFrame
+
+        """
 
         logger.info('Upsampling truth data with fuel type and HVAC system type')
         df = self.data.copy(deep=True)
@@ -532,6 +581,8 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
         # Use the merged probabilities to sample in fuel type
         # Note this can be made fuel type enumeration agnostic by looping over fcols but it is very not readable
+        # Set the numpy random seed - note this is bad for Ry and Hernan's work
+        np.random.seed(54321)
         df.loc[: , 'ft_rand'] = np.random.rand(df.shape[0])
         df.loc[:, 'heating_fuel'] = 'DistrictHeating'
         df.loc[df.loc[:, 'ft_rand'] >= df.loc[:, 'DistrictHeating'], 'heating_fuel'] = 'Electricity'
@@ -547,28 +598,7 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         hsdf.columns = [col.replace('Dependency=', '').replace('Option=', '') for col in hsdf.columns]
         hsdf.loc[:, 'building_type'] = hsdf.loc[:, 'building_type'].map(self.BUILDING_TYPE_NAME_MAPPER)
         hsdf.loc[:, 'census_region'] = hsdf.loc[:, 'census_region'].replace('Mid-Atlantic', 'Middle Atlantic')
-        df = df.merge(hsdf, left_on=['building_type', 'heating_fuel', 'cen_div'], right_on=['building_type', 'heating_fuel', 'census_region'])
-
-        # Do a secondary true up for primary schools, size bin 0
-        # TODO get an HVAC TSV that supports size bins
-        # Create a version of the hvac TSV that supports only Andrew's spreadsheet allowed choices
-        ps_hsdf = hsdf.loc[hsdf.building_type == 'PrimarySchool', :].copy(deep=True)
-        allowed_hvac_types = ['PSZ-AC with electric coil', 'PSZ-HP', 'PSZ-AC with gas coil', 'PSZ-AC with gas boiler', 'PSZ-AC with district hot water']
-        hs_meta_cols = ['building_type', 'heating_fuel', 'census_region']
-        hs_numeric_cols = list(set(ps_hsdf) - set(hs_meta_cols))
-        ps_to_zero_cols = list(set(hs_numeric_cols) - set(allowed_hvac_types))
-        ps_hsdf.loc[:, ps_to_zero_cols] = 0.0
-        ps_hsdf.loc[:, hs_numeric_cols] = ps_hsdf.loc[:, hs_numeric_cols].div(ps_hsdf.loc[:, hs_numeric_cols].sum(axis=1), axis=0)
-        # Break df into primary school size bin zero and everything else - update the former and concat
-        initial_row_count = df.shape[0]
-        initial_column_count = df.shape[1]
-        indecies_to_update = (df.building_type == 'PrimarySchool') & (df.size_bin == 0)
-        to_update = df.loc[indecies_to_update, :].copy(deep=True)
-        to_update = to_update.drop(hs_numeric_cols + ['census_region'], axis=1)
-        to_update = to_update.merge(ps_hsdf, left_on=['building_type', 'heating_fuel', 'cen_div'], right_on=['building_type', 'heating_fuel', 'census_region'])
-        df = pd.concat([df.loc[~indecies_to_update, :], to_update])
-        assert(initial_row_count == df.shape[0])
-        assert(initial_column_count == df.shape[1])
+        df = df.merge(hsdf, left_on=['building_type', 'size_bin', 'heating_fuel', 'cen_div'], right_on=['building_type', 'size_bin', 'heating_fuel', 'census_region'])
 
         # Use the merged probabilities to sample in fuel type
         # Note this is system type agnostic due to the enumeration county and not readable - refer above for the idea
@@ -589,8 +619,15 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
         self.data = df.copy(deep=True)
 
-    def generate_sampling_input(self, n_samples):
-        """Do a thing"""
+    def generate_sampling_input(self, n_samples=[1, 12]):
+        """Apply sampling regions on a county basis for calculation of distributions.
+
+        :param df: input pandas dataframe where each row is a single building
+        :type df: pandas.DataFrame
+        :return: an updated dataframe with a 'sampling_region' column that is defined by sampling_region_lkup.json
+        :rtype: pandas.DataFrame
+
+        """
 
         logger.info('Using the apportioned dataset to generate an input for sampling')
         df = self.data.copy(deep=True)
@@ -626,14 +663,31 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         buckets = pd.concat([buckets, additional_buckets])
         name_mapper = {v: k for k, v in self.BUILDING_TYPE_NAME_MAPPER.items()}
         buckets.loc[:, 'building_type'] = buckets.building_type.map(name_mapper)
-        buckets = buckets.loc[buckets.index.repeat(n_samples), :]
+        if not buckets.drop_duplicates(keep='first').shape[0] == buckets.shape[0]:
+            raise RuntimeError('Duplicates in bucket specification. Please debug.')
+        now = datetime.now()
+        date = now.strftime("%Y%m%d-%H%m")
+
+        # Remove buggy CA problem children:
         # remove 103, hospital, size_bin 0
+        buckets = buckets.loc[~(
+            (buckets.sampling_region == 103) & (buckets.building_type == 'hospital') & (buckets.size_bin == 0)
+        ), :]
         # remove 110, large_hotel, size_bin 1
-        print(buckets.loc[buckets.index.repeat(n_samples), :].value_counts().value_counts())
-        breakpoint()
-        buckets = buckets.rename(columns={'system_type': 'hvac_system_type'})
+        buckets = buckets.loc[~(
+            (buckets.sampling_region == 110) & (buckets.building_type == 'large_hotel') & (buckets.size_bin == 1)
+        ), :]
+
         buckets = buckets.reset_index(drop=True)
-        out_file = os.path.join(
-            os.path.abspath(os.path.dirname(__file__)), '..', '..', 'sampling', f'sample_input_{buckets.shape[0]}.csv'
-        )
-        buckets.to_csv(out_file, index_label='Building')
+
+        for n_sample in n_samples:
+            to_write = buckets.loc[buckets.index.repeat(n_sample), :]
+            print('Number of copies of each row groupbed by count - if multiple enteries there is an error:')
+            print(to_write.loc[to_write.index.repeat(n_sample), :].value_counts().value_counts())
+            to_write = to_write.rename(columns={'system_type': 'hvac_system_type'})
+            to_write = to_write.reset_index(drop=True)
+            out_file = os.path.join(
+                os.path.abspath(os.path.dirname(__file__)), '..', '..', 'sampling',
+                f'sample_input_{date}_{to_write.shape[0]}.csv'
+            )
+            to_write.to_csv(out_file, index_label='Building')

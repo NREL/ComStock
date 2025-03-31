@@ -44,9 +44,9 @@ class LazyFramePlotter(NamingMixin):
             c)) for c in self.COLS_ENDUSE_ANN_ENGY + self.COLS_TOT_ANN_ENGY]
         self.SAVINGS_DISTRI_ENDUSE_COLUMNS += [self.col_name_to_percent_savings(
             c, UnitsMixin.UNIT.DIMLESS.PERCENT) for c in self.COLS_ENDUSE_ANN_ENGY + self.COLS_TOT_ANN_ENGY]
-        
+
         self.EUI_SAVINGS_COLUMNS = [self.col_name_to_savings(self.col_name_to_area_intensity(c)) for c in [self.UTIL_BILL_TOTAL_MEAN] + self.COLS_UTIL_BILLS]
-        self.EUI_SAVINGS_COLUMNS += [self.col_name_to_percent_savings(c, UnitsMixin.UNIT.DIMLESS.PERCENT) for c in [self.UTIL_BILL_TOTAL_MEAN] + self.COLS_UTIL_BILLS]
+        self.EUI_SAVINGS_COLUMNS += [self.col_name_to_percent_savings(self.col_name_to_weighted(c), UnitsMixin.UNIT.DIMLESS.PERCENT) for c in [self.UTIL_BILL_TOTAL_MEAN] + self.COLS_UTIL_BILLS]
 
         self.SAVINGS_DISTRI_BUILDINTYPE = [self.col_name_to_savings(self.col_name_to_eui(self.ANN_TOT_ENGY_KBTU)),
                                            self.col_name_to_percent_savings(self.ANN_TOT_ENGY_KBTU, UnitsMixin.UNIT.DIMLESS.PERCENT)]
@@ -56,6 +56,9 @@ class LazyFramePlotter(NamingMixin):
 
         #plot_energy_rate_boxplots columns
         self.SUMMARIZE_COLUMNS = [self.col_name_to_energy_rate(c) for c in [self.UTIL_BILL_ELEC, self.UTIL_BILL_GAS]]
+
+        # plot unmet hours
+        self.UNMET_HOURS_COLS = list(set(self.UNMET_HOURS_COLS))
 
     @staticmethod
     def select_columns(lazy_frame: pl.LazyFrame, columns: list[str]) -> pd.DataFrame:
@@ -77,7 +80,7 @@ class LazyFramePlotter(NamingMixin):
                 false_list.append((col, e))
             finally:
                 pass
-        
+
         types = pandas_df.dtypes
         if false_list:
             raise Exception(f"Columns {false_list} \n are not castable to float64 {lazy_frame.select(columns).schema} \n {types}")
