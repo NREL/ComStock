@@ -6,6 +6,8 @@
 # see the URL below for information on how to write OpenStudio measures
 # http://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/
 require 'openstudio-standards'
+# require all .rb files in resources folder
+Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }
 
 # start the measure
 class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
@@ -1190,441 +1192,16 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     true
   end
 
-  def get_8760_values_from_schedule_ruleset(model, schedule_ruleset)
-    yd = model.getYearDescription
-    start_date = yd.makeDate(1, 1)
-    end_date = yd.makeDate(12, 31)
-
-    start_date.dayOfWeek.valueName
-
-    values = OpenStudio::DoubleVector.new
-    OpenStudio::Time.new(1.0)
-    interval = OpenStudio::Time.new(1.0 / 24.0)
-    day_schedules = schedule_ruleset.to_ScheduleRuleset.get.getDaySchedules(start_date, end_date)
-
-    day_schedules.size
-
-    # Get holiday schedule and append to end of values array
-    day_schedule_holiday = nil
-    schedule_ruleset.to_ScheduleRuleset.get.scheduleRules.each do |week_rule|
-      # If a holiday day type is defined, then store the schedule object for the first occurrence
-      # For now this is not implemented into the 8760 array
-      # if week_rule.applyHoliday
-      # day_schedule_holiday = week_rule.daySchedule
-      # break
-      # end
-    end
-    day_schedule_holiday = schedule_ruleset.to_ScheduleRuleset.get.defaultDaySchedule if day_schedule_holiday.nil?
-    # Currently holidaySchedule is not working in SDK in ScheduleRuleset object
-    # TODO: enable the following lines when holidaySchedule is available
-    # if !schedule_ruleset.isHolidayScheduleDefaulted
-    # day_schedule = schedule_ruleset.to_ScheduleRuleset.get.holidaySchedule
-    # else
-    # day_schedule = schedule_ruleset.to_ScheduleRuleset.get.defaultSchedule
-    # end
-
-    # Make new array of day schedules for year, and add holiday day schedule to end
-    day_sched_array = []
-    day_schedules.each do |day_schedule|
-      day_sched_array << day_schedule
-    end
-
-    day_sched_array << day_schedule_holiday
-    day_schedules.size
-
-    day_sched_array.each do |day_schedule|
-      current_hour = interval
-      time_values = day_schedule.times
-      time_values.size
-      value_sum = 0
-      value_count = 0
-      time_values.each do |until_hr|
-        if until_hr < current_hour
-          # Add to tally for next hour average
-          value_sum += day_schedule.getValue(until_hr).to_f
-          value_count += 1
-        elsif until_hr >= current_hour + interval
-          # Loop through hours to catch current hour up to until_hr
-          while current_hour <= until_hr
-            values << day_schedule.getValue(until_hr).to_f
-            current_hour += interval
-          end
-
-          if (current_hour - until_hr) < interval
-            # This means until_hr is not an even hour break
-            # i.e. there is a sub-hour time step
-            # Increment the sum for averaging
-            value_sum += day_schedule.getValue(until_hr).to_f
-            value_count += 1
-          end
-
-        else
-          # Add to tally for this hour average
-          value_sum += day_schedule.getValue(until_hr).to_f
-          value_count += 1
-          # Calc hour average
-          value_avg = if value_count > 0
-                        value_sum / value_count
-                      else
-                        0
-                      end
-          values << value_avg
-          # setup for next hour
-          value_sum = 0
-          value_count = 0
-          current_hour += interval
-        end
-      end
-    end
-
-    values
-  end
-
-  def make_ruleset_sched_from_8760(model, _runner, values, sch_name, sch_type_limits)
-    # Build array of arrays: each top element is a week, each sub element is an hour of week
-    all_week_values = []
-    hr_of_yr = -1
-    (0..51).each do |_iweek|
-      week_values = []
-      (0..167).each do |hr_of_wk|
-        hr_of_yr += 1
-        week_values[hr_of_wk] = values[hr_of_yr]
-      end
-      all_week_values << week_values
-    end
-
-    # Extra week for days 365 and 366 (if applicable) of year
-    # since 52 weeks is 364 days
-    hr_of_yr += 1
-    last_hr = values.size - 1
-    week_values = []
-    hr_of_wk = -1
-    (hr_of_yr..last_hr).each do |ihr_of_yr|
-      hr_of_wk += 1
-      week_values[hr_of_wk] = values[ihr_of_yr]
-    end
-    all_week_values << week_values
-
-    # Build ruleset schedules for first week
-    yd = model.getYearDescription
-    start_date = yd.makeDate(1, 1)
-    one_day = OpenStudio::Time.new(1.0)
-    seven_days = OpenStudio::Time.new(7.0)
-    end_date = start_date + seven_days - one_day
-
-    # Create new ruleset schedule
-    sch_ruleset = OpenStudio::Model::ScheduleRuleset.new(model)
-    sch_ruleset.setName(sch_name)
-    sch_ruleset.setScheduleTypeLimits(sch_type_limits)
-
-
-
-    # runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
-    # Make week schedule for first week
-    num_week_scheds = 1
-    week_sch_name = "#{sch_name}_ws#{num_week_scheds}"
-    week_1_rules = make_week_ruleset_sched_from_168(model, sch_ruleset, all_week_values[1], start_date, end_date,
-                                                    week_sch_name)
-    week_n_rules = week_1_rules
-    all_week_rules = []
-    all_week_rules << week_1_rules
-    iweek_previous_week_rule = 0
-
-    # temporary loop for debugging
-    week_n_rules.each do |sch_rule|
-      sch_rule.daySchedule
-    end
-
-    # For each subsequent week, check if it is same as previous
-    # If same, then append to Schedule:Rule of previous week
-    # If different, then create new Schedule:Rule
-    (1..51).each do |iweek|
-      is_a_match = true
-      start_date = end_date + one_day
-      end_date += seven_days
-      (0..167).each do |ihr|
-        if all_week_values[iweek][ihr] != all_week_values[iweek_previous_week_rule][ihr]
-          is_a_match = false
-          break
-        end
-      end
-      if is_a_match
-        # Update the end date for the Rules of the previous week to include this week
-        all_week_rules[iweek_previous_week_rule].each do |sch_rule|
-          sch_rule.setEndDate(end_date)
-        end
-      else
-        # Create a new week schedule for this week
-        num_week_scheds += 1
-        week_sch_name = sch_name + '_ws' + num_week_scheds.to_s
-        week_n_rules = make_week_ruleset_sched_from_168(model, sch_ruleset, all_week_values[iweek], start_date,
-                                                        end_date, week_sch_name)
-        all_week_rules << week_n_rules
-        # Set this week as the reference for subsequent weeks
-        iweek_previous_week_rule = iweek
-      end
-    end
-
-    # temporary loop for debugging
-    week_n_rules.each do |sch_rule|
-      sch_rule.daySchedule
-    end
-
-    # Need to handle week 52 with days 365 and 366
-    # For each of these days, check if it matches a day from the previous week
-    iweek = 52
-    # First handle day 365
-    end_date += one_day
-    start_date = end_date
-    match_was_found = false
-    # week_n is the previous week
-    week_n_rules.each do |sch_rule|
-      day_rule = sch_rule.daySchedule
-      is_match = true
-      # Need a 24 hour array of values for the day rule
-      ihr_start = 0
-      day_values = []
-      day_rule.times.each do |time|
-        now_value = day_rule.getValue(time).to_f
-        until_ihr = time.totalHours.to_i - 1
-        (ihr_start..until_ihr).each do |_ihr|
-          day_values << now_value
-        end
-      end
-      (0..23).each do |ihr|
-        next unless day_values[ihr] != all_week_values[iweek][ihr + ihr_start]
-
-        # not matching for this day_rule
-        is_match = false
-        break
-      end
-      next unless is_match
-
-      match_was_found = true
-      # Extend the schedule period to include this day
-      sch_rule.setEndDate(end_date)
-      break
-    end
-    if match_was_found == false
-      # Need to add a new rule
-      day_of_week = start_date.dayOfWeek.valueName
-      day_names = [day_of_week]
-      day_sch_name = "#{sch_name}_Day_365"
-      day_sch_values = []
-      (0..23).each do |ihr|
-        day_sch_values << all_week_values[iweek][ihr]
-      end
-      # sch_rule is a sub-component of the ScheduleRuleset
-      sch_rule = OpenstudioStandards::Schedules.schedule_ruleset_add_rule(sch_ruleset, day_sch_values,
-                                                                          start_date: start_date,
-                                                                          end_date: end_date,
-                                                                          day_names: day_names,
-                                                                          rule_name: day_sch_name)
-      week_n_rules = sch_rule
-    end
-
-    # Handle day 366, if leap year
-    # Last day in this week is the holiday schedule
-    # If there are three days in this week, then the second is day 366
-    # if all_week_values[iweek].size == 24 * 3
-    # ihr_start = 23
-    # end_date += one_day
-    # start_date = end_date
-    # match_was_found = false
-    # # week_n is the previous week
-    # # which would be the week based on day 356, if that was its own week
-    # #week_n_rules.each do |sch_rule|
-    # day_rule = sch_rule.daySchedule
-    # is_match = true
-    # day_rule.times.each do |ihr|
-    # if day_rule.getValue(ihr).to_f != all_week_values[iweek][ihr + ihr_start]
-    # # not matching for this day_rule
-    # is_match = false
-    # break
-    # end
-    # end
-    # if is_match
-    # match_was_found = true
-    # # Extend the schedule period to include this day
-    # sch_rule.setEndDate(OpenStudio::Date.new(OpenStudio::MonthOfYear.new(end_date.month.to_i), end_date.day.to_i))
-    # break
-    # end
-    # end
-    # if match_was_found == false
-    # # Need to add a new rule
-    # # sch_rule is a sub-component of the ScheduleRuleset
-
-    # day_of_week = start_date.dayOfWeek.valueName
-    # day_names = [day_of_week]
-    # day_sch_name = "#{sch_name}_Day_366"
-    # day_sch_values = []
-    # (0..23).each do |ihr|
-    # day_sch_values << all_week_values[iweek][ihr]
-    # end
-    # sch_rule = OpenstudioStandards::Schedules.schedule_ruleset_add_rule(sch_ruleset, day_sch_values,
-    # start_date: start_date,
-    # end_date: end_date,
-    # day_names: day_names,
-    # rule_name: day_sch_name)
-    # week_n_rules = sch_rule
-    # end
-
-    # # Last day in values array is the holiday schedule
-    # # @todo add holiday schedule when implemented in OpenStudio SDK
-    # end
-
-    # Handle holiday
-    # Create the schedules for the holiday
-    # holiday_sch = OpenStudio::Model::ScheduleDay.new(model)
-    # hr = (values.length() - 24)
-    # holiday_sch.setName("#{sch_name} Holiday")
-    # (0..23).each do |ihr|
-    # #hr_of_yr = ihr_max + ihr
-    # #next if values[hr_of_yr] == values[hr_of_yr + 1]
-    # holiday_sch.addValue(OpenStudio::Time.new(0, ihr + 1, 0, 0), values[hr])
-    # hr = hr + 1
-    # end
-    # sch_ruleset.setHolidaySchedule(holiday_sch)
-
-    ##
-
-    # Need to handle design days
-    # Find schedule with the most operating hours in a day,
-    # and apply that to both cooling and heating design days
-    hr_of_yr = -1
-    max_eflh = 0
-    ihr_max = -1
-    (0..364).each do |_iday|
-      eflh = 0
-      ihr_start = hr_of_yr + 1
-      (0..23).each do |_ihr|
-        hr_of_yr += 1
-        eflh += 1 if values[hr_of_yr] > 0
-      end
-      next unless eflh > max_eflh
-
-      max_eflh = eflh
-      # store index to first hour of day with max on hours
-      ihr_max = ihr_start
-    end
-    # Create the schedules for the design days
-    day_sch = OpenStudio::Model::ScheduleDay.new(model)
-    day_sch.setName("#{sch_name} Winter Design Day")
-    (0..23).each do |ihr|
-      hr_of_yr = ihr_max + ihr
-      next if values[hr_of_yr] == values[hr_of_yr + 1]
-
-      day_sch.addValue(OpenStudio::Time.new(0, ihr + 1, 0, 0), values[hr_of_yr])
-    end
-    sch_ruleset.setWinterDesignDaySchedule(day_sch)
-
-    day_sch = OpenStudio::Model::ScheduleDay.new(model)
-    day_sch.setName("#{sch_name} Summer Design Day")
-    (0..23).each do |ihr|
-      hr_of_yr = ihr_max + ihr
-      next if values[hr_of_yr] == values[hr_of_yr + 1]
-
-      day_sch.addValue(OpenStudio::Time.new(0, ihr + 1, 0, 0), values[hr_of_yr])
-    end
-    sch_ruleset.setSummerDesignDaySchedule(day_sch)
-
-    sch_ruleset
-  end
-
-  def make_week_ruleset_sched_from_168(_model, sch_ruleset, values, start_date, end_date, sch_name)
-    one_day = OpenStudio::Time.new(1.0)
-    now_date = start_date - one_day
-    days_of_week = []
-    values_by_day = []
-    # Organize data into days
-    # create a 2-D array values_by_day[iday][ihr]
-    hr_of_wk = -1
-    (0..6).each do |_iday|
-      hr_values = []
-      (0..23).each do |_hr_of_day|
-        hr_of_wk += 1
-        hr_values << values[hr_of_wk]
-      end
-      values_by_day << hr_values
-      now_date += one_day
-      days_of_week << now_date.dayOfWeek.valueName
-    end
-
-    # Make list of unique day schedules
-    # First one is automatically unique
-    # Store indexes to days with the same sched in array of arrays
-    # day_sched_idays[0] << 0
-    day_sched = {}
-    day_sched['day_idx_list'] = [0]
-    day_sched['hr_values'] = values_by_day[0]
-    day_scheds = []
-    day_scheds << day_sched
-
-    # Check each day with the cumulative list of day_scheds and add new, if unique
-    (1..6).each do |iday|
-      match_was_found = false
-      day_scheds.each do |day_sched|
-        # Compare each jday to the current iday and check for a match
-        is_a_match = true
-        (0..23).each do |ihr|
-          next unless day_sched['hr_values'][ihr] != values_by_day[iday][ihr]
-
-          # this hour is not a match
-          is_a_match = false
-          break
-        end
-        next unless is_a_match
-
-        # Add the day index to the list for this day_sched
-        day_sched['day_idx_list'] << iday
-        match_was_found = true
-        break
-      end
-      next unless match_was_found == false
-
-      # Add a new day type
-      day_sched = {}
-      day_sched['day_idx_list'] = [iday]
-      day_sched['hr_values'] = values_by_day[iday]
-      day_scheds << day_sched
-    end
-
-    # Add the Rule and Day objects
-    sch_rules = []
-    iday_sch = 0
-    day_scheds.each do |day_sched|
-      iday_sch += 1
-
-      day_names = []
-      day_sched['day_idx_list'].each do |idx|
-        day_names << days_of_week[idx]
-      end
-      day_sch_name = "#{sch_name} Day #{iday_sch}"
-      day_sch_values = day_sched['hr_values']
-      sch_rule = OpenstudioStandards::Schedules.schedule_ruleset_add_rule(sch_ruleset, day_sch_values,
-                                                                          start_date: start_date,
-                                                                          end_date: end_date,
-                                                                          day_names: day_names,
-                                                                          rule_name: day_sch_name)
-      sch_rules << sch_rule
-    end
-
-    sch_rules
-  end
-  
   def is_opt_start(sch_zone_occ_annual_profile, htg_schedule_annual_profile, min_value, max_value, idx)
-      #method to determine if a thermostat schedule contains part of an optimum start sequence at a given index 
-      opt_start = false 
-	  if (sch_zone_occ_annual_profile[idx + 1] == 1 || sch_zone_occ_annual_profile[idx + 2] == 1) #Check for occupancy within the next two timesteps
-	     if (htg_schedule_annual_profile[idx] > min_value && htg_schedule_annual_profile[idx] < max_value)
-		     opt_start = true
-	     end 
-	  end 
-  
-  return opt_start 
-  
-  end 
-  
+    # method to determine if a thermostat schedule contains part of an optimum start sequence at a given index
+    opt_start = false
+    if (sch_zone_occ_annual_profile[idx + 1] == 1 || sch_zone_occ_annual_profile[idx + 2] == 1) && (htg_schedule_annual_profile[idx] > min_value && htg_schedule_annual_profile[idx] < max_value)
+      opt_start = true
+    end
+
+    opt_start
+  end
+
   #### End predefined functions
 
   # define what happens when the measure is run
@@ -2215,154 +1792,155 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       orig_htg_coil_gross_cap = nil
 
       equip_to_delete = []
-	  
-	  space_types_no_setback = [
-            # 'Kitchen',
-            # 'kitchen',
-            'PatRm',
-            'PatRoom',
-            'Lab',
-            'Exam',
-            'PatCorridor',
-            'BioHazard',
-            'Exam',
-            'OR',
-            'PreOp',
-            'Soil Work',
-            'Trauma',
-            'Triage',
-            # 'PhysTherapy',
-            'Data Center',
-            # 'CorridorStairway',
-            # 'Corridor',
-            'Mechanical',
-            # 'Restroom',
-            'Entry',
-            # 'Dining',
-            'IT_Room',
-            # 'LockerRoom',
-            # 'Stair',
-            'Toilet',
-            'MechElecRoom',
-            'Guest Room',
-            'guest room'
-          ]
 
-          setback_value_c = setback_value * 5 / 9 # convert to c
-	  
-	  if modify_setbacks # modify setbacks if argument set to true
-            zones = air_loop_hvac.thermalZones
-            zones.sort.each do |thermal_zone|
-              no_people_obj = false # flag for not having People object associated with it
-              zone_space_types = []
-              thermal_zone.spaces.each do |space| # check for space types this measure won't apply to
-                zone_space_types << space.spaceType.get.name.to_s
-              end
+      space_types_no_setback = [
+        # 'Kitchen',
+        # 'kitchen',
+        'PatRm',
+        'PatRoom',
+        'Lab',
+        'Exam',
+        'PatCorridor',
+        'BioHazard',
+        'Exam',
+        'OR',
+        'PreOp',
+        'Soil Work',
+        'Trauma',
+        'Triage',
+        # 'PhysTherapy',
+        'Data Center',
+        # 'CorridorStairway',
+        # 'Corridor',
+        'Mechanical',
+        # 'Restroom',
+        'Entry',
+        # 'Dining',
+        'IT_Room',
+        # 'LockerRoom',
+        # 'Stair',
+        'Toilet',
+        'MechElecRoom',
+        'Guest Room',
+        'guest room'
+      ]
 
-              skip_space_types = space_types_no_setback.any? do |substring|
-                zone_space_types.any? do |str|
-                  str.include?(substring)
-                end
-              end
+      setback_value_c = setback_value * 5 / 9 # convert to c
 
-              no_people_obj = true if thermal_zone.numberOfPeople == 0
-
-              if skip_space_types
-                next # go to the next zone if this zone has space types that are skipped for the setback
-              end
-
-              next unless thermal_zone.thermostatSetpointDualSetpoint.is_initialized
-
-              zone_thermostat = thermal_zone.thermostatSetpointDualSetpoint.get
-              htg_schedule = zone_thermostat.heatingSetpointTemperatureSchedule
-              if htg_schedule.empty?
-                runner.registerWarning("Heating setpoint schedule not found for zone '#{zone.name.get}'")
-                next
-              elsif htg_schedule.get.to_ScheduleRuleset.empty?
-                runner.registerWarning("Schedule '#{htg_schedule.name}' is not a ScheduleRuleset, will not be adjusted")
-                next
-              else
-                htg_schedule = htg_schedule.get.to_ScheduleRuleset.get
-              end
-              sch_zone_occ = OpenstudioStandards::ThermalZone.thermal_zones_get_occupancy_schedule(
-                [thermal_zone], occupied_percentage_threshold: 0.05
-              )
-              if !no_people_obj # select zones that have People objects assigned (further steps based on occupancy)
-                htg_schedule_annual_profile = get_8760_values_from_schedule_ruleset(model, htg_schedule)
-                sch_zone_occ_annual_profile = get_8760_values_from_schedule_ruleset(model, sch_zone_occ)
-                htg_schedule_annual_profile_updated = OpenStudio::DoubleVector.new
-                htg_schedule_annual_profile.each_with_index do |_val, idx| # Create new profile based on occupancy
-                  # Find maximum value of schedule for the week
-                  week_values = htg_schedule_annual_profile.each_slice(168).to_a[(idx / 168).round]
-                  max_value = week_values.max
-                  min_value = week_values.min
-                  # Check for case where setpoint is adjusted for an optimum start, and skip
-				  # Need at least two more timesteps in the profile to perform optimum start check 
-                  # Final two timesteps of year will not be optimum start, anyway 
-                  if (idx < htg_schedule_annual_profile.size - 2) &&  is_opt_start(sch_zone_occ_annual_profile, htg_schedule_annual_profile, min_value, max_value, idx)
-                    next
-                  end
-
-                  htg_schedule_annual_profile_updated[idx] = if sch_zone_occ_annual_profile[idx] == 0
-                                                               max_value - setback_value_c
-                                                             else
-                                                               max_value # keeping same setback regime
-                                                             end
-                end
-                htg_tstat_sch_limits = OpenStudio::Model::ScheduleTypeLimits.new(model)
-                htg_tstat_sch_limits.setUnitType('Temperature')
-                htg_tstat_sch_limits.setNumericType('Continuous')
-                htg_sch_new = make_ruleset_sched_from_8760(model, runner, htg_schedule_annual_profile_updated,
-                                                           "#{htg_schedule.name} Modified Setpoints", htg_tstat_sch_limits)
-                # Handle behavior on last day of year--above method makes a schedule ruleset that has a schedule with a specified day
-                # of week for 12/31 that isn't intended
-                # On leap years, need to correct separate rule made for 12/30 and 12/31
-				model_year = model.getYearDescription.assumedYear
-				dec_29_date = OpenStudio::Date.new(OpenStudio::MonthOfYear.new('December'), 29, model_year)
-				dec_30_date = OpenStudio::Date.new(OpenStudio::MonthOfYear.new('December'), 30, model_year)
-				dec_31_date = OpenStudio::Date.new(OpenStudio::MonthOfYear.new('December'), 31, model_year)
-                for tstat_rule in htg_sch_new.scheduleRules
-                  if (tstat_rule.endDate.get == dec_30_date || (tstat_rule.endDate.get == dec_29_date))
-                    tstat_rule.setEndDate(dec_31_date)
-                 end
-                 next unless ((tstat_rule.endDate.get == dec_31_date) &&
-                                        (tstat_rule.startDate.get == dec_31_date)) || ((tstat_rule.endDate.get == dec_31_date) && (tstat_rule.startDate.get == dec_30_date))
-
-                  tstat_rule.remove
-                 end
-                zone_thermostat.setHeatingSchedule(htg_sch_new)
-              else # Handle zones with spaces without People objects
-                profiles = [htg_schedule.defaultDaySchedule]
-                htg_schedule.scheduleRules.each { |rule| profiles << rule.daySchedule }
-                for tstat_profile in profiles
-                  tstat_profile_min = tstat_profile.values.min
-                  tstat_profile_max = tstat_profile.values.max
-                  tstat_profile_size = tstat_profile.values.uniq.size
-                  time_h = tstat_profile.times
-                  if tstat_profile_size == 2 # profile is square wave (2 setpoints, occupied vs unoccupied)
-                    tstat_profile.values.each_with_index do |value, i| # iterate thru profile and modify values as needed
-                      if value == tstat_profile_min
-                        tstat_profile.addValue(time_h[i],
-                                               tstat_profile_max - setback_value_c)
-                      end
-                    end
-                  end
-                  next unless tstat_profile_size > 2 # could be optimal start with ramp
-
-                  tstat_profile.values.each_with_index do |value, i|
-                    if value == tstat_profile_min
-                      tstat_profile.addValue(time_h[i], tstat_profile_max - setback_value_c) # set min value back to desired setback
-                    elsif value > tstat_profile_min and value < tstat_profile_max # dealing with optimum start case
-                      if value < tstat_profile_max - setback_value_c # value now less than new min
-                        tstat_profile.addValue(time_h[i], tstat_profile_max - setback_value_c) # set so that minimum value is now equal to maximum - setback
-                      end
-                    end
-                  end
-                 end
-              end
-            end
-
+      if modify_setbacks # modify setbacks if argument set to true
+        zones = air_loop_hvac.thermalZones
+        zones.sort.each do |thermal_zone|
+          no_people_obj = false # flag for not having People object associated with it
+          zone_space_types = []
+          thermal_zone.spaces.each do |space| # check for space types this measure won't apply to
+            zone_space_types << space.spaceType.get.name.to_s
           end
+
+          skip_space_types = space_types_no_setback.any? do |substring|
+            zone_space_types.any? do |str|
+              str.include?(substring)
+            end
+          end
+
+          no_people_obj = true if thermal_zone.numberOfPeople == 0
+
+          if skip_space_types
+            next # go to the next zone if this zone has space types that are skipped for the setback
+          end
+
+          next unless thermal_zone.thermostatSetpointDualSetpoint.is_initialized
+
+          zone_thermostat = thermal_zone.thermostatSetpointDualSetpoint.get
+          htg_schedule = zone_thermostat.heatingSetpointTemperatureSchedule
+          if htg_schedule.empty?
+            runner.registerWarning("Heating setpoint schedule not found for zone '#{zone.name.get}'")
+            next
+          elsif htg_schedule.get.to_ScheduleRuleset.empty?
+            runner.registerWarning("Schedule '#{htg_schedule.name}' is not a ScheduleRuleset, will not be adjusted")
+            next
+          else
+            htg_schedule = htg_schedule.get.to_ScheduleRuleset.get
+          end
+          sch_zone_occ = OpenstudioStandards::ThermalZone.thermal_zones_get_occupancy_schedule(
+            [thermal_zone], occupied_percentage_threshold: 0.05
+          )
+          if !no_people_obj # select zones that have People objects assigned (further steps based on occupancy)
+            htg_schedule_annual_profile = get_8760_values_from_schedule_ruleset(model, htg_schedule)
+            sch_zone_occ_annual_profile = get_8760_values_from_schedule_ruleset(model, sch_zone_occ)
+            htg_schedule_annual_profile_updated = OpenStudio::DoubleVector.new
+            htg_schedule_annual_profile.each_with_index do |val, idx| # Create new profile based on occupancy
+              # Find maximum value of schedule for the week
+              week_values = htg_schedule_annual_profile.each_slice(168).to_a[(idx / 168).round]
+              max_value = week_values.max
+              min_value = week_values.min
+              # Check for case where setpoint is adjusted for an optimum start, and skip
+              # Need at least two more timesteps in the profile to perform optimum start check
+              # Final two timesteps of year will not be optimum start, anyway
+              if (idx < htg_schedule_annual_profile.size - 2) && is_opt_start(sch_zone_occ_annual_profile,
+                                                                              htg_schedule_annual_profile, min_value, max_value, idx)
+                next
+              end
+
+              htg_schedule_annual_profile_updated[idx] = if sch_zone_occ_annual_profile[idx] == 0
+                                                           max_value - setback_value_c
+                                                         else
+                                                           max_value # keeping same setback regime
+                                                         end
+            end
+            htg_tstat_sch_limits = OpenStudio::Model::ScheduleTypeLimits.new(model)
+            htg_tstat_sch_limits.setUnitType('Temperature')
+            htg_tstat_sch_limits.setNumericType('Continuous')
+            htg_sch_new = make_ruleset_sched_from_8760(model, runner, htg_schedule_annual_profile_updated,
+                                                       "#{htg_schedule.name} Modified Setpoints", htg_tstat_sch_limits)
+            # Handle behavior on last day of year--above method makes a schedule ruleset that has a schedule with a specified day
+            # of week for 12/31 that isn't intended
+            # On leap years, need to correct separate rule made for 12/30 and 12/31
+            model_year = model.getYearDescription.assumedYear
+            dec_29_date = OpenStudio::Date.new(OpenStudio::MonthOfYear.new('December'), 29, model_year)
+            dec_30_date = OpenStudio::Date.new(OpenStudio::MonthOfYear.new('December'), 30, model_year)
+            dec_31_date = OpenStudio::Date.new(OpenStudio::MonthOfYear.new('December'), 31, model_year)
+            for tstat_rule in htg_sch_new.scheduleRules
+              if tstat_rule.endDate.get == dec_30_date || (tstat_rule.endDate.get == dec_29_date)
+                tstat_rule.setEndDate(dec_31_date)
+              end
+              next unless ((tstat_rule.endDate.get == dec_31_date) &&
+                                     (tstat_rule.startDate.get == dec_31_date)) || ((tstat_rule.endDate.get == dec_31_date) && (tstat_rule.startDate.get == dec_30_date))
+
+              tstat_rule.remove
+             end
+            zone_thermostat.setHeatingSchedule(htg_sch_new)
+          else # Handle zones with spaces without People objects
+            profiles = [htg_schedule.defaultDaySchedule]
+            htg_schedule.scheduleRules.each { |rule| profiles << rule.daySchedule }
+            for tstat_profile in profiles
+              tstat_profile_min = tstat_profile.values.min
+              tstat_profile_max = tstat_profile.values.max
+              tstat_profile_size = tstat_profile.values.uniq.size
+              time_h = tstat_profile.times
+              if tstat_profile_size == 2 # profile is square wave (2 setpoints, occupied vs unoccupied)
+                tstat_profile.values.each_with_index do |value, i| # iterate thru profile and modify values as needed
+                  if value == tstat_profile_min
+                    tstat_profile.addValue(time_h[i],
+                                           tstat_profile_max - setback_value_c)
+                  end
+                end
+              end
+              next unless tstat_profile_size > 2 # could be optimal start with ramp
+
+              tstat_profile.values.each_with_index do |value, i|
+                if value == tstat_profile_min
+                  tstat_profile.addValue(time_h[i], tstat_profile_max - setback_value_c) # set min value back to desired setback
+                elsif value > tstat_profile_min and value < tstat_profile_max # dealing with optimum start case
+                  if value < tstat_profile_max - setback_value_c # value now less than new min
+                    tstat_profile.addValue(time_h[i], tstat_profile_max - setback_value_c) # set so that minimum value is now equal to maximum - setback
+                  end
+                end
+              end
+             end
+          end
+        end
+
+      end
 
       # for unitary systems
       if air_loop_hvac_unitary_system?(air_loop_hvac)
