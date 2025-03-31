@@ -1611,7 +1611,20 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
     sch_rules
   end
-
+  
+  def is_opt_start(sch_zone_occ_annual_profile, htg_schedule_annual_profile, min_value, max_value, idx)
+      #method to determine if a thermostat schedule contains part of an optimum start sequence at a given index 
+      opt_start = false 
+	  if (sch_zone_occ_annual_profile[idx + 1] == 1 || sch_zone_occ_annual_profile[idx + 2] == 1) #Check for occupancy within the next two timesteps
+	     if (htg_schedule_annual_profile[idx] > min_value && htg_schedule_annual_profile[idx] < max_value)
+		     opt_start = true
+	     end 
+	  end 
+  
+  return opt_start 
+  
+  end 
+  
   #### End predefined functions
 
   # define what happens when the measure is run
@@ -2284,9 +2297,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
                   max_value = week_values.max
                   min_value = week_values.min
                   # Check for case where setpoint is adjusted for an optimum start, and skip
-                  # if an optimum start is in progress, setpoint will be between min and max values for the schedule
-                  # and the space will be occupied within the next 2 timesteps
-                  if (idx < htg_schedule_annual_profile.size - 2) && (htg_schedule_annual_profile[idx] > min_value && htg_schedule_annual_profile[idx] < max_value) && (sch_zone_occ_annual_profile[idx + 1] == 1 || sch_zone_occ_annual_profile[idx + 2] == 1)
+				  # Need at least two more timesteps in the profile to perform optimum start check 
+                  # Final two timesteps of year will not be optimum start, anyway 
+                  if (idx < htg_schedule_annual_profile.size - 2) &&  is_opt_start(sch_zone_occ_annual_profile, htg_schedule_annual_profile, min_value, max_value, idx)
                     next
                   end
 
