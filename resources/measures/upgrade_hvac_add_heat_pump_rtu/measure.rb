@@ -149,13 +149,15 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
     # modify setbacks or not
     modify_setbacks = OpenStudio::Measure::OSArgument.makeBoolArgument('modify_setbacks', true)
-    modify_setbacks.setDisplayName('Modify setbacks in heating mode? True will adjust setbacks, according to value in setback value argument.')
+    modify_setbacks.setDisplayName('Modify setbacks in heating mode? True will adjust setbacks,
+	according to value in setback value argument.')
     modify_setbacks.setDefaultValue(true)
     args << modify_setbacks
 
     # setback value
     setback_value = OpenStudio::Measure::OSArgument.makeDoubleArgument('setback_value', true)
-    setback_value.setDisplayName('Amount in deg F by which temperatures are set back during unoccupied periods in heating mode. Done only if modify setbacks is set to true.')
+    setback_value.setDisplayName('Amount in deg F by which temperatures are set back during 
+	unoccupied periods in heating mode. Done only if modify setbacks is set to true.')
     setback_value.setDefaultValue(2)
     args << setback_value
 
@@ -1192,10 +1194,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     true
   end
 
-  def is_opt_start(sch_zone_occ_annual_profile, htg_schedule_annual_profile, min_value, max_value, idx)
+  def opt_start?(sch_zone_occ_annual_profile, htg_schedule_annual_profile, min_value, max_value, idx)
     # method to determine if a thermostat schedule contains part of an optimum start sequence at a given index
     opt_start = false
-    if (sch_zone_occ_annual_profile[idx + 1] == 1 || sch_zone_occ_annual_profile[idx + 2] == 1) && (htg_schedule_annual_profile[idx] > min_value && htg_schedule_annual_profile[idx] < max_value)
+    if (sch_zone_occ_annual_profile[idx + 1] == 1 || sch_zone_occ_annual_profile[idx + 2] == 1) && 
+			(htg_schedule_annual_profile[idx] > min_value && htg_schedule_annual_profile[idx] < max_value)
       opt_start = true
     end
 
@@ -1842,7 +1845,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
             end
           end
 
-          no_people_obj = true if thermal_zone.numberOfPeople == 0
+          no_people_obj = true if thermal_zone.numberOfPeople.zero?
 
           if skip_space_types
             next # go to the next zone if this zone has space types that are skipped for the setback
@@ -1868,7 +1871,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
             htg_schedule_annual_profile = get_8760_values_from_schedule_ruleset(model, htg_schedule)
             sch_zone_occ_annual_profile = get_8760_values_from_schedule_ruleset(model, sch_zone_occ)
             htg_schedule_annual_profile_updated = OpenStudio::DoubleVector.new
-            htg_schedule_annual_profile.each_with_index do |val, idx| # Create new profile based on occupancy
+            htg_schedule_annual_profile.each_with_index do |_val, idx| # Create new profile based on occupancy
               # Find maximum value of schedule for the week
               week_values = htg_schedule_annual_profile.each_slice(168).to_a[(idx / 168).round]
               max_value = week_values.max
@@ -1876,12 +1879,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
               # Check for case where setpoint is adjusted for an optimum start, and skip
               # Need at least two more timesteps in the profile to perform optimum start check
               # Final two timesteps of year will not be optimum start, anyway
-              if (idx < htg_schedule_annual_profile.size - 2) && is_opt_start(sch_zone_occ_annual_profile,
+              if (idx < htg_schedule_annual_profile.size - 2) && opt_start?(sch_zone_occ_annual_profile,
                                                                               htg_schedule_annual_profile, min_value, max_value, idx)
                 next
               end
 
-              htg_schedule_annual_profile_updated[idx] = if sch_zone_occ_annual_profile[idx] == 0
+              htg_schedule_annual_profile_updated[idx] = if (sch_zone_occ_annual_profile[idx]).zero? 
                                                            max_value - setback_value_c
                                                          else
                                                            max_value # keeping same setback regime
@@ -1892,7 +1895,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
             htg_tstat_sch_limits.setNumericType('Continuous')
             htg_sch_new = make_ruleset_sched_from_8760(model, runner, htg_schedule_annual_profile_updated,
                                                        "#{htg_schedule.name} Modified Setpoints", htg_tstat_sch_limits)
-            # Handle behavior on last day of year--above method makes a schedule ruleset that has a schedule with a specified day
+            # Handle behavior on last day of year--above method makes a schedule ruleset
+            # that has a schedule with a specified day
             # of week for 12/31 that isn't intended
             # On leap years, need to correct separate rule made for 12/30 and 12/31
             model_year = model.getYearDescription.assumedYear
@@ -1900,7 +1904,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
             dec_30_date = OpenStudio::Date.new(OpenStudio::MonthOfYear.new('December'), 30, model_year)
             dec_31_date = OpenStudio::Date.new(OpenStudio::MonthOfYear.new('December'), 31, model_year)
             for tstat_rule in htg_sch_new.scheduleRules
-              if tstat_rule.endDate.get == dec_30_date || (tstat_rule.endDate.get == dec_29_date)
+              if tstat_rule.endDate.get == dec_30_date || 
+			      (tstat_rule.endDate.get == dec_29_date)
                 tstat_rule.setEndDate(dec_31_date)
               end
               next unless ((tstat_rule.endDate.get == dec_31_date) &&
@@ -1930,7 +1935,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
               tstat_profile.values.each_with_index do |value, i|
                 if value == tstat_profile_min
                   tstat_profile.addValue(time_h[i], tstat_profile_max - setback_value_c) # set min value back to desired setback
-                elsif value > tstat_profile_min and value < tstat_profile_max # dealing with optimum start case
+                elsif value > tstat_profile_min && value < tstat_profile_max # dealing with optimum start case
                   if value < tstat_profile_max - setback_value_c # value now less than new min
                     tstat_profile.addValue(time_h[i], tstat_profile_max - setback_value_c) # set so that minimum value is now equal to maximum - setback
                   end
