@@ -1,7 +1,7 @@
 ###This code is meant to process small to moderate amounts of ResStock data from the 2024.2 data release, for any purpose but especially for use in generating standard figures for TA
 # First Author: Elaina Present. Started Q2 FY25.
 # Additional Contributors:
-# Latest edits: 2025-02-28
+# Latest edits: 2025-03-31
 
 import os
 from textwrap import indent
@@ -17,6 +17,7 @@ class process_ResStock_2024_2():
     
     def _load_ResStock_data(self):
         #load ResStock data - called as part of init (required)
+        ##eventually this will be replaced with using data directly from OEDI
         results_file_path = os.path.join(self.resstock_results_folder, self.resstock_file_name)
         self.data = pd.read_csv(results_file_path, engine = "pyarrow")
 
@@ -29,7 +30,9 @@ class process_ResStock_2024_2():
         self.data=self.data.head(testing_size)
     
     def load_and_process_column_plan(self, col_plan_folder, col_plan_name):
-    #assign a plan for each column in the dataset, from a premade csv (required) #TODO: would reccomend stating what this "premade csv" is
+    #assign a plan for each column in the dataset, from a premade csv (required) 
+    ##this premade csv includes the list of columns to include in the final output, and which of them should be pivoted, and other related information
+    ##eventually we will rewrite this to be consistent throughout green team - get the data through a config file and check non available data
         plan_file_path = os.path.join(col_plan_folder, col_plan_name)
         self.col_plan = pd.read_csv(plan_file_path, engine = "pyarrow")
         #flag columns in the data that aren't in the column plan
@@ -52,12 +55,14 @@ class process_ResStock_2024_2():
         self.cols_to_pivot = self.col_plan.loc[self.col_plan['plan']=='pivot', 'column'].tolist()
 
     def add_local_bills(self, rate_inputs_df):
+        #define constants
+        months_per_year = 12
         #recalculate the utility bills. 
         #(Optional) but (Required) for any utility bill graphics or processing
         for index, row in rate_inputs_df.iterrows():
             #if all ng consumption is removed, add ng fixed cost to bill savings. So two criteria must be met: there must be natural gas savings and the current natural gas consumption must be 0
             if row['column']== "out.bills_local.natural_gas.total.usd.savings":
-                self.data[row['column']] = row['fixed monthly cost']*12*(
+                self.data[row['column']] = row['fixed monthly cost']*months_per_year*(
                     np.logical_and(
                         (abs(self.data["out.natural_gas.total.energy_consumption.kwh.savings"])>0),
                         (self.data["out.natural_gas.total.energy_consumption.kwh"]==0))) + (
@@ -65,7 +70,7 @@ class process_ResStock_2024_2():
                                 self.data[row['col list for scaling']].sum(axis = 1))) 
             # for each row of rate inputs, create a column in the data, which will be NaN if the scaling row doesn't exist (e.g savings rows in baseline) and 0 if the relevant consumption rows don't exist
             else:
-                self.data[row['column']] = row['fixed monthly cost']*12*((self.data[row['col list for scaling']].sum(axis = 1))!=0) + row['variable cost per kwh']*(self.data[row['col list for scaling']].sum(axis = 1))
+                self.data[row['column']] = row['fixed monthly cost']*months_per_year*((self.data[row['col list for scaling']].sum(axis = 1))!=0) + row['variable cost per kwh']*(self.data[row['col list for scaling']].sum(axis = 1))
             if row['plan'] == 'pivot':
                 self.cols_to_pivot = self.cols_to_pivot + [row['column']]
             elif row['plan'] == 'keep':
@@ -89,8 +94,23 @@ class process_ResStock_2024_2():
     def add_first_costs(self, first_costs_inputs_df, npv_discount_rate, npv_analysis_period, one_year_bill_savings_col):
         #Add first costs, SPP, and NPV to the dataset
         #(Optional), (Required) for any first cost or NPV results
+        #define NREL-provided constants
+        avg_door_size = 20 #ResStock 2024.2 has 20ft2 total door area for any unit with exterior doors, which is approximately one door
+        avg_window_size = 15 #15 ft2 seems like a decent proxy for average window size based on standard window sizes
+        btuh_to_tons = (1000/12000)
+        pool_heater_tons = 1 #proxy for all pool heaters, based loosely on looking at availability at Home Depot website
+        spa_heater_tons = 1 #proxy for all spa heaters
+        attic_R_per_inch = 3 #ICF data mentions unfaced fiberglass blanket insulation for floors/ceilings in MP16. The R-30 is 9.5" and the R-19 is 6.5" which works out to roughly R-3 per inch
+        attic_R_per_foot = attic_R_per_inch/12
+        #define ICF-provided constants
+        door_perimeter = 20 #Assumed perimeter of exterior door
+        window_perimeter = 18 #Assumed perimeter of exterior window based on average size of window
+        refrigerant_lbs = 20 #Expected average pounds of refrigerant to be removed from HVAC system including line set
+        labor_min = 3 #Minimum labor for interior and exterior disconnect of existing ducted ASHP HVAC system, Minimum labor for new pool heater installation, Minimum labor for new spa heater installation
+        #set up empty lists
         up_costs = []
         ssns = []
+        #iterate through the ResStock data
         for index, row in self.data.iterrows():
             cost = 0
             ssn = 'NA'
@@ -108,16 +128,22 @@ class process_ResStock_2024_2():
                 ##extract necessary data from this row of model results                
                 climate_zone = int(row["in.ashrae_iecc_climate_zone_2004"][0]) #just the number, not the letter
                 hp_size_btuh = row["out.params.size_heating_system_primary_k_btu_h"]
-                hp_size_tons = (hp_size_btuh *1000)/12000
+                hp_size_tons = hp_size_btuh * btuh_to_tons
                 attic_floor_area_sf = row["out.params.floor_area_attic_ft_2"]
-                num_exterior_doors = row["out.params.door_area_ft_2"]/20 #ResStock 2024.2 has 20ft2 total door area for any unit with exterior doors, which is approximately one door
-                num_windows = row["out.params.window_area_ft_2"]/15 #15 ft2 seems like a decent proxy for average window size based on standard window sizes
-                HPWH_gal = row["out.params.size_water_heater_gal"]
-                pool_heater_tons = 1 #proxy for all pool heaters, based loosely on looking at availability at Home Depot website
-                spa_heater_tons = 1 #proxy for all spa heaters
+                num_exterior_doors = row["out.params.door_area_ft_2"]/avg_door_size #this will be exactly 1 in ResStock 2024.2
+                num_windows = row["out.params.window_area_ft_2"]/avg_window_size
+                wh_gal = row["out.params.size_water_heater_gal"]
                 location = row[first_costs_inputs_df["Location Field Match"]].iloc[0]#currently assuming the location field (state, county, PUMA, etc. is the same for the entire cost inputs file)
-                #per email received 2025-02-10, this is "a flag to confirm that the home's existing system is not an ASHP"
-                #which is a different thing that it's label, which just asks whether the existing home is ducted
+                if row["in.insulation_ceiling"] == "None":
+                    existing_attic_insulation_R = 0
+                elif row["in.insulation_ceiling"] is None:
+                    existing_attic_insulation_R = 0
+                elif row["in.insulation_ceiling"] == "Uninsulated":
+                    existing_attic_insulation_R = 0
+                else:
+                    existing_attic_insulation_R = int(row["in.insulation_ceiling"][2:])
+                #per email received from ICF 2025-02-10, "existing_system_ducted" is "a flag to confirm that the home's existing system is not an ASHP" which is what is coded below
+                #despite that the label just asks whether the existing home is ducted which is a different calculation
                 #this may need editing in the future
                 if "ashp" in str(row["in.hvac_heating_efficiency"]).lower():
                     existing_system_ducted = True
@@ -146,7 +172,7 @@ class process_ResStock_2024_2():
                 calc6_coeff = cost_inputs_this_row["Calc6_Coeff - Remove Refrigerant"].iloc[0]
                 calc7_coeff = cost_inputs_this_row["Calc7_Coeff - Demo AC Labor"].iloc[0]
                 calc8_coeff = cost_inputs_this_row["Calc8_Coeff - Dryer R&R"].iloc[0]
-                cacl9_coeff = cost_inputs_this_row["Calc9_Coeff - Range R&R"].iloc[0]
+                calc9_coeff = cost_inputs_this_row["Calc9_Coeff - Range R&R"].iloc[0]
                 calc10_coeff = cost_inputs_this_row["Calc10_Coeff - Pool Install of Electric"].iloc[0]
                 calc11_coeff = cost_inputs_this_row["Calc11_Coeff - Pool R&R Labor"].iloc[0]
                 calc12_coeff = cost_inputs_this_row["Calc12_Coeff - Spa Install of Electric"].iloc[0]
@@ -156,9 +182,12 @@ class process_ResStock_2024_2():
                 ##calculate intermediate values needed in cost calculation
                 #note there are a lot of constants hard-coded in here! Double check they are correct for each location
                 #calc1 "CF Removal of Attic Insulation"
-                calc1 = attic_floor_area_sf/2
+                ##ICF used a constant 6" of attic insulation (calc1 = attic_floor_area_sf/2), 
+                ##we are instead a calculation based on ResStock data.
+                calc1 = (existing_attic_insulation_R * attic_R_per_foot) * attic_floor_area_sf
                 #calc2 "LF of Caulking"
-                calc2 = num_exterior_doors * 20 + num_windows * 18
+                calc2 = num_exterior_doors * door_perimeter + num_windows * window_perimeter
+                #calcs 3-4 combine to get appropriate levels of insulation for each climate zone (R-30, R-49, or R-60)
                 #calc3 "SF of R30 Attic Insulation"
                 if climate_zone <4:
                     calc3 = attic_floor_area_sf
@@ -176,12 +205,12 @@ class process_ResStock_2024_2():
                     calc5 = 0
                 #calc6 "Remove refrigerant"
                 if calc5 ==1:
-                    calc6 = 20
+                    calc6 = refrigerant_lbs
                 else:
                     calc6 = 0
                 #calc7 "Demo AC labor"
                 if calc5 == 1:
-                    calc7 = 3
+                    calc7 = labor_min
                 else:
                     calc7 = 0
                 #calc8 "Dryer R&R": dealt with directly below based on whether new dryer installed
@@ -193,7 +222,7 @@ class process_ResStock_2024_2():
                     calc10 = 0
                 #calc11 "Pool R&R Labor"
                 if pool_heater_tons > 0:
-                    calc11 = 3
+                    calc11 = labor_min
                 else:
                     calc11 = 0
                 #calc12 "Spa Install of Electric"
@@ -203,7 +232,7 @@ class process_ResStock_2024_2():
                     calc12 = 0
                 #calc13 "Spa R&R Labor"
                 if spa_heater_tons > 0:
-                    calc13 = 3
+                    calc13 = labor_min
                 else:
                     calc13 = 0                
                 #calculate the cost, additively
@@ -220,7 +249,7 @@ class process_ResStock_2024_2():
                     )
                 #add any HPWH costs
                 if "pump" in str(row['upgrade.water_heater_efficiency']).lower():
-                    cost = cost + (hpwh_cost_per_gal * HPWH_gal)
+                    cost = cost + (hpwh_cost_per_gal * wh_gal)
                 #add any pool heater costs
                 if "electricity" in str(row['upgrade.misc_pool_heater']).lower():
                     cost = cost + (pool_heater_cost_per_ton * pool_heater_tons) + (
@@ -246,13 +275,11 @@ class process_ResStock_2024_2():
                         calc2 * calc2_coeff #caulking
                     )
                 #add any new dryer costs
-                #(placeholder) currently these costs are built into the fixed costs for MPs 11-15 so are included in every model in those packages
                 if "electric" in str(row['upgrade.clothes_dryer']).lower():
                     cost = cost + (1*calc8_coeff)
                 #add any new cooking equipment costs
-                #(placeholder) currently these costs are built into the fixed costs for MPs 11-15 so are included in every model in those packages
                 if "electric" in str(row['upgrade.cooking_range']).lower():
-                    cost = cost + (1*cacl9_coeff)
+                    cost = cost + (1*calc9_coeff)
                 #add this cost to the list of costs
                 up_costs.append(float(cost))
                 ssns.append(ssn)
