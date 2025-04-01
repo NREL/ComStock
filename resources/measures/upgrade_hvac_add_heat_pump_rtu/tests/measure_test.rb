@@ -770,8 +770,7 @@ class AddHeatPumpRtuTest < Minitest::Test
       # check airflow
       value_before = sizing_summary_reference['AirLoopHVAC'][name_obj]['designSupplyAirFlowRate']
       value_after = airloophvac.designSupplyAirFlowRate.get
-      relative_difference = (value_after - value_before) / value_before
-      assert_in_epsilon(relative_difference, 0.25, 0.01, "values difference not close to threshold: AirLoopHVAC | #{name_obj} | designSupplyAirFlowRate")
+      assert_in_epsilon(value_after, value_before, 0.01, "values difference not within threshold: AirLoopHVAC | #{name_obj} | designSupplyAirFlowRate")
     end
     model.getControllerOutdoorAirs.each do |ctrloa|
       name_obj = ctrloa.name.to_s
@@ -779,8 +778,7 @@ class AddHeatPumpRtuTest < Minitest::Test
       # check airflow
       value_before = sizing_summary_reference['ControllerOutdoorAir'][name_obj]['maximumOutdoorAirFlowRate']
       value_after = ctrloa.maximumOutdoorAirFlowRate.get
-      relative_difference = (value_after - value_before) / value_before
-      assert_in_epsilon(relative_difference, 0.25, 0.01, "values difference not close to threshold: AirLoopHVAC | #{name_obj} | maximumOutdoorAirFlowRate")
+      assert_in_epsilon(value_after, value_before, 0.01, "values difference not within threshold: AirLoopHVAC | #{name_obj} | maximumOutdoorAirFlowRate")
     end
   end
 
@@ -901,23 +899,21 @@ class AddHeatPumpRtuTest < Minitest::Test
   # # Single building result examples
   # def test_single_building_result_examples
   #   osm_epw_pair = {
-  #     'example_model_AK_380.osm' => 'USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw',
-  #     'example_model_NM_380.osm' => 'USA_NM_Albuquerque.Intl.AP.723650_TMY3.epw',
-  #     'example_model_HI_380.osm' => 'USA_HI_Honolulu.Intl.AP.911820_TMY3.epw',
+  #     'example_model_AK.osm' => 'USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw',
+  #     'example_model_MD.osm' => 'USA_MD_Baltimore-Washington.Intl.AP.724060_TMY3.epw',
+  #     'example_model_GA.osm' => 'USA_GA_Atlanta-Hartsfield-Jackson.Intl.AP.722190_TMY3.epw',
+  #     'example_model_AZ.osm' => 'USA_AZ_Tucson.Intl.AP.722740_TMY3.epw',
+  #     'example_model_HI.osm' => 'USA_HI_Honolulu.Intl.AP.911820_TMY3.epw',
   #   }
 
   #   test_name = 'test_single_building_result_examples'
 
   #   puts "\n######\nTEST:#{test_name}\n######\n"
 
-  #   osm_epw_pair.each_with_index do |(osm_name, epw_name), idx|
+  #   osm_epw_pair.each_with_index do |(osm_name, epw_name), idx_model|
 
   #     osm_path = model_input_path(osm_name)
   #     epw_path = epw_input_path(epw_name)
-
-  #     puts("### DEBUGGING: ----------------------------------------------------------")
-  #     puts("### DEBUGGING: osm_path = #{osm_path}")
-  #     puts("### DEBUGGING: epw_path = #{epw_path}")
 
   #     # Create an instance of the measure
   #     measure = AddHeatPumpRtu.new
@@ -955,8 +951,8 @@ class AddHeatPumpRtuTest < Minitest::Test
   #     end
 
   #     # Apply the measure to the model and optionally run the model
-  #     result = set_weather_and_apply_measure_and_run("#{test_name}_#{idx}", measure, argument_map, osm_path, epw_path, run_model: true, apply: true)
-  #     model = load_model(model_output_path("#{test_name}_#{idx}"))
+  #     result = set_weather_and_apply_measure_and_run("#{test_name}_#{idx_model}", measure, argument_map, osm_path, epw_path, run_model: true, apply: true)
+  #     model = load_model(model_output_path("#{test_name}_#{idx_model}"))
 
   #   end
   # end
