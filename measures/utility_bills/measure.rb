@@ -362,7 +362,10 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
           state_elec_ann_incr = elec_ann_incr[state_abbreviation]
 
           # Calculate the bills for each applicable electric rate using the PySAM API via python
-          rate_results = {}
+          rate_results_total = {}
+          rate_results_demandcharge = {}
+          rate_results_toucharge = {}
+          rate_results_energycharge = {}
           calc_elec_bill_py_path = File.join(File.dirname(__FILE__), 'resources', 'calc_elec_bill.py')
           applicable_rates.each_with_index do |rate_path, i|
             # Load the rate data
@@ -412,7 +415,10 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
               utility_bill_dollars_base_yr_tou = pysam_out['charge_wo_sys_dc_tou'].round.to_f
               utility_bill_dollars_base_yr_ec = pysam_out['charge_wo_sys_ec'].round.to_f
               total_utility_bill_dollars_2022 = (total_utility_bill_dollars_base_yr * (1.0 + pct_inc)).round.to_i
-              rate_results[rate_label] = total_utility_bill_dollars_2022
+              rate_results_total[rate_label] = total_utility_bill_dollars_2022
+              rate_results_demandcharge[rate_label] = utility_bill_dollars_base_yr_dc
+              rate_results_toucharge[rate_label] = utility_bill_dollars_base_yr_tou
+              rate_results_energycharge[rate_label] = utility_bill_dollars_base_yr_ec
               runner.registerInfo("Bill for #{rate_name}: $#{total_utility_bill_dollars_2022}, adjusted from #{rate_start_year} to 2022 assuming #{pct_inc} increase.")
             else
               runner.registerError("Error running PySAM: #{command}")
@@ -420,20 +426,28 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
               runner.registerError("stderr: #{stderr_str}")
               return false
             end
-          end
+          end          
 
           # Report bills for reasonable rates where: 0.25x_median < bill < 2x_median
-          bills_sorted = rate_results.values.sort
+          bills_sorted = rate_results_total.values.sort
           median_bill = bills_sorted[(bills_sorted.length - 1) / 2] + (bills_sorted[bills_sorted.length / 2] / 2.0)
           i = 1
-          rate_results.each do |rate_label, bill|
-            if bill < 0.25 * median_bill
-              runner.registerInfo("Removing #{rate_label}, because bill #{bill} < 0.25 x median #{median_bill}")
-            elsif bill > 2.0 * median_bill
-              runner.registerInfo("Removing #{rate_label}, because bill #{bill} > 2.0 x median #{median_bill}")
+          rate_results_total.keys.zip(
+            rate_results_total.values, 
+            rate_results_demandcharge.values, 
+            rate_results_toucharge.values, 
+            rate_results_energycharge.values
+          ).each do |rate_label, bill_total, bill_dc, bill_tou, bill_ec|
+            if bill_total < 0.25 * median_bill
+              runner.registerInfo("Removing #{rate_label}, because bill #{bill_total} < 0.25 x median #{median_bill}")
+            elsif bill_total > 2.0 * median_bill
+              runner.registerInfo("Removing #{rate_label}, because bill #{bill_total} > 2.0 x median #{median_bill}")
             else
               # include the bill result in bill result statistics
-              elec_bills_total[rate_label] = bill
+              elec_bills_total[rate_label] = bill_total
+              elec_bills_demandcharge[rate_label] = bill_dc
+              elec_bills_toucharge[rate_label] = bill_tou
+              elec_bills_energycharge[rate_label] = bill_ec
               i += 1
             end
           end
