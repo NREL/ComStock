@@ -354,7 +354,10 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
           electricity_bill_results += '|' if electricity_bill_results.empty?
           electricity_bill_results += "#{elec_eia_id}:"
 
-          elec_bills = {}
+          elec_bills_total = {}
+          elec_bills_demandcharge = {}
+          elec_bills_toucharge = {}
+          elec_bills_energycharge = {}
           # get annual percent increase for state
           state_elec_ann_incr = elec_ann_incr[state_abbreviation]
 
@@ -405,6 +408,9 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
               # Adjust the rate for price increases using state averages
               pct_inc = ((2022 - rate_start_year) * state_elec_ann_incr).round(3)
               total_utility_bill_dollars_base_yr = pysam_out['total_utility_bill_dollars'].round.to_i
+              utility_bill_dollars_base_yr_dc = pysam_out['charge_wo_sys_dc_fixed'].round.to_f
+              utility_bill_dollars_base_yr_tou = pysam_out['charge_wo_sys_dc_tou'].round.to_f
+              utility_bill_dollars_base_yr_ec = pysam_out['charge_wo_sys_ec'].round.to_f
               total_utility_bill_dollars_2022 = (total_utility_bill_dollars_base_yr * (1.0 + pct_inc)).round.to_i
               rate_results[rate_label] = total_utility_bill_dollars_2022
               runner.registerInfo("Bill for #{rate_name}: $#{total_utility_bill_dollars_2022}, adjusted from #{rate_start_year} to 2022 assuming #{pct_inc} increase.")
@@ -427,13 +433,13 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
               runner.registerInfo("Removing #{rate_label}, because bill #{bill} > 2.0 x median #{median_bill}")
             else
               # include the bill result in bill result statistics
-              elec_bills[rate_label] = bill
+              elec_bills_total[rate_label] = bill
               i += 1
             end
           end
 
           # Report bill statistics across all applicable electric rates
-          elec_bill_values = elec_bills.values
+          elec_bill_values = elec_bills_total.values
           elec_bill_values = elec_bill_values.sort
           runner.registerInfo("Bills sorted: #{elec_bill_values}")
           min_bill = elec_bill_values.min
@@ -442,12 +448,12 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
           lo_i = (elec_bill_values.length - 1) / 2
           hi_i = elec_bill_values.length / 2
           median_bill = ((elec_bill_values[lo_i] + elec_bill_values[hi_i]) / 2.0).round.to_i
-          n_bills = elec_bills.length
+          n_bills = elec_bills_total.length
 
-          electricity_bill_results += "#{min_bill.round.to_i}:#{elec_bills.key(min_bill)}:"
-          electricity_bill_results += "#{max_bill.round.to_i}:#{elec_bills.key(max_bill)}:"
-          electricity_bill_results += "#{elec_bill_values[lo_i].round.to_i}:#{elec_bills.key(elec_bill_values[lo_i])}:"
-          electricity_bill_results += "#{elec_bill_values[hi_i].round.to_i}:#{elec_bills.key(elec_bill_values[hi_i])}:"
+          electricity_bill_results += "#{min_bill.round.to_i}:#{elec_bills_total.key(min_bill)}:"
+          electricity_bill_results += "#{max_bill.round.to_i}:#{elec_bills_total.key(max_bill)}:"
+          electricity_bill_results += "#{elec_bill_values[lo_i].round.to_i}:#{elec_bills_total.key(elec_bill_values[lo_i])}:"
+          electricity_bill_results += "#{elec_bill_values[hi_i].round.to_i}:#{elec_bills_total.key(elec_bill_values[hi_i])}:"
           electricity_bill_results += "#{mean_bill}:"
           # electricity_bill_results += "#{median_bill}:"
           electricity_bill_results += "#{n_bills}|"
