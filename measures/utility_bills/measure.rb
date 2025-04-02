@@ -430,7 +430,8 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
 
           # Report bills for reasonable rates where: 0.25x_median < bill < 2x_median
           bills_sorted = rate_results_total.values.sort
-          median_bill = bills_sorted[(bills_sorted.length - 1) / 2] + (bills_sorted[bills_sorted.length / 2] / 2.0)
+          mid = bills_sorted.length / 2
+          median_bill = bills_sorted.length.odd? ? bills_sorted[mid] : (bills_sorted[mid - 1] + bills_sorted[mid]) / 2.0
           i = 1
           rate_results_total.keys.zip(
             rate_results_total.values, 
