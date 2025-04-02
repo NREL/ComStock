@@ -38,17 +38,6 @@
 
 # pass relevant messages/results/variables to parent runner
 def child_to_parent_runner_logging(runner_parent, measure_name, results_child, registered_var_list = [])
-  # Register values from child runner to parent runner
-  unless registered_var_list.empty?
-    registered_var_list.each do |registered_var|
-      JSON.parse(results_child.to_s)['step_values'].each do |step_value|
-        if step_value['name'].to_s == registered_var
-          runner_parent.registerValue(registered_var, step_value['value'], step_value['units'])
-        end
-      end
-    end
-  end
-
   # Log warnings/infos/errors
   results_child.warnings.each do |warning|
     runner_parent.registerWarning(warning.logMessage)
@@ -64,6 +53,16 @@ def child_to_parent_runner_logging(runner_parent, measure_name, results_child, r
   case results_child.value.valueName
   when 'Success'
     runner_parent.registerInfo("Child measure (#{measure_name}) was applied successfully.")
+    # Register values from child runner to parent runner
+    unless registered_var_list.empty?
+      registered_var_list.each do |registered_var|
+        JSON.parse(results_child.to_s)['step_values'].each do |step_value|
+          if step_value['name'].to_s == registered_var
+            runner_parent.registerValue(registered_var, step_value['value'], step_value['units'])
+          end
+        end
+      end
+    end
   when 'NA'
     runner_parent.registerInfo("Child measure (#{measure_name}) was not applicable.")
   else
