@@ -3150,7 +3150,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # percent savings
         pct_svgs = pl.concat([up_vals, base_vals], how='horizontal').with_columns(
-            [((pl.col(f'{col}_base') - pl.col(col)) / pl.col(f'{col}_base')).alias(pct_svgs_cols[col]) for col in val_cols]
+            [((pl.col(f'{col}_base') - pl.col(col)) / pl.col(f'{col}_base') * 100).alias(pct_svgs_cols[col]) for col in val_cols]
         ).select(list(pct_svgs_cols.values()) + geo_agg_cols + [self.BLDG_ID])
 
         pct_svgs = pct_svgs.fill_null(0.0)
