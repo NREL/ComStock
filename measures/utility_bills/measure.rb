@@ -509,9 +509,15 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
 
           # Report bill statistics across all applicable electric rates
           stats_total = get_utility_rates_statistics(runner, elec_bills_total)
+          stats_demandcharge = get_utility_rates_statistics(runner, elec_bills_demandcharge)
+          stats_tou = get_utility_rates_statistics(runner, elec_bills_toucharge)
+          stats_energycharge = get_utility_rates_statistics(runner, elec_bills_energycharge)
 
           # Concatenate bill statistics in certain format
           electricity_bill_results += stats_total[0..8].join(":") + ":"
+          electricity_bill_results += stats_demandcharge[0..8].join(":") + ":"
+          electricity_bill_results += stats_tou[0..8].join(":") + ":"
+          electricity_bill_results += stats_energycharge[0..8].join(":") + ":"
           electricity_bill_results += "#{stats_total[9]}|"
         end
       end
