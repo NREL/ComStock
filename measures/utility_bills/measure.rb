@@ -434,9 +434,9 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
           median_bill = bills_sorted.length.odd? ? bills_sorted[mid] : (bills_sorted[mid - 1] + bills_sorted[mid]) / 2.0
           i = 1
           rate_results_total.keys.zip(
-            rate_results_total.values, 
-            rate_results_demandcharge.values, 
-            rate_results_toucharge.values, 
+            rate_results_total.values,
+            rate_results_demandcharge.values,
+            rate_results_toucharge.values,
             rate_results_energycharge.values
           ).each do |rate_label, bill_total, bill_dc, bill_tou, bill_ec|
             if bill_total < 0.25 * median_bill
