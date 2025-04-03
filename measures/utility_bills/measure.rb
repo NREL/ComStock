@@ -92,7 +92,50 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
       elec_bills[rate_label] = bill
     end
     elec_bills
-  end    
+  end
+
+  # return applicable utility rates statistics
+  def get_utility_rates_statistics(runner, elec_bills)
+
+    # get bill values and sort
+    elec_bill_total_values = elec_bills.values
+    elec_bill_total_values = elec_bill_total_values.sort
+    runner.registerInfo("Bills sorted: #{elec_bill_total_values}")
+
+    # get bill statistics
+    min_total_bill = elec_bill_total_values.min
+    max_total_bill = elec_bill_total_values.max
+    mean_total_bill = (elec_bill_total_values.sum.to_f / elec_bill_total_values.length).round.to_i
+    lo_i = (elec_bill_total_values.length - 1) / 2
+    hi_i = elec_bill_total_values.length / 2
+    median_total_bill_low = elec_bill_total_values[lo_i]
+    median_total_bill_high = elec_bill_total_values[hi_i]
+    if elec_bill_total_values.length.odd?
+      median_bill = elec_bill_total_values[lo_i]
+    else
+      median_bill = ((median_total_bill_low + median_total_bill_high) / 2.0).round.to_i
+    end
+    n_bills = elec_bills.length
+
+    # get relevant keys
+    key_min = elec_bills.key(min_total_bill)
+    key_max = elec_bills.key(max_total_bill)
+    key_median_low = elec_bills.key(median_total_bill_low)
+    key_median_high = elec_bills.key(median_total_bill_high)
+
+    return [
+      min_total_bill,
+      key_min,
+      max_total_bill,
+      key_max,
+      median_total_bill_low.round.to_i,
+      key_median_low,
+      median_total_bill_high.round.to_i,
+      key_median_high,
+      mean_total_bill,
+      n_bills
+    ]
+  end
 
   # define what happens when the measure is run
   def run(runner, user_arguments)
@@ -465,28 +508,11 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
           elec_bills_energycharge = filter_datapoints_with_median_bounds(runner, rate_results_energycharge)
 
           # Report bill statistics across all applicable electric rates
-          elec_bill_total_values = elec_bills_total.values
-          elec_bill_total_values = elec_bill_total_values.sort
-          runner.registerInfo("Bills sorted: #{elec_bill_total_values}")
-          min_total_bill = elec_bill_total_values.min
-          max_total_bill = elec_bill_total_values.max
-          mean_total_bill = (elec_bill_total_values.sum.to_f / elec_bill_total_values.length).round.to_i
-          lo_i = (elec_bill_total_values.length - 1) / 2
-          hi_i = elec_bill_total_values.length / 2
-          if elec_bill_total_values.length.odd?
-            median_bill = elec_bill_total_values[lo_i]
-          else
-            median_bill = ((elec_bill_total_values[lo_i] + elec_bill_total_values[hi_i]) / 2.0).round.to_i
-          end
-          n_bills = elec_bills_total.length
+          stats_total = get_utility_rates_statistics(runner, elec_bills_total)
 
-          electricity_bill_results += "#{min_total_bill.round.to_i}:#{elec_bills_total.key(min_total_bill)}:"
-          electricity_bill_results += "#{max_total_bill.round.to_i}:#{elec_bills_total.key(max_total_bill)}:"
-          electricity_bill_results += "#{elec_bill_total_values[lo_i].round.to_i}:#{elec_bills_total.key(elec_bill_total_values[lo_i])}:"
-          electricity_bill_results += "#{elec_bill_total_values[hi_i].round.to_i}:#{elec_bills_total.key(elec_bill_total_values[hi_i])}:"
-          electricity_bill_results += "#{mean_total_bill}:"
-          # electricity_bill_results += "#{median_bill}:"
-          electricity_bill_results += "#{n_bills}|"
+          # Concatenate bill statistics in certain format
+          electricity_bill_results += stats_total[0..8].join(":") + ":"
+          electricity_bill_results += "#{stats_total[9]}|"
         end
       end
 
