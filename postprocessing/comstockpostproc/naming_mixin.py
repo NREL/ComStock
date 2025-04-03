@@ -307,7 +307,6 @@ class NamingMixin():
         'out.emissions.district_cooling..co2e_kg',
         'out.emissions.district_heating..co2e_kg',
         'out.emissions.electricity.lrmer_mid_case_15_2023_start..co2e_kg'
-
     ]
 
     # GHG emissions seasonal daily average from electricity consumption columns for eGrid
