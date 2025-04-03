@@ -454,21 +454,25 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
           end
 
           # Report bill statistics across all applicable electric rates
-          elec_bill_values = elec_bills_total.values
-          elec_bill_values = elec_bill_values.sort
-          runner.registerInfo("Bills sorted: #{elec_bill_values}")
-          min_bill = elec_bill_values.min
-          max_bill = elec_bill_values.max
-          mean_bill = (elec_bill_values.sum.to_f / elec_bill_values.length).round.to_i
-          lo_i = (elec_bill_values.length - 1) / 2
-          hi_i = elec_bill_values.length / 2
-          median_bill = ((elec_bill_values[lo_i] + elec_bill_values[hi_i]) / 2.0).round.to_i
+          elec_bill_total_values = elec_bills_total.values
+          elec_bill_total_values = elec_bill_total_values.sort
+          runner.registerInfo("Bills sorted: #{elec_bill_total_values}")
+          min_bill = elec_bill_total_values.min
+          max_bill = elec_bill_total_values.max
+          mean_bill = (elec_bill_total_values.sum.to_f / elec_bill_total_values.length).round.to_i
+          lo_i = (elec_bill_total_values.length - 1) / 2
+          hi_i = elec_bill_total_values.length / 2
+          if elec_bill_total_values.length.odd?
+            median_bill = elec_bill_total_values[lo_i]
+          else
+            median_bill = ((elec_bill_total_values[lo_i] + elec_bill_total_values[hi_i]) / 2.0).round.to_i
+          end
           n_bills = elec_bills_total.length
 
           electricity_bill_results += "#{min_bill.round.to_i}:#{elec_bills_total.key(min_bill)}:"
           electricity_bill_results += "#{max_bill.round.to_i}:#{elec_bills_total.key(max_bill)}:"
-          electricity_bill_results += "#{elec_bill_values[lo_i].round.to_i}:#{elec_bills_total.key(elec_bill_values[lo_i])}:"
-          electricity_bill_results += "#{elec_bill_values[hi_i].round.to_i}:#{elec_bills_total.key(elec_bill_values[hi_i])}:"
+          electricity_bill_results += "#{elec_bill_total_values[lo_i].round.to_i}:#{elec_bills_total.key(elec_bill_total_values[lo_i])}:"
+          electricity_bill_results += "#{elec_bill_total_values[hi_i].round.to_i}:#{elec_bills_total.key(elec_bill_total_values[hi_i])}:"
           electricity_bill_results += "#{mean_bill}:"
           # electricity_bill_results += "#{median_bill}:"
           electricity_bill_results += "#{n_bills}|"
