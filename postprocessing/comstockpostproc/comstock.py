@@ -1307,9 +1307,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # HVAC columns
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_ELEC_ENDUSE).alias(self.ANN_ELEC_HVAC_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_GAS_ENDUSE).alias(self.ANN_GAS_HVAC_GROUP_KBTU))
+        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_PROPANE_ENDUSE).alias(self.ANN_PROPANE_HVAC_GROUP_KBTU))
+        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_FUELOIL_ENDUSE).alias(self.ANN_FUELOIL_HVAC_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_DISTHTG_ENDUSE).alias(self.ANN_DISTHTG_HVAC_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_DISTCLG_ENDUSE).alias(self.ANN_DISTCLG_HVAC_GROUP_KBTU))
-        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_OTHER_ENDUSE).alias(self.ANN_OTHER_HVAC_GROUP_KBTU))
 
         # Lighting column
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_LTG_ELEC_ENDUSE).alias(self.ANN_ELEC_LTG_GROUP_KBTU))
@@ -1317,8 +1318,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Interior equipment columns
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_INTEQUIP_ELEC_ENDUSE).alias(self.ANN_ELEC_INTEQUIP_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_INTEQUIP_GAS_ENDUSE).alias(self.ANN_GAS_INTEQUIP_GROUP_KBTU))
+        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_INTEQUIP_PROPANE_ENDUSE).alias(self.ANN_PROPANE_INTEQUIP_GROUP_KBTU))
+        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_INTEQUIP_FUELOIL_ENDUSE).alias(self.ANN_FUELOIL_INTEQUIP_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_INTEQUIP_DISTHTG_ENDUSE).alias(self.ANN_DISTHTG_INTEQUIP_GROUP_KBTU))
-        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_INTEQUIP_OTHER_ENDUSE).alias(self.ANN_OTHER_INTEQUIP_GROUP_KBTU))
 
         # Refrigeration columns
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_REFRIG_ELEC_ENDUSE).alias(self.ANN_ELEC_REFRIG_GROUP_KBTU))
@@ -1326,25 +1328,29 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # SWH columns
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_SWH_ELEC_ENDUSE).alias(self.ANN_ELEC_SWH_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_SWH_GAS_ENDUSE).alias(self.ANN_GAS_SWH_GROUP_KBTU))
+        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_SWH_PROPANE_ENDUSE).alias(self.ANN_PROPANE_SWH_GROUP_KBTU))
+        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_SWH_FUELOIL_ENDUSE).alias(self.ANN_FUELOIL_SWH_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_SWH_DISTHTG_ENDUSE).alias(self.ANN_DISTHTG_SWH_GROUP_KBTU))
-        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_SWH_OTHER_ENDUSE).alias(self.ANN_OTHER_SWH_GROUP_KBTU))
 
         col_names = [
             self.ANN_ELEC_HVAC_GROUP_KBTU,
             self.ANN_GAS_HVAC_GROUP_KBTU,
+            self.ANN_PROPANE_HVAC_GROUP_KBTU,
+            self.ANN_FUELOIL_HVAC_GROUP_KBTU,
             self.ANN_DISTHTG_HVAC_GROUP_KBTU,
             self.ANN_DISTCLG_HVAC_GROUP_KBTU,
-            self.ANN_OTHER_HVAC_GROUP_KBTU,
             self.ANN_ELEC_LTG_GROUP_KBTU,
             self.ANN_ELEC_INTEQUIP_GROUP_KBTU,
             self.ANN_DISTHTG_INTEQUIP_GROUP_KBTU,
-            self.ANN_OTHER_INTEQUIP_GROUP_KBTU,
             self.ANN_GAS_INTEQUIP_GROUP_KBTU,
+            self.ANN_PROPANE_INTEQUIP_GROUP_KBTU,
+            self.ANN_FUELOIL_INTEQUIP_GROUP_KBTU,
             self.ANN_ELEC_REFRIG_GROUP_KBTU,
             self.ANN_ELEC_SWH_GROUP_KBTU,
             self.ANN_GAS_SWH_GROUP_KBTU,
-            self.ANN_DISTHTG_SWH_GROUP_KBTU,
-            self.ANN_OTHER_SWH_GROUP_KBTU
+            self.ANN_PROPANE_SWH_GROUP_KBTU,
+            self.ANN_FUELOIL_SWH_GROUP_KBTU,
+            self.ANN_DISTHTG_SWH_GROUP_KBTU
         ]
 
         self.convert_units(col_names)
@@ -3067,9 +3073,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         logger.debug('Adding enduse group emissions columns')
         for col in (self.COLS_ENDUSE_GROUP_ANN_ENGY + self.COLS_ENDUSE_GROUP_TOT_ANN_ENGY):
             fuel, enduse_gp = col.replace('calc.enduse_group.', '').replace('.energy_consumption..kwh', '').split('.')
-            if fuel in ['district_heating', 'district_cooling']:
-                continue  # ComStock has no emissions for district heating or cooling
-
             tot_engy = f'calc.weighted.{fuel}.total.energy_consumption..tbtu'
             enduse_gp_engy = f'calc.weighted.enduse_group.{fuel}.{enduse_gp}.energy_consumption..tbtu'
             tot_ghg = f'calc.weighted.emissions.{fuel}..co2e_mmt'
@@ -3078,28 +3081,20 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             if fuel == 'electricity':
                 enduse_gp_ghg_col = f'calc.weighted.enduse_group.{fuel}.{enduse_gp}.emissions.egrid_2021_subregion..co2e_mmt'
                 tot_ghg = 'calc.weighted.emissions.electricity.egrid_2021_subregion..co2e_mmt'
+            elif fuel == 'propane':
+                tot_ghg = 'calc.weighted.emissions.propane..co2e_mmt'
+            elif fuel == 'fuel_oil':
+                tot_ghg = 'calc.weighted.emissions.fuel_oil..co2e_mmt'
             elif fuel == 'site_energy':
                 tot_ghg = f'calc.weighted.emissions.total_with_egrid..co2e_mmt'
 
             # enduse group emissions = total emissions * (enduse group energy / total energy)
-            if fuel == 'other_fuel':
-                # Add propane and fuel oil emissions together because energy is reported combined as other_fuel
-                propane_ghg = f'calc.weighted.emissions.propane..co2e_mmt'
-                fuel_oil_ghg = f'calc.weighted.emissions.fuel_oil..co2e_mmt'
-                tot_ghg_expr = (pl.col(propane_ghg).add(pl.col(fuel_oil_ghg)))
-                input_lf = input_lf.with_columns([
-                    pl.when((pl.col(tot_engy) > 0))  # Avoid divide-by-zero
-                    .then((tot_ghg_expr.mul(pl.col(enduse_gp_engy)).truediv(pl.col(tot_engy))))
-                    .otherwise(0.0)
-                    .alias(enduse_gp_ghg_col),
-                ])
-            else:
-                input_lf = input_lf.with_columns([
-                    pl.when((pl.col(tot_engy) > 0))  # Avoid divide-by-zero
-                    .then((pl.col(tot_ghg).mul(pl.col(enduse_gp_engy)).truediv(pl.col(tot_engy))))
-                    .otherwise(0.0)
-                    .alias(enduse_gp_ghg_col)
-                ])
+            input_lf = input_lf.with_columns([
+                pl.when((pl.col(tot_engy) > 0))  # Avoid divide-by-zero
+                .then((pl.col(tot_ghg).mul(pl.col(enduse_gp_engy)).truediv(pl.col(tot_engy))))
+                .otherwise(0.0)
+                .alias(enduse_gp_ghg_col)
+            ])
 
         assert isinstance(input_lf, pl.LazyFrame)
 
@@ -3566,11 +3561,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             elif fuel == 'total':
                 tot_engy_col = self.col_name_to_weighted(self.ANN_TOT_ENGY_KBTU, self.weighted_energy_units)
                 tot_ghg_col = self.col_name_to_weighted(self.ANN_GHG_EGRID, self.weighted_ghg_units)
-            elif fuel in ['other_fuel', 'district_heating', 'district_cooling']:
-                # TODO revise if district emissions added
-                # Other is sum of propane and fuel_oil columns, and district cols have no emissions columns
-                # Checked as part of checking total
-                continue
+
             # Energy check
             if fuel == 'total':
                 tot_engy_long = engy_emis.select(pl.sum(engy_val_col)).item()
