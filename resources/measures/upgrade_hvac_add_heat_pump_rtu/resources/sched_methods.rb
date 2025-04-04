@@ -177,17 +177,9 @@ def make_ruleset_sched_from_8760(model, runner, values, sch_name, sch_type_limit
   week_1_rules = std.make_week_ruleset_sched_from_168(model, sch_ruleset, all_week_values[1], start_date, end_date,
                                                   week_sch_name)
   week_n_rules = week_1_rules
-  ##AA modified the below 
-  #all_week_rules = []
-  #all_week_rules << week_1_rules
   iweek_previous_week_rule = 0
-  ##AA commented out and added line below #confirm that this isnt a problem 
-  #all_week_rules  = {iweek_previous_week_rule => week_1_rules}
   all_week_rules = { :iweek_previous_week_rule => week_1_rules}
 
-  # runner.registerInfo("186  values #{all_week_rules.values}") 
-  # runner.registerInfo("186  keys #{all_week_rules.keys}") 
-  # runner.registerInfo("191 accessing val #{all_week_rules[:0]}") 
   # temporary loop for debugging
   week_n_rules.each do |sch_rule|
     sch_rule.daySchedule
@@ -207,25 +199,7 @@ def make_ruleset_sched_from_8760(model, runner, values, sch_name, sch_type_limit
       end
     end
     if is_a_match
-	  ##AA added debugging
-	  # runner.registerInfo("previous week 204 #{iweek_previous_week_rule}")
-	  # runner.registerInfo("all week rules class 209 #{all_week_rules.class.to_s}")
-      # # Update the end date for the Rules of the previous week to include this week
-	    # ##AA added this adn commented out the below 
-	  runner.registerInfo("previous week rule 212 #{iweek_previous_week_rule}")
-	  #runner.registerInfo("217 accessing val #{all_week_rules[:0]}") 
-	 all_week_rules.values.each do |val|
-       runner.registerInfo("188  values #{val}") 
-	   runner.registerInfo("188  value class #{val.class.to_s}")
-      end 
-     all_week_rules.keys.each do |key|
-       runner.registerInfo("191 key #{key}") 
-	   runner.registerInfo("191 key class #{key.class.to_s}")
-      end
-	  runner.registerInfo("class of key lookup 224 #{iweek_previous_week_rule.class.to_s}") 
-	  runner.registerInfo("value of key variable 224 #{iweek_previous_week_rule}") 
       all_week_rules[:iweek_previous_week_rule].each do |sch_rule|
-	  #all_week_rules.last.each do |sch_rule|
         sch_rule.setEndDate(end_date)
       end
     else
@@ -236,20 +210,13 @@ def make_ruleset_sched_from_8760(model, runner, values, sch_name, sch_type_limit
       week_n_rules = std.make_week_ruleset_sched_from_168(model, sch_ruleset, all_week_values[iweek], start_date,
                                                       end_date, week_sch_name)
       runner.registerInfo("week n rules #{week_n_rules}")
-	  ##AA commented out the line below 
-	  #all_week_rules << week_n_rules
 	  all_week_rules[:iweek_previous_week_rule] = week_n_rules
-	  #all_week_rules[iweek_previous_week_rule]= week_n_rules
       # Set this week as the reference for subsequent weeks
       iweek_previous_week_rule = iweek
 	  runner.registerInfo("line 229 #{all_week_rules[:iweek].class.to_s}")
 	  runner.registerInfo("line 231 array element #{all_week_rules[:iweek_previous_week_rule].class.to_s}")
 	  runner.registerInfo("iweek 231 #{iweek}")
 	  runner.registerInfo("iweek previous rule 232 #{iweek_previous_week_rule}")
-	  # ##AA added below as a test 
-	  # all_week_rules[:iweek_previous_week_rule].each do |sch_rule|
-	   # end 
-	  #
     end  
   end
 
