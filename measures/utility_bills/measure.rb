@@ -124,15 +124,15 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     key_median_high = elec_bills.key(median_total_bill_high)
 
     return [
-      min_total_bill,
+      min_total_bill.round.to_i,
       key_min,
-      max_total_bill,
+      max_total_bill.round.to_i,
       key_max,
       median_total_bill_low.round.to_i,
       key_median_low,
       median_total_bill_high.round.to_i,
       key_median_high,
-      mean_total_bill,
+      mean_total_bill.round.to_i,
       n_bills
     ]
   end
