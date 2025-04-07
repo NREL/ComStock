@@ -43,7 +43,7 @@ require 'openstudio-standards'
 
 
 def get_8760_values_from_schedule_ruleset(model, schedule_ruleset)
-  std = Standard.build('90.1-2013') #build openstudio standards 
+  Standard.build('90.1-2013') # build openstudio standards
   yd = model.getYearDescription
   start_date = yd.makeDate(1, 1)
   end_date = yd.makeDate(12, 31)
@@ -133,8 +133,8 @@ def get_8760_values_from_schedule_ruleset(model, schedule_ruleset)
   values
 end
 
-def make_ruleset_sched_from_8760(model, runner, values, sch_name, sch_type_limits) 
-   std = Standard.build('90.1-2013') #build openstudio standards 
+def make_ruleset_sched_from_8760(model, runner, values, sch_name, sch_type_limits)
+  std = Standard.build('90.1-2013') # build openstudio standards
   # Build array of arrays: each top element is a week, each sub element is an hour of week
   all_week_values = []
   hr_of_yr = -1
@@ -175,10 +175,10 @@ def make_ruleset_sched_from_8760(model, runner, values, sch_name, sch_type_limit
   num_week_scheds = 1
   week_sch_name = "#{sch_name}_ws#{num_week_scheds}"
   week_1_rules = std.make_week_ruleset_sched_from_168(model, sch_ruleset, all_week_values[1], start_date, end_date,
-                                                  week_sch_name)
+                                                      week_sch_name)
   week_n_rules = week_1_rules
   iweek_previous_week_rule = 0
-  all_week_rules = { :iweek_previous_week_rule => week_1_rules}
+  all_week_rules = { iweek_previous_week_rule: week_1_rules }
 
   # temporary loop for debugging
   week_n_rules.each do |sch_rule|
@@ -203,21 +203,21 @@ def make_ruleset_sched_from_8760(model, runner, values, sch_name, sch_type_limit
         sch_rule.setEndDate(end_date)
       end
     else
-	  runner.registerInfo("in else")
+      runner.registerInfo('in else')
       # Create a new week schedule for this week
       num_week_scheds += 1
       week_sch_name = sch_name + '_ws' + num_week_scheds.to_s
       week_n_rules = std.make_week_ruleset_sched_from_168(model, sch_ruleset, all_week_values[iweek], start_date,
-                                                      end_date, week_sch_name)
+                                                          end_date, week_sch_name)
       runner.registerInfo("week n rules #{week_n_rules}")
-	  all_week_rules[:iweek_previous_week_rule] = week_n_rules
+      all_week_rules[:iweek_previous_week_rule] = week_n_rules
       # Set this week as the reference for subsequent weeks
       iweek_previous_week_rule = iweek
-	  runner.registerInfo("line 229 #{all_week_rules[:iweek].class.to_s}")
-	  runner.registerInfo("line 231 array element #{all_week_rules[:iweek_previous_week_rule].class.to_s}")
-	  runner.registerInfo("iweek 231 #{iweek}")
-	  runner.registerInfo("iweek previous rule 232 #{iweek_previous_week_rule}")
-    end  
+      runner.registerInfo("line 229 #{all_week_rules[:iweek].class}")
+      runner.registerInfo("line 231 array element #{all_week_rules[:iweek_previous_week_rule].class}")
+      runner.registerInfo("iweek 231 #{iweek}")
+      runner.registerInfo("iweek previous rule 232 #{iweek_previous_week_rule}")
+    end
   end
 
   # temporary loop for debugging
