@@ -177,6 +177,14 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
     output_names
   end
 
+  def mean_daily_peak_by_month
+    output_names = []
+    months.each do |month, _month_val|
+      output_names << "mean_daily_peak_use_#{month}_kw"
+    end
+    output_names
+  end
+
   def med_daily_peak_timing_by_month
     output_names = []
     months.each do |month, _month_val|
@@ -205,6 +213,7 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
     output_names += med_daily_peak_by_month
     output_names += q3_daily_peak_by_month
     output_names += max_daily_peak_by_month
+    output_names += mean_daily_peak_by_month
     output_names += med_daily_peak_timing_by_month
     output_names += total_electricity_by_month
 
@@ -319,7 +328,10 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
       report_sim_output(runner, "maximum_daily_peak_#{month}_kw",
                         daily_peak_stats_by_month(timeseries, month_val, 'max'), '', '')
 
-
+      # Daily peak average by month (12)
+      report_sim_output(runner, "mean_daily_peak_#{month}_kw",
+                        daily_peak_stats_by_month(timeseries, month_val, 'mean'), '', '')
+                        
       # Daily peak timing median by month (12)
       report_sim_output(runner, "median_daily_peak_timing_#{month}_hour",
                         daily_peak_timing_stats_by_month(timeseries, month_val, 'med'), '', '')
@@ -433,6 +445,8 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
       stats_by_month = calculate_percentile(daily_peak_by_month, 75)
     when 'max'
       stats_by_month = daily_peak_by_month.max
+    when 'mean'
+      stats_by_month = daily_peak_by_month.sum(0.0) / daily_peak_by_month.size
     else
       return nil
     end
