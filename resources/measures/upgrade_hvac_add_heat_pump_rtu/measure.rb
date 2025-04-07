@@ -1881,7 +1881,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       if heat_cap_ft_curve_stages[rated_stage_num_heating].to_TableLookup.is_initialized
         table_lookup_obj = heat_cap_ft_curve_stages[rated_stage_num_heating].to_TableLookup.get
         hp_derate_factor_at_user_dsn = get_dep_var_from_lookup_table_with_interpolation(runner, table_lookup_obj,
-                                                                                        ia_temp_c, oa_temp_c)
+                                                                                        oa_temp_c, ia_temp_c)
       else
         hp_derate_factor_at_user_dsn = heat_cap_ft_curve_stages[rated_stage_num_heating].evaluate(ia_temp_c, oa_temp_c)
       end
