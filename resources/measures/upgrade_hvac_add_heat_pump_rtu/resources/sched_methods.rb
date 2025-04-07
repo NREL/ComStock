@@ -209,14 +209,9 @@ def make_ruleset_sched_from_8760(model, runner, values, sch_name, sch_type_limit
       week_sch_name = sch_name + '_ws' + num_week_scheds.to_s
       week_n_rules = std.make_week_ruleset_sched_from_168(model, sch_ruleset, all_week_values[iweek], start_date,
                                                           end_date, week_sch_name)
-      runner.registerInfo("week n rules #{week_n_rules}")
       all_week_rules[:iweek_previous_week_rule] = week_n_rules
       # Set this week as the reference for subsequent weeks
       iweek_previous_week_rule = iweek
-      runner.registerInfo("line 229 #{all_week_rules[:iweek].class}")
-      runner.registerInfo("line 231 array element #{all_week_rules[:iweek_previous_week_rule].class}")
-      runner.registerInfo("iweek 231 #{iweek}")
-      runner.registerInfo("iweek previous rule 232 #{iweek_previous_week_rule}")
     end
   end
 

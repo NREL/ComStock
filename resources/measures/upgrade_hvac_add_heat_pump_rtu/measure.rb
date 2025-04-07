@@ -156,7 +156,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
     # setback value
     setback_value = OpenStudio::Measure::OSArgument.makeDoubleArgument('setback_value', true)
-    setback_value.setDisplayName('Amount in deg F by which temperatures are set back during 
+    setback_value.setDisplayName('Amount in deg F by which temperatures are set back during
 	unoccupied periods in heating mode. Done only if modify setbacks is set to true.')
     setback_value.setDefaultValue(2)
     args << setback_value
@@ -1197,8 +1197,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   def opt_start?(sch_zone_occ_annual_profile, htg_schedule_annual_profile, min_value, max_value, idx)
     # method to determine if a thermostat schedule contains part of an optimum start sequence at a given index
     opt_start = false
-    if (sch_zone_occ_annual_profile[idx + 1] == 1 || sch_zone_occ_annual_profile[idx + 2] == 1) && 
-			(htg_schedule_annual_profile[idx] > min_value && htg_schedule_annual_profile[idx] < max_value)
+    if (sch_zone_occ_annual_profile[idx + 1] == 1 || sch_zone_occ_annual_profile[idx + 2] == 1) &&
+       (htg_schedule_annual_profile[idx] > min_value && htg_schedule_annual_profile[idx] < max_value)
       opt_start = true
     end
 
@@ -1880,11 +1880,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
               # Need at least two more timesteps in the profile to perform optimum start check
               # Final two timesteps of year will not be optimum start, anyway
               if (idx < htg_schedule_annual_profile.size - 2) && opt_start?(sch_zone_occ_annual_profile,
-                                                                              htg_schedule_annual_profile, min_value, max_value, idx)
+                                                                            htg_schedule_annual_profile, min_value, max_value, idx)
                 next
               end
 
-              htg_schedule_annual_profile_updated[idx] = if (sch_zone_occ_annual_profile[idx]).zero? 
+              htg_schedule_annual_profile_updated[idx] = if sch_zone_occ_annual_profile[idx].zero?
                                                            max_value - setback_value_c
                                                          else
                                                            max_value # keeping same setback regime
@@ -1904,8 +1904,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
             dec_30_date = OpenStudio::Date.new(OpenStudio::MonthOfYear.new('December'), 30, model_year)
             dec_31_date = OpenStudio::Date.new(OpenStudio::MonthOfYear.new('December'), 31, model_year)
             for tstat_rule in htg_sch_new.scheduleRules
-              if tstat_rule.endDate.get == dec_30_date || 
-			      (tstat_rule.endDate.get == dec_29_date)
+              if tstat_rule.endDate.get == dec_30_date ||
+                 (tstat_rule.endDate.get == dec_29_date)
                 tstat_rule.setEndDate(dec_31_date)
               end
               next unless ((tstat_rule.endDate.get == dec_31_date) &&

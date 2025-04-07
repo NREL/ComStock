@@ -192,6 +192,17 @@ class AddHeatPumpRtuTest < Minitest::Test
     result
   end
 
+  def possible_opt_start(i, tstat_profile, tstat_profile_min)
+    opt_start = false
+    value = tstat_profile.values[i] # Screen for values that are lower than the new expected minimum value, due to being part of an optimum start sequence
+    # and untouched by this measure
+    if (value == tstat_profile_min) && (tstat_profile.values[i - 1] > value) && (tstat_profile.values[i + 1] > value) # likely part of an optimum start sequence if values on either side are larger after measure applied
+      opt_start = true
+    end
+
+    opt_start
+  end
+
   def dont_test_number_of_arguments_and_argument_names
     # This test ensures that the current test is matched to the measure inputs
     test_name = 'test_number_of_arguments_and_argument_names'
@@ -1838,9 +1849,6 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert_equal('Success', result.value.valueName)
     model = load_model(model_output_path(__method__))
 
-
-    puts "model class #{model.class}"
-
     schedule_deltas = [] # keep track of differences between min and max values in schedules
 
 
@@ -1851,7 +1859,6 @@ class AddHeatPumpRtuTest < Minitest::Test
 
 
       zones.sort.each do |thermal_zone|
-        puts "zone class #{thermal_zone.class}"
         next unless thermal_zone.thermostatSetpointDualSetpoint.is_initialized
 
         zone_thermostat = thermal_zone.thermostatSetpointDualSetpoint.get
@@ -1867,7 +1874,6 @@ class AddHeatPumpRtuTest < Minitest::Test
         end
         profiles = [htg_schedule.defaultDaySchedule]
         htg_schedule.scheduleRules.each { |rule| profiles << rule.daySchedule }
-        puts("profiles type #{profiles.class}") # array
         profiles.sort.each do |tstat_profile|
           tstat_profile.values.uniq.size
           tstat_profile_min = tstat_profile.values.min
@@ -1878,10 +1884,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     end
 
     # Make sure no deltas are greater than the expected setback value
-    puts "schedule deltas #{schedule_deltas}"
-    puts "setback_value_c #{setback_value_c}"
-    deltas_out_of_range = schedule_deltas.any? { |x| x > setback_value_c } # setback_value_c*1.01 }
-    puts "out of range #{deltas_out_of_range}"
+    deltas_out_of_range = schedule_deltas.any? { |x| x > setback_value_c }
 
     assert_equal(deltas_out_of_range, false)
 
@@ -1917,16 +1920,16 @@ class AddHeatPumpRtuTest < Minitest::Test
     setback_value_c = setback_val * 5 / 9
 
     # populate argument with specified hash value if specified
-    arguments.each_with_index do |arg, idx|
-      temp_arg_var = arg.clone
-      if arg.name == 'setback_value'
-        setback_value_arg = arguments[idx].clone
-        setback_value_arg.setValue(setback_val) # set setback value
-        argument_map[arg.name] = setback_value_arg
-      else
-        argument_map[arg.name] = temp_arg_var
-      end
-    end
+    # arguments.each_with_index do |arg, idx|
+    # temp_arg_var = arg.clone
+    # if arg.name == 'setback_value'
+    # setback_value_arg = arguments[idx].clone
+    # setback_value_arg.setValue(setback_val) # set setback value
+    # argument_map[arg.name] = setback_value_arg
+    # else
+    # argument_map[arg.name] = temp_arg_var
+    # end
+    # end
 
     # run the measure
     result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path,
@@ -1935,19 +1938,15 @@ class AddHeatPumpRtuTest < Minitest::Test
     model = load_model(model_output_path(__method__))
 
 
-    puts "model class #{model.class}"
-
     schedule_deltas = [] # keep track of differences between min and max values in schedules
 
 
     # Loop thru zones and look at temp setbacks
     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
-      puts "loop class #{air_loop_hvac.class}"
       zones = air_loop_hvac.thermalZones
 
 
       zones.sort.each do |thermal_zone|
-        puts "zone class #{thermal_zone.class}"
         next unless thermal_zone.thermostatSetpointDualSetpoint.is_initialized
 
         zone_thermostat = thermal_zone.thermostatSetpointDualSetpoint.get
@@ -1963,13 +1962,13 @@ class AddHeatPumpRtuTest < Minitest::Test
         end
         profiles = [htg_schedule.defaultDaySchedule]
         htg_schedule.scheduleRules.each { |rule| profiles << rule.daySchedule }
-        puts("profiles type #{profiles.class}") # array
         profiles.sort.each do |tstat_profile|
           working_profile = tstat_profile.values.dup
           tstat_profile_min = tstat_profile.values.min
           tstat_profile.values.max
           tstat_profile.values.each_with_index do |value, i| # find minimum except for values during opt start
-            if i > 3 && (value == (tstat_profile_min) && tstat_profile.values[i - 1] > value && (tstat_profile.values[i + 1] > value))
+            # test values for optimum start (need to be at least the third timestep in the profile to test)
+            if i > 3 && possible_opt_start(i, tstat_profile, tstat_profile_min) # identify if the time step could have been part of an optimum start
               working_profile.delete(value)
             end
           end
