@@ -133,7 +133,6 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
 
     # get pump specs
     pumps.each do |pump|
-
       # check if this pump is used on chiller systems
       chiller_pump = false
       plant_loop = pump.plantLoop.get
@@ -185,7 +184,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     pump_var_part_load_curve_coeff2_weighted_avg = pump_rated_flow_total > 0.0 ? pump_var_part_load_curve_coeff2_weighted_sum / pump_rated_flow_total : 0.0
     pump_var_part_load_curve_coeff3_weighted_avg = pump_rated_flow_total > 0.0 ? pump_var_part_load_curve_coeff3_weighted_sum / pump_rated_flow_total : 0.0
     pump_var_part_load_curve_coeff4_weighted_avg = pump_rated_flow_total > 0.0 ? pump_var_part_load_curve_coeff4_weighted_sum / pump_rated_flow_total : 0.0
-    
+
     [
       applicable_pumps,
       pump_rated_flow_total,
@@ -464,7 +463,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     pump_nominal_hp = pump_rated_power_w * pump.motorEfficiency / 745.7
 
     # Assign peformance curves
-    control_type = "VSD DP Reset" # hard-code for EUSS/SDR measure
+    control_type = 'VSD DP Reset' # hard-code for EUSS/SDR measure
 
     if debug_verbose
       runner.registerInfo("### control_type = #{control_type}")
@@ -571,7 +570,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
 
     # Use the value from the design days or 78F, the CTI rating condition, if no design day information is available.
     design_oat_wb_f = nil
-    if summer_oat_wbs_f.empty?
+    if summer_oat_wbs_f.size == 0
       design_oat_wb_f = 78
       OpenStudio.logFree(OpenStudio::Warn, 'openstudio.standards.PlantLoop', "For #{plant_loop.name}, no design day OATwb conditions were found.  CTI rating condition of 78F OATwb will be used for sizing cooling towers.")
     else
@@ -808,7 +807,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     # ------------------------------------------------
     # applicability
     # ------------------------------------------------
-    if (counts_chillers_acc_b.size == 0) & (counts_chillers_wcc_b.size == 0)
+    if counts_chillers_acc_b.size == 0 && counts_chillers_wcc_b.size == 0
       runner.registerAsNotApplicable('no chillers are found in the model.')
       return true
     end
@@ -914,7 +913,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
       applicable_pumps.each do |pump|
         # update pump efficiencies
         std.pump_apply_standard_minimum_motor_efficiency(pump)
-        
+
         # update part load performance (for variable speed pumps) to be 'VSD DP Reset'
         if pump.to_PumpVariableSpeed.is_initialized
           pump_variable_speed_control_type(runner, model, pump, debug_verbose)
