@@ -1944,8 +1944,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
              end
           end
         end
-
       end
+	  #end of setback modification 
 
       # for unitary systems
       if air_loop_hvac_unitary_system?(air_loop_hvac)
