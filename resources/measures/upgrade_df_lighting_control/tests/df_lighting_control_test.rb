@@ -299,7 +299,7 @@ class DFLightingControlTest < Minitest::Test
         end
         puts('-----------------------------------------------------------------')
         puts("--- Detected #{nla}/#{nl} lights with df adjusted lighting schedules")
-        assert(nl == nla)
+        assert(nla == nl)
         puts('-----------------------------------------------------------------')
         # compare before/after schedules
         light_schedules.each do |light_sch_name, light_sch_vals|
@@ -307,11 +307,21 @@ class DFLightingControlTest < Minitest::Test
           # diff = light_sch_vals.sum - new_light_sch_vals.sum
           diff = light_sch_vals.zip(new_light_sch_vals).map { |a, b| (a - b).round(2) }
           counts = diff.tally
+          counts = counts.sort.to_h
           # puts("--- hourly light schedules changes #{diff*100.0}% everyday")
-          puts("--- light schedule changes on average #{diff.sum/3.650}% everyday")
+          puts("--- light schedule changes on average #{(diff.sum/3.650/(peak_len.valueAsInteger().to_f)).round(2)}%/hr for #{peak_len.valueAsInteger()} hours everyday")
+          total_count = 0
           counts.each do |value, count|
-            puts("--- light schedule changes #{value*100.0}% in #{count/4.0} days") unless value == 0.0 || count < 4
+            unless value == 0.0 || count < 1#peak_len.valueAsInteger().to_f
+              puts("--- light schedule changes #{(value*100.0).round(1)}% in #{count/(peak_len.valueAsInteger().to_f)} days")
+              assert(value<=light_adjustment.valueAsDouble(), "Hourly change should not exceed the input #{light_adjustment.valueAsDouble().round(1)}")
+              total_count += count
+            end
           end
+          total_days = total_count/(peak_len.valueAsInteger().to_f)
+          puts("--- Number of days with setpoint changed: #{total_days}")
+          assert(total_days <= 366, "Number of days should not exceed 366")
+          assert(total_days > 100, "Number of days with valid adjusted setpoints (#{total_count/(peak_len.valueAsInteger().to_f)}) too small")
         end
         puts('=================================================================')
       end

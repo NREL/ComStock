@@ -337,11 +337,17 @@ class DfThermostatControlLoadShedTest < Minitest::Test
             new_cool_sch_vals = new_cool_schedules["#{cool_sch_name} df_adjusted"]
             diff = cool_sch_vals.zip(new_cool_sch_vals).map { |a, b| (b - a).round(2) }
             counts = diff.tally
+            counts = counts.sort.to_h
             # puts("--- hourly light schedules changes #{diff*100.0}% everyday")
-            puts("--- cooling schedule changes on average #{diff.sum/365.0} everyday")
+            puts("--- cooling schedule changes on average #{diff.sum/365.0/(peak_len.valueAsInteger().to_f)}C/hr for #{peak_len.valueAsInteger()} hours everyday")
             counts.each do |value, count|
-              puts("--- cooling schedule changes #{value}C in #{count/4} days") unless value == 0.0 || count < 4
+              unless value == 0.0 || count < 1
+                puts("--- cooling schedule changes #{value}C in #{count/(peak_len.valueAsInteger().to_f)} days")
+                assert(value.abs<=sp_adjustment.valueAsDouble(), "Hourly change should not exceed the input #{sp_adjustment.valueAsDouble().round(1)}")
+              end
             end
+            total_days = counts[sp_adjustment.valueAsDouble()]/(peak_len.valueAsInteger().to_f)
+            assert(total_days < 367 && total_days > 360, "cooling schedule changes with input #{sp_adjustment.valueAsDouble()}C in #{total_days} days")
           end
         end
         if nts_htg > 0
@@ -349,11 +355,17 @@ class DfThermostatControlLoadShedTest < Minitest::Test
             new_heat_sch_vals = new_heat_schedules["#{heat_sch_name} df_adjusted"]
             diff = heat_sch_vals.zip(new_heat_sch_vals).map { |a, b| (a - b).round(2) }
             counts = diff.tally
+            counts = counts.sort.to_h
             # puts("--- hourly light schedules changes #{diff*100.0}% everyday")
-            puts("--- heating schedule changes on average #{diff.sum/365.0}% everyday")
+            puts("--- heating schedule changes on average #{diff.sum/365.0/(peak_len.valueAsInteger().to_f)}C/hr for #{peak_len.valueAsInteger()} hours everyday")
             counts.each do |value, count|
-              puts("--- heating schedule changes #{value} in #{count/4} days") unless value == 0.0 || count < 4
+              unless value == 0.0 || count < 1
+                puts("--- heating schedule changes #{value} in #{count/(peak_len.valueAsInteger().to_f)} days")
+                assert(value.abs<=sp_adjustment.valueAsDouble(), "Hourly change should not exceed the input #{sp_adjustment.valueAsDouble().round(1)}")
+              end
             end
+            total_days = counts[sp_adjustment.valueAsDouble()]/(peak_len.valueAsInteger().to_f)
+            assert(total_days < 367 && total_days > 360, "heating schedule changes with input #{sp_adjustment.valueAsDouble()}C in #{total_days} days")
           end
         end
         puts('=================================================================')
