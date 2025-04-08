@@ -11,14 +11,14 @@ logger = logging.getLogger(__name__)
 def main():
     # ComStock run
     comstock = cspp.ComStock(
-        s3_base_dir='eulp/euss_com',  # If run not on S3, download results_up**.parquet manually
-        comstock_run_name='cbecs_2018_hvac_update_rev2',  # Name of the run on S3
-        comstock_run_version='CBECS_2018_HVAC',  # Use whatever you want to see in plot and folder names
+        s3_base_dir='com-sdr',  # If run not on S3, download results_up**.parquet manually
+        comstock_run_name='HVAC_Charts_Test',  # Name of the run on S3
+        comstock_run_version='HVAC_Charts_Test',  # Use whatever you want to see in plot and folder names
         comstock_year=2018,  # Typically don't change this
-        athena_table_name='cbecs_2018_hvac_rev2',  # Typically same as comstock_run_name or None
+        athena_table_name=None,  # Typically same as comstock_run_name or None
         truth_data_version='v01',  # Typically don't change this
         buildstock_csv_name='buildstock.csv', # Download buildstock.csv manually
-        acceptable_failure_percentage=0.2,  # Can increase this when testing and high failure are OK
+        acceptable_failure_percentage=0.9,  # Can increase this when testing and high failure are OK
         drop_failed_runs=True,  # False if you want to evaluate which runs failed in raw output data
         color_hex='#0072B2',  # Color used to represent this run in plots
         skip_missing_columns=True,  # False if you want to ensure you have all data specified for exportb
@@ -45,18 +45,37 @@ def main():
     comstock.add_weights_aportioned_by_stock_estimate(apportionment=stock_estimate)
     # Scale ComStock run to CBECS 2018 AND remove non-ComStock buildings from CBECS
     comstock.add_national_scaling_weights(cbecs, remove_non_comstock_bldg_types_from_cbecs=True)
-    # TODO This needs to be rewritten with safe column names, lazyframe usage, etc.
-    #comstock.calculate_weighted_columnal_values()
+
+    # Define the geographic partitions to export
+    geo_exports = [
+       {'geo_top_dir': 'national_by_state',
+           'partition_cols': {},
+           'aggregation_levels': [[comstock.STATE_ABBRV, comstock.CZ_ASHRAE]],
+           'data_types': ['full'], # other options: 'detailed', 'basic' **If using multiple options, order must go from more detailed to less detailed.
+           'file_types': ['csv'], # other options:'parquet'
+       },
+    ]
+
+    # export metadata files
+    comstock.export_metadata_and_annual_results(geo_exports)
 
     # Uncomment whichever to write results to disk:
-    comstock.create_national_aggregation()
+    # comstock.create_national_aggregation()
     # comstock.create_geospatially_resolved_aggregations(comstock.STATE_ID, pretty_geo_col_name='state_id')
     # comstock.create_geospatially_resolved_aggregations(comstock.COUNTY_ID, pretty_geo_col_name='county_id')
+
+
 
     # Make a comparison by passing in a list of CBECs and ComStock runs to compare
     # upgrade_id can be 'All' or the upgrade number
     comstock.create_plotting_lazyframe()
-    comp = cspp.ComStockToCBECSComparison(cbecs_list=[cbecs], comstock_list=[comstock], upgrade_id='All',make_comparison_plots=True)
+    #
+    #  TODO - add a way to call HVAC plots or not. Remove once HVAC.SYS types are available for CBECS 2018
+    comp = cspp.ComStockToCBECSComparison(cbecs_list=[cbecs],
+                                        comstock_list=[comstock],
+                                        upgrade_id='All',
+                                        make_comparison_plots=True,
+                                        make_hvac_plots=True)
 
     comp.export_to_csv_wide()
 
