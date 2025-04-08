@@ -19,10 +19,10 @@ from comstockpostproc.lazyframeplotter import LazyFramePlotter
 logger = logging.getLogger(__name__)
 
 class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
-    def __init__(self, comstock_list: List[ComStock], cbecs_list: List[CBECS], upgrade_id=0, image_type='jpg', name=None, make_comparison_plots=True):
+    def __init__(self, comstock_list: List[ComStock], cbecs_list: List[CBECS], upgrade_id=0, image_type='jpg', name=None, make_comparison_plots=True, make_hvac_plots = False):
         """
         Creates the ComStock to CBECS comaprison plots.
-        
+
         Args:
             comstock_list (List[ComStock]): List of ComStock dataset objects.
             cbecs_list (List[CBECS]): List of CBECS dataset objects.
@@ -80,12 +80,12 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
                         dataset_names.append(dataset_name)
                         comstock_color_map[dataset_name] = color_dict['hex'][idx]
                         self.color_map[dataset_name] = color_dict['hex'][idx]
-                        
+
                 elif upgrade_id not in valid_upgrade_id:
                     logger.error(f"Upgrade {upgrade_id} not found in {dataset.dataset_name}. Enter a valid upgrade ID in the ComStockToCBECSComparison constructor or \"All\" to include all upgrades.")
                 else:
                     df_data = dataset.plotting_data.filter(pl.col(dataset.UPGRADE_ID) == upgrade_id)
-                    df_data = df_data.with_columns((pl.col(dataset.DATASET).cast(pl.Utf8) + ' - ' + pl.col(dataset.UPGRADE_NAME).cast(pl.Utf8)).alias(dataset.DATASET)) 
+                    df_data = df_data.with_columns((pl.col(dataset.DATASET).cast(pl.Utf8) + ' - ' + pl.col(dataset.UPGRADE_NAME).cast(pl.Utf8)).alias(dataset.DATASET))
                     dataset_name = dataset.dataset_name + " - " + up_name_map[upgrade_id]
                     comstock_dfs_to_concat.append(df_data)
                     dfs_to_concat.append(df_data)
@@ -98,7 +98,7 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 dfs_to_concat.append(df_data)
                 self.color_map[dataset.dataset_name] = dataset.color
                 dataset_names.append(dataset.dataset_name)
-        
+
         # Name the comparison
         if self.name is None:
             if len(dataset_names) > 2:
@@ -108,7 +108,7 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
 
         # Combine into a single dataframe for convenience
         # self.data = pd.concat(dfs_to_concat, join='inner', ignore_index=True)
-        
+
         #There is no such a join='inner' in polars.concat, implement it mannualy
         common_columns = set(dfs_to_concat[0].columns)
         for df in dfs_to_concat:
@@ -126,15 +126,15 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         comstock_dfs_to_concat = [df.select(common_columns) for df in comstock_dfs_to_concat]
         comstock_df = pl.concat(comstock_dfs_to_concat, how="vertical_relaxed")
         # comstock_df = comstock_df[[self.DATASET] + self.QOI_MAX_DAILY_TIMING_COLS + self.QOI_MAX_USE_COLS + self.QOI_MIN_USE_COLS + self.QOI_MAX_USE_COLS_NORMALIZED + self.QOI_MIN_USE_COLS_NORMALIZED]
-        comstock_qoi_columns = [self.DATASET] + self.QOI_MAX_DAILY_TIMING_COLS + self.QOI_MAX_USE_COLS + self.QOI_MIN_USE_COLS + self.QOI_MAX_USE_COLS_NORMALIZED + self.QOI_MIN_USE_COLS_NORMALIZED 
+        comstock_qoi_columns = [self.DATASET] + self.QOI_MAX_DAILY_TIMING_COLS + self.QOI_MAX_USE_COLS + self.QOI_MIN_USE_COLS + self.QOI_MAX_USE_COLS_NORMALIZED + self.QOI_MIN_USE_COLS_NORMALIZED
         comstock_df: pl.LazyFrame = comstock_df.select(comstock_qoi_columns)
-        
+
         # Make directories
         self.output_dir = os.path.join(current_dir, '..', 'output', self.name)
         for p in [self.output_dir]:
             if not os.path.exists(p):
                 os.makedirs(p)
-        
+
         logger.info(f"type of self.data columns: {self.data.columns, self.data.dtypes, len(self.data.columns), len(self.data.dtypes)}")
         logger.info(f"type of comstock_df columns: {comstock_df.columns, comstock_df.dtypes}")
 
@@ -147,13 +147,14 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
 
         # Make ComStock to CBECS comparison plots
         if make_comparison_plots:
-            self.make_plots(self.data, self.column_for_grouping, self.color_map, self.output_dir)
+            self.make_plots(self.data, self.column_for_grouping, self.color_map, self.output_dir, make_hvac_plots)
             # QOI plots can only be made with comstock data because CBECS data do not have QOI columns
             self.make_qoi_plots(comstock_df, self.column_for_grouping, comstock_color_map, self.output_dir)
+
         else:
             logger.info("make_comparison_plots is set to false, so not plots were created. Set make_comparison_plots to True for plots.")
 
-    def make_plots(self, lazy_frame: pl.LazyFrame, column_for_grouping, color_map: dict, output_dir):
+    def make_plots(self, lazy_frame: pl.LazyFrame, column_for_grouping, color_map: dict, output_dir, make_hvac_plots):
         # Make plots comparing the datasets
 
         BASIC_PARAMS = {
@@ -163,31 +164,37 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         }
         logger.info('Making comparison plots')
 
-       
+
         LazyFramePlotter.plot_with_lazy(
             plot_method=self.plot_floor_area_and_energy_totals,
             lazy_frame=lazy_frame.clone(),
             columns=(self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE +  [column_for_grouping]))(**BASIC_PARAMS)
 
-        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_eui_boxplots,
-                                        lazy_frame=lazy_frame.clone(), columns=( [column_for_grouping] + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.BLDG_TYPE]))(**BASIC_PARAMS)
+        LazyFramePlotter.plot_with_lazy(
+            plot_method=lambda df, **kwargs: self.plot_eui_boxplots(df, **kwargs, make_hvac_plots=make_hvac_plots),
+            lazy_frame=lazy_frame.clone(), columns=( [column_for_grouping] + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.BLDG_TYPE, self.HVAC_SYS]))(**BASIC_PARAMS)
 
         LazyFramePlotter.plot_with_lazy(
             plot_method=self.plot_floor_area_and_energy_totals_by_building_type,
             lazy_frame=lazy_frame.clone(),
             columns=( [column_for_grouping] + self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE))(**BASIC_PARAMS)
         LazyFramePlotter.plot_with_lazy(
+            plot_method=self.plot_floor_area_and_energy_totals_by_hvac_type,
+            lazy_frame=lazy_frame.clone(),
+            columns=( [column_for_grouping] + self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE))(**BASIC_PARAMS)
+        LazyFramePlotter.plot_with_lazy(
             plot_method=self.plot_end_use_totals_by_building_type,
             lazy_frame=lazy_frame.clone(),
             columns=( [column_for_grouping] + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE + [self.BLDG_TYPE, self.CEN_DIV]))(**BASIC_PARAMS)
-
+        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_eui_boxplots_by_hvac_type,
+                                        lazy_frame=lazy_frame.clone(), columns=( [column_for_grouping] + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.CEN_DIV, self.BLDG_TYPE]))(**BASIC_PARAMS)
         LazyFramePlotter.plot_with_lazy(plot_method=self.plot_eui_histograms_by_building_type,
                                         lazy_frame=lazy_frame.clone(), columns=( [column_for_grouping] + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.BLDG_TYPE]))(**BASIC_PARAMS)
         LazyFramePlotter.plot_with_lazy(plot_method=self.plot_eui_boxplots_by_building_type,
                                         lazy_frame=lazy_frame.clone(), columns=( [column_for_grouping] + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.CEN_DIV, self.BLDG_TYPE]))(**BASIC_PARAMS)
 
         LazyFramePlotter.plot_with_lazy(plot_method=self.plot_energy_rate_boxplots,
-                                        lazy_frame=lazy_frame.clone(), 
+                                        lazy_frame=lazy_frame.clone(),
                                         columns=(self.lazyframe_plotter.SUMMARIZE_COLUMNS + [column_for_grouping, self.CEN_DIV, self.BLDG_TYPE]))(**BASIC_PARAMS)
     def make_qoi_plots(self, lazy_frame, column_for_grouping, color_map, output_dir):
         BASIC_PARAMS = {
