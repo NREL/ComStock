@@ -1756,28 +1756,28 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         end
         if cooling_eir_35F_curve.to_TableLookup.is_initialized
           cooling_eir_35F_curve = cooling_eir_35F_curve.to_TableLookup.get
-          eir_35F = get_dep_var_from_lookup_table_with_two_ind_var(runner, cooling_eir_35F_curve, cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(35.0, 'F', 'C').get)
+          eir_35F = get_dep_var_from_lookup_table_with_two_ind_var(runner, cooling_eir_35F_curve, OpenStudio.convert(35.0, 'F', 'C').get, cooling_indoor_rating_wetbulb_temperature_c)
           vrf_cooling_design_cop_35F = vrf_cooling_design_cop / eir_35F
         else
           vrf_cooling_design_cop_35F = vrf_cooling_design_cop / cooling_eir_35F_curve.evaluate(cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(35.0, 'F', 'C').get)
         end
         if cooling_eir_60F_curve.to_TableLookup.is_initialized
           cooling_eir_60F_curve = cooling_eir_60F_curve.to_TableLookup.get
-          eir_60F = get_dep_var_from_lookup_table_with_two_ind_var(runner, cooling_eir_60F_curve, cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(60.0, 'F', 'C').get)
+          eir_60F = get_dep_var_from_lookup_table_with_two_ind_var(runner, cooling_eir_60F_curve, OpenStudio.convert(60.0, 'F', 'C').get, cooling_indoor_rating_wetbulb_temperature_c)
           vrf_cooling_design_cop_60F = vrf_cooling_design_cop / eir_60F
         else
           vrf_cooling_design_cop_60F = vrf_cooling_design_cop / cooling_eir_60F_curve.evaluate(cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(60.0, 'F', 'C').get)
         end
         if cooling_eir_85F_curve.to_TableLookup.is_initialized
           cooling_eir_85F_curve = cooling_eir_85F_curve.to_TableLookup.get
-          eir_85F = get_dep_var_from_lookup_table_with_two_ind_var(runner, cooling_eir_85F_curve, cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(85.0, 'F', 'C').get)
+          eir_85F = get_dep_var_from_lookup_table_with_two_ind_var(runner, cooling_eir_85F_curve, OpenStudio.convert(85.0, 'F', 'C').get, cooling_indoor_rating_wetbulb_temperature_c)
           vrf_cooling_design_cop_85F = vrf_cooling_design_cop / eir_85F
         else
           vrf_cooling_design_cop_85F = vrf_cooling_design_cop / cooling_eir_85F_curve.evaluate(cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(85.0, 'F', 'C').get)
         end
         if cooling_eir_110F_curve.to_TableLookup.is_initialized
           cooling_eir_110F_curve = cooling_eir_110F_curve.to_TableLookup.get
-          eir_110F = get_dep_var_from_lookup_table_with_two_ind_var(runner, cooling_eir_110F_curve, cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(110.0, 'F', 'C').get)
+          eir_110F = get_dep_var_from_lookup_table_with_two_ind_var(runner, cooling_eir_110F_curve, OpenStudio.convert(110.0, 'F', 'C').get, cooling_indoor_rating_wetbulb_temperature_c)
           vrf_cooling_design_cop_110F = vrf_cooling_design_cop / eir_110F
         else
           vrf_cooling_design_cop_110F = vrf_cooling_design_cop / cooling_eir_110F_curve.evaluate(cooling_indoor_rating_wetbulb_temperature_c, OpenStudio.convert(110.0, 'F', 'C').get)
@@ -1829,28 +1829,28 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         end
         if heating_eir_minus22F_curve.to_TableLookup.is_initialized
           heating_eir_minus22F_curve = heating_eir_minus22F_curve.to_TableLookup.get
-          eir_minus22F = get_dep_var_from_lookup_table_with_two_ind_var(runner, heating_eir_minus22F_curve, heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(-22.0, 'F', 'C').get)
+          eir_minus22F = get_dep_var_from_lookup_table_with_two_ind_var(runner, heating_eir_minus22F_curve, OpenStudio.convert(-22.0, 'F', 'C').get, heating_indoor_rating_drybulb_temperature_c)
           vrf_heating_design_cop_minus22F = vrf_heating_design_cop / eir_minus22F
         else
           vrf_heating_design_cop_minus22F = vrf_heating_design_cop / heating_eir_minus22F_curve.evaluate(heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(-22.0, 'F', 'C').get)
         end
         if heating_eir_0F_curve.to_TableLookup.is_initialized
           heating_eir_0F_curve = heating_eir_0F_curve.to_TableLookup.get
-          eir_0F = get_dep_var_from_lookup_table_with_two_ind_var(runner, heating_eir_0F_curve, heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(0.0, 'F', 'C').get)
+          eir_0F = get_dep_var_from_lookup_table_with_two_ind_var(runner, heating_eir_0F_curve, OpenStudio.convert(0.0, 'F', 'C').get, heating_indoor_rating_drybulb_temperature_c)
           vrf_heating_design_cop_0F = vrf_heating_design_cop / eir_0F
         else
           vrf_heating_design_cop_0F = vrf_heating_design_cop / heating_eir_0F_curve.evaluate(heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(0.0, 'F', 'C').get)
         end
         if heating_eir_20F_curve.to_TableLookup.is_initialized
           heating_eir_20F_curve = heating_eir_20F_curve.to_TableLookup.get
-          eir_20F = get_dep_var_from_lookup_table_with_two_ind_var(runner, heating_eir_20F_curve, heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(20.0, 'F', 'C').get)
+          eir_20F = get_dep_var_from_lookup_table_with_two_ind_var(runner, heating_eir_20F_curve, OpenStudio.convert(20.0, 'F', 'C').get, heating_indoor_rating_drybulb_temperature_c)
           vrf_heating_design_cop_20F = vrf_heating_design_cop / eir_20F
         else
           vrf_heating_design_cop_20F = vrf_heating_design_cop / heating_eir_20F_curve.evaluate(heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(20.0, 'F', 'C').get)
         end
         if heating_eir_40F_curve.to_TableLookup.is_initialized
           heating_eir_40F_curve = heating_eir_40F_curve.to_TableLookup.get
-          eir_40F = get_dep_var_from_lookup_table_with_two_ind_var(runner, heating_eir_40F_curve, heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(40.0, 'F', 'C').get)
+          eir_40F = get_dep_var_from_lookup_table_with_two_ind_var(runner, heating_eir_40F_curve, OpenStudio.convert(40.0, 'F', 'C').get, heating_indoor_rating_drybulb_temperature_c)
           vrf_heating_design_cop_40F = vrf_heating_design_cop / eir_40F
         else
           vrf_heating_design_cop_40F = vrf_heating_design_cop / heating_eir_40F_curve.evaluate(heating_indoor_rating_drybulb_temperature_c, OpenStudio.convert(40.0, 'F', 'C').get)
