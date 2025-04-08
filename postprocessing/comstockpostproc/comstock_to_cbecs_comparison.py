@@ -172,30 +172,53 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
 
         LazyFramePlotter.plot_with_lazy(
             plot_method=lambda df, **kwargs: self.plot_eui_boxplots(df, **kwargs, make_hvac_plots=make_hvac_plots),
-            lazy_frame=lazy_frame.clone(), columns=( [column_for_grouping] + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.BLDG_TYPE, self.HVAC_SYS]))(**BASIC_PARAMS)
+            lazy_frame=lazy_frame.clone(),
+            columns=( [column_for_grouping] + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.BLDG_TYPE, self.HVAC_SYS]))(**BASIC_PARAMS)
 
         LazyFramePlotter.plot_with_lazy(
             plot_method=self.plot_floor_area_and_energy_totals_by_building_type,
             lazy_frame=lazy_frame.clone(),
             columns=( [column_for_grouping] + self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE))(**BASIC_PARAMS)
-        LazyFramePlotter.plot_with_lazy(
-            plot_method=self.plot_floor_area_and_energy_totals_by_hvac_type,
-            lazy_frame=lazy_frame.clone(),
-            columns=( [column_for_grouping] + self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE))(**BASIC_PARAMS)
+
         LazyFramePlotter.plot_with_lazy(
             plot_method=self.plot_end_use_totals_by_building_type,
             lazy_frame=lazy_frame.clone(),
             columns=( [column_for_grouping] + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE + [self.BLDG_TYPE, self.CEN_DIV]))(**BASIC_PARAMS)
-        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_eui_boxplots_by_hvac_type,
-                                        lazy_frame=lazy_frame.clone(), columns=( [column_for_grouping] + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.CEN_DIV, self.BLDG_TYPE]))(**BASIC_PARAMS)
-        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_eui_histograms_by_building_type,
-                                        lazy_frame=lazy_frame.clone(), columns=( [column_for_grouping] + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.BLDG_TYPE]))(**BASIC_PARAMS)
-        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_eui_boxplots_by_building_type,
-                                        lazy_frame=lazy_frame.clone(), columns=( [column_for_grouping] + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.CEN_DIV, self.BLDG_TYPE]))(**BASIC_PARAMS)
 
-        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_energy_rate_boxplots,
-                                        lazy_frame=lazy_frame.clone(),
-                                        columns=(self.lazyframe_plotter.SUMMARIZE_COLUMNS + [column_for_grouping, self.CEN_DIV, self.BLDG_TYPE]))(**BASIC_PARAMS)
+        LazyFramePlotter.plot_with_lazy(
+            plot_method=self.plot_eui_histograms_by_building_type,
+            lazy_frame=lazy_frame.clone(),
+            columns=( [column_for_grouping] + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.BLDG_TYPE]))(**BASIC_PARAMS)
+
+        LazyFramePlotter.plot_with_lazy(
+            plot_method=self.plot_eui_boxplots_by_building_type,
+            lazy_frame=lazy_frame.clone(),
+            columns=( [column_for_grouping] + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.CEN_DIV, self.BLDG_TYPE]))(**BASIC_PARAMS)
+
+        LazyFramePlotter.plot_with_lazy(
+            plot_method=self.plot_energy_rate_boxplots,
+            lazy_frame=lazy_frame.clone(),
+            columns=(self.lazyframe_plotter.SUMMARIZE_COLUMNS + [column_for_grouping, self.CEN_DIV, self.BLDG_TYPE]))(**BASIC_PARAMS)
+
+        if make_hvac_plots:
+            LazyFramePlotter.plot_with_lazy(
+                plot_method=self.plot_floor_area_and_energy_totals_by_hvac_type,
+                lazy_frame=lazy_frame.clone(),
+                columns=( [column_for_grouping] + self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE))(**BASIC_PARAMS)
+
+            LazyFramePlotter.plot_with_lazy(
+                plot_method=self.plot_floor_area_and_energy_totals_grouped_hvac,
+                lazy_frame=lazy_frame.clone(),
+                columns=( [column_for_grouping] + self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE))(**BASIC_PARAMS)
+
+            LazyFramePlotter.plot_with_lazy(
+                plot_method=self.plot_eui_boxplots_by_hvac_type,
+                lazy_frame=lazy_frame.clone(),
+                columns=( [column_for_grouping] + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.CEN_DIV, self.BLDG_TYPE]))(**BASIC_PARAMS)
+
+
+
+
     def make_qoi_plots(self, lazy_frame, column_for_grouping, color_map, output_dir):
         BASIC_PARAMS = {
             'column_for_grouping': column_for_grouping,
