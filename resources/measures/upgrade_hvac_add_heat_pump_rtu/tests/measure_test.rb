@@ -235,680 +235,711 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   def calc_cfm_per_ton_singlespdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
-  # get relevant heating coils
-  coils_heating = model.getCoilHeatingDXSingleSpeeds
+    # get relevant heating coils
+    coils_heating = model.getCoilHeatingDXSingleSpeeds
 
-  # check if there is at least one coil
-  refute_equal(coils_heating.size, 0)
+    # check if there is at least one coil
+    refute_equal(coils_heating.size, 0)
 
-  # calc cfm/ton
-  coils_heating.each do |heating_coil|
-  # get coil specs
-  if heating_coil.ratedTotalHeatingCapacity.is_initialized
-  rated_capacity_w = heating_coil.ratedTotalHeatingCapacity.get
-  end
-  rated_airflow_m_3_per_sec = heating_coil.ratedAirFlowRate.get if heating_coil.ratedAirFlowRate.is_initialized
+    # calc cfm/ton
+    coils_heating.each do |heating_coil|
+      # get coil specs
+      if heating_coil.ratedTotalHeatingCapacity.is_initialized
+        rated_capacity_w = heating_coil.ratedTotalHeatingCapacity.get
+      end
+      rated_airflow_m_3_per_sec = heating_coil.ratedAirFlowRate.get if heating_coil.ratedAirFlowRate.is_initialized
 
-  # calc relevant metrics
-  rated_capacity_ton = OpenStudio.convert(rated_capacity_w, 'W', 'ton').get
-  rated_airflow_cfm = OpenStudio.convert(rated_airflow_m_3_per_sec, 'm^3/s', 'cfm').get
-  cfm_per_ton = rated_airflow_cfm / rated_capacity_ton
+      # calc relevant metrics
+      rated_capacity_ton = OpenStudio.convert(rated_capacity_w, 'W', 'ton').get
+      rated_airflow_cfm = OpenStudio.convert(rated_airflow_m_3_per_sec, 'm^3/s', 'cfm').get
+      cfm_per_ton = rated_airflow_cfm / rated_capacity_ton
 
-  # check if resultant cfm/ton is violating min/max bounds
-  assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true, "cfm_per_ton (#{cfm_per_ton}) is not larger than the threshold of cfm_per_ton_min (#{cfm_per_ton_min})")
-  assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true, "cfm_per_ton (#{cfm_per_ton}) is not smaller than the threshold of cfm_per_ton_max (#{cfm_per_ton_max})")
-  end
+      # check if resultant cfm/ton is violating min/max bounds
+      assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true,
+                   "cfm_per_ton (#{cfm_per_ton}) is not larger than the threshold of cfm_per_ton_min (#{cfm_per_ton_min})")
+      assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true,
+                   "cfm_per_ton (#{cfm_per_ton}) is not smaller than the threshold of cfm_per_ton_max (#{cfm_per_ton_max})")
+    end
   end
 
   def calc_cfm_per_ton_multispdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
-  # get relevant heating coils
-  coils_heating = model.getCoilHeatingDXMultiSpeedStageDatas
+    # get relevant heating coils
+    coils_heating = model.getCoilHeatingDXMultiSpeedStageDatas
 
-  # check if there is at least one coil
-  refute_equal(coils_heating.size, 0)
+    # check if there is at least one coil
+    refute_equal(coils_heating.size, 0)
 
-  # calc cfm/ton
-  coils_heating.each do |heating_coil|
-  # get coil specs
-  if heating_coil.grossRatedHeatingCapacity.is_initialized
-  rated_capacity_w = heating_coil.grossRatedHeatingCapacity.get
-  end
-  rated_airflow_m_3_per_sec = heating_coil.ratedAirFlowRate.get if heating_coil.ratedAirFlowRate.is_initialized
+    # calc cfm/ton
+    coils_heating.each do |heating_coil|
+      # get coil specs
+      if heating_coil.grossRatedHeatingCapacity.is_initialized
+        rated_capacity_w = heating_coil.grossRatedHeatingCapacity.get
+      end
+      rated_airflow_m_3_per_sec = heating_coil.ratedAirFlowRate.get if heating_coil.ratedAirFlowRate.is_initialized
 
-  # calc relevant metrics
-  rated_capacity_ton = OpenStudio.convert(rated_capacity_w, 'W', 'ton').get
-  rated_airflow_cfm = OpenStudio.convert(rated_airflow_m_3_per_sec, 'm^3/s', 'cfm').get
-  cfm_per_ton = rated_airflow_cfm / rated_capacity_ton
+      # calc relevant metrics
+      rated_capacity_ton = OpenStudio.convert(rated_capacity_w, 'W', 'ton').get
+      rated_airflow_cfm = OpenStudio.convert(rated_airflow_m_3_per_sec, 'm^3/s', 'cfm').get
+      cfm_per_ton = rated_airflow_cfm / rated_capacity_ton
 
-  # check if resultant cfm/ton is violating min/max bounds
-  assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true, "cfm_per_ton (#{cfm_per_ton}) is not larger than the threshold of cfm_per_ton_min (#{cfm_per_ton_min})")
-  assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true, "cfm_per_ton (#{cfm_per_ton}) is not smaller than the threshold of cfm_per_ton_max (#{cfm_per_ton_max})")
-  end
+      # check if resultant cfm/ton is violating min/max bounds
+      assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true,
+                   "cfm_per_ton (#{cfm_per_ton}) is not larger than the threshold of cfm_per_ton_min (#{cfm_per_ton_min})")
+      assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true,
+                   "cfm_per_ton (#{cfm_per_ton}) is not smaller than the threshold of cfm_per_ton_max (#{cfm_per_ton_max})")
+    end
   end
 
   def calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
-  # get cooling coils
-  coils_cooling = model.getCoilCoolingDXMultiSpeedStageDatas
+    # get cooling coils
+    coils_cooling = model.getCoilCoolingDXMultiSpeedStageDatas
 
-  # check if there is at least one coil
-  refute_equal(coils_cooling.size, 0)
+    # check if there is at least one coil
+    refute_equal(coils_cooling.size, 0)
 
-  # calc cfm/ton
-  coils_cooling.each do |cooling_coil|
-  # get coil specs
-  if cooling_coil.grossRatedTotalCoolingCapacity.is_initialized
-  rated_capacity_w = cooling_coil.grossRatedTotalCoolingCapacity.get
-  end
-  rated_airflow_m_3_per_sec = cooling_coil.ratedAirFlowRate.get if cooling_coil.ratedAirFlowRate.is_initialized
+    # calc cfm/ton
+    coils_cooling.each do |cooling_coil|
+      # get coil specs
+      if cooling_coil.grossRatedTotalCoolingCapacity.is_initialized
+        rated_capacity_w = cooling_coil.grossRatedTotalCoolingCapacity.get
+      end
+      rated_airflow_m_3_per_sec = cooling_coil.ratedAirFlowRate.get if cooling_coil.ratedAirFlowRate.is_initialized
 
-  # calc relevant metrics
-  rated_capacity_ton = OpenStudio.convert(rated_capacity_w, 'W', 'ton').get
-  rated_airflow_cfm = OpenStudio.convert(rated_airflow_m_3_per_sec, 'm^3/s', 'cfm').get
-  cfm_per_ton = rated_airflow_cfm / rated_capacity_ton
+      # calc relevant metrics
+      rated_capacity_ton = OpenStudio.convert(rated_capacity_w, 'W', 'ton').get
+      rated_airflow_cfm = OpenStudio.convert(rated_airflow_m_3_per_sec, 'm^3/s', 'cfm').get
+      cfm_per_ton = rated_airflow_cfm / rated_capacity_ton
 
-  # check if resultant cfm/ton is violating min/max bounds
-  assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true, "cfm_per_ton (#{cfm_per_ton}) is not larger than the threshold of cfm_per_ton_min (#{cfm_per_ton_min})")
-  assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true, "cfm_per_ton (#{cfm_per_ton}) is not smaller than the threshold of cfm_per_ton_max (#{cfm_per_ton_max})")
-  end
+      # check if resultant cfm/ton is violating min/max bounds
+      assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true,
+                   "cfm_per_ton (#{cfm_per_ton}) is not larger than the threshold of cfm_per_ton_min (#{cfm_per_ton_min})")
+      assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true,
+                   "cfm_per_ton (#{cfm_per_ton}) is not smaller than the threshold of cfm_per_ton_max (#{cfm_per_ton_max})")
+    end
   end
 
   def verify_cfm_per_ton(model, result)
-  # define min and max limits of cfm/ton
-  cfm_per_ton_min = 300
-  cfm_per_ton_max = 450
+    # define min and max limits of cfm/ton
+    cfm_per_ton_min = 300
+    cfm_per_ton_max = 450
 
-  # Create an instance of the measure
-  measure = AddHeatPumpRtu.new
+    # Create an instance of the measure
+    AddHeatPumpRtu.new
 
-  # initialize parameters
-  performance_category = nil
+    # initialize parameters
+    performance_category = nil
 
-  # check performance category
-  result.stepValues.each do |input_arg|
-  next unless input_arg.name == 'hprtu_scenario'
+    # check performance category
+    result.stepValues.each do |input_arg|
+      next unless input_arg.name == 'hprtu_scenario'
 
-  performance_category = input_arg.valueAsString
+      performance_category = input_arg.valueAsString
 
-  puts performance_category
-  end
-  refute_equal(performance_category, nil)
+      puts performance_category
+    end
+    refute_equal(performance_category, nil)
 
-  # loop through coils and check cfm/ton values
-  if performance_category.include?('high_eff')
+    # loop through coils and check cfm/ton values
+    if performance_category.include?('high_eff')
 
-  calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
-  calc_cfm_per_ton_multispdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
+      calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
+      calc_cfm_per_ton_multispdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
 
-  elsif performance_category.include?('standard')
+    elsif performance_category.include?('standard')
 
-  calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
-  calc_cfm_per_ton_singlespdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
+      calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
+      calc_cfm_per_ton_singlespdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
 
-  end
+    end
   end
 
   def _mimic_hardsize_model(model, test_dir)
-  standard = Standard.build('ComStock DOE Ref Pre-1980')
+    standard = Standard.build('ComStock DOE Ref Pre-1980')
 
-  # Run a sizing run to determine equipment capacities and flow rates
-  if standard.model_run_sizing_run(model, test_dir.to_s) == false
-  puts('Sizing run for Hardsize model failed, cannot hard-size model.')
-  return false
-  end
+    # Run a sizing run to determine equipment capacities and flow rates
+    if standard.model_run_sizing_run(model, test_dir.to_s) == false
+      puts('Sizing run for Hardsize model failed, cannot hard-size model.')
+      return false
+    end
 
-  # APPLY
-  model.applySizingValues
+    # APPLY
+    model.applySizingValues
 
-  # TODO: remove once this functionality is added to the OpenStudio C++ for hard sizing UnitarySystems
-  model.getAirLoopHVACUnitarySystems.each do |unitary|
-  if model.version < OpenStudio::VersionString.new('3.7.0')
-  unitary.setSupplyAirFlowRateMethodDuringCoolingOperation('SupplyAirFlowRate')
-  unitary.setSupplyAirFlowRateMethodDuringHeatingOperation('SupplyAirFlowRate')
-  else
-  # unitary.applySizingValues
-  end
-  end
-  # TODO: remove once this functionality is added to the OpenStudio C++ for hard sizing Sizing:System
-  model.getSizingSystems.each do |sizing_system|
-  next if sizing_system.isDesignOutdoorAirFlowRateAutosized
+    # TODO: remove once this functionality is added to the OpenStudio C++ for hard sizing UnitarySystems
+    model.getAirLoopHVACUnitarySystems.each do |unitary|
+      if model.version < OpenStudio::VersionString.new('3.7.0')
+        unitary.setSupplyAirFlowRateMethodDuringCoolingOperation('SupplyAirFlowRate')
+        unitary.setSupplyAirFlowRateMethodDuringHeatingOperation('SupplyAirFlowRate')
+      else
+        # unitary.applySizingValues
+      end
+    end
+    # TODO: remove once this functionality is added to the OpenStudio C++ for hard sizing Sizing:System
+    model.getSizingSystems.each do |sizing_system|
+      next if sizing_system.isDesignOutdoorAirFlowRateAutosized
 
-  sizing_system.setSystemOutdoorAirMethod('ZoneSum')
-  end
+      sizing_system.setSystemOutdoorAirMethod('ZoneSum')
+    end
 
-  return model
+    model
   end
 
   def verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
-  # set weather file but not apply measure
-  result = set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false, apply: false)
-  model = load_model(model_output_path(test_name))
+    # set weather file but not apply measure
+    set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path,
+                                          run_model: false, apply: false)
+    model = load_model(model_output_path(test_name))
 
-  # hardsize model
-  model = _mimic_hardsize_model(model, "#{run_dir(test_name)}/SR_before")
+    # hardsize model
+    model = _mimic_hardsize_model(model, "#{run_dir(test_name)}/SR_before")
 
-  # get initial gas heating coils
-  li_gas_htg_coils_initial = model.getCoilHeatingGass
+    # get initial gas heating coils
+    model.getCoilHeatingGass
 
-  # get initial number of applicable air loops
-  li_unitary_sys_initial = model.getAirLoopHVACUnitarySystems
+    # get initial number of applicable air loops
+    li_unitary_sys_initial = model.getAirLoopHVACUnitarySystems
 
-  # get initial unitary system schedules for outdoor air and general operation
-  # these will be compared against applied HP-RTU system
-  dict_oa_sched_min_initial = {}
-  dict_min_oa_initial = {}
-  model.getAirLoopHVACs.sort.each do |air_loop_hvac|
-  # get thermal zone for dictionary mapping
-  thermal_zone = air_loop_hvac.thermalZones[0]
+    # get initial unitary system schedules for outdoor air and general operation
+    # these will be compared against applied HP-RTU system
+    dict_oa_sched_min_initial = {}
+    dict_min_oa_initial = {}
+    model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+      # get thermal zone for dictionary mapping
+      thermal_zone = air_loop_hvac.thermalZones[0]
 
-  # get OA schedule from OA controller
-  oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
-  controller_oa = oa_system.getControllerOutdoorAir
-  oa_schedule = controller_oa.minimumOutdoorAirSchedule.get
-  dict_oa_sched_min_initial[thermal_zone.name.to_s] = oa_schedule
+      # get OA schedule from OA controller
+      oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+      controller_oa = oa_system.getControllerOutdoorAir
+      oa_schedule = controller_oa.minimumOutdoorAirSchedule.get
+      dict_oa_sched_min_initial[thermal_zone.name.to_s] = oa_schedule
 
-  # get min/max outdoor air flow rate
-  min_oa = controller_oa.minimumOutdoorAirFlowRate.get
-  max_oa = controller_oa.maximumOutdoorAirFlowRate.get
-  dict_min_oa_initial[thermal_zone.name.to_s] = min_oa
-  end
+      # get min/max outdoor air flow rate
+      min_oa = controller_oa.minimumOutdoorAirFlowRate.get
+      controller_oa.maximumOutdoorAirFlowRate.get
+      dict_min_oa_initial[thermal_zone.name.to_s] = min_oa
+    end
 
-  # set weather file and apply measure
-  result = set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
-  model = load_model(model_output_path(test_name))
+    # set weather file and apply measure
+    set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path,
+                                          run_model: false, apply: true)
+    model = load_model(model_output_path(test_name))
 
-  # hardsize model
-  model = _mimic_hardsize_model(model, "#{run_dir(test_name)}/SR_after")
+    # hardsize model
+    model = _mimic_hardsize_model(model, "#{run_dir(test_name)}/SR_after")
 
-  # get final gas heating coils
-  li_gas_htg_coils_final = model.getCoilHeatingGass
+    # get final gas heating coils
+    li_gas_htg_coils_final = model.getCoilHeatingGass
 
-  # assert gas heating coils have been removed
-  assert_equal(li_gas_htg_coils_final.size, 0)
+    # assert gas heating coils have been removed
+    assert_equal(li_gas_htg_coils_final.size, 0)
 
-  # get list of final unitary systems
-  li_unitary_sys_final = model.getAirLoopHVACUnitarySystems
+    # get list of final unitary systems
+    li_unitary_sys_final = model.getAirLoopHVACUnitarySystems
 
-  # assert same number of unitary systems as initial
-  assert_equal(li_unitary_sys_initial.size, li_unitary_sys_final.size)
+    # assert same number of unitary systems as initial
+    assert_equal(li_unitary_sys_initial.size, li_unitary_sys_final.size)
 
-  # get final unitary system schedules for outdoor air and general operation
-  # these will be compared against original system
-  dict_oa_sched_min_final = {}
-  dict_min_oa_final = {}
-  dict_max_oa_final = {}
-  model.getAirLoopHVACs.sort.each do |air_loop_hvac|
-  # get thermal zone for dictionary mapping
-  thermal_zone = air_loop_hvac.thermalZones[0]
+    # get final unitary system schedules for outdoor air and general operation
+    # these will be compared against original system
+    dict_oa_sched_min_final = {}
+    dict_min_oa_final = {}
+    model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+      # get thermal zone for dictionary mapping
+      thermal_zone = air_loop_hvac.thermalZones[0]
 
-  # get OA schedule from OA controller
-  oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
-  controller_oa = oa_system.getControllerOutdoorAir
-  oa_schedule = controller_oa.minimumOutdoorAirSchedule.get
-  dict_oa_sched_min_final[thermal_zone.name.to_s] = oa_schedule
+      # get OA schedule from OA controller
+      oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+      controller_oa = oa_system.getControllerOutdoorAir
+      oa_schedule = controller_oa.minimumOutdoorAirSchedule.get
+      dict_oa_sched_min_final[thermal_zone.name.to_s] = oa_schedule
 
-  # get min/max outdoor air flow rate
-  min_oa = controller_oa.minimumOutdoorAirFlowRate.get
-  max_oa = controller_oa.maximumOutdoorAirFlowRate.get
-  dict_min_oa_final[thermal_zone.name.to_s] = min_oa
-  end
+      # get min/max outdoor air flow rate
+      min_oa = controller_oa.minimumOutdoorAirFlowRate.get
+      controller_oa.maximumOutdoorAirFlowRate.get
+      dict_min_oa_final[thermal_zone.name.to_s] = min_oa
+    end
 
-  # assert outdoor air values match between initial and new system
-  model.getThermalZones.sort.each do |thermal_zone|
-  assert_equal(dict_oa_sched_min_initial[thermal_zone.name.to_s], dict_oa_sched_min_final[thermal_zone.name.to_s])
-  assert_in_epsilon(dict_min_oa_initial[thermal_zone.name.to_s].to_f, dict_min_oa_final[thermal_zone.name.to_s].to_f, 0.001)
-  end
+    # assert outdoor air values match between initial and new system
+    model.getThermalZones.sort.each do |thermal_zone|
+      assert_equal(dict_oa_sched_min_initial[thermal_zone.name.to_s], dict_oa_sched_min_final[thermal_zone.name.to_s])
+      assert_in_epsilon(dict_min_oa_initial[thermal_zone.name.to_s].to_f, dict_min_oa_final[thermal_zone.name.to_s].to_f,
+                        0.001)
+    end
 
-  # assert characteristics of new unitary systems
-  li_unitary_sys_final.sort.each do |system|
-  # assert new unitary systems all have variable speed fans
-  fan = system.supplyFan.get
-  assert(fan.to_FanVariableVolume.is_initialized)
+    # assert characteristics of new unitary systems
+    li_unitary_sys_final.sort.each do |system|
+      # assert new unitary systems all have variable speed fans
+      fan = system.supplyFan.get
+      assert(fan.to_FanVariableVolume.is_initialized)
 
-  # ***heating***
-  # assert new unitary systems all have multispeed DX heating coils
-  htg_coil = system.heatingCoil.get
-  assert(htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized)
-  htg_coil = htg_coil.to_CoilHeatingDXMultiSpeed.get
+      # ***heating***
+      # assert new unitary systems all have multispeed DX heating coils
+      htg_coil = system.heatingCoil.get
+      assert(htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized)
+      htg_coil = htg_coil.to_CoilHeatingDXMultiSpeed.get
 
-  # assert multispeed heating coil has 4 stages
-  assert_equal(htg_coil.numberOfStages, 4)
-  htg_coil_spd4 = htg_coil.stages[3]
+      # assert multispeed heating coil has 4 stages
+      assert_equal(htg_coil.numberOfStages, 4)
+      htg_coil_spd4 = htg_coil.stages[3]
 
-  # assert speed 4 flowrate matches design flow rate
-  htg_dsn_flowrate = system.supplyAirFlowRateDuringHeatingOperation
-  assert_in_delta(htg_dsn_flowrate.to_f, htg_coil_spd4.ratedAirFlowRate.get, 0.000001)
+      # assert speed 4 flowrate matches design flow rate
+      htg_dsn_flowrate = system.supplyAirFlowRateDuringHeatingOperation
+      assert_in_delta(htg_dsn_flowrate.to_f, htg_coil_spd4.ratedAirFlowRate.get, 0.000001)
 
-  # assert flow rate reduces for lower speeds
-  htg_coil_spd3 = htg_coil.stages[2]
-  htg_coil_spd2 = htg_coil.stages[1]
-  htg_coil_spd1 = htg_coil.stages[0]
-  assert(htg_coil_spd4.ratedAirFlowRate.get > htg_coil_spd3.ratedAirFlowRate.get)
-  assert(htg_coil_spd3.ratedAirFlowRate.get > htg_coil_spd2.ratedAirFlowRate.get)
-  assert(htg_coil_spd2.ratedAirFlowRate.get > htg_coil_spd1.ratedAirFlowRate.get)
+      # assert flow rate reduces for lower speeds
+      htg_coil_spd3 = htg_coil.stages[2]
+      htg_coil_spd2 = htg_coil.stages[1]
+      htg_coil_spd1 = htg_coil.stages[0]
+      assert(htg_coil_spd4.ratedAirFlowRate.get > htg_coil_spd3.ratedAirFlowRate.get)
+      assert(htg_coil_spd3.ratedAirFlowRate.get > htg_coil_spd2.ratedAirFlowRate.get)
+      assert(htg_coil_spd2.ratedAirFlowRate.get > htg_coil_spd1.ratedAirFlowRate.get)
 
-  # assert capacity reduces for lower speeds
-  assert(htg_coil_spd4.grossRatedHeatingCapacity.get > htg_coil_spd3.grossRatedHeatingCapacity.get)
-  assert(htg_coil_spd3.grossRatedHeatingCapacity.get > htg_coil_spd2.grossRatedHeatingCapacity.get)
-  assert(htg_coil_spd2.grossRatedHeatingCapacity.get > htg_coil_spd1.grossRatedHeatingCapacity.get)
+      # assert capacity reduces for lower speeds
+      assert(htg_coil_spd4.grossRatedHeatingCapacity.get > htg_coil_spd3.grossRatedHeatingCapacity.get)
+      assert(htg_coil_spd3.grossRatedHeatingCapacity.get > htg_coil_spd2.grossRatedHeatingCapacity.get)
+      assert(htg_coil_spd2.grossRatedHeatingCapacity.get > htg_coil_spd1.grossRatedHeatingCapacity.get)
 
-  # assert supplemental heating coil type matches user-specified electric resistance
-  sup_htg_coil = system.supplementalHeatingCoil.get
-  assert(sup_htg_coil.to_CoilHeatingElectric.is_initialized)
+      # assert supplemental heating coil type matches user-specified electric resistance
+      sup_htg_coil = system.supplementalHeatingCoil.get
+      assert(sup_htg_coil.to_CoilHeatingElectric.is_initialized)
 
-  # ***cooling***
-  # assert new unitary systems all have multispeed DX cooling coils
-  clg_coil = system.coolingCoil.get
-  assert(clg_coil.to_CoilCoolingDXMultiSpeed.is_initialized)
-  clg_coil = clg_coil.to_CoilCoolingDXMultiSpeed.get
+      # ***cooling***
+      # assert new unitary systems all have multispeed DX cooling coils
+      clg_coil = system.coolingCoil.get
+      assert(clg_coil.to_CoilCoolingDXMultiSpeed.is_initialized)
+      clg_coil = clg_coil.to_CoilCoolingDXMultiSpeed.get
 
-  # assert multispeed heating coil has 4 stages
-  assert_equal(clg_coil.numberOfStages, 4)
-  clg_coil_spd4 = clg_coil.stages[3]
+      # assert multispeed heating coil has 4 stages
+      assert_equal(clg_coil.numberOfStages, 4)
+      clg_coil_spd4 = clg_coil.stages[3]
 
-  # assert speed 4 flowrate matches design flow rate
-  clg_dsn_flowrate = system.supplyAirFlowRateDuringCoolingOperation
-  assert_in_delta(clg_dsn_flowrate.to_f, clg_coil_spd4.ratedAirFlowRate.get, 0.000001)
+      # assert speed 4 flowrate matches design flow rate
+      clg_dsn_flowrate = system.supplyAirFlowRateDuringCoolingOperation
+      assert_in_delta(clg_dsn_flowrate.to_f, clg_coil_spd4.ratedAirFlowRate.get, 0.000001)
 
-  # assert flow rate reduces for lower speeds
-  clg_coil_spd3 = clg_coil.stages[2]
-  clg_coil_spd2 = clg_coil.stages[1]
-  clg_coil_spd1 = clg_coil.stages[0]
-  assert(clg_coil_spd4.ratedAirFlowRate.get > clg_coil_spd3.ratedAirFlowRate.get)
-  assert(clg_coil_spd3.ratedAirFlowRate.get > clg_coil_spd2.ratedAirFlowRate.get)
-  assert(clg_coil_spd2.ratedAirFlowRate.get > clg_coil_spd1.ratedAirFlowRate.get)
+      # assert flow rate reduces for lower speeds
+      clg_coil_spd3 = clg_coil.stages[2]
+      clg_coil_spd2 = clg_coil.stages[1]
+      clg_coil_spd1 = clg_coil.stages[0]
+      assert(clg_coil_spd4.ratedAirFlowRate.get > clg_coil_spd3.ratedAirFlowRate.get)
+      assert(clg_coil_spd3.ratedAirFlowRate.get > clg_coil_spd2.ratedAirFlowRate.get)
+      assert(clg_coil_spd2.ratedAirFlowRate.get > clg_coil_spd1.ratedAirFlowRate.get)
 
-  # assert capacity reduces for lower speeds
-  assert(clg_coil_spd4.grossRatedTotalCoolingCapacity.get > clg_coil_spd3.grossRatedTotalCoolingCapacity.get)
-  assert(clg_coil_spd3.grossRatedTotalCoolingCapacity.get > clg_coil_spd2.grossRatedTotalCoolingCapacity.get)
-  assert(clg_coil_spd2.grossRatedTotalCoolingCapacity.get > clg_coil_spd1.grossRatedTotalCoolingCapacity.get)
-  end
-  nil
+      # assert capacity reduces for lower speeds
+      assert(clg_coil_spd4.grossRatedTotalCoolingCapacity.get > clg_coil_spd3.grossRatedTotalCoolingCapacity.get)
+      assert(clg_coil_spd3.grossRatedTotalCoolingCapacity.get > clg_coil_spd2.grossRatedTotalCoolingCapacity.get)
+      assert(clg_coil_spd2.grossRatedTotalCoolingCapacity.get > clg_coil_spd1.grossRatedTotalCoolingCapacity.get)
+    end
+    nil
   end
 
   def get_cooling_coil_capacity_and_cop(model, coil)
-  capacity_w = 0.0
-  coil_design_cop = 0.0
+    capacity_w = 0.0
+    coil_design_cop = 0.0
 
-  if coil.to_CoilCoolingDXSingleSpeed.is_initialized
-  coil = coil.to_CoilCoolingDXSingleSpeed.get
+    if coil.to_CoilCoolingDXSingleSpeed.is_initialized
+      coil = coil.to_CoilCoolingDXSingleSpeed.get
 
-  # capacity
-  if coil.ratedTotalCoolingCapacity.is_initialized
-  capacity_w = coil.ratedTotalCoolingCapacity.get
-  elsif coil.autosizedRatedTotalCoolingCapacity.is_initialized
-  capacity_w = coil.autosizedRatedTotalCoolingCapacity.get
-  else
-  raise "Cooling coil capacity not available for coil '#{coil.name}'."
+      # capacity
+      if coil.ratedTotalCoolingCapacity.is_initialized
+        capacity_w = coil.ratedTotalCoolingCapacity.get
+      elsif coil.autosizedRatedTotalCoolingCapacity.is_initialized
+        capacity_w = coil.autosizedRatedTotalCoolingCapacity.get
+      else
+        raise "Cooling coil capacity not available for coil '#{coil.name}'."
+      end
+
+      # cop
+      if model.version > OpenStudio::VersionString.new('3.4.0')
+        coil_design_cop = coil.ratedCOP
+      else
+        raise "'Rated COP' not available for DX coil '#{coil.name}'." unless coil.ratedCOP.is_initialized
+
+        coil_design_cop = coil.ratedCOP.get
+
+
+
+      end
+    elsif coil.to_CoilCoolingDXTwoSpeed.is_initialized
+      coil = coil.to_CoilCoolingDXTwoSpeed.get
+
+      # capacity
+      if coil.ratedHighSpeedTotalCoolingCapacity.is_initialized
+        capacity_w = coil.ratedHighSpeedTotalCoolingCapacity.get
+      elsif coil.autosizedRatedHighSpeedTotalCoolingCapacity.is_initialized
+        capacity_w = coil.autosizedRatedHighSpeedTotalCoolingCapacity.get
+      else
+        raise "Cooling coil capacity not available for coil '#{coil.name}'."
+      end
+
+      # cop, use high speed cop
+      if model.version > OpenStudio::VersionString.new('3.4.0')
+        coil_design_cop = coil.ratedHighSpeedCOP
+      else
+        unless coil.ratedHighSpeedCOP.is_initialized
+          raise "'Rated High Speed COP' not available for DX coil '#{coil.name}'."
+        end
+
+        coil_design_cop = coil.ratedHighSpeedCOP.get
+
+
+
+      end
+    elsif coil.to_CoilCoolingDXMultiSpeed.is_initialized
+      coil = coil.to_CoilCoolingDXMultiSpeed.get
+
+      # capacity and cop, use cop at highest capacity
+      temp_capacity_w = 0.0
+      coil.stages.each do |stage|
+        if stage.grossRatedTotalCoolingCapacity.is_initialized
+          temp_capacity_w = stage.grossRatedTotalCoolingCapacity.get
+        elsif stage.autosizedGrossRatedTotalCoolingCapacity.is_initialized
+          temp_capacity_w = stage.autosizedGrossRatedTotalCoolingCapacity.get
+        else
+          raise "Cooling coil capacity not available for coil stage '#{stage.name}'."
+        end
+
+        # update cop if highest capacity
+        temp_coil_design_cop = stage.grossRatedCoolingCOP
+        coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
+
+        # update if highest capacity
+        capacity_w = temp_capacity_w if temp_capacity_w > capacity_w
+      end
+    elsif coil.to_CoilCoolingDXVariableSpeed.is_initialized
+      coil = coil.to_CoilCoolingDXVariableSpeed.get
+
+      # capacity and cop, use cop at highest capacity
+      temp_capacity_w = 0.0
+      coil.speeds.each do |speed|
+        temp_capacity_w = speed.referenceUnitGrossRatedTotalCoolingCapacity
+
+        # update cop if highest capacity
+        temp_coil_design_cop = speed.referenceUnitGrossRatedCoolingCOP
+        coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
+
+        # update if highest capacity
+        capacity_w = temp_capacity_w if temp_capacity_w > capacity_w
+      end
+    else
+      raise 'Design capacity is only available for DX cooling coil types CoilCoolingDXSingleSpeed, CoilCoolingDXTwoSpeed, CoilCoolingDXMultiSpeed, CoilCoolingDXVariableSpeed.'
+    end
+
+    [capacity_w, coil_design_cop]
   end
 
-  # cop
-  if model.version > OpenStudio::VersionString.new('3.4.0')
-  coil_design_cop = coil.ratedCOP
-  else
-  if coil.ratedCOP.is_initialized
-  coil_design_cop = coil.ratedCOP.get
-  else
-  raise "'Rated COP' not available for DX coil '#{coil.name}'."
-  end
-  end
-  elsif coil.to_CoilCoolingDXTwoSpeed.is_initialized
-  coil = coil.to_CoilCoolingDXTwoSpeed.get
+  def get_heating_coil_capacity_and_cop(_model, coil)
+    # get coil rated capacity and cop
+    capacity_w = 0.0
+    coil_design_cop = 0.0
+    if coil.to_CoilHeatingDXSingleSpeed.is_initialized
+      coil = coil.to_CoilHeatingDXSingleSpeed.get
+      if coil.ratedTotalHeatingCapacity.is_initialized
+        capacity_w = coil.ratedTotalHeatingCapacity.get
+      elsif coil.autosizedRatedTotalHeatingCapacity.is_initialized
+        capacity_w = coil.autosizedRatedTotalHeatingCapacity.get
+      else
+        raise "Heating coil capacity not available for coil '#{coil.name}'."
+      end
 
-  # capacity
-  if coil.ratedHighSpeedTotalCoolingCapacity.is_initialized
-  capacity_w = coil.ratedHighSpeedTotalCoolingCapacity.get
-  elsif coil.autosizedRatedHighSpeedTotalCoolingCapacity.is_initialized
-  capacity_w = coil.autosizedRatedHighSpeedTotalCoolingCapacity.get
-  else
-  raise "Cooling coil capacity not available for coil '#{coil.name}'."
-  end
+      # get rated cop and cop at lower temperatures
+      coil_design_cop = coil.ratedCOP
+    elsif coil.to_CoilHeatingDXMultiSpeed.is_initialized
+      coil = coil.to_CoilHeatingDXMultiSpeed.get
+      temp_capacity_w = 0.0
+      coil.stages.each do |stage|
+        if stage.grossRatedHeatingCapacity.is_initialized
+          temp_capacity_w = stage.grossRatedHeatingCapacity.get
+        elsif stage.autosizedGrossRatedHeatingCapacity.is_initialized
+          temp_capacity_w = stage.autosizedGrossRatedHeatingCapacity.get
+        else
+          raise "Heating coil capacity not available for coil stage '#{stage.name}'."
+        end
 
-  # cop, use high speed cop
-  if model.version > OpenStudio::VersionString.new('3.4.0')
-  coil_design_cop = coil.ratedHighSpeedCOP
-  else
-  if coil.ratedHighSpeedCOP.is_initialized
-  coil_design_cop = coil.ratedHighSpeedCOP.get
-  else
-  raise "'Rated High Speed COP' not available for DX coil '#{coil.name}'."
-  end
-  end
-  elsif coil.to_CoilCoolingDXMultiSpeed.is_initialized
-  coil = coil.to_CoilCoolingDXMultiSpeed.get
+        # get cop and cop at lower temperatures
+        # pick cop at highest capacity
+        temp_coil_design_cop = stage.grossRatedHeatingCOP
+        coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
 
-  # capacity and cop, use cop at highest capacity
-  temp_capacity_w = 0.0
-  coil.stages.each do |stage|
-  if stage.grossRatedTotalCoolingCapacity.is_initialized
-  temp_capacity_w = stage.grossRatedTotalCoolingCapacity.get
-  elsif stage.autosizedGrossRatedTotalCoolingCapacity.is_initialized
-  temp_capacity_w = stage.autosizedGrossRatedTotalCoolingCapacity.get
-  else
-  raise "Cooling coil capacity not available for coil stage '#{stage.name}'."
-  end
+        # update if highest capacity
+        capacity_w = temp_capacity_w if temp_capacity_w > capacity_w
+      end
+    elsif coil.to_CoilHeatingDXVariableSpeed.is_initialized
+      coil = coil.to_CoilHeatingDXVariableSpeed.get
+      coil.speeds.each do |speed|
+        temp_capacity_w = speed.referenceUnitGrossRatedHeatingCapacity
 
-  # update cop if highest capacity
-  temp_coil_design_cop = stage.grossRatedCoolingCOP
-  coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
+        # get cop and cop at lower temperatures
+        # pick cop at highest capacity
+        temp_coil_design_cop = speed.referenceUnitGrossRatedHeatingCOP
+        coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
 
-  # update if highest capacity
-  capacity_w = temp_capacity_w if temp_capacity_w > capacity_w
-  end
-  elsif coil.to_CoilCoolingDXVariableSpeed.is_initialized
-  coil = coil.to_CoilCoolingDXVariableSpeed.get
+        # update if highest capacity
+        capacity_w = temp_capacity_w if temp_capacity_w > capacity_w
+      end
+    else
+      raise 'Design COP and capacity for DX heating coil unavailable because of unrecognized coil type.'
+    end
 
-  # capacity and cop, use cop at highest capacity
-  temp_capacity_w = 0.0
-  coil.speeds.each do |speed|
-  temp_capacity_w = speed.referenceUnitGrossRatedTotalCoolingCapacity
-
-  # update cop if highest capacity
-  temp_coil_design_cop = speed.referenceUnitGrossRatedCoolingCOP
-  coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
-
-  # update if highest capacity
-  capacity_w = temp_capacity_w if temp_capacity_w > capacity_w
-  end
-  else
-  raise 'Design capacity is only available for DX cooling coil types CoilCoolingDXSingleSpeed, CoilCoolingDXTwoSpeed, CoilCoolingDXMultiSpeed, CoilCoolingDXVariableSpeed.'
-  end
-
-  return capacity_w, coil_design_cop
-  end
-
-  def get_heating_coil_capacity_and_cop(model, coil)
-  # get coil rated capacity and cop
-  capacity_w = 0.0
-  coil_design_cop = 0.0
-  if coil.to_CoilHeatingDXSingleSpeed.is_initialized
-  coil = coil.to_CoilHeatingDXSingleSpeed.get
-  if coil.ratedTotalHeatingCapacity.is_initialized
-  capacity_w = coil.ratedTotalHeatingCapacity.get
-  elsif coil.autosizedRatedTotalHeatingCapacity.is_initialized
-  capacity_w = coil.autosizedRatedTotalHeatingCapacity.get
-  else
-  raise "Heating coil capacity not available for coil '#{coil.name}'."
-  end
-
-  # get rated cop and cop at lower temperatures
-  coil_design_cop = coil.ratedCOP
-  elsif coil.to_CoilHeatingDXMultiSpeed.is_initialized
-  coil = coil.to_CoilHeatingDXMultiSpeed.get
-  temp_capacity_w = 0.0
-  coil.stages.each do |stage|
-  if stage.grossRatedHeatingCapacity.is_initialized
-  temp_capacity_w = stage.grossRatedHeatingCapacity.get
-  elsif stage.autosizedGrossRatedHeatingCapacity.is_initialized
-  temp_capacity_w = stage.autosizedGrossRatedHeatingCapacity.get
-  else
-  raise "Heating coil capacity not available for coil stage '#{stage.name}'."
-  end
-
-  # get cop and cop at lower temperatures
-  # pick cop at highest capacity
-  temp_coil_design_cop = stage.grossRatedHeatingCOP
-  coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
-
-  # update if highest capacity
-  capacity_w = temp_capacity_w if temp_capacity_w > capacity_w
-  end
-  elsif coil.to_CoilHeatingDXVariableSpeed.is_initialized
-  coil = coil.to_CoilHeatingDXVariableSpeed.get
-  coil.speeds.each do |speed|
-  temp_capacity_w = speed.referenceUnitGrossRatedHeatingCapacity
-
-  # get cop and cop at lower temperatures
-  # pick cop at highest capacity
-  temp_coil_design_cop = speed.referenceUnitGrossRatedHeatingCOP
-  coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
-
-  # update if highest capacity
-  capacity_w = temp_capacity_w if temp_capacity_w > capacity_w
-  end
-  else
-  raise 'Design COP and capacity for DX heating coil unavailable because of unrecognized coil type.'
-  end
-
-  return capacity_w, coil_design_cop
+    [capacity_w, coil_design_cop]
   end
 
   def get_sizing_summary(model)
-  sizing_summary = {}
-  sizing_summary['AirLoopHVACUnitarySystem'] = {}
-  model.getAirLoopHVACUnitarySystems.each do |airloophvacunisys|
-  name_obj = airloophvacunisys.name.to_s
+    sizing_summary = {}
+    sizing_summary['AirLoopHVACUnitarySystem'] = {}
+    model.getAirLoopHVACUnitarySystems.each do |airloophvacunisys|
+      name_obj = airloophvacunisys.name.to_s
 
-  # get airflows
-  sizing_summary['AirLoopHVACUnitarySystem'][name_obj] = {}
-  sizing_summary['AirLoopHVACUnitarySystem'][name_obj]['supplyAirFlowRateDuringCoolingOperation'] = airloophvacunisys.supplyAirFlowRateDuringCoolingOperation.get
-  sizing_summary['AirLoopHVACUnitarySystem'][name_obj]['supplyAirFlowRateDuringHeatingOperation'] = airloophvacunisys.supplyAirFlowRateDuringHeatingOperation.get
+      # get airflows
+      sizing_summary['AirLoopHVACUnitarySystem'][name_obj] = {}
+      sizing_summary['AirLoopHVACUnitarySystem'][name_obj]['supplyAirFlowRateDuringCoolingOperation'] =
+        airloophvacunisys.supplyAirFlowRateDuringCoolingOperation.get
+      sizing_summary['AirLoopHVACUnitarySystem'][name_obj]['supplyAirFlowRateDuringHeatingOperation'] =
+        airloophvacunisys.supplyAirFlowRateDuringHeatingOperation.get
 
-  # get coil capacity: cooling
-  coil = airloophvacunisys.coolingCoil.get
-  capacity_w, = get_cooling_coil_capacity_and_cop(model, coil)
-  sizing_summary['AirLoopHVACUnitarySystem'][name_obj]['cooling_coil_capacity_w'] = capacity_w
+      # get coil capacity: cooling
+      coil = airloophvacunisys.coolingCoil.get
+      capacity_w, = get_cooling_coil_capacity_and_cop(model, coil)
+      sizing_summary['AirLoopHVACUnitarySystem'][name_obj]['cooling_coil_capacity_w'] = capacity_w
 
-  # get coil capacity: heating
-  coil = airloophvacunisys.heatingCoil.get
-  capacity_w, = get_heating_coil_capacity_and_cop(model, coil)
-  sizing_summary['AirLoopHVACUnitarySystem'][name_obj]['heating_coil_capacity_w'] = capacity_w
-  end
-  sizing_summary['AirLoopHVAC'] = {}
-  model.getAirLoopHVACs.each do |airloophvac|
-  name_obj = airloophvac.name.to_s
+      # get coil capacity: heating
+      coil = airloophvacunisys.heatingCoil.get
+      capacity_w, = get_heating_coil_capacity_and_cop(model, coil)
+      sizing_summary['AirLoopHVACUnitarySystem'][name_obj]['heating_coil_capacity_w'] = capacity_w
+    end
+    sizing_summary['AirLoopHVAC'] = {}
+    model.getAirLoopHVACs.each do |airloophvac|
+      name_obj = airloophvac.name.to_s
 
-  # get airflows
-  sizing_summary['AirLoopHVAC'][name_obj] = {}
-  sizing_summary['AirLoopHVAC'][name_obj]['designSupplyAirFlowRate'] = airloophvac.designSupplyAirFlowRate.get
-  end
-  sizing_summary['ControllerOutdoorAir'] = {}
-  model.getControllerOutdoorAirs.each do |ctrloa|
-  name_obj = ctrloa.name.to_s
+      # get airflows
+      sizing_summary['AirLoopHVAC'][name_obj] = {}
+      sizing_summary['AirLoopHVAC'][name_obj]['designSupplyAirFlowRate'] = airloophvac.designSupplyAirFlowRate.get
+    end
+    sizing_summary['ControllerOutdoorAir'] = {}
+    model.getControllerOutdoorAirs.each do |ctrloa|
+      name_obj = ctrloa.name.to_s
 
-  # get airflows
-  sizing_summary['ControllerOutdoorAir'][name_obj] = {}
-  sizing_summary['ControllerOutdoorAir'][name_obj]['maximumOutdoorAirFlowRate'] = ctrloa.maximumOutdoorAirFlowRate.get
-  end
-  sizing_summary
+      # get airflows
+      sizing_summary['ControllerOutdoorAir'][name_obj] = {}
+      sizing_summary['ControllerOutdoorAir'][name_obj]['maximumOutdoorAirFlowRate'] =
+        ctrloa.maximumOutdoorAirFlowRate.get
+    end
+    sizing_summary
   end
 
   # this is checking parameters between regularly sized versus upsized model
   # but when upsizing does not make any impact on hotter region
   def check_sizing_results_no_upsizing(model, sizing_summary_reference)
-  model.getAirLoopHVACUnitarySystems.each do |airloophvacunisys|
-  name_obj = airloophvacunisys.name.to_s
+    model.getAirLoopHVACUnitarySystems.each do |airloophvacunisys|
+      name_obj = airloophvacunisys.name.to_s
 
-  # check airflow: cooling
-  value_before = sizing_summary_reference['AirLoopHVACUnitarySystem'][name_obj]['supplyAirFlowRateDuringCoolingOperation']
-  value_after = airloophvacunisys.supplyAirFlowRateDuringCoolingOperation.get
-  assert_in_epsilon(value_before, value_after, 0.000001, "values do not match: AirLoopHVACUnitarySystem | #{name_obj} | supplyAirFlowRateDuringCoolingOperation")
+      # check airflow: cooling
+      value_before = sizing_summary_reference['AirLoopHVACUnitarySystem'][name_obj]['supplyAirFlowRateDuringCoolingOperation']
+      value_after = airloophvacunisys.supplyAirFlowRateDuringCoolingOperation.get
+      assert_in_epsilon(value_before, value_after, 0.000001,
+                        "values do not match: AirLoopHVACUnitarySystem | #{name_obj} | supplyAirFlowRateDuringCoolingOperation")
 
-  # check airflow: heating
-  value_before = sizing_summary_reference['AirLoopHVACUnitarySystem'][name_obj]['supplyAirFlowRateDuringHeatingOperation']
-  value_after = airloophvacunisys.supplyAirFlowRateDuringHeatingOperation.get
-  assert_in_epsilon(value_before, value_after, 0.000001, "values do not match: AirLoopHVACUnitarySystem | #{name_obj} | supplyAirFlowRateDuringHeatingOperation")
+      # check airflow: heating
+      value_before = sizing_summary_reference['AirLoopHVACUnitarySystem'][name_obj]['supplyAirFlowRateDuringHeatingOperation']
+      value_after = airloophvacunisys.supplyAirFlowRateDuringHeatingOperation.get
+      assert_in_epsilon(value_before, value_after, 0.000001,
+                        "values do not match: AirLoopHVACUnitarySystem | #{name_obj} | supplyAirFlowRateDuringHeatingOperation")
 
-  # check capacity: cooling
-  coil = airloophvacunisys.coolingCoil.get
-  value_before = sizing_summary_reference['AirLoopHVACUnitarySystem'][name_obj]['cooling_coil_capacity_w']
-  value_after, = get_cooling_coil_capacity_and_cop(model, coil)
-  assert_in_epsilon(value_before, value_after, 0.000001, "values do not match: AirLoopHVACUnitarySystem | #{name_obj} | cooling_coil_capacity_w")
+      # check capacity: cooling
+      coil = airloophvacunisys.coolingCoil.get
+      value_before = sizing_summary_reference['AirLoopHVACUnitarySystem'][name_obj]['cooling_coil_capacity_w']
+      value_after, = get_cooling_coil_capacity_and_cop(model, coil)
+      assert_in_epsilon(value_before, value_after, 0.000001,
+                        "values do not match: AirLoopHVACUnitarySystem | #{name_obj} | cooling_coil_capacity_w")
 
-  # check capacity: heating
-  coil = airloophvacunisys.heatingCoil.get
-  value_before = sizing_summary_reference['AirLoopHVACUnitarySystem'][name_obj]['heating_coil_capacity_w']
-  value_after, = get_heating_coil_capacity_and_cop(model, coil)
-  assert_in_epsilon(value_before, value_after, 0.000001, "values do not match: AirLoopHVACUnitarySystem | #{name_obj} | heating_coil_capacity_w")
-  end
-  model.getAirLoopHVACs.each do |airloophvac|
-  name_obj = airloophvac.name.to_s
+      # check capacity: heating
+      coil = airloophvacunisys.heatingCoil.get
+      value_before = sizing_summary_reference['AirLoopHVACUnitarySystem'][name_obj]['heating_coil_capacity_w']
+      value_after, = get_heating_coil_capacity_and_cop(model, coil)
+      assert_in_epsilon(value_before, value_after, 0.000001,
+                        "values do not match: AirLoopHVACUnitarySystem | #{name_obj} | heating_coil_capacity_w")
+    end
+    model.getAirLoopHVACs.each do |airloophvac|
+      name_obj = airloophvac.name.to_s
 
-  # check airflow
-  value_before = sizing_summary_reference['AirLoopHVAC'][name_obj]['designSupplyAirFlowRate']
-  value_after = airloophvac.designSupplyAirFlowRate.get
-  assert_in_epsilon(value_before, value_after, 0.000001, "values do not match: AirLoopHVAC | #{name_obj} | designSupplyAirFlowRate")
-  end
-  model.getControllerOutdoorAirs.each do |ctrloa|
-  name_obj = ctrloa.name.to_s
+      # check airflow
+      value_before = sizing_summary_reference['AirLoopHVAC'][name_obj]['designSupplyAirFlowRate']
+      value_after = airloophvac.designSupplyAirFlowRate.get
+      assert_in_epsilon(value_before, value_after, 0.000001,
+                        "values do not match: AirLoopHVAC | #{name_obj} | designSupplyAirFlowRate")
+    end
+    model.getControllerOutdoorAirs.each do |ctrloa|
+      name_obj = ctrloa.name.to_s
 
-  # check airflow
-  value_before = sizing_summary_reference['ControllerOutdoorAir'][name_obj]['maximumOutdoorAirFlowRate']
-  value_after = ctrloa.maximumOutdoorAirFlowRate.get
-  assert_in_epsilon(value_before, value_after, 0.000001, "values do not match: ControllerOutdoorAir | #{name_obj} | maximumOutdoorAirFlowRate")
-  end
+      # check airflow
+      value_before = sizing_summary_reference['ControllerOutdoorAir'][name_obj]['maximumOutdoorAirFlowRate']
+      value_after = ctrloa.maximumOutdoorAirFlowRate.get
+      assert_in_epsilon(value_before, value_after, 0.000001,
+                        "values do not match: ControllerOutdoorAir | #{name_obj} | maximumOutdoorAirFlowRate")
+    end
   end
 
   # this is checking parameters between regularly sized versus upsized model
   # and when upsizing does make an impact on colder region
   def check_sizing_results_upsizing(model, sizing_summary_reference)
-  model.getAirLoopHVACUnitarySystems.each do |airloophvacunisys|
-  name_obj = airloophvacunisys.name.to_s
+    model.getAirLoopHVACUnitarySystems.each do |airloophvacunisys|
+      name_obj = airloophvacunisys.name.to_s
 
-  # check capacity: cooling
-  coil = airloophvacunisys.coolingCoil.get
-  value_before = sizing_summary_reference['AirLoopHVACUnitarySystem'][name_obj]['cooling_coil_capacity_w']
-  value_after, = get_cooling_coil_capacity_and_cop(model, coil)
-  relative_difference = (value_after - value_before) / value_before
-  assert_in_epsilon(relative_difference, 0.25, 0.01, "values difference not close to threshold: AirLoopHVACUnitarySystem | #{name_obj} | cooling_coil_capacity_w")
+      # check capacity: cooling
+      coil = airloophvacunisys.coolingCoil.get
+      value_before = sizing_summary_reference['AirLoopHVACUnitarySystem'][name_obj]['cooling_coil_capacity_w']
+      value_after, = get_cooling_coil_capacity_and_cop(model, coil)
+      relative_difference = (value_after - value_before) / value_before
+      assert_in_epsilon(relative_difference, 0.25, 0.01,
+                        "values difference not close to threshold: AirLoopHVACUnitarySystem | #{name_obj} | cooling_coil_capacity_w")
 
-  # check capacity: heating
-  coil = airloophvacunisys.heatingCoil.get
-  value_before = sizing_summary_reference['AirLoopHVACUnitarySystem'][name_obj]['heating_coil_capacity_w']
-  value_after, = get_heating_coil_capacity_and_cop(model, coil)
-  relative_difference = (value_after - value_before) / value_before
-  assert_in_epsilon(relative_difference, 0.25, 0.01, "values difference not close to threshold: AirLoopHVACUnitarySystem | #{name_obj} | heating_coil_capacity_w")
-  end
-  model.getAirLoopHVACs.each do |airloophvac|
-  name_obj = airloophvac.name.to_s
+      # check capacity: heating
+      coil = airloophvacunisys.heatingCoil.get
+      value_before = sizing_summary_reference['AirLoopHVACUnitarySystem'][name_obj]['heating_coil_capacity_w']
+      value_after, = get_heating_coil_capacity_and_cop(model, coil)
+      relative_difference = (value_after - value_before) / value_before
+      assert_in_epsilon(relative_difference, 0.25, 0.01,
+                        "values difference not close to threshold: AirLoopHVACUnitarySystem | #{name_obj} | heating_coil_capacity_w")
+    end
+    model.getAirLoopHVACs.each do |airloophvac|
+      name_obj = airloophvac.name.to_s
 
-  # check airflow
-  value_before = sizing_summary_reference['AirLoopHVAC'][name_obj]['designSupplyAirFlowRate']
-  value_after = airloophvac.designSupplyAirFlowRate.get
-  relative_difference = (value_after - value_before) / value_before
-  assert_in_epsilon(relative_difference, 0.25, 0.01, "values difference not close to threshold: AirLoopHVAC | #{name_obj} | designSupplyAirFlowRate")
-  end
-  model.getControllerOutdoorAirs.each do |ctrloa|
-  name_obj = ctrloa.name.to_s
+      # check airflow
+      value_before = sizing_summary_reference['AirLoopHVAC'][name_obj]['designSupplyAirFlowRate']
+      value_after = airloophvac.designSupplyAirFlowRate.get
+      relative_difference = (value_after - value_before) / value_before
+      assert_in_epsilon(relative_difference, 0.25, 0.01,
+                        "values difference not close to threshold: AirLoopHVAC | #{name_obj} | designSupplyAirFlowRate")
+    end
+    model.getControllerOutdoorAirs.each do |ctrloa|
+      name_obj = ctrloa.name.to_s
 
-  # check airflow
-  value_before = sizing_summary_reference['ControllerOutdoorAir'][name_obj]['maximumOutdoorAirFlowRate']
-  value_after = ctrloa.maximumOutdoorAirFlowRate.get
-  relative_difference = (value_after - value_before) / value_before
-  assert_in_epsilon(relative_difference, 0.25, 0.01, "values difference not close to threshold: AirLoopHVAC | #{name_obj} | maximumOutdoorAirFlowRate")
-  end
+      # check airflow
+      value_before = sizing_summary_reference['ControllerOutdoorAir'][name_obj]['maximumOutdoorAirFlowRate']
+      value_after = ctrloa.maximumOutdoorAirFlowRate.get
+      relative_difference = (value_after - value_before) / value_before
+      assert_in_epsilon(relative_difference, 0.25, 0.01,
+                        "values difference not close to threshold: AirLoopHVAC | #{name_obj} | maximumOutdoorAirFlowRate")
+    end
   end
 
   def calc_cfm_per_ton_singlespdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
-  # get relevant heating coils
-  coils_heating = model.getCoilHeatingDXSingleSpeeds
+    # get relevant heating coils
+    coils_heating = model.getCoilHeatingDXSingleSpeeds
 
-  # check if there is at least one coil
-  refute_equal(coils_heating.size, 0)
+    # check if there is at least one coil
+    refute_equal(coils_heating.size, 0)
 
-  # calc cfm/ton
-  coils_heating.each do |heating_coil|
-  # get coil specs
-  if heating_coil.ratedTotalHeatingCapacity.is_initialized
-  rated_capacity_w = heating_coil.ratedTotalHeatingCapacity.get
-  end
-  rated_airflow_m_3_per_sec = heating_coil.ratedAirFlowRate.get if heating_coil.ratedAirFlowRate.is_initialized
+    # calc cfm/ton
+    coils_heating.each do |heating_coil|
+      # get coil specs
+      if heating_coil.ratedTotalHeatingCapacity.is_initialized
+        rated_capacity_w = heating_coil.ratedTotalHeatingCapacity.get
+      end
+      rated_airflow_m_3_per_sec = heating_coil.ratedAirFlowRate.get if heating_coil.ratedAirFlowRate.is_initialized
 
-  # calc relevant metrics
-  rated_capacity_ton = OpenStudio.convert(rated_capacity_w, 'W', 'ton').get
-  rated_airflow_cfm = OpenStudio.convert(rated_airflow_m_3_per_sec, 'm^3/s', 'cfm').get
-  cfm_per_ton = rated_airflow_cfm / rated_capacity_ton
+      # calc relevant metrics
+      rated_capacity_ton = OpenStudio.convert(rated_capacity_w, 'W', 'ton').get
+      rated_airflow_cfm = OpenStudio.convert(rated_airflow_m_3_per_sec, 'm^3/s', 'cfm').get
+      cfm_per_ton = rated_airflow_cfm / rated_capacity_ton
 
-  # check if resultant cfm/ton is violating min/max bounds
-  assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true, "cfm_per_ton (#{cfm_per_ton}) is not larger than the threshold of cfm_per_ton_min (#{cfm_per_ton_min}) | heating_coil = #{heating_coil.name}")
-  assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true, "cfm_per_ton (#{cfm_per_ton}) is not smaller than the threshold of cfm_per_ton_max (#{cfm_per_ton_max}) | heating_coil = #{heating_coil.name}")
-  end
+      # check if resultant cfm/ton is violating min/max bounds
+      assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true,
+                   "cfm_per_ton (#{cfm_per_ton}) is not larger than the threshold of cfm_per_ton_min (#{cfm_per_ton_min}) | heating_coil = #{heating_coil.name}")
+      assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true,
+                   "cfm_per_ton (#{cfm_per_ton}) is not smaller than the threshold of cfm_per_ton_max (#{cfm_per_ton_max}) | heating_coil = #{heating_coil.name}")
+    end
   end
 
   def calc_cfm_per_ton_multispdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
-  # get relevant heating coils
-  coils_heating = model.getCoilHeatingDXMultiSpeedStageDatas
+    # get relevant heating coils
+    coils_heating = model.getCoilHeatingDXMultiSpeedStageDatas
 
-  # check if there is at least one coil
-  refute_equal(coils_heating.size, 0)
+    # check if there is at least one coil
+    refute_equal(coils_heating.size, 0)
 
-  # calc cfm/ton
-  coils_heating.each do |heating_coil|
-  # get coil specs
-  if heating_coil.grossRatedHeatingCapacity.is_initialized
-  rated_capacity_w = heating_coil.grossRatedHeatingCapacity.get
-  end
-  rated_airflow_m_3_per_sec = heating_coil.ratedAirFlowRate.get if heating_coil.ratedAirFlowRate.is_initialized
+    # calc cfm/ton
+    coils_heating.each do |heating_coil|
+      # get coil specs
+      if heating_coil.grossRatedHeatingCapacity.is_initialized
+        rated_capacity_w = heating_coil.grossRatedHeatingCapacity.get
+      end
+      rated_airflow_m_3_per_sec = heating_coil.ratedAirFlowRate.get if heating_coil.ratedAirFlowRate.is_initialized
 
-  # calc relevant metrics
-  rated_capacity_ton = OpenStudio.convert(rated_capacity_w, 'W', 'ton').get
-  rated_airflow_cfm = OpenStudio.convert(rated_airflow_m_3_per_sec, 'm^3/s', 'cfm').get
-  cfm_per_ton = rated_airflow_cfm / rated_capacity_ton
+      # calc relevant metrics
+      rated_capacity_ton = OpenStudio.convert(rated_capacity_w, 'W', 'ton').get
+      rated_airflow_cfm = OpenStudio.convert(rated_airflow_m_3_per_sec, 'm^3/s', 'cfm').get
+      cfm_per_ton = rated_airflow_cfm / rated_capacity_ton
 
-  # check if resultant cfm/ton is violating min/max bounds
-  assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true, "cfm_per_ton (#{cfm_per_ton}) is not larger than the threshold of cfm_per_ton_min (#{cfm_per_ton_min}) | heating_coil = #{heating_coil.name}")
-  assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true, "cfm_per_ton (#{cfm_per_ton}) is not smaller than the threshold of cfm_per_ton_max (#{cfm_per_ton_max}) | heating_coil = #{heating_coil.name}")
-  end
+      # check if resultant cfm/ton is violating min/max bounds
+      assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true,
+                   "cfm_per_ton (#{cfm_per_ton}) is not larger than the threshold of cfm_per_ton_min (#{cfm_per_ton_min}) | heating_coil = #{heating_coil.name}")
+      assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true,
+                   "cfm_per_ton (#{cfm_per_ton}) is not smaller than the threshold of cfm_per_ton_max (#{cfm_per_ton_max}) | heating_coil = #{heating_coil.name}")
+    end
   end
 
   def calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
-  # get cooling coils
-  coils_cooling = model.getCoilCoolingDXMultiSpeedStageDatas
+    # get cooling coils
+    coils_cooling = model.getCoilCoolingDXMultiSpeedStageDatas
 
-  # check if there is at least one coil
-  refute_equal(coils_cooling.size, 0)
+    # check if there is at least one coil
+    refute_equal(coils_cooling.size, 0)
 
-  # calc cfm/ton
-  coils_cooling.each do |cooling_coil|
-  # get coil specs
-  if cooling_coil.grossRatedTotalCoolingCapacity.is_initialized
-  rated_capacity_w = cooling_coil.grossRatedTotalCoolingCapacity.get
-  end
-  rated_airflow_m_3_per_sec = cooling_coil.ratedAirFlowRate.get if cooling_coil.ratedAirFlowRate.is_initialized
+    # calc cfm/ton
+    coils_cooling.each do |cooling_coil|
+      # get coil specs
+      if cooling_coil.grossRatedTotalCoolingCapacity.is_initialized
+        rated_capacity_w = cooling_coil.grossRatedTotalCoolingCapacity.get
+      end
+      rated_airflow_m_3_per_sec = cooling_coil.ratedAirFlowRate.get if cooling_coil.ratedAirFlowRate.is_initialized
 
-  # calc relevant metrics
-  rated_capacity_ton = OpenStudio.convert(rated_capacity_w, 'W', 'ton').get
-  rated_airflow_cfm = OpenStudio.convert(rated_airflow_m_3_per_sec, 'm^3/s', 'cfm').get
-  cfm_per_ton = rated_airflow_cfm / rated_capacity_ton
+      # calc relevant metrics
+      rated_capacity_ton = OpenStudio.convert(rated_capacity_w, 'W', 'ton').get
+      rated_airflow_cfm = OpenStudio.convert(rated_airflow_m_3_per_sec, 'm^3/s', 'cfm').get
+      cfm_per_ton = rated_airflow_cfm / rated_capacity_ton
 
-  # check if resultant cfm/ton is violating min/max bounds
-  assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true, "cfm_per_ton (#{cfm_per_ton}) is not larger than the threshold of cfm_per_ton_min (#{cfm_per_ton_min}) | cooling_coil = #{cooling_coil.name}")
-  assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true, "cfm_per_ton (#{cfm_per_ton}) is not smaller than the threshold of cfm_per_ton_max (#{cfm_per_ton_max}) | cooling_coil = #{cooling_coil.name}")
-  end
+      # check if resultant cfm/ton is violating min/max bounds
+      assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true,
+                   "cfm_per_ton (#{cfm_per_ton}) is not larger than the threshold of cfm_per_ton_min (#{cfm_per_ton_min}) | cooling_coil = #{cooling_coil.name}")
+      assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true,
+                   "cfm_per_ton (#{cfm_per_ton}) is not smaller than the threshold of cfm_per_ton_max (#{cfm_per_ton_max}) | cooling_coil = #{cooling_coil.name}")
+    end
   end
 
   def verify_cfm_per_ton(model, result)
-  # define min and max limits of cfm/ton
-  cfm_per_ton_min = 300
-  cfm_per_ton_max = 450
+    # define min and max limits of cfm/ton
+    cfm_per_ton_min = 300
+    cfm_per_ton_max = 450
 
-  # Create an instance of the measure
-  measure = AddHeatPumpRtu.new
+    # Create an instance of the measure
+    AddHeatPumpRtu.new
 
-  # initialize parameters
-  performance_category = nil
+    # initialize parameters
+    performance_category = nil
 
-  # check performance category
-  result.stepValues.each do |input_arg|
-  next unless input_arg.name == 'hprtu_scenario'
+    # check performance category
+    result.stepValues.each do |input_arg|
+      next unless input_arg.name == 'hprtu_scenario'
 
-  performance_category = input_arg.valueAsString
+      performance_category = input_arg.valueAsString
 
-  puts performance_category
-  end
-  refute_equal(performance_category, nil)
+      puts performance_category
+    end
+    refute_equal(performance_category, nil)
 
-  # loop through coils and check cfm/ton values
-  if performance_category.include?('high_eff')
+    # loop through coils and check cfm/ton values
+    if performance_category.include?('high_eff')
 
-  calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
-  calc_cfm_per_ton_multispdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
+      calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
+      calc_cfm_per_ton_multispdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
 
-  elsif performance_category.include?('standard')
+    elsif performance_category.include?('standard')
 
-  calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
-  calc_cfm_per_ton_singlespdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
+      calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
+      calc_cfm_per_ton_singlespdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
 
-  end
+    end
   end
 
   # ##########################################################################
@@ -917,7 +948,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     osm_epw_pair = {
       'example_model_AK_380.osm' => 'USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw',
       'example_model_NM_380.osm' => 'USA_NM_Albuquerque.Intl.AP.723650_TMY3.epw',
-      'example_model_HI_380.osm' => 'USA_HI_Honolulu.Intl.AP.911820_TMY3.epw',
+      'example_model_HI_380.osm' => 'USA_HI_Honolulu.Intl.AP.911820_TMY3.epw'
     }
 
     test_name = 'test_single_building_result_examples'
@@ -925,11 +956,10 @@ class AddHeatPumpRtuTest < Minitest::Test
     puts "\n######\nTEST:#{test_name}\n######\n"
 
     osm_epw_pair.each_with_index do |(osm_name, epw_name), idx|
-
       osm_path = model_input_path(osm_name)
       epw_path = epw_input_path(epw_name)
 
-      puts("### DEBUGGING: ----------------------------------------------------------")
+      puts('### DEBUGGING: ----------------------------------------------------------')
       puts("### DEBUGGING: osm_path = #{osm_path}")
       puts("### DEBUGGING: epw_path = #{epw_path}")
 
@@ -969,9 +999,9 @@ class AddHeatPumpRtuTest < Minitest::Test
       end
 
       # Apply the measure to the model and optionally run the model
-      result = set_weather_and_apply_measure_and_run("#{test_name}_#{idx}", measure, argument_map, osm_path, epw_path, run_model: true, apply: true)
-      model = load_model(model_output_path("#{test_name}_#{idx}"))
-
+      set_weather_and_apply_measure_and_run("#{test_name}_#{idx}", measure, argument_map, osm_path, epw_path,
+                                            run_model: true, apply: true)
+      load_model(model_output_path("#{test_name}_#{idx}"))
     end
   end
 
@@ -1920,16 +1950,16 @@ class AddHeatPumpRtuTest < Minitest::Test
     setback_value_c = setback_val * 5 / 9
 
     # populate argument with specified hash value if specified
-    # arguments.each_with_index do |arg, idx|
-    # temp_arg_var = arg.clone
-    # if arg.name == 'setback_value'
-    # setback_value_arg = arguments[idx].clone
-    # setback_value_arg.setValue(setback_val) # set setback value
-    # argument_map[arg.name] = setback_value_arg
-    # else
-    # argument_map[arg.name] = temp_arg_var
-    # end
-    # end
+    arguments.each_with_index do |arg, idx|
+      temp_arg_var = arg.clone
+      if arg.name == 'setback_value'
+        setback_value_arg = arguments[idx].clone
+        setback_value_arg.setValue(setback_val) # set setback value
+        argument_map[arg.name] = setback_value_arg
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
+    end
 
     # run the measure
     result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path,
