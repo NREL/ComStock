@@ -306,7 +306,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
   # @param ind_var_1 [Double] independent variable 1
   # @param ind_var_2 [Double] independent variable 2
   # @return [Double] dependent variable value
-  def get_dep_var_from_lookup_table_with_two_ind_var(lookup_table, ind_var_1, ind_var_2)
+  def self.get_dep_var_from_lookup_table_with_two_ind_var(lookup_table, ind_var_1, ind_var_2)
     unless lookup_table.to_TableMultiVariableLookup.is_initialized
       runner.registerError("#{lookup_table.name} is not a OpenStudio::Model::TableMultiVariableLookup object.")
       return false
@@ -1990,7 +1990,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           # get capacity modifier for cooling
           if capacity_modifier_curve_cooling.to_TableMultiVariableLookup.is_initialized
             capacity_modifier_curve_cooling = capacity_modifier_curve_cooling.to_TableMultiVariableLookup.get
-            capacity_modifier_cooling = get_dep_var_from_lookup_table_with_two_ind_var(capacity_modifier_curve_cooling, design_cooling_temp, OpenStudio.convert(67.0,'F','C').get)
+            capacity_modifier_cooling = HvacVrfHrDoas.get_dep_var_from_lookup_table_with_two_ind_var(capacity_modifier_curve_cooling, design_cooling_temp, OpenStudio.convert(67.0,'F','C').get)
           else
             capacity_modifier_cooling = capacity_modifier_curve_cooling.evaluate(OpenStudio.convert(67.0,'F','C').get, design_cooling_temp)
           end
@@ -1999,7 +1999,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           # get capacity modifier for heating
           if capacity_modifier_curve_cooling.to_TableMultiVariableLookup.is_initialized
             capacity_modifier_curve_heating = capacity_modifier_curve_heating.to_TableMultiVariableLookup.get
-            capacity_modifier_heating = get_dep_var_from_lookup_table_with_two_ind_var(capacity_modifier_curve_heating, design_heating_temp, OpenStudio.convert(70.0,'F','C').get)
+            capacity_modifier_heating = HvacVrfHrDoas.get_dep_var_from_lookup_table_with_two_ind_var(capacity_modifier_curve_heating, design_heating_temp, OpenStudio.convert(70.0,'F','C').get)
           else
             capacity_modifier_heating = capacity_modifier_curve_heating.evaluate(OpenStudio.convert(70.0,'F','C').get, design_heating_temp)
           end
