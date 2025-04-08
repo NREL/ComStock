@@ -908,7 +908,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       runner.registerError("TableLookup object does not have exactly two independent variables.")
       return false
     end
-  end
+  end  
 
   #### End predefined functions
 
