@@ -297,6 +297,7 @@ class HvacVrfHrDoasTest < Minitest::Test
       assert(result.value.valueName == set[:result])
 
       if set[:result] == 'Success'
+        runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
         # Check if lookup table is available
         lookup_table_name = set[:lookup_table_test][:table_name]
         table_multivar_lookups = model.getTableMultiVariableLookups
@@ -305,7 +306,7 @@ class HvacVrfHrDoasTest < Minitest::Test
 
         # Compare table lookup value against hard-coded values
         dep_var_ref = set[:lookup_table_test][:dep]
-        dep_var = HvacVrfHrDoas.get_dep_var_from_lookup_table_with_two_ind_var(lookup_table, set[:lookup_table_test][:ind1], set[:lookup_table_test][:ind2])
+        dep_var = HvacVrfHrDoas.get_dep_var_from_lookup_table_with_two_ind_var(runner, lookup_table, set[:lookup_table_test][:ind1], set[:lookup_table_test][:ind2])
         puts("### lookup table test")
         puts("--- lookup_table_name = #{lookup_table_name}")
         puts("--- input_var1 = #{set[:lookup_table_test][:ind1]} | input_var2 = #{set[:lookup_table_test][:ind2]}")

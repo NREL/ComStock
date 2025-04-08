@@ -306,30 +306,87 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
   # @param ind_var_1 [Double] independent variable 1
   # @param ind_var_2 [Double] independent variable 2
   # @return [Double] dependent variable value
-  def self.get_dep_var_from_lookup_table_with_two_ind_var(lookup_table, ind_var_1, ind_var_2)
-    unless lookup_table.to_TableMultiVariableLookup.is_initialized
-      runner.registerError("#{lookup_table.name} is not a OpenStudio::Model::TableMultiVariableLookup object.")
-      return false
-    end
-
-    # check if the lookup only has two independent variables
-    if lookup_table.numberofIndependentVariables == 2
-
-      # get independent variable 1 and 2 from table
-      array_ind_var_1 = lookup_table.xValues(0)
-      array_ind_var_2 = lookup_table.xValues(1)
-
-      # find the closest independent variable 1 and 2 from table based on method inputs
-      closest_ind_var_1 = array_ind_var_1.min_by{|x| (ind_var_1-x).abs}
-      closest_ind_var_2 = array_ind_var_2.min_by{|x| (ind_var_2-x).abs}
-
-      # grab dependent variable from the closest independent variables
-      dependent_var_val = lookup_table.yValue([closest_ind_var_1, closest_ind_var_2]).get
+  def self.get_dep_var_from_lookup_table_with_two_ind_var(runner, lookup_table, ind_var_1, ind_var_2)
+    if lookup_table.independentVariables.size == 2
+      # Extract independent variable arrays
+      ind_var_1 = lookup_table.independentVariables[0].values.to_a
+      ind_var_2 = lookup_table.independentVariables[1].values.to_a
+      dep_var = lookup_table.outputValues.to_a
+  
+      if ind_var_1.size * ind_var_2.size != dep_var.size
+        runner.registerError("Table dimensions do not match output size for TableLookup object: #{lookup_table.name}")
+        return false
+      end
+  
+      # Clamp input1 to bounds
+      if input1 < ind_var_1.first
+        runner.registerWarning("input1 (#{input1}) below range, clamping to #{ind_var_1.first}")
+        input1 = ind_var_1.first
+      elsif input1 > ind_var_1.last
+        runner.registerWarning("input1 (#{input1}) above range, clamping to #{ind_var_1.last}")
+        input1 = ind_var_1.last
+      end
+  
+      # Clamp input2 to bounds
+      if input2 < ind_var_2.first
+        runner.registerWarning("input2 (#{input2}) below range, clamping to #{ind_var_2.first}")
+        input2 = ind_var_2.first
+      elsif input2 > ind_var_2.last
+        runner.registerWarning("input2 (#{input2}) above range, clamping to #{ind_var_2.last}")
+        input2 = ind_var_2.last
+      end
+    
+      # Find bounding indices for input1
+      i1_upper = ind_var_1.index { |val| val >= input1 } || (ind_var_1.size - 1)
+      i1_lower = [i1_upper - 1, 0].max
+  
+      # Find bounding indices for input2
+      i2_upper = ind_var_2.index { |val| val >= input2 } || (ind_var_2.size - 1)
+      i2_lower = [i2_upper - 1, 0].max
+  
+      x1 = ind_var_1[i1_lower]
+      x2 = ind_var_1[i1_upper]
+      y1 = ind_var_2[i2_lower]
+      y2 = ind_var_2[i2_upper]
+    
+      # Get dependent variable values for bilinear interpolation
+      v11 = dep_var[i1_lower * ind_var_2.size + i2_lower]  # (x1, y1)
+      v12 = dep_var[i1_lower * ind_var_2.size + i2_upper]  # (x1, y2)
+      v21 = dep_var[i1_upper * ind_var_2.size + i2_lower]  # (x2, y1)
+      v22 = dep_var[i1_upper * ind_var_2.size + i2_upper]  # (x2, y2)
+    
+      # If exact match, return directly
+      if input1 == x1 && input2 == y1
+        return v11
+      elsif input1 == x1 && input2 == y2
+        return v12
+      elsif input1 == x2 && input2 == y1
+        return v21
+      elsif input1 == x2 && input2 == y2
+        return v22
+      end
+  
+      # Handle edge cases where interpolation becomes linear
+      dx = x2 - x1
+      dy = y2 - y1
+      return v11 if dx == 0 && dy == 0
+      return v11 + (v21 - v11) * (input1 - x1) / dx if dy == 0
+      return v11 + (v12 - v11) * (input2 - y1) / dy if dx == 0
+  
+      # Bilinear interpolation
+      interpolated_value =
+        v11 * (x2 - input1) * (y2 - input2) +
+        v21 * (input1 - x1) * (y2 - input2) +
+        v12 * (x2 - input1) * (input2 - y1) +
+        v22 * (input1 - x1) * (input2 - y1)
+  
+      interpolated_value /= (x2 - x1) * (y2 - y1)
+  
+      return interpolated_value
     else
-      runner.registerError('This TableMultiVariableLookup is not based on two independent variables.')
+      runner.registerError("TableLookup object does not have exactly two independent variables.")
       return false
     end
-    return dependent_var_val
   end
 
   # --------------------------------------- #
@@ -1990,7 +2047,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           # get capacity modifier for cooling
           if capacity_modifier_curve_cooling.to_TableMultiVariableLookup.is_initialized
             capacity_modifier_curve_cooling = capacity_modifier_curve_cooling.to_TableMultiVariableLookup.get
-            capacity_modifier_cooling = HvacVrfHrDoas.get_dep_var_from_lookup_table_with_two_ind_var(capacity_modifier_curve_cooling, design_cooling_temp, OpenStudio.convert(67.0,'F','C').get)
+            capacity_modifier_cooling = HvacVrfHrDoas.get_dep_var_from_lookup_table_with_two_ind_var(runner, capacity_modifier_curve_cooling, design_cooling_temp, OpenStudio.convert(67.0,'F','C').get)
           else
             capacity_modifier_cooling = capacity_modifier_curve_cooling.evaluate(OpenStudio.convert(67.0,'F','C').get, design_cooling_temp)
           end
@@ -1999,7 +2056,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           # get capacity modifier for heating
           if capacity_modifier_curve_cooling.to_TableMultiVariableLookup.is_initialized
             capacity_modifier_curve_heating = capacity_modifier_curve_heating.to_TableMultiVariableLookup.get
-            capacity_modifier_heating = HvacVrfHrDoas.get_dep_var_from_lookup_table_with_two_ind_var(capacity_modifier_curve_heating, design_heating_temp, OpenStudio.convert(70.0,'F','C').get)
+            capacity_modifier_heating = HvacVrfHrDoas.get_dep_var_from_lookup_table_with_two_ind_var(runner, capacity_modifier_curve_heating, design_heating_temp, OpenStudio.convert(70.0,'F','C').get)
           else
             capacity_modifier_heating = capacity_modifier_curve_heating.evaluate(OpenStudio.convert(70.0,'F','C').get, design_heating_temp)
           end
