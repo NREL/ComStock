@@ -1116,7 +1116,6 @@ class PlottingMixin():
                                         "markerfacecolor": "yellow",
                                         "markeredgecolor": "black",
                                         "markersize": "8"},
-                                aspect=2,
                                 legend_out=False  # Draw legend inside the plot area
                              )
 
@@ -1401,7 +1400,6 @@ class PlottingMixin():
                                 "markeredgecolor":"black",
                                 "markersize":"8"
                             },
-                            aspect=2
                         )
                         g._legend.set_title(self.col_name_to_nice_name(column_for_grouping))
 
