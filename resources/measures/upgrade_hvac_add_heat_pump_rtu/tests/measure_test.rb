@@ -397,7 +397,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     return model
   end
 
-  def verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
+  def verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path, lookup_table_test = nil)
     # set weather file but not apply measure
     result = set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false, apply: false)
     model = load_model(model_output_path(test_name))
@@ -1007,6 +1007,13 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     test_name = 'test_sizing_model_in_alaska'
 
+    lookup_table_test = {
+      'table_name': 'c_cap_high_T',
+      'ind1': 29.44,
+      'ind2': 22.22,
+      'dep': 1.1677
+    }
+
     puts "\n######\nTEST:#{osm_name}\n######\n"
 
     osm_path = model_input_path(osm_name)
@@ -1069,6 +1076,33 @@ class AddHeatPumpRtuTest < Minitest::Test
     # Apply the measure to the model and optionally run the model
     result = set_weather_and_apply_measure_and_run("#{test_name}_a", measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
     model = load_model(model_output_path("#{test_name}_a"))
+
+    # check performance category
+    performance_category = nil
+    result.stepValues.each do |input_arg|
+      next unless input_arg.name == 'hprtu_scenario'
+      performance_category = input_arg.valueAsString
+    end
+
+    # test lookup table values
+    runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
+    if performance_category == 'two_speed_standard_eff'
+      # Check if lookup table is available
+      lookup_table_name = lookup_table_test[:table_name]
+      #table_multivar_lookups = model.getTableMultiVariableLookups
+      table_multivar_lookups = model.getTableLookups
+      lookup_table = table_multivar_lookups.find { |table| table.name.to_s == lookup_table_name }
+      refute_nil(lookup_table, "Cannot find table named #{lookup_table_name} from model.")
+
+      # Compare table lookup value against hard-coded values
+      dep_var_ref = lookup_table_test[:dep]
+      dep_var = AddHeatPumpRtu.get_dep_var_from_lookup_table_with_interpolation(runner, lookup_table, lookup_table_test[:ind1], lookup_table_test[:ind2])
+      # puts("### lookup table test")
+      # puts("--- lookup_table_name = #{lookup_table_name}")
+      # puts("--- input_var1 = #{lookup_table_test[:ind1]} | input_var2 = #{lookup_table_test[:ind2]}")
+      # puts("--- dep_var reference = #{dep_var_ref} | dep_var from model = #{dep_var}")
+      assert_in_epsilon(dep_var_ref, dep_var, 0.001, "Table lookup value test didn't pass: table name = #{lookup_table_name} | ind_var1 = #{lookup_table_test[:ind1]} | ind_var2 = #{lookup_table_test[:ind2]} | expected #{dep_var_ref} but got #{dep_var}")
+    end
 
     # compare sizing summary of upsizing model with regular sized model
     check_sizing_results_upsizing(model, sizing_summary_reference)
@@ -1198,7 +1232,7 @@ class AddHeatPumpRtuTest < Minitest::Test
         argument_map[arg.name] = temp_arg_var
       end
     end
-    test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
+    test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path, lookup_table_test = lookup_table_test)
     
     # check roof/window measure implementation
     roof_measure_implemented = false
@@ -1509,6 +1543,13 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
 
+    lookup_table_test = {
+      'table_name': 'h_cap_T',
+      'ind1': -17.78,
+      'ind2': 21.11,
+      'dep': 0.3974
+    }
+
     osm_path = model_input_path(osm_name)
     epw_path = epw_input_path(epw_name)
 
@@ -1538,6 +1579,33 @@ class AddHeatPumpRtuTest < Minitest::Test
     result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
     assert_equal('Success', result.value.valueName)
     model = load_model(model_output_path(__method__))
+
+    # check performance category
+    performance_category = nil
+    result.stepValues.each do |input_arg|
+      next unless input_arg.name == 'hprtu_scenario'
+      performance_category = input_arg.valueAsString
+    end
+
+    # test lookup table values
+    runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
+    if performance_category == 'two_speed_standard_eff'
+      # Check if lookup table is available
+      lookup_table_name = lookup_table_test[:table_name]
+      #table_multivar_lookups = model.getTableMultiVariableLookups
+      table_multivar_lookups = model.getTableLookups
+      lookup_table = table_multivar_lookups.find { |table| table.name.to_s == lookup_table_name }
+      refute_nil(lookup_table, "Cannot find table named #{lookup_table_name} from model.")
+
+      # Compare table lookup value against hard-coded values
+      dep_var_ref = lookup_table_test[:dep]
+      dep_var = AddHeatPumpRtu.get_dep_var_from_lookup_table_with_interpolation(runner, lookup_table, lookup_table_test[:ind1], lookup_table_test[:ind2])
+      # puts("### lookup table test")
+      # puts("--- lookup_table_name = #{lookup_table_name}")
+      # puts("--- input_var1 = #{lookup_table_test[:ind1]} | input_var2 = #{lookup_table_test[:ind2]}")
+      # puts("--- dep_var reference = #{dep_var_ref} | dep_var from model = #{dep_var}")
+      assert_in_epsilon(dep_var_ref, dep_var, 0.001, "Table lookup value test didn't pass: table name = #{lookup_table_name} | ind_var1 = #{lookup_table_test[:ind1]} | ind_var2 = #{lookup_table_test[:ind2]} | expected #{dep_var_ref} but got #{dep_var}")
+    end
 
     # assert cfm/ton violation
     verify_cfm_per_ton(model, result)
@@ -1658,6 +1726,13 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
 
+    lookup_table_test = {
+      'table_name': 'c_eir_high_T',
+      'ind1': 35.0,
+      'ind2': 22.22,
+      'dep': 0.9438
+    }
+
     osm_path = model_input_path(osm_name)
     epw_path = epw_input_path(epw_name)
 
@@ -1706,6 +1781,33 @@ class AddHeatPumpRtuTest < Minitest::Test
     result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
     assert_equal('Success', result.value.valueName)
     model = load_model(model_output_path(__method__))
+
+    # check performance category
+    performance_category = nil
+    result.stepValues.each do |input_arg|
+      next unless input_arg.name == 'hprtu_scenario'
+      performance_category = input_arg.valueAsString
+    end
+
+    # test lookup table values
+    runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
+    if performance_category == 'two_speed_standard_eff'
+      # Check if lookup table is available
+      lookup_table_name = lookup_table_test[:table_name]
+      #table_multivar_lookups = model.getTableMultiVariableLookups
+      table_multivar_lookups = model.getTableLookups
+      lookup_table = table_multivar_lookups.find { |table| table.name.to_s == lookup_table_name }
+      refute_nil(lookup_table, "Cannot find table named #{lookup_table_name} from model.")
+
+      # Compare table lookup value against hard-coded values
+      dep_var_ref = lookup_table_test[:dep]
+      dep_var = AddHeatPumpRtu.get_dep_var_from_lookup_table_with_interpolation(runner, lookup_table, lookup_table_test[:ind1], lookup_table_test[:ind2])
+      # puts("### lookup table test")
+      # puts("--- lookup_table_name = #{lookup_table_name}")
+      # puts("--- input_var1 = #{lookup_table_test[:ind1]} | input_var2 = #{lookup_table_test[:ind2]}")
+      # puts("--- dep_var reference = #{dep_var_ref} | dep_var from model = #{dep_var}")
+      assert_in_epsilon(dep_var_ref, dep_var, 0.001, "Table lookup value test didn't pass: table name = #{lookup_table_name} | ind_var1 = #{lookup_table_test[:ind1]} | ind_var2 = #{lookup_table_test[:ind2]} | expected #{dep_var_ref} but got #{dep_var}")
+    end
 
     verify_cfm_per_ton(model, result)
   end
