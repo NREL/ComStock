@@ -183,13 +183,25 @@ class HvacVrfHrDoasTest < Minitest::Test
     test_sets << {
       model: 'Small_Office_2A',
       weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
-      result: 'Success'
+      result: 'Success',
+      lookup_table_test: {
+        'table_name': 'HCAPFT_Daikin_RELQ_100CR_120MBH',
+        'ind1': -30.0,
+        'ind2': 16.111,
+        'dep': 0.579
+      }
     }
     # test: cold weather
     test_sets << {
       model: 'Small_Office_2A',
       weather: 'USA_AK_Fairbanks.Intl.AP.702610_TMY3',
-      result: 'Success'
+      result: 'Success',
+      lookup_table_test: {
+        'table_name': 'CCAPFT_Daikin_RELQ_100CR_120MBH',
+        'ind1': -39.444,
+        'ind2': 13.889,
+        'dep': 0.587
+      }
     }
     # test: too many indoor units
     test_sets << {
@@ -218,12 +230,6 @@ class HvacVrfHrDoasTest < Minitest::Test
     # test: not applicable hvac type
     test_sets << {
       model: 'Residential_AC_with_electric_baseboard_heat_3B',
-      weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
-      result: 'NA'
-    }
-    # test: not applicable hvac type
-    test_sets << {
-      model: 'Retail_7',
       weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
       result: 'NA'
     }
@@ -283,14 +289,29 @@ class HvacVrfHrDoasTest < Minitest::Test
 
       # apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+      model = load_model(model_output_path(instance_test_name))
 
       # check the measure result; result values will equal Success, Fail, or Not Applicable (NA)
       # also check the amount of warnings, info, and error messages
       # use if or case statements to change expected assertion depending on model characteristics
       assert(result.value.valueName == set[:result])
 
-      # to check that something changed in the model, load the model and the check the objects match expected new value
-      model = load_model(model_output_path(instance_test_name))
+      if set[:result] == 'Success'
+        # Check if lookup table is available
+        lookup_table_name = set[:lookup_table_test][:table_name]
+        table_multivar_lookups = model.getTableMultiVariableLookups
+        lookup_table = table_multivar_lookups.find { |table| table.name.to_s == lookup_table_name }
+        refute_nil(lookup_table, "Cannot find table named #{lookup_table_name} from model.")
+
+        # Compare table lookup value against hard-coded values
+        dep_var_ref = set[:lookup_table_test][:dep]
+        dep_var = HvacVrfHrDoas.get_dep_var_from_lookup_table_with_two_ind_var(lookup_table, set[:lookup_table_test][:ind1], set[:lookup_table_test][:ind2])
+        puts("### lookup table test")
+        puts("--- lookup_table_name = #{lookup_table_name}")
+        puts("--- input_var1 = #{set[:lookup_table_test][:ind1]} | input_var2 = #{set[:lookup_table_test][:ind2]}")
+        puts("--- dep_var reference = #{dep_var_ref} | dep_var from model = #{dep_var}")
+        assert_in_epsilon(dep_var_ref, dep_var, 0.01, "Table lookup value test didn't pass: table name = #{lookup_table_name} | ind_var1 = #{set[:lookup_table_test][:ind1]} | ind_var2 = #{set[:lookup_table_test][:ind2]} | expected #{dep_var_ref} but got #{dep_var}")
+      end
 
     end
   end
