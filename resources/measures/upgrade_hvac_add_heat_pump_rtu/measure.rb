@@ -827,8 +827,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     result
   end
 
-  # Get output/dependent-variable value for two inputs/independent-variables from lookup table
-  def get_dep_var_from_lookup_table_with_interpolation(runner, lookup_table, input1, input2)
+  def self.get_dep_var_from_lookup_table_with_interpolation(runner, lookup_table, input1, input2)
     # Check if the lookup table only has two independent variables
     if lookup_table.independentVariables.size == 2
 
@@ -1880,7 +1879,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       dns_htg_load_at_user_dsn_temp = htg_load_slope * hp_sizing_temp_c + htg_load_intercept
       if heat_cap_ft_curve_stages[rated_stage_num_heating].to_TableLookup.is_initialized
         table_lookup_obj = heat_cap_ft_curve_stages[rated_stage_num_heating].to_TableLookup.get
-        hp_derate_factor_at_user_dsn = get_dep_var_from_lookup_table_with_interpolation(runner, table_lookup_obj,
+        hp_derate_factor_at_user_dsn = AddHeatPumpRtu.get_dep_var_from_lookup_table_with_interpolation(runner, table_lookup_obj,
                                                                                         oa_temp_c, ia_temp_c)
       else
         hp_derate_factor_at_user_dsn = heat_cap_ft_curve_stages[rated_stage_num_heating].evaluate(ia_temp_c, oa_temp_c)
