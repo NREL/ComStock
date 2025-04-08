@@ -40,12 +40,12 @@ def main():
         color_hex='#009E73',  # Color used to represent CBECS in plots
         reload_from_csv=False  # True if CSV already made and want faster reload times
         )
-  
+
     # Scale ComStock runs to the 'truth data' from StockE V3 estimates using bucket-based apportionment
     comstock.add_weights_aportioned_by_stock_estimate(apportionment=stock_estimate)
     # Scale ComStock run to CBECS 2018 AND remove non-ComStock buildings from CBECS
     comstock.add_national_scaling_weights(cbecs, remove_non_comstock_bldg_types_from_cbecs=True)
-    # TODO This needs to be rewritten with safe column names, lazyframe usage, etc. 
+    # TODO This needs to be rewritten with safe column names, lazyframe usage, etc.
     #comstock.calculate_weighted_columnal_values()
 
     # Uncomment whichever to write results to disk:
@@ -53,14 +53,22 @@ def main():
     # comstock.create_geospatially_resolved_aggregations(comstock.STATE_ID, pretty_geo_col_name='state_id')
     # comstock.create_geospatially_resolved_aggregations(comstock.COUNTY_ID, pretty_geo_col_name='county_id')
 
+
+
     # Make a comparison by passing in a list of CBECs and ComStock runs to compare
     # upgrade_id can be 'All' or the upgrade number
     comstock.create_plotting_lazyframe()
-    comp = cspp.ComStockToCBECSComparison(cbecs_list=[cbecs], comstock_list=[comstock], upgrade_id='All',make_comparison_plots=True)
+    #
+    #  TODO - add a way to call HVAC plots or not. Remove once HVAC.SYS types are available for CBECS 2018
+    comp = cspp.ComStockToCBECSComparison(cbecs_list=[cbecs],
+                                        comstock_list=[comstock],
+                                        upgrade_id='All',
+                                        make_comparison_plots=True,
+                                        make_hvac_plots=True)
 
     comp.export_to_csv_wide()
 
-    
+
 # Code to execute the script
 if __name__ == "__main__":
     main()
