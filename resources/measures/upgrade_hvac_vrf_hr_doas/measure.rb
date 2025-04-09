@@ -313,7 +313,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       return table
     else
       # OpenStudio.logFree(OpenStudio::Error, 'openstudio.Model.Model', "#{curve_name}' has an invalid form: #{data['form']}', cannot create this curve.")
-      return nil
+      nil
     end
   end
 
