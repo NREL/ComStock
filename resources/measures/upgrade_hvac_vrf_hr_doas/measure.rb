@@ -132,9 +132,13 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       curve.setCoefficient2x(data['coeff_2'])
       curve.setMinimumValueofx(data['minimum_independent_variable_1']) if data['minimum_independent_variable_1']
       curve.setMaximumValueofx(data['maximum_independent_variable_1']) if data['maximum_independent_variable_1']
-      curve.setMinimumCurveOutput(data['minimum_dependent_variable_output']) if data['minimum_dependent_variable_output']
-      curve.setMaximumCurveOutput(data['maximum_dependent_variable_output']) if data['maximum_dependent_variable_output']
-      return curve
+      if data['minimum_dependent_variable_output']
+        curve.setMinimumCurveOutput(data['minimum_dependent_variable_output'])
+      end
+      if data['maximum_dependent_variable_output']
+        curve.setMaximumCurveOutput(data['maximum_dependent_variable_output'])
+      end
+      curve
     when 'Cubic'
       curve = OpenStudio::Model::CurveCubic.new(model)
       curve.setName(data['name'])
@@ -144,9 +148,13 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       curve.setCoefficient4xPOW3(data['coeff_4'])
       curve.setMinimumValueofx(data['minimum_independent_variable_1']) if data['minimum_independent_variable_1']
       curve.setMaximumValueofx(data['maximum_independent_variable_1']) if data['maximum_independent_variable_1']
-      curve.setMinimumCurveOutput(data['minimum_dependent_variable_output']) if data['minimum_dependent_variable_output']
-      curve.setMaximumCurveOutput(data['maximum_dependent_variable_output']) if data['maximum_dependent_variable_output']
-      return curve
+      if data['minimum_dependent_variable_output']
+        curve.setMinimumCurveOutput(data['minimum_dependent_variable_output'])
+      end
+      if data['maximum_dependent_variable_output']
+        curve.setMaximumCurveOutput(data['maximum_dependent_variable_output'])
+      end
+      curve
     when 'Quadratic'
       curve = OpenStudio::Model::CurveQuadratic.new(model)
       curve.setName(data['name'])
@@ -155,9 +163,13 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       curve.setCoefficient3xPOW2(data['coeff_3'])
       curve.setMinimumValueofx(data['minimum_independent_variable_1']) if data['minimum_independent_variable_1']
       curve.setMaximumValueofx(data['maximum_independent_variable_1']) if data['maximum_independent_variable_1']
-      curve.setMinimumCurveOutput(data['minimum_dependent_variable_output']) if data['minimum_dependent_variable_output']
-      curve.setMaximumCurveOutput(data['maximum_dependent_variable_output']) if data['maximum_dependent_variable_output']
-      return curve
+      if data['minimum_dependent_variable_output']
+        curve.setMinimumCurveOutput(data['minimum_dependent_variable_output'])
+      end
+      if data['maximum_dependent_variable_output']
+        curve.setMaximumCurveOutput(data['maximum_dependent_variable_output'])
+      end
+      curve
     when 'BiCubic'
       curve = OpenStudio::Model::CurveBicubic.new(model)
       curve.setName(data['name'])
@@ -175,9 +187,13 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       curve.setMaximumValueofx(data['maximum_independent_variable_1']) if data['maximum_independent_variable_1']
       curve.setMinimumValueofy(data['minimum_independent_variable_2']) if data['minimum_independent_variable_2']
       curve.setMaximumValueofy(data['maximum_independent_variable_2']) if data['maximum_independent_variable_2']
-      curve.setMinimumCurveOutput(data['minimum_dependent_variable_output']) if data['minimum_dependent_variable_output']
-      curve.setMaximumCurveOutput(data['maximum_dependent_variable_output']) if data['maximum_dependent_variable_output']
-      return curve
+      if data['minimum_dependent_variable_output']
+        curve.setMinimumCurveOutput(data['minimum_dependent_variable_output'])
+      end
+      if data['maximum_dependent_variable_output']
+        curve.setMaximumCurveOutput(data['maximum_dependent_variable_output'])
+      end
+      curve
     when 'BiQuadratic'
       curve = OpenStudio::Model::CurveBiquadratic.new(model)
       curve.setName(data['name'])
@@ -191,9 +207,13 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       curve.setMaximumValueofx(data['maximum_independent_variable_1']) if data['maximum_independent_variable_1']
       curve.setMinimumValueofy(data['minimum_independent_variable_2']) if data['minimum_independent_variable_2']
       curve.setMaximumValueofy(data['maximum_independent_variable_2']) if data['maximum_independent_variable_2']
-      curve.setMinimumCurveOutput(data['minimum_dependent_variable_output']) if data['minimum_dependent_variable_output']
-      curve.setMaximumCurveOutput(data['maximum_dependent_variable_output']) if data['maximum_dependent_variable_output']
-      return curve
+      if data['minimum_dependent_variable_output']
+        curve.setMinimumCurveOutput(data['minimum_dependent_variable_output'])
+      end
+      if data['maximum_dependent_variable_output']
+        curve.setMaximumCurveOutput(data['maximum_dependent_variable_output'])
+      end
+      curve
     when 'BiLinear'
       curve = OpenStudio::Model::CurveBiquadratic.new(model)
       curve.setName(data['name'])
@@ -204,9 +224,13 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       curve.setMaximumValueofx(data['maximum_independent_variable_1']) if data['maximum_independent_variable_1']
       curve.setMinimumValueofy(data['minimum_independent_variable_2']) if data['minimum_independent_variable_2']
       curve.setMaximumValueofy(data['maximum_independent_variable_2']) if data['maximum_independent_variable_2']
-      curve.setMinimumCurveOutput(data['minimum_dependent_variable_output']) if data['minimum_dependent_variable_output']
-      curve.setMaximumCurveOutput(data['maximum_dependent_variable_output']) if data['maximum_dependent_variable_output']
-      return curve
+      if data['minimum_dependent_variable_output']
+        curve.setMinimumCurveOutput(data['minimum_dependent_variable_output'])
+      end
+      if data['maximum_dependent_variable_output']
+        curve.setMaximumCurveOutput(data['maximum_dependent_variable_output'])
+      end
+      curve
     when 'QuadLinear'
       curve = OpenStudio::Model::CurveQuadLinear.new(model)
       curve.setName(data['name'])
