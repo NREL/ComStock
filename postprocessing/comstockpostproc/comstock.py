@@ -1510,9 +1510,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             elif c.startswith('out.emissions.'):
                 out_ghg_emissions.append(c)
             elif (c.startswith('out.nox_emissions.')
-                  or c.endswith('out.co_emissions.')
-                  or c.endswith('out.pm_emissions.')
-                  or c.endswith('out.so2_emissions.')):
+                  or c.startswith('out.co_emissions.')
+                  or c.startswith('out.pm_emissions.')
+                  or c.startswith('out.so2_emissions.')):
                 out_pollution_emissions.append(c)
             elif c.startswith('out.utility_bills.'):
                 out_utility.append(c)
