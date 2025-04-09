@@ -11,9 +11,9 @@ logger = logging.getLogger(__name__)
 def main():
     # ComStock run
     comstock = cspp.ComStock(
-        s3_base_dir='com-sdr',  # If run not on S3, download results_up**.parquet manually
-        comstock_run_name='HVAC_Charts_Test',  # Name of the run on S3
-        comstock_run_version='HVAC_Charts_Test',  # Use whatever you want to see in plot and folder names
+        s3_base_dir='eulp/euss_com',  # If run not on S3, download results_up**.parquet manually
+        comstock_run_name='hprtu_lab_data_10k_4',  # Name of the run on S3
+        comstock_run_version='HVAC_Charts_Test2',  # Use whatever you want to see in plot and folder names
         comstock_year=2018,  # Typically don't change this
         athena_table_name=None,  # Typically same as comstock_run_name or None
         truth_data_version='v01',  # Typically don't change this
