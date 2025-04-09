@@ -498,11 +498,6 @@ class PlottingMixin():
                 plt.close()
 
     def normalize_energy_for_hvac_sys(self, df):
-         print("Available Columsn:", df.columns.tolist())
-         # Group by both HVAC_SYS and dataset columns and sum only numeric columns
-         print("Data type before groupby:", type(df))
-         print("Columns available:", df.columns if isinstance(df, pd.DataFrame) else df.schema.keys())
-         print("Accessing groupby columns:", self.HVAC_SYS, self.CEN_DIV, self.VINTAGE, 'dataset')
 
          grouped_df = df.groupby([self.HVAC_SYS, self.CEN_DIV, self.VINTAGE,'dataset']).sum(numeric_only=True).reset_index()
 
