@@ -186,8 +186,8 @@ class HvacVrfHrDoasTest < Minitest::Test
       result: 'Success',
       lookup_table_test: {
         'table_name': 'HCAPFT_Daikin_RELQ_100CR_120MBH',
-        'ind1': -30.0,
-        'ind2': 16.111,
+        'ind1': 16.111,
+        'ind2': -30.0,
         'dep': 0.579
       }
     }
@@ -198,8 +198,8 @@ class HvacVrfHrDoasTest < Minitest::Test
       result: 'Success',
       lookup_table_test: {
         'table_name': 'CCAPFT_Daikin_RELQ_100CR_120MBH',
-        'ind1': -39.444,
-        'ind2': 13.889,
+        'ind1': 13.889,
+        'ind2': -39.444,
         'dep': 0.587
       }
     }

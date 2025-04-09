@@ -1009,8 +1009,8 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     lookup_table_test = {
       'table_name': 'c_cap_high_T',
-      'ind1': 29.44,
-      'ind2': 22.22,
+      'ind1': 22.22,
+      'ind2': 29.44,
       'dep': 1.1677
     }
 
@@ -1545,8 +1545,8 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     lookup_table_test = {
       'table_name': 'h_cap_T',
-      'ind1': -17.78,
-      'ind2': 21.11,
+      'ind1': 21.11,
+      'ind2': -17.78,
       'dep': 0.3974
     }
 
@@ -1728,8 +1728,8 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     lookup_table_test = {
       'table_name': 'c_eir_high_T',
-      'ind1': 35.0,
-      'ind2': 22.22,
+      'ind1': 22.22,
+      'ind2': 35.0,
       'dep': 0.9438
     }
 
