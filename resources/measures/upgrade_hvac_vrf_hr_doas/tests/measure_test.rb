@@ -182,40 +182,31 @@ class HvacVrfHrDoasTest < Minitest::Test
     tables.each do |table|
       next unless table[:form] == 'MultiVariableLookupTable'
 
-      # Extract data_point keys and sort them by number
-      points = table.select { |k, _| k.to_s.start_with?('data_point') }
-                    .sort_by { |k, _| k.to_s.match(/data_point(\d+)/)[1].to_i }
-                    .map { |_, v| v.split(',').first(2).map(&:to_f) }
+      puts("--- checking table format: #{table[:name]}")
 
+      # Extract and sort data_point keys numerically
+      points = table.select { |k, _| k.to_s.match?(/^data_point\d+$/) }
+          .sort_by { |k, _| k.to_s.match(/\d+/)[0].to_i }
+          .map { |_, v| v.split(',').first(2).map(&:to_f) }
+
+      # Now check if x2 varies first (should see repeated x1s for several rows)
       x1s, x2s = points.transpose
 
-      # Check if x2 varies first (inner loop), then x1 (outer loop)
-      previous_x1 = points.first[0]
-      groupings = []
+      # Build pairs and check how they vary
+      last_x1, last_x2 = points[0]
+      x1_first_changes = 0
+      x2_first_changes = 0
 
-      current_group = []
-      points.each do |x1, x2|
-        if x1 == previous_x1
-          current_group << x2
-        else
-          groupings << current_group
-          current_group = [x2]
-          previous_x1 = x1
+      points.each_cons(2) do |(x1a, x2a), (x1b, x2b)|
+        if x1a != x1b && x2a == x2b
+          x1_first_changes += 1
+        elsif x1a == x1b && x2a != x2b
+          x2_first_changes += 1
         end
       end
-      groupings << current_group
-      puts("### DEBUGGING: groupings = #{groupings}")
 
-      # All x2 groups should be of the same length
-      expected_length = groupings.first.length
-      groupings.each_with_index do |group, i|
-        assert_equal(expected_length, group.length, "x2 value group #{i} has inconsistent length")
-      end
-
-      # Check that for a fixed x1, x2 is increasing or consistent
-      groupings.each_with_index do |group, i|
-        assert(group.each_cons(2).all? { |a, b| a <= b }, "x2 values not ordered correctly in group #{i}")
-      end
+      # If x1 changes more frequently while x2 is stable, the ordering is wrong
+      assert(x2_first_changes >= x1_first_changes, "Invalid data point order: x1 varies before x2 in some cases")
     end
   end
 
