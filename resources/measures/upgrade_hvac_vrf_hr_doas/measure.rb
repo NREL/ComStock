@@ -308,7 +308,9 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           table.addIndependentVariable(table_indvar)
         end
       end
-      table
+      table.setName(data['name'])
+      table.setOutputUnitType(data['output_unit_type'])
+      return table
     else
       # OpenStudio.logFree(OpenStudio::Error, 'openstudio.Model.Model', "#{curve_name}' has an invalid form: #{data['form']}', cannot create this curve.")
       nil
