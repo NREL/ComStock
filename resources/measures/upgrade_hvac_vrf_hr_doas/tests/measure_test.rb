@@ -300,7 +300,7 @@ class HvacVrfHrDoasTest < Minitest::Test
         runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
         # Check if lookup table is available
         lookup_table_name = set[:lookup_table_test][:table_name]
-        table_multivar_lookups = model.getTableMultiVariableLookups
+        table_multivar_lookups = model.getTableLookups
         lookup_table = table_multivar_lookups.find { |table| table.name.to_s == lookup_table_name }
         refute_nil(lookup_table, "Cannot find table named #{lookup_table_name} from model.")
 
