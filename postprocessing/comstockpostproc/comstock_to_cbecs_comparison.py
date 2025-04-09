@@ -245,13 +245,11 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         # self.plot_qoi_min_use(df, column_for_grouping, color_map, output_dir)
 
     def export_to_csv_wide(self):
-        # Exports comparison data to CSV in wide format
-
-        file_name = f'ComStock wide.csv'
+        file_name = 'ComStock wide.csv'
         file_path = os.path.join(self.output_dir, file_name)
+
         try:
-            self.data.sink_csv(file_path)
-        except pl.exceptions.InvalidOperationError:
-            logger.warn('Warning - sink_csv not supported for metadata write in current polars version')
-            logger.warn('Falling back to .collect.write_csv')
             self.data.collect().write_csv(file_path)
+            logger.info(f'Exported comparison data to {file_path}')
+        except Exception as e:
+            logger.error(f"CSV export failed: {e}")
