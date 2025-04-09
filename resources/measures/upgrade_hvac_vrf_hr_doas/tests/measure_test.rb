@@ -39,6 +39,7 @@
 # dependencies
 require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
+require 'json'
 require 'fileutils'
 require 'minitest/autorun'
 require_relative '../measure.rb'
@@ -173,6 +174,73 @@ class HvacVrfHrDoasTest < Minitest::Test
     assert_equal('disable_defrost', arguments[1].name)
     assert_equal('upsizing_allowance_pct', arguments[2].name)
     assert_equal('apply_measure', arguments[3].name)
+  end
+
+  def data_point_ordering_check(lookup_table_in_hash)
+    tables = lookup_table_in_hash[:tables][:curves][:table]
+
+    tables.each do |table|
+      next unless table[:form] == 'MultiVariableLookupTable'
+
+      # Extract data_point keys and sort them by number
+      points = table.select { |k, _| k.to_s.start_with?('data_point') }
+                    .sort_by { |k, _| k.to_s.match(/data_point(\d+)/)[1].to_i }
+                    .map { |_, v| v.split(',').first(2).map(&:to_f) }
+
+      x1s, x2s = points.transpose
+
+      # Check if x2 varies first (inner loop), then x1 (outer loop)
+      previous_x1 = points.first[0]
+      groupings = []
+
+      current_group = []
+      points.each do |x1, x2|
+        if x1 == previous_x1
+          current_group << x2
+        else
+          groupings << current_group
+          current_group = [x2]
+          previous_x1 = x1
+        end
+      end
+      groupings << current_group
+      puts("### DEBUGGING: groupings = #{groupings}")
+
+      # All x2 groups should be of the same length
+      expected_length = groupings.first.length
+      groupings.each_with_index do |group, i|
+        assert_equal(expected_length, group.length, "x2 value group #{i} has inconsistent length")
+      end
+
+      # Check that for a fixed x1, x2 is increasing or consistent
+      groupings.each_with_index do |group, i|
+        assert(group.each_cons(2).all? { |a, b| a <= b }, "x2 values not ordered correctly in group #{i}")
+      end
+    end
+  end
+
+  def test_table_lookup_format
+    # This test ensures the format of lookup tables
+    test_name = 'test_lookup_table_format'
+    puts "\n######\nTEST:#{test_name}\n######\n"
+
+    path_to_jsons = "#{__dir__}/../resources/*.json"
+    json_files = Dir.glob(path_to_jsons)
+    json_files.each do |file_path|
+      begin
+        content = File.read(file_path)
+        hash = JSON.parse(content, symbolize_names: true)
+
+        # Now `hash` is your Ruby hash from JSON
+        # You can insert your test logic here
+        assert(hash[:tables], "Missing :tables key in #{file_path}")
+
+        # check lookup table format
+        data_point_ordering_check(hash)
+      rescue JSON::ParserError => e
+        flunk "JSON parsing failed for #{file_path}: #{e.message}"
+      end
+    end
   end
 
   # create an array of hashes with model name, weather, and expected result
