@@ -59,12 +59,13 @@ def main():
     # export metadata files
     comstock.export_metadata_and_annual_results(geo_exports)
 
-    # Uncomment whichever to write results to disk:
+    # Export CBECS and ComStock data to wide and long formats for Tableau and to skip processing later
+    cbecs.export_to_csv_wide()  # May comment this out after run once
     # comstock.create_national_aggregation()
     # comstock.create_geospatially_resolved_aggregations(comstock.STATE_ID, pretty_geo_col_name='state_id')
     # comstock.create_geospatially_resolved_aggregations(comstock.COUNTY_ID, pretty_geo_col_name='county_id')
-
-
+    # TODO Long is def not working as expected anymore...
+    # comstock.export_to_csv_long()  # Long format useful for stacking end uses and fuels
 
     # Make a comparison by passing in a list of CBECs and ComStock runs to compare
     # upgrade_id can be 'All' or the upgrade number
@@ -76,9 +77,7 @@ def main():
                                         upgrade_id='All',
                                         make_comparison_plots=True,
                                         make_hvac_plots=True)
-
-    comp.export_to_csv_wide()
-
+    comp.export_to_csv_wide()  # May comment this out after run once
 
 # Code to execute the script
 if __name__ == "__main__":
