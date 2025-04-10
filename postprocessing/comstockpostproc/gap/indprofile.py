@@ -168,6 +168,7 @@ class IndustrialProfile():
 
         # load total industrial sales by BA from EIA 861
         ind_sales = EIA861(segment='Industrial', measure='Sales').data
+        ind_sales = ind_sales[ind_sales['Part'] != 'C']
         ind_ba_sales = ind_sales.groupby('BA Code')['INDUSTRIAL_Sales_MWh'].sum()
 
         # create dataframe of BA profiles
