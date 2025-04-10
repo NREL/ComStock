@@ -36,6 +36,9 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # *******************************************************************************
 
+# require all .rb files in resources folder
+Dir["#{File.dirname(__FILE__)}/resources/*.rb"].sort.each { |file| require file }
+
 require 'date'
 
 # start the measure
@@ -140,7 +143,7 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
   def min_daily_peak_by_month
     output_names = []
     months.each do |month, _month_val|
-      output_names << "minimum_daily_peak_use_#{month}_kw"
+      output_names << "minimum_daily_peak_#{month}_kw"
     end
     output_names
   end
@@ -148,7 +151,7 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
   def q1_daily_peak_by_month
     output_names = []
     months.each do |month, _month_val|
-      output_names << "q1_daily_peak_use_#{month}_kw"
+      output_names << "q1_daily_peak_#{month}_kw"
     end
     output_names
   end
@@ -156,7 +159,7 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
   def med_daily_peak_by_month
     output_names = []
     months.each do |month, _month_val|
-      output_names << "median_daily_peak_use_#{month}_kw"
+      output_names << "median_daily_peak_#{month}_kw"
     end
     output_names
   end
@@ -164,7 +167,7 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
   def q3_daily_peak_by_month
     output_names = []
     months.each do |month, _month_val|
-      output_names << "q3_daily_peak_use_#{month}_kw"
+      output_names << "q3_daily_peak_#{month}_kw"
     end
     output_names
   end
@@ -172,7 +175,7 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
   def max_daily_peak_by_month
     output_names = []
     months.each do |month, _month_val|
-      output_names << "maximum_daily_peak_use_#{month}_kw"
+      output_names << "maximum_daily_peak_#{month}_kw"
     end
     output_names
   end
@@ -180,7 +183,23 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
   def mean_daily_peak_by_month
     output_names = []
     months.each do |month, _month_val|
-      output_names << "mean_daily_peak_use_#{month}_kw"
+      output_names << "mean_daily_peak_#{month}_kw"
+    end
+    output_names
+  end
+
+  def mean_daily_peak_grid_window_by_month
+    output_names = []
+    months.each do |month, _month_val|
+      output_names << "mean_daily_peak_grid_window_#{month}_kw"
+    end
+    output_names
+  end
+
+  def mean_daily_peak_grid_peak_by_month
+    output_names = []
+    months.each do |month, _month_val|
+      output_names << "mean_daily_peak_grid_peak_#{month}_kw"
     end
     output_names
   end
@@ -214,6 +233,8 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
     output_names += q3_daily_peak_by_month
     output_names += max_daily_peak_by_month
     output_names += mean_daily_peak_by_month
+    output_names += mean_daily_peak_grid_window_by_month
+    output_names += mean_daily_peak_grid_peak_by_month
     output_names += med_daily_peak_timing_by_month
     output_names += total_electricity_by_month
 
@@ -331,13 +352,20 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
       # Daily peak average by month (12)
       report_sim_output(runner, "mean_daily_peak_#{month}_kw",
                         daily_peak_stats_by_month(timeseries, month_val, 'mean'), '', '')
-                        
+      
+      # Daily peak average during grid peak window by month (12)
+      report_sim_output(runner, "mean_daily_peak_grid_window_#{month}_kw",
+      daily_peak_stats_on_grid_peak_by_month(model, 4, timeseries, month_val, 'mean'), '', '')
+
+      # Daily peak average on grid peak by month (12)
+      report_sim_output(runner, "mean_daily_peak_grid_peak_#{month}_kw",
+      daily_peak_stats_on_grid_peak_by_month(model, 1, timeseries, month_val, 'mean'), '', '')
+
       # Daily peak timing median by month (12)
       report_sim_output(runner, "median_daily_peak_timing_#{month}_hour",
                         daily_peak_timing_stats_by_month(timeseries, month_val, 'med'), '', '')
 
-
-      # Daily peak timing median by month (12)
+      # Energy by month (12)
       report_sim_output(runner, "total_electricity_use_#{month}_kwh", monthly_energy(timeseries, month_val, 'total'),
                         '', '')
     end
@@ -421,7 +449,6 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
 
     return sorted_array[index] if fractional_part.zero?
 
-
     lower_value = sorted_array[index]
     upper_value = sorted_array[index + 1]
     ((1 - fractional_part) * lower_value) + (fractional_part * upper_value)
@@ -464,6 +491,35 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
       stats_by_month = calculate_percentile(daily_peak_timing_by_month, 50)
     elsif stats_option == 'mean'
       stats_by_month = daily_peak_timing_by_month.inject { |sum, el| sum + el }.to_f / daily_peak_timing_by_month.size
+    else
+      return nil
+    end
+    stats_by_month
+  end
+
+  def grid_peak_schedule(model, peak_len)
+    grid_region = model.getBuilding.additionalProperties.getFeatureAsString('grid_region')
+    raise 'Unable to find grid region in model building additional properties' unless grid_region.is_initialized
+    grid_region = grid_region.get
+    load_csv = "#{File.dirname(__FILE__)}/cambium/#{scenario}/#{grid_region}.csv"
+    return nil if !File.file?(load_csv)
+    net_load_mwh = CSV.read(load_csv, converters: :float).flatten
+    grid_peak_schedule = peak_schedule_generation(annual_load = net_load_mwh, oat = timeseries['temperature'], peak_len = peak_len, num_timesteps_in_hr = 1, peak_window_strategy = 'center with peak', rebound_len = 0, prepeak_len = 0, season = 'all')
+    grid_peak_schedule
+  end
+
+  def daily_peak_stats_on_grid_peak_by_month(model, peak_len, timeseries, month_val, stats_option = 'mean', year = 2018)
+    grid_peak_schedule = grid_peak_schedule(model, peak_len)
+    daily_peaks = timeseries['total_site_electricity_kw'].zip(grid_peak_schedule).map { |kw, peak| kw * peak }
+    daily_peak_by_month = []
+    daily_peaks.each_slice(24).with_index do |kws, doy|
+      month, = day_of_year_to_date(doy, year)
+      daily_peak_by_month << (kws.sum(0.0) / peak_len) if month == month_val
+    end
+    stats_by_month = nil
+    case stats_option
+    when 'mean'
+      stats_by_month = daily_peak_by_month.sum(0.0) / daily_peak_by_month.size
     else
       return nil
     end
