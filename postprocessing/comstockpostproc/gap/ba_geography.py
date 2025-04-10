@@ -476,8 +476,10 @@ class BAGeography(S3UtilitiesMixin):
 
         return ba_tract_fracs
 
-
-
+    def save_ba_map(self, name):
+        data = self.balancing_authority_territories_data()
+        map = data.explore(column='BA Code', cmap='prism')
+        map.save(os.path.join(self.output_dir, f'{name}.html'))
 
  
 
