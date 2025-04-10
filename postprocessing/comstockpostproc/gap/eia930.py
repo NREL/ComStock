@@ -108,6 +108,10 @@ class EIA930(S3UtilitiesMixin):
         df = pd.DataFrame(regional_profiles)
         df.set_index(new_index, inplace=True)
 
+        # combine CPLE and CPLW as CPLE
+        df['CPLE'] = df['CPLE'] + df['CPLW']
+        df.drop('CPLW', axis=1, inplace=True)
+
         df.to_csv(os.path.join(self.processed_dir, self.processed_filename))
         
         return df
