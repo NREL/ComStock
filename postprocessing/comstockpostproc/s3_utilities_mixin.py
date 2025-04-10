@@ -84,13 +84,14 @@ class S3UtilitiesMixin:
         
         return local_path
 
-    def read_delimited_truth_data_file_from_S3(self, s3_file_path, delimiter):
+    def read_delimited_truth_data_file_from_S3(self, s3_file_path, delimiter, args={}):
         """
         Read a delimited truth data file from AWS S3.
 
         Args:
             s3_file_path (string): File path on AWS S3 without the bucket name
             delimiter (string): The delimiter to use with pd.read_csv(...)
+            args (dictionary): Optional additional parameters to pass to read_csv, e.g. {'dtype':'str'}
         Return:
             df (pd.DataFrame): DataFrame read from the s3_file_path
         """
@@ -122,9 +123,9 @@ class S3UtilitiesMixin:
             return lkup
         else:
             try:
-                df = pd.read_csv(local_path, delimiter=delimiter)
+                df = pd.read_csv(local_path, delimiter=delimiter, **args)
             except UnicodeDecodeError:
-                df = pd.read_csv(local_path, delimiter=delimiter, encoding='latin-1')
+                df = pd.read_csv(local_path, delimiter=delimiter, encoding='latin-1', **args)
 
         return df
 
