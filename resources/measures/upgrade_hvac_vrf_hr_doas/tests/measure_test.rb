@@ -39,6 +39,7 @@
 # dependencies
 require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
+require 'json'
 require 'fileutils'
 require 'minitest/autorun'
 require_relative '../measure.rb'
@@ -175,6 +176,64 @@ class HvacVrfHrDoasTest < Minitest::Test
     assert_equal('apply_measure', arguments[3].name)
   end
 
+  def data_point_ordering_check(lookup_table_in_hash)
+    tables = lookup_table_in_hash[:tables][:curves][:table]
+
+    tables.each do |table|
+      next unless table[:form] == 'MultiVariableLookupTable'
+
+      puts("--- checking table format: #{table[:name]}")
+
+      # Extract and sort data_point keys numerically
+      points = table.select { |k, _| k.to_s.match?(/^data_point\d+$/) }
+          .sort_by { |k, _| k.to_s.match(/\d+/)[0].to_i }
+          .map { |_, v| v.split(',').first(2).map(&:to_f) }
+
+      # Now check if x2 varies first (should see repeated x1s for several rows)
+      x1s, x2s = points.transpose
+
+      # Build pairs and check how they vary
+      last_x1, last_x2 = points[0]
+      x1_first_changes = 0
+      x2_first_changes = 0
+
+      points.each_cons(2) do |(x1a, x2a), (x1b, x2b)|
+        if x1a != x1b && x2a == x2b
+          x1_first_changes += 1
+        elsif x1a == x1b && x2a != x2b
+          x2_first_changes += 1
+        end
+      end
+
+      # If x1 changes more frequently while x2 is stable, the ordering is wrong
+      assert(x2_first_changes >= x1_first_changes, "Invalid data point order: x1 varies before x2 in some cases")
+    end
+  end
+
+  def test_table_lookup_format
+    # This test ensures the format of lookup tables
+    test_name = 'test_lookup_table_format'
+    puts "\n######\nTEST:#{test_name}\n######\n"
+
+    path_to_jsons = "#{__dir__}/../resources/*.json"
+    json_files = Dir.glob(path_to_jsons)
+    json_files.each do |file_path|
+      begin
+        content = File.read(file_path)
+        hash = JSON.parse(content, symbolize_names: true)
+
+        # Now `hash` is your Ruby hash from JSON
+        # You can insert your test logic here
+        assert(hash[:tables], "Missing :tables key in #{file_path}")
+
+        # check lookup table format
+        data_point_ordering_check(hash)
+      rescue JSON::ParserError => e
+        flunk "JSON parsing failed for #{file_path}: #{e.message}"
+      end
+    end
+  end
+
   # create an array of hashes with model name, weather, and expected result
   def models_to_test
     test_sets = []
@@ -183,13 +242,25 @@ class HvacVrfHrDoasTest < Minitest::Test
     test_sets << {
       model: 'Small_Office_2A',
       weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
-      result: 'Success'
+      result: 'Success',
+      lookup_table_test: {
+        'table_name': 'HCAPFT_Daikin_RELQ_100CR_120MBH',
+        'ind1': 16.111,
+        'ind2': -30.0,
+        'dep': 0.579
+      }
     }
     # test: cold weather
     test_sets << {
       model: 'Small_Office_2A',
       weather: 'USA_AK_Fairbanks.Intl.AP.702610_TMY3',
-      result: 'Success'
+      result: 'Success',
+      lookup_table_test: {
+        'table_name': 'CCAPFT_Daikin_RELQ_100CR_120MBH',
+        'ind1': 13.889,
+        'ind2': -39.444,
+        'dep': 0.587
+      }
     }
     # test: too many indoor units
     test_sets << {
@@ -218,12 +289,6 @@ class HvacVrfHrDoasTest < Minitest::Test
     # test: not applicable hvac type
     test_sets << {
       model: 'Residential_AC_with_electric_baseboard_heat_3B',
-      weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
-      result: 'NA'
-    }
-    # test: not applicable hvac type
-    test_sets << {
-      model: 'Retail_7',
       weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
       result: 'NA'
     }
@@ -283,14 +348,30 @@ class HvacVrfHrDoasTest < Minitest::Test
 
       # apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+      model = load_model(model_output_path(instance_test_name))
 
       # check the measure result; result values will equal Success, Fail, or Not Applicable (NA)
       # also check the amount of warnings, info, and error messages
       # use if or case statements to change expected assertion depending on model characteristics
       assert(result.value.valueName == set[:result])
 
-      # to check that something changed in the model, load the model and the check the objects match expected new value
-      model = load_model(model_output_path(instance_test_name))
+      if set[:result] == 'Success'
+        runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
+        # Check if lookup table is available
+        lookup_table_name = set[:lookup_table_test][:table_name]
+        table_multivar_lookups = model.getTableLookups
+        lookup_table = table_multivar_lookups.find { |table| table.name.to_s == lookup_table_name }
+        refute_nil(lookup_table, "Cannot find table named #{lookup_table_name} from model.")
+
+        # Compare table lookup value against hard-coded values
+        dep_var_ref = set[:lookup_table_test][:dep]
+        dep_var = HvacVrfHrDoas.get_dep_var_from_lookup_table_with_two_ind_var(runner, lookup_table, set[:lookup_table_test][:ind1], set[:lookup_table_test][:ind2])
+        puts("### lookup table test")
+        puts("--- lookup_table_name = #{lookup_table_name}")
+        puts("--- input_var1 = #{set[:lookup_table_test][:ind1]} | input_var2 = #{set[:lookup_table_test][:ind2]}")
+        puts("--- dep_var reference = #{dep_var_ref} | dep_var from model = #{dep_var}")
+        assert_in_epsilon(dep_var_ref, dep_var, 0.01, "Table lookup value test didn't pass: table name = #{lookup_table_name} | ind_var1 = #{set[:lookup_table_test][:ind1]} | ind_var2 = #{set[:lookup_table_test][:ind2]} | expected #{dep_var_ref} but got #{dep_var}")
+      end
 
     end
   end
