@@ -105,3 +105,83 @@ class GapPlottingMixin():
             os.makedirs(fig_sub_dir)
         fig_path = os.path.join(fig_sub_dir, fig_name)
         plt.savefig(fig_path, dpi=600, bbox_inches='tight')
+
+    def plot_log_log_scatter_comparison(self, df, val_col, xcol, xlabel, ycol, ylabel, title, output_dir):
+        """
+        Plots a scatterplot of values on log-log axes. Includes line of identity and 10% and 50% above and below identity lines.
+        """
+        fig = px.scatter(df, x=xcol, y=ycol, text=val_col, title=title, hover_name=val_col)
+
+        # Add a line of identity
+        fig.add_shape(
+            type='line',
+            x0=min(df[xcol]), y0=min(df[xcol]),
+            x1=max(df[xcol]), y1=max(df[xcol]),
+            line=dict(color='red', dash='dash'),
+            name='Line of Identity'
+        )
+
+        # Add a 10% above line (y = 1.1 * x)
+        fig.add_shape(
+            type='line',
+            x0=min(df[xcol]), y0=1.1 * min(df[xcol]),
+            x1=max(df[xcol]), y1=1.1 * max(df[xcol]),
+            line=dict(color='salmon', dash='dot'),
+            name='10% Above'
+        )
+
+        # Add a 50% above line (y = 1.5 * x)
+        fig.add_shape(
+            type='line',
+            x0=min(df[xcol]), y0=1.5 * min(df[xcol]),
+            x1=max(df[xcol]), y1=1.5 * max(df[xcol]),
+            line=dict(color='pink', dash='dot'),
+            name='50% Above'
+        )
+
+        # Add a 10% below line (y = 0.9 * x)
+        fig.add_shape(
+            type='line',
+            x0=min(df[xcol]), y0=0.9 * min(df[xcol]),
+            x1=max(df[xcol]), y1=0.9 * max(df[xcol]),
+            line=dict(color='salmon', dash='dot'),
+            name='10% Below'
+        )
+
+        # Add a 50% below line (y = 0.5 * x)
+        fig.add_shape(
+            type='line',
+            x0=min(df[xcol]), y0=0.5 * min(df[xcol]),
+            x1=max(df[xcol]), y1=0.5 * max(df[xcol]),
+            line=dict(color='pink', dash='dot'),
+            name='50% Above'
+        )
+
+        # Update layout for hover and logarithmic scales
+        pad = 0.1
+        fig.update_layout(
+            width=1000,
+            height=1000,
+            xaxis_type="log",
+            yaxis_type="log",
+            xaxis_title=xlabel,
+            yaxis_title=ylabel,
+            yaxis_range=[np.log10(min(min(df[xcol]),min(df[ycol])))-pad, np.log10(max(max(df[xcol]), max(df[ycol])))+pad],
+            xaxis_range=[np.log10(min(min(df[xcol]),min(df[ycol])))-pad, np.log10(max(max(df[xcol]), max(df[ycol])))+pad],
+            # yaxis_range=[9,12],
+            # xaxis_range=[9,12]
+        )
+
+        # Update layout for hover and aesthetics
+        fig.update_traces(marker=dict(size=10),
+                        selector=dict(mode='markers+text'),
+                        textposition='top center')
+
+        fig.show()
+        fig_name = f'{title}.png'
+        fig_sub_dir = os.path.abspath(os.path.join(output_dir))
+        if not os.path.exists(fig_sub_dir):
+            os.makedirs(fig_sub_dir)
+        fig_path = os.path.join(fig_sub_dir, fig_name)
+        fig.write_image(fig_path)
+        # fig.savefig(fig_path, dpi=600, bbox_inches='tight')
