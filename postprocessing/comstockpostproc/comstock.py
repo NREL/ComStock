@@ -1491,7 +1491,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         out_engy_cons_svgs = []
         out_peak = []
         out_intensity = []
-        out_emissions = []
+        out_ghg_emissions = []
+        out_pollution_emissions = []
         out_utility = []
         out_qoi = []
         out_params = []
@@ -1507,7 +1508,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             elif c.startswith('out.qoi.'):
                 out_qoi.append(c)
             elif c.startswith('out.emissions.'):
-                out_emissions.append(c)
+                out_ghg_emissions.append(c)
+            elif (c.startswith('out.nox_emissions.')
+                  or c.startswith('out.co_emissions.')
+                  or c.startswith('out.pm_emissions.')
+                  or c.startswith('out.so2_emissions.')):
+                out_pollution_emissions.append(c)
             elif c.startswith('out.utility_bills.'):
                 out_utility.append(c)
             elif c.startswith('out.params.'):
@@ -1529,7 +1535,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             else:
                 logger.error(f'Didnt find an order for column: {c}')
 
-        sorted_cols = front_cols + applicability + geogs + ins + out_engy_cons_svgs + out_peak + out_intensity + out_qoi + out_emissions + out_utility + out_params + calc
+        sorted_cols = front_cols + applicability + geogs + ins + out_engy_cons_svgs + out_peak + out_intensity + out_qoi + out_ghg_emissions + out_pollution_emissions + out_utility + out_params + calc
 
         input_df = input_df.select(sorted_cols)
 
