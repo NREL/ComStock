@@ -456,7 +456,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     return model
   end
 
-  def verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path, lookup_table_test = nil)
+  def verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
     # set weather file but not apply measure
     result = set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false, apply: false)
     model = load_model(model_output_path(test_name))
@@ -1291,7 +1291,7 @@ class AddHeatPumpRtuTest < Minitest::Test
         argument_map[arg.name] = temp_arg_var
       end
     end
-    test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path, lookup_table_test = lookup_table_test)
+    test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
     
     # check roof/window measure implementation
     roof_measure_implemented = false
