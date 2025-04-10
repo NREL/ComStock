@@ -436,8 +436,8 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
 
           # Calculate the bills for each applicable electric rate using the PySAM API via python
           rate_results_total = {}
-          rate_results_demandcharge = {}
-          rate_results_toucharge = {}
+          rate_results_demandcharge_flat = {}
+          rate_results_demandcharge_tou = {}
           rate_results_energycharge = {}
           calc_elec_bill_py_path = File.join(File.dirname(__FILE__), 'resources', 'calc_elec_bill.py')
           applicable_rates.each_with_index do |rate_path, i|
@@ -484,13 +484,13 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
               # Adjust the rate for price increases using state averages
               pct_inc = ((2022 - rate_start_year) * state_elec_ann_incr).round(3)
               total_utility_bill_dollars_base_yr = pysam_out['total_utility_bill_dollars'].round.to_i
-              utility_bill_dollars_base_yr_dc = pysam_out['charge_wo_sys_dc_fixed'].round.to_f
-              utility_bill_dollars_base_yr_tou = pysam_out['charge_wo_sys_dc_tou'].round.to_f
+              utility_bill_dollars_base_yr_dc_flat = pysam_out['charge_wo_sys_dc_fixed'].round.to_f
+              utility_bill_dollars_base_yr_dc_tou = pysam_out['charge_wo_sys_dc_tou'].round.to_f
               utility_bill_dollars_base_yr_ec = pysam_out['charge_wo_sys_ec'].round.to_f
               total_utility_bill_dollars_2022 = (total_utility_bill_dollars_base_yr * (1.0 + pct_inc)).round.to_i
               rate_results_total[rate_label] = total_utility_bill_dollars_2022
-              rate_results_demandcharge[rate_label] = utility_bill_dollars_base_yr_dc
-              rate_results_toucharge[rate_label] = utility_bill_dollars_base_yr_tou
+              rate_results_demandcharge_flat[rate_label] = utility_bill_dollars_base_yr_dc_flat
+              rate_results_demandcharge_tou[rate_label] = utility_bill_dollars_base_yr_dc_tou
               rate_results_energycharge[rate_label] = utility_bill_dollars_base_yr_ec
               runner.registerInfo("Bill for #{rate_name}: $#{total_utility_bill_dollars_2022}, adjusted from #{rate_start_year} to 2022 assuming #{pct_inc} increase.")
             else
@@ -503,20 +503,20 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
 
           # Filter reasonable rates
           elec_bills_total = filter_datapoints_with_median_bounds(runner, rate_results_total)
-          elec_bills_demandcharge = filter_datapoints_with_median_bounds(runner, rate_results_demandcharge)
-          elec_bills_toucharge = filter_datapoints_with_median_bounds(runner, rate_results_toucharge)
+          elec_bills_demandcharge_flat = filter_datapoints_with_median_bounds(runner, rate_results_demandcharge_flat)
+          elec_bills_demandcharge_tou = filter_datapoints_with_median_bounds(runner, rate_results_demandcharge_tou)
           elec_bills_energycharge = filter_datapoints_with_median_bounds(runner, rate_results_energycharge)
 
           # Report bill statistics across all applicable electric rates
           stats_total = get_utility_rates_statistics(runner, elec_bills_total)
-          stats_demandcharge = get_utility_rates_statistics(runner, elec_bills_demandcharge)
-          stats_tou = get_utility_rates_statistics(runner, elec_bills_toucharge)
+          stats_demandcharge_flat = get_utility_rates_statistics(runner, elec_bills_demandcharge_flat)
+          stats_demandcharge_tou = get_utility_rates_statistics(runner, elec_bills_demandcharge_tou)
           stats_energycharge = get_utility_rates_statistics(runner, elec_bills_energycharge)
 
           # Concatenate bill statistics in certain format
           electricity_bill_results += stats_total[0..8].join(":") + ":"
-          electricity_bill_results += stats_demandcharge[0..8].join(":") + ":"
-          electricity_bill_results += stats_tou[0..8].join(":") + ":"
+          electricity_bill_results += stats_demandcharge_flat[0..8].join(":") + ":"
+          electricity_bill_results += stats_demandcharge_tou[0..8].join(":") + ":"
           electricity_bill_results += stats_energycharge[0..8].join(":") + ":"
           electricity_bill_results += "#{stats_total[9]}|"
         end
