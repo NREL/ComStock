@@ -850,6 +850,10 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
         path_data_curve = "#{File.dirname(__FILE__)}/resources/150ton_screw_variablespd_acc/results.json"
         custom_data_json = JSON.parse(File.read(path_data_curve))
         cop_full_load = 3.17 # equivalent to full load EER of 10.8
+
+        # set reference operating conditions: air-cooled chiller
+        chiller.setReferenceLeavingChilledWaterTemperature(6.67) # 44F
+        chiller.setReferenceEnteringCondenserFluidTemperature(35.0) # 95F
       when 'WaterCooled'
         if capacity_ton < 150
           # 100ton_centrifugal_variablespd_wcc, curve representing IPLV EER of 24.8
@@ -861,6 +865,10 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
           custom_data_json = JSON.parse(File.read(path_data_curve))
         end
         cop_full_load = 6.83 # equivalent to full load EER of 23.3
+
+        # set reference operating conditions: water-cooled chiller
+        chiller.setReferenceLeavingChilledWaterTemperature(6.67) # 44F
+        chiller.setReferenceEnteringCondenserFluidTemperature(29.4) # 85F
       else
         runner.registerError("#{chiller_condenser_type} chiller not supported in this measure. exiting...")
         return false
@@ -899,11 +907,6 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
       else
         runner.registerInfo("Existing chiller COP (#{chiller.referenceCOP.round(2)}) already higher/better than COP from measure (#{cop_full_load.round(2)}). So, not replacing COP..")
       end
-
-      # set reference operating conditions
-      # AHRI Standard 550/590 at an air on condenser temperature of 95F and a leaving chilled water temperature of 44F
-      chiller.setReferenceLeavingChilledWaterTemperature(6.67) # 44F
-      chiller.setReferenceEnteringCondenserFluidTemperature(35.0) # 95F
     end
 
     # ------------------------------------------------
