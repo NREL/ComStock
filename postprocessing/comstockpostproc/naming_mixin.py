@@ -277,6 +277,15 @@ class NamingMixin():
         'out.utility_bills.electricity_energycharge_bill_median_high..usd',
         'out.utility_bills.electricity_energycharge_bill_median_high_label',
         'out.utility_bills.electricity_energycharge_bill_mean..usd',
+        'out.utility_bills.electricity_fixedcharge_bill_min..usd',
+        'out.utility_bills.electricity_fixedcharge_bill_min_label',
+        'out.utility_bills.electricity_fixedcharge_bill_max..usd',
+        'out.utility_bills.electricity_fixedcharge_bill_max_label',
+        'out.utility_bills.electricity_fixedcharge_bill_median_low..usd',
+        'out.utility_bills.electricity_fixedcharge_bill_median_low_label',
+        'out.utility_bills.electricity_fixedcharge_bill_median_high..usd',
+        'out.utility_bills.electricity_fixedcharge_bill_median_high_label',
+        'out.utility_bills.electricity_fixedcharge_bill_mean..usd',
         'out.utility_bills.electricity_bill_num_bills'
     ]
 
