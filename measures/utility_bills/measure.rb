@@ -61,7 +61,7 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
   end
 
   # return filtered electricity utility rates
-  def filter_datapoints_with_median_bounds(runner, rate_results)
+  def filter_datapoints_with_median_bounds(runner, rate_results, list_of_labels_to_remove, create_list)
     # initialize filtered electricity rate variable
     elec_bills = {}
 
@@ -75,15 +75,26 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
         next
       end
 
+      # if the rate label is considered outlier from total bill stand point, don't include
+      if list_of_labels_to_remove.include?(rate_label)
+        next
+      end
+
       # get median
       mid = bills_sorted.length / 2
       median_bill = bills_sorted.length.odd? ? bills_sorted[mid] : (bills_sorted[mid - 1] + bills_sorted[mid]) / 2.0
 
       # skip outliers
       if bill < 0.25 * median_bill
+        if create_list
+          list_of_labels_to_remove << rate_label
+        end
         runner.registerInfo("Removing #{rate_label}, because bill #{bill} < 0.25 x median #{median_bill}")
         next
       elsif bill > 2.0 * median_bill
+        if create_list
+          list_of_labels_to_remove << rate_label
+        end
         runner.registerInfo("Removing #{rate_label}, because bill #{bill} > 2.0 x median #{median_bill}")
         next
       end
@@ -91,7 +102,8 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
       # include the bill result in bill result statistics
       elec_bills[rate_label] = bill
     end
-    elec_bills
+
+    return elec_bills, list_of_labels_to_remove.uniq
   end
 
   # return applicable utility rates statistics
@@ -506,11 +518,11 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
           end          
 
           # Filter reasonable rates
-          elec_bills_total = filter_datapoints_with_median_bounds(runner, rate_results_total)
-          elec_bills_demandcharge_flat = filter_datapoints_with_median_bounds(runner, rate_results_demandcharge_flat)
-          elec_bills_demandcharge_tou = filter_datapoints_with_median_bounds(runner, rate_results_demandcharge_tou)
-          elec_bills_energycharge = filter_datapoints_with_median_bounds(runner, rate_results_energycharge)
-          elec_bills_fixedcharge = filter_datapoints_with_median_bounds(runner, rate_results_fixedcharge)
+          elec_bills_total, list_of_labels_to_remove = filter_datapoints_with_median_bounds(runner, rate_results_total, [], true)
+          elec_bills_demandcharge_flat, list_of_labels_to_remove = filter_datapoints_with_median_bounds(runner, rate_results_demandcharge_flat, list_of_labels_to_remove, false)
+          elec_bills_demandcharge_tou, list_of_labels_to_remove = filter_datapoints_with_median_bounds(runner, rate_results_demandcharge_tou, list_of_labels_to_remove, false)
+          elec_bills_energycharge, list_of_labels_to_remove = filter_datapoints_with_median_bounds(runner, rate_results_energycharge, list_of_labels_to_remove, false)
+          elec_bills_fixedcharge, list_of_labels_to_remove = filter_datapoints_with_median_bounds(runner, rate_results_fixedcharge, list_of_labels_to_remove, false)
 
           # Report bill statistics across all applicable electric rates
           stats_total = get_utility_rates_statistics(runner, elec_bills_total)
