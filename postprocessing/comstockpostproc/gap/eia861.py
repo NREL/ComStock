@@ -4,6 +4,7 @@ import boto3
 import logging
 import botocore
 import pandas as pd
+from comstockpostproc.naming_mixin import NamingMixin
 from comstockpostproc.s3_utilities_mixin import S3UtilitiesMixin
 
 # Create logger for AWS queries
@@ -28,18 +29,18 @@ TYPES = ['Annual', 'Monthly', 'Short']
 SEGMENTS = ['Commercial', 'Residential', 'Industrial', 'Transportation', 'Total']
 MEASURES = ['Revenues', 'Sales', 'Customers']
 
-class EIA861(S3UtilitiesMixin):
+class EIA861(NamingMixin, S3UtilitiesMixin):
     def __init__(self, truth_data_version='v01', type='Annual', year=2018, reload_from_csv=True, segment='All', measure='All'):
         """
         A class to load and process EIA 861 Annual and Monthly electricity sales data reported from EIA Form 861
         Args:
             truth_data_version (string): The version of EIA truth data. 'v01'
-            type (String): one of 'Annual', 'Monthly' or 'Short'. Default 'Annual'
-            year (Int or String): The reporting year. Ignored if freq='Annual' (defaults to 2018). 
+            type (String): one of 'Annual', 'Monthly', 'Short', or 'Meters'. Default 'Annual'
+            year (Int or String): The reporting year. Ignored if freq='Annual' (defaults to 2018).
                 If freq='Monthly', available years are 2013-2023 or 'All' to receive all.
             reload_from_csv (Bool): reload from processed data if available
             segment (List, String): any of ['Commercial', 'Residential', 'Industrial', 'Transportation', 'Total'], or 'All'
-            measure (List, String): any of ['Revenues', 'Sales', 'Customers'], or 'All'        
+            measure (List, String): any of ['Revenues', 'Sales', 'Customers'], or 'All'
         """
         # initialize members
         self.truth_data_version = truth_data_version
@@ -120,6 +121,12 @@ class EIA861(S3UtilitiesMixin):
             s3_file_path = f'truth_data/{self.truth_data_version}/EIA/EIA Form 861/{self.year}/{truth_data_filename}'
             self.download_truth_data_file(s3_file_path)
             self.data = self.process_short_data(os.path.join(self.truth_data_dir, truth_data_filename))
+
+        elif self.type == 'Meters':
+            truth_data_filename = f'Advanced_Meters_{self.year}.xlsx'
+            s3_file_path = f'truth_data/{self.truth_data_version}/EIA/EIA Form 861/{self.year}/{truth_data_filename}'
+            self.download_truth_data_file(s3_file_path)
+            self.data = self.process_meters_data(os.path.join(self.truth_data_dir, truth_data_filename))
         else:
             logger.error(f'Type argument value {self.type} not supported')
             exit()
@@ -134,7 +141,9 @@ class EIA861(S3UtilitiesMixin):
                 new_cols.append(f'{value[0]}_{value[1]}_{unit}')
         df.columns = new_cols
 
+
     def process_annual_data(self, truth_data_path):
+        logger.info('Loading EIA 861 Annual Sales to Ultimate Consumers data')
         df = pd.read_excel(truth_data_path, sheet_name='States', header=[0,1,2], na_values=['.'])
 
         # rename columns
@@ -176,6 +185,7 @@ class EIA861(S3UtilitiesMixin):
         return df
     
     def process_monthly_data(self):
+        logger.info('Loading EIA 861 Monthly Sales data')
 
         if self.year == 'All':
             file_dict = FILE_DICT
@@ -224,6 +234,7 @@ class EIA861(S3UtilitiesMixin):
         return df
     
     def process_short_data(self, truth_data_path):
+        logger.info('Loading EIA 861 Short Form data')
         df = pd.read_excel(truth_data_path, sheet_name='861S', na_values=['.'])
         df.dropna(subset='Utility Number', inplace=True)
 
@@ -232,3 +243,26 @@ class EIA861(S3UtilitiesMixin):
         df.to_csv(os.path.join(self.processed_dir, self.processed_filename))
         
         return df
+
+    def process_meters_data(self, truth_data_path):
+        logger.info('Loading EIA 861 Advanced Meters data')
+        df = pd.read_excel(truth_data_path, sheet_name='states', header=[0,1], na_values=['.'])
+
+        def rename_meter_cols(df):
+            new_cols = []
+            for value in df.columns.values:
+                if any('Utility Characteristics' in str for str in value):
+                    new_cols.append(value[1])
+                else:
+                    new_cols.append(f'{value[0]}_{value[1]}')
+            df.columns = new_cols
+        
+        rename_meter_cols(df)
+        df = df.dropna(subset='Utility Number')
+        df = df.astype({'Utility Number': int})
+        
+        return df
+
+        
+
+        
