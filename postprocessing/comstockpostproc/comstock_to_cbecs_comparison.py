@@ -200,11 +200,13 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
             lazy_frame=lazy_frame.clone(),
             columns=( [column_for_grouping] + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.CEN_DIV, self.BLDG_TYPE]))(**BASIC_PARAMS)
 
-        logger.info('Making Energy Rate plots')
-        LazyFramePlotter.plot_with_lazy(
-            plot_method=self.plot_energy_rate_boxplots,
-            lazy_frame=lazy_frame.clone(),
-            columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.SUMMARIZE_COLUMNS + self.lazyframe_plotter.WTD_UTILITY_COLUMNS + [column_for_grouping, self.CEN_DIV, self.BLDG_TYPE]))(**BASIC_PARAMS)
+        # TODO Renenable utility rate plots when available
+
+        # logger.info('Making Energy Rate plots')
+        # LazyFramePlotter.plot_with_lazy(
+        #     plot_method=self.plot_energy_rate_boxplots,
+        #     lazy_frame=lazy_frame.clone(),
+        #     columns=(self.lazyframe_plotter.SUMMARIZE_COLUMNS + self.lazyframe_plotter.UTILITY_COLUMNS + self.lazyframe_plotter.WTD_UTILITY_COLUMNS + [column_for_grouping, self.CEN_DIV, self.BLDG_TYPE]))(**BASIC_PARAMS)
 
         if make_hvac_plots:
             logger.info('Making HVAC plots')
