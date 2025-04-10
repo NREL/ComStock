@@ -61,7 +61,8 @@ try:
        'average_rate_dollars_per_kwh': round(ur.Outputs.elec_cost_without_system_year1 / sum(hourly_kwh), 2),
        'charge_wo_sys_dc_fixed': int(round(ur.Outputs.charge_wo_sys_dc_fixed[1],0)),
        'charge_wo_sys_dc_tou': int(round(ur.Outputs.charge_wo_sys_dc_tou[1],0)),
-       'charge_wo_sys_ec': int(round(ur.Outputs.charge_wo_sys_ec[1],0))
+       'charge_wo_sys_ec': int(round(ur.Outputs.charge_wo_sys_ec[1],0)),
+       'charge_wo_sys_fixed_ym': int(round(sum(ur.Outputs.charge_wo_sys_fixed_ym[1]),0))
        }    
 
     print(json.dumps(out))
