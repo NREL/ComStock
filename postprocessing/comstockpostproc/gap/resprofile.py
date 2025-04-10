@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class ResidentialProfile(S3UtilitiesMixin):
-    def __init__(self, truth_data_version='v01', reload_from_saved=True, save_processed=True, resstock_version='2024_amy2018_release_2'):
+    def __init__(self, truth_data_version='v01', reload_from_saved=True, save_processed=True, resstock_version='2024_amy2018_release_2', allocation_method='EIA'):
         """
         A class to generate residential hourly electricity demand profiles by Balancing Authority. Utilizes ResStock results, modified to better match historical
         aggregate load reported from EIA 861.
@@ -26,6 +26,10 @@ class ResidentialProfile(S3UtilitiesMixin):
             truth_data_version: The version of truth data. 'v01'
             reload_from_saved (Bool): reload from processed data if available
             save_processed (Bool): Flag to save out processed files
+            resstock_version (String): The version of ResStock to query
+            allocation_method (String), ['EIA', 'BAGeo'] the method to allocate residential profile from state-level to BA-level. 'EIA' uses EIA861 data mapping of 
+                residential sales from state to BA. 'BAGeo' uses BA geography derived from Electric Retail Service Territories and the total Residential structure floor area
+                from the Structures dataset. 'EIA' is preferred
 
         Attributes:
             data (DataFrame): Hourly residential electric load profiles, based on national ResStock simulation results, apportioned to Balancing Authority territories
@@ -36,6 +40,7 @@ class ResidentialProfile(S3UtilitiesMixin):
         self.save_processed = save_processed
         self.resstock_version = resstock_version
         self.resstock_profiles_filename = f"resstock_{self.resstock_version}_load_by_state"
+        self.allocation_method = allocation_method
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
         self.truth_data_dir = os.path.join(current_dir, '..', '..', 'truth_data', self.truth_data_version)
@@ -329,7 +334,7 @@ class ResidentialProfile(S3UtilitiesMixin):
         An alternate approach would be to use the count of Residential customers from EIA data in each BA by state, but this wouldn't include utilities that report in the Short EIA 861 data.
         """
 
-        processed_filename = 'res_ba_profiles.parquet'
+        processed_filename = f'res_ba_profiles_{self.allocation_method}.parquet'
         processed_path = os.path.join(self.processed_dir, processed_filename)
         if self.reload_from_saved: 
             if os.path.exists(processed_path):
@@ -342,38 +347,73 @@ class ResidentialProfile(S3UtilitiesMixin):
         # load corrected profiles
         res_hourly_by_state_corrected = self.adjust_state_residential_profiles()
 
-        # load county to BA mapping
-        ba_tract_areas = BAGeography().balancing_authority_bldg_areas_data()
-        ba_tract_res_areas = ba_tract_areas.loc[:,'Residential'].to_frame()
+        if self.allocation_method == 'BAGeo':
+            logger.info('Allocating Residential profiles from state to BA based on BA Mapping and Structures data.')
+            # load county to BA mapping
+            ba_tract_areas = BAGeography().balancing_authority_bldg_areas_data()
+            ba_tract_res_areas = ba_tract_areas.loc[:,'Residential'].to_frame()
 
-        # merge tract data to state
-        ba_tract_res_areas['state_fips'] = ba_tract_res_areas.index.get_level_values('CENSUSCODE').str[:2]
-        ba_tract_res_areas.set_index('state_fips', append=True, inplace=True)
-        ba_state_areas = ba_tract_res_areas.groupby(['BA Code', 'state_fips']).sum()
+            # merge tract data to state
+            ba_tract_res_areas['state_fips'] = ba_tract_res_areas.index.get_level_values('CENSUSCODE').str[:2]
+            ba_tract_res_areas.set_index('state_fips', append=True, inplace=True)
+            ba_state_areas = ba_tract_res_areas.groupby(['BA Code', 'state_fips']).sum()
 
-        # get fips to abbrev map and group BA areas by state abbrev
-        state_labels = self.read_delimited_truth_data_file_from_S3(f'truth_data/{self.truth_data_version}/national_state2020.txt', '|')
-        state_labels['STATEFP'] = state_labels['STATEFP'].astype(str).str.zfill(2)
-        state_labels = state_labels[['STATE','STATEFP']].set_index('STATEFP')
+            # get fips to abbrev map and group BA areas by state abbrev
+            state_labels = self.read_delimited_truth_data_file_from_S3(f'truth_data/{self.truth_data_version}/national_state2020.txt', '|')
+            state_labels['STATEFP'] = state_labels['STATEFP'].astype(str).str.zfill(2)
+            state_labels = state_labels[['STATE','STATEFP']].set_index('STATEFP')
 
-        ba_state_areas = ba_state_areas.join(state_labels, on='state_fips')
-        ba_state_areas.set_index([ba_state_areas.index.get_level_values(level=0), 'STATE'], inplace=True)
-        ba_state_areas = ba_state_areas.reorder_levels(['STATE', 'BA Code'])
-        ba_state_areas.sort_index(inplace=True)
+            ba_state_areas = ba_state_areas.join(state_labels, on='state_fips')
+            ba_state_areas.set_index([ba_state_areas.index.get_level_values(level=0), 'STATE'], inplace=True)
+            ba_state_areas = ba_state_areas.reorder_levels(['STATE', 'BA Code'])
+            ba_state_areas.sort_index(inplace=True)
 
-        # residential areas for each BA in each state
-        res_ba_areas = ba_state_areas.loc[:, 'Residential'].to_frame()
+            # residential areas for each BA in each state
+            res_ba_areas = ba_state_areas.loc[:, 'Residential'].to_frame()
 
-        # total areas by state
-        state_res_areas = ba_state_areas.groupby(['STATE'])['Residential'].sum().to_frame()
+            # total areas by state
+            state_res_areas = ba_state_areas.groupby(['STATE'])['Residential'].sum().to_frame()
 
-        # fractions of total state residential area in each BA
-        res_ba_areas['area_frac'] = res_ba_areas.divide(state_res_areas, level=0)
+            # fractions of total state residential area in each BA
+            # res_ba_areas['ba_fraction'] = res_ba_areas.divide(state_res_areas, level=0)
+            res_ba_fracs = res_ba_areas.divide(state_res_areas, level=0)
+            res_ba_fracs.rename(columns={'Residential': 'ba_fraction'}, inplace=True)
+            
+            # return res_ba_fracs
+        
+        elif self.allocation_method == 'EIA':
+            logger.info('Allocating Residential profiles from state to BA based on EIA 861 reported data.')
+            # load EIA Residential sales
+            eia_861_res_sales = EIA861(type='Annual', segment='Residential', measure='Sales').data
+
+            # remove part C, Behind the Meter, and Adjustments
+            mask = (
+                (eia_861_res_sales['Part'] != 'C') &
+                (eia_861_res_sales['Ownership'] != 'Behind the Meters') &
+                (eia_861_res_sales['Utility Number'] != 99999)
+            )
+            eia_861_res_sales = eia_861_res_sales.loc[mask]
+
+            # TODO: include Short data?
+
+            res_861_state_ba = eia_861_res_sales.groupby(['State', 'BA Code'])['RESIDENTIAL_Sales_MWh'].sum().to_frame()
+
+            res_861_state_totals = eia_861_res_sales.groupby('State')['RESIDENTIAL_Sales_MWh'].sum().to_frame()
+
+            res_ba_fracs = res_861_state_ba.divide(res_861_state_totals, level=0)
+            res_ba_fracs.rename(columns={'RESIDENTIAL_Sales_MWh':'ba_fraction'}, inplace=True)
+            res_ba_fracs.drop(['AK', 'HI'], level='State', inplace=True)
+
+            # return res_ba_fracs
+
+        else:
+            logger.error(f'Cannot allocate residential profiles to BA with method {self.allocation_method} - not supported')
+            exit()
 
         # multiply State BA fractions by State profiles to get State BA profiles
         res_ba_state_profiles_data = {}
-        for idx, row in res_ba_areas.iterrows():
-            res_ba_state_profiles_data[idx] = res_hourly_by_state_corrected[idx[0]].mul(row['area_frac'])
+        for idx, row in res_ba_fracs.iterrows():
+            res_ba_state_profiles_data[idx] = res_hourly_by_state_corrected[idx[0]].mul(row['ba_fraction'])
 
         res_ba_state_profiles = pd.DataFrame(res_ba_state_profiles_data)
 
