@@ -69,7 +69,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.ejscreen_file_name = 'EJSCREEN_Tract_2020_USPR.csv'
         self.egrid_file_name = 'egrid_emissions_2019.csv'
         self.cejst_file_name = '1.0-communities.csv'
-        self.geospatial_lookup_file_name = 'spatial_tract_lookup_table_publish_v6.csv'
+        self.geospatial_lookup_file_name = 'spatial_tract_lookup_table_publish_v8.csv'
         self.tract_to_util_map_file_name = 'tract_to_elec_util.csv'
         self.hvac_metadata_file_name = 'hvac_metadata.csv'
         self.rename_upgrades = rename_upgrades
@@ -178,7 +178,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 # Calculate/generate columns based on imported columns
                 # self.add_aeo_nems_building_type_column()  # TODO POLARS figure out apply function
                 self.add_missing_energy_columns()
-                # self.combine_utility_cols()
                 self.add_enduse_total_energy_columns()
                 self.add_energy_intensity_columns()
                 self.add_normalized_qoi_columns()
@@ -272,6 +271,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             logger.info(f'sampling_file_path: {sampling_file_path}')
             if os.path.exists(sampling_file_path):
                 shutil.copy(sampling_file_path, geospatial_data_path)
+            else:
+                logger.error(f'Could not find {self.geospatial_lookup_file_name} at {sampling_file_path}.')
+                raise FileNotFoundError(
+                    f'Could not find {self.geospatial_lookup_file_name} at {sampling_file_path}.'
+                )
 
         # Get data on the s3 resource to download data from:
         if self.s3_inpath is None:
@@ -493,7 +497,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Read the buildstock.csv to determine number of simulations expected
         buildstock = pl.read_csv(os.path.join(self.data_dir, self.buildstock_file_name), infer_schema_length=50000)
         buildstock = buildstock.rename({'Building': 'sample_building_id'})
-        
+
 
         # if "sample_building_id" not in buildstock:
 
@@ -537,9 +541,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 if 'applicable' in c:
                     logger.debug(f'For {c}: Nulls set to False in upgrade, and its type is {dt}')
                     #If the data type is something not String
-                    if dt in (pl.Null, pl.Boolean, 
+                    if dt in (pl.Null, pl.Boolean,
                               pl.Int8, pl.Int16, pl.Int32, pl.Int64,
-                              pl.UInt8, pl.UInt16, pl.UInt32, pl.UInt64, pl.Float32, pl.Float64): 
+                              pl.UInt8, pl.UInt16, pl.UInt32, pl.UInt64, pl.Float32, pl.Float64):
                         logger.debug(f'For {c}: Nulls set to False (Boolean) in baseline')
                         up_res = up_res.with_columns([pl.col(c).fill_null(pl.lit(False))])
                     elif dt in (pl.Utf8, pl.Categorical):
@@ -2029,6 +2033,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Create an aggregation for each upgrade
         up_aggs = []
         agg_cols = [self.CZ_ASHRAE, self.CEN_DIV]
+        baseline_fkt_plus = None
         for upgrade_id in upgrade_ids:
 
             # Get the fkt and self.data for this upgrade
@@ -2036,11 +2041,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             up_data = self.data.filter((pl.col(self.UPGRADE_ID) == upgrade_id))  # .collect()
 
             # Filter to this geography, downselect columns, create savings columns, and downselect columns
-            up_agg = self.create_geospatial_slice_of_metadata(up_geo_data,
-                                                              up_data,
-                                                              geography_filters={},
-                                                              geographic_aggregation_levels=agg_cols,
-                                                              column_downselection=None)
+            up_agg, baseline_fkt_plus = self.create_geospatial_slice_of_metadata(up_geo_data,
+                                                                                up_data,
+                                                                                baseline_fkt_plus,
+                                                                                geography_filters={},
+                                                                                geographic_aggregation_levels=agg_cols,
+                                                                                column_downselection=None)
             up_aggs.append(up_agg)
 
         # Combine all upgrades into a single LazyFrame
@@ -2167,42 +2173,102 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # At this point the geo_data has a tract for each building (row)
         # Join the utility bill columns with data about all utilites onto this
         # Include building floor area for utility cost intenstity calcs
-        util_results_cols = [pl.col(c) for c in self.COLS_UTIL_BILL_RESULTS] + [self.FLR_AREA]
-        util_results = meta_data.select(
-            [pl.col(self.BLDG_ID), pl.col(self.UPGRADE_NAME)] + util_results_cols
+        util_bills_by_eia_id = meta_data.select(
+            [self.BLDG_ID, self.UTIL_BILL_ELEC_RESULTS, self.FLR_AREA]
         )
-        
-        geo_data = geo_data.join(util_results, on=self.BLDG_ID, how='left')
+        # util_bills_by_eia_id = util_bills_by_eia_id.collect().lazy()  # TODO may help memory pressure?
 
-        # load tract to utility mapping 
+        # load tract to utility mapping
         file_path = os.path.join(self.truth_data_dir, self.tract_to_util_map_file_name)
         tract_to_util_map = pl.scan_csv(file_path)
 
         # add eia utility id
         geo_data = geo_data.join(tract_to_util_map, on=self.TRACT_ID, how='left')
 
-        # For each row, select the utility bill based on the ID based on the allocated tract
-        bills_expr = r"\|{}:(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?)\|"
+        # Create a new row for each Building ID x EIA ID combination
+        util_bills_by_eia_id = util_bills_by_eia_id.with_columns(
+            pl.col(self.UTIL_BILL_ELEC_RESULTS).str.strip_chars_start('|').str.strip_chars_end('|').str.split('|')
+        ).explode(self.UTIL_BILL_ELEC_RESULTS)
 
-        geo_data = geo_data.with_columns(
-            [pl.col(self.UTIL_BILL_ELEC_RESULTS)
-               .str
-               .extract(pl.format(bills_expr, pl.col(self.UTIL_BILL_EIA_ID)), i+1)
-               .alias(column)
-            for i, column in enumerate(self.UTIL_ELEC_BILL_VALS)]
+        # Split the values into a temporary list column
+        tsc = 'tsc'
+        util_bills_by_eia_id = util_bills_by_eia_id.with_columns(
+            pl.col(self.UTIL_BILL_ELEC_RESULTS).str.split(":").alias(tsc)
         )
-        
-        # for each row, select the state average utility cost based on the allocated state
-        state_expr = r"\|{}:(.+?)\|"
 
-        geo_data = geo_data.with_columns(
-            [pl.col(result)
-               .str
-               .extract(pl.format(state_expr, pl.col(self.STATE_ABBRV)), 1)
-               .cast(pl.Int32)
-               .alias(column)
-            for result, column in dict(zip(self.COLS_STATE_UTIL_RESULTS, self.COST_STATE_UTIL_COSTS)).items()]
+        # Define column names based on  measure output
+        # NOTE: Column name order must match the order in utility_bills/measure.rb!
+        new_util_columns = [self.UTIL_BILL_EIA_ID] + self.UTIL_ELEC_BILL_VALS
+        util_bills_by_eia_id = util_bills_by_eia_id.with_columns(
+            pl.col(tsc).list.to_struct("max_width", new_util_columns)
+        ).unnest(tsc)
+        # NOTE: need to do this otherwise the lazyframe query optimization breaks down
+        util_bills_by_eia_id = util_bills_by_eia_id.collect().lazy()
+
+        # Replace empty strings with nulls in the new columns
+        util_bills_by_eia_id = util_bills_by_eia_id.with_columns(
+            [pl.when(pl.col(new_col) == "")
+            .then(None)
+            .otherwise(pl.col(new_col))
+            .alias(new_col)
+            for new_col in new_util_columns]
         )
+
+        # Convert the EIA ID and bill column dtypes to integers
+        cols_to_int = [c for c in self.UTIL_ELEC_BILL_VALS if '..usd' in c]
+        cols_to_int.append(self.UTIL_BILL_EIA_ID)
+        util_bills_by_eia_id = util_bills_by_eia_id.with_columns(
+            [pl.col(column).cast(pl.Int64) for column in cols_to_int]
+        )
+
+        # Join the utility bills onto each building based on utility ID
+        geo_data = geo_data.join(util_bills_by_eia_id, on=[self.BLDG_ID, self.UTIL_BILL_EIA_ID], how='left')
+
+        # Loop through each fuel and assign state-level bills to each building
+        for col_state_util_result, col_state_util_bill in dict(zip(self.COLS_STATE_UTIL_RESULTS, self.COST_STATE_UTIL_COSTS)).items():
+
+            # Get the utility bills data for this fuel
+            util_bills_by_state = meta_data.select(
+                [self.BLDG_ID, col_state_util_result]
+            )
+            # util_bills_by_state = util_bills_by_state.collect().lazy()  # TODO may help memory pressure?
+
+            # Create a new row for each Building ID x State combination
+            util_bills_by_state = util_bills_by_state.with_columns(
+                pl.col(col_state_util_result).str.strip_chars_start('|').str.strip_chars_end('|').str.split('|')
+            ).explode(col_state_util_result)
+
+            # Split the values into a temporary list column
+            tsc = 'tsc'
+            util_bills_by_state = util_bills_by_state.with_columns(
+                pl.col(col_state_util_result).str.split(":").alias(tsc)
+            )
+
+            # Define column names based on  measure output
+            # NOTE: Column name order must match the order in utility_bills/measure.rb!
+            new_util_columns = [self.STATE_ABBRV, col_state_util_bill]
+            util_bills_by_state = util_bills_by_state.with_columns(
+                pl.col(tsc).list.to_struct("max_width", new_util_columns)
+            ).unnest(tsc)
+            # NOTE: need to do this otherwise the lazyframe query optimization breaks down
+            util_bills_by_state = util_bills_by_state.collect().lazy()
+
+            # Replace empty strings with nulls in the new columns
+            util_bills_by_state = util_bills_by_state.with_columns(
+                [pl.when(pl.col(new_col) == "")
+                .then(None)
+                .otherwise(pl.col(new_col))
+                .alias(new_col)
+                for new_col in new_util_columns]
+            )
+
+            # Convert the bill column dtype to integer
+            util_bills_by_state = util_bills_by_state.with_columns(
+                [pl.col(col_state_util_bill).cast(pl.Int64)]
+            )
+
+            # Join the utility bills onto each building based on utility ID
+            geo_data = geo_data.join(util_bills_by_state, on=[self.BLDG_ID, self.STATE_ABBRV], how='left')
 
         # fill missing utility bill costs with state average
         geo_data = geo_data.with_columns(
@@ -2216,19 +2282,26 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     )
             for column in self.UTIL_ELEC_BILL_VALS]
         )
-        
+
+        geo_data = geo_data.with_columns(
+            [pl.col(column).cast(pl.Int64) for column in self.UTIL_ELEC_BILL_COSTS]
+        )
+
+        # Create combined utility column for mean electricity rate
+        geo_data = geo_data.with_columns(pl.sum_horizontal(self.COLS_UTIL_BILLS).alias(self.UTIL_BILL_TOTAL_MEAN))
+
         # calculate the weighted utility bill columns directly on the fkt
         conv_fact = self.conv_fact('usd', self.weighted_utility_units)
-        cost_cols = (self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS)
+        cost_cols = (self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS + [self.UTIL_BILL_TOTAL_MEAN])
         for col in cost_cols:
             # get weighted col name
             weighted_col_name = self.col_name_to_weighted(col, self.weighted_utility_units)
             self.unweighted_weighted_map.update({col: weighted_col_name})
-        
+
         # calculate weighted utility costs
         geo_data = geo_data.with_columns(
             [pl.col(col)
-               .cast(pl.Int32)
+               .cast(pl.Int64)
                .mul(pl.col(self.BLDG_WEIGHT))
                .mul(conv_fact)
                .alias(self.unweighted_weighted_map[col])
@@ -2247,10 +2320,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.unweighted_weighted_map.update({self.UTIL_ELEC_BILL_NUM_BILLS: self.col_name_to_weighted(self.UTIL_ELEC_BILL_NUM_BILLS)})
 
         # get upgrade ID
-        upgrade_id_frame = geo_data.collect().select(pl.col(self.UPGRADE_ID)).cast(pl.Int32).unique()
+        up_id_list = geo_data.select([pl.col(self.UPGRADE_ID)]).collect().get_column(self.UPGRADE_ID).unique().to_list()
         # should be a single value
-        assert upgrade_id_frame.select(pl.len()).item() == 1
-        upgrade_id = upgrade_id_frame.item()
+        assert len(up_id_list) == 1
+        upgrade_id = int(up_id_list[0])
 
         logger.info(f'Creating geospatial slice for upgrade: {upgrade_id}')
 
@@ -2267,8 +2340,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # aggregate the fkt weights (and and weighted utility bill results) to input geospatial resolutions
         geo_data = geo_data.select(
             [
-                pl.col(self.BLDG_WEIGHT), 
-                pl.col(self.UPGRADE_ID), 
+                pl.col(self.BLDG_WEIGHT),
+                pl.col(self.UPGRADE_ID),
                 pl.col(self.BLDG_ID),
                 pl.col(self.FLR_AREA)
             ]
@@ -2276,9 +2349,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             + weighted_util_cols
         ).groupby(
             [
-                pl.col(self.UPGRADE_ID), 
+                pl.col(self.UPGRADE_ID),
                 pl.col(self.BLDG_ID)
-            ] 
+            ]
             + geo_agg_cols
         ).agg(
             [
@@ -2318,7 +2391,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # remove utility cols from unweighted_weighted_map
         for col in (cost_cols + [self.UTIL_ELEC_BILL_NUM_BILLS]):
             self.unweighted_weighted_map.pop(col, None)
-        
+
         logger.info("Calculating weighted energy savings columns")
         # Calculate the weighted columns
         geo_data = self.add_weighted_area_energy_savings_columns(geo_data)
@@ -2723,7 +2796,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.BLDG_ID, self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.SAMPLING_REGION, self.CZ_ASHRAE,
                 self.BLDG_TYPE, self.HVAC_SYS, self.SH_FUEL, self.SIZE_BIN, self.FLR_AREA, self.TOT_EUI, self.CEN_DIV
             ))
-            
+
             # raise Exception(f"columns in self.data are {list(self.data.columns)} and we are looking for {list([self.BLDG_ID, self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.SAMPLING_REGION, self.CZ_ASHRAE, self.BLDG_TYPE, self.HVAC_SYS, self.SH_FUEL, self.SIZE_BIN, self.FLR_AREA, self.TOT_EUI, self.CEN_DIV])}")
 
             # If anything in this selection is null we're smoked so check twice and fail never
@@ -2770,7 +2843,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             missing_groups = set(truth_groups) - set(csdf_groups)
             unable_to_match = tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups)).select(pl.len()).collect().item()
             total_to_match = tdf.select(pl.len()).collect().item()
-            logger.info(f'Unable to match {unable_to_match} out of {total_to_match} truth data.')
+            pct_unmatched = (unable_to_match / total_to_match) * 100
+            logger.info(f'Unable to match {unable_to_match:,} out of {total_to_match:,} truth data ({pct_unmatched:.2f}%).')
+            if pct_unmatched > 25:
+                logger.error(f'The percent of unmatched truth data is very high ({pct_unmatched:.2f}%), consider this when reviewing results.')
 
             # Provide detailed additional info on missing buckets for review if desired
             logger.info(f'Writing QAQC / Debugging files to {os.path.abspath(self.output_dir)}')
@@ -3037,7 +3113,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         assert isinstance(input_lf, pl.LazyFrame)
 
-        result_cols = self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS
+        result_cols = self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS + [self.UTIL_BILL_TOTAL_MEAN]
         abs_svgs_cols = {}
         pct_svgs_cols = {}
 
@@ -3059,11 +3135,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             for weighted_col in (list(abs_svgs_cols.values()) + list(pct_svgs_cols.values())):
                 input_lf = input_lf.with_columns(pl.lit(0.0).alias(weighted_col))
             return input_lf
-        
 
         val_and_id_cols = val_cols + geo_agg_cols + [self.BLDG_ID]
-        # for col in val_and_id_cols:
-        #     print(col)
 
         base_vals = baseline_lf.select(val_and_id_cols).sort([self.BLDG_ID] + geo_agg_cols).clone()
         base_vals = base_vals.rename(lambda col_name: col_name + '_base')
@@ -3072,19 +3145,19 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # absolute savings
         abs_svgs = pl.concat([up_vals, base_vals], how='horizontal').with_columns(
-            [pl.col(f'{col}_base') - pl.col(col) for col in val_cols]
-        ).select(up_vals.columns)
+            [(pl.col(f'{col}_base') - pl.col(col)).alias(abs_svgs_cols[col]) for col in val_cols]
+        ).select(list(abs_svgs_cols.values()) + geo_agg_cols + [self.BLDG_ID])
 
         # percent savings
         pct_svgs = pl.concat([up_vals, base_vals], how='horizontal').with_columns(
-            [(pl.col(f'{col}_base') - pl.col(col)) / pl.col(f'{col}_base') for col in val_cols]
-        ).select(up_vals.columns)
+            [((pl.col(f'{col}_base') - pl.col(col)) / pl.col(f'{col}_base')).alias(pct_svgs_cols[col]) for col in val_cols]
+        ).select(list(pct_svgs_cols.values()) + geo_agg_cols + [self.BLDG_ID])
 
         pct_svgs = pct_svgs.fill_null(0.0)
         pct_svgs = pct_svgs.fill_nan(0.0)
 
-        abs_svgs = abs_svgs.rename(abs_svgs_cols).cast({self.BLDG_ID: pl.Int64})
-        pct_svgs = pct_svgs.rename(pct_svgs_cols).cast({self.BLDG_ID: pl.Int64})
+        abs_svgs = abs_svgs.cast({self.BLDG_ID: pl.Int64})
+        pct_svgs = pct_svgs.cast({self.BLDG_ID: pl.Int64})
 
         input_lf = input_lf.join(abs_svgs, how='left', on=[self.BLDG_ID] + geo_agg_cols)
         input_lf = input_lf.join(pct_svgs, how='left', on=[self.BLDG_ID] + geo_agg_cols)
