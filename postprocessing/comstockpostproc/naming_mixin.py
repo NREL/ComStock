@@ -33,6 +33,7 @@ class NamingMixin():
     META_IDX = 'metadata_index'
     DIVISION = 'Division'
     MONTH = 'Month'
+    UTIL_ID = 'in.electric_utility_eia_code'
 
     # Variables needed by the apportionment sampling regime
     SAMPLING_REGION = 'in.sampling_region_id'
