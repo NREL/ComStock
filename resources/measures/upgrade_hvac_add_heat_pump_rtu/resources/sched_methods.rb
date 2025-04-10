@@ -203,7 +203,6 @@ def make_ruleset_sched_from_8760(model, runner, values, sch_name, sch_type_limit
         sch_rule.setEndDate(end_date)
       end
     else
-      runner.registerInfo('in else')
       # Create a new week schedule for this week
       num_week_scheds += 1
       week_sch_name = sch_name + '_ws' + num_week_scheds.to_s
