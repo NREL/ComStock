@@ -1,14 +1,18 @@
 import os
+import sys
 import boto3
 import logging
 import botocore
 import calendar
+import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 from better.model import InverseModel
 from buildstock_query import BuildStockQuery
 from comstockpostproc.gap.eia861 import EIA861
 from comstockpostproc.gap.degreedays import DegreeDays
 from comstockpostproc.gap.ba_geography import BAGeography
+from comstockpostproc.gap.gap_plotting_mixin import GapPlottingMixin
 
 from comstockpostproc.s3_utilities_mixin import S3UtilitiesMixin
 
@@ -16,7 +20,7 @@ from comstockpostproc.s3_utilities_mixin import S3UtilitiesMixin
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class ResidentialProfile(S3UtilitiesMixin):
+class ResidentialProfile(GapPlottingMixin,S3UtilitiesMixin):
     def __init__(self, truth_data_version='v01', reload_from_saved=True, save_processed=True, resstock_version='2024_amy2018_release_2', allocation_method='EIA'):
         """
         A class to generate residential hourly electricity demand profiles by Balancing Authority. Utilizes ResStock results, modified to better match historical
@@ -50,9 +54,19 @@ class ResidentialProfile(S3UtilitiesMixin):
 
         self.processed_dir = os.path.join(self.truth_data_dir, 'gap_processed')
         self.output_dir = os.path.join(current_dir, 'output')
+        
+        self.states_to_plot = ['CA', 'CO', 'FL', 'IL', 'MN', 'NY', 'TX', 'WA']
 
         # calculate BA profiles
         self.data = self.res_ba_profiles()
+
+        # plot_output_dir = os.path.join(self.output_dir, 'resprofile_plots')
+        # if not os.path.exists(plot_output_dir):
+        #     os.makedirs(plot_output_dir)
+        
+        # for state in self.states_to_plot:
+        #     self.plot_monthly_adjustment_comparison_for_state(state, plot_output_dir)
+
 
     def resstock_net_elec_timestep(self):
         """
@@ -222,7 +236,7 @@ class ResidentialProfile(S3UtilitiesMixin):
 
         # get number of days in month
         def days_in_month(month):
-            return calendar.monthrange(20118, month)[1]
+            return calendar.monthrange(2018, month)[1]
         
         # calculate daily adjustments to raw resstock by finding the 5P model that fits the daily resstock data compared to daily state population-weighted average temps,
         # and adjusting to fit the 5P model found by comparing 10 years of EIAM data agianst monthly average population-weighted temps
@@ -289,26 +303,55 @@ class ResidentialProfile(S3UtilitiesMixin):
             res_df[f'{col}_scaling_factors'] = eia_model_outputs / res_model_outputs
             res_df['scaled_kWh per day per customer'] = res_df['kWh per day per customer'] * res_df[f'{col}_scaling_factors']
 
-            # TODO: Plot origianal and scaled resstock values
-
             # write model parameters to dataframe
-            model_df = pd.DataFrame(
-                data={col: list(eia_model.model_p) + [eia_model.R_Squared(), eia_model.rmse()]},
-                index = [
-                    'base (kWh/day/customer)',
-                    'heating change temp (F)',
-                    'heating slope (kWh/day/customer/F)',
-                    'cooling change temp (F)',
-                    'cooling slope (kWh/day/customer/F)',
-                    'r2',
+
+            index = [
+                    'Heating change temp (F)',
+                    'Cooling change temp (F)',
+                    'Base Load (kWh/day/customer)',
+                    'Heating slope (kWh/day/customer/F)',
+                    'Cooling slope (kWh/day/customer/F)',
+                    'R2',
                     'RMSE'
                 ]
+            
+            rounding = pd.Series([1, 1, 2, 2, 2, 2, 3], index=index)
+            model_df = pd.DataFrame(
+                data={
+                    f'{col} EIA Reported': list(eia_model.model_p) + [eia_model.R_Squared(), eia_model.rmse()],
+                    f'{col} ResStock': list(res_model.model_p) + [res_model.R_Squared(), res_model.rmse()]
+                    },
+                index = index
             )
 
             # create scaling factors dataframe
             res_df.rename(columns={f'{col}_scaling_factors': col}, inplace=True)
             res_daily_corrections = pd.concat([res_daily_corrections, res_df[col]], axis=1)
             model_params = pd.concat([model_params, model_df], axis=1)
+
+            model_df = model_df.T.round(rounding).T
+            # plot model against data
+            if state in self.states_to_plot:
+                # get resstock monthly average consumption per customer and temps
+                res_df_monthly = res_df[['kWh' ,'customer_ct']].copy().resample('ME').agg({'kWh': 'sum', 'customer_ct': 'mean'})
+                res_df_monthly.set_index(res_df_monthly.index.month, drop=True, inplace=True)
+
+                print(res_df_monthly)
+                eia_df_18 = eia_df.reset_index(names=['Year', 'Month'])
+                eia_df_18 = eia_df_18.loc[eia_df_18['Year'] == 2018].copy()
+                eia_df_18.set_index(eia_df_18['Month'], drop=True, inplace=True)
+
+                print(eia_df_18)
+                eia_df_18 = eia_df_18[['avg_temp', 'num_days']]
+
+                res_df_monthly = res_df_monthly.merge(eia_df_18, left_index=True, right_index=True)
+
+                res_df_monthly['kWh per day per customer'] = res_df_monthly['kWh'] / res_df_monthly['num_days'] /res_df_monthly['customer_ct']
+
+                print(res_df_monthly)
+
+                self.plot_inverse_models(state, res_model, eia_model, model_df, res_df_monthly)
+                # self.plot_original_and_adjusted_daily_scatter(col, res_df)
 
         self.regression_model_params = model_params
 
@@ -428,11 +471,170 @@ class ResidentialProfile(S3UtilitiesMixin):
 
         return res_ba_profiles
 
+    def plot_monthly_adjustment_comparison_for_state(self, state, output_dir):
+        """
+        Plots the monthly raw and adjusted ResStock electricity by state against the monthly EIA data
+        """
+        # raw hourly resstock profiles
+        resstock_hourly_by_state = self.resstock_hourly_by_state()
+        resstock_hourly_by_state = resstock_hourly_by_state.pivot_table(index='rounded_hour', columns='state', values='total_net_electricity')
+        resstock_hourly_by_state = resstock_hourly_by_state.shift(-1, freq='h')
 
+        if state not in resstock_hourly_by_state.columns:
+            logger.error(f'{state} not found in ResStock data')
+            return
 
+        resstock_monthly_by_state = resstock_hourly_by_state.resample('ME').sum()
 
+        # load monthly historical EIA 861 data
+        eia_monthly_res = EIA861(type='Monthly', year='2018', segment='Residential', measure='Sales').data
+        eia_state_monthly = eia_monthly_res.pivot_table(index='Month', columns='State', values='RESIDENTIAL_Sales_MWh', aggfunc='sum')
+        eia_state_monthly.index = eia_state_monthly.index.astype(int)
+        eia_state_monthly = eia_state_monthly.loc[:, state].copy().to_frame()     
+    
+        state_orig = resstock_monthly_by_state.loc[:, state].copy().to_frame()
+        state_orig.set_index(state_orig.index.month, drop=True, inplace=True)
+        state_orig = state_orig / 1e3 # convert to MWh
 
+        self.plot_side_by_side_bar_charts(
+            state_orig, 
+            eia_state_monthly, 
+            'ResStock Unmodified', 
+            'EIA-861M 2018', 
+            f'{state}_resstock_vs_eia_monthly',
+            output_dir
+        )
 
+        # load adjusted profiles
+        resstock_hourly_by_state_corrected = self.adjust_state_residential_profiles()
+        resstock_hourly_by_state_corrected = resstock_hourly_by_state_corrected.shift(-1, freq='h')
 
+        resstock_monthly_by_state_corrected = resstock_hourly_by_state_corrected.resample('ME').sum()
 
+        state_adj = resstock_monthly_by_state_corrected.loc[:, state].copy().to_frame()
+        state_adj.set_index(state_adj.index.month, drop=True, inplace=True)
+        state_adj = state_adj / 1e3
+
+        self.plot_side_by_side_bar_charts(
+            state_adj, 
+            eia_state_monthly, 
+            'ResStock Adjusted', 
+            'EIA-861M 2018', 
+            f'{state}_resstock_adjusted_vs_eia_monthly',
+            output_dir
+        )
+
+        return
+    
+    def plot_original_and_adjusted_daily_scatter(self, state, res_df):
+        """
+        Plots the original and adjusted ResStock data against the EIA 861 data for a given state
+        """
+        res_df['month_name'] = res_df.index.to_series().apply(lambda x: pd.to_datetime(str(x.month), format='%m').strftime('%b'))
+
+        orig_cmap = plt.get_cmap('Blues', len(res_df['month_name'].unique()))
+        adj_cmap = plt.get_cmap('Oranges', len(res_df['month_name'].unique()))
+
+        fig, ax = plt.subplots(figsize=(14, 6))
+
+        # plot original data
+        orig = ax.scatter(
+            res_df['avg_temp'], 
+            res_df['kWh per day per customer'], 
+            c=res_df.index.month, 
+            cmap=orig_cmap, 
+            # alpha=0.5,
+            s=5
+        )
+        
+        # plot adjusted data
+        adj = ax.scatter(
+            res_df['avg_temp'],
+            res_df['scaled_kWh per day per customer'],
+            c=res_df.index.month,
+            cmap=adj_cmap,
+            # alpha=0.5,
+            s=5
+        )
+
+        adj_cbar = fig.colorbar(adj, ax=ax, ticks=list(range(1, 13)), pad=0, orientation='horizontal', aspect=40)
+        xticks = np.linspace(*adj_cbar.ax.get_xlim(), orig_cmap.N+1)[:-1]
+        xticks += (xticks[1] - xticks[0]) / 2
+
+        adj_cbar.ax.get_xaxis().set_ticks([])
+        for i, label in enumerate(calendar.month_abbr[1:]):
+            adj_cbar.ax.text(xticks[i], 0.5, label, ha='center', va='center', fontsize=10, color='black')
+        adj_cbar.set_label('Adjusted ResStock Data')
+
+        orig_cbar = fig.colorbar(orig, ax=ax, ticks=list(range(1, 13)), pad=0.15, orientation='horizontal', aspect=40)
+        orig_cbar.ax.get_xaxis().set_ticks([])
+        for i, label in enumerate(calendar.month_abbr[1:]):
+            orig_cbar.ax.text(xticks[i], 0.5, label, ha='center', va='center', fontsize=10, color='black')
+        orig_cbar.ax.set_xlabel('Original ResStock Data')
+
+        ax.set_ylim(ymin=0)
+        ax.set_xlabel('Temperature (F)')
+        ax.set_ylabel('kWh per day per customer')
+
+        fig.suptitle(f'Original and Adjusted ResStock Daily Average kWh per Customer for {state}')
+
+        fig_name = f'{state}_resstock_vs_adjusted.jpg'
+        fig_sub_dir = os.path.abspath(os.path.join(self.output_dir, 'resprofile_plots'))
+        if not os.path.exists(fig_sub_dir):
+            os.makedirs(fig_sub_dir)
+        fig_path = os.path.join(fig_sub_dir, fig_name)
+        plt.savefig(fig_path, dpi=600, bbox_inches='tight')
+
+    def plot_inverse_models(self, state, res_model, eia_model, model_df, res_monthly_df):
+        """
+        Plots the inverse models for the ResStock and EIAd data
+        """
+
+        def plot_model(model, ax, colors=None, label=None):
+            if colors is None:
+                colors = ['blue', 'orange']
+            temp_min = model.temperature.min()
+            temp_max = model.temperature.max()
+            temp_plot = np.linspace(temp_min, temp_max, 100)
+            load_plot = InverseModel.piecewise_linear(temp_plot, *model.p)
+            ax.scatter(model.temperature, model.eui, color=colors[0], alpha=0.5, s=1, label=label[0])
+            ax.plot(temp_plot, load_plot, color=colors[1], linestyle='--', lw=1, label=label[1])
+            ax.set_xlabel('Average Temperature (F)')
+            ax.set_ylabel(model.energy_type)
+            ax.set_ylim(ymin=0)
+            # ax.legend()
+        
+        fig, ax = plt.subplots(figsize=(14, 6))
+
+        plot_model(res_model, ax, colors=['blue', 'darkblue'], label=['ResStock Daily Average', 'ResStock Regression Model'])
+        plot_model(eia_model, ax, colors=['red', 'darkred'], label=['EIA 861 Reported Monthly', 'EIA Regression Model'])
+
+        fig.suptitle(f'Inverse Models for ResStock and EIA 861 Residential Electricity Consumption for {state}')
+
+        # add table of model params
+        table_ax = fig.add_axes([0.1, -0.25, 0.8, 0.3])
+        table_ax.axis('off')
+        table_data = model_df.reset_index().values
+        col_labels = ['Parameter'] + list(model_df.columns)
+        table = table_ax.table(cellText=table_data, colLabels=col_labels, cellLoc='center', loc='center')
+        table.auto_set_font_size(False)
+        table.set_fontsize(10)
+        table.auto_set_column_width(col=list(range(len(col_labels))))
+
+        # add scatter of the monthly average data
+        ax.scatter(
+            res_monthly_df['avg_temp'],
+            res_monthly_df['kWh per day per customer'],
+            color='midnightblue',
+            marker='X',
+            s=10,
+            label='ResStock Monthly Average')
+        ax.legend()
+
+        fig_name = f'{state}_inverse_model_comparison.jpg'
+        fig_sub_dir = os.path.abspath(os.path.join(self.output_dir, 'resprofile_plots'))
+        if not os.path.exists(fig_sub_dir):
+            os.makedirs(fig_sub_dir)
+        fig_path = os.path.join(fig_sub_dir, fig_name)
+        plt.savefig(fig_path, dpi=600, bbox_inches='tight')
 
