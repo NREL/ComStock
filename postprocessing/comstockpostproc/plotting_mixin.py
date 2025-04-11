@@ -508,9 +508,6 @@ class PlottingMixin():
          })
 
          nm_df = pd.concat([grouped_df, new_cols], axis=1)
-
-         # Save the dataframe to a CSV file in the downloads folder
-         nm_df.to_csv(r'C:\Users\ltaylor2\Downloads\normalized_df.csv', index=False)
          return nm_df
 
 
