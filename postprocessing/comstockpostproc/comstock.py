@@ -1729,11 +1729,15 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
     def add_peak_intensity_columns(self):
         # Create peak per area column for each peak column
-        for peak_col in (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK + self.COLS_QOI_MONTHLY_MED_DAILY_PEAK + [
-            self.QOI_MAX_SHOULDER_USE,
-            self.QOI_MAX_SUMMER_USE,
-            self.QOI_MAX_WINTER_USE
-            ]):
+        for peak_col in (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK + 
+                         self.COLS_QOI_MONTHLY_MED_DAILY_PEAK + 
+                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK + 
+                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_WIN + 
+                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_PEAK + [
+                             self.QOI_MAX_SHOULDER_USE,
+                             self.QOI_MAX_SUMMER_USE,
+                             self.QOI_MAX_WINTER_USE
+                             ]):
             # Divide peak by area to create intensity
             per_area_col = self.col_name_to_area_intensity(peak_col)
             self.data = self.data.with_columns(
@@ -3186,20 +3190,23 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # Peak Demand QOIs
             {
                 'cols': (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK +
-                              self.COLS_QOI_MONTHLY_MED_DAILY_PEAK +
-                              [self.QOI_MAX_SHOULDER_USE,
-                              self.QOI_MAX_SUMMER_USE,
-                              self.QOI_MAX_WINTER_USE]),
+                         self.COLS_QOI_MONTHLY_MED_DAILY_PEAK +
+                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK + 
+                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_WIN +
+                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_PEAK +
+                         [self.QOI_MAX_SHOULDER_USE,
+                          self.QOI_MAX_SUMMER_USE,
+                          self.QOI_MAX_WINTER_USE]),
                 'weighted_units': self.weighted_demand_units
             },
             # Emissions
             {
                 'cols': (self.COLS_GHG_ELEC_SEASONAL_DAILY_EGRID +
-                              self.COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM +
-                              [self.GHG_LRMER_MID_CASE_15_ELEC,
-                              self.GHG_ELEC_EGRID,
-                              self.ANN_GHG_EGRID,
-                              self.ANN_GHG_CAMBIUM]),
+                         self.COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM +
+                         [self.GHG_LRMER_MID_CASE_15_ELEC,
+                          self.GHG_ELEC_EGRID,
+                          self.ANN_GHG_EGRID,
+                          self.ANN_GHG_CAMBIUM]),
                 'weighted_units': self.weighted_ghg_units
             }
         ]
