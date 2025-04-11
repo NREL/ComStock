@@ -501,6 +501,67 @@ class PlottingMixin():
                 plt.savefig(fig_path, bbox_inches = 'tight')
                 plt.close()
 
+    def normalize_energy_for_hvac_sys(self, df):
+
+         grouped_df = df.groupby([self.HVAC_SYS, self.CEN_DIV, self.VINTAGE,'dataset']).sum(numeric_only=True).reset_index()
+
+         new_cols = pd.DataFrame({
+             'Normalized_Total_Energy': self.convert(grouped_df[self.col_name_to_weighted(self.ANN_TOT_ENGY_KBTU, 'tbtu')], 'tbtu', 'kbtu') / grouped_df[self.col_name_to_weighted(self.FLR_AREA)],
+             'Normalized_Electric_Energy': self.convert(grouped_df[self.col_name_to_weighted(self.ANN_TOT_ELEC_KBTU, 'tbtu')], 'tbtu', 'kbtu') / grouped_df[self.col_name_to_weighted(self.FLR_AREA)],
+             'Normalized_Gas_Energy': self.convert(grouped_df[self.col_name_to_weighted(self.ANN_TOT_GAS_KBTU, 'tbtu')], 'tbtu', 'kbtu') / grouped_df[self.col_name_to_weighted(self.FLR_AREA)]
+         })
+
+         nm_df = pd.concat([grouped_df, new_cols], axis=1)
+         return nm_df
+
+
+
+
+    def plot_floor_area_and_energy_totals_grouped_hvac(self, df, column_for_grouping, color_map, output_dir):
+        nm_df = self.normalize_energy_for_hvac_sys(df)
+
+        cols_to_summarize = {
+            'Normalized_Total_Energy',
+            'Normalized_Electric_Energy',
+            'Normalized_Gas_Energy',
+        }
+
+        group_bys = [self.HVAC_SYS]
+
+        for col in cols_to_summarize:
+            for group_by in group_bys:
+                g = sns.catplot(
+                    data=nm_df.reset_index(),
+                    y=col,
+                    hue=column_for_grouping,
+                    x=group_by,
+                    order=self.ORDERED_CATEGORIES[group_by],
+                    hue_order=list(color_map.keys()),
+                    palette=color_map.values(),
+                    kind='bar',
+                    errorbar=None,
+                    aspect=3
+                )
+                g._legend.set_title(self.col_name_to_nice_name(column_for_grouping))
+                g.set_xticklabels(rotation=90)
+                fig = g.figure
+                units = self.nice_units(self.units_from_col_name(col))
+
+                if group_by is self.HVAC_SYS:
+                    title = f'normalized {self.col_name_to_nice_name(col)} by {self.col_name_to_nice_name(group_by)}'
+                    for ax in g.axes.flatten():
+                        ax.set_ylabel(f'{self.col_name_to_nice_name(col)} (kBtu/ft²)')
+                        ax.set_xlabel(self.col_name_to_nice_name(group_by))
+                        ax.tick_params(axis='x', labelrotation=90)
+
+                fig.subplots_adjust(top=0.9)
+                fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+                fig_name = fig_name.replace('_total_energy_consumption', '')
+                fig_path = os.path.abspath(os.path.join(output_dir, fig_name))
+                plt.savefig(fig_path, bbox_inches='tight')
+                plt.close()
+
+
     def plot_floor_area_and_energy_totals(self, df, column_for_grouping, color_map, output_dir):
         # Summarize square footage and energy totals
 
@@ -510,9 +571,6 @@ class PlottingMixin():
             self.col_name_to_weighted(self.ANN_TOT_ENGY_KBTU, 'tbtu'): np.sum,
             self.col_name_to_weighted(self.ANN_TOT_ELEC_KBTU, 'tbtu'): np.sum,
             self.col_name_to_weighted(self.ANN_TOT_GAS_KBTU, 'tbtu'): np.sum,
-            # 'Normalized Annual major fuel consumption (thous Btu per sqft)': np.mean,
-            # 'Normalized Annual electricity consumption (thous Btu per sqft)': np.mean,
-            # 'Normalized Annual natural gas consumption (thous Btu per sqft)': np.mean
         }
 
         # Disaggregate to these levels
@@ -594,7 +652,7 @@ class PlottingMixin():
                 plt.savefig(fig_path, bbox_inches = 'tight')
                 plt.close()
 
-    def plot_eui_boxplots(self, df, column_for_grouping, color_map, output_dir):
+    def plot_eui_boxplots(self, df, column_for_grouping, color_map, output_dir, make_hvac_plots):
         # EUI box plot comparisons by building type and several disaggregations
 
         # Columns to summarize
@@ -607,12 +665,13 @@ class PlottingMixin():
         # Disaggregate to these levels
         group_bys = [
             None,
-            self.BLDG_TYPE
+            self.BLDG_TYPE,
         ]
+        if make_hvac_plots:
+            group_bys.append(self.HVAC_SYS)
+
 
         for col in cols_to_summarize:
-            # for bldg_type, bldg_type_ts_df in df.groupby(self.BLDG_TYPE):
-
             # Make a plot for each group
             for group_by in group_bys:
                 if group_by is None:
@@ -625,16 +684,40 @@ class PlottingMixin():
                         order=list(color_map.keys()),
                         palette=color_map.values(),
                         kind='box',
+                        aspect=5,
+                        height=3,
                         orient='h',
-                        fliersize=0,
+                        showfliers=False,
                         showmeans=True,
                         meanprops={"marker":"d",
                             "markerfacecolor":"yellow",
                             "markeredgecolor":"black",
-                            "markersize":"8"
+                            "markersize":"2"
                         },
                         legend=False
                     )
+                elif group_by is self.HVAC_SYS:
+                    g = sns.catplot(
+                        data=df,
+                        x=col,
+                        hue=column_for_grouping,
+                        y=group_by,
+                        order=self.ORDERED_CATEGORIES[group_by],
+                        hue_order=list(color_map.keys()),
+                        palette=color_map.values(),
+                        kind='box',
+                        aspect=2,
+                        height=10,
+                        orient='h',
+                        showfliers=False,
+                        showmeans=True,
+                        meanprops={"marker":"d",
+                            "markerfacecolor":"yellow",
+                            "markeredgecolor":"black",
+                            "markersize":"2"
+                        },
+                    )
+                    g._legend.set_title(self.col_name_to_nice_name(column_for_grouping))
                 else:
                     # With group-by
                     g = sns.catplot(
@@ -646,15 +729,16 @@ class PlottingMixin():
                         hue_order=list(color_map.keys()),
                         palette=color_map.values(),
                         kind='box',
+                        aspect=5,
+                        height=3,
                         orient='h',
-                        fliersize=0,
+                        showfliers=False,
                         showmeans=True,
                         meanprops={"marker":"d",
                             "markerfacecolor":"yellow",
                             "markeredgecolor":"black",
-                            "markersize":"8"
+                            "markersize":"2"
                         },
-                        aspect=2
                     )
                     g._legend.set_title(self.col_name_to_nice_name(column_for_grouping))
 
@@ -665,8 +749,6 @@ class PlottingMixin():
 
                 # Titles and axis labels
                 col_title = self.col_name_to_nice_name(col)
-                # col_title = col.replace(f' {units}', '')
-                # col_title = col_title.replace('Normalized Annual ', '')
                 fuel = self.col_name_to_fuel(col_title)
 
                 # Formatting
@@ -690,8 +772,14 @@ class PlottingMixin():
                 fig_name = fig_name.replace('boxplot_of_', 'bp_')
                 fig_name = fig_name.replace('total_energy_consumption_', '')
                 fig_path = os.path.abspath(os.path.join(output_dir, fig_name))
-                plt.savefig(fig_path, bbox_inches = 'tight')
-                plt.close()
+                if group_by is self.HVAC_SYS:
+                     plt.savefig(fig_path)
+                     plt.close()
+                else:
+                    plt.gcf().set_size_inches(10, 8)  # Adjust the size of the plot as needed
+                    plt.tight_layout()
+                    plt.savefig(fig_path)
+                    plt.close()
 
     def plot_energy_rate_boxplots(self, df, column_for_grouping, color_map, output_dir):
         # energy rate box plot comparisons by building type and several disaggregations
@@ -763,8 +851,6 @@ class PlottingMixin():
 
                 # Titles and axis labels
                 col_title = self.col_name_to_nice_name(col)
-                # col_title = col.replace(f' {units}', '')
-                # col_title = col_title.replace('Normalized Annual ', '')
                 fuel = self.col_name_to_fuel(col_title)
 
                 # Formatting
@@ -800,9 +886,6 @@ class PlottingMixin():
             self.col_name_to_weighted(self.ANN_TOT_ENGY_KBTU, 'tbtu'): np.sum,
             self.col_name_to_weighted(self.ANN_TOT_ELEC_KBTU, 'tbtu'): np.sum,
             self.col_name_to_weighted(self.ANN_TOT_GAS_KBTU, 'tbtu'): np.sum,
-            # 'Normalized Annual major fuel consumption (thous Btu per sqft)': np.mean,
-            # 'Normalized Annual electricity consumption (thous Btu per sqft)': np.mean,
-            # 'Normalized Annual natural gas consumption (thous Btu per sqft)': np.mean
         }
 
         # Disaggregate to these levels
@@ -886,6 +969,198 @@ class PlottingMixin():
                     fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
                     plt.savefig(fig_path, bbox_inches = 'tight')
                     plt.close()
+
+    def plot_floor_area_and_energy_totals_by_hvac_type(self, df, column_for_grouping, color_map, output_dir):
+        # Summarize square footage and energy totals by HVAC system type
+        nm_df = self.normalize_energy_for_hvac_sys(df)
+
+        cols_to_summarize = [
+            'Normalized_Total_Energy',
+            'Normalized_Electric_Energy',
+            'Normalized_Gas_Energy',
+        ]
+
+        group_bys = [
+            None,
+            self.CEN_DIV,
+            self.VINTAGE,
+        ]
+
+        for col in cols_to_summarize:
+            for hvac_type, hvac_type_df in nm_df.groupby(self.HVAC_SYS):
+                for group_by in group_bys:
+                    if group_by is None:
+                        g = sns.catplot(
+                            data=hvac_type_df.reset_index(),
+                            x=column_for_grouping,
+                            hue=column_for_grouping,
+                            y=col,
+                            order=list(color_map.keys()),
+                            palette=color_map.values(),
+                            errorbar=None,
+                            kind='bar',
+                            aspect=1.5,
+                            legend=False
+                        )
+                    else:
+                        g = sns.catplot(
+                            data=hvac_type_df,
+                            y=col,
+                            hue=column_for_grouping,
+                            x=group_by,
+                            order=self.ORDERED_CATEGORIES[group_by],
+                            hue_order=list(color_map.keys()),
+                            palette=color_map.values(),
+                            kind='bar',
+                            errorbar=None,
+                            aspect=2
+                        )
+                        g._legend.set_title(self.col_name_to_nice_name(column_for_grouping))
+
+                    fig = g.figure
+
+                    # Extract the units from the column name
+                    units = f'{self.nice_units(self.units_from_col_name(col))}/ft^2'
+
+                    # Titles and axis labels
+                    col_title = self.col_name_to_nice_name(col)
+
+                    if group_by is None:
+                        title = f"{col_title}\n for {hvac_type.replace('_', ' ')}".title()
+                        for ax in g.axes.flatten():
+                            ax.set_ylabel(f'{col_title} ({units})')
+                            ax.set_xlabel('')
+                            ax.tick_params(axis='x', labelrotation = 90)
+                    else:
+                        gb = self.col_name_to_nice_name(group_by)
+                        title = f"{col_title}\n for {hvac_type.replace('_', ' ')} by {f'{gb}'}".title()
+                        for ax in g.axes.flatten():
+                            ax.set_ylabel(f'normalized {col_title} (kbtu/ft^2)')
+                            ax.set_xlabel(f'{gb}')
+                            ax.tick_params(axis='x', labelrotation = 90)
+
+                    # Save figure
+                    title = title.replace('\n', '')
+                    fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+                    fig_name = fig_name.replace('_total_normalized_energy_consumption', '')
+                    fig_sub_dir = os.path.join(output_dir,'HVAC Charts', hvac_type)
+                    if not os.path.exists(fig_sub_dir):
+                        os.makedirs(fig_sub_dir)
+                    fig_path = os.path.join(fig_sub_dir, fig_name)
+                    plt.savefig(fig_path, bbox_inches = 'tight')
+                    plt.close()
+
+    def plot_eui_boxplots_by_hvac_type(self, df, column_for_grouping, color_map, output_dir):
+         # EUI box plot comparisons by HVAC type and several disaggregations
+
+         # Columns to summarize
+         cols_to_summarize = [
+             self.col_name_to_eui(self.ANN_TOT_ENGY_KBTU),
+             self.col_name_to_eui(self.ANN_TOT_ELEC_KBTU),
+             self.col_name_to_eui(self.ANN_TOT_GAS_KBTU)
+         ]
+
+         # Disaggregate to these levels
+         group_bys = [
+             None,
+             self.CEN_DIV,
+             # self.FLR_AREA_CAT, TODO reenable after adding to both CBECS and ComStock
+             self.VINTAGE,
+             self.BLDG_TYPE
+         ]
+
+         for col in cols_to_summarize:
+             for hvac_type, hvac_type_df in df.groupby(self.HVAC_SYS):
+                 if hvac_type_df[col].isnull().all():
+                     print(f"No data for {col} in HVAC type {hvac_type}. Skipping plot.")
+                     continue  # Skip this HVAC type if the column is all NaNs or empty
+
+                 for group_by in group_bys:
+                     try:
+                         if group_by is None:
+                             g = sns.catplot(
+                                data=hvac_type_df,
+                                y=column_for_grouping,
+                                hue=column_for_grouping,
+                                x=col,
+                                order=list(color_map.keys()),
+                                palette=list(color_map.values()),
+                                kind='box',
+                                aspect=5,
+                                height=3,
+                                orient='h',
+                                showfliers=False,
+                                showmeans=True,
+                                meanprops={"marker": "d",
+                                        "markerfacecolor": "yellow",
+                                        "markeredgecolor": "black",
+                                        "markersize": "2"},
+                                legend_out=False  # Draw legend inside the plot area
+                             )
+                         else:
+                             g = sns.catplot(
+                                data=hvac_type_df,
+                                x=col,
+                                hue=column_for_grouping,
+                                y=group_by,
+                                order=self.ORDERED_CATEGORIES[group_by],
+                                hue_order=list(color_map.keys()),
+                                palette=list(color_map.values()),
+                                kind='box',
+                                aspect=5,
+                                height=3,
+                                orient='h',
+                                fliersize=0,
+                                showmeans=True,
+                                meanprops={"marker": "d",
+                                        "markerfacecolor": "yellow",
+                                        "markeredgecolor": "black",
+                                        "markersize": "8"},
+                                legend_out=False  # Draw legend inside the plot area
+                             )
+
+                         if g._legend is not None:
+                            g._legend.set_title(self.col_name_to_nice_name(column_for_grouping))
+                            # Reduce legend font size
+                            for text in g._legend.get_texts():
+                                text.set_fontsize('small')
+                            # Adjust legend frame
+                            g._legend.get_frame().set_edgecolor('black')
+                            g._legend.get_frame().set_linewidth(0.5)
+                            g._legend.get_frame().set_alpha(0.8)
+                            g._legend.set_bbox_to_anchor((1, 0.5))
+
+                         fig = g.figure
+
+                         units = self.nice_units(self.units_from_col_name(col))
+                         col_title = self.col_name_to_nice_name(col)
+                         fuel = self.col_name_to_fuel(col_title)
+
+                         if group_by is None:
+                             title = f"Boxplot of {col_title}\n for {hvac_type.replace('_', ' ')}".title()
+                             for ax in g.axes.flatten():
+                                 ax.set_xlabel(f'{fuel} EUI ({units})')
+                                 ax.set_ylabel('')
+                         else:
+                             gb = self.col_name_to_nice_name(group_by)
+                             title = f"Boxplot of {col_title}\n for {hvac_type.replace('_', ' ')} by {f'{gb}'}".title()
+                             for ax in g.axes.flatten():
+                                 ax.set_xlabel(f'{fuel} EUI ({units})')
+                                 ax.set_ylabel(f'{gb}')
+
+                         title = title.replace('\n', '')
+                         fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+                         fig_name = fig_name.replace('boxplot_of_', 'bp_')
+                         fig_name = fig_name.replace('total_energy_consumption_', '')
+                         fig_sub_dir = os.path.join(output_dir, 'HVAC Charts', hvac_type)
+                         if not os.path.exists(fig_sub_dir):
+                             os.makedirs(fig_sub_dir)
+                         fig_path = os.path.join(fig_sub_dir, fig_name)
+                         plt.close(fig)
+                         print(f"Successfully created plot for {col} and {hvac_type} with group_by {group_by}")
+
+                     except Exception as e:
+                         print(f"Failed to create plot for {col} and {hvac_type} with group_by {group_by}. Error: {e}")
 
     def plot_end_use_totals_by_building_type(self, df, column_for_grouping, color_map, output_dir):
         # Summarize end use energy totals by building type
@@ -1092,8 +1367,10 @@ class PlottingMixin():
                             order=list(color_map.keys()),
                             palette=color_map.values(),
                             kind='box',
+                            aspect=5,
+                            height=3,
                             orient='h',
-                            fliersize=0,
+                            showfliers=False,
                             showmeans=True,
                             meanprops={"marker":"d",
                                 "markerfacecolor":"yellow",
@@ -1113,15 +1390,16 @@ class PlottingMixin():
                             hue_order=list(color_map.keys()),
                             palette=color_map.values(),
                             kind='box',
+                            aspect=5,
+                            height=3,
                             orient='h',
-                            fliersize=0,
+                            showfliers=False,
                             showmeans=True,
                             meanprops={"marker":"d",
                                 "markerfacecolor":"yellow",
                                 "markeredgecolor":"black",
                                 "markersize":"8"
                             },
-                            aspect=2
                         )
                         g._legend.set_title(self.col_name_to_nice_name(column_for_grouping))
 
@@ -1160,7 +1438,7 @@ class PlottingMixin():
                     if not os.path.exists(fig_sub_dir):
                         os.makedirs(fig_sub_dir)
                     fig_path = os.path.abspath((os.path.join(fig_sub_dir, fig_name)))
-                    plt.savefig(fig_path, bbox_inches = 'tight')
+                    plt.savefig(fig_path)
                     plt.close()
 
     def plot_measure_savings_distributions_by_building_type(self, df, output_dir):
