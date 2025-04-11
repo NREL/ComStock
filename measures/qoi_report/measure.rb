@@ -76,10 +76,12 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
   end
 
   def seasons
-    {
+    return {
       'winter' => [-1e9, 55],
       'summer' => [70, 1e9],
-      'shoulder' => [55, 70]
+      'shoulder' => [55, 70],
+      'nonwinter' => [55, 1e9],
+      'all' => [-1e9, 1e9]
     }
   end
 
@@ -318,7 +320,6 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
       report_sim_output(runner, "average_maximum_daily_timing_#{season}_hour",
                         average_daily_timing(timeseries, temperature_range, 'max'), '', '')
 
-
       # Top 10 daily seasonal peak magnitude (2)
       report_sim_output(runner, "average_of_top_ten_highest_peaks_use_#{season}_kw",
                         average_daily_use(timeseries, temperature_range, 'max', 10), '', '')
@@ -475,7 +476,7 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
     when 'mean'
       stats_by_month = daily_peak_by_month.sum(0.0) / daily_peak_by_month.size
     else
-      return nil
+      raise "unsupported statistics for daily peak outputs"
     end
     stats_by_month
   end
@@ -490,27 +491,28 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
     if stats_option == 'med'
       stats_by_month = calculate_percentile(daily_peak_timing_by_month, 50)
     elsif stats_option == 'mean'
-      stats_by_month = daily_peak_timing_by_month.inject { |sum, el| sum + el }.to_f / daily_peak_timing_by_month.size
+      stats_by_month = daily_peak_timing_by_month.sum(0.0) / daily_peak_timing_by_month.size
     else
-      return nil
+      raise "unsupported statistics for daily peak timing outputs"
     end
     stats_by_month
   end
 
-  def grid_peak_schedule(model, peak_len)
+  def grid_peak_schedule(model, peak_len, timeseries)
     grid_region = model.getBuilding.additionalProperties.getFeatureAsString('grid_region')
     raise 'Unable to find grid region in model building additional properties' unless grid_region.is_initialized
     grid_region = grid_region.get
-    load_csv = "#{File.dirname(__FILE__)}/cambium/#{scenario}/#{grid_region}.csv"
+    load_csv = "#{File.dirname(__FILE__)}/resources/cambium/Load_MidCase_2035/#{grid_region}.csv"
     return nil if !File.file?(load_csv)
     net_load_mwh = CSV.read(load_csv, converters: :float).flatten
-    grid_peak_schedule = peak_schedule_generation(annual_load = net_load_mwh, oat = timeseries['temperature'], peak_len = peak_len, num_timesteps_in_hr = 1, peak_window_strategy = 'center with peak', rebound_len = 0, prepeak_len = 0, season = 'all')
+    grid_peak_schedule = peak_schedule_generation(net_load_mwh, timeseries['temperature'], peak_len, 1, 'center with peak')
     grid_peak_schedule
   end
 
   def daily_peak_stats_on_grid_peak_by_month(model, peak_len, timeseries, month_val, stats_option = 'mean', year = 2018)
-    grid_peak_schedule = grid_peak_schedule(model, peak_len)
-    daily_peaks = timeseries['total_site_electricity_kw'].zip(grid_peak_schedule).map { |kw, peak| kw * peak }
+    grid_peaks = grid_peak_schedule(model, peak_len, timeseries)
+    return nil if grid_peaks.nil?
+    daily_peaks = timeseries['total_site_electricity_kw'].zip(grid_peaks).map { |kw, peak| kw * peak }
     daily_peak_by_month = []
     daily_peaks.each_slice(24).with_index do |kws, doy|
       month, = day_of_year_to_date(doy, year)
@@ -521,7 +523,7 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
     when 'mean'
       stats_by_month = daily_peak_by_month.sum(0.0) / daily_peak_by_month.size
     else
-      return nil
+      raise "unsupported statistics for daily peak on grid peaks"
     end
     stats_by_month
   end
