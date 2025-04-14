@@ -491,7 +491,7 @@ class process_ResStock_2024_2():
                 if shared_ducts == True:
                     ssn = 'eNDMSHPDwLTEwFA'
                 else:
-                    ssn = 'eNDMSHPwLTEwFA'
+                    ssn = 'eNDMSHPLTEwFA'
             else:
                 ssn = 'Error'
         elif row["upgrade"] == 12:
