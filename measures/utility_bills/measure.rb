@@ -112,6 +112,7 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     elec_bill_total_values = elec_bills.values.compact.map(&:to_f).sort
     runner.registerInfo("Bills sorted: #{elec_bill_total_values}")
   
+    # Catch when elec_bills is empty
     if elec_bill_total_values.empty?
       return [0, 'NA', 0, 'NA', 0, 'NA', 0, 'NA', 0, 0]
     end
