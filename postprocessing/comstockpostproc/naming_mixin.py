@@ -962,6 +962,8 @@ class NamingMixin():
             converted_col_name = converted_col_name.replace('_bill..', '_bill_savings..')
         elif "_daily_peak_" in converted_col_name:
             converted_col_name = converted_col_name.replace('_daily_peak_', '_daily_peak_savings_')
+        elif ".peak_" in converted_col_name:
+            converted_col_name = converted_col_name.replace('.peak_', '.peak_savings_')
         elif "maximum_daily_use_" in converted_col_name:
             converted_col_name = converted_col_name.replace('maximum_daily_use_', 'peak_savings_')
         elif ".emissions." in converted_col_name:
