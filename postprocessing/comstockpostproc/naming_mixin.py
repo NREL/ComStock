@@ -368,6 +368,51 @@ class NamingMixin():
         'out.qoi.median_daily_peak_dec..kw'
     ]
 
+    COLS_QOI_MONTHLY_MEAN_DAILY_PEAK = [
+        'out.qoi.mean_daily_peak_jan..kw',
+        'out.qoi.mean_daily_peak_feb..kw',
+        'out.qoi.mean_daily_peak_mar..kw',
+        'out.qoi.mean_daily_peak_apr..kw',
+        'out.qoi.mean_daily_peak_may..kw',
+        'out.qoi.mean_daily_peak_jun..kw',
+        'out.qoi.mean_daily_peak_jul..kw',
+        'out.qoi.mean_daily_peak_aug..kw',
+        'out.qoi.mean_daily_peak_sep..kw',
+        'out.qoi.mean_daily_peak_oct..kw',
+        'out.qoi.mean_daily_peak_nov..kw',
+        'out.qoi.mean_daily_peak_dec..kw'
+    ]
+
+    COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_WIN = [
+        'out.qoi.mean_daily_peak_grid_window_jan..kw',
+        'out.qoi.mean_daily_peak_grid_window_feb..kw',
+        'out.qoi.mean_daily_peak_grid_window_mar..kw',
+        'out.qoi.mean_daily_peak_grid_window_apr..kw',
+        'out.qoi.mean_daily_peak_grid_window_may..kw',
+        'out.qoi.mean_daily_peak_grid_window_jun..kw',
+        'out.qoi.mean_daily_peak_grid_window_jul..kw',
+        'out.qoi.mean_daily_peak_grid_window_aug..kw',
+        'out.qoi.mean_daily_peak_grid_window_sep..kw',
+        'out.qoi.mean_daily_peak_grid_window_oct..kw',
+        'out.qoi.mean_daily_peak_grid_window_nov..kw',
+        'out.qoi.mean_daily_peak_grid_window_dec..kw'
+    ]
+
+    COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_PEAK = [
+        'out.qoi.mean_daily_peak_grid_peak_jan..kw',
+        'out.qoi.mean_daily_peak_grid_peak_feb..kw',
+        'out.qoi.mean_daily_peak_grid_peak_mar..kw',
+        'out.qoi.mean_daily_peak_grid_peak_apr..kw',
+        'out.qoi.mean_daily_peak_grid_peak_may..kw',
+        'out.qoi.mean_daily_peak_grid_peak_jun..kw',
+        'out.qoi.mean_daily_peak_grid_peak_jul..kw',
+        'out.qoi.mean_daily_peak_grid_peak_aug..kw',
+        'out.qoi.mean_daily_peak_grid_peak_sep..kw',
+        'out.qoi.mean_daily_peak_grid_peak_oct..kw',
+        'out.qoi.mean_daily_peak_grid_peak_nov..kw',
+        'out.qoi.mean_daily_peak_grid_peak_dec..kw'
+    ]
+
     # Greenhouse gas emissions columns
     GHG_NATURAL_GAS = 'out.emissions.natural_gas..co2e_kg'
     GHG_FUEL_OIL = 'out.emissions.fuel_oil..co2e_kg'
@@ -915,8 +960,10 @@ class NamingMixin():
             converted_col_name = converted_col_name.replace('_bill_', '_bill_savings_')
         elif "_bill.." in converted_col_name:
             converted_col_name = converted_col_name.replace('_bill..', '_bill_savings..')
-        elif "peak_" in converted_col_name:
-            converted_col_name = converted_col_name.replace('peak_', 'peak_savings_')
+        elif "_daily_peak_" in converted_col_name:
+            converted_col_name = converted_col_name.replace('_daily_peak_', '_daily_peak_savings_')
+        elif ".peak_" in converted_col_name:
+            converted_col_name = converted_col_name.replace('.peak_', '.peak_savings_')
         elif "maximum_daily_use_" in converted_col_name:
             converted_col_name = converted_col_name.replace('maximum_daily_use_', 'peak_savings_')
         elif ".emissions." in converted_col_name:
