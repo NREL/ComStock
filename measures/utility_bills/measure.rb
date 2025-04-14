@@ -108,18 +108,22 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
 
   # return applicable utility rates statistics
   def get_utility_rates_statistics(runner, elec_bills)
-
-    # get bill values and sort
-    elec_bill_total_values = elec_bills.values
-    elec_bill_total_values = elec_bill_total_values.sort
+    # Get bill values and sort
+    elec_bill_total_values = elec_bills.values.compact.map(&:to_f).sort
     runner.registerInfo("Bills sorted: #{elec_bill_total_values}")
-
-    # get bill statistics
+  
+    if elec_bill_total_values.empty?
+      return [0, 'NA', 0, 'NA', 0, 'NA', 0, 'NA', 0, 0]
+    end
+  
+    # Calculate basic stats
     min_total_bill = elec_bill_total_values.min
     max_total_bill = elec_bill_total_values.max
-    mean_total_bill = (elec_bill_total_values.sum.to_f / elec_bill_total_values.length).round.to_i
-    lo_i = (elec_bill_total_values.length - 1) / 2
-    hi_i = elec_bill_total_values.length / 2
+    mean_total_bill = (elec_bill_total_values.sum / elec_bill_total_values.size).round
+  
+    # Median calculation
+    lo_i = (elec_bill_total_values.size - 1) / 2
+    hi_i = elec_bill_total_values.size / 2
     median_total_bill_low = elec_bill_total_values[lo_i]
     median_total_bill_high = elec_bill_total_values[hi_i]
     if elec_bill_total_values.length.odd?
