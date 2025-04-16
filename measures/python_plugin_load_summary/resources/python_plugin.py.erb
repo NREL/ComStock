@@ -1,11 +1,47 @@
 from pyenergyplus.plugin import EnergyPlusPlugin
 
+class FixedSizeList(list):
+
+    def __init__(self, size):
+        super().__init__()
+        self.size = size
+
+    def add_first_drop_last(self, item):
+        if len(self) >= self.size:
+            self.pop(-1)
+        super().insert(0, item)
+
+    def chunk_avg(self, n):
+        result = []
+        for i in range(0, len(self), n):
+            chunk = self[i:i + n]
+            result.append(sum(chunk) / len(chunk))
+        assert len(result) == 24
+        return result
+
 class LoadSummary(EnergyPlusPlugin):
 
     def __init__(self):
 
+        # call parent class methods
         super().__init__()
+
+        # set handles flag to true
         self.need_to_get_handles = True
+
+        # non-solar rts
+        self.nonsolar_rts = [
+            0.49, 0.17, 0.09, 0.05, 0.03, 0.02, 0.02, 0.01,
+            0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01,
+            0.01, 0.01, 0.01, 0.01, 0.00, 0.00, 0.00, 0.00
+        ]
+
+        # solar rts
+        self.solar_rts = [
+            0.54, 0.16, 0.08, 0.04, 0.03, 0.02, 0.01, 0.01,
+            0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01,
+            0.01, 0.01, 0.01, 0.00, 0.00, 0.00, 0.00, 0.00
+        ]
 
         # zone name and shortened zone name dictionary
         zone_dict = {
@@ -31,7 +67,39 @@ class LoadSummary(EnergyPlusPlugin):
 <%   end -%>
 <% end -%>
 
-        # global variable handles
+        # output variable lists
+<% out_vars.each do |ov| -%>
+<%   ov_sub = ov[0].downcase.gsub(' ', '') -%>
+<%   if ov[0] == 'Surface Inside Face Convection Heat Gain Energy' -%>
+<%     surf_names.each do |sn| -%>
+<%       sn_sub = sn[0].downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
+<%=      "        self.#{ov_sub}_#{sn_sub}_list = None" %>
+<%     end -%>
+<%   else -%>
+<%     zone_names.each do |zn| -%>
+<%       zn_sub = zn.downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
+<%=      "        self.#{ov_sub}_#{zn_sub}_list = None" %>
+<%     end -%>
+<%   end -%>
+<% end -%>
+
+        # output variable values
+<% out_vars.each do |ov| -%>
+<%   ov_sub = ov[0].downcase.gsub(' ', '') -%>
+<%   if ov[0] == 'Surface Inside Face Convection Heat Gain Energy' -%>
+<%     surf_names.each do |sn| -%>
+<%       sn_sub = sn[0].downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
+<%=      "        self.#{ov_sub}_#{sn_sub}_val = None" %>
+<%     end -%>
+<%   else -%>
+<%     zone_names.each do |zn| -%>
+<%       zn_sub = zn.downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
+<%=      "        self.#{ov_sub}_#{zn_sub}_val = None" %>
+<%     end -%>
+<%   end -%>
+<% end -%>
+
+        # global handles
 <% op_modes.each do |om| -%>
 <%   py_vars.each do |pv| -%>
 <%=    "        self.#{om}_#{pv}_hndl = None" %>
@@ -50,7 +118,7 @@ class LoadSummary(EnergyPlusPlugin):
 <%=      "        self.#{ov_sub}_#{sn_sub}_hndl = #{api}(" %>
 <%=      '            state,' %>
 <%=      "            \'#{ov[0]}\'," %>
-<%=      "            \'#{sn[0]}\'," %>
+<%=      "            \'#{sn[0]}\'" %>
 <%=      '        )' %>
 <%     end -%>
 <%   else -%>
@@ -60,7 +128,7 @@ class LoadSummary(EnergyPlusPlugin):
 <%=      "        self.#{ov_sub}_#{zn_sub}_hndl = #{api}(" %>
 <%=      '            state,' %>
 <%=      "            \'#{ov[0]}\'," %>
-<%=      "            \'#{zn}\'," %>
+<%=      "            \'#{zn}\'" %>
 <%=      '        )' %>
 <%       unless zn == zone_names[-1] -%>
 <%=        '' %>
@@ -75,7 +143,7 @@ class LoadSummary(EnergyPlusPlugin):
 <%     api = 'self.api.exchange.get_global_handle' -%>
 <%=    "        self.#{om}_#{pv}_hndl = #{api}(" %>
 <%=    '            state,' %>
-<%=    "            \'#{om}_#{pv}\'," %>
+<%=    "            \'#{om}_#{pv}\'" %>
 <%=    '        )' %>
 <%     unless pv == py_vars[-1] -%>
 <%=      '' %>
@@ -83,12 +151,17 @@ class LoadSummary(EnergyPlusPlugin):
 <%   end -%>
 <% end -%>
 
+        # set handles flag to false
         self.need_to_get_handles = False
 
     def on_end_of_zone_timestep_before_zone_reporting(self, state) -> int:
 
+        # get handles
         if self.need_to_get_handles:
             self.get_handles(state)
+
+        # get zone timestep
+        self.num_ts = self.api.exchange.num_time_steps_in_hour(state)
 
         # get output variable values
 <% out_vars.each do |ov| -%>
@@ -98,24 +171,59 @@ class LoadSummary(EnergyPlusPlugin):
 <%       sn_sub = sn[0].downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
 <%       api = 'self.api.exchange.get_variable_value' -%>
 <%=      "        if self.#{ov_sub}_#{sn_sub}_hndl != -1:" %>
-<%=      "            self.#{ov_sub}_#{sn_sub} = #{api}(" %>
+<%=      "            self.#{ov_sub}_#{sn_sub}_val = #{api}(" %>
 <%=      '                state,' %>
 <%=      "                self.#{ov_sub}_#{sn_sub}_hndl" %>
 <%=      '            )' %>
 <%=      '        else:' %>
-<%=      "            self.#{ov_sub}_#{sn_sub} = 0" %>
+<%=      "            self.#{ov_sub}_#{sn_sub}_val = 0" %>
 <%     end -%>
 <%   else -%>
 <%     zone_names.each do |zn| -%>
 <%       zn_sub = zn.downcase.gsub(' ', '').gsub('_', '').gsub('-', '') -%>
 <%       api = 'self.api.exchange.get_variable_value' -%>
-<%=      "        if self.#{ov_sub}_#{zn_sub}_hndl != -1:" %>
-<%=      "            self.#{ov_sub}_#{zn_sub} = #{api}(" %>
-<%=      '                state,' %>
-<%=      "                self.#{ov_sub}_#{zn_sub}_hndl" %>
-<%=      '            )' %>
-<%=      '        else:' %>
-<%=      "            self.#{ov_sub}_#{zn_sub} = 0" %>
+<%       if ov[0][-22, 22] == 'Radiant Heating Energy' -%>
+<%=        "        if self.#{ov_sub}_#{zn_sub}_hndl != -1:" %>
+<%=        "            if self.#{ov_sub}_#{zn_sub}_list == None:" %>
+<%=        "                self.#{ov_sub}_#{zn_sub}_list = FixedSizeList(self.num_ts * 24)" %>
+<%=        "                for i in range(self.num_ts * 24):" %>
+<%=        "                    self.#{ov_sub}_#{zn_sub}_list.add_first_drop_last(" %>
+<%=        "                        #{api}(" %>
+<%=        '                            state,' %>
+<%=        "                            self.#{ov_sub}_#{zn_sub}_hndl" %>
+<%=        '                        )' %>
+<%=        '                    )' %>
+<%=        "            else:" %>
+<%=        "                self.#{ov_sub}_#{zn_sub}_list.add_first_drop_last(" %>
+<%=        "                    #{api}(" %>
+<%=        '                        state,' %>
+<%=        "                        self.#{ov_sub}_#{zn_sub}_hndl" %>
+<%=        '                    )' %>
+<%=        '                )' %>
+<%=        "            self.#{ov_sub}_#{zn_sub}_val = sum(" %>
+<%=        '                [x * y for x, y in zip(' %>
+<%=        "                    self.#{ov_sub}_#{zn_sub}_list.chunk_avg(self.num_ts)," %>
+<%=        '                    self.nonsolar_rts' %>
+<%=        '                )]' %>
+<%=        '            )' %>
+<%=        '        else:' %>
+<%=        "            self.#{ov_sub}_#{zn_sub}_val = 0" %>
+<%=        "        if self.#{ov_sub}_#{zn_sub}_hndl != -1:" %>
+<%=        "            self.#{ov_sub}_#{zn_sub}_val = #{api}(" %>
+<%=        '                state,' %>
+<%=        "                self.#{ov_sub}_#{zn_sub}_hndl" %>
+<%=        '            )' %>
+<%=        '        else:' %>
+<%=        "            self.#{ov_sub}_#{zn_sub}_val = 0" %>
+<%       else -%>
+<%=        "        if self.#{ov_sub}_#{zn_sub}_hndl != -1:" %>
+<%=        "            self.#{ov_sub}_#{zn_sub}_val = #{api}(" %>
+<%=        '                state,' %>
+<%=        "                self.#{ov_sub}_#{zn_sub}_hndl" %>
+<%=        '            )' %>
+<%=        '        else:' %>
+<%=        "            self.#{ov_sub}_#{zn_sub}_val = 0" %>
+<%       end -%>
 <%       unless zn == zone_names[-1] -%>
 <%=        '' %>
 <%       end -%>
@@ -144,7 +252,7 @@ class LoadSummary(EnergyPlusPlugin):
 <%         py_vars.each do |pv| -%>
 <%           if pv == ov[1] -%>
 <%=            "            self.heating_#{pv}_list.append(" %>
-<%=            "                self.#{ov_sub}_#{sn_sub}" %>
+<%=            "                self.#{ov_sub}_#{sn_sub}_val" %>
 <%=            '            )' %>
 <%=            "            self.cooling_#{pv}_list.append(0)" %>
 <%=            "            self.floating_#{pv}_list.append(0)" %>
@@ -157,7 +265,7 @@ class LoadSummary(EnergyPlusPlugin):
 <%         py_vars.each do |pv| -%>
 <%           if pv == ov[1] -%>
 <%=            "            self.heating_#{pv}_list.append(" %>
-<%=            "                self.#{ov_sub}_#{zn_sub}" %>
+<%=            "                self.#{ov_sub}_#{zn_sub}_val" %>
 <%=            '            )' %>
 <%=            "            self.cooling_#{pv}_list.append(0)" %>
 <%=            "            self.floating_#{pv}_list.append(0)" %>
@@ -178,7 +286,7 @@ class LoadSummary(EnergyPlusPlugin):
 <%           if pv == ov[1] -%>
 <%=            "            self.heating_#{pv}_list.append(0)" %>
 <%=            "            self.cooling_#{pv}_list.append(" %>
-<%=            "                self.#{ov_sub}_#{sn_sub}" %>
+<%=            "                self.#{ov_sub}_#{sn_sub}_val" %>
 <%=            '            )' %>
 <%=            "            self.floating_#{pv}_list.append(0)" %>
 <%           end -%>
@@ -191,7 +299,7 @@ class LoadSummary(EnergyPlusPlugin):
 <%           if pv == ov[1] -%>
 <%=            "            self.heating_#{pv}_list.append(0)" %>
 <%=            "            self.cooling_#{pv}_list.append(" %>
-<%=            "                self.#{ov_sub}_#{zn_sub}" %>
+<%=            "                self.#{ov_sub}_#{zn_sub}_val" %>
 <%=            '            )' %>
 <%=            "            self.floating_#{pv}_list.append(0)" %>
 <%           end -%>
@@ -212,7 +320,7 @@ class LoadSummary(EnergyPlusPlugin):
 <%=            "            self.heating_#{pv}_list.append(0)" %>
 <%=            "            self.cooling_#{pv}_list.append(0)" %>
 <%=            "            self.floating_#{pv}_list.append(" %>
-<%=            "                self.#{ov_sub}_#{sn_sub}" %>
+<%=            "                self.#{ov_sub}_#{sn_sub}_val" %>
 <%=            '            )' %>
 <%           end -%>
 <%         end -%>
@@ -225,7 +333,7 @@ class LoadSummary(EnergyPlusPlugin):
 <%=            "            self.heating_#{pv}_list.append(0)" %>
 <%=            "            self.cooling_#{pv}_list.append(0)" %>
 <%=            "            self.floating_#{pv}_list.append(" %>
-<%=            "                self.#{ov_sub}_#{zn_sub}" %>
+<%=            "                self.#{ov_sub}_#{zn_sub}_val" %>
 <%=            '            )' %>
 <%           end -%>
 <%         end -%>
