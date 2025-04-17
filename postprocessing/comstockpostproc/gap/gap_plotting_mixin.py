@@ -1,6 +1,7 @@
 import os
 import logging
 import numpy as np
+import pandas as pd
 import geopandas as gpd
 import plotly.express as px
 import matplotlib.pyplot as plt
@@ -32,8 +33,8 @@ class GapPlottingMixin():
 
     def plot_side_by_side_bar_charts(self, df1, df2, label1, label2, name, output_dir):
         # check that dataframes have the same columns and number of rows
-        assert(df1.shape == df2.shape, "DataFrames must have the same shape")
-        assert((df1.columns == df2.columns).all(), "DataFrames must have the same columns")
+        assert df1.shape == df2.shape, "DataFrames must have the same shape"
+        assert (df1.columns == df2.columns).all(), "DataFrames must have the same columns"
 
         num_columns = df1.shape[1]
         index = np.arange(len(df1))
@@ -42,6 +43,7 @@ class GapPlottingMixin():
         fig, axes = plt.subplots(nrows=num_columns, ncols=1, figsize=(10, num_columns * 4))
         fig.tight_layout(pad=5)
 
+        names = df1.index.to_series().apply(lambda x: pd.to_datetime(str(x), format='%m').strftime('%b'))
         for i, col in enumerate(df1.columns):
             ax = axes[1] if num_columns > 1 else axes
 
@@ -53,12 +55,12 @@ class GapPlottingMixin():
             # set labels and title for each subplot
             ax.set_xlabel('Month')
             ax.set_xticks(index)
-            ax.set_xticklabels(df1.index)
-            ax.set_ylabel(col)
+            ax.set_xticklabels(names)
+            ax.set_ylabel('MWh')
             ax.set_title(f"Comparison of {col} Monthly Net Electricity")
             ax.legend()
         
-        plt.show()
+        # plt.show()
 
         fig_name = f'{name}.jpg'
         fig_sub_dir = os.path.abspath(os.path.join(output_dir))
