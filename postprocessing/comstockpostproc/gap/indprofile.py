@@ -2,6 +2,8 @@ import os
 import logging
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import HistGradientBoostingRegressor
@@ -21,7 +23,7 @@ MAJ_HOLIDAYS = [
 ]
 
 class IndustrialProfile():
-    def __init__(self, truth_data_version='v01', relaod_from_saved=True, save_processed=True, basis_lrd_name='First Energy PA'):
+    def __init__(self, truth_data_version='v01', reload_from_saved=True, save_processed=True, basis_lrd_name='First Energy PA'):
         """
         A class to produce estimated industrial electrical load profiles by Balancing Authority
             Parameters:
@@ -31,13 +33,14 @@ class IndustrialProfile():
 
         self.truth_data_version = truth_data_version
         self.basis_lrd_name = basis_lrd_name
-        self.reload_from_saved = relaod_from_saved
+        self.reload_from_saved = reload_from_saved
         self.save_processed = save_processed
         current_dir = os.path.dirname(os.path.abspath(__file__))
         self.truth_data_dir = os.path.join(current_dir, '..','..','truth_data', self.truth_data_version)
         self.processed_dir = os.path.join(self.truth_data_dir, 'gap_processed')
         self.processed_filename = 'ba_ind_profiles.csv'
         self.processed_path = os.path.join(self.processed_dir, self.processed_filename)
+        self.output_dir = os.path.join(current_dir, 'output')
 
         if self.reload_from_saved:
             if os.path.exists(self.processed_path):
@@ -166,6 +169,23 @@ class IndustrialProfile():
         # TODO: run regression and plot days
         # TODO: compare to other LRD - AES Ohio, PG&E
 
+        # plot regression against source LRD
+        self.run_regression_and_plot_sample_weeks(ind_lrd_unit_out, model, 'First Energy PA Industrial Load')
+
+        # compare to other LRD
+        aes_ohio_lrd = LoadResearchData(utility_name='AES Ohio').data
+        aes_ohio_ind = aes_ohio_lrd['Industrial'].to_frame()
+        aes_ohio_ind_unit = aes_ohio_ind.div(aes_ohio_ind.sum(axis=0), axis=1)
+        aes_ohio_ind_unit.rename(columns={'Industrial':'target'}, inplace=True)
+        aes_ohio_ind_unit_out = self.apply_regression(aes_ohio_ind_unit, model)
+        self.run_regression_and_plot_sample_weeks(aes_ohio_ind_unit_out, model, 'AES Ohio Industrial Load')
+
+        pge_lrd = LoadResearchData(utility_name='PG&E').data
+        pge_unit = pge_lrd.div(pge_lrd.sum(axis=0), axis=1)
+        pge_unit['target'] = pge_unit.mean(axis=1)
+        pge_unit_out = self.apply_regression(pge_unit, model)
+        self.run_regression_and_plot_sample_weeks(pge_unit_out, model, 'PG&E Industrial Load')
+
         # load total industrial sales by BA from EIA 861
         ind_sales = EIA861(segment='Industrial', measure='Sales').data
         ind_sales = ind_sales[ind_sales['Part'] != 'C']
@@ -188,6 +208,58 @@ class IndustrialProfile():
         
         return ba_ind_profiles
 
+    def run_regression_and_plot_sample_weeks(self, lrd_df, model, name):
+        """
+        Plots the predicted vs actual values for representative weeks of the year
+            Parameters:
+                lrd_df (DataFrame): Timeseries dataframe with DateTime index
+                model (RegressionModel): regression model (e.g., LinearRegression, HistGradientBoostingRegressor)
+        """
+        params = self.model_parameters
 
+        # representative dates
+        dates = {
+            'Winter': ['2018-01-15', '2018-01-22'],
+            'Spring': ['2018-04-15', '2018-04-22'],
+            'Summer': ['2018-07-02', '2018-07-09'],
+            'Fall': ['2018-10-15', '2018-10-22'],
+        }
 
+        # create figure and axes
+        fig, ax = plt.subplots(2, 2, figsize=(14,10))
+        ax = ax.flatten()
+        
+        slices = [lrd_df['target'].loc[start: end] for start, end in dates.values()]
+        max_value = max([s.max() for s in slices])
 
+        for i, (season ,date_range) in enumerate(dates.items()):
+            # select data for chosen range
+            data = lrd_df.loc[date_range[0]: date_range[1]]
+
+            # prepare features
+            x_range = data[params]
+            y_pred = model.predict(x_range)
+
+            # plot actual vs predicted values
+            ax[i].plot(data.index, data['target'], label='Actual', color='blue')
+            ax[i].plot(data.index, y_pred, label='Predicted', color='orange', linestyle='--')
+            ax[i].xaxis.set_major_formatter(mdates.DateFormatter('%b-%d'))
+            ax[i].set_xlim(pd.to_datetime(date_range[0]).replace(hour=0, minute=0), pd.to_datetime(date_range[1]).replace(hour=23, minute=0))
+            # ax[i].set_xlabel('Date')
+            ax[i].set_ylabel('Annual Unitized Load')
+            ax[i].set_ylim(0, max_value * 1.1)
+            ax[i].set_title(f"{season}: {pd.to_datetime(date_range[0]).strftime('%B %d')} - {pd.to_datetime(date_range[1]).strftime('%d')}")
+            # ax[i].set_title(f'{season}: {date_range[0]} - {date_range[1]}')
+            # ax[i].legend()
+            ax[i].grid(True)
+            for label in ax[i].get_xticklabels():
+                label.set_horizontalalignment('left')
+
+        handles, labels = ax[0].get_legend_handles_labels()
+        fig.legend(handles, labels, loc='upper center', ncol=2, fontsize=10, bbox_to_anchor=(0.5, 0.95),)
+        fig.suptitle(f'{name} - Actual vs Predicted', fontsize=16)
+        fig.tight_layout(rect=[0, 0, 1, 0.96])
+        fig_name = f'{name}_IndProfile.png'
+        fig_path = os.path.join(self.output_dir, fig_name)
+        plt.savefig(fig_path, dpi=600, bbox_inches='tight')
+        plt.close()
