@@ -91,11 +91,33 @@ class LoadResearchData(S3UtilitiesMixin):
             return self.process_pge_lrd()
 
     def process_aes_ohio_lrd(self):
-        # todo
-        return None
+        logger.info('Processing AES Ohio LRD')
+        lrd_data = pd.DataFrame()
+
+        lrd_info = [obj for obj in self.metadata if obj['lrd_name'] == self.utility_name]
+        for i in lrd_info:
+            s3_file_path = f"truth_data/{self.truth_data_version}/LRD_data/2018 raw LRD/{i['filename']}"
+            print(s3_file_path)
+            local_path = self.download_truth_data_file(s3_file_path)
+
+            df = pd.read_excel(local_path, sheet_name=i['sheet_name'], header=i['header_row'], usecols=i['cols'])
+            df.columns = [col.strip() for col in df.columns]
+            df['Datetime'] = pd.to_datetime(df[['Year', 'Month', 'Day']])
+            df['Hr Ending'] = pd.to_timedelta(df['Hr Ending'], unit='h')
+            df['Datetime'] = df['Datetime'] + df['Hr Ending']
+            df.set_index('Datetime', inplace=True) 
+            df.sort_index(inplace=True)
+            df = df.loc['2018-01-01 01:00:00': '2019-01-01 00:00:00']
+            df.drop(columns=[col for col in df.columns if not any(str in col for str in i['commercial_cols'] + i['residential_cols'] + i['industrial_cols'])], inplace=True)
+            
+            lrd_data = pd.concat([lrd_data, df], axis=1)
+        
+        lrd_data.to_csv(self.processed_path)
+
+        return lrd_data
             
     def process_first_energy_pa_lrd(self):
-
+        logger.info('Processing First Energy PA LRD')
         lrd_data = pd.DataFrame()
 
         # get me
@@ -103,7 +125,6 @@ class LoadResearchData(S3UtilitiesMixin):
         for i in lrd_info:
             abbrev = i['filename'].split('_')[1]
             s3_file_path = f"truth_data/{self.truth_data_version}/LRD_data/2018 raw LRD/{i['filename']}"
-            print(s3_file_path)
             local_path = self.download_truth_data_file(s3_file_path)
     
             df = pd.read_excel(local_path, sheet_name=i['sheet_name'], header=i['header_row'], usecols=i['cols'])
@@ -129,5 +150,32 @@ class LoadResearchData(S3UtilitiesMixin):
         return lrd_data
 
     def process_pge_lrd(self):
-        # todo
-        return None
+        logger.info('Processing PG&E LRD')
+        lrd_data = pd.DataFrame()
+
+        def time_to_timedelta(timestring):
+            hour = datetime.datetime.strptime(timestring, '%I:%M %p').hour
+            if hour == 0:
+                hour = 24
+            return datetime.timedelta(hours=hour)
+        
+        lrd_info = [obj for obj in self.metadata if obj['lrd_name'] == self.utility_name][0]
+
+        for filename in lrd_info["filenames"]:
+            s3_file_path = f"truth_data/{self.truth_data_version}/LRD_data/2018 raw LRD/PG&E_{filename}_dynamic_2001.csv"
+            df = self.read_delimited_truth_data_file_from_S3(s3_file_path, delimiter='\t')
+            col = f'{filename}_kW'
+            df = df.melt(id_vars=['Date'],
+                         value_vars=df.columns[2:],
+                         var_name='Hour',
+                         value_name=col)
+            df['Hour'] = df['Hour'].str.upper().apply(time_to_timedelta)
+            df['Datetime'] = pd.to_datetime(df['Date']) + df['Hour']
+            df.set_index('Datetime', inplace=True)
+            df.sort_index(inplace=True)
+            df = df.loc['2018-01-01 01:00:00': '2019-01-01 00:00:00']
+            df = df[[col]].astype(float)
+
+            lrd_data = pd.concat([lrd_data, df], axis=1)
+
+        return lrd_data
