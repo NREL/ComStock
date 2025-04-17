@@ -65,12 +65,16 @@ Projected emissions use data from NREL's Cambium 2022 data set \citep{cambium202
 Natural gas, propane, and fuel oil emissions use the emission factors in \textit{Table 7.1.2(1) of draft National Average Emission Factors for Household Combustion Fuels} defined in \textit{ANSI/RESNET/ICCC 301-2022 Addendum B-2022 Standard for the Calculation and Labeling of the Energy Performance of Dwelling and Sleeping Units using an Energy Rating Index}. Natural gas emissions include both combustion and pre-combustion emissions (e.g., methane leakage for natural gas).
 
 On-Site Fossil Fuel Emissions Factors:\\
-Natural gas: 147.3 lb/MMBtu (228.0 kg/MWh)\\ 
-Propane: 177.8 lb/MMBtu (275.7 kg/MWh)\\ 
-Fuel oil: 195.9 lb/MMBtu (303.2 kg/MWh)\\ 
+Natural gas: 147.3 lb/MMBtu (228.0 kg/MWh)\\
+Propane: 177.8 lb/MMBtu (275.7 kg/MWh)\\
+Fuel oil: 195.9 lb/MMBtu (303.2 kg/MWh)\\
 
 \subsection{District Energy Emissions}
-ComStock currently does not model emissions from district energy systems, as there is considerable variation by location and type of district system.
+District heating and cooling emissions use the emissions factors defined in the August 2024 version of the \textit{Energy Star Portfolio Manager Technical Reference} available at \url{https://portfoliomanager.energystar.gov/pdf/reference/Emissions.pdf}. The district heating emissions factor is the same for both steam and hot water. The district cooling emissions factor assumes district chilled water served by electric driver chillers. The emissions factors were originally sourced from EIA data for district chilled water and the EPA voluntary reporting program for district steam and hot water. These district emissions factors do not include upstream methane leakage. There is considerable variation by location and type of district system, so you may need to scale the results by factors specific to your region or system.
+
+On-Site Fossil Fuel Emissions Factors:\\
+District Cooling: 52.70 kg/MMBtu\\
+District Heating: 66.40 kg/MMBtu\\
 
 \section{Utility Bills}
 ComStock estimates utility bills for several of the primary fuels consumed in buildings.

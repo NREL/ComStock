@@ -207,9 +207,9 @@ class NamingMixin():
     UTIL_BILL_ELEC_MAX = 'out.utility_bills.electricity_bill_max..usd'
     UTIL_BILL_ELEC_MED = 'out.utility_bills.electricity_bill_median..usd'
     UTIL_BILL_ELEC_MIN = 'out.utility_bills.electricity_bill_min..usd'
-    UTIL_BILL_GAS = 'out.utility_bills.natural_gas_bill..usd'
-    UTIL_BILL_FUEL_OIL = 'out.utility_bills.fuel_oil_bill..usd'
-    UTIL_BILL_PROPANE = 'out.utility_bills.propane_bill..usd'
+    UTIL_BILL_GAS = 'out.utility_bills.natural_gas_bill_state_average..usd'
+    UTIL_BILL_FUEL_OIL = 'out.utility_bills.fuel_oil_bill_state_average..usd'
+    UTIL_BILL_PROPANE = 'out.utility_bills.propane_bill_state_average..usd'
 
     # Utility bill columns
     COLS_UTIL_BILLS = [
@@ -270,7 +270,7 @@ class NamingMixin():
     ]
 
     # Combined utility bills
-    UTIL_BILL_TOTAL_MEAN = 'calc.utility_bills.total_mean_bill..usd'
+    UTIL_BILL_TOTAL_MEAN = 'calc.utility_bills.total_bill_mean..usd'
 
     # GHG emissions columns
     ANN_GHG_EGRID = 'calc.emissions.total_with_egrid..co2e_kg'
@@ -281,6 +281,8 @@ class NamingMixin():
         'out.emissions.natural_gas..co2e_kg',
         'out.emissions.fuel_oil..co2e_kg',
         'out.emissions.propane..co2e_kg',
+        'out.emissions.district_cooling..co2e_kg',
+        'out.emissions.district_heating..co2e_kg',
         'out.emissions.electricity.egrid_2021_subregion..co2e_kg'
     ]
 
@@ -289,6 +291,8 @@ class NamingMixin():
         'out.emissions.natural_gas..co2e_kg',
         'out.emissions.fuel_oil..co2e_kg',
         'out.emissions.propane..co2e_kg',
+        'out.emissions.district_cooling..co2e_kg',
+        'out.emissions.district_heating..co2e_kg',
         'out.emissions.electricity.lrmer_mid_case_15_2023_start..co2e_kg'
 
     ]
@@ -849,8 +853,8 @@ class NamingMixin():
             '5B':'5B',
             '6A':'6A',
             '6B':'6B',
-            '7A':'7',  # TODO remove 7A/7B from spatial_tract_lookup_table_publish_v6.csv?
-            '7B':'7',  # TODO remove 7A/7B from spatial_tract_lookup_table_publish_v6.csv?
+            '7A':'7',  # TODO remove 7A/7B from spatial_tract_lookup_table_publish_vN.csv?
+            '7B':'7',  # TODO remove 7A/7B from spatial_tract_lookup_table_publish_vN.csv?
             '7':'7',
             '8':'8',
     }
