@@ -2,7 +2,10 @@ import os
 import boto3
 import logging
 import botocore
+import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 from comstockpostproc.naming_mixin import NamingMixin
 from comstockpostproc.cbecs import CBECS
 from comstockpostproc.units_mixin import UnitsMixin
@@ -14,7 +17,6 @@ from comstockpostproc.gap.resprofile import ResidentialProfile
 from comstockpostproc.gap.indprofile import IndustrialProfile
 from comstockpostproc.s3_utilities_mixin import S3UtilitiesMixin
 from comstockpostproc.gap.gap_plotting_mixin import GapPlottingMixin
-
 
 # Create logger for AWS queries
 logging.basicConfig(level=logging.INFO)
@@ -434,15 +436,341 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
         return ba_county_fracs
     
     def annual_comparison_plot(self):
+        """
+        Creates an annual comparison stacked barchart of reported EIA sector totals compared to modeled profile totals
+        """
+
+        logger.info('Creating Annual Comparison chart.')
+
+        # reported totals
+        reported_totals = pd.DataFrame()
+
+        TOTAL = 'EIA930 total MWh'
+        IND = 'EIA861 Industrial'
+        COM = 'EIA861 Commercial'
+        RES = 'EIA861 Residential'
+        GAP = 'Reported Gap'
+
         # EIA 930 totals
         ba_profiles = EIA930().data
         total_930 = ba_profiles.sum().sum()
+        
+        reported_totals.at[TOTAL, 'value'] = total_930
 
         # EIA 861 Sales
         all_861 = EIA861(segment=['Industrial', 'Commercial', 'Residential'], measure='Sales').data
         all_861 = all_861[all_861['Part'] != 'C']
         # remove Alaska and Hawaii - don't have BAs to compare in gap
-        all_861 = all_861[all_861['State'] != 'AK' and all_861['State'] != 'HI']
+        all_861 = all_861[(all_861['State'] != 'AK') & (all_861['State'] != 'HI')]
 
         all_861_total = all_861[['INDUSTRIAL_Sales_MWh', 'COMMERCIAL_Sales_MWh', 'RESIDENTIAL_Sales_MWh']].sum(axis=0).to_frame()
         
+        reported_totals.at[IND, 'value'] = all_861_total.loc['INDUSTRIAL_Sales_MWh'][0]
+        reported_totals.at[COM, 'value'] = all_861_total.loc['COMMERCIAL_Sales_MWh'][0]
+        reported_totals.at[RES, 'value'] = all_861_total.loc['RESIDENTIAL_Sales_MWh'][0]
+
+        reported_totals.at[GAP, 'value'] = reported_totals.loc[TOTAL, 'value'] - (reported_totals.loc[IND, 'value'] + reported_totals.loc[COM, 'value'] + reported_totals.loc[RES, 'value'])
+
+        # modeled totals
+        modeled_totals = pd.DataFrame()
+
+        COM_M = 'ComStock Total'
+        RES_M = 'ResStock Adjusted Total'
+        IND_M = 'Industrial Estimated Total'
+        GAP_M = 'Commercial Gap'
+        UGAP_M = 'Uncategorized Gap'
+
+        gap = self.commercial_gap_by_ba()
+        gap_total = gap.sum().sum()
+
+        com_total = self.com_ba_profiles.sum().sum()
+        res_total = self.res_ba_profiles.sum().sum()
+        ind_total = self.ind_ba_profiles.sum().sum()
+
+        modeled_totals.at[COM_M, 'value'] = com_total
+        modeled_totals.at[RES_M, 'value'] = res_total
+        modeled_totals.at[IND_M, 'value'] = ind_total
+
+        modeled_totals.at[GAP_M, 'value'] = reported_totals.loc[COM, 'value'] - modeled_totals.loc[COM_M, 'value']
+        modeled_totals.at[UGAP_M, 'value'] = gap_total - modeled_totals.loc[GAP_M, 'value']
+
+        reported_categories = [IND, RES, COM, GAP]
+        modeled_categories = [IND_M, RES_M, COM_M, GAP_M, UGAP_M]
+
+        # reported_values = reported_totals.loc[reported_categories, 'value']
+        # modeled_values = modeled_totals.loc[modeled_categories, 'value']
+        print(modeled_totals)
+        print(reported_totals)
+
+        # value: [bar color, text color] 
+        colors = {
+            IND: ['orange','white'],
+            IND_M: ['orange','white'],
+            RES: ['purple','white'],
+            RES_M: ['purple','white'],
+            COM: ['green','white'],
+            COM_M: ['green','white'],
+            GAP_M: ['lightgreen','black'],
+            GAP: ['grey','black'],
+            UGAP_M: ['grey','black']
+        }
+
+        bar_width = 0.4
+
+        fig, ax = plt.subplots(figsize=(12, 8))
+        x = np.arange(2)
+        bottom = 0
+        for category in reported_categories:
+            value = reported_totals.loc[category, 'value']
+            ax.bar(x[0], value, width=bar_width, bottom=bottom, label=category, color=colors[category][0], edgecolor='black')
+            ax.text(x[0], bottom + value / 2, category, ha='center', va='center', fontsize=10, color=colors[category][1])
+            bottom += value
+
+        bottom = 0
+        for category in modeled_categories:
+            value = modeled_totals.loc[category, 'value']
+            ax.bar(x[1], value, width=bar_width, bottom=bottom, label=category, color=colors[category][0], edgecolor='black')
+            ax.text(x[1], bottom + value / 2, category, ha='center', va='center', fontsize=10, color=colors[category][1])
+            bottom += value
+
+        ax.set_xticks(x)
+        ax.set_xticklabels(['Reported', 'Modeled'])
+        ax.set_ylabel('Annual Electricity Consumption (MWh)')
+        ax.set_title('Annual Electricity Consumption Comparison')
+
+        plt.tight_layout()
+        fig_name = f'{ax.title.get_text()}.png'
+        fig_path = os.path.join(self.output_dir, fig_name)
+        plt.savefig(fig_path, dpi=600, bbox_inches='tight')
+
+    def monthly_comparison_plot(self):
+        """
+        Generates a stacked bar chart comparing EIA reported to modeled sector monthly totals
+        """
+
+        TOTAL = 'EIA930 total MWh'
+        IND = 'EIA861 Industrial'
+        COM = 'EIA861 Commercial'
+        RES = 'EIA861 Residential'
+        GAP = 'Reported Gap'
+        REPORTED = [IND, RES, COM, GAP]
+
+        ba_profiles = EIA930().data
+        ba_profiles['month'] = ba_profiles.index.month
+        monthly_930_totals = ba_profiles.groupby('month').sum().sum(axis=1).to_frame().rename(columns={0: 'EIA930 Total MWh'})
+
+        all_861_monthly = EIA861(type='Monthly', segment=['Industrial', 'Commercial', 'Residential'], measure='Sales').data
+        all_861_monthly_total = all_861_monthly.groupby('Month')[['RESIDENTIAL_Sales_MWh', 'INDUSTRIAL_Sales_MWh', 'COMMERCIAL_Sales_MWh']].sum()
+        all_861_monthly_total.index = all_861_monthly_total.index.astype(int)
+
+        monthly_reported = pd.merge(monthly_930_totals, all_861_monthly_total, left_index=True, right_index=True)
+        monthly_reported.rename(columns={
+            'COMMERCIAL_Sales_MWh': COM,
+            'INDUSTRIAL_Sales_MWh': IND,
+            'RESIDENTIAL_Sales_MWh': RES,
+            'EIA930 Total MWh': TOTAL
+            }, inplace=True)
+
+        monthly_reported[GAP] = monthly_reported[TOTAL] - (monthly_reported[IND] + monthly_reported[COM] + monthly_reported[RES])
+        monthly_reported.fillna(0.0, inplace=True)
+
+        # monthly modeled
+        COM_M = 'ComStock Total'
+        RES_M = 'ResStock Adjusted Total'
+        IND_M = 'Industrial Estimated Total'
+        GAP_M = 'Commercial Gap'
+        UGAP_M = 'Uncategorized Gap'
+        MODELED = [IND_M, RES_M, COM_M, GAP_M, UGAP_M]
+
+        def profiles_to_monthly_totals(df, name):
+            df = df.shift(-1, freq='h').sum(axis=1).to_frame()
+            df['month'] = df.index.month
+            df_monthly = df.groupby('month').sum()
+            df_monthly.rename(columns={0: name}, inplace=True)
+            return df_monthly
+
+        modeled_monthly = pd.concat([
+            profiles_to_monthly_totals(self.com_ba_profiles, COM_M),
+            profiles_to_monthly_totals(self.res_ba_profiles, RES_M),
+            profiles_to_monthly_totals(self.ind_ba_profiles, IND_M),
+        ], axis=1)
+
+        modeled_monthly.reset_index(names='Month', inplace=True)
+        modeled_monthly = modeled_monthly.merge(monthly_reported[[TOTAL, COM]], left_on='Month', right_index=True)
+        modeled_monthly[GAP_M] = modeled_monthly[COM] - modeled_monthly[COM_M]
+        modeled_monthly[UGAP_M] = modeled_monthly[TOTAL] - (modeled_monthly[COM_M] + modeled_monthly[RES_M] + modeled_monthly[IND_M] + modeled_monthly[GAP_M])
+        modeled_monthly['Month Name'] = modeled_monthly['Month'].apply(lambda x: pd.to_datetime(str(x), format='%m').strftime('%b'))
+
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+        bar_width = 0.4
+        x = np.arange(len(monthly_reported.index))
+
+        colors = dict(zip(REPORTED, ['orange', 'purple', 'green', 'grey']))
+        colors.update(dict(zip(MODELED, ['orange', 'purple', 'green', 'lightgreen', 'grey'])))
+
+        btm_rep = np.zeros(len(monthly_reported.index))
+        for col in REPORTED:
+            ax.bar(x - (bar_width / 2), monthly_reported[col], width=bar_width, bottom=btm_rep, label=col, color=colors[col], edgecolor='black', hatch='xx')
+            btm_rep += monthly_reported[col]
+
+        btm_mod = np.zeros(len(modeled_monthly.index))
+        for col in MODELED:
+            ax.bar(x + (bar_width / 2), modeled_monthly[col], width=bar_width, bottom=btm_mod, label=col, color=colors[col], edgecolor='black')
+            btm_mod += modeled_monthly[col]
+
+        ax.set_xticks(x)
+        ax.set_xticklabels(modeled_monthly['Month Name'])
+        ax.set_ylabel('Monthly Electricity Consumption (MWh)')
+        ax.set_title('Monthly Electricity Consumption Comparison')
+        ax.legend(loc='upper left', bbox_to_anchor=(1, 1), fontsize=8)
+        ax.axhline(0, color='black', linewidth=0.8)
+        ax.grid(axis='y', linestyle='--', alpha=0.7)
+        plt.tight_layout()
+
+        fig_name = f'{ax.title.get_text()}.png'
+        fig_path = os.path.join(self.output_dir, fig_name)
+        plt.savefig(fig_path, dpi=600, bbox_inches='tight')
+
+    def plot_profiles(self, aggregation_type, aggregation_key):
+        """
+        plots all profiles for representative weeks of the year, for a given aggregation type and key
+        Args:
+            aggregation_type (String): ['BA', 'County', 'State']
+            aggregation_key (String or List): BA Code, County nhgis_gisjoin, or State abbreviation, or 'All' or list
+        """
+
+        def plot_for_dates(df, type, key, colors, fig_name):
+            dates = {
+                'Winter': ['2018-01-15', '2018-01-22'],
+                'Spring': ['2018-04-15', '2018-04-22'],
+                'Summer': ['2018-07-02', '2018-07-09'],
+                'Fall': ['2018-10-15', '2018-10-22'],
+            }
+
+            fig, ax = plt.subplots(2, 2, figsize=(14, 10))
+            ax = ax.flatten()
+
+            slices = [df['EIA 930 Total'].loc[start:end] for start, end in dates.values()]
+            max_val = max([s.max() for s in slices])
+
+            for i, (season, date_range) in enumerate(dates.items()):
+                data = df.loc[date_range[0]:date_range[1]].copy()
+                for col in data.columns:
+                    if col == 'Other Commercial + Uncategorized':
+                        alpha = 1
+                        colors[col] = 'black'
+                    else:
+                        alpha = 0.5
+                    ax[i].plot(data.index, data[col], label=col, alpha=alpha, color=colors[col])
+                ax[i].xaxis.set_major_formatter(mdates.DateFormatter('%b-%d'))
+                ax[i].set_xlabel('Date')
+                ax[i].set_xlim(pd.to_datetime(date_range[0]).replace(hour=0, minute=0), pd.to_datetime(date_range[1]).replace(hour=23, minute=0))
+                ax[i].set_ylabel('Electricity Consumption (MWh)')
+                ax[i].set_ylim(0, 1.1 * max_val)
+                ax[i].set_title(f"{season}: {pd.to_datetime(date_range[0]).strftime('%B %d')} - {pd.to_datetime(date_range[1]).strftime('%d')}")
+                # ax[i].legend()
+                ax[i].grid(True)
+
+            handles, labels = ax[0].get_legend_handles_labels()
+            fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, 0.95), fontsize=10, ncol=5)
+
+            fig.suptitle(f'{key} Electric Load Weekly Profiles', fontsize=16)
+            fig_path = os.path.join(self.output_dir, fig_name)
+            plt.savefig(fig_path, dpi=600, bbox_inches='tight')
+            plt.close(fig)
+
+        def plot_stacked_area_for_days(df, key, colors):
+            """
+            Plots a stacked area plot of the columns in df for four representative days of the year.
+
+            Args:
+                df (pd.DataFrame): DataFrame containing time-series data with a datetime index.
+                output_dir (str): Directory to save the plot.
+                key (str): Identifier for the plot (e.g., BA, County, or State).
+            """
+            dates = {
+                'Winter': '2018-01-15',
+                'Spring': '2018-04-15',
+                'Summer': '2018-07-02',
+                'Fall': '2018-10-19',
+            }
+
+            fig, ax = plt.subplots(2, 2, figsize=(14, 10))
+            ax = ax.flatten()
+
+            stacks = ['Industrial', 'ResStock', 'ComStock', 'Other Commercial + Uncategorized']
+            color_list = [colors[x] for x in stacks]
+            data_to_stack = df[stacks]
+            data_to_line = df[['EIA 930 Total']]
+
+            max_val = data_to_line.loc[data_to_line.index.floor('D').isin([pd.to_datetime(v) for v in dates.values()])].values.max()
+            print(max_val)
+
+            for i, (season, date) in enumerate(dates.items()):
+                day_data = data_to_stack.loc[date].copy()
+                ax[i].stackplot(day_data.index, day_data.T, labels=day_data.columns, colors=color_list, alpha=0.8)
+                ax[i].plot(data_to_line.loc[date].index, data_to_line.loc[date], label='EIA 930 Total', color='blue', alpha=1)
+                ax[i].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+                ax[i].set_ylabel('Electricity Consumption (MWh)')
+                ax[i].set_title(f"{season}: {pd.to_datetime(date).strftime('%B %d (%A)')}")
+                ax[i].set_ylim(0, 1.1 * max_val)
+                ax[i].set_xlim(pd.to_datetime(date).replace(hour=0, minute=0), pd.to_datetime(date).replace(hour=23, minute=0))
+
+            handles, labels = ax[0].get_legend_handles_labels()
+            fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, 0.95), fontsize=10, ncol=5)
+            fig.suptitle(f'{key} Electricity Profile Components', fontsize=16)
+            fig.tight_layout(rect=[0, 0, 1, 0.96])
+
+            fig_name = f'{key} Component Profile.png'
+            fig_path = os.path.join(self.output_dir, fig_name)
+            plt.savefig(fig_path, dpi=600, bbox_inches='tight')
+            plt.close(fig)
+
+
+        if aggregation_type == 'BA':
+
+            total_profiles = EIA930().data
+            gap_profile = self.commercial_gap_by_ba()
+            com_profile = self.com_ba_profiles
+            res_profile = self.res_ba_profiles
+            ind_profile = self.ind_ba_profiles
+            
+            if aggregation_key == 'All':
+                keys_to_plot = gap_profile.columns
+            elif type(aggregation_key) == list:
+                keys_to_plot = [key for key in gap_profile.columns if key in aggregation_key]
+            elif (type(aggregation_key) == str) & (aggregation_key in gap_profile.columns):
+                keys_to_plot = [aggregation_key]
+            else:
+                logger.error(f"BA {aggregation_key} not found in gap profiles")
+                return None
+            
+            for key in keys_to_plot:
+                logger.info(f"Plotting profiles for BA {key}")
+
+                total_data = total_profiles[[key]].copy()
+                gap_data = gap_profile[[key]].copy()
+                com_data = com_profile[[key]].copy()
+                res_data = res_profile[[key]].copy()
+                ind_data = ind_profile[[key]].copy()
+
+                # combine into single dataframe
+                df = pd.concat([total_data, gap_data, com_data, res_data, ind_data], axis=1)
+                df.columns = ['EIA 930 Total', 'Other Commercial + Uncategorized', 'ComStock', 'ResStock', 'Industrial']
+
+                # plot for each season
+                colors = {
+                    'EIA 930 Total': 'blue',
+                    'Other Commercial + Uncategorized': 'grey',
+                    'ComStock': 'green',
+                    'ResStock': 'purple',
+                    'Industrial': 'orange'
+                }
+
+                fig_name = f'{key} {aggregation_type} Profiles.png'
+                plot_stacked_area_for_days(df, key, colors)
+                plot_for_dates(df, aggregation_type, key, colors, fig_name)
+                
+
+                # return df
