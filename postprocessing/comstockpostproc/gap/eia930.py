@@ -84,7 +84,8 @@ class EIA930(S3UtilitiesMixin):
             profile = os.path.basename(obj.key).replace('.csv', '')
 
             # get profile in local time
-            timezone = ba_timestamps.loc[ba_timestamps['code'] == profile]['report_timezone'].iloc[0]
+            # timezone = ba_timestamps.loc[ba_timestamps['code'] == profile]['report_timezone'].iloc[0]
+            timezone = 'America/New_York'
             # localize timestamp
             df['local_time'] = df.index.tz_localize('UTC').tz_convert(timezone)
 
