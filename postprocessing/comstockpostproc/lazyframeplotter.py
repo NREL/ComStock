@@ -46,7 +46,7 @@ class LazyFramePlotter(NamingMixin):
             c, UnitsMixin.UNIT.DIMLESS.PERCENT) for c in self.COLS_ENDUSE_ANN_ENGY + self.COLS_TOT_ANN_ENGY]
 
         self.EUI_SAVINGS_COLUMNS = [self.col_name_to_savings(self.col_name_to_area_intensity(c)) for c in [self.UTIL_BILL_TOTAL_MEAN] + self.COLS_UTIL_BILLS]
-        self.EUI_SAVINGS_COLUMNS += [self.col_name_to_percent_savings(c, UnitsMixin.UNIT.DIMLESS.PERCENT) for c in [self.UTIL_BILL_TOTAL_MEAN] + self.COLS_UTIL_BILLS]
+        self.EUI_SAVINGS_COLUMNS += [self.col_name_to_percent_savings(self.col_name_to_weighted(c), UnitsMixin.UNIT.DIMLESS.PERCENT) for c in [self.UTIL_BILL_TOTAL_MEAN] + self.COLS_UTIL_BILLS]
 
         self.SAVINGS_DISTRI_BUILDINTYPE = [self.col_name_to_savings(self.col_name_to_eui(self.ANN_TOT_ENGY_KBTU)),
                                            self.col_name_to_percent_savings(self.ANN_TOT_ENGY_KBTU, UnitsMixin.UNIT.DIMLESS.PERCENT)]
