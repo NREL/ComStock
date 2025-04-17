@@ -1,0 +1,89 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import logging
+
+import comstockpostproc as cspp
+
+
+logging.basicConfig(level='INFO')  # Use DEBUG, INFO, or WARNING
+logger = logging.getLogger(__name__)
+
+def main():
+    # ComStock run
+    comstock = cspp.ComStock(
+        s3_base_dir='com-sdr',  # If run not on S3, download results_up**.parquet manually
+        comstock_run_name='hp_setback',  # Name of the run on S3
+        comstock_run_version='hp_setback',  # Use whatever you want to see in plot and folder names
+        comstock_year=2018,  # Typically don't change this
+        athena_table_name=None,  # Typically don't change this
+        truth_data_version='v01',  # Typically don't change this
+        buildstock_csv_name='buildstock.csv',  # Download buildstock.csv manually
+        acceptable_failure_percentage=0.25,  # Can increase this when testing and high failure are OK
+        drop_failed_runs=True,  # False if you want to evaluate which runs failed in raw output data
+        color_hex='#0072B2',  # Color used to represent this run in plots
+        skip_missing_columns=True,  # False if you want to ensure you have all data specified for export
+        reload_from_csv=False, # True if CSV already made and want faster reload times
+        include_upgrades=True,  # False if not looking at upgrades
+        upgrade_ids_to_skip=[], # Use [1, 3] etc. to exclude certain upgrades
+        make_timeseries_plots=True,
+        states={
+                #'MN': 'Minnesota',  # specify state to use for timeseries plots in dictionary format. State ID must correspond correctly.
+                'MA':'Massachusetts',
+                #'OR': 'Oregon',
+                #'LA': 'Louisiana',
+                #'AZ': 'Arizona',
+                #'TN': 'Tennessee'
+                },
+        upgrade_ids_for_comparison={'HPRTU Setback Comparison': [0,1,2]} # Use {'<Name you want for comparison run folder>':[0,1,2]}; add as many upgrade IDs as needed, but plots look strange over 5
+        )
+
+    # Stock Estimation for Apportionment:
+    stock_estimate = cspp.Apportion(
+        stock_estimation_version='2024R2',  # Only updated when a new stock estimate is published
+        truth_data_version='v01',  # Typically don't change this
+        reload_from_cache=False # Set to "True" if you have already run apportionment and would like to keep consistant values between postprocessing runs.
+    )
+
+    # CBECS
+    cbecs = cspp.CBECS(
+        cbecs_year=2018,  # 2012 and 2018 currently available
+        truth_data_version='v01',  # Typically don't change this
+        color_hex='#009E73',  # Color used to represent CBECS in plots
+        reload_from_csv=False  # True if CSV already made and want faster reload times
+        )
+
+    # Scale ComStock runs to the 'truth data' from StockE V3 estimates using bucket-based apportionment
+    comstock.add_weights_aportioned_by_stock_estimate(apportionment=stock_estimate)
+    # Scale ComStock run to CBECS 2018 AND remove non-ComStock buildings from CBECS
+    comstock.add_national_scaling_weights(cbecs, remove_non_comstock_bldg_types_from_cbecs=True)
+    
+    # Define the geographic partitions to export
+    geo_exports = [
+       {'geo_top_dir': 'national_by_state',
+           'partition_cols': {},
+           'aggregation_levels': [[comstock.STATE_ABBRV, comstock.CZ_ASHRAE]],
+           'data_types': ['full'], # other options: 'detailed', 'basic' **If using multiple options, order must go from more detailed to less detailed.
+           'file_types': ['csv'], # other options:'parquet'
+       },
+    ]
+    # export metadata files
+    comstock.export_metadata_and_annual_results(geo_exports)
+
+    # Export CBECS and ComStock data to wide and long formats for Tableau and to skip processing later
+    # cbecs.export_to_csv_wide()  # May comment this out after run once
+
+    # Export CBECS and ComStock data to wide and long formats for Tableau and to skip processing later
+    # cbecs.export_to_csv_wide()  # May comment this out after run once
+    # comstock.create_national_aggregation()
+    # comstock.create_geospatially_resolved_aggregations(comstock.STATE_ID, pretty_geo_col_name='state_id')
+    # comstock.create_geospatially_resolved_aggregations(comstock.COUNTY_ID, pretty_geo_col_name='county_id')
+    # #TODO Long is def not working as expected anymore...
+    # comstock.export_to_csv_long()  # Long format useful for stacking end uses and fuels
+
+    # Create measure run comparisons; only use if run has measures
+    comparison = cspp.ComStockMeasureComparison(comstock, states=comstock.states, make_comparison_plots = comstock.make_comparison_plots, make_timeseries_plots = comstock.make_timeseries_plots)
+
+# Code to execute the script
+if __name__=="__main__":
+    main()
