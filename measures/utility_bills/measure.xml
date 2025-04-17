@@ -2,9 +2,9 @@
 <measure>
   <schema_version>3.1</schema_version>
   <name>utility_bills</name>
-  <uid>2a3442c1-944d-4e91-9e11-11e0cf368c64</uid>
-  <version_id>d856ffb4-a81f-4a36-92e9-f0437584ef01</version_id>
-  <version_modified>2025-03-07T21:05:19Z</version_modified>
+  <uid>eba532c2-efac-41fe-b7cb-b4538bb02c32</uid>
+  <version_id>31b26b5f-2d0b-4764-be62-0f812f6fc2a8</version_id>
+  <version_modified>2025-04-11T17:32:26Z</version_modified>
   <xml_checksum>15BF4E57</xml_checksum>
   <class_name>UtilityBills</class_name>
   <display_name>Utility Bills</display_name>
@@ -33,13 +33,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>7AB7FFF3</checksum>
+      <checksum>636BB255</checksum>
     </file>
     <file>
       <filename>calc_elec_bill.py</filename>
       <filetype>py</filetype>
       <usage_type>resource</usage_type>
-      <checksum>9C7309A3</checksum>
+      <checksum>F638C0D3</checksum>
     </file>
     <file>
       <filename>eia_com_elec_avg_yrly_rate_increase.json</filename>
@@ -63816,28 +63816,10 @@
       <checksum>DC447719</checksum>
     </file>
     <file>
-      <filename>sampling_region_utils.ipynb</filename>
-      <filetype>ipynb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>5B808B9F</checksum>
-    </file>
-    <file>
-      <filename>sampling_regions_v1.json</filename>
-      <filetype>json</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>DA8E0F7C</checksum>
-    </file>
-    <file>
       <filename>state_abbrev_to_fips.json</filename>
       <filetype>json</filetype>
       <usage_type>resource</usage_type>
       <checksum>48EEC65F</checksum>
-    </file>
-    <file>
-      <filename>tract.json</filename>
-      <filetype>json</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>A6C009BA</checksum>
     </file>
     <file>
       <filename>tract_to_elec_util.csv</filename>
@@ -63879,7 +63861,7 @@
       <filename>utility_bills_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>1DD293FB</checksum>
+      <checksum>DB097F9A</checksum>
     </file>
   </files>
 </measure>
