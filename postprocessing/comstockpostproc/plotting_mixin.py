@@ -1204,7 +1204,7 @@ class PlottingMixin():
             for group in li_group:
 
                 # get data for enduse; remove 0s and na values
-                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & ((df_upgrade_plt[col_group]==group)), energy_col]
+                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & (df_upgrade_plt[energy_col].notna()) & ((df_upgrade_plt[col_group]==group)), energy_col]
 
                 # add traces to plot
                 fig.add_trace(go.Violin(
@@ -1296,7 +1296,7 @@ class PlottingMixin():
             for group in li_group:
 
                 # get data for enduse; remove 0s and na values
-                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & ((df_upgrade_plt[col_group]==group)), energy_col]
+                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & (df_upgrade_plt[energy_col].notna()) & ((df_upgrade_plt[col_group]==group)), energy_col]
 
                 # add traces to plot
                 fig.add_trace(go.Violin(
@@ -1388,7 +1388,7 @@ class PlottingMixin():
             for group in li_group:
 
                 # get data for enduse; remove 0s and na values
-                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & ((df_upgrade_plt[col_group]==group)), energy_col]
+                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & (df_upgrade_plt[energy_col].notna()) & ((df_upgrade_plt[col_group]==group)), energy_col]
 
                 # add traces to plot
                 fig.add_trace(go.Violin(
@@ -1480,7 +1480,7 @@ class PlottingMixin():
             for group in li_group:
 
                 # get data for enduse; remove 0s and na values
-                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & ((df_upgrade_plt[col_group]==group)), energy_col]
+                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & (df_upgrade_plt[energy_col].notna()) & ((df_upgrade_plt[col_group]==group)), energy_col]
 
                 # add traces to plot
                 fig.add_trace(go.Violin(
@@ -1575,7 +1575,7 @@ class PlottingMixin():
             for group in li_group:
 
                 # get data for enduse; remove 0s and na values
-                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & ((df_upgrade_plt[col_group]==group)), energy_col]
+                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & (df_upgrade_plt[energy_col].notna()) & ((df_upgrade_plt[col_group]==group)), energy_col]
 
                 # add traces to plot
                 fig.add_trace(go.Violin(
@@ -1669,7 +1669,7 @@ class PlottingMixin():
             for group in li_group:
 
                 # get data for enduse; remove 0s and na values
-                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & ((df_upgrade_plt[col_group]==group)), energy_col]
+                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & (df_upgrade_plt[energy_col].notna()) & ((df_upgrade_plt[col_group]==group)), energy_col]
 
                 # add traces to plot
                 fig.add_trace(go.Violin(
@@ -1758,7 +1758,7 @@ class PlottingMixin():
             for enduse_col in col_list:
 
                 # get data for enduse; remove 0s and na values
-                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[enduse_col]!=0), enduse_col]
+                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[enduse_col]!=0) & (df_upgrade_plt[enduse_col].notna()), enduse_col]
 
                 # column name
                 col_name = self.col_name_to_nice_saving_name(df_enduse.name)
@@ -1842,7 +1842,7 @@ class PlottingMixin():
             for enduse_col in col_list:
 
                 # get data for enduse; remove 0s and na values
-                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[enduse_col]!=0), enduse_col]
+                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[enduse_col]!=0) & (df_upgrade_plt[enduse_col].notna()), enduse_col]
 
                 # column name
                 col_name = self.col_name_to_nice_saving_name(df_enduse.name)
