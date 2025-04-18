@@ -19,9 +19,43 @@ ModelMeasure
 ## Arguments
 
 
+### Upgrade Wall Insulation?
+
+**Name:** walls,
+**Type:** Boolean,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
 
 
-This measure does not have any user arguments
+### Upgrade Roof Insulation?
+
+**Name:** roof,
+**Type:** Boolean,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+
+### Upgrade to New Windows?
+
+**Name:** windows,
+**Type:** Boolean,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+
+### Upgrade to LED Lighting?
+
+**Name:** lighting,
+**Type:** Boolean,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+
+
 
 
 
