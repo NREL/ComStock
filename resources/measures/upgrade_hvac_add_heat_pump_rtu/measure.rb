@@ -711,7 +711,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil.setNominalTimeforCondensatetoBeginLeavingtheCoil(1000)
       new_dx_cooling_coil.setInitialMoistureEvaporationRateDividedbySteadyStateACLatentCapacity(1.5)
       new_dx_cooling_coil.setLatentCapacityTimeConstant(45)
-      new_dx_cooling_coil.autosizeEvaporativeCondenserPumpRatedPowerConsumption
+      new_dx_cooling_coil.setEnergyPartLoadFractionCurve(cool_plf_fplr1)
+      # new_dx_cooling_coil.autosizeEvaporativeCondenserPumpRatedPowerConsumption # NA, not used when air-cooled
 
       # loop through stages
       stage_caps_cooling.sort.each do |stage, cap|
@@ -755,7 +756,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         dx_coil_speed_data.setTotalCoolingCapacityFunctionofAirFlowFractionCurve(cool_cap_ff_curve_stages[applied_stage])
         dx_coil_speed_data.setEnergyInputRatioFunctionofTemperatureCurve(cool_eir_ft_curve_stages[applied_stage])
         dx_coil_speed_data.setEnergyInputRatioFunctionofAirFlowFractionCurve(cool_eir_ff_curve_stages[applied_stage])
-        dx_coil_speed_data.setEnergyPartLoadFractionCurve(cool_plf_fplr1)
         # dx_coil_speed_data.setEvaporativeCondenserEffectiveness(0.9) # NA
         # dx_coil_speed_data.autosizeEvaporativeCondenserAirFlowRate # NA
 
@@ -814,7 +814,29 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # use multi speed DX heating coil if multiple speeds are defined
     else
       # define multi speed heating coil
-      new_dx_heating_coil = OpenStudio::Model::CoilHeatingDXMultiSpeed.new(model)
+      ####################################################################################
+      # BEFORE
+      ####################################################################################
+      # new_dx_heating_coil = OpenStudio::Model::CoilHeatingDXMultiSpeed.new(model)
+      # new_dx_heating_coil.setName("#{air_loop_hvac.name} Heat Pump heating Coil")
+      # new_dx_heating_coil.setMinimumOutdoorDryBulbTemperatureforCompressorOperation(OpenStudio.convert(hp_min_comp_lockout_temp_f, 'F', 'C').get)
+      # new_dx_heating_coil.setAvailabilitySchedule(always_on)
+      # new_dx_heating_coil.setApplyPartLoadFractiontoSpeedsGreaterthan1(enable_cycling_losses_above_lowest_speed)
+      # new_dx_heating_coil.setFuelType('Electricity')
+      # # methods from "TECHNICAL SUPPORT DOCUMENT: ENERGY EFFICIENCY PROGRAM FOR CONSUMER PRODUCTS AND COMMERCIAL AND INDUSTRIAL EQUIPMENT AIR-COOLED COMMERCIAL UNITARY AIR CONDITIONERS AND COMMERCIAL UNITARY HEAT PUMPS"
+      # crankcase_heater_power = ((60 * (stage_caps_heating[rated_stage_num_heating] * 0.0002843451 / 10)**0.67))
+      # new_dx_heating_coil.setCrankcaseHeaterCapacity(crankcase_heater_power)
+      # new_dx_heating_coil.setMaximumOutdoorDryBulbTemperatureforCrankcaseHeaterOperation(4.4)
+      # new_dx_heating_coil.setDefrostEnergyInputRatioFunctionofTemperatureCurve(defrost_eir)
+      # new_dx_heating_coil.setMaximumOutdoorDryBulbTemperatureforDefrostOperation(4.444)
+      # new_dx_heating_coil.setDefrostStrategy('ReverseCycle')
+      # new_dx_heating_coil.setDefrostControl('OnDemand')
+      # new_dx_heating_coil.setDefrostTimePeriodFraction(0.058333)
+      # new_dx_heating_coil.setFuelType('Electricity')
+      ####################################################################################
+      # AFTER
+      ####################################################################################
+      new_dx_heating_coil = OpenStudio::Model::CoilHeatingDXVariableSpeed .new(model)
       new_dx_heating_coil.setName("#{air_loop_hvac.name} Heat Pump heating Coil")
       new_dx_heating_coil.setMinimumOutdoorDryBulbTemperatureforCompressorOperation(OpenStudio.convert(
         hp_min_comp_lockout_temp_f, 'F', 'C'
@@ -831,7 +853,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_dx_heating_coil.setDefrostStrategy('ReverseCycle')
       new_dx_heating_coil.setDefrostControl('OnDemand')
       new_dx_heating_coil.setDefrostTimePeriodFraction(0.058333)
-      new_dx_heating_coil.setFuelType('Electricity')
+      # new_dx_heating_coil.setFuelType('Electricity') # NA
+      new_dx_heating_coil.setEnergyPartLoadFractionCurve(heat_plf_fplr1)
 
       # loop through stages
       stage_caps_heating.sort.each do |stage, cap|
@@ -843,20 +866,37 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         applied_stage = stage_caps_heating.reject { |_k, v| v == false }.keys.min if cap == false
 
         # add speed data for each stage
-        dx_coil_speed_data = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
-        dx_coil_speed_data.setGrossRatedHeatingCapacity(stage_caps_heating[applied_stage])
-        dx_coil_speed_data.setGrossRatedHeatingCOP(final_rated_heating_cop * _stage_rated_cop_frac_heating[applied_stage])
-        dx_coil_speed_data.setRatedAirFlowRate(stage_flows_heating[applied_stage])
-        dx_coil_speed_data.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
-        dx_coil_speed_data.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft_curve_stages[applied_stage])
+        ####################################################################################
+        # BEFORE
+        ####################################################################################
+        # dx_coil_speed_data = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
+        # dx_coil_speed_data.setGrossRatedHeatingCapacity(stage_caps_heating[applied_stage])
+        # dx_coil_speed_data.setGrossRatedHeatingCOP(final_rated_heating_cop * _stage_rated_cop_frac_heating[applied_stage])
+        # dx_coil_speed_data.setRatedAirFlowRate(stage_flows_heating[applied_stage])
+        # dx_coil_speed_data.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
+        # dx_coil_speed_data.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft_curve_stages[applied_stage])
+        # # set performance curves
+        # dx_coil_speed_data.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft_curve_stages[applied_stage])
+        # dx_coil_speed_data.setHeatingCapacityFunctionofFlowFractionCurve(heat_cap_ff_curve_stages[applied_stage])
+        # dx_coil_speed_data.setEnergyInputRatioFunctionofTemperatureCurve(heat_eir_ft_curve_stages[applied_stage])
+        # dx_coil_speed_data.setEnergyInputRatioFunctionofFlowFractionCurve(heat_eir_ff_curve_stages[applied_stage])
+        # dx_coil_speed_data.setPartLoadFractionCorrelationCurve(heat_plf_fplr1)
+        ####################################################################################
+        # AFTER
+        ####################################################################################
+        dx_coil_speed_data = OpenStudio::Model::CoilHeatingDXVariableSpeedSpeedData.new(model)
+        dx_coil_speed_data.setReferenceUnitGrossRatedHeatingCapacity(stage_caps_heating[applied_stage])
+        dx_coil_speed_data.setReferenceUnitGrossRatedHeatingCOP(final_rated_heating_cop * _stage_rated_cop_frac_heating[applied_stage])
+        dx_coil_speed_data.setReferenceUnitRatedAirFlowRate(stage_flows_heating[applied_stage])
+        dx_coil_speed_data.setRatedSupplyFanPowerPerVolumeFlowRate2017(773.3)
         # set performance curves
         dx_coil_speed_data.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft_curve_stages[applied_stage])
-        dx_coil_speed_data.setHeatingCapacityFunctionofFlowFractionCurve(heat_cap_ff_curve_stages[applied_stage])
+        dx_coil_speed_data.setTotalHeatingCapacityFunctionofAirFlowFractionCurve(heat_cap_ff_curve_stages[applied_stage])
         dx_coil_speed_data.setEnergyInputRatioFunctionofTemperatureCurve(heat_eir_ft_curve_stages[applied_stage])
-        dx_coil_speed_data.setEnergyInputRatioFunctionofFlowFractionCurve(heat_eir_ff_curve_stages[applied_stage])
-        dx_coil_speed_data.setPartLoadFractionCorrelationCurve(heat_plf_fplr1)
+        dx_coil_speed_data.setEnergyInputRatioFunctionofAirFlowFractionCurve(heat_eir_ff_curve_stages[applied_stage])
+
         # add speed data to multispeed coil object
-        new_dx_heating_coil.addStage(dx_coil_speed_data) # falseunless stage_caps_cooling[stage] == false # temporary 'unless' until bug fix for (https://github.com/NREL/OpenStudio/issues/5277)
+        new_dx_heating_coil.addSpeed(dx_coil_speed_data) # falseunless stage_caps_cooling[stage] == false # temporary 'unless' until bug fix for (https://github.com/NREL/OpenStudio/issues/5277)
       end
     end
     new_dx_heating_coil
