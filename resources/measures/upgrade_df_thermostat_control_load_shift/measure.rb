@@ -431,52 +431,21 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
 
   def isapplicable_buildingtype(model, runner, applicable_building_types)
     model_building_type = nil
-    if model.getBuilding.standardsBuildingType.is_initialized
+    if model.getBuilding.additionalProperties.getFeatureAsString('building_type').is_initialized
+      model_building_type = model.getBuilding.additionalProperties.getFeatureAsString('building_type').get
+    elsif model.getBuilding.standardsBuildingType.is_initialized
       model_building_type = model.getBuilding.standardsBuildingType.get
     else
-      runner.registerError('model.getBuilding.standardsBuildingType is empty.')
+      runner.registerError('model.getBuilding.additionalProperties.building_type and model.getBuilding.standardsBuildingType are empty.')
       return false
     end
-    # puts("--- model_building_type = #{model_building_type}")
-    if !applicable_building_types.include?(model_building_type) # .downcase)
-      runner.registerAsNotApplicable("applicability not passed due to building type (office buildings): #{model_building_type}")
-      return false
-    elsif model_building_type == 'Office' || model_building_type == 'OfL' || model_building_type == 'OfS'
-      # https://github.com/NREL/ComStock/blob/a541f15d27206f4e23d56be53ef8b7e154edda9e/postprocessing/comstockpostproc/cbecs.py#L309-L327
-      model_building_floor_area_m2 = model.building.get.floorArea.to_f
-      model_building_floor_area_sqft = OpenStudio.convert(model_building_floor_area_m2, 'm^2', 'ft^2').get
-      # puts("--- model_building_floor_area_sqft = #{model_building_floor_area_sqft}")
-      model_num_floor = nil
-      buildingstories = model.building.get.buildingStories
-      model_num_floor = buildingstories.size
-      # puts("--- buildingstories = #{buildingstories}")
-      # puts("--- model_num_floor = #{model_num_floor}")
-      if model_building_floor_area_sqft < 25000
-        if model_num_floor <= 3
-          cstock_bldg_type = 'SmallOffice'
-        else
-          cstock_bldg_type = 'MediumOffice'
-        end
-      elsif model_building_floor_area_sqft >= 25000 && model_building_floor_area_sqft < 150000
-        if model_num_floor <= 5
-          cstock_bldg_type = 'MediumOffice'
-        else
-          cstock_bldg_type = 'LargeOffice'
-        end
-      elsif model_building_floor_area_sqft >= 150000
-        cstock_bldg_type = 'LargeOffice'
-      end
-      puts("--- cstock_bldg_type = #{cstock_bldg_type}")
-      if applicable_building_types.include?(cstock_bldg_type)
-        puts("--- applicability passed for building type: #{cstock_bldg_type}")
-        return true
-      else # .downcase)
-        runner.registerAsNotApplicable("applicability not passed due to building type (large office buildings): #{cstock_bldg_type}")
-        return false
-      end
-    else
+    puts("--- model_building_type = #{model_building_type}")
+    if applicable_building_types.include?(model_building_type)
       puts("--- applicability passed for building type: #{model_building_type}")
       return true
+    else
+      runner.registerAsNotApplicable("applicability not passed due to building type (office buildings): #{model_building_type}")
+      return false
     end
   end
 

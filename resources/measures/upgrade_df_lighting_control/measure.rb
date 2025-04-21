@@ -299,17 +299,19 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
 
   def isapplicable_buildingtype(model, runner, applicable_building_types)
     model_building_type = nil
-    if model.getBuilding.standardsBuildingType.is_initialized
+    if model.getBuilding.additionalProperties.getFeatureAsString('building_type').is_initialized
+      model_building_type = model.getBuilding.additionalProperties.getFeatureAsString('building_type').get
+    elsif model.getBuilding.standardsBuildingType.is_initialized
       model_building_type = model.getBuilding.standardsBuildingType.get
     else
-      runner.registerError('model.getBuilding.standardsBuildingType is empty.')
+      runner.registerError('model.getBuilding.additionalProperties.building_type and model.getBuilding.standardsBuildingType are empty.')
       return false
     end
     puts("--- model_building_type = #{model_building_type}")
     if applicable_building_types.include?(model_building_type)
       puts("--- applicability passed for building type: #{model_building_type}")
       return true
-    else # .downcase)
+    else
       runner.registerAsNotApplicable("applicability not passed due to building type (office buildings): #{model_building_type}")
       return false
     end
@@ -375,16 +377,22 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     applicable_building_types = [
       # "Hotel",
       'SmallOffice',
+      'small_office',
       'OfS',
       'MediumOffice',
+      'medium_office',
       'LargeOffice',
+      'large_office',
       'OfL',
       'Office',
       'Warehouse',
+      'warehouse',
       'SUn',
       'PrimarySchool',
+      'primary_school',
       'EPr',
       'SecondarySchool',
+      'secondary_school',
       'ESe'
     ]
     if isapplicable_buildingtype(model, runner, applicable_building_types)

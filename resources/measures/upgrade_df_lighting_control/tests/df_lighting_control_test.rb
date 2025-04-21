@@ -199,23 +199,6 @@ class DFLightingControlTest < Minitest::Test
       # load the model; only used here for populating arguments
       model = load_model(osm_path)
 
-      # store baseline schedule for check later
-      lights = model.getLightss
-      light_schedules = {}
-      lights.each do |light|
-        light_sch = light.schedule
-        unless light_sch.empty?
-          unless light_schedules.key?(light_sch.get.name.to_s)
-            schedule = light_sch.get.clone(model)
-            schedule_ts = measure.get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get, 8760)
-            light_schedules[light_sch.get.name.to_s] = schedule_ts
-          end
-        end
-      end
-      puts('-----------------------------------------------------------------')
-      puts("light_schedules.key=#{light_schedules.keys}")
-      puts('-----------------------------------------------------------------')
-
       # set arguments here; will vary by measure
       arguments = measure.arguments(model)
       argument_map = OpenStudio::Measure::OSArgumentMap.new
@@ -265,6 +248,23 @@ class DFLightingControlTest < Minitest::Test
       assert(cambium_scenario.setValue('LRMER_MidCase_15'))#
       argument_map['cambium_scenario'] = cambium_scenario
 
+      # store baseline schedule for check later
+      lights = model.getLightss
+      light_schedules = {}
+      lights.each do |light|
+        light_sch = light.schedule
+        unless light_sch.empty?
+          unless light_schedules.key?(light_sch.get.name.to_s)
+            schedule = light_sch.get.clone(model)
+            schedule_ts = measure.get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get, 8760*num_timesteps_in_hr.valueAsInteger())
+            light_schedules[light_sch.get.name.to_s] = schedule_ts
+          end
+        end
+      end
+      puts('-----------------------------------------------------------------')
+      puts("light_schedules.key=#{light_schedules.keys}")
+      puts('-----------------------------------------------------------------')
+
       # apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: true)
 
@@ -309,19 +309,19 @@ class DFLightingControlTest < Minitest::Test
           counts = diff.tally
           counts = counts.sort.to_h
           # puts("--- hourly light schedules changes #{diff*100.0}% everyday")
-          puts("--- light schedule changes on average #{(diff.sum/3.650/(peak_len.valueAsInteger().to_f)).round(2)}%/hr for #{peak_len.valueAsInteger()} hours everyday")
+          puts("--- light schedule changes on average #{(diff.sum/3.650/(peak_len.valueAsInteger().to_f)/(num_timesteps_in_hr.valueAsInteger().to_f)).round(2)}%/hr for #{peak_len.valueAsInteger()} hours everyday")
           total_count = 0
           counts.each do |value, count|
-            unless value == 0.0 || count < 1#peak_len.valueAsInteger().to_f
-              puts("--- light schedule changes #{(value*100.0).round(1)}% in #{count/(peak_len.valueAsInteger().to_f)} days")
+            unless value == 0.0 || count < num_timesteps_in_hr.valueAsInteger().to_f
+              puts("--- light schedule changes #{(value*100.0).round(1)}% in #{count/(peak_len.valueAsInteger().to_f)/(num_timesteps_in_hr.valueAsInteger().to_f)} days")
               assert(value<=light_adjustment.valueAsDouble(), "Hourly change should not exceed the input #{light_adjustment.valueAsDouble().round(1)}")
               total_count += count
             end
           end
-          total_days = total_count/(peak_len.valueAsInteger().to_f)
+          total_days = total_count/(peak_len.valueAsInteger().to_f)/(num_timesteps_in_hr.valueAsInteger().to_f)
           puts("--- Number of days with setpoint changed: #{total_days}")
           assert(total_days <= 366, "Number of days should not exceed 366")
-          assert(total_days > 100, "Number of days with valid adjusted setpoints (#{total_count/(peak_len.valueAsInteger().to_f)}) too small")
+          assert(total_days > 100, "Number of days with valid adjusted setpoints (#{total_count/(peak_len.valueAsInteger().to_f)/(num_timesteps_in_hr.valueAsInteger().to_f)}) too small")
         end
         puts('=================================================================')
       end
