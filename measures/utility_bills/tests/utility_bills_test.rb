@@ -450,15 +450,15 @@ class UtilityBillsTest < Minitest::Test
         'eia_id' => '207',
         'type' => 'fixed',
         'statistics' => 'min',
-        'key' => '53fb57595257a352326c0e61',
-        'value' => 9999,
+        'key' => '53fb57595257a352326c0e61', # https://apps.openei.org/IURDB/rate/view/53fb57595257a352326c0e61
+        'value' => 60,
       }
     ]
     hard_coded_rates.each do |test_set|
       constructed_key = test_set['type'] + "_" + test_set['statistics'] + "_value"
       bill_vals_stats.each do |stats_eia|
         next if stats_eia['eia_id'] != test_set['eia_id']
-        assert_equal(test_set['value'], stats_eia[constructed_key], "Expected value for #{test_set['type']} with key #{test_set['key']} to be #{test_set['value']} but got #{stats_eia[constructed_key]}")
+        assert_equal(test_set['value'], stats_eia[constructed_key].to_i, "Expected value for #{test_set['type']} with key #{test_set['key']} to be #{test_set['value']} but got #{stats_eia[constructed_key]}")
       end
     end
 
