@@ -443,14 +443,14 @@ class UtilityBillsTest < Minitest::Test
         'eia_id' => '207',
         'type' => 'ec',
         'statistics' => 'max',
-        'key' => '53fb55435257a335346c0e61',
-        'value' => 9999,
+        'key' => '53fb55435257a335346c0e61', # https://apps.openei.org/USURDB/rate/view/53fb55435257a335346c0e61#3__Energy
+        'value' => 112253,
       },
       {
         'eia_id' => '207',
         'type' => 'fixed',
         'statistics' => 'min',
-        'key' => '53fb57595257a352326c0e61', # https://apps.openei.org/IURDB/rate/view/53fb57595257a352326c0e61
+        'key' => '53fb57595257a352326c0e61', # https://apps.openei.org/IURDB/rate/view/53fb57595257a352326c0e61#4__Fixed_Charges
         'value' => 60,
       }
     ]
