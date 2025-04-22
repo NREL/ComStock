@@ -149,9 +149,10 @@ class UpgradeAddPvwatts < OpenStudio::Measure::ModelMeasure
 
     # calculate area of rooftop PV
     pv_area = ext_roof_area_m2 * pv_area_fraction
+    pv_area_ft2 = OpenStudio.convert(pv_area, 'm^2', 'ft^2').get
 
     # report initial condition of model
-    runner.registerInitialCondition("The building started with #{ext_roof_area_ft2.round(0)} ft^2 of roof area. The user specified #{(pv_area_fraction*100).round(0)}% of the roof area to be covered with PV panels, which totals #{pv_area.round(0)} ft^2 of PV to be added.")
+    runner.registerInitialCondition("The building started with #{ext_roof_area_ft2.round(0)} ft^2 of roof area. The user specified #{(pv_area_fraction*100).round(0)}% of the roof area to be covered with PV panels, which totals #{pv_area_ft2.round(0)} ft^2 of PV to be added.")
 
     # Get total system capacity
     panel_efficiency = 0.21 # associated with premium PV Watts panels
@@ -191,7 +192,7 @@ class UpgradeAddPvwatts < OpenStudio::Measure::ModelMeasure
     pv_azimuth_angle = pv_generator.azimuthAngle
 
     # report final condition of model
-    runner.registerFinalCondition("The building finished with #{(pv_system_capacity/1000).round(0)} kW of PV covering #{ext_roof_area_ft2.round(0)} ft^2 of roof area. The module type is #{pv_module_type}, the array type is #{pv_array_type}, the system losses are #{pv_system_losses}, the title angle is #{pv_title_angle.round(0)}°, and the azimuth angle is #{pv_azimuth_angle.round(0)}°. The inverter has a DC to AC size ratio of #{pv_inverter.dcToACSizeRatio} and an inverter efficiency of #{(pv_inverter.inverterEfficiency*100).round(0)}%.")
+    runner.registerFinalCondition("The building finished with #{(pv_system_capacity/1000).round(0)} kW of PV covering #{pv_area_ft2.round(0)} ft^2 of roof area. The module type is #{pv_module_type}, the array type is #{pv_array_type}, the system losses are #{pv_system_losses}, the title angle is #{pv_title_angle.round(0)}°, and the azimuth angle is #{pv_azimuth_angle.round(0)}°. The inverter has a DC to AC size ratio of #{pv_inverter.dcToACSizeRatio} and an inverter efficiency of #{(pv_inverter.inverterEfficiency*100).round(0)}%.")
 
     return true
   end

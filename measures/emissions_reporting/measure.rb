@@ -317,7 +317,7 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
 
       if resource.include?("Electricity")
         # add facility meters
-        result << OpenStudio::IdfObject.load("Output:Meter,#{resource}Net:Facility,#{frequency};").get
+        result << OpenStudio::IdfObject.load("Output:Meter,#{resource}Purchased:Facility,#{frequency};").get
       else
         # add facility meters
         result << OpenStudio::IdfObject.load("Output:Meter,#{resource}:Facility,#{frequency};").get
@@ -497,7 +497,7 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     end
 
     # get hourly electricity values
-    electricity_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='ElectricityNet:Facility' AND ReportingFrequency='Hourly' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
+    electricity_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='ElectricityPurchased:Facility' AND ReportingFrequency='Hourly' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
     electricity_values = sql_file.execAndReturnVectorOfDouble(electricity_query).get
     if electricity_values.empty?
       runner.registerError('Unable to get hourly timeseries facility electricity use from the model. Cannot calculate emissions.')

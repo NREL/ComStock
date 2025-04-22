@@ -50,6 +50,9 @@ class TimeseriesCSVExport < OpenStudio::Measure::ReportingMeasure
 
   def fuel_types
     ['Electricity',
+     'ElectricityNet',
+     'ElectricityPurchased',
+     'ElectricityProduced',
      'NaturalGas',
      'DistrictCooling',
      'DistrictHeatingWater',
@@ -124,6 +127,7 @@ class TimeseriesCSVExport < OpenStudio::Measure::ReportingMeasure
     new_line = new_line.gsub('HeatRejection:Water [gal]', 'heat_rejection_gal')
     new_line = new_line.gsub('Humidification:Electricity [kWh]', 'electricity_humidification_kwh')
     new_line = new_line.gsub('Generators:Electricity [kWh]', 'electricity_generators_kwh')
+    new_line = new_line.gsub('ElectricityProduced:Facility [kWh]', 'electricity_pv_kwh')
     new_line = new_line.gsub('WaterSystems:Electricity [kWh]', 'electricity_water_systems_kwh')
     new_line = new_line.gsub('WaterSystems:NaturalGas [kBtu]', 'gas_water_systems_kbtu')
     new_line = new_line.gsub('WaterSystems:DistrictHeatingWater [kBtu]', 'districtheating_water_systems_kbtu')
@@ -131,6 +135,8 @@ class TimeseriesCSVExport < OpenStudio::Measure::ReportingMeasure
     new_line = new_line.gsub('WaterSystems:FuelOilNo2 [kBtu]', 'fueloil_water_systems_kbtu')
     new_line = new_line.gsub('WaterSystems:Water [gal]', 'water_systems_gal')
     new_line = new_line.gsub('Electricity:Facility [kWh]', 'total_site_electricity_kwh')
+    new_line = new_line.gsub('ElectricityNet:Facility [kWh]', 'total_net_site_electricity_kwh')
+    new_line = new_line.gsub('ElectricityPurchased:Facility [kWh]', 'total_purchased_site_electricity_kwh')
     new_line = new_line.gsub('DistrictCooling:Facility [kBtu]', 'total_site_districtcooling_kbtu')
     new_line = new_line.gsub('DistrictHeatingWater:Facility [kBtu]', 'total_site_districtheating_kbtu')
     new_line = new_line.gsub('NaturalGas:Facility [kBtu]', 'total_site_gas_kbtu')
@@ -232,6 +238,9 @@ class TimeseriesCSVExport < OpenStudio::Measure::ReportingMeasure
     end_use_subcats.each do |subcat|
       result << OpenStudio::IdfObject.load("Output:Meter,#{subcat},#{reporting_frequency};").get
     end
+
+    # add outputs for PV
+    #result << OpenStudio::IdfObject.load("Output:Meter,#{subcat},#{reporting_frequency};").get
 
     # Request the output for each variable
     if inc_output_variables

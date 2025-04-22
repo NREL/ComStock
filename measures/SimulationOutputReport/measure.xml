@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>simulation_output_report</name>
   <uid>fc337100-8634-404e-8966-01243d292a79</uid>
-  <version_id>a8aaa3bb-9a1e-4c08-8935-9e014d059e20</version_id>
-  <version_modified>2024-10-28T22:43:52Z</version_modified>
+  <version_id>4a902e89-0557-4983-b48d-c80444902c97</version_id>
+  <version_modified>2025-04-22T18:46:52Z</version_modified>
   <xml_checksum>2C8A3EEF</xml_checksum>
   <class_name>SimulationOutputReport</class_name>
   <display_name>Simulation Output Report</display_name>
@@ -65,6 +65,13 @@
       <name>net_site_electricity_kwh</name>
       <display_name>net_site_electricity_kwh</display_name>
       <short_name>net_site_electricity_kwh</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>purchased_site_electricity_kwh</name>
+      <display_name>purchased_site_electricity_kwh</display_name>
+      <short_name>purchased_site_electricity_kwh</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
@@ -319,7 +326,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>F5E217AF</checksum>
+      <checksum>C45D6920</checksum>
     </file>
   </files>
 </measure>

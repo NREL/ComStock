@@ -2,9 +2,9 @@
 <measure>
   <schema_version>3.1</schema_version>
   <name>utility_bills</name>
-  <uid>2a3442c1-944d-4e91-9e11-11e0cf368c64</uid>
-  <version_id>d856ffb4-a81f-4a36-92e9-f0437584ef01</version_id>
-  <version_modified>2025-03-07T21:05:19Z</version_modified>
+  <uid>90178aca-6e54-4602-a4a7-af2427bdab50</uid>
+  <version_id>d535ce92-914a-43e2-9ba7-597bd0dde601</version_id>
+  <version_modified>2025-04-18T20:24:27Z</version_modified>
   <xml_checksum>15BF4E57</xml_checksum>
   <class_name>UtilityBills</class_name>
   <display_name>Utility Bills</display_name>
@@ -33,7 +33,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>E8B75BE6</checksum>
+      <checksum>0A296FE5</checksum>
     </file>
     <file>
       <filename>calc_elec_bill.py</filename>
@@ -63816,28 +63816,10 @@
       <checksum>DC447719</checksum>
     </file>
     <file>
-      <filename>sampling_region_utils.ipynb</filename>
-      <filetype>ipynb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>5B808B9F</checksum>
-    </file>
-    <file>
-      <filename>sampling_regions_v1.json</filename>
-      <filetype>json</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>DA8E0F7C</checksum>
-    </file>
-    <file>
       <filename>state_abbrev_to_fips.json</filename>
       <filetype>json</filetype>
       <usage_type>resource</usage_type>
       <checksum>48EEC65F</checksum>
-    </file>
-    <file>
-      <filename>tract.json</filename>
-      <filetype>json</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>A6C009BA</checksum>
     </file>
     <file>
       <filename>tract_to_elec_util.csv</filename>

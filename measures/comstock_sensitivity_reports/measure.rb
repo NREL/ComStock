@@ -982,20 +982,11 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
     # get PV capacity
     pv_capacity_w = 0
-    annual_pv_kwh = 0
     model.getGeneratorPVWattss.sort.each do |pv_sys|
-
       # get PV system capacity
       pv_capacity_w+= pv_sys.dcSystemCapacity / 1000
-
-      # get PV Generator Produced Electricity
-      annual_pv_j = sql_get_report_variable_data_double(runner, sql, pv_sys, 'Generator Produced DC Electricity Energy')
-
-      annual_pv_kwh += OpenStudio.convert(annual_pv_j, 'J', 'kWh').get
-
     end
     runner.registerValue('com_report_total_pv_capacity_w', pv_capacity_w, 'kW')
-    runner.registerValue('com_report_total_pv_generation_kwh', annual_pv_kwh, 'kWh')
 
     # Occupant calculations
     total_zone_occupant_area_m2 = 0.0
