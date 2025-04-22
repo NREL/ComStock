@@ -2237,8 +2237,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       upsize_factor = (dx_rated_htg_cap_applied - orig_clg_coil_gross_cap) / orig_clg_coil_gross_cap
 
       # upsize airflow accordingly
-      # design_heating_airflow_m_3_per_s *= (1 + upsize_factor)
-      # design_cooling_airflow_m_3_per_s *= (1 + upsize_factor)
+      design_heating_airflow_m_3_per_s *= (1 + upsize_factor)
+      design_cooling_airflow_m_3_per_s *= (1 + upsize_factor)
 
       if debug_verbose
         runner.registerInfo('sizing summary: before rated cfm/ton adjustmant')
