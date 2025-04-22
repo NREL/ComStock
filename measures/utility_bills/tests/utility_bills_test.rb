@@ -422,8 +422,8 @@ class UtilityBillsTest < Minitest::Test
         'eia_id' => '14328',
         'type' => 'total',
         'statistics' => 'min',
-        'key' => '5cef09e25457a3f767f60fe4',
-        'value' => 9999,
+        'key' => '5cef09e25457a3f767f60fe4', # https://apps.openei.org/USURDB/rate/view/5cef09e25457a3f767f60fe4
+        'value' => 120886,
       },
       {
         'eia_id' => '207',
