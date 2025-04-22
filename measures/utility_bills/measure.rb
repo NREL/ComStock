@@ -182,6 +182,11 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
       return false
     end
 
+    # Convert electricity to kWh
+    hourly_electricity_kwh = shifted_vals.map do |val|
+      OpenStudio.convert(val, 'J', 'kWh').get # hourly data
+    end
+
     # Get min and peak demand for rates with qualifiers
     tot_elec_kwh = hourly_electricity_kwh.sum.round
     min_kw = hourly_electricity_kwh.min.round
