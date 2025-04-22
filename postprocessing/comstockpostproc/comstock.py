@@ -2381,7 +2381,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         if upgrade_id == 0:
             baseline_fkt_plus = geo_data
 
-        
+
         logger.info("Joining the aggregated weights to simulation results")
         # drop measure results cols from meta data
         meta_data = meta_data.drop(self.COLS_UTIL_BILL_RESULTS)
@@ -3136,10 +3136,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 input_lf = input_lf.with_columns(pl.lit(0.0).alias(weighted_col))
             return input_lf
 
-
         val_and_id_cols = val_cols + geo_agg_cols + [self.BLDG_ID]
-        # for col in val_and_id_cols:
-        #     print(col)
 
         base_vals = baseline_lf.select(val_and_id_cols).sort([self.BLDG_ID] + geo_agg_cols).clone()
         base_vals = base_vals.rename(lambda col_name: col_name + '_base')
@@ -3148,19 +3145,19 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # absolute savings
         abs_svgs = pl.concat([up_vals, base_vals], how='horizontal').with_columns(
-            [pl.col(f'{col}_base') - pl.col(col) for col in val_cols]
-        ).select(up_vals.columns)
+            [(pl.col(f'{col}_base') - pl.col(col)).alias(abs_svgs_cols[col]) for col in val_cols]
+        ).select(list(abs_svgs_cols.values()) + geo_agg_cols + [self.BLDG_ID])
 
         # percent savings
         pct_svgs = pl.concat([up_vals, base_vals], how='horizontal').with_columns(
-            [(pl.col(f'{col}_base') - pl.col(col)) / pl.col(f'{col}_base') for col in val_cols]
-        ).select(up_vals.columns)
+            [((pl.col(f'{col}_base') - pl.col(col)) / pl.col(f'{col}_base') * 100).alias(pct_svgs_cols[col]) for col in val_cols]
+        ).select(list(pct_svgs_cols.values()) + geo_agg_cols + [self.BLDG_ID])
 
         pct_svgs = pct_svgs.fill_null(0.0)
         pct_svgs = pct_svgs.fill_nan(0.0)
 
-        abs_svgs = abs_svgs.rename(abs_svgs_cols).cast({self.BLDG_ID: pl.Int64})
-        pct_svgs = pct_svgs.rename(pct_svgs_cols).cast({self.BLDG_ID: pl.Int64})
+        abs_svgs = abs_svgs.cast({self.BLDG_ID: pl.Int64})
+        pct_svgs = pct_svgs.cast({self.BLDG_ID: pl.Int64})
 
         input_lf = input_lf.join(abs_svgs, how='left', on=[self.BLDG_ID] + geo_agg_cols)
         input_lf = input_lf.join(pct_svgs, how='left', on=[self.BLDG_ID] + geo_agg_cols)
