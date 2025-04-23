@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>simulation_output_report</name>
   <uid>fc337100-8634-404e-8966-01243d292a79</uid>
-  <version_id>4a902e89-0557-4983-b48d-c80444902c97</version_id>
-  <version_modified>2025-04-22T18:46:52Z</version_modified>
+  <version_id>b46d7fe7-88b7-4f55-90a9-e5b352f3989b</version_id>
+  <version_modified>2025-04-23T14:09:33Z</version_modified>
   <xml_checksum>2C8A3EEF</xml_checksum>
   <class_name>SimulationOutputReport</class_name>
   <display_name>Simulation Output Report</display_name>
@@ -326,7 +326,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>C45D6920</checksum>
+      <checksum>5D168ABD</checksum>
     </file>
   </files>
 </measure>
