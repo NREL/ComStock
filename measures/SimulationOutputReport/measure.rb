@@ -110,12 +110,14 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
 
     # TOTAL
     report_sim_output(runner, 'total_site_energy_mbtu', [sql_file.totalSiteEnergy], 'GJ', total_site_units)
-    report_sim_output(runner, 'net_site_energy_mbtu', [sql_file.totalSiteEnergy, pv_val], 'GJ', total_site_units)
+    report_sim_output(runner, 'net_site_energy_mbtu', [sql_file.totalSiteEnergy, sql_file.electricityProducedFacility], 'GJ', total_site_units)
+    #report_sim_output(runner, 'net_site_energy_mbtu', [sql_file.totalSiteEnergy, pv_val], 'GJ', total_site_units)
 
     # ELECTRICITY
     report_sim_output(runner, 'total_site_electricity_kwh', [sql_file.electricityTotalEndUses], 'GJ', elec_site_units)
-    report_sim_output(runner, 'net_site_electricity_kwh', [sql_file.electricityTotalEndUses, pv_val], 'GJ', elec_site_units)
-    report_sim_output(runner, 'purchased_site_electricity_kwh', [sql_file.electricityTotalEndUses, pv_val], 'GJ', elec_site_units)
+    #report_sim_output(runner, 'net_site_electricity_kwh', [sql_file.electricityTotalEndUses, pv_val], 'GJ', elec_site_units)
+    report_sim_output(runner, 'net_site_electricity_kwh', [sql_file.electricityNetFacility], 'GJ', elec_site_units)
+    report_sim_output(runner, 'purchased_site_electricity_kwh', [sql_file.electricityPurchasedFacility], 'GJ', elec_site_units)
     report_sim_output(runner, 'electricity_heating_kwh', [sql_file.electricityHeating], 'GJ', elec_site_units)
     report_sim_output(runner, 'electricity_cooling_kwh', [sql_file.electricityCooling], 'GJ', elec_site_units)
     report_sim_output(runner, 'electricity_interior_lighting_kwh', [sql_file.electricityInteriorLighting], 'GJ', elec_site_units)
@@ -129,7 +131,8 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
     report_sim_output(runner, 'electricity_water_systems_kwh', [sql_file.electricityWaterSystems], 'GJ', elec_site_units)
     report_sim_output(runner, 'electricity_refrigeration_kwh', [sql_file.electricityRefrigeration], 'GJ', elec_site_units)
     report_sim_output(runner, 'electricity_generators_kwh', [sql_file.electricityGenerators], 'GJ', elec_site_units)
-    report_sim_output(runner, 'electricity_pv_kwh', [pv_val], 'GJ', elec_site_units)
+    #report_sim_output(runner, 'electricity_pv_kwh', [pv_val], 'GJ', elec_site_units)
+    report_sim_output(runner, 'electricity_pv_kwh', [sql_file.electricityProducedFacility], 'GJ', elec_site_units)
 
     # ELECTRICITY PEAK DEMAND
     annual_peak_electric_demand_k_query = "SELECT Value FROM tabulardatawithstrings WHERE ReportName='DemandEndUseComponentsSummary' and ReportForString='Entire Facility' and TableName='End Uses' and RowName= 'Total End Uses' and ColumnName='Electricity' and Units='W'"
