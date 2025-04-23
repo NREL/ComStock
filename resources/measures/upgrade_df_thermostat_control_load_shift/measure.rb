@@ -502,16 +502,22 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
     applicable_building_types = [
       # "Hotel",
       'SmallOffice',
+      'small_office',
       'OfS',
       'MediumOffice',
+      'medium_office',
       'LargeOffice',
+      'large_office',
       'OfL',
       'Office',
       'Warehouse',
+      'warehouse',
       'SUn',
       'PrimarySchool',
+      'primary_school',
       'EPr',
       'SecondarySchool',
+      'secondary_school',
       'ESe'
     ]
     return true unless isapplicable_buildingtype(model, runner, applicable_building_types)
