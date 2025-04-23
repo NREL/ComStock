@@ -97,15 +97,11 @@ class UtilityBillsTest < Minitest::Test
 
     assert(File.exist?(run_dir(test_name)))
 
-
     FileUtils.rm_f(report_path(test_name))
-
 
     assert(File.exist?(model_in_path))
 
-
     FileUtils.rm_f(model_out_path(test_name))
-
 
     # convert output requests to OSM for testing, OS App and PAT will add these to the E+ Idf
     workspace = OpenStudio::Workspace.new('Draft'.to_StrictnessLevel, 'EnergyPlus'.to_IddFileType)
@@ -202,7 +198,6 @@ class UtilityBillsTest < Minitest::Test
     # check that state average result has value
     state_avg_regexp = /\|([^:]+)/
     assert_includes(rvs['state_avg_electricity_cost_results'].scan(state_avg_regexp).flatten, state_abbreviation)
-    
   end
 
   # Test when the building is assigned a utility with no rates from URDB
@@ -275,7 +270,6 @@ class UtilityBillsTest < Minitest::Test
     # check that state average result has value
     state_avg_regexp = /\|([^:]+)/
     assert_includes(rvs['state_avg_electricity_cost_results'].scan(state_avg_regexp).flatten, state_abbreviation)
-    
 
     # Check for a warning about no rates found
     found_warn = false
@@ -368,7 +362,7 @@ class UtilityBillsTest < Minitest::Test
     ]
     bill_vals_stats = rvs['electricity_utility_bill_results'].split('|').reject(&:empty?).map do |stat_set|
       values = stat_set.split(':')
-      Hash[keys_stats.zip(values)]
+      keys_stats.zip(values).to_h
     end
 
     # Check reasonableness of statistics
@@ -423,41 +417,42 @@ class UtilityBillsTest < Minitest::Test
         'type' => 'total',
         'statistics' => 'min',
         'key' => '5cef09e25457a3f767f60fe4', # https://apps.openei.org/USURDB/rate/view/5cef09e25457a3f767f60fe4
-        'value' => 120886,
+        'value' => 120886
       },
       {
         'eia_id' => '207',
         'type' => 'dc_flat',
         'statistics' => 'max',
         'key' => '53fb58cc5257a334346c0e60', # https://apps.openei.org/USURDB/rate/view/53fb58cc5257a334346c0e60#2__Demand
-        'value' => 13377,
+        'value' => 13377
       },
       {
         'eia_id' => '14328',
         'type' => 'dc_tou',
         'statistics' => 'min',
         'key' => '5cef09e25457a3f767f60fe4', # https://apps.openei.org/USURDB/rate/view/5cef09e25457a3f767f60fe4#2__Demand
-        'value' => 15585,
+        'value' => 15585
       },
       {
         'eia_id' => '207',
         'type' => 'ec',
         'statistics' => 'max',
         'key' => '53fb55435257a335346c0e61', # https://apps.openei.org/USURDB/rate/view/53fb55435257a335346c0e61#3__Energy
-        'value' => 112253,
+        'value' => 112253
       },
       {
         'eia_id' => '207',
         'type' => 'fixed',
         'statistics' => 'min',
         'key' => '53fb57595257a352326c0e61', # https://apps.openei.org/IURDB/rate/view/53fb57595257a352326c0e61#4__Fixed_Charges
-        'value' => 60,
+        'value' => 60
       }
     ]
     hard_coded_rates.each do |test_set|
-      constructed_key = test_set['type'] + "_" + test_set['statistics'] + "_value"
+      constructed_key = "#{test_set['type']}_#{test_set['statistics']}_value"
       bill_vals_stats.each do |stats_eia|
         next if stats_eia['eia_id'] != test_set['eia_id']
+
         assert_equal(test_set['value'], stats_eia[constructed_key].to_i, "Expected value for #{test_set['type']} with key #{test_set['key']} to be #{test_set['value']} but got #{stats_eia[constructed_key]}")
       end
     end
@@ -465,7 +460,7 @@ class UtilityBillsTest < Minitest::Test
     # check that state average result has value
     state_avg_regexp = /\|([^:]+)/
     assert_includes(rvs['state_avg_electricity_cost_results'].scan(state_avg_regexp).flatten, state_abbreviation)
-  
+
     # Check that more than one rates are applicable
     num_appl_rates = 0
     shift_msgs = 0
@@ -560,7 +555,7 @@ class UtilityBillsTest < Minitest::Test
       'mean_dollars',
       'num_rates'
     ]
-    results_hash = Hash[keys.zip(bill_vals)]
+    results_hash = keys.zip(bill_vals).to_h
 
     assert(results_hash['max_dollars'] > results_hash['min_dollars'])
     assert(results_hash['min_dollars'] <= results_hash['median_low_dollars'])
@@ -573,7 +568,7 @@ class UtilityBillsTest < Minitest::Test
     # check that state average result has value
     state_avg_regexp = /\|([^:]+)/
     assert_includes(rvs['state_avg_electricity_cost_results'].scan(state_avg_regexp).flatten, state_abbreviation)
-  
+
     # Check that more than one rates are applicable
     # and that there is no message about shifting the timeseries to Monday start
     # because 2018 starts on a Monday
@@ -670,7 +665,7 @@ class UtilityBillsTest < Minitest::Test
       'mean_dollars',
       'num_rates'
     ]
-    results_hash = Hash[keys.zip(bill_vals)]
+    results_hash = keys.zip(bill_vals).to_h
 
     assert(results_hash['max_dollars'] > results_hash['min_dollars'])
     assert(results_hash['min_dollars'] <= results_hash['median_low_dollars'])
@@ -683,7 +678,7 @@ class UtilityBillsTest < Minitest::Test
     # check that state average result has value
     state_avg_regexp = /\|([^:]+)/
     assert_includes(rvs['state_avg_electricity_cost_results'].scan(state_avg_regexp).flatten, state_abbreviation)
-  
+
     # Check that more than one rates are applicable
     # and messages about shifting the timeseries to Monday start
     # because 1999 starts on a Friday
