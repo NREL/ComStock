@@ -124,6 +124,15 @@ Upgrade roof insulation per AEDG recommendations.
 **Model Dependent:** false
 
 
+### Upgrade Windows?
+Upgrade window per AEDG recommendations.
+**Name:** window,
+**Type:** Boolean,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+
 ### Do a sizing run for informing sizing instead of using hard-sized model parameters?
 
 **Name:** sizing_run,

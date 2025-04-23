@@ -6,14 +6,15 @@
 # see the URL below for information on how to write OpenStudio measures
 # http://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/
 require 'openstudio-standards'
+Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }
 
 # start the measure
 class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   # defining global variable
   # adding tolerance because EnergyPlus unit conversion differs from manual conversion
   # reference: https://github.com/NREL/EnergyPlus/blob/337bfbadf019a80052578d1bad6112dca43036db/src/EnergyPlus/DataHVACGlobals.hh#L362-L368
-  CFM_PER_TON_MIN_RATED = 300 * (1 + 0.08) # hard limit of 300 and tolerance of 8% (based on EP unit conversion mismatch plus more)
-  CFM_PER_TON_MAX_RATED = 450 * (1 - 0.08) # hard limit of 450 and tolerance of 8% (based on EP unit conversion mismatch plus more)
+  CFM_PER_TON_MIN_RATED = 300 # hard limit of 300
+  CFM_PER_TON_MAX_RATED = 450 # hard limit of 450
   # CFM_PER_TON_MIN_OPERATIONAL = 200 # hard limit of 200 for operational minimum threshold for both heating/cooling
   # CFM_PER_TON_MAX_OPERATIONAL_HEATING = 600 # hard limit of 600 for operational maximum threshold for both heating
   # CFM_PER_TON_MAX_OPERATIONAL_COOLING = 500 # hard limit of 500 for operational maximum threshold for both cooling
@@ -133,6 +134,13 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     roof.setDefaultValue(false)
     args << roof
 
+    # upgrade window option
+    window = OpenStudio::Measure::OSArgument.makeBoolArgument('window', true)
+    window.setDisplayName('Upgrade Windows?')
+    window.setDescription('Upgrade window per AEDG recommendations.')
+    window.setDefaultValue(false)
+    args << window
+
     # do a sizing run for sizing?
     sizing_run = OpenStudio::Measure::OSArgument.makeBoolArgument('sizing_run', true)
     sizing_run.setDisplayName('Do a sizing run for informing sizing instead of using hard-sized model parameters?')
@@ -202,7 +210,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     is_unitary_system
   end
 
-  # load curve to model from json
+  # Load curve to model from json
   # modified version from OS Standards to read from custom json file
   def model_add_curve(model, curve_name, standards_data_curve, std)
     # First check model and return curve if it already exists
@@ -383,6 +391,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     end
   end
 
+  # Assign staging data from json
   def assign_staging_data(staging_data_json, std)
     # Parse the JSON string into a Ruby hash
     # Find curve data
@@ -414,7 +423,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
      enable_cycling_losses_above_lowest_speed, reference_cooling_cfm_per_ton, reference_heating_cfm_per_ton]
   end
 
-  # get rated cooling COP from fitted regression
+  # Get rated cooling COP from fitted regression
   # based on actual product performances (Carrier/Lennox) which meet 2023 federal minimum efficiency requirements
   # reflecting rated COP without blower power and blower heat gain
   def get_rated_cop_cooling(rated_capacity_w)
@@ -427,7 +436,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     rated_cop_cooling.clamp(min_cop, max_cop)
   end
 
-  # get rated heating COP from fitted regression
+  # Get rated heating COP from fitted regression
   # based on actual product performances (Carrier/Lennox) which meet 2023 federal minimum efficiency requirements
   # reflecting rated COP without blower power and blower heat gain
   def get_rated_cop_heating(rated_capacity_w)
@@ -440,7 +449,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     rated_cop_heating.clamp(min_cop, max_cop)
   end
 
-  # get rated cooling COP from fitted regression - for advanced HP RTU (from Daikin Rebel data)
+  # Get rated cooling COP from fitted regression - for advanced HP RTU (from Daikin Rebel data)
   def get_rated_cop_cooling_adv(rated_capacity_w)
     intercept = 4.140806
     coef_1 = -0.007577
@@ -451,7 +460,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     rated_cop_cooling.clamp(min_cop, max_cop)
   end
 
-  # get rated heating COP from fitted regression - for advanced HP RTU (from Daikin Rebel data)
+  # Get rated heating COP from fitted regression - for advanced HP RTU (from Daikin Rebel data)
   def get_rated_cop_heating_adv(rated_capacity_w)
     intercept = 3.861114
     coef_1 = -0.003304
@@ -462,15 +471,17 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     rated_cop_heating.clamp(min_cop, max_cop)
   end
 
+  # Convert unit
   def cfm_per_ton_to_m_3_per_sec_watts(cfm_per_ton)
     OpenStudio.convert(OpenStudio.convert(cfm_per_ton, 'cfm', 'm^3/s').get, 'W', 'ton').get
   end
 
+  # Convert unit
   def m_3_per_sec_watts_to_cfm_per_ton(m_3_per_sec_watts)
     OpenStudio.convert(OpenStudio.convert(m_3_per_sec_watts, 'm^3/s', 'cfm').get, 'ton', 'W').get
   end
 
-  # adjust rated COP based on reference CFM/ton
+  # Adjust rated COP based on reference CFM/ton
   def adjust_rated_cop_from_ref_cfm_per_ton(runner, airflow_sized_m_3_per_s, reference_cfm_per_ton, rated_capacity_w, original_rated_cop, eir_modifier_curve_flow)
     # get reference airflow
     airflow_reference_m_3_per_s = cfm_per_ton_to_m_3_per_sec_watts(reference_cfm_per_ton) * rated_capacity_w
@@ -494,6 +505,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     original_rated_cop * (1.0 / modifier_eir)
   end
 
+  # Adjust CFM/ton based on limits
   def adjust_cfm_per_ton_per_limits(stage_cap_fractions, stage_flows, stage_flow_fractions, dx_rated_cap_applied, rated_stage_num, old_terminal_sa_flow_m3_per_s, min_airflow_ratio, air_loop_hvac, heating_or_cooling, runner, debug_verbose)
     # determine capacities for each stage
     # this is based on user-input capacities for each stage and any upsizing applied
@@ -611,6 +623,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     [stage_flows, stage_caps, stage_flow_fractions, stage_cap_fractions, num_stages]
   end
 
+  # Set coling coil stages in relevant objects/fields
   def set_cooling_coil_stages(model, runner, stage_flows_cooling, stage_caps_cooling, num_cooling_stages, final_rated_cooling_cop, cool_cap_ft_curve_stages, cool_eir_ft_curve_stages,
                               cool_cap_ff_curve_stages, cool_eir_ff_curve_stages, cool_plf_fplr1, stage_rated_cop_frac_cooling, stage_gross_rated_sensible_heat_ratio_cooling,
                               rated_stage_num_cooling, enable_cycling_losses_above_lowest_speed, air_loop_hvac, always_on, stage_caps_heating, debug_verbose)
@@ -706,6 +719,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     new_dx_cooling_coil
   end
 
+  # Set coling coil stages in relevant objects/fields
   def set_heating_coil_stages(model, runner, stage_flows_heating, stage_caps_heating, num_heating_stages, final_rated_heating_cop, heat_cap_ft_curve_stages, heat_eir_ft_curve_stages,
                               heat_cap_ff_curve_stages, heat_eir_ff_curve_stages, heat_plf_fplr1, defrost_eir, _stage_rated_cop_frac_heating, rated_stage_num_heating, air_loop_hvac, hp_min_comp_lockout_temp_f,
                               enable_cycling_losses_above_lowest_speed, always_on, stage_caps_cooling, debug_verbose)
@@ -800,6 +814,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     new_dx_heating_coil
   end
 
+  # Get tabular data from sql file
   def get_tabular_data(runner, _model, sql, report_name, report_for_string, table_name, row_name, column_name)
     result = OpenStudio::OptionalDouble.new
     var_val_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName = '#{report_name}' AND ReportForString = '#{report_for_string}' AND TableName = '#{table_name}' AND RowName = '#{row_name}' AND ColumnName = '#{column_name}'"
@@ -812,366 +827,88 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     result
   end
 
-  def get_dep_var_from_lookup_table_with_interpolation(runner, lookup_table, input1, input2)
-    # Check if the lookup table only has two independent variables
+  def self.get_dep_var_from_lookup_table_with_interpolation(runner, lookup_table, input1, input2)
     if lookup_table.independentVariables.size == 2
-
-      # Extract independent variable 1 (e.g., indoor air temperature data)
-      ind_var_1_obj = lookup_table.independentVariables[0]
-      ind_var_1_values = ind_var_1_obj.values.to_a
-
-      # Extract independent variable 2 (e.g., outdoor air temperature data)
-      ind_var_2_obj = lookup_table.independentVariables[1]
-      ind_var_2_values = ind_var_2_obj.values.to_a
-
-      # Extract output values (dependent variable)
+      # Extract independent variable arrays
+      ind_var_1 = lookup_table.independentVariables[0].values.to_a
+      ind_var_2 = lookup_table.independentVariables[1].values.to_a
       dep_var = lookup_table.outputValues.to_a
-
-      # Check for dimension mismatch
-      if ind_var_1_values.size * ind_var_2_values.size != dep_var.size
-        runner.registerError("Output values count does not match with value counts of variable 1 and 2 for TableLookup object: #{lookup_table.name}")
+  
+      if ind_var_1.size * ind_var_2.size != dep_var.size
+        runner.registerError("Table dimensions do not match output size for TableLookup object: #{lookup_table.name}")
         return false
       end
-
-      # Perform interpolation from the two independent variables
-      interpolate_from_two_ind_vars(runner, ind_var_1_values, ind_var_2_values, dep_var, input1,
-                                    input2)
-
-      # Return interpolated value
-
+  
+      # Clamp input1 to bounds
+      if input1 < ind_var_1.first
+        runner.registerWarning("input1 (#{input1}) below range, clamping to #{ind_var_1.first}")
+        input1 = ind_var_1.first
+      elsif input1 > ind_var_1.last
+        runner.registerWarning("input1 (#{input1}) above range, clamping to #{ind_var_1.last}")
+        input1 = ind_var_1.last
+      end
+  
+      # Clamp input2 to bounds
+      if input2 < ind_var_2.first
+        runner.registerWarning("input2 (#{input2}) below range, clamping to #{ind_var_2.first}")
+        input2 = ind_var_2.first
+      elsif input2 > ind_var_2.last
+        runner.registerWarning("input2 (#{input2}) above range, clamping to #{ind_var_2.last}")
+        input2 = ind_var_2.last
+      end
+    
+      # Find bounding indices for input1
+      i1_upper = ind_var_1.index { |val| val >= input1 } || (ind_var_1.size - 1)
+      i1_lower = [i1_upper - 1, 0].max
+  
+      # Find bounding indices for input2
+      i2_upper = ind_var_2.index { |val| val >= input2 } || (ind_var_2.size - 1)
+      i2_lower = [i2_upper - 1, 0].max
+  
+      x1 = ind_var_1[i1_lower]
+      x2 = ind_var_1[i1_upper]
+      y1 = ind_var_2[i2_lower]
+      y2 = ind_var_2[i2_upper]
+    
+      # Get dependent variable values for bilinear interpolation
+      v11 = dep_var[i1_lower * ind_var_2.size + i2_lower]  # (x1, y1)
+      v12 = dep_var[i1_lower * ind_var_2.size + i2_upper]  # (x1, y2)
+      v21 = dep_var[i1_upper * ind_var_2.size + i2_lower]  # (x2, y1)
+      v22 = dep_var[i1_upper * ind_var_2.size + i2_upper]  # (x2, y2)
+    
+      # If exact match, return directly
+      if input1 == x1 && input2 == y1
+        return v11
+      elsif input1 == x1 && input2 == y2
+        return v12
+      elsif input1 == x2 && input2 == y1
+        return v21
+      elsif input1 == x2 && input2 == y2
+        return v22
+      end
+  
+      # Handle edge cases where interpolation becomes linear
+      dx = x2 - x1
+      dy = y2 - y1
+      return v11 if dx == 0 && dy == 0
+      return v11 + (v21 - v11) * (input1 - x1) / dx if dy == 0
+      return v11 + (v12 - v11) * (input2 - y1) / dy if dx == 0
+  
+      # Bilinear interpolation
+      interpolated_value =
+        v11 * (x2 - input1) * (y2 - input2) +
+        v21 * (input1 - x1) * (y2 - input2) +
+        v12 * (x2 - input1) * (input2 - y1) +
+        v22 * (input1 - x1) * (input2 - y1)
+  
+      interpolated_value /= (x2 - x1) * (y2 - y1)
+  
+      return interpolated_value
     else
-      runner.registerError('This TableLookup is not based on two independent variables, so it is not supported with this method.')
-      false
+      runner.registerError("TableLookup object does not have exactly two independent variables.")
+      return false
     end
-  end
-
-  def interpolate_from_two_ind_vars(runner, ind_var_1, ind_var_2, dep_var, input1, input2)
-    # Check input1 value
-    if input1 < ind_var_1.first
-      runner.registerWarning("input1 value (#{input1}) is lower than the minimum value in the data (#{ind_var_1.first}) thus replacing to minimum bound")
-      input1 = ind_var_1.first
-    elsif input1 > ind_var_1.last
-      runner.registerWarning("input1 value (#{input1}) is larger than the maximum value in the data (#{ind_var_1.last}) thus replacing to maximum bound")
-      input1 = ind_var_1.last
-    end
-
-    # Check input2 value
-    if input2 < ind_var_2.first
-      runner.registerWarning("input2 value (#{input2}) is lower than the minimum value in the data (#{ind_var_2.first}) thus replacing to minimum bound")
-      input2 = ind_var_2.first
-    elsif input2 > ind_var_2.last
-      runner.registerWarning("input2 value (#{input2}) is larger than the maximum value in the data (#{ind_var_2.last}) thus replacing to maximum bound")
-      input2 = ind_var_2.last
-    end
-
-    # Find the closest lower and upper bounds for input1 in ind_var_1
-    i1_lower = ind_var_1.index { |val| val >= input1 } || ind_var_1.length - 1
-    i1_upper = i1_lower.positive? ? i1_lower - 1 : 0
-
-    # Find the closest lower and upper bounds for input2 in ind_var_2
-    i2_lower = ind_var_2.index { |val| val >= input2 } || ind_var_2.length - 1
-    i2_upper = i2_lower.positive? ? i2_lower - 1 : 0
-
-    # Ensure i1_lower and i1_upper are correctly ordered
-    if ind_var_1[i1_lower] < input1
-      i1_upper = i1_lower
-      i1_lower = [i1_lower + 1, ind_var_1.length - 1].min
-    end
-
-    # Ensure i2_lower and i2_upper are correctly ordered
-    if ind_var_2[i2_lower] < input2
-      i2_upper = i2_lower
-      i2_lower = [i2_lower + 1, ind_var_2.length - 1].min
-    end
-
-    # Get the dep_var values at these indices
-    v11 = dep_var[i1_upper * ind_var_2.length + i2_upper]
-    v12 = dep_var[i1_upper * ind_var_2.length + i2_lower]
-    v21 = dep_var[i1_lower * ind_var_2.length + i2_upper]
-    v22 = dep_var[i1_lower * ind_var_2.length + i2_lower]
-
-    # If input1 or input2 exactly matches, no need for interpolation
-    return v11 if input1 == ind_var_1[i1_upper] && input2 == ind_var_2[i2_upper]
-
-    # Interpolate between v11, v12, v21, and v22
-    x1 = ind_var_1[i1_upper]
-    x2 = ind_var_1[i1_lower]
-    y1 = ind_var_2[i2_upper]
-    y2 = ind_var_2[i2_lower]
-
-    (v11 * (x2 - input1) * (y2 - input2) +
-       v12 * (x2 - input1) * (input2 - y1) +
-       v21 * (input1 - x1) * (y2 - input2) +
-       v22 * (input1 - x1) * (input2 - y1)) / ((x2 - x1) * (y2 - y1))
-  end
-
-  def upgrade_env_roof_insul_aedg(model, runner)
-    # set limit for minimum insulation in IP units -- this is used to limit input and for inferring insulation layer in construction
-    min_exp_r_val_ip = 1.0
-
-    # build standard to use OS standards methods
-    template = 'ComStock 90.1-2019'
-    std = Standard.build(template)
-    # get climate zone to set target_r_val_ip
-    climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
-
-    # apply target R-value by climate zone
-    if climate_zone.include?('ASHRAE 169-2013-1') || climate_zone.include?('CEC15')
-      target_r_val_ip = 21
-    elsif climate_zone.include?('ASHRAE 169-2013-2') || climate_zone.include?('ASHRAE 169-2013-3')
-      target_r_val_ip = 26
-    elsif climate_zone.include?('ASHRAE 169-2013-4') || climate_zone.include?('ASHRAE 169-2013-5') || climate_zone.include?('ASHRAE 169-2013-6') || climate_zone.include?('CEC16')
-      target_r_val_ip = 33
-    elsif climate_zone.include?('ASHRAE 169-2013-7') || climate_zone.include?('ASHRAE 169-2013-8')
-      target_r_val_ip = 37
-    else # all DEER climate zones except 15 and 16
-      target_r_val_ip = 26
-    end
-    # Convert target_r_val_ip to si
-    target_r_val_si = OpenStudio.convert(target_r_val_ip, 'ft^2*h*R/Btu', 'm^2*K/W').get
-
-    runner.registerInfo("roof measure: Target AEDG r-value for roof assemblies: #{target_r_val_ip}")
-
-    # find existing roof assembly R-value
-    # Find all roofs and get a list of their constructions
-    roof_constructions = []
-    model.getSurfaces.each do |surface|
-      if surface.outsideBoundaryCondition == 'Outdoors' && surface.surfaceType == 'RoofCeiling' && surface.construction.is_initialized
-        roof_constructions << surface.construction.get
-      end
-    end
-
-    # create an array of roofs and find range of starting construction R-value (not just insulation layer)
-    ext_surfs = []
-    ext_surf_consts = []
-    ext_surf_const_names = []
-    roof_resist = []
-    model.getSurfaces.each do |surface|
-      next unless (surface.outsideBoundaryCondition == 'Outdoors') && (surface.surfaceType == 'RoofCeiling') # which are outdoor roofs
-
-      ext_surfs << surface
-      roof_const = surface.construction.get
-      # only add construction if it hasn't been added yet
-      ext_surf_consts << roof_const.to_Construction.get unless ext_surf_const_names.include?(roof_const.name.to_s)
-      ext_surf_const_names << roof_const.name.to_s
-      roof_resist << 1 / roof_const.thermalConductance.to_f
-    end
-
-    # hashes to track constructions and materials made by the measure, to avoid duplicates
-    consts_old_new = {}
-
-    # used to get net area of new construction
-    consts_new_old = {}
-    matls_hash = {}
-
-    # array and counter for new constructions that are made, used for reporting final condition
-    final_consts = []
-
-    # loop through all constructions and materials used on roofs, edit and clone
-    ext_surf_consts.each do |ext_surf_const|
-      matls_in_const = ext_surf_const.layers.map.with_index { |l, i| { 'name' => l.name.to_s, 'index' => i, 'nomass' => !l.to_MasslessOpaqueMaterial.empty?, 'r_val' => l.to_OpaqueMaterial.get.thermalResistance, 'matl' => l } }
-      no_mass_matls = matls_in_const.select { |m| m['nomass'] == true }
-
-      # measure will select the no-mass material with the highest R-value as the insulation layer -- if no no-mass materials are present, the measure will select the material with the highest R-value per inch
-      if no_mass_matls.empty?
-        r_val_per_thick_vals = matls_in_const.map { |m| m['r_val'] / m['mat'].thickness }
-        max_matl_hash = matls_in_const.select { |m| m['index'] == r_val_per_thick_vals.index(r_val_per_thick_vals.max) }
-        r_vals = matls_in_const.map { |m| m['r_val'] }
-      else
-        r_vals = no_mass_matls.map { |m| m['r_val'] }
-        max_matl_hash = no_mass_matls.select { |m| m['r_val'] >= r_vals.max }
-      end
-      max_r_val_matl = max_matl_hash[0]['matl']
-      max_r_val_matl_idx = max_matl_hash[0]['index']
-      # check to make sure assumed insulation layer is between reasonable bounds
-      if max_r_val_matl.to_OpaqueMaterial.get.thermalResistance <= OpenStudio.convert(min_exp_r_val_ip, 'ft^2*h*R/Btu', 'm^2*K/W').get
-        runner.registerWarning("Construction '#{ext_surf_const.name}' does not appear to have an insulation layer and was not altered")
-      elsif max_r_val_matl.to_OpaqueMaterial.get.thermalResistance >= target_r_val_si
-        runner.registerInfo("roof measure: The insulation layer of construction #{ext_surf_const.name} exceeds the requested R-value and was not altered")
-      else
-
-        # start new XPS material layer
-        ins_layer_xps = OpenStudio::Model::StandardOpaqueMaterial.new(model)
-        ins_layer_xps.setRoughness('MediumSmooth')
-        ins_layer_xps.setConductivity(0.029)
-        ins_layer_xps.setDensity(29.0)
-        ins_layer_xps.setSpecificHeat(1210.0)
-        ins_layer_xps.setSolarAbsorptance(0.7)
-        ins_layer_xps.setVisibleAbsorptance(0.7)
-
-        # need to calculate required insulation addition
-        # clone the construction
-        final_const = ext_surf_const.clone(model).to_Construction.get
-        # get r-value
-        final_const_r_si = 1 / final_const.thermalConductance.to_f
-        final_const_r_ip = OpenStudio.convert(final_const_r_si, 'm^2*K/W', 'ft^2*h*R/Btu').get
-        # determine required r-value of XPS insulation to bring roof up to target
-        xps_target_r_val_si = target_r_val_si - final_const_r_si
-        target_r_val_ip = OpenStudio.convert(target_r_val_si, 'm^2*K/W', 'ft^2*h*R/Btu').get
-        xps_target_r_val_ip = OpenStudio.convert(xps_target_r_val_si, 'm^2*K/W', 'ft^2*h*R/Btu').get
-        # Calculate the thickness required to meet the desired R-Value
-        reqd_thickness_si = xps_target_r_val_si * ins_layer_xps.thermalConductivity
-        reqd_thickness_ip = OpenStudio.convert(reqd_thickness_si, 'm', 'in').get
-        # round to nearest half inch
-        reqd_thickness_ip = (reqd_thickness_ip * 2).round / 2
-        ins_layer_xps.setThickness(reqd_thickness_si)
-        ins_layer_xps.thermalConductivity
-        ins_layer_xps.setName("Expanded Polystyrene - Extruded - #{reqd_thickness_ip.round(1)} in.")
-        runner.registerInfo("roof measure: Construction #{ext_surf_const.name} starts with an R-value of #{final_const_r_ip.round(1)}. To achieve an R-Value of #{target_r_val_ip.round(1)}, this construction needs to add R-#{xps_target_r_val_ip.round(1)} of XPS insulation, which equates to #{reqd_thickness_ip} inches.")
-
-        # insert new construction
-        final_const.insertLayer(1, ins_layer_xps)
-        final_const.setName("#{ext_surf_const.name} with Added Roof Insul")
-        final_consts << final_const
-
-        # push to hashes
-        consts_old_new[ext_surf_const.name.to_s] = final_const
-        # push the object to hash key v. name
-        consts_new_old[final_const] = ext_surf_const
-
-        # find already cloned insulation material and link to construction
-        found_matl = false
-        matls_hash.each do |orig, new|
-          if max_r_val_matl.name.to_s == orig
-            new_matl = new
-            matls_hash[max_r_val_matl.name.to_s] = new_matl
-            final_const.eraseLayer(max_r_val_matl_idx)
-            final_const.insertLayer(max_r_val_matl_idx, new_matl)
-            found_matl = true
-          end
-        end
-      end
-    end
-
-    # register as not applicable if
-    if final_consts.empty?
-      runner.registerAsNotApplicable('No applicable roofs were found.')
-      return true
-    end
-
-    # loop through construction sets used in the model
-    default_const_sets = model.getDefaultConstructionSets
-    default_const_sets.each do |default_const_set|
-      if default_const_set.directUseCount > 0
-        default_surf_const_set = default_const_set.defaultExteriorSurfaceConstructions
-        if !default_surf_const_set.empty?
-          start_const = default_surf_const_set.get.roofCeilingConstruction
-
-          # creating new default construction set
-          new_default_const_set = default_const_set.clone(model)
-          new_default_const_set = new_default_const_set.to_DefaultConstructionSet.get
-          new_default_const_set.setName("#{default_const_set.name} Added Roof Insul")
-
-          # create new surface set and link to construction set
-          new_default_surf_const_set = default_surf_const_set.get.clone(model)
-          new_default_surf_const_set = new_default_surf_const_set.to_DefaultSurfaceConstructions.get
-          new_default_surf_const_set.setName("#{default_surf_const_set.get.name} Added Roof Insul")
-          new_default_const_set.setDefaultExteriorSurfaceConstructions(new_default_surf_const_set)
-
-          # use the hash to find the proper construction and link to the new default surface construction set
-          target_const = new_default_surf_const_set.roofCeilingConstruction
-          if !target_const.empty?
-            target_const = target_const.get.name.to_s
-            found_const_flag = false
-            consts_old_new.each do |orig, new|
-              if target_const == orig
-                final_const = new
-                new_default_surf_const_set.setRoofCeilingConstruction(final_const)
-                found_const_flag = true
-              end
-            end
-            # this should never happen but is just an extra test in case something goes wrong with the measure code
-            runner.registerWarning("Measure couldn't find the roof construction named '#{target_const}' assigned to any exterior surfaces") if found_const_flag == false
-          end
-
-          # swap all uses of the old construction set for the new
-          const_set_srcs = default_const_set.sources
-          const_set_srcs.each do |const_set_src|
-            bldg_src = const_set_src.to_Building
-
-            # if statement for each type of object that can use a DefaultConstructionSet
-            if !bldg_src.empty?
-              bldg_src = bldg_src.get
-              bldg_src.setDefaultConstructionSet(new_default_const_set)
-            end
-            bldg_story_src = const_set_src.to_BuildingStory
-            if !bldg_story_src.empty?
-              bldg_story_src = bldg_story_src.get
-              bldg_story_src.setDefaultConstructionSet(new_default_const_set)
-            end
-            space_type_src = const_set_src.to_SpaceType
-            if !bldg_story_src.empty?
-              bldg_story_src = bldg_story_src.get
-              bldg_story_src.setDefaultConstructionSet(new_default_const_set)
-            end
-            space_src = const_set_src.to_Space
-            if !space_src.empty?
-              space_src = space_src.get
-              space_src.setDefaultConstructionSet(new_default_const_set)
-            end
-          end
-        end
-      end
-    end
-
-    # link cloned and edited constructions for surfaces with hard assigned constructions
-    ext_surfs.each do |ext_surf|
-      if !ext_surf.isConstructionDefaulted && !ext_surf.construction.empty?
-        # use the hash to find the proper construction and link to surface
-        target_const = ext_surf.construction
-        if !target_const.empty?
-          target_const = target_const.get.name.to_s
-          consts_old_new.each do |orig, new|
-            if target_const == orig
-              final_const = new
-              ext_surf.setConstruction(final_const)
-            end
-          end
-        end
-      end
-    end
-
-    # nothing will be done if there are no exterior surfaces
-    if ext_surfs.empty?
-      runner.registerAsNotApplicable('The building has no roofs.')
-      return true
-    end
-
-    # report strings for initial condition
-    init_str = []
-    ext_surf_consts.uniq.each do |ext_surf_const|
-      # unit conversion of roof insulation from SI units (m2-K/W) to IP units (ft2-h-R/Btu)
-      init_r_val_ip = OpenStudio.convert(1 / ext_surf_const.thermalConductance.to_f, 'm^2*K/W', 'ft^2*h*R/Btu').get
-      init_str << "#{ext_surf_const.name} (R-#{format '%.1f', init_r_val_ip})"
-    end
-
-    # report strings for final condition, not all roof constructions, but only new ones made -- if roof didn't have insulation and was not altered we don't want to show it
-    final_str = []
-    area_changed_si = 0
-    final_consts.uniq.each do |final_const|
-      # unit conversion of roof insulation from SI units (M^2*K/W) to IP units (ft^2*h*R/Btu)
-      final_r_val_ip = OpenStudio.convert(1.0 / final_const.thermalConductance.to_f, 'm^2*K/W', 'ft^2*h*R/Btu').get
-      final_str << "#{final_const.name} (R-#{format '%.1f', final_r_val_ip})"
-      area_changed_si += final_const.getNetArea
-    end
-
-    # add not applicable test if there were roof constructions but non of them were altered (already enough insulation or doesn't look like insulated roof)
-    if area_changed_si == 0
-      runner.registerAsNotApplicable('No roofs were altered')
-      return true
-    else
-      # IP construction area for reporting
-      area_changed_ip = OpenStudio.convert(area_changed_si, 'm^2', 'ft^2').get
-    end
-
-    # Report the initial condition
-    # runner.registerInitialCondition("The building had #{init_str.size} roof constructions: #{init_str.sort.join(', ')}")
-
-    # Report the final condition
-    # runner.registerFinalCondition("The insulation for roofs was set to R-#{target_r_val_ip.round(1)} -- this was applied to #{area_changed_ip.round(2)} ft2 across #{final_str.size} roof constructions: #{final_str.sort.join(', ')}")
-    runner.registerValue('env_roof_insul_roof_area_ft2', area_changed_ip.round(2), 'ft2')
-    return true
-  end
+  end  
 
   #### End predefined functions
 
@@ -1179,10 +916,14 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   def run(model, runner, user_arguments)
     super(model, runner, user_arguments)
 
+    # ---------------------------------------------------------
     # use the built-in error checking
+    # ---------------------------------------------------------
     return false unless runner.validateUserArguments(arguments(model), user_arguments)
 
+    # ---------------------------------------------------------
     # assign the user inputs to variables
+    # ---------------------------------------------------------
     backup_ht_fuel_scheme = runner.getStringArgumentValue('backup_ht_fuel_scheme', user_arguments)
     performance_oversizing_factor = runner.getDoubleArgumentValue('performance_oversizing_factor', user_arguments)
     htg_sizing_option = runner.getStringArgumentValue('htg_sizing_option', user_arguments)
@@ -1194,45 +935,23 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     dcv = runner.getBoolArgumentValue('dcv', user_arguments)
     econ = runner.getBoolArgumentValue('econ', user_arguments)
     roof = runner.getBoolArgumentValue('roof', user_arguments)
+    window = runner.getBoolArgumentValue('window', user_arguments)
     sizing_run = runner.getBoolArgumentValue('sizing_run', user_arguments)
     debug_verbose = runner.getBoolArgumentValue('debug_verbose', user_arguments)
 
-    # # adding output variables (for debugging)
-    # out_vars = [
-    #   'Air System Mixed Air Mass Flow Rate',
-    #   'Fan Air Mass Flow Rate',
-    #   'Unitary System Predicted Sensible Load to Setpoint Heat Transfer Rate',
-    #   'Cooling Coil Total Cooling Rate',
-    #   'Cooling Coil Electricity Rate',
-    #   'Cooling Coil Runtime Fraction',
-    #   'Heating Coil Heating Rate',
-    #   'Heating Coil Electricity Rate',
-    #   'Heating Coil Runtime Fraction',
-    #   'Unitary System DX Coil Cycling Ratio',
-    #   'Unitary System DX Coil Speed Ratio',
-    #   'Unitary System DX Coil Speed Level',
-    #   'Unitary System Total Cooling Rate',
-    #   'Unitary System Total Heating Rate',
-    #   'Unitary System Electricity Rate',
-    #   'HVAC System Solver Iteration Count',
-    #   'Site Outdoor Air Drybulb Temperature',
-    #   'Heating Coil Crankcase Heater Electricity Rate',
-    #   'Heating Coil Defrost Electricity Rate'
-    # ]
-    # out_vars.each do |out_var_name|
-    #     ov = OpenStudio::Model::OutputVariable.new('ov', model)
-    #     ov.setKeyValue('*')
-    #     ov.setReportingFrequency('hourly')
-    #     ov.setVariableName(out_var_name)
-    # end
-
     # build standard to use OS standards methods
+    # ---------------------------------------------------------
     template = 'ComStock 90.1-2019'
     std = Standard.build(template)
+
+    # ---------------------------------------------------------
     # get climate zone value
+    # ---------------------------------------------------------
     climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
 
+    # ---------------------------------------------------------
     # get applicable psz hvac air loops
+    # ---------------------------------------------------------
     selected_air_loops = []
     applicable_area_m2 = 0
     prim_ht_fuel_type = 'electric' # we assume electric unless we find a gas coil in any air loop
@@ -1379,26 +1098,57 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       is_sizing_run_needed = false
     end
 
+    # ---------------------------------------------------------
     # check if any air loops are applicable to measure
+    # ---------------------------------------------------------
     if selected_air_loops.empty?
       runner.registerAsNotApplicable('No applicable air loops in model. No changes will be made.')
       return true
     end
 
-    # call roof insulation measure based on user input
-    if (roof == true) && !selected_air_loops.empty?
-      upgrade_env_roof_insul_aedg(model, runner)
+    # call roof and/or window upgrades based on user input
+    condition_initial_roof = ''
+    condition_final_roof = ''
+    condition_initial_window = ''
+    condition_final_window = ''
+    if !selected_air_loops.empty?
+      if roof == true
+        runner.registerInfo('Running Roof Insulation measure....')
+        results_roof, runner = call_roof(model, runner)
+        if results_roof.stepInitialCondition.is_initialized
+          condition_initial_roof = results_roof.stepInitialCondition.get
+        end
+        if results_roof.stepFinalCondition.is_initialized
+          condition_final_roof = results_roof.stepFinalCondition.get
+        end
+      end
+      if window == true
+        runner.registerInfo('Running New Windows measure....')
+        results_window, runner = call_windows(model, runner)
+        if results_window.stepInitialCondition.is_initialized
+          condition_initial_roof = results_window.stepInitialCondition.get
+        end
+        if results_window.stepFinalCondition.is_initialized
+          condition_final_roof = results_window.stepFinalCondition.get
+        end
+      end
     end
 
+    # ---------------------------------------------------------
     # do sizing run with new equipment to set sizing-specific features
+    # ---------------------------------------------------------
     if (is_sizing_run_needed == true) || (sizing_run == true)
       runner.registerInfo('sizing summary: sizing run needed')
       return false if std.model_run_sizing_run(model, "#{Dir.pwd}/SR1") == false
 
-      model.applySizingValues
+      if is_sizing_run_needed == true
+        model.applySizingValues
+      end
     end
 
+    # ---------------------------------------------------------
     # get sql from sizing run
+    # ---------------------------------------------------------
     sql = nil
     if sizing_run == true
       # get sql (for extracting sizing information)
@@ -1494,17 +1244,23 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ### End of temp section
     #########################################################################################################
 
+    # ---------------------------------------------------------
     # check if any air loops are applicable to measure
+    # ---------------------------------------------------------
     if selected_air_loops.empty?
       runner.registerAsNotApplicable('No applicable air loops in model. No changes will be made.')
       return true
     end
 
+    # ---------------------------------------------------------
     # get model conditioned square footage for reporting
+    # ---------------------------------------------------------
     if model.building.get.conditionedFloorArea.empty?
       runner.registerWarning('model.building.get.conditionedFloorArea() is empty; applicable floor area fraction will not be reported.')
       # report initial condition of model
-      runner.registerInitialCondition("The building has #{selected_air_loops.size} applicable air loops (out of the total #{model.getAirLoopHVACs.size} airloops in the model) that will be replaced with heat pump RTUs, serving #{applicable_area_m2.round(0)} m2 of floor area. The remaning airloops were determined to be not applicable.")
+      condition_initial_hprtu = "The building has #{selected_air_loops.size} applicable air loops (out of the total #{model.getAirLoopHVACs.size} airloops in the model) that will be replaced with heat pump RTUs, serving #{applicable_area_m2.round(0)} m2 of floor area. The remaning airloops were determined to be not applicable."
+      condition_initial = [condition_initial_hprtu, condition_initial_roof, condition_initial_window].reject(&:empty?).join(" | ")
+      runner.registerInitialCondition(condition_initial)
     else
       total_area_m2 = model.building.get.conditionedFloorArea.get
 
@@ -1512,10 +1268,14 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       applicable_floorspace_frac = applicable_area_m2 / total_area_m2
 
       # report initial condition of model
-      runner.registerInitialCondition("The building has #{selected_air_loops.size} applicable air loops that will be replaced with heat pump RTUs, representing #{(applicable_floorspace_frac * 100).round(2)}% of the building floor area.")
+      condition_initial_hprtu = "The building has #{selected_air_loops.size} applicable air loops that will be replaced with heat pump RTUs, representing #{(applicable_floorspace_frac * 100).round(2)}% of the building floor area. #{condition_initial_roof}. #{condition_initial_window}."
+      condition_initial = [condition_initial_hprtu, condition_initial_roof, condition_initial_window].reject(&:empty?).join(" | ")
+      runner.registerInitialCondition(condition_initial)
     end
 
+    # ---------------------------------------------------------
     # applicability checks for heat recovery; building type
+    # ---------------------------------------------------------
     # building type not applicable to ERVs as part of this measure will receive no additional or modification of ERV systems
     # this is only relevant if the user selected to add ERVs
     # space type applicability is handled later in the code when looping through individual air loops
@@ -1550,8 +1310,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         [15.5556, 19.4444, 'HRV']
       end
 
-    #################################### Define Performance Curves
-
     # ---------------------------------------------------------
     # load performance data for standard performance units
     # ---------------------------------------------------------
@@ -1575,7 +1333,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # ---------------------------------------------------------
     # define performance curves for cooling
     # ---------------------------------------------------------
-
     # Curve Import - Cooling capacity as a function of temperature
     case hprtu_scenario
     when 'variable_speed_high_eff'
@@ -1657,7 +1414,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # ---------------------------------------------------------
     # define performance curves for heating
     # ---------------------------------------------------------
-
     # Curve Import - Heating capacity as a function of temperature
     case hprtu_scenario
     when 'variable_speed_high_eff'
@@ -1743,9 +1499,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     when 'cchpc_2027_spec'
       defrost_eir = model_add_curve(model, 'defrost_eir', custom_data_json, std)
     end
-    #################################### End of defining Performance Curves
 
+    # ---------------------------------------------------------
     # replace existing applicable air loops with new heat pump rtu air loops
+    # ---------------------------------------------------------
     selected_air_loops.sort.each do |air_loop_hvac|
       # get necessary schedules, etc. from unitary system object
       # initialize variables before loop
@@ -2113,7 +1870,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       dns_htg_load_at_user_dsn_temp = htg_load_slope * hp_sizing_temp_c + htg_load_intercept
       if heat_cap_ft_curve_stages[rated_stage_num_heating].to_TableLookup.is_initialized
         table_lookup_obj = heat_cap_ft_curve_stages[rated_stage_num_heating].to_TableLookup.get
-        hp_derate_factor_at_user_dsn = get_dep_var_from_lookup_table_with_interpolation(runner, table_lookup_obj,
+        hp_derate_factor_at_user_dsn = AddHeatPumpRtu.get_dep_var_from_lookup_table_with_interpolation(runner, table_lookup_obj,
                                                                                         ia_temp_c, oa_temp_c)
       else
         hp_derate_factor_at_user_dsn = heat_cap_ft_curve_stages[rated_stage_num_heating].evaluate(ia_temp_c, oa_temp_c)
@@ -2188,8 +1945,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       upsize_factor = (dx_rated_htg_cap_applied - orig_clg_coil_gross_cap) / orig_clg_coil_gross_cap
 
       # upsize airflow accordingly
-      design_heating_airflow_m_3_per_s *= (1 + upsize_factor)
-      design_cooling_airflow_m_3_per_s *= (1 + upsize_factor)
+      # design_heating_airflow_m_3_per_s *= (1 + upsize_factor)
+      # design_cooling_airflow_m_3_per_s *= (1 + upsize_factor)
 
       if debug_verbose
         runner.registerInfo('sizing summary: before rated cfm/ton adjustmant')
@@ -2654,9 +2411,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     end
 
     # report final condition of model
-    runner.registerFinalCondition("The building finished with heat pump RTUs replacing the HVAC equipment for #{selected_air_loops.size} air loops.")
-
-    # model.getOutputControlFiles.setOutputCSV(true)
+    condition_final_hprtu = "The building finished with heat pump RTUs replacing the HVAC equipment for #{selected_air_loops.size} air loops."
+    condition_final = [condition_final_hprtu, condition_final_roof, condition_final_window].reject(&:empty?).join(" | ")
+    runner.registerFinalCondition(condition_final)
 
     true
   end
