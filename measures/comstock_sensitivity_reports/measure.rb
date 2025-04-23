@@ -986,7 +986,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       # get PV system capacity
       pv_capacity_w+= pv_sys.dcSystemCapacity / 1000
     end
-    runner.registerValue('com_report_total_pv_capacity_w', pv_capacity_w, 'kW')
+    runner.registerValue('com_report_pv_system_size_kw', pv_capacity_w, 'kW')
 
     # Occupant calculations
     total_zone_occupant_area_m2 = 0.0

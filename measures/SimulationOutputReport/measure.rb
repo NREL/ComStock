@@ -107,7 +107,7 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
     # Get PV electricity produced
     pv_query = "SELECT -1*Value FROM TabularDataWithStrings WHERE ReportName='AnnualBuildingUtilityPerformanceSummary' AND ReportForString='Entire Facility' AND TableName='Electric Loads Satisfied' AND RowName='Total On-Site Electric Sources' AND ColumnName='Electricity' AND Units='GJ'"
     pv_val = sql_file.execAndReturnFirstDouble(pv_query)
-    purchased_electricity_query = "SELECT -1*Value FROM TabularDataWithStrings WHERE ReportName='AnnualBuildingUtilityPerformanceSummary' AND ReportForString='Entire Facility' AND TableName='Electric Loads Satisfied' AND RowName='Electricity Coming From Utility' AND ColumnName='Electricity' AND Units='GJ'"
+    purchased_electricity_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName='AnnualBuildingUtilityPerformanceSummary' AND ReportForString='Entire Facility' AND TableName='Electric Loads Satisfied' AND RowName='Electricity Coming From Utility' AND ColumnName='Electricity' AND Units='GJ'"
     purchased_electricity = sql_file.execAndReturnFirstDouble(purchased_electricity_query)
 
     # TOTAL
