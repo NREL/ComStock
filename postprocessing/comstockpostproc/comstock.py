@@ -2351,6 +2351,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             ]
             + geo_agg_cols
             + weighted_util_cols
+            + cost_cols
+            + [self.UTIL_ELEC_BILL_NUM_BILLS]
         ).groupby(
             [
                 pl.col(self.UPGRADE_ID),
@@ -2359,7 +2361,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             + geo_agg_cols
         ).agg(
             [
-                pl.col([self.BLDG_WEIGHT] + geographic_aggregation_levels + weighted_util_cols).sum(),
+                pl.col([self.BLDG_WEIGHT] + geographic_aggregation_levels + weighted_util_cols + cost_cols + [self.UTIL_ELEC_BILL_NUM_BILLS]).sum(),
                 pl.col(self.FLR_AREA).first()
             ]
         )
