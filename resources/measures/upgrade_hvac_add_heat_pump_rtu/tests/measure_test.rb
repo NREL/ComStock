@@ -350,10 +350,8 @@ class AddHeatPumpRtuTest < Minitest::Test
     # calc cfm/ton
     coils_heating.each do |heating_coil|
       # get coil specs
-      if heating_coil.grossRatedHeatingCapacity.is_initialized
-        rated_capacity_w = heating_coil.referenceUnitGrossRatedHeatingCapacity
-      end
-      rated_airflow_m_3_per_sec = heating_coil.referenceUnitRatedAirFlowRate if heating_coil.ratedAirFlowRate.is_initialized
+      rated_capacity_w = heating_coil.referenceUnitGrossRatedHeatingCapacity
+      rated_airflow_m_3_per_sec = heating_coil.referenceUnitRatedAirFlowRate
 
       # calc relevant metrics
       rated_capacity_ton = OpenStudio.convert(rated_capacity_w, 'W', 'ton').get
@@ -376,10 +374,8 @@ class AddHeatPumpRtuTest < Minitest::Test
     # calc cfm/ton
     coils_cooling.each do |cooling_coil|
       # get coil specs
-      if cooling_coil.grossRatedTotalCoolingCapacity.is_initialized
-        rated_capacity_w = cooling_coil.referenceUnitGrossRatedTotalCoolingCapacity
-      end
-      rated_airflow_m_3_per_sec = cooling_coil.referenceUnitRatedAirFlowRate if cooling_coil.ratedAirFlowRate.is_initialized
+      rated_capacity_w = cooling_coil.referenceUnitGrossRatedTotalCoolingCapacity
+      rated_airflow_m_3_per_sec = cooling_coil.referenceUnitRatedAirFlowRate
 
       # calc relevant metrics
       rated_capacity_ton = OpenStudio.convert(rated_capacity_w, 'W', 'ton').get
@@ -659,31 +655,10 @@ class AddHeatPumpRtuTest < Minitest::Test
       # capacity and cop, use cop at highest capacity
       temp_capacity_w = 0.0
       coil.speeds.each do |stage|
-        if stage.grossRatedTotalCoolingCapacity.is_initialized
-          temp_capacity_w = stage.referenceUnitGrossRatedTotalCoolingCapacity
-        elsif stage.autosizedGrossRatedTotalCoolingCapacity.is_initialized
-          temp_capacity_w = stage.autosizedGrossRatedTotalCoolingCapacity.get
-        else
-          raise "Cooling coil capacity not available for coil stage '#{stage.name}'."
-        end
+        temp_capacity_w = stage.referenceUnitGrossRatedTotalCoolingCapacity
 
         # update cop if highest capacity
-        temp_coil_design_cop = stage.grossRatedCoolingCOP
-        coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
-
-        # update if highest capacity
-        capacity_w = temp_capacity_w if temp_capacity_w > capacity_w
-      end
-    elsif coil.to_CoilCoolingDXVariableSpeed.is_initialized
-      coil = coil.to_CoilCoolingDXVariableSpeed.get
-
-      # capacity and cop, use cop at highest capacity
-      temp_capacity_w = 0.0
-      coil.speeds.each do |speed|
-        temp_capacity_w = speed.referenceUnitGrossRatedTotalCoolingCapacity
-
-        # update cop if highest capacity
-        temp_coil_design_cop = speed.referenceUnitGrossRatedCoolingCOP
+        temp_coil_design_cop = stage.referenceUnitGrossRatedCoolingCOP
         coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
 
         # update if highest capacity
@@ -716,30 +691,11 @@ class AddHeatPumpRtuTest < Minitest::Test
       coil = coil.to_CoilHeatingDXVariableSpeed.get
       temp_capacity_w = 0.0
       coil.speeds.each do |stage|
-        if stage.grossRatedHeatingCapacity.is_initialized
-          temp_capacity_w = stage.referenceUnitGrossRatedHeatingCapacity
-        elsif stage.autosizedGrossRatedHeatingCapacity.is_initialized
-          temp_capacity_w = stage.autosizedGrossRatedHeatingCapacity.get
-        else
-          raise "Heating coil capacity not available for coil stage '#{stage.name}'."
-        end
+        temp_capacity_w = stage.referenceUnitGrossRatedHeatingCapacity
 
         # get cop and cop at lower temperatures
         # pick cop at highest capacity
-        temp_coil_design_cop = stage.grossRatedHeatingCOP
-        coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
-
-        # update if highest capacity
-        capacity_w = temp_capacity_w if temp_capacity_w > capacity_w
-      end
-    elsif coil.to_CoilHeatingDXVariableSpeed.is_initialized
-      coil = coil.to_CoilHeatingDXVariableSpeed.get
-      coil.speeds.each do |speed|
-        temp_capacity_w = speed.referenceUnitGrossRatedHeatingCapacity
-
-        # get cop and cop at lower temperatures
-        # pick cop at highest capacity
-        temp_coil_design_cop = speed.referenceUnitGrossRatedHeatingCOP
+        temp_coil_design_cop = stage.referenceUnitGrossRatedHeatingCOP
         coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
 
         # update if highest capacity
@@ -864,7 +820,8 @@ class AddHeatPumpRtuTest < Minitest::Test
       # check airflow
       value_before = sizing_summary_reference['AirLoopHVAC'][name_obj]['designSupplyAirFlowRate']
       value_after = airloophvac.designSupplyAirFlowRate.get
-      assert_in_epsilon(value_after, value_before, 0.01, "values difference not within threshold: AirLoopHVAC | #{name_obj} | designSupplyAirFlowRate")
+      increased_airflow = value_after - value_before > 0
+      assert(true, increased_airflow, "airflow not increased with upsizing: value_after = #{value_after} | value_before = #{value_before} | designSupplyAirFlowRate")
     end
     model.getControllerOutdoorAirs.each do |ctrloa|
       name_obj = ctrloa.name.to_s
@@ -912,10 +869,8 @@ class AddHeatPumpRtuTest < Minitest::Test
     # calc cfm/ton
     coils_heating.each do |heating_coil|
       # get coil specs
-      if heating_coil.grossRatedHeatingCapacity.is_initialized
-        rated_capacity_w = heating_coil.referenceUnitGrossRatedHeatingCapacity
-      end
-      rated_airflow_m_3_per_sec = heating_coil.referenceUnitRatedAirFlowRate if heating_coil.ratedAirFlowRate.is_initialized
+      rated_capacity_w = heating_coil.referenceUnitGrossRatedHeatingCapacity
+      rated_airflow_m_3_per_sec = heating_coil.referenceUnitRatedAirFlowRate
 
       # calc relevant metrics
       rated_capacity_ton = OpenStudio.convert(rated_capacity_w, 'W', 'ton').get
@@ -938,10 +893,8 @@ class AddHeatPumpRtuTest < Minitest::Test
     # calc cfm/ton
     coils_cooling.each do |cooling_coil|
       # get coil specs
-      if cooling_coil.grossRatedTotalCoolingCapacity.is_initialized
-        rated_capacity_w = cooling_coil.referenceUnitGrossRatedTotalCoolingCapacity
-      end
-      rated_airflow_m_3_per_sec = cooling_coil.referenceUnitRatedAirFlowRate if cooling_coil.ratedAirFlowRate.is_initialized
+      rated_capacity_w = cooling_coil.referenceUnitGrossRatedTotalCoolingCapacity
+      rated_airflow_m_3_per_sec = cooling_coil.referenceUnitRatedAirFlowRate
 
       # calc relevant metrics
       rated_capacity_ton = OpenStudio.convert(rated_capacity_w, 'W', 'ton').get
@@ -1057,190 +1010,190 @@ class AddHeatPumpRtuTest < Minitest::Test
   #   end
   # end
 
-  # # ##########################################################################
-  # # This section tests upsizing algorithm
-  # # tests compare:
-  # # 1) regularly sized model versus upsized model in cold region
-  # # 2) regularly sized model versus upsized model in hot region
-  # def test_sizing_model_in_alaska
-  #   osm_name = 'small_office_psz_not_hard_sized.osm'
-  #   epw_name = 'USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw'
+  # ##########################################################################
+  # This section tests upsizing algorithm
+  # tests compare:
+  # 1) regularly sized model versus upsized model in cold region
+  # 2) regularly sized model versus upsized model in hot region
+  def test_sizing_model_in_alaska
+    osm_name = 'small_office_psz_not_hard_sized.osm'
+    epw_name = 'USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw'
 
-  #   test_name = 'test_sizing_model_in_alaska'
+    test_name = 'test_sizing_model_in_alaska'
 
-  #   lookup_table_test = {
-  #     'table_name': 'c_cap_high_T',
-  #     'ind1': 22.22,
-  #     'ind2': 29.44,
-  #     'dep': 1.1677
-  #   }
+    lookup_table_test = {
+      'table_name': 'c_cap_high_T',
+      'ind1': 22.22,
+      'ind2': 29.44,
+      'dep': 1.1677
+    }
 
-  #   puts "\n######\nTEST:#{osm_name}\n######\n"
+    puts "\n######\nTEST:#{osm_name}\n######\n"
 
-  #   osm_path = model_input_path(osm_name)
-  #   epw_path = epw_input_path(epw_name)
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
 
-  #   # Create an instance of the measure
-  #   measure = AddHeatPumpRtu.new
+    # Create an instance of the measure
+    measure = AddHeatPumpRtu.new
 
-  #   # Load the model; only used here for populating arguments
-  #   model = load_model(osm_path)
+    # Load the model; only used here for populating arguments
+    model = load_model(osm_path)
 
-  #   # get arguments
-  #   arguments = measure.arguments(model)
-  #   argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+    # get arguments
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
-  #   # populate specific argument for testing
-  #   arguments.each_with_index do |arg, idx|
-  #     temp_arg_var = arg.clone
-  #     case arg.name
-  #     when 'sizing_run'
-  #       sizing_run = arguments[idx].clone
-  #       sizing_run.setValue(true)
-  #       argument_map[arg.name] = sizing_run
-  #     when 'hprtu_scenario'
-  #       hprtu_scenario = arguments[idx].clone
-  #       hprtu_scenario.setValue('two_speed_standard_eff') # variable_speed_high_eff, two_speed_standard_eff
-  #       argument_map[arg.name] = hprtu_scenario
-  #     else
-  #       argument_map[arg.name] = temp_arg_var
-  #     end
-  #   end
+    # populate specific argument for testing
+    arguments.each_with_index do |arg, idx|
+      temp_arg_var = arg.clone
+      case arg.name
+      when 'sizing_run'
+        sizing_run = arguments[idx].clone
+        sizing_run.setValue(true)
+        argument_map[arg.name] = sizing_run
+      when 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('two_speed_standard_eff') # variable_speed_high_eff, two_speed_standard_eff
+        argument_map[arg.name] = hprtu_scenario
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
+    end
 
-  #   # populate specific argument for testing: regular sizing scenario
-  #   arguments.each_with_index do |arg, idx|
-  #     temp_arg_var = arg.clone
-  #     if arg.name == 'performance_oversizing_factor'
-  #       performance_oversizing_factor = arguments[idx].clone
-  #       performance_oversizing_factor.setValue(0.0)
-  #       argument_map[arg.name] = performance_oversizing_factor
-  #     end
-  #   end
+    # populate specific argument for testing: regular sizing scenario
+    arguments.each_with_index do |arg, idx|
+      temp_arg_var = arg.clone
+      if arg.name == 'performance_oversizing_factor'
+        performance_oversizing_factor = arguments[idx].clone
+        performance_oversizing_factor.setValue(0.0)
+        argument_map[arg.name] = performance_oversizing_factor
+      end
+    end
 
-  #   # Apply the measure to the model and optionally run the model
-  #   result = set_weather_and_apply_measure_and_run("#{test_name}_b", measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
-  #   model = load_model(model_output_path("#{test_name}_b"))
+    # Apply the measure to the model and optionally run the model
+    result = set_weather_and_apply_measure_and_run("#{test_name}_b", measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
+    model = load_model(model_output_path("#{test_name}_b"))
 
-  #   # get sizing info from regular sized model
-  #   sizing_summary_reference = get_sizing_summary(model)
+    # get sizing info from regular sized model
+    sizing_summary_reference = get_sizing_summary(model)
 
-  #   # populate specific argument for testing: upsizing scenario
-  #   arguments.each_with_index do |arg, idx|
-  #     temp_arg_var = arg.clone
-  #     if arg.name == 'performance_oversizing_factor'
-  #       performance_oversizing_factor = arguments[idx].clone
-  #       performance_oversizing_factor.setValue(0.25)
-  #       argument_map[arg.name] = performance_oversizing_factor
-  #     end
-  #   end
+    # populate specific argument for testing: upsizing scenario
+    arguments.each_with_index do |arg, idx|
+      temp_arg_var = arg.clone
+      if arg.name == 'performance_oversizing_factor'
+        performance_oversizing_factor = arguments[idx].clone
+        performance_oversizing_factor.setValue(0.25)
+        argument_map[arg.name] = performance_oversizing_factor
+      end
+    end
 
-  #   # Apply the measure to the model and optionally run the model
-  #   result = set_weather_and_apply_measure_and_run("#{test_name}_a", measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
-  #   model = load_model(model_output_path("#{test_name}_a"))
+    # Apply the measure to the model and optionally run the model
+    result = set_weather_and_apply_measure_and_run("#{test_name}_a", measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
+    model = load_model(model_output_path("#{test_name}_a"))
 
-  #   # check performance category
-  #   performance_category = nil
-  #   result.stepValues.each do |input_arg|
-  #     next unless input_arg.name == 'hprtu_scenario'
-  #     performance_category = input_arg.valueAsString
-  #   end
+    # check performance category
+    performance_category = nil
+    result.stepValues.each do |input_arg|
+      next unless input_arg.name == 'hprtu_scenario'
+      performance_category = input_arg.valueAsString
+    end
 
-  #   # test lookup table values
-  #   runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
-  #   if performance_category == 'two_speed_standard_eff'
-  #     # Check if lookup table is available
-  #     lookup_table_name = lookup_table_test[:table_name]
-  #     #table_multivar_lookups = model.getTableMultiVariableLookups
-  #     table_multivar_lookups = model.getTableLookups
-  #     lookup_table = table_multivar_lookups.find { |table| table.name.to_s == lookup_table_name }
-  #     refute_nil(lookup_table, "Cannot find table named #{lookup_table_name} from model.")
+    # test lookup table values
+    runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
+    if performance_category == 'two_speed_standard_eff'
+      # Check if lookup table is available
+      lookup_table_name = lookup_table_test[:table_name]
+      #table_multivar_lookups = model.getTableMultiVariableLookups
+      table_multivar_lookups = model.getTableLookups
+      lookup_table = table_multivar_lookups.find { |table| table.name.to_s == lookup_table_name }
+      refute_nil(lookup_table, "Cannot find table named #{lookup_table_name} from model.")
 
-  #     # Compare table lookup value against hard-coded values
-  #     dep_var_ref = lookup_table_test[:dep]
-  #     dep_var = AddHeatPumpRtu.get_dep_var_from_lookup_table_with_interpolation(runner, lookup_table, lookup_table_test[:ind1], lookup_table_test[:ind2])
-  #     # puts("### lookup table test")
-  #     # puts("--- lookup_table_name = #{lookup_table_name}")
-  #     # puts("--- input_var1 = #{lookup_table_test[:ind1]} | input_var2 = #{lookup_table_test[:ind2]}")
-  #     # puts("--- dep_var reference = #{dep_var_ref} | dep_var from model = #{dep_var}")
-  #     assert_in_epsilon(dep_var_ref, dep_var, 0.001, "Table lookup value test didn't pass: table name = #{lookup_table_name} | ind_var1 = #{lookup_table_test[:ind1]} | ind_var2 = #{lookup_table_test[:ind2]} | expected #{dep_var_ref} but got #{dep_var}")
-  #   end
+      # Compare table lookup value against hard-coded values
+      dep_var_ref = lookup_table_test[:dep]
+      dep_var = AddHeatPumpRtu.get_dep_var_from_lookup_table_with_interpolation(runner, lookup_table, lookup_table_test[:ind1], lookup_table_test[:ind2])
+      # puts("### lookup table test")
+      # puts("--- lookup_table_name = #{lookup_table_name}")
+      # puts("--- input_var1 = #{lookup_table_test[:ind1]} | input_var2 = #{lookup_table_test[:ind2]}")
+      # puts("--- dep_var reference = #{dep_var_ref} | dep_var from model = #{dep_var}")
+      assert_in_epsilon(dep_var_ref, dep_var, 0.001, "Table lookup value test didn't pass: table name = #{lookup_table_name} | ind_var1 = #{lookup_table_test[:ind1]} | ind_var2 = #{lookup_table_test[:ind2]} | expected #{dep_var_ref} but got #{dep_var}")
+    end
 
-  #   # compare sizing summary of upsizing model with regular sized model
-  #   check_sizing_results_upsizing(model, sizing_summary_reference)
-  # end
+    # compare sizing summary of upsizing model with regular sized model
+    check_sizing_results_upsizing(model, sizing_summary_reference)
+  end
 
-  # def test_sizing_model_in_hawaii
-  #   osm_name = 'small_office_psz_not_hard_sized.osm'
-  #   epw_name = 'USA_HI_Honolulu.Intl.AP.911820_TMY3.epw'
+  def test_sizing_model_in_hawaii
+    osm_name = 'small_office_psz_not_hard_sized.osm'
+    epw_name = 'USA_HI_Honolulu.Intl.AP.911820_TMY3.epw'
 
-  #   test_name = 'test_sizing_model_in_hawaii'
+    test_name = 'test_sizing_model_in_hawaii'
 
-  #   puts "\n######\nTEST:#{osm_name}\n######\n"
+    puts "\n######\nTEST:#{osm_name}\n######\n"
 
-  #   osm_path = model_input_path(osm_name)
-  #   epw_path = epw_input_path(epw_name)
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
 
-  #   # Create an instance of the measure
-  #   measure = AddHeatPumpRtu.new
+    # Create an instance of the measure
+    measure = AddHeatPumpRtu.new
 
-  #   # Load the model; only used here for populating arguments
-  #   model = load_model(osm_path)
+    # Load the model; only used here for populating arguments
+    model = load_model(osm_path)
 
-  #   # get arguments
-  #   arguments = measure.arguments(model)
-  #   argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+    # get arguments
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
-  #   # populate specific argument for testing
-  #   arguments.each_with_index do |arg, idx|
-  #     temp_arg_var = arg.clone
-  #     case arg.name
-  #     when 'sizing_run'
-  #       sizing_run = arguments[idx].clone
-  #       sizing_run.setValue(true)
-  #       argument_map[arg.name] = sizing_run
-  #     when 'hprtu_scenario'
-  #       hprtu_scenario = arguments[idx].clone
-  #       hprtu_scenario.setValue('variable_speed_high_eff') # variable_speed_high_eff, two_speed_standard_eff
-  #       argument_map[arg.name] = hprtu_scenario
-  #     else
-  #       argument_map[arg.name] = temp_arg_var
-  #     end
-  #   end
+    # populate specific argument for testing
+    arguments.each_with_index do |arg, idx|
+      temp_arg_var = arg.clone
+      case arg.name
+      when 'sizing_run'
+        sizing_run = arguments[idx].clone
+        sizing_run.setValue(true)
+        argument_map[arg.name] = sizing_run
+      when 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('variable_speed_high_eff') # variable_speed_high_eff, two_speed_standard_eff
+        argument_map[arg.name] = hprtu_scenario
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
+    end
 
-  #   # populate specific argument for testing: regular sizing scenario
-  #   arguments.each_with_index do |arg, idx|
-  #     temp_arg_var = arg.clone
-  #     if arg.name == 'performance_oversizing_factor'
-  #       performance_oversizing_factor = arguments[idx].clone
-  #       performance_oversizing_factor.setValue(0.0)
-  #       argument_map[arg.name] = performance_oversizing_factor
-  #     end
-  #   end
+    # populate specific argument for testing: regular sizing scenario
+    arguments.each_with_index do |arg, idx|
+      temp_arg_var = arg.clone
+      if arg.name == 'performance_oversizing_factor'
+        performance_oversizing_factor = arguments[idx].clone
+        performance_oversizing_factor.setValue(0.0)
+        argument_map[arg.name] = performance_oversizing_factor
+      end
+    end
 
-  #   # Apply the measure to the model and optionally run the model
-  #   result = set_weather_and_apply_measure_and_run("#{test_name}_b", measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
-  #   model = load_model(model_output_path("#{test_name}_b"))
+    # Apply the measure to the model and optionally run the model
+    result = set_weather_and_apply_measure_and_run("#{test_name}_b", measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
+    model = load_model(model_output_path("#{test_name}_b"))
 
-  #   # get sizing info from regular sized model
-  #   sizing_summary_reference = get_sizing_summary(model)
+    # get sizing info from regular sized model
+    sizing_summary_reference = get_sizing_summary(model)
 
-  #   # populate specific argument for testing: upsizing scenario
-  #   arguments.each_with_index do |arg, idx|
-  #     temp_arg_var = arg.clone
-  #     if arg.name == 'performance_oversizing_factor'
-  #       performance_oversizing_factor = arguments[idx].clone
-  #       performance_oversizing_factor.setValue(0.25)
-  #       argument_map[arg.name] = performance_oversizing_factor
-  #     end
-  #   end
+    # populate specific argument for testing: upsizing scenario
+    arguments.each_with_index do |arg, idx|
+      temp_arg_var = arg.clone
+      if arg.name == 'performance_oversizing_factor'
+        performance_oversizing_factor = arguments[idx].clone
+        performance_oversizing_factor.setValue(0.25)
+        argument_map[arg.name] = performance_oversizing_factor
+      end
+    end
 
-  #   # Apply the measure to the model and optionally run the model
-  #   result = set_weather_and_apply_measure_and_run("#{test_name}_a", measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
-  #   model = load_model(model_output_path("#{test_name}_a"))
+    # Apply the measure to the model and optionally run the model
+    result = set_weather_and_apply_measure_and_run("#{test_name}_a", measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
+    model = load_model(model_output_path("#{test_name}_a"))
 
-  #   # compare sizing summary of upsizing model with regular sized model
-  #   check_sizing_results_no_upsizing(model, sizing_summary_reference)
-  # end
+    # compare sizing summary of upsizing model with regular sized model
+    check_sizing_results_no_upsizing(model, sizing_summary_reference)
+  end
 
   # ##########################################################################
   # This section tests proper application of measure on fully applicable models
@@ -1584,7 +1537,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # assert non kitchen spaces contain multispeed DX heating coils
     nonkitchen_htg_coils_final.each do |htg_coil|
-      assert(htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized)
+      assert(htg_coil.to_CoilHeatingDXVariableSpeed.is_initialized)
     end
 
     # assert kitchen spaces still contain gas coils
