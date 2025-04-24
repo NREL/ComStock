@@ -1620,7 +1620,20 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
           sch_zone_occ = OpenstudioStandards::ThermalZone.thermal_zones_get_occupancy_schedule(
             [thermal_zone], occupied_percentage_threshold: 0.05
           )
-          if !no_people_obj # select zones that have People objects assigned (further steps based on occupancy)
+		  
+		  #Determine if setbacks present
+		  tstat_profiles_stats = get_tstat_profiles_and_stats(htg_schedule)
+		  has_setback = false 
+		  for profile in tstat_profiles_stats[:profiles]
+		      sched_min = profile.values.min 
+			  sched_max = profile.values.max
+			  if sched_max > sched_min 
+			     has_setback = true
+			  end      
+		  end 
+
+          if !no_people_obj && !has_setback # select zones that have People objects assigned (further steps based on occupancy)
+		    runner.registerInfo("in no setback #{thermal_zone.name.to_s}") 
             htg_schedule_annual_profile = get_8760_values_from_schedule_ruleset(model, htg_schedule)
             sch_zone_occ_annual_profile = get_8760_values_from_schedule_ruleset(model, sch_zone_occ)
             htg_schedule_annual_profile_updated = OpenStudio::DoubleVector.new
@@ -1667,7 +1680,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
               tstat_rule.remove
              end
             zone_thermostat.setHeatingSchedule(htg_sch_new)
-          else # Handle zones with spaces without People objects
+          else # Handle zones with setbacks or with spaces without People objects
             profiles = [htg_schedule.defaultDaySchedule]
             htg_schedule.scheduleRules.each { |rule| profiles << rule.daySchedule }
             for tstat_profile in profiles
