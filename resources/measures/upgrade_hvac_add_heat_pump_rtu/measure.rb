@@ -1617,11 +1617,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
           else
             htg_schedule = htg_schedule.get.to_ScheduleRuleset.get
           end
-		  
-		  #Determine if schedule has a setback 
-		  # schedule_profiles = get_tstat_profiles_and_stats(htg_schedule)
-		  # runner.registerInfo("min class #{schedule_profiles['min'].class.to_s}")
-          #Get occupancy schedule 
           sch_zone_occ = OpenstudioStandards::ThermalZone.thermal_zones_get_occupancy_schedule(
             [thermal_zone], occupied_percentage_threshold: 0.05
           )

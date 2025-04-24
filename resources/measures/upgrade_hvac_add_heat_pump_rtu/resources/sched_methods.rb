@@ -40,25 +40,6 @@ require 'openstudio'
 require 'date'
 require 'openstudio-standards'
 
-def get_tstat_profiles_and_stats(tstat_schedule)
-    if tstat_schedule.to_ScheduleRuleset.empty?
-      runner.registerWarning("Schedule '#{tstat_schedule.name.get}' is not a ScheduleRuleset, will not be adjusted")
-      return false
-    else
-      tstat_schedule = tstat_schedule.to_ScheduleRuleset.get
-
-      profiles = [tstat_schedule.defaultDaySchedule]
-      tstat_schedule.scheduleRules.each { |rule| profiles << rule.daySchedule }
-
-      values = []
-      profiles.each { |profile| values << profile.values }
-      values = values.flatten
-      sch_min = values.min
-      sch_max = values.max
-      num_vals = values.uniq.size
-      return { profiles: profiles, values: values, min: sch_min, max: sch_max, num_vals: num_vals }
-end
-
 
 
 def get_8760_values_from_schedule_ruleset(model, schedule_ruleset)
