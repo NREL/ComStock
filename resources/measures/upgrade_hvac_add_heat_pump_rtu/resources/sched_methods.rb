@@ -41,25 +41,24 @@ require 'date'
 require 'openstudio-standards'
 
 def get_tstat_profiles_and_stats(tstat_schedule)
-    if tstat_schedule.to_ScheduleRuleset.empty?
-      runner.registerWarning("Schedule '#{tstat_schedule.name.get}' is not a ScheduleRuleset, will not be adjusted")
-      return false
-    else
-      tstat_schedule = tstat_schedule.to_ScheduleRuleset.get
+  if tstat_schedule.to_ScheduleRuleset.empty?
+    runner.registerWarning("Schedule '#{tstat_schedule.name.get}' is not a ScheduleRuleset, will not be adjusted")
+    false
+  else
+    tstat_schedule = tstat_schedule.to_ScheduleRuleset.get
 
-      profiles = [tstat_schedule.defaultDaySchedule]
-      tstat_schedule.scheduleRules.each { |rule| profiles << rule.daySchedule }
+    profiles = [tstat_schedule.defaultDaySchedule]
+    tstat_schedule.scheduleRules.each { |rule| profiles << rule.daySchedule }
 
-      values = []
-      profiles.each { |profile| values << profile.values }
-      values = values.flatten
-      sch_min = values.min
-      sch_max = values.max
-      num_vals = values.uniq.size
-      return { profiles: profiles, values: values, min: sch_min, max: sch_max, num_vals: num_vals }
-    end
+    values = []
+    profiles.each { |profile| values << profile.values }
+    values = values.flatten
+    sch_min = values.min
+    sch_max = values.max
+    num_vals = values.uniq.size
+    { profiles: profiles, values: values, min: sch_min, max: sch_max, num_vals: num_vals }
   end
-
+end
 
 def get_8760_values_from_schedule_ruleset(model, schedule_ruleset)
   Standard.build('90.1-2013') # build openstudio standards
@@ -152,7 +151,7 @@ def get_8760_values_from_schedule_ruleset(model, schedule_ruleset)
   values
 end
 
-def make_ruleset_sched_from_8760(model, runner, values, sch_name, sch_type_limits)
+def make_ruleset_sched_from_8760(model, _runner, values, sch_name, sch_type_limits)
   std = Standard.build('90.1-2013') # build openstudio standards
   # Build array of arrays: each top element is a week, each sub element is an hour of week
   all_week_values = []
