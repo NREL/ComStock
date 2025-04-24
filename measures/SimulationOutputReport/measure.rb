@@ -105,9 +105,11 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
     other_fuel_site_units = 'MBtu'
 
     # Get PV electricity produced
-    pv_query = "SELECT -1*Value FROM TabularDataWithStrings WHERE ReportName='AnnualBuildingUtilityPerformanceSummary' AND ReportForString='Entire Facility' AND TableName='Electric Loads Satisfied' AND RowName='Total On-Site Electric Sources' AND ColumnName='Electricity' AND Units='GJ'"
+    #pv_query = "SELECT -1*Value FROM TabularDataWithStrings WHERE ReportName='AnnualBuildingUtilityPerformanceSummary' AND ReportForString='Entire Facility' AND TableName='Electric Loads Satisfied' AND RowName='Total On-Site Electric Sources' AND ColumnName='Electricity' AND Units='GJ'"
+    pv_query = "SELECT -1*Value FROM TabularDataWithStrings WHERE ReportName='EnergyMeters' AND ReportForString='Entire Facility' AND TableName='Annual and Peak Values - Electricity' AND RowName='ElectricityProduced:Facility' AND ColumnName='Electricity Annual Value' AND Units='GJ'"
     pv_val = sql_file.execAndReturnFirstDouble(pv_query)
-    purchased_electricity_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName='AnnualBuildingUtilityPerformanceSummary' AND ReportForString='Entire Facility' AND TableName='Electric Loads Satisfied' AND RowName='Electricity Coming From Utility' AND ColumnName='Electricity' AND Units='GJ'"
+    #purchased_electricity_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName='AnnualBuildingUtilityPerformanceSummary' AND ReportForString='Entire Facility' AND TableName='Electric Loads Satisfied' AND RowName='Electricity Coming From Utility' AND ColumnName='Electricity' AND Units='GJ'"
+    purchased_electricity_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName='EnergyMeters' AND ReportForString='Entire Facility' AND TableName='Annual and Peak Values - Electricity' AND RowName='ElectricityPurchased:Facility' AND ColumnName='Electricity Annual Value' AND Units='GJ'"
     purchased_electricity = sql_file.execAndReturnFirstDouble(purchased_electricity_query)
 
     # TOTAL
