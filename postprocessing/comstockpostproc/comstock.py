@@ -1729,11 +1729,15 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
     def add_peak_intensity_columns(self):
         # Create peak per area column for each peak column
-        for peak_col in (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK + self.COLS_QOI_MONTHLY_MED_DAILY_PEAK + [
-            self.QOI_MAX_SHOULDER_USE,
-            self.QOI_MAX_SUMMER_USE,
-            self.QOI_MAX_WINTER_USE
-            ]):
+        for peak_col in (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK + 
+                         self.COLS_QOI_MONTHLY_MED_DAILY_PEAK + 
+                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK + 
+                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_WIN + 
+                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_PEAK + [
+                             self.QOI_MAX_SHOULDER_USE,
+                             self.QOI_MAX_SUMMER_USE,
+                             self.QOI_MAX_WINTER_USE
+                             ]):
             # Divide peak by area to create intensity
             per_area_col = self.col_name_to_area_intensity(peak_col)
             self.data = self.data.with_columns(
@@ -2347,6 +2351,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             ]
             + geo_agg_cols
             + weighted_util_cols
+            + cost_cols
+            + [self.UTIL_ELEC_BILL_NUM_BILLS]
         ).groupby(
             [
                 pl.col(self.UPGRADE_ID),
@@ -2355,7 +2361,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             + geo_agg_cols
         ).agg(
             [
-                pl.col([self.BLDG_WEIGHT] + geographic_aggregation_levels + weighted_util_cols).sum(),
+                pl.col([self.BLDG_WEIGHT] + geographic_aggregation_levels + weighted_util_cols + cost_cols + [self.UTIL_ELEC_BILL_NUM_BILLS]).sum(),
                 pl.col(self.FLR_AREA).first()
             ]
         )
@@ -2381,7 +2387,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         if upgrade_id == 0:
             baseline_fkt_plus = geo_data
 
-        
+
         logger.info("Joining the aggregated weights to simulation results")
         # drop measure results cols from meta data
         meta_data = meta_data.drop(self.COLS_UTIL_BILL_RESULTS)
@@ -3136,10 +3142,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 input_lf = input_lf.with_columns(pl.lit(0.0).alias(weighted_col))
             return input_lf
 
-
         val_and_id_cols = val_cols + geo_agg_cols + [self.BLDG_ID]
-        # for col in val_and_id_cols:
-        #     print(col)
 
         base_vals = baseline_lf.select(val_and_id_cols).sort([self.BLDG_ID] + geo_agg_cols).clone()
         base_vals = base_vals.rename(lambda col_name: col_name + '_base')
@@ -3148,19 +3151,19 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # absolute savings
         abs_svgs = pl.concat([up_vals, base_vals], how='horizontal').with_columns(
-            [pl.col(f'{col}_base') - pl.col(col) for col in val_cols]
-        ).select(up_vals.columns)
+            [(pl.col(f'{col}_base') - pl.col(col)).alias(abs_svgs_cols[col]) for col in val_cols]
+        ).select(list(abs_svgs_cols.values()) + geo_agg_cols + [self.BLDG_ID])
 
         # percent savings
         pct_svgs = pl.concat([up_vals, base_vals], how='horizontal').with_columns(
-            [(pl.col(f'{col}_base') - pl.col(col)) / pl.col(f'{col}_base') for col in val_cols]
-        ).select(up_vals.columns)
+            [((pl.col(f'{col}_base') - pl.col(col)) / pl.col(f'{col}_base')).alias(pct_svgs_cols[col]) for col in val_cols]
+        ).select(list(pct_svgs_cols.values()) + geo_agg_cols + [self.BLDG_ID])
 
         pct_svgs = pct_svgs.fill_null(0.0)
         pct_svgs = pct_svgs.fill_nan(0.0)
 
-        abs_svgs = abs_svgs.rename(abs_svgs_cols).cast({self.BLDG_ID: pl.Int64})
-        pct_svgs = pct_svgs.rename(pct_svgs_cols).cast({self.BLDG_ID: pl.Int64})
+        abs_svgs = abs_svgs.cast({self.BLDG_ID: pl.Int64})
+        pct_svgs = pct_svgs.cast({self.BLDG_ID: pl.Int64})
 
         input_lf = input_lf.join(abs_svgs, how='left', on=[self.BLDG_ID] + geo_agg_cols)
         input_lf = input_lf.join(pct_svgs, how='left', on=[self.BLDG_ID] + geo_agg_cols)
@@ -3189,20 +3192,23 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # Peak Demand QOIs
             {
                 'cols': (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK +
-                              self.COLS_QOI_MONTHLY_MED_DAILY_PEAK +
-                              [self.QOI_MAX_SHOULDER_USE,
-                              self.QOI_MAX_SUMMER_USE,
-                              self.QOI_MAX_WINTER_USE]),
+                         self.COLS_QOI_MONTHLY_MED_DAILY_PEAK +
+                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK + 
+                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_WIN +
+                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_PEAK +
+                         [self.QOI_MAX_SHOULDER_USE,
+                          self.QOI_MAX_SUMMER_USE,
+                          self.QOI_MAX_WINTER_USE]),
                 'weighted_units': self.weighted_demand_units
             },
             # Emissions
             {
                 'cols': (self.COLS_GHG_ELEC_SEASONAL_DAILY_EGRID +
-                              self.COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM +
-                              [self.GHG_LRMER_MID_CASE_15_ELEC,
-                              self.GHG_ELEC_EGRID,
-                              self.ANN_GHG_EGRID,
-                              self.ANN_GHG_CAMBIUM]),
+                         self.COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM +
+                         [self.GHG_LRMER_MID_CASE_15_ELEC,
+                          self.GHG_ELEC_EGRID,
+                          self.ANN_GHG_EGRID,
+                          self.ANN_GHG_CAMBIUM]),
                 'weighted_units': self.weighted_ghg_units
             }
         ]

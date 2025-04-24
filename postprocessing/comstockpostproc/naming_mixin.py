@@ -250,6 +250,42 @@ class NamingMixin():
         'out.utility_bills.electricity_bill_median_high_label',
         # 'out.utility_bills.electricity_bill_median_dollars..usd',
         'out.utility_bills.electricity_bill_mean..usd',
+        'out.utility_bills.electricity_demandcharge_flat_bill_min..usd',
+        'out.utility_bills.electricity_demandcharge_flat_bill_min_label',
+        'out.utility_bills.electricity_demandcharge_flat_bill_max..usd',
+        'out.utility_bills.electricity_demandcharge_flat_bill_max_label',
+        'out.utility_bills.electricity_demandcharge_flat_bill_median_low..usd',
+        'out.utility_bills.electricity_demandcharge_flat_bill_median_low_label',
+        'out.utility_bills.electricity_demandcharge_flat_bill_median_high..usd',
+        'out.utility_bills.electricity_demandcharge_flat_bill_median_high_label',
+        'out.utility_bills.electricity_demandcharge_flat_bill_mean..usd',
+        'out.utility_bills.electricity_demandcharge_tou_bill_min..usd',
+        'out.utility_bills.electricity_demandcharge_tou_bill_min_label',
+        'out.utility_bills.electricity_demandcharge_tou_bill_max..usd',
+        'out.utility_bills.electricity_demandcharge_tou_bill_max_label',
+        'out.utility_bills.electricity_demandcharge_tou_bill_median_low..usd',
+        'out.utility_bills.electricity_demandcharge_tou_bill_median_low_label',
+        'out.utility_bills.electricity_demandcharge_tou_bill_median_high..usd',
+        'out.utility_bills.electricity_demandcharge_tou_bill_median_high_label',
+        'out.utility_bills.electricity_demandcharge_tou_bill_mean..usd',
+        'out.utility_bills.electricity_energycharge_bill_min..usd',
+        'out.utility_bills.electricity_energycharge_bill_min_label',
+        'out.utility_bills.electricity_energycharge_bill_max..usd',
+        'out.utility_bills.electricity_energycharge_bill_max_label',
+        'out.utility_bills.electricity_energycharge_bill_median_low..usd',
+        'out.utility_bills.electricity_energycharge_bill_median_low_label',
+        'out.utility_bills.electricity_energycharge_bill_median_high..usd',
+        'out.utility_bills.electricity_energycharge_bill_median_high_label',
+        'out.utility_bills.electricity_energycharge_bill_mean..usd',
+        'out.utility_bills.electricity_fixedcharge_bill_min..usd',
+        'out.utility_bills.electricity_fixedcharge_bill_min_label',
+        'out.utility_bills.electricity_fixedcharge_bill_max..usd',
+        'out.utility_bills.electricity_fixedcharge_bill_max_label',
+        'out.utility_bills.electricity_fixedcharge_bill_median_low..usd',
+        'out.utility_bills.electricity_fixedcharge_bill_median_low_label',
+        'out.utility_bills.electricity_fixedcharge_bill_median_high..usd',
+        'out.utility_bills.electricity_fixedcharge_bill_median_high_label',
+        'out.utility_bills.electricity_fixedcharge_bill_mean..usd',
         'out.utility_bills.electricity_bill_num_bills'
     ]
 
@@ -366,6 +402,51 @@ class NamingMixin():
         'out.qoi.median_daily_peak_oct..kw',
         'out.qoi.median_daily_peak_nov..kw',
         'out.qoi.median_daily_peak_dec..kw'
+    ]
+
+    COLS_QOI_MONTHLY_MEAN_DAILY_PEAK = [
+        'out.qoi.mean_daily_peak_jan..kw',
+        'out.qoi.mean_daily_peak_feb..kw',
+        'out.qoi.mean_daily_peak_mar..kw',
+        'out.qoi.mean_daily_peak_apr..kw',
+        'out.qoi.mean_daily_peak_may..kw',
+        'out.qoi.mean_daily_peak_jun..kw',
+        'out.qoi.mean_daily_peak_jul..kw',
+        'out.qoi.mean_daily_peak_aug..kw',
+        'out.qoi.mean_daily_peak_sep..kw',
+        'out.qoi.mean_daily_peak_oct..kw',
+        'out.qoi.mean_daily_peak_nov..kw',
+        'out.qoi.mean_daily_peak_dec..kw'
+    ]
+
+    COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_WIN = [
+        'out.qoi.mean_daily_peak_grid_window_jan..kw',
+        'out.qoi.mean_daily_peak_grid_window_feb..kw',
+        'out.qoi.mean_daily_peak_grid_window_mar..kw',
+        'out.qoi.mean_daily_peak_grid_window_apr..kw',
+        'out.qoi.mean_daily_peak_grid_window_may..kw',
+        'out.qoi.mean_daily_peak_grid_window_jun..kw',
+        'out.qoi.mean_daily_peak_grid_window_jul..kw',
+        'out.qoi.mean_daily_peak_grid_window_aug..kw',
+        'out.qoi.mean_daily_peak_grid_window_sep..kw',
+        'out.qoi.mean_daily_peak_grid_window_oct..kw',
+        'out.qoi.mean_daily_peak_grid_window_nov..kw',
+        'out.qoi.mean_daily_peak_grid_window_dec..kw'
+    ]
+
+    COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_PEAK = [
+        'out.qoi.mean_daily_peak_grid_peak_jan..kw',
+        'out.qoi.mean_daily_peak_grid_peak_feb..kw',
+        'out.qoi.mean_daily_peak_grid_peak_mar..kw',
+        'out.qoi.mean_daily_peak_grid_peak_apr..kw',
+        'out.qoi.mean_daily_peak_grid_peak_may..kw',
+        'out.qoi.mean_daily_peak_grid_peak_jun..kw',
+        'out.qoi.mean_daily_peak_grid_peak_jul..kw',
+        'out.qoi.mean_daily_peak_grid_peak_aug..kw',
+        'out.qoi.mean_daily_peak_grid_peak_sep..kw',
+        'out.qoi.mean_daily_peak_grid_peak_oct..kw',
+        'out.qoi.mean_daily_peak_grid_peak_nov..kw',
+        'out.qoi.mean_daily_peak_grid_peak_dec..kw'
     ]
 
     # Greenhouse gas emissions columns
@@ -915,8 +996,10 @@ class NamingMixin():
             converted_col_name = converted_col_name.replace('_bill_', '_bill_savings_')
         elif "_bill.." in converted_col_name:
             converted_col_name = converted_col_name.replace('_bill..', '_bill_savings..')
-        elif "peak_" in converted_col_name:
-            converted_col_name = converted_col_name.replace('peak_', 'peak_savings_')
+        elif "_daily_peak_" in converted_col_name:
+            converted_col_name = converted_col_name.replace('_daily_peak_', '_daily_peak_savings_')
+        elif ".peak_" in converted_col_name:
+            converted_col_name = converted_col_name.replace('.peak_', '.peak_savings_')
         elif "maximum_daily_use_" in converted_col_name:
             converted_col_name = converted_col_name.replace('maximum_daily_use_', 'peak_savings_')
         elif ".emissions." in converted_col_name:
