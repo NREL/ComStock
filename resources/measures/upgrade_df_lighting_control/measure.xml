@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>df_lighting_control</name>
   <uid>8de4bbcc-0430-4f71-8131-0467cbb6f9a4</uid>
-  <version_id>7f6f7cae-832d-4faf-9b02-d49ea42b03a5</version_id>
-  <version_modified>2025-03-12T17:56:27Z</version_modified>
+  <version_id>07ff706e-fc96-4d33-b333-b17329324e65</version_id>
+  <version_modified>2025-04-24T16:06:26Z</version_modified>
   <xml_checksum>D7E77FC2</xml_checksum>
   <class_name>DFLightingControl</class_name>
   <display_name>demand flexibility - lighting control</display_name>
@@ -13,7 +13,7 @@
   <arguments>
     <argument>
       <name>demand_flexibility_objective</name>
-      <display_name>Objective of demand flexibility control (peak load, grid peak load, emission, utility bill cost, operational cost)</display_name>
+      <display_name>Objective of demand flexibility control (peak load, grid peak load, emissions, utility bill cost, operational cost)</display_name>
       <type>Choice</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -28,8 +28,8 @@
           <display_name>grid peak load</display_name>
         </choice>
         <choice>
-          <value>emission</value>
-          <display_name>emission</display_name>
+          <value>emissions</value>
+          <display_name>emissions</display_name>
         </choice>
         <choice>
           <value>utility bill cost</value>
@@ -52,6 +52,7 @@
     <argument>
       <name>light_adjustment_method</name>
       <display_name>Method of lighting dimming (absolute change, relative change)</display_name>
+      <description>absolute change: percent change relative to fully ON lighting; relative change: percent change relative to current dimming level</description>
       <type>Choice</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -116,7 +117,8 @@
     </argument>
     <argument>
       <name>peak_lag</name>
-      <display_name>Time lag of peak responding to temperature peak (hour), for oat prediction method only</display_name>
+      <display_name>Time lag of peak responding to temperature peak (hour)</display_name>
+      <description>For OAT prediction method only</description>
       <type>Integer</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -124,7 +126,7 @@
     </argument>
     <argument>
       <name>peak_window_strategy</name>
-      <display_name>Method of determining peak windows (max savings, start with peak, end with peak, center with peak)</display_name>
+      <display_name>Peak windows determination strategy (max savings, start with peak, end with peak, center with peak)</display_name>
       <type>Choice</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -150,7 +152,8 @@
     </argument>
     <argument>
       <name>cambium_scenario</name>
-      <display_name>Cambium emission scenario</display_name>
+      <display_name>Cambium scenario of emission factor</display_name>
+      <description>For emission objective only</description>
       <type>Choice</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -242,6 +245,25 @@
         </choice>
       </choices>
     </argument>
+    <argument>
+      <name>pv</name>
+      <display_name>Enable PV upgrade?</display_name>
+      <description>For upgrade package run.</description>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
   </arguments>
   <outputs />
   <provenances />
@@ -300,7 +322,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>932FC729</checksum>
+      <checksum>C2493175</checksum>
+    </file>
+    <file>
+      <filename>call_other_measures.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>E34F02A0</checksum>
     </file>
     <file>
       <filename>cambium/LRMER_HighRECost_15/AZNMc.csv</filename>
@@ -792,7 +820,7 @@
       <filename>dispatch_schedule_generation.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>AC911E37</checksum>
+      <checksum>5F8845A4</checksum>
     </file>
     <file>
       <filename>egrid/README.md</filename>
@@ -816,7 +844,7 @@
       <filename>df_lighting_control_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>A8727E90</checksum>
+      <checksum>4C72DD98</checksum>
     </file>
   </files>
 </measure>
