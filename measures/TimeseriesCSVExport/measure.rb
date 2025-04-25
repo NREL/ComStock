@@ -127,7 +127,7 @@ class TimeseriesCSVExport < OpenStudio::Measure::ReportingMeasure
     new_line = new_line.gsub('HeatRejection:Water [gal]', 'heat_rejection_gal')
     new_line = new_line.gsub('Humidification:Electricity [kWh]', 'electricity_humidification_kwh')
     new_line = new_line.gsub('Generators:Electricity [kWh]', 'electricity_generators_kwh')
-    new_line = new_line.gsub('ElectricityProduced:Facility [kWh]', 'electricity_pv_kwh')
+    new_line = new_line.gsub('ElectricityProduced:Facility [neg_kWh]', 'electricity_pv_kwh')
     new_line = new_line.gsub('WaterSystems:Electricity [kWh]', 'electricity_water_systems_kwh')
     new_line = new_line.gsub('WaterSystems:NaturalGas [kBtu]', 'gas_water_systems_kbtu')
     new_line = new_line.gsub('WaterSystems:DistrictHeatingWater [kBtu]', 'districtheating_water_systems_kbtu')
@@ -296,6 +296,10 @@ class TimeseriesCSVExport < OpenStudio::Measure::ReportingMeasure
     # Write the file that defines the unit conversions
     convert_txt_path = File.join(run_dir, 'convert.txt')
     File.open(convert_txt_path, 'w') do |f|
+      # PV
+      f.puts('!PV Negative Conversion')
+      f.puts('conv,J,neg_kWh,-2.777778E-07,0')
+      f.puts('vari,ElectricityProduced:Facility,J,neg_kWh')
       # electricity
       f.puts('!Electricity')
       f.puts('conv,J,kWh,2.777778E-07,0')
