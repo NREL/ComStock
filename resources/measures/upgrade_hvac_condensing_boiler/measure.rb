@@ -156,7 +156,7 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
         # original method: set sp manager to constant 140F
         # spm.to_SetpointManagerScheduled.get.setSchedule(new_setpoint_sched)
 
-        # create new OA reset setpoint manager with settings: hw temp 140f for air temp <20F, hw temp 120F for air temp >50F
+        # create new OA reset setpoint manager with settings: hw temp 140f for air temp >50F, hw temp 180F for air temp <20F
         oa_reset_sp_mgr = OpenStudio::Model::SetpointManagerOutdoorAirReset.new(model)
         oa_reset_sp_mgr.setSetpointatOutdoorHighTemperature(OpenStudio.convert(140, 'F', 'C').get)
         oa_reset_sp_mgr.setOutdoorHighTemperature(OpenStudio.convert(50, 'F', 'C').get)
