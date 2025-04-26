@@ -348,6 +348,10 @@ class ComStockBaseSampler:
             df = df.reset_index(drop=True)
             df.index.name = 'Building'
 
+            # If there was a reduction to zero identify and exit out
+            if 'drop_me' in list(df):
+                raise RuntimeError('Kindly address the TSV lookup reduction to 0 issues identified above.')
+
             # Save the intermediate buildstock csvs within the temporary directory and the final at the specified
             # location
             if attrs_to_sample == self.TSV_ARRAYS[-1]:
@@ -519,7 +523,9 @@ class ComStockBaseSampler:
                             ]
                         if tsv_lkup.shape[0] == 0:
                             warn(f'TSV lookup reduced to 0 for {attr}, dep hash {dep_hash}. This will cause an error.')
-                            return
+                            results_dict['drop_me'] = True
+                            res.append(results_dict)
+                            break
                         if (tsv_lkup.shape[0] != 1) and (len(tsv_lkup.shape) > 1):
                             raise RuntimeError(f'Unable to reduce tsv for {attr} to 1 row, dep_hash {dep_hash}')
                         tsv_lkup = tsv_lkup.transpose()
