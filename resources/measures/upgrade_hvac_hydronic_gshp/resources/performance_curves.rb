@@ -37,608 +37,601 @@
 # *******************************************************************************
 
 module Make_Performance_Curves
-    # method to convert csv value to float
-    def convert_to_float(value)
-        # check if value is empty
-        if value.to_s.empty?
-            # value is empty; return nil
-            nil
-        elsif value.to_f != value
-            # elsif not value.to_f.to_s.include? value.to_s
-            # value is not a number; return nil
-            nil
-        else
-            # value is a number; convert to float
-            value.to_f
+  # method to convert csv value to float
+  def convert_to_float(value)
+    # check if value is empty
+    if value.to_s.empty?
+      # value is empty; return nil
+      nil
+    elsif value.to_f != value
+      # elsif not value.to_f.to_s.include? value.to_s
+      # value is not a number; return nil
+      nil
+    else
+      # value is a number; convert to float
+      value.to_f
+    end
+  end
+
+  def read_performance_curve_data(data_path, runner)
+    if data_path.empty?
+      runner.registerError("Invalid path (#{data_path}) for performance curve data")
+      return false
+    else
+      csv_data = CSV.read(data_path, converters: :numeric)
+      column_data = csv_data.transpose
+      curve_data = {}
+      # CoilCoolingWaterToAirHeatPumpEquationFit and CoilHeatingWaterToAirHeatPumpEquationFit
+      curve_data['db_data'] = []
+      curve_data['wb_data'] = []
+      curve_data['ewt_data'] = []
+      curve_data['vdot_air_data'] = []
+      curve_data['vdot_water_data'] = []
+      curve_data['tot_clg_cap_data'] = []
+      curve_data['sen_clg_cap_data'] = []
+      curve_data['clg_pow_data'] = []
+      curve_data['htg_cap_data'] = []
+      curve_data['htg_pow_data'] = []
+      # CoilCoolingWaterToAirHeatPumpEquationFit and CoilHeatingWaterToAirHeatPumpEquationFit
+      curve_data['load_lwt_data'] = []
+      curve_data['source_ewt_data'] = []
+      curve_data['plant_clg_cap_data'] = []
+      curve_data['plant_clg_eir_data'] = []
+      curve_data['plant_htg_cap_data'] = []
+      curve_data['plant_htg_eir_data'] = []
+
+      # loop through data columns to fill arrays
+      for i in 0..(column_data.length - 1)
+        # collect db_data
+        if column_data[i][0].to_s == 'Tdb [K]'
+          for j in 1..(column_data[i].length - 1)
+            curve_data['db_data'] << convert_to_float(column_data[i][j])
+            end
         end
+        # collect wb_data
+        if column_data[i][0].to_s == 'Twb [K]'
+          for j in 1..(column_data[i].length - 1)
+            curve_data['wb_data'] << convert_to_float(column_data[i][j])
+          end
+        end
+        # collect ewt_data
+        if column_data[i][0].to_s == 'Twat [K]'
+          for j in 1..(column_data[i].length - 1)
+            curve_data['ewt_data'] << convert_to_float(column_data[i][j])
+          end
+        end
+        # collect vdot_air_data
+        if column_data[i][0].to_s == 'Vdot air [m3/s]'
+          for j in 1..(column_data[i].length - 1)
+            curve_data['vdot_air_data'] << convert_to_float(column_data[i][j])
+          end
+        end
+        # collect vdot_water_data
+        if column_data[i][0].to_s == 'Vdot water [m3/s]'
+          for j in 1..(column_data[i].length - 1)
+            curve_data['vdot_water_data'] << convert_to_float(column_data[i][j])
+          end
+        end
+        # collect tot_clg_cap_data
+        if column_data[i][0].to_s == 'Tot Clg Cap [W]'
+          for j in 1..(column_data[i].length - 1)
+            curve_data['tot_clg_cap_data'] << convert_to_float(column_data[i][j])
+          end
+        end
+        # collect sen_clg_cap_data
+        if column_data[i][0].to_s == 'Sen Clg Cap [W]'
+          for j in 1..(column_data[i].length - 1)
+            curve_data['sen_clg_cap_data'] << convert_to_float(column_data[i][j])
+          end
+        end
+        # collect clg_pow_data
+        if column_data[i][0].to_s == 'Clg Pow [W]'
+          for j in 1..(column_data[i].length - 1)
+            curve_data['clg_pow_data'] << convert_to_float(column_data[i][j])
+          end
+        end
+        # collect htg_cap_data
+        if column_data[i][0].to_s == 'Htg Cap [W]'
+          for j in 1..(column_data[i].length - 1)
+            curve_data['htg_cap_data'] << convert_to_float(column_data[i][j])
+          end
+        end
+        # collect htg_pow_data
+        if column_data[i][0].to_s == 'Htg Pow [W]'
+          for j in 1..(column_data[i].length - 1)
+            curve_data['htg_pow_data'] << convert_to_float(column_data[i][j])
+          end
+        end
+
+        # collect load_lwt_data
+        if column_data[i][0].to_s == 'Load LWT [C]'
+          for j in 1..(column_data[i].length - 1)
+            curve_data['load_lwt_data'] << convert_to_float(column_data[i][j])
+          end
+        end
+        # collect source_ewt_data
+        if column_data[i][0].to_s == 'Source EWT [C]'
+          for j in 1..(column_data[i].length - 1)
+            curve_data['source_ewt_data'] << convert_to_float(column_data[i][j])
+          end
+        end
+        # collect plant_clg_cap_data
+        if column_data[i][0].to_s == 'Clg Cap [W]'
+          for j in 1..(column_data[i].length - 1)
+            curve_data['plant_clg_cap_data'] << convert_to_float(column_data[i][j])
+          end
+        end
+        # collect plant_clg_eir_data
+        if column_data[i][0].to_s == 'Clg EIR'
+          for j in 1..(column_data[i].length - 1)
+            curve_data['plant_clg_eir_data'] << convert_to_float(column_data[i][j])
+          end
+        end
+        # collect plant_htg_cap_data
+        if column_data[i][0].to_s == 'Htg Cap [W]'
+          for j in 1..(column_data[i].length - 1)
+            curve_data['plant_htg_cap_data'] << convert_to_float(column_data[i][j])
+          end
+        end
+        # collect plant_htg_eir_data
+        next unless column_data[i][0].to_s == 'Htg EIR'
+
+        for j in 1..(column_data[i].length - 1)
+          curve_data['plant_htg_eir_data'] << convert_to_float(column_data[i][j])
+        end
+      end
+    end
+    curve_data
+  end
+
+  def create_table_independent_variable(model, name, values, interp_method, extrap_method, unit_type, runner)
+    valid_interp_methods = %w[Linear Cubic]
+    valid_extrap_methods = %w[Linear Constant]
+    valid_unit_types = %w[Dimensionless Temperature VolumetricFlow MassFlow Distance Power]
+    table_ind_var = OpenStudio::Model::TableIndependentVariable.new(model)
+    table_ind_var.setName(name.to_s)
+    if valid_interp_methods.include? interp_method
+      table_ind_var.setInterpolationMethod(interp_method)
+    else
+      runner.registerError("Invalid interpolation method (#{interp_method}) for table independent variable")
+      return false
     end
 
-    def read_performance_curve_data(data_path, runner)
-        if data_path.empty?
-            runner.registerError("Invalid path (#{data_path}) for performance curve data")
-            return false
-        else
-            csv_data = CSV.read(data_path, converters: :numeric)
-            column_data = csv_data.transpose
-            curve_data = {}
-            # CoilCoolingWaterToAirHeatPumpEquationFit and CoilHeatingWaterToAirHeatPumpEquationFit
-            curve_data['db_data'] = []
-            curve_data['wb_data'] = []
-            curve_data['ewt_data'] = []
-            curve_data['vdot_air_data'] = []
-            curve_data['vdot_water_data'] = []
-            curve_data['tot_clg_cap_data'] = []
-            curve_data['sen_clg_cap_data'] = []
-            curve_data['clg_pow_data'] = []
-            curve_data['htg_cap_data'] = []
-            curve_data['htg_pow_data'] = []
-            # CoilCoolingWaterToAirHeatPumpEquationFit and CoilHeatingWaterToAirHeatPumpEquationFit
-            curve_data['load_lwt_data'] = []
-            curve_data['source_ewt_data'] = []
-            curve_data['plant_clg_cap_data'] = []
-            curve_data['plant_clg_eir_data'] = []
-            curve_data['plant_htg_cap_data'] = []
-            curve_data['plant_htg_eir_data'] = []
-
-            # loop through data columns to fill arrays
-            for i in 0..(column_data.length - 1)
-                # collect db_data
-                if column_data[i][0].to_s == 'Tdb [K]'
-                    for j in 1..(column_data[i].length - 1)
-                        curve_data['db_data'] << convert_to_float(column_data[i][j])
-                    end
-                end
-                # collect wb_data
-                if column_data[i][0].to_s == 'Twb [K]'
-                    for j in 1..(column_data[i].length - 1)
-                        curve_data['wb_data'] << convert_to_float(column_data[i][j])
-                    end
-                end
-                # collect ewt_data
-                if column_data[i][0].to_s == 'Twat [K]'
-                    for j in 1..(column_data[i].length - 1)
-                        curve_data['ewt_data'] << convert_to_float(column_data[i][j])
-                    end
-                end
-                # collect vdot_air_data
-                if column_data[i][0].to_s == 'Vdot air [m3/s]'
-                    for j in 1..(column_data[i].length - 1)
-                        curve_data['vdot_air_data'] << convert_to_float(column_data[i][j])
-                    end
-                end
-                # collect vdot_water_data
-                if column_data[i][0].to_s == 'Vdot water [m3/s]'
-                    for j in 1..(column_data[i].length - 1)
-                        curve_data['vdot_water_data'] << convert_to_float(column_data[i][j])
-                    end
-                end
-                # collect tot_clg_cap_data
-                if column_data[i][0].to_s == 'Tot Clg Cap [W]'
-                    for j in 1..(column_data[i].length - 1)
-                        curve_data['tot_clg_cap_data'] << convert_to_float(column_data[i][j])
-                    end
-                end
-                # collect sen_clg_cap_data
-                if column_data[i][0].to_s == 'Sen Clg Cap [W]'
-                    for j in 1..(column_data[i].length - 1)
-                        curve_data['sen_clg_cap_data'] << convert_to_float(column_data[i][j])
-                    end
-                end
-                # collect clg_pow_data
-                if column_data[i][0].to_s == 'Clg Pow [W]'
-                    for j in 1..(column_data[i].length - 1)
-                        curve_data['clg_pow_data'] << convert_to_float(column_data[i][j])
-                    end
-                end
-                # collect htg_cap_data
-                if column_data[i][0].to_s == 'Htg Cap [W]'
-                    for j in 1..(column_data[i].length - 1)
-                        curve_data['htg_cap_data'] << convert_to_float(column_data[i][j])
-                    end
-                end
-                # collect htg_pow_data
-                if column_data[i][0].to_s == 'Htg Pow [W]'
-                    for j in 1..(column_data[i].length - 1)
-                        curve_data['htg_pow_data'] << convert_to_float(column_data[i][j])
-                    end
-                end
-
-                # collect load_lwt_data
-                if column_data[i][0].to_s == 'Load LWT [C]'
-                    for j in 1..(column_data[i].length - 1)
-                        curve_data['load_lwt_data'] << convert_to_float(column_data[i][j])
-                    end
-                end
-                # collect source_ewt_data
-                if column_data[i][0].to_s == 'Source EWT [C]'
-                    for j in 1..(column_data[i].length - 1)
-                        curve_data['source_ewt_data'] << convert_to_float(column_data[i][j])
-                    end
-                end
-                # collect plant_clg_cap_data
-                if column_data[i][0].to_s == 'Clg Cap [W]'
-                    for j in 1..(column_data[i].length - 1)
-                        curve_data['plant_clg_cap_data'] << convert_to_float(column_data[i][j])
-                    end
-                end
-                # collect plant_clg_eir_data
-                if column_data[i][0].to_s == 'Clg EIR'
-                    for j in 1..(column_data[i].length - 1)
-                        curve_data['plant_clg_eir_data'] << convert_to_float(column_data[i][j])
-                    end
-                end
-                # collect plant_htg_cap_data
-                if column_data[i][0].to_s == 'Htg Cap [W]'
-                    for j in 1..(column_data[i].length - 1)
-                        curve_data['plant_htg_cap_data'] << convert_to_float(column_data[i][j])
-                    end
-                end
-                # collect plant_htg_eir_data
-                next unless column_data[i][0].to_s == 'Htg EIR'
-
-                for j in 1..(column_data[i].length - 1)
-                    curve_data['plant_htg_eir_data'] << convert_to_float(column_data[i][j])
-                end
-            end
-        end
-        curve_data
+    if valid_extrap_methods.include? extrap_method
+      table_ind_var.setExtrapolationMethod(extrap_method)
+    else
+      runner.registerError("Invalid extrapolation method (#{extrap_method}) for table independent variable")
+      return false
     end
 
-    def create_table_independent_variable(model, name, values, interp_method, extrap_method, unit_type, runner)
-        valid_interp_methods = %w[Linear Cubic]
-        valid_extrap_methods = %w[Linear Constant]
-        valid_unit_types = %w[Dimensionless Temperature VolumetricFlow MassFlow Distance Power]
-        table_ind_var = OpenStudio::Model::TableIndependentVariable.new(model)
-        table_ind_var.setName(name.to_s)
-        if valid_interp_methods.include? interp_method
-            table_ind_var.setInterpolationMethod(interp_method)
-        else
-            runner.registerError("Invalid interpolation method (#{interp_method}) for table independent variable")
-            return false
-        end
-
-        if valid_extrap_methods.include? extrap_method
-            table_ind_var.setExtrapolationMethod(extrap_method)
-        else
-            runner.registerError("Invalid extrapolation method (#{extrap_method}) for table independent variable")
-            return false
-        end
-        
-        # table_ind_var.setMinimumValue(values.min)
-        # table_ind_var.setMaximumValue(values.max)
-        if valid_unit_types.include? unit_type
-            table_ind_var.setUnitType(unit_type)
-        else
-            runner.registerError("Invalid unit type (#{unit_type}) for table independent variable")
-            return false
-        end
-        
-        table_ind_var.setValues(values)
-        table_ind_var
+    # table_ind_var.setMinimumValue(values.min)
+    # table_ind_var.setMaximumValue(values.max)
+    if valid_unit_types.include? unit_type
+      table_ind_var.setUnitType(unit_type)
+    else
+      runner.registerError("Invalid unit type (#{unit_type}) for table independent variable")
+      return false
     end
 
-    def create_table_lookup(model, name, hvac_system_type, curve_type, divisor, path, runner)
-        # create curve lookup
-        data = read_performance_curve_data(path, runner)
+    table_ind_var.setValues(values)
+    table_ind_var
+  end
 
-        if %w[packaged_gshp console_gshp].include?(hvac_system_type)
-            # get wb data values
-            if %w[sen_clg_cap tot_clg_cap clg_pow].include?(curve_type) && data['wb_data'].empty?
-                runner.registerError("No WB temp performance curve data at path (#{path})")
-                return false
-            end
-            wb_values = data['wb_data'].uniq.sort
-            # get db data values if relevant
-            if %w[sen_clg_cap htg_cap htg_pow].include?(curve_type)
-                if data['db_data'].empty?
-                    runner.registerError("No DB temp performance curve data at path (#{path})")
-                    return false
-                end
-                db_values = data['db_data'].uniq.sort
-            end
-            # get ewt data values
-            if data['ewt_data'].empty?
-                runner.registerError("No EWT performance curve data at path (#{path})")
-                return false
-            end
-            ewt_values = data['ewt_data'].uniq.sort
-            # get air flow data values
-            if data['vdot_air_data'].empty?
-                runner.registerError("No air flow rate performance curve data at path (#{path})")
-                return false
-            end
-            vdot_air_values = data['vdot_air_data'].uniq.sort
-            # get water flow data values
-            if data['vdot_water_data'].empty?
-                runner.registerError("No water flow rate performance curve data at path (#{path})")
-                return false
-            end
-            vdot_water_values = data['vdot_water_data'].uniq.sort
-            # data length check
-            if curve_type == 'sen_clg_cap'
-                if data['sen_clg_cap_data'].empty?
-                    runner.registerError("No sensible cooling capacity performance curve data at path (#{path})")
-                    return false
-                else
-                    unless data['sen_clg_cap_data'].length == (db_values.length * wb_values.length * ewt_values.length * vdot_air_values.length * vdot_water_values.length)
-                        runner.registerError("Total output data points do not match full permutation of input variable values at path (#{path})")
-                        return false
-                    end
-                end
-            elsif  curve_type == 'tot_clg_cap'
-                if data['tot_clg_cap_data'].empty?
-                    runner.registerError("No total cooling capacity performance curve data at path (#{path})")
-                    return false
-                else
-                    unless data['tot_clg_cap_data'].length == (wb_values.length * ewt_values.length * vdot_air_values.length * vdot_water_values.length)
-                        runner.registerError("Total output data points do not match full permutation of input variable values at path (#{path})")
-                        return false
-                    end
-                end
-            elsif  curve_type == 'clg_pow'
-                if data['clg_pow_data'].empty?
-                    runner.registerError("No cooling power performance curve data at path (#{path})")
-                    return false
-                else
-                    unless data['clg_pow_data'].length == (wb_values.length * ewt_values.length * vdot_air_values.length * vdot_water_values.length)
-                        runner.registerError("Total output data points do not match full permutation of input variable values at path (#{path})")
-                        return false
-                    end
-                end
-            elsif  curve_type == 'htg_cap'
-                if data['htg_cap_data'].empty?
-                    runner.registerError("No heating capacity performance curve data at path (#{path})")
-                    return false
-                else
-                    unless data['htg_cap_data'].length == (db_values.length * ewt_values.length * vdot_air_values.length * vdot_water_values.length)
-                        runner.registerError("Total output data points do not match full permutation of input variable values at path (#{path})")
-                        return false
-                    end
-                end
-            elsif  curve_type == 'htg_pow'
-                if data['htg_pow_data'].empty?
-                    runner.registerError("No heating power performance curve data at path (#{path})")
-                    return false
-                else
-                    unless data['htg_pow_data'].length == (db_values.length * ewt_values.length * vdot_air_values.length * vdot_water_values.length)
-                        runner.registerError("Total output data points do not match full permutation of input variable values at path (#{path})")
-                        return false
-                    end
-                end
-            else
-                runner.registerError("Unexpected curve type (#{curve_type}) for lookup table creation")
-                return false
-            end
+  def create_table_lookup(model, name, hvac_system_type, curve_type, divisor, path, runner)
+    # create curve lookup
+    data = read_performance_curve_data(path, runner)
 
-            # create independent variable objects
-            table_independent_variables = []
-            if %w[sen_clg_cap htg_cap htg_pow].include?(curve_type)
-                table_independent_variables << create_table_independent_variable(model, "#{curve_type}_db_var", db_values,
-                                                                                'Cubic', 'Constant', 'Temperature', runner)
-            end
-            
-            if %w[sen_clg_cap tot_clg_cap clg_pow].include?(curve_type)
-                table_independent_variables << create_table_independent_variable(model, "#{curve_type}_wb_var", wb_values,
-                                                                                'Cubic', 'Constant', 'Temperature', runner)
-            end
-            
-            table_independent_variables << create_table_independent_variable(model, "#{curve_type}_ewt_var", ewt_values,
-                                                                                'Cubic', 'Constant', 'Temperature', runner)
-            table_independent_variables << create_table_independent_variable(model, "#{curve_type}_vdot_air_var",
-                                                                                vdot_air_values, 'Cubic', 'Constant', 'VolumetricFlow', runner)
-            table_independent_variables << create_table_independent_variable(model, "#{curve_type}_vdot_water_var",
-                                                                                vdot_water_values, 'Cubic', 'Constant', 'VolumetricFlow', runner)
-            
-            # create lookup table
-            table_lookup = OpenStudio::Model::TableLookup.new(model)
-            table_lookup.setName(name.to_s)
-            table_lookup.setNormalizationMethod('DivisorOnly')
-            table_lookup.setNormalizationDivisor(divisor)
-            if curve_type == 'sen_clg_cap'
-                table_lookup.setOutputUnitType('Capacity')
-                table_lookup.setOutputValues(data['sen_clg_cap_data'])
-            elsif  curve_type == 'tot_clg_cap'
-                table_lookup.setOutputUnitType('Capacity')
-                table_lookup.setOutputValues(data['tot_clg_cap_data'])
-            elsif  curve_type == 'clg_pow'
-                table_lookup.setOutputUnitType('Power')
-                table_lookup.setOutputValues(data['clg_pow_data'])
-            elsif  curve_type == 'htg_cap'
-                table_lookup.setOutputUnitType('Capacity')
-                table_lookup.setOutputValues(data['htg_cap_data'])
-            elsif  curve_type == 'htg_pow'
-                table_lookup.setOutputUnitType('Power')
-                table_lookup.setOutputValues(data['htg_pow_data'])
-            else
-                runner.registerError("Unexpected curve type (#{curve_type}) for lookup table creation")
-                return false
-            end
-        elsif hvac_system_type == 'hydronic_gshp'
-            # get load lwt data values
-            if data['load_lwt_data'].empty?
-                runner.registerError("No load LWT performance curve data at path (#{path})")
-                return false
-            end
-            load_lwt_values = data['load_lwt_data'].uniq.sort
-            # get source ewt data values
-            if data['source_ewt_data'].empty?
-                runner.registerError("No source EWT performance curve data at path (#{path})")
-                return false
-            end
-            source_ewt_values = data['source_ewt_data'].uniq.sort
-            # data length check
-            if curve_type == 'clg_cap'
-                if data['plant_clg_cap_data'].empty?
-                    runner.registerError("No cooling capacity performance curve data at path (#{path})")
-                    return false
-                else
-                    unless data['plant_clg_cap_data'].length == (load_lwt_values.length * source_ewt_values.length)
-                        runner.registerError("Total output data points do not match full permutation of input variable values at path (#{path})")
-                        return false
-                    end
-                end
-            elsif  curve_type == 'clg_eir'
-                if data['plant_clg_eir_data'].empty?
-                    runner.registerError("No cooling eir performance curve data at path (#{path})")
-                    return false
-                else
-                    unless data['plant_clg_eir_data'].length == (load_lwt_values.length * source_ewt_values.length)
-                        runner.registerError("Total output data points do not match full permutation of input variable values at path (#{path})")
-                        return false
-                    end
-                end
-            elsif curve_type == 'htg_cap'
-                if data['plant_htg_cap_data'].empty?
-                    runner.registerError("No heating capacity performance curve data at path (#{path})")
-                    return false
-                else
-                    unless data['plant_htg_cap_data'].length == (load_lwt_values.length * source_ewt_values.length)
-                        runner.registerError("Total output data points do not match full permutation of input variable values at path (#{path})")
-                        return false
-                    end
-                end
-            elsif  curve_type == 'htg_eir'
-                if data['plant_htg_eir_data'].empty?
-                    runner.registerError("No heating eir performance curve data at path (#{path})")
-                    return false
-                else
-                    unless data['plant_htg_eir_data'].length == (load_lwt_values.length * source_ewt_values.length)
-                        runner.registerError("Total output data points do not match full permutation of input variable values at path (#{path})")
-                        return false
-                    end
-                end
-            else
-                runner.registerError("Unexpected curve type (#{curve_type}) for lookup table creation")
-                return false
-            end
-
-            # create independent variable objects
-            table_independent_variables = []
-            table_independent_variables << create_table_independent_variable(model, "#{curve_type}_load_lwt", load_lwt_values,
-                                                                                'Cubic', 'Constant', 'Temperature', runner)
-            table_independent_variables << create_table_independent_variable(model, "#{curve_type}_source_ewt",
-                                                                                source_ewt_values, 'Cubic', 'Constant', 'Temperature', runner)
-            
-            # create lookup table
-            table_lookup = OpenStudio::Model::TableLookup.new(model)
-            table_lookup.setName(name.to_s)
-            table_lookup.setNormalizationMethod('DivisorOnly')
-            table_lookup.setNormalizationDivisor(divisor)
-            if curve_type == 'clg_cap'
-                table_lookup.setOutputUnitType('Capacity')
-                table_lookup.setOutputValues(data['plant_clg_cap_data'])
-            elsif  curve_type == 'clg_eir'
-                table_lookup.setOutputUnitType('Dimensionless')
-                table_lookup.setOutputValues(data['plant_clg_eir_data'])
-            elsif  curve_type == 'htg_cap'
-                table_lookup.setOutputUnitType('Capacity')
-                table_lookup.setOutputValues(data['plant_htg_cap_data'])
-            elsif  curve_type == 'htg_eir'
-                table_lookup.setOutputUnitType('Dimensionless')
-                table_lookup.setOutputValues(data['plant_htg_eir_data'])
-            else
-                runner.registerError("Unexpected curve type (#{curve_type}) for lookup table creation")
-                return false
-            end
+    if %w[packaged_gshp console_gshp].include?(hvac_system_type)
+      # get wb data values
+      if %w[sen_clg_cap tot_clg_cap clg_pow].include?(curve_type) && data['wb_data'].empty?
+        runner.registerError("No WB temp performance curve data at path (#{path})")
+        return false
+      end
+      wb_values = data['wb_data'].uniq.sort
+      # get db data values if relevant
+      if %w[sen_clg_cap htg_cap htg_pow].include?(curve_type)
+        if data['db_data'].empty?
+          runner.registerError("No DB temp performance curve data at path (#{path})")
+          return false
         end
-
-        table_independent_variables.each do |var|
-            table_lookup.addIndependentVariable(var)
+        db_values = data['db_data'].uniq.sort
+      end
+      # get ewt data values
+      if data['ewt_data'].empty?
+        runner.registerError("No EWT performance curve data at path (#{path})")
+        return false
+      end
+      ewt_values = data['ewt_data'].uniq.sort
+      # get air flow data values
+      if data['vdot_air_data'].empty?
+        runner.registerError("No air flow rate performance curve data at path (#{path})")
+        return false
+      end
+      vdot_air_values = data['vdot_air_data'].uniq.sort
+      # get water flow data values
+      if data['vdot_water_data'].empty?
+        runner.registerError("No water flow rate performance curve data at path (#{path})")
+        return false
+      end
+      vdot_water_values = data['vdot_water_data'].uniq.sort
+      # data length check
+      if curve_type == 'sen_clg_cap'
+        if data['sen_clg_cap_data'].empty?
+          runner.registerError("No sensible cooling capacity performance curve data at path (#{path})")
+          return false
+        else
+          unless data['sen_clg_cap_data'].length == (db_values.length * wb_values.length * ewt_values.length * vdot_air_values.length * vdot_water_values.length)
+            runner.registerError("Total output data points do not match full permutation of input variable values at path (#{path})")
+            return false
+          end
         end
-        table_lookup
+      elsif  curve_type == 'tot_clg_cap'
+        if data['tot_clg_cap_data'].empty?
+          runner.registerError("No total cooling capacity performance curve data at path (#{path})")
+          return false
+        else
+          unless data['tot_clg_cap_data'].length == (wb_values.length * ewt_values.length * vdot_air_values.length * vdot_water_values.length)
+            runner.registerError("Total output data points do not match full permutation of input variable values at path (#{path})")
+            return false
+          end
+        end
+      elsif  curve_type == 'clg_pow'
+        if data['clg_pow_data'].empty?
+          runner.registerError("No cooling power performance curve data at path (#{path})")
+          return false
+        else
+          unless data['clg_pow_data'].length == (wb_values.length * ewt_values.length * vdot_air_values.length * vdot_water_values.length)
+            runner.registerError("Total output data points do not match full permutation of input variable values at path (#{path})")
+            return false
+          end
+        end
+      elsif  curve_type == 'htg_cap'
+        if data['htg_cap_data'].empty?
+          runner.registerError("No heating capacity performance curve data at path (#{path})")
+          return false
+        else
+          unless data['htg_cap_data'].length == (db_values.length * ewt_values.length * vdot_air_values.length * vdot_water_values.length)
+            runner.registerError("Total output data points do not match full permutation of input variable values at path (#{path})")
+            return false
+          end
+        end
+      elsif  curve_type == 'htg_pow'
+        if data['htg_pow_data'].empty?
+          runner.registerError("No heating power performance curve data at path (#{path})")
+          return false
+        else
+          unless data['htg_pow_data'].length == (db_values.length * ewt_values.length * vdot_air_values.length * vdot_water_values.length)
+            runner.registerError("Total output data points do not match full permutation of input variable values at path (#{path})")
+            return false
+          end
+        end
+      else
+        runner.registerError("Unexpected curve type (#{curve_type}) for lookup table creation")
+        return false
+      end
+
+      # create independent variable objects
+      table_independent_variables = []
+      if %w[sen_clg_cap htg_cap htg_pow].include?(curve_type)
+        table_independent_variables << create_table_independent_variable(model, "#{curve_type}_db_var", db_values,
+                                                                         'Cubic', 'Constant', 'Temperature', runner)
+      end
+
+      if %w[sen_clg_cap tot_clg_cap clg_pow].include?(curve_type)
+        table_independent_variables << create_table_independent_variable(model, "#{curve_type}_wb_var", wb_values,
+                                                                         'Cubic', 'Constant', 'Temperature', runner)
+      end
+
+      table_independent_variables << create_table_independent_variable(model, "#{curve_type}_ewt_var", ewt_values,
+                                                                       'Cubic', 'Constant', 'Temperature', runner)
+      table_independent_variables << create_table_independent_variable(model, "#{curve_type}_vdot_air_var",
+                                                                       vdot_air_values, 'Cubic', 'Constant', 'VolumetricFlow', runner)
+      table_independent_variables << create_table_independent_variable(model, "#{curve_type}_vdot_water_var",
+                                                                       vdot_water_values, 'Cubic', 'Constant', 'VolumetricFlow', runner)
+
+      # create lookup table
+      table_lookup = OpenStudio::Model::TableLookup.new(model)
+      table_lookup.setName(name.to_s)
+      table_lookup.setNormalizationMethod('DivisorOnly')
+      table_lookup.setNormalizationDivisor(divisor)
+      if curve_type == 'sen_clg_cap'
+        table_lookup.setOutputUnitType('Capacity')
+        table_lookup.setOutputValues(data['sen_clg_cap_data'])
+      elsif  curve_type == 'tot_clg_cap'
+        table_lookup.setOutputUnitType('Capacity')
+        table_lookup.setOutputValues(data['tot_clg_cap_data'])
+      elsif  curve_type == 'clg_pow'
+        table_lookup.setOutputUnitType('Power')
+        table_lookup.setOutputValues(data['clg_pow_data'])
+      elsif  curve_type == 'htg_cap'
+        table_lookup.setOutputUnitType('Capacity')
+        table_lookup.setOutputValues(data['htg_cap_data'])
+      elsif  curve_type == 'htg_pow'
+        table_lookup.setOutputUnitType('Power')
+        table_lookup.setOutputValues(data['htg_pow_data'])
+      else
+        runner.registerError("Unexpected curve type (#{curve_type}) for lookup table creation")
+        return false
+      end
+    elsif hvac_system_type == 'hydronic_gshp'
+      # get load lwt data values
+      if data['load_lwt_data'].empty?
+        runner.registerError("No load LWT performance curve data at path (#{path})")
+        return false
+      end
+      load_lwt_values = data['load_lwt_data'].uniq.sort
+      # get source ewt data values
+      if data['source_ewt_data'].empty?
+        runner.registerError("No source EWT performance curve data at path (#{path})")
+        return false
+      end
+      source_ewt_values = data['source_ewt_data'].uniq.sort
+      # data length check
+      if curve_type == 'clg_cap'
+        if data['plant_clg_cap_data'].empty?
+          runner.registerError("No cooling capacity performance curve data at path (#{path})")
+          return false
+        else
+          unless data['plant_clg_cap_data'].length == (load_lwt_values.length * source_ewt_values.length)
+            runner.registerError("Total output data points do not match full permutation of input variable values at path (#{path})")
+            return false
+          end
+        end
+      elsif curve_type == 'clg_eir'
+        if data['plant_clg_eir_data'].empty?
+          runner.registerError("No cooling eir performance curve data at path (#{path})")
+          return false
+        else
+          unless data['plant_clg_eir_data'].length == (load_lwt_values.length * source_ewt_values.length)
+            runner.registerError("Total output data points do not match full permutation of input variable values at path (#{path})")
+            return false
+          end
+        end
+      elsif curve_type == 'htg_cap'
+        if data['plant_htg_cap_data'].empty?
+          runner.registerError("No heating capacity performance curve data at path (#{path})")
+          return false
+        else
+          unless data['plant_htg_cap_data'].length == (load_lwt_values.length * source_ewt_values.length)
+            runner.registerError("Total output data points do not match full permutation of input variable values at path (#{path})")
+            return false
+          end
+        end
+      elsif curve_type == 'htg_eir'
+        if data['plant_htg_eir_data'].empty?
+          runner.registerError("No heating eir performance curve data at path (#{path})")
+          return false
+        else
+          unless data['plant_htg_eir_data'].length == (load_lwt_values.length * source_ewt_values.length)
+            runner.registerError("Total output data points do not match full permutation of input variable values at path (#{path})")
+            return false
+          end
+        end
+      else
+        runner.registerError("Unexpected curve type (#{curve_type}) for lookup table creation")
+        return false
+      end
+
+      # create independent variable objects
+      table_independent_variables = []
+      table_independent_variables << create_table_independent_variable(model, "#{curve_type}_load_lwt", load_lwt_values,
+                                                                       'Cubic', 'Constant', 'Temperature', runner)
+      table_independent_variables << create_table_independent_variable(model, "#{curve_type}_source_ewt",
+                                                                       source_ewt_values, 'Cubic', 'Constant', 'Temperature', runner)
+
+      # create lookup table
+      table_lookup = OpenStudio::Model::TableLookup.new(model)
+      table_lookup.setName(name.to_s)
+      table_lookup.setNormalizationMethod('DivisorOnly')
+      table_lookup.setNormalizationDivisor(divisor)
+      if curve_type == 'clg_cap'
+        table_lookup.setOutputUnitType('Capacity')
+        table_lookup.setOutputValues(data['plant_clg_cap_data'])
+      elsif  curve_type == 'clg_eir'
+        table_lookup.setOutputUnitType('Dimensionless')
+        table_lookup.setOutputValues(data['plant_clg_eir_data'])
+      elsif  curve_type == 'htg_cap'
+        table_lookup.setOutputUnitType('Capacity')
+        table_lookup.setOutputValues(data['plant_htg_cap_data'])
+      elsif  curve_type == 'htg_eir'
+        table_lookup.setOutputUnitType('Dimensionless')
+        table_lookup.setOutputValues(data['plant_htg_eir_data'])
+      else
+        runner.registerError("Unexpected curve type (#{curve_type}) for lookup table creation")
+        return false
+      end
     end
 
-    # add lookup table performance data to relevant HVAC objects
-    def add_lookup_performance_data(model, hvac_object, hvac_system_type, data_set_name, runner)
-        supported_hvac_system_types = %w[hydronic_gshp packaged_gshp console_gshp]
-        available_data_sets = {}
-        available_data_sets['hydronic_gshp'] = %w[Carrier_30WG_90kW Carrier_61WG_Glycol_90kW]
-        available_data_sets['packaged_gshp'] = ['Trane_10_ton_GWSC120E']
-        available_data_sets['console_gshp'] = ['Trane_3_ton_GWSC036H']
-        # input checks
-        unless supported_hvac_system_types.include? hvac_system_type
-            runner.registerError("HVAC system type #{hvac_system_type} not supported by add_lookup_performance_data method")
-            return false
-        end
-        if available_data_sets[hvac_system_type].nil?
-            runner.registerError("There are no lookup table performance data sets for HVAC system type #{hvac_system_type}")
-            return false
-        else
-            unless available_data_sets[hvac_system_type].include? data_set_name
-                runner.registerError("#{data_set_name} is not a valid lookup table performance data set for HVAC system type #{hvac_system_type}")
-                return false
-            end
-        end
-
-        # collect relevant info based on data set input
-        if data_set_name == 'Trane_10_ton_GWSC120E'
-            valid_object_types = %w[OS_Coil_Cooling_WaterToAirHeatPump_EquationFit
-                                    OS_Coil_Heating_WaterToAirHeatPump_EquationFit]
-            # check hvac object
-            hvac_object_type = hvac_object.iddObjectType.valueName.to_s
-            unless valid_object_types.include? hvac_object_type
-                runner.registerError("Unexpected object type (#{hvac_object_type}) for lookup table performance data set #{data_set_name}")
-                return false
-            end
-            # basic data set info
-            # 80.6 DB, 66.2 WB, 75 EWT cooling
-            # 68 DB, 59 WB heating, 32 EWT heating
-            # 30 gpm, 4000 cfm
-            # EWT 75
-            rated_total_cooling_capacity_watts = 124.4 * 0.29307107017222 * 1000
-            rated_sensible_cooling_capacity_watts = 100.9 * 0.29307107017222 * 1000
-            rated_cooling_power_watts = 6.16 * 1000
-            rated_heating_capacity_watts = 92.1 * 0.29307107017222 * 1000
-            rated_heating_power_watts = 6.44 * 1000
-            rated_air_flow_rate = 4000 / 2118.88
-            rated_water_flow_rate = 30 / 15_850.323
-            rated_db_clg = (80.6 - 32) / 1.8
-            rated_db_htg = (68 - 32) / 1.8
-            rated_wb_clg = (66.2 - 32) / 1.8
-            rated_wb_htg = (59 - 32) / 1.8
-            rated_ewt_clg = (75 - 32) / 1.8
-            rated_ewt_htg = (32 - 32) / 1.8
-
-        elsif data_set_name == 'Trane_3_ton_GWSC036H'
-            valid_object_types = %w[OS_Coil_Cooling_WaterToAirHeatPump_EquationFit
-                                    OS_Coil_Heating_WaterToAirHeatPump_EquationFit]
-            # check hvac object
-            hvac_object_type = hvac_object.iddObjectType.valueName.to_s
-            unless valid_object_types.include? hvac_object_type
-                runner.registerError("Unexpected object type (#{hvac_object_type}) for lookup table performance data set #{data_set_name}")
-                return false
-            end
-            # basic data set info
-            # 80.6 DB, 66.2 WB cooling
-            # 68 DB, 59 WB heating
-            # 9 gpm, 1200 cfm
-            # EWT 75
-            rated_total_cooling_capacity_watts = 45.9 * 0.29307107017222 * 1000
-            rated_sensible_cooling_capacity_watts = 35.6 * 0.29307107017222 * 1000
-            rated_cooling_power_watts = 2.22 * 1000
-            rated_heating_capacity_watts = 31.3 * 0.29307107017222 * 1000
-            rated_heating_power_watts = 2.43 * 1000
-            rated_air_flow_rate = 1200 / 2118.88
-            rated_water_flow_rate = 9 / 15_850.323
-            rated_db = (68 - 32) / 1.8
-            rated_wb = (59 - 32) / 1.8
-            rated_ewt_clg = (75 - 32) / 1.8
-            rated_ewt_htg = (32 - 32) / 1.8
-
-        elsif  data_set_name == 'Carrier_30WG_90kW'
-            valid_object_types = ['OS_HeatPump_PlantLoop_EIR_Cooling']
-            # check hvac object
-            hvac_object_type = hvac_object.iddObjectType.valueName.to_s
-            unless valid_object_types.include? hvac_object_type
-                runner.registerError("Unexpected object type (#{hvac_object_type}) for lookup table performance data set #{data_set_name}")
-                return false
-            end
-            # basic data set info
-            rated_cooling_capacity_watts = 94.1 * 1000
-            rated_cooling_eir = 0.21505
-            rated_clg_load_flow_rate = 0.00443 # 5K delta
-            rated_clg_source_flow_rate = 0.00443 # 5k delta (same delta t and same working fluid, so same flow rate)
-
-        elsif  data_set_name == 'Carrier_61WG_Glycol_90kW'
-            valid_object_types = ['OS_HeatPump_PlantLoop_EIR_Heating']
-            # check hvac object
-            hvac_object_type = hvac_object.iddObjectType.valueName.to_s
-            unless valid_object_types.include? hvac_object_type
-                runner.registerError("Unexpected object type (#{hvac_object_type}) for lookup table performance data set #{data_set_name}")
-                return false
-            end
-            # basic data set info
-            rated_heating_capacity_watts = 86.7 * 1000
-            rated_heating_eir = 0.23419
-            cp_water = 4184 # J/kgK
-            cp_glycol = 2294 # J/kgK at 0 C
-            htg_cond_delta_t = 5 # K
-            htg_evap_delta_t = 3 # K
-            rated_htg_load_flow_rate = 0.0042 # m3/s
-            density_water = 997 # kg/m3
-            density_glycol = 1115 # kg/m3
-            glycol_fraction = 0.3
-            density_evap = (1 - glycol_fraction) * density_water + glycol_fraction * density_glycol
-            cp_evap = (1 - glycol_fraction) * cp_water + glycol_fraction * cp_glycol
-            rated_htg_source_flow_rate = (rated_htg_load_flow_rate * density_water * cp_water * htg_cond_delta_t) / (density_evap * cp_evap * htg_evap_delta_t)
-
-        else
-            runner.registerError("#{data_set_name} is not supported by add_lookup_performance_data method")
-            return false
-        end
-
-        if hvac_object_type == 'OS_Coil_Cooling_WaterToAirHeatPump_EquationFit'
-            # read in csv data
-            total_cooling_capacity_data_path = "#{File.dirname(__FILE__)}/resources/#{data_set_name}_tot_clg_cap.csv"
-            sensible_cooling_capacity_data_path = "#{File.dirname(__FILE__)}/resources/#{data_set_name}_sen_clg_cap.csv"
-            cooling_power_data_path = "#{File.dirname(__FILE__)}/resources/#{data_set_name}_clg_pow.csv"
-            # create lookup tables and supporting objects
-            table_lookup_tot_clg_cap = create_table_lookup(model, 'table_lookup_tot_clg_cap', 'packaged_gshp', 'tot_clg_cap',
-                                                            rated_total_cooling_capacity_watts, total_cooling_capacity_data_path, runner)
-            table_lookup_sen_clg_cap = create_table_lookup(model, 'table_lookup_sen_clg_cap', 'packaged_gshp', 'sen_clg_cap',
-                                                            rated_sensible_cooling_capacity_watts, sensible_cooling_capacity_data_path, runner)
-            table_lookup_clg_pow = create_table_lookup(model, 'table_lookup_clg_pow', 'packaged_gshp', 'clg_pow',
-                                                        rated_cooling_power_watts, cooling_power_data_path, runner)
-            # assign lookup tables
-            hvac_object.setTotalCoolingCapacityCurve(table_lookup_tot_clg_cap)
-            hvac_object.setSensibleCoolingCapacityCurve(table_lookup_sen_clg_cap)
-            hvac_object.setCoolingPowerConsumptionCurve(table_lookup_clg_pow)
-            # set coil inputs
-            hvac_object.setRatedCoolingCoefficientofPerformance(rated_total_cooling_capacity_watts / rated_cooling_power_watts)
-            hvac_object.setRatedEnteringWaterTemperature(rated_ewt_clg)
-            hvac_object.setRatedEnteringAirDryBulbTemperature(rated_db_clg)
-            hvac_object.setRatedEnteringAirWetBulbTemperature(rated_wb_clg)
-
-        elsif hvac_object_type == 'OS_Coil_Heating_WaterToAirHeatPump_EquationFit'
-            # read in csv data
-            heating_capacity_data_path = "#{File.dirname(__FILE__)}/resources/#{data_set_name}_htg_cap.csv"
-            heating_power_data_path = "#{File.dirname(__FILE__)}/resources/#{data_set_name}_htg_pow.csv"
-            # create lookup tables and supporting objects
-            table_lookup_htg_cap = create_table_lookup(model, 'table_lookup_htg_cap', 'packaged_gshp', 'htg_cap',
-                                                        rated_heating_capacity_watts, heating_capacity_data_path, runner)
-            table_lookup_htg_pow = create_table_lookup(model, 'table_lookup_htg_pow', 'packaged_gshp', 'htg_pow',
-                                                        rated_heating_power_watts, heating_power_data_path, runner)
-            # assign lookup tables
-            hvac_object.setHeatingCapacityCurve(table_lookup_htg_cap)
-            hvac_object.setHeatingPowerConsumptionCurve(table_lookup_htg_pow)
-            # set coil inputs
-            hvac_object.setRatedCoolingCoefficientofPerformance(rated_heating_capacity_watts / rated_heating_power_watts)
-            hvac_object.setRatedEnteringWaterTemperature(rated_ewt_htg)
-            hvac_object.setRatedEnteringAirDryBulbTemperature(rated_db_htg)
-            hvac_object.setRatedEnteringAirWetBulbTemperature(rated_wb_htg)
-
-        elsif hvac_object_type == 'OS_HeatPump_PlantLoop_EIR_Cooling'
-            # read in csv data
-            cooling_data_path = "#{File.dirname(__FILE__)}/#{data_set_name}_clg.csv"
-            # create lookup tables and supporting objects
-            table_lookup_clg_cap = create_table_lookup(model, 'table_lookup_clg_cap', 'hydronic_gshp', 'clg_cap',
-                                                        rated_cooling_capacity_watts, cooling_data_path, runner)
-            table_lookup_clg_eir = create_table_lookup(model, 'table_lookup_clg_eir', 'hydronic_gshp', 'clg_eir',
-                                                        rated_cooling_eir, cooling_data_path, runner)
-            # assign lookup tables
-            hvac_object.setCapacityModifierFunctionofTemperatureCurve(table_lookup_clg_cap)
-            hvac_object.setElectricInputtoOutputRatioModifierFunctionofTemperatureCurve(table_lookup_clg_eir)
-            # set coil inputs
-            hvac_object.setReferenceCoefficientofPerformance(1 / rated_cooling_eir)
-
-        elsif hvac_object_type == 'OS_HeatPump_PlantLoop_EIR_Heating'
-            # read in csv data
-            heating_data_path = "#{File.dirname(__FILE__)}/#{data_set_name}_htg.csv"
-            # create lookup tables and supporting objects
-            table_lookup_htg_cap = create_table_lookup(model, 'table_lookup_htg_cap', 'hydronic_gshp', 'htg_cap',
-                                                        rated_heating_capacity_watts, heating_data_path, runner)
-            table_lookup_htg_eir = create_table_lookup(model, 'table_lookup_htg_eir', 'hydronic_gshp', 'htg_eir',
-                                                        rated_heating_eir, heating_data_path, runner)
-            # assign lookup tables
-            hvac_object.setCapacityModifierFunctionofTemperatureCurve(table_lookup_htg_cap)
-            hvac_object.setElectricInputtoOutputRatioModifierFunctionofTemperatureCurve(table_lookup_htg_eir)
-            # set coil inputs
-            hvac_object.setReferenceCoefficientofPerformance(1 / rated_heating_eir)
-
-        else
-            runner.registerError("Unexpected object type (#{hvac_object_type}) for lookup table performance data set #{data_set_name}")
-            return false
-        end
-        true
+    table_independent_variables.each do |var|
+      table_lookup.addIndependentVariable(var)
     end
+    table_lookup
+  end
+
+  # add lookup table performance data to relevant HVAC objects
+  def add_lookup_performance_data(model, hvac_object, hvac_system_type, data_set_name, runner)
+    supported_hvac_system_types = %w[hydronic_gshp packaged_gshp console_gshp]
+    available_data_sets = {}
+    available_data_sets['hydronic_gshp'] = %w[Carrier_30WG_90kW Carrier_61WG_Glycol_90kW]
+    available_data_sets['packaged_gshp'] = ['Trane_10_ton_GWSC120E']
+    available_data_sets['console_gshp'] = ['Trane_3_ton_GWSC036H']
+    # input checks
+    unless supported_hvac_system_types.include? hvac_system_type
+      runner.registerError("HVAC system type #{hvac_system_type} not supported by add_lookup_performance_data method")
+      return false
+    end
+    if available_data_sets[hvac_system_type].nil?
+      runner.registerError("There are no lookup table performance data sets for HVAC system type #{hvac_system_type}")
+      return false
+    else
+      unless available_data_sets[hvac_system_type].include? data_set_name
+        runner.registerError("#{data_set_name} is not a valid lookup table performance data set for HVAC system type #{hvac_system_type}")
+        return false
+      end
+    end
+
+    # collect relevant info based on data set input
+    if data_set_name == 'Trane_10_ton_GWSC120E'
+      valid_object_types = %w[OS_Coil_Cooling_WaterToAirHeatPump_EquationFit
+                              OS_Coil_Heating_WaterToAirHeatPump_EquationFit]
+      # check hvac object
+      hvac_object_type = hvac_object.iddObjectType.valueName.to_s
+      unless valid_object_types.include? hvac_object_type
+        runner.registerError("Unexpected object type (#{hvac_object_type}) for lookup table performance data set #{data_set_name}")
+        return false
+      end
+      # basic data set info
+      # 80.6 DB, 66.2 WB, 75 EWT cooling
+      # 68 DB, 59 WB heating, 32 EWT heating
+      # 30 gpm, 4000 cfm
+      # EWT 75
+      rated_total_cooling_capacity_watts = 124.4 * 0.29307107017222 * 1000
+      rated_sensible_cooling_capacity_watts = 100.9 * 0.29307107017222 * 1000
+      rated_cooling_power_watts = 6.16 * 1000
+      rated_heating_capacity_watts = 92.1 * 0.29307107017222 * 1000
+      rated_heating_power_watts = 6.44 * 1000
+      rated_db_clg = (80.6 - 32) / 1.8
+      rated_db_htg = (68 - 32) / 1.8
+      rated_wb_clg = (66.2 - 32) / 1.8
+      rated_wb_htg = (59 - 32) / 1.8
+      rated_ewt_clg = (75 - 32) / 1.8
+      rated_ewt_htg = (32 - 32) / 1.8
+
+    elsif data_set_name == 'Trane_3_ton_GWSC036H'
+      valid_object_types = %w[OS_Coil_Cooling_WaterToAirHeatPump_EquationFit
+                              OS_Coil_Heating_WaterToAirHeatPump_EquationFit]
+      # check hvac object
+      hvac_object_type = hvac_object.iddObjectType.valueName.to_s
+      unless valid_object_types.include? hvac_object_type
+        runner.registerError("Unexpected object type (#{hvac_object_type}) for lookup table performance data set #{data_set_name}")
+        return false
+      end
+      # basic data set info
+      # 80.6 DB, 66.2 WB cooling
+      # 68 DB, 59 WB heating
+      # 9 gpm, 1200 cfm
+      # EWT 75
+      rated_total_cooling_capacity_watts = 45.9 * 0.29307107017222 * 1000
+      rated_sensible_cooling_capacity_watts = 35.6 * 0.29307107017222 * 1000
+      rated_cooling_power_watts = 2.22 * 1000
+      rated_heating_capacity_watts = 31.3 * 0.29307107017222 * 1000
+      rated_heating_power_watts = 2.43 * 1000
+      rated_ewt_clg = (75 - 32) / 1.8
+      rated_ewt_htg = (32 - 32) / 1.8
+
+    elsif  data_set_name == 'Carrier_30WG_90kW'
+      valid_object_types = ['OS_HeatPump_PlantLoop_EIR_Cooling']
+      # check hvac object
+      hvac_object_type = hvac_object.iddObjectType.valueName.to_s
+      unless valid_object_types.include? hvac_object_type
+        runner.registerError("Unexpected object type (#{hvac_object_type}) for lookup table performance data set #{data_set_name}")
+        return false
+      end
+      # basic data set info
+      rated_cooling_capacity_watts = 94.1 * 1000
+      rated_cooling_eir = 0.21505 # 5K delta
+      0.00443 # 5k delta (same delta t and same working fluid, so same flow rate)
+
+    elsif  data_set_name == 'Carrier_61WG_Glycol_90kW'
+      valid_object_types = ['OS_HeatPump_PlantLoop_EIR_Heating']
+      # check hvac object
+      hvac_object_type = hvac_object.iddObjectType.valueName.to_s
+      unless valid_object_types.include? hvac_object_type
+        runner.registerError("Unexpected object type (#{hvac_object_type}) for lookup table performance data set #{data_set_name}")
+        return false
+      end
+      # basic data set info
+      rated_heating_capacity_watts = 86.7 * 1000
+      rated_heating_eir = 0.23419
+      cp_water = 4184 # J/kgK
+      cp_glycol = 2294 # J/kgK at 0 C
+      htg_cond_delta_t = 5 # K
+      htg_evap_delta_t = 3 # K
+      rated_htg_load_flow_rate = 0.0042 # m3/s
+      density_water = 997 # kg/m3
+      density_glycol = 1115 # kg/m3
+      glycol_fraction = 0.3
+      density_evap = (1 - glycol_fraction) * density_water + glycol_fraction * density_glycol
+      cp_evap = (1 - glycol_fraction) * cp_water + glycol_fraction * cp_glycol
+      (rated_htg_load_flow_rate * density_water * cp_water * htg_cond_delta_t) / (density_evap * cp_evap * htg_evap_delta_t)
+
+    else
+      runner.registerError("#{data_set_name} is not supported by add_lookup_performance_data method")
+      return false
+    end
+
+    if hvac_object_type == 'OS_Coil_Cooling_WaterToAirHeatPump_EquationFit'
+      # read in csv data
+      total_cooling_capacity_data_path = "#{File.dirname(__FILE__)}/resources/#{data_set_name}_tot_clg_cap.csv"
+      sensible_cooling_capacity_data_path = "#{File.dirname(__FILE__)}/resources/#{data_set_name}_sen_clg_cap.csv"
+      cooling_power_data_path = "#{File.dirname(__FILE__)}/resources/#{data_set_name}_clg_pow.csv"
+      # create lookup tables and supporting objects
+      table_lookup_tot_clg_cap = create_table_lookup(model, 'table_lookup_tot_clg_cap', 'packaged_gshp', 'tot_clg_cap',
+                                                     rated_total_cooling_capacity_watts, total_cooling_capacity_data_path, runner)
+      table_lookup_sen_clg_cap = create_table_lookup(model, 'table_lookup_sen_clg_cap', 'packaged_gshp', 'sen_clg_cap',
+                                                     rated_sensible_cooling_capacity_watts, sensible_cooling_capacity_data_path, runner)
+      table_lookup_clg_pow = create_table_lookup(model, 'table_lookup_clg_pow', 'packaged_gshp', 'clg_pow',
+                                                 rated_cooling_power_watts, cooling_power_data_path, runner)
+      # assign lookup tables
+      hvac_object.setTotalCoolingCapacityCurve(table_lookup_tot_clg_cap)
+      hvac_object.setSensibleCoolingCapacityCurve(table_lookup_sen_clg_cap)
+      hvac_object.setCoolingPowerConsumptionCurve(table_lookup_clg_pow)
+      # set coil inputs
+      hvac_object.setRatedCoolingCoefficientofPerformance(rated_total_cooling_capacity_watts / rated_cooling_power_watts)
+      hvac_object.setRatedEnteringWaterTemperature(rated_ewt_clg)
+      hvac_object.setRatedEnteringAirDryBulbTemperature(rated_db_clg)
+      hvac_object.setRatedEnteringAirWetBulbTemperature(rated_wb_clg)
+
+    elsif hvac_object_type == 'OS_Coil_Heating_WaterToAirHeatPump_EquationFit'
+      # read in csv data
+      heating_capacity_data_path = "#{File.dirname(__FILE__)}/resources/#{data_set_name}_htg_cap.csv"
+      heating_power_data_path = "#{File.dirname(__FILE__)}/resources/#{data_set_name}_htg_pow.csv"
+      # create lookup tables and supporting objects
+      table_lookup_htg_cap = create_table_lookup(model, 'table_lookup_htg_cap', 'packaged_gshp', 'htg_cap',
+                                                 rated_heating_capacity_watts, heating_capacity_data_path, runner)
+      table_lookup_htg_pow = create_table_lookup(model, 'table_lookup_htg_pow', 'packaged_gshp', 'htg_pow',
+                                                 rated_heating_power_watts, heating_power_data_path, runner)
+      # assign lookup tables
+      hvac_object.setHeatingCapacityCurve(table_lookup_htg_cap)
+      hvac_object.setHeatingPowerConsumptionCurve(table_lookup_htg_pow)
+      # set coil inputs
+      hvac_object.setRatedCoolingCoefficientofPerformance(rated_heating_capacity_watts / rated_heating_power_watts)
+      hvac_object.setRatedEnteringWaterTemperature(rated_ewt_htg)
+      hvac_object.setRatedEnteringAirDryBulbTemperature(rated_db_htg)
+      hvac_object.setRatedEnteringAirWetBulbTemperature(rated_wb_htg)
+
+    elsif hvac_object_type == 'OS_HeatPump_PlantLoop_EIR_Cooling'
+      # read in csv data
+      cooling_data_path = "#{File.dirname(__FILE__)}/#{data_set_name}_clg.csv"
+      # create lookup tables and supporting objects
+      table_lookup_clg_cap = create_table_lookup(model, 'table_lookup_clg_cap', 'hydronic_gshp', 'clg_cap',
+                                                 rated_cooling_capacity_watts, cooling_data_path, runner)
+      table_lookup_clg_eir = create_table_lookup(model, 'table_lookup_clg_eir', 'hydronic_gshp', 'clg_eir',
+                                                 rated_cooling_eir, cooling_data_path, runner)
+      # assign lookup tables
+      hvac_object.setCapacityModifierFunctionofTemperatureCurve(table_lookup_clg_cap)
+      hvac_object.setElectricInputtoOutputRatioModifierFunctionofTemperatureCurve(table_lookup_clg_eir)
+      # set coil inputs
+      hvac_object.setReferenceCoefficientofPerformance(1 / rated_cooling_eir)
+
+    elsif hvac_object_type == 'OS_HeatPump_PlantLoop_EIR_Heating'
+      # read in csv data
+      heating_data_path = "#{File.dirname(__FILE__)}/#{data_set_name}_htg.csv"
+      # create lookup tables and supporting objects
+      table_lookup_htg_cap = create_table_lookup(model, 'table_lookup_htg_cap', 'hydronic_gshp', 'htg_cap',
+                                                 rated_heating_capacity_watts, heating_data_path, runner)
+      table_lookup_htg_eir = create_table_lookup(model, 'table_lookup_htg_eir', 'hydronic_gshp', 'htg_eir',
+                                                 rated_heating_eir, heating_data_path, runner)
+      # assign lookup tables
+      hvac_object.setCapacityModifierFunctionofTemperatureCurve(table_lookup_htg_cap)
+      hvac_object.setElectricInputtoOutputRatioModifierFunctionofTemperatureCurve(table_lookup_htg_eir)
+      # set coil inputs
+      hvac_object.setReferenceCoefficientofPerformance(1 / rated_heating_eir)
+
+    else
+      runner.registerError("Unexpected object type (#{hvac_object_type}) for lookup table performance data set #{data_set_name}")
+      return false
+    end
+    true
+  end
 end
