@@ -518,6 +518,10 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
               rate_results_energycharge[rate_label] = utility_bill_dollars_base_yr_ec
               rate_results_fixedcharge[rate_label] = utility_bill_dollars_base_yr_fixed
               runner.registerInfo("Bill for #{rate_name}: $#{total_utility_bill_dollars_2022}, adjusted from #{rate_start_year} to 2022 assuming #{pct_inc} increase.")
+              runner.registerInfo("Bill for #{rate_name}: $#{utility_bill_dollars_base_yr_dc_flat}, adjusted from #{rate_start_year} to 2022 assuming #{pct_inc} increase.")
+              runner.registerInfo("Bill for #{rate_name}: $#{utility_bill_dollars_base_yr_dc_tou}, adjusted from #{rate_start_year} to 2022 assuming #{pct_inc} increase.")
+              runner.registerInfo("Bill for #{rate_name}: $#{utility_bill_dollars_base_yr_ec}, adjusted from #{rate_start_year} to 2022 assuming #{pct_inc} increase.")
+              runner.registerInfo("Bill for #{rate_name}: $#{utility_bill_dollars_base_yr_fixed}, adjusted from #{rate_start_year} to 2022 assuming #{pct_inc} increase.")
             else
               runner.registerError("Error running PySAM: #{command}")
               runner.registerError("stdout: #{stdout_str}")
