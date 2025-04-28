@@ -424,28 +424,28 @@ class UtilityBillsTest < Minitest::Test
         'type' => 'dc_flat',
         'statistics' => 'max',
         'key' => '53fb58cc5257a334346c0e60', # https://apps.openei.org/USURDB/rate/view/53fb58cc5257a334346c0e60#2__Demand
-        'value' => 16587 # 24% (2014 to 2022) increase from hand caculated 13377
+        'value' => 16587 # 24% (2014 to 2022) increase from hand calculated 13377
       },
       {
         'eia_id' => '14328',
         'type' => 'dc_tou',
         'statistics' => 'min',
         'key' => '5cef09e25457a3f767f60fe4', # https://apps.openei.org/USURDB/rate/view/5cef09e25457a3f767f60fe4#2__Demand
-        'value' => 16988 # 9% (2019 to 2022) increase from hand caculated 15585
+        'value' => 16988 # 9% (2019 to 2022) increase from hand calculated 15585
       },
       {
         'eia_id' => '207',
         'type' => 'ec',
         'statistics' => 'max',
         'key' => '53fb55435257a335346c0e61', # https://apps.openei.org/USURDB/rate/view/53fb55435257a335346c0e61#3__Energy
-        'value' => 139194 # 24% (2014 to 2022) increase from hand caculated 112253
+        'value' => 139194 # 24% (2014 to 2022) increase from hand calculated 112253
       },
       {
         'eia_id' => '207',
         'type' => 'fixed',
         'statistics' => 'min',
         'key' => '53fb57595257a352326c0e61', # https://apps.openei.org/IURDB/rate/view/53fb57595257a352326c0e61#4__Fixed_Charges
-        'value' => 74 # 24% (2014 to 2022) increase from hand caculated 60
+        'value' => 74 # 24% (2014 to 2022) increase from hand calculated 60
       }
     ]
     hard_coded_rates.each do |test_set|
