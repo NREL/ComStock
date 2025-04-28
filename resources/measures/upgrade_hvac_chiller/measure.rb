@@ -262,7 +262,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
 
   # load curve to model from json
   # modified version from OS Standards to read from custom json file
-  def model_add_curve(model, curve_name, copper_curve_data, std)
+  def model_add_curve(model, curve_name, copper_curve_data)
     # First check model and return curve if it already exists
     existing_curves = []
     existing_curves += model.getCurveLinears
@@ -537,7 +537,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
   # hard-coding this because of https://github.com/NREL/openstudio-standards/issues/1915
   # @param plant_loop [OpenStudio::Model::PlantLoop] plant loop
   # @return [Boolean] returns true if successful, false if not
-  def plant_loop_apply_prm_baseline_condenser_water_temperatures(plant_loop)
+  def plant_loop_apply_prm_baseline_condenser_water_temperatures(runner, plant_loop)
     sizing_plant = plant_loop.sizingPlant
     loop_type = sizing_plant.loopType
     return true unless loop_type == 'Condenser'
@@ -557,13 +557,13 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
           summer_oat_wb_c = dd.humidityIndicatingConditionsAtMaximumDryBulb
           summer_oat_wbs_f << OpenStudio.convert(summer_oat_wb_c, 'C', 'F').get
         else
-          OpenStudio.logFree(OpenStudio::Warn, 'openstudio.standards.PlantLoop', "For #{dd.name}, humidity is specified as #{dd.humidityIndicatingType}; cannot determine Twb.")
+          runner.registerInfo("For #{dd.name}, humidity is specified as #{dd.humidityIndicatingType}; cannot determine Twb.")
         end
       else
         if dd.humidityConditionType == 'Wetbulb' && dd.wetBulbOrDewPointAtMaximumDryBulb.is_initialized
           summer_oat_wbs_f << OpenStudio.convert(dd.wetBulbOrDewPointAtMaximumDryBulb.get, 'C', 'F').get
         else
-          OpenStudio.logFree(OpenStudio::Warn, 'openstudio.standards.PlantLoop', "For #{dd.name}, humidity is specified as #{dd.humidityConditionType}; cannot determine Twb.")
+          runner.registerInfo("For #{dd.name}, humidity is specified as #{dd.humidityConditionType}; cannot determine Twb.")
         end
       end
     end
@@ -572,23 +572,23 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     design_oat_wb_f = nil
     if summer_oat_wbs_f.size == 0
       design_oat_wb_f = 78
-      OpenStudio.logFree(OpenStudio::Warn, 'openstudio.standards.PlantLoop', "For #{plant_loop.name}, no design day OATwb conditions were found.  CTI rating condition of 78F OATwb will be used for sizing cooling towers.")
+      runner.registerInfo("For #{plant_loop.name}, no design day OATwb conditions were found.  CTI rating condition of 78F OATwb will be used for sizing cooling towers.")
     else
       # Take worst case condition
       design_oat_wb_f = summer_oat_wbs_f.max
-      OpenStudio.logFree(OpenStudio::Info, 'openstudio.standards.PlantLoop', "The maximum design wet bulb temperature from the Summer Design Day WB=>MDB is #{design_oat_wb_f} F")
+      runner.registerInfo("The maximum design wet bulb temperature from the Summer Design Day WB=>MDB is #{design_oat_wb_f} F")
     end
 
     # There is an EnergyPlus model limitation that the design_oat_wb_f < 80F for cooling towers
     ep_max_design_oat_wb_f = 80
     if design_oat_wb_f > ep_max_design_oat_wb_f
-      OpenStudio.logFree(OpenStudio::Warn, 'openstudio.standards.PlantLoop', "For #{plant_loop.name}, reduced design OATwb from #{design_oat_wb_f.round(1)} F to E+ model max input of #{ep_max_design_oat_wb_f} F.")
+      runner.registerInfo("For #{plant_loop.name}, reduced design OATwb from #{design_oat_wb_f.round(1)} F to E+ model max input of #{ep_max_design_oat_wb_f} F.")
       design_oat_wb_f = ep_max_design_oat_wb_f
     end
 
     # Determine the design CW temperature, approach, and range
     design_oat_wb_c = OpenStudio.convert(design_oat_wb_f, 'F', 'C').get
-    leaving_cw_t_c, approach_k, range_k = plant_loop_prm_baseline_condenser_water_temperatures(plant_loop, design_oat_wb_c)
+    leaving_cw_t_c, approach_k, range_k = plant_loop_prm_baseline_condenser_water_temperatures(runner, plant_loop, design_oat_wb_c)
 
     # Convert to IP units
     leaving_cw_t_f = OpenStudio.convert(leaving_cw_t_c, 'C', 'F').get
@@ -596,7 +596,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     range_r = OpenStudio.convert(range_k, 'K', 'R').get
 
     # Report out design conditions
-    OpenStudio.logFree(OpenStudio::Info, 'openstudio.standards.PlantLoop', "For #{plant_loop.name}, design OATwb = #{design_oat_wb_f.round(1)} F, approach = #{approach_r.round(1)} deltaF, range = #{range_r.round(1)} deltaF, leaving condenser water temperature = #{leaving_cw_t_f.round(1)} F.")
+    runner.registerInfo("For #{plant_loop.name}, design OATwb = #{design_oat_wb_f.round(1)} F, approach = #{approach_r.round(1)} deltaF, range = #{range_r.round(1)} deltaF, leaving condenser water temperature = #{leaving_cw_t_f.round(1)} F.")
 
     # Set the CW sizing parameters
     sizing_plant.setDesignLoopExitTemperature(leaving_cw_t_c)
@@ -620,7 +620,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
         # Check against limit before attempting to set value.
         eplus_design_oat_wb_c_lim = 20
         if design_oat_wb_c < eplus_design_oat_wb_c_lim
-          OpenStudio.logFree(OpenStudio::Info, 'openstudio.standards.PlantLoop', "For #{plant_loop.name}, a design OATwb of 68F will be used for sizing the cooling towers because the actual design value is below the limit EnergyPlus accepts for this input.")
+          runner.registerInfo("For #{plant_loop.name}, a design OATwb of 68F will be used for sizing the cooling towers because the actual design value is below the limit EnergyPlus accepts for this input.")
           design_oat_wb_c = eplus_design_oat_wb_c_lim
         end
         ct.setDesignInletAirWetBulbTemperature(design_oat_wb_c)
@@ -661,7 +661,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     # a maximum temperature below the minimum.  In this case,
     # make the maximum and minimum the same.
     if leaving_cw_t_c < float_down_to_c
-      OpenStudio.logFree(OpenStudio::Warn, 'openstudio.standards.PlantLoop', "For #{plant_loop.name}, the maximum leaving temperature of #{leaving_cw_t_f.round(1)} F is below the minimum of #{float_down_to_f.round(1)} F.  The maximum will be set to the same value as the minimum.")
+      runner.registerInfo("For #{plant_loop.name}, the maximum leaving temperature of #{leaving_cw_t_f.round(1)} F is below the minimum of #{float_down_to_f.round(1)} F.  The maximum will be set to the same value as the minimum.")
       leaving_cw_t_c = float_down_to_c
     end
     cw_t_stpt_manager.setMaximumSetpointTemperature(leaving_cw_t_c)
@@ -677,7 +677,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
   # @param plant_loop [OpenStudio::Model::PlantLoop] the condenser water loop
   # @param design_oat_wb_c [Double] the design OA wetbulb temperature (C)
   # @return [Array<Double>] [leaving_cw_t_c, approach_k, range_k]
-  def plant_loop_prm_baseline_condenser_water_temperatures(plant_loop, design_oat_wb_c)
+  def plant_loop_prm_baseline_condenser_water_temperatures(runner, plant_loop, design_oat_wb_c)
     design_oat_wb_f = OpenStudio.convert(design_oat_wb_c, 'C', 'F').get
 
     # G3.1.3.11 - CW supply temp shall be evaluated at 0.4% evaporative design OATwb
@@ -689,10 +689,10 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     # Limit the OATwb
     if design_oat_wb_f < 55
       design_oat_wb_f = 55
-      OpenStudio.logFree(OpenStudio::Info, 'openstudio.standards.PlantLoop', "For #{plant_loop.name}, a design OATwb of 55F will be used for sizing the cooling towers because the actual design value is below the limit in G3.1.3.11.")
+      runner.registerInfo("For #{plant_loop.name}, a design OATwb of 55F will be used for sizing the cooling towers because the actual design value is below the limit in G3.1.3.11.")
     elsif design_oat_wb_f > 90
       design_oat_wb_f = 90
-      OpenStudio.logFree(OpenStudio::Info, 'openstudio.standards.PlantLoop', "For #{plant_loop.name}, a design OATwb of 90F will be used for sizing the cooling towers because the actual design value is above the limit in G3.1.3.11.")
+      runner.registerInfo("For #{plant_loop.name}, a design OATwb of 90F will be used for sizing the cooling towers because the actual design value is above the limit in G3.1.3.11.")
     end
 
     # Calculate the approach
@@ -820,11 +820,6 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     # ------------------------------------------------
     # replace chiller
     # ------------------------------------------------
-
-    # initialize os standards
-    template = 'ComStock 90.1-2019'
-    std = Standard.build(template)
-
     # loop through chillers
     applicable_chillers.each do |chiller|
       # get chiller condenser type
@@ -879,9 +874,9 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
       end
 
       # get curve objects
-      curve_cap_f_t = model_add_curve(model, 'cap-f-t', custom_data_json, std)
-      curve_eir_f_t = model_add_curve(model, 'eir-f-t', custom_data_json, std)
-      curve_eir_f_plr = model_add_curve(model, 'eir-f-plr', custom_data_json, std)
+      curve_cap_f_t = model_add_curve(model, 'cap-f-t', custom_data_json)
+      curve_eir_f_t = model_add_curve(model, 'eir-f-t', custom_data_json)
+      curve_eir_f_plr = model_add_curve(model, 'eir-f-plr', custom_data_json)
 
       # report
       if debug_verbose
@@ -934,7 +929,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
           std.plant_loop_enable_supply_water_temperature_reset(plant_loop)
         end
         if cw_oat_reset
-          plant_loop_apply_prm_baseline_condenser_water_temperatures(plant_loop)
+          plant_loop_apply_prm_baseline_condenser_water_temperatures(runner, plant_loop)
         end
       end
     end

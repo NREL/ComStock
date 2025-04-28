@@ -603,25 +603,25 @@ class UpgradeHvacChillerTest < Minitest::Test
     # test: 380_doas_with_fan_coil_air_cooled_chiller_with_boiler
     test_sets << {
       model: '380_doas_with_fan_coil_air_cooled_chiller_with_boiler',
-      weather: 'USA_NY_New.York-Central.Park.725033_TMY3', # weather file does not matter with current tests
+      weather: 'NY_New_York_John_F_Ke_744860_16', # weather file does not matter with current tests
       result: 'Success'
     }
     # test: 380_doas_with_fan_coil_chiller_with_boiler
     test_sets << {
       model: '380_doas_with_fan_coil_chiller_with_boiler',
-      weather: 'USA_NY_New.York-Central.Park.725033_TMY3', # weather file does not matter with current tests
+      weather: 'NY_New_York_John_F_Ke_744860_16', # weather file does not matter with current tests
       result: 'Success'
     }
     # test: 380_vav_air_cooled_chiller_with_gas_boiler_reheat
     test_sets << {
       model: '380_vav_air_cooled_chiller_with_gas_boiler_reheat',
-      weather: 'USA_NY_New.York-Central.Park.725033_TMY3', # weather file does not matter with current tests
+      weather: 'NY_New_York_John_F_Ke_744860_16', # weather file does not matter with current tests
       result: 'Success'
     }
     # test: 380_vav_chiller_with_gas_boiler_reheat
     test_sets << {
       model: '380_vav_chiller_with_gas_boiler_reheat',
-      weather: 'USA_NY_New.York-Central.Park.725033_TMY3', # weather file does not matter with current tests
+      weather: 'NY_New_York_John_F_Ke_744860_16', # weather file does not matter with current tests
       result: 'Success'
     }
 
