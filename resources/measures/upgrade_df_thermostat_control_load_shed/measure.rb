@@ -135,6 +135,12 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     cambium_scenario.setDefaultValue('LRMER_MidCase_30')
     args << cambium_scenario
 
+    pv = OpenStudio::Measure::OSArgument.makeBoolArgument('pv', true)
+    pv.setDisplayName('Enable PV upgrade?')
+    pv.setDescription('For upgrade package run.')
+    pv.setDefaultValue(false)
+    args << pv
+
     # apply_measure = OpenStudio::Measure::OSArgument.makeBoolArgument('apply_measure', true)
     # apply_measure.setDisplayName('Apply measure?')
     # apply_measure.setDescription('')
@@ -402,6 +408,7 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
     peak_lag = runner.getIntegerArgumentValue('peak_lag', user_arguments)
     peak_window_strategy = runner.getStringArgumentValue('peak_window_strategy', user_arguments)
     cambium_scenario = runner.getStringArgumentValue('cambium_scenario', user_arguments)
+    pv = runner.getBoolArgumentValue('pv', user_arguments)
     # apply_measure = runner.getBoolArgumentValue('apply_measure', user_arguments)
 
     # # adding output variables (for debugging)
@@ -478,13 +485,31 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
       runner.registerAsNotApplicable('applicability not passed for electric cooling and heating')
       return true
     end
-    runner.registerInitialCondition("The building initially has #{nts} thermostats, of which #{applicable_clg_thermostats.size} are associated with electric cooling and #{applicable_htg_thermostats.size} are associated with electric heating.")
-
+    condition_initial = "The building initially has #{nts} thermostats, of which #{applicable_clg_thermostats.size} are associated with electric cooling and #{applicable_htg_thermostats.size} are associated with electric heating."
+    
     # # applicability: don't apply measure if specified in input
     # if apply_measure == false
     #   runner.registerFinalCondition('Measure is not applied based on user input.')
     #   return true
     # end
+
+    ############################################
+    # Call PV upgrade measure based on user input
+    ############################################
+    condition_initial_pv = ''
+    condition_final_pv = ''
+    if pv == true
+      runner.registerInfo('Running PV measure....')
+      results_pv, runner = call_pv(model, runner)
+      condition_initial_pv = results_pv.stepInitialCondition.get
+      condition_final_pv = results_pv.stepFinalCondition.get
+    end
+
+    ############################################
+    # Register initial condition
+    ############################################
+    condition_initial = [condition_initial, condition_initial_pv].reject(&:empty?).join(" | ")
+    runner.registerInitialCondition(condition_initial)
 
     ############################################
     # Load prediction
@@ -624,7 +649,13 @@ class DfThermostatControlLoadShed < OpenStudio::Measure::ModelMeasure
       puts('### Updating thermostat cooling setpoint schedule...')
       nts_htg = assign_heatsch_to_thermostats(model, applicable_htg_thermostats, runner, heatsp_adjustment_values)
     end
-    runner.registerFinalCondition("Updated #{nts_clg}/#{applicable_clg_thermostats.size} thermostat cooling setpoint schedules and #{nts_htg}/#{applicable_htg_thermostats.size} thermostat heating setpoint schedules to model, with #{sp_adjustment.abs} degree C setback for #{peak_len} hours of daily peak window and rebound in #{rebound_len} hours after peak, using #{load_prediction_method} simulation for load prediction")
+    condition_final = "Updated #{nts_clg}/#{applicable_clg_thermostats.size} thermostat cooling setpoint schedules and #{nts_htg}/#{applicable_htg_thermostats.size} thermostat heating setpoint schedules to model, with #{sp_adjustment.abs} degree C setback for #{peak_len} hours of daily peak window and rebound in #{rebound_len} hours after peak, using #{load_prediction_method} simulation for load prediction"
+    
+    ############################################
+    # Register final condition
+    ############################################
+    condition_final = [condition_final, condition_final_pv].reject(&:empty?).join(" | ")
+    runner.registerFinalCondition(condition_final)
     return true
   end
 end

@@ -77,7 +77,8 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
 
     light_adjustment_choices = ['absolute change', 'relative change']
     light_adjustment_method = OpenStudio::Ruleset::OSArgument.makeChoiceArgument('light_adjustment_method', light_adjustment_choices, true)
-    light_adjustment_method.setDisplayName('Method of lighting dimming (absolute change, relative change)')
+    light_adjustment_method.setDisplayName("Method of lighting dimming (absolute change, relative change)")
+    light_adjustment_method.setDescription("absolute change: percent change relative to fully ON lighting; relative change: percent change relative to current dimming level")
     light_adjustment_method.setDefaultValue('absolute change')
     args << light_adjustment_method
 
@@ -99,13 +100,14 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     args << load_prediction_method
 
     peak_lag = OpenStudio::Measure::OSArgument.makeIntegerArgument('peak_lag', true)
-    peak_lag.setDisplayName('Time lag of peak responding to temperature peak (hour), for oat prediction method only')
+    peak_lag.setDisplayName("Time lag of peak responding to temperature peak (hour)")
+    peak_lag.setDescription("For OAT prediction method only")
     peak_lag.setDefaultValue(2)
     args << peak_lag
 
     choices_strate = ['max savings', 'start with peak', 'end with peak', 'center with peak']
     peak_window_strategy = OpenStudio::Ruleset::OSArgument.makeChoiceArgument('peak_window_strategy', choices_strate, true)
-    peak_window_strategy.setDisplayName('Method of determining peak windows (max savings, start with peak, end with peak, center with peak)')
+    peak_window_strategy.setDisplayName("Peak windows determination strategy (max savings, start with peak, end with peak, center with peak)")
     peak_window_strategy.setDefaultValue('center with peak')
     args << peak_window_strategy
 
@@ -133,9 +135,16 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
       'LRMER_MidCase_25_2025start'
     ]
     cambium_scenario = OpenStudio::Ruleset::OSArgument.makeChoiceArgument('cambium_scenario', choices_scenarios, true)
-    cambium_scenario.setDisplayName('Cambium emission scenario')
+    cambium_scenario.setDisplayName("Cambium scenario of emission factor")
+    cambium_scenario.setDescription("For emission objective only")
     cambium_scenario.setDefaultValue('LRMER_MidCase_15')
     args << cambium_scenario
+
+    pv = OpenStudio::Measure::OSArgument.makeBoolArgument('pv', true)
+    pv.setDisplayName('Enable PV upgrade?')
+    pv.setDescription('For upgrade package run.')
+    pv.setDefaultValue(false)
+    args << pv
 
     # apply_measure = OpenStudio::Measure::OSArgument.makeBoolArgument('apply_measure', true)
     # apply_measure.setDisplayName('Apply measure?')
@@ -338,6 +347,7 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     peak_lag = runner.getIntegerArgumentValue('peak_lag', user_arguments)
     peak_window_strategy = runner.getStringArgumentValue('peak_window_strategy', user_arguments)
     cambium_scenario = runner.getStringArgumentValue('cambium_scenario', user_arguments)
+    pv = runner.getBoolArgumentValue('pv', user_arguments)
     # apply_measure = runner.getBoolArgumentValue('apply_measure', user_arguments)
 
     # # adding output variables (for debugging)
@@ -401,13 +411,31 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
       runner.registerAsNotApplicable('applicability not passed for building type')
       return true
     end
-    runner.registerInitialCondition('The building is applicable for this measure.')
-
+    
     # # applicability: don't apply measure if specified in input
     # if apply_measure == false
     #   runner.registerFinalCondition('Measure is not applied based on user input.')
     #   return true
     # end
+
+    ############################################
+    # Call PV upgrade measure based on user input
+    ############################################
+    condition_initial_pv = ''
+    condition_final_pv = ''
+    if pv == true
+      runner.registerInfo('Running PV measure....')
+      results_pv, runner = call_pv(model, runner)
+      condition_initial_pv = results_pv.stepInitialCondition.get
+      condition_final_pv = results_pv.stepFinalCondition.get
+    end
+
+    ############################################
+    # Register initial condition
+    ############################################
+    condition_initial = "The building is applicable for the demand flexibility lighting control measure."
+    condition_initial = [condition_initial, condition_initial_pv].reject(&:empty?).join(" | ")
+    runner.registerInitialCondition(condition_initial)
 
     ############################################
     # Load prediction
@@ -536,7 +564,12 @@ class DFLightingControl < OpenStudio::Measure::ModelMeasure
     puts('### Updating lighting schedule...')
     nl, nla = adjust_lighting_sch(model, runner, light_adjustment_method, light_adj_values)
 
-    runner.registerFinalCondition("Updated #{nla}/#{nl} lighting schedules")
+    ############################################
+    # Register final condition
+    ############################################
+    condition_final = "Updated #{nla}/#{nl} lighting schedules."
+    condition_final = [condition_final, condition_final_pv].reject(&:empty?).join(" | ")
+    runner.registerFinalCondition(condition_final)
     return true
   end
 end

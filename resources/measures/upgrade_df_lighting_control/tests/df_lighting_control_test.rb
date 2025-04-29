@@ -248,6 +248,11 @@ class DFLightingControlTest < Minitest::Test
       assert(cambium_scenario.setValue('LRMER_MidCase_15'))#
       argument_map['cambium_scenario'] = cambium_scenario
 
+      # set arguments:
+      pv = arguments[9].clone
+      assert(pv.setValue(true))#
+      argument_map['pv'] = pv
+      
       # store baseline schedule for check later
       lights = model.getLightss
       light_schedules = {}

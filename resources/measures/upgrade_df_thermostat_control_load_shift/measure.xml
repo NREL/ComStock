@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>df_thermostat_control_load_shift</name>
   <uid>5aa9a6e4-0f3d-44f7-bf50-97686603a657</uid>
-  <version_id>84e03ef5-b830-4417-aa85-af9dc1d03110</version_id>
-  <version_modified>2025-03-12T17:56:46Z</version_modified>
+  <version_id>a49f5ec0-3294-4f75-a398-941506729c55</version_id>
+  <version_modified>2025-04-24T16:08:13Z</version_modified>
   <xml_checksum>D7E77FC2</xml_checksum>
   <class_name>DfThermostatControlLoadShift</class_name>
   <display_name>demand flexibility - thermostat control load shift</display_name>
@@ -13,7 +13,7 @@
   <arguments>
     <argument>
       <name>demand_flexibility_objective</name>
-      <display_name>Objective of demand flexibility control (peak load, grid peak load, emission, utility bill cost, operational cost)</display_name>
+      <display_name>Objective of demand flexibility control (peak load, grid peak load, emissions, utility bill cost, operational cost)</display_name>
       <type>Choice</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -28,8 +28,8 @@
           <display_name>grid peak load</display_name>
         </choice>
         <choice>
-          <value>emission</value>
-          <display_name>emission</display_name>
+          <value>emissions</value>
+          <display_name>emissions</display_name>
         </choice>
         <choice>
           <value>utility bill cost</value>
@@ -195,7 +195,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>F9BFD989</checksum>
+      <checksum>9A386CD5</checksum>
     </file>
     <file>
       <filename>cambium/Load_MidCase_2035/AZNMc.csv</filename>
@@ -321,13 +321,13 @@
       <filename>dispatch_schedule_generation.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>DE2FFAB4</checksum>
+      <checksum>5F8845A4</checksum>
     </file>
     <file>
       <filename>df_thermostat_control_load_shift_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>1FAD50DC</checksum>
+      <checksum>F55AEEA3</checksum>
     </file>
   </files>
 </measure>
