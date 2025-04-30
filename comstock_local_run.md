@@ -6,7 +6,7 @@ Clone [buildstockbatch](https://github.com/NREL/buildstockbatch) onto your compu
 
 Switch to the `ccaradonna/comstock-24-03` branch **TODO remove this step once this branch is merged into buildstockbatch**
 
-Create a new conda environment with **python 3.9** or above (only need to do this once):
+Create a new conda environment with **python 3.11** or above (only need to do this once):
 ```
 $ conda create -y -n buildstockbatch python=3.11 pip
 $ conda activate buildstockbatch
