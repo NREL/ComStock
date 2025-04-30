@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>hvac_hydronic_gshp</name>
   <uid>adf35b50-ba8d-416a-b6a2-b23a9ef8df0e</uid>
-  <version_id>5a8d9144-79a6-446f-9646-a9569b832350</version_id>
-  <version_modified>2024-07-17T20:28:46Z</version_modified>
+  <version_id>4aee3e2b-e8bc-4bc4-a9dc-99bc9a3361a6</version_id>
+  <version_modified>2025-04-02T18:01:07Z</version_modified>
   <xml_checksum>F0147A36</xml_checksum>
   <class_name>HVACHydronicGSHP</class_name>
   <display_name>Replace Boiler and Chiller with Hydronic GSHP</display_name>
@@ -98,6 +98,78 @@
       <model_dependent>false</model_dependent>
       <default_value>2.85</default_value>
     </argument>
+    <argument>
+      <name>walls</name>
+      <display_name>Upgrade Wall Insulation?</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>roof</name>
+      <display_name>Upgrade Roof Insulation?</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>windows</name>
+      <display_name>Upgrade to New Windows?</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>lighting</name>
+      <display_name>Upgrade to LED Lighting?</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
   </arguments>
   <outputs />
   <provenances />
@@ -152,7 +224,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>5630B2E3</checksum>
+      <checksum>EC4F167D</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -169,13 +241,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>49F95C8F</checksum>
-    </file>
-    <file>
-      <filename>Carrier_30WG_90kW_clg._markupcsv.csv</filename>
-      <filetype>csv</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>3CFAA815</checksum>
+      <checksum>5893D644</checksum>
     </file>
     <file>
       <filename>Carrier_30WG_90kW_clg.csv</filename>
@@ -202,16 +268,22 @@
       <checksum>2D839C82</checksum>
     </file>
     <file>
+      <filename>call_other_measures.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>1A7627E1</checksum>
+    </file>
+    <file>
       <filename>performance_curves.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>160082B9</checksum>
+      <checksum>2F50FC06</checksum>
     </file>
     <file>
       <filename>hydronic_gthp_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>AC78E80B</checksum>
+      <checksum>CC14F81B</checksum>
     </file>
   </files>
 </measure>
