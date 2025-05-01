@@ -94,8 +94,7 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   # applies the measure and then runs the model
-  def set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false,
-                                            model: nil, apply: true, expected_results: 'Success')
+  def set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false, model: nil, apply: true, expected_results: 'Success')
     assert(File.exist?(osm_path))
     assert(File.exist?(epw_path))
     ddy_path = "#{epw_path.gsub('.epw', '')}.ddy"
@@ -148,13 +147,13 @@ class AddHeatPumpRtuTest < Minitest::Test
           /October .4. Condns DB=>MCWB/
         ]
         ddy_list.each do |ddy_name_regex|
-          next unless d.name.get.to_s.match?(ddy_name_regex)
+          if d.name.get.to_s.match?(ddy_name_regex)
+            runner.registerInfo("Adding object #{d.name}")
 
-          runner.registerInfo("Adding object #{d.name}")
-
-          # add the object to the existing model
-          model.addObject(d.clone)
-          break
+            # add the object to the existing model
+            model.addObject(d.clone)
+            break
+          end
         end
       end
 
@@ -167,7 +166,7 @@ class AddHeatPumpRtuTest < Minitest::Test
       puts "\nAPPLYING MEASURE..."
       measure.run(model, runner, argument_map)
       result = runner.result
-      result.value.valueName
+      result_success = result.value.valueName == 'Success'
       assert_equal(expected_results, result.value.valueName)
 
       # Show the output
@@ -195,13 +194,13 @@ class AddHeatPumpRtuTest < Minitest::Test
       'Site Outdoor Air Drybulb Temperature',
       'Heating Coil Crankcase Heater Electricity Rate',
       'Heating Coil Defrost Electricity Rate',
-      'Zone Windows Total Transmitted Solar Radiation Rate'
+      'Zone Windows Total Transmitted Solar Radiation Rate',
     ]
     out_vars.each do |out_var_name|
-      ov = OpenStudio::Model::OutputVariable.new('ov', model)
-      ov.setKeyValue('*')
-      ov.setReportingFrequency('hourly')
-      ov.setVariableName(out_var_name)
+        ov = OpenStudio::Model::OutputVariable.new('ov', model)
+        ov.setKeyValue('*')
+        ov.setReportingFrequency('hourly')
+        ov.setVariableName(out_var_name)
     end
     model.getOutputControlFiles.setOutputCSV(true)
 
@@ -252,7 +251,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert_equal('window', arguments[11].name)
     assert_equal('sizing_run', arguments[12].name)
     assert_equal('debug_verbose', arguments[13].name)
-    assert_equal('modify_setbacks', arguments[14].name)
+	assert_equal('modify_setbacks', arguments[14].name)
     assert_equal('setback_value', arguments[15].name)
   end
 
@@ -266,14 +265,14 @@ class AddHeatPumpRtuTest < Minitest::Test
 
       # Extract and sort data_point keys numerically
       points = table.select { |k, _| k.to_s.match?(/^data_point\d+$/) }
-                    .sort_by { |k, _| k.to_s.match(/\d+/)[0].to_i }
-                    .map { |_, v| v.split(',').first(2).map(&:to_f) }
+          .sort_by { |k, _| k.to_s.match(/\d+/)[0].to_i }
+          .map { |_, v| v.split(',').first(2).map(&:to_f) }
 
       # Now check if x2 varies first (should see repeated x1s for several rows)
-      points.transpose
+      x1s, x2s = points.transpose
 
       # Build pairs and check how they vary
-      points[0]
+      last_x1, last_x2 = points[0]
       x1_first_changes = 0
       x2_first_changes = 0
 
@@ -286,7 +285,7 @@ class AddHeatPumpRtuTest < Minitest::Test
       end
 
       # If x1 changes more frequently while x2 is stable, the ordering is wrong
-      assert(x2_first_changes >= x1_first_changes, 'Invalid data point order: x1 varies before x2 in some cases')
+      assert(x2_first_changes >= x1_first_changes, "Invalid data point order: x1 varies before x2 in some cases")
     end
   end
 
@@ -298,18 +297,20 @@ class AddHeatPumpRtuTest < Minitest::Test
     path_to_jsons = "#{__dir__}/../resources/*.json"
     json_files = Dir.glob(path_to_jsons)
     json_files.each do |file_path|
-      content = File.read(file_path)
-      hash = JSON.parse(content, symbolize_names: true)
-      puts("### checking json file: #{file_path}")
+      begin
+        content = File.read(file_path)
+        hash = JSON.parse(content, symbolize_names: true)
+        puts("### checking json file: #{file_path}")
 
-      # Now `hash` is your Ruby hash from JSON
-      # You can insert your test logic here
-      assert(hash[:tables], "Missing :tables key in #{file_path}")
+        # Now `hash` is your Ruby hash from JSON
+        # You can insert your test logic here
+        assert(hash[:tables], "Missing :tables key in #{file_path}")
 
-      # check lookup table format
-      data_point_ordering_check(hash)
-    rescue JSON::ParserError => e
-      flunk "JSON parsing failed for #{file_path}: #{e.message}"
+        # check lookup table format
+        data_point_ordering_check(hash)
+      rescue JSON::ParserError => e
+        flunk "JSON parsing failed for #{file_path}: #{e.message}"
+      end
     end
   end
 
@@ -334,10 +335,8 @@ class AddHeatPumpRtuTest < Minitest::Test
       cfm_per_ton = rated_airflow_cfm / rated_capacity_ton
 
       # check if resultant cfm/ton is violating min/max bounds
-      assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true,
-                   "cfm_per_ton (#{cfm_per_ton}) is not larger than the threshold of cfm_per_ton_min (#{cfm_per_ton_min})")
-      assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true,
-                   "cfm_per_ton (#{cfm_per_ton}) is not smaller than the threshold of cfm_per_ton_max (#{cfm_per_ton_max})")
+      assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true, "cfm_per_ton (#{cfm_per_ton}) is not larger than the threshold of cfm_per_ton_min (#{cfm_per_ton_min})")
+      assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true, "cfm_per_ton (#{cfm_per_ton}) is not smaller than the threshold of cfm_per_ton_max (#{cfm_per_ton_max})")
     end
   end
 
@@ -362,10 +361,8 @@ class AddHeatPumpRtuTest < Minitest::Test
       cfm_per_ton = rated_airflow_cfm / rated_capacity_ton
 
       # check if resultant cfm/ton is violating min/max bounds
-      assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true,
-                   "cfm_per_ton (#{cfm_per_ton}) is not larger than the threshold of cfm_per_ton_min (#{cfm_per_ton_min})")
-      assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true,
-                   "cfm_per_ton (#{cfm_per_ton}) is not smaller than the threshold of cfm_per_ton_max (#{cfm_per_ton_max})")
+      assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true, "cfm_per_ton (#{cfm_per_ton}) is not larger than the threshold of cfm_per_ton_min (#{cfm_per_ton_min})")
+      assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true, "cfm_per_ton (#{cfm_per_ton}) is not smaller than the threshold of cfm_per_ton_max (#{cfm_per_ton_max})")
     end
   end
 
@@ -390,10 +387,8 @@ class AddHeatPumpRtuTest < Minitest::Test
       cfm_per_ton = rated_airflow_cfm / rated_capacity_ton
 
       # check if resultant cfm/ton is violating min/max bounds
-      assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true,
-                   "cfm_per_ton (#{cfm_per_ton}) is not larger than the threshold of cfm_per_ton_min (#{cfm_per_ton_min})")
-      assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true,
-                   "cfm_per_ton (#{cfm_per_ton}) is not smaller than the threshold of cfm_per_ton_max (#{cfm_per_ton_max})")
+      assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true, "cfm_per_ton (#{cfm_per_ton}) is not larger than the threshold of cfm_per_ton_min (#{cfm_per_ton_min})")
+      assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true, "cfm_per_ton (#{cfm_per_ton}) is not smaller than the threshold of cfm_per_ton_max (#{cfm_per_ton_max})")
     end
   end
 
@@ -403,7 +398,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     cfm_per_ton_max = 450
 
     # Create an instance of the measure
-    AddHeatPumpRtu.new
+    measure = AddHeatPumpRtu.new
 
     # initialize parameters
     performance_category = nil
@@ -460,20 +455,19 @@ class AddHeatPumpRtuTest < Minitest::Test
       sizing_system.setSystemOutdoorAirMethod('ZoneSum')
     end
 
-    model
+    return model
   end
 
   def verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
     # set weather file but not apply measure
-    set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path,
-                                          run_model: false, apply: false)
+    result = set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false, apply: false)
     model = load_model(model_output_path(test_name))
 
     # hardsize model
     model = _mimic_hardsize_model(model, "#{run_dir(test_name)}/SR_before")
 
     # get initial gas heating coils
-    model.getCoilHeatingGass
+    li_gas_htg_coils_initial = model.getCoilHeatingGass
 
     # get initial number of applicable air loops
     li_unitary_sys_initial = model.getAirLoopHVACUnitarySystems
@@ -494,13 +488,12 @@ class AddHeatPumpRtuTest < Minitest::Test
 
       # get min/max outdoor air flow rate
       min_oa = controller_oa.minimumOutdoorAirFlowRate.get
-      controller_oa.maximumOutdoorAirFlowRate.get
+      max_oa = controller_oa.maximumOutdoorAirFlowRate.get
       dict_min_oa_initial[thermal_zone.name.to_s] = min_oa
     end
 
     # set weather file and apply measure
-    result = set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path,
-                                                   run_model: false, apply: true)
+    result = set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
     model = load_model(model_output_path(test_name))
 
     # hardsize model
@@ -522,6 +515,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     # these will be compared against original system
     dict_oa_sched_min_final = {}
     dict_min_oa_final = {}
+    dict_max_oa_final = {}
     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
       # get thermal zone for dictionary mapping
       thermal_zone = air_loop_hvac.thermalZones[0]
@@ -534,15 +528,14 @@ class AddHeatPumpRtuTest < Minitest::Test
 
       # get min/max outdoor air flow rate
       min_oa = controller_oa.minimumOutdoorAirFlowRate.get
-      controller_oa.maximumOutdoorAirFlowRate.get
+      max_oa = controller_oa.maximumOutdoorAirFlowRate.get
       dict_min_oa_final[thermal_zone.name.to_s] = min_oa
     end
 
     # assert outdoor air values match between initial and new system
     model.getThermalZones.sort.each do |thermal_zone|
       assert_equal(dict_oa_sched_min_initial[thermal_zone.name.to_s], dict_oa_sched_min_final[thermal_zone.name.to_s])
-      assert_in_epsilon(dict_min_oa_initial[thermal_zone.name.to_s].to_f,
-                        dict_min_oa_final[thermal_zone.name.to_s].to_f, 0.001)
+      assert_in_epsilon(dict_min_oa_initial[thermal_zone.name.to_s].to_f, dict_min_oa_final[thermal_zone.name.to_s].to_f, 0.001)
     end
 
     # assert characteristics of new unitary systems
@@ -632,12 +625,11 @@ class AddHeatPumpRtuTest < Minitest::Test
       if model.version > OpenStudio::VersionString.new('3.4.0')
         coil_design_cop = coil.ratedCOP
       else
-        raise "'Rated COP' not available for DX coil '#{coil.name}'." unless coil.ratedCOP.is_initialized
-
-        coil_design_cop = coil.ratedCOP.get
-
-
-
+        if coil.ratedCOP.is_initialized
+          coil_design_cop = coil.ratedCOP.get
+        else
+          raise "'Rated COP' not available for DX coil '#{coil.name}'."
+        end
       end
     elsif coil.to_CoilCoolingDXTwoSpeed.is_initialized
       coil = coil.to_CoilCoolingDXTwoSpeed.get
@@ -655,14 +647,11 @@ class AddHeatPumpRtuTest < Minitest::Test
       if model.version > OpenStudio::VersionString.new('3.4.0')
         coil_design_cop = coil.ratedHighSpeedCOP
       else
-        unless coil.ratedHighSpeedCOP.is_initialized
+        if coil.ratedHighSpeedCOP.is_initialized
+          coil_design_cop = coil.ratedHighSpeedCOP.get
+        else
           raise "'Rated High Speed COP' not available for DX coil '#{coil.name}'."
         end
-
-        coil_design_cop = coil.ratedHighSpeedCOP.get
-
-
-
       end
     elsif coil.to_CoilCoolingDXMultiSpeed.is_initialized
       coil = coil.to_CoilCoolingDXMultiSpeed.get
@@ -704,10 +693,10 @@ class AddHeatPumpRtuTest < Minitest::Test
       raise 'Design capacity is only available for DX cooling coil types CoilCoolingDXSingleSpeed, CoilCoolingDXTwoSpeed, CoilCoolingDXMultiSpeed, CoilCoolingDXVariableSpeed.'
     end
 
-    [capacity_w, coil_design_cop]
+    return capacity_w, coil_design_cop
   end
 
-  def get_heating_coil_capacity_and_cop(_model, coil)
+  def get_heating_coil_capacity_and_cop(model, coil)
     # get coil rated capacity and cop
     capacity_w = 0.0
     coil_design_cop = 0.0
@@ -760,7 +749,7 @@ class AddHeatPumpRtuTest < Minitest::Test
       raise 'Design COP and capacity for DX heating coil unavailable because of unrecognized coil type.'
     end
 
-    [capacity_w, coil_design_cop]
+    return capacity_w, coil_design_cop
   end
 
   def get_sizing_summary(model)
@@ -771,10 +760,8 @@ class AddHeatPumpRtuTest < Minitest::Test
 
       # get airflows
       sizing_summary['AirLoopHVACUnitarySystem'][name_obj] = {}
-      sizing_summary['AirLoopHVACUnitarySystem'][name_obj]['supplyAirFlowRateDuringCoolingOperation'] =
-        airloophvacunisys.supplyAirFlowRateDuringCoolingOperation.get
-      sizing_summary['AirLoopHVACUnitarySystem'][name_obj]['supplyAirFlowRateDuringHeatingOperation'] =
-        airloophvacunisys.supplyAirFlowRateDuringHeatingOperation.get
+      sizing_summary['AirLoopHVACUnitarySystem'][name_obj]['supplyAirFlowRateDuringCoolingOperation'] = airloophvacunisys.supplyAirFlowRateDuringCoolingOperation.get
+      sizing_summary['AirLoopHVACUnitarySystem'][name_obj]['supplyAirFlowRateDuringHeatingOperation'] = airloophvacunisys.supplyAirFlowRateDuringHeatingOperation.get
 
       # get coil capacity: cooling
       coil = airloophvacunisys.coolingCoil.get
@@ -800,8 +787,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
       # get airflows
       sizing_summary['ControllerOutdoorAir'][name_obj] = {}
-      sizing_summary['ControllerOutdoorAir'][name_obj]['maximumOutdoorAirFlowRate'] =
-        ctrloa.maximumOutdoorAirFlowRate.get
+      sizing_summary['ControllerOutdoorAir'][name_obj]['maximumOutdoorAirFlowRate'] = ctrloa.maximumOutdoorAirFlowRate.get
     end
     sizing_summary
   end
@@ -815,28 +801,24 @@ class AddHeatPumpRtuTest < Minitest::Test
       # check airflow: cooling
       value_before = sizing_summary_reference['AirLoopHVACUnitarySystem'][name_obj]['supplyAirFlowRateDuringCoolingOperation']
       value_after = airloophvacunisys.supplyAirFlowRateDuringCoolingOperation.get
-      assert_in_epsilon(value_before, value_after, 0.000001,
-                        "values do not match: AirLoopHVACUnitarySystem | #{name_obj} | supplyAirFlowRateDuringCoolingOperation")
+      assert_in_epsilon(value_before, value_after, 0.000001, "values do not match: AirLoopHVACUnitarySystem | #{name_obj} | supplyAirFlowRateDuringCoolingOperation")
 
       # check airflow: heating
       value_before = sizing_summary_reference['AirLoopHVACUnitarySystem'][name_obj]['supplyAirFlowRateDuringHeatingOperation']
       value_after = airloophvacunisys.supplyAirFlowRateDuringHeatingOperation.get
-      assert_in_epsilon(value_before, value_after, 0.000001,
-                        "values do not match: AirLoopHVACUnitarySystem | #{name_obj} | supplyAirFlowRateDuringHeatingOperation")
+      assert_in_epsilon(value_before, value_after, 0.000001, "values do not match: AirLoopHVACUnitarySystem | #{name_obj} | supplyAirFlowRateDuringHeatingOperation")
 
       # check capacity: cooling
       coil = airloophvacunisys.coolingCoil.get
       value_before = sizing_summary_reference['AirLoopHVACUnitarySystem'][name_obj]['cooling_coil_capacity_w']
       value_after, = get_cooling_coil_capacity_and_cop(model, coil)
-      assert_in_epsilon(value_before, value_after, 0.000001,
-                        "values do not match: AirLoopHVACUnitarySystem | #{name_obj} | cooling_coil_capacity_w")
+      assert_in_epsilon(value_before, value_after, 0.000001, "values do not match: AirLoopHVACUnitarySystem | #{name_obj} | cooling_coil_capacity_w")
 
       # check capacity: heating
       coil = airloophvacunisys.heatingCoil.get
       value_before = sizing_summary_reference['AirLoopHVACUnitarySystem'][name_obj]['heating_coil_capacity_w']
       value_after, = get_heating_coil_capacity_and_cop(model, coil)
-      assert_in_epsilon(value_before, value_after, 0.000001,
-                        "values do not match: AirLoopHVACUnitarySystem | #{name_obj} | heating_coil_capacity_w")
+      assert_in_epsilon(value_before, value_after, 0.000001, "values do not match: AirLoopHVACUnitarySystem | #{name_obj} | heating_coil_capacity_w")
     end
     model.getAirLoopHVACs.each do |airloophvac|
       name_obj = airloophvac.name.to_s
@@ -844,8 +826,7 @@ class AddHeatPumpRtuTest < Minitest::Test
       # check airflow
       value_before = sizing_summary_reference['AirLoopHVAC'][name_obj]['designSupplyAirFlowRate']
       value_after = airloophvac.designSupplyAirFlowRate.get
-      assert_in_epsilon(value_before, value_after, 0.000001,
-                        "values do not match: AirLoopHVAC | #{name_obj} | designSupplyAirFlowRate")
+      assert_in_epsilon(value_before, value_after, 0.000001, "values do not match: AirLoopHVAC | #{name_obj} | designSupplyAirFlowRate")
     end
     model.getControllerOutdoorAirs.each do |ctrloa|
       name_obj = ctrloa.name.to_s
@@ -853,8 +834,7 @@ class AddHeatPumpRtuTest < Minitest::Test
       # check airflow
       value_before = sizing_summary_reference['ControllerOutdoorAir'][name_obj]['maximumOutdoorAirFlowRate']
       value_after = ctrloa.maximumOutdoorAirFlowRate.get
-      assert_in_epsilon(value_before, value_after, 0.000001,
-                        "values do not match: ControllerOutdoorAir | #{name_obj} | maximumOutdoorAirFlowRate")
+      assert_in_epsilon(value_before, value_after, 0.000001, "values do not match: ControllerOutdoorAir | #{name_obj} | maximumOutdoorAirFlowRate")
     end
   end
 
@@ -869,16 +849,14 @@ class AddHeatPumpRtuTest < Minitest::Test
       value_before = sizing_summary_reference['AirLoopHVACUnitarySystem'][name_obj]['cooling_coil_capacity_w']
       value_after, = get_cooling_coil_capacity_and_cop(model, coil)
       relative_difference = (value_after - value_before) / value_before
-      assert_in_epsilon(relative_difference, 0.25, 0.01,
-                        "values difference not close to threshold: AirLoopHVACUnitarySystem | #{name_obj} | cooling_coil_capacity_w")
+      assert_in_epsilon(relative_difference, 0.25, 0.01, "values difference not close to threshold: AirLoopHVACUnitarySystem | #{name_obj} | cooling_coil_capacity_w")
 
       # check capacity: heating
       coil = airloophvacunisys.heatingCoil.get
       value_before = sizing_summary_reference['AirLoopHVACUnitarySystem'][name_obj]['heating_coil_capacity_w']
       value_after, = get_heating_coil_capacity_and_cop(model, coil)
       relative_difference = (value_after - value_before) / value_before
-      assert_in_epsilon(relative_difference, 0.25, 0.01,
-                        "values difference not close to threshold: AirLoopHVACUnitarySystem | #{name_obj} | heating_coil_capacity_w")
+      assert_in_epsilon(relative_difference, 0.25, 0.01, "values difference not close to threshold: AirLoopHVACUnitarySystem | #{name_obj} | heating_coil_capacity_w")
     end
     model.getAirLoopHVACs.each do |airloophvac|
       name_obj = airloophvac.name.to_s
@@ -886,8 +864,7 @@ class AddHeatPumpRtuTest < Minitest::Test
       # check airflow
       value_before = sizing_summary_reference['AirLoopHVAC'][name_obj]['designSupplyAirFlowRate']
       value_after = airloophvac.designSupplyAirFlowRate.get
-      assert_in_epsilon(value_after, value_before, 0.01,
-                        "values difference not within threshold: AirLoopHVAC | #{name_obj} | designSupplyAirFlowRate")
+      assert_in_epsilon(value_after, value_before, 0.01, "values difference not within threshold: AirLoopHVAC | #{name_obj} | designSupplyAirFlowRate")
     end
     model.getControllerOutdoorAirs.each do |ctrloa|
       name_obj = ctrloa.name.to_s
@@ -895,8 +872,7 @@ class AddHeatPumpRtuTest < Minitest::Test
       # check airflow
       value_before = sizing_summary_reference['ControllerOutdoorAir'][name_obj]['maximumOutdoorAirFlowRate']
       value_after = ctrloa.maximumOutdoorAirFlowRate.get
-      assert_in_epsilon(value_after, value_before, 0.01,
-                        "values difference not within threshold: AirLoopHVAC | #{name_obj} | maximumOutdoorAirFlowRate")
+      assert_in_epsilon(value_after, value_before, 0.01, "values difference not within threshold: AirLoopHVAC | #{name_obj} | maximumOutdoorAirFlowRate")
     end
   end
 
@@ -921,10 +897,8 @@ class AddHeatPumpRtuTest < Minitest::Test
       cfm_per_ton = rated_airflow_cfm / rated_capacity_ton
 
       # check if resultant cfm/ton is violating min/max bounds
-      assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true,
-                   "cfm_per_ton (#{cfm_per_ton}) is not larger than the threshold of cfm_per_ton_min (#{cfm_per_ton_min}) | heating_coil = #{heating_coil.name}")
-      assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true,
-                   "cfm_per_ton (#{cfm_per_ton}) is not smaller than the threshold of cfm_per_ton_max (#{cfm_per_ton_max}) | heating_coil = #{heating_coil.name}")
+      assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true, "cfm_per_ton (#{cfm_per_ton}) is not larger than the threshold of cfm_per_ton_min (#{cfm_per_ton_min}) | heating_coil = #{heating_coil.name}")
+      assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true, "cfm_per_ton (#{cfm_per_ton}) is not smaller than the threshold of cfm_per_ton_max (#{cfm_per_ton_max}) | heating_coil = #{heating_coil.name}")
     end
   end
 
@@ -949,10 +923,8 @@ class AddHeatPumpRtuTest < Minitest::Test
       cfm_per_ton = rated_airflow_cfm / rated_capacity_ton
 
       # check if resultant cfm/ton is violating min/max bounds
-      assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true,
-                   "cfm_per_ton (#{cfm_per_ton}) is not larger than the threshold of cfm_per_ton_min (#{cfm_per_ton_min}) | heating_coil = #{heating_coil.name}")
-      assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true,
-                   "cfm_per_ton (#{cfm_per_ton}) is not smaller than the threshold of cfm_per_ton_max (#{cfm_per_ton_max}) | heating_coil = #{heating_coil.name}")
+      assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true, "cfm_per_ton (#{cfm_per_ton}) is not larger than the threshold of cfm_per_ton_min (#{cfm_per_ton_min}) | heating_coil = #{heating_coil.name}")
+      assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true, "cfm_per_ton (#{cfm_per_ton}) is not smaller than the threshold of cfm_per_ton_max (#{cfm_per_ton_max}) | heating_coil = #{heating_coil.name}")
     end
   end
 
@@ -977,10 +949,8 @@ class AddHeatPumpRtuTest < Minitest::Test
       cfm_per_ton = rated_airflow_cfm / rated_capacity_ton
 
       # check if resultant cfm/ton is violating min/max bounds
-      assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true,
-                   "cfm_per_ton (#{cfm_per_ton}) is not larger than the threshold of cfm_per_ton_min (#{cfm_per_ton_min}) | cooling_coil = #{cooling_coil.name}")
-      assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true,
-                   "cfm_per_ton (#{cfm_per_ton}) is not smaller than the threshold of cfm_per_ton_max (#{cfm_per_ton_max}) | cooling_coil = #{cooling_coil.name}")
+      assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true, "cfm_per_ton (#{cfm_per_ton}) is not larger than the threshold of cfm_per_ton_min (#{cfm_per_ton_min}) | cooling_coil = #{cooling_coil.name}")
+      assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true, "cfm_per_ton (#{cfm_per_ton}) is not smaller than the threshold of cfm_per_ton_max (#{cfm_per_ton_max}) | cooling_coil = #{cooling_coil.name}")
     end
   end
 
@@ -990,7 +960,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     cfm_per_ton_max = 450
 
     # Create an instance of the measure
-    AddHeatPumpRtu.new
+    measure = AddHeatPumpRtu.new
 
     # initialize parameters
     performance_category = nil
@@ -1139,17 +1109,16 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # populate specific argument for testing: regular sizing scenario
     arguments.each_with_index do |arg, idx|
-      arg.clone
-      next unless arg.name == 'performance_oversizing_factor'
-
-      performance_oversizing_factor = arguments[idx].clone
-      performance_oversizing_factor.setValue(0.0)
-      argument_map[arg.name] = performance_oversizing_factor
+      temp_arg_var = arg.clone
+      if arg.name == 'performance_oversizing_factor'
+        performance_oversizing_factor = arguments[idx].clone
+        performance_oversizing_factor.setValue(0.0)
+        argument_map[arg.name] = performance_oversizing_factor
+      end
     end
 
     # Apply the measure to the model and optionally run the model
-    set_weather_and_apply_measure_and_run("#{test_name}_b", measure, argument_map, osm_path, epw_path,
-                                          run_model: false, apply: true)
+    result = set_weather_and_apply_measure_and_run("#{test_name}_b", measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
     model = load_model(model_output_path("#{test_name}_b"))
 
     # get sizing info from regular sized model
@@ -1157,24 +1126,22 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # populate specific argument for testing: upsizing scenario
     arguments.each_with_index do |arg, idx|
-      arg.clone
-      next unless arg.name == 'performance_oversizing_factor'
-
-      performance_oversizing_factor = arguments[idx].clone
-      performance_oversizing_factor.setValue(0.25)
-      argument_map[arg.name] = performance_oversizing_factor
+      temp_arg_var = arg.clone
+      if arg.name == 'performance_oversizing_factor'
+        performance_oversizing_factor = arguments[idx].clone
+        performance_oversizing_factor.setValue(0.25)
+        argument_map[arg.name] = performance_oversizing_factor
+      end
     end
 
     # Apply the measure to the model and optionally run the model
-    result = set_weather_and_apply_measure_and_run("#{test_name}_a", measure, argument_map, osm_path, epw_path,
-                                                   run_model: false, apply: true)
+    result = set_weather_and_apply_measure_and_run("#{test_name}_a", measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
     model = load_model(model_output_path("#{test_name}_a"))
 
     # check performance category
     performance_category = nil
     result.stepValues.each do |input_arg|
       next unless input_arg.name == 'hprtu_scenario'
-
       performance_category = input_arg.valueAsString
     end
 
@@ -1183,21 +1150,19 @@ class AddHeatPumpRtuTest < Minitest::Test
     if performance_category == 'two_speed_standard_eff'
       # Check if lookup table is available
       lookup_table_name = lookup_table_test[:table_name]
-      # table_multivar_lookups = model.getTableMultiVariableLookups
+      #table_multivar_lookups = model.getTableMultiVariableLookups
       table_multivar_lookups = model.getTableLookups
       lookup_table = table_multivar_lookups.find { |table| table.name.to_s == lookup_table_name }
       refute_nil(lookup_table, "Cannot find table named #{lookup_table_name} from model.")
 
       # Compare table lookup value against hard-coded values
       dep_var_ref = lookup_table_test[:dep]
-      dep_var = AddHeatPumpRtu.get_dep_var_from_lookup_table_with_interpolation(runner, lookup_table,
-                                                                                lookup_table_test[:ind1], lookup_table_test[:ind2])
+      dep_var = AddHeatPumpRtu.get_dep_var_from_lookup_table_with_interpolation(runner, lookup_table, lookup_table_test[:ind1], lookup_table_test[:ind2])
       # puts("### lookup table test")
       # puts("--- lookup_table_name = #{lookup_table_name}")
       # puts("--- input_var1 = #{lookup_table_test[:ind1]} | input_var2 = #{lookup_table_test[:ind2]}")
       # puts("--- dep_var reference = #{dep_var_ref} | dep_var from model = #{dep_var}")
-      assert_in_epsilon(dep_var_ref, dep_var, 0.001,
-                        "Table lookup value test didn't pass: table name = #{lookup_table_name} | ind_var1 = #{lookup_table_test[:ind1]} | ind_var2 = #{lookup_table_test[:ind2]} | expected #{dep_var_ref} but got #{dep_var}")
+      assert_in_epsilon(dep_var_ref, dep_var, 0.001, "Table lookup value test didn't pass: table name = #{lookup_table_name} | ind_var1 = #{lookup_table_test[:ind1]} | ind_var2 = #{lookup_table_test[:ind2]} | expected #{dep_var_ref} but got #{dep_var}")
     end
 
     # compare sizing summary of upsizing model with regular sized model
@@ -1244,17 +1209,16 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # populate specific argument for testing: regular sizing scenario
     arguments.each_with_index do |arg, idx|
-      arg.clone
-      next unless arg.name == 'performance_oversizing_factor'
-
-      performance_oversizing_factor = arguments[idx].clone
-      performance_oversizing_factor.setValue(0.0)
-      argument_map[arg.name] = performance_oversizing_factor
+      temp_arg_var = arg.clone
+      if arg.name == 'performance_oversizing_factor'
+        performance_oversizing_factor = arguments[idx].clone
+        performance_oversizing_factor.setValue(0.0)
+        argument_map[arg.name] = performance_oversizing_factor
+      end
     end
 
     # Apply the measure to the model and optionally run the model
-    set_weather_and_apply_measure_and_run("#{test_name}_b", measure, argument_map, osm_path, epw_path,
-                                          run_model: false, apply: true)
+    result = set_weather_and_apply_measure_and_run("#{test_name}_b", measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
     model = load_model(model_output_path("#{test_name}_b"))
 
     # get sizing info from regular sized model
@@ -1262,17 +1226,16 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # populate specific argument for testing: upsizing scenario
     arguments.each_with_index do |arg, idx|
-      arg.clone
-      next unless arg.name == 'performance_oversizing_factor'
-
-      performance_oversizing_factor = arguments[idx].clone
-      performance_oversizing_factor.setValue(0.25)
-      argument_map[arg.name] = performance_oversizing_factor
+      temp_arg_var = arg.clone
+      if arg.name == 'performance_oversizing_factor'
+        performance_oversizing_factor = arguments[idx].clone
+        performance_oversizing_factor.setValue(0.25)
+        argument_map[arg.name] = performance_oversizing_factor
+      end
     end
 
     # Apply the measure to the model and optionally run the model
-    set_weather_and_apply_measure_and_run("#{test_name}_a", measure, argument_map, osm_path, epw_path,
-                                          run_model: false, apply: true)
+    result = set_weather_and_apply_measure_and_run("#{test_name}_a", measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
     model = load_model(model_output_path("#{test_name}_a"))
 
     # compare sizing summary of upsizing model with regular sized model
@@ -1331,22 +1294,26 @@ class AddHeatPumpRtuTest < Minitest::Test
       end
     end
     test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
-
+    
     # check roof/window measure implementation
     roof_measure_implemented = false
     window_measure_implemented = false
     test_result = JSON.parse(test_result.to_s)
     test_result['step_values'].each do |step_value|
+
       # check if roof measure variable is available
-      roof_measure_implemented = true if step_value['name'] == 'env_roof_insul_roof_area_ft_2'
+      if step_value['name'] == 'env_roof_insul_roof_area_ft_2'
+        roof_measure_implemented = true
+      end
 
       # check if window measure variable is available
-      window_measure_implemented = true if step_value['name'] == 'env_secondary_window_fen_area_ft_2'
+      if step_value['name'] == 'env_secondary_window_fen_area_ft_2'
+        window_measure_implemented = true
+      end
+
     end
-    assert_equal(roof_measure_implemented, true,
-                 'cannot find variable that was saved in roof upgrade measure via registerValue: env_roof_insul_roof_area_ft_2')
-    assert_equal(window_measure_implemented, true,
-                 'cannot find variable that was saved in window upgrade measure via registerValue: env_secondary_window_fen_area_ft_2')
+    assert_equal(roof_measure_implemented, true, "cannot find variable that was saved in roof upgrade measure via registerValue: env_roof_insul_roof_area_ft_2")
+    assert_equal(window_measure_implemented, true, "cannot find variable that was saved in window upgrade measure via registerValue: env_secondary_window_fen_area_ft_2")
   end
 
   def test_380_small_office_psz_gas_coil_7A
@@ -1389,16 +1356,20 @@ class AddHeatPumpRtuTest < Minitest::Test
     window_measure_implemented = false
     test_result = JSON.parse(test_result.to_s)
     test_result['step_values'].each do |step_value|
+
       # check if roof measure variable is available
-      roof_measure_implemented = true if step_value['name'] == 'env_roof_insul_roof_area_ft_2'
+      if step_value['name'] == 'env_roof_insul_roof_area_ft_2'
+        roof_measure_implemented = true
+      end
 
       # check if window measure variable is available
-      window_measure_implemented = true if step_value['name'] == 'env_secondary_window_fen_area_ft_2'
+      if step_value['name'] == 'env_secondary_window_fen_area_ft_2'
+        window_measure_implemented = true
+      end
+
     end
-    assert_equal(roof_measure_implemented, false,
-                 'cannot find variable that was saved in roof upgrade measure via registerValue: env_roof_insul_roof_area_ft_2')
-    assert_equal(window_measure_implemented, false,
-                 'cannot find variable that was saved in window upgrade measure via registerValue: env_secondary_window_fen_area_ft_2')
+    assert_equal(roof_measure_implemented, false, "cannot find variable that was saved in roof upgrade measure via registerValue: env_roof_insul_roof_area_ft_2")
+    assert_equal(window_measure_implemented, false, "cannot find variable that was saved in window upgrade measure via registerValue: env_secondary_window_fen_area_ft_2")
   end
 
   def test_small_office_psz_not_hard_sized
@@ -1445,16 +1416,20 @@ class AddHeatPumpRtuTest < Minitest::Test
     window_measure_implemented = false
     test_result = JSON.parse(test_result.to_s)
     test_result['step_values'].each do |step_value|
+
       # check if roof measure variable is available
-      roof_measure_implemented = true if step_value['name'] == 'env_roof_insul_roof_area_ft_2'
+      if step_value['name'] == 'env_roof_insul_roof_area_ft_2'
+        roof_measure_implemented = true
+      end
 
       # check if window measure variable is available
-      window_measure_implemented = true if step_value['name'] == 'env_secondary_window_fen_area_ft_2'
+      if step_value['name'] == 'env_secondary_window_fen_area_ft_2'
+        window_measure_implemented = true
+      end
+
     end
-    assert_equal(roof_measure_implemented, true,
-                 'cannot find variable that was saved in roof upgrade measure via registerValue: env_roof_insul_roof_area_ft_2')
-    assert_equal(window_measure_implemented, false,
-                 'cannot find variable that was saved in window upgrade measure via registerValue: env_secondary_window_fen_area_ft_2')
+    assert_equal(roof_measure_implemented, true, "cannot find variable that was saved in roof upgrade measure via registerValue: env_roof_insul_roof_area_ft_2")
+    assert_equal(window_measure_implemented, false, "cannot find variable that was saved in window upgrade measure via registerValue: env_secondary_window_fen_area_ft_2")
   end
 
   def test_380_retail_psz_gas_6B
@@ -1501,16 +1476,20 @@ class AddHeatPumpRtuTest < Minitest::Test
     window_measure_implemented = false
     test_result = JSON.parse(test_result.to_s)
     test_result['step_values'].each do |step_value|
+
       # check if roof measure variable is available
-      roof_measure_implemented = true if step_value['name'] == 'env_roof_insul_roof_area_ft_2'
+      if step_value['name'] == 'env_roof_insul_roof_area_ft_2'
+        roof_measure_implemented = true
+      end
 
       # check if window measure variable is available
-      window_measure_implemented = true if step_value['name'] == 'env_secondary_window_fen_area_ft_2'
+      if step_value['name'] == 'env_secondary_window_fen_area_ft_2'
+        window_measure_implemented = true
+      end
+
     end
-    assert_equal(roof_measure_implemented, false,
-                 'cannot find variable that was saved in roof upgrade measure via registerValue: env_roof_insul_roof_area_ft_2')
-    assert_equal(window_measure_implemented, true,
-                 'cannot find variable that was saved in window upgrade measure via registerValue: env_secondary_window_fen_area_ft_2')
+    assert_equal(roof_measure_implemented, false, "cannot find variable that was saved in roof upgrade measure via registerValue: env_roof_insul_roof_area_ft_2")
+    assert_equal(window_measure_implemented, true, "cannot find variable that was saved in window upgrade measure via registerValue: env_secondary_window_fen_area_ft_2")
   end
 
   ##########################################################################
@@ -1547,7 +1526,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     end
 
     # get initial number of applicable air loops
-    model.getAirLoopHVACUnitarySystems
+    li_unitary_sys_initial = model.getAirLoopHVACUnitarySystems
 
     # determine air loops with/without kitchens
     tz_kitchens = []
@@ -1556,8 +1535,8 @@ class AddHeatPumpRtuTest < Minitest::Test
     nonkitchen_htg_coils = []
     model.getAirLoopHVACUnitarySystems.sort.each do |unitary_sys|
       # skip kitchen spaces
-      thermal_zone_names_to_exclude = %w[Kitchen kitchen KITCHEN]
-      if thermal_zone_names_to_exclude.any? { |word| unitary_sys.name.to_s.include?(word) }
+      thermal_zone_names_to_exclude = ['Kitchen', 'kitchen', 'KITCHEN']
+      if thermal_zone_names_to_exclude.any? { |word| (unitary_sys.name.to_s).include?(word) }
         tz_kitchens << unitary_sys
 
         # add kitchen heating coil to list
@@ -1573,8 +1552,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     end
 
     # Apply the measure to the model and optionally run the model
-    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path,
-                                                   run_model: false, apply: true)
+    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
     assert_equal('Success', result.value.valueName)
     model = load_model(model_output_path(__method__))
 
@@ -1585,8 +1563,8 @@ class AddHeatPumpRtuTest < Minitest::Test
     nonkitchen_htg_coils_final = []
     model.getAirLoopHVACUnitarySystems.sort.each do |unitary_sys|
       # skip kitchen spaces
-      thermal_zone_names_to_exclude = %w[Kitchen kitchen KITCHEN]
-      if thermal_zone_names_to_exclude.any? { |word| unitary_sys.name.to_s.include?(word) }
+      thermal_zone_names_to_exclude = ['Kitchen', 'kitchen', 'KITCHEN']
+      if thermal_zone_names_to_exclude.any? { |word| (unitary_sys.name.to_s).include?(word) }
         tz_kitchens_final << unitary_sys
 
         # add kitchen heating coil to list
@@ -1659,8 +1637,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     end
 
     # Apply the measure to the model and optionally run the model
-    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path,
-                                                   run_model: false, apply: true)
+    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
     assert_equal('Success', result.value.valueName)
     model = load_model(model_output_path(__method__))
 
@@ -1668,7 +1645,6 @@ class AddHeatPumpRtuTest < Minitest::Test
     performance_category = nil
     result.stepValues.each do |input_arg|
       next unless input_arg.name == 'hprtu_scenario'
-
       performance_category = input_arg.valueAsString
     end
 
@@ -1677,21 +1653,19 @@ class AddHeatPumpRtuTest < Minitest::Test
     if performance_category == 'two_speed_standard_eff'
       # Check if lookup table is available
       lookup_table_name = lookup_table_test[:table_name]
-      # table_multivar_lookups = model.getTableMultiVariableLookups
+      #table_multivar_lookups = model.getTableMultiVariableLookups
       table_multivar_lookups = model.getTableLookups
       lookup_table = table_multivar_lookups.find { |table| table.name.to_s == lookup_table_name }
       refute_nil(lookup_table, "Cannot find table named #{lookup_table_name} from model.")
 
       # Compare table lookup value against hard-coded values
       dep_var_ref = lookup_table_test[:dep]
-      dep_var = AddHeatPumpRtu.get_dep_var_from_lookup_table_with_interpolation(runner, lookup_table,
-                                                                                lookup_table_test[:ind1], lookup_table_test[:ind2])
+      dep_var = AddHeatPumpRtu.get_dep_var_from_lookup_table_with_interpolation(runner, lookup_table, lookup_table_test[:ind1], lookup_table_test[:ind2])
       # puts("### lookup table test")
       # puts("--- lookup_table_name = #{lookup_table_name}")
       # puts("--- input_var1 = #{lookup_table_test[:ind1]} | input_var2 = #{lookup_table_test[:ind2]}")
       # puts("--- dep_var reference = #{dep_var_ref} | dep_var from model = #{dep_var}")
-      assert_in_epsilon(dep_var_ref, dep_var, 0.001,
-                        "Table lookup value test didn't pass: table name = #{lookup_table_name} | ind_var1 = #{lookup_table_test[:ind1]} | ind_var2 = #{lookup_table_test[:ind2]} | expected #{dep_var_ref} but got #{dep_var}")
+      assert_in_epsilon(dep_var_ref, dep_var, 0.001, "Table lookup value test didn't pass: table name = #{lookup_table_name} | ind_var1 = #{lookup_table_test[:ind1]} | ind_var2 = #{lookup_table_test[:ind2]} | expected #{dep_var_ref} but got #{dep_var}")
     end
 
     # assert cfm/ton violation
@@ -1741,8 +1715,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     end
 
     # Apply the measure to the model and optionally run the model
-    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path,
-                                                   run_model: false, apply: true)
+    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
     assert_equal('Success', result.value.valueName)
     model = load_model(model_output_path(__method__))
 
@@ -1792,17 +1765,16 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # populate specific argument for testing: regular sizing scenario
     arguments.each_with_index do |arg, idx|
-      arg.clone
-      next unless arg.name == 'performance_oversizing_factor'
-
-      performance_oversizing_factor = arguments[idx].clone
-      performance_oversizing_factor.setValue(0.25)
-      argument_map[arg.name] = performance_oversizing_factor
+      temp_arg_var = arg.clone
+      if arg.name == 'performance_oversizing_factor'
+        performance_oversizing_factor = arguments[idx].clone
+        performance_oversizing_factor.setValue(0.25)
+        argument_map[arg.name] = performance_oversizing_factor
+      end
     end
 
     # Apply the measure to the model and optionally run the model
-    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path,
-                                                   run_model: true)
+    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
     assert_equal('Success', result.value.valueName)
     model = load_model(model_output_path(__method__))
 
@@ -1858,17 +1830,16 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # populate specific argument for testing: regular sizing scenario
     arguments.each_with_index do |arg, idx|
-      arg.clone
-      next unless arg.name == 'performance_oversizing_factor'
-
-      performance_oversizing_factor = arguments[idx].clone
-      performance_oversizing_factor.setValue(0.25)
-      argument_map[arg.name] = performance_oversizing_factor
+      temp_arg_var = arg.clone
+      if arg.name == 'performance_oversizing_factor'
+        performance_oversizing_factor = arguments[idx].clone
+        performance_oversizing_factor.setValue(0.25)
+        argument_map[arg.name] = performance_oversizing_factor
+      end
     end
 
     # Apply the measure to the model and optionally run the model
-    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path,
-                                                   run_model: true)
+    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
     assert_equal('Success', result.value.valueName)
     model = load_model(model_output_path(__method__))
 
@@ -1876,7 +1847,6 @@ class AddHeatPumpRtuTest < Minitest::Test
     performance_category = nil
     result.stepValues.each do |input_arg|
       next unless input_arg.name == 'hprtu_scenario'
-
       performance_category = input_arg.valueAsString
     end
 
@@ -1885,21 +1855,19 @@ class AddHeatPumpRtuTest < Minitest::Test
     if performance_category == 'two_speed_standard_eff'
       # Check if lookup table is available
       lookup_table_name = lookup_table_test[:table_name]
-      # table_multivar_lookups = model.getTableMultiVariableLookups
+      #table_multivar_lookups = model.getTableMultiVariableLookups
       table_multivar_lookups = model.getTableLookups
       lookup_table = table_multivar_lookups.find { |table| table.name.to_s == lookup_table_name }
       refute_nil(lookup_table, "Cannot find table named #{lookup_table_name} from model.")
 
       # Compare table lookup value against hard-coded values
       dep_var_ref = lookup_table_test[:dep]
-      dep_var = AddHeatPumpRtu.get_dep_var_from_lookup_table_with_interpolation(runner, lookup_table,
-                                                                                lookup_table_test[:ind1], lookup_table_test[:ind2])
+      dep_var = AddHeatPumpRtu.get_dep_var_from_lookup_table_with_interpolation(runner, lookup_table, lookup_table_test[:ind1], lookup_table_test[:ind2])
       # puts("### lookup table test")
       # puts("--- lookup_table_name = #{lookup_table_name}")
       # puts("--- input_var1 = #{lookup_table_test[:ind1]} | input_var2 = #{lookup_table_test[:ind2]}")
       # puts("--- dep_var reference = #{dep_var_ref} | dep_var from model = #{dep_var}")
-      assert_in_epsilon(dep_var_ref, dep_var, 0.001,
-                        "Table lookup value test didn't pass: table name = #{lookup_table_name} | ind_var1 = #{lookup_table_test[:ind1]} | ind_var2 = #{lookup_table_test[:ind2]} | expected #{dep_var_ref} but got #{dep_var}")
+      assert_in_epsilon(dep_var_ref, dep_var, 0.001, "Table lookup value test didn't pass: table name = #{lookup_table_name} | ind_var1 = #{lookup_table_test[:ind1]} | ind_var2 = #{lookup_table_test[:ind2]} | expected #{dep_var_ref} but got #{dep_var}")
     end
 
     verify_cfm_per_ton(model, result)
@@ -1935,8 +1903,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     end
 
     # Apply the measure to the model and optionally run the model
-    set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path,
-                                          run_model: false, apply: true, expected_results: 'NA')
+    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true, expected_results: 'NA')
   end
 
   # assert that non applicable HVAC system registers as NA
@@ -1973,8 +1940,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     end
 
     # Apply the measure to the model and optionally run the model
-    set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path,
-                                          run_model: false, apply: true, expected_results: 'NA')
+    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true, expected_results: 'NA')
   end
 
   # assert that non applicable HVAC system registers as NA
@@ -2011,8 +1977,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     end
 
     # Apply the measure to the model and optionally run the model
-    set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path,
-                                          run_model: false, apply: true, expected_results: 'NA')
+    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true, expected_results: 'NA')
   end
 
   # test that ERVs do no impact existing ERVs when ERV argument is NOT toggled
@@ -2052,8 +2017,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     ervs_baseline = model.getHeatExchangerAirToAirSensibleAndLatents
 
     # Apply the measure to the model and optionally run the model
-    set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path,
-                                          run_model: false, apply: true)
+    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
     model = load_model(model_output_path(__method__))
 
     # assert no difference in ERVs in upgrade model
@@ -2098,15 +2062,14 @@ class AddHeatPumpRtuTest < Minitest::Test
     ervs_baseline = model.getHeatExchangerAirToAirSensibleAndLatents
 
     # Apply the measure to the model and optionally run the model
-    set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path,
-                                          run_model: false, apply: true)
+    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
     model = load_model(model_output_path(__method__))
 
     # assert no difference in ERVs in upgrade model
     ervs_upgrade = model.getHeatExchangerAirToAirSensibleAndLatents
     assert_equal(ervs_baseline, ervs_upgrade)
   end
-  
+
  def test_confirm_heating_setback_change_square_wave
     # confirm that any heating setbacks are now 2F
     osm_name = 'Retail_PSZ-AC.osm'
