@@ -152,18 +152,16 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     debug_verbose.setDisplayName('Print out detailed debugging logs if this parameter is true')
     debug_verbose.setDefaultValue(false)
     args << debug_verbose
-	
-	# modify setbacks or not
+
+	  # modify setbacks or not
     modify_setbacks = OpenStudio::Measure::OSArgument.makeBoolArgument('modify_setbacks', false)
-    modify_setbacks.setDisplayName('Modify setbacks in heating mode? True will adjust setbacks,
-	according to value in setback value argument.')
+    modify_setbacks.setDisplayName('Modify setbacks in heating mode? True will adjust setbacks, according to value in setback value argument.')
     modify_setbacks.setDefaultValue(true)
     args << modify_setbacks
 
     # setback value
     setback_value = OpenStudio::Measure::OSArgument.makeDoubleArgument('setback_value', false)
-    setback_value.setDisplayName('Amount in deg F by which temperatures are set back during
-	unoccupied periods in heating mode. Done only if modify setbacks is set to true.')
+    setback_value.setDisplayName('Amount in deg F by which temperatures are set back during unoccupied periods in heating mode. Done only if modify setbacks is set to true.')
     setback_value.setDefaultValue(2)
     args << setback_value
 
@@ -847,12 +845,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       ind_var_1 = lookup_table.independentVariables[0].values.to_a
       ind_var_2 = lookup_table.independentVariables[1].values.to_a
       dep_var = lookup_table.outputValues.to_a
-  
+
       if ind_var_1.size * ind_var_2.size != dep_var.size
         runner.registerError("Table dimensions do not match output size for TableLookup object: #{lookup_table.name}")
         return false
       end
-  
+
       # Clamp input1 to bounds
       if input1 < ind_var_1.first
         runner.registerWarning("input1 (#{input1}) below range, clamping to #{ind_var_1.first}")
@@ -861,7 +859,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         runner.registerWarning("input1 (#{input1}) above range, clamping to #{ind_var_1.last}")
         input1 = ind_var_1.last
       end
-  
+
       # Clamp input2 to bounds
       if input2 < ind_var_2.first
         runner.registerWarning("input2 (#{input2}) below range, clamping to #{ind_var_2.first}")
@@ -870,26 +868,26 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         runner.registerWarning("input2 (#{input2}) above range, clamping to #{ind_var_2.last}")
         input2 = ind_var_2.last
       end
-    
+
       # Find bounding indices for input1
       i1_upper = ind_var_1.index { |val| val >= input1 } || (ind_var_1.size - 1)
       i1_lower = [i1_upper - 1, 0].max
-  
+
       # Find bounding indices for input2
       i2_upper = ind_var_2.index { |val| val >= input2 } || (ind_var_2.size - 1)
       i2_lower = [i2_upper - 1, 0].max
-  
+
       x1 = ind_var_1[i1_lower]
       x2 = ind_var_1[i1_upper]
       y1 = ind_var_2[i2_lower]
       y2 = ind_var_2[i2_upper]
-    
+
       # Get dependent variable values for bilinear interpolation
       v11 = dep_var[i1_lower * ind_var_2.size + i2_lower]  # (x1, y1)
       v12 = dep_var[i1_lower * ind_var_2.size + i2_upper]  # (x1, y2)
       v21 = dep_var[i1_upper * ind_var_2.size + i2_lower]  # (x2, y1)
       v22 = dep_var[i1_upper * ind_var_2.size + i2_upper]  # (x2, y2)
-    
+
       # If exact match, return directly
       if input1 == x1 && input2 == y1
         return v11
@@ -900,29 +898,29 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       elsif input1 == x2 && input2 == y2
         return v22
       end
-  
+
       # Handle edge cases where interpolation becomes linear
       dx = x2 - x1
       dy = y2 - y1
       return v11 if dx == 0 && dy == 0
       return v11 + (v21 - v11) * (input1 - x1) / dx if dy == 0
       return v11 + (v12 - v11) * (input2 - y1) / dy if dx == 0
-  
+
       # Bilinear interpolation
       interpolated_value =
         v11 * (x2 - input1) * (y2 - input2) +
         v21 * (input1 - x1) * (y2 - input2) +
         v12 * (x2 - input1) * (input2 - y1) +
         v22 * (input1 - x1) * (input2 - y1)
-  
+
       interpolated_value /= (x2 - x1) * (y2 - y1)
-  
+
       return interpolated_value
     else
       runner.registerError("TableLookup object does not have exactly two independent variables.")
       return false
     end
-  end  
+  end
 
   #### End predefined functions
 
@@ -952,7 +950,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     window = runner.getBoolArgumentValue('window', user_arguments)
     sizing_run = runner.getBoolArgumentValue('sizing_run', user_arguments)
     debug_verbose = runner.getBoolArgumentValue('debug_verbose', user_arguments)
-	setback_value = runner.getDoubleArgumentValue('setback_value', user_arguments)
+	  setback_value = runner.getDoubleArgumentValue('setback_value', user_arguments)
     modify_setbacks = runner.getBoolArgumentValue('modify_setbacks', user_arguments)
 
     # build standard to use OS standards methods
@@ -1573,8 +1571,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       orig_htg_coil_gross_cap = nil
 
       equip_to_delete = []
-	  
-	        space_types_no_setback = [
+
+	    space_types_no_setback = [
         # 'Kitchen',
         # 'kitchen',
         'PatRm',
@@ -1669,7 +1667,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
               # Need at least two more timesteps in the profile to perform optimum start check
               # Final two timesteps of year will not be optimum start, anyway
               if (idx < htg_schedule_annual_profile.size - 2) && opt_start?(sch_zone_occ_annual_profile,
-                                                                            htg_schedule_annual_profile, min_value, max_value, idx)
+                                                                            htg_schedule_annual_profile,
+                                                                            min_value,
+                                                                            max_value,
+                                                                            idx)
                 next
               end
 
