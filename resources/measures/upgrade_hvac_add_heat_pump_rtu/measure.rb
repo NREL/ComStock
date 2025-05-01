@@ -957,11 +957,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     std = Standard.build(template)
 
     # ---------------------------------------------------------
-    # get climate zone value
-    # ---------------------------------------------------------
-    OpenstudioStandards::Weather.model_get_climate_zone(model)
-
-    # ---------------------------------------------------------
     # get applicable psz hvac air loops
     # ---------------------------------------------------------
     selected_air_loops = []
