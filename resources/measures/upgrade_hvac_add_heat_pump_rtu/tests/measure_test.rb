@@ -252,8 +252,8 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert_equal('window', arguments[11].name)
     assert_equal('sizing_run', arguments[12].name)
     assert_equal('debug_verbose', arguments[13].name)
-    assert_equal('modify_setbacks', arguments[13].name)
-    assert_equal('setback_value', arguments[14].name)
+    assert_equal('modify_setbacks', arguments[14].name)
+    assert_equal('setback_value', arguments[15].name)
   end
 
   def data_point_ordering_check(lookup_table_in_hash)
