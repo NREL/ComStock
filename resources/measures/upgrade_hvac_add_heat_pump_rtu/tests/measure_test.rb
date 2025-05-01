@@ -237,7 +237,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # Get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(14, arguments.size)
+    assert_equal(16, arguments.size)
     assert_equal('backup_ht_fuel_scheme', arguments[0].name)
     assert_equal('performance_oversizing_factor', arguments[1].name)
     assert_equal('htg_sizing_option', arguments[2].name)
@@ -252,6 +252,8 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert_equal('window', arguments[11].name)
     assert_equal('sizing_run', arguments[12].name)
     assert_equal('debug_verbose', arguments[13].name)
+    assert_equal('modify_setbacks', arguments[13].name)
+    assert_equal('setback_value', arguments[14].name)
   end
 
   def data_point_ordering_check(lookup_table_in_hash)
