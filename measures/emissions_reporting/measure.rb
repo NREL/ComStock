@@ -313,8 +313,6 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
         frequency = 'RunPeriod'
       end
 
-      puts "frequency: #{frequency}"
-
       if resource.include?("Electricity")
         # add facility meters
         result << OpenStudio::IdfObject.load("Output:Meter,#{resource}Purchased:Facility,#{frequency};").get

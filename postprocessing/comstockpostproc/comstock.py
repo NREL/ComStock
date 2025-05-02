@@ -1524,8 +1524,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 out_engy_cons_svgs.append(c)
             elif (c.endswith('peak_demand') or c.endswith('peak_demand..kw')):
                 out_peak.append(c)
-            elif (c.endswith('generation') or c.endswith('generation..kwh')):
-                out_gen.append(c)
+            #elif (c.endswith('generation') or c.endswith('generation..kwh')):
+            #    out_gen.append(c)
             elif (c.endswith('.energy_consumption_intensity')
                   or c.endswith('.energy_consumption_intensity..kwh_per_ft2')
                   or c.endswith('.energy_savings_intensity')
@@ -1734,10 +1734,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
     def add_peak_intensity_columns(self):
         # Create peak per area column for each peak column
-        for peak_col in (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK + 
-                         self.COLS_QOI_MONTHLY_MED_DAILY_PEAK + 
-                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK + 
-                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_WIN + 
+        for peak_col in (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK +
+                         self.COLS_QOI_MONTHLY_MED_DAILY_PEAK +
+                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK +
+                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_WIN +
                          self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_PEAK + [
                              self.QOI_MAX_SHOULDER_USE,
                              self.QOI_MAX_SUMMER_USE,
@@ -3198,7 +3198,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             {
                 'cols': (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK +
                          self.COLS_QOI_MONTHLY_MED_DAILY_PEAK +
-                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK + 
+                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK +
                          self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_WIN +
                          self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_PEAK +
                          [self.QOI_MAX_SHOULDER_USE,
