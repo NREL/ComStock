@@ -69,7 +69,7 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
 
     result = OpenStudio::IdfObjectVector.new
 
-    result << OpenStudio::IdfObject.load('Output:Meter,Electricity:Facility,hourly;').get
+    result << OpenStudio::IdfObject.load('Output:Meter,ElectricityPurchased:Facility,hourly;').get
     result << OpenStudio::IdfObject.load('Output:Variable,*,Site Outdoor Air Drybulb Temperature,Hourly;').get
 
     result
@@ -299,7 +299,7 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
     end
 
     # Get electricity values
-    electricity_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableTYpe='Sum' AND VariableName='Electricity:Facility' AND ReportingFrequency='Hourly' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
+    electricity_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableTYpe='Sum' AND VariableName='ElectricityPurchased:Facility' AND ReportingFrequency='Hourly' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
     unless sql_file.execAndReturnVectorOfDouble(electricity_query).get.empty?
       values = sql_file.execAndReturnVectorOfDouble(electricity_query).get
       values.each do |val|

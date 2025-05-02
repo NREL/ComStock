@@ -94,6 +94,14 @@ class NamingMixin():
         'in.ejscreen_census_tract_percentile_for_people_in_ling_isol',
     ]
 
+    # Total net energy
+    ANN_TOT_NET_ENGY_KBTU = 'out.net_site_energy_consumption..kwh'
+    ANN_TOT_NET_ELEC_KBTU = 'out.net_site_electricity_consumption..kwh'
+
+    # Total net energy
+    ANN_TOT_NET_ENGY_KBTU = 'out.net_site_energy_consumption..kwh'
+    ANN_TOT_NET_ELEC_KBTU = 'out.net_site_electricity_consumption..kwh'
+
     # Total annual energy
     ANN_TOT_ENGY_KBTU = 'out.site_energy.total.energy_consumption..kwh'
     ANN_TOT_ELEC_KBTU = 'out.electricity.total.energy_consumption..kwh'
@@ -484,7 +492,17 @@ class NamingMixin():
         SEG_J
     ]
 
-    # List of total annual energy columns
+    # List of total net annual energy columns (includes generated PV)
+    COLS_NET_ANN_ENGY = [
+        ANN_TOT_NET_ENGY_KBTU,
+        ANN_TOT_NET_ELEC_KBTU,
+        ANN_TOT_GAS_KBTU,
+        ANN_TOT_OTHFUEL_KBTU,
+        ANN_TOT_DISTHTG_KBTU,
+        ANN_TOT_DISTCLG_KBTU
+    ]
+
+    # List of total net annual energy columns
     COLS_TOT_ANN_ENGY = [
         ANN_TOT_ENGY_KBTU,
         ANN_TOT_ELEC_KBTU,
@@ -492,6 +510,12 @@ class NamingMixin():
         ANN_TOT_OTHFUEL_KBTU,
         ANN_TOT_DISTHTG_KBTU,
         ANN_TOT_DISTCLG_KBTU
+    ]
+
+    # List of net energy columns
+    COLS_NET_ANN_ENGY = [
+        ANN_TOT_NET_ENGY_KBTU,
+        ANN_TOT_NET_ELEC_KBTU
     ]
 
     # List of end use annual energy columns

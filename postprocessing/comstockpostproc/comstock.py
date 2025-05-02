@@ -1490,6 +1490,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         ins = []
         out_engy_cons_svgs = []
         out_peak = []
+        out_gen = []
         out_intensity = []
         out_emissions = []
         out_utility = []
@@ -1517,10 +1518,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             elif (c.endswith('.energy_consumption')
                   or c.endswith('.energy_consumption..kwh')
                   or c.endswith('.energy_savings')
+                  or c.endswith('.net_site_electricity_consumption..kwh')
+                  or c.endswith('.net_site_energy_consumption..kwh')
                   or c.endswith('.energy_savings..kwh')):
                 out_engy_cons_svgs.append(c)
             elif (c.endswith('peak_demand') or c.endswith('peak_demand..kw')):
                 out_peak.append(c)
+            #elif (c.endswith('generation') or c.endswith('generation..kwh')):
+            #    out_gen.append(c)
             elif (c.endswith('.energy_consumption_intensity')
                   or c.endswith('.energy_consumption_intensity..kwh_per_ft2')
                   or c.endswith('.energy_savings_intensity')
@@ -1529,7 +1534,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             else:
                 logger.error(f'Didnt find an order for column: {c}')
 
-        sorted_cols = front_cols + applicability + geogs + ins + out_engy_cons_svgs + out_peak + out_intensity + out_qoi + out_emissions + out_utility + out_params + calc
+        sorted_cols = front_cols + applicability + geogs + ins + out_engy_cons_svgs + out_peak + out_gen + out_intensity + out_qoi + out_emissions + out_utility + out_params + calc
 
         input_df = input_df.select(sorted_cols)
 
@@ -1729,10 +1734,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
     def add_peak_intensity_columns(self):
         # Create peak per area column for each peak column
-        for peak_col in (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK + 
-                         self.COLS_QOI_MONTHLY_MED_DAILY_PEAK + 
-                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK + 
-                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_WIN + 
+        for peak_col in (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK +
+                         self.COLS_QOI_MONTHLY_MED_DAILY_PEAK +
+                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK +
+                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_WIN +
                          self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_PEAK + [
                              self.QOI_MAX_SHOULDER_USE,
                              self.QOI_MAX_SUMMER_USE,
@@ -3193,7 +3198,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             {
                 'cols': (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK +
                          self.COLS_QOI_MONTHLY_MED_DAILY_PEAK +
-                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK + 
+                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK +
                          self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_WIN +
                          self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_PEAK +
                          [self.QOI_MAX_SHOULDER_USE,

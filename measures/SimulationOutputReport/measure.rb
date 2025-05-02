@@ -29,6 +29,7 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
                           'total_site_other_fuel_mbtu',
                           'net_site_energy_mbtu', # Incorporates PV
                           'net_site_electricity_kwh', # Incorporates PV
+                          'purchased_site_electricity_kwh', # Incorporates PV, but no negatives
                           'electricity_heating_kwh',
                           'electricity_cooling_kwh',
                           'electricity_interior_lighting_kwh',
@@ -104,8 +105,12 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
     other_fuel_site_units = 'MBtu'
 
     # Get PV electricity produced
-    pv_query = "SELECT -1*Value FROM TabularDataWithStrings WHERE ReportName='AnnualBuildingUtilityPerformanceSummary' AND ReportForString='Entire Facility' AND TableName='Electric Loads Satisfied' AND RowName='Total On-Site Electric Sources' AND ColumnName='Electricity' AND Units='GJ'"
+    #pv_query = "SELECT -1*Value FROM TabularDataWithStrings WHERE ReportName='AnnualBuildingUtilityPerformanceSummary' AND ReportForString='Entire Facility' AND TableName='Electric Loads Satisfied' AND RowName='Total On-Site Electric Sources' AND ColumnName='Electricity' AND Units='GJ'"
+    pv_query = "SELECT -1*Value FROM TabularDataWithStrings WHERE ReportName='EnergyMeters' AND ReportForString='Entire Facility' AND TableName='Annual and Peak Values - Electricity' AND RowName='ElectricityProduced:Facility' AND ColumnName='Electricity Annual Value' AND Units='GJ'"
     pv_val = sql_file.execAndReturnFirstDouble(pv_query)
+    #purchased_electricity_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName='AnnualBuildingUtilityPerformanceSummary' AND ReportForString='Entire Facility' AND TableName='Electric Loads Satisfied' AND RowName='Electricity Coming From Utility' AND ColumnName='Electricity' AND Units='GJ'"
+    purchased_electricity_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName='EnergyMeters' AND ReportForString='Entire Facility' AND TableName='Annual and Peak Values - Electricity' AND RowName='ElectricityPurchased:Facility' AND ColumnName='Electricity Annual Value' AND Units='GJ'"
+    purchased_electricity = sql_file.execAndReturnFirstDouble(purchased_electricity_query)
 
     # TOTAL
     report_sim_output(runner, 'total_site_energy_mbtu', [sql_file.totalSiteEnergy], 'GJ', total_site_units)
@@ -114,6 +119,7 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
     # ELECTRICITY
     report_sim_output(runner, 'total_site_electricity_kwh', [sql_file.electricityTotalEndUses], 'GJ', elec_site_units)
     report_sim_output(runner, 'net_site_electricity_kwh', [sql_file.electricityTotalEndUses, pv_val], 'GJ', elec_site_units)
+    report_sim_output(runner, 'purchased_site_electricity_kwh', [purchased_electricity], 'GJ', elec_site_units)
     report_sim_output(runner, 'electricity_heating_kwh', [sql_file.electricityHeating], 'GJ', elec_site_units)
     report_sim_output(runner, 'electricity_cooling_kwh', [sql_file.electricityCooling], 'GJ', elec_site_units)
     report_sim_output(runner, 'electricity_interior_lighting_kwh', [sql_file.electricityInteriorLighting], 'GJ', elec_site_units)
