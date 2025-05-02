@@ -23,7 +23,7 @@ class UpgradeAddPvwattsTest < Minitest::Test
     # get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
     assert_equal(1, arguments.size)
-    assert_equal('space_name', arguments[0].name)
+    assert_equal('pv_area_fraction', arguments[0].name)
   end
 
   def test_bad_argument_values

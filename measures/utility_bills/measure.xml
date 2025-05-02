@@ -2,9 +2,9 @@
 <measure>
   <schema_version>3.1</schema_version>
   <name>utility_bills</name>
-  <uid>90178aca-6e54-4602-a4a7-af2427bdab50</uid>
-  <version_id>d535ce92-914a-43e2-9ba7-597bd0dde601</version_id>
-  <version_modified>2025-04-18T20:24:27Z</version_modified>
+  <uid>eba532c2-efac-41fe-b7cb-b4538bb02c32</uid>
+  <version_id>31b26b5f-2d0b-4764-be62-0f812f6fc2a8</version_id>
+  <version_modified>2025-04-11T17:32:26Z</version_modified>
   <xml_checksum>15BF4E57</xml_checksum>
   <class_name>UtilityBills</class_name>
   <display_name>Utility Bills</display_name>
@@ -33,13 +33,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>0A296FE5</checksum>
+      <checksum>636BB255</checksum>
     </file>
     <file>
       <filename>calc_elec_bill.py</filename>
       <filetype>py</filetype>
       <usage_type>resource</usage_type>
-      <checksum>9C7309A3</checksum>
+      <checksum>F638C0D3</checksum>
     </file>
     <file>
       <filename>eia_com_elec_avg_yrly_rate_increase.json</filename>
@@ -63861,7 +63861,7 @@
       <filename>utility_bills_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>1DD293FB</checksum>
+      <checksum>DB097F9A</checksum>
     </file>
   </files>
 </measure>
