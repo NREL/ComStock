@@ -88,9 +88,10 @@ def call_roof(model, runner)
   roof_measure.run(model, runner_roof, OpenStudio::Measure::OSArgumentMap.new)
   roof_result = runner_roof.result
 
-  runner = child_to_parent_runner_logging(runner, roof_measure.name.to_s, roof_result, registered_var_list = ['env_roof_insul_roof_area_ft_2'])
+  runner = child_to_parent_runner_logging(runner, roof_measure.name.to_s, roof_result,
+                                          ['env_roof_insul_roof_area_ft_2'])
 
-  return roof_result, runner
+  [roof_result, runner]
 end
 
 def call_windows(model, runner)
@@ -106,7 +107,8 @@ def call_windows(model, runner)
   windows_measure.run(model, runner_windows, OpenStudio::Measure::OSArgumentMap.new)
   windows_result = runner_windows.result
 
-  runner = child_to_parent_runner_logging(runner, windows_measure.name.to_s, windows_result, registered_var_list = ['env_secondary_window_fen_area_ft_2'])
+  runner = child_to_parent_runner_logging(runner, windows_measure.name.to_s, windows_result,
+                                          ['env_secondary_window_fen_area_ft_2'])
 
-  return windows_result, runner
+  [windows_result, runner]
 end
