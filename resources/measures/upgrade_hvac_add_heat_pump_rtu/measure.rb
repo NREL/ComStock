@@ -926,6 +926,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     if (sch_zone_occ_annual_profile[idx + 1] == 1 || sch_zone_occ_annual_profile[idx + 2] == 1) && 
 			(htg_schedule_annual_profile[idx] > min_value && htg_schedule_annual_profile[idx] < max_value)
       opt_start = true
+	end 
   end
 
   #### End predefined functions
