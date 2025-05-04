@@ -919,14 +919,13 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       false
     end
   end
-  
+
   def opt_start?(sch_zone_occ_annual_profile, htg_schedule_annual_profile, min_value, max_value, idx)
     # method to determine if a thermostat schedule contains part of an optimum start sequence at a given index
-    opt_start = false
-    if (sch_zone_occ_annual_profile[idx + 1] == 1 || sch_zone_occ_annual_profile[idx + 2] == 1) && 
-			(htg_schedule_annual_profile[idx] > min_value && htg_schedule_annual_profile[idx] < max_value)
-      opt_start = true
-	end 
+    if (sch_zone_occ_annual_profile[idx + 1] == 1 || sch_zone_occ_annual_profile[idx + 2] == 1) &&
+       (htg_schedule_annual_profile[idx] > min_value && htg_schedule_annual_profile[idx] < max_value)
+      true
+    end
   end
 
   #### End predefined functions
