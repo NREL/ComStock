@@ -11,9 +11,9 @@ gem 'rubocop-rspec'
 
 gem 'bcl', '= 0.8.0'
 gem 'openstudio-extension', '= 0.8.0'
-gem 'openstudio-standards', '= 0.7.0'
 gem 'openstudio-workflow', '= 2.4.0'
-# gem 'openstudio-standards', git: 'https://github.com/NREL/openstudio-standards.git', ref: 'e61d7d41a0e285cc99c7c6ea4aff1fcdc0be3599'
+#gem 'openstudio-standards', '= 0.7.0'
+gem 'openstudio-standards', git: 'https://github.com/NREL/openstudio-standards.git', ref: 'f8b4b250ab443477fd6ba13e4cf36ab7e9816494'
 # gem 'openstudio-standards', path: "C:/GitRepos/openstudio-standards" # Use this format when testing openstudio-standards changes locally
 gem 'openstudio-geb', '= 0.4.0', github: 'LBNL-ETA/Openstudio-GEB-gem', ref: 'a18e023936dd5c92be7dbf354f6331f60a965828'
 gem 'tbd', '= 3.4.4'
