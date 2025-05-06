@@ -169,7 +169,7 @@ class SetExteriorLightingTemplate < OpenStudio::Measure::ModelMeasure
     exterior_lighting_zone_number = 3
     search_criteria = {
       'template' => template,
-      'exterior_lighting_zone_number' => exterior_lighting_zone_number
+      'lighting_zone' => exterior_lighting_zone_number
     }
 
     # load exterior_lighting_properties
@@ -181,11 +181,8 @@ class SetExteriorLightingTemplate < OpenStudio::Measure::ModelMeasure
       return false
     end
 
-    # get building types and ratio (needed to get correct schedules, parking area, entries, canopies, and drive throughs)
-    space_type_hash = standard.model_create_space_type_hash(model)
-
     # get model specific values to map to exterior_lighting_properties
-    area_length_count_hash = standard.model_create_exterior_lighting_area_length_count_hash(model, space_type_hash, false)
+    area_length_count_hash = OpenstudioStandards::ExteriorLighting.model_get_exterior_lighting_sizes(model)
 
     # Modify existing exterior lights
     model.getExteriorLightss.each do |ext_lights|
