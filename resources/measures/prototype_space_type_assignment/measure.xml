@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>prototype_space_type_assignment</name>
   <uid>8369efbb-e4c7-4171-b817-d7bbc860b085</uid>
-  <version_id>d2212ae8-1606-45eb-b7d7-88248547892d</version_id>
-  <version_modified>2024-10-17T18:28:11Z</version_modified>
+  <version_id>5031060e-038d-4f8d-b32c-0b5cdab6a92e</version_id>
+  <version_modified>2025-05-06T16:28:55Z</version_modified>
   <xml_checksum>FB7988E1</xml_checksum>
   <class_name>PrototypeSpaceTypeAssignment</class_name>
   <display_name>Prototype Space Type Assignment</display_name>
@@ -59,7 +59,7 @@
       <filename>prototype_space_type_lookup.csv</filename>
       <filetype>csv</filetype>
       <usage_type>resource</usage_type>
-      <checksum>8AABD0D0</checksum>
+      <checksum>CD8F711D</checksum>
     </file>
     <file>
       <filename>prototype_space_type_properties_lookup.csv</filename>
