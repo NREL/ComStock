@@ -1688,7 +1688,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
     def add_missing_energy_columns(self):
         # Put in zeroes for end-use columns that aren't used in ComStock yet
-        for engy_col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY):
+        for engy_col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY + self.COLS_GEN_ANN_ENGY):
             if not engy_col in self.data:
                 logger.debug(f'Adding missing energy column: {engy_col}')
                 self.data = self.data.with_columns([
@@ -1706,7 +1706,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
     def add_energy_intensity_columns(self):
         # Create EUI column for each annual energy column
-        for engy_col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY):
+        for engy_col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY + self.COLS_GEN_ANN_ENGY):
             # Divide energy by area to create intensity
             eui_col = self.col_name_to_eui(engy_col)
             self.data = self.data.with_columns(
@@ -3034,6 +3034,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     # self.COLS_UTIL_BILLS +
                     # [self.UTIL_BILL_TOTAL_MEAN, self.UTIL_BILL_ELEC_MAX, self.UTIL_BILL_ELEC_MED, self.UTIL_BILL_ELEC_MIN] +
                     self.COLS_TOT_ANN_ENGY +
+                    self.COLS_GEN_ANN_ENGY +
                     self.COLS_ENDUSE_ANN_ENGY +
                     self.COLS_ENDUSE_GROUP_TOT_ANN_ENGY +
                     self.COLS_ENDUSE_GROUP_ANN_ENGY):
@@ -3182,7 +3183,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         col_groups = [
             # Energy
             {
-                'cols': self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY,
+                'cols': self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY + self.COLS_GEN_ANN_ENGY,
                 'weighted_units': self.weighted_energy_units
             },
             # Utility Bills
@@ -3303,7 +3304,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         crnms = {}  # Column renames
         og_cols = self.data.columns
-        for col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY):
+        for col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY + self.COLS_GEN_ANN_ENGY):
             # energy_consumption
             if col in og_cols: crnms[col] = rmv_units(col)
 
@@ -3341,7 +3342,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         crnms = {}  # Column renames
         og_cols = lazyframe.columns
-        for col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY):
+        for col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY + self.COLS_GEN_ANN_ENGY):
             # energy_consumption
             if rmv_units(col) in og_cols: crnms[rmv_units(col)] = col
 
