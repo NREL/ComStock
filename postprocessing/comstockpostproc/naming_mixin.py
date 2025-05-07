@@ -95,12 +95,9 @@ class NamingMixin():
     ]
 
     # Total net energy
-    ANN_TOT_NET_ENGY_KBTU = 'out.net_site_energy_consumption..kwh'
-    ANN_TOT_NET_ELEC_KBTU = 'out.net_site_electricity_consumption..kwh'
-
-    # Total net energy
-    ANN_TOT_NET_ENGY_KBTU = 'out.net_site_energy_consumption..kwh'
-    ANN_TOT_NET_ELEC_KBTU = 'out.net_site_electricity_consumption..kwh'
+    ANN_TOT_NET_ENGY_KBTU = 'out.site_energy.net.energy_consumption..kwh' #new?
+    ANN_TOT_NET_ELEC_KBTU = 'out.electricity.net.energy_consumption..kwh' #new?
+    ANN_PURCHASED_ELEC_KBTU = 'out.electricity.purchased.energy_consumption..kwh' #new?
 
     # Total annual energy
     ANN_TOT_ENGY_KBTU = 'out.site_energy.total.energy_consumption..kwh'
@@ -122,6 +119,7 @@ class NamingMixin():
     ANN_ELEC_PUMPS_KBTU = 'out.electricity.pumps.energy_consumption..kwh'
     ANN_ELEC_REFRIG_KBTU = 'out.electricity.refrigeration.energy_consumption..kwh'
     ANN_ELEC_SWH_KBTU = 'out.electricity.water_systems.energy_consumption..kwh'
+    ANN_ELEC_PV_KBTU = 'out.electricity.pv.energy_consumption..kwh' #new?
 
     # End use energy - natural gas
     ANN_GAS_HEAT_KBTU = 'out.natural_gas.heating.energy_consumption..kwh'
@@ -492,6 +490,14 @@ class NamingMixin():
         SEG_J
     ]
 
+    # these columns are used to incorporate PV
+    # this list is to get weighted and savings values for them
+    COLS_GEN_ANN_ENGY = [
+        ANN_TOT_NET_ENGY_KBTU,
+        ANN_TOT_NET_ELEC_KBTU,
+        ANN_PURCHASED_ELEC_KBTU,
+    ]
+
     # List of total net annual energy columns (includes generated PV)
     COLS_NET_ANN_ENGY = [
         ANN_TOT_NET_ENGY_KBTU,
@@ -502,7 +508,16 @@ class NamingMixin():
         ANN_TOT_DISTCLG_KBTU
     ]
 
-    # List of total net annual energy columns
+    # List of total net annual energy columns (includes generated PV)
+    COLS_PURCHASED_ANN_ENGY = [
+        ANN_PURCHASED_ELEC_KBTU,
+        ANN_TOT_GAS_KBTU,
+        ANN_TOT_OTHFUEL_KBTU,
+        ANN_TOT_DISTHTG_KBTU,
+        ANN_TOT_DISTCLG_KBTU
+    ]
+
+    # List of total annual energy columns
     COLS_TOT_ANN_ENGY = [
         ANN_TOT_ENGY_KBTU,
         ANN_TOT_ELEC_KBTU,
@@ -510,12 +525,6 @@ class NamingMixin():
         ANN_TOT_OTHFUEL_KBTU,
         ANN_TOT_DISTHTG_KBTU,
         ANN_TOT_DISTCLG_KBTU
-    ]
-
-    # List of net energy columns
-    COLS_NET_ANN_ENGY = [
-        ANN_TOT_NET_ENGY_KBTU,
-        ANN_TOT_NET_ELEC_KBTU
     ]
 
     # List of end use annual energy columns
@@ -531,6 +540,7 @@ class NamingMixin():
         ANN_ELEC_PUMPS_KBTU,
         ANN_ELEC_REFRIG_KBTU,
         ANN_ELEC_SWH_KBTU,
+        ANN_ELEC_PV_KBTU,
         ANN_GAS_HEAT_KBTU,
         ANN_GAS_INTEQUIP_KBTU,
         ANN_GAS_SWH_KBTU,
@@ -567,6 +577,7 @@ class NamingMixin():
         ANN_ELEC_PUMPS_KBTU,
         ANN_ELEC_REFRIG_KBTU,
         ANN_ELEC_SWH_KBTU,
+        ANN_ELEC_PV_KBTU,
     ]
 
     # List of heating end use columns
@@ -744,6 +755,7 @@ class NamingMixin():
 
     # standard end use colors for plotting
     ENDUSE_COLOR_DICT = {
+                'Photovoltaics':'Green',
                 'Heating':'#EF1C21',
                 'Cooling':'#0071BD',
                 'Interior Lighting':'#F7DF10',

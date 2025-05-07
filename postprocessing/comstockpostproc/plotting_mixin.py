@@ -56,6 +56,7 @@ class PlottingMixin():
             df_emi_gb_long['Fuel Type'] = df_emi_gb_long['Fuel Type'].str.title()
             df_emi_gb_long['End Use'] = df_emi_gb_long['End Use'].str.replace('_', ' ', regex=True)
             df_emi_gb_long['End Use'] = df_emi_gb_long['End Use'].str.title()
+            df_emi_gb_long['End Use'] = df_emi_gb_long['End Use'].str.replace('Pv', 'Photovoltaics', regex=True)
 
             ## add OS color map
             color_dict = self.ENDUSE_COLOR_DICT
@@ -71,7 +72,9 @@ class PlottingMixin():
 
             # set category orders by end use
             cat_order = {
-               'End Use': [ 'Interior Equipment',
+               'End Use': [
+                            'Photovoltaics',
+                            'Interior Equipment',
                             'Fans',
                             'Cooling',
                             'Interior Lighting',
@@ -93,7 +96,7 @@ class PlottingMixin():
 
             # plot
             fig = px.bar(df_emi_gb_long, x=column_for_grouping, y='Annual Energy Consumption (TBtu)', color='End Use', pattern_shape='Fuel Type',
-                    barmode='stack', text_auto='.1f', template='simple_white', width=700, category_orders=cat_order, color_discrete_map=color_dict,
+                    barmode='relative', text_auto='.1f', template='simple_white', width=700, category_orders=cat_order, color_discrete_map=color_dict,
                     pattern_shape_map=pattern_dict)
 
             # formatting and saving image
@@ -108,10 +111,10 @@ class PlottingMixin():
                 extra_elements = upgrade_count - 2
                 plot_width = 550 * (1 + 0.15 * extra_elements)
 
-            fig.update_traces(textposition='inside', width=0.5)
+            fig.update_traces(textposition='inside', width=0.5, textangle=0)
             fig.update_xaxes(type='category', mirror=True, showgrid=False, showline=True, title=None, ticks='outside', linewidth=1, linecolor='black',
                             categoryorder='array', categoryarray=np.array(list(color_map.keys())))
-            fig.update_yaxes(mirror=True, showgrid=False, showline=True, ticks='outside', linewidth=1, linecolor='black', rangemode="tozero")
+            fig.update_yaxes(mirror=True, showgrid=False, showline=True, ticks='outside', zeroline=True, linewidth=1, linecolor='black', rangemode="tozero")
             fig.update_layout(title=None,  margin=dict(l=20, r=20, t=27, b=20), width=plot_width, legend_title=None, legend_traceorder="reversed",
                             uniformtext_minsize=8, uniformtext_mode='hide', bargap=0.05)
             fig.update_layout(
@@ -120,15 +123,15 @@ class PlottingMixin():
                 )
 
             # add summed values at top of bar charts
-            df_emi_plot = df_emi_gb_long.groupby(column_for_grouping, observed=True)['Annual Energy Consumption (TBtu)'].sum()
+            df_emi_plot = df_emi_gb_long.loc[df_emi_gb_long['End Use']!='Photovoltaics',:].groupby(column_for_grouping, observed=True)['Annual Energy Consumption (TBtu)'].sum()
             fig.add_trace(go.Scatter(
-            x=df_emi_plot.index,
-            y=df_emi_plot,
-            text=round(df_emi_plot, 0),
-            mode='text',
-            textposition='top center',
-            textfont=dict(
-                size=12,
+                        x=df_emi_plot.index,
+                        y=df_emi_plot,
+                        text=round(df_emi_plot, 0),
+                        mode='text',
+                        textposition='top center',
+                        textfont=dict(
+                            size=12,
             ),
             showlegend=False
             ))
