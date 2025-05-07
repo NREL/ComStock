@@ -755,6 +755,7 @@ class NamingMixin():
 
     # standard end use colors for plotting
     ENDUSE_COLOR_DICT = {
+                'Photovoltaics':'Green',
                 'Heating':'#EF1C21',
                 'Cooling':'#0071BD',
                 'Interior Lighting':'#F7DF10',
