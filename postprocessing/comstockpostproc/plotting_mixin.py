@@ -30,6 +30,10 @@ class PlottingMixin():
         # ghg columns; uses Cambium low renewable energy cost 15-year for electricity
         cols_enduse_ann_en = self.COLS_ENDUSE_ANN_ENGY
         wtd_cols_enduse_ann_en = [self.col_name_to_weighted(c, 'tbtu') for c in cols_enduse_ann_en]
+        cols_pv_ann_en = self.COLS_GEN_ANN_ENGY
+        wtd_cols_pv_ann_en = [self.col_name_to_weighted(c, 'tbtu') for c in cols_pv_ann_en]
+        cols_summarize = [self.ANN_TOT_ELEC_KBTU]
+        wtd_cols_summarize = [self.col_name_to_weighted(c, 'tbtu') for c in cols_summarize]
 
 
         # plots for both applicable and total stock
@@ -37,13 +41,17 @@ class PlottingMixin():
 
             df_scen = df.copy()
 
+            # distringuish used vs excess PV
+            pv_used = self.col_name_to_weighted('out.electricity.pv_used.energy_consumption..kwh', 'tbtu') # new col just for plotting
+            pv_excess = self.col_name_to_weighted('out.electricity.pv_excess.energy_consumption..kwh', 'tbtu') # new col just for plotting
+            df_scen[pv_used] = -(df_scen[self.col_name_to_weighted(self.ANN_TOT_ELEC_KBTU, 'tbtu')] - df_scen[self.col_name_to_weighted(self.ANN_PURCHASED_ELEC_KBTU, 'tbtu')])
+            df_scen[pv_excess] = df_scen[self.col_name_to_weighted(self.ANN_ELEC_PV_KBTU, 'tbtu')] - df_scen[pv_used]
 
             if applicable_scenario == 'applicable_only':
                 applic_bldgs = df_scen.loc[(df_scen[self.UPGRADE_NAME]!='Baseline') & (df_scen['applicability']==True), self.BLDG_ID]
                 df_scen = df_scen.loc[df_scen[self.BLDG_ID].isin(applic_bldgs), :]
 
-            # groupby and long format for plotting
-            df_emi_gb = (df_scen.groupby(column_for_grouping, observed=True)[wtd_cols_enduse_ann_en].sum()).reset_index()
+            df_emi_gb = (df_scen.groupby(column_for_grouping, observed=True)[wtd_cols_enduse_ann_en + wtd_cols_pv_ann_en + [pv_excess, pv_used]].sum()).reset_index()
             df_emi_gb = df_emi_gb.loc[:, (df_emi_gb !=0).any(axis=0)]
             df_emi_gb_long = df_emi_gb.melt(id_vars=[column_for_grouping], value_name='Annual Energy Consumption (TBtu)').sort_values(by='Annual Energy Consumption (TBtu)', ascending=False)
 
@@ -57,6 +65,8 @@ class PlottingMixin():
             df_emi_gb_long['End Use'] = df_emi_gb_long['End Use'].str.replace('_', ' ', regex=True)
             df_emi_gb_long['End Use'] = df_emi_gb_long['End Use'].str.title()
             df_emi_gb_long['End Use'] = df_emi_gb_long['End Use'].str.replace('Pv', 'Photovoltaics', regex=True)
+            # remove columns not needed
+            df_emi_gb_long = df_emi_gb_long.loc[~df_emi_gb_long['variable'].isin(['site_energy.net', 'electricity.net', 'electricity.purchased', 'electricity.pv']), :]
 
             ## add OS color map
             color_dict = self.ENDUSE_COLOR_DICT
@@ -73,7 +83,8 @@ class PlottingMixin():
             # set category orders by end use
             cat_order = {
                'End Use': [
-                            'Photovoltaics',
+                            'Photovoltaics Used',
+                            'Photovoltaics Excess',
                             'Interior Equipment',
                             'Fans',
                             'Cooling',
@@ -123,7 +134,7 @@ class PlottingMixin():
                 )
 
             # add summed values at top of bar charts
-            df_emi_plot = df_emi_gb_long.loc[df_emi_gb_long['End Use']!='Photovoltaics',:].groupby(column_for_grouping, observed=True)['Annual Energy Consumption (TBtu)'].sum()
+            df_emi_plot = df_emi_gb_long.loc[~df_emi_gb_long['End Use'].str.contains('Photovoltaics'),:].groupby(column_for_grouping, observed=True)['Annual Energy Consumption (TBtu)'].sum()
             fig.add_trace(go.Scatter(
                         x=df_emi_plot.index,
                         y=df_emi_plot,
