@@ -704,7 +704,8 @@ class NamingMixin():
             'Hospital',
             'SmallHotel',
             'LargeHotel',
-            'Warehouse'],
+            'Warehouse',
+            'Grocery'],
 
          HVAC_SYS: [
              'Baseboard electric',
@@ -766,7 +767,8 @@ class NamingMixin():
         'Hospital': 'hospital',
         'SmallHotel': 'small_hotel',
         'LargeHotel': 'large_hotel',
-        'Warehouse': 'warehouse'
+        'Warehouse': 'warehouse',
+        'Grocery': 'grocery'
     }
 
     BLDG_TYPE_TO_ABBRV = {
@@ -783,7 +785,8 @@ class NamingMixin():
         'Hospital': 'HSP',
         'SmallHotel': 'SMHOT',
         'LargeHotel': 'LGHOT',
-        'Warehouse': 'WH'
+        'Warehouse': 'WH',
+        'Grocery': 'GROC'
     }
 
     END_USES = [
