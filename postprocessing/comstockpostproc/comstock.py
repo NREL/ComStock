@@ -64,7 +64,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.truth_data_dir = os.path.join(CURRENT_DIR, '..', 'truth_data', self.truth_data_version)
         self.output_dir = os.path.abspath(os.path.join(CURRENT_DIR, '..', 'output', self.dataset_name))
         self.results_file_name = 'results_up00.parquet'
-        self.building_type_mapping_file_name = f'CBECS_2012_to_comstock_nems_aeo_building_types.csv'
+        self.building_type_mapping_file_name = f'CBECS_2018_to_comstock_nems_aeo_building_types.csv.csv'
         self.buildstock_file_name = buildstock_csv_name
         self.ejscreen_file_name = 'EJSCREEN_Tract_2020_USPR.csv'
         self.egrid_file_name = 'egrid_emissions_2019.csv'
@@ -1203,7 +1203,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Define building type groups relevant to segmentation
         non_food_svc = ['RetailStandalone', 'Warehouse','SmallOffice', 'LargeHotel', 'MediumOffice', 'PrimarySchool',
-            'Hospital', 'SmallHotel', 'Outpatient', 'SecondarySchool', 'LargeOffice']
+            'Hospital', 'SmallHotel', 'Outpatient', 'SecondarySchool', 'LargeOffice', 'Grocery']
 
         food_svc = ['QuickServiceRestaurant', 'FullServiceRestaurant']
 
@@ -1212,7 +1212,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         non_lodging = ['QuickServiceRestaurant', 'RetailStripmall', 'RetailStandalone', 'Warehouse',
             'SmallOffice', 'MediumOffice', 'PrimarySchool',
             'FullServiceRestaurant', 'Hospital', 'Outpatient',
-            'SecondarySchool', 'LargeOffice']
+            'SecondarySchool', 'LargeOffice', 'Grocery']
 
         lodging = ['SmallHotel', 'LargeHotel']
 
