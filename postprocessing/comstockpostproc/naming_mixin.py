@@ -768,7 +768,8 @@ class NamingMixin():
         'SmallHotel': 'small_hotel',
         'LargeHotel': 'large_hotel',
         'Warehouse': 'warehouse',
-        'Grocery': 'grocery'
+        'Grocery': 'grocery',
+        'SuperMarket': 'grocery'
     }
 
     BLDG_TYPE_TO_ABBRV = {

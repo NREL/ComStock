@@ -47,8 +47,8 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         self.sampling_regions_name = 'sampling_regions_v1.json'
         self.ca_cz_tract_2010_name = 'cec_cz_by_tract_2010_lkup.json'
         self.ca_cz_tract_2020_name = 'cec_cz_by_tract_2020_lkup.json'
-        self.hvac_system_type_name = 'hvac_system_type_v2.tsv'
-        self.space_heating_fuel_type_name = 'heating_fuel_v1.tsv'
+        self.hvac_system_type_name = 'hvac_system_type_v3.tsv'
+        self.space_heating_fuel_type_name = 'heating_fuel_v2.tsv'
         self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
         logger.info(f'Creating {self.dataset_name}')
 
@@ -551,7 +551,6 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         if len(leftovers) > 0:
             logger.error('Building type values from the building estimate not expected by the building type mapper:')
             logger.error(f'{leftovers}')
-            breakpoint()
             raise RuntimeError('Unable to process the specified building type enumerations.')
 
         self.data = df.copy(deep=True)

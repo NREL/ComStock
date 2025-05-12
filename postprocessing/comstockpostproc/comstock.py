@@ -175,6 +175,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.data = self.downselect_imported_columns(self.data)
                 self.rename_columns_and_convert_units()
                 self.set_column_data_types()
+                self.fix_supermarket_building_type_name()
                 # Calculate/generate columns based on imported columns
                 # self.add_aeo_nems_building_type_column()  # TODO POLARS figure out apply function
                 self.add_missing_energy_columns()
@@ -1203,7 +1204,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Define building type groups relevant to segmentation
         non_food_svc = ['RetailStandalone', 'Warehouse','SmallOffice', 'LargeHotel', 'MediumOffice', 'PrimarySchool',
-            'Hospital', 'SmallHotel', 'Outpatient', 'SecondarySchool', 'LargeOffice', 'Grocery', 'SuperMarket']
+            'Hospital', 'SmallHotel', 'Outpatient', 'SecondarySchool', 'LargeOffice', 'Grocery']
 
         food_svc = ['QuickServiceRestaurant', 'FullServiceRestaurant']
 
@@ -1703,6 +1704,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # when determining unique in.foo values for SightGlass filters.
         self.data = self.data.with_columns(pl.col(self.YEAR_BUILT).cast(pl.Utf8))
 
+    def fix_supermarket_building_type_name(self):
+        # idk why but grocery input to comstock returns SuperMarket output from standards... hurrah
+        # fixing here because expediency trumps all
+        self.data = self.data.with_columns(pl.col('in.comstock_building_type').replace('SuperMarket', 'Grocery'))
+
     def add_missing_energy_columns(self):
         # Put in zeroes for end-use columns that aren't used in ComStock yet
         for engy_col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY):
@@ -1906,6 +1912,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         bldg_type_groups = {
             'FullServiceRestaurant': 'Food Service',
             'QuickServiceRestaurant': 'Food Service',
+            'Grocery': 'Food Service',
             'RetailStripmall': 'Mercantile',
             'RetailStandalone': 'Mercantile',
             'SmallOffice': 'Office',
@@ -2869,6 +2876,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             logger.info(f'Unable to match {unable_to_match:,} out of {total_to_match:,} truth data ({pct_unmatched:.2f}%).')
             if pct_unmatched > 25:
                 logger.error(f'The percent of unmatched truth data is very high ({pct_unmatched:.2f}%), consider this when reviewing results.')
+            if unable_to_match == total_to_match:
+                breakpoint()
+                raise RuntimeError('Unable to match any truth data to sampled data - idk burv.')
 
             # Provide detailed additional info on missing buckets for review if desired
             logger.info(f'Writing QAQC / Debugging files to {os.path.abspath(self.output_dir)}')
