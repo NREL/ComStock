@@ -99,7 +99,8 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         'large_hotel': 'LargeHotel',
         'hospital': 'Hospital',
         'primary_school': 'PrimarySchool',
-        'secondary_school': 'SecondarySchool'
+        'secondary_school': 'SecondarySchool',
+        'grocery': 'Grocery',
     }
     """Mapping between snake_case and UpperCamelCase building type enumerations. """
 
