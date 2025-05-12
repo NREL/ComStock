@@ -1203,7 +1203,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Define building type groups relevant to segmentation
         non_food_svc = ['RetailStandalone', 'Warehouse','SmallOffice', 'LargeHotel', 'MediumOffice', 'PrimarySchool',
-            'Hospital', 'SmallHotel', 'Outpatient', 'SecondarySchool', 'LargeOffice', 'Grocery']
+            'Hospital', 'SmallHotel', 'Outpatient', 'SecondarySchool', 'LargeOffice', 'Grocery', 'SuperMarket']
 
         food_svc = ['QuickServiceRestaurant', 'FullServiceRestaurant']
 
@@ -1212,7 +1212,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         non_lodging = ['QuickServiceRestaurant', 'RetailStripmall', 'RetailStandalone', 'Warehouse',
             'SmallOffice', 'MediumOffice', 'PrimarySchool',
             'FullServiceRestaurant', 'Hospital', 'Outpatient',
-            'SecondarySchool', 'LargeOffice', 'Grocery']
+            'SecondarySchool', 'LargeOffice', 'Grocery', 'SuperMarket']
 
         lodging = ['SmallHotel', 'LargeHotel']
 
@@ -1287,6 +1287,22 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # Assign the column name
             .alias(self.SEG_NAME)
         ])
+
+        # Debug: check which HVAC categories hit the 'ERROR' case
+        error_rows = self.data.filter(pl.col(self.SEG_NAME) == 'ERROR')
+
+        # Optional: print distinct values for quick insight
+        print("Unique HVAC categories causing 'ERROR':")
+        print(error_rows.select("in.hvac_category").unique())
+
+        # If you want to log more detail:
+        print("Problematic combinations:")
+        print(error_rows.select([
+            "in.comstock_building_type",
+            "in.hvac_category",
+            "in.building_subtype",
+            "in.hvac_heat_type"
+        ]).unique())
 
         # Check that no rows have a segment "ERROR" assigned
         errs = self.data.select((pl.col(self.SEG_NAME).filter(pl.col(self.SEG_NAME) == 'ERROR').count()))
