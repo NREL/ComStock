@@ -129,7 +129,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.download_data()
         pl.enable_string_cache()
         if reload_from_csv:
-            upgrade_pqts = glob.glob(os.path.join(self.output_dir, 'cached_ComStock_wide_upgrade*.parquet'))
+            upgrade_pqts = glob.glob(os.path.join(self.output_dir, 'cached_wide_by_upgrade', '**', 'cached_ComStock_wide_upgrade*.parquet'))
             upgrade_pqts.sort()
             if len(upgrade_pqts) > 0:
                 upgrade_dfs = []
@@ -140,8 +140,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         logger.info(f'Skipping reload for upgrade {up_id}')
                         continue
                     logger.info(f'Reloading data from: {file_path}')
-                    upgrade_dfs.append(pl.scan_parquet(file_path))
-                self.data = pl.concat(upgrade_dfs)
+                    upgrade_dfs.append(file_path)
+                self.data = pl.scan_parquet(upgrade_dfs, hive_partitioning=True)
             elif os.path.exists(os.path.join(self.output_dir, 'ComStock wide.csv')):
                 file_path = os.path.join(self.output_dir, 'ComStock wide.csv')
                 logger.info(f'Reloading data from: {file_path}')
@@ -149,6 +149,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             else:
                 raise FileNotFoundError(
                 f'Cannot find wide .csv or .parquet in {self.output_dir} to reload data, set reload_from_csv=False.')
+
+            # Populate a map of columns to create weighted savings for later in processing after weights are assigned.
+            for col_group in self.UNWTD_COL_GROUPS:
+                for col in col_group['cols']:
+                    self.unweighted_weighted_map.update({
+                        self.col_name_to_savings(col, None): self.col_name_to_weighted_savings(col, col_group['weighted_units'])
+                        })
         else:
 
             # Get upgrades to process based on available results parquet files
@@ -2305,14 +2312,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Calculate the weighted columns
         geo_data = self.add_weighted_area_energy_savings_columns(geo_data)
 
-        print("--->>>Add geospatial data columns based on most informative geography column<<<---")
         # Add geospatial data columns based on most informative geography column
         geo_data = self.add_geospatial_columns(geo_data, geographic_aggregation_levels[0])
         if geographic_aggregation_levels == [self.TRACT_ID]:
             geo_data = self.add_cejst_columns(geo_data)
             geo_data = self.add_ejscreen_columns(geo_data)
 
-        print("--->>>Downselect columns for export<<<---")
         # Downselect columns for export
         if column_downselection is not None:
             geo_data = self.downselect_columns_for_metadata_export(geo_data, column_downselection)
@@ -3077,44 +3082,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         assert isinstance(self.data, pl.DataFrame)
 
-        col_groups = [
-            # Energy
-            {
-                'cols': self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY,
-                'weighted_units': self.weighted_energy_units
-            },
-            # Utility Bills
-            # {
-            #     'cols': (self.COLS_UTIL_BILLS +
-            #                     [self.UTIL_BILL_TOTAL_MEAN,
-            #                     self.UTIL_BILL_ELEC_MAX,
-            #                     self.UTIL_BILL_ELEC_MED,
-            #                     self.UTIL_BILL_ELEC_MIN]),
-            #     'weighted_units': self.weighted_utility_units
-            # },
-            # Peak Demand QOIs
-            {
-                'cols': (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK +
-                              self.COLS_QOI_MONTHLY_MED_DAILY_PEAK +
-                              [self.QOI_MAX_SHOULDER_USE,
-                              self.QOI_MAX_SUMMER_USE,
-                              self.QOI_MAX_WINTER_USE]),
-                'weighted_units': self.weighted_demand_units
-            },
-            # Emissions
-            {
-                'cols': (self.COLS_GHG_ELEC_SEASONAL_DAILY_EGRID +
-                              self.COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM +
-                              [self.GHG_LRMER_MID_CASE_15_ELEC,
-                              self.GHG_ELEC_EGRID,
-                              self.ANN_GHG_EGRID,
-                              self.ANN_GHG_CAMBIUM]),
-                'weighted_units': self.weighted_ghg_units
-            }
-        ]
-
         # Calculate savings for each group of columns using the appropriate units
-        for col_group in col_groups:
+        for col_group in self.UNWTD_COL_GROUPS:
 
             val_cols = []
             abs_svgs_cols = {}
