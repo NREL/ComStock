@@ -660,6 +660,33 @@ class NamingMixin():
         HEATING_HOURS_UNMET,
     ]
 
+    UNWTD_COL_GROUPS = [
+        # Energy
+        {
+            'cols': COLS_TOT_ANN_ENGY + COLS_ENDUSE_ANN_ENGY,
+            'weighted_units': 'tbtu'
+        },
+        # Peak Demand QOIs
+        {
+            'cols': (COLS_QOI_MONTHLY_MAX_DAILY_PEAK +
+                            COLS_QOI_MONTHLY_MED_DAILY_PEAK +
+                            [QOI_MAX_SHOULDER_USE,
+                            QOI_MAX_SUMMER_USE,
+                            QOI_MAX_WINTER_USE]),
+            'weighted_units': 'gw'
+        },
+        # Emissions
+        {
+            'cols': (COLS_GHG_ELEC_SEASONAL_DAILY_EGRID +
+                            COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM +
+                            [GHG_LRMER_MID_CASE_15_ELEC,
+                            GHG_ELEC_EGRID,
+                            ANN_GHG_EGRID,
+                            ANN_GHG_CAMBIUM]),
+            'weighted_units': 'co2e_mmt'
+        }
+    ]
+
     # Colors from https://davidmathlogic.com/colorblind Bang Wong color palette
     COLOR_COMSTOCK_BEFORE = '#0072B2'
     COLOR_COMSTOCK_AFTER = '#56B4E9'

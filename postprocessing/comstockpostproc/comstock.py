@@ -129,7 +129,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.download_data()
         pl.enable_string_cache()
         if reload_from_csv:
-            upgrade_pqts = glob.glob(os.path.join(self.output_dir, 'cached_ComStock_wide_upgrade*.parquet'))
+            upgrade_pqts = glob.glob(os.path.join(self.output_dir, 'cached_wide_by_upgrade', '**', 'cached_ComStock_wide_upgrade*.parquet'))
             upgrade_pqts.sort()
             if len(upgrade_pqts) > 0:
                 upgrade_dfs = []
@@ -140,8 +140,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         logger.info(f'Skipping reload for upgrade {up_id}')
                         continue
                     logger.info(f'Reloading data from: {file_path}')
-                    upgrade_dfs.append(pl.scan_parquet(file_path))
-                self.data = pl.concat(upgrade_dfs)
+                    upgrade_dfs.append(file_path)
+                self.data = pl.scan_parquet(upgrade_dfs, hive_partitioning=True)
             elif os.path.exists(os.path.join(self.output_dir, 'ComStock wide.csv')):
                 file_path = os.path.join(self.output_dir, 'ComStock wide.csv')
                 logger.info(f'Reloading data from: {file_path}')
@@ -149,6 +149,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             else:
                 raise FileNotFoundError(
                 f'Cannot find wide .csv or .parquet in {self.output_dir} to reload data, set reload_from_csv=False.')
+
+            # Populate a map of columns to create weighted savings for later in processing after weights are assigned.
+            for col_group in self.UNWTD_COL_GROUPS:
+                for col in col_group['cols']:
+                    self.unweighted_weighted_map.update({
+                        self.col_name_to_savings(col, None): self.col_name_to_weighted_savings(col, col_group['weighted_units'])
+                        })
         else:
 
             # Get upgrades to process based on available results parquet files
@@ -2066,103 +2073,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         return self.plotting_data
 
-    def create_national_aggregation(self):
-        national_aggregation = self.fkt.clone()
-        national_aggregation = national_aggregation.select(
-            [pl.col(self.BLDG_WEIGHT), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)]
-        ).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)]).sum()
-        national_aggregation = national_aggregation.join(self.data, on=[pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)])
-        national_aggregation = self.add_weighted_area_energy_savings_columns(national_aggregation)
-
-        # Calculate national monthly values for something
-        # Todo rewrite this to use proper column names
-        # self.get_scaled_comstock_monthly_consumption_by_state(national_aggregation)
-
-        # Reorder the columns before exporting
-        national_aggregation = self.reorder_data_columns(national_aggregation)
-        assert isinstance(national_aggregation, pl.LazyFrame)
-
-        up_ids = pl.Series(national_aggregation.select(pl.col(self.UPGRADE_ID)).unique().collect()).to_list()
-        # up_ids = [up_id for (up_id, _) in self.cached_parquet]
-        up_ids.sort()
-        for up_id in up_ids:
-            # Write CSV version
-            file_name = f'ComStock wide upgrade{up_id}.csv'
-            file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
-            logger.info(f'Exporting to: {file_path}')
-            try:
-                national_aggregation.filter(pl.col(self.UPGRADE_ID) == up_id).sink_csv(file_path)
-            except pl.exceptions.InvalidOperationError:
-                logger.warning('Warning - sink_csv not supported for metadata write in current polars version')
-                logger.warning('Falling back to .collect.write_csv')
-                national_aggregation.filter(pl.col(self.UPGRADE_ID) == up_id).collect().write_csv(file_path)
-
-            # Write Parquet version
-            file_name = f'ComStock wide upgrade{up_id}.parquet'
-            file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
-            logger.info(f'Exporting to: {file_path}')
-            try:
-                national_aggregation.filter(pl.col(self.UPGRADE_ID) == up_id).sink_parquet(file_path)
-            except pl.exceptions.InvalidOperationError:
-                logger.warning('Warning - sink_parquet not supported for metadata write in current polars version')
-                logger.warning('Falling back to .collect.write_parquet')
-                national_aggregation.filter(pl.col(self.UPGRADE_ID) == up_id).collect().write_parquet(file_path)
-
-        # Export dictionaries corresponding to the exported columns
-        self.export_data_and_enumeration_dictionary()
-
-        # Return the nationally aggregated dataframe for use by plotting, etc.
-        return national_aggregation
-
-    def create_geospatially_resolved_aggregations(self, geographic_col_name, pretty_geo_col_name=False):
-        # Ensure the geography is supported
-        supported_geographies = [self.CEN_DIV, self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.CZ_ASHRAE]
-        if geographic_col_name not in [self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.CZ_ASHRAE]:
-            logger.error(f'Requeted geographic aggregation {geographic_col_name} not in supported geographies.')
-            logger.error(f'Currently supported geographies are {supported_geographies}')
-            raise RuntimeError('Unsupported geography selected for geospatial aggregation')
-
-        # Create the spatial aggregation
-        spatial_aggregation = self.fkt.clone()
-        spatial_aggregation = spatial_aggregation.select(
-            [pl.col('weight'), pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(geographic_col_name)]
-        ).groupby([pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID), pl.col(geographic_col_name)]).sum()
-        spatial_aggregation = spatial_aggregation.join(self.data, on=[pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)])
-        spatial_aggregation = self.add_weighted_area_energy_savings_columns(spatial_aggregation)
-
-        # Reorder the columns before exporting
-        spatial_aggregation = self.reorder_data_columns(spatial_aggregation)
-        assert isinstance(spatial_aggregation, pl.LazyFrame)
-
-        up_ids = pl.Series(spatial_aggregation.select(pl.col(self.UPGRADE_ID)).unique().collect()).to_list()
-        # up_ids = [up_id for (up_id, _) in self.cached_parquet]
-        up_ids.sort()
-        for up_id in up_ids:
-            file_name = f'{self.UPGRADE_ID}={up_id}'
-            file_path = os.path.abspath(os.path.join(
-                self.output_dir, 'geospatial_results', geographic_col_name.replace('in.', ''), file_name
-            ))
-            logger.info(f'Exporting to: {file_path}')
-            to_write = spatial_aggregation.filter(pl.col(self.UPGRADE_ID) == up_id)
-            if pretty_geo_col_name:
-                to_write = to_write.with_columns(pl.col(geographic_col_name).alias(pretty_geo_col_name))
-            else:
-                pretty_geo_col_name = geographic_col_name
-            logger.warning("IF USING OSX AND YOU GET A '*** OSError: [Errno 24] Too many open files' DO THE FOLLOWING'")
-            logger.warning("Add the following two commands to your ~/.bash_profile and reboot your shell:")
-            logger.warning("ulimit -n 200000")
-            logger.warning("ulimit -u 2048")
-            logger.info("Attempting pottentially OSERROR triggering write:")
-            to_write.collect().write_parquet(file_path, use_pyarrow=True, pyarrow_options={
-                "partition_cols": [pretty_geo_col_name], 'max_partitions': 3143
-            })
-
-        # Export dictionaries corresponding to the exported columns
-        self.export_data_and_enumeration_dictionary()
-
-        # Return the geospatially aggregated dataframe for use by plotting, etc.
-        return spatial_aggregation
-
     def create_geospatial_slice_of_metadata(self,
                                             geo_data,
                                             meta_data,
@@ -2408,14 +2318,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Calculate the weighted columns
         geo_data = self.add_weighted_area_energy_savings_columns(geo_data)
 
-        print("--->>>Add geospatial data columns based on most informative geography column<<<---")
         # Add geospatial data columns based on most informative geography column
         geo_data = self.add_geospatial_columns(geo_data, geographic_aggregation_levels[0])
         if geographic_aggregation_levels == [self.TRACT_ID]:
             geo_data = self.add_cejst_columns(geo_data)
             geo_data = self.add_ejscreen_columns(geo_data)
 
-        print("--->>>Downselect columns for export<<<---")
         # Downselect columns for export
         if column_downselection is not None:
             geo_data = self.downselect_columns_for_metadata_export(geo_data, column_downselection)
@@ -3169,44 +3077,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         assert isinstance(self.data, pl.DataFrame)
 
-        col_groups = [
-            # Energy
-            {
-                'cols': self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY,
-                'weighted_units': self.weighted_energy_units
-            },
-            # Utility Bills
-            # {
-            #     'cols': (self.COLS_UTIL_BILLS +
-            #                     [self.UTIL_BILL_TOTAL_MEAN,
-            #                     self.UTIL_BILL_ELEC_MAX,
-            #                     self.UTIL_BILL_ELEC_MED,
-            #                     self.UTIL_BILL_ELEC_MIN]),
-            #     'weighted_units': self.weighted_utility_units
-            # },
-            # Peak Demand QOIs
-            {
-                'cols': (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK +
-                              self.COLS_QOI_MONTHLY_MED_DAILY_PEAK +
-                              [self.QOI_MAX_SHOULDER_USE,
-                              self.QOI_MAX_SUMMER_USE,
-                              self.QOI_MAX_WINTER_USE]),
-                'weighted_units': self.weighted_demand_units
-            },
-            # Emissions
-            {
-                'cols': (self.COLS_GHG_ELEC_SEASONAL_DAILY_EGRID +
-                              self.COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM +
-                              [self.GHG_LRMER_MID_CASE_15_ELEC,
-                              self.GHG_ELEC_EGRID,
-                              self.ANN_GHG_EGRID,
-                              self.ANN_GHG_CAMBIUM]),
-                'weighted_units': self.weighted_ghg_units
-            }
-        ]
-
         # Calculate savings for each group of columns using the appropriate units
-        for col_group in col_groups:
+        for col_group in self.UNWTD_COL_GROUPS:
 
             val_cols = []
             abs_svgs_cols = {}

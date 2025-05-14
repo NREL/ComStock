@@ -68,8 +68,6 @@ def main():
 
     # Export CBECS and ComStock data to wide and long formats for Tableau and to skip processing later
     cbecs.export_to_csv_wide()  # May comment this out if CSV output isn't needed
-    # comstock_a.create_national_aggregation()  # May comment this out if CSV output isn't needed
-    # comstock_b.create_national_aggregation()  # May comment this out if CSV output isn't needed
     # TODO This (long CSV export) is not yet re-implemented
     # comstock_a.export_to_csv_long()  # Long format useful for stacking end uses and fuels
     # comstock_b.export_to_csv_long()  # Long format useful for stacking end uses and fuels
