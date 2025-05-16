@@ -2037,6 +2037,55 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.CBECS_WEIGHTS_APPLIED = True
         return bldg_type_scale_factors
 
+    # Superset of columns used by all plotting methods
+    def plotting_columns(self):
+        pcs = []
+
+        # Universal
+        pcs += [self.UPGRADE_APPL, self.UPGRADE_NAME, self.BLDG_ID]
+        pcs += [self.col_name_to_weighted(c, new_units=UnitsMixin.UNIT.ENERGY.TBTU) for c in self.COLS_ENDUSE_ANN_ENGY]
+        pcs += [self.col_name_to_weighted(c, UnitsMixin.UNIT.MASS.CO2E_MMT) for c in self.GHG_FUEL_COLS]
+
+        cols = self.COLS_UTIL_BILLS + ['out.utility_bills.electricity_bill_max..usd', 'out.utility_bills.electricity_bill_min..usd']
+        pcs += [self.col_name_to_weighted(c, UnitsMixin.UNIT.CURRENCY.BILLION_USD) for c in cols]
+
+        # plot_floor_area_and_energy_totals
+        cols = [self.ANN_TOT_ENGY_KBTU, self.ANN_TOT_ELEC_KBTU, self.ANN_TOT_GAS_KBTU]
+        pcs += [self.col_name_to_weighted(col_name=c, new_units=UnitsMixin.UNIT.ENERGY.TBTU) for c in cols]
+        pcs += [self.col_name_to_weighted(col_name=self.FLR_AREA), self.CEN_DIV, self.BLDG_TYPE, self.VINTAGE]
+
+        # plot_eui_boxplots
+        pcs += list(map(self.col_name_to_eui, [self.ANN_TOT_ENGY_KBTU, self.ANN_TOT_ELEC_KBTU, self.ANN_TOT_GAS_KBTU]))
+        pcs += [self.col_name_to_weighted(self.FLR_AREA)]
+
+        cols = self.COLS_ENDUSE_ANN_ENGY + self.COLS_TOT_ANN_ENGY
+        pcs += [self.col_name_to_savings(self.col_name_to_eui(c)) for c in cols]
+        pcs += [self.col_name_to_percent_savings(c, UnitsMixin.UNIT.DIMLESS.PERCENT) for c in cols]
+
+        cols = [self.UTIL_BILL_TOTAL_MEAN] + self.COLS_UTIL_BILLS
+        pcs += [self.col_name_to_savings(self.col_name_to_area_intensity(c)) for c in cols]
+        pcs += [self.col_name_to_percent_savings(self.col_name_to_weighted(c), UnitsMixin.UNIT.DIMLESS.PERCENT) for c in cols]
+
+        pcs += [self.col_name_to_savings(self.col_name_to_eui(self.ANN_TOT_ENGY_KBTU)),
+                                         self.col_name_to_percent_savings(self.ANN_TOT_ENGY_KBTU, UnitsMixin.UNIT.DIMLESS.PERCENT)]
+
+        # plot_qoi_timing, plot_qoi_max_use, plot_qoi_min_use
+        pcs += self.QOI_MAX_DAILY_TIMING_COLS
+        pcs += self.QOI_MAX_USE_COLS_NORMALIZED
+        pcs += self.QOI_MIN_USE_COLS_NORMALIZED
+
+        # plot_energy_rate_boxplots
+        # pcs += [self.col_name_to_energy_rate(c) for c in [self.UTIL_BILL_ELEC, self.UTIL_BILL_GAS]]  # Disabled in plotting
+
+        # plot_unmet_hours
+        pcs += list(set(self.UNMET_HOURS_COLS))
+
+        # Reduce down to the unique set
+        pcs = list(set(pcs))
+        pcs.sort()
+
+        return pcs
+
     def create_plotting_lazyframe(self):
 
         # Get list of upgrade IDs
@@ -2060,6 +2109,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                                                                 geography_filters={},
                                                                                 geographic_aggregation_levels=agg_cols,
                                                                                 column_downselection='full')
+
+            # Select only columns needed for plotting
+            up_agg = up_agg.select(self.plotting_columns())
 
             # Write data to parquet file, hive partition on upgrade to make later processing faster
             file_name = f'cached_ComStock_plotting_upgrade{upgrade_id}.parquet'
