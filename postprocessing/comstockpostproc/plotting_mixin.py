@@ -499,7 +499,7 @@ class PlottingMixin():
 
     def normalize_energy_for_hvac_sys(self, df):
 
-         grouped_df = df.groupby([self.HVAC_SYS, self.CEN_DIV, self.VINTAGE,'dataset']).sum(numeric_only=True).reset_index()
+         grouped_df = df.groupby([self.HVAC_SYS, self.CEN_DIV, self.VINTAGE,'dataset'], observed=True).sum(numeric_only=True).reset_index()
 
          new_cols = pd.DataFrame({
              'Normalized_Total_Energy': self.convert(grouped_df[self.col_name_to_weighted(self.ANN_TOT_ENGY_KBTU, 'tbtu')], 'tbtu', 'kbtu') / grouped_df[self.col_name_to_weighted(self.FLR_AREA)],
@@ -793,7 +793,7 @@ class PlottingMixin():
         ]
 
         for col in cols_to_summarize:
-            # for bldg_type, bldg_type_ts_df in df.groupby(self.BLDG_TYPE):
+            # for bldg_type, bldg_type_ts_df in df.groupby(self.BLDG_TYPE, observed=True):
 
             # Make a plot for each group
             for group_by in group_bys:
@@ -893,7 +893,7 @@ class PlottingMixin():
         ]
 
         for col, agg_method in cols_to_summarize.items():
-            for bldg_type, bldg_type_ts_df in df.groupby(self.BLDG_TYPE):
+            for bldg_type, bldg_type_ts_df in df.groupby(self.BLDG_TYPE, observed=True):
 
                 # Make a plot for each group
                 for group_by in group_bys:
@@ -983,7 +983,7 @@ class PlottingMixin():
         ]
 
         for col in cols_to_summarize:
-            for hvac_type, hvac_type_df in nm_df.groupby(self.HVAC_SYS):
+            for hvac_type, hvac_type_df in nm_df.groupby(self.HVAC_SYS, observed=True):
                 for group_by in group_bys:
                     if group_by is None:
                         g = sns.catplot(
@@ -1066,7 +1066,7 @@ class PlottingMixin():
          ]
 
          for col in cols_to_summarize:
-             for hvac_type, hvac_type_df in df.groupby(self.HVAC_SYS):
+             for hvac_type, hvac_type_df in df.groupby(self.HVAC_SYS, observed=True):
                  if hvac_type_df[col].isnull().all():
                      print(f"No data for {col} in HVAC type {hvac_type}. Skipping plot.")
                      continue  # Skip this HVAC type if the column is all NaNs or empty
@@ -1179,7 +1179,7 @@ class PlottingMixin():
         # Extract the units from the name of the first column
         units = self.nice_units(self.units_from_col_name(wtd_end_use_cols[0]))
 
-        for bldg_type, bldg_type_df in df.groupby(self.BLDG_TYPE):
+        for bldg_type, bldg_type_df in df.groupby(self.BLDG_TYPE, observed=True):
             for group_by in group_bys:
                 var_name = 'End Use'
                 val_name = f'Energy Consumption ({units})'
@@ -1262,7 +1262,7 @@ class PlottingMixin():
         ]
 
         for col in cols_to_summarize:
-            for bldg_type, bldg_type_ts_df in df.groupby(self.BLDG_TYPE):
+            for bldg_type, bldg_type_ts_df in df.groupby(self.BLDG_TYPE, observed=True):
                 # Group as specified
                 group_ts_dfs = {}
                 for group_by in group_bys:
@@ -1271,7 +1271,7 @@ class PlottingMixin():
                         group_ts_dfs[None] = bldg_type_ts_df
                     else:
                         # With group-by
-                        for group, group_ts_df in bldg_type_ts_df.groupby(group_by):
+                        for group, group_ts_df in bldg_type_ts_df.groupby(group_by, observed=True):
                             group_ts_dfs[group] = group_ts_df
 
                 # Plot a histogram for each group
@@ -1285,7 +1285,7 @@ class PlottingMixin():
                     logger.debug(f'bldg_type: {bldg_type}, min_eui: {min_eui}, max_eui: {max_eui}, n_bins: {n_bins}, bin_size: {bin_size}')
 
                     # Make the histogram
-                    for dataset, dataset_ts_df in group_ts_df.groupby(column_for_grouping):
+                    for dataset, dataset_ts_df in group_ts_df.groupby(column_for_grouping, observed=True):
                         euis = dataset_ts_df[col]
                         n_samples = len(euis)
 
@@ -1349,7 +1349,7 @@ class PlottingMixin():
         ]
 
         for col in cols_to_summarize:
-            for bldg_type, bldg_type_ts_df in df.groupby(self.BLDG_TYPE):
+            for bldg_type, bldg_type_ts_df in df.groupby(self.BLDG_TYPE, observed=True):
 
                 # Make a plot for each group
                 for group_by in group_bys:
@@ -2492,7 +2492,7 @@ class PlottingMixin():
                 cols = [self.DATASET] # Columns in Excel pivot table
 
 
-                for group_name, group_data in df.groupby(group_by):
+                for group_name, group_data in df.groupby(group_by, observed=True):
 
                     # With group-by
                     pivot = group_data.pivot_table(values=vals, columns=cols, index='Month', aggfunc=ags)
@@ -2643,7 +2643,7 @@ class PlottingMixin():
         comstock_count_avg = comstock_count.mean()
         comstock_count_min = int(comstock_count.min())
         comstock_data = comstock_data[['enduse', energy_column]]
-        comstock_data = comstock_data.reset_index().groupby(['enduse', 'timestamp']).sum().reset_index().set_index('timestamp')
+        comstock_data = comstock_data.reset_index().groupby(['enduse', 'timestamp'], observed=True).sum().reset_index().set_index('timestamp')
         comstock_data = comstock_data.pivot(columns='enduse', values=[energy_column])
         comstock_data.columns = comstock_data.columns.droplevel(0)
         comstock_data = comstock_data.reset_index().rename_axis(None, axis=1)
@@ -2747,7 +2747,7 @@ class PlottingMixin():
         for day_type in comstock_day_type_dict.keys():
             y_max_temp = pd.DataFrame(comstock_data['total'][comstock_day_type_dict[day_type]])
             y_max_temp['hour'] = y_max_temp.index.hour
-            y_max_temp = y_max_temp.groupby('hour').mean()
+            y_max_temp = y_max_temp.groupby('hour', observed=True).mean()
             if normalization == 'Daytype':
                 y_max_temp_value = float(y_max_temp['total'].max()/y_max_temp['total'].sum())
             else:
@@ -2759,7 +2759,7 @@ class PlottingMixin():
         for day_type in ami_day_type_dict.keys():
             y_max_temp = pd.DataFrame(ami_data[ami_day_type_dict[day_type]])
             y_max_temp['hour'] = y_max_temp.index.hour
-            y_max_temp_value = float(y_max_temp.groupby('hour').mean().max().iloc[0])
+            y_max_temp_value = float(y_max_temp.groupby('hour', observed=True).mean().max().iloc[0])
             if y_max_temp_value > y_max_ami:
                 y_max_ami = y_max_temp_value
         y_max = max(y_max_buildstock, y_max_ami)
@@ -2777,7 +2777,7 @@ class PlottingMixin():
             # Truth data
             truth_data = pd.DataFrame(ami_data[ami_data_label][ami_day_type_dict[day_type]])
             truth_data['hour'] = truth_data.index.hour
-            truth_data = truth_data.groupby('hour').mean()
+            truth_data = truth_data.groupby('hour', observed=True).mean()
             if normalization == 'Daytype':
                 truth_data_total = truth_data.sum()
                 truth_data = truth_data / truth_data_total
@@ -2785,7 +2785,7 @@ class PlottingMixin():
             # Stacked Enduses Plot
             processed_data_for_stack_plot = pd.DataFrame(comstock_data[filtered_enduse_list][comstock_day_type_dict[day_type]])
             processed_data_for_stack_plot['hour'] = processed_data_for_stack_plot.index.hour
-            processed_data_for_stack_plot = processed_data_for_stack_plot.groupby('hour').mean()
+            processed_data_for_stack_plot = processed_data_for_stack_plot.groupby('hour', observed=True).mean()
             if normalization == 'Daytype':
                 processed_data_total = processed_data_for_stack_plot.sum().sum()
                 processed_data_for_stack_plot = processed_data_for_stack_plot / processed_data_total
@@ -2801,7 +2801,7 @@ class PlottingMixin():
             y = truth_data
             s_uncertainty = pd.DataFrame(sample_uncertainty[ami_day_type_dict[day_type]])
             s_uncertainty['hour'] = s_uncertainty.index.hour
-            s_uncertainty = s_uncertainty.groupby('hour').mean()
+            s_uncertainty = s_uncertainty.groupby('hour', observed=True).mean()
 
             # Upper Estimate
             upper_truth = pd.DataFrame(
@@ -2866,7 +2866,7 @@ class PlottingMixin():
             # add comstock total
             processed_total_data = pd.DataFrame(comstock_data['total'][comstock_day_type_dict[day_type]])
             processed_total_data['hour'] = processed_total_data.index.hour
-            processed_total_data = processed_total_data.groupby('hour').mean()
+            processed_total_data = processed_total_data.groupby('hour', observed=True).mean()
             data_df['comstock_total'] = processed_total_data
             data_df['error'] = data_df['ami_total'] - data_df['comstock_total']
             data_df['relative_error'] = (data_df['ami_total'] - data_df['comstock_total']) / data_df['ami_total']
@@ -3044,11 +3044,11 @@ class PlottingMixin():
 
         # concatinate and combine baseline data
         dfs_base_combined = pd.concat(dfs_base, join='outer', ignore_index=True)
-        dfs_base_combined = dfs_base_combined.groupby(['time', self.UPGRADE_NAME], as_index=False)[dfs_base_combined.loc[:, dfs_base_combined.columns.str.contains('_kwh')].columns].sum()
+        dfs_base_combined = dfs_base_combined.groupby(['time', self.UPGRADE_NAME], observed=True, as_index=False)[dfs_base_combined.loc[:, dfs_base_combined.columns.str.contains('_kwh')].columns].sum()
 
         # concatinate and combine upgrade data
         dfs_upgrade_combined = pd.concat(dfs_up, join='outer', ignore_index=True)
-        dfs_upgrade_combined = dfs_upgrade_combined.groupby(['time', self.UPGRADE_NAME], as_index=False)[dfs_upgrade_combined.loc[:, dfs_upgrade_combined.columns.str.contains('_kwh')].columns].sum()
+        dfs_upgrade_combined = dfs_upgrade_combined.groupby(['time', self.UPGRADE_NAME], observed=True, as_index=False)[dfs_upgrade_combined.loc[:, dfs_upgrade_combined.columns.str.contains('_kwh')].columns].sum()
 
         return dfs_base_combined, dfs_upgrade_combined
 
@@ -3092,7 +3092,7 @@ class PlottingMixin():
         upgrade_name = list(df_upgrade[self.UPGRADE_NAME].unique())
 
         # get weights
-        dict_wgts = df_upgrade.groupby(self.BLDG_TYPE)[self.BLDG_WEIGHT].mean().to_dict()
+        dict_wgts = df_upgrade.groupby(self.BLDG_TYPE, observed=True)[self.BLDG_WEIGHT].mean().to_dict()
 
         # apply queries and weighting
         for state, state_name in states.items():
@@ -3264,7 +3264,7 @@ class PlottingMixin():
         upgrade_name = list(df_upgrade[self.UPGRADE_NAME].unique())
 
         # get weights
-        dict_wgts = df_upgrade.groupby(self.BLDG_TYPE)[self.BLDG_WEIGHT].mean().to_dict()
+        dict_wgts = df_upgrade.groupby(self.BLDG_TYPE, observed=True)[self.BLDG_WEIGHT].mean().to_dict()
 
         standard_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
         upgrade_colors = {upgrade: standard_colors[i % len(standard_colors)] for i, upgrade in enumerate(upgrade_num)}
@@ -3319,7 +3319,7 @@ class PlottingMixin():
                 dfs_merged['Season'] = dfs_merged['Month'].apply(map_to_season)
                 dfs_merged['Day_Type'] = dfs_merged['Day_of_Week'].apply(map_to_dow)
 
-            dfs_merged_gb = dfs_merged.groupby(['in.upgrade_name', 'Season', 'Day_Type', 'Hour_of_Day'])[dfs_merged.loc[:, dfs_merged.columns.str.contains('_kwh')].columns].mean().reset_index()
+            dfs_merged_gb = dfs_merged.groupby(['in.upgrade_name', 'Season', 'Day_Type', 'Hour_of_Day'], observed=True)[dfs_merged.loc[:, dfs_merged.columns.str.contains('_kwh')].columns].mean().reset_index()
             max_peak = dfs_merged_gb.loc[:, 'total_site_electricity_kwh_weighted'].max()
 
             # find peak week by season
@@ -3475,7 +3475,7 @@ class PlottingMixin():
         upgrade_name = list(df_upgrade[self.UPGRADE_NAME].unique())
 
         # get weights
-        dict_wgts = df_upgrade.groupby(self.BLDG_TYPE)[self.BLDG_WEIGHT].mean().to_dict()
+        dict_wgts = df_upgrade.groupby(self.BLDG_TYPE, observed=True)[self.BLDG_WEIGHT].mean().to_dict()
 
         standard_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
         upgrade_colors = {upgrade: standard_colors[i % len(standard_colors)] for i, upgrade in enumerate(upgrade_num)}
@@ -3531,7 +3531,7 @@ class PlottingMixin():
                 dfs_merged = pd.read_csv(file_path)
                 dfs_merged['Season'] = dfs_merged['Month'].apply(map_to_season)
 
-            dfs_merged_gb = dfs_merged.groupby(['in.upgrade_name', 'Season', 'Hour_of_Day'])[dfs_merged.loc[:, dfs_merged.columns.str.contains('_kwh')].columns].mean().reset_index()
+            dfs_merged_gb = dfs_merged.groupby(['in.upgrade_name', 'Season', 'Hour_of_Day'], observed=True)[dfs_merged.loc[:, dfs_merged.columns.str.contains('_kwh')].columns].mean().reset_index()
             max_peak = dfs_merged_gb.loc[:, 'total_site_electricity_kwh_weighted'].max()
 
             # rename columns, convert units
