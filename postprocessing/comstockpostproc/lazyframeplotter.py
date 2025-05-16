@@ -68,7 +68,12 @@ class LazyFramePlotter(NamingMixin):
         assert len(
             missing_columns) == 0, f"Columns {missing_columns} not in lazy_frame columns"
 
+        time_start = pd.Timestamp.now()
         pandas_df = lazy_frame.clone().select(columns).collect().to_pandas()
+        time_end = pd.Timestamp.now()
+        logger.info(
+            f"Collecting dataframe and converting to Pandas for plotting took {time_end - time_start}. Dataframe shape: {pandas_df.shape}")
+
         false_list = []
         for col in columns:
             try:
@@ -90,14 +95,16 @@ class LazyFramePlotter(NamingMixin):
     def plot_with_lazy(plot_method: Callable, lazy_frame: pl.LazyFrame, columns: list[str], *args, **kwargs):
         df: pd.DataFrame = LazyFramePlotter.select_columns(
             lazy_frame, columns)  # convert lazy frame to pandas dataframe
-        time_start = pd.Timestamp.now()
 
         def inner(*args, **kwargs):
             # pass the filtered dataframe to the plotting method
+            time_start = pd.Timestamp.now()
             kwargs['df'] = df
             assert df is not None, "df is None"
-            return plot_method(*args, **kwargs)
-        time_end = pd.Timestamp.now()
-        logger.info(
-            f"{plot_method.__name__} took {time_end - time_start} to plot.")
+            result = plot_method(*args, **kwargs)
+            time_end = pd.Timestamp.now()
+            logger.info(
+                f"{plot_method.__name__} took {time_end - time_start} to plot.")
+            return result
+
         return inner
