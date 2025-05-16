@@ -2044,7 +2044,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         upgrade_ids.sort()
 
         # Create an aggregation for each upgrade
-        up_aggs = []
+        up_agg_paths = []
         agg_cols = [self.CZ_ASHRAE, self.CEN_DIV]
         baseline_fkt_plus = None
         for upgrade_id in upgrade_ids:
@@ -2059,11 +2059,21 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                                                                 baseline_fkt_plus,
                                                                                 geography_filters={},
                                                                                 geographic_aggregation_levels=agg_cols,
-                                                                                column_downselection=None)
-            up_aggs.append(up_agg)
+                                                                                column_downselection='full')
 
-        # Combine all upgrades into a single LazyFrame
-        self.plotting_data = pl.concat(up_aggs)
+            # Write data to parquet file, hive partition on upgrade to make later processing faster
+            file_name = f'cached_ComStock_plotting_upgrade{upgrade_id}.parquet'
+            upgrade_dir = os.path.join(self.output_dir, 'cached_plotting_by_upgrade', f'upgrade={upgrade_id}')
+            os.makedirs(upgrade_dir, exist_ok=True)
+            file_path = os.path.join(upgrade_dir, file_name)
+            logger.info(f'Caching plotting data to: {file_path}')
+            up_agg = up_agg.drop('upgrade')  # upgrade column will be read from hive partition dir name
+            up_agg = up_agg.collect()
+            up_agg.write_parquet(file_path)
+            up_agg_paths.append(file_path)
+
+        # Scan plotting_data to create one huge LazyFrame
+        self.plotting_data = pl.scan_parquet(up_agg_paths, hive_partitioning=True)
 
         return self.plotting_data
 
