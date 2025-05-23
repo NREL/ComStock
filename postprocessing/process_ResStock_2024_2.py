@@ -97,7 +97,7 @@ class process_ResStock_2024_2():
         #define NREL-provided constants
         avg_door_size = 20 #ResStock 2024.2 has 20ft2 total door area for any unit with exterior doors, which is approximately one door
         avg_window_size = 15 #15 ft2 seems like a decent proxy for average window size based on standard window sizes
-        btuh_to_tons = (1000/12000)
+        kbtuh_to_tons = (1000/12000)
         pool_heater_tons = 1 #proxy for all pool heaters, based loosely on looking at availability at Home Depot website
         spa_heater_tons = 1 #proxy for all spa heaters
         attic_R_per_inch = 3 #ICF data mentions unfaced fiberglass blanket insulation for floors/ceilings in MP16. The R-30 is 9.5" and the R-19 is 6.5" which works out to roughly R-3 per inch
@@ -127,8 +127,8 @@ class process_ResStock_2024_2():
             else:
                 ##extract necessary data from this row of model results                
                 climate_zone = int(row["in.ashrae_iecc_climate_zone_2004"][0]) #just the number, not the letter
-                hp_size_btuh = row["out.params.size_heating_system_primary_k_btu_h"]
-                hp_size_tons = hp_size_btuh * btuh_to_tons
+                hp_size_kbtuh = row["out.params.size_heating_system_primary_k_btu_h"]
+                hp_size_tons = hp_size_kbtuh * kbtuh_to_tons
                 attic_floor_area_sf = row["out.params.floor_area_attic_ft_2"]
                 num_exterior_doors = row["out.params.door_area_ft_2"]/avg_door_size #this will be exactly 1 in ResStock 2024.2
                 num_windows = row["out.params.window_area_ft_2"]/avg_window_size
