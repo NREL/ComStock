@@ -270,7 +270,7 @@ class NamingMixin():
     ]
 
     # Combined utility bills
-    UTIL_BILL_TOTAL_MEAN = 'calc.utility_bills.total_bill_mean..usd'
+    UTIL_BILL_TOTAL_MEAN = 'out.utility_bills.total_bill_mean..usd'
 
     # GHG emissions columns
     ANN_GHG_EGRID = 'calc.emissions.total_with_egrid..co2e_kg'
