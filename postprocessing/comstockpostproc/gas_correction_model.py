@@ -171,7 +171,8 @@ class GasCorrectionModelMixin():
         fuel_tot_cols = [
             self.ANN_TOT_ELEC_KBTU,
             self.ANN_TOT_GAS_KBTU,
-            self.ANN_TOT_OTHFUEL_KBTU,
+            self.ANN_TOT_FUELOIL_KBTU,
+            self.ANN_TOT_PROPANE_KBTU,
             self.ANN_TOT_DISTCLG_KBTU,
             self.ANN_TOT_DISTHTG_KBTU,
         ]
