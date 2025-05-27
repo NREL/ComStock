@@ -14,11 +14,14 @@ import zipfile
 import shutil
 import gzip
 import json
+import boto3
 
 # from dask.distributed import Client
 from joblib import Parallel, delayed, parallel_backend
 import numpy as np
 import pandas as pd
+
+PARALLEL_COUNT = -1
 
 def extract_models_from_simulation_output(yml_path, up_id='up00', output_vars=[]):
     """Extract individual models from a ComStock run for detailed debugging
@@ -209,7 +212,7 @@ def extract_models_from_simulation_output(yml_path, up_id='up00', output_vars=[]
     # Untar all jobs in parallel
     tar_paths = list(tar_to_zip_dict.keys())
     print(f'untarring {tar_paths}')
-    Parallel(n_jobs=-1, verbose=10) (delayed(model_extract)(tar_path, tar_to_zip_dict, tar_to_id_dict, bldgid_to_zip_dict, model_files_dir) for tar_path in tar_paths)
+    Parallel(n_jobs=PARALLEL_COUNT, verbose=10) (delayed(model_extract)(tar_path, tar_to_zip_dict, tar_to_id_dict, bldgid_to_zip_dict, model_files_dir) for tar_path in tar_paths)
     # Uncomment to run in series for debugging
     # for tar_path in tar_paths:
     #     model_extract(tar_path, tar_to_zip_dict, tar_to_id_dict, bldgid_to_zip_dict, model_files_dir)
@@ -322,7 +325,7 @@ def run_extracted_models(yml_path, energyplus_version='22.1.0'):
     # Uncomment to run in series for debugging
     # for idf_path in idf_paths:
     #     run_idf(idf_path, energyplus_exe_path)
-    Parallel(n_jobs=-1, verbose=10) (delayed(run_idf)(idf_path, energyplus_exe_path) for idf_path in idf_paths)
+    Parallel(n_jobs=PARALLEL_COUNT, verbose=10) (delayed(run_idf)(idf_path, energyplus_exe_path) for idf_path in idf_paths)
 
 def get_simulation_output_dir_from_yml(yml_path):
     """Gets the simulation output directory from the YML file
@@ -629,7 +632,7 @@ def summarize_energyplus_error_files(yml_path):
 
     # Generalize and count errors per job and write to file
     err_paths = glob.glob(f'{errs_dir}/job*.err')
-    Parallel(n_jobs=-1, verbose=10) (delayed(count_job_errs)(err_path, errs_dir) for err_path in err_paths)
+    Parallel(n_jobs=PARALLEL_COUNT, verbose=10) (delayed(count_job_errs)(err_path, errs_dir) for err_path in err_paths)
 
     # Combine counts from all jobs
     warn_counts = {}
@@ -778,13 +781,35 @@ def summarize_failures(yml_path, sort_order='upgrade'):
 
     # Extract the failures per job and write to file
     tar_paths = glob.glob(f'{simulation_output_dir}/simulations_job*.tar.gz')
-    all_errors_list = Parallel(n_jobs=-1, verbose=10) (delayed(extract_errors_from_tar)(tar_path, fails_dir, sort_order) for tar_path in tar_paths)
+    all_errors_list = Parallel(n_jobs=PARALLEL_COUNT, verbose=10) (delayed(extract_errors_from_tar)(tar_path, fails_dir, sort_order) for tar_path in tar_paths)
 
     # merge errors dicts into one
     all_errors_dict = merge_error_dicts(*all_errors_list)
 
     # write combined summary
     write_sorted_dict(all_errors_dict, sort_order, os.path.join(fails_dir, f"failure_summary_{sort_order}.log"))
+
+
+def _if_s5cmd_installed():
+    """Check if s5cmd is available in the system."""
+    try:
+        result = subprocess.run(['s5cmd', '--version'], 
+                              stdout=subprocess.PIPE, 
+                              stderr=subprocess.PIPE)
+        return result.returncode == 0
+    except FileNotFoundError:
+        return False
+
+
+def _check_s3_file_exists(s3_client, bucket: str, key: str) -> bool:
+    """Check if file exists in S3 bucket"""
+    try:
+        s3_client.head_object(Bucket=bucket, Key=key)
+        return True
+    except s3_client.exceptions.ClientError as e:
+        if e.response['Error']['Code'] == '404':
+            return False
+        raise
 
 def transfer_model_files_to_s3(yml_path, s3_output_dir, oedi_metadata_dir):
     """Copies zipped .osm files from specified ComStock run on Eagle to specified S3 bucket.
@@ -812,8 +837,11 @@ def transfer_model_files_to_s3(yml_path, s3_output_dir, oedi_metadata_dir):
     if not path.exists(model_files_dir):
         os.makedirs(model_files_dir)
 
+
     # define function to extract applicable models and send to new location
     def untar_file_to_zip(tar_path):
+        s3 = boto3.client("s3")
+        bucket = s3_output_dir.split("/")[2]
         li_files_to_delete = []
         job_id = re.search(r'.*simulations_job(\d+).tar.gz', tar_path).group(1)
         print(f"Extracting model files from job {job_id}...", flush=True)
@@ -841,7 +869,7 @@ def transfer_model_files_to_s3(yml_path, s3_output_dir, oedi_metadata_dir):
                 upgrade_folder = os.path.join(model_files_dir, f"upgrade={upgrade_id}")
                 if not path.exists(upgrade_folder):
                     os.makedirs(upgrade_folder)
-                model_path_out = os.path.join(upgrade_folder,f"bldg{bldg_id.zfill(7)}-up{upgrade_id}.osm.gz")
+                model_path_out = os.path.join(upgrade_folder,f"bldg{str(bldg_id).zfill(7)}-up{upgrade_id}.osm.gz")
                 # read zip file and try to find osm file
                 datapoint_zip_bytes=tar.extractfile(tar_member).read()
                 with zipfile.ZipFile(io.BytesIO(datapoint_zip_bytes)) as zip:
@@ -855,14 +883,32 @@ def transfer_model_files_to_s3(yml_path, s3_output_dir, oedi_metadata_dir):
 
                         # file will be written, copied to new location, then deleted
                         s3_upgrade_folder = os.path.join(s3_output_dir, f"upgrade={upgrade_id}")
-                        s3_model_path = os.path.join(s3_upgrade_folder,f"bldg{bldg_id.zfill(7)}-up{upgrade_id}.osm.gz")
+                        s3_model_path = os.path.join(s3_upgrade_folder,f"bldg{str(bldg_id).zfill(7)}-up{upgrade_id}.osm.gz")
                         if not path.exists(s3_upgrade_folder):
                             os.makedirs(s3_upgrade_folder)
 
                         # use s5cmd to transfer files to S3
-                        result = subprocess.run(['s5cmd', "cp", f'{model_path_out}', f'{s3_model_path}'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) #"--dry-run",
-                        #print(result.stdout)
-                        #print(result.stderr)
+                        # result = subprocess.run(['s5cmd', "cp", f'{model_path_out}', f'{s3_model_path}'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) #"--dry-run",
+                        key = "/".join(s3_output_dir.split("/")[3:]) + f"upgrade={upgrade_id}/bldg{str(bldg_id).zfill(7)}-up{upgrade_id}.osm.gz"
+
+                        if _if_s5cmd_installed():
+                            try:
+                                if _check_s3_file_exists(s3, bucket, key):
+                                    print(f"File already exists in S3: {key}")
+                                else:
+                                    print(f"Transferring {model_path_out} to {s3_model_path} with s5cmd.")
+                                    subprocess.run(["s5cmd", "cp", f"{model_path_out}", f'{s3_model_path}'],  stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+                            except subprocess.CalledProcessError as e:
+                                print(f"Error transferring {model_path_out} to {s3_model_path}: {e.stderr} with s5cmd.") 
+                             
+                        else:
+
+                            print(f"checking the file {model_path_out} exists in S3 bucket={bucket} key={key}")
+                            if _check_s3_file_exists(s3, bucket, key):
+                                print(f"File already exists in S3: {key}")
+                            else:
+                                print(f"Transferring {model_path_out} bucket={bucket} key={key}")
+                                s3.upload_file(model_path_out, bucket, key) 
 
                         # add file to list to be deleted
                         li_files_to_delete.append(model_path_out)
@@ -882,7 +928,7 @@ def transfer_model_files_to_s3(yml_path, s3_output_dir, oedi_metadata_dir):
     tar_paths = glob.glob(f'{simulation_output_dir}/simulations_job*.tar.gz')
 
     # run parallel processing
-    Parallel(n_jobs=-1, verbose=10) (delayed(untar_file_to_zip)(tar_path) for tar_path in tar_paths)
+    Parallel(n_jobs=PARALLEL_COUNT, verbose=10) (delayed(untar_file_to_zip)(tar_path) for tar_path in tar_paths)
 
     # delete temp folder after files moved to S3
     shutil.rmtree(model_files_dir)
