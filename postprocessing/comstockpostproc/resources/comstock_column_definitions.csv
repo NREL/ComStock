@@ -1275,6 +1275,7 @@ calculated,calc.weighted.utility_bills.fuel_oil_bill_state_average,calc.weighted
 calculated,calc.weighted.utility_bills.natural_gas_bill_state_average,calc.weighted.utility_bills.natural_gas_bill_state_average,TRUE,FALSE,float,billion_usd,billion_usd,Weighted natural gas bill using state average natural gas rate
 calculated,calc.weighted.utility_bills.propane_bill_state_average,calc.weighted.utility_bills.propane_bill_state_average,TRUE,FALSE,float,billion_usd,billion_usd,Weighted propane bill using state average propane rate
 calculated,calc.weighted.utility_bills.electricity_bill_num_bills,calc.weighted.utility_bills.electricity_bill_num_bills,TRUE,FALSE,float,,,Weighted number of applicable utility rates found
+calculated,out.utility_bills.total_bill_mean,out.utility_bills.total_bill_mean,FALSE,FALSE,float,,,Total of utility bills for all fuels using mean electricy bill
 calculated,calc.weighted.utility_bills.total_bill_mean,calc.weighted.utility_bills.total_bill_mean,TRUE,TRUE,float,billion_usd,billion_usd,"Weighted total of utility bills for all fuels, using mean electricy bill."
 timeseries,floor_area_represented,,FALSE,FALSE,float,ft2,ft2,The scaled square footage represented by the buildings included in this aggregate timeseries profile
 timeseries,models_used,,FALSE,FALSE,float,,,The number of energy models used to represent the results in this aggregate timeseries profile
@@ -2143,7 +2144,7 @@ calculated,calc.weighted.utility_bills.electricity_bill_savings_state_average,ca
 calculated,calc.weighted.utility_bills.natural_gas_bill_savings_state_average,calc.weighted.utility_bills.natural_gas_bill_savings_state_average,TRUE,FALSE,float,billion_usd,billion_usd,
 calculated,calc.weighted.utility_bills.propane_bill_savings_state_average,calc.weighted.utility_bills.propane_bill_savings_state_average,TRUE,FALSE,float,billion_usd,billion_usd,
 calculated,calc.weighted.utility_bills.fuel_oil_bill_savings_state_average,calc.weighted.utility_bills.fuel_oil_bill_savings_state_average,TRUE,FALSE,float,billion_usd,billion_usd,
-calculated,calc.weighted.utility_bills.total_bill_savings_mean,calc.weighted.utility_bills.total_bill_savings_mean,TRUE,FALSE,float,usd_per_ft2,usd_per_ft2,"Utility bill savings for all fuels in 2022 usd, using mean electricy bill."
+calculated,calc.weighted.utility_bills.total_bill_savings_mean,calc.weighted.utility_bills.total_bill_savings_mean,TRUE,FALSE,float,billion_usd,billion_usd,"Utility bill savings for all fuels in 2022 usd, using mean electricy bill."
 calculated,out.utility_bills.electricity_bill_savings_min_intensity,out.utility_bills.electricity_bill_savings_min_intensity,TRUE,FALSE,float,usd_per_ft2,usd_per_ft2,
 calculated,out.utility_bills.electricity_bill_savings_max_intensity,out.utility_bills.electricity_bill_savings_max_intensity,TRUE,FALSE,float,usd_per_ft2,usd_per_ft2,
 calculated,out.utility_bills.electricity_bill_savings_median_low_intensity,out.utility_bills.electricity_bill_savings_median_low_intensity,TRUE,FALSE,float,usd_per_ft2,usd_per_ft2,
@@ -2173,7 +2174,7 @@ calculated,out.utility_bills.electricity_bill_savings_state_average_intensity,ou
 calculated,out.utility_bills.natural_gas_bill_savings_state_average_intensity,out.utility_bills.natural_gas_bill_savings_state_average_intensity,TRUE,FALSE,float,usd_per_ft2,usd_per_ft2,
 calculated,out.utility_bills.propane_bill_savings_state_average_intensity,out.utility_bills.propane_bill_savings_state_average_intensity,TRUE,FALSE,float,usd_per_ft2,usd_per_ft2,
 calculated,out.utility_bills.fuel_oil_bill_savings_state_average_intensity,out.utility_bills.fuel_oil_bill_savings_state_average_intensity,TRUE,FALSE,float,usd_per_ft2,usd_per_ft2,
-calculated,calc.utility_bills.total_bill_savings_mean_intensity,calc.utility_bills.total_bill_savings_mean_intensity,TRUE,FALSE,float,usd_per_ft2,usd_per_ft2,"Savings in utility bill intensity for all fuels in 2022 usd/sqft, using mean electricy bill."
+calculated,out.utility_bills.total_bill_savings_mean_intensity,out.utility_bills.total_bill_savings_mean_intensity,TRUE,FALSE,float,usd_per_ft2,usd_per_ft2,"Savings in utility bill intensity for all fuels in 2022 usd/sqft, using mean electricy bill."
 calculated,calc.percent_savings.weighted.utility_bills.electricity_bill_min,calc.percent_savings.weighted.utility_bills.electricity_bill_min,TRUE,FALSE,float,percent,percent,Percent savings of weighted electricity bill for the minimum applicable rate bill for the model
 calculated,calc.percent_savings.weighted.utility_bills.electricity_bill_max,calc.percent_savings.weighted.utility_bills.electricity_bill_max,TRUE,FALSE,float,percent,percent,Percent savings of weighted electricity bill for the maximum applicable rate bill for the model
 calculated,calc.percent_savings.weighted.utility_bills.electricity_bill_median_low,calc.percent_savings.weighted.utility_bills.electricity_bill_median_low,FALSE,FALSE,float,percent,percent,Percent savings of weighted electricity bill for the median (or lower middle) applicable rate bill for the model

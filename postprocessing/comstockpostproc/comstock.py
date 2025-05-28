@@ -1620,7 +1620,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 logger.debug(f'Renaming upgrades')
                 for old, new in upgrade2upgrade.items():
                     logger.debug(f'{old} -> {new}')
-                self.data = self.data.with_columns((pl.col(self.UPGRADE_NAME).replace(upgrade2upgrade, default=None)).alias(self.UPGRADE_NAME))
+                self.data = self.data.with_columns((pl.col(self.UPGRADE_NAME).replace(upgrade2upgrade)).alias(self.UPGRADE_NAME))
                 self.data = self.data.with_columns(pl.col(self.UPGRADE_NAME))
 
         logger.debug(f'Memory after rename_columns_and_convert_units: {self.data.estimated_size()}')
@@ -2051,7 +2051,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         pcs = []
 
         # Universal
-        pcs += [self.UPGRADE_APPL, self.UPGRADE_NAME, self.BLDG_ID, self.CZ_ASHRAE]
+        pcs += [self.UPGRADE_APPL, self.UPGRADE_NAME, self.BLDG_ID, self.CZ_ASHRAE, self.DATASET]
         pcs += [self.col_name_to_weighted(c, new_units=UnitsMixin.UNIT.ENERGY.TBTU) for c in self.COLS_ENDUSE_ANN_ENGY]
         pcs += [self.col_name_to_weighted(c, UnitsMixin.UNIT.MASS.CO2E_MMT) for c in self.GHG_FUEL_COLS]
 
@@ -2082,6 +2082,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         pcs += self.QOI_MAX_DAILY_TIMING_COLS
         pcs += self.QOI_MAX_USE_COLS_NORMALIZED
         pcs += self.QOI_MIN_USE_COLS_NORMALIZED
+        pcs += self.QOI_MAX_USE_COLS
+        pcs += self.QOI_MIN_USE_COLS
 
         # plot_energy_rate_boxplots
         # pcs += [self.col_name_to_energy_rate(c) for c in [self.UTIL_BILL_ELEC, self.UTIL_BILL_GAS]]  # Disabled in plotting
