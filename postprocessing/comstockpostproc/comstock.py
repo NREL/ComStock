@@ -18,6 +18,8 @@ import pandas as pd
 import polars as pl
 import re
 import datetime
+import time
+import gc
 
 from comstockpostproc.naming_mixin import NamingMixin
 from comstockpostproc.units_mixin import UnitsMixin
@@ -213,6 +215,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 logger.info(f'Caching to: {file_path}')
                 self.data = self.reorder_data_columns(self.data)
                 self.data = self.data.drop('upgrade')  # upgrade column will be read from hive partition dir name
+                self.data = self.reduce_df_memory(self.data)
                 self.data.write_parquet(file_path)
                 up_lazyframes.append(file_path)
 
@@ -250,6 +253,39 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             for line in alLines:
                 f.write(line)
 
+    def reduce_df_memory(self, df):
+
+        logger.info(f'Memory before reduce_df_memory: {df.estimated_size("gb")}')
+        # Set dtypes to reduce in-memory size
+
+        # Float64 -> Float32
+        df = df.cast({pl.Float64: pl.Float32})
+
+        # String -> Categorical
+        for col, dt in df.schema.items():
+            # Only consider categorizing string columns
+            # because they have the biggest memory footprint
+            if not dt == pl.Utf8:
+                continue
+            # Check the first value in the column
+            first_val = df.get_column(col).head(1).to_list()[0]
+            # print(f'For {col}, first_val `{first_val}` is a {type(first_val)}')
+            # If the first value is None, don't categorize
+            if first_val is None:
+                continue
+            # If the first value is numeric, don't categorize
+            try:
+                if '_' in first_val:
+                    first_val = f'{first_val}_is_string_in_comstock'
+                float(first_val)
+            except ValueError as e:
+                # if len(df.get_column(col).unique()) < 20:
+                # print(f'Converting {col} to Categorical, first_val `{first_val}` is a string')
+                df = df.with_columns(pl.col(col).cast(pl.Categorical))
+
+        logger.info(f'Memory after reduce_df_memory: {df.estimated_size("gb")}')
+
+        return df
 
     def download_data(self):
 
@@ -2159,7 +2195,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         util_bills_by_eia_id = meta_data.select(
             [self.BLDG_ID, self.UTIL_BILL_ELEC_RESULTS, self.FLR_AREA]
         )
-        # util_bills_by_eia_id = util_bills_by_eia_id.collect().lazy()  # TODO may help memory pressure?
+
+        # Cast utility data column from Categorical back to String
+        util_bills_by_eia_id = util_bills_by_eia_id.with_columns(
+            pl.col(self.UTIL_BILL_ELEC_RESULTS).cast(pl.String)
+        )
+        util_bills_by_eia_id = util_bills_by_eia_id.collect().lazy()
 
         # load tract to utility mapping
         file_path = os.path.join(self.truth_data_dir, self.tract_to_util_map_file_name)
@@ -2214,7 +2255,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             util_bills_by_state = meta_data.select(
                 [self.BLDG_ID, col_state_util_result]
             )
-            # util_bills_by_state = util_bills_by_state.collect().lazy()  # TODO may help memory pressure?
+
+            # Cast utility data column from Categorical back to String
+            util_bills_by_state = util_bills_by_state.with_columns(
+                pl.col(col_state_util_result).cast(pl.String)
+            )
+            util_bills_by_state = util_bills_by_state.collect().lazy()
 
             # Create a new row for each Building ID x State combination
             util_bills_by_state = util_bills_by_state.with_columns(
@@ -2535,10 +2581,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 if len(geo_levels) > 0:
                     geo_level_dir = f'{geo_level_dir}/' + '/'.join(geo_levels)
                 out_location['fs'].mkdirs(geo_level_dir, exist_ok=True)
-                # File name includes either 'baseline' or 'upgradeXX'
-                file_name = f'upgrade{upgrade_id:02d}'
-                if upgrade_id == 0:
-                    file_name = 'baseline'
+                file_name = f'upgrade{upgrade_id}'
                 # Add geography prefix to filename
                 if len(geo_prefixes) > 0:
                     geo_prefix = '_'.join(geo_prefixes)
@@ -2567,6 +2610,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
                 # Write raw data and all aggregation levels
                 for aggregation_level in aggregation_levels:
+                    logger.info(f'Starting aggregation_level: {aggregation_level}')
 
                     # Start with the most expansive set of columns, the downselect later as-needed.
                     if 'detailed' in data_types:
@@ -2581,7 +2625,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         # Iterate by first level of geographic partitioning, collecting the DataFrame
                         # for this geography then writing files for all the sub-geographies within it.
                         for first_geo_combo in first_geo_combos.iter_rows(named=True):
-                            print(f'first_geo_combo: {first_geo_combo}')
+                            fgc_tstart = datetime.datetime.now()
+                            logger.info(f'first_geo_combo: {first_geo_combo}')
 
                             # Get the filters for the first level geography
                             first_geo_filters = {}
@@ -2596,7 +2641,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                 agg_lvl_list = aggregation_level  # Pass list if a list is already supplied
                             processed_dfs = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, baseline_fkt_plus, first_geo_filters, agg_lvl_list, starting_downselect)
                             to_write = processed_dfs[0]
+                            collect_tstart = datetime.datetime.now()
                             to_write = to_write.collect()
+                            collect_tend = datetime.datetime.now()
+                            elapsed_time = (collect_tend - collect_tstart).total_seconds()
+                            logger.info(f"Collect time for {first_geo_combo}: {elapsed_time} seconds")
                             logger.info(f'There are {to_write.shape[0]:,} total rows for {first_geo_filters}')
 
                             # cache baseline fkt with utilities for utility bill savings
@@ -2622,7 +2671,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                 first_level_geo_combo_val = list(first_geo_filters.values())[0]
                                 geo_combo_val = list(geo_filters.values())[0]
                                 if not geo_combo_val == first_level_geo_combo_val:
-                                    logger.info(f'Skipping {geo_combo} because not in this partition ({geo_combo_val} != {first_level_geo_combo_val})')
+                                    # logger.info(f'Skipping {geo_combo} because not in this partition ({geo_combo_val} != {first_level_geo_combo_val})')
                                     continue
 
                                 # Filter already-collected dataframe to specified geography
@@ -2644,19 +2693,30 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                         geo_data = self.reorder_data_columns(geo_data)
 
                                     # Queue write for all selected filetypes
-                                    n_rows, n_cols = geo_data.shape
                                     for file_type in file_types:
                                         file_path = get_file_path(full_geo_agg_dir, full_geo_dir, geo_prefixes, geo_levels, file_type, aggregation_level)
-                                        logger.info(f"Queuing {file_path}: n_cols = {n_cols:,}, n_rows = {n_rows:,}")
+                                        logger.debug(f"Queuing {file_path}")
                                         combo = (geo_data.clone(), out_location, file_type, file_path)
                                         combos_to_write.append(combo)
 
                             # Write files in parallel
                             logger.info(f'Writing {len(combos_to_write)} files in parallel')
-                            logger.info(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-                            Parallel(n_jobs=12)(delayed(write_geo_data)(combo) for combo in combos_to_write)
-                            logger.info(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-
+                            start_time = datetime.datetime.now()
+                            logger.info(start_time.strftime('%Y-%m-%d %H:%M:%S'))
+                            with Parallel(n_jobs=18) as parallel:
+                                parallel(delayed(write_geo_data)(combo) for combo in combos_to_write)
+                            end_time = datetime.datetime.now()
+                            logger.info(end_time.strftime('%Y-%m-%d %H:%M:%S'))
+                            elapsed_time = (end_time - start_time).total_seconds()
+                            logger.info(f"File write time: {elapsed_time} seconds")
+                            # Attempting to avoid crashes
+                            to_write.clear()
+                            del to_write
+                            time.sleep(2)
+                            gc.collect()
+                            fgc_tend = datetime.datetime.now()
+                            elapsed_time = (fgc_tend - fgc_tstart).total_seconds()
+                            logger.info(f"Total time for {first_geo_combo}: {elapsed_time} seconds")
                     else:
                         # If there is any aggregation, collect a single dataframe with all geographies and savings columns
                         # Memory usage should work on most laptops
@@ -2718,7 +2778,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         # Write files in parallel
                         logger.info(f'Writing {len(combos_to_write)} files in parallel')
                         logger.info(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-                        Parallel(n_jobs=12)(delayed(write_geo_data)(combo) for combo in combos_to_write)
+                        with Parallel(n_jobs=12) as parallel:
+                            Parallel()(delayed(write_geo_data)(combo) for combo in combos_to_write)
                         logger.info(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
             ge_tend = datetime.datetime.now()
