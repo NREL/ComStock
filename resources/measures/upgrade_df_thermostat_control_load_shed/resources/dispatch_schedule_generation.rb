@@ -403,7 +403,7 @@ def model_run_simulation_on_doy(model, doy, num_timesteps_in_hr, epw_path = nil,
   envperiod = 'RUN PERIOD 1'
   raise "envperiod of #{envperiod} not included in available options: #{available_env_periods}" unless available_env_periods.include?(envperiod)
 
-  timeseriesname = 'Electricity:Facility'
+  timeseriesname = 'ElectricityPurchased:Facility'
   raise "timeseriesname of #{timeseriesname} not included in available options: #{available_time_series}" unless available_time_series.include?(timeseriesname)
 
   reportingfrequency = 'Hourly' # 'Zone Timestep'
@@ -585,7 +585,7 @@ def model_run_simulation_on_part_of_year(model, max_doy, num_timesteps_in_hr, ep
   envperiod = 'RUN PERIOD 1'
   raise "envperiod of #{envperiod} not included in available options: #{available_env_periods}" unless available_env_periods.include?(envperiod)
 
-  timeseriesname = 'Electricity:Facility'
+  timeseriesname = 'ElectricityPurchased:Facility'
   raise "timeseriesname of #{timeseriesname} not included in available options: #{available_time_series}" unless available_time_series.include?(timeseriesname)
 
   reportingfrequency = 'Hourly' # 'Zone Timestep'
@@ -786,7 +786,7 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path = nil, ru
   envperiod = 'RUN PERIOD 1'
   raise "envperiod of #{envperiod} not included in available options: #{available_env_periods}" unless available_env_periods.include?(envperiod)
 
-  timeseriesname = 'Electricity:Facility'
+  timeseriesname = 'ElectricityPurchased:Facility'
   raise "timeseriesname of #{timeseriesname} not included in available options: #{available_time_series}" unless available_time_series.include?(timeseriesname)
 
   reportingfrequency = 'Zone Timestep'
