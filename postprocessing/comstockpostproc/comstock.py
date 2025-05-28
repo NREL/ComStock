@@ -2124,8 +2124,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                                                                 geographic_aggregation_levels=agg_cols,
                                                                                 column_downselection='full')
 
-            up_aggs.append(up_agg)
-
             # Select only columns needed for plotting
             up_agg = up_agg.select(self.plotting_columns())
 
