@@ -600,7 +600,11 @@ class EnvWindowFilm < OpenStudio::Measure::ModelMeasure
         puts "--- get existing window properties"
         old_simple_glazing_u = simple_glazing.uFactor
         old_simple_glazing_shgc = simple_glazing.solarHeatGainCoefficient
-        old_simple_glazing_vlt = simple_glazing.visibleTransmittance.get
+        if simple_glazing.visibleTransmittance.is_initialized
+          old_simple_glazing_vlt = simple_glazing.visibleTransmittance.get
+        else
+          old_simple_glazing_vlt = old_simple_glazing_shgc # if vlt is blank, E+ uses shgc
+        end
 
         # get correct pane type based on comstock glazing name
         # TODO: maybe there's a more elegant way than this

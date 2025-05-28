@@ -30,6 +30,10 @@ class PlottingMixin():
         # ghg columns; uses Cambium low renewable energy cost 15-year for electricity
         cols_enduse_ann_en = self.COLS_ENDUSE_ANN_ENGY
         wtd_cols_enduse_ann_en = [self.col_name_to_weighted(c, 'tbtu') for c in cols_enduse_ann_en]
+        cols_pv_ann_en = self.COLS_GEN_ANN_ENGY
+        wtd_cols_pv_ann_en = [self.col_name_to_weighted(c, 'tbtu') for c in cols_pv_ann_en]
+        cols_summarize = [self.ANN_TOT_ELEC_KBTU]
+        wtd_cols_summarize = [self.col_name_to_weighted(c, 'tbtu') for c in cols_summarize]
 
 
         # plots for both applicable and total stock
@@ -37,13 +41,17 @@ class PlottingMixin():
 
             df_scen = df.copy()
 
+            # distringuish used vs excess PV
+            pv_used = self.col_name_to_weighted('out.electricity.pv_used.energy_consumption..kwh', 'tbtu') # new col just for plotting
+            pv_excess = self.col_name_to_weighted('out.electricity.pv_excess.energy_consumption..kwh', 'tbtu') # new col just for plotting
+            df_scen[pv_used] = -(df_scen[self.col_name_to_weighted(self.ANN_TOT_ELEC_KBTU, 'tbtu')] - df_scen[self.col_name_to_weighted(self.ANN_PURCHASED_ELEC_KBTU, 'tbtu')])
+            df_scen[pv_excess] = df_scen[self.col_name_to_weighted(self.ANN_ELEC_PV_KBTU, 'tbtu')] - df_scen[pv_used]
 
             if applicable_scenario == 'applicable_only':
                 applic_bldgs = df_scen.loc[(df_scen[self.UPGRADE_NAME]!='Baseline') & (df_scen['applicability']==True), self.BLDG_ID]
                 df_scen = df_scen.loc[df_scen[self.BLDG_ID].isin(applic_bldgs), :]
 
-            # groupby and long format for plotting
-            df_emi_gb = (df_scen.groupby(column_for_grouping, observed=True)[wtd_cols_enduse_ann_en].sum()).reset_index()
+            df_emi_gb = (df_scen.groupby(column_for_grouping, observed=True)[wtd_cols_enduse_ann_en + wtd_cols_pv_ann_en + [pv_excess, pv_used]].sum()).reset_index()
             df_emi_gb = df_emi_gb.loc[:, (df_emi_gb !=0).any(axis=0)]
             df_emi_gb_long = df_emi_gb.melt(id_vars=[column_for_grouping], value_name='Annual Energy Consumption (TBtu)').sort_values(by='Annual Energy Consumption (TBtu)', ascending=False)
 
@@ -56,6 +64,9 @@ class PlottingMixin():
             df_emi_gb_long['Fuel Type'] = df_emi_gb_long['Fuel Type'].str.title()
             df_emi_gb_long['End Use'] = df_emi_gb_long['End Use'].str.replace('_', ' ', regex=True)
             df_emi_gb_long['End Use'] = df_emi_gb_long['End Use'].str.title()
+            df_emi_gb_long['End Use'] = df_emi_gb_long['End Use'].str.replace('Pv', 'Photovoltaics', regex=True)
+            # remove columns not needed
+            df_emi_gb_long = df_emi_gb_long.loc[~df_emi_gb_long['variable'].isin(['site_energy.net', 'electricity.net', 'electricity.purchased', 'electricity.pv']), :]
 
             ## add OS color map
             color_dict = self.ENDUSE_COLOR_DICT
@@ -71,7 +82,10 @@ class PlottingMixin():
 
             # set category orders by end use
             cat_order = {
-               'End Use': [ 'Interior Equipment',
+               'End Use': [
+                            'Photovoltaics Used',
+                            'Photovoltaics Excess',
+                            'Interior Equipment',
                             'Fans',
                             'Cooling',
                             'Interior Lighting',
@@ -93,7 +107,7 @@ class PlottingMixin():
 
             # plot
             fig = px.bar(df_emi_gb_long, x=column_for_grouping, y='Annual Energy Consumption (TBtu)', color='End Use', pattern_shape='Fuel Type',
-                    barmode='stack', text_auto='.1f', template='simple_white', width=700, category_orders=cat_order, color_discrete_map=color_dict,
+                    barmode='relative', text_auto='.1f', template='simple_white', width=700, category_orders=cat_order, color_discrete_map=color_dict,
                     pattern_shape_map=pattern_dict)
 
             # formatting and saving image
@@ -108,10 +122,10 @@ class PlottingMixin():
                 extra_elements = upgrade_count - 2
                 plot_width = 550 * (1 + 0.15 * extra_elements)
 
-            fig.update_traces(textposition='inside', width=0.5)
+            fig.update_traces(textposition='inside', width=0.5, textangle=0)
             fig.update_xaxes(type='category', mirror=True, showgrid=False, showline=True, title=None, ticks='outside', linewidth=1, linecolor='black',
                             categoryorder='array', categoryarray=np.array(list(color_map.keys())))
-            fig.update_yaxes(mirror=True, showgrid=False, showline=True, ticks='outside', linewidth=1, linecolor='black', rangemode="tozero")
+            fig.update_yaxes(mirror=True, showgrid=False, showline=True, ticks='outside', zeroline=True, linewidth=1, linecolor='black', rangemode="tozero")
             fig.update_layout(title=None,  margin=dict(l=20, r=20, t=27, b=20), width=plot_width, legend_title=None, legend_traceorder="reversed",
                             uniformtext_minsize=8, uniformtext_mode='hide', bargap=0.05)
             fig.update_layout(
@@ -120,15 +134,15 @@ class PlottingMixin():
                 )
 
             # add summed values at top of bar charts
-            df_emi_plot = df_emi_gb_long.groupby(column_for_grouping, observed=True)['Annual Energy Consumption (TBtu)'].sum()
+            df_emi_plot = df_emi_gb_long.loc[~df_emi_gb_long['End Use'].str.contains('Photovoltaics'),:].groupby(column_for_grouping, observed=True)['Annual Energy Consumption (TBtu)'].sum()
             fig.add_trace(go.Scatter(
-            x=df_emi_plot.index,
-            y=df_emi_plot,
-            text=round(df_emi_plot, 0),
-            mode='text',
-            textposition='top center',
-            textfont=dict(
-                size=12,
+                        x=df_emi_plot.index,
+                        y=df_emi_plot,
+                        text=round(df_emi_plot, 0),
+                        mode='text',
+                        textposition='top center',
+                        textfont=dict(
+                            size=12,
             ),
             showlegend=False
             ))
@@ -1482,7 +1496,7 @@ class PlottingMixin():
             for group in li_group:
 
                 # get data for enduse; remove 0s and na values
-                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & ((df_upgrade_plt[col_group]==group)), energy_col]
+                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & (df_upgrade_plt[energy_col].notna()) & ((df_upgrade_plt[col_group]==group)), energy_col]
 
                 # add traces to plot
                 fig.add_trace(go.Violin(
@@ -1574,7 +1588,7 @@ class PlottingMixin():
             for group in li_group:
 
                 # get data for enduse; remove 0s and na values
-                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & ((df_upgrade_plt[col_group]==group)), energy_col]
+                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & (df_upgrade_plt[energy_col].notna()) & ((df_upgrade_plt[col_group]==group)), energy_col]
 
                 # add traces to plot
                 fig.add_trace(go.Violin(
@@ -1666,7 +1680,7 @@ class PlottingMixin():
             for group in li_group:
 
                 # get data for enduse; remove 0s and na values
-                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & ((df_upgrade_plt[col_group]==group)), energy_col]
+                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & (df_upgrade_plt[energy_col].notna()) & ((df_upgrade_plt[col_group]==group)), energy_col]
 
                 # add traces to plot
                 fig.add_trace(go.Violin(
@@ -1758,7 +1772,7 @@ class PlottingMixin():
             for group in li_group:
 
                 # get data for enduse; remove 0s and na values
-                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & ((df_upgrade_plt[col_group]==group)), energy_col]
+                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & (df_upgrade_plt[energy_col].notna()) & ((df_upgrade_plt[col_group]==group)), energy_col]
 
                 # add traces to plot
                 fig.add_trace(go.Violin(
@@ -1853,7 +1867,7 @@ class PlottingMixin():
             for group in li_group:
 
                 # get data for enduse; remove 0s and na values
-                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & ((df_upgrade_plt[col_group]==group)), energy_col]
+                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & (df_upgrade_plt[energy_col].notna()) & ((df_upgrade_plt[col_group]==group)), energy_col]
 
                 # add traces to plot
                 fig.add_trace(go.Violin(
@@ -1947,7 +1961,7 @@ class PlottingMixin():
             for group in li_group:
 
                 # get data for enduse; remove 0s and na values
-                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & ((df_upgrade_plt[col_group]==group)), energy_col]
+                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[energy_col]!=0) & (df_upgrade_plt[energy_col].notna()) & ((df_upgrade_plt[col_group]==group)), energy_col]
 
                 # add traces to plot
                 fig.add_trace(go.Violin(
@@ -2036,7 +2050,7 @@ class PlottingMixin():
             for enduse_col in col_list:
 
                 # get data for enduse; remove 0s and na values
-                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[enduse_col]!=0), enduse_col]
+                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[enduse_col]!=0) & (df_upgrade_plt[enduse_col].notna()), enduse_col]
 
                 # column name
                 col_name = self.col_name_to_nice_saving_name(df_enduse.name)
@@ -2120,7 +2134,7 @@ class PlottingMixin():
             for enduse_col in col_list:
 
                 # get data for enduse; remove 0s and na values
-                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[enduse_col]!=0), enduse_col]
+                df_enduse = df_upgrade_plt.loc[(df_upgrade_plt[enduse_col]!=0) & (df_upgrade_plt[enduse_col].notna()), enduse_col]
 
                 # column name
                 col_name = self.col_name_to_nice_saving_name(df_enduse.name)

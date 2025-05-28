@@ -19,6 +19,9 @@ class LazyFramePlotter(NamingMixin):
         self.WTD_COLUMNS_ANN_ENDUSE = [self.col_name_to_weighted(
             col_name=c, new_units=UnitsMixin.UNIT.ENERGY.TBTU) for c in self.COLS_ENDUSE_ANN_ENGY]
 
+        self.WTD_COLUMNS_ANN_PV = [self.col_name_to_weighted(
+            col_name=c, new_units=UnitsMixin.UNIT.ENERGY.TBTU) for c in self.COLS_GEN_ANN_ENGY]
+
         self.WTD_GHG_COLUMNS = [self.col_name_to_weighted(
             c, UnitsMixin.UNIT.MASS.CO2E_MMT) for c in self.GHG_FUEL_COLS]
 
