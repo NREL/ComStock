@@ -18,8 +18,6 @@ import pandas as pd
 import polars as pl
 import re
 import datetime
-import time
-import gc
 
 from comstockpostproc.naming_mixin import NamingMixin
 from comstockpostproc.units_mixin import UnitsMixin
@@ -255,7 +253,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
     def reduce_df_memory(self, df):
 
-        logger.info(f'Memory before reduce_df_memory: {df.estimated_size("gb")}')
+        logger.info(f'Memory before reduce_df_memory: {df.estimated_size("gb"):.2f} GB')
         # Set dtypes to reduce in-memory size
 
         # Float64 -> Float32
@@ -283,7 +281,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 # print(f'Converting {col} to Categorical, first_val `{first_val}` is a string')
                 df = df.with_columns(pl.col(col).cast(pl.Categorical))
 
-        logger.info(f'Memory after reduce_df_memory: {df.estimated_size("gb")}')
+        logger.info(f'Memory after reduce_df_memory: {df.estimated_size("gb"):.2f} GB')
 
         return df
 
@@ -1088,6 +1086,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         elif geography_to_join_on == self.STATE_ABBRV:
             geospatial_data = geospatial_data.select(state_mappings).unique()
 
+        # Cast geography column from String to Categorical for joining
+        geospatial_data = geospatial_data.with_columns(
+            pl.col(geography_to_join_on).cast(pl.Categorical)
+        )
+
         # Join on the geospatial data
         input_lf = input_lf.join(geospatial_data, on=geography_to_join_on)
 
@@ -1126,6 +1129,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             ).alias(self.TRACT_ID))
         ejscreen = ejscreen.drop([tract_col])
         ejscreen = self.rename_geospatial_columns(ejscreen)
+
+        # Cast tract column from String to Categorical for joining
+        ejscreen = ejscreen.with_columns(
+            pl.col(self.TRACT_ID).cast(pl.Categorical)
+        )
 
         # Merge in the EJSCREEN columns
         input_lf = input_lf.join(ejscreen, on=self.TRACT_ID, how='left')
@@ -1177,6 +1185,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             ).alias(self.TRACT_ID))
         cejst = cejst.drop([tract_col])
         cejst = self.rename_geospatial_columns(cejst)
+
+        # Cast tract column from String to Categorical for joining
+        cejst = cejst.with_columns(
+            pl.col(self.TRACT_ID).cast(pl.Categorical)
+        )
 
         # Merge in the CEJST columns
         input_lf = input_lf.join(cejst, on=self.TRACT_ID, how='left')
@@ -2140,11 +2153,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         for upgrade_id in upgrade_ids:
 
             # Get the fkt and self.data for this upgrade
-            up_geo_data = self.get_fkt_for_upgrade(upgrade_id)
+            up_geo_data = self.get_alloc_wts_for_upgrade(upgrade_id)
             up_data = self.data.filter((pl.col(self.UPGRADE_ID) == upgrade_id))  # .collect()
 
             # Filter to this geography, downselect columns, create savings columns, and downselect columns
-            up_agg, baseline_fkt_plus = self.create_geospatial_slice_of_metadata(up_geo_data,
+            up_agg, baseline_fkt_plus = self.create_weighted_aggregate_output(up_geo_data,
                                                                                 up_data,
                                                                                 baseline_fkt_plus,
                                                                                 geography_filters={},
@@ -2170,29 +2183,37 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         return self.plotting_data
 
-    def create_geospatial_slice_of_metadata(self,
-                                            geo_data,
-                                            meta_data,
-                                            baseline_fkt_plus,
-                                            geography_filters={},
-                                            geographic_aggregation_levels=[],
-                                            column_downselection=None):
+    def get_allocated_weights_plus_util_bills(self, upgrade_id, alloc_wts, sim_outs):
 
-        # Filter to specified geography
-        if len(geography_filters) > 0:
-            geo_filter_exprs = [(pl.col(k) == v) for k, v in geography_filters.items()]
-            geo_data = geo_data.filter(geo_filter_exprs)
+        # If the cached file already exists, scan and return
+        cached_file_name = f'cached_allocation_weights_plus_bills_upgrade{upgrade_id}.parquet'
+        alloc_wts_bills_dir = os.path.join(self.output_dir, 'cached_allocation_weights_plus_bills_by_upgrade', f'upgrade={upgrade_id}')
+        cached_file_path = os.path.abspath(os.path.join(alloc_wts_bills_dir, cached_file_name))
+        if os.path.exists(cached_file_path):
+            logger.info(f'Reloading allocated weights plus bills from: {cached_file_name}')
+            alloc_wts = pl.scan_parquet(cached_file_path)
+            # Populate a dictionary of unweighted to weighted names to be used later
+            cost_cols = (self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS + [self.UTIL_BILL_TOTAL_MEAN])
+            for col in cost_cols:
+                weighted_col_name = self.col_name_to_weighted(col, self.weighted_utility_units)
+                self.unweighted_weighted_map.update({col: weighted_col_name})
+            self.unweighted_weighted_map.update({self.UTIL_ELEC_BILL_NUM_BILLS: self.col_name_to_weighted(self.UTIL_ELEC_BILL_NUM_BILLS)})
+            return alloc_wts
 
-        # Determine the geography to aggregate to.
-        # At a minimum aggregate the identical building ID X upgrade IDs inside
-        # each census tract, which are a result of the bootstrapping process used for apportionment.
-        if (not geographic_aggregation_levels) or (geographic_aggregation_levels == [None]):
-            geographic_aggregation_levels = [self.TRACT_ID]
+        # The file does not exist. Create, cache, scan, and return.
+        logger.info(f'Creating allocated weights plus bills for upgrade {upgrade_id}')
 
-        # At this point the geo_data has a tract for each building (row)
-        # Join the utility bill columns with data about all utilites onto this
-        # Include building floor area for utility cost intenstity calcs
-        util_bills_by_eia_id = meta_data.select(
+        # The allocated weights have a tract for each building
+        # Assign the EIA Utility ID for each building based on this tract
+        tract_to_util_file_path = os.path.join(self.truth_data_dir, self.tract_to_util_map_file_name)
+        tract_to_util_map = pl.scan_csv(tract_to_util_file_path)
+        alloc_wts = alloc_wts.join(tract_to_util_map, on=self.TRACT_ID, how='left')
+
+        # Get the utility bills by EIA ID from the simulation outputs.
+        # This column includes the utility bills calculated for all possible
+        # locations each simulation output could be allocated to.
+        # Include building floor area for utility cost intenstity calcs.
+        util_bills_by_eia_id = sim_outs.select(
             [self.BLDG_ID, self.UTIL_BILL_ELEC_RESULTS, self.FLR_AREA]
         )
 
@@ -2200,14 +2221,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         util_bills_by_eia_id = util_bills_by_eia_id.with_columns(
             pl.col(self.UTIL_BILL_ELEC_RESULTS).cast(pl.String)
         )
-        util_bills_by_eia_id = util_bills_by_eia_id.collect().lazy()
-
-        # load tract to utility mapping
-        file_path = os.path.join(self.truth_data_dir, self.tract_to_util_map_file_name)
-        tract_to_util_map = pl.scan_csv(file_path)
-
-        # add eia utility id
-        geo_data = geo_data.join(tract_to_util_map, on=self.TRACT_ID, how='left')
 
         # Create a new row for each Building ID x EIA ID combination
         util_bills_by_eia_id = util_bills_by_eia_id.with_columns(
@@ -2227,7 +2240,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             pl.col(tsc).list.to_struct("max_width", new_util_columns)
         ).unnest(tsc)
         # NOTE: need to do this otherwise the lazyframe query optimization breaks down
+        collect_tstart = datetime.datetime.now()
         util_bills_by_eia_id = util_bills_by_eia_id.collect().lazy()
+        collect_tend = datetime.datetime.now()
+        elapsed_time = (collect_tend - collect_tstart).total_seconds()
+        logger.info(f"Collect time for util_bills_by_eia_id: {elapsed_time} seconds")
 
         # Replace empty strings with nulls in the new columns
         util_bills_by_eia_id = util_bills_by_eia_id.with_columns(
@@ -2246,13 +2263,15 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         )
 
         # Join the utility bills onto each building based on utility ID
-        geo_data = geo_data.join(util_bills_by_eia_id, on=[self.BLDG_ID, self.UTIL_BILL_EIA_ID], how='left')
+        alloc_wts = alloc_wts.join(util_bills_by_eia_id, on=[self.BLDG_ID, self.UTIL_BILL_EIA_ID], how='left')
 
         # Loop through each fuel and assign state-level bills to each building
         for col_state_util_result, col_state_util_bill in dict(zip(self.COLS_STATE_UTIL_RESULTS, self.COST_STATE_UTIL_COSTS)).items():
 
-            # Get the utility bills data for this fuel
-            util_bills_by_state = meta_data.select(
+            # Get the utility bills data for this fuel.
+            # This column includes the utility bills calculated for all possible
+            # states each simulation output could be allocated to.
+            util_bills_by_state = sim_outs.select(
                 [self.BLDG_ID, col_state_util_result]
             )
 
@@ -2260,7 +2279,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             util_bills_by_state = util_bills_by_state.with_columns(
                 pl.col(col_state_util_result).cast(pl.String)
             )
+            collect_tstart = datetime.datetime.now()
             util_bills_by_state = util_bills_by_state.collect().lazy()
+            collect_tend = datetime.datetime.now()
+            elapsed_time = (collect_tend - collect_tstart).total_seconds()
+            logger.info(f"Collect time for util_bills_by_state {col_state_util_bill}: {elapsed_time} seconds")
 
             # Create a new row for each Building ID x State combination
             util_bills_by_state = util_bills_by_state.with_columns(
@@ -2280,7 +2303,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 pl.col(tsc).list.to_struct("max_width", new_util_columns)
             ).unnest(tsc)
             # NOTE: need to do this otherwise the lazyframe query optimization breaks down
+            collect_tstart = datetime.datetime.now()
             util_bills_by_state = util_bills_by_state.collect().lazy()
+            collect_tend = datetime.datetime.now()
+            elapsed_time = (collect_tend - collect_tstart).total_seconds()
+            logger.info(f"Collect time for util_bills_by_state {col_state_util_bill}: {elapsed_time} seconds")
 
             # Replace empty strings with nulls in the new columns
             util_bills_by_state = util_bills_by_state.with_columns(
@@ -2296,11 +2323,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 [pl.col(col_state_util_bill).cast(pl.Int64)]
             )
 
-            # Join the utility bills onto each building based on utility ID
-            geo_data = geo_data.join(util_bills_by_state, on=[self.BLDG_ID, self.STATE_ABBRV], how='left')
+            # Join the utility bills onto each building based on state
+            alloc_wts = alloc_wts.join(util_bills_by_state, on=[self.BLDG_ID, self.STATE_ABBRV], how='left')
 
         # fill missing utility bill costs with state average
-        geo_data = geo_data.with_columns(
+        alloc_wts = alloc_wts.with_columns(
             [pl.when('usd' in column)
                .then(pl.col(column)
                        .fill_null(pl.col(self.UTIL_STATE_AVG_ELEC_COST))
@@ -2312,34 +2339,33 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             for column in self.UTIL_ELEC_BILL_VALS]
         )
 
-        geo_data = geo_data.with_columns(
+        alloc_wts = alloc_wts.with_columns(
             [pl.col(column).cast(pl.Int64) for column in self.UTIL_ELEC_BILL_COSTS]
         )
 
         # Create combined utility column for mean electricity rate
-        geo_data = geo_data.with_columns(pl.sum_horizontal(self.COLS_UTIL_BILLS).alias(self.UTIL_BILL_TOTAL_MEAN))
+        alloc_wts = alloc_wts.with_columns(pl.sum_horizontal(self.COLS_UTIL_BILLS).alias(self.UTIL_BILL_TOTAL_MEAN))
 
-        # calculate the weighted utility bill columns directly on the fkt
+        # Calculate weighted utility bill columns based on the allocated weights
         conv_fact = self.conv_fact('usd', self.weighted_utility_units)
         cost_cols = (self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS + [self.UTIL_BILL_TOTAL_MEAN])
         for col in cost_cols:
-            # get weighted col name
             weighted_col_name = self.col_name_to_weighted(col, self.weighted_utility_units)
             self.unweighted_weighted_map.update({col: weighted_col_name})
 
-        # calculate weighted utility costs
-        geo_data = geo_data.with_columns(
+        # Calculate weighted utility costs
+        alloc_wts = alloc_wts.with_columns(
             [pl.col(col)
                .cast(pl.Int64)
                .mul(pl.col(self.BLDG_WEIGHT))
                .mul(conv_fact)
-               .alias(self.unweighted_weighted_map[col])
+               .alias(self.col_name_to_weighted(col, self.weighted_utility_units))
                for col in cost_cols
             ]
         )
 
-        # weight number of bills TODO: do we want this?
-        geo_data = geo_data.with_columns(
+        # Calculate weighted number of bills TODO: do we want this?
+        alloc_wts = alloc_wts.with_columns(
             pl.col(self.UTIL_ELEC_BILL_NUM_BILLS)
               .cast(pl.Int32)
               .mul(pl.col(self.BLDG_WEIGHT))
@@ -2349,25 +2375,49 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.unweighted_weighted_map.update({self.UTIL_ELEC_BILL_NUM_BILLS: self.col_name_to_weighted(self.UTIL_ELEC_BILL_NUM_BILLS)})
 
         # get upgrade ID
-        up_id_list = geo_data.select([pl.col(self.UPGRADE_ID)]).collect().get_column(self.UPGRADE_ID).unique().to_list()
+        up_id_list = alloc_wts.select([pl.col(self.UPGRADE_ID)]).collect().get_column(self.UPGRADE_ID).unique().to_list()
         # should be a single value
         assert len(up_id_list) == 1
         upgrade_id = int(up_id_list[0])
 
-        logger.info(f'Creating geospatial slice for upgrade: {upgrade_id}')
+        # Write to parquet file, hive partition on upgrade to make later processing faster
+        os.makedirs(alloc_wts_bills_dir, exist_ok=True)
+        collect_tstart = datetime.datetime.now()
+        alloc_wts = alloc_wts.collect()
+        collect_tend = datetime.datetime.now()
+        elapsed_time = (collect_tend - collect_tstart).total_seconds()
+        logger.info(f"Collect time for {upgrade_id}: {elapsed_time} seconds")
+        alloc_wts = alloc_wts.drop('upgrade')  # upgrade column will be read from hive partition dir name
+        alloc_wts = self.reduce_df_memory(alloc_wts)
+        logger.info(f'Caching allocated weights plus bills for upgrade {upgrade_id} to: {cached_file_path}')
+        alloc_wts.write_parquet(cached_file_path)
+        alloc_wts = pl.scan_parquet(cached_file_path, hive_partitioning=True)
 
-        # Aggregate the weights for building IDs within each geography
-        if geographic_aggregation_levels == ['national']:
-            # Handle national case because there is no "country" column in the dataset to filter on
-            geo_agg_cols = []
-        else:
+        return alloc_wts
+
+    def aggregate_allocated_weights_to_geography(self,
+                                                alloc_wts,
+                                                geography_filters={},
+                                                geographic_aggregation_levels=['in.nhgis_tract_gisjoin']):
+        logger.info(f'Filtering allocated weights to: {geography_filters} and aggregating to: {geographic_aggregation_levels}')
+
+        # Filter to specified geography
+        if len(geography_filters) > 0:
+            geo_filter_exprs = [(pl.col(k) == v) for k, v in geography_filters.items()]
+            alloc_wts = alloc_wts.filter(geo_filter_exprs)
+
+        # Get names of geography columns to group by
+        geo_agg_cols = []
+        if geographic_aggregation_levels != ['national']:
             geo_agg_cols = [pl.col(c) for c in geographic_aggregation_levels]
 
-        # get weighted util cols to aggregate
-        weighted_util_cols = [self.unweighted_weighted_map[col] for col in (cost_cols + [self.UTIL_ELEC_BILL_NUM_BILLS])]
+        # Get weighted utility bill columns to aggregate
+        conv_fact = self.conv_fact('usd', self.weighted_utility_units)
+        cost_cols = (self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS + [self.UTIL_BILL_TOTAL_MEAN])
+        weighted_util_cols = [self.col_name_to_weighted(col, self.weighted_utility_units) for col in (cost_cols + [self.UTIL_ELEC_BILL_NUM_BILLS])]
 
-        # aggregate the fkt weights (and and weighted utility bill results) to input geospatial resolutions
-        geo_data = geo_data.select(
+        # Sum the weights and weighted utility bills by building IDs within each geography
+        wtd_agg_outs = alloc_wts.select(
             [
                 pl.col(self.BLDG_WEIGHT),
                 pl.col(self.UPGRADE_ID),
@@ -2389,11 +2439,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             ]
         )
 
-        logger.info('Geospatial aggregation Complete')
-
-        # calculate as average 'unweighted' utility intensity, e.g. (sum of weighted bills) / (sum of weights * building area)
-        geo_data = geo_data.with_columns(
-            [pl.col(self.unweighted_weighted_map[col]) # sum of (utility cost per building * tract-level weights) in billion usd
+        # Calculate as average 'unweighted' utility intensity, e.g. (sum of weighted bills) / (sum of weights * building area)
+        wtd_agg_outs = wtd_agg_outs.with_columns(
+            [pl.col(self.col_name_to_weighted(col, self.weighted_utility_units)) # sum of (utility cost per building * tract-level weights) in billion usd
                .truediv(
                    pl.col(self.FLR_AREA) # single building area
                      .mul(pl.col(self.BLDG_WEIGHT)) # sum of tract-level weights
@@ -2403,43 +2451,70 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             for col in cost_cols]
         )
 
-        # calculate aggregate savings cols
-        geo_data = self.add_weighted_utility_cost_savings_columns(geo_data, baseline_fkt_plus, geo_agg_cols)
+        return wtd_agg_outs
 
-        # cache the baseline fkt at this point to use for savings calculations
-        if upgrade_id == 0:
-            baseline_fkt_plus = geo_data
+    def create_weighted_aggregate_output(self,
+                                        up_alloc_wts,
+                                        sim_outs,
+                                        base_alloc_wts,
+                                        geography_filters={},
+                                        geographic_aggregation_levels=[],
+                                        column_downselection=None):
 
+        # Aggregate the upgrade's allocated weights for this geographic resolution
+        up_agg_alloc_wts = self.aggregate_allocated_weights_to_geography(
+                                                up_alloc_wts,
+                                                geography_filters,
+                                                geographic_aggregation_levels
+        )
 
+        # Aggregate the baseline's allocated weights for this geographic resolution
+        base_agg_alloc_wts = self.aggregate_allocated_weights_to_geography(
+                                                base_alloc_wts,
+                                                geography_filters,
+                                                geographic_aggregation_levels
+        )
+
+        # Get names of geography columns to group by
+        geo_agg_cols = []
+        if geographic_aggregation_levels != ['national']:
+            geo_agg_cols = [pl.col(c) for c in geographic_aggregation_levels]
+
+        # Calculate utility bill savings columns on the aggregate data
+        up_agg_alloc_wts = self.add_weighted_utility_cost_savings_columns(up_agg_alloc_wts, base_agg_alloc_wts, geo_agg_cols)
+
+        # Drop the raw string utility bill results columns from the simulation outputs
+        sim_outs = sim_outs.drop(self.COLS_UTIL_BILL_RESULTS)
+
+        # Join the aggregate allocated weights to the simulation outputs by building ID and upgrade ID
         logger.info("Joining the aggregated weights to simulation results")
-        # drop measure results cols from meta data
-        meta_data = meta_data.drop(self.COLS_UTIL_BILL_RESULTS)
-        # Join the weights to the per-model metadata and annual results
-        geo_data = geo_data.select(pl.all().exclude(self.FLR_AREA)).join(meta_data, on=[pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)])
+
+        wtd_agg_outs = up_agg_alloc_wts.select(pl.all().exclude(self.FLR_AREA)).join(sim_outs, on=[pl.col(self.UPGRADE_ID), pl.col(self.BLDG_ID)])
 
         # remove utility cols from unweighted_weighted_map
+        cost_cols = (self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS + [self.UTIL_BILL_TOTAL_MEAN])
         for col in (cost_cols + [self.UTIL_ELEC_BILL_NUM_BILLS]):
             self.unweighted_weighted_map.pop(col, None)
 
         logger.info("Calculating weighted energy savings columns")
         # Calculate the weighted columns
-        geo_data = self.add_weighted_area_energy_savings_columns(geo_data)
+        wtd_agg_outs = self.add_weighted_area_energy_savings_columns(wtd_agg_outs)
 
         # Add geospatial data columns based on most informative geography column
-        geo_data = self.add_geospatial_columns(geo_data, geographic_aggregation_levels[0])
+        wtd_agg_outs = self.add_geospatial_columns(wtd_agg_outs, geographic_aggregation_levels[0])
         if geographic_aggregation_levels == [self.TRACT_ID]:
-            geo_data = self.add_cejst_columns(geo_data)
-            geo_data = self.add_ejscreen_columns(geo_data)
+            wtd_agg_outs = self.add_cejst_columns(wtd_agg_outs)
+            wtd_agg_outs = self.add_ejscreen_columns(wtd_agg_outs)
 
         # Downselect columns for export
         if column_downselection is not None:
-            geo_data = self.downselect_columns_for_metadata_export(geo_data, column_downselection)
+            wtd_agg_outs = self.downselect_columns_for_metadata_export(wtd_agg_outs, column_downselection)
 
         # Remove units from the column names used by SightGlass
         # comstock.remove_sightglass_column_units()
 
         # Reorder the columns
-        geo_data = self.reorder_data_columns(geo_data)
+        wtd_agg_outs = self.reorder_data_columns(wtd_agg_outs)
 
         # Drop the dataset and completed_status columns
         # since these aren't useful to the target audience
@@ -2461,8 +2536,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         #     logger.info(c)
 
         # Return the LazyFrame for use by plotting, etc.
-        assert isinstance(geo_data, pl.LazyFrame)
-        return [geo_data, baseline_fkt_plus]
+        assert isinstance(wtd_agg_outs, pl.LazyFrame)
+        return wtd_agg_outs
 
     def export_metadata_and_annual_results(self, geo_exports, out_dir=None, aws_profile=None):
 
@@ -2484,6 +2559,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         out_location = {}
         out_location['fs'], out_location['fs_path'] = out_fs, out_fs_path
+
+        # Make a temporary local directory for writing parquet files
+        tmp_pqt_dir = f"{self.output_dir}/temp_aggs"
 
         # # Define the geographic partitions to export
         # geo_exports = [
@@ -2537,9 +2615,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             data_types = ge['data_types']
             file_types = ge['file_types']
             geo_col_names = list(partition_cols.keys())
-            logger.info(f'Exporting: {geo_top_dir}. ')
-            logger.info(f'Partitioning by: {geo_col_names}')
-            logger.info(f'Geographic aggregation levels: {aggregation_levels}')
+            logger.info(f'Exporting: {geo_top_dir} partitioned by: {geo_col_names}, aggregated to: {aggregation_levels}')
 
             # Get the unique set of combinations of all geography column partitions
             logger.debug('Get the unique set of combinations of all geography column partitions')
@@ -2555,6 +2631,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # Make a directory for the geography type
             full_geo_dir = f"{out_location['fs_path']}/metadata_and_annual_results/{geo_top_dir}"
             out_location['fs'].mkdirs(full_geo_dir, exist_ok=True)
+            temp_full_geo_dir = f"{tmp_pqt_dir}/metadata_and_annual_results/{geo_top_dir}"
+            os.makedirs(temp_full_geo_dir, exist_ok=True)
 
             # Make a directory for each data type X file type combo
             if None in aggregation_levels:
@@ -2565,6 +2643,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # Make an aggregates directory for the geography type
             full_geo_agg_dir = f"{out_location['fs_path']}/metadata_and_annual_results_aggregates/{geo_top_dir}"
             out_location['fs'].mkdirs(full_geo_agg_dir, exist_ok=True)
+            temp_full_geo_agg_dir = f"{tmp_pqt_dir}/metadata_and_annual_results/{geo_top_dir}"
+            os.makedirs(temp_full_geo_agg_dir, exist_ok=True)
 
             # Make a directory for each data type X file type combo
             for data_type in data_types:
@@ -2575,7 +2655,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             def get_file_path(full_geo_agg_dir, full_geo_dir, geo_prefixes, geo_levels, file_type, aggregation_level):
                 # Start with either /metadata_and_annual_results or /metadata_and_annual_results_aggregates
                 agg_level_dir = full_geo_agg_dir
-                if aggregation_level is None:
+                if aggregation_level is self.TRACT_ID:
                     agg_level_dir = full_geo_dir
                 geo_level_dir = f'{agg_level_dir}/{data_type}/{file_type}'
                 if len(geo_levels) > 0:
@@ -2587,7 +2667,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     geo_prefix = '_'.join(geo_prefixes)
                     file_name = f'{geo_prefix}_{file_name}'
                 # Add aggregate suffix to filename
-                if aggregation_level is not None:
+                if aggregation_level is not self.TRACT_ID:
                     file_name = f'{file_name}_agg'
                 # Add data_type suffix to filename
                 if data_type == 'basic':
@@ -2599,14 +2679,22 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
                 return file_path
 
-            # cached baseline fkt with utility data for savings calcs
-            baseline_fkt_plus = None
+            # Get the simulation outputs and allocated weights for the baseline
+            base_sim_outs = self.data.filter((pl.col(self.UPGRADE_ID) == 0))
+            base_alloc_wts = self.get_alloc_wts_for_upgrade(0)
+
+            # Add utility bills to the allocated weights
+            base_alloc_wts_plus_bills = self.get_allocated_weights_plus_util_bills(0, base_alloc_wts, base_sim_outs)
 
             # Write a file for each upgrade X geography combo for each file type
             for upgrade_id in upgrade_ids:
-                # Get the fkt and self.data for this upgrade
-                up_geo_data = self.get_fkt_for_upgrade(upgrade_id)
-                up_data = self.data.filter((pl.col(self.UPGRADE_ID) == upgrade_id))  # .collect()
+
+                # Get the simulation outputs and allocated weights for this upgrade
+                up_sim_outs = self.data.filter((pl.col(self.UPGRADE_ID) == upgrade_id))
+                up_alloc_wts = self.get_alloc_wts_for_upgrade(upgrade_id)
+
+                # Add utility bills to the allocated weights
+                up_alloc_wts_plus_bills = self.get_allocated_weights_plus_util_bills(upgrade_id, up_alloc_wts, up_sim_outs)
 
                 # Write raw data and all aggregation levels
                 for aggregation_level in aggregation_levels:
@@ -2620,13 +2708,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     elif 'basic' in data_types:
                         starting_downselect = 'basic'
 
-                    # Handle aggregated vs. non-aggregated differently because of memory usage
-                    if aggregation_level is None:
+                    # Handle census tract vs. larger geography aggregation differently because of memory usage
+                    if aggregation_level == self.TRACT_ID:
                         # Iterate by first level of geographic partitioning, collecting the DataFrame
                         # for this geography then writing files for all the sub-geographies within it.
                         for first_geo_combo in first_geo_combos.iter_rows(named=True):
                             fgc_tstart = datetime.datetime.now()
-                            logger.info(f'first_geo_combo: {first_geo_combo}')
+                            print('')
+                            logger.info(f'Creating aggregates for: {first_geo_combo}')
 
                             # Get the filters for the first level geography
                             first_geo_filters = {}
@@ -2639,84 +2728,56 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                             agg_lvl_list = [aggregation_level] # TODO move handling of this inside create_geospatial_slice_of_metadata
                             if isinstance(aggregation_level, list):
                                 agg_lvl_list = aggregation_level  # Pass list if a list is already supplied
-                            processed_dfs = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, baseline_fkt_plus, first_geo_filters, agg_lvl_list, starting_downselect)
-                            to_write = processed_dfs[0]
+                            wtd_agg_tstart = datetime.datetime.now()
+                            wtd_agg_outs = self.create_weighted_aggregate_output(up_alloc_wts_plus_bills,
+                                                                                up_sim_outs,
+                                                                                base_alloc_wts_plus_bills,
+                                                                                first_geo_filters,
+                                                                                agg_lvl_list,
+                                                                                starting_downselect)
+                            wtd_agg_tend = datetime.datetime.now()
+                            elapsed_time = (wtd_agg_tend - wtd_agg_tstart).total_seconds()
+                            logger.info(f"Weighted agg time for {first_geo_combo}: {elapsed_time} seconds")
                             collect_tstart = datetime.datetime.now()
-                            to_write = to_write.collect()
-                            collect_tend = datetime.datetime.now()
-                            elapsed_time = (collect_tend - collect_tstart).total_seconds()
-                            logger.info(f"Collect time for {first_geo_combo}: {elapsed_time} seconds")
-                            logger.info(f'There are {to_write.shape[0]:,} total rows for {first_geo_filters}')
+                            wtd_agg_outs = wtd_agg_outs.collect()
+                            logger.info(f"Collect time for {first_geo_combo}: {(datetime.datetime.now() - collect_tstart).total_seconds()} seconds")
+                            logger.info(f'There are {wtd_agg_outs.shape[0]:,} total rows for {first_geo_filters}')
 
-                            # cache baseline fkt with utilities for utility bill savings
-                            baseline_fkt_plus = processed_dfs[1]
+                            # Write the files partitioned by upgrage and geography
+                            write_tstart = datetime.datetime.now()
+                            # Make a copy of each of the partition columns using an alias.
+                            # This prevents the true partition columns from being removed from
+                            # the .parquet file due to hive partitioning by pyarrow.
+                            part_cols = []
+                            wtd_agg_outs = wtd_agg_outs.with_columns(
+                                pl.col(self.UPGRADE_ID).alias('upgrade_id')
+                            )
+                            part_cols.append('upgrade_id')
+                            for true_col, part_alias in partition_cols.items():
+                                wtd_agg_outs = wtd_agg_outs.with_columns(
+                                    pl.col(true_col).alias(part_alias)
+                                )
+                                part_cols.append(part_alias)
+                            # Locate the specific temp directory for these aggregates
+                            agg_level_dir = temp_full_geo_agg_dir
+                            if aggregation_level is self.TRACT_ID:
+                                agg_level_dir = temp_full_geo_dir
+                            temp_agg_dir = os.path.abspath(f'{agg_level_dir}')
+                            # wtd_agg_outs.write_parquet(tmp_pqt_dir, partition_by=geo_col_names)  # Requires Polars 1.0
+                            wtd_agg_outs.write_parquet(
+                                temp_agg_dir,
+                                use_pyarrow=True,
+                                pyarrow_options={"partition_cols": part_cols, "max_partitions": 3500}
+                            )
+                            logger.info(f"Write time for {first_geo_combo}: {(datetime.datetime.now() - write_tstart).total_seconds()} seconds")
+                            logger.info(f"Total time for {first_geo_combo}: {(datetime.datetime.now() - fgc_tstart).total_seconds()} seconds")
 
-                            # Queue writes for each geography
-                            combos_to_write = []
-                            for geo_combo in geo_combos.iter_rows(named=True):
-                                # print(f'geo_combo: {geo_combo}')
-
-                                # Get the filters for the geography
-                                geo_filters = {}
-                                geo_levels = []
-                                geo_prefixes = []
-                                for k, v in geo_combo.items():
-                                    if k == 'geography' and v == 'national':
-                                        continue
-                                    geo_filters[k] = v
-                                    geo_levels.append(f'{partition_cols[k]}={v}')
-                                    geo_prefixes.append(v)
-
-                                # Skip geo_combos that aren't in this first-level partitioning. e.g. counties not in a state
-                                first_level_geo_combo_val = list(first_geo_filters.values())[0]
-                                geo_combo_val = list(geo_filters.values())[0]
-                                if not geo_combo_val == first_level_geo_combo_val:
-                                    # logger.info(f'Skipping {geo_combo} because not in this partition ({geo_combo_val} != {first_level_geo_combo_val})')
-                                    continue
-
-                                # Filter already-collected dataframe to specified geography
-                                if len(geo_filters) > 0:
-                                    geo_filter_exprs = [(pl.col(k) == v) for k, v in geo_filters.items()]
-                                    geo_data = to_write.filter(geo_filter_exprs)
-                                else:
-                                    geo_data = to_write
-
-                                # Sort by building ID
-                                geo_data = geo_data.sort(by=self.BLDG_ID)
-
-                                # Queue write for each data type
-                                for data_type in data_types:
-
-                                    # Downselect columns further if appropriate
-                                    if not data_type == starting_downselect:
-                                        geo_data = self.downselect_columns_for_metadata_export(geo_data, data_type)
-                                        geo_data = self.reorder_data_columns(geo_data)
-
-                                    # Queue write for all selected filetypes
-                                    for file_type in file_types:
-                                        file_path = get_file_path(full_geo_agg_dir, full_geo_dir, geo_prefixes, geo_levels, file_type, aggregation_level)
-                                        logger.debug(f"Queuing {file_path}")
-                                        combo = (geo_data.clone(), out_location, file_type, file_path)
-                                        combos_to_write.append(combo)
-
-                            # Write files in parallel
-                            logger.info(f'Writing {len(combos_to_write)} files in parallel')
-                            start_time = datetime.datetime.now()
-                            logger.info(start_time.strftime('%Y-%m-%d %H:%M:%S'))
-                            with Parallel(n_jobs=18) as parallel:
-                                parallel(delayed(write_geo_data)(combo) for combo in combos_to_write)
-                            end_time = datetime.datetime.now()
-                            logger.info(end_time.strftime('%Y-%m-%d %H:%M:%S'))
-                            elapsed_time = (end_time - start_time).total_seconds()
-                            logger.info(f"File write time: {elapsed_time} seconds")
-                            # Attempting to avoid crashes
-                            to_write.clear()
-                            del to_write
-                            time.sleep(2)
-                            gc.collect()
-                            fgc_tend = datetime.datetime.now()
-                            elapsed_time = (fgc_tend - fgc_tstart).total_seconds()
-                            logger.info(f"Total time for {first_geo_combo}: {elapsed_time} seconds")
+                            # Find the temporary directory
+                            first_geo_combo_key = next(iter(first_geo_combo))
+                            first_geo_combo_value = first_geo_combo[first_geo_combo_key]
+                            first_geo_part_alias = partition_cols[first_geo_combo_key]
+                            temp_agg_dir = os.path.abspath(f'{agg_level_dir}/upgrade_id={upgrade_id}/{first_geo_part_alias}={first_geo_combo_value}')
+                            logger.info(f'Wrote files to: {temp_agg_dir}')
                     else:
                         # If there is any aggregation, collect a single dataframe with all geographies and savings columns
                         # Memory usage should work on most laptops
@@ -2724,7 +2785,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         agg_lvl_list = [aggregation_level] # TODO move handling of this inside create_geospatial_slice_of_metadata
                         if isinstance(aggregation_level, list):
                             agg_lvl_list = aggregation_level  # Pass list if a list is already supplied
-                        processed_dfs = self.create_geospatial_slice_of_metadata(up_geo_data, up_data, baseline_fkt_plus, no_geo_filters, agg_lvl_list, starting_downselect)
+                        processed_dfs = self.create_weighted_aggregate_output(up_alloc_wts, up_sim_outs, base_alloc_wts_plus_bills, no_geo_filters, agg_lvl_list, starting_downselect)
                         to_write = processed_dfs[0]
                         # print(to_write)
                         # exit()
@@ -2732,7 +2793,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         logger.info(f'There are {to_write.shape[0]:,} total rows at the aggregation level {aggregation_level}')
 
                         # cache baseline fkt with utilities for utility bill savings
-                        baseline_fkt_plus = processed_dfs[1]
+                        base_alloc_wts_plus_bills = processed_dfs[1]
 
                         # Process each geography and downselect columns
                         combos_to_write = []
@@ -3024,7 +3085,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         logger.info('Successfully completed the apportionment sampling postprocessing')
 
-    def get_fkt_for_upgrade(self, upgrade_id):
+    def get_alloc_wts_for_upgrade(self, upgrade_id):
         if self.fkt is None:
             raise Exception(f'self.fkt not initialized, call add_weights_aportioned_by_stock_estimate() first')
 
@@ -3162,7 +3223,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         val_cols = []
 
         for col in result_cols:
-            weighted_col = self.unweighted_weighted_map[col]
+            weighted_col = self.col_name_to_weighted(col, self.weighted_utility_units)
             val_cols.append(weighted_col)
             abs_svgs_cols[weighted_col] = self.col_name_to_savings(weighted_col, None)
             pct_svgs_cols[weighted_col] = self.col_name_to_percent_savings(weighted_col, 'percent')
