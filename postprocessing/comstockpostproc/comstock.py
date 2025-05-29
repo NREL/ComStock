@@ -71,7 +71,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.egrid_file_name = 'egrid_emissions_2019.csv'
         self.cejst_file_name = '1.0-communities.csv'
         self.geospatial_lookup_file_name = 'spatial_tract_lookup_table_publish_v8.csv'
-        self.tract_to_util_map_file_name = 'tract_to_elec_util_v2.csv'
+        self.tract_to_util_map_file_name = 'tract_to_elec_util.csv'
         self.hvac_metadata_file_name = 'hvac_metadata.csv'
         self.rename_upgrades = rename_upgrades
         self.rename_upgrades_file_name = 'rename_upgrades.json'
@@ -1550,6 +1550,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         ins = []
         out_engy_cons_svgs = []
         out_peak = []
+        out_gen = []
         out_intensity = []
         out_ghg_emissions = []
         out_pollution_emissions = []
@@ -1583,10 +1584,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             elif (c.endswith('.energy_consumption')
                   or c.endswith('.energy_consumption..kwh')
                   or c.endswith('.energy_savings')
+                  or c.endswith('.net_site_electricity_consumption..kwh')
+                  or c.endswith('.net_site_energy_consumption..kwh')
                   or c.endswith('.energy_savings..kwh')):
                 out_engy_cons_svgs.append(c)
             elif (c.endswith('peak_demand') or c.endswith('peak_demand..kw')):
                 out_peak.append(c)
+            #elif (c.endswith('generation') or c.endswith('generation..kwh')):
+            #    out_gen.append(c)
             elif (c.endswith('.energy_consumption_intensity')
                   or c.endswith('.energy_consumption_intensity..kwh_per_ft2')
                   or c.endswith('.energy_savings_intensity')
@@ -1595,7 +1600,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             else:
                 logger.error(f'Didnt find an order for column: {c}')
 
-        sorted_cols = front_cols + applicability + geogs + ins + out_engy_cons_svgs + out_peak + out_intensity + out_qoi + out_ghg_emissions + out_pollution_emissions + out_utility + out_params + calc
+        sorted_cols = front_cols + applicability + geogs + ins + out_engy_cons_svgs + out_peak + out_gen + out_intensity + out_qoi + out_ghg_emissions + out_pollution_emissions + out_utility + out_params + calc
 
         return sorted_cols
 
@@ -1747,7 +1752,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
     def add_missing_energy_columns(self):
         # Put in zeroes for end-use columns that aren't used in ComStock yet
-        for engy_col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY):
+        for engy_col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY + self.COLS_GEN_ANN_ENGY):
             if not engy_col in self.data:
                 logger.debug(f'Adding missing energy column: {engy_col}')
                 self.data = self.data.with_columns([
@@ -1765,7 +1770,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
     def add_energy_intensity_columns(self):
         # Create EUI column for each annual energy column
-        for engy_col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY):
+        for engy_col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY + self.COLS_GEN_ANN_ENGY):
             # Divide energy by area to create intensity
             eui_col = self.col_name_to_eui(engy_col)
             self.data = self.data.with_columns(
@@ -1793,11 +1798,15 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
     def add_peak_intensity_columns(self):
         # Create peak per area column for each peak column
-        for peak_col in (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK + self.COLS_QOI_MONTHLY_MED_DAILY_PEAK + [
-            self.QOI_MAX_SHOULDER_USE,
-            self.QOI_MAX_SUMMER_USE,
-            self.QOI_MAX_WINTER_USE
-            ]):
+        for peak_col in (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK +
+                         self.COLS_QOI_MONTHLY_MED_DAILY_PEAK +
+                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK +
+                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_WIN +
+                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_PEAK + [
+                             self.QOI_MAX_SHOULDER_USE,
+                             self.QOI_MAX_SUMMER_USE,
+                             self.QOI_MAX_WINTER_USE
+                             ]):
             # Divide peak by area to create intensity
             per_area_col = self.col_name_to_area_intensity(peak_col)
             self.data = self.data.with_columns(
@@ -2099,6 +2108,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         cols = self.COLS_UTIL_BILLS + ['out.utility_bills.electricity_bill_max..usd', 'out.utility_bills.electricity_bill_min..usd']
         pcs += [self.col_name_to_weighted(c, UnitsMixin.UNIT.CURRENCY.BILLION_USD) for c in cols]
+
+        # pv
+        cols = self.COLS_GEN_ANN_ENGY
+        pcs += [self.col_name_to_weighted(col_name=c, new_units=UnitsMixin.UNIT.ENERGY.TBTU) for c in cols]
 
         # plot_floor_area_and_energy_totals
         cols = [self.ANN_TOT_ENGY_KBTU, self.ANN_TOT_ELEC_KBTU, self.ANN_TOT_GAS_KBTU]
@@ -2428,6 +2441,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             ]
             + geo_agg_cols
             + weighted_util_cols
+            + cost_cols
+            + [self.UTIL_ELEC_BILL_NUM_BILLS]
         ).groupby(
             [
                 pl.col(self.UPGRADE_ID),
@@ -2436,7 +2451,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             + geo_agg_cols
         ).agg(
             [
-                pl.col([self.BLDG_WEIGHT] + geographic_aggregation_levels + weighted_util_cols).sum(),
+                pl.col([self.BLDG_WEIGHT] + geographic_aggregation_levels + weighted_util_cols + cost_cols + [self.UTIL_ELEC_BILL_NUM_BILLS]).sum(),
                 pl.col(self.FLR_AREA).first()
             ]
         )
@@ -3167,6 +3182,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     # self.COLS_UTIL_BILLS +
                     # [self.UTIL_BILL_TOTAL_MEAN, self.UTIL_BILL_ELEC_MAX, self.UTIL_BILL_ELEC_MED, self.UTIL_BILL_ELEC_MIN] +
                     self.COLS_TOT_ANN_ENGY +
+                    self.COLS_GEN_ANN_ENGY +
                     self.COLS_ENDUSE_ANN_ENGY +
                     self.COLS_ENDUSE_GROUP_TOT_ANN_ENGY +
                     self.COLS_ENDUSE_GROUP_ANN_ENGY):
@@ -3294,7 +3310,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # percent savings
         pct_svgs = pl.concat([up_vals, base_vals], how='horizontal').with_columns(
-            [((pl.col(f'{col}_base') - pl.col(col)) / pl.col(f'{col}_base')).alias(pct_svgs_cols[col]) for col in val_cols]
+            [((pl.col(f'{col}_base') - pl.col(col)) / pl.col(f'{col}_base') * 100).alias(pct_svgs_cols[col]) for col in val_cols]
         ).select(list(pct_svgs_cols.values()) + geo_agg_cols + [self.BLDG_ID])
 
         pct_svgs = pct_svgs.fill_null(0.0)
@@ -3311,6 +3327,45 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
     def add_unweighted_savings_columns(self):
 
         assert isinstance(self.data, pl.DataFrame)
+
+        col_groups = [
+            # Energy
+            {
+                'cols': self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY + self.COLS_GEN_ANN_ENGY,
+                'weighted_units': self.weighted_energy_units
+            },
+            # Utility Bills
+            # {
+            #     'cols': (self.COLS_UTIL_BILLS +
+            #                     [self.UTIL_BILL_TOTAL_MEAN,
+            #                     self.UTIL_BILL_ELEC_MAX,
+            #                     self.UTIL_BILL_ELEC_MED,
+            #                     self.UTIL_BILL_ELEC_MIN]),
+            #     'weighted_units': self.weighted_utility_units
+            # },
+            # Peak Demand QOIs
+            {
+                'cols': (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK +
+                         self.COLS_QOI_MONTHLY_MED_DAILY_PEAK +
+                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK +
+                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_WIN +
+                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_PEAK +
+                         [self.QOI_MAX_SHOULDER_USE,
+                          self.QOI_MAX_SUMMER_USE,
+                          self.QOI_MAX_WINTER_USE]),
+                'weighted_units': self.weighted_demand_units
+            },
+            # Emissions
+            {
+                'cols': (self.COLS_GHG_ELEC_SEASONAL_DAILY_EGRID +
+                         self.COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM +
+                         [self.GHG_LRMER_MID_CASE_15_ELEC,
+                          self.GHG_ELEC_EGRID,
+                          self.ANN_GHG_EGRID,
+                          self.ANN_GHG_CAMBIUM]),
+                'weighted_units': self.weighted_ghg_units
+            }
+        ]
 
         # Calculate savings for each group of columns using the appropriate units
         for col_group in self.UNWTD_COL_GROUPS:
@@ -3397,7 +3452,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         crnms = {}  # Column renames
         og_cols = self.data.columns
-        for col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY):
+        for col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY + self.COLS_GEN_ANN_ENGY):
             # energy_consumption
             if col in og_cols: crnms[col] = rmv_units(col)
 
@@ -3435,7 +3490,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         crnms = {}  # Column renames
         og_cols = lazyframe.columns
-        for col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY):
+        for col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY + self.COLS_GEN_ANN_ENGY):
             # energy_consumption
             if rmv_units(col) in og_cols: crnms[rmv_units(col)] = col
 

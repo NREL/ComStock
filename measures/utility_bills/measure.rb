@@ -55,9 +55,104 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     result = OpenStudio::IdfObjectVector.new
 
     # Request hourly data for fuel types with hourly bill calculations
-    result << OpenStudio::IdfObject.load('Output:Meter,Electricity:Facility,Hourly;').get
+    #result << OpenStudio::IdfObject.load("Output:Meter,Electricity:Facility,Hourly;").get
+    result << OpenStudio::IdfObject.load("Output:Meter,ElectricityPurchased:Facility,Hourly;").get
 
     return result
+  end
+
+  # return filtered electricity utility rates
+  def filter_datapoints_with_median_bounds(runner, rate_results, list_of_labels_to_remove, create_list)
+    # initialize filtered electricity rate variable
+    elec_bills = {}
+
+    # report bill breakdowns: demand charge
+    bills_sorted = rate_results.values.reject(&:zero?).sort
+
+    rate_results.each do |rate_label, bill|
+      # if there are no bills left after removing zeros, set to 0
+      if bills_sorted.empty?
+        elec_bills[rate_label] = 0
+        next
+      end
+
+      # if the rate label is considered outlier from total bill stand point, don't include
+      if list_of_labels_to_remove.include?(rate_label)
+        next
+      end
+
+      # get median
+      mid = bills_sorted.length / 2
+      median_bill = bills_sorted.length.odd? ? bills_sorted[mid] : (bills_sorted[mid - 1] + bills_sorted[mid]) / 2.0
+
+      # skip outliers
+      if bill < 0.25 * median_bill
+        if create_list
+          list_of_labels_to_remove << rate_label
+        end
+        runner.registerInfo("Removing #{rate_label}, because bill #{bill} < 0.25 x median #{median_bill}")
+        next
+      elsif bill > 2.0 * median_bill
+        if create_list
+          list_of_labels_to_remove << rate_label
+        end
+        runner.registerInfo("Removing #{rate_label}, because bill #{bill} > 2.0 x median #{median_bill}")
+        next
+      end
+
+      # include the bill result in bill result statistics
+      elec_bills[rate_label] = bill
+    end
+
+    return elec_bills, list_of_labels_to_remove.uniq
+  end
+
+  # return applicable utility rates statistics
+  def get_utility_rates_statistics(runner, elec_bills)
+    # Get bill values and sort
+    elec_bill_total_values = elec_bills.values.compact.map(&:to_f).sort
+    runner.registerInfo("Bills sorted: #{elec_bill_total_values}")
+  
+    # Catch when elec_bills is empty
+    if elec_bill_total_values.empty?
+      return [0, 'NA', 0, 'NA', 0, 'NA', 0, 'NA', 0, 0]
+    end
+  
+    # Calculate basic stats
+    min_total_bill = elec_bill_total_values.min
+    max_total_bill = elec_bill_total_values.max
+    mean_total_bill = (elec_bill_total_values.sum / elec_bill_total_values.size).round
+  
+    # Median calculation
+    lo_i = (elec_bill_total_values.size - 1) / 2
+    hi_i = elec_bill_total_values.size / 2
+    median_total_bill_low = elec_bill_total_values[lo_i]
+    median_total_bill_high = elec_bill_total_values[hi_i]
+    if elec_bill_total_values.length.odd?
+      median_bill = elec_bill_total_values[lo_i]
+    else
+      median_bill = ((median_total_bill_low + median_total_bill_high) / 2.0).round.to_i
+    end
+    n_bills = elec_bills.length
+
+    # get relevant keys
+    key_min = elec_bills.key(min_total_bill)
+    key_max = elec_bills.key(max_total_bill)
+    key_median_low = elec_bills.key(median_total_bill_low)
+    key_median_high = elec_bills.key(median_total_bill_high)
+
+    return [
+      min_total_bill.round.to_i,
+      key_min,
+      max_total_bill.round.to_i,
+      key_max,
+      median_total_bill_low.round.to_i,
+      key_median_low,
+      median_total_bill_high.round.to_i,
+      key_median_high,
+      mean_total_bill.round.to_i,
+      n_bills
+    ]
   end
 
   # define what happens when the measure is run
@@ -122,7 +217,8 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     # Electricity Bill
 
     # Get hourly electricity timeseries
-    elec_ts = sql.timeSeries(ann_env_pd, 'Hourly', 'Electricity:Facility', '')
+    #elec_ts = sql.timeSeries(ann_env_pd, 'Hourly', 'Electricity:Facility', '')
+    elec_ts = sql.timeSeries(ann_env_pd, 'Hourly', 'ElectricityPurchased:Facility', '')
     if elec_ts.empty?
       runner.registerError('Could not get hourly electricity consumption, cannot calculate electricity bill')
       return false
@@ -354,12 +450,15 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
           electricity_bill_results += '|' if electricity_bill_results.empty?
           electricity_bill_results += "#{elec_eia_id}:"
 
-          elec_bills = {}
           # get annual percent increase for state
           state_elec_ann_incr = elec_ann_incr[state_abbreviation]
 
           # Calculate the bills for each applicable electric rate using the PySAM API via python
-          rate_results = {}
+          rate_results_total = {}
+          rate_results_demandcharge_flat = {}
+          rate_results_demandcharge_tou = {}
+          rate_results_energycharge = {}
+          rate_results_fixedcharge = {}
           calc_elec_bill_py_path = File.join(File.dirname(__FILE__), 'resources', 'calc_elec_bill.py')
           applicable_rates.each_with_index do |rate_path, i|
             # Load the rate data
@@ -405,52 +504,55 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
               # Adjust the rate for price increases using state averages
               pct_inc = ((2022 - rate_start_year) * state_elec_ann_incr).round(3)
               total_utility_bill_dollars_base_yr = pysam_out['total_utility_bill_dollars'].round.to_i
+              utility_bill_dollars_base_yr_dc_flat = pysam_out['charge_wo_sys_dc_fixed'].round.to_f
+              utility_bill_dollars_base_yr_dc_tou = pysam_out['charge_wo_sys_dc_tou'].round.to_f
+              utility_bill_dollars_base_yr_ec = pysam_out['charge_wo_sys_ec'].round.to_f
+              utility_bill_dollars_base_yr_fixed = pysam_out['charge_wo_sys_fixed_ym']
               total_utility_bill_dollars_2022 = (total_utility_bill_dollars_base_yr * (1.0 + pct_inc)).round.to_i
-              rate_results[rate_label] = total_utility_bill_dollars_2022
+              utility_bill_dollars_base_yr_dc_flat = (utility_bill_dollars_base_yr_dc_flat * (1.0 + pct_inc)).round.to_i
+              utility_bill_dollars_base_yr_dc_tou = (utility_bill_dollars_base_yr_dc_tou * (1.0 + pct_inc)).round.to_i
+              utility_bill_dollars_base_yr_ec = (utility_bill_dollars_base_yr_ec * (1.0 + pct_inc)).round.to_i
+              utility_bill_dollars_base_yr_fixed = (utility_bill_dollars_base_yr_fixed * (1.0 + pct_inc)).round.to_i
+
+              rate_results_total[rate_label] = total_utility_bill_dollars_2022
+              rate_results_demandcharge_flat[rate_label] = utility_bill_dollars_base_yr_dc_flat
+              rate_results_demandcharge_tou[rate_label] = utility_bill_dollars_base_yr_dc_tou
+              rate_results_energycharge[rate_label] = utility_bill_dollars_base_yr_ec
+              rate_results_fixedcharge[rate_label] = utility_bill_dollars_base_yr_fixed
               runner.registerInfo("Bill for #{rate_name}: $#{total_utility_bill_dollars_2022}, adjusted from #{rate_start_year} to 2022 assuming #{pct_inc} increase.")
+              runner.registerInfo("Bill for #{rate_name}: $#{utility_bill_dollars_base_yr_dc_flat}, adjusted from #{rate_start_year} to 2022 assuming #{pct_inc} increase.")
+              runner.registerInfo("Bill for #{rate_name}: $#{utility_bill_dollars_base_yr_dc_tou}, adjusted from #{rate_start_year} to 2022 assuming #{pct_inc} increase.")
+              runner.registerInfo("Bill for #{rate_name}: $#{utility_bill_dollars_base_yr_ec}, adjusted from #{rate_start_year} to 2022 assuming #{pct_inc} increase.")
+              runner.registerInfo("Bill for #{rate_name}: $#{utility_bill_dollars_base_yr_fixed}, adjusted from #{rate_start_year} to 2022 assuming #{pct_inc} increase.")
             else
               runner.registerError("Error running PySAM: #{command}")
               runner.registerError("stdout: #{stdout_str}")
               runner.registerError("stderr: #{stderr_str}")
               return false
             end
-          end
+          end          
 
-          # Report bills for reasonable rates where: 0.25x_median < bill < 2x_median
-          bills_sorted = rate_results.values.sort
-          median_bill = bills_sorted[(bills_sorted.length - 1) / 2] + (bills_sorted[bills_sorted.length / 2] / 2.0)
-          i = 1
-          rate_results.each do |rate_label, bill|
-            if bill < 0.25 * median_bill
-              runner.registerInfo("Removing #{rate_label}, because bill #{bill} < 0.25 x median #{median_bill}")
-            elsif bill > 2.0 * median_bill
-              runner.registerInfo("Removing #{rate_label}, because bill #{bill} > 2.0 x median #{median_bill}")
-            else
-              # include the bill result in bill result statistics
-              elec_bills[rate_label] = bill
-              i += 1
-            end
-          end
+          # Filter reasonable rates
+          elec_bills_total, list_of_labels_to_remove = filter_datapoints_with_median_bounds(runner, rate_results_total, [], true)
+          elec_bills_demandcharge_flat, list_of_labels_to_remove = filter_datapoints_with_median_bounds(runner, rate_results_demandcharge_flat, list_of_labels_to_remove, false)
+          elec_bills_demandcharge_tou, list_of_labels_to_remove = filter_datapoints_with_median_bounds(runner, rate_results_demandcharge_tou, list_of_labels_to_remove, false)
+          elec_bills_energycharge, list_of_labels_to_remove = filter_datapoints_with_median_bounds(runner, rate_results_energycharge, list_of_labels_to_remove, false)
+          elec_bills_fixedcharge, list_of_labels_to_remove = filter_datapoints_with_median_bounds(runner, rate_results_fixedcharge, list_of_labels_to_remove, false)
 
           # Report bill statistics across all applicable electric rates
-          elec_bill_values = elec_bills.values
-          elec_bill_values = elec_bill_values.sort
-          runner.registerInfo("Bills sorted: #{elec_bill_values}")
-          min_bill = elec_bill_values.min
-          max_bill = elec_bill_values.max
-          mean_bill = (elec_bill_values.sum.to_f / elec_bill_values.length).round.to_i
-          lo_i = (elec_bill_values.length - 1) / 2
-          hi_i = elec_bill_values.length / 2
-          median_bill = ((elec_bill_values[lo_i] + elec_bill_values[hi_i]) / 2.0).round.to_i
-          n_bills = elec_bills.length
+          stats_total = get_utility_rates_statistics(runner, elec_bills_total)
+          stats_demandcharge_flat = get_utility_rates_statistics(runner, elec_bills_demandcharge_flat)
+          stats_demandcharge_tou = get_utility_rates_statistics(runner, elec_bills_demandcharge_tou)
+          stats_energycharge = get_utility_rates_statistics(runner, elec_bills_energycharge)
+          stats_fixedcharge = get_utility_rates_statistics(runner, elec_bills_fixedcharge)
 
-          electricity_bill_results += "#{min_bill.round.to_i}:#{elec_bills.key(min_bill)}:"
-          electricity_bill_results += "#{max_bill.round.to_i}:#{elec_bills.key(max_bill)}:"
-          electricity_bill_results += "#{elec_bill_values[lo_i].round.to_i}:#{elec_bills.key(elec_bill_values[lo_i])}:"
-          electricity_bill_results += "#{elec_bill_values[hi_i].round.to_i}:#{elec_bills.key(elec_bill_values[hi_i])}:"
-          electricity_bill_results += "#{mean_bill}:"
-          # electricity_bill_results += "#{median_bill}:"
-          electricity_bill_results += "#{n_bills}|"
+          # Concatenate bill statistics in certain format
+          electricity_bill_results += stats_total[0..8].join(":") + ":"
+          electricity_bill_results += stats_demandcharge_flat[0..8].join(":") + ":"
+          electricity_bill_results += stats_demandcharge_tou[0..8].join(":") + ":"
+          electricity_bill_results += stats_energycharge[0..8].join(":") + ":"
+          electricity_bill_results += stats_fixedcharge[0..8].join(":") + ":"
+          electricity_bill_results += "#{stats_total[9]}|"
         end
       end
 
