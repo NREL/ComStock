@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 # This function must be a global static function in order to work with parallel processing
 def write_geo_data(combo):
     geo_data, out_location, file_type, file_path = combo
+    geo_data = geo_data.collect()
     if file_type == 'csv':
         write_polars_csv_to_s3_or_local(geo_data, out_location['fs'], file_path)
     elif file_type == 'parquet':

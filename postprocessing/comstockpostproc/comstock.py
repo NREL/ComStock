@@ -18,6 +18,7 @@ import pandas as pd
 import polars as pl
 import re
 import datetime
+from pathlib import Path
 
 from comstockpostproc.naming_mixin import NamingMixin
 from comstockpostproc.units_mixin import UnitsMixin
@@ -211,7 +212,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 file_path = os.path.join(upgrade_dir, file_name)
                 self.cached_parquet.append((upgrade_id, file_path)) #cached_parquet is a list of parquets used to export and reload
                 logger.info(f'Caching to: {file_path}')
-                self.data = self.reorder_data_columns(self.data)
+                self.data = self.reorder_columns(self.data)
                 self.data = self.data.drop('upgrade')  # upgrade column will be read from hive partition dir name
                 self.data = self.reduce_df_memory(self.data)
                 self.data.write_parquet(file_path)
@@ -1456,14 +1457,17 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         return df
 
-    def downselect_columns_for_metadata_export(self, input_lf, data_type='full'):
+    def columns_for_export(self, input_lf, data_type='full'):
         # Find columns marked for export in column definitions
         if data_type not in ['detailed', 'full', 'basic']:
             raise RuntimeError('Unsupported data_type input to downselect_columns_for_metadata_export')
 
+        logger.info('Finding columns for export')
+        tstart = datetime.datetime.now()
+
         # If 'detailed' is used, do no downselection
         if data_type == 'detailed':
-            return input_lf
+            return list(input_lf.columns)
 
         col_defs = pl.read_csv(os.path.join(RESOURCE_DIR, COLUMN_DEFINITION_FILE_NAME))
         export_cols = col_defs.filter(pl.col(f'{data_type}_metadata') == True).select(['new_col_name', 'new_units'])
@@ -1508,12 +1512,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         cols_to_keep = list(set(cols_to_keep))
 
-        input_lf = input_lf.select(cols_to_keep)
+        logger.info(f"Finding columns for export time: {(datetime.datetime.now() - tstart).total_seconds()} seconds")
 
-        return input_lf
+        return cols_to_keep
 
 
-    def reorder_data_columns(self, input_df):
+    def reorder_columns(self, unsorted_cols):
         # Reorder columns for easier comprehension
 
         # These columns are required for SightGlass and should be at the front of the data
@@ -1526,18 +1530,18 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.UPGRADE_NAME,
             self.UPGRADE_APPL
         ]
-        front_cols = [c for c in special_cols if c in input_df.columns]
+        front_cols = [c for c in special_cols if c in unsorted_cols]
 
         # These columns may or may not be present depending on the run
         for opt_col in [self.COMP_STATUS, self.DATASET]:
-            if opt_col in input_df.columns:
+            if opt_col in unsorted_cols:
                 front_cols.append(opt_col)
 
         def diff_lists(li1, li2):
             li_dif = [i for i in li1 + li2 if (i not in li1) or (i not in li2)]
             return li_dif
 
-        oth_cols = diff_lists(input_df.columns, front_cols)
+        oth_cols = diff_lists(unsorted_cols, front_cols)
         oth_cols.sort()
 
         # Lists of columns
@@ -1593,9 +1597,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         sorted_cols = front_cols + applicability + geogs + ins + out_engy_cons_svgs + out_peak + out_intensity + out_qoi + out_ghg_emissions + out_pollution_emissions + out_utility + out_params + calc
 
-        input_df = input_df.select(sorted_cols)
-
-        return input_df
+        return sorted_cols
 
     def rename_columns_and_convert_units(self):
         # Rename columns per comstock_column_definitions.csv
@@ -2506,15 +2508,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             wtd_agg_outs = self.add_cejst_columns(wtd_agg_outs)
             wtd_agg_outs = self.add_ejscreen_columns(wtd_agg_outs)
 
-        # Downselect columns for export
-        if column_downselection is not None:
-            wtd_agg_outs = self.downselect_columns_for_metadata_export(wtd_agg_outs, column_downselection)
-
-        # Remove units from the column names used by SightGlass
-        # comstock.remove_sightglass_column_units()
-
-        # Reorder the columns
-        wtd_agg_outs = self.reorder_data_columns(wtd_agg_outs)
+        # Downselect and order columns
+        ordered_cols = self.reorder_columns(self.columns_for_export(wtd_agg_outs, column_downselection))
+        wtd_agg_outs = wtd_agg_outs.select(ordered_cols)
 
         # Drop the dataset and completed_status columns
         # since these aren't useful to the target audience
@@ -2763,14 +2759,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                             if aggregation_level is self.TRACT_ID:
                                 agg_level_dir = temp_full_geo_dir
                             temp_agg_dir = os.path.abspath(f'{agg_level_dir}')
-                            # wtd_agg_outs.write_parquet(tmp_pqt_dir, partition_by=geo_col_names)  # Requires Polars 1.0
                             wtd_agg_outs.write_parquet(
                                 temp_agg_dir,
                                 use_pyarrow=True,
                                 pyarrow_options={"partition_cols": part_cols, "max_partitions": 3500}
                             )
-                            logger.info(f"Write time for {first_geo_combo}: {(datetime.datetime.now() - write_tstart).total_seconds()} seconds")
-                            logger.info(f"Total time for {first_geo_combo}: {(datetime.datetime.now() - fgc_tstart).total_seconds()} seconds")
+                            logger.info(f"Local temp write time for {first_geo_combo}: {(datetime.datetime.now() - write_tstart).total_seconds()} seconds")
 
                             # Find the temporary directory
                             first_geo_combo_key = next(iter(first_geo_combo))
@@ -2778,6 +2772,55 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                             first_geo_part_alias = partition_cols[first_geo_combo_key]
                             temp_agg_dir = os.path.abspath(f'{agg_level_dir}/upgrade_id={upgrade_id}/{first_geo_part_alias}={first_geo_combo_value}')
                             logger.info(f'Wrote files to: {temp_agg_dir}')
+
+                            # Determine the column subset and order for each data type
+                            ordered_cols = {data_type: self.reorder_columns(self.columns_for_export(wtd_agg_outs, data_type)) for data_type in data_types}
+
+                            # Queue scan, transform, and upload each aggregate to S3
+                            q_tstart = datetime.datetime.now()
+                            combos_to_write = []
+                            for f in glob.glob(f'{temp_agg_dir}/**/*.parquet'):
+                                # Extract the geographic partitioning from the path
+                                geo_levels = []
+                                geo_prefixes = []
+                                pattern = re.compile(r'([^/\\=]+)=([^/\\=]+)')
+                                matches = pattern.findall(str(Path(f)))
+                                for k, v in dict(matches).items():
+                                    if k == 'upgrade_id':
+                                        continue
+                                    geo_levels.append(f'{k}={v}')
+                                    geo_prefixes.append(v)
+
+                                # Scan the dataframe
+                                df = pl.scan_parquet(f, hive_partitioning=False)  # Do not read columns for geographies from file path!
+                                df = df.sort(by=self.BLDG_ID)
+
+                                # Queue write for each data type
+                                for data_type in data_types:
+                                    data_type_df = df.clone()
+                                    # Downselect and order columns
+                                    data_type_df = data_type_df.select(ordered_cols[data_type])
+
+                                    # Queue write for all selected filetypes
+                                    for file_type in file_types:
+                                        file_path = get_file_path(full_geo_agg_dir, full_geo_dir, geo_prefixes, geo_levels, file_type, aggregation_level)
+                                        logger.debug(f"Queuing {file_path}")
+                                        combo = (data_type_df.clone(), out_location, file_type, file_path)
+                                        combos_to_write.append(combo)
+                            logger.info(f"Queuing time for {first_geo_combo}: {(datetime.datetime.now() - write_tstart).total_seconds()} seconds")
+
+                            # Write files in parallel
+                            logger.info(f'Writing {len(combos_to_write)} files in parallel')
+                            write_tstart = datetime.datetime.now()
+                            with Parallel(n_jobs=18) as parallel:
+                                parallel(delayed(write_geo_data)(combo) for combo in combos_to_write)
+                            logger.info(f"S3 write time for {first_geo_combo}: {(datetime.datetime.now() - write_tstart).total_seconds()} seconds")
+                            # Attempting to avoid crashes
+                            # to_write.clear()
+                            # del to_write
+                            # time.sleep(2)
+                            # gc.collect()
+                            logger.info(f"Total time for {first_geo_combo}: {(datetime.datetime.now() - fgc_tstart).total_seconds()} seconds")
                     else:
                         # If there is any aggregation, collect a single dataframe with all geographies and savings columns
                         # Memory usage should work on most laptops
@@ -2787,8 +2830,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                             agg_lvl_list = aggregation_level  # Pass list if a list is already supplied
                         processed_dfs = self.create_weighted_aggregate_output(up_alloc_wts, up_sim_outs, base_alloc_wts_plus_bills, no_geo_filters, agg_lvl_list, starting_downselect)
                         to_write = processed_dfs[0]
-                        # print(to_write)
-                        # exit()
                         to_write = to_write.collect()
                         logger.info(f'There are {to_write.shape[0]:,} total rows at the aggregation level {aggregation_level}')
 
@@ -2825,8 +2866,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
                                 # Downselect columns further if appropriate
                                 if not data_type == starting_downselect:
-                                    geo_data = self.downselect_columns_for_metadata_export(geo_data, data_type)
-                                    geo_data = self.reorder_data_columns(geo_data)
+                                    geo_data = self.columns_for_export(geo_data, data_type)
+                                    geo_data = self.reorder_columns(geo_data)
 
                                 # Queue write for all selected filetypes
                                 n_rows, n_cols = geo_data.shape
