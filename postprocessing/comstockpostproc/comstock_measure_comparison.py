@@ -132,7 +132,7 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
         LazyFramePlotter.plot_with_lazy(
             plot_method=self.plot_energy_by_enduse_and_fuel_type,
             lazy_frame=lazy_frame.clone(),
-            columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE))(**BASIC_PARAMS)
+            columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE + self.lazyframe_plotter.WTD_COLUMNS_ANN_PV + self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE))(**BASIC_PARAMS)
         LazyFramePlotter.plot_with_lazy(
             plot_method=self.plot_emissions_by_fuel_type,
             lazy_frame=lazy_frame.clone(),
@@ -211,7 +211,7 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
         LazyFramePlotter.plot_with_lazy(
             plot_method=self.plot_energy_by_enduse_and_fuel_type,
             lazy_frame=lazy_frame.clone(),
-            columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE))(**BASIC_PARAMS)
+            columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE + self.lazyframe_plotter.WTD_COLUMNS_ANN_PV + self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE))(**BASIC_PARAMS)
 
         LazyFramePlotter.plot_with_lazy(
             plot_method=self.plot_emissions_by_fuel_type,

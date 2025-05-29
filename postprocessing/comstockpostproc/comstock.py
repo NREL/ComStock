@@ -2058,6 +2058,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         cols = self.COLS_UTIL_BILLS + ['out.utility_bills.electricity_bill_max..usd', 'out.utility_bills.electricity_bill_min..usd']
         pcs += [self.col_name_to_weighted(c, UnitsMixin.UNIT.CURRENCY.BILLION_USD) for c in cols]
 
+        # pv
+        cols = self.COLS_GEN_ANN_ENGY
+        pcs += [self.col_name_to_weighted(col_name=c, new_units=UnitsMixin.UNIT.ENERGY.TBTU) for c in cols]
+
         # plot_floor_area_and_energy_totals
         cols = [self.ANN_TOT_ENGY_KBTU, self.ANN_TOT_ELEC_KBTU, self.ANN_TOT_GAS_KBTU]
         pcs += [self.col_name_to_weighted(col_name=c, new_units=UnitsMixin.UNIT.ENERGY.TBTU) for c in cols]
