@@ -212,7 +212,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 file_path = os.path.join(upgrade_dir, file_name)
                 self.cached_parquet.append((upgrade_id, file_path)) #cached_parquet is a list of parquets used to export and reload
                 logger.info(f'Caching to: {file_path}')
-                self.data = self.reorder_columns(self.data)
+                self.data = self.data.select(self.reorder_columns(self.data.columns))
                 self.data = self.data.drop('upgrade')  # upgrade column will be read from hive partition dir name
                 self.data = self.reduce_df_memory(self.data)
                 self.data.write_parquet(file_path)
@@ -2431,6 +2431,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         cost_cols = (self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS + [self.UTIL_BILL_TOTAL_MEAN])
         weighted_util_cols = [self.col_name_to_weighted(col, self.weighted_utility_units) for col in (cost_cols + [self.UTIL_ELEC_BILL_NUM_BILLS])]
 
+        # Get the bill labels, only applicable at the tract level of aggregation
+        bill_label_cols = []
+        if geographic_aggregation_levels == ['in.nhgis_tract_gisjoin']:
+            bill_label_cols = self.UTIL_ELEC_BILL_LABEL
+
         # Sum the weights and weighted utility bills by building IDs within each geography
         wtd_agg_outs = alloc_wts.select(
             [
@@ -2443,6 +2448,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             + weighted_util_cols
             + cost_cols
             + [self.UTIL_ELEC_BILL_NUM_BILLS]
+            + bill_label_cols
         ).groupby(
             [
                 pl.col(self.UPGRADE_ID),
@@ -2452,7 +2458,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         ).agg(
             [
                 pl.col([self.BLDG_WEIGHT] + geographic_aggregation_levels + weighted_util_cols + cost_cols + [self.UTIL_ELEC_BILL_NUM_BILLS]).sum(),
-                pl.col(self.FLR_AREA).first()
+                pl.col([self.FLR_AREA] + bill_label_cols).first(),
             ]
         )
 
@@ -3327,45 +3333,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
     def add_unweighted_savings_columns(self):
 
         assert isinstance(self.data, pl.DataFrame)
-
-        col_groups = [
-            # Energy
-            {
-                'cols': self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY + self.COLS_GEN_ANN_ENGY,
-                'weighted_units': self.weighted_energy_units
-            },
-            # Utility Bills
-            # {
-            #     'cols': (self.COLS_UTIL_BILLS +
-            #                     [self.UTIL_BILL_TOTAL_MEAN,
-            #                     self.UTIL_BILL_ELEC_MAX,
-            #                     self.UTIL_BILL_ELEC_MED,
-            #                     self.UTIL_BILL_ELEC_MIN]),
-            #     'weighted_units': self.weighted_utility_units
-            # },
-            # Peak Demand QOIs
-            {
-                'cols': (self.COLS_QOI_MONTHLY_MAX_DAILY_PEAK +
-                         self.COLS_QOI_MONTHLY_MED_DAILY_PEAK +
-                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK +
-                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_WIN +
-                         self.COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_PEAK +
-                         [self.QOI_MAX_SHOULDER_USE,
-                          self.QOI_MAX_SUMMER_USE,
-                          self.QOI_MAX_WINTER_USE]),
-                'weighted_units': self.weighted_demand_units
-            },
-            # Emissions
-            {
-                'cols': (self.COLS_GHG_ELEC_SEASONAL_DAILY_EGRID +
-                         self.COLS_GHG_ELEC_SEASONAL_DAILY_CAMBIUM +
-                         [self.GHG_LRMER_MID_CASE_15_ELEC,
-                          self.GHG_ELEC_EGRID,
-                          self.ANN_GHG_EGRID,
-                          self.ANN_GHG_CAMBIUM]),
-                'weighted_units': self.weighted_ghg_units
-            }
-        ]
 
         # Calculate savings for each group of columns using the appropriate units
         for col_group in self.UNWTD_COL_GROUPS:

@@ -748,7 +748,7 @@ class NamingMixin():
     UNWTD_COL_GROUPS = [
         # Energy
         {
-            'cols': COLS_TOT_ANN_ENGY + COLS_ENDUSE_ANN_ENGY,
+            'cols': COLS_TOT_ANN_ENGY + COLS_ENDUSE_ANN_ENGY + COLS_GEN_ANN_ENGY,
             'weighted_units': 'tbtu'
         },
         # Peak Demand QOIs
