@@ -2858,13 +2858,19 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         agg_lvl_list = [aggregation_level] # TODO move handling of this inside create_geospatial_slice_of_metadata
                         if isinstance(aggregation_level, list):
                             agg_lvl_list = aggregation_level  # Pass list if a list is already supplied
-                        processed_dfs = self.create_weighted_aggregate_output(up_alloc_wts, up_sim_outs, base_alloc_wts_plus_bills, no_geo_filters, agg_lvl_list, starting_downselect)
-                        to_write = processed_dfs[0]
-                        to_write = to_write.collect()
-                        logger.info(f'There are {to_write.shape[0]:,} total rows at the aggregation level {aggregation_level}')
+                        wtd_agg_outs = self.create_weighted_aggregate_output(up_alloc_wts_plus_bills,
+                                                                            up_sim_outs,
+                                                                            base_alloc_wts_plus_bills,
+                                                                            no_geo_filters,
+                                                                            agg_lvl_list,
+                                                                            starting_downselect)
+                        collect_tstart = datetime.datetime.now()
+                        wtd_agg_outs = wtd_agg_outs.collect()
+                        logger.info(f"Collect time for {aggregation_level}: {(datetime.datetime.now() - collect_tstart).total_seconds()} seconds")
+                        logger.info(f'There are {wtd_agg_outs.shape[0]:,} total rows at the aggregation level {aggregation_level}')
 
-                        # cache baseline fkt with utilities for utility bill savings
-                        base_alloc_wts_plus_bills = processed_dfs[1]
+                        # Determine the column subset and order for each data type
+                        ordered_cols = {data_type: self.reorder_columns(self.columns_for_export(wtd_agg_outs, data_type)) for data_type in data_types}
 
                         # Process each geography and downselect columns
                         combos_to_write = []
@@ -2884,9 +2890,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                             # Filter already-collected dataframe to specified geography
                             if len(geo_filters) > 0:
                                 geo_filter_exprs = [(pl.col(k) == v) for k, v in geo_filters.items()]
-                                geo_data = to_write.filter(geo_filter_exprs)
+                                geo_data = wtd_agg_outs.filter(geo_filter_exprs)
                             else:
-                                geo_data = to_write
+                                geo_data = wtd_agg_outs
 
                             # Sort by building ID
                             geo_data = geo_data.sort(by=self.BLDG_ID)
@@ -2895,24 +2901,22 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                             for data_type in data_types:
 
                                 # Downselect columns further if appropriate
-                                if not data_type == starting_downselect:
-                                    geo_data = self.columns_for_export(geo_data, data_type)
-                                    geo_data = self.reorder_columns(geo_data)
+                                data_type_df = geo_data.clone().select(ordered_cols[data_type])
 
                                 # Queue write for all selected filetypes
                                 n_rows, n_cols = geo_data.shape
                                 for file_type in file_types:
                                     file_path = get_file_path(full_geo_agg_dir, full_geo_dir, geo_prefixes, geo_levels, file_type, aggregation_level)
                                     logger.info(f"Queuing {file_path}: n_cols = {n_cols:,}, n_rows = {n_rows:,}")
-                                    combo = (geo_data.clone(), out_location, file_type, file_path)
+                                    combo = (data_type_df, out_location, file_type, file_path)
                                     combos_to_write.append(combo)
 
                         # Write files in parallel
                         logger.info(f'Writing {len(combos_to_write)} files in parallel')
-                        logger.info(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-                        with Parallel(n_jobs=12) as parallel:
+                        write_tstart = datetime.datetime.now()
+                        with Parallel(n_jobs=18) as parallel:
                             Parallel()(delayed(write_geo_data)(combo) for combo in combos_to_write)
-                        logger.info(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                        logger.info(f"Write time for {aggregation_level}: {(datetime.datetime.now() - write_tstart).total_seconds()} seconds")
 
             ge_tend = datetime.datetime.now()
             logger.info(f'Finished exporting: {geo_top_dir}. ')
