@@ -2161,26 +2161,35 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         upgrade_ids = pl.Series(self.data.select(pl.col(self.UPGRADE_ID)).unique().collect()).to_list()
         upgrade_ids.sort()
 
+        # Get the simulation outputs and allocated weights for the baseline
+        base_sim_outs = self.data.filter((pl.col(self.UPGRADE_ID) == 0))
+        base_alloc_wts = self.get_alloc_wts_for_upgrade(0)
+
+        # Add utility bills to the allocated weights
+        base_alloc_wts_plus_bills = self.get_allocated_weights_plus_util_bills(0, base_alloc_wts, base_sim_outs)
+
         # Create an aggregation for each upgrade
         up_agg_paths = []
         agg_cols = [self.CZ_ASHRAE, self.CEN_DIV]
-        baseline_fkt_plus = None
         for upgrade_id in upgrade_ids:
 
-            # Get the fkt and self.data for this upgrade
-            up_geo_data = self.get_alloc_wts_for_upgrade(upgrade_id)
-            up_data = self.data.filter((pl.col(self.UPGRADE_ID) == upgrade_id))  # .collect()
+            # Get the simulation outputs and allocated weights for this upgrade
+            up_sim_outs = self.data.filter((pl.col(self.UPGRADE_ID) == upgrade_id))
+            up_alloc_wts = self.get_alloc_wts_for_upgrade(upgrade_id)
+
+            # Add utility bills to the allocated weights
+            up_alloc_wts_plus_bills = self.get_allocated_weights_plus_util_bills(upgrade_id, up_alloc_wts, up_sim_outs)
 
             # Filter to this geography, downselect columns, create savings columns, and downselect columns
-            up_agg, baseline_fkt_plus = self.create_weighted_aggregate_output(up_geo_data,
-                                                                                up_data,
-                                                                                baseline_fkt_plus,
-                                                                                geography_filters={},
-                                                                                geographic_aggregation_levels=agg_cols,
-                                                                                column_downselection='full')
+            wtd_agg_outs = self.create_weighted_aggregate_output(up_alloc_wts_plus_bills,
+                                                                up_sim_outs,
+                                                                base_alloc_wts_plus_bills,
+                                                                geography_filters={},
+                                                                geographic_aggregation_levels=agg_cols,
+                                                                column_downselection='detailed')
 
             # Select only columns needed for plotting
-            up_agg = up_agg.select(self.plotting_columns())
+            wtd_agg_outs = wtd_agg_outs.select(self.plotting_columns())
 
             # Write data to parquet file, hive partition on upgrade to make later processing faster
             file_name = f'cached_ComStock_plotting_upgrade{upgrade_id}.parquet'
@@ -2188,9 +2197,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             os.makedirs(upgrade_dir, exist_ok=True)
             file_path = os.path.join(upgrade_dir, file_name)
             logger.info(f'Caching plotting data to: {file_path}')
-            up_agg = up_agg.drop('upgrade')  # upgrade column will be read from hive partition dir name
-            up_agg = up_agg.collect()
-            up_agg.write_parquet(file_path)
+            wtd_agg_outs = wtd_agg_outs.drop('upgrade')  # upgrade column will be read from hive partition dir name
+            wtd_agg_outs = wtd_agg_outs.collect()
+            wtd_agg_outs.write_parquet(file_path)
             up_agg_paths.append(file_path)
 
         # Scan plotting_data to create one huge LazyFrame
