@@ -1,0 +1,923 @@
+from pyenergyplus.plugin import EnergyPlusPlugin
+from collections import deque
+
+MODES = ['htg', 'clg', 'flt']
+COMPONENTS = [
+    'people_gain',
+    'light_gain',
+    'equip_gain',
+    'win_sol',
+    'ext_wall',
+    'fnd_wall',
+    'roof',
+    'ext_flr',
+    'gnd_flr',
+    'win_cond',
+    'door',
+    'infil',
+    'vent'
+]
+EXT_SURFS = [
+    'ext_wall',
+    'fnd_wall',
+    'roof',
+    'ext_flr',
+    'gnd_flr',
+    'win',
+    'door'
+]
+INT_SURFS = [
+    'int_wall',
+    'int_ceil',
+    'int_flr',
+    'int_mass'
+]
+RAD_HIST_TERMS = [
+    'people',
+    'lights',
+    'elec_equip',
+    'gas_equip',
+    'hot_water_equip',
+    'other_equip',
+    'win_solar',
+    'window_shade_ir'
+]
+
+class FixedSizeList():
+
+    def __init__(self, size, initial_value):
+        self.data = deque([initial_value] * size, maxlen=size)
+
+    def add_first_drop_last(self, item):
+        self.data.appendleft(item)
+
+    def chunk_avg(self, n):
+        result = []
+        data_list = list(self.data)
+        for i in range(0, len(data_list), n):
+            chunk = data_list[i:i + n]
+            result.append(sum(chunk) / len(chunk))
+        assert len(result) == 24
+        return result
+
+class LoadSummary(EnergyPlusPlugin):
+
+    def __init__(self):
+
+        # call parent class methods
+        super().__init__()
+
+        # set handles flag to true
+        self.need_to_get_handles = True
+
+        # non-solar radiant timeseries
+        self.nonsolar_rts = [
+            0.49, 0.17, 0.09, 0.05, 0.03, 0.02, 0.02, 0.01,
+            0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01,
+            0.01, 0.01, 0.01, 0.01, 0.00, 0.00, 0.00, 0.00
+        ]
+
+        # solar radiant timeseries
+        self.solar_rts = [
+            0.54, 0.16, 0.08, 0.04, 0.03, 0.02, 0.01, 0.01,
+            0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01,
+            0.01, 0.01, 0.01, 0.00, 0.00, 0.00, 0.00, 0.00
+        ]
+
+        # zone interior surface info
+        self.zn_int_surf_info = <%= int_surf_h_json.to_s %>
+
+        # zone exterior surface info
+        self.zn_ext_surf_info = <%= ext_surf_h_json.to_s %>
+
+        # surface area fraction dicts
+        self.zn_all_surf_fracs = self.get_surf_fracs({k: {**self.zn_ext_surf_info[k], **self.zn_int_surf_info[k]} for k in self.zn_ext_surf_info})
+        self.zn_flr_surf_fracs = self.get_surf_fracs(
+            {
+                zone: {
+                    surf_type: {
+                        surf_name: area 
+                        for surf_name, area in surf_type_dict.items()
+                    } 
+                    for surf_type, surf_type_dict in {
+                        **self.zn_ext_surf_info[zone], **self.zn_int_surf_info[zone]}.items()
+                        if '_flr' in surf_type
+                    } 
+                for zone in self.zn_ext_surf_info
+            }
+        )
+        self.zn_ext_surf_fracs = self.get_surf_fracs(self.zn_ext_surf_info)
+
+
+        # zone mode dict
+        self.zn_mode = {}
+        self.zn_int_surf_area = {}
+        self.zn_ext_surf_area = {}
+        self.zn_int_surf_cond = {}
+        self.zn_ext_surf_cond = {}
+
+        # output components handles
+        self.component_hndls = {}
+        for mode in MODES:
+            self.component_hndls[mode] = {}
+            for component in COMPONENTS:
+                self.component_hndls[mode][component] = None
+
+        # radiant history lists
+        self.rad_hist = {}
+
+        # zone air heat balance system air transfer rate dict
+        self.zahbsatr = {}
+        # zone air heat balance system convective heat gain rate dict
+        self.zahbschgr = {}
+        # zone people convective heating energy dict
+        self.zpche = {}
+        # zone people radiant heating energy dict
+        self.zprhe = {}
+        # zone lights convective heating energy dict
+        self.zlche = {}
+        # zone lights radiant heating energy dict
+        self.zlrhe = {}
+        # zone electric equipment convective heating energy dict
+        self.zeeche = {}
+        # zone electric equipment radiant heating energy dict
+        self.zeerhe = {}
+        # zone gas equipment convective heating energy dict
+        self.zgeche = {}
+        # zone gas equipment radiant heating energy dict
+        self.zgerhe = {}
+        # zone hot water equipment convective heating energy dict
+        self.zhweche = {}
+        # zone hot water equipment radiant heating energy dict
+        self.zhwerhe = {}
+        # zone other equipment convective heating energy dict
+        self.zoeche = {}
+        # zone other equipment radiant heating energy dict
+        self.zoerhe = {}
+        # zone windows total transmitted solar radiation energy dict
+        self.zwttsre = {}
+        # window inside face glazing net infrared heat transfer rate dict
+        self.swifgnihtr = {}
+        # window inside face shade net infrared heat transfer rate dict
+        self.swifsnihtr = {}
+        # zone windows net infrared heat transfer rate dict
+        self.zwnirhte = {}
+        # surface inside face convection heat gain energy dict
+        self.sifchge = {}
+        # surface window inside face gap between shade and glazing zone convection heat gain rate
+        self.swifgbsagchgr = {}
+
+        # zone infiltration sensible heat gain energy dict
+        self.zishge = {}
+        # zone infiltration sensible heat loss energy dict
+        self.zishle = {}
+        # zone mechanical ventilation heating load increase energy dict
+        self.zmvhlie = {}
+        # zone mechanical ventilation heating load decrease energy dict
+        self.zmvhlde = {}
+        # zone mechanical ventilation cooling load increase energy dict
+        self.zmvclie = {}
+        # zone mechanical ventilation cooling load decrease energy dict
+        self.zmvclde = {}
+
+        for zone in self.zn_ext_surf_info.keys():
+            zn = zone.lower().replace(' ', '_')
+            # mode
+            self.zn_mode[zn] = str()
+
+            # system air transfer rate
+            self.zahbsatr[zn] = {}
+            self.zahbschgr[zn] = {}
+
+            # zone internal loads
+            self.zpche[zn] = {}
+            self.zprhe[zn] = {}
+            self.zlche[zn] = {}
+            self.zlrhe[zn] = {}
+            self.zeeche[zn] = {}
+            self.zeerhe[zn] = {}
+            self.zgeche[zn] = {}
+            self.zgerhe[zn] = {}
+            self.zhweche[zn] = {}
+            self.zhwerhe[zn] = {}
+            self.zoeche[zn] = {}
+            self.zoerhe[zn] = {}
+
+            # window transmitted sola
+            self.zwttsre[zn] = {}
+
+            # window infrared
+            for window in self.zn_ext_surf_info[zone]['win'].keys():
+                win = window.lower().replace(' ', '_')
+                self.swifgnihtr[win] = {}
+                self.swifsnihtr[win] = {}
+                self.swifgbsagchgr[win] = {}
+            # zone windows net ir
+            self.zwnirhte[zn] = {}
+
+            # surface convection
+            # ext surfs
+            for surf_type in self.zn_ext_surf_info[zone].keys():
+                for surf_name in self.zn_ext_surf_info[zone][surf_type].keys():
+                    name = surf_name.lower().replace(' ', '_')
+                    self.sifchge[name] = {}
+            # int surfs
+            for surf_type in self.zn_int_surf_info[zone].keys():
+                for surf_name in self.zn_int_surf_info[zone][surf_type].keys():
+                    name = surf_name.lower().replace(' ', '_')
+                    self.sifchge[name] = {}
+
+            # infiltration
+            self.zishge[zn] = {}
+            self.zishle[zn] = {}
+
+            # ventilation
+            self.zmvhlie[zn] = {}
+            self.zmvhlde[zn] = {}
+            self.zmvclie[zn] = {}
+            self.zmvclde[zn] = {}
+
+            self.rad_hist[zn] = {}
+            for rad_term in RAD_HIST_TERMS:
+                self.rad_hist[zn][rad_term] = None
+
+    def get_surf_fracs(self, surf_info_dict):
+        """
+        For each zone and surface type in surf_info_dict, calculates the fraction of total zone surface area in the dict
+        """
+        return_dict = {}
+        for zone, surf_type in surf_info_dict.items():
+            # flatten and sum all nested values
+            total_area = sum(
+                area
+                for surf in surf_type.values()
+                for area in surf.values()
+            )
+            return_dict[zone] = {
+                surf_type: {
+                    surf: (area / total_area)
+                    for surf, area in surf_info_dict[zone][surf_type].items()
+                }
+                for surf_type in surf_info_dict[zone]
+            }
+        return return_dict
+
+    def get_handles(self, state):
+
+        for zone in self.zn_ext_surf_info.keys():
+            zn = zone.lower().replace(' ', '_')
+            # zone mode out var handles
+            self.zahbsatr[zn]['hndl'] = self.api.exchange.get_variable_handle(
+                state,
+                'Zone Air Heat Balance System Air Transfer Rate',
+                zone
+            )
+            self.zahbschgr[zn]['hndl'] = self.api.exchange.get_variable_handle(
+                state,
+                'Zone Air Heat Balance System Convective Heat Gain Rate',
+                zone
+            )
+
+            # zone people out var handles
+            self.zpche[zn]['hndl'] = self.api.exchange.get_variable_handle(
+                state,
+                'Zone People Convective Heating Energy',
+                zone
+            )
+            self.zprhe[zn]['hndl'] = self.api.exchange.get_variable_handle(
+                state,
+                'Zone People Radiant Heating Energy',
+                zone
+            )
+
+            # zone lights out var handles
+            self.zlche[zn]['hndl'] = self.api.exchange.get_variable_handle(
+                state,
+                'Zone Lights Convective Heating Energy',
+                zone
+            )
+            self.zlrhe[zn]['hndl'] = self.api.exchange.get_variable_handle(
+                state,
+                'Zone Lights Radiant Heating Energy',
+                zone
+            )
+            # zone electric equipment out var handles
+            self.zeeche[zn]['hndl'] = self.api.exchange.get_variable_handle(
+                state,
+                'Zone Electric Equipment Convective Heating Energy',
+                zone
+            )
+            self.zeerhe[zn]['hndl'] = self.api.exchange.get_variable_handle(
+                state,
+                'Zone Electric Equipment Radiant Heating Energy',
+                zone
+            )
+            # zone gas equipment out var handles
+            self.zgeche[zn]['hndl'] = self.api.exchange.get_variable_handle(
+                state,
+                'Zone Gas Equipment Convective Heating Energy',
+                zone
+            )
+            self.zgerhe[zn]['hndl'] = self.api.exchange.get_variable_handle(
+                state,
+                'Zone Gas Equipment Radiant Heating Energy',
+                zone
+            )
+            # zone hot water equipment out var handles
+            self.zhweche[zn]['hndl'] = self.api.exchange.get_variable_handle(
+                state,
+                'Zone Hot Water Equipment Convective Heating Energy',
+                zone
+            )
+            self.zhwerhe[zn]['hndl'] = self.api.exchange.get_variable_handle(
+                state,
+                'Zone Hot Water Equipment Radiant Heating Energy',
+                zone
+            )
+            # zone other equipment out var handles
+            self.zoeche[zn]['hndl'] = self.api.exchange.get_variable_handle(
+                state,
+                'Zone Other Equipment Convective Heating Energy',
+                zone
+            )
+            self.zoerhe[zn]['hndl'] = self.api.exchange.get_variable_handle(
+                state,
+                'Zone Other Equipment Radiant Heating Energy',
+                zone
+            )
+            # zone windows total transmitted solar radiation energy
+            self.zwttsre[zn]['hndl'] = self.api.exchange.get_variable_handle(
+                state,
+                'Enclosure Windows Total Transmitted Solar Radiation Energy',
+                zone.replace('Zone', '')
+            )
+
+            # window delayed ir out var handles
+            for window in self.zn_ext_surf_info[zone]['win'].keys():
+                win = window.lower().replace(' ', '_')
+                self.swifgnihtr[win]['hndl'] = self.api.exchange.get_variable_handle(
+                    state,
+                    'Surface Window Inside Face Glazing Net Infrared Heat Transfer Rate',
+                    window
+                )
+                self.swifsnihtr[win]['hndl'] = self.api.exchange.get_variable_handle(
+                    state,
+                    'Surface Window Inside Face Shade Net Infrared Heat Transfer Rate',
+                    window
+                )
+                self.swifgbsagchgr[win]['hndl'] = self.api.exchange.get_variable_handle(
+                    state,
+                    'Surface Window Inside Face Gap between Shade and Glazing Zone Convection Heat Gain Rate[Exterior Windows',
+                    window
+                )
+
+            # opaque surface convection out var handles
+            for surface_type in self.zn_ext_surf_info[zone].keys():
+                for surface_name in self.zn_ext_surf_info[zone][surface_type].keys():
+                    name = surface_name.lower().replace(' ', '_')
+                    self.sifchge[name]['hndl'] = self.api.exchange.get_variable_handle(
+                        state,
+                        'Surface Inside Face Convection Heat Gain Energy',
+                        surface_name
+                    )
+            
+            for surface_type in self.zn_int_surf_info[zone].keys():
+                for surface_name in self.zn_int_surf_info[zone][surface_type].keys():
+                    name = surface_name.lower().replace(' ', '_')
+                    self.sifchge[name]['hndl'] = self.api.exchange.get_variable_handle(
+                        state,
+                        'Surface Inside Face Convection Heat Gain Energy',
+                        surface_name
+                    )
+
+            # infiltration
+            self.zishge[zn]['hndl'] = self.api.exchange.get_variable_handle(
+                state,
+                'Zone Infiltration Sensible Heat Gain Energy',
+                zone
+            )
+            self.zishle[zn]['hndl'] = self.api.exchange.get_variable_handle(
+                state,
+                'Zone Infiltration Sensible Heat Loss Energy',
+                zone
+            )
+
+            # ventilation
+            self.zmvhlie[zn]['hndl'] = self.api.exchange.get_variable_handle(
+                state,
+                'Zone Mechanical Ventilation Heating Load Increase Energy',
+                zone
+            )
+            self.zmvhlde[zn]['hndl'] = self.api.exchange.get_variable_handle(
+                state,
+                'Zone Mechanical Ventilation Heating Load Decrease Energy',
+                zone
+            )
+            self.zmvclie[zn]['hndl'] = self.api.exchange.get_variable_handle(
+                state,
+                'Zone Mechanical Ventilation Cooling Load Increase Energy',
+                zone
+            )
+            self.zmvclde[zn]['hndl'] = self.api.exchange.get_variable_handle(
+                state,
+                'Zone Mechanical Ventilation Cooling Load Decrease Energy',
+                zone
+            )
+
+        # global handles
+        for mode in MODES:
+            for component in COMPONENTS:
+                self.component_hndls[mode][component] = self.api.exchange.get_global_handle(
+                    state,
+                    f'{component}_{mode}_glob'
+                )
+
+        # set handles flag to false
+        self.need_to_get_handles = False
+
+    def on_after_new_environment_warmup_is_complete(self, state) -> int:
+        # get zone timestep
+        self.num_ts = self.api.exchange.num_time_steps_in_hour(state)
+        self.sec_per_ts = (60 * 60) / self.num_ts
+
+        return 0
+
+    def on_end_of_zone_timestep_before_zone_reporting(self, state) -> int:
+
+        # get handles
+        if self.need_to_get_handles:
+            self.get_handles(state)
+
+        # initialize component dict
+        components = {}
+        for mode in MODES:
+            components[mode] =  {}
+            for component in COMPONENTS:
+                components[mode][component] = 0
+
+        # get zone modes
+
+        def mode(val):
+            if val > 0:
+                return 'htg'
+            elif val < 0:
+                return 'clg'
+            else:
+                return 'flt'
+
+        for zone in self.zn_ext_surf_info.keys():
+
+            zn = zone.lower().replace(' ', '_')
+            # get values
+            # zone mode out vars
+            if self.zahbsatr[zn]['hndl'] != -1: 
+                self.zahbsatr[zn]['val'] = self.api.exchange.get_variable_value(
+                    state,
+                    self.zahbsatr[zn]['hndl']
+                )
+            else:
+                self.zahbsatr[zn]['val'] = 0
+
+            if self.zahbschgr[zn]['hndl'] != -1:
+                self.zahbschgr[zn]['val'] = self.api.exchange.get_variable_value(
+                    state,
+                    self.zahbschgr[zn]['hndl']
+                )
+            else: 
+                self.zahbschgr[zn]['val'] = 0
+
+            # zone people convective heating energy
+            if self.zpche[zn]['hndl'] != -1:
+                self.zpche[zn]['val'] = self.api.exchange.get_variable_value(
+                    state,
+                    self.zpche[zn]['hndl']
+                )
+            else:
+                self.zpche[zn]['val'] = 0
+            
+            # zone people radiant heating energy
+            if self.zprhe[zn]['hndl'] != -1:
+                self.zprhe[zn]['val'] = self.api.exchange.get_variable_value(
+                    state,
+                    self.zprhe[zn]['hndl']
+                )
+            else:
+                self.zprhe[zn]['val'] = 0
+            
+            # zone lights convective heating energy
+            if self.zlche[zn]['hndl'] != -1:
+                self.zlche[zn]['val'] = self.api.exchange.get_variable_value(
+                    state,
+                    self.zlche[zn]['hndl']
+                )
+            else:
+                self.zlche[zn]['val'] = 0
+            
+            # zone lights radiant heating energy
+            if self.zlrhe[zn]['hndl'] != -1:
+                self.zlrhe[zn]['val'] = self.api.exchange.get_variable_value(
+                    state,
+                    self.zlrhe[zn]['hndl']
+                )
+            else:
+                self.zlrhe[zn]['val'] = 0
+
+            # zone electric equipment convective heating energy
+            if self.zeeche[zn]['hndl'] != -1:
+                self.zeeche[zn]['val'] = self.api.exchange.get_variable_value(
+                    state,
+                    self.zeeche[zn]['hndl']
+                )
+            else:
+                self.zeeche[zn]['val'] = 0
+
+            # zone electric equipment radiant heating energy
+            if self.zeerhe[zn]['hndl'] != -1:
+                self.zeerhe[zn]['val'] = self.api.exchange.get_variable_value(
+                    state,
+                    self.zeerhe[zn]['hndl']
+                )
+            else:
+                self.zeerhe[zn]['val'] = 0
+
+            # zone gas equipment convective heating energy
+            if self.zgeche[zn]['hndl'] != -1:
+                self.zgeche[zn]['val'] = self.api.exchange.get_variable_value(
+                    state,
+                    self.zgeche[zn]['hndl']
+                )
+            else:
+                self.zgeche[zn]['val'] = 0
+
+            # zone gas equipment radiant heating energy
+            if self.zgerhe[zn]['hndl'] != -1:
+                self.zgerhe[zn]['val'] = self.api.exchange.get_variable_value(
+                    state,
+                    self.zgerhe[zn]['hndl']
+                )
+            else:
+                self.zgerhe[zn]['val'] = 0
+
+            # zone hot water equipment convective heating energy
+            if self.zhweche[zn]['hndl'] != -1:
+                self.zhweche[zn]['val'] = self.api.exchange.get_variable_value(
+                    state,
+                    self.zhweche[zn]['hndl']
+                )
+            else:
+                self.zhweche[zn]['val'] = 0
+
+            # zone hot water equipment radiant heating energy
+            if self.zhwerhe[zn]['hndl'] != -1:
+                self.zhwerhe[zn]['val'] = self.api.exchange.get_variable_value(
+                    state,
+                    self.zhwerhe[zn]['hndl']
+                )
+            else:
+                self.zhwerhe[zn]['val'] = 0
+
+            # zone other equipment convective heating energy
+            if self.zoeche[zn]['hndl'] != -1:
+                self.zoeche[zn]['val'] = self.api.exchange.get_variable_value(
+                    state,
+                    self.zoeche[zn]['hndl']
+                )
+            else:
+                self.zoeche[zn]['val'] = 0
+
+            # zone other equipment radiant heating energy
+            if self.zoerhe[zn]['hndl'] != -1:
+                self.zoerhe[zn]['val'] = self.api.exchange.get_variable_value(
+                    state,
+                    self.zoerhe[zn]['hndl']
+                )
+            else:
+                self.zoerhe[zn]['val'] = 0
+
+            # zone windows total transmitted solar radiation energy
+            if self.zwttsre[zn]['hndl'] != -1:
+                self.zwttsre[zn]['val'] = self.api.exchange.get_variable_value(
+                    state,
+                    self.zwttsre[zn]['hndl']
+                )
+            else:
+                self.zwttsre[zn]['val'] = 0
+
+            # window delayed IR out var values
+            window_shade_ir = 0
+            for window in self.zn_ext_surf_info[zone]['win'].keys():
+                win = window.lower().replace(' ', '_')
+                # surface window inside face glazing net infrared heat transfer rate
+                if self.swifgnihtr[win]['hndl'] != -1:
+                    self.swifgnihtr[win]['val'] = self.api.exchange.get_variable_value(
+                        state,
+                        self.swifgnihtr[win]['hndl']
+                    )
+                else:
+                    self.swifgnihtr[win]['val'] = 0
+                # surface window inside face snade net infrared heat transfer rate
+                if self.swifsnihtr[win]['hndl'] != -1:
+                    self.swifsnihtr[win]['val'] = self.api.exchange.get_variable_value(
+                        state,
+                        self.swifsnihtr[win]['hndl']
+                    )
+                else:
+                    self.swifsnihtr[win]['val'] = 0
+                window_shade_ir += self.sec_per_ts * (self.swifgnihtr[win]['val'] + self.swifsnihtr[win]['val'])
+                # gap between shade and glazing
+                if self.swifgbsagchgr[win]['hndl'] != -1:
+                    self.swifgbsagchgr[win]['val'] = self.api.exchange.get_variable_value(
+                        state,
+                        self.swifgbsagchgr[win]['hndl']
+                    )
+                else:
+                    self.swifgbsagchgr[win]['val'] = 0
+
+            # surface inside face convection heating energy
+            # exterior surfs
+            for surface_type in self.zn_ext_surf_info[zone].keys():
+                for surface_name in self.zn_ext_surf_info[zone][surface_type].keys():
+                    name = surface_name.lower().replace(' ', '_')
+                    if self.sifchge[name]['hndl'] != -1:
+                        self.sifchge[name]['val'] = self.api.exchange.get_variable_value(
+                        state,
+                        self.sifchge[name]['hndl']
+                    )
+                    else:
+                        self.sifchge[name]['val'] = 0
+            # interior surfs
+            for surface_type in self.zn_int_surf_info[zone].keys():
+                for surface_name in self.zn_int_surf_info[zone][surface_type].keys():
+                    name = surface_name.lower().replace(' ', '_')
+                    if self.sifchge[name]['hndl'] != -1:
+                        self.sifchge[name]['val'] = self.api.exchange.get_variable_value(
+                        state,
+                        self.sifchge[name]['hndl']
+                    )
+                    else:
+                        self.sifchge[name]['val'] = 0
+
+            # infiltration
+            if self.zishge[zn]['hndl'] != -1:
+                self.zishge[zn]['val'] = self.api.exchange.get_variable_value(
+                    state,
+                    self.zishge[zn]['hndl']
+                )
+            else:
+                self.zishge[zn]['val'] = 0
+
+            if self.zishle[zn]['hndl'] != -1:
+                self.zishle[zn]['val'] = self.api.exchange.get_variable_value(
+                    state,
+                    self.zishle[zn]['hndl']
+                )
+            else:
+                self.zishle[zn]['val'] = 0
+            
+            # mechanical ventilation
+            if self.zmvhlie[zn]['hndl'] != -1:
+                self.zmvhlie[zn]['val'] = self.api.exchange.get_variable_value(
+                    state,
+                    self.zmvhlie[zn]['hndl']
+                )
+            else:
+                self.zmvhlie[zn]['val'] = 0
+                
+            if self.zmvhlde[zn]['hndl'] != -1:
+                self.zmvhlde[zn]['val'] = self.api.exchange.get_variable_value(
+                    state,
+                    self.zmvhlde[zn]['hndl']
+                )
+            else:
+                self.zmvhlde[zn]['val'] = 0
+
+            if self.zmvclie[zn]['hndl'] != -1:
+                self.zmvclie[zn]['val'] = self.api.exchange.get_variable_value(
+                    state,
+                    self.zmvclie[zn]['hndl']
+                )
+            else:
+                self.zmvclie[zn]['val'] = 0
+
+            if self.zmvclde[zn]['hndl'] != -1:
+                self.zmvclde[zn]['val'] = self.api.exchange.get_variable_value(
+                    state,
+                    self.zmvclde[zn]['hndl']
+                )
+            else:
+                self.zmvclde[zn]['val'] = 0
+
+            ########################
+            # perform calculations #
+            ########################
+
+            tot_del_int_gains = 0
+            win_rts_solar_rad = 0
+            win_del_ir_gains = 0
+
+            # people radiant delay
+            if self.rad_hist[zn]['people'] is None:
+                self.rad_hist[zn]['people'] = FixedSizeList(self.num_ts * 24, self.zprhe[zn]['val'])
+            else:
+                self.rad_hist[zn]['people'].add_first_drop_last(
+                    self.zprhe[zn]['val']
+                )
+            people_rad_delay = sum(
+                [x * y for x, y in zip(
+                    self.rad_hist[zn]['people'].chunk_avg(self.num_ts),
+                    self.nonsolar_rts
+                )]
+            )
+            tot_del_int_gains += people_rad_delay
+
+            # lights radiant delay
+            if self.rad_hist[zn]['lights'] is None:
+                self.rad_hist[zn]['lights'] = FixedSizeList(self.num_ts * 24, self.zlrhe[zn]['val'])
+            else:
+                self.rad_hist[zn]['lights'].add_first_drop_last(
+                    self.zlrhe[zn]['val']
+                )
+            lights_rad_delay = sum(
+                [x * y for x, y in zip(
+                    self.rad_hist[zn]['lights'].chunk_avg(self.num_ts),
+                    self.nonsolar_rts
+                )]
+            )
+            tot_del_int_gains += lights_rad_delay
+
+            # electric equipment radiant delay
+            if self.rad_hist[zn]['elec_equip'] is None:
+                self.rad_hist[zn]['elec_equip'] = FixedSizeList(self.num_ts * 24, self.zeerhe[zn]['val'])
+            else:
+                self.rad_hist[zn]['elec_equip'].add_first_drop_last(
+                    self.zeerhe[zn]['val']
+                )
+            electric_rad_delay = sum(
+                [x * y for x, y in zip(
+                    self.rad_hist[zn]['elec_equip'].chunk_avg(self.num_ts),
+                    self.nonsolar_rts
+                )]
+            )
+            tot_del_int_gains += electric_rad_delay
+            
+            # gas equipment radiant delay
+            if self.rad_hist[zn]['gas_equip'] is None:
+                self.rad_hist[zn]['gas_equip'] = FixedSizeList(self.num_ts * 24, self.zgerhe[zn]['val'])
+            else:
+                self.rad_hist[zn]['gas_equip'].add_first_drop_last(
+                    self.zgerhe[zn]['val']
+                )
+            gas_rad_delay = sum(
+                [x * y for x, y in zip(
+                    self.rad_hist[zn]['gas_equip'].chunk_avg(self.num_ts),
+                    self.nonsolar_rts
+                )]
+            )
+            tot_del_int_gains += gas_rad_delay
+
+            # hot water equipment radiant delay
+            if self.rad_hist[zn]['hot_water_equip'] is None:
+                self.rad_hist[zn]['hot_water_equip'] = FixedSizeList(self.num_ts * 24, self.zhwerhe[zn]['val'])
+            else:
+                self.rad_hist[zn]['hot_water_equip'].add_first_drop_last(
+                    self.zhwerhe[zn]['val']
+                )   
+            hot_water_rad_delay = sum(
+                [x * y for x, y in zip(
+                    self.rad_hist[zn]['hot_water_equip'].chunk_avg(self.num_ts),
+                    self.nonsolar_rts
+                )]
+            )
+            tot_del_int_gains += hot_water_rad_delay
+
+            # other equipment radiant delay
+            if self.rad_hist[zn]['other_equip'] is None:
+                self.rad_hist[zn]['other_equip'] = FixedSizeList(self.num_ts * 24, self.zoerhe[zn]['val'])
+            else:
+                self.rad_hist[zn]['other_equip'].add_first_drop_last(
+                    self.zoerhe[zn]['val']
+                )
+            other_rad_delay = sum(
+                [x * y for x, y in zip(
+                    self.rad_hist[zn]['other_equip'].chunk_avg(self.num_ts),
+                    self.nonsolar_rts
+                )]
+            )
+            tot_del_int_gains += other_rad_delay
+
+            # zone windows total transmitted solar radiation energy 
+            if self.rad_hist[zn]['win_solar'] is None:
+                self.rad_hist[zn]['win_solar'] = FixedSizeList(self.num_ts * 24, self.zwttsre[zn]['val'])
+            else:
+                self.rad_hist[zn]['win_solar'].add_first_drop_last(
+                    self.zwttsre[zn]['val']
+                )
+            win_sol_delay = sum(
+                [x * y for x, y in zip(
+                    self.rad_hist[zn]['win_solar'].chunk_avg(self.num_ts),
+                    self.solar_rts
+                )]
+            )
+            win_rts_solar_rad += win_sol_delay
+
+            # window glazing and shading delayed ir gains
+            if self.rad_hist[zn]['window_shade_ir'] is None:
+                self.rad_hist[zn]['window_shade_ir'] = FixedSizeList(self.num_ts * 24, window_shade_ir)
+            else:
+                self.rad_hist[zn]['window_shade_ir'].add_first_drop_last(
+                    window_shade_ir
+                )
+            window_shade_delayed_ir_gains = sum(
+                [x * y for x, y in zip(
+                    self.rad_hist[zn]['window_shade_ir'].chunk_avg(self.num_ts),
+                    self.nonsolar_rts
+                )]
+            )
+            win_del_ir_gains = window_shade_delayed_ir_gains
+
+            # interior surfaces
+            int_surf_conv = 0
+            for surface_type in self.zn_int_surf_info[zone]:
+                surf_type_conv = 0
+                for surface_name in self.zn_int_surf_info[zone][surface_type]:
+                    name = surface_name.lower().replace(' ','_')
+                    # subtract delayed radiant from internal loads and windows from surf convection by total area fraction
+                    surf_type_conv += -1 * self.sifchge[name]['val'] - (
+                        self.zn_all_surf_fracs[zone][surface_type][surface_name] * (
+                            tot_del_int_gains + win_del_ir_gains
+                        )
+                    ) 
+                    if '_flr' in surface_type:
+                        # solar transmitted radiation only falls on floors
+                        surf_type_conv -= (
+                            self.zn_flr_surf_fracs[zone][surface_type][surface_name] * win_rts_solar_rad
+                        )
+                int_surf_conv += surf_type_conv
+
+            # exterior surfaces
+            ext_surf_conv = {}
+            for ext_surf_typ in EXT_SURFS:
+                ext_surf_conv[ext_surf_typ] = 0
+
+            for surface_type in self.zn_ext_surf_info[zone]:
+                for surface_name in self.zn_ext_surf_info[zone][surface_type]:
+                    name = surface_name.lower().replace(' ','_')
+                    ext_surf_conv[surface_type] += (
+                        -1 * self.sifchge[name]['val']
+                        ) - (
+                        self.zn_all_surf_fracs[zone][surface_type][surface_name] * (
+                            tot_del_int_gains + win_del_ir_gains
+                        )
+                        ) + (
+                            self.zn_ext_surf_fracs[zone][surface_type][surface_name] * int_surf_conv
+                        )
+                    if '_flr' in surface_type:
+                        # solar transmitted radiation only falls on floors
+                        ext_surf_conv[surface_type] -= (
+                            self.zn_flr_surf_fracs[zone][surface_type][surface_name] * win_rts_solar_rad
+                        )
+                    if 'win' in surface_type:
+                        ext_surf_conv[surface_type] += (
+                            self.sec_per_ts * self.swifgbsagchgr[name]['val']
+                        )
+
+            # update global lists
+            comp_mode = mode(self.zahbsatr[zn]['val'] + self.zahbschgr[zn]['val'])
+
+            components[comp_mode]['people_gain'] += self.zpche[zn]['val']
+            components[comp_mode]['light_gain'] += self.zlche[zn]['val']
+            components[comp_mode]['equip_gain'] +=(
+                self.zeeche[zn]['val'] + self.zgeche[zn]['val'] + self.zhweche[zn]['val'] + self.zoeche[zn]['val']
+            )
+            components[comp_mode]['win_sol'] += self.zwttsre[zn]['val']
+            components[comp_mode]['ext_wall'] += ext_surf_conv['ext_wall']
+            components[comp_mode]['fnd_wall'] += ext_surf_conv['fnd_wall']
+            components[comp_mode]['roof'] += ext_surf_conv['roof']
+            components[comp_mode]['ext_flr'] += ext_surf_conv['ext_flr']
+            components[comp_mode]['gnd_flr'] += ext_surf_conv['gnd_flr']
+            components[comp_mode]['win_cond'] += (
+                ext_surf_conv['win'] + window_shade_ir
+            )
+            components[comp_mode]['door'] += ext_surf_conv['door']
+            components[comp_mode]['infil'] += (
+                self.zishge[zn]['val'] - self.zishle[zn]['val']
+            )
+            components[comp_mode]['vent'] += (
+                self.zmvclie[zn]['val'] + self.zmvhlde[zn]['val'] - self.zmvclde[zn]['val'] - self.zmvhlie[zn]['val']
+            )
+
+            # flip signs of all components in heating
+            if comp_mode == 'htg':
+                for component in COMPONENTS:
+                    components[comp_mode][component] = -1 * components[comp_mode][component]
+
+        # set global values
+        for mode in MODES:
+            for component in COMPONENTS:
+                self.api.exchange.set_global_value(
+                    state,
+                    self.component_hndls[mode][component],
+                    components[mode][component]
+                )
+
+        return 0
