@@ -1152,7 +1152,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       runner.registerInfo('sizing summary: sizing run needed')
       return false if std.model_run_sizing_run(model, "#{Dir.pwd}/SR1") == false
 
-      model.applySizingValues if is_sizing_run_needed == true
+      model.applySizingValues
     end
 
     # ---------------------------------------------------------
