@@ -20,7 +20,10 @@ import polars as pl
 import json
 import gzip
 import tarfile
+import s3fs
 from io import BytesIO
+from fsspec import register_implementation
+from fsspec.core import url_to_fs
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +43,6 @@ def write_geo_data(combo):
 # This function must be a global static function in order to work with parallel processing
 def write_polars_csv_to_s3_or_local(data: pl.DataFrame, out_fs, out_path):
     # s3_dir = 's3://oedi-data-lake/nrel-pds-building-stock/end-use-load-profiles-for-us-building-stock/2024/comstock_amy2018_release_2/junk_data/'
-
-    import s3fs
 
     # If local, write uncompressed CSV
     if not isinstance(out_fs, s3fs.core.S3FileSystem):
@@ -172,3 +173,37 @@ class S3UtilitiesMixin:
                 df = pd.read_csv(local_path, delimiter=delimiter, encoding='latin-1')
 
         return df
+
+    def setup_fsspec_filesystem(self, output_dir, aws_profile_name):
+        """
+        Creates fsspec filesystem to handle local or S3 output locations
+        """
+        # Use fsspec to enable local or S3 directories
+        if output_dir is None:
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            output_dir = os.path.abspath(os.path.join(current_dir, '..', 'output', self.dataset_name))
+        # PyAthena >2.18.0 implements an s3 filesystem that replaces s3fs but does not implement file.open()
+        # Make fsspec use the s3fs s3 filesystem implementation for writing files to S3
+        register_implementation("s3", s3fs.S3FileSystem, clobber=True)
+        out_fs, out_fs_path = url_to_fs(output_dir, profile=aws_profile_name)
+        output_dir = {
+            'fs': out_fs,
+            'fs_path': out_fs_path
+        }
+        if isinstance(output_dir['fs'], s3fs.S3FileSystem):
+            if aws_profile_name is None:
+                logger.info(f'Accessing AWS using profile: None, which uses the [default] profile in .aws/config file')
+            else:
+                logger.info(f'Accessing AWS using profile: {aws_profile_name}')
+            session = boto3.Session(aws_profile_name)
+            credentials = session.get_credentials().get_frozen_credentials()
+            output_dir['storage_options'] = {
+                "aws_access_key_id": credentials.access_key,
+                "aws_secret_access_key": credentials.secret_key,
+                "aws_session_token": credentials.token,
+                "aws_region": "us-west-2"
+            }
+        else:
+            output_dir['storage_options'] = None
+
+        return output_dir

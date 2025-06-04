@@ -1,9 +1,11 @@
 '# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.'
 # See top level LICENSE.txt file for license terms.
 import os
+import s3fs
 from functools import lru_cache
 from fsspec.core import url_to_fs
 from joblib import Parallel, delayed
+from fsspec import register_implementation
 
 import boto3
 import botocore
@@ -42,7 +44,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
     def __init__(self, s3_base_dir, comstock_run_name, comstock_run_version, comstock_year, athena_table_name,
         truth_data_version, buildstock_csv_name = 'buildstock.csv', acceptable_failure_percentage=0.01, drop_failed_runs=True,
         color_hex=NamingMixin.COLOR_COMSTOCK_BEFORE, weighted_energy_units='tbtu', weighted_demand_units='gw', weighted_ghg_units='co2e_mmt', weighted_utility_units='billion_usd', skip_missing_columns=False,
-        reload_from_csv=False, make_comparison_plots=True, make_timeseries_plots=True, include_upgrades=True, upgrade_ids_to_skip=[], states={}, upgrade_ids_for_comparison={}, rename_upgrades=False):
+        reload_from_csv=False, make_comparison_plots=True, make_timeseries_plots=True, include_upgrades=True, upgrade_ids_to_skip=[], states={}, upgrade_ids_for_comparison={}, rename_upgrades=False, output_dir=None, aws_profile_name=None):
         """
         A class to load and transform ComStock data for export, analysis, and comparison.
         Args:
@@ -63,7 +65,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.dataset_name = f'ComStock {self.comstock_run_version}'
         self.data_dir = os.path.join(CURRENT_DIR, '..', 'comstock_data', self.comstock_run_version)
         self.truth_data_dir = os.path.join(CURRENT_DIR, '..', 'truth_data', self.truth_data_version)
-        self.output_dir = os.path.abspath(os.path.join(CURRENT_DIR, '..', 'output', self.dataset_name))
+        self.output_dir = self.setup_fsspec_filesystem(output_dir, aws_profile_name)
         self.results_file_name = 'results_up00.parquet'
         self.building_type_mapping_file_name = f'CBECS_2012_to_comstock_nems_aeo_building_types.csv'
         self.buildstock_file_name = buildstock_csv_name
@@ -114,9 +116,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         logger.info(f'Creating {self.dataset_name}')
 
         # Make directories
-        for p in [self.data_dir, self.truth_data_dir, self.output_dir]:
+        for p in [self.data_dir, self.truth_data_dir]:
             if not os.path.exists(p):
                 os.makedirs(p)
+
+        if not isinstance(self.output_dir['fs'], s3fs.core.S3FileSystem):
+            if not os.path.exists(self.output_dir['fs_path']):
+                os.makedirs(self.output_dir['fs_path'])
 
         # S3 location
         self.s3_inpath = None
@@ -130,7 +136,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.download_data()
         pl.enable_string_cache()
         if reload_from_csv:
-            upgrade_pqts = glob.glob(os.path.join(self.output_dir, 'cached_wide_by_upgrade', '**', 'cached_ComStock_wide_upgrade*.parquet'))
+            pqt_glob = f'{self.output_dir["fs_path"]}/cached_wide_by_upgrade/**/cached_ComStock_wide_upgrade*.parquet'
+            upgrade_pqts = []
+            for p in self.output_dir['fs'].glob(pqt_glob):
+                if isinstance(self.output_dir['fs'], s3fs.S3FileSystem):
+                    upgrade_pqts.append(f's3://{p}')
+                else:
+                    upgrade_pqts.append(p)
             upgrade_pqts.sort()
             if len(upgrade_pqts) > 0:
                 upgrade_dfs = []
@@ -142,7 +154,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         continue
                     logger.info(f'Reloading data from: {file_path}')
                     upgrade_dfs.append(file_path)
-                self.data = pl.scan_parquet(upgrade_dfs, hive_partitioning=True)
+                self.data = pl.scan_parquet(upgrade_dfs, hive_partitioning=True, storage_options=self.output_dir['storage_options'])
             elif os.path.exists(os.path.join(self.output_dir, 'ComStock wide.csv')):
                 file_path = os.path.join(self.output_dir, 'ComStock wide.csv')
                 logger.info(f'Reloading data from: {file_path}')
@@ -207,32 +219,31 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 # self._sightGlass_metadata_check(self.data)
                 # Write self.data to parquet file, hive partition on upgrade to make later processing faster
                 file_name = f'cached_ComStock_wide_upgrade{upgrade_id}.parquet'
-                upgrade_dir = os.path.join(self.output_dir, 'cached_wide_by_upgrade', f'upgrade={upgrade_id}')
-                os.makedirs(upgrade_dir, exist_ok=True)
-                file_path = os.path.join(upgrade_dir, file_name)
+                upgrade_dir = f'{self.output_dir["fs_path"]}/cached_wide_by_upgrade/upgrade={upgrade_id}'
+                if isinstance(self.output_dir['fsf'], s3fs.S3FileSystem):
+                    upgrade_dir = f's3://{upgrade_dir}'
+                else:
+                    os.makedirs(upgrade_dir, exist_ok=True)
+                file_path = f'{upgrade_dir}/{file_name}'
                 self.cached_parquet.append((upgrade_id, file_path)) #cached_parquet is a list of parquets used to export and reload
                 logger.info(f'Caching to: {file_path}')
                 self.data = self.data.select(self.reorder_columns(self.data.columns))
                 self.data = self.data.drop('upgrade')  # upgrade column will be read from hive partition dir name
                 self.data = self.reduce_df_memory(self.data)
-                self.data.write_parquet(file_path)
+                with self.output_dir['fs'].open(file_path, "wb") as f:
+                    self.data.write_parquet(f)
                 up_lazyframes.append(file_path)
 
-            # Now, we have self.data is one huge LazyFrame
-            # which is exactly like self.data was before because it includes all upgrades
-            self.data = pl.scan_parquet(up_lazyframes, hive_partitioning=True)
+            # Create a single LazyFrame that includes all upgrades
+            self.data = pl.scan_parquet(up_lazyframes, hive_partitioning=True, storage_options=self.output_dir['storage_options'])
             self._aggregate_failure_summaries()
-            # logger.info(f'comstock data schema: {self.data.dtypes()}')
-            # logger.debug('\nComStock columns after adding all data:')
-            # for c in self.data.columns:
-            #     logger.debug(c)
 
     def _aggregate_failure_summaries(self):
         #sinece we are generating summary of falures based on
         #each upgrade_id(in load_data()), we should aggregate
         #the summary of failures for each upgrade_id into one
 
-        path = os.path.join(self.output_dir)
+        path = self.output_dir['fs_path']
 
         alLines = list()
         #find all the failure_summary files like with failure_summary_0.csv
@@ -240,7 +251,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         for file in os.listdir(path):
             if file.startswith("failure_summary_") and file.endswith(".csv"):
                 #open the file and read the content
-                with open(os.path.join(path, file), 'r') as f:
+                with self.output_dir['fs'].open(f'{path}/file)', 'r') as f:
                     for line in f:
                         if line not in alLines:
                             alLines.append(line)
@@ -248,7 +259,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 os.remove(os.path.join(path, file))
 
         #write the aggregated summary of failures to a new file
-        with open(os.path.join(path, "failure_summary_aggregated.csv"), 'w') as f:
+        with self.output_dir['fs'].open(f'{path}/failure_summary_aggregated.csv', 'w') as f:
             for line in alLines:
                 f.write(line)
 
@@ -782,8 +793,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         ]
         failure_summaries = failure_summaries.select(fs_cols)
         file_name = f'failure_summary_{upgrade_id}.csv'
-        file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
-        failure_summaries.write_csv(file_path)
+        with self.output_dir['fs'].open(f'{self.output_dir["fs_path"]}/{file_name}', "wb") as f:
+           failure_summaries.write_csv(f)
 
         # Process results
         results_dfs = []
@@ -1974,14 +1985,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_groups, default=None)).alias(self.BLDG_TYPE_GROUP))
         self.data = self.data.with_columns(pl.col(self.BLDG_TYPE_GROUP))
 
-    def add_national_scaling_weights(self, cbecs: CBECS, remove_non_comstock_bldg_types_from_cbecs: bool):
+    def create_allocated_weights_scaled_to_cbecs(self, cbecs: CBECS, baseline_simulation_outputs: pl.LazyFrame, baseline_allocated_weights: pl.LazyFrame, remove_non_comstock_bldg_types_from_cbecs: bool):
         # Remove CBECS entries for building types not included in the ComStock run
         # comstock_bldg_types = self.data[self.BLDG_TYPE].unique()
         # assert "calc.weighted.utility_bills.total_mean_bill..billion_usd" in self.data.columns
         assert isinstance(self.data, pl.LazyFrame)
         comstock_bldg_types: set = set(self.data.select(self.BLDG_TYPE).unique().collect().to_pandas()[self.BLDG_TYPE].tolist())
 
-        cbecs.data: pd.DataFrame = cbecs.data.collect().to_pandas()
+        cbecs.data = cbecs.data.collect().to_pandas()
         assert isinstance(cbecs.data, pd.DataFrame)
         bldg_types_to_keep = [] #if the bldg types in both CBECS and ComStock, keep them.
         for bt in cbecs.data[self.BLDG_TYPE].unique():
@@ -2010,19 +2021,16 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         logger.debug(cbecs_bldg_type_sqft)
 
         # Total sqft of each building type, ComStock
-        if self.APPORTIONED:
-            # Since this is a national calculation, groupby on building id and upgrade only in foreign key table
-            national_agg = self.fkt.clone()
-            national_agg = national_agg.select([pl.col(self.BLDG_WEIGHT), pl.col(self.BLDG_ID)]).groupby(pl.col(self.BLDG_ID)).sum()
-            cs_data = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).select([pl.col(self.BLDG_ID), pl.col(self.FLR_AREA), pl.col(self.BLDG_TYPE)]).clone()
-            national_agg = national_agg.join(cs_data, on=pl.col(self.BLDG_ID))
-            national_agg = national_agg.with_columns((pl.col(self.BLDG_WEIGHT) * pl.col(self.FLR_AREA)).alias(self.FLR_AREA))
-            national_agg = national_agg.select([pl.col(self.BLDG_TYPE), pl.col(self.FLR_AREA)]).groupby(pl.col(self.BLDG_TYPE)).sum().collect()
-            comstock_bldg_type_sqft: pd.DataFrame = national_agg.to_pandas().set_index(self.BLDG_TYPE)
-        else:
-            baseline_data: pl.LazyFrame = self.data.filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).clone()
-            comstock_bldg_type_sqft: pl.DataFrame = baseline_data.group_by(self.BLDG_TYPE).agg([pl.col(self.FLR_AREA).sum()]).collect()
-            comstock_bldg_type_sqft: pd.DataFrame = comstock_bldg_type_sqft.to_pandas().set_index(self.BLDG_TYPE)
+
+        # Since this is a national calculation, groupby on building id and upgrade only in foreign key table
+        national_agg = baseline_allocated_weights.clone()
+        national_agg = national_agg.select([pl.col(self.BLDG_WEIGHT), pl.col(self.BLDG_ID)]).groupby(pl.col(self.BLDG_ID)).sum()
+        cs_data = baseline_simulation_outputs.clone()
+        national_agg = national_agg.join(cs_data, on=pl.col(self.BLDG_ID))
+        national_agg = national_agg.with_columns((pl.col(self.BLDG_WEIGHT) * pl.col(self.FLR_AREA)).alias(self.FLR_AREA))
+        national_agg = national_agg.select([pl.col(self.BLDG_TYPE), pl.col(self.FLR_AREA)]).groupby(pl.col(self.BLDG_TYPE)).sum().collect()
+        comstock_bldg_type_sqft: pd.DataFrame = national_agg.to_pandas().set_index(self.BLDG_TYPE)
+
         logger.debug('ComStock Baseline floor area by building type')
         logger.debug(comstock_bldg_type_sqft)
 
@@ -2037,65 +2045,78 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             del bldg_type_scale_factors[np.nan]
 
         # Report any scaling factor greater than some threshold.
-        if self.APPORTIONED:
-            logger.info(f'{self.dataset_name} post-apportionment scaling factors to CBECS floor area:')
-            for bldg_type, scaling_factor in bldg_type_scale_factors.items():
-                logger.info(f'--- {bldg_type}: {round(scaling_factor, 2)}')
-                if scaling_factor > 1.3:
-                    wrn_msg = (f'The scaling factor for {bldg_type} is high, which indicates something unexpected '
-                        'in the apportionment step, except for Healthcare where this is expected. Please review.')
-                    logger.warning(wrn_msg)
-                elif scaling_factor < 0.6:
-                    wrn_msg = (f'The scaling factor for {bldg_type} is low, which indicates something unexpected '
-                        'in the apportionment step. Please review.')
-                    logger.warning(wrn_msg)
-        else:
-        # In situations with high failure rates of a single building,
-        # the scaling factor will be high, and the results are likely to be
-        # heavily skewed toward the few successful simulations of that building type.
-            logger.info(f'{self.dataset_name} scaling factors - scale ComStock results to CBECS floor area')
-            for bldg_type, scaling_factor in bldg_type_scale_factors.items():
-                logger.info(f'--- {bldg_type}: {round(scaling_factor, 2)}')
-                if scaling_factor > 15:
-                    wrn_msg = (f'The scaling factor for {bldg_type} is high, which indicates either a test run <350k models '
-                        f'or significant failed runs for this building type.  Comparisons to CBECS will likely be invalid.')
-                    logger.warning(wrn_msg)
+        logger.info(f'{self.dataset_name} post-apportionment scaling factors to CBECS floor area:')
+        for bldg_type, scaling_factor in bldg_type_scale_factors.items():
+            logger.info(f'--- {bldg_type}: {round(scaling_factor, 2)}')
+            if scaling_factor > 1.3:
+                wrn_msg = (f'The scaling factor for {bldg_type} is high, which indicates something unexpected '
+                    'in the apportionment step, except for Healthcare where this is expected. Please review.')
+                logger.warning(wrn_msg)
+            elif scaling_factor < 0.6:
+                wrn_msg = (f'The scaling factor for {bldg_type} is low, which indicates something unexpected '
+                    'in the apportionment step. Please review.')
+                logger.warning(wrn_msg)
 
-        # For reference/comparison, here are the weights from the ComStock Pre-EUSS 2024R2 runs
-        # PROD_V1_COMSTOCK_WEIGHTS = {
-        #     'small_office': 9.625838016683277,
-        #     'medium_office': 9.625838016683277,
-        #     'large_office': 9.625838016683277,
-        #     'full_service_restaurant': 11.590605715816617,
-        #     'hospital': 8.751376462064501,
-        #     'large_hotel': 7.5550651530546435,
-        #     'outpatient': 5.369615068860124,
-        #     'primary_school': 13.871553017909118,
-        #     'quick_service_restaurant': 9.065844311687599,
-        #     'retail': 2.816749212502974,
-        #     'secondary_school': 6.958371476467069,
-        #     'small_hotel': 5.062001512453252,
-        #     'strip_mall': 2.1106205675100735,
-        #     'warehouse': 2.1086048544461304
-        # }
         # Here are the 'nominal' weights from Sampling V2 implementation (EUSS 2024 R2 on):
         # TODO Add weights here
 
-        # Assign scaling factors to each ComStock run
+        # Scale the allocated weights to match CBECS
         self.building_type_weights = bldg_type_scale_factors
-        if self.APPORTIONED:
-            cbecs_weights = pl.LazyFrame({self.BLDG_TYPE: bldg_type_scale_factors.keys(), 'cbecs_weight': bldg_type_scale_factors.values()})
-            self.fkt = self.fkt.join(cbecs_weights, on=pl.col(self.BLDG_TYPE))
-            self.fkt = self.fkt.with_columns((pl.col(self.BLDG_WEIGHT) * pl.col('cbecs_weight')).alias(self.BLDG_WEIGHT))
-            self.fkt = self.fkt.drop(self.BLDG_TYPE, 'cbecs_weight')
-        else:
-            self.data = self.data.with_columns((pl.col(self.BLDG_TYPE).cast(pl.Utf8).replace(bldg_type_scale_factors, default=None)).alias(self.BLDG_WEIGHT))
+        cbecs_weights = pl.LazyFrame({self.BLDG_TYPE: bldg_type_scale_factors.keys(), 'cbecs_weight': bldg_type_scale_factors.values()})
+        alloc_wts_scaled = baseline_allocated_weights.clone()
+        alloc_wts_scaled = alloc_wts_scaled.join(cbecs_weights, on=pl.col(self.BLDG_TYPE))
+        alloc_wts_scaled = alloc_wts_scaled.with_columns((pl.col(self.BLDG_WEIGHT) * pl.col('cbecs_weight')).alias(self.BLDG_WEIGHT))
+        alloc_wts_scaled = alloc_wts_scaled.drop(self.BLDG_TYPE, 'cbecs_weight')
+        alloc_wts_scaled = alloc_wts_scaled.collect()
+
+        # Cache to disk
+        file_name = f'cached_ComStock_alloc_wts_scaled_to_cbecs.parquet'
+        file_path = f'{self.output_dir["fs_path"]}/{file_name}'
+        logger.info(f'Caching allocated weights scaled to CBECS for upgrade to: {file_path}')
+        if isinstance(self.output_dir['fs'], s3fs.S3FileSystem):
+            file_path = f's3://{file_path}'
+        with self.output_dir['fs'].open(file_path, "wb") as f:
+            alloc_wts_scaled.write_parquet(f)
 
         assert isinstance(cbecs.data, pd.DataFrame)
         cbecs.data = pl.from_pandas(cbecs.data).lazy()
         assert isinstance(cbecs.data, pl.LazyFrame)
         self.CBECS_WEIGHTS_APPLIED = True
         return bldg_type_scale_factors
+
+    def get_allocated_weights(self):
+        # Read from cache
+        file_name = f'cached_ComStock_alloc_wts.parquet'
+        file_path = f'{self.output_dir["fs_path"]}/{file_name}'
+        if isinstance(self.output_dir['fs'], s3fs.S3FileSystem):
+            file_path = f's3://{file_path}'
+        if not self.output_dir['fs'].exists(file_path):
+            raise Exception(f"{file_path} does not exist. Ensure create_allocated_weights has been called previously.")
+        alloc_wts = pl.scan_parquet(file_path, storage_options=self.output_dir['storage_options'])
+
+        return alloc_wts
+
+    def get_allocated_weights_scaled_to_cbecs_for_upgrade(self, upgrade_id):
+        # Ensure this is a valid upgrade ID
+        avail_up_ids = pl.Series(self.data.select(pl.col(self.UPGRADE_ID)).unique().collect()).to_list()
+        if upgrade_id not in avail_up_ids:
+            raise Exception(f"Requested upgrade_id={upgrade_id} not in self.data. Choose from: {avail_up_ids}")
+
+        # Read from cache
+        file_name = f'cached_ComStock_alloc_wts_scaled_to_cbecs.parquet'
+        file_path = f'{self.output_dir["fs_path"]}/{file_name}'
+        if isinstance(self.output_dir['fs'], s3fs.S3FileSystem):
+            file_path = f's3://{file_path}'
+        if not self.output_dir['fs'].exists(file_path):
+            raise Exception(f"{file_path} does not exist. Ensure create_allocated_weights_scaled_to_cbecs has been called previously.")
+        alloc_wts = pl.scan_parquet(file_path, storage_options=self.output_dir['storage_options'])
+
+        # Add the upgrade ID to the allocated weights
+        alloc_wts = alloc_wts.with_columns([
+                pl.lit(upgrade_id).cast(pl.Int64).alias(self.UPGRADE_ID)
+            ])
+
+        return alloc_wts
 
     # Superset of columns used by all plotting methods
     def plotting_columns(self):
@@ -2163,10 +2184,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Get the simulation outputs and allocated weights for the baseline
         base_sim_outs = self.data.filter((pl.col(self.UPGRADE_ID) == 0))
-        base_alloc_wts = self.get_alloc_wts_for_upgrade(0)
+        base_alloc_wts = self.get_allocated_weights_scaled_to_cbecs_for_upgrade(0)
 
         # Add utility bills to the allocated weights
-        base_alloc_wts_plus_bills = self.get_allocated_weights_plus_util_bills(0, base_alloc_wts, base_sim_outs)
+        base_alloc_wts_plus_bills = self.create_allocated_weights_plus_util_bills_for_upgrade(0, base_alloc_wts, base_sim_outs)
 
         # Create an aggregation for each upgrade
         up_agg_paths = []
@@ -2175,10 +2196,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
             # Get the simulation outputs and allocated weights for this upgrade
             up_sim_outs = self.data.filter((pl.col(self.UPGRADE_ID) == upgrade_id))
-            up_alloc_wts = self.get_alloc_wts_for_upgrade(upgrade_id)
+            up_alloc_wts = self.get_allocated_weights_scaled_to_cbecs_for_upgrade(upgrade_id)
 
             # Add utility bills to the allocated weights
-            up_alloc_wts_plus_bills = self.get_allocated_weights_plus_util_bills(upgrade_id, up_alloc_wts, up_sim_outs)
+            up_alloc_wts_plus_bills = self.create_allocated_weights_plus_util_bills_for_upgrade(upgrade_id, up_alloc_wts, up_sim_outs)
 
             # Filter to this geography, downselect columns, create savings columns, and downselect columns
             wtd_agg_outs = self.create_weighted_aggregate_output(up_alloc_wts_plus_bills,
@@ -2193,13 +2214,17 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
             # Write data to parquet file, hive partition on upgrade to make later processing faster
             file_name = f'cached_ComStock_plotting_upgrade{upgrade_id}.parquet'
-            upgrade_dir = os.path.join(self.output_dir, 'cached_plotting_by_upgrade', f'upgrade={upgrade_id}')
-            os.makedirs(upgrade_dir, exist_ok=True)
-            file_path = os.path.join(upgrade_dir, file_name)
+            upgrade_dir = f'{self.output_dir["fs_path"]}/cached_plotting_by_upgrade/upgrade={upgrade_id}'
+            if isinstance(self.output_dir['fs'], s3fs.S3FileSystem):
+                upgrade_dir = f's3://{upgrade_dir}'
+            else:
+                os.makedirs(upgrade_dir, exist_ok=True)
+            file_path = f'{upgrade_dir}/{file_name}'
             logger.info(f'Caching plotting data to: {file_path}')
             wtd_agg_outs = wtd_agg_outs.drop('upgrade')  # upgrade column will be read from hive partition dir name
             wtd_agg_outs = wtd_agg_outs.collect()
-            wtd_agg_outs.write_parquet(file_path)
+            with self.output_dir['fs'].open(file_path, "wb") as f:
+                wtd_agg_outs.write_parquet(f)
             up_agg_paths.append(file_path)
 
         # Scan plotting_data to create one huge LazyFrame
@@ -2207,15 +2232,17 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         return self.plotting_data
 
-    def get_allocated_weights_plus_util_bills(self, upgrade_id, alloc_wts, sim_outs):
+    def create_allocated_weights_plus_util_bills_for_upgrade(self, upgrade_id, alloc_wts, sim_outs):
 
         # If the cached file already exists, scan and return
         cached_file_name = f'cached_allocation_weights_plus_bills_upgrade{upgrade_id}.parquet'
-        alloc_wts_bills_dir = os.path.join(self.output_dir, 'cached_allocation_weights_plus_bills_by_upgrade', f'upgrade={upgrade_id}')
-        cached_file_path = os.path.abspath(os.path.join(alloc_wts_bills_dir, cached_file_name))
-        if os.path.exists(cached_file_path):
-            logger.info(f'Reloading allocated weights plus bills from: {cached_file_name}')
-            alloc_wts = pl.scan_parquet(cached_file_path)
+        alloc_wts_bills_dir = f'{self.output_dir["fs_path"]}/cached_allocation_weights_plus_bills_by_upgrade/upgrade={upgrade_id}'
+        cached_file_path = f'{alloc_wts_bills_dir}/{cached_file_name}'
+        if isinstance(self.output_dir['fs'], s3fs.S3FileSystem):
+            cached_file_path = f's3://{cached_file_path}'
+        if self.output_dir['fs'].exists(cached_file_path):
+            logger.info(f'Reloading allocated weights plus bills from: {cached_file_path}')
+            alloc_wts = pl.scan_parquet(cached_file_path, hive_partitioning=True, storage_options=self.output_dir['storage_options'] )
             # Populate a dictionary of unweighted to weighted names to be used later
             cost_cols = (self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS + [self.UTIL_BILL_TOTAL_MEAN])
             for col in cost_cols:
@@ -2410,12 +2437,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         alloc_wts = alloc_wts.collect()
         collect_tend = datetime.datetime.now()
         elapsed_time = (collect_tend - collect_tstart).total_seconds()
-        logger.info(f"Collect time for {upgrade_id}: {elapsed_time} seconds")
+        logger.info(f"Collect time for upgrade {upgrade_id}: {elapsed_time} seconds")
         alloc_wts = alloc_wts.drop('upgrade')  # upgrade column will be read from hive partition dir name
         alloc_wts = self.reduce_df_memory(alloc_wts)
         logger.info(f'Caching allocated weights plus bills for upgrade {upgrade_id} to: {cached_file_path}')
-        alloc_wts.write_parquet(cached_file_path)
-        alloc_wts = pl.scan_parquet(cached_file_path, hive_partitioning=True)
+        with self.output_dir['fs'].open(cached_file_path, "wb") as f:
+            alloc_wts.write_parquet(f)
+        alloc_wts = pl.scan_parquet(cached_file_path, hive_partitioning=True, storage_options=self.output_dir['storage_options'])
 
         return alloc_wts
 
@@ -2565,30 +2593,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         assert isinstance(wtd_agg_outs, pl.LazyFrame)
         return wtd_agg_outs
 
-    def export_metadata_and_annual_results(self, geo_exports, out_dir=None, aws_profile=None):
-
-        # Default the output path if nothing is passed
-        if out_dir is None:
-            out_dir = self.output_dir
-
-        # Create fsspec paths for filesystem; writes locally or to S3
-        if 's3://' in out_dir:
-            # PyAthena >2.18.0 implements an s3 filesystem that replaces s3fs but does not implement file.open()
-            # Make fsspec use the s3fs s3 filesystem implementation for writing files to S3
-            import s3fs
-            from fsspec import register_implementation
-            register_implementation("s3", s3fs.S3FileSystem, clobber=True)
-            out_fs, out_fs_path = url_to_fs(out_dir, profile=aws_profile)
-            logger.info(f'out_fs filesystem type: {type(out_fs)}')
-        else:
-            out_fs, out_fs_path = url_to_fs(out_dir, profile=aws_profile)
-
-        out_location = {}
-        out_location['fs'], out_location['fs_path'] = out_fs, out_fs_path
-
-        # Make a temporary local directory for writing parquet files
-        tmp_pqt_dir = f"{self.output_dir}/temp_aggs"
-
+    def export_metadata_and_annual_results_for_upgrade(self, upgrade_id, geo_exports):
         # # Define the geographic partitions to export
         # geo_exports = [
         # {'geo_top_dir': 'national',
@@ -2627,10 +2632,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # NOTE: data_types must be specified from most columns to fewest
         # AKA ['detailed', 'full', 'basic'] to work properly.
 
-        # Get list of upgrade IDs
-        upgrade_ids = pl.Series(self.data.select(pl.col(self.UPGRADE_ID)).unique().collect()).to_list()
-        upgrade_ids.sort()
-
         # Export to all geographies
         logger.info(f'Exporting /metadata_and_annual_results and /metadata_and_annual_results_aggregates')
         for ge in geo_exports:
@@ -2649,33 +2650,31 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 geo_combos = pl.DataFrame({'geography': ['national']})
                 first_geo_combos = pl.DataFrame({'geography': ['national']})
             else:
-                geo_combos = self.fkt.select(geo_col_names).unique().collect()
+                alloc_wts = self.get_allocated_weights().clone()
+                geo_combos = alloc_wts.select(geo_col_names).unique().collect()
                 geo_combos = geo_combos.sort(by=geo_col_names)
-                first_geo_combos = self.fkt.select(geo_col_names[0]).unique().collect()
+                alloc_wts = self.get_allocated_weights().clone()
+                first_geo_combos = alloc_wts.select(geo_col_names[0]).unique().collect()
                 first_geo_combos = first_geo_combos.sort(by=geo_col_names[0])
 
             # Make a directory for the geography type
-            full_geo_dir = f"{out_location['fs_path']}/metadata_and_annual_results/{geo_top_dir}"
-            out_location['fs'].mkdirs(full_geo_dir, exist_ok=True)
-            temp_full_geo_dir = f"{tmp_pqt_dir}/metadata_and_annual_results/{geo_top_dir}"
-            os.makedirs(temp_full_geo_dir, exist_ok=True)
+            full_geo_dir = f"{self.output_dir['fs_path']}/metadata_and_annual_results/{geo_top_dir}"
+            self.output_dir['fs'].mkdirs(full_geo_dir, exist_ok=True)
 
             # Make a directory for each data type X file type combo
             if None in aggregation_levels:
                 for data_type in data_types:
                     for file_type in file_types:
-                        out_location['fs'].mkdirs(f'{full_geo_dir}/{data_type}/{file_type}', exist_ok=True)
+                        self.output_dir['fs'].mkdirs(f'{full_geo_dir}/{data_type}/{file_type}', exist_ok=True)
 
             # Make an aggregates directory for the geography type
-            full_geo_agg_dir = f"{out_location['fs_path']}/metadata_and_annual_results_aggregates/{geo_top_dir}"
-            out_location['fs'].mkdirs(full_geo_agg_dir, exist_ok=True)
-            temp_full_geo_agg_dir = f"{tmp_pqt_dir}/metadata_and_annual_results/{geo_top_dir}"
-            os.makedirs(temp_full_geo_agg_dir, exist_ok=True)
+            full_geo_agg_dir = f"{self.output_dir['fs_path']}/metadata_and_annual_results_aggregates/{geo_top_dir}"
+            self.output_dir['fs'].mkdirs(full_geo_agg_dir, exist_ok=True)
 
             # Make a directory for each data type X file type combo
             for data_type in data_types:
                 for file_type in file_types:
-                    out_location['fs'].mkdirs(f'{full_geo_agg_dir}/{data_type}/{file_type}', exist_ok=True)
+                    self.output_dir['fs'].mkdirs(f'{full_geo_agg_dir}/{data_type}/{file_type}', exist_ok=True)
 
             # Builds a file path for each aggregate based on name, file type, and aggregation level
             def get_file_path(full_geo_agg_dir, full_geo_dir, geo_prefixes, geo_levels, file_type, aggregation_level):
@@ -2686,7 +2685,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 geo_level_dir = f'{agg_level_dir}/{data_type}/{file_type}'
                 if len(geo_levels) > 0:
                     geo_level_dir = f'{geo_level_dir}/' + '/'.join(geo_levels)
-                out_location['fs'].mkdirs(geo_level_dir, exist_ok=True)
+                self.output_dir['fs'].mkdirs(geo_level_dir, exist_ok=True)
                 file_name = f'upgrade{upgrade_id}'
                 # Add geography prefix to filename
                 if len(geo_prefixes) > 0:
@@ -2707,176 +2706,72 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
             # Get the simulation outputs and allocated weights for the baseline
             base_sim_outs = self.data.filter((pl.col(self.UPGRADE_ID) == 0))
-            base_alloc_wts = self.get_alloc_wts_for_upgrade(0)
+            base_alloc_wts = self.get_allocated_weights_scaled_to_cbecs_for_upgrade(0)
 
             # Add utility bills to the allocated weights
-            base_alloc_wts_plus_bills = self.get_allocated_weights_plus_util_bills(0, base_alloc_wts, base_sim_outs)
+            base_alloc_wts_plus_bills = self.create_allocated_weights_plus_util_bills_for_upgrade(0, base_alloc_wts, base_sim_outs)
 
-            # Write a file for each upgrade X geography combo for each file type
-            for upgrade_id in upgrade_ids:
 
-                # Get the simulation outputs and allocated weights for this upgrade
-                up_sim_outs = self.data.filter((pl.col(self.UPGRADE_ID) == upgrade_id))
-                up_alloc_wts = self.get_alloc_wts_for_upgrade(upgrade_id)
+            # Get the simulation outputs and allocated weights for this upgrade
+            up_sim_outs = self.data.filter((pl.col(self.UPGRADE_ID) == upgrade_id))
+            up_alloc_wts = self.get_allocated_weights_scaled_to_cbecs_for_upgrade(upgrade_id)
 
-                # Add utility bills to the allocated weights
-                up_alloc_wts_plus_bills = self.get_allocated_weights_plus_util_bills(upgrade_id, up_alloc_wts, up_sim_outs)
+            # Add utility bills to the allocated weights
+            up_alloc_wts_plus_bills = self.create_allocated_weights_plus_util_bills_for_upgrade(upgrade_id, up_alloc_wts, up_sim_outs)
 
-                # Write raw data and all aggregation levels
-                for aggregation_level in aggregation_levels:
-                    logger.info(f'Starting aggregation_level: {aggregation_level}')
+            # Write raw data and all aggregation levels
+            for aggregation_level in aggregation_levels:
+                logger.info(f'Starting aggregation_level: {aggregation_level}')
 
-                    # Start with the most expansive set of columns, the downselect later as-needed.
-                    if 'detailed' in data_types:
-                        starting_downselect = 'detailed'
-                    elif 'full' in data_types:
-                        starting_downselect = 'full'
-                    elif 'basic' in data_types:
-                        starting_downselect = 'basic'
+                # Start with the most expansive set of columns, the downselect later as-needed.
+                if 'detailed' in data_types:
+                    starting_downselect = 'detailed'
+                elif 'full' in data_types:
+                    starting_downselect = 'full'
+                elif 'basic' in data_types:
+                    starting_downselect = 'basic'
 
-                    # Handle census tract vs. larger geography aggregation differently because of memory usage
-                    if aggregation_level == self.TRACT_ID:
-                        # Iterate by first level of geographic partitioning, collecting the DataFrame
-                        # for this geography then writing files for all the sub-geographies within it.
-                        for first_geo_combo in first_geo_combos.iter_rows(named=True):
-                            fgc_tstart = datetime.datetime.now()
-                            print('')
-                            logger.info(f'Creating aggregates for: {first_geo_combo}')
+                # Handle census tract vs. larger geography aggregation differently because of memory usage
+                if aggregation_level == self.TRACT_ID:
+                    # Iterate by first level of geographic partitioning, collecting the DataFrame
+                    # for this geography then writing files for all the sub-geographies within it.
+                    for first_geo_combo in first_geo_combos.iter_rows(named=True):
+                        fgc_tstart = datetime.datetime.now()
+                        print('')
+                        logger.info(f'Creating aggregates for: {first_geo_combo}')
 
-                            # Get the filters for the first level geography
-                            first_geo_filters = {}
-                            for k, v in first_geo_combo.items():
-                                if k == 'geography' and v == 'national':
-                                    continue
-                                first_geo_filters[k] = v
+                        # Get the filters for the first level geography
+                        first_geo_filters = {}
+                        for k, v in first_geo_combo.items():
+                            if k == 'geography' and v == 'national':
+                                continue
+                            first_geo_filters[k] = v
 
-                            # Collect the dataframe for the first level geography
-                            agg_lvl_list = [aggregation_level] # TODO move handling of this inside create_geospatial_slice_of_metadata
-                            if isinstance(aggregation_level, list):
-                                agg_lvl_list = aggregation_level  # Pass list if a list is already supplied
-                            wtd_agg_tstart = datetime.datetime.now()
-                            wtd_agg_outs = self.create_weighted_aggregate_output(up_alloc_wts_plus_bills,
-                                                                                up_sim_outs,
-                                                                                base_alloc_wts_plus_bills,
-                                                                                first_geo_filters,
-                                                                                agg_lvl_list,
-                                                                                starting_downselect)
-                            wtd_agg_tend = datetime.datetime.now()
-                            elapsed_time = (wtd_agg_tend - wtd_agg_tstart).total_seconds()
-                            logger.info(f"Weighted agg time for {first_geo_combo}: {elapsed_time} seconds")
-                            collect_tstart = datetime.datetime.now()
-                            wtd_agg_outs = wtd_agg_outs.collect()
-                            logger.info(f"Collect time for {first_geo_combo}: {(datetime.datetime.now() - collect_tstart).total_seconds()} seconds")
-                            logger.info(f'There are {wtd_agg_outs.shape[0]:,} total rows for {first_geo_filters}')
-
-                            # Write the files partitioned by upgrage and geography
-                            write_tstart = datetime.datetime.now()
-                            # Make a copy of each of the partition columns using an alias.
-                            # This prevents the true partition columns from being removed from
-                            # the .parquet file due to hive partitioning by pyarrow.
-                            part_cols = []
-                            wtd_agg_outs = wtd_agg_outs.with_columns(
-                                pl.col(self.UPGRADE_ID).alias('upgrade_id')
-                            )
-                            part_cols.append('upgrade_id')
-                            for true_col, part_alias in partition_cols.items():
-                                wtd_agg_outs = wtd_agg_outs.with_columns(
-                                    pl.col(true_col).alias(part_alias)
-                                )
-                                part_cols.append(part_alias)
-                            # Locate the specific temp directory for these aggregates
-                            agg_level_dir = temp_full_geo_agg_dir
-                            if aggregation_level is self.TRACT_ID:
-                                agg_level_dir = temp_full_geo_dir
-                            temp_agg_dir = os.path.abspath(f'{agg_level_dir}')
-                            wtd_agg_outs.write_parquet(
-                                temp_agg_dir,
-                                use_pyarrow=True,
-                                pyarrow_options={"partition_cols": part_cols, "max_partitions": 3500}
-                            )
-                            logger.info(f"Local temp write time for {first_geo_combo}: {(datetime.datetime.now() - write_tstart).total_seconds()} seconds")
-
-                            # Find the temporary directory
-                            first_geo_combo_key = next(iter(first_geo_combo))
-                            first_geo_combo_value = first_geo_combo[first_geo_combo_key]
-                            first_geo_part_alias = partition_cols[first_geo_combo_key]
-                            temp_agg_dir = os.path.abspath(f'{agg_level_dir}/upgrade_id={upgrade_id}/{first_geo_part_alias}={first_geo_combo_value}')
-                            logger.info(f'Wrote files to: {temp_agg_dir}')
-
-                            # Determine the column subset and order for each data type
-                            ordered_cols = {data_type: self.reorder_columns(self.columns_for_export(wtd_agg_outs, data_type)) for data_type in data_types}
-
-                            # Queue scan, transform, and upload each aggregate to S3
-                            q_tstart = datetime.datetime.now()
-                            combos_to_write = []
-                            for f in glob.glob(f'{temp_agg_dir}/**/*.parquet'):
-                                # Extract the geographic partitioning from the path
-                                geo_levels = []
-                                geo_prefixes = []
-                                pattern = re.compile(r'([^/\\=]+)=([^/\\=]+)')
-                                matches = pattern.findall(str(Path(f)))
-                                for k, v in dict(matches).items():
-                                    if k == 'upgrade_id':
-                                        continue
-                                    geo_levels.append(f'{k}={v}')
-                                    geo_prefixes.append(v)
-
-                                # Scan the dataframe
-                                df = pl.scan_parquet(f, hive_partitioning=False)  # Do not read columns for geographies from file path!
-                                df = df.sort(by=self.BLDG_ID)
-
-                                # Queue write for each data type
-                                for data_type in data_types:
-                                    data_type_df = df.clone()
-                                    # Downselect and order columns
-                                    data_type_df = data_type_df.select(ordered_cols[data_type])
-
-                                    # Queue write for all selected filetypes
-                                    for file_type in file_types:
-                                        file_path = get_file_path(full_geo_agg_dir, full_geo_dir, geo_prefixes, geo_levels, file_type, aggregation_level)
-                                        logger.debug(f"Queuing {file_path}")
-                                        combo = (data_type_df.clone(), out_location, file_type, file_path)
-                                        combos_to_write.append(combo)
-                            logger.info(f"Queuing time for {first_geo_combo}: {(datetime.datetime.now() - write_tstart).total_seconds()} seconds")
-
-                            # Write files in parallel
-                            logger.info(f'Writing {len(combos_to_write)} files in parallel')
-                            write_tstart = datetime.datetime.now()
-                            with Parallel(n_jobs=18) as parallel:
-                                parallel(delayed(write_geo_data)(combo) for combo in combos_to_write)
-                            logger.info(f"S3 write time for {first_geo_combo}: {(datetime.datetime.now() - write_tstart).total_seconds()} seconds")
-                            # Attempting to avoid crashes
-                            # to_write.clear()
-                            # del to_write
-                            # time.sleep(2)
-                            # gc.collect()
-                            logger.info(f"Total time for {first_geo_combo}: {(datetime.datetime.now() - fgc_tstart).total_seconds()} seconds")
-                    else:
-                        # If there is any aggregation, collect a single dataframe with all geographies and savings columns
-                        # Memory usage should work on most laptops
-                        no_geo_filters = {}
+                        # Collect the dataframe for the first level geography
                         agg_lvl_list = [aggregation_level] # TODO move handling of this inside create_geospatial_slice_of_metadata
                         if isinstance(aggregation_level, list):
                             agg_lvl_list = aggregation_level  # Pass list if a list is already supplied
+                        wtd_agg_tstart = datetime.datetime.now()
                         wtd_agg_outs = self.create_weighted_aggregate_output(up_alloc_wts_plus_bills,
                                                                             up_sim_outs,
                                                                             base_alloc_wts_plus_bills,
-                                                                            no_geo_filters,
+                                                                            first_geo_filters,
                                                                             agg_lvl_list,
                                                                             starting_downselect)
+                        logger.info(f"Weighted agg time for {first_geo_combo}: {(datetime.datetime.now() - wtd_agg_tstart).total_seconds()} seconds")
                         collect_tstart = datetime.datetime.now()
                         wtd_agg_outs = wtd_agg_outs.collect()
-                        logger.info(f"Collect time for {aggregation_level}: {(datetime.datetime.now() - collect_tstart).total_seconds()} seconds")
-                        logger.info(f'There are {wtd_agg_outs.shape[0]:,} total rows at the aggregation level {aggregation_level}')
+                        logger.info(f"Collect time for {first_geo_combo}: {(datetime.datetime.now() - collect_tstart).total_seconds()} seconds")
 
                         # Determine the column subset and order for each data type
                         ordered_cols = {data_type: self.reorder_columns(self.columns_for_export(wtd_agg_outs, data_type)) for data_type in data_types}
 
-                        # Process each geography and downselect columns
+                        # Queue writes for each geography
                         combos_to_write = []
                         for geo_combo in geo_combos.iter_rows(named=True):
                             # print(f'geo_combo: {geo_combo}')
 
+                            # Get the filters for the geography
                             geo_filters = {}
                             geo_levels = []
                             geo_prefixes = []
@@ -2886,6 +2781,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                 geo_filters[k] = v
                                 geo_levels.append(f'{partition_cols[k]}={v}')
                                 geo_prefixes.append(v)
+
+                            # Skip geo_combos that aren't in this first-level partitioning. e.g. counties not in a state
+                            first_level_geo_combo_val = list(first_geo_filters.values())[0]
+                            geo_combo_val = list(geo_filters.values())[0]
+                            if not geo_combo_val == first_level_geo_combo_val:
+                                # logger.info(f'Skipping {geo_combo} because not in this partition ({geo_combo_val} != {first_level_geo_combo_val})')
+                                continue
 
                             # Filter already-collected dataframe to specified geography
                             if len(geo_filters) > 0:
@@ -2904,19 +2806,90 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                 data_type_df = geo_data.clone().select(ordered_cols[data_type])
 
                                 # Queue write for all selected filetypes
-                                n_rows, n_cols = geo_data.shape
                                 for file_type in file_types:
                                     file_path = get_file_path(full_geo_agg_dir, full_geo_dir, geo_prefixes, geo_levels, file_type, aggregation_level)
-                                    logger.info(f"Queuing {file_path}: n_cols = {n_cols:,}, n_rows = {n_rows:,}")
-                                    combo = (data_type_df, out_location, file_type, file_path)
+                                    logger.info(f"Queuing {file_path}")
+                                    combo = (geo_data.clone(), self.output_dir, file_type, file_path)
                                     combos_to_write.append(combo)
 
                         # Write files in parallel
                         logger.info(f'Writing {len(combos_to_write)} files in parallel')
                         write_tstart = datetime.datetime.now()
-                        with Parallel(n_jobs=18) as parallel:
-                            Parallel()(delayed(write_geo_data)(combo) for combo in combos_to_write)
-                        logger.info(f"Write time for {aggregation_level}: {(datetime.datetime.now() - write_tstart).total_seconds()} seconds")
+                        with Parallel(n_jobs=-1) as parallel:
+                            parallel(delayed(write_geo_data)(combo) for combo in combos_to_write)
+                        logger.info(f"Write time for {first_geo_combo}: {(datetime.datetime.now() - write_tstart).total_seconds()} seconds")
+                        # # Attempting to avoid crashes
+                        # wtd_agg_outs.clear()
+                        # del to_write
+                        # time.sleep(2)
+                        # gc.collect()
+                        logger.info(f"Total time for {first_geo_combo}: {(datetime.datetime.now() - fgc_tstart).total_seconds()} seconds")
+                else:
+                    # If there is any aggregation, collect a single dataframe with all geographies and savings columns
+                    # Memory usage should work on most laptops
+                    no_geo_filters = {}
+                    agg_lvl_list = [aggregation_level] # TODO move handling of this inside create_geospatial_slice_of_metadata
+                    if isinstance(aggregation_level, list):
+                        agg_lvl_list = aggregation_level  # Pass list if a list is already supplied
+                    wtd_agg_outs = self.create_weighted_aggregate_output(up_alloc_wts_plus_bills,
+                                                                        up_sim_outs,
+                                                                        base_alloc_wts_plus_bills,
+                                                                        no_geo_filters,
+                                                                        agg_lvl_list,
+                                                                        starting_downselect)
+                    collect_tstart = datetime.datetime.now()
+                    wtd_agg_outs = wtd_agg_outs.collect()
+                    logger.info(f"Collect time for {aggregation_level}: {(datetime.datetime.now() - collect_tstart).total_seconds()} seconds")
+                    logger.info(f'There are {wtd_agg_outs.shape[0]:,} total rows at the aggregation level {aggregation_level}')
+
+                    # Determine the column subset and order for each data type
+                    ordered_cols = {data_type: self.reorder_columns(self.columns_for_export(wtd_agg_outs, data_type)) for data_type in data_types}
+
+                    # Process each geography and downselect columns
+                    combos_to_write = []
+                    for geo_combo in geo_combos.iter_rows(named=True):
+                        # print(f'geo_combo: {geo_combo}')
+
+                        geo_filters = {}
+                        geo_levels = []
+                        geo_prefixes = []
+                        for k, v in geo_combo.items():
+                            if k == 'geography' and v == 'national':
+                                continue
+                            geo_filters[k] = v
+                            geo_levels.append(f'{partition_cols[k]}={v}')
+                            geo_prefixes.append(v)
+
+                        # Filter already-collected dataframe to specified geography
+                        if len(geo_filters) > 0:
+                            geo_filter_exprs = [(pl.col(k) == v) for k, v in geo_filters.items()]
+                            geo_data = wtd_agg_outs.filter(geo_filter_exprs)
+                        else:
+                            geo_data = wtd_agg_outs
+
+                        # Sort by building ID
+                        geo_data = geo_data.sort(by=self.BLDG_ID)
+
+                        # Queue write for each data type
+                        for data_type in data_types:
+
+                            # Downselect columns further if appropriate
+                            data_type_df = geo_data.clone().select(ordered_cols[data_type])
+
+                            # Queue write for all selected filetypes
+                            n_rows, n_cols = geo_data.shape
+                            for file_type in file_types:
+                                file_path = get_file_path(full_geo_agg_dir, full_geo_dir, geo_prefixes, geo_levels, file_type, aggregation_level)
+                                logger.info(f"Queuing {file_path}: n_cols = {n_cols:,}, n_rows = {n_rows:,}")
+                                combo = (data_type_df, self.output_dir, file_type, file_path)
+                                combos_to_write.append(combo)
+
+                    # Write files in parallel
+                    logger.info(f'Writing {len(combos_to_write)} files in parallel')
+                    write_tstart = datetime.datetime.now()
+                    with Parallel(n_jobs=-1) as parallel:
+                        parallel(delayed(write_geo_data)(combo) for combo in combos_to_write)
+                    logger.info(f"Write time for {aggregation_level}: {(datetime.datetime.now() - write_tstart).total_seconds()} seconds")
 
             ge_tend = datetime.datetime.now()
             logger.info(f'Finished exporting: {geo_top_dir}. ')
@@ -2924,34 +2897,32 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             logger.info(f'Geographic aggregation levels: {aggregation_levels}')
             logger.info(f'Time elapsed: {(ge_tend - ge_tstart).total_seconds()} seconds')
 
-        # Export dictionaries corresponding to the exported columns
-        self.export_data_and_enumeration_dictionary()
-
-    def add_weights_aportioned_by_stock_estimate(self,
-                                                 apportionment: Apportion,
-                                                 keep_n_per_apportionment_group=False,
-                                                 reload_from_cache=False):
+    def create_allocated_weights(self,
+                                apportionment: Apportion,
+                                base_sim_outs: pl.LazyFrame,
+                                keep_n_per_apportionment_group=False,
+                                reload_from_cache=False):
         # This function doesn't support already CBECS-weighted self.data - error out
         if self.CBECS_WEIGHTS_APPLIED:
             raise RuntimeError('Unable to apply apportionment weighting after CBECS weighting - reverse order.')
 
         # TODO this should live somewhere else - don't know where...
-        self.data = self.data.with_columns(
+        base_sim_outs = base_sim_outs.with_columns(
             pl.col(self.COUNTY_ID).cast(str).str.slice(0, 4).alias(self.STATE_ID)
         )
 
-        # Path to cached fkt file
-        file_name = f'cached_ComStock_fkt.parquet'
-        fkt_file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
-
+        # Path to cached allocated weights file
+        file_name = f'cached_ComStock_alloc_wts_TESTING_DELETE.parquet'
+        fkt_file_path = f'{self.output_dir["fs_path"]}/{file_name}'
+        if isinstance(self.output_dir['fs'], s3fs.S3FileSystem):
+            fkt_file_path = f's3://{fkt_file_path}'
         if reload_from_cache:
             # fkt creation is non-deterministic, so recreating it results in a different set of models
             # being used, which is an issue if postprocessing is stopped and restarted.
             # Reloading from cache ensures that the same set of models is used.
-            if os.path.exists(fkt_file_path):
+            if self.output_dir['fs'].exists(fkt_file_path):
                 logger.info(f'Reloading fkt from cache: {fkt_file_path}')
-                self.fkt = pl.scan_parquet(fkt_file_path)
-                self.APPORTIONED = True
+                self.fkt = pl.scan_parquet(fkt_file_path, storage_options=self.output_dir['storage_options'])
 
                 # Join on the missing PUMA ID
                 # TODO this should be done in the initial fkt creation
@@ -2970,16 +2941,19 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         else:
             # Pull the columns required to do the matching plus the annual energy total as a safety blanket
             # TODO this is a superset for convienience - slim down later
-            csdf = self.data.clone().filter(pl.col(self.UPGRADE_NAME) == self.BASE_NAME).select(pl.col(
+            csdf = base_sim_outs.select(pl.col(
                 self.BLDG_ID, self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.SAMPLING_REGION, self.CZ_ASHRAE,
                 self.BLDG_TYPE, self.HVAC_SYS, self.SH_FUEL, self.SIZE_BIN, self.FLR_AREA, self.TOT_EUI, self.CEN_DIV
             ))
 
-            # raise Exception(f"columns in self.data are {list(self.data.columns)} and we are looking for {list([self.BLDG_ID, self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.SAMPLING_REGION, self.CZ_ASHRAE, self.BLDG_TYPE, self.HVAC_SYS, self.SH_FUEL, self.SIZE_BIN, self.FLR_AREA, self.TOT_EUI, self.CEN_DIV])}")
+            # raise Exception(f"columns in base_sim_outs are {list(base_sim_outs.columns)} and we are looking for {list([self.BLDG_ID, self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.SAMPLING_REGION, self.CZ_ASHRAE, self.BLDG_TYPE, self.HVAC_SYS, self.SH_FUEL, self.SIZE_BIN, self.FLR_AREA, self.TOT_EUI, self.CEN_DIV])}")
 
             # If anything in this selection is null we're smoked so check twice and fail never
             if csdf.null_count().collect().sum(axis=1).sum() != 0:
                 raise RuntimeError('Null data appears in the apportionment truth data polars frame. Please resolve')
+
+            # Cast building type to String
+            csdf = csdf.with_columns(pl.col(self.BLDG_TYPE).cast(pl.String))
 
             # Cast sqft to int32
             csdf = csdf.with_columns(pl.col(self.FLR_AREA).cast(pl.Int32))
@@ -3027,19 +3001,21 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 logger.error(f'The percent of unmatched truth data is very high ({pct_unmatched:.2f}%), consider this when reviewing results.')
 
             # Provide detailed additional info on missing buckets for review if desired
-            logger.info(f'Writing QAQC / Debugging files to {os.path.abspath(self.output_dir)}')
-            file_path = os.path.abspath(os.path.join(self.output_dir, 'missing_truth_data_buildings.log'))
-            with open(file_path, 'w') as f:
+            logger.info(f'Writing QAQC / Debugging files to {self.output_dir["fs_path"]}')
+            file_path = f'{self.output_dir["fs_path"]}/missing_truth_data_buildings.log'
+            with self.output_dir['fs'].open(file_path, 'w') as f:
                 f.write('The following is a breakdown of missing truth data buildings by bucket attributes:\n')
                 for attribute in ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']:
                     f.write(f'\nAttribute: {attribute}:\n')
                     f.write(f'{pl.Series(tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups)).select(pl.col(attribute).value_counts(sort=True)).collect()).to_list()}'
                         .replace("}, {", "\n\t").replace("[{", "\t").replace("}]", ""))
             attrs = ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
-            file_path = os.path.abspath(os.path.join(self.output_dir, 'potential_apportionment_group_optimization.csv'))
-            tdf.select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv(file_path)
-            file_path = os.path.abspath(os.path.join(self.output_dir, 'debugging_missing_apportionment_groups.csv'))
-            tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups)).select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv(file_path)
+            file_path = f'{self.output_dir["fs_path"]}/potential_apportionment_group_optimization.csv'
+            with self.output_dir['fs'].open(file_path, 'w') as f:
+                tdf.select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv(f)
+            file_path = f'{self.output_dir["fs_path"]}/debugging_missing_apportionment_groups.csv'
+            with self.output_dir['fs'].open(file_path, 'w') as f:
+                tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups)).select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv(f)
 
             # Drop unsupported truth data and add an index
             tdf = tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups).is_not())
@@ -3117,7 +3093,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             ), on=pl.col('tdf_id'))
 
             # Pull in the sqft calculate weights
-            area_by_id = self.data.select(pl.col(self.FLR_AREA), pl.col(self.BLDG_ID), pl.col(self.UPGRADE_ID))
+            area_by_id = base_sim_outs.select(pl.col(self.FLR_AREA), pl.col(self.BLDG_ID), pl.col(self.UPGRADE_ID))
             area_by_id = area_by_id.filter(pl.col(self.UPGRADE_ID) == 0).drop([self.UPGRADE_ID])
             fkt = fkt.join(area_by_id, on=[pl.col(self.BLDG_ID)])
             logger.info('Calculating apportioned weights')
@@ -3137,45 +3113,29 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # Drop unwanted columns from the foreign key table and persist
             fkt = fkt.drop('tdf_id', APPO_GROUP_ID, 'truth_sqft', 'in.tract_assignment_type', self.FLR_AREA)
 
-            # Cache the fkt for reuse
-            fkt.collect().write_parquet(fkt_file_path)
-            logger.info(f'Caching fkt to: {fkt_file_path}')
+            # Cache the allocated weights for reuse
+            with self.output_dir['fs'].open(fkt_file_path, "wb") as f:
+                fkt.collect().write_parquet(f)
+            logger.info(f'Caching allocated weights to: {fkt_file_path}')
 
             # Scan the fkt
-            self.fkt = pl.scan_parquet(fkt_file_path)
+            self.fkt = pl.scan_parquet(fkt_file_path, storage_options=self.output_dir['storage_options'])
+
             self.APPORTIONED = True
 
-        # Return new self.data object - note this may still be normalized against cbecs
-        logger.debug('Renaming existing self.data geospatial cols to prevent namespace collision')
-        self.data = self.data.rename({
-            self.TRACT_ID: self.TRACT_ID.replace('in.', self.POST_APPO_SIM_COL_PREFIX),
-            self.COUNTY_ID: self.COUNTY_ID.replace('in.', self.POST_APPO_SIM_COL_PREFIX),
-            self.STATE_ID: self.STATE_ID.replace('in.', self.POST_APPO_SIM_COL_PREFIX),
-            self.CEN_DIV: self.CEN_DIV.replace('in.', self.POST_APPO_SIM_COL_PREFIX),
-        })
+            logger.info('Successfully completed the apportionment sampling postprocessing')
 
-        # Drop any remaining geography columns associated with the model creation
-        # Geographic data will joined after self.data and self.fkt have been joined
-        self.data = self.data.drop(self.COLS_GEOG)
-
-        logger.info('Successfully completed the apportionment sampling postprocessing')
-
-    def get_alloc_wts_for_upgrade(self, upgrade_id):
-        if self.fkt is None:
-            raise Exception(f'self.fkt not initialized, call add_weights_aportioned_by_stock_estimate() first')
-
+    def get_sim_outs_for_upgrade(self, upgrade_id):
         # Ensure this is a valid upgrade ID
         avail_up_ids = pl.Series(self.data.select(pl.col(self.UPGRADE_ID)).unique().collect()).to_list()
         if upgrade_id not in avail_up_ids:
-            raise Exception(f"Requested fkt for upgrade_id={upgrade_id} not in self.data. Choose from: {avail_up_ids}")
+            raise Exception(f"Requested simulation outputs for upgrade_id={upgrade_id} not in self.data. Choose from: {avail_up_ids}")
 
         # Add the upgrade ID to the fkt, which is identical for every upgrade
-        up_fkt = self.fkt.clone()
-        up_fkt = up_fkt.with_columns([
-                pl.lit(upgrade_id).cast(pl.Int64).alias(self.UPGRADE_ID)
-            ])
+        sim_outs = self.data.clone()
+        sim_outs = sim_outs.filter((pl.col(self.UPGRADE_ID) == upgrade_id))
 
-        return up_fkt
+        return sim_outs
 
     def add_weighted_area_energy_savings_columns(self, input_lf):
 
