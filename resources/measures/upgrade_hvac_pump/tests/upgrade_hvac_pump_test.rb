@@ -140,7 +140,7 @@ class UpgradeHvacPumpTest < Minitest::Test
     # assert that it ran correctly
     assert_equal('Success', result.value.valueName)
 
-    # refute_empty(result.stepInitialCondition)
+    refute_empty(result.stepInitialCondition)
 
     refute_empty(result.stepFinalCondition)
 
