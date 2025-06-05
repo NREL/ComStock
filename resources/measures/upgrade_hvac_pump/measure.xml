@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>upgrade_hvac_pump</name>
   <uid>221bc9b4-586d-4083-baaa-624959df407c</uid>
-  <version_id>0ce230a7-2957-41b4-bf96-3bd56cbb6ec4</version_id>
-  <version_modified>2025-06-05T21:05:54Z</version_modified>
+  <version_id>dd1c232d-7e7c-4fd2-ae37-d80ef0b96e55</version_id>
+  <version_modified>2025-06-05T21:16:47Z</version_modified>
   <xml_checksum>C1EBC06E</xml_checksum>
   <class_name>UpgradeHvacPump</class_name>
   <display_name>upgrade_hvac_pump</display_name>
@@ -198,7 +198,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>AAB44D23</checksum>
+      <checksum>F3950547</checksum>
     </file>
     <file>
       <filename>100ton_centrifugal_variablespd_wcc/results.idf</filename>
@@ -240,7 +240,7 @@
       <filename>upgrade_hvac_pump_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>02BCD401</checksum>
+      <checksum>78F36A43</checksum>
     </file>
   </files>
 </measure>
