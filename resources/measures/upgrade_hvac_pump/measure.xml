@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>upgrade_hvac_pump</name>
   <uid>221bc9b4-586d-4083-baaa-624959df407c</uid>
-  <version_id>2695f17b-03f0-4ef5-bf91-6e3f66837cc7</version_id>
-  <version_modified>2025-06-05T20:55:31Z</version_modified>
+  <version_id>0ce230a7-2957-41b4-bf96-3bd56cbb6ec4</version_id>
+  <version_modified>2025-06-05T21:05:54Z</version_modified>
   <xml_checksum>C1EBC06E</xml_checksum>
   <class_name>UpgradeHvacPump</class_name>
   <display_name>upgrade_hvac_pump</display_name>
@@ -14,42 +14,6 @@
     <argument>
       <name>upgrade_pump</name>
       <display_name>Update pump specifications based on the latest 90.1 standards?</display_name>
-      <type>Boolean</type>
-      <required>true</required>
-      <model_dependent>false</model_dependent>
-      <default_value>true</default_value>
-      <choices>
-        <choice>
-          <value>true</value>
-          <display_name>true</display_name>
-        </choice>
-        <choice>
-          <value>false</value>
-          <display_name>false</display_name>
-        </choice>
-      </choices>
-    </argument>
-    <argument>
-      <name>chw_oat_reset</name>
-      <display_name>Add outdoor air temperature reset for chilled water supply temperature?</display_name>
-      <type>Boolean</type>
-      <required>true</required>
-      <model_dependent>false</model_dependent>
-      <default_value>true</default_value>
-      <choices>
-        <choice>
-          <value>true</value>
-          <display_name>true</display_name>
-        </choice>
-        <choice>
-          <value>false</value>
-          <display_name>false</display_name>
-        </choice>
-      </choices>
-    </argument>
-    <argument>
-      <name>cw_oat_reset</name>
-      <display_name>Add outdoor air temperature reset for condenser water temperature?</display_name>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -217,7 +181,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>94954C95</checksum>
+      <checksum>83E8187E</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -234,7 +198,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>41C6B165</checksum>
+      <checksum>AAB44D23</checksum>
     </file>
     <file>
       <filename>100ton_centrifugal_variablespd_wcc/results.idf</filename>
