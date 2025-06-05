@@ -30,18 +30,6 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     upgrade_pump.setDefaultValue(true)
     args << upgrade_pump
 
-    # add outdoor air temperature reset for chilled water supply temperature
-    chw_oat_reset = OpenStudio::Measure::OSArgument.makeBoolArgument('chw_oat_reset', true)
-    chw_oat_reset.setDisplayName('Add outdoor air temperature reset for chilled water supply temperature?')
-    chw_oat_reset.setDefaultValue(true)
-    args << chw_oat_reset
-
-    # add outdoor air temperature reset for condenser water temperature
-    cw_oat_reset = OpenStudio::Measure::OSArgument.makeBoolArgument('cw_oat_reset', true)
-    cw_oat_reset.setDisplayName('Add outdoor air temperature reset for condenser water temperature?')
-    cw_oat_reset.setDefaultValue(true)
-    args << cw_oat_reset
-
     # print out details?
     debug_verbose = OpenStudio::Measure::OSArgument.makeBoolArgument('debug_verbose', true)
     debug_verbose.setDisplayName('Print out detailed debugging logs if this parameter is true')
@@ -719,8 +707,6 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
 
     # read input arguments
     upgrade_pump = runner.getBoolArgumentValue('upgrade_pump', user_arguments)
-    chw_oat_reset = runner.getBoolArgumentValue('chw_oat_reset', user_arguments)
-    cw_oat_reset = runner.getBoolArgumentValue('cw_oat_reset', user_arguments)
     debug_verbose = runner.getBoolArgumentValue('debug_verbose', user_arguments)
 
     # build standard
@@ -914,21 +900,6 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
         # update part load performance (for variable speed pumps) to be 'VSD DP Reset'
         if pump.to_PumpVariableSpeed.is_initialized
           pump_variable_speed_control_type(runner, model, pump, debug_verbose)
-        end
-      end
-    end
-
-    # ------------------------------------------------
-    # control upgrades
-    # ------------------------------------------------
-    if chw_oat_reset || cw_oat_reset
-      plant_loops = model.getPlantLoops
-      plant_loops.each do |plant_loop|
-        if chw_oat_reset
-          std.plant_loop_enable_supply_water_temperature_reset(plant_loop)
-        end
-        if cw_oat_reset
-          plant_loop_apply_prm_baseline_condenser_water_temperatures(runner, plant_loop)
         end
       end
     end
