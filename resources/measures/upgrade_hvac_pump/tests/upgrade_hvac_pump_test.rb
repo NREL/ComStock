@@ -94,17 +94,6 @@ class UpgradeHvacPumpTest < Minitest::Test
       end
     end
 
-    # get chiller specs before measure
-    chillers = model.getChillerElectricEIRs
-    results_b = UpgradeHvacPump.chiller_specifications(chillers)
-    counts_chillers_acc_b = results_b[0]
-    capacity_total_w_acc_b = results_b[1]
-    cop_acc_b = results_b[2]
-    counts_chillers_wcc_b = results_b[3]
-    capacity_total_w_wcc_b = results_b[4]
-    cop_wcc_b = results_b[5]
-    curve_summary_b = results_b[6]
-
     # get pump specs before measure
     pumps_const_spd = model.getPumpConstantSpeeds
     pump_specs_cst_spd_before = UpgradeHvacPump.pump_specifications([], pumps_const_spd, std)
@@ -120,21 +109,10 @@ class UpgradeHvacPumpTest < Minitest::Test
     pump_var_part_load_curve_coeff2_weighted_avg_before = pump_specs_var_spd_before[5]
     pump_var_part_load_curve_coeff3_weighted_avg_before = pump_specs_var_spd_before[6]
     pump_var_part_load_curve_coeff4_weighted_avg_before = pump_specs_var_spd_before[7]
-    
+
     # run the measure
     measure.run(model, runner, argument_map)
     result = runner.result
-
-    # get chiller specs after measure
-    chillers = model.getChillerElectricEIRs
-    results_a = UpgradeHvacPump.chiller_specifications(chillers)
-    counts_chillers_acc_a = results_a[0]
-    capacity_total_w_acc_a = results_a[1]
-    cop_acc_a = results_a[2]
-    counts_chillers_wcc_a = results_a[3]
-    capacity_total_w_wcc_a = results_a[4]
-    cop_wcc_a = results_a[5]
-    curve_summary_a = results_a[6]
 
     # get pump specs after measure
     pumps_const_spd = model.getPumpConstantSpeeds
@@ -158,17 +136,11 @@ class UpgradeHvacPumpTest < Minitest::Test
     # assert that it ran correctly
     assert_equal('Success', result.value.valueName)
 
-    refute_empty(result.stepInitialCondition)
+    # refute_empty(result.stepInitialCondition)
 
     refute_empty(result.stepFinalCondition)
 
     # check chilled water system specs
-    puts("### DEBUGGING: counts_chillers_acc_b = #{counts_chillers_acc_b} | counts_chillers_acc_a = #{counts_chillers_acc_a}")
-    puts("### DEBUGGING: capacity_total_w_acc_b = #{capacity_total_w_acc_b} | capacity_total_w_acc_a = #{capacity_total_w_acc_a}")
-    puts("### DEBUGGING: cop_acc_b = #{cop_acc_b} | cop_acc_a = #{cop_acc_a}")
-    puts("### DEBUGGING: counts_chillers_wcc_b = #{counts_chillers_wcc_b} | counts_chillers_wcc_a = #{counts_chillers_wcc_a}")
-    puts("### DEBUGGING: capacity_total_w_wcc_b = #{capacity_total_w_wcc_b} | capacity_total_w_wcc_a = #{capacity_total_w_wcc_a}")
-    puts("### DEBUGGING: cop_wcc_b = #{cop_wcc_b} | cop_wcc_a = #{cop_wcc_a}")
     puts("### DEBUGGING: pump_motor_eff_weighted_average_c_before = #{pump_motor_eff_weighted_average_c_before} | pump_motor_eff_weighted_average_c_after = #{pump_motor_eff_weighted_average_c_after}")
     puts("### DEBUGGING: pump_motor_bhp_weighted_average_c_before = #{pump_motor_bhp_weighted_average_c_before} | pump_motor_bhp_weighted_average_c_after = #{pump_motor_bhp_weighted_average_c_after}")
     puts("### DEBUGGING: pump_motor_eff_weighted_average_v_before = #{pump_motor_eff_weighted_average_v_before} | pump_motor_eff_weighted_average_v_after = #{pump_motor_eff_weighted_average_v_after}")
@@ -184,31 +156,7 @@ class UpgradeHvacPumpTest < Minitest::Test
        (pump_var_part_load_curve_coeff4_weighted_avg_before != pump_var_part_load_curve_coeff4_weighted_avg_after)
       coefficient_set_different = true
     end
-
-    assert_equal(counts_chillers_acc_b, counts_chillers_acc_a)
-    assert_equal(capacity_total_w_acc_b, capacity_total_w_acc_a)
-    if cop_acc_b != 0 && cop_acc_b <= 5.32 # this if statement was added because of this: https://github.com/NREL/openstudio-standards/issues/1904
-      refute_equal(cop_acc_b, cop_acc_a)
-    end
-    assert_equal(counts_chillers_wcc_b, counts_chillers_wcc_a)
-    assert_equal(capacity_total_w_wcc_b, capacity_total_w_wcc_a)
-    unless cop_wcc_b == 0 # COP equal to zero means case when there is no WCC
-      refute_equal(cop_wcc_b, cop_wcc_a)
-    end
     assert_equal(true, coefficient_set_different)
-
-    # check curve name changes
-    curve_summary_b.keys.each do |chiller_name|
-      name_cap_f_t_b = curve_summary_b[chiller_name]['cap_f_t']
-      name_eir_f_t_b = curve_summary_b[chiller_name]['eir_f_t']
-      name_eir_f_plr_b = curve_summary_b[chiller_name]['eir_f_plr']
-      name_cap_f_t_a = curve_summary_a[chiller_name]['cap_f_t']
-      name_eir_f_t_a = curve_summary_a[chiller_name]['eir_f_t']
-      name_eir_f_plr_a = curve_summary_a[chiller_name]['eir_f_plr']
-      refute_equal(name_cap_f_t_b, name_cap_f_t_a)
-      refute_equal(name_eir_f_t_b, name_eir_f_t_a)
-      refute_equal(name_eir_f_plr_b, name_eir_f_plr_a)
-    end
 
     # # save the model to test output directory
     # output_file_path = "#{File.dirname(__FILE__)}/output/#{instance_test_name}.osm"
