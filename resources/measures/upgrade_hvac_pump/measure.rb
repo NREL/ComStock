@@ -310,10 +310,10 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     # ------------------------------------------------
     # applicability
     # ------------------------------------------------
-    # if counts_chillers_acc_b == 0 && counts_chillers_wcc_b == 0
-    #   runner.registerAsNotApplicable('no chillers are found in the model.')
-    #   return true
-    # end
+    if applicable_pumps.size == 0
+      runner.registerAsNotApplicable('no eligible pumps are found in the model.')
+      return true
+    end
 
     # ------------------------------------------------
     # report initial condition
