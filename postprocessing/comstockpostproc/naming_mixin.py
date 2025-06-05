@@ -34,6 +34,15 @@ class NamingMixin():
     DIVISION = 'Division'
     MONTH = 'Month'
 
+    # As-simulated geography variables
+    TRACT_ID_AS_SIM = 'in.as_simulated_nhgis_tract_gisjoin'
+    COUNTY_ID_AS_SIM = 'in.as_simulated_nhgis_county_gisjoin'
+    STATE_ID_AS_SIM = 'in.as_simulated_nhgis_state_gisjoin'
+    CEN_DIV_AS_SIM = 'in.as_simulated_census_division_name'
+    CZ_ASHRAE_AS_SIM = 'in.as_simulated_ashrae_iecc_climate_zone_2006'
+    WF_2018_AS_SIM = 'in.as_simulated_weather_file_2018'
+    WF_TMY3_AS_SIM = 'in.as_simulated_weather_file_tmy3'
+
     # Variables needed by the apportionment sampling regime
     SAMPLING_REGION = 'in.sampling_region_id'
     COUNTY_ID = 'in.nhgis_county_gisjoin'
@@ -65,6 +74,13 @@ class NamingMixin():
 
     # Geography-defining columns
     COLS_GEOG = [
+        TRACT_ID_AS_SIM,
+        COUNTY_ID_AS_SIM,
+        STATE_ID_AS_SIM,
+        CEN_DIV_AS_SIM,
+        CZ_ASHRAE_AS_SIM,
+        WF_2018_AS_SIM,
+        WF_TMY3_AS_SIM,
         CZ_ASHRAE,
         CZ_ASHRAE_CEC_MIXED,
         'in.building_america_climate_zone',

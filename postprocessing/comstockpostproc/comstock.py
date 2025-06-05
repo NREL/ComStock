@@ -44,7 +44,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
     def __init__(self, s3_base_dir, comstock_run_name, comstock_run_version, comstock_year, athena_table_name,
         truth_data_version, buildstock_csv_name = 'buildstock.csv', acceptable_failure_percentage=0.01, drop_failed_runs=True,
         color_hex=NamingMixin.COLOR_COMSTOCK_BEFORE, weighted_energy_units='tbtu', weighted_demand_units='gw', weighted_ghg_units='co2e_mmt', weighted_utility_units='billion_usd', skip_missing_columns=False,
-        reload_from_csv=False, make_comparison_plots=True, make_timeseries_plots=True, include_upgrades=True, upgrade_ids_to_skip=[], states={}, upgrade_ids_for_comparison={}, rename_upgrades=False, output_dir=None, aws_profile_name=None):
+        reload_from_cache=False, make_comparison_plots=True, make_timeseries_plots=True, include_upgrades=True, upgrade_ids_to_skip=[], states={}, upgrade_ids_for_comparison={}, rename_upgrades=False, output_dir=None, aws_profile_name=None):
         """
         A class to load and transform ComStock data for export, analysis, and comparison.
         Args:
@@ -135,7 +135,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Load and transform data, preserving all columns
         self.download_data()
         pl.enable_string_cache()
-        if reload_from_csv:
+        if reload_from_cache:
             pqt_glob = f'{self.output_dir["fs_path"]}/cached_wide_by_upgrade/**/cached_ComStock_wide_upgrade*.parquet'
             upgrade_pqts = []
             for p in self.output_dir['fs'].glob(pqt_glob):
@@ -161,7 +161,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.data = pl.scan_csv(file_path, dtypes={self.UPGRADE_ID: pl.Int64}, infer_schema_length=50000)
             else:
                 raise FileNotFoundError(
-                f'Cannot find wide .csv or .parquet in {self.output_dir} to reload data, set reload_from_csv=False.')
+                f'Cannot find wide .csv or .parquet in {self.output_dir} to reload data, set reload_from_cache=False.')
 
             # Populate a map of columns to create weighted savings for later in processing after weights are assigned.
             for col_group in self.UNWTD_COL_GROUPS:
@@ -195,6 +195,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.data = self.downselect_imported_columns(self.data)
                 self.rename_columns_and_convert_units()
                 self.set_column_data_types()
+                self.remove_unused_as_simulated_geog_cols()
                 # Calculate/generate columns based on imported columns
                 # self.add_aeo_nems_building_type_column()  # TODO POLARS figure out apply function
                 self.add_missing_energy_columns()
@@ -204,6 +205,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.add_peak_intensity_columns()
                 self.add_vintage_column()
                 self.add_dataset_column()
+                self.add_state_id_column()
                 # self.add_upgrade_building_id_column()  # TODO POLARS figure out apply function
                 self.add_hvac_metadata()
                 self.add_building_type_group()
@@ -220,7 +222,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 # Write self.data to parquet file, hive partition on upgrade to make later processing faster
                 file_name = f'cached_ComStock_wide_upgrade{upgrade_id}.parquet'
                 upgrade_dir = f'{self.output_dir["fs_path"]}/cached_wide_by_upgrade/upgrade={upgrade_id}'
-                if isinstance(self.output_dir['fsf'], s3fs.S3FileSystem):
+                if isinstance(self.output_dir['fs'], s3fs.S3FileSystem):
                     upgrade_dir = f's3://{upgrade_dir}'
                 else:
                     os.makedirs(upgrade_dir, exist_ok=True)
@@ -1761,6 +1763,26 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # when determining unique in.foo values for SightGlass filters.
         self.data = self.data.with_columns(pl.col(self.YEAR_BUILT).cast(pl.Utf8))
 
+    def remove_unused_as_simulated_geog_cols(self):
+        as_sim_geog_cols_to_keep = [
+            self.COUNTY_ID_AS_SIM,
+            self.TRACT_ID_AS_SIM,
+            self.STATE_ID_AS_SIM,
+            self.CEN_DIV_AS_SIM,
+            self.CZ_ASHRAE_AS_SIM,
+            self.WF_2018_AS_SIM,
+            self.WF_TMY3_AS_SIM
+        ]
+        geog_cols_to_remove = []
+        for geog_col in self.COLS_GEOG:
+            if geog_col not in self.data.columns:
+                continue
+            if geog_col not in as_sim_geog_cols_to_keep:
+                geog_cols_to_remove.append(geog_col)
+        logger.debug('geog_cols_to_remove')
+        logger.debug(geog_cols_to_remove)
+        self.data = self.data.drop(geog_cols_to_remove)
+
     def add_missing_energy_columns(self):
         # Put in zeroes for end-use columns that aren't used in ComStock yet
         for engy_col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY + self.COLS_GEN_ANN_ENGY):
@@ -1930,6 +1952,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             pl.lit(self.dataset_name).alias(self.DATASET)
         ])
         self.data = self.data.with_columns(pl.col(self.DATASET))
+
+    def add_state_id_column(self):
+        self.data = self.data.with_columns(
+            pl.col(self.COUNTY_ID_AS_SIM).cast(str).str.slice(0, 4).alias(self.STATE_ID_AS_SIM)
+        )
 
     def add_upgrade_building_id_column(self):
     # Adds column that combines building ID and upgrade ID for easier joins of wide and long data
@@ -2802,14 +2829,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                             # Queue write for each data type
                             for data_type in data_types:
 
-                                # Downselect columns further if appropriate
-                                data_type_df = geo_data.clone().select(ordered_cols[data_type])
+                                # Downselect columns based on the data type
+                                geo_data_for_data_type = geo_data.clone().select(ordered_cols[data_type])
 
                                 # Queue write for all selected filetypes
                                 for file_type in file_types:
                                     file_path = get_file_path(full_geo_agg_dir, full_geo_dir, geo_prefixes, geo_levels, file_type, aggregation_level)
-                                    logger.info(f"Queuing {file_path}")
-                                    combo = (geo_data.clone(), self.output_dir, file_type, file_path)
+                                    logger.debug(f"Queuing {file_path}")
+                                    combo = (geo_data_for_data_type, self.output_dir, file_type, file_path)
                                     combos_to_write.append(combo)
 
                         # Write files in parallel
@@ -2880,7 +2907,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                             n_rows, n_cols = geo_data.shape
                             for file_type in file_types:
                                 file_path = get_file_path(full_geo_agg_dir, full_geo_dir, geo_prefixes, geo_levels, file_type, aggregation_level)
-                                logger.info(f"Queuing {file_path}: n_cols = {n_cols:,}, n_rows = {n_rows:,}")
+                                logger.debug(f"Queuing {file_path}: n_cols = {n_cols:,}, n_rows = {n_rows:,}")
                                 combo = (data_type_df, self.output_dir, file_type, file_path)
                                 combos_to_write.append(combo)
 
@@ -2906,13 +2933,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         if self.CBECS_WEIGHTS_APPLIED:
             raise RuntimeError('Unable to apply apportionment weighting after CBECS weighting - reverse order.')
 
-        # TODO this should live somewhere else - don't know where...
-        base_sim_outs = base_sim_outs.with_columns(
-            pl.col(self.COUNTY_ID).cast(str).str.slice(0, 4).alias(self.STATE_ID)
-        )
-
         # Path to cached allocated weights file
-        file_name = f'cached_ComStock_alloc_wts_TESTING_DELETE.parquet'
+        file_name = f'cached_ComStock_alloc_wts.parquet'
         fkt_file_path = f'{self.output_dir["fs_path"]}/{file_name}'
         if isinstance(self.output_dir['fs'], s3fs.S3FileSystem):
             fkt_file_path = f's3://{fkt_file_path}'
@@ -2941,10 +2963,20 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         else:
             # Pull the columns required to do the matching plus the annual energy total as a safety blanket
             # TODO this is a superset for convienience - slim down later
-            csdf = base_sim_outs.select(pl.col(
-                self.BLDG_ID, self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.SAMPLING_REGION, self.CZ_ASHRAE,
-                self.BLDG_TYPE, self.HVAC_SYS, self.SH_FUEL, self.SIZE_BIN, self.FLR_AREA, self.TOT_EUI, self.CEN_DIV
-            ))
+            geog_cols = [self.TRACT_ID_AS_SIM, self.COUNTY_ID_AS_SIM, self.STATE_ID_AS_SIM, self.CEN_DIV_AS_SIM, self.CZ_ASHRAE_AS_SIM]
+            other_cols = [self.BLDG_ID, self.SAMPLING_REGION, self.BLDG_TYPE, self.HVAC_SYS,
+                          self.SH_FUEL, self.SIZE_BIN, self.FLR_AREA, self.TOT_EUI]
+            csdf = base_sim_outs.select(pl.col(other_cols + geog_cols))
+
+            # Rename the as-simulated geography columns
+            geog_aliases = {
+                self.TRACT_ID_AS_SIM: self.TRACT_ID,
+                self.COUNTY_ID_AS_SIM: self.COUNTY_ID,
+                self.STATE_ID_AS_SIM: self.STATE_ID,
+                self.CEN_DIV_AS_SIM: self.CEN_DIV,
+                self.CZ_ASHRAE_AS_SIM: self.CZ_ASHRAE,
+            }
+            csdf = csdf.rename(geog_aliases)
 
             # raise Exception(f"columns in base_sim_outs are {list(base_sim_outs.columns)} and we are looking for {list([self.BLDG_ID, self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.SAMPLING_REGION, self.CZ_ASHRAE, self.BLDG_TYPE, self.HVAC_SYS, self.SH_FUEL, self.SIZE_BIN, self.FLR_AREA, self.TOT_EUI, self.CEN_DIV])}")
 
@@ -3157,9 +3189,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         existing_col_names = input_lf.columns
         logger.debug('Converting units in the weighted columns')
         for col in (self.GHG_FUEL_COLS +
-                     [self.ANN_GHG_EGRID, self.ANN_GHG_CAMBIUM] +
-                    # self.COLS_UTIL_BILLS +
-                    # [self.UTIL_BILL_TOTAL_MEAN, self.UTIL_BILL_ELEC_MAX, self.UTIL_BILL_ELEC_MED, self.UTIL_BILL_ELEC_MIN] +
+                    [self.ANN_GHG_EGRID, self.ANN_GHG_CAMBIUM] +
                     self.COLS_TOT_ANN_ENGY +
                     self.COLS_GEN_ANN_ENGY +
                     self.COLS_ENDUSE_ANN_ENGY +
