@@ -116,53 +116,6 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     ]
   end
 
-  # get control specifications
-  def self.control_specifications(model)
-    # initialize variables
-    total_count_spm_chw = 0.0
-    total_count_spm_cw = 0.0
-    fraction_chw_oat_reset_enabled_sum = 0.0
-    fraction_cw_oat_reset_enabled_sum = 0.0
-
-    # get plant loops
-    plant_loops = model.getPlantLoops
-
-    # get pump specs
-    plant_loops.each do |plant_loop|
-      # get loop type
-      sizing_plant = plant_loop.sizingPlant
-      loop_type = sizing_plant.loopType
-
-      # get setpoint managers
-      spms = plant_loop.supplyOutletNode.setpointManagers
-
-      case loop_type
-      when 'Cooling'
-        # get control specifications
-        spms.each do |spm|
-          total_count_spm_chw += 1
-          if spm.to_SetpointManagerOutdoorAirReset.is_initialized
-            fraction_chw_oat_reset_enabled_sum += 1
-          end
-        end
-      when 'Condenser'
-        # get control specifications
-        spms.each do |spm|
-          total_count_spm_cw += 1
-          if spm.to_SetpointManagerFollowOutdoorAirTemperature.is_initialized
-            fraction_cw_oat_reset_enabled_sum += 1
-          end
-        end
-      end
-    end
-
-    # calculate fractions
-    fraction_chw_oat_reset_enabled = total_count_spm_chw > 0.0 ? fraction_chw_oat_reset_enabled_sum / total_count_spm_chw : 0.0
-    fraction_cw_oat_reset_enabled = total_count_spm_cw > 0.0 ? fraction_cw_oat_reset_enabled_sum / total_count_spm_cw : 0.0
-
-    return fraction_chw_oat_reset_enabled, fraction_cw_oat_reset_enabled
-  end
-
   # method to search through a hash for an object that meets the name criteria
   def model_find_object(copper_curve_data, curve_name)
     # initialize variable
@@ -686,17 +639,6 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     end
 
     # ------------------------------------------------
-    # get control specifications before upgrade
-    # ------------------------------------------------
-    chw_oat_reset_enabled_before = UpgradeHvacPump.control_specifications(model)
-    if debug_verbose
-      runner.registerInfo('### ------------------------------------------------------')
-      runner.registerInfo('### control specs before upgrade')
-      runner.registerInfo("### fraction of CHW OAT reset control = #{chw_oat_reset_enabled_before}")
-      runner.registerInfo('### ------------------------------------------------------')
-    end
-
-    # ------------------------------------------------
     # applicability
     # ------------------------------------------------
     # if counts_chillers_acc_b == 0 && counts_chillers_wcc_b == 0
@@ -746,17 +688,6 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
       runner.registerInfo("### pump_var_part_load_curve_coeff3_weighted_avg = #{pump_var_part_load_curve_coeff3_weighted_avg}")
       runner.registerInfo("### pump_var_part_load_curve_coeff4_weighted_avg = #{pump_var_part_load_curve_coeff4_weighted_avg}")
       runner.registerInfo("### total count of applicable pumps = #{applicable_pumps.size}")
-      runner.registerInfo('### ------------------------------------------------------')
-    end
-
-    # ------------------------------------------------
-    # get control specifications before upgrade
-    # ------------------------------------------------
-    chw_oat_reset_enabled_after = UpgradeHvacPump.control_specifications(model)
-    if debug_verbose
-      runner.registerInfo('### ------------------------------------------------------')
-      runner.registerInfo('### control specs after upgrade')
-      runner.registerInfo("### fraction of CHW OAT reset control = #{chw_oat_reset_enabled_after}")
       runner.registerInfo('### ------------------------------------------------------')
     end
 
