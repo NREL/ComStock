@@ -2051,11 +2051,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Since this is a national calculation, groupby on building id and upgrade only in foreign key table
         national_agg = baseline_allocated_weights.clone()
-        national_agg = national_agg.select([pl.col(self.BLDG_WEIGHT), pl.col(self.BLDG_ID)]).groupby(pl.col(self.BLDG_ID)).sum()
+        national_agg = national_agg.select([pl.col(self.BLDG_WEIGHT), pl.col(self.BLDG_ID)]).group_by(pl.col(self.BLDG_ID)).sum()
         cs_data = baseline_simulation_outputs.clone()
         national_agg = national_agg.join(cs_data, on=pl.col(self.BLDG_ID))
         national_agg = national_agg.with_columns((pl.col(self.BLDG_WEIGHT) * pl.col(self.FLR_AREA)).alias(self.FLR_AREA))
-        national_agg = national_agg.select([pl.col(self.BLDG_TYPE), pl.col(self.FLR_AREA)]).groupby(pl.col(self.BLDG_TYPE)).sum().collect()
+        national_agg = national_agg.select([pl.col(self.BLDG_TYPE), pl.col(self.FLR_AREA)]).group_by(pl.col(self.BLDG_TYPE)).sum().collect()
         comstock_bldg_type_sqft: pd.DataFrame = national_agg.to_pandas().set_index(self.BLDG_TYPE)
 
         logger.debug('ComStock Baseline floor area by building type')
@@ -2262,8 +2262,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
     def create_allocated_weights_plus_util_bills_for_upgrade(self, upgrade_id, alloc_wts, sim_outs):
 
         # If the cached file already exists, scan and return
-        cached_file_name = f'cached_allocation_weights_plus_bills_upgrade{upgrade_id}.parquet'
-        alloc_wts_bills_dir = f'{self.output_dir["fs_path"]}/cached_allocation_weights_plus_bills_by_upgrade/upgrade={upgrade_id}'
+        cached_file_name = f'cached_allocated_weights_plus_bills_upgrade{upgrade_id}.parquet'
+        alloc_wts_bills_dir = f'{self.output_dir["fs_path"]}/cached_allocated_weights_plus_bills_by_upgrade/upgrade={upgrade_id}'
         cached_file_path = f'{alloc_wts_bills_dir}/{cached_file_name}'
         if isinstance(self.output_dir['fs'], s3fs.S3FileSystem):
             cached_file_path = f's3://{cached_file_path}'
@@ -2513,7 +2513,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             + cost_cols
             + [self.UTIL_ELEC_BILL_NUM_BILLS]
             + bill_label_cols
-        ).groupby(
+        ).group_by(
             [
                 pl.col(self.UPGRADE_ID),
                 pl.col(self.BLDG_ID)
@@ -3044,10 +3044,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             attrs = ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
             file_path = f'{self.output_dir["fs_path"]}/potential_apportionment_group_optimization.csv'
             with self.output_dir['fs'].open(file_path, 'w') as f:
-                tdf.select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv(f)
+                tdf.select([pl.col(col) for col in attrs]).group_by([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv(f)
             file_path = f'{self.output_dir["fs_path"]}/debugging_missing_apportionment_groups.csv'
             with self.output_dir['fs'].open(file_path, 'w') as f:
-                tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups)).select([pl.col(col) for col in attrs]).groupby([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv(f)
+                tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups)).select([pl.col(col) for col in attrs]).group_by([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv(f)
 
             # Drop unsupported truth data and add an index
             tdf = tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups).is_not())
@@ -3064,7 +3064,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 ).filter(
                     (pl.col(self.BLDG_TYPE).is_in(['PrimarySchool', 'SecondarySchool'])) &
                     (pl.col(self.FLR_AREA) > 2001)
-                ).groupby(
+                ).group_by(
                     APPO_GROUP_ID
                 ).count(
                 ).filter(
@@ -3082,15 +3082,15 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             logger.info(f'Removed {row_count_before - row_count_after} very small schools from cs results')
 
             # Create a dictionary defining how many elements of which apportionment groups to sample
-            samples_per_group = tdf.groupby(APPO_GROUP_ID).len().collect().to_pandas()
+            samples_per_group = tdf.group_by(APPO_GROUP_ID).len().collect().to_pandas()
             samples_per_group = samples_per_group.set_index(APPO_GROUP_ID).to_dict()['len']
 
             # Create a dictionary identifying the tdf indicies associated with each apportionment group
-            tdf_ids_per_group = tdf.select(pl.col('index'), pl.col(APPO_GROUP_ID)).groupby(pl.col(APPO_GROUP_ID)).agg(pl.col('index')).collect().to_pandas()
+            tdf_ids_per_group = tdf.select(pl.col('index'), pl.col(APPO_GROUP_ID)).group_by(pl.col(APPO_GROUP_ID)).agg(pl.col('index')).collect().to_pandas()
             tdf_ids_per_group = tdf_ids_per_group.set_index(APPO_GROUP_ID).to_dict()['index']
 
             # Create a dictionary of which comstock building ids are associated with each apportionment group
-            cs_ids_per_group = csdf.select(pl.col(self.BLDG_ID), pl.col(APPO_GROUP_ID)).groupby(pl.col(APPO_GROUP_ID)).agg(pl.col(self.BLDG_ID)).collect().to_pandas()
+            cs_ids_per_group = csdf.select(pl.col(self.BLDG_ID), pl.col(APPO_GROUP_ID)).group_by(pl.col(APPO_GROUP_ID)).agg(pl.col(self.BLDG_ID)).collect().to_pandas()
             cs_ids_per_group = cs_ids_per_group.set_index(APPO_GROUP_ID).to_dict()[self.BLDG_ID]
             assert(set(samples_per_group.keys()) == set(cs_ids_per_group.keys()))
 
@@ -3371,8 +3371,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             up_abs_svgs = []
             up_pct_svgs = []
 
-            for upgrade_name, up_res in self.data.groupby(self.UPGRADE_NAME):
-
+            for upgrade_name, up_res in self.data.group_by(self.UPGRADE_NAME):
+                upgrade_name = upgrade_name[0]
                 up_vals = up_res.select(val_and_id_cols).sort(self.BLDG_ID).clone()
 
                 # Check that building_ids have same order in both DataFrames before division
