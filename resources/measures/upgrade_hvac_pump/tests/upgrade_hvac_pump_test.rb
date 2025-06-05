@@ -85,6 +85,10 @@ class UpgradeHvacPumpTest < Minitest::Test
     arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
       case arg.name
+      when 'upgrade_pump'
+        upgrade_pump = arguments[idx].clone
+        upgrade_pump.setValue(true)
+        argument_map[arg.name] = upgrade_pump
       when 'debug_verbose'
         debug_verbose = arguments[idx].clone
         debug_verbose.setValue(true)
