@@ -278,6 +278,8 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     pump_rated_flow_total_c = pump_specs_cst_spd_before[1]
     pump_motor_eff_weighted_average_c = pump_specs_cst_spd_before[2]
     pump_motor_bhp_weighted_average_c = pump_specs_cst_spd_before[3]
+    count_cst_spd_pump = applicable_pumps.size
+    msg_cst_spd_pump_i = "#{count_cst_spd_pump} constant speed pumps found with #{pump_rated_flow_total_c.round(6)} m3/s total flow, #{pump_motor_eff_weighted_average_c.round(3)*100}% average motor efficiency, and #{pump_motor_bhp_weighted_average_c.round(6)} BHP."
     pump_specs_var_spd_before = UpgradeHvacPump.pump_specifications(applicable_pumps, pumps_var_spd, std)
     applicable_pumps = pump_specs_var_spd_before[0]
     pump_rated_flow_total_v = pump_specs_var_spd_before[1]
@@ -287,6 +289,8 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     pump_var_part_load_curve_coeff2_weighted_avg = pump_specs_var_spd_before[5]
     pump_var_part_load_curve_coeff3_weighted_avg = pump_specs_var_spd_before[6]
     pump_var_part_load_curve_coeff4_weighted_avg = pump_specs_var_spd_before[7]
+    count_var_spd_pump = applicable_pumps.size - count_cst_spd_pump
+    msg_var_spd_pump_i = "#{count_var_spd_pump} variable speed pumps found with #{pump_rated_flow_total_v.round(6)} m3/s total flow, #{pump_motor_eff_weighted_average_v.round(3)*100}% average motor efficiency, and #{pump_motor_bhp_weighted_average_v.round(6)} BHP."
     if debug_verbose
       runner.registerInfo('### ------------------------------------------------------')
       runner.registerInfo('### pump (used for chillers) specs before upgrade')
@@ -318,7 +322,8 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     # ------------------------------------------------
     # report initial condition
     # ------------------------------------------------
-    # runner.registerInitialCondition("found #{counts_chillers_acc_b}/#{counts_chillers_wcc_b} air-cooled/water-cooled chillers with total capacity of #{capacity_total_w_acc_b.round(0)}/#{capacity_total_w_wcc_b.round(0)} W and capacity-weighted average COP of #{cop_weighted_average_acc_b.round(2)}/#{cop_weighted_average_wcc_b.round(2)}.")
+    msg_initial = msg_cst_spd_pump_i + " " + msg_var_spd_pump_i
+    runner.registerInitialCondition(msg_initial)
 
     # ------------------------------------------------
     # pump upgrades
@@ -341,8 +346,25 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     dummy = []
     pumps_const_spd = model.getPumpConstantSpeeds
     pumps_var_spd = model.getPumpVariableSpeeds
-    _, pump_rated_flow_total_c, pump_motor_eff_weighted_average_c, pump_motor_bhp_weighted_average_c, = UpgradeHvacPump.pump_specifications(dummy, pumps_const_spd, std)
-    _, pump_rated_flow_total_v, pump_motor_eff_weighted_average_v, pump_motor_bhp_weighted_average_v, pump_var_part_load_curve_coeff1_weighted_avg, pump_var_part_load_curve_coeff2_weighted_avg, pump_var_part_load_curve_coeff3_weighted_avg, pump_var_part_load_curve_coeff4_weighted_avg = UpgradeHvacPump.pump_specifications(dummy, pumps_var_spd, std)
+    pump_specs_cst_spd_after = UpgradeHvacPump.pump_specifications(dummy, pumps_const_spd, std)
+    applicable_pumps = pump_specs_cst_spd_after[0]
+    pump_rated_flow_total_c = pump_specs_cst_spd_after[1]
+    pump_motor_eff_weighted_average_c = pump_specs_cst_spd_after[2]
+    pump_motor_bhp_weighted_average_c = pump_specs_cst_spd_after[3]
+    count_cst_spd_pump = applicable_pumps.size
+    msg_cst_spd_pump_f = "#{count_cst_spd_pump} constant speed pumps updated with #{pump_rated_flow_total_c.round(6)} m3/s total flow, #{pump_motor_eff_weighted_average_c.round(3)*100}% average motor efficiency, and #{pump_motor_bhp_weighted_average_c.round(6)} BHP."
+    pump_specs_var_spd_after = UpgradeHvacPump.pump_specifications(dummy, pumps_var_spd, std)
+    applicable_pumps = pump_specs_var_spd_after[0]
+    pump_rated_flow_total_v = pump_specs_var_spd_after[1]
+    pump_motor_eff_weighted_average_v = pump_specs_var_spd_after[2]
+    pump_motor_bhp_weighted_average_v = pump_specs_var_spd_after[3]
+    pump_var_part_load_curve_coeff1_weighted_avg = pump_specs_var_spd_after[4]
+    pump_var_part_load_curve_coeff2_weighted_avg = pump_specs_var_spd_after[5]
+    pump_var_part_load_curve_coeff3_weighted_avg = pump_specs_var_spd_after[6]
+    pump_var_part_load_curve_coeff4_weighted_avg = pump_specs_var_spd_after[7]
+    count_var_spd_pump = applicable_pumps.size - count_cst_spd_pump
+    msg_var_spd_pump_f = "#{count_var_spd_pump} variable speed pumps updated with #{pump_rated_flow_total_v.round(6)} m3/s total flow, #{pump_motor_eff_weighted_average_v.round(3)*100}% average motor efficiency, and #{pump_motor_bhp_weighted_average_v.round(6)} BHP."
+
     if debug_verbose
       runner.registerInfo('### ------------------------------------------------------')
       runner.registerInfo('### pump (used for chillers) specs after upgrade')
@@ -363,8 +385,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     # ------------------------------------------------
     # report final condition
     # ------------------------------------------------
-    msg_acc = 'TBD.'
-    msg_final_condition = "#{msg_acc}"
+    msg_final_condition = msg_cst_spd_pump_f + " " + msg_var_spd_pump_f
     runner.registerFinalCondition(msg_final_condition)
 
     return true
