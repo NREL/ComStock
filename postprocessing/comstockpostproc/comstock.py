@@ -95,6 +95,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.include_upgrades = include_upgrades
         self.upgrade_ids_to_skip = upgrade_ids_to_skip
         self.upgrade_ids_for_comparison = upgrade_ids_for_comparison
+        self.upgrade_ids_to_process = []
         self.states = states
         self.unweighted_weighted_map = {}
         self.cached_parquet = [] # List of parquet files to reload and export
@@ -134,6 +135,16 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Load and transform data, preserving all columns
         self.download_data()
+
+        # Get upgrades to process based on available results parquet files
+        results_paths = glob.glob(os.path.join(self.data_dir, 'results_up*.parquet'))
+        results_paths.sort()
+        for results_path in results_paths:
+            upgrade_id = np.int64(os.path.basename(results_path).replace('results_up', '').replace('.parquet', ''))
+            if upgrade_id in self.upgrade_ids_to_skip:
+                continue
+            self.upgrade_ids_to_process.append(upgrade_id)
+
         pl.enable_string_cache()
         if reload_from_cache:
             pqt_glob = f'{self.output_dir["fs_path"]}/cached_wide_by_upgrade/**/cached_ComStock_wide_upgrade*.parquet'
@@ -2262,15 +2273,21 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
     def create_allocated_weights_plus_util_bills_for_upgrade(self, upgrade_id, alloc_wts, sim_outs):
 
         # If the cached file already exists, scan and return
-        cached_file_name = f'cached_allocated_weights_plus_bills_upgrade{upgrade_id}.parquet'
-        alloc_wts_bills_dir = f'{self.output_dir["fs_path"]}/cached_allocated_weights_plus_bills_by_upgrade/upgrade={upgrade_id}'
-        cached_file_path = f'{alloc_wts_bills_dir}/{cached_file_name}'
+        alloc_wts_bills_dir = f'{self.output_dir["fs_path"]}/cached_allocated_weights_plus_bills/upgrade={upgrade_id}'
         if isinstance(self.output_dir['fs'], s3fs.S3FileSystem):
-            cached_file_path = f's3://{cached_file_path}'
-        if self.output_dir['fs'].exists(cached_file_path):
-            logger.info(f'Reloading allocated weights plus bills from: {cached_file_path}')
-            alloc_wts = pl.scan_parquet(cached_file_path, hive_partitioning=True, storage_options=self.output_dir['storage_options'] )
+            alloc_wts_bills_dir = f's3://{alloc_wts_bills_dir}'
+        if self.output_dir['fs'].exists(alloc_wts_bills_dir):
+            state_pqts = []
+            pqt_glob = f'{alloc_wts_bills_dir}/**/cached_allocated_weights_plus_bills_*.parquet'
+            for p in self.output_dir['fs'].glob(pqt_glob):
+                if isinstance(self.output_dir['fs'], s3fs.S3FileSystem):
+                    state_pqts.append(f's3://{p}')
+                else:
+                    state_pqts.append(p)
+            logger.info(f'Reloading allocated weights plus bills from: {alloc_wts_bills_dir}')
+            alloc_wts = pl.scan_parquet(state_pqts, hive_partitioning=True, storage_options=self.output_dir['storage_options'] )
             # Populate a dictionary of unweighted to weighted names to be used later
+            # TODO figure out a way to avoid this
             cost_cols = (self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS + [self.UTIL_BILL_TOTAL_MEAN])
             for col in cost_cols:
                 weighted_col_name = self.col_name_to_weighted(col, self.weighted_utility_units)
@@ -2459,7 +2476,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         upgrade_id = int(up_id_list[0])
 
         # Write to parquet file, hive partition on upgrade to make later processing faster
-        os.makedirs(alloc_wts_bills_dir, exist_ok=True)
+        if not isinstance(self.output_dir['fs'], s3fs.S3FileSystem):
+            os.makedirs(alloc_wts_bills_dir, exist_ok=True)
         collect_tstart = datetime.datetime.now()
         alloc_wts = alloc_wts.collect()
         collect_tend = datetime.datetime.now()
@@ -2467,10 +2485,20 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         logger.info(f"Collect time for upgrade {upgrade_id}: {elapsed_time} seconds")
         alloc_wts = alloc_wts.drop('upgrade')  # upgrade column will be read from hive partition dir name
         alloc_wts = self.reduce_df_memory(alloc_wts)
-        logger.info(f'Caching allocated weights plus bills for upgrade {upgrade_id} to: {cached_file_path}')
-        with self.output_dir['fs'].open(cached_file_path, "wb") as f:
-            alloc_wts.write_parquet(f)
-        alloc_wts = pl.scan_parquet(cached_file_path, hive_partitioning=True, storage_options=self.output_dir['storage_options'])
+        logger.info(f'Caching allocated weights plus bills for upgrade {upgrade_id} to: {alloc_wts_bills_dir}')
+        # Cache by state to enable faster reading
+        state_pqts = []
+        for state_abbv, state_alloc_wts in alloc_wts.group_by(self.STATE_ABBRV):
+            state_abbv = state_abbv[0]
+            cached_file_name = f'cached_allocated_weights_plus_bills_upgrade{upgrade_id}_{state_abbv}.parquet'
+            logger.info(f'Caching {cached_file_name}')
+            alloc_wts_bills_state_dir = f'{alloc_wts_bills_dir}/{self.STATE_ABBRV}={state_abbv}'
+            state_alloc_wts = state_alloc_wts.drop(self.STATE_ABBRV) # state column will be read from hive partition dir name
+            cached_file_path = f'{alloc_wts_bills_state_dir}/{cached_file_name}'
+            state_pqts.append(cached_file_path)
+            with self.output_dir['fs'].open(cached_file_path, "wb") as f:
+                state_alloc_wts.write_parquet(f)
+        alloc_wts = pl.scan_parquet(state_pqts, hive_partitioning=True, storage_options=self.output_dir['storage_options'])
 
         return alloc_wts
 
@@ -3186,7 +3214,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         }
 
         # Get the list of existing column names
-        existing_col_names = input_lf.columns
+        existing_col_names = input_lf.collect_schema().names()  # Requires collecting LazyFrame
         logger.debug('Converting units in the weighted columns')
         for col in (self.GHG_FUEL_COLS +
                     [self.ANN_GHG_EGRID, self.ANN_GHG_CAMBIUM] +
