@@ -1111,11 +1111,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         elif geography_to_join_on == self.STATE_ABBRV:
             geospatial_data = geospatial_data.select(state_mappings).unique()
 
-        # Cast geography column from String to Categorical for joining
-        geospatial_data = geospatial_data.with_columns(
-            pl.col(geography_to_join_on).cast(pl.Categorical)
-        )
-
         # Join on the geospatial data
         input_lf = input_lf.join(geospatial_data, on=geography_to_join_on)
 
@@ -1123,10 +1118,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
     def add_ejscreen_columns(self, input_lf: pl.LazyFrame):
         # Add the EJ Screen data
-        if not self.TRACT_ID in input_lf:
-            logger.info((f'Because the {self.TRACT_ID} column is missing '
-                'from the data, EJSCREEN characteristics cannot be joined.'))
-            return input_lf
 
         # Read the column definitions
         col_def_path = os.path.join(RESOURCE_DIR, COLUMN_DEFINITION_FILE_NAME)
@@ -1155,16 +1146,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         ejscreen = ejscreen.drop([tract_col])
         ejscreen = self.rename_geospatial_columns(ejscreen)
 
-        # Cast tract column from String to Categorical for joining
-        ejscreen = ejscreen.with_columns(
-            pl.col(self.TRACT_ID).cast(pl.Categorical)
-        )
-
         # Merge in the EJSCREEN columns
         input_lf = input_lf.join(ejscreen, on=self.TRACT_ID, how='left')
 
         # Fill nulls in EJSCREEN columns with zeroes; not all tracts have an EJSCREEN mapping
-        for c in ejscreen.columns:
+        for c in ejscreen.collect_schema().names():
             if c == self.TRACT_ID:
                 continue
             input_lf = input_lf.with_columns([pl.col(c).fill_null(0.0)])
@@ -1175,10 +1161,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
     def add_cejst_columns(self, input_lf):
         # Add the CEJST data
-        if not self.TRACT_ID in input_lf:
-            logger.info((f'Because the {self.TRACT_ID} column is missing '
-                'from the data, CEJST characteristics cannot be joined.'))
-            return input_lf
 
         # Read the column definitions
         col_def_path = os.path.join(RESOURCE_DIR, COLUMN_DEFINITION_FILE_NAME)
@@ -1210,11 +1192,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             ).alias(self.TRACT_ID))
         cejst = cejst.drop([tract_col])
         cejst = self.rename_geospatial_columns(cejst)
-
-        # Cast tract column from String to Categorical for joining
-        cejst = cejst.with_columns(
-            pl.col(self.TRACT_ID).cast(pl.Categorical)
-        )
 
         # Merge in the CEJST columns
         input_lf = input_lf.join(cejst, on=self.TRACT_ID, how='left')
@@ -1489,16 +1466,19 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         logger.info('Finding columns for export')
         tstart = datetime.datetime.now()
 
+        # Get the initial list of columns one time
+        input_lf_cols = input_lf.collect_schema().names()
+
         # If 'detailed' is used, do no downselection
         if data_type == 'detailed':
-            return list(input_lf.columns)
+            return list(input_lf.collect_schema().names())
 
         col_defs = pl.read_csv(os.path.join(RESOURCE_DIR, COLUMN_DEFINITION_FILE_NAME))
         export_cols = col_defs.filter(pl.col(f'{data_type}_metadata') == True).select(['new_col_name', 'new_units'])
         export_cols = export_cols.unique()
 
         all_cols = col_defs.select('new_col_name').to_series().to_list()
-        for c in input_lf.columns:
+        for c in input_lf_cols:
             c = c.split('..')[0]  # column name without units
             if c.startswith('applicability.'):
                 continue  # measure-within-upgrade applicability column names are dynamic, don't check
@@ -1519,7 +1499,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             else:
                 export_col_name_units = f'{export_col_name}..{export_col_units}'
 
-            if export_col_name_units in input_lf.columns:
+            if export_col_name_units in input_lf_cols:
                 cols_to_keep.append(export_col_name_units)
             else:
                 if export_col_name_units in expected_missing:
@@ -1709,7 +1689,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         col_defs = col_defs.filter(
             (pl.col('full_metadata') == True) &
             (pl.col('location').is_in(['geospatial', 'cejst', 'ejscreen'])))
-        input_lf_cols = input_lf.columns
+        input_lf_cols = input_lf.collect_schema().names()
         for col_def in col_defs.iter_rows(named=True):
             orig_name = col_def['original_col_name']
             new_name = col_def['new_col_name']
@@ -2549,7 +2529,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             + geo_agg_cols
         ).agg(
             [
-                pl.col([self.BLDG_WEIGHT] + geographic_aggregation_levels + weighted_util_cols + cost_cols + [self.UTIL_ELEC_BILL_NUM_BILLS]).sum(),
+                pl.col([self.BLDG_WEIGHT] + weighted_util_cols + cost_cols + [self.UTIL_ELEC_BILL_NUM_BILLS]).sum(),
                 pl.col([self.FLR_AREA] + bill_label_cols).first(),
             ]
         )
@@ -2614,6 +2594,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         logger.info("Calculating weighted energy savings columns")
         # Calculate the weighted columns
         wtd_agg_outs = self.add_weighted_area_energy_savings_columns(wtd_agg_outs)
+
+        # Cast geography column from Categorical to String for joining
+        wtd_agg_outs = wtd_agg_outs.with_columns(
+            pl.col(geographic_aggregation_levels[0]).cast(pl.String)
+        )
 
         # Add geospatial data columns based on most informative geography column
         wtd_agg_outs = self.add_geospatial_columns(wtd_agg_outs, geographic_aggregation_levels[0])
