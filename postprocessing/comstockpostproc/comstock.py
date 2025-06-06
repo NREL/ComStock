@@ -2720,7 +2720,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             def get_file_path(full_geo_agg_dir, full_geo_dir, geo_prefixes, geo_levels, file_type, aggregation_level):
                 # Start with either /metadata_and_annual_results or /metadata_and_annual_results_aggregates
                 agg_level_dir = full_geo_agg_dir
-                if aggregation_level is self.TRACT_ID:
+                if aggregation_level == self.TRACT_ID:
                     agg_level_dir = full_geo_dir
                 geo_level_dir = f'{agg_level_dir}/{data_type}/{file_type}'
                 if len(geo_levels) > 0:
@@ -2732,7 +2732,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     geo_prefix = '_'.join(geo_prefixes)
                     file_name = f'{geo_prefix}_{file_name}'
                 # Add aggregate suffix to filename
-                if aggregation_level is not self.TRACT_ID:
+                if not aggregation_level == self.TRACT_ID:
                     file_name = f'{file_name}_agg'
                 # Add data_type suffix to filename
                 if data_type == 'basic':
