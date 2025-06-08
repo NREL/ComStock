@@ -102,8 +102,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # TODO our currect credential setup aren't playing well with this approach but does with the s3 ServiceResource
         # We are currently unable to list the HeadObject for automatically uploaded data
         # Consider migrating all usage to s3 ServiceResource instead.
-        self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
-        self.s3_resource = boto3.resource('s3')
+        # self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
+        # self.s3_resource = boto3.resource('s3')
         if self.athena_table_name is not None:
             self.athena_client = BuildStockQuery(workgroup='eulp',
                                                  db_name='enduse',
@@ -2205,7 +2205,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         base_alloc_wts = self.get_allocated_weights_scaled_to_cbecs_for_upgrade(0)
 
         # Add utility bills to the allocated weights
-        base_alloc_wts_plus_bills = self.create_allocated_weights_plus_util_bills_for_upgrade(0, base_alloc_wts, base_sim_outs)
+        base_alloc_wts_plus_bills = self.get_allocated_weights_plus_util_bills_for_upgrade(0)
 
         # Create an aggregation for each upgrade
         up_agg_paths = []
@@ -2217,7 +2217,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             up_alloc_wts = self.get_allocated_weights_scaled_to_cbecs_for_upgrade(upgrade_id)
 
             # Add utility bills to the allocated weights
-            up_alloc_wts_plus_bills = self.create_allocated_weights_plus_util_bills_for_upgrade(upgrade_id, up_alloc_wts, up_sim_outs)
+            up_alloc_wts_plus_bills = self.get_allocated_weights_plus_util_bills_for_upgrade(upgrade_id)
 
             # Filter to this geography, downselect columns, create savings columns, and downselect columns
             wtd_agg_outs = self.create_weighted_aggregate_output(up_alloc_wts_plus_bills,
@@ -2250,7 +2250,47 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         return self.plotting_data
 
-    def create_allocated_weights_plus_util_bills_for_upgrade(self, upgrade_id, alloc_wts, sim_outs):
+
+    def get_allocated_weights_plus_util_bills_for_upgrade(self, upgrade_id):
+
+        # Read from cache
+        alloc_wts_bills_dir = f'{self.output_dir["fs_path"]}/cached_allocated_weights_plus_bills/upgrade={upgrade_id}'
+        if isinstance(self.output_dir['fs'], s3fs.S3FileSystem):
+            alloc_wts_bills_dir = f's3://{alloc_wts_bills_dir}'
+        if not self.output_dir['fs'].exists(alloc_wts_bills_dir):
+            raise Exception(f"{alloc_wts_bills_dir} does not exist. Ensure create_allocated_weights_plus_util_bills_for_upgrade has been called previously.")
+        state_pqts = []
+        pqt_glob = f'{alloc_wts_bills_dir}/**/cached_allocated_weights_plus_bills_*.parquet'
+        for p in self.output_dir['fs'].glob(pqt_glob):
+            if isinstance(self.output_dir['fs'], s3fs.S3FileSystem):
+                state_pqts.append(f's3://{p}')
+            else:
+                state_pqts.append(p)
+        logger.info(f'Reloading allocated weights plus bills from: {alloc_wts_bills_dir}')
+        alloc_wts = pl.scan_parquet(state_pqts, hive_partitioning=True, storage_options=self.output_dir['storage_options'] )
+        # Populate a dictionary of unweighted to weighted names to be used later
+        # TODO figure out a way to avoid this
+        cost_cols = (self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS + [self.UTIL_BILL_TOTAL_MEAN])
+        for col in cost_cols:
+            weighted_col_name = self.col_name_to_weighted(col, self.weighted_utility_units)
+            self.unweighted_weighted_map.update({col: weighted_col_name})
+        self.unweighted_weighted_map.update({self.UTIL_ELEC_BILL_NUM_BILLS: self.col_name_to_weighted(self.UTIL_ELEC_BILL_NUM_BILLS)})
+
+        return alloc_wts
+
+    def create_allocated_weights_plus_util_bills_for_upgrade(self, upgrade_id):
+
+        # Ensure this is a valid upgrade ID
+        avail_up_ids = pl.Series(self.data.select(pl.col(self.UPGRADE_ID)).unique().collect()).to_list()
+        if upgrade_id not in avail_up_ids:
+            raise Exception(f"Requested simulation outputs for upgrade_id={upgrade_id} not in self.data. Choose from: {avail_up_ids}")
+
+        # Add the upgrade ID to the fkt, which is identical for every upgrade
+        sim_outs = self.data.clone()
+        sim_outs = sim_outs.filter((pl.col(self.UPGRADE_ID) == upgrade_id))
+
+        sim_outs = self.get_sim_outs_for_upgrade(upgrade_id)
+        alloc_wts = self.get_allocated_weights_scaled_to_cbecs_for_upgrade(upgrade_id)
 
         # If the cached file already exists, scan and return
         alloc_wts_bills_dir = f'{self.output_dir["fs_path"]}/cached_allocated_weights_plus_bills/upgrade={upgrade_id}'
@@ -2273,14 +2313,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 weighted_col_name = self.col_name_to_weighted(col, self.weighted_utility_units)
                 self.unweighted_weighted_map.update({col: weighted_col_name})
             self.unweighted_weighted_map.update({self.UTIL_ELEC_BILL_NUM_BILLS: self.col_name_to_weighted(self.UTIL_ELEC_BILL_NUM_BILLS)})
-            return alloc_wts
+            return alloc_wts_bills_dir
 
         # The file does not exist. Create, cache, scan, and return.
         logger.info(f'Creating allocated weights plus bills for upgrade {upgrade_id}')
 
         # The allocated weights have a tract for each building
         # Assign the EIA Utility ID for each building based on this tract
-        tract_to_util_file_path = os.path.join(self.truth_data_dir, self.tract_to_util_map_file_name)
+        tract_to_util_file_path = f's3://eulp/truth_data/{self.truth_data_version}/{self.tract_to_util_map_file_name}'
         tract_to_util_map = pl.scan_csv(tract_to_util_file_path)
         alloc_wts = alloc_wts.join(tract_to_util_map, on=self.TRACT_ID, how='left')
 
@@ -2480,7 +2520,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 state_alloc_wts.write_parquet(f)
         alloc_wts = pl.scan_parquet(state_pqts, hive_partitioning=True, storage_options=self.output_dir['storage_options'])
 
-        return alloc_wts
+        return alloc_wts_bills_dir
 
     def aggregate_allocated_weights_to_geography(self,
                                                 alloc_wts,
@@ -2748,8 +2788,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             base_sim_outs = self.data.filter((pl.col(self.UPGRADE_ID) == 0))
             base_alloc_wts = self.get_allocated_weights_scaled_to_cbecs_for_upgrade(0)
 
-            # Add utility bills to the allocated weights
-            base_alloc_wts_plus_bills = self.create_allocated_weights_plus_util_bills_for_upgrade(0, base_alloc_wts, base_sim_outs)
+            # Get the allocated weights
+            base_alloc_wts_plus_bills = self.get_allocated_weights_plus_util_bills_for_upgrade(0)
 
 
             # Get the simulation outputs and allocated weights for this upgrade
@@ -2757,7 +2797,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             up_alloc_wts = self.get_allocated_weights_scaled_to_cbecs_for_upgrade(upgrade_id)
 
             # Add utility bills to the allocated weights
-            up_alloc_wts_plus_bills = self.create_allocated_weights_plus_util_bills_for_upgrade(upgrade_id, up_alloc_wts, up_sim_outs)
+            up_alloc_wts_plus_bills = self.get_allocated_weights_plus_util_bills_for_upgrade(upgrade_id)
 
             # Write raw data and all aggregation levels
             for aggregation_level in aggregation_levels:
