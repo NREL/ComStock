@@ -72,7 +72,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.ejscreen_file_name = 'EJSCREEN_Tract_2020_USPR.csv'
         self.egrid_file_name = 'egrid_emissions_2019.csv'
         self.cejst_file_name = '1.0-communities.csv'
-        self.geospatial_lookup_file_name = 'spatial_tract_lookup_table_publish_v8.csv'
+        self.geospatial_lookup_file_name = 'spatial_tract_lookup_table_publish_v9.csv'
         self.tract_to_util_map_file_name = 'tract_to_elec_util.csv'
         self.hvac_metadata_file_name = 'hvac_metadata.csv'
         self.rename_upgrades = rename_upgrades
@@ -1477,16 +1477,17 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         export_cols = col_defs.filter(pl.col(f'{data_type}_metadata') == True).select(['new_col_name', 'new_units'])
         export_cols = export_cols.unique()
 
+        cols_to_keep = []
         all_cols = col_defs.select('new_col_name').to_series().to_list()
         for c in input_lf_cols:
             c = c.split('..')[0]  # column name without units
             if c.startswith('applicability.'):
+                cols_to_keep.append(c)
                 continue  # measure-within-upgrade applicability column names are dynamic, don't check
             if c not in all_cols:
                 logger.warning(f'No entry for {c} in {COLUMN_DEFINITION_FILE_NAME}')
 
         # Check for missing columns
-        cols_to_keep = []
         cols_missing = []
         expected_missing = (
             self.COLS_GEOG

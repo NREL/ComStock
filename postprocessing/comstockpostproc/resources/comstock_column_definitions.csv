@@ -122,6 +122,7 @@ geospatial,resstock_county_id,in.county_name,TRUE,TRUE,string,,,State abbreviati
 geospatial,resstock_puma_id,in.resstock_puma_id,FALSE,FALSE,string,,,State abbreviation and PUMA identifier
 geospatial,resstock_custom_region,in.resstock_custom_region,FALSE,FALSE,string,,,
 geospatial,cambium_grid_region,in.cambium_grid_region,TRUE,FALSE,string,,,Specifies Cambium grid region
+geospatial,cec_climate_zone,in.cec_climate_zone,TRUE,FALSE,string,,,Specifies the California Energy Commission climate zone. Only applicable inside California.
 cejst,Census tract 2010 ID,,FALSE,FALSE,,,,Census tract identifier
 cejst,Identified as disadvantaged,in.cejst_is_disadvantaged,TRUE,FALSE,boolean,,,Whether the building's census tract is identified as a disadvantaged community in the EPA CEJST tool. See CEJST documentation for more details.
 ejscreen,ID,,FALSE,FALSE,string,,,Census tract identifier

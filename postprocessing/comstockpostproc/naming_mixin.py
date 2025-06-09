@@ -23,6 +23,7 @@ class NamingMixin():
     VINTAGE = 'in.vintage'
     CZ_ASHRAE = 'in.ashrae_iecc_climate_zone_2006'
     CZ_ASHRAE_CEC_MIXED = 'in.ashrae_or_cec_climate_zone'
+    CZ_CEC = 'in.cec_climate_zone'
     UPGRADE_NAME = 'in.upgrade_name'
     UPGRADE_ID = 'upgrade'
     UPGRADE_APPL = 'applicability'
@@ -83,6 +84,7 @@ class NamingMixin():
         WF_TMY3_AS_SIM,
         CZ_ASHRAE,
         CZ_ASHRAE_CEC_MIXED,
+        CZ_CEC,
         'in.building_america_climate_zone',
         'in.cambium_grid_region',
         CEN_DIV,
