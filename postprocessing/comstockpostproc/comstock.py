@@ -1037,7 +1037,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         col_defs = col_defs[(col_defs['location'] == 'geospatial') & (col_defs['full_metadata'] == True)]
         col_def_names = col_defs['original_col_name'].tolist()
 
-        file_path = os.path.join(self.truth_data_dir, self.geospatial_lookup_file_name)
+        file_path = f's3://eulp/truth_data/{self.truth_data_version}/spatial_lookups/{self.geospatial_lookup_file_name}'
         geospatial_data = pl.scan_csv(file_path, infer_schema_length=None)
         # TODO nhgis_county_gisjoin column should be added to the geospatial data file
         geospatial_data = geospatial_data.with_columns(
@@ -1130,7 +1130,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         col_def_names.append('ID')  # Used for join only
 
         # Read the buildstock.csv and join columns onto annual results by building ID
-        file_path = os.path.join(self.truth_data_dir, self.ejscreen_file_name)
+        file_path = f's3://eulp/truth_data/{self.truth_data_version}/EPA/EJSCREEN/{self.ejscreen_file_name}'
         ejscreen = pl.scan_csv(file_path).select(col_def_names)
         ejscreen = ejscreen.with_columns([pl.col(tract_col).cast(pl.Utf8)])
 
@@ -1177,7 +1177,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             col_def_types[c] = str
 
         # Read the buildstock.csv and join columns onto annual results by building ID
-        file_path = os.path.join(self.truth_data_dir, self.cejst_file_name)
+        file_path = f's3://eulp/truth_data/{self.truth_data_version}/EPA/CEJST/{self.cejst_file_name}'
         cejst = pl.scan_csv(file_path).select(col_def_names)
         cejst = cejst.with_columns([pl.col(tract_col).cast(pl.Utf8)])
 
@@ -2714,6 +2714,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Export to all geographies
         logger.info(f'Exporting /metadata_and_annual_results and /metadata_and_annual_results_aggregates')
+        tstart = datetime.datetime.now()
         for ge in geo_exports:
             ge_tstart = datetime.datetime.now()
             geo_top_dir = ge['geo_top_dir']
@@ -2784,17 +2785,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
                 return file_path
 
-            # Get the simulation outputs and allocated weights for the baseline
-            base_sim_outs = self.data.filter((pl.col(self.UPGRADE_ID) == 0))
-            base_alloc_wts = self.get_allocated_weights_scaled_to_cbecs_for_upgrade(0)
-
             # Get the allocated weights
             base_alloc_wts_plus_bills = self.get_allocated_weights_plus_util_bills_for_upgrade(0)
 
-
             # Get the simulation outputs and allocated weights for this upgrade
             up_sim_outs = self.data.filter((pl.col(self.UPGRADE_ID) == upgrade_id))
-            up_alloc_wts = self.get_allocated_weights_scaled_to_cbecs_for_upgrade(upgrade_id)
 
             # Add utility bills to the allocated weights
             up_alloc_wts_plus_bills = self.get_allocated_weights_plus_util_bills_for_upgrade(upgrade_id)
@@ -2976,6 +2971,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             logger.info(f'Partitioned by: {geo_col_names}')
             logger.info(f'Geographic aggregation levels: {aggregation_levels}')
             logger.info(f'Time elapsed: {(ge_tend - ge_tstart).total_seconds()} seconds')
+
+        return f'Finished {geo_exports} for upgrade {upgrade_id} in {(datetime.datetime.now() - tstart).total_seconds()} seconds.'
 
     def create_allocated_weights(self,
                                 apportionment: Apportion,
