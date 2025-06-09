@@ -773,6 +773,9 @@ class NamingMixin():
         {
             'cols': (COLS_QOI_MONTHLY_MAX_DAILY_PEAK +
                             COLS_QOI_MONTHLY_MED_DAILY_PEAK +
+                            COLS_QOI_MONTHLY_MEAN_DAILY_PEAK +
+                            COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_WIN +
+                            COLS_QOI_MONTHLY_MEAN_DAILY_PEAK_GRID_PEAK +
                             [QOI_MAX_SHOULDER_USE,
                             QOI_MAX_SUMMER_USE,
                             QOI_MAX_WINTER_USE]),
