@@ -147,7 +147,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         pl.enable_string_cache()
         if reload_from_cache:
-            pqt_glob = f'{self.output_dir["fs_path"]}/cached_wide_by_upgrade/**/cached_ComStock_wide_upgrade*.parquet'
+            pqt_glob = f'{self.output_dir["fs_path"]}/cached_simulation_outputs/**/cached_simulation_outputs_upgrade*.parquet'
             upgrade_pqts = []
             for p in self.output_dir['fs'].glob(pqt_glob):
                 if isinstance(self.output_dir['fs'], s3fs.S3FileSystem):
@@ -159,20 +159,16 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 upgrade_dfs = []
                 for file_path in upgrade_pqts:
                     bn = os.path.basename(file_path)
-                    up_id = int(bn.replace('cached_ComStock_wide_upgrade', '').replace('.parquet', ''))
+                    up_id = int(bn.replace('cached_simulation_outputs_upgrade', '').replace('.parquet', ''))
                     if up_id in self.upgrade_ids_to_skip:
                         logger.info(f'Skipping reload for upgrade {up_id}')
                         continue
                     logger.info(f'Reloading data from: {file_path}')
                     upgrade_dfs.append(file_path)
                 self.data = pl.scan_parquet(upgrade_dfs, hive_partitioning=True, storage_options=self.output_dir['storage_options'])
-            elif os.path.exists(os.path.join(self.output_dir, 'ComStock wide.csv')):
-                file_path = os.path.join(self.output_dir, 'ComStock wide.csv')
-                logger.info(f'Reloading data from: {file_path}')
-                self.data = pl.scan_csv(file_path, dtypes={self.UPGRADE_ID: pl.Int64}, infer_schema_length=50000)
             else:
                 raise FileNotFoundError(
-                f'Cannot find wide .csv or .parquet in {self.output_dir} to reload data, set reload_from_cache=False.')
+                f'Cannot find .parquet files in {self.output_dir["fs_path"]}/cached_simulation_outputs to reload data, set reload_from_cache=False.')
 
             # Populate a map of columns to create weighted savings for later in processing after weights are assigned.
             for col_group in self.UNWTD_COL_GROUPS:
@@ -231,8 +227,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.data = self.data.filter(pl.col(self.UPGRADE_ID) == upgrade_id)
                 # self._sightGlass_metadata_check(self.data)
                 # Write self.data to parquet file, hive partition on upgrade to make later processing faster
-                file_name = f'cached_ComStock_wide_upgrade{upgrade_id}.parquet'
-                upgrade_dir = f'{self.output_dir["fs_path"]}/cached_wide_by_upgrade/upgrade={upgrade_id}'
+                file_name = f'cached_simulation_outputs_upgrade{upgrade_id}.parquet'
+                upgrade_dir = f'{self.output_dir["fs_path"]}/cached_simulation_outputs/upgrade={upgrade_id}'
                 if isinstance(self.output_dir['fs'], s3fs.S3FileSystem):
                     upgrade_dir = f's3://{upgrade_dir}'
                 else:
