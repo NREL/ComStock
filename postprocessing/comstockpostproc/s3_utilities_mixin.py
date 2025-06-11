@@ -200,9 +200,10 @@ class S3UtilitiesMixin:
             output_dir['storage_options'] = {
                 "aws_access_key_id": credentials.access_key,
                 "aws_secret_access_key": credentials.secret_key,
-                "aws_session_token": credentials.token,
                 "aws_region": "us-west-2"
             }
+            if credentials.token:
+                output_dir['storage_options']["aws_session_token"] = credentials.token
         else:
             output_dir['storage_options'] = None
 
