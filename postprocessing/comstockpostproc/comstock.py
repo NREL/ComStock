@@ -2109,6 +2109,22 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             raise Exception(f"{file_path} does not exist. Ensure create_allocated_weights has been called previously.")
         alloc_wts = pl.scan_parquet(file_path, storage_options=self.output_dir['storage_options'])
 
+        # Join on the missing PUMA ID
+        # TODO this should be done in the initial fkt creation; remove once fixed
+        geo_cols = {
+            'nhgis_tract_gisjoin': self.TRACT_ID,
+            'nhgis_puma_gisjoin': self.PUMA_ID,
+        }
+        file_path = f's3://eulp/truth_data/{self.truth_data_version}/spatial_lookups/{self.geospatial_lookup_file_name}'
+        geospatial_data = pl.scan_csv(file_path, infer_schema_length=None)
+        geospatial_data = geospatial_data.select(list(geo_cols.keys()))
+        geospatial_data = geospatial_data.rename(geo_cols)
+        # Cast tract column from Categorical to String for joining
+        alloc_wts = alloc_wts.with_columns(
+            pl.col(self.TRACT_ID).cast(pl.String)
+        )
+        alloc_wts = alloc_wts.join(geospatial_data, on=self.TRACT_ID)
+
         return alloc_wts
 
     def get_allocated_weights_scaled_to_cbecs_for_upgrade(self, upgrade_id):
@@ -2272,6 +2288,22 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             weighted_col_name = self.col_name_to_weighted(col, self.weighted_utility_units)
             self.unweighted_weighted_map.update({col: weighted_col_name})
         self.unweighted_weighted_map.update({self.UTIL_ELEC_BILL_NUM_BILLS: self.col_name_to_weighted(self.UTIL_ELEC_BILL_NUM_BILLS)})
+
+        # Join on the missing PUMA ID
+        # TODO this should be done in the initial fkt creation; remove once fixed
+        geo_cols = {
+            'nhgis_tract_gisjoin': self.TRACT_ID,
+            'nhgis_puma_gisjoin': self.PUMA_ID,
+        }
+        file_path = f's3://eulp/truth_data/{self.truth_data_version}/spatial_lookups/{self.geospatial_lookup_file_name}'
+        geospatial_data = pl.scan_csv(file_path, infer_schema_length=None)
+        geospatial_data = geospatial_data.select(list(geo_cols.keys()))
+        geospatial_data = geospatial_data.rename(geo_cols)
+        # Cast tract column from Categorical to String for joining
+        alloc_wts = alloc_wts.with_columns(
+            pl.col(self.TRACT_ID).cast(pl.String)
+        )
+        alloc_wts = alloc_wts.join(geospatial_data, on=self.TRACT_ID)
 
         return alloc_wts
 
@@ -2670,7 +2702,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         assert isinstance(wtd_agg_outs, pl.LazyFrame)
         return wtd_agg_outs
 
-    def export_metadata_and_annual_results_for_upgrade(self, upgrade_id, geo_exports):
+    def export_metadata_and_annual_results_for_upgrade(self, upgrade_id, geo_exports, n_parallel=-1):
         # # Define the geographic partitions to export
         # geo_exports = [
         # {'geo_top_dir': 'national',
@@ -2887,7 +2919,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         # Write files in parallel
                         logger.info(f'Writing {len(combos_to_write)} files in parallel')
                         write_tstart = datetime.datetime.now()
-                        with Parallel(n_jobs=-1) as parallel:
+                        with Parallel(n_jobs=n_parallel) as parallel:
                             parallel(delayed(write_geo_data)(combo) for combo in combos_to_write)
                         logger.info(f"Write time for {first_geo_combo}: {(datetime.datetime.now() - write_tstart).total_seconds()} seconds")
                         # # Attempting to avoid crashes
@@ -2959,7 +2991,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     # Write files in parallel
                     logger.info(f'Writing {len(combos_to_write)} files in parallel')
                     write_tstart = datetime.datetime.now()
-                    with Parallel(n_jobs=-1) as parallel:
+                    with Parallel(n_jobs=n_parallel) as parallel:
                         parallel(delayed(write_geo_data)(combo) for combo in combos_to_write)
                     logger.info(f"Write time for {aggregation_level}: {(datetime.datetime.now() - write_tstart).total_seconds()} seconds")
 
@@ -2994,7 +3026,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.fkt = pl.scan_parquet(fkt_file_path, storage_options=self.output_dir['storage_options'])
 
                 # Join on the missing PUMA ID
-                # TODO this should be done in the initial fkt creation
+                # TODO this should be done in the initial fkt creation; remove once fixed (in 3 places)
                 geo_cols = {
                     'nhgis_tract_gisjoin': self.TRACT_ID,
                     'nhgis_puma_gisjoin': self.PUMA_ID,
