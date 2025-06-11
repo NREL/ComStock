@@ -253,7 +253,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         for file in os.listdir(path):
             if file.startswith("failure_summary_") and file.endswith(".csv"):
                 #open the file and read the content
-                with self.output_dir['fs'].open(f'{path}/file)', 'r') as f:
+                with self.output_dir['fs'].open(f'{path}/{file}', 'r') as f:
                     for line in f:
                         if line not in alLines:
                             alLines.append(line)
