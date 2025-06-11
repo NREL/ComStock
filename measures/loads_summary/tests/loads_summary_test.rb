@@ -12,7 +12,7 @@ require_relative '../../../test/helpers/minitest_helper'
 class LoadsSummaryTest < Minitest::Test
   def debug
     # return true
-    return true
+    return false
   end
 
   def timeseries
@@ -20,9 +20,9 @@ class LoadsSummaryTest < Minitest::Test
     return true
   end
 
-  def supply
+  def script_version
     # return true
-    return false
+    return 2  # change this to the version of the script you are testing
   end
 
   def teardown
@@ -104,10 +104,20 @@ class LoadsSummaryTest < Minitest::Test
     args_hash.each do |key, value|
       step.setArgument(key, value)
     end
-    puts step
+
     check = workflow.setMeasureSteps(OpenStudio::MeasureType.new("ReportingMeasure"), [step])
-    puts check
+
+    # # try not translating spaces
+    # fto = OpenStudio::ForwardTranslatorOptions.new
+    # fto.setExcludeSpaceTranslation(true)
+    # fto.setExcludeLCCObjects(true)
+    # ro = OpenStudio::RunOptions.new
+    # ro.setSkipEnergyPlusPreprocess(true)
+    # ro.setForwardTranslatorOptions(fto)
+    # workflow.setRunOptions(ro)
+
     puts workflow
+
     workflow.saveAs(osw_path)
 
     cli_path = OpenStudio.getOpenStudioCLI
@@ -184,6 +194,9 @@ class LoadsSummaryTest < Minitest::Test
   #   epw_path = "#{__dir__}/test.epw"
 
   #   args_hash = {
+  #     'report_timeseries_data' => timeseries,
+  #     'debug_mode' => debug,
+  #     'script_version' => script_version
   #   }
 
   #   run_in_workflow(test_name, test_model_path, args_hash, epw_path)
@@ -199,8 +212,8 @@ class LoadsSummaryTest < Minitest::Test
   #   # set the arguments to test
   #   args_hash = {
   #     'report_timeseries_data' => timeseries,
-  #     'enable_supply_side_reporting' => supply,
-  #     'debug_mode' => debug
+  #     'debug_mode' => debug,
+  #     'script_version' => script_version
   #   }
 
   #   # run the measure
@@ -218,8 +231,8 @@ class LoadsSummaryTest < Minitest::Test
   #   # set the arguments to test
   #   args_hash = {
   #     'report_timeseries_data' => timeseries,
-  #     'enable_supply_side_reporting' => supply,
-  #     'debug_mode' => debug
+  #     'debug_mode' => debug,
+  #     'script_version' => script_version
   #   }
 
   #   # run the measure
@@ -237,7 +250,7 @@ class LoadsSummaryTest < Minitest::Test
   #   # set the arguments to test
   #   args_hash = {
   #     'report_timeseries_data' => timeseries,
-  #     'enable_supply_side_reporting' => supply,
+  #     'script_version' => script_version,
   #     'debug_mode' => debug
   #   }
 
@@ -256,7 +269,8 @@ class LoadsSummaryTest < Minitest::Test
   #   # set the arguments to test
   #   args_hash = {
   #     'report_timeseries_data' => timeseries,
-  #     'debug_mode' => debug
+  #     'debug_mode' => debug,
+  #     'script_version' => script_version
   #   }
 
   #   # run the measure
@@ -274,7 +288,8 @@ class LoadsSummaryTest < Minitest::Test
   #   # set the arguments to test
   #   args_hash = {
   #     'report_timeseries_data' => timeseries,
-  #     'debug_mode' => debug
+  #     'debug_mode' => debug,
+  #     'script_version' => script_version
   #   }
 
   #   # run the measure
@@ -284,7 +299,7 @@ class LoadsSummaryTest < Minitest::Test
   # end
 
   def test_cz3C_small_office
-    test_name = 'test_cz3C_small_office'
+    test_name = "test_cz3C_small_office_#{script_version}"
     test_model_name = 'CZ3C_small_office_10001_25000_PTHP.osm'
     test_model_path =  "#{__dir__}/#{test_model_name}"
     epw_path = "#{__dir__}/G0600530.epw"
@@ -292,7 +307,8 @@ class LoadsSummaryTest < Minitest::Test
     # set the arguments to test
     args_hash = {
       'report_timeseries_data' => timeseries,
-      'debug_mode' => debug
+      'debug_mode' => debug,
+      'script_version' => script_version
     }
 
     # run the measure

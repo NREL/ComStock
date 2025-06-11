@@ -4,6 +4,7 @@
 # http://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/
 
 require 'erb'
+require 'json'
 
 # start the measure
 class LoadsSummary < OpenStudio::Measure::ReportingMeasure
@@ -36,6 +37,11 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
     debug_mode.setDisplayName('Enable extra variables for debugging zone loads')
     debug_mode.setDefaultValue(false)
     args << debug_mode
+
+    script_version = OpenStudio::Measure::OSArgument.makeIntegerArgument('script_version', true)
+    script_version.setDisplayName('Script Version')
+    script_version.setDefaultValue(1)
+    args << script_version
 
     return args
   end
@@ -94,14 +100,36 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
       'Enclosure Windows Total Transmitted Solar Radiation Energy',
       'Surface Window Inside Face Glazing Net Infrared Heat Transfer Rate',
       'Surface Window Inside Face Shade Net Infrared Heat Transfer Rate',
-      'Surface Window Inside Face Gap between Shade and Glazing Zone Convection Heat Gain Rate[Exterior Windows',
+      'Surface Window Inside Face Gap between Shade and Glazing Zone Convection Heat Gain Rate',
       'Surface Inside Face Convection Heat Gain Energy',
       'Zone Infiltration Sensible Heat Gain Energy',
       'Zone Infiltration Sensible Heat Loss Energy',
       'Zone Mechanical Ventilation Heating Load Increase Energy',
       'Zone Mechanical Ventilation Heating Load Decrease Energy',
       'Zone Mechanical Ventilation Cooling Load Increase Energy',
-      'Zone Mechanical Ventilation Cooling Load Decrease Energy'
+      'Zone Mechanical Ventilation Cooling Load Decrease Energy',
+    ]
+  end
+
+  def debug_vars
+    [
+      'people_conv',
+      'people_delayed',
+      'light_conv',
+      'light_delayed',
+      'equip_conv',
+      'equip_delayed',
+      'total_delayed',
+      'win_sol_delayed',
+      'window_ir_delayed',
+      'int_surf_conv',
+      'attributable_ext_surf_conv',
+      'ext_wall_conv',
+      'ext_roof_conv',
+      'ext_gnd_flr_conv',
+      'ext_win_conv',
+      'infil',
+      'vent'
     ]
   end
 
@@ -146,34 +174,26 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
   end
 
   def get_surface_info(model)
-    ext_surf_h = {}
-    int_surf_h = {}
+    surf_h = {}
 
     model.getThermalZones.sort.each do |zone|
       zone_name = zone.name.get
-      ext_surf_h[zone_name] = {}
-      int_surf_h[zone_name] = {}
+      surf_h[zone_name] = {}
 
-      ext_surf_h[zone_name]['ext_wall'] = get_surface_names_areas_by_bc_and_type(zone, ['Outdoors'], 'Wall')
-      ext_surf_h[zone_name]['fnd_wall'] = get_surface_names_areas_by_bc_and_type(zone, ['Ground', 'GroundFCfactorMethod', 'Foundation'], 'Wall')
-      ext_surf_h[zone_name]['roof'] = get_surface_names_areas_by_bc_and_type(zone, ['Outdoors'], 'RoofCeiling')
-      ext_surf_h[zone_name]['ext_flr'] = get_surface_names_areas_by_bc_and_type(zone, ['Outdoors'], 'Floor')
-      ext_surf_h[zone_name]['gnd_flr'] = get_surface_names_areas_by_bc_and_type(zone, ['Ground', 'GroundFCfactorMethod', 'Foundation'], 'Floor')
-      ext_surf_h[zone_name]['win'] = get_subsurface_names_areas_by_type(zone, 'window')
-      ext_surf_h[zone_name]['door'] = get_subsurface_names_areas_by_type(zone, 'door')
-
-
-      int_surf_h[zone_name]['int_wall'] = get_surface_names_areas_by_bc_and_type(zone, ['Surface', 'Adiabatic'], 'Wall')
-      int_surf_h[zone_name]['int_ceil'] = get_surface_names_areas_by_bc_and_type(zone, ['Surface', 'Adiabatic'], 'RoofCeiling')
-      int_surf_h[zone_name]['int_flr'] = get_surface_names_areas_by_bc_and_type(zone, ['Surface', 'Adiabatic'], 'Floor')
-      int_surf_h[zone_name]['int_mass'] = get_internal_mass_names_areas(zone)
+      surf_h[zone_name]['ext_wall'] = get_surface_names_areas_by_bc_and_type(zone, ['Outdoors'], 'Wall')
+      surf_h[zone_name]['fnd_wall'] = get_surface_names_areas_by_bc_and_type(zone, ['Ground', 'GroundFCfactorMethod', 'Foundation'], 'Wall')
+      surf_h[zone_name]['roof'] = get_surface_names_areas_by_bc_and_type(zone, ['Outdoors'], 'RoofCeiling')
+      surf_h[zone_name]['ext_flr'] = get_surface_names_areas_by_bc_and_type(zone, ['Outdoors'], 'Floor')
+      surf_h[zone_name]['gnd_flr'] = get_surface_names_areas_by_bc_and_type(zone, ['Ground', 'GroundFCfactorMethod', 'Foundation'], 'Floor')
+      surf_h[zone_name]['win'] = get_subsurface_names_areas_by_type(zone, 'window')
+      surf_h[zone_name]['door'] = get_subsurface_names_areas_by_type(zone, 'door')
+      surf_h[zone_name]['int_wall'] = get_surface_names_areas_by_bc_and_type(zone, ['Surface', 'Adiabatic'], 'Wall')
+      surf_h[zone_name]['int_ceil'] = get_surface_names_areas_by_bc_and_type(zone, ['Surface', 'Adiabatic'], 'RoofCeiling')
+      surf_h[zone_name]['int_flr'] = get_surface_names_areas_by_bc_and_type(zone, ['Surface', 'Adiabatic'], 'Floor')
+      surf_h[zone_name]['int_mass'] = get_internal_mass_names_areas(zone)
     end
 
-    require 'json'
-    ext_surf_h_json = JSON.pretty_generate(ext_surf_h)
-    int_surf_h_json = JSON.pretty_generate(int_surf_h)
-
-    return ext_surf_h_json, int_surf_h_json
+    return surf_h
   end
 
   # This method is called on all reporting measures immediately before the translation to E+ IDF
@@ -213,13 +233,65 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
       out_var.setReportingFrequency('Timestep') # TODO: change to 'RunPeriod' for production
     end
 
-    # get surface information
-    ext_surf_h_json, int_surf_h_json = get_surface_info(model)
+    infil_out = OpenStudio::Model::OutputVariable.new('Zone Infiltration Sensible Heat Loss Energy', model)
+    infil_out.setReportingFrequency('Timestep')
+
+    debug_mode = runner.getBoolArgumentValue('debug_mode', user_arguments)
+    debug_vars = debug_vars()
+
+    if debug_mode
+      model.getThermalZones.each do |zone|
+        zn_name = zone.name.get.downcase.gsub(' ', '_')
+        debug_vars.each do |var_name|
+          # python plugin variables
+          py_var = OpenStudio::Model::PythonPluginVariable.new(model)
+          py_var.setName("#{zn_name}_#{var_name}_glob")
+
+          # python plugin output variables
+          py_out_var = OpenStudio::Model::PythonPluginOutputVariable.new(py_var)
+          py_out_var.setName("#{zn_name}_#{var_name}")
+          py_out_var.setTypeofDatainVariable('Summed')
+          # add a regular output variable that references it
+          out_var = OpenStudio::Model::OutputVariable.new("PythonPlugin:OutputVariable", model)
+          out_var.setKeyValue(py_out_var.nameString)
+
+          if var_name == 'infil' or var_name == 'vent'
+            py_out_var.setUpdateFrequency('SystemTimestep')
+            out_var.setReportingFrequency('Detailed') # TODO: change to 'RunPeriod' for production
+          else
+            py_out_var.setUpdateFrequency('ZoneTimestep')
+            out_var.setReportingFrequency('Timestep') # TODO: change to 'RunPeriod' for production
+          end
+          py_out_var.setUnits('J')
+
+
+          
+        end
+      end
+    end
+    model.getOutputControlFiles.setOutputCSV(true)
 
     # read in the template
     rsrcs = "#{File.dirname(__FILE__)}/resources"
     
-    temp_path = "#{rsrcs}/python_plugin.py.erb"
+    script_version = runner.getIntegerArgumentValue('script_version', user_arguments)
+    # get surface information
+    surf_h = get_surface_info(model)
+    if script_version == 1
+      ext_surfs = ['ext_wall', 'fnd_wall', 'roof', 'ext_flr', 'gnd_flr', 'win', 'door']
+      ext_surf_h = surf_h.transform_values { |h| h.select { |k, _| ext_surfs.include? k}}
+      ext_surf_h_json = JSON.pretty_generate(ext_surf_h)
+      int_surfs = ['int_wall', 'int_ceil', 'int_flr', 'int_mass']
+      int_surf_h = surf_h.transform_values { |h| h.select { |k, _| int_surfs.include? k}}
+      int_surf_h_json = JSON.pretty_generate(int_surf_h)
+
+      temp_path = "#{rsrcs}/python_plugin.py.erb"
+    else
+      surf_h_json = JSON.pretty_generate(surf_h)
+      temp_path = "#{rsrcs}/python_plugin2.py.erb"
+    end
+
+    # temp_path = "#{rsrcs}/python_plugin.py.erb"
     template = ''
     File.open(temp_path, 'r') do |file|
       template = file.read
@@ -244,6 +316,10 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
     # python plugin search paths
     # TODO if we need external libraries
     
+    # rp = model.getRunPeriod
+    # rp.setEndMonth(1)
+    # rp.setEndDayOfMonth(1)
+    
     return true
   end
 
@@ -262,7 +338,7 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
         if !desired_units.nil? && time_series.units != desired_units
           begin
             conversion = OpenStudio.convert(1.0, time_series.units, desired_units).get
-            time_series *= conversion
+            time_series = time_series * conversion
           rescue StandardError => e
             runner.registerError("Failed to convert units from #{time_series.units} to #{desired_units} for #{variable_name}: #{e.message}")
             return Array.new(num_timesteps, 0.0)
@@ -274,7 +350,7 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
     else
       # Query is not valid.
       time_series_array = Array.new(num_timesteps, 0.0)
-      # runner.registerWarning("Timeseries query: '#{variable_name}' for '#{key_value}' at '#{timestep}' not found, returning array of zeros")
+      runner.registerWarning("Timeseries query: '#{variable_name}' for '#{key_value}' at '#{timestep}' not found, returning array of zeros")
     end
 
     return time_series_array
@@ -344,7 +420,7 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
     # query the component outputs and register values
     components.each do |component|
       modes.each do |mode|
-        ts = get_timeseries_array(runner, sql_file, ann_env_pd, 'Zone Timestep', 'p', "#{component}_#{mode}", num_ts, 'J', 'GJ')
+        ts = get_timeseries_array(runner, sql_file, ann_env_pd, 'Zone Timestep', 'PythonPlugin:OutputVariable', "#{component}_#{mode}", num_ts, 'J', 'GJ')
         runner.registerValue("#{component}_#{mode}", ts.sum, 'GJ')
       end
     end

@@ -1,0 +1,601 @@
+from pyenergyplus.plugin import EnergyPlusPlugin
+from collections import deque, defaultdict
+import json
+
+MODES = {0:'htg', 1:'clg', 2:'flt'}
+COMPONENTS = {i: c for i, c in enumerate([
+    'people_gain',
+    'light_gain',
+    'equip_gain',
+    'win_sol',
+    'ext_wall',
+    'fnd_wall',
+    'roof',
+    'ext_flr',
+    'gnd_flr',
+    'win_cond',
+    'door',
+    'infil',
+    'vent'
+])}
+
+EXT_SURFS = [
+    'ext_wall',
+    'fnd_wall',
+    'roof',
+    'ext_flr',
+    'gnd_flr',
+    'win',
+    'door'
+]
+INT_SURFS = [
+    'int_wall',
+    'int_ceil',
+    'int_flr',
+    'int_mass'
+]
+
+ZN_OUTPUT_MAP = {i: t for i, t in enumerate([
+    ('zahbsatr', 'Zone Air Heat Balance System Air Transfer Rate'),
+    ('zahbschgr', 'Zone Air Heat Balance System Convective Heat Gain Rate'),
+    ('zpche', 'Zone People Convective Heating Energy'),
+    ('zprhe', 'Zone People Radiant Heating Energy'),
+    ('zlche', 'Zone Lights Convective Heating Energy'),
+    ('zlrhe', 'Zone Lights Radiant Heating Energy'),
+    ('zeeche', 'Zone Electric Equipment Convective Heating Energy'),
+    ('zeerhe', 'Zone Electric Equipment Radiant Heating Energy'),
+    ('zgeche', 'Zone Gas Equipment Convective Heating Energy'),
+    ('zgerhe', 'Zone Gas Equipment Radiant Heating Energy'),
+    ('zhweche', 'Zone Hot Water Equipment Convective Heating Energy'),
+    ('zhwerhe', 'Zone Hot Water Equipment Radiant Heating Energy'),
+    ('zoeche', 'Zone Other Equipment Convective Heating Energy'),
+    ('zoerhe', 'Zone Other Equipment Radiant Heating Energy'),
+    ('zwttsre', 'Enclosure Windows Total Transmitted Solar Radiation Energy'),
+    ('zishge', 'Zone Infiltration Sensible Heat Gain Energy'),
+    ('zishle', 'Zone Infiltration Sensible Heat Loss Energy'),
+    ('zmvhlie', 'Zone Mechanical Ventilation Heating Load Increase Energy'),
+    ('zmvhlde', 'Zone Mechanical Ventilation Heating Load Decrease Energy'),
+    ('zmvclie', 'Zone Mechanical Ventilation Cooling Load Increase Energy'),
+    ('zmvclde', 'Zone Mechanical Ventilation Cooling Load Decrease Energy')
+    ])}
+
+SYS_VARS = {k: val for k, val in ZN_OUTPUT_MAP.items() if val[0] in ['zahbsatr', 'zahbschgr']}
+PEOPLE_CONV = next((k for k, v in ZN_OUTPUT_MAP.items() if v[0] == 'zpche'), None)
+PEOPLE_RAD = next((k for k, v in ZN_OUTPUT_MAP.items() if v[0] == 'zprhe'), None)
+LIGHT_CONV = next((k for k, v in ZN_OUTPUT_MAP.items() if v[0] == 'zlche'), None)
+LIGHT_RAD = next((k for k, v in ZN_OUTPUT_MAP.items() if v[0] == 'zlrhe'), None)
+EQUIP_CONV = {k: val for k, val in ZN_OUTPUT_MAP.items() if val[0] in ['zeeche', 'zgeche', 'zhweche', 'zoeche']}
+INFIL_CONV = {k: val for k, val in ZN_OUTPUT_MAP.items() if val[0] in ['zishge', 'zishle']}
+INFIL_GAIN = next((k for k, v in ZN_OUTPUT_MAP.items() if v[0] == 'zishge'), None)
+INFIL_LOSS = next((k for k, v in ZN_OUTPUT_MAP.items() if v[0] == 'zishle'), None)
+VENT_HTG_INC = next((k for k, v in ZN_OUTPUT_MAP.items() if v[0] == 'zmvhlie'), None)
+VENT_HTG_DEC = next((k for k, v in ZN_OUTPUT_MAP.items() if v[0] == 'zmvhlde'), None)
+VENT_CLG_INC = next((k for k, v in ZN_OUTPUT_MAP.items() if v[0] == 'zmvclie'), None)
+VENT_CLG_DEC = next((k for k, v in ZN_OUTPUT_MAP.items() if v[0] == 'zmvclde'), None)
+
+RAD_HIST_TERMS = {
+    0: 'people',
+    1: 'lights',
+    2: 'equip',
+    3: 'win_solar',
+    4: 'window_shade_ir'
+}
+
+EQUIP_RAD_VARS = {k: val for k, val in ZN_OUTPUT_MAP.items() if val[0] in ['zeerhe', 'zgerhe', 'zhwrhe', 'zoerhe']}
+WIN_SOL_VARS = {k: val for k, val in ZN_OUTPUT_MAP.items() if val[0] in ['zwttsre']}
+
+WIN_OUT_VAR_MAP = {i: t for i, t in enumerate([
+    ('swifgnihtr', 'Surface Window Inside Face Glazing Net Infrared Heat Transfer Rate'),
+    ('swifsnihtr', 'Surface Window Inside Face Shade Net Infrared Heat Transfer Rate'),
+    ('swifgbsagchgr', 'Surface Window Inside Face Gap between Shade and Glazing Zone Convection Heat Gain Rate')
+    ])}
+
+WIN_IR_VARS = {k: val for k, val in WIN_OUT_VAR_MAP.items() if val[0] in ['swifgnihtr', 'swifsnihtr']}
+WIN_CONV_VARS = {k: val for k, val in WIN_OUT_VAR_MAP.items() if val[0] in ['swifgbsagchgr']}
+
+SURF_OUT_VAR_MAP = {
+    0: ('sifchge', 'Surface Inside Face Convection Heat Gain Energy'),
+    }
+
+SURF_MAP = {
+    0: 'ext_wall',
+    1: 'fnd_wall',
+    2: 'roof',
+    3: 'ext_flr',
+    4: 'gnd_flr',
+    5: 'win',
+    6: 'door',
+    7: 'int_wall',
+    8: 'int_ceil',
+    9: 'int_flr',
+    10: 'int_mass'
+    }
+EXT_SURF_KEYS = [0, 1, 2, 3, 4, 5, 6]
+INT_SURF_KEYS = [7, 8, 9, 10]
+WIN_KEYS = [5]
+FLR_KEYS = [3, 4, 9]
+
+class FixedSizeList():
+
+    def __init__(self, size, initial_value):
+        self.data = deque([initial_value] * size, maxlen=size)
+
+    def add_first_drop_last(self, item):
+        self.data.appendleft(item)
+
+    def chunk_avg(self, n):
+        result = []
+        data_list = list(self.data)
+        for i in range(0, len(data_list), n):
+            chunk = data_list[i:i + n]
+            result.append(sum(chunk) / len(chunk))
+        assert len(result) == 24
+        return result
+
+class LoadSummary(EnergyPlusPlugin):
+
+    def __init__(self):
+
+        # call parent class methods
+        super().__init__()
+
+        # set handles flag to true
+        self.need_to_get_handles = True
+
+        # non-solar radiant timeseries
+        self.nonsolar_rts = [
+            0.49, 0.17, 0.09, 0.05, 0.03, 0.02, 0.02, 0.01,
+            0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01,
+            0.01, 0.01, 0.01, 0.01, 0.00, 0.00, 0.00, 0.00
+        ]
+
+        # solar radiant timeseries
+        self.solar_rts = [
+            0.54, 0.16, 0.08, 0.04, 0.03, 0.02, 0.01, 0.01,
+            0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01,
+            0.01, 0.01, 0.01, 0.00, 0.00, 0.00, 0.00, 0.00
+        ]
+
+        # debug mode
+        self.debug_mode = <%= debug_mode.to_s.capitalize %>
+        if self.debug_mode:
+            self.debug_vars = <%= debug_vars %>
+            self.debug_vars_hndls = {}
+        print(f'Debug mode: {self.debug_mode}')
+
+        # zone surface info
+        self.zn_surf_info = <%= surf_h_json.to_s %>
+
+        # surface area fraction dicts
+        self.zn_all_surf_fracs = self.get_surf_fracs(self.zn_surf_info)
+        self.zn_flr_surf_fracs = self.get_surf_fracs(self.filter_zone_info(self.zn_surf_info, FLR_KEYS))
+        self.zn_ext_surf_fracs = self.get_surf_fracs(self.filter_zone_info(self.zn_surf_info, EXT_SURF_KEYS))
+
+        # default-formatted zone name
+        self.zone_name_map = self.dict_to_int_map(self.zn_surf_info)
+        # clean-formatted zone name
+        self.zn_name_map = {k: self.clean_name(v) for k, v in self.zone_name_map.items()}
+        # enclosure names
+        self.enc_name_map = {k: self.enclosure_name(v) for k, v in self.zone_name_map.items()}
+
+        # maps of ints to surf names and surf areas
+        self.surf_name_map = defaultdict(lambda: defaultdict(lambda: defaultdict(str)))
+
+        # {zone_key: {surf_type_key: {surf_name_key: surf_frac}}}
+        self.all_surf_frac_map = defaultdict(lambda: defaultdict(lambda: defaultdict(float)))
+        self.flr_surf_frac_map = defaultdict(lambda: defaultdict(lambda: defaultdict(float)))
+        self.ext_surf_frac_map = defaultdict(lambda: defaultdict(lambda: defaultdict(float)))
+
+        for i, zone_name in self.zone_name_map.items():
+            for j, surf_type in SURF_MAP.items():
+                for k, (surf_name, frac) in enumerate(self.zn_all_surf_fracs[zone_name][surf_type].items()):
+                    self.surf_name_map[i][j][k] = surf_name
+                    self.all_surf_frac_map[i][j][k] = frac
+                if j in FLR_KEYS:
+                    for k, (surf_name, frac) in enumerate(self.zn_flr_surf_fracs[zone_name][surf_type].items()):
+                        self.flr_surf_frac_map[i][j][k] = frac
+                if j in EXT_SURF_KEYS:
+                    for k, (surf_name, frac) in enumerate(self.zn_ext_surf_fracs[zone_name][surf_type].items()):
+                        self.ext_surf_frac_map[i][j][k] = frac 
+
+        # dict to store zone (or enclosure) variable handles and values
+        # {'zn_name_key': {'var_abbrev_key': {0: handle, 1: value}}
+        self.zone_out_var_dict = defaultdict(lambda: defaultdict(lambda: defaultdict()))
+
+        # dict to store surface variable handles and values
+        # {zn_name_key: {surf_type_key: {surf_name_key: {'var_abbrev_key': {0: handle, 1: value}}
+        self.surf_out_var_dict = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict()))))
+        self.win_out_var_dict = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict()))))
+
+        # dict to store output components
+        # {'mode': {'component': {0: handle, 1: value}}
+        self.component_dict = defaultdict(lambda: defaultdict(lambda: defaultdict(float)))
+
+        # dict to store radiant history lists
+        # {'zn_name_key': {'rad_term_key': FixedSizeList}}
+        self.rad_hist_dict = defaultdict(lambda: defaultdict())
+    
+    def clean_name(self, name):
+        return name.lower().replace(' ', '_')
+
+    def enclosure_name(self, name):
+        """
+        Returns the enclosure name for a given zone name
+        """
+        return name.replace("Zone ", "")
+
+    def dict_to_int_map(self, dict):
+        """
+        Converts a dictionary to a dictionary of integer keys and values of keys of original dict
+        """
+        return {i: key for i, key in enumerate(dict.keys())}
+    
+    def filter_zone_info(self, zone_info, surf_keys):
+        """
+        Filters the zone info dictionary to only include the specified surface keys
+        """
+        return {
+            zone: {
+                surf_type: {
+                    surf_name: area
+                    for surf_name, area in surf_type_dict.items()
+                }
+                for surf_type, surf_type_dict in zone_info[zone].items()
+                if surf_type in SURF_MAP.values() and [k for k, v in SURF_MAP.items() if v == surf_type][0] in surf_keys
+            }
+            for zone in zone_info
+        }
+
+    def get_surf_fracs(self, surf_info_dict):
+        """
+        For each zone and surface type in surf_info_dict, calculates the fraction of total zone surface area in the dict
+        """
+        return_dict = {}
+        for zone, surf_type in surf_info_dict.items():
+            # flatten and sum all nested values
+            total_area = sum(
+                area
+                for surf in surf_type.values()
+                for area in surf.values()
+            )
+            return_dict[zone] = {
+                surf_type: {
+                    surf: (area / total_area)
+                    for surf, area in surf_info_dict[zone][surf_type].items()
+                }
+                for surf_type in surf_info_dict[zone]
+            }
+        return return_dict
+
+    def get_handles(self, state):
+        print('Getting handles...')
+
+        for z in self.zone_name_map:
+            for j, output in ZN_OUTPUT_MAP.items():
+                if 'Enclosure' in output[1]:
+                    key_name = self.enc_name_map[z]
+                else:
+                    key_name = self.zone_name_map[z]
+                self.zone_out_var_dict[z][j][0] = self.api.exchange.get_variable_handle(
+                    state,
+                    output[1],
+                    key_name
+                )
+
+            # window output handles
+            for j, output in WIN_OUT_VAR_MAP.items():
+                for window_key, window_name in self.surf_name_map[z][WIN_KEYS[0]].items():
+                    if window_name:
+                        print(window_name)
+                        self.win_out_var_dict[z][WIN_KEYS[0]][window_key][j][0] = self.api.exchange.get_variable_handle(
+                            state,
+                            output[1],
+                            window_name
+                        )
+            
+            # surface output handles
+            for j, output in SURF_OUT_VAR_MAP.items():
+                for surf_type_key, surf_type_name in self.surf_name_map[z].items():
+                    for surf_key, surf_name in surf_type_name.items():
+                        if surf_name:
+                            self.surf_out_var_dict[z][surf_type_key][surf_key][j][0] = self.api.exchange.get_variable_handle(
+                                state,
+                                output[1],
+                                surf_name
+                            )
+        
+        # global handles
+        for m, mode in MODES.items():
+            for c, component in COMPONENTS.items():
+                self.component_dict[m][c][0] = self.api.exchange.get_global_handle(
+                    state,
+                    f'{component}_{mode}_glob'
+                )
+
+        # set handles flag to false
+        self.need_to_get_handles = False
+
+
+    def on_after_new_environment_warmup_is_complete(self, state) -> int:
+
+        # get zone timestep
+        self.num_ts = self.api.exchange.num_time_steps_in_hour(state)
+        self.sec_per_ts = (60 * 60) / self.num_ts
+
+        return 0
+
+    def component_mode(self, val):
+        """
+        Returns the mode of a given value
+        """
+        if val > 0:
+            return 0 # heating mode
+        elif val < 0:
+            return 1 # cooling mode
+        else:
+            return 2 # floating mode
+
+    def calculate_radiant_delay(self, rad_hist_dict, term, rad_val, rts_vals):
+        """
+        Calculates the delayed radiant gains for a given zone index, radiant history dictionary, radiant value, and radiant timeseries values.
+        """
+        if not term in rad_hist_dict:
+            rad_hist_dict[term] = FixedSizeList(self.num_ts * 24, rad_val)
+        else:
+            rad_hist_dict[term].add_first_drop_last(rad_val)
+        
+        return sum(
+            [x * y for x, y in zip(
+                rad_hist_dict[term].chunk_avg(self.num_ts),
+                rts_vals
+            )]
+        )
+
+    def on_end_of_system_timestep_before_hvac_reporting(self, state) -> int:
+        
+        # only perform calcs during run period, not design days
+        if self.api.exchange.calendar_year(state) == 0:
+            return 0
+        
+        # get handles
+        if self.need_to_get_handles:
+            self.get_handles(state)
+
+        # initialize component dict
+        for mode in MODES:
+            for component in COMPONENTS:
+                self.component_dict[mode][component][1] = 0
+
+        # get values
+        # zone output values
+        for z in self.zone_name_map:
+
+            # zone output values
+            for j, output in ZN_OUTPUT_MAP.items():
+                if j in WIN_SOL_VARS:
+                    key_name = self.enc_name_map[z]
+                else:
+                    key_name = self.zone_name_map[z]
+                if self.zone_out_var_dict[z][j][0] != -1:
+                    self.zone_out_var_dict[z][j][1] = self.api.exchange.get_variable_value(
+                        state,
+                        self.zone_out_var_dict[z][j][0]
+                    )
+                else:
+                    self.zone_out_var_dict[z][j][1] = 0
+
+            # window output values
+            for j, output in WIN_OUT_VAR_MAP.items():
+                for window_type_key in WIN_KEYS:
+                    for window_key, window_name in self.surf_name_map[z][window_type_key].items():
+                        if window_name:
+                            if self.win_out_var_dict[z][window_type_key][window_key][j][0] != -1:
+                                self.win_out_var_dict[z][window_type_key][window_key][j][1] = self.api.exchange.get_variable_value(
+                                    state,
+                                    self.win_out_var_dict[z][window_type_key][window_key][j][0]
+                                )
+                            else:
+                                self.win_out_var_dict[z][window_type_key][window_key][j][1] = 0
+
+            # surface output values
+            for j, output in SURF_OUT_VAR_MAP.items():
+                for surf_type_key, surf_type_name in self.surf_name_map[z].items():
+                    for surf_key, surf_name in surf_type_name.items():
+                        if surf_name:
+                            if self.surf_out_var_dict[z][surf_type_key][surf_key][j][0] != -1:
+                                self.surf_out_var_dict[z][surf_type_key][surf_key][j][1] = self.api.exchange.get_variable_value(
+                                    state,
+                                    self.surf_out_var_dict[z][surf_type_key][surf_key][j][0]
+                                )
+                            else:
+                                self.surf_out_var_dict[z][surf_type_key][surf_key][j][1] = 0
+
+            #### perform calculations ####
+
+            # total equipment convection
+            tot_equipment_conv = 0
+            for equip_key in EQUIP_CONV:
+                tot_equipment_conv += self.zone_out_var_dict[z][equip_key][1]
+
+            # calculated delayed internal gains
+            tot_del_int_gains = 0
+
+            # calculate delayed radiant gains from people
+            people_radiant_gain = self.zone_out_var_dict[z][PEOPLE_RAD][1]
+            people_rad_delay = self.calculate_radiant_delay(
+                self.rad_hist_dict[z],
+                0,
+                people_radiant_gain,
+                self.nonsolar_rts
+            )
+            tot_del_int_gains += people_rad_delay
+
+            # calculate delayed radiant gains from lights
+            lights_radiant_gain = self.zone_out_var_dict[z][LIGHT_RAD][1]
+            lights_rad_delay = self.calculate_radiant_delay(
+                self.rad_hist_dict[z],
+                1,
+                lights_radiant_gain,
+                self.nonsolar_rts
+            )
+            tot_del_int_gains += lights_rad_delay
+
+            # calculate delayed radiant gains from equipment
+            equip_radiant_gain = 0
+            for equip_key in EQUIP_RAD_VARS:
+                equip_radiant_gain += self.zone_out_var_dict[z][equip_key][1]
+            equip_rad_delay = self.calculate_radiant_delay(
+                self.rad_hist_dict[z],
+                2,
+                equip_radiant_gain,
+                self.nonsolar_rts
+            )
+            tot_del_int_gains += equip_rad_delay
+
+            # sum window and shade IR for all windows
+            window_shade_ir = 0
+            for var_key in WIN_IR_VARS:
+                for win_type_key in WIN_KEYS:
+                    for win_key, win_name in self.surf_name_map[z][win_type_key].items():
+                        if win_name:
+                            window_shade_ir += self.sec_per_ts * self.win_out_var_dict[z][win_type_key][win_key][var_key][1]
+
+            # calculate delayed window IR
+            win_del_ir_gains = self.calculate_radiant_delay(
+                self.rad_hist_dict[z],
+                4,
+                window_shade_ir,
+                self.nonsolar_rts
+            )
+
+            # delayed window transmitted solar
+            win_rts_solar_rad = 0
+            win_total_solar_rad = 0
+            for var_key in WIN_SOL_VARS:
+                win_total_solar_rad += self.zone_out_var_dict[z][var_key][1]
+
+            win_del_solar = self.calculate_radiant_delay(
+                self.rad_hist_dict[z],
+                3,
+                win_total_solar_rad,
+                self.solar_rts
+            )
+
+            # subtract area-weighted delayed internal and windows gains from internal surface convections gains
+            int_surf_total_conv = 0
+            for var_key in SURF_OUT_VAR_MAP:
+                for surf_type_key in INT_SURF_KEYS:
+                    for surf_key, surf_name in self.surf_name_map[z][surf_type_key].items():
+                        if surf_name:
+                            # get surface area fraction
+                            frac = self.all_surf_frac_map[z][surf_type_key][surf_key]
+                            # get convection gain value
+                            surf_conv = self.surf_out_var_dict[z][surf_type_key][surf_key][var_key][1]
+                            if surf_type_key in FLR_KEYS:
+                                # for floor surfaces, subtract delayed window solar radiation
+                                int_surf_total_conv -= (
+                                    surf_conv
+                                    ) - (
+                                    (tot_del_int_gains + win_del_ir_gains) * frac
+                                    ) - (
+                                    win_rts_solar_rad * self.flr_surf_frac_map[z][surf_type_key][surf_key]
+                                )
+                            else:
+                                # subtract delayed internal gains
+                                int_surf_total_conv -= (
+                                    surf_conv
+                                    ) - (
+                                    (tot_del_int_gains + win_del_ir_gains) * frac
+                                )
+
+            ext_surf_conv = {}
+            for var_key in SURF_OUT_VAR_MAP:
+                for ext_surf_type_key in EXT_SURF_KEYS:
+                    ext_surf_conv[ext_surf_type_key] = 0
+                    for ext_surf_key, surf_name in self.surf_name_map[z][ext_surf_type_key].items():
+                        if surf_name:
+                            # get surface area fraction
+                            all_surf_frac = self.all_surf_frac_map[z][ext_surf_type_key][ext_surf_key]
+                            ext_surf_frac = self.ext_surf_frac_map[z][ext_surf_type_key][ext_surf_key]
+                            # get convection gain value
+                            surf_conv = self.surf_out_var_dict[z][ext_surf_type_key][ext_surf_key][var_key][1]
+                            # subtract delayed internal gains
+                            if surf_type_key in WIN_KEYS:
+                                # for window surfaces, add gap between shade and glazing convective gain
+                                for win_var in WIN_CONV_VARS:
+                                    ext_surf_conv[ext_surf_type_key] -= (
+                                    surf_conv                                                                               # reported surface convection
+                                    ) - (
+                                    tot_del_int_gains * frac                                                                # subtract delayed internal gains
+                                    ) + (
+                                    self.sec_per_ts * self.win_out_var_dict[z][ext_surf_type_key][ext_surf_key][win_var][1] # add gap between shade and glazing convective gain
+                                    ) + (
+                                    in_surf_total_conv * ext_surf_frac                                                      # add exterior surface-weighted internal surface convection
+                                    )
+                            else:
+                                ext_surf_conv[ext_surf_type_key] -= (
+                                    surf_conv
+                                    ) - (
+                                    (tot_del_int_gains + win_del_ir_gains) * frac 
+                                    ) + (
+                                    int_surf_total_conv * ext_surf_frac
+                                )
+                                if surf_type_key in FLR_KEYS:
+                                    # for floor surfaces, subtract delayed window solar radiation
+                                    ext_surf_conv[ext_surf_type_key] -= (
+                                        win_rts_solar_rad * self.flr_surf_frac_map[z][ext_surf_type_key][ext_surf_key]
+                                    )
+
+
+            # update component dict
+            sys_rate = 0
+            for var_key in SYS_VARS:
+                sys_rate += self.zone_out_var_dict[z][var_key][1]
+            comp_mode = self.component_mode(sys_rate)
+
+            # people loads
+            self.component_dict[comp_mode][0][1] += (self.zone_out_var_dict[z][PEOPLE_CONV][1] + people_rad_delay)
+            # lights loads
+            self.component_dict[comp_mode][1][1] += (self.zone_out_var_dict[z][LIGHT_CONV][1] + lights_rad_delay)
+            # equipment loads
+            self.component_dict[comp_mode][2][1] += (tot_equipment_conv + equip_rad_delay)
+            # windows solar loads
+            self.component_dict[comp_mode][3][1] += win_total_solar_rad
+            # exterior wall loads
+            self.component_dict[comp_mode][4][1] += ext_surf_conv[0]
+            # foundation wall loads
+            self.component_dict[comp_mode][5][1] += ext_surf_conv[1]
+            # exterior roof loads
+            self.component_dict[comp_mode][6][1] += ext_surf_conv[2]
+            # exterior floor loads
+            self.component_dict[comp_mode][7][1] += ext_surf_conv[3]
+            # ground floor loads
+            self.component_dict[comp_mode][8][1] += ext_surf_conv[4]
+            # window conduction loads
+            self.component_dict[comp_mode][9][1] += (ext_surf_conv[5] + window_shade_ir)
+            # door loads
+            self.component_dict[comp_mode][10][1] += ext_surf_conv[6]
+            # infiltration loads
+            self.component_dict[comp_mode][11][1] += (self.zone_out_var_dict[z][INFIL_GAIN][1] + self.zone_out_var_dict[z][INFIL_LOSS][1])
+            # ventilation loads
+            self.component_dict[comp_mode][12][1] += (
+                self.zone_out_var_dict[z][VENT_CLG_INC][1] 
+                + self.zone_out_var_dict[z][VENT_HTG_DEC][1] 
+                - self.zone_out_var_dict[z][VENT_CLG_DEC][1] 
+                - self.zone_out_var_dict[z][VENT_HTG_INC][1]
+            )
+            
+        # flip sign of all components in heating
+        for component in COMPONENTS:
+           self.component_dict[0][component][1] *= -1
+
+        # set global values
+        for mode in MODES:
+            for component in COMPONENTS:
+                self.api.exchange.set_global_value(
+                    state,
+                    self.component_dict[mode][component][0],
+                    self.component_dict[mode][component][1]
+                )
+
+        return 0
