@@ -1,0 +1,110 @@
+<?xml version="1.0"?>
+<measure>
+  <schema_version>3.1</schema_version>
+  <name>set_envelope_to_current_code</name>
+  <uid>0b13c46d-123f-4d6c-b5d8-65a23acf1141</uid>
+  <version_id>35f36435-da48-4aa3-8540-c59ff2b13c73</version_id>
+  <version_modified>2025-06-13T21:34:21Z</version_modified>
+  <xml_checksum>66CE07BA</xml_checksum>
+  <class_name>SetEnvelopeToCurrentCode</class_name>
+  <display_name>Set Envelope to Current Code</display_name>
+  <description>This measure updates the wall, roof, and windows to the corresponding ASHRAE 90.1 code in force by state.</description>
+  <modeler_description>This measure updates the wall, roof, and windows to the corresponding ASHRAE 90.1 code in force by state. For walls and roof, the insulation R-value is reset to match the required R-value of the corresponding ASHARE 90.1 code in force in the state. For windows, the required U-value and SHGC are mapped to the closest window construction that meets code for the ASHRAE 90.1 code in force in the state.</modeler_description>
+  <arguments />
+  <outputs />
+  <provenances />
+  <tags>
+    <tag>Envelope.Opaque</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Model Articulation</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>LICENSE.md</filename>
+      <filetype>md</filetype>
+      <usage_type>license</usage_type>
+      <checksum>7406EC0C</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>9363D8DB</checksum>
+    </file>
+    <file>
+      <filename>README.md.erb</filename>
+      <filetype>erb</filetype>
+      <usage_type>readmeerb</usage_type>
+      <checksum>703C9964</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.6.0</identifier>
+        <min_compatible>2.6.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>2F84BD40</checksum>
+    </file>
+    <file>
+      <filename>current_code_in_force_by_state_lookup.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>299B96BF</checksum>
+    </file>
+    <file>
+      <filename>window_construction_lookup.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>A439CFCA</checksum>
+    </file>
+    <file>
+      <filename>set_roof_template_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>3501920E</checksum>
+    </file>
+  </files>
+</measure>
