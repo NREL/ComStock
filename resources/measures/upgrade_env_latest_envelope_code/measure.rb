@@ -79,10 +79,11 @@ class SetEnvelopeToCurrentCode < OpenStudio::Measure::ModelMeasure
 
     # Get state and then lookup current_code_in_force using resource file
     current_code_in_force_by_state_lookup = File.join(File.dirname(__FILE__), 'resources', 'current_code_in_force_by_state_lookup.csv')
+    current_code_in_force = ''
 
     if addtl_props.getFeatureAsString('state_name').is_initialized
       state_name = addtl_props.getFeatureAsString('state_name').get
-      puts "State is: #{state_name}."
+      runner.registerInfo("State is: #{state_name}.")
       # Do lookup using state name
       CSV.foreach(current_code_in_force_by_state_lookup, headers: true) do |row|
         if row['state_name'] == state_name
@@ -92,9 +93,9 @@ class SetEnvelopeToCurrentCode < OpenStudio::Measure::ModelMeasure
       end
 
       if current_code_in_force
-        puts "Current code in force for #{state_name} is #{current_code_in_force}."
+        runner.registerInfo("Current code in force for #{state_name} is: #{current_code_in_force}.")
       else
-        runner.registerAsNotApplicable("Current code in force not found for #{state_name}, cannot apply measure.")
+        runner.registerAsNotApplicable("Current code in force not found for #{state_name}, cannot apply measure.")        
       end
     else
       runner.registerAsNotApplicable("State not found, cannot lookup current code in force.")
@@ -122,7 +123,7 @@ class SetEnvelopeToCurrentCode < OpenStudio::Measure::ModelMeasure
 
     # Create ranking of code templates so we can evaluate whether the existing template is better than the current code in force
     # Including DEER and 90.1 in the same list because a single model will never have a mix of CA and non-CA templates
-    template_ranking = [
+    template_ranking = {
       'ComStock DEER Pre-1975' => 0,
       'ComStock DEER 1985' => 1,
       'ComStock DEER 1996' => 2,
@@ -141,9 +142,22 @@ class SetEnvelopeToCurrentCode < OpenStudio::Measure::ModelMeasure
       'ComStock 90.1-2013' => 15,
       'ComStock 90.1-2016' => 16,
       'ComStock 90.1-2019' => 17
-    ]
+    }
 
     current_code_in_force_ranking = template_ranking[current_code_in_force]
+
+    # Get climate zone
+    if addtl_props.getFeatureAsString('climate_zone').is_initialized
+      climate_zone = addtl_props.getFeatureAsString('climate_zone').get
+      if climate_zone.include?('CEC')
+        climate_zone = "CEC T24-#{climate_zone}"
+      else
+        climate_zone = "ASHRAE 169-2013-#{climate_zone}"
+      end
+      puts "Climate zone is: #{climate_zone}."
+    else
+      runner.registerAsNotApplicable("Climate zone not found. Cannot lookup window construction.")
+    end
 
     ## WALLS ##
     # Look up existing wall template of model in additional properties
@@ -251,20 +265,20 @@ class SetEnvelopeToCurrentCode < OpenStudio::Measure::ModelMeasure
     # Create ranking of window construction (worst to best U-val) so we can evaluate whether the existing window is better than the current code in force
     # Some constructions have the same or nearly the same U-value so they are ranked the same. 
     # This avoids a scenario where you are replacing a window with U-value 0.559 with U-value 0.557, which is not realistic.
-    window_ranking = [
-    'Single - No LowE - Clear - Aluminum' => 0,
-    'Single - No LowE - Clear - Wood' => 0,
-    'Single - No LowE - Tinted/Reflective - Aluminum' => 1,
-    'Single - No LowE - Tinted/Reflective - Wood' => 1,
-    'Double - No LowE - Clear - Aluminum' => 2,
-    'Double - No LowE - Tinted/Reflective - Aluminum' => 2,
-    'Double - LowE - Clear - Aluminum' => 3,
-    'Double - LowE - Tinted/Reflective - Aluminum' => 3,
-    'Double - LowE - Clear - Thermally Broken Aluminum' => 4,
-    'Double - LowE - Tinted/Reflective - Thermally Broken Aluminum' => 4,
-    'Triple - LowE - Clear - Thermally Broken Aluminum' => 5,
-    'Triple - LowE - Tinted/Reflective - Thermally Broken Aluminum' => 5
-    ]
+    window_ranking = {
+      'Single - No LowE - Clear - Aluminum' => 0,
+      'Single - No LowE - Clear - Wood' => 0,
+      'Single - No LowE - Tinted/Reflective - Aluminum' => 1,
+      'Single - No LowE - Tinted/Reflective - Wood' => 1,
+      'Double - No LowE - Clear - Aluminum' => 2,
+      'Double - No LowE - Tinted/Reflective - Aluminum' => 2,
+      'Double - LowE - Clear - Aluminum' => 3,
+      'Double - LowE - Tinted/Reflective - Aluminum' => 3,
+      'Double - LowE - Clear - Thermally Broken Aluminum' => 4,
+      'Double - LowE - Tinted/Reflective - Thermally Broken Aluminum' => 4,
+      'Triple - LowE - Clear - Thermally Broken Aluminum' => 5,
+      'Triple - LowE - Tinted/Reflective - Thermally Broken Aluminum' => 5
+    }
 
     # Look up existing window construction in additional properties
     if addtl_props.getFeatureAsString('baseline_window_type').is_initialized
@@ -277,24 +291,20 @@ class SetEnvelopeToCurrentCode < OpenStudio::Measure::ModelMeasure
       existing_window_ranking = 0
     end
 
-    # Get climate zone for window construction lookup
-    if addtl_props.getFeatureAsString('climate_zone').is_initialized
-      climate_zone = addtl_props.getFeatureAsString('climate_zone').get
-      puts "Climate zone is: #{climate_zone}."
-    else
-      runner.registerAsNotApplicable("Climate zone not found. Cannot lookup window construction.")
-    end
-
     # Get state and then lookup window construction that corresponds to climate zone and current_code_in_force using resource file
     window_construction_lookup = File.join(File.dirname(__FILE__), 'resources', 'window_construction_lookup.csv')
+    current_code_window = ''
+    u_val_ip = ''
+    shgc = ''
+    vlt = ''
 
     # Do lookup using climate zone and current code
     CSV.foreach(window_construction_lookup, headers: true) do |row|
-      if row['climate_zone'] == state_name && row['current_code_in_force'] == current_code_in_force
+      if row['climate_zone'] == climate_zone && row['current_code_in_force'] == current_code_in_force
         current_code_window = row['current_code_window']
-        u_val_ip = row['u_val']
-        shgc = row['shgc']
-        vlt = row['vlt']
+        u_val_ip = row['u_val'].to_f
+        shgc = row['shgc'].to_f
+        vlt = row['vlt'].to_f
         break
       end
     end
@@ -307,6 +317,16 @@ class SetEnvelopeToCurrentCode < OpenStudio::Measure::ModelMeasure
     if existing_window_ranking >= current_code_window_ranking
       runner.registerInfo('Existing window construction is already equivalent or better than the window construction associated with the current code in force. Windows will not be replaced.')
     else
+      # get all fenestration surfaces
+      sub_surfaces = []
+      constructions = []
+
+      model.getSubSurfaces.each do |sub_surface|
+        next unless sub_surface.subSurfaceType.include?('Window')
+
+        sub_surfaces << sub_surface
+        constructions << sub_surface.construction.get
+      end
       # make new simple glazing with new properties
       code_simple_glazing = OpenStudio::Model::SimpleGlazing.new(model)
       code_simple_glazing.setName("Simple Glazing #{current_code_window}")
@@ -319,9 +339,10 @@ class SetEnvelopeToCurrentCode < OpenStudio::Measure::ModelMeasure
       # define total area changed
       area_changed_m2 = 0.0
       # loop over constructions and simple glazings
+      constructions = model.getConstructions
       constructions.each do |construction|
         # register final condition
-        runner.registerInfo("New code-compliant window #{new_simple_glazing.name.get} has #{u_val_si.round(2)} W/m2-K U-value , #{shgc.round(2)} SHGC, and #{vlt.round(2)} VLT.")
+        runner.registerInfo("New code-compliant window #{code_simple_glazing.name.get} has #{u_val_si.round(2)} W/m2-K U-value , #{shgc.round(2)} SHGC, and #{vlt.round(2)} VLT.")
         # create new construction with this new simple glazing layer
         new_construction = OpenStudio::Model::Construction.new(model)
         new_construction.setName("Code Compliant Window U-#{u_val_ip.round(2)} SHGC #{shgc.round(2)}")

@@ -2,9 +2,9 @@
 <measure>
   <schema_version>3.1</schema_version>
   <name>set_envelope_to_current_code</name>
-  <uid>0b13c46d-123f-4d6c-b5d8-65a23acf1141</uid>
-  <version_id>35f36435-da48-4aa3-8540-c59ff2b13c73</version_id>
-  <version_modified>2025-06-13T21:34:21Z</version_modified>
+  <uid>f5124b91-f928-4e64-a13b-1067fb119450</uid>
+  <version_id>e6a2b5b7-46dc-46f2-b6bf-fe466a28b615</version_id>
+  <version_modified>2025-06-13T22:49:01Z</version_modified>
   <xml_checksum>66CE07BA</xml_checksum>
   <class_name>SetEnvelopeToCurrentCode</class_name>
   <display_name>Set Envelope to Current Code</display_name>
@@ -86,25 +86,25 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>2F84BD40</checksum>
+      <checksum>4273625B</checksum>
     </file>
     <file>
       <filename>current_code_in_force_by_state_lookup.csv</filename>
       <filetype>csv</filetype>
       <usage_type>resource</usage_type>
-      <checksum>299B96BF</checksum>
+      <checksum>8AEF2C20</checksum>
     </file>
     <file>
       <filename>window_construction_lookup.csv</filename>
       <filetype>csv</filetype>
       <usage_type>resource</usage_type>
-      <checksum>A439CFCA</checksum>
+      <checksum>7623A616</checksum>
     </file>
     <file>
-      <filename>set_roof_template_test.rb</filename>
+      <filename>set_envelope_to_current_code_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>3501920E</checksum>
+      <checksum>A49FB7BD</checksum>
     </file>
   </files>
 </measure>
