@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>set_envelope_to_current_code</name>
   <uid>f5124b91-f928-4e64-a13b-1067fb119450</uid>
-  <version_id>e6a2b5b7-46dc-46f2-b6bf-fe466a28b615</version_id>
-  <version_modified>2025-06-13T22:49:01Z</version_modified>
+  <version_id>7871af1b-960b-45fe-985c-b761b55c5bf0</version_id>
+  <version_modified>2025-06-16T23:42:13Z</version_modified>
   <xml_checksum>66CE07BA</xml_checksum>
   <class_name>SetEnvelopeToCurrentCode</class_name>
   <display_name>Set Envelope to Current Code</display_name>
@@ -86,7 +86,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>4273625B</checksum>
+      <checksum>883339BB</checksum>
     </file>
     <file>
       <filename>current_code_in_force_by_state_lookup.csv</filename>

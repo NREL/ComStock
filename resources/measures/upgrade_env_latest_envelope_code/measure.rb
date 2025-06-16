@@ -151,6 +151,8 @@ class SetEnvelopeToCurrentCode < OpenStudio::Measure::ModelMeasure
       climate_zone = addtl_props.getFeatureAsString('climate_zone').get
       if climate_zone.include?('CEC')
         climate_zone = "CEC T24-#{climate_zone}"
+      elsif climate_zone.include?('7') || climate_zone.include?('8')
+        climate_zone = "ASHRAE 169-2013-#{climate_zone}A"
       else
         climate_zone = "ASHRAE 169-2013-#{climate_zone}"
       end
@@ -202,12 +204,16 @@ class SetEnvelopeToCurrentCode < OpenStudio::Measure::ModelMeasure
         occ_type = 'Nonresidential'
       end
       climate_zone_set = standard.model_find_climate_zone_set(model, climate_zone)
-      new_construction = standard.model_find_and_add_construction(model,
+      new_wall_construction = standard.model_find_and_add_construction(model,
                                                                   climate_zone_set,
                                                                   'ExteriorWall',
                                                                   old_wall_construction_type,
                                                                   occ_type)
-      ext_surf_consts.setWallConstruction(new_construction)
+      ext_surf_consts.setWallConstruction(new_wall_construction)
+      
+      log_messages_to_runner(runner, debug = false)
+
+      runner.registerInfo("Successfully applied wall construction #{new_wall_construction} to the model.")
     end
 
     ## ROOF ##
@@ -219,7 +225,7 @@ class SetEnvelopeToCurrentCode < OpenStudio::Measure::ModelMeasure
     else
       puts "Existing roof template not found."
       # Assume worst roof insulation ranking and roof insulation will be upgraded. 
-      existing_walls_ranking = 0
+      existing_roof_ranking = 0
     end
 
     # Check if existing wall template is worse than current code in force. If so, then proceed with wall insulation upgrade. Otherwise, wall insulation will not be upgraded. 
@@ -253,12 +259,16 @@ class SetEnvelopeToCurrentCode < OpenStudio::Measure::ModelMeasure
         occ_type = 'Nonresidential'
       end
       climate_zone_set = standard.model_find_climate_zone_set(model, climate_zone)
-      new_construction = standard.model_find_and_add_construction(model,
+      new_roof_construction = standard.model_find_and_add_construction(model,
                                                                   climate_zone_set,
                                                                   'ExteriorRoof',
                                                                   old_roof_construction_type,
                                                                   occ_type)
-      ext_surf_consts.setRoofCeilingConstruction(new_construction)
+      ext_surf_consts.setRoofCeilingConstruction(new_roof_construction)
+
+      log_messages_to_runner(runner, debug = false)
+
+      runner.registerInfo("Successfully applied roof construction #{new_roof_construction} to the model.")
     end
 
     ## WINDOWS ##
@@ -361,8 +371,8 @@ class SetEnvelopeToCurrentCode < OpenStudio::Measure::ModelMeasure
       runner.registerInfo("Replaced #{area_changed_ft2} sqft of windows to window construction compliant with current code in force.")
     end
 
-    log_messages_to_runner(runner, debug = false)
-    reset_log
+    # report final condition of model
+    runner.registerFinalCondition("Upgraded model to follow the current wall, roof, and window code in the state.")
 
     return true
   end
