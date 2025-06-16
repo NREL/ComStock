@@ -65,7 +65,7 @@ PEOPLE_RAD = next((k for k, v in ZN_OUTPUT_MAP.items() if v[0] == 'zprhe'), None
 LIGHT_CONV = next((k for k, v in ZN_OUTPUT_MAP.items() if v[0] == 'zlche'), None)
 LIGHT_RAD = next((k for k, v in ZN_OUTPUT_MAP.items() if v[0] == 'zlrhe'), None)
 EQUIP_CONV = {k: val for k, val in ZN_OUTPUT_MAP.items() if val[0] in ['zeeche', 'zgeche', 'zhweche', 'zoeche']}
-INFIL_CONV = {k: val for k, val in ZN_OUTPUT_MAP.items() if val[0] in ['zishge', 'zishle']}
+INFIL_VENT_CONV = {k: val for k, val in ZN_OUTPUT_MAP.items() if val[0] in ['zishge', 'zishle', 'zmvhlie', 'zmvhlde', 'zmvclie', 'zmvclde']}
 INFIL_GAIN = next((k for k, v in ZN_OUTPUT_MAP.items() if v[0] == 'zishge'), None)
 INFIL_LOSS = next((k for k, v in ZN_OUTPUT_MAP.items() if v[0] == 'zishle'), None)
 VENT_HTG_INC = next((k for k, v in ZN_OUTPUT_MAP.items() if v[0] == 'zmvhlie'), None)
@@ -186,6 +186,7 @@ class LoadSummary(EnergyPlusPlugin):
         self.flr_surf_frac_map = defaultdict(lambda: defaultdict(lambda: defaultdict(float)))
         self.ext_surf_frac_map = defaultdict(lambda: defaultdict(lambda: defaultdict(float)))
 
+        # populate surf_name_map and surf_frac_map
         for i, zone_name in self.zone_name_map.items():
             for j, surf_type in SURF_MAP.items():
                 for k, (surf_name, frac) in enumerate(self.zn_all_surf_fracs[zone_name][surf_type].items()):
@@ -268,7 +269,6 @@ class LoadSummary(EnergyPlusPlugin):
         return return_dict
 
     def get_handles(self, state):
-        print('Getting handles...')
 
         for z in self.zone_name_map:
             for j, output in ZN_OUTPUT_MAP.items():
@@ -286,7 +286,6 @@ class LoadSummary(EnergyPlusPlugin):
             for j, output in WIN_OUT_VAR_MAP.items():
                 for window_key, window_name in self.surf_name_map[z][WIN_KEYS[0]].items():
                     if window_name:
-                        print(window_name)
                         self.win_out_var_dict[z][WIN_KEYS[0]][window_key][j][0] = self.api.exchange.get_variable_handle(
                             state,
                             output[1],
@@ -350,8 +349,51 @@ class LoadSummary(EnergyPlusPlugin):
                 rts_vals
             )]
         )
+    
+    def on_begin_zone_timestep_before_init_heat_balance(self, state) -> int:
 
-    def on_end_of_system_timestep_before_hvac_reporting(self, state) -> int:
+        # only perform calcs during run period, not design days
+        if self.api.exchange.calendar_year(state) == 0:
+            return 0
+        
+        # get handles
+        if self.need_to_get_handles:
+            self.get_handles(state)
+
+        # initialize component dict
+        for mode in MODES:
+            for component in COMPONENTS:
+                self.component_dict[mode][component][1] = 0
+
+        for z in self.zone_name_map:
+            for j in ZN_OUTPUT_MAP:
+                self.zone_out_var_dict[z][j][1] = 0
+
+
+        return 0
+
+    def on_end_of_system_timestep_after_hvac_reporting(self, state) -> int:
+
+        # only perform calcs during run period, not design days
+        if self.api.exchange.calendar_year(state) == 0:
+            return 0
+        
+        # get values
+        # zone output values
+        for z in self.zone_name_map:
+            
+            for j, output in INFIL_VENT_CONV.items():
+                if self.zone_out_var_dict[z][j][0] != -1:
+                    self.zone_out_var_dict[z][j][1] += self.api.exchange.get_variable_value(
+                        state,
+                        self.zone_out_var_dict[z][j][0]
+                    )
+                else:
+                    self.zone_out_var_dict[z][j][1] += 0
+
+        return 0
+
+    def on_end_of_zone_timestep_before_zone_reporting(self, state) -> int:
         
         # only perform calcs during run period, not design days
         if self.api.exchange.calendar_year(state) == 0:
@@ -372,6 +414,8 @@ class LoadSummary(EnergyPlusPlugin):
 
             # zone output values
             for j, output in ZN_OUTPUT_MAP.items():
+                if j in INFIL_VENT_CONV:
+                    continue  # skip infiltration convection values
                 if j in WIN_SOL_VARS:
                     key_name = self.enc_name_map[z]
                 else:
@@ -493,8 +537,8 @@ class LoadSummary(EnergyPlusPlugin):
                             surf_conv = self.surf_out_var_dict[z][surf_type_key][surf_key][var_key][1]
                             if surf_type_key in FLR_KEYS:
                                 # for floor surfaces, subtract delayed window solar radiation
-                                int_surf_total_conv -= (
-                                    surf_conv
+                                int_surf_total_conv += (
+                                    surf_conv * -1
                                     ) - (
                                     (tot_del_int_gains + win_del_ir_gains) * frac
                                     ) - (
@@ -502,8 +546,8 @@ class LoadSummary(EnergyPlusPlugin):
                                 )
                             else:
                                 # subtract delayed internal gains
-                                int_surf_total_conv -= (
-                                    surf_conv
+                                int_surf_total_conv += (
+                                    surf_conv * -1
                                     ) - (
                                     (tot_del_int_gains + win_del_ir_gains) * frac
                                 )
@@ -520,30 +564,32 @@ class LoadSummary(EnergyPlusPlugin):
                             # get convection gain value
                             surf_conv = self.surf_out_var_dict[z][ext_surf_type_key][ext_surf_key][var_key][1]
                             # subtract delayed internal gains
-                            if surf_type_key in WIN_KEYS:
+                            if ext_surf_type_key in WIN_KEYS:
                                 # for window surfaces, add gap between shade and glazing convective gain
                                 for win_var in WIN_CONV_VARS:
-                                    ext_surf_conv[ext_surf_type_key] -= (
-                                    surf_conv                                                                               # reported surface convection
+                                    ext_surf_conv[ext_surf_type_key] += ((
+                                    surf_conv * -1                                                                          # reported surface convection
                                     ) - (
-                                    tot_del_int_gains * frac                                                                # subtract delayed internal gains
+                                    tot_del_int_gains * all_surf_frac                                                       # subtract delayed internal gains
                                     ) + (
                                     self.sec_per_ts * self.win_out_var_dict[z][ext_surf_type_key][ext_surf_key][win_var][1] # add gap between shade and glazing convective gain
                                     ) + (
-                                    in_surf_total_conv * ext_surf_frac                                                      # add exterior surface-weighted internal surface convection
-                                    )
+                                    int_surf_total_conv * ext_surf_frac                                                     # add exterior surface-weighted internal surface convection
+                                    ))
+
                             else:
-                                ext_surf_conv[ext_surf_type_key] -= (
-                                    surf_conv
+                                ext_surf_conv[ext_surf_type_key] += (
+                                    surf_conv * -1
                                     ) - (
-                                    (tot_del_int_gains + win_del_ir_gains) * frac 
+                                    (tot_del_int_gains + win_del_ir_gains) * all_surf_frac 
                                     ) + (
                                     int_surf_total_conv * ext_surf_frac
                                 )
                                 if surf_type_key in FLR_KEYS:
-                                    # for floor surfaces, subtract delayed window solar radiation
+                                    # for floor surfaces, subtract delayed window solar radiation multiplied by floor surface fraction
+                                    flr_surf_frac = self.flr_surf_frac_map[z][ext_surf_type_key][ext_surf_key]
                                     ext_surf_conv[ext_surf_type_key] -= (
-                                        win_rts_solar_rad * self.flr_surf_frac_map[z][ext_surf_type_key][ext_surf_key]
+                                        win_rts_solar_rad * flr_surf_frac
                                     )
 
 
@@ -560,7 +606,7 @@ class LoadSummary(EnergyPlusPlugin):
             # equipment loads
             self.component_dict[comp_mode][2][1] += (tot_equipment_conv + equip_rad_delay)
             # windows solar loads
-            self.component_dict[comp_mode][3][1] += win_total_solar_rad
+            self.component_dict[comp_mode][3][1] += win_del_solar
             # exterior wall loads
             self.component_dict[comp_mode][4][1] += ext_surf_conv[0]
             # foundation wall loads
@@ -576,7 +622,7 @@ class LoadSummary(EnergyPlusPlugin):
             # door loads
             self.component_dict[comp_mode][10][1] += ext_surf_conv[6]
             # infiltration loads
-            self.component_dict[comp_mode][11][1] += (self.zone_out_var_dict[z][INFIL_GAIN][1] + self.zone_out_var_dict[z][INFIL_LOSS][1])
+            self.component_dict[comp_mode][11][1] += (self.zone_out_var_dict[z][INFIL_GAIN][1] - self.zone_out_var_dict[z][INFIL_LOSS][1])
             # ventilation loads
             self.component_dict[comp_mode][12][1] += (
                 self.zone_out_var_dict[z][VENT_CLG_INC][1] 
