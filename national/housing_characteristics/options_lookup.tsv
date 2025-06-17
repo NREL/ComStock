@@ -4951,6 +4951,7 @@ baseline_window_type	Triple - LowE - Tinted/Reflective - Thermally Broken Alumin
 baseline_hvac_sizing	autosize	hardsize_model	apply_hardsize=false
 baseline_hvac_sizing	hardsize	hardsize_model	apply_hardsize=true
 occupancy_schedule_adjust	adjust_schedule	adjust_occupancy_schedule	peak_occ_frac=0.231
+add_load_summary_inputs	add_inputs	load_summary_inputs
 ground_thermal_conductivity	0.5	ChangeBuildingLocation	soil_conductivity=0.5
 ground_thermal_conductivity	0.8	ChangeBuildingLocation	soil_conductivity=0.8
 ground_thermal_conductivity	1.1	ChangeBuildingLocation	soil_conductivity=1.1
