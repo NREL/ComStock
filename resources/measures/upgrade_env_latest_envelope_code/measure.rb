@@ -163,117 +163,113 @@ class SetEnvelopeToCurrentCode < OpenStudio::Measure::ModelMeasure
       runner.registerError("Climate zone not found. Cannot lookup window construction.")
     end
 
-    # ## WALLS ##
-    # # Look up existing wall template of model in additional properties
-    # if addtl_props.getFeatureAsString('energy_code_followed_during_last_walls_replacement').is_initialized
-    #   existing_walls_template = addtl_props.getFeatureAsString('energy_code_followed_during_last_walls_replacement').get
-    #   puts "Existing walls template is: #{existing_walls_template}."
-    #   existing_walls_ranking = template_ranking[existing_walls_template]
-    # else
-    #   puts "Existing walls template not found."
-    #   # Assume worst wall insulation ranking and wall insulation will be upgraded. 
-    #   existing_walls_ranking = 0
-    # end
+    ## WALLS ##
+    # Look up existing wall template of model in additional properties
+    if addtl_props.getFeatureAsString('energy_code_followed_during_last_walls_replacement').is_initialized
+      existing_walls_template = addtl_props.getFeatureAsString('energy_code_followed_during_last_walls_replacement').get
+      puts "Existing walls template is: #{existing_walls_template}."
+      existing_walls_ranking = template_ranking[existing_walls_template]
+    else
+      puts "Existing walls template not found."
+      # Assume worst wall insulation ranking and wall insulation will be upgraded. 
+      existing_walls_ranking = 0
+    end
 
-    # # Check if existing wall template is worse than current code in force. If so, then proceed with wall insulation upgrade. Otherwise, wall insulation will not be upgraded. 
-    # if existing_walls_ranking >= current_code_in_force_ranking
-    #   runner.registerInfo('Existing wall insulation is already equivalent or better than the current code in force. Wall insulation will not be upgraded.')
-    # else 
-    #   # Check that a default exterior wall is defined
-    #   unless ext_surf_consts.wallConstruction.is_initialized
-    #     runner.registerError("Default surface construction set #{ext_surf_consts.name} has no default exterior wall construction.")
-    #     return false
-    #   end
-    #   old_construction = ext_surf_consts.wallConstruction.get
-    #   standards_info = old_construction.standardsInformation
+    # Check if existing wall template is worse than current code in force. If so, then proceed with wall insulation upgrade. Otherwise, wall insulation will not be upgraded. 
+    if existing_walls_ranking >= current_code_in_force_ranking
+      runner.registerInfo('Existing wall insulation is already equivalent or better than the current code in force. Wall insulation will not be upgraded.')
+    else 
+      # Check that a default exterior wall is defined
+      unless ext_surf_consts.wallConstruction.is_initialized
+        runner.registerError("Default surface construction set #{ext_surf_consts.name} has no default exterior wall construction.")
+        return false
+      end
+      old_construction = ext_surf_consts.wallConstruction.get
+      standards_info = old_construction.standardsInformation
 
-    #   # Get the old wall construction type
-    #   if standards_info.standardsConstructionType.empty?
-    #     old_wall_construction_type = 'Not defined'
-    #   else
-    #     old_wall_construction_type = standards_info.standardsConstructionType.get
-    #   end
+      # Get the old wall construction type
+      if standards_info.standardsConstructionType.empty?
+        old_wall_construction_type = 'Not defined'
+      else
+        old_wall_construction_type = standards_info.standardsConstructionType.get
+      end
 
-    #   # Get the building occupancy type
-    #   if model.getBuilding.standardsBuildingType.is_initialized
-    #     model_building_type = model.getBuilding.standardsBuildingType.get
-    #   else
-    #     model_building_type = ''
-    #   end
-    #   if ['SmallHotel', 'LargeHotel', 'MidriseApartment', 'HighriseApartment'].include?(model_building_type)
-    #     occ_type = 'Residential'
-    #   else
-    #     occ_type = 'Nonresidential'
-    #   end
+      # Get the building occupancy type
+      if model.getBuilding.standardsBuildingType.is_initialized
+        model_building_type = model.getBuilding.standardsBuildingType.get
+      else
+        model_building_type = ''
+      end
+      if ['SmallHotel', 'LargeHotel', 'MidriseApartment', 'HighriseApartment'].include?(model_building_type)
+        occ_type = 'Residential'
+      else
+        occ_type = 'Nonresidential'
+      end
 
-    #   climate_zone_set = standard.model_find_climate_zone_set(model, climate_zone)
+      climate_zone_set = standard.model_find_climate_zone_set(model, climate_zone)
 
-    #   new_wall_construction = standard.model_find_and_add_construction(model,
-    #                                                               climate_zone_set,
-    #                                                               'ExteriorWall',
-    #                                                               old_wall_construction_type,
-    #                                                               occ_type)
-    #   ext_surf_consts.setWallConstruction(new_wall_construction)
-      
-    #   log_messages_to_runner(runner, debug = false)
+      new_wall_construction = standard.model_find_and_add_construction(model,
+                                                                  climate_zone_set,
+                                                                  'ExteriorWall',
+                                                                  old_wall_construction_type,
+                                                                  occ_type)
+      ext_surf_consts.setWallConstruction(new_wall_construction)
 
-    #   runner.registerInfo("Successfully applied wall construction #{new_wall_construction.name} to the model.")
-    # end
+      runner.registerInfo("Successfully applied wall construction #{new_wall_construction.name} to the model.")
+    end
 
-    # ## ROOF ##
-    # # Look up existing roof template of model in additional properties
-    # if addtl_props.getFeatureAsString('energy_code_followed_during_last_roof_replacement').is_initialized
-    #   existing_roof_template = addtl_props.getFeatureAsString('energy_code_followed_during_last_roof_replacement').get
-    #   puts "Existing roof template is: #{existing_roof_template}."
-    #   existing_roof_ranking = template_ranking[existing_roof_template]
-    # else
-    #   puts "Existing roof template not found."
-    #   # Assume worst roof insulation ranking and roof insulation will be upgraded. 
-    #   existing_roof_ranking = 0
-    # end
+    ## ROOF ##
+    # Look up existing roof template of model in additional properties
+    if addtl_props.getFeatureAsString('energy_code_followed_during_last_roof_replacement').is_initialized
+      existing_roof_template = addtl_props.getFeatureAsString('energy_code_followed_during_last_roof_replacement').get
+      puts "Existing roof template is: #{existing_roof_template}."
+      existing_roof_ranking = template_ranking[existing_roof_template]
+    else
+      puts "Existing roof template not found."
+      # Assume worst roof insulation ranking and roof insulation will be upgraded. 
+      existing_roof_ranking = 0
+    end
 
-    # # Check if existing wall template is worse than current code in force. If so, then proceed with wall insulation upgrade. Otherwise, wall insulation will not be upgraded. 
-    # if existing_roof_ranking >= current_code_in_force_ranking
-    #   runner.registerInfo('Existing roof insulation is already equivalent or better than the current code in force. Roof will not be replaced.')
-    # else
-    #   # Check that a default exterior roof is defined
-    #   unless ext_surf_consts.roofCeilingConstruction.is_initialized
-    #     runner.registerError("Default surface construction set #{ext_surf_consts.name} has no default exterior roof construction.")
-    #     return false
-    #   end
-    #   old_construction = ext_surf_consts.roofCeilingConstruction.get
-    #   standards_info = old_construction.standardsInformation
+    # Check if existing wall template is worse than current code in force. If so, then proceed with wall insulation upgrade. Otherwise, wall insulation will not be upgraded. 
+    if existing_roof_ranking >= current_code_in_force_ranking
+      runner.registerInfo('Existing roof insulation is already equivalent or better than the current code in force. Roof will not be replaced.')
+    else
+      # Check that a default exterior roof is defined
+      unless ext_surf_consts.roofCeilingConstruction.is_initialized
+        runner.registerError("Default surface construction set #{ext_surf_consts.name} has no default exterior roof construction.")
+        return false
+      end
+      old_construction = ext_surf_consts.roofCeilingConstruction.get
+      standards_info = old_construction.standardsInformation
 
-    #   # Get the old roof construction type
-    #   if standards_info.standardsConstructionType.empty?
-    #     old_roof_construction_type = 'Not defined'
-    #   else
-    #     old_roof_construction_type = standards_info.standardsConstructionType.get
-    #   end
+      # Get the old roof construction type
+      if standards_info.standardsConstructionType.empty?
+        old_roof_construction_type = 'Not defined'
+      else
+        old_roof_construction_type = standards_info.standardsConstructionType.get
+      end
 
-    #   # Get the building occupancy type
-    #   if model.getBuilding.standardsBuildingType.is_initialized
-    #     model_building_type = model.getBuilding.standardsBuildingType.get
-    #   else
-    #     model_building_type = ''
-    #   end
-    #   if ['SmallHotel', 'LargeHotel', 'MidriseApartment', 'HighriseApartment'].include?(model_building_type)
-    #     occ_type = 'Residential'
-    #   else
-    #     occ_type = 'Nonresidential'
-    #   end
-    #   climate_zone_set = standard.model_find_climate_zone_set(model, climate_zone)
-    #   new_roof_construction = standard.model_find_and_add_construction(model,
-    #                                                               climate_zone_set,
-    #                                                               'ExteriorRoof',
-    #                                                               old_roof_construction_type,
-    #                                                               occ_type)
-    #   ext_surf_consts.setRoofCeilingConstruction(new_roof_construction)
+      # Get the building occupancy type
+      if model.getBuilding.standardsBuildingType.is_initialized
+        model_building_type = model.getBuilding.standardsBuildingType.get
+      else
+        model_building_type = ''
+      end
+      if ['SmallHotel', 'LargeHotel', 'MidriseApartment', 'HighriseApartment'].include?(model_building_type)
+        occ_type = 'Residential'
+      else
+        occ_type = 'Nonresidential'
+      end
+      climate_zone_set = standard.model_find_climate_zone_set(model, climate_zone)
+      new_roof_construction = standard.model_find_and_add_construction(model,
+                                                                  climate_zone_set,
+                                                                  'ExteriorRoof',
+                                                                  old_roof_construction_type,
+                                                                  occ_type)
+      ext_surf_consts.setRoofCeilingConstruction(new_roof_construction)
 
-    #   log_messages_to_runner(runner, debug = false)
-
-    #   runner.registerInfo("Successfully applied roof construction #{new_roof_construction.name} to the model.")
-    # end
+      runner.registerInfo("Successfully applied roof construction #{new_roof_construction.name} to the model.")
+    end
 
     ## WINDOWS ##
     # Create ranking of window construction (worst to best U-val) so we can evaluate whether the existing window is better than the current code in force
