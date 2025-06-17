@@ -248,10 +248,34 @@ class ScoutLoadsSummary < OpenStudio::Measure::ReportingMeasure
         end
       end
       fuel_type_pct_tses[end_use_fuel_type] = ann_pcts
-      # debug_bldg_heat_transfer_vectors << ["#{end_use_fuel_type.join('_')} Percent"] + ann_pcts
+      debug_bldg_heat_transfer_vectors << ["#{end_use_fuel_type.join('_')} Percent"] + ann_pcts
     end
 
+    # puts fuel_type_pct_tses
     # Get Scout demand side totals, which are heating/cooling demand by component (walls, roofs, etc.)
+    # 
+    # initialize hash of hash of arrays
+    output = Hash.new{|h, k| h[k] = Hash.new { |h2, k2| h2[k2] = Vector.zero(num_ts) }}
+    uses = [
+          'heating',
+          'cooling',
+          'floating'
+        ]
+    components = [
+          'people_gain',
+          'lighting_gain',
+          'equipment_gain',
+          'wall',
+          'foundation_wall',
+          'roof',
+          'floor',
+          'ground',
+          'windows_conduction',
+          'doors_conduction',
+          'windows_solar',
+          'infiltration',
+          'ventilation'
+        ]
 
     total_building_calculated_energy_balance = Vector.elements(Array.new(num_ts, 0.0))
     total_building_true_energy_balance = Vector.elements(Array.new(num_ts, 0.0))
@@ -327,18 +351,23 @@ class ScoutLoadsSummary < OpenStudio::Measure::ReportingMeasure
           eu = sub_end_use_meter.end_use
           seu = sub_end_use_meter.sub_end_use
           vals = sub_end_use_meter.vals
+
+          output[eu][seu] += Vector.elements(vals)
+
           # Apportion each of the end uses between all fuel types
           fuel_type_pct_tses.each_pair do |end_use_fuel_type, ann_pcts|
             fuel_type = end_use_fuel_type[1]
-            new_vals = []
-            vals.zip(ann_pcts).each do |val, pct|
-              new_vals << val * pct
-            end
-            bldg_meters.end_use.demand(eu).add_vals_to_sub_end_use(seu, fuel_type, new_vals)
+            # new_vals = []
+            # vals.zip(ann_pcts).each do |val, pct|
+            #   new_vals << val * pct
+            # end
+            # new_vals = vals
+            # bldg_meters.end_use.demand(eu).add_vals_to_sub_end_use(seu, fuel_type, new_vals)
           end
         end
       end
     end
+
 
     # Report out total building load energy balance error metrics
     debug_bldg_heat_transfer_vectors << ['Total Building Calculated Energy Balance'] + total_building_calculated_energy_balance.to_a
@@ -386,10 +415,17 @@ class ScoutLoadsSummary < OpenStudio::Measure::ReportingMeasure
         runner.registerInfo("Supply side reporting was not requested, therefore will not be outputted.")
       end
 
-      # Demand side sub-end-use totals
-      bldg_meters.end_use.demand.each do |end_use|
-        end_use.sub_end_use.each do |mtr|
-          ts_data << [mtr.register_value_name] + mtr.vals
+      # # Demand side sub-end-use totals
+      # bldg_meters.end_use.demand.each do |end_use|
+      #   end_use.sub_end_use.each do |mtr|
+      #     ts_data << [mtr.register_value_name] + mtr.vals
+      #   end
+      # end
+      
+      output.each do |end_use, sub_end_uses|
+        sub_end_uses.each do |sub_end_use, vals|
+          # Add the end use and sub end use to the timeseries data
+          ts_data << ["#{sub_end_use}_#{end_use}"] + vals.to_a
         end
       end
 
