@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2024 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 # *******************************************************************************
 # OpenStudio(R), Copyright (c) 2008-2023, Alliance for Sustainable Energy, LLC.
@@ -35,15 +35,14 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # *******************************************************************************
 
+# dependencies
+require 'fileutils'
+require 'minitest/autorun'
 require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
-require 'minitest/autorun'
-require_relative '../../../../test/helpers/minitest_helper'
-require_relative '../measure.rb'
-require 'fileutils'
+require_relative '../measure'
 
 class SetNISTInfiltrationCorrelationsTest < Minitest::Test
-
   def run_test(model, args_hash)
     # create an instance of the measure
     measure = SetNISTInfiltrationCorrelations.new
@@ -73,8 +72,7 @@ class SetNISTInfiltrationCorrelationsTest < Minitest::Test
   end
 
   def test_number_of_arguments_and_argument_names
-    test_name = 'test_number_of_arguments_and_argument_names'
-    puts "\n######\nTEST:#{test_name}\n######\n"
+    puts "\n######\nTEST:#{__method__}\n######\n"
 
     # create an instance of the measure
     measure = SetNISTInfiltrationCorrelations.new
@@ -95,8 +93,7 @@ class SetNISTInfiltrationCorrelationsTest < Minitest::Test
   end
 
   def test_bad_airtightness_value
-    test_name = 'test_bad_airtightness_value'
-    puts "\n######\nTEST:#{test_name}\n######\n"
+    puts "\n######\nTEST:#{__method__}\n######\n"
 
     # make an empty model
     model = OpenStudio::Model::Model.new
@@ -115,8 +112,7 @@ class SetNISTInfiltrationCorrelationsTest < Minitest::Test
   end
 
   def test_bldg03_smalloffice_pszac
-    test_name = 'test_bldg03_smalloffice_pszac'
-    puts "\n######\nTEST:#{test_name}\n######\n"
+    puts "\n######\nTEST:#{__method__}\n######\n"
 
     # load the test model
     translator = OpenStudio::OSVersion::VersionTranslator.new
@@ -147,8 +143,7 @@ class SetNISTInfiltrationCorrelationsTest < Minitest::Test
   end
 
   def test_bldg04_retail_pszacnoheat
-    test_name = 'test_bldg04_retail_pszacnoheat'
-    puts "\n######\nTEST:#{test_name}\n######\n"
+    puts "\n######\nTEST:#{__method__}\n######\n"
 
     # load the test model
     translator = OpenStudio::OSVersion::VersionTranslator.new
@@ -183,8 +178,7 @@ class SetNISTInfiltrationCorrelationsTest < Minitest::Test
   end
 
   def test_bldg05_ca_rts
-    test_name = 'test_bldg05_ca_rts'
-    puts "\n######\nTEST:#{test_name}\n######\n"
+    puts "\n######\nTEST:#{__method__}\n######\n"
 
     # load the test model
     translator = OpenStudio::OSVersion::VersionTranslator.new
@@ -215,8 +209,7 @@ class SetNISTInfiltrationCorrelationsTest < Minitest::Test
   end
 
   def test_bldg25_retail_resforcedair
-    test_name = 'test_bldg25_retail_resforcedair'
-    puts "\n######\nTEST:#{test_name}\n######\n"
+    puts "\n######\nTEST:#{__method__}\n######\n"
 
     # load the test model
     translator = OpenStudio::OSVersion::VersionTranslator.new
@@ -254,8 +247,7 @@ class SetNISTInfiltrationCorrelationsTest < Minitest::Test
   end
 
   def test_bldg25_retail_resforcedair_air_barrier
-    test_name = 'test_bldg25_retail_resforcedair_air_barrier'
-    puts "\n######\nTEST:#{test_name}\n######\n"
+    puts "\n######\nTEST:#{__method__}\n######\n"
 
     # load the test model
     translator = OpenStudio::OSVersion::VersionTranslator.new
@@ -294,8 +286,7 @@ class SetNISTInfiltrationCorrelationsTest < Minitest::Test
   end
 
   def test_bldg31_quick_service_restaurant_pthp
-    test_name = 'test_bldg31_quick_service_restaurant_pthp'
-    puts "\n######\nTEST:#{test_name}\n######\n"
+    puts "\n######\nTEST:#{__method__}\n######\n"
 
     # load the test model
     translator = OpenStudio::OSVersion::VersionTranslator.new
@@ -329,8 +320,7 @@ class SetNISTInfiltrationCorrelationsTest < Minitest::Test
   end
 
   def test_bldg31_quick_service_restaurant_pthp_air_barrier
-    test_name = 'test_bldg31_quick_service_restaurant_pthp_air_barrier'
-    puts "\n######\nTEST:#{test_name}\n######\n"
+    puts "\n######\nTEST:#{__method__}\n######\n"
 
     # load the test model
     translator = OpenStudio::OSVersion::VersionTranslator.new
@@ -365,8 +355,7 @@ class SetNISTInfiltrationCorrelationsTest < Minitest::Test
   end
 
   def test_bldg43_warehouse_baseboardelec
-    test_name = 'test_bldg43_warehouse_baseboardelec'
-    puts "\n######\nTEST:#{test_name}\n######\n"
+    puts "\n######\nTEST:#{__method__}\n######\n"
 
     # load the test model
     translator = OpenStudio::OSVersion::VersionTranslator.new
@@ -400,8 +389,7 @@ class SetNISTInfiltrationCorrelationsTest < Minitest::Test
   end
 
   def test_bldg45_stripmall_windowac
-    test_name = 'test_bldg45_stripmall_windowac'
-    puts "\n######\nTEST:#{test_name}\n######\n"
+    puts "\n######\nTEST:#{__method__}\n######\n"
 
     # load the test model
     translator = OpenStudio::OSVersion::VersionTranslator.new
@@ -434,8 +422,7 @@ class SetNISTInfiltrationCorrelationsTest < Minitest::Test
   end
 
   def test_bldg53_smallhotel_pszac
-    test_name = 'test_bldg53_smallhotel_pszac'
-    puts "\n######\nTEST:#{test_name}\n######\n"
+    puts "\n######\nTEST:#{__method__}\n######\n"
 
     # load the test model
     translator = OpenStudio::OSVersion::VersionTranslator.new
@@ -469,8 +456,7 @@ class SetNISTInfiltrationCorrelationsTest < Minitest::Test
   end
 
   def test_bldg53_smallhotel_pszac_air_barrier
-    test_name = 'test_bldg53_smallhotel_pszac_air_barrier'
-    puts "\n######\nTEST:#{test_name}\n######\n"
+    puts "\n######\nTEST:#{__method__}\n######\n"
 
     # load the test model
     translator = OpenStudio::OSVersion::VersionTranslator.new
@@ -505,8 +491,7 @@ class SetNISTInfiltrationCorrelationsTest < Minitest::Test
   end
 
   def test_bldg82_hospitalvav
-    test_name = 'test_bldg82_hospitalvav'
-    puts "\n######\nTEST:#{test_name}\n######\n"
+    puts "\n######\nTEST:#{__method__}\n######\n"
 
     # load the test model
     translator = OpenStudio::OSVersion::VersionTranslator.new

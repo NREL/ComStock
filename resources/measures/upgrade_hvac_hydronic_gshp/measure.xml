@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>hvac_hydronic_gshp</name>
   <uid>adf35b50-ba8d-416a-b6a2-b23a9ef8df0e</uid>
-  <version_id>f5fb594a-9e05-49f3-98a2-a36ff77f6124</version_id>
-  <version_modified>2024-03-19T20:30:35Z</version_modified>
+  <version_id>5a8d9144-79a6-446f-9646-a9569b832350</version_id>
+  <version_modified>2024-07-17T20:28:46Z</version_modified>
   <xml_checksum>F0147A36</xml_checksum>
   <class_name>HVACHydronicGSHP</class_name>
   <display_name>Replace Boiler and Chiller with Hydronic GSHP</display_name>
@@ -169,7 +169,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>899E311F</checksum>
+      <checksum>49F95C8F</checksum>
+    </file>
+    <file>
+      <filename>Carrier_30WG_90kW_clg._markupcsv.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>3CFAA815</checksum>
     </file>
     <file>
       <filename>Carrier_30WG_90kW_clg.csv</filename>

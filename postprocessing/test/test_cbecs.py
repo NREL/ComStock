@@ -20,17 +20,20 @@ def test_cbecs_2012(caplog):
     # Check the total square footage against published EIA tabulations
     # https://www.eia.gov/consumption/commercial/data/2012/bc/cfm/b7.php
     eia_sqft = 87_093_000_000
-    total_sqft = cbecs.data[cbecs.col_name_to_weighted(cbecs.FLR_AREA)].sum()
+    weighted_area_col = cbecs.col_name_to_weighted(cbecs.FLR_AREA)
+    total_sqft = cbecs.data.select(weighted_area_col).sum().collect().item()
     assert total_sqft == pytest.approx(eia_sqft, rel=0.01)
 
     # Check total energy consumption against published EIA tabulations
     # https://www.eia.gov/consumption/commercial/data/2012/c&e/cfm/c1.php
     eia_site_electricity_TBtu = 4_241
-    site_electricity_TBtu = cbecs.data[cbecs.col_name_to_weighted(cbecs.ANN_TOT_ELEC_KBTU, 'tbtu')].sum()
+    elec_col = cbecs.col_name_to_weighted(cbecs.ANN_TOT_ELEC_KBTU, 'tbtu')
+    site_electricity_TBtu = cbecs.data.select(elec_col).sum().collect().item()
     assert site_electricity_TBtu == pytest.approx(eia_site_electricity_TBtu, rel=0.01)
 
     eia_site_natural_gas_TBtu = 2_248
-    site_natural_gas_TBtu = cbecs.data[cbecs.col_name_to_weighted(cbecs.ANN_TOT_GAS_KBTU, 'tbtu')].sum()
+    gas_col = cbecs.col_name_to_weighted(cbecs.ANN_TOT_GAS_KBTU, 'tbtu')
+    site_natural_gas_TBtu = cbecs.data.select(gas_col).sum().collect().item()
     assert site_natural_gas_TBtu == pytest.approx(eia_site_natural_gas_TBtu, rel=0.01)
 
     # Check for self-consistency in weighted and unweighted energy
@@ -49,15 +52,16 @@ def test_cbecs_2012(caplog):
 
     for tot_col, enduse_cols in tot_col_enduse_cols:
         # Unweighted
-        sum_tot_col = cbecs.data[tot_col].sum()
-        sum_enduses = cbecs.data[enduse_cols].sum().sum()
+        sum_tot_col = cbecs.data.select(tot_col).sum().collect().item()
+        sum_enduses = sum(cbecs.data.select(col).sum().collect().item() for col in enduse_cols if col in cbecs.data.columns)
         assert sum_enduses == pytest.approx(sum_tot_col, rel=engy_tol), f'Error in unweighted {tot_col}'
         # Weighted
         wtd_tot_col = cbecs.col_name_to_weighted(tot_col, cbecs.weighted_energy_units)
         wtd_enduse_cols = [cbecs.col_name_to_weighted(c, cbecs.weighted_energy_units) for c in enduse_cols]
-        sum_tot_col = cbecs.data[wtd_tot_col].sum()
-        sum_enduses = cbecs.data[wtd_enduse_cols].sum().sum()
+        sum_tot_col = cbecs.data.select(wtd_tot_col).sum().collect().item()
+        sum_enduses = sum(cbecs.data.select(col).sum().collect().item() for col in wtd_enduse_cols if col in cbecs.data.columns)
         assert sum_enduses == pytest.approx(sum_tot_col, rel=engy_tol), f'Error in weighted {tot_col}'
+
 
     cbecs.export_to_csv_wide()
 
@@ -73,17 +77,21 @@ def test_cbecs_2018(caplog):
     # Check the total square footage against published EIA tabulations
     # https://www.eia.gov/consumption/commercial/data/2018/bc/html/b7.php
     eia_sqft = 96_423_000_000
-    total_sqft = cbecs.data[cbecs.col_name_to_weighted(cbecs.FLR_AREA)].sum()
+    # total_sqft = cbecs.data[cbecs.col_name_to_weighted(cbecs.FLR_AREA)].sum()
+    weighted_area_col = cbecs.col_name_to_weighted(cbecs.FLR_AREA)
+    total_sqft = cbecs.data.select(weighted_area_col).sum().collect().item()
     assert total_sqft == pytest.approx(eia_sqft, rel=0.01)
 
     # Check total energy consumption against published EIA tabulations
     # https://www.eia.gov/consumption/commercial/data/2018/ce/xls/c1.xlsx
     eia_site_electricity_TBtu = 4_081
-    site_electricity_TBtu = cbecs.data[cbecs.col_name_to_weighted(cbecs.ANN_TOT_ELEC_KBTU, 'tbtu')].sum()
+    elec_col = cbecs.col_name_to_weighted(cbecs.ANN_TOT_ELEC_KBTU, 'tbtu')
+    site_electricity_TBtu = cbecs.data.select(elec_col).sum().collect().item()
     assert site_electricity_TBtu == pytest.approx(eia_site_electricity_TBtu, rel=0.01)
 
     eia_site_natural_gas_TBtu = 2_300
-    site_natural_gas_TBtu = cbecs.data[cbecs.col_name_to_weighted(cbecs.ANN_TOT_GAS_KBTU, 'tbtu')].sum()
+    gas_col = cbecs.col_name_to_weighted(cbecs.ANN_TOT_GAS_KBTU, 'tbtu')
+    site_natural_gas_TBtu = cbecs.data.select(gas_col).sum().collect().item()
     assert site_natural_gas_TBtu == pytest.approx(eia_site_natural_gas_TBtu, rel=0.01)
 
     # Check for self-consistency in weighted and unweighted energy
@@ -102,15 +110,17 @@ def test_cbecs_2018(caplog):
 
     for tot_col, enduse_cols in tot_col_enduse_cols:
         # Unweighted
-        sum_tot_col = cbecs.data[tot_col].sum()
-        sum_enduses = cbecs.data[enduse_cols].sum().sum()
-        print(f'{tot_col} = {sum_tot_col}, sum of enduses = {sum_enduses}')
+        sum_tot_col = cbecs.data.select(tot_col).sum().collect().item()
+        sum_enduses = sum(cbecs.data.select(col).sum().collect().item() 
+                          for col in enduse_cols if col in cbecs.data.columns)
         assert sum_enduses == pytest.approx(sum_tot_col, rel=engy_tol), f'Error in unweighted {tot_col}'
         # Weighted
         wtd_tot_col = cbecs.col_name_to_weighted(tot_col, cbecs.weighted_energy_units)
-        wtd_enduse_cols = [cbecs.col_name_to_weighted(c, cbecs.weighted_energy_units) for c in enduse_cols]
-        sum_tot_col = cbecs.data[wtd_tot_col].sum()
-        sum_enduses = cbecs.data[wtd_enduse_cols].sum().sum()
+        wtd_enduse_cols = [cbecs.col_name_to_weighted(c, cbecs.weighted_energy_units) 
+                          for c in enduse_cols if c in cbecs.data.columns]
+        sum_tot_col = cbecs.data.select(wtd_tot_col).sum().collect().item()
+        sum_enduses = sum(cbecs.data.select(col).sum().collect().item() 
+                          for col in wtd_enduse_cols if col in cbecs.data.columns)
         assert sum_enduses == pytest.approx(sum_tot_col, rel=engy_tol), f'Error in weighted {tot_col}'
 
     cbecs.export_to_csv_wide()

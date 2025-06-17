@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>set_interior_lighting_bpr</name>
   <uid>e7e45275-091b-4231-b0a7-3bff1fee48c1</uid>
-  <version_id>88d84fcc-826c-4501-80ba-02389048f7e8</version_id>
-  <version_modified>2023-10-16T20:24:54Z</version_modified>
+  <version_id>4db89d37-38d7-4e05-8fc0-84e43a9bde8a</version_id>
+  <version_modified>2024-10-16T22:34:30Z</version_modified>
   <xml_checksum>B2EAAD67</xml_checksum>
   <class_name>SetInteriorLightingBPR</class_name>
   <display_name>Set Interior Lighting BPR</display_name>
@@ -101,13 +101,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>A6D2CCD2</checksum>
+      <checksum>CCE19405</checksum>
     </file>
     <file>
       <filename>set_interior_lighting_bpr_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>1F24B77F</checksum>
+      <checksum>1A713000</checksum>
     </file>
   </files>
 </measure>

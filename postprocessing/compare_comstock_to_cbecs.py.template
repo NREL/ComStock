@@ -12,10 +12,10 @@ def main():
     # ComStock run
     comstock = cspp.ComStock(
         s3_base_dir='eulp/euss_com',  # If run not on S3, download results_up**.parquet manually
-        comstock_run_name='baseline_vav_mdp_adjust2',  # Name of the run on S3
-        comstock_run_version='baseline_vav_mdp_adjust2',  # Use whatever you want to see in plot and folder names
+        comstock_run_name='hprtu_lab_data_10k_4',  # Name of the run on S3
+        comstock_run_version='HVAC_Charts_Test2',  # Use whatever you want to see in plot and folder names
         comstock_year=2018,  # Typically don't change this
-        athena_table_name='baseline_vav_mdp_adjust2',  # Typically same as comstock_run_name or None
+        athena_table_name=None,  # Typically same as comstock_run_name or None
         truth_data_version='v01',  # Typically don't change this
         buildstock_csv_name='buildstock.csv', # Download buildstock.csv manually
         acceptable_failure_percentage=0.9,  # Can increase this when testing and high failure are OK
@@ -26,7 +26,13 @@ def main():
         include_upgrades=False,  # False if not looking at upgrades
         upgrade_ids_to_skip=[]  # Use [1, 3] etc. to exclude certain upgrades
     )
-    
+
+    # Stock Estimation for Apportionment:
+    stock_estimate = cspp.Apportion(
+        stock_estimation_version='2024R2',  # Only updated when a new stock estimate is published
+        truth_data_version='v01'  # Typically don't change this
+    )
+
     # CBECS
     cbecs = cspp.CBECS(
         cbecs_year=2018,  # 2012 and 2018 currently available
@@ -35,16 +41,40 @@ def main():
         reload_from_csv=False  # True if CSV already made and want faster reload times
         )
 
+    # Scale ComStock runs to the 'truth data' from StockE V3 estimates using bucket-based apportionment
+    comstock.add_weights_aportioned_by_stock_estimate(apportionment=stock_estimate)
     # Scale ComStock run to CBECS 2018 AND remove non-ComStock buildings from CBECS
     comstock.add_national_scaling_weights(cbecs, remove_non_comstock_bldg_types_from_cbecs=True)
-    comstock.export_to_csv_wide()
+
+    # Define the geographic partitions to export
+    geo_exports = [
+       {'geo_top_dir': 'national_by_state',
+           'partition_cols': {},
+           'aggregation_levels': [[comstock.STATE_ABBRV, comstock.CZ_ASHRAE]],
+           'data_types': ['full'], # other options: 'detailed', 'basic' **If using multiple options, order must go from more detailed to less detailed.
+           'file_types': ['csv'], # other options:'parquet'
+       },
+    ]
+
+    # export metadata files
+    comstock.export_metadata_and_annual_results(geo_exports)
+
+    # Export CBECS and ComStock data to wide and long formats for Tableau and to skip processing later
+    cbecs.export_to_csv_wide()  # May comment this out after run once
+    # TODO Long is def not working as expected anymore...
+    # comstock.export_to_csv_long()  # Long format useful for stacking end uses and fuels
 
     # Make a comparison by passing in a list of CBECs and ComStock runs to compare
     # upgrade_id can be 'All' or the upgrade number
-    comp = cspp.ComStockToCBECSComparison(cbecs_list=[cbecs], comstock_list=[comstock], upgrade_id='All',make_comparison_plots=True)
+    comstock.create_plotting_lazyframe()
 
-    comp.export_to_csv_wide()
-    
+    comp = cspp.ComStockToCBECSComparison(cbecs_list=[cbecs],
+                                        comstock_list=[comstock],
+                                        upgrade_id='All',
+                                        make_comparison_plots=True,
+                                        make_hvac_plots=True)
+    comp.export_to_csv_wide()  # May comment this out after run once
+
 # Code to execute the script
 if __name__ == "__main__":
     main()

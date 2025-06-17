@@ -3,13 +3,13 @@
   <schema_version>3.1</schema_version>
   <name>set_space_type_load_subcategories</name>
   <uid>3b46bd57-b295-4591-83d8-2c7427d4aaa9</uid>
-  <version_id>9e7c1ad8-a2ff-41c1-8af8-0c29d4d46879</version_id>
-  <version_modified>2023-10-16T20:24:56Z</version_modified>
+  <version_id>828ebbeb-85a9-4d1f-a430-1d156c51ceb9</version_id>
+  <version_modified>2024-10-17T16:04:53Z</version_modified>
   <xml_checksum>19B43B5C</xml_checksum>
   <class_name>SetSpaceTypeLoadSubcategories</class_name>
   <display_name>Set Space Type Load Subcategories</display_name>
   <description>This measure sets subcategory names for internal lighting and equipment loads in a standards space type.</description>
-  <modeler_description>This measure takes the user selected standards space type and sets the interior lighting and equipment load definitions subcategory to match the space type name. </modeler_description>
+  <modeler_description>This measure takes the user selected standards space type and sets the interior lighting and equipment load definitions subcategory to match the space type name.</modeler_description>
   <arguments />
   <outputs />
   <provenances />
@@ -98,19 +98,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>8C3F8284</checksum>
-    </file>
-    <file>
-      <filename>MFm-CEC T24-CEC6.osm</filename>
-      <filetype>osm</filetype>
-      <usage_type>test</usage_type>
-      <checksum>9BEE778B</checksum>
+      <checksum>F9CE795A</checksum>
     </file>
     <file>
       <filename>set_space_type_load_subcategories_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>6AC1ACAC</checksum>
+      <checksum>A40979E7</checksum>
     </file>
   </files>
 </measure>

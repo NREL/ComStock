@@ -13,7 +13,7 @@ from comstockpostproc.units_mixin import UnitsMixin
 from comstockpostproc.plotting_mixin import PlottingMixin
 from comstockpostproc.eia import EIA
 from comstockpostproc.comstock import ComStock
-
+from comstockpostproc.lazyframeplotter import LazyFramePlotter
 logger = logging.getLogger(__name__)
 
 class ComStockToEIAComparison(NamingMixin, UnitsMixin, PlottingMixin):
@@ -48,21 +48,26 @@ class ComStockToEIAComparison(NamingMixin, UnitsMixin, PlottingMixin):
         # for dataset in (comstock_list + eia_list):
             logger.info(f'Adding dataset: {dataset.dataset_name}')
             dataset_names.append(dataset.dataset_name)
-            if isinstance(dataset, ComStock):
+            if isinstance(dataset, ComStock): #dataset is ComStock
+                assert isinstance(dataset.data, pl.LazyFrame)
                 # Annual emissions
                 annual_upgrade_ids = [upgrade_id]
                 if upgrade_id == 'All':
-                    annual_upgrade_ids = dataset.data.get_column('upgrade').unique().to_list()
+                    annual_upgrade_ids = dataset.data.select(pl.col('upgrade')).unique().collect().to_pandas()['upgrade'].to_list()
                 annual_data = dataset.data.filter(pl.col('upgrade').is_in(annual_upgrade_ids))
                 if not annual_upgrade_ids == [0]:
                     annual_data = annual_data.with_columns(
                         pl.concat_str([pl.col(dataset.DATASET), pl.col(dataset.UPGRADE_NAME)], separator=" - ").alias(dataset.DATASET),
                     )
                 color_dict = self.linear_gradient(dataset.COLOR_COMSTOCK_BEFORE, dataset.COLOR_COMSTOCK_AFTER, len(annual_upgrade_ids))
-                for idx, dataset_upgrade_name in enumerate(annual_data.get_column(dataset.DATASET).unique().sort().to_list()):
+                # for idx, dataset_upgrade_name in enumerate(annual_data.get_column(dataset.DATASET).unique().sort().to_list()):
+                # logger.info(f"annual_data shape: {annual_data.select(dataset.DATASET).unique().collect().to_pandas()[dataset.DATASET].tolist().sort()}")
+                for idx, dataset_upgrade_name in enumerate(sorted(annual_data.select(dataset.DATASET).unique().collect().to_pandas()[dataset.DATASET].to_list())):
                     self.color_map[dataset_upgrade_name] = color_dict['hex'][idx]
-                annual_dfs_to_concat.append(annual_data.to_pandas())
+                assert isinstance(annual_data, pl.LazyFrame)
+                annual_dfs_to_concat.append(annual_data)
 
+                # logger.info(f"annual_data shape: {annual_data.columns} , {annual_data.collect().to_pandas().shape}") #more than 1000 columns.
                 # Monthly energy
                 if dataset.monthly_data is None:
                     logger.warning(f'No monthly_data was available for {dataset.dataset_name}, not including in EIA comparison.')
@@ -76,25 +81,52 @@ class ComStockToEIAComparison(NamingMixin, UnitsMixin, PlottingMixin):
                         pl.concat_str([pl.col(dataset.DATASET), pl.col('upgrade_name')], separator=" - ").alias(dataset.DATASET),
                     )
                 color_dict = self.linear_gradient(dataset.COLOR_COMSTOCK_BEFORE, dataset.COLOR_COMSTOCK_AFTER, len(monthly_upgrade_ids))
+                assert isinstance(monthly_data, pl.DataFrame)             
+                # logger.info(f"monthly_data shape: {monthly_data.to_pandas().shape}, {monthly_data.columns}") #['upgrade', 'Month', 'FIPS Code', 'building_type', 'total_site_gas_kbtu', 'total_site_electricity_kwh', 'upgrade_name']
+
                 for idx, dataset_upgrade_name in enumerate(monthly_data.get_column(dataset.DATASET).unique().sort().to_list()):
                     self.monthly_color_map[dataset_upgrade_name] = color_dict['hex'][idx]
-                monthly_dfs_to_concat.append(monthly_data.to_pandas())
-            else:
+                
+                # logger.info(f"monthly_data shape: {monthly_data.columns} , {monthly_data.to_pandas().shape}")
+                monthly_dfs_to_concat.append(monthly_data.lazy())
+            else:  #dataset is EIA
+                assert isinstance(dataset, EIA), f"dataset is not EIA, it is {type(dataset)}"
+                assert isinstance(dataset.emissions_data, pl.DataFrame), f"type of dataset.emissions_data is {type(dataset.emissions_data)}, if it's None, check EIA reload flag"
                 # Annual emissions
-                annual_dfs_to_concat.append(dataset.emissions_data.to_pandas())
+                annual_dfs_to_concat.append(dataset.emissions_data.lazy())
                 self.color_map[dataset.dataset_name] = dataset.color
 
                 # Monthly energy
-                monthly_dfs_to_concat.append(dataset.monthly_data)
+                assert isinstance(dataset.monthly_data, pd.DataFrame), f"type of dataset.monthly_data is {type(dataset.monthly_data)}"
+                monthly_dfs_to_concat.append(pl.from_pandas(dataset.monthly_data).lazy())
                 self.monthly_color_map[dataset.dataset_name] = dataset.color
-
+        
         # Name the comparison
         if self.name is None:
             self.name = ' vs '.join(sorted(dataset_names,key=len)[:2])
 
         # Combine into a single dataframe for convenience
-        self.monthly_data = pd.concat(monthly_dfs_to_concat, join='outer', ignore_index=True)
-        self.data = pd.concat(annual_dfs_to_concat, join='inner', ignore_index=True)
+        # self.monthly_data = pl.concat(monthly_dfs_to_concat, join='outer', ignore_index=True)
+
+        common_columns = set(monthly_dfs_to_concat[0].columns)
+        for df in monthly_dfs_to_concat:
+            common_columns = common_columns.intersection(set(df.columns))
+        monthly_dfs_to_concat = [df.select(common_columns) for df in monthly_dfs_to_concat]
+        self.monthly_data = pl.concat(monthly_dfs_to_concat, how="vertical_relaxed")
+        self.monthly_data = LazyFramePlotter.select_columns(self.monthly_data, common_columns)
+        logger.info(f"monthly_data shape: {self.monthly_data.shape}, column types are {self.monthly_data.dtypes}") #only 7 columns left.
+        assert isinstance(self.monthly_data, pd.DataFrame)
+
+        # self.data = pl.concat(annual_dfs_to_concat, join='inner', ignore_index=True)
+        common_columns = set(annual_dfs_to_concat[0].columns)
+        for df in annual_dfs_to_concat:
+            common_columns = common_columns.intersection(set(df.columns))
+        dfs_to_concat = [df.select(common_columns) for df in annual_dfs_to_concat]
+        self.data: pl.LazyFrame = pl.concat(dfs_to_concat, how="vertical_relaxed")
+        self.data: pd.DataFrame = LazyFramePlotter.select_columns(self.data, common_columns)
+        logger.info(f"annual_data shape: {self.data.shape}, column types are {self.data.dtypes}") #only 7 columns left.
+        assert isinstance(self.data, pd.DataFrame)
+
         current_dir = os.path.dirname(os.path.abspath(__file__))
 
         # Make directories

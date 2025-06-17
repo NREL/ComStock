@@ -95,7 +95,7 @@ class EnvNewAedgWindows < OpenStudio::Measure::ModelMeasure
     template = 'ComStock 90.1-2013'
     std = Standard.build(template)
     # get climate zone value
-    climate_zone = std.model_standards_climate_zone(model)
+    climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
     runner.registerInfo("climate zone = #{climate_zone}")
 
     # For each window construction, make a clone
@@ -132,11 +132,11 @@ class EnvNewAedgWindows < OpenStudio::Measure::ModelMeasure
         next
       end
       # ASHRAE climate zones
-      if climate_zone.include?("ASHRAE 169-2013-0") 
+      if climate_zone.include?("ASHRAE 169-2013-0")
         u_val_target = 2.73
         shgc_target = 0.21
         vlt_target = 0.23
-      elsif climate_zone.include?("ASHRAE 169-2013-1") 
+      elsif climate_zone.include?("ASHRAE 169-2013-1")
         u_val_target = 2.73
         shgc_target = 0.22
         vlt_target = 0.24
