@@ -220,21 +220,21 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
         py_out_var.setUpdateFrequency('ZoneTimestep')
         py_out_var.setUnits('J')
 
+
         # add a regular output variable that references it
         out_var = OpenStudio::Model::OutputVariable.new("PythonPlugin:OutputVariable", model)
         out_var.setKeyValue(py_out_var.nameString)
-        out_var.setReportingFrequency('Timestep') # TODO: change to 'RunPeriod' for production
+        # out_var.setReportingFrequency('Timestep') # TODO: change to 'RunPeriod' for production
+        out_var.setReportingFrequency('RunPeriod')
       end
     end
 
     # add simulation output variables needed for the plugin
     variables_names.each do |var_name|
       out_var = OpenStudio::Model::OutputVariable.new(var_name, model)
-      out_var.setReportingFrequency('Timestep') # TODO: change to 'RunPeriod' for production
+      # out_var.setReportingFrequency('Timestep') # TODO: change to 'RunPeriod' for production
+      out_var.setReportingFrequency('RunPeriod')
     end
-
-    infil_out = OpenStudio::Model::OutputVariable.new('Zone Infiltration Sensible Heat Loss Energy', model)
-    infil_out.setReportingFrequency('Timestep')
 
     debug_mode = runner.getBoolArgumentValue('debug_mode', user_arguments)
     debug_vars = debug_vars()
@@ -311,7 +311,7 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
     # python plugin instance
     python_plugin_instance = OpenStudio::Model::PythonPluginInstance.new(external_file, 'LoadSummary')
     python_plugin_instance.setName('Load Summary')
-    python_plugin_instance.setRunDuringWarmupDays(false)
+    python_plugin_instance.setRunDuringWarmupDays(true)
     
     # python plugin search paths
     # TODO if we need external libraries
@@ -355,6 +355,31 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
 
     return time_series_array
   end
+ 
+  def get_runperiod_variable_value(runner, sql, env_period, key_value, desired_units = nil)
+    query = %{
+    SELECT rvd.VariableValue
+    FROM ReportVariableData AS rvd
+    JOIN ReportVariableDataDictionary AS rvdd
+      ON rvd.ReportVariableDataDictionaryIndex = rvdd.ReportVariableDataDictionaryIndex
+    JOIN Time AS t
+      ON rvd.TimeIndex = t.TimeIndex
+    WHERE rvdd.KeyValue = '#{key_value}'
+    AND rvdd.VariableName = 'PythonPlugin:OutputVariable'
+    AND rvdd.ReportingFrequency = 'Run Period'
+    AND t.IntervalType = 4;
+    }
+
+    result = sql.execAndReturnFirstDouble(query)
+    if result.empty?
+      runner.registerError('Cannot find run period variable value for ' + key_value)
+      return false
+    else
+      result = result.get
+    end
+
+    return desired_units ? OpenStudio.convert(result, 'J', desired_units).get : result
+  end  
 
   # define what happens when the measure is run
   def run(runner, user_arguments)
@@ -420,8 +445,11 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
     # query the component outputs and register values
     components.each do |component|
       modes.each do |mode|
-        ts = get_timeseries_array(runner, sql_file, ann_env_pd, 'Zone Timestep', 'PythonPlugin:OutputVariable', "#{component}_#{mode}", num_ts, 'J', 'GJ')
-        runner.registerValue("#{component}_#{mode}", ts.sum, 'GJ')
+        # ts = get_timeseries_array(runner, sql_file, ann_env_pd, 'Zone Timestep', 'PythonPlugin:OutputVariable', "#{component}_#{mode}", num_ts, 'J', 'GJ')
+        # runner.registerValue("#{component}_#{mode}", ts.sum, 'GJ')
+        value = get_runperiod_variable_value(runner, sql_file, ann_env_pd, "#{component}_#{mode}", 'GJ')
+        runner.registerValue("#{component}_#{mode}", value, 'GJ')
+
       end
     end
 
