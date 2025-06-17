@@ -7957,7 +7957,6 @@ Building,sampling_region,building_type,size_bin,heating_fuel,hvac_system_type
 7955,46,grocery,0,Electricity,PTHP
 7956,41,strip_mall,2,Electricity,PVAV with PFP boxes
 7957,101,grocery,0,FuelOil,PSZ-AC with gas coil
-7958,109,hospital,0,NaturalGas,VAV air-cooled chiller with gas boiler reheat
 7959,100,secondary_school,1,Electricity,PTHP
 7960,43,warehouse,1,Electricity,PSZ-AC with electric coil
 7961,102,grocery,1,FuelOil,PVAV with gas heat with electric reheat
