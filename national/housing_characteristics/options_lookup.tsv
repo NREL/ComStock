@@ -4834,5 +4834,5 @@ size_bin	*
 tract	*
 state_id	*
 census_region	*
-year_bine_of_last_refrigeration_replacement	*
+year_bin_of_last_refrigeration_replacement	*
 include_refrigeration_technology_level	*
