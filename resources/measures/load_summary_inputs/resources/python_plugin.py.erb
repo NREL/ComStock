@@ -156,13 +156,6 @@ class LoadSummary(EnergyPlusPlugin):
             0.01, 0.01, 0.01, 0.00, 0.00, 0.00, 0.00, 0.00
         ]
 
-        # debug mode
-        self.debug_mode = <%= debug_mode.to_s.capitalize %>
-        if self.debug_mode:
-            self.debug_vars = <%= debug_vars %>
-            self.debug_vars_hndls = {}
-        print(f'Debug mode: {self.debug_mode}')
-
         # zone surface info
         self.zn_surf_info = <%= surf_h_json.to_s %>
 
