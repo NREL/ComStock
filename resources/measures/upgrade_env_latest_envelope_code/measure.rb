@@ -39,7 +39,6 @@
 # see the URL below for information on how to write OpenStudio measures
 # http://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/
 
-#require "C:/GitRepos/openstudio-standards/lib/openstudio-standards.rb"
 require 'openstudio-standards'
 
 # start the measure
@@ -213,7 +212,11 @@ class SetEnvelopeToCurrentCode < OpenStudio::Measure::ModelMeasure
                                                                   'ExteriorWall',
                                                                   old_wall_construction_type,
                                                                   occ_type)
-      ext_surf_consts.setWallConstruction(new_wall_construction)
+      #apply new construction to exterior wall surfaces
+      model.getSurfaces.each do |surface|
+        next unless surface.outsideBoundaryCondition == 'Outdoors' && surface.surfaceType == 'Wall'
+        surface.setConstruction(new_wall_construction)
+      end                                                            
 
       runner.registerInfo("Successfully applied wall construction #{new_wall_construction.name} to the model.")
     end
@@ -266,7 +269,11 @@ class SetEnvelopeToCurrentCode < OpenStudio::Measure::ModelMeasure
                                                                   'ExteriorRoof',
                                                                   old_roof_construction_type,
                                                                   occ_type)
-      ext_surf_consts.setRoofCeilingConstruction(new_roof_construction)
+      #apply new construction to exterior roof surfaces
+      model.getSurfaces.each do |surface|
+        next unless surface.outsideBoundaryCondition == 'Outdoors' && surface.surfaceType == 'RoofCeiling'
+        surface.setConstruction(new_roof_construction)
+      end                                                              
 
       runner.registerInfo("Successfully applied roof construction #{new_roof_construction.name} to the model.")
     end
@@ -346,18 +353,19 @@ class SetEnvelopeToCurrentCode < OpenStudio::Measure::ModelMeasure
       code_simple_glazing.setSolarHeatGainCoefficient(shgc)
       code_simple_glazing.setVisibleTransmittance(vlt)
 
+      # create new construction with this new simple glazing layer
+      new_construction = OpenStudio::Model::Construction.new(model)
+      new_construction.setName("Code Compliant Window U-#{u_val_ip.round(2)} SHGC #{shgc.round(2)}")
+      new_construction.insertLayer(0, code_simple_glazing)
+
+      # register new window name condition
+      runner.registerInfo("New code-compliant window #{code_simple_glazing.name.get} has #{u_val_si.round(2)} W/m2-K U-value , #{shgc.round(2)} SHGC, and #{vlt.round(2)} VLT.")
+
       # define total area changed
       area_changed_m2 = 0.0
       # loop over constructions and simple glazings
       constructions = model.getConstructions
       constructions.each do |construction|
-        # register final condition
-        runner.registerInfo("New code-compliant window #{code_simple_glazing.name.get} has #{u_val_si.round(2)} W/m2-K U-value , #{shgc.round(2)} SHGC, and #{vlt.round(2)} VLT.")
-        # create new construction with this new simple glazing layer
-        new_construction = OpenStudio::Model::Construction.new(model)
-        new_construction.setName("Code Compliant Window U-#{u_val_ip.round(2)} SHGC #{shgc.round(2)}")
-        new_construction.insertLayer(0, code_simple_glazing)
-
         # loop over fenestration surfaces and add new construction
         sub_surfaces.each do |sub_surface|
           # assign new construction to fenestration surfaces and add total area changed if construction names match
