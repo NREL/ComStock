@@ -4648,9 +4648,7 @@ thermal_bridging	wood-framed default	thermal_bridging_derating	option=90.1.22|wo
 thermal_bridging	wood-framed unmitigated	thermal_bridging_derating	option=90.1.22|wood.fr|unmitigated
 thermal_bridging	no thermal bridging	thermal_bridging_derating	option=(non thermal bridging)
 baseline_hvac_sizing	autosize	hardsize_model	apply_hardsize=false
-		load_summary_inputs
 baseline_hvac_sizing	hardsize	hardsize_model	apply_hardsize=true
-		load_summary_inputs
 occupancy_schedule_adjust	adjust_schedule	adjust_occupancy_schedule	peak_occ_frac=0.231
 ground_thermal_conductivity	0.5	ChangeBuildingLocation	soil_conductivity=0.5
 ground_thermal_conductivity	0.8	ChangeBuildingLocation	soil_conductivity=0.8
