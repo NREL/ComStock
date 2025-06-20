@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>lighting_controls</name>
   <uid>739730f4-2fe6-450b-8206-de9f591264b0</uid>
-  <version_id>7d7e25e6-e9fe-4021-a145-14e43c442c39</version_id>
-  <version_modified>2025-06-20T22:16:44Z</version_modified>
+  <version_id>3b52f55e-d335-4f2d-9683-09ef5044dfef</version_id>
+  <version_modified>2025-06-20T22:54:58Z</version_modified>
   <xml_checksum>398F827A</xml_checksum>
   <class_name>LightingControls</class_name>
   <display_name>lighting_controls</display_name>
@@ -132,7 +132,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>4BE2A492</checksum>
+      <checksum>7DCDF3B3</checksum>
+    </file>
+    <file>
+      <filename>daylighting_controls_method.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>A7ACCFBA</checksum>
     </file>
     <file>
       <filename>occupancy_sensor_reduction_by_space_type.csv</filename>
