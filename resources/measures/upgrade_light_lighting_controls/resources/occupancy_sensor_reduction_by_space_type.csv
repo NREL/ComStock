@@ -52,7 +52,7 @@ LargeHotel,Kitchen,0.3
 LargeHotel,Laundry,0.1
 LargeHotel,Lobby,0.25
 LargeHotel,Mechanical,0.3
-LargeHotel,Retail,0
+LargeHotel,Retail,0.1
 LargeHotel,Storage,0.45
 Warehouse,Bulk,0.45
 Warehouse,Fine,0.45

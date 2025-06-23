@@ -143,11 +143,13 @@ class LightingControls < OpenStudio::Measure::ModelMeasure
           runner.registerInfo("Occupancy sensors already required by code in space type #{standard_space_type}. This space type will not be modidied.")
         else
           # Do csv lookup using standard_space_type name
+          runner.registerInfo("stanard space type = #{standard_space_type}")
           CSV.foreach(occupancy_sensor_reduction_by_space_type, headers: true) do |row|
             if row['standard_space_type'] == standard_space_type
               lpd_reduction = row['lpd_reduction'].to_f
               runner.registerInfo("Interior lighting power reduction for space type #{space_type.name} = #{(lpd_reduction*100).round(0)}%")
               found_match = true
+              runner.registerInfo("found match = #{found_match}")
               break
             end
           end
@@ -165,7 +167,7 @@ class LightingControls < OpenStudio::Measure::ModelMeasure
                 
                 lights_definition.setWattsperSpaceFloorArea(lpd_new)
 
-                runner.registerInfo("Interior lighting power density for space type #{space_type.name} was reduced by #{(lpd_reduction*100).round(0)}% from #{lpd_existing.round(2)} W/ft2 to #{lpd_new.round(2)} W/ft2 due to the additional of occupancy sensors.")
+                runner.registerInfo("Interior lighting power density for space type #{space_type.name} was reduced by #{(lpd_reduction*100).round(0)}% from #{lpd_existing.round(2)} W/ft2 to #{lpd_new.round(2)} W/ft2 due to the addition of occupancy sensors.")
               else
                 runner.registerWarning("Lighting power is specified using Lighting Level (W) or Lighting Level per Person (W/person) for space type: #{space_type.name}. Measure will not modify lights in this space type.")
               end
