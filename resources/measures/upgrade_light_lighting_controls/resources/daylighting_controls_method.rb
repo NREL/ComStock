@@ -52,18 +52,65 @@ def model_add_daylighting_controls(runner, model, template)
     areas = standard.space_daylighted_areas(space, draw_daylight_areas_for_debugging)
 
     # Determine the type of daylighting controls required
-    req_top_ctrl, req_pri_ctrl, req_sec_ctrl = standard.space_daylighting_control_required?(space, areas)
+    # use most of the criteria from the space_daylighting_controls_required? method but get rid of lighting power limits
+    # this allows the daylighting sensors to be applied to more spaces besides just the ones required by ASHRAE
+    req_top_ctrl = true
+    req_pri_ctrl = true
+    req_sec_ctrl = true
 
-    # # Stop here if no controls are required
-    # if !req_top_ctrl && !req_pri_ctrl && !req_sec_ctrl
-    #   runner.registerInfo("For #{space.name}, no daylighting control is required.")
-    #   return false
-    # end
+    # Get the LPD of the space
+    space_lpd_w_per_m2 = space.lightingPowerPerFloorArea
 
-    # # Output the daylight control requirements
-    # runner.registerInfo("For #{space.name}, toplighting control required = #{req_top_ctrl}")
-    # runner.registerInfo("For #{space.name}, primary sidelighting control required = #{req_pri_ctrl}")
-    # runner.registerInfo("For #{space.name}, secondary sidelighting control required = #{req_sec_ctrl}")
+    # Primary Sidelighting
+    # Check if primary sidelighted area is non-zero, then check if window is large enough
+    if areas['primary_sidelighted_area'] < 0.01
+      runner.registerInfo("For #{space.name}, primary sidelighting control not required because primary sidelighted area = 0ft2 per 9.4.1.1(e).")
+      req_pri_ctrl = false
+    else
+      if areas['total_window_area'] < OpenStudio.convert(20.0, 'ft^2', 'm^2').get
+        runner.registerInfo("For #{space.name}, primary sidelighting control not required because there are less than 20ft2 of window per 9.4.1.1(e) Exception 2.")
+        req_pri_ctrl = false
+      end
+    end
+
+    # Secondary Sidelighting
+    # Check if secondary sidelighted area is non-zero, then check if window is large enough
+    if areas['secondary_sidelighted_area'] < 0.01
+      runner.registerInfo("For #{space.name}, secondary sidelighting control not required because secondary sidelighted area = 0ft2 per 9.4.1.1(e).")
+      req_sec_ctrl = false
+    else
+      if areas['total_window_area'] < OpenStudio.convert(20.0, 'ft^2', 'm^2').get
+        runner.registerInfo("For #{space.name}, secondary sidelighting control not required because there are less than 20ft2 of window per 9.4.1.1(e) Exception 2.")
+        req_sec_ctrl = false
+      end
+    end
+
+    # Toplighting
+    # Check if toplighting area is non-zero
+    if areas['toplighted_area'] < 0.01
+      OpenStudio.logFree(OpenStudio::Debug, 'openstudio.model.Space', "For #{space.name}, toplighting control not required because toplighted area = 0ft2 per 9.4.1.1(f).")
+      req_top_ctrl = false
+    end
+
+    # Exceptions
+    if space.spaceType.is_initialized
+      case space.spaceType.get.standardsSpaceType.to_s
+      when 'Core_Retail'
+        # Retail spaces exception (c) to Section 9.4.1.4
+        # req_sec_ctrl set to true to create a second reference point
+        req_pri_ctrl = false
+        req_sec_ctrl = true
+      when 'Entry', 'Front_Retail', 'Point_of_Sale', 'Strip mall - type 1', 'Strip mall - type 2', 'Strip mall - type 3'
+        # Retail, Strip mall
+        req_pri_ctrl = false
+        req_sec_ctrl = false
+      end
+    end
+
+    # Output the daylight control requirements
+    runner.registerInfo("For #{space.name}, toplighting control required = #{req_top_ctrl}")
+    runner.registerInfo("For #{space.name}, primary sidelighting control required = #{req_pri_ctrl}")
+    runner.registerInfo("For #{space.name}, secondary sidelighting control required = #{req_sec_ctrl}")
 
     # Record a floor in the space for later use
     floor_surface = nil
