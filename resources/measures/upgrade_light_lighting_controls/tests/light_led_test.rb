@@ -3,13 +3,12 @@
 require 'openstudio'
 require 'openstudio/ruleset/ShowRunnerOutput'
 require 'minitest/autorun'
-require_relative '../measure.rb'
+require_relative '../measure'
 require 'fileutils'
 require_relative '../../../../test/helpers/minitest_helper'
 
 
 class LightLightingTechnologyTest < MiniTest::Test
-
   def test_number_of_arguments_and_argument_names
     # this test ensures that the current test is matched to the measure inputs
 
@@ -137,8 +136,10 @@ class LightLightingTechnologyTest < MiniTest::Test
     # make sure it assigned a high bay fixture to the gym spaces
     model.getSpaceTypes.each do |space_type|
       next unless space_type.name.to_s == 'SecondarySchool Gym'
+
       space_type.lights.each do |light|
         next unless light.name.to_s == 'SecondarySchool Gym General Lighting'
+
         light_definition = light.lightsDefinition
         lighting_technology = light_definition.additionalProperties.getFeatureAsString('lighting_technology').to_s
         assert_equal(lighting_technology, 'LED high bay luminaire')
@@ -226,7 +227,7 @@ class LightLightingTechnologyTest < MiniTest::Test
     model.save(output_file_path, true)
   end
 
-    def test_retailstandalone_no_change
+  def test_retailstandalone_no_change
     # create an instance of the measure
     measure = LightLED.new
 
@@ -301,5 +302,4 @@ class LightLightingTechnologyTest < MiniTest::Test
     output_file_path = "#{File.dirname(__FILE__)}/output/test_RtL.osm"
     model.save(output_file_path, true)
   end
-
 end

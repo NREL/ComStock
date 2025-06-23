@@ -43,24 +43,23 @@ Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }
 
 # start the measure
 class LightingControls < OpenStudio::Measure::ModelMeasure
-
   # human readable name
   def name
-    return "lighting_controls"
+    'lighting_controls'
   end
 
   # human readable description
   def description
-    return "This measure applies lighting controls (daylighting sensors, occupancy sensors) to spaces where they are not already present. "
+    'This measure applies lighting controls (daylighting sensors, occupancy sensors) to spaces where they are not already present. '
   end
 
   # human readable description of modeling approach
   def modeler_description
-    return "This measure loops through space types in the model and applies daylighting controls and occupancy sensors where they are not already present. Daylighting sensors are added via the built-in energy plus daylighting objects, while occupancy sensors are applied via a percent LPD reduction by space type based on ASHRAE 90.1 Appendix Table G3.7."
+    'This measure loops through space types in the model and applies daylighting controls and occupancy sensors where they are not already present. Daylighting sensors are added via the built-in energy plus daylighting objects, while occupancy sensors are applied via a percent LPD reduction by space type based on ASHRAE 90.1 Appendix Table G3.7.'
   end
 
   # define the arguments that the user will input
-  def arguments(model)
+  def arguments(_model)
     args = OpenStudio::Measure::OSArgumentVector.new
 
     # apply daylighting controls?
@@ -77,7 +76,7 @@ class LightingControls < OpenStudio::Measure::ModelMeasure
     apply_occupancy.setDefaultValue(true)
     args << apply_occupancy
 
-    return args
+    args
   end
 
   # define what happens when the measure is run
@@ -85,54 +84,53 @@ class LightingControls < OpenStudio::Measure::ModelMeasure
     super(model, runner, user_arguments)
 
     # use the built-in error checking
-    if !runner.validateUserArguments(arguments(model), user_arguments)
-      return false
-    end
+    return false unless runner.validateUserArguments(arguments(model), user_arguments)
 
     # get user arguments
     apply_daylighting = runner.getBoolArgumentValue('apply_daylighting', user_arguments)
     apply_occupancy = runner.getBoolArgumentValue('apply_occupancy', user_arguments)
 
-    # Get additional properties of the model. Used to look up template of original construction, which informs which spaces should already have occupancy sensors by code. 
+    # Get additional properties of the model. Used to look up template of original construction, which informs which spaces should already have occupancy sensors by code.
     addtl_props = model.getBuilding.additionalProperties
 
     if addtl_props.getFeatureAsString('energy_code_in_force_during_original_building_construction').is_initialized
       template = addtl_props.getFeatureAsString('energy_code_in_force_during_original_building_construction').get
       runner.registerInfo("Energy code in force during original building construction is: #{template}.")
     else
-      runner.registerError("Energy code could not be found. Measure will not be applied.")
+      runner.registerError('Energy code could not be found. Measure will not be applied.')
     end
 
     if apply_daylighting == true
       model_add_daylighting_controls(runner, model, template)
     else
-      runner.registerInfo("User argument does not request daylighting controls, so none will be added.")
+      runner.registerInfo('User argument does not request daylighting controls, so none will be added.')
     end
 
     if apply_occupancy == true
       # set list of spaces to skip for each code year
-      # In these spaces, ASHRAE 90.1 already requires occuapancy sensors, therefore we will skip these zones when applying the LPD reduction so as to not overestimate savings. 
+      # In these spaces, ASHRAE 90.1 already requires occuapancy sensors, therefore we will skip these zones when applying the LPD reduction so as to not overestimate savings.
       spaces_to_skip = []
-      if template == 'ComStock 90.1-2004' || template == 'ComStock 90.1-2007'
-        spaces_to_skip = ['Meeting', 'StaffLounge', 'Conference']
+      if ['ComStock 90.1-2004', 'ComStock 90.1-2007'].include?(template)
+        spaces_to_skip = %w[Meeting StaffLounge Conference]
       elsif template == 'ComStock 90.1-2010'
-        spaces_to_skip = ['Auditorium', 'Classroom', 'ComputerRoom', 'Restroom', 'Meeting', 'PublicRestroom', 'StaffLounge',
-                          'Storage', 'Back_Space', 'Conference', 'DressingRoom', 'Janitor', 'LockerRoom', 'CompRoomClassRm',
-                          'OfficeSmall', 'StockRoom']
+        spaces_to_skip = %w[Auditorium Classroom ComputerRoom Restroom Meeting PublicRestroom StaffLounge
+                            Storage Back_Space Conference DressingRoom Janitor LockerRoom CompRoomClassRm
+                            OfficeSmall StockRoom]
       elsif template == 'ComStock 90.1-2013'
-        spaces_to_skip = ['Auditorium', 'Classroom', 'ComputerRoom', 'Restroom', 'Meeting', 'PublicRestroom', 'StaffLounge',
-                          'Storage', 'Back_Space', 'Conference', 'DressingRoom', 'Janitor', 'LockerRoom', 'CompRoomClassRm',
-                          'OfficeSmall', 'StockRoom', 'GuestLounge', 'Banquet','Lounge']
+        spaces_to_skip = %w[Auditorium Classroom ComputerRoom Restroom Meeting PublicRestroom StaffLounge
+                            Storage Back_Space Conference DressingRoom Janitor LockerRoom CompRoomClassRm
+                            OfficeSmall StockRoom GuestLounge Banquet Lounge]
       elsif template == 'ComStock DEER 2011'
-        spaces_to_skip = ['Classroom', 'ComputerRoom', 'Meeting', 'CompRoomClassRm', 'OfficeSmall']
-      elsif template == 'ComStock DEER 2014' || template == 'ComStock DEER 2015' || template == 'ComStock DEER 2017'
-        spaces_to_skip = ['Classroom', 'ComputerRoom', 'Meeting', 'CompRoomClassRm', 'OfficeSmall', 'Restroom', 'GuestLounge', 
-                          'PublicRestroom', 'StaffLounge', 'Storage', 'LockerRoom', 'Lounge']
+        spaces_to_skip = %w[Classroom ComputerRoom Meeting CompRoomClassRm OfficeSmall]
+      elsif ['ComStock DEER 2014', 'ComStock DEER 2015', 'ComStock DEER 2017'].include?(template)
+        spaces_to_skip = %w[Classroom ComputerRoom Meeting CompRoomClassRm OfficeSmall Restroom GuestLounge
+                            PublicRestroom StaffLounge Storage LockerRoom Lounge]
       end
 
       # set location for csv lookup file
-      occupancy_sensor_reduction_by_space_type = File.join(File.dirname(__FILE__), 'resources', 'occupancy_sensor_reduction_by_space_type.csv')
-      
+      occupancy_sensor_reduction_by_space_type = File.join(File.dirname(__FILE__), 'resources',
+                                                           'occupancy_sensor_reduction_by_space_type.csv')
+
       model.getSpaceTypes.sort.each do |space_type|
         standard_space_type = space_type.standardsSpaceType.to_s
 
@@ -147,7 +145,7 @@ class LightingControls < OpenStudio::Measure::ModelMeasure
           CSV.foreach(occupancy_sensor_reduction_by_space_type, headers: true) do |row|
             if row['standard_space_type'] == standard_space_type
               lpd_reduction = row['lpd_reduction'].to_f
-              runner.registerInfo("Interior lighting power reduction for space type #{space_type.name} = #{(lpd_reduction*100).round(0)}%")
+              runner.registerInfo("Interior lighting power reduction for space type #{space_type.name} = #{(lpd_reduction * 100).round(0)}%")
               found_match = true
               runner.registerInfo("found match = #{found_match}")
               break
@@ -158,28 +156,28 @@ class LightingControls < OpenStudio::Measure::ModelMeasure
             runner.registerInfo("No LPD reduction specified for space type #{space_type.name}. Not adding occupancy sensors.")
           end
 
-          lights = space_type.lights.each do |light|
-            if light.name.get.include?("General Lighting")
-              lights_definition = light.lightsDefinition
-              if lights_definition.wattsperSpaceFloorArea.is_initialized
-                lpd_existing = lights_definition.wattsperSpaceFloorArea.get
-                lpd_new = lpd_existing * (1 - lpd_reduction)
-                
-                lights_definition.setWattsperSpaceFloorArea(lpd_new)
+          space_type.lights.each do |light|
+            next unless light.name.get.include?('General Lighting')
 
-                runner.registerInfo("Interior lighting power density for space type #{space_type.name} was reduced by #{(lpd_reduction*100).round(0)}% from #{lpd_existing.round(2)} W/ft2 to #{lpd_new.round(2)} W/ft2 due to the addition of occupancy sensors.")
-              else
-                runner.registerWarning("Lighting power is specified using Lighting Level (W) or Lighting Level per Person (W/person) for space type: #{space_type.name}. Measure will not modify lights in this space type.")
-              end
+            lights_definition = light.lightsDefinition
+            if lights_definition.wattsperSpaceFloorArea.is_initialized
+              lpd_existing = lights_definition.wattsperSpaceFloorArea.get
+              lpd_new = lpd_existing * (1 - lpd_reduction)
+
+              lights_definition.setWattsperSpaceFloorArea(lpd_new)
+
+              runner.registerInfo("Interior lighting power density for space type #{space_type.name} was reduced by #{(lpd_reduction * 100).round(0)}% from #{lpd_existing.round(2)} W/ft2 to #{lpd_new.round(2)} W/ft2 due to the addition of occupancy sensors.")
+            else
+              runner.registerWarning("Lighting power is specified using Lighting Level (W) or Lighting Level per Person (W/person) for space type: #{space_type.name}. Measure will not modify lights in this space type.")
             end
           end
         end
       end
     else
-      runner.registerInfo("User argument does not request occupancy controls, so none will be added.")
+      runner.registerInfo('User argument does not request occupancy controls, so none will be added.')
     end
-    
-    return true
+
+    true
   end
 end
 
