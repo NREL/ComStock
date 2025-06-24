@@ -2333,16 +2333,19 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     state_pqts.append(f's3://{p}')
                 else:
                     state_pqts.append(p)
-            logger.info(f'Reloading allocated weights plus bills from: {alloc_wts_bills_dir}')
-            alloc_wts = pl.scan_parquet(state_pqts, hive_partitioning=True, storage_options=self.output_dir['storage_options'] )
-            # Populate a dictionary of unweighted to weighted names to be used later
-            # TODO figure out a way to avoid this
-            cost_cols = (self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS + [self.UTIL_BILL_TOTAL_MEAN])
-            for col in cost_cols:
-                weighted_col_name = self.col_name_to_weighted(col, self.weighted_utility_units)
-                self.unweighted_weighted_map.update({col: weighted_col_name})
-            self.unweighted_weighted_map.update({self.UTIL_ELEC_BILL_NUM_BILLS: self.col_name_to_weighted(self.UTIL_ELEC_BILL_NUM_BILLS)})
-            return alloc_wts_bills_dir
+            if state_pqts:
+                logger.info(f'Reloading allocated weights plus bills from: {alloc_wts_bills_dir}')
+                alloc_wts = pl.scan_parquet(state_pqts, hive_partitioning=True, storage_options=self.output_dir['storage_options'] )
+                # Populate a dictionary of unweighted to weighted names to be used later
+                # TODO figure out a way to avoid this
+                cost_cols = (self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS + [self.UTIL_BILL_TOTAL_MEAN])
+                for col in cost_cols:
+                    weighted_col_name = self.col_name_to_weighted(col, self.weighted_utility_units)
+                    self.unweighted_weighted_map.update({col: weighted_col_name})
+                self.unweighted_weighted_map.update({self.UTIL_ELEC_BILL_NUM_BILLS: self.col_name_to_weighted(self.UTIL_ELEC_BILL_NUM_BILLS)})
+                return alloc_wts_bills_dir
+            else:
+                logger.info(f"No cached parquet files were found in {alloc_wts_bills_dir}")
 
         # The file does not exist. Create, cache, scan, and return.
         logger.info(f'Creating allocated weights plus bills for upgrade {upgrade_id}')
@@ -2542,6 +2545,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             cached_file_name = f'cached_allocated_weights_plus_bills_upgrade{upgrade_id}_{state_abbv}.parquet'
             logger.info(f'Caching {cached_file_name}')
             alloc_wts_bills_state_dir = f'{alloc_wts_bills_dir}/{self.STATE_ABBRV}={state_abbv}'
+            if not isinstance(self.output_dir['fs'], s3fs.S3FileSystem):
+                os.makedirs(alloc_wts_bills_state_dir, exist_ok=True)
             state_alloc_wts = state_alloc_wts.drop(self.STATE_ABBRV) # state column will be read from hive partition dir name
             cached_file_path = f'{alloc_wts_bills_state_dir}/{cached_file_name}'
             state_pqts.append(cached_file_path)
