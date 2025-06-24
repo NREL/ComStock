@@ -100,11 +100,17 @@ class LightingControls < OpenStudio::Measure::ModelMeasure
       runner.registerError('Energy code could not be found. Measure will not be applied.')
     end
 
+    # track how many spaces are receiving new daylighting sensors.
+    num_spaces_to_get_daylighting_sensors = 0
+
     if apply_daylighting == true
       model_add_daylighting_controls(runner, model, template)
     else
       runner.registerInfo('User argument does not request daylighting controls, so none will be added.')
     end
+
+    # track how many spaces are receiving new daylighting sensors.
+    num_spaces_to_get_occupancy_sensors = 0
 
     if apply_occupancy == true
       # set list of spaces to skip for each code year
@@ -152,6 +158,11 @@ class LightingControls < OpenStudio::Measure::ModelMeasure
             end
           end
 
+          if lpd_reduction > 0
+            # if the space has a non-zero % reduction, add to list of spaces recieving occupancy controls
+            num_spaces_to_get_occupancy_sensors += 1
+          end
+
           unless found_match
             runner.registerInfo("No LPD reduction specified for space type #{space_type.name}. Not adding occupancy sensors.")
           end
@@ -176,6 +187,12 @@ class LightingControls < OpenStudio::Measure::ModelMeasure
     else
       runner.registerInfo('User argument does not request occupancy controls, so none will be added.')
     end
+
+    if num_spaces_to_get_occupancy_sensors + num_spaces_to_get_daylighting_sensors == 0
+      runner.registerAsNotApplicable("Neither daylighting sensors nor occupancy sensors were applicable to any spaces in the model. Measure is not applicable.")
+    end
+
+    runner.registerFinalCondition("Daylighting sensors were applied to #{num_spaces_to_get_daylighting_sensors} spaces and occupancy sensors were applied to #{num_spaces_to_get_occupancy_sensors} spaces in the model.")
 
     true
   end
