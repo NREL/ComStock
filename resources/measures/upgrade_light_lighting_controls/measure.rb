@@ -104,7 +104,7 @@ class LightingControls < OpenStudio::Measure::ModelMeasure
     num_spaces_to_get_daylighting_sensors = 0
 
     if apply_daylighting == true
-      model_add_daylighting_controls(runner, model, template)
+      num_spaces_to_get_daylighting_sensors = model_add_daylighting_controls(runner, model, template, num_spaces_to_get_daylighting_sensors)
     else
       runner.registerInfo('User argument does not request daylighting controls, so none will be added.')
     end

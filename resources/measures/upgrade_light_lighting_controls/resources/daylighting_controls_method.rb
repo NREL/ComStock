@@ -1,5 +1,5 @@
 # method for adding daylighting controls
-def model_add_daylighting_controls(runner, model, template)
+def model_add_daylighting_controls(runner, model, template, num_spaces_to_get_daylighting_sensors)
   remove_existing_controls = false
   draw_daylight_areas_for_debugging = false
 
@@ -111,6 +111,11 @@ def model_add_daylighting_controls(runner, model, template)
     runner.registerInfo("For #{space.name}, toplighting control required = #{req_top_ctrl}")
     runner.registerInfo("For #{space.name}, primary sidelighting control required = #{req_pri_ctrl}")
     runner.registerInfo("For #{space.name}, secondary sidelighting control required = #{req_sec_ctrl}")
+
+    if req_pri_ctrl || req_sec_ctrl || req_top_ctrl
+      # if any one of the daylighting sensors is required, add to list of spaces getting daylighting sensors
+      num_spaces_to_get_daylighting_sensors += 1
+    end
 
     # Record a floor in the space for later use
     floor_surface = nil
@@ -440,4 +445,5 @@ def model_add_daylighting_controls(runner, model, template)
       end
     end
   end
+  return num_spaces_to_get_daylighting_sensors
 end
