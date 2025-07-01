@@ -37,7 +37,7 @@ RUN rm -rf /var/oscli/gems/ruby/3.2.0/bundler/gems/**/.git \
     /var/oscli/gems/ruby/3.2.0/cache/bundler
 
 # Create a slimmer container without development libraries leftover by OpenStudio
-FROM ubuntu:20.04 AS os-comstock
+FROM ubuntu:22.04 AS os-comstock
 
 ARG OPENSTUDIO_VERSION=3.10.0
 ARG OPENSTUDIO_VERSION_EXT=""
