@@ -2252,7 +2252,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 os.makedirs(upgrade_dir, exist_ok=True)
             file_path = f'{upgrade_dir}/{file_name}'
             logger.info(f'Caching plotting data to: {file_path}')
-            wtd_agg_outs = wtd_agg_outs.drop('upgrade')  # upgrade column will be read from hive partition dir name
             wtd_agg_outs = wtd_agg_outs.collect()
             with self.output_dir['fs'].open(file_path, "wb") as f:
                 wtd_agg_outs.write_parquet(f)
