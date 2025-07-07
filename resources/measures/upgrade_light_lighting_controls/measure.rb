@@ -222,6 +222,7 @@ class LightingControls < OpenStudio::Measure::ModelMeasure
           num_spaces_to_get_daylighting_sensors += 1
         else
           runner.registerInfo("Primary sidelighting, secondary sidelighting, and toplighting not required for #{space.name}. Not adding daylighting sensors.")
+          next
         end
 
         # Record a floor in the space for later use
