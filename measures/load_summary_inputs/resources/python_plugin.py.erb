@@ -50,7 +50,8 @@ ZN_OUTPUT_MAP = {i: t for i, t in enumerate([
     ('zhwerhe', 'Zone Hot Water Equipment Radiant Heating Energy'),
     ('zoeche', 'Zone Other Equipment Convective Heating Energy'),
     ('zoerhe', 'Zone Other Equipment Radiant Heating Energy'),
-    ('zwttsre', 'Enclosure Windows Total Transmitted Solar Radiation Energy'),
+    #('zwttsre', 'Enclosure Windows Total Transmitted Solar Radiation Energy'),
+    ('zwttsre', 'Zone Windows Total Transmitted Solar Radiation Energy'),
     ('zishge', 'Zone Infiltration Sensible Heat Gain Energy'),
     ('zishle', 'Zone Infiltration Sensible Heat Loss Energy'),
     ('zmvhlie', 'Zone Mechanical Ventilation Heating Load Increase Energy'),
@@ -192,6 +193,10 @@ class LoadSummary(EnergyPlusPlugin):
                     for k, (surf_name, frac) in enumerate(self.zn_ext_surf_fracs[zone_name][surf_type].items()):
                         self.ext_surf_frac_map[i][j][k] = frac 
 
+        # dict to store zone multiplier handles and values
+        # {'zn_name_key': {0: handle, 1: value}}
+        self.zone_multipliers = defaultdict(lambda: defaultdict())
+
         # dict to store zone (or enclosure) variable handles and values
         # {'zn_name_key': {'var_abbrev_key': {0: handle, 1: value}}
         self.zone_out_var_dict = defaultdict(lambda: defaultdict(lambda: defaultdict()))
@@ -264,8 +269,16 @@ class LoadSummary(EnergyPlusPlugin):
     def get_handles(self, state):
 
         for z in self.zone_name_map:
+            # zone multipliers
+            self.zone_multipliers[z][0] = self.api.exchange.get_internal_variable_handle(
+                state,
+                'Zone Multiplier',
+                self.zone_name_map[z]
+            )
+
+            # zone output handles
             for j, output in ZN_OUTPUT_MAP.items():
-                if 'Enclosure' in output[1]:
+                if 'Transmitted Solar' in output[1]:
                     key_name = self.enc_name_map[z]
                 else:
                     key_name = self.zone_name_map[z]
@@ -314,6 +327,17 @@ class LoadSummary(EnergyPlusPlugin):
         self.num_ts = self.api.exchange.num_time_steps_in_hour(state)
         self.sec_per_ts = (60 * 60) / self.num_ts
 
+        # get handles
+        if self.need_to_get_handles:
+            self.get_handles(state)
+            
+        # zone multiplier values
+        for z in self.zone_name_map:
+            self.zone_multipliers[z][1] = self.api.exchange.get_internal_variable_value(
+                state,
+                self.zone_multipliers[z][0]
+            )
+
         return 0
 
     def component_mode(self, val):
@@ -348,10 +372,6 @@ class LoadSummary(EnergyPlusPlugin):
         # only perform calcs during run period, not design days
         if self.api.exchange.calendar_year(state) == 0:
             return 0
-        
-        # get handles
-        if self.need_to_get_handles:
-            self.get_handles(state)
 
         # initialize component dict
         for mode in MODES:
@@ -592,37 +612,39 @@ class LoadSummary(EnergyPlusPlugin):
                 sys_rate += self.zone_out_var_dict[z][var_key][1]
             comp_mode = self.component_mode(sys_rate)
 
+            multiplier = self.zone_multipliers[z][1]
+
             # people loads
-            self.component_dict[comp_mode][0][1] += (self.zone_out_var_dict[z][PEOPLE_CONV][1] + people_rad_delay)
+            self.component_dict[comp_mode][0][1] += (self.zone_out_var_dict[z][PEOPLE_CONV][1] + people_rad_delay) * multiplier
             # lights loads
-            self.component_dict[comp_mode][1][1] += (self.zone_out_var_dict[z][LIGHT_CONV][1] + lights_rad_delay)
+            self.component_dict[comp_mode][1][1] += (self.zone_out_var_dict[z][LIGHT_CONV][1] + lights_rad_delay) * multiplier
             # equipment loads
-            self.component_dict[comp_mode][2][1] += (tot_equipment_conv + equip_rad_delay)
+            self.component_dict[comp_mode][2][1] += (tot_equipment_conv + equip_rad_delay) * multiplier
             # windows solar loads
-            self.component_dict[comp_mode][3][1] += win_del_solar
+            self.component_dict[comp_mode][3][1] += win_del_solar * multiplier
             # exterior wall loads
-            self.component_dict[comp_mode][4][1] += ext_surf_conv[0]
+            self.component_dict[comp_mode][4][1] += ext_surf_conv[0] * multiplier
             # foundation wall loads
-            self.component_dict[comp_mode][5][1] += ext_surf_conv[1]
+            self.component_dict[comp_mode][5][1] += ext_surf_conv[1] * multiplier
             # exterior roof loads
-            self.component_dict[comp_mode][6][1] += ext_surf_conv[2]
+            self.component_dict[comp_mode][6][1] += ext_surf_conv[2] * multiplier
             # exterior floor loads
-            self.component_dict[comp_mode][7][1] += ext_surf_conv[3]
+            self.component_dict[comp_mode][7][1] += ext_surf_conv[3] * multiplier
             # ground floor loads
-            self.component_dict[comp_mode][8][1] += ext_surf_conv[4]
+            self.component_dict[comp_mode][8][1] += ext_surf_conv[4] * multiplier
             # window conduction loads
-            self.component_dict[comp_mode][9][1] += (ext_surf_conv[5] + window_shade_ir)
+            self.component_dict[comp_mode][9][1] += (ext_surf_conv[5] + window_shade_ir) * multiplier
             # door loads
-            self.component_dict[comp_mode][10][1] += ext_surf_conv[6]
+            self.component_dict[comp_mode][10][1] += ext_surf_conv[6] * multiplier
             # infiltration loads
-            self.component_dict[comp_mode][11][1] += (self.zone_out_var_dict[z][INFIL_GAIN][1] - self.zone_out_var_dict[z][INFIL_LOSS][1])
+            self.component_dict[comp_mode][11][1] += (self.zone_out_var_dict[z][INFIL_GAIN][1] - self.zone_out_var_dict[z][INFIL_LOSS][1]) * multiplier
             # ventilation loads
             self.component_dict[comp_mode][12][1] += (
                 self.zone_out_var_dict[z][VENT_CLG_INC][1] 
                 + self.zone_out_var_dict[z][VENT_HTG_DEC][1] 
                 - self.zone_out_var_dict[z][VENT_CLG_DEC][1] 
                 - self.zone_out_var_dict[z][VENT_HTG_INC][1]
-            )
+            ) * multiplier
             
         # flip sign of all components in heating
         for component in COMPONENTS:
