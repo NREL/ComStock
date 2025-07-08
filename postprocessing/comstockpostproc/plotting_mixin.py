@@ -270,7 +270,7 @@ class PlottingMixin():
         for ax in axes[:]:
             ax.get_legend().remove()
         # y label name
-        axes[0].set_ylabel('Annual GHG Emissions (MMT CO2e)', fontsize=14)
+        axes[0].set_ylabel('Annual Emissions (MMT CO2e)', fontsize=14)
 
         # Add black boxes around the plot areas
         for ax in axes:
