@@ -53,15 +53,19 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     # get pump specs
     pumps.each do |pump|
       # check if this pump is used on chiller systems
-      chiller_pump = false
+      chw_cw_hw_pump = false
       plant_loop = pump.plantLoop.get
       plant_loop.supplyComponents.each do |sc|
-        if sc.to_ChillerElectricEIR.is_initialized
-          chiller_pump = true
+        if (sc.to_ChillerElectricEIR.is_initialized ||
+          sc.to_BoilerHotWater.is_initialized ||
+          sc.to_CoolingTowerSingleSpeed.is_initialized ||
+          sc.to_CoolingTowerTwoSpeed.is_initialized ||
+          sc.to_CoolingTowerVariableSpeed.is_initialized)
+          chw_cw_hw_pump = true
         end
       end
 
-      next if chiller_pump == false
+      next if chw_cw_hw_pump == false
 
       # add pump to applicable pump list
       applicable_pumps << pump
