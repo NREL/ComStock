@@ -138,6 +138,7 @@ class LightingControls < OpenStudio::Measure::ModelMeasure
 
         # Skip this space if it has no exterior windows or skylights
         ext_fen_area_m2 = 0
+        has_shading_controls = false
         space.surfaces.each do |surface|
           next unless surface.outsideBoundaryCondition == 'Outdoors'
 
@@ -145,11 +146,22 @@ class LightingControls < OpenStudio::Measure::ModelMeasure
             next unless %w[FixedWindow OperableWindow Skylight
                           GlassDoor].include?(sub_surface.subSurfaceType)
 
+            # get window area, if area is 0, no exterior fenestration
             ext_fen_area_m2 += sub_surface.netArea
+
+            # check if any shading controls are present
+            unless sub_surface.shadingControls.empty?
+              has_shading_controls = true
+            end
           end
         end
         if ext_fen_area_m2.zero?
           runner.registerInfo("For #{space.name}, daylighting control not applicable because no exterior fenestration is present.")
+          next
+        end
+
+        if has_shading_controls
+          runner.registerInfo("For #{space.name}, daylighting control not applicable because shading controls are already present.")
           next
         end
 
