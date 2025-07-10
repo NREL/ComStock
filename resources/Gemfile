@@ -13,7 +13,7 @@ gem 'bcl', '= 0.9.1'
 gem 'openstudio-extension', '= 0.9.1'
 gem 'openstudio-workflow', '= 2.5.0'
 # gem 'openstudio-standards', '= 0.8.2'
-gem 'openstudio-standards', git: 'https://github.com/NREL/openstudio-standards.git', ref: '359f4c075fcdf43be9007b419f16e6b7fd2b3c6d'
+gem 'openstudio-standards', git: 'https://github.com/NREL/openstudio-standards.git', ref: '22069266cc7baac0aa30c269d06b564864cdfe36'
 # gem 'openstudio-standards', path: "C:/GitRepos/openstudio-standards" # Use this format when testing openstudio-standards changes locally
 gem 'openstudio-geb', git: 'https://github.com/LBNL-ETA/Openstudio-GEB-gem.git', ref: '87da5c2678327b73eef54d2364f46225154bb956'
 gem 'tbd', '= 3.4.4'
