@@ -1,0 +1,178 @@
+{
+  "battery_storage_system": [
+    {
+      "template": "DEER T24 2022",
+      "building_type": "Asm",
+      "doe_building_type":"",
+      "battery_storage_factor_b_energy_capacity": 0.93,
+      "battery_storage_factor_c_power_capacity": 0.23,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
+      "template": "DEER T24 2022",
+      "building_type": "ECC",
+      "doe_building_type":"SecondarySchool",
+      "battery_storage_factor_b_energy_capacity": 1.87,
+      "battery_storage_factor_c_power_capacity": 0.46,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
+      "template": "DEER T24 2022",
+      "building_type": "EPr",
+      "doe_building_type":"PrimarySchool",
+      "battery_storage_factor_b_energy_capacity": 1.87,
+      "battery_storage_factor_c_power_capacity": 0.46,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
+      "template": "DEER T24 2022",
+      "building_type": "SecondarySchool",
+      "battery_storage_factor_b_energy_capacity": 1.87,
+      "battery_storage_factor_c_power_capacity": 0.46,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
+      "template": "DEER T24 2022",
+      "building_type": "EUn",
+      "battery_storage_factor_b_energy_capacity": 1.87,
+      "battery_storage_factor_c_power_capacity": 0.46,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
+      "template": "DEER T24 2022",
+      "building_type": "Gro",
+      "battery_storage_factor_b_energy_capacity": 1.03,
+      "battery_storage_factor_c_power_capacity": 0.26,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
+      "template": "DEER T24 2022",
+      "building_type": "Htl",
+      "battery_storage_factor_b_energy_capacity": 0.93,
+      "battery_storage_factor_c_power_capacity": 0.23,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
+      "template": "DEER T24 2022",
+      "building_type": "MBT",
+      "battery_storage_factor_b_energy_capacity": 0.93,
+      "battery_storage_factor_c_power_capacity": 0.23,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
+      "template": "DEER T24 2022",
+      "building_type": "MFm",
+      "battery_storage_factor_b_energy_capacity": 1.03,
+      "battery_storage_factor_c_power_capacity": 0.23,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
+      "template": "DEER T24 2022",
+      "building_type": "MLI",
+      "battery_storage_factor_b_energy_capacity": 0.93,
+      "battery_storage_factor_c_power_capacity": 0.23,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
+      "template": "DEER T24 2022",
+      "building_type": "Mtl",
+      "battery_storage_factor_b_energy_capacity": 0.93,
+      "battery_storage_factor_c_power_capacity": 0.23,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
+      "template": "DEER T24 2022",
+      "building_type": "Office",
+      "battery_storage_factor_b_energy_capacity": 1.68,
+      "battery_storage_factor_c_power_capacity": 0.42,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
+      "template": "DEER T24 2022",
+      "building_type": "OfS",
+      "battery_storage_factor_b_energy_capacity": 1.68,
+      "battery_storage_factor_c_power_capacity": 0.42,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
+      "template": "DEER T24 2022",
+      "building_type": "RFF",
+      "battery_storage_factor_b_energy_capacity": 0.93,
+      "battery_storage_factor_c_power_capacity": 0.23,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
+      "template": "DEER T24 2022",
+      "building_type": "RSD",
+      "battery_storage_factor_b_energy_capacity": 0.93,
+      "battery_storage_factor_c_power_capacity": 0.23,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
+      "template": "DEER T24 2022",
+      "building_type": "Rt3",
+      "battery_storage_factor_b_energy_capacity": 1.03,
+      "battery_storage_factor_c_power_capacity": 0.26,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
+      "template": "DEER T24 2022",
+      "building_type": "RtL",
+      "battery_storage_factor_b_energy_capacity": 1.03,
+      "battery_storage_factor_c_power_capacity": 0.26,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
+      "template": "DEER T24 2022",
+      "building_type": "RtS",
+      "battery_storage_factor_b_energy_capacity": 1.03,
+      "battery_storage_factor_c_power_capacity": 0.26,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
+      "template": "DEER T24 2022",
+      "building_type": "SCn",
+      "battery_storage_factor_b_energy_capacity": 0.93,
+      "battery_storage_factor_c_power_capacity": 0.23,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
+      "template": "DEER T24 2022",
+      "building_type": "SUn",
+      "battery_storage_factor_b_energy_capacity": 0.93,
+      "battery_storage_factor_c_power_capacity": 0.23,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
+      "template": "DEER T24 2022",
+      "building_type": "WRf",
+      "battery_storage_factor_b_energy_capacity": 0.93,
+      "battery_storage_factor_c_power_capacity": 0.23,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
+      "building_type": "SmallOffice",
+      "battery_storage_factor_b_energy_capacity": 1.68,
+      "battery_storage_factor_c_power_capacity": 1.42,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
+      "building_type": "MediumOffice",
+      "battery_storage_factor_b_energy_capacity": 1.68,
+      "battery_storage_factor_c_power_capacity": 1.42,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
+      "building_type": "LargeOffice",
+      "battery_storage_factor_b_energy_capacity": 1.68,
+      "battery_storage_factor_c_power_capacity": 1.42,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
+      "building_type": "Office",
+      "battery_storage_factor_b_energy_capacity": 1.68,
+      "battery_storage_factor_c_power_capacity": 1.42,
+      "notes": "From T24 2022 Table 140.10-B"
+    }
+  ]
+}

@@ -1,6 +1,5 @@
 require 'openstudio-standards'
-
-
+require 'json'
 
 # see the URL below for information on how to write OpenStudio measures
 # http://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/
@@ -113,6 +112,27 @@ class UpgradeAddPvwatts < OpenStudio::Measure::ModelMeasure
     return pvw_inverter
   end
 
+  # load data respirces
+  def self.load_standards_data()
+    @standards_data = {}
+    battery_data = JSON.parse(File.read(File.expand_path(File.dirname(__FILE__) + "resources/deer_t24_2022.battery_storage_system.json")))
+    @standards_data.merge!(battery_data)
+    return true
+  end
+
+  # this method returns battery capacity data from Title 24 2022 Table 140.10-B
+  # @return [Hash] hash of battery capacity factor data
+  def model_get_battery_capacity(building_type)
+    # populate search hash
+    search_criteria = {
+      'building_type' => building_type,
+    }
+
+    # search battery storage table for energy capacity
+    battery_capacity = model_find_object(@standards_data['battery_storage_system'], search_criteria)
+    return battery_capacity
+  end
+
   # define the arguments that the user will input
   def arguments(model)
     args = OpenStudio::Measure::OSArgumentVector.new
@@ -123,6 +143,13 @@ class UpgradeAddPvwatts < OpenStudio::Measure::ModelMeasure
     pv_area_fraction.setDescription('The fraction of roof area for PV installation.')
     pv_area_fraction.setDefaultValue(0.4)
     args << pv_area_fraction
+
+    # the name of the space to add to the model
+    incl_batt_storage = OpenStudio::Measure::OSArgument.makeBoolArgument('incl_batt_storage', true)
+    incl_batt_storage.setDisplayName('Include Battery Storage?')
+    incl_batt_storage.setDescription('Adds battery storage system per CEC guidlines.')
+    incl_batt_storage.setDefaultValue(false)
+    args << incl_batt_storage
 
     return args
   end
@@ -138,6 +165,7 @@ class UpgradeAddPvwatts < OpenStudio::Measure::ModelMeasure
 
     # assign the user inputs to variables
     pv_area_fraction = runner.getDoubleArgumentValue('pv_area_fraction', user_arguments)
+    incl_batt_storage = runner.getBoolArgumentValue('incl_batt_storage', user_arguments)
 
     # build standard to use OS standards methods
     template = 'ComStock 90.1-2019'
@@ -190,6 +218,52 @@ class UpgradeAddPvwatts < OpenStudio::Measure::ModelMeasure
     pv_system_losses = pv_generator.systemLosses
     pv_title_angle = pv_generator.tiltAngle
     pv_azimuth_angle = pv_generator.azimuthAngle
+
+    # add battery storage per user input
+    if incl_batt_storage
+
+      if model.getBuilding.standardsBuildingType.is_initialized
+        building_type = model.getBuilding.standardsBuildingType.get
+      else
+        runner.registerError("Building type not found.")
+        return true
+      end
+
+      pv_size_kw = pv_system_capacity / 1000
+
+      puts building_type
+
+      battery_data =  model_get_battery_capacity(building_type)
+      b_factor = battery_data["battery_storage_factor_b_energy_capacity"]
+
+      puts "b_factor: #{b_factor}"
+
+      # D factor is Rated single charge-discharge cycle AC to AC (round-trip) efficiency of the battery storage system
+      # default value is 0.95 * 0.95 from CBECC Rule Batt:RoundTripEff
+      # d_factor = 0.95 * 0.95
+      # set by minimum prescriptive requirement of JA12.2.2.1(b)
+      d_factor = 0.80
+
+      battery_kwh = (pv_size_kw * b_factor) / (d_factor ** 0.5)
+
+      # calculate battery power capacity per Equation 140.10-C
+      c_factor = battery_data["battery_storage_factor_c_power_capacity"]
+
+      battery_kw = (pv_size_kw * c_factor)
+
+      OpenStudio::logFree(OpenStudio::Info, 'openstudio.standards.Model', "Creating a Battery Storage system with capacity of #{battery_kwh.round(2)} kWh and charge/discharge power of #{battery_kw.round(2)} kW.")
+
+      battery = model_add_electric_storage_simple(model, max_storage_capacity_kwh: battery_kwh, max_charge_power_kw: battery_kw, max_discharge_power_kw: battery_kw)
+      converter = model_add_electric_storage_converter(model)
+
+      if battery.nil?
+        # PV required, no Storage required
+        buss_type = "DirectCurrentWithInverter"
+      else
+        # PV and Storage required
+        buss_type = "DirectCurrentWithInverterDCStorage"
+      end
+    end
 
     # report final condition of model
     runner.registerFinalCondition("The building finished with #{(pv_system_capacity/1000).round(0)} kW of PV covering #{pv_area_ft2.round(0)} ft^2 of roof area. The module type is #{pv_module_type}, the array type is #{pv_array_type}, the system losses are #{pv_system_losses}, the title angle is #{pv_title_angle.round(0)}°, and the azimuth angle is #{pv_azimuth_angle.round(0)}°. The inverter has a DC to AC size ratio of #{pv_inverter.dcToACSizeRatio} and an inverter efficiency of #{(pv_inverter.inverterEfficiency*100).round(0)}%.")
