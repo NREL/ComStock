@@ -36,25 +36,43 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
   def models_to_test
     test_sets = []
 
-    # test: not applicable building type
+    # test: applicable building type
+    test_sets << {
+      model: 'Small_Office_2A',
+      weather: 'TX_Port_Arthur_Jeffers_722410_16',
+      result: 'Success'
+    }
     test_sets << {
       model: '361_Medium_Office_PSZ_HP',
       weather: 'CO_FortCollins_16',
-      result: 'NA'
+      result: 'Success'
     }
     test_sets << {
       model: 'LargeOffice_VAV_chiller_boiler',
-      weather: 'CO_FortCollins_16',
+      weather: 'NY_New_York_John_F_Ke_744860_16',
+      result: 'Success'
+    }
+    
+    test_sets << {
+      model: '3340_small_office_OS38', # small office
+      weather: 'IL_Dupage_3340_18',
       result: 'Success'
     }
     test_sets << {
-      model: 'LargeOffice_VAV_chiller_boiler_2',
-      weather: 'CO_FortCollins_16',
+      model: '4774_secondary_school_OS38', # secondary school
+      weather: 'MI_Tulip_City_4774_18',
       result: 'Success'
     }
+    # test: not applicable building type
     test_sets << {
-      model: 'LargeOffice_VAV_district_chw_hw',
+      model: 'Outpatient_VAV_chiller_PFP_boxes',
       weather: 'CO_FortCollins_16',
+      result: 'NA'
+    }
+    # test: not applicable hvac (non-electric)
+    test_sets << {
+      model: 'Warehouse_5A',
+      weather: 'MN_Cloquet_Carlton_Co_726558_16',
       result: 'NA'
     }
 
@@ -204,8 +222,18 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
 
       # set arguments:
       load_prediction_method = arguments[4].clone
-      assert(load_prediction_method.setValue('part year bin sample'))#'bin sample''full baseline'
+      assert(load_prediction_method.setValue('full baseline'))#'bin sample''part year bin sample'
       argument_map['load_prediction_method'] = load_prediction_method
+
+      # set arguments:
+      peak_lag = arguments[5].clone
+      assert(peak_lag.setValue(2))
+      argument_map['peak_lag'] = peak_lag
+
+      # set arguments:
+      peak_window_strategy = arguments[6].clone
+      assert(peak_window_strategy.setValue('center with peak'))#'bin sample''part year bin sample'
+      argument_map['peak_window_strategy'] = peak_window_strategy
 
       # apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)

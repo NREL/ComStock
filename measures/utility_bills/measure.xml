@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>utility_bills</name>
   <uid>2a3442c1-944d-4e91-9e11-11e0cf368c64</uid>
-  <version_id>7ec10982-2213-4b46-a686-2febd9cdd3d7</version_id>
-  <version_modified>2024-01-12T22:12:35Z</version_modified>
+  <version_id>13ab0453-5926-4b8d-b4d5-c732c7a49dd9</version_id>
+  <version_modified>2025-03-26T21:06:45Z</version_modified>
   <xml_checksum>15BF4E57</xml_checksum>
   <class_name>UtilityBills</class_name>
   <display_name>Utility Bills</display_name>
@@ -33,7 +33,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>C5A9C741</checksum>
+      <checksum>93F26625</checksum>
     </file>
     <file>
       <filename>calc_elec_bill.py</filename>
@@ -63810,22 +63810,52 @@
       <checksum>44BC4CEF</checksum>
     </file>
     <file>
+      <filename>sampling_region_to_tracts.json</filename>
+      <filetype>json</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>DC447719</checksum>
+    </file>
+    <file>
+      <filename>sampling_region_utils.ipynb</filename>
+      <filetype>ipynb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>5B808B9F</checksum>
+    </file>
+    <file>
+      <filename>sampling_regions_v1.json</filename>
+      <filetype>json</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>DA8E0F7C</checksum>
+    </file>
+    <file>
+      <filename>state_abbrev_to_fips.json</filename>
+      <filetype>json</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>48EEC65F</checksum>
+    </file>
+    <file>
+      <filename>tract.json</filename>
+      <filetype>json</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>A6C009BA</checksum>
+    </file>
+    <file>
       <filename>tract_to_elec_util.csv</filename>
       <filetype>csv</filetype>
       <usage_type>resource</usage_type>
       <checksum>DC03F74A</checksum>
     </file>
     <file>
+      <filename>tract_to_elec_util_v2.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>D491E87F</checksum>
+    </file>
+    <file>
       <filename>1004_SmallHotel_a.osm</filename>
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
       <checksum>3F796846</checksum>
-    </file>
-    <file>
-      <filename>Measure_Test.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>test</usage_type>
-      <checksum>30EC3ADD</checksum>
     </file>
     <file>
       <filename>USA_CO_Golden-NREL.724666_TMY3.ddy</filename>
@@ -63846,16 +63876,16 @@
       <checksum>E2C3F063</checksum>
     </file>
     <file>
-      <filename>bad_rates.txt</filename>
-      <filetype>txt</filetype>
-      <usage_type>test</usage_type>
-      <checksum>10DD9EBE</checksum>
-    </file>
-    <file>
       <filename>test_electricity_hourly.csv</filename>
       <filetype>csv</filetype>
       <usage_type>test</usage_type>
       <checksum>E0B9A507</checksum>
+    </file>
+    <file>
+      <filename>utility_bills_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>D9BC32A6</checksum>
     </file>
   </files>
 </measure>

@@ -47,17 +47,17 @@ class SetHVACTemplate < OpenStudio::Measure::ModelMeasure
 
   # human readable name
   def name
-    return "Set HVAC Template"
+    return 'Set HVAC Template'
   end
 
   # human readable description
   def description
-    return "Change the HVAC components to make their properties match the selected template."
+    return 'Change the HVAC components to make their properties match the selected template.'
   end
 
   # human readable description of modeling approach
   def modeler_description
-    return "Change the HVAC components to make their properties match the selected template using the OpenStudio Standards methods.  Will replace the existing properties where present."
+    return 'Change the HVAC components to make their properties match the selected template using the OpenStudio Standards methods.  Will replace the existing properties where present.'
   end
 
   # define the arguments that the user will input
@@ -66,41 +66,41 @@ class SetHVACTemplate < OpenStudio::Measure::ModelMeasure
 
     # Templates
     templates = [
-        'DEER Pre-1975',
-        'DEER 1985',
-        'DEER 1996',
-        'DEER 2003',
-        'DEER 2007',
-        'DEER 2011',
-        'DEER 2014',
-        'DEER 2015',
-        'DEER 2017',
-        'ComStock DEER Pre-1975',
-        'ComStock DEER 1985',
-        'ComStock DEER 1996',
-        'ComStock DEER 2003',
-        'ComStock DEER 2007',
-        'ComStock DEER 2011',
-        'ComStock DEER 2014',
-        'ComStock DEER 2015',
-        'ComStock DEER 2017',
-        'ComStock DEER 2020',
-        'DOE Ref Pre-1980',
-        'DOE Ref 1980-2004',
-        '90.1-2004',
-        '90.1-2007',
-        '90.1-2010',
-        '90.1-2013',
-        '90.1-2016',
-        '90.1-2019',
-        'ComStock DOE Ref Pre-1980',
-        'ComStock DOE Ref 1980-2004',
-        'ComStock 90.1-2004',
-        'ComStock 90.1-2007',
-        'ComStock 90.1-2010',
-        'ComStock 90.1-2013',
-        'ComStock 90.1-2016',
-        'ComStock 90.1-2019'
+      'DEER Pre-1975',
+      'DEER 1985',
+      'DEER 1996',
+      'DEER 2003',
+      'DEER 2007',
+      'DEER 2011',
+      'DEER 2014',
+      'DEER 2015',
+      'DEER 2017',
+      'ComStock DEER Pre-1975',
+      'ComStock DEER 1985',
+      'ComStock DEER 1996',
+      'ComStock DEER 2003',
+      'ComStock DEER 2007',
+      'ComStock DEER 2011',
+      'ComStock DEER 2014',
+      'ComStock DEER 2015',
+      'ComStock DEER 2017',
+      'ComStock DEER 2020',
+      'DOE Ref Pre-1980',
+      'DOE Ref 1980-2004',
+      '90.1-2004',
+      '90.1-2007',
+      '90.1-2010',
+      '90.1-2013',
+      '90.1-2016',
+      '90.1-2019',
+      'ComStock DOE Ref Pre-1980',
+      'ComStock DOE Ref 1980-2004',
+      'ComStock 90.1-2004',
+      'ComStock 90.1-2007',
+      'ComStock 90.1-2010',
+      'ComStock 90.1-2013',
+      'ComStock 90.1-2016',
+      'ComStock 90.1-2019'
     ]
 
     # Climate Zones
@@ -187,8 +187,8 @@ class SetHVACTemplate < OpenStudio::Measure::ModelMeasure
 
     # set additional properties for building
     props = model.getBuilding.additionalProperties
-    props.setFeature('hvac_as_constructed_template',"#{as_constructed_template}")
-    props.setFeature('hvac_template',"#{template}")
+    props.setFeature('hvac_as_constructed_template', as_constructed_template)
+    props.setFeature('hvac_template', template)
 
     # Not applicable if the selected template matches the as-constructed template
     if template == as_constructed_template
@@ -198,7 +198,7 @@ class SetHVACTemplate < OpenStudio::Measure::ModelMeasure
 
     # Make a standard
     reset_log
-    standard = Standard.build("#{template}")
+    standard = Standard.build(template)
 
     # Run a sizing run to set equipment efficiencies
     if standard.model_run_sizing_run(model, "#{Dir.pwd}/set_hvac_template_SR") == false

@@ -6,6 +6,7 @@
 import os
 import pytest
 import logging
+import polars as pl
 
 import comstockpostproc.comstock
 import comstockpostproc.eia
@@ -13,11 +14,11 @@ import comstockpostproc.comstock_to_eia_comparison
 
 def test_eia_emissions():
     comstock = comstockpostproc.comstock.ComStock(
-        s3_base_dir='eulp/euss_com',  # If run not on S3, download results_up**.parquet manually
-        comstock_run_name='cycle3_euss_10k_short_1of6_1651_3',  # Name of the run on S3
-        comstock_run_version='cycle3_euss_10k_short_1of6_1651_3',  # Use whatever you want to see in plot and folder names
+        s3_base_dir='com-sdr',  # If run not on S3, download results_up**.parquet manually
+        comstock_run_name='lbl_df_geb_measures_10k_7',  # Name of the run on S3
+        comstock_run_version='lbl_df_geb_measures_10k_7',  # Use whatever you want to see in plot and folder names
         comstock_year=2018,  # Typically don't change this
-        athena_table_name='cycle3_euss_10k_short_1of6_1651_3',  # Typically same as comstock_run_name or None
+        athena_table_name=None,  # Typically don't change this
         truth_data_version='v01',  # Typically don't change this
         buildstock_csv_name='buildstock.csv',
         acceptable_failure_percentage=0.9,
@@ -33,7 +34,7 @@ def test_eia_emissions():
         cbecs_year = 2018,
         truth_data_version='v01',
         color_hex='#009E73',
-        reload_from_csv=True, # True since CSV already made and want faster reload times
+        reload_from_csv=False, # True since CSV already made and want faster reload times
         )
 
     eia = comstockpostproc.eia.EIA(
@@ -48,7 +49,10 @@ def test_eia_emissions():
 
     # Scale ComStock run to CBECS 2018 AND remove non-ComStock buildings from CBECS
     comstock.add_national_scaling_weights(cbecs, remove_non_comstock_bldg_types_from_cbecs=True)
-    comstock.export_to_csv_wide()
+    comstock.data = comstock.add_weighted_area_energy_savings_columns(comstock.data)
+    
+    assert isinstance(comstock.data, pl.LazyFrame)
+    print(f"columns in comstock is {comstock.data.schema}")
 
     eia_list = [eia]
     comstock_list = [comstock]

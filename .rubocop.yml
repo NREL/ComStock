@@ -1,0 +1,34 @@
+AllCops:
+  Exclude:
+    - 'build/**/*'
+    - 'documentation/**/*'
+    - 'national/**/*'
+    - 'postprocessing/**/*'
+    - 'samples/**/*'
+    - 'sampling/**/*'
+    - 'test/**/*'
+    - 'ymls/**/*'
+  NewCops: enable
+
+inherit_from:
+  - http://s3.amazonaws.com/openstudio-resources/styles/rubocop.yml
+
+# =============== ComStock Specific ===========
+Metrics/AbcSize:
+  Max: 200
+
+Metrics/BlockLength:
+  Max: 100
+
+Naming/MethodName:
+  AllowedPatterns:
+  - 'energyPlusOutputRequests'
+
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+Style/HashSyntax:
+  EnforcedShorthandSyntax: either
+
+Style/HashEachMethods:
+  Enabled: false

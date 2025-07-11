@@ -41,11 +41,11 @@ require 'csv'
 # from https://stackoverflow.com/questions/1509915/converting-camel-case-to-underscore-case-in-ruby
 class String
   def underscore
-    self.gsub(/::/, '/').
-    gsub(/([A-Z]+)([A-Z][a-z])/,'\1_\2').
-    gsub(/([a-z\d])([A-Z])/,'\1_\2').
-    tr("-", "_").
-    downcase
+    gsub('::', '/')
+      .gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
+      .gsub(/([a-z\d])([A-Z])/, '\1_\2')
+      .tr('-', '_')
+      .downcase
   end
 end
 
@@ -54,7 +54,7 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
   # define the name that a user will see, this method may be deprecated as
   # the display name in PAT comes from the name field in measure.xml
   def name
-    return "Emissions Reporting"
+    return 'Emissions Reporting'
   end
 
   # human readable description
@@ -186,17 +186,18 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     resources = [
       'Electricity',
       'Propane',
-      # 'DistrictHeating',
-      # 'DistrictCooling'
+      'DistrictHeatingWater',
+      'DistrictHeatingSteam',
+      'DistrictCooling'
     ]
 
     # Handle fuel output variables that changed in EnergyPlus version 9.4 (Openstudio version >= 3.1)
     if model.version > OpenStudio::VersionString.new('3.0.1')
-      resources << "NaturalGas"
-      resources << "FuelOilNo2"
+      resources << 'NaturalGas'
+      resources << 'FuelOilNo2'
     else
-      resources << "Gas"
-      resources << "FuelOil#2"
+      resources << 'Gas'
+      resources << 'FuelOil#2'
     end
 
     return resources
@@ -204,30 +205,43 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
 
   def enduses
     enduses = [
+      'Cooling',
       'Heating',
+      # 'Fans',
+      # 'Pumps',
+      # 'HeatRejection',
+      # 'HeatRecovery',
       'InteriorLights',
       'ExteriorLights',
       'InteriorEquipment',
       # 'ExteriorEquipment',
       'Refrigeration',
-      'WaterSystems',
+      'WaterSystems'
     ]
     return enduses
   end
 
   def hvac_uses
     hvac_uses = [
-      'Heating',
       'Cooling',
+      'Heating',
       'Fans',
       'Pumps',
       'HeatRejection',
-      'Humidification',
+      # 'Humidification',
       'HeatRecovery'
     ]
     return hvac_uses
   end
-  
+
+  def seasons
+    return {
+      'winter' => [-1e9, 55],
+      'summer' => [70, 1e9],
+      'shoulder' => [55, 70]
+    }
+  end
+
   # define the arguments that the user will input
   def arguments(model = nil)
     args = OpenStudio::Measure::OSArgumentVector.new
@@ -271,12 +285,13 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
   def energyPlusOutputRequests(runner, user_arguments)
     super(runner, user_arguments)
 
-    result = OpenStudio::IdfObjectVector.new
-
     # use the built-in error checking
     if !runner.validateUserArguments(arguments, user_arguments)
       return result
     end
+
+    # make a vector of output requests
+    result = OpenStudio::IdfObjectVector.new
 
     # Get model
     model = runner.lastOpenStudioModel
@@ -286,13 +301,16 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     end
     model = model.get
 
+    # add outdoor drybulb temperature request
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Site Outdoor Air Drybulb Temperature,Hourly;').get
+
     resources = resources(model)
     resources.each do |resource|
       # only request timeseries for electricity
-      if !resource.include?("Electricity")
-        frequency = "RunPeriod"
+      if resource.include?('Electricity')
+        frequency = 'Hourly'
       else
-        frequency = "Hourly"
+        frequency = 'RunPeriod'
       end
 
       # add facility meters
@@ -301,28 +319,24 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
       # add enduse meters
       enduses.each do |enduse|
         # lights, refrigeration only use electricity
-        next if (enduse.include?("Lights") || enduse.include?("Refrigeration")) && resource != "Electricity"
+        next if (enduse.include?('Lights') || enduse.include?('Refrigeration')) && resource != 'Electricity'
+
         result << OpenStudio::IdfObject.load("Output:Meter,#{enduse}:#{resource},#{frequency};").get
       end
 
-      # custom meters for hvac
+      # custom meters for HVAC
       total_hvac_string = "Meter:Custom,TotalHVAC:#{resource},#{resource},"
-      
-      hvac_uses.each_with_index do |use,i|
-        if hvac_uses.size == i+1
+
+      hvac_uses.each_with_index do |use, i|
+        if hvac_uses.size == i + 1
           total_hvac_string << ",#{use}:#{resource};"
         else
           total_hvac_string << ",#{use}:#{resource},"
         end
       end
 
-      cooling_string = "Meter:Custom,CoolingHVAC:#{resource},#{resource},,Cooling:#{resource},,HeatRejection:#{resource};"
-
       result << OpenStudio::IdfObject.load(total_hvac_string).get
-      result << OpenStudio::IdfObject.load(cooling_string).get
       result << OpenStudio::IdfObject.load("Output:Meter,TotalHVAC:#{resource},#{frequency};").get
-      result << OpenStudio::IdfObject.load("Output:Meter,CoolingHVAC:#{resource},#{frequency};").get
-
     end
 
     return result
@@ -351,33 +365,31 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
       run_dir = run_dir_comstock
       runner.registerInfo("run directory: #{run_dir}")
     else
-      runner.registerError("Could not find directory with EnergyPlus output, cannont extract timeseries results")
+      runner.registerError('Could not find directory with EnergyPlus output, cannont extract timeseries results')
       return false
     end
 
     # get the last model and sql file
     model = runner.lastOpenStudioModel
     if model.empty?
-      runner.registerError("Cannot find last model.")
+      runner.registerError('Cannot find last model.')
       return false
     end
     model = model.get
 
-    sqlFile = runner.lastEnergyPlusSqlFile
-    if sqlFile.empty?
-      runner.registerError("Cannot find last sql file.")
+    sql_file = runner.lastEnergyPlusSqlFile
+    if sql_file.empty?
+      runner.registerError('Cannot find last sql file.')
       return false
     end
-    sqlFile = sqlFile.get
-    model.setSqlFile(sqlFile)
+    sql_file = sql_file.get
+    model.setSqlFile(sql_file)
 
     ann_env_pd = nil
-    sqlFile.availableEnvPeriods.each do |env_pd|
-      env_type = sqlFile.environmentType(env_pd)
-      if env_type.is_initialized
-        if env_type.get == OpenStudio::EnvironmentType.new('WeatherRunPeriod')
-          ann_env_pd = env_pd
-        end
+    sql_file.availableEnvPeriods.each do |env_pd|
+      env_type = sql_file.environmentType(env_pd)
+      if env_type.is_initialized && (env_type.get == (OpenStudio::EnvironmentType.new('WeatherRunPeriod')))
+        ann_env_pd = env_pd
       end
     end
     if ann_env_pd == false
@@ -403,17 +415,46 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     # natural gas emissions factors
     # from: https://openstudio-hpxml.readthedocs.io/en/latest/workflow_inputs.html#default-values
     natural_gas_emissions_factor_co2e_lb_per_mmbtu = 147.3
-    natural_gas_emissions_factor_co2e_kg_per_kbtu = natural_gas_emissions_factor_co2e_lb_per_mmbtu * (1/1000.0) * lbm_to_kg
+    natural_gas_emissions_factor_co2e_kg_per_kbtu = natural_gas_emissions_factor_co2e_lb_per_mmbtu * (1 / 1000.0) * lbm_to_kg
+    # natural gas criteria pollutants
+    # from: US EPA AP 42, Fifth Edition, Volume I Chapter 1: External Combustion Sources
+    # factors given in lb/10^6 scf, divide by 1020 to get lb/MMBtu, divide by 1000 to get lb/kBtu
+    natural_gas_emissions_factor_nox_kg_per_kbtu = 100 * (1 / 1020.0) * (1 / 1000.0) * lbm_to_kg
+    natural_gas_emissions_factor_co_kg_per_kbtu = 84 * (1 / 1020.0) * (1 / 1000.0) * lbm_to_kg
+    natural_gas_emissions_factor_pm_kg_per_kbtu = 7.6 * (1 / 1020.0) * (1 / 1000.0) * lbm_to_kg
+    natural_gas_emissions_factor_so2_kg_per_kbtu = 0.6 * (1 / 1020.0) * (1 / 1000.0) * lbm_to_kg
 
     # fuel oil emissions factors
     # from: https://openstudio-hpxml.readthedocs.io/en/latest/workflow_inputs.html#default-values
     fuel_oil_emissions_factor_co2e_lb_per_mmbtu = 195.9
-    fuel_oil_emissions_factor_co2e_kg_per_kbtu = fuel_oil_emissions_factor_co2e_lb_per_mmbtu * (1/1000.0) * lbm_to_kg
+    fuel_oil_emissions_factor_co2e_kg_per_kbtu = fuel_oil_emissions_factor_co2e_lb_per_mmbtu * (1 / 1000.0) * lbm_to_kg
+    # fuel oil criteria pollutants
+    # from: US EPA AP 42, Fifth Edition, Volume I Chapter 1: External Combustion Sources
+    # factors in lb/10^3 gal, 140*10^6 Btu / 10^3 gal
+    fuel_oil_emissions_factor_nox_kg_per_kbtu = 24 * (1 / 140.0) * (1 / 1000.00) * lbm_to_kg
+    fuel_oil_emissions_factor_co_kg_per_kbtu = 5 * (1 / 140.0) * (1 / 1000.00) * lbm_to_kg
+    fuel_oil_emissions_factor_pm_kg_per_kbtu = 2 * (1 / 140.0) * (1 / 1000.00) * lbm_to_kg
+    fuel_oil_emissions_factor_so2_kg_per_kbtu = 142 * (1 / 140.0) * (1 / 1000.00) * lbm_to_kg
 
     # propane emissions factors
     # from: https://openstudio-hpxml.readthedocs.io/en/latest/workflow_inputs.html#default-values
     propane_emissions_factor_co2e_lb_per_mmbtu = 177.8
-    propane_emissions_factor_co2e_kg_per_kbtu = propane_emissions_factor_co2e_lb_per_mmbtu * (1/1000.0) * lbm_to_kg
+    propane_emissions_factor_co2e_kg_per_kbtu = propane_emissions_factor_co2e_lb_per_mmbtu * (1 / 1000.0) * lbm_to_kg
+    # propane criteria pollutants
+    # from: US EPA AP 42, Fifth Edition, Volume I Chapter 1: External Combustion Sources
+    # factors in lb/10^3 gal, 9.15*10^6 Btu / 10^3 gal
+    propane_emissions_factor_nox_kg_per_kbtu = 13 * (1 / 91.5) * (1 / 1000.00) * lbm_to_kg
+    propane_emissions_factor_co_kg_per_kbtu = 7.5 * (1 / 91.5) * (1 / 1000.00) * lbm_to_kg
+    propane_emissions_factor_pm_kg_per_kbtu = 0.7 * (1 / 91.5) * (1 / 1000.00) * lbm_to_kg
+    propane_emissions_factor_so2_kg_per_kbtu = 0.10 * (1 / 91.5) * (1 / 1000.00) * lbm_to_kg
+
+    # district energy emissions factors
+    # from: Energy Star Portfolio Manager Technical Reference https://portfoliomanager.energystar.gov/pdf/reference/Emissions.pdf
+    # does not account for system loss or leakage
+    # steam and hot water
+    district_heating_emissions_factor_co2e_kg_per_kbtu = 66.40 / 1000.0
+    # electric driver chiller
+    district_cooling_emissions_factor_co2e_kg_per_kbtu = 52.70 / 1000.0
 
     # set cambium and egrid regions
     if grid_region == 'Lookup from model'
@@ -450,126 +491,244 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
       else
         runner.registerError("State '#{model_state}' is not a valid eGRID state.")
         return false
-      end    
+      end
     else
       egrid_state = grid_state
       runner.registerInfo("Using state '#{egrid_state}' from user inputs.")
     end
 
-    # get hourly electricity values
     env_period_ix_query = "SELECT EnvironmentPeriodIndex FROM EnvironmentPeriods WHERE EnvironmentName='#{ann_env_pd}'"
-    env_period_ix = sqlFile.execAndReturnFirstInt(env_period_ix_query).get
+    env_period_ix = sql_file.execAndReturnFirstInt(env_period_ix_query).get
+    # get hourly temperature values
+    temperature_query = "SELECT VariableValue FROM ReportVariableData WHERE ReportVariableDataDictionaryIndex IN (SELECT ReportVariableDataDictionaryIndex FROM ReportVariableDataDictionary WHERE VariableType='Avg' AND VariableName IN ('Site Outdoor Air Drybulb Temperature') AND ReportingFrequency='Hourly' AND VariableUnits='C') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
+    temperatures = sql_file.execAndReturnVectorOfDouble(temperature_query).get
+    if temperatures.empty?
+      runner.registerError('Unable to get hourly temperature from the model. Cannot calculate seasonal emissions.')
+      return false
+    end
+    hourly_temperature_f = temperatures.map do |val|
+      OpenStudio.convert(val, 'C', 'F').get
+    end
+
+    # get hourly electricity values
     electricity_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='Electricity:Facility' AND ReportingFrequency='Hourly' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
-    electricity_values = sqlFile.execAndReturnVectorOfDouble(electricity_query).get
+    electricity_values = sql_file.execAndReturnVectorOfDouble(electricity_query).get
     if electricity_values.empty?
-      runner.registerError('Unable to get hourly timeseries facility electricity use from the model.  Cannot calculate emissions.')
+      runner.registerError('Unable to get hourly timeseries facility electricity use from the model. Cannot calculate emissions.')
       return false
     end
 
-    # hourly_electricity_kwh = []
-    hourly_electricity_mwh = []
-    # electricity_values.each { |val| hourly_electricity_kwh << val * j_to_kwh }
-    electricity_values.each { |val| hourly_electricity_mwh << val * j_to_mwh }
+    hourly_electricity_mwh = electricity_values.map { |val| val * j_to_mwh }
 
     # get end-use electricity values
     electricity_enduse_results = {}
-    enduses.push(["TotalHVAC","CoolingHVAC"]).flatten.each do |enduse|
+    enduses.push(['TotalHVAC']).flatten.each do |enduse|
       electricity_enduse_results["#{enduse}_mwh"] = []
       electricity_enduse_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex from ReportMeterDataDictionary WHERE VariableType='Sum' AND upper(VariableName)='#{enduse.upcase}:ELECTRICITY' AND ReportingFrequency='Hourly' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
-      electricity_enduse_values = sqlFile.execAndReturnVectorOfDouble(electricity_enduse_query).get
+      electricity_enduse_values = sql_file.execAndReturnVectorOfDouble(electricity_enduse_query).get.to_a
       if electricity_enduse_values.empty?
         runner.registerWarning("Unable to get hourly timeseries #{enduse} electricity use from the model. Cannot calculate results")
         electricity_enduse_results["#{enduse}_mwh"] << 0
       end
-      electricity_enduse_values.each { |val| electricity_enduse_results["#{enduse}_mwh"] << val * j_to_mwh}
+      electricity_enduse_values.each { |val| electricity_enduse_results["#{enduse}_mwh"] << (val * j_to_mwh) }
     end
 
     # get run period natural gas values
-    annual_natural_gas_emissions_co2e_kg = 0
+    annual_natural_gas_emissions_co2e_kg = 0.0
+    annual_natural_gas_emissions_nox_kg = 0.0
+    annual_natural_gas_emissions_co_kg = 0.0
+    annual_natural_gas_emissions_pm_kg = 0.0
+    annual_natural_gas_emissions_so2_kg = 0.0
     natural_gas_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='#{gas}:Facility' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
     puts natural_gas_query
-    natural_gas_values = sqlFile.execAndReturnVectorOfDouble(natural_gas_query).get
+    natural_gas_values = sql_file.execAndReturnVectorOfDouble(natural_gas_query).get
     if natural_gas_values.empty?
-      runner.registerWarning('Unable to get hourly timeseries facility natural gas use from the model, the model may not use gas.  Cannot calculate emissions.')
+      runner.registerWarning('Unable to get hourly timeseries facility natural gas use from the model, the model may not use gas. Cannot calculate emissions.')
     else
-      annual_natural_gas_emissions_co2e_kg = natural_gas_values.map{|v| v * j_to_kbtu * natural_gas_emissions_factor_co2e_kg_per_kbtu}.sum
+      annual_natural_gas_emissions_co2e_kg += natural_gas_values.map { |v| v * j_to_kbtu * natural_gas_emissions_factor_co2e_kg_per_kbtu }.sum
+      annual_natural_gas_emissions_nox_kg += natural_gas_values.map { |v| v * j_to_kbtu * natural_gas_emissions_factor_nox_kg_per_kbtu }.sum
+      annual_natural_gas_emissions_co_kg += natural_gas_values.map { |v| v * j_to_kbtu * natural_gas_emissions_factor_co_kg_per_kbtu }.sum
+      annual_natural_gas_emissions_pm_kg += natural_gas_values.map { |v| v * j_to_kbtu * natural_gas_emissions_factor_pm_kg_per_kbtu }.sum
+      annual_natural_gas_emissions_so2_kg += natural_gas_values.map { |v| v * j_to_kbtu * natural_gas_emissions_factor_so2_kg_per_kbtu }.sum
     end
-    runner.registerInfo("Annual hourly natural gas emissions (kg CO2e): #{annual_natural_gas_emissions_co2e_kg.round(2)}")
+    runner.registerInfo("Annual natural gas emissions (kg CO2e): #{annual_natural_gas_emissions_co2e_kg.round(2)}")
     runner.registerValue('annual_natural_gas_ghg_emissions_kg', annual_natural_gas_emissions_co2e_kg)
+    runner.registerInfo("Annual natural gas NOx emissions (kg): #{annual_natural_gas_emissions_nox_kg}")
+    runner.registerValue('annual_natural_gas_nox_emissions_kg', annual_natural_gas_emissions_nox_kg)
+    runner.registerInfo("Annual natural gas CO emissions (kg): #{annual_natural_gas_emissions_co_kg}")
+    runner.registerValue('annual_natural_gas_co_emissions_kg', annual_natural_gas_emissions_co_kg)
+    runner.registerInfo("Annual natural gas PM emissions (kg): #{annual_natural_gas_emissions_pm_kg}")
+    runner.registerValue('annual_natural_gas_pm_emissions_kg', annual_natural_gas_emissions_pm_kg)
+    runner.registerInfo("Annual natural gas SO2 emissions (kg): #{annual_natural_gas_emissions_so2_kg}")
+    runner.registerValue('annual_natural_gas_so2_emissions_kg', annual_natural_gas_emissions_so2_kg)
 
     # get run period fuel oil values
-    annual_fuel_oil_emissions_co2e_kg = 0
+    annual_fuel_oil_emissions_co2e_kg = 0.0
+    annual_fuel_oil_emissions_nox_kg = 0.0
+    annual_fuel_oil_emissions_co_kg = 0.0
+    annual_fuel_oil_emissions_pm_kg = 0.0
+    annual_fuel_oil_emissions_so2_kg = 0.0
     fuel_oil_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='#{fuel_oil}:Facility' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
-    fuel_oil_values = sqlFile.execAndReturnVectorOfDouble(fuel_oil_query).get
+    fuel_oil_values = sql_file.execAndReturnVectorOfDouble(fuel_oil_query).get
     if fuel_oil_values.empty?
-      runner.registerWarning('Unable to get hourly timeseries facility fuel oil use from the model, the model may not use fuel oil.  Cannot calculate emissions.')
+      runner.registerWarning('Unable to get hourly timeseries facility fuel oil use from the model, the model may not use fuel oil. Cannot calculate emissions.')
     else
-      annual_fuel_oil_emissions_co2e_kg = fuel_oil_values.map{|v| v * j_to_kbtu * fuel_oil_emissions_factor_co2e_kg_per_kbtu}.sum
+      annual_fuel_oil_emissions_co2e_kg += fuel_oil_values.map { |v| v * j_to_kbtu * fuel_oil_emissions_factor_co2e_kg_per_kbtu }.sum
+      annual_fuel_oil_emissions_nox_kg += fuel_oil_values.map { |v| v * j_to_kbtu * fuel_oil_emissions_factor_nox_kg_per_kbtu }.sum
+      annual_fuel_oil_emissions_co_kg += fuel_oil_values.map { |v| v * j_to_kbtu * fuel_oil_emissions_factor_co_kg_per_kbtu }.sum
+      annual_fuel_oil_emissions_pm_kg += fuel_oil_values.map { |v| v * j_to_kbtu * fuel_oil_emissions_factor_pm_kg_per_kbtu }.sum
+      annual_fuel_oil_emissions_so2_kg += fuel_oil_values.map { |v| v * j_to_kbtu * fuel_oil_emissions_factor_so2_kg_per_kbtu }.sum
     end
-    runner.registerInfo("Annual hourly fuel oil emissions (kg CO2e): #{annual_fuel_oil_emissions_co2e_kg.round(2)}")
+    runner.registerInfo("Annual fuel oil emissions (kg CO2e): #{annual_fuel_oil_emissions_co2e_kg.round(2)}")
     runner.registerValue('annual_fuel_oil_ghg_emissions_kg', annual_fuel_oil_emissions_co2e_kg)
+    runner.registerInfo("Annual fuel oil NOx emissions (kg): #{annual_fuel_oil_emissions_nox_kg}")
+    runner.registerValue('annual_fuel_oil_nox_emissions_kg', annual_fuel_oil_emissions_nox_kg)
+    runner.registerInfo("Annual fuel oil CO emissions (kg): #{annual_fuel_oil_emissions_co_kg}")
+    runner.registerValue('annual_fuel_oil_co_emissions_kg', annual_fuel_oil_emissions_co_kg)
+    runner.registerInfo("Annual fuel oil PM emissions (kg): #{annual_fuel_oil_emissions_pm_kg}")
+    runner.registerValue('annual_fuel_oil_pm_emissions_kg', annual_fuel_oil_emissions_pm_kg)
+    runner.registerInfo("Annual fuel oil SO2 emissions (kg): #{annual_fuel_oil_emissions_so2_kg}")
+    runner.registerValue('annual_fuel_oil_so2_emissions_kg', annual_fuel_oil_emissions_so2_kg)
 
     # get run period propane values
-    annual_propane_emissions_co2e_kg = 0
+    annual_propane_emissions_co2e_kg = 0.0
+    annual_propane_emissions_nox_kg = 0.0
+    annual_propane_emissions_co_kg = 0.0
+    annual_propane_emissions_pm_kg = 0.0
+    annual_propane_emissions_so2_kg = 0.0
     propane_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='Propane:Facility' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
-    propane_values = sqlFile.execAndReturnVectorOfDouble(propane_query).get
+    propane_values = sql_file.execAndReturnVectorOfDouble(propane_query).get
     if propane_values.empty?
-      runner.registerWarning('Unable to get hourly timeseries facility propane use from the model, the model may not use propane.  Cannot calculate emissions.')
+      runner.registerWarning('Unable to get hourly timeseries facility propane use from the model, the model may not use propane. Cannot calculate emissions.')
     else
-      annual_propane_emissions_co2e_kg = propane_values.map{|val| val * j_to_kbtu * propane_emissions_factor_co2e_kg_per_kbtu}.sum
+      annual_propane_emissions_co2e_kg += propane_values.map { |val| val * j_to_kbtu * propane_emissions_factor_co2e_kg_per_kbtu }.sum
+      annual_propane_emissions_nox_kg += propane_values.map { |val| val * j_to_kbtu * propane_emissions_factor_nox_kg_per_kbtu }.sum
+      annual_propane_emissions_co_kg += propane_values.map { |val| val * j_to_kbtu * propane_emissions_factor_co_kg_per_kbtu }.sum
+      annual_propane_emissions_pm_kg += propane_values.map { |val| val * j_to_kbtu * propane_emissions_factor_pm_kg_per_kbtu }.sum
+      annual_propane_emissions_so2_kg += propane_values.map { |val| val * j_to_kbtu * propane_emissions_factor_so2_kg_per_kbtu }.sum
     end
-    runner.registerInfo("Annual hourly propane emissions (kg CO2e): #{annual_propane_emissions_co2e_kg.round(2)}")
+    runner.registerInfo("Annual propane emissions (kg CO2e): #{annual_propane_emissions_co2e_kg.round(2)}")
     runner.registerValue('annual_propane_ghg_emissions_kg', annual_propane_emissions_co2e_kg)
+    runner.registerInfo("Annual propane NOx emissions (kg): #{annual_propane_emissions_nox_kg}")
+    runner.registerValue('annual_propane_nox_emissions_kg', annual_propane_emissions_nox_kg)
+    runner.registerInfo("Annual propane CO emissions (kg): #{annual_propane_emissions_co_kg}")
+    runner.registerValue('annual_propane_co_emissions_kg', annual_propane_emissions_co_kg)
+    runner.registerInfo("Annual propane PM emissions (kg): #{annual_propane_emissions_pm_kg}")
+    runner.registerValue('annual_propane_pm_emissions_kg', annual_propane_emissions_pm_kg)
+    runner.registerInfo("Annual propane SO2 emissions (kg): #{annual_propane_emissions_so2_kg}")
+    runner.registerValue('annual_propane_so2_emissions_kg', annual_propane_emissions_so2_kg)
+
+    # get run period district cooling values
+    annual_district_cooling_emissions_co2e_kg = 0
+    district_cooling_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='DistrictCooling:Facility' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
+    district_cooling_values = sql_file.execAndReturnVectorOfDouble(district_cooling_query).get
+    if district_cooling_values.empty?
+      runner.registerWarning('Unable to get hourly timeseries facility district cooling use from the model, the model may not use district cooling. Cannot calculate emissions.')
+    else
+      annual_district_cooling_emissions_co2e_kg += district_cooling_values.map { |val| val * j_to_kbtu * district_cooling_emissions_factor_co2e_kg_per_kbtu }.sum
+    end
+    runner.registerInfo("Annual hourly district cooling emissions (kg CO2e): #{annual_district_cooling_emissions_co2e_kg.round(2)}")
+    runner.registerValue('annual_district_cooling_ghg_emissions_kg', annual_district_cooling_emissions_co2e_kg)
+
+    # get run period district heating values
+    annual_district_heating_emissions_co2e_kg = 0
+    district_heating_water_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='DistrictHeatingWater:Facility' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
+    district_heating_steam_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='DistrictHeatingSteam:Facility' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
+    district_heating_water_values = sql_file.execAndReturnVectorOfDouble(district_heating_water_query).get
+    district_heating_steam_values = sql_file.execAndReturnVectorOfDouble(district_heating_steam_query).get
+    if district_heating_water_values.empty?
+      runner.registerWarning('Unable to get hourly timeseries facility district heating water use from the model, the model may not use district heating water. Cannot calculate emissions.')
+    else
+      annual_district_heating_emissions_co2e_kg += district_heating_water_values.map { |val| val * j_to_kbtu * district_heating_emissions_factor_co2e_kg_per_kbtu }.sum
+    end
+    if district_heating_steam_values.empty?
+      runner.registerWarning('Unable to get hourly timeseries facility district heating steam use from the model, the model may not use district steam water. Cannot calculate emissions.')
+    else
+      annual_district_heating_emissions_co2e_kg += district_heating_steam_values.map { |val| val * j_to_kbtu * district_heating_emissions_factor_co2e_kg_per_kbtu }.sum
+    end
+    runner.registerInfo("Annual hourly district heating emissions (kg CO2e): #{annual_district_heating_emissions_co2e_kg.round(2)}")
+    runner.registerValue('annual_district_heating_ghg_emissions_kg', annual_district_heating_emissions_co2e_kg)
 
     # fuel end-use emissions
-    enduses.push("TotalHVAC").each do |enduse|
-      next if (enduse.include?("Lights") || enduse.include?("Refrigeration"))
+    enduses.push(['TotalHVAC']).flatten.each do |enduse|
+      next if enduse.include?('Lights') || enduse.include?('Refrigeration')
 
       # get run period natural gas end-use values
+      total_enduse_gas_emissions_co2e_kg = 0
       gas_enduse_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex from ReportMeterDataDictionary WHERE VariableType='Sum' AND upper(VariableName)='#{enduse.upcase}:#{gas.upcase}' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
-      gas_enduse_values = sqlFile.execAndReturnVectorOfDouble(gas_enduse_query).get
+      gas_enduse_values = sql_file.execAndReturnVectorOfDouble(gas_enduse_query).get
       if gas_enduse_values.empty?
-        runner.registerWarning("Unable to find annual #{enduse} natural gas use from the model, the model may not use gas for this end-use. Cannot calculate end-use emissions for this fuel.")
-        total_enduse_gas_emissions_co2e_kg = 0
+        runner.registerWarning("Unable to find annual #{enduse} natural gas use from the model, the model may not use nautral gas for this end-use. Cannot calculate end-use emissions for this fuel.")
       else
-        total_enduse_gas_emissions_co2e_kg = gas_enduse_values.map{|val| val * j_to_kbtu * natural_gas_emissions_factor_co2e_kg_per_kbtu}.sum
+        total_enduse_gas_emissions_co2e_kg = gas_enduse_values.map { |val| val * j_to_kbtu * natural_gas_emissions_factor_co2e_kg_per_kbtu }.sum
       end
       runner.registerInfo("Annual total natural gas #{enduse} emissions (kg CO2e): #{total_enduse_gas_emissions_co2e_kg.round(2)}")
       runner.registerValue("annual_#{enduse.underscore}_natural_gas_ghg_emissions_kg", total_enduse_gas_emissions_co2e_kg)
 
       # get run period propane end-use values
+      total_enduse_propane_emissions_co2e_kg = 0
       propane_enduse_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND upper(VariableName)='#{enduse.upcase}:PROPANE' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
-      propane_enduse_values = sqlFile.execAndReturnVectorOfDouble(propane_enduse_query).get
+      propane_enduse_values = sql_file.execAndReturnVectorOfDouble(propane_enduse_query).get
       if propane_enduse_values.empty?
         runner.registerWarning("Unable to find annual #{enduse} propane from the model, the model may not use propane for this end-use. Cannot calculate end-use emissions for this fuel.")
-        total_enduse_propane_emissions_co2e_kg = 0
       else
-        total_enduse_propane_emissions_co2e_kg = propane_enduse_values.map{|val| val * j_to_kbtu * propane_emissions_factor_co2e_kg_per_kbtu}.sum
+        total_enduse_propane_emissions_co2e_kg = propane_enduse_values.map { |val| val * j_to_kbtu * propane_emissions_factor_co2e_kg_per_kbtu }.sum
       end
       runner.registerInfo("Annual total propane #{enduse} emissions (kg CO2e): #{total_enduse_propane_emissions_co2e_kg.round(2)}.")
       runner.registerValue("annual_#{enduse.underscore}_propane_ghg_emissions_kg", total_enduse_propane_emissions_co2e_kg)
 
       # get run period fuel oil end-use values
+      total_enduse_fuel_oil_emissions_co2e_kg = 0
       fuel_oil_enduse_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND upper(VariableName)='#{enduse.upcase}:#{fuel_oil.upcase}' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
-      fuel_oil_enduse_values = sqlFile.execAndReturnVectorOfDouble(fuel_oil_enduse_query).get
+      fuel_oil_enduse_values = sql_file.execAndReturnVectorOfDouble(fuel_oil_enduse_query).get
       if fuel_oil_enduse_values.empty?
-        runner.registerWarning("Unable to find annual #{enduse} fuel oil from the model, the model may not use propane for this end-use. Cannot calculate end-use emissions for this fuel.")
-        total_enduse_fuel_oil_emissions_co2e_kg = 0
+        runner.registerWarning("Unable to find annual #{enduse} fuel oil from the model, the model may not use fuel oil for this end-use. Cannot calculate end-use emissions for this fuel.")
       else
-        total_enduse_fuel_oil_emissions_co2e_kg = fuel_oil_enduse_values.map{|val| val * j_to_kbtu * fuel_oil_emissions_factor_co2e_kg_per_kbtu}.sum
+        total_enduse_fuel_oil_emissions_co2e_kg = fuel_oil_enduse_values.map { |val| val * j_to_kbtu * fuel_oil_emissions_factor_co2e_kg_per_kbtu }.sum
       end
       runner.registerInfo("Annual total fuel oil #{enduse} emissions (kg CO2e): #{total_enduse_fuel_oil_emissions_co2e_kg.round(2)}.")
       runner.registerValue("annual_#{enduse.underscore}_fuel_oil_ghg_emissions_kg", total_enduse_fuel_oil_emissions_co2e_kg)
+
+      # get run period district cooling end-use values
+      total_enduse_district_cooling_emissions_co2e_kg = 0
+      district_cooling_enduse_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND upper(VariableName)='#{enduse.upcase}:DISTRICTCOOLING' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
+      district_cooling_enduse_values = sql_file.execAndReturnVectorOfDouble(district_cooling_enduse_query).get
+      if district_cooling_enduse_values.empty?
+        runner.registerWarning("Unable to find annual #{enduse} district cooling from the model, the model may not use district cooling for this end-use. Cannot calculate end-use emissions for this fuel.")
+      else
+        total_enduse_district_cooling_emissions_co2e_kg = district_cooling_enduse_values.map { |val| val * j_to_kbtu * district_cooling_emissions_factor_co2e_kg_per_kbtu }.sum
+      end
+      runner.registerInfo("Annual total district cooling #{enduse} emissions (kg CO2e): #{total_enduse_district_cooling_emissions_co2e_kg.round(2)}.")
+      runner.registerValue("annual_#{enduse.underscore}_district_cooling_ghg_emissions_kg", total_enduse_district_cooling_emissions_co2e_kg)
+
+      # get run period district heating end-use values
+      total_enduse_district_heating_emissions_co2e_kg = 0
+      district_heating_water_enduse_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND upper(VariableName)='#{enduse.upcase}:DISTRICTHEATINGWATER' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
+      district_heating_steam_enduse_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND upper(VariableName)='#{enduse.upcase}:DISTRICTHEATINGSTEAM' AND ReportingFrequency='Run Period' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
+      district_heating_water_enduse_values = sql_file.execAndReturnVectorOfDouble(district_heating_water_enduse_query).get
+      district_heating_steam_enduse_values = sql_file.execAndReturnVectorOfDouble(district_heating_steam_enduse_query).get
+      if district_heating_water_enduse_values.empty?
+        runner.registerWarning("Unable to find annual #{enduse} district heating water from the model, the model may not use district heating water for this end-use. Cannot calculate end-use emissions for this fuel.")
+      else
+        total_enduse_district_heating_emissions_co2e_kg += district_heating_water_enduse_values.map { |val| val * j_to_kbtu * district_heating_emissions_factor_co2e_kg_per_kbtu }.sum
+      end
+      if district_heating_steam_enduse_values.empty?
+        runner.registerWarning("Unable to find annual #{enduse} district heating steam from the model, the model may not use district heating steam for this end-use. Cannot calculate end-use emissions for this fuel.")
+      else
+        total_enduse_district_heating_emissions_co2e_kg += district_heating_steam_enduse_values.map { |val| val * j_to_kbtu * district_heating_emissions_factor_co2e_kg_per_kbtu }.sum
+      end
+      runner.registerInfo("Annual total district heating #{enduse} emissions (kg CO2e): #{total_enduse_district_heating_emissions_co2e_kg.round(2)}.")
+      runner.registerValue("annual_#{enduse.underscore}_district_heating_ghg_emissions_kg", total_enduse_district_heating_emissions_co2e_kg)
     end
 
     # calculate eGRID subregion emissions
     egrid_subregion_emissions_factors_csv = "#{File.dirname(__FILE__)}/resources/egrid/egrid_subregion_emissions_factors.csv"
-    if not File.file?(egrid_subregion_emissions_factors_csv)
+    if !File.file?(egrid_subregion_emissions_factors_csv)
       runner.registerError("Unable to find file: #{egrid_subregion_emissions_factors_csv}")
       return false
     end
     egrid_subregion_lkp = CSV.table(egrid_subregion_emissions_factors_csv)
-    egrid_subregion_hsh = egrid_subregion_lkp.map { |row| row.to_hash }
+    egrid_subregion_hsh = egrid_subregion_lkp.map(&:to_hash)
     egrid_subregion_hsh = egrid_subregion_hsh.select { |r| (r[:subregion] == egrid_region) }
     if egrid_subregion_hsh.empty?
       runner.registerError("Unable to find eGRID data for subregion: #{egrid_region}")
@@ -579,27 +738,46 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
       egrid_co2e_lb_per_mwh = egrid_subregion_hsh[0][:"#{year}"]
       egrid_co2e_kg_per_mwh = egrid_co2e_lb_per_mwh * lbm_to_kg
       runner.registerInfo("eGRID #{year} emissions factor for '#{egrid_region}' is #{egrid_co2e_kg_per_mwh.round(2)} CO2e kg per MWh")
-      annual_egrid_emissions_co2e_kg = (hourly_electricity_mwh.inject(:+)) * egrid_co2e_kg_per_mwh
+      annual_egrid_emissions_co2e_kg = hourly_electricity_mwh.inject(:+) * egrid_co2e_kg_per_mwh
       runner.registerInfo("Annual eGRID #{year} subregion emissions CO2e kg: #{annual_egrid_emissions_co2e_kg.round(2)}")
       runner.registerValue("annual_electricity_ghg_emissions_egrid_#{year}_subregion_kg", annual_egrid_emissions_co2e_kg)
 
-      # electricity end-uses 
+      # electricity end-uses
       electricity_enduse_results.each do |enduse_key, enduse_array|
-        enduse_name = enduse_key.gsub('_mwh','')
+        enduse_name = enduse_key.gsub('_mwh', '')
         annual_egrid_enduse_emissions_co2e_kg = enduse_array.sum * egrid_co2e_kg_per_mwh
         runner.registerInfo("Annual eGRID #{year} subregion #{enduse_name} emissions CO2e kg: #{annual_egrid_enduse_emissions_co2e_kg.round(2)}")
         runner.registerValue("annual_#{enduse_name}_electricity_ghg_emissions_egrid_#{year}_subregion_kg", annual_egrid_enduse_emissions_co2e_kg)
+      end
+
+      # seasonal for 2021
+      if year == 2021
+        seasonal_daily_vals_egrid = { 'winter' => [], 'summer' => [], 'shoulder' => [] }
+        hourly_electricity_mwh.each_slice(24).with_index do |mwhs, i|
+          temps = hourly_temperature_f[(24 * i)...((24 * i) + 24)]
+          avg_temp = temps.inject { |sum, el| sum + el }.to_f / temps.size
+          seasons.each do |season, temperature_range|
+            if (avg_temp > temperature_range[0]) && (avg_temp < temperature_range[1]) # day is in this season
+              seasonal_daily_vals_egrid[season] << (mwhs.sum * egrid_co2e_kg_per_mwh)
+            end
+          end
+        end
+        seasonal_daily_vals_egrid.each do |season, daily_vals|
+          seasonal_daily_egrid_emissions_co2e_kg = daily_vals.sum.to_f / daily_vals.size
+          runner.registerInfo("Season #{season} daily average eGRID #{year} subregion emissions CO2e kg: #{seasonal_daily_egrid_emissions_co2e_kg.round(2)}")
+          runner.registerValue("#{season}_daily_average_electricity_ghg_emissions_egrid_#{year}_subregion_kg", seasonal_daily_egrid_emissions_co2e_kg)
+        end
       end
     end
 
     # calculate eGRID state emissions
     egrid_state_emissions_factors_csv = "#{File.dirname(__FILE__)}/resources/egrid/egrid_state_emissions_factors.csv"
-    if not File.file?(egrid_state_emissions_factors_csv)
+    if !File.file?(egrid_state_emissions_factors_csv)
       runner.registerError("Unable to find file: #{egrid_state_emissions_factors_csv}")
       return false
     end
     egrid_state_lkp = CSV.table(egrid_state_emissions_factors_csv)
-    egrid_state_hsh = egrid_state_lkp.map { |row| row.to_hash }
+    egrid_state_hsh = egrid_state_lkp.map(&:to_hash)
     egrid_state_hsh = egrid_state_hsh.select { |r| (r[:state] == egrid_state) }
     if egrid_state_hsh.empty?
       runner.registerError("Unable to find eGRID data for state: #{egrid_state}")
@@ -608,17 +786,36 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     [2018, 2019, 2020, 2021].each do |year|
       egrid_co2e_lb_per_mwh = egrid_state_hsh[0][:"#{year}"]
       egrid_co2e_kg_per_mwh = egrid_co2e_lb_per_mwh * lbm_to_kg
-      runner.registerInfo("eGRID #{year} emissions factor for '#{egrid_region}' is #{egrid_co2e_kg_per_mwh.round(2)} CO2e kg per MWh")
-      annual_egrid_emissions_co2e_kg = (hourly_electricity_mwh.inject(:+)) * egrid_co2e_kg_per_mwh
+      runner.registerInfo("eGRID #{year} emissions factor for '#{egrid_state}' is #{egrid_co2e_kg_per_mwh.round(2)} CO2e kg per MWh")
+      annual_egrid_emissions_co2e_kg = hourly_electricity_mwh.inject(:+) * egrid_co2e_kg_per_mwh
       runner.registerInfo("Annual eGRID #{year} state emissions CO2e kg: #{annual_egrid_emissions_co2e_kg.round(2)}")
       runner.registerValue("annual_electricity_ghg_emissions_egrid_#{year}_state_kg", annual_egrid_emissions_co2e_kg)
 
-      # electricity end-uses 
+      # electricity end-uses
       electricity_enduse_results.each do |enduse_key, enduse_array|
-        enduse_name = enduse_key.gsub('_mwh','')
+        enduse_name = enduse_key.gsub('_mwh', '')
         annual_egrid_enduse_emissions_co2e_kg = enduse_array.sum * egrid_co2e_kg_per_mwh
         runner.registerInfo("Annual eGRID #{year} subregion #{enduse_name} emissions CO2e kg: #{annual_egrid_enduse_emissions_co2e_kg.round(2)}")
         runner.registerValue("annual_#{enduse_name}_electricity_ghg_emissions_egrid_#{year}_state_kg", annual_egrid_enduse_emissions_co2e_kg)
+      end
+
+      # seasonal for 2021
+      if year == 2021
+        seasonal_daily_vals_egrid = { 'winter' => [], 'summer' => [], 'shoulder' => [] }
+        hourly_electricity_mwh.each_slice(24).with_index do |mwhs, i|
+          temps = hourly_temperature_f[(24 * i)...((24 * i) + 24)]
+          avg_temp = temps.inject { |sum, el| sum + el }.to_f / temps.size
+          seasons.each do |season, temperature_range|
+            if (avg_temp > temperature_range[0]) && (avg_temp < temperature_range[1]) # day is in this season
+              seasonal_daily_vals_egrid[season] << (mwhs.sum * egrid_co2e_kg_per_mwh)
+            end
+          end
+        end
+        seasonal_daily_vals_egrid.each do |season, daily_vals|
+          seasonal_daily_egrid_emissions_co2e_kg = daily_vals.sum.to_f / daily_vals.size
+          runner.registerInfo("Season #{season} daily average eGRID #{year} state emissions CO2e kg: #{seasonal_daily_egrid_emissions_co2e_kg.round(2)}")
+          runner.registerValue("#{season}_daily_average_electricity_ghg_emissions_egrid_#{year}_state_kg", seasonal_daily_egrid_emissions_co2e_kg)
+        end
       end
     end
 
@@ -637,14 +834,14 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     emissions_scenario_lookups.each do |scenario|
       # name correction for AER scenarios
       if scenario.include? 'AER'
-        scenario_lookup = scenario + '_1'
+        scenario_lookup = "#{scenario}_1"
       else
         scenario_lookup = scenario
       end
 
       # read factors from csv
       emissions_csv = "#{File.dirname(__FILE__)}/resources/cambium/#{scenario_lookup}/#{cambium_grid_region}.csv"
-      if not File.file?(emissions_csv)
+      if !File.file?(emissions_csv)
         runner.registerError("Unable to find file: #{emissions_csv}")
         return false
       end
@@ -665,11 +862,11 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
       annual_electricity_emissions_co2e_kg = hourly_electricity_emissions_kg.inject(:+)
       runner.registerInfo("Annual hourly emissions for cambium scenario '#{scenario}' (kg CO2e): #{annual_electricity_emissions_co2e_kg.round(2)}")
       register_value_name = "annual_electricity_ghg_emissions_#{scenario}_kg"
-      runner.registerValue("#{register_value_name}", annual_electricity_emissions_co2e_kg)
+      runner.registerValue(register_value_name.to_s, annual_electricity_emissions_co2e_kg)
 
       # end-use emissions
       electricity_enduse_results.each do |enduse_key, enduse_array|
-        enduse_name = enduse_key.gsub('_mwh','')
+        enduse_name = enduse_key.gsub('_mwh', '')
         # check that arrays are the same length and adjust for leap years if present
         unless (enduse_array.size == hourly_elec_factors_kg_per_mwh.size) || (enduse_array.size == 1)
           if enduse_array.size == 8784
@@ -683,11 +880,30 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
         if enduse_array.size == 1
           hourly_enduse_electricity_emissions_kg = [0]
         else
-          hourly_enduse_electricity_emissions_kg = enduse_array.zip(hourly_elec_factors_kg_per_mwh).map{|n,f| n * f}
+          hourly_enduse_electricity_emissions_kg = enduse_array.zip(hourly_elec_factors_kg_per_mwh).map { |n, f| n * f }
         end
         annual_enduse_electricity_emisssions_co2e_kg = hourly_enduse_electricity_emissions_kg.sum
         runner.registerInfo("Annual hourly #{enduse_name} emissions for cambium scenario '#{scenario} (kg CO2e): #{annual_enduse_electricity_emisssions_co2e_kg.round(2)}")
         runner.registerValue("annual_#{enduse_name}_electricity_ghg_emissions_#{scenario}_kg", annual_enduse_electricity_emisssions_co2e_kg)
+      end
+
+      # seasonal for two selectec scenarios
+      if (scenario == 'LRMER_HighRECost_15') || (scenario == 'LRMER_LowRECost_15') || (scenario == 'LRMER_MidCase_15')
+        seasonal_daily_vals = { 'winter' => [], 'summer' => [], 'shoulder' => [] }
+        hourly_electricity_emissions_kg.each_slice(24).with_index do |co2es, i|
+          temps = hourly_temperature_f[(24 * i)...((24 * i) + 24)]
+          avg_temp = temps.inject { |sum, el| sum + el }.to_f / temps.size
+          seasons.each do |season, temperature_range|
+            if (avg_temp > temperature_range[0]) && (avg_temp < temperature_range[1]) # day is in this season
+              seasonal_daily_vals[season] << co2es.sum
+            end
+          end
+        end
+        seasonal_daily_vals.each do |season, daily_vals|
+          seasonal_daily_emissions_co2e_kg = daily_vals.sum.to_f / daily_vals.size
+          runner.registerInfo("Season #{season} daily average emissions for cambium scenario '#{scenario}' (kg CO2e): #{seasonal_daily_emissions_co2e_kg.round(2)}")
+          runner.registerValue("#{season}_daily_average_electricity_ghg_emissions_#{scenario}_kg", seasonal_daily_emissions_co2e_kg)
+        end
       end
     end
 

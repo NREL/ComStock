@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>simulation_settings</name>
   <uid>0db2f94b-4387-4185-be2d-5660009497f0</uid>
-  <version_id>72781a53-7673-44ab-9d02-a0b34a393fd9</version_id>
-  <version_modified>2023-10-16T20:24:57Z</version_modified>
+  <version_id>2996bc0d-c8c9-4d10-8b42-7263c6d0dd82</version_id>
+  <version_modified>2024-10-17T16:16:47Z</version_modified>
   <xml_checksum>D8922A73</xml_checksum>
   <class_name>SimulationSettings</class_name>
   <display_name>Simulation Settings</display_name>
@@ -167,7 +167,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>908EE830</checksum>
+      <checksum>88388381</checksum>
     </file>
     <file>
       <filename>example_model.osm</filename>
@@ -176,10 +176,10 @@
       <checksum>53D14E69</checksum>
     </file>
     <file>
-      <filename>measure_test.rb</filename>
+      <filename>simulation_settings_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>E15966CE</checksum>
+      <checksum>6E5EBD89</checksum>
     </file>
   </files>
 </measure>

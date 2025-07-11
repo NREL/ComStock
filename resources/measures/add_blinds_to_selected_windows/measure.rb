@@ -38,7 +38,6 @@
 
 # start the measure
 class AddBlindsToSelectedWindows < OpenStudio::Measure::ModelMeasure
-
   # define the name that the user will see
   def name
     return 'Add Blinds to Selected Windows'
@@ -65,7 +64,7 @@ class AddBlindsToSelectedWindows < OpenStudio::Measure::ModelMeasure
     super(model, runner, user_arguments)
 
     # use the built-in error checking
-    if not runner.validateUserArguments(arguments(model), user_arguments)
+    if !runner.validateUserArguments(arguments(model), user_arguments)
       return false
     end
 
@@ -77,9 +76,9 @@ class AddBlindsToSelectedWindows < OpenStudio::Measure::ModelMeasure
 
     # get the space type blinds ratio from resource json file
     begin
-      space_type_blinds_ratio_json = File.dirname(__FILE__) + '/resources/space_type_blinds_ratio.json'
+      space_type_blinds_ratio_json = "#{File.dirname(__FILE__)}/resources/space_type_blinds_ratio.json"
       space_type_blinds_ratio = JSON.parse(File.read(space_type_blinds_ratio_json))
-    rescue
+    rescue LoadError
       runner.registerError('space_type_blinds_ratio.json file unavailable in resources folder')
       return false
     end
@@ -93,27 +92,32 @@ class AddBlindsToSelectedWindows < OpenStudio::Measure::ModelMeasure
           surface.subSurfaces.each do |sub_surface|
             next unless sub_surface.subSurfaceType == 'FixedWindow' || sub_surface.subSurfaceType == 'OperableWindow'
             next unless sub_surface.outsideBoundaryCondition == 'Outdoors' && sub_surface.surface.get.surfaceType == 'Wall'
-              # get the absolute_azimuth for the surface so we can categorize it
-              absolute_azimuth = OpenStudio.convert(sub_surface.azimuth, 'rad', 'deg').get + sub_surface.surface.get.space.get.directionofRelativeNorth + model.getBuilding.northAxis
-              absolute_azimuth -= 360.0 until absolute_azimuth < 360.0
-              if (absolute_azimuth >= 315.0) || (absolute_azimuth < 45.0)
-                orientation = 'A-North'
-              elsif (absolute_azimuth >= 45.0) && (absolute_azimuth < 135.0)
-                orientation = 'B-East'
-              elsif (absolute_azimuth >= 135.0) && (absolute_azimuth < 225.0)
-                orientation = 'D-South'
-              elsif (absolute_azimuth >= 225.0) && (absolute_azimuth < 315.0)
-                orientation = 'C-West'
-              end
-              window = {:window => sub_surface,
-                        :standards_building_type => space.spaceType.get.standardsBuildingType.get,
-                        :standards_space_type => space.spaceType.get.standardsSpaceType.get,
-                        :orientation => orientation,
-                        :story_height => floor.nominalZCoordinate.to_f,
-                        :window_area => sub_surface.grossArea.to_f}
+
+            # get the absolute_azimuth for the surface so we can categorize it
+            absolute_azimuth = OpenStudio.convert(sub_surface.azimuth, 'rad', 'deg').get + sub_surface.surface.get.space.get.directionofRelativeNorth + model.getBuilding.northAxis
+            absolute_azimuth -= 360.0 until absolute_azimuth < 360.0
+            if (absolute_azimuth >= 315.0) || (absolute_azimuth < 45.0)
+              orientation = 'A-North'
+            elsif (absolute_azimuth >= 45.0) && (absolute_azimuth < 135.0)
+              orientation = 'B-East'
+            elsif (absolute_azimuth >= 135.0) && (absolute_azimuth < 225.0)
+              orientation = 'D-South'
+            elsif (absolute_azimuth >= 225.0) && (absolute_azimuth < 315.0)
+              orientation = 'C-West'
+            end
+            window = {
+              window: sub_surface,
+              standards_building_type: space.spaceType.get.standardsBuildingType.get,
+              standards_space_type: space.spaceType.get.standardsSpaceType.get,
+              orientation: orientation,
+              story_height: floor.nominalZCoordinate.to_f,
+              window_area: sub_surface.grossArea.to_f
+            }
+
             # only add windows to hash if specified in the space_type_blinds_ratio
             next unless space_type_blinds_ratio.keys.include? window[:standards_building_type]
             next unless space_type_blinds_ratio[window[:standards_building_type]].keys.include? window[:standards_space_type]
+
             standards_building_types << window[:standards_building_type] unless standards_building_types.include? window[:standards_building_type]
             windows << window
           end
@@ -156,12 +160,13 @@ class AddBlindsToSelectedWindows < OpenStudio::Measure::ModelMeasure
         installed_blind_area = 0
         windows_sorted.each do |h|
           next unless installed_blind_area <= target_blind_area
+
           window = h[:window]
           window.setShadingControl(shading_control)
           runner.registerInfo("A blind was added to window #{window.name}.")
           installed_blind_area += window.grossArea
         end
-        runner.registerInfo("For standards space type #{space_type}, #{installed_blind_area.round} m^2 of blinds were added out of #{total_window_area.round} m^2 window area available. Fraction: #{(installed_blind_area/total_window_area).round(2)}.")
+        runner.registerInfo("For standards space type #{space_type}, #{installed_blind_area.round} m^2 of blinds were added out of #{total_window_area.round} m^2 window area available. Fraction: #{(installed_blind_area / total_window_area).round(2)}.")
       end
     end
 

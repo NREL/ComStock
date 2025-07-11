@@ -1,6 +1,31 @@
 # ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 class UnitsMixin():
+    class UNIT:
+        class ENERGY:
+            KWH = 'kwh'
+            MWH = 'mwh'
+            TWH = 'twh'
+            KBTU = 'kbtu'
+            TBTU = 'tbtu'
+            THERM = 'therm'
+            GJ = 'gj'
+            MBTU = 'mbtu'
+            MILLION_BTU = 'million_btu'
+            USD = 'usd'
+
+        class CURRENCY:
+            USD = 'usd'
+            MILLION_USD = 'million_usd'
+            BILLION_USD = 'billion_usd'
+
+        class MASS:
+            CO2E_MMT = 'co2e_mmt'
+
+        class DIMLESS:
+            PERCENT = 'percent'
+            PERCENT_SYMBOL = '%'
+
     # Constants for unit conversion
     # Created using OpenStudio unit conversion library
     UNIT_CONVERSIONS = {
@@ -26,7 +51,9 @@ class UnitsMixin():
         'w_per_m2_to_w_per_ft2': (1.0/10.763910416709722),
         'co2e_kg_to_co2e_mmt': (0.000000001),
         'co2e_kg_to_co2e_metric_ton': 0.001,
-        'usd_to_billion_usd': 0.000000001
+        'usd_to_billion_usd': 0.000000001,
+        'kw_to_gw': 0.000001,
+        'percent_to_percent': 1,
     }
 
     def conv_fact(self, from_unit, to_unit):

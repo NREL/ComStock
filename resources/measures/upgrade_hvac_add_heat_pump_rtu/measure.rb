@@ -1,6 +1,7 @@
+# frozen_string_literal: true
+
 # ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
-
 
 # see the URL below for information on how to write OpenStudio measures
 # http://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/
@@ -8,54 +9,66 @@ require 'openstudio-standards'
 
 # start the measure
 class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
+  # defining global variable
+  # adding tolerance because EnergyPlus unit conversion differs from manual conversion
+  # reference: https://github.com/NREL/EnergyPlus/blob/337bfbadf019a80052578d1bad6112dca43036db/src/EnergyPlus/DataHVACGlobals.hh#L362-L368
+  CFM_PER_TON_MIN_RATED = 300 * (1 + 0.08) # hard limit of 300 and tolerance of 8% (based on EP unit conversion mismatch plus more)
+  CFM_PER_TON_MAX_RATED = 450 * (1 - 0.08) # hard limit of 450 and tolerance of 8% (based on EP unit conversion mismatch plus more)
+  # CFM_PER_TON_MIN_OPERATIONAL = 200 # hard limit of 200 for operational minimum threshold for both heating/cooling
+  # CFM_PER_TON_MAX_OPERATIONAL_HEATING = 600 # hard limit of 600 for operational maximum threshold for both heating
+  # CFM_PER_TON_MAX_OPERATIONAL_COOLING = 500 # hard limit of 500 for operational maximum threshold for both cooling
+
   # human readable name
   def name
     # Measure name should be the title case of the class name.
-    return 'add_heat_pump_rtu'
+    'add_heat_pump_rtu'
   end
 
   # human readable description
   def description
-    return 'Measure replaces existing packaged single-zone RTU system types with heat pump RTUs. Not applicable for water coil systems.'
+    'Measure replaces existing packaged single-zone RTU system types with heat pump RTUs. Not applicable for water coil systems.'
   end
 
   # human readable description of modeling approach
   def modeler_description
-    return 'Modeler has option to set backup heat source, prevelence of heat pump oversizing, heat pump oversizing limit, and addition of energy recovery. This measure will work on unitary PSZ systems as well as single-zone, constant air volume air loop PSZ systems.'
+    'Modeler has option to set backup heat source, prevelence of heat pump oversizing, heat pump oversizing limit, and addition of energy recovery. This measure will work on unitary PSZ systems as well as single-zone, constant air volume air loop PSZ systems.'
   end
 
   # define the arguments that the user will input
-  def arguments(model)
+  def arguments(_model)
     args = OpenStudio::Measure::OSArgumentVector.new
 
     # make list of backup heat options
-    li_backup_heat_options = ["match_original_primary_heating_fuel", "electric_resistance_backup"]
+    li_backup_heat_options = ['match_original_primary_heating_fuel', 'electric_resistance_backup']
     v_backup_heat_options = OpenStudio::StringVector.new
     li_backup_heat_options.each do |option|
       v_backup_heat_options << option
     end
     # add backup heat option arguments
-    backup_ht_fuel_scheme = OpenStudio::Measure::OSArgument.makeChoiceArgument('backup_ht_fuel_scheme', v_backup_heat_options, true)
+    backup_ht_fuel_scheme = OpenStudio::Measure::OSArgument.makeChoiceArgument('backup_ht_fuel_scheme',
+                                                                               v_backup_heat_options, true)
     backup_ht_fuel_scheme.setDisplayName('Backup Heat Type')
     backup_ht_fuel_scheme.setDescription('Specifies if the backup heat fuel type is a gas furnace or electric resistance coil. If match original primary heating fuel is selected, the heating fuel type will match the primary heating fuel type of the original model. If electric resistance is selected, AHUs will get electric resistance backup.')
-    backup_ht_fuel_scheme.setDefaultValue("electric_resistance_backup")
+    backup_ht_fuel_scheme.setDefaultValue('electric_resistance_backup')
     args << backup_ht_fuel_scheme
 
     # add RTU oversizing factor for heating
-    performance_oversizing_factor = OpenStudio::Measure::OSArgument.makeDoubleArgument('performance_oversizing_factor', true)
+    performance_oversizing_factor = OpenStudio::Measure::OSArgument.makeDoubleArgument('performance_oversizing_factor',
+                                                                                       true)
     performance_oversizing_factor.setDisplayName('Maximum Performance Oversizing Factor')
     performance_oversizing_factor.setDefaultValue(0)
     performance_oversizing_factor.setDescription('When heating design load exceeds cooling design load, the design cooling capacity of the unit will only be allowed to increase up to this factor to accomodate additional heating capacity. Oversizing the compressor beyond 25% can cause cooling cycling issues, even with variable speed compressors.')
     args << performance_oversizing_factor
 
     # heating sizing options TODO
-    li_htg_sizing_option = ['47F', '17F', '0F']
+    li_htg_sizing_option = ['47F', '17F', '0F', '-10F']
     v_htg_sizing_option = OpenStudio::StringVector.new
     li_htg_sizing_option.each do |option|
       v_htg_sizing_option << option
     end
 
-    htg_sizing_option = OpenStudio::Measure::OSArgument.makeChoiceArgument('htg_sizing_option', li_htg_sizing_option, true)
+    htg_sizing_option = OpenStudio::Measure::OSArgument.makeChoiceArgument('htg_sizing_option', li_htg_sizing_option,
+                                                                           true)
     htg_sizing_option.setDefaultValue('0F')
     htg_sizing_option.setDisplayName('Temperature to Sizing Heat Pump, F')
     htg_sizing_option.setDescription('Specifies temperature to size heating on. If design temperature for climate is higher than specified, program will use design temperature. Heat pump sizing will not exceed user-input oversizing factor.')
@@ -75,12 +88,25 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     htg_to_clg_hp_ratio.setDescription('At rated conditions, a compressor will generally have slightly more cooling capacity than heating capacity. This factor integrates this ratio into the unit sizing.')
     args << htg_to_clg_hp_ratio
 
-    # model standard performance hp rtu
-    std_perf = OpenStudio::Measure::OSArgument.makeBoolArgument('std_perf', true)
-    std_perf.setDisplayName('Model standard performance HP RTU?')
-    std_perf.setDescription('Standard performance refers to the followings: manufacturer claimed as standard efficiency (as of OCT 2023), direct drive supply fan, two stages of heat pump cooling, single stage heat pump heating (i.e., all compressors running at the same time), heat pump minimum lockout temperature of 0°F (-17.8°C), backup electric resistance heating, backup heating runs at the same time as heat pump heating, heat pump heating locking out below minimum operating temperature, IEER in between 11-13, and HSPF in between 8-8.9.')
-    std_perf.setDefaultValue(false)
-    args << std_perf
+    # add heat pump minimum compressor lockout outdoor air temperature
+    hp_min_comp_lockout_temp_f = OpenStudio::Measure::OSArgument.makeDoubleArgument('hp_min_comp_lockout_temp_f', true)
+    hp_min_comp_lockout_temp_f.setDisplayName('Minimum outdoor air temperature that locks out heat pump compressor, F')
+    hp_min_comp_lockout_temp_f.setDefaultValue(0.0)
+    hp_min_comp_lockout_temp_f.setDescription('Specifies minimum outdoor air temperature for locking out heat pump compressor. Heat pump heating does not operated below this temperature and backup heating will operate if heating is still needed.')
+    args << hp_min_comp_lockout_temp_f
+
+    # make list of cchpc scenarios
+    li_hprtu_scenarios = ['two_speed_standard_eff', 'variable_speed_high_eff', 'cchpc_2027_spec']
+    v_li_hprtu_scenarios = OpenStudio::StringVector.new
+    li_hprtu_scenarios.each do |option|
+      v_li_hprtu_scenarios << option
+    end
+    # add cold climate heat pump challenge hp rtu scenario arguments
+    hprtu_scenario = OpenStudio::Measure::OSArgument.makeChoiceArgument('hprtu_scenario', v_li_hprtu_scenarios, true)
+    hprtu_scenario.setDisplayName('Heat Pump RTU Performance Type')
+    hprtu_scenario.setDescription('Determines performance assumptions. two_speed_standard_eff is a standard efficiency system with 2 staged compressors (2 stages cooling, 1 stage heating). variable_speed_high_eff is a higher efficiency variable speed system. cchpc_2027_spec is a hypothetical 4-stage unit intended to meet the requirements of the cold climate heat pump RTU challenge 2027 specification.  ')
+    hprtu_scenario.setDefaultValue('two_speed_standard_eff')
+    args << hprtu_scenario
 
     # add heat recovery option
     hr = OpenStudio::Measure::OSArgument.makeBoolArgument('hr', true)
@@ -100,12 +126,30 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     econ.setDefaultValue(false)
     args << econ
 
-    return args
+    # add roof insulation option
+    roof = OpenStudio::Measure::OSArgument.makeBoolArgument('roof', true)
+    roof.setDisplayName('Upgrade Roof Insulation?')
+    roof.setDescription('Upgrade roof insulation per AEDG recommendations.')
+    roof.setDefaultValue(false)
+    args << roof
+
+    # do a sizing run for sizing?
+    sizing_run = OpenStudio::Measure::OSArgument.makeBoolArgument('sizing_run', true)
+    sizing_run.setDisplayName('Do a sizing run for informing sizing instead of using hard-sized model parameters?')
+    sizing_run.setDefaultValue(false)
+    args << sizing_run
+
+    # do a sizing run for sizing?
+    debug_verbose = OpenStudio::Measure::OSArgument.makeBoolArgument('debug_verbose', true)
+    debug_verbose.setDisplayName('Print out detailed debugging logs if this parameter is true')
+    debug_verbose.setDefaultValue(false)
+    args << debug_verbose
+
+    args
   end
 
   # define the outputs that the measure will create
   def outputs
-
     # outs = OpenStudio::Measure::OSOutputVector.new
     output_names = []
 
@@ -114,7 +158,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       result << OpenStudio::Measure::OSOutput.makeDoubleOutput(output)
     end
 
-    return result
+    result
   end
 
   #### Predefined functions
@@ -128,7 +172,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         is_res_system = false
       end
     end
-    return is_res_system
+    is_res_system
   end
 
   # Determine if is evaporative cooler
@@ -141,7 +185,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         is_evap = true
       end
     end
-    return is_evap
+    is_evap
   end
 
   # Determine if the air loop is a unitary system
@@ -155,7 +199,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         is_unitary_system = true
       end
     end
-    return is_unitary_system
+    is_unitary_system
   end
 
   # load curve to model from json
@@ -321,7 +365,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       data_points = data.each.select { |key, _value| key.include? 'data_point' }
       data_points = data_points.sort_by { |item| item[1].split(',').map(&:to_f) } # sorting data in ascending order
       data_points.each do |_key, value|
-        var_dep = value.split(',')[2].to_f
+        var_dep = value.split(',')[num_ind_var].to_f
         table.addOutputValue(var_dep)
       end
       num_ind_var.times do |i|
@@ -336,47 +380,799 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         table.addIndependentVariable(table_indvar)
       end
       table
-    else
-      # OpenStudio.logFree(OpenStudio::Error, 'openstudio.Model.Model', "#{curve_name}' has an invalid form: #{data['form']}', cannot create this curve.")
-      nil
     end
   end
 
+  def assign_staging_data(staging_data_json, std)
+    # Parse the JSON string into a Ruby hash
+    # Find curve data
+    staging_data = std.model_find_object(staging_data_json['tables']['curves'], 'name' => 'staging_data')
+    return nil if staging_data.nil?
+
+    # Check cchpc value and assign variables from JSON data
+    num_heating_stages = staging_data['num_heating_stages']
+    num_cooling_stages = staging_data['num_cooling_stages']
+    rated_stage_num_heating = staging_data['rated_stage_num_heating']
+    rated_stage_num_cooling = staging_data['rated_stage_num_cooling']
+    final_rated_cooling_cop = staging_data['final_rated_cooling_cop']
+    final_rated_heating_cop = staging_data['final_rated_heating_cop']
+    stage_cap_fractions_heating = eval(staging_data['stage_cap_fractions_heating'])
+    stage_flow_fractions_heating = eval(staging_data['stage_flow_fractions_heating'])
+    stage_cap_fractions_cooling = eval(staging_data['stage_cap_fractions_cooling'])
+    stage_flow_fractions_cooling = eval(staging_data['stage_flow_fractions_cooling'])
+    stage_rated_cop_frac_heating = eval(staging_data['stage_rated_cop_frac_heating'])
+    stage_rated_cop_frac_cooling = eval(staging_data['stage_rated_cop_frac_cooling'])
+    boost_stage_num_and_max_temp_tuple = eval(staging_data['boost_stage_num_and_max_temp_tuple'])
+    stage_gross_rated_sensible_heat_ratio_cooling = eval(staging_data['stage_gross_rated_sensible_heat_ratio_cooling'])
+    enable_cycling_losses_above_lowest_speed = staging_data['enable_cycling_losses_above_lowest_speed']
+    reference_cooling_cfm_per_ton = staging_data['reference_cooling_cfm_per_ton']
+    reference_heating_cfm_per_ton = staging_data['reference_cooling_cfm_per_ton']
+
+    # Return assigned variables
+    [num_heating_stages, num_cooling_stages, rated_stage_num_heating, rated_stage_num_cooling, final_rated_cooling_cop, final_rated_heating_cop, stage_cap_fractions_heating, stage_flow_fractions_heating,
+     stage_cap_fractions_cooling, stage_flow_fractions_cooling, stage_rated_cop_frac_heating, stage_rated_cop_frac_cooling, boost_stage_num_and_max_temp_tuple, stage_gross_rated_sensible_heat_ratio_cooling,
+     enable_cycling_losses_above_lowest_speed, reference_cooling_cfm_per_ton, reference_heating_cfm_per_ton]
+  end
+
   # get rated cooling COP from fitted regression
-  def get_rated_cop_cooling(air_loop_hvac, rated_m_3_per_sec, rated_capacity_w)
-    intercept = 4.49070660088438
-    coef_1 = 0.0000000000
-    coef_2 = 0.0003756651
-    coef_3 = -0.0586332053
-    coef_4 = -0.0000000391
-    coef_5 = 0.0000047027
-    coef_6 = 0.0001053728
-    min_cop = 3.43
-    max_cop = 4.92
-    rated_CFM = OpenStudio.convert(rated_m_3_per_sec, 'm^3/s', 'cfm').get
+  # based on actual product performances (Carrier/Lennox) which meet 2023 federal minimum efficiency requirements
+  # reflecting rated COP without blower power and blower heat gain
+  def get_rated_cop_cooling(rated_capacity_w)
+    intercept = 3.881009
+    coef_1 = -0.01034
+    min_cop = 3.02
+    max_cop = 3.97
     rated_capacity_kw = rated_capacity_w / 1000 # W to kW
-    rated_cop_cooling = intercept + 1 * coef_1 + coef_2 * rated_CFM + coef_3 * rated_capacity_kw + coef_4 * (rated_CFM**2) + coef_5 * (rated_CFM * rated_capacity_kw) + coef_6 * (rated_capacity_kw**2)
-    rated_cop_cooling = rated_cop_cooling.clamp(min_cop, max_cop)
-    return rated_cop_cooling
+    rated_cop_cooling = intercept + (coef_1 * rated_capacity_kw)
+    rated_cop_cooling.clamp(min_cop, max_cop)
   end
 
   # get rated heating COP from fitted regression
-  def get_rated_cop_heating(air_loop_hvac, rated_m_3_per_sec, rated_capacity_w)
-    intercept = 4.3102941156455
-    coef_1 = 0.0000000000000
-    coef_2 = 0.0005719993613
-    coef_3 = -0.0896221465453
-    coef_4 = -0.0000000330634
-    coef_5 = 0.0000029291133
-    coef_6 = 0.0004096485708
-    min_cop = 2.95
-    max_cop = 5.42
-    rated_CFM = OpenStudio.convert(rated_m_3_per_sec, 'm^3/s', 'cfm').get
+  # based on actual product performances (Carrier/Lennox) which meet 2023 federal minimum efficiency requirements
+  # reflecting rated COP without blower power and blower heat gain
+  def get_rated_cop_heating(rated_capacity_w)
+    intercept = 3.957724
+    coef_1 = -0.008502
+    min_cop = 3.46
+    max_cop = 3.99
     rated_capacity_kw = rated_capacity_w / 1000 # W to kW
-    rated_cop_heating = intercept + 1 * coef_1 + coef_2 * rated_CFM + coef_3 * rated_capacity_kw + coef_4 * (rated_CFM**2) + coef_5 * (rated_CFM * rated_capacity_kw) + coef_6 * (rated_capacity_kw**2)
-    rated_cop_heating = rated_cop_heating.clamp(min_cop, max_cop)
-    return rated_cop_heating
+    rated_cop_heating = intercept + (coef_1 * rated_capacity_kw)
+    rated_cop_heating.clamp(min_cop, max_cop)
   end
+
+  # get rated cooling COP from fitted regression - for advanced HP RTU (from Daikin Rebel data)
+  def get_rated_cop_cooling_adv(rated_capacity_w)
+    intercept = 4.140806
+    coef_1 = -0.007577
+    min_cop = 3.34
+    max_cop = 4.29
+    rated_capacity_kw = rated_capacity_w / 1000 # W to kW
+    rated_cop_cooling = intercept + (coef_1 * rated_capacity_kw)
+    rated_cop_cooling.clamp(min_cop, max_cop)
+  end
+
+  # get rated heating COP from fitted regression - for advanced HP RTU (from Daikin Rebel data)
+  def get_rated_cop_heating_adv(rated_capacity_w)
+    intercept = 3.861114
+    coef_1 = -0.003304
+    min_cop = 3.5
+    max_cop = 3.87
+    rated_capacity_kw = rated_capacity_w / 1000 # W to kW
+    rated_cop_heating = intercept + (coef_1 * rated_capacity_kw)
+    rated_cop_heating.clamp(min_cop, max_cop)
+  end
+
+  def cfm_per_ton_to_m_3_per_sec_watts(cfm_per_ton)
+    OpenStudio.convert(OpenStudio.convert(cfm_per_ton, 'cfm', 'm^3/s').get, 'W', 'ton').get
+  end
+
+  def m_3_per_sec_watts_to_cfm_per_ton(m_3_per_sec_watts)
+    OpenStudio.convert(OpenStudio.convert(m_3_per_sec_watts, 'm^3/s', 'cfm').get, 'ton', 'W').get
+  end
+
+  # adjust rated COP based on reference CFM/ton
+  def adjust_rated_cop_from_ref_cfm_per_ton(runner, airflow_sized_m_3_per_s, reference_cfm_per_ton, rated_capacity_w, original_rated_cop, eir_modifier_curve_flow)
+    # get reference airflow
+    airflow_reference_m_3_per_s = cfm_per_ton_to_m_3_per_sec_watts(reference_cfm_per_ton) * rated_capacity_w
+
+    # get flow fraction
+    flow_fraction = airflow_sized_m_3_per_s / airflow_reference_m_3_per_s
+
+    # calculate modifiers
+    modifier_eir = nil
+    if eir_modifier_curve_flow.to_CurveBiquadratic.is_initialized
+      modifier_eir = eir_modifier_curve_flow.evaluate(flow_fraction, 0)
+    elsif eir_modifier_curve_flow.to_CurveCubic.is_initialized
+      modifier_eir = eir_modifier_curve_flow.evaluate(flow_fraction)
+    elsif eir_modifier_curve_flow.to_CurveQuadratic.is_initialized
+      modifier_eir = eir_modifier_curve_flow.evaluate(flow_fraction)
+    else
+      runner.registerError("CurveBiquadratic|CurveQuadratic|CurveCubic are only supported at the moment for modifier_eir (function of flow fraction) calculation: eir_modifier_curve_flow = #{eir_modifier_curve_flow.name}")
+    end
+
+    # adjust rated COP (COP = 1 / EIR)
+    original_rated_cop * (1.0 / modifier_eir)
+  end
+
+  def adjust_cfm_per_ton_per_limits(stage_cap_fractions, stage_flows, stage_flow_fractions, dx_rated_cap_applied, rated_stage_num, old_terminal_sa_flow_m3_per_s, min_airflow_ratio, air_loop_hvac, heating_or_cooling, runner, debug_verbose)
+    # determine capacities for each stage
+    # this is based on user-input capacities for each stage and any upsizing applied
+    # Flow per ton will be maintained between 300 CFM/Ton and 450 CFM/Ton
+    # If current capacity fractions and airflow violate this for lower speeds, those speeds will set to false
+    # If the highest speed is violated, the max airflow will be increased to accommodate.
+    stage_caps = {}
+    # Calculate and store each stage's capacity
+    stage_cap_fractions.sort.each do |stage, ratio|
+      # define cfm/ton bounds
+      cfm_per_ton_min = CFM_PER_TON_MIN_RATED
+      cfm_per_ton_max = CFM_PER_TON_MAX_RATED
+      m_3_per_s_per_w_min = cfm_per_ton_to_m_3_per_sec_watts(cfm_per_ton_min)
+      m_3_per_s_per_w_max = cfm_per_ton_to_m_3_per_sec_watts(cfm_per_ton_max)
+
+      # Calculate the airflow for the current stage
+      airflow = stage_flows[stage]
+      # Calculate the capacity for the current stage considering upsizing
+      stage_capacity = dx_rated_cap_applied * ratio
+      # Calculate the flow per ton
+      flow_per_ton = airflow / stage_capacity
+
+      if debug_verbose
+        runner.registerInfo('stage summary: ---------------------------------------------------------------')
+        runner.registerInfo("stage summary: air_loop_hvac: #{air_loop_hvac.name}")
+        runner.registerInfo("stage summary: #{heating_or_cooling} Stage #{stage}")
+        runner.registerInfo("stage summary: min_airflow_ratio: #{min_airflow_ratio}")
+        runner.registerInfo("stage summary: airflow: #{airflow}")
+        runner.registerInfo("stage summary: stage_capacity: #{stage_capacity}")
+        runner.registerInfo("stage summary: flow_per_ton: #{flow_per_ton}")
+        runner.registerInfo("stage summary: m_3_per_s_per_w_max: #{m_3_per_s_per_w_max.round(8)}")
+        runner.registerInfo("stage summary: In Bounds: #{(flow_per_ton.round(8) >= m_3_per_s_per_w_min.round(8)) && (flow_per_ton.round(8) <= m_3_per_s_per_w_max.round(8))}")
+      end
+
+      # If flow/ton is less than minimum, increase airflow of stage to meet minimum
+      if (flow_per_ton.round(8) < m_3_per_s_per_w_min.round(8)) && (stage < rated_stage_num)
+        # calculate minimum airflow to achieve
+        new_stage_airflow = m_3_per_s_per_w_min * stage_capacity
+        # update airflow
+        stage_flows[stage] = new_stage_airflow
+        # update airflow fraction
+        stage_flow_fractions[stage] = new_stage_airflow / old_terminal_sa_flow_m3_per_s # TODO: - need to check if we can go over design airflow. If so, need to adjust min OA.
+        stage_caps[stage] = stage_capacity
+        if debug_verbose
+          runner.registerInfo('stage summary: entered flow/ton too low loop....')
+          runner.registerInfo("stage summary: #{air_loop_hvac.name} | cfm/ton low limit violation | #{heating_or_cooling} | stage = #{stage} | cfm/ton after adjustment = #{m_3_per_sec_watts_to_cfm_per_ton(stage_flows[stage] / stage_caps[stage])}")
+        end
+      # If flow/ton is greater than maximum,
+      elsif (flow_per_ton.round(8) > m_3_per_s_per_w_max.round(8)) && (stage < rated_stage_num)
+        # reduce airflow of stage without violating minimum flow or outdoor air requirements
+        # if maximum flow/ton ratio cannot be accommodated without violating minimum airflow ratios
+        # if cfm/ton limit can't be met by reducing airflow, allow increase capacity of up to 65% range between capacities
+        # calculate maximum allowable ratio, no more than 50% increase between specified stages
+
+        if debug_verbose
+          runner.registerInfo('stage summary: entered flow/ton too high loop....')
+          runner.registerInfo("stage summary: air_loop_hvac: #{air_loop_hvac.name}")
+          runner.registerInfo("stage summary: ratio: #{ratio}")
+          runner.registerInfo("stage summary: stage: #{stage}")
+          runner.registerInfo("stage summary: stage_cap_fractions: #{stage_cap_fractions}")
+          runner.registerInfo("stage summary: dx_rated_cap_applied: #{dx_rated_cap_applied}")
+        end
+
+        ratio_allowance_50_pct = ratio + (stage_cap_fractions[stage + 1] - ratio) * 0.65
+        required_stage_cap_ratio = airflow / m_3_per_s_per_w_max / (stage_cap_fractions[rated_stage_num] * dx_rated_cap_applied)
+        stage_airflow_limit_max = m_3_per_s_per_w_max * stage_capacity
+        # if not violating min airflow requirement
+        if (stage_airflow_limit_max / old_terminal_sa_flow_m3_per_s) >= min_airflow_ratio
+          stage_flows[stage] = stage_airflow_limit_max
+          stage_flow_fractions[stage] = stage_airflow_limit_max / old_terminal_sa_flow_m3_per_s
+          stage_caps[stage] = stage_capacity
+          if debug_verbose
+            runner.registerInfo("stage summary: #{air_loop_hvac.name} | cfm/ton high limit violation | #{heating_or_cooling} | stage = #{stage} | cfm/ton after adjustment = #{m_3_per_sec_watts_to_cfm_per_ton(stage_flows[stage] / stage_caps[stage])}")
+          end
+        # when equal or less than 50% ratio allowance
+        elsif required_stage_cap_ratio <= ratio_allowance_50_pct
+          stage_cap_fractions[stage] = required_stage_cap_ratio
+          stage_caps[stage] = required_stage_cap_ratio * (stage_cap_fractions[rated_stage_num] * dx_rated_cap_applied)
+          if debug_verbose
+            runner.registerInfo("stage summary: #{air_loop_hvac.name} | cfm/ton high limit violation (ratio_allowance_50_pct) | #{heating_or_cooling} | stage = #{stage} | cfm/ton after adjustment = #{m_3_per_sec_watts_to_cfm_per_ton(stage_flows[stage] / stage_caps[stage])}")
+          end
+        # we need at least 2 stages; apply the allowance value and accept some degree of being out of range
+        elsif stage == (rated_stage_num - 1)
+          stage_cap_fractions[stage] = ratio_allowance_50_pct
+          stage_caps[stage] = ratio_allowance_50_pct * (stage_cap_fractions[rated_stage_num] * dx_rated_cap_applied)
+          if debug_verbose
+            runner.registerInfo("stage summary: #{air_loop_hvac.name} | cfm/ton high limit violation (rated_stage_num) | #{heating_or_cooling} | stage = #{stage} | cfm/ton after adjustment = #{m_3_per_sec_watts_to_cfm_per_ton(stage_flows[stage] / stage_caps[stage])}")
+          end
+        # remove stage if maximum flow/ton ratio cannot be accommodated without violating minimum airflow ratios
+        else
+          if debug_verbose
+            runner.registerInfo('stage summary: stage removed')
+          end
+          stage_flows[stage] = false
+          stage_flow_fractions[stage] = false
+          stage_caps[stage] = false
+          stage_cap_fractions[stage] = false
+          if debug_verbose
+            runner.registerInfo("stage summary: #{air_loop_hvac.name} | cfm/ton high limit violation (removing stage) | #{heating_or_cooling} | stage = #{stage} | cfm/ton after adjustment = n/a")
+          end
+        end
+      # Do nothing if not violated
+      else
+        stage_caps[stage] = stage_capacity
+        if debug_verbose
+          runner.registerInfo('stage summary: entered no adjustment loop')
+          runner.registerInfo("stage summary: #{air_loop_hvac.name} | no cfm/ton violation | #{heating_or_cooling} | stage = #{stage} | cfm/ton = #{m_3_per_sec_watts_to_cfm_per_ton(stage_flows[stage] / stage_caps[stage])}")
+        end
+      end
+    end
+
+    # get updated number of stages
+    num_stages = stage_caps.length
+
+    [stage_flows, stage_caps, stage_flow_fractions, stage_cap_fractions, num_stages]
+  end
+
+  def set_cooling_coil_stages(model, runner, stage_flows_cooling, stage_caps_cooling, num_cooling_stages, final_rated_cooling_cop, cool_cap_ft_curve_stages, cool_eir_ft_curve_stages,
+                              cool_cap_ff_curve_stages, cool_eir_ff_curve_stages, cool_plf_fplr1, stage_rated_cop_frac_cooling, stage_gross_rated_sensible_heat_ratio_cooling,
+                              rated_stage_num_cooling, enable_cycling_losses_above_lowest_speed, air_loop_hvac, always_on, stage_caps_heating, debug_verbose)
+
+    if (stage_flows_cooling.values.count(&:itself)) == (stage_caps_cooling.values.count(&:itself))
+      num_cooling_stages = stage_flows_cooling.values.count(&:itself)
+      if debug_verbose
+        runner.registerInfo("stage summary: The final number of cooling stages for #{air_loop_hvac.name} is #{num_cooling_stages}.")
+      end
+    else
+      runner.registerError("For airloop #{air_loop_hvac.name}, the number of stages of cooling capacity is different from number of stages of cooling airflow. Revise measure as needed.")
+    end
+
+    # use single speed DX cooling coil if only 1 speed
+    new_dx_cooling_coil = nil
+    if num_cooling_stages == 1
+      new_dx_cooling_coil = OpenStudio::Model::CoilCoolingDXSingleSpeed.new(model)
+      new_dx_cooling_coil.setName("#{air_loop_hvac.name} Heat Pump Cooling Coil")
+      new_dx_cooling_coil.setAvailabilitySchedule(always_on)
+      new_dx_cooling_coil.setCondenserType('AirCooled')
+      new_dx_cooling_coil.setRatedCOP(final_rated_cooling_cop * stage_rated_cop_frac_cooling[rated_stage_num_cooling])
+      new_dx_cooling_coil.setRatedTotalCoolingCapacity(stage_caps_cooling[rated_stage_num_cooling])
+      new_dx_cooling_coil.setGrossRatedSensibleHeatRatio(stage_gross_rated_sensible_heat_ratio_cooling[rated_stage_num_cooling])
+      new_dx_cooling_coil.setRatedAirFlowRate(stage_flows_cooling[rated_stage_num_cooling])
+      new_dx_cooling_coil.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
+      new_dx_cooling_coil.setTotalCoolingCapacityFunctionOfTemperatureCurve(cool_cap_ft_curve_stages[rated_stage_num_cooling])
+      new_dx_cooling_coil.setTotalCoolingCapacityFunctionOfFlowFractionCurve(cool_cap_ff_curve_stages[rated_stage_num_cooling])
+      new_dx_cooling_coil.setEnergyInputRatioFunctionOfTemperatureCurve(cool_eir_ft_curve_stages[rated_stage_num_cooling])
+      new_dx_cooling_coil.setEnergyInputRatioFunctionOfFlowFractionCurve(cool_eir_ff_curve_stages[rated_stage_num_cooling])
+      new_dx_cooling_coil.setPartLoadFractionCorrelationCurve(cool_plf_fplr1)
+      new_dx_cooling_coil.setEvaporativeCondenserEffectiveness(0.9)
+      new_dx_cooling_coil.setMaximumOutdoorDryBulbTemperatureforCrankcaseHeaterOperation(4.4)
+      new_dx_cooling_coil.setNominalTimeforCondensateRemovaltoBegin(1000)
+      new_dx_cooling_coil.setRatioofInitialMoistureEvaporationRateandSteadyStateLatentCapacity(1.5)
+      new_dx_cooling_coil.setLatentCapacityTimeConstant(45)
+      # For crankcase heater, conversion is watts to tons
+      # methods from "TECHNICAL SUPPORT DOCUMENT: ENERGY EFFICIENCY PROGRAM FOR CONSUMER PRODUCTS AND COMMERCIAL AND INDUSTRIAL EQUIPMENT AIR-COOLED COMMERCIAL UNITARY AIR CONDITIONERS AND COMMERCIAL UNITARY HEAT PUMPS"
+      crankcase_heater_power = ((60 * (stage_caps_cooling[rated_stage_num_cooling] * 0.0002843451 / 10)**0.67))
+      new_dx_cooling_coil.setCrankcaseHeaterCapacity(crankcase_heater_power)
+      new_dx_cooling_coil.setMinimumOutdoorDryBulbTemperatureforCompressorOperation(-25)
+
+    # use multi speed DX cooling coil if multiple speeds are defined
+    else
+
+      # define multi speed cooling coil
+      new_dx_cooling_coil = OpenStudio::Model::CoilCoolingDXMultiSpeed.new(model)
+      new_dx_cooling_coil.setName("#{air_loop_hvac.name} Heat Pump Cooling Coil")
+      new_dx_cooling_coil.setCondenserType('AirCooled')
+      new_dx_cooling_coil.setAvailabilitySchedule(always_on)
+      new_dx_cooling_coil.setMinimumOutdoorDryBulbTemperatureforCompressorOperation(-25)
+      new_dx_cooling_coil.setApplyPartLoadFractiontoSpeedsGreaterthan1(enable_cycling_losses_above_lowest_speed)
+      new_dx_cooling_coil.setApplyLatentDegradationtoSpeedsGreaterthan1(false)
+      new_dx_cooling_coil.setFuelType('Electricity')
+      new_dx_cooling_coil.setMaximumOutdoorDryBulbTemperatureforCrankcaseHeaterOperation(4.4)
+      # methods from "TECHNICAL SUPPORT DOCUMENT: ENERGY EFFICIENCY PROGRAM FOR CONSUMER PRODUCTS AND COMMERCIAL AND INDUSTRIAL EQUIPMENT AIR-COOLED COMMERCIAL UNITARY AIR CONDITIONERS AND COMMERCIAL UNITARY HEAT PUMPS"
+      crankcase_heater_power = ((60 * (stage_caps_cooling[rated_stage_num_cooling] * 0.0002843451 / 10)**0.67))
+      new_dx_cooling_coil.setCrankcaseHeaterCapacity(crankcase_heater_power)
+      new_dx_cooling_coil.setMinimumOutdoorDryBulbTemperatureforCompressorOperation(-25)
+
+      # loop through stages
+      stage_caps_cooling.sort.each do |stage, cap|
+        # use current stage if allowed; otherwise use highest available stage as "dummy"
+        # this is a temporary workaround until OS translator supports different numbers of speed levels between heating and cooling
+        # GitHub issue: https://github.com/NREL/OpenStudio/issues/5277
+        applied_stage = stage
+        if cap == false
+          applied_stage = stage_caps_cooling.reject { |k, v| v == false }.keys.min
+        end
+
+        # add speed data for each stage
+        dx_coil_speed_data = OpenStudio::Model::CoilCoolingDXMultiSpeedStageData.new(model)
+        dx_coil_speed_data.setGrossRatedTotalCoolingCapacity(stage_caps_cooling[applied_stage])
+        dx_coil_speed_data.setGrossRatedSensibleHeatRatio(stage_gross_rated_sensible_heat_ratio_cooling[applied_stage])
+        dx_coil_speed_data.setRatedAirFlowRate(stage_flows_cooling[applied_stage])
+        dx_coil_speed_data.setGrossRatedCoolingCOP(final_rated_cooling_cop * stage_rated_cop_frac_cooling[applied_stage])
+        dx_coil_speed_data.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
+        dx_coil_speed_data.setTotalCoolingCapacityFunctionofTemperatureCurve(cool_cap_ft_curve_stages[applied_stage])
+        dx_coil_speed_data.setTotalCoolingCapacityFunctionofFlowFractionCurve(cool_cap_ff_curve_stages[applied_stage])
+        dx_coil_speed_data.setEnergyInputRatioFunctionofTemperatureCurve(cool_eir_ft_curve_stages[applied_stage])
+        dx_coil_speed_data.setEnergyInputRatioFunctionofFlowFractionCurve(cool_eir_ff_curve_stages[applied_stage])
+        dx_coil_speed_data.setPartLoadFractionCorrelationCurve(cool_plf_fplr1)
+        dx_coil_speed_data.setEvaporativeCondenserEffectiveness(0.9)
+        dx_coil_speed_data.setNominalTimeforCondensateRemovaltoBegin(1000)
+        dx_coil_speed_data.setRatioofInitialMoistureEvaporationRateandSteadyStateLatentCapacity(1.5)
+        dx_coil_speed_data.setLatentCapacityTimeConstant(45)
+        dx_coil_speed_data.autosizeEvaporativeCondenserAirFlowRate
+        dx_coil_speed_data.autosizeRatedEvaporativeCondenserPumpPowerConsumption
+
+        # add speed data to multispeed coil object
+        new_dx_cooling_coil.addStage(dx_coil_speed_data) # unless stage_caps_heating[stage] == false
+      end
+    end
+    new_dx_cooling_coil
+  end
+
+  def set_heating_coil_stages(model, runner, stage_flows_heating, stage_caps_heating, num_heating_stages, final_rated_heating_cop, heat_cap_ft_curve_stages, heat_eir_ft_curve_stages,
+                              heat_cap_ff_curve_stages, heat_eir_ff_curve_stages, heat_plf_fplr1, defrost_eir, _stage_rated_cop_frac_heating, rated_stage_num_heating, air_loop_hvac, hp_min_comp_lockout_temp_f,
+                              enable_cycling_losses_above_lowest_speed, always_on, stage_caps_cooling, debug_verbose)
+
+    # validate number of stages
+    if (stage_flows_heating.values.count(&:itself)) == (stage_caps_heating.values.count(&:itself))
+      num_heating_stages = stage_flows_heating.values.count(&:itself)
+      if debug_verbose
+        runner.registerInfo("stage summary: num_heating_stages: #{num_heating_stages}")
+        runner.registerInfo("stage summary: The final number of heating stages for #{air_loop_hvac.name} is #{num_heating_stages}.")
+      end
+    else
+      runner.registerError("For airloop #{air_loop_hvac.name}, the number of stages of heating capacity is different from number of stages of heating airflow. Revise measure as needed.")
+    end
+
+    # use single speed DX heating coil if only 1 speed
+    new_dx_heating_coil = nil
+    if num_heating_stages == 1
+      new_dx_heating_coil = OpenStudio::Model::CoilHeatingDXSingleSpeed.new(model)
+      new_dx_heating_coil.setName("#{air_loop_hvac.name} Heat Pump heating Coil")
+      new_dx_heating_coil.setMinimumOutdoorDryBulbTemperatureforCompressorOperation(OpenStudio.convert(hp_min_comp_lockout_temp_f, 'F', 'C').get)
+      new_dx_heating_coil.setAvailabilitySchedule(always_on)
+      new_dx_heating_coil.setRatedTotalHeatingCapacity(stage_caps_heating[rated_stage_num_heating])
+      new_dx_heating_coil.setRatedAirFlowRate(stage_flows_heating[rated_stage_num_heating])
+      new_dx_heating_coil.setRatedCOP(final_rated_heating_cop)
+      new_dx_heating_coil.setRatedSupplyFanPowerPerVolumeFlowRate2017(773.3)
+      # set performance curves
+      new_dx_heating_coil.setTotalHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft_curve_stages[rated_stage_num_heating])
+      new_dx_heating_coil.setTotalHeatingCapacityFunctionofFlowFractionCurve(heat_cap_ff_curve_stages[rated_stage_num_heating])
+      new_dx_heating_coil.setEnergyInputRatioFunctionofTemperatureCurve(heat_eir_ft_curve_stages[rated_stage_num_heating])
+      new_dx_heating_coil.setEnergyInputRatioFunctionofFlowFractionCurve(heat_eir_ff_curve_stages[rated_stage_num_heating])
+      new_dx_heating_coil.setPartLoadFractionCorrelationCurve(heat_plf_fplr1)
+      # For crankcase heater, conversion is watts to tons
+      # methods from "TECHNICAL SUPPORT DOCUMENT: ENERGY EFFICIENCY PROGRAM FOR CONSUMER PRODUCTS AND COMMERCIAL AND INDUSTRIAL EQUIPMENT AIR-COOLED COMMERCIAL UNITARY AIR CONDITIONERS AND COMMERCIAL UNITARY HEAT PUMPS"
+      crankcase_heater_power = ((60 * (stage_caps_heating[rated_stage_num_heating] * 0.0002843451 / 10)**0.67))
+      new_dx_heating_coil.setCrankcaseHeaterCapacity(crankcase_heater_power)
+      new_dx_heating_coil.setMaximumOutdoorDryBulbTemperatureforCrankcaseHeaterOperation(4.4)
+      new_dx_heating_coil.setDefrostEnergyInputRatioFunctionofTemperatureCurve(defrost_eir)
+      new_dx_heating_coil.setMaximumOutdoorDryBulbTemperatureforDefrostOperation(4.444)
+      new_dx_heating_coil.setDefrostStrategy('ReverseCycle')
+      new_dx_heating_coil.setDefrostControl('OnDemand')
+      new_dx_heating_coil.setDefrostTimePeriodFraction(0.058333)
+
+    # use multi speed DX heating coil if multiple speeds are defined
+    else
+      # define multi speed heating coil
+      new_dx_heating_coil = OpenStudio::Model::CoilHeatingDXMultiSpeed.new(model)
+      new_dx_heating_coil.setName("#{air_loop_hvac.name} Heat Pump heating Coil")
+      new_dx_heating_coil.setMinimumOutdoorDryBulbTemperatureforCompressorOperation(OpenStudio.convert(hp_min_comp_lockout_temp_f, 'F', 'C').get)
+      new_dx_heating_coil.setAvailabilitySchedule(always_on)
+      new_dx_heating_coil.setApplyPartLoadFractiontoSpeedsGreaterthan1(enable_cycling_losses_above_lowest_speed)
+      new_dx_heating_coil.setFuelType('Electricity')
+      # methods from "TECHNICAL SUPPORT DOCUMENT: ENERGY EFFICIENCY PROGRAM FOR CONSUMER PRODUCTS AND COMMERCIAL AND INDUSTRIAL EQUIPMENT AIR-COOLED COMMERCIAL UNITARY AIR CONDITIONERS AND COMMERCIAL UNITARY HEAT PUMPS"
+      crankcase_heater_power = ((60 * (stage_caps_heating[rated_stage_num_heating] * 0.0002843451 / 10)**0.67))
+      new_dx_heating_coil.setCrankcaseHeaterCapacity(crankcase_heater_power)
+      new_dx_heating_coil.setMaximumOutdoorDryBulbTemperatureforCrankcaseHeaterOperation(4.4)
+      new_dx_heating_coil.setDefrostEnergyInputRatioFunctionofTemperatureCurve(defrost_eir)
+      new_dx_heating_coil.setMaximumOutdoorDryBulbTemperatureforDefrostOperation(4.444)
+      new_dx_heating_coil.setDefrostStrategy('ReverseCycle')
+      new_dx_heating_coil.setDefrostControl('OnDemand')
+      new_dx_heating_coil.setDefrostTimePeriodFraction(0.058333)
+      new_dx_heating_coil.setFuelType('Electricity')
+
+      # loop through stages
+      stage_caps_heating.sort.each do |stage, cap|
+        # use current stage if allowed; otherwise use highest available stage as "dummy"
+        # the stage that is actually used to articulate the speed level is the 'applied_stage'
+        # this is a temporary workaround until OS translator supports different numbers of speed levels between heating and cooling
+        # GitHub issue: https://github.com/NREL/OpenStudio/issues/5277
+        applied_stage = stage
+        if cap == false
+          applied_stage = stage_caps_heating.reject { |k, v| v == false }.keys.min
+        end
+
+        # add speed data for each stage
+        dx_coil_speed_data = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
+        dx_coil_speed_data.setGrossRatedHeatingCapacity(stage_caps_heating[applied_stage])
+        dx_coil_speed_data.setGrossRatedHeatingCOP(final_rated_heating_cop * _stage_rated_cop_frac_heating[applied_stage])
+        dx_coil_speed_data.setRatedAirFlowRate(stage_flows_heating[applied_stage])
+        dx_coil_speed_data.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
+        dx_coil_speed_data.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft_curve_stages[applied_stage])
+        # set performance curves
+        dx_coil_speed_data.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft_curve_stages[applied_stage])
+        dx_coil_speed_data.setHeatingCapacityFunctionofFlowFractionCurve(heat_cap_ff_curve_stages[applied_stage])
+        dx_coil_speed_data.setEnergyInputRatioFunctionofTemperatureCurve(heat_eir_ft_curve_stages[applied_stage])
+        dx_coil_speed_data.setEnergyInputRatioFunctionofFlowFractionCurve(heat_eir_ff_curve_stages[applied_stage])
+        dx_coil_speed_data.setPartLoadFractionCorrelationCurve(heat_plf_fplr1)
+        # add speed data to multispeed coil object
+        new_dx_heating_coil.addStage(dx_coil_speed_data) # falseunless stage_caps_cooling[stage] == false # temporary 'unless' until bug fix for (https://github.com/NREL/OpenStudio/issues/5277)
+      end
+    end
+    new_dx_heating_coil
+  end
+
+  def get_tabular_data(runner, _model, sql, report_name, report_for_string, table_name, row_name, column_name)
+    result = OpenStudio::OptionalDouble.new
+    var_val_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName = '#{report_name}' AND ReportForString = '#{report_for_string}' AND TableName = '#{table_name}' AND RowName = '#{row_name}' AND ColumnName = '#{column_name}'"
+    val = sql.execAndReturnFirstDouble(var_val_query)
+    if val.is_initialized
+      result = OpenStudio::OptionalDouble.new(val.get)
+    else
+      runner.registerError("Cannot query: #{report_name} | #{report_for_string} | #{table_name} | #{row_name} | #{column_name}")
+    end
+    result
+  end
+
+  def get_dep_var_from_lookup_table_with_interpolation(runner, lookup_table, input1, input2)
+    # Check if the lookup table only has two independent variables
+    if lookup_table.independentVariables.size == 2
+
+      # Extract independent variable 1 (e.g., indoor air temperature data)
+      ind_var_1_obj = lookup_table.independentVariables[0]
+      ind_var_1_values = ind_var_1_obj.values.to_a
+
+      # Extract independent variable 2 (e.g., outdoor air temperature data)
+      ind_var_2_obj = lookup_table.independentVariables[1]
+      ind_var_2_values = ind_var_2_obj.values.to_a
+
+      # Extract output values (dependent variable)
+      dep_var = lookup_table.outputValues.to_a
+
+      # Check for dimension mismatch
+      if ind_var_1_values.size * ind_var_2_values.size != dep_var.size
+        runner.registerError("Output values count does not match with value counts of variable 1 and 2 for TableLookup object: #{lookup_table.name}")
+        return false
+      end
+
+      # Perform interpolation from the two independent variables
+      interpolate_from_two_ind_vars(runner, ind_var_1_values, ind_var_2_values, dep_var, input1,
+                                    input2)
+
+      # Return interpolated value
+
+    else
+      runner.registerError('This TableLookup is not based on two independent variables, so it is not supported with this method.')
+      false
+    end
+  end
+
+  def interpolate_from_two_ind_vars(runner, ind_var_1, ind_var_2, dep_var, input1, input2)
+    # Check input1 value
+    if input1 < ind_var_1.first
+      runner.registerWarning("input1 value (#{input1}) is lower than the minimum value in the data (#{ind_var_1.first}) thus replacing to minimum bound")
+      input1 = ind_var_1.first
+    elsif input1 > ind_var_1.last
+      runner.registerWarning("input1 value (#{input1}) is larger than the maximum value in the data (#{ind_var_1.last}) thus replacing to maximum bound")
+      input1 = ind_var_1.last
+    end
+
+    # Check input2 value
+    if input2 < ind_var_2.first
+      runner.registerWarning("input2 value (#{input2}) is lower than the minimum value in the data (#{ind_var_2.first}) thus replacing to minimum bound")
+      input2 = ind_var_2.first
+    elsif input2 > ind_var_2.last
+      runner.registerWarning("input2 value (#{input2}) is larger than the maximum value in the data (#{ind_var_2.last}) thus replacing to maximum bound")
+      input2 = ind_var_2.last
+    end
+
+    # Find the closest lower and upper bounds for input1 in ind_var_1
+    i1_lower = ind_var_1.index { |val| val >= input1 } || ind_var_1.length - 1
+    i1_upper = i1_lower.positive? ? i1_lower - 1 : 0
+
+    # Find the closest lower and upper bounds for input2 in ind_var_2
+    i2_lower = ind_var_2.index { |val| val >= input2 } || ind_var_2.length - 1
+    i2_upper = i2_lower.positive? ? i2_lower - 1 : 0
+
+    # Ensure i1_lower and i1_upper are correctly ordered
+    if ind_var_1[i1_lower] < input1
+      i1_upper = i1_lower
+      i1_lower = [i1_lower + 1, ind_var_1.length - 1].min
+    end
+
+    # Ensure i2_lower and i2_upper are correctly ordered
+    if ind_var_2[i2_lower] < input2
+      i2_upper = i2_lower
+      i2_lower = [i2_lower + 1, ind_var_2.length - 1].min
+    end
+
+    # Get the dep_var values at these indices
+    v11 = dep_var[i1_upper * ind_var_2.length + i2_upper]
+    v12 = dep_var[i1_upper * ind_var_2.length + i2_lower]
+    v21 = dep_var[i1_lower * ind_var_2.length + i2_upper]
+    v22 = dep_var[i1_lower * ind_var_2.length + i2_lower]
+
+    # If input1 or input2 exactly matches, no need for interpolation
+    return v11 if input1 == ind_var_1[i1_upper] && input2 == ind_var_2[i2_upper]
+
+    # Interpolate between v11, v12, v21, and v22
+    x1 = ind_var_1[i1_upper]
+    x2 = ind_var_1[i1_lower]
+    y1 = ind_var_2[i2_upper]
+    y2 = ind_var_2[i2_lower]
+
+    (v11 * (x2 - input1) * (y2 - input2) +
+       v12 * (x2 - input1) * (input2 - y1) +
+       v21 * (input1 - x1) * (y2 - input2) +
+       v22 * (input1 - x1) * (input2 - y1)) / ((x2 - x1) * (y2 - y1))
+  end
+
+  def upgrade_env_roof_insul_aedg(model, runner)
+    # set limit for minimum insulation in IP units -- this is used to limit input and for inferring insulation layer in construction
+    min_exp_r_val_ip = 1.0
+
+    # build standard to use OS standards methods
+    template = 'ComStock 90.1-2019'
+    std = Standard.build(template)
+    # get climate zone to set target_r_val_ip
+    climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
+
+    # apply target R-value by climate zone
+    if climate_zone.include?('ASHRAE 169-2013-1') || climate_zone.include?('CEC15')
+      target_r_val_ip = 21
+    elsif climate_zone.include?('ASHRAE 169-2013-2') || climate_zone.include?('ASHRAE 169-2013-3')
+      target_r_val_ip = 26
+    elsif climate_zone.include?('ASHRAE 169-2013-4') || climate_zone.include?('ASHRAE 169-2013-5') || climate_zone.include?('ASHRAE 169-2013-6') || climate_zone.include?('CEC16')
+      target_r_val_ip = 33
+    elsif climate_zone.include?('ASHRAE 169-2013-7') || climate_zone.include?('ASHRAE 169-2013-8')
+      target_r_val_ip = 37
+    else # all DEER climate zones except 15 and 16
+      target_r_val_ip = 26
+    end
+    # Convert target_r_val_ip to si
+    target_r_val_si = OpenStudio.convert(target_r_val_ip, 'ft^2*h*R/Btu', 'm^2*K/W').get
+
+    runner.registerInfo("roof measure: Target AEDG r-value for roof assemblies: #{target_r_val_ip}")
+
+    # find existing roof assembly R-value
+    # Find all roofs and get a list of their constructions
+    roof_constructions = []
+    model.getSurfaces.each do |surface|
+      if surface.outsideBoundaryCondition == 'Outdoors' && surface.surfaceType == 'RoofCeiling' && surface.construction.is_initialized
+        roof_constructions << surface.construction.get
+      end
+    end
+
+    # create an array of roofs and find range of starting construction R-value (not just insulation layer)
+    ext_surfs = []
+    ext_surf_consts = []
+    ext_surf_const_names = []
+    roof_resist = []
+    model.getSurfaces.each do |surface|
+      next unless (surface.outsideBoundaryCondition == 'Outdoors') && (surface.surfaceType == 'RoofCeiling') # which are outdoor roofs
+
+      ext_surfs << surface
+      roof_const = surface.construction.get
+      # only add construction if it hasn't been added yet
+      ext_surf_consts << roof_const.to_Construction.get unless ext_surf_const_names.include?(roof_const.name.to_s)
+      ext_surf_const_names << roof_const.name.to_s
+      roof_resist << 1 / roof_const.thermalConductance.to_f
+    end
+
+    # hashes to track constructions and materials made by the measure, to avoid duplicates
+    consts_old_new = {}
+
+    # used to get net area of new construction
+    consts_new_old = {}
+    matls_hash = {}
+
+    # array and counter for new constructions that are made, used for reporting final condition
+    final_consts = []
+
+    # loop through all constructions and materials used on roofs, edit and clone
+    ext_surf_consts.each do |ext_surf_const|
+      matls_in_const = ext_surf_const.layers.map.with_index { |l, i| { 'name' => l.name.to_s, 'index' => i, 'nomass' => !l.to_MasslessOpaqueMaterial.empty?, 'r_val' => l.to_OpaqueMaterial.get.thermalResistance, 'matl' => l } }
+      no_mass_matls = matls_in_const.select { |m| m['nomass'] == true }
+
+      # measure will select the no-mass material with the highest R-value as the insulation layer -- if no no-mass materials are present, the measure will select the material with the highest R-value per inch
+      if no_mass_matls.empty?
+        r_val_per_thick_vals = matls_in_const.map { |m| m['r_val'] / m['mat'].thickness }
+        max_matl_hash = matls_in_const.select { |m| m['index'] == r_val_per_thick_vals.index(r_val_per_thick_vals.max) }
+        r_vals = matls_in_const.map { |m| m['r_val'] }
+      else
+        r_vals = no_mass_matls.map { |m| m['r_val'] }
+        max_matl_hash = no_mass_matls.select { |m| m['r_val'] >= r_vals.max }
+      end
+      max_r_val_matl = max_matl_hash[0]['matl']
+      max_r_val_matl_idx = max_matl_hash[0]['index']
+      # check to make sure assumed insulation layer is between reasonable bounds
+      if max_r_val_matl.to_OpaqueMaterial.get.thermalResistance <= OpenStudio.convert(min_exp_r_val_ip, 'ft^2*h*R/Btu', 'm^2*K/W').get
+        runner.registerWarning("Construction '#{ext_surf_const.name}' does not appear to have an insulation layer and was not altered")
+      elsif max_r_val_matl.to_OpaqueMaterial.get.thermalResistance >= target_r_val_si
+        runner.registerInfo("roof measure: The insulation layer of construction #{ext_surf_const.name} exceeds the requested R-value and was not altered")
+      else
+
+        # start new XPS material layer
+        ins_layer_xps = OpenStudio::Model::StandardOpaqueMaterial.new(model)
+        ins_layer_xps.setRoughness('MediumSmooth')
+        ins_layer_xps.setConductivity(0.029)
+        ins_layer_xps.setDensity(29.0)
+        ins_layer_xps.setSpecificHeat(1210.0)
+        ins_layer_xps.setSolarAbsorptance(0.7)
+        ins_layer_xps.setVisibleAbsorptance(0.7)
+
+        # need to calculate required insulation addition
+        # clone the construction
+        final_const = ext_surf_const.clone(model).to_Construction.get
+        # get r-value
+        final_const_r_si = 1 / final_const.thermalConductance.to_f
+        final_const_r_ip = OpenStudio.convert(final_const_r_si, 'm^2*K/W', 'ft^2*h*R/Btu').get
+        # determine required r-value of XPS insulation to bring roof up to target
+        xps_target_r_val_si = target_r_val_si - final_const_r_si
+        target_r_val_ip = OpenStudio.convert(target_r_val_si, 'm^2*K/W', 'ft^2*h*R/Btu').get
+        xps_target_r_val_ip = OpenStudio.convert(xps_target_r_val_si, 'm^2*K/W', 'ft^2*h*R/Btu').get
+        # Calculate the thickness required to meet the desired R-Value
+        reqd_thickness_si = xps_target_r_val_si * ins_layer_xps.thermalConductivity
+        reqd_thickness_ip = OpenStudio.convert(reqd_thickness_si, 'm', 'in').get
+        # round to nearest half inch
+        reqd_thickness_ip = (reqd_thickness_ip * 2).round / 2
+        ins_layer_xps.setThickness(reqd_thickness_si)
+        ins_layer_xps.thermalConductivity
+        ins_layer_xps.setName("Expanded Polystyrene - Extruded - #{reqd_thickness_ip.round(1)} in.")
+        runner.registerInfo("roof measure: Construction #{ext_surf_const.name} starts with an R-value of #{final_const_r_ip.round(1)}. To achieve an R-Value of #{target_r_val_ip.round(1)}, this construction needs to add R-#{xps_target_r_val_ip.round(1)} of XPS insulation, which equates to #{reqd_thickness_ip} inches.")
+
+        # insert new construction
+        final_const.insertLayer(1, ins_layer_xps)
+        final_const.setName("#{ext_surf_const.name} with Added Roof Insul")
+        final_consts << final_const
+
+        # push to hashes
+        consts_old_new[ext_surf_const.name.to_s] = final_const
+        # push the object to hash key v. name
+        consts_new_old[final_const] = ext_surf_const
+
+        # find already cloned insulation material and link to construction
+        found_matl = false
+        matls_hash.each do |orig, new|
+          if max_r_val_matl.name.to_s == orig
+            new_matl = new
+            matls_hash[max_r_val_matl.name.to_s] = new_matl
+            final_const.eraseLayer(max_r_val_matl_idx)
+            final_const.insertLayer(max_r_val_matl_idx, new_matl)
+            found_matl = true
+          end
+        end
+      end
+    end
+
+    # register as not applicable if
+    if final_consts.empty?
+      runner.registerAsNotApplicable('No applicable roofs were found.')
+      return true
+    end
+
+    # loop through construction sets used in the model
+    default_const_sets = model.getDefaultConstructionSets
+    default_const_sets.each do |default_const_set|
+      if default_const_set.directUseCount > 0
+        default_surf_const_set = default_const_set.defaultExteriorSurfaceConstructions
+        if !default_surf_const_set.empty?
+          start_const = default_surf_const_set.get.roofCeilingConstruction
+
+          # creating new default construction set
+          new_default_const_set = default_const_set.clone(model)
+          new_default_const_set = new_default_const_set.to_DefaultConstructionSet.get
+          new_default_const_set.setName("#{default_const_set.name} Added Roof Insul")
+
+          # create new surface set and link to construction set
+          new_default_surf_const_set = default_surf_const_set.get.clone(model)
+          new_default_surf_const_set = new_default_surf_const_set.to_DefaultSurfaceConstructions.get
+          new_default_surf_const_set.setName("#{default_surf_const_set.get.name} Added Roof Insul")
+          new_default_const_set.setDefaultExteriorSurfaceConstructions(new_default_surf_const_set)
+
+          # use the hash to find the proper construction and link to the new default surface construction set
+          target_const = new_default_surf_const_set.roofCeilingConstruction
+          if !target_const.empty?
+            target_const = target_const.get.name.to_s
+            found_const_flag = false
+            consts_old_new.each do |orig, new|
+              if target_const == orig
+                final_const = new
+                new_default_surf_const_set.setRoofCeilingConstruction(final_const)
+                found_const_flag = true
+              end
+            end
+            # this should never happen but is just an extra test in case something goes wrong with the measure code
+            runner.registerWarning("Measure couldn't find the roof construction named '#{target_const}' assigned to any exterior surfaces") if found_const_flag == false
+          end
+
+          # swap all uses of the old construction set for the new
+          const_set_srcs = default_const_set.sources
+          const_set_srcs.each do |const_set_src|
+            bldg_src = const_set_src.to_Building
+
+            # if statement for each type of object that can use a DefaultConstructionSet
+            if !bldg_src.empty?
+              bldg_src = bldg_src.get
+              bldg_src.setDefaultConstructionSet(new_default_const_set)
+            end
+            bldg_story_src = const_set_src.to_BuildingStory
+            if !bldg_story_src.empty?
+              bldg_story_src = bldg_story_src.get
+              bldg_story_src.setDefaultConstructionSet(new_default_const_set)
+            end
+            space_type_src = const_set_src.to_SpaceType
+            if !bldg_story_src.empty?
+              bldg_story_src = bldg_story_src.get
+              bldg_story_src.setDefaultConstructionSet(new_default_const_set)
+            end
+            space_src = const_set_src.to_Space
+            if !space_src.empty?
+              space_src = space_src.get
+              space_src.setDefaultConstructionSet(new_default_const_set)
+            end
+          end
+        end
+      end
+    end
+
+    # link cloned and edited constructions for surfaces with hard assigned constructions
+    ext_surfs.each do |ext_surf|
+      if !ext_surf.isConstructionDefaulted && !ext_surf.construction.empty?
+        # use the hash to find the proper construction and link to surface
+        target_const = ext_surf.construction
+        if !target_const.empty?
+          target_const = target_const.get.name.to_s
+          consts_old_new.each do |orig, new|
+            if target_const == orig
+              final_const = new
+              ext_surf.setConstruction(final_const)
+            end
+          end
+        end
+      end
+    end
+
+    # nothing will be done if there are no exterior surfaces
+    if ext_surfs.empty?
+      runner.registerAsNotApplicable('The building has no roofs.')
+      return true
+    end
+
+    # report strings for initial condition
+    init_str = []
+    ext_surf_consts.uniq.each do |ext_surf_const|
+      # unit conversion of roof insulation from SI units (m2-K/W) to IP units (ft2-h-R/Btu)
+      init_r_val_ip = OpenStudio.convert(1 / ext_surf_const.thermalConductance.to_f, 'm^2*K/W', 'ft^2*h*R/Btu').get
+      init_str << "#{ext_surf_const.name} (R-#{format '%.1f', init_r_val_ip})"
+    end
+
+    # report strings for final condition, not all roof constructions, but only new ones made -- if roof didn't have insulation and was not altered we don't want to show it
+    final_str = []
+    area_changed_si = 0
+    final_consts.uniq.each do |final_const|
+      # unit conversion of roof insulation from SI units (M^2*K/W) to IP units (ft^2*h*R/Btu)
+      final_r_val_ip = OpenStudio.convert(1.0 / final_const.thermalConductance.to_f, 'm^2*K/W', 'ft^2*h*R/Btu').get
+      final_str << "#{final_const.name} (R-#{format '%.1f', final_r_val_ip})"
+      area_changed_si += final_const.getNetArea
+    end
+
+    # add not applicable test if there were roof constructions but non of them were altered (already enough insulation or doesn't look like insulated roof)
+    if area_changed_si == 0
+      runner.registerAsNotApplicable('No roofs were altered')
+      return true
+    else
+      # IP construction area for reporting
+      area_changed_ip = OpenStudio.convert(area_changed_si, 'm^2', 'ft^2').get
+    end
+
+    # Report the initial condition
+    # runner.registerInitialCondition("The building had #{init_str.size} roof constructions: #{init_str.sort.join(', ')}")
+
+    # Report the final condition
+    # runner.registerFinalCondition("The insulation for roofs was set to R-#{target_r_val_ip.round(1)} -- this was applied to #{area_changed_ip.round(2)} ft2 across #{final_str.size} roof constructions: #{final_str.sort.join(', ')}")
+    runner.registerValue('env_roof_insul_roof_area_ft2', area_changed_ip.round(2), 'ft2')
+    return true
+  end
+
   #### End predefined functions
 
   # define what happens when the measure is run
@@ -384,26 +1180,28 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     super(model, runner, user_arguments)
 
     # use the built-in error checking
-    if !runner.validateUserArguments(arguments(model), user_arguments)
-      return false
-    end
+    return false unless runner.validateUserArguments(arguments(model), user_arguments)
 
     # assign the user inputs to variables
     backup_ht_fuel_scheme = runner.getStringArgumentValue('backup_ht_fuel_scheme', user_arguments)
-    # prim_ht_fuel_type = runner.getStringArgumentValue('prim_ht_fuel_type', user_arguments)
     performance_oversizing_factor = runner.getDoubleArgumentValue('performance_oversizing_factor', user_arguments)
     htg_sizing_option = runner.getStringArgumentValue('htg_sizing_option', user_arguments)
     clg_oversizing_estimate = runner.getDoubleArgumentValue('clg_oversizing_estimate', user_arguments)
     htg_to_clg_hp_ratio = runner.getDoubleArgumentValue('htg_to_clg_hp_ratio', user_arguments)
-    std_perf = runner.getBoolArgumentValue('std_perf', user_arguments)
+    hp_min_comp_lockout_temp_f = runner.getDoubleArgumentValue('hp_min_comp_lockout_temp_f', user_arguments)
+    hprtu_scenario = runner.getStringArgumentValue('hprtu_scenario', user_arguments)
     hr = runner.getBoolArgumentValue('hr', user_arguments)
     dcv = runner.getBoolArgumentValue('dcv', user_arguments)
     econ = runner.getBoolArgumentValue('econ', user_arguments)
+    roof = runner.getBoolArgumentValue('roof', user_arguments)
+    sizing_run = runner.getBoolArgumentValue('sizing_run', user_arguments)
+    debug_verbose = runner.getBoolArgumentValue('debug_verbose', user_arguments)
 
-    # adding output variables (for debugging)
+    # # adding output variables (for debugging)
     # out_vars = [
     #   'Air System Mixed Air Mass Flow Rate',
     #   'Fan Air Mass Flow Rate',
+    #   'Unitary System Predicted Sensible Load to Setpoint Heat Transfer Rate',
     #   'Cooling Coil Total Cooling Rate',
     #   'Cooling Coil Electricity Rate',
     #   'Cooling Coil Runtime Fraction',
@@ -416,12 +1214,15 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     #   'Unitary System Total Cooling Rate',
     #   'Unitary System Total Heating Rate',
     #   'Unitary System Electricity Rate',
-    #   'Unitary System Ancillary Electricity Rate'
+    #   'HVAC System Solver Iteration Count',
+    #   'Site Outdoor Air Drybulb Temperature',
+    #   'Heating Coil Crankcase Heater Electricity Rate',
+    #   'Heating Coil Defrost Electricity Rate'
     # ]
     # out_vars.each do |out_var_name|
     #     ov = OpenStudio::Model::OutputVariable.new('ov', model)
     #     ov.setKeyValue('*')
-    #     ov.setReportingFrequency('timestep')
+    #     ov.setReportingFrequency('hourly')
     #     ov.setVariableName(out_var_name)
     # end
 
@@ -429,33 +1230,38 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     template = 'ComStock 90.1-2019'
     std = Standard.build(template)
     # get climate zone value
-    climate_zone = std.model_standards_climate_zone(model)
+    climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
 
     # get applicable psz hvac air loops
     selected_air_loops = []
     applicable_area_m2 = 0
     prim_ht_fuel_type = 'electric' # we assume electric unless we find a gas coil in any air loop
-    is_sizing_run_needed=true
-    unitary_sys=nil
+    is_sizing_run_needed = true
+    unitary_sys = nil
+    orig_airloop_heating_coil_map = {}
     model.getAirLoopHVACs.each do |air_loop_hvac|
       # skip units that are not single zone
-      next if air_loop_hvac.thermalZones.length() > 1
+      next if air_loop_hvac.thermalZones.length > 1
+
       # skip DOAS units; check sizing for all OA and for DOAS in name
       sizing_system = air_loop_hvac.sizingSystem
-      next if sizing_system.allOutdoorAirinCooling && sizing_system.allOutdoorAirinHeating && (air_loop_res?(air_loop_hvac) == false) && (air_loop_hvac.name.to_s.include?("DOAS") || air_loop_hvac.name.to_s.include?("doas"))
+      if sizing_system.allOutdoorAirinCooling && sizing_system.allOutdoorAirinHeating && (air_loop_res?(air_loop_hvac) == false) && (air_loop_hvac.name.to_s.include?('DOAS') || air_loop_hvac.name.to_s.include?('doas'))
+        next
+      end
+
       # skip if already heat pump RTU
       # loop throug air loop components to check for heat pump or water coils
-      is_hp=false
-      is_water_coil=false
-      has_heating_coil=true
+      is_hp = false
+      is_water_coil = false
+      has_heating_coil = true
       air_loop_hvac.supplyComponents.each do |component|
         obj_type = component.iddObjectType.valueName.to_s
         # flag system if contains water coil; this will cause air loop to be skipped
-        is_water_coil=true if ['Coil_Heating_Water', 'Coil_Cooling_Water'].any? { |word| (obj_type).include?(word) }
+        is_water_coil = true if ['Coil_Heating_Water', 'Coil_Cooling_Water'].any? { |word| (obj_type).include?(word) }
         # flag gas heating as true if gas coil is found in any airloop
-        prim_ht_fuel_type= 'gas' if ['Gas', 'GAS', 'gas'].any? { |word| (obj_type).include?(word) }
+        prim_ht_fuel_type = 'gas' if ['Gas', 'GAS', 'gas'].any? { |word| (obj_type).include?(word) }
         # check unitary systems for DX heating or water coils
-        if  obj_type=='OS_AirLoopHVAC_UnitarySystem'
+        if obj_type == 'OS_AirLoopHVAC_UnitarySystem'
           unitary_sys = component.to_AirLoopHVACUnitarySystem.get
 
           # check if heating coil is DX or water-based; if so, flag the air loop to be skipped
@@ -463,13 +1269,13 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
             htg_coil = unitary_sys.heatingCoil.get.iddObjectType.valueName.to_s
             # check for DX heating coil
             if ['Heating_DX'].any? { |word| (htg_coil).include?(word) }
-              is_hp=true
+              is_hp = true
             # check for water heating coil
             elsif ['Water'].any? { |word| (htg_coil).include?(word) }
-              is_water_coil=true
+              is_water_coil = true
             # check for gas heating
             elsif ['Gas', 'GAS', 'gas'].any? { |word| (htg_coil).include?(word) }
-              prim_ht_fuel_type='gas'
+              prim_ht_fuel_type = 'gas'
             end
           else
             runner.registerWarning("No heating coil was found for air loop: #{air_loop_hvac.name} - this equipment will be skipped.")
@@ -480,17 +1286,22 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
             clg_coil = unitary_sys.coolingCoil.get.iddObjectType.valueName.to_s
             # skip unless coil is water based
             next unless ['Water'].any? { |word| (clg_coil).include?(word) }
-            is_water_coil=true
+
+            is_water_coil = true
           end
         # flag as hp if air loop contains a heating dx coil
         elsif ['Heating_DX'].any? { |word| (obj_type).include?(word) }
-          is_hp=true
+          is_hp = true
         end
       end
       # also skip based on string match, or if dx heating component existed
-      next if (is_hp==true) | (((air_loop_hvac.name.to_s.include?("HP")) || (air_loop_hvac.name.to_s.include?("hp")) || (air_loop_hvac.name.to_s.include?("heat pump")) || (air_loop_hvac.name.to_s.include?("Heat Pump"))))
+      if (is_hp == true) | ((air_loop_hvac.name.to_s.include?('HP') || air_loop_hvac.name.to_s.include?('hp') || air_loop_hvac.name.to_s.include?('heat pump') || air_loop_hvac.name.to_s.include?('Heat Pump')))
+        next
+      end
       # skip data centers
-      next if ['Data Center', 'DataCenter', 'data center', 'datacenter', 'DATACENTER', 'DATA CENTER'].any? { |word| (air_loop_hvac.name.get).include?(word) }
+      next if ['Data Center', 'DataCenter', 'data center', 'datacenter', 'DATACENTER', 'DATA CENTER'].any? do |word|
+                (air_loop_hvac.name.get).include?(word)
+              end
       # skip kitchens
       next if ['Kitchen', 'KITCHEN', 'Kitchen'].any? { |word| (air_loop_hvac.name.get).include?(word) }
       # skip VAV sysems
@@ -502,16 +1313,19 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # skip if evaporative cooling systems
       next if air_loop_evaporative_cooler?(air_loop_hvac)
       # skip if water heating or cooled system
-      next if is_water_coil==true
+      next if is_water_coil == true
       # skip if space is not heated and cooled
-      next unless (std.thermal_zone_heated?(air_loop_hvac.thermalZones[0])) && (std.thermal_zone_cooled?(air_loop_hvac.thermalZones[0]))
+      unless OpenstudioStandards::ThermalZone.thermal_zone_heated?(air_loop_hvac.thermalZones[0]) && OpenstudioStandards::ThermalZone.thermal_zone_cooled?(air_loop_hvac.thermalZones[0])
+        next
+      end
       # next if no heating coil
       next if has_heating_coil == false
+
       # add applicable air loop to list
       selected_air_loops << air_loop_hvac
       # add area served by air loop
       thermal_zone = air_loop_hvac.thermalZones[0]
-      applicable_area_m2+=thermal_zone.floorArea
+      applicable_area_m2 += thermal_zone.floorArea * thermal_zone.multiplier
 
       ############# Determine if equipment has been hardsized to avoid sizing run
       oa_flow_m3_per_s = nil
@@ -527,7 +1341,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       end
 
       # get design supply air flow rate
-      old_terminal_sa_flow_m3_per_s = nil
       if air_loop_hvac.designSupplyAirFlowRate.is_initialized
         old_terminal_sa_flow_m3_per_s = air_loop_hvac.designSupplyAirFlowRate.get
       end
@@ -552,16 +1365,18 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         orig_htg_coil = orig_htg_coil.to_CoilHeatingGas.get
       end
       # get either autosized or specified capacity
-      if orig_htg_coil.nominalCapacity.is_initialized
-        orig_htg_coil_gross_cap = orig_htg_coil.nominalCapacity.to_f
-      end
+      orig_htg_coil_gross_cap = orig_htg_coil.nominalCapacity.to_f if orig_htg_coil.nominalCapacity.is_initialized
+
+      # map heating coil with airloop name for sizing algorithm later
+      orig_airloop_heating_coil_map[air_loop_hvac.name.to_s] = orig_htg_coil.name.to_s.upcase
 
       # only require sizing run if required attributes have not been hardsized.
-      next if oa_flow_m3_per_s == nil
-      next if old_terminal_sa_flow_m3_per_s == nil
-      next if orig_clg_coil_gross_cap == nil
-      next if orig_htg_coil_gross_cap == nil
-      is_sizing_run_needed=false
+      next if oa_flow_m3_per_s.nil?
+      next if old_terminal_sa_flow_m3_per_s.nil?
+      next if orig_clg_coil_gross_cap.nil?
+      next if orig_htg_coil_gross_cap.nil?
+
+      is_sizing_run_needed = false
     end
 
     # check if any air loops are applicable to measure
@@ -570,12 +1385,29 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       return true
     end
 
+    # call roof insulation measure based on user input
+    if (roof == true) && !selected_air_loops.empty?
+      upgrade_env_roof_insul_aedg(model, runner)
+    end
+
     # do sizing run with new equipment to set sizing-specific features
-    if is_sizing_run_needed == true
-      runner.registerInfo("Sizing run needed")
-      if std.model_run_sizing_run(model, "#{Dir.pwd}/SR1") == false
+    if (is_sizing_run_needed == true) || (sizing_run == true)
+      runner.registerInfo('sizing summary: sizing run needed')
+      return false if std.model_run_sizing_run(model, "#{Dir.pwd}/SR1") == false
+
+      model.applySizingValues
+    end
+
+    # get sql from sizing run
+    sql = nil
+    if sizing_run == true
+      # get sql (for extracting sizing information)
+      sql = model.sqlFile
+      if sql.empty?
+        runner.registerError('Cannot find last sql file.')
         return false
       end
+      sql = sql.get if sql.is_initialized
     end
 
     #########################################################################################################
@@ -584,7 +1416,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # add systems with high outdoor air ratios to a list for non-applicability
     oa_ration_allowance = 0.55
     selected_air_loops.each do |air_loop_hvac|
-
       thermal_zone = air_loop_hvac.thermalZones[0]
 
       # get the min OA flow rate for calculating unit OA fraction
@@ -611,23 +1442,20 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       end
 
       # define minimum flow rate needed to maintain ventilation - add in max fraction if in model
-      min_oa_flow_ratio = (oa_flow_m3_per_s/old_terminal_sa_flow_m3_per_s)
-
-      # register as not applicable if oa limit is reached
-      exceeds_oa_limit = true unless (oa_ration_allowance > min_oa_flow_ratio)
-
+      min_oa_flow_ratio = (oa_flow_m3_per_s / old_terminal_sa_flow_m3_per_s)
 
       # check to see if there is night cycling operation for unit
       night_cyc_sched_vals = []
       air_loop_hvac.supplyComponents.each do |component|
-
         # convert component to string name
         obj_type = component.iddObjectType.valueName.to_s
         # skip unless component is of relevant type
         next unless ['Unitary'].any? { |word| (obj_type).include?(word) }
+
         unitary_sys = component.to_AirLoopHVACUnitarySystem.get
         # get supply fan operating schedule
         next unless unitary_sys.supplyAirFanOperatingModeSchedule.is_initialized
+
         sf_sched = unitary_sys.supplyAirFanOperatingModeSchedule.get
         if sf_sched.to_ScheduleRuleset.is_initialized
           sf_sched = sf_sched.to_ScheduleRuleset.get
@@ -652,21 +1480,16 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       end
 
       # if supply operating schedule does not include a 0, the unit does not night cycle
-      unit_night_cycles=true
-      if (night_cyc_sched_vals.include? [0, 0.0])
-        unit_night_cycles=true
-      else
-        unit_night_cycles=false
-      end
+      unit_night_cycles = night_cyc_sched_vals.include? [0, 0.0]
 
       # register as not applicable if OA limit exceeded and unit has night cycling schedules
-      if (min_oa_flow_ratio > oa_ration_allowance) && (unit_night_cycles==true)
-        runner.registerWarning("Air loop #{air_loop_hvac.name} has night cycling operations and an outdoor air ratio of #{min_oa_flow_ratio.round(2)} which exceeds the maximum allowable limit of #{oa_ration_allowance} (due to an EnergyPlus night cycling bug with multispeed coils) making this RTU not applicable at this time.")
-        # remove air loop from applicable list
-        selected_air_loops.delete(air_loop_hvac)
-        applicable_area_m2 -= thermal_zone.floorArea
-        # remove area served by air loop from applicability
-      end
+      next unless (min_oa_flow_ratio > oa_ration_allowance) && (unit_night_cycles == true)
+
+      runner.registerWarning("Air loop #{air_loop_hvac.name} has night cycling operations and an outdoor air ratio of #{min_oa_flow_ratio.round(2)} which exceeds the maximum allowable limit of #{oa_ration_allowance} (due to an EnergyPlus night cycling bug with multispeed coils) making this RTU not applicable at this time.")
+      # remove air loop from applicable list
+      selected_air_loops.delete(air_loop_hvac)
+      applicable_area_m2 -= thermal_zone.floorArea * thermal_zone.multiplier
+      # remove area served by air loop from applicability
     end
     ### End of temp section
     #########################################################################################################
@@ -679,7 +1502,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
     # get model conditioned square footage for reporting
     if model.building.get.conditionedFloorArea.empty?
-      runner.registerWarning("model.building.get.conditionedFloorArea() is empty; applicable floor area fraction will not be reported.")
+      runner.registerWarning('model.building.get.conditionedFloorArea() is empty; applicable floor area fraction will not be reported.')
       # report initial condition of model
       runner.registerInitialCondition("The building has #{selected_air_loops.size} applicable air loops (out of the total #{model.getAirLoopHVACs.size} airloops in the model) that will be replaced with heat pump RTUs, serving #{applicable_area_m2.round(0)} m2 of floor area. The remaning airloops were determined to be not applicable.")
     else
@@ -689,184 +1512,256 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       applicable_floorspace_frac = applicable_area_m2 / total_area_m2
 
       # report initial condition of model
-      runner.registerInitialCondition("The building has #{selected_air_loops.size} applicable air loops that will be replaced with heat pump RTUs, representing #{(applicable_floorspace_frac*100).round(2)}% of the building floor area.")
-    end
-
-    backup_heat_source=nil
-    # report gas heating as backup source
-    if (prim_ht_fuel_type == 'gas') && (backup_ht_fuel_scheme=='match_original_primary_heating_fuel')
-      runner.registerInfo("Gas heating was found in an airloop, and the user chose to add backup heat that matches the original fuel source of the building. Therefore, any heat pump backup heat added to model will be gas.")
-      backup_heat_source='gas'
-    elsif (prim_ht_fuel_type == 'electric') && (backup_ht_fuel_scheme=='match_original_primary_heating_fuel')
-      runner.registerInfo("No gas heating coil was found, so electric heating is assumed in original model. The user chose to add backup heat with a fuel type that matches the original model, therefore any heat pump backup heat added will be electric.")
-      backup_heat_source='electric'
-    elsif (backup_ht_fuel_scheme=='electric_resistance_backup')
-      runner.registerInfo("The user specified the use of electric resistance backup heat for heat pumps, so all backup heat will be electric.")
-      backup_heat_source='electric'
-    else
-      runner.registerInfo("Based on model features and user-inputs, heat pump backup heat will be electric resistance.")
-      backup_heat_source='electric'
+      runner.registerInitialCondition("The building has #{selected_air_loops.size} applicable air loops that will be replaced with heat pump RTUs, representing #{(applicable_floorspace_frac * 100).round(2)}% of the building floor area.")
     end
 
     # applicability checks for heat recovery; building type
     # building type not applicable to ERVs as part of this measure will receive no additional or modification of ERV systems
     # this is only relevant if the user selected to add ERVs
     # space type applicability is handled later in the code when looping through individual air loops
-    building_types_to_exclude = [
-      "RFF",
-      "RSD",
-      "QuickServiceRestaurant",
-      "FullServiceRestaurant",
-    ]
+    building_types_to_exclude = ['RFF', 'RSD', 'QuickServiceRestaurant', 'FullServiceRestaurant']
     # determine building type applicability for ERV
-    btype_erv_applicable=true
-    building_types_to_exclude = building_types_to_exclude.map { |item| item.downcase }
+    btype_erv_applicable = true
+    building_types_to_exclude = building_types_to_exclude.map(&:downcase)
     # get Standards building type name and check against building type applicability list
-    model_building_type=nil
+    model_building_type = nil
     if model.getBuilding.standardsBuildingType.is_initialized
       model_building_type = model.getBuilding.standardsBuildingType.get
     else
-      runner.registerError("Building type not found.")
+      runner.registerError('Building type not found.')
       return true
     end
     # register applicability; this will be used in code section where ERV is added
-    if building_types_to_exclude.include?(model_building_type.downcase)
-      btype_erv_applicable=false
-    end
+    btype_erv_applicable = false if building_types_to_exclude.include?(model_building_type.downcase)
     # warn user if they selected to add ERV but building type is not applicable for ERV
-    if ((hr==true) && (btype_erv_applicable==false))
+    if (hr == true) && (btype_erv_applicable == false)
       runner.registerWarning("The user chose to include energy recovery in the heat pump RTUs, but the building type -#{model_building_type}- is not applicable for energy recovery. Energy recovery will not be added.")
     end
 
     # get climate full string and classification (i.e. "5A")
-    climate_zone = std.model_standards_climate_zone(model)
+    climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
     climate_zone_classification = climate_zone.split('-')[-1]
 
     # Get ER/HR type from climate zone
-    doas_dat_clg_c, doas_dat_htg_c, doas_type=
+    _, _, doas_type =
       if ['1A', '2A', '3A', '4A', '5A', '6A', '7', '7A', '8', '8A'].include?(climate_zone_classification)
         [12.7778, 19.4444, 'ERV']
       else
         [15.5556, 19.4444, 'HRV']
       end
 
-    # load performance data if modeling standard performance
+    #################################### Define Performance Curves
+
+    # ---------------------------------------------------------
+    # load performance data for standard performance units
+    # ---------------------------------------------------------
     custom_data_json = nil
-    c_cap_high_T = nil
-    c_cap_low_T = nil
-    c_eir_high_T = nil
-    c_eir_low_T = nil
-    c_cap_high_ff = nil
-    c_cap_low_ff = nil
-    c_eir_high_ff = nil
-    c_eir_low_ff = nil
-    h_cap_allstages_T = nil
-    h_eir_allstages_T = nil
-    h_cap_allstages_ff = nil
-    h_eir_allstages_ff = nil
-    if std_perf
+    # if cchpc scenarios are set, use those curves. else, use the standard performance curves
+    case hprtu_scenario
+    when 'cchpc_2027_spec'
+      # read performance data
+      path_data_curve = "#{File.dirname(__FILE__)}/resources/performance_map_CCHP_spec_2027.json"
+      custom_data_json = JSON.parse(File.read(path_data_curve))
+    when 'variable_speed_high_eff'
+      # read performance data
+      path_data_curve = "#{File.dirname(__FILE__)}/resources/performance_maps_hprtu_variable_speed.json"
+      custom_data_json = JSON.parse(File.read(path_data_curve))
+    when 'two_speed_standard_eff'
       # read performance data
       path_data_curve = "#{File.dirname(__FILE__)}/resources/performance_maps_hprtu_std.json"
       custom_data_json = JSON.parse(File.read(path_data_curve))
-
-      # cooling performances function of temperatures
-      c_cap_high_T = model_add_curve(model, 'c_cap_high_T', custom_data_json, std)
-      c_cap_low_T = model_add_curve(model, 'c_cap_low_T', custom_data_json, std)
-      c_eir_high_T = model_add_curve(model, 'c_eir_high_T', custom_data_json, std)
-      c_eir_low_T = model_add_curve(model, 'c_eir_low_T', custom_data_json, std)
-
-      # cooling performance function of fraction of flow: c_cap_high_ff
-      c_cap_high_ff = OpenStudio::Model::CurveQuadratic.new(model)
-      c_cap_high_ff.setName("c_cap_high_ff")
-      c_cap_high_ff.setCoefficient1Constant(0.7960)
-      c_cap_high_ff.setCoefficient2x(0.2081)
-      c_cap_high_ff.setCoefficient3xPOW2(0)
-      c_cap_high_ff.setMinimumValueofx(0.6)
-      c_cap_high_ff.setMaximumValueofx(1)
-      c_cap_high_ff.setMinimumCurveOutput(0)
-      c_cap_high_ff.setMaximumCurveOutput(1)
-
-      # cooling performance function of fraction of flow: c_cap_low_ff
-      c_cap_low_ff = OpenStudio::Model::CurveQuadratic.new(model)
-      c_cap_low_ff.setName("c_cap_low_ff")
-      c_cap_low_ff.setCoefficient1Constant(0.7732)
-      c_cap_low_ff.setCoefficient2x(0.2311)
-      c_cap_low_ff.setCoefficient3xPOW2(0)
-      c_cap_low_ff.setMinimumValueofx(0.55)
-      c_cap_low_ff.setMaximumValueofx(1)
-      c_cap_low_ff.setMinimumCurveOutput(0)
-      c_cap_low_ff.setMaximumCurveOutput(1)
-
-      # cooling performance function of fraction of flow: c_eir_high_ff
-      c_eir_high_ff = OpenStudio::Model::CurveQuadratic.new(model)
-      c_eir_high_ff.setName("c_eir_high_ff")
-      c_eir_high_ff.setCoefficient1Constant(1.209351)
-      c_eir_high_ff.setCoefficient2x(-0.217052)
-      c_eir_high_ff.setCoefficient3xPOW2(0)
-      c_eir_high_ff.setMinimumValueofx(0.5)
-      c_eir_high_ff.setMaximumValueofx(1)
-      c_eir_high_ff.setMinimumCurveOutput(0)
-      c_eir_high_ff.setMaximumCurveOutput(1.2)
-
-      # cooling performance function of fraction of flow: c_eir_low_ff
-      c_eir_low_ff = OpenStudio::Model::CurveQuadratic.new(model)
-      c_eir_low_ff.setName("c_eir_low_ff")
-      c_eir_low_ff.setCoefficient1Constant(1.140446)
-      c_eir_low_ff.setCoefficient2x(-0.140201)
-      c_eir_low_ff.setCoefficient3xPOW2(0)
-      c_eir_low_ff.setMinimumValueofx(0.7)
-      c_eir_low_ff.setMaximumValueofx(1)
-      c_eir_low_ff.setMinimumCurveOutput(0)
-      c_eir_low_ff.setMaximumCurveOutput(1.2)
-
-      # heating performances function of temperatures
-      h_cap_allstages_T = model_add_curve(model, 'h_cap_T', custom_data_json, std)
-      h_eir_allstages_T = model_add_curve(model, 'h_eir_T', custom_data_json, std)
-
-      # heating performance function of fraction of flow: h_cap_allstages_ff
-      h_cap_allstages_ff = OpenStudio::Model::CurveQuadratic.new(model)
-      h_cap_allstages_ff.setName("h_cap_allstages_ff")
-      h_cap_allstages_ff.setCoefficient1Constant(0.8322)
-      h_cap_allstages_ff.setCoefficient2x(0.1688)
-      h_cap_allstages_ff.setCoefficient3xPOW2(0)
-      h_cap_allstages_ff.setMinimumValueofx(0.6)
-      h_cap_allstages_ff.setMaximumValueofx(1)
-      h_cap_allstages_ff.setMinimumCurveOutput(0)
-      h_cap_allstages_ff.setMaximumCurveOutput(1)
-
-      # heating performance function of fraction of flow: h_eir_allstages_ff
-      h_eir_allstages_ff = OpenStudio::Model::CurveQuadratic.new(model)
-      h_eir_allstages_ff.setName("h_eir_allstages_ff")
-      h_eir_allstages_ff.setCoefficient1Constant(1.5880)
-      h_eir_allstages_ff.setCoefficient2x(-0.6012)
-      h_eir_allstages_ff.setCoefficient3xPOW2(0)
-      h_eir_allstages_ff.setMinimumValueofx(0.53)
-      h_eir_allstages_ff.setMaximumValueofx(1)
-      h_eir_allstages_ff.setMinimumCurveOutput(0)
-      h_eir_allstages_ff.setMaximumCurveOutput(1.4)
     end
 
-    # make list of dummy heating coils; these are used to determine actual heating load, but need to be deleted later
-    li_dummy_htg_coils = []
+    # ---------------------------------------------------------
+    # define performance curves for cooling
+    # ---------------------------------------------------------
+
+    # Curve Import - Cooling capacity as a function of temperature
+    case hprtu_scenario
+    when 'variable_speed_high_eff'
+      cool_cap_ft1 = model_add_curve(model, 'cool_cap_ft1', custom_data_json, std)
+      cool_cap_ft2 = model_add_curve(model, 'cool_cap_ft2', custom_data_json, std)
+      cool_cap_ft3 = model_add_curve(model, 'cool_cap_ft3', custom_data_json, std)
+      cool_cap_ft4 = model_add_curve(model, 'cool_cap_ft4', custom_data_json, std)
+      cool_cap_ft_curve_stages = { 1 => cool_cap_ft1, 2 => cool_cap_ft2, 3 => cool_cap_ft3, 4 => cool_cap_ft4 }
+    when 'two_speed_standard_eff'
+      cool_cap_ft1 = model_add_curve(model, 'c_cap_low_T', custom_data_json, std)
+      cool_cap_ft2 = model_add_curve(model, 'c_cap_high_T', custom_data_json, std)
+      cool_cap_ft_curve_stages = { 1 => cool_cap_ft1, 2 => cool_cap_ft2 }
+    when 'cchpc_2027_spec'
+      cool_cap_ft1 = model_add_curve(model, 'cool_cap_ft1', custom_data_json, std)
+      cool_cap_ft2 = model_add_curve(model, 'cool_cap_ft2', custom_data_json, std)
+      cool_cap_ft3 = model_add_curve(model, 'cool_cap_ft3', custom_data_json, std)
+      cool_cap_ft4 = model_add_curve(model, 'cool_cap_ft4', custom_data_json, std)
+      cool_cap_ft_curve_stages = { 1 => cool_cap_ft1, 2 => cool_cap_ft2, 3 => cool_cap_ft3, 4 => cool_cap_ft4 }
+    end
+
+    # Curve Import - Cooling efficiency as a function of temperature
+    case hprtu_scenario
+    when 'variable_speed_high_eff'
+      cool_eir_ft1 = model_add_curve(model, 'cool_eir_ft1', custom_data_json, std)
+      cool_eir_ft2 = model_add_curve(model, 'cool_eir_ft2', custom_data_json, std)
+      cool_eir_ft3 = model_add_curve(model, 'cool_eir_ft3', custom_data_json, std)
+      cool_eir_ft4 = model_add_curve(model, 'cool_eir_ft4', custom_data_json, std)
+      cool_eir_ft_curve_stages = { 1 => cool_eir_ft1, 2 => cool_eir_ft2, 3 => cool_eir_ft3, 4 => cool_eir_ft4 }
+    when 'two_speed_standard_eff'
+      cool_eir_ft1 = model_add_curve(model, 'c_eir_low_T', custom_data_json, std)
+      cool_eir_ft2 = model_add_curve(model, 'c_eir_high_T', custom_data_json, std)
+      cool_eir_ft_curve_stages = { 1 => cool_eir_ft1, 2 => cool_eir_ft2 }
+    when 'cchpc_2027_spec'
+      cool_eir_ft1 = model_add_curve(model, 'cool_eir_ft1', custom_data_json, std)
+      cool_eir_ft2 = model_add_curve(model, 'cool_eir_ft2', custom_data_json, std)
+      cool_eir_ft3 = model_add_curve(model, 'cool_eir_ft3', custom_data_json, std)
+      cool_eir_ft4 = model_add_curve(model, 'cool_eir_ft4', custom_data_json, std)
+      cool_eir_ft_curve_stages = { 1 => cool_eir_ft1, 2 => cool_eir_ft2, 3 => cool_eir_ft3, 4 => cool_eir_ft4 }
+    end
+
+    # Curve Import - Cooling capacity as a function of flow rate
+    case hprtu_scenario
+    when 'variable_speed_high_eff'
+      cool_cap_ff1 = model_add_curve(model, 'cool_cap_ff1', custom_data_json, std)
+      cool_cap_ff_curve_stages = { 1 => cool_cap_ff1, 2 => cool_cap_ff1, 3 => cool_cap_ff1, 4 => cool_cap_ff1 }
+    when 'two_speed_standard_eff'
+      cool_cap_ff1 = model_add_curve(model, 'c_cap_low_ff', custom_data_json, std)
+      cool_cap_ff2 = model_add_curve(model, 'c_cap_high_ff', custom_data_json, std)
+      cool_cap_ff_curve_stages = { 1 => cool_cap_ff1, 2 => cool_cap_ff2 }
+    when 'cchpc_2027_spec'
+      cool_cap_ff1 = model_add_curve(model, 'cool_cap_ff1', custom_data_json, std)
+      cool_cap_ff_curve_stages = { 1 => cool_cap_ff1, 2 => cool_cap_ff1, 3 => cool_cap_ff1, 4 => cool_cap_ff1 }
+    end
+
+    # Curve Import - Cooling efficiency as a function of flow rate
+    case hprtu_scenario
+    when 'variable_speed_high_eff'
+      cool_eir_ff1 = model_add_curve(model, 'cool_eir_ff1', custom_data_json, std)
+      cool_eir_ff_curve_stages = { 1 => cool_eir_ff1, 2 => cool_eir_ff1, 3 => cool_eir_ff1, 4 => cool_eir_ff1 }
+    when 'two_speed_standard_eff'
+      cool_eir_ff1 = model_add_curve(model, 'c_eir_low_ff', custom_data_json, std)
+      cool_eir_ff2 = model_add_curve(model, 'c_eir_high_ff', custom_data_json, std)
+      cool_eir_ff_curve_stages = { 1 => cool_eir_ff1, 2 => cool_eir_ff2 }
+    when 'cchpc_2027_spec'
+      cool_eir_ff1 = model_add_curve(model, 'cool_eir_ff1', custom_data_json, std)
+      cool_eir_ff_curve_stages = { 1 => cool_eir_ff1, 2 => cool_eir_ff1, 3 => cool_eir_ff1, 4 => cool_eir_ff1 }
+    end
+
+    # Curve Import - Cooling efficiency as a function of part load ratio
+    case hprtu_scenario
+    when 'variable_speed_high_eff'
+      cool_plf_fplr1 = model_add_curve(model, 'cool_plf_plr1', custom_data_json, std)
+    when 'two_speed_standard_eff'
+      cool_plf_fplr1 = model_add_curve(model, 'cool_plf_plr1', custom_data_json, std)
+    when 'cchpc_2027_spec'
+      cool_plf_fplr1 = model_add_curve(model, 'cool_plf_plr1', custom_data_json, std)
+    end
+
+    # ---------------------------------------------------------
+    # define performance curves for heating
+    # ---------------------------------------------------------
+
+    # Curve Import - Heating capacity as a function of temperature
+    case hprtu_scenario
+    when 'variable_speed_high_eff'
+      heat_cap_ft1 = model_add_curve(model, 'heat_cap_ft1', custom_data_json, std)
+      heat_cap_ft2 = model_add_curve(model, 'heat_cap_ft2', custom_data_json, std)
+      heat_cap_ft3 = model_add_curve(model, 'heat_cap_ft3', custom_data_json, std)
+      heat_cap_ft4 = model_add_curve(model, 'heat_cap_ft4', custom_data_json, std)
+      heat_cap_ft_curve_stages = { 1 => heat_cap_ft1, 2 => heat_cap_ft2, 3 => heat_cap_ft3, 4 => heat_cap_ft4 }
+    when 'two_speed_standard_eff'
+      heat_cap_ft1 = model_add_curve(model, 'h_cap_T', custom_data_json, std)
+      heat_cap_ft_curve_stages = { 1 => heat_cap_ft1 }
+    when 'cchpc_2027_spec'
+      heat_cap_ft1 = model_add_curve(model, 'h_cap_low', custom_data_json, std)
+      heat_cap_ft2 = model_add_curve(model, 'h_cap_medium', custom_data_json, std)
+      heat_cap_ft3 = model_add_curve(model, 'h_cap_high', custom_data_json, std)
+      heat_cap_ft4 = model_add_curve(model, 'h_cap_boost', custom_data_json, std)
+      heat_cap_ft_curve_stages = { 1 => heat_cap_ft1, 2 => heat_cap_ft2, 3 => heat_cap_ft3, 4 => heat_cap_ft4 }
+    end
+
+    # Curve Import - Heating efficiency as a function of temperature
+    case hprtu_scenario
+    when 'variable_speed_high_eff'
+      heat_eir_ft1 = model_add_curve(model, 'heat_eir_ft1', custom_data_json, std)
+      heat_eir_ft2 = model_add_curve(model, 'heat_eir_ft2', custom_data_json, std)
+      heat_eir_ft3 = model_add_curve(model, 'heat_eir_ft3', custom_data_json, std)
+      heat_eir_ft4 = model_add_curve(model, 'heat_eir_ft4', custom_data_json, std)
+      heat_eir_ft_curve_stages = { 1 => heat_eir_ft1, 2 => heat_eir_ft2, 3 => heat_eir_ft3, 4 => heat_eir_ft4 }
+    when 'two_speed_standard_eff'
+      heat_eir_ft1 = model_add_curve(model, 'h_eir_T', custom_data_json, std)
+      heat_eir_ft_curve_stages = { 1 => heat_eir_ft1 }
+    when 'cchpc_2027_spec'
+      heat_eir_ft1 = model_add_curve(model, 'h_eir_low', custom_data_json, std)
+      heat_eir_ft2 = model_add_curve(model, 'h_eir_medium', custom_data_json, std)
+      heat_eir_ft3 = model_add_curve(model, 'h_eir_high', custom_data_json, std)
+      heat_eir_ft4 = model_add_curve(model, 'h_eir_boost', custom_data_json, std)
+      heat_eir_ft_curve_stages = { 1 => heat_eir_ft1, 2 => heat_eir_ft2, 3 => heat_eir_ft3, 4 => heat_eir_ft4 }
+    end
+
+    # Curve Import - Heating capacity as a function of flow rate
+    case hprtu_scenario
+    when 'variable_speed_high_eff'
+      heat_cap_ff1 = model_add_curve(model, 'heat_cap_ff1', custom_data_json, std)
+      heat_cap_ff_curve_stages = { 1 => heat_cap_ff1, 2 => heat_cap_ff1, 3 => heat_cap_ff1, 4 => heat_cap_ff1 }
+    when 'two_speed_standard_eff'
+      heat_cap_ff1 = model_add_curve(model, 'h_cap_allstages_ff', custom_data_json, std)
+      heat_cap_ff_curve_stages = { 1 => heat_cap_ff1 }
+    when 'cchpc_2027_spec'
+      heat_cap_ff1 = model_add_curve(model, 'h_cap_allstages_ff', custom_data_json, std)
+      heat_cap_ff_curve_stages = { 1 => heat_cap_ff1, 2 => heat_cap_ff1, 3 => heat_cap_ff1, 4 => heat_cap_ff1 }
+    end
+
+    # Curve Import - Heating efficiency as a function of flow rate
+    case hprtu_scenario
+    when 'variable_speed_high_eff'
+      heat_eir_ff1 = model_add_curve(model, 'heat_eir_ff1', custom_data_json, std)
+      heat_eir_ff_curve_stages = { 1 => heat_eir_ff1, 2 => heat_eir_ff1, 3 => heat_eir_ff1, 4 => heat_eir_ff1 }
+    when 'two_speed_standard_eff'
+      heat_eir_ff1 = model_add_curve(model, 'h_eir_allstages_ff', custom_data_json, std)
+      heat_eir_ff_curve_stages = { 1 => heat_eir_ff1 }
+    when 'cchpc_2027_spec'
+      heat_eir_ff1 = model_add_curve(model, 'h_eir_allstages_ff', custom_data_json, std)
+      heat_eir_ff_curve_stages = { 1 => heat_eir_ff1, 2 => heat_eir_ff1, 3 => heat_eir_ff1, 4 => heat_eir_ff1 }
+    end
+
+    # Curve Import - Heating efficiency as a function of part load ratio
+    heat_plf_fplr1 = nil
+    case hprtu_scenario
+    when 'variable_speed_high_eff'
+      heat_plf_fplr1 = model_add_curve(model, 'heat_plf_plr1', custom_data_json, std)
+    when 'two_speed_standard_eff'
+      heat_plf_fplr1 = model_add_curve(model, 'heat_plf_plr1', custom_data_json, std)
+    when 'cchpc_2027_spec'
+      heat_plf_fplr1 = model_add_curve(model, 'heat_plf_plr1', custom_data_json, std)
+    end
+
+    # Curve Import - Defrost energy as a function of temperature
+    defrost_eir = nil
+    case hprtu_scenario
+    when 'variable_speed_high_eff'
+      defrost_eir = model_add_curve(model, 'defrost_eir', custom_data_json, std)
+    when 'two_speed_standard_eff'
+      defrost_eir = model_add_curve(model, 'defrost_eir', custom_data_json, std)
+    when 'cchpc_2027_spec'
+      defrost_eir = model_add_curve(model, 'defrost_eir', custom_data_json, std)
+    end
+    #################################### End of defining Performance Curves
+
     # replace existing applicable air loops with new heat pump rtu air loops
     selected_air_loops.sort.each do |air_loop_hvac|
-
       # get necessary schedules, etc. from unitary system object
       # initialize variables before loop
-      hvac_operation_sched=air_loop_hvac.availabilitySchedule
-      unitary_availability_sched='tmp'
-      control_zone='tmp'
-      dehumid_type='tmp'
-      supply_fan_op_sched='tmp'
-      supply_fan_avail_sched='tmp'
-      fan_tot_eff='tmp'
-      fan_mot_eff='tmp'
-      fan_static_pressure='tmp'
-      supply_air_flow_m3_per_s='tmp'
-      orig_clg_coil_gross_cap=nil
-      orig_htg_coil_gross_cap=nil
+      hvac_operation_sched = air_loop_hvac.availabilitySchedule
+      unitary_availability_sched = 'tmp'
+      control_zone = 'tmp'
+      dehumid_type = 'tmp'
+      supply_fan_op_sched = 'tmp'
+      supply_fan_avail_sched = 'tmp'
+      fan_tot_eff = 'tmp'
+      fan_mot_eff = 'tmp'
+      fan_static_pressure = 'tmp'
+      orig_clg_coil_gross_cap = nil
+      orig_htg_coil_gross_cap = nil
 
-      equip_to_delete=[]
+      equip_to_delete = []
 
       # for unitary systems
       if air_loop_hvac_unitary_system?(air_loop_hvac)
@@ -875,7 +1770,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # store information needed as variable
         # remove the existing equipment
         air_loop_hvac.supplyComponents.each do |component|
-
           # convert component to string name
           obj_type = component.iddObjectType.valueName.to_s
           # skip unless component is of relevant type
@@ -885,78 +1779,95 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
           equip_to_delete << component
 
           # get information specifically from unitary system object
-          if ['Unitary'].any? { |word| (obj_type).include?(word)} # TODO: There are more unitary systems types we are not including here
-            # get unitary system
-            unitary_sys = component.to_AirLoopHVACUnitarySystem.get
-            # get availability schedule
-            unitary_availability_sched = unitary_sys.availabilitySchedule.get
-            # get control zone
-            control_zone = unitary_sys.controllingZoneorThermostatLocation.get
-            # get dehumidification control type
-            dehumid_type = unitary_sys.dehumidificationControlType
-            # get supply fan operation schedule
-            supply_fan_op_sched = unitary_sys.supplyAirFanOperatingModeSchedule.get
-            # get supply fan availability schedule
-            supply_fan = unitary_sys.supplyFan.get
-            # convert supply fan to appropriate object to access methods
-            if supply_fan.to_FanConstantVolume.is_initialized
-              supply_fan = supply_fan.to_FanConstantVolume.get
-            elsif supply_fan.to_FanOnOff.is_initialized
-              supply_fan = supply_fan.to_FanOnOff.get
-            elsif supply_fan.to_FanVariableVolume.is_initialized
-              supply_fan = supply_fan.to_FanVariableVolume.get
+          next unless ['Unitary'].any? do |word|
+                        (obj_type).include?(word)
+                      end
+
+          # get unitary system
+          unitary_sys = component.to_AirLoopHVACUnitarySystem.get
+          # get availability schedule
+          unitary_availability_sched = unitary_sys.availabilitySchedule.get
+          # get control zone
+          control_zone = unitary_sys.controllingZoneorThermostatLocation.get
+          # get dehumidification control type
+          dehumid_type = unitary_sys.dehumidificationControlType
+          # get supply fan operation schedule
+          supply_fan_op_sched = unitary_sys.supplyAirFanOperatingModeSchedule.get
+          # get supply fan availability schedule
+          supply_fan = unitary_sys.supplyFan.get
+          # convert supply fan to appropriate object to access methods
+          if supply_fan.to_FanConstantVolume.is_initialized
+            supply_fan = supply_fan.to_FanConstantVolume.get
+          elsif supply_fan.to_FanOnOff.is_initialized
+            supply_fan = supply_fan.to_FanOnOff.get
+          elsif supply_fan.to_FanVariableVolume.is_initialized
+            supply_fan = supply_fan.to_FanVariableVolume.get
+          else
+            runner.registerError("Supply fan type for #{air_loop_hvac.name} not supported.")
+            return false
+          end
+          # get the availability schedule
+          supply_fan_avail_sched = supply_fan.availabilitySchedule
+          if supply_fan_avail_sched.to_ScheduleConstant.is_initialized
+            supply_fan_avail_sched = supply_fan_avail_sched.to_ScheduleConstant.get
+          elsif supply_fan_avail_sched.to_ScheduleRuleset.is_initialized
+            supply_fan_avail_sched = supply_fan_avail_sched.to_ScheduleConstant.get
+          else
+            runner.registerError("Supply fan availability schedule type for #{supply_fan.name} not supported.")
+            return false
+          end
+          # get supply fan motor efficiency
+          fan_tot_eff = supply_fan.fanTotalEfficiency
+          # get supply motor efficiency
+          fan_mot_eff = supply_fan.motorEfficiency
+          # get supply fan static pressure
+          fan_static_pressure = supply_fan.pressureRise
+          # get previous cooling coil capacity
+          orig_clg_coil = unitary_sys.coolingCoil.get
+
+          # check for single speed DX cooling coil
+          if orig_clg_coil.to_CoilCoolingDXSingleSpeed.is_initialized
+            orig_clg_coil = orig_clg_coil.to_CoilCoolingDXSingleSpeed.get
+            # get either autosized or specified cooling capacity
+            if orig_clg_coil.isRatedTotalCoolingCapacityAutosized == true
+              orig_clg_coil_gross_cap = orig_clg_coil.autosizedRatedTotalCoolingCapacity.get
+            elsif orig_clg_coil.ratedTotalCoolingCapacity.is_initialized
+              orig_clg_coil_gross_cap = orig_clg_coil.ratedTotalCoolingCapacity.to_f
             else
-              runner.registerError("Supply fan type for #{air_loop_hvac.name} not supported.")
-              return false
+              runner.registerError("Original cooling coil capacity for #{air_loop_hvac.name} not found. Either it was not directly specified, or sizing run data is not available.")
             end
-            # get the availability schedule
-            supply_fan_avail_sched = supply_fan.availabilitySchedule
-            if supply_fan_avail_sched.to_ScheduleConstant.is_initialized
-              supply_fan_avail_sched=supply_fan_avail_sched.to_ScheduleConstant.get
-            elsif supply_fan_avail_sched.to_ScheduleRuleset.is_initialized
-              supply_fan_avail_sched=supply_fan_avail_sched.to_ScheduleConstant.get
+          # check for two speed DX cooling coil
+          elsif orig_clg_coil.to_CoilCoolingDXTwoSpeed.is_initialized
+            orig_clg_coil = orig_clg_coil.to_CoilCoolingDXTwoSpeed.get
+            if orig_clg_coil.autosizedRatedHighSpeedTotalCoolingCapacity.is_initialized
+              orig_clg_coil_gross_cap = orig_clg_coil.autosizedRatedHighSpeedTotalCoolingCapacity.get
+            elsif orig_clg_coil.ratedHighSpeedTotalCoolingCapacity.is_initialized
+              orig_clg_coil_gross_cap = orig_clg_coil.ratedHighSpeedTotalCoolingCapacity.get
             else
-              runner.registerError("Supply fan availability schedule type for #{supply_fan.name} not supported.")
-              return false
+              runner.registerError("Original cooling coil capacity for #{air_loop_hvac.name} not found. Either it was not directly specified, or sizing run data is not available.")
             end
-            # get supply fan motor efficiency
-            fan_tot_eff = supply_fan.fanTotalEfficiency
-            # get supply motor efficiency
-            fan_mot_eff = supply_fan.motorEfficiency
-            # get supply fan static pressure
-            fan_static_pressure = supply_fan.pressureRise
-            # get previous cooling coil capacity
-            orig_clg_coil = unitary_sys.coolingCoil.get
-            if orig_clg_coil.to_CoilCoolingDXSingleSpeed.is_initialized
-              orig_clg_coil = orig_clg_coil.to_CoilCoolingDXSingleSpeed.get
-              # get either autosized or specified cooling capacity
-              if orig_clg_coil.isRatedTotalCoolingCapacityAutosized == true
-                orig_clg_coil_gross_cap = orig_clg_coil.autosizedRatedTotalCoolingCapacity.get
-              elsif orig_clg_coil.ratedTotalCoolingCapacity.is_initialized
-                orig_clg_coil_gross_cap = orig_clg_coil.ratedTotalCoolingCapacity.to_f
-              else
-                runner.registerError("Original cooling coil capacity for #{air_loop_hvac.name} not found. Either it was not directly specified, or sizing run data is not available.")
-              end
-            end
-            # get original heating coil capacity
-            orig_htg_coil = unitary_sys.heatingCoil.get
-            # get coil object if electric resistance
-            if orig_htg_coil.to_CoilHeatingElectric.is_initialized
-              orig_htg_coil = orig_htg_coil.to_CoilHeatingElectric.get
-            # get coil object if gas
-            elsif orig_htg_coil.to_CoilHeatingGas.is_initialized
-              orig_htg_coil = orig_htg_coil.to_CoilHeatingGas.get
-            else
-              runner.registerError("Heating coil for #{air_loop_hvac.name} is of an unsupported type. This measure currently supports CoilHeatingElectric and CoilHeatingGas object types.")
-            end
-            # get either autosized or specified capacity
-            if orig_htg_coil.isNominalCapacityAutosized == true
-              orig_htg_coil_gross_cap = orig_htg_coil.autosizedNominalCapacity.get
-            elsif orig_htg_coil.nominalCapacity.is_initialized
-              orig_htg_coil_gross_cap = orig_htg_coil.nominalCapacity.to_f
-            else
-              runner.registerError("Original heating coil capacity for #{air_loop_hvac.name} not found. Either it was not directly specified, or sizing run data is not available.")
-            end
+          else
+            runner.registerError("Original cooling coil is of type #{orig_clg_coil.class} which is not currently supported by this measure.")
+          end
+
+          # get original heating coil capacity
+          orig_htg_coil = unitary_sys.heatingCoil.get
+          # get coil object if electric resistance
+          if orig_htg_coil.to_CoilHeatingElectric.is_initialized
+            orig_htg_coil = orig_htg_coil.to_CoilHeatingElectric.get
+          # get coil object if gas
+          elsif orig_htg_coil.to_CoilHeatingGas.is_initialized
+            orig_htg_coil = orig_htg_coil.to_CoilHeatingGas.get
+          else
+            runner.registerError("Heating coil for #{air_loop_hvac.name} is of an unsupported type. This measure currently supports CoilHeatingElectric and CoilHeatingGas object types.")
+          end
+          # get either autosized or specified capacity
+          if orig_htg_coil.isNominalCapacityAutosized == true
+            orig_htg_coil_gross_cap = orig_htg_coil.autosizedNominalCapacity.get
+          elsif orig_htg_coil.nominalCapacity.is_initialized
+            orig_htg_coil_gross_cap = orig_htg_coil.nominalCapacity.to_f
+          else
+            runner.registerError("Original heating coil capacity for #{air_loop_hvac.name} not found. Either it was not directly specified, or sizing run data is not available.")
           end
         end
 
@@ -968,46 +1879,47 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
           obj_type = component.iddObjectType.valueName.to_s
           # skip unless component is of relevant type
           next unless ['Fan', 'Unitary', 'Coil'].any? { |word| (obj_type).include?(word) }
+
           # make list of equipment to delete
           equip_to_delete << component
           # check for fan
-          if ['Fan'].any? { |word| (obj_type).include?(word)}
-            supply_fan = component
-            if supply_fan.to_FanConstantVolume.is_initialized
-              supply_fan = supply_fan.to_FanConstantVolume.get
-            elsif supply_fan.to_FanOnOff.is_initialized
-              supply_fan = supply_fan.to_FanOnOff.get
-            elsif supply_fan.to_FanVariableVolume.is_initialized
-              supply_fan = supply_fan.to_FanVariableVolume.get
-            else
-              runner.registerError("Supply fan type for #{air_loop_hvac.name} not supported.")
-              return false
-            end
-            # get the availability schedule
-            supply_fan_avail_sched = supply_fan.availabilitySchedule
-            if supply_fan_avail_sched.to_ScheduleConstant.is_initialized
-              supply_fan_avail_sched=supply_fan_avail_sched.to_ScheduleConstant.get
-            elsif supply_fan_avail_sched.to_ScheduleRuleset.is_initialized
-              supply_fan_avail_sched=supply_fan_avail_sched.to_ScheduleConstant.get
-            else
-              runner.registerError("Supply fan availability schedule type for #{supply_fan.name} not supported.")
-              return false
-            end
-            # get supply fan motor efficiency
-            fan_tot_eff = supply_fan.fanTotalEfficiency
-            # get supply motor efficiency
-            fan_mot_eff = supply_fan.motorEfficiency
-            # get supply fan static pressure
-            fan_static_pressure = supply_fan.pressureRise
-            # set unitary supply fan operating schedule equal to system schedule for non-unitary systems
-            supply_fan_op_sched = hvac_operation_sched
-            # set dehumidification type
-            dehumid_type = 'None'
-            # set control zone to the thermal zone. This will be used in new unitary system object
-            control_zone = air_loop_hvac.thermalZones[0]
-            # set unitary availability schedule to be always on. This will be used in new unitary system object.
-            unitary_availability_sched =  model.alwaysOnDiscreteSchedule
+          next unless ['Fan'].any? { |word| (obj_type).include?(word) }
+
+          supply_fan = component
+          if supply_fan.to_FanConstantVolume.is_initialized
+            supply_fan = supply_fan.to_FanConstantVolume.get
+          elsif supply_fan.to_FanOnOff.is_initialized
+            supply_fan = supply_fan.to_FanOnOff.get
+          elsif supply_fan.to_FanVariableVolume.is_initialized
+            supply_fan = supply_fan.to_FanVariableVolume.get
+          else
+            runner.registerError("Supply fan type for #{air_loop_hvac.name} not supported.")
+            return false
           end
+          # get the availability schedule
+          supply_fan_avail_sched = supply_fan.availabilitySchedule
+          if supply_fan_avail_sched.to_ScheduleConstant.is_initialized
+            supply_fan_avail_sched = supply_fan_avail_sched.to_ScheduleConstant.get
+          elsif supply_fan_avail_sched.to_ScheduleRuleset.is_initialized
+            supply_fan_avail_sched = supply_fan_avail_sched.to_ScheduleConstant.get
+          else
+            runner.registerError("Supply fan availability schedule type for #{supply_fan.name} not supported.")
+            return false
+          end
+          # get supply fan motor efficiency
+          fan_tot_eff = supply_fan.fanTotalEfficiency
+          # get supply motor efficiency
+          fan_mot_eff = supply_fan.motorEfficiency
+          # get supply fan static pressure
+          fan_static_pressure = supply_fan.pressureRise
+          # set unitary supply fan operating schedule equal to system schedule for non-unitary systems
+          supply_fan_op_sched = hvac_operation_sched
+          # set dehumidification type
+          dehumid_type = 'None'
+          # set control zone to the thermal zone. This will be used in new unitary system object
+          control_zone = air_loop_hvac.thermalZones[0]
+          # set unitary availability schedule to be always on. This will be used in new unitary system object.
+          unitary_availability_sched = model.alwaysOnDiscreteSchedule
         end
       end
 
@@ -1035,25 +1947,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
       # change sizing parameter to vav
       sizing = air_loop_hvac.sizingSystem
-      sizing.setCentralCoolingCapacityControlMethod('VAV') #CC-TMP
-      # # change discharge air temperature to 105F to represent lower heat pump temps
-      # hp_htg_sa_temp_c = OpenStudio.convert(105.00000000000000, 'F', 'C').get #CC-TMP
-      # sizing.setCentralHeatingDesignSupplyAirTemperature(hp_htg_sa_temp_c)
-      # # change discharge air temperature in thermal zone
-      # zone_sizing = thermal_zone.sizingZone
-      # zone_sizing.setZoneHeatingDesignSupplyAirTemperature(hp_htg_sa_temp_c)
-      # # check if setpoint manager is present at supply outlet
-      # # this will work for single zone reheat setpoint managers only
-      # model.getSetpointManagerSingleZoneReheats.sort.each do |sp_manager|
-      #   if air_loop_hvac.supplyOutletNode == sp_manager.setpointNode.get
-      #     # for current setpoint managet, change supply outlet temp to 105F
-      #     sp_manager.setMaximumSupplyAirTemperature(hp_htg_sa_temp_c)
-      #   end
-      # end
+      sizing.setCentralCoolingCapacityControlMethod('VAV') # CC-TMP
 
       # replace any CV terminal box with no reheat VAV terminal box
       # get old terminal box
-      if  thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctConstantVolumeReheat.is_initialized
+      if thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctConstantVolumeReheat.is_initialized
         old_terminal = thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctConstantVolumeReheat.get
       elsif thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
         old_terminal = thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctConstantVolumeNoReheat.get
@@ -1083,33 +1981,18 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # define minimum flow rate needed to maintain ventilation - add in max fraction if in model
       if controller_oa.maximumFractionofOutdoorAirSchedule.is_initialized
         controller_oa.resetMaximumFractionofOutdoorAirSchedule
-        # min_flow_ratio = ((oa_flow_m3_per_s/0.75)/old_terminal_sa_flow_m3_per_s).round(2)
-        min_oa_flow_ratio = (oa_flow_m3_per_s/old_terminal_sa_flow_m3_per_s)
-      else
-        min_oa_flow_ratio = (oa_flow_m3_per_s/old_terminal_sa_flow_m3_per_s)
       end
+      min_oa_flow_ratio = (oa_flow_m3_per_s / old_terminal_sa_flow_m3_per_s)
 
       # remove old equipment
       old_terminal.remove
       air_loop_hvac.removeBranchForZone(thermal_zone)
       # define new terminal box
-      new_terminal = OpenStudio::Model::AirTerminalSingleDuctConstantVolumeNoReheat.new(model,always_on)
-
-      # # set minimum flow rate to 0.40, or higher as needed to maintain outdoor air requirements
-      min_flow = 0.40
-
+      # new_terminal = OpenStudio::Model::AirTerminalSingleDuctConstantVolumeNoReheat.new(model, always_on)
+      new_terminal = OpenStudio::Model::AirTerminalSingleDuctVAVHeatAndCoolNoReheat.new(model)
       # set name of terminal box and add
       new_terminal.setName("#{thermal_zone.name} VAV Terminal")
       air_loop_hvac.addBranchForZone(thermal_zone, new_terminal.to_StraightComponent)
-
-      # determine minimum airflow ratio for sizing; 0.4 is used unless OA requires higher
-      if min_oa_flow_ratio > min_flow
-        min_airflow_ratio = min_oa_flow_ratio
-        min_airflow_m3_per_s = min_oa_flow_ratio * old_terminal_sa_flow_m3_per_s
-      else
-        min_airflow_ratio = min_flow
-        min_airflow_m3_per_s = min_airflow_ratio * old_terminal_sa_flow_m3_per_s
-      end
 
       #################################### Start Sizing Logic
 
@@ -1121,40 +2004,101 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         day_type = dd.dayType
         # add design day drybulb temperature if winter design day
         next unless day_type == 'WinterDesignDay'
+
         li_htg_dsgn_day_temps << dd.maximumDryBulbTemperature
       end
       # get coldest design day temp for manual sizing
-      wntr_design_day_temp_c = li_htg_dsgn_day_temps.min()
+      wntr_design_day_temp_c = li_htg_dsgn_day_temps.min
 
       # get user-input heating sizing temperature
-      htg_sizing_option_hash = {'47F'=>47, '17F'=>17, '0F'=>0}
+      htg_sizing_option_hash = { '47F' => 47, '17F' => 17, '0F' => 0, '-10F' => -10 }
       htg_sizing_option_f = htg_sizing_option_hash[htg_sizing_option]
       htg_sizing_option_c = OpenStudio.convert(htg_sizing_option_f, 'F', 'C').get
       hp_sizing_temp_c = nil
       # set heat pump sizing temp based on user-input value and design day
       if htg_sizing_option_c >= wntr_design_day_temp_c
         hp_sizing_temp_c = htg_sizing_option_c
-        runner.registerInfo("For heat pump sizing, heating design day temperature is #{OpenStudio.convert(wntr_design_day_temp_c, 'C', 'F').get.round(0)}F, and the user-input temperature to size on is #{OpenStudio.convert(htg_sizing_option_c, 'C', 'F').get.round(0)}F. User-input temperature is larger than design day temperature, so user-input temperature will be used.")
+        if debug_verbose
+          runner.registerInfo("sizing summary: For heat pump sizing, heating design day temperature is #{OpenStudio.convert(
+            wntr_design_day_temp_c, 'C', 'F'
+          ).get.round(0)}F, and the user-input temperature to size on is #{OpenStudio.convert(
+            htg_sizing_option_c, 'C', 'F'
+          ).get.round(0)}F. User-input temperature is larger than design day temperature, so user-input temperature will be used.")
+        end
       else
         hp_sizing_temp_c = wntr_design_day_temp_c
-        runner.registerInfo("For heat pump sizing, heating design day temperature is #{OpenStudio.convert(wntr_design_day_temp_c, 'C', 'F').get.round(0)}F, and the user-input temperature to size on is #{OpenStudio.convert(htg_sizing_option_c, 'C', 'F').get.round(0)}F. The heating design day temperature is higher than the user-specified temperature which is not realistic, therefore the heating design day temperature will be used.")
+        if debug_verbose
+          runner.registerInfo("sizing summary: For heat pump sizing, heating design day temperature is #{OpenStudio.convert(
+            wntr_design_day_temp_c, 'C', 'F'
+          ).get.round(0)}F, and the user-input temperature to size on is #{OpenStudio.convert(
+            htg_sizing_option_c, 'C', 'F'
+          ).get.round(0)}F. The heating design day temperature is higher than the user-specified temperature which is not realistic, therefore the heating design day temperature will be used.")
+        end
       end
 
-      # define airflow stages - 4 equal segmenets from minimum airflow ratio to 100%
-      # for systems with high OA flow fractions, this range may be very small
-      # if the OA ratio is 100%, the unit will essentially act as a constant volume DOAS
-      # heating stages
-      htg_airflow_stage1 = min_airflow_m3_per_s
-      htg_airflow_stage2 = htg_airflow_stage1 + 0.333 * (old_terminal_sa_flow_m3_per_s - htg_airflow_stage1)
-      htg_airflow_stage3 = htg_airflow_stage2 + 0.333 * (old_terminal_sa_flow_m3_per_s - htg_airflow_stage2)
-      htg_airflow_stage4 = old_terminal_sa_flow_m3_per_s
-      hash_htg_airflow_stgs = {1 => htg_airflow_stage1, 2 => htg_airflow_stage2, 3 => htg_airflow_stage3, 4 => htg_airflow_stage4}
-      # cooling stages
-      clg_airflow_stage1 = htg_airflow_stage1
-      clg_airflow_stage2 = htg_airflow_stage2
-      clg_airflow_stage3 = htg_airflow_stage3
-      clg_airflow_stage4 = htg_airflow_stage4
-      hash_clg_airflow_stgs = {1 => clg_airflow_stage1, 2 => clg_airflow_stage2, 3 => clg_airflow_stage3, 4 => clg_airflow_stage4}
+      ## define number of stages, and capacity/airflow fractions for each stage
+      (_, _, rated_stage_num_heating, rated_stage_num_cooling, final_rated_cooling_cop, final_rated_heating_cop, stage_cap_fractions_heating,
+      stage_flow_fractions_heating, stage_cap_fractions_cooling, stage_flow_fractions_cooling, stage_rated_cop_frac_heating,
+      stage_rated_cop_frac_cooling, boost_stage_num_and_max_temp_tuple, stage_gross_rated_sensible_heat_ratio_cooling, enable_cycling_losses_above_lowest_speed, reference_cooling_cfm_per_ton,
+      reference_heating_cfm_per_ton) = assign_staging_data(custom_data_json, std)
+
+      # get appropriate design heating load
+      orig_htg_coil_gross_cap_old = orig_htg_coil_gross_cap
+      design_air_flow_from_zone_sizing_heating_m_3_per_s = old_terminal_sa_flow_m3_per_s
+      if sizing_run
+
+        # get thermal zones for the air loop
+        thermal_zones = air_loop_hvac.thermalZones
+        if thermal_zones.size != 1
+          runner.registerError("The airloop (#{air_loop_hvac.name}) includes multiple (#{thermal_zones.size}) thermal zones instead of just a single zone.")
+        end
+
+        # get design airflow rate for heating with sizing factor applied from design day simulation
+        report_name = 'HVACSizingSummary'
+        table_name = 'Zone Sensible Heating'
+        column_name = 'User Design Air Flow'
+        row_name = thermal_zones.first.name.to_s.upcase
+        design_air_flow_from_zone_sizing_heating_m_3_per_s = get_tabular_data(runner, model, sql, report_name,
+                                                                              'Entire Facility', table_name, row_name, column_name).to_f
+
+        # get temperature (Tin from the delta T)
+        report_name = 'CoilSizingDetails'
+        table_name = 'Coils'
+        column_name = 'Coil Entering Air Drybulb at Ideal Loads Peak'
+        row_name = orig_airloop_heating_coil_map[air_loop_hvac.name.to_s]
+        coil_entering_temperature_c = get_tabular_data(runner, model, sql, report_name, 'Entire Facility', table_name,
+                                                       row_name, column_name).to_f
+
+        # get temperature (Tout from the delta T)
+        report_name = 'CoilSizingDetails'
+        table_name = 'Coils'
+        column_name = 'Coil Leaving Air Drybulb at Ideal Loads Peak'
+        row_name = orig_airloop_heating_coil_map[air_loop_hvac.name.to_s]
+        coil_leaving_temperature_c = get_tabular_data(runner, model, sql, report_name, 'Entire Facility', table_name, row_name,
+                                                      column_name).to_f
+
+        # get air density
+        report_name = 'CoilSizingDetails'
+        table_name = 'Coils'
+        column_name = 'Standard Air Density Adjusted for Elevation'
+        row_name = orig_airloop_heating_coil_map[air_loop_hvac.name.to_s]
+        air_density_kg_per_m_3 = get_tabular_data(runner, model, sql, report_name, 'Entire Facility', table_name, row_name,
+                                                  column_name).to_f
+
+        # get heat capacity
+        report_name = 'CoilSizingDetails'
+        table_name = 'Coils'
+        column_name = 'Dry Air Heat Capacity'
+        row_name = orig_airloop_heating_coil_map[air_loop_hvac.name.to_s]
+        air_heat_capacity_j_per_kg_k = get_tabular_data(runner, model, sql, report_name, 'Entire Facility', table_name,
+                                                        row_name, column_name).to_f
+
+        # override design heating load with Q = vdot * rho * cp * (Tout - Tin)
+        orig_htg_coil_gross_cap = design_air_flow_from_zone_sizing_heating_m_3_per_s * air_density_kg_per_m_3 * air_heat_capacity_j_per_kg_k * (coil_leaving_temperature_c - coil_entering_temperature_c)
+        if debug_verbose
+          runner.registerInfo("sizing summary: original heating design load overriden from sizing run: #{orig_htg_coil_gross_cap_old.round(3)} W to  #{orig_htg_coil_gross_cap.round(3)} W for airloop (#{air_loop_hvac.name})")
+        end
+      end
 
       # determine heating load curve; y=mx+b
       # assumes 0 load at 60F (15.556 C)
@@ -1163,783 +2107,321 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
       # calculate heat pump design load, derate factors, and required rated capacities (at stage 4) for different OA temperatures; assumes 75F interior temp (23.8889C)
       ia_temp_c = 23.8889
-      # design - temperature determined by design days in specified weather file
-      oa_temp_c = wntr_design_day_temp_c
-      dns_htg_load_at_dsn_temp = orig_htg_coil_gross_cap
-      hp_derate_factor_at_dsn = 0.93607915412 + -0.005481563544*ia_temp_c + -8.5897908e-06*ia_temp_c**2 + 0.02491053192*oa_temp_c +5.3087076e-05*oa_temp_c**2 + -0.000155750364*ia_temp_c*oa_temp_c
-      req_rated_hp_cap_at_47f_to_meet_load_at_dsn = dns_htg_load_at_dsn_temp / hp_derate_factor_at_dsn
-      # 0F
-      oa_temp_c = -17.7778
-      dns_htg_load_at_0f = htg_load_slope*(-17.7778) + htg_load_intercept
-      hp_derate_factor_at_0f = 0.93607915412 + -0.005481563544*ia_temp_c + -8.5897908e-06*ia_temp_c**2 + 0.02491053192*oa_temp_c + 5.3087076e-05*oa_temp_c**2 + -0.000155750364*ia_temp_c*oa_temp_c
-      req_rated_hp_cap_at_47f_to_meet_load_at_0f = dns_htg_load_at_0f / hp_derate_factor_at_0f
-      # 17F
-      oa_temp_c = -8.33333
-      dns_htg_load_at_17f = htg_load_slope*(-8.33333) + htg_load_intercept
-      hp_derate_factor_at_17f = 0.93607915412 + -0.005481563544*ia_temp_c + -8.5897908e-06*ia_temp_c**2 + 0.02491053192*oa_temp_c + 5.3087076e-05*oa_temp_c**2 + -0.000155750364*ia_temp_c*oa_temp_c
-      req_rated_hp_cap_at_47f_to_meet_load_at_17f = dns_htg_load_at_17f / hp_derate_factor_at_17f
-      # 47F - note that this is rated conditions, so "derate" factor is either 1 from the curve, or will be normlized to 1 by E+ during simulation
-      oa_temp_c = 8.33333
-      dns_htg_load_at_47f = htg_load_slope*(-8.33333) + htg_load_intercept
-      hp_derate_factor_at_47f = 1
-      req_rated_hp_cap_at_47f_to_meet_load_at_47f = dns_htg_load_at_47f / hp_derate_factor_at_47f
+
       # user-specified design
       oa_temp_c = hp_sizing_temp_c
-      dns_htg_load_at_user_dsn_temp = htg_load_slope*hp_sizing_temp_c + htg_load_intercept
-      hp_derate_factor_at_user_dsn = 0.93607915412 + -0.005481563544*ia_temp_c + -8.5897908e-06*ia_temp_c**2 + 0.02491053192*oa_temp_c + 5.3087076e-05*oa_temp_c**2 + -0.000155750364*ia_temp_c*oa_temp_c
+      dns_htg_load_at_user_dsn_temp = htg_load_slope * hp_sizing_temp_c + htg_load_intercept
+      if heat_cap_ft_curve_stages[rated_stage_num_heating].to_TableLookup.is_initialized
+        table_lookup_obj = heat_cap_ft_curve_stages[rated_stage_num_heating].to_TableLookup.get
+        hp_derate_factor_at_user_dsn = get_dep_var_from_lookup_table_with_interpolation(runner, table_lookup_obj,
+                                                                                        ia_temp_c, oa_temp_c)
+      else
+        hp_derate_factor_at_user_dsn = heat_cap_ft_curve_stages[rated_stage_num_heating].evaluate(ia_temp_c, oa_temp_c)
+      end
       req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn = dns_htg_load_at_user_dsn_temp / hp_derate_factor_at_user_dsn
 
       # determine heat pump system sizing based on user-specified sizing temperature and user-specified maximum upsizing limits
       # upsize total cooling capacity using user-specified factor
       autosized_tot_clg_cap_upsized = orig_clg_coil_gross_cap * clg_oversizing_estimate
       # get maximum cooling capacity with user-specified upsizing
-      max_cool_cap_w_upsize = autosized_tot_clg_cap_upsized * (performance_oversizing_factor+1)
+      max_cool_cap_w_upsize = autosized_tot_clg_cap_upsized * (performance_oversizing_factor + 1)
       # get maximum heating capacity based on max cooling capacity and heating-to-cooling ratio
-      max_heat_cap_w_upsize = autosized_tot_clg_cap_upsized * (performance_oversizing_factor+1) * htg_to_clg_hp_ratio
+      max_heat_cap_w_upsize = autosized_tot_clg_cap_upsized * (performance_oversizing_factor + 1) * htg_to_clg_hp_ratio
 
-      # set derate factor to 0 if less than 0F (-17.778 C)
-      if wntr_design_day_temp_c < -17.7778
-        hp_derate_factor_at_user_dsn = 0
-      end
-
-      # cooling capacity
-      cool_cap = req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn / htg_to_clg_hp_ratio
-      cool_cap_oversize_pct_actual = (((autosized_tot_clg_cap_upsized-cool_cap) / autosized_tot_clg_cap_upsized).abs() * 100).round(2)
-
+      # Sizing decision based on heating load level
+      heating_load_category = ''
       # If ratio of required heating capacity at rated conditions to cooling capacity is less than specified heating to cooling ratio, then size everything based on cooling
-      if (req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn / autosized_tot_clg_cap_upsized) <=  htg_to_clg_hp_ratio
+      # If heating load requires upsizing, but is below user-input cooling upsizing limit, then size based on design heating load
+      # Else, size to maximum oversizing factor
+      design_heating_airflow_m_3_per_s = nil
+      design_cooling_airflow_m_3_per_s = nil
+      if (req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn / autosized_tot_clg_cap_upsized) <= htg_to_clg_hp_ratio
+        heating_load_category = 'Small heating load'
         # set rated heating capacity equal to upsized cooling capacity times the user-specified heating to cooling sizing ratio
         dx_rated_htg_cap_applied = autosized_tot_clg_cap_upsized * htg_to_clg_hp_ratio
         # set rated cooling capacity
         dx_rated_clg_cap_applied = autosized_tot_clg_cap_upsized
-        # print register
-        runner.registerInfo("For air loop #{air_loop_hvac.name}:
-          >>Heating Sizing Information: Total heating requirement at design conditions is #{OpenStudio.convert(req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn, 'W', 'ton').get.round(2)} tons. User-input HP heating design temperature is #{OpenStudio.convert(hp_sizing_temp_c, 'C', 'F').get.round(0)}F, which yields a HP capacity derate factor of #{hp_derate_factor_at_user_dsn.round(2)} from the performance curve and a resulting heating capacity of #{OpenStudio.convert((req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn * hp_derate_factor_at_user_dsn), 'W', 'ton').get.round(2)} tons at #{OpenStudio.convert(hp_sizing_temp_c, 'C', 'F').get.round(0)}F. For the heat pump to meet the design heating load of #{OpenStudio.convert(req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn, 'W', 'ton').get.round(2)} tons at the design temperature of #{OpenStudio.convert(hp_sizing_temp_c, 'C', 'F').get.round(0)}F, the rated heat pump size (at 47F) must be greater than #{OpenStudio.convert(req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn, 'W', 'ton').get.round(2)} tons.
-          >>Cooling Sizing Information: Total cooling requirement is #{OpenStudio.convert(orig_clg_coil_gross_cap, 'W', 'ton').get.round(2)} tons. The user-input cooling upsize factor to account for actual equipment selection is #{clg_oversizing_estimate}, resulting in a final total upsized cooling requirement of #{OpenStudio.convert(autosized_tot_clg_cap_upsized, 'W', 'ton').get.round(2)} tons.
-          >>Sizing Limits: Increasing the HP total capacity to accomodate potential additional heating capacity is capped such that the resulting cooling capacity does not exceed the user-input oversizing factor of #{performance_oversizing_factor+1} times the required (upsized) cooling load of #{OpenStudio.convert(autosized_tot_clg_cap_upsized, 'W', 'ton').get.round(2)} tons. Therefore, the cooling capacity cannot exceed #{OpenStudio.convert(autosized_tot_clg_cap_upsized*(performance_oversizing_factor+1), 'W', 'ton').get.round(2)} tons, and to maintain the user-input heating to cooling ratio of #{htg_to_clg_hp_ratio}, the final hp heating capacity cannot exceed #{OpenStudio.convert(autosized_tot_clg_cap_upsized*(performance_oversizing_factor+1)*htg_to_clg_hp_ratio, 'W', 'ton').get.round(2)} tons.
-          >>Sizing Results: Oversizing is not necessary as the design cooling capacity of #{OpenStudio.convert(autosized_tot_clg_cap_upsized, 'W', 'ton').get.round(2)} tons results in a heating capacity at rated condtions (47F) of #{OpenStudio.convert((autosized_tot_clg_cap_upsized * htg_to_clg_hp_ratio), 'W', 'ton').get.round(2)} tons and a derated heating capacity at the unser-input design temperature (#{OpenStudio.convert(hp_sizing_temp_c, 'C', 'F').get.round(0)}F) of #{OpenStudio.convert((autosized_tot_clg_cap_upsized * htg_to_clg_hp_ratio * hp_derate_factor_at_user_dsn), 'W', 'ton').get.round(2)} tons, which exceeds the design heating load requirement of #{OpenStudio.convert(req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn, 'W', 'ton').get.round(2)} tons. These values will be applied to the model as-is. For reference, the WEATHER FILE heating design day temperature of #{OpenStudio.convert(wntr_design_day_temp_c, 'C', 'F').get.round(0)}F yields a derate factor of #{hp_derate_factor_at_user_dsn.round(2)}, which results in a heating capacity of #{((autosized_tot_clg_cap_upsized * htg_to_clg_hp_ratio * hp_derate_factor_at_user_dsn)).get.round(2)} tons at this temperature, which is #{OpenStudio.convert(((autosized_tot_clg_cap_upsized * htg_to_clg_hp_ratio * hp_derate_factor_at_user_dsn) / req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn) * 100, 'W', 'ton').round(2)}% of the design heating load at this temperature.")
-      # If heating load requires upsizing, but is below user-input cooling upsizing limit
+        # define design airflows
+        design_cooling_airflow_m_3_per_s = old_terminal_sa_flow_m3_per_s
+        design_heating_airflow_m_3_per_s = old_terminal_sa_flow_m3_per_s
       elsif req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn <= max_heat_cap_w_upsize
+        heating_load_category = 'Moderate heating load'
         # set rated heating coil equal to desired sized value, which should be below the suer-input limit
         dx_rated_htg_cap_applied = req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn
         # set cooling capacity to appropriate ratio based on heating capacity needs
         cool_cap = req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn / htg_to_clg_hp_ratio
-        cool_cap_oversize_pct_actual = (((autosized_tot_clg_cap_upsized-cool_cap) / autosized_tot_clg_cap_upsized).abs() * 100).round(2)
         dx_rated_clg_cap_applied = cool_cap
-        # print register
-        runner.registerInfo("For air loop #{air_loop_hvac.name}:
-          >>Heating Sizing Information: Total heating requirement at design conditions is #{OpenStudio.convert(req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn, 'W', 'ton').get.round(2)} tons. User-input HP heating design temperature is #{OpenStudio.convert(hp_sizing_temp_c, 'C', 'F').get.round(0)}F, which yields a HP capacity derate factor of #{hp_derate_factor_at_user_dsn.round(2)} from the performance curve and a resulting heating capacity of #{OpenStudio.convert((req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn * hp_derate_factor_at_user_dsn), 'W', 'ton').get.round(2)} tons at #{OpenStudio.convert(hp_sizing_temp_c, 'C', 'F').get.round(0)}F. For the heat pump to meet the design heating load of #{OpenStudio.convert(req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn, 'W', 'ton').get.round(2)} tons at the design temperature of #{OpenStudio.convert(hp_sizing_temp_c, 'C', 'F').get.round(0)}F, the rated heat pump size (at 47F) must be greater than #{OpenStudio.convert(req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn, 'W', 'ton').get.round(2)} tons.
-          >>Cooling Sizing Information: Total cooling requirement is #{OpenStudio.convert(orig_clg_coil_gross_cap, 'W', 'ton').get.round(2)} tons. The user-input cooling upsize factor to account for actual equipment selection is #{clg_oversizing_estimate}, resulting in a final total upsized cooling requirement of #{OpenStudio.convert(autosized_tot_clg_cap_upsized, 'W', 'ton').get.round(2)} tons.
-          >>Sizing Limits: Increasing the HP total capacity to accomodate potential additional heating capacity is capped such that the resulting cooling capacity does not exceed the user-input oversizing factor of #{performance_oversizing_factor+1} times the required (upsized) cooling load of #{OpenStudio.convert(autosized_tot_clg_cap_upsized, 'W', 'ton').get.round(2)} tons. Therefore, the cooling capacity cannot exceed #{OpenStudio.convert(autosized_tot_clg_cap_upsized * (performance_oversizing_factor+1), 'W', 'ton').get.round(2)} tons, and to maintain the user-input heating to cooling ratio of #{htg_to_clg_hp_ratio}, the final hp heating capacity cannot exceed #{OpenStudio.convert(autosized_tot_clg_cap_upsized*(performance_oversizing_factor+1)*htg_to_clg_hp_ratio, 'W', 'ton').get.round(2)} tons.
-          >>Sizing Results: To meet the design heating load of #{OpenStudio.convert((req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn), 'W', 'ton').get.round(2)} tons at #{OpenStudio.convert(hp_sizing_temp_c, 'C', 'F').get.round(0)}F}, the compressor will be oversized by #{cool_cap_oversize_pct_actual}% to a rated cooling capacity of #{OpenStudio.convert(cool_cap, 'W', 'ton').get.round(2)} tons and a rated heated capacity (at 47F) of #{OpenStudio.convert((req_rated_tot_htg_cap_at_47_f), 'W', 'ton').get.round(2)} tons. This oversizing is under the user-input limit of #{(performance_oversizing_factor*100).round(2)}% and is therefore permitted. For reference, the WEATHER FILE heating design day temperature of #{OpenStudio.convert(wntr_design_day_temp_c, 'C', 'F').get.round(0)}F yields a derate factor of #{hp_derate_factor_at_user_dsn.round(2)}, which results in a heating capacity of #{OpenStudio.convert((req_rated_tot_htg_cap_at_47_f * hp_derate_factor_at_user_dsn), 'W', 'ton').get.round(2)} tons at this temperature, which is #{(((req_rated_tot_htg_cap_at_47_f * hp_derate_factor_at_user_dsn) / req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn) * 100).get.round(2)}% of the design heating load at this temperature.")
+        # define design airflows
+        design_cooling_airflow_m_3_per_s = old_terminal_sa_flow_m3_per_s
+        design_heating_airflow_m_3_per_s = design_air_flow_from_zone_sizing_heating_m_3_per_s
       else
+        heating_load_category = 'Large heating load'
         # set rated heating capacity to maximum allowable based on cooling capacity maximum limit
         dx_rated_htg_cap_applied = max_cool_cap_w_upsize * htg_to_clg_hp_ratio
         # set rated cooling capacity to maximum allowable based on oversizing limit
         dx_rated_clg_cap_applied = max_cool_cap_w_upsize
-        # print register
-        runner.registerInfo("For air loop #{air_loop_hvac.name}:
-          >>Heating Sizing Information: Total heating requirement at design conditions is #{OpenStudio.convert(req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn, 'W', 'ton').get.round(2)} tons. User-input HP heating design temperature is #{OpenStudio.convert(hp_sizing_temp_c, 'C', 'F').get.round(0)}F, which yields a HP capacity derate factor of #{hp_derate_factor_at_user_dsn.round(2)} from the performance curve and a resulting heating capacity of #{OpenStudio.convert((req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn * hp_derate_factor_at_user_dsn), 'W', 'ton').get.round(2)} tons at #{OpenStudio.convert(hp_sizing_temp_c, 'C', 'F').get.round(0)}F. For the heat pump to meet the design heating load of #{OpenStudio.convert(req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn, 'W', 'ton').get.round(2)} tons at the design temperature of #{OpenStudio.convert(hp_sizing_temp_c, 'C', 'F').get.round(0)}F, the rated heat pump size (at 47F) must be greater than #{OpenStudio.convert(req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn, 'W', 'ton').get.round(2)} tons.
-          >>Cooling Sizing Information: Total cooling requirement is #{OpenStudio.convert(orig_clg_coil_gross_cap, 'W', 'ton').get.round(2)} tons. The user-input cooling upsize factor to account for actual equipment selection is #{clg_oversizing_estimate}, resulting in a final total upsized cooling requirement of #{OpenStudio.convert(autosized_tot_clg_cap_upsized, 'W', 'ton').get.round(2)} tons.
-          >>Sizing Limits: Increasing the HP total capacity to accomodate potential additional heating capacity is capped such that the resulting cooling capacity does not exceed the user-input oversizing factor of #{performance_oversizing_factor+1} times the required (upsized) cooling load of #{OpenStudio.convert(autosized_tot_clg_cap_upsized, 'W', 'ton').get.round(2)} tons. Therefore, the cooling capacity cannot exceed #{OpenStudio.convert(autosized_tot_clg_cap_upsized * (performance_oversizing_factor+1), 'W', 'ton').get.round(2)} tons, and to maintain the user-input heating to cooling ratio of #{htg_to_clg_hp_ratio}, the final hp heating capacity cannot exceed #{OpenStudio.convert(autosized_tot_clg_cap_upsized*(performance_oversizing_factor+1)*htg_to_clg_hp_ratio, 'W', 'ton').get.round(2)} tons.
-          >>Sizing Results: To meet the design heating load of #{OpenStudio.convert((req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn), 'W', 'ton').get.round(2)} tons at#{OpenStudio.convert(hp_sizing_temp_c, 'C', 'F').get.round(0)}F, the compressor needs to be oversized by #{cool_cap_oversize_pct_actual}%, which is beyond the user-input maximum value of #{(performance_oversizing_factor*100).round(2)}%. Therefore, the unit will be sized to the user-input maximum allowable, which results in a rated cooling capacity of#{OpenStudio.convert(max_cool_cap_w_upsize, 'W', 'ton').get.round(2)} tons, a rated heating capacity (at 47F) of #{OpenStudio.convert((max_cool_cap_w_upsize * htg_to_clg_hp_ratio), 'W', 'ton').get.round(2)} tons, and a heating capacity at design temperature(#{OpenStudio.convert(hp_sizing_temp_c, 'C', 'F').get.round(0)}F) of #{OpenStudio.convert(((max_cool_cap_w_upsize * htg_to_clg_hp_ratio) * hp_derate_factor_at_user_dsn), 'W', 'ton').get.round(2)} tons, which is #{((((max_cool_cap_w_upsize * htg_to_clg_hp_ratio) * hp_derate_factor_at_user_dsn) / (req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn))*100).round(2)}% of the design heating load at this temperature. For reference, the WEATHER FILE heating design day temperature of #{OpenStudio.convert(wntr_design_day_temp_c, 'C', 'F').get.round(0)}F yields a derate factor of#{hp_derate_factor_at_user_dsn.round(2)}, which results in a heating capacity of #{OpenStudio.convert((max_cool_cap_w_upsize * htg_to_clg_hp_ratio * hp_derate_factor_at_user_dsn), 'W', 'ton').get.round(2)} tons at this temperature, which is #{(((max_cool_cap_w_upsize * htg_to_clg_hp_ratio * hp_derate_factor_at_user_dsn) / req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn) * 100).round(2)}% of the design heating load at this temperature.")
+        # define design airflows
+        design_cooling_airflow_m_3_per_s = old_terminal_sa_flow_m3_per_s
+        design_heating_airflow_m_3_per_s = design_air_flow_from_zone_sizing_heating_m_3_per_s
       end
-      ### Cooling
-      # define cooling stages; 40% to 100%, equally spaced; fractions from ResStock Reference file
-      # overriding 0.67 (value for stage3) to 0.60 (average of standard performance products) for modeling standard performance
-      if std_perf
-        stage3_factor = 0.60
-        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding stage 3 factor to #{stage3_factor} for modeling standard performance.")
+
+      # sizing result summary output log using for measure documentation
+      if debug_verbose
+        runner.registerInfo("sizing summary: sizing air loop (#{air_loop_hvac.name}): air_loop_hvac name  =  #{air_loop_hvac.name}")
+        runner.registerInfo("sizing summary: sizing air loop (#{air_loop_hvac.name}): heating_load_category = #{heating_load_category}")
+        runner.registerInfo("sizing summary: sizing air loop (#{air_loop_hvac.name}): original rated cooling capacity W = #{orig_clg_coil_gross_cap.round(2)}")
+        runner.registerInfo("sizing summary: sizing air loop (#{air_loop_hvac.name}): design heating load (from load curve based on user specified design temp) W = #{dns_htg_load_at_user_dsn_temp.round(2)}")
+        runner.registerInfo("sizing summary: sizing air loop (#{air_loop_hvac.name}): design heating load (from original heating coil) W = #{orig_htg_coil_gross_cap.round(2)}")
+        runner.registerInfo("sizing summary: sizing air loop (#{air_loop_hvac.name}): minimum heating capacity threshold W = #{(autosized_tot_clg_cap_upsized * htg_to_clg_hp_ratio).round(2)}")
+        runner.registerInfo("sizing summary: sizing air loop (#{air_loop_hvac.name}): maximum heating capacity threshold W = #{max_heat_cap_w_upsize.round(2)}")
+        runner.registerInfo("sizing summary: sizing air loop (#{air_loop_hvac.name}): required rated heating capacity to meet design heating load W = #{req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn.round(2)}")
+        runner.registerInfo("sizing summary: sizing air loop (#{air_loop_hvac.name}): heat pump heating sizing temperature F = #{OpenStudio.convert(
+          hp_sizing_temp_c, 'C', 'F'
+        ).get.round(0)}")
+        runner.registerInfo("sizing summary: sizing air loop (#{air_loop_hvac.name}): heating capacity derating factor at design temperature = #{hp_derate_factor_at_user_dsn.round(3)}")
+        runner.registerInfo("sizing summary: sizing air loop (#{air_loop_hvac.name}): upsized rated heating capacity W = #{dx_rated_htg_cap_applied.round(2)}")
+        runner.registerInfo("sizing summary: sizing air loop (#{air_loop_hvac.name}): upsized rated cooling capacity W = #{dx_rated_clg_cap_applied.round(2)}")
+        runner.registerInfo("sizing summary: sizing air loop (#{air_loop_hvac.name}): final upsizing percentage % = #{((dx_rated_htg_cap_applied - orig_clg_coil_gross_cap) / orig_clg_coil_gross_cap * 100).round(2)}")
+      end
+
+      # calculate applied upsizing factor
+      upsize_factor = (dx_rated_htg_cap_applied - orig_clg_coil_gross_cap) / orig_clg_coil_gross_cap
+
+      # upsize airflow accordingly
+      design_heating_airflow_m_3_per_s *= (1 + upsize_factor)
+      design_cooling_airflow_m_3_per_s *= (1 + upsize_factor)
+
+      if debug_verbose
+        runner.registerInfo('sizing summary: before rated cfm/ton adjustmant')
+        runner.registerInfo("sizing summary: dx_rated_htg_cap_applied = #{dx_rated_htg_cap_applied}")
+        runner.registerInfo("sizing summary: design_heating_airflow_m_3_per_s = #{design_heating_airflow_m_3_per_s}")
+        runner.registerInfo("sizing summary: cfm/ton heating = #{m_3_per_sec_watts_to_cfm_per_ton(design_heating_airflow_m_3_per_s / dx_rated_htg_cap_applied)}")
+        runner.registerInfo("sizing summary: dx_rated_clg_cap_applied = #{dx_rated_clg_cap_applied}")
+        runner.registerInfo("sizing summary: design_cooling_airflow_m_3_per_s = #{design_cooling_airflow_m_3_per_s}")
+        runner.registerInfo("sizing summary: cfm/ton heating = #{m_3_per_sec_watts_to_cfm_per_ton(design_cooling_airflow_m_3_per_s / dx_rated_clg_cap_applied)}")
+      end
+
+      # adjust if rated/highest stage cfm/ton is violated
+      cfm_per_ton_rated_heating = m_3_per_sec_watts_to_cfm_per_ton(design_heating_airflow_m_3_per_s / dx_rated_htg_cap_applied)
+      cfm_per_ton_rated_cooling = m_3_per_sec_watts_to_cfm_per_ton(design_cooling_airflow_m_3_per_s / dx_rated_clg_cap_applied)
+      if cfm_per_ton_rated_heating < CFM_PER_TON_MIN_RATED
+        design_heating_airflow_m_3_per_s = cfm_per_ton_to_m_3_per_sec_watts(CFM_PER_TON_MIN_RATED) * dx_rated_htg_cap_applied
+      elsif cfm_per_ton_rated_heating > CFM_PER_TON_MAX_RATED
+        design_heating_airflow_m_3_per_s = cfm_per_ton_to_m_3_per_sec_watts(CFM_PER_TON_MAX_RATED) * dx_rated_htg_cap_applied
+      end
+      if cfm_per_ton_rated_cooling < CFM_PER_TON_MIN_RATED
+        design_cooling_airflow_m_3_per_s = cfm_per_ton_to_m_3_per_sec_watts(CFM_PER_TON_MIN_RATED) * dx_rated_clg_cap_applied
+      elsif cfm_per_ton_rated_cooling > CFM_PER_TON_MAX_RATED
+        design_cooling_airflow_m_3_per_s = cfm_per_ton_to_m_3_per_sec_watts(CFM_PER_TON_MAX_RATED) * dx_rated_clg_cap_applied
+      end
+
+      if debug_verbose
+        runner.registerInfo('sizing summary: after rated cfm/ton adjustmant')
+        runner.registerInfo("sizing summary: dx_rated_htg_cap_applied = #{dx_rated_htg_cap_applied}")
+        runner.registerInfo("sizing summary: design_heating_airflow_m_3_per_s = #{design_heating_airflow_m_3_per_s}")
+        runner.registerInfo("sizing summary: cfm/ton heating = #{m_3_per_sec_watts_to_cfm_per_ton(design_heating_airflow_m_3_per_s / dx_rated_htg_cap_applied)}")
+        runner.registerInfo("sizing summary: dx_rated_clg_cap_applied = #{dx_rated_clg_cap_applied}")
+        runner.registerInfo("sizing summary: design_cooling_airflow_m_3_per_s = #{design_cooling_airflow_m_3_per_s}")
+        runner.registerInfo("sizing summary: cfm/ton heating = #{m_3_per_sec_watts_to_cfm_per_ton(design_cooling_airflow_m_3_per_s / dx_rated_clg_cap_applied)}")
+        runner.registerInfo("sizing summary: upsize_factor = #{upsize_factor}")
+        runner.registerInfo("sizing summary: heating_load_category = #{heating_load_category}")
+      end
+
+      # set airloop design airflow based on the maximum of heating and cooling design flow
+      design_airflow_for_sizing_m_3_per_s = if design_cooling_airflow_m_3_per_s < design_heating_airflow_m_3_per_s
+                                              design_heating_airflow_m_3_per_s
+                                            else
+                                              design_cooling_airflow_m_3_per_s
+                                            end
+
+      # reset supply airflow if less than minimum OA
+      if oa_flow_m3_per_s > design_airflow_for_sizing_m_3_per_s
+        design_airflow_for_sizing_m_3_per_s = oa_flow_m3_per_s
+      end
+      if oa_flow_m3_per_s > design_cooling_airflow_m_3_per_s
+        design_cooling_airflow_m_3_per_s = oa_flow_m3_per_s
+      end
+      if oa_flow_m3_per_s > design_heating_airflow_m_3_per_s
+        design_heating_airflow_m_3_per_s = oa_flow_m3_per_s
+      end
+
+      # set minimum flow rate to 0.40, or higher as needed to maintain outdoor air requirements
+      min_flow = 0.40
+
+      # determine minimum airflow ratio for sizing; 0.4 is used unless OA requires higher
+      min_airflow_m3_per_s = nil
+      current_min_oa_flow_ratio = oa_flow_m3_per_s / design_heating_airflow_m_3_per_s
+      if current_min_oa_flow_ratio > min_flow
+        min_airflow_ratio = current_min_oa_flow_ratio
+        min_airflow_m3_per_s = min_airflow_ratio * design_airflow_for_sizing_m_3_per_s
       else
-        stage3_factor = 0.67
+        min_airflow_ratio = min_flow
+        min_airflow_m3_per_s = min_airflow_ratio * design_airflow_for_sizing_m_3_per_s
       end
-      clg_stage1 = dx_rated_clg_cap_applied * 0.36
-      clg_stage2 = dx_rated_clg_cap_applied * 0.51
-      clg_stage3 = dx_rated_clg_cap_applied * stage3_factor
-      clg_stage4 = dx_rated_clg_cap_applied
-      hash_clg_cap_stgs = {1 => clg_stage1, 2 => clg_stage2, 3 => clg_stage3, 4 => clg_stage4}
 
-            ################################################
-      # puts "Analysis..."
-      hash_clg_speed_level_status = {}
-      [4,3,2,1].each do |clg_stg|
-        # define airflow and capacity for stage
-        stg_cap = hash_clg_cap_stgs[clg_stg]
-        stg_airflow = hash_clg_airflow_stgs[clg_stg]
-        ratio_flow_to_cap_orig = stg_airflow / stg_cap
+      # increase design airflow to accomodate upsizing
+      air_loop_hvac.setDesignSupplyAirFlowRate(design_airflow_for_sizing_m_3_per_s)
+      controller_oa.setMaximumOutdoorAirFlowRate(design_airflow_for_sizing_m_3_per_s)
 
-        # check upper limit of ratio for compliance (>450 CFM/Ton)
-        spacer = 0
-        spacer = 1 unless clg_stg==4
-        max_reached=false
-        # next if clg_stg==4
-        if ratio_flow_to_cap_orig.round(8) > 0.00006041
-          # range can be met using minimum airflow and increasing capacity of speed
-          # this will only occur if new capacity is at least 50% between previous and new stage capacity
-          if ((max_reached==false) && (((hash_clg_cap_stgs[clg_stg+spacer] - (stg_cap / (0.00006041 / (stg_airflow/stg_cap)))) / (hash_clg_cap_stgs[clg_stg+spacer] - stg_cap)) > 0.50)) || ((clg_stg==4) || (clg_stg==3))
+      if debug_verbose
+        runner.registerInfo("sizing summary: design_airflow_for_sizing_m_3_per_s = #{design_airflow_for_sizing_m_3_per_s}")
+        runner.registerInfo("sizing summary: min_oa_flow_ratio = #{min_oa_flow_ratio} | min_flow = #{min_flow}")
+        runner.registerInfo("sizing summary: min_airflow_m3_per_s = #{min_airflow_m3_per_s}")
+      end
 
-            # max_reached=true
-            # calculate new capacities based on decreased airflow to minimum allowed and increasing capacity
-            new_airflow = stg_airflow
-            new_cap = stg_cap / (0.00006041 / (stg_airflow/stg_cap))
-            hash_clg_airflow_stgs[clg_stg] = new_airflow
-            hash_clg_cap_stgs[clg_stg] = new_cap
-            #runner.registerWarning("For airloop #{air_loop_hvac.name}, cooling stage #{clg_stg} airflow/capacity ratio is too high with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 6.041e-05 m3/s/watt. The capacity of the stage will be increased from #{stg_cap.round(0)} watts to #{new_cap.round(0)} watts.")
-            hash_clg_speed_level_status[clg_stg] = true
-          # range cannot be met given minimum airflow constraints, or limit has already been met in previous stage
-          else
-            max_reached=true
-            #runner.registerWarning("For airloop #{air_loop_hvac.name}, cooling stage #{clg_stg} airflow/capacity airflow is too high with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 6.04e-05 m3/s/watt. Due to minimum outdoor airflow requirements this value cannot be brought into bounds. This stage will be given a neglible capacity making it effectively unavailable.")
-            hash_clg_speed_level_status[clg_stg] = false
-          end
-
-        # check lower limit of ratio for complaince (<300 CFM/Ton)
-        elsif ((stg_airflow / stg_cap) < 0.00004027) && (clg_stg != 4)
-          # calculate new stage capacity to fall in range. This should be an increase.
-          new_cap = stg_cap / (0.00004027 / (stg_airflow/stg_cap))
-          hash_clg_cap_stgs[clg_stg] = new_cap
-          #runner.registerWarning("For airloop #{air_loop_hvac.name}, cooling stage #{clg_stg} airflow/capacity ratio is too low with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 4.03e-05 m3/s/watt. The capacity for this stage will be decreased from #{stg_cap.round(2)} watts to #{new_cap.round(2)} m3/s to bring the airflow/capacity within the allowable bounds.")
-          hash_clg_speed_level_status[clg_stg] = true
+      # determine airflows for each stage of heating
+      # airflow for each stage will be the higher of the user-input stage ratio or the minimum OA
+      # lower stages may be removed later if cfm/ton bounds cannot be maintained due to minimum OA limits
+      # if oversizing is not specified (upsize_factor = 0.0), then use cooling design airflow
+      stage_flows_heating = {}
+      stage_flow_fractions_heating.each do |stage, ratio|
+        if upsize_factor == 0.0
+          airflow = ratio * design_cooling_airflow_m_3_per_s
         else
-          hash_clg_speed_level_status[clg_stg] = true
+          airflow = ratio * design_heating_airflow_m_3_per_s
         end
+        stage_flows_heating[stage] = airflow >= min_airflow_m3_per_s ? airflow : min_airflow_m3_per_s
       end
 
-      ### Heating
-      # define heating stages
-      htg_stage1 = dx_rated_htg_cap_applied * 0.28
-      htg_stage2 = dx_rated_htg_cap_applied * 0.48
-      htg_stage3 = dx_rated_htg_cap_applied * 0.85
-      htg_stage4 = dx_rated_htg_cap_applied
-      hash_htg_cap_stgs = {1 => htg_stage1, 2 => htg_stage2, 3 => htg_stage3, 4 => htg_stage4}
-
-      max_reached=false
-      hash_htg_speed_level_status = {}
-      [4,3,2,1].each do |htg_stg|
-        # define airflow and capacity for stage
-        stg_cap = hash_htg_cap_stgs[htg_stg]
-        stg_airflow = hash_htg_airflow_stgs[htg_stg]
-        ratio_flow_to_cap_orig = stg_airflow / stg_cap
-
-        # check upper limit of ratio for compliance (>450 CFM/Ton)
-        spacer = 0
-        spacer = 1 unless htg_stg==4
-        # next if htg_stg==4
-        if ratio_flow_to_cap_orig.round(8) > 0.00006041
-          # range can be met using minimum airflow and increasing capacity of speed
-          # this will only occur if new capacity is at least 50% between previous and new stage capacity
-          if ((max_reached==false) && (((hash_htg_cap_stgs[htg_stg+spacer] - (stg_cap / (0.00006041 / (stg_airflow/stg_cap)))) / (hash_htg_cap_stgs[htg_stg+spacer] - stg_cap)) > 0.5)) || ((htg_stg==4) || (htg_stg==3))
-            # max_reached=true
-            # calculate new capacities based on decreased airflow to minimum allowed and increasing capacity
-            new_airflow = stg_airflow
-            new_cap = stg_cap / (0.00006041 / (stg_airflow/stg_cap))
-            hash_htg_airflow_stgs[htg_stg] = new_airflow
-            hash_htg_cap_stgs[htg_stg] = new_cap
-            #runner.registerWarning("For airloop #{air_loop_hvac.name}, heating stage #{htg_stg} airflow/capacity ratio is too high with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 6.04e-05 m3/s/watt. The capacity of the stage will be increased from #{stg_cap.round(0)} watts to #{new_cap.round(0)} watts.")
-            hash_htg_speed_level_status[htg_stg] = true
-          # range cannot be met given minimum airflow constraints, or limit has already been met in previous stage
-          else
-            max_reached=true
-            runner.registerWarning("For airloop #{air_loop_hvac.name}, heating stage #{htg_stg} airflow/capacity airflow is too high with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 6.04e-05 m3/s/watt. Due to minimum outdoor airflow requirements this value cannot be brought into bounds. This stage will be given a neglible capacity making it effectively unavailable.")
-            hash_htg_speed_level_status[htg_stg] = false
-          end
-
-        # check lower limit of ratio for complaince (<300 CFM/Ton)
-        # check lower limit of ratio for complaince (<300 CFM/Ton)
-        elsif ((stg_airflow / stg_cap).round(8) < 0.00004027) && (htg_stg != 4)
-          # calculate new stage capacity to fall in range. This should be an increase.
-          new_cap = stg_cap / (0.00004027 / (stg_airflow/stg_cap))
-          hash_htg_cap_stgs[htg_stg] = new_cap
-          #runner.registerWarning("For airloop #{air_loop_hvac.name}, heating stage #{htg_stg} airflow/capacity ratio is too low with a value of #{(ratio_flow_to_cap_orig).round(8)} m3/s/watt, which exceeds the maximum allowable value of 4.03e-05 m3/s/watt. The capacity for this stage will be decreased from #{stg_cap.round(2)} watts to #{new_cap.round(2)} m3/s to bring the airflow/capacity within the allowable bounds.")
-          hash_htg_speed_level_status[htg_stg] = true
-        else
-          hash_htg_speed_level_status[htg_stg] = true
-        end
+      # determine airflows for each stage of cooling
+      # airflow for each stage will be the higher of the user-input stage ratio or the minimum OA
+      # lower stages may be removed later if cfm/ton bounds cannot be maintained due to minimum OA limits
+      stage_flows_cooling = {}
+      stage_flow_fractions_cooling.sort.each do |stage, ratio|
+        airflow = ratio * design_cooling_airflow_m_3_per_s
+        stage_flows_cooling[stage] = airflow >= min_airflow_m3_per_s ? airflow : min_airflow_m3_per_s
       end
 
-      #################################### End Sizing Logic
-
-      # override stage configuration for modeling standard performance
-      if std_perf
-        # set single stage for heating
-        hash_htg_speed_level_status[1] = false
-        hash_htg_speed_level_status[2] = false
-        hash_htg_speed_level_status[3] = false
-        # set two stages for cooling
-        hash_clg_speed_level_status[1] = false
-        hash_clg_speed_level_status[2] = false
+      if debug_verbose
+        runner.registerInfo('sizing summary: before cfm/ton adjustments for lower stages')
+        runner.registerInfo("sizing summary: stage_flow_fractions_heating = #{stage_flow_fractions_heating}")
+        runner.registerInfo("sizing summary: stage_flow_fractions_cooling = #{stage_flow_fractions_cooling}")
+        runner.registerInfo("sizing summary: stage_flows_heating = #{stage_flows_heating}")
+        runner.registerInfo("sizing summary: stage_flows_cooling = #{stage_flows_cooling}")
       end
 
-      ################################### Cooling Performance Curves
-      # define performance curves
+      # heating - align stage CFM/ton bounds where possible
+      # this may remove some lower stages
+      stage_flows_heating, stage_caps_heating, _, _, num_heating_stages = adjust_cfm_per_ton_per_limits(
+        stage_cap_fractions_heating,
+        stage_flows_heating,
+        stage_flow_fractions_heating,
+        dx_rated_htg_cap_applied,
+        rated_stage_num_heating,
+        design_heating_airflow_m_3_per_s,
+        min_airflow_ratio,
+        air_loop_hvac,
+        heating_or_cooling = 'heating',
+        runner,
+        debug_verbose
+      )
 
-      # Cooling Capacity Function of Temperature Curve - 1
-      cool_cap_ft1 = OpenStudio::Model::CurveBiquadratic.new(model)
-      cool_cap_ft1.setName("#{air_loop_hvac.name} cool_cap_ft1")
-      cool_cap_ft1.setCoefficient1Constant(1.203)
-      cool_cap_ft1.setCoefficient2x(0.07866)
-      cool_cap_ft1.setCoefficient3xPOW2(-0.001797)
-      cool_cap_ft1.setCoefficient4y(-0.09527)
-      cool_cap_ft1.setCoefficient5yPOW2(0.00134)
-      cool_cap_ft1.setCoefficient6xTIMESY(0.0009421)
-      cool_cap_ft1.setMinimumValueofx(-100)
-      cool_cap_ft1.setMaximumValueofx(100)
-      cool_cap_ft1.setMinimumValueofy(-100)
-      cool_cap_ft1.setMaximumValueofy(100)
-      # Cooling Capacity Function of Temperature Curve - 2
-      cool_cap_ft2 = OpenStudio::Model::CurveBiquadratic.new(model)
-      cool_cap_ft2.setName("#{air_loop_hvac.name} cool_cap_ft2")
-      cool_cap_ft2.setCoefficient1Constant(-1.07)
-      cool_cap_ft2.setCoefficient2x(0.2633)
-      cool_cap_ft2.setCoefficient3xPOW2(-0.00629)
-      cool_cap_ft2.setCoefficient4y(-0.03907)
-      cool_cap_ft2.setCoefficient5yPOW2(0.0005085)
-      cool_cap_ft2.setCoefficient6xTIMESY(0.0001078)
-      cool_cap_ft2.setMinimumValueofx(-100)
-      cool_cap_ft2.setMaximumValueofx(100)
-      cool_cap_ft2.setMinimumValueofy(-100)
-      cool_cap_ft2.setMaximumValueofy(100)
-      # Cooling Capacity Function of Temperature Curve - 3
-      if std_perf
-        cool_cap_ft3 = c_cap_low_T
-        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: cool_cap_ft3.name = #{cool_cap_ft3.name}")
-      else
-        cool_cap_ft3 = OpenStudio::Model::CurveBiquadratic.new(model)
-        cool_cap_ft3.setName("#{air_loop_hvac.name} cool_cap_ft3")
-        cool_cap_ft3.setCoefficient1Constant(-0.619499999999998)
-        cool_cap_ft3.setCoefficient2x(0.1621)
-        cool_cap_ft3.setCoefficient3xPOW2(-0.003028)
-        cool_cap_ft3.setCoefficient4y(-0.002812)
-        cool_cap_ft3.setCoefficient5yPOW2(-2.59e-05)
-        cool_cap_ft3.setCoefficient6xTIMESY(-0.0003764)
-        cool_cap_ft3.setMinimumValueofx(-100)
-        cool_cap_ft3.setMaximumValueofx(100)
-        cool_cap_ft3.setMinimumValueofy(-100)
-        cool_cap_ft3.setMaximumValueofy(100)
+      # cooling - align stage CFM/ton bounds where possible
+      # this may remove some lower stages
+      stage_flows_cooling, stage_caps_cooling, _, _, num_cooling_stages = adjust_cfm_per_ton_per_limits(
+        stage_cap_fractions_cooling,
+        stage_flows_cooling,
+        stage_flow_fractions_cooling,
+        dx_rated_clg_cap_applied,
+        rated_stage_num_cooling,
+        design_cooling_airflow_m_3_per_s,
+        min_airflow_ratio,
+        air_loop_hvac,
+        heating_or_cooling = 'cooling',
+        runner,
+        debug_verbose
+      )
+
+      if debug_verbose
+        runner.registerInfo('sizing summary: after cfm/ton adjustments for lower stages')
+        runner.registerInfo("sizing summary: stage_flows_heating = #{stage_flows_heating}")
+        runner.registerInfo("sizing summary: stage_flows_cooling = #{stage_flows_cooling}")
       end
-      # Cooling Capacity Function of Temperature Curve - 4
-      if std_perf
-        cool_cap_ft4 = c_cap_high_T
-        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: cool_cap_ft4.name = #{cool_cap_ft4.name}")
-      else
-        cool_cap_ft4 = OpenStudio::Model::CurveBiquadratic.new(model)
-        cool_cap_ft4.setName("#{air_loop_hvac.name} cool_cap_ft4")
-        cool_cap_ft4.setCoefficient1Constant(1.037)
-        cool_cap_ft4.setCoefficient2x(-0.02036)
-        cool_cap_ft4.setCoefficient3xPOW2(0.002231)
-        cool_cap_ft4.setCoefficient4y(-0.000253799999999998)
-        cool_cap_ft4.setCoefficient5yPOW2(4.604e-05)
-        cool_cap_ft4.setCoefficient6xTIMESY(-0.000779)
-        cool_cap_ft4.setMinimumValueofx(-100)
-        cool_cap_ft4.setMaximumValueofx(100)
-        cool_cap_ft4.setMinimumValueofy(-100)
-        cool_cap_ft4.setMaximumValueofy(100)
+      #################################### Start performance curve assignment
+
+      # ---------------------------------------------------------
+      # cooling curve assignments
+      # ---------------------------------------------------------
+      # adjust rated cooling cop
+      if final_rated_cooling_cop == false
+        final_rated_cooling_cop = adjust_rated_cop_from_ref_cfm_per_ton(runner, stage_flows_cooling[rated_stage_num_cooling],
+                                                                        reference_cooling_cfm_per_ton,
+                                                                        stage_caps_cooling[rated_stage_num_cooling],
+                                                                        get_rated_cop_cooling(stage_caps_cooling[rated_stage_num_cooling]),
+                                                                        cool_eir_ff_curve_stages[rated_stage_num_cooling])
+        runner.registerInfo("sizing summary: rated cooling COP adjusted from #{get_rated_cop_cooling(stage_caps_cooling[rated_stage_num_cooling]).round(3)} to #{final_rated_cooling_cop.round(3)} based on reference cfm/ton of #{reference_cooling_cfm_per_ton.round(0)} (i.e., average value of actual products)")
+        runner.registerInfo("sizing summary: sizing air loop (#{air_loop_hvac.name}): final rated cooling COP = #{final_rated_cooling_cop.round(3)}")
       end
 
-      # Cooling Capacity Function of Flow Fraction Curve
-      cool_cap_fff_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
-      cool_cap_fff_all_stages.setName("#{air_loop_hvac.name} cool_cap_fff_all_stages")
-      cool_cap_fff_all_stages.setCoefficient1Constant(1)
-      cool_cap_fff_all_stages.setCoefficient2x(0)
-      cool_cap_fff_all_stages.setCoefficient3xPOW2(0)
-      cool_cap_fff_all_stages.setMinimumValueofx(0)
-      cool_cap_fff_all_stages.setMaximumValueofx(2)
-      cool_cap_fff_all_stages.setMinimumCurveOutput(0)
-      cool_cap_fff_all_stages.setMaximumCurveOutput(2)
+      # define new cooling coil
+      # single speed is used for 1 stage units, otherwise multispeed is used.
+      new_dx_cooling_coil = set_cooling_coil_stages(
+        model,
+        runner,
+        stage_flows_cooling,
+        stage_caps_cooling,
+        num_cooling_stages,
+        final_rated_cooling_cop,
+        cool_cap_ft_curve_stages,
+        cool_eir_ft_curve_stages,
+        cool_cap_ff_curve_stages,
+        cool_eir_ff_curve_stages,
+        cool_plf_fplr1,
+        stage_rated_cop_frac_cooling,
+        stage_gross_rated_sensible_heat_ratio_cooling,
+        rated_stage_num_cooling,
+        enable_cycling_losses_above_lowest_speed,
+        air_loop_hvac,
+        always_on,
+        stage_caps_heating,
+        debug_verbose
+      )
 
-      # Energy Input Ratio Function of Temperature Curve - 1
-      cool_eir_ft1 = OpenStudio::Model::CurveBiquadratic.new(model)
-      cool_eir_ft1.setName("#{air_loop_hvac.name} cool_eir_ft1")
-      cool_eir_ft1.setCoefficient1Constant(1.021)
-      cool_eir_ft1.setCoefficient2x(-0.1214)
-      cool_eir_ft1.setCoefficient3xPOW2(0.003936)
-      cool_eir_ft1.setCoefficient4y(0.05435)
-      cool_eir_ft1.setCoefficient5yPOW2(0.000283)
-      cool_eir_ft1.setCoefficient6xTIMESY(-0.002057)
-      cool_eir_ft1.setMinimumValueofx(-100)
-      cool_eir_ft1.setMaximumValueofx(100)
-      cool_eir_ft1.setMinimumValueofy(-100)
-      cool_eir_ft1.setMaximumValueofy(100)
-      # Energy Input Ratio Function of Temperature Curve - 2
-      cool_eir_ft2 = OpenStudio::Model::CurveBiquadratic.new(model)
-      cool_eir_ft2.setName("#{air_loop_hvac.name} cool_eir_ft2")
-      cool_eir_ft2.setCoefficient1Constant(1.999)
-      cool_eir_ft2.setCoefficient2x(-0.1977)
-      cool_eir_ft2.setCoefficient3xPOW2(0.006001)
-      cool_eir_ft2.setCoefficient4y(0.03196)
-      cool_eir_ft2.setCoefficient5yPOW2(0.000638)
-      cool_eir_ft2.setCoefficient6xTIMESY(-0.001948)
-      cool_eir_ft2.setMinimumValueofx(-100)
-      cool_eir_ft2.setMaximumValueofx(100)
-      cool_eir_ft2.setMinimumValueofy(-100)
-      cool_eir_ft2.setMaximumValueofy(100)
-      # Energy Input Ratio Function of Temperature Curve - 3
-      if std_perf
-        cool_eir_ft3 = c_eir_low_T
-        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: cool_eir_ft3.name = #{cool_eir_ft3.name}")
-      else
-        cool_eir_ft3 = OpenStudio::Model::CurveBiquadratic.new(model)
-        cool_eir_ft3.setName("#{air_loop_hvac.name} cool_eir_ft3")
-        cool_eir_ft3.setCoefficient1Constant(1.745)
-        cool_eir_ft3.setCoefficient2x(-0.1546)
-        cool_eir_ft3.setCoefficient3xPOW2(0.004585)
-        cool_eir_ft3.setCoefficient4y(0.02595)
-        cool_eir_ft3.setCoefficient5yPOW2(0.0006609)
-        cool_eir_ft3.setCoefficient6xTIMESY(-0.001752)
-        cool_eir_ft3.setMinimumValueofx(-100)
-        cool_eir_ft3.setMaximumValueofx(100)
-        cool_eir_ft3.setMinimumValueofy(-100)
-        cool_eir_ft3.setMaximumValueofy(100)
-      end
-      # Energy Input Ratio Function of Temperature Curve - 4
-      if std_perf
-        cool_eir_ft4 = c_eir_high_T
-        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: cool_eir_ft4.name = #{cool_eir_ft4.name}")
-      else
-        cool_eir_ft4 = OpenStudio::Model::CurveBiquadratic.new(model)
-        cool_eir_ft4.setName("#{air_loop_hvac.name} cool_eir_ft4")
-        cool_eir_ft4.setCoefficient1Constant(0.2555)
-        cool_eir_ft4.setCoefficient2x(0.03711)
-        cool_eir_ft4.setCoefficient3xPOW2(-0.001427)
-        cool_eir_ft4.setCoefficient4y(0.008907)
-        cool_eir_ft4.setCoefficient5yPOW2(0.0005665)
-        cool_eir_ft4.setCoefficient6xTIMESY(-0.0006538)
-        cool_eir_ft4.setMinimumValueofx(-100)
-        cool_eir_ft4.setMaximumValueofx(100)
-        cool_eir_ft4.setMinimumValueofy(-100)
-        cool_eir_ft4.setMaximumValueofy(100)
+      # ---------------------------------------------------------
+      # heating curve assignments
+      # ---------------------------------------------------------
+      # adjust rated heating cop
+      if final_rated_heating_cop == false
+        final_rated_heating_cop = adjust_rated_cop_from_ref_cfm_per_ton(runner, stage_flows_heating[rated_stage_num_heating],
+                                                                        reference_heating_cfm_per_ton,
+                                                                        stage_caps_heating[rated_stage_num_heating],
+                                                                        get_rated_cop_heating(stage_caps_heating[rated_stage_num_heating]),
+                                                                        heat_eir_ff_curve_stages[rated_stage_num_heating])
+        runner.registerInfo("sizing summary: rated heating COP adjusted from #{get_rated_cop_heating(stage_caps_heating[rated_stage_num_heating]).round(3)} to #{final_rated_heating_cop.round(3)} based on reference cfm/ton of #{reference_heating_cfm_per_ton.round(0)} (i.e., average value of actual products)")
+        runner.registerInfo("sizing summary: sizing air loop (#{air_loop_hvac.name}): final rated heating COP = #{final_rated_heating_cop.round(3)}")
       end
 
-      # Energy Input Ratio Function of Flow Fraction Curve
-      cool_eir_fff_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
-      cool_eir_fff_all_stages.setName("#{air_loop_hvac.name} cool_eir_fff")
-      cool_eir_fff_all_stages.setCoefficient1Constant(1)
-      cool_eir_fff_all_stages.setCoefficient2x(0)
-      cool_eir_fff_all_stages.setCoefficient3xPOW2(0)
-      cool_eir_fff_all_stages.setMinimumValueofx(0)
-      cool_eir_fff_all_stages.setMaximumValueofx(2)
-      cool_eir_fff_all_stages.setMinimumCurveOutput(0)
-      cool_eir_fff_all_stages.setMaximumCurveOutput(2)
+      # define new heating coil
+      # single speed is used for 1 stage units, otherwise multispeed is used.
+      new_dx_heating_coil = set_heating_coil_stages(
+        model,
+        runner,
+        stage_flows_heating,
+        stage_caps_heating,
+        num_heating_stages,
+        final_rated_heating_cop,
+        heat_cap_ft_curve_stages,
+        heat_eir_ft_curve_stages,
+        heat_cap_ff_curve_stages,
+        heat_eir_ff_curve_stages,
+        heat_plf_fplr1,
+        defrost_eir,
+        stage_rated_cop_frac_heating,
+        rated_stage_num_heating,
+        air_loop_hvac,
+        hp_min_comp_lockout_temp_f,
+        enable_cycling_losses_above_lowest_speed,
+        always_on,
+        stage_caps_cooling,
+        debug_verbose
+      )
 
-      # Part Load Fraction Correlation Curve
-      cool_plf_fplr_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
-      cool_plf_fplr_all_stages.setName("#{air_loop_hvac.name} cool_plf_fplr")
-      cool_plf_fplr_all_stages.setCoefficient1Constant(0.75)
-      cool_plf_fplr_all_stages.setCoefficient2x(0.25)
-      cool_plf_fplr_all_stages.setCoefficient3xPOW2(0)
-      cool_plf_fplr_all_stages.setMinimumValueofx(0)
-      cool_plf_fplr_all_stages.setMaximumValueofx(1)
-      cool_plf_fplr_all_stages.setMinimumCurveOutput(0.7)
-      cool_plf_fplr_all_stages.setMaximumCurveOutput(1)
-
-      # create new multistage coil
-      new_dx_cooling_coil = OpenStudio::Model::CoilCoolingDXMultiSpeed.new(model)
-      new_dx_cooling_coil.setName("#{air_loop_hvac.name} Heat Pump Cooling Coil")
-      new_dx_cooling_coil.setCondenserType('AirCooled')
-      new_dx_cooling_coil.setAvailabilitySchedule(always_on)
-      new_dx_cooling_coil.setMinimumOutdoorDryBulbTemperatureforCompressorOperation(-25)
-      if std_perf
-        new_dx_cooling_coil.setApplyPartLoadFractiontoSpeedsGreaterthan1(true)
-      else
-        new_dx_cooling_coil.setApplyPartLoadFractiontoSpeedsGreaterthan1(false)
-      end
-      new_dx_cooling_coil.setApplyLatentDegradationtoSpeedsGreaterthan1(false)
-      new_dx_cooling_coil.setFuelType('Electricity')
-
-      # add stage data
-      # create stage 1
-      new_dx_cooling_coil_speed1 = OpenStudio::Model::CoilCoolingDXMultiSpeedStageData.new(model)
-      new_dx_cooling_coil_speed1.setGrossRatedTotalCoolingCapacity(hash_clg_cap_stgs[1])
-      new_dx_cooling_coil_speed1.setGrossRatedSensibleHeatRatio(0.872821200315651)
-      new_dx_cooling_coil_speed1.setGrossRatedCoolingCOP(4.40)
-      new_dx_cooling_coil_speed1.setRatedAirFlowRate(hash_clg_airflow_stgs[1])
-      new_dx_cooling_coil_speed1.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
-      new_dx_cooling_coil_speed1.setTotalCoolingCapacityFunctionofTemperatureCurve(cool_cap_ft1)
-      new_dx_cooling_coil_speed1.setTotalCoolingCapacityFunctionofFlowFractionCurve(cool_cap_fff_all_stages)
-      new_dx_cooling_coil_speed1.setEnergyInputRatioFunctionofTemperatureCurve(cool_eir_ft1)
-      new_dx_cooling_coil_speed1.setEnergyInputRatioFunctionofFlowFractionCurve (cool_eir_fff_all_stages)
-      new_dx_cooling_coil_speed1.setPartLoadFractionCorrelationCurve(cool_plf_fplr_all_stages)
-      new_dx_cooling_coil_speed1.setNominalTimeforCondensateRemovaltoBegin(1000)
-      new_dx_cooling_coil_speed1.setRatioofInitialMoistureEvaporationRateandSteadyStateLatentCapacity(1.5)
-      new_dx_cooling_coil_speed1.setLatentCapacityTimeConstant(45)
-      new_dx_cooling_coil_speed1.setEvaporativeCondenserEffectiveness(0.9)
-      new_dx_cooling_coil_speed1.autosizedEvaporativeCondenserAirFlowRate
-      new_dx_cooling_coil_speed1.autosizedRatedEvaporativeCondenserPumpPowerConsumption
-      if std_perf
-        new_dx_cooling_coil.addStage(new_dx_cooling_coil_speed1) unless (hash_clg_speed_level_status[1] == false)
-      else
-        new_dx_cooling_coil.addStage(new_dx_cooling_coil_speed1) unless ((hash_clg_speed_level_status[1] == false) || (hash_htg_speed_level_status[1] == false))
-      end
-
-      # create stage 2
-      new_dx_cooling_coil_speed2 = OpenStudio::Model::CoilCoolingDXMultiSpeedStageData.new(model)
-      new_dx_cooling_coil_speed2.setGrossRatedTotalCoolingCapacity(hash_clg_cap_stgs[2])
-      new_dx_cooling_coil_speed2.setGrossRatedSensibleHeatRatio(0.80463149283227)
-      new_dx_cooling_coil_speed2.setGrossRatedCoolingCOP(4.56)
-      new_dx_cooling_coil_speed2.setRatedAirFlowRate(hash_clg_airflow_stgs[2])
-      new_dx_cooling_coil_speed2.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
-      new_dx_cooling_coil_speed2.setTotalCoolingCapacityFunctionofTemperatureCurve(cool_cap_ft2)
-      new_dx_cooling_coil_speed2.setTotalCoolingCapacityFunctionofFlowFractionCurve(cool_cap_fff_all_stages)
-      new_dx_cooling_coil_speed2.setEnergyInputRatioFunctionofTemperatureCurve(cool_eir_ft2)
-      new_dx_cooling_coil_speed2.setEnergyInputRatioFunctionofFlowFractionCurve (cool_eir_fff_all_stages)
-      new_dx_cooling_coil_speed2.setPartLoadFractionCorrelationCurve(cool_plf_fplr_all_stages)
-      new_dx_cooling_coil_speed2.setNominalTimeforCondensateRemovaltoBegin(1000)
-      new_dx_cooling_coil_speed2.setRatioofInitialMoistureEvaporationRateandSteadyStateLatentCapacity(1.5)
-      new_dx_cooling_coil_speed2.setLatentCapacityTimeConstant(45)
-      new_dx_cooling_coil_speed2.setEvaporativeCondenserEffectiveness(0.9)
-      new_dx_cooling_coil_speed2.autosizedEvaporativeCondenserAirFlowRate
-      new_dx_cooling_coil_speed2.autosizedRatedEvaporativeCondenserPumpPowerConsumption
-      if std_perf
-        new_dx_cooling_coil.addStage(new_dx_cooling_coil_speed2) unless (hash_clg_speed_level_status[2] == false)
-      else
-        new_dx_cooling_coil.addStage(new_dx_cooling_coil_speed2) unless ((hash_clg_speed_level_status[2] == false) || (hash_htg_speed_level_status[2] == false))
-      end
-
-      # create stage 3
-      new_dx_cooling_coil_speed3 = OpenStudio::Model::CoilCoolingDXMultiSpeedStageData.new(model)
-      new_dx_cooling_coil_speed3.setGrossRatedTotalCoolingCapacity(hash_clg_cap_stgs[3])
-      new_dx_cooling_coil_speed3.setGrossRatedSensibleHeatRatio(0.79452681573034)
-      if std_perf
-        rated_cop_fit = get_rated_cop_cooling(air_loop_hvac, hash_clg_airflow_stgs[3], hash_clg_cap_stgs[3])
-        new_dx_cooling_coil_speed3.setGrossRatedCoolingCOP(rated_cop_fit)
-        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), stage 3 rated_cop_cooling = #{rated_cop_fit}")
-      else
-        new_dx_cooling_coil_speed3.setGrossRatedCoolingCOP(4.44)
-      end
-      new_dx_cooling_coil_speed3.setRatedAirFlowRate(hash_clg_airflow_stgs[3])
-      new_dx_cooling_coil_speed3.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
-      new_dx_cooling_coil_speed3.setTotalCoolingCapacityFunctionofTemperatureCurve(cool_cap_ft3)
-      if std_perf
-        new_dx_cooling_coil_speed3.setTotalCoolingCapacityFunctionofFlowFractionCurve(c_cap_low_ff)
-      else
-        new_dx_cooling_coil_speed3.setTotalCoolingCapacityFunctionofFlowFractionCurve(cool_cap_fff_all_stages)
-      end
-      new_dx_cooling_coil_speed3.setEnergyInputRatioFunctionofTemperatureCurve(cool_eir_ft3)
-      if std_perf
-        new_dx_cooling_coil_speed3.setEnergyInputRatioFunctionofFlowFractionCurve(c_eir_low_ff)
-      else
-        new_dx_cooling_coil_speed3.setEnergyInputRatioFunctionofFlowFractionCurve(cool_eir_fff_all_stages)
-      end
-      new_dx_cooling_coil_speed3.setPartLoadFractionCorrelationCurve(cool_plf_fplr_all_stages)
-      new_dx_cooling_coil_speed3.setNominalTimeforCondensateRemovaltoBegin(1000)
-      new_dx_cooling_coil_speed3.setRatioofInitialMoistureEvaporationRateandSteadyStateLatentCapacity(1.5)
-      new_dx_cooling_coil_speed3.setLatentCapacityTimeConstant(45)
-      new_dx_cooling_coil_speed3.setEvaporativeCondenserEffectiveness(0.9)
-      new_dx_cooling_coil_speed3.autosizedEvaporativeCondenserAirFlowRate
-      new_dx_cooling_coil_speed3.autosizedRatedEvaporativeCondenserPumpPowerConsumption
-      if std_perf
-        new_dx_cooling_coil.addStage(new_dx_cooling_coil_speed3) unless (hash_clg_speed_level_status[3] == false)
-      else
-        new_dx_cooling_coil.addStage(new_dx_cooling_coil_speed3) unless ((hash_clg_speed_level_status[3] == false) || (hash_htg_speed_level_status[3] == false))
-      end
-
-      # create stage 4
-      new_dx_cooling_coil_speed4 = OpenStudio::Model::CoilCoolingDXMultiSpeedStageData.new(model)
-      new_dx_cooling_coil_speed4.setGrossRatedTotalCoolingCapacity(hash_clg_cap_stgs[4])
-      new_dx_cooling_coil_speed4.setGrossRatedSensibleHeatRatio(0.784532541812955)
-      if std_perf
-        rated_cop_fit = get_rated_cop_cooling(air_loop_hvac, hash_clg_airflow_stgs[4], hash_clg_cap_stgs[4])
-        new_dx_cooling_coil_speed4.setGrossRatedCoolingCOP(rated_cop_fit)
-        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), stage 4 rated_cop_cooling = #{rated_cop_fit}")
-      else
-        new_dx_cooling_coil_speed4.setGrossRatedCoolingCOP(4.11)
-      end
-      new_dx_cooling_coil_speed4.setRatedAirFlowRate(hash_clg_airflow_stgs[4])
-      new_dx_cooling_coil_speed4.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
-      new_dx_cooling_coil_speed4.setTotalCoolingCapacityFunctionofTemperatureCurve(cool_cap_ft4)
-      if std_perf
-        new_dx_cooling_coil_speed4.setTotalCoolingCapacityFunctionofFlowFractionCurve(c_cap_high_ff)
-      else
-        new_dx_cooling_coil_speed4.setTotalCoolingCapacityFunctionofFlowFractionCurve(cool_cap_fff_all_stages)
-      end
-      new_dx_cooling_coil_speed4.setEnergyInputRatioFunctionofTemperatureCurve(cool_eir_ft4)
-      if std_perf
-        new_dx_cooling_coil_speed4.setEnergyInputRatioFunctionofFlowFractionCurve(c_eir_high_ff)
-      else
-        new_dx_cooling_coil_speed4.setEnergyInputRatioFunctionofFlowFractionCurve(cool_eir_fff_all_stages)
-      end
-      new_dx_cooling_coil_speed4.setPartLoadFractionCorrelationCurve(cool_plf_fplr_all_stages)
-      new_dx_cooling_coil_speed4.setNominalTimeforCondensateRemovaltoBegin(1000)
-      new_dx_cooling_coil_speed4.setRatioofInitialMoistureEvaporationRateandSteadyStateLatentCapacity(1.5)
-      new_dx_cooling_coil_speed4.setLatentCapacityTimeConstant(45)
-      new_dx_cooling_coil_speed4.setEvaporativeCondenserEffectiveness(0.9)
-      new_dx_cooling_coil_speed4.autosizedEvaporativeCondenserAirFlowRate
-      new_dx_cooling_coil_speed4.autosizedRatedEvaporativeCondenserPumpPowerConsumption
-      new_dx_cooling_coil.addStage(new_dx_cooling_coil_speed4)
-      ####################################### End Cooling Performance Curves
-
-      ################################### Heating Performance Curves
-      # define performance curves
-
-      # Defrost Energy Input Ratio Function of Temperature Curve
-      defrost_eir = OpenStudio::Model::CurveBiquadratic.new(model)
-      defrost_eir.setName("#{air_loop_hvac.name} defrost_eir")
-      defrost_eir.setCoefficient1Constant(0.1528)
-      defrost_eir.setCoefficient2x(0)
-      defrost_eir.setCoefficient3xPOW2(0)
-      defrost_eir.setCoefficient4y(0)
-      defrost_eir.setCoefficient5yPOW2(0)
-      defrost_eir.setCoefficient6xTIMESY(0)
-      defrost_eir.setMinimumValueofx(-100)
-      defrost_eir.setMaximumValueofx(100)
-      defrost_eir.setMinimumValueofy(-100)
-      defrost_eir.setMaximumValueofy(100)
-
-      # Heating Capacity Function of Temperature Curve - 1
-      heat_cap_ft1 = OpenStudio::Model::CurveBiquadratic.new(model)
-      heat_cap_ft1.setName("#{air_loop_hvac.name} heat_cap_ft1")
-      heat_cap_ft1.setCoefficient1Constant(0.893321031576)
-      heat_cap_ft1.setCoefficient2x(-0.00973374264)
-      heat_cap_ft1.setCoefficient3xPOW2(6.3643968e-05)
-      heat_cap_ft1.setCoefficient4y(0.0391130520048)
-      heat_cap_ft1.setCoefficient5yPOW2(-2.50816824e-06)
-      heat_cap_ft1.setCoefficient6xTIMESY(-0.000272588652)
-      heat_cap_ft1.setMinimumValueofx(-100)
-      heat_cap_ft1.setMaximumValueofx(100)
-      heat_cap_ft1.setMinimumValueofy(-100)
-      heat_cap_ft1.setMaximumValueofy(100)
-      # Heating Capacity Function of Temperature Curve - 2
-      heat_cap_ft2 = OpenStudio::Model::CurveBiquadratic.new(model)
-      heat_cap_ft2.setName("#{air_loop_hvac.name} heat_cap_ft2")
-      heat_cap_ft2.setCoefficient1Constant(0.9237345336,)
-      heat_cap_ft2.setCoefficient2x(-0.00597077568)
-      heat_cap_ft2.setCoefficient3xPOW2(0)
-      heat_cap_ft2.setCoefficient4y(0.02781672876)
-      heat_cap_ft2.setCoefficient5yPOW2(6.5916828e-05)
-      heat_cap_ft2.setCoefficient6xTIMESY(-0.000189254232)
-      heat_cap_ft2.setMinimumValueofx(-100)
-      heat_cap_ft2.setMaximumValueofx(100)
-      heat_cap_ft2.setMinimumValueofy(-100)
-      heat_cap_ft2.setMaximumValueofy(100)
-      # Heating Capacity Function of Temperature Curve - 3
-      heat_cap_ft3 = OpenStudio::Model::CurveBiquadratic.new(model)
-      heat_cap_ft3.setName("#{air_loop_hvac.name} heat_cap_ft3")
-      heat_cap_ft3.setCoefficient1Constant(0.9620542196)
-      heat_cap_ft3.setCoefficient2x(-0.00949277772)
-      heat_cap_ft3.setCoefficient3xPOW2(0.000109212948)
-      heat_cap_ft3.setCoefficient4y(0.0247078314)
-      heat_cap_ft3.setCoefficient5yPOW2(3.4225092e-05)
-      heat_cap_ft3.setCoefficient6xTIMESY(-0.000125697744)
-      heat_cap_ft3.setMinimumValueofx(-100)
-      heat_cap_ft3.setMaximumValueofx(100)
-      heat_cap_ft3.setMinimumValueofy(-100)
-      heat_cap_ft3.setMaximumValueofy(100)
-      # Heating Capacity Function of Temperature Curve - 4
-      if std_perf
-        heat_cap_ft4 = h_cap_allstages_T
-        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: heat_cap_ft4.name = #{heat_cap_ft4.name}")
-      else
-        heat_cap_ft4 = OpenStudio::Model::CurveBiquadratic.new(model)
-        heat_cap_ft4.setName("#{air_loop_hvac.name} heat_cap_ft4")
-        heat_cap_ft4.setCoefficient1Constant(0.93607915412)
-        heat_cap_ft4.setCoefficient2x(-0.005481563544)
-        heat_cap_ft4.setCoefficient3xPOW2(-8.5897908e-06)
-        heat_cap_ft4.setCoefficient4y(0.02491053192)
-        heat_cap_ft4.setCoefficient5yPOW2(5.3087076e-05)
-        heat_cap_ft4.setCoefficient6xTIMESY(-0.000155750364)
-        heat_cap_ft4.setMinimumValueofx(-100)
-        heat_cap_ft4.setMaximumValueofx(100)
-        heat_cap_ft4.setMinimumValueofy(-100)
-        heat_cap_ft4.setMaximumValueofy(100)
-      end
-
-      # Heating Capacity Function of Flow Fraction Curve
-      if std_perf
-        heat_cap_fff_all_stages = h_cap_allstages_ff
-        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: heat_cap_fff_all_stages.name = #{heat_cap_fff_all_stages.name}")
-      else
-        heat_cap_fff_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
-        heat_cap_fff_all_stages.setName("#{air_loop_hvac.name} heat_cap_fff_all_stages")
-        heat_cap_fff_all_stages.setCoefficient1Constant(1)
-        heat_cap_fff_all_stages.setCoefficient2x(0)
-        heat_cap_fff_all_stages.setCoefficient3xPOW2(0)
-        heat_cap_fff_all_stages.setMinimumValueofx(0)
-        heat_cap_fff_all_stages.setMaximumValueofx(2)
-        heat_cap_fff_all_stages.setMinimumCurveOutput(0)
-        heat_cap_fff_all_stages.setMaximumCurveOutput(2)
-      end
-
-      # Energy Input Ratio Function of Temperature Curve - 1
-      heat_eir_ft1 = OpenStudio::Model::CurveBiquadratic.new(model)
-      heat_eir_ft1.setName("#{air_loop_hvac.name} heat_eir_ft1")
-      heat_eir_ft1.setCoefficient1Constant(0.466648487)
-      heat_eir_ft1.setCoefficient2x(0.020263329)
-      heat_eir_ft1.setCoefficient3xPOW2(0.00126839196)
-      heat_eir_ft1.setCoefficient4y(-0.0170161326)
-      heat_eir_ft1.setCoefficient5yPOW2(0.00317499588)
-      heat_eir_ft1.setCoefficient6xTIMESY(-0.00349609608)
-      heat_eir_ft1.setMinimumValueofx(-100)
-      heat_eir_ft1.setMaximumValueofx(100)
-      heat_eir_ft1.setMinimumValueofy(-100)
-      heat_eir_ft1.setMaximumValueofy(100)
-      # Energy Input Ratio Function of Temperature Curve - 2
-      heat_eir_ft2 = OpenStudio::Model::CurveBiquadratic.new(model)
-      heat_eir_ft2.setName("#{air_loop_hvac.name} heat_eir_ft2")
-      heat_eir_ft2.setCoefficient1Constant(0.450656859)
-      heat_eir_ft2.setCoefficient2x(0.0292902642)
-      heat_eir_ft2.setCoefficient3xPOW2(0.00039314484)
-      heat_eir_ft2.setCoefficient4y(-0.0097895178)
-      heat_eir_ft2.setCoefficient5yPOW2(0.00053936928)
-      heat_eir_ft2.setCoefficient6xTIMESY(-0.0011808828)
-      heat_eir_ft2.setMinimumValueofx(-100)
-      heat_eir_ft2.setMaximumValueofx(100)
-      heat_eir_ft2.setMinimumValueofy(-100)
-      heat_eir_ft2.setMaximumValueofy(100)
-      # Energy Input Ratio Function of Temperature Curve - 3
-      heat_eir_ft3 = OpenStudio::Model::CurveBiquadratic.new(model)
-      heat_eir_ft3.setName("#{air_loop_hvac.name} heat_eir_ft3")
-      heat_eir_ft3.setCoefficient1Constant(0.5725180114)
-      heat_eir_ft3.setCoefficient2x(0.02289624912)
-      heat_eir_ft3.setCoefficient3xPOW2(0.000266018904)
-      heat_eir_ft3.setCoefficient4y(-0.0106675434)
-      heat_eir_ft3.setCoefficient5yPOW2(0.00049092156)
-      heat_eir_ft3.setCoefficient6xTIMESY(-0.00068136876)
-      heat_eir_ft3.setMinimumValueofx(-100)
-      heat_eir_ft3.setMaximumValueofx(100)
-      heat_eir_ft3.setMinimumValueofy(-100)
-      heat_eir_ft3.setMaximumValueofy(100)
-      # Energy Input Ratio Function of Temperature Curve - 4
-      if std_perf
-        heat_eir_ft4 = h_eir_allstages_T
-        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: heat_eir_ft4.name = #{heat_eir_ft4.name}")
-      else
-        heat_eir_ft4 = OpenStudio::Model::CurveBiquadratic.new(model)
-        heat_eir_ft4.setName("#{air_loop_hvac.name} heat_eir_ft4")
-        heat_eir_ft4.setCoefficient1Constant(0.668195855)
-        heat_eir_ft4.setCoefficient2x(0.0146719548)
-        heat_eir_ft4.setCoefficient3xPOW2(0.00044596332)
-        heat_eir_ft4.setCoefficient4y(-0.0114392286)
-        heat_eir_ft4.setCoefficient5yPOW2(0.00049710348)
-        heat_eir_ft4.setCoefficient6xTIMESY(-0.00069095592)
-        heat_eir_ft4.setMinimumValueofx(-100)
-        heat_eir_ft4.setMaximumValueofx(100)
-        heat_eir_ft4.setMinimumValueofy(-100)
-        heat_eir_ft4.setMaximumValueofy(100)
-      end
-
-      # Energy Input Ratio Function of Flow Fraction Curve
-      if std_perf
-        heat_eir_fff_all_stages = h_eir_allstages_ff
-        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), overriding for modeling standard performance: heat_eir_fff_all_stages.name = #{heat_eir_fff_all_stages.name}")
-      else
-        heat_eir_fff_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
-        heat_eir_fff_all_stages.setName("#{air_loop_hvac.name} heat_eir_fff")
-        heat_eir_fff_all_stages.setCoefficient1Constant(1)
-        heat_eir_fff_all_stages.setCoefficient2x(0)
-        heat_eir_fff_all_stages.setCoefficient3xPOW2(0)
-        heat_eir_fff_all_stages.setMinimumValueofx(0)
-        heat_eir_fff_all_stages.setMaximumValueofx(2)
-        heat_eir_fff_all_stages.setMinimumCurveOutput(0)
-        heat_eir_fff_all_stages.setMaximumCurveOutput(2)
-      end
-
-      # Part Load Fraction Correlation Curve
-      heat_plf_fplr_all_stages = OpenStudio::Model::CurveQuadratic.new(model)
-      heat_plf_fplr_all_stages.setName("#{air_loop_hvac.name} heat_plf_fplr")
-      heat_plf_fplr_all_stages.setCoefficient1Constant(0.76)
-      heat_plf_fplr_all_stages.setCoefficient2x(0.24)
-      heat_plf_fplr_all_stages.setCoefficient3xPOW2(0)
-      heat_plf_fplr_all_stages.setMinimumValueofx(0)
-      heat_plf_fplr_all_stages.setMaximumValueofx(1)
-      heat_plf_fplr_all_stages.setMinimumCurveOutput(0.7)
-      heat_plf_fplr_all_stages.setMaximumCurveOutput(1)
-
-      # add new multispeed heating coil
-      if std_perf
-        new_dx_heating_coil = OpenStudio::Model::CoilHeatingDXSingleSpeed.new(model)
-        new_dx_heating_coil.setName("#{air_loop_hvac.name} Heat Pump Coil")
-        new_dx_heating_coil.setMinimumOutdoorDryBulbTemperatureforCompressorOperation(-17.7778)
-        new_dx_heating_coil.setAvailabilitySchedule(always_on)
-        new_dx_heating_coil.setDefrostEnergyInputRatioFunctionofTemperatureCurve(defrost_eir) #defrost_eir
-        new_dx_heating_coil.setMaximumOutdoorDryBulbTemperatureforDefrostOperation(4.444)
-        new_dx_heating_coil.setDefrostStrategy('ReverseCycle')
-        new_dx_heating_coil.setDefrostControl('OnDemand')
-        new_dx_heating_coil.setDefrostTimePeriodFraction(0.058333)
-
-        new_dx_heating_coil.setRatedTotalHeatingCapacity(hash_htg_cap_stgs[4])
-        rated_cop_fit = get_rated_cop_heating(air_loop_hvac, hash_htg_airflow_stgs[4], hash_htg_cap_stgs[4])
-        runner.registerInfo("--- (standard performance) for air loop (#{air_loop_hvac.name}), single stage rated_cop_heating = #{rated_cop_fit}")
-        new_dx_heating_coil.setRatedCOP(rated_cop_fit)
-        new_dx_heating_coil.setRatedAirFlowRate(hash_htg_airflow_stgs[4])
-        new_dx_heating_coil.setRatedSupplyFanPowerPerVolumeFlowRate2017(773.3)
-        new_dx_heating_coil.setTotalHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft4)
-        new_dx_heating_coil.setTotalHeatingCapacityFunctionofFlowFractionCurve(heat_cap_fff_all_stages)
-        new_dx_heating_coil.setEnergyInputRatioFunctionofTemperatureCurve(heat_eir_ft4)
-        new_dx_heating_coil.setEnergyInputRatioFunctionofFlowFractionCurve (heat_eir_fff_all_stages)
-        new_dx_heating_coil.setPartLoadFractionCorrelationCurve(heat_plf_fplr_all_stages)
-      else
-        new_dx_heating_coil = OpenStudio::Model::CoilHeatingDXMultiSpeed.new(model)
-        new_dx_heating_coil.setName("#{air_loop_hvac.name} Heat Pump Coil")
-        new_dx_heating_coil.setMinimumOutdoorDryBulbTemperatureforCompressorOperation(-17.7778)
-        new_dx_heating_coil.setAvailabilitySchedule(always_on)
-        new_dx_heating_coil.setDefrostEnergyInputRatioFunctionofTemperatureCurve(defrost_eir) #defrost_eir
-        new_dx_heating_coil.setMaximumOutdoorDryBulbTemperatureforDefrostOperation(4.444)
-        new_dx_heating_coil.setDefrostStrategy('ReverseCycle')
-        new_dx_heating_coil.setDefrostControl('OnDemand')
-        new_dx_heating_coil.setDefrostTimePeriodFraction(0.058333)
-        new_dx_heating_coil.setApplyPartLoadFractiontoSpeedsGreaterthan1(false)
-        new_dx_heating_coil.setFuelType('Electricity')
-        new_dx_heating_coil.setRegionnumberforCalculatingHSPF(4)
-
-        # add stage data: create stage 1
-        new_dx_heating_coil_speed1 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
-        new_dx_heating_coil_speed1.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[1])
-        new_dx_heating_coil_speed1.setGrossRatedHeatingCOP(5.51)
-        new_dx_heating_coil_speed1.setRatedAirFlowRate(hash_htg_airflow_stgs[1])
-        new_dx_heating_coil_speed1.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
-        new_dx_heating_coil_speed1.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft1)
-        new_dx_heating_coil_speed1.setHeatingCapacityFunctionofFlowFractionCurve(heat_cap_fff_all_stages)
-        new_dx_heating_coil_speed1.setEnergyInputRatioFunctionofTemperatureCurve(heat_eir_ft1)
-        new_dx_heating_coil_speed1.setEnergyInputRatioFunctionofFlowFractionCurve (heat_eir_fff_all_stages)
-        new_dx_heating_coil_speed1.setPartLoadFractionCorrelationCurve(heat_plf_fplr_all_stages)
-        new_dx_heating_coil.addStage(new_dx_heating_coil_speed1) unless ((hash_clg_speed_level_status[1] == false) || (hash_htg_speed_level_status[1] == false))
-
-        # add stage data: create stage 2
-        new_dx_heating_coil_speed2 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
-        new_dx_heating_coil_speed2.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[2])
-        new_dx_heating_coil_speed2.setGrossRatedHeatingCOP(4.71)
-        new_dx_heating_coil_speed2.setRatedAirFlowRate(hash_htg_airflow_stgs[2])
-        new_dx_heating_coil_speed2.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
-        new_dx_heating_coil_speed2.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft2)
-        new_dx_heating_coil_speed2.setHeatingCapacityFunctionofFlowFractionCurve(heat_cap_fff_all_stages)
-        new_dx_heating_coil_speed2.setEnergyInputRatioFunctionofTemperatureCurve(heat_eir_ft2)
-        new_dx_heating_coil_speed2.setEnergyInputRatioFunctionofFlowFractionCurve (heat_eir_fff_all_stages)
-        new_dx_heating_coil_speed2.setPartLoadFractionCorrelationCurve(heat_plf_fplr_all_stages)
-        new_dx_heating_coil.addStage(new_dx_heating_coil_speed2) unless ((hash_clg_speed_level_status[2] == false) || (hash_htg_speed_level_status[2] == false))
-
-        # add stage data: create stage 3
-        new_dx_heating_coil_speed3 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
-        new_dx_heating_coil_speed3.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[3])
-        new_dx_heating_coil_speed3.setGrossRatedHeatingCOP(3.98)
-        new_dx_heating_coil_speed3.setRatedAirFlowRate(hash_htg_airflow_stgs[3])
-        new_dx_heating_coil_speed3.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
-        new_dx_heating_coil_speed3.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft3)
-        new_dx_heating_coil_speed3.setHeatingCapacityFunctionofFlowFractionCurve(heat_cap_fff_all_stages)
-        new_dx_heating_coil_speed3.setEnergyInputRatioFunctionofTemperatureCurve(heat_eir_ft3)
-        new_dx_heating_coil_speed3.setEnergyInputRatioFunctionofFlowFractionCurve (heat_eir_fff_all_stages)
-        new_dx_heating_coil_speed3.setPartLoadFractionCorrelationCurve(heat_plf_fplr_all_stages)
-        new_dx_heating_coil.addStage(new_dx_heating_coil_speed3) unless ((hash_clg_speed_level_status[3] == false) || (hash_htg_speed_level_status[3] == false))
-
-        # add stage data: create stage 4
-        new_dx_heating_coil_speed4 = OpenStudio::Model::CoilHeatingDXMultiSpeedStageData.new(model)
-        new_dx_heating_coil_speed4.setGrossRatedHeatingCapacity(hash_htg_cap_stgs[4])
-        new_dx_heating_coil_speed4.setGrossRatedHeatingCOP(3.80)
-        new_dx_heating_coil_speed4.setRatedAirFlowRate(hash_htg_airflow_stgs[4])
-        new_dx_heating_coil_speed4.setRatedSupplyAirFanPowerPerVolumeFlowRate2017(773.3)
-        new_dx_heating_coil_speed4.setHeatingCapacityFunctionofTemperatureCurve(heat_cap_ft4)
-        new_dx_heating_coil_speed4.setHeatingCapacityFunctionofFlowFractionCurve(heat_cap_fff_all_stages)
-        new_dx_heating_coil_speed4.setEnergyInputRatioFunctionofTemperatureCurve(heat_eir_ft4)
-        new_dx_heating_coil_speed4.setEnergyInputRatioFunctionofFlowFractionCurve (heat_eir_fff_all_stages)
-        new_dx_heating_coil_speed4.setPartLoadFractionCorrelationCurve(heat_plf_fplr_all_stages)
-        new_dx_heating_coil.addStage(new_dx_heating_coil_speed4)
-      end
-
-      ####################################### End Heating Performance Curves
+      #################################### End performance curve assignment
 
       # add new supplemental heating coil
       new_backup_heating_coil = nil
       # define backup heat source TODO: set capacity to equal full heating capacity
-      if (prim_ht_fuel_type == 'electric') || (backup_ht_fuel_scheme=='electric_resistance_backup')
+      if (prim_ht_fuel_type == 'electric') || (backup_ht_fuel_scheme == 'electric_resistance_backup')
         new_backup_heating_coil = OpenStudio::Model::CoilHeatingElectric.new(model)
         new_backup_heating_coil.setEfficiency(1.0)
         new_backup_heating_coil.setName("#{air_loop_hvac.name} electric resistance backup coil")
@@ -1951,20 +2433,27 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # set availability schedule
       new_backup_heating_coil.setAvailabilitySchedule(always_on)
       # set capacity of backup heat to meet full heating load
-      new_backup_heating_coil.setNominalCapacity(orig_htg_coil_gross_cap)
+      new_backup_heating_coil.setNominalCapacity(orig_htg_coil_gross_cap_old)
 
       # add new fan
       new_fan = OpenStudio::Model::FanVariableVolume.new(model, always_on)
       new_fan.setAvailabilitySchedule(supply_fan_avail_sched)
       new_fan.setName("#{air_loop_hvac.name} VFD Fan")
-      new_fan.setFanTotalEfficiency(0.63) # from PNNL
       new_fan.setMotorEfficiency(fan_mot_eff) # from Daikin Rebel E+ file
-      new_fan.setFanPowerCoefficient1(0.242469) # from Daikin Rebel E+ file
-      new_fan.setFanPowerCoefficient2(-1.46455) # from Daikin Rebel E+ file
-      new_fan.setFanPowerCoefficient3(4.496391) # from Daikin Rebel E+ file
-      new_fan.setFanPowerCoefficient4(-3.6426) # from Daikin Rebel E+ file
-      new_fan.setFanPowerCoefficient5(1.301203) # from Daikin Rebel E+ file
-      new_fan.setFanPowerMinimumFlowRateInputMethod("Fraction")
+      new_fan.setFanPowerMinimumFlowRateInputMethod('Fraction')
+
+      # set fan total efficiency, which determines fan power
+      if hprtu_scenario == 'variable_speed_high_eff'
+        # new_fan.setFanTotalEfficiency(0.57) # from PNNL
+        std.fan_change_motor_efficiency(new_fan, fan_mot_eff)
+      else
+        new_fan.setFanTotalEfficiency(0.63) # from PNNL
+      end
+      new_fan.setFanPowerCoefficient1(0.259905264) # from Daikin Rebel E+ file
+      new_fan.setFanPowerCoefficient2(-1.569867715) # from Daikin Rebel E+ file
+      new_fan.setFanPowerCoefficient3(4.819732387) # from Daikin Rebel E+ file
+      new_fan.setFanPowerCoefficient4(-3.904544154) # from Daikin Rebel E+ file
+      new_fan.setFanPowerCoefficient5(1.394774218) # from Daikin Rebel E+ file
 
       # set minimum fan power flow fraction to the higher of 0.40 or the min flow fraction
       if min_airflow_ratio > min_flow
@@ -1975,13 +2464,13 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_fan.setPressureRise(fan_static_pressure) # set from origial fan power; 0.5in will be added later if adding HR
 
       # add new unitary system object
-      new_air_to_air_heatpump =  OpenStudio::Model::AirLoopHVACUnitarySystem.new(model)
+      new_air_to_air_heatpump = OpenStudio::Model::AirLoopHVACUnitarySystem.new(model)
       new_air_to_air_heatpump.setName("#{air_loop_hvac.name} Unitary Heat Pump System")
       new_air_to_air_heatpump.setSupplyFan(new_fan)
       new_air_to_air_heatpump.setHeatingCoil(new_dx_heating_coil)
       new_air_to_air_heatpump.setCoolingCoil(new_dx_cooling_coil)
       new_air_to_air_heatpump.setSupplementalHeatingCoil(new_backup_heating_coil)
-      new_air_to_air_heatpump.addToNode(air_loop_hvac.supplyOutletNode())
+      new_air_to_air_heatpump.addToNode(air_loop_hvac.supplyOutletNode)
 
       # set other features
       new_air_to_air_heatpump.setControllingZoneorThermostatLocation(control_zone)
@@ -1989,33 +2478,25 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_air_to_air_heatpump.setAvailabilitySchedule(unitary_availability_sched)
       new_air_to_air_heatpump.setDehumidificationControlType(dehumid_type)
       new_air_to_air_heatpump.setSupplyAirFanOperatingModeSchedule(supply_fan_op_sched)
-      new_air_to_air_heatpump.setControlType('Load') ## cc-tmp
+      new_air_to_air_heatpump.setControlType('Load')
       new_air_to_air_heatpump.setName("#{thermal_zone.name} RTU SZ-VAV Heat Pump")
       new_air_to_air_heatpump.setMaximumSupplyAirTemperature(50)
-      new_air_to_air_heatpump.setDXHeatingCoilSizingRatio(1+performance_oversizing_factor)
+      new_air_to_air_heatpump.setDXHeatingCoilSizingRatio(1 + performance_oversizing_factor)
 
       # handle deprecated methods for OS Version 3.7.0
       if model.version < OpenStudio::VersionString.new('3.7.0')
-        # set cooling design flow rate
-        new_air_to_air_heatpump.setSupplyAirFlowRateDuringCoolingOperation(hash_clg_airflow_stgs[4])
-        # set heating design flow rate
-        new_air_to_air_heatpump.setSupplyAirFlowRateDuringHeatingOperation(hash_htg_airflow_stgs[4])
         # set no load design flow rate
         new_air_to_air_heatpump.resetSupplyAirFlowRateMethodWhenNoCoolingorHeatingisRequired
-        new_air_to_air_heatpump.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_airflow_m3_per_s)
-      else
-         # set cooling design flow rate
-         new_air_to_air_heatpump.setSupplyAirFlowRateDuringCoolingOperation(hash_clg_airflow_stgs[4])
-         # set heating design flow rate
-         new_air_to_air_heatpump.setSupplyAirFlowRateDuringHeatingOperation(hash_htg_airflow_stgs[4])
-         # set no load design flow rate
-         new_air_to_air_heatpump.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_airflow_m3_per_s)
       end
-
-      # new_air_to_air_heatpump.setDOASDXCoolingCoilLeavingMinimumAirTemperature(7.5) # set minimum discharge temp to 45F, required for VAV operation
+      # set cooling design flow rate
+      new_air_to_air_heatpump.setSupplyAirFlowRateDuringCoolingOperation(stage_flows_cooling[num_cooling_stages])
+      # set heating design flow rate
+      new_air_to_air_heatpump.setSupplyAirFlowRateDuringHeatingOperation(stage_flows_heating[num_heating_stages])
+      # set no load design flow rate
+      new_air_to_air_heatpump.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_airflow_m3_per_s)
 
       # add dcv to air loop if dcv flag is true
-      if dcv==true
+      if dcv == true
         oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
         controller_oa = oa_system.getControllerOutdoorAir
         controller_mv = controller_oa.controllerMechanicalVentilation
@@ -2031,7 +2512,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # set economizer type
         controller_oa.setEconomizerControlType('DifferentialEnthalpy')
         # set drybulb temperature limit; per 90.1-2013, this is constant 75F for all climates
-        drybulb_limit_f=75
+        drybulb_limit_f = 75
         drybulb_limit_c = OpenStudio.convert(drybulb_limit_f, 'F', 'C').get
         controller_oa.setEconomizerMaximumLimitDryBulbTemperature(drybulb_limit_c)
         # set lockout for integrated heating
@@ -2041,7 +2522,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # make sure existing economizer is integrated or it wont work with multispeed coil
       oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
       controller_oa = oa_system.getControllerOutdoorAir
-      controller_oa.setLockoutType('LockoutWithHeating') unless controller_oa.getEconomizerControlType == "NoEconomizer"
+      controller_oa.setLockoutType('LockoutWithHeating') unless controller_oa.getEconomizerControlType == 'NoEconomizer'
 
       # Energy recovery
       # check for ERV, and get components
@@ -2049,145 +2530,135 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # If ERV flag was not selected, ERV equipment will remain in place as-is
       erv_components = []
       air_loop_hvac.oaComponents.each do |component|
-          component_name = component.name.to_s
-          next if component_name.include? "Node"
-          if component_name.include? "ERV"
-            erv_components << component
-            erv_components = erv_components.uniq
-          end
+        component_name = component.name.to_s
+        next if component_name.include? 'Node'
+
+        if component_name.include? 'ERV'
+          erv_components << component
+          erv_components = erv_components.uniq
         end
+      end
 
       # add energy recovery if specified by user and if the building type is applicable
-      if ((hr==true) && (btype_erv_applicable==true))
+      next unless (hr == true) && (btype_erv_applicable == true)
 
-        # check if there was previously an ERV on this air loop
-        existing_erv = !erv_components.empty?
+      # check for space type applicability
+      thermal_zone_names_to_exclude = ['Kitchen', 'kitchen', 'KITCHEN', 'Dining', 'dining', 'DINING']
+      # skip air loops that serve non-applicable space types and warn user
+      if thermal_zone_names_to_exclude.any? { |word| (thermal_zone.name.to_s).include?(word) }
+        runner.registerWarning("The user selected to add energy recovery to the HP-RTUs, but thermal zone #{thermal_zone.name} is a non-applicable space type for energy recovery. Any existing energy recovery will remain for consistancy, but no new energy recovery will be added.")
+      else
+        # remove existing ERV; these will be replaced with new ERV equipment
+        erv_components.each(&:remove)
+        # get oa system
+        oa_sys = air_loop_hvac.airLoopHVACOutdoorAirSystem
+        std.air_loop_hvac_apply_energy_recovery_ventilator(air_loop_hvac, climate_zone)
+        # set heat exchanger efficiency levels
+        # get outdoor airflow (which is used for sizing)
+        oa_sys = oa_sys.get
+        oa_flow_m3_per_s = nil
+        # get design outdoor air flow rate
+        # this is used to estimate wheel "fan" power
+        # loop through thermal zones
+        oa_flow_m3_per_s = 0
+        air_loop_hvac.thermalZones.each do |tz|
+          space = tz.spaces[0]
 
-        # check for space type applicability
-        stype_erv_applicable=true
-        thermal_zone_names_to_exclude = [
-          'Kitchen',
-          'kitchen',
-          'KITCHEN',
-          'Dining',
-          'dining',
-          'DINING',
-        ]
-        # skip air loops that serve non-applicable space types and warn user
-        if thermal_zone_names_to_exclude.any? { |word| (thermal_zone.name.to_s).include?(word) }
-          runner.registerWarning("The user selected to add energy recovery to the HP-RTUs, but thermal zone #{thermal_zone.name.to_s} is a non-applicable space type for energy recovery. Any existing energy recovery will remain for consistancy, but no new energy recovery will be added.")
-        else
-          # remove existing ERV; these will be replaced with new ERV equipment
-          erv_components.each(&:remove)
-          # get oa system
-          oa_sys = air_loop_hvac.airLoopHVACOutdoorAirSystem
-          std.air_loop_hvac_apply_energy_recovery_ventilator(air_loop_hvac, climate_zone)
-          # set heat exchanger efficiency levels
-          # get outdoor airflow (which is used for sizing)
-          oa_sys = oa_sys.get
-          oa_controller = oa_sys.getControllerOutdoorAir
-          oa_sys_sizing = air_loop_hvac.sizingSystem
-          oa_flow_m3_per_s = nil
-          # get design outdoor air flow rate
-          # this is used to estimate wheel "fan" power
-          # loop through thermal zones
-          oa_flow_m3_per_s = 0
-          air_loop_hvac.thermalZones.each do |thermal_zone|
-            space = thermal_zone.spaces[0]
+          # get zone area
+          fa = tz.floorArea * tz.multiplier
 
-            # get zone area
-            fa = thermal_zone.floorArea
+          # get zone volume
+          vol = tz.airVolume * tz.multiplier
 
-            # get zone volume
-            vol = thermal_zone.airVolume
+          # get zone design people
+          num_people = tz.numberOfPeople * tz.multiplier
 
-            # get zone design people
-            num_people = thermal_zone.numberOfPeople
+          next unless space.designSpecificationOutdoorAir.is_initialized
 
-            if space.designSpecificationOutdoorAir.is_initialized
-              dsn_spec_oa = space.designSpecificationOutdoorAir.get
+          dsn_spec_oa = space.designSpecificationOutdoorAir.get
 
-              # add floor area component
-              oa_area = dsn_spec_oa.outdoorAirFlowperFloorArea
-              oa_flow_m3_per_s += oa_area * fa
+          # add floor area component
+          oa_area = dsn_spec_oa.outdoorAirFlowperFloorArea
+          oa_flow_m3_per_s += oa_area * fa
 
-              # add per person component
-              oa_person = dsn_spec_oa.outdoorAirFlowperPerson
-              oa_flow_m3_per_s += oa_person * num_people
+          # add per person component
+          oa_person = dsn_spec_oa.outdoorAirFlowperPerson
+          oa_flow_m3_per_s += oa_person * num_people
 
-              # add air change component
-              oa_ach = dsn_spec_oa.outdoorAirFlowAirChangesperHour
-              oa_flow_m3_per_s += (oa_ach * vol) / 60
-            end
+          # add air change component
+          oa_ach = dsn_spec_oa.outdoorAirFlowAirChangesperHour
+          oa_flow_m3_per_s += (oa_ach * vol) / 60
+        end
+
+        oa_sys.oaComponents.each do |oa_comp|
+          next unless oa_comp.to_HeatExchangerAirToAirSensibleAndLatent.is_initialized
+
+          hx = oa_comp.to_HeatExchangerAirToAirSensibleAndLatent.get
+          # set controls
+          hx.setSupplyAirOutletTemperatureControl(true)
+          hx.setEconomizerLockout(true)
+          hx.setFrostControlType('MinimumExhaustTemperature')
+          hx.setThresholdTemperature(1.66667) # 35F, from E+ recommendation
+          hx.setHeatExchangerType('Rotary') # rotary is used for fan power modulation when bypass is active. Only affects supply temp control with bypass.
+          # add setpoint manager to control recovery
+          # Add a setpoint manager OA pretreat to control the ERV
+          spm_oa_pretreat = OpenStudio::Model::SetpointManagerOutdoorAirPretreat.new(air_loop_hvac.model)
+          spm_oa_pretreat.setMinimumSetpointTemperature(-99.0)
+          spm_oa_pretreat.setMaximumSetpointTemperature(99.0)
+          spm_oa_pretreat.setMinimumSetpointHumidityRatio(0.00001)
+          spm_oa_pretreat.setMaximumSetpointHumidityRatio(1.0)
+          # Reference setpoint node and mixed air stream node are outlet node of the OA system
+          mixed_air_node = oa_sys.mixedAirModelObject.get.to_Node.get
+          spm_oa_pretreat.setReferenceSetpointNode(mixed_air_node)
+          spm_oa_pretreat.setMixedAirStreamNode(mixed_air_node)
+          # Outdoor air node is the outboard OA node of the OA system
+          spm_oa_pretreat.setOutdoorAirStreamNode(oa_sys.outboardOANode.get)
+          # Return air node is the inlet node of the OA system
+          return_air_node = oa_sys.returnAirModelObject.get.to_Node.get
+          spm_oa_pretreat.setReturnAirStreamNode(return_air_node)
+          # Attach to the outlet of the HX
+          hx_outlet = hx.primaryAirOutletModelObject.get.to_Node.get
+          spm_oa_pretreat.addToNode(hx_outlet)
+
+          # set parameters for ERV
+          case doas_type
+          when 'ERV'
+            # set efficiencies; assumed 90% airflow returned to unit
+            hx.setSensibleEffectivenessat100HeatingAirFlow(0.75 * 0.9)
+            hx.setSensibleEffectivenessat75HeatingAirFlow(0.78 * 0.9)
+            hx.setLatentEffectivenessat100HeatingAirFlow(0.61 * 0.9)
+            hx.setLatentEffectivenessat75HeatingAirFlow(0.68 * 0.9)
+            hx.setSensibleEffectivenessat100CoolingAirFlow(0.75 * 0.9)
+            hx.setSensibleEffectivenessat75CoolingAirFlow(0.78 * 0.9)
+            hx.setLatentEffectivenessat100CoolingAirFlow(0.55 * 0.9)
+            hx.setLatentEffectivenessat75CoolingAirFlow(0.60 * 0.9)
+          # set parameters for HRV
+          when 'HRV'
+            # set efficiencies; assumed 90% airflow returned to unit
+            hx.setSensibleEffectivenessat100HeatingAirFlow(0.84 * 0.9)
+            hx.setSensibleEffectivenessat75HeatingAirFlow(0.86 * 0.9)
+            hx.setLatentEffectivenessat100HeatingAirFlow(0)
+            hx.setLatentEffectivenessat75HeatingAirFlow(0)
+            hx.setSensibleEffectivenessat100CoolingAirFlow(0.83 * 0.9)
+            hx.setSensibleEffectivenessat75CoolingAirFlow(0.84 * 0.9)
+            hx.setLatentEffectivenessat100CoolingAirFlow(0)
+            hx.setLatentEffectivenessat75CoolingAirFlow(0)
           end
 
-          oa_sys.oaComponents.each do |oa_comp|
-            if oa_comp.to_HeatExchangerAirToAirSensibleAndLatent.is_initialized
-              hx = oa_comp.to_HeatExchangerAirToAirSensibleAndLatent.get
-              # set controls
-              hx.setSupplyAirOutletTemperatureControl(true)
-              hx.setEconomizerLockout(true)
-              hx.setFrostControlType('MinimumExhaustTemperature')
-              hx.setThresholdTemperature(1.66667) #35F, from E+ recommendation
-              hx.setHeatExchangerType('Rotary') # rotary is used for fan power modulation when bypass is active. Only affects supply temp control with bypass.
-              # add setpoint manager to control recovery
-              # Add a setpoint manager OA pretreat to control the ERV
-              spm_oa_pretreat = OpenStudio::Model::SetpointManagerOutdoorAirPretreat.new(air_loop_hvac.model)
-              spm_oa_pretreat.setMinimumSetpointTemperature(-99.0)
-              spm_oa_pretreat.setMaximumSetpointTemperature(99.0)
-              spm_oa_pretreat.setMinimumSetpointHumidityRatio(0.00001)
-              spm_oa_pretreat.setMaximumSetpointHumidityRatio(1.0)
-              # Reference setpoint node and mixed air stream node are outlet node of the OA system
-              mixed_air_node = oa_sys.mixedAirModelObject.get.to_Node.get
-              spm_oa_pretreat.setReferenceSetpointNode(mixed_air_node)
-              spm_oa_pretreat.setMixedAirStreamNode(mixed_air_node)
-              # Outdoor air node is the outboard OA node of the OA system
-              spm_oa_pretreat.setOutdoorAirStreamNode(oa_sys.outboardOANode.get)
-              # Return air node is the inlet node of the OA system
-              return_air_node = oa_sys.returnAirModelObject.get.to_Node.get
-              spm_oa_pretreat.setReturnAirStreamNode(return_air_node)
-              # Attach to the outlet of the HX
-              hx_outlet = hx.primaryAirOutletModelObject.get.to_Node.get
-              spm_oa_pretreat.addToNode(hx_outlet)
-
-              # set parameters for ERV
-              if doas_type=='ERV'
-                # set efficiencies; assumed 90% airflow returned to unit
-                hx.setSensibleEffectivenessat100HeatingAirFlow(0.75*0.9)
-                hx.setSensibleEffectivenessat75HeatingAirFlow(0.78*0.9)
-                hx.setLatentEffectivenessat100HeatingAirFlow(0.61*0.9)
-                hx.setLatentEffectivenessat75HeatingAirFlow(0.68*0.9)
-                hx.setSensibleEffectivenessat100CoolingAirFlow(0.75*0.9)
-                hx.setSensibleEffectivenessat75CoolingAirFlow(0.78*0.9)
-                hx.setLatentEffectivenessat100CoolingAirFlow(0.55*0.9)
-                hx.setLatentEffectivenessat75CoolingAirFlow(0.60*0.9)
-              # set parameters for HRV
-              elsif doas_type=='HRV'
-                # set efficiencies; assumed 90% airflow returned to unit
-                hx.setSensibleEffectivenessat100HeatingAirFlow(0.84*0.9)
-                hx.setSensibleEffectivenessat75HeatingAirFlow(0.86*0.9)
-                hx.setLatentEffectivenessat100HeatingAirFlow(0)
-                hx.setLatentEffectivenessat75HeatingAirFlow(0)
-                hx.setSensibleEffectivenessat100CoolingAirFlow(0.83*0.9)
-                hx.setSensibleEffectivenessat75CoolingAirFlow(0.84*0.9)
-                hx.setLatentEffectivenessat100CoolingAirFlow(0)
-                hx.setLatentEffectivenessat75CoolingAirFlow(0)
-              end
-
-              # fan efficiency ranges from 40-60% (Energy Modeling Guide for Very High Efficiency DOAS Final Report)
-              default_fan_efficiency = 0.55
-              power = (oa_flow_m3_per_s * 174.188 / default_fan_efficiency) + ((oa_flow_m3_per_s * 0.9 * 124.42) / default_fan_efficiency)
-              hx.setNominalElectricPower(power)
-            end
-          end
+          # fan efficiency ranges from 40-60% (Energy Modeling Guide for Very High Efficiency DOAS Final Report)
+          default_fan_efficiency = 0.55
+          power = (oa_flow_m3_per_s * 174.188 / default_fan_efficiency) + ((oa_flow_m3_per_s * 0.9 * 124.42) / default_fan_efficiency)
+          hx.setNominalElectricPower(power)
         end
       end
     end
 
     # report final condition of model
-    # runner.registerFinalCondition("The building finished with heat pump RTUs replacing the HVAC equipment for #{selected_air_loops.size} air loops. Cumulatively, the installed RTUs have been upsized by a factor of #{(cum_applied_cool_cap / cum_req_cool_cap).round(2)} to accomodate additional heating capacity, which results in #{OpenStudio.convert(cum_applied_cool_cap, 'W', 'ton').get.round(2)} tons of cooling, #{OpenStudio.convert(cum_applied_htg_cap_at_rated_47f, 'W', 'ton').get.round(2)} tons of heating at rated conditions (47F), and #{OpenStudio.convert(cum_req_htg_cap, 'W', 'ton').get.round(2)} tons of #{backup_heat_source} backup heating. For reference, the cumulative heat pump capacity is capable of supplying #{((cum_applied_htg_cap_at_rated_47f / cum_req_htg_cap)*100).round(2)}% of the design heating load at 47F, #{((cum_applied_htg_cap_at_17f / cum_req_htg_cap)*100).round(2)}% at 17F, #{((cum_applied_htg_cap_at_0f / cum_req_htg_cap)*100).round(2)}% at 0F, and no capacity below 0F due to the cutoff temperature, while the weather file heating design day temperature is #{OpenStudio.convert(wntr_design_day_temp_c, 'C', 'F').get.round(0)}F.")
+    runner.registerFinalCondition("The building finished with heat pump RTUs replacing the HVAC equipment for #{selected_air_loops.size} air loops.")
 
-    return true
+    # model.getOutputControlFiles.setOutputCSV(true)
+
+    true
   end
 end
 

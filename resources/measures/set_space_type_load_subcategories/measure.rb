@@ -41,20 +41,19 @@
 
 # start the measure
 class SetSpaceTypeLoadSubcategories < OpenStudio::Measure::ModelMeasure
-
   # human readable name
   def name
-    return "Set Space Type Load Subcategories"
+    return 'Set Space Type Load Subcategories'
   end
 
   # human readable description
   def description
-    return "This measure sets subcategory names for internal lighting and equipment loads in a standards space type."
+    return 'This measure sets subcategory names for internal lighting and equipment loads in a standards space type.'
   end
 
   # human readable description of modeling approach
   def modeler_description
-    return "This measure takes the user selected standards space type and sets the interior lighting and equipment load definitions subcategory to match the space type name. "
+    return 'This measure takes the user selected standards space type and sets the interior lighting and equipment load definitions subcategory to match the space type name.'
   end
 
   # define the arguments that the user will input
@@ -80,42 +79,41 @@ class SetSpaceTypeLoadSubcategories < OpenStudio::Measure::ModelMeasure
     # model get standards space types
     model.getSpaceTypes.each do |space_type|
       next unless space_type.standardsSpaceType.is_initialized
+
       standards_space_type = space_type.standardsSpaceType.get
+
       next unless standards_space_type == space_type_selected
+
       runner.registerInfo("Setting lights and equipment to end use subcategory for space type '#{space_type.name}' with standards type '#{space_type_selected}'.")
       space_type.lights.each do |light|
-        unless light.endUseSubcategory.include? skip_end_use
-          light.setEndUseSubcategory(space_type_selected)
-        end
+        light.setEndUseSubcategory(space_type_selected) unless light.endUseSubcategory.include? skip_end_use
       end
       space_type.electricEquipment.each do |equip|
-        unless equip.endUseSubcategory.include? skip_end_use
-          equip.setEndUseSubcategory(space_type_selected)
-        end
+        equip.setEndUseSubcategory(space_type_selected) unless equip.endUseSubcategory.include? skip_end_use
       end
     end
 
     # check individual spaces and set loads
     model.getSpaces.each do |space|
       next unless space.spaceType.is_initialized
+
       space_type = space.spaceType.get
+
       next unless space_type.standardsSpaceType.is_initialized
+
       standards_space_type = space_type.standardsSpaceType.get
+
       next unless standards_space_type == space_type_selected
+
       runner.registerInfo("Space '#{space.name}' has standards type '#{space_type_selected}'. Setting lights and equipment to end use subcategory.")
       space.lights.each do |light|
-        unless light.endUseSubcategory.include? skip_end_use
-          light.setEndUseSubcategory(space_type_selected)
-        end
+        light.setEndUseSubcategory(space_type_selected) unless light.endUseSubcategory.include? skip_end_use
       end
       space.electricEquipment.each do |equip|
-        unless equip.endUseSubcategory.include? skip_end_use
-          equip.setEndUseSubcategory(space_type_selected)
-        end
+        equip.setEndUseSubcategory(space_type_selected) unless equip.endUseSubcategory.include? skip_end_use
       end
     end
 
-    # Report final condition of model
     return true
   end
 end

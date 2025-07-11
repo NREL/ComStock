@@ -1,6 +1,7 @@
 .temp
 .idea
 .DS_Store
+.vs
 clusters
 data
 local_configuration.*
@@ -26,8 +27,8 @@ lib/
 /sampling/truth_data
 *.pyc
 report.xml
-generated_files/
-reports/
-run/
-out.osw
-in.py
+resources/Gemfile.lock
+
+# Rubocop output
+/.rubocop
+/.rubocop-http*

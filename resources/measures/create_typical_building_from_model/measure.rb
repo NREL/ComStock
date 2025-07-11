@@ -37,16 +37,8 @@
 
 require 'openstudio-standards'
 
-# require all .rb files in resources folder
-Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }
-
-# resource file modules
-include OsLib_HelperMethods
-include OsLib_ModelGeneration
-
 # start the measure
 class CreateTypicalBuildingFromModel < OpenStudio::Measure::ModelMeasure
-
   # human readable name
   def name
     return 'Create Typical Building from Model'
@@ -68,7 +60,7 @@ class CreateTypicalBuildingFromModel < OpenStudio::Measure::ModelMeasure
 
     # see if building name contains any template values
     default_string = '90.1-2010'
-    get_templates.each do |template_string|
+    OpenstudioStandards::CreateTypical.get_templates.each do |template_string|
       if model.getBuilding.name.to_s.include?(template_string)
         default_string = template_string
         next
@@ -76,7 +68,7 @@ class CreateTypicalBuildingFromModel < OpenStudio::Measure::ModelMeasure
     end
 
     # Make argument for template
-    template = OpenStudio::Measure::OSArgument.makeChoiceArgument('template', get_templates, true)
+    template = OpenStudio::Measure::OSArgument.makeChoiceArgument('template', OpenstudioStandards::CreateTypical.get_templates, true)
     template.setDisplayName('Target Standard')
     template.setDefaultValue(default_string)
     args << template
@@ -477,7 +469,7 @@ class CreateTypicalBuildingFromModel < OpenStudio::Measure::ModelMeasure
     # args << enable_dst
 
     # Argument used to make ComStock tsv workflow run correctly
-    climate_zone = OpenStudio::Measure::OSArgument.makeChoiceArgument('climate_zone', get_climate_zones(false, 'Lookup From Model'), true)
+    climate_zone = OpenStudio::Measure::OSArgument.makeChoiceArgument('climate_zone', OpenstudioStandards::CreateTypical.get_climate_zones(false, 'Lookup From Model'), true)
     climate_zone.setDisplayName('Climate Zone.')
     climate_zone.setDefaultValue('Lookup From Model')
     args << climate_zone
@@ -489,14 +481,66 @@ class CreateTypicalBuildingFromModel < OpenStudio::Measure::ModelMeasure
   def run(model, runner, user_arguments)
     super(model, runner, user_arguments)
 
-    # method run from os_lib_model_generation.rb
-    result = typical_building_from_model(model, runner, user_arguments)
+    # assign the user inputs to variables
+    args = runner.getArgumentValues(arguments(model), user_arguments)
+    args = (args.collect { |k, v| [k.to_s, v] }).to_h
+    if !args then return false end
 
-    if result == false
-      return false
-    else
-      return true
-    end
+    # TODO: need to make use of this before pass to standards
+    use_upstream_args = args['use_upstream_args']
+
+    # open channel to log messages
+    reset_log
+
+    # Turn debugging output on/off
+    debug = false
+
+    # method run from os_lib_model_generation.rb
+    result = OpenstudioStandards::CreateTypical.create_typical_building_from_model(
+      model,
+      args['template'],
+      climate_zone: args['climate_zone'], # start of optional arguments
+      add_hvac: args['add_hvac'],
+      hvac_system_type: args['system_type'],
+      hvac_delivery_type: args['hvac_delivery_type'],
+      heating_fuel: args['htg_src'],
+      service_water_heating_fuel: args['swh_src'],
+      cooling_fuel: args['clg_src'],
+      kitchen_makeup: args['kitchen_makeup'],
+      exterior_lighting_zone: args['exterior_lighting_zone'],
+      add_constructions: args['add_constructions'],
+      wall_construction_type: args['wall_construction_type'],
+      add_space_type_loads: args['add_space_type_loads'],
+      add_daylighting_controls: nil, # not exposed in user measure args
+      add_elevators: args['add_elevators'],
+      add_internal_mass: args['add_internal_mass'],
+      add_exterior_lights: args['add_exterior_lights'],
+      onsite_parking_fraction: args['onsite_parking_fraction'],
+      add_exhaust: args['add_exhaust'],
+      add_swh: args['add_swh'],
+      add_thermostat: args['add_thermostat'],
+      add_refrigeration: args['add_refrigeration'],
+      modify_wkdy_op_hrs: args['modify_wkdy_op_hrs'],
+      wkdy_op_hrs_start_time: args['wkdy_op_hrs_start_time'],
+      wkdy_op_hrs_duration: args['wkdy_op_hrs_duration'],
+      modify_wknd_op_hrs: args['modify_wknd_op_hrs'],
+      wknd_op_hrs_start_time: args['wknd_op_hrs_start_time'],
+      wknd_op_hrs_duration: args['wknd_op_hrs_duration'],
+      hoo_var_method: nil, # not exposed in user measure args
+      enable_dst: args['enable_dst'],
+      unmet_hours_tolerance_r: args['unmet_hours_tolerance'],
+      remove_objects: args['remove_objects'],
+      user_hvac_mapping: nil, # not exposed in this measure yet?
+      sizing_run_directory: nil # not exposed in user measure args
+    )
+
+    # gather log
+    log_messages_to_runner(runner, debug)
+    reset_log
+
+    return false if result == false
+
+    return true
   end
 end
 

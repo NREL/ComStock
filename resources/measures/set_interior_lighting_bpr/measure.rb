@@ -80,7 +80,7 @@ class SetInteriorLightingBPR < OpenStudio::Measure::ModelMeasure
   end
 
   # Method to find schedule transition points and adjust base values based on specified BPR.
-  def set_sch_bpr(runner, day_sch, bpr, modify_wknd_bpr=nil, new_wkdy_base=nil)
+  def set_sch_bpr(runner, day_sch, bpr, modify_wknd_bpr = nil, new_wkdy_base = nil)
     # skip schedules that are a constant value throughout the day
     if day_sch.values.length == 1
       runner.registerWarning("Rule '#{day_sch.name}' is a constant value throughout the day and won't be altered by this measure.")
@@ -93,10 +93,8 @@ class SetInteriorLightingBPR < OpenStudio::Measure::ModelMeasure
     base = vals.min
     new_base = bpr * peak
     # if the new wknd base value is higher than the wkdy base value, adjust it
-    if modify_wknd_bpr
-      if new_wkdy_base < new_base
-        new_base = new_wkdy_base
-      end
+    if modify_wknd_bpr && (new_wkdy_base < new_base)
+      new_base = new_wkdy_base
     end
     sf = (new_base - base) / (peak - base)
     new_vals = []
@@ -109,7 +107,7 @@ class SetInteriorLightingBPR < OpenStudio::Measure::ModelMeasure
       vals.zip(times).each_with_index do |val_time, j|
         val = val_time[0]
         time = val_time[1]
-        new_val = (peak - val) * sf + val
+        new_val = ((peak - val) * sf) + val
         if new_val < 0.0
           new_val = 0.0
         end
@@ -142,7 +140,7 @@ class SetInteriorLightingBPR < OpenStudio::Measure::ModelMeasure
     wknd_bpr = runner.getDoubleArgumentValue('wknd_bpr', user_arguments)
 
     # return not applicable if the user-specified BPR is 'NA' for weekend and weekday schedules
-    if !modify_wkdy_bpr and !modify_wknd_bpr
+    if !modify_wkdy_bpr && !modify_wknd_bpr
       runner.registerAsNotApplicable("BPR is set to 'NA' for weekdays and weekends. This measure is not applicable.")
       return false
     end
@@ -157,6 +155,7 @@ class SetInteriorLightingBPR < OpenStudio::Measure::ModelMeasure
       # confirm space type maps to a recognized standards type
       next unless space_type.standardsBuildingType.is_initialized
       next unless space_type.standardsSpaceType.is_initialized
+
       standards_building_type = space_type.standardsBuildingType.get
       standards_space_type = space_type.standardsSpaceType.get
       space_type_hash = {}
@@ -225,12 +224,11 @@ class SetInteriorLightingBPR < OpenStudio::Measure::ModelMeasure
             if sch_rule.applyMonday || sch_rule.applyTuesday || sch_rule.applyWednesday || sch_rule.applyThursday || sch_rule.applyFriday
               runner.registerWarning("Rule '#{sch_rule.name}' for schedule '#{new_ltg_sch.name}' applies to both Weekends and Weekdays.  It has been treated as a Weekday schedule.")
             else
-              set_sch_bpr(runner, sch_rule.daySchedule, wknd_bpr, modify_wknd_bpr=modify_wknd_bpr, new_wkdy_base=min_wkdy_base_value)
+              set_sch_bpr(runner, sch_rule.daySchedule, wknd_bpr, modify_wknd_bpr = modify_wknd_bpr, new_wkdy_base = min_wkdy_base_value)
             end
           end
         end
       end
-
     end
 
     # loop through all lighting instances, replacing old lighting schedules with the BPR-adjusted schedules

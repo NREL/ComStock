@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>multispeed_minimum_flow</name>
   <uid>82ab405f-375a-4dc6-bc66-9e6aac4baf52</uid>
-  <version_id>5c726889-72ea-41e7-954f-f771c8d8d06e</version_id>
-  <version_modified>2024-02-02T17:41:19Z</version_modified>
+  <version_id>d93304bc-6ef7-45dd-9636-7023c2980590</version_id>
+  <version_modified>2024-10-21T21:10:19Z</version_modified>
   <xml_checksum>912062DA</xml_checksum>
   <class_name>MultispeedMinimumFlow</class_name>
   <display_name>Multispeed Minimum Flow</display_name>
@@ -104,7 +104,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>396FB962</checksum>
+      <checksum>55ECBE03</checksum>
     </file>
     <file>
       <filename>Cold_ASHRAE.idf</filename>
@@ -137,10 +137,34 @@
       <checksum>0618798B</checksum>
     </file>
     <file>
+      <filename>in.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>978FBEFE</checksum>
+    </file>
+    <file>
+      <filename>in.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>1C31C871</checksum>
+    </file>
+    <file>
       <filename>measure_Test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>0465A9AE</checksum>
+      <checksum>9001A5F6</checksum>
+    </file>
+    <file>
+      <filename>test files/base_new_vap_spd_hp1-old.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>1FF43CE4</checksum>
+    </file>
+    <file>
+      <filename>test files/base_new_vap_spd_hp1.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>0618798B</checksum>
     </file>
   </files>
 </measure>
