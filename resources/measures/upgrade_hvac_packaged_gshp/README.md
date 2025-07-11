@@ -19,9 +19,36 @@ ModelMeasure
 ## Arguments
 
 
-### Add Energy Recovery?
+### Upgrade Wall Insulation?
 
-**Name:** hr,
+**Name:** walls,
+**Type:** Boolean,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+
+### Upgrade Roof Insulation?
+
+**Name:** roof,
+**Type:** Boolean,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+
+### Upgrade to New Windows?
+
+**Name:** windows,
+**Type:** Boolean,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+
+### Upgrade to LED Lighting?
+
+**Name:** lighting,
 **Type:** Boolean,
 **Units:** ,
 **Required:** true,

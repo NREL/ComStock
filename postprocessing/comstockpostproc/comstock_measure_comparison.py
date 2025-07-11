@@ -32,7 +32,7 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
         self.image_type = image_type
         self.name = name
 
-        upgrade_name_mapping = self.data.select(self.UPGRADE_ID, self.UPGRADE_NAME).unique().collect().to_dict(as_series=False)
+        upgrade_name_mapping = self.data.select(self.UPGRADE_ID, self.UPGRADE_NAME).unique().collect().sort(self.UPGRADE_ID).to_dict(as_series=False)
         self.dict_upid_to_upname = dict(zip(upgrade_name_mapping[self.UPGRADE_ID], upgrade_name_mapping[self.UPGRADE_NAME]))
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -68,7 +68,6 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 # filter dataset to upgrade and baseline only
                 up_base_id = '00'
                 upgrade_id = upgrade
-                logger.info(f'self.data type is {type(self.data)}')
                 if self.data.select(self.UPGRADE_ID).dtypes == [pl.Int64]: # in test run it's pl.Int64
                     up_base_id = 0
                     upgrade_id = int(upgrade)
@@ -76,16 +75,13 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 # convert grouping column from cat to str to avoid processing errors with more than 2 measures
                 self.data = self.data.with_columns(pl.col(self.UPGRADE_NAME).cast(str))
                 assert self.data.select(self.column_for_grouping).dtypes == [pl.String]
-
-                # df_upgrade = self.data.loc[(self.data[self.UPGRADE_ID]==upgrade_id) | (self.data[self.UPGRADE_ID]==up_base_id), :]
                 df_upgrade = self.data.filter((pl.col(self.UPGRADE_ID) == upgrade_id) | (pl.col(self.UPGRADE_ID) == up_base_id))
 
                 color_map = {'Baseline': self.COLOR_COMSTOCK_BEFORE, upgrade_name: self.COLOR_COMSTOCK_AFTER}
-                # df_upgrade = df_upgrade.collect().to_pandas()
-                # assert isinstance(df_upgrade, pd.DataFrame)
 
                 # make consumption plots for upgrades if requested by user
                 if make_comparison_plots:
+                    logger.info(f'Making plots for upgrade {upgrade}')
                     self.make_plots(df_upgrade, self.column_for_grouping, states, make_timeseries_plots, color_map, self.dict_measure_dir[upgrade])
                 else:
                     logger.info("make_comparison_plots is set to false, so not plots were created. Set make_comparison_plots to True for plots.")
@@ -136,7 +132,7 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
         LazyFramePlotter.plot_with_lazy(
             plot_method=self.plot_energy_by_enduse_and_fuel_type,
             lazy_frame=lazy_frame.clone(),
-            columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE))(**BASIC_PARAMS)
+            columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE + self.lazyframe_plotter.WTD_COLUMNS_ANN_PV + self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE))(**BASIC_PARAMS)
         LazyFramePlotter.plot_with_lazy(
             plot_method=self.plot_emissions_by_fuel_type,
             lazy_frame=lazy_frame.clone(),
@@ -215,7 +211,7 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
         LazyFramePlotter.plot_with_lazy(
             plot_method=self.plot_energy_by_enduse_and_fuel_type,
             lazy_frame=lazy_frame.clone(),
-            columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE))(**BASIC_PARAMS)
+            columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE + self.lazyframe_plotter.WTD_COLUMNS_ANN_PV + self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE))(**BASIC_PARAMS)
 
         LazyFramePlotter.plot_with_lazy(
             plot_method=self.plot_emissions_by_fuel_type,

@@ -205,7 +205,7 @@ class DFLightingControlTest < Minitest::Test
 
       # set arguments:
       demand_flexibility_objective = arguments[0].clone
-      assert(demand_flexibility_objective.setValue('emission'))
+      assert(demand_flexibility_objective.setValue('grid peak load'))
       argument_map['demand_flexibility_objective'] = demand_flexibility_objective
       
       # set arguments:
@@ -248,6 +248,28 @@ class DFLightingControlTest < Minitest::Test
       assert(cambium_scenario.setValue('LRMER_MidCase_15'))#
       argument_map['cambium_scenario'] = cambium_scenario
 
+      # set arguments:
+      pv = arguments[9].clone
+      assert(pv.setValue(true))#
+      argument_map['pv'] = pv
+      
+      # store baseline schedule for check later
+      lights = model.getLightss
+      light_schedules = {}
+      lights.each do |light|
+        light_sch = light.schedule
+        unless light_sch.empty?
+          unless light_schedules.key?(light_sch.get.name.to_s)
+            schedule = light_sch.get.clone(model)
+            schedule_ts = measure.get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get, 8760*num_timesteps_in_hr.valueAsInteger())
+            light_schedules[light_sch.get.name.to_s] = schedule_ts
+          end
+        end
+      end
+      puts('-----------------------------------------------------------------')
+      puts("light_schedules.key=#{light_schedules.keys}")
+      puts('-----------------------------------------------------------------')
+
       # apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: true)
 
@@ -258,119 +280,57 @@ class DFLightingControlTest < Minitest::Test
 
       # to check that something changed in the model, load the model and the check the objects match expected new value
       model = load_model(model_output_path(instance_test_name))
-
+      
+      ### check
+      if set[:result] == 'Success'
+        lights = model.getLightss
+        new_light_schedules = {}
+        # quick check on schedule update
+        nl = 0
+        nla = 0
+        lights.each do |light|
+          light_sch = light.schedule
+          light_sch_name = light_sch.get.name.to_s
+          # puts("light schedule: #{light_sch_name}")
+          if light_sch_name.include?(' df_adjusted')
+            unless new_light_schedules.key?(light_sch_name)
+              schedule = light_sch.get.clone(model)
+              schedule = schedule.to_ScheduleInterval.get
+              new_light_schedules[light_sch_name] = schedule.timeSeries.values.to_a
+            end
+            nla += 1
+          end
+          nl += 1
+        end
+        puts('-----------------------------------------------------------------')
+        puts("--- Detected #{nla}/#{nl} lights with df adjusted lighting schedules")
+        assert(nla == nl)
+        puts('-----------------------------------------------------------------')
+        # compare before/after schedules
+        light_schedules.each do |light_sch_name, light_sch_vals|
+          new_light_sch_vals = new_light_schedules["#{light_sch_name} df_adjusted"]
+          # diff = light_sch_vals.sum - new_light_sch_vals.sum
+          diff = light_sch_vals.zip(new_light_sch_vals).map { |a, b| (a - b).round(2) }
+          counts = diff.tally
+          counts = counts.sort.to_h
+          # puts("--- hourly light schedules changes #{diff*100.0}% everyday")
+          puts("--- light schedule changes on average #{(diff.sum/3.650/(peak_len.valueAsInteger().to_f)/(num_timesteps_in_hr.valueAsInteger().to_f)).round(2)}%/hr for #{peak_len.valueAsInteger()} hours everyday")
+          total_count = 0
+          counts.each do |value, count|
+            unless value == 0.0 || count < num_timesteps_in_hr.valueAsInteger().to_f
+              puts("--- light schedule changes #{(value*100.0).round(1)}% in #{count/(peak_len.valueAsInteger().to_f)/(num_timesteps_in_hr.valueAsInteger().to_f)} days")
+              assert(value<=light_adjustment.valueAsDouble(), "Hourly change should not exceed the input #{light_adjustment.valueAsDouble().round(1)}")
+              total_count += count
+            end
+          end
+          total_days = total_count/(peak_len.valueAsInteger().to_f)/(num_timesteps_in_hr.valueAsInteger().to_f)
+          puts("--- Number of days with setpoint changed: #{total_days}")
+          assert(total_days <= 366, "Number of days should not exceed 366")
+          assert(total_days > 100, "Number of days with valid adjusted setpoints (#{total_count/(peak_len.valueAsInteger().to_f)/(num_timesteps_in_hr.valueAsInteger().to_f)}) too small")
+        end
+        puts('=================================================================')
+      end
     end
   end
-
-  # def dispatch_gen_create_binsamples_test
-  #   oat_harcoded = []
-  #   bins_hardcoded =
-  #   selectdays_hardcoded =
-  #   ns_hardcoded =
-
-  #   puts("### ============================================================")
-  #   puts("### Creating bins...")
-  #   bins, selectdays, ns = create_binsamples(oat_harcoded)
-  #   puts("--- bins = #{bins}")
-  #   puts("--- selectdays = #{selectdays}")
-  #   puts("--- ns = #{ns}")
-
-  #   assert(bins == bins_hardcoded)
-  #   assert(selectdays == selectdays_hardcoded)
-  #   assert(ns == ns_hardcoded)
-  # end
-
-  # def dispatch_gen_run_samples_test(model)
-  #   year_hardcoded =
-  #   selectdays_hardcoded =
-  #   num_timesteps_in_hr_hardcoded =
-  #   y_seed_harcoded =
-
-  #   puts("### ============================================================")
-  #   puts("### Running simulation on samples...")
-  #   y_seed = run_samples(model, year, selectdays, num_timesteps_in_hr)
-
-  #   assert(y_seed == y_seed_hardcoded)
-  # end
-
-  # def test_dispatch_gen_small_run
-  #   osm_name = '361_Medium_Office_PSZ_HP.osm'
-  #   # osm_name = 'LargeOffice_VAV_chiller_boiler_2.osm'
-  #   epw_name = 'CO_FortCollins_16.epw'
-  #   osm_path = model_input_path(osm_name)
-  #   epw_path = epw_input_path(epw_name)
-  #   model = load_model(osm_path)
-
-  #   oat_harcoded = []
-  #   bins_hardcoded = {
-  #     'ext-hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'hot' => { 'morning' => [], 'noon' => [], 'afternoon' => Array(1..365), 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'cool-mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'cool' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'cold' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] }
-  #   }
-  #   selectdays_hardcoded = {
-  #     'ext-hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [200], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'cool-mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'cool' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'cold' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] }
-  #   }
-  #   ns_hardcoded = 1
-  #   year_hardcoded = 2018
-  #   num_timesteps_in_hr_hardcoded = 4
-  #   y_seed_harcoded = {
-  #     'ext-hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'hot' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'cool-mild' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'cool' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] },
-  #     'cold' => { 'morning' => [], 'noon' => [], 'afternoon' => [], 'late-afternoon' => [], 'evening' => [], 'other' => [] }
-  #   }
-
-  #   puts("============================================================")
-  #   puts("### Reading weather file...")
-  #   year, oat = read_epw(model, epw_path)
-  #   puts("--- year = #{year}")
-  #   puts("--- oat.size = #{oat.size}")
-
-  #   puts("============================================================")
-  #   puts("### Creating bins...")
-  #   bins, selectdays, ns, max_doy = create_binsamples(oat)
-  #   puts("--- bins = #{bins}")
-  #   puts("--- selectdays = #{selectdays}")
-  #   puts("--- ns = #{ns}")
-  #   # assert(bins == bins_hardcoded)
-  #   # assert(selectdays == selectdays_hardcoded)
-
-  #   # puts("============================================================")
-  #   # puts("### Running simulation on samples...")
-  #   # y_seed = run_samples(model, year=year_hardcoded, selectdays=selectdays_hardcoded, num_timesteps_in_hr=num_timesteps_in_hr_hardcoded, epw_path=epw_path)
-  #   # puts("--- y_seed = #{y_seed}")
-  #   # # assert(y_seed == y_seed_harcoded)
-
-  #   puts("============================================================")
-  #   puts("### Running simulation on part year samples...")
-  #   y_seed = run_part_year_samples(model, year=year_hardcoded, max_doy=max_doy, selectdays=selectdays_hardcoded, num_timesteps_in_hr=num_timesteps_in_hr_hardcoded, epw_path=epw_path)
-  #   puts("--- y_seed = #{y_seed}")
-  #   # assert(y_seed == y_seed_harcoded)
-
-  #   puts("============================================================")
-  #   puts("### Creating annual prediction...")
-  #   annual_load = load_prediction_from_sample(y_seed, bins=bins_hardcoded)
-  #   # puts("--- annual_load = #{annual_load}")
-  #   puts("--- annual_load.class = #{annual_load.class}")
-  #   puts("--- annual_load.size = #{annual_load.size}")
-
-  #   puts("============================================================")
-  #   puts("### Creating peak schedule...")
-  #   peak_schedule = peak_schedule_generation(annual_load, peak_len=4, rebound_len=2)
-  #   # puts("--- peak_schedule = #{peak_schedule}")
-  #   puts("--- peak_schedule.size = #{peak_schedule.size}")
-
-  #   # assert()
-  # end
 
 end
