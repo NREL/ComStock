@@ -827,6 +827,35 @@ class NamingMixin():
         'refrigeration'
     ]
 
+    LOAD_COMPONENTS = [
+        'doors_conduction',
+        'equipment_gain',
+        'floor',
+        'foundation_wall',
+        'ground',
+        'infiltration',
+        'lighting_gain',
+        'people_gain',
+        'roof',
+        'ventilation',
+        'wall',
+        'windows_conduction',
+        'windows_solar'
+    ]
+
+    LOAD_PERIODS = [
+        'heating',
+        'cooling',
+        'floating'
+    ]
+
+    LOAD_FUELS = [
+        'natural_gas',
+        'electricity',
+        'district_cooling',
+        'district_heating'
+    ]
+
     END_USES_TIMESERIES_DICT = {
         'exterior_lighting': 'electricity_exterior_lighting_kwh',
         'interior_lighting': 'electricity_interior_lighting_kwh',
@@ -1169,3 +1198,15 @@ class NamingMixin():
         col_name = col_name.replace("_normalized", '')
 
         return col_name
+
+    def load_component_cols(self):
+        loads_cols = []
+        for fuel in (self.LOAD_FUELS):
+            for period in (self.LOAD_PERIODS):
+                for component in (self.LOAD_COMPONENTS):
+                    pre = 'out.loads.'
+                    demand = 'demand'
+                    unit = '..kbtu'
+                    loads_cols.append(f"{pre}{fuel}.{period}.{demand}.{component}{unit}")
+        return loads_cols
+

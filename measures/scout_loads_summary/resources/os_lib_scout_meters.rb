@@ -195,7 +195,7 @@ module OsLib
           meter = sub_end_use(sub_end_use, fuel_type)
           orig_vals = meter.vals
           unless vals_to_add.size == orig_vals.size
-            raise("Both meters much have the same length.  Original meter had #{orig_vals.size}, vals_to_add had #{vals_to_add.size}")
+            raise("Both meters must have the same length.  Original meter had #{orig_vals.size}, vals_to_add had #{vals_to_add.size}")
           end
 
           orig_vals_vect = Vector.elements(meter.vals)
@@ -211,21 +211,19 @@ module OsLib
       class HeatingOrCoolingDemandSubEndUse < SubEndUseBase
         def initialize(num_ts, end_use)
           sub_end_use_enums = [
+            'people_gain',
+            'lighting_gain',
+            'equipment_gain',
+            'wall',
+            'foundation_wall',
+            'roof',
+            'floor',
+            'ground',
             'windows_conduction',
             'doors_conduction',
             'windows_solar',
-            'wall',
-            'foundation_wall',
-            'ceiling',
-            'roof',
-            'ground',
-            'floor',
             'infiltration',
-            'ventilation',
-            'people_gain',
-            'equipment_gain',
-            'lighting_gain',
-            'other_gain'
+            'ventilation'
           ]
 
           super(num_ts, end_use, 'demand', sub_end_use_enums)
@@ -415,7 +413,8 @@ module OsLib
 
           @demand_end_use_enums = [
             'heating',
-            'cooling'
+            'cooling',
+            'floating'
           ]
 
           @supply_end_use_enums.each do |end_use|
@@ -483,7 +482,7 @@ module OsLib
         end
       end
 
-      # A set of SubEndUseMeters for each 
+      # A set of SubEndUseMeters for each
       # possible combination of:
       # fuel type > end use > supply/demand > sub end use
       class MeterSet
@@ -533,7 +532,7 @@ module OsLib
         when 'district_cooling'
           'DistrictCooling'
         when 'district_heating'
-          'DistrictHeating'
+          'DistrictHeatingWater'
         when 'solar_energy'
           'SolarEnergy'
         when 'propane_gas'
@@ -572,7 +571,7 @@ module OsLib
         when 'district_cooling'
           'DistrictCooling'
         when 'district_heating'
-          'DistrictHeating'
+          'DistrictHeatingWater'
         when 'solar_energy'
           'SolarEnergy'
         when 'propane_gas'
@@ -602,7 +601,7 @@ module OsLib
         end
       end
 
-      # Convert the Scout end use name into 
+      # Convert the Scout end use name into
       # the EnergyPlus end use name
       def self.energyplus_end_use_type_for_meter_name_map(end_use)
         case end_use
