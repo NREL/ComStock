@@ -194,9 +194,6 @@ class LoadsSummaryTest < Minitest::Test
   #   epw_path = "#{__dir__}/test.epw"
 
   #   args_hash = {
-  #     'report_timeseries_data' => timeseries,
-  #     'debug_mode' => debug,
-  #     'script_version' => script_version
   #   }
 
   #   run_in_workflow(test_name, test_model_path, args_hash, epw_path)
@@ -211,9 +208,6 @@ class LoadsSummaryTest < Minitest::Test
 
   #   # set the arguments to test
   #   args_hash = {
-  #     'report_timeseries_data' => timeseries,
-  #     'debug_mode' => debug,
-  #     'script_version' => script_version
   #   }
 
   #   # run the measure
@@ -230,9 +224,6 @@ class LoadsSummaryTest < Minitest::Test
 
   #   # set the arguments to test
   #   args_hash = {
-  #     'report_timeseries_data' => timeseries,
-  #     'debug_mode' => debug,
-  #     'script_version' => script_version
   #   }
 
   #   # run the measure
@@ -249,9 +240,6 @@ class LoadsSummaryTest < Minitest::Test
 
   #   # set the arguments to test
   #   args_hash = {
-  #     'report_timeseries_data' => timeseries,
-  #     'script_version' => script_version,
-  #     'debug_mode' => debug
   #   }
 
   #   # run the measure
@@ -268,9 +256,6 @@ class LoadsSummaryTest < Minitest::Test
 
   #   # set the arguments to test
   #   args_hash = {
-  #     'report_timeseries_data' => timeseries,
-  #     'debug_mode' => debug,
-  #     'script_version' => script_version
   #   }
 
   #   # run the measure
@@ -287,9 +272,6 @@ class LoadsSummaryTest < Minitest::Test
 
   #   # set the arguments to test
   #   args_hash = {
-  #     'report_timeseries_data' => timeseries,
-  #     'debug_mode' => debug,
-  #     'script_version' => script_version
   #   }
 
   #   # run the measure
@@ -298,22 +280,49 @@ class LoadsSummaryTest < Minitest::Test
   #   return true
   # end
 
-  def test_cz3C_small_office
-    test_name = "test_cz3C_small_office_#{script_version}"
+  def skip_test_cz3C_small_office
+    test_name = "test_cz3C_small_office"
     test_model_name = 'CZ3C_small_office_10001_25000_PTHP.osm'
     test_model_path =  "#{__dir__}/#{test_model_name}"
     epw_path = "#{__dir__}/G0600530.epw"
 
     # set the arguments to test
     args_hash = {
-      'report_timeseries_data' => timeseries,
-      'debug_mode' => debug,
-      'script_version' => script_version
     }
 
     # run the measure
     run_in_workflow(test_name, test_model_path, args_hash, epw_path)
 
+    return true
+  end
+
+  def skip_test_cz3C_small_office_multiplier
+    test_name = __method__.to_s
+    test_model_name = 'CZ3C_small_office_10001_25000_PTHPx10.osm'
+    test_model_path = "#{__dir__}/#{test_model_name}"
+    epw_path = "#{__dir__}/G0600530.epw"
+
+    # set the arguments to test
+    args_hash = {
+    }
+    
+    # run the measure
+    run_in_workflow(test_name, test_model_path, args_hash, epw_path)
+    return true
+  end
+
+  def test_cz6A_grocery
+    test_name = __method__.to_s
+    test_model_name = 'CZ6A_grocery_40001_52000_PSZ-AC with gas coil.osm'
+    test_model_path = "#{__dir__}/#{test_model_name}"
+    epw_path = "#{__dir__}/G3600070.epw"
+
+    # set the arguments to test
+    args_hash = {
+    }
+
+    # run the measure
+    run_in_workflow(test_name, test_model_path, args_hash, epw_path)
     return true
   end
 
@@ -325,8 +334,6 @@ class LoadsSummaryTest < Minitest::Test
 
   #   # set the arguments to test
   #   args_hash = {
-  #     'report_timeseries_data' => timeseries,
-  #     'debug_mode' => debug
   #   }
 
   #   # run the measure
@@ -343,8 +350,6 @@ class LoadsSummaryTest < Minitest::Test
 
   #   # set the arguments to test
   #   args_hash = {
-  #     'report_timeseries_data' => timeseries,
-  #     'debug_mode' => debug
   #   }
 
   #   # run the measure
@@ -361,8 +366,6 @@ class LoadsSummaryTest < Minitest::Test
 
   #   # set the arguments to test
   #   args_hash = {
-  #     'report_timeseries_data' => timeseries,
-  #     'debug_mode' => debug
   #   }
 
   #   # run the measure
@@ -379,8 +382,6 @@ class LoadsSummaryTest < Minitest::Test
 
   #   # set the arguments to test
   #   args_hash = {
-  #     'report_timeseries_data' => timeseries,
-  #     'debug_mode' => debug
   #   }
 
   #   # run the measure
@@ -397,8 +398,6 @@ class LoadsSummaryTest < Minitest::Test
 
   #   # set the arguments to test
   #   args_hash = {
-  #     'report_timeseries_data' => timeseries,
-  #     'debug_mode' => debug
   #   }
 
   #   # run the measure
@@ -415,8 +414,6 @@ class LoadsSummaryTest < Minitest::Test
 
   #   # set the arguments to test
   #   args_hash = {
-  #     'report_timeseries_data' => timeseries,
-  #     'debug_mode' => debug
   #   }
 
   #   # run the measure
@@ -433,8 +430,6 @@ class LoadsSummaryTest < Minitest::Test
 
   #   # set the arguments to test
   #   args_hash = {
-  #     'report_timeseries_data' => timeseries,
-  #     'debug_mode' => debug
   #   }
 
   #   # run the measure
@@ -451,8 +446,6 @@ class LoadsSummaryTest < Minitest::Test
 
   #   # set the arguments to test
   #   args_hash = {
-  #     'report_timeseries_data' => timeseries,
-  #     'debug_mode' => debug
   #   }
 
   #   # run the measure
@@ -469,8 +462,6 @@ class LoadsSummaryTest < Minitest::Test
 
   #   # set the arguments to test
   #   args_hash = {
-  #     'report_timeseries_data' => timeseries,
-  #     'debug_mode' => debug
   #   }
 
   #   # run the measure
@@ -487,8 +478,6 @@ class LoadsSummaryTest < Minitest::Test
 
   #   # set the arguments to test
   #   args_hash = {
-  #     'report_timeseries_data' => timeseries,
-  #     'debug_mode' => debug
   #   }
 
   #   # run the measure

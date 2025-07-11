@@ -28,21 +28,6 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
   def arguments(model = nil)
     args = OpenStudio::Measure::OSArgumentVector.new
 
-    report_timeseries_data = OpenStudio::Measure::OSArgument.makeBoolArgument('report_timeseries_data', true)
-    report_timeseries_data.setDisplayName('Report timeseries data to csv file')
-    report_timeseries_data.setDefaultValue(false)
-    args << report_timeseries_data
-
-    debug_mode = OpenStudio::Measure::OSArgument.makeBoolArgument('debug_mode', true)
-    debug_mode.setDisplayName('Enable extra variables for debugging zone loads')
-    debug_mode.setDefaultValue(false)
-    args << debug_mode
-
-    script_version = OpenStudio::Measure::OSArgument.makeIntegerArgument('script_version', true)
-    script_version.setDisplayName('Script Version')
-    script_version.setDefaultValue(1)
-    args << script_version
-
     return args
   end
 
@@ -97,6 +82,7 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
       'Zone Hot Water Equipment Radiant Heating Energy',
       'Zone Other Equipment Convective Heating Energy',
       'Zone Other Equipment Radiant Heating Energy',
+      'Refrigeration Zone Case and Walk In Total Sensible Cooling Energy',
       'Enclosure Windows Total Transmitted Solar Radiation Energy',
       'Surface Window Inside Face Glazing Net Infrared Heat Transfer Rate',
       'Surface Window Inside Face Shade Net Infrared Heat Transfer Rate',
@@ -108,28 +94,6 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
       'Zone Mechanical Ventilation Heating Load Decrease Energy',
       'Zone Mechanical Ventilation Cooling Load Increase Energy',
       'Zone Mechanical Ventilation Cooling Load Decrease Energy',
-    ]
-  end
-
-  def debug_vars
-    [
-      'people_conv',
-      'people_delayed',
-      'light_conv',
-      'light_delayed',
-      'equip_conv',
-      'equip_delayed',
-      'total_delayed',
-      'win_sol_delayed',
-      'window_ir_delayed',
-      'int_surf_conv',
-      'attributable_ext_surf_conv',
-      'ext_wall_conv',
-      'ext_roof_conv',
-      'ext_gnd_flr_conv',
-      'ext_win_conv',
-      'infil',
-      'vent'
     ]
   end
 
@@ -236,62 +200,15 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
       out_var.setReportingFrequency('RunPeriod')
     end
 
-    debug_mode = runner.getBoolArgumentValue('debug_mode', user_arguments)
-    debug_vars = debug_vars()
-
-    if debug_mode
-      model.getThermalZones.each do |zone|
-        zn_name = zone.name.get.downcase.gsub(' ', '_')
-        debug_vars.each do |var_name|
-          # python plugin variables
-          py_var = OpenStudio::Model::PythonPluginVariable.new(model)
-          py_var.setName("#{zn_name}_#{var_name}_glob")
-
-          # python plugin output variables
-          py_out_var = OpenStudio::Model::PythonPluginOutputVariable.new(py_var)
-          py_out_var.setName("#{zn_name}_#{var_name}")
-          py_out_var.setTypeofDatainVariable('Summed')
-          # add a regular output variable that references it
-          out_var = OpenStudio::Model::OutputVariable.new("PythonPlugin:OutputVariable", model)
-          out_var.setKeyValue(py_out_var.nameString)
-
-          if var_name == 'infil' or var_name == 'vent'
-            py_out_var.setUpdateFrequency('SystemTimestep')
-            out_var.setReportingFrequency('Detailed') # TODO: change to 'RunPeriod' for production
-          else
-            py_out_var.setUpdateFrequency('ZoneTimestep')
-            out_var.setReportingFrequency('Timestep') # TODO: change to 'RunPeriod' for production
-          end
-          py_out_var.setUnits('J')
-
-
-          
-        end
-      end
-    end
-    model.getOutputControlFiles.setOutputCSV(true)
-
     # read in the template
     rsrcs = "#{File.dirname(__FILE__)}/resources"
     
-    script_version = runner.getIntegerArgumentValue('script_version', user_arguments)
+    # script_version = runner.getIntegerArgumentValue('script_version', user_arguments)
     # get surface information
     surf_h = get_surface_info(model)
-    if script_version == 1
-      ext_surfs = ['ext_wall', 'fnd_wall', 'roof', 'ext_flr', 'gnd_flr', 'win', 'door']
-      ext_surf_h = surf_h.transform_values { |h| h.select { |k, _| ext_surfs.include? k}}
-      ext_surf_h_json = JSON.pretty_generate(ext_surf_h)
-      int_surfs = ['int_wall', 'int_ceil', 'int_flr', 'int_mass']
-      int_surf_h = surf_h.transform_values { |h| h.select { |k, _| int_surfs.include? k}}
-      int_surf_h_json = JSON.pretty_generate(int_surf_h)
+    surf_h_json = JSON.pretty_generate(surf_h)
+    temp_path = "#{rsrcs}/python_plugin.py.erb"
 
-      temp_path = "#{rsrcs}/python_plugin.py.erb"
-    else
-      surf_h_json = JSON.pretty_generate(surf_h)
-      temp_path = "#{rsrcs}/python_plugin2.py.erb"
-    end
-
-    # temp_path = "#{rsrcs}/python_plugin.py.erb"
     template = ''
     File.open(temp_path, 'r') do |file|
       template = file.read
@@ -315,10 +232,6 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
     
     # python plugin search paths
     # TODO if we need external libraries
-    
-    # rp = model.getRunPeriod
-    # rp.setEndMonth(1)
-    # rp.setEndDayOfMonth(1)
     
     return true
   end
@@ -397,10 +310,6 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
     if !runner.validateUserArguments(arguments(model), user_arguments)
       return false
     end
-
-    # get measure arguments
-    report_timeseries_data = runner.getBoolArgumentValue('report_timeseries_data', user_arguments)
-    debug_mode = runner.getBoolArgumentValue('debug_mode', user_arguments)
 
     # load sql file
     sql_file = runner.lastEnergyPlusSqlFile
