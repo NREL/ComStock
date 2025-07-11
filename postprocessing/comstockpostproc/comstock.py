@@ -3064,7 +3064,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # raise Exception(f"columns in base_sim_outs are {list(base_sim_outs.columns)} and we are looking for {list([self.BLDG_ID, self.STATE_ID, self.COUNTY_ID, self.TRACT_ID, self.SAMPLING_REGION, self.CZ_ASHRAE, self.BLDG_TYPE, self.HVAC_SYS, self.SH_FUEL, self.SIZE_BIN, self.FLR_AREA, self.TOT_EUI, self.CEN_DIV])}")
 
             # If anything in this selection is null we're smoked so check twice and fail never
-            if csdf.null_count().collect().sum(axis=1).sum() != 0:
+            null_total = csdf.null_count().collect().select(pl.sum_horizontal(pl.all())).to_series().sum()
+            if null_total != 0:
                 raise RuntimeError('Null data appears in the apportionment truth data polars frame. Please resolve')
 
             # Cast building type to String
@@ -3126,14 +3127,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         .replace("}, {", "\n\t").replace("[{", "\t").replace("}]", ""))
             attrs = ['sampling_region', 'building_type', 'size_bin', 'hvac_and_fueltype']
             file_path = f'{self.output_dir["fs_path"]}/potential_apportionment_group_optimization.csv'
-            with self.output_dir['fs'].open(file_path, 'w') as f:
+            with self.output_dir['fs'].open(file_path, 'wb') as f:
                 tdf.select([pl.col(col) for col in attrs]).group_by([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv(f)
             file_path = f'{self.output_dir["fs_path"]}/debugging_missing_apportionment_groups.csv'
-            with self.output_dir['fs'].open(file_path, 'w') as f:
+            with self.output_dir['fs'].open(file_path, 'wb') as f:
                 tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups)).select([pl.col(col) for col in attrs]).group_by([pl.col(col) for col in attrs]).len().sort(pl.col('len'), descending=True).collect().write_csv(f)
 
             # Drop unsupported truth data and add an index
-            tdf = tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups).is_not())
+            tdf = tdf.filter(pl.col(APPO_GROUP_ID).is_in(missing_groups).not_())
             tdf = tdf.with_row_index()
 
             # Drop unsupported very-small schools while ensuring at least 3 samples per apportionment group
