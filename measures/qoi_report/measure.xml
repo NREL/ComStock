@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>qoi_report</name>
   <uid>be0bfc7f-25c6-435a-9acd-2f5fa8ac817d</uid>
-  <version_id>b65aa025-169d-45af-b963-506a29271ca9</version_id>
-  <version_modified>2024-10-28T21:43:16Z</version_modified>
+  <version_id>0a0bd981-5b59-4dcd-aa06-dd4348c556ac</version_id>
+  <version_modified>2025-07-11T19:17:31Z</version_modified>
   <xml_checksum>15BF4E57</xml_checksum>
   <class_name>QOIReport</class_name>
   <display_name>QOI Report</display_name>
@@ -34,6 +34,20 @@
       <model_dependent>false</model_dependent>
     </output>
     <output>
+      <name>average_minimum_daily_use_nonwinter_kw</name>
+      <display_name>average_minimum_daily_use_nonwinter_kw</display_name>
+      <short_name>average_minimum_daily_use_nonwinter_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>average_minimum_daily_use_all_kw</name>
+      <display_name>average_minimum_daily_use_all_kw</display_name>
+      <short_name>average_minimum_daily_use_all_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
       <name>average_maximum_daily_use_winter_kw</name>
       <display_name>average_maximum_daily_use_winter_kw</display_name>
       <short_name>average_maximum_daily_use_winter_kw</short_name>
@@ -51,6 +65,20 @@
       <name>average_maximum_daily_use_shoulder_kw</name>
       <display_name>average_maximum_daily_use_shoulder_kw</display_name>
       <short_name>average_maximum_daily_use_shoulder_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>average_maximum_daily_use_nonwinter_kw</name>
+      <display_name>average_maximum_daily_use_nonwinter_kw</display_name>
+      <short_name>average_maximum_daily_use_nonwinter_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>average_maximum_daily_use_all_kw</name>
+      <display_name>average_maximum_daily_use_all_kw</display_name>
+      <short_name>average_maximum_daily_use_all_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
@@ -76,6 +104,20 @@
       <model_dependent>false</model_dependent>
     </output>
     <output>
+      <name>average_maximum_daily_timing_nonwinter_hour</name>
+      <display_name>average_maximum_daily_timing_nonwinter_hour</display_name>
+      <short_name>average_maximum_daily_timing_nonwinter_hour</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>average_maximum_daily_timing_all_hour</name>
+      <display_name>average_maximum_daily_timing_all_hour</display_name>
+      <short_name>average_maximum_daily_timing_all_hour</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
       <name>average_of_top_ten_highest_peaks_use_winter_kw</name>
       <display_name>average_of_top_ten_highest_peaks_use_winter_kw</display_name>
       <short_name>average_of_top_ten_highest_peaks_use_winter_kw</short_name>
@@ -93,6 +135,20 @@
       <name>average_of_top_ten_highest_peaks_use_shoulder_kw</name>
       <display_name>average_of_top_ten_highest_peaks_use_shoulder_kw</display_name>
       <short_name>average_of_top_ten_highest_peaks_use_shoulder_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>average_of_top_ten_highest_peaks_use_nonwinter_kw</name>
+      <display_name>average_of_top_ten_highest_peaks_use_nonwinter_kw</display_name>
+      <short_name>average_of_top_ten_highest_peaks_use_nonwinter_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>average_of_top_ten_highest_peaks_use_all_kw</name>
+      <display_name>average_of_top_ten_highest_peaks_use_all_kw</display_name>
+      <short_name>average_of_top_ten_highest_peaks_use_all_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
@@ -118,422 +174,688 @@
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>minimum_daily_peak_use_jan_kw</name>
-      <display_name>minimum_daily_peak_use_jan_kw</display_name>
-      <short_name>minimum_daily_peak_use_jan_kw</short_name>
+      <name>average_of_top_ten_highest_peaks_timing_nonwinter_hour</name>
+      <display_name>average_of_top_ten_highest_peaks_timing_nonwinter_hour</display_name>
+      <short_name>average_of_top_ten_highest_peaks_timing_nonwinter_hour</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>minimum_daily_peak_use_feb_kw</name>
-      <display_name>minimum_daily_peak_use_feb_kw</display_name>
-      <short_name>minimum_daily_peak_use_feb_kw</short_name>
+      <name>average_of_top_ten_highest_peaks_timing_all_hour</name>
+      <display_name>average_of_top_ten_highest_peaks_timing_all_hour</display_name>
+      <short_name>average_of_top_ten_highest_peaks_timing_all_hour</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>minimum_daily_peak_use_mar_kw</name>
-      <display_name>minimum_daily_peak_use_mar_kw</display_name>
-      <short_name>minimum_daily_peak_use_mar_kw</short_name>
+      <name>minimum_daily_peak_jan_kw</name>
+      <display_name>minimum_daily_peak_jan_kw</display_name>
+      <short_name>minimum_daily_peak_jan_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>minimum_daily_peak_use_apr_kw</name>
-      <display_name>minimum_daily_peak_use_apr_kw</display_name>
-      <short_name>minimum_daily_peak_use_apr_kw</short_name>
+      <name>minimum_daily_peak_feb_kw</name>
+      <display_name>minimum_daily_peak_feb_kw</display_name>
+      <short_name>minimum_daily_peak_feb_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>minimum_daily_peak_use_may_kw</name>
-      <display_name>minimum_daily_peak_use_may_kw</display_name>
-      <short_name>minimum_daily_peak_use_may_kw</short_name>
+      <name>minimum_daily_peak_mar_kw</name>
+      <display_name>minimum_daily_peak_mar_kw</display_name>
+      <short_name>minimum_daily_peak_mar_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>minimum_daily_peak_use_jun_kw</name>
-      <display_name>minimum_daily_peak_use_jun_kw</display_name>
-      <short_name>minimum_daily_peak_use_jun_kw</short_name>
+      <name>minimum_daily_peak_apr_kw</name>
+      <display_name>minimum_daily_peak_apr_kw</display_name>
+      <short_name>minimum_daily_peak_apr_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>minimum_daily_peak_use_jul_kw</name>
-      <display_name>minimum_daily_peak_use_jul_kw</display_name>
-      <short_name>minimum_daily_peak_use_jul_kw</short_name>
+      <name>minimum_daily_peak_may_kw</name>
+      <display_name>minimum_daily_peak_may_kw</display_name>
+      <short_name>minimum_daily_peak_may_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>minimum_daily_peak_use_aug_kw</name>
-      <display_name>minimum_daily_peak_use_aug_kw</display_name>
-      <short_name>minimum_daily_peak_use_aug_kw</short_name>
+      <name>minimum_daily_peak_jun_kw</name>
+      <display_name>minimum_daily_peak_jun_kw</display_name>
+      <short_name>minimum_daily_peak_jun_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>minimum_daily_peak_use_sep_kw</name>
-      <display_name>minimum_daily_peak_use_sep_kw</display_name>
-      <short_name>minimum_daily_peak_use_sep_kw</short_name>
+      <name>minimum_daily_peak_jul_kw</name>
+      <display_name>minimum_daily_peak_jul_kw</display_name>
+      <short_name>minimum_daily_peak_jul_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>minimum_daily_peak_use_oct_kw</name>
-      <display_name>minimum_daily_peak_use_oct_kw</display_name>
-      <short_name>minimum_daily_peak_use_oct_kw</short_name>
+      <name>minimum_daily_peak_aug_kw</name>
+      <display_name>minimum_daily_peak_aug_kw</display_name>
+      <short_name>minimum_daily_peak_aug_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>minimum_daily_peak_use_nov_kw</name>
-      <display_name>minimum_daily_peak_use_nov_kw</display_name>
-      <short_name>minimum_daily_peak_use_nov_kw</short_name>
+      <name>minimum_daily_peak_sep_kw</name>
+      <display_name>minimum_daily_peak_sep_kw</display_name>
+      <short_name>minimum_daily_peak_sep_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>minimum_daily_peak_use_dec_kw</name>
-      <display_name>minimum_daily_peak_use_dec_kw</display_name>
-      <short_name>minimum_daily_peak_use_dec_kw</short_name>
+      <name>minimum_daily_peak_oct_kw</name>
+      <display_name>minimum_daily_peak_oct_kw</display_name>
+      <short_name>minimum_daily_peak_oct_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>q1_daily_peak_use_jan_kw</name>
-      <display_name>q1_daily_peak_use_jan_kw</display_name>
-      <short_name>q1_daily_peak_use_jan_kw</short_name>
+      <name>minimum_daily_peak_nov_kw</name>
+      <display_name>minimum_daily_peak_nov_kw</display_name>
+      <short_name>minimum_daily_peak_nov_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>q1_daily_peak_use_feb_kw</name>
-      <display_name>q1_daily_peak_use_feb_kw</display_name>
-      <short_name>q1_daily_peak_use_feb_kw</short_name>
+      <name>minimum_daily_peak_dec_kw</name>
+      <display_name>minimum_daily_peak_dec_kw</display_name>
+      <short_name>minimum_daily_peak_dec_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>q1_daily_peak_use_mar_kw</name>
-      <display_name>q1_daily_peak_use_mar_kw</display_name>
-      <short_name>q1_daily_peak_use_mar_kw</short_name>
+      <name>q1_daily_peak_jan_kw</name>
+      <display_name>q1_daily_peak_jan_kw</display_name>
+      <short_name>q1_daily_peak_jan_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>q1_daily_peak_use_apr_kw</name>
-      <display_name>q1_daily_peak_use_apr_kw</display_name>
-      <short_name>q1_daily_peak_use_apr_kw</short_name>
+      <name>q1_daily_peak_feb_kw</name>
+      <display_name>q1_daily_peak_feb_kw</display_name>
+      <short_name>q1_daily_peak_feb_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>q1_daily_peak_use_may_kw</name>
-      <display_name>q1_daily_peak_use_may_kw</display_name>
-      <short_name>q1_daily_peak_use_may_kw</short_name>
+      <name>q1_daily_peak_mar_kw</name>
+      <display_name>q1_daily_peak_mar_kw</display_name>
+      <short_name>q1_daily_peak_mar_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>q1_daily_peak_use_jun_kw</name>
-      <display_name>q1_daily_peak_use_jun_kw</display_name>
-      <short_name>q1_daily_peak_use_jun_kw</short_name>
+      <name>q1_daily_peak_apr_kw</name>
+      <display_name>q1_daily_peak_apr_kw</display_name>
+      <short_name>q1_daily_peak_apr_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>q1_daily_peak_use_jul_kw</name>
-      <display_name>q1_daily_peak_use_jul_kw</display_name>
-      <short_name>q1_daily_peak_use_jul_kw</short_name>
+      <name>q1_daily_peak_may_kw</name>
+      <display_name>q1_daily_peak_may_kw</display_name>
+      <short_name>q1_daily_peak_may_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>q1_daily_peak_use_aug_kw</name>
-      <display_name>q1_daily_peak_use_aug_kw</display_name>
-      <short_name>q1_daily_peak_use_aug_kw</short_name>
+      <name>q1_daily_peak_jun_kw</name>
+      <display_name>q1_daily_peak_jun_kw</display_name>
+      <short_name>q1_daily_peak_jun_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>q1_daily_peak_use_sep_kw</name>
-      <display_name>q1_daily_peak_use_sep_kw</display_name>
-      <short_name>q1_daily_peak_use_sep_kw</short_name>
+      <name>q1_daily_peak_jul_kw</name>
+      <display_name>q1_daily_peak_jul_kw</display_name>
+      <short_name>q1_daily_peak_jul_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>q1_daily_peak_use_oct_kw</name>
-      <display_name>q1_daily_peak_use_oct_kw</display_name>
-      <short_name>q1_daily_peak_use_oct_kw</short_name>
+      <name>q1_daily_peak_aug_kw</name>
+      <display_name>q1_daily_peak_aug_kw</display_name>
+      <short_name>q1_daily_peak_aug_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>q1_daily_peak_use_nov_kw</name>
-      <display_name>q1_daily_peak_use_nov_kw</display_name>
-      <short_name>q1_daily_peak_use_nov_kw</short_name>
+      <name>q1_daily_peak_sep_kw</name>
+      <display_name>q1_daily_peak_sep_kw</display_name>
+      <short_name>q1_daily_peak_sep_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>q1_daily_peak_use_dec_kw</name>
-      <display_name>q1_daily_peak_use_dec_kw</display_name>
-      <short_name>q1_daily_peak_use_dec_kw</short_name>
+      <name>q1_daily_peak_oct_kw</name>
+      <display_name>q1_daily_peak_oct_kw</display_name>
+      <short_name>q1_daily_peak_oct_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>median_daily_peak_use_jan_kw</name>
-      <display_name>median_daily_peak_use_jan_kw</display_name>
-      <short_name>median_daily_peak_use_jan_kw</short_name>
+      <name>q1_daily_peak_nov_kw</name>
+      <display_name>q1_daily_peak_nov_kw</display_name>
+      <short_name>q1_daily_peak_nov_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>median_daily_peak_use_feb_kw</name>
-      <display_name>median_daily_peak_use_feb_kw</display_name>
-      <short_name>median_daily_peak_use_feb_kw</short_name>
+      <name>q1_daily_peak_dec_kw</name>
+      <display_name>q1_daily_peak_dec_kw</display_name>
+      <short_name>q1_daily_peak_dec_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>median_daily_peak_use_mar_kw</name>
-      <display_name>median_daily_peak_use_mar_kw</display_name>
-      <short_name>median_daily_peak_use_mar_kw</short_name>
+      <name>median_daily_peak_jan_kw</name>
+      <display_name>median_daily_peak_jan_kw</display_name>
+      <short_name>median_daily_peak_jan_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>median_daily_peak_use_apr_kw</name>
-      <display_name>median_daily_peak_use_apr_kw</display_name>
-      <short_name>median_daily_peak_use_apr_kw</short_name>
+      <name>median_daily_peak_feb_kw</name>
+      <display_name>median_daily_peak_feb_kw</display_name>
+      <short_name>median_daily_peak_feb_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>median_daily_peak_use_may_kw</name>
-      <display_name>median_daily_peak_use_may_kw</display_name>
-      <short_name>median_daily_peak_use_may_kw</short_name>
+      <name>median_daily_peak_mar_kw</name>
+      <display_name>median_daily_peak_mar_kw</display_name>
+      <short_name>median_daily_peak_mar_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>median_daily_peak_use_jun_kw</name>
-      <display_name>median_daily_peak_use_jun_kw</display_name>
-      <short_name>median_daily_peak_use_jun_kw</short_name>
+      <name>median_daily_peak_apr_kw</name>
+      <display_name>median_daily_peak_apr_kw</display_name>
+      <short_name>median_daily_peak_apr_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>median_daily_peak_use_jul_kw</name>
-      <display_name>median_daily_peak_use_jul_kw</display_name>
-      <short_name>median_daily_peak_use_jul_kw</short_name>
+      <name>median_daily_peak_may_kw</name>
+      <display_name>median_daily_peak_may_kw</display_name>
+      <short_name>median_daily_peak_may_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>median_daily_peak_use_aug_kw</name>
-      <display_name>median_daily_peak_use_aug_kw</display_name>
-      <short_name>median_daily_peak_use_aug_kw</short_name>
+      <name>median_daily_peak_jun_kw</name>
+      <display_name>median_daily_peak_jun_kw</display_name>
+      <short_name>median_daily_peak_jun_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>median_daily_peak_use_sep_kw</name>
-      <display_name>median_daily_peak_use_sep_kw</display_name>
-      <short_name>median_daily_peak_use_sep_kw</short_name>
+      <name>median_daily_peak_jul_kw</name>
+      <display_name>median_daily_peak_jul_kw</display_name>
+      <short_name>median_daily_peak_jul_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>median_daily_peak_use_oct_kw</name>
-      <display_name>median_daily_peak_use_oct_kw</display_name>
-      <short_name>median_daily_peak_use_oct_kw</short_name>
+      <name>median_daily_peak_aug_kw</name>
+      <display_name>median_daily_peak_aug_kw</display_name>
+      <short_name>median_daily_peak_aug_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>median_daily_peak_use_nov_kw</name>
-      <display_name>median_daily_peak_use_nov_kw</display_name>
-      <short_name>median_daily_peak_use_nov_kw</short_name>
+      <name>median_daily_peak_sep_kw</name>
+      <display_name>median_daily_peak_sep_kw</display_name>
+      <short_name>median_daily_peak_sep_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>median_daily_peak_use_dec_kw</name>
-      <display_name>median_daily_peak_use_dec_kw</display_name>
-      <short_name>median_daily_peak_use_dec_kw</short_name>
+      <name>median_daily_peak_oct_kw</name>
+      <display_name>median_daily_peak_oct_kw</display_name>
+      <short_name>median_daily_peak_oct_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>q3_daily_peak_use_jan_kw</name>
-      <display_name>q3_daily_peak_use_jan_kw</display_name>
-      <short_name>q3_daily_peak_use_jan_kw</short_name>
+      <name>median_daily_peak_nov_kw</name>
+      <display_name>median_daily_peak_nov_kw</display_name>
+      <short_name>median_daily_peak_nov_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>q3_daily_peak_use_feb_kw</name>
-      <display_name>q3_daily_peak_use_feb_kw</display_name>
-      <short_name>q3_daily_peak_use_feb_kw</short_name>
+      <name>median_daily_peak_dec_kw</name>
+      <display_name>median_daily_peak_dec_kw</display_name>
+      <short_name>median_daily_peak_dec_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>q3_daily_peak_use_mar_kw</name>
-      <display_name>q3_daily_peak_use_mar_kw</display_name>
-      <short_name>q3_daily_peak_use_mar_kw</short_name>
+      <name>q3_daily_peak_jan_kw</name>
+      <display_name>q3_daily_peak_jan_kw</display_name>
+      <short_name>q3_daily_peak_jan_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>q3_daily_peak_use_apr_kw</name>
-      <display_name>q3_daily_peak_use_apr_kw</display_name>
-      <short_name>q3_daily_peak_use_apr_kw</short_name>
+      <name>q3_daily_peak_feb_kw</name>
+      <display_name>q3_daily_peak_feb_kw</display_name>
+      <short_name>q3_daily_peak_feb_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>q3_daily_peak_use_may_kw</name>
-      <display_name>q3_daily_peak_use_may_kw</display_name>
-      <short_name>q3_daily_peak_use_may_kw</short_name>
+      <name>q3_daily_peak_mar_kw</name>
+      <display_name>q3_daily_peak_mar_kw</display_name>
+      <short_name>q3_daily_peak_mar_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>q3_daily_peak_use_jun_kw</name>
-      <display_name>q3_daily_peak_use_jun_kw</display_name>
-      <short_name>q3_daily_peak_use_jun_kw</short_name>
+      <name>q3_daily_peak_apr_kw</name>
+      <display_name>q3_daily_peak_apr_kw</display_name>
+      <short_name>q3_daily_peak_apr_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>q3_daily_peak_use_jul_kw</name>
-      <display_name>q3_daily_peak_use_jul_kw</display_name>
-      <short_name>q3_daily_peak_use_jul_kw</short_name>
+      <name>q3_daily_peak_may_kw</name>
+      <display_name>q3_daily_peak_may_kw</display_name>
+      <short_name>q3_daily_peak_may_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>q3_daily_peak_use_aug_kw</name>
-      <display_name>q3_daily_peak_use_aug_kw</display_name>
-      <short_name>q3_daily_peak_use_aug_kw</short_name>
+      <name>q3_daily_peak_jun_kw</name>
+      <display_name>q3_daily_peak_jun_kw</display_name>
+      <short_name>q3_daily_peak_jun_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>q3_daily_peak_use_sep_kw</name>
-      <display_name>q3_daily_peak_use_sep_kw</display_name>
-      <short_name>q3_daily_peak_use_sep_kw</short_name>
+      <name>q3_daily_peak_jul_kw</name>
+      <display_name>q3_daily_peak_jul_kw</display_name>
+      <short_name>q3_daily_peak_jul_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>q3_daily_peak_use_oct_kw</name>
-      <display_name>q3_daily_peak_use_oct_kw</display_name>
-      <short_name>q3_daily_peak_use_oct_kw</short_name>
+      <name>q3_daily_peak_aug_kw</name>
+      <display_name>q3_daily_peak_aug_kw</display_name>
+      <short_name>q3_daily_peak_aug_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>q3_daily_peak_use_nov_kw</name>
-      <display_name>q3_daily_peak_use_nov_kw</display_name>
-      <short_name>q3_daily_peak_use_nov_kw</short_name>
+      <name>q3_daily_peak_sep_kw</name>
+      <display_name>q3_daily_peak_sep_kw</display_name>
+      <short_name>q3_daily_peak_sep_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>q3_daily_peak_use_dec_kw</name>
-      <display_name>q3_daily_peak_use_dec_kw</display_name>
-      <short_name>q3_daily_peak_use_dec_kw</short_name>
+      <name>q3_daily_peak_oct_kw</name>
+      <display_name>q3_daily_peak_oct_kw</display_name>
+      <short_name>q3_daily_peak_oct_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>maximum_daily_peak_use_jan_kw</name>
-      <display_name>maximum_daily_peak_use_jan_kw</display_name>
-      <short_name>maximum_daily_peak_use_jan_kw</short_name>
+      <name>q3_daily_peak_nov_kw</name>
+      <display_name>q3_daily_peak_nov_kw</display_name>
+      <short_name>q3_daily_peak_nov_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>maximum_daily_peak_use_feb_kw</name>
-      <display_name>maximum_daily_peak_use_feb_kw</display_name>
-      <short_name>maximum_daily_peak_use_feb_kw</short_name>
+      <name>q3_daily_peak_dec_kw</name>
+      <display_name>q3_daily_peak_dec_kw</display_name>
+      <short_name>q3_daily_peak_dec_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>maximum_daily_peak_use_mar_kw</name>
-      <display_name>maximum_daily_peak_use_mar_kw</display_name>
-      <short_name>maximum_daily_peak_use_mar_kw</short_name>
+      <name>maximum_daily_peak_jan_kw</name>
+      <display_name>maximum_daily_peak_jan_kw</display_name>
+      <short_name>maximum_daily_peak_jan_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>maximum_daily_peak_use_apr_kw</name>
-      <display_name>maximum_daily_peak_use_apr_kw</display_name>
-      <short_name>maximum_daily_peak_use_apr_kw</short_name>
+      <name>maximum_daily_peak_feb_kw</name>
+      <display_name>maximum_daily_peak_feb_kw</display_name>
+      <short_name>maximum_daily_peak_feb_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>maximum_daily_peak_use_may_kw</name>
-      <display_name>maximum_daily_peak_use_may_kw</display_name>
-      <short_name>maximum_daily_peak_use_may_kw</short_name>
+      <name>maximum_daily_peak_mar_kw</name>
+      <display_name>maximum_daily_peak_mar_kw</display_name>
+      <short_name>maximum_daily_peak_mar_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>maximum_daily_peak_use_jun_kw</name>
-      <display_name>maximum_daily_peak_use_jun_kw</display_name>
-      <short_name>maximum_daily_peak_use_jun_kw</short_name>
+      <name>maximum_daily_peak_apr_kw</name>
+      <display_name>maximum_daily_peak_apr_kw</display_name>
+      <short_name>maximum_daily_peak_apr_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>maximum_daily_peak_use_jul_kw</name>
-      <display_name>maximum_daily_peak_use_jul_kw</display_name>
-      <short_name>maximum_daily_peak_use_jul_kw</short_name>
+      <name>maximum_daily_peak_may_kw</name>
+      <display_name>maximum_daily_peak_may_kw</display_name>
+      <short_name>maximum_daily_peak_may_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>maximum_daily_peak_use_aug_kw</name>
-      <display_name>maximum_daily_peak_use_aug_kw</display_name>
-      <short_name>maximum_daily_peak_use_aug_kw</short_name>
+      <name>maximum_daily_peak_jun_kw</name>
+      <display_name>maximum_daily_peak_jun_kw</display_name>
+      <short_name>maximum_daily_peak_jun_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>maximum_daily_peak_use_sep_kw</name>
-      <display_name>maximum_daily_peak_use_sep_kw</display_name>
-      <short_name>maximum_daily_peak_use_sep_kw</short_name>
+      <name>maximum_daily_peak_jul_kw</name>
+      <display_name>maximum_daily_peak_jul_kw</display_name>
+      <short_name>maximum_daily_peak_jul_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>maximum_daily_peak_use_oct_kw</name>
-      <display_name>maximum_daily_peak_use_oct_kw</display_name>
-      <short_name>maximum_daily_peak_use_oct_kw</short_name>
+      <name>maximum_daily_peak_aug_kw</name>
+      <display_name>maximum_daily_peak_aug_kw</display_name>
+      <short_name>maximum_daily_peak_aug_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>maximum_daily_peak_use_nov_kw</name>
-      <display_name>maximum_daily_peak_use_nov_kw</display_name>
-      <short_name>maximum_daily_peak_use_nov_kw</short_name>
+      <name>maximum_daily_peak_sep_kw</name>
+      <display_name>maximum_daily_peak_sep_kw</display_name>
+      <short_name>maximum_daily_peak_sep_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
     <output>
-      <name>maximum_daily_peak_use_dec_kw</name>
-      <display_name>maximum_daily_peak_use_dec_kw</display_name>
-      <short_name>maximum_daily_peak_use_dec_kw</short_name>
+      <name>maximum_daily_peak_oct_kw</name>
+      <display_name>maximum_daily_peak_oct_kw</display_name>
+      <short_name>maximum_daily_peak_oct_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>maximum_daily_peak_nov_kw</name>
+      <display_name>maximum_daily_peak_nov_kw</display_name>
+      <short_name>maximum_daily_peak_nov_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>maximum_daily_peak_dec_kw</name>
+      <display_name>maximum_daily_peak_dec_kw</display_name>
+      <short_name>maximum_daily_peak_dec_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_jan_kw</name>
+      <display_name>mean_daily_peak_jan_kw</display_name>
+      <short_name>mean_daily_peak_jan_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_feb_kw</name>
+      <display_name>mean_daily_peak_feb_kw</display_name>
+      <short_name>mean_daily_peak_feb_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_mar_kw</name>
+      <display_name>mean_daily_peak_mar_kw</display_name>
+      <short_name>mean_daily_peak_mar_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_apr_kw</name>
+      <display_name>mean_daily_peak_apr_kw</display_name>
+      <short_name>mean_daily_peak_apr_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_may_kw</name>
+      <display_name>mean_daily_peak_may_kw</display_name>
+      <short_name>mean_daily_peak_may_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_jun_kw</name>
+      <display_name>mean_daily_peak_jun_kw</display_name>
+      <short_name>mean_daily_peak_jun_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_jul_kw</name>
+      <display_name>mean_daily_peak_jul_kw</display_name>
+      <short_name>mean_daily_peak_jul_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_aug_kw</name>
+      <display_name>mean_daily_peak_aug_kw</display_name>
+      <short_name>mean_daily_peak_aug_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_sep_kw</name>
+      <display_name>mean_daily_peak_sep_kw</display_name>
+      <short_name>mean_daily_peak_sep_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_oct_kw</name>
+      <display_name>mean_daily_peak_oct_kw</display_name>
+      <short_name>mean_daily_peak_oct_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_nov_kw</name>
+      <display_name>mean_daily_peak_nov_kw</display_name>
+      <short_name>mean_daily_peak_nov_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_dec_kw</name>
+      <display_name>mean_daily_peak_dec_kw</display_name>
+      <short_name>mean_daily_peak_dec_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_grid_window_jan_kw</name>
+      <display_name>mean_daily_peak_grid_window_jan_kw</display_name>
+      <short_name>mean_daily_peak_grid_window_jan_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_grid_window_feb_kw</name>
+      <display_name>mean_daily_peak_grid_window_feb_kw</display_name>
+      <short_name>mean_daily_peak_grid_window_feb_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_grid_window_mar_kw</name>
+      <display_name>mean_daily_peak_grid_window_mar_kw</display_name>
+      <short_name>mean_daily_peak_grid_window_mar_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_grid_window_apr_kw</name>
+      <display_name>mean_daily_peak_grid_window_apr_kw</display_name>
+      <short_name>mean_daily_peak_grid_window_apr_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_grid_window_may_kw</name>
+      <display_name>mean_daily_peak_grid_window_may_kw</display_name>
+      <short_name>mean_daily_peak_grid_window_may_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_grid_window_jun_kw</name>
+      <display_name>mean_daily_peak_grid_window_jun_kw</display_name>
+      <short_name>mean_daily_peak_grid_window_jun_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_grid_window_jul_kw</name>
+      <display_name>mean_daily_peak_grid_window_jul_kw</display_name>
+      <short_name>mean_daily_peak_grid_window_jul_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_grid_window_aug_kw</name>
+      <display_name>mean_daily_peak_grid_window_aug_kw</display_name>
+      <short_name>mean_daily_peak_grid_window_aug_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_grid_window_sep_kw</name>
+      <display_name>mean_daily_peak_grid_window_sep_kw</display_name>
+      <short_name>mean_daily_peak_grid_window_sep_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_grid_window_oct_kw</name>
+      <display_name>mean_daily_peak_grid_window_oct_kw</display_name>
+      <short_name>mean_daily_peak_grid_window_oct_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_grid_window_nov_kw</name>
+      <display_name>mean_daily_peak_grid_window_nov_kw</display_name>
+      <short_name>mean_daily_peak_grid_window_nov_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_grid_window_dec_kw</name>
+      <display_name>mean_daily_peak_grid_window_dec_kw</display_name>
+      <short_name>mean_daily_peak_grid_window_dec_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_grid_peak_jan_kw</name>
+      <display_name>mean_daily_peak_grid_peak_jan_kw</display_name>
+      <short_name>mean_daily_peak_grid_peak_jan_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_grid_peak_feb_kw</name>
+      <display_name>mean_daily_peak_grid_peak_feb_kw</display_name>
+      <short_name>mean_daily_peak_grid_peak_feb_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_grid_peak_mar_kw</name>
+      <display_name>mean_daily_peak_grid_peak_mar_kw</display_name>
+      <short_name>mean_daily_peak_grid_peak_mar_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_grid_peak_apr_kw</name>
+      <display_name>mean_daily_peak_grid_peak_apr_kw</display_name>
+      <short_name>mean_daily_peak_grid_peak_apr_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_grid_peak_may_kw</name>
+      <display_name>mean_daily_peak_grid_peak_may_kw</display_name>
+      <short_name>mean_daily_peak_grid_peak_may_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_grid_peak_jun_kw</name>
+      <display_name>mean_daily_peak_grid_peak_jun_kw</display_name>
+      <short_name>mean_daily_peak_grid_peak_jun_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_grid_peak_jul_kw</name>
+      <display_name>mean_daily_peak_grid_peak_jul_kw</display_name>
+      <short_name>mean_daily_peak_grid_peak_jul_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_grid_peak_aug_kw</name>
+      <display_name>mean_daily_peak_grid_peak_aug_kw</display_name>
+      <short_name>mean_daily_peak_grid_peak_aug_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_grid_peak_sep_kw</name>
+      <display_name>mean_daily_peak_grid_peak_sep_kw</display_name>
+      <short_name>mean_daily_peak_grid_peak_sep_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_grid_peak_oct_kw</name>
+      <display_name>mean_daily_peak_grid_peak_oct_kw</display_name>
+      <short_name>mean_daily_peak_grid_peak_oct_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_grid_peak_nov_kw</name>
+      <display_name>mean_daily_peak_grid_peak_nov_kw</display_name>
+      <short_name>mean_daily_peak_grid_peak_nov_kw</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>mean_daily_peak_grid_peak_dec_kw</name>
+      <display_name>mean_daily_peak_grid_peak_dec_kw</display_name>
+      <short_name>mean_daily_peak_grid_peak_dec_kw</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
@@ -727,7 +1049,133 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>5FE6A05C</checksum>
+      <checksum>A30582C3</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/AZNMc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>539CBAAB</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/CAMXc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>7F5083E1</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/ERCTc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>1FE57B71</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/FRCCc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>5CE15FD1</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/MROEc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>E2DA3C9E</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/MROWc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>13AFAD89</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/NEWEc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>F2E596E3</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/NWPPc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>A6428178</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/NYSTc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>B86CFD98</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/RFCEc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>8B44EABE</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/RFCMc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>92FDBEE4</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/RFCWc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>CD1D5574</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/RMPAc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>41C14E26</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/SPNOc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>F4CA5490</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/SPSOc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>05F8BAD9</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/SRMVc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>0E2F9035</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/SRMWc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>0D476EC3</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/SRSOc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>0B929419</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/SRTVc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>936DED13</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/SRVCc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>435D2C3E</checksum>
+    </file>
+    <file>
+      <filename>dispatch_schedule_generation.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>5CD63E5C</checksum>
     </file>
     <file>
       <filename>USA_MI_Detroit.City.725375_2012.epw</filename>
