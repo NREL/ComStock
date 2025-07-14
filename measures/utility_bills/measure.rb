@@ -55,7 +55,7 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     result = OpenStudio::IdfObjectVector.new
 
     # Request hourly data for fuel types with hourly bill calculations
-    #result << OpenStudio::IdfObject.load("Output:Meter,Electricity:Facility,Hourly;").get
+    # result << OpenStudio::IdfObject.load("Output:Meter,Electricity:Facility,Hourly;").get
     result << OpenStudio::IdfObject.load("Output:Meter,ElectricityPurchased:Facility,Hourly;").get
 
     return result
@@ -112,17 +112,17 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     # Get bill values and sort
     elec_bill_total_values = elec_bills.values.compact.map(&:to_f).sort
     runner.registerInfo("Bills sorted: #{elec_bill_total_values}")
-  
+
     # Catch when elec_bills is empty
     if elec_bill_total_values.empty?
       return [0, 'NA', 0, 'NA', 0, 'NA', 0, 'NA', 0, 0]
     end
-  
+
     # Calculate basic stats
     min_total_bill = elec_bill_total_values.min
     max_total_bill = elec_bill_total_values.max
     mean_total_bill = (elec_bill_total_values.sum / elec_bill_total_values.size).round
-  
+
     # Median calculation
     lo_i = (elec_bill_total_values.size - 1) / 2
     hi_i = elec_bill_total_values.size / 2
@@ -217,7 +217,7 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
     # Electricity Bill
 
     # Get hourly electricity timeseries
-    #elec_ts = sql.timeSeries(ann_env_pd, 'Hourly', 'Electricity:Facility', '')
+    # elec_ts = sql.timeSeries(ann_env_pd, 'Hourly', 'Electricity:Facility', '')
     elec_ts = sql.timeSeries(ann_env_pd, 'Hourly', 'ElectricityPurchased:Facility', '')
     if elec_ts.empty?
       runner.registerError('Could not get hourly electricity consumption, cannot calculate electricity bill')
@@ -530,7 +530,7 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
               runner.registerError("stderr: #{stderr_str}")
               return false
             end
-          end          
+          end
 
           # Filter reasonable rates
           elec_bills_total, list_of_labels_to_remove = filter_datapoints_with_median_bounds(runner, rate_results_total, [], true)
