@@ -12,7 +12,7 @@ require_relative '../../../../test/helpers/minitest_helper'
 # require all .rb files in resources folder
 Dir[File.dirname(__FILE__) + '../resources/*.rb'].each { |file| require file }
 
-class DFLightingControlTest < Minitest::Test
+class DFLoadShedTest < Minitest::Test
   # def setup
   # end
 
@@ -194,7 +194,7 @@ class DFLightingControlTest < Minitest::Test
       epw_path = epw_path[0]
 
       # create an instance of the measure
-      measure = DFLightingControl.new
+      measure = DFLoadShed.new
 
       # load the model; only used here for populating arguments
       model = load_model(osm_path)
@@ -214,44 +214,64 @@ class DFLightingControlTest < Minitest::Test
       argument_map['peak_len'] = peak_len
 
       # set arguments:
-      light_adjustment_method = arguments[2].clone
+      thermostat_control = arguments[2].clone
+      assert(thermostat_control.setValue(true))
+      argument_map['thermostat_control'] = thermostat_control
+
+      # set arguments:
+      rebound_len = arguments[3].clone
+      assert(rebound_len.setValue(2))
+      argument_map['rebound_len'] = rebound_len
+
+      # set arguments:
+      sp_adjustment = arguments[4].clone
+      assert(sp_adjustment.setValue(2.0))
+      argument_map['sp_adjustment'] = sp_adjustment
+
+      # set arguments:
+      lighting_control = arguments[5].clone
+      assert(lighting_control.setValue(true))
+      argument_map['lighting_control'] = lighting_control
+
+      # set arguments:
+      light_adjustment_method = arguments[6].clone
       assert(light_adjustment_method.setValue('absolute change'))
       argument_map['light_adjustment_method'] = light_adjustment_method
 
       # set arguments:
-      light_adjustment = arguments[3].clone
+      light_adjustment = arguments[7].clone
       assert(light_adjustment.setValue(30.0))
       argument_map['light_adjustment'] = light_adjustment
 
       # set arguments:
-      num_timesteps_in_hr = arguments[4].clone
+      num_timesteps_in_hr = arguments[8].clone
       assert(num_timesteps_in_hr.setValue(4))
       argument_map['num_timesteps_in_hr'] = num_timesteps_in_hr
 
       # set arguments:
-      load_prediction_method = arguments[5].clone
+      load_prediction_method = arguments[9].clone
       assert(load_prediction_method.setValue('full baseline'))#'bin sample''part year bin sample'
       argument_map['load_prediction_method'] = load_prediction_method
 
       # set arguments:
-      peak_lag = arguments[6].clone
-      assert(peak_lag.setValue(2))
-      argument_map['peak_lag'] = peak_lag
-
-      # set arguments:
-      peak_window_strategy = arguments[7].clone
+      peak_window_strategy = arguments[10].clone
       assert(peak_window_strategy.setValue('center with peak'))#'bin sample''part year bin sample'
       argument_map['peak_window_strategy'] = peak_window_strategy
 
       # set arguments:
-      cambium_scenario = arguments[8].clone
+      cambium_scenario = arguments[11].clone
       assert(cambium_scenario.setValue('LRMER_MidCase_15'))#
       argument_map['cambium_scenario'] = cambium_scenario
 
       # set arguments:
-      pv = arguments[9].clone
+      pv = arguments[12].clone
       assert(pv.setValue(true))#
       argument_map['pv'] = pv
+
+      # # set arguments:
+      # apply_measure = arguments[13].clone
+      # assert(apply_measure.setValue(true))#
+      # argument_map['apply_measure'] = apply_measure
       
       # store baseline schedule for check later
       lights = model.getLightss
@@ -268,6 +288,41 @@ class DFLightingControlTest < Minitest::Test
       end
       puts('-----------------------------------------------------------------')
       puts("light_schedules.key=#{light_schedules.keys}")
+      # store baseline schedule for check later
+      heat_schedules = {}
+      cool_schedules = {}
+      thermostats = model.getThermostatSetpointDualSetpoints
+      thermostats.each do |thermostat|
+        if thermostat.to_Thermostat.get.thermalZone.is_initialized
+          thermalzone = thermostat.to_Thermostat.get.thermalZone.get
+          clg_fueltypes = thermalzone.coolingFuelTypes.map(&:valueName).uniq
+          htg_fueltypes = thermalzone.heatingFuelTypes.map(&:valueName).uniq
+          # puts("### DEBUGGING: clg_fueltypes = #{clg_fueltypes}")
+          # puts("### DEBUGGING: htg_fueltypes = #{htg_fueltypes}")
+          if htg_fueltypes == ['Electricity']
+            heat_sch = thermostat.heatingSetpointTemperatureSchedule
+            unless heat_sch.empty?
+              unless heat_schedules.key?(heat_sch.get.name.to_s)
+                schedule = heat_sch.get.clone(model)
+                schedule_ts = measure.get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get, 8760*num_timesteps_in_hr.valueAsInteger())
+                heat_schedules[heat_sch.get.name.to_s] = schedule_ts
+              end
+            end
+          end
+          if clg_fueltypes == ['Electricity']
+            cool_sch = thermostat.coolingSetpointTemperatureSchedule
+            unless cool_sch.empty?
+              unless cool_schedules.key?(cool_sch.get.name.to_s)
+                schedule = cool_sch.get.clone(model)
+                schedule_ts = measure.get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get, 8760*num_timesteps_in_hr.valueAsInteger())
+                cool_schedules[cool_sch.get.name.to_s] = schedule_ts
+              end
+            end
+          end
+        end
+      end
+      puts("heat_schedules.key=#{heat_schedules.keys}")
+      puts("cool_schedules.key=#{cool_schedules.keys}")
       puts('-----------------------------------------------------------------')
 
       # apply the measure to the model and optionally run the model
@@ -281,13 +336,46 @@ class DFLightingControlTest < Minitest::Test
       # to check that something changed in the model, load the model and the check the objects match expected new value
       model = load_model(model_output_path(instance_test_name))
       
-      ### check
+      ### quick check on schedule update
       if set[:result] == 'Success'
+        thermostats = model.getThermostatSetpointDualSetpoints
         lights = model.getLightss
+        new_heat_schedules = {}
+        new_cool_schedules = {}
         new_light_schedules = {}
+
         # quick check on schedule update
+        nts_clg = 0
+        nts_htg = 0
         nl = 0
         nla = 0
+        # check on thermostat schedules
+        thermostats.each do |thermostat|
+          cool_sch = thermostat.coolingSetpointTemperatureSchedule
+          clg_sch_name = cool_sch.get.name.to_s
+          if clg_sch_name.include?(' df_adjusted')
+            unless new_cool_schedules.key?(clg_sch_name)
+              schedule = cool_sch.get.clone(model)
+              schedule = schedule.to_ScheduleInterval.get
+              new_cool_schedules[clg_sch_name] = schedule.timeSeries.values.to_a
+            end
+            nts_clg += 1
+          end
+          heat_sch = thermostat.heatingSetpointTemperatureSchedule
+          heat_sch_name = heat_sch.get.name.to_s
+          if heat_sch_name.include?(' df_adjusted')
+            unless new_heat_schedules.key?(heat_sch_name)
+              schedule = heat_sch.get.clone(model)
+              schedule = schedule.to_ScheduleInterval.get
+              new_heat_schedules[heat_sch_name] = schedule.timeSeries.values.to_a
+            end
+            nts_htg += 1
+          end
+        end
+        puts('-----------------------------------------------------------------')
+        puts("--- Detected #{nts_clg} df adjusted cooling schedules and #{nts_htg} df adjusted heating schedules")
+        assert(nts_clg + nts_htg > 0)
+        # check on light schedules
         lights.each do |light|
           light_sch = light.schedule
           light_sch_name = light_sch.get.name.to_s
@@ -305,14 +393,54 @@ class DFLightingControlTest < Minitest::Test
         puts('-----------------------------------------------------------------')
         puts("--- Detected #{nla}/#{nl} lights with df adjusted lighting schedules")
         assert(nla == nl)
-        puts('-----------------------------------------------------------------')
+        
         # compare before/after schedules
+        if nts_clg > 0
+          cool_schedules.each do |cool_sch_name, cool_sch_vals|
+            new_cool_sch_vals = new_cool_schedules["#{cool_sch_name} df_adjusted"]
+            diff = cool_sch_vals.zip(new_cool_sch_vals).map { |a, b| (b - a).round(2) }
+            counts = diff.tally
+            counts = counts.sort.to_h
+            puts('-----------------------------------------------------------------')
+            # puts("--- hourly light schedules changes #{diff*100.0}% everyday")
+            puts("--- cooling schedule changes on average #{diff.sum/365.0/(peak_len.valueAsInteger().to_f)/(num_timesteps_in_hr.valueAsInteger().to_f)}C/hr for #{peak_len.valueAsInteger()} hours everyday")
+            counts.each do |value, count|
+              unless value == 0.0 || count < num_timesteps_in_hr.valueAsInteger().to_f
+                puts("--- cooling schedule changes #{value}C in #{count/(peak_len.valueAsInteger().to_f)/(num_timesteps_in_hr.valueAsInteger().to_f)} days")
+                assert(value.abs<=sp_adjustment.valueAsDouble(), "Hourly change should not exceed the input #{sp_adjustment.valueAsDouble().round(1)}")
+              end
+            end
+            total_days = counts[sp_adjustment.valueAsDouble()]/(peak_len.valueAsInteger().to_f)/(num_timesteps_in_hr.valueAsInteger().to_f)
+            assert(total_days < 367 && total_days > 360, "cooling schedule changes with input #{sp_adjustment.valueAsDouble()}C in #{total_days} days")
+          end
+        end
+        if nts_htg > 0
+          heat_schedules.each do |heat_sch_name, heat_sch_vals|
+            new_heat_sch_vals = new_heat_schedules["#{heat_sch_name} df_adjusted"]
+            diff = heat_sch_vals.zip(new_heat_sch_vals).map { |a, b| (a - b).round(2) }
+            counts = diff.tally
+            counts = counts.sort.to_h
+            puts('-----------------------------------------------------------------')
+            # puts("--- hourly light schedules changes #{diff*100.0}% everyday")
+            puts("--- heating schedule changes on average #{diff.sum/365.0/(peak_len.valueAsInteger().to_f)/(num_timesteps_in_hr.valueAsInteger().to_f)}C/hr for #{peak_len.valueAsInteger()} hours everyday")
+            counts.each do |value, count|
+              unless value == 0.0 || count < num_timesteps_in_hr.valueAsInteger().to_f
+                puts("--- heating schedule changes #{value} in #{count/(peak_len.valueAsInteger().to_f)/(num_timesteps_in_hr.valueAsInteger().to_f)} days")
+                assert(value.abs<=sp_adjustment.valueAsDouble(), "Hourly change should not exceed the input #{sp_adjustment.valueAsDouble().round(1)}")
+              end
+            end
+            total_days = counts[sp_adjustment.valueAsDouble()]/(peak_len.valueAsInteger().to_f)/(num_timesteps_in_hr.valueAsInteger().to_f)
+            assert(total_days < 367 && total_days > 360, "heating schedule changes with input #{sp_adjustment.valueAsDouble()}C in #{total_days} days")
+          end
+        end
+        
         light_schedules.each do |light_sch_name, light_sch_vals|
           new_light_sch_vals = new_light_schedules["#{light_sch_name} df_adjusted"]
           # diff = light_sch_vals.sum - new_light_sch_vals.sum
           diff = light_sch_vals.zip(new_light_sch_vals).map { |a, b| (a - b).round(2) }
           counts = diff.tally
           counts = counts.sort.to_h
+          puts('-----------------------------------------------------------------')
           # puts("--- hourly light schedules changes #{diff*100.0}% everyday")
           puts("--- light schedule changes on average #{(diff.sum/3.650/(peak_len.valueAsInteger().to_f)/(num_timesteps_in_hr.valueAsInteger().to_f)).round(2)}%/hr for #{peak_len.valueAsInteger()} hours everyday")
           total_count = 0
