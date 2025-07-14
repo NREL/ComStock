@@ -233,12 +233,7 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
       argument_map['load_prediction_method'] = load_prediction_method
 
       # set arguments:
-      peak_lag = arguments[6].clone
-      assert(peak_lag.setValue(2))
-      argument_map['peak_lag'] = peak_lag
-
-      # set arguments:
-      peak_window_strategy = arguments[7].clone
+      peak_window_strategy = arguments[6].clone
       assert(peak_window_strategy.setValue('center with peak'))#'bin sample''part year bin sample'
       argument_map['peak_window_strategy'] = peak_window_strategy
 
