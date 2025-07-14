@@ -353,14 +353,20 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
       # Daily peak average by month (12)
       report_sim_output(runner, "mean_daily_peak_#{month}_kw",
                         daily_peak_stats_by_month(timeseries, month_val, 'mean'), '', '')
-      
+
       # Daily peak average during grid peak window by month (12)
-      report_sim_output(runner, "mean_daily_peak_grid_window_#{month}_kw",
-      daily_peak_stats_on_grid_peak_by_month(model, 4, timeseries, month_val, 'mean'), '', '')
+      report_sim_output(runner,
+                        "mean_daily_peak_grid_window_#{month}_kw",
+                        daily_peak_stats_on_grid_peak_by_month(model, 4, timeseries, month_val, 'mean'),
+                        '',
+                        '')
 
       # Daily peak average on grid peak by month (12)
-      report_sim_output(runner, "mean_daily_peak_grid_peak_#{month}_kw",
-      daily_peak_stats_on_grid_peak_by_month(model, 1, timeseries, month_val, 'mean'), '', '')
+      report_sim_output(runner,
+                        "mean_daily_peak_grid_peak_#{month}_kw",
+                        daily_peak_stats_on_grid_peak_by_month(model, 1, timeseries, month_val, 'mean'),
+                        '',
+                        '')
 
       # Daily peak timing median by month (12)
       report_sim_output(runner, "median_daily_peak_timing_#{month}_hour",
@@ -476,7 +482,7 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
     when 'mean'
       stats_by_month = daily_peak_by_month.sum(0.0) / daily_peak_by_month.size
     else
-      raise "unsupported statistics for daily peak outputs"
+      raise 'unsupported statistics for daily peak outputs'
     end
     stats_by_month
   end
@@ -493,7 +499,7 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
     elsif stats_option == 'mean'
       stats_by_month = daily_peak_timing_by_month.sum(0.0) / daily_peak_timing_by_month.size
     else
-      raise "unsupported statistics for daily peak timing outputs"
+      raise 'unsupported statistics for daily peak timing outputs'
     end
     stats_by_month
   end
@@ -501,17 +507,21 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
   def grid_peak_schedule(model, peak_len, timeseries)
     grid_region = model.getBuilding.additionalProperties.getFeatureAsString('grid_region')
     raise 'Unable to find grid region in model building additional properties' unless grid_region.is_initialized
+
     grid_region = grid_region.get
     load_csv = "#{File.dirname(__FILE__)}/resources/cambium/Load_MidCase_2035/#{grid_region}.csv"
     return nil if !File.file?(load_csv)
+
     net_load_mwh = CSV.read(load_csv, converters: :float).flatten
     grid_peak_schedule = peak_schedule_generation(net_load_mwh, timeseries['temperature'], peak_len, 1, 'center with peak')
-    grid_peak_schedule
+
+    return grid_peak_schedule
   end
 
   def daily_peak_stats_on_grid_peak_by_month(model, peak_len, timeseries, month_val, stats_option = 'mean', year = 2018)
     grid_peaks = grid_peak_schedule(model, peak_len, timeseries)
     return nil if grid_peaks.nil?
+
     daily_peaks = timeseries['total_site_electricity_kw'].zip(grid_peaks).map { |kw, peak| kw * peak }
     daily_peak_by_month = []
     daily_peaks.each_slice(24).with_index do |kws, doy|
@@ -523,7 +533,7 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
     when 'mean'
       stats_by_month = daily_peak_by_month.sum(0.0) / daily_peak_by_month.size
     else
-      raise "unsupported statistics for daily peak on grid peaks"
+      raise 'unsupported statistics for daily peak on grid peaks'
     end
     stats_by_month
   end
