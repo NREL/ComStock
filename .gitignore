@@ -32,3 +32,6 @@ resources/Gemfile.lock
 # Rubocop output
 /.rubocop
 /.rubocop-http*
+
+# test results
+test/reports
