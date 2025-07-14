@@ -56,8 +56,15 @@ try:
 
     ur.execute() # Run the utility rate module
 
-    out = {'total_utility_bill_dollars': int(round(ur.Outputs.elec_cost_without_system_year1, 0)),
-           'average_rate_dollars_per_kwh': round(ur.Outputs.elec_cost_without_system_year1 / sum(hourly_kwh), 2)}
+    out = {
+       'total_utility_bill_dollars': int(round(ur.Outputs.elec_cost_without_system_year1, 0)),
+       'average_rate_dollars_per_kwh': round(ur.Outputs.elec_cost_without_system_year1 / sum(hourly_kwh), 2),
+       'charge_wo_sys_dc_fixed': int(round(ur.Outputs.charge_wo_sys_dc_fixed[1],0)),
+       'charge_wo_sys_dc_tou': int(round(ur.Outputs.charge_wo_sys_dc_tou[1],0)),
+       'charge_wo_sys_ec': int(round(ur.Outputs.charge_wo_sys_ec[1],0)),
+       'charge_wo_sys_fixed_ym': int(round(sum(ur.Outputs.charge_wo_sys_fixed_ym[1]),0))
+       }    
+
     print(json.dumps(out))
 except:
     msg = f'PySAM error calculating bills with rate {args.kwhpath}'

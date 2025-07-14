@@ -115,20 +115,20 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     # request coil and fan energy use for HVAC equipment
     result << OpenStudio::IdfObject.load('Output:Variable,*,Cooling Tower Make Up Water Volume,RunPeriod;').get # m3
     result << OpenStudio::IdfObject.load('Output:Variable,*,Chiller COP,RunPeriod;').get
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Chiller Evaporator Cooling Energy,RunPeriod;').get # J
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Boiler Heating Energy,RunPeriod;').get # J
-    result << OpenStudio::IdfObject.load("Output:Variable,*,Boiler #{elec} Energy,RunPeriod;").get # J
-    result << OpenStudio::IdfObject.load("Output:Variable,*,Boiler #{gas} Energy,RunPeriod;").get # J
-    result << OpenStudio::IdfObject.load("Output:Variable,*,Boiler #{fuel_oil} Energy,RunPeriod;").get # J
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Boiler Propane Energy,RunPeriod;').get # J
-    result << OpenStudio::IdfObject.load("Output:Variable,*,Heat Pump #{elec} Energy,RunPeriod;").get # J
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Heat Pump Load Side Heat Transfer Energy,RunPeriod;').get # J
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Heat Pump Source Side Inlet Temperature,RunPeriod;').get # C
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Fluid Heat Exchanger Loop Supply Side Inlet Temperature,RunPeriod;').get # C
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Fluid Heat Exchanger Loop Supply Side Outlet Temperature,RunPeriod;').get # C
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Fluid Heat Exchanger Loop Demand Side Inlet Temperature,RunPeriod;').get # C
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Fluid Heat Exchanger Loop Demand Side Outlet Temperature,RunPeriod;').get # C
-    result << OpenStudio::IdfObject.load('Output:Variable,*,Fluid Heat Exchanger Heat Transfer Energy,RunPeriod;').get # J
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Chiller Evaporator Cooling Energy,RunPeriod;').get #J
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Boiler Heating Energy,RunPeriod;').get #J
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Boiler #{elec} Energy,RunPeriod;").get #J
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Boiler #{gas} Energy,RunPeriod;").get #J
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Boiler #{fuel_oil} Energy,RunPeriod;").get #J
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Boiler Propane Energy,RunPeriod;").get #J
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Heat Pump #{elec} Energy,RunPeriod;").get #J
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Heat Pump Load Side Heat Transfer Energy,RunPeriod;').get #J
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Heat Pump Source Side Inlet Temperature,RunPeriod;').get #C
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Fluid Heat Exchanger Loop Supply Side Inlet Temperature,RunPeriod;').get #C
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Fluid Heat Exchanger Loop Supply Side Outlet Temperature,RunPeriod;').get #C
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Fluid Heat Exchanger Loop Demand Side Inlet Temperature,RunPeriod;').get #C
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Fluid Heat Exchanger Loop Demand Side Outlet Temperature,RunPeriod;').get #C
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Fluid Heat Exchanger Heat Transfer Energy,RunPeriod;").get # J
     result << OpenStudio::IdfObject.load("Output:Variable,*,Cooling Coil #{elec} Energy,RunPeriod;").get # J
     result << OpenStudio::IdfObject.load("Output:Variable,*,Heating Coil #{elec} Energy,RunPeriod;").get # J
     result << OpenStudio::IdfObject.load("Output:Variable,*,Heating Coil #{gas} Energy,RunPeriod;").get # J
@@ -213,12 +213,12 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       ind_var_1 = lookup_table.independentVariables[0].values.to_a
       ind_var_2 = lookup_table.independentVariables[1].values.to_a
       dep_var = lookup_table.outputValues.to_a
-  
+
       if ind_var_1.size * ind_var_2.size != dep_var.size
         runner.registerError("Table dimensions do not match output size for TableLookup object: #{lookup_table.name}")
         return false
       end
-  
+
       # Clamp input1 to bounds
       if input1 < ind_var_1.first
         runner.registerWarning("input1 (#{input1}) below range, clamping to #{ind_var_1.first}")
@@ -227,7 +227,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         runner.registerWarning("input1 (#{input1}) above range, clamping to #{ind_var_1.last}")
         input1 = ind_var_1.last
       end
-  
+
       # Clamp input2 to bounds
       if input2 < ind_var_2.first
         runner.registerWarning("input2 (#{input2}) below range, clamping to #{ind_var_2.first}")
@@ -236,26 +236,26 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         runner.registerWarning("input2 (#{input2}) above range, clamping to #{ind_var_2.last}")
         input2 = ind_var_2.last
       end
-    
+
       # Find bounding indices for input1
       i1_upper = ind_var_1.index { |val| val >= input1 } || (ind_var_1.size - 1)
       i1_lower = [i1_upper - 1, 0].max
-  
+
       # Find bounding indices for input2
       i2_upper = ind_var_2.index { |val| val >= input2 } || (ind_var_2.size - 1)
       i2_lower = [i2_upper - 1, 0].max
-  
+
       x1 = ind_var_1[i1_lower]
       x2 = ind_var_1[i1_upper]
       y1 = ind_var_2[i2_lower]
       y2 = ind_var_2[i2_upper]
-    
+
       # Get dependent variable values for bilinear interpolation
       v11 = dep_var[i1_lower * ind_var_2.size + i2_lower]  # (x1, y1)
       v12 = dep_var[i1_lower * ind_var_2.size + i2_upper]  # (x1, y2)
       v21 = dep_var[i1_upper * ind_var_2.size + i2_lower]  # (x2, y1)
       v22 = dep_var[i1_upper * ind_var_2.size + i2_upper]  # (x2, y2)
-    
+
       # If exact match, return directly
       if input1 == x1 && input2 == y1
         return v11
@@ -266,23 +266,23 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       elsif input1 == x2 && input2 == y2
         return v22
       end
-  
+
       # Handle edge cases where interpolation becomes linear
       dx = x2 - x1
       dy = y2 - y1
       return v11 if dx == 0 && dy == 0
       return v11 + (v21 - v11) * (input1 - x1) / dx if dy == 0
       return v11 + (v12 - v11) * (input2 - y1) / dy if dx == 0
-  
+
       # Bilinear interpolation
       interpolated_value =
         v11 * (x2 - input1) * (y2 - input2) +
         v21 * (input1 - x1) * (y2 - input2) +
         v12 * (x2 - input1) * (input2 - y1) +
         v22 * (input1 - x1) * (input2 - y1)
-  
+
       interpolated_value /= (x2 - x1) * (y2 - y1)
-  
+
       return interpolated_value
     else
       runner.registerError("TableLookup object does not have exactly two independent variables.")
@@ -964,6 +964,14 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     else
       runner.registerWarning('Interior electric equipment power is not available; cannot calculate equivalent full load hours.')
     end
+
+    # get PV capacity
+    pv_capacity_w = 0
+    model.getGeneratorPVWattss.sort.each do |pv_sys|
+      # get PV system capacity
+      pv_capacity_w+= pv_sys.dcSystemCapacity / 1000
+    end
+    runner.registerValue('com_report_pv_system_size_kw', pv_capacity_w, 'kW')
 
     # Occupant calculations
     total_zone_occupant_area_m2 = 0.0
@@ -1977,12 +1985,16 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     chiller_total_load_j = 0.0
     chiller_load_weighted_cop = 0.0
     chiller_load_weighted_design_cop = 0.0
+    chiller_load_weighted_iplv_eer = 0.0
     chiller_total_capacity_w = 0.0
     chiller_count_0_to_75_tons = 0.0
     chiller_count_75_to_150_tons = 0.0
     chiller_count_150_to_300_tons = 0.0
     chiller_count_300_to_600_tons = 0.0
     chiller_count_600_plus_tons = 0.0
+    chiller_acc_capacity_fraction_weighted_sum = 0.0
+    chiller_wcc_capacity_fraction_weighted_sum = 0.0
+    chiller_ecc_capacity_fraction_weighted_sum = 0.0
     model.getChillerElectricEIRs.sort.each do |chiller|
       # get chiller capacity
       if chiller.referenceCapacity.is_initialized
@@ -2009,6 +2021,18 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         chiller_count_600_plus_tons += 1
       end
 
+      # log condenser type fraction
+      if chiller.condenserType == "AirCooled"
+        chiller_acc_capacity_fraction_weighted_sum += capacity_w
+      elsif chiller.condenserType == "WaterCooled"
+        chiller_wcc_capacity_fraction_weighted_sum += capacity_w
+      elsif chiller.condenserType == "EvaporativelyCooled"
+        chiller_ecc_capacity_fraction_weighted_sum += capacity_w
+      else
+        runner.registerError("Chiller condenser type not available for chiller '#{chiller.name}'.")
+        return false
+      end
+
       # get Chiller Evaporator Cooling Energy
       chiller_load_j = sql_get_report_variable_data_double(runner, sql, chiller, 'Chiller Evaporator Cooling Energy')
 
@@ -2018,10 +2042,21 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       # get chiller design cop
       chiller_design_cop = chiller.referenceCOP
 
+      # get chiller IPLV
+      var_val_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName = 'EquipmentSummary' AND ReportForString = 'Entire Facility' AND TableName = 'Central Plant' AND RowName = '#{chiller.name.to_s.upcase}' AND ColumnName = 'IPLV in IP Units' AND Units = 'Btu/W-h'"
+      val = sql.execAndReturnFirstDouble(var_val_query)
+      if val.is_initialized
+        chiller_iplv_eer = val.get
+      else
+        chiller_iplv_eer = 0.0
+        runner.registerWarning('Chiller IPLV EER not available.')
+      end
+
       # add to weighted load cop
       chiller_total_load_j += chiller_load_j
       chiller_load_weighted_cop += chiller_load_j * chiller_annual_cop
       chiller_load_weighted_design_cop += chiller_load_j * chiller_design_cop
+      chiller_load_weighted_iplv_eer += chiller_load_j * chiller_iplv_eer
     end
     average_chiller_cop = chiller_total_load_j > 0.0 ? chiller_load_weighted_cop / chiller_total_load_j : 0.0
     runner.registerValue('com_report_hvac_average_chiller_cop', average_chiller_cop)
@@ -2034,6 +2069,14 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     runner.registerValue('com_report_hvac_count_chillers_150_to_300_tons', chiller_count_150_to_300_tons)
     runner.registerValue('com_report_hvac_count_chillers_300_to_600_tons', chiller_count_300_to_600_tons)
     runner.registerValue('com_report_hvac_count_chillers_600_plus_tons', chiller_count_600_plus_tons)
+    chiller_acc_capacity_fraction = chiller_total_capacity_w > 0.0 ? chiller_acc_capacity_fraction_weighted_sum / chiller_total_capacity_w : 0.0
+    chiller_wcc_capacity_fraction = chiller_total_capacity_w > 0.0 ? chiller_wcc_capacity_fraction_weighted_sum / chiller_total_capacity_w : 0.0
+    chiller_ecc_capacity_fraction = chiller_total_capacity_w > 0.0 ? chiller_ecc_capacity_fraction_weighted_sum / chiller_total_capacity_w : 0.0
+    runner.registerValue('com_report_hvac_chiller_acc_capacity_fraction', chiller_acc_capacity_fraction)
+    runner.registerValue('com_report_hvac_chiller_wcc_capacity_fraction', chiller_wcc_capacity_fraction)
+    runner.registerValue('com_report_hvac_chiller_ecc_capacity_fraction', chiller_ecc_capacity_fraction)
+    chiller_iplv_eer = chiller_total_load_j > 0.0 ? chiller_load_weighted_iplv_eer / chiller_total_load_j : 0.0
+    runner.registerValue('com_report_hvac_chiller_iplv_eer', chiller_iplv_eer)
 
     # water to air heat pump cooling capacity, load, and efficiencies
     wa_hp_cooling_total_electric_j = 0.0

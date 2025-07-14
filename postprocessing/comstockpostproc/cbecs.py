@@ -74,16 +74,17 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             self.add_energy_rate_columns()
             # Calculate weighted area and energy consumption columns
             self.add_weighted_area_and_energy_columns()
+            self.add_primary_system_type_column()
 
         logger.debug('\nCBECS columns after adding all data')
         for c in self.data.columns:
             logger.debug(c)
 
         assert isinstance(self.data, pd.DataFrame)
-        logging.info(f'Created {self.dataset_name} with {len(self.data)} rows')
+        logger.info(f'Created {self.dataset_name} with {len(self.data)} rows')
 
         self.data = self.data.astype(str)
-        #Convert columns with name in self.FLR_AREA or weight to numeric 
+        #Convert columns with name in self.FLR_AREA or weight to numeric
         numeric_patterns = [
             self.FLR_AREA,
             self.BLDG_WEIGHT,
@@ -124,6 +125,13 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
         # state region division table
         file_name = f'state_region_division_table.csv'
+        file_path = os.path.join(self.truth_data_dir, file_name)
+        if not os.path.exists(file_path):
+            s3_file_path = f'truth_data/{self.truth_data_version}/EIA/CBECS/{file_name}'
+            self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
+
+        # CBECS HVAC to Comstock System Type Mapping table
+        file_name = f'cbecs_{self.year}_w_cstock_hvac.csv'
         file_path = os.path.join(self.truth_data_dir, file_name)
         if not os.path.exists(file_path):
             s3_file_path = f'truth_data/{self.truth_data_version}/EIA/CBECS/{file_name}'
@@ -501,6 +509,29 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             conv_fact = self.conv_fact(old_units, new_units)
             new_col_dict[new_col] = self.data[col] * self.data[self.BLDG_WEIGHT] * conv_fact
         self.data = pd.concat([self.data, pd.DataFrame(new_col_dict)], axis=1)
+
+    def add_primary_system_type_column(self):
+         # CBECS HVAC Data
+         file_name = f'cbecs_{self.year}_w_cstock_hvac.csv'
+         file_path = os.path.join(self.truth_data_dir, file_name)
+
+         # Check if file exists
+         if not os.path.exists(file_path):
+             print(f"File {file_name} does not exist. Skipping...")
+             return
+
+         # Read CSV file into a DataFrame
+         hvac_df = pd.read_csv(file_path)
+
+         # Select 'PUBID' and 'cstock_sys_type' columns
+         hvac_df = hvac_df[['PUBID', 'cstock_sys_type']]
+
+         # Rename 'PUBID' to 'bldg_id'
+         hvac_df = hvac_df.rename(columns={'PUBID': 'bldg_id'})
+         hvac_df = hvac_df.rename(columns={'cstock_sys_type':'in.hvac_system_type'})
+
+         # Merge HVAC data with existing data
+         self.data = pd.merge(self.data, hvac_df, on='bldg_id', how='left')
 
     def export_to_csv_wide(self):
         # Exports comstock data to CSV in wide format
