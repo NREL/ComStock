@@ -96,11 +96,6 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
     load_prediction_method.setDefaultValue('full baseline')
     args << load_prediction_method
 
-    peak_lag = OpenStudio::Measure::OSArgument.makeIntegerArgument('peak_lag', true)
-    peak_lag.setDisplayName('Time lag of peak responding to temperature peak (hour), for oat prediction method only')
-    peak_lag.setDefaultValue(2)
-    args << peak_lag
-
     choices_strate = ['max savings', 'start with peak', 'end with peak', 'center with peak']
     peak_window_strategy = OpenStudio::Ruleset::OSArgument.makeChoiceArgument('peak_window_strategy', choices_strate, true)
     peak_window_strategy.setDisplayName('Method of determining peak windows (max savings, start with peak, end with peak, center with peak)')
@@ -491,7 +486,6 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
     sp_adjustment = runner.getDoubleArgumentValue('sp_adjustment', user_arguments)
     num_timesteps_in_hr = runner.getIntegerArgumentValue('num_timesteps_in_hr', user_arguments)
     load_prediction_method = runner.getStringArgumentValue('load_prediction_method', user_arguments)
-    peak_lag = runner.getIntegerArgumentValue('peak_lag', user_arguments)
     peak_window_strategy = runner.getStringArgumentValue('peak_window_strategy', user_arguments)
 
     ############################################
@@ -616,7 +610,7 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
         prepeak_schedule, peak_schedule_htg = peak_schedule_generation_fix(cz, oat, rebound_len = 0, prepeak_len, season = 'all')
       when 'oat'
         puts('### OAT-based schedule...')
-        prepeak_schedule, peak_schedule_htg = peak_schedule_generation_oat(oat, peak_len, peak_lag, rebound_len, prepeak_len, season = 'all')
+        prepeak_schedule, peak_schedule_htg = peak_schedule_generation_oat(oat, peak_len, peak_lag = 2, rebound_len, prepeak_len, season = 'all')
       else
         puts('### Predictive schedule...')
         prepeak_schedule = peak_schedule_generation(annual_load, oat, peak_len, num_timesteps_in_hr, peak_window_strategy, rebound_len = 0, prepeak_len, season = 'all')
