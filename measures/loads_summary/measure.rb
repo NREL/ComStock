@@ -219,7 +219,9 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
     py_out = renderer.result(binding)
 
     # write the python plugin file to resources dir
-    plugin_path = File.join(rsrcs, 'in.py')
+    plugin_dir = File.join(Dir.pwd, 'python_EMS')
+    FileUtils.mkdir_p(plugin_dir) unless File.exist?(plugin_dir)
+    plugin_path = File.join(plugin_dir, 'in.py')
     File.write(plugin_path, py_out)
 
     external_file = OpenStudio::Model::ExternalFile.getExternalFile(model, plugin_path)
