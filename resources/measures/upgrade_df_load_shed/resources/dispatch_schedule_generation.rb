@@ -136,7 +136,7 @@ def read_epw(model, epw_path = nil)
   # Put values into array
   vals = []
   os_vals = weather_ts.values
-  elec_vals.each do |val|
+  os_vals.each do |val|
     vals << val
   end
   vals

@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>df_load_shed</name>
   <uid>8de4bbcc-0430-4f71-8131-0467cbb6f9a4</uid>
-  <version_id>3adbd359-2e41-4d20-a0cf-577af1cecfed</version_id>
-  <version_modified>2025-07-15T21:56:09Z</version_modified>
+  <version_id>9b291031-0829-4497-b130-2fbe09ce605b</version_id>
+  <version_modified>2025-07-15T22:20:24Z</version_modified>
   <xml_checksum>D7E77FC2</xml_checksum>
   <class_name>DFLoadShed</class_name>
   <display_name>demand flexibility - thermostat and lighting control for load shedding</display_name>
@@ -371,7 +371,7 @@
       <filename>call_other_measures.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>E34F02A0</checksum>
+      <checksum>B4E18059</checksum>
     </file>
     <file>
       <filename>cambium/LRMER_HighRECost_15/AZNMc.csv</filename>
@@ -863,7 +863,7 @@
       <filename>dispatch_schedule_generation.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>01842825</checksum>
+      <checksum>0F986875</checksum>
     </file>
     <file>
       <filename>egrid/README.md</filename>
@@ -887,7 +887,7 @@
       <filename>df_load_shed_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>29215340</checksum>
+      <checksum>AE3CAF04</checksum>
     </file>
   </files>
 </measure>

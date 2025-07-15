@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>df_thermostat_control_load_shift</name>
   <uid>5aa9a6e4-0f3d-44f7-bf50-97686603a657</uid>
-  <version_id>a49f5ec0-3294-4f75-a398-941506729c55</version_id>
-  <version_modified>2025-04-24T16:08:13Z</version_modified>
+  <version_id>3c532db9-b27d-48ad-b54b-fe68b6e3f6bb</version_id>
+  <version_modified>2025-07-15T22:20:44Z</version_modified>
   <xml_checksum>D7E77FC2</xml_checksum>
   <class_name>DfThermostatControlLoadShift</class_name>
   <display_name>demand flexibility - thermostat control load shift</display_name>
@@ -104,14 +104,6 @@
       </choices>
     </argument>
     <argument>
-      <name>peak_lag</name>
-      <display_name>Time lag of peak responding to temperature peak (hour), for oat prediction method only</display_name>
-      <type>Integer</type>
-      <required>true</required>
-      <model_dependent>false</model_dependent>
-      <default_value>2</default_value>
-    </argument>
-    <argument>
       <name>peak_window_strategy</name>
       <display_name>Method of determining peak windows (max savings, start with peak, end with peak, center with peak)</display_name>
       <type>Choice</type>
@@ -195,7 +187,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>9A386CD5</checksum>
+      <checksum>B50C9BCB</checksum>
     </file>
     <file>
       <filename>cambium/Load_MidCase_2035/AZNMc.csv</filename>
@@ -321,13 +313,13 @@
       <filename>dispatch_schedule_generation.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>5F8845A4</checksum>
+      <checksum>54137CEF</checksum>
     </file>
     <file>
       <filename>df_thermostat_control_load_shift_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>F55AEEA3</checksum>
+      <checksum>094556FF</checksum>
     </file>
   </files>
 </measure>
