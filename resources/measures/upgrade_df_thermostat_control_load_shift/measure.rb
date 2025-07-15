@@ -357,7 +357,7 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
             return false
           end
           new_clg_set_sch = new_clg_set_sch.get
-          new_clg_set_sch.setName("#{clg_set_sch.get.name} adjusted")
+          new_clg_set_sch.setName("#{clg_set_sch.get.name} df_adjusted")
           ### add to the hash
           clg_set_schs[clg_set_sch.get.name.to_s] = new_clg_set_sch
         end
@@ -413,7 +413,7 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
             return false
           end
           new_heat_set_sch = new_heat_set_sch.get
-          new_heat_set_sch.setName("#{heat_set_sch.get.name} adjusted")
+          new_heat_set_sch.setName("#{heat_set_sch.get.name} df_adjusted")
           ### add to the hash
           heat_set_schs[heat_set_sch.get.name.to_s] = new_heat_set_sch
         end
