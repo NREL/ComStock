@@ -1,12 +1,9 @@
 Pull request overview
 ---------------------
-
 <!--- DESCRIBE PURPOSE OF THIS PULL REQUEST -->
-
  - Fixes #ISSUENUMBERHERE (IF RELEVANT)
 
 ### Pull Request Author
-
 This pull request makes changes to (select all the apply):
  - [ ] Documentation
  - [ ] Infrastructure (includes apptainer image, buildstock batch, dependencies, continuous integration tests)
@@ -16,34 +13,40 @@ This pull request makes changes to (select all the apply):
  - [ ] Reporting Measures
  - [ ] Postprocessing
 
-Author pull request checklist:
-<!--- Add to this list or remove from it as applicable.  This is a simple templated set of guidelines. -->
+### Pull Request Author Checklist:
+<!--- Base checklist. Remove list items that do no apply. -->
  - [ ] Tagged the pull request with the appropriate label (documentation, infrastructure, sampling, workflow measure, upgrade measure, reporting measure, postprocessing) to help categorize changes in the release notes.
- - [ ] Added tests for new measures
- - [ ] Updated measure .xml(s)
- - [ ] Register values added to `comstock_column_definitions.csv`
+ - [ ] Added or edited tests for measures that adequately cover anticipated cases
+ - [ ] New or changed register values reflected in `comstock_column_definitions.csv`
  - [ ] Both `options_lookup.tsv` files updated
- - [ ] 10k+ test run
- - [ ] Change documentation written
- - [ ] Measure documentation written
- - [ ] ComStock documentation updated
- - [ ] Changes reflected in example `.yml` files
- - [ ] Changes reflected in `README.md` files
+ - [ ] New measure tests add to to `test/reporting_measure_tests.txt`, `test/workflow_measure_tests.txt`, or `test/upgrade_measure_tests.txt`
  - [ ] Added 'See ComStock License' language to first two lines of each code file
- - [ ] Implements corresponding measure tests and indexing path in `test/reporting_measure_tests.txt`, `test/workflow_measure_tests.txt`, or `test/upgrade_measure_tests.txt`
- - [ ] All new and existing tests pass the CI
+ - [ ] Run rubocop and check log
+ - [ ] Updated measure .xml(s)
+ - [ ] Ran 10k+ test run and checked failure rate to make sure no new errors were introduced
+ - [ ] Measure documentation written or updated
+<!--- Additional items for core changes. -->
+ - [ ] ComStock documentation written or updated
+ - [ ] Change document written and assigned to a reviewer
+ - [ ] Changes reflected in example `.yml` files and `README.md` files
 
-### Review Checklist
-
-This will not be exhaustively relevant to every PR.
+### Pull Request Reviewer Checklist:
+<!--- Base checklist. Remove list items that do no apply. -->
  - [ ] Perform a code review on GitHub
- - [ ] All related changes have been implemented: data and method additions, changes, tests
- - [ ] If fixing a defect, verify by running develop branch and reproducing defect, then running PR and reproducing fix
- - [ ] Reviewed change documentation
+ - [ ] All changes have been implemented: data, methods, tests, documentation
+ - [ ] If fixing a defect, verify by running main branch to reproduce the defect and the PR branch to verify the fix
+ - [ ] Measure tests written and adequately cover anticipated cases
+ - [ ] Run measure tests and ensure they pass
+ - [ ] New measure tests add to to `test/reporting_measure_tests.txt`, `test/workflow_measure_tests.txt`, or `test/upgrade_measure_tests.txt`
  - [ ] Ensured code files contain License reference
- - [ ] Results differences are reasonable
- - [ ] Make sure the newly added measures has been added with tests and indexed properly
+ - [ ] Run rubocop and check log
+ - [ ] Measure .xml updated
  - [ ] CI status: all tests pass
+<!--- Additional items for core changes. -->
+ - [ ] ComStock documentation adequately describes the new assumptions
+ - [ ] Reviewed change documentation, results differences are reasonable, and no new errors introduced
+ - [ ] Author has addressed comments in change documentation
+ - [ ] `.yml` and `README.md` files updated
 
 #### ComStock Licensing Language - Add to Beginning of Each Code File
 ```
