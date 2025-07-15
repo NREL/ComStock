@@ -4,12 +4,12 @@
 require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
 require 'minitest/autorun'
-require_relative '../measure.rb'
+require_relative '../measure'
 require 'fileutils'
 require_relative '../../../../test/helpers/minitest_helper'
 
 # require all .rb files in resources folder
-Dir[File.dirname(__FILE__) + '../resources/*.rb'].each { |file| require file }
+Dir["#{File.dirname(__FILE__)}/../resources/*.rb"].sort.each { |file| require file }
 
 class DfThermostatControlLoadShiftTest < Minitest::Test
   # def setup
@@ -21,15 +21,13 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
   # return file paths to test models in test directory
   def models_for_tests
     paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/models/*.osm'))
-    paths = paths.map { |path| File.expand_path(path) }
-    return paths
+    paths.map { |path| File.expand_path(path) }
   end
 
   # return file paths to epw files in test directory
   def epws_for_tests
     paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/weather/*.epw'))
-    paths = paths.map { |path| File.expand_path(path) }
-    return paths
+    paths.map { |path| File.expand_path(path) }
   end
 
   # create an array of hashes with model name, weather, and expected result
@@ -74,41 +72,40 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
       result: 'NA'
     }
 
-    return test_sets
+    test_sets
   end
 
   def load_model(osm_path)
     translator = OpenStudio::OSVersion::VersionTranslator.new
     model = translator.loadModel(OpenStudio::Path.new(osm_path))
     assert(!model.empty?)
-    model = model.get
-    return model
+    model.get
   end
 
   def run_dir(test_name)
     # always generate test output in specially named 'output' directory so result files are not made part of the measure
-    return "#{File.dirname(__FILE__)}/output/#{test_name}"
+    "#{File.dirname(__FILE__)}/output/#{test_name}"
   end
 
   def model_input_path(osm_name)
     # return models_for_tests.select { |x| set[:model] == osm_name }
-    return File.join(File.dirname(__FILE__), '../../../tests/models', osm_name)
+    File.join(File.dirname(__FILE__), '../../../tests/models', osm_name)
   end
 
   def epw_input_path(epw_name)
-    return File.join(File.dirname(__FILE__), '../../../tests/weather', epw_name)
+    File.join(File.dirname(__FILE__), '../../../tests/weather', epw_name)
   end
 
   def model_output_path(test_name)
-    return "#{run_dir(test_name)}/#{test_name}.osm"
+    "#{run_dir(test_name)}/#{test_name}.osm"
   end
 
   def report_path(test_name)
-    return "#{run_dir(test_name)}/reports/eplustbl.html"
+    "#{run_dir(test_name)}/reports/eplustbl.html"
   end
 
   def sql_path(test_name)
-    return "#{run_dir(test_name)}/run/eplusout.sql"
+    "#{run_dir(test_name)}/run/eplusout.sql"
   end
 
   # applies the measure and then runs the model
@@ -117,9 +114,7 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
     assert(File.exist?(epw_path))
 
     # create run directory if it does not exist
-    if !File.exist?(run_dir(test_name))
-      FileUtils.mkdir_p(run_dir(test_name))
-    end
+    FileUtils.mkdir_p(run_dir(test_name)) unless File.exist?(run_dir(test_name))
     assert(File.exist?(run_dir(test_name)))
 
     # change into run directory for tests
@@ -127,12 +122,8 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
     Dir.chdir run_dir(test_name)
 
     # remove prior runs if they exist
-    if File.exist?(model_output_path(test_name))
-      FileUtils.rm(model_output_path(test_name))
-    end
-    if File.exist?(report_path(test_name))
-      FileUtils.rm(report_path(test_name))
-    end
+    FileUtils.rm(model_output_path(test_name)) if File.exist?(model_output_path(test_name))
+    FileUtils.rm(report_path(test_name)) if File.exist?(report_path(test_name))
 
     # copy the osm and epw to the test directory
     new_osm_path = "#{run_dir(test_name)}/#{File.basename(osm_path)}"
@@ -175,7 +166,7 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
     # change back directory
     Dir.chdir(start_dir)
 
-    return result
+    result
   end
 
   def test_models
@@ -206,7 +197,7 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
       demand_flexibility_objective = arguments[0].clone
       assert(demand_flexibility_objective.setValue('grid peak load'))
       argument_map['demand_flexibility_objective'] = demand_flexibility_objective
-      
+
       # set arguments:
       peak_len = arguments[1].clone
       assert(peak_len.setValue(4))
@@ -229,17 +220,12 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
 
       # set arguments:
       load_prediction_method = arguments[5].clone
-      assert(load_prediction_method.setValue('full baseline'))#'bin sample''part year bin sample'
+      assert(load_prediction_method.setValue('full baseline')) # 'bin sample''part year bin sample'
       argument_map['load_prediction_method'] = load_prediction_method
 
       # set arguments:
-      peak_lag = arguments[6].clone
-      assert(peak_lag.setValue(2))
-      argument_map['peak_lag'] = peak_lag
-
-      # set arguments:
-      peak_window_strategy = arguments[7].clone
-      assert(peak_window_strategy.setValue('center with peak'))#'bin sample''part year bin sample'
+      peak_window_strategy = arguments[6].clone
+      assert(peak_window_strategy.setValue('center with peak')) # 'bin sample''part year bin sample'
       argument_map['peak_window_strategy'] = peak_window_strategy
 
       # apply the measure to the model and optionally run the model
@@ -254,20 +240,20 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
       model = load_model(model_output_path(instance_test_name))
 
       # quick check on schedule update
-      if set[:result] == 'Success'
-        thermostats = model.getThermostatSetpointDualSetpoints
-        nts_clg = 0
-        nts_htg = 0
-        thermostats.each do |thermostat|
-          clg_sch_name = thermostat.coolingSetpointTemperatureSchedule.get.name.to_s
-          nts_clg += 1 if clg_sch_name.include?(' df_adjusted')
-          heat_sch_name = thermostat.heatingSetpointTemperatureSchedule.get.name.to_s
-          nts_htg += 1 if heat_sch_name.include?(' df_adjusted')
-        end
-        puts("--- Detected #{nts_clg} df adjusted cooling schedules and #{nts_htg} df adjusted heating schedules")
-        assert(nts_clg + nts_htg > 0)
-        puts('=================================================================')
+      next unless set[:result] == 'Success'
+
+      thermostats = model.getThermostatSetpointDualSetpoints
+      nts_clg = 0
+      nts_htg = 0
+      thermostats.each do |thermostat|
+        clg_sch_name = thermostat.coolingSetpointTemperatureSchedule.get.name.to_s
+        nts_clg += 1 if clg_sch_name.include?(' df_adjusted')
+        heat_sch_name = thermostat.heatingSetpointTemperatureSchedule.get.name.to_s
+        nts_htg += 1 if heat_sch_name.include?(' df_adjusted')
       end
+      puts("--- Detected #{nts_clg} df adjusted cooling schedules and #{nts_htg} df adjusted heating schedules")
+      assert((nts_clg + nts_htg).positive?)
+      puts('=================================================================')
     end
   end
 
@@ -381,5 +367,4 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
 
   #   # assert()
   # end
-
 end
