@@ -142,6 +142,7 @@ class LoadSummary(EnergyPlusPlugin):
 
         # set handles flag to true
         self.need_to_get_handles = True
+        self.need_to_get_mult_handles = True
 
         # non-solar radiant timeseries
         self.nonsolar_rts = [
@@ -266,8 +267,10 @@ class LoadSummary(EnergyPlusPlugin):
             }
         return return_dict
 
-    def get_handles(self, state):
-
+    def get_mult_handles(self, state):
+        """
+        Gets the zone multiplier handles and values for each zone
+        """
         for z in self.zone_name_map:
             # zone multipliers
             self.zone_multipliers[z][0] = self.api.exchange.get_internal_variable_handle(
@@ -275,6 +278,17 @@ class LoadSummary(EnergyPlusPlugin):
                 'Zone Multiplier',
                 self.zone_name_map[z]
             )
+            self.zone_multipliers[z][1] = self.api.exchange.get_internal_variable_value(
+                state,
+                self.zone_multipliers[z][0]
+            )
+
+        # set handles flag to false
+        self.need_to_get_mult_handles = False
+
+    def get_handles(self, state):
+
+        for z in self.zone_name_map:
 
             # zone output handles
             for j, output in ZN_OUTPUT_MAP.items():
@@ -327,16 +341,9 @@ class LoadSummary(EnergyPlusPlugin):
         self.num_ts = self.api.exchange.num_time_steps_in_hour(state)
         self.sec_per_ts = (60 * 60) / self.num_ts
 
-        # get handles
-        if self.need_to_get_handles:
-            self.get_handles(state)
-            
-        # zone multiplier values
-        for z in self.zone_name_map:
-            self.zone_multipliers[z][1] = self.api.exchange.get_internal_variable_value(
-                state,
-                self.zone_multipliers[z][0]
-            )
+        # get zone multiplier handles and values
+        if self.need_to_get_mult_handles:
+            self.get_mult_handles(state)
 
         return 0
 
@@ -372,6 +379,10 @@ class LoadSummary(EnergyPlusPlugin):
         # only perform calcs during run period, not design days
         if self.api.exchange.calendar_year(state) == 0:
             return 0
+
+        # get handles
+        if self.need_to_get_handles:
+            self.get_handles(state)
 
         # initialize component dict
         for mode in MODES:

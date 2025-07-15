@@ -280,7 +280,7 @@ class LoadsSummaryTest < Minitest::Test
   #   return true
   # end
 
-  def skip_test_cz3C_small_office
+  def test_cz3C_small_office
     test_name = "test_cz3C_small_office"
     test_model_name = 'CZ3C_small_office_10001_25000_PTHP.osm'
     test_model_path =  "#{__dir__}/#{test_model_name}"
@@ -296,7 +296,7 @@ class LoadsSummaryTest < Minitest::Test
     return true
   end
 
-  def skip_test_cz3C_small_office_multiplier
+  def test_cz3C_small_office_multiplier
     test_name = __method__.to_s
     test_model_name = 'CZ3C_small_office_10001_25000_PTHPx10.osm'
     test_model_path = "#{__dir__}/#{test_model_name}"
