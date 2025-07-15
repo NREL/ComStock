@@ -97,8 +97,8 @@ class DFLoadShed < OpenStudio::Measure::ModelMeasure
 
     light_adjustment_choices = ['absolute change', 'relative change']
     light_adjustment_method = OpenStudio::Ruleset::OSArgument.makeChoiceArgument('light_adjustment_method', light_adjustment_choices, true)
-    light_adjustment_method.setDisplayName("Method of lighting dimming (absolute change, relative change)")
-    light_adjustment_method.setDescription("absolute change: percent change relative to fully ON lighting; relative change: percent change relative to current dimming level")
+    light_adjustment_method.setDisplayName('Method of lighting dimming (absolute change, relative change)')
+    light_adjustment_method.setDescription('absolute change: percent change relative to fully ON lighting; relative change: percent change relative to current dimming level')
     light_adjustment_method.setDefaultValue('absolute change')
     args << light_adjustment_method
 
@@ -121,7 +121,7 @@ class DFLoadShed < OpenStudio::Measure::ModelMeasure
 
     choices_strate = ['max savings', 'start with peak', 'end with peak', 'center with peak']
     peak_window_strategy = OpenStudio::Ruleset::OSArgument.makeChoiceArgument('peak_window_strategy', choices_strate, true)
-    peak_window_strategy.setDisplayName("Peak windows determination strategy (max savings, start with peak, end with peak, center with peak)")
+    peak_window_strategy.setDisplayName('Peak windows determination strategy (max savings, start with peak, end with peak, center with peak)')
     peak_window_strategy.setDefaultValue('center with peak')
     args << peak_window_strategy
 
@@ -149,8 +149,8 @@ class DFLoadShed < OpenStudio::Measure::ModelMeasure
       'LRMER_MidCase_25_2025start'
     ]
     cambium_scenario = OpenStudio::Ruleset::OSArgument.makeChoiceArgument('cambium_scenario', choices_scenarios, true)
-    cambium_scenario.setDisplayName("Cambium scenario of emission factor")
-    cambium_scenario.setDescription("For emission objective only")
+    cambium_scenario.setDisplayName('Cambium scenario of emission factor')
+    cambium_scenario.setDescription('For emission objective only')
     cambium_scenario.setDefaultValue('LRMER_MidCase_15')
     args << cambium_scenario
 
@@ -403,7 +403,7 @@ class DFLoadShed < OpenStudio::Measure::ModelMeasure
           # puts("--- schedule_ts.size = #{schedule_ts.size}")
           case light_adjustment_method
           when 'absolute change'
-            new_schedule_ts = schedule_ts.map.with_index { |val, ind| [val - light_adj_values[ind], [val, 0.05].min].max }
+            new_schedule_ts = schedule_ts.map.with_index { |val, ind| (val - light_adj_values[ind]).clamp(0.05, val) }
           when 'relative change'
             if schedule_ts.size <= light_adj_values.size
               new_schedule_ts = schedule_ts.map.with_index { |val, ind| val * (1.0 - light_adj_values[ind]) }
@@ -594,7 +594,7 @@ class DFLoadShed < OpenStudio::Measure::ModelMeasure
         return true
       end
     end
-    
+
     # # applicability: don't apply measure if specified in input
     # if apply_measure == false
     #   runner.registerFinalCondition('Measure is not applied based on user input.')
@@ -621,14 +621,14 @@ class DFLoadShed < OpenStudio::Measure::ModelMeasure
     if thermostat_control == true
       condition_initial_tstat = "The building initially has #{nts} thermostats, of which #{applicable_clg_thermostats.size} are associated with electric cooling and #{applicable_htg_thermostats.size} are associated with electric heating."
     else
-      condition_initial_tstat = "Thermostat control for load shedding is not enabled."
+      condition_initial_tstat = 'Thermostat control for load shedding is not enabled.'
     end
     if lighting_control == true
-      condition_initial_light = "The building is applicable for the demand flexibility lighting control measure."
+      condition_initial_light = 'The building is applicable for the demand flexibility lighting control measure.'
     else
-      condition_initial_light = "Lighting control for load shedding is not enabled."
+      condition_initial_light = 'Lighting control for load shedding is not enabled.'
     end
-    condition_initial = [condition_initial_tstat, condition_initial_light, condition_initial_pv].reject(&:empty?).join(" | ")
+    condition_initial = [condition_initial_tstat, condition_initial_light, condition_initial_pv].reject(&:empty?).join(' | ')
     runner.registerInitialCondition(condition_initial)
 
     ############################################
@@ -771,7 +771,7 @@ class DFLoadShed < OpenStudio::Measure::ModelMeasure
       end
       condition_final_tstat = "Updated #{nts_clg}/#{applicable_clg_thermostats.size} thermostat cooling setpoint schedules and #{nts_htg}/#{applicable_htg_thermostats.size} thermostat heating setpoint schedules to model, with #{sp_adjustment.abs} degree C setback for #{peak_len} hours of daily peak window and rebound in #{rebound_len} hours after peak, using #{load_prediction_method} simulation for load prediction."
     else
-      condition_final_tstat = "No thermostat setpoint schedule updated."
+      condition_final_tstat = 'No thermostat setpoint schedule updated.'
     end
 
     ############################################
@@ -787,13 +787,13 @@ class DFLoadShed < OpenStudio::Measure::ModelMeasure
       nl, nla = adjust_lighting_sch(model, runner, light_adjustment_method, light_adj_values)
       condition_final_light = "Updated #{nla}/#{nl} lighting schedules."
     else
-      condition_final_light = "No lighting schedule updated."
+      condition_final_light = 'No lighting schedule updated.'
     end
 
     ############################################
     # Register final condition
     ############################################
-    condition_final = [condition_final_tstat, condition_final_light, condition_final_pv].reject(&:empty?).join(" | ")
+    condition_final = [condition_final_tstat, condition_final_light, condition_final_pv].reject(&:empty?).join(' | ')
     runner.registerFinalCondition(condition_final)
     return true
   end
