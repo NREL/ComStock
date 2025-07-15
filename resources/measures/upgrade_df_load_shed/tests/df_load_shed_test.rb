@@ -21,15 +21,13 @@ class DFLoadShedTest < Minitest::Test
   # return file paths to test models in test directory
   def models_for_tests
     paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/models/*.osm'))
-    paths = paths.map { |path| File.expand_path(path) }
-    return paths
+    paths.map { |path| File.expand_path(path) }
   end
 
   # return file paths to epw files in test directory
   def epws_for_tests
     paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/weather/*.epw'))
-    paths = paths.map { |path| File.expand_path(path) }
-    return paths
+    paths.map { |path| File.expand_path(path) }
   end
 
   # create an array of hashes with model name, weather, and expected result
@@ -74,41 +72,40 @@ class DFLoadShedTest < Minitest::Test
       result: 'NA'
     }
 
-    return test_sets
+    test_sets
   end
 
   def load_model(osm_path)
     translator = OpenStudio::OSVersion::VersionTranslator.new
     model = translator.loadModel(OpenStudio::Path.new(osm_path))
     assert(!model.empty?)
-    model = model.get
-    return model
+    model.get
   end
 
   def run_dir(test_name)
     # always generate test output in specially named 'output' directory so result files are not made part of the measure
-    return "#{File.dirname(__FILE__)}/output/#{test_name}"
+    "#{File.dirname(__FILE__)}/output/#{test_name}"
   end
 
   def model_input_path(osm_name)
     # return models_for_tests.select { |x| set[:model] == osm_name }
-    return File.join(File.dirname(__FILE__), '../../../tests/models', osm_name)
+    File.join(File.dirname(__FILE__), '../../../tests/models', osm_name)
   end
 
   def epw_input_path(epw_name)
-    return File.join(File.dirname(__FILE__), '../../../tests/weather', epw_name)
+    File.join(File.dirname(__FILE__), '../../../tests/weather', epw_name)
   end
 
   def model_output_path(test_name)
-    return "#{run_dir(test_name)}/#{test_name}.osm"
+    "#{run_dir(test_name)}/#{test_name}.osm"
   end
 
   def report_path(test_name)
-    return "#{run_dir(test_name)}/reports/eplustbl.html"
+    "#{run_dir(test_name)}/reports/eplustbl.html"
   end
 
   def sql_path(test_name)
-    return "#{run_dir(test_name)}/run/eplusout.sql"
+    "#{run_dir(test_name)}/run/eplusout.sql"
   end
 
   # applies the measure and then runs the model
@@ -169,7 +166,7 @@ class DFLoadShedTest < Minitest::Test
     # change back directory
     Dir.chdir(start_dir)
 
-    return result
+    result
   end
 
   def test_models
@@ -271,11 +268,12 @@ class DFLoadShedTest < Minitest::Test
       light_schedules = {}
       lights.each do |light|
         light_sch = light.schedule
-        if !light_sch.empty? && !light_schedules.key?(light_sch.get.name.to_s)
-          schedule = light_sch.get.clone(model)
-          schedule_ts = measure.get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get, 8760 * num_timesteps_in_hr.valueAsInteger)
-          light_schedules[light_sch.get.name.to_s] = schedule_ts
-        end
+        next unless !light_sch.empty? && !light_schedules.key?(light_sch.get.name.to_s)
+
+        schedule = light_sch.get.clone(model)
+        schedule_ts = measure.get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get,
+                                                                          8760 * num_timesteps_in_hr.valueAsInteger)
+        light_schedules[light_sch.get.name.to_s] = schedule_ts
       end
       puts('-----------------------------------------------------------------')
       puts("light_schedules.key=#{light_schedules.keys}")
@@ -284,29 +282,31 @@ class DFLoadShedTest < Minitest::Test
       cool_schedules = {}
       thermostats = model.getThermostatSetpointDualSetpoints
       thermostats.each do |thermostat|
-        if thermostat.to_Thermostat.get.thermalZone.is_initialized
-          thermalzone = thermostat.to_Thermostat.get.thermalZone.get
-          clg_fueltypes = thermalzone.coolingFuelTypes.map(&:valueName).uniq
-          htg_fueltypes = thermalzone.heatingFuelTypes.map(&:valueName).uniq
-          # puts("### DEBUGGING: clg_fueltypes = #{clg_fueltypes}")
-          # puts("### DEBUGGING: htg_fueltypes = #{htg_fueltypes}")
-          if htg_fueltypes == ['Electricity']
-            heat_sch = thermostat.heatingSetpointTemperatureSchedule
-            if !heat_sch.empty? && !heat_schedules.key?(heat_sch.get.name.to_s)
-              schedule = heat_sch.get.clone(model)
-              schedule_ts = measure.get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get, 8760 * num_timesteps_in_hr.valueAsInteger)
-              heat_schedules[heat_sch.get.name.to_s] = schedule_ts
-            end
-          end
-          if clg_fueltypes == ['Electricity']
-            cool_sch = thermostat.coolingSetpointTemperatureSchedule
-            if !cool_sch.empty? && !cool_schedules.key?(cool_sch.get.name.to_s)
-              schedule = cool_sch.get.clone(model)
-              schedule_ts = measure.get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get, 8760 * num_timesteps_in_hr.valueAsInteger)
-              cool_schedules[cool_sch.get.name.to_s] = schedule_ts
-            end
+        next unless thermostat.to_Thermostat.get.thermalZone.is_initialized
+
+        thermalzone = thermostat.to_Thermostat.get.thermalZone.get
+        clg_fueltypes = thermalzone.coolingFuelTypes.map(&:valueName).uniq
+        htg_fueltypes = thermalzone.heatingFuelTypes.map(&:valueName).uniq
+        # puts("### DEBUGGING: clg_fueltypes = #{clg_fueltypes}")
+        # puts("### DEBUGGING: htg_fueltypes = #{htg_fueltypes}")
+        if htg_fueltypes == ['Electricity']
+          heat_sch = thermostat.heatingSetpointTemperatureSchedule
+          if !heat_sch.empty? && !heat_schedules.key?(heat_sch.get.name.to_s)
+            schedule = heat_sch.get.clone(model)
+            schedule_ts = measure.get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get,
+                                                                              8760 * num_timesteps_in_hr.valueAsInteger)
+            heat_schedules[heat_sch.get.name.to_s] = schedule_ts
           end
         end
+        next unless clg_fueltypes == ['Electricity']
+
+        cool_sch = thermostat.coolingSetpointTemperatureSchedule
+        next unless !cool_sch.empty? && !cool_schedules.key?(cool_sch.get.name.to_s)
+
+        schedule = cool_sch.get.clone(model)
+        schedule_ts = measure.get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get,
+                                                                          8760 * num_timesteps_in_hr.valueAsInteger)
+        cool_schedules[cool_sch.get.name.to_s] = schedule_ts
       end
       puts("heat_schedules.key=#{heat_schedules.keys}")
       puts("cool_schedules.key=#{cool_schedules.keys}")
@@ -324,127 +324,133 @@ class DFLoadShedTest < Minitest::Test
       model = load_model(model_output_path(instance_test_name))
 
       ### quick check on schedule update
-      if set[:result] == 'Success'
-        thermostats = model.getThermostatSetpointDualSetpoints
-        lights = model.getLightss
-        new_heat_schedules = {}
-        new_cool_schedules = {}
-        new_light_schedules = {}
+      next unless set[:result] == 'Success'
 
-        # quick check on schedule update
-        nts_clg = 0
-        nts_htg = 0
-        nl = 0
-        nla = 0
-        # check on thermostat schedules
-        thermostats.each do |thermostat|
-          cool_sch = thermostat.coolingSetpointTemperatureSchedule
-          clg_sch_name = cool_sch.get.name.to_s
-          if clg_sch_name.include?(' df_adjusted')
-            unless new_cool_schedules.key?(clg_sch_name)
-              schedule = cool_sch.get.clone(model)
-              schedule = schedule.to_ScheduleInterval.get
-              new_cool_schedules[clg_sch_name] = schedule.timeSeries.values.to_a
-            end
-            nts_clg += 1
-          end
-          heat_sch = thermostat.heatingSetpointTemperatureSchedule
-          heat_sch_name = heat_sch.get.name.to_s
-          if heat_sch_name.include?(' df_adjusted')
-            unless new_heat_schedules.key?(heat_sch_name)
-              schedule = heat_sch.get.clone(model)
-              schedule = schedule.to_ScheduleInterval.get
-              new_heat_schedules[heat_sch_name] = schedule.timeSeries.values.to_a
-            end
-            nts_htg += 1
-          end
-        end
-        puts('-----------------------------------------------------------------')
-        puts("--- Detected #{nts_clg} df adjusted cooling schedules and #{nts_htg} df adjusted heating schedules")
-        assert(nts_clg + nts_htg > 0)
-        # check on light schedules
-        lights.each do |light|
-          light_sch = light.schedule
-          light_sch_name = light_sch.get.name.to_s
-          # puts("light schedule: #{light_sch_name}")
-          if light_sch_name.include?(' df_adjusted')
-            unless new_light_schedules.key?(light_sch_name)
-              schedule = light_sch.get.clone(model)
-              schedule = schedule.to_ScheduleInterval.get
-              new_light_schedules[light_sch_name] = schedule.timeSeries.values.to_a
-            end
-            nla += 1
-          end
-          nl += 1
-        end
-        puts('-----------------------------------------------------------------')
-        puts("--- Detected #{nla}/#{nl} lights with df adjusted lighting schedules")
-        assert(nla == nl)
+      thermostats = model.getThermostatSetpointDualSetpoints
+      lights = model.getLightss
+      new_heat_schedules = {}
+      new_cool_schedules = {}
+      new_light_schedules = {}
 
-        # compare before/after schedules
-        if nts_clg > 0
-          cool_schedules.each do |cool_sch_name, cool_sch_vals|
-            new_cool_sch_vals = new_cool_schedules["#{cool_sch_name} df_adjusted"]
-            diff = cool_sch_vals.zip(new_cool_sch_vals).map { |a, b| (b - a).round(2) }
-            counts = diff.tally
-            counts = counts.sort.to_h
-            puts('-----------------------------------------------------------------')
-            # puts("--- hourly light schedules changes #{diff*100.0}% everyday")
-            puts("--- cooling schedule changes on average #{diff.sum / 365.0 / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f}C/hr for #{peak_len.valueAsInteger} hours everyday")
-            counts.each do |value, count|
-              unless value.abs < 1e-6 || count < num_timesteps_in_hr.valueAsInteger.to_f
-                puts("--- cooling schedule changes #{value}C in #{count / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f} days")
-                assert(value.abs <= sp_adjustment.valueAsDouble, "Hourly change should not exceed the input #{sp_adjustment.valueAsDouble.round(1)}")
-              end
-            end
-            total_days = counts[sp_adjustment.valueAsDouble] / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f
-            assert(total_days < 367 && total_days > 360, "cooling schedule changes with input #{sp_adjustment.valueAsDouble}C in #{total_days} days")
+      # quick check on schedule update
+      nts_clg = 0
+      nts_htg = 0
+      nl = 0
+      nla = 0
+      # check on thermostat schedules
+      thermostats.each do |thermostat|
+        cool_sch = thermostat.coolingSetpointTemperatureSchedule
+        clg_sch_name = cool_sch.get.name.to_s
+        if clg_sch_name.include?(' df_adjusted')
+          unless new_cool_schedules.key?(clg_sch_name)
+            schedule = cool_sch.get.clone(model)
+            schedule = schedule.to_ScheduleInterval.get
+            new_cool_schedules[clg_sch_name] = schedule.timeSeries.values.to_a
           end
+          nts_clg += 1
         end
-        if nts_htg > 0
-          heat_schedules.each do |heat_sch_name, heat_sch_vals|
-            new_heat_sch_vals = new_heat_schedules["#{heat_sch_name} df_adjusted"]
-            diff = heat_sch_vals.zip(new_heat_sch_vals).map { |a, b| (a - b).round(2) }
-            counts = diff.tally
-            counts = counts.sort.to_h
-            puts('-----------------------------------------------------------------')
-            # puts("--- hourly light schedules changes #{diff*100.0}% everyday")
-            puts("--- heating schedule changes on average #{diff.sum / 365.0 / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f}C/hr for #{peak_len.valueAsInteger} hours everyday")
-            counts.each do |value, count|
-              unless value.abs < 1e-6 || count < num_timesteps_in_hr.valueAsInteger.to_f
-                puts("--- heating schedule changes #{value} in #{count / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f} days")
-                assert(value.abs <= sp_adjustment.valueAsDouble, "Hourly change should not exceed the input #{sp_adjustment.valueAsDouble.round(1)}")
-              end
-            end
-            total_days = counts[sp_adjustment.valueAsDouble] / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f
-            assert(total_days < 367 && total_days > 360, "heating schedule changes with input #{sp_adjustment.valueAsDouble}C in #{total_days} days")
-          end
-        end
+        heat_sch = thermostat.heatingSetpointTemperatureSchedule
+        heat_sch_name = heat_sch.get.name.to_s
+        next unless heat_sch_name.include?(' df_adjusted')
 
-        light_schedules.each do |light_sch_name, light_sch_vals|
-          new_light_sch_vals = new_light_schedules["#{light_sch_name} df_adjusted"]
-          # diff = light_sch_vals.sum - new_light_sch_vals.sum
-          diff = light_sch_vals.zip(new_light_sch_vals).map { |a, b| (a - b).round(2) }
+        unless new_heat_schedules.key?(heat_sch_name)
+          schedule = heat_sch.get.clone(model)
+          schedule = schedule.to_ScheduleInterval.get
+          new_heat_schedules[heat_sch_name] = schedule.timeSeries.values.to_a
+        end
+        nts_htg += 1
+      end
+      puts('-----------------------------------------------------------------')
+      puts("--- Detected #{nts_clg} df adjusted cooling schedules and #{nts_htg} df adjusted heating schedules")
+      assert((nts_clg + nts_htg).positive?)
+      # check on light schedules
+      lights.each do |light|
+        light_sch = light.schedule
+        light_sch_name = light_sch.get.name.to_s
+        # puts("light schedule: #{light_sch_name}")
+        if light_sch_name.include?(' df_adjusted')
+          unless new_light_schedules.key?(light_sch_name)
+            schedule = light_sch.get.clone(model)
+            schedule = schedule.to_ScheduleInterval.get
+            new_light_schedules[light_sch_name] = schedule.timeSeries.values.to_a
+          end
+          nla += 1
+        end
+        nl += 1
+      end
+      puts('-----------------------------------------------------------------')
+      puts("--- Detected #{nla}/#{nl} lights with df adjusted lighting schedules")
+      assert(nla == nl)
+
+      # compare before/after schedules
+      if nts_clg.positive?
+        cool_schedules.each do |cool_sch_name, cool_sch_vals|
+          new_cool_sch_vals = new_cool_schedules["#{cool_sch_name} df_adjusted"]
+          diff = cool_sch_vals.zip(new_cool_sch_vals).map { |a, b| (b - a).round(2) }
           counts = diff.tally
           counts = counts.sort.to_h
           puts('-----------------------------------------------------------------')
           # puts("--- hourly light schedules changes #{diff*100.0}% everyday")
-          puts("--- light schedule changes on average #{(diff.sum / 3.650 / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f).round(2)}%/hr for #{peak_len.valueAsInteger} hours everyday")
-          total_count = 0
+          puts("--- cooling schedule changes on average #{diff.sum / 365.0 / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f}C/hr for #{peak_len.valueAsInteger} hours everyday")
           counts.each do |value, count|
-            unless value.abs < 1e-6 || count < num_timesteps_in_hr.valueAsInteger.to_f
-              puts("--- light schedule changes #{(value * 100.0).round(1)}% in #{count / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f} days")
-              assert(value <= light_adjustment.valueAsDouble, "Hourly change should not exceed the input #{light_adjustment.valueAsDouble.round(1)}")
-              total_count += count
-            end
+            next if value.abs < 1e-6 || count < num_timesteps_in_hr.valueAsInteger.to_f
+
+            puts("--- cooling schedule changes #{value}C in #{count / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f} days")
+            assert(value.abs <= sp_adjustment.valueAsDouble,
+                   "Hourly change should not exceed the input #{sp_adjustment.valueAsDouble.round(1)}")
           end
-          total_days = total_count / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f
-          puts("--- Number of days with setpoint changed: #{total_days}")
-          assert(total_days <= 366, 'Number of days should not exceed 366')
-          assert(total_days > 100, "Number of days with valid adjusted setpoints (#{total_count / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f}) too small")
+          total_days = counts[sp_adjustment.valueAsDouble] / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f
+          assert(total_days < 367 && total_days > 360,
+                 "cooling schedule changes with input #{sp_adjustment.valueAsDouble}C in #{total_days} days")
         end
-        puts('=================================================================')
       end
+      if nts_htg.positive?
+        heat_schedules.each do |heat_sch_name, heat_sch_vals|
+          new_heat_sch_vals = new_heat_schedules["#{heat_sch_name} df_adjusted"]
+          diff = heat_sch_vals.zip(new_heat_sch_vals).map { |a, b| (a - b).round(2) }
+          counts = diff.tally
+          counts = counts.sort.to_h
+          puts('-----------------------------------------------------------------')
+          # puts("--- hourly light schedules changes #{diff*100.0}% everyday")
+          puts("--- heating schedule changes on average #{diff.sum / 365.0 / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f}C/hr for #{peak_len.valueAsInteger} hours everyday")
+          counts.each do |value, count|
+            next if value.abs < 1e-6 || count < num_timesteps_in_hr.valueAsInteger.to_f
+
+            puts("--- heating schedule changes #{value} in #{count / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f} days")
+            assert(value.abs <= sp_adjustment.valueAsDouble,
+                   "Hourly change should not exceed the input #{sp_adjustment.valueAsDouble.round(1)}")
+          end
+          total_days = counts[sp_adjustment.valueAsDouble] / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f
+          assert(total_days < 367 && total_days > 360,
+                 "heating schedule changes with input #{sp_adjustment.valueAsDouble}C in #{total_days} days")
+        end
+      end
+
+      light_schedules.each do |light_sch_name, light_sch_vals|
+        new_light_sch_vals = new_light_schedules["#{light_sch_name} df_adjusted"]
+        # diff = light_sch_vals.sum - new_light_sch_vals.sum
+        diff = light_sch_vals.zip(new_light_sch_vals).map { |a, b| (a - b).round(2) }
+        counts = diff.tally
+        counts = counts.sort.to_h
+        puts('-----------------------------------------------------------------')
+        # puts("--- hourly light schedules changes #{diff*100.0}% everyday")
+        puts("--- light schedule changes on average #{(diff.sum / 3.650 / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f).round(2)}%/hr for #{peak_len.valueAsInteger} hours everyday")
+        total_count = 0
+        counts.each do |value, count|
+          next if value.abs < 1e-6 || count < num_timesteps_in_hr.valueAsInteger.to_f
+
+          puts("--- light schedule changes #{(value * 100.0).round(1)}% in #{count / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f} days")
+          assert(value <= light_adjustment.valueAsDouble,
+                 "Hourly change should not exceed the input #{light_adjustment.valueAsDouble.round(1)}")
+          total_count += count
+        end
+        total_days = total_count / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f
+        puts("--- Number of days with setpoint changed: #{total_days}")
+        assert(total_days <= 366, 'Number of days should not exceed 366')
+        assert(total_days > 100,
+               "Number of days with valid adjusted setpoints (#{total_count / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f}) too small")
+      end
+      puts('=================================================================')
     end
   end
 end

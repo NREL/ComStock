@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>df_load_shed</name>
   <uid>8de4bbcc-0430-4f71-8131-0467cbb6f9a4</uid>
-  <version_id>1450c12e-fc92-476e-8c44-b69990c463ff</version_id>
-  <version_modified>2025-07-14T19:27:43Z</version_modified>
+  <version_id>3adbd359-2e41-4d20-a0cf-577af1cecfed</version_id>
+  <version_modified>2025-07-15T21:56:09Z</version_modified>
   <xml_checksum>D7E77FC2</xml_checksum>
   <class_name>DFLoadShed</class_name>
   <display_name>demand flexibility - thermostat and lighting control for load shedding</display_name>
@@ -365,7 +365,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>E4DECBA8</checksum>
+      <checksum>1CEB009C</checksum>
     </file>
     <file>
       <filename>call_other_measures.rb</filename>
@@ -863,7 +863,7 @@
       <filename>dispatch_schedule_generation.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>259F9E3C</checksum>
+      <checksum>01842825</checksum>
     </file>
     <file>
       <filename>egrid/README.md</filename>
@@ -887,7 +887,7 @@
       <filename>df_load_shed_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>EB6B7381</checksum>
+      <checksum>29215340</checksum>
     </file>
   </files>
 </measure>
