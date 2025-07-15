@@ -113,11 +113,46 @@ class UpgradeAddPvwatts < OpenStudio::Measure::ModelMeasure
   end
 
   # load data respirces
-  def self.load_standards_data()
+  def load_standards_data()
     @standards_data = {}
-    battery_data = JSON.parse(File.read(File.expand_path(File.dirname(__FILE__) + "resources/deer_t24_2022.battery_storage_system.json")))
+    battery_data = JSON.parse(File.read(File.expand_path(File.dirname(__FILE__) + "/resources/deer_t24_2022.battery_storage_system.json")))
     @standards_data.merge!(battery_data)
     return true
+  end
+
+  def model_find_object(hash_of_objects, search_criteria)
+    matching_objects = []
+    hash_of_objects.each do |object|
+      meets_all_search_criteria = true
+      search_criteria.each do |key, value|
+        # Dont check non-existent search criteria
+        next unless object.key?(key)
+
+        # Stop as soon as one of the search criteria is not met
+        # 'Any' is a special key that matches anything
+        unless object[key] == value || object[key] == 'Any'
+          meets_all_search_criteria = false
+          break
+        end
+      end
+
+      # Skip objects that don't meet all search criteria
+      next unless meets_all_search_criteria
+
+      # If made it here, object matches all search criteria
+      matching_objects << object
+    end
+
+    if matching_objects.size.zero?
+      desired_object = nil
+      OpenStudio.logFree(OpenStudio::Debug, 'openstudio.standards.Model', "Find objects search criteria returned no results. Search criteria: #{search_criteria}. Called from #{caller(0)[1]}")
+    elsif matching_objects.size == 1
+      desired_object = matching_objects[0]
+    else
+      desired_object = matching_objects[0]
+      OpenStudio.logFree(OpenStudio::Warn, 'openstudio.standards.Model', "Find object search criteria returned #{matching_objects.size} results, the first one will be returned. Called from #{caller(0)[1]} \n Search criteria: \n #{search_criteria}. All results: \n #{matching_objects.join("\n")}")
+    end
+    return desired_object
   end
 
   # this method returns battery capacity data from Title 24 2022 Table 140.10-B
@@ -127,10 +162,69 @@ class UpgradeAddPvwatts < OpenStudio::Measure::ModelMeasure
     search_criteria = {
       'building_type' => building_type,
     }
-
     # search battery storage table for energy capacity
     battery_capacity = model_find_object(@standards_data['battery_storage_system'], search_criteria)
     return battery_capacity
+  end
+
+  # creates ElectricLoadCenter:Storage:Simple, modeling a simple battery
+  #
+  # @param model [OpenStudio::Model::Model] OpenStudio model object
+  # @param name [String] the name of the coil, or nil in which case it will be defaulted
+  # @param schedule [String] name of the availability schedule, or [<OpenStudio::Model::Schedule>] Schedule object, or nil in which case default to always on
+  # @param rated_inlet_water_temperature [Double] rated inlet water temperature in degrees Celsius, default is hot water loop design exit temperature
+  # @return [OpenStudio::Model::ElectricLoadCenterStorageSimple] the battery
+  def model_add_electric_storage_simple(model,
+                                        name: 'Default Battery Storage',
+                                        schedule: nil,
+                                        discharge_eff: 0.9,
+                                        charge_eff: 0.9,
+                                        max_storage_capacity_kwh: nil,
+                                        max_charge_power_kw: nil,
+                                        max_discharge_power_kw: nil)
+
+    battery = OpenStudio::Model::ElectricLoadCenterStorageSimple.new(model)
+    battery.setName(name)
+
+    # set battery availability schedule
+    if schedule.nil?
+      # default always on
+      battey_schedule = model.alwaysOnDiscreteSchedule
+    elsif schedule.class == String
+      if schedule == 'alwaysOffDiscreteSchedule'
+        battey_schedule = model.alwaysOffDiscreteSchedule
+      else
+        battey_schedule = model_add_schedule(model, schedule)
+        if battey_schedule.nil?
+          battey_schedule = model.alwaysOnDiscreteSchedule
+        end
+      end
+    elsif !schedule.to_Schedule.empty?
+      battey_schedule = schedule
+    else
+      battey_schedule = model.alwaysOnDiscreteSchedule
+    end
+
+    battery.setAvailabilitySchedule(battey_schedule)
+    battery.setNominalDischargingEnergeticEfficiency(discharge_eff) unless discharge_eff.nil?
+    battery.setNominalEnergeticEfficiencyforCharging(charge_eff) unless charge_eff.nil?
+    battery.setMaximumPowerforDischarging(max_discharge_power_kw * 1000) unless max_discharge_power_kw.nil?
+    battery.setMaximumPowerforCharging(max_charge_power_kw * 1000) unless max_charge_power_kw.nil?
+    battery.setMaximumStorageCapacity(OpenStudio.convert(max_storage_capacity_kwh, 'kWh', 'J').get) unless max_storage_capacity_kwh.nil?
+
+    return battery
+  end
+
+  # creates ElectricLoadCenter:Storage:Converter, modeling battery storage converter
+  def model_add_electric_storage_converter(model,
+                                           name: 'Storage Converter',
+                                           simple_fixed_eff: 1.0)
+
+    storage_converter = OpenStudio::Model::ElectricLoadCenterStorageConverter.new(model)
+    storage_converter.setName(name)
+    storage_converter.setSimpleFixedEfficiency(simple_fixed_eff)
+
+    return storage_converter
   end
 
   # define the arguments that the user will input
@@ -222,6 +316,10 @@ class UpgradeAddPvwatts < OpenStudio::Measure::ModelMeasure
     # add battery storage per user input
     if incl_batt_storage
 
+      # load battery data
+      load_standards_data()
+
+      # get building type to assign battery design parameters
       if model.getBuilding.standardsBuildingType.is_initialized
         building_type = model.getBuilding.standardsBuildingType.get
       else
@@ -230,9 +328,6 @@ class UpgradeAddPvwatts < OpenStudio::Measure::ModelMeasure
       end
 
       pv_size_kw = pv_system_capacity / 1000
-
-      puts building_type
-
       battery_data =  model_get_battery_capacity(building_type)
       b_factor = battery_data["battery_storage_factor_b_energy_capacity"]
 
@@ -243,30 +338,62 @@ class UpgradeAddPvwatts < OpenStudio::Measure::ModelMeasure
       # d_factor = 0.95 * 0.95
       # set by minimum prescriptive requirement of JA12.2.2.1(b)
       d_factor = 0.80
-
       battery_kwh = (pv_size_kw * b_factor) / (d_factor ** 0.5)
 
       # calculate battery power capacity per Equation 140.10-C
       c_factor = battery_data["battery_storage_factor_c_power_capacity"]
-
       battery_kw = (pv_size_kw * c_factor)
-
       OpenStudio::logFree(OpenStudio::Info, 'openstudio.standards.Model', "Creating a Battery Storage system with capacity of #{battery_kwh.round(2)} kWh and charge/discharge power of #{battery_kw.round(2)} kW.")
-
       battery = model_add_electric_storage_simple(model, max_storage_capacity_kwh: battery_kwh, max_charge_power_kw: battery_kw, max_discharge_power_kw: battery_kw)
       converter = model_add_electric_storage_converter(model)
 
-      if battery.nil?
+      unless battery.nil?
         # PV required, no Storage required
-        buss_type = "DirectCurrentWithInverter"
-      else
-        # PV and Storage required
-        buss_type = "DirectCurrentWithInverterDCStorage"
+        electric_load_center_distribution.setElectricalBussType('DirectCurrentWithInverterDCStorage')
+        electric_load_center_distribution.setElectricalStorage(battery)
+        electric_load_center_distribution.setStorageConverter(converter)
+        electric_load_center_distribution.setDesignStorageControlChargePower(battery_kw * 1000)
+        electric_load_center_distribution.setDesignStorageControlDischargePower(battery_kw * 1000)
+        electric_load_center_distribution.setMaximumStorageStateofChargeFraction(1)
+        # get final conditions
+        elcd = model.getElectricLoadCenterDistributions.size
+        elcsc = model.getElectricLoadCenterStorageConverters.size
+        elcss = model.getElectricLoadCenterStorageSimples.size
+        elcipv = model.getElectricLoadCenterInverterPVWattss.size
+        gpv = model.getGeneratorPVWattss.size
       end
     end
 
-    # report final condition of model
-    runner.registerFinalCondition("The building finished with #{(pv_system_capacity/1000).round(0)} kW of PV covering #{pv_area_ft2.round(0)} ft^2 of roof area. The module type is #{pv_module_type}, the array type is #{pv_array_type}, the system losses are #{pv_system_losses}, the title angle is #{pv_title_angle.round(0)}°, and the azimuth angle is #{pv_azimuth_angle.round(0)}°. The inverter has a DC to AC size ratio of #{pv_inverter.dcToACSizeRatio} and an inverter efficiency of #{(pv_inverter.inverterEfficiency*100).round(0)}%.")
+    if battery.nil?
+      # report final condition of model with battery
+      runner.registerFinalCondition("The building finished with
+        #{(pv_system_capacity/1000).round(0)} kW of PV covering
+        #{pv_area_ft2.round(0)} ft^2 of roof area. The module type is
+        #{pv_module_type}, the array type is
+        #{pv_array_type}, the system losses are
+        #{pv_system_losses}, the title angle is
+        #{pv_title_angle.round(0)}°, and the azimuth angle is
+        #{pv_azimuth_angle.round(0)}°. The inverter has a DC to AC size ratio of
+        #{pv_inverter.dcToACSizeRatio} and an inverter efficiency of
+        #{(pv_inverter.inverterEfficiency*100).round(0)}%.")
+    else
+      # report final condition of model with no battery
+      runner.registerFinalCondition("The building finished with
+        #{(pv_system_capacity/1000).round(0)} kW of PV covering
+        #{pv_area_ft2.round(0)} ft^2 of roof area. The module type is
+        #{pv_module_type}, the array type is
+        #{pv_array_type}, the system losses are
+        #{pv_system_losses}, the title angle is
+        #{pv_title_angle.round(0)}°, and the azimuth angle is
+        #{pv_azimuth_angle.round(0)}°. The inverter has a DC to AC size ratio of
+        #{pv_inverter.dcToACSizeRatio} and an inverter efficiency of
+        #{(pv_inverter.inverterEfficiency*100).round(0)}%. For storage, model has
+        #{elcd} Electric Load Center Distribution objects,
+        #{elcsc} Electric Load Center Storage Converter objecs,
+        #{elcss} Electric Load Center Storage Simple objects,
+        #{elcipv} Electric Load Center Inverter PV Watts objects, and
+        #{gpv} Generator PVWatts objects.")
+    end
 
     return true
   end
