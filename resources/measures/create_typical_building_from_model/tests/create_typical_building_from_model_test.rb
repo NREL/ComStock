@@ -97,6 +97,12 @@ class CreateTypicalBuildingFromModelTest < Minitest::Test
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), {}, 'SmallOffice.osm', nil, nil)
   end
 
+  def test_grocery_store
+    args = {}
+    args['refrigeration_template'] = 'old'
+    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'SuperMarket.osm', nil, nil)
+  end
+
   def test_quick_service_restaurant_no_attic
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), {}, 'QuickServiceRestaurantNoAttic.osm', nil, nil)
   end

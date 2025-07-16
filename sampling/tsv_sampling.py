@@ -96,7 +96,8 @@ class ComStockBaseSampler:
             'energy_code_compliance_hvac', 'energy_code_followed_during_last_hvac_replacement',
             'energy_code_in_force_during_last_hvac_replacement', 'fault_economizer_damper_fully_closed',
             'fault_economizer_db_limit', 'hvac_night_variability', 'hvac_tst_clg_delta_f', 'hvac_tst_clg_sp_f',
-            'hvac_tst_htg_delta_f', 'hvac_tst_htg_sp_f', 'year_bin_of_last_hvac_replacement'
+            'hvac_tst_htg_delta_f', 'hvac_tst_htg_sp_f', 'year_bin_of_last_hvac_replacement', 'year_bin_of_last_refrigeration_replacement',
+            'include_refrigeration_technology_level', 'refrigeration_technology_level'
         ],
         [
             'cook_broiler_counts', 'cook_dining_type', 'cook_fryers_counts', 'cook_fuel_broiler', 'cook_fuel_fryer',

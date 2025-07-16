@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>create_typical_building_from_model</name>
   <uid>339a2e3a-273c-4494-bb50-bfe586a0647c</uid>
-  <version_id>30b4226e-6e4d-43f6-ae80-afda6cde670f</version_id>
-  <version_modified>2024-10-18T03:27:51Z</version_modified>
+  <version_id>7d267fdc-c8b9-47ab-ab6a-b55634147612</version_id>
+  <version_modified>2025-05-05T19:09:01Z</version_modified>
   <xml_checksum>EE13F09F</xml_checksum>
   <class_name>CreateTypicalBuildingFromModel</class_name>
   <display_name>Create Typical Building from Model</display_name>
@@ -1128,6 +1128,29 @@
       </choices>
     </argument>
     <argument>
+      <name>refrigeration_template</name>
+      <display_name>Refrigeration Technology Level</display_name>
+      <description>The refrigeration technology level used for refrigerated cases, walkins, compressors, and systems.</description>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>new</default_value>
+      <choices>
+        <choice>
+          <value>old</value>
+          <display_name>old</display_name>
+        </choice>
+        <choice>
+          <value>new</value>
+          <display_name>new</display_name>
+        </choice>
+        <choice>
+          <value>advanced</value>
+          <display_name>advanced</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
       <name>modify_wkdy_op_hrs</name>
       <display_name>Modify weekday hours of operation</display_name>
       <description>Modify the weekday hours of operation in the model.</description>
@@ -1442,7 +1465,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>9EFC9D56</checksum>
+      <checksum>B441C3F1</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -1459,7 +1482,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>5E052863</checksum>
+      <checksum>B03F9A67</checksum>
     </file>
     <file>
       <filename>LargeOffice04.osm</filename>
@@ -1484,6 +1507,12 @@
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
       <checksum>519B22EB</checksum>
+    </file>
+    <file>
+      <filename>SuperMarket.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>42ECFE7F</checksum>
     </file>
     <file>
       <filename>USA_TX_Houston-Bush.Intercontinental.AP.722430_TMY3.ddy</filename>
@@ -1513,7 +1542,7 @@
       <filename>create_typical_building_from_model_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>22ED74F0</checksum>
+      <checksum>CB1CC00B</checksum>
     </file>
     <file>
       <filename>ecc.osm</filename>
