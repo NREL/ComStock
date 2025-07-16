@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>qoi_report</name>
   <uid>be0bfc7f-25c6-435a-9acd-2f5fa8ac817d</uid>
-  <version_id>460b1df6-2f52-449b-a8ec-122a0b1e3dfa</version_id>
-  <version_modified>2025-07-16T18:34:57Z</version_modified>
+  <version_id>c0e94787-a0e1-4d8e-9848-2f8bf26c12c6</version_id>
+  <version_modified>2025-07-16T21:53:32Z</version_modified>
   <xml_checksum>15BF4E57</xml_checksum>
   <class_name>QOIReport</class_name>
   <display_name>QOI Report</display_name>
@@ -1317,7 +1317,7 @@
       <filename>qoi_report_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>28177C41</checksum>
+      <checksum>51650933</checksum>
     </file>
     <file>
       <filename>retail_2010.osm</filename>

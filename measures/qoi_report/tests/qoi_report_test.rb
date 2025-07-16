@@ -278,18 +278,18 @@ class QOIReportTest < Minitest::Test
     test_name = 'test_bad_grid_region'
     puts "\n######\nTEST:#{test_name}\n######\n"
 
-      # load the test model resave with new name
-      osm_path = "#{__dir__}/cold_climate.osm"
-      epw_path = "#{__dir__}/cold_climate.epw"
+    # load the test model resave with new name
+    osm_path = "#{__dir__}/cold_climate.osm"
+    epw_path = "#{__dir__}/cold_climate.epw"
 
-      translator = OpenStudio::OSVersion::VersionTranslator.new
-      model = translator.loadModel(OpenStudio::Path.new(osm_path))
-      assert(!model.empty?)
-      model = model.get
-      model.getBuilding.additionalProperties.setFeature('grid_region', 'AKMS')
-      new_osm_path = "#{__dir__}/bad_grid_region.osm"
-      model.save(new_osm_path, true)
-      assert(run_test(test_name, new_osm_path, epw_path))
-      File.delete(new_osm_path)
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    model = translator.loadModel(OpenStudio::Path.new(osm_path))
+    assert(!model.empty?)
+    model = model.get
+    model.getBuilding.additionalProperties.setFeature('grid_region', 'AKMS')
+    new_osm_path = "#{__dir__}/bad_grid_region.osm"
+    model.save(new_osm_path, true)
+    assert(run_test(test_name, new_osm_path, epw_path))
+    File.delete(new_osm_path)
   end
 end
