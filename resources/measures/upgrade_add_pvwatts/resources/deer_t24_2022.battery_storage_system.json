@@ -3,7 +3,6 @@
     {
       "template": "DEER T24 2022",
       "building_type": "Asm",
-      "doe_building_type":"",
       "battery_storage_factor_b_energy_capacity": 0.93,
       "battery_storage_factor_c_power_capacity": 0.23,
       "notes": "From T24 2022 Table 140.10-B"
@@ -11,7 +10,6 @@
     {
       "template": "DEER T24 2022",
       "building_type": "ECC",
-      "doe_building_type":"SecondarySchool",
       "battery_storage_factor_b_energy_capacity": 1.87,
       "battery_storage_factor_c_power_capacity": 0.46,
       "notes": "From T24 2022 Table 140.10-B"
@@ -19,7 +17,6 @@
     {
       "template": "DEER T24 2022",
       "building_type": "EPr",
-      "doe_building_type":"PrimarySchool",
       "battery_storage_factor_b_energy_capacity": 1.87,
       "battery_storage_factor_c_power_capacity": 0.46,
       "notes": "From T24 2022 Table 140.10-B"
@@ -153,25 +150,19 @@
     {
       "building_type": "SmallOffice",
       "battery_storage_factor_b_energy_capacity": 1.68,
-      "battery_storage_factor_c_power_capacity": 1.42,
+      "battery_storage_factor_c_power_capacity": 0.42,
       "notes": "From T24 2022 Table 140.10-B"
     },
     {
       "building_type": "MediumOffice",
       "battery_storage_factor_b_energy_capacity": 1.68,
-      "battery_storage_factor_c_power_capacity": 1.42,
+      "battery_storage_factor_c_power_capacity": 0.42,
       "notes": "From T24 2022 Table 140.10-B"
     },
     {
       "building_type": "LargeOffice",
       "battery_storage_factor_b_energy_capacity": 1.68,
-      "battery_storage_factor_c_power_capacity": 1.42,
-      "notes": "From T24 2022 Table 140.10-B"
-    },
-    {
-      "building_type": "Office",
-      "battery_storage_factor_b_energy_capacity": 1.68,
-      "battery_storage_factor_c_power_capacity": 1.42,
+      "battery_storage_factor_c_power_capacity": 0.42,
       "notes": "From T24 2022 Table 140.10-B"
     },
     {
@@ -205,13 +196,13 @@
       "notes": "From T24 2022 Table 140.10-B"
     },
     {
-      "building_type": "Small Hotel",
+      "building_type": "SmallHotel",
       "battery_storage_factor_b_energy_capacity": 0.93,
       "battery_storage_factor_c_power_capacity": 0.23,
       "notes": "From T24 2022 Table 140.10-B"
     },
     {
-      "building_type": "Large Hotel",
+      "building_type": "LargeHotel",
       "battery_storage_factor_b_energy_capacity": 0.93,
       "battery_storage_factor_c_power_capacity": 0.23,
       "notes": "From T24 2022 Table 140.10-B"
@@ -240,12 +231,7 @@
       "battery_storage_factor_c_power_capacity": 0.23,
       "notes": "From T24 2022 Table 140.10-B"
     },
-    {
-      "building_type": "QuickServiceRestaurant",
-      "battery_storage_factor_b_energy_capacity": 0.93,
-      "battery_storage_factor_c_power_capacity": 0.23,
-      "notes": "From T24 2022 Table 140.10-B"
-    },
+
     {
       "building_type": "Grocery",
       "battery_storage_factor_b_energy_capacity": 1.03,
