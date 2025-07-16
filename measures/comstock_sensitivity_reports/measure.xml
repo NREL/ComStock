@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>com_stock_sensitivity_reports</name>
   <uid>aeb81242-de7e-4613-af47-c1faf19d286a</uid>
-  <version_id>f7ce428b-061b-4b72-8053-fb083ae8a0f6</version_id>
-  <version_modified>2025-07-11T19:17:10Z</version_modified>
+  <version_id>73340d0b-154c-4402-b290-dea57ab57fb8</version_id>
+  <version_modified>2025-07-16T03:54:49Z</version_modified>
   <xml_checksum>A0069B90</xml_checksum>
   <class_name>ComStockSensitivityReports</class_name>
   <display_name>ComStock_Sensitivity_Reports</display_name>
@@ -76,7 +76,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>B53AFFB3</checksum>
+      <checksum>E4B199EB</checksum>
     </file>
     <file>
       <filename>Variable List.xlsx</filename>

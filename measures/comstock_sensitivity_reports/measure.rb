@@ -973,6 +973,19 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     end
     runner.registerValue('com_report_pv_system_size_kw', pv_capacity_w, 'kW')
 
+    # get battery storage information
+    battery_capacity_kwh = 0.0
+    max_charge_kw = 0.0
+    max_discharge_kw = 0.0
+    model.getElectricLoadCenterStorageSimples.each do |batt|
+      battery_capacity_kwh += batt.maximumStorageCapacity / 3.6e6  # J → kWh
+      max_charge_kw += batt.maximumPowerforCharging / 1000.0       # W → kW
+      max_discharge_kw += batt.maximumPowerforDischarging / 1000.0 # W → kW
+    end
+    runner.registerValue('com_report_battery_capacity_kwh', battery_capacity_kwh.round(2), 'kWh')
+    runner.registerValue('com_report_battery_max_charge_kw', max_charge_kw.round(2), 'kW')
+    runner.registerValue('com_report_battery_max_discharge_kw', max_discharge_kw.round(2), 'kW')
+
     # Occupant calculations
     total_zone_occupant_area_m2 = 0.0
     total_zone_design_ppl = 0.0
