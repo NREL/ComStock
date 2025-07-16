@@ -1001,6 +1001,7 @@ results.csv,job_id,,FALSE,FALSE,integer,,,BuildStockBatch job ID number for mode
 results.csv,la100_qaqc.applicable,,FALSE,FALSE,boolean,,,Specifies if la100 qaqc measure is applicable
 results.csv,la100_qaqc.run_qaqc,,FALSE,FALSE,boolean,,,Specifies if la100 qaqc measure was applied to model
 results.csv,qoi_report.applicable,,FALSE,FALSE,boolean,,,Specifies if la100 report was applicable to model
+results.csv,qoi_report.grid_region,,FALSE,FALSE,string,,,
 results.csv,qoi_report.average_maximum_daily_timing_shoulder_hour,out.qoi.maximum_daily_timing_shoulder_hour,TRUE,FALSE,float,hr,hr,Hour of average maximum daily electric load during shoulder season
 results.csv,qoi_report.average_maximum_daily_timing_summer_hour,out.qoi.maximum_daily_timing_summer_hour,TRUE,FALSE,float,hr,hr,Hour of average maximum daily electric load during summer
 results.csv,qoi_report.average_maximum_daily_timing_winter_hour,out.qoi.maximum_daily_timing_winter_hour,TRUE,FALSE,float,hr,hr,Hour of average maximum daily electric load during winter
