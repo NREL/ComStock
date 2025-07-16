@@ -329,6 +329,10 @@ class UpgradeAddPvwatts < OpenStudio::Measure::ModelMeasure
 
       pv_size_kw = pv_system_capacity / 1000
       battery_data =  model_get_battery_capacity(building_type)
+      if battery_data.nil?
+        runner.registerError("Battery storage parameters not found for building type '#{building_type}'. Please ensure this building type exists in the battery storage JSON.")
+        return false
+      end
       b_factor = battery_data["battery_storage_factor_b_energy_capacity"]
 
       # D factor is Rated single charge-discharge cycle AC to AC (round-trip) efficiency of the battery storage system
