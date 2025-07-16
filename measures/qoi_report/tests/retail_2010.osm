@@ -17634,7 +17634,10 @@ OS:AdditionalProperties,
   90.1-2010,                              !- Feature Value 12
   hvac_template,                          !- Feature Name 13
   String,                                 !- Feature Data Type 13
-  90.1-2013;                              !- Feature Value 13
+  90.1-2013,                              !- Feature Value 13
+  grid_region,                            !- Feature Name 14
+  String,                                 !- Feature Data Type 14
+  RFCMc;                                  !- Feature Value 14
 
 OS:Sizing:Parameters,
   {094a0feb-b15b-4ced-9902-e9b34ad0cf5e}, !- Handle

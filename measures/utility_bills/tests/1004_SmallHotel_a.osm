@@ -9034,6 +9034,13 @@ OS:Output:Meter,
   True,                                   !- Meter File Only
   False;                                  !- Cumulative
 
+OS:Output:Meter,
+  {c92ca9a0-9c26-4472-826f-2f2b73d0a027}, !- Handle
+  ElectricityPurchased:Facility,          !- Name
+  Hourly,                                 !- Reporting Frequency
+  True,                                   !- Meter File Only
+  False;                                  !- Cumulative
+
 OS:Surface,
   {c5f1fb3b-8503-4dd2-8ba7-76ac3b7d25e1}, !- Handle
   P_CorridorFlr4_10287_0_10151,           !- Name

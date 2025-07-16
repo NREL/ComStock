@@ -8,7 +8,7 @@ require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
 require_relative '../measure'
 
-class SimulationSettingsCheckTest < MiniTest::Unit::TestCase
+class SimulationSettingsCheckTest < MiniTest::Test
   def model_in_path_default
     "#{__dir__}/MediumOffice.osm"
   end

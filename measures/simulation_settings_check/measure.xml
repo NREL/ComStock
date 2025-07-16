@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>simulation_settings_check</name>
   <uid>a99c4877-cc7e-44a7-bf37-90bc367974d9</uid>
-  <version_id>47b97739-a45d-415a-9a98-745c15140e0e</version_id>
-  <version_modified>2024-10-28T21:57:24Z</version_modified>
+  <version_id>0b0b5d41-98fc-4989-950f-1f78f76a4e7d</version_id>
+  <version_modified>2025-07-11T20:45:44Z</version_modified>
   <xml_checksum>DBF01422</xml_checksum>
   <class_name>SimulationSettingsCheck</class_name>
   <display_name>Simulation Settings Check</display_name>
@@ -163,7 +163,7 @@
       <filename>simulation_settings_check_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>C7C5F32F</checksum>
+      <checksum>0DC3E46D</checksum>
     </file>
   </files>
 </measure>

@@ -10,6 +10,9 @@ import logging
 import numpy as np
 import os
 import pandas as pd
+import s3fs
+from fsspec import register_implementation
+from fsspec.core import url_to_fs
 
 from comstockpostproc.naming_mixin import NamingMixin
 from comstockpostproc.units_mixin import UnitsMixin
@@ -18,7 +21,7 @@ from comstockpostproc.s3_utilities_mixin import S3UtilitiesMixin
 logger = logging.getLogger(__name__)
 
 class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
-    def __init__(self, stock_estimation_version, truth_data_version, bootstrap_coefficient=3, reload_from_cache=False):
+    def __init__(self, stock_estimation_version, truth_data_version, bootstrap_coefficient=3, reload_from_cache=False, output_dir=None, aws_profile_name=None):
         """
         A class to apportion the sampled data to the known set of buildings in the U.S.
         Args:
@@ -40,7 +43,7 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         self.dataset_name = f'Stock Estimation {self.stock_estimation_version}'
         self.truth_data_dir = os.path.join(current_dir, '..', 'truth_data', self.truth_data_version)
         self.resource_dir = os.path.join(current_dir, 'resources')
-        self.output_dir = os.path.abspath(os.path.join(current_dir, '..', 'output', self.dataset_name))
+        self.output_dir = self.setup_fsspec_filesystem(output_dir, aws_profile_name)
         self.data_file_name = f'{self.stock_estimation_version}_building_estimate.parquet'
         self.hvac_size_bins_name = 'hvac_system_size_bin_v1.tsv'
         self.tract_list_name = f'{self.stock_estimation_version}_tract_list.csv'
@@ -58,14 +61,20 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
 
         # Make directories
-        for p in [self.truth_data_dir, self.output_dir]:
+        for p in [self.truth_data_dir]:
             if not os.path.exists(p):
                 os.makedirs(p)
 
+        if not isinstance(self.output_dir['fs'], s3fs.core.S3FileSystem):
+            if not os.path.exists(self.output_dir['fs_path']):
+                os.makedirs(self.output_dir['fs_path'])
+
         # Load and transform truth data
-        file_path = os.path.join(self.output_dir, 'cached_ComStock_apportionment.parquet')
+        file_path = f'{self.output_dir["fs_path"]}/cached_ComStock_apportionment.parquet'
+        if isinstance(self.output_dir['fs'], s3fs.S3FileSystem):
+            file_path = f's3://{file_path}'
         if reload_from_cache:
-            if not os.path.exists(file_path):
+            if not self.output_dir['fs'].exists(file_path):
                 raise FileNotFoundError(
                 f'Cannot find wide .csv or .parquet in {file_path} to reload data, set reload_from_cache=False.')
             logger.info(f'Reloading apportionment data from: {file_path}')
@@ -78,7 +87,9 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             self.add_sqft_bins()
             self.normalize_building_type_values()
             self.upsample_hvac_system_fuel_types()
-            self.data.to_parquet(file_path)
+            logger.info(f'Caching apportionment data to: {file_path}')
+            with self.output_dir['fs'].open(file_path, "wb") as f:
+                self.data.to_parquet(f)
 
         logger.info('Finished processing Apportion class truth data')
         logger.debug('\nDesired Truth Data columns after adding all data')
