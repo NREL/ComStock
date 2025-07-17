@@ -148,6 +148,24 @@
       "notes": "From T24 2022 Table 140.10-B"
     },
     {
+      "building_type": "Hsp",
+      "battery_storage_factor_b_energy_capacity": 0.93,
+      "battery_storage_factor_c_power_capacity": 0.23,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
+      "building_type": "ESe",
+      "battery_storage_factor_b_energy_capacity": 1.87,
+      "battery_storage_factor_c_power_capacity": 0.46,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
+      "building_type": "OfL",
+      "battery_storage_factor_b_energy_capacity": 1.68,
+      "battery_storage_factor_c_power_capacity": 0.42,
+      "notes": "From T24 2022 Table 140.10-B"
+    },
+    {
       "building_type": "SmallOffice",
       "battery_storage_factor_b_energy_capacity": 1.68,
       "battery_storage_factor_c_power_capacity": 0.42,
