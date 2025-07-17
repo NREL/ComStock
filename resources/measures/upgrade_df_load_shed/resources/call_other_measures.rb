@@ -96,5 +96,5 @@ def call_pv(model, runner)
 
   runner = child_to_parent_runner_logging(runner, pv_measure.name.to_s, pv_result)
 
-  return pv_result, runner
+  [pv_result, runner]
 end

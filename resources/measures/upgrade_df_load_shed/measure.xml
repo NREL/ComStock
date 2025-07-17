@@ -1,15 +1,15 @@
 <?xml version="1.0"?>
 <measure>
   <schema_version>3.1</schema_version>
-  <name>df_thermostat_control_load_shed</name>
-  <uid>f4372ee0-7caa-4db1-8838-31c886e60881</uid>
-  <version_id>8b2c93da-41aa-4219-a92a-510a0eaa3a3c</version_id>
-  <version_modified>2025-04-24T16:07:16Z</version_modified>
+  <name>df_load_shed</name>
+  <uid>8de4bbcc-0430-4f71-8131-0467cbb6f9a4</uid>
+  <version_id>9b291031-0829-4497-b130-2fbe09ce605b</version_id>
+  <version_modified>2025-07-15T22:20:24Z</version_modified>
   <xml_checksum>D7E77FC2</xml_checksum>
-  <class_name>DfThermostatControlLoadShed</class_name>
-  <display_name>demand flexibility - thermostat control load shed</display_name>
-  <description>This measure implements demand flexibility measure on daily thermostat control with load shed strategy, by adjusting thermostat setpoints (increasing the deadband) corresponding to the peak schedule based on daily peak load prediction.</description>
-  <modeler_description>This measure performs load prediction based on options of full baseline run, bin-sample method and par year bin-sample method. It generates daily peak schedule based on the load prediction, and then iterates through all applicable (electric) thermostats to adjust the cooling and heating setpoints for daily peak window.</modeler_description>
+  <class_name>DFLoadShed</class_name>
+  <display_name>demand flexibility - thermostat and lighting control for load shedding</display_name>
+  <description>This measure implements demand flexibility measure on daily thermostat and lighting control with load shed strategy, by adjusting thermostat setpoints (increasing the deadband) and/or Lighting Power Density (reflecting lighting dimming) corresponding to the peak schedule based on daily peak load prediction.</description>
+  <modeler_description>This measure performs load prediction based on options of different methods or data sources. It generates daily peak schedule based on the load prediction, and then iterates through all applicable (electric) thermostats and/or lights to adjust the cooling and heating setpoints, as well as lighting dimming levels for daily peak window.</modeler_description>
   <arguments>
     <argument>
       <name>demand_flexibility_objective</name>
@@ -50,6 +50,24 @@
       <default_value>4</default_value>
     </argument>
     <argument>
+      <name>thermostat_control</name>
+      <display_name>Enable thermostat control for demand flexibility load shedding?</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>true</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
       <name>rebound_len</name>
       <display_name>Length of rebound period after dispatch window (hour)</display_name>
       <type>Integer</type>
@@ -66,6 +84,51 @@
       <default_value>2</default_value>
     </argument>
     <argument>
+      <name>lighting_control</name>
+      <display_name>Enable lighting control for demand flexibility load shedding?</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>true</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>light_adjustment_method</name>
+      <display_name>Method of lighting dimming (absolute change, relative change)</display_name>
+      <description>absolute change: percent change relative to fully ON lighting; relative change: percent change relative to current dimming level</description>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>absolute change</default_value>
+      <choices>
+        <choice>
+          <value>absolute change</value>
+          <display_name>absolute change</display_name>
+        </choice>
+        <choice>
+          <value>relative change</value>
+          <display_name>relative change</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>light_adjustment</name>
+      <display_name>Percentage to decrease light dimming/LPD by (0-100)</display_name>
+      <type>Double</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>30</default_value>
+    </argument>
+    <argument>
       <name>num_timesteps_in_hr</name>
       <display_name>Number/Count of timesteps in an hour for sample simulations</display_name>
       <type>Integer</type>
@@ -75,7 +138,8 @@
     </argument>
     <argument>
       <name>load_prediction_method</name>
-      <display_name>Method of load prediction (full baseline run, bin sample, part year bin sample, fixed schedule, outdoor air temperature-based)</display_name>
+      <display_name>Method of load prediction or window determination reference</display_name>
+      <description>Load prediction based on full baseline run, load prediction based on bin sample simulation, load prediction base on part year bin sample simulation, predetermined fixed schedule (no prediction), load peak prediction based on outdoor air temperature)</description>
       <type>Choice</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -104,16 +168,8 @@
       </choices>
     </argument>
     <argument>
-      <name>peak_lag</name>
-      <display_name>Time lag of peak responding to temperature peak (hour), for oat prediction method only</display_name>
-      <type>Integer</type>
-      <required>true</required>
-      <model_dependent>false</model_dependent>
-      <default_value>2</default_value>
-    </argument>
-    <argument>
       <name>peak_window_strategy</name>
-      <display_name>Method of determining peak windows (max savings, start with peak, end with peak, center with peak)</display_name>
+      <display_name>Peak windows determination strategy (max savings, start with peak, end with peak, center with peak)</display_name>
       <type>Choice</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -139,11 +195,12 @@
     </argument>
     <argument>
       <name>cambium_scenario</name>
-      <display_name>Cambium emission scenario</display_name>
+      <display_name>Cambium scenario of emission factor</display_name>
+      <description>For emission objective only</description>
       <type>Choice</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
-      <default_value>LRMER_MidCase_30</default_value>
+      <default_value>LRMER_MidCase_15</default_value>
       <choices>
         <choice>
           <value>AER_95DecarbBy2035</value>
@@ -302,19 +359,19 @@
     <file>
       <version>
         <software_program>OpenStudio</software_program>
-        <identifier>3.5.1</identifier>
-        <min_compatible>3.5.1</min_compatible>
+        <identifier>3.7.0</identifier>
+        <min_compatible>3.7.0</min_compatible>
       </version>
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>30CB87B4</checksum>
+      <checksum>1CEB009C</checksum>
     </file>
     <file>
       <filename>call_other_measures.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>E34F02A0</checksum>
+      <checksum>B4E18059</checksum>
     </file>
     <file>
       <filename>cambium/LRMER_HighRECost_15/AZNMc.csv</filename>
@@ -806,7 +863,7 @@
       <filename>dispatch_schedule_generation.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>5F8845A4</checksum>
+      <checksum>0F986875</checksum>
     </file>
     <file>
       <filename>egrid/README.md</filename>
@@ -827,10 +884,10 @@
       <checksum>72E3594C</checksum>
     </file>
     <file>
-      <filename>df_thermostat_control_load_shed_test.rb</filename>
+      <filename>df_load_shed_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>AFF2C253</checksum>
+      <checksum>AE3CAF04</checksum>
     </file>
   </files>
 </measure>
