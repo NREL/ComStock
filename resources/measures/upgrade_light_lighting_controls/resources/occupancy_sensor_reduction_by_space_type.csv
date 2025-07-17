@@ -1,0 +1,178 @@
+standard_building_type,standard_space_type,lpd_reduction
+SecondarySchool,Auditorium,0.1
+SecondarySchool,Cafeteria,0.35
+SecondarySchool,Classroom,0.3
+SecondarySchool,ComputerRoom,0.25
+SecondarySchool,Corridor,0.25
+SecondarySchool,Gym,0.35
+SecondarySchool,Kitchen,0.3
+SecondarySchool,Library,0.15
+SecondarySchool,Lobby,0.25
+SecondarySchool,Mechanical,0.3
+SecondarySchool,Office,0.15
+SecondarySchool,Restroom,0.45
+PrimarySchool,Cafeteria,0.35
+PrimarySchool,Classroom,0.3
+PrimarySchool,ComputerRoom,0.25
+PrimarySchool,Corridor,0.25
+PrimarySchool,Gym,0.35
+PrimarySchool,Kitchen,0.3
+PrimarySchool,Library,0.15
+PrimarySchool,Lobby,0.25
+PrimarySchool,Mechanical,0.3
+PrimarySchool,Office,0.15
+PrimarySchool,Restroom,0.45
+SmallOffice,WholeBuilding - Sm Office,0.15
+MediumOffice,WholeBuilding - Md Office,0.15
+MediumOffice,OfficeLarge Data Center,0
+LargeOffice,WholeBuilding - Lg Office,0.15
+LargeOffice,OfficeLarge Data Center,0
+LargeOffice,OfficeLarge Main Data Center,0
+SmallHotel,Corridor,0.25
+SmallHotel,Elec/MechRoom,0.3
+SmallHotel,ElevatorCore,0
+SmallHotel,Exercise,0.35
+SmallHotel,GuestLounge,0
+SmallHotel,GuestRoom123Occ,0
+SmallHotel,GuestRoom123Vac,0.45
+SmallHotel,Laundry,0.1
+SmallHotel,Mechanical,0.3
+SmallHotel,Meeting,0
+SmallHotel,Office,0.15
+SmallHotel,PublicRestroom,0.45
+SmallHotel,StaffLounge,0
+SmallHotel,Stair,0.75
+SmallHotel,Storage,0.45
+LargeHotel,Banquet,0.35
+LargeHotel,Basement,0
+LargeHotel,Cafe,0.35
+LargeHotel,Corridor,0.25
+LargeHotel,GuestRoom,0.45
+LargeHotel,Kitchen,0.3
+LargeHotel,Laundry,0.1
+LargeHotel,Lobby,0.25
+LargeHotel,Mechanical,0.3
+LargeHotel,Retail,0.1
+LargeHotel,Storage,0.45
+Warehouse,Bulk,0.45
+Warehouse,Fine,0.45
+Warehouse,Office,0.15
+RetailStandalone,Back_Space,0.1
+RetailStandalone,Entry,0
+RetailStandalone,Point_of_Sale,0
+RetailStandalone,Retail,0.1
+RetailStripmall,Strip mall - type 1,0.1
+RetailStripmall,Strip mall - type 2,0.1
+RetailStripmall,Strip mall - type 3,0.1
+RetailStripmall,Dining,0.35
+RetailStripmall,Kitchen,0.3
+QuickServiceRestaurant,Dining,0.35
+QuickServiceRestaurant,Kitchen,0.3
+FullServiceRestaurant,Dining,0.35
+FullServiceRestaurant,Kitchen,0.3
+Hospital,Basement,0
+Hospital,Corridor,0.25
+Hospital,Dining,0.35
+Hospital,ER_Exam,0.1
+Hospital,ER_NurseStn,0.1
+Hospital,ER_Trauma,0.1
+Hospital,ER_Triage,0.1
+Hospital,ICU_NurseStn,0.1
+Hospital,ICU_Open,0.1
+Hospital,ICU_PatRm,0.1
+Hospital,Kitchen,0.3
+Hospital,Lab,0.1
+Hospital,Lobby,0.25
+Hospital,NurseStn,0.1
+Hospital,Office,0.15
+Hospital,OR,0.1
+Hospital,PatCorridor,0.25
+Hospital,PatRoom,0.1
+Hospital,PhysTherapy,0.1
+Hospital,Radiology,0.1
+Outpatient,Anesthesia,0.1
+Outpatient,BioHazard,0.1
+Outpatient,Cafe,0.35
+Outpatient,CleanWork,0.1
+Outpatient,Conference,0
+Outpatient,DressingRoom,0.1
+Outpatient,Elec/MechRoom,0.3
+Outpatient,ElevatorPumpRoom,0
+Outpatient,Exam,0.1
+Outpatient,Hall,0.25
+Outpatient,IT_Room,0.25
+Outpatient,Janitor,0.45
+Outpatient,Lobby,0.25
+Outpatient,LockerRoom,0.25
+Outpatient,Lounge,0
+Outpatient,MedGas,0.1
+Outpatient,MRI,0.1
+Outpatient,MRI_Control,0.1
+Outpatient,NurseStation,0.1
+Outpatient,Office,0.15
+Outpatient,OR,0.1
+Outpatient,PACU,0.1
+Outpatient,PhysicalTherapy,0.1
+Outpatient,PreOp,0.1
+Outpatient,ProcedureRoom,0.1
+Outpatient,Reception,0.25
+Outpatient,Soil Work,0.1
+Outpatient,Stair,0.75
+Outpatient,Toilet,0.45
+Outpatient,Undeveloped,0
+Outpatient,Xray,0.1
+DEER Education Primary School,Classroom,0.3
+DEER Education Primary School,CorridorStairway,0.25
+DEER Education Primary School,Dining,0.35
+DEER Education Primary School,Gymnasium,0.35
+DEER Education Primary School,Kitchen,0.3
+DEER Education Secondary School,Classroom,0.3
+DEER Education Secondary School,CompRoomClassRm,0.25
+DEER Education Secondary School,CorridorStairway,0.25
+DEER Education Secondary School,Dining,0.35
+DEER Education Secondary School,Gymnasium,0.35
+DEER Education Secondary School,Kitchen,0.3
+DEER Education Secondary School,OfficeGeneral,0.15
+DEER Hospital,DEER HospitalSurgOutptLab,0.1
+DEER Hospital,Dining,0.35
+DEER Hospital,Kitchen,0.3
+DEER Hospital,OfficeGeneral,0.15
+DEER Hospital,PatientRoom,0.1
+DEER Hotel,Dining,0.35
+DEER Hotel,BarCasino,0.35
+DEER Hotel,HotelLobby,0.25
+DEER Hotel,OfficeGeneral,0.15
+DEER Hotel,GuestRmCorrid,0.25
+DEER Hotel,Laundry,0.1
+DEER Hotel,GuestRmOcc,0
+DEER Hotel,GuestRmUnOcc,0.45
+DEER Hotel,Kitchen,0.3
+DEER Motel,OfficeGeneral,0.15
+DEER Motel,GuestRmCorrid,0.25
+DEER Motel,Laundry,0.1
+DEER Motel,GuestRmOcc,0
+DEER Motel,GuestRmUnOcc,0.45
+DEER Office Large,LobbyWaiting,0.25
+DEER Office Large,OfficeSmall,0.3
+DEER Office Large,OfficeOpen,0.15
+DEER Office Large,MechElecRoom,0.3
+DEER Office Small,Hall,0.25
+DEER Office Small,OfficeSmall,0.3
+DEER Restaurant Fast Food,Dining,0.35
+DEER Restaurant Fast Food,Kitchen,0.3
+DEER Restaurant Fast Food,LobbyWaiting,0.25
+DEER Restaurant Fast Food,Restroom,0.45
+DEER Restaurant Sit Down,Restroom,0.45
+DEER Restaurant Sit Down,Dining,0.35
+DEER Restaurant Sit Down,LobbyWaiting,0.25
+DEER Restaurant Sit Down,Kitchen,0.3
+DEER Retail Three Story,RetailSales,0
+DEER Retail Large,OfficeGeneral,0.15
+DEER Retail Large,Work,0.1
+DEER Retail Large,StockRoom,0.45
+DEER Retail Large,RetailSales,0
+DEER Retail Large,Kitchen,0.3
+DEER Retail Small,RetailSales,0
+DEER Retail Small,StockRoom,0.45
+DEER Storage Conditioned,WarehouseCond,0.45
+DEER Storage Unconditioned,WarehouseUnCond,0.45
