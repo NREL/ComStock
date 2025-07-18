@@ -90,6 +90,8 @@ def call_pv(model, runner)
   pv_arg_map = OpenStudio::Measure::OSArgumentMap.new
   pv_area_fraction = pv_measure_args[0].clone
   pv_arg_map['pv_area_fraction'] = pv_area_fraction
+  incl_batt_storage = pv_measure_args[1].clone
+  pv_arg_map['incl_batt_storage'] = incl_batt_storage
 
   pv_measure.run(model, runner_pv, pv_arg_map)
   pv_result = runner_pv.result
