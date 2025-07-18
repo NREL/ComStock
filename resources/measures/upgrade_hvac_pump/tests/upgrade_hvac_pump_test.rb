@@ -162,6 +162,14 @@ class UpgradeHvacPumpTest < Minitest::Test
     end
     assert_equal(true, coefficient_set_different)
 
+    # check performance improvement
+    if pump_motor_eff_weighted_average_c_after < pump_motor_eff_weighted_average_c_before
+      assert(false, "Pump motor efficiency got worse for constant speed pump. Before: #{pump_motor_eff_weighted_average_c_before}, After: #{pump_motor_eff_weighted_average_c_after}")
+    end
+    if pump_motor_eff_weighted_average_v_after < pump_motor_eff_weighted_average_v_before
+      assert(false, "Pump motor efficiency got worse for variable speed pump. Before: #{pump_motor_eff_weighted_average_v_before}, After: #{pump_motor_eff_weighted_average_v_after}")
+    end
+
     # # save the model to test output directory
     # output_file_path = "#{File.dirname(__FILE__)}/output/#{instance_test_name}.osm"
     # model.save(output_file_path, true)
