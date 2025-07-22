@@ -11,15 +11,13 @@ class UpgradeHvacChillerTest < Minitest::Test
   # supporting method: return file paths to test models in test directory
   def models_for_tests
     paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/models/*.osm'))
-    paths = paths.map { |path| File.expand_path(path) }
-    return paths
+    paths.map { |path| File.expand_path(path) }
   end
 
   # supporting method: return file paths to epw files in test directory
   def epws_for_tests
     paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/weather/*.epw'))
-    paths = paths.map { |path| File.expand_path(path) }
-    return paths
+    paths.map { |path| File.expand_path(path) }
   end
 
   # supporting method: load model from osm path
@@ -52,7 +50,7 @@ class UpgradeHvacChillerTest < Minitest::Test
   end
 
   # supporting method: apply measure to model and test,
-  def apply_and_test_model(path, instance_test_name)
+  def apply_and_test_model(path, _instance_test_name)
     # build standard
     template = 'ComStock 90.1-2019'
     std = Standard.build(template)
@@ -116,12 +114,12 @@ class UpgradeHvacChillerTest < Minitest::Test
     # get pump specs before measure
     pumps_const_spd = model.getPumpConstantSpeeds
     pump_specs_cst_spd_before = UpgradeHvacChiller.pump_specifications([], pumps_const_spd, std)
-    pump_rated_flow_total_c_before = pump_specs_cst_spd_before[1]
+    pump_specs_cst_spd_before[1]
     pump_motor_eff_weighted_average_c_before = pump_specs_cst_spd_before[2]
     pump_motor_bhp_weighted_average_c_before = pump_specs_cst_spd_before[3]
     pumps_var_spd = model.getPumpVariableSpeeds
     pump_specs_var_spd_before = UpgradeHvacChiller.pump_specifications([], pumps_var_spd, std)
-    pump_rated_flow_total_v_before = pump_specs_var_spd_before[1]
+    pump_specs_var_spd_before[1]
     pump_motor_eff_weighted_average_v_before = pump_specs_var_spd_before[2]
     pump_motor_bhp_weighted_average_v_before = pump_specs_var_spd_before[3]
     pump_var_part_load_curve_coeff1_weighted_avg_before = pump_specs_var_spd_before[4]
@@ -150,12 +148,12 @@ class UpgradeHvacChillerTest < Minitest::Test
     # get pump specs after measure
     pumps_const_spd = model.getPumpConstantSpeeds
     pump_specs_cst_spd_after = UpgradeHvacChiller.pump_specifications([], pumps_const_spd, std)
-    pump_rated_flow_total_c_after = pump_specs_cst_spd_after[1]
+    pump_specs_cst_spd_after[1]
     pump_motor_eff_weighted_average_c_after = pump_specs_cst_spd_after[2]
     pump_motor_bhp_weighted_average_c_after = pump_specs_cst_spd_after[3]
     pumps_var_spd = model.getPumpVariableSpeeds
     pump_specs_var_spd_after = UpgradeHvacChiller.pump_specifications([], pumps_var_spd, std)
-    pump_rated_flow_total_v_after = pump_specs_var_spd_after[1]
+    pump_specs_var_spd_after[1]
     pump_motor_eff_weighted_average_v_after = pump_specs_var_spd_after[2]
     pump_motor_bhp_weighted_average_v_after = pump_specs_var_spd_after[3]
     pump_var_part_load_curve_coeff1_weighted_avg_after = pump_specs_var_spd_after[4]
@@ -206,9 +204,7 @@ class UpgradeHvacChillerTest < Minitest::Test
     end
     assert_equal(counts_chillers_wcc_b, counts_chillers_wcc_a)
     assert_equal(capacity_total_w_wcc_b, capacity_total_w_wcc_a)
-    unless cop_wcc_b == 0 # COP equal to zero means case when there is no WCC
-      refute_equal(cop_wcc_b, cop_wcc_a)
-    end
+    refute_equal(cop_wcc_b, cop_wcc_a) unless cop_wcc_b == 0 # COP equal to zero means case when there is no WCC
     assert_equal(true, coefficient_set_different)
 
     # check curve name changes
@@ -268,11 +264,12 @@ class UpgradeHvacChillerTest < Minitest::Test
       sizing_system.setSystemOutdoorAirMethod('ZoneSum')
     end
 
-    return model
+    model
   end
 
   # supporting method: set weather, apply/not-apply measure, run/not-run simulation
-  def set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false, model: nil, apply: true, expected_results: 'Success')
+  def set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false,
+                                            model: nil, apply: true, expected_results: 'Success')
     assert(File.exist?(osm_path))
     assert(File.exist?(epw_path))
     ddy_path = "#{epw_path.gsub('.epw', '')}.ddy"
@@ -326,13 +323,13 @@ class UpgradeHvacChillerTest < Minitest::Test
           /October .4. Condns DB=>MCWB/
         ]
         ddy_list.each do |ddy_name_regex|
-          if d.name.get.to_s.match?(ddy_name_regex)
-            runner.registerInfo("Adding object #{d.name}")
+          next unless d.name.get.to_s.match?(ddy_name_regex)
 
-            # add the object to the existing model
-            model.addObject(d.clone)
-            break
-          end
+          runner.registerInfo("Adding object #{d.name}")
+
+          # add the object to the existing model
+          model.addObject(d.clone)
+          break
         end
       end
 
@@ -363,10 +360,10 @@ class UpgradeHvacChillerTest < Minitest::Test
       'Cooling Tower Operating Cells Count'
     ]
     out_vars.each do |out_var_name|
-        ov = OpenStudio::Model::OutputVariable.new('ov', model)
-        ov.setKeyValue('*')
-        ov.setReportingFrequency('timestep')
-        ov.setVariableName(out_var_name)
+      ov = OpenStudio::Model::OutputVariable.new('ov', model)
+      ov.setKeyValue('*')
+      ov.setReportingFrequency('timestep')
+      ov.setVariableName(out_var_name)
     end
     model.getOutputControlFiles.setOutputCSV(true)
 
@@ -375,7 +372,7 @@ class UpgradeHvacChillerTest < Minitest::Test
       puts "\nAPPLYING MEASURE..."
       measure.run(model, runner, argument_map)
       result = runner.result
-      result_success = result.value.valueName == 'Success'
+      result.value.valueName
       assert_equal(expected_results, result.value.valueName)
 
       # Show the output
@@ -443,7 +440,8 @@ class UpgradeHvacChillerTest < Minitest::Test
     end
 
     # Don't apply the measure to the model and run the model: baseline model
-    result = set_weather_and_apply_measure_and_run("#{test_name}_b", measure, argument_map, osm_path, epw_path, run_model: true, apply: false)
+    set_weather_and_apply_measure_and_run("#{test_name}_b", measure, argument_map, osm_path, epw_path,
+                                          run_model: true, apply: false)
     model = load_model(model_output_path("#{test_name}_b"))
 
     # get chiller specs for baseline
@@ -460,12 +458,12 @@ class UpgradeHvacChillerTest < Minitest::Test
     # get pump specs for baseline
     pumps_const_spd = model.getPumpConstantSpeeds
     pump_specs_cst_spd_before = UpgradeHvacChiller.pump_specifications([], pumps_const_spd, std)
-    pump_rated_flow_total_c_before = pump_specs_cst_spd_before[1]
+    pump_specs_cst_spd_before[1]
     pump_motor_eff_weighted_average_c_before = pump_specs_cst_spd_before[2]
     pump_motor_bhp_weighted_average_c_before = pump_specs_cst_spd_before[3]
     pumps_var_spd = model.getPumpVariableSpeeds
     pump_specs_var_spd_before = UpgradeHvacChiller.pump_specifications([], pumps_var_spd, std)
-    pump_rated_flow_total_v_before = pump_specs_var_spd_before[1]
+    pump_specs_var_spd_before[1]
     pump_motor_eff_weighted_average_v_before = pump_specs_var_spd_before[2]
     pump_motor_bhp_weighted_average_v_before = pump_specs_var_spd_before[3]
     pump_var_part_load_curve_coeff1_weighted_avg_before = pump_specs_var_spd_before[4]
@@ -477,7 +475,8 @@ class UpgradeHvacChillerTest < Minitest::Test
     fraction_chw_oat_reset_enabled_b, fraction_cw_oat_reset_enabled_b = UpgradeHvacChiller.control_specifications(model)
 
     # Apply the measure to the model and run the model: upgrade model
-    result = set_weather_and_apply_measure_and_run("#{test_name}_u", measure, argument_map, osm_path, epw_path, run_model: true, apply: true)
+    result = set_weather_and_apply_measure_and_run("#{test_name}_u", measure, argument_map, osm_path, epw_path,
+                                                   run_model: true, apply: true)
     model = load_model(model_output_path("#{test_name}_u"))
 
     # get chiller specs for upgrade
@@ -494,12 +493,12 @@ class UpgradeHvacChillerTest < Minitest::Test
     # get pump specs for upgrade
     pumps_const_spd = model.getPumpConstantSpeeds
     pump_specs_cst_spd_after = UpgradeHvacChiller.pump_specifications([], pumps_const_spd, std)
-    pump_rated_flow_total_c_after = pump_specs_cst_spd_after[1]
+    pump_specs_cst_spd_after[1]
     pump_motor_eff_weighted_average_c_after = pump_specs_cst_spd_after[2]
     pump_motor_bhp_weighted_average_c_after = pump_specs_cst_spd_after[3]
     pumps_var_spd = model.getPumpVariableSpeeds
     pump_specs_var_spd_after = UpgradeHvacChiller.pump_specifications([], pumps_var_spd, std)
-    pump_rated_flow_total_v_after = pump_specs_var_spd_after[1]
+    pump_specs_var_spd_after[1]
     pump_motor_eff_weighted_average_v_after = pump_specs_var_spd_after[2]
     pump_motor_bhp_weighted_average_v_after = pump_specs_var_spd_after[3]
     pump_var_part_load_curve_coeff1_weighted_avg_after = pump_specs_var_spd_after[4]
@@ -550,9 +549,7 @@ class UpgradeHvacChillerTest < Minitest::Test
     end
     assert_equal(counts_chillers_wcc_b, counts_chillers_wcc_a)
     assert_equal(capacity_total_w_wcc_b, capacity_total_w_wcc_a)
-    unless cop_wcc_b == 0 # COP equal to zero means case when there is no WCC
-      refute_equal(cop_wcc_b, cop_wcc_a)
-    end
+    refute_equal(cop_wcc_b, cop_wcc_a) unless cop_wcc_b == 0 # COP equal to zero means case when there is no WCC
     assert_equal(true, coefficient_set_different)
 
     # check curve name changes
@@ -633,7 +630,7 @@ class UpgradeHvacChillerTest < Minitest::Test
       assert(!osm_path.empty?)
       assert(!epw_path.empty?)
       osm_path = osm_path[0]
-      epw_path = epw_path[0]
+      epw_path[0]
 
       # apply measure to model
       apply_and_test_model(osm_path, instance_test_name)
@@ -663,7 +660,7 @@ class UpgradeHvacChillerTest < Minitest::Test
       epw_path = epw_path[0]
 
       # apply measure to model
-      result = apply_measure_and_run_simulations(osm_path, epw_path, instance_test_name)
+      apply_measure_and_run_simulations(osm_path, epw_path, instance_test_name)
     end
   end
 end

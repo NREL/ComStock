@@ -8,21 +8,21 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
   # human readable name
   def name
     # Measure name should be the title case of the class name.
-    return 'upgrade_hvac_chiller'
+    'upgrade_hvac_chiller'
   end
 
   # human readable description
   def description
-    return 'The UpgradeHvacChiller measure is designed to improve the energy efficiency and performance of HVAC systems by upgrading chillers, pumps, and control strategies in a building model. This measure reflects the latest performance of chillers in the current market (as of 2025 May) and provides options for upgrading air-cooled and water-cooled chillers, optimizing pump performance, and implementing advanced control strategies.'
+    'The UpgradeHvacChiller measure is designed to improve the energy efficiency and performance of HVAC systems by upgrading chillers, pumps, and control strategies in a building model. This measure reflects the latest performance of chillers in the current market (as of 2025 May) and provides options for upgrading air-cooled and water-cooled chillers, optimizing pump performance, and implementing advanced control strategies.'
   end
 
   # human readable description of modeling approach
   def modeler_description
-    return 'Chiller Upgrades: Replaces existing chillers with high-efficiency models. Supports both air-cooled and water-cooled chillers. Updates performance curves and adjusts reference COPs to reflect improved efficiency. Pump Upgrades: Updates pump motor efficiencies to meet ASHRAE 90.1-2019 standards. Optimizes part-load performance for variable-speed pumps. Control Strategy Enhancements: Adds outdoor air temperature reset for chilled water supply temperature. Implements condenser water temperature reset based on Appendix G of ASHRAE 90.1-2019. Detailed Reporting: Provides pre- and post-upgrade specifications for chillers, pumps, and control systems. Includes debugging options for detailed logs during measure execution.'
+    'Chiller Upgrades: Replaces existing chillers with high-efficiency models. Supports both air-cooled and water-cooled chillers. Updates performance curves and adjusts reference COPs to reflect improved efficiency. Pump Upgrades: Updates pump motor efficiencies to meet ASHRAE 90.1-2019 standards. Optimizes part-load performance for variable-speed pumps. Control Strategy Enhancements: Adds outdoor air temperature reset for chilled water supply temperature. Implements condenser water temperature reset based on Appendix G of ASHRAE 90.1-2019. Detailed Reporting: Provides pre- and post-upgrade specifications for chillers, pumps, and control systems. Includes debugging options for detailed logs during measure execution.'
   end
 
   # define the arguments that the user will input
-  def arguments(model)
+  def arguments(_model)
     args = OpenStudio::Measure::OSArgumentVector.new
 
     # upgrade pumps
@@ -49,7 +49,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     debug_verbose.setDefaultValue(false)
     args << debug_verbose
 
-    return args
+    args
   end
 
   # get chiller specifications
@@ -70,27 +70,25 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
       # get performance specs
       case condenser_type
       when 'AirCooled'
-        capacity_w = 0
-        if chiller.referenceCapacity.is_initialized
-          capacity_w = chiller.referenceCapacity.get
-        elsif chiller.autosizedReferenceCapacity.is_initialized
-          capacity_w = chiller.autosizedReferenceCapacity.get
-        else
-          capacity_w = 0.0
-        end
+        capacity_w = if chiller.referenceCapacity.is_initialized
+                       chiller.referenceCapacity.get
+                     elsif chiller.autosizedReferenceCapacity.is_initialized
+                       chiller.autosizedReferenceCapacity.get
+                     else
+                       0.0
+                     end
         cop = chiller.referenceCOP
         capacity_total_w_acc += capacity_w
         cop_weighted_sum_acc += cop * capacity_w
         counts_chillers_acc += 1
       when 'WaterCooled'
-        capacity_w = 0
-        if chiller.referenceCapacity.is_initialized
-          capacity_w = chiller.referenceCapacity.get
-        elsif chiller.autosizedReferenceCapacity.is_initialized
-          capacity_w = chiller.autosizedReferenceCapacity.get
-        else
-          capacity_w = 0.0
-        end
+        capacity_w = if chiller.referenceCapacity.is_initialized
+                       chiller.referenceCapacity.get
+                     elsif chiller.autosizedReferenceCapacity.is_initialized
+                       chiller.autosizedReferenceCapacity.get
+                     else
+                       0.0
+                     end
         cop = chiller.referenceCOP
         capacity_total_w_wcc += capacity_w
         cop_weighted_sum_wcc += cop * capacity_w
@@ -137,9 +135,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
       chiller_pump = false
       plant_loop = pump.plantLoop.get
       plant_loop.supplyComponents.each do |sc|
-        if sc.to_ChillerElectricEIR.is_initialized
-          chiller_pump = true
-        end
+        chiller_pump = true if sc.to_ChillerElectricEIR.is_initialized
       end
 
       next if chiller_pump == false
@@ -148,14 +144,13 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
       applicable_pumps << pump
 
       # get rated flow
-      rated_flow_m_3_per_s = 0
-      if pump.ratedFlowRate.is_initialized
-        rated_flow_m_3_per_s = pump.ratedFlowRate.get
-      elsif pump.autosizedRatedFlowRate.is_initialized
-        rated_flow_m_3_per_s = pump.autosizedRatedFlowRate.get
-      else
-        rated_flow_m_3_per_s = 0.0
-      end
+      rated_flow_m_3_per_s = if pump.ratedFlowRate.is_initialized
+                               pump.ratedFlowRate.get
+                             elsif pump.autosizedRatedFlowRate.is_initialized
+                               pump.autosizedRatedFlowRate.get
+                             else
+                               0.0
+                             end
 
       # pump motor efficiency
       pump_motor_eff = pump.motorEfficiency
@@ -222,17 +217,13 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
         # get control specifications
         spms.each do |spm|
           total_count_spm_chw += 1
-          if spm.to_SetpointManagerOutdoorAirReset.is_initialized
-            fraction_chw_oat_reset_enabled_sum += 1
-          end
+          fraction_chw_oat_reset_enabled_sum += 1 if spm.to_SetpointManagerOutdoorAirReset.is_initialized
         end
       when 'Condenser'
         # get control specifications
         spms.each do |spm|
           total_count_spm_cw += 1
-          if spm.to_SetpointManagerFollowOutdoorAirTemperature.is_initialized
-            fraction_cw_oat_reset_enabled_sum += 1
-          end
+          fraction_cw_oat_reset_enabled_sum += 1 if spm.to_SetpointManagerFollowOutdoorAirTemperature.is_initialized
         end
       end
     end
@@ -241,7 +232,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     fraction_chw_oat_reset_enabled = total_count_spm_chw > 0.0 ? fraction_chw_oat_reset_enabled_sum / total_count_spm_chw : 0.0
     fraction_cw_oat_reset_enabled = total_count_spm_cw > 0.0 ? fraction_cw_oat_reset_enabled_sum / total_count_spm_cw : 0.0
 
-    return fraction_chw_oat_reset_enabled, fraction_cw_oat_reset_enabled
+    [fraction_chw_oat_reset_enabled, fraction_cw_oat_reset_enabled]
   end
 
   # method to search through a hash for an object that meets the name criteria
@@ -251,9 +242,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
 
     # find curve
     copper_curve_data['results'].each do |curve_entry|
-      if curve_entry['out_var'] == curve_name
-        curve_found = curve_entry
-      end
+      curve_found = curve_entry if curve_entry['out_var'] == curve_name
     end
 
     # return
@@ -272,16 +261,12 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     existing_curves += model.getCurveBiquadratics
     existing_curves += model.getCurveQuadLinears
     existing_curves.sort.each do |curve|
-      if curve.name.get.to_s == curve_name
-        return curve
-      end
+      return curve if curve.name.get.to_s == curve_name
     end
 
     # Find curve data
     data = model_find_object(copper_curve_data, curve_name)
-    if data.nil?
-      return nil
-    end
+    return nil if data.nil?
 
     # Make the correct type of curve
     case data['type']
@@ -323,12 +308,8 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
       curve.setCoefficient3xPOW2(data['coeff3'])
       curve.setMinimumValueofx(data['x_min']) if data['x_min']
       curve.setMaximumValueofx(data['x_max']) if data['x_max']
-      if data['out_min']
-        curve.setMinimumCurveOutput(data['out_min'])
-      end
-      if data['out_max']
-        curve.setMaximumCurveOutput(data['out_max'])
-      end
+      curve.setMinimumCurveOutput(data['out_min']) if data['out_min']
+      curve.setMaximumCurveOutput(data['out_max']) if data['out_max']
       curve
     # when 'BiCubic'
     #   curve = OpenStudio::Model::CurveBicubic.new(model)
@@ -367,12 +348,8 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
       curve.setMaximumValueofx(data['x_max']) if data['x_max']
       curve.setMinimumValueofy(data['y_min']) if data['y_min']
       curve.setMaximumValueofy(data['y_max']) if data['y_max']
-      if data['out_min']
-        curve.setMinimumCurveOutput(data['out_min'])
-      end
-      if data['out_max']
-        curve.setMaximumCurveOutput(data['out_max'])
-      end
+      curve.setMinimumCurveOutput(data['out_min']) if data['out_min']
+      curve.setMaximumCurveOutput(data['out_max']) if data['out_max']
       curve
       # when 'BiLinear'
       #   curve = OpenStudio::Model::CurveBiquadratic.new(model)
@@ -441,38 +418,36 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
   # Determine and set type of part load control type for heating and chilled
   # note code_sections [90.1-2019_6.5.4.2]
   # modified from https://github.com/NREL/openstudio-standards/blob/412de97737369c3ee642237a83c8e5a6b1ab14be/lib/openstudio-standards/prototypes/common/objects/Prototype.PumpVariableSpeed.rb#L4-L37
-  def pump_variable_speed_control_type(runner, model, pump, debug_verbose)
+  def pump_variable_speed_control_type(runner, _model, pump, debug_verbose)
     # Get plant loop
     plant_loop = pump.plantLoop.get
 
     # Get plant loop type
     plant_loop_type = plant_loop.sizingPlant.loopType
-    return false unless plant_loop_type == 'Heating' || plant_loop_type == 'Cooling'
+    return false unless %w[Heating Cooling].include?(plant_loop_type)
 
     # Get rated pump power
     if pump.ratedPowerConsumption.is_initialized
-      pump_rated_power_w = pump.ratedPowerConsumption.get
+      pump.ratedPowerConsumption.get
     elsif pump.autosizedRatedPowerConsumption.is_initialized
-      pump_rated_power_w = pump.autosizedRatedPowerConsumption.get
+      pump.autosizedRatedPowerConsumption.get
     else
       runner.registerError('could not find rated pump power consumption, cannot determine w per gpm correctly.')
       return false
     end
 
     # Get nominal nameplate HP
-    pump_nominal_hp = pump_rated_power_w * pump.motorEfficiency / 745.7
+    pump.motorEfficiency
 
     # Assign peformance curves
     control_type = 'VSD DP Reset' # hard-code for EUSS/SDR measure
 
-    if debug_verbose
-      runner.registerInfo("### control_type = #{control_type}")
-    end
+    runner.registerInfo("### control_type = #{control_type}") if debug_verbose
 
     # Set pump part load performance curve coefficients
     pump_variable_speed_set_control_type(runner, pump, control_type, debug_verbose) if control_type
 
-    return true
+    true
   end
 
   # TODO: revert this back to OS Std methods (if works)
@@ -529,7 +504,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     # Append the control type to the pump name
     # self.setName("#{self.name} #{control_type}")
 
-    return true
+    true
   end
 
   # Applies the condenser water temperatures to the plant loop based on Appendix G.
@@ -559,12 +534,10 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
         else
           runner.registerInfo("For #{dd.name}, humidity is specified as #{dd.humidityIndicatingType}; cannot determine Twb.")
         end
+      elsif dd.humidityConditionType == 'Wetbulb' && dd.wetBulbOrDewPointAtMaximumDryBulb.is_initialized
+        summer_oat_wbs_f << OpenStudio.convert(dd.wetBulbOrDewPointAtMaximumDryBulb.get, 'C', 'F').get
       else
-        if dd.humidityConditionType == 'Wetbulb' && dd.wetBulbOrDewPointAtMaximumDryBulb.is_initialized
-          summer_oat_wbs_f << OpenStudio.convert(dd.wetBulbOrDewPointAtMaximumDryBulb.get, 'C', 'F').get
-        else
-          runner.registerInfo("For #{dd.name}, humidity is specified as #{dd.humidityConditionType}; cannot determine Twb.")
-        end
+        runner.registerInfo("For #{dd.name}, humidity is specified as #{dd.humidityConditionType}; cannot determine Twb.")
       end
     end
 
@@ -588,7 +561,8 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
 
     # Determine the design CW temperature, approach, and range
     design_oat_wb_c = OpenStudio.convert(design_oat_wb_f, 'F', 'C').get
-    leaving_cw_t_c, approach_k, range_k = plant_loop_prm_baseline_condenser_water_temperatures(runner, plant_loop, design_oat_wb_c)
+    leaving_cw_t_c, approach_k, range_k = plant_loop_prm_baseline_condenser_water_temperatures(runner, plant_loop,
+                                                                                               design_oat_wb_c)
 
     # Convert to IP units
     leaving_cw_t_f = OpenStudio.convert(leaving_cw_t_c, 'C', 'F').get
@@ -614,19 +588,19 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     # 78F OATwb
     # range = loop design delta-T aka range (specified above)
     plant_loop.supplyComponents.each do |sc|
-      if sc.to_CoolingTowerVariableSpeed.is_initialized
-        ct = sc.to_CoolingTowerVariableSpeed.get
-        # E+ has a minimum limit of 68F (20C) for this field.
-        # Check against limit before attempting to set value.
-        eplus_design_oat_wb_c_lim = 20
-        if design_oat_wb_c < eplus_design_oat_wb_c_lim
-          runner.registerInfo("For #{plant_loop.name}, a design OATwb of 68F will be used for sizing the cooling towers because the actual design value is below the limit EnergyPlus accepts for this input.")
-          design_oat_wb_c = eplus_design_oat_wb_c_lim
-        end
-        ct.setDesignInletAirWetBulbTemperature(design_oat_wb_c)
-        ct.setDesignApproachTemperature(approach_k)
-        ct.setDesignRangeTemperature(range_k)
+      next unless sc.to_CoolingTowerVariableSpeed.is_initialized
+
+      ct = sc.to_CoolingTowerVariableSpeed.get
+      # E+ has a minimum limit of 68F (20C) for this field.
+      # Check against limit before attempting to set value.
+      eplus_design_oat_wb_c_lim = 20
+      if design_oat_wb_c < eplus_design_oat_wb_c_lim
+        runner.registerInfo("For #{plant_loop.name}, a design OATwb of 68F will be used for sizing the cooling towers because the actual design value is below the limit EnergyPlus accepts for this input.")
+        design_oat_wb_c = eplus_design_oat_wb_c_lim
       end
+      ct.setDesignInletAirWetBulbTemperature(design_oat_wb_c)
+      ct.setDesignApproachTemperature(approach_k)
+      ct.setDesignRangeTemperature(range_k)
     end
 
     # Set the min and max CW temps
@@ -667,7 +641,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     cw_t_stpt_manager.setMaximumSetpointTemperature(leaving_cw_t_c)
     cw_t_stpt_manager.setMinimumSetpointTemperature(float_down_to_c)
     cw_t_stpt_manager.setOffsetTemperatureDifference(approach_k)
-    return true
+    true
   end
 
   # Determine the performance rating method specified
@@ -706,7 +680,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     approach_k = OpenStudio.convert(approach_r, 'R', 'K').get
     range_k = OpenStudio.convert(range_r, 'R', 'K').get
 
-    return [leaving_cw_t_c, approach_k, range_k]
+    [leaving_cw_t_c, approach_k, range_k]
   end
 
   # define what happens when the measure is run
@@ -714,9 +688,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     super(model, runner, user_arguments) # Do **NOT** remove this line
 
     # use the built-in error checking
-    if !runner.validateUserArguments(arguments(model), user_arguments)
-      return false
-    end
+    return false unless runner.validateUserArguments(arguments(model), user_arguments)
 
     # read input arguments
     upgrade_pump = runner.getBoolArgumentValue('upgrade_pump', user_arguments)
@@ -913,9 +885,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
         std.pump_apply_standard_minimum_motor_efficiency(pump)
 
         # update part load performance (for variable speed pumps) to be 'VSD DP Reset'
-        if pump.to_PumpVariableSpeed.is_initialized
-          pump_variable_speed_control_type(runner, model, pump, debug_verbose)
-        end
+        pump_variable_speed_control_type(runner, model, pump, debug_verbose) if pump.to_PumpVariableSpeed.is_initialized
       end
     end
 
@@ -925,12 +895,8 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     if chw_oat_reset || cw_oat_reset
       plant_loops = model.getPlantLoops
       plant_loops.each do |plant_loop|
-        if chw_oat_reset
-          std.plant_loop_enable_supply_water_temperature_reset(plant_loop)
-        end
-        if cw_oat_reset
-          plant_loop_apply_prm_baseline_condenser_water_temperatures(runner, plant_loop)
-        end
+        std.plant_loop_enable_supply_water_temperature_reset(plant_loop) if chw_oat_reset
+        plant_loop_apply_prm_baseline_condenser_water_temperatures(runner, plant_loop) if cw_oat_reset
       end
     end
 
@@ -965,8 +931,12 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
     dummy = []
     pumps_const_spd = model.getPumpConstantSpeeds
     pumps_var_spd = model.getPumpVariableSpeeds
-    _, pump_rated_flow_total_c, pump_motor_eff_weighted_average_c, pump_motor_bhp_weighted_average_c, = UpgradeHvacChiller.pump_specifications(dummy, pumps_const_spd, std)
-    _, pump_rated_flow_total_v, pump_motor_eff_weighted_average_v, pump_motor_bhp_weighted_average_v, pump_var_part_load_curve_coeff1_weighted_avg, pump_var_part_load_curve_coeff2_weighted_avg, pump_var_part_load_curve_coeff3_weighted_avg, pump_var_part_load_curve_coeff4_weighted_avg = UpgradeHvacChiller.pump_specifications(dummy, pumps_var_spd, std)
+    _, pump_rated_flow_total_c, pump_motor_eff_weighted_average_c, pump_motor_bhp_weighted_average_c, = UpgradeHvacChiller.pump_specifications(
+      dummy, pumps_const_spd, std
+    )
+    _, pump_rated_flow_total_v, pump_motor_eff_weighted_average_v, pump_motor_bhp_weighted_average_v, pump_var_part_load_curve_coeff1_weighted_avg, pump_var_part_load_curve_coeff2_weighted_avg, pump_var_part_load_curve_coeff3_weighted_avg, pump_var_part_load_curve_coeff4_weighted_avg = UpgradeHvacChiller.pump_specifications(
+      dummy, pumps_var_spd, std
+    )
     if debug_verbose
       runner.registerInfo('### ------------------------------------------------------')
       runner.registerInfo('### pump (used for chillers) specs after upgrade')
@@ -1019,7 +989,7 @@ Upgraded water-cooled chillers: curves after upgrade = #{curve_summary_a}"
     msg_final_condition = "#{msg_acc}\n#{msg_wcc}"
     runner.registerFinalCondition(msg_final_condition)
 
-    return true
+    true
   end
 end
 

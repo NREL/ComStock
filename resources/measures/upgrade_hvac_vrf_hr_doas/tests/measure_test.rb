@@ -42,51 +42,47 @@ require 'openstudio/measure/ShowRunnerOutput'
 require 'json'
 require 'fileutils'
 require 'minitest/autorun'
-require_relative '../measure.rb'
+require_relative '../measure'
 require_relative '../../../../test/helpers/minitest_helper'
 
 # only necessary to include here if annual simulation request and the measure doesn't require openstudio-standards
 # require 'openstudio-standards'
 
 class HvacVrfHrDoasTest < Minitest::Test
-
   # return file paths to test models in test directory
   def models_for_tests
     paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/models/*.osm'))
-    paths = paths.map { |path| File.expand_path(path) }
-    return paths
+    paths.map { |path| File.expand_path(path) }
   end
 
   # return file paths to epw files in test directory
   def epws_for_tests
     paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/weather/*.epw'))
-    paths = paths.map { |path| File.expand_path(path) }
-    return paths
+    paths.map { |path| File.expand_path(path) }
   end
 
   def load_model(osm_path)
     translator = OpenStudio::OSVersion::VersionTranslator.new
     model = translator.loadModel(OpenStudio::Path.new(osm_path))
     assert(!model.empty?)
-    model = model.get
-    return model
+    model.get
   end
 
   def run_dir(test_name)
     # always generate test output in specially named 'output' directory so result files are not made part of the measure
-    return "#{File.dirname(__FILE__)}/output/#{test_name}"
+    "#{File.dirname(__FILE__)}/output/#{test_name}"
   end
 
   def model_output_path(test_name)
-    return "#{run_dir(test_name)}/#{test_name}.osm"
+    "#{run_dir(test_name)}/#{test_name}.osm"
   end
 
   def sql_path(test_name)
-    return "#{run_dir(test_name)}/run/eplusout.sql"
+    "#{run_dir(test_name)}/run/eplusout.sql"
   end
 
   def report_path(test_name)
-    return "#{run_dir(test_name)}/reports/eplustbl.html"
+    "#{run_dir(test_name)}/reports/eplustbl.html"
   end
 
   # applies the measure and then runs the model
@@ -95,9 +91,7 @@ class HvacVrfHrDoasTest < Minitest::Test
     assert(File.exist?(epw_path))
 
     # create run directory if it does not exist
-    if !File.exist?(run_dir(test_name))
-      FileUtils.mkdir_p(run_dir(test_name))
-    end
+    FileUtils.mkdir_p(run_dir(test_name)) unless File.exist?(run_dir(test_name))
     assert(File.exist?(run_dir(test_name)))
 
     # change into run directory for tests
@@ -105,12 +99,8 @@ class HvacVrfHrDoasTest < Minitest::Test
     Dir.chdir run_dir(test_name)
 
     # remove prior runs if they exist
-    if File.exist?(model_output_path(test_name))
-      FileUtils.rm(model_output_path(test_name))
-    end
-    if File.exist?(report_path(test_name))
-      FileUtils.rm(report_path(test_name))
-    end
+    FileUtils.rm(model_output_path(test_name)) if File.exist?(model_output_path(test_name))
+    FileUtils.rm(report_path(test_name)) if File.exist?(report_path(test_name))
 
     # copy the osm and epw to the test directory
     new_osm_path = "#{run_dir(test_name)}/#{File.basename(osm_path)}"
@@ -153,7 +143,7 @@ class HvacVrfHrDoasTest < Minitest::Test
     # change back directory
     Dir.chdir(start_dir)
 
-    return result
+    result
   end
 
   def test_number_of_arguments_and_argument_names
@@ -186,14 +176,14 @@ class HvacVrfHrDoasTest < Minitest::Test
 
       # Extract and sort data_point keys numerically
       points = table.select { |k, _| k.to_s.match?(/^data_point\d+$/) }
-          .sort_by { |k, _| k.to_s.match(/\d+/)[0].to_i }
-          .map { |_, v| v.split(',').first(2).map(&:to_f) }
+                    .sort_by { |k, _| k.to_s.match(/\d+/)[0].to_i }
+                    .map { |_, v| v.split(',').first(2).map(&:to_f) }
 
       # Now check if x2 varies first (should see repeated x1s for several rows)
-      x1s, x2s = points.transpose
+      points.transpose
 
       # Build pairs and check how they vary
-      last_x1, last_x2 = points[0]
+      points[0]
       x1_first_changes = 0
       x2_first_changes = 0
 
@@ -206,7 +196,7 @@ class HvacVrfHrDoasTest < Minitest::Test
       end
 
       # If x1 changes more frequently while x2 is stable, the ordering is wrong
-      assert(x2_first_changes >= x1_first_changes, "Invalid data point order: x1 varies before x2 in some cases")
+      assert(x2_first_changes >= x1_first_changes, 'Invalid data point order: x1 varies before x2 in some cases')
     end
   end
 
@@ -218,19 +208,17 @@ class HvacVrfHrDoasTest < Minitest::Test
     path_to_jsons = "#{__dir__}/../resources/*.json"
     json_files = Dir.glob(path_to_jsons)
     json_files.each do |file_path|
-      begin
-        content = File.read(file_path)
-        hash = JSON.parse(content, symbolize_names: true)
+      content = File.read(file_path)
+      hash = JSON.parse(content, symbolize_names: true)
 
-        # Now `hash` is your Ruby hash from JSON
-        # You can insert your test logic here
-        assert(hash[:tables], "Missing :tables key in #{file_path}")
+      # Now `hash` is your Ruby hash from JSON
+      # You can insert your test logic here
+      assert(hash[:tables], "Missing :tables key in #{file_path}")
 
-        # check lookup table format
-        data_point_ordering_check(hash)
-      rescue JSON::ParserError => e
-        flunk "JSON parsing failed for #{file_path}: #{e.message}"
-      end
+      # check lookup table format
+      data_point_ordering_check(hash)
+    rescue JSON::ParserError => e
+      flunk "JSON parsing failed for #{file_path}: #{e.message}"
     end
   end
 
@@ -299,7 +287,7 @@ class HvacVrfHrDoasTest < Minitest::Test
       result: 'NA'
     }
 
-    return test_sets
+    test_sets
   end
 
   def test_models
@@ -355,24 +343,25 @@ class HvacVrfHrDoasTest < Minitest::Test
       # use if or case statements to change expected assertion depending on model characteristics
       assert(result.value.valueName == set[:result])
 
-      if set[:result] == 'Success'
-        runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
-        # Check if lookup table is available
-        lookup_table_name = set[:lookup_table_test][:table_name]
-        table_multivar_lookups = model.getTableLookups
-        lookup_table = table_multivar_lookups.find { |table| table.name.to_s == lookup_table_name }
-        refute_nil(lookup_table, "Cannot find table named #{lookup_table_name} from model.")
+      next unless set[:result] == 'Success'
 
-        # Compare table lookup value against hard-coded values
-        dep_var_ref = set[:lookup_table_test][:dep]
-        dep_var = HvacVrfHrDoas.get_dep_var_from_lookup_table_with_two_ind_var(runner, lookup_table, set[:lookup_table_test][:ind1], set[:lookup_table_test][:ind2])
-        puts("### lookup table test")
-        puts("--- lookup_table_name = #{lookup_table_name}")
-        puts("--- input_var1 = #{set[:lookup_table_test][:ind1]} | input_var2 = #{set[:lookup_table_test][:ind2]}")
-        puts("--- dep_var reference = #{dep_var_ref} | dep_var from model = #{dep_var}")
-        assert_in_epsilon(dep_var_ref, dep_var, 0.01, "Table lookup value test didn't pass: table name = #{lookup_table_name} | ind_var1 = #{set[:lookup_table_test][:ind1]} | ind_var2 = #{set[:lookup_table_test][:ind2]} | expected #{dep_var_ref} but got #{dep_var}")
-      end
+      runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
+      # Check if lookup table is available
+      lookup_table_name = set[:lookup_table_test][:table_name]
+      table_multivar_lookups = model.getTableLookups
+      lookup_table = table_multivar_lookups.find { |table| table.name.to_s == lookup_table_name }
+      refute_nil(lookup_table, "Cannot find table named #{lookup_table_name} from model.")
 
+      # Compare table lookup value against hard-coded values
+      dep_var_ref = set[:lookup_table_test][:dep]
+      dep_var = HvacVrfHrDoas.get_dep_var_from_lookup_table_with_two_ind_var(runner, lookup_table,
+                                                                             set[:lookup_table_test][:ind1], set[:lookup_table_test][:ind2])
+      puts('### lookup table test')
+      puts("--- lookup_table_name = #{lookup_table_name}")
+      puts("--- input_var1 = #{set[:lookup_table_test][:ind1]} | input_var2 = #{set[:lookup_table_test][:ind2]}")
+      puts("--- dep_var reference = #{dep_var_ref} | dep_var from model = #{dep_var}")
+      assert_in_epsilon(dep_var_ref, dep_var, 0.01,
+                        "Table lookup value test didn't pass: table name = #{lookup_table_name} | ind_var1 = #{set[:lookup_table_test][:ind1]} | ind_var2 = #{set[:lookup_table_test][:ind2]} | expected #{dep_var_ref} but got #{dep_var}")
     end
   end
 end
