@@ -45,17 +45,17 @@ class UpgradeAddPvwatts < OpenStudio::Measure::ModelMeasure
   # human readable name
   def name
     # Measure name should be the title case of the class name.
-    return 'upgrade_add_pvwatts'
+    'upgrade_add_pvwatts'
   end
 
   # human readable description
   def description
-    return 'Adds rooftop fixed solar photovolatic panels based on user-specified fraction of roof area covered.'
+    'Adds rooftop fixed solar photovolatic panels based on user-specified fraction of roof area covered.'
   end
 
   # human readable description of modeling approach
   def modeler_description
-    return 'Uses PV Watts solar objects'
+    'Uses PV Watts solar objects'
   end
 
   # returns the 'optimal' fixed PV array tilt based on latitude
@@ -79,37 +79,36 @@ class UpgradeAddPvwatts < OpenStudio::Measure::ModelMeasure
     end
     # To allow for rain to naturally clean panels, optimal tilt angles between −10 and +10° latitude
     # are usually limited to either −10° (for negative values) or +10° (for positive values)
-    if tilt.abs < 10.0
-      tilt = 10.0
-    end
-    return [tilt, azimuth]
+    tilt = 10.0 if tilt.abs < 10.0
+    [tilt, azimuth]
   end
 
   # creates a Generator:PVWatts
   # TODO modify for tracking systems
   def model_add_pvwatts_system(model,
-                              name: 'PV System',
-                              module_type: 'Premium',
-                              array_type: 'FixedRoofMounted',
-                              system_capacity_kw: nil,
-                              system_losses: 0.14,
-                              azimuth_angle: nil,
-                              tilt_angle: nil)
-
+                               name: 'PV System',
+                               module_type: 'Premium',
+                               array_type: 'FixedRoofMounted',
+                               system_capacity_kw: nil,
+                               system_losses: 0.14,
+                               azimuth_angle: nil,
+                               tilt_angle: nil)
     system_capacity_w = system_capacity_kw * 1000
     pvw_generator = OpenStudio::Model::GeneratorPVWatts.new(model, system_capacity_w)
-    pvw_generator.setName(name )
-    if ["Standard","Premium","ThinFilm"].include? module_type
+    pvw_generator.setName(name)
+    if %w[Standard Premium ThinFilm].include? module_type
       pvw_generator.setModuleType(module_type)
     else
-      OpenStudio::logFree(OpenStudio::Warn, 'openstudio.standards.Model', "Wrong module type entered for OpenStudio::Generator::PVWatts. Review Input.")
+      OpenStudio.logFree(OpenStudio::Warn, 'openstudio.standards.Model',
+                         'Wrong module type entered for OpenStudio::Generator::PVWatts. Review Input.')
       return false
     end
 
-    if ["FixedOpenRack","FixedRoofMounted","OneAxis","OneAxisBacktracking","TwoAxis"].include? array_type
+    if %w[FixedOpenRack FixedRoofMounted OneAxis OneAxisBacktracking TwoAxis].include? array_type
       pvw_generator.setArrayType(array_type)
     else
-      OpenStudio::logFree(OpenStudio::Warn, 'openstudio.standards.Model', "Wrong array type entered for OpenStudio::Generator::PVWatts. Review Input.")
+      OpenStudio.logFree(OpenStudio::Warn, 'openstudio.standards.Model',
+                         'Wrong array type entered for OpenStudio::Generator::PVWatts. Review Input.')
       return false
     end
     pvw_generator.setSystemLosses(system_losses)
@@ -117,39 +116,39 @@ class UpgradeAddPvwatts < OpenStudio::Measure::ModelMeasure
     if tilt_angle.nil? && azimuth_angle.nil?
       # check if site is poulated
       latitude_defaulted = model.getSite.isLatitudeDefaulted
-    if !latitude_defaulted
-      latitude = model.getSite.latitude
-      # calcaulate optimal fixed tilt
-      tilt, azimuth = model_pv_optimal_fixed_position(latitude)
-    else
-      OpenStudio::logFree(OpenStudio::Debug, 'openstudio.standards.Model', "No Site location found: Generator:PVWatts will be created with tilt of 25 degree tilt and 180 degree azimuth.")
-      tilt = 25.0
-      azimuth = 180.0
-    end
+      if !latitude_defaulted
+        latitude = model.getSite.latitude
+        # calcaulate optimal fixed tilt
+        tilt, azimuth = model_pv_optimal_fixed_position(latitude)
+      else
+        OpenStudio.logFree(OpenStudio::Debug, 'openstudio.standards.Model',
+                           'No Site location found: Generator:PVWatts will be created with tilt of 25 degree tilt and 180 degree azimuth.')
+        tilt = 25.0
+        azimuth = 180.0
+      end
     end
 
     pvw_generator.setAzimuthAngle(azimuth)
     pvw_generator.setTiltAngle(tilt)
 
-    return pvw_generator
-    end
+    pvw_generator
+  end
 
   # creates an ElectricLoadCenter:Inverter:PVWatts
   def model_add_pvwatts_inverter(model,
-                                name: 'Default PV System Inverter',
-                                dc_to_ac_size_ratio: 1.10,
-                                inverter_efficiency: 0.96)
-
+                                 name: 'Default PV System Inverter',
+                                 dc_to_ac_size_ratio: 1.10,
+                                 inverter_efficiency: 0.96)
     pvw_inverter = OpenStudio::Model::ElectricLoadCenterInverterPVWatts.new(model)
     pvw_inverter.setName(name)
     pvw_inverter.setDCToACSizeRatio(dc_to_ac_size_ratio)
     pvw_inverter.setInverterEfficiency(inverter_efficiency)
 
-    return pvw_inverter
+    pvw_inverter
   end
 
   # define the arguments that the user will input
-  def arguments(model)
+  def arguments(_model)
     args = OpenStudio::Measure::OSArgumentVector.new
 
     # the name of the space to add to the model
@@ -159,24 +158,22 @@ class UpgradeAddPvwatts < OpenStudio::Measure::ModelMeasure
     pv_area_fraction.setDefaultValue(0.4)
     args << pv_area_fraction
 
-    return args
+    args
   end
 
   # define what happens when the measure is run
   def run(model, runner, user_arguments)
-    super(model, runner, user_arguments)  # Do **NOT** remove this line
+    super(model, runner, user_arguments) # Do **NOT** remove this line
 
     # use the built-in error checking
-    if !runner.validateUserArguments(arguments(model), user_arguments)
-      return false
-    end
+    return false unless runner.validateUserArguments(arguments(model), user_arguments)
 
     # assign the user inputs to variables
     pv_area_fraction = runner.getDoubleArgumentValue('pv_area_fraction', user_arguments)
 
     # build standard to use OS standards methods
     template = 'ComStock 90.1-2019'
-    std = Standard.build(template)
+    Standard.build(template)
 
     # get exterior roof area
     ext_roof_area_m2 = model.getBuilding.exteriorSurfaceArea - model.getBuilding.exteriorWallArea
@@ -187,7 +184,7 @@ class UpgradeAddPvwatts < OpenStudio::Measure::ModelMeasure
     pv_area_ft2 = OpenStudio.convert(pv_area, 'm^2', 'ft^2').get
 
     # report initial condition of model
-    runner.registerInitialCondition("The building started with #{ext_roof_area_ft2.round(0)} ft^2 of roof area. The user specified #{(pv_area_fraction*100).round(0)}% of the roof area to be covered with PV panels, which totals #{pv_area_ft2.round(0)} ft^2 of PV to be added.")
+    runner.registerInitialCondition("The building started with #{ext_roof_area_ft2.round(0)} ft^2 of roof area. The user specified #{(pv_area_fraction * 100).round(0)}% of the roof area to be covered with PV panels, which totals #{pv_area_ft2.round(0)} ft^2 of PV to be added.")
 
     # Get total system capacity
     panel_efficiency = 0.21 # associated with premium PV Watts panels
@@ -195,27 +192,26 @@ class UpgradeAddPvwatts < OpenStudio::Measure::ModelMeasure
 
     # create pv watts generator
     pv_generator = model_add_pvwatts_system(model,
-                                  name: 'PV System',
-                                  module_type: 'Premium',
-                                  array_type: 'FixedRoofMounted',
-                                  system_capacity_kw: total_system_capacity_kw,
-                                  system_losses: 0.14,
-                                  azimuth_angle: nil,
-                                  tilt_angle: nil)
+                                            name: 'PV System',
+                                            module_type: 'Premium',
+                                            array_type: 'FixedRoofMounted',
+                                            system_capacity_kw: total_system_capacity_kw,
+                                            system_losses: 0.14,
+                                            azimuth_angle: nil,
+                                            tilt_angle: nil)
 
     # add pv watts inverter
     pv_inverter = model_add_pvwatts_inverter(model,
-                                  name: 'Default PV System Inverter',
-                                  dc_to_ac_size_ratio: 1.10,
-                                  inverter_efficiency: 0.96
-                                  )
+                                             name: 'Default PV System Inverter',
+                                             dc_to_ac_size_ratio: 1.10,
+                                             inverter_efficiency: 0.96)
 
     # add electric load center distribution
     electric_load_center_distribution = OpenStudio::Model::ElectricLoadCenterDistribution.new(model)
-    electric_load_center_distribution.setName("ELC1")
+    electric_load_center_distribution.setName('ELC1')
     electric_load_center_distribution.setInverter(pv_inverter)
-    electric_load_center_distribution.setGeneratorOperationSchemeType("TrackElectrical")
-    electric_load_center_distribution.setElectricalBussType("DirectCurrentWithInverter")
+    electric_load_center_distribution.setGeneratorOperationSchemeType('TrackElectrical')
+    electric_load_center_distribution.setElectricalBussType('DirectCurrentWithInverter')
     electric_load_center_distribution.addGenerator(pv_generator)
 
     # get specs for output
@@ -227,9 +223,9 @@ class UpgradeAddPvwatts < OpenStudio::Measure::ModelMeasure
     pv_azimuth_angle = pv_generator.azimuthAngle
 
     # report final condition of model
-    runner.registerFinalCondition("The building finished with #{(pv_system_capacity/1000).round(0)} kW of PV covering #{pv_area_ft2.round(0)} ft^2 of roof area. The module type is #{pv_module_type}, the array type is #{pv_array_type}, the system losses are #{pv_system_losses}, the title angle is #{pv_title_angle.round(0)}°, and the azimuth angle is #{pv_azimuth_angle.round(0)}°. The inverter has a DC to AC size ratio of #{pv_inverter.dcToACSizeRatio} and an inverter efficiency of #{(pv_inverter.inverterEfficiency*100).round(0)}%.")
+    runner.registerFinalCondition("The building finished with #{(pv_system_capacity / 1000).round(0)} kW of PV covering #{pv_area_ft2.round(0)} ft^2 of roof area. The module type is #{pv_module_type}, the array type is #{pv_array_type}, the system losses are #{pv_system_losses}, the title angle is #{pv_title_angle.round(0)}°, and the azimuth angle is #{pv_azimuth_angle.round(0)}°. The inverter has a DC to AC size ratio of #{pv_inverter.dcToACSizeRatio} and an inverter efficiency of #{(pv_inverter.inverterEfficiency * 100).round(0)}%.")
 
-    return true
+    true
   end
 end
 
