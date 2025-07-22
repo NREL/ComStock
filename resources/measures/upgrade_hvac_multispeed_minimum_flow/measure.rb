@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 #see the URL below for information on how to write OpenStudio measures
 # http://openstudio.nrel.gov/openstudio-measure-writing-guide

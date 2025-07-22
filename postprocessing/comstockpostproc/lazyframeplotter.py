@@ -1,3 +1,6 @@
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
+# See top level LICENSE.txt file for license terms.
+
 # This class is a utility class to select the columns need to be plotted in plotting_mixin
 # and convert the lazy frame to pandas dataframe to plotting_mixin
 import polars as pl
