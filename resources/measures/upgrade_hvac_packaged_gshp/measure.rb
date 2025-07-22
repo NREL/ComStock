@@ -342,13 +342,9 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     end
 
     # initialize variables for reporting
-    condition_initial_walls = ''
     condition_final_walls = ''
-    condition_initial_roof = ''
     condition_final_roof = ''
-    condition_initial_windows = ''
     condition_final_windows = ''
-    condition_initial_lighting = ''
     condition_final_lighting = ''
 
     # after finished checking for non applicable models, run envelope measures as package if user arguments are true
@@ -356,33 +352,23 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     if walls == true
       runner.registerInfo('Running Wall Insulation measure....')
       results_walls, runner = call_walls(model, runner)
-      if results_walls.stepInitialCondition.is_initialized
-        condition_initial_walls = results_walls.stepInitialCondition.get
-      end
-      if results_walls.stepFinalCondition.is_initialized
-        condition_final_walls = results_walls.stepFinalCondition.get
-      end
+      results_walls.stepInitialCondition.get if results_walls.stepInitialCondition.is_initialized
+      condition_final_walls = results_walls.stepFinalCondition.get if results_walls.stepFinalCondition.is_initialized
     end
 
     # run roof insulation measure if user argument is true
     if roof == true
       runner.registerInfo('Running Roof Insulation measure....')
       results_roof, runner = call_roof(model, runner)
-      if results_roof.stepInitialCondition.is_initialized
-        condition_initial_roof = results_roof.stepInitialCondition.get
-      end
-      if results_roof.stepFinalCondition.is_initialized
-        condition_final_roof = results_roof.stepFinalCondition.get
-      end
+      results_roof.stepInitialCondition.get if results_roof.stepInitialCondition.is_initialized
+      condition_final_roof = results_roof.stepFinalCondition.get if results_roof.stepFinalCondition.is_initialized
     end
 
     # run new windows measure if user argument is true
     if windows == true
       runner.registerInfo('Running New Windows measure....')
       results_windows, runner = call_windows(model, runner)
-      if results_windows.stepInitialCondition.is_initialized
-        condition_initial_windows = results_windows.stepInitialCondition.get
-      end
+      results_windows.stepInitialCondition.get if results_windows.stepInitialCondition.is_initialized
       if results_windows.stepFinalCondition.is_initialized
         condition_final_windows = results_windows.stepFinalCondition.get
       end
@@ -392,9 +378,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     if lighting == true
       runner.registerInfo('Running LED Lighting measure....')
       results_lighting, runner = call_lighting(model, runner)
-      if results_lighting.stepInitialCondition.is_initialized
-        condition_initial_lighting = results_lighting.stepInitialCondition.get
-      end
+      results_lighting.stepInitialCondition.get if results_lighting.stepInitialCondition.is_initialized
       if results_lighting.stepFinalCondition.is_initialized
         condition_final_lighting = results_lighting.stepFinalCondition.get
       end
@@ -1012,34 +996,22 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
       end
     end
 
-    #set initial and final conditions for reporting
-    condition_initial_dcv = ''
-    condition_final_dcv = ''
-    condition_initial_econ = ''
-    condition_final_econ = ''
+    # set initial and final conditions for reporting
 
     # add dcv to air loop if dcv arg is true
     if dcv == true
       runner.registerInfo('Running DCV measure....')
       results_dcv, runner = call_dcv(model, runner)
-      if results_dcv.stepInitialCondition.is_initialized
-        condition_initial_dcv = results_dcv.stepInitialCondition.get
-      end
-      if results_dcv.stepFinalCondition.is_initialized
-        condition_final_dcv = results_dcv.stepFinalCondition.get
-      end
+      results_dcv.stepInitialCondition.get if results_dcv.stepInitialCondition.is_initialized
+      results_dcv.stepFinalCondition.get if results_dcv.stepFinalCondition.is_initialized
     end
 
     # add economizer if economizer arg is true
     if econ == true
       runner.registerInfo('Running Economizer measure....')
       results_econ, runner = call_econ(model, runner)
-      if results_econ.stepInitialCondition.is_initialized
-        condition_initial_econ = results_econ.stepInitialCondition.get
-      end
-      if results_econ.stepFinalCondition.is_initialized
-        condition_final_econ = results_econ.stepFinalCondition.get
-      end
+      results_econ.stepInitialCondition.get if results_econ.stepInitialCondition.is_initialized
+      results_econ.stepFinalCondition.get if results_econ.stepFinalCondition.is_initialized
     end
 
     # do sizing run to get coil capacities to scale coil performance data
@@ -1382,7 +1354,8 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
 
     # report final condition
     condition_final_ghp = "Replaced #{psz_air_loops.size} packaged single zone RTUs  and #{pvav_air_loops.size} PVAVs with packaged water-to-air ground source heat pumps."
-    condition_final = [condition_final_ghp, condition_final_walls, condition_final_roof, condition_final_windows, condition_final_lighting].reject(&:empty?).join(" | ")
+    condition_final = [condition_final_ghp, condition_final_walls, condition_final_roof, condition_final_windows,
+                       condition_final_lighting].reject(&:empty?).join(' | ')
     runner.registerFinalCondition(condition_final)
     true
   end
