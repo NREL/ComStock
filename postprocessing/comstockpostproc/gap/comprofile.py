@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class CommercialProfile(NamingMixin, S3UtilitiesMixin):
-    def __init__(self, truth_data_version='v01', reload_from_saved=True, save_processed=True, comstock_version='2024_amy2018_release_1', allocation_method='EIA'):
+    def __init__(self, truth_data_version='v01', reload_from_saved=True, save_processed=True, comstock_version='amy2018_r1_2025', allocation_method='EIA'):
         """
         A class to query commercial hourly electricity demand profiles from ComStock, allocated to Balaancing Authority. 
 
@@ -41,6 +41,17 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
         self.processed_dir = os.path.join(self.truth_data_dir, 'gap_processed')
         self.output_dir = os.path.join(current_dir, 'output')
 
+        self.new_sampling = True
+        if self.comstock_version == '2024_amy2018_release_1':
+            self.new_sampling = False
+            self.metadata_db = f'comstock_{self.comstock_version}_metadata_state_vu'
+            self.full_metadata_db = f'comstock_{self.comstock_version}_metadata_state_vu'
+            self.timeseries_db = f'comstock_{self.comstock_version}_by_state_vu'
+        elif self.comstock_version == 'amy2018_r1_2025':
+            self.metadata_db = f'comstock_{self.comstock_version}_md_agg_by_state_parquet'
+            self.full_metadata_db = f'comstock_{self.comstock_version}_md_by_state_and_county_parquet'
+            self.timeseries_db = f'comstock_{self.comstock_version}_ts_by_state'
+
         # initialize s3 client
         self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
 
@@ -60,13 +71,15 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
         run = BuildStockQuery(workgroup='eulp',
                               db_name='buildstock_sdr',
                               table_name=(
-                                  f'comstock_{self.comstock_version}_metadata_state_vu',
-                                  f'comstock_{self.comstock_version}_by_state_vu',
+                                  self.metadata_db,
+                                  self.timeseries_db,
                                   None
                               ),
                               db_schema='comstock_oedi',
                               buildstock_type='comstock',
                               skip_reports=True)
+
+        new_sampling_string = " and \"t1\".\"state\" = \"t2\".\"state\""
 
         query = f"""
         select
@@ -79,14 +92,15 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
             sum("t2"."out.electricity.total.energy_consumption" * "t1"."weight") as "total_electricity",
             "t1"."state" as "state"
         from
-            "comstock_{self.comstock_version}_metadata_state_vu" as "t1"
+            "{self.metadata_db}" as "t1"
         inner join
-            "comstock_{self.comstock_version}_by_state_vu" as "t2"
+            "{self.timeseries_db}" as "t2"
         on
             "t1"."bldg_id" = "t2"."bldg_id"
         where
             "t1"."upgrade" = 0 and
-            "t2"."upgrade" = 0
+            "t2"."upgrade" = 0 
+            {new_sampling_string if self.new_sampling else ""}
         group by
             case
                 when extract(minute from "t2"."timestamp") = 0
@@ -127,21 +141,26 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
         run = BuildStockQuery(workgroup='eulp',
                               db_name='buildstock_sdr',
                               table_name=(
-                                  f'comstock_{self.comstock_version}_metadata_state_vu',
-                                  f'comstock_{self.comstock_version}_by_state_vu',
+                                  self.metadata_db,
+                                  self.timeseries_db,
                                   None
                               ),
                               db_schema='comstock_oedi',
                               buildstock_type='comstock',
                               skip_reports=True)
         
+        if self.new_sampling:
+            col_name = "\"t1\".\"out.electricity.total.energy_consumption..kwh\""
+        else:
+            col_name = "\"t1\".\"out.electricity.total.energy_consumption\""
+
         query = f"""
         select 
-            sum("t1"."out.electricity.total.energy_consumption" * "t1"."weight") as "total_electricity",
+            sum({col_name} * "t1"."weight") as "total_electricity",
             "t1"."state" as "state",
             "t1"."out.utility_bills.electricity_utility_eia_id" as "utility_id"
         from
-            "comstock_{self.comstock_version}_metadata_state_vu" as "t1"
+            "{self.metadata_db}" as "t1"
         where
             "t1"."upgrade" = 0
         group by
@@ -169,26 +188,35 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
             run = BuildStockQuery(workgroup='eulp',
                                 db_name='buildstock_sdr',
                                 table_name=(
-                                    f'comstock_{self.comstock_version}_metadata_state_vu',
-                                    f'comstock_{self.comstock_version}_by_state_vu',
+                                    f'{self.full_metadata_db}',
+                                    f'{self.timeseries_db}',
                                     None
                                 ),
                                 db_schema='comstock_oedi',
                                 buildstock_type='comstock',
                                 skip_reports=True)
             
+            if self.new_sampling:
+                col_name = "\"t1\".\"out.electricity.total.energy_consumption..kwh\""
+                add_select = ""
+                add_group = ""
+            else:
+                col_name = "\"t1\".\"out.electricity.total.energy_consumption\""
+                add_select = ", \"t1\".\"out.utility_bills.electricity_utility_eia_id\" as \"in.electric_utility_eia_code\""
+                add_group = ", \"t1\".\"out.utility_bills.electricity_utility_eia_id\""
+        
             query = f"""
             select 
-                sum("t1"."out.electricity.total.energy_consumption" * "t1"."weight") as "total_electricity",
-                "t1"."in.nhgis_tract_gisjoin" as "in.nhgis_tract_gisjoin",
-                "t1"."out.utility_bills.electricity_utility_eia_id" as "in.electric_utility_eia_code"
+                sum({col_name} * "t1"."weight") as "total_electricity",
+                "t1"."in.nhgis_tract_gisjoin" as "in.nhgis_tract_gisjoin"
+                {add_select}
             from
-                "comstock_{self.comstock_version}_metadata_state_vu" as "t1"
+                "{self.full_metadata_db}" as "t1"
             where
                 "t1"."upgrade" = 0
             group by
-                "t1"."in.nhgis_tract_gisjoin",
-                "t1"."out.utility_bills.electricity_utility_eia_id"
+                "t1"."in.nhgis_tract_gisjoin"
+                {add_group}
             """
 
             logger.info('Querying Athena for total electricity by tract and utility.')
@@ -273,7 +301,7 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
         Apportions ComStock profiles to Balancing Authority by aggregating tract totals by assigned Utility ID and Utility ID to BA mapping from EIA 861 data.
         """
 
-        processed_filename = f'com_ba_profiles_{self.allocation_method}.parquet'
+        processed_filename = f'com_ba_profiles_{self.allocation_method}_{self.comstock_version}.parquet'
         processed_path = os.path.join(self.processed_dir, processed_filename)
         if self.reload_from_saved:
             if os.path.exists(processed_path):
@@ -286,57 +314,7 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
         # query comstock by tract and utility id
         com_by_tract = self.comstock_total_by_tract_and_utility()
 
-        # # comstock utility_id is missing for a large number of tracts, re-map from improved tract_to_elec_util_v2.csv - TODO remove this after ComStock results are updated
-        # tract_to_util_map = self.read_delimited_truth_data_file_from_S3(f'truth_data/{self.truth_data_version}/tract_to_elec_util_v2.csv', delimiter=',', args={'dtype': {ELEC_UTIL_ID: 'str'}})
-        
-        # # drop existing utility id col and join in new one
-        # com_by_tract.drop(columns=(ELEC_UTIL_ID), inplace=True)    
-        # com_by_tract = pd.merge(com_by_tract, tract_to_util_map, on=TRACT, how='left')
-    
-        # # get complete map of utility_id to ba_code from EIA 861 Sales, Short, and Meters
-        # cols = ['Utility Number', 'Utility Name', 'State', 'BA Code']
-        # meters = EIA861(type='Meters').data
-        # sales = EIA861(measure='Customers').data
-        # short = EIA861(type='Short', measure='Customers').data
-
-        # def filter_sales(df):
-        #     part_mask = df['Part'] != 'C'
-        #     owner_mask = df['Ownership'] != 'Behind the Meter'
-        #     num_mask = df['Utility Number'] != 99999
-
-        #     df = df.loc[part_mask & owner_mask & num_mask]
-        #     return df
-        
-        # def filter_short(df):
-        #     na_mask = df['Total Customers'].notna()
-        #     df = df.loc[na_mask]
-        #     return df
-
-        # sales = filter_sales(sales)
-        # sales = sales[cols]
-
-        # short = filter_short(short)
-        # short = short[cols]
-        
-        # meters = meters[cols]
-        
-        # utility_ba_map = pd.merge(sales, short, how='outer')
-        # utility_ba_map = pd.merge(utility_ba_map, meters, how='outer')
-        # utility_ba_map = utility_ba_map.astype({'Utility Number': str})
-
         tract_utility_ba_map = self.tract_utility_ba_map()
-
-        # state_labels = self.read_delimited_truth_data_file_from_S3(s3_file_path= f'truth_data/{self.truth_data_version}/national_state2020.txt',
-        #                                                            delimiter= '|',
-        #                                                            args={'dtype': {'STATEFP': 'str'},
-        #                                                                  'usecols': ['STATEFP', 'STATE'],
-        #                                                                  'index_col': 'STATEFP'})
-        
-        
-
-        # com_by_tract['state_fips'] = com_by_tract[TRACT].str[1:3]
-        # com_by_tract = pd.merge(com_by_tract, state_labels, how='left', left_on='state_fips', right_on=state_labels.index)
-        # com_by_tract = pd.merge(com_by_tract, utility_ba_map, how='left', left_on=['STATE', ELEC_UTIL_ID], right_on=['State', 'Utility Number'])
 
         # merge state_abbrev and BA code into comstock by tract
         com_by_tract = pd.merge(com_by_tract, tract_utility_ba_map, how='left', on=self.TRACT_ID) 
