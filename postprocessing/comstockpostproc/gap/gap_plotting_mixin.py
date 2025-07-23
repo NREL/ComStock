@@ -16,7 +16,7 @@ class GapPlottingMixin():
     def plot_profiles(self, df, cols, name, output_dir):
         fig = px.line(df, x=df.index, y=cols)
         fig.update_xaxes(
-            rangeslider_visible=True,
+            # rangeslider_visible=True,
             rangeselector=dict(
                 buttons=list([
                     dict(count=1, label="1m", step="month", stepmode="backward"),
