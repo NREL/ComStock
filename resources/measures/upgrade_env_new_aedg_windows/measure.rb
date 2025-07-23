@@ -43,17 +43,17 @@ require 'openstudio-standards'
 class EnvNewAedgWindows < OpenStudio::Measure::ModelMeasure
   # human readable name
   def name
-    return "env_new_aedg_windows"
+    return 'env_new_aedg_windows'
   end
 
   # human readable description
   def description
-    return "Adds new window with properites (SHGC, U-value, and VLT) aligning with AEDG guidlines, varying by climate zone. Does not impact triple pan windows as their performance is already high."
+    return 'Adds new window with properites (SHGC, U-value, and VLT) aligning with AEDG guidlines, varying by climate zone. Does not impact triple pan windows as their performance is already high.'
   end
 
   # human readable description of modeling approach
   def modeler_description
-    return "Adds new window with properites (SHGC, U-value, and VLT) aligning with AEDG guidlines, varying by climate zone. Does not impact triple pan windows as their performance is already high."
+    return 'Adds new window with properites (SHGC, U-value, and VLT) aligning with AEDG guidlines, varying by climate zone. Does not impact triple pan windows as their performance is already high.'
   end
 
   # define the arguments that the user will input
@@ -80,8 +80,9 @@ class EnvNewAedgWindows < OpenStudio::Measure::ModelMeasure
     # Find all exterior windows and get a list of their constructions
     constructions = []
     model.getSubSurfaces.each do |sub_surface|
-      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && (sub_surface.subSurfaceType.include?('Window'))
+      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && sub_surface.subSurfaceType.include?('Window')
       next if sub_surface.construction.empty?
+
       constructions << sub_surface.construction.get
     end
 
@@ -127,44 +128,44 @@ class EnvNewAedgWindows < OpenStudio::Measure::ModelMeasure
       vlt_target = 0.0
       # assign variables for each climate zone
       # skip triple pane windows
-      if simple_glazing.name.get.include?("Triple")
+      if simple_glazing.name.get.include?('Triple')
         runner.registerInfo("Simple glazing named #{simple_glazing.name} is not recognized, windows will not be modified.")
         next
       end
       # ASHRAE climate zones
-      if climate_zone.include?("ASHRAE 169-2013-0")
+      if climate_zone.include?('ASHRAE 169-2013-0')
         u_val_target = 2.73
         shgc_target = 0.21
         vlt_target = 0.23
-      elsif climate_zone.include?("ASHRAE 169-2013-1")
+      elsif climate_zone.include?('ASHRAE 169-2013-1')
         u_val_target = 2.73
         shgc_target = 0.22
         vlt_target = 0.24
-      elsif climate_zone.include?("ASHRAE 169-2013-2") || climate_zone.include?("CEC15")
+      elsif climate_zone.include?('ASHRAE 169-2013-2') || climate_zone.include?('CEC15')
         u_val_target = 2.44
         shgc_target = 0.24
         vlt_target = 0.26
-      elsif climate_zone.include?("ASHRAE 169-2013-3") || climate_zone.include?("CEC2") || climate_zone.include?("CEC3") || climate_zone.include?("CEC4") || climate_zone.include?("CEC5") || climate_zone.include?("CEC6") || climate_zone.include?("CEC7") || climate_zone.include?("CEC8") || climate_zone.include?("CEC9") || climate_zone.include?("CEC10") || climate_zone.include?("CEC11") || climate_zone.include?("CEC12") || climate_zone.include?("CEC13") || climate_zone.include?("CEC14")
+      elsif climate_zone.include?('ASHRAE 169-2013-3') || climate_zone.include?('CEC2') || climate_zone.include?('CEC3') || climate_zone.include?('CEC4') || climate_zone.include?('CEC5') || climate_zone.include?('CEC6') || climate_zone.include?('CEC7') || climate_zone.include?('CEC8') || climate_zone.include?('CEC9') || climate_zone.include?('EC10') || climate_zone.include?('CEC11') || climate_zone.include?('CEC12') || climate_zone.include?('CEC13') || climate_zone.include?('CEC14')
         u_val_target = 2.27
         shgc_target = 0.24
         vlt_target = 0.26
-      elsif climate_zone.include?("ASHRAE 169-2013-4") || climate_zone.include?("CEC1")
+      elsif climate_zone.include?('ASHRAE 169-2013-4') || climate_zone.include?('CEC1')
         u_val_target = 1.93
         shgc_target = 0.34
         vlt_target = 0.37
-      elsif climate_zone.include?("ASHRAE 169-2013-5") || climate_zone.include?("CEC16")
+      elsif climate_zone.include?('ASHRAE 169-2013-5') || climate_zone.include?('CEC16')
         u_val_target = 1.93
         shgc_target = 0.36
         vlt_target = 0.40
-      elsif climate_zone.include?("ASHRAE 169-2013-6")
+      elsif climate_zone.include?('ASHRAE 169-2013-6')
         u_val_target = 1.82
         shgc_target = 0.36
         vlt_target = 0.40
-      elsif climate_zone.include?("ASHRAE 169-2013-7")
+      elsif climate_zone.include?('ASHRAE 169-2013-7')
         u_val_target = 1.59
         shgc_target = 0.38
         vlt_target = 0.42
-      elsif climate_zone.include?("ASHRAE 169-2013-8")
+      elsif climate_zone.include?('ASHRAE 169-2013-8')
         u_val_target = 1.42
         shgc_target = 0.38
         vlt_target = 0.42
@@ -223,11 +224,13 @@ class EnvNewAedgWindows < OpenStudio::Measure::ModelMeasure
     # cloned constructions that include the secondary window insert.
     area_changed_m2 = 0.0
     model.getSubSurfaces.each do |sub_surface|
-      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && (sub_surface.subSurfaceType.include?('Window'))
+      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && sub_surface.subSurfaceType.include?('Window')
       next if sub_surface.construction.empty?
+
       construction = sub_surface.construction.get
       # Skip sub-surfaces with no new construction prescribed
       next if new_construction_hash[construction].nil?
+
       sub_surface.setConstruction(new_construction_hash[construction])
       area_changed_m2 += sub_surface.grossArea
     end
@@ -235,11 +238,11 @@ class EnvNewAedgWindows < OpenStudio::Measure::ModelMeasure
 
     # Not applicable if no windows were affected
     if area_changed_ft2.zero?
-      runner.registerAsNotApplicable("Not applicable, none of the window constructions could be modified to reflect secondary windows.")
+      runner.registerAsNotApplicable('Not applicable, none of the window constructions could be modified to reflect secondary windows.')
       return true
     end
 
-    # TODO create area-weighted property change stats to use in this
+    # TODO: create area-weighted property change stats to use in this
     # applies when a building has more than one window construction.
     # runner.registerFinalCondition("Added secondary windows to #{area_changed_ft2.round(2)} ft2 of window that reduced U-value (W/m2-K) by #{u_val_reduct.round(2)*100}% , SHGC by #{shgc_reduct.round(2)*100}%, and VLT by #{vlt_reduct.round(2)*100}%.")
     runner.registerFinalCondition("Added secondary windows to #{area_changed_ft2.round(2)} ft2 of windows.")

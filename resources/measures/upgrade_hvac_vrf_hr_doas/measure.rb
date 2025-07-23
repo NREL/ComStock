@@ -384,10 +384,10 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       y2 = ind_var_2[i2_upper]
 
       # Get dependent variable values for bilinear interpolation
-      v11 = dep_var[i1_lower * ind_var_2.size + i2_lower]  # (x1, y1)
-      v12 = dep_var[i1_lower * ind_var_2.size + i2_upper]  # (x1, y2)
-      v21 = dep_var[i1_upper * ind_var_2.size + i2_lower]  # (x2, y1)
-      v22 = dep_var[i1_upper * ind_var_2.size + i2_upper]  # (x2, y2)
+      v11 = dep_var[(i1_lower * ind_var_2.size) + i2_lower]  # (x1, y1)
+      v12 = dep_var[(i1_lower * ind_var_2.size) + i2_upper]  # (x1, y2)
+      v21 = dep_var[(i1_upper * ind_var_2.size) + i2_lower]  # (x2, y1)
+      v22 = dep_var[(i1_upper * ind_var_2.size) + i2_upper]  # (x2, y2)
 
       # If exact match, return directly
       if input1 == x1 && input2 == y1
@@ -404,15 +404,15 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       dx = x2 - x1
       dy = y2 - y1
       return v11 if dx == 0 && dy == 0
-      return v11 + (v21 - v11) * (input1 - x1) / dx if dy == 0
-      return v11 + (v12 - v11) * (input2 - y1) / dy if dx == 0
+      return v11 + ((v21 - v11) * (input1 - x1) / dx) if dy == 0
+      return v11 + ((v12 - v11) * (input2 - y1) / dy) if dx == 0
 
       # Bilinear interpolation
       interpolated_value =
-        v11 * (x2 - input1) * (y2 - input2) +
-        v21 * (input1 - x1) * (y2 - input2) +
-        v12 * (x2 - input1) * (input2 - y1) +
-        v22 * (input1 - x1) * (input2 - y1)
+        (v11 * (x2 - input1) * (y2 - input2)) +
+        (v21 * (input1 - x1) * (y2 - input2)) +
+        (v12 * (x2 - input1) * (input2 - y1)) +
+        (v22 * (input1 - x1) * (input2 - y1))
 
       interpolated_value /= (x2 - x1) * (y2 - y1)
 
@@ -1284,7 +1284,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       'FullServiceRestaurant',
       'Hospital'
     ]
-    building_types_to_exclude = building_types_to_exclude.map { |item| item.downcase }
+    building_types_to_exclude = building_types_to_exclude.map(&:downcase)
     model_building_type = nil
     if model.getBuilding.standardsBuildingType.is_initialized
       model_building_type = model.getBuilding.standardsBuildingType.get
@@ -1296,8 +1296,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       # puts("&&& applicability not passed due to building type (buildings with large exhaust): #{model_building_type}")
       runner.registerAsNotApplicable("applicability not passed due to building type (buildings with large exhaust): #{model_building_type}")
       return true
-    else
-      # puts("&&& applicability passed for building type: #{model_building_type}")
+      # else puts("&&& applicability passed for building type: #{model_building_type}")
     end
 
     # applicability: floor area too large
@@ -1308,8 +1307,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       # puts("&&& applicability not passed due to total floor area being too large: #{total_area_ft2.round(0)} sqft")
       runner.registerAsNotApplicable("applicability not passed due to total floor area being too large: #{total_area_ft2.round(0)} sqft")
       return true
-    else
-      # puts("&&& applicability passed for floor area: #{total_area_ft2.round(0)} sqft")
+      # else puts("&&& applicability passed for floor area: #{total_area_ft2.round(0)} sqft")
     end
 
     # applicability: HVAC type (RTUs and VAVs that do not leverage district heating/cooling)
@@ -1320,12 +1318,12 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     applicability_msgs = []
     applicability_msg = ''
     air_loop_hvacs = model.getAirLoopHVACs
-    if air_loop_hvacs.size == 0
+    if air_loop_hvacs.empty?
       applicability_msg = 'this model does not have an air loop (so neither RTU nor VAV). so, skipping this model...'
       # puts("&&& #{applicability_msg}")
       applicability_msgs << applicability_msg
       applicability << false
-      runner.registerAsNotApplicable("#{applicability_msg}")
+      runner.registerAsNotApplicable(applicability_msg.to_s)
       return true
     else
       air_loop_hvacs.each do |air_loop_hvac|
@@ -1406,7 +1404,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
         # air loops with non applicable thermal zones
         air_loop_hvac.thermalZones.sort.each do |tz|
           # skip food service air loops
-          if %w[kitchen KITCHEN Kitchen Dining dining].any? { |word| tz.name.get.include?(word) }
+          if ['kitchen', 'KITCHEN', 'Kitchen', 'Dining', 'dining'].any? { |word| tz.name.get.include?(word) }
             airloop_na_tz << tz
           # skip non-conditioned thermal zones
           elsif !OpenstudioStandards::ThermalZone.thermal_zone_heated?(tz) && !OpenstudioStandards::ThermalZone.thermal_zone_cooled?(tz)
@@ -1694,7 +1692,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
 
     # DOAS temperature supply settings - colder cooling discharge air for humid climates
     doas_dat_clg_c, doas_dat_htg_c, doas_type =
-      if %w[1A 2A 3A 4A 5A 6A 7 7A 8 8A].include?(climate_zone_classification)
+      if ['1A', '2A', '3A', '4A', '5A', '6A', '7', '7A', '8', '8A'].include?(climate_zone_classification)
         [12.7778, 19.4444, 'ERV']
       else
         [15.5556, 19.4444, 'HRV']
@@ -1703,8 +1701,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     # add ERV/HRV and modify DOAS controls
     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
       # only modify new DOAS systems
-      # next unless ['doas', 'DOAS', 'Doas'].any? { |word| (air_loop_hvac.name).include?(word) }
-      next unless %w[doas DOAS Doas].any? { |word| air_loop_hvac.name.to_s.include?(word) }
+      next unless ['doas', 'DOAS', 'Doas'].any? { |word| air_loop_hvac.name.to_s.include?(word) }
 
       # as a backup, skip non applicable airloops
       next if na_air_loops.member?(air_loop_hvac)
@@ -2132,7 +2129,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           # puts("--- #{coil_cooling.name} | rated_capacity_modifier = #{rated_capacity_modifier}")
 
           # get capacity_upsized_rated
-          capacity_upsized_rated = capacity_original_rated * (1 + upsizing_allowance_pct / 100.0)
+          capacity_upsized_rated = capacity_original_rated * (1 + (upsizing_allowance_pct / 100.0))
           # puts("--- #{coil_cooling.name} | capacity_upsized_rated = #{capacity_upsized_rated} W")
 
           # get design capacity from upsized rated capacity
@@ -2251,7 +2248,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     ######################################################
     # add ERV/HRV and modify DOAS controls
     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
-      next unless %w[doas DOAS Doas].any? { |word| air_loop_hvac.name.to_s.include?(word) }
+      next unless ['doas', 'DOAS', 'Doas'].any? { |word| air_loop_hvac.name.to_s.include?(word) }
       # as a backup, skip non applicable airloops
       next if na_air_loops.member?(air_loop_hvac)
 
@@ -2395,7 +2392,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       else
         runner.registerWarning("For #{vrf_outdoor_unit.name} capacity is not available, total cooling capacity of vrf system will be incorrect when applying standard.")
       end
-      cop_cooling = (-0.000022 * cooling_capacity_w.to_f + 5.520555).round(3)
+      cop_cooling = ((-0.000022 * cooling_capacity_w.to_f) + 5.520555).round(3)
       cop_cooling = cop_cooling.clamp(3.974, 5.197)
       vrf_outdoor_unit.setGrossRatedCoolingCOP(cop_cooling)
       # puts("&&& VRF outdoor unit (#{vrf_outdoor_unit.name}): COP for cooling updated to #{cop_cooling} based on sized cooling capacity of #{cooling_capacity_w.round(0)}")
@@ -2410,7 +2407,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       else
         runner.registerWarning("For #{vrf_outdoor_unit.name} capacity is not available, total heating capacity of vrf system will be incorrect when applying standard.")
       end
-      cop_heating = (-0.000009 * heating_capacity_w.to_f + 4.829407).round(3)
+      cop_heating = ((-0.000009 * heating_capacity_w.to_f) + 4.829407).round(3)
       cop_heating = cop_heating.clamp(4.079, 4.655)
       vrf_outdoor_unit.setRatedHeatingCOP(cop_heating)
       # puts("&&& VRF outdoor unit (#{vrf_outdoor_unit.name}): COP for heating updated to #{cop_heating} based on sized heating capacity of #{heating_capacity_w.round(0)}")

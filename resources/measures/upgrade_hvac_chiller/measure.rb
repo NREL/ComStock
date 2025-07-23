@@ -424,7 +424,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
 
     # Get plant loop type
     plant_loop_type = plant_loop.sizingPlant.loopType
-    return false unless %w[Heating Cooling].include?(plant_loop_type)
+    return false unless ['Heating', 'Cooling'].include?(plant_loop_type)
 
     # Get rated pump power
     if pump.ratedPowerConsumption.is_initialized
@@ -543,7 +543,7 @@ class UpgradeHvacChiller < OpenStudio::Measure::ModelMeasure
 
     # Use the value from the design days or 78F, the CTI rating condition, if no design day information is available.
     design_oat_wb_f = nil
-    if summer_oat_wbs_f.size == 0
+    if summer_oat_wbs_f.empty?
       design_oat_wb_f = 78
       runner.registerInfo("For #{plant_loop.name}, no design day OATwb conditions were found.  CTI rating condition of 78F OATwb will be used for sizing cooling towers.")
     else

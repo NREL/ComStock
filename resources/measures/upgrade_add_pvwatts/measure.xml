@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>upgrade_add_pvwatts</name>
   <uid>028f219f-d1a4-4f92-985b-08fc5127fe6d</uid>
-  <version_id>e5668254-f17d-4fea-ae21-7b5b8513465b</version_id>
-  <version_modified>2025-04-21T17:01:48Z</version_modified>
+  <version_id>79af8480-6b80-4b9f-8459-dc4f53cd0d82</version_id>
+  <version_modified>2025-07-23T23:00:30Z</version_modified>
   <xml_checksum>A66F5BE5</xml_checksum>
   <class_name>UpgradeAddPvwatts</class_name>
   <display_name>upgrade_add_pvwatts</display_name>
@@ -92,7 +92,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>27E3DBB4</checksum>
+      <checksum>B815C5D4</checksum>
     </file>
     <file>
       <filename>example_model.osm</filename>
@@ -104,7 +104,7 @@
       <filename>upgrade_add_pvwatts_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>EB96A9B5</checksum>
+      <checksum>150B4F00</checksum>
     </file>
   </files>
 </measure>

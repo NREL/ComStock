@@ -91,7 +91,7 @@ class HvacVrfHrDoasTest < Minitest::Test
     assert(File.exist?(epw_path))
 
     # create run directory if it does not exist
-    FileUtils.mkdir_p(run_dir(test_name)) unless File.exist?(run_dir(test_name))
+    FileUtils.mkdir_p(run_dir(test_name))
     assert(File.exist?(run_dir(test_name)))
 
     # change into run directory for tests
@@ -99,8 +99,8 @@ class HvacVrfHrDoasTest < Minitest::Test
     Dir.chdir run_dir(test_name)
 
     # remove prior runs if they exist
-    FileUtils.rm(model_output_path(test_name)) if File.exist?(model_output_path(test_name))
-    FileUtils.rm(report_path(test_name)) if File.exist?(report_path(test_name))
+    FileUtils.rm_f(model_output_path(test_name))
+    FileUtils.rm_f(report_path(test_name))
 
     # copy the osm and epw to the test directory
     new_osm_path = "#{run_dir(test_name)}/#{File.basename(osm_path)}"
@@ -232,10 +232,10 @@ class HvacVrfHrDoasTest < Minitest::Test
       weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16',
       result: 'Success',
       lookup_table_test: {
-        'table_name': 'HCAPFT_Daikin_RELQ_100CR_120MBH',
-        'ind1': 16.111,
-        'ind2': -30.0,
-        'dep': 0.579
+        table_name: 'HCAPFT_Daikin_RELQ_100CR_120MBH',
+        ind1: 16.111,
+        ind2: -30.0,
+        dep: 0.579
       }
     }
     # test: cold weather
@@ -244,10 +244,10 @@ class HvacVrfHrDoasTest < Minitest::Test
       weather: 'USA_AK_Fairbanks.Intl.AP.702610_TMY3',
       result: 'Success',
       lookup_table_test: {
-        'table_name': 'CCAPFT_Daikin_RELQ_100CR_120MBH',
-        'ind1': 13.889,
-        'ind2': -39.444,
-        'dep': 0.587
+        table_name: 'CCAPFT_Daikin_RELQ_100CR_120MBH',
+        ind1: 13.889,
+        ind2: -39.444,
+        dep: 0.587
       }
     }
     # test: too many indoor units

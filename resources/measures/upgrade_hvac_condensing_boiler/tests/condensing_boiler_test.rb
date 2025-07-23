@@ -65,13 +65,11 @@ class CondensingBoilerTest < Minitest::Test
 
   def run_dir(test_name)
     # always generate test output in specially named 'output' directory so result files are not made part of the measure
-    puts 'run dir expanded=' + "#{File.expand_path(File.join(File.dirname(__FILE__), 'output', test_name.to_s))}"
-    File.join(File.dirname(__FILE__), 'output', "#{test_name}")
+    File.join(File.dirname(__FILE__), 'output', test_name.to_s)
   end
 
   def model_input_path(osm_name)
     # return models_for_tests.select { |x| set[:model] == osm_name }
-    puts(__dir__) # expands path relative to current wd, passing abs path back
     File.expand_path(File.join(File.dirname(__FILE__), '../../../tests/models', osm_name))
   end
 
@@ -97,14 +95,14 @@ class CondensingBoilerTest < Minitest::Test
     assert(File.exist?(epw_path))
 
     # create run directory if it does not exist
-    FileUtils.mkdir_p(run_dir(test_name)) unless File.exist?(run_dir(test_name))
+    FileUtils.mkdir_p(run_dir(test_name))
     assert(File.exist?(run_dir(test_name)))
 
     # remove prior runs if they exist
     # if File.exist?(model_output_path(test_name))
     # FileUtils.rm(model_output_path(test_name))
     # end
-    FileUtils.rm(report_path(test_name)) if File.exist?(report_path(test_name))
+    FileUtils.rm_f(report_path(test_name))
 
     # copy the osm and epw to the test directory
     # osm_path = File.expand_path(osm_path)
@@ -152,7 +150,7 @@ class CondensingBoilerTest < Minitest::Test
     show_output(result)
 
     # Save model
-    puts 'saving model to' + File.expand_path(model_output_path(test_name))
+    puts "saving model to #{File.expand_path(model_output_path(test_name))}"
     model.save(File.expand_path(model_output_path(test_name)), true)
 
     if run_model && result_success
@@ -217,7 +215,9 @@ class CondensingBoilerTest < Minitest::Test
 
     # confirm that boilers in model are now condensing (95% efficiency)
     boilers = model.getBoilerHotWaters
-    if boilers.size > 0
+    if boilers.empty?
+      runner.registerInfo('Model does not have any boilers. Measure not applicable.')
+    else
       boilers.each do |boiler|
         boiler_fuel_type = boiler.fuelType
         boiler_efficiency = boiler.nominalThermalEfficiency
@@ -226,8 +226,6 @@ class CondensingBoilerTest < Minitest::Test
         assert_equal(0.95, boiler_efficiency)
         assert(boiler_name.get.include?('Condensing'))
       end
-    else
-      runner.registerInfo('Model does not have any boilers. Measure not applicable.')
     end
   end
 
@@ -264,7 +262,9 @@ class CondensingBoilerTest < Minitest::Test
 
     # confirm that boilers in model are now electric
     boilers = model.getBoilerHotWaters
-    if boilers.size > 0
+    if boilers.empty?
+      runner.registerInfo('Model does not have any boilers. Measure not applicable.')
+    else
       boilers.each do |boiler|
         boiler_fuel_type = boiler.fuelType
         boiler_efficiency = boiler.nominalThermalEfficiency
@@ -273,8 +273,6 @@ class CondensingBoilerTest < Minitest::Test
         assert_equal(0.95, boiler_efficiency)
         assert(boiler.name.get.include?('Condensing'))
       end
-    else
-      runner.registerInfo('Model does not have any boilers. Measure not applicable.')
     end
   end
 
@@ -311,7 +309,9 @@ class CondensingBoilerTest < Minitest::Test
 
     # confirm that boilers in model are now condensing (95% efficiency)
     boilers = model.getBoilerHotWaters
-    if boilers.size > 0
+    if boilers.empty?
+      runner.registerInfo('Model does not have any boilers. Measure not applicable.')
+    else
       boilers.each do |boiler|
         boiler_fuel_type = boiler.fuelType
         boiler_efficiency = boiler.nominalThermalEfficiency
@@ -320,8 +320,6 @@ class CondensingBoilerTest < Minitest::Test
         assert_equal(0.95, boiler_efficiency)
         assert(boiler_name.get.include?('Condensing'))
       end
-    else
-      runner.registerInfo('Model does not have any boilers. Measure not applicable.')
     end
   end
 
@@ -358,7 +356,9 @@ class CondensingBoilerTest < Minitest::Test
 
     # confirm that boilers in model are now condensing (95% efficiency)
     boilers = model.getBoilerHotWaters
-    if boilers.size > 0
+    if boilers.empty?
+      runner.registerInfo('Model does not have any boilers. Measure not applicable.')
+    else
       boilers.each do |boiler|
         boiler_fuel_type = boiler.fuelType
         boiler_efficiency = boiler.nominalThermalEfficiency
@@ -367,8 +367,6 @@ class CondensingBoilerTest < Minitest::Test
         assert_equal(0.95, boiler_efficiency)
         assert(boiler_name.get.include?('Condensing'))
       end
-    else
-      runner.registerInfo('Model does not have any boilers. Measure not applicable.')
     end
   end
 
@@ -405,7 +403,9 @@ class CondensingBoilerTest < Minitest::Test
 
     # confirm that boilers in model are now condensing (95% efficiency)
     boilers = model.getBoilerHotWaters
-    if boilers.size > 0
+    if boilers.empty?
+      runner.registerInfo('Model does not have any boilers. Measure not applicable.')
+    else
       boilers.each do |boiler|
         boiler_fuel_type = boiler.fuelType
         boiler_efficiency = boiler.nominalThermalEfficiency
@@ -414,8 +414,6 @@ class CondensingBoilerTest < Minitest::Test
         assert_equal(0.95, boiler_efficiency)
         assert(boiler_name.get.include?('Condensing'))
       end
-    else
-      runner.registerInfo('Model does not have any boilers. Measure not applicable.')
     end
   end
 
@@ -452,7 +450,9 @@ class CondensingBoilerTest < Minitest::Test
 
     # confirm that boilers in model are now condensing (95% efficiency)
     boilers = model.getBoilerHotWaters
-    if boilers.size > 0
+    if boilers.empty?
+      runner.registerInfo('Model does not have any boilers. Measure not applicable.')
+    else
       boilers.each do |boiler|
         boiler_fuel_type = boiler.fuelType
         boiler_efficiency = boiler.nominalThermalEfficiency
@@ -461,8 +461,6 @@ class CondensingBoilerTest < Minitest::Test
         assert_equal(0.95, boiler_efficiency)
         assert(boiler_name.get.include?('Condensing'))
       end
-    else
-      runner.registerInfo('Model does not have any boilers. Measure not applicable.')
     end
   end
 
@@ -499,7 +497,9 @@ class CondensingBoilerTest < Minitest::Test
 
     # confirm that boilers in model are now condensing (95% efficiency)
     boilers = model.getBoilerHotWaters
-    if boilers.size > 0
+    if boilers.empty?
+      runner.registerInfo('Model does not have any boilers. Measure not applicable.')
+    else
       boilers.each do |boiler|
         boiler_fuel_type = boiler.fuelType
         boiler_efficiency = boiler.nominalThermalEfficiency
@@ -508,8 +508,6 @@ class CondensingBoilerTest < Minitest::Test
         assert_equal(0.95, boiler_efficiency)
         assert(boiler_name.get.include?('Condensing'))
       end
-    else
-      runner.registerInfo('Model does not have any boilers. Measure not applicable.')
     end
   end
 
@@ -546,7 +544,9 @@ class CondensingBoilerTest < Minitest::Test
 
     # confirm that boilers in model are now condensing (95% efficiency)
     boilers = model.getBoilerHotWaters
-    if boilers.size > 0
+    if boilers.empty?
+      runner.registerInfo('Model does not have any boilers. Measure not applicable.')
+    else
       boilers.each do |boiler|
         boiler_fuel_type = boiler.fuelType
         boiler_efficiency = boiler.nominalThermalEfficiency
@@ -555,8 +555,6 @@ class CondensingBoilerTest < Minitest::Test
         assert_equal(0.95, boiler_efficiency)
         assert(boiler_name.get.include?('Condensing'))
       end
-    else
-      runner.registerInfo('Model does not have any boilers. Measure not applicable.')
     end
   end
 

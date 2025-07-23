@@ -43,12 +43,12 @@ require 'openstudio-standards'
 class HVACExhaustAirEnergyOrHeatRecovery < OpenStudio::Measure::ModelMeasure
   # human readable name
   def name
-    return "HVAC Exhaust Air Energy or Heat Recovery"
+    return 'HVAC Exhaust Air Energy or Heat Recovery'
   end
 
   # human readable description
   def description
-    return "Adds a heat recovery system to all air loops.  Does not replace or update efficiencies for exisiting heat recovery systems. Excludes food service building types."
+    return 'Adds a heat recovery system to all air loops.  Does not replace or update efficiencies for exisiting heat recovery systems. Excludes food service building types.'
   end
 
   # human readable description of modeling approach
@@ -78,15 +78,15 @@ class HVACExhaustAirEnergyOrHeatRecovery < OpenStudio::Measure::ModelMeasure
 
     # applicability
     building_types_to_exclude = [
-      # "Rtl",
-      # "Rt3",
-      # "RtS",
-      "RFF",
-      "RSD",
-      # "RetailStandalone",
-      # "RetailStripmall",
-      "QuickServiceRestaurant",
-      "FullServiceRestaurant"
+      # 'Rtl',
+      # 'Rt3',
+      # 'RtS',
+      'RFF',
+      'RSD',
+      # 'RetailStandalone',
+      # 'RetailStripmall',
+      'QuickServiceRestaurant',
+      'FullServiceRestaurant'
     ]
     thermal_zone_names_to_exclude = [
       'Kitchen',
@@ -94,16 +94,16 @@ class HVACExhaustAirEnergyOrHeatRecovery < OpenStudio::Measure::ModelMeasure
       'KITCHEN',
       'Dining',
       'dining',
-      'DINING',
+      'DINING'
     ]
 
     # check building-type applicability
-    building_types_to_exclude = building_types_to_exclude.map { |item| item.downcase }
-    model_building_type=nil
+    building_types_to_exclude = building_types_to_exclude.map(&:downcase)
+    model_building_type = nil
     if model.getBuilding.standardsBuildingType.is_initialized
       model_building_type = model.getBuilding.standardsBuildingType.get
     else
-      runner.registerError("Building type not found.")
+      runner.registerError('Building type not found.')
       return true
     end
     if building_types_to_exclude.include?(model_building_type.downcase)
@@ -122,38 +122,41 @@ class HVACExhaustAirEnergyOrHeatRecovery < OpenStudio::Measure::ModelMeasure
       oa_sys = air_loop_hvac.airLoopHVACOutdoorAirSystem
       no_oa_air_loops += 1 unless oa_sys.is_initialized
       next unless oa_sys.is_initialized
+
       # check to see if HX already exists
       has_hx = std.air_loop_hvac_energy_recovery?(air_loop_hvac)
       hx_initial += 1 if has_hx
       # check to see if airloop includes only non applicable thermal zones
       airloop_applicable_thermal_zones = []
       air_loop_hvac.thermalZones.each do |thermal_zone|
-        if !thermal_zone_names_to_exclude.any? { |word| (thermal_zone.name.to_s).include?(word) }
+        if thermal_zone_names_to_exclude.none? { |word| thermal_zone.name.to_s.include?(word) }
           airloop_applicable_thermal_zones << thermal_zone
         end
       end
-      (na_space_type_air_loops+=1) if (airloop_applicable_thermal_zones.empty?)
+      (na_space_type_air_loops += 1) if airloop_applicable_thermal_zones.empty?
       next if airloop_applicable_thermal_zones.empty?
       # skip airloop if HX already exists
       next if has_hx
+
       # skip if evaporative cooling
-      evap=false
+      evap = false
       air_loop_hvac.supplyComponents.each do |comp|
-        next unless ((comp.to_EvaporativeCoolerDirectResearchSpecial.is_initialized) || (comp.to_EvaporativeCoolerIndirectResearchSpecial.is_initialized))
-        evap=true
+        next unless comp.to_EvaporativeCoolerDirectResearchSpecial.is_initialized || comp.to_EvaporativeCoolerIndirectResearchSpecial.is_initialized
+
+        evap = true
       end
-      next if evap==true
+      next if evap == true
+
       # add airloop to applicable list
       applicable_air_loops << air_loop_hvac
       # run sizing if any airloop does not have sizing data
       next if run_sizing
+
       oa_sys = oa_sys.get
       oa_controller = oa_sys.getControllerOutdoorAir
-      unless oa_controller.maximumOutdoorAirFlowRate.is_initialized
-        unless oa_controller.autosizedMaximumOutdoorAirFlowRate.is_initialized
-          run_sizing = true
-          puts ("Performing sizing run....")
-        end
+      unless oa_controller.maximumOutdoorAirFlowRate.is_initialized && oa_controller.autosizedMaximumOutdoorAirFlowRate.is_initialized
+        run_sizing = true
+        puts 'Performing sizing run....'
       end
     end
 
@@ -178,7 +181,7 @@ class HVACExhaustAirEnergyOrHeatRecovery < OpenStudio::Measure::ModelMeasure
     climate_zone_classification = climate_zone.split('-')[-1]
 
     # DOAS temperature supply settings - colder cooling discharge air for humid climates
-    doas_dat_clg_c, doas_dat_htg_c, doas_type=
+    doas_dat_clg_c, doas_dat_htg_c, doas_type =
       if ['1A', '2A', '3A', '4A', '5A', '6A', '7', '7A', '8', '8A'].include?(climate_zone_classification)
         [12.7778, 19.4444, 'ERV']
       else
@@ -232,7 +235,7 @@ class HVACExhaustAirEnergyOrHeatRecovery < OpenStudio::Measure::ModelMeasure
           oa_flow_m3_per_s += (oa_ach * vol) / 60
         end
       end
-      hx_cfm_added+=OpenStudio.convert(oa_flow_m3_per_s, 'm^3/s', 'cfm').get
+      hx_cfm_added += OpenStudio.convert(oa_flow_m3_per_s, 'm^3/s', 'cfm').get
 
       # get HX object and set efficiency and controls
       oa_sys.oaComponents.each do |oa_comp|
@@ -241,7 +244,7 @@ class HVACExhaustAirEnergyOrHeatRecovery < OpenStudio::Measure::ModelMeasure
           # set controls
           hx.setSupplyAirOutletTemperatureControl(true)
           hx.setFrostControlType('MinimumExhaustTemperature')
-          hx.setThresholdTemperature(1.66667) #35F, from E+ recommendation
+          hx.setThresholdTemperature(1.66667) # 35F, from E+ recommendation
           hx.setHeatExchangerType('Rotary') # rotary is used for fan power modulation when bypass is active. Only affects supply temp control with bypass.
           # add setpoint manager to control recovery
           # Add a setpoint manager OA pretreat to control the ERV
@@ -263,26 +266,27 @@ class HVACExhaustAirEnergyOrHeatRecovery < OpenStudio::Measure::ModelMeasure
           hx_outlet = hx.primaryAirOutletModelObject.get.to_Node.get
           spm_oa_pretreat.addToNode(hx_outlet)
 
-          # set parameters for ERV
-          if doas_type=='ERV'
+          case doas_type
+          when 'ERV'
+            # set parameters for ERV
             # set efficiencies; assumed 90% airflow returned to unit
-            hx.setSensibleEffectivenessat100HeatingAirFlow(0.75*0.90)
-            hx.setSensibleEffectivenessat75HeatingAirFlow(0.78*0.90)
-            hx.setLatentEffectivenessat100HeatingAirFlow(0.61*0.90)
-            hx.setLatentEffectivenessat75HeatingAirFlow(0.68*0.90)
-            hx.setSensibleEffectivenessat100CoolingAirFlow(0.75*0.90)
-            hx.setSensibleEffectivenessat75CoolingAirFlow(0.78*0.90)
-            hx.setLatentEffectivenessat100CoolingAirFlow(0.55*0.90)
-            hx.setLatentEffectivenessat75CoolingAirFlow(0.60*0.90)
-          # set parameters for HRV
-          elsif doas_type=='HRV'
+            hx.setSensibleEffectivenessat100HeatingAirFlow(0.75 * 0.90)
+            hx.setSensibleEffectivenessat75HeatingAirFlow(0.78 * 0.90)
+            hx.setLatentEffectivenessat100HeatingAirFlow(0.61 * 0.90)
+            hx.setLatentEffectivenessat75HeatingAirFlow(0.68 * 0.90)
+            hx.setSensibleEffectivenessat100CoolingAirFlow(0.75 * 0.90)
+            hx.setSensibleEffectivenessat75CoolingAirFlow(0.78 * 0.90)
+            hx.setLatentEffectivenessat100CoolingAirFlow(0.55 * 0.90)
+            hx.setLatentEffectivenessat75CoolingAirFlow(0.60 * 0.90)
+          when 'HRV'
+            # set parameters for HRV
             # set efficiencies; assumed 90% airflow returned to unit
-            hx.setSensibleEffectivenessat100HeatingAirFlow(0.84*0.90)
-            hx.setSensibleEffectivenessat75HeatingAirFlow(0.86*0.90)
+            hx.setSensibleEffectivenessat100HeatingAirFlow(0.84 * 0.90)
+            hx.setSensibleEffectivenessat75HeatingAirFlow(0.86 * 0.90)
             hx.setLatentEffectivenessat100HeatingAirFlow(0)
             hx.setLatentEffectivenessat75HeatingAirFlow(0)
-            hx.setSensibleEffectivenessat100CoolingAirFlow(0.83*0.90)
-            hx.setSensibleEffectivenessat75CoolingAirFlow(0.84*0.90)
+            hx.setSensibleEffectivenessat100CoolingAirFlow(0.83 * 0.90)
+            hx.setSensibleEffectivenessat75CoolingAirFlow(0.84 * 0.90)
             hx.setLatentEffectivenessat100CoolingAirFlow(0)
             hx.setLatentEffectivenessat75CoolingAirFlow(0)
           end
@@ -299,7 +303,7 @@ class HVACExhaustAirEnergyOrHeatRecovery < OpenStudio::Measure::ModelMeasure
 
     # report final condition of model
     runner.registerValue('hvac_number_of_loops_affected', air_loops_affected)
-    runner.registerFinalCondition("Added #{hx_added} heat exchangers to air loops with #{hx_cfm_added.round(1)} total cfm and #{fan_power_added.round()} watts added as rotary wheel power to account for added static pressure. The ASHRAE climate zone of the model is #{climate_zone_classification}, so an #{doas_type} is the recovery type added to applicable air loops.")
+    runner.registerFinalCondition("Added #{hx_added} heat exchangers to air loops with #{hx_cfm_added.round(1)} total cfm and #{fan_power_added.round} watts added as rotary wheel power to account for added static pressure. The ASHRAE climate zone of the model is #{climate_zone_classification}, so an #{doas_type} is the recovery type added to applicable air loops.")
 
     return true
   end

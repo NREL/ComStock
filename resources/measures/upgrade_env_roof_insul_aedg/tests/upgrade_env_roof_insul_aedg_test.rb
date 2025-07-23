@@ -41,7 +41,7 @@ require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
 require 'fileutils'
 require 'minitest/autorun'
-require_relative '../measure.rb'
+require_relative '../measure'
 require_relative '../../../../test/helpers/minitest_helper'
 
 class EnvRoofInsulAedgTest < Minitest::Test
@@ -111,19 +111,13 @@ class EnvRoofInsulAedgTest < Minitest::Test
     assert(File.exist?(epw_path))
 
     # create run directory if it does not exist
-    if !File.exist?(run_dir(test_name))
-      FileUtils.mkdir_p(run_dir(test_name))
-    end
+    FileUtils.mkdir_p(run_dir(test_name))
     assert(File.exist?(run_dir(test_name)))
 
 
     # remove prior runs if they exist
-    if File.exist?(model_output_path(test_name))
-      FileUtils.rm(model_output_path(test_name))
-    end
-    if File.exist?(report_path(test_name))
-      FileUtils.rm(report_path(test_name))
-    end
+    FileUtils.rm_f(model_output_path(test_name))
+    FileUtils.rm_f(report_path(test_name))
 
     # create an instance of a runner
     runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
@@ -165,8 +159,8 @@ class EnvRoofInsulAedgTest < Minitest::Test
   def models_to_test
     test_sets = []
     test_sets << { model: 'Warehouse_5A', weather: 'MI_DETROIT_725375_12', result: 'Success', new_r: 33 }
-    test_sets << { model: 'Retail_7', weather: 'MN_Cloquet_Carlton_Co_726558_16', result: 'Success', new_r: 37}
-    test_sets << { model: 'Small_Office_2A', weather: 'TX_Port_Arthur_Jeffers_722410_16', result: 'Success', new_r: 26}
+    test_sets << { model: 'Retail_7', weather: 'MN_Cloquet_Carlton_Co_726558_16', result: 'Success', new_r: 37 }
+    test_sets << { model: 'Small_Office_2A', weather: 'TX_Port_Arthur_Jeffers_722410_16', result: 'Success', new_r: 26 }
     return test_sets
   end
 
@@ -196,6 +190,7 @@ class EnvRoofInsulAedgTest < Minitest::Test
       old_r_val_ip = 0
       model.getSurfaces.sort.each do |surface|
         next unless (surface.outsideBoundaryCondition == 'Outdoors') && (surface.surfaceType == 'RoofCeiling')
+
         surface.construction.get
         old_r_val_si = 1 / surface.thermalConductance.to_f
         old_r_val_ip = OpenStudio.convert(old_r_val_si, 'm^2*K/W', 'ft^2*h*R/Btu').get
@@ -220,6 +215,7 @@ class EnvRoofInsulAedgTest < Minitest::Test
       model = load_model(model_output_path(instance_test_name))
       model.getSurfaces.sort.each do |surface|
         next unless (surface.outsideBoundaryCondition == 'Outdoors') && (surface.surfaceType == 'RoofCeiling')
+
         surface.construction.get
         new_r_val_si = 1 / surface.thermalConductance.to_f
         new_r_val_ip = OpenStudio.convert(new_r_val_si, 'm^2*K/W', 'ft^2*h*R/Btu').get

@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>df_lighting_control</name>
   <uid>8de4bbcc-0430-4f71-8131-0467cbb6f9a4</uid>
-  <version_id>07ff706e-fc96-4d33-b333-b17329324e65</version_id>
-  <version_modified>2025-04-24T16:06:26Z</version_modified>
+  <version_id>37c644af-365e-49d8-b504-be459d3a3c19</version_id>
+  <version_modified>2025-07-23T23:00:31Z</version_modified>
   <xml_checksum>D7E77FC2</xml_checksum>
   <class_name>DFLightingControl</class_name>
   <display_name>demand flexibility - lighting control</display_name>
@@ -322,13 +322,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>C2493175</checksum>
+      <checksum>18634ECC</checksum>
     </file>
     <file>
       <filename>call_other_measures.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>E34F02A0</checksum>
+      <checksum>3FA8499B</checksum>
     </file>
     <file>
       <filename>cambium/LRMER_HighRECost_15/AZNMc.csv</filename>
@@ -844,7 +844,7 @@
       <filename>df_lighting_control_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>4C72DD98</checksum>
+      <checksum>35431005</checksum>
     </file>
   </files>
 </measure>

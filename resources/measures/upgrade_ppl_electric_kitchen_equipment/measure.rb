@@ -30,6 +30,18 @@ class ElectrifyKitchenEquipment < OpenStudio::Measure::ModelMeasure
     return args
   end
 
+  # Helper method to extract quantity from the object name
+  def get_quantity_from_name(string)
+    # quantity = string.match(/\d+(\.\d+)?$/)[0]
+    quantity = string.split('=')[1]
+    return quantity.to_f
+  end
+
+  def get_equip_type_from_name(string)
+    equip_type = string.split('_')[1]
+    return equip_type
+  end
+
   # define what happens when the measure is run
   def run(model, runner, user_arguments)
     super(model, runner, user_arguments)
@@ -40,43 +52,32 @@ class ElectrifyKitchenEquipment < OpenStudio::Measure::ModelMeasure
     li_space_types_with_kitchens = []
     num_kitchens = 0
     model.getSpaces.sort.each do |space|
-      if ['kitchen', 'KITCHEN', 'Kitchen'].any? { |word| (space.name.get).include?(word) }
+      if ['kitchen', 'KITCHEN', 'Kitchen'].any? { |word| space.name.get.include?(word) }
         # append kitchen to list
         li_spaces_with_kitchens << space
-        num_kitchens+=1
+        num_kitchens += 1
         # get space type of kitchen and add to list if not already
         kitchen_space_type = space.spaceType.get
         next if li_space_types_with_kitchens.include? kitchen_space_type
+
         li_space_types_with_kitchens << kitchen_space_type
       end
     end
 
     electric_equipment_hash = [
-      {:equip_type=>"broiler", :elec_design_level_w=>10815.0, :frac_latent=>0.1, :frac_radiant=>0.35, :frac_lost=>0.45},
-      {:equip_type=>"fryer", :elec_design_level_w=>14009.0, :frac_latent=>0.1, :frac_radiant=>0.36, :frac_lost=>0.44, :frac_convected=>0.1},
-      {:equip_type=>"griddle", :elec_design_level_w=>17116.0, :frac_latent=>0.1, :frac_radiant=>0.39, :frac_lost=>0.41},
-      {:equip_type=>"oven", :elec_design_level_w=>12104.0, :frac_latent=>0.1, :frac_radiant=>0.22, :frac_lost=>0.58},
-      {:equip_type=>"range", :elec_design_level_w=>21014.0, :frac_latent=>0.1, :frac_radiant=>0.1, :frac_lost=>0.8},
-      {:equip_type=>"steamer", :elec_design_level_w=>26964.0, :frac_latent=>0.1, :frac_radiant=>0.1, :frac_lost=>0.79}
+      { equip_type: 'broiler', elec_design_level_w: 10815.0, frac_latent: 0.1, frac_radiant: 0.35, frac_lost: 0.45 },
+      { equip_type: 'fryer', elec_design_level_w: 14009.0, frac_latent: 0.1, frac_radiant: 0.36, frac_lost: 0.44, frac_convected: 0.1 },
+      { equip_type: 'griddle', elec_design_level_w: 17116.0, frac_latent: 0.1, frac_radiant: 0.39, frac_lost: 0.41 },
+      { equip_type: 'oven', elec_design_level_w: 12104.0, frac_latent: 0.1, frac_radiant: 0.22, frac_lost: 0.58 },
+      { equip_type: 'range', elec_design_level_w: 21014.0, frac_latent: 0.1, frac_radiant: 0.1, frac_lost: 0.8 },
+      { equip_type: 'steamer', elec_design_level_w: 26964.0, frac_latent: 0.1, frac_radiant: 0.1, frac_lost: 0.79 }
     ]
 
     # measure not applicable if building does not have a kitchen
     if num_kitchens == 0
-      runner.registerAsNotApplicable("Building does not have a kitchen; measure is not applicable.")
+      runner.registerAsNotApplicable('Building does not have a kitchen; measure is not applicable.')
       return true
     end
-
-    # Helper method to extract quantity from the object name
-    def get_quantity_from_name(string)
-      # quantity = string.match(/\d+(\.\d+)?$/)[0]
-      quantity = string.split('=')[1]
-      return quantity.to_f
-    end
-
-    def get_equip_type_from_name(string)
-      equip_type = string.split('_')[1]
-      return equip_type
-    end 
 
     replaced_equip_list = []
 
@@ -114,7 +115,7 @@ class ElectrifyKitchenEquipment < OpenStudio::Measure::ModelMeasure
         electric_equip.setName("electric_#{equip_type}_equipment_bldg_quantity=#{quantity}")
         electric_equip.setMultiplier(multiplier)
         electric_equip.setSpaceType(space_type)
-        #set new equipment schedule to the old gas equip schedule
+        # set new equipment schedule to the old gas equip schedule
         electric_equip.setSchedule(gas_equip_sched_orig)
 
         replaced_equip_list << "#{quantity} #{equip_type}s"

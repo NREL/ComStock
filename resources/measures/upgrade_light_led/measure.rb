@@ -39,20 +39,19 @@ require 'csv'
 
 # start the measure
 class LightLED < OpenStudio::Measure::ModelMeasure
-
   # human readable name
   def name
-    return "light_led"
+    return 'light_led'
   end
 
   # human readable description
   def description
-    return "This measure takes in lighting technology for different kinds of lighting and adds LED lighting to space types depending on the prototype lighting space type illuminance targets."
+    return 'This measure takes in lighting technology for different kinds of lighting and adds LED lighting to space types depending on the prototype lighting space type illuminance targets.'
   end
 
   # human readable description of modeling approach
   def modeler_description
-    return "This measure takes in lighting technology defined in lumens per watt for different kinds of lighting and adds lighting attached to OS:SpaceType objects depending on the horiztontal illumance target in lumens."
+    return 'This measure takes in lighting technology defined in lumens per watt for different kinds of lighting and adds lighting attached to OS:SpaceType objects depending on the horiztontal illumance target in lumens.'
   end
 
   # define the arguments that the user will input
@@ -89,7 +88,7 @@ class LightLED < OpenStudio::Measure::ModelMeasure
     # existing lighting power
     if lights_definition.wattsperSpaceFloorArea.is_initialized
       initial_lpd_w_per_m2 = lights_definition.wattsperSpaceFloorArea.get
-      initial_lpd_w_per_ft2 = OpenStudio.convert(initial_lpd_w_per_m2, 'W/m^2','W/ft^2').get
+      initial_lpd_w_per_ft2 = OpenStudio.convert(initial_lpd_w_per_m2, 'W/m^2', 'W/ft^2').get
     else
       runner.registerWarning("Lights definition '#{lights_definition.name}' does not have an initial LPD.  Overriding with new lighting technology.")
       initial_lpd_w_per_ft2 = 999.0
@@ -107,22 +106,23 @@ class LightLED < OpenStudio::Measure::ModelMeasure
     total_horizontal_illuminance = prototype_lighting_space_type_properties[:total_horizontal_illuminance_lumens_per_ft2].to_f
     rsdd = prototype_lighting_space_type_properties[:room_surface_dirt_depreciation].to_f
     space_type_average_height_ft = prototype_lighting_space_type_properties[:space_type_average_height_ft].to_f
-    if lighting_system_type == 'general'
+    case lighting_system_type
+    when 'general'
       lighting_fraction = prototype_lighting_space_type_properties[:general_lighting_fraction].to_f
       cu = prototype_lighting_space_type_properties[:general_lighting_coefficient_of_utilization].to_f
-    elsif lighting_system_type == 'task'
+    when 'task'
       lighting_fraction = prototype_lighting_space_type_properties[:task_lighting_fraction].to_f
       cu = prototype_lighting_space_type_properties[:task_lighting_coefficient_of_utilization].to_f
-    elsif lighting_system_type == 'supplemental'
+    when 'supplemental'
       lighting_fraction = prototype_lighting_space_type_properties[:supplemental_lighting_fraction].to_f
       cu = prototype_lighting_space_type_properties[:supplemental_lighting_coefficient_of_utilization].to_f
-    elsif lighting_system_type == 'wall_wash'
+    when 'wall_wash'
       lighting_fraction = prototype_lighting_space_type_properties[:wall_wash_lighting_fraction].to_f
       cu = prototype_lighting_space_type_properties[:wall_wash_lighting_coefficient_of_utilization].to_f
     end
 
     # select new lighting technology based on lighting system type
-    matching_objects = new_lighting_technologies.select { |r| (r[:lighting_system_type] == lighting_system_type)}
+    matching_objects = new_lighting_technologies.select { |r| (r[:lighting_system_type] == lighting_system_type) }
     matching_objects = matching_objects.reject { |r| space_type_average_height_ft.to_f.round(1) > r[:fixture_max_height_ft].to_f.round(1) }
     matching_objects = matching_objects.reject { |r| space_type_average_height_ft.to_f.round(1) <= r[:fixture_min_height_ft].to_f.round(1) }
     new_lighting_technology = matching_objects[0]
@@ -140,8 +140,8 @@ class LightLED < OpenStudio::Measure::ModelMeasure
     new_lpd_w_per_ft2 = (total_horizontal_illuminance * lighting_fraction) / (luminous_efficacy * cu)
 
     lights_changed = false
-    if initial_lighting_technologies[0].keys.to_s.include?("LED")
-      runner.registerAsNotApplicable("Model already contains LED lighting. This measure is not applicable.")
+    if initial_lighting_technologies[0].keys.to_s.include?('LED')
+      runner.registerAsNotApplicable('Model already contains LED lighting. This measure is not applicable.')
       return true
     else
       runner.registerInfo("Initial lighting power density '#{initial_lpd_w_per_ft2.round(3)} is greater than new lighting power density #{new_lpd_w_per_ft2.round(3)} for Lights Definition #{lights_definition.name} with lighting system type #{lighting_system_type}. Changing lights.")
@@ -172,21 +172,21 @@ class LightLED < OpenStudio::Measure::ModelMeasure
 
     # load lookup file and convert to hash table
     prototype_lighting_space_type_csv = "#{File.dirname(__FILE__)}/resources/prototype_lighting_space_type.csv"
-    if not File.file?(prototype_lighting_space_type_csv)
+    if !File.file?(prototype_lighting_space_type_csv)
       runner.registerError("Unable to find file: #{prototype_lighting_space_type_csv}")
       return nil
     end
     prototype_lighting_space_type_tbl = CSV.table(prototype_lighting_space_type_csv)
-    prototype_lighting_space_type_hsh = prototype_lighting_space_type_tbl.map { |row| row.to_hash }
+    prototype_lighting_space_type_hsh = prototype_lighting_space_type_tbl.map(&:to_hash)
 
     # load lighting technology file and convert to hash table
     lighting_technology_csv = "#{File.dirname(__FILE__)}/resources/lighting_technology.csv"
-    if not File.file?(lighting_technology_csv)
+    if !File.file?(lighting_technology_csv)
       runner.registerError("Unable to find file: #{lighting_technology_csv}")
       return nil
     end
     lighting_technology_tbl = CSV.table(lighting_technology_csv)
-    lighting_technology_hsh = lighting_technology_tbl.map { |row| row.to_hash }
+    lighting_technology_hsh = lighting_technology_tbl.map(&:to_hash)
 
     # get lighting technology for the user-selected lighting generation
     lighting_technologies = lighting_technology_hsh.select { |r| (r[:lighting_generation] == lighting_generation) }
@@ -250,7 +250,7 @@ class LightLED < OpenStudio::Measure::ModelMeasure
       prototype_lighting_space_type_properties[:space_type_average_height_ft] = space_type_average_height_ft
 
       # get initial conditions
-      building_lighting_floor_area = building_lighting_floor_area + space_type_floor_area
+      building_lighting_floor_area += space_type_floor_area
       starting_space_type_lighting_power = space_type.getLightingPower(space_type_floor_area, space_type_number_of_people)
       starting_building_lighting_power += starting_space_type_lighting_power
 
@@ -270,7 +270,7 @@ class LightLED < OpenStudio::Measure::ModelMeasure
         initial_lighting_power_w = light.getLightingPower(space_type_floor_area, space_type_number_of_people)
 
         # log initial value
-        initial_lighting_technologies << {"#{initial_light_lighting_technology}": initial_lighting_power_w}
+        initial_lighting_technologies << { "#{initial_light_lighting_technology}": initial_lighting_power_w }
       end
 
       # if initial_lighting_technologies[0].keys.to_s.include?("LED")
@@ -298,7 +298,7 @@ class LightLED < OpenStudio::Measure::ModelMeasure
         final_lighting_power_w = light.getLightingPower(space_type_floor_area, space_type_number_of_people)
 
         # log final value
-        final_lighting_technologies << {"#{final_light_lighting_technology}": final_lighting_power_w}
+        final_lighting_technologies << { "#{final_light_lighting_technology}": final_lighting_power_w }
       end
 
       # log initial lighting technologies and power in spaces
@@ -320,7 +320,7 @@ class LightLED < OpenStudio::Measure::ModelMeasure
           initial_lighting_power_w = light.getLightingPower(space_floor_area, space_number_of_people)
 
           # log initial value
-          initial_lighting_technologies << {"#{initial_light_lighting_technology}": initial_lighting_power_w}
+          initial_lighting_technologies << { "#{initial_light_lighting_technology}": initial_lighting_power_w }
         end
       end
 
@@ -347,7 +347,7 @@ class LightLED < OpenStudio::Measure::ModelMeasure
           final_lighting_power_w = light.getLightingPower(space_floor_area, space_number_of_people)
 
           # log final value
-          final_lighting_technologies << {"#{final_light_lighting_technology}": final_lighting_power_w}
+          final_lighting_technologies << { "#{final_light_lighting_technology}": final_lighting_power_w }
         end
       end
 
@@ -375,7 +375,7 @@ class LightLED < OpenStudio::Measure::ModelMeasure
       starting_building_lpd = OpenStudio.convert(starting_building_lighting_power / building_lighting_floor_area, 'W/m^2', 'W/ft^2').get
       ending_building_lpd = OpenStudio.convert(ending_building_lighting_power / building_lighting_floor_area, 'W/m^2', 'W/ft^2').get
     else
-      runner.registerWarning("Building lighting floor area is zero.  This can happen if space types are not assigned to spaces.  Unable to report out building level LPDs.")
+      runner.registerWarning('Building lighting floor area is zero.  This can happen if space types are not assigned to spaces.  Unable to report out building level LPDs.')
       starting_building_lpd = 0
       ending_building_lpd = 0
     end
@@ -386,8 +386,8 @@ class LightLED < OpenStudio::Measure::ModelMeasure
     runner.registerValue('light_lighting_technology_final_lighting_power_density', ending_building_lpd, 'W/ft^2')
 
     # log by lighting technology
-    initial_technology_power_log = initial_lighting_technologies.inject{|a,b| a.merge(b){|_,x,y| x + y}}.to_s.gsub(/[:,{}\"]/, '')
-    final_technology_power_log = final_lighting_technologies.inject{|a,b| a.merge(b){|_,x,y| x + y}}.to_s.gsub(/[:,{}\"]/, '')
+    initial_technology_power_log = initial_lighting_technologies.inject { |a, b| a.merge(b) { |_, x, y| x + y } }.to_s.gsub(/[:,{}"]/, '')
+    final_technology_power_log = final_lighting_technologies.inject { |a, b| a.merge(b) { |_, x, y| x + y } }.to_s.gsub(/[:,{}"]/, '')
     runner.registerInfo("Initial power by lighting technology in watts: #{initial_technology_power_log}")
     runner.registerInfo("Final power by lighting technology in watts: #{final_technology_power_log}")
     runner.registerValue('light_lighting_technology_initial_power_by_technology_w', initial_technology_power_log, 'W')

@@ -149,9 +149,7 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
         # htg_loop.autosizeMaximumLoopFlowRate
         # htg_loop.autocalculatePlantLoopVolume
 
-        htg_loop.supplyOutletNode.setpointManagers.each do |spm|
-          spm.remove
-        end
+        htg_loop.supplyOutletNode.setpointManagers.each(&:remove)
 
         # original method: set sp manager to constant 140F
         # spm.to_SetpointManagerScheduled.get.setSchedule(new_setpoint_sched)

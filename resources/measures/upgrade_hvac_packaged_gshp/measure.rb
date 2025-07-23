@@ -36,19 +36,17 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # *******************************************************************************
 
-# see the URL below for information on how to write OpenStudio measures
-# http://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/
 require 'openstudio-standards'
 require 'csv'
 
 # require all .rb files in resources folder
-Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }
-
-# resource file modules
-include Make_Performance_Curves
+Dir["#{File.dirname(__FILE__)}/resources/*.rb"].sort.each { |file| require file }
 
 # start the measure
 class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
+  # resource file modules
+  include MakePerformanceCurves
+
   # human readable name
   def name
     # Measure name should be the title case of the class name.
@@ -261,7 +259,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     lighting = runner.getBoolArgumentValue('lighting', user_arguments)
 
     # check if GroundHeatExchanger:Vertical is present (for package runs)
-    if model.getObjectsByType(OpenStudio::Model::GroundHeatExchangerVertical.iddObjectType).size > 0
+    if !model.getObjectsByType(OpenStudio::Model::GroundHeatExchangerVertical.iddObjectType).empty?
       runner.registerAsNotApplicable('Model already contains a GroundHeatExchanger:Vertical, upgrade is not applicable.')
       return true
     end
@@ -292,7 +290,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
       if thermal_zone.equipment.empty?
         unconditioned_zones << thermal_zone.name.get
       # if original zone is typically conditioned with baseboards (as opposed to an RTU), maintain this
-      elsif %w[Bulk Entry].any? { |word| thermal_zone.name.get.include?(word) }
+      elsif ['Bulk Entry'].any? { |word| thermal_zone.name.get.include?(word) }
         zones_to_skip << thermal_zone.name.get
       end
 
@@ -332,7 +330,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
         next if air_loop_evaporative_cooler?(air_loop_hvac)
 
         # look for PVAV and VAV systems (some might only have 1 zone per air loop)
-        if %w[PVAV].any? { |word| air_loop_hvac.name.get.include?(word) }
+        if ['PVAV'].any? { |word| air_loop_hvac.name.get.include?(word) }
           air_loop_hvac.supplyComponents.each do |component|
             # filter out VAV with PFP boxes, which are labeled as PVAV systems but are actually VAV
             if component.to_CoilCoolingWater.is_initialized
@@ -343,7 +341,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
           runner.registerInfo("pvav air loop #{air_loop_hvac.name}")
           runner.registerInfo('Model has a PVAV system, measure will be applicable.')
           pvav_air_loops << air_loop_hvac
-        elsif %w[VAV].any? { |word| air_loop_hvac.name.get.include?(word) }
+        elsif ['VAV'].any? { |word| air_loop_hvac.name.get.include?(word) }
           runner.registerAsNotApplicable('Model has VAV system, measure is not applicable.')
           return true
         else
@@ -353,7 +351,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
         # add area served by air loop
       elsif air_loop_hvac.thermalZones.length > 1
         # look for PVAV and VAV systems
-        if %w[PVAV].any? { |word| air_loop_hvac.name.get.include?(word) }
+        if ['PVAV'].any? { |word| air_loop_hvac.name.get.include?(word) }
           air_loop_hvac.supplyComponents.each do |component|
             # filter out VAV with PFP boxes, which are labeled as PVAV systems but are actually VAV
             if component.to_CoilCoolingWater.is_initialized
@@ -364,7 +362,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
           runner.registerInfo('Model has a PVAV system, measure will be applicable.')
           runner.registerInfo("pvav air loop #{air_loop_hvac.name}")
           pvav_air_loops << air_loop_hvac
-        elsif %w[VAV].any? { |word| air_loop_hvac.name.get.include?(word) }
+        elsif ['VAV'].any? { |word| air_loop_hvac.name.get.include?(word) }
           runner.registerAsNotApplicable('Model has VAV system, measure is not applicable.')
           return true
         end
@@ -372,7 +370,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     end
 
     # check if there are any packaged single zone systems in the model
-    if (psz_air_loops.size == 0) && (pvav_air_loops.size == 0)
+    if psz_air_loops.empty? && pvav_air_loops.empty?
       runner.registerAsNotApplicable('Model has no applicable air loops, measure is not applicable.')
       return true
     end
@@ -558,7 +556,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
       prev_pressure_rise = 0
       if pvav_air_loop.supplyFan.is_initialized
         fan = pvav_air_loop.supplyFan.get
-        runner.registerInfo('fan' + "#{fan}")
+        runner.registerInfo("fan #{fan}")
         if fan.to_FanVariableVolume.is_initialized
           fan = fan.to_FanVariableVolume.get
           prev_pressure_rise = fan.pressureRise
@@ -567,13 +565,13 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
 
       pvav_air_loop.thermalZones.each do |thermal_zone|
         zone_data[thermal_zone.name.to_s] = {} # creating as a placeholder
-        zone_data[thermal_zone.name.to_s + 'schedule'] = hvac_operation_sched # save operation schedule from main air loop for use later
+        zone_data["#{thermal_zone.name} schedule"] = hvac_operation_sched # save operation schedule from main air loop for use later
         pfp_box = false
 
         zone_data[thermal_zone.name.to_s]['prev_pressure_rise'] = prev_pressure_rise if prev_pressure_rise > 0
 
         zone_oa_flow = thermal_zone_outdoor_airflow_rate(thermal_zone)
-        zone_data[thermal_zone.name.to_s + 'zone_oa_flow'] = zone_oa_flow
+        zone_data["#{thermal_zone.name} zone_oa_flow"] = zone_oa_flow
         runner.registerInfo("zone oa flow for #{thermal_zone.name} zone #{zone_oa_flow}")
         if thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctConstantVolumeReheat.is_initialized
           old_terminal = thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctConstantVolumeReheat.get
@@ -614,8 +612,8 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
           end
         end
 
-        zone_data[thermal_zone.name.to_s + 'min_oa_flow_ratio'] = zone_oa_flow / old_terminal_sa_flow_m3_per_s
-        zone_data[thermal_zone.name.to_s + 'old_term_sa_flow_m3_per_s'] = old_terminal_sa_flow_m3_per_s
+        zone_data["#{thermal_zone.name} min_oa_flow_ratio"] = zone_oa_flow / old_terminal_sa_flow_m3_per_s
+        zone_data["#{thermal_zone.name} old_term_sa_flow_m3_per_s"] = old_terminal_sa_flow_m3_per_s
       end
     end
 
@@ -672,13 +670,13 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
       end
 
       # define minimum flow rate needed to maintain ventilation
-      zone_data[thermal_zone.name.to_s + 'zone_oa_flow'] = oa_flow_m3_per_s
+      zone_data["#{thermal_zone.name} zone_oa_flow"] = oa_flow_m3_per_s
       min_oa_flow_ratio = (oa_flow_m3_per_s / old_terminal_sa_flow_m3_per_s)
-      zone_data[thermal_zone.name.to_s + 'min_oa_flow_ratio'] = min_oa_flow_ratio
+      zone_data["#{thermal_zone.name} min_oa_flow_ratio"] = min_oa_flow_ratio
       runner.registerInfo("zone #{thermal_zone.name}" + "old term sa flow #{old_terminal_sa_flow_m3_per_s}")
       runner.registerInfo("zone #{thermal_zone.name}" + "oa flow  #{oa_flow_m3_per_s}")
       runner.registerInfo("zone #{thermal_zone.name}" + "min airflow ratio #{min_oa_flow_ratio}")
-      zone_data[thermal_zone.name.to_s + 'old_term_sa_flow_m3_per_s'] = old_terminal_sa_flow_m3_per_s
+      zone_data["#{thermal_zone.name} old_term_sa_flow_m3_per_s"] = old_terminal_sa_flow_m3_per_s
 
       # get the air loop HVAC availability schedule and save it
       hvac_operation_sched = air_loop_hvac.availabilitySchedule
@@ -690,7 +688,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
         runner.registerError("Air loop availability schedule for #{air_loop_hvac.name} not supported.")
         return false
       end
-      zone_data[thermal_zone.name.to_s + 'schedule'] = hvac_operation_sched
+      zone_data["#{thermal_zone.name} schedule"] = hvac_operation_sched
 
       # for unitary systems
       if air_loop_hvac_unitary_system?(air_loop_hvac)
@@ -702,7 +700,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
           # convert component to string name
           obj_type = component.iddObjectType.valueName.to_s
           # skip unless component is of relevant type
-          next unless %w[Fan Unitary Coil].any? { |word| obj_type.include?(word) }
+          next unless ['Fan', 'Unitary', 'Coil'].any? { |word| obj_type.include?(word) }
 
           # make list of equipment to delete
           equip_to_delete << component
@@ -710,7 +708,8 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
           # get information specifically from unitary system object
           next unless ['Unitary'].any? do |word|
                         obj_type.include?(word)
-                      end # TODO: There are more unitary systems types we are not including here
+                      end
+          # TODO: There are more unitary systems types we are not including here
 
           # get unitary system
           unitary_sys = component.to_AirLoopHVACUnitarySystem.get
@@ -772,7 +771,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
           # convert component to string name
           obj_type = component.iddObjectType.valueName.to_s
           # skip unless component is of relevant type
-          next unless %w[Fan Unitary Coil].any? { |word| obj_type.include?(word) }
+          next unless ['Fan', 'Unitary', 'Coil'].any? { |word| obj_type.include?(word) }
 
           # make list of equipment to delete
           equip_to_delete << component
@@ -835,9 +834,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     equip_to_delete.each(&:remove)
 
     # remove old PVAV air loops; this must be done after removing zone equipment or it will cause segmentation fault
-    pvav_air_loops.each do |pvav_air_loop|
-      pvav_air_loop.remove
-    end
+    pvav_air_loops.each(&:remove)
 
     # also remove any EMS objects tied to PVAV air loops that are being removed
     # Get all EMS objects in the model
@@ -866,7 +863,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
 
       if thermal_zone.airLoopHVAC.is_initialized
         air_loop_hvac = thermal_zone.airLoopHVAC.get
-        air_loop_hvac.setAvailabilitySchedule(zone_data[thermal_zone.name.to_s + 'schedule'])
+        air_loop_hvac.setAvailabilitySchedule(zone_data["#{thermal_zone.name} schedule"])
         runner.registerInfo('setting schedule')
       else
         # create new air loop for unitary system
@@ -874,7 +871,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
         air_loop_hvac.setName("#{thermal_zone.name} Air Loop")
         air_loop_hvac.sizingSystem
         # Set schedule based on that zone's previous schedule
-        air_loop_hvac.setAvailabilitySchedule(zone_data[thermal_zone.name.to_s + 'schedule'])
+        air_loop_hvac.setAvailabilitySchedule(zone_data["#{thermal_zone.name} schedule"])
 
         # zone sizing
         # adjusted zone design temperatures for ptac
@@ -892,10 +889,10 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
         sizing_zone.setZoneHeatingDesignSupplyAirHumidityRatio(0.008)
 
         # to account for turndown limitations and ventilation requirements
-        min_fan_flow_ratio = if !zone_data[thermal_zone.name.to_s + 'min_oa_flow_ratio'].nil?
-                               [zone_data[thermal_zone.name.to_s + 'min_oa_flow_ratio'], min_flow].max
-                             else
+        min_fan_flow_ratio = if zone_data["#{thermal_zone.name} min_oa_flow_ratio"].nil?
                                min_flow
+                             else
+                               [zone_data["#{thermal_zone.name} min_oa_flow_ratio"], min_flow].max
                              end
 
         # create a diffuser and attach the zone/diffuser pair to the air loop
@@ -948,16 +945,16 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
         fan.setMotorEfficiency(zone_data[thermal_zone.name.to_s]['fan_motor_eff'])
       end
       # to account for turndown limitations and ventilation requirements
-      min_fan_flow_ratio = if !zone_data[thermal_zone.name.to_s + 'min_oa_flow_ratio'].nil?
-                             [zone_data[thermal_zone.name.to_s + 'min_oa_flow_ratio'], min_flow].max
-                           else
+      min_fan_flow_ratio = if zone_data["#{thermal_zone.name} min_oa_flow_ratio"].nil?
                              min_flow
+                           else
+                             [zone_data["#{thermal_zone.name} min_oa_flow_ratio"], min_flow].max
                            end
       fan.setFanPowerMinimumFlowRateInputMethod('Fraction')
       fan.setFanPowerMinimumFlowFraction(min_fan_flow_ratio) # need to add check for ventilation
       # set fan curve coefficients
       std.fan_variable_volume_set_control_type(fan, 'Single Zone VAV Fan ')
-      zone_data[thermal_zone.name.to_s + 'min_fan_flow_ratio'] = min_fan_flow_ratio
+      zone_data["#{thermal_zone.name} min_fan_flow_ratio"] = min_fan_flow_ratio
 
 
       # Create a new water-to-air ground source heat pump system
@@ -1194,36 +1191,35 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
       air_loop_hvac = unitary_sys.airLoopHVAC
       thermal_zone = air_loop_hvac.get.thermalZones[0]
       # Set airflow for operation when neither hearing or cooling required based on the maximum of the ratio of the required ventilation airflow, or the fan minimum turndown
-      if !zone_data[thermal_zone.name.to_s + 'zone_oa_flow'].nil?
+      if zone_data["#{thermal_zone.name} zone_oa_flow"].nil?
+        runner.registerInfo("zone #{thermal_zone.name} autosizing airflow for vent only")
+        unitary_sys.autosizeSupplyAirFlowRateWhenNoCoolingorHeatingisRequired
+      else
         if unitary_sys.autosizedSupplyAirFlowRateDuringCoolingOperation.is_initialized
           design_airflow_rate = unitary_sys.autosizedSupplyAirFlowRateDuringCoolingOperation.get
           min_fan_turndown_airflow = min_flow * design_airflow_rate
-          min_system_flow = [min_fan_turndown_airflow, zone_data[thermal_zone.name.to_s + 'zone_oa_flow']].max
+          min_system_flow = [min_fan_turndown_airflow, zone_data["#{thermal_zone.name} zone_oa_flow"]].max
           unitary_sys.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_system_flow)
           runner.registerInfo("zone name for oa  #{thermal_zone.name}")
-          runner.registerInfo("min zone oa flow  #{zone_data[thermal_zone.name.to_s + 'zone_oa_flow']}")
+          runner.registerInfo("min zone oa flow  #{zone_data["#{thermal_zone.name} zone_oa_flow"]}")
           runner.registerInfo("min_fan_turndown_airflow #{min_fan_turndown_airflow}")
           runner.registerInfo("min system flow #{min_system_flow}")
         elsif unitary_sys.supplyAirFlowRateDuringCoolingOperation.is_initialized
           design_airflow_rate = unitary_sys.autosizedSupplyAirFlowRateDuringCoolingOperation.get
           min_fan_turndown_airflow = min_flow * design_airflow_rate
-          min_system_flow = [min_fan_turndown_airflow, zone_data[thermal_zone.name.to_s + 'zone_oa_flow']].max
+          min_system_flow = [min_fan_turndown_airflow, zone_data["#{thermal_zone.name} zone_oa_flow"]].max
           unitary_sys.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(governing_min_ratio * design_airflow_rate)
           runner.registerInfo("min system flow #{min_system_flow}")
         else
           unitary_sys.autosizeSupplyAirFlowRateWhenNoCoolingorHeatingisRequired
           runner.registerInfo("zone #{thermal_zone.name} autosizing airflow for vent only")
         end
-      else
-        runner.registerInfo("zone #{thermal_zone.name} autosizing airflow for vent only")
-        unitary_sys.autosizeSupplyAirFlowRateWhenNoCoolingorHeatingisRequired
       end
     end
     # add output variable for GHEDesigner
     reporting_frequency = 'Hourly'
-    outputVariable = OpenStudio::Model::OutputVariable.new('Plant Temperature Source Component Heat Transfer Rate',
-                                                           model)
-    outputVariable.setReportingFrequency(reporting_frequency)
+    output_variable = OpenStudio::Model::OutputVariable.new('Plant Temperature Source Component Heat Transfer Rate', model)
+    output_variable.setReportingFrequency(reporting_frequency)
     runner.registerInfo("Adding output variable for 'Plant Temperature Source Component Heat Transfer Rate' reporting at the hourly timestep.")
 
     # retrieve or perform annual run to get hourly thermal loads
@@ -1272,8 +1268,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
 
     # Make directory for GHEDesigner simulation
     ghedesigner_run_dir = "#{Dir.pwd}/GHEDesigner"
-    # ghedesigner_run_dir = "C:/Users/mprapros/Desktop/ghedesigner"
-    FileUtils.mkdir_p(ghedesigner_run_dir) unless File.exist?(ghedesigner_run_dir)
+    FileUtils.mkdir_p(ghedesigner_run_dir)
 
     # Make json input file for GHEDesigner
     borefield_defaults_json_path = "#{File.dirname(__FILE__)}/resources/borefield_defaults.json"

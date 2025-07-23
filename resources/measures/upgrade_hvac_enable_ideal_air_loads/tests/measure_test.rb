@@ -41,12 +41,10 @@ require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
 require 'fileutils'
 require 'minitest/autorun'
-require_relative '../measure.rb'
+require_relative '../measure'
 require_relative '../../../../test/helpers/minitest_helper'
 
-
 class UpgradeEnableIdealAirLoads < Minitest::Test
-
   # return file paths to test models in test directory
   def models_for_tests
     paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/models/*.osm'))
@@ -101,9 +99,7 @@ class UpgradeEnableIdealAirLoads < Minitest::Test
     assert(File.exist?(epw_path))
 
     # create run directory if it does not exist
-    if !File.exist?(run_dir(test_name))
-      FileUtils.mkdir_p(run_dir(test_name))
-    end
+    FileUtils.mkdir_p(run_dir(test_name))
     assert(File.exist?(run_dir(test_name)))
 
     # change into run directory for tests
@@ -111,12 +107,8 @@ class UpgradeEnableIdealAirLoads < Minitest::Test
     Dir.chdir run_dir(test_name)
 
     # remove prior runs if they exist
-    if File.exist?(model_output_path(test_name))
-      FileUtils.rm(model_output_path(test_name))
-    end
-    if File.exist?(report_path(test_name))
-      FileUtils.rm(report_path(test_name))
-    end
+    FileUtils.rm_f(model_output_path(test_name))
+    FileUtils.rm_f(report_path(test_name))
 
     # copy the osm and epw to the test directory
     new_osm_path = "#{run_dir(test_name)}/#{File.basename(osm_path)}"
@@ -167,7 +159,7 @@ class UpgradeEnableIdealAirLoads < Minitest::Test
   def verify_ideal_air_loads(model)
     # verify that ideal air loads objects exist
     ideal_air_loads_objects = model.getZoneHVACIdealLoadsAirSystems
-    assert(ideal_air_loads_objects.size > 0)
+    assert(!ideal_air_loads_objects.empty?)
 
     # verify OA objects have OA schedules
     ideal_air_loads_objects.each do |ial|
@@ -304,5 +296,4 @@ class UpgradeEnableIdealAirLoads < Minitest::Test
     # verify objects in model
     verify_ideal_air_loads(model)
   end
-
 end

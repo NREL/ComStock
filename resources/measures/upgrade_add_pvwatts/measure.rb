@@ -68,12 +68,12 @@ class UpgradeAddPvwatts < OpenStudio::Measure::ModelMeasure
     latitude = latitude.to_f
     if latitude > 0
       # northern hemisphere
-      tilt = 1.3793 + latitude * (1.2011 + latitude * (-0.014404 + latitude * 0.000080509))
+      tilt = 1.3793 + (latitude * (1.2011 + (latitude * (-0.014404 + (latitude * 0.000080509)))))
       # from EnergyPlus I/O: An azimuth angle of 180◦ is for a south-facing array, and an azimuth angle of 0◦ is for anorth-facing array.
       azimuth = 180.0
     else
       # southern hemisphere - calculates negative tilt from negative latitude
-      tilt = -0.41657 + latitude * (1.4216 + latitude * (0.024051 + latitude * 0.00021828))
+      tilt = -0.41657 + (latitude * (1.4216 + (latitude * (0.024051 + (latitude * 0.00021828)))))
       tilt = abs(tilt)
       azimuth = 0.0
     end
@@ -96,7 +96,7 @@ class UpgradeAddPvwatts < OpenStudio::Measure::ModelMeasure
     system_capacity_w = system_capacity_kw * 1000
     pvw_generator = OpenStudio::Model::GeneratorPVWatts.new(model, system_capacity_w)
     pvw_generator.setName(name)
-    if %w[Standard Premium ThinFilm].include? module_type
+    if ['Standard', 'Premium', 'ThinFilm'].include? module_type
       pvw_generator.setModuleType(module_type)
     else
       OpenStudio.logFree(OpenStudio::Warn, 'openstudio.standards.Model',
@@ -104,7 +104,7 @@ class UpgradeAddPvwatts < OpenStudio::Measure::ModelMeasure
       return false
     end
 
-    if %w[FixedOpenRack FixedRoofMounted OneAxis OneAxisBacktracking TwoAxis].include? array_type
+    if ['FixedOpenRack', 'FixedRoofMounted', 'OneAxis', 'OneAxisBacktracking', 'TwoAxis'].include? array_type
       pvw_generator.setArrayType(array_type)
     else
       OpenStudio.logFree(OpenStudio::Warn, 'openstudio.standards.Model',
@@ -116,15 +116,15 @@ class UpgradeAddPvwatts < OpenStudio::Measure::ModelMeasure
     if tilt_angle.nil? && azimuth_angle.nil?
       # check if site is poulated
       latitude_defaulted = model.getSite.isLatitudeDefaulted
-      if !latitude_defaulted
-        latitude = model.getSite.latitude
-        # calcaulate optimal fixed tilt
-        tilt, azimuth = model_pv_optimal_fixed_position(latitude)
-      else
+      if latitude_defaulted
         OpenStudio.logFree(OpenStudio::Debug, 'openstudio.standards.Model',
                            'No Site location found: Generator:PVWatts will be created with tilt of 25 degree tilt and 180 degree azimuth.')
         tilt = 25.0
         azimuth = 180.0
+      else
+        latitude = model.getSite.latitude
+        # calcaulate optimal fixed tilt
+        tilt, azimuth = model_pv_optimal_fixed_position(latitude)
       end
     end
 

@@ -38,7 +38,6 @@
 require 'tbd'
 
 class ThermalBridgingDerating < OpenStudio::Measure::ModelMeasure
-
   # Returns measure name
   #
   # @return [String] measure name

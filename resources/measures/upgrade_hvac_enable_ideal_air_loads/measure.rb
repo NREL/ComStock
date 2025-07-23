@@ -58,7 +58,6 @@ class UpgradeHvacEnableIdealAirLoads < OpenStudio::Measure::ModelMeasure
     return 'All HVAC systems are removed and replaced with ZoneHVACIdealLoadsAirSystems objects. Outdoor ventilation air follows occupancy schedule, which may not align with the original HVAC ventilation schedule found in the baseline model. All thermostat schedules are held constant with baseline model. Energy from ZoneHVACIdealLoadsAirSystems is reported under district end uses, not necesarily aligning with the HVAC fuel type of the baseline model.'
   end
 
-
   # define the arguments that the user will input
   def arguments(model)
     args = OpenStudio::Measure::OSArgumentVector.new
@@ -91,20 +90,22 @@ class UpgradeHvacEnableIdealAirLoads < OpenStudio::Measure::ModelMeasure
     model.getThermalZones.each do |zone|
       next if zone.name.to_s.downcase.include?('plenum')
       next if !OpenstudioStandards::ThermalZone.thermal_zone_heated?(zone) && !OpenstudioStandards::ThermalZone.thermal_zone_cooled?(zone)
+
       conditioned_zones << zone
     end
 
     if conditioned_zones.empty?
-      runner.registerAsNotApplicable("No conditioned thermal zones found in model. Ideal air loads are not applicable to this model.")
+      runner.registerAsNotApplicable('No conditioned thermal zones found in model. Ideal air loads are not applicable to this model.')
       return true
     end
 
     # modify design outdoor air object to follow occupancy; ComStock DSOA objects do not have schedules by default
     conditioned_zones.each do |zone|
-      sch_ruleset = OpenstudioStandards::ThermalZone.thermal_zones_get_occupancy_schedule(thermal_zones=[zone],
-      occupied_percentage_threshold:0.05)
+      sch_ruleset = OpenstudioStandards::ThermalZone.thermal_zones_get_occupancy_schedule(thermal_zones = [zone],
+                                                                                          occupied_percentage_threshold: 0.05)
       zone.spaces.each do |space|
         next unless space.designSpecificationOutdoorAir.is_initialized
+
         dsn_oa = space.designSpecificationOutdoorAir.get
         dsn_oa.setOutdoorAirFlowRateFractionSchedule(sch_ruleset)
       end
@@ -147,7 +148,7 @@ class UpgradeHvacEnableIdealAirLoads < OpenStudio::Measure::ModelMeasure
     # Remove each matching EMS object from the model
     ems_objects_to_remove.each do |object_to_remove|
       # Remove the EMS object from the model
-      runner.registerInfo("Removing unused GSHP objects from the model.")
+      runner.registerInfo('Removing unused GSHP objects from the model.')
       object_to_remove.remove
     end
 

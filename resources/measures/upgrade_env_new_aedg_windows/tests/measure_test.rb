@@ -41,12 +41,10 @@ require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
 require 'fileutils'
 require 'minitest/autorun'
-require_relative '../measure.rb'
+require_relative '../measure'
 require_relative '../../../../test/helpers/minitest_helper'
 
-
 class EnvNewAedgWindowsTest < Minitest::Test
-
   # return file paths to test models in test directory
   def models_for_tests
     paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/models/*.osm'))
@@ -101,9 +99,7 @@ class EnvNewAedgWindowsTest < Minitest::Test
     assert(File.exist?(epw_path))
 
     # create run directory if it does not exist
-    if !File.exist?(run_dir(test_name))
-      FileUtils.mkdir_p(run_dir(test_name))
-    end
+    FileUtils.mkdir_p(run_dir(test_name))
     assert(File.exist?(run_dir(test_name)))
 
     # change into run directory for tests
@@ -111,12 +107,8 @@ class EnvNewAedgWindowsTest < Minitest::Test
     Dir.chdir run_dir(test_name)
 
     # remove prior runs if they exist
-    if File.exist?(model_output_path(test_name))
-      FileUtils.rm(model_output_path(test_name))
-    end
-    if File.exist?(report_path(test_name))
-      FileUtils.rm(report_path(test_name))
-    end
+    FileUtils.rm_f(model_output_path(test_name))
+    FileUtils.rm_f(report_path(test_name))
 
     # copy the osm and epw to the test directory
     new_osm_path = "#{run_dir(test_name)}/#{File.basename(osm_path)}"
@@ -203,7 +195,8 @@ class EnvNewAedgWindowsTest < Minitest::Test
     old_u_val_ip = 0
     old_ext_surf_material = nil
     model.getSubSurfaces.each do |sub_surface|
-      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && (sub_surface.subSurfaceType.include?('Window'))
+      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && sub_surface.subSurfaceType.include?('Window')
+
       surf_const = sub_surface.construction.get.to_LayeredConstruction.get
       glazing_layer = surf_const.layers[0].to_SimpleGlazing.get
       old_u_val_si = glazing_layer.uFactor
@@ -218,7 +211,8 @@ class EnvNewAedgWindowsTest < Minitest::Test
 
     model = load_model(model_output_path(__method__))
     model.getSubSurfaces.each do |sub_surface|
-      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && (sub_surface.subSurfaceType.include?('Window'))
+      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && sub_surface.subSurfaceType.include?('Window')
+
       surf_const = sub_surface.construction.get.to_LayeredConstruction.get
       glazing_layer = surf_const.layers[0].to_SimpleGlazing.get
       new_u_val_si = glazing_layer.uFactor
@@ -258,7 +252,8 @@ class EnvNewAedgWindowsTest < Minitest::Test
     old_u_val_ip = 0
     old_ext_surf_material = nil
     model.getSubSurfaces.each do |sub_surface|
-      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && (sub_surface.subSurfaceType.include?('Window'))
+      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && sub_surface.subSurfaceType.include?('Window')
+
       surf_const = sub_surface.construction.get.to_LayeredConstruction.get
       glazing_layer = surf_const.layers[0].to_SimpleGlazing.get
       old_u_val_si = glazing_layer.uFactor
@@ -273,7 +268,8 @@ class EnvNewAedgWindowsTest < Minitest::Test
 
     model = load_model(model_output_path(__method__))
     model.getSubSurfaces.each do |sub_surface|
-      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && (sub_surface.subSurfaceType.include?('Window'))
+      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && sub_surface.subSurfaceType.include?('Window')
+
       surf_const = sub_surface.construction.get.to_LayeredConstruction.get
       glazing_layer = surf_const.layers[0].to_SimpleGlazing.get
       new_u_val_si = glazing_layer.uFactor
@@ -313,7 +309,8 @@ class EnvNewAedgWindowsTest < Minitest::Test
     old_u_val_ip = 0
     old_ext_surf_material = nil
     model.getSubSurfaces.each do |sub_surface|
-      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && (sub_surface.subSurfaceType.include?('Window'))
+      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && sub_surface.subSurfaceType.include?('Window')
+
       surf_const = sub_surface.construction.get.to_LayeredConstruction.get
       glazing_layer = surf_const.layers[0].to_SimpleGlazing.get
       old_u_val_si = glazing_layer.uFactor
@@ -328,7 +325,8 @@ class EnvNewAedgWindowsTest < Minitest::Test
 
     model = load_model(model_output_path(__method__))
     model.getSubSurfaces.each do |sub_surface|
-      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && (sub_surface.subSurfaceType.include?('Window'))
+      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && sub_surface.subSurfaceType.include?('Window')
+
       surf_const = sub_surface.construction.get.to_LayeredConstruction.get
       glazing_layer = surf_const.layers[0].to_SimpleGlazing.get
       new_u_val_si = glazing_layer.uFactor
@@ -368,7 +366,8 @@ class EnvNewAedgWindowsTest < Minitest::Test
     old_u_val_ip = 0
     old_ext_surf_material = nil
     model.getSubSurfaces.each do |sub_surface|
-      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && (sub_surface.subSurfaceType.include?('Window'))
+      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && sub_surface.subSurfaceType.include?('Window')
+
       surf_const = sub_surface.construction.get.to_LayeredConstruction.get
       glazing_layer = surf_const.layers[0].to_SimpleGlazing.get
       old_u_val_si = glazing_layer.uFactor
@@ -383,7 +382,8 @@ class EnvNewAedgWindowsTest < Minitest::Test
 
     model = load_model(model_output_path(__method__))
     model.getSubSurfaces.each do |sub_surface|
-      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && (sub_surface.subSurfaceType.include?('Window'))
+      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && sub_surface.subSurfaceType.include?('Window')
+
       surf_const = sub_surface.construction.get.to_LayeredConstruction.get
       glazing_layer = surf_const.layers[0].to_SimpleGlazing.get
       new_u_val_si = glazing_layer.uFactor
@@ -423,7 +423,8 @@ class EnvNewAedgWindowsTest < Minitest::Test
     old_u_val_ip = 0
     old_ext_surf_material = nil
     model.getSubSurfaces.each do |sub_surface|
-      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && (sub_surface.subSurfaceType.include?('Window'))
+      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && sub_surface.subSurfaceType.include?('Window')
+
       surf_const = sub_surface.construction.get.to_LayeredConstruction.get
       glazing_layer = surf_const.layers[0].to_SimpleGlazing.get
       old_u_val_si = glazing_layer.uFactor
@@ -438,7 +439,8 @@ class EnvNewAedgWindowsTest < Minitest::Test
 
     model = load_model(model_output_path(__method__))
     model.getSubSurfaces.each do |sub_surface|
-      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && (sub_surface.subSurfaceType.include?('Window'))
+      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && sub_surface.subSurfaceType.include?('Window')
+
       surf_const = sub_surface.construction.get.to_LayeredConstruction.get
       glazing_layer = surf_const.layers[0].to_SimpleGlazing.get
       new_u_val_si = glazing_layer.uFactor

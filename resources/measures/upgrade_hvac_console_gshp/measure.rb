@@ -36,20 +36,17 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # *******************************************************************************
 
-# see the URL below for information on how to write OpenStudio measures
-# http://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/
 require 'openstudio-standards'
-
 require 'csv'
 
 # require all .rb files in resources folder
-Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }
-
-# resource file modules
-include Make_Performance_Curves
+Dir["#{File.dirname(__FILE__)}/resources/*.rb"].sort.each { |file| require file }
 
 # start the measure
 class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
+  # resource file modules
+  include MakePerformanceCurves
+
   # human readable name
   def name
     # Measure name should be the title case of the class name.
@@ -64,6 +61,48 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
   # human readable description of modeling approach
   def modeler_description
     'This measure will work on packaged terminal systems as well as other non-ducted systems such as baseboards or unit heaters.'
+  end
+
+  # determine if the air loop is residential (checks to see if there is outdoor air system object)
+  # measure will be applicable to residential AC/residential furnace systems
+  def air_loop_res?(air_loop_hvac)
+    is_res_system = true
+    air_loop_hvac.supplyComponents.each do |component|
+      obj_type = component.iddObjectType.valueName.to_s
+      case obj_type
+      when 'OS_AirLoopHVAC_OutdoorAirSystem'
+        is_res_system = false
+      end
+    end
+    is_res_system
+  end
+
+  # Determine if is evaporative cooler
+  # measure will be applicable to buildings with direct evap coolers
+  def air_loop_evaporative_cooler?(air_loop_hvac)
+    is_evap = false
+    air_loop_hvac.supplyComponents.each do |component|
+      obj_type = component.iddObjectType.valueName.to_s
+      case obj_type
+      when 'OS_EvaporativeCooler_Direct_ResearchSpecial', 'OS_EvaporativeCooler_Indirect_ResearchSpecial', 'OS_EvaporativeFluidCooler_SingleSpeed', 'OS_EvaporativeFluidCooler_TwoSpeed'
+        is_evap = true
+      end
+    end
+    is_evap
+  end
+
+  # Determine if the air loop is a unitary system
+  # @return [Bool] Returns true if a unitary system is present, false if not.
+  def air_loop_hvac_unitary_system?(air_loop_hvac)
+    is_unitary_system = false
+    air_loop_hvac.supplyComponents.each do |component|
+      obj_type = component.iddObjectType.valueName.to_s
+      case obj_type
+      when 'OS_AirLoopHVAC_UnitarySystem', 'OS_AirLoopHVAC_UnitaryHeatPump_AirToAir', 'OS_AirLoopHVAC_UnitaryHeatPump_AirToAir_MultiSpeed', 'OS_AirLoopHVAC_UnitaryHeatCool_VAVChangeoverBypass'
+        is_unitary_system = true
+      end
+    end
+    is_unitary_system
   end
 
   # Define the arguments that the user will input
@@ -95,7 +134,6 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     lighting.setDefaultValue(false)
     args << lighting
 
-
     args
   end
 
@@ -115,50 +153,8 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     OpenstudioStandards::Weather.model_get_climate_zone(model)
     Standard.build('90.1-2019') # to reflect new motors
 
-    # determine if the air loop is residential (checks to see if there is outdoor air system object)
-    # measure will be applicable to residential AC/residential furnace systems
-    def air_loop_res?(air_loop_hvac)
-      is_res_system = true
-      air_loop_hvac.supplyComponents.each do |component|
-        obj_type = component.iddObjectType.valueName.to_s
-        case obj_type
-        when 'OS_AirLoopHVAC_OutdoorAirSystem'
-          is_res_system = false
-        end
-      end
-      is_res_system
-    end
-
-    # Determine if is evaporative cooler
-    # measure will be applicable to buildings with direct evap coolers
-    def air_loop_evaporative_cooler?(air_loop_hvac)
-      is_evap = false
-      air_loop_hvac.supplyComponents.each do |component|
-        obj_type = component.iddObjectType.valueName.to_s
-        case obj_type
-        when 'OS_EvaporativeCooler_Direct_ResearchSpecial', 'OS_EvaporativeCooler_Indirect_ResearchSpecial', 'OS_EvaporativeFluidCooler_SingleSpeed', 'OS_EvaporativeFluidCooler_TwoSpeed'
-          is_evap = true
-        end
-      end
-      is_evap
-    end
-
-    # Determine if the air loop is a unitary system
-    # @return [Bool] Returns true if a unitary system is present, false if not.
-    def air_loop_hvac_unitary_system?(air_loop_hvac)
-      is_unitary_system = false
-      air_loop_hvac.supplyComponents.each do |component|
-        obj_type = component.iddObjectType.valueName.to_s
-        case obj_type
-        when 'OS_AirLoopHVAC_UnitarySystem', 'OS_AirLoopHVAC_UnitaryHeatPump_AirToAir', 'OS_AirLoopHVAC_UnitaryHeatPump_AirToAir_MultiSpeed', 'OS_AirLoopHVAC_UnitaryHeatCool_VAVChangeoverBypass'
-          is_unitary_system = true
-        end
-      end
-      is_unitary_system
-    end
-
     # check if GroundHeatExchanger:Vertical is present (for package runs)
-    if model.getObjectsByType(OpenStudio::Model::GroundHeatExchangerVertical.iddObjectType).size > 0
+    if !model.getObjectsByType(OpenStudio::Model::GroundHeatExchangerVertical.iddObjectType).empty?
       runner.registerAsNotApplicable('Model already contains a GroundHeatExchanger:Vertical, upgrade is not applicable.')
       return true
     end
@@ -190,7 +186,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
       if thermal_zone.equipment.empty?
         unconditioned_zones << thermal_zone.name.get
       # if original zone is typically conditioned with baseboards or unit heaters (as opposed to primary system), maintain zone equipment in this space
-      elsif %w[Bulk Entry WarehouseUnCond].any? { |word| thermal_zone.name.get.include?(word) }
+      elsif ['Bulk', 'Entry', 'WarehouseUnCond'].any? { |word| thermal_zone.name.get.include?(word) }
         zones_to_skip << thermal_zone.name.get
       end
     end
@@ -205,54 +201,48 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     if all_air_loops.empty?
       runner.registerInfo('Model does not have any air loops. Get list of PTAC, PTHP, Unit Heater, or Baseboard Electric equipment to delete.')
 
-      # check for PTAC units and add to array of zone equipment to delete
+      # check for zone equipment to delete
       model.getThermalZones.each do |thermal_zone|
         thermal_zone.equipment.each do |equip|
-          next unless equip.to_ZoneHVACPackagedTerminalAirConditioner.is_initialized
+          if equip.to_ZoneHVACPackagedTerminalAirConditioner.is_initialized
+            # check for PTAC units and add to array of zone equipment to delete
+            ptacs << equip.to_ZoneHVACPackagedTerminalAirConditioner.get
+            equip_to_delete << equip.to_ZoneHVACPackagedTerminalAirConditioner.get
+            ptac_unit = equip.to_ZoneHVACPackagedTerminalAirConditioner.get
+            sup_fan = ptac_unit.supplyAirFan
+            next unless sup_fan.to_FanOnOff.is_initialized
 
-          ptacs << equip.to_ZoneHVACPackagedTerminalAirConditioner.get
-          equip_to_delete << equip.to_ZoneHVACPackagedTerminalAirConditioner.get
-          ptac_unit = equip.to_ZoneHVACPackagedTerminalAirConditioner.get
-          sup_fan = ptac_unit.supplyAirFan
-          next unless sup_fan.to_FanOnOff.is_initialized
+            sup_fan = sup_fan.to_FanOnOff.get
+            pressure_rise = sup_fan.pressureRise
+            zone_fan_data[thermal_zone.name.to_s] = {}
+            zone_fan_data[thermal_zone.name.to_s]['pressure_rise'] = pressure_rise
+            std.fan_motor_horsepower(sup_fan) # based on existing fan
+            motor_bhp = std.fan_brake_horsepower(sup_fan)
+            fan_motor_eff = std.fan_standard_minimum_motor_efficiency_and_size(sup_fan, motor_bhp)[0]
+            zone_fan_data[thermal_zone.name.to_s]['fan_motor_eff'] = fan_motor_eff
+            fan_eff = std.fan_baseline_impeller_efficiency(sup_fan)
+            zone_fan_data[thermal_zone.name.to_s]['fan_eff'] = fan_eff
+          elsif equip.to_ZoneHVACPackagedTerminalHeatPump.is_initialized
+            # check for PTHP units and add to array of zone equipment to delete
+            pthps << equip.to_ZoneHVACPackagedTerminalHeatPump.get
+            equip_to_delete << equip.to_ZoneHVACPackagedTerminalHeatPump.get
+            pthp_unit = equip.to_ZoneHVACPackagedTerminalHeatPump.get
+            sup_fan = pthp_unit.supplyAirFan
+            next unless sup_fan.to_FanOnOff.is_initialized
 
-          sup_fan = sup_fan.to_FanOnOff.get
-          pressure_rise = sup_fan.pressureRise
-          zone_fan_data[thermal_zone.name.to_s] = {}
-          zone_fan_data[thermal_zone.name.to_s]['pressure_rise'] = pressure_rise
-          std.fan_motor_horsepower(sup_fan) # based on existing fan
-          motor_bhp = std.fan_brake_horsepower(sup_fan)
-          fan_motor_eff = std.fan_standard_minimum_motor_efficiency_and_size(sup_fan, motor_bhp)[0]
-          zone_fan_data[thermal_zone.name.to_s]['fan_motor_eff'] = fan_motor_eff
-          fan_eff = std.fan_baseline_impeller_efficiency(sup_fan)
-          zone_fan_data[thermal_zone.name.to_s]['fan_eff'] = fan_eff
+            sup_fan = sup_fan.to_FanOnOff.get
+            pressure_rise = sup_fan.pressureRise
+            zone_fan_data[thermal_zone.name.to_s] = {}
+            zone_fan_data[thermal_zone.name.to_s]['pressure_rise'] = pressure_rise
+            std.fan_motor_horsepower(sup_fan) # based on existing fan
+            motor_bhp = std.fan_brake_horsepower(sup_fan)
+            fan_motor_eff = std.fan_standard_minimum_motor_efficiency_and_size(sup_fan, motor_bhp)[0]
+            zone_fan_data[thermal_zone.name.to_s]['fan_motor_eff'] = fan_motor_eff
+            fan_eff = std.fan_baseline_impeller_efficiency(sup_fan)
+            zone_fan_data[thermal_zone.name.to_s]['fan_eff'] = fan_eff
+          end
         end
       end
-
-      # check for PTHP units and add to array of zone equipment to delete
-      model.getThermalZones.each do |thermal_zone|
-        thermal_zone.equipment.each do |equip|
-          next unless equip.to_ZoneHVACPackagedTerminalHeatPump.is_initialized
-
-          pthps << equip.to_ZoneHVACPackagedTerminalHeatPump.get
-          equip_to_delete << equip.to_ZoneHVACPackagedTerminalHeatPump.get
-          pthp_unit = equip.to_ZoneHVACPackagedTerminalHeatPump.get
-          sup_fan = pthp_unit.supplyAirFan
-          next unless sup_fan.to_FanOnOff.is_initialized
-
-          sup_fan = sup_fan.to_FanOnOff.get
-          pressure_rise = sup_fan.pressureRise
-          zone_fan_data[thermal_zone.name.to_s] = {}
-          zone_fan_data[thermal_zone.name.to_s]['pressure_rise'] = pressure_rise
-          std.fan_motor_horsepower(sup_fan) # based on existing fan
-          motor_bhp = std.fan_brake_horsepower(sup_fan)
-          fan_motor_eff = std.fan_standard_minimum_motor_efficiency_and_size(sup_fan, motor_bhp)[0]
-          zone_fan_data[thermal_zone.name.to_s]['fan_motor_eff'] = fan_motor_eff
-          fan_eff = std.fan_baseline_impeller_efficiency(sup_fan)
-          zone_fan_data[thermal_zone.name.to_s]['fan_eff'] = fan_eff
-        end
-      end
-
 
       # check for baseboard electric and add to array of zone equipment to delete
       # if there are PTACs or PTHPs in the building, skips zones with baseboards
@@ -260,7 +250,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
         thermal_zone.equipment.each do |equip|
           next unless equip.to_ZoneHVACBaseboardConvectiveElectric.is_initialized
 
-          if ptacs.size > 0 || pthps.size > 0
+          if !ptacs.empty? || !pthps.empty?
             zones_to_skip << thermal_zone.name.get
           else
             baseboards << equip.to_ZoneHVACBaseboardConvectiveElectric.get
@@ -275,7 +265,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
         thermal_zone.equipment.each do |equip|
           next unless equip.to_ZoneHVACUnitHeater.is_initialized
 
-          if ptacs.size > 0 || pthps.size > 0
+          if !ptacs.size.empty? || !pthps.empty?
             zones_to_skip << thermal_zone.name.get
           else
             unit_heaters << equip.to_ZoneHVACUnitHeater.get
@@ -307,7 +297,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     end
 
     # check for PTAC with gas boiler and remove baseboard water from zones
-    if ptacs.size > 0
+    if !ptacs.empty?
       model.getThermalZones.each do |thermal_zone|
         thermal_zone.equipment.each do |equip|
           next unless equip.to_ZoneHVACBaseboardConvectiveWater.is_initialized
@@ -326,7 +316,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     # get plant loops and remove
     # only relevant for direct evap coolers with baseboard gas boiler
     plant_loops = model.getPlantLoops
-    if plant_loops.size > 0
+    if !plant_loops.empty?
       plant_loops.each do |plant_loop|
         # do not delete service water heating loops
         next if ['Service'].any? { |word| plant_loop.name.get.include?(word) }
@@ -473,11 +463,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     ground_loop.addSupplyBranchForComponent(ground_temp_source)
 
     # Loop through air loops, plant loops, and thermal zones and remove old equipment
-    selected_air_loops.each do |air_loop_hvac|
-      # remove old air loop, new ones will be added
-      air_loop_hvac.remove
-    end
-
+    selected_air_loops.each(&:remove)
 
     # Loop through each thermal zone and remove old PTAC/PTHP and replace it with a water-to-air ground source heat pump
     model.getThermalZones.each do |thermal_zone|
@@ -810,9 +796,8 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
 
     # add output variable for GHEDesigner
     reporting_frequency = 'Hourly'
-    outputVariable = OpenStudio::Model::OutputVariable.new('Plant Temperature Source Component Heat Transfer Rate',
-                                                           model)
-    outputVariable.setReportingFrequency(reporting_frequency)
+    output_variable = OpenStudio::Model::OutputVariable.new('Plant Temperature Source Component Heat Transfer Rate', model)
+    output_variable.setReportingFrequency(reporting_frequency)
     runner.registerInfo("Adding output variable for 'Plant Temperature Source Component Heat Transfer Rate' reporting at the hourly timestep.")
 
     # retrieve or perform annual run to get hourly thermal loads
@@ -861,7 +846,7 @@ class AddConsoleGSHP < OpenStudio::Measure::ModelMeasure
     # Make directory for GHEDesigner simulation
     ghedesigner_run_dir = "#{Dir.pwd}/GHEDesigner"
     # ghedesigner_run_dir = "C:/Users/mprapros/Desktop/ghedesigner"
-    FileUtils.mkdir_p(ghedesigner_run_dir) unless File.exist?(ghedesigner_run_dir)
+    FileUtils.mkdir_p(ghedesigner_run_dir)
 
     # Make json input file for GHEDesigner
     borefield_defaults_json_path = "#{File.dirname(__FILE__)}/resources/borefield_defaults.json"

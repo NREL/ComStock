@@ -188,7 +188,7 @@ def call_lighting(model, runner)
   lighting_result = runner_lighting.result
 
   runner = child_to_parent_runner_logging(runner, lighting_measure.name.to_s, lighting_result,
-                                          %w[light_lighting_technology_initial_lighting_power light_lighting_technology_initial_lighting_power_density light_lighting_technology_final_lighting_power light_lighting_technology_final_lighting_power_density])
+                                          ['light_lighting_technology_initial_lighting_power', 'light_lighting_technology_initial_lighting_power_density', 'light_lighting_technology_final_lighting_power', 'light_lighting_technology_final_lighting_power_density'])
 
   [lighting_result, runner]
 end

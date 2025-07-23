@@ -42,12 +42,11 @@ require 'openstudio-standards'
 require 'openstudio/measure/ShowRunnerOutput'
 require 'fileutils'
 require 'minitest/autorun'
-require_relative '../measure.rb'
+require_relative '../measure'
 require 'csv'
 require_relative '../../../../test/helpers/minitest_helper'
 
-class HVACEconomizer_Test < Minitest::Test
-
+class HVACEconomizerTest < Minitest::Test
   def test_number_of_arguments_and_argument_names
     # this test ensures that the current test is matched to the measure inputs
     test_name = 'test_number_of_arguments_and_argument_names'
@@ -109,9 +108,7 @@ class HVACEconomizer_Test < Minitest::Test
     assert(File.exist?(epw_path))
 
     # create run directory if it does not exist
-    if !File.exist?(run_dir(test_name))
-      FileUtils.mkdir_p(run_dir(test_name))
-    end
+    FileUtils.mkdir_p(run_dir(test_name))
     assert(File.exist?(run_dir(test_name)))
 
     # change into run directory for tests
@@ -119,12 +116,8 @@ class HVACEconomizer_Test < Minitest::Test
     Dir.chdir run_dir(test_name)
 
     # remove prior runs if they exist
-    if File.exist?(model_output_path(test_name))
-      FileUtils.rm(model_output_path(test_name))
-    end
-    if File.exist?(report_path(test_name))
-      FileUtils.rm(report_path(test_name))
-    end
+    FileUtils.rm_f(model_output_path(test_name))
+    FileUtils.rm_f(report_path(test_name))
 
     # copy the osm and epw to the test directory
     new_osm_path = "#{run_dir(test_name)}/#{File.basename(osm_path)}"
@@ -184,10 +177,10 @@ class HVACEconomizer_Test < Minitest::Test
       # get controller:outdoorair
       oa_control = oa_sys.getControllerOutdoorAir
       # change/check settings: control type
-      if oa_control.getEconomizerControlType != 'NoEconomizer'
-        economizer_availability << true
-      else
+      if oa_control.getEconomizerControlType == 'NoEconomizer'
         economizer_availability << false
+      else
+        economizer_availability << true
       end
     end
     return economizer_availability.count(true)
@@ -200,12 +193,9 @@ class HVACEconomizer_Test < Minitest::Test
     return month, day
   end
 
-  def run_simulation_and_get_timeseries(model, year, max_doy, num_timesteps_in_hr, timeseriesnames, epw_path=nil, run_dir = "#{Dir.pwd}/output")
-
+  def run_simulation_and_get_timeseries(model, year, max_doy, num_timesteps_in_hr, timeseriesnames, epw_path = nil, run_dir = "#{Dir.pwd}/output")
     # Make the directory if it doesn't exist
-    unless Dir.exist?(run_dir)
-      FileUtils.mkdir_p(run_dir)
-    end
+    FileUtils.mkdir_p(run_dir)
 
     # Load template
     template = 'ComStock 90.1-2019'
@@ -238,11 +228,10 @@ class HVACEconomizer_Test < Minitest::Test
     model.save(osm_path, true)
 
     # Find the weather file
-    if epw_path==nil
+    if epw_path.nil?
       epw_path = OpenstudioStandards::Weather.model_get_full_weather_file_path(model)
-      if epw_path.empty?
-        return false
-      end
+      return false if epw_path.empty?
+
       epw_path = epw_path.get
       # puts epw_path
     end
@@ -281,44 +270,42 @@ class HVACEconomizer_Test < Minitest::Test
     sql_path = OpenStudio::Path.new("#{run_dir}/run/eplusout.sql")
 
     # Get sql
-    sqlFile = OpenStudio::SqlFile.new(sql_path)
+    sql_file = OpenStudio::SqlFile.new(sql_path)
 
     # Check available options
-    availableEnvPeriods = sqlFile.availableEnvPeriods.to_a
-    availableTimeSeries = sqlFile.availableTimeSeries.to_a
-    availableReportingFrequencies = []
-    availableEnvPeriods.each do |envperiod|
-      sqlFile.availableReportingFrequencies(envperiod).to_a.each do |repfreq|
-        availableReportingFrequencies << repfreq
+    available_env_periods = sql_file.availableEnvPeriods.to_a
+    available_time_series = sql_file.availableTimeSeries.to_a
+    available_reporting_frequencies = []
+    available_env_periods.each do |envperiod|
+      sql_file.availableReportingFrequencies(envperiod).to_a.each do |repfreq|
+        available_reporting_frequencies << repfreq
       end
     end
 
     # Hard-code: run period set to 'RUN PERIOD 1'
     envperiod = nil
-    if availableEnvPeriods.size == 1
-      envperiod = 'RUN PERIOD 1'
-    else
-      raise "options for availableEnvPeriods are not just one: #{availableEnvPeriods}"
-    end
+    raise "options for available_env_periods are not just one: #{available_env_periods}" unless available_env_periods.size == 1
+
+    envperiod = 'RUN PERIOD 1'
 
     # Hard-code: reporting frequency to zone timestep
-    reportingfrequency = 'Zone Timestep' #'Zone Timestep'
-    unless availableReportingFrequencies.include?(reportingfrequency)
+    reportingfrequency = 'Zone Timestep'
+    unless available_reporting_frequencies.include?(reportingfrequency)
       # puts("### Debugging: Hourly reporting frequency is not available. Use Zone Timestep.")
       reportingfrequency = 'Zone Timestep'
-      unless availableReportingFrequencies.include?(reportingfrequency)
-        raise "reportingfrequency of #{reportingfrequency} not included in available options: #{availableReportingFrequencies}"
+      unless available_reporting_frequencies.include?(reportingfrequency)
+        raise "reportingfrequency of #{reportingfrequency} not included in available options: #{available_reporting_frequencies}"
       end
     end
 
     # Check if timeseries name is available in sql
     timeseriesnames.each do |timeseriesname|
-      unless availableEnvPeriods.include?(envperiod)
-        raise "envperiod of #{envperiod} not included in available options: #{availableEnvPeriods}"
+      unless available_env_periods.include?(envperiod)
+        raise "envperiod of #{envperiod} not included in available options: #{available_env_periods}"
       end
-      # puts("### DEBUGGING: availableTimeSeries = #{availableTimeSeries}")
-      unless availableTimeSeries.include?(timeseriesname)
-        raise "timeseriesname of #{timeseriesname} not included in available options: #{availableTimeSeries}"
+      # puts("### DEBUGGING: available_time_series = #{available_time_series}")
+      unless available_time_series.include?(timeseriesname)
+        raise "timeseriesname of #{timeseriesname} not included in available options: #{available_time_series}"
       end
     end
 
@@ -326,17 +313,17 @@ class HVACEconomizer_Test < Minitest::Test
     timeseries_results_combined = {}
 
     timeseriesnames.each do |timeseriesname|
-      availableKeyValues = sqlFile.availableKeyValues(envperiod,reportingfrequency,timeseriesname).to_a
+      available_key_values = sql_file.availableKeyValues(envperiod, reportingfrequency, timeseriesname).to_a
 
       # puts("### ------------------------------------------------")
       # puts("### DEBUGGING: timeseriesname = #{timeseriesname}")
-      # puts("### DEBUGGING: availableKeyValues = #{availableKeyValues}")
+      # puts("### DEBUGGING: available_key_values = #{available_key_values}")
 
-      availableKeyValues.each do |key_value|
+      available_key_values.each do |key_value|
         unless timeseries_results_combined.key?(key_value)
           timeseries_results_combined[key_value] = {}
         end
-        timeseries_result = sqlFile.timeSeries(envperiod,reportingfrequency,timeseriesname,key_value).get
+        timeseries_result = sql_file.timeSeries(envperiod, reportingfrequency, timeseriesname, key_value).get
         vals = []
         elec_vals = timeseries_result.values
         for i in 0..(elec_vals.size - 1)
@@ -346,6 +333,7 @@ class HVACEconomizer_Test < Minitest::Test
         if vals.empty?
           raise 'load profile for the sample run returned empty'
         end
+
         timeseries_results_combined[key_value][timeseriesname] = vals
       end
     end
@@ -361,7 +349,6 @@ class HVACEconomizer_Test < Minitest::Test
   end
 
   def compare_arrays_with_tolerance(array1, array2, tolerance1, tolerance2)
-
     # raise if array sizes are different
     return false if array1.length != array2.length
 
@@ -380,7 +367,7 @@ class HVACEconomizer_Test < Minitest::Test
 
     # Report stats
     puts("### DEBUGGING: violations count = #{violations_count} based on #{tolerance1}% tolerance")
-    puts("### DEBUGGING: violations % = #{(violations_ratio*100).round(3)}% from total of #{array1.length} values")
+    puts("### DEBUGGING: violations % = #{(violations_ratio * 100).round(3)}% from total of #{array1.length} values")
     puts("### DEBUGGING: violation decision = #{violation_final} based on #{tolerance2}% tolerance")
 
     return violation_final
@@ -424,7 +411,7 @@ class HVACEconomizer_Test < Minitest::Test
       # Define output vars for simulation before measure implementation
       timeseriesnames = [
         'Air System Outdoor Air Mechanical Ventilation Requested Mass Flow Rate',
-        "Air System Outdoor Air Mass Flow Rate",
+        'Air System Outdoor Air Mass Flow Rate'
       ]
 
       # Add output vars for simulation before measure implementation
@@ -439,8 +426,8 @@ class HVACEconomizer_Test < Minitest::Test
       economizer_count_before = economizer_available(model)
 
       # Run simulation prior to measure application
-      puts("### DEBUGGING: first simulation prior to measure application")
-      timeseries_results_combined_before = run_simulation_and_get_timeseries(model, 2016, number_of_days_to_test, number_of_timesteps_in_an_hr_test, timeseriesnames, epw_path=epw_path, run_dir = run_dir(instance_test_name)+'/beforemeasure')
+      puts('### DEBUGGING: first simulation prior to measure application')
+      timeseries_results_combined_before = run_simulation_and_get_timeseries(model, 2016, number_of_days_to_test, number_of_timesteps_in_an_hr_test, timeseriesnames, epw_path = epw_path, run_dir = "#{run_dir(instance_test_name)}/beforemeasure")
       timeseries_results_combined['before'] = timeseries_results_combined_before
 
       # puts("### ##########################################################")
@@ -465,10 +452,10 @@ class HVACEconomizer_Test < Minitest::Test
       end
 
       # Create OutputEnergyManagementSystem object (a 'unique' object) and configure to allow EMS reporting
-      output_EMS = model.getOutputEnergyManagementSystem
-      output_EMS.setInternalVariableAvailabilityDictionaryReporting('Verbose')
-      output_EMS.setEMSRuntimeLanguageDebugOutputLevel('Verbose')
-      output_EMS.setActuatorAvailabilityDictionaryReporting('Verbose')
+      output_ems = model.getOutputEnergyManagementSystem
+      output_ems.setInternalVariableAvailabilityDictionaryReporting('Verbose')
+      output_ems.setEMSRuntimeLanguageDebugOutputLevel('Verbose')
+      output_ems.setActuatorAvailabilityDictionaryReporting('Verbose')
 
       # Create output var for EMS variables
       ems_output_variable_list = []
@@ -482,8 +469,8 @@ class HVACEconomizer_Test < Minitest::Test
 
       # Add EMS output variables to regular output variables
       ems_output_variable_list.each do |variable|
-        output = OpenStudio::Model::OutputVariable.new(variable,model)
-        output.setKeyValue("*")
+        output = OpenStudio::Model::OutputVariable.new(variable, model)
+        output.setKeyValue('*')
         output.setReportingFrequency('Timestep')
         timeseriesnames << variable
       end
@@ -497,8 +484,8 @@ class HVACEconomizer_Test < Minitest::Test
       end
 
       # Run simulation after measure application
-      puts("### DEBUGGING: second simulation after measure application")
-      timeseries_results_combined_after = run_simulation_and_get_timeseries(model, 2016, number_of_days_to_test, number_of_timesteps_in_an_hr_test, timeseriesnames, epw_path=epw_path, run_dir = run_dir(instance_test_name)+'/aftermeasure')
+      puts('### DEBUGGING: second simulation after measure application')
+      timeseries_results_combined_after = run_simulation_and_get_timeseries(model, 2016, number_of_days_to_test, number_of_timesteps_in_an_hr_test, timeseriesnames, epw_path = epw_path, run_dir = "#{run_dir(instance_test_name)}/aftermeasure")
       timeseries_results_combined['after'] = timeseries_results_combined_after
 
       # puts("### ----------------------------------------------------------------------------")
@@ -513,11 +500,10 @@ class HVACEconomizer_Test < Minitest::Test
 
       # Compare output var results before and after the measure
       unique_identifiers.each do |identifier|
-
         # skip if the output var key is EMS
-        next if identifier == "EMS"
+        next if identifier == 'EMS'
 
-        puts("### ----------------------------------------------------------------------------")
+        puts('### ----------------------------------------------------------------------------')
         puts("### DEBUGGING: identifier = #{identifier}")
 
         # get reference string for string match
@@ -526,7 +512,7 @@ class HVACEconomizer_Test < Minitest::Test
         # get output var timeseries
         timeseries_outputvar_before = []
         timeseries_outputvar_after = []
-        unless identifier == "EMS"
+        unless identifier == 'EMS'
           timeseries_outputvar_before = timeseries_results_combined['before'][identifier][output_var_name]
           timeseries_outputvar_after = timeseries_results_combined['after'][identifier][output_var_name]
         end
@@ -567,9 +553,9 @@ class HVACEconomizer_Test < Minitest::Test
         # check violation with tolerance
         viloation_results << compare_arrays_with_tolerance(timeseries_outputvar_before, timeseries_outputvar_ems_actuator, 0.5, 1)
       end
-      puts("### ----------------------------------------------------------------------------")
+      puts('### ----------------------------------------------------------------------------')
       puts("### DEBUGGING: viloation_results = #{viloation_results}")
-      puts("### ----------------------------------------------------------------------------")
+      puts('### ----------------------------------------------------------------------------')
       assert(viloation_results.include?(true) == false)
     end
   end

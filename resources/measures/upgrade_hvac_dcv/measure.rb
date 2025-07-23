@@ -73,16 +73,16 @@ class HVACDCV < OpenStudio::Measure::ModelMeasure
       return false
     end
 
-    if model.getBuilding.name.to_s.include?("hotel") || model.getBuilding.name.to_s.include?("Hotel") || model.getBuilding.name.to_s.include?("Htl") || model.getBuilding.name.to_s.include?("Mtl")
+    if model.getBuilding.name.to_s.include?('hotel') || model.getBuilding.name.to_s.include?('Hotel') || model.getBuilding.name.to_s.include?('Htl') || model.getBuilding.name.to_s.include?('Mtl')
       runner.registerAsNotApplicable("Model building type '#{model.getBuilding.name}' is a hotel and not eligable for DCV. This measure is not applicable.")
       return true
-    elsif ((model.getBuilding.name.to_s.include?("restaurant") || model.getBuilding.name.to_s.include?("Restaurant") || model.getBuilding.name.to_s.include?("RSD") || model.getBuilding.name.to_s.include?("RFF"))) && !(model.getBuilding.name.to_s.include?("Strip") || model.getBuilding.name.to_s.include?("strip"))
+    elsif ((model.getBuilding.name.to_s.include?('restaurant') || model.getBuilding.name.to_s.include?('Restaurant') || model.getBuilding.name.to_s.include?('RSD') || model.getBuilding.name.to_s.include?('RFF'))) && !(model.getBuilding.name.to_s.include?('Strip') || model.getBuilding.name.to_s.include?('strip'))
       runner.registerAsNotApplicable("Model building type '#{model.getBuilding.name}' is a restaurant and not eligable for DCV. This measure is not applicable.")
       return true
     end
 
     # # build standard to access methods
-    orig_hvac_code_comstock = model.getBuilding.additionalProperties.getFeatureAsString("hvac_as_constructed_template")
+    orig_hvac_code_comstock = model.getBuilding.additionalProperties.getFeatureAsString('hvac_as_constructed_template')
     std = Standard.build(orig_hvac_code_comstock.to_s)
 
     # list of space types where DCV will not be applied
@@ -113,7 +113,7 @@ class HVACDCV < OpenStudio::Measure::ModelMeasure
       'LockerRoom',
       'Stair',
       'Toilet',
-      'MechElecRoom',
+      'MechElecRoom'
     ]
 
     no_outdoor_air_loops = 0
@@ -124,7 +124,6 @@ class HVACDCV < OpenStudio::Measure::ModelMeasure
     ineligible_space_types = 0
     selected_air_loops = []
     model.getAirLoopHVACs.each do |air_loop_hvac|
-
       # check for prevelance of OA system in air loop; skip if none
       oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem
       if oa_system.is_initialized
@@ -147,16 +146,18 @@ class HVACDCV < OpenStudio::Measure::ModelMeasure
       # Check for ERV. If the air loop has an ERV, air loop is not applicable for DCV measure.
       erv_components = []
       air_loop_hvac.oaComponents.each do |component|
-          component_name = component.name.to_s
-          next if component_name.include? "Node"
-          if component_name.include? "ERV"
-            erv_components << component
-          end
+        component_name = component.name.to_s
+        next if component_name.include? 'Node'
+
+        if component_name.include? 'ERV'
+          erv_components << component
         end
+      end
+
       if erv_components.any?
         runner.registerInfo("Air loop '#{air_loop_hvac.name}' has an ERV. DCV will not be applied.")
         ervs += 1
-        #next
+        # next
       end
 
       # check to see if airloop has existing DCV
@@ -197,7 +198,7 @@ class HVACDCV < OpenStudio::Measure::ModelMeasure
     # report initial condition of model
     runner.registerInitialCondition("Out of #{model.getAirLoopHVACs.size} air loops, #{no_outdoor_air_loops} do not have outdoor air, #{no_per_person_rates_loops} have a zone without per-person OA rates, #{constant_volume_doas_loops} are constant volume DOAS systems, #{ervs} have ERVs, #{ineligible_space_types} serve ineligible space types, and #{existing_dcv_loops} already have demand control ventilation enabled, leaving #{selected_air_loops.size} eligible for demand control ventilation.")
 
-    if selected_air_loops.size.zero?
+    if selected_air_loops.empty?
       runner.registerAsNotApplicable('Model does not contain air loops eligible for enabling demand control ventilation.')
       return true
     end
@@ -211,6 +212,7 @@ class HVACDCV < OpenStudio::Measure::ModelMeasure
         zone.spaces.each do |space|
           dsn_oa = space.designSpecificationOutdoorAir
           next if dsn_oa.empty?
+
           dsn_oa = dsn_oa.get
 
           # set design specification outdoor air objects to sum
