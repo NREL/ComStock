@@ -67,11 +67,12 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
         self.trim_negative_gap = trim_negative_gap
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        self.output_dir = os.path.join(current_dir, 'output')
+        self.output_dir = os.path.join(current_dir, 'output', 'commercial_gap_model')
+        self.plot_dir = os.path.join(self.output_dir, 'comparison_plots')
         self.truth_data_dir = os.path.join(current_dir, '..', '..', 'truth_data', self.truth_data_version)
         self.processed_dir = os.path.join(self.truth_data_dir, 'gap_processed')
         
-        for p in [self.truth_data_dir, self.processed_dir, self.output_dir]:
+        for p in [self.truth_data_dir, self.processed_dir, self.output_dir, self.plot_dir]:
             if not os.path.exists(p):
                 os.makedirs(p)
 
@@ -79,6 +80,26 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
         self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
 
         self.data = self.commercial_electric_gap_by_county()
+
+        # self.save_gap_profiles()
+
+    def save_gap_profiles(self):
+        """
+        Save the gap profiles to the output directory
+        """
+        # create output directory for each column
+        for col in self.data.columns:
+            col_dir = os.path.join(self.output_dir, 'by_county', 'upgrade=0', f'county={col}')
+            if not os.path.exists(col_dir):
+                os.makedirs(col_dir)
+
+            logger.info(f'Saving gap profile for {col} to {col_dir}')
+            # save each column as a csv file
+            col_data = self.data[[col]].copy()
+            col_data['upgrade'] = 0
+            col_data['in.county'] = col
+            col_data.rename(columns={col: 'out.electricity.total.energy_consumption..kwh'}, inplace=True)
+            col_data.to_csv(os.path.join(col_dir, f'up0-{col}-gap.csv'), index=False)
 
     def commercial_gap_by_ba(self):
         """
@@ -540,7 +561,7 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
 
         plt.tight_layout()
         fig_name = f'{ax.title.get_text()}.png'
-        fig_path = os.path.join(self.output_dir, fig_name)
+        fig_path = os.path.join(self.plot_dir, fig_name)
         plt.savefig(fig_path, dpi=600, bbox_inches='tight')
 
     def monthly_comparison_plot(self):
@@ -623,13 +644,13 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
         ax.set_xticklabels(modeled_monthly['Month Name'])
         ax.set_ylabel('Monthly Electricity Consumption (MWh)')
         ax.set_title('Monthly Electricity Consumption Comparison')
-        ax.legend(loc='upper left', bbox_to_anchor=(1, 1), fontsize=8)
+        ax.legend(loc='upper left', bbox_to_anchor=(1, 1), fontsize=12)
         ax.axhline(0, color='black', linewidth=0.8)
         ax.grid(axis='y', linestyle='--', alpha=0.7)
         plt.tight_layout()
 
         fig_name = f'{ax.title.get_text()}.png'
-        fig_path = os.path.join(self.output_dir, fig_name)
+        fig_path = os.path.join(self.plot_dir, fig_name)
         plt.savefig(fig_path, dpi=600, bbox_inches='tight')
 
     def plot_profiles(self, aggregation_type, aggregation_key):
@@ -651,7 +672,9 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
             fig, ax = plt.subplots(2, 2, figsize=(14, 10))
             ax = ax.flatten()
 
-            slices = [df['EIA 930 Total'].loc[start:end] for start, end in dates.values()]
+            # slices = [df['EIA 930 Total'].loc[start:end] for start, end in dates.values()]
+            df.drop(columns=['EIA 930 Total'], inplace=True, errors='ignore')
+            slices = [df['ResStock'].loc[start:end] for start, end in dates.values()]
             max_val = max([s.max() for s in slices])
 
             for i, (season, date_range) in enumerate(dates.items()):
@@ -666,17 +689,17 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
                 ax[i].xaxis.set_major_formatter(mdates.DateFormatter('%b-%d'))
                 ax[i].set_xlabel('Date')
                 ax[i].set_xlim(pd.to_datetime(date_range[0]).replace(hour=0, minute=0), pd.to_datetime(date_range[1]).replace(hour=23, minute=0))
-                ax[i].set_ylabel('Electricity Consumption (MWh)')
+                ax[i].set_ylabel('Electricity Demand (MW)')
                 ax[i].set_ylim(0, 1.1 * max_val)
                 ax[i].set_title(f"{season}: {pd.to_datetime(date_range[0]).strftime('%B %d')} - {pd.to_datetime(date_range[1]).strftime('%d')}")
                 # ax[i].legend()
                 ax[i].grid(True)
 
             handles, labels = ax[0].get_legend_handles_labels()
-            fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, 0.95), fontsize=10, ncol=5)
+            fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, 0.95), fontsize=14, ncol=5)
 
             fig.suptitle(f'{key} Electric Load Weekly Profiles', fontsize=16)
-            fig_path = os.path.join(self.output_dir, fig_name)
+            fig_path = os.path.join(self.plot_dir, fig_name)
             plt.savefig(fig_path, dpi=600, bbox_inches='tight')
             plt.close(fig)
 
@@ -723,7 +746,7 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
             fig.tight_layout(rect=[0, 0, 1, 0.96])
 
             fig_name = f'{key} Component Profile.png'
-            fig_path = os.path.join(self.output_dir, fig_name)
+            fig_path = os.path.join(self.plot_dir, fig_name)
             plt.savefig(fig_path, dpi=600, bbox_inches='tight')
             plt.close(fig)
 
@@ -756,9 +779,22 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
                 ind_data = ind_profile[[key]].copy()
 
                 # combine into single dataframe
-                df = pd.concat([total_data, gap_data, com_data, res_data, ind_data], axis=1)
-                df.columns = ['EIA 930 Total', 'Other Commercial + Uncategorized', 'ComStock', 'ResStock', 'Industrial']
+                df = pd.concat([
+                    total_data, 
+                    gap_data, 
+                    com_data, 
+                    res_data, 
+                    ind_data
+                ], axis=1)
 
+                df.columns = [
+                    'EIA 930 Total',
+                    'Other Commercial + Uncategorized',
+                    'ComStock',
+                    'ResStock',
+                    'Industrial'
+                ]
+                
                 # plot for each season
                 colors = {
                     'EIA 930 Total': 'blue',
