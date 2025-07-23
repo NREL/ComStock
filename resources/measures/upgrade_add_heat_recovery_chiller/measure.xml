@@ -1,0 +1,290 @@
+<?xml version="1.0"?>
+<measure>
+  <schema_version>3.1</schema_version>
+  <name>add_heat_recovery_chiller</name>
+  <uid>968b3e43-1b47-4f29-b0af-f1c16b3e68c2</uid>
+  <version_id>db38d129-b4e4-4908-9b1b-0a9ff968a499</version_id>
+  <version_modified>2025-07-23T17:40:06Z</version_modified>
+  <xml_checksum>88BE00C7</xml_checksum>
+  <class_name>AddHeatRecoveryChiller</class_name>
+  <display_name>Heat Recovery Chiller</display_name>
+  <description>This measure adds a heat recovery chiller and heat recovery loop to the model. The heat recovery chiller may be an existing chiller or new stand-alone heat recovery chiller. Converting an existing chiller will allow the chiller to rejected heat to the heat recovery loop in addition to the condenser loop. A new chiller will reject heat only to the heat recovery loop. The user may specify how to connect the heat recovery loop to the hot water loop, whether the heat recovery is in series or parallel with existing heating source objects, and optionally decide whether to adjust hot water loop temperatures and add output variables. The measure DOES NOT size the heat recovery chiller or heat recovery storage objects.</description>
+  <modeler_description>This creates a new heat recovery loop that is attached to a tertiary node to an existing chiller or a new chiller. The heat recovery loop consists of the chiller and a water heater mixed object that is also connected to a hot water loop. The heat recovery loop and hot water loop are sized to the same user defined temperature setpoint as well as all hot water coils in the model.</modeler_description>
+  <arguments>
+    <argument>
+      <name>cooling_loop_name</name>
+      <display_name>Cooling Loop</display_name>
+      <description>Choose the source loop for the heat recovery chiller. Infer From Model will use the chilled water loop by floor area served.</description>
+      <type>Choice</type>
+      <required>false</required>
+      <model_dependent>true</model_dependent>
+      <default_value>Inferred From Model</default_value>
+      <choices>
+        <choice>
+          <value>Inferred From Model</value>
+          <display_name>Inferred From Model</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>heating_loop_name</name>
+      <display_name>Heating Loop</display_name>
+      <description>Choose the receipient loop for the heat recovery chiller. Infer From Model will use the largest hot water loop by floor area served.</description>
+      <type>Choice</type>
+      <required>false</required>
+      <model_dependent>true</model_dependent>
+      <default_value>Inferred Hot Water Loop From Model</default_value>
+      <choices>
+        <choice>
+          <value>Inferred Hot Water Loop From Model</value>
+          <display_name>Inferred Hot Water Loop From Model</display_name>
+        </choice>
+        <choice>
+          <value>Inferred Service Hot Water Loop From Model</value>
+          <display_name>Inferred Service Hot Water Loop From Model</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>chiller_choice</name>
+      <display_name>Add new heat recovery chiller or use existing chiller?</display_name>
+      <description>The default is to add a new heat recovery chiller, otherwise the user will need to select an existing chiller.</description>
+      <type>Choice</type>
+      <required>false</required>
+      <model_dependent>true</model_dependent>
+      <default_value>Add New Chiller</default_value>
+      <choices>
+        <choice>
+          <value>Add New Chiller</value>
+          <display_name>Add New Chiller</display_name>
+        </choice>
+        <choice>
+          <value>Use Existing Chiller</value>
+          <display_name>Use Existing Chiller</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>new_chiller_size_tons</name>
+      <display_name>New heat recovery chiller size in tons cooling</display_name>
+      <description>Only applicable if add_new_chiller is set to true.</description>
+      <type>Double</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>35</default_value>
+    </argument>
+    <argument>
+      <name>existing_chiller_name</name>
+      <display_name>Existing Chiller to Convert</display_name>
+      <description>Only applicable if converting an existing chiller. Choose a chiller to convert to a heat recovery chiller. Infer from model will default to the first chiller on the selected chilled water loop.</description>
+      <type>Choice</type>
+      <required>false</required>
+      <model_dependent>true</model_dependent>
+      <default_value>Infer From Model</default_value>
+      <choices>
+        <choice>
+          <value>Infer From Model</value>
+          <display_name>Infer From Model</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>link_option</name>
+      <display_name>Heat recovery loop to hot water loop connection</display_name>
+      <description>Choose whether to connect the heat recovery loop to the hot water loop directly, or including a storage tank.</description>
+      <type>Choice</type>
+      <required>false</required>
+      <model_dependent>true</model_dependent>
+      <default_value>Direct</default_value>
+      <choices>
+        <choice>
+          <value>Direct</value>
+          <display_name>Direct</display_name>
+        </choice>
+        <choice>
+          <value>Storage Tank</value>
+          <display_name>Storage Tank</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>storage_tank_size_gal</name>
+      <display_name>Heat recovery storage tank size in gallons</display_name>
+      <description>Only applicable if using a storage tank.</description>
+      <type>Double</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>200</default_value>
+    </argument>
+    <argument>
+      <name>heating_order</name>
+      <display_name>Hot water loop heat recovery ordering</display_name>
+      <description>Choose whether the heat recovery connection is in parallel or series with the existing hot water source object (boiler, heat pump, district heat, etc.).</description>
+      <type>Choice</type>
+      <required>false</required>
+      <model_dependent>true</model_dependent>
+      <default_value>Parallel</default_value>
+      <choices>
+        <choice>
+          <value>Parallel</value>
+          <display_name>Parallel</display_name>
+        </choice>
+        <choice>
+          <value>Series</value>
+          <display_name>Series</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>heat_recovery_loop_temperature_f</name>
+      <display_name>The heat recovery loop temperature in degrees F</display_name>
+      <type>Double</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>130</default_value>
+    </argument>
+    <argument>
+      <name>reset_hot_water_loop_temperature</name>
+      <display_name>Reset hot water loop temperature?</display_name>
+      <description>If true, the measure will reset the hot water loop temperature to match the heat recovery loop temperature. It WILL NOT reset demand side coil objects, which could cause simulation errors or unmet hours. If the hot water loop is connected to the heat recovery loop by a heat exchanger instead of a storage tank, the hot water loop temperature will instead be reset to the heat recovery loop temperature minus 5F.</description>
+      <type>Boolean</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>true</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>reset_heating_coil_design_temp</name>
+      <display_name>Reset heating coil design temperatures?</display_name>
+      <description>If true, the measure will reset the heating coil design temperatures to match the heat recovery loop temperature.</description>
+      <type>Boolean</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>enable_output_variables</name>
+      <display_name>Enable output variables?</display_name>
+      <type>Boolean</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>true</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+  </arguments>
+  <outputs />
+  <provenances />
+  <tags>
+    <tag>HVAC.Energy Recovery</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Measure Language</name>
+      <value>Ruby</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>LICENSE.md</filename>
+      <filetype>md</filetype>
+      <usage_type>license</usage_type>
+      <checksum>D6DD39F2</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>3A24C28E</checksum>
+    </file>
+    <file>
+      <filename>README.md.erb</filename>
+      <filetype>erb</filetype>
+      <usage_type>readmeerb</usage_type>
+      <checksum>F1C26127</checksum>
+    </file>
+    <file>
+      <filename>.gitkeep</filename>
+      <filetype>gitkeep</filetype>
+      <usage_type>doc</usage_type>
+      <checksum>00000000</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>3.8.0</identifier>
+        <min_compatible>3.8.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>640314DC</checksum>
+    </file>
+    <file>
+      <filename>95.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>DEDEF016</checksum>
+    </file>
+    <file>
+      <filename>95.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>452A0575</checksum>
+    </file>
+    <file>
+      <filename>AddHeatRecoveryChiller_Test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>C217698D</checksum>
+    </file>
+  </files>
+</measure>
