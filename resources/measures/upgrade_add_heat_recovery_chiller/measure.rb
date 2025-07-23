@@ -554,21 +554,17 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
       # infer source object inlet node
       inlet_nodes = [] 
 	  #inlet_node = hot_water_loop.supplyInletNode 
-	  runner.registerInfo("inlet node #{inlet_node}")
       hot_water_loop.supplyComponents.each do |sc| 
         next if !hot_water_source_objects.include?(sc.iddObject.name)
-		runner.registerInfo("#{sc.iddObject.name}")
+		##AA added cases below to deal with different component types 
 		if sc.to_WaterToWaterComponent.is_initialized
-			scomponent = sc.to_WaterToWaterComponent.get ##AA mod for water heater 
-			runner.registerInfo("sc #{scomponent}")
-			inlet_nodes << sc.to_WaterToWaterComponent.get.supplyInletModelObject.get.to_Node.get ##AA mod from the agove for water heater
+			scomponent = sc.to_WaterToWaterComponent.get 
+			inlet_nodes << sc.to_WaterToWaterComponent.get.supplyInletModelObject.get.to_Node.get #
 		elsif sc.to_StraightComponent.is_initialized
-			scomponent = sc.to_StraightComponent.get ##AA mod for water heater 
-			runner.registerInfo("sc #{scomponent}")
-			inlet_nodes << sc.to_StraightComponent.get.inletModelObject.get.to_Node.get ##AA mod from the agove for water heater
+			scomponent = sc.to_StraightComponent.get 
+			inlet_nodes << sc.to_StraightComponent.get.inletModelObject.get.to_Node.get 
 		elsif sc.to_ZoneHVACComponent.is_initialized
-			scomponent = sc.to_StraightComponent.get ##AA mod for water heater 
-			runner.registerInfo("sc #{scomponent}")
+			scomponent = sc.to_StraightComponent.get 
 			inlet_nodes << sc.to_ZoneHVACComponent.get.inletNode.get.to_Node.get ##AA confirm that this will work 
 		end 
       end

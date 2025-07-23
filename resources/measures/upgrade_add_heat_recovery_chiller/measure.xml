@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>add_heat_recovery_chiller</name>
   <uid>968b3e43-1b47-4f29-b0af-f1c16b3e68c2</uid>
-  <version_id>db38d129-b4e4-4908-9b1b-0a9ff968a499</version_id>
-  <version_modified>2025-07-23T17:40:06Z</version_modified>
+  <version_id>fd1c1953-e3e0-421e-90c7-b1ae6913b2c8</version_id>
+  <version_modified>2025-07-23T17:59:14Z</version_modified>
   <xml_checksum>88BE00C7</xml_checksum>
   <class_name>AddHeatRecoveryChiller</class_name>
   <display_name>Heat Recovery Chiller</display_name>
@@ -266,7 +266,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>640314DC</checksum>
+      <checksum>77FECC63</checksum>
     </file>
     <file>
       <filename>95.epw</filename>
