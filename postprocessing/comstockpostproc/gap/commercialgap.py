@@ -96,9 +96,12 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
             logger.info(f'Saving gap profile for {col} to {col_dir}')
             # save each column as a csv file
             col_data = self.data[[col]].copy()
+            col_data.reset_index(names='timestamp', inplace=True)
             col_data['upgrade'] = 0
             col_data['in.county'] = col
             col_data.rename(columns={col: 'out.electricity.total.energy_consumption..kwh'}, inplace=True)
+            # convert electricity to kWh
+            col_data['out.electricity.total.energy_consumption..kwh'] = col_data['out.electricity.total.energy_consumption..kwh'] * 1e3
             col_data.to_csv(os.path.join(col_dir, f'up0-{col}-gap.csv'), index=False)
 
     def commercial_gap_by_ba(self):
