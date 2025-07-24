@@ -673,6 +673,10 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         buckets = buckets.loc[~(
             (buckets.sampling_region == 103) & (buckets.building_type == 'hospital') & (buckets.size_bin == 0)
         ), :]
+        # remove 109, hospital, size_bin 0
+        buckets = buckets.loc[~(
+            (buckets.sampling_region == 109) & (buckets.building_type == 'hospital') & (buckets.size_bin == 0)
+        ), :]
         # remove 110, large_hotel, size_bin 1
         buckets = buckets.loc[~(
             (buckets.sampling_region == 110) & (buckets.building_type == 'large_hotel') & (buckets.size_bin == 1)
