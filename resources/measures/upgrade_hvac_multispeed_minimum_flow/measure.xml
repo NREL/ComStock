@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>multispeed_minimum_flow</name>
   <uid>82ab405f-375a-4dc6-bc66-9e6aac4baf52</uid>
-  <version_id>39cdc80a-8d61-4817-9407-08c55e9ad00a</version_id>
-  <version_modified>2025-07-23T23:00:37Z</version_modified>
+  <version_id>05914202-08c1-4a52-af3a-25dce0dadb87</version_id>
+  <version_modified>2025-07-24T18:44:33Z</version_modified>
   <xml_checksum>912062DA</xml_checksum>
   <class_name>MultispeedMinimumFlow</class_name>
   <display_name>Multispeed Minimum Flow</display_name>
@@ -149,7 +149,7 @@
       <checksum>1C31C871</checksum>
     </file>
     <file>
-      <filename>measure_Test.rb</filename>
+      <filename>multispeed_minimum_flow_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
       <checksum>7275CC50</checksum>
