@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>set_exterior_lighting_template</name>
   <uid>7d3e15d7-3749-4baa-b7b3-960dc3bd12fc</uid>
-  <version_id>043ccdf6-024a-4678-bbd9-3c37fe553bd3</version_id>
-  <version_modified>2025-05-07T21:09:46Z</version_modified>
+  <version_id>bbaa1a51-fa7b-463b-9a2c-b8c7b495b3b4</version_id>
+  <version_modified>2025-07-25T18:55:47Z</version_modified>
   <xml_checksum>4EB6C100</xml_checksum>
   <class_name>SetExteriorLightingTemplate</class_name>
   <display_name>Set Exterior Lighting Template</display_name>
@@ -540,13 +540,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>DE95C568</checksum>
+      <checksum>C2918447</checksum>
     </file>
     <file>
       <filename>deer_building_types.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>2D01794A</checksum>
+      <checksum>813E733A</checksum>
     </file>
     <file>
       <filename>Rt3-DEER Pre-1975-DXEH-CEC T24-CEC1.osm</filename>
@@ -576,7 +576,7 @@
       <filename>set_exterior_lighting_template_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>38ED96A6</checksum>
+      <checksum>8E769338</checksum>
     </file>
   </files>
 </measure>
