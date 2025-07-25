@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>timeseries_csv_export</name>
   <uid>2a3442c1-944d-4e91-9e11-11e0cf368c64</uid>
-  <version_id>d76cda01-32f9-4465-a17e-80b7b7418acd</version_id>
-  <version_modified>2024-11-08T00:14:52Z</version_modified>
+  <version_id>edaf5866-05ea-4bcb-b703-93c4d708ac8e</version_id>
+  <version_modified>2025-04-25T21:06:01Z</version_modified>
   <xml_checksum>15BF4E57</xml_checksum>
   <class_name>TimeseriesCSVExport</class_name>
   <display_name>Timeseries CSV Export</display_name>
@@ -82,7 +82,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>807D1B31</checksum>
+      <checksum>D2B4C5E3</checksum>
     </file>
     <file>
       <filename>ReadVarsESO</filename>
@@ -178,7 +178,7 @@
       <filename>timeseries_csv_export_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>EF59D34E</checksum>
+      <checksum>C49B80F8</checksum>
     </file>
   </files>
 </measure>

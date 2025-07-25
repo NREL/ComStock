@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 # *******************************************************************************
 # OpenStudio(R), Copyright (c) 2008-2021, Alliance for Sustainable Energy, LLC.
@@ -313,8 +313,13 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
         frequency = 'RunPeriod'
       end
 
-      # add facility meters
-      result << OpenStudio::IdfObject.load("Output:Meter,#{resource}:Facility,#{frequency};").get
+      if resource.include?('Electricity')
+        # add facility meters
+        result << OpenStudio::IdfObject.load("Output:Meter,#{resource}Purchased:Facility,#{frequency};").get
+      else
+        # add facility meters
+        result << OpenStudio::IdfObject.load("Output:Meter,#{resource}:Facility,#{frequency};").get
+      end
 
       # add enduse meters
       enduses.each do |enduse|
@@ -511,7 +516,7 @@ class EmissionsReporting < OpenStudio::Measure::ReportingMeasure
     end
 
     # get hourly electricity values
-    electricity_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='Electricity:Facility' AND ReportingFrequency='Hourly' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
+    electricity_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableType='Sum' AND VariableName='ElectricityPurchased:Facility' AND ReportingFrequency='Hourly' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
     electricity_values = sql_file.execAndReturnVectorOfDouble(electricity_query).get
     if electricity_values.empty?
       runner.registerError('Unable to get hourly timeseries facility electricity use from the model. Cannot calculate emissions.')

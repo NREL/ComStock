@@ -3,14 +3,87 @@
   <schema_version>3.1</schema_version>
   <name>add_console_gshp</name>
   <uid>e7cff13c-fffa-4c6c-9494-938e27f7f335</uid>
-  <version_id>bb9023ae-629b-4b2d-915e-2f6d27f6df1f</version_id>
-  <version_modified>2024-07-17T18:33:59Z</version_modified>
+  <version_id>33233145-3dfe-4820-b2f4-13bee66b158d</version_id>
+  <version_modified>2025-07-23T23:00:35Z</version_modified>
   <xml_checksum>5E2576E4</xml_checksum>
   <class_name>AddConsoleGSHP</class_name>
   <display_name>add_console_gshp</display_name>
   <description>Measure replaces existing packaged terminal air conditioner system types with water-to-air heat pumps served by a ground heat exchanger.</description>
   <modeler_description>This measure will work on packaged terminal systems as well as other non-ducted systems such as baseboards or unit heaters.</modeler_description>
-  <arguments />
+  <arguments>
+    <argument>
+      <name>walls</name>
+      <display_name>Upgrade Wall Insulation?</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>roof</name>
+      <display_name>Upgrade Roof Insulation?</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>windows</name>
+      <display_name>Upgrade to New Windows?</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>lighting</name>
+      <display_name>Upgrade to LED Lighting?</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+  </arguments>
   <outputs />
   <provenances />
   <tags>
@@ -54,7 +127,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>88C8C6D3</checksum>
+      <checksum>F0995DCE</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -71,7 +144,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>C77BFCF7</checksum>
+      <checksum>E0BF5BF2</checksum>
     </file>
     <file>
       <filename>Ground Loop Heat Pump Performance Data.xlsx</filename>
@@ -146,16 +219,22 @@
       <checksum>998238A3</checksum>
     </file>
     <file>
+      <filename>call_other_measures.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>BFFFAEAC</checksum>
+    </file>
+    <file>
       <filename>performance_curves.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>41C48CFE</checksum>
+      <checksum>9EFC7587</checksum>
     </file>
     <file>
       <filename>console_gthp_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>0116FCB1</checksum>
+      <checksum>3B12A0D1</checksum>
     </file>
   </files>
 </measure>

@@ -40,3 +40,6 @@ postprocessing/extract_models_and_errors.py
 # Rubocop output
 /.rubocop
 /.rubocop-http*
+
+# test results
+test/reports
