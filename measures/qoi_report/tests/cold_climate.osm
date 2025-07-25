@@ -31913,7 +31913,10 @@ OS:AdditionalProperties,
   ComStock DOE Ref 1980-2004,             !- Feature Value 12
   hvac_template,                          !- Feature Name 13
   String,                                 !- Feature Data Type 13
-  ComStock 90.1-2013;                     !- Feature Value 13
+  ComStock 90.1-2013,                     !- Feature Value 13
+  grid_region,                            !- Feature Name 14
+  String,                                 !- Feature Data Type 14
+  RMPAc;                                  !- Feature Value 14
 
 OS:Sizing:Parameters,
   {e876a00f-cfed-4155-9d21-68dcc68be436}, !- Handle

@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 import os
 
@@ -81,7 +81,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             logger.debug(c)
 
         assert isinstance(self.data, pd.DataFrame)
-        logging.info(f'Created {self.dataset_name} with {len(self.data)} rows')
+        logger.info(f'Created {self.dataset_name} with {len(self.data)} rows')
 
         self.data = self.data.astype(str)
         #Convert columns with name in self.FLR_AREA or weight to numeric

@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 require 'openstudio'
@@ -205,7 +205,7 @@ class DfThermostatControlLoadShedTest < Minitest::Test
 
       # set arguments:
       demand_flexibility_objective = arguments[0].clone
-      assert(demand_flexibility_objective.setValue('peak load'))
+      assert(demand_flexibility_objective.setValue('grid peak load'))
       argument_map['demand_flexibility_objective'] = demand_flexibility_objective
       
       # set arguments:
@@ -245,13 +245,47 @@ class DfThermostatControlLoadShedTest < Minitest::Test
 
       # set arguments:
       cambium_scenario = arguments[8].clone
-      assert(cambium_scenario.setValue('LRMER_LowRECost_30'))#
+      assert(cambium_scenario.setValue('LRMER_MidCase_15'))#
       argument_map['cambium_scenario'] = cambium_scenario
 
       # # set arguments:
       # apply_measure = arguments[9].clone
       # assert(apply_measure.setValue(true))#
       # argument_map['apply_measure'] = apply_measure
+
+      # store baseline schedule for check later
+      heat_schedules = {}
+      cool_schedules = {}
+      thermostats = model.getThermostatSetpointDualSetpoints
+      thermostats.each do |thermostat|
+        if thermostat.to_Thermostat.get.thermalZone.is_initialized
+          thermalzone = thermostat.to_Thermostat.get.thermalZone.get
+          clg_fueltypes = thermalzone.coolingFuelTypes.map(&:valueName).uniq
+          htg_fueltypes = thermalzone.heatingFuelTypes.map(&:valueName).uniq
+          # puts("### DEBUGGING: clg_fueltypes = #{clg_fueltypes}")
+          # puts("### DEBUGGING: htg_fueltypes = #{htg_fueltypes}")
+          if htg_fueltypes == ['Electricity']
+            heat_sch = thermostat.heatingSetpointTemperatureSchedule
+            unless heat_sch.empty?
+              unless heat_schedules.key?(heat_sch.get.name.to_s)
+                schedule = heat_sch.get.clone(model)
+                schedule_ts = measure.get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get, 8760*num_timesteps_in_hr.valueAsInteger())
+                heat_schedules[heat_sch.get.name.to_s] = schedule_ts
+              end
+            end
+          end
+          if clg_fueltypes == ['Electricity']
+            cool_sch = thermostat.coolingSetpointTemperatureSchedule
+            unless cool_sch.empty?
+              unless cool_schedules.key?(cool_sch.get.name.to_s)
+                schedule = cool_sch.get.clone(model)
+                schedule_ts = measure.get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get, 8760*num_timesteps_in_hr.valueAsInteger())
+                cool_schedules[cool_sch.get.name.to_s] = schedule_ts
+              end
+            end
+          end
+        end
+      end
 
       # apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: true)
@@ -264,6 +298,78 @@ class DfThermostatControlLoadShedTest < Minitest::Test
       # to check that something changed in the model, load the model and the check the objects match expected new value
       model = load_model(model_output_path(instance_test_name))
 
+      # quick check on schedule update
+      if set[:result] == 'Success'
+        thermostats = model.getThermostatSetpointDualSetpoints
+        new_heat_schedules = {}
+        new_cool_schedules = {}
+        nts_clg = 0
+        nts_htg = 0
+        thermostats.each do |thermostat|
+          cool_sch = thermostat.coolingSetpointTemperatureSchedule
+          clg_sch_name = cool_sch.get.name.to_s
+          if clg_sch_name.include?(' df_adjusted')
+            unless new_cool_schedules.key?(clg_sch_name)
+              schedule = cool_sch.get.clone(model)
+              schedule = schedule.to_ScheduleInterval.get
+              new_cool_schedules[clg_sch_name] = schedule.timeSeries.values.to_a
+            end
+            nts_clg += 1
+          end
+          heat_sch = thermostat.heatingSetpointTemperatureSchedule
+          heat_sch_name = heat_sch.get.name.to_s
+          if heat_sch_name.include?(' df_adjusted')
+            unless new_heat_schedules.key?(heat_sch_name)
+              schedule = heat_sch.get.clone(model)
+              schedule = schedule.to_ScheduleInterval.get
+              new_heat_schedules[heat_sch_name] = schedule.timeSeries.values.to_a
+            end
+            nts_htg += 1
+          end
+        end
+        puts('-----------------------------------------------------------------')
+        puts("--- Detected #{nts_clg} df adjusted cooling schedules and #{nts_htg} df adjusted heating schedules")
+        assert(nts_clg + nts_htg > 0)
+        puts('-----------------------------------------------------------------')
+        # compare before/after schedules
+        if nts_clg > 0
+          cool_schedules.each do |cool_sch_name, cool_sch_vals|
+            new_cool_sch_vals = new_cool_schedules["#{cool_sch_name} df_adjusted"]
+            diff = cool_sch_vals.zip(new_cool_sch_vals).map { |a, b| (b - a).round(2) }
+            counts = diff.tally
+            counts = counts.sort.to_h
+            # puts("--- hourly light schedules changes #{diff*100.0}% everyday")
+            puts("--- cooling schedule changes on average #{diff.sum/365.0/(peak_len.valueAsInteger().to_f)/(num_timesteps_in_hr.valueAsInteger().to_f)}C/hr for #{peak_len.valueAsInteger()} hours everyday")
+            counts.each do |value, count|
+              unless value == 0.0 || count < num_timesteps_in_hr.valueAsInteger().to_f
+                puts("--- cooling schedule changes #{value}C in #{count/(peak_len.valueAsInteger().to_f)/(num_timesteps_in_hr.valueAsInteger().to_f)} days")
+                assert(value.abs<=sp_adjustment.valueAsDouble(), "Hourly change should not exceed the input #{sp_adjustment.valueAsDouble().round(1)}")
+              end
+            end
+            total_days = counts[sp_adjustment.valueAsDouble()]/(peak_len.valueAsInteger().to_f)/(num_timesteps_in_hr.valueAsInteger().to_f)
+            assert(total_days < 367 && total_days > 360, "cooling schedule changes with input #{sp_adjustment.valueAsDouble()}C in #{total_days} days")
+          end
+        end
+        if nts_htg > 0
+          heat_schedules.each do |heat_sch_name, heat_sch_vals|
+            new_heat_sch_vals = new_heat_schedules["#{heat_sch_name} df_adjusted"]
+            diff = heat_sch_vals.zip(new_heat_sch_vals).map { |a, b| (a - b).round(2) }
+            counts = diff.tally
+            counts = counts.sort.to_h
+            # puts("--- hourly light schedules changes #{diff*100.0}% everyday")
+            puts("--- heating schedule changes on average #{diff.sum/365.0/(peak_len.valueAsInteger().to_f)/(num_timesteps_in_hr.valueAsInteger().to_f)}C/hr for #{peak_len.valueAsInteger()} hours everyday")
+            counts.each do |value, count|
+              unless value == 0.0 || count < num_timesteps_in_hr.valueAsInteger().to_f
+                puts("--- heating schedule changes #{value} in #{count/(peak_len.valueAsInteger().to_f)/(num_timesteps_in_hr.valueAsInteger().to_f)} days")
+                assert(value.abs<=sp_adjustment.valueAsDouble(), "Hourly change should not exceed the input #{sp_adjustment.valueAsDouble().round(1)}")
+              end
+            end
+            total_days = counts[sp_adjustment.valueAsDouble()]/(peak_len.valueAsInteger().to_f)/(num_timesteps_in_hr.valueAsInteger().to_f)
+            assert(total_days < 367 && total_days > 360, "heating schedule changes with input #{sp_adjustment.valueAsDouble()}C in #{total_days} days")
+          end
+        end
+        puts('=================================================================')
+      end
     end
   end
 

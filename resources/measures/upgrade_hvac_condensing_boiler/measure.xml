@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+<measure>
+  <schema_version>3.1</schema_version>
+  <name>condensing_boilers</name>
+  <uid>e7cff13c-fffa-4c6c-9494-938e27f7f335</uid>
+  <version_id>97869323-7498-4845-813f-f12b10f79617</version_id>
+  <version_modified>2025-07-23T23:00:34Z</version_modified>
+  <xml_checksum>0ACE1945</xml_checksum>
+  <class_name>CondensingBoilers</class_name>
+  <display_name>condensing_boilers</display_name>
+  <description>This measure replaces an exising natural gas boiler with a condensing gas boiler.</description>
+  <modeler_description>This measure replaces an exising natural gas boiler with a condensing gas boiler. The measure loops through existing boiler objects and increases the efficiency, lowers the water supply temperature, and modifies the performance curve to represent condensing boilers.</modeler_description>
+  <arguments />
+  <outputs />
+  <provenances />
+  <tags>
+    <tag>HVAC.Heating</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Model Articulation</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>LICENSE.md</filename>
+      <filetype>md</filetype>
+      <usage_type>license</usage_type>
+      <checksum>E0468DD6</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>19548BC1</checksum>
+    </file>
+    <file>
+      <filename>README.md.erb</filename>
+      <filetype>erb</filetype>
+      <usage_type>readmeerb</usage_type>
+      <checksum>703C9964</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>3.2.1</identifier>
+        <min_compatible>3.2.1</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>6DED15EC</checksum>
+    </file>
+    <file>
+      <filename>condensing_boiler_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>F038993B</checksum>
+    </file>
+  </files>
+</measure>

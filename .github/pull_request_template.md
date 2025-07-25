@@ -50,6 +50,6 @@ This pull request makes changes to (select all the apply):
 
 #### ComStock Licensing Language - Add to Beginning of Each Code File
 ```
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 ```
