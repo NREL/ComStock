@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>set_primary_kitchen_equipment</name>
   <uid>645121be-dec7-4e80-bec3-238d1aa69ac7</uid>
-  <version_id>de6eda20-00de-418e-b4bb-f685f9fcfd74</version_id>
-  <version_modified>2024-10-16T23:07:56Z</version_modified>
+  <version_id>b3496456-3b7e-48a5-872f-8fd833bfce58</version_id>
+  <version_modified>2025-07-23T23:00:28Z</version_modified>
   <xml_checksum>0C204E3D</xml_checksum>
   <class_name>SetPrimaryKitchenEquipment</class_name>
   <display_name>set_primary_kitchen_equipment</display_name>
@@ -200,13 +200,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>701A3398</checksum>
+      <checksum>874A5FC0</checksum>
     </file>
     <file>
       <filename>set_primary_kitchen_equipment_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>77AE0E0E</checksum>
+      <checksum>ED006A57</checksum>
     </file>
   </files>
 </measure>

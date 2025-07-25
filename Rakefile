@@ -6,7 +6,7 @@ require 'rubocop/rake_task'
 # generate the xml reports from tests.
 Minitest::Reporters.use! [
   Minitest::Reporters::DefaultReporter.new,
-  Minitest::Reporters::JUnitReporter.new("test/reports")
+  Minitest::Reporters::JUnitReporter.new('test/reports')
 ]
 
 desc 'Run measure tests'
