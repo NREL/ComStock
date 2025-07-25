@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # *******************************************************************************
@@ -81,8 +81,9 @@ class EnvSecondaryWindows < OpenStudio::Measure::ModelMeasure
     # Find all exterior windows and get a list of their constructions
     constructions = []
     model.getSubSurfaces.each do |sub_surface|
-      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && (sub_surface.subSurfaceType.include?('Window'))
+      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && sub_surface.subSurfaceType.include?('Window')
       next if sub_surface.construction.empty?
+
       constructions << sub_surface.construction.get
     end
 
@@ -125,87 +126,87 @@ class EnvSecondaryWindows < OpenStudio::Measure::ModelMeasure
       shgc_reduct = 0.0
       vlt_reduct = 0.0
       # assign variables for each baseline window type
-      if simple_glazing.name.get.include?("Single - No LowE - Clear - Aluminum")
+      if simple_glazing.name.get.include?('Single - No LowE - Clear - Aluminum')
         u_val_reduct = 0.396
         shgc_reduct = 0.272
         vlt_reduct = 0.381
-      elsif simple_glazing.name.get.include?("Single - No LowE - Tinted/Reflective - Aluminum")
+      elsif simple_glazing.name.get.include?('Single - No LowE - Tinted/Reflective - Aluminum')
         u_val_reduct = 0.479
         shgc_reduct = 0.264
         vlt_reduct = 0.180
-      elsif simple_glazing.name.get.include?("Single - No LowE - Clear - Wood")
+      elsif simple_glazing.name.get.include?('Single - No LowE - Clear - Wood')
         u_val_reduct = 0.594
         shgc_reduct = 0.283
         vlt_reduct = 0.380
-      elsif simple_glazing.name.get.include?("Single - No LowE - Tinted/Reflective - Wood")
+      elsif simple_glazing.name.get.include?('Single - No LowE - Tinted/Reflective - Wood')
         u_val_reduct = 0.594
         shgc_reduct = 0.278
         vlt_reduct = 0.179
-      elsif simple_glazing.name.get.include?("Double - No LowE - Clear - Aluminum")
+      elsif simple_glazing.name.get.include?('Double - No LowE - Clear - Aluminum')
         u_val_reduct = 0.185
         shgc_reduct = 0.166
         vlt_reduct = 0.463
-      elsif simple_glazing.name.get.include?("Double - No LowE - Tinted/Reflective - Aluminum")
+      elsif simple_glazing.name.get.include?('Double - No LowE - Tinted/Reflective - Aluminum')
         u_val_reduct = 0.186
         shgc_reduct = 0.130
         vlt_reduct = 0.107
-      elsif simple_glazing.name.get.include?("Double - LowE - Clear - Aluminum")
+      elsif simple_glazing.name.get.include?('Double - LowE - Clear - Aluminum')
         # ASHRAE climate zones
-        if climate_zone.include?("ASHRAE 169-2013-1") || climate_zone.include?("ASHRAE 169-2013-2") || climate_zone.include?("ASHRAE 169-2013-3")
+        if climate_zone.include?('ASHRAE 169-2013-1') || climate_zone.include?('ASHRAE 169-2013-2') || climate_zone.include?('ASHRAE 169-2013-3')
           u_val_reduct = 0.097
           shgc_reduct = 0.098
           vlt_reduct = 0.464
-        elsif climate_zone.include?("ASHRAE 169-2013-4") || climate_zone.include?("ASHRAE 169-2013-5") || climate_zone.include?("ASHRAE 169-2013-6")
+        elsif climate_zone.include?('ASHRAE 169-2013-4') || climate_zone.include?('ASHRAE 169-2013-5') || climate_zone.include?('ASHRAE 169-2013-6')
           u_val_reduct = 0.097
           shgc_reduct = 0.098
           vlt_reduct = 0.464
-        elsif climate_zone.include?("ASHRAE 169-2013-7") || climate_zone.include?("ASHRAE 169-2013-8")
+        elsif climate_zone.include?('ASHRAE 169-2013-7') || climate_zone.include?('ASHRAE 169-2013-8')
           u_val_reduct = 0.097
           shgc_reduct = 0.078
           vlt_reduct = 0.108
         # CEC climate zones
-        elsif climate_zone.include?("CEC2") || climate_zone.include?("CEC3") || climate_zone.include?("CEC4") || climate_zone.include?("CEC5") || climate_zone.include?("CEC6") || climate_zone.include?("CEC7") || climate_zone.include?("CEC8") || climate_zone.include?("CEC9") || climate_zone.include?("CEC10") || climate_zone.include?("CEC11") || climate_zone.include?("CEC12") || climate_zone.include?("CEC13") || climate_zone.include?("CEC14") || climate_zone.include?("CEC15")
+        elsif climate_zone.include?('CEC2') || climate_zone.include?('CEC3') || climate_zone.include?('CEC4') || climate_zone.include?('CEC5') || climate_zone.include?('CEC6') || climate_zone.include?('CEC7') || climate_zone.include?('CEC8') || climate_zone.include?('CEC9') || climate_zone.include?('CEC10') || climate_zone.include?('CEC11') || climate_zone.include?('CEC12') || climate_zone.include?('CEC13') || climate_zone.include?('CEC14') || climate_zone.include?('CEC15')
           u_val_reduct = 0.097
           shgc_reduct = 0.098
           vlt_reduct = 0.464
-        elsif climate_zone.include?("CEC1") || climate_zone.include?("CEC16")
+        elsif climate_zone.include?('CEC1') || climate_zone.include?('CEC16')
           u_val_reduct = 0.097
           shgc_reduct = 0.098
           vlt_reduct = 0.464
         end
-      elsif simple_glazing.name.get.include?("Double - LowE - Tinted/Reflective - Aluminum")
+      elsif simple_glazing.name.get.include?('Double - LowE - Tinted/Reflective - Aluminum')
         u_val_reduct = 0.096
         shgc_reduct = 0.080
         vlt_reduct = 0.109
-      elsif simple_glazing.name.get.include?("Double - LowE - Clear - Thermally Broken Aluminum")
-        if climate_zone.include?("ASHRAE 169-2013-1") || climate_zone.include?("ASHRAE 169-2013-2") || climate_zone.include?("ASHRAE 169-2013-3")
+      elsif simple_glazing.name.get.include?('Double - LowE - Clear - Thermally Broken Aluminum')
+        if climate_zone.include?('ASHRAE 169-2013-1') || climate_zone.include?('ASHRAE 169-2013-2') || climate_zone.include?('ASHRAE 169-2013-3')
           u_val_reduct = 0.108
           shgc_reduct = 0.101
           vlt_reduct = 0.464
-        elsif climate_zone.include?("ASHRAE 169-2013-4") || climate_zone.include?("ASHRAE 169-2013-5") || climate_zone.include?("ASHRAE 169-2013-6")
+        elsif climate_zone.include?('ASHRAE 169-2013-4') || climate_zone.include?('ASHRAE 169-2013-5') || climate_zone.include?('ASHRAE 169-2013-6')
           u_val_reduct = 0.108
           shgc_reduct = 0.079
           vlt_reduct = 0.108
-        elsif climate_zone.include?("ASHRAE 169-2013-7") || climate_zone.include?("ASHRAE 169-2013-8")
+        elsif climate_zone.include?('ASHRAE 169-2013-7') || climate_zone.include?('ASHRAE 169-2013-8')
           u_val_reduct = 0.108
           shgc_reduct = 0.079
           vlt_reduct = 0.108
         # CEC climate zones
-        elsif climate_zone.include?("CEC2") || climate_zone.include?("CEC3") || climate_zone.include?("CEC4") || climate_zone.include?("CEC5") || climate_zone.include?("CEC6") || climate_zone.include?("CEC7") || climate_zone.include?("CEC8") || climate_zone.include?("CEC9") || climate_zone.include?("CEC10") || climate_zone.include?("CEC11") || climate_zone.include?("CEC12") || climate_zone.include?("CEC13") || climate_zone.include?("CEC14") || climate_zone.include?("CEC15")
+        elsif climate_zone.include?('CEC2') || climate_zone.include?('CEC3') || climate_zone.include?('CEC4') || climate_zone.include?('CEC5') || climate_zone.include?('CEC6') || climate_zone.include?('CEC7') || climate_zone.include?('CEC8') || climate_zone.include?('CEC9') || climate_zone.include?('CEC10') || climate_zone.include?('CEC11') || climate_zone.include?('CEC12') || climate_zone.include?('CEC13') || climate_zone.include?('CEC14') || climate_zone.include?('CEC15')
           u_val_reduct = 0.108
           shgc_reduct = 0.101
           vlt_reduct = 0.464
-        elsif climate_zone.include?("CEC1") || climate_zone.include?("CEC16")
+        elsif climate_zone.include?('CEC1') || climate_zone.include?('CEC16')
           u_val_reduct = 0.108
           shgc_reduct = 0.079
           vlt_reduct = 0.108
         end
-      elsif simple_glazing.name.get.include?("Double - LowE - Tinted/Reflective - Thermally Broken Aluminum")
+      elsif simple_glazing.name.get.include?('Double - LowE - Tinted/Reflective - Thermally Broken Aluminum')
         u_val_reduct = 0.106
         shgc_reduct = 0.083
         vlt_reduct = 0.109
-      elsif simple_glazing.name.get.include?("Triple")
-        runner.registerAsNotApplicable("Starting windows are triple pane. Secondary glass will not be added.")
+      elsif simple_glazing.name.get.include?('Triple')
+        runner.registerAsNotApplicable('Starting windows are triple pane. Secondary glass will not be added.')
       else
         runner.registerInfo("Simple glazing named #{simple_glazing.name} is not recognized, windows will not be modified.")
         next
@@ -214,7 +215,11 @@ class EnvSecondaryWindows < OpenStudio::Measure::ModelMeasure
       # get old values
       old_simple_glazing_u = simple_glazing.uFactor
       old_simple_glazing_shgc = simple_glazing.solarHeatGainCoefficient
-      old_simple_glazing_vlt = simple_glazing.visibleTransmittance.get
+      if simple_glazing.visibleTransmittance.is_initialized
+        old_simple_glazing_vlt = simple_glazing.visibleTransmittance.get
+      else
+        old_simple_glazing_vlt = old_simple_glazing_shgc # if vlt is blank, E+ uses shgc
+      end
 
       # register initial condition
       runner.registerInfo("Existing window #{simple_glazing.name.get} has U-#{old_simple_glazing_u.round(2)} W/m2-K, #{old_simple_glazing_shgc} SHGC, and #{old_simple_glazing_vlt} VLT.")
@@ -257,11 +262,13 @@ class EnvSecondaryWindows < OpenStudio::Measure::ModelMeasure
     # cloned constructions that include the secondary window insert.
     area_changed_m2 = 0.0
     model.getSubSurfaces.each do |sub_surface|
-      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && (sub_surface.subSurfaceType.include?('Window'))
+      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && sub_surface.subSurfaceType.include?('Window')
       next if sub_surface.construction.empty?
+
       construction = sub_surface.construction.get
       # Skip sub-surfaces with no new construction prescribed
       next if new_construction_hash[construction].nil?
+
       sub_surface.setConstruction(new_construction_hash[construction])
       area_changed_m2 += sub_surface.grossArea
     end
@@ -269,11 +276,11 @@ class EnvSecondaryWindows < OpenStudio::Measure::ModelMeasure
 
     # Not applicable if no windows were affected
     if area_changed_ft2.zero?
-      runner.registerAsNotApplicable("Not applicable, none of the window constructions could be modified to reflect secondary windows.")
+      runner.registerAsNotApplicable('Not applicable, none of the window constructions could be modified to reflect secondary windows.')
       return true
     end
 
-    # TODO create area-weighted property change stats to use in this
+    # TODO: create area-weighted property change stats to use in this
     # applies when a building has more than one window construction.
     # runner.registerFinalCondition("Added secondary windows to #{area_changed_ft2.round(2)} ft2 of window that reduced U-value (W/m2-K) by #{u_val_reduct.round(2)*100}% , SHGC by #{shgc_reduct.round(2)*100}%, and VLT by #{vlt_reduct.round(2)*100}%.")
     runner.registerFinalCondition("Added secondary windows to #{area_changed_ft2.round(2)} ft2 of windows.")

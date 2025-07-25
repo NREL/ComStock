@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 #!/usr/bin/env python3
 
@@ -54,7 +54,7 @@ setup(
         'botocore',
         'pyyaml',
         'joblib',
-        'polars==0.20.7',
+        'polars==1.30.0',
         'buildstock_query @ git+https://github.com/NREL/buildstock-query@feature/add_buildstock_csv'
     ],
     extras_require={

@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>set_interior_equipment_template</name>
   <uid>97e08e8f-adf6-47ee-bcc5-583177704b7a</uid>
-  <version_id>b18c36f9-3213-46e1-8a56-6848ae98a746</version_id>
-  <version_modified>2025-05-06T17:10:17Z</version_modified>
+  <version_id>6dc614b4-502a-45a8-a749-263c51eede78</version_id>
+  <version_modified>2025-07-23T23:00:27Z</version_modified>
   <xml_checksum>704B2E04</xml_checksum>
   <class_name>SetInteriorEquipmentTemplate</class_name>
   <display_name>Set Interior Equipment Template</display_name>
@@ -540,19 +540,19 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>514856BF</checksum>
+      <checksum>34EDED26</checksum>
     </file>
     <file>
       <filename>deer_building_types.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>2D01794A</checksum>
+      <checksum>813E733A</checksum>
     </file>
     <file>
       <filename>set_interior_equipment_template_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>1CBFB2B2</checksum>
+      <checksum>F24EF0D3</checksum>
     </file>
   </files>
 </measure>
