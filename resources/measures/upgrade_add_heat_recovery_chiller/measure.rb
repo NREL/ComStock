@@ -590,14 +590,99 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
       heat_recovery_demand_inlet_node.outputVariables
       var = OpenStudio::Model::OutputVariable.new('System Node Temperature', model)
       var.setKeyValue('Heat Recovery Loop Demand Inlet Node')
-      var.setReportingFrequency('Hourly')
-
+      var.setReportingFrequency('Timestep')
+	  
       heat_recovery_demand_outlet_node = model.getNodeByName('Heat Recovery Loop Demand Outlet Node').get
       heat_recovery_demand_outlet_node.outputVariables
       var = OpenStudio::Model::OutputVariable.new('System Node Temperature', model)
       var.setKeyValue('Heat Recovery Loop Demand Outlet Node')
-      var.setReportingFrequency('Hourly')
+      var.setReportingFrequency('Timestep')
+	  
+	  var = OpenStudio::Model::OutputVariable.new('System Node Temperature', model)
+      var.setKeyValue('Heat Recovery Storage Water Heater Demand Outlet Water Node')
+      var.setReportingFrequency('Timestep')
+	  
+	  
+	  var = OpenStudio::Model::OutputVariable.new('System Node Temperature', model)
+      var.setKeyValue('Heat Recovery Storage Water Heater Demand Inlet Water Node')
+      var.setReportingFrequency('Timestep')
+	  
+	  var = OpenStudio::Model::OutputVariable.new('System Node Mass Flow Rate', model)
+      var.setKeyValue('Heat Recovery Storage Water Heater Demand Outlet Water Node')
+      var.setReportingFrequency('Timestep')
+	  
+	  var = OpenStudio::Model::OutputVariable.new('System Node Mass Flow Rate', model)
+      var.setKeyValue('Node 12')
+      var.setReportingFrequency('Timestep')
+	  
+	  var = OpenStudio::Model::OutputVariable.new('System Node Temperature', model)
+      var.setKeyValue('Node 12')
+      var.setReportingFrequency('Timestep')
+	  
+	  var = OpenStudio::Model::OutputVariable.new('System Node Temperature', model)
+      var.setKeyValue('Node 13')
+      var.setReportingFrequency('Timestep')
+	  
+	  var = OpenStudio::Model::OutputVariable.new('Chiller Evaporator Cooling Rate', model)
+      var.setKeyValue('*')
+      var.setReportingFrequency('Timestep')
+	  
+	  var = OpenStudio::Model::OutputVariable.new('System Node Temperature', model)
+      var.setKeyValue('Hot Water Loop Pump Outlet Water Node')
+      var.setReportingFrequency('Timestep')
+	  
+	  var = OpenStudio::Model::OutputVariable.new('System Node Mass Flow Rate', model)
+      var.setKeyValue('Hot Water Loop Pump Outlet Water Node')
+      var.setReportingFrequency('Timestep')
+	  
+	  
+	  # #Create hash of vars to add
+	  # vars = Hash.new
+	  # vars["Heat Recovery Storage Water Heater Demand Outlet Water Node"] = ["System Node Temperature", "System Node Mass Flow Rate"] #need to structure this differently or make it a hash explicitly 
+	  # vars["Heat Recovery Storage Water Heater Demand Inlet Water Node"] = "System Node Temperature"
+	  # vars["Node 12"] = ["System Node Mass Flow Rate", "System Node Temperature"]
+	  # vars["Node 13"] = "System Node Temperature"
+	  # vars["*"] = "Chiller Evaporator Cooling Rate"
+	  
+	  # vars.keys.each do |key|
+	      # if vars[key].is_a?(Hash)
+		     # vars[key].each do |val|
+			     # var = OpenStudio::Model::OutputVariable.new(val, model)
+		     # end 
+		  # else 
+		    # runner.registerInfo("key #{key}")
+	        # var = OpenStudio::Model::OutputVariable.new(hash[key], model)
+		  # end 
+		  # var.setKeyValue(key)
+		  # var.setReportingFrequency('Timestep')
+	  # end 
     end
+    #Sizing routine for HRC
+	ann_loads_run_dir = "#{Dir.pwd}/AnnualHRCLoadsRun"
+	runner.registerInfo("pwd #{Dir.pwd}")
+    ann_loads_sql_path = "#{ann_loads_run_dir}/run/eplusout.sql" #giving swig error
+	#annual_run_success = std.model_run_simulation_and_log_errors(model, "#{ann_loads_run_dir}/AR") #looks like that worked 
+    #log_messages_to_file("#{model_dir}/openstudio-standards.log", debug = false)
+	if File.exist?(ann_loads_sql_path)
+      sql_path = OpenStudio::Path.new(ann_loads_sql_path)
+      sql = OpenStudio::SqlFile.new(sql_path)
+      model.setSqlFile(sql)
+    else
+      runner.registerInfo('Running an annual simulation to determine thermal loads for HRC.')
+	  std.model_run_simulation_and_log_errors(model, ann_loads_run_dir)
+      # if std.model_run_simulation_and_log_errors(model, ann_loads_run_dir) == false
+        # runner.registerError('Sizing run failed. See errors in sizing run directory or this measure')
+        # return false
+      # end
+    end
+	# get timeseries output variable values
+    # check for sql file
+    if model.sqlFile.empty?
+      runner.registerError('Model did not have an sql file; cannot get loads for sizing HRC.')
+      return false
+    end
+    #sql = model.sqlFile.get #get swig error from this if check above is commented out 
+	#End sizing routine 
   end
 end
 
