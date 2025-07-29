@@ -169,6 +169,15 @@ Upgrade window per AEDG recommendations.
 **Model Dependent:** false
 
 
+### Thermostat peak setback?
+Apply thermostat setback during grid peak period?
+**Name:** setback_during_peak,
+**Type:** Boolean,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+
 
 
 

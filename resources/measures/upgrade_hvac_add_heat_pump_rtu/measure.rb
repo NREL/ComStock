@@ -165,6 +165,13 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     setback_value.setDefaultValue(2)
     args << setback_value
 
+    # apply peak thermostat setback?
+    setback_during_peak = OpenStudio::Measure::OSArgument.makeBoolArgument('setback_during_peak', true)
+    setback_during_peak.setDisplayName('Thermostat peak setback?')
+    setback_during_peak.setDescription('Apply thermostat setback during grid peak period?')
+    setback_during_peak.setDefaultValue(false)
+    args << setback_during_peak
+
     args
   end
 
@@ -958,6 +965,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     debug_verbose = runner.getBoolArgumentValue('debug_verbose', user_arguments)
     setback_value = runner.getDoubleArgumentValue('setback_value', user_arguments)
     modify_setbacks = runner.getBoolArgumentValue('modify_setbacks', user_arguments)
+    setback_during_peak = runner.getBoolArgumentValue('setback_during_peak', user_arguments)
 
     # build standard to use OS standards methods
     # ---------------------------------------------------------
@@ -1126,6 +1134,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     condition_final_roof = ''
     condition_initial_window = ''
     condition_final_window = ''
+    condition_initial_df_thermostat = ''
+    condition_final_df_thermostat = ''
     unless selected_air_loops.empty?
       if roof == true
         runner.registerInfo('Running Roof Insulation measure....')
@@ -1142,6 +1152,14 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
           condition_initial_roof = results_window.stepInitialCondition.get
         end
         condition_final_roof = results_window.stepFinalCondition.get if results_window.stepFinalCondition.is_initialized
+      end
+      if setback_during_peak == true
+        runner.registerInfo('Running DF Thermostat measure....')
+        results_df_thermostat, runner = call_df_thermostat(model, runner)
+        if results_df_thermostat.stepInitialCondition.is_initialized
+          condition_initial_df_thermostat = results_df_thermostat.stepInitialCondition.get
+        end
+        condition_final_df_thermostat = results_df_thermostat.stepFinalCondition.get if results_df_thermostat.stepFinalCondition.is_initialized
       end
     end
 

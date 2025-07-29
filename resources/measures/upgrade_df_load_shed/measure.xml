@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>df_load_shed</name>
   <uid>8de4bbcc-0430-4f71-8131-0467cbb6f9a4</uid>
-  <version_id>9b291031-0829-4497-b130-2fbe09ce605b</version_id>
-  <version_modified>2025-07-15T22:20:24Z</version_modified>
+  <version_id>e8b366ec-780b-4f1c-a2d4-b436acdf4595</version_id>
+  <version_modified>2025-07-28T22:14:20Z</version_modified>
   <xml_checksum>D7E77FC2</xml_checksum>
   <class_name>DFLoadShed</class_name>
   <display_name>demand flexibility - thermostat and lighting control for load shedding</display_name>
@@ -371,7 +371,7 @@
       <filename>call_other_measures.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>B4E18059</checksum>
+      <checksum>148142A6</checksum>
     </file>
     <file>
       <filename>cambium/LRMER_HighRECost_15/AZNMc.csv</filename>
