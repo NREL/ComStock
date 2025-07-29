@@ -114,9 +114,9 @@ def call_windows(model, runner)
 end
 
 def call_df_thermostat(model, runner)
-  df_thermostat_measure_path = File.join(__dir__, '../../upgrade_df_thermostat_control_load_shift/measure.rb')
+  df_thermostat_measure_path = File.join(__dir__, '../../upgrade_df_load_shed/measure.rb')
   unless File.exist?(df_thermostat_measure_path)
-    runner.registerError('Demand flexibility thermostat measure not found. Check that this measure exists in your file structure and modify the measure path if necessary.')
+    runner.registerError('Demand flexibility thermostat load shed measure not found. Check that this measure exists in your file structure and modify the measure path if necessary.')
     return false
   end
   require df_thermostat_measure_path
@@ -130,17 +130,38 @@ def call_df_thermostat(model, runner)
   demand_flexibility_objective = df_thermostat_measure_args[0].clone
   demand_flexibility_objective.setValue('grid peak load')
   df_thermostat_arg_map['demand_flexibility_objective'] = demand_flexibility_objective
+  
   peak_len = df_thermostat_measure_args[1].clone
   df_thermostat_arg_map['peak_len'] = peak_len 
-  prepeak_len = df_thermostat_measure_args[2].clone
-  df_thermostat_arg_map['prepeak_len'] = prepeak_len 
-  sp_adjustment = df_thermostat_measure_args[3].clone
+  
+  thermostat_control = df_thermostat_measure_args[2].clone
+  df_thermostat_arg_map['thermostat_control'] = thermostat_control 
+
+  rebound_len = df_thermostat_measure_args[3].clone
+  rebound_len.setValue(0)
+  df_thermostat_arg_map['rebound_len'] = rebound_len
+
+  sp_adjustment = df_thermostat_measure_args[4].clone
+  sp_adjustment.setValue(4.0)
   df_thermostat_arg_map['sp_adjustment'] = sp_adjustment
-  num_timesteps_in_hr = df_thermostat_measure_args[4].clone
+
+  lighting_control = df_thermostat_measure_args[5].clone
+  lighting_control.setValue(false)
+  df_thermostat_arg_map['lighting_control'] = lighting_control
+
+  light_adjustment_method = df_thermostat_measure_args[6].clone
+  df_thermostat_arg_map['light_adjustment_method'] = light_adjustment_method
+
+  light_adjustment = df_thermostat_measure_args[7].clone
+  df_thermostat_arg_map['light_adjustment'] = light_adjustment
+
+  num_timesteps_in_hr = df_thermostat_measure_args[8].clone
   df_thermostat_arg_map['num_timesteps_in_hr'] = num_timesteps_in_hr
-  load_prediction_method = df_thermostat_measure_args[5].clone
+
+  load_prediction_method = df_thermostat_measure_args[9].clone
   df_thermostat_arg_map['load_prediction_method'] = load_prediction_method
-  peak_window_strategy = df_thermostat_measure_args[6].clone
+
+  peak_window_strategy = df_thermostat_measure_args[10].clone
   df_thermostat_arg_map['peak_window_strategy'] = peak_window_strategy
 
   df_thermostat_measure.run(model, runner_df_thermostat, df_thermostat_arg_map)
