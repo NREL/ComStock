@@ -58,6 +58,29 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
     end
   end
   
+  def valid_tstat_schedule(sched, type, zone)
+    valid = true 
+	if sched.empty?
+	runner.registerWarning("#{type} setpoint schedule not found for zone '#{zone.name.get}'")
+	valid = false
+	next
+   elsif sched.get.to_ScheduleRuleset.empty?
+	runner.registerWarning("Schedule '#{sched.name}' is not a ScheduleRuleset, will not be adjusted")
+	valid = false
+	end
+	
+	return valid 
+end 
+
+def has_setback(tstat_profiles_stats)
+     has_setback = false
+     for profile in tstat_profiles_stats[:profiles]
+            sched_min = profile.values.min
+            sched_max = profile.values.max
+            has_setback = true if sched_max > sched_min
+          end
+	  return has_setback 
+    end
 
   # define what happens when the measure is run
   def run(model, runner, user_arguments)
@@ -145,27 +168,33 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
           zone_thermostat = thermal_zone.thermostatSetpointDualSetpoint.get
           htg_schedule = zone_thermostat.heatingSetpointTemperatureSchedule
 		  clg_schedule = zone_thermostat.coolingSetpointTemperatureSchedule
-          if htg_schedule.empty?
-            runner.registerWarning("Heating setpoint schedule not found for zone '#{zone.name.get}'")
-            next
-          elsif htg_schedule.get.to_ScheduleRuleset.empty?
-            runner.registerWarning("Schedule '#{htg_schedule.name}' is not a ScheduleRuleset, will not be adjusted")
-            next
-          else
-            htg_schedule = htg_schedule.get.to_ScheduleRuleset.get
-          end
+		  #Confirm schedules are valid 
+		  htg_valid = valid_tstat_schedule(htg_schedule, zone, "heating") 
+		  clg_valid = valid_tstat_schedule(clg_schedule, zone, "cooling")
+		  if !htg_valid and !clg_valid
+		     next #skip to the next zone if no valid schedules 
+		  elsif htg_valid 
+		        htg_schedule = htg_schedule.get.to_ScheduleRuleset.get
+		  elsif clg_valid 
+			clg_schedule = clg_schedule.get.to_ScheduleRuleset.get
+		  end 
+		  
+		  #check for validity later on too 
+      
           sch_zone_occ = OpenstudioStandards::ThermalZone.thermal_zones_get_occupancy_schedule(
             [thermal_zone], occupied_percentage_threshold: 0.05
           )
 		  
 		  # Determine if setbacks present
-          tstat_profiles_stats = get_tstat_profiles_and_stats(htg_schedule)
-          has_setback = false
-          for profile in tstat_profiles_stats[:profiles]
-            sched_min = profile.values.min
-            sched_max = profile.values.max
-            has_setback = true if sched_max > sched_min
-          end
+		  if htg_valid 
+           tstat_profiles_stats_htg = get_tstat_profiles_and_stats(htg_schedule)
+		  elsif clg_valid
+		   tstat_profiles_stats_clg = get_tstat_profiles_and_stats(clg_schedule)
+		  end 
+		  
+		  has_htg_setback = has_setback(tstat_profiles_stats_htg)
+		  has_clg_setback = has_setback(tstat_profiles_stats_clg)
+
 		  
 		 if !no_people_obj && !has_setback # select zones that have People objects assigned (further steps based on occupancy)
             runner.registerInfo("in no setback #{thermal_zone.name}")
