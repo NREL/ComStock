@@ -72,6 +72,65 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
 	return valid 
 end 
 
+def mod_schedule(tstat_sched, sched_zone_occ, type, setback_val) #TODO: need to take model as input? 
+	schedule_annual_profile = get_8760_values_from_schedule_ruleset(model, sched)
+	sch_zone_occ_annual_profile = get_8760_values_from_schedule_ruleset(model, sched_zone_occ)
+	schedule_annual_profile_updated = OpenStudio::DoubleVector.new
+	schedule_annual_profile.each_with_index do |_val, idx| # Create new profile based on occupancy
+	  # Find maximum value of schedule for the week
+	  week_values = schedule_annual_profile.each_slice(168).to_a[(idx / 168).round]
+	  max_value = week_values.max
+	  min_value = week_values.min
+	  # Check for case where setpoint is adjusted for an optimum start, and skip
+	  # Need at least two more timesteps in the profile to perform optimum start check
+	  # Final two timesteps of year will not be optimum start, anyway
+	  if (idx < schedule_annual_profile.size - 2) && opt_start?(sch_zone_occ_annual_profile,
+																	schedule_annual_profile,
+																	min_value,
+																	max_value,
+																	idx)
+		next
+	  end
+      if type == 'heating' 
+	    schedule_annual_profile_updated[idx] = if sch_zone_occ_annual_profile[idx].zero?
+												   max_value - setback_val
+												 else
+												   max_value # keeping same setback regime
+												 end
+	 elsif type == 'cooling'
+	    schedule_annual_profile_updated[idx] = if sch_zone_occ_annual_profile[idx].zero?
+												   min_value + setback_val
+												 else
+												   min_value # keeping same setback regime
+												 end
+     end 
+	    
+	end
+	tstat_sch_limits = OpenStudio::Model::ScheduleTypeLimits.new(model)
+	tstat_sch_limits.setUnitType('Temperature')
+	tstat_sch_limits.setNumericType('Continuous')
+    sch_new = make_ruleset_sched_from_8760(model, runner, schedule_annual_profile_updated,
+											   "#{tstat_sched.name} Modified Setpoints", tstat_sch_limits)
+	# Handle behavior on last day of year--above method makes a schedule ruleset
+	# that has a schedule with a specified day
+	# of week for 12/31 that isn't intended
+	# On leap years, need to correct separate rule made for 12/30 and 12/31
+	model_year = model.getYearDescription.assumedYear
+	dec_29_date = OpenStudio::Date.new(OpenStudio::MonthOfYear.new('December'), 29, model_year)
+	dec_30_date = OpenStudio::Date.new(OpenStudio::MonthOfYear.new('December'), 30, model_year)
+	dec_31_date = OpenStudio::Date.new(OpenStudio::MonthOfYear.new('December'), 31, model_year)
+	for tstat_rule in sch_new.scheduleRules
+	  if tstat_rule.endDate.get == dec_30_date ||
+		 (tstat_rule.endDate.get == dec_29_date)
+		tstat_rule.setEndDate(dec_31_date)
+	  end
+	  next unless ((tstat_rule.endDate.get == dec_31_date) &&
+							 (tstat_rule.startDate.get == dec_31_date)) || ((tstat_rule.endDate.get == dec_31_date) && (tstat_rule.startDate.get == dec_30_date))
+
+	  tstat_rule.remove
+	 end
+return sch_new  
+
 def has_setback(tstat_profiles_stats)
      has_setback = false
      for profile in tstat_profiles_stats[:profiles]
@@ -194,59 +253,17 @@ def has_setback(tstat_profiles_stats)
 		  
 		  has_htg_setback = has_setback(tstat_profiles_stats_htg)
 		  has_clg_setback = has_setback(tstat_profiles_stats_clg)
-
 		  
-		 if !no_people_obj && !has_setback # select zones that have People objects assigned (further steps based on occupancy)
-            runner.registerInfo("in no setback #{thermal_zone.name}")
-            htg_schedule_annual_profile = get_8760_values_from_schedule_ruleset(model, htg_schedule)
-            sch_zone_occ_annual_profile = get_8760_values_from_schedule_ruleset(model, sch_zone_occ)
-            htg_schedule_annual_profile_updated = OpenStudio::DoubleVector.new
-            htg_schedule_annual_profile.each_with_index do |_val, idx| # Create new profile based on occupancy
-              # Find maximum value of schedule for the week
-              week_values = htg_schedule_annual_profile.each_slice(168).to_a[(idx / 168).round]
-              max_value = week_values.max
-              min_value = week_values.min
-              # Check for case where setpoint is adjusted for an optimum start, and skip
-              # Need at least two more timesteps in the profile to perform optimum start check
-              # Final two timesteps of year will not be optimum start, anyway
-              if (idx < htg_schedule_annual_profile.size - 2) && opt_start?(sch_zone_occ_annual_profile,
-                                                                            htg_schedule_annual_profile,
-                                                                            min_value,
-                                                                            max_value,
-                                                                            idx)
-                next
-              end
+		  #modify for htg vs cooling and threshold temps 
+		  if !no_people_obj && !has_htg_setback 
+		      new_htg_sched = mod_schedule(htg_schedule, sched_zone_occ, 'heating', htg_setback_c)
+			  zone_thermostat.setHeatingSchedule(new_htg_sched)
+		  elsif !no_people_obj && !has_clg_setback 
+		      new_clg_sched = mod_schedule(clg_schedule, sched_zone_occ, 'cooling', clg_setback_c)
+			  zone_thermostat.setCoolingSchedule(new_clg_sched)
+		  end 
 
-              htg_schedule_annual_profile_updated[idx] = if sch_zone_occ_annual_profile[idx].zero?
-                                                           max_value - setback_value_c
-                                                         else
-                                                           max_value # keeping same setback regime
-                                                         end
-            end
-            htg_tstat_sch_limits = OpenStudio::Model::ScheduleTypeLimits.new(model)
-            htg_tstat_sch_limits.setUnitType('Temperature')
-            htg_tstat_sch_limits.setNumericType('Continuous')
-            htg_sch_new = make_ruleset_sched_from_8760(model, runner, htg_schedule_annual_profile_updated,
-                                                       "#{htg_schedule.name} Modified Setpoints", htg_tstat_sch_limits)
-            # Handle behavior on last day of year--above method makes a schedule ruleset
-            # that has a schedule with a specified day
-            # of week for 12/31 that isn't intended
-            # On leap years, need to correct separate rule made for 12/30 and 12/31
-            model_year = model.getYearDescription.assumedYear
-            dec_29_date = OpenStudio::Date.new(OpenStudio::MonthOfYear.new('December'), 29, model_year)
-            dec_30_date = OpenStudio::Date.new(OpenStudio::MonthOfYear.new('December'), 30, model_year)
-            dec_31_date = OpenStudio::Date.new(OpenStudio::MonthOfYear.new('December'), 31, model_year)
-            for tstat_rule in htg_sch_new.scheduleRules
-              if tstat_rule.endDate.get == dec_30_date ||
-                 (tstat_rule.endDate.get == dec_29_date)
-                tstat_rule.setEndDate(dec_31_date)
-              end
-              next unless ((tstat_rule.endDate.get == dec_31_date) &&
-                                     (tstat_rule.startDate.get == dec_31_date)) || ((tstat_rule.endDate.get == dec_31_date) && (tstat_rule.startDate.get == dec_30_date))
-
-              tstat_rule.remove
-             end
-            zone_thermostat.setHeatingSchedule(htg_sch_new)
+          #pick back up here 
           else # Handle zones with setbacks or with spaces without People objects
             profiles = [htg_schedule.defaultDaySchedule]
             htg_schedule.scheduleRules.each { |rule| profiles << rule.daySchedule }
