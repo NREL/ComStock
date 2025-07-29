@@ -292,15 +292,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # If the first value is None, don't categorize
             if first_val is None:
                 continue
-            # If the first value is numeric, don't categorize
-            try:
-                if '_' in first_val:
-                    first_val = f'{first_val}_is_string_in_comstock'
-                float(first_val)
-            except ValueError as e:
-                # if len(df.get_column(col).unique()) < 20:
-                # print(f'Converting {col} to Categorical, first_val `{first_val}` is a string')
-                df = df.with_columns(pl.col(col).cast(pl.Categorical))
+            print(f'Converting {col} to Categorical, first_val `{first_val}` is a string')
+            df = df.with_columns(pl.col(col).cast(pl.Categorical))
 
         logger.info(f'Memory after reduce_df_memory: {df.estimated_size("gb"):.2f} GB')
 
