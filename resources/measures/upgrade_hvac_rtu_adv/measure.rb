@@ -306,68 +306,51 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
 
   # Returns the curve object based on curve type, unit size, and operation stage.
   def get_curve_name(runner, type, reference_capacity, operation_stage, debug_verbose)
-    curve_name = nil
+    # Determine prefix and suffix
+    prefix_suffix_map = {
+      'fn_of_t'   => ['lookup', ''],
+      'fn_of_ff'  => ['poly',   ''],
+      'fn_of_plr' => ['poly',   'plr']
+    }
+    curve_name_prefix, curve_name_suffix = prefix_suffix_map.find { |k, _| type.include?(k) }&.last || [nil, nil]
 
-    # determine prefix
-    curve_name_prefix = nil
-    if type.include?('fn_of_t')
-      curve_name_prefix = 'lookup'
-      curve_name_suffix = ''
-    elsif type.include?('fn_of_ff')
-      curve_name_prefix = 'poly'
-      curve_name_suffix = ''
-    elsif type.include?('fn_of_plr')
-      curve_name_prefix = 'poly'
-      curve_name_suffix = 'plr'
-    end
+    # Determine dependent variable
+    curve_name_dep_var =
+      if type.include?('capacity_')
+        'capacity'
+      elsif type.include?('eir_')
+        'eir'
+      end
 
-    # determine dependent var
-    curve_name_dep_var = nil
-    if type.include?('capacity_')
-      curve_name_dep_var = 'capacity'
-    elsif type.include?('eir_')
-      curve_name_dep_var = 'eir'
-    end
+    # Determine operation stage
+    curve_name_stage = case operation_stage
+                      when 'rated' then ''
+                      when 1        then 'low'
+                      when 2        then 'med'
+                      when 3        then 'high'
+                      end
 
-    # determine operation stage
-    curve_name_stage = nil
-    case operation_stage
-    when 0
-      curve_name_stage = ''
-    when 1
-      curve_name_stage = 'low'
-    when 2
-      curve_name_stage = 'med'
-    when 3
-      curve_name_stage = 'high'
-    end
+    # Determine size category
+    curve_name_size =
+      if reference_capacity < 39_564.59445
+        '0_11'
+      elsif reference_capacity < 70_337.0568
+        '11_20'
+      else
+        '20_9999'
+      end
 
-    # determine size category and create complete curve name
-    curve_name_size = nil
-    if reference_capacity < 39564.59445 # = 135 kBtu/hr
-      curve_name_size = '0_11'
-    elsif reference_capacity < 70337.0568 # = 240 kBtu/hr
-      curve_name_size = '11_20'
-    else
-      curve_name_size = '20_9999'
+    # Manual overrides
+    if curve_name_suffix != 'plr' && curve_name_size == '20_9999' && curve_name_dep_var == 'eir'
+      curve_name_stage = 'high' if %w[low med].include?(curve_name_stage)
     end
+    curve_name_size = '11_20' if curve_name_suffix == 'plr' && curve_name_size == '20_9999'
 
-    # manual override of curve names for filling in missing curves
-    if (curve_name_suffix != 'plr') && (curve_name_size == '20_9999') && (curve_name_dep_var == 'eir') && (curve_name_stage == 'med')
-      curve_name_stage = 'high'
-    end
-    if (curve_name_suffix != 'plr') && (curve_name_size == '20_9999') && (curve_name_dep_var == 'eir') && (curve_name_stage == 'low')
-      curve_name_stage = 'high'
-    end
-    if (curve_name_suffix == 'plr') && (curve_name_size == '20_9999')
-      curve_name_size = '11_20'
-    end
+    # Construct curve name
+    parts = [curve_name_prefix, 'rtu_adv', curve_name_dep_var, curve_name_size, curve_name_suffix, curve_name_stage]
+    curve_name = parts.reject(&:empty?).join('_')
 
-    # construct curve name
-    curve_name = [curve_name_prefix, 'rtu_adv', curve_name_dep_var, curve_name_size, curve_name_suffix, curve_name_stage].reject(&:empty?).join('_')    
-    if debug_verbose
-      runner.registerInfo("--- stage #{operation_stage} | reference_capacity_w = #{reference_capacity} | curve = #{curve_name}")
-    end
+    runner.registerInfo("--- stage #{operation_stage} | reference_capacity_w = #{reference_capacity} | curve = #{curve_name}") if debug_verbose
 
     curve_name
   end
@@ -846,6 +829,13 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     # replace existing applicable air loops with new high-efficiency rtu air loops
     # ---------------------------------------------------------
     selected_air_loops.sort.each do |air_loop_hvac|
+
+      if debug_verbose
+        runner.registerInfo("### ----------------------------------------------------------------")
+        runner.registerInfo("### processing air loop: #{air_loop_hvac.name} ")
+        runner.registerInfo("### ----------------------------------------------------------------")
+      end
+
       # initialize variables before loop
       hvac_operation_sched = air_loop_hvac.availabilitySchedule
       unitary_availability_sched = 'tmp'
@@ -992,6 +982,10 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
           end
         end
 
+        if debug_verbose
+          runner.registerInfo("--- found unitary system object: #{air_loop_hvac.name}")
+        end
+
       # get non-unitary system objects.
       else
         # loop through components
@@ -1042,10 +1036,17 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
           # set unitary availability schedule to be always on. This will be used in new unitary system object.
           unitary_availability_sched = model.alwaysOnDiscreteSchedule
         end
+
+        if debug_verbose
+          runner.registerInfo("--- found non-unitary system object: #{air_loop_hvac.name}")
+        end
       end
 
       # delete equipment from original loop
       equip_to_delete.each(&:remove)
+      if debug_verbose
+        runner.registerInfo("--- deleting applicable equipment from the air loop")
+      end
 
       # -------------------------------------------------------
       # Update others
@@ -1158,12 +1159,18 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       # -------------------------------------------------------
       # get custom data
       # -------------------------------------------------------
+      if debug_verbose
+        runner.registerInfo("--- gathering custom data into a variable")
+      end
       custom_performance_map_data = combine_all_performance_curves
 
       # -------------------------------------------------------
       # create coils: cooling
       # -------------------------------------------------------
       # define variable speed cooling coil
+      if debug_verbose
+        runner.registerInfo("--- adding new variable speed cooling coil")
+      end
       new_dx_cooling_coil = OpenStudio::Model::CoilCoolingDXVariableSpeed.new(model)
       new_dx_cooling_coil.setName("#{air_loop_hvac.name} Heat Pump Cooling Coil")
       new_dx_cooling_coil.setCondenserType('AirCooled')
@@ -1178,7 +1185,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil.setEnergyPartLoadFractionCurve(
         model_add_curve(
             model,
-            get_curve_name(runner, 'eir_fn_of_plr', orig_clg_coil_gross_cap, 0, debug_verbose),
+            get_curve_name(runner, 'eir_fn_of_plr', orig_clg_coil_gross_cap, 'rated', debug_verbose),
             custom_performance_map_data,
             std
           )
@@ -1201,8 +1208,8 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
           reference_capacity_m_3_per_s = orig_clg_coil_rated_airflow_m_3_per_s * ratio
         end
         if debug_verbose
-          runner.registerInfo("--- stage ##{stage} | reference_capacity_w = #{reference_capacity_w}")
-          runner.registerInfo("--- stage ##{stage} | reference_capacity_m_3_per_s = #{reference_capacity_m_3_per_s}")
+          runner.registerInfo("--- stage #{stage} | reference_capacity_w = #{reference_capacity_w}")
+          runner.registerInfo("--- stage #{stage} | reference_capacity_m_3_per_s = #{reference_capacity_m_3_per_s}")
         end
 
         # add speed data for each stage
@@ -1252,6 +1259,9 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       # -------------------------------------------------------
       # create coils: backup heating
       # -------------------------------------------------------
+      if debug_verbose
+        runner.registerInfo("--- adding new backup heating coil")
+      end
       # add new supplemental heating coil
       new_backup_heating_coil = nil
       # define backup heat source TODO: set capacity to equal full heating capacity
@@ -1272,6 +1282,9 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       # -------------------------------------------------------
       # unitary system update
       # -------------------------------------------------------
+      if debug_verbose
+        runner.registerInfo("--- adding new unitary system")
+      end
       # add new unitary system object
       new_rtu = OpenStudio::Model::AirLoopHVACUnitarySystem.new(model)
       new_rtu.setName("#{air_loop_hvac.name} Unitary high-efficiency System")
@@ -1309,6 +1322,9 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       # -------------------------------------------------------
       # add dcv to air loop if dcv flag is true
       if dcv == true
+        if debug_verbose
+          runner.registerInfo("--- adding DCV")
+        end
         oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
         controller_oa = oa_system.getControllerOutdoorAir
         controller_mv = controller_oa.controllerMechanicalVentilation
@@ -1342,6 +1358,9 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       if thermal_zone_names_to_exclude.any? { |word| thermal_zone.name.to_s.include?(word) }
         runner.registerWarning("The user selected to add energy recovery to the HP-RTUs, but thermal zone #{thermal_zone.name} is a non-applicable space type for energy recovery. Any existing energy recovery will remain for consistancy, but no new energy recovery will be added.")
       else
+        if debug_verbose
+          runner.registerInfo("--- adding H/ERV")
+        end
         # remove existing ERV; these will be replaced with new ERV equipment
         erv_components.each(&:remove)
         # get oa system
