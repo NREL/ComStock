@@ -37,7 +37,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
     args << htg_setback
 	
 	opt_start_chs = OpenStudio::StringVector.new
-    opt_start_chs << '1.5 hour ramp'
+    #opt_start_chs << '1.5 hour ramp'
     opt_start_chs << '3 hour ramp'
     opt_start_chs << 'None'
     opt_start_type = OpenStudio::Measure::OSArgument.makeChoiceArgument('opt_start_type', opt_start_chs, true)
@@ -67,6 +67,14 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
     end
   end
   
+def hours_to_occ(sch_zone_occ_annual_profile, idx)
+    remaining_values = sch_zone_occ_annual_profile[(current_index + 1)..]
+    next_occ_index = remaining_values.index(1) #find index of next occupied timestep 
+    hours_to_occ = next_occ_index - idx
+
+return hours_to_occ
+
+end 
   def valid_tstat_schedule(sched, type, zone)
     valid = true 
 	if sched.empty?
@@ -79,7 +87,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
 	return valid 
 end 
 
-def mod_schedule(model, runner, tstat_sched, sched_zone_occ, type, setback_val, lim_value) 
+def mod_schedule(model, runner, tstat_sched, sched_zone_occ, type, setback_val, lim_value, opt_start_type) 
 	schedule_annual_profile = get_8760_values_from_schedule_ruleset(model, tstat_sched)
 	sch_zone_occ_annual_profile = get_8760_values_from_schedule_ruleset(model, sched_zone_occ)
 	schedule_annual_profile_updated = OpenStudio::DoubleVector.new
@@ -88,10 +96,10 @@ def mod_schedule(model, runner, tstat_sched, sched_zone_occ, type, setback_val, 
 	  week_values = schedule_annual_profile.each_slice(168).to_a[(idx / 168).round]
 	  max_value = week_values.max
 	  min_value = week_values.min
-	  # Check for case where setpoint is adjusted for an optimum start, and skip
+	  #skip time steps with optimum start if not changing current optimum start 
 	  # Need at least two more timesteps in the profile to perform optimum start check
 	  # Final two timesteps of year will not be optimum start, anyway
-	  if (idx < schedule_annual_profile.size - 2) && opt_start?(sch_zone_occ_annual_profile,
+	  if (idx < schedule_annual_profile.size - 2) && opt_start_type == 'None' && opt_start?(sch_zone_occ_annual_profile,
 																	schedule_annual_profile,
 																	min_value,
 																	max_value,
@@ -99,11 +107,18 @@ def mod_schedule(model, runner, tstat_sched, sched_zone_occ, type, setback_val, 
 		next
 	  end
       if type == 'heating' 
+	    if ! opt_start_type == 'None' and hours_to_occ(sch_zone_occ_annual_profile, idx)<= 3 #handle optimum start 
+		    hours = hours_to_occ(sch_zone_occ_annual_profile, idx) 
+			total_delta = max_value - min_value
+			delta_per_hour = total_delta/3 #divide by length of opt start period 
+			schedule_annual_profile_updated[idx] = max_value - delta_per_hour*hours 
+	    else
 	    schedule_annual_profile_updated[idx] = if sch_zone_occ_annual_profile[idx].zero? #If unoccupied, apply setback 
 												   [max_value - setback_val, lim_value].max 
 												 else
 												   max_value # keeping same setback regime
 												 end
+	    end 
 	 elsif type == 'cooling'
 	    schedule_annual_profile_updated[idx] = if sch_zone_occ_annual_profile[idx].zero? #If unoccupied, apply setback 
 												   [min_value + setback_val, lim_value].min 
@@ -249,8 +264,8 @@ end
 	  #Convert setback and threshold values to C 
 	  clg_setback_c = clg_setback *5/9
 	  htg_setback_c = htg_setback *5/9
-	  htg_min_c = htg_min * 5/9
-	  clg_max_c = clg_max * 5/9 
+	  htg_min_c = (htg_min - 32) * 5/9
+	  clg_max_c = (clg_max - 32) * 5/9 
 	  
 	  model.getAirLoopHVACs.each do |air_loop_hvac| #iterate thru air loops 
 	  # skip DOAS units; check sizing for all OA and for DOAS in name
@@ -316,20 +331,20 @@ end
 		  # #modify for htg vs cooling and threshold temps 
 		  if htg_valid 
 			  if !no_people_obj && !has_htg_setback 
-				  new_htg_sched = mod_schedule(model, runner, htg_schedule, sch_zone_occ, 'heating', htg_setback_c, htg_min_c)
+				  new_htg_sched = mod_schedule(model, runner, htg_schedule, sch_zone_occ, 'heating', htg_setback_c, htg_min_c, opt_start_type)
 				  zone_thermostat.setHeatingSchedule(new_htg_sched)
 			  else
-			     mod_schedule_setbacks_existent(htg_schedule, 'heating', htg_setback_c, htg_min_c)
+			     mod_schedule_setbacks_existent(htg_schedule, 'heating', htg_setback_c, htg_min_c, opt_start_type)
 			  end 
 		  end 
 		  runner.registerInfo("clg sched #{clg_schedule}")
 		  runner.registerInfo("class #{clg_schedule.class.to_s}")
 		  if clg_valid 
 		    if !no_people_obj && !has_clg_setback 
-		      new_clg_sched = mod_schedule(model, runner, clg_schedule, sch_zone_occ, 'cooling', clg_setback_c, clg_max_c)
+		      new_clg_sched = mod_schedule(model, runner, clg_schedule, sch_zone_occ, 'cooling', clg_setback_c, clg_max_c, opt_start_type)
 			  zone_thermostat.setCoolingSchedule(new_clg_sched)
 			else 
-			   mod_schedule_setbacks_existent(clg_schedule, 'cooling', clg_setback_c, clg_max_c)
+			   mod_schedule_setbacks_existent(clg_schedule, 'cooling', clg_setback_c, clg_max_c, opt_start_type)
 			end 
 		  end 
 
