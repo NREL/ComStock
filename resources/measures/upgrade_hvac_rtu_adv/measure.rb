@@ -10,14 +10,6 @@ Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }
 
 # start the measure
 class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
-  # defining global variable
-  # adding tolerance because EnergyPlus unit conversion differs from manual conversion
-  # reference: https://github.com/NREL/EnergyPlus/blob/337bfbadf019a80052578d1bad6112dca43036db/src/EnergyPlus/DataHVACGlobals.hh#L362-L368
-  CFM_PER_TON_MIN_RATED = 300 # hard limit of 300
-  CFM_PER_TON_MAX_RATED = 450 # hard limit of 450
-  # CFM_PER_TON_MIN_OPERATIONAL = 200 # hard limit of 200 for operational minimum threshold for both heating/cooling
-  # CFM_PER_TON_MAX_OPERATIONAL_HEATING = 600 # hard limit of 600 for operational maximum threshold for both heating
-  # CFM_PER_TON_MAX_OPERATIONAL_COOLING = 500 # hard limit of 500 for operational maximum threshold for both cooling
 
   # human readable name
   def name
@@ -38,76 +30,6 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
   def arguments(_model)
     args = OpenStudio::Measure::OSArgumentVector.new
 
-    # make list of backup heat options
-    li_backup_heat_options = %w[match_original_primary_heating_fuel electric_resistance_backup]
-    v_backup_heat_options = OpenStudio::StringVector.new
-    li_backup_heat_options.each do |option|
-      v_backup_heat_options << option
-    end
-    # add backup heat option arguments
-    backup_ht_fuel_scheme = OpenStudio::Measure::OSArgument.makeChoiceArgument('backup_ht_fuel_scheme',
-                                                                               v_backup_heat_options, true)
-    backup_ht_fuel_scheme.setDisplayName('Backup Heat Type')
-    backup_ht_fuel_scheme.setDescription('Specifies if the backup heat fuel type is a gas furnace or electric resistance coil. If match original primary heating fuel is selected, the heating fuel type will match the primary heating fuel type of the original model. If electric resistance is selected, AHUs will get electric resistance backup.')
-    backup_ht_fuel_scheme.setDefaultValue('electric_resistance_backup')
-    args << backup_ht_fuel_scheme
-
-    # add RTU oversizing factor for heating
-    performance_oversizing_factor = OpenStudio::Measure::OSArgument.makeDoubleArgument('performance_oversizing_factor',
-                                                                                       true)
-    performance_oversizing_factor.setDisplayName('Maximum Performance Oversizing Factor')
-    performance_oversizing_factor.setDefaultValue(0)
-    performance_oversizing_factor.setDescription('When heating design load exceeds cooling design load, the design cooling capacity of the unit will only be allowed to increase up to this factor to accomodate additional heating capacity. Oversizing the compressor beyond 25% can cause cooling cycling issues, even with variable speed compressors.')
-    args << performance_oversizing_factor
-
-    # heating sizing options TODO
-    li_htg_sizing_option = ['47F', '17F', '0F', '-10F']
-    v_htg_sizing_option = OpenStudio::StringVector.new
-    li_htg_sizing_option.each do |option|
-      v_htg_sizing_option << option
-    end
-
-    htg_sizing_option = OpenStudio::Measure::OSArgument.makeChoiceArgument('htg_sizing_option', li_htg_sizing_option,
-                                                                           true)
-    htg_sizing_option.setDefaultValue('0F')
-    htg_sizing_option.setDisplayName('Temperature to Sizing Heat Pump, F')
-    htg_sizing_option.setDescription('Specifies temperature to size heating on. If design temperature for climate is higher than specified, program will use design temperature. Heat pump sizing will not exceed user-input oversizing factor.')
-    args << htg_sizing_option
-
-    # add assumed oversizing factor for cooling
-    clg_oversizing_estimate = OpenStudio::Measure::OSArgument.makeDoubleArgument('clg_oversizing_estimate', true)
-    clg_oversizing_estimate.setDisplayName('Cooling Upsizing Factor Estimate')
-    clg_oversizing_estimate.setDefaultValue(1)
-    clg_oversizing_estimate.setDescription('RTU selection involves sizing up to unit that meets your capacity needs, which creates natural oversizing. This factor estimates this oversizing. E.G. the sizing calc may require 8.7 tons of cooling, but the size options are 7.5 tons and 10 tons, so you choose the 10 ton unit. A value of 1 means to upsizing.')
-    args << clg_oversizing_estimate
-
-    # add ratio of heating to cooling
-    htg_to_clg_hp_ratio = OpenStudio::Measure::OSArgument.makeDoubleArgument('htg_to_clg_hp_ratio', true)
-    htg_to_clg_hp_ratio.setDisplayName('Rated HP Heating to Cooling Ratio')
-    htg_to_clg_hp_ratio.setDefaultValue(1)
-    htg_to_clg_hp_ratio.setDescription('At rated conditions, a compressor will generally have slightly more cooling capacity than heating capacity. This factor integrates this ratio into the unit sizing.')
-    args << htg_to_clg_hp_ratio
-
-    # add heat pump minimum compressor lockout outdoor air temperature
-    hp_min_comp_lockout_temp_f = OpenStudio::Measure::OSArgument.makeDoubleArgument('hp_min_comp_lockout_temp_f', true)
-    hp_min_comp_lockout_temp_f.setDisplayName('Minimum outdoor air temperature that locks out heat pump compressor, F')
-    hp_min_comp_lockout_temp_f.setDefaultValue(0.0)
-    hp_min_comp_lockout_temp_f.setDescription('Specifies minimum outdoor air temperature for locking out heat pump compressor. Heat pump heating does not operated below this temperature and backup heating will operate if heating is still needed.')
-    args << hp_min_comp_lockout_temp_f
-
-    # make list of cchpc scenarios
-    li_hprtu_scenarios = %w[two_speed_standard_eff two_speed_lab_data variable_speed_high_eff cchpc_2027_spec]
-    v_li_hprtu_scenarios = OpenStudio::StringVector.new
-    li_hprtu_scenarios.each do |option|
-      v_li_hprtu_scenarios << option
-    end
-    # add cold climate heat pump challenge hp rtu scenario arguments
-    hprtu_scenario = OpenStudio::Measure::OSArgument.makeChoiceArgument('hprtu_scenario', v_li_hprtu_scenarios, true)
-    hprtu_scenario.setDisplayName('Heat Pump RTU Performance Type')
-    hprtu_scenario.setDescription('Determines performance assumptions. two_speed_standard_eff is a standard efficiency system with 2 staged compressors (2 stages cooling, 1 stage heating). two_speed_lab_data is similar to two_speed_standard_eff but uses lab testing data to inform performance rather than public curves from manufacturers. variable_speed_high_eff is a higher efficiency variable speed system. cchpc_2027_spec is a hypothetical 4-stage unit intended to meet the requirements of the cold climate heat pump RTU challenge 2027 specification.  ')
-    hprtu_scenario.setDefaultValue('two_speed_standard_eff')
-    args << hprtu_scenario
-
     # add heat recovery option
     hr = OpenStudio::Measure::OSArgument.makeBoolArgument('hr', true)
     hr.setDisplayName('Add Energy Recovery?')
@@ -120,49 +42,11 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     dcv.setDefaultValue(false)
     args << dcv
 
-    # add economizer option
-    econ = OpenStudio::Measure::OSArgument.makeBoolArgument('econ', true)
-    econ.setDisplayName('Add Economizer?')
-    econ.setDefaultValue(false)
-    args << econ
-
-    # add roof insulation option
-    roof = OpenStudio::Measure::OSArgument.makeBoolArgument('roof', true)
-    roof.setDisplayName('Upgrade Roof Insulation?')
-    roof.setDescription('Upgrade roof insulation per AEDG recommendations.')
-    roof.setDefaultValue(false)
-    args << roof
-
-    # upgrade window option
-    window = OpenStudio::Measure::OSArgument.makeBoolArgument('window', true)
-    window.setDisplayName('Upgrade Windows?')
-    window.setDescription('Upgrade window per AEDG recommendations.')
-    window.setDefaultValue(false)
-    args << window
-
-    # do a sizing run for sizing?
-    sizing_run = OpenStudio::Measure::OSArgument.makeBoolArgument('sizing_run', true)
-    sizing_run.setDisplayName('Do a sizing run for informing sizing instead of using hard-sized model parameters?')
-    sizing_run.setDefaultValue(false)
-    args << sizing_run
-
-    # do a sizing run for sizing?
-    debug_verbose = OpenStudio::Measure::OSArgument.makeBoolArgument('debug_verbose', true)
-    debug_verbose.setDisplayName('Print out detailed debugging logs if this parameter is true')
-    debug_verbose.setDefaultValue(false)
-    args << debug_verbose
-
-    # modify setbacks or not
-    modify_setbacks = OpenStudio::Measure::OSArgument.makeBoolArgument('modify_setbacks', false)
-    modify_setbacks.setDisplayName('Modify setbacks in heating mode? True will adjust setbacks, according to value in setback value argument.')
-    modify_setbacks.setDefaultValue(true)
-    args << modify_setbacks
-
-    # setback value
-    setback_value = OpenStudio::Measure::OSArgument.makeDoubleArgument('setback_value', false)
-    setback_value.setDisplayName('Amount in deg F by which temperatures are set back during unoccupied periods in heating mode. Done only if modify setbacks is set to true.')
-    setback_value.setDefaultValue(2)
-    args << setback_value
+    # enable/disable debugging outputs
+    debug = OpenStudio::Measure::OSArgument.makeBoolArgument('debug', true)
+    debug.setDisplayName('Enable Debugging Outputs?')
+    debug.setDefaultValue(false)
+    args << debug
 
     args
   end
