@@ -73,7 +73,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.egrid_file_name = 'egrid_emissions_2019.csv'
         self.cejst_file_name = '1.0-communities.csv'
         self.geospatial_lookup_file_name = 'spatial_tract_lookup_table_publish_v9.csv'
-        self.tract_to_util_map_file_name = 'tract_to_elec_util.csv'
+        self.tract_to_util_map_file_name = 'tract_to_elec_util_v2.csv'
         self.hvac_metadata_file_name = 'hvac_metadata.csv'
         self.rename_upgrades = rename_upgrades
         self.rename_upgrades_file_name = 'rename_upgrades.json'
@@ -2571,8 +2571,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Get the bill labels, only applicable at the tract level of aggregation
         bill_label_cols = []
+        eia_id_cols = []
         if geographic_aggregation_levels == ['in.nhgis_tract_gisjoin']:
             bill_label_cols = self.UTIL_ELEC_BILL_LABEL
+            eia_id_cols = [self.UTIL_BILL_EIA_ID]
 
         # Sum the weights and weighted utility bills by building IDs within each geography
         wtd_agg_outs = alloc_wts.select(
@@ -2587,6 +2589,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             + cost_cols
             + [self.UTIL_ELEC_BILL_NUM_BILLS]
             + bill_label_cols
+            + eia_id_cols
         ).group_by(
             [
                 pl.col(self.UPGRADE_ID),
@@ -2596,7 +2599,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         ).agg(
             [
                 pl.col([self.BLDG_WEIGHT] + weighted_util_cols + cost_cols + [self.UTIL_ELEC_BILL_NUM_BILLS]).sum(),
-                pl.col([self.FLR_AREA] + bill_label_cols).first(),
+                pl.col([self.FLR_AREA] + bill_label_cols + eia_id_cols).first()
             ]
         )
 
