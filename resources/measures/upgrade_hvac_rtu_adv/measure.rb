@@ -1102,6 +1102,20 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       new_fan.setFanPowerCoefficient4(-3.904544154) # from Daikin Rebel E+ file
       new_fan.setFanPowerCoefficient5(1.394774218) # from Daikin Rebel E+ file
 
+      # set minimum flow rate to 0.40, or higher as needed to maintain outdoor air requirements
+      min_flow = 0.40
+
+      # determine minimum airflow ratio for sizing; 0.4 is used unless OA requires higher
+      min_airflow_m3_per_s = nil
+      current_min_oa_flow_ratio = oa_flow_m3_per_s / old_terminal_sa_flow_m3_per_s
+      if current_min_oa_flow_ratio > min_flow
+        min_airflow_ratio = current_min_oa_flow_ratio
+        min_airflow_m3_per_s = min_airflow_ratio * old_terminal_sa_flow_m3_per_s
+      else
+        min_airflow_ratio = min_flow
+        min_airflow_m3_per_s = min_airflow_ratio * old_terminal_sa_flow_m3_per_s
+      end
+
       # set minimum fan power flow fraction to the higher of 0.40 or the min flow fraction
       if min_airflow_ratio > min_flow
         new_fan.setFanPowerMinimumFlowFraction(min_airflow_ratio)
