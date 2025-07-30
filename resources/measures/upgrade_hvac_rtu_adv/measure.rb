@@ -366,7 +366,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     # construct curve name
     curve_name = [curve_name_prefix, 'rtu_adv', curve_name_dep_var, curve_name_size, curve_name_suffix, curve_name_stage].reject(&:empty?).join('_')    
     if debug_verbose
-      runner.registerInfo("--- stage ##{operation_stage} | reference_capacity_w = #{reference_capacity} | curve = #{curve_name}")
+      runner.registerInfo("--- stage #{operation_stage} | reference_capacity_w = #{reference_capacity} | curve = #{curve_name}")
     end
 
     curve_name
