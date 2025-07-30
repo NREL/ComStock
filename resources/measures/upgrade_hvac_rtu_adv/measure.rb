@@ -355,7 +355,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     # construct curve name
     curve_name = [curve_name_prefix, 'rtu_adv', curve_name_dep_var, curve_name_size, curve_name_suffix, curve_name_stage].reject(&:empty?).join('_')
     if debug_verbose
-      runner.registerInfo('--- stage {} | reference_capacity_w = {} | curve = {}'.format(stage, reference_capacity, curve_name))
+      runner.registerInfo("--- stage ##{operation_stage} | reference_capacity_w = #{reference_capacity} | curve = #{curve_name}")
     end
 
     curve_name
@@ -1172,8 +1172,8 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
           reference_capacity_m_3_per_s = orig_clg_coil_rated_airflow_m_3_per_s * ratio
         end
         if debug_verbose
-          runner.registerInfo('--- stage {} | reference_capacity_w = {}'.format(stage, reference_capacity_w))
-          runner.registerInfo('--- stage {} | reference_capacity_m_3_per_s = {}'.format(stage, reference_capacity_m_3_per_s))
+          runner.registerInfo("--- stage ##{stage} | reference_capacity_w = #{reference_capacity_w}")
+          runner.registerInfo("--- stage ##{stage} | reference_capacity_m_3_per_s = #{reference_capacity_m_3_per_s}")
         end
 
         # add speed data for each stage
