@@ -694,7 +694,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     if model.building.get.conditionedFloorArea.empty?
       runner.registerWarning('model.building.get.conditionedFloorArea() is empty; applicable floor area fraction will not be reported.')
       # report initial condition of model
-      condition_initial_hprtu = "The building has #{selected_air_loops.size} applicable air loops (out of the total #{model.getAirLoopHVACs.size} airloops in the model) that will be replaced with heat pump RTUs, serving #{applicable_area_m2.round(0)} m2 of floor area. The remaning airloops were determined to be not applicable."
+      condition_initial_hprtu = "The building has #{selected_air_loops.size} applicable air loops (out of the total #{model.getAirLoopHVACs.size} airloops in the model) that will be replaced with high-efficiency RTUs, serving #{applicable_area_m2.round(0)} m2 of floor area. The remaning airloops were determined to be not applicable."
       condition_initial = [condition_initial_hprtu, condition_initial_roof,
                            condition_initial_window].reject(&:empty?).join(' | ')
       runner.registerInitialCondition(condition_initial)
@@ -705,7 +705,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       applicable_floorspace_frac = applicable_area_m2 / total_area_m2
 
       # report initial condition of model
-      condition_initial_hprtu = "The building has #{selected_air_loops.size} applicable air loops that will be replaced with heat pump RTUs, representing #{(applicable_floorspace_frac * 100).round(2)}% of the building floor area. #{condition_initial_roof}. #{condition_initial_window}."
+      condition_initial_hprtu = "The building has #{selected_air_loops.size} applicable air loops that will be replaced with high-efficiency RTUs, representing #{(applicable_floorspace_frac * 100).round(2)}% of the building floor area. #{condition_initial_roof}. #{condition_initial_window}."
       condition_initial = [condition_initial_hprtu, condition_initial_roof,
                            condition_initial_window].reject(&:empty?).join(' | ')
       runner.registerInitialCondition(condition_initial)
@@ -733,7 +733,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     btype_erv_applicable = false if building_types_to_exclude.include?(model_building_type.downcase)
     # warn user if they selected to add ERV but building type is not applicable for ERV
     if (hr == true) && (btype_erv_applicable == false)
-      runner.registerWarning("The user chose to include energy recovery in the heat pump RTUs, but the building type -#{model_building_type}- is not applicable for energy recovery. Energy recovery will not be added.")
+      runner.registerWarning("The user chose to include energy recovery in the high-efficiency RTUs, but the building type -#{model_building_type}- is not applicable for energy recovery. Energy recovery will not be added.")
     end
 
     # get climate full string and classification (i.e. "5A")
@@ -749,14 +749,262 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       end
 
     # ---------------------------------------------------------
-    # replace existing applicable air loops with new heat pump rtu air loops
+    # replace existing applicable air loops with new high-efficiency rtu air loops
     # ---------------------------------------------------------
     selected_air_loops.sort.each do |air_loop_hvac|
-      
+      # initialize variables before loop
+      hvac_operation_sched = air_loop_hvac.availabilitySchedule
+      unitary_availability_sched = 'tmp'
+      control_zone = 'tmp'
+      dehumid_type = 'tmp'
+      supply_fan_op_sched = 'tmp'
+      supply_fan_avail_sched = 'tmp'
+      fan_tot_eff = 'tmp'
+      fan_mot_eff = 'tmp'
+      fan_static_pressure = 'tmp'
+      orig_clg_coil_gross_cap = nil
+      orig_htg_coil_gross_cap = nil
 
-      ####################################################################
-      # KEEP or MODIFY
-      ####################################################################
+      # -------------------------------------------------------
+      # delete existing system
+      # -------------------------------------------------------
+      equip_to_delete = []
+      # for unitary systems
+      if air_loop_hvac_unitary_system?(air_loop_hvac)
+
+        # loop through each relevant component.
+        # store information needed as variable
+        # remove the existing equipment
+        air_loop_hvac.supplyComponents.each do |component|
+          # convert component to string name
+          obj_type = component.iddObjectType.valueName.to_s
+          # skip unless component is of relevant type
+          next unless %w[Fan Unitary Coil].any? { |word| obj_type.include?(word) }
+
+          # make list of equipment to delete
+          equip_to_delete << component
+
+          # get information specifically from unitary system object
+          next unless ['Unitary'].any? do |word|
+                        obj_type.include?(word)
+                      end
+
+          # get unitary system
+          unitary_sys = component.to_AirLoopHVACUnitarySystem.get
+          # get availability schedule
+          unitary_availability_sched = unitary_sys.availabilitySchedule.get
+          # get control zone
+          control_zone = unitary_sys.controllingZoneorThermostatLocation.get
+          # get dehumidification control type
+          dehumid_type = unitary_sys.dehumidificationControlType
+          # get supply fan operation schedule
+          supply_fan_op_sched = unitary_sys.supplyAirFanOperatingModeSchedule.get
+          # get supply fan availability schedule
+          supply_fan = unitary_sys.supplyFan.get
+          # convert supply fan to appropriate object to access methods
+          if supply_fan.to_FanConstantVolume.is_initialized
+            supply_fan = supply_fan.to_FanConstantVolume.get
+          elsif supply_fan.to_FanOnOff.is_initialized
+            supply_fan = supply_fan.to_FanOnOff.get
+          elsif supply_fan.to_FanVariableVolume.is_initialized
+            supply_fan = supply_fan.to_FanVariableVolume.get
+          else
+            runner.registerError("Supply fan type for #{air_loop_hvac.name} not supported.")
+            return false
+          end
+          # get the availability schedule
+          supply_fan_avail_sched = supply_fan.availabilitySchedule
+          if supply_fan_avail_sched.to_ScheduleConstant.is_initialized
+            supply_fan_avail_sched = supply_fan_avail_sched.to_ScheduleConstant.get
+          elsif supply_fan_avail_sched.to_ScheduleRuleset.is_initialized
+            supply_fan_avail_sched = supply_fan_avail_sched.to_ScheduleConstant.get
+          else
+            runner.registerError("Supply fan availability schedule type for #{supply_fan.name} not supported.")
+            return false
+          end
+          # get supply fan motor efficiency
+          fan_tot_eff = supply_fan.fanTotalEfficiency
+          # get supply motor efficiency
+          fan_mot_eff = supply_fan.motorEfficiency
+          # get supply fan static pressure
+          fan_static_pressure = supply_fan.pressureRise
+          # get previous cooling coil capacity
+          orig_clg_coil = unitary_sys.coolingCoil.get
+
+          # check for single speed DX cooling coil
+          if orig_clg_coil.to_CoilCoolingDXSingleSpeed.is_initialized
+            orig_clg_coil = orig_clg_coil.to_CoilCoolingDXSingleSpeed.get
+            # get either autosized or specified cooling capacity
+            if orig_clg_coil.isRatedTotalCoolingCapacityAutosized == true
+              orig_clg_coil_gross_cap = orig_clg_coil.autosizedRatedTotalCoolingCapacity.get
+            elsif orig_clg_coil.ratedTotalCoolingCapacity.is_initialized
+              orig_clg_coil_gross_cap = orig_clg_coil.ratedTotalCoolingCapacity.to_f
+            else
+              runner.registerError("Original cooling coil capacity for #{air_loop_hvac.name} not found. Either it was not directly specified, or sizing run data is not available.")
+            end
+          # check for two speed DX cooling coil
+          elsif orig_clg_coil.to_CoilCoolingDXTwoSpeed.is_initialized
+            orig_clg_coil = orig_clg_coil.to_CoilCoolingDXTwoSpeed.get
+            if orig_clg_coil.autosizedRatedHighSpeedTotalCoolingCapacity.is_initialized
+              orig_clg_coil_gross_cap = orig_clg_coil.autosizedRatedHighSpeedTotalCoolingCapacity.get
+            elsif orig_clg_coil.ratedHighSpeedTotalCoolingCapacity.is_initialized
+              orig_clg_coil_gross_cap = orig_clg_coil.ratedHighSpeedTotalCoolingCapacity.get
+            else
+              runner.registerError("Original cooling coil capacity for #{air_loop_hvac.name} not found. Either it was not directly specified, or sizing run data is not available.")
+            end
+          else
+            runner.registerError("Original cooling coil is of type #{orig_clg_coil.class} which is not currently supported by this measure.")
+          end
+
+          # get original heating coil capacity
+          orig_htg_coil = unitary_sys.heatingCoil.get
+          # get coil object if electric resistance
+          if orig_htg_coil.to_CoilHeatingElectric.is_initialized
+            orig_htg_coil = orig_htg_coil.to_CoilHeatingElectric.get
+          # get coil object if gas
+          elsif orig_htg_coil.to_CoilHeatingGas.is_initialized
+            orig_htg_coil = orig_htg_coil.to_CoilHeatingGas.get
+          else
+            runner.registerError("Heating coil for #{air_loop_hvac.name} is of an unsupported type. This measure currently supports CoilHeatingElectric and CoilHeatingGas object types.")
+          end
+          # get either autosized or specified capacity
+          if orig_htg_coil.isNominalCapacityAutosized == true
+            orig_htg_coil_gross_cap = orig_htg_coil.autosizedNominalCapacity.get
+          elsif orig_htg_coil.nominalCapacity.is_initialized
+            orig_htg_coil_gross_cap = orig_htg_coil.nominalCapacity.to_f
+          else
+            runner.registerError("Original heating coil capacity for #{air_loop_hvac.name} not found. Either it was not directly specified, or sizing run data is not available.")
+          end
+        end
+
+      # get non-unitary system objects.
+      else
+        # loop through components
+        air_loop_hvac.supplyComponents.each do |component|
+          # convert component to string name
+          obj_type = component.iddObjectType.valueName.to_s
+          # skip unless component is of relevant type
+          next unless %w[Fan Unitary Coil].any? { |word| obj_type.include?(word) }
+
+          # make list of equipment to delete
+          equip_to_delete << component
+          # check for fan
+          next unless ['Fan'].any? { |word| obj_type.include?(word) }
+
+          supply_fan = component
+          if supply_fan.to_FanConstantVolume.is_initialized
+            supply_fan = supply_fan.to_FanConstantVolume.get
+          elsif supply_fan.to_FanOnOff.is_initialized
+            supply_fan = supply_fan.to_FanOnOff.get
+          elsif supply_fan.to_FanVariableVolume.is_initialized
+            supply_fan = supply_fan.to_FanVariableVolume.get
+          else
+            runner.registerError("Supply fan type for #{air_loop_hvac.name} not supported.")
+            return false
+          end
+          # get the availability schedule
+          supply_fan_avail_sched = supply_fan.availabilitySchedule
+          if supply_fan_avail_sched.to_ScheduleConstant.is_initialized
+            supply_fan_avail_sched = supply_fan_avail_sched.to_ScheduleConstant.get
+          elsif supply_fan_avail_sched.to_ScheduleRuleset.is_initialized
+            supply_fan_avail_sched = supply_fan_avail_sched.to_ScheduleConstant.get
+          else
+            runner.registerError("Supply fan availability schedule type for #{supply_fan.name} not supported.")
+            return false
+          end
+          # get supply fan motor efficiency
+          fan_tot_eff = supply_fan.fanTotalEfficiency
+          # get supply motor efficiency
+          fan_mot_eff = supply_fan.motorEfficiency
+          # get supply fan static pressure
+          fan_static_pressure = supply_fan.pressureRise
+          # set unitary supply fan operating schedule equal to system schedule for non-unitary systems
+          supply_fan_op_sched = hvac_operation_sched
+          # set dehumidification type
+          dehumid_type = 'None'
+          # set control zone to the thermal zone. This will be used in new unitary system object
+          control_zone = air_loop_hvac.thermalZones[0]
+          # set unitary availability schedule to be always on. This will be used in new unitary system object.
+          unitary_availability_sched = model.alwaysOnDiscreteSchedule
+        end
+      end
+
+      # delete equipment from original loop
+      equip_to_delete.each(&:remove)
+
+      # -------------------------------------------------------
+      # Update others
+      # -------------------------------------------------------
+      # set always on schedule; this will be used in other object definitions
+      always_on = model.alwaysOnDiscreteSchedule
+
+      # get thermal zone
+      thermal_zone = air_loop_hvac.thermalZones[0]
+
+      # Get the min OA flow rate from the OA; this is used below
+      oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+      controller_oa = oa_system.getControllerOutdoorAir
+      oa_flow_m3_per_s = nil
+      if controller_oa.minimumOutdoorAirFlowRate.is_initialized
+        oa_flow_m3_per_s = controller_oa.minimumOutdoorAirFlowRate.get
+      elsif controller_oa.autosizedMinimumOutdoorAirFlowRate.is_initialized
+        oa_flow_m3_per_s = controller_oa.autosizedMinimumOutdoorAirFlowRate.get
+      else
+        runner.registerError("No outdoor air sizing information was found for #{controller_oa.name}, which is required for setting ERV wheel power consumption.")
+        return false
+      end
+
+      # change sizing parameter to vav
+      sizing = air_loop_hvac.sizingSystem
+      sizing.setCentralCoolingCapacityControlMethod('VAV') # CC-TMP
+
+      # replace any CV terminal box with no reheat VAV terminal box
+      # get old terminal box
+      if thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctConstantVolumeReheat.is_initialized
+        old_terminal = thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctConstantVolumeReheat.get
+      elsif thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
+        old_terminal = thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctConstantVolumeNoReheat.get
+      elsif thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctVAVHeatAndCoolNoReheat.is_initialized
+        old_terminal = thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctVAVHeatAndCoolNoReheat.get
+      elsif thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctVAVHeatAndCoolReheat.is_initialized
+        old_terminal = thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctVAVHeatAndCoolReheat.get
+      elsif thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctVAVNoReheat.is_initialized
+        old_terminal = thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctVAVNoReheat.get
+      elsif thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctVAVReheat.is_initialized
+        old_terminal = thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctVAVReheat.get
+      else
+        runner.registerError("Terminal box type for air loop #{air_loop_hvac.name} not supported.")
+        return false
+      end
+
+      # get design supply air flow rate
+      old_terminal_sa_flow_m3_per_s = nil
+      if air_loop_hvac.designSupplyAirFlowRate.is_initialized
+        old_terminal_sa_flow_m3_per_s = air_loop_hvac.designSupplyAirFlowRate.get
+      elsif air_loop_hvac.isDesignSupplyAirFlowRateAutosized
+        old_terminal_sa_flow_m3_per_s = air_loop_hvac.autosizedDesignSupplyAirFlowRate.get
+      else
+        runner.registerError("No sizing data available for air loop #{air_loop_hvac.name} zone terminal box.")
+      end
+
+      # define minimum flow rate needed to maintain ventilation - add in max fraction if in model
+      if controller_oa.maximumFractionofOutdoorAirSchedule.is_initialized
+        controller_oa.resetMaximumFractionofOutdoorAirSchedule
+      end
+      min_oa_flow_ratio = (oa_flow_m3_per_s / old_terminal_sa_flow_m3_per_s)
+
+      # remove old equipment
+      old_terminal.remove
+      air_loop_hvac.removeBranchForZone(thermal_zone)
+      # define new terminal box
+      new_terminal = OpenStudio::Model::AirTerminalSingleDuctVAVHeatAndCoolNoReheat.new(model)
+      # set name of terminal box and add
+      new_terminal.setName("#{thermal_zone.name} VAV Terminal")
+      air_loop_hvac.addBranchForZone(thermal_zone, new_terminal.to_StraightComponent)
+
+      # -------------------------------------------------------
+      # fan update
+      # -------------------------------------------------------
       # add new fan
       new_fan = OpenStudio::Model::FanVariableVolume.new(model, always_on)
       new_fan.setAvailabilitySchedule(supply_fan_avail_sched)
@@ -776,13 +1024,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       new_fan.setFanPowerCoefficient3(4.819732387) # from Daikin Rebel E+ file
       new_fan.setFanPowerCoefficient4(-3.904544154) # from Daikin Rebel E+ file
       new_fan.setFanPowerCoefficient5(1.394774218) # from Daikin Rebel E+ file
-      ####################################################################
 
-
-
-      ####################################################################
-      # KEEP or MODIFY
-      ####################################################################
       # set minimum fan power flow fraction to the higher of 0.40 or the min flow fraction
       if min_airflow_ratio > min_flow
         new_fan.setFanPowerMinimumFlowFraction(min_airflow_ratio)
@@ -790,12 +1032,74 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
         new_fan.setFanPowerMinimumFlowFraction(min_flow)
       end
       new_fan.setPressureRise(fan_static_pressure) # set from origial fan power; 0.5in will be added later if adding HR
-      ####################################################################
 
+      # -------------------------------------------------------
+      # create coils: cooling
+      # -------------------------------------------------------
+      
 
-      ####################################################################
-      # KEEP or MODIFY
-      ####################################################################
+      # -------------------------------------------------------
+      # create coils: heating
+      # -------------------------------------------------------
+
+      # -------------------------------------------------------
+      # create coils: backup heating
+      # -------------------------------------------------------
+      # add new supplemental heating coil
+      new_backup_heating_coil = nil
+      # define backup heat source TODO: set capacity to equal full heating capacity
+      if (prim_ht_fuel_type == 'electric') || (backup_ht_fuel_scheme == 'electric_resistance_backup')
+        new_backup_heating_coil = OpenStudio::Model::CoilHeatingElectric.new(model)
+        new_backup_heating_coil.setEfficiency(1.0)
+        new_backup_heating_coil.setName("#{air_loop_hvac.name} electric resistance backup coil")
+      else
+        new_backup_heating_coil = OpenStudio::Model::CoilHeatingGas.new(model)
+        new_backup_heating_coil.setGasBurnerEfficiency(0.80)
+        new_backup_heating_coil.setName("#{air_loop_hvac.name} gas backup coil")
+      end
+      # set availability schedule
+      new_backup_heating_coil.setAvailabilitySchedule(always_on)
+      # set capacity of backup heat to meet full heating load
+      new_backup_heating_coil.setNominalCapacity(orig_htg_coil_gross_cap)
+
+      # -------------------------------------------------------
+      # unitary system update
+      # -------------------------------------------------------
+      # add new unitary system object
+      new_rtu = OpenStudio::Model::AirLoopHVACUnitarySystem.new(model)
+      new_rtu.setName("#{air_loop_hvac.name} Unitary high-efficiency System")
+      new_rtu.setSupplyFan(new_fan)
+      new_rtu.setHeatingCoil(new_dx_heating_coil)
+      new_rtu.setCoolingCoil(new_dx_cooling_coil)
+      new_rtu.setSupplementalHeatingCoil(new_backup_heating_coil)
+      new_rtu.addToNode(air_loop_hvac.supplyOutletNode)
+
+      # set other features
+      new_rtu.setControllingZoneorThermostatLocation(control_zone)
+      new_rtu.setFanPlacement('DrawThrough')
+      new_rtu.setAvailabilitySchedule(unitary_availability_sched)
+      new_rtu.setDehumidificationControlType(dehumid_type)
+      new_rtu.setSupplyAirFanOperatingModeSchedule(supply_fan_op_sched)
+      new_rtu.setControlType('Load')
+      new_rtu.setName("#{thermal_zone.name} RTU SZ-VAV high-efficiency")
+      new_rtu.setMaximumSupplyAirTemperature(50)
+      new_rtu.setDXHeatingCoilSizingRatio(1 + performance_oversizing_factor)
+
+      # handle deprecated methods for OS Version 3.7.0
+      if model.version < OpenStudio::VersionString.new('3.7.0')
+        # set no load design flow rate
+        new_rtu.resetSupplyAirFlowRateMethodWhenNoCoolingorHeatingisRequired
+      end
+      # set cooling design flow rate
+      new_rtu.setSupplyAirFlowRateDuringCoolingOperation(stage_flows_cooling[num_cooling_stages])
+      # set heating design flow rate
+      new_rtu.setSupplyAirFlowRateDuringHeatingOperation(stage_flows_heating[num_heating_stages])
+      # set no load design flow rate
+      new_rtu.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_airflow_m3_per_s)
+
+      # -------------------------------------------------------
+      # DCV update
+      # -------------------------------------------------------
       # add dcv to air loop if dcv flag is true
       if dcv == true
         oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
@@ -803,12 +1107,10 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
         controller_mv = controller_oa.controllerMechanicalVentilation
         controller_mv.setDemandControlledVentilation(true)
       end
-      ####################################################################
 
-
-      ####################################################################
-      # KEEP or MODIFY
-      ####################################################################
+      # -------------------------------------------------------
+      # E/HRV update
+      # -------------------------------------------------------
       # Energy recovery
       # check for ERV, and get components
       # ERV components will be removed and replaced if ERV flag was selected
@@ -935,7 +1237,6 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
           hx.setNominalElectricPower(power)
         end
       end
-      ####################################################################
     end
 
     # report final condition of model
