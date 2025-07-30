@@ -550,7 +550,6 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     prim_ht_fuel_type = 'electric' # we assume electric unless we find a gas coil in any air loop
     is_sizing_run_needed = true
     unitary_sys = nil
-    orig_airloop_heating_coil_map = {}
     model.getAirLoopHVACs.each do |air_loop_hvac|
       # skip units that are not single zone
       next if air_loop_hvac.thermalZones.length > 1
@@ -643,7 +642,6 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       oa_flow_m3_per_s = nil
       old_terminal_sa_flow_m3_per_s = nil
       orig_clg_coil_gross_cap = nil
-      orig_clg_coil_rated_airflow_m_3_per_s = nil
       orig_htg_coil_gross_cap = nil
 
       # determine if sizing run is needed
@@ -666,9 +664,6 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
         if orig_clg_coil.ratedTotalCoolingCapacity.is_initialized
           orig_clg_coil_gross_cap = orig_clg_coil.ratedTotalCoolingCapacity.to_f
         end
-        if orig_clg_coil.ratedAirFlowRate.is_initialized
-          orig_clg_coil_rated_airflow_m_3_per_s = orig_clg_coil.ratedAirFlowRate.to_f
-        end
       end
 
       # get original heating coil capacity
@@ -682,9 +677,6 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       end
       # get either autosized or specified capacity
       orig_htg_coil_gross_cap = orig_htg_coil.nominalCapacity.to_f if orig_htg_coil.nominalCapacity.is_initialized
-
-      # map heating coil with airloop name for sizing algorithm later
-      orig_airloop_heating_coil_map[air_loop_hvac.name.to_s] = orig_htg_coil.name.to_s.upcase
 
       # only require sizing run if required attributes have not been hardsized.
       next if oa_flow_m3_per_s.nil?
@@ -933,6 +925,13 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
             else
               runner.registerError("Original cooling coil capacity for #{air_loop_hvac.name} not found. Either it was not directly specified, or sizing run data is not available.")
             end
+            if orig_clg_coil.autosizedRatedAirFlowRate == true
+              orig_clg_coil_rated_airflow_m_3_per_s = orig_clg_coil.autosizedRatedAirFlowRate.get
+            elsif orig_clg_coil.ratedAirFlowRate.is_initialized
+              orig_clg_coil_rated_airflow_m_3_per_s = orig_clg_coil.ratedAirFlowRate.to_f
+            else
+              runner.registerError("Original cooling coil airflow for #{air_loop_hvac.name} not found. Either it was not directly specified, or sizing run data is not available.")
+            end
           # check for two speed DX cooling coil
           elsif orig_clg_coil.to_CoilCoolingDXTwoSpeed.is_initialized
             orig_clg_coil = orig_clg_coil.to_CoilCoolingDXTwoSpeed.get
@@ -942,6 +941,13 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
               orig_clg_coil_gross_cap = orig_clg_coil.ratedHighSpeedTotalCoolingCapacity.get
             else
               runner.registerError("Original cooling coil capacity for #{air_loop_hvac.name} not found. Either it was not directly specified, or sizing run data is not available.")
+            end
+            if orig_clg_coil.autosizedRatedHighSpeedAirFlowRate.is_initialized
+              orig_clg_coil_rated_airflow_m_3_per_s = orig_clg_coil.autosizedRatedHighSpeedAirFlowRate.get
+            elsif orig_clg_coil.ratedHighSpeedAirFlowRate.is_initialized
+              orig_clg_coil_rated_airflow_m_3_per_s = orig_clg_coil.ratedHighSpeedAirFlowRate.get
+            else
+              runner.registerError("Original cooling coil airflow for #{air_loop_hvac.name} not found. Either it was not directly specified, or sizing run data is not available.")
             end
           else
             runner.registerError("Original cooling coil is of type #{orig_clg_coil.class} which is not currently supported by this measure.")
