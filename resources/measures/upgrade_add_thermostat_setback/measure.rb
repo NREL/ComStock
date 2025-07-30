@@ -45,6 +45,15 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
     opt_start_type.setDefaultValue('3 hour ramp')
 	args << opt_start_type 
 	
+	htg_min = OpenStudio::Measure::OSArgument.makeIntegerArgument('htg_min', true)
+    htg_min.setDisplayName('Minimum heating setpoint')
+    htg_min.setDescription('Minimum heating setpoint')
+    args << htg_min
+	
+	clg_max = OpenStudio::Measure::OSArgument.makeIntegerArgument('clg_max', true)
+    clg_max.setDisplayName('Maximum cooling setpoint')
+    clg_max.setDescription('Maximum cooling setpoint')
+    args << clg_max
 
     return args
   end
@@ -72,12 +81,12 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
 	return valid 
 end 
 
-def mod_schedule(tstat_sched, sched_zone_occ, type, setback_val) #TODO: need to take model as input? 
+def mod_schedule(tstat_sched, sched_zone_occ, type, setback_val, lim_value) #TODO: need to take model as input? 
 	schedule_annual_profile = get_8760_values_from_schedule_ruleset(model, sched)
 	sch_zone_occ_annual_profile = get_8760_values_from_schedule_ruleset(model, sched_zone_occ)
 	schedule_annual_profile_updated = OpenStudio::DoubleVector.new
 	schedule_annual_profile.each_with_index do |_val, idx| # Create new profile based on occupancy
-	  # Find maximum value of schedule for the week
+	  # Find maximum value of schedule for the particular week
 	  week_values = schedule_annual_profile.each_slice(168).to_a[(idx / 168).round]
 	  max_value = week_values.max
 	  min_value = week_values.min
@@ -92,14 +101,14 @@ def mod_schedule(tstat_sched, sched_zone_occ, type, setback_val) #TODO: need to 
 		next
 	  end
       if type == 'heating' 
-	    schedule_annual_profile_updated[idx] = if sch_zone_occ_annual_profile[idx].zero?
-												   max_value - setback_val
+	    schedule_annual_profile_updated[idx] = if sch_zone_occ_annual_profile[idx].zero? #If unoccupied, apply setback 
+												   (max_value - setback_val, lim_value).max 
 												 else
 												   max_value # keeping same setback regime
 												 end
 	 elsif type == 'cooling'
-	    schedule_annual_profile_updated[idx] = if sch_zone_occ_annual_profile[idx].zero?
-												   min_value + setback_val
+	    schedule_annual_profile_updated[idx] = if sch_zone_occ_annual_profile[idx].zero? #If unoccupied, apply setback 
+												   (min_value + setback_val, lim_value).min 
 												 else
 												   min_value # keeping same setback regime
 												 end
@@ -154,6 +163,8 @@ def has_setback(tstat_profiles_stats)
     clg_setback = runner.getIntegerArgumentValue('clg_setback', user_arguments)
 	htg_setback = runner.getIntegerArgumentValue('htg_setback', user_arguments)
     opt_start_type = runner.getStringArgumentValue('opt_start_type', user_arguments)
+	clg_max = runner.getIntegerArgumentValue('clg_max', user_arguments)
+	htg_min = runner.getIntegerArgumentValue('htg_min', user_arguments)
 
 	
 	
@@ -193,9 +204,12 @@ def has_setback(tstat_profiles_stats)
         'guest room'
       ]
 	
-	  #Convert setback values to C 
+	  #Convert setback and threshold values to C 
 	  clg_setback_c = clg_setback *5/9
 	  htg_setback_c = htg_setback *5/9
+	  htg_min_c = htg_min * 5/9
+	  clg_max_c = clg_max * 5/9 
+	  
 	  model.getAirLoopHVACs.each do |air_loop_hvac| #iterate thru air loops 
 	  # skip DOAS units; check sizing for all OA and for DOAS in name
       sizing_system = air_loop_hvac.sizingSystem
@@ -256,10 +270,10 @@ def has_setback(tstat_profiles_stats)
 		  
 		  #modify for htg vs cooling and threshold temps 
 		  if !no_people_obj && !has_htg_setback 
-		      new_htg_sched = mod_schedule(htg_schedule, sched_zone_occ, 'heating', htg_setback_c)
+		      new_htg_sched = mod_schedule(htg_schedule, sched_zone_occ, 'heating', htg_setback_c, htg_min_c)
 			  zone_thermostat.setHeatingSchedule(new_htg_sched)
 		  elsif !no_people_obj && !has_clg_setback 
-		      new_clg_sched = mod_schedule(clg_schedule, sched_zone_occ, 'cooling', clg_setback_c)
+		      new_clg_sched = mod_schedule(clg_schedule, sched_zone_occ, 'cooling', clg_setback_c, clg_max_c)
 			  zone_thermostat.setCoolingSchedule(new_clg_sched)
 		  end 
 
