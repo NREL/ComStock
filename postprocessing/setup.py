@@ -3,7 +3,7 @@
 #!/usr/bin/env python3
 
 import os
-from setuptools import setup
+from setuptools import find_packages, setup
 
 # get key package details from py_pkg/__version__.py
 about = {}  # type: ignore
@@ -26,8 +26,11 @@ setup(
     author=about['__author__'],
     author_email=about['__author_email__'],
     url=about['__url__'],
-    packages=['comstockpostproc'],
+    packages=find_packages(),
     include_package_data=True,
+    package_data={
+        'comstockpostproc': ['resources/*.csv'],
+    },
     license=about['__license__'],
     zip_safe=False,
     entry_points={
