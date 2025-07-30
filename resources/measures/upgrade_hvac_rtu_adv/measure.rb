@@ -352,6 +352,17 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       curve_name_size = '20_9999'
     end
 
+    # manual override of curve names for filling in missing curves
+    if (curve_name_suffix != 'plr') && (curve_name_size == '20_9999') && (curve_name_dep_var == 'eir') && (curve_name_stage == 'med')
+      curve_name_stage = 'high'
+    end
+    if (curve_name_suffix != 'plr') && (curve_name_size == '20_9999') && (curve_name_dep_var == 'eir') && (curve_name_stage == 'low')
+      curve_name_stage = 'high'
+    end
+    if (curve_name_suffix == 'plr') && (curve_name_size == '20_9999')
+      curve_name_size = '11_20'
+    end
+
     # construct curve name
     curve_name = [curve_name_prefix, 'rtu_adv', curve_name_dep_var, curve_name_size, curve_name_suffix, curve_name_stage].reject(&:empty?).join('_')    
     if debug_verbose
