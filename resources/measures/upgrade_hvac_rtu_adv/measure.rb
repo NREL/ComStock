@@ -849,6 +849,8 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       orig_htg_coil_gross_cap = nil
       orig_clg_coil_rated_airflow_m_3_per_s = nil
       orig_htg_coil = nil
+      supply_airflow_during_cooling = nil
+      supply_airflow_during_heating = nil
 
       # -------------------------------------------------------
       # delete existing system
@@ -886,6 +888,9 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
           supply_fan_op_sched = unitary_sys.supplyAirFanOperatingModeSchedule.get
           # get supply fan availability schedule
           supply_fan = unitary_sys.supplyFan.get
+          # get airflow during cooling/heating operation
+          supply_airflow_during_cooling = unitary_sys.supplyAirFlowRateDuringCoolingOperation.get
+          supply_airflow_during_heating = unitary_sys.supplyAirFlowRateDuringHeatingOperation.get
           # convert supply fan to appropriate object to access methods
           if supply_fan.to_FanConstantVolume.is_initialized
             supply_fan = supply_fan.to_FanConstantVolume.get
@@ -1282,9 +1287,9 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
         new_rtu.resetSupplyAirFlowRateMethodWhenNoCoolingorHeatingisRequired
       end
       # set cooling design flow rate
-      new_rtu.setSupplyAirFlowRateDuringCoolingOperation(stage_flows_cooling[num_cooling_stages])
+      new_rtu.setSupplyAirFlowRateDuringCoolingOperation(supply_airflow_during_cooling)
       # set heating design flow rate
-      new_rtu.setSupplyAirFlowRateDuringHeatingOperation(stage_flows_heating[num_heating_stages])
+      new_rtu.setSupplyAirFlowRateDuringHeatingOperation(supply_airflow_during_heating)
       # set no load design flow rate
       new_rtu.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_airflow_m3_per_s)
 
@@ -1431,8 +1436,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     end
 
     # report final condition of model
-    condition_final_hprtu = "The building finished with high-efficiency RTUs replacing the HVAC equipment for #{selected_air_loops.size} air loops."
-    condition_final = [condition_final_hprtu, condition_final_roof, condition_final_window].reject(&:empty?).join(' | ')
+    condition_final = "The building finished with high-efficiency RTUs replacing the HVAC equipment for #{selected_air_loops.size} air loops."
     runner.registerFinalCondition(condition_final)
 
     true
