@@ -6,7 +6,7 @@
 Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }
 # start the measure
 class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
-  # human readable name
+  #human readable name
   def name
     # Measure name should be the title case of the class name.
     return 'Upgrade_Add_Thermostat_Setback'
@@ -70,14 +70,12 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
   def valid_tstat_schedule(sched, type, zone)
     valid = true 
 	if sched.empty?
-	runner.registerWarning("#{type} setpoint schedule not found for zone '#{zone.name.get}'")
-	valid = false
-	next
+		runner.registerWarning("#{type} setpoint schedule not found for zone #{zone.name.get}")
+		valid = false
    elsif sched.get.to_ScheduleRuleset.empty?
-	runner.registerWarning("Schedule '#{sched.name}' is not a ScheduleRuleset, will not be adjusted")
-	valid = false
-	end
-	
+		runner.registerWarning("Schedule '#{sched.name}' is not a ScheduleRuleset, will not be adjusted")
+		valid = false
+    end
 	return valid 
 end 
 
@@ -102,13 +100,13 @@ def mod_schedule(tstat_sched, sched_zone_occ, type, setback_val, lim_value) #TOD
 	  end
       if type == 'heating' 
 	    schedule_annual_profile_updated[idx] = if sch_zone_occ_annual_profile[idx].zero? #If unoccupied, apply setback 
-												   (max_value - setback_val, lim_value).max 
+												   [max_value - setback_val, lim_value].max 
 												 else
 												   max_value # keeping same setback regime
 												 end
 	 elsif type == 'cooling'
 	    schedule_annual_profile_updated[idx] = if sch_zone_occ_annual_profile[idx].zero? #If unoccupied, apply setback 
-												   (min_value + setback_val, lim_value).min 
+												   [min_value + setback_val, lim_value].min 
 												 else
 												   min_value # keeping same setback regime
 												 end
@@ -138,8 +136,8 @@ def mod_schedule(tstat_sched, sched_zone_occ, type, setback_val, lim_value) #TOD
 
 	  tstat_rule.remove
 	 end
-return sch_new  
-
+    return sch_new  
+end
 def has_setback(tstat_profiles_stats)
      has_setback = false
      for profile in tstat_profiles_stats[:profiles]
@@ -148,7 +146,7 @@ def has_setback(tstat_profiles_stats)
             has_setback = true if sched_max > sched_min
           end
 	  return has_setback 
-    end
+ end
 
   # define what happens when the measure is run
   def run(model, runner, user_arguments)
@@ -166,8 +164,6 @@ def has_setback(tstat_profiles_stats)
 	clg_max = runner.getIntegerArgumentValue('clg_max', user_arguments)
 	htg_min = runner.getIntegerArgumentValue('htg_min', user_arguments)
 
-	
-	
 	#add in heating setback, add in for cooling, and compare against max/min setpoints 
 	#optimum start 
 	
@@ -242,8 +238,8 @@ def has_setback(tstat_profiles_stats)
           htg_schedule = zone_thermostat.heatingSetpointTemperatureSchedule
 		  clg_schedule = zone_thermostat.coolingSetpointTemperatureSchedule
 		  #Confirm schedules are valid 
-		  htg_valid = valid_tstat_schedule(htg_schedule, zone, "heating") 
-		  clg_valid = valid_tstat_schedule(clg_schedule, zone, "cooling")
+		  htg_valid = valid_tstat_schedule(htg_schedule, thermal_zone, "heating") 
+		  clg_valid = valid_tstat_schedule(clg_schedule, thermal_zone, "cooling")
 		  if !htg_valid and !clg_valid
 		     next #skip to the next zone if no valid schedules 
 		  elsif htg_valid 
@@ -259,54 +255,24 @@ def has_setback(tstat_profiles_stats)
           )
 		  
 		  # Determine if setbacks present
-		  if htg_valid 
-           tstat_profiles_stats_htg = get_tstat_profiles_and_stats(htg_schedule)
-		  elsif clg_valid
-		   tstat_profiles_stats_clg = get_tstat_profiles_and_stats(clg_schedule)
-		  end 
+		  # if htg_valid 
+           # tstat_profiles_stats_htg = get_tstat_profiles_and_stats(htg_schedule)
+		  # elsif clg_valid
+		   # tstat_profiles_stats_clg = get_tstat_profiles_and_stats(clg_schedule)
+		  # end 
 		  
-		  has_htg_setback = has_setback(tstat_profiles_stats_htg)
-		  has_clg_setback = has_setback(tstat_profiles_stats_clg)
+		  # has_htg_setback = has_setback(tstat_profiles_stats_htg)
+		  # has_clg_setback = has_setback(tstat_profiles_stats_clg)
 		  
-		  #modify for htg vs cooling and threshold temps 
-		  if !no_people_obj && !has_htg_setback 
-		      new_htg_sched = mod_schedule(htg_schedule, sched_zone_occ, 'heating', htg_setback_c, htg_min_c)
-			  zone_thermostat.setHeatingSchedule(new_htg_sched)
-		  elsif !no_people_obj && !has_clg_setback 
-		      new_clg_sched = mod_schedule(clg_schedule, sched_zone_occ, 'cooling', clg_setback_c, clg_max_c)
-			  zone_thermostat.setCoolingSchedule(new_clg_sched)
-		  end 
+		  # #modify for htg vs cooling and threshold temps 
+		  # if !no_people_obj && !has_htg_setback 
+		      # new_htg_sched = mod_schedule(htg_schedule, sched_zone_occ, 'heating', htg_setback_c, htg_min_c)
+			  # zone_thermostat.setHeatingSchedule(new_htg_sched)
+		  # elsif !no_people_obj && !has_clg_setback 
+		      # new_clg_sched = mod_schedule(clg_schedule, sched_zone_occ, 'cooling', clg_setback_c, clg_max_c)
+			  # zone_thermostat.setCoolingSchedule(new_clg_sched)
+		  # end 
 
-          #pick back up here 
-          else # Handle zones with setbacks or with spaces without People objects
-            profiles = [htg_schedule.defaultDaySchedule]
-            htg_schedule.scheduleRules.each { |rule| profiles << rule.daySchedule }
-            for tstat_profile in profiles
-              tstat_profile_min = tstat_profile.values.min
-              tstat_profile_max = tstat_profile.values.max
-              tstat_profile_size = tstat_profile.values.uniq.size
-              time_h = tstat_profile.times
-              if tstat_profile_size == 2 # profile is square wave (2 setpoints, occupied vs unoccupied)
-                tstat_profile.values.each_with_index do |value, i| # iterate thru profile and modify values as needed
-                  if value == tstat_profile_min
-                    tstat_profile.addValue(time_h[i],
-                                           tstat_profile_max - setback_value_c)
-                  end
-                end
-              end
-              next unless tstat_profile_size > 2 # could be optimal start with ramp
-
-              tstat_profile.values.each_with_index do |value, i|
-                if value == tstat_profile_min
-                  tstat_profile.addValue(time_h[i], tstat_profile_max - setback_value_c) # set min value back to desired setback
-                elsif value > tstat_profile_min && value < tstat_profile_max # dealing with optimum start case
-                  if value < tstat_profile_max - setback_value_c # value now less than new min
-                    tstat_profile.addValue(time_h[i], tstat_profile_max - setback_value_c) # set so that minimum value is now equal to maximum - setback
-                  end
-                end
-              end
-             end
-          end
         end
 		end 
     return true
