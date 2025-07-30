@@ -1274,7 +1274,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       new_rtu.setControlType('Load')
       new_rtu.setName("#{thermal_zone.name} RTU SZ-VAV high-efficiency")
       new_rtu.setMaximumSupplyAirTemperature(50)
-      new_rtu.setDXHeatingCoilSizingRatio(1 + performance_oversizing_factor)
+      new_rtu.setDXHeatingCoilSizingRatio(1)
 
       # handle deprecated methods for OS Version 3.7.0
       if model.version < OpenStudio::VersionString.new('3.7.0')
