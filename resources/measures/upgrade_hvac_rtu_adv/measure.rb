@@ -169,10 +169,10 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     when 'Cubic'
       curve = OpenStudio::Model::CurveCubic.new(model)
       curve.setName(data['name'])
-      curve.setCoefficient1Constant(data['coeff_1'])
-      curve.setCoefficient2x(data['coeff_2'])
-      curve.setCoefficient3xPOW2(data['coeff_3'])
-      curve.setCoefficient4xPOW3(data['coeff_4'])
+      curve.setCoefficient1Constant(data['coeff_1'] || 0)
+      curve.setCoefficient2x(data['coeff_2'] || 0)
+      curve.setCoefficient3xPOW2(data['coeff_3'] || 0)
+      curve.setCoefficient4xPOW3(data['coeff_4'] || 0)
       curve.setMinimumValueofx(data['minimum_independent_variable_1']) if data['minimum_independent_variable_1']
       curve.setMaximumValueofx(data['maximum_independent_variable_1']) if data['maximum_independent_variable_1']
       if data['minimum_dependent_variable_output']
