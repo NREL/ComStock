@@ -5,7 +5,7 @@
                 {
                     "name": "poly_rtu_adv_eir_0_11_plr",
                     "category": "eir_fn_of_plr",
-                    "form": "Cubic",
+                    "form": "Linear",
                     "dependent_variable": "eir",
                     "independent_variable_1": "fraction of plr",
                     "independent_variable_2": null,
