@@ -79,8 +79,8 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
 	return valid 
 end 
 
-def mod_schedule(tstat_sched, sched_zone_occ, type, setback_val, lim_value) #TODO: need to take model as input? 
-	schedule_annual_profile = get_8760_values_from_schedule_ruleset(model, sched)
+def mod_schedule(model, runner, tstat_sched, sched_zone_occ, type, setback_val, lim_value) 
+	schedule_annual_profile = get_8760_values_from_schedule_ruleset(model, tstat_sched)
 	sch_zone_occ_annual_profile = get_8760_values_from_schedule_ruleset(model, sched_zone_occ)
 	schedule_annual_profile_updated = OpenStudio::DoubleVector.new
 	schedule_annual_profile.each_with_index do |_val, idx| # Create new profile based on occupancy
@@ -147,6 +147,52 @@ def has_setback(tstat_profiles_stats)
           end
 	  return has_setback 
  end
+ 
+def mod_schedule_setbacks_existent (schedule, type, setback_val, lim_value)
+	profiles = [schedule.defaultDaySchedule]
+	schedule.scheduleRules.each { |rule| profiles << rule.daySchedule }
+	for tstat_profile in profiles
+	  tstat_profile_min = tstat_profile.values.min
+	  tstat_profile_max = tstat_profile.values.max
+	  tstat_profile_size = tstat_profile.values.uniq.size
+	  time_h = tstat_profile.times
+	  if tstat_profile_size == 2 # profile is square wave (2 setpoints, occupied vs unoccupied)
+		tstat_profile.values.each_with_index do |value, i| # iterate thru profile and modify values as needed
+		if type == 'heating'
+		  if value == tstat_profile_min
+			tstat_profile.addValue(time_h[i],
+								   [tstat_profile_max - setback_val, lim_value].max)
+		  end
+		elsif type == 'cooling'
+		  if value == tstat_profile_max
+			tstat_profile.addValue(time_h[i],
+								   [tstat_profile_max + setback_val, lim_value].min)
+		  end
+		end 
+		end
+	  end
+	  next unless tstat_profile_size > 2 # could be optimal start with ramp
+	  tstat_profile.values.each_with_index do |value, i|
+		if value == tstat_profile_min
+		  if type == 'heating'
+		      tstat_profile.addValue(time_h[i], [tstat_profile_max - setback_val, lim_value].max) # set min value back to desired setback
+		  elsif type == 'cooling'
+		      tstat_profile.addValue(time_h[i], [tstat_profile_min + setback_val, lim_value].min ) 
+		  end 
+		elsif value > tstat_profile_min && value < tstat_profile_max # dealing with optimum start case
+		  if type == 'heating' 
+			  if value < tstat_profile_max - setback_value_c # value now less than new min
+				tstat_profile.addValue(time_h[i], [tstat_profile_max - setback_val, lim_val].max) # set so that minimum value is now equal to maximum - setback
+			  end
+		 elsif type == 'cooling'
+		       if value > tstat_profile_max + setback_val # value now less than new max
+				tstat_profile.addValue(time_h[i], [tstat_profile_min + setback_val, lim_val].min) # set so that minimum value is now equal to maximum - setback
+			  end
+		 end 
+		end
+	  end
+	 end
+end 
 
   # define what happens when the measure is run
   def run(model, runner, user_arguments)
@@ -244,8 +290,10 @@ def has_setback(tstat_profiles_stats)
 		     next #skip to the next zone if no valid schedules 
 		  elsif htg_valid 
 		        htg_schedule = htg_schedule.get.to_ScheduleRuleset.get
-		  elsif clg_valid 
+		  end 
+		  if clg_valid 
 			clg_schedule = clg_schedule.get.to_ScheduleRuleset.get
+			runner.registerInfo("getting ruleset") 
 		  end 
 		  
 		  #check for validity later on too 
@@ -254,24 +302,36 @@ def has_setback(tstat_profiles_stats)
             [thermal_zone], occupied_percentage_threshold: 0.05
           )
 		  
-		  # Determine if setbacks present
-		  # if htg_valid 
-           # tstat_profiles_stats_htg = get_tstat_profiles_and_stats(htg_schedule)
-		  # elsif clg_valid
-		   # tstat_profiles_stats_clg = get_tstat_profiles_and_stats(clg_schedule)
-		  # end 
-		  
-		  # has_htg_setback = has_setback(tstat_profiles_stats_htg)
-		  # has_clg_setback = has_setback(tstat_profiles_stats_clg)
-		  
+		  #Determine if setbacks present
+		  if htg_valid 
+           tstat_profiles_stats_htg = get_tstat_profiles_and_stats(htg_schedule)
+		   has_htg_setback = has_setback(tstat_profiles_stats_htg)
+		  end 
+		  if clg_valid
+		   tstat_profiles_stats_clg = get_tstat_profiles_and_stats(clg_schedule)
+		   has_clg_setback = has_setback(tstat_profiles_stats_clg)
+		  end 
+		 
+		  runner.registerInfo("cooling valid #{clg_valid}") 
 		  # #modify for htg vs cooling and threshold temps 
-		  # if !no_people_obj && !has_htg_setback 
-		      # new_htg_sched = mod_schedule(htg_schedule, sched_zone_occ, 'heating', htg_setback_c, htg_min_c)
-			  # zone_thermostat.setHeatingSchedule(new_htg_sched)
-		  # elsif !no_people_obj && !has_clg_setback 
-		      # new_clg_sched = mod_schedule(clg_schedule, sched_zone_occ, 'cooling', clg_setback_c, clg_max_c)
-			  # zone_thermostat.setCoolingSchedule(new_clg_sched)
-		  # end 
+		  if htg_valid 
+			  if !no_people_obj && !has_htg_setback 
+				  new_htg_sched = mod_schedule(model, runner, htg_schedule, sch_zone_occ, 'heating', htg_setback_c, htg_min_c)
+				  zone_thermostat.setHeatingSchedule(new_htg_sched)
+			  else
+			     mod_schedule_setbacks_existent(htg_schedule, 'heating', htg_setback_c, htg_min_c)
+			  end 
+		  end 
+		  runner.registerInfo("clg sched #{clg_schedule}")
+		  runner.registerInfo("class #{clg_schedule.class.to_s}")
+		  if clg_valid 
+		    if !no_people_obj && !has_clg_setback 
+		      new_clg_sched = mod_schedule(model, runner, clg_schedule, sch_zone_occ, 'cooling', clg_setback_c, clg_max_c)
+			  zone_thermostat.setCoolingSchedule(new_clg_sched)
+			else 
+			   mod_schedule_setbacks_existent(clg_schedule, 'cooling', clg_setback_c, clg_max_c)
+			end 
+		  end 
 
         end
 		end 
