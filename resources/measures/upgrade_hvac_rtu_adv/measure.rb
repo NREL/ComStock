@@ -659,8 +659,8 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
         if orig_clg_coil.ratedTotalCoolingCapacity.is_initialized
           orig_clg_coil_gross_cap = orig_clg_coil.ratedTotalCoolingCapacity.to_f
         end
-        if orig_clg_coil.ratedAirflowRate.is_initialized
-          orig_clg_coil_rated_airflow_m_3_per_s = orig_clg_coil.ratedAirflowRate.to_f
+        if orig_clg_coil.ratedAirFlowRate.is_initialized
+          orig_clg_coil_rated_airflow_m_3_per_s = orig_clg_coil.ratedAirFlowRate.to_f
         end
       end
 
