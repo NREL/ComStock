@@ -305,7 +305,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
   end
 
   # Returns the curve object based on curve type, unit size, and operation stage.
-  def get_curve_object(runner, type, reference_capacity, operation_stage, debug_verbose)
+  def get_curve_name(runner, type, reference_capacity, operation_stage, debug_verbose)
     curve_name = nil
 
     # determine prefix
@@ -847,6 +847,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       fan_static_pressure = 'tmp'
       orig_clg_coil_gross_cap = nil
       orig_htg_coil_gross_cap = nil
+      orig_clg_coil_rated_airflow_m_3_per_s = nil
 
       # -------------------------------------------------------
       # delete existing system
@@ -1160,7 +1161,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil.setEnergyPartLoadFractionCurve(
         model_add_curve(
             model,
-            get_curve_object(runner, 'eir_fn_of_plr', orig_clg_coil_gross_cap, 0, debug_verbose),
+            get_curve_name(runner, 'eir_fn_of_plr', orig_clg_coil_gross_cap, 0, debug_verbose),
             custom_performance_map_data,
             std
           )
@@ -1191,13 +1192,13 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
         dx_coil_speed_data = OpenStudio::Model::CoilCoolingDXVariableSpeedSpeedData.new(model)
         dx_coil_speed_data.setReferenceUnitGrossRatedTotalCoolingCapacity(reference_capacity_w)
         dx_coil_speed_data.setReferenceUnitRatedAirFlowRate(orig_clg_coil_rated_airflow_m_3_per_s)
-        dx_coil_speed_data.setReferenceUnitGrossRatedSensibleHeatRatio(stage_gross_rated_sensible_heat_ratio_cooling[applied_stage])
+        dx_coil_speed_data.setReferenceUnitGrossRatedSensibleHeatRatio(0.8)
         dx_coil_speed_data.setReferenceUnitGrossRatedCoolingCOP(get_rated_cop_cooling_adv(reference_capacity_w))
         dx_coil_speed_data.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
         dx_coil_speed_data.setTotalCoolingCapacityFunctionofTemperatureCurve(
           model_add_curve(
             model,
-            get_curve_object(runner, 'capacity_fn_of_t', reference_capacity, stage, debug_verbose),
+            get_curve_name(runner, 'capacity_fn_of_t', reference_capacity_w, stage, debug_verbose),
             custom_performance_map_data,
             std
           )
@@ -1205,7 +1206,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
         dx_coil_speed_data.setTotalCoolingCapacityFunctionofAirFlowFractionCurve(
           model_add_curve(
             model,
-            get_curve_object(runner, 'capacity_fn_of_ff', reference_capacity, stage, debug_verbose),
+            get_curve_name(runner, 'capacity_fn_of_ff', reference_capacity_w, stage, debug_verbose),
             custom_performance_map_data,
             std
           )
@@ -1213,7 +1214,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
         dx_coil_speed_data.setEnergyInputRatioFunctionofTemperatureCurve(
           model_add_curve(
             model,
-            get_curve_object(runner, 'eir_fn_of_t', reference_capacity, stage, debug_verbose),
+            get_curve_name(runner, 'eir_fn_of_t', reference_capacity_w, stage, debug_verbose),
             custom_performance_map_data,
             std
           )
@@ -1221,7 +1222,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
         dx_coil_speed_data.setEnergyInputRatioFunctionofAirFlowFractionCurve(
           model_add_curve(
             model,
-            get_curve_object(runner, 'eir_fn_of_ff', reference_capacity, stage, debug_verbose),
+            get_curve_name(runner, 'eir_fn_of_ff', reference_capacity_w, stage, debug_verbose),
             custom_performance_map_data,
             std
           )
