@@ -848,6 +848,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       orig_clg_coil_gross_cap = nil
       orig_htg_coil_gross_cap = nil
       orig_clg_coil_rated_airflow_m_3_per_s = nil
+      orig_htg_coil = nil
 
       # -------------------------------------------------------
       # delete existing system
@@ -1233,10 +1234,6 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       end
 
       # -------------------------------------------------------
-      # create coils: heating
-      # -------------------------------------------------------
-
-      # -------------------------------------------------------
       # create coils: backup heating
       # -------------------------------------------------------
       # add new supplemental heating coil
@@ -1263,7 +1260,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       new_rtu = OpenStudio::Model::AirLoopHVACUnitarySystem.new(model)
       new_rtu.setName("#{air_loop_hvac.name} Unitary high-efficiency System")
       new_rtu.setSupplyFan(new_fan)
-      new_rtu.setHeatingCoil(new_dx_heating_coil)
+      new_rtu.setHeatingCoil(orig_htg_coil)
       new_rtu.setCoolingCoil(new_dx_cooling_coil)
       new_rtu.setSupplementalHeatingCoil(new_backup_heating_coil)
       new_rtu.addToNode(air_loop_hvac.supplyOutletNode)
