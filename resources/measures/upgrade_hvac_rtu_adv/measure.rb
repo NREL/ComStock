@@ -305,15 +305,20 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
   end
 
   # Returns the curve object based on curve type, unit size, and operation stage.
-  def get_curve_object(runner, type, reference_capacity, operation_stage, debug_verbose)
+  def get_curve_object(runner, type, reference_capacity, operation_stage = 0, debug_verbose)
     curve_name = nil
 
     # determine prefix
     curve_name_prefix = nil
     if type.include?('fn_of_t')
       curve_name_prefix = 'lookup_'
+      curve_name_suffix = ''
     elsif type.include?('fn_of_ff')
       curve_name_prefix = 'poly_'
+      curve_name_suffix = ''
+    elsif type.include?('fn_of_plr')
+      curve_name_prefix = 'poly_'
+      curve_name_suffix = 'plr'
     end
 
     # determine dependent var
@@ -327,6 +332,8 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     # determine operation stage
     curve_name_stage = nil
     case operation_stage
+    when 0
+      curve_name_stage = ''
     when 1
       curve_name_stage = 'low'
     when 2
@@ -346,7 +353,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     end
 
     # construct curve name
-    curve_name = [curve_name_prefix, 'rtu_adv', curve_name_dep_var, curve_name_size, curve_name_stage].join('_')
+    curve_name = [curve_name_prefix, 'rtu_adv', curve_name_dep_var, curve_name_size, curve_name_suffix, curve_name_stage].reject(&:empty?).join('_')
     if debug_verbose
       runner.registerInfo('--- stage {} | reference_capacity_w = {} | curve = {}'.format(stage, reference_capacity, curve_name))
     end
@@ -1139,7 +1146,14 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil.setNominalTimeforCondensatetoBeginLeavingtheCoil(1000)
       new_dx_cooling_coil.setInitialMoistureEvaporationRateDividedbySteadyStateACLatentCapacity(1.5)
       new_dx_cooling_coil.setLatentCapacityTimeConstant(45)
-      new_dx_cooling_coil.setEnergyPartLoadFractionCurve(cool_plf_fplr1)
+      new_dx_cooling_coil.setEnergyPartLoadFractionCurve(
+        model_add_curve(
+            model,
+            get_curve_object(runner, 'eir_fn_of_plr', orig_clg_coil_gross_cap, 0, debug_verbose),
+            combine_all_performance_curves,
+            std
+          )
+      )
 
       # define rated to lower stage ratios: low, medium, high stages
       stage_ratios = [0.333, 0.666, 1.0]
