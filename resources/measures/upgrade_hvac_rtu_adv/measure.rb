@@ -784,21 +784,15 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     if model.building.get.conditionedFloorArea.empty?
       runner.registerWarning('model.building.get.conditionedFloorArea() is empty; applicable floor area fraction will not be reported.')
       # report initial condition of model
-      condition_initial_hprtu = "The building has #{selected_air_loops.size} applicable air loops (out of the total #{model.getAirLoopHVACs.size} airloops in the model) that will be replaced with high-efficiency RTUs, serving #{applicable_area_m2.round(0)} m2 of floor area. The remaning airloops were determined to be not applicable."
-      condition_initial = [condition_initial_hprtu, condition_initial_roof,
-                           condition_initial_window].reject(&:empty?).join(' | ')
-      runner.registerInitialCondition(condition_initial)
+      condition = "The building has #{selected_air_loops.size} applicable air loops (out of the total #{model.getAirLoopHVACs.size} airloops in the model) that will be replaced with high-efficiency RTUs, serving #{applicable_area_m2.round(0)} m2 of floor area. The remaning airloops were determined to be not applicable."
+      runner.registerInitialCondition(condition)
     else
       total_area_m2 = model.building.get.conditionedFloorArea.get
-
       # fraction of conditioned floorspace
       applicable_floorspace_frac = applicable_area_m2 / total_area_m2
-
       # report initial condition of model
-      condition_initial_hprtu = "The building has #{selected_air_loops.size} applicable air loops that will be replaced with high-efficiency RTUs, representing #{(applicable_floorspace_frac * 100).round(2)}% of the building floor area. #{condition_initial_roof}. #{condition_initial_window}."
-      condition_initial = [condition_initial_hprtu, condition_initial_roof,
-                           condition_initial_window].reject(&:empty?).join(' | ')
-      runner.registerInitialCondition(condition_initial)
+      condition = "The building has #{selected_air_loops.size} applicable air loops that will be replaced with high-efficiency RTUs, representing #{(applicable_floorspace_frac * 100).round(2)}% of the building floor area. #{condition_initial_roof}. #{condition_initial_window}."
+      runner.registerInitialCondition(condition)
     end
 
     # ---------------------------------------------------------
