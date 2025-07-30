@@ -28,6 +28,12 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
   def arguments(model = nil)
     args = OpenStudio::Measure::OSArgumentVector.new
 
+    timeseries_output = OpenStudio::Measure::OSArgument.makeBoolArgument('timeseries_output', true)
+    timeseries_output.setDisplayName('Output Timeseries')
+    timeseries_output.setDescription('If true, the measure will output timeseries data for each component and mode.')
+    timeseries_output.setDefaultValue(false)
+    args << timeseries_output
+
     return args
   end
 
@@ -94,6 +100,8 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
       'Zone Mechanical Ventilation Heating Load Decrease Energy',
       'Zone Mechanical Ventilation Cooling Load Increase Energy',
       'Zone Mechanical Ventilation Cooling Load Decrease Energy',
+      'Surface Inside Face Temperature',
+      'Surface Inside Face Adjacent Air Temperature'
     ]
   end
 
@@ -167,6 +175,8 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
   # If you mean to modify the model in a significant way, use a `ModelMeasure`
   # NOTE: this method will ONLY be called if you use the C++ CLI, not the `classic` (Ruby) one
   def modelOutputRequests(model, runner, user_arguments)
+
+    timeseries_output = runner.getBoolArgumentValue('timeseries_output', user_arguments)
     
     # request advanced reporting for window heat gain components
     model.getOutputDiagnostics.addKey('DisplayAdvancedReportVariables')
@@ -188,16 +198,23 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
         # add a regular output variable that references it
         out_var = OpenStudio::Model::OutputVariable.new("PythonPlugin:OutputVariable", model)
         out_var.setKeyValue(py_out_var.nameString)
-        # out_var.setReportingFrequency('Timestep') # TODO: change to 'RunPeriod' for production
-        out_var.setReportingFrequency('RunPeriod')
+        if timeseries_output
+          out_var.setReportingFrequency('Timestep')
+        else
+          out_var.setReportingFrequency('RunPeriod')
+        end
+        
       end
     end
 
     # add simulation output variables needed for the plugin
     variables_names.each do |var_name|
       out_var = OpenStudio::Model::OutputVariable.new(var_name, model)
-      # out_var.setReportingFrequency('Timestep') # TODO: change to 'RunPeriod' for production
-      out_var.setReportingFrequency('RunPeriod')
+      if timeseries_output
+        out_var.setReportingFrequency('Timestep')
+      else
+        out_var.setReportingFrequency('RunPeriod')
+      end
     end
 
     # read in the template
@@ -313,6 +330,8 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
       return false
     end
 
+    timeseries_output = runner.getBoolArgumentValue('timeseries_output', user_arguments)
+
     # load sql file
     sql_file = runner.lastEnergyPlusSqlFile
     if sql_file.empty?
@@ -356,11 +375,13 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
     # query the component outputs and register values
     components.each do |component|
       modes.each do |mode|
-        # ts = get_timeseries_array(runner, sql_file, ann_env_pd, 'Zone Timestep', 'PythonPlugin:OutputVariable', "#{component}_#{mode}", num_ts, 'J', 'GJ')
-        # runner.registerValue("#{component}_#{mode}", ts.sum, 'GJ')
-        value = get_runperiod_variable_value(runner, sql_file, ann_env_pd, "#{component}_#{mode}", 'GJ')
-        runner.registerValue("#{component}_#{mode}", value, 'GJ')
-
+        if timeseries_output
+          ts = get_timeseries_array(runner, sql_file, ann_env_pd, 'Zone Timestep', 'PythonPlugin:OutputVariable', "#{component}_#{mode}", num_ts, 'J', 'GJ')
+          runner.registerValue("#{component}_#{mode}", ts.sum, 'GJ')
+        else
+          value = get_runperiod_variable_value(runner, sql_file, ann_env_pd, "#{component}_#{mode}", 'GJ')
+          runner.registerValue("#{component}_#{mode}", value, 'GJ')
+        end
       end
     end
 

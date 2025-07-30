@@ -293,6 +293,9 @@ class LoadsSummaryTest < Minitest::Test
     # run the measure
     run_in_workflow(test_name, test_model_path, args_hash, epw_path)
 
+    # test with timeseries output
+    run_in_workflow("#{test_name}_timeseries", test_model_path, {'timeseries_output' => true}, epw_path)
+
     return true
   end
 
@@ -342,21 +345,24 @@ class LoadsSummaryTest < Minitest::Test
   #   return true
   # end
 
-  # def test_cz4B_retail
-  #   test_name = 'test_cz4B_retail'
-  #   test_model_name = 'CZ4B_retail_10001_25000_PSZ-AC with gas coil.osm'
-  #   test_model_path =  "#{__dir__}/#{test_model_name}"
-  #   epw_path = "#{__dir__}/G3500010.epw"
+  def test_cz4B_retail
+    test_name = 'test_cz4B_retail'
+    test_model_name = 'CZ4B_retail_10001_25000_PSZ-AC with gas coil.osm'
+    test_model_path =  "#{__dir__}/#{test_model_name}"
+    epw_path = "#{__dir__}/G3500010.epw"
 
-  #   # set the arguments to test
-  #   args_hash = {
-  #   }
+    # set the arguments to test
+    args_hash = {
+    }
 
-  #   # run the measure
-  #   run_in_workflow(test_name, test_model_path, args_hash, epw_path)
+    # run the measure
+    run_in_workflow(test_name, test_model_path, args_hash, epw_path)
+    # test with timeseries output
 
-  #   return true
-  # end
+    run_in_workflow("#{test_name}_timeseries", test_model_path, {'timeseries_output' => true}, epw_path)
+
+    return true
+  end
 
   # def test_cz4C_warehouse
   #   test_name = 'test_cz4C_warehouse'
