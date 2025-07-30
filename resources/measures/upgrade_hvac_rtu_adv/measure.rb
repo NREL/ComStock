@@ -305,19 +305,19 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
   end
 
   # Returns the curve object based on curve type, unit size, and operation stage.
-  def get_curve_object(runner, type, reference_capacity, operation_stage = 0, debug_verbose)
+  def get_curve_object(runner, type, reference_capacity, operation_stage, debug_verbose)
     curve_name = nil
 
     # determine prefix
     curve_name_prefix = nil
     if type.include?('fn_of_t')
-      curve_name_prefix = 'lookup_'
+      curve_name_prefix = 'lookup'
       curve_name_suffix = ''
     elsif type.include?('fn_of_ff')
-      curve_name_prefix = 'poly_'
+      curve_name_prefix = 'poly'
       curve_name_suffix = ''
     elsif type.include?('fn_of_plr')
-      curve_name_prefix = 'poly_'
+      curve_name_prefix = 'poly'
       curve_name_suffix = 'plr'
     end
 
@@ -353,7 +353,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     end
 
     # construct curve name
-    curve_name = [curve_name_prefix, 'rtu_adv', curve_name_dep_var, curve_name_size, curve_name_suffix, curve_name_stage].reject(&:empty?).join('_')
+    curve_name = [curve_name_prefix, 'rtu_adv', curve_name_dep_var, curve_name_size, curve_name_suffix, curve_name_stage].reject(&:empty?).join('_')    
     if debug_verbose
       runner.registerInfo("--- stage ##{operation_stage} | reference_capacity_w = #{reference_capacity} | curve = #{curve_name}")
     end
@@ -1132,6 +1132,11 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       new_fan.setPressureRise(fan_static_pressure) # set from origial fan power; 0.5in will be added later if adding HR
 
       # -------------------------------------------------------
+      # get custom data
+      # -------------------------------------------------------
+      custom_performance_map_data = combine_all_performance_curves
+
+      # -------------------------------------------------------
       # create coils: cooling
       # -------------------------------------------------------
       # define variable speed cooling coil
@@ -1150,7 +1155,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
         model_add_curve(
             model,
             get_curve_object(runner, 'eir_fn_of_plr', orig_clg_coil_gross_cap, 0, debug_verbose),
-            combine_all_performance_curves,
+            custom_performance_map_data,
             std
           )
       )
@@ -1187,7 +1192,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
           model_add_curve(
             model,
             get_curve_object(runner, 'capacity_fn_of_t', reference_capacity, stage, debug_verbose),
-            combine_all_performance_curves,
+            custom_performance_map_data,
             std
           )
         )
@@ -1195,7 +1200,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
           model_add_curve(
             model,
             get_curve_object(runner, 'capacity_fn_of_ff', reference_capacity, stage, debug_verbose),
-            combine_all_performance_curves,
+            custom_performance_map_data,
             std
           )
         )
@@ -1203,7 +1208,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
           model_add_curve(
             model,
             get_curve_object(runner, 'eir_fn_of_t', reference_capacity, stage, debug_verbose),
-            combine_all_performance_curves,
+            custom_performance_map_data,
             std
           )
         )
@@ -1211,7 +1216,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
           model_add_curve(
             model,
             get_curve_object(runner, 'eir_fn_of_ff', reference_capacity, stage, debug_verbose),
-            combine_all_performance_curves,
+            custom_performance_map_data,
             std
           )
         )
