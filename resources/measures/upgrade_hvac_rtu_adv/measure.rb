@@ -6,24 +6,23 @@
 # see the URL below for information on how to write OpenStudio measures
 # http://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/
 require 'openstudio-standards'
-Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }
+require 'json'
 
 # start the measure
 class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
-
   # human readable name
   def name
-    return "upgrade_hvac_rtu_adv"
+    return 'upgrade_hvac_rtu_adv'
   end
 
   # human readable description
   def description
-    return "replaces exisiting RTUs with top-of-the-line RTUs in the current (as of 7/30/2025) market. Improvements are from increased rated efficiencies, off-rated performances, and part-load performances."
+    return 'replaces exisiting RTUs with top-of-the-line RTUs in the current (as of 7/30/2025) market. Improvements are from increased rated efficiencies, off-rated performances, and part-load performances.'
   end
 
   # human readable description of modeling approach
   def modeler_description
-    return "The high-efficiency RTU measure is applicable to ComStock models with either gas furnace RTUs (“PSZ-AC with gas coil”) or electric resistance RTUs (“PSZ-AC with electric coil”). This analysis includes only products that meet or exceed current building energy codes while representing the highest-performing models available on the market today. If the building currently uses gas for space heating, the upgraded RTU will be equipped with a gas furnace. If the building uses electricity for space heating, the RTU will include electric resistance heating. Heat/Energy Recovery Ventilator (H/ERVs) is included in the RTUs for this study, and the implementation and modeling will follow the approach used in previous work. Demand Control Ventilation (DCV) is included in the RTUs for this study, and the implementation and modeling will follow the approach used in previous work."
+    return 'The high-efficiency RTU measure is applicable to ComStock models with either gas furnace RTUs (“PSZ-AC with gas coil”) or electric resistance RTUs (“PSZ-AC with electric coil”). This analysis includes only products that meet or exceed current building energy codes while representing the highest-performing models available on the market today. If the building currently uses gas for space heating, the upgraded RTU will be equipped with a gas furnace. If the building uses electricity for space heating, the RTU will include electric resistance heating. Heat/Energy Recovery Ventilator (H/ERVs) is included in the RTUs for this study, and the implementation and modeling will follow the approach used in previous work. Demand Control Ventilation (DCV) is included in the RTUs for this study, and the implementation and modeling will follow the approach used in previous work.'
   end
 
   # define the arguments that the user will input
@@ -101,6 +100,28 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       end
     end
     is_unitary_system
+  end
+
+  # Returns combined performance curves from resources folder
+  def combine_all_performance_curves
+    combined_data = {
+      'tables' => {
+        'curves' => {
+          'table' => []
+        }
+      }
+    }
+
+    Dir[File.join(File.dirname(__FILE__), 'resources', '*.json')].each do |file_path|
+      json_data = JSON.parse(File.read(file_path))
+      tables = json_data.dig('tables', 'curves', 'table')
+      if tables.is_a?(Array)
+        combined_data['tables']['curves']['table'].concat(tables)
+      else
+        raise "Unexpected JSON structure in #{file_path}"
+      end
+    end
+    combined_data
   end
 
   # Loads a curve from JSON and adds it to the model if not already present.
@@ -283,14 +304,79 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     end
   end
 
+  # Returns the curve object based on curve type, unit size, and operation stage.
+  def get_curve_object(runner, type, reference_capacity, operation_stage, debug_verbose)
+    curve_name = nil
+
+    # determine prefix
+    curve_name_prefix = nil
+    if type.include?('fn_of_t')
+      curve_name_prefix = 'lookup_'
+    elsif type.include?('fn_of_ff')
+      curve_name_prefix = 'poly_'
+    end
+
+    # determine dependent var
+    curve_name_dep_var = nil
+    if type.include?('capacity_')
+      curve_name_dep_var = 'capacity'
+    elsif type.include?('eir_')
+      curve_name_dep_var = 'eir'
+    end
+
+    # determine operation stage
+    curve_name_stage = nil
+    case operation_stage
+    when 1
+      curve_name_stage = 'low'
+    when 2
+      curve_name_stage = 'med'
+    when 3
+      curve_name_stage = 'high'
+    end
+
+    # determine size category and create complete curve name
+    curve_name_size = nil
+    if reference_capacity < 39564.59445 # = 135 kBtu/hr
+      curve_name_size = '0_11'
+    elsif reference_capacity < 70337.0568 # = 240 kBtu/hr
+      curve_name_size = '11_20'
+    else
+      curve_name_size = '20_9999'
+    end
+
+    # construct curve name
+    curve_name = [curve_name_prefix, 'rtu_adv', curve_name_dep_var, curve_name_size, curve_name_stage].join('_')
+    if debug_verbose
+      runner.registerInfo('--- stage {} | reference_capacity_w = {} | curve = {}'.format(stage, reference_capacity, curve_name))
+    end
+
+    curve_name
+  end
+
   # Returns the rated cooling COP for advanced RTU given the rated capacity (W).
   def get_rated_cop_cooling_adv(rated_capacity_w)
-    intercept = 4.140806
-    coef_1 = -0.007577
-    min_cop = 3.34
-    max_cop = 4.29
-    rated_capacity_kw = rated_capacity_w / 1000 # W to kW
-    rated_cop_cooling = intercept + (coef_1 * rated_capacity_kw)
+    intercept = nil
+    coef_1 = nil
+    min_cop = nil
+    max_cop = nil
+    if rated_capacity_w < 39564.59445 # = 135 kBtu/hr
+      intercept = 4.26
+      coef_1 = -0.0000027392
+      min_cop = 4.15
+      max_cop = 4.26
+    elsif rated_capacity_w < 70337.0568 # = 240 kBtu/hr
+      intercept = 4.24
+      coef_1 = -0.0000057962
+      min_cop = 3.83
+      max_cop = 4.01
+    else
+      intercept = 3.68
+      coef_1 = -1.6479e-07
+      min_cop = 3.62
+      max_cop = 3.67
+    end
+    rated_cop_cooling = intercept + (coef_1 * rated_capacity_w)
     rated_cop_cooling.clamp(min_cop, max_cop)
   end
 
@@ -476,9 +562,9 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       air_loop_hvac.supplyComponents.each do |component|
         obj_type = component.iddObjectType.valueName.to_s
         # flag system if contains water coil; this will cause air loop to be skipped
-        is_water_coil = true if %w[Coil_Heating_Water Coil_Cooling_Water].any? { |word| obj_type.include?(word) }
+        is_water_coil = true if ['Coil_Heating_Water', 'Coil_Cooling_Water'].any? { |word| obj_type.include?(word) }
         # flag gas heating as true if gas coil is found in any airloop
-        prim_ht_fuel_type = 'gas' if %w[Gas GAS gas].any? { |word| obj_type.include?(word) }
+        prim_ht_fuel_type = 'gas' if ['Gas', 'GAS', 'gas'].any? { |word| obj_type.include?(word) }
         # check unitary systems for DX heating or water coils
         if obj_type == 'OS_AirLoopHVAC_UnitarySystem'
           unitary_sys = component.to_AirLoopHVACUnitarySystem.get
@@ -493,7 +579,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
             elsif ['Water'].any? { |word| htg_coil.include?(word) }
               is_water_coil = true
             # check for gas heating
-            elsif %w[Gas GAS gas].any? { |word| htg_coil.include?(word) }
+            elsif ['Gas', 'GAS', 'gas'].any? { |word| htg_coil.include?(word) }
               prim_ht_fuel_type = 'gas'
             end
           else
@@ -522,9 +608,9 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
                 air_loop_hvac.name.get.include?(word)
               end
       # skip kitchens
-      next if %w[Kitchen KITCHEN Kitchen].any? { |word| air_loop_hvac.name.get.include?(word) }
+      next if ['Kitchen', 'KITCHEN', 'Kitchen'].any? { |word| air_loop_hvac.name.get.include?(word) }
       # skip VAV sysems
-      next if %w[VAV PVAV].any? { |word| air_loop_hvac.name.get.include?(word) }
+      next if ['VAV', 'PVAV'].any? { |word| air_loop_hvac.name.get.include?(word) }
       # skip if residential system
       next if air_loop_res?(air_loop_hvac)
       # skip if system has no outdoor air, also indication of residential system
@@ -550,6 +636,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       oa_flow_m3_per_s = nil
       old_terminal_sa_flow_m3_per_s = nil
       orig_clg_coil_gross_cap = nil
+      orig_clg_coil_rated_airflow_m_3_per_s = nil
       orig_htg_coil_gross_cap = nil
 
       # determine if sizing run is needed
@@ -571,6 +658,9 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
         # get either autosized or specified cooling capacityet
         if orig_clg_coil.ratedTotalCoolingCapacity.is_initialized
           orig_clg_coil_gross_cap = orig_clg_coil.ratedTotalCoolingCapacity.to_f
+        end
+        if orig_clg_coil.ratedAirflowRate.is_initialized
+          orig_clg_coil_rated_airflow_m_3_per_s = orig_clg_coil.ratedAirflowRate.to_f
         end
       end
 
@@ -717,7 +807,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     # building type not applicable to ERVs as part of this measure will receive no additional or modification of ERV systems
     # this is only relevant if the user selected to add ERVs
     # space type applicability is handled later in the code when looping through individual air loops
-    building_types_to_exclude = %w[RFF RSD QuickServiceRestaurant FullServiceRestaurant]
+    building_types_to_exclude = ['RFF', 'RSD', 'QuickServiceRestaurant', 'FullServiceRestaurant']
     # determine building type applicability for ERV
     btype_erv_applicable = true
     building_types_to_exclude = building_types_to_exclude.map(&:downcase)
@@ -742,7 +832,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
 
     # Get ER/HR type from climate zone
     _, _, doas_type =
-      if %w[1A 2A 3A 4A 5A 6A 7 7A 8 8A].include?(climate_zone_classification)
+      if ['1A', '2A', '3A', '4A', '5A', '6A', '7', '7A', '8', '8A'].include?(climate_zone_classification)
         [12.7778, 19.4444, 'ERV']
       else
         [15.5556, 19.4444, 'HRV']
@@ -779,7 +869,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
           # convert component to string name
           obj_type = component.iddObjectType.valueName.to_s
           # skip unless component is of relevant type
-          next unless %w[Fan Unitary Coil].any? { |word| obj_type.include?(word) }
+          next unless ['Fan', 'Unitary', 'Coil'].any? { |word| obj_type.include?(word) }
 
           # make list of equipment to delete
           equip_to_delete << component
@@ -884,7 +974,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
           # convert component to string name
           obj_type = component.iddObjectType.valueName.to_s
           # skip unless component is of relevant type
-          next unless %w[Fan Unitary Coil].any? { |word| obj_type.include?(word) }
+          next unless ['Fan', 'Unitary', 'Coil'].any? { |word| obj_type.include?(word) }
 
           # make list of equipment to delete
           equip_to_delete << component
@@ -1036,7 +1126,84 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       # -------------------------------------------------------
       # create coils: cooling
       # -------------------------------------------------------
-      
+      # define variable speed cooling coil
+      new_dx_cooling_coil = OpenStudio::Model::CoilCoolingDXVariableSpeed.new(model)
+      new_dx_cooling_coil.setName("#{air_loop_hvac.name} Heat Pump Cooling Coil")
+      new_dx_cooling_coil.setCondenserType('AirCooled')
+      new_dx_cooling_coil.setMinimumOutdoorDryBulbTemperatureforCompressorOperation(-25)
+      new_dx_cooling_coil.setMaximumOutdoorDryBulbTemperatureforCrankcaseHeaterOperation(4.4)
+      crankcase_heater_power = ((60 * (orig_clg_coil_gross_cap * 0.0002843451 / 10)**0.67)) # methods from "TECHNICAL SUPPORT DOCUMENT: ENERGY EFFICIENCY PROGRAM FOR CONSUMER PRODUCTS AND COMMERCIAL AND INDUSTRIAL EQUIPMENT AIR-COOLED COMMERCIAL UNITARY AIR CONDITIONERS AND COMMERCIAL UNITARY HEAT PUMPS"
+      new_dx_cooling_coil.setCrankcaseHeaterCapacity(crankcase_heater_power)
+      new_dx_cooling_coil.setMinimumOutdoorDryBulbTemperatureforCompressorOperation(-25)
+      new_dx_cooling_coil.setNominalTimeforCondensatetoBeginLeavingtheCoil(1000)
+      new_dx_cooling_coil.setInitialMoistureEvaporationRateDividedbySteadyStateACLatentCapacity(1.5)
+      new_dx_cooling_coil.setLatentCapacityTimeConstant(45)
+      new_dx_cooling_coil.setEnergyPartLoadFractionCurve(cool_plf_fplr1)
+
+      # define rated to lower stage ratios: low, medium, high stages
+      stage_ratios = [0.333, 0.666, 1.0]
+
+      # loop through stages
+      stage_ratios.sort.each_with_index do |ratio, index|
+        # convert index to stage number
+        stage = index + 1
+
+        # calculate reference capacity
+        if stage == 3
+          reference_capacity_w = orig_clg_coil_gross_cap
+          reference_capacity_m_3_per_s = orig_clg_coil_rated_airflow_m_3_per_s
+        else
+          reference_capacity_w = orig_clg_coil_gross_cap * ratio
+          reference_capacity_m_3_per_s = orig_clg_coil_rated_airflow_m_3_per_s * ratio
+        end
+        if debug_verbose
+          runner.registerInfo('--- stage {} | reference_capacity_w = {}'.format(stage, reference_capacity_w))
+          runner.registerInfo('--- stage {} | reference_capacity_m_3_per_s = {}'.format(stage, reference_capacity_m_3_per_s))
+        end
+
+        # add speed data for each stage
+        dx_coil_speed_data = OpenStudio::Model::CoilCoolingDXVariableSpeedSpeedData.new(model)
+        dx_coil_speed_data.setReferenceUnitGrossRatedTotalCoolingCapacity(reference_capacity_w)
+        dx_coil_speed_data.setReferenceUnitRatedAirFlowRate(orig_clg_coil_rated_airflow_m_3_per_s)
+        dx_coil_speed_data.setReferenceUnitGrossRatedSensibleHeatRatio(stage_gross_rated_sensible_heat_ratio_cooling[applied_stage])
+        dx_coil_speed_data.setReferenceUnitGrossRatedCoolingCOP(get_rated_cop_cooling_adv(reference_capacity_w))
+        dx_coil_speed_data.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
+        dx_coil_speed_data.setTotalCoolingCapacityFunctionofTemperatureCurve(
+          model_add_curve(
+            model,
+            get_curve_object(runner, 'capacity_fn_of_t', reference_capacity, stage, debug_verbose),
+            combine_all_performance_curves,
+            std
+          )
+        )
+        dx_coil_speed_data.setTotalCoolingCapacityFunctionofAirFlowFractionCurve(
+          model_add_curve(
+            model,
+            get_curve_object(runner, 'capacity_fn_of_ff', reference_capacity, stage, debug_verbose),
+            combine_all_performance_curves,
+            std
+          )
+        )
+        dx_coil_speed_data.setEnergyInputRatioFunctionofTemperatureCurve(
+          model_add_curve(
+            model,
+            get_curve_object(runner, 'eir_fn_of_t', reference_capacity, stage, debug_verbose),
+            combine_all_performance_curves,
+            std
+          )
+        )
+        dx_coil_speed_data.setEnergyInputRatioFunctionofAirFlowFractionCurve(
+          model_add_curve(
+            model,
+            get_curve_object(runner, 'eir_fn_of_ff', reference_capacity, stage, debug_verbose),
+            combine_all_performance_curves,
+            std
+          )
+        )
+
+        # add speed data to variable speed coil object
+        new_dx_cooling_coil.addSpeed(dx_coil_speed_data)
+      end
 
       # -------------------------------------------------------
       # create coils: heating
@@ -1130,7 +1297,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       next unless (hr == true) && (btype_erv_applicable == true)
 
       # check for space type applicability
-      thermal_zone_names_to_exclude = %w[Kitchen kitchen KITCHEN Dining dining DINING]
+      thermal_zone_names_to_exclude = ['Kitchen', 'kitchen', 'KITCHEN', 'Dining', 'dining', 'DINING']
       # skip air loops that serve non-applicable space types and warn user
       if thermal_zone_names_to_exclude.any? { |word| thermal_zone.name.to_s.include?(word) }
         runner.registerWarning("The user selected to add energy recovery to the HP-RTUs, but thermal zone #{thermal_zone.name} is a non-applicable space type for energy recovery. Any existing energy recovery will remain for consistancy, but no new energy recovery will be added.")
