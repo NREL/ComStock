@@ -1095,14 +1095,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       new_fan.setName("#{air_loop_hvac.name} VFD Fan")
       new_fan.setMotorEfficiency(fan_mot_eff) # from Daikin Rebel E+ file
       new_fan.setFanPowerMinimumFlowRateInputMethod('Fraction')
-
-      # set fan total efficiency, which determines fan power
-      if hprtu_scenario == 'variable_speed_high_eff'
-        # new_fan.setFanTotalEfficiency(0.57) # from PNNL
-        std.fan_change_motor_efficiency(new_fan, fan_mot_eff)
-      else
-        new_fan.setFanTotalEfficiency(0.63) # from PNNL
-      end
+      std.fan_change_motor_efficiency(new_fan, fan_mot_eff)
       new_fan.setFanPowerCoefficient1(0.259905264) # from Daikin Rebel E+ file
       new_fan.setFanPowerCoefficient2(-1.569867715) # from Daikin Rebel E+ file
       new_fan.setFanPowerCoefficient3(4.819732387) # from Daikin Rebel E+ file
