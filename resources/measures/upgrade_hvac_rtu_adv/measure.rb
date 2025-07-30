@@ -124,48 +124,40 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     combined_data
   end
 
-  # Loads a curve from JSON and adds it to the model if not already present.
-  def model_add_curve(model, curve_name, standards_data_curve, std)
-    # First check model and return curve if it already exists
-    existing_curves = []
-    existing_curves += model.getCurveLinears
-    existing_curves += model.getCurveCubics
-    existing_curves += model.getCurveQuadratics
-    existing_curves += model.getCurveBicubics
-    existing_curves += model.getCurveBiquadratics
-    existing_curves += model.getCurveQuadLinears
-    existing_curves.sort.each do |curve|
-      if curve.name.get.to_s == curve_name
-        # OpenStudio.logFree(OpenStudio::Debug, 'openstudio.standards.Model', "Already added curve: #{curve_name}")
-        return curve
+  def model_add_curve(runner, model, curve_name, standards_data_curve, std, debug_verbose)
+    # Return existing curve if found
+    existing_curve = (
+      model.getCurveLinears +
+      model.getCurveCubics +
+      model.getCurveQuadratics +
+      model.getCurveBicubics +
+      model.getCurveBiquadratics +
+      model.getCurveQuadLinears
+    ).find { |curve| curve.name.get.to_s == curve_name }
+
+    if existing_curve
+      if debug_verbose
+        runner.registerInfo("--- found curve already existing from the model: #{existing_curve.name}")
       end
+      return existing_curve
     end
 
-    # OpenStudio::logFree(OpenStudio::Info, "openstudio.prototype.addCurve", "Adding curve '#{curve_name}' to the model.")
-
-    # Find curve data
+    # Find curve data from JSON
     data = std.model_find_object(standards_data_curve['tables']['curves'], 'name' => curve_name)
-    if data.nil?
-      # OpenStudio.logFree(OpenStudio::Warn, 'openstudio.Model.Model', "Could not find a curve called '#{curve_name}' in the standards.")
-      return nil
-    end
+    return nil unless data
 
-    # Make the correct type of curve
     case data['form']
     when 'Linear'
       curve = OpenStudio::Model::CurveLinear.new(model)
       curve.setName(data['name'])
-      curve.setCoefficient1Constant(data['coeff_1'])
-      curve.setCoefficient2x(data['coeff_2'])
-      curve.setMinimumValueofx(data['minimum_independent_variable_1']) if data['minimum_independent_variable_1']
-      curve.setMaximumValueofx(data['maximum_independent_variable_1']) if data['maximum_independent_variable_1']
-      if data['minimum_dependent_variable_output']
-        curve.setMinimumCurveOutput(data['minimum_dependent_variable_output'])
-      end
-      if data['maximum_dependent_variable_output']
-        curve.setMaximumCurveOutput(data['maximum_dependent_variable_output'])
-      end
-      curve
+      curve.setCoefficient1Constant(data['coeff_1'] || 0)
+      curve.setCoefficient2x(data['coeff_2'] || 0)
+      curve.setMinimumValueofx(data['minimum_independent_variable_1'].to_f) if data['minimum_independent_variable_1']
+      curve.setMaximumValueofx(data['maximum_independent_variable_1'].to_f) if data['maximum_independent_variable_1']
+      curve.setMinimumCurveOutput(data['minimum_dependent_variable_output'].to_f) if data['minimum_dependent_variable_output']
+      curve.setMaximumCurveOutput(data['maximum_dependent_variable_output'].to_f) if data['maximum_dependent_variable_output']
+      return curve
+
     when 'Cubic'
       curve = OpenStudio::Model::CurveCubic.new(model)
       curve.setName(data['name'])
@@ -173,136 +165,126 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       curve.setCoefficient2x(data['coeff_2'] || 0)
       curve.setCoefficient3xPOW2(data['coeff_3'] || 0)
       curve.setCoefficient4xPOW3(data['coeff_4'] || 0)
-      curve.setMinimumValueofx(data['minimum_independent_variable_1']) if data['minimum_independent_variable_1']
-      curve.setMaximumValueofx(data['maximum_independent_variable_1']) if data['maximum_independent_variable_1']
-      if data['minimum_dependent_variable_output']
-        curve.setMinimumCurveOutput(data['minimum_dependent_variable_output'])
-      end
-      if data['maximum_dependent_variable_output']
-        curve.setMaximumCurveOutput(data['maximum_dependent_variable_output'])
-      end
-      curve
+      curve.setMinimumValueofx(data['minimum_independent_variable_1'].to_f) if data['minimum_independent_variable_1']
+      curve.setMaximumValueofx(data['maximum_independent_variable_1'].to_f) if data['maximum_independent_variable_1']
+      curve.setMinimumCurveOutput(data['minimum_dependent_variable_output'].to_f) if data['minimum_dependent_variable_output']
+      curve.setMaximumCurveOutput(data['maximum_dependent_variable_output'].to_f) if data['maximum_dependent_variable_output']
+      return curve
+
     when 'Quadratic'
       curve = OpenStudio::Model::CurveQuadratic.new(model)
       curve.setName(data['name'])
-      curve.setCoefficient1Constant(data['coeff_1'])
-      curve.setCoefficient2x(data['coeff_2'])
-      curve.setCoefficient3xPOW2(data['coeff_3'])
-      curve.setMinimumValueofx(data['minimum_independent_variable_1']) if data['minimum_independent_variable_1']
-      curve.setMaximumValueofx(data['maximum_independent_variable_1']) if data['maximum_independent_variable_1']
-      if data['minimum_dependent_variable_output']
-        curve.setMinimumCurveOutput(data['minimum_dependent_variable_output'])
-      end
-      if data['maximum_dependent_variable_output']
-        curve.setMaximumCurveOutput(data['maximum_dependent_variable_output'])
-      end
-      curve
+      curve.setCoefficient1Constant(data['coeff_1'] || 0)
+      curve.setCoefficient2x(data['coeff_2'] || 0)
+      curve.setCoefficient3xPOW2(data['coeff_3'] || 0)
+      curve.setMinimumValueofx(data['minimum_independent_variable_1'].to_f) if data['minimum_independent_variable_1']
+      curve.setMaximumValueofx(data['maximum_independent_variable_1'].to_f) if data['maximum_independent_variable_1']
+      curve.setMinimumCurveOutput(data['minimum_dependent_variable_output'].to_f) if data['minimum_dependent_variable_output']
+      curve.setMaximumCurveOutput(data['maximum_dependent_variable_output'].to_f) if data['maximum_dependent_variable_output']
+      return curve
+
     when 'BiCubic'
       curve = OpenStudio::Model::CurveBicubic.new(model)
       curve.setName(data['name'])
-      curve.setCoefficient1Constant(data['coeff_1'])
-      curve.setCoefficient2x(data['coeff_2'])
-      curve.setCoefficient3xPOW2(data['coeff_3'])
-      curve.setCoefficient4y(data['coeff_4'])
-      curve.setCoefficient5yPOW2(data['coeff_5'])
-      curve.setCoefficient6xTIMESY(data['coeff_6'])
-      curve.setCoefficient7xPOW3(data['coeff_7'])
-      curve.setCoefficient8yPOW3(data['coeff_8'])
-      curve.setCoefficient9xPOW2TIMESY(data['coeff_9'])
-      curve.setCoefficient10xTIMESYPOW2(data['coeff_10'])
-      curve.setMinimumValueofx(data['minimum_independent_variable_1']) if data['minimum_independent_variable_1']
-      curve.setMaximumValueofx(data['maximum_independent_variable_1']) if data['maximum_independent_variable_1']
-      curve.setMinimumValueofy(data['minimum_independent_variable_2']) if data['minimum_independent_variable_2']
-      curve.setMaximumValueofy(data['maximum_independent_variable_2']) if data['maximum_independent_variable_2']
-      if data['minimum_dependent_variable_output']
-        curve.setMinimumCurveOutput(data['minimum_dependent_variable_output'])
-      end
-      if data['maximum_dependent_variable_output']
-        curve.setMaximumCurveOutput(data['maximum_dependent_variable_output'])
-      end
-      curve
+      curve.setCoefficient1Constant(data['coeff_1'] || 0)
+      curve.setCoefficient2x(data['coeff_2'] || 0)
+      curve.setCoefficient3xPOW2(data['coeff_3'] || 0)
+      curve.setCoefficient4y(data['coeff_4'] || 0)
+      curve.setCoefficient5yPOW2(data['coeff_5'] || 0)
+      curve.setCoefficient6xTIMESY(data['coeff_6'] || 0)
+      curve.setCoefficient7xPOW3(data['coeff_7'] || 0)
+      curve.setCoefficient8yPOW3(data['coeff_8'] || 0)
+      curve.setCoefficient9xPOW2TIMESY(data['coeff_9'] || 0)
+      curve.setCoefficient10xTIMESYPOW2(data['coeff_10'] || 0)
+      curve.setMinimumValueofx(data['minimum_independent_variable_1'].to_f) if data['minimum_independent_variable_1']
+      curve.setMaximumValueofx(data['maximum_independent_variable_1'].to_f) if data['maximum_independent_variable_1']
+      curve.setMinimumValueofy(data['minimum_independent_variable_2'].to_f) if data['minimum_independent_variable_2']
+      curve.setMaximumValueofy(data['maximum_independent_variable_2'].to_f) if data['maximum_independent_variable_2']
+      curve.setMinimumCurveOutput(data['minimum_dependent_variable_output'].to_f) if data['minimum_dependent_variable_output']
+      curve.setMaximumCurveOutput(data['maximum_dependent_variable_output'].to_f) if data['maximum_dependent_variable_output']
+      return curve
+
     when 'BiQuadratic'
       curve = OpenStudio::Model::CurveBiquadratic.new(model)
       curve.setName(data['name'])
-      curve.setCoefficient1Constant(data['coeff_1'])
-      curve.setCoefficient2x(data['coeff_2'])
-      curve.setCoefficient3xPOW2(data['coeff_3'])
-      curve.setCoefficient4y(data['coeff_4'])
-      curve.setCoefficient5yPOW2(data['coeff_5'])
-      curve.setCoefficient6xTIMESY(data['coeff_6'])
-      curve.setMinimumValueofx(data['minimum_independent_variable_1']) if data['minimum_independent_variable_1']
-      curve.setMaximumValueofx(data['maximum_independent_variable_1']) if data['maximum_independent_variable_1']
-      curve.setMinimumValueofy(data['minimum_independent_variable_2']) if data['minimum_independent_variable_2']
-      curve.setMaximumValueofy(data['maximum_independent_variable_2']) if data['maximum_independent_variable_2']
-      if data['minimum_dependent_variable_output']
-        curve.setMinimumCurveOutput(data['minimum_dependent_variable_output'])
-      end
-      if data['maximum_dependent_variable_output']
-        curve.setMaximumCurveOutput(data['maximum_dependent_variable_output'])
-      end
-      curve
+      curve.setCoefficient1Constant(data['coeff_1'] || 0)
+      curve.setCoefficient2x(data['coeff_2'] || 0)
+      curve.setCoefficient3xPOW2(data['coeff_3'] || 0)
+      curve.setCoefficient4y(data['coeff_4'] || 0)
+      curve.setCoefficient5yPOW2(data['coeff_5'] || 0)
+      curve.setCoefficient6xTIMESY(data['coeff_6'] || 0)
+      curve.setMinimumValueofx(data['minimum_independent_variable_1'].to_f) if data['minimum_independent_variable_1']
+      curve.setMaximumValueofx(data['maximum_independent_variable_1'].to_f) if data['maximum_independent_variable_1']
+      curve.setMinimumValueofy(data['minimum_independent_variable_2'].to_f) if data['minimum_independent_variable_2']
+      curve.setMaximumValueofy(data['maximum_independent_variable_2'].to_f) if data['maximum_independent_variable_2']
+      curve.setMinimumCurveOutput(data['minimum_dependent_variable_output'].to_f) if data['minimum_dependent_variable_output']
+      curve.setMaximumCurveOutput(data['maximum_dependent_variable_output'].to_f) if data['maximum_dependent_variable_output']
+      return curve
+
     when 'BiLinear'
       curve = OpenStudio::Model::CurveBiquadratic.new(model)
       curve.setName(data['name'])
-      curve.setCoefficient1Constant(data['coeff_1'])
-      curve.setCoefficient2x(data['coeff_2'])
-      curve.setCoefficient4y(data['coeff_3'])
-      curve.setMinimumValueofx(data['minimum_independent_variable_1']) if data['minimum_independent_variable_1']
-      curve.setMaximumValueofx(data['maximum_independent_variable_1']) if data['maximum_independent_variable_1']
-      curve.setMinimumValueofy(data['minimum_independent_variable_2']) if data['minimum_independent_variable_2']
-      curve.setMaximumValueofy(data['maximum_independent_variable_2']) if data['maximum_independent_variable_2']
-      if data['minimum_dependent_variable_output']
-        curve.setMinimumCurveOutput(data['minimum_dependent_variable_output'])
-      end
-      if data['maximum_dependent_variable_output']
-        curve.setMaximumCurveOutput(data['maximum_dependent_variable_output'])
-      end
-      curve
+      curve.setCoefficient1Constant(data['coeff_1'] || 0)
+      curve.setCoefficient2x(data['coeff_2'] || 0)
+      curve.setCoefficient4y(data['coeff_3'] || 0)
+      curve.setMinimumValueofx(data['minimum_independent_variable_1'].to_f) if data['minimum_independent_variable_1']
+      curve.setMaximumValueofx(data['maximum_independent_variable_1'].to_f) if data['maximum_independent_variable_1']
+      curve.setMinimumValueofy(data['minimum_independent_variable_2'].to_f) if data['minimum_independent_variable_2']
+      curve.setMaximumValueofy(data['maximum_independent_variable_2'].to_f) if data['maximum_independent_variable_2']
+      curve.setMinimumCurveOutput(data['minimum_dependent_variable_output'].to_f) if data['minimum_dependent_variable_output']
+      curve.setMaximumCurveOutput(data['maximum_dependent_variable_output'].to_f) if data['maximum_dependent_variable_output']
+      return curve
+
     when 'QuadLinear'
       curve = OpenStudio::Model::CurveQuadLinear.new(model)
       curve.setName(data['name'])
-      curve.setCoefficient1Constant(data['coeff_1'])
-      curve.setCoefficient2w(data['coeff_2'])
-      curve.setCoefficient3x(data['coeff_3'])
-      curve.setCoefficient4y(data['coeff_4'])
-      curve.setCoefficient5z(data['coeff_5'])
-      curve.setMinimumValueofw(data['minimum_independent_variable_w'])
-      curve.setMaximumValueofw(data['maximum_independent_variable_w'])
-      curve.setMinimumValueofx(data['minimum_independent_variable_x'])
-      curve.setMaximumValueofx(data['maximum_independent_variable_x'])
-      curve.setMinimumValueofy(data['minimum_independent_variable_y'])
-      curve.setMaximumValueofy(data['maximum_independent_variable_y'])
-      curve.setMinimumValueofz(data['minimum_independent_variable_z'])
-      curve.setMaximumValueofz(data['maximum_independent_variable_z'])
-      curve.setMinimumCurveOutput(data['minimum_dependent_variable_output'])
-      curve.setMaximumCurveOutput(data['maximum_dependent_variable_output'])
-      curve
+      curve.setCoefficient1Constant(data['coeff_1'] || 0)
+      curve.setCoefficient2w(data['coeff_2'] || 0)
+      curve.setCoefficient3x(data['coeff_3'] || 0)
+      curve.setCoefficient4y(data['coeff_4'] || 0)
+      curve.setCoefficient5z(data['coeff_5'] || 0)
+      curve.setMinimumValueofw(data['minimum_independent_variable_w'].to_f)
+      curve.setMaximumValueofw(data['maximum_independent_variable_w'].to_f)
+      curve.setMinimumValueofx(data['minimum_independent_variable_x'].to_f)
+      curve.setMaximumValueofx(data['maximum_independent_variable_x'].to_f)
+      curve.setMinimumValueofy(data['minimum_independent_variable_y'].to_f)
+      curve.setMaximumValueofy(data['maximum_independent_variable_y'].to_f)
+      curve.setMinimumValueofz(data['minimum_independent_variable_z'].to_f)
+      curve.setMaximumValueofz(data['maximum_independent_variable_z'].to_f)
+      curve.setMinimumCurveOutput(data['minimum_dependent_variable_output'].to_f)
+      curve.setMaximumCurveOutput(data['maximum_dependent_variable_output'].to_f)
+      return curve
+
     when 'MultiVariableLookupTable'
       num_ind_var = data['number_independent_variables'].to_i
       table = OpenStudio::Model::TableLookup.new(model)
       table.setName(data['name'])
       table.setNormalizationDivisor(data['normalization_reference'].to_f)
       table.setOutputUnitType(data['output_unit_type'])
-      data_points = data.each.select { |key, _value| key.include? 'data_point' }
-      data_points = data_points.sort_by { |item| item[1].split(',').map(&:to_f) } # sorting data in ascending order
-      data_points.each do |_key, value|
-        var_dep = value.split(',')[num_ind_var].to_f
-        table.addOutputValue(var_dep)
+
+      data_points = data.select { |k, _| k.include?('data_point') }
+                        .sort_by { |_, v| v.split(',').map(&:to_f) }
+
+      data_points.each do |_, v|
+        table.addOutputValue(v.split(',')[num_ind_var].to_f)
       end
+
       num_ind_var.times do |i|
-        table_indvar = OpenStudio::Model::TableIndependentVariable.new(model)
-        table_indvar.setName(data['name'] + "_ind_#{i + 1}")
-        table_indvar.setInterpolationMethod(data['interpolation_method'])
-        table_indvar.setMinimumValue(data["minimum_independent_variable_#{i + 1}"].to_f)
-        table_indvar.setMaximumValue(data["maximum_independent_variable_#{i + 1}"].to_f)
-        table_indvar.setUnitType(data["input_unit_type_x#{i + 1}"].to_s)
-        var_ind_unique = data_points.map { |_key, value| value.split(',')[i].to_f }.uniq
-        var_ind_unique.each { |var_ind| table_indvar.addValue(var_ind) }
-        table.addIndependentVariable(table_indvar)
+        ivar = OpenStudio::Model::TableIndependentVariable.new(model)
+        ivar.setName("#{data['name']}_ind_#{i + 1}")
+        ivar.setInterpolationMethod(data['interpolation_method'])
+        ivar.setMinimumValue(data["minimum_independent_variable_#{i + 1}"].to_f)
+        ivar.setMaximumValue(data["maximum_independent_variable_#{i + 1}"].to_f)
+        ivar.setUnitType(data["input_unit_type_x#{i + 1}"])
+        unique_vals = data_points.map { |_, val| val.split(',')[i].to_f }.uniq
+        unique_vals.each { |v| ivar.addValue(v) }
+        table.addIndependentVariable(ivar)
       end
-      table
+
+      return table
     end
   end
+
 
   # Returns the curve object based on curve type, unit size, and operation stage.
   def get_curve_name(runner, type, reference_capacity, operation_stage, debug_verbose)
@@ -1184,11 +1166,13 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil.setLatentCapacityTimeConstant(45)
       new_dx_cooling_coil.setEnergyPartLoadFractionCurve(
         model_add_curve(
-            model,
-            get_curve_name(runner, 'eir_fn_of_plr', orig_clg_coil_gross_cap, 'rated', debug_verbose),
-            custom_performance_map_data,
-            std
-          )
+          runner,
+          model,
+          get_curve_name(runner, 'eir_fn_of_plr', orig_clg_coil_gross_cap, 'rated', debug_verbose),
+          custom_performance_map_data,
+          std,
+          debug_verbose
+        )
       )
 
       # define rated to lower stage ratios: low, medium, high stages
@@ -1221,34 +1205,42 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
         dx_coil_speed_data.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
         dx_coil_speed_data.setTotalCoolingCapacityFunctionofTemperatureCurve(
           model_add_curve(
+            runner,
             model,
             get_curve_name(runner, 'capacity_fn_of_t', reference_capacity_w, stage, debug_verbose),
             custom_performance_map_data,
-            std
+            std,
+            debug_verbose
           )
         )
         dx_coil_speed_data.setTotalCoolingCapacityFunctionofAirFlowFractionCurve(
           model_add_curve(
+            runner,
             model,
             get_curve_name(runner, 'capacity_fn_of_ff', reference_capacity_w, stage, debug_verbose),
             custom_performance_map_data,
-            std
+            std,
+            debug_verbose
           )
         )
         dx_coil_speed_data.setEnergyInputRatioFunctionofTemperatureCurve(
           model_add_curve(
+            runner,
             model,
             get_curve_name(runner, 'eir_fn_of_t', reference_capacity_w, stage, debug_verbose),
             custom_performance_map_data,
-            std
+            std,
+            debug_verbose
           )
         )
         dx_coil_speed_data.setEnergyInputRatioFunctionofAirFlowFractionCurve(
           model_add_curve(
+            runner,
             model,
             get_curve_name(runner, 'eir_fn_of_ff', reference_capacity_w, stage, debug_verbose),
             custom_performance_map_data,
-            std
+            std,
+            debug_verbose
           )
         )
 
