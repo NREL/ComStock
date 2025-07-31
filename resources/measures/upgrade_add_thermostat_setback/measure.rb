@@ -14,12 +14,12 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
 
   # human readable description
   def description
-    return ''
+    return 'This measure implements thermostat setbacks during unoccupied periods.'
   end
 
   # human readable description of modeling approach
   def modeler_description
-    return ''
+    return 'This measure implements thermostat setbacks during unoccupied periods.'
   end
 
   # define the arguments that the user will input
@@ -106,10 +106,7 @@ def mod_schedule(model, runner, tstat_sched, sched_zone_occ, type, setback_val, 
 		next
 	  end
       if type == 'heating' #is going in here 
-	    if opt_start_type != 'None' and sch_zone_occ_annual_profile[idx].zero? and hours_to_occ(runner, sch_zone_occ_annual_profile, idx)<= 3 #handle optimum start if timestep is unoccupied and a few hours before occupancy	   
-            if idx <50 
-               runner.registerInfo("112") 
-            end 			   
+	    if opt_start_type != 'None' and sch_zone_occ_annual_profile[idx].zero? and hours_to_occ(runner, sch_zone_occ_annual_profile, idx)<= 3 #handle optimum start if timestep is unoccupied and a few hours before occupancy	   			   
 		    hours = hours_to_occ(runner, sch_zone_occ_annual_profile, idx) 
 			delta_per_hour = setback_val/hours #hours reflects time to ocucpancy 
 			schedule_annual_profile_updated[idx] = [max_value - setback_val  + delta_per_hour, lim_value].max 
@@ -121,11 +118,16 @@ def mod_schedule(model, runner, tstat_sched, sched_zone_occ, type, setback_val, 
 												 end
 	    end 
 	 elsif type == 'cooling'
-	    schedule_annual_profile_updated[idx] = if sch_zone_occ_annual_profile[idx].zero? #If unoccupied, apply setback 
+	    if opt_start_type != 'None' and sch_zone_occ_annual_profile[idx].zero? and hours_to_occ(runner, sch_zone_occ_annual_profile, idx)<= 3 #handle optimum start if timestep is unoccupied and a few hours before occupancy	   			   
+		    hours = hours_to_occ(runner, sch_zone_occ_annual_profile, idx) 
+			delta_per_hour = setback_val/hours #hours reflects time to ocucpancy 
+			schedule_annual_profile_updated[idx] = [min_value + setback_val  - delta_per_hour, lim_value].min
+	    else
+		schedule_annual_profile_updated[idx] = if sch_zone_occ_annual_profile[idx].zero? #If unoccupied, apply setback 
 												   [min_value + setback_val, lim_value].min 
 												 else
 												   min_value # keeping same setback regime
-												 end
+		end 									 end
      end 
 	    
 	end
