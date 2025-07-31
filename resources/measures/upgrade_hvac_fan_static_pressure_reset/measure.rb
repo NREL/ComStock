@@ -20,6 +20,63 @@ class FanStaticPressureReset < OpenStudio::Measure::ModelMeasure
   def modeler_description
     return 'Replace this text with an explanation for the energy modeler specifically.  It should explain how the measure is modeled, including any requirements about how the baseline model must be set up, major assumptions, citations of references to applicable modeling resources, etc.  The energy modeler should be able to read this description and understand what changes the measure is making to the model and why these changes are being made.  Because the Modeler Description is written for an expert audience, using common abbreviations for brevity is good practice.'
   end
+  
+ def vav_terminals?(air_loop_hvac)
+    air_loop_hvac.thermalZones.each do |thermal_zone| #iterate thru thermal zones and modify zone-level terminal units
+	  thermal_zone.equipment.each do |equip|
+	    if equip.to_AirTerminalSingleDuctVAVHeatAndCoolNoReheat.is_initialized
+          return true
+		elsif equip.to_AirTerminalSingleDuctVAVHeatAndCoolReheat.is_initialized
+          return true
+		elsif equip.to_AirTerminalSingleDuctVAVReheat.is_initialized
+          return true
+		elsif equip.to_AirTerminalSingleDuctVAVNoReheat.is_initialized
+          return true
+	    elsif equip.to_AirTerminalDualDuctVAV.is_initialized
+	      return true
+		elsif equip.to_AirTerminalDualDuctVAVOutdoorAir.is_initialized
+		  return true
+		else
+		  next
+		end
+	    end
+	end
+	  return false #if no VAV terminals found on the air loop
+  end
+  
+   def air_loop_res?(air_loop_hvac)
+    is_res_system = true
+    air_loop_hvac.supplyComponents.each do |component|
+      obj_type = component.iddObjectType.valueName.to_s
+      case obj_type
+      when 'OS_AirLoopHVAC_OutdoorAirSystem'
+        is_res_system = false
+      end
+    end
+    return is_res_system
+  end
+
+  # Determine if is evaporative cooler
+  def air_loop_evaporative_cooler?(air_loop_hvac)
+    is_evap = false
+    air_loop_hvac.supplyComponents.each do |component|
+      obj_type = component.iddObjectType.valueName.to_s
+      case obj_type
+      when 'OS_EvaporativeCooler_Direct_ResearchSpecial', 'OS_EvaporativeCooler_Indirect_ResearchSpecial', 'OS_EvaporativeFluidCooler_SingleSpeed', 'OS_EvaporativeFluidCooler_TwoSpeed'
+        is_evap = true
+      end
+    end
+    return is_evap
+  end
+  
+ def air_loop_doas?(air_loop_hvac)
+    is_doas = false
+    sizing_system = air_loop_hvac.sizingSystem
+    if sizing_system.allOutdoorAirinCooling && sizing_system.allOutdoorAirinHeating && (air_loop_res?(air_loop_hvac) == false) && (air_loop_hvac.name.to_s.include?("DOAS") || air_loop_hvac.name.to_s.include?("doas"))
+      is_doas = true
+    end
+    return is_doas
+end
 
   # define the arguments that the user will input
   def arguments(model)
