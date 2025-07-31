@@ -34,6 +34,10 @@
 # *******************************************************************************
 require 'openstudio'
 require 'openstudio-standards'
+require 'json'
+require 'open3'
+require 'csv'
+require 'time'
 
 # TODO:
 # add sizing routine (prescriptive service water heating? 60% of simultaneous load?)
@@ -211,6 +215,14 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
 
     # build standards object to access standards methods
     std = Standard.build('90.1-2013')
+	
+	#Set parameter values for sizing
+	hrc_cost = 500 #$/ton, rough estimate to be refined
+	base_boiler_eff = 0.8
+	base_shw_eff = 0.8 
+	hrc_cop = 5.0 #to be refined based on actual equipment and part load value 
+	base_chiller_cop = 5.9 #AA TODO: look up by capacity and IPLV 
+	
 
     # check the cooling_loop_name argument for reasonableness and assign chilled water loop
     chilled_water_loop = nil
@@ -635,7 +647,18 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
       var.setKeyValue('Hot Water Loop Pump Outlet Water Node')
       var.setReportingFrequency('Timestep')
 	  
+	  end 
 	  
+	  #Add vars for sizing 
+	  
+	  var = OpenStudio::Model::OutputVariable.new('Plant Supply Side Cooling Demand Rate', model)
+      var.setKeyValue('*')
+      var.setReportingFrequency('Timestep')
+	  
+	  var = OpenStudio::Model::OutputVariable.new('Plant Supply Side Heating Demand Rate', model)
+      var.setKeyValue('*')
+      var.setReportingFrequency('Timestep')
+	 
 	  # #Create hash of vars to add
 	  # vars = Hash.new
 	  # vars["Heat Recovery Storage Water Heater Demand Outlet Water Node"] = ["System Node Temperature", "System Node Mass Flow Rate"] #need to structure this differently or make it a hash explicitly 
@@ -656,7 +679,6 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
 		  # var.setKeyValue(key)
 		  # var.setReportingFrequency('Timestep')
 	  # end 
-    end
     #Sizing routine for HRC
 	ann_loads_run_dir = "#{Dir.pwd}/AnnualHRCLoadsRun"
 	runner.registerInfo("pwd #{Dir.pwd}")
@@ -671,17 +693,85 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
       runner.registerInfo('Running an annual simulation to determine thermal loads for HRC.')
 	  std.model_run_simulation_and_log_errors(model, ann_loads_run_dir)
       # if std.model_run_simulation_and_log_errors(model, ann_loads_run_dir) == false
-        # runner.registerError('Sizing run failed. See errors in sizing run directory or this measure')
+        # runner.registerError('Annual run failed. See errors in sizing run directory or this measure')
         # return false
       # end
     end
 	# get timeseries output variable values
-    # check for sql file
+    #check for sql file
+    r = model.sqlFile
+    runner.registerInfo("class of model.sqlFile is: #{r.class}")
+	r.class.methods.sort.each do |m|
+		runner.registerInfo("#{m}")
+    end
     if model.sqlFile.empty?
       runner.registerError('Model did not have an sql file; cannot get loads for sizing HRC.')
       return false
     end
-    #sql = model.sqlFile.get #get swig error from this if check above is commented out 
+	
+	sql = model.sqlFile.get #get swig error from this if check above is commented out 
+	
+   # get weather file run period (as opposed to design day run period)
+    ann_env_pd = nil
+    sql.availableEnvPeriods.each do |env_pd|
+      env_type = sql.environmentType(env_pd)
+      if env_type.is_initialized && (env_type.get == OpenStudio::EnvironmentType.new('WeatherRunPeriod'))
+        ann_env_pd = env_pd
+      end
+    end
+	
+	#update to use cooling load loop name 
+    clg_loads = sql.timeSeries(ann_env_pd, 'Timestep', 'Plant Supply Side Cooling Demand Rate',
+                                     '*')
+	
+	# #get names of HHW and CHW loops 
+	
+	
+	# # add timeseries thermal loads to array
+    # chw_loads_ts = sql.timeSeries(ann_env_pd, 'Timestep', 'Plant Supply Side Cooling Demand Rate',
+                                     # chw_loop_name)
+	# hhw_loads_ts = sql.timeSeries(ann_env_pd, 'Timestep', 'Plant Supply Side Heating Demand Rate',
+                                     # hhw_loop)
+	# dhw_loads_ts = sql.timeSeries(ann_env_pd, 'Timestep', 'Plant Supply Side Heating Demand Rate',
+                                     # dhw_loop)
+	#loop_loads_float = []
+	#Placeholder
+	#can probably convert other time series results into array 
+	#loop_loads = CSV.read('C:/Users/aallen/Documents/ComStock/hrc_cli_test/test_loads.csv', headers: true, converters: :numeric)
+	#line above is causing swig error 
+	# loop_loads.each do |row|
+	    # float_value = row.to_f
+        # loop_loads_float << float_value
+
+  # end
+	# #runner.registerInfo("class #{loop_loads.class}") #array 
+	# #Calculate load overlap 
+	# htg_clg_overlap = (loop_loads['Htg'] - loop_loads['Clg'])
+	# swh_clg_overlap = (loop_loads['DHW'] - loop_loads['Clg']) 
+	# swh_clg_overlap  = swh_clg_overlap.map { |val| val.abs }
+	
+	#Sort values
+	
+	#Decide if using DHW or HHW loop 
+	
+	#Start with largest value, and then increment down thru loop 
+	
+	#Calculate energy consumption
+	
+	#Get state average rates and calculate energy cost
+	
+	#Calculate capital cost
+	
+	#Select sizing 
+	
+	
+	#Set sizing of HRC
+	
+	
+									 
+									 
+	#Calculate load overlap 
+    #
 	#End sizing routine 
   end
 end
