@@ -67,11 +67,13 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
     end
   end
   
-def hours_to_occ(sch_zone_occ_annual_profile, idx)
-    remaining_values = sch_zone_occ_annual_profile[(current_index + 1)..]
+def hours_to_occ(runner, sch_zone_occ_annual_profile, idx)
+    remaining_values = sch_zone_occ_annual_profile.to_a[(idx + 1)..] 
     next_occ_index = remaining_values.index(1) #find index of next occupied timestep 
-    hours_to_occ = next_occ_index - idx
-
+    hours_to_occ = next_occ_index + 1 #reindexed in new array 
+	if idx < 50
+	    runner.registerInfo("hours to occ #{hours_to_occ}")
+    end 
 return hours_to_occ
 
 end 
@@ -99,19 +101,18 @@ def mod_schedule(model, runner, tstat_sched, sched_zone_occ, type, setback_val, 
 	  #skip time steps with optimum start if not changing current optimum start 
 	  # Need at least two more timesteps in the profile to perform optimum start check
 	  # Final two timesteps of year will not be optimum start, anyway
-	  if (idx < schedule_annual_profile.size - 2) && opt_start_type == 'None' && opt_start?(sch_zone_occ_annual_profile,
-																	schedule_annual_profile,
-																	min_value,
-																	max_value,
-																	idx)
+	  opt_start = opt_start?(sch_zone_occ_annual_profile, schedule_annual_profile, min_value, max_value, idx)
+	  if (idx < schedule_annual_profile.size - 2) && opt_start_type == 'None' && opt_start 
 		next
 	  end
-      if type == 'heating' 
-	    if ! opt_start_type == 'None' and hours_to_occ(sch_zone_occ_annual_profile, idx)<= 3 #handle optimum start 
-		    hours = hours_to_occ(sch_zone_occ_annual_profile, idx) 
-			total_delta = max_value - min_value
-			delta_per_hour = total_delta/3 #divide by length of opt start period 
-			schedule_annual_profile_updated[idx] = max_value - delta_per_hour*hours 
+      if type == 'heating' #is going in here 
+	    if opt_start_type != 'None' and sch_zone_occ_annual_profile[idx].zero? and hours_to_occ(runner, sch_zone_occ_annual_profile, idx)<= 3 #handle optimum start if timestep is unoccupied and a few hours before occupancy	   
+            if idx <50 
+               runner.registerInfo("112") 
+            end 			   
+		    hours = hours_to_occ(runner, sch_zone_occ_annual_profile, idx) 
+			delta_per_hour = setback_val/hours #hours reflects time to ocucpancy 
+			schedule_annual_profile_updated[idx] = [max_value - setback_val  + delta_per_hour, lim_value].max 
 	    else
 	    schedule_annual_profile_updated[idx] = if sch_zone_occ_annual_profile[idx].zero? #If unoccupied, apply setback 
 												   [max_value - setback_val, lim_value].max 
@@ -330,7 +331,7 @@ end
 		  runner.registerInfo("cooling valid #{clg_valid}") 
 		  # #modify for htg vs cooling and threshold temps 
 		  if htg_valid 
-			  if !no_people_obj && !has_htg_setback 
+			  if !no_people_obj && !has_htg_setback  
 				  new_htg_sched = mod_schedule(model, runner, htg_schedule, sch_zone_occ, 'heating', htg_setback_c, htg_min_c, opt_start_type)
 				  zone_thermostat.setHeatingSchedule(new_htg_sched)
 			  else
