@@ -9,9 +9,9 @@
                     "dependent_variable": "Capacity",
                     "independent_variable_1": "fraction of flow",
                     "independent_variable_2": null,
-                    "coeff_1": 0.7748824944540121,
-                    "coeff_2": 0.2952483791813269,
-                    "coeff_3": -0.06479154973199969,
+                    "coeff_1": 0.8736381328530746,
+                    "coeff_2": 0.13634405224988455,
+                    "coeff_3": 0.0023986326519044743,
                     "coeff_4": null,
                     "coeff_5": null,
                     "coeff_6": null,
@@ -23,8 +23,8 @@
                     "maximum_independent_variable_1": 1.538,
                     "minimum_independent_variable_2": null,
                     "maximum_independent_variable_2": null,
-                    "minimum_dependent_variable_output": 0.849,
-                    "maximum_dependent_variable_output": 1.089,
+                    "minimum_dependent_variable_output": 0.917,
+                    "maximum_dependent_variable_output": 1.113,
                     "notes": "effort from EUSS/SDR project for the high-efficiency RTU upgrade"
                 }
             ]
